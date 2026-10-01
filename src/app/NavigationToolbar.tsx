@@ -37,8 +37,8 @@ const MODES: Array<{ value: MiddleDrag; label: string; title: string; icon: Reac
 const VIEW_MODES: Array<{ value: ViewMode; label: string; title: string; icon: ReactElement }> = [
   {
     value: 'top',
-    label: 'Dessus',
-    title: 'Vue de dessus, comme draw.io (touche I pour basculer)',
+    label: '2D',
+    title: 'Vue 2D, à plat comme draw.io (touche I pour basculer)',
     icon: <path d="M2.5 2.5h11v11h-11zM2.5 8h11M8 2.5v11" />,
   },
   {

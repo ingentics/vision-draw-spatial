@@ -67,7 +67,7 @@ export function IsoSettings({ value, onChange }: IsoSettingsProps) {
         />
         <span className="range-hints muted">
           <span>rasante</span>
-          <span>vue de dessus</span>
+          <span>vue 2D</span>
         </span>
       </label>
       <button

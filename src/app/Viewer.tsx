@@ -134,7 +134,7 @@ export function Viewer({ file, onShowFiles, settings, onSettingsChange, onResetS
       });
       instance.on('cameraChange', (camera) => {
         // Arrondi au degré : pas de rendu React à chaque image tant que l'angle affiché ne change pas.
-        // Écart à l'orientation de référence du mode (0° en dessus, orientation iso en iso).
+        // Écart à l'orientation de référence du mode (0° en 2D, orientation iso en iso).
         const deviation = camera.rotation - instance.getReferenceRotation();
         setRotationDeg(Math.round((Math.atan2(Math.sin(deviation), Math.cos(deviation)) * 180) / Math.PI) || 0);
         setNorthDeg(Math.round((camera.rotation * 180) / Math.PI) || 0);

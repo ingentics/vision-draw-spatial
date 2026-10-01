@@ -32,7 +32,7 @@ export interface ViewSettings {
    * gauche), 0 = simple inclinaison.
    */
   isoAzimuthDeg: number;
-  /** Durée de la bascule dessus ↔ iso. */
+  /** Durée de la bascule 2D ↔ iso. */
   switchDurationMs: number;
 }
 

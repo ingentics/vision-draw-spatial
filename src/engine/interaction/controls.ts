@@ -13,7 +13,7 @@ import type { CameraState, Viewport } from './camera';
  * Le déplacement, lui, reste par position physique (`code`) : ZQSD = WASD.
  */
 export interface Shortcuts {
-  /** Bascule dessus ↔ iso. */
+  /** Bascule 2D ↔ iso. */
   toggleViewMode: string;
   /** Vue graphe ↔ dernière page. */
   toggleGraph: string;
@@ -171,7 +171,7 @@ export interface CameraHost {
   hover?(screen: Point | undefined): void;
   /** Retour (Retour arrière, Alt+←). */
   back?(): void;
-  /** Bascule vue de dessus ↔ iso (touche I). */
+  /** Bascule vue 2D ↔ iso (touche I). */
   toggleViewMode?(): void;
   /** Affiche / masque la mini-carte (touche M). */
   toggleMinimap?(): void;

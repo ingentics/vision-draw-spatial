@@ -14,7 +14,7 @@ interface SettingsPanelProps {
 }
 
 const SHORTCUT_LABELS: Record<keyof Shortcuts, string> = {
-  toggleViewMode: 'Basculer dessus ↔ iso',
+  toggleViewMode: 'Basculer 2D ↔ iso',
   toggleGraph: 'Vue graphe ↔ dernière page',
   toggleMinimap: 'Afficher / masquer la mini-carte',
   overview: 'Vue globale ↔ 1:1',
@@ -94,13 +94,13 @@ export function SettingsPanel({ settings, onChange, onReset, onClose }: Settings
             label="Mode à l’ouverture"
             value={view.defaultMode}
             options={[
-              ['top', 'Dessus'],
+              ['top', '2D'],
               ['iso', 'Iso'],
             ]}
             onChange={(defaultMode) => onChange({ view: { defaultMode } })}
           />
           <Slider
-            label="Durée de la bascule dessus ↔ iso"
+            label="Durée de la bascule 2D ↔ iso"
             value={view.switchDurationMs}
             limits={SETTINGS_LIMITS['view.switchDurationMs']}
             format={(v) => (v === 0 ? 'instantanée' : `${v} ms`)}
