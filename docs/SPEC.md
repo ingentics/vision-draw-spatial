@@ -211,6 +211,14 @@ interface FileStore {
 - À la réouverture d'un fichier récent : on restaure **la dernière page active** et **la position de caméra de chaque page** (position, zoom, mode, inclinaison).
 - La position de caméra est sauvegardée de manière débouncée (ex. 500 ms après le dernier mouvement) et à la fermeture.
 
+Réalisation retenue :
+
+- `StoredFile` contient aussi la **pile de navigation** (`history`) et l'**usage des liens** (`linkUsage`, SPEC §11.3) : rouvrir un fichier rend aussi le bouton « Retour » tel qu'on l'avait laissé.
+- Sauvegarde 500 ms après le dernier changement (caméra, page, historique, lien suivi), et immédiatement en revenant au lanceur, en masquant ou en fermant l'onglet.
+- Rouvrir un fichier du disque **du même nom** met à jour son contenu et garde ses vues (pratique après une modification dans draw.io). Deux fichiers homonymes de dossiers différents partagent donc leur entrée : limite assumée jusqu'au `FsStore` (vrais chemins).
+- Navigateur sans IndexedDB (navigation privée stricte) : `MemoryStore`, rien n'est conservé.
+- Rechargement de l'onglet (hot reload) : le fichier ouvert dans l'onglet est rouvert directement, sans repasser par le lanceur ; nouvel onglet ou nouvelle session : lanceur.
+
 ---
 
 ## 6. Lanceur
@@ -221,6 +229,10 @@ Au démarrage :
 - bouton **« Ouvrir un fichier »** (sélecteur + glisser-déposer d'un `.drawio` / `.xml`),
 - bouton **« Nouveau fichier »** (squelette draw.io vide valide, utile surtout en M2),
 - possibilité de retirer un fichier de la liste.
+- glisser-déposer accepté **n'importe où dans la fenêtre**, lanceur comme visionneuse (cadre d'indication pendant le survol) ;
+- fichier illisible : retour au lanceur avec un message clair (« Impossible d'ouvrir « x.drawio » : XML invalide (…) ») ;
+- section **Exemples** (fixtures et fichiers de `docs/`) pendant le développement ;
+- dans la visionneuse, le nom du fichier (barre d'outils) ramène au lanceur.
 
 ---
 
@@ -450,7 +462,7 @@ Réalisation retenue :
 - **Transition inverse** : la même transition que l'aller, jouée à l'envers en un seul trajet de caméra. La page courante est posée dans la forme d'origine (image identique au départ), la caméra recule jusqu'à la vue mémorisée de la page d'origine, la page courante rétrécit et s'efface.
 - **Bouton « Retour »** (coquille React, `react/BackButton.tsx`) à gauche de la barre d'outils ; raccourcis **Retour arrière** et **Alt+←**. Infobulle indiquant la destination ; grisé s'il n'y a nulle part où revenir.
 - **Pile vide** : le haut de pile ne compte que s'il mène à la page courante ; sinon on cherche les **pages parentes** (pages ayant un lien — forme de préférence, sinon arête — vers la page courante). Un seul parent : on y remonte directement, en sortant par la forme qui porte le lien. Plusieurs : **menu** sous le bouton, trié par usage récent (« il y a 5 min », « jamais utilisé »), fermé par Échap ou clic extérieur.
-- **Usage des liens** (`from>to` → date) : enregistré à chaque lien suivi, mémorisé par fichier dans le navigateur en attendant le `FileStore` (étape 6). La pile est restaurée au rechargement en dev.
+- **Usage des liens** (`from>to` → date) : enregistré à chaque lien suivi, persisté avec le fichier dans le `FileStore` (§5), comme la pile de navigation.
 - Transitions désactivées ou `prefers-reduced-motion` : retour instantané, même pile, même vue d'arrivée.
 
 ### 11.4 Liens externes

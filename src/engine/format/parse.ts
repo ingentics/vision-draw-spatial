@@ -420,7 +420,7 @@ function parseXml(xml: string) {
   try {
     return new DOMParser({ onError: onXmlError }).parseFromString(xml, 'text/xml');
   } catch (error) {
-    throw new DrawioParseError(`XML invalide : ${errorMessage(error)}`, { cause: error });
+    throw new DrawioParseError(`XML invalide (${xmlErrorDetail(error)})`, { cause: error });
   }
 }
 
@@ -439,6 +439,13 @@ function childElements(parent: Element, tagName?: string): Element[] {
 function num(el: Element, name: string): number {
   const value = parseFloat(el.getAttribute(name) ?? '');
   return Number.isFinite(value) ? value : 0;
+}
+
+/** Détail lisible d'une erreur xmldom (« Reporting fatalError "x" caused Error: x » → « x »). */
+function xmlErrorDetail(error: unknown): string {
+  const message = errorMessage(error);
+  const detail = /caused (?:\w*Error: )?(.+)$/s.exec(message)?.[1] ?? message;
+  return detail.replace(/\s+/g, ' ').trim();
 }
 
 function errorMessage(error: unknown): string {

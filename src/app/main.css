@@ -379,3 +379,131 @@ body {
 .back-menu button:focus-visible {
   background: var(--panel);
 }
+
+/* Lanceur */
+.launcher {
+  display: flex;
+  justify-content: center;
+  min-height: 100%;
+  padding: 48px 16px;
+  box-sizing: border-box;
+  background: var(--panel);
+  overflow-y: auto;
+}
+
+.launcher-card {
+  width: min(560px, 100%);
+}
+
+.launcher h1 {
+  margin: 0 0 4px;
+  font-size: 22px;
+}
+
+.launcher h2 {
+  margin: 28px 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.launcher-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.button.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.drop-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+}
+
+.launcher-error {
+  margin: 12px 0 0;
+  padding: 8px 10px;
+  border-radius: 4px;
+  background: var(--error-bg);
+  color: var(--error-fg);
+}
+
+.file-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+}
+
+.file-list li {
+  display: flex;
+  align-items: center;
+}
+
+.file-list li + li {
+  border-top: 1px solid var(--border);
+}
+
+.file-open {
+  display: flex;
+  flex: 1;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+  padding: 10px 12px;
+  font: inherit;
+  text-align: left;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.file-open:hover,
+.file-open:focus-visible {
+  background: var(--panel);
+}
+
+.file-list.compact .file-open {
+  padding: 6px 12px;
+}
+
+.file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Bouton fichier de la visionneuse */
+.file-button {
+  max-width: 260px;
+}
+
+/* Glisser-déposer */
+.drop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(26, 115, 232, 0.08);
+  border: 3px dashed var(--accent);
+  pointer-events: none;
+}
+
+.drop-overlay div {
+  padding: 12px 20px;
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--accent);
+  font-size: 15px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}

@@ -478,6 +478,11 @@ export class Engine {
     });
   }
 
+  /** Dernière utilisation des liens entre pages du fichier (à persister). */
+  getLinkUsage(): LinkUsage {
+    return { ...this.linkUsage };
+  }
+
   /** Pile de navigation (de la plus ancienne à la plus récente entrée). */
   getHistory(): HistoryEntry[] {
     return this.history.entries();
@@ -709,6 +714,8 @@ export class Engine {
     this.controller.dispose();
     this.scenes.clear();
     this.text.dispose();
+    // Pas de forceContextLoss : le même canvas peut être repris par un nouveau moteur
+    // (double montage de React en dev). Le contexte est libéré avec le canvas.
     this.renderer.dispose();
     this.events.clear();
   }

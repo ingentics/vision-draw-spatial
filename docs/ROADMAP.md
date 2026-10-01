@@ -55,10 +55,10 @@
 - Chaque page garde sa caméra ; mémorisée aussi pour le rechargement en dev (base du `cameraByPage` de l'étape 6).
 - **Fini quand :** on bascule entre les pages d'un fichier multi-pages sans rechargement.
 
-### Étape 6 — Persistance et lanceur
-- Interface `FileStore` + `IndexedDbStore`.
-- Lanceur : fichiers récents, ouvrir (sélecteur + drag & drop), nouveau fichier.
-- Mémorisation de la caméra par page et de la dernière page active (debounce).
+### Étape 6 — Persistance et lanceur ✅
+- Interface `FileStore` + `IndexedDbStore` (+ `MemoryStore` de repli et pour les tests).
+- Lanceur : fichiers récents, ouvrir (sélecteur + glisser-déposer partout), nouveau fichier, retrait de la liste, exemples.
+- Mémorisation de la caméra par page, de la dernière page active, de la pile de navigation et de l'usage des liens (debounce 500 ms + à la fermeture).
 - **Fini quand :** en rouvrant l'application, on retrouve le fichier, la page et le point de vue exacts.
 
 ### Étape 7 — Mode isométrique
@@ -82,7 +82,7 @@
 ### Étape 10 — Retour et historique ✅
 - Pile de navigation (page, forme d'origine, caméra), transition inverse (un seul trajet de caméra).
 - Bouton « Retour » + Retour arrière / Alt+←.
-- Pile vide : menu des pages parentes triées par usage récent (persisté par fichier dans le navigateur, à migrer vers le FileStore à l'étape 6) ; un seul parent → directement.
+- Pile vide : menu des pages parentes triées par usage récent (persisté avec le fichier) ; un seul parent → directement.
 - **Fini quand :** on peut descendre de plusieurs niveaux et remonter exactement au point de départ.
 
 ### Étape 11 — Vue graphe de la documentation

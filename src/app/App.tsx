@@ -1,248 +1,135 @@
-import robotoBold from '@fontsource/roboto/files/roboto-latin-700-normal.woff?url';
-import robotoRegular from '@fontsource/roboto/files/roboto-latin-400-normal.woff?url';
-import { useCallback, useEffect, useState } from 'react';
-import type { ChangeEvent } from 'react';
-import type { UnsupportedReport } from '../engine/diagnostics/unsupportedStyles';
-import type { BackTarget, Engine } from '../engine/Engine';
-import type { ParentLink } from '../engine/interaction/history';
-import type { ControlSettings } from '../engine/interaction/controls';
-import type { DocumentModel } from '../engine/model/types';
-import { BackButton } from '../react/BackButton';
-import { DrawioSpatial } from '../react/DrawioSpatial';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { StoredFile, StoredFileMeta } from '../engine/persistence/FileStore';
+import { Launcher } from '../react/Launcher';
 import { demoFiles } from './demoFiles';
-import { clearLog, cumulativeEntries, exportJson, recordFile } from './diagnosticsLog';
-import { DiagnosticsPanel } from './DiagnosticsPanel';
-import { patchDevSession, readDevSession, writeDevSession } from './devSession';
-import { readLinkUsage, recordLinkUsage } from './linkUsage';
-import { NavigationToolbar } from './NavigationToolbar';
+import { createNewFile, importFile, openDemo, openStored, store } from './fileLibrary';
+import { getCurrentFileId, setCurrentFileId } from './tabSession';
+import { Viewer } from './Viewer';
 
-const FONTS = { regular: robotoRegular, bold: robotoBold };
-const DEFAULT_FILE = demoFiles.find((f) => f.name === 'docs/test.drawio') ?? demoFiles[0];
-const CAMERA_SAVE_DELAY_MS = 300;
-const MIDDLE_DRAG_KEY = 'drawio-spatial:middle-drag';
+const EXAMPLES = demoFiles.map(({ id, name }) => ({ id, name }));
 
-/** Préférence du navigateur (en attendant le panneau de paramètres, étape 12). */
-function readMiddleDrag(): ControlSettings['middleDrag'] {
-  try {
-    return localStorage.getItem(MIDDLE_DRAG_KEY) === 'rotate' ? 'rotate' : 'pan';
-  } catch {
-    return 'pan';
-  }
-}
-
-function writeMiddleDrag(mode: ControlSettings['middleDrag']): void {
-  try {
-    localStorage.setItem(MIDDLE_DRAG_KEY, mode);
-  } catch {
-    // Stockage indisponible : le choix vaut pour la session seulement.
-  }
-}
-
-interface OpenFile {
-  id: string;
-  xml: string;
-}
-
-/** Fichier de la session précédente (rechargement de page), sinon le fichier par défaut. */
-function initialFile(): OpenFile | undefined {
-  const session = readDevSession();
-  if (session?.xml) return { id: session.fileId, xml: session.xml };
-  return demoFiles.find((f) => f.id === session?.fileId) ?? DEFAULT_FILE;
-}
-
-function openFile(file: OpenFile, local: boolean): OpenFile {
-  writeDevSession({ fileId: file.id, xml: local ? file.xml : undefined });
-  return file;
-}
-
+/** Application de démonstration : lanceur (SPEC §6) ou visionneuse du fichier ouvert. */
 export function App() {
-  const [file, setFile] = useState<OpenFile | undefined>(initialFile);
-  // Vue restaurée une seule fois, au premier chargement après un rechargement de page.
-  const [initialView] = useState(() => {
-    const session = readDevSession();
-    return session
-      ? {
-          fileId: session.fileId,
-          pageId: session.pageId,
-          cameraByPage: session.cameraByPage,
-          history: session.history,
-        }
-      : undefined;
-  });
-  const [engine, setEngine] = useState<Engine>();
-  const [document, setDocument] = useState<DocumentModel>();
-  const [pageId, setPageId] = useState<string>();
+  const [current, setCurrent] = useState<StoredFile>();
+  const [recents, setRecents] = useState<StoredFileMeta[]>([]);
   const [error, setError] = useState<string>();
-  const [middleDrag, setMiddleDrag] = useState(readMiddleDrag);
-  const [rotationDeg, setRotationDeg] = useState(0);
-  const [report, setReport] = useState<UnsupportedReport>();
-  const [cumulative, setCumulative] = useState(cumulativeEntries);
-  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
-  const [backTarget, setBackTarget] = useState<BackTarget>({ kind: 'none' });
-  const [backChoices, setBackChoices] = useState<ParentLink[]>();
+  const [ready, setReady] = useState(false);
+  const [dragging, setDragging] = useState(false);
 
-  useEffect(() => {
-    engine?.setControls({ middleDrag });
-  }, [engine, middleDrag]);
-
-  const changeMiddleDrag = (mode: ControlSettings['middleDrag']) => {
-    setMiddleDrag(mode);
-    writeMiddleDrag(mode);
-  };
-
-  const handleEngine = useCallback((instance: Engine | undefined) => {
-    setEngine(instance);
-    // Accès au moteur depuis la console du navigateur, en dev uniquement.
-    if (import.meta.env.DEV) (window as unknown as { engine?: Engine }).engine = instance;
-    if (!instance) return;
-    instance.on('load', (doc, fileId) => {
-      setDocument(doc);
-      setError(undefined);
-      const unsupported = instance.getUnsupportedReport();
-      setReport(unsupported);
-      if (unsupported) {
-        recordFile(fileId, fileId.split('/').pop() ?? fileId, unsupported);
-        setCumulative(cumulativeEntries());
-      }
-    });
-    const refreshBack = () => setBackTarget(instance.getBackTarget());
-    instance.on('transitionEnd', refreshBack);
-    instance.on('historyChange', (history) => {
-      refreshBack();
-      const fileId = instance.getFileId();
-      if (fileId) patchDevSession(fileId, { history });
-    });
-    instance.on('linkUsed', (from, to, at) => {
-      const fileId = instance.getFileId();
-      if (fileId) recordLinkUsage(fileId, from, to, at);
-    });
-    instance.on('backChoice', setBackChoices);
-    instance.on('pageChange', (page) => {
-      setPageId(page.id);
-      setBackChoices(undefined);
-      refreshBack();
-      const fileId = instance.getFileId();
-      if (fileId) patchDevSession(fileId, { pageId: page.id });
-    });
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    // Caméras par page enregistrées après un court délai (pas à chaque image d'un déplacement).
-    instance.on('cameraChange', (camera) => {
-      // Arrondi au degré : pas de rendu React à chaque image tant que l'angle affiché ne change pas.
-      setRotationDeg(Math.round((camera.rotation * 180) / Math.PI) || 0);
-      clearTimeout(timer);
-      timer = setTimeout(() => {
-        const fileId = instance.getFileId();
-        if (fileId) patchDevSession(fileId, { cameraByPage: instance.getPageCameras() });
-      }, CAMERA_SAVE_DELAY_MS);
-    });
+  const refreshRecents = useCallback(() => {
+    store.listRecent().then(setRecents, () => setRecents([]));
   }, []);
 
-  const pickDemo = (event: ChangeEvent<HTMLSelectElement>) => {
-    const demo = demoFiles.find((f) => f.id === event.target.value);
-    if (demo) setFile(openFile(demo, false));
+  const show = useCallback((file: StoredFile) => {
+    setError(undefined);
+    setCurrentFileId(file.id);
+    setCurrent(file);
+  }, []);
+
+  /** Ouvre un fichier ; en cas d'échec, revient au lanceur avec le message. */
+  const open = useCallback(
+    async (label: string, task: () => Promise<StoredFile | undefined>) => {
+      try {
+        const file = await task();
+        if (file) show(file);
+      } catch (cause) {
+        setCurrent(undefined);
+        setCurrentFileId(undefined);
+        setError(`Impossible d’ouvrir « ${label} » : ${cause instanceof Error ? cause.message : String(cause)}`);
+        refreshRecents();
+      }
+    },
+    [show, refreshRecents],
+  );
+
+  const openFromDisk = useCallback(
+    (file: File) => void open(file.name, async () => importFile(file.name, await file.text())),
+    [open],
+  );
+
+  // Au démarrage : le fichier de cet onglet s'il y en a un (rechargement), sinon le lanceur.
+  useEffect(() => {
+    const id = getCurrentFileId();
+    const restore = id ? openStored(id).catch(() => undefined) : Promise.resolve(undefined);
+    void restore.then((file) => {
+      if (file) show(file);
+      else {
+        setCurrentFileId(undefined);
+        refreshRecents();
+      }
+      setReady(true);
+    });
+  }, [show, refreshRecents]);
+
+  // Glisser-déposer d'un fichier n'importe où dans la fenêtre (lanceur comme visionneuse).
+  const depth = useRef(0);
+  useEffect(() => {
+    const hasFiles = (event: DragEvent) => event.dataTransfer?.types.includes('Files') ?? false;
+    const onEnter = (event: DragEvent) => {
+      if (!hasFiles(event)) return;
+      depth.current++;
+      setDragging(true);
+    };
+    const onLeave = (event: DragEvent) => {
+      if (!hasFiles(event)) return;
+      depth.current = Math.max(0, depth.current - 1);
+      if (depth.current === 0) setDragging(false);
+    };
+    const onOver = (event: DragEvent) => {
+      if (hasFiles(event)) event.preventDefault();
+    };
+    const onDrop = (event: DragEvent) => {
+      if (!hasFiles(event)) return;
+      event.preventDefault();
+      depth.current = 0;
+      setDragging(false);
+      const file = event.dataTransfer?.files[0];
+      if (file) openFromDisk(file);
+    };
+    window.addEventListener('dragenter', onEnter);
+    window.addEventListener('dragleave', onLeave);
+    window.addEventListener('dragover', onOver);
+    window.addEventListener('drop', onDrop);
+    return () => {
+      window.removeEventListener('dragenter', onEnter);
+      window.removeEventListener('dragleave', onLeave);
+      window.removeEventListener('dragover', onOver);
+      window.removeEventListener('drop', onDrop);
+    };
+  }, [openFromDisk]);
+
+  const showLauncher = () => {
+    setCurrentFileId(undefined);
+    setCurrent(undefined);
+    refreshRecents();
   };
 
-  const openLocal = async (event: ChangeEvent<HTMLInputElement>) => {
-    const local = event.target.files?.[0];
-    if (local) setFile(openFile({ id: `local/${local.name}`, xml: await local.text() }, true));
-    event.target.value = '';
-  };
-
-  const warnings = document?.warnings ?? [];
-  const issueCount = (report?.unsupportedElementCount ?? 0) + warnings.length;
+  if (!ready) return null;
 
   return (
-    <div className="app">
-      <header className="toolbar">
-        <BackButton
-          target={backTarget}
-          onBack={() => (backChoices ? setBackChoices(undefined) : engine?.back())}
-          choices={backChoices}
-          onChoose={(pageId) => {
-            setBackChoices(undefined);
-            engine?.backTo(pageId);
+    <>
+      {current ? (
+        <Viewer key={current.id} file={current} onShowFiles={showLauncher} />
+      ) : (
+        <Launcher
+          recents={recents}
+          examples={EXAMPLES}
+          error={error}
+          onOpenRecent={(id) => void open(recents.find((f) => f.id === id)?.name ?? id, () => openStored(id))}
+          onRemoveRecent={(id) => void store.remove(id).then(refreshRecents)}
+          onOpenFile={openFromDisk}
+          onNewFile={() => void open('Nouveau fichier', createNewFile)}
+          onOpenExample={(id) => {
+            const demo = demoFiles.find((f) => f.id === id);
+            if (demo) void open(demo.name, () => openDemo(demo));
           }}
-          onDismiss={() => setBackChoices(undefined)}
         />
-        <select value={demoFiles.some((f) => f.id === file?.id) ? file?.id : ''} onChange={pickDemo}>
-          {!demoFiles.some((f) => f.id === file?.id) && <option value="">{file?.id ?? '—'}</option>}
-          {demoFiles.map((f) => (
-            <option key={f.id} value={f.id}>
-              {f.name}
-            </option>
-          ))}
-        </select>
-        <label className="button">
-          Ouvrir…
-          <input type="file" accept=".drawio,.xml" hidden onChange={openLocal} />
-        </label>
-        <NavigationToolbar
-          middleDrag={middleDrag}
-          onMiddleDragChange={changeMiddleDrag}
-          rotationDeg={rotationDeg}
-          onResetRotation={() => engine?.resetRotation()}
-        />
-        <button
-          type="button"
-          className="button diagnostics-toggle"
-          aria-pressed={diagnosticsOpen}
-          title="Éléments non supportés et avertissements de lecture"
-          onClick={() => setDiagnosticsOpen((open) => !open)}
-        >
-          Diagnostics
-          {issueCount > 0 && <span className="pill">{issueCount}</span>}
-        </button>
-        {error && <span className="badge error">{error}</span>}
-      </header>
-
-      <div className="viewport">
-        <div className="canvas-area">
-          <DrawioSpatial
-            xml={file?.xml}
-            fileId={file?.id}
-            fonts={FONTS}
-            initialView={
-              file
-                ? {
-                    ...(initialView?.fileId === file.id ? initialView : undefined),
-                    linkUsage: readLinkUsage(file.id),
-                  }
-                : undefined
-            }
-            onEngine={handleEngine}
-            onError={(e) => setError(e instanceof Error ? e.message : String(e))}
-          />
-        </div>
-        {diagnosticsOpen && (
-          <DiagnosticsPanel
-            report={report}
-            warnings={warnings}
-            pageNames={Object.fromEntries((document?.pages ?? []).map((p) => [p.id, p.name]))}
-            cumulative={cumulative}
-            onFocus={(page, element) => engine?.focusElement(page, element)}
-            onExport={() => exportJson(file?.id, report, warnings)}
-            onClearCumulative={() => {
-              clearLog();
-              setCumulative(cumulativeEntries());
-            }}
-            onClose={() => setDiagnosticsOpen(false)}
-          />
-        )}
-      </div>
-
-      {document && document.pages.length > 1 && (
-        <nav className="tabs">
-          {document.pages.map((page) => (
-            <button
-              key={page.id}
-              className={page.id === pageId ? 'tab active' : 'tab'}
-              onClick={() => engine?.goToPage(page.id)}
-            >
-              {page.name}
-            </button>
-          ))}
-        </nav>
       )}
-    </div>
+      {dragging && (
+        <div className="drop-overlay" aria-hidden="true">
+          <div>Déposez le fichier .drawio pour l’ouvrir</div>
+        </div>
+      )}
+    </>
   );
 }

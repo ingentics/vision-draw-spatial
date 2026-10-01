@@ -248,6 +248,7 @@ describe('parseDrawio — robustesse', () => {
   it('XML invalide ou racine inconnue → DrawioParseError', () => {
     expect(() => parseDrawio('<mxfile><diagram>')).toThrow(DrawioParseError);
     expect(() => parseDrawio('pas du xml')).toThrow(DrawioParseError);
+    expect(() => parseDrawio('pas du xml')).toThrow(/^XML invalide \(missing root element\)$/);
     expect(() => parseDrawio('<html></html>')).toThrow(DrawioParseError);
   });
 
