@@ -143,7 +143,49 @@ describe('buildPageScene — formes', () => {
       if (o instanceof Mesh) o.geometry.addEventListener('dispose', () => disposed++);
     });
     scene.dispose();
-    expect(disposed).toBe(6);
+    expect(disposed).toBe(8); // 3 formes × (fond + bordure) + flèche (ligne + pointe)
+  });
+});
+
+describe('buildPageScene — arêtes', () => {
+  it('test.drawio : la flèche A → C est dessinée sous les formes', () => {
+    const { scene } = build('drawio-desktop.drawio');
+    const arrow = element(scene.root, 'Fs-0jHc4KjceeW8xsn6R-4');
+    expect(arrow.name).toBe('edge:Fs-0jHc4KjceeW8xsn6R-4');
+    const parts = arrow.children.map((c) => c.name);
+    expect(parts).toEqual(['stroke', 'fill']); // ligne + pointe classic
+    const shapeOrder = element(scene.root, 'Fs-0jHc4KjceeW8xsn6R-1').getObjectByName('fill')!.renderOrder;
+    expect(arrow.getObjectByName('stroke')!.renderOrder).toBeLessThan(shapeOrder);
+    // La pointe touche le bord gauche de C (x = 280, y = 440).
+    const tip = new Box3().setFromObject(arrow.getObjectByName('fill')!);
+    expect(tip.max.x).toBeCloseTo(280);
+    expect((tip.min.z + tip.max.z) / 2).toBeCloseTo(440);
+  });
+
+  it('labels d’arête : principal et enfants, avec fond blanc par défaut', () => {
+    const { texts } = build('simple.drawio');
+    expect(texts.find((t) => t.text === 'appelle')).toMatchObject({ anchorX: 'center', anchorY: 'middle' });
+    expect(texts.find((t) => t.text === 'appelle')!.background?.getHexString()).toBe('ffffff');
+    expect(texts.find((t) => t.text === 'lit')).toBeDefined();
+  });
+
+  it('arête sans flèche (endArrow=none) en pointillés', () => {
+    const { scene } = build('simple.drawio');
+    const a3 = element(scene.root, 'a3');
+    expect(a3.children.map((c) => c.name)).toEqual(['stroke']);
+  });
+
+  it('style d’arête inconnu : approché et compté', () => {
+    const xml = `<mxfile><diagram id="p"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+      <mxCell id="e" style="edgeStyle=isometricEdgeStyle;endArrow=ERmandOne;" edge="1" parent="1">
+        <mxGeometry relative="1" as="geometry"><mxPoint x="0" y="0" as="sourcePoint"/><mxPoint x="50" y="50" as="targetPoint"/></mxGeometry>
+      </mxCell></root></mxGraphModel></diagram></mxfile>`;
+    const { ctx } = stubContext();
+    const scene = buildPageScene(parseDrawio(xml).pages[0]!, createDefaultRegistry(), ctx);
+    expect([...scene.unsupported]).toEqual([
+      ['edgeStyle=isometricEdgeStyle', 1],
+      ['endArrow=ERmandOne', 1],
+    ]);
   });
 });
 

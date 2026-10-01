@@ -21,6 +21,8 @@ export interface TextSpec {
   bold: boolean;
   /** Largeur de retour à la ligne ; absente = pas de retour automatique. */
   maxWidth?: number;
+  /** Fond du label (`labelBackgroundColor`), ajusté à la taille du texte. */
+  background?: Color;
 }
 
 /**

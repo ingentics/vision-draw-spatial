@@ -2,7 +2,7 @@ import { Group } from 'three';
 import type { Point, ShapeModel } from '../../model/types';
 import { dashPattern } from '../geometry/stroke';
 import { fillMesh, strokeMesh } from '../meshes';
-import { fontStyleBits, styleColor, styleNumber, styleOpacity } from '../styleValues';
+import { fontStyleBits, labelBackground, styleColor, styleNumber, styleOpacity } from '../styleValues';
 import { PART_ORDER } from '../types';
 import type { RenderContext, TextSpec } from '../types';
 
@@ -68,6 +68,7 @@ export function createLabel(shape: ShapeModel, ctx: RenderContext, text = shape.
     opacity: styleOpacity(style, 'textOpacity'),
     bold: fontStyleBits(style).bold,
     maxWidth: style.whiteSpace === 'wrap' ? Math.max(right - left, 1) : undefined,
+    background: labelBackground(style, null),
   };
   const object = ctx.text.create(spec);
   object.name = 'label';

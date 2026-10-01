@@ -69,7 +69,7 @@ export function App() {
         )}
         {unsupported && unsupported.size > 0 && (
           <span className="badge" title={[...unsupported].map(([k, n]) => `${k} × ${n}`).join('\n')}>
-            {unsupported.size} forme(s) non supportée(s)
+            {unsupported.size} élément(s) non supporté(s)
           </span>
         )}
         {error && <span className="badge error">{error}</span>}

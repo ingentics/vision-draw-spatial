@@ -36,3 +36,13 @@ export function fontStyleBits(style: Record<string, string>): { bold: boolean; i
   const bits = styleNumber(style, 'fontStyle', 0);
   return { bold: (bits & 1) !== 0, italic: (bits & 2) !== 0, underline: (bits & 4) !== 0 };
 }
+
+/** Couleur de fond de la page, utilisée quand un style vaut `default` pour un fond de label. */
+export const PAGE_BACKGROUND = '#ffffff';
+
+/** `labelBackgroundColor` : `default` = fond de la page ; défaut propre au type d'élément sinon. */
+export function labelBackground(style: Record<string, string>, fallback: string | null): Color | undefined {
+  const raw = style.labelBackgroundColor?.trim();
+  if (raw === 'default') return new Color(PAGE_BACKGROUND);
+  return styleColor(style, 'labelBackgroundColor', fallback) ?? undefined;
+}
