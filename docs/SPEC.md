@@ -108,15 +108,20 @@ src/
       types.ts         # DocumentModel, PageModel, ShapeModel, EdgeModel, LinkModel
       graph.ts         # graphe de navigation entre pages
     render/
-      registry.ts      # registre des ShapeRenderer
-      renderers/       # un fichier par forme
+      shapes/          # une définition par forme, tous niveaux de rendu (§8.2)
+        types.ts       # ShapeDefinition, niveaux, contrat mini-carte
+        registry.ts    # résolution forme → définition → rendu d'un niveau (repli à plat)
         rectangle.ts
         ellipse.ts
         text.ts
+        group.ts
         placeholder.ts
-        edge.ts
-      pageScene.ts     # construction de la scène d'une page
-      sceneManager.ts  # pages construites, visibilité, opacité
+        minimapPainters.ts # repli mini-carte : contour de la forme
+      flat/            # briques du rendu à plat (boîte, label)
+      edges/           # arêtes : tracé, pointes, labels
+      geometry/        # contours, traits épais, pointillés
+      pageScene.ts     # construction de la scène d'une page à un niveau donné
+      sceneManager.ts  # scènes construites (par page et par niveau), visibilité, cache
     interaction/
       camera.ts        # ortho / iso, pan, zoom, état sérialisable
       keyboard.ts
@@ -305,19 +310,40 @@ type LinkModel =
 
 ### 8.2 Registre de renderers
 
-Chaque type de forme est géré par un renderer qui s'enregistre auprès d'un registre. Le moteur ne connaît que l'interface commune.
+Chaque type de forme est décrit par une **définition** qui s'enregistre auprès d'un registre. Le moteur ne connaît que l'interface commune.
+
+Une forme a **plusieurs niveaux de rendu** selon le contexte, avec un **repli systématique sur le rendu à plat** :
+
+| Niveau | Où | Obligatoire | Repli |
+|---|---|---|---|
+| `flat` | à plat sur le sol (vue de dessus, et par défaut partout) | **oui** | — |
+| `iso` | vue isométrique (ex. éléments dressés face à la caméra) | non | `flat` |
+| `volume` | 3D (ex. extrusion, §17) | non | `flat` |
+| `minimap` | mini-carte (Canvas 2D) | non (`null` = rien) | contour de la forme, sinon ses bornes |
 
 ```ts
-interface ShapeRenderer {
+type SceneLevel = 'flat' | 'iso' | 'volume';
+
+interface ShapeDefinition {
   kind: string;
-  matches(shape: ShapeModel): boolean;     // ou correspondance par kind
-  create(shape: ShapeModel, ctx: RenderContext): THREE.Object3D;
-  update?(obj: THREE.Object3D, shape: ShapeModel, ctx: RenderContext): void;
-  dispose?(obj: THREE.Object3D): void;
+  matches?(shape: ShapeModel): boolean;        // par défaut : correspondance sur kind
+  outline?(shape: ShapeModel): Point[];        // contour au sol : géométrie de référence (rendu à plat, replis)
+  flat: SceneRenderer;                         // obligatoire
+  iso?: SceneRenderer;
+  volume?: SceneRenderer;
+  minimap?: MinimapPainter | null;
+}
+
+interface SceneRenderer {
+  create(shape: ShapeModel, ctx: RenderContext): THREE.Object3D; // en espace page
 }
 ```
 
-Ajouter une forme = **écrire un fichier et l'enregistrer**. Aucune autre modification.
+- Le registre résout la définition d'une forme (placeholder si aucune), puis le rendu d'un niveau : `registry.sceneRenderer(shape, level)` (repli `flat`), `registry.minimapPainter(shape)` (repli contour).
+- Une page est construite **au niveau du mode de vue** (iso en mode iso, à plat sinon). Si aucune forme de la page n'a de rendu propre à ce niveau, la scène à plat est réutilisée telle quelle : pas de reconstruction en basculant de mode. Le cache de scènes est donc indexé par page **et** niveau.
+- Les arêtes ont pour l'instant un rendu unique (à plat), et un tracé simplifié en mini-carte.
+
+Ajouter une forme = **écrire sa définition et l'enregistrer** (au minimum `flat`, idéalement `outline`). Aucune autre modification ; les niveaux plus riches s'ajoutent ensuite, forme par forme.
 
 ### 8.3 Formes supportées en M1
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { collectUnsupported } from '../../../src/engine/diagnostics/unsupportedStyles';
 import { parseDrawio } from '../../../src/engine/format/parse';
-import { createDefaultRegistry } from '../../../src/engine/render/registry';
+import { createDefaultRegistry } from '../../../src/engine/render/shapes/registry';
 import { fixture } from '../../helpers';
 
 const xml = `<mxfile>

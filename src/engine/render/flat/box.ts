@@ -5,10 +5,12 @@ import { fillMesh, strokeMesh } from '../meshes';
 import { fontStyleBits, labelBackground, styleColor, styleNumber, styleOpacity } from '../styleValues';
 import { PART_ORDER } from '../types';
 import type { RenderContext, TextSpec } from '../types';
+import type { SceneRenderer } from '../shapes/types';
 
 /**
- * Brique commune des formes « boîte » : remplissage + bordure suivant un contour fermé,
- * puis label. Les renderers concrets ne fournissent que le contour et les couleurs par défaut.
+ * Rendu à plat (niveau `flat`) des formes « boîte » : remplissage + bordure suivant le contour
+ * de la forme, puis label. Les définitions de formes ne fournissent que le contour et les
+ * couleurs par défaut.
  */
 
 export interface BoxDefaults {
@@ -17,6 +19,14 @@ export interface BoxDefaults {
 }
 
 export const VERTEX_DEFAULTS: BoxDefaults = { fill: '#ffffff', stroke: '#000000' };
+
+/** Rendu à plat d'une forme définie par son contour. */
+export function flatBox(
+  outline: (shape: ShapeModel) => Point[],
+  defaults: BoxDefaults = VERTEX_DEFAULTS,
+): SceneRenderer {
+  return { create: (shape, ctx) => createBox(shape, outline(shape), ctx, defaults) };
+}
 
 export function createBox(shape: ShapeModel, path: Point[], ctx: RenderContext, defaults: BoxDefaults): Group {
   const group = new Group();

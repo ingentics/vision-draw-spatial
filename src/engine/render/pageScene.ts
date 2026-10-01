@@ -3,8 +3,9 @@ import { isNavigableLink } from '../format/link';
 import type { EdgeModel, PageModel, ShapeModel } from '../model/types';
 import { linkBadge } from './decorations';
 import { disposeObject } from './meshes';
-import type { RendererRegistry } from './registry';
-import { createEdge } from './renderers/edge';
+import { createEdge } from './edges/edge';
+import type { ShapeRegistry } from './shapes/registry';
+import type { SceneLevel } from './shapes/types';
 import { applyPageSpace } from './space';
 import { PARTS_PER_ELEMENT } from './types';
 import type { RenderContext } from './types';
@@ -12,12 +13,28 @@ import type { RenderContext } from './types';
 /** Scène Three.js d'une page (SPEC §7.4 : construite seulement pour les pages affichées). */
 export interface PageScene {
   pageId: string;
+  /** Niveau de rendu des formes de cette scène (`flat` = repli à plat pour toutes). */
+  level: SceneLevel;
   /** Groupe racine en espace page ; à ajouter à la scène monde. */
   root: Group;
   dispose(): void;
 }
 
-export function buildPageScene(page: PageModel, registry: RendererRegistry, ctx: RenderContext): PageScene {
+/**
+ * Niveau de scène effectif d'une page : le niveau demandé si au moins une forme visible de la
+ * page a un rendu propre à ce niveau, sinon `flat` (la scène à plat sert telle quelle).
+ */
+export function effectiveLevel(page: PageModel, registry: ShapeRegistry, level: SceneLevel): SceneLevel {
+  if (level === 'flat') return 'flat';
+  return page.shapes.some((shape) => shape.visible && registry.hasLevel(shape, level)) ? level : 'flat';
+}
+
+export function buildPageScene(
+  page: PageModel,
+  registry: ShapeRegistry,
+  ctx: RenderContext,
+  level: SceneLevel = 'flat',
+): PageScene {
   const root = new Group();
   root.name = `page:${page.id}`;
   applyPageSpace(root);
@@ -37,7 +54,8 @@ export function buildPageScene(page: PageModel, registry: RendererRegistry, ctx:
 
     let object;
     if ('shape' in item) {
-      object = registry.resolve(item.shape).renderer.create(item.shape, ctx);
+      // Rendu du niveau demandé, repli à plat si la forme n'en a pas.
+      object = registry.sceneRenderer(item.shape, level).create(item.shape, ctx);
       if (isNavigableLink(item.shape.link)) object.add(linkBadge(item.shape, item.shape.link));
     } else {
       const terminals = {
@@ -57,6 +75,7 @@ export function buildPageScene(page: PageModel, registry: RendererRegistry, ctx:
 
   return {
     pageId: page.id,
+    level,
     root,
     dispose: () => disposeObject(root),
   };

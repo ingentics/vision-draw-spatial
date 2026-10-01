@@ -32,11 +32,12 @@ import type { DocumentModel, LinkModel, PageModel, Point, Rect } from './model/t
 import { selectionOutline } from './render/decorations';
 import { disposeObject } from './render/meshes';
 import { setPageOpacity } from './render/pageEffects';
-import { buildPageScene } from './render/pageScene';
+import { buildPageScene, effectiveLevel } from './render/pageScene';
 import type { PageScene } from './render/pageScene';
 import { SceneManager } from './render/sceneManager';
-import { createDefaultRegistry } from './render/registry';
-import type { RendererRegistry } from './render/registry';
+import { createDefaultRegistry } from './render/shapes/registry';
+import type { ShapeRegistry } from './render/shapes/registry';
+import type { SceneLevel } from './render/shapes/types';
 import { setPageTransform } from './render/space';
 import { createTroikaTextFactory } from './render/troikaText';
 import type { FontSet } from './render/troikaText';
@@ -96,7 +97,7 @@ export interface EngineOptions {
   canvas: HTMLCanvasElement;
   fonts?: FontSet;
   /** Pour ajouter ou surcharger des renderers de formes. */
-  registry?: RendererRegistry;
+  registry?: ShapeRegistry;
   background?: string;
   controls?: Partial<ControlSettings>;
   /** Nombre de scènes de pages gardées en mémoire (SPEC §13, `preload.maxCachedPages`). */
@@ -152,7 +153,7 @@ export class Engine {
   private readonly renderer: WebGLRenderer;
   private readonly scene = new Scene();
   private readonly camera = new OrthographicCamera();
-  private readonly registry: RendererRegistry;
+  private readonly registry: ShapeRegistry;
   private readonly text: ReturnType<typeof createTroikaTextFactory>;
   private readonly events = new Emitter<EngineEvents>();
   private readonly resizeObserver: ResizeObserver;
@@ -202,8 +203,9 @@ export class Engine {
     this.text = createTroikaTextFactory(options.fonts ?? {}, this.requestRender);
     this.scenes = new SceneManager(
       this.scene,
-      (page) => buildPageScene(page, this.registry, { text: this.text }),
+      (page, level) => buildPageScene(page, this.registry, { text: this.text }, level),
       options.maxCachedPages,
+      (page) => effectiveLevel(page, this.registry, this.requestedLevel()),
     );
 
     this.resizeObserver = new ResizeObserver(() => this.resize());
@@ -397,10 +399,24 @@ export class Engine {
     }
   }
 
+  /** Niveau de rendu demandé par le mode de vue (repli à plat si les formes n'en ont pas). */
+  private requestedLevel(): SceneLevel {
+    return this.cameraState.mode === 'iso' ? 'iso' : 'flat';
+  }
+
   private applyCamera(state: CameraState): void {
     this.pendingFit = undefined;
     const previousZoom = this.cameraState.zoom;
+    const previousMode = this.cameraState.mode;
     this.cameraState = normalizeCameraState(state);
+    // Changement de mode : la page passe au rendu de ce niveau (même scène si tout est à plat).
+    if (this.cameraState.mode !== previousMode && !this.transition) {
+      const page = this.getCurrentPage();
+      if (page) {
+        this.scenes.show(page);
+        this.minimap?.invalidate();
+      }
+    }
     if (this.currentPageId) this.pageCameras.set(this.currentPageId, this.cameraState);
     this.minimap?.requestDraw();
     // Contour de sélection d'épaisseur constante à l'écran.
@@ -483,6 +499,7 @@ export class Engine {
         getCamera: () => this.cameraState,
         getViewport: () => this.viewport,
         getEdgeRoute: (id) => this.sceneObject(id)?.userData.route as Point[] | undefined,
+        paintShape: (context, shape, map) => this.registry.minimapPainter(shape)?.(context, shape, map),
         centerOn: (point) => {
           if (!this.transition) this.setCameraState({ ...this.cameraState, center: point });
         },

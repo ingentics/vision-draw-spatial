@@ -137,7 +137,8 @@
 ---
 
 ## Ensuite (backlog)
-- Formes supplémentaires, priorisées par le journal des styles non supportés.
+- Formes supplémentaires, priorisées par le journal des styles non supportés (une définition par forme, au minimum à plat — SPEC §8.2).
+- Rendus `iso` dédiés (ex. labels dressés face à la caméra) et `volume` (extrusion), forme par forme, avec repli à plat.
 - Optimisations mémoire / rendu si nécessaire.
 - Rendu en volume (extrusion), si souhaité.
 

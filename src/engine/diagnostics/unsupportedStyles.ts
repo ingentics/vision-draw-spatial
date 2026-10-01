@@ -1,6 +1,6 @@
 import type { DocumentModel } from '../model/types';
 import { edgeUnsupported } from '../render/edges/support';
-import type { RendererRegistry } from '../render/registry';
+import type { ShapeRegistry } from '../render/shapes/registry';
 
 /**
  * Recensement des éléments non supportés d'un document (SPEC §8.4) : formes dessinées en
@@ -40,7 +40,7 @@ export interface UnsupportedReport {
 
 export const MAX_OCCURRENCES = 50;
 
-export function collectUnsupported(document: DocumentModel, registry: RendererRegistry): UnsupportedReport {
+export function collectUnsupported(document: DocumentModel, registry: ShapeRegistry): UnsupportedReport {
   const entries = new Map<string, UnsupportedEntry>();
   let elementCount = 0;
   let unsupportedElementCount = 0;

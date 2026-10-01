@@ -1,11 +1,13 @@
-import type { PageModel, Point, Rect } from '../model/types';
+import type { PageModel, Point, Rect, ShapeModel } from '../model/types';
+import type { MinimapMapping } from '../render/shapes/types';
 import { screenToPage } from './camera';
 import type { CameraState, Viewport } from './camera';
 
 /**
  * Mini-carte (SPEC §10) : en bas à droite, toujours en vue de dessus et nord en haut, quel que
- * soit le mode de la vue principale. Formes simplifiées, emprise de la vue, clic/glisser pour
- * déplacer la caméra. Dessinée en Canvas 2D, indépendamment du rendu WebGL.
+ * soit le mode de la vue principale. Emprise de la vue, clic/glisser pour déplacer la caméra.
+ * Dessinée en Canvas 2D, indépendamment du rendu WebGL. Chaque forme est dessinée par le niveau
+ * `minimap` de sa définition (repli : son contour), voir `render/shapes`.
  */
 
 export interface MinimapLayout {
@@ -68,6 +70,8 @@ export interface MinimapSource {
   getViewport(): Viewport;
   /** Tracé dessiné d'une arête (coordonnées page). */
   getEdgeRoute(edgeId: string): Point[] | undefined;
+  /** Dessin d'une forme : niveau `minimap` de sa définition, repli sur son contour. */
+  paintShape(context: CanvasRenderingContext2D, shape: ShapeModel, map: MinimapMapping): void;
   /** Recentre la vue principale sur un point de la page. */
   centerOn(point: Point): void;
 }
@@ -75,8 +79,6 @@ export interface MinimapSource {
 const FOOTPRINT_STROKE = '#1a73e8';
 const FOOTPRINT_FILL = 'rgba(26, 115, 232, 0.10)';
 const BACKGROUND = '#ffffff';
-const DEFAULT_FILL = '#ffffff';
-const SHAPE_STROKE = '#9aa0a6';
 const EDGE_STROKE = '#80868b';
 
 export class Minimap {
@@ -179,8 +181,9 @@ export class Minimap {
     context.fillRect(0, 0, layout.width, layout.height);
 
     const hidden = new Set(page.layers.filter((l) => !l.visible).map((l) => l.id));
+    const map: MinimapMapping = { toMinimap: (p) => pageToMinimap(layout, p), scale: layout.scale };
     const elements = [
-      ...page.shapes.map((shape) => ({ element: shape, draw: () => this.drawShape(context, layout, shape) })),
+      ...page.shapes.map((shape) => ({ element: shape, draw: () => this.source.paintShape(context, shape, map) })),
       ...page.edges.map((edge) => ({ element: edge, draw: () => this.drawEdge(context, layout, edge.id) })),
     ];
     elements
@@ -188,31 +191,6 @@ export class Minimap {
       .sort((a, b) => a.element.z - b.element.z)
       .forEach(({ draw }) => draw());
     return base;
-  }
-
-  private drawShape(
-    context: CanvasRenderingContext2D,
-    layout: MinimapLayout,
-    shape: PageModel['shapes'][number],
-  ): void {
-    if (shape.kind === 'group' || shape.kind === 'text') return;
-    const { x, y } = pageToMinimap(layout, shape.bounds);
-    const width = Math.max(shape.bounds.width * layout.scale, 1);
-    const height = Math.max(shape.bounds.height * layout.scale, 1);
-    const fill = shape.style.fillColor;
-    context.beginPath();
-    if (shape.kind === 'ellipse')
-      context.ellipse(x + width / 2, y + height / 2, width / 2, height / 2, 0, 0, Math.PI * 2);
-    else context.rect(x, y, width, height);
-    if (fill !== 'none') {
-      // Une couleur invalide est ignorée par le canvas : on part du blanc par défaut.
-      context.fillStyle = DEFAULT_FILL;
-      if (fill && fill !== 'default') context.fillStyle = fill;
-      context.fill();
-    }
-    context.lineWidth = 0.75;
-    context.strokeStyle = SHAPE_STROKE;
-    context.stroke();
   }
 
   private drawEdge(context: CanvasRenderingContext2D, layout: MinimapLayout, edgeId: string): void {

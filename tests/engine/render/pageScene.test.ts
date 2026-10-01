@@ -3,8 +3,9 @@ import { Box3, Mesh, Object3D, Vector3 } from 'three';
 import { describe, expect, it } from 'vitest';
 import { parseDrawio } from '../../../src/engine/format/parse';
 import { buildPageScene } from '../../../src/engine/render/pageScene';
-import { RendererRegistry, createDefaultRegistry } from '../../../src/engine/render/registry';
-import type { RenderContext, ShapeRenderer, TextSpec } from '../../../src/engine/render/types';
+import { ShapeRegistry, createDefaultRegistry } from '../../../src/engine/render/shapes/registry';
+import type { ShapeDefinition } from '../../../src/engine/render/shapes/types';
+import type { RenderContext, TextSpec } from '../../../src/engine/render/types';
 import { fixture } from '../../helpers';
 
 /** Fabrique de texte factice : garde la spec pour inspection. */
@@ -126,9 +127,9 @@ describe('buildPageScene — formes', () => {
   });
 
   it('un renderer enregistré après les autres est prioritaire', () => {
-    const custom: ShapeRenderer = {
+    const custom: ShapeDefinition = {
       kind: 'cylinder3',
-      create: () => Object.assign(new Object3D(), { name: 'custom' }),
+      flat: { create: () => Object.assign(new Object3D(), { name: 'custom' }) },
     };
     const { scene } = build('simple.drawio', createDefaultRegistry().register(custom));
     expect(element(scene.root, 'c1').name).toBe('custom');
@@ -202,10 +203,10 @@ describe('buildPageScene — liens', () => {
   });
 });
 
-describe('RendererRegistry', () => {
-  it('sans renderer : placeholder, non supporté', () => {
-    const { page } = build('drawio-desktop.drawio', new RendererRegistry());
-    const resolved = new RendererRegistry().resolve(page.shapes[0]!);
-    expect(resolved).toMatchObject({ supported: false, renderer: { kind: 'placeholder' } });
+describe('ShapeRegistry', () => {
+  it('sans définition : placeholder, non supporté', () => {
+    const { page } = build('drawio-desktop.drawio', new ShapeRegistry());
+    const resolved = new ShapeRegistry().resolve(page.shapes[0]!);
+    expect(resolved).toMatchObject({ supported: false, definition: { kind: 'placeholder' } });
   });
 });

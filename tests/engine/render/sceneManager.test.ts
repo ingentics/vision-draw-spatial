@@ -23,7 +23,7 @@ function setup(maxCached = 3) {
       built.push(p.id);
       const root = new Group();
       root.name = p.id;
-      return { pageId: p.id, root, dispose: () => disposed.push(p.id) };
+      return { pageId: p.id, level: 'flat', root, dispose: () => disposed.push(p.id) };
     },
     maxCached,
   );
@@ -86,5 +86,35 @@ describe('SceneManager', () => {
     expect(disposed.sort()).toEqual(['a', 'b']);
     expect(container.children).toHaveLength(0);
     expect(manager.current).toBeUndefined();
+  });
+});
+
+describe('SceneManager — niveaux de rendu', () => {
+  it('une scène par page et par niveau, la page reste une seule entrée pour cachedIds', () => {
+    const container = new Group();
+    let level: 'flat' | 'iso' = 'flat';
+    const built: string[] = [];
+    const manager = new SceneManager(
+      container,
+      (p, l): PageScene => {
+        built.push(`${p.id}@${l}`);
+        return {
+          pageId: p.id,
+          level: l,
+          root: Object.assign(new Group(), { name: `${p.id}@${l}` }),
+          dispose: () => {},
+        };
+      },
+      8,
+      () => level,
+    );
+    manager.show(page('a'));
+    level = 'iso';
+    manager.show(page('a'));
+    level = 'flat';
+    manager.show(page('a')); // reprise du cache
+    expect(built).toEqual(['a@flat', 'a@iso']);
+    expect(container.children.filter((c) => c.visible).map((c) => c.name)).toEqual(['a@flat']);
+    expect(manager.cachedIds()).toEqual(['a']);
   });
 });
