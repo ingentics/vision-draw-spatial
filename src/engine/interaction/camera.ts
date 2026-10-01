@@ -10,6 +10,8 @@ export interface CameraState {
   center: Point;
   /** Pixels écran par pixel draw.io (1 = 100 %). */
   zoom: number;
+  /** Orientation de la vue autour de la verticale, en radians (0 = comme dans draw.io). */
+  rotation: number;
 }
 
 export interface Viewport {
@@ -25,6 +27,35 @@ const CAMERA_HEIGHT = 1000;
 
 export function clampZoom(zoom: number): number {
   return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom));
+}
+
+/** Complète un état partiel ou ancien (ex. restauré depuis le stockage, sans `rotation`). */
+export function normalizeCameraState(state: Partial<CameraState> & Pick<CameraState, 'center' | 'zoom'>): CameraState {
+  return {
+    mode: 'top',
+    center: { x: state.center.x, y: state.center.y },
+    zoom: clampZoom(state.zoom),
+    rotation: normalizeAngle(state.rotation ?? 0),
+  };
+}
+
+/** Angle ramené dans ]-π, π]. */
+export function normalizeAngle(angle: number): number {
+  const turn = Math.PI * 2;
+  let a = angle % turn;
+  if (a <= -Math.PI) a += turn;
+  if (a > Math.PI) a -= turn;
+  return a;
+}
+
+/**
+ * Axes de l'écran exprimés en coordonnées page : `right` = vers la droite de l'écran,
+ * `down` = vers le bas de l'écran. Sans rotation : (1, 0) et (0, 1), comme draw.io.
+ */
+export function screenAxes(rotation: number): { right: Point; down: Point } {
+  const cos = Math.cos(rotation);
+  const sin = Math.sin(rotation);
+  return { right: { x: cos, y: sin }, down: { x: -sin, y: cos } };
 }
 
 /**
@@ -49,7 +80,7 @@ export function fitBounds(
           maxZoom,
         )
       : maxZoom;
-  return { mode: 'top', center, zoom: clampZoom(zoom) };
+  return { mode: 'top', center, zoom: clampZoom(zoom), rotation: 0 };
 }
 
 /** Applique l'état à une caméra orthographique. Monde : X = x, Z = y, Y vers le haut. */
@@ -63,23 +94,66 @@ export function applyCameraState(camera: OrthographicCamera, state: CameraState,
   camera.near = 1;
   camera.far = CAMERA_HEIGHT * 2;
   camera.position.set(state.center.x, CAMERA_HEIGHT, state.center.y);
-  // Haut de l'écran = -Z, donc y draw.io croissant vers le bas de l'écran, comme dans draw.io.
-  camera.up.set(0, 0, -1);
+  // Haut de l'écran = opposé de l'axe « bas » de l'écran, exprimé dans le monde (x → X, y → Z).
+  const { down } = screenAxes(state.rotation);
+  camera.up.set(-down.x, 0, -down.y);
   camera.lookAt(state.center.x, 0, state.center.y);
   camera.updateProjectionMatrix();
 }
 
 /** Point de la page sous un point écran (pixels CSS depuis le coin haut-gauche du canvas). */
 export function screenToPage(state: CameraState, viewport: Viewport, screen: Point): Point {
+  const { right, down } = screenAxes(state.rotation);
+  const sx = (screen.x - viewport.width / 2) / state.zoom;
+  const sy = (screen.y - viewport.height / 2) / state.zoom;
   return {
-    x: state.center.x + (screen.x - viewport.width / 2) / state.zoom,
-    y: state.center.y + (screen.y - viewport.height / 2) / state.zoom,
+    x: state.center.x + sx * right.x + sy * down.x,
+    y: state.center.y + sx * right.y + sy * down.y,
   };
 }
 
 export function pageToScreen(state: CameraState, viewport: Viewport, page: Point): Point {
+  const { right, down } = screenAxes(state.rotation);
+  const dx = page.x - state.center.x;
+  const dy = page.y - state.center.y;
   return {
-    x: (page.x - state.center.x) * state.zoom + viewport.width / 2,
-    y: (page.y - state.center.y) * state.zoom + viewport.height / 2,
+    x: viewport.width / 2 + (dx * right.x + dy * right.y) * state.zoom,
+    y: viewport.height / 2 + (dx * down.x + dy * down.y) * state.zoom,
   };
+}
+
+/** Centre tel que le point page `page` apparaisse au point écran `screen`. */
+function centerKeeping(state: CameraState, viewport: Viewport, page: Point, screen: Point): Point {
+  const { right, down } = screenAxes(state.rotation);
+  const sx = (screen.x - viewport.width / 2) / state.zoom;
+  const sy = (screen.y - viewport.height / 2) / state.zoom;
+  return { x: page.x - sx * right.x - sy * down.x, y: page.y - sx * right.y - sy * down.y };
+}
+
+/** Déplace la vue d'un vecteur écran : le contenu suit le pointeur (glisser = « attraper » le sol). */
+export function panByScreen(state: CameraState, delta: Point): CameraState {
+  const { right, down } = screenAxes(state.rotation);
+  const dx = delta.x / state.zoom;
+  const dy = delta.y / state.zoom;
+  return {
+    ...state,
+    center: {
+      x: state.center.x - dx * right.x - dy * down.x,
+      y: state.center.y - dx * right.y - dy * down.y,
+    },
+  };
+}
+
+/** Zoom multiplicatif en gardant fixe le point de la page sous `screen` (molette centrée sur le curseur). */
+export function zoomAt(state: CameraState, viewport: Viewport, screen: Point, factor: number): CameraState {
+  const anchor = screenToPage(state, viewport, screen);
+  const zoomed = { ...state, zoom: clampZoom(state.zoom * factor) };
+  return { ...zoomed, center: centerKeeping(zoomed, viewport, anchor, screen) };
+}
+
+/** Tourne la vue autour d'un point écran, qui reste sous le curseur. */
+export function rotateAround(state: CameraState, viewport: Viewport, screen: Point, delta: number): CameraState {
+  const anchor = screenToPage(state, viewport, screen);
+  const rotated = { ...state, rotation: normalizeAngle(state.rotation + delta) };
+  return { ...rotated, center: centerKeeping(rotated, viewport, anchor, screen) };
 }

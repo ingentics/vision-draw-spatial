@@ -51,6 +51,70 @@ body {
   cursor: pointer;
 }
 
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.button svg,
+.group-button svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.button svg.compass {
+  fill: currentColor;
+  stroke: none;
+}
+
+.nav-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+}
+
+/* Groupe de boutons liés (input-group) */
+.button-group {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.group-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  padding: 3px 10px;
+  border: none;
+  background: var(--bg);
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.group-button + .group-button {
+  border-left: 1px solid var(--border);
+}
+
+.group-button[aria-pressed='true'] {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.group-button:focus-visible,
+.button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
 .badge {
   padding: 2px 8px;
   border-radius: 10px;

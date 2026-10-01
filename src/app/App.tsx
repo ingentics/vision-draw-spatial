@@ -1,16 +1,36 @@
 import robotoBold from '@fontsource/roboto/files/roboto-latin-700-normal.woff?url';
 import robotoRegular from '@fontsource/roboto/files/roboto-latin-400-normal.woff?url';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import type { Engine } from '../engine/Engine';
+import type { ControlSettings } from '../engine/interaction/controls';
 import type { DocumentModel } from '../engine/model/types';
 import { DrawioSpatial } from '../react/DrawioSpatial';
 import { demoFiles } from './demoFiles';
 import { patchDevSession, readDevSession, writeDevSession } from './devSession';
+import { NavigationToolbar } from './NavigationToolbar';
 
 const FONTS = { regular: robotoRegular, bold: robotoBold };
 const DEFAULT_FILE = demoFiles.find((f) => f.name === 'docs/test.drawio') ?? demoFiles[0];
 const CAMERA_SAVE_DELAY_MS = 300;
+const MIDDLE_DRAG_KEY = 'drawio-spatial:middle-drag';
+
+/** Préférence du navigateur (en attendant le panneau de paramètres, étape 12). */
+function readMiddleDrag(): ControlSettings['middleDrag'] {
+  try {
+    return localStorage.getItem(MIDDLE_DRAG_KEY) === 'rotate' ? 'rotate' : 'pan';
+  } catch {
+    return 'pan';
+  }
+}
+
+function writeMiddleDrag(mode: ControlSettings['middleDrag']): void {
+  try {
+    localStorage.setItem(MIDDLE_DRAG_KEY, mode);
+  } catch {
+    // Stockage indisponible : le choix vaut pour la session seulement.
+  }
+}
 
 interface OpenFile {
   id: string;
@@ -40,6 +60,17 @@ export function App() {
   const [document, setDocument] = useState<DocumentModel>();
   const [pageId, setPageId] = useState<string>();
   const [error, setError] = useState<string>();
+  const [middleDrag, setMiddleDrag] = useState(readMiddleDrag);
+  const [rotationDeg, setRotationDeg] = useState(0);
+
+  useEffect(() => {
+    engine?.setControls({ middleDrag });
+  }, [engine, middleDrag]);
+
+  const changeMiddleDrag = (mode: ControlSettings['middleDrag']) => {
+    setMiddleDrag(mode);
+    writeMiddleDrag(mode);
+  };
 
   const handleEngine = useCallback((instance: Engine | undefined) => {
     setEngine(instance);
@@ -57,6 +88,8 @@ export function App() {
     });
     let timer: ReturnType<typeof setTimeout> | undefined;
     instance.on('cameraChange', (camera) => {
+      // Arrondi au degré : pas de rendu React à chaque image tant que l'angle affiché ne change pas.
+      setRotationDeg(Math.round((camera.rotation * 180) / Math.PI) || 0);
       clearTimeout(timer);
       timer = setTimeout(() => {
         const fileId = instance.getFileId();
@@ -93,6 +126,12 @@ export function App() {
           Ouvrir…
           <input type="file" accept=".drawio,.xml" hidden onChange={openLocal} />
         </label>
+        <NavigationToolbar
+          middleDrag={middleDrag}
+          onMiddleDragChange={changeMiddleDrag}
+          rotationDeg={rotationDeg}
+          onResetRotation={() => engine?.resetRotation()}
+        />
         {document && document.warnings.length > 0 && (
           <span className="badge" title={document.warnings.map((w) => w.message).join('\n')}>
             {document.warnings.length} avertissement(s)

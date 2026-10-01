@@ -1,8 +1,10 @@
 import { Color, OrthographicCamera, Scene, WebGLRenderer } from 'three';
 import { Emitter } from './events';
 import { parseDrawio } from './format/parse';
-import { applyCameraState, fitBounds } from './interaction/camera';
+import { applyCameraState, fitBounds, normalizeCameraState, rotateAround } from './interaction/camera';
 import type { CameraState, Viewport } from './interaction/camera';
+import { CameraController } from './interaction/controls';
+import type { ControlSettings } from './interaction/controls';
 import type { DocumentModel, PageModel, Rect } from './model/types';
 import { buildPageScene } from './render/pageScene';
 import type { PageScene } from './render/pageScene';
@@ -17,6 +19,7 @@ export interface EngineOptions {
   /** Pour ajouter ou surcharger des renderers de formes. */
   registry?: RendererRegistry;
   background?: string;
+  controls?: Partial<ControlSettings>;
 }
 
 /** Vue à restaurer au chargement (SPEC §5.3) : dernière page active et sa caméra. */
@@ -42,11 +45,12 @@ export class Engine {
   private readonly text: ReturnType<typeof createTroikaTextFactory>;
   private readonly events = new Emitter<EngineEvents>();
   private readonly resizeObserver: ResizeObserver;
+  private readonly controller: CameraController;
 
   private document: DocumentModel | undefined;
   private fileId: string | undefined;
   private pageScene: PageScene | undefined;
-  private cameraState: CameraState = { mode: 'top', center: { x: 0, y: 0 }, zoom: 1 };
+  private cameraState: CameraState = { mode: 'top', center: { x: 0, y: 0 }, zoom: 1, rotation: 0 };
   private viewport: Viewport = { width: 1, height: 1 };
   /** Cadrage demandé avant que le canvas ait une taille réelle : appliqué à la première mesure. */
   private pendingFit: Rect | undefined;
@@ -64,6 +68,16 @@ export class Engine {
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(this.canvas);
     this.resize();
+
+    this.controller = new CameraController(
+      this.canvas,
+      {
+        getCameraState: () => this.cameraState,
+        setCameraState: (state) => this.setCameraState(state),
+        getViewport: () => this.viewport,
+      },
+      options.controls,
+    );
   }
 
   async load(xml: string, fileId: string, initialView?: InitialView): Promise<void> {
@@ -120,10 +134,24 @@ export class Engine {
 
   setCameraState(state: CameraState): void {
     this.pendingFit = undefined;
-    this.cameraState = structuredClone(state);
+    this.cameraState = normalizeCameraState(state);
     applyCameraState(this.camera, this.cameraState, this.viewport);
     this.events.emit('cameraChange', this.getCameraState());
     this.requestRender();
+  }
+
+  /** Remet le nord en haut, en gardant le point au centre de l'écran. */
+  resetRotation(): void {
+    const center = { x: this.viewport.width / 2, y: this.viewport.height / 2 };
+    this.setCameraState(rotateAround(this.cameraState, this.viewport, center, -this.cameraState.rotation));
+  }
+
+  getControls(): ControlSettings {
+    return this.controller.getSettings();
+  }
+
+  setControls(patch: Partial<ControlSettings>): void {
+    this.controller.setSettings(patch);
   }
 
   on<K extends EngineEvent>(event: K, handler: (...args: EngineEvents[K]) => void): () => void {
@@ -135,6 +163,7 @@ export class Engine {
     this.disposed = true;
     cancelAnimationFrame(this.frame);
     this.resizeObserver.disconnect();
+    this.controller.dispose();
     this.showPage(undefined);
     this.text.dispose();
     this.renderer.dispose();
@@ -157,8 +186,10 @@ export class Engine {
   }
 
   private resize(): void {
-    const width = Math.max(this.canvas.clientWidth, 1);
-    const height = Math.max(this.canvas.clientHeight, 1);
+    // Taille exacte (clientWidth/clientHeight arrondissent, ce qui décale le zoom au curseur).
+    const rect = this.canvas.getBoundingClientRect();
+    const width = Math.max(rect.width, 1);
+    const height = Math.max(rect.height, 1);
     if (width === this.viewport.width && height === this.viewport.height) return;
     this.viewport = { width, height };
     this.renderer.setSize(width, height, false);
