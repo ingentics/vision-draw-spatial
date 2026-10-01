@@ -365,10 +365,11 @@ Formes et arêtes sont dessinées dans l'**ordre du document** (une arête décl
 - **Vue de dessus (`top`)** : caméra **orthographique**, perpendiculaire au sol, sans perspective. Équivalent fonctionnel de draw.io (même ratio au zoom, même ressenti au pan).
 - **Vue isométrique (`iso`)** : caméra inclinée, projection isométrique sur le plan au sol.
 - Bascule entre les deux modes par un bouton et un raccourci, avec une animation douce.
-- **Réalisation retenue pour l'iso** : la même caméra orthographique, inclinée de `tilt` au-dessus du sol (vers le haut de l'écran). Par défaut, élévation de 35,26° (inclinaison 54,74°) **et** rotation de 45° : l'isométrie vraie (losanges). La rotation iso (`isoAzimuthDeg`) est ajoutée en entrant en iso et retirée en sortant : dessus → iso → dessus rend l'orientation de départ. Le centre de l'écran et le zoom ne bougent pas pendant la bascule (≈ 450 ms, animée).
+- **Réalisation retenue pour l'iso** : la même caméra orthographique, inclinée de `tilt` au-dessus du sol (vers le haut de l'écran). Par défaut, élévation de 35,26° (inclinaison 54,74°) **et** rotation de −45° (« vers la droite ») : l'isométrie vraie (losanges). La rotation iso (`isoAzimuthDeg`) est ajoutée en entrant en iso et retirée en sortant : dessus → iso → dessus rend l'orientation de départ. Le centre de l'écran et le zoom ne bougent pas pendant la bascule (≈ 450 ms, animée).
+- **Réglages de la vue iso** (bouton ⚙ à côté de « Dessus | Iso ») : orientation **vers la droite** (−45°, défaut), **vers la gauche** (+45°) ou **sans rotation** (0°), chacune avec un aperçu dessiné ; **élévation** de la caméra de 10° (rasante) à 80° (presque de dessus), avec un retour à l'isométrie vraie (35°). Les changements s'appliquent immédiatement en iso (animés, en gardant l'écart de rotation choisi par l'utilisateur) et sont mémorisés dans le navigateur (en attendant le panneau de paramètres, §13).
 - **Navigation cohérente** : les conversions écran ↔ sol tiennent compte de l'inclinaison (raccourcissement vertical de cos(tilt)) ; zoom au curseur, déplacement, rotation, clic, sélection et liens se comportent de la même façon dans les deux modes. Le texte reste posé à plat sur le sol (lisible, raccourci en iso).
 - **Orbite** : en iso et en mode « Tourner », le glisser molette vertical règle l'inclinaison (vers le haut = vers l'horizon, de 0 à 80°), le glisser horizontal tourne la vue, autour du point de départ du glisser.
-- **Rotation de la vue** : dans les deux modes, la vue peut tourner autour de la verticale (`CameraState.rotation`). Un bouton **« Nord »** (avec une boussole indiquant le nord de la page) apparaît dès que la vue s'écarte de l'orientation de référence du mode (0° en dessus, 45° en iso) et l'y ramène.
+- **Rotation de la vue** : dans les deux modes, la vue peut tourner autour de la verticale (`CameraState.rotation`). Un bouton **« Nord »** (avec une boussole indiquant le nord de la page) apparaît dès que la vue s'écarte de l'orientation de référence du mode (0° en dessus, l'orientation iso choisie en iso) et l'y ramène.
 
 ### 9.2 Contrôles
 
@@ -503,7 +504,7 @@ interface Settings {
     rotateSpeed: number;                     // rad / px de glisser en mode Tourner
     decelerationMs: number;                  // glissade à l'arrêt (§9.2), 0 = arrêt net
   };
-  view: { defaultMode: 'top' | 'iso'; isoAngleDeg: number; isoAzimuthDeg: number; switchDurationMs: number }; // 'top', 35.26, 45, 450
+  view: { defaultMode: 'top' | 'iso'; isoAngleDeg: number; isoAzimuthDeg: number; switchDurationMs: number }; // 'top', 35.26, -45, 450
   minimap: { visible: boolean; size: number };
   debug: { showUnsupportedPanel: boolean };
 }

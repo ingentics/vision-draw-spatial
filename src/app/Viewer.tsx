@@ -12,7 +12,11 @@ import { DrawioSpatial } from '../react/DrawioSpatial';
 import { clearLog, cumulativeEntries, exportJson, recordFile } from './diagnosticsLog';
 import { DiagnosticsPanel } from './DiagnosticsPanel';
 import { store } from './fileLibrary';
+import { IsoSettings } from './IsoSettings';
 import { NavigationToolbar } from './NavigationToolbar';
+import { readIsoPreferences, writeIsoPreferences } from './viewPreferences';
+import type { IsoPreferences } from './viewPreferences';
+import { DEFAULT_VIEW } from '../engine/Engine';
 
 const FONTS = { regular: robotoRegular, bold: robotoBold };
 /** SPEC §5.3 : état de consultation sauvegardé 500 ms après le dernier changement, et à la fermeture. */
@@ -52,6 +56,19 @@ export function Viewer({ file, onShowFiles }: ViewerProps) {
   const [rotationDeg, setRotationDeg] = useState(0);
   const [northDeg, setNorthDeg] = useState(0);
   const [viewMode, setViewMode] = useState<'top' | 'iso'>('top');
+  const [iso, setIso] = useState<IsoPreferences>(() => ({
+    isoAngleDeg: DEFAULT_VIEW.isoAngleDeg,
+    isoAzimuthDeg: DEFAULT_VIEW.isoAzimuthDeg,
+    ...readIsoPreferences(),
+  }));
+  // Réglages lus à la création du moteur ; les changements suivants passent par setViewSettings.
+  const [initialIso] = useState(iso);
+  const changeIso = (patch: Partial<IsoPreferences>) => {
+    const next = { ...iso, ...patch };
+    setIso(next);
+    writeIsoPreferences(next);
+    engine?.setViewSettings(patch);
+  };
   const [report, setReport] = useState<UnsupportedReport>();
   const [cumulative, setCumulative] = useState(cumulativeEntries);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
@@ -147,7 +164,7 @@ export function Viewer({ file, onShowFiles }: ViewerProps) {
       });
       instance.on('cameraChange', (camera) => {
         // Arrondi au degré : pas de rendu React à chaque image tant que l'angle affiché ne change pas.
-        // Écart à l'orientation de référence du mode (0° en dessus, 45° en iso).
+        // Écart à l'orientation de référence du mode (0° en dessus, orientation iso en iso).
         const deviation = camera.rotation - instance.getReferenceRotation();
         setRotationDeg(Math.round((Math.atan2(Math.sin(deviation), Math.cos(deviation)) * 180) / Math.PI) || 0);
         setNorthDeg(Math.round((camera.rotation * 180) / Math.PI) || 0);
@@ -191,6 +208,7 @@ export function Viewer({ file, onShowFiles }: ViewerProps) {
         <NavigationToolbar
           viewMode={viewMode}
           onViewModeChange={(mode) => engine?.setViewMode(mode)}
+          isoSettings={<IsoSettings value={iso} onChange={changeIso} />}
           middleDrag={middleDrag}
           onMiddleDragChange={changeMiddleDrag}
           rotationDeg={rotationDeg}
@@ -216,6 +234,7 @@ export function Viewer({ file, onShowFiles }: ViewerProps) {
             xml={file.content}
             fileId={file.id}
             fonts={FONTS}
+            view={initialIso}
             initialView={initialView}
             onEngine={handleEngine}
             onError={(e) => setError(e instanceof Error ? e.message : String(e))}

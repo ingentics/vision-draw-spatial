@@ -8,6 +8,8 @@ type ViewMode = 'top' | 'iso';
 interface NavigationToolbarProps {
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
+  /** Réglages de la vue iso, affichés à côté du choix de mode. */
+  isoSettings?: ReactElement;
   middleDrag: MiddleDrag;
   onMiddleDragChange: (mode: MiddleDrag) => void;
   /** Écart à l'orientation de référence du mode, en degrés arrondis (0 = bouton masqué). */
@@ -53,6 +55,7 @@ const VIEW_MODES: Array<{ value: ViewMode; label: string; title: string; icon: R
 export function NavigationToolbar({
   viewMode,
   onViewModeChange,
+  isoSettings,
   middleDrag,
   onMiddleDragChange,
   rotationDeg,
@@ -78,6 +81,7 @@ export function NavigationToolbar({
           </button>
         ))}
       </div>
+      {isoSettings}
       <div className="button-group" role="group" aria-label="Glisser avec la molette">
         {MODES.map((mode) => (
           <button
@@ -99,7 +103,7 @@ export function NavigationToolbar({
         <button
           type="button"
           className="button"
-          title="Revenir à l’orientation par défaut (nord en haut, ou 45° en iso)"
+          title="Revenir à l’orientation par défaut (nord en haut, ou l’orientation iso)"
           onClick={onResetRotation}
         >
           {/* La flèche indique où se trouve le nord de la page à l'écran. */}

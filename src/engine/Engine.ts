@@ -59,7 +59,10 @@ export interface ViewSettings {
   defaultMode: 'top' | 'iso';
   /** Élévation de la caméra au-dessus du sol en mode iso, en degrés (35,26 = isométrie vraie). */
   isoAngleDeg: number;
-  /** Rotation ajoutée en passant en iso, en degrés (45 = isométrie vraie, 0 = simple inclinaison). */
+  /**
+   * Rotation ajoutée en passant en iso, en degrés : ±45 = isométrie vraie (pivot d'un côté ou de
+   * l'autre), 0 = simple inclinaison.
+   */
   isoAzimuthDeg: number;
   /** Durée de la bascule dessus ↔ iso. */
   switchDurationMs: number;
@@ -68,7 +71,7 @@ export interface ViewSettings {
 export const DEFAULT_VIEW: ViewSettings = {
   defaultMode: 'top',
   isoAngleDeg: ISOMETRIC_ELEVATION_DEG,
-  isoAzimuthDeg: 45,
+  isoAzimuthDeg: -45,
   switchDurationMs: 450,
 };
 
@@ -424,8 +427,22 @@ export class Engine {
     return { ...this.viewSettings };
   }
 
+  /**
+   * Change les réglages de vue. En iso, une nouvelle élévation ou orientation s'applique tout de
+   * suite (animée, autour du centre de l'écran) ; l'écart de rotation choisi par l'utilisateur est gardé.
+   */
   setViewSettings(patch: Partial<ViewSettings>): void {
+    const previousAzimuth = this.isoAzimuth();
     this.viewSettings = { ...this.viewSettings, ...patch };
+    if (this.cameraState.mode !== 'iso' || this.transition) return;
+    const target = {
+      ...this.cameraState,
+      tilt: this.isoTilt(),
+      rotation: normalizeAngle(this.cameraState.rotation + this.isoAzimuth() - previousAzimuth),
+    };
+    if (!sameView(target, this.cameraState, this.viewport)) {
+      this.animateCameraTo(target, this.viewSettings.switchDurationMs);
+    }
   }
 
   private isoTilt(): number {
@@ -446,7 +463,7 @@ export class Engine {
     return { rotation: this.cameraState.rotation, tilt: this.cameraState.tilt };
   }
 
-  /** Revient à l'orientation de référence du mode (nord en haut, ou 45° en iso), autour du centre de l'écran. */
+  /** Revient à l'orientation de référence du mode (nord en haut, ou l'orientation iso), autour du centre de l'écran. */
   resetRotation(): void {
     const center = { x: this.viewport.width / 2, y: this.viewport.height / 2 };
     const delta = normalizeAngle(this.getReferenceRotation() - this.cameraState.rotation);
