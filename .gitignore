@@ -2,7 +2,10 @@ node_modules
 dist
 *.tsbuildinfo
 .DS_Store
-.idea/workspace.xml
 
 # Sauvegardes automatiques de draw.io desktop
 .$*.bkp
+
+# Fichiers d'IDE (JetBrains)
+.idea/
+*.iml
