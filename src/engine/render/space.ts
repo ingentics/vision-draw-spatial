@@ -33,3 +33,18 @@ export function setPageTransform(
   object.matrixAutoUpdate = false;
   object.matrixWorldNeedsUpdate = true;
 }
+
+/**
+ * Pose un groupe d'espace page *dans* une autre page (enfant de sa racine) : seule la similitude
+ * 2D est appliquée, l'espace page étant déjà donné par le parent (miniatures de la vue graphe).
+ */
+export function setLocalEmbedding(
+  object: Object3D,
+  embedding: { scale: number; offset: { x: number; y: number } },
+): void {
+  const { scale, offset } = embedding;
+  object.matrix.set(scale, 0, 0, offset.x, 0, scale, 0, offset.y, 0, 0, 1, 0, 0, 0, 0, 1);
+  object.matrix.decompose(object.position, object.quaternion, object.scale);
+  object.matrixAutoUpdate = false;
+  object.matrixWorldNeedsUpdate = true;
+}

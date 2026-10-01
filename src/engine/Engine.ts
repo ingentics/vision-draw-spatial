@@ -24,6 +24,9 @@ import { CameraController } from './interaction/controls';
 import type { ControlSettings } from './interaction/controls';
 import { NavigationHistory, findParents, usageKey } from './interaction/history';
 import type { HistoryEntry, LinkUsage, ParentLink } from './interaction/history';
+import { buildGraphPage, cardId, GRAPH_PAGE_ID } from './graph/graphPage';
+import type { GraphLayout } from './graph/graphPage';
+import { buildGraphScene } from './graph/graphScene';
 import { Minimap } from './interaction/minimap';
 import { pickElement } from './interaction/pick';
 import type { PickedElement } from './interaction/pick';
@@ -184,6 +187,10 @@ export class Engine {
   /** Transition en cours : de quoi l'interrompre proprement. */
   private transition: { abort: () => void } | undefined;
   private readonly history = new NavigationHistory();
+  /** Vue graphe du document (SPEC §12), construite à la première demande. */
+  private graph: { page: PageModel; layout: GraphLayout } | undefined;
+  /** Dernière page du document affichée (pour revenir du graphe). */
+  private lastDocumentPageId: string | undefined;
   private minimap: Minimap | undefined;
   private linkUsage: LinkUsage = {};
 
@@ -203,7 +210,10 @@ export class Engine {
     this.text = createTroikaTextFactory(options.fonts ?? {}, this.requestRender);
     this.scenes = new SceneManager(
       this.scene,
-      (page, level) => buildPageScene(page, this.registry, { text: this.text }, level),
+      (page, level) =>
+        page.id === GRAPH_PAGE_ID && this.graph && this.document
+          ? buildGraphScene(page, this.graph.layout, this.document, this.registry, { text: this.text }, level)
+          : buildPageScene(page, this.registry, { text: this.text }, level),
       options.maxCachedPages,
       (page) => effectiveLevel(page, this.registry, this.requestedLevel()),
     );
@@ -225,6 +235,7 @@ export class Engine {
         back: () => this.back(),
         toggleViewMode: () => this.toggleViewMode(),
         toggleMinimap: () => this.events.emit('minimapToggle'),
+        toggleGraph: () => this.toggleGraph(),
       },
       options.controls,
     );
@@ -239,6 +250,8 @@ export class Engine {
     this.clearSelection();
     this.scenes.clear();
     this.currentPageId = undefined;
+    this.graph = undefined;
+    this.lastDocumentPageId = undefined;
     this.history.replace(initialView?.history ?? []);
     this.linkUsage = { ...initialView?.linkUsage };
     this.pageCameras = new Map(
@@ -248,7 +261,7 @@ export class Engine {
       this.pageCameras.set(initialView.pageId, normalizeCameraState(initialView.camera));
     }
     this.events.emit('load', document, fileId);
-    const page = document.pages.find((p) => p.id === initialView?.pageId) ?? document.pages[0];
+    const page = (initialView?.pageId && this.pageById(initialView.pageId)) || document.pages[0];
     if (!page) {
       this.scenes.hideAll();
       this.requestRender();
@@ -293,7 +306,7 @@ export class Engine {
   }
 
   getCurrentPage(): PageModel | undefined {
-    return this.document?.pages.find((p) => p.id === this.currentPageId);
+    return this.currentPageId ? this.pageById(this.currentPageId) : undefined;
   }
 
   /** Scène de la page courante (lecture seule : diagnostics, tests). */
@@ -316,13 +329,14 @@ export class Engine {
    * et sa caméra est celle de la dernière visite (sinon la page entière est cadrée).
    */
   goToPage(pageId: string): void {
-    const page = this.document?.pages.find((p) => p.id === pageId);
+    const page = this.pageById(pageId);
     if (!page) throw new Error(`Page inconnue : ${pageId}`);
     this.transition?.abort();
     cancelAnimationFrame(this.animation);
     this.animation = 0;
     if (this.currentPageId !== page.id) this.clearSelection();
     this.currentPageId = page.id;
+    if (page.id !== GRAPH_PAGE_ID) this.lastDocumentPageId = page.id;
     this.scenes.show(page);
     this.minimap?.invalidate();
     const camera = this.pageCameras.get(page.id);
@@ -397,6 +411,12 @@ export class Engine {
     } else {
       this.animateCameraTo(overview);
     }
+  }
+
+  /** Page du document, ou la page générée de la vue graphe. */
+  private pageById(id: string): PageModel | undefined {
+    if (id === GRAPH_PAGE_ID) return this.getGraphPage();
+    return this.document?.pages.find((p) => p.id === id);
   }
 
   /** Niveau de rendu demandé par le mode de vue (repli à plat si les formes n'en ont pas). */
@@ -484,6 +504,48 @@ export class Engine {
   /** Orientation courante (rotation + inclinaison), conservée par les cadrages. */
   private orientation(): { rotation: number; tilt: number } {
     return { rotation: this.cameraState.rotation, tilt: this.cameraState.tilt };
+  }
+
+  // -------------------------------------------------------------------------
+  // Vue graphe (SPEC §12)
+
+  /** Page générée de la vue graphe (cartes des pages, flèches des liens). */
+  getGraphPage(): PageModel | undefined {
+    if (!this.document) return undefined;
+    this.graph ??= buildGraphPage(this.document);
+    return this.graph.page;
+  }
+
+  isGraphView(): boolean {
+    return this.currentPageId === GRAPH_PAGE_ID;
+  }
+
+  /**
+   * Affiche la vue graphe. Depuis une page : la page rétrécit dans sa carte (transition inverse
+   * d'un lien), puis on recule jusqu'à la vue d'ensemble du graphe (ou sa dernière vue).
+   */
+  showGraph(): void {
+    const graph = this.getGraphPage();
+    const page = this.getCurrentPage();
+    if (!graph || !page || page.id === GRAPH_PAGE_ID || this.transition) return;
+    const card = graph.shapes.find((s) => s.id === cardId(page.id));
+    this.runTransition({
+      direction: 'out',
+      outer: graph,
+      inner: page,
+      frame: card?.bounds,
+      destination: this.pageCameras.get(GRAPH_PAGE_ID) ?? fitBounds(graph.bounds, this.viewport, this.orientation()),
+    });
+  }
+
+  /** Touche G : graphe ↔ dernière page affichée (en plongeant dans sa carte). */
+  toggleGraph(): void {
+    if (!this.isGraphView()) {
+      this.showGraph();
+      return;
+    }
+    const target = this.lastDocumentPageId ?? this.document?.pages[0]?.id;
+    if (target) this.followLink(cardId(target));
   }
 
   /**
@@ -582,7 +644,7 @@ export class Engine {
   /** Construit en arrière-plan la page cible d'un lien, sans l'afficher (SPEC §11.1). */
   preloadLink(link: LinkModel | undefined): void {
     if (link?.type !== 'page' || link.pageId === this.currentPageId) return;
-    const page = this.document?.pages.find((p) => p.id === link.pageId);
+    const page = this.pageById(link.pageId);
     if (page) this.scenes.prebuild(page);
   }
 
@@ -599,15 +661,18 @@ export class Engine {
       this.openUrl(link.href);
       return;
     }
-    const target = this.document?.pages.find((p) => p.id === link.pageId);
+    const target = this.pageById(link.pageId);
     if (!target || target.id === page.id) return;
 
     const frame = page.shapes.find((s) => s.id === elementId)?.bounds ?? this.drawnBounds(elementId);
     this.history.push({ pageId: page.id, elementId, frame, camera: this.cameraState, targetPageId: target.id });
     this.events.emit('historyChange', this.history.entries());
-    const at = Date.now();
-    this.linkUsage[usageKey(page.id, target.id)] = at;
-    this.events.emit('linkUsed', page.id, target.id, at);
+    // L'usage ne compte que pour les vrais liens du document (pas les cartes de la vue graphe).
+    if (page.id !== GRAPH_PAGE_ID) {
+      const at = Date.now();
+      this.linkUsage[usageKey(page.id, target.id)] = at;
+      this.events.emit('linkUsed', page.id, target.id, at);
+    }
 
     this.runTransition({
       direction: 'in',
@@ -637,7 +702,7 @@ export class Engine {
     if (!page || !this.document) return { kind: 'none' };
     const entry = this.history.peek();
     if (entry && entry.targetPageId === page.id) {
-      const pageName = this.document.pages.find((p) => p.id === entry.pageId)?.name ?? entry.pageId;
+      const pageName = this.pageById(entry.pageId)?.name ?? entry.pageId;
       return { kind: 'history', entry, pageName };
     }
     const parents = findParents(this.document, page.id, this.linkUsage);
@@ -679,7 +744,7 @@ export class Engine {
 
   private returnTo(pageId: string, frame: Rect | undefined, camera: CameraState | undefined): void {
     const inner = this.getCurrentPage();
-    const outer = this.document?.pages.find((p) => p.id === pageId);
+    const outer = this.pageById(pageId);
     if (!inner || !outer) return;
     const destination = camera ?? fitBounds(outer.bounds, this.viewport, this.orientation());
     this.runTransition({ direction: 'out', outer, inner, frame, destination });
@@ -780,6 +845,7 @@ export class Engine {
       restore();
       if (outerCameraBefore) this.pageCameras.set(outer.id, outerCameraBefore);
       this.currentPageId = to.id;
+      if (to.id !== GRAPH_PAGE_ID) this.lastDocumentPageId = to.id;
       this.scenes.show(to);
       this.minimap?.invalidate();
       this.applyCamera(destination);
@@ -814,7 +880,7 @@ export class Engine {
 
   private describeLink(link: LinkModel): string {
     if (link.type === 'url') return `${link.href} (double-clic : ouvrir dans un nouvel onglet)`;
-    const name = this.document?.pages.find((p) => p.id === link.pageId)?.name;
+    const name = this.pageById(link.pageId)?.name;
     return name ? `Double-clic : aller à « ${name} »` : `Lien vers une page absente (${link.pageId})`;
   }
 

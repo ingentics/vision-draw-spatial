@@ -126,6 +126,8 @@ export interface CameraHost {
   toggleViewMode?(): void;
   /** Affiche / masque la mini-carte (touche M). */
   toggleMinimap?(): void;
+  /** Vue graphe ↔ dernière page (touche G). */
+  toggleGraph?(): void;
 }
 
 /** Au-delà de ce déplacement (px), un appui-relâché n'est plus un clic. */
@@ -340,6 +342,11 @@ export class CameraController {
     if (event.code === 'KeyI') {
       event.preventDefault();
       if (!event.repeat) this.host.toggleViewMode?.();
+      return;
+    }
+    if (event.code === 'KeyG') {
+      event.preventDefault();
+      if (!event.repeat) this.host.toggleGraph?.();
       return;
     }
     if (event.code === 'KeyM') {

@@ -17,6 +17,7 @@ import { NavigationToolbar } from './NavigationToolbar';
 import { readIsoPreferences, readMinimapVisible, writeIsoPreferences, writeMinimapVisible } from './viewPreferences';
 import type { IsoPreferences } from './viewPreferences';
 import { DEFAULT_VIEW } from '../engine/Engine';
+import { GRAPH_PAGE_ID } from '../engine/graph/graphPage';
 
 const FONTS = { regular: robotoRegular, bold: robotoBold };
 /** SPEC §5.3 : état de consultation sauvegardé 500 ms après le dernier changement, et à la fermeture. */
@@ -268,6 +269,16 @@ export function Viewer({ file, onShowFiles }: ViewerProps) {
 
       {document && document.pages.length > 1 && (
         <nav className="tabs">
+          <button
+            className={pageId === GRAPH_PAGE_ID ? 'tab graph-tab active' : 'tab graph-tab'}
+            title="Vue d’ensemble des pages et de leurs liens (touche G)"
+            onClick={() => engine?.showGraph()}
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M4 4.5h3M9 11.5h3M5.5 6 10 10M4 3a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM12 10a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM8.5 3a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z" />
+            </svg>
+            Vue graphe
+          </button>
           {document.pages.map((page) => (
             <button
               key={page.id}

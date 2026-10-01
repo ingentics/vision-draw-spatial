@@ -85,10 +85,10 @@
 - Pile vide : menu des pages parentes triées par usage récent (persisté avec le fichier) ; un seul parent → directement.
 - **Fini quand :** on peut descendre de plusieurs niveaux et remonter exactement au point de départ.
 
-### Étape 11 — Vue graphe de la documentation
-- Graphe des pages (cycles autorisés), plans flottants reliés par des arcs.
-- Mise en évidence des pages orphelines / inaccessibles.
-- Double-clic sur une page = navigation.
+### Étape 11 — Vue graphe de la documentation ✅
+- Graphe des pages (cycles autorisés) : une page générée avec une carte par page (vraie miniature) et des flèches par lien.
+- Disposition en couches depuis la page de départ ; pages inaccessibles (orange) et orphelines (rouge) mises en évidence.
+- Double-clic sur une carte = plongée continue dans la page ; Retour ressort vers le graphe ; onglet « Vue graphe », touche G.
 - **Fini quand :** on a une vue d'ensemble spatiale de toute la documentation du fichier.
 
 ### Étape 12 — Paramètres

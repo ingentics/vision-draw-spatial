@@ -56,7 +56,10 @@ export function buildPageScene(
     if ('shape' in item) {
       // Rendu du niveau demandé, repli à plat si la forme n'en a pas.
       object = registry.sceneRenderer(item.shape, level).create(item.shape, ctx);
-      if (isNavigableLink(item.shape.link)) object.add(linkBadge(item.shape, item.shape.link));
+      // `spatial.noLinkBadge=1` : lien sans pastille (ex. cartes de la vue graphe, entièrement cliquables).
+      if (isNavigableLink(item.shape.link) && item.shape.style['spatial.noLinkBadge'] !== '1') {
+        object.add(linkBadge(item.shape, item.shape.link));
+      }
     } else {
       const terminals = {
         source: item.edge.sourceId ? shapesById.get(item.edge.sourceId) : undefined,

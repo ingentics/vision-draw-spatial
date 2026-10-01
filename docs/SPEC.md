@@ -108,6 +108,9 @@ src/
       types.ts         # DocumentModel, PageModel, ShapeModel, EdgeModel, LinkModel
       graph.ts         # graphe de navigation entre pages
     render/
+    graph/
+      graphPage.ts     # vue graphe : page générée (cartes, flèches), disposition en couches
+      graphScene.ts    # scène du graphe avec les miniatures des pages
       shapes/          # une définition par forme, tous niveaux de rendu (§8.2)
         types.ts       # ShapeDefinition, niveaux, contrat mini-carte
         registry.ts    # résolution forme → définition → rendu d'un niveau (repli à plat)
@@ -406,6 +409,8 @@ Formes et arêtes sont dessinées dans l'**ordre du document** (une arête décl
 | Glisser molette enfoncée | **Déplacer** (défaut) ou **Tourner**, au choix dans la barre d'outils (§9.3) |
 | Pan | Clic droit + glisser, ou Espace + glisser (toujours, quel que soit le mode molette) |
 | Vue globale ↔ 1:1 | **Entrée** (§9.3) |
+| Vue graphe ↔ dernière page | Onglet « Vue graphe », touche **G** (§12) |
+| Mini-carte | Bouton × / « Mini-carte », touche **M** (§10) |
 | Sélectionner | Clic gauche |
 | Entrer dans un lien | Double-clic |
 | Retour | Bouton « Retour » + raccourci (ex. Backspace / Alt+←) |
@@ -519,6 +524,15 @@ Seules les URL `http:`, `https:` et `mailto:` sont considérées comme navigable
 - Mise en évidence des **pages orphelines** (aucun lien entrant ni sortant) et des pages inaccessibles depuis la première page.
 - Double-clic sur un plan = aller à la page.
 - Disposition : algorithme de placement de graphe simple (force-directed ou couches), à affiner.
+
+Réalisation retenue :
+
+- Le graphe (`model/graph.ts`) vient des liens `data:page/id,…` des formes et des arêtes (comptés par paire de pages, liens vers soi exclus). Accessibilité et distance par parcours en largeur depuis la **première page**.
+- La vue graphe est une **page générée** (`graph/graphPage.ts`, id `__graph__`) : une carte par page (cadre arrondi + titre), une flèche par paire de pages liées (`×n` s'il y a plusieurs liens ; deux flèches décalées pour un aller-retour). Rendu, sélection, survol, mini-carte, Entrée, iso… fonctionnent donc tels quels.
+- **Disposition en couches**, de gauche à droite : distance depuis la page de départ, puis une colonne pour les pages **inaccessibles** (orange, pointillé), puis une pour les **orphelines** (rouge, pointillé) ; la page de départ est en bleu. Ordre du document dans chaque colonne.
+- Chaque carte contient la **vraie page en miniature** (`graph/graphScene.ts`), nette à tous les zooms, posée exactement comme pendant une transition de lien : **double-clic sur une carte = plongée continue** dans la page (transition de lien, empilée dans l'historique) ; « Retour » ressort vers le graphe par la transition inverse.
+- Accès : onglet **« Vue graphe »** en tête des onglets de pages (la page courante rétrécit dans sa carte), touche **G** (graphe ↔ dernière page affichée).
+- Les cartes du graphe ne comptent pas dans l'usage des liens (§11.3).
 
 ---
 
