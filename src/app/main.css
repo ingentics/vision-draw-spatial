@@ -68,11 +68,6 @@ body {
   stroke-linejoin: round;
 }
 
-.button svg.compass {
-  fill: currentColor;
-  stroke: none;
-}
-
 .nav-tools {
   display: flex;
   align-items: center;

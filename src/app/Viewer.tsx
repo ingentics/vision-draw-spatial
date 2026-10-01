@@ -35,8 +35,6 @@ export function Viewer({ file, onShowFiles, settings, onSettingsChange, onResetS
   const [document, setDocument] = useState<DocumentModel>();
   const [pageId, setPageId] = useState<string>();
   const [error, setError] = useState<string>();
-  const [rotationDeg, setRotationDeg] = useState(0);
-  const [northDeg, setNorthDeg] = useState(0);
   const [viewMode, setViewMode] = useState<'top' | 'iso'>('top');
   const toggleMinimap = useCallback(
     () => onSettingsChange({ minimap: { visible: !settingsRef.current.minimap.visible } }),
@@ -134,10 +132,6 @@ export function Viewer({ file, onShowFiles, settings, onSettingsChange, onResetS
       });
       instance.on('cameraChange', (camera) => {
         // Arrondi au degré : pas de rendu React à chaque image tant que l'angle affiché ne change pas.
-        // Écart à l'orientation de référence du mode (0° en 2D, orientation iso en iso).
-        const deviation = camera.rotation - instance.getReferenceRotation();
-        setRotationDeg(Math.round((Math.atan2(Math.sin(deviation), Math.cos(deviation)) * 180) / Math.PI) || 0);
-        setNorthDeg(Math.round((camera.rotation * 180) / Math.PI) || 0);
         setViewMode(camera.mode);
         scheduleSave();
       });
@@ -180,9 +174,6 @@ export function Viewer({ file, onShowFiles, settings, onSettingsChange, onResetS
           onViewModeChange={(mode) => engine?.setViewMode(mode)}
           middleDrag={settings.controls.middleDrag}
           onMiddleDragChange={(middleDrag) => onSettingsChange({ controls: { middleDrag } })}
-          rotationDeg={rotationDeg}
-          northDeg={northDeg}
-          onResetRotation={() => engine?.resetRotation()}
         />
         <div className="toolbar-end">
           {settings.debug.showUnsupportedPanel && (

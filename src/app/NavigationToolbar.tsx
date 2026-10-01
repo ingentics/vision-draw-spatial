@@ -10,11 +10,6 @@ interface NavigationToolbarProps {
   onViewModeChange: (mode: ViewMode) => void;
   middleDrag: MiddleDrag;
   onMiddleDragChange: (mode: MiddleDrag) => void;
-  /** Écart à l'orientation de référence du mode, en degrés arrondis (0 = bouton masqué). */
-  rotationDeg: number;
-  /** Orientation absolue de la vue (pour la boussole), en degrés. */
-  northDeg: number;
-  onResetRotation: () => void;
 }
 
 const MODES: Array<{ value: MiddleDrag; label: string; title: string; icon: ReactElement }> = [
@@ -49,15 +44,12 @@ const VIEW_MODES: Array<{ value: ViewMode; label: string; title: string; icon: R
   },
 ];
 
-/** Mode de vue, mode du glisser molette (groupes de boutons liés) et remise à zéro de l'orientation. */
+/** Mode de vue et mode du glisser molette (groupes de boutons liés). */
 export function NavigationToolbar({
   viewMode,
   onViewModeChange,
   middleDrag,
   onMiddleDragChange,
-  rotationDeg,
-  northDeg,
-  onResetRotation,
 }: NavigationToolbarProps) {
   return (
     <div className="nav-tools">
@@ -95,25 +87,6 @@ export function NavigationToolbar({
           </button>
         ))}
       </div>
-      {rotationDeg !== 0 && (
-        <button
-          type="button"
-          className="button"
-          title="Revenir à l’orientation par défaut (nord en haut, ou l’orientation iso)"
-          onClick={onResetRotation}
-        >
-          {/* La flèche indique où se trouve le nord de la page à l'écran. */}
-          <svg
-            viewBox="0 0 16 16"
-            aria-hidden="true"
-            style={{ transform: `rotate(${-northDeg}deg)` }}
-            className="compass"
-          >
-            <path d="M8 1.5 11 13 8 10.5 5 13Z" />
-          </svg>
-          Nord ({rotationDeg}°)
-        </button>
-      )}
     </div>
   );
 }

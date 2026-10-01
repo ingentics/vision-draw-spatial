@@ -398,7 +398,7 @@ Formes et arêtes sont dessinées dans l'**ordre du document** (une arête décl
 - **Réglages de la vue iso** (section « Vue isométrique » du panneau Paramètres, §13) : orientation **vers la droite** (−45°, défaut), **vers la gauche** (+45°) ou **sans rotation** (0°), chacune avec un aperçu dessiné ; **élévation** de la caméra de 10° (rasante) à 80° (presque de dessus), avec un retour à l'isométrie vraie (35°). Les changements s'appliquent immédiatement en iso (animés, en gardant l'écart de rotation choisi par l'utilisateur) et sont mémorisés avec les autres paramètres.
 - **Navigation cohérente** : les conversions écran ↔ sol tiennent compte de l'inclinaison (raccourcissement vertical de cos(tilt)) ; zoom au curseur, déplacement, rotation, clic, sélection et liens se comportent de la même façon dans les deux modes. Le texte reste posé à plat sur le sol (lisible, raccourci en iso).
 - **Orbite** : en iso et en mode « Tourner », le glisser molette vertical règle l'inclinaison (vers le haut = vers l'horizon, de 0 à 80°), le glisser horizontal tourne la vue, autour du point de départ du glisser.
-- **Rotation de la vue** : dans les deux modes, la vue peut tourner autour de la verticale (`CameraState.rotation`). Un bouton **« Nord »** (avec une boussole indiquant le nord de la page) apparaît dès que la vue s'écarte de l'orientation de référence du mode (0° en 2D, l'orientation iso choisie en iso) et l'y ramène.
+- **Rotation de la vue** : dans les deux modes, la vue peut tourner autour de la verticale (`CameraState.rotation`). Pas de bouton dédié pour revenir au nord (retiré de la barre d'outils) ; `engine.resetRotation()` reste disponible, et l'ouverture d'une page ou la bascule 2D ↔ iso redonnent une orientation de référence.
 
 ### 9.2 Contrôles
 
@@ -429,7 +429,6 @@ Le déplacement s'appuie sur les touches physiques (`KeyboardEvent.code`) pour g
 
 - **Groupe de deux boutons liés** (style input-group) : **Déplacer** | **Tourner**. Règle l'effet du glisser molette enfoncée ; **Déplacer** par défaut ; le choix est mémorisé.
 - En mode **Tourner**, la vue pivote autour du **point où le glisser a commencé**, qui reste fixe sous le curseur ; glisser vers la droite tourne le schéma dans le sens horaire.
-- Bouton **« Nord (x°) »** visible seulement quand la vue est tournée (§9.1).
 - **Entrée** bascule entre :
   - la **vue globale** : toute la page visible, dans l'orientation actuelle, sans plafond de zoom (un petit schéma remplit l'écran) ;
   - la vue **1:1** (zoom 100 %), autour du curseur s'il est sur le plan, sinon autour du centre.
