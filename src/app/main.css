@@ -510,44 +510,16 @@ body {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
 
-/* Réglages de la vue iso */
-.iso-settings {
-  position: relative;
-  margin-left: -4px;
-}
-
-.settings-button svg {
-  width: 16px;
-  height: 16px;
+/* Réglages de la vue iso (panneau Paramètres) */
+.settings-section h3 .iso-icon {
+  width: 14px;
+  height: 14px;
+  margin-right: 6px;
+  vertical-align: -2px;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.3;
-  stroke-linecap: round;
-}
-
-.popover {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  z-index: 20;
-  display: grid;
-  gap: 8px;
-  width: 280px;
-  padding: 12px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.14);
-}
-
-.popover-title {
-  font-weight: 600;
-}
-
-.field-label {
-  margin-top: 4px;
-  color: var(--muted);
-  font-size: 12px;
+  stroke-linejoin: round;
 }
 
 .orientation-choices {
@@ -590,14 +562,10 @@ body {
   fill: var(--accent);
 }
 
-.popover input[type='range'] {
-  width: 100%;
-}
-
 .range-hints {
   display: flex;
   justify-content: space-between;
-  margin-top: -6px;
+  margin-top: -2px;
   font-size: 11px;
 }
 

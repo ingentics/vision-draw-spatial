@@ -8,8 +8,6 @@ type ViewMode = 'top' | 'iso';
 interface NavigationToolbarProps {
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
-  /** Réglages de la vue iso, affichés à côté du choix de mode. */
-  isoSettings?: ReactElement;
   middleDrag: MiddleDrag;
   onMiddleDragChange: (mode: MiddleDrag) => void;
   /** Écart à l'orientation de référence du mode, en degrés arrondis (0 = bouton masqué). */
@@ -47,7 +45,7 @@ const VIEW_MODES: Array<{ value: ViewMode; label: string; title: string; icon: R
     value: 'iso',
     label: 'Iso',
     title: 'Vue isométrique : le schéma posé au sol (touche I pour basculer)',
-    icon: <path d="M8 2.5 14 6 8 9.5 2 6zM2 6v4l6 3.5 6-3.5V6M8 9.5v4" />,
+    icon: <path d="M8 2.5 14 6 8 9.5 2 6zM2 6v4l6 3.5 6-3.5V6M8 9.5v4" />, // même icône que la section iso des paramètres
   },
 ];
 
@@ -55,7 +53,6 @@ const VIEW_MODES: Array<{ value: ViewMode; label: string; title: string; icon: R
 export function NavigationToolbar({
   viewMode,
   onViewModeChange,
-  isoSettings,
   middleDrag,
   onMiddleDragChange,
   rotationDeg,
@@ -81,7 +78,6 @@ export function NavigationToolbar({
           </button>
         ))}
       </div>
-      {isoSettings}
       <div className="button-group" role="group" aria-label="Glisser avec la molette">
         {MODES.map((mode) => (
           <button

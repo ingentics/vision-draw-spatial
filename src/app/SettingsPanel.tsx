@@ -4,6 +4,7 @@ import { RESERVED_CODES } from '../engine/interaction/controls';
 import type { Shortcuts } from '../engine/interaction/controls';
 import { SETTINGS_LIMITS } from '../engine/settings';
 import type { Settings, SettingsPatch } from '../engine/settings';
+import { IsoIcon, IsoSettings } from './IsoSettings';
 
 interface SettingsPanelProps {
   settings: Settings;
@@ -98,23 +99,6 @@ export function SettingsPanel({ settings, onChange, onReset, onClose }: Settings
             ]}
             onChange={(defaultMode) => onChange({ view: { defaultMode } })}
           />
-          <Choice
-            label="Orientation iso"
-            value={String(view.isoAzimuthDeg)}
-            options={[
-              ['-45', 'Vers la droite'],
-              ['45', 'Vers la gauche'],
-              ['0', 'Sans rotation'],
-            ]}
-            onChange={(azimuth) => onChange({ view: { isoAzimuthDeg: Number(azimuth) } })}
-          />
-          <Slider
-            label="Élévation iso"
-            value={Math.round(view.isoAngleDeg)}
-            limits={SETTINGS_LIMITS['view.isoAngleDeg']}
-            format={(v) => `${v}°${Math.abs(v - 35) < 1 ? ' (isométrie vraie)' : ''}`}
-            onChange={(isoAngleDeg) => onChange({ view: { isoAngleDeg } })}
-          />
           <Slider
             label="Durée de la bascule dessus ↔ iso"
             value={view.switchDurationMs}
@@ -122,6 +106,17 @@ export function SettingsPanel({ settings, onChange, onReset, onClose }: Settings
             format={(v) => (v === 0 ? 'instantanée' : `${v} ms`)}
             onChange={(switchDurationMs) => onChange({ view: { switchDurationMs } })}
           />
+        </Section>
+
+        <Section
+          title={
+            <>
+              <IsoIcon />
+              Vue isométrique
+            </>
+          }
+        >
+          <IsoSettings value={view} onChange={(patch) => onChange({ view: patch })} />
         </Section>
 
         <Section title="Transitions entre pages">
@@ -243,7 +238,7 @@ export function SettingsPanel({ settings, onChange, onReset, onClose }: Settings
 // ---------------------------------------------------------------------------
 // Champs
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Section({ title, children }: { title: ReactNode; children: ReactNode }) {
   return (
     <section className="settings-section">
       <h3>{title}</h3>

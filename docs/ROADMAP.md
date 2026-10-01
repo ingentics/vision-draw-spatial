@@ -62,7 +62,7 @@
 - **Fini quand :** en rouvrant l'application, on retrouve le fichier, la page et le point de vue exacts.
 
 ### Étape 7 — Mode isométrique ✅
-- Bascule `top` ↔ `iso` animée (boutons « Dessus | Iso », touche I) ; réglages iso (⚙) : orientation vers la droite / la gauche / sans rotation, élévation 10–80° (35,26° = isométrie vraie), appliqués en direct.
+- Bascule `top` ↔ `iso` animée (boutons « Dessus | Iso », touche I) ; réglages iso (section « Vue isométrique » des paramètres) : orientation vers la droite / la gauche / sans rotation, élévation 10–80° (35,26° = isométrie vraie), appliqués en direct.
 - Navigation cohérente dans les deux modes (zoom au curseur, pan, rotation, clic, liens, transitions) ; orbite au glisser en mode Tourner.
 - **Fini quand :** le même schéma se consulte en vue de dessus et en isométrique sans perte de repère.
 

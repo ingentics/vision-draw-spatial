@@ -11,7 +11,6 @@ import { DrawioSpatial } from '../react/DrawioSpatial';
 import { clearLog, cumulativeEntries, exportJson, recordFile } from './diagnosticsLog';
 import { DiagnosticsPanel } from './DiagnosticsPanel';
 import { store } from './fileLibrary';
-import { IsoSettings } from './IsoSettings';
 import { NavigationToolbar } from './NavigationToolbar';
 import { SettingsPanel } from './SettingsPanel';
 import type { Settings, SettingsPatch } from '../engine/settings';
@@ -179,7 +178,6 @@ export function Viewer({ file, onShowFiles, settings, onSettingsChange, onResetS
         <NavigationToolbar
           viewMode={viewMode}
           onViewModeChange={(mode) => engine?.setViewMode(mode)}
-          isoSettings={<IsoSettings value={settings.view} onChange={(view) => onSettingsChange({ view })} />}
           middleDrag={settings.controls.middleDrag}
           onMiddleDragChange={(middleDrag) => onSettingsChange({ controls: { middleDrag } })}
           rotationDeg={rotationDeg}
