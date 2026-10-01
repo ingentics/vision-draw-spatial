@@ -12,7 +12,6 @@ import {
   normalizeAngle,
   normalizeCameraState,
   rotateAround,
-  ISOMETRIC_ELEVATION_DEG,
   sameView,
   screenToPage,
   tiltFromElevation,
@@ -43,45 +42,11 @@ import type { ShapeRegistry } from './render/shapes/registry';
 import type { SceneLevel } from './render/shapes/types';
 import { setPageTransform } from './render/space';
 import { createTroikaTextFactory } from './render/troikaText';
+import { DEFAULT_SETTINGS, mergeSettings, resolveReducedMotion } from './settings';
+import type { PreloadSettings, Settings, SettingsPatch, TransitionSettings, ViewSettings } from './settings';
 import type { FontSet } from './render/troikaText';
 
-/** Transition entre pages par un lien (SPEC §11.2, §13 `transition`). */
-export interface TransitionSettings {
-  enabled: boolean;
-  durationMs: number;
-  easing: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out';
-}
-
-/** Préchargement de la page cible d'un lien (SPEC §11.1, §13 `preload`). */
-export interface PreloadSettings {
-  onClick: boolean;
-  onHover: boolean;
-  hoverDelayMs: number;
-}
-
-/** Modes de vue (SPEC §9.1, §13 `view`). */
-export interface ViewSettings {
-  defaultMode: 'top' | 'iso';
-  /** Élévation de la caméra au-dessus du sol en mode iso, en degrés (35,26 = isométrie vraie). */
-  isoAngleDeg: number;
-  /**
-   * Rotation ajoutée en passant en iso, en degrés : ±45 = isométrie vraie (pivot d'un côté ou de
-   * l'autre), 0 = simple inclinaison.
-   */
-  isoAzimuthDeg: number;
-  /** Durée de la bascule dessus ↔ iso. */
-  switchDurationMs: number;
-}
-
-export const DEFAULT_VIEW: ViewSettings = {
-  defaultMode: 'top',
-  isoAngleDeg: ISOMETRIC_ELEVATION_DEG,
-  isoAzimuthDeg: -45,
-  switchDurationMs: 450,
-};
-
-export const DEFAULT_TRANSITION: TransitionSettings = { enabled: true, durationMs: 1000, easing: 'ease-in-out' };
-export const DEFAULT_PRELOAD: PreloadSettings = { onClick: true, onHover: false, hoverDelayMs: 300 };
+export type { PreloadSettings, Settings, SettingsPatch, TransitionSettings, ViewSettings } from './settings';
 
 export interface Selection {
   pageId: string;
@@ -102,12 +67,8 @@ export interface EngineOptions {
   /** Pour ajouter ou surcharger des renderers de formes. */
   registry?: ShapeRegistry;
   background?: string;
-  controls?: Partial<ControlSettings>;
-  /** Nombre de scènes de pages gardées en mémoire (SPEC §13, `preload.maxCachedPages`). */
-  maxCachedPages?: number;
-  transition?: Partial<TransitionSettings>;
-  view?: Partial<ViewSettings>;
-  preload?: Partial<PreloadSettings>;
+  /** Paramètres (SPEC §13) ; ensuite modifiables par `updateSettings`. */
+  settings?: SettingsPatch;
   /** Ouverture des liens URL (par défaut : nouvel onglet du navigateur). */
   openUrl?: (href: string) => void;
 }
@@ -139,6 +100,8 @@ export type EngineEvents = {
   /** Transition vers une page par un lien : début et fin (entrées ignorées entre les deux). */
   transitionStart: [fromPageId: string, toPageId: string];
   transitionEnd: [pageId: string];
+  /** Les paramètres ont changé (à persister / refléter dans l'UI). */
+  settingsChange: [settings: Settings];
   /** Touche M : l'UI affiche ou masque la mini-carte. */
   minimapToggle: [];
   /** La pile de navigation a changé (à persister). */
@@ -170,7 +133,9 @@ export class Engine {
   /** Dernière caméra de chaque page visitée (SPEC §9.4). */
   private pageCameras = new Map<string, CameraState>();
   private cameraState: CameraState = { mode: 'top', center: { x: 0, y: 0 }, zoom: 1, rotation: 0, tilt: 0 };
-  private viewSettings: ViewSettings;
+  private settings: Settings;
+  /** Préférence système « réduire les animations » (suivie en direct). */
+  private readonly reducedMotionQuery: MediaQueryList | undefined;
   private viewport: Viewport = { width: 1, height: 1 };
   /** Cadrage demandé avant que le canvas ait une taille réelle : appliqué à la première mesure. */
   private pendingFit: Rect | undefined;
@@ -178,8 +143,6 @@ export class Engine {
   private animation = 0;
   private disposed = false;
 
-  private transitionSettings: TransitionSettings;
-  private preloadSettings: PreloadSettings;
   private readonly openUrl: (href: string) => void;
   private selection: Selection | undefined;
   private selectionObject: ReturnType<typeof selectionOutline> | undefined;
@@ -197,12 +160,12 @@ export class Engine {
   constructor(options: EngineOptions) {
     this.canvas = options.canvas;
     this.registry = options.registry ?? createDefaultRegistry();
-    this.transitionSettings = { ...DEFAULT_TRANSITION, ...options.transition };
-    this.viewSettings = { ...DEFAULT_VIEW, ...options.view };
-    if (this.viewSettings.defaultMode === 'iso') {
+    this.settings = mergeSettings(DEFAULT_SETTINGS, options.settings);
+    this.reducedMotionQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    this.reducedMotionQuery?.addEventListener?.('change', this.onReducedMotionChange);
+    if (this.settings.view.defaultMode === 'iso') {
       this.cameraState = withViewMode(this.cameraState, 'iso', this.isoTilt(), this.isoAzimuth());
     }
-    this.preloadSettings = { ...DEFAULT_PRELOAD, ...options.preload };
     this.openUrl = options.openUrl ?? defaultOpenUrl;
     this.renderer = new WebGLRenderer({ canvas: this.canvas, antialias: true });
     this.renderer.setPixelRatio(window.devicePixelRatio);
@@ -214,7 +177,7 @@ export class Engine {
         page.id === GRAPH_PAGE_ID && this.graph && this.document
           ? buildGraphScene(page, this.graph.layout, this.document, this.registry, { text: this.text }, level)
           : buildPageScene(page, this.registry, { text: this.text }, level),
-      options.maxCachedPages,
+      this.settings.preload.maxCachedPages,
       (page) => effectiveLevel(page, this.registry, this.requestedLevel()),
     );
 
@@ -237,7 +200,7 @@ export class Engine {
         toggleMinimap: () => this.events.emit('minimapToggle'),
         toggleGraph: () => this.toggleGraph(),
       },
-      options.controls,
+      this.effectiveControls(),
     );
   }
 
@@ -365,10 +328,9 @@ export class Engine {
     this.applyCamera(state);
   }
 
-  /** Anime la caméra vers un état (instantané si `prefers-reduced-motion`). Toute autre entrée l'interrompt. */
+  /** Anime la caméra vers un état (instantané si les animations sont réduites). Toute autre entrée l'interrompt. */
   animateCameraTo(target: CameraState, durationMs = 250): void {
-    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    if (reduceMotion || durationMs <= 0) {
+    if (this.reducedMotion() || durationMs <= 0) {
       this.setCameraState(target);
       return;
     }
@@ -458,7 +420,7 @@ export class Engine {
     if (this.transition) return;
     this.animateCameraTo(
       withViewMode(this.cameraState, mode, this.isoTilt(), this.isoAzimuth()),
-      this.viewSettings.switchDurationMs,
+      this.settings.view.switchDurationMs,
     );
   }
 
@@ -467,33 +429,19 @@ export class Engine {
   }
 
   getViewSettings(): ViewSettings {
-    return { ...this.viewSettings };
+    return { ...this.settings.view };
   }
 
-  /**
-   * Change les réglages de vue. En iso, une nouvelle élévation ou orientation s'applique tout de
-   * suite (animée, autour du centre de l'écran) ; l'écart de rotation choisi par l'utilisateur est gardé.
-   */
   setViewSettings(patch: Partial<ViewSettings>): void {
-    const previousAzimuth = this.isoAzimuth();
-    this.viewSettings = { ...this.viewSettings, ...patch };
-    if (this.cameraState.mode !== 'iso' || this.transition) return;
-    const target = {
-      ...this.cameraState,
-      tilt: this.isoTilt(),
-      rotation: normalizeAngle(this.cameraState.rotation + this.isoAzimuth() - previousAzimuth),
-    };
-    if (!sameView(target, this.cameraState, this.viewport)) {
-      this.animateCameraTo(target, this.viewSettings.switchDurationMs);
-    }
+    this.updateSettings({ view: patch });
   }
 
   private isoTilt(): number {
-    return tiltFromElevation(this.viewSettings.isoAngleDeg);
+    return tiltFromElevation(this.settings.view.isoAngleDeg);
   }
 
   private isoAzimuth(): number {
-    return (this.viewSettings.isoAzimuthDeg * Math.PI) / 180;
+    return (this.settings.view.isoAzimuthDeg * Math.PI) / 180;
   }
 
   /** Orientation de référence du mode courant : 0 en vue de dessus, l'azimut iso en isométrie. */
@@ -584,12 +532,61 @@ export class Engine {
   }
 
   getControls(): ControlSettings {
-    return this.controller.getSettings();
+    return structuredClone(this.settings.controls);
   }
 
   setControls(patch: Partial<ControlSettings>): void {
-    this.controller.setSettings(patch);
+    this.updateSettings({ controls: patch });
   }
+
+  // -------------------------------------------------------------------------
+  // Paramètres (SPEC §13)
+
+  getSettings(): Settings {
+    return structuredClone(this.settings);
+  }
+
+  /**
+   * Modifie des paramètres, section par section ; tout s'applique immédiatement : contrôles,
+   * transitions, préchargement, taille du cache, et en iso l'élévation / l'orientation (animées,
+   * en gardant l'écart de rotation choisi par l'utilisateur).
+   */
+  updateSettings(patch: SettingsPatch): void {
+    const previous = this.settings;
+    this.settings = mergeSettings(previous, patch);
+    this.controller.setSettings(this.effectiveControls());
+    this.scenes.setMaxCached(this.settings.preload.maxCachedPages);
+
+    const view = this.settings.view;
+    const isoChanged =
+      view.isoAngleDeg !== previous.view.isoAngleDeg || view.isoAzimuthDeg !== previous.view.isoAzimuthDeg;
+    if (isoChanged && this.cameraState.mode === 'iso' && !this.transition) {
+      const azimuthDelta = ((view.isoAzimuthDeg - previous.view.isoAzimuthDeg) * Math.PI) / 180;
+      const target = {
+        ...this.cameraState,
+        tilt: this.isoTilt(),
+        rotation: normalizeAngle(this.cameraState.rotation + azimuthDelta),
+      };
+      if (!sameView(target, this.cameraState, this.viewport)) this.animateCameraTo(target, view.switchDurationMs);
+    }
+    this.events.emit('settingsChange', this.getSettings());
+  }
+
+  /** Animations réduites : réglage d'accessibilité, ou préférence système si « système ». */
+  reducedMotion(): boolean {
+    return resolveReducedMotion(this.settings.accessibility.reducedMotion, this.reducedMotionQuery?.matches ?? false);
+  }
+
+  /** Contrôles effectifs : pas de glissade quand les animations sont réduites. */
+  private effectiveControls(): ControlSettings {
+    const controls = this.settings.controls;
+    return this.reducedMotion() ? { ...controls, decelerationMs: 0 } : controls;
+  }
+
+  private readonly onReducedMotionChange = (): void => {
+    this.controller.setSettings(this.effectiveControls());
+    this.events.emit('settingsChange', this.getSettings());
+  };
 
   // -------------------------------------------------------------------------
   // Sélection et liens (SPEC §11)
@@ -599,19 +596,19 @@ export class Engine {
   }
 
   getTransitionSettings(): TransitionSettings {
-    return { ...this.transitionSettings };
+    return { ...this.settings.transition };
   }
 
   setTransitionSettings(patch: Partial<TransitionSettings>): void {
-    this.transitionSettings = { ...this.transitionSettings, ...patch };
+    this.updateSettings({ transition: patch });
   }
 
   getPreloadSettings(): PreloadSettings {
-    return { ...this.preloadSettings };
+    return { ...this.settings.preload };
   }
 
   setPreloadSettings(patch: Partial<PreloadSettings>): void {
-    this.preloadSettings = { ...this.preloadSettings, ...patch };
+    this.updateSettings({ preload: patch });
   }
 
   isTransitioning(): boolean {
@@ -770,8 +767,12 @@ export class Engine {
     const to = direction === 'in' ? inner : outer;
     if (!from || this.transition) return;
 
-    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    if (!frame || !this.transitionSettings.enabled || reduceMotion || this.transitionSettings.durationMs <= 0) {
+    if (
+      !frame ||
+      !this.settings.transition.enabled ||
+      this.reducedMotion() ||
+      this.settings.transition.durationMs <= 0
+    ) {
       if (direction === 'in') this.pageCameras.set(outer.id, this.cameraState);
       this.pageCameras.set(to.id, destination);
       this.goToPage(to.id);
@@ -801,8 +802,8 @@ export class Engine {
     setPageOpacity(outerScene.root, 1 - innerAlpha(0));
     this.applyCamera(startCamera);
 
-    const ease = easing(this.transitionSettings.easing);
-    const duration = this.transitionSettings.durationMs;
+    const ease = easing(this.settings.transition.easing);
+    const duration = this.settings.transition.durationMs;
     const FADE_START = 0.25;
     const FADE_END = 0.75;
 
@@ -858,7 +859,7 @@ export class Engine {
   private handleClick(screen: Point): void {
     const picked = this.pickAt(screen);
     this.select(picked);
-    if (this.preloadSettings.onClick) this.preloadLink(picked?.element.link);
+    if (this.settings.preload.onClick) this.preloadLink(picked?.element.link);
   }
 
   private handleDoubleClick(screen: Point): void {
@@ -873,8 +874,8 @@ export class Engine {
     if (!this.canvas.style.cursor.startsWith('grab')) this.canvas.style.cursor = link ? 'pointer' : '';
     this.canvas.title = link ? this.describeLink(link) : '';
     clearTimeout(this.hoverTimer);
-    if (link && this.preloadSettings.onHover) {
-      this.hoverTimer = setTimeout(() => this.preloadLink(link), this.preloadSettings.hoverDelayMs);
+    if (link && this.settings.preload.onHover) {
+      this.hoverTimer = setTimeout(() => this.preloadLink(link), this.settings.preload.hoverDelayMs);
     }
   }
 
@@ -920,6 +921,7 @@ export class Engine {
     this.transition?.abort();
     this.resizeObserver.disconnect();
     this.controller.dispose();
+    this.reducedMotionQuery?.removeEventListener?.('change', this.onReducedMotionChange);
     this.minimap?.dispose();
     this.scenes.clear();
     this.text.dispose();

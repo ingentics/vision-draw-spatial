@@ -416,7 +416,7 @@ Formes et arêtes sont dessinées dans l'**ordre du document** (une arête décl
 | Retour | Bouton « Retour » + raccourci (ex. Backspace / Alt+←) |
 | Basculer dessus ↔ iso | Boutons « Dessus \| Iso » de la barre d'outils, touche **I** |
 
-Les contrôles s'appuient sur les touches physiques (`KeyboardEvent.code`) pour gérer correctement les dispositions AZERTY / QWERTY. Les touches sont ignorées pendant une saisie (champ, liste) ; Entrée est laissée aux boutons qui ont le focus.
+Le déplacement s'appuie sur les touches physiques (`KeyboardEvent.code`) pour gérer correctement les dispositions AZERTY / QWERTY ; les raccourcis (I, G, M, Entrée, Retour arrière) suivent la touche affichée (`KeyboardEvent.key`) et sont configurables (§13). Les touches sont ignorées pendant une saisie (champ, liste) ; Entrée est laissée aux boutons qui ont le focus.
 
 **Glissade (drift).** Pour éviter les à-coups, un déplacement ne s'arrête pas net :
 
@@ -538,27 +538,37 @@ Réalisation retenue :
 
 ## 13. Paramètres
 
-Tout ce qui touche à l'expérience utilisateur est paramétrable, avec des valeurs par défaut agréables :
+Tout ce qui touche à l'expérience utilisateur est paramétrable, avec des valeurs par défaut agréables (`engine/settings.ts`) :
 
 ```ts
 interface Settings {
-  transition: { enabled: boolean; durationMs: number; easing: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out' }; // 1000 ms, ease-in-out
-  preload: { onClick: boolean; onHover: boolean; hoverDelayMs: number; maxCachedPages: number }; // true, false, 300, 8
+  transition: { enabled: boolean; durationMs: number; easing: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out' }; // true, 1000, ease-in-out
+  preload: { onClick: boolean; onHover: boolean; hoverDelayMs: number; maxCachedPages: number };            // true, false, 300, 8
   controls: {
     moveKeys: 'letters' | 'arrows' | 'all'; // 'letters' = ZQSD (AZERTY) = WASD (QWERTY), mêmes touches physiques
-    middleDrag: 'pan' | 'rotate';            // effet du glisser molette (barre d'outils §9.3)
-    moveSpeed: number;                       // px écran / s au clavier
+    middleDrag: 'pan' | 'rotate';           // effet du glisser molette (barre d'outils §9.3)
+    moveSpeed: number;                      // px écran / s au clavier (600)
     zoomSpeed: number;
-    rotateSpeed: number;                     // rad / px de glisser en mode Tourner
-    decelerationMs: number;                  // glissade à l'arrêt (§9.2), 0 = arrêt net
+    rotateSpeed: number;                    // rad / px de glisser en mode Tourner
+    decelerationMs: number;                 // glissade à l'arrêt (§9.2), 0 = arrêt net (80)
+    shortcuts: { toggleViewMode: 'i'; toggleGraph: 'g'; toggleMinimap: 'm'; overview: 'Enter'; back: 'Backspace' };
   };
   view: { defaultMode: 'top' | 'iso'; isoAngleDeg: number; isoAzimuthDeg: number; switchDurationMs: number }; // 'top', 35.26, -45, 450
-  minimap: { visible: boolean; size: number };
-  debug: { showUnsupportedPanel: boolean };
+  minimap: { visible: boolean; size: number };                    // true, 200
+  debug: { showUnsupportedPanel: boolean };                       // true
+  accessibility: { reducedMotion: 'system' | 'always' | 'never' }; // 'system'
 }
 ```
 
 Les paramètres sont persistés (IndexedDB ou localStorage) et peuvent être passés en props au composant React.
+
+Réalisation retenue :
+
+- `mergeSettings` fusionne une modification **section par section** (raccourcis un par un), ignore les valeurs invalides et borne les nombres : un stockage abîmé ou ancien ne casse jamais l'application.
+- Moteur : `new Engine({ settings })`, puis `engine.updateSettings(patch)` — tout s'applique immédiatement (contrôles, transitions, préchargement, taille du cache ; en iso, élévation et orientation animées). `<DrawioSpatial settings={…} />` les transmet.
+- **Réduire les animations** : « comme le système » (`prefers-reduced-motion`, suivi en direct), « toujours » ou « jamais ». Réduites = transitions de liens, bascule iso, vue globale ↔ 1:1, retour au nord **et glissade** instantanés.
+- **Raccourcis par touche affichée** (`KeyboardEvent.key`, insensibles à la casse) : « M » est la touche M en AZERTY comme en QWERTY. Le déplacement reste par position physique (`code`). Les touches de déplacement et Espace ne sont pas attribuables ; une touche déjà utilisée est refusée.
+- Appli de démo : paramètres partagés entre fichiers, persistés dans le navigateur (`localStorage`, une seule clé ; les réglages enregistrés séparément auparavant sont repris une fois). Panneau **« Paramètres »** (bouton de la barre d'outils) à côté de la vue : Navigation, Vue, Transitions, Préchargement, Mini-carte, Accessibilité, Raccourcis (cliquer puis appuyer sur la touche), Diagnostics ; bouton « Réinitialiser ». Les réglages rapides de la barre (Déplacer/Tourner, ⚙ iso, × de la mini-carte) écrivent dans les mêmes paramètres.
 
 ---
 

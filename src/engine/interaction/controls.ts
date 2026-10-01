@@ -7,6 +7,53 @@ import type { CameraState, Viewport } from './camera';
  * (`KeyboardEvent.code`) : Z Q S D sur AZERTY et W A S D sur QWERTY sont les mêmes touches.
  */
 
+/**
+ * Raccourcis clavier configurables (SPEC §9.2), par **touche affichée** (`KeyboardEvent.key`,
+ * insensible à la casse) : « M » est la touche M quelle que soit la disposition (AZERTY, QWERTY…).
+ * Le déplacement, lui, reste par position physique (`code`) : ZQSD = WASD.
+ */
+export interface Shortcuts {
+  /** Bascule dessus ↔ iso. */
+  toggleViewMode: string;
+  /** Vue graphe ↔ dernière page. */
+  toggleGraph: string;
+  /** Affiche / masque la mini-carte. */
+  toggleMinimap: string;
+  /** Vue globale ↔ 1:1 (l'Entrée du pavé numérique donne aussi la touche « Enter »). */
+  overview: string;
+  /** Retour (Alt+← fonctionne en plus, comme dans un navigateur). */
+  back: string;
+}
+
+export const DEFAULT_SHORTCUTS: Shortcuts = {
+  toggleViewMode: 'i',
+  toggleGraph: 'g',
+  toggleMinimap: 'm',
+  overview: 'Enter',
+  back: 'Backspace',
+};
+
+/** Positions physiques réservées au déplacement et au pan : non attribuables à un raccourci. */
+export const RESERVED_CODES = [
+  'KeyW',
+  'KeyA',
+  'KeyS',
+  'KeyD',
+  'ArrowUp',
+  'ArrowDown',
+  'ArrowLeft',
+  'ArrowRight',
+  'Space',
+];
+
+/** Action d'un raccourci pour une touche (`KeyboardEvent.key`) ; undefined si aucune. */
+export function shortcutAction(key: string, shortcuts: Shortcuts): keyof Shortcuts | undefined {
+  const pressed = key.toLowerCase();
+  return (Object.keys(shortcuts) as Array<keyof Shortcuts>).find(
+    (action) => shortcuts[action].toLowerCase() === pressed,
+  );
+}
+
 export interface ControlSettings {
   /** Touches de déplacement : lettres (ZQSD / WASD selon le clavier), flèches, ou les deux. */
   moveKeys: 'letters' | 'arrows' | 'all';
@@ -18,6 +65,7 @@ export interface ControlSettings {
   zoomSpeed: number;
   /** Radians par pixel de glisser horizontal, en mode rotation. */
   rotateSpeed: number;
+  shortcuts: Shortcuts;
   /**
    * Glissade à l'arrêt d'un déplacement (clavier ou glisser) : constante de temps de la
    * décélération, en ms. Pas d'accélération au départ. 0 = arrêt net.
@@ -32,6 +80,7 @@ export const DEFAULT_CONTROLS: ControlSettings = {
   zoomSpeed: 0.0015,
   rotateSpeed: 0.005,
   decelerationMs: 80,
+  shortcuts: DEFAULT_SHORTCUTS,
 };
 
 /** Vitesse en dessous de laquelle la glissade s'arrête (pixels écran par seconde). */
@@ -186,7 +235,7 @@ export class CameraController {
   }
 
   setSettings(patch: Partial<ControlSettings>): void {
-    this.settings = { ...this.settings, ...patch };
+    this.settings = { ...this.settings, ...patch, shortcuts: { ...this.settings.shortcuts, ...patch.shortcuts } };
   }
 
   /** Ignore les entrées (ex. pendant une transition, SPEC §11.2). */
@@ -321,9 +370,13 @@ export class CameraController {
 
   private readonly onKeyDown = (event: KeyboardEvent): void => {
     if (!this.enabled || isEditable(event.target)) return;
-    // Retour (SPEC §9.2) : Retour arrière, ou Alt+← comme dans un navigateur.
+    // Une touche de déplacement reste une touche de déplacement, même si elle porte une lettre de raccourci.
+    const action = isMoveKey(event.code, this.settings.moveKeys)
+      ? undefined
+      : shortcutAction(event.key, this.settings.shortcuts);
+    // Retour (SPEC §9.2) : son raccourci, ou Alt+← comme dans un navigateur.
     const isBack =
-      (event.code === 'Backspace' && !event.ctrlKey && !event.metaKey && !event.altKey) ||
+      (action === 'back' && !event.ctrlKey && !event.metaKey && !event.altKey) ||
       (event.code === 'ArrowLeft' && event.altKey && !event.ctrlKey && !event.metaKey);
     if (isBack) {
       event.preventDefault();
@@ -331,27 +384,20 @@ export class CameraController {
       return;
     }
     if (event.ctrlKey || event.metaKey || event.altKey) return;
-    if (event.code === 'Enter' || event.code === 'NumpadEnter') {
-      // Sur un bouton, Entrée l'active : on ne détourne pas la touche.
+    if (action === 'overview') {
+      // Sur un bouton, Entrée (ou Espace) l'active : on ne détourne pas la touche.
       if (event.repeat || (event.target instanceof HTMLElement && event.target.tagName === 'BUTTON')) return;
       event.preventDefault();
       this.stopDrift();
       this.host.toggleOverview(this.hover);
       return;
     }
-    if (event.code === 'KeyI') {
+    if (action === 'toggleViewMode' || action === 'toggleGraph' || action === 'toggleMinimap') {
       event.preventDefault();
-      if (!event.repeat) this.host.toggleViewMode?.();
-      return;
-    }
-    if (event.code === 'KeyG') {
-      event.preventDefault();
-      if (!event.repeat) this.host.toggleGraph?.();
-      return;
-    }
-    if (event.code === 'KeyM') {
-      event.preventDefault();
-      if (!event.repeat) this.host.toggleMinimap?.();
+      if (event.repeat) return;
+      if (action === 'toggleViewMode') this.host.toggleViewMode?.();
+      else if (action === 'toggleGraph') this.host.toggleGraph?.();
+      else this.host.toggleMinimap?.();
       return;
     }
     if (event.code === 'Space') {

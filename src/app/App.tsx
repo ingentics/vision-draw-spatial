@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { StoredFile, StoredFileMeta } from '../engine/persistence/FileStore';
+import { DEFAULT_SETTINGS, mergeSettings } from '../engine/settings';
+import type { Settings, SettingsPatch } from '../engine/settings';
 import { Launcher } from '../react/Launcher';
 import { demoFiles } from './demoFiles';
 import { createNewFile, importFile, openDemo, openStored, store } from './fileLibrary';
+import { loadSettings, saveSettings } from './settingsStore';
 import { getCurrentFileId, setCurrentFileId } from './tabSession';
 import { Viewer } from './Viewer';
 
@@ -15,6 +18,19 @@ export function App() {
   const [error, setError] = useState<string>();
   const [ready, setReady] = useState(false);
   const [dragging, setDragging] = useState(false);
+  // Paramètres (SPEC §13) : partagés entre fichiers, persistés dans le navigateur.
+  const [settings, setSettings] = useState<Settings>(loadSettings);
+  const updateSettings = useCallback((patch: SettingsPatch) => {
+    setSettings((current) => {
+      const next = mergeSettings(current, patch);
+      saveSettings(next);
+      return next;
+    });
+  }, []);
+  const resetSettings = useCallback(() => {
+    saveSettings(DEFAULT_SETTINGS);
+    setSettings(DEFAULT_SETTINGS);
+  }, []);
 
   const refreshRecents = useCallback(() => {
     store.listRecent().then(setRecents, () => setRecents([]));
@@ -109,7 +125,14 @@ export function App() {
   return (
     <>
       {current ? (
-        <Viewer key={current.id} file={current} onShowFiles={showLauncher} />
+        <Viewer
+          key={current.id}
+          file={current}
+          onShowFiles={showLauncher}
+          settings={settings}
+          onSettingsChange={updateSettings}
+          onResetSettings={resetSettings}
+        />
       ) : (
         <Launcher
           recents={recents}

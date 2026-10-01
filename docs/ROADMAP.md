@@ -12,7 +12,7 @@
 
 ---
 
-## Milestone 1 — Viewer
+## Milestone 1 — Viewer ✅
 
 ### Étape 0 — Squelette du projet ✅
 - Vite + React + TypeScript strict, Three.js, Vitest, ESLint/Prettier.
@@ -91,9 +91,10 @@
 - Double-clic sur une carte = plongée continue dans la page ; Retour ressort vers le graphe ; onglet « Vue graphe », touche G.
 - **Fini quand :** on a une vue d'ensemble spatiale de toute la documentation du fichier.
 
-### Étape 12 — Paramètres
-- Objet `Settings` complet, persisté, éditable dans un panneau.
-- Support de `prefers-reduced-motion`.
+### Étape 12 — Paramètres ✅
+- Objet `Settings` complet (`engine/settings.ts`), fusion partielle validée et bornée, `engine.updateSettings` appliqué à chaud.
+- Panneau « Paramètres » : navigation, vue, transitions, préchargement, mini-carte, accessibilité, raccourcis (capture de touche), diagnostics ; persisté, réinitialisable.
+- `prefers-reduced-motion` suivi (ou forcé : toujours / jamais) : transitions, bascules et glissade instantanées.
 - **Fini quand :** toutes les durées, touches et options de préchargement sont réglables.
 
 ---

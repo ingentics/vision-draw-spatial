@@ -3,7 +3,6 @@ import robotoRegular from '@fontsource/roboto/files/roboto-latin-400-normal.woff
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { UnsupportedReport } from '../engine/diagnostics/unsupportedStyles';
 import type { BackTarget, Engine, InitialView } from '../engine/Engine';
-import type { ControlSettings } from '../engine/interaction/controls';
 import type { ParentLink } from '../engine/interaction/history';
 import type { DocumentModel } from '../engine/model/types';
 import type { StoredFile } from '../engine/persistence/FileStore';
@@ -14,72 +13,45 @@ import { DiagnosticsPanel } from './DiagnosticsPanel';
 import { store } from './fileLibrary';
 import { IsoSettings } from './IsoSettings';
 import { NavigationToolbar } from './NavigationToolbar';
-import { readIsoPreferences, readMinimapVisible, writeIsoPreferences, writeMinimapVisible } from './viewPreferences';
-import type { IsoPreferences } from './viewPreferences';
-import { DEFAULT_VIEW } from '../engine/Engine';
+import { SettingsPanel } from './SettingsPanel';
+import type { Settings, SettingsPatch } from '../engine/settings';
 import { GRAPH_PAGE_ID } from '../engine/graph/graphPage';
 
 const FONTS = { regular: robotoRegular, bold: robotoBold };
 /** SPEC §5.3 : état de consultation sauvegardé 500 ms après le dernier changement, et à la fermeture. */
 const SAVE_DELAY_MS = 500;
-const MIDDLE_DRAG_KEY = 'drawio-spatial:middle-drag';
-
-/** Préférence du navigateur (en attendant le panneau de paramètres, étape 12). */
-function readMiddleDrag(): ControlSettings['middleDrag'] {
-  try {
-    return localStorage.getItem(MIDDLE_DRAG_KEY) === 'rotate' ? 'rotate' : 'pan';
-  } catch {
-    return 'pan';
-  }
-}
-
-function writeMiddleDrag(mode: ControlSettings['middleDrag']): void {
-  try {
-    localStorage.setItem(MIDDLE_DRAG_KEY, mode);
-  } catch {
-    // Stockage indisponible : le choix vaut pour la session seulement.
-  }
-}
-
 interface ViewerProps {
   file: StoredFile;
   /** Retour au lanceur (l'état est sauvegardé avant). */
   onShowFiles: () => void;
+  /** Paramètres (SPEC §13), partagés entre fichiers et persistés par l'appli. */
+  settings: Settings;
+  onSettingsChange: (patch: SettingsPatch) => void;
+  onResetSettings: () => void;
 }
 
 /** Visionneuse d'un fichier : moteur, barre d'outils, onglets, diagnostics, persistance de la vue. */
-export function Viewer({ file, onShowFiles }: ViewerProps) {
+export function Viewer({ file, onShowFiles, settings, onSettingsChange, onResetSettings }: ViewerProps) {
   const [engine, setEngine] = useState<Engine>();
   const [document, setDocument] = useState<DocumentModel>();
   const [pageId, setPageId] = useState<string>();
   const [error, setError] = useState<string>();
-  const [middleDrag, setMiddleDrag] = useState(readMiddleDrag);
   const [rotationDeg, setRotationDeg] = useState(0);
   const [northDeg, setNorthDeg] = useState(0);
   const [viewMode, setViewMode] = useState<'top' | 'iso'>('top');
-  const [iso, setIso] = useState<IsoPreferences>(() => ({
-    isoAngleDeg: DEFAULT_VIEW.isoAngleDeg,
-    isoAzimuthDeg: DEFAULT_VIEW.isoAzimuthDeg,
-    ...readIsoPreferences(),
-  }));
-  const [minimapVisible, setMinimapVisible] = useState(readMinimapVisible);
-  const toggleMinimap = useCallback(() => {
-    setMinimapVisible((visible) => {
-      writeMinimapVisible(!visible);
-      return !visible;
-    });
-  }, []);
-  // Réglages lus à la création du moteur ; les changements suivants passent par setViewSettings.
-  const [initialIso] = useState(iso);
-  const changeIso = (patch: Partial<IsoPreferences>) => {
-    const next = { ...iso, ...patch };
-    setIso(next);
-    writeIsoPreferences(next);
-    engine?.setViewSettings(patch);
-  };
+  const toggleMinimap = useCallback(
+    () => onSettingsChange({ minimap: { visible: !settingsRef.current.minimap.visible } }),
+    [onSettingsChange],
+  );
+  // Paramètres courants pour les rappels du moteur (créés une seule fois).
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
   const [report, setReport] = useState<UnsupportedReport>();
   const [cumulative, setCumulative] = useState(cumulativeEntries);
-  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
+  /** Panneau latéral ouvert (un seul à la fois). */
+  const [panel, setPanel] = useState<'diagnostics' | 'settings'>();
+  const diagnosticsOpen = panel === 'diagnostics' && settings.debug.showUnsupportedPanel;
+  const togglePanel = (name: 'diagnostics' | 'settings') => setPanel((open) => (open === name ? undefined : name));
   const [backTarget, setBackTarget] = useState<BackTarget>({ kind: 'none' });
   const [backChoices, setBackChoices] = useState<ParentLink[]>();
 
@@ -129,15 +101,6 @@ export function Viewer({ file, onShowFiles }: ViewerProps) {
       flush();
     };
   }, [flush]);
-
-  useEffect(() => {
-    engine?.setControls({ middleDrag });
-  }, [engine, middleDrag]);
-
-  const changeMiddleDrag = (mode: ControlSettings['middleDrag']) => {
-    setMiddleDrag(mode);
-    writeMiddleDrag(mode);
-  };
 
   const handleEngine = useCallback(
     (instance: Engine | undefined) => {
@@ -216,23 +179,41 @@ export function Viewer({ file, onShowFiles }: ViewerProps) {
         <NavigationToolbar
           viewMode={viewMode}
           onViewModeChange={(mode) => engine?.setViewMode(mode)}
-          isoSettings={<IsoSettings value={iso} onChange={changeIso} />}
-          middleDrag={middleDrag}
-          onMiddleDragChange={changeMiddleDrag}
+          isoSettings={<IsoSettings value={settings.view} onChange={(view) => onSettingsChange({ view })} />}
+          middleDrag={settings.controls.middleDrag}
+          onMiddleDragChange={(middleDrag) => onSettingsChange({ controls: { middleDrag } })}
           rotationDeg={rotationDeg}
           northDeg={northDeg}
           onResetRotation={() => engine?.resetRotation()}
         />
-        <button
-          type="button"
-          className="button diagnostics-toggle"
-          aria-pressed={diagnosticsOpen}
-          title="Éléments non supportés et avertissements de lecture"
-          onClick={() => setDiagnosticsOpen((open) => !open)}
-        >
-          Diagnostics
-          {issueCount > 0 && <span className="pill">{issueCount}</span>}
-        </button>
+        <div className="toolbar-end">
+          {settings.debug.showUnsupportedPanel && (
+            <button
+              type="button"
+              className="button diagnostics-toggle"
+              aria-pressed={diagnosticsOpen}
+              title="Éléments non supportés et avertissements de lecture"
+              onClick={() => togglePanel('diagnostics')}
+            >
+              Diagnostics
+              {issueCount > 0 && <span className="pill">{issueCount}</span>}
+            </button>
+          )}
+          <button
+            type="button"
+            className="button"
+            aria-pressed={panel === 'settings'}
+            title="Paramètres"
+            onClick={() => togglePanel('settings')}
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M2.5 4.5h7M12.5 4.5h1M2.5 11.5h1M6.5 11.5h7" />
+              <circle cx="11" cy="4.5" r="1.5" />
+              <circle cx="5" cy="11.5" r="1.5" />
+            </svg>
+            Paramètres
+          </button>
+        </div>
         {error && <span className="badge error">{error}</span>}
       </header>
 
@@ -242,8 +223,8 @@ export function Viewer({ file, onShowFiles }: ViewerProps) {
             xml={file.content}
             fileId={file.id}
             fonts={FONTS}
-            view={initialIso}
-            minimap={{ visible: minimapVisible }}
+            settings={settings}
+            minimap={settings.minimap}
             onMinimapToggle={toggleMinimap}
             initialView={initialView}
             onEngine={handleEngine}
@@ -262,7 +243,15 @@ export function Viewer({ file, onShowFiles }: ViewerProps) {
               clearLog();
               setCumulative(cumulativeEntries());
             }}
-            onClose={() => setDiagnosticsOpen(false)}
+            onClose={() => setPanel(undefined)}
+          />
+        )}
+        {panel === 'settings' && (
+          <SettingsPanel
+            settings={settings}
+            onChange={onSettingsChange}
+            onReset={onResetSettings}
+            onClose={() => setPanel(undefined)}
           />
         )}
       </div>

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { ISOMETRIC_ELEVATION_DEG } from '../engine/interaction/camera';
-import type { IsoPreferences } from './viewPreferences';
+import type { ViewSettings } from '../engine/settings';
+
+type IsoPreferences = Pick<ViewSettings, 'isoAngleDeg' | 'isoAzimuthDeg'>;
 
 interface IsoSettingsProps {
   value: IsoPreferences;

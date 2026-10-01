@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Engine } from '../engine/Engine';
-import type { InitialView, ViewSettings } from '../engine/Engine';
+import type { InitialView, SettingsPatch } from '../engine/Engine';
 import type { FontSet } from '../engine/render/troikaText';
 
 export interface DrawioSpatialProps {
@@ -9,8 +9,8 @@ export interface DrawioSpatialProps {
   /** Identifiant stable du fichier (persistance, cache). */
   fileId?: string;
   fonts?: FontSet;
-  /** Réglages de vue appliqués à la création du moteur (ensuite : `engine.setViewSettings`). */
-  view?: Partial<ViewSettings>;
+  /** Paramètres (SPEC §13), appliqués à la création puis à chaque changement. */
+  settings?: SettingsPatch;
   /** Mini-carte (SPEC §10) : visible ou repliée, largeur en pixels CSS. */
   minimap?: { visible: boolean; size?: number };
   /** Bouton de la mini-carte ou touche M : l'hôte change `minimap.visible`. */
@@ -28,7 +28,7 @@ export function DrawioSpatial({
   xml,
   fileId = 'inline',
   fonts,
-  view,
+  settings,
   minimap = { visible: true },
   onMinimapToggle,
   initialView,
@@ -44,7 +44,7 @@ export function DrawioSpatial({
 
   // Les polices ne sont lues qu'à la création du moteur.
   const fontsRef = useRef(fonts);
-  const viewRef = useRef(view);
+  const settingsRef = useRef(settings);
   const onEngineRef = useRef(onEngine);
   onEngineRef.current = onEngine;
   const onErrorRef = useRef(onError);
@@ -56,7 +56,7 @@ export function DrawioSpatial({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const instance = new Engine({ canvas, fonts: fontsRef.current, view: viewRef.current });
+    const instance = new Engine({ canvas, fonts: fontsRef.current, settings: settingsRef.current });
     setEngine(instance);
     onEngineRef.current?.(instance);
     return () => {
@@ -64,6 +64,12 @@ export function DrawioSpatial({
       instance.dispose();
     };
   }, []);
+
+  // Changement de paramètres après la création du moteur.
+  useEffect(() => {
+    if (engine && settings && settings !== settingsRef.current) engine.updateSettings(settings);
+    settingsRef.current = settings;
+  }, [engine, settings]);
 
   // Touche M (émise par le moteur).
   useEffect(() => engine?.on('minimapToggle', () => onMinimapToggleRef.current?.()), [engine]);
