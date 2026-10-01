@@ -402,7 +402,23 @@ export class Engine {
    * Volumes iso : la hauteur des blocs suit l'inclinaison (ils « poussent » pendant la bascule
    * 2D → iso, et s'aplatissent si l'on remonte vers la vue de dessus).
    */
+  /**
+   * Éléments tournés face à l'écran (`userData.billboard`, ex. arêtes verticales des volumes) :
+   * rotation autour de la verticale égale à celle de la vue.
+   */
+  private orientBillboards(): void {
+    const scene = this.scenes.current;
+    if (!scene || scene.level !== 'iso') return;
+    const rotation = this.cameraState.rotation;
+    if (scene.root.userData.billboardRotation === rotation) return;
+    scene.root.userData.billboardRotation = rotation;
+    scene.root.traverse((object) => {
+      if (object.userData.billboard) object.rotation.z = rotation;
+    });
+  }
+
   private applyHeightScale(): void {
+    this.orientBillboards();
     const scene = this.scenes.current;
     if (!scene || scene.level !== 'iso' || this.transition) return;
     const scale = Math.min(1, Math.max(0, this.cameraState.tilt / Math.max(this.isoTilt(), 1e-6)));

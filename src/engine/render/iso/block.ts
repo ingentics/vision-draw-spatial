@@ -1,4 +1,5 @@
 import { BufferGeometry, Color, Float32BufferAttribute, Group, Mesh } from 'three';
+import type { Object3D } from 'three';
 import type { Point, ShapeModel } from '../../model/types';
 import { createBox, VERTEX_DEFAULTS } from '../flat/box';
 import type { BoxDefaults } from '../flat/box';
@@ -80,10 +81,10 @@ export function isoBlock(
 /**
  * Arêtes du volume : contours du dessus et du bas, arêtes verticales aux angles vifs, avec la couleur,
  * l'épaisseur et les pointillés de la bordure 2D. Elles sont tracées **à l'extérieur** de la forme
- * (contours décalés d'une demi-épaisseur, arêtes verticales hors du coin) : rien n'est caché par les
+ * (contours décalés d'une demi-épaisseur, arêtes verticales au coin extérieur) : rien n'est caché par les
  * faces du bloc, toutes ont la même épaisseur à l'écran. Celles qui sont derrière le bloc restent cachées.
  */
-function volumeEdges(shape: ShapeModel, outline: Point[], top: number, defaults: BoxDefaults): Mesh[] {
+function volumeEdges(shape: ShapeModel, outline: Point[], top: number, defaults: BoxDefaults): Object3D[] {
   const { style } = shape;
   const color = styleColor(style, 'strokeColor', defaults.stroke);
   const width = styleNumber(style, 'strokeWidth', 1);
@@ -93,7 +94,7 @@ function volumeEdges(shape: ShapeModel, outline: Point[], top: number, defaults:
   // Même indexation pour le contour et son décalé (points répétés retirés une seule fois).
   const path = cleanOutline(outline);
   const outside = offsetOutline(path, width / 2);
-  const edges: Mesh[] = [];
+  const edges: Object3D[] = [];
 
   for (const [name, z] of [
     ['stroke', top],
@@ -106,7 +107,8 @@ function volumeEdges(shape: ShapeModel, outline: Point[], top: number, defaults:
     edges.push(mesh);
   }
 
-  const positions: number[] = [];
+  const vertical = new Group();
+  vertical.name = 'stroke-vertical';
   const n = path.length;
   for (let i = 0; i < n; i++) {
     const previous = path[(i - 1 + n) % n]!;
@@ -127,38 +129,35 @@ function volumeEdges(shape: ShapeModel, outline: Point[], top: number, defaults:
           false,
         ).map((d) => [d[0]!.x, d[d.length - 1]!.x])
       : [[0, top]];
-    // Prisme posé dans le coin extérieur : son centre est le sommet du contour décalé.
-    for (const [z0, z1] of pieces) pushPrism(positions, outside[i]!, incoming, width / 2, z0!, z1!);
+    const ribbon = verticalRibbon(pieces as Array<[number, number]>, width, color, opacity);
+    // Au coin extérieur, là où se rejoignent les contours du dessus et du bas décalés.
+    ribbon.position.set(outside[i]!.x, outside[i]!.y, 0);
+    vertical.add(ribbon);
   }
-  if (positions.length > 0) {
-    const geometry = new BufferGeometry();
-    geometry.setAttribute('position', new Float32BufferAttribute(positions, 3));
-    const vertical = new Mesh(geometry, flatMaterial(color, opacity));
-    vertical.name = 'stroke-vertical';
-    edges.push(vertical);
+  if (vertical.children.length > 0) edges.push(vertical);
+  for (const edge of edges) {
+    edge.traverse((object) => {
+      object.renderOrder = PART_ORDER.stroke;
+    });
   }
-  for (const edge of edges) edge.renderOrder = PART_ORDER.stroke;
   return edges;
 }
 
 /**
- * Arête verticale épaisse : prisme à section carrée (demi-côté `half`) centré sur `corner`, aligné sur
- * le côté entrant ; vue de n'importe quel côté, sa largeur reste proche de l'épaisseur du trait.
+ * Arête verticale : ruban plat d'épaisseur `width`, tourné face à l'écran (le moteur l'oriente selon
+ * la rotation de la vue, `userData.billboard`) ; extrémités horizontales, nettes.
  */
-function pushPrism(positions: number[], corner: Point, along: Point, half: number, z0: number, z1: number): void {
-  const u = { x: along.x * half, y: along.y * half };
-  const v = { x: -along.y * half, y: along.x * half };
-  const ring = [
-    { x: corner.x - u.x - v.x, y: corner.y - u.y - v.y },
-    { x: corner.x + u.x - v.x, y: corner.y + u.y - v.y },
-    { x: corner.x + u.x + v.x, y: corner.y + u.y + v.y },
-    { x: corner.x - u.x + v.x, y: corner.y - u.y + v.y },
-  ];
-  for (let i = 0; i < 4; i++) {
-    const a = ring[i]!;
-    const b = ring[(i + 1) % 4]!;
-    positions.push(a.x, a.y, z0, b.x, b.y, z0, b.x, b.y, z1, a.x, a.y, z0, b.x, b.y, z1, a.x, a.y, z1);
+function verticalRibbon(pieces: Array<[number, number]>, width: number, color: Color, opacity: number): Mesh {
+  const half = width / 2;
+  const positions: number[] = [];
+  for (const [z0, z1] of pieces) {
+    positions.push(-half, 0, z0, half, 0, z0, half, 0, z1, -half, 0, z0, half, 0, z1, -half, 0, z1);
   }
+  const geometry = new BufferGeometry();
+  geometry.setAttribute('position', new Float32BufferAttribute(positions, 3));
+  const mesh = new Mesh(geometry, flatMaterial(color, opacity));
+  mesh.userData.billboard = true;
+  return mesh;
 }
 
 /** Faces latérales d'un prisme droit de contour `path` et de hauteur `height`, ombrées. */

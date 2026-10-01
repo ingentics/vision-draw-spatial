@@ -50,10 +50,12 @@ describe('volumes iso', () => {
       ((b.getObjectByName(name) as Mesh).material as MeshBasicMaterial).color.getHexString();
     expect(color('stroke')).toBe('b85450'); // contour du dessus (rendu à plat)
     expect(color('stroke-bottom')).toBe('b85450');
-    expect(color('stroke-vertical')).toBe('b85450');
-    // 4 coins → 4 prismes de 4 faces × 2 triangles.
-    const vertical = b.getObjectByName('stroke-vertical') as Mesh;
-    expect(vertical.geometry.getAttribute('position').count).toBe(4 * 4 * 6);
+    const vertical = b.getObjectByName('stroke-vertical')!;
+    const ribbons = vertical.children as Mesh[];
+    expect(ribbons.map((r) => (r.material as MeshBasicMaterial).color.getHexString())).toEqual(Array(4).fill('b85450'));
+    // 4 coins → 4 rubans plats (un quadrilatère chacun), tournés face à l'écran par le moteur.
+    expect(ribbons.map((r) => r.geometry.getAttribute('position').count)).toEqual([6, 6, 6, 6]);
+    expect(ribbons.every((r) => r.userData.billboard === true)).toBe(true);
     const box = new Box3().setFromObject(vertical);
     expect(box.min.y).toBeCloseTo(0);
     expect(box.max.y).toBeCloseTo(20, 1); // jusqu'au contour du dessus (posé 0,05 px au-dessus)
@@ -71,9 +73,22 @@ describe('volumes iso', () => {
 
   it('arêtes pointillées comme la bordure 2D (A est en pointillés)', () => {
     const a = element(isoScene().root, A);
-    const vertical = a.getObjectByName('stroke-vertical') as Mesh;
-    // Plusieurs tirets par arête verticale au lieu d'un seul prisme plein.
-    expect(vertical.geometry.getAttribute('position').count).toBeGreaterThan(4 * 4 * 6);
+    const ribbon = a.getObjectByName('stroke-vertical')!.children[0] as Mesh;
+    // Plusieurs tirets par arête verticale au lieu d'un seul ruban plein.
+    expect(ribbon.geometry.getAttribute('position').count).toBeGreaterThan(6);
+  });
+
+  it('ruban vertical : largeur exacte face à l’écran, quelle que soit la rotation de la vue', () => {
+    const b = element(isoScene().root, B);
+    const ribbon = b.getObjectByName('stroke-vertical')!.children[0] as Mesh;
+    for (const rotation of [0, 0.7, -Math.PI / 4]) {
+      ribbon.rotation.z = rotation; // ce que fait le moteur
+      ribbon.updateMatrixWorld(true);
+      const box = new Box3().setFromObject(ribbon);
+      // Largeur horizontale du ruban = épaisseur du trait (1 px), mesurée dans son orientation.
+      const extent = Math.hypot(box.max.x - box.min.x, box.max.z - box.min.z);
+      expect(extent).toBeCloseTo(1, 5);
+    }
   });
 
   it('formes courbes : pas d’arête verticale (contours du haut et du bas seulement)', () => {
