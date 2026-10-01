@@ -1,7 +1,7 @@
 import { ISOMETRIC_ELEVATION_DEG } from '../engine/interaction/camera';
 import type { ViewSettings } from '../engine/settings';
 
-type IsoPreferences = Pick<ViewSettings, 'isoAngleDeg' | 'isoAzimuthDeg'>;
+type IsoPreferences = Pick<ViewSettings, 'isoAngleDeg' | 'isoAzimuthDeg' | 'isoVolume' | 'isoDepth'>;
 
 interface IsoSettingsProps {
   value: IsoPreferences;
@@ -78,6 +78,31 @@ export function IsoSettings({ value, onChange }: IsoSettingsProps) {
       >
         Isométrie vraie (35°)
       </button>
+
+      <label className="field toggle">
+        <input
+          type="checkbox"
+          checked={value.isoVolume}
+          onChange={(event) => onChange({ isoVolume: event.target.checked })}
+        />
+        <span>Formes en volume</span>
+      </label>
+      <label className={value.isoVolume ? 'field' : 'field disabled'}>
+        <span className="field-row">
+          <span>Épaisseur</span>
+          <span className="field-value">{value.isoDepth} px</span>
+        </span>
+        <input
+          type="range"
+          min={2}
+          max={120}
+          step={1}
+          value={value.isoDepth}
+          disabled={!value.isoVolume}
+          onChange={(event) => onChange({ isoDepth: Number(event.target.value) })}
+        />
+        <span className="hint muted">Par forme : style draw.io « spatial.height=… »</span>
+      </label>
     </>
   );
 }

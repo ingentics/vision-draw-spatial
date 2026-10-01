@@ -64,6 +64,7 @@
 ### Étape 7 — Mode isométrique ✅
 - Bascule `top` ↔ `iso` animée (boutons « 2D | Iso », touche I) ; réglages iso (section « Vue isométrique » des paramètres) : orientation vers la droite / la gauche / sans rotation, élévation 10–80° (35,26° = isométrie vraie), appliqués en direct.
 - Navigation cohérente dans les deux modes (zoom au curseur, pan, rotation, clic, liens, transitions) ; orbite au glisser en mode Tourner.
+- Volume en iso : rectangles, ellipses et placeholders en blocs ombrés (épaisseur réglable, `spatial.height` par forme), empilés sur leur conteneur, qui poussent avec l'inclinaison.
 - **Fini quand :** le même schéma se consulte en vue de dessus et en isométrique sans perte de repère.
 
 ### Étape 8 — Mini-carte ✅
@@ -139,7 +140,7 @@
 
 ## Ensuite (backlog)
 - Formes supplémentaires, priorisées par le journal des styles non supportés (une définition par forme, au minimum à plat — SPEC §8.2).
-- Rendus `iso` dédiés (ex. labels dressés face à la caméra) et `volume` (extrusion), forme par forme, avec repli à plat.
+- Rendus `iso` pour d'autres formes (ex. labels dressés face à la caméra), arêtes en hauteur, mode 3D (`volume`, perspective), forme par forme, avec repli à plat.
 - Optimisations mémoire / rendu si nécessaire.
 - Rendu en volume (extrusion), si souhaité.
 

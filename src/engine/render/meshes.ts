@@ -22,6 +22,14 @@ export function flatMaterial(color: Color, opacity: number): MeshBasicMaterial {
   return new MeshBasicMaterial({ color, opacity, transparent: true, depthWrite: false, side: DoubleSide });
 }
 
+/**
+ * Matériau des volumes (vue iso) : opaque, avec test et écriture de profondeur, pour que les
+ * blocs se cachent correctement entre eux et cachent ce qui est derrière eux.
+ */
+export function solidMaterial(color: Color): MeshBasicMaterial {
+  return new MeshBasicMaterial({ color, side: DoubleSide });
+}
+
 export function fillMesh(path: Point[], color: Color, opacity: number): Mesh {
   const shape = new Shape(path.map((p) => new Vector2(p.x, p.y)));
   const mesh = new Mesh(new ShapeGeometry(shape), flatMaterial(color, opacity));

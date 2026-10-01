@@ -12,6 +12,12 @@ export interface PickOptions {
   edgeTolerance: number;
   /** Tracé dessiné d'une arête (calculé au rendu), en coordonnées page. */
   edgeRoute: (edgeId: string) => Point[] | undefined;
+  /**
+   * Volumes (vue iso) : hauteur à laquelle tester un élément (dessus d'un bloc), et point de la
+   * page visé à cette hauteur. Absents = tout est au sol.
+   */
+  heightOf?: (elementId: string) => number;
+  pointAtHeight?: (height: number) => Point;
 }
 
 export function pickElement(page: PageModel, point: Point, options: PickOptions): PickedElement | undefined {
@@ -24,13 +30,15 @@ export function pickElement(page: PageModel, point: Point, options: PickOptions)
   for (const candidate of candidates) {
     const { element } = candidate;
     if (!element.visible || hiddenLayers.has(element.layerId)) continue;
+    const height = options.heightOf?.(element.id) ?? 0;
+    const target = height !== 0 && options.pointAtHeight ? options.pointAtHeight(height) : point;
     if (candidate.type === 'shape') {
       // Les groupes sont invisibles : on ne les attrape que s'ils portent un lien.
       if (candidate.element.kind === 'group' && !candidate.element.link) continue;
-      if (shapeContains(candidate.element, point)) return candidate;
+      if (shapeContains(candidate.element, target)) return candidate;
     } else {
       const route = options.edgeRoute(element.id);
-      if (route && distanceToPolyline(point, route) <= options.edgeTolerance) return candidate;
+      if (route && distanceToPolyline(target, route) <= options.edgeTolerance) return candidate;
     }
   }
   return undefined;

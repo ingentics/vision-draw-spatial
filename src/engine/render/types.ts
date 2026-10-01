@@ -34,4 +34,6 @@ export interface TextFactory {
 
 export interface RenderContext {
   text: TextFactory;
+  /** Volume des formes en vue iso (niveau `iso`) : épaisseur par défaut, en pixels de page. */
+  volume?: { depth: number };
 }

@@ -32,17 +32,23 @@ describe('niveaux de rendu : repli à plat', () => {
     expect(registry.sceneRenderer(shape, 'flat').create(shape, ctx).name).toBe('flat');
   });
 
-  it('formes inconnues : placeholder à tous les niveaux', () => {
+  it('formes inconnues : placeholder à tous les niveaux (son volume en iso, repli à plat en 3D)', () => {
     const unknown = { ...shape, kind: 'cylinder3' };
     const registry = createDefaultRegistry();
-    expect(registry.sceneRenderer(unknown, 'iso')).toBe(registry.resolve(unknown).definition.flat);
+    const placeholder = registry.resolve(unknown).definition;
+    expect(placeholder.kind).toBe('placeholder');
+    expect(registry.sceneRenderer(unknown, 'iso')).toBe(placeholder.iso);
+    expect(registry.sceneRenderer(unknown, 'volume')).toBe(placeholder.flat);
   });
 });
 
 describe('effectiveLevel : une scène par niveau seulement si utile', () => {
   it('flat partagé par tous les modes quand aucune forme n’a de rendu propre', () => {
-    expect(effectiveLevel(page, createDefaultRegistry(), 'iso')).toBe('flat');
+    const flatOnly = new ShapeRegistry().register({ kind: 'rectangle', flat: named('flat') });
+    expect(effectiveLevel(page, flatOnly, 'iso')).toBe('flat');
     expect(effectiveLevel(page, createDefaultRegistry(), 'flat')).toBe('flat');
+    // Les rectangles ont un volume par défaut : scène iso dédiée.
+    expect(effectiveLevel(page, createDefaultRegistry(), 'iso')).toBe('iso');
   });
 
   it('iso dès qu’une forme visible a un rendu iso', () => {

@@ -1,4 +1,5 @@
-import { Box3, Color, OrthographicCamera, Scene, WebGLRenderer } from 'three';
+import { Box3, Color, Mesh, OrthographicCamera, Scene, WebGLRenderer } from 'three';
+import type { MeshBasicMaterial } from 'three';
 import { collectUnsupported } from './diagnostics/unsupportedStyles';
 import type { UnsupportedReport } from './diagnostics/unsupportedStyles';
 import { Emitter } from './events';
@@ -13,6 +14,7 @@ import {
   normalizeCameraState,
   rotateAround,
   sameView,
+  screenAxes,
   screenToPage,
   tiltFromElevation,
   withViewMode,
@@ -150,6 +152,8 @@ export class Engine {
   /** Transition en cours : de quoi l'interrompre proprement. */
   private transition: { abort: () => void } | undefined;
   private readonly history = new NavigationHistory();
+  /** Hauteur courante des volumes iso (0 à 1, suit l'inclinaison). */
+  private heightScale = 1;
   /** Vue graphe du document (SPEC §12), construite à la première demande. */
   private graph: { page: PageModel; layout: GraphLayout } | undefined;
   /** Dernière page du document affichée (pour revenir du graphe). */
@@ -175,8 +179,8 @@ export class Engine {
       this.scene,
       (page, level) =>
         page.id === GRAPH_PAGE_ID && this.graph && this.document
-          ? buildGraphScene(page, this.graph.layout, this.document, this.registry, { text: this.text }, level)
-          : buildPageScene(page, this.registry, { text: this.text }, level),
+          ? buildGraphScene(page, this.graph.layout, this.document, this.registry, this.renderContext(), level)
+          : buildPageScene(page, this.registry, this.renderContext(), level),
       this.settings.preload.maxCachedPages,
       (page) => effectiveLevel(page, this.registry, this.requestedLevel()),
     );
@@ -301,6 +305,7 @@ export class Engine {
     this.currentPageId = page.id;
     if (page.id !== GRAPH_PAGE_ID) this.lastDocumentPageId = page.id;
     this.scenes.show(page);
+    this.applyHeightScale();
     this.minimap?.invalidate();
     const camera = this.pageCameras.get(page.id);
     if (camera) this.setCameraState(camera);
@@ -383,7 +388,34 @@ export class Engine {
 
   /** Niveau de rendu demandé par le mode de vue (repli à plat si les formes n'en ont pas). */
   private requestedLevel(): SceneLevel {
-    return this.cameraState.mode === 'iso' ? 'iso' : 'flat';
+    return this.cameraState.mode === 'iso' && this.settings.view.isoVolume ? 'iso' : 'flat';
+  }
+
+  private renderContext() {
+    return { text: this.text, volume: { depth: this.settings.view.isoDepth } };
+  }
+
+  /**
+   * Volumes iso : la hauteur des blocs suit l'inclinaison (ils « poussent » pendant la bascule
+   * 2D → iso, et s'aplatissent si l'on remonte vers la vue de dessus).
+   */
+  private applyHeightScale(): void {
+    const scene = this.scenes.current;
+    if (!scene || scene.level !== 'iso' || this.transition) return;
+    const scale = Math.min(1, Math.max(0, this.cameraState.tilt / Math.max(this.isoTilt(), 1e-6)));
+    this.heightScale = scale;
+    setPageTransform(scene.root, undefined, scale);
+  }
+
+  /** Les volumes ont changé (activés, épaisseur) : on reconstruit les scènes. */
+  private rebuildScenes(): void {
+    this.scenes.clear();
+    const page = this.getCurrentPage();
+    if (page) this.scenes.show(page);
+    this.applyHeightScale();
+    this.updateSelectionOutline();
+    this.minimap?.invalidate();
+    this.requestRender();
   }
 
   private applyCamera(state: CameraState): void {
@@ -404,6 +436,7 @@ export class Engine {
     // Contour de sélection d'épaisseur constante à l'écran.
     if (this.selection && this.cameraState.zoom !== previousZoom) this.updateSelectionOutline();
     applyCameraState(this.camera, this.cameraState, this.viewport);
+    this.applyHeightScale();
     this.events.emit('cameraChange', this.getCameraState());
     this.requestRender();
   }
@@ -556,6 +589,12 @@ export class Engine {
     this.settings = mergeSettings(previous, patch);
     this.controller.setSettings(this.effectiveControls());
     this.scenes.setMaxCached(this.settings.preload.maxCachedPages);
+    if (
+      this.settings.view.isoVolume !== previous.view.isoVolume ||
+      this.settings.view.isoDepth !== previous.view.isoDepth
+    ) {
+      this.rebuildScenes();
+    }
 
     const view = this.settings.view;
     const isoChanged =
@@ -623,6 +662,8 @@ export class Engine {
     return pickElement(page, point, {
       edgeTolerance: EDGE_PICK_TOLERANCE / this.cameraState.zoom,
       edgeRoute: (id) => this.sceneObject(id)?.userData.route as Point[] | undefined,
+      heightOf: (id) => this.elementTop(id),
+      pointAtHeight: (height) => this.groundPointAtHeight(screen, height),
     });
   }
 
@@ -885,6 +926,23 @@ export class Engine {
     return name ? `Double-clic : aller à « ${name} »` : `Lien vers une page absente (${link.pageId})`;
   }
 
+  /** Hauteur du dessus d'un élément (volume iso), mise à l'échelle de la bascule ; 0 à plat. */
+  private elementTop(elementId: string): number {
+    const top = (this.sceneObject(elementId)?.userData.top as number | undefined) ?? 0;
+    return this.scenes.current?.level === 'iso' ? top * this.heightScale : 0;
+  }
+
+  /**
+   * Point de la page visé par un point écran, sur le plan horizontal à `height` au-dessus du sol :
+   * le rayon de vue y arrive plus près de la caméra, de height · tan(inclinaison).
+   */
+  private groundPointAtHeight(screen: Point, height: number): Point {
+    const ground = screenToPage(this.cameraState, this.viewport, screen);
+    const shift = height * Math.tan(this.cameraState.tilt);
+    const { down } = screenAxes(this.cameraState.rotation);
+    return { x: ground.x + shift * down.x, y: ground.y + shift * down.y };
+  }
+
   private sceneObject(elementId: string) {
     return this.scenes.current?.root.children.find((c) => c.userData.elementId === elementId);
   }
@@ -902,6 +960,11 @@ export class Engine {
       const bounds = picked.type === 'shape' ? picked.element.bounds : this.drawnBounds(picked.element.id);
       if (bounds) {
         this.selectionObject = selectionOutline(bounds, this.cameraState.zoom);
+        // Posé sur le dessus d'un volume, et toujours visible (pas caché par les blocs).
+        this.selectionObject.position.z = ((this.sceneObject(picked.element.id)?.userData.top as number) ?? 0) + 0.2;
+        this.selectionObject.traverse((o) => {
+          if (o instanceof Mesh) (o.material as MeshBasicMaterial).depthTest = false;
+        });
         root.add(this.selectionObject);
       }
     }

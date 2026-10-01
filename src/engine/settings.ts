@@ -34,6 +34,10 @@ export interface ViewSettings {
   isoAzimuthDeg: number;
   /** Durée de la bascule 2D ↔ iso. */
   switchDurationMs: number;
+  /** Formes en volume en vue iso (blocs) ; sinon tout reste à plat. */
+  isoVolume: boolean;
+  /** Épaisseur par défaut des volumes, en pixels de page (`spatial.height` par forme). */
+  isoDepth: number;
 }
 
 export interface MinimapSettings {
@@ -73,7 +77,14 @@ export const DEFAULT_SETTINGS: Settings = {
   transition: { enabled: true, durationMs: 1000, easing: 'ease-in-out' },
   preload: { onClick: true, onHover: false, hoverDelayMs: 300, maxCachedPages: 8 },
   controls: DEFAULT_CONTROLS,
-  view: { defaultMode: 'top', isoAngleDeg: ISOMETRIC_ELEVATION_DEG, isoAzimuthDeg: -45, switchDurationMs: 450 },
+  view: {
+    defaultMode: 'top',
+    isoAngleDeg: ISOMETRIC_ELEVATION_DEG,
+    isoAzimuthDeg: -45,
+    switchDurationMs: 450,
+    isoVolume: true,
+    isoDepth: 16,
+  },
   minimap: { visible: true, size: 200 },
   debug: { showUnsupportedPanel: true },
   accessibility: { reducedMotion: 'system' },
@@ -91,6 +102,7 @@ export const SETTINGS_LIMITS = {
   'view.isoAngleDeg': { min: 10, max: 80, step: 1 },
   'view.isoAzimuthDeg': { min: -90, max: 90, step: 1 },
   'view.switchDurationMs': { min: 0, max: 3000, step: 50 },
+  'view.isoDepth': { min: 2, max: 120, step: 1 },
   'minimap.size': { min: 120, max: 400, step: 10 },
 } as const;
 
@@ -155,6 +167,8 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
       isoAngleDeg: num('view.isoAngleDeg', v.isoAngleDeg, base.view.isoAngleDeg),
       isoAzimuthDeg: num('view.isoAzimuthDeg', v.isoAzimuthDeg, base.view.isoAzimuthDeg),
       switchDurationMs: num('view.switchDurationMs', v.switchDurationMs, base.view.switchDurationMs),
+      isoVolume: bool(v.isoVolume, base.view.isoVolume),
+      isoDepth: num('view.isoDepth', v.isoDepth, base.view.isoDepth),
     },
     minimap: {
       visible: bool(m.visible, base.minimap.visible),

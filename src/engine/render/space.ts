@@ -17,18 +17,22 @@ export function applyPageSpace(object: Object3D): void {
 }
 
 /**
- * Transformation de la page, avec en option une similitude 2D de son espace page
- * (p ↦ scale · p + offset), utilisée pour poser une page dans une forme pendant une transition.
+ * Transformation de la page, avec en option une similitude de son espace page
+ * (p ↦ scale · p + offset, hauteurs comprises), utilisée pour poser une page dans une forme
+ * pendant une transition.
  */
 export function setPageTransform(
   object: Object3D,
   embedding: { scale: number; offset: { x: number; y: number } } | undefined,
+  heightScale = 1,
 ): void {
   object.matrix.copy(PAGE_SPACE);
-  if (embedding) {
-    const { scale, offset } = embedding;
-    object.matrix.multiply(new Matrix4().set(scale, 0, 0, offset.x, 0, scale, 0, offset.y, 0, 0, 1, 0, 0, 0, 0, 1));
-  }
+  // Les hauteurs (volumes iso) suivent l'échelle de la page, et `heightScale` (bascule animée).
+  const scale = embedding?.scale ?? 1;
+  const offset = embedding?.offset ?? { x: 0, y: 0 };
+  object.matrix.multiply(
+    new Matrix4().set(scale, 0, 0, offset.x, 0, scale, 0, offset.y, 0, 0, scale * heightScale, 0, 0, 0, 0, 1),
+  );
   object.matrix.decompose(object.position, object.quaternion, object.scale);
   object.matrixAutoUpdate = false;
   object.matrixWorldNeedsUpdate = true;
@@ -43,7 +47,7 @@ export function setLocalEmbedding(
   embedding: { scale: number; offset: { x: number; y: number } },
 ): void {
   const { scale, offset } = embedding;
-  object.matrix.set(scale, 0, 0, offset.x, 0, scale, 0, offset.y, 0, 0, 1, 0, 0, 0, 0, 1);
+  object.matrix.set(scale, 0, 0, offset.x, 0, scale, 0, offset.y, 0, 0, scale, 0, 0, 0, 0, 1);
   object.matrix.decompose(object.position, object.quaternion, object.scale);
   object.matrixAutoUpdate = false;
   object.matrixWorldNeedsUpdate = true;

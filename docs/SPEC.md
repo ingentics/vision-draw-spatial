@@ -344,6 +344,7 @@ interface SceneRenderer {
 
 - Le registre résout la définition d'une forme (placeholder si aucune), puis le rendu d'un niveau : `registry.sceneRenderer(shape, level)` (repli `flat`), `registry.minimapPainter(shape)` (repli contour).
 - Une page est construite **au niveau du mode de vue** (iso en mode iso, à plat sinon). Si aucune forme de la page n'a de rendu propre à ce niveau, la scène à plat est réutilisée telle quelle : pas de reconstruction en basculant de mode. Le cache de scènes est donc indexé par page **et** niveau.
+- Rectangles, ellipses et placeholders ont un rendu `iso` en volume (§9.1) ; le texte et les groupes restent à plat.
 - Les arêtes ont pour l'instant un rendu unique (à plat), et un tracé simplifié en mini-carte.
 
 Ajouter une forme = **écrire sa définition et l'enregistrer** (au minimum `flat`, idéalement `outline`). Aucune autre modification ; les niveaux plus riches s'ajoutent ensuite, forme par forme.
@@ -396,6 +397,12 @@ Formes et arêtes sont dessinées dans l'**ordre du document** (une arête décl
 - Bascule entre les deux modes par un bouton et un raccourci, avec une animation douce.
 - **Réalisation retenue pour l'iso** : la même caméra orthographique, inclinée de `tilt` au-dessus du sol (vers le haut de l'écran). Par défaut, élévation de 35,26° (inclinaison 54,74°) **et** rotation de −45° (« vers la droite ») : l'isométrie vraie (losanges). La rotation iso (`isoAzimuthDeg`) est ajoutée en entrant en iso et retirée en sortant : 2D → iso → 2D rend l'orientation de départ. Le centre de l'écran et le zoom ne bougent pas pendant la bascule (≈ 450 ms, animée).
 - **Réglages de la vue iso** (section « Vue isométrique » du panneau Paramètres, §13) : orientation **vers la droite** (−45°, défaut), **vers la gauche** (+45°) ou **sans rotation** (0°), chacune avec un aperçu dessiné ; **élévation** de la caméra de 10° (rasante) à 80° (presque de dessus), avec un retour à l'isométrie vraie (35°). Les changements s'appliquent immédiatement en iso (animés, en gardant l'écart de rotation choisi par l'utilisateur) et sont mémorisés avec les autres paramètres.
+- **Volume en iso** (niveau de rendu `iso`, §8.2) : rectangles, ellipses et placeholders deviennent des **blocs** posés au sol. Le dessus reprend le rendu à plat (fond, bordure, label, pastille de lien) ; les côtés reprennent la couleur de fond, assombrie selon l'orientation de chaque face (lumière fixe dans la page : en iso par défaut, face visible gauche claire, droite plus sombre). Matériaux opaques avec test de profondeur : les blocs se cachent entre eux et cachent ce qui est derrière.
+  - Épaisseur réglable (16 px par défaut, §13), et par forme avec le style draw.io **`spatial.height=…`** (préfixe spatial, §14.3). Une forme sans fond reste à plat.
+  - Les formes contenues sont **posées sur le dessus** de leur conteneur ; une arête est à la hauteur de la plus haute de ses extrémités (ou du dessus de son conteneur). Les groupes, invisibles, n'ont pas de volume.
+  - La hauteur suit l'inclinaison : les blocs **poussent** pendant la bascule 2D → iso et s'aplatissent si l'on remonte vers la vue de dessus.
+  - Le clic vise le **dessus** des blocs (point décalé de hauteur × tan(inclinaison) vers la caméra) ; le contour de sélection y est posé et reste toujours visible.
+  - Les arêtes restent au sol : une pointe qui arrive contre la face arrière d'un bloc est masquée par lui (occlusion normale).
 - **Navigation cohérente** : les conversions écran ↔ sol tiennent compte de l'inclinaison (raccourcissement vertical de cos(tilt)) ; zoom au curseur, déplacement, rotation, clic, sélection et liens se comportent de la même façon dans les deux modes. Le texte reste posé à plat sur le sol (lisible, raccourci en iso).
 - **Orbite** : en iso et en mode « Tourner », le glisser molette vertical règle l'inclinaison (vers le haut = vers l'horizon, de 0 à 80°), le glisser horizontal tourne la vue, autour du point de départ du glisser.
 - **Rotation de la vue** : dans les deux modes, la vue peut tourner autour de la verticale (`CameraState.rotation`). Pas de bouton dédié pour revenir au nord (retiré de la barre d'outils) ; `engine.resetRotation()` reste disponible, et l'ouverture d'une page ou la bascule 2D ↔ iso redonnent une orientation de référence.
@@ -552,7 +559,10 @@ interface Settings {
     decelerationMs: number;                 // glissade à l'arrêt (§9.2), 0 = arrêt net (80)
     shortcuts: { toggleViewMode: 'i'; toggleGraph: 'g'; toggleMinimap: 'm'; overview: 'Enter'; back: 'Backspace' };
   };
-  view: { defaultMode: 'top' | 'iso'; isoAngleDeg: number; isoAzimuthDeg: number; switchDurationMs: number }; // 'top', 35.26, -45, 450
+  view: {
+    defaultMode: 'top' | 'iso'; isoAngleDeg: number; isoAzimuthDeg: number; switchDurationMs: number; // 'top', 35.26, -45, 450
+    isoVolume: boolean; isoDepth: number;                                                              // true, 16 (px)
+  };
   minimap: { visible: boolean; size: number };                    // true, 200
   debug: { showUnsupportedPanel: boolean };                       // true
   accessibility: { reducedMotion: 'system' | 'always' | 'never' }; // 'system'

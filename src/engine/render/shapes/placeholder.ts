@@ -1,6 +1,7 @@
 import type { ShapeModel } from '../../model/types';
 import { createBox, createLabel } from '../flat/box';
 import { rectPath } from '../geometry/paths';
+import { isoBlock } from '../iso/block';
 import type { ShapeDefinition } from './types';
 
 const PLACEHOLDER_FILL = '#eeeeee';
@@ -31,6 +32,8 @@ export const placeholderShape: ShapeDefinition = {
       return box;
     },
   },
+  // En iso : bloc gris, label d'origine sur le dessus (le nom de forme reste visible en 2D).
+  iso: isoBlock(outline, { fill: PLACEHOLDER_FILL, stroke: '#9e9e9e' }),
   minimap: (context, shape, map) => {
     const { x, y } = map.toMinimap(shape.bounds);
     context.fillStyle = PLACEHOLDER_FILL;

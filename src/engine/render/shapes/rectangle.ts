@@ -1,5 +1,6 @@
 import type { ShapeModel } from '../../model/types';
 import { flatBox } from '../flat/box';
+import { isoBlock } from '../iso/block';
 import { cornerRadius, rectPath, roundedRectPath } from '../geometry/paths';
 import type { ShapeDefinition } from './types';
 
@@ -14,4 +15,6 @@ export const rectangleShape: ShapeDefinition = {
   kind: 'rectangle',
   outline,
   flat: flatBox(outline),
+  // En iso : un bloc en volume (repli à plat sans fond).
+  iso: isoBlock(outline),
 };
