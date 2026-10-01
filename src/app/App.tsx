@@ -2,11 +2,14 @@ import robotoBold from '@fontsource/roboto/files/roboto-latin-700-normal.woff?ur
 import robotoRegular from '@fontsource/roboto/files/roboto-latin-400-normal.woff?url';
 import { useCallback, useEffect, useState } from 'react';
 import type { ChangeEvent } from 'react';
+import type { UnsupportedReport } from '../engine/diagnostics/unsupportedStyles';
 import type { Engine } from '../engine/Engine';
 import type { ControlSettings } from '../engine/interaction/controls';
 import type { DocumentModel } from '../engine/model/types';
 import { DrawioSpatial } from '../react/DrawioSpatial';
 import { demoFiles } from './demoFiles';
+import { clearLog, cumulativeEntries, exportJson, recordFile } from './diagnosticsLog';
+import { DiagnosticsPanel } from './DiagnosticsPanel';
 import { patchDevSession, readDevSession, writeDevSession } from './devSession';
 import { NavigationToolbar } from './NavigationToolbar';
 
@@ -62,6 +65,9 @@ export function App() {
   const [error, setError] = useState<string>();
   const [middleDrag, setMiddleDrag] = useState(readMiddleDrag);
   const [rotationDeg, setRotationDeg] = useState(0);
+  const [report, setReport] = useState<UnsupportedReport>();
+  const [cumulative, setCumulative] = useState(cumulativeEntries);
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
 
   useEffect(() => {
     engine?.setControls({ middleDrag });
@@ -77,9 +83,15 @@ export function App() {
     // Accès au moteur depuis la console du navigateur, en dev uniquement.
     if (import.meta.env.DEV) (window as unknown as { engine?: Engine }).engine = instance;
     if (!instance) return;
-    instance.on('load', (doc) => {
+    instance.on('load', (doc, fileId) => {
       setDocument(doc);
       setError(undefined);
+      const unsupported = instance.getUnsupportedReport();
+      setReport(unsupported);
+      if (unsupported) {
+        recordFile(fileId, fileId.split('/').pop() ?? fileId, unsupported);
+        setCumulative(cumulativeEntries());
+      }
     });
     instance.on('pageChange', (page) => {
       setPageId(page.id);
@@ -109,7 +121,8 @@ export function App() {
     event.target.value = '';
   };
 
-  const unsupported = engine?.getPageScene()?.unsupported;
+  const warnings = document?.warnings ?? [];
+  const issueCount = (report?.unsupportedElementCount ?? 0) + warnings.length;
 
   return (
     <div className="app">
@@ -132,28 +145,45 @@ export function App() {
           rotationDeg={rotationDeg}
           onResetRotation={() => engine?.resetRotation()}
         />
-        {document && document.warnings.length > 0 && (
-          <span className="badge" title={document.warnings.map((w) => w.message).join('\n')}>
-            {document.warnings.length} avertissement(s)
-          </span>
-        )}
-        {unsupported && unsupported.size > 0 && (
-          <span className="badge" title={[...unsupported].map(([k, n]) => `${k} × ${n}`).join('\n')}>
-            {unsupported.size} élément(s) non supporté(s)
-          </span>
-        )}
+        <button
+          type="button"
+          className="button diagnostics-toggle"
+          aria-pressed={diagnosticsOpen}
+          title="Éléments non supportés et avertissements de lecture"
+          onClick={() => setDiagnosticsOpen((open) => !open)}
+        >
+          Diagnostics
+          {issueCount > 0 && <span className="pill">{issueCount}</span>}
+        </button>
         {error && <span className="badge error">{error}</span>}
       </header>
 
       <div className="viewport">
-        <DrawioSpatial
-          xml={file?.xml}
-          fileId={file?.id}
-          fonts={FONTS}
-          initialView={file && initialView?.fileId === file.id ? initialView : undefined}
-          onEngine={handleEngine}
-          onError={(e) => setError(e instanceof Error ? e.message : String(e))}
-        />
+        <div className="canvas-area">
+          <DrawioSpatial
+            xml={file?.xml}
+            fileId={file?.id}
+            fonts={FONTS}
+            initialView={file && initialView?.fileId === file.id ? initialView : undefined}
+            onEngine={handleEngine}
+            onError={(e) => setError(e instanceof Error ? e.message : String(e))}
+          />
+        </div>
+        {diagnosticsOpen && (
+          <DiagnosticsPanel
+            report={report}
+            warnings={warnings}
+            pageNames={Object.fromEntries((document?.pages ?? []).map((p) => [p.id, p.name]))}
+            cumulative={cumulative}
+            onFocus={(page, element) => engine?.focusElement(page, element)}
+            onExport={() => exportJson(file?.id, report, warnings)}
+            onClearCumulative={() => {
+              clearLog();
+              setCumulative(cumulativeEntries());
+            }}
+            onClose={() => setDiagnosticsOpen(false)}
+          />
+        )}
       </div>
 
       {document && document.pages.length > 1 && (

@@ -329,6 +329,12 @@ Formes et arêtes sont dessinées dans l'**ordre du document** (une arête décl
 - Affichées avec un **placeholder** : rectangle gris aux dimensions de la forme, avec le nom du style non reconnu.
 - Le chargement d'un fichier **n'échoue jamais** à cause d'une forme inconnue.
 - Chaque style inconnu est **journalisé** avec son nombre d'occurrences (module `diagnostics/unsupportedStyles`), consultable dans l'UI (panneau debug) et exportable en JSON. Cela sert de **backlog priorisé par fréquence réelle**.
+- Sont recensés : les formes dessinées en placeholder, les tracés d'arête approchés (`edgeStyle` inconnu) et les pointes inconnues (`startArrow` / `endArrow`). Le recensement porte sur **tout le document** (pas seulement les pages affichées) et est calculé au chargement.
+- **Panneau Diagnostics** (bouton dans la barre d'outils, avec le nombre de problèmes) :
+  - onglet **Ce fichier** : entrées triées par fréquence, avec type, pages, un exemple de chaîne de style (pour écrire le renderer) et les occurrences ; cliquer une occurrence va à sa page et **cadre l'élément** ; les avertissements de lecture (page illisible, parent manquant, lien cassé…) y sont aussi listés ;
+  - onglet **Tous les fichiers** : cumul des fichiers ouverts dans ce navigateur (chaque fichier compte pour son dernier état), avec le nombre de fichiers concernés ; peut être vidé ;
+  - **Exporter JSON** : fichier courant (rapport + avertissements) et cumul.
+- Le panneau s'ouvre à côté de la vue (qui se réduit), pas par-dessus.
 
 ### 8.5 Texte
 

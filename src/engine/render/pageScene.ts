@@ -12,11 +12,6 @@ export interface PageScene {
   pageId: string;
   /** Groupe racine en espace page ; à ajouter à la scène monde. */
   root: Group;
-  /**
-   * Éléments non supportés (SPEC §8.4) → nombre d'occurrences : nom de forme dessinée en placeholder,
-   * ou style d'arête approché (ex. `edgeStyle=isometricEdgeStyle`).
-   */
-  unsupported: Map<string, number>;
   dispose(): void;
 }
 
@@ -26,9 +21,6 @@ export function buildPageScene(page: PageModel, registry: RendererRegistry, ctx:
   applyPageSpace(root);
 
   const hiddenLayers = new Set(page.layers.filter((l) => !l.visible).map((l) => l.id));
-  const unsupported = new Map<string, number>();
-
-  const count = (key: string) => unsupported.set(key, (unsupported.get(key) ?? 0) + 1);
   const shapesById = new Map(page.shapes.map((shape) => [shape.id, shape]));
 
   // Ordre de dessin : rang dans la page, formes et arêtes confondues (pas la valeur brute de z).
@@ -43,17 +35,13 @@ export function buildPageScene(page: PageModel, registry: RendererRegistry, ctx:
 
     let object;
     if ('shape' in item) {
-      const { renderer, supported } = registry.resolve(item.shape);
-      if (!supported) count(item.shape.kind);
-      object = renderer.create(item.shape, ctx);
+      object = registry.resolve(item.shape).renderer.create(item.shape, ctx);
     } else {
       const terminals = {
         source: item.edge.sourceId ? shapesById.get(item.edge.sourceId) : undefined,
         target: item.edge.targetId ? shapesById.get(item.edge.targetId) : undefined,
       };
-      const result = createEdge(item.edge, terminals, ctx);
-      result.unsupported.forEach(count);
-      object = result.object;
+      object = createEdge(item.edge, terminals, ctx);
     }
 
     object.userData.elementId = element.id;
@@ -67,7 +55,6 @@ export function buildPageScene(page: PageModel, registry: RendererRegistry, ctx:
   return {
     pageId: page.id,
     root,
-    unsupported,
     dispose: () => disposeObject(root),
   };
 }

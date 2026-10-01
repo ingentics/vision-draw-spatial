@@ -1,4 +1,6 @@
-import { Color, OrthographicCamera, Scene, WebGLRenderer } from 'three';
+import { Box3, Color, OrthographicCamera, Scene, WebGLRenderer } from 'three';
+import { collectUnsupported } from './diagnostics/unsupportedStyles';
+import type { UnsupportedReport } from './diagnostics/unsupportedStyles';
 import { Emitter } from './events';
 import { parseDrawio } from './format/parse';
 import {
@@ -57,6 +59,7 @@ export class Engine {
   private readonly controller: CameraController;
 
   private document: DocumentModel | undefined;
+  private unsupportedReport: UnsupportedReport | undefined;
   private fileId: string | undefined;
   private pageScene: PageScene | undefined;
   private cameraState: CameraState = { mode: 'top', center: { x: 0, y: 0 }, zoom: 1, rotation: 0 };
@@ -95,6 +98,7 @@ export class Engine {
     const document = parseDrawio(xml);
     this.document = document;
     this.fileId = fileId;
+    this.unsupportedReport = collectUnsupported(document, this.registry);
     this.events.emit('load', document, fileId);
     const page = document.pages.find((p) => p.id === initialView?.pageId) ?? document.pages[0];
     if (!page) {
@@ -107,6 +111,35 @@ export class Engine {
 
   getDocument(): DocumentModel | undefined {
     return this.document;
+  }
+
+  /** Éléments non supportés du document chargé, triés par fréquence (SPEC §8.4). */
+  getUnsupportedReport(): UnsupportedReport | undefined {
+    return this.unsupportedReport;
+  }
+
+  /**
+   * Va à la page d'un élément et cadre dessus (diagnostics, liens). Les formes sont cadrées
+   * sur leurs bornes, les arêtes sur leur tracé dessiné.
+   */
+  focusElement(pageId: string, elementId: string): void {
+    if (this.pageScene?.pageId !== pageId) this.goToPage(pageId);
+    const page = this.getCurrentPage();
+    if (!page) return;
+    const bounds = page.shapes.find((s) => s.id === elementId)?.bounds ?? this.drawnBounds(elementId) ?? page.bounds;
+    this.animateCameraTo(
+      fitBounds(bounds, this.viewport, { rotation: this.cameraState.rotation, padding: 80, maxZoom: 2 }),
+    );
+  }
+
+  /** Emprise dessinée d'un élément de la page courante, en coordonnées page. */
+  private drawnBounds(elementId: string): Rect | undefined {
+    const object = this.pageScene?.root.children.find((c) => c.userData.elementId === elementId);
+    if (!object) return undefined;
+    const box = new Box3().setFromObject(object);
+    if (box.isEmpty()) return undefined;
+    // Monde → page : X = x, Z = y.
+    return { x: box.min.x, y: box.min.z, width: box.max.x - box.min.x, height: box.max.z - box.min.z };
   }
 
   getFileId(): string | undefined {

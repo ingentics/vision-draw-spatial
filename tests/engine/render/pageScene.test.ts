@@ -97,9 +97,8 @@ describe('buildPageScene — drawio-desktop.drawio', () => {
 });
 
 describe('buildPageScene — formes', () => {
-  it('formes inconnues : placeholder gris, comptées', () => {
+  it('formes inconnues : placeholder gris', () => {
     const { scene, texts } = build('simple.drawio');
-    expect([...scene.unsupported]).toEqual([['cylinder3', 1]]);
     expect(texts.some((t) => t.text === 'Stockage\n[cylinder3]')).toBe(true);
     const fill = element(scene.root, 'c1').getObjectByName('fill') as Mesh;
     expect((fill.material as MeshBasicMaterial).color.getHexString()).toBe('eeeeee');
@@ -133,7 +132,6 @@ describe('buildPageScene — formes', () => {
     };
     const { scene } = build('simple.drawio', createDefaultRegistry().register(custom));
     expect(element(scene.root, 'c1').name).toBe('custom');
-    expect(scene.unsupported.size).toBe(0);
   });
 
   it('dispose libère géométries et matériaux', () => {
@@ -175,17 +173,14 @@ describe('buildPageScene — arêtes', () => {
     expect(a3.children.map((c) => c.name)).toEqual(['stroke']);
   });
 
-  it('style d’arête inconnu : approché et compté', () => {
+  it('style d’arête inconnu : approché (dessiné quand même)', () => {
     const xml = `<mxfile><diagram id="p"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
       <mxCell id="e" style="edgeStyle=isometricEdgeStyle;endArrow=ERmandOne;" edge="1" parent="1">
         <mxGeometry relative="1" as="geometry"><mxPoint x="0" y="0" as="sourcePoint"/><mxPoint x="50" y="50" as="targetPoint"/></mxGeometry>
       </mxCell></root></mxGraphModel></diagram></mxfile>`;
     const { ctx } = stubContext();
     const scene = buildPageScene(parseDrawio(xml).pages[0]!, createDefaultRegistry(), ctx);
-    expect([...scene.unsupported]).toEqual([
-      ['edgeStyle=isometricEdgeStyle', 1],
-      ['endArrow=ERmandOne', 1],
-    ]);
+    expect(element(scene.root, 'e').children.map((c) => c.name)).toEqual(['stroke', 'fill']);
   });
 });
 

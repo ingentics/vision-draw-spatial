@@ -23,6 +23,13 @@ function engineFullReload(): Plugin {
 
 export default defineConfig({
   plugins: [react(), engineFullReload()],
+  server: {
+    watch: {
+      // Dans Docker (montage de l'hôte), un fichier tout juste créé peut être lu vide et
+      // l'écriture suivante non signalée : on attend que sa taille soit stable avant de le lire.
+      awaitWriteFinish: { stabilityThreshold: 120, pollInterval: 40 },
+    },
+  },
   test: {
     include: ['tests/**/*.test.ts', 'src/**/*.test.ts'],
     environment: 'node',

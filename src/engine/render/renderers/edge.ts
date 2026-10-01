@@ -1,9 +1,9 @@
 import { Group } from 'three';
 import type { Object3D } from 'three';
 import type { EdgeLabelPlacement, EdgeModel, Point, ShapeModel } from '../../model/types';
-import { buildMarker, isKnownMarker } from '../edges/markers';
+import { buildMarker } from '../edges/markers';
 import { labelPoint, roundCorners, shorten, unit } from '../edges/polyline';
-import { routeEdge, routingKind } from '../edges/route';
+import { routeEdge } from '../edges/route';
 import type { Terminal } from '../edges/route';
 import { dashPattern } from '../geometry/stroke';
 import { fillMesh, strokeMesh } from '../meshes';
@@ -22,21 +22,14 @@ export interface EdgeTerminals {
   target?: ShapeModel;
 }
 
-export interface EdgeRenderResult {
-  object: Object3D;
-  /** Styles d'arête non reconnus (ex. `edgeStyle=isometricEdgeStyle`), pour les diagnostics. */
-  unsupported: string[];
-}
-
-/** Connecteur : tracé, pointes de flèches et labels (SPEC §8.3). */
-export function createEdge(edge: EdgeModel, terminals: EdgeTerminals, ctx: RenderContext): EdgeRenderResult {
+/**
+ * Connecteur : tracé, pointes de flèches et labels (SPEC §8.3). Les styles inconnus sont approchés ;
+ * ils sont recensés par `diagnostics/unsupportedStyles`.
+ */
+export function createEdge(edge: EdgeModel, terminals: EdgeTerminals, ctx: RenderContext): Object3D {
   const group = new Group();
   group.name = `edge:${edge.id}`;
   const { style } = edge;
-  const unsupported: string[] = [];
-
-  const routing = routingKind(style);
-  if (!routing.supported) unsupported.push(`edgeStyle=${style.edgeStyle}`);
 
   const route = routeEdge({
     source: toTerminal(terminals.source),
@@ -46,7 +39,7 @@ export function createEdge(edge: EdgeModel, terminals: EdgeTerminals, ctx: Rende
     waypoints: edge.points,
     style,
   });
-  if (route.length < 2) return { object: group, unsupported };
+  if (route.length < 2) return group;
 
   const stroke = styleColor(style, 'strokeColor', '#000000');
   const strokeWidth = styleNumber(style, 'strokeWidth', 1);
@@ -55,12 +48,6 @@ export function createEdge(edge: EdgeModel, terminals: EdgeTerminals, ctx: Rende
   // Pointes de flèches : calculées sur le tracé brut, puis la ligne est raccourcie d'autant.
   const startType = style.startArrow ?? 'none';
   const endType = style.endArrow ?? DEFAULT_END_ARROW;
-  for (const [key, type] of [
-    ['startArrow', startType],
-    ['endArrow', endType],
-  ] as const) {
-    if (type && type !== 'none' && !isKnownMarker(type)) unsupported.push(`${key}=${type}`);
-  }
   const start = buildMarker(
     startType,
     route[0]!,
@@ -107,7 +94,7 @@ export function createEdge(edge: EdgeModel, terminals: EdgeTerminals, ctx: Rende
     if (label) group.add(label);
   }
 
-  return { object: group, unsupported };
+  return group;
 }
 
 function createEdgeLabel(
