@@ -19,6 +19,12 @@ export interface EngineOptions {
   background?: string;
 }
 
+/** Vue à restaurer au chargement (SPEC §5.3) : dernière page active et sa caméra. */
+export interface InitialView {
+  pageId?: string;
+  camera?: CameraState;
+}
+
 export type EngineEvents = {
   load: [document: DocumentModel, fileId: string];
   pageChange: [page: PageModel];
@@ -60,14 +66,18 @@ export class Engine {
     this.resize();
   }
 
-  async load(xml: string, fileId: string): Promise<void> {
+  async load(xml: string, fileId: string, initialView?: InitialView): Promise<void> {
     const document = parseDrawio(xml);
     this.document = document;
     this.fileId = fileId;
     this.events.emit('load', document, fileId);
-    const first = document.pages[0];
-    if (first) this.goToPage(first.id);
-    else this.showPage(undefined);
+    const page = document.pages.find((p) => p.id === initialView?.pageId) ?? document.pages[0];
+    if (!page) {
+      this.showPage(undefined);
+      return;
+    }
+    this.goToPage(page.id);
+    if (initialView?.camera && page.id === initialView.pageId) this.setCameraState(initialView.camera);
   }
 
   getDocument(): DocumentModel | undefined {

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Engine } from '../engine/Engine';
+import type { InitialView } from '../engine/Engine';
 import type { FontSet } from '../engine/render/troikaText';
 
 export interface DrawioSpatialProps {
@@ -8,6 +9,8 @@ export interface DrawioSpatialProps {
   /** Identifiant stable du fichier (persistance, cache). */
   fileId?: string;
   fonts?: FontSet;
+  /** Page et caméra à restaurer au chargement du fichier. */
+  initialView?: InitialView;
   className?: string;
   /** Donne accès au moteur (navigation, état de caméra…). Appelé avec `undefined` au démontage. */
   onEngine?: (engine: Engine | undefined) => void;
@@ -15,7 +18,15 @@ export interface DrawioSpatialProps {
 }
 
 /** Coquille React fine autour du moteur (SPEC §3.2). */
-export function DrawioSpatial({ xml, fileId = 'inline', fonts, className, onEngine, onError }: DrawioSpatialProps) {
+export function DrawioSpatial({
+  xml,
+  fileId = 'inline',
+  fonts,
+  initialView,
+  className,
+  onEngine,
+  onError,
+}: DrawioSpatialProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [engine, setEngine] = useState<Engine>();
 
@@ -25,6 +36,9 @@ export function DrawioSpatial({ xml, fileId = 'inline', fonts, className, onEngi
   onEngineRef.current = onEngine;
   const onErrorRef = useRef(onError);
   onErrorRef.current = onError;
+  // Lue au chargement d'un fichier seulement : changer la vue ne recharge pas le fichier.
+  const initialViewRef = useRef(initialView);
+  initialViewRef.current = initialView;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -40,7 +54,7 @@ export function DrawioSpatial({ xml, fileId = 'inline', fonts, className, onEngi
 
   useEffect(() => {
     if (!engine || xml === undefined) return;
-    engine.load(xml, fileId).catch((error: unknown) => onErrorRef.current?.(error));
+    engine.load(xml, fileId, initialViewRef.current).catch((error: unknown) => onErrorRef.current?.(error));
   }, [engine, xml, fileId]);
 
   return <canvas ref={canvasRef} className={className} style={{ display: 'block', width: '100%', height: '100%' }} />;

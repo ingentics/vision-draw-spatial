@@ -6,17 +6,36 @@ import type { Engine } from '../engine/Engine';
 import type { DocumentModel } from '../engine/model/types';
 import { DrawioSpatial } from '../react/DrawioSpatial';
 import { demoFiles } from './demoFiles';
+import { patchDevSession, readDevSession, writeDevSession } from './devSession';
 
 const FONTS = { regular: robotoRegular, bold: robotoBold };
 const DEFAULT_FILE = demoFiles.find((f) => f.name === 'docs/test.drawio') ?? demoFiles[0];
+const CAMERA_SAVE_DELAY_MS = 300;
 
 interface OpenFile {
   id: string;
   xml: string;
 }
 
+/** Fichier de la session précédente (rechargement de page), sinon le fichier par défaut. */
+function initialFile(): OpenFile | undefined {
+  const session = readDevSession();
+  if (session?.xml) return { id: session.fileId, xml: session.xml };
+  return demoFiles.find((f) => f.id === session?.fileId) ?? DEFAULT_FILE;
+}
+
+function openFile(file: OpenFile, local: boolean): OpenFile {
+  writeDevSession({ fileId: file.id, xml: local ? file.xml : undefined });
+  return file;
+}
+
 export function App() {
-  const [file, setFile] = useState<OpenFile | undefined>(DEFAULT_FILE);
+  const [file, setFile] = useState<OpenFile | undefined>(initialFile);
+  // Vue restaurée une seule fois, au premier chargement après un rechargement de page.
+  const [initialView] = useState(() => {
+    const session = readDevSession();
+    return session ? { fileId: session.fileId, pageId: session.pageId, camera: session.camera } : undefined;
+  });
   const [engine, setEngine] = useState<Engine>();
   const [document, setDocument] = useState<DocumentModel>();
   const [pageId, setPageId] = useState<string>();
@@ -31,17 +50,29 @@ export function App() {
       setDocument(doc);
       setError(undefined);
     });
-    instance.on('pageChange', (page) => setPageId(page.id));
+    instance.on('pageChange', (page) => {
+      setPageId(page.id);
+      const fileId = instance.getFileId();
+      if (fileId) patchDevSession(fileId, { pageId: page.id, camera: undefined });
+    });
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    instance.on('cameraChange', (camera) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        const fileId = instance.getFileId();
+        if (fileId) patchDevSession(fileId, { camera });
+      }, CAMERA_SAVE_DELAY_MS);
+    });
   }, []);
 
   const pickDemo = (event: ChangeEvent<HTMLSelectElement>) => {
     const demo = demoFiles.find((f) => f.id === event.target.value);
-    if (demo) setFile(demo);
+    if (demo) setFile(openFile(demo, false));
   };
 
   const openLocal = async (event: ChangeEvent<HTMLInputElement>) => {
     const local = event.target.files?.[0];
-    if (local) setFile({ id: `local/${local.name}`, xml: await local.text() });
+    if (local) setFile(openFile({ id: `local/${local.name}`, xml: await local.text() }, true));
     event.target.value = '';
   };
 
@@ -80,6 +111,7 @@ export function App() {
           xml={file?.xml}
           fileId={file?.id}
           fonts={FONTS}
+          initialView={file && initialView?.fileId === file.id ? initialView : undefined}
           onEngine={handleEngine}
           onError={(e) => setError(e instanceof Error ? e.message : String(e))}
         />
