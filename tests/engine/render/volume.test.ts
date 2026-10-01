@@ -44,6 +44,35 @@ describe('volumes iso', () => {
     expect(shades.size).toBeGreaterThan(1);
   });
 
+  it('toutes les arêtes du bloc ont la couleur et le style de la bordure 2D', () => {
+    const b = element(isoScene().root, B);
+    const color = (name: string) =>
+      ((b.getObjectByName(name) as Mesh).material as MeshBasicMaterial).color.getHexString();
+    expect(color('stroke')).toBe('b85450'); // contour du dessus (rendu à plat)
+    expect(color('stroke-bottom')).toBe('b85450');
+    expect(color('stroke-vertical')).toBe('b85450');
+    // 4 coins → 4 prismes de 4 faces × 2 triangles.
+    const vertical = b.getObjectByName('stroke-vertical') as Mesh;
+    expect(vertical.geometry.getAttribute('position').count).toBe(4 * 4 * 6);
+    const box = new Box3().setFromObject(vertical);
+    expect(box.min.y).toBeCloseTo(0);
+    expect(box.max.y).toBeCloseTo(20);
+  });
+
+  it('arêtes pointillées comme la bordure 2D (A est en pointillés)', () => {
+    const a = element(isoScene().root, A);
+    const vertical = a.getObjectByName('stroke-vertical') as Mesh;
+    // Plusieurs tirets par arête verticale au lieu d'un seul prisme plein.
+    expect(vertical.geometry.getAttribute('position').count).toBeGreaterThan(4 * 4 * 6);
+  });
+
+  it('formes courbes : pas d’arête verticale (contours du haut et du bas seulement)', () => {
+    const simple = parseDrawio(fixture('simple.drawio')).pages[0]!;
+    const ellipse = element(isoScene(simple).root, 'e1');
+    expect(ellipse.getObjectByName('stroke-bottom')).toBeDefined();
+    expect(ellipse.getObjectByName('stroke-vertical')).toBeUndefined();
+  });
+
   it('hauteur par forme : style spatial.height, sinon l’épaisseur des paramètres', () => {
     const shape = page.shapes[0]!;
     expect(blockHeight(shape, ctx)).toBe(20);
