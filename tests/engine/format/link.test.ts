@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseLink } from '../../../src/engine/format/link';
+import { isNavigableLink, parseLink } from '../../../src/engine/format/link';
 
 describe('parseLink', () => {
   it('lien interne de page', () => {
@@ -15,5 +15,16 @@ describe('parseLink', () => {
     expect(parseLink('  ')).toBeUndefined();
     expect(parseLink('data:action/json,{}')).toBeUndefined();
     expect(parseLink('data:page/id,')).toBeUndefined();
+  });
+});
+
+describe('isNavigableLink', () => {
+  it('pages et URL web / mail uniquement', () => {
+    expect(isNavigableLink({ type: 'page', pageId: 'p' })).toBe(true);
+    expect(isNavigableLink({ type: 'url', href: 'https://example.com' })).toBe(true);
+    expect(isNavigableLink({ type: 'url', href: 'mailto:a@b.c' })).toBe(true);
+    expect(isNavigableLink({ type: 'url', href: 'javascript:alert(1)' })).toBe(false);
+    expect(isNavigableLink({ type: 'url', href: 'file:///etc/passwd' })).toBe(false);
+    expect(isNavigableLink(undefined)).toBe(false);
   });
 });

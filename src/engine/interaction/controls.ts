@@ -114,7 +114,16 @@ export interface CameraHost {
   getViewport(): Viewport;
   /** Bascule vue globale ↔ 1:1, autour du point écran donné. */
   toggleOverview(screen?: Point): void;
+  /** Clic gauche simple (sans glisser) : sélection. */
+  click?(screen: Point): void;
+  /** Double-clic gauche : entrer dans un lien. */
+  doubleClick?(screen: Point): void;
+  /** Survol (undefined quand le pointeur quitte le canvas). */
+  hover?(screen: Point | undefined): void;
 }
+
+/** Au-delà de ce déplacement (px), un appui-relâché n'est plus un clic. */
+const CLICK_SLOP = 4;
 
 type DragMode = 'pan' | 'rotate';
 
@@ -132,6 +141,9 @@ export class CameraController {
   private samples: Array<{ t: number; p: Point }> = [];
   /** Dernière position du pointeur sur le canvas (pour la bascule 1:1 autour du curseur). */
   private hover: Point | undefined;
+  /** Point d'appui du bouton gauche, pour distinguer un clic d'un glisser. */
+  private pressPoint: Point | undefined;
+  private suppressClick = false;
   private enabled = true;
 
   constructor(
@@ -152,6 +164,8 @@ export class CameraController {
     element.addEventListener('pointercancel', this.onPointerUp);
     element.addEventListener('pointerleave', this.onPointerLeave);
     element.addEventListener('contextmenu', this.onContextMenu);
+    element.addEventListener('click', this.onClick);
+    element.addEventListener('dblclick', this.onDoubleClick);
     // Empêche le défilement automatique du navigateur au clic molette.
     element.addEventListener('mousedown', this.onMouseDown);
     window.addEventListener('keydown', this.onKeyDown);
@@ -183,6 +197,8 @@ export class CameraController {
     el.removeEventListener('pointercancel', this.onPointerUp);
     el.removeEventListener('pointerleave', this.onPointerLeave);
     el.removeEventListener('contextmenu', this.onContextMenu);
+    el.removeEventListener('click', this.onClick);
+    el.removeEventListener('dblclick', this.onDoubleClick);
     el.removeEventListener('mousedown', this.onMouseDown);
     window.removeEventListener('keydown', this.onKeyDown);
     window.removeEventListener('keyup', this.onKeyUp);
@@ -203,6 +219,10 @@ export class CameraController {
 
   private readonly onPointerDown = (event: PointerEvent): void => {
     this.element.focus({ preventScroll: true });
+    if (event.button === 0) {
+      this.pressPoint = this.localPoint(event);
+      this.suppressClick = false;
+    }
     if (!this.enabled || this.drag) return;
     let mode: DragMode | undefined;
     if (event.button === 1) mode = this.settings.middleDrag;
@@ -226,8 +246,12 @@ export class CameraController {
 
   private readonly onPointerMove = (event: PointerEvent): void => {
     this.hover = this.localPoint(event);
+    if (this.pressPoint && distance(this.pressPoint, this.hover) > CLICK_SLOP) this.suppressClick = true;
     const drag = this.drag;
-    if (!drag || event.pointerId !== drag.pointerId) return;
+    if (!drag || event.pointerId !== drag.pointerId) {
+      if (this.enabled && !this.drag) this.host.hover?.(this.hover);
+      return;
+    }
     const point = this.localPoint(event);
     const delta = { x: point.x - drag.last.x, y: point.y - drag.last.y };
     drag.last = point;
@@ -258,6 +282,21 @@ export class CameraController {
 
   private readonly onPointerLeave = (): void => {
     this.hover = undefined;
+    this.host.hover?.(undefined);
+  };
+
+  private readonly onClick = (event: MouseEvent): void => {
+    const suppressed = this.suppressClick || this.spaceDown;
+    this.pressPoint = undefined;
+    this.suppressClick = false;
+    if (!this.enabled || event.button !== 0 || suppressed) return;
+    this.host.click?.(this.localPoint(event));
+  };
+
+  private readonly onDoubleClick = (event: MouseEvent): void => {
+    if (!this.enabled || event.button !== 0 || this.spaceDown) return;
+    event.preventDefault();
+    this.host.doubleClick?.(this.localPoint(event));
   };
 
   private readonly onContextMenu = (event: Event): void => event.preventDefault();
@@ -355,4 +394,8 @@ function isMoveKey(code: string, moveKeys: ControlSettings['moveKeys']): boolean
 function isEditable(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   return target.isContentEditable || ['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName);
+}
+
+function distance(a: Point, b: Point): number {
+  return Math.hypot(a.x - b.x, a.y - b.y);
 }

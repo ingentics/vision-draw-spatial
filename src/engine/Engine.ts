@@ -2,6 +2,7 @@ import { Box3, Color, OrthographicCamera, Scene, WebGLRenderer } from 'three';
 import { collectUnsupported } from './diagnostics/unsupportedStyles';
 import type { UnsupportedReport } from './diagnostics/unsupportedStyles';
 import { Emitter } from './events';
+import { isNavigableLink } from './format/link';
 import { parseDrawio } from './format/parse';
 import {
   applyCameraState,
@@ -11,19 +12,57 @@ import {
   normalizeCameraState,
   rotateAround,
   sameView,
+  screenToPage,
   zoomAt,
 } from './interaction/camera';
 import type { CameraState, Viewport } from './interaction/camera';
 import { CameraController } from './interaction/controls';
 import type { ControlSettings } from './interaction/controls';
-import type { DocumentModel, PageModel, Point, Rect } from './model/types';
+import { pickElement } from './interaction/pick';
+import type { PickedElement } from './interaction/pick';
+import { coverBounds, easing, embedIn, equivalentCamera, phase } from './interaction/transitions';
+import type { DocumentModel, LinkModel, PageModel, Point, Rect } from './model/types';
+import { selectionOutline } from './render/decorations';
+import { disposeObject } from './render/meshes';
+import { setPageOpacity } from './render/pageEffects';
 import { buildPageScene } from './render/pageScene';
 import type { PageScene } from './render/pageScene';
 import { SceneManager } from './render/sceneManager';
 import { createDefaultRegistry } from './render/registry';
 import type { RendererRegistry } from './render/registry';
+import { setPageTransform } from './render/space';
 import { createTroikaTextFactory } from './render/troikaText';
 import type { FontSet } from './render/troikaText';
+
+/** Transition entre pages par un lien (SPEC §11.2, §13 `transition`). */
+export interface TransitionSettings {
+  enabled: boolean;
+  durationMs: number;
+  easing: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out';
+}
+
+/** Préchargement de la page cible d'un lien (SPEC §11.1, §13 `preload`). */
+export interface PreloadSettings {
+  onClick: boolean;
+  onHover: boolean;
+  hoverDelayMs: number;
+}
+
+export const DEFAULT_TRANSITION: TransitionSettings = { enabled: true, durationMs: 1000, easing: 'ease-in-out' };
+export const DEFAULT_PRELOAD: PreloadSettings = { onClick: true, onHover: false, hoverDelayMs: 300 };
+
+export interface Selection {
+  pageId: string;
+  picked: PickedElement;
+}
+
+/** Ouvre une URL externe (SPEC §11.4) : nouvel onglet, sans accès retour à cette page. */
+function defaultOpenUrl(href: string): void {
+  window.open(href, '_blank', 'noopener,noreferrer');
+}
+
+/** Pixels écran de tolérance pour attraper une arête. */
+const EDGE_PICK_TOLERANCE = 6;
 
 export interface EngineOptions {
   canvas: HTMLCanvasElement;
@@ -34,6 +73,10 @@ export interface EngineOptions {
   controls?: Partial<ControlSettings>;
   /** Nombre de scènes de pages gardées en mémoire (SPEC §13, `preload.maxCachedPages`). */
   maxCachedPages?: number;
+  transition?: Partial<TransitionSettings>;
+  preload?: Partial<PreloadSettings>;
+  /** Ouverture des liens URL (par défaut : nouvel onglet du navigateur). */
+  openUrl?: (href: string) => void;
 }
 
 /** Vue à restaurer au chargement (SPEC §5.3) : dernière page active et caméras par page. */
@@ -48,6 +91,10 @@ export type EngineEvents = {
   load: [document: DocumentModel, fileId: string];
   pageChange: [page: PageModel];
   cameraChange: [state: CameraState];
+  selectionChange: [selection: Selection | undefined];
+  /** Transition vers une page par un lien : début et fin (entrées ignorées entre les deux). */
+  transitionStart: [fromPageId: string, toPageId: string];
+  transitionEnd: [pageId: string];
 };
 export type EngineEvent = keyof EngineEvents;
 
@@ -78,9 +125,21 @@ export class Engine {
   private animation = 0;
   private disposed = false;
 
+  private transitionSettings: TransitionSettings;
+  private preloadSettings: PreloadSettings;
+  private readonly openUrl: (href: string) => void;
+  private selection: Selection | undefined;
+  private selectionObject: ReturnType<typeof selectionOutline> | undefined;
+  private hoverTimer: ReturnType<typeof setTimeout> | undefined;
+  /** Transition en cours : de quoi l'interrompre proprement. */
+  private transition: { abort: () => void } | undefined;
+
   constructor(options: EngineOptions) {
     this.canvas = options.canvas;
     this.registry = options.registry ?? createDefaultRegistry();
+    this.transitionSettings = { ...DEFAULT_TRANSITION, ...options.transition };
+    this.preloadSettings = { ...DEFAULT_PRELOAD, ...options.preload };
+    this.openUrl = options.openUrl ?? defaultOpenUrl;
     this.renderer = new WebGLRenderer({ canvas: this.canvas, antialias: true });
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.scene.background = new Color(options.background ?? '#ffffff');
@@ -102,6 +161,9 @@ export class Engine {
         setCameraState: (state) => this.setCameraState(state),
         getViewport: () => this.viewport,
         toggleOverview: (screen) => this.toggleOverview(screen),
+        click: (screen) => this.handleClick(screen),
+        doubleClick: (screen) => this.handleDoubleClick(screen),
+        hover: (screen) => this.handleHover(screen),
       },
       options.controls,
     );
@@ -112,6 +174,8 @@ export class Engine {
     this.document = document;
     this.fileId = fileId;
     this.unsupportedReport = collectUnsupported(document, this.registry);
+    this.transition?.abort();
+    this.clearSelection();
     this.scenes.clear();
     this.currentPageId = undefined;
     this.pageCameras = new Map(
@@ -155,7 +219,7 @@ export class Engine {
 
   /** Emprise dessinée d'un élément de la page courante, en coordonnées page. */
   private drawnBounds(elementId: string): Rect | undefined {
-    const object = this.scenes.current?.root.children.find((c) => c.userData.elementId === elementId);
+    const object = this.sceneObject(elementId);
     if (!object) return undefined;
     const box = new Box3().setFromObject(object);
     if (box.isEmpty()) return undefined;
@@ -193,8 +257,10 @@ export class Engine {
   goToPage(pageId: string): void {
     const page = this.document?.pages.find((p) => p.id === pageId);
     if (!page) throw new Error(`Page inconnue : ${pageId}`);
+    this.transition?.abort();
     cancelAnimationFrame(this.animation);
     this.animation = 0;
+    if (this.currentPageId !== page.id) this.clearSelection();
     this.currentPageId = page.id;
     this.scenes.show(page);
     const camera = this.pageCameras.get(page.id);
@@ -273,8 +339,11 @@ export class Engine {
 
   private applyCamera(state: CameraState): void {
     this.pendingFit = undefined;
+    const previousZoom = this.cameraState.zoom;
     this.cameraState = normalizeCameraState(state);
     if (this.currentPageId) this.pageCameras.set(this.currentPageId, this.cameraState);
+    // Contour de sélection d'épaisseur constante à l'écran.
+    if (this.selection && this.cameraState.zoom !== previousZoom) this.updateSelectionOutline();
     applyCameraState(this.camera, this.cameraState, this.viewport);
     this.events.emit('cameraChange', this.getCameraState());
     this.requestRender();
@@ -294,6 +363,234 @@ export class Engine {
     this.controller.setSettings(patch);
   }
 
+  // -------------------------------------------------------------------------
+  // Sélection et liens (SPEC §11)
+
+  getSelection(): Selection | undefined {
+    return this.selection;
+  }
+
+  getTransitionSettings(): TransitionSettings {
+    return { ...this.transitionSettings };
+  }
+
+  setTransitionSettings(patch: Partial<TransitionSettings>): void {
+    this.transitionSettings = { ...this.transitionSettings, ...patch };
+  }
+
+  getPreloadSettings(): PreloadSettings {
+    return { ...this.preloadSettings };
+  }
+
+  setPreloadSettings(patch: Partial<PreloadSettings>): void {
+    this.preloadSettings = { ...this.preloadSettings, ...patch };
+  }
+
+  isTransitioning(): boolean {
+    return this.transition !== undefined;
+  }
+
+  /** Élément de la page courante sous un point écran. */
+  pickAt(screen: Point): PickedElement | undefined {
+    const page = this.getCurrentPage();
+    if (!page) return undefined;
+    const point = screenToPage(this.cameraState, this.viewport, screen);
+    return pickElement(page, point, {
+      edgeTolerance: EDGE_PICK_TOLERANCE / this.cameraState.zoom,
+      edgeRoute: (id) => this.sceneObject(id)?.userData.route as Point[] | undefined,
+    });
+  }
+
+  select(picked: PickedElement | undefined): void {
+    const page = this.getCurrentPage();
+    this.selection = picked && page ? { pageId: page.id, picked } : undefined;
+    this.updateSelectionOutline();
+    this.events.emit('selectionChange', this.selection);
+  }
+
+  clearSelection(): void {
+    if (!this.selection) return;
+    this.select(undefined);
+  }
+
+  /** Construit en arrière-plan la page cible d'un lien, sans l'afficher (SPEC §11.1). */
+  preloadLink(link: LinkModel | undefined): void {
+    if (link?.type !== 'page' || link.pageId === this.currentPageId) return;
+    const page = this.document?.pages.find((p) => p.id === link.pageId);
+    if (page) this.scenes.prebuild(page);
+  }
+
+  /**
+   * Suit le lien d'un élément de la page courante : transition vers la page cible, ou ouverture
+   * de l'URL dans un nouvel onglet. Sans effet si l'élément n'a pas de lien exploitable.
+   */
+  followLink(elementId: string): void {
+    const page = this.getCurrentPage();
+    const element = page && [...page.shapes, ...page.edges].find((e) => e.id === elementId);
+    const link = element?.link;
+    if (!page || !element || !isNavigableLink(link)) return;
+    if (link.type === 'url') {
+      this.openUrl(link.href);
+      return;
+    }
+    if (!this.document?.pages.some((p) => p.id === link.pageId) || link.pageId === page.id) return;
+    const frame = page.shapes.find((s) => s.id === elementId)?.bounds ?? this.drawnBounds(elementId);
+    this.transitionToPage(link.pageId, frame);
+  }
+
+  /**
+   * Transition « zoom + fondu » (SPEC §11.2) :
+   * 1. la caméra plonge dans la forme jusqu'à ce qu'elle remplisse l'écran ;
+   * 2. pendant la fin du zoom, la page source s'efface et la page cible apparaît, posée dans la forme ;
+   * 3. bascule invisible sur la page cible, puis recadrage sur sa caméra mémorisée (ou vue d'ensemble).
+   * La page cible est construite avant le départ. Entrées ignorées pendant la transition.
+   */
+  transitionToPage(targetPageId: string, frame: Rect | undefined): void {
+    const source = this.scenes.current;
+    const sourcePage = this.getCurrentPage();
+    const targetPage = this.document?.pages.find((p) => p.id === targetPageId);
+    if (!targetPage || !source || !sourcePage || this.transition) return;
+
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (!frame || !this.transitionSettings.enabled || reduceMotion || this.transitionSettings.durationMs <= 0) {
+      this.goToPage(targetPageId);
+      return;
+    }
+
+    cancelAnimationFrame(this.animation);
+    this.animation = 0;
+    this.clearSelection();
+    const target = this.scenes.prebuild(targetPage);
+    const embedding = embedIn(targetPage.bounds, frame);
+    setPageTransform(target.root, embedding);
+    setPageOpacity(target.root, 0);
+    target.root.visible = true;
+
+    const from = this.cameraState;
+    const plunge = coverBounds(frame, this.viewport, from.rotation);
+    const remembered = this.pageCameras.get(targetPageId);
+    const ease = easing(this.transitionSettings.easing);
+    const duration = this.transitionSettings.durationMs;
+    /** Fin du plongeon (et du fondu) en part de la durée totale ; le reste sert au recadrage. */
+    const SWITCH = 0.7;
+    const FADE_START = 0.35;
+
+    this.controller.setEnabled(false);
+    this.events.emit('transitionStart', sourcePage.id, targetPageId);
+
+    let switched = false;
+    let settleFrom: CameraState | undefined;
+    let settleTo: CameraState | undefined;
+    const restore = () => {
+      setPageOpacity(source.root, 1);
+      setPageOpacity(target.root, 1);
+      setPageTransform(target.root, undefined);
+    };
+    const finish = () => {
+      this.transition = undefined;
+      this.animation = 0;
+      this.controller.setEnabled(true);
+      this.events.emit('transitionEnd', targetPageId);
+    };
+    this.transition = {
+      abort: () => {
+        cancelAnimationFrame(this.animation);
+        restore();
+        if (!switched) {
+          target.root.visible = false;
+          source.root.visible = true;
+        }
+        finish();
+      },
+    };
+
+    const start = performance.now();
+    const step = (now: number) => {
+      const t = Math.min((now - start) / duration, 1);
+      if (!switched) {
+        this.applyCamera(interpolateCamera(from, plunge, ease(phase(t, 0, SWITCH))));
+        const fade = phase(t, FADE_START, SWITCH);
+        setPageOpacity(source.root, 1 - fade);
+        setPageOpacity(target.root, fade);
+      }
+      if (!switched && t >= SWITCH) {
+        // Bascule : même image à l'écran, mais la page cible est la page courante, sans transformation.
+        switched = true;
+        restore();
+        // La page source garde la vue d'avant le plongeon (retour, SPEC §11.3).
+        this.pageCameras.set(sourcePage.id, from);
+        this.currentPageId = targetPageId;
+        this.scenes.show(targetPage);
+        settleFrom = equivalentCamera(this.cameraState, embedding);
+        settleTo = remembered ?? fitBounds(targetPage.bounds, this.viewport, { rotation: from.rotation });
+        this.applyCamera(settleFrom);
+        this.events.emit('pageChange', targetPage);
+      }
+      if (switched && settleFrom && settleTo) {
+        this.applyCamera(interpolateCamera(settleFrom, settleTo, ease(phase(t, SWITCH, 1))));
+      }
+      if (t < 1) {
+        this.animation = requestAnimationFrame(step);
+      } else {
+        finish();
+        this.events.emit('cameraChange', this.getCameraState());
+      }
+    };
+    this.animation = requestAnimationFrame(step);
+  }
+
+  private handleClick(screen: Point): void {
+    const picked = this.pickAt(screen);
+    this.select(picked);
+    if (this.preloadSettings.onClick) this.preloadLink(picked?.element.link);
+  }
+
+  private handleDoubleClick(screen: Point): void {
+    const picked = this.pickAt(screen);
+    if (picked && isNavigableLink(picked.element.link)) this.followLink(picked.element.id);
+  }
+
+  /** Survol : curseur main et infobulle sur les éléments liés ; préchargement optionnel. */
+  private handleHover(screen: Point | undefined): void {
+    const picked = screen ? this.pickAt(screen) : undefined;
+    const link = isNavigableLink(picked?.element.link) ? picked?.element.link : undefined;
+    if (!this.canvas.style.cursor.startsWith('grab')) this.canvas.style.cursor = link ? 'pointer' : '';
+    this.canvas.title = link ? this.describeLink(link) : '';
+    clearTimeout(this.hoverTimer);
+    if (link && this.preloadSettings.onHover) {
+      this.hoverTimer = setTimeout(() => this.preloadLink(link), this.preloadSettings.hoverDelayMs);
+    }
+  }
+
+  private describeLink(link: LinkModel): string {
+    if (link.type === 'url') return `${link.href} (double-clic : ouvrir dans un nouvel onglet)`;
+    const name = this.document?.pages.find((p) => p.id === link.pageId)?.name;
+    return name ? `Double-clic : aller à « ${name} »` : `Lien vers une page absente (${link.pageId})`;
+  }
+
+  private sceneObject(elementId: string) {
+    return this.scenes.current?.root.children.find((c) => c.userData.elementId === elementId);
+  }
+
+  private updateSelectionOutline(): void {
+    if (this.selectionObject) {
+      this.selectionObject.parent?.remove(this.selectionObject);
+      disposeObject(this.selectionObject);
+      this.selectionObject = undefined;
+    }
+    const selection = this.selection;
+    const root = this.scenes.current?.root;
+    if (selection && root && selection.pageId === this.currentPageId) {
+      const { picked } = selection;
+      const bounds = picked.type === 'shape' ? picked.element.bounds : this.drawnBounds(picked.element.id);
+      if (bounds) {
+        this.selectionObject = selectionOutline(bounds, this.cameraState.zoom);
+        root.add(this.selectionObject);
+      }
+    }
+    this.requestRender();
+  }
+
   on<K extends EngineEvent>(event: K, handler: (...args: EngineEvents[K]) => void): () => void {
     return this.events.on(event, handler);
   }
@@ -303,6 +600,8 @@ export class Engine {
     this.disposed = true;
     cancelAnimationFrame(this.frame);
     cancelAnimationFrame(this.animation);
+    clearTimeout(this.hoverTimer);
+    this.transition?.abort();
     this.resizeObserver.disconnect();
     this.controller.dispose();
     this.scenes.clear();

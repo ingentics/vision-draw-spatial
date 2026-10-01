@@ -16,3 +16,15 @@ export function parseLink(href: string | null | undefined): LinkModel | undefine
   if (value.startsWith('data:')) return undefined;
   return { type: 'url', href: value };
 }
+
+/** Schémas d'URL qu'on accepte d'ouvrir (pas de `javascript:`, `data:`, `file:`…). */
+const SAFE_URL = /^(https?:|mailto:)/i;
+
+/**
+ * Lien exploitable par le viewer : vers une page, ou vers une URL sûre.
+ * Les autres liens restent dans le modèle (fidélité au fichier) mais ne sont ni signalés ni suivis.
+ */
+export function isNavigableLink(link: LinkModel | undefined): link is LinkModel {
+  if (!link) return false;
+  return link.type === 'page' || SAFE_URL.test(link.href);
+}

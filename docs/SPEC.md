@@ -413,6 +413,8 @@ Les contrôles s'appuient sur les touches physiques (`KeyboardEvent.code`) pour 
 - **Simple clic** sur une forme ayant un lien vers une page : sélection + **préchargement** de la page cible en arrière-plan (construction de sa scène), sans rien afficher.
 - **Double-clic** : déclenche la **transition**.
 - Option : préchargement au **survol prolongé** (≈ 300 ms, configurable), avec un **plafond** sur le nombre de scènes préchargées gardées en cache.
+- **Sélection** : clic gauche sur une forme ou une arête (tolérance ≈ 6 px écran autour du tracé) ; contour bleu pointillé d'épaisseur constante à l'écran ; clic dans le vide = désélection. L'élément le plus haut dans l'ordre de dessin gagne (un enfant avant son conteneur) ; les groupes invisibles ne sont attrapés que s'ils portent un lien. Un appui suivi d'un glisser n'est pas un clic.
+- **Repérage des liens** : pastille bleue au coin haut-droit des formes liées (→ page, ↗ URL) ; au survol, curseur main et infobulle (« Double-clic : aller à « Page-2 » », ou l'URL).
 
 ### 11.2 Transition « zoom + fondu »
 
@@ -427,6 +429,13 @@ Contraintes :
 - Les entrées utilisateur sont ignorées ou mises en file pendant la transition.
 - Une option permet de désactiver les animations (accessibilité, `prefers-reduced-motion`).
 
+Réalisation retenue :
+
+- Pendant le plongeon, la page cible est **posée dans la forme** (similitude de son espace page : centrée, à l'échelle de la forme avec 10 % de marge) et grossit avec elle ; le fondu croisé (page source 1 → 0, cible 0 → 1) a lieu entre 35 % et 70 % de la durée.
+- À 70 %, **bascule invisible** : la page cible devient la page courante sans transformation, avec une caméra équivalente (image identique à l'écran) ; les 30 % restants recadrent sur la caméra mémorisée de la cible, ou sa vue d'ensemble.
+- La page source garde la caméra d'avant le plongeon (pour le retour).
+- Changer de page ou de fichier pendant une transition l'interrompt proprement (opacités et transformations restaurées).
+
 ### 11.3 Retour
 
 - **Pile de navigation** : à chaque transition on empile `{ pageId source, shapeId d'origine, état de caméra }`.
@@ -436,7 +445,9 @@ Contraintes :
 
 ### 11.4 Liens externes
 
-Les liens URL ouvrent un nouvel onglet du navigateur (avec indication visuelle sur la forme).
+Les liens URL ouvrent un nouvel onglet du navigateur (avec indication visuelle sur la forme), au double-clic, sans accès retour à l'application (`noopener`).
+
+Seules les URL `http:`, `https:` et `mailto:` sont considérées comme navigables. Les autres (`javascript:`, `file:`…) restent dans le modèle, pour la fidélité au fichier, mais ne sont ni signalées ni suivies.
 
 ---
 
@@ -456,8 +467,8 @@ Tout ce qui touche à l'expérience utilisateur est paramétrable, avec des vale
 
 ```ts
 interface Settings {
-  transition: { enabled: boolean; durationMs: number; easing: string };
-  preload: { onClick: boolean; onHover: boolean; hoverDelayMs: number; maxCachedPages: number };
+  transition: { enabled: boolean; durationMs: number; easing: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out' }; // 1000 ms, ease-in-out
+  preload: { onClick: boolean; onHover: boolean; hoverDelayMs: number; maxCachedPages: number }; // true, false, 300, 8
   controls: {
     moveKeys: 'letters' | 'arrows' | 'all'; // 'letters' = ZQSD (AZERTY) = WASD (QWERTY), mêmes touches physiques
     middleDrag: 'pan' | 'rotate';            // effet du glisser molette (barre d'outils §9.3)

@@ -1,5 +1,7 @@
 import { Group } from 'three';
+import { isNavigableLink } from '../format/link';
 import type { EdgeModel, PageModel, ShapeModel } from '../model/types';
+import { linkBadge } from './decorations';
 import { disposeObject } from './meshes';
 import type { RendererRegistry } from './registry';
 import { createEdge } from './renderers/edge';
@@ -36,6 +38,7 @@ export function buildPageScene(page: PageModel, registry: RendererRegistry, ctx:
     let object;
     if ('shape' in item) {
       object = registry.resolve(item.shape).renderer.create(item.shape, ctx);
+      if (isNavigableLink(item.shape.link)) object.add(linkBadge(item.shape, item.shape.link));
     } else {
       const terminals = {
         source: item.edge.sourceId ? shapesById.get(item.edge.sourceId) : undefined,

@@ -39,6 +39,8 @@ export function createEdge(edge: EdgeModel, terminals: EdgeTerminals, ctx: Rende
     waypoints: edge.points,
     style,
   });
+  // Tracé conservé pour la sélection au clic (interaction/pick).
+  group.userData.route = route;
   if (route.length < 2) return group;
 
   const stroke = styleColor(style, 'strokeColor', '#000000');

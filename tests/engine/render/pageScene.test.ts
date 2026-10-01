@@ -184,6 +184,24 @@ describe('buildPageScene — arêtes', () => {
   });
 });
 
+describe('buildPageScene — liens', () => {
+  it('pastille sur les formes liées (page ou URL), pas sur les autres', () => {
+    const { scene } = build('links.drawio');
+    expect(element(scene.root, 'to-detail').getObjectByName('link-badge')).toBeDefined();
+    expect(element(scene.root, 'ext').getObjectByName('link-badge')).toBeDefined();
+    expect(element(scene.root, 'action').getObjectByName('link-badge')).toBeUndefined();
+  });
+
+  it('les arêtes gardent leur tracé pour la sélection', () => {
+    const { scene } = build('drawio-desktop.drawio');
+    expect(element(scene.root, 'Fs-0jHc4KjceeW8xsn6R-4').userData.route).toEqual([
+      { x: 180, y: 280 },
+      { x: 180, y: 440 },
+      { x: 280, y: 440 },
+    ]);
+  });
+});
+
 describe('RendererRegistry', () => {
   it('sans renderer : placeholder, non supporté', () => {
     const { page } = build('drawio-desktop.drawio', new RendererRegistry());
