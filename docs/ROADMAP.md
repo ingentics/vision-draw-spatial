@@ -2,39 +2,51 @@
 
 > Découpage en étapes courtes, chacune livrable et testable. Référence : `SPEC.md`.
 > Principe : à chaque étape, l'application tourne et on peut vérifier le résultat à l'œil.
+> Légende : ✅ fait · 🟡 partiellement fait · (rien) à faire.
+
+## Façon de travailler (phase de dev)
+
+- Tout tourne dans Docker (Node figé par l'image) ; `make dev` lance l'appli et affiche le lien (SPEC §3.4).
+- **Un seul serveur en hot reload** reste ouvert (`make dev`, port 5173) : on travaille directement dessus, il suffit de regarder ou de rafraîchir l'onglet. Une modification du moteur recharge la page en restaurant fichier, page et caméra.
+- Chaque étape se termine par `make check` (lint, types, format, tests) et un commit ; les pushes sont faits à la main.
 
 ---
 
 ## Milestone 1 — Viewer
 
-### Étape 0 — Squelette du projet
+### Étape 0 — Squelette du projet ✅
 - Vite + React + TypeScript strict, Three.js, Vitest, ESLint/Prettier.
 - Arborescence `src/engine`, `src/react`, `src/app`, `tests/fixtures` (cf. SPEC §4.2).
-- Règle vérifiée par lint : `src/engine` n'importe jamais `react`.
-- **Fini quand :** `npm run dev` affiche une page vide, `npm test` passe.
+- Règle vérifiée par lint : `src/engine` n'importe jamais `react` (et `format/` + `model/` n'importent jamais Three.js).
+- Conteneur Docker + Makefile (`make dev`, `make check`…), hot reload avec restauration de la vue.
+- **Fini quand :** `make dev` affiche une page vide, `make test` passe.
 
-### Étape 1 — Parsing draw.io
+### Étape 1 — Parsing draw.io ✅
 - `decode.ts` : base64 → inflate raw → URI decode.
 - `style.ts` : parsing des chaînes de style.
 - `parse.ts` : `<mxfile>` → `DocumentModel` (pages, formes, arêtes, liens, coordonnées absolues avec groupes).
 - Fixtures : fichier simple, compressé, multi-pages, groupes imbriqués, liens entre pages.
 - **Fini quand :** tests unitaires verts sur toutes les fixtures.
 
-### Étape 2 — Scène minimale en vue de dessus
+### Étape 2 — Scène minimale en vue de dessus ✅
 - `Engine` + caméra orthographique au-dessus du sol.
 - Registre de renderers + renderers rectangle, ellipse, texte, placeholder.
+- Texte SDF (troika) avec police embarquée ; appli de démo (fixtures, ouverture d'un fichier local).
 - Repère : x → X, y → Z.
 - **Fini quand :** un fichier de fixture s'affiche comme dans draw.io (positions et tailles correctes).
 
-### Étape 3 — Navigation
-- Z Q S D (via `KeyboardEvent.code`), flèches, option W A S D.
-- Zoom molette centré sur le curseur, pan souris.
+### Étape 3 — Navigation ✅
+- Z Q S D (via `KeyboardEvent.code`, = W A S D sur QWERTY), flèches.
+- Zoom molette centré sur le curseur ; pan au clic droit et Espace + glisser.
+- **Glisser molette enfoncée** : déplacer la vue, ou **tourner la vue** — au choix dans une **barre d'outils** (deux boutons liés « Déplacer » | « Tourner », Déplacer par défaut). Bouton « Nord » pour revenir à 0° (SPEC §9.3).
+- **Entrée** : bascule vue globale ↔ 1:1 (SPEC §9.3).
+- **Glissade** : pas d'accélération, courte décélération à l'arrêt, au clavier comme au glisser (SPEC §9.2).
 - **Fini quand :** le ressenti est équivalent à draw.io en vue de dessus.
 
-### Étape 4 — Arêtes et styles
-- Connecteurs avec points intermédiaires et flèches.
-- Couleurs de remplissage, bordures, épaisseur, labels.
-- Panneau debug des styles non supportés (avec compteur, export JSON).
+### Étape 4 — Arêtes et styles 🟡
+- ✅ Connecteurs avec points intermédiaires et flèches (tracé recalculé : droit, orthogonal, coude ; pointes draw.io ; labels avec fond) — avancé à la demande.
+- ✅ Couleurs de remplissage, bordures, épaisseur, pointillés, labels.
+- 🟡 Styles non supportés comptés (badge dans la barre) ; reste le **panneau debug** avec liste détaillée et **export JSON**.
 - **Fini quand :** un vrai schéma d'architecture est lisible ; les formes inconnues apparaissent en placeholder et sont listées.
 
 ### Étape 5 — Pages / onglets

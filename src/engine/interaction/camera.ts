@@ -59,28 +59,59 @@ export function screenAxes(rotation: number): { right: Point; down: Point } {
 }
 
 /**
- * Cadre une emprise dans le viewport, avec une marge en pixels écran.
- * Comme draw.io à l'ouverture, on ne dépasse pas 100 % pour les petits schémas.
+ * Cadre une emprise dans le viewport, avec une marge en pixels écran, pour une orientation donnée
+ * (l'emprise tournée doit tenir à l'écran). Comme draw.io à l'ouverture, on ne dépasse pas 100 %
+ * pour les petits schémas.
  */
 export function fitBounds(
   bounds: Rect,
   viewport: Viewport,
-  options: { padding?: number; maxZoom?: number } = {},
+  options: { padding?: number; maxZoom?: number; rotation?: number } = {},
 ): CameraState {
   const padding = options.padding ?? 40;
   const maxZoom = options.maxZoom ?? 1;
+  const rotation = normalizeAngle(options.rotation ?? 0);
   const center = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+
+  // Dimensions de l'emprise vue à l'écran : projection des demi-diagonales sur les axes écran.
+  const { right, down } = screenAxes(rotation);
+  const hw = bounds.width / 2;
+  const hh = bounds.height / 2;
+  const screenWidth = 2 * (Math.abs(hw * right.x) + Math.abs(hh * right.y));
+  const screenHeight = 2 * (Math.abs(hw * down.x) + Math.abs(hh * down.y));
+
   const availableWidth = Math.max(viewport.width - 2 * padding, 1);
   const availableHeight = Math.max(viewport.height - 2 * padding, 1);
   const zoom =
-    bounds.width > 0 || bounds.height > 0
-      ? Math.min(
-          availableWidth / Math.max(bounds.width, 1e-6),
-          availableHeight / Math.max(bounds.height, 1e-6),
-          maxZoom,
-        )
+    screenWidth > 0 || screenHeight > 0
+      ? Math.min(availableWidth / Math.max(screenWidth, 1e-6), availableHeight / Math.max(screenHeight, 1e-6), maxZoom)
       : maxZoom;
-  return { mode: 'top', center, zoom: clampZoom(zoom), rotation: 0 };
+  return { mode: 'top', center, zoom: clampZoom(zoom), rotation };
+}
+
+/** Deux états sont-ils (quasiment) la même vue ? */
+export function sameView(a: CameraState, b: CameraState, viewport: Viewport): boolean {
+  const tolerancePx = 1;
+  const centerPx = Math.hypot(a.center.x - b.center.x, a.center.y - b.center.y) * a.zoom;
+  return (
+    Math.abs(a.zoom - b.zoom) / b.zoom < 1e-3 &&
+    centerPx < tolerancePx &&
+    Math.abs(normalizeAngle(a.rotation - b.rotation)) * Math.max(viewport.width, viewport.height) < tolerancePx
+  );
+}
+
+/** Interpolation entre deux vues : zoom géométrique, rotation par le plus court chemin. */
+export function interpolateCamera(from: CameraState, to: CameraState, t: number): CameraState {
+  const rotationDelta = normalizeAngle(to.rotation - from.rotation);
+  return {
+    mode: 'top',
+    center: {
+      x: from.center.x + (to.center.x - from.center.x) * t,
+      y: from.center.y + (to.center.y - from.center.y) * t,
+    },
+    zoom: from.zoom * Math.pow(to.zoom / from.zoom, t),
+    rotation: normalizeAngle(from.rotation + rotationDelta * t),
+  };
 }
 
 /** Applique l'état à une caméra orthographique. Monde : X = x, Z = y, Y vers le haut. */

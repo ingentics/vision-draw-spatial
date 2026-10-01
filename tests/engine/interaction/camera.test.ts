@@ -3,11 +3,13 @@ import { describe, expect, it } from 'vitest';
 import {
   applyCameraState,
   fitBounds,
+  interpolateCamera,
   normalizeAngle,
   normalizeCameraState,
   pageToScreen,
   panByScreen,
   rotateAround,
+  sameView,
   screenToPage,
   zoomAt,
 } from '../../../src/engine/interaction/camera';
@@ -43,6 +45,37 @@ describe('fitBounds', () => {
 
   it('page vide : zoom par défaut', () => {
     expect(fitBounds({ x: 0, y: 0, width: 0, height: 0 }, viewport).zoom).toBe(1);
+  });
+});
+
+describe('fitBounds avec rotation', () => {
+  it('l’emprise tournée tient à l’écran', () => {
+    const bounds = { x: 0, y: 0, width: 1000, height: 100 };
+    const flat = fitBounds(bounds, viewport, { padding: 0, maxZoom: 10 });
+    const quarter = fitBounds(bounds, viewport, { padding: 0, maxZoom: 10, rotation: Math.PI / 2 });
+    expect(flat.zoom).toBeCloseTo(0.8); // 800 / 1000
+    expect(quarter.zoom).toBeCloseTo(0.6); // tourné d'un quart : 600 / 1000
+    expect(quarter.rotation).toBeCloseTo(Math.PI / 2);
+  });
+});
+
+describe('vue globale ↔ 1:1', () => {
+  it('sameView tolère moins d’un pixel d’écart', () => {
+    const a = state();
+    expect(sameView(a, { ...a, center: { x: 100.2, y: 50 } }, viewport)).toBe(true);
+    expect(sameView(a, { ...a, center: { x: 101, y: 50 } }, viewport)).toBe(false);
+    expect(sameView(a, { ...a, zoom: 2.1 }, viewport)).toBe(false);
+  });
+
+  it('interpolation : extrémités exactes, zoom géométrique, rotation par le plus court chemin', () => {
+    const from = state({ zoom: 1, rotation: 3 });
+    const to = state({ zoom: 4, rotation: -3, center: { x: 300, y: 50 } });
+    expect(interpolateCamera(from, to, 0)).toEqual(from);
+    expect(interpolateCamera(from, to, 1).zoom).toBeCloseTo(4);
+    const mid = interpolateCamera(from, to, 0.5);
+    expect(mid.zoom).toBeCloseTo(2);
+    expect(mid.center.x).toBeCloseTo(200);
+    expect(Math.abs(mid.rotation)).toBeCloseTo(Math.PI, 1); // passe par π, pas par 0
   });
 });
 

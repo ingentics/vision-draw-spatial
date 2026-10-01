@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { keyDirection, wheelZoomFactor } from '../../../src/engine/interaction/controls';
+import { decelerate, keyDirection, releaseVelocity, wheelZoomFactor } from '../../../src/engine/interaction/controls';
 
 describe('keyDirection', () => {
   it('lettres par position physique : Z Q S D (AZERTY) = W A S D (QWERTY)', () => {
@@ -33,5 +33,48 @@ describe('wheelZoomFactor', () => {
     expect(wheelZoomFactor({ deltaY: 10, deltaMode: 0, ctrlKey: true }, 0.0015, 600)).toBeCloseTo(
       wheelZoomFactor({ deltaY: 100, deltaMode: 0, ctrlKey: false }, 0.0015, 600),
     );
+  });
+});
+
+describe('glissade', () => {
+  it('décélère exponentiellement puis s’arrête net sous un seuil', () => {
+    const v = decelerate({ x: 600, y: 0 }, 0.08, 80);
+    expect(v.x).toBeCloseTo(600 / Math.E);
+    expect(decelerate({ x: 10, y: 0 }, 0.1, 80)).toEqual({ x: 0, y: 0 });
+  });
+
+  it('distance totale parcourue ≈ vitesse × constante de temps (glissade courte)', () => {
+    let v = { x: 600, y: 0 };
+    let travelled = 0;
+    let t = 0;
+    while (v.x !== 0) {
+      travelled += v.x / 60;
+      v = decelerate(v, 1 / 60, 80);
+      t += 1 / 60;
+    }
+    expect(travelled).toBeGreaterThan(40);
+    expect(travelled).toBeLessThan(60);
+    expect(t).toBeLessThan(0.4);
+  });
+
+  it('désactivable (decelerationMs = 0)', () => {
+    expect(decelerate({ x: 600, y: 0 }, 0.016, 0)).toEqual({ x: 0, y: 0 });
+  });
+
+  it('vitesse au relâchement : récente uniquement, bornée', () => {
+    const samples = [
+      { t: 0, p: { x: 0, y: 0 } },
+      { t: 900, p: { x: 0, y: 0 } },
+      { t: 950, p: { x: 25, y: 0 } },
+      { t: 1000, p: { x: 50, y: 0 } },
+    ];
+    expect(releaseVelocity(samples, 1000)).toEqual({ x: 500, y: 0 });
+    // Pointeur immobile avant de relâcher : pas de glissade.
+    expect(releaseVelocity(samples, 1200)).toEqual({ x: 0, y: 0 });
+    const fast = [
+      { t: 0, p: { x: 0, y: 0 } },
+      { t: 10, p: { x: 1000, y: 0 } },
+    ];
+    expect(releaseVelocity(fast, 10).x).toBe(3000);
   });
 });

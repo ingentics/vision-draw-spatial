@@ -18,6 +18,11 @@ export interface ControlSettings {
   zoomSpeed: number;
   /** Radians par pixel de glisser horizontal, en mode rotation. */
   rotateSpeed: number;
+  /**
+   * Glissade à l'arrêt d'un déplacement (clavier ou glisser) : constante de temps de la
+   * décélération, en ms. Pas d'accélération au départ. 0 = arrêt net.
+   */
+  decelerationMs: number;
 }
 
 export const DEFAULT_CONTROLS: ControlSettings = {
@@ -26,7 +31,38 @@ export const DEFAULT_CONTROLS: ControlSettings = {
   moveSpeed: 600,
   zoomSpeed: 0.0015,
   rotateSpeed: 0.005,
+  decelerationMs: 80,
 };
+
+/** Vitesse en dessous de laquelle la glissade s'arrête (pixels écran par seconde). */
+const STOP_SPEED = 8;
+/** Fenêtre de mesure de la vitesse au relâchement d'un glisser. */
+const RELEASE_WINDOW_MS = 80;
+/** Vitesse maximale transmise par un glisser rapide. */
+const MAX_RELEASE_SPEED = 3000;
+
+/** Décélération exponentielle de la vitesse sur `dt` secondes. */
+export function decelerate(velocity: Point, dt: number, decelerationMs: number): Point {
+  if (decelerationMs <= 0) return { x: 0, y: 0 };
+  const k = Math.exp(-(dt * 1000) / decelerationMs);
+  const next = { x: velocity.x * k, y: velocity.y * k };
+  return Math.hypot(next.x, next.y) < STOP_SPEED ? { x: 0, y: 0 } : next;
+}
+
+/**
+ * Vitesse du pointeur au relâchement (pixels écran / s), d'après ses dernières positions.
+ * Nulle si le pointeur était immobile juste avant de relâcher.
+ */
+export function releaseVelocity(samples: Array<{ t: number; p: Point }>, now: number): Point {
+  const recent = samples.filter((s) => now - s.t <= RELEASE_WINDOW_MS);
+  const first = recent[0];
+  const last = recent[recent.length - 1];
+  if (!first || !last || last.t - first.t < 1) return { x: 0, y: 0 };
+  const dt = (last.t - first.t) / 1000;
+  const v = { x: (last.p.x - first.p.x) / dt, y: (last.p.y - first.p.y) / dt };
+  const speed = Math.hypot(v.x, v.y);
+  return speed > MAX_RELEASE_SPEED ? { x: (v.x / speed) * MAX_RELEASE_SPEED, y: (v.y / speed) * MAX_RELEASE_SPEED } : v;
+}
 
 const LETTER_KEYS: Record<string, Point> = {
   KeyW: { x: 0, y: -1 }, // Z sur AZERTY
@@ -76,6 +112,8 @@ export interface CameraHost {
   getCameraState(): CameraState;
   setCameraState(state: CameraState): void;
   getViewport(): Viewport;
+  /** Bascule vue globale ↔ 1:1, autour du point écran donné. */
+  toggleOverview(screen?: Point): void;
 }
 
 type DragMode = 'pan' | 'rotate';
@@ -88,6 +126,12 @@ export class CameraController {
   private drag: { pointerId: number; mode: DragMode; last: Point; pivot: Point } | undefined;
   private frame = 0;
   private lastTick = 0;
+  /** Vitesse de déplacement du contenu à l'écran (pixels / s), pour la glissade. */
+  private velocity: Point = { x: 0, y: 0 };
+  /** Dernières positions du glisser en cours, pour mesurer la vitesse au relâchement. */
+  private samples: Array<{ t: number; p: Point }> = [];
+  /** Dernière position du pointeur sur le canvas (pour la bascule 1:1 autour du curseur). */
+  private hover: Point | undefined;
   private enabled = true;
 
   constructor(
@@ -106,6 +150,7 @@ export class CameraController {
     element.addEventListener('pointermove', this.onPointerMove);
     element.addEventListener('pointerup', this.onPointerUp);
     element.addEventListener('pointercancel', this.onPointerUp);
+    element.addEventListener('pointerleave', this.onPointerLeave);
     element.addEventListener('contextmenu', this.onContextMenu);
     // Empêche le défilement automatique du navigateur au clic molette.
     element.addEventListener('mousedown', this.onMouseDown);
@@ -136,6 +181,7 @@ export class CameraController {
     el.removeEventListener('pointermove', this.onPointerMove);
     el.removeEventListener('pointerup', this.onPointerUp);
     el.removeEventListener('pointercancel', this.onPointerUp);
+    el.removeEventListener('pointerleave', this.onPointerLeave);
     el.removeEventListener('contextmenu', this.onContextMenu);
     el.removeEventListener('mousedown', this.onMouseDown);
     window.removeEventListener('keydown', this.onKeyDown);
@@ -149,6 +195,7 @@ export class CameraController {
   private readonly onWheel = (event: WheelEvent): void => {
     if (!this.enabled) return;
     event.preventDefault();
+    this.stopDrift();
     const viewport = this.host.getViewport();
     const factor = wheelZoomFactor(event, this.settings.zoomSpeed, viewport.height);
     this.host.setCameraState(zoomAt(this.host.getCameraState(), viewport, this.localPoint(event), factor));
@@ -170,12 +217,15 @@ export class CameraController {
     } catch {
       // Pointeur inconnu du navigateur (ex. événement synthétique) : le glisser marche sans capture.
     }
+    this.stopDrift();
     const start = this.localPoint(event);
     this.drag = { pointerId: event.pointerId, mode, last: start, pivot: start };
+    this.samples = [{ t: event.timeStamp, p: start }];
     this.element.style.cursor = mode === 'pan' ? 'grabbing' : 'ew-resize';
   };
 
   private readonly onPointerMove = (event: PointerEvent): void => {
+    this.hover = this.localPoint(event);
     const drag = this.drag;
     if (!drag || event.pointerId !== drag.pointerId) return;
     const point = this.localPoint(event);
@@ -183,6 +233,8 @@ export class CameraController {
     drag.last = point;
     const state = this.host.getCameraState();
     if (drag.mode === 'pan') {
+      this.samples.push({ t: event.timeStamp, p: point });
+      if (this.samples.length > 20) this.samples.shift();
       this.host.setCameraState(panByScreen(state, delta));
     } else {
       // Rotation autour du point de départ du glisser, qui reste fixe à l'écran.
@@ -195,8 +247,17 @@ export class CameraController {
   private readonly onPointerUp = (event: PointerEvent): void => {
     if (!this.drag || event.pointerId !== this.drag.pointerId) return;
     if (this.element.hasPointerCapture(event.pointerId)) this.element.releasePointerCapture(event.pointerId);
+    if (this.drag.mode === 'pan') {
+      this.velocity = releaseVelocity(this.samples, event.timeStamp);
+      this.startLoop();
+    }
+    this.samples = [];
     this.drag = undefined;
     this.element.style.cursor = this.spaceDown ? 'grab' : '';
+  };
+
+  private readonly onPointerLeave = (): void => {
+    this.hover = undefined;
   };
 
   private readonly onContextMenu = (event: Event): void => event.preventDefault();
@@ -210,6 +271,14 @@ export class CameraController {
 
   private readonly onKeyDown = (event: KeyboardEvent): void => {
     if (!this.enabled || isEditable(event.target) || event.ctrlKey || event.metaKey || event.altKey) return;
+    if (event.code === 'Enter' || event.code === 'NumpadEnter') {
+      // Sur un bouton, Entrée l'active : on ne détourne pas la touche.
+      if (event.repeat || (event.target instanceof HTMLElement && event.target.tagName === 'BUTTON')) return;
+      event.preventDefault();
+      this.stopDrift();
+      this.host.toggleOverview(this.hover);
+      return;
+    }
     if (event.code === 'Space') {
       this.spaceDown = true;
       if (!this.drag) this.element.style.cursor = 'grab';
@@ -219,10 +288,7 @@ export class CameraController {
     if (!isMoveKey(event.code, this.settings.moveKeys)) return;
     event.preventDefault();
     this.pressed.add(event.code);
-    if (!this.frame) {
-      this.lastTick = performance.now();
-      this.frame = requestAnimationFrame(this.tick);
-    }
+    this.startLoop();
   };
 
   private readonly onKeyUp = (event: KeyboardEvent): void => {
@@ -235,23 +301,41 @@ export class CameraController {
 
   private readonly onBlur = (): void => {
     this.pressed.clear();
+    this.stopDrift();
     this.spaceDown = false;
     this.element.style.cursor = '';
   };
 
-  /** Déplacement continu tant que des touches sont enfoncées, à vitesse constante quel que soit le framerate. */
+  private startLoop(): void {
+    if (this.frame) return;
+    this.lastTick = performance.now();
+    this.frame = requestAnimationFrame(this.tick);
+  }
+
+  private stopDrift(): void {
+    this.velocity = { x: 0, y: 0 };
+  }
+
+  /**
+   * Déplacement continu : vitesse pleine tant que des touches sont enfoncées (pas d'accélération),
+   * puis courte décélération quand on relâche. Indépendant du framerate.
+   */
   private readonly tick = (now: number): void => {
+    const dt = Math.min((now - this.lastTick) / 1000, 0.1);
+    this.lastTick = now;
     const direction = keyDirection(this.pressed, this.settings.moveKeys);
-    if (direction.x === 0 && direction.y === 0) {
+    if (direction.x !== 0 || direction.y !== 0) {
+      // Se déplacer vers le haut = le contenu descend.
+      this.velocity = { x: -direction.x * this.settings.moveSpeed, y: -direction.y * this.settings.moveSpeed };
+    } else {
+      this.velocity = decelerate(this.velocity, dt, this.settings.decelerationMs);
+    }
+    if (this.velocity.x === 0 && this.velocity.y === 0) {
       this.frame = 0;
       return;
     }
-    const dt = Math.min((now - this.lastTick) / 1000, 0.1);
-    this.lastTick = now;
-    const distance = this.settings.moveSpeed * dt;
-    // Se déplacer vers le haut = le contenu descend : c'est un pan inverse.
     this.host.setCameraState(
-      panByScreen(this.host.getCameraState(), { x: -direction.x * distance, y: -direction.y * distance }),
+      panByScreen(this.host.getCameraState(), { x: this.velocity.x * dt, y: this.velocity.y * dt }),
     );
     this.frame = requestAnimationFrame(this.tick);
   };

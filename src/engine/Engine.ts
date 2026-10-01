@@ -1,11 +1,20 @@
 import { Color, OrthographicCamera, Scene, WebGLRenderer } from 'three';
 import { Emitter } from './events';
 import { parseDrawio } from './format/parse';
-import { applyCameraState, fitBounds, normalizeCameraState, rotateAround } from './interaction/camera';
+import {
+  applyCameraState,
+  fitBounds,
+  interpolateCamera,
+  MAX_ZOOM,
+  normalizeCameraState,
+  rotateAround,
+  sameView,
+  zoomAt,
+} from './interaction/camera';
 import type { CameraState, Viewport } from './interaction/camera';
 import { CameraController } from './interaction/controls';
 import type { ControlSettings } from './interaction/controls';
-import type { DocumentModel, PageModel, Rect } from './model/types';
+import type { DocumentModel, PageModel, Point, Rect } from './model/types';
 import { buildPageScene } from './render/pageScene';
 import type { PageScene } from './render/pageScene';
 import { createDefaultRegistry } from './render/registry';
@@ -55,6 +64,7 @@ export class Engine {
   /** Cadrage demandé avant que le canvas ait une taille réelle : appliqué à la première mesure. */
   private pendingFit: Rect | undefined;
   private frame = 0;
+  private animation = 0;
   private disposed = false;
 
   constructor(options: EngineOptions) {
@@ -75,6 +85,7 @@ export class Engine {
         getCameraState: () => this.cameraState,
         setCameraState: (state) => this.setCameraState(state),
         getViewport: () => this.viewport,
+        toggleOverview: (screen) => this.toggleOverview(screen),
       },
       options.controls,
     );
@@ -133,6 +144,60 @@ export class Engine {
   }
 
   setCameraState(state: CameraState): void {
+    cancelAnimationFrame(this.animation);
+    this.animation = 0;
+    this.applyCamera(state);
+  }
+
+  /** Anime la caméra vers un état (instantané si `prefers-reduced-motion`). Toute autre entrée l'interrompt. */
+  animateCameraTo(target: CameraState, durationMs = 250): void {
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion || durationMs <= 0) {
+      this.setCameraState(target);
+      return;
+    }
+    cancelAnimationFrame(this.animation);
+    const from = this.cameraState;
+    const to = normalizeCameraState(target);
+    const start = performance.now();
+    const step = (now: number) => {
+      const t = Math.min((now - start) / durationMs, 1);
+      // Ease-in-out cubique.
+      const eased = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      this.applyCamera(interpolateCamera(from, to, eased));
+      this.animation = t < 1 ? requestAnimationFrame(step) : 0;
+    };
+    this.animation = requestAnimationFrame(step);
+  }
+
+  /**
+   * Vue globale de la page courante, dans l'orientation actuelle. Contrairement au cadrage
+   * d'ouverture, elle n'est pas plafonnée à 100 % : un petit schéma remplit l'écran,
+   * sinon la bascule globale ↔ 1:1 n'aurait aucun effet.
+   */
+  getOverviewState(): CameraState | undefined {
+    const page = this.getCurrentPage();
+    if (!page) return undefined;
+    return fitBounds(page.bounds, this.viewport, { rotation: this.cameraState.rotation, maxZoom: MAX_ZOOM });
+  }
+
+  /**
+   * Bascule vue globale ↔ 1:1 (touche Entrée). Depuis la vue globale, passe à 100 % autour
+   * du point écran donné (ou du centre) ; depuis toute autre vue, revient à la vue globale.
+   */
+  toggleOverview(screen?: Point): void {
+    const overview = this.getOverviewState();
+    if (!overview) return;
+    const current = this.cameraState;
+    if (sameView(current, overview, this.viewport)) {
+      const anchor = screen ?? { x: this.viewport.width / 2, y: this.viewport.height / 2 };
+      this.animateCameraTo(zoomAt(current, this.viewport, anchor, 1 / current.zoom));
+    } else {
+      this.animateCameraTo(overview);
+    }
+  }
+
+  private applyCamera(state: CameraState): void {
     this.pendingFit = undefined;
     this.cameraState = normalizeCameraState(state);
     applyCameraState(this.camera, this.cameraState, this.viewport);
@@ -162,6 +227,7 @@ export class Engine {
     if (this.disposed) return;
     this.disposed = true;
     cancelAnimationFrame(this.frame);
+    cancelAnimationFrame(this.animation);
     this.resizeObserver.disconnect();
     this.controller.dispose();
     this.showPage(undefined);

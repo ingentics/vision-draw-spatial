@@ -37,6 +37,8 @@ Hors périmètre initial : collaboration temps réel, export image/PDF, rendu vo
 - **Vite** pour le dev/build.
 - **Vitest** pour les tests unitaires et d'aller-retour XML.
 - **pako** (ou équivalent) pour la décompression des diagrammes draw.io.
+- **@xmldom/xmldom** pour le XML : même arbre DOM dans le navigateur et sous Node (tests), base de l'écriture in situ en M2.
+- **troika-three-text** pour le texte (SDF), avec la police **Roboto** embarquée (voir §8.5).
 
 ### 3.2 Règle d'architecture n°1 : moteur indépendant de React
 
@@ -52,6 +54,15 @@ Conséquences : le moteur est testable seul, et le composant `<DrawioSpatial />`
 ### 3.3 Appli web d'abord, binaire ensuite
 
 On développe une **application web**. Le jour où un binaire natif est nécessaire, on l'emballe dans **Electron ou Tauri** sans réécriture. Le seul point à anticiper est l'accès aux fichiers, abstrait derrière une interface (voir §5).
+
+### 3.4 Environnement de développement
+
+- **Conteneurisé** : Node est figé par l'image Docker (`node:24.21.0-bookworm-slim`), les dépendances installées par `npm ci` depuis le lockfile. Aucune version de Node n'est requise sur la machine, seulement Docker.
+- **Makefile** comme point d'entrée unique : `make dev` (affiche le lien cliquable), `make test`, `make lint`, `make check`, `make build`, `make preview`, `make lock` (régénère le lockfile dans le conteneur), `make shell`, `make down`, `make clean`.
+- **Hot reload permanent** : pendant toute la phase de dev, un seul serveur (`make dev`, port 5173) reste ouvert et on travaille directement dessus.
+  - Une modification de l'UI React est appliquée à chaud.
+  - Une modification du moteur (`src/engine`) recharge la page (le moteur n'est pas remplaçable à chaud) ; l'appli de démo restaure alors le fichier, la page et la caméra en cours (stockage de l'onglet), on reste au même endroit.
+- En dev, le moteur est accessible dans la console du navigateur via `window.engine`.
 
 ---
 
@@ -142,14 +153,26 @@ interface EngineOptions {
 
 class Engine {
   constructor(options: EngineOptions);
-  load(xml: string, fileId: string): Promise<void>;
+  /** `initialView` : page et caméra à restaurer (§5.3). */
+  load(xml: string, fileId: string, initialView?: { pageId?: string; camera?: CameraState }): Promise<void>;
   goToPage(pageId: string, opts?: { transition?: boolean }): void;
   back(): void;
   setViewMode(mode: 'top' | 'iso'): void;
   getCameraState(): CameraState;
   setCameraState(state: CameraState): void;
+  animateCameraTo(state: CameraState, durationMs?: number): void;
+  toggleOverview(screenPoint?: Point): void; // vue globale ↔ 1:1 (§9.3)
+  resetRotation(): void; // remet le nord en haut (§9.1)
+  setControls(patch: Partial<ControlSettings>): void;
   on(event: EngineEvent, handler: (...args: any[]) => void): () => void;
   dispose(): void;
+}
+
+interface CameraState {
+  mode: 'top';      // 'iso' à l'étape 7
+  center: Point;    // point de la page au centre de l'écran (coordonnées draw.io)
+  zoom: number;     // pixels écran par pixel draw.io
+  rotation: number; // orientation autour de la verticale, en radians
 }
 ```
 
@@ -289,7 +312,17 @@ Ajouter une forme = **écrire un fichier et l'enregistrer**. Aucune autre modifi
 - Ellipse,
 - Texte seul,
 - Connecteurs (arêtes) : segments, points intermédiaires, flèche de fin,
-- Couleurs de remplissage, de bordure, épaisseur de trait, label centré.
+- Couleurs de remplissage, de bordure, épaisseur de trait, pointillés, label centré.
+
+**Connecteurs.** draw.io n'enregistre que les points intermédiaires posés par l'utilisateur : le tracé (coudes, points d'attache) est **recalculé à l'affichage**, de façon simplifiée mais déterministe :
+
+- styles : droit (de contour à contour), `orthogonalEdgeStyle` / `segmentEdgeStyle`, `elbowEdgeStyle` (horizontal / vertical) et ses variantes ; un style inconnu est approché par l'orthogonal et journalisé (§8.4) ;
+- points d'attache imposés (`exitX/exitY`, `entryX/entryY` et décalages), formes en vis-à-vis (segment droit), arrivée sur la cible **sans demi-tour** ;
+- pointes `startArrow` / `endArrow` aux proportions draw.io : classic, block, open, oval, diamond (et variantes `Thin`), pleines ou creuses ; une pointe inconnue devient classic et est journalisée ;
+- arêtes arrondies (`rounded=1`) ;
+- labels d'arête (principal et cellules enfants) positionnés comme draw.io, avec un **fond de la couleur de la page** par défaut, qui coupe la ligne.
+
+Formes et arêtes sont dessinées dans l'**ordre du document** (une arête déclarée avant une forme passe dessous).
 
 ### 8.4 Formes non supportées
 
@@ -300,7 +333,9 @@ Ajouter une forme = **écrire un fichier et l'enregistrer**. Aucune autre modifi
 ### 8.5 Texte
 
 - Le texte doit rester net en vue de dessus et lisible en isométrique.
-- Recommandation : texte SDF (ex. `troika-three-text`) posé à plat sur le sol. À valider pendant l'implémentation.
+- **Retenu** : texte SDF `troika-three-text`, posé à plat sur le sol, net à tous les zooms.
+- Police **Roboto** (regular + bold) embarquée : le texte latin courant ne dépend pas du réseau. Pour les autres caractères (emoji, autres alphabets), troika charge des polices de secours depuis un CDN.
+- En M1 les labels HTML sont convertis en texte brut (gras, italique, couleurs internes ignorés).
 
 ---
 
@@ -311,22 +346,43 @@ Ajouter une forme = **écrire un fichier et l'enregistrer**. Aucune autre modifi
 - **Vue de dessus (`top`)** : caméra **orthographique**, perpendiculaire au sol, sans perspective. Équivalent fonctionnel de draw.io (même ratio au zoom, même ressenti au pan).
 - **Vue isométrique (`iso`)** : caméra inclinée, projection isométrique sur le plan au sol.
 - Bascule entre les deux modes par un bouton et un raccourci, avec une animation douce.
+- **Rotation de la vue** : dans les deux modes, la vue peut tourner autour de la verticale (`CameraState.rotation`). Un bouton **« Nord »** (avec une boussole indiquant le nord de la page) apparaît dès que la vue est tournée et la remet à 0°.
 
 ### 9.2 Contrôles
 
 | Action | Contrôle |
 |---|---|
-| Se déplacer | **Z Q S D** (clavier AZERTY) — prévoir aussi W A S D et les flèches, configurable |
-| Zoomer | Molette, **zoom centré sur le curseur** |
-| Pan | Glisser avec le bouton du milieu, ou clic droit, ou espace + glisser (configurable) |
+| Se déplacer | **Z Q S D** (AZERTY) = W A S D (QWERTY), et les flèches ; dans le sens de l'écran, même vue tournée |
+| Zoomer | Molette, **zoom centré sur le curseur** (pincement trackpad pris en compte) |
+| Glisser molette enfoncée | **Déplacer** (défaut) ou **Tourner**, au choix dans la barre d'outils (§9.3) |
+| Pan | Clic droit + glisser, ou Espace + glisser (toujours, quel que soit le mode molette) |
+| Vue globale ↔ 1:1 | **Entrée** (§9.3) |
 | Sélectionner | Clic gauche |
 | Entrer dans un lien | Double-clic |
 | Retour | Bouton « Retour » + raccourci (ex. Backspace / Alt+←) |
 | Basculer de vue | Raccourci configurable |
 
-Les contrôles s'appuient sur les touches physiques (`KeyboardEvent.code`) pour gérer correctement les dispositions AZERTY / QWERTY.
+Les contrôles s'appuient sur les touches physiques (`KeyboardEvent.code`) pour gérer correctement les dispositions AZERTY / QWERTY. Les touches sont ignorées pendant une saisie (champ, liste) ; Entrée est laissée aux boutons qui ont le focus.
 
-### 9.3 Changement de page
+**Glissade (drift).** Pour éviter les à-coups, un déplacement ne s'arrête pas net :
+
+- **pas d'accélération** : pleine vitesse dès l'appui sur une touche ;
+- **courte décélération** au relâchement (exponentielle, constante de temps ≈ 80 ms : arrêt en ≈ 250 ms, ≈ 50 px à la vitesse par défaut) ;
+- même glissade au relâchement d'un glisser-déplacer si le pointeur était en mouvement (rien s'il était immobile) ;
+- toute nouvelle action (molette, glisser, Entrée) interrompt la glissade ; réglable, 0 = arrêt net.
+
+### 9.3 Barre d'outils de navigation
+
+- **Groupe de deux boutons liés** (style input-group) : **Déplacer** | **Tourner**. Règle l'effet du glisser molette enfoncée ; **Déplacer** par défaut ; le choix est mémorisé.
+- En mode **Tourner**, la vue pivote autour du **point où le glisser a commencé**, qui reste fixe sous le curseur ; glisser vers la droite tourne le schéma dans le sens horaire.
+- Bouton **« Nord (x°) »** visible seulement quand la vue est tournée (§9.1).
+- **Entrée** bascule entre :
+  - la **vue globale** : toute la page visible, dans l'orientation actuelle, sans plafond de zoom (un petit schéma remplit l'écran) ;
+  - la vue **1:1** (zoom 100 %), autour du curseur s'il est sur le plan, sinon autour du centre.
+  Depuis la vue globale on passe en 1:1 ; depuis toute autre vue, on revient à la vue globale. Transition animée courte (≈ 250 ms), instantanée si `prefers-reduced-motion`.
+- À l'ouverture d'une page, le cadrage reste celui de draw.io : toute la page, **plafonné à 100 %**, nord en haut.
+
+### 9.4 Changement de page
 
 - Sélecteur de page (onglets) dans l'UI, comme dans draw.io.
 - Chaque page conserve sa propre position de caméra.
@@ -395,7 +451,14 @@ Tout ce qui touche à l'expérience utilisateur est paramétrable, avec des vale
 interface Settings {
   transition: { enabled: boolean; durationMs: number; easing: string };
   preload: { onClick: boolean; onHover: boolean; hoverDelayMs: number; maxCachedPages: number };
-  controls: { moveKeys: 'zqsd' | 'wasd' | 'arrows' | 'all'; panButton: 'middle' | 'right' | 'space'; moveSpeed: number; zoomSpeed: number };
+  controls: {
+    moveKeys: 'letters' | 'arrows' | 'all'; // 'letters' = ZQSD (AZERTY) = WASD (QWERTY), mêmes touches physiques
+    middleDrag: 'pan' | 'rotate';            // effet du glisser molette (barre d'outils §9.3)
+    moveSpeed: number;                       // px écran / s au clavier
+    zoomSpeed: number;
+    rotateSpeed: number;                     // rad / px de glisser en mode Tourner
+    decelerationMs: number;                  // glissade à l'arrêt (§9.2), 0 = arrêt net
+  };
   view: { defaultMode: 'top' | 'iso'; isoAngleDeg: number };
   minimap: { visible: boolean; size: number };
   debug: { showUnsupportedPanel: boolean };
@@ -458,8 +521,8 @@ Ouvrir un fichier avec trois rectangles, les déplacer, sauvegarder, ouvrir le f
 
 ## 17. Questions ouvertes
 
-- Bibliothèque de texte définitive (SDF vs textures canvas).
-- Comportement exact du pan à la souris (quel bouton par défaut).
+- ~~Bibliothèque de texte définitive~~ → troika-three-text (SDF), Roboto embarquée (§8.5).
+- ~~Comportement exact du pan à la souris~~ → glisser molette = Déplacer par défaut, ou Tourner (barre d'outils) ; clic droit et Espace + glisser déplacent toujours (§9.2).
 - Rendu des formes en volume (extrusion) : souhaité un jour ?
 - Disposition de la vue graphe (force-directed vs couches).
 - Réécriture compressée ou non des pages modifiées.
