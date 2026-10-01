@@ -120,6 +120,8 @@ export interface CameraHost {
   doubleClick?(screen: Point): void;
   /** Survol (undefined quand le pointeur quitte le canvas). */
   hover?(screen: Point | undefined): void;
+  /** Retour (Retour arrière, Alt+←). */
+  back?(): void;
 }
 
 /** Au-delà de ce déplacement (px), un appui-relâché n'est plus un clic. */
@@ -309,7 +311,17 @@ export class CameraController {
   // Clavier
 
   private readonly onKeyDown = (event: KeyboardEvent): void => {
-    if (!this.enabled || isEditable(event.target) || event.ctrlKey || event.metaKey || event.altKey) return;
+    if (!this.enabled || isEditable(event.target)) return;
+    // Retour (SPEC §9.2) : Retour arrière, ou Alt+← comme dans un navigateur.
+    const isBack =
+      (event.code === 'Backspace' && !event.ctrlKey && !event.metaKey && !event.altKey) ||
+      (event.code === 'ArrowLeft' && event.altKey && !event.ctrlKey && !event.metaKey);
+    if (isBack) {
+      event.preventDefault();
+      if (!event.repeat) this.host.back?.();
+      return;
+    }
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
     if (event.code === 'Enter' || event.code === 'NumpadEnter') {
       // Sur un bouton, Entrée l'active : on ne détourne pas la touche.
       if (event.repeat || (event.target instanceof HTMLElement && event.target.tagName === 'BUTTON')) return;

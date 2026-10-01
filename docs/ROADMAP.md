@@ -79,9 +79,10 @@
 - Liens URL externes (http, https, mailto uniquement) ; pastille et infobulle sur les formes liées.
 - **Fini quand :** passer d'une page à l'autre par un lien est fluide, sans à-coup.
 
-### Étape 10 — Retour et historique
-- Pile de navigation (page, forme d'origine, caméra), transition inverse.
-- Pile vide : menu des pages parentes triées par usage récent (persisté).
+### Étape 10 — Retour et historique ✅
+- Pile de navigation (page, forme d'origine, caméra), transition inverse (un seul trajet de caméra).
+- Bouton « Retour » + Retour arrière / Alt+←.
+- Pile vide : menu des pages parentes triées par usage récent (persisté par fichier dans le navigateur, à migrer vers le FileStore à l'étape 6) ; un seul parent → directement.
 - **Fini quand :** on peut descendre de plusieurs niveaux et remonter exactement au point de départ.
 
 ### Étape 11 — Vue graphe de la documentation

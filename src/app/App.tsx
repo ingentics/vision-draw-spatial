@@ -3,14 +3,17 @@ import robotoRegular from '@fontsource/roboto/files/roboto-latin-400-normal.woff
 import { useCallback, useEffect, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import type { UnsupportedReport } from '../engine/diagnostics/unsupportedStyles';
-import type { Engine } from '../engine/Engine';
+import type { BackTarget, Engine } from '../engine/Engine';
+import type { ParentLink } from '../engine/interaction/history';
 import type { ControlSettings } from '../engine/interaction/controls';
 import type { DocumentModel } from '../engine/model/types';
+import { BackButton } from '../react/BackButton';
 import { DrawioSpatial } from '../react/DrawioSpatial';
 import { demoFiles } from './demoFiles';
 import { clearLog, cumulativeEntries, exportJson, recordFile } from './diagnosticsLog';
 import { DiagnosticsPanel } from './DiagnosticsPanel';
 import { patchDevSession, readDevSession, writeDevSession } from './devSession';
+import { readLinkUsage, recordLinkUsage } from './linkUsage';
 import { NavigationToolbar } from './NavigationToolbar';
 
 const FONTS = { regular: robotoRegular, bold: robotoBold };
@@ -57,7 +60,14 @@ export function App() {
   // Vue restaurée une seule fois, au premier chargement après un rechargement de page.
   const [initialView] = useState(() => {
     const session = readDevSession();
-    return session ? { fileId: session.fileId, pageId: session.pageId, cameraByPage: session.cameraByPage } : undefined;
+    return session
+      ? {
+          fileId: session.fileId,
+          pageId: session.pageId,
+          cameraByPage: session.cameraByPage,
+          history: session.history,
+        }
+      : undefined;
   });
   const [engine, setEngine] = useState<Engine>();
   const [document, setDocument] = useState<DocumentModel>();
@@ -68,6 +78,8 @@ export function App() {
   const [report, setReport] = useState<UnsupportedReport>();
   const [cumulative, setCumulative] = useState(cumulativeEntries);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
+  const [backTarget, setBackTarget] = useState<BackTarget>({ kind: 'none' });
+  const [backChoices, setBackChoices] = useState<ParentLink[]>();
 
   useEffect(() => {
     engine?.setControls({ middleDrag });
@@ -93,8 +105,22 @@ export function App() {
         setCumulative(cumulativeEntries());
       }
     });
+    const refreshBack = () => setBackTarget(instance.getBackTarget());
+    instance.on('transitionEnd', refreshBack);
+    instance.on('historyChange', (history) => {
+      refreshBack();
+      const fileId = instance.getFileId();
+      if (fileId) patchDevSession(fileId, { history });
+    });
+    instance.on('linkUsed', (from, to, at) => {
+      const fileId = instance.getFileId();
+      if (fileId) recordLinkUsage(fileId, from, to, at);
+    });
+    instance.on('backChoice', setBackChoices);
     instance.on('pageChange', (page) => {
       setPageId(page.id);
+      setBackChoices(undefined);
+      refreshBack();
       const fileId = instance.getFileId();
       if (fileId) patchDevSession(fileId, { pageId: page.id });
     });
@@ -128,6 +154,16 @@ export function App() {
   return (
     <div className="app">
       <header className="toolbar">
+        <BackButton
+          target={backTarget}
+          onBack={() => (backChoices ? setBackChoices(undefined) : engine?.back())}
+          choices={backChoices}
+          onChoose={(pageId) => {
+            setBackChoices(undefined);
+            engine?.backTo(pageId);
+          }}
+          onDismiss={() => setBackChoices(undefined)}
+        />
         <select value={demoFiles.some((f) => f.id === file?.id) ? file?.id : ''} onChange={pickDemo}>
           {!demoFiles.some((f) => f.id === file?.id) && <option value="">{file?.id ?? '—'}</option>}
           {demoFiles.map((f) => (
@@ -165,7 +201,14 @@ export function App() {
             xml={file?.xml}
             fileId={file?.id}
             fonts={FONTS}
-            initialView={file && initialView?.fileId === file.id ? initialView : undefined}
+            initialView={
+              file
+                ? {
+                    ...(initialView?.fileId === file.id ? initialView : undefined),
+                    linkUsage: readLinkUsage(file.id),
+                  }
+                : undefined
+            }
             onEngine={handleEngine}
             onError={(e) => setError(e instanceof Error ? e.message : String(e))}
           />

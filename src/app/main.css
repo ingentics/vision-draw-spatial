@@ -335,3 +335,47 @@ body {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+
+/* Bouton Retour et menu des pages parentes */
+.back {
+  position: relative;
+}
+
+.button:disabled {
+  color: var(--muted);
+  cursor: default;
+  opacity: 0.6;
+}
+
+.back-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 10;
+  min-width: 220px;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.back-menu button {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  padding: 6px 12px;
+  font: inherit;
+  text-align: left;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.back-menu button:hover,
+.back-menu button:focus-visible {
+  background: var(--panel);
+}

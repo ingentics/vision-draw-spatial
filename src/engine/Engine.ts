@@ -18,6 +18,8 @@ import {
 import type { CameraState, Viewport } from './interaction/camera';
 import { CameraController } from './interaction/controls';
 import type { ControlSettings } from './interaction/controls';
+import { NavigationHistory, findParents, usageKey } from './interaction/history';
+import type { HistoryEntry, LinkUsage, ParentLink } from './interaction/history';
 import { pickElement } from './interaction/pick';
 import type { PickedElement } from './interaction/pick';
 import { easing, embedIn, embeddedCamera, phase } from './interaction/transitions';
@@ -85,7 +87,18 @@ export interface InitialView {
   /** Caméra de la page `pageId` (prioritaire sur `cameraByPage`). */
   camera?: CameraState;
   cameraByPage?: Record<string, CameraState>;
+  /** Pile de navigation à restaurer (SPEC §11.3). */
+  history?: HistoryEntry[];
+  /** Dernière utilisation des liens du fichier, pour trier les pages parentes. */
+  linkUsage?: LinkUsage;
 }
+
+/** Ce que ferait « Retour » depuis la page courante. */
+export type BackTarget =
+  | { kind: 'history'; entry: HistoryEntry; pageName: string }
+  | { kind: 'parent'; parent: ParentLink }
+  | { kind: 'choose'; parents: ParentLink[] }
+  | { kind: 'none' };
 
 export type EngineEvents = {
   load: [document: DocumentModel, fileId: string];
@@ -95,6 +108,12 @@ export type EngineEvents = {
   /** Transition vers une page par un lien : début et fin (entrées ignorées entre les deux). */
   transitionStart: [fromPageId: string, toPageId: string];
   transitionEnd: [pageId: string];
+  /** La pile de navigation a changé (à persister). */
+  historyChange: [entries: HistoryEntry[]];
+  /** Un lien entre pages vient d'être suivi (à persister pour trier les parents). */
+  linkUsed: [fromPageId: string, toPageId: string, at: number];
+  /** « Retour » sans historique et plusieurs parents possibles : à l'UI de proposer le choix. */
+  backChoice: [parents: ParentLink[]];
 };
 export type EngineEvent = keyof EngineEvents;
 
@@ -133,6 +152,8 @@ export class Engine {
   private hoverTimer: ReturnType<typeof setTimeout> | undefined;
   /** Transition en cours : de quoi l'interrompre proprement. */
   private transition: { abort: () => void } | undefined;
+  private readonly history = new NavigationHistory();
+  private linkUsage: LinkUsage = {};
 
   constructor(options: EngineOptions) {
     this.canvas = options.canvas;
@@ -164,6 +185,7 @@ export class Engine {
         click: (screen) => this.handleClick(screen),
         doubleClick: (screen) => this.handleDoubleClick(screen),
         hover: (screen) => this.handleHover(screen),
+        back: () => this.back(),
       },
       options.controls,
     );
@@ -178,6 +200,8 @@ export class Engine {
     this.clearSelection();
     this.scenes.clear();
     this.currentPageId = undefined;
+    this.history.replace(initialView?.history ?? []);
+    this.linkUsage = { ...initialView?.linkUsage };
     this.pageCameras = new Map(
       Object.entries(initialView?.cameraByPage ?? {}).map(([id, camera]) => [id, normalizeCameraState(camera)]),
     );
@@ -428,77 +452,169 @@ export class Engine {
     const page = this.getCurrentPage();
     const element = page && [...page.shapes, ...page.edges].find((e) => e.id === elementId);
     const link = element?.link;
-    if (!page || !element || !isNavigableLink(link)) return;
+    if (!page || !element || !isNavigableLink(link) || this.transition) return;
     if (link.type === 'url') {
       this.openUrl(link.href);
       return;
     }
-    if (!this.document?.pages.some((p) => p.id === link.pageId) || link.pageId === page.id) return;
+    const target = this.document?.pages.find((p) => p.id === link.pageId);
+    if (!target || target.id === page.id) return;
+
     const frame = page.shapes.find((s) => s.id === elementId)?.bounds ?? this.drawnBounds(elementId);
-    this.transitionToPage(link.pageId, frame);
+    this.history.push({ pageId: page.id, elementId, frame, camera: this.cameraState, targetPageId: target.id });
+    this.events.emit('historyChange', this.history.entries());
+    const at = Date.now();
+    this.linkUsage[usageKey(page.id, target.id)] = at;
+    this.events.emit('linkUsed', page.id, target.id, at);
+
+    this.runTransition({
+      direction: 'in',
+      outer: page,
+      inner: target,
+      frame,
+      destination:
+        this.pageCameras.get(target.id) ??
+        fitBounds(target.bounds, this.viewport, { rotation: this.cameraState.rotation }),
+    });
+  }
+
+  /** Pile de navigation (de la plus ancienne à la plus récente entrée). */
+  getHistory(): HistoryEntry[] {
+    return this.history.entries();
   }
 
   /**
-   * Transition « zoom + fondu » (SPEC §11.2), en un seul trajet de caméra :
-   * - la page cible est posée dans la forme cliquée et grossit avec elle ;
-   * - la caméra va directement de la vue courante à la vue finale de la page cible (sa caméra
-   *   mémorisée, sinon sa vue d'ensemble), exprimée dans ce repère ;
-   * - pendant le trajet, la page source s'efface et la page cible apparaît ;
-   * - à l'arrivée, bascule invisible : la page cible devient la page courante, sans transformation.
-   * La page cible est construite avant le départ. Entrées ignorées pendant la transition.
+   * Destination de « Retour » (SPEC §11.3) : le haut de la pile si elle mène à la page courante ;
+   * sinon les pages parentes (liens vers la page courante), la plus récemment utilisée d'abord.
    */
-  transitionToPage(targetPageId: string, frame: Rect | undefined): void {
-    const source = this.scenes.current;
-    const sourcePage = this.getCurrentPage();
-    const targetPage = this.document?.pages.find((p) => p.id === targetPageId);
-    if (!targetPage || !source || !sourcePage || this.transition) return;
+  getBackTarget(): BackTarget {
+    const page = this.getCurrentPage();
+    if (!page || !this.document) return { kind: 'none' };
+    const entry = this.history.peek();
+    if (entry && entry.targetPageId === page.id) {
+      const pageName = this.document.pages.find((p) => p.id === entry.pageId)?.name ?? entry.pageId;
+      return { kind: 'history', entry, pageName };
+    }
+    const parents = findParents(this.document, page.id, this.linkUsage);
+    if (parents.length === 1) return { kind: 'parent', parent: parents[0]! };
+    if (parents.length > 1) return { kind: 'choose', parents };
+    return { kind: 'none' };
+  }
+
+  /**
+   * Retour : dépile et revient exactement à la vue d'origine, par la transition inverse
+   * (la page courante rétrécit dans la forme d'où l'on venait). Sans historique : un seul parent
+   * → on y va ; plusieurs → événement `backChoice` (l'UI propose la liste, puis `backTo`).
+   */
+  back(): void {
+    if (this.transition) return;
+    const target = this.getBackTarget();
+    if (target.kind === 'history') {
+      this.history.pop();
+      this.events.emit('historyChange', this.history.entries());
+      this.returnTo(target.entry.pageId, target.entry.frame, target.entry.camera);
+    } else if (target.kind === 'parent') {
+      this.backTo(target.parent.pageId);
+    } else if (target.kind === 'choose') {
+      this.events.emit('backChoice', target.parents);
+    }
+  }
+
+  /** Remonte vers une page parente choisie (sortie par la forme qui porte le lien). */
+  backTo(parentPageId: string): void {
+    const page = this.getCurrentPage();
+    if (!page || !this.document || this.transition) return;
+    const parent = findParents(this.document, page.id, this.linkUsage).find((p) => p.pageId === parentPageId);
+    if (!parent) return;
+    // La pile ne mène plus à la page courante : on repart d'une pile vide.
+    this.history.clear();
+    this.events.emit('historyChange', []);
+    this.returnTo(parent.pageId, parent.frame, this.pageCameras.get(parent.pageId));
+  }
+
+  private returnTo(pageId: string, frame: Rect | undefined, camera: CameraState | undefined): void {
+    const inner = this.getCurrentPage();
+    const outer = this.document?.pages.find((p) => p.id === pageId);
+    if (!inner || !outer) return;
+    const destination = camera ?? fitBounds(outer.bounds, this.viewport, { rotation: this.cameraState.rotation });
+    this.runTransition({ direction: 'out', outer, inner, frame, destination });
+  }
+
+  /**
+   * Transition « zoom + fondu » (SPEC §11.2), dans les deux sens, en un seul trajet de caméra.
+   * La page intérieure (`inner`) est posée dans la forme (`frame`) de la page extérieure (`outer`).
+   * - `in` : on part de la page extérieure et on plonge jusqu'à la vue `destination` de l'intérieure ;
+   * - `out` : on part de la page intérieure (même image, exprimée dans le repère extérieur) et on
+   *   recule jusqu'à la vue `destination` de l'extérieure, la page intérieure rétrécissant dans la forme.
+   * Fondu croisé entre 25 % et 75 %. Entrées ignorées pendant la transition.
+   */
+  private runTransition(options: {
+    direction: 'in' | 'out';
+    outer: PageModel;
+    inner: PageModel;
+    frame: Rect | undefined;
+    destination: CameraState;
+  }): void {
+    const { direction, outer, inner, frame, destination } = options;
+    const from = this.getCurrentPage();
+    const to = direction === 'in' ? inner : outer;
+    if (!from || this.transition) return;
 
     const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     if (!frame || !this.transitionSettings.enabled || reduceMotion || this.transitionSettings.durationMs <= 0) {
-      this.goToPage(targetPageId);
+      if (direction === 'in') this.pageCameras.set(outer.id, this.cameraState);
+      this.pageCameras.set(to.id, destination);
+      this.goToPage(to.id);
       return;
     }
 
     cancelAnimationFrame(this.animation);
     this.animation = 0;
     this.clearSelection();
-    const target = this.scenes.prebuild(targetPage);
-    const embedding = embedIn(targetPage.bounds, frame);
-    setPageTransform(target.root, embedding);
-    setPageOpacity(target.root, 0);
-    target.root.visible = true;
+    const embedding = embedIn(inner.bounds, frame);
+    const outerScene = this.scenes.prebuild(outer);
+    const innerScene = this.scenes.prebuild(inner);
 
-    const from = this.cameraState;
-    const destination =
-      this.pageCameras.get(targetPageId) ?? fitBounds(targetPage.bounds, this.viewport, { rotation: from.rotation });
-    const destinationInSource = embeddedCamera(destination, embedding);
+    // Caméras de départ et d'arrivée, exprimées dans le repère de la page extérieure.
+    const startCamera = direction === 'in' ? this.cameraState : embeddedCamera(this.cameraState, embedding);
+    const endCamera = direction === 'in' ? embeddedCamera(destination, embedding) : destination;
+    const outerCameraBefore = direction === 'in' ? this.cameraState : undefined;
+
+    // Pendant la transition, la page courante est l'extérieure ; l'intérieure est posée dans la forme.
+    this.currentPageId = outer.id;
+    this.scenes.show(outer);
+    innerScene.root.visible = true;
+    setPageTransform(innerScene.root, embedding);
+    const innerAlpha = (fade: number) => (direction === 'in' ? fade : 1 - fade);
+    setPageOpacity(innerScene.root, innerAlpha(0));
+    setPageOpacity(outerScene.root, 1 - innerAlpha(0));
+    this.applyCamera(startCamera);
+
     const ease = easing(this.transitionSettings.easing);
     const duration = this.transitionSettings.durationMs;
-    /** Fenêtre du fondu croisé, en part de la durée totale. */
     const FADE_START = 0.25;
     const FADE_END = 0.75;
 
     this.controller.setEnabled(false);
-    this.events.emit('transitionStart', sourcePage.id, targetPageId);
+    this.events.emit('transitionStart', from.id, to.id);
 
     const restore = () => {
-      setPageOpacity(source.root, 1);
-      setPageOpacity(target.root, 1);
-      setPageTransform(target.root, undefined);
+      setPageOpacity(outerScene.root, 1);
+      setPageOpacity(innerScene.root, 1);
+      setPageTransform(innerScene.root, undefined);
     };
     const finish = () => {
       this.transition = undefined;
       this.animation = 0;
       this.controller.setEnabled(true);
-      this.events.emit('transitionEnd', targetPageId);
+      this.events.emit('transitionEnd', this.currentPageId ?? to.id);
     };
     this.transition = {
       abort: () => {
+        // On reste sur la page extérieure, à la vue courante.
         cancelAnimationFrame(this.animation);
         restore();
-        target.root.visible = false;
-        source.root.visible = true;
-        this.applyCamera(from);
+        this.scenes.show(outer);
         finish();
       },
     };
@@ -507,21 +623,20 @@ export class Engine {
     const step = (now: number) => {
       const t = Math.min((now - start) / duration, 1);
       if (t < 1) {
-        this.applyCamera(interpolateCamera(from, destinationInSource, ease(t)));
+        this.applyCamera(interpolateCamera(startCamera, endCamera, ease(t)));
         const fade = phase(t, FADE_START, FADE_END);
-        setPageOpacity(source.root, 1 - fade);
-        setPageOpacity(target.root, fade);
+        setPageOpacity(innerScene.root, innerAlpha(fade));
+        setPageOpacity(outerScene.root, 1 - innerAlpha(fade));
         this.animation = requestAnimationFrame(step);
         return;
       }
-      // Arrivée : même image à l'écran, mais sur la page cible sans transformation.
+      // Arrivée : même image à l'écran, sur la page de destination sans transformation.
       restore();
-      // La page source garde la vue d'avant le plongeon (retour, SPEC §11.3).
-      this.pageCameras.set(sourcePage.id, from);
-      this.currentPageId = targetPageId;
-      this.scenes.show(targetPage);
+      if (outerCameraBefore) this.pageCameras.set(outer.id, outerCameraBefore);
+      this.currentPageId = to.id;
+      this.scenes.show(to);
       this.applyCamera(destination);
-      this.events.emit('pageChange', targetPage);
+      this.events.emit('pageChange', to);
       finish();
     };
     this.animation = requestAnimationFrame(step);

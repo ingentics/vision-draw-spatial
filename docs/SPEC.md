@@ -445,6 +445,14 @@ Réalisation retenue — **un seul trajet de caméra**, sans étape intermédiai
 - **Si la pile est vide** et que la page courante est la cible de liens depuis plusieurs pages : on affiche un **menu des pages parentes possibles**, triées par **usage récent** (la plus récemment utilisée en haut). S'il n'y a qu'un parent, on y va directement.
 - L'historique d'usage des liens est persisté par fichier.
 
+Réalisation retenue :
+
+- **Transition inverse** : la même transition que l'aller, jouée à l'envers en un seul trajet de caméra. La page courante est posée dans la forme d'origine (image identique au départ), la caméra recule jusqu'à la vue mémorisée de la page d'origine, la page courante rétrécit et s'efface.
+- **Bouton « Retour »** (coquille React, `react/BackButton.tsx`) à gauche de la barre d'outils ; raccourcis **Retour arrière** et **Alt+←**. Infobulle indiquant la destination ; grisé s'il n'y a nulle part où revenir.
+- **Pile vide** : le haut de pile ne compte que s'il mène à la page courante ; sinon on cherche les **pages parentes** (pages ayant un lien — forme de préférence, sinon arête — vers la page courante). Un seul parent : on y remonte directement, en sortant par la forme qui porte le lien. Plusieurs : **menu** sous le bouton, trié par usage récent (« il y a 5 min », « jamais utilisé »), fermé par Échap ou clic extérieur.
+- **Usage des liens** (`from>to` → date) : enregistré à chaque lien suivi, mémorisé par fichier dans le navigateur en attendant le `FileStore` (étape 6). La pile est restaurée au rechargement en dev.
+- Transitions désactivées ou `prefers-reduced-motion` : retour instantané, même pile, même vue d'arrivée.
+
 ### 11.4 Liens externes
 
 Les liens URL ouvrent un nouvel onglet du navigateur (avec indication visuelle sur la forme), au double-clic, sans accès retour à l'application (`noopener`).

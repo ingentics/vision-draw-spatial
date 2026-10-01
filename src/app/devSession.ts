@@ -1,4 +1,5 @@
 import type { CameraState } from '../engine/interaction/camera';
+import type { HistoryEntry } from '../engine/interaction/history';
 
 /**
  * Mémoire de l'onglet pour le développement : après un rechargement (hot reload du moteur),
@@ -15,6 +16,8 @@ export interface DevSession {
   pageId?: string;
   /** Dernière caméra de chaque page visitée. */
   cameraByPage?: Record<string, CameraState>;
+  /** Pile de navigation par liens. */
+  history?: HistoryEntry[];
 }
 
 export function readDevSession(): DevSession | undefined {

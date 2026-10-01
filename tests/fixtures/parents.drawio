@@ -1,0 +1,52 @@
+<mxfile>
+  <diagram id="home" name="Accueil">
+    <mxGraphModel>
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <UserObject label="Vers détail" link="data:page/id,detail" id="home-to-detail">
+          <mxCell style="rounded=0;" vertex="1" parent="1">
+            <mxGeometry x="0" y="0" width="100" height="50" as="geometry" />
+          </mxCell>
+        </UserObject>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="archi" name="Architecture">
+    <mxGraphModel>
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <UserObject label="" link="data:page/id,detail" id="archi-edge-to-detail">
+          <mxCell style="endArrow=classic;" edge="1" parent="1">
+            <mxGeometry relative="1" as="geometry">
+              <mxPoint x="0" y="0" as="sourcePoint" />
+              <mxPoint x="50" y="0" as="targetPoint" />
+            </mxGeometry>
+          </mxCell>
+        </UserObject>
+        <UserObject label="Vers détail" link="data:page/id,detail" id="archi-to-detail">
+          <mxCell style="rounded=0;" vertex="1" parent="1">
+            <mxGeometry x="200" y="100" width="80" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="detail" name="Détail">
+    <mxGraphModel>
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <UserObject label="Boucle" link="data:page/id,detail" id="self-link">
+          <mxCell style="rounded=0;" vertex="1" parent="1">
+            <mxGeometry x="0" y="0" width="60" height="30" as="geometry" />
+          </mxCell>
+        </UserObject>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="orphan" name="Orpheline">
+    <mxGraphModel><root><mxCell id="0" /><mxCell id="1" parent="0" /></root></mxGraphModel>
+  </diagram>
+</mxfile>
