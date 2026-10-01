@@ -2,7 +2,7 @@ import { BufferGeometry, Color, Float32BufferAttribute, Group, Mesh } from 'thre
 import type { Point, ShapeModel } from '../../model/types';
 import { createBox, VERTEX_DEFAULTS } from '../flat/box';
 import type { BoxDefaults } from '../flat/box';
-import { dashPolyline, dashPattern } from '../geometry/stroke';
+import { cleanOutline, dashPolyline, dashPattern, offsetOutline } from '../geometry/stroke';
 import { fillMesh, flatMaterial, solidMaterial, strokeMesh } from '../meshes';
 import type { SceneRenderer } from '../shapes/types';
 import { styleColor, styleNumber, styleOpacity } from '../styleValues';
@@ -15,7 +15,8 @@ import type { RenderContext } from '../types';
  * - Côtés : la couleur de fond, assombrie selon l'orientation de chaque face (lumière fixe dans
  *   la page) : relief lisible sans éclairage 3D, cohérent avec le style à plat.
  * - Arêtes : toutes celles du volume (contour du dessus, contour du bas, arêtes verticales aux
- *   angles vifs) avec la couleur, l'épaisseur et le style (pointillés) de la bordure 2D.
+ *   angles vifs) avec la couleur, l'épaisseur et le style (pointillés) de la bordure 2D, tracées
+ *   **à l'extérieur** de la forme : visibles sur toute leur épaisseur.
  * Une forme sans fond reste à plat (pas de volume « fantôme »).
  */
 
@@ -63,36 +64,46 @@ export function isoBlock(
       top.position.z = height;
       top.name = 'top';
       group.add(top);
-      const flat = createBox(shape, path, ctx, { ...defaults, fill: null });
+      // Dessus : label seulement ; la bordure est tracée à l'extérieur avec les autres arêtes.
+      const flat = createBox({ ...shape, style: { ...shape.style, strokeColor: 'none' } }, path, ctx, {
+        ...defaults,
+        fill: null,
+      });
       flat.position.z = height + TOP_OFFSET;
       for (const child of [...flat.children]) group.add(reparent(child, flat.position.z));
-      for (const edge of volumeEdges(shape, path, height, defaults)) group.add(edge);
+      for (const edge of volumeEdges(shape, path, height + TOP_OFFSET, defaults)) group.add(edge);
       return group;
     },
   };
 }
 
 /**
- * Arêtes du volume autres que le contour du dessus (déjà tracé par le rendu à plat) : contour du bas
- * et arêtes verticales aux angles vifs, avec la couleur, l'épaisseur et les pointillés de la bordure.
- * Testées en profondeur : celles qui sont derrière le bloc restent cachées.
+ * Arêtes du volume : contours du dessus et du bas, arêtes verticales aux angles vifs, avec la couleur,
+ * l'épaisseur et les pointillés de la bordure 2D. Elles sont tracées **à l'extérieur** de la forme
+ * (contours décalés d'une demi-épaisseur, arêtes verticales hors du coin) : rien n'est caché par les
+ * faces du bloc, toutes ont la même épaisseur à l'écran. Celles qui sont derrière le bloc restent cachées.
  */
-function volumeEdges(shape: ShapeModel, path: Point[], height: number, defaults: BoxDefaults): Mesh[] {
+function volumeEdges(shape: ShapeModel, outline: Point[], top: number, defaults: BoxDefaults): Mesh[] {
   const { style } = shape;
   const color = styleColor(style, 'strokeColor', defaults.stroke);
   const width = styleNumber(style, 'strokeWidth', 1);
   if (!color || width <= 0) return [];
   const opacity = styleOpacity(style, 'strokeOpacity');
   const dash = dashPattern(style, width);
+  // Même indexation pour le contour et son décalé (points répétés retirés une seule fois).
+  const path = cleanOutline(outline);
+  const outside = offsetOutline(path, width / 2);
   const edges: Mesh[] = [];
 
-  // Contour du bas : la moitié intérieure du trait est cachée par les faces du bloc ; on double
-  // l'épaisseur pour que la partie visible ait la même largeur que le contour du dessus.
-  const bottom = strokeMesh(path, color, opacity, { width: width * 2, closed: true, dash });
-  if (bottom) {
-    bottom.name = 'stroke-bottom';
-    bottom.position.z = TOP_OFFSET;
-    edges.push(bottom);
+  for (const [name, z] of [
+    ['stroke', top],
+    ['stroke-bottom', TOP_OFFSET],
+  ] as const) {
+    const mesh = strokeMesh(outside, color, opacity, { width, closed: true, dash });
+    if (!mesh) continue;
+    mesh.name = name;
+    mesh.position.z = z;
+    edges.push(mesh);
   }
 
   const positions: number[] = [];
@@ -110,13 +121,14 @@ function volumeEdges(shape: ShapeModel, path: Point[], height: number, defaults:
       ? dashPolyline(
           [
             { x: 0, y: 0 },
-            { x: height, y: 0 },
+            { x: top, y: 0 },
           ],
           dash,
           false,
         ).map((d) => [d[0]!.x, d[d.length - 1]!.x])
-      : [[0, height]];
-    for (const [z0, z1] of pieces) pushPrism(positions, corner, incoming, width / 2, z0!, z1!);
+      : [[0, top]];
+    // Prisme posé dans le coin extérieur : son centre est le sommet du contour décalé.
+    for (const [z0, z1] of pieces) pushPrism(positions, outside[i]!, incoming, width / 2, z0!, z1!);
   }
   if (positions.length > 0) {
     const geometry = new BufferGeometry();

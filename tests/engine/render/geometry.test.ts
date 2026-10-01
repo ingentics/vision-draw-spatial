@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { cornerRadius, ellipsePath, rectPath, roundedRectPath } from '../../../src/engine/render/geometry/paths';
-import { dashPattern, dashPolyline, strokeTriangles } from '../../../src/engine/render/geometry/stroke';
+import { dashPattern, dashPolyline, offsetOutline, strokeTriangles } from '../../../src/engine/render/geometry/stroke';
 
 const rect = { x: 10, y: 20, width: 100, height: 40 };
 
@@ -82,6 +82,20 @@ describe('strokeTriangles', () => {
       ),
     ).toEqual([]);
     expect(strokeTriangles(rectPath(rect), 0, true)).toEqual([]);
+  });
+});
+
+describe('offsetOutline', () => {
+  it('décale un contour vers l’extérieur, quel que soit son sens de parcours', () => {
+    const square = rectPath({ x: 0, y: 0, width: 10, height: 10 });
+    expect(offsetOutline(square, 1)).toEqual([
+      { x: -1, y: -1 },
+      { x: 11, y: -1 },
+      { x: 11, y: 11 },
+      { x: -1, y: 11 },
+    ]);
+    const reversed = [...square].reverse();
+    expect(offsetOutline(reversed, 1)[0]).toEqual({ x: -1, y: 11 });
   });
 });
 

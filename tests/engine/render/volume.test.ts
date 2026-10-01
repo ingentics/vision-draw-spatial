@@ -56,16 +56,17 @@ describe('volumes iso', () => {
     expect(vertical.geometry.getAttribute('position').count).toBe(4 * 4 * 6);
     const box = new Box3().setFromObject(vertical);
     expect(box.min.y).toBeCloseTo(0);
-    expect(box.max.y).toBeCloseTo(20);
+    expect(box.max.y).toBeCloseTo(20, 1); // jusqu'au contour du dessus (posé 0,05 px au-dessus)
   });
 
-  it('contour du bas : partie visible (hors du bloc) aussi large que le contour du dessus', () => {
+  it('arêtes tracées à l’extérieur de la forme, sur toute leur épaisseur', () => {
     const b = element(isoScene().root, B);
-    // B : bordure de 1 px. Dessus : 0,5 px de chaque côté du bord ; bas : 1 px dépasse à l'extérieur.
-    const top = new Box3().setFromObject(b.getObjectByName('stroke')!);
-    const bottom = new Box3().setFromObject(b.getObjectByName('stroke-bottom')!);
-    expect(top.min.x).toBeCloseTo(440 - 0.5);
-    expect(bottom.min.x).toBeCloseTo(440 - 1);
+    // B : emprise x 440–560, bordure de 1 px → arêtes entre 439 et 440 (et 560–561).
+    for (const name of ['stroke', 'stroke-bottom', 'stroke-vertical']) {
+      const box = new Box3().setFromObject(b.getObjectByName(name)!);
+      expect(box.min.x).toBeCloseTo(439);
+      expect(box.max.x).toBeCloseTo(561);
+    }
   });
 
   it('arêtes pointillées comme la bordure 2D (A est en pointillés)', () => {

@@ -101,6 +101,36 @@ export function dashPattern(style: Record<string, string>, strokeWidth: number):
   return pattern.map((v) => v * scale);
 }
 
+/**
+ * Contour fermé décalé vers l'extérieur de `distance` (angles en onglet, bornés). Sert à tracer une
+ * bordure entièrement à l'extérieur d'une forme (arêtes des volumes iso).
+ */
+export function offsetOutline(input: Point[], distance: number): Point[] {
+  const points = dedupe(input, true);
+  const n = points.length;
+  if (n < 3 || distance === 0) return points;
+  let area = 0;
+  for (let i = 0; i < n; i++) {
+    const a = points[i]!;
+    const b = points[(i + 1) % n]!;
+    area += a.x * b.y - b.x * a.y;
+  }
+  // `segmentNormal` pointe à gauche du sens de parcours : vers l'intérieur si l'aire est positive
+  // (repère page, y vers le bas).
+  const outward = area > 0 ? -1 : 1;
+  const normals: Point[] = [];
+  for (let i = 0; i < n; i++) normals.push(scale(segmentNormal(points[i]!, points[(i + 1) % n]!), outward));
+  return points.map((p, i) => {
+    const offset = miterOffset(normals[(i - 1 + n) % n], normals[i], distance);
+    return { x: p.x + offset.x, y: p.y + offset.y };
+  });
+}
+
+/** Contour fermé sans points répétés (même indexation que `offsetOutline`). */
+export function cleanOutline(points: Point[]): Point[] {
+  return dedupe(points, true);
+}
+
 function dedupe(points: Point[], closed: boolean): Point[] {
   const result: Point[] = [];
   for (const p of points) {
