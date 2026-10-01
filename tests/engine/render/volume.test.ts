@@ -59,6 +59,15 @@ describe('volumes iso', () => {
     expect(box.max.y).toBeCloseTo(20);
   });
 
+  it('contour du bas : partie visible (hors du bloc) aussi large que le contour du dessus', () => {
+    const b = element(isoScene().root, B);
+    // B : bordure de 1 px. Dessus : 0,5 px de chaque côté du bord ; bas : 1 px dépasse à l'extérieur.
+    const top = new Box3().setFromObject(b.getObjectByName('stroke')!);
+    const bottom = new Box3().setFromObject(b.getObjectByName('stroke-bottom')!);
+    expect(top.min.x).toBeCloseTo(440 - 0.5);
+    expect(bottom.min.x).toBeCloseTo(440 - 1);
+  });
+
   it('arêtes pointillées comme la bordure 2D (A est en pointillés)', () => {
     const a = element(isoScene().root, A);
     const vertical = a.getObjectByName('stroke-vertical') as Mesh;

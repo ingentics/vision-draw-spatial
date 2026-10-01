@@ -86,7 +86,9 @@ function volumeEdges(shape: ShapeModel, path: Point[], height: number, defaults:
   const dash = dashPattern(style, width);
   const edges: Mesh[] = [];
 
-  const bottom = strokeMesh(path, color, opacity, { width, closed: true, dash });
+  // Contour du bas : la moitié intérieure du trait est cachée par les faces du bloc ; on double
+  // l'épaisseur pour que la partie visible ait la même largeur que le contour du dessus.
+  const bottom = strokeMesh(path, color, opacity, { width: width * 2, closed: true, dash });
   if (bottom) {
     bottom.name = 'stroke-bottom';
     bottom.position.z = TOP_OFFSET;
