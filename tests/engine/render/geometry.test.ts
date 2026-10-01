@@ -125,6 +125,20 @@ describe('pointillés', () => {
     expect(dashes).toHaveLength(4);
   });
 
+  it('décalage : les tirets glissent le long du tracé (sélection animée)', () => {
+    const line = [
+      { x: 0, y: 0 },
+      { x: 10, y: 0 },
+    ];
+    const starts = (offset: number) => dashPolyline(line, [3, 2], false, offset).map((d) => +d[0]!.x.toFixed(6));
+    expect(starts(0)).toEqual([0, 5]);
+    // Décalage de 1 dans le motif : le premier tiret est entamé, tous reculent d'une unité.
+    expect(starts(1)).toEqual([0, 4, 9]);
+    // Décalage négatif : les tirets avancent ; un tour complet du motif ne change rien.
+    expect(starts(-1)).toEqual([1, 6]);
+    expect(starts(5)).toEqual(starts(0));
+  });
+
   it('motif draw.io : « 3 3 » × épaisseur, sauf fixDash', () => {
     expect(dashPattern({}, 1)).toBeUndefined();
     expect(dashPattern({ dashed: '1' }, 2)).toEqual([6, 6]);

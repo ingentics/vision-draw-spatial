@@ -46,6 +46,14 @@ export interface MinimapSettings {
   size: number;
 }
 
+/** Contour de sélection (SPEC §11.1). */
+export interface SelectionSettings {
+  /** Tirets qui défilent lentement le long du contour (« fourmis »). */
+  animated: boolean;
+  /** Vitesse de défilement, en pixels écran par seconde. */
+  speed: number;
+}
+
 export interface DebugSettings {
   /** Bouton et panneau « Diagnostics » (styles non supportés, SPEC §8.4). */
   showUnsupportedPanel: boolean;
@@ -62,6 +70,7 @@ export interface Settings {
   controls: ControlSettings;
   view: ViewSettings;
   minimap: MinimapSettings;
+  selection: SelectionSettings;
   debug: DebugSettings;
   accessibility: AccessibilitySettings;
 }
@@ -86,6 +95,7 @@ export const DEFAULT_SETTINGS: Settings = {
     isoDepth: 16,
   },
   minimap: { visible: true, size: 200 },
+  selection: { animated: true, speed: 12 },
   debug: { showUnsupportedPanel: true },
   accessibility: { reducedMotion: 'system' },
 };
@@ -104,6 +114,7 @@ export const SETTINGS_LIMITS = {
   'view.switchDurationMs': { min: 0, max: 3000, step: 50 },
   'view.isoDepth': { min: 2, max: 120, step: 1 },
   'minimap.size': { min: 120, max: 400, step: 10 },
+  'selection.speed': { min: 2, max: 80, step: 1 },
 } as const;
 
 const EASINGS = ['linear', 'ease-in', 'ease-out', 'ease-in-out'] as const;
@@ -173,6 +184,10 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
     minimap: {
       visible: bool(m.visible, base.minimap.visible),
       size: num('minimap.size', m.size, base.minimap.size),
+    },
+    selection: {
+      animated: bool(p.selection?.animated, base.selection.animated),
+      speed: num('selection.speed', p.selection?.speed, base.selection.speed),
     },
     debug: { showUnsupportedPanel: bool(p.debug?.showUnsupportedPanel, base.debug.showUnsupportedPanel) },
     accessibility: {

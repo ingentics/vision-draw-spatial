@@ -23,7 +23,7 @@ const SHORTCUT_LABELS: Record<keyof Shortcuts, string> = {
 
 /** Panneau de paramètres (SPEC §13) : tout s'applique immédiatement et est mémorisé. */
 export function SettingsPanel({ settings, onChange, onReset, onClose }: SettingsPanelProps) {
-  const { controls, view, transition, preload, minimap, accessibility, debug } = settings;
+  const { controls, view, transition, preload, minimap, selection, accessibility, debug } = settings;
   const systemReduced = useSystemReducedMotion();
 
   return (
@@ -188,6 +188,22 @@ export function SettingsPanel({ settings, onChange, onReset, onClose }: Settings
             format={(v) => `${v} px`}
             disabled={!minimap.visible}
             onChange={(size) => onChange({ minimap: { size } })}
+          />
+        </Section>
+
+        <Section title="Sélection">
+          <Toggle
+            label="Contour animé (les tirets défilent)"
+            checked={selection.animated}
+            onChange={(animated) => onChange({ selection: { animated } })}
+          />
+          <Slider
+            label="Vitesse"
+            value={selection.speed}
+            limits={SETTINGS_LIMITS['selection.speed']}
+            format={(v) => `${v} px/s`}
+            disabled={!selection.animated}
+            onChange={(speed) => onChange({ selection: { speed } })}
           />
         </Section>
 

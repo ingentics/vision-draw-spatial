@@ -475,7 +475,7 @@ Réalisation retenue :
 - **Simple clic** sur une forme ayant un lien vers une page : sélection + **préchargement** de la page cible en arrière-plan (construction de sa scène), sans rien afficher.
 - **Double-clic** : déclenche la **transition**.
 - Option : préchargement au **survol prolongé** (≈ 300 ms, configurable), avec un **plafond** sur le nombre de scènes préchargées gardées en cache.
-- **Sélection** : clic gauche sur une forme ou une arête (tolérance ≈ 6 px écran autour du tracé) ; contour bleu pointillé d'épaisseur constante à l'écran ; clic dans le vide = désélection. L'élément le plus haut dans l'ordre de dessin gagne (un enfant avant son conteneur) ; les groupes invisibles ne sont attrapés que s'ils portent un lien. Un appui suivi d'un glisser n'est pas un clic.
+- **Sélection** : clic gauche sur une forme ou une arête (tolérance ≈ 6 px écran autour du tracé) ; contour bleu pointillé d'épaisseur constante à l'écran, dont les **tirets défilent lentement** le long du bord (« fourmis », paramètre `selection` : activé, 12 px/s ; fixe si les animations sont réduites) ; clic dans le vide = désélection. L'élément le plus haut dans l'ordre de dessin gagne (un enfant avant son conteneur) ; les groupes invisibles ne sont attrapés que s'ils portent un lien. Un appui suivi d'un glisser n'est pas un clic.
 - **Repérage des liens** : pastille bleue au coin haut-droit des formes liées (→ page, ↗ URL) ; au survol, curseur main et infobulle (« Double-clic : aller à « Page-2 » », ou l'URL).
 
 ### 11.2 Transition « zoom + fondu »
@@ -564,6 +564,7 @@ interface Settings {
     isoVolume: boolean; isoDepth: number;                                                              // true, 16 (px)
   };
   minimap: { visible: boolean; size: number };                    // true, 200
+  selection: { animated: boolean; speed: number };                // true, 12 (px écran / s)
   debug: { showUnsupportedPanel: boolean };                       // true
   accessibility: { reducedMotion: 'system' | 'always' | 'never' }; // 'system'
 }
@@ -575,7 +576,7 @@ Réalisation retenue :
 
 - `mergeSettings` fusionne une modification **section par section** (raccourcis un par un), ignore les valeurs invalides et borne les nombres : un stockage abîmé ou ancien ne casse jamais l'application.
 - Moteur : `new Engine({ settings })`, puis `engine.updateSettings(patch)` — tout s'applique immédiatement (contrôles, transitions, préchargement, taille du cache ; en iso, élévation et orientation animées). `<DrawioSpatial settings={…} />` les transmet.
-- **Réduire les animations** : « comme le système » (`prefers-reduced-motion`, suivi en direct), « toujours » ou « jamais ». Réduites = transitions de liens, bascule iso, vue globale ↔ 1:1, retour au nord **et glissade** instantanés.
+- **Réduire les animations** : « comme le système » (`prefers-reduced-motion`, suivi en direct), « toujours » ou « jamais ». Réduites = transitions de liens, bascule iso, vue globale ↔ 1:1 instantanées, **glissade et contour de sélection animé** coupés.
 - **Raccourcis par touche affichée** (`KeyboardEvent.key`, insensibles à la casse) : « M » est la touche M en AZERTY comme en QWERTY. Le déplacement reste par position physique (`code`). Les touches de déplacement et Espace ne sont pas attribuables ; une touche déjà utilisée est refusée.
 - Appli de démo : paramètres partagés entre fichiers, persistés dans le navigateur (`localStorage`, une seule clé ; les réglages enregistrés séparément auparavant sont repris une fois). Panneau **« Paramètres »** (bouton de la barre d'outils) à côté de la vue : Navigation, Vue, Transitions, Préchargement, Mini-carte, Accessibilité, Raccourcis (cliquer puis appuyer sur la touche), Diagnostics ; bouton « Réinitialiser ». Les réglages rapides de la barre (Déplacer/Tourner, × de la mini-carte) écrivent dans les mêmes paramètres ; les réglages iso (orientation avec aperçu, élévation) ont leur section « Vue isométrique ».
 

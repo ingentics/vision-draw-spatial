@@ -42,11 +42,13 @@ export interface StrokeOptions {
   width: number;
   closed: boolean;
   dash?: number[];
+  /** Décalage de départ dans le motif de tirets. */
+  dashOffset?: number;
 }
 
 /** Trait d'une polyligne, plein ou pointillé, en un seul mesh. Null si rien à dessiner. */
 export function strokeMesh(path: Point[], color: Color, opacity: number, options: StrokeOptions): Mesh | null {
-  const pieces = options.dash ? dashPolyline(path, options.dash, options.closed) : [path];
+  const pieces = options.dash ? dashPolyline(path, options.dash, options.closed, options.dashOffset) : [path];
   const closedPieces = !options.dash && options.closed;
   const positions: number[] = [];
   for (const piece of pieces) {

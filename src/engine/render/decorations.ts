@@ -65,8 +65,11 @@ export function linkBadge(shape: ShapeModel, link: LinkModel): Group {
   return group;
 }
 
-/** Contour de sélection, d'épaisseur constante à l'écran (reconstruit quand le zoom change). */
-export function selectionOutline(bounds: Rect, zoom: number): Group {
+/**
+ * Contour de sélection, d'épaisseur constante à l'écran (reconstruit quand le zoom change).
+ * `phase` : décalage des tirets en pixels écran (contour animé : les tirets défilent).
+ */
+export function selectionOutline(bounds: Rect, zoom: number, phase = 0): Group {
   const group = new Group();
   group.name = 'selection';
   const gap = 3 / zoom;
@@ -79,7 +82,7 @@ export function selectionOutline(bounds: Rect, zoom: number): Group {
     }),
     SELECTION_COLOR,
     1,
-    { width: 1.5 / zoom, closed: true, dash: [5 / zoom, 3 / zoom] },
+    { width: 1.5 / zoom, closed: true, dash: [5 / zoom, 3 / zoom], dashOffset: phase / zoom },
   );
   if (outline) group.add(outline);
   // Toujours au-dessus de tout le contenu de la page.

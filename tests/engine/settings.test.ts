@@ -22,6 +22,12 @@ describe('mergeSettings', () => {
     expect(merged.controls.shortcuts).toEqual({ ...DEFAULT_SHORTCUTS, toggleGraph: 'p' });
   });
 
+  it('sélection : contour animé lentement par défaut, vitesse bornée', () => {
+    expect(DEFAULT_SETTINGS.selection).toEqual({ animated: true, speed: 12 });
+    expect(mergeSettings(DEFAULT_SETTINGS, { selection: { speed: 500 } }).selection.speed).toBe(80);
+    expect(mergeSettings(DEFAULT_SETTINGS, { selection: { animated: false } }).selection.animated).toBe(false);
+  });
+
   it('nombres ramenés dans leurs bornes', () => {
     const merged = mergeSettings(DEFAULT_SETTINGS, {
       transition: { durationMs: -100 },

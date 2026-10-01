@@ -148,6 +148,9 @@ export class Engine {
   private readonly openUrl: (href: string) => void;
   private selection: Selection | undefined;
   private selectionObject: ReturnType<typeof selectionOutline> | undefined;
+  /** Contour animé : décalage des tirets (pixels écran) et boucle d'animation. */
+  private selectionPhase = 0;
+  private selectionAnimation = 0;
   private hoverTimer: ReturnType<typeof setTimeout> | undefined;
   /** Transition en cours : de quoi l'interrompre proprement. */
   private transition: { abort: () => void } | undefined;
@@ -589,6 +592,7 @@ export class Engine {
     this.settings = mergeSettings(previous, patch);
     this.controller.setSettings(this.effectiveControls());
     this.scenes.setMaxCached(this.settings.preload.maxCachedPages);
+    this.syncSelectionAnimation();
     if (
       this.settings.view.isoVolume !== previous.view.isoVolume ||
       this.settings.view.isoDepth !== previous.view.isoDepth
@@ -624,6 +628,7 @@ export class Engine {
 
   private readonly onReducedMotionChange = (): void => {
     this.controller.setSettings(this.effectiveControls());
+    this.syncSelectionAnimation();
     this.events.emit('settingsChange', this.getSettings());
   };
 
@@ -671,6 +676,7 @@ export class Engine {
     const page = this.getCurrentPage();
     this.selection = picked && page ? { pageId: page.id, picked } : undefined;
     this.updateSelectionOutline();
+    this.syncSelectionAnimation();
     this.events.emit('selectionChange', this.selection);
   }
 
@@ -947,6 +953,34 @@ export class Engine {
     return this.scenes.current?.root.children.find((c) => c.userData.elementId === elementId);
   }
 
+  /**
+   * Contour de sélection animé (paramètre `selection`) : les tirets défilent lentement tant qu'il y a
+   * une sélection ; arrêté sans sélection, si désactivé, ou si les animations sont réduites.
+   */
+  private syncSelectionAnimation(): void {
+    const run = this.selection !== undefined && this.settings.selection.animated && !this.reducedMotion();
+    if (!run) {
+      cancelAnimationFrame(this.selectionAnimation);
+      this.selectionAnimation = 0;
+      if (this.selectionPhase !== 0) {
+        this.selectionPhase = 0;
+        this.updateSelectionOutline();
+      }
+      return;
+    }
+    if (this.selectionAnimation) return;
+    let last = performance.now();
+    const tick = (now: number) => {
+      const dt = Math.min((now - last) / 1000, 0.1);
+      last = now;
+      // Phase décroissante : les tirets avancent dans le sens du contour.
+      this.selectionPhase -= this.settings.selection.speed * dt;
+      this.updateSelectionOutline();
+      this.selectionAnimation = requestAnimationFrame(tick);
+    };
+    this.selectionAnimation = requestAnimationFrame(tick);
+  }
+
   private updateSelectionOutline(): void {
     if (this.selectionObject) {
       this.selectionObject.parent?.remove(this.selectionObject);
@@ -959,7 +993,7 @@ export class Engine {
       const { picked } = selection;
       const bounds = picked.type === 'shape' ? picked.element.bounds : this.drawnBounds(picked.element.id);
       if (bounds) {
-        this.selectionObject = selectionOutline(bounds, this.cameraState.zoom);
+        this.selectionObject = selectionOutline(bounds, this.cameraState.zoom, this.selectionPhase);
         // Posé sur le dessus d'un volume, et toujours visible (pas caché par les blocs).
         this.selectionObject.position.z = ((this.sceneObject(picked.element.id)?.userData.top as number) ?? 0) + 0.2;
         this.selectionObject.traverse((o) => {
@@ -980,6 +1014,7 @@ export class Engine {
     this.disposed = true;
     cancelAnimationFrame(this.frame);
     cancelAnimationFrame(this.animation);
+    cancelAnimationFrame(this.selectionAnimation);
     clearTimeout(this.hoverTimer);
     this.transition?.abort();
     this.resizeObserver.disconnect();

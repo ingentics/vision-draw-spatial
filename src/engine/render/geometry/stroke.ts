@@ -43,16 +43,25 @@ export function strokeTriangles(input: Point[], width: number, closed: boolean):
  * Découpe une polyligne en tirets. `pattern` alterne longueurs pleines et vides (en unités monde).
  * Chaque tiret est une polyligne ouverte, qui peut franchir un angle.
  */
-export function dashPolyline(input: Point[], pattern: number[], closed: boolean): Point[][] {
+export function dashPolyline(input: Point[], pattern: number[], closed: boolean, offset = 0): Point[][] {
   const points = dedupe(input, closed);
   if (closed && points.length > 0) points.push(points[0]!);
   const cleanPattern = pattern.filter((v) => v > 0);
   if (points.length < 2 || cleanPattern.length === 0) return points.length >= 2 ? [points] : [];
 
   const dashes: Point[][] = [];
+  // Décalage de départ dans le motif (sélection animée : les tirets défilent le long du tracé).
+  // Motif de longueur impaire : on raisonne sur deux périodes pour garder l'alternance plein / vide.
+  const cycle = cleanPattern.length % 2 === 0 ? cleanPattern : [...cleanPattern, ...cleanPattern];
+  const total = cycle.reduce((sum, v) => sum + v, 0);
+  let phase = ((offset % total) + total) % total;
   let patternIndex = 0;
-  let remaining = cleanPattern[0]!;
-  let drawing = true;
+  while (phase >= cycle[patternIndex]!) {
+    phase -= cycle[patternIndex]!;
+    patternIndex = (patternIndex + 1) % cycle.length;
+  }
+  let remaining = cycle[patternIndex]! - phase;
+  let drawing = patternIndex % 2 === 0;
   let current: Point[] = [points[0]!];
 
   for (let i = 0; i < points.length - 1; i++) {
@@ -70,8 +79,8 @@ export function dashPolyline(input: Point[], pattern: number[], closed: boolean)
       if (remaining <= EPSILON) {
         if (drawing && current.length >= 2) dashes.push(current);
         drawing = !drawing;
-        patternIndex = (patternIndex + 1) % cleanPattern.length;
-        remaining = cleanPattern[patternIndex]!;
+        patternIndex = (patternIndex + 1) % cycle.length;
+        remaining = cycle[patternIndex]!;
         current = [point];
       }
     }
