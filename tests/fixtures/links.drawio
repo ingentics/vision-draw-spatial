@@ -1,0 +1,48 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="home" name="Accueil">
+    <mxGraphModel>
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <UserObject label="Voir le détail" link="data:page/id,detail" id="to-detail">
+          <mxCell style="rounded=0;html=1;" vertex="1" parent="1">
+            <mxGeometry x="0" y="0" width="120" height="60" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <object label="%name% v%version% (100%%)" placeholders="1" name="Docs" version="2" tooltip="Documentation" link="https://example.com/docs" id="ext">
+          <mxCell style="ellipse;" vertex="1" parent="1">
+            <mxGeometry x="200" y="0" width="80" height="80" as="geometry" />
+          </mxCell>
+        </object>
+        <UserObject label="Cassé" link="data:page/id,missing" id="broken-link">
+          <mxCell style="rounded=0;" vertex="1" parent="1">
+            <mxGeometry x="0" y="100" width="60" height="30" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="Action" link="data:action/json,{&quot;actions&quot;:[]}" id="action">
+          <mxCell style="rounded=0;" vertex="1" parent="1">
+            <mxGeometry x="100" y="100" width="60" height="30" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="" link="data:page/id,detail" id="edge-link">
+          <mxCell style="endArrow=classic;" edge="1" parent="1" source="to-detail" target="ext">
+            <mxGeometry relative="1" as="geometry" />
+          </mxCell>
+        </UserObject>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="detail" name="Détail">
+    <mxGraphModel>
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <UserObject label="Retour" link="data:page/id,home" id="to-home">
+          <mxCell style="rounded=0;" vertex="1" parent="1">
+            <mxGeometry x="0" y="0" width="80" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

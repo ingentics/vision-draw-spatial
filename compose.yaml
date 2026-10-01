@@ -1,0 +1,13 @@
+services:
+  app:
+    build: .
+    image: drawio-spatial-dev
+    # Relais des signaux (Ctrl+C) et arrêt propre.
+    init: true
+    ports:
+      - '${PORT:-5173}:5173'
+    volumes:
+      # Sources montées pour le rechargement à chaud…
+      - .:/app
+      # …mais node_modules reste celui de l'image (binaires Linux, versions du lockfile).
+      - /app/node_modules

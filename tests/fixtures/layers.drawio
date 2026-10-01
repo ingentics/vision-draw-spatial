@@ -1,0 +1,20 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="layers" name="Calques">
+    <mxGraphModel>
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="annotations" value="Annotations" parent="0" visible="0" />
+        <mxCell id="base-shape" value="Base" style="rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="50" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="note" value="Note" style="text;" vertex="1" parent="annotations">
+          <mxGeometry x="100" y="0" width="50" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="hidden" value="Caché" style="rounded=0;" vertex="1" parent="1" visible="0">
+          <mxGeometry x="0" y="100" width="50" height="50" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

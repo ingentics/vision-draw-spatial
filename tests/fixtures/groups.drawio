@@ -1,0 +1,48 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="groups" name="Groupes">
+    <mxGraphModel>
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <!-- Conteneur à 100,100 ; enfant à 20,40 relatif → 120,140 absolu -->
+        <mxCell id="lane" value="Backend" style="swimlane;startSize=30;" vertex="1" parent="1">
+          <mxGeometry x="100" y="100" width="300" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="lane-a" value="API" style="rounded=1;" vertex="1" parent="lane">
+          <mxGeometry x="20" y="40" width="80" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="lane-b" value="Worker" style="rounded=1;" vertex="1" parent="lane">
+          <mxGeometry x="180" y="40" width="80" height="40" as="geometry" />
+        </mxCell>
+        <!-- Arête dans le conteneur : ses points sont relatifs au conteneur -->
+        <mxCell id="lane-edge" style="endArrow=classic;" edge="1" parent="lane" source="lane-a" target="lane-b">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="140" y="60" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <!-- Port : géométrie relative au parent (x=1, y=0.5 → bord droit, milieu), décalé de -5,-5 -->
+        <mxCell id="port" value="" style="ellipse;" vertex="1" parent="lane-a">
+          <mxGeometry x="1" y="0.5" width="10" height="10" relative="1" as="geometry">
+            <mxPoint x="-5" y="-5" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <!-- Groupes imbriqués : 50,300 → +10,10 → +5,5 = 65,315 -->
+        <mxCell id="g-outer" value="" style="group" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="50" y="300" width="200" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="g-inner" value="" style="group" vertex="1" connectable="0" parent="g-outer">
+          <mxGeometry x="10" y="10" width="100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="deep" value="Profond" style="rounded=0;" vertex="1" parent="g-inner">
+          <mxGeometry x="5" y="5" width="60" height="30" as="geometry" />
+        </mxCell>
+        <!-- Parent manquant : ne doit pas faire échouer le chargement -->
+        <mxCell id="orphan" value="Orphelin" style="rounded=0;" vertex="1" parent="nope">
+          <mxGeometry x="500" y="500" width="10" height="10" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

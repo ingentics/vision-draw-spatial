@@ -1,0 +1,15 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="p1" name="Vue d'ensemble">
+    <mxGraphModel>
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="p1-r" value="Accueil" style="rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="100" height="50" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="p2" name="Détails">jVFBDoMgEHzNHptQ6EGPFqunPoKEjZCgGMRWf1+VtaYHkx5IdmaY2WUBIdupDqo3T6/RgXiAkMH7mKp2kugccGY1iBI4Z8sBXp2o101lvQrYxX8MPb+E5HkpN2IiS5ACijwq64ZFSQgeHDIOhVyZikFeQV5AluLZEGdH7uDHTuOaz0DcKRxDxOl0xo2iAWv0LcYwL1d2A/WYE6QXsbfV0SRKEGXQNoYyb8SpIeHmm3usYyloIzs8Nr9pPx/zAQ==</diagram>
+  <diagram id="p3" name="Vide" />
+</mxfile>
