@@ -192,19 +192,40 @@ export function SettingsPanel({ settings, onChange, onReset, onClose }: Settings
         </Section>
 
         <Section title="Sélection">
-          <Toggle
-            label="Contour animé (les tirets défilent)"
-            checked={selection.animated}
-            onChange={(animated) => onChange({ selection: { animated } })}
+          <Choice
+            label="Mise en valeur"
+            value={selection.style}
+            options={[
+              ['veil', 'Voile sur le reste'],
+              ['outline', 'Contour'],
+            ]}
+            onChange={(style) => onChange({ selection: { style } })}
           />
-          <Slider
-            label="Vitesse"
-            value={selection.speed}
-            limits={SETTINGS_LIMITS['selection.speed']}
-            format={(v) => `${v} px/s`}
-            disabled={!selection.animated}
-            onChange={(speed) => onChange({ selection: { speed } })}
-          />
+          {selection.style === 'veil' ? (
+            <Slider
+              label="Intensité du voile"
+              value={selection.veilOpacity}
+              limits={SETTINGS_LIMITS['selection.veilOpacity']}
+              format={(v) => `${Math.round(v * 100)} %`}
+              onChange={(veilOpacity) => onChange({ selection: { veilOpacity } })}
+            />
+          ) : (
+            <>
+              <Toggle
+                label="Contour animé (les tirets défilent)"
+                checked={selection.animated}
+                onChange={(animated) => onChange({ selection: { animated } })}
+              />
+              <Slider
+                label="Vitesse"
+                value={selection.speed}
+                limits={SETTINGS_LIMITS['selection.speed']}
+                format={(v) => `${v} px/s`}
+                disabled={!selection.animated}
+                onChange={(speed) => onChange({ selection: { speed } })}
+              />
+            </>
+          )}
         </Section>
 
         <Section title="Accessibilité">

@@ -1,5 +1,5 @@
 import { Box3, Color, Mesh, OrthographicCamera, Scene, WebGLRenderer } from 'three';
-import type { MeshBasicMaterial } from 'three';
+import type { MeshBasicMaterial, Object3D } from 'three';
 import { collectUnsupported } from './diagnostics/unsupportedStyles';
 import type { UnsupportedReport } from './diagnostics/unsupportedStyles';
 import { Emitter } from './events';
@@ -34,6 +34,7 @@ import type { PickedElement } from './interaction/pick';
 import { easing, embedIn, embeddedCamera, phase } from './interaction/transitions';
 import type { DocumentModel, LinkModel, PageModel, Point, Rect } from './model/types';
 import { selectionOutline } from './render/decorations';
+import { createVeil, liftAboveVeil } from './render/highlight';
 import { disposeObject } from './render/meshes';
 import { setPageOpacity } from './render/pageEffects';
 import { buildPageScene, effectiveLevel } from './render/pageScene';
@@ -150,6 +151,8 @@ export class Engine {
   private selectionObject: ReturnType<typeof selectionOutline> | undefined;
   /** Contour animé : décalage des tirets (pixels écran) et boucle d'animation. */
   private selectionPhase = 0;
+  /** Voile de mise en valeur de la sélection, et de quoi l'annuler. */
+  private veil: { key: string; object: Object3D; restore: () => void } | undefined;
   private selectionAnimation = 0;
   private hoverTimer: ReturnType<typeof setTimeout> | undefined;
   /** Transition en cours : de quoi l'interrompre proprement. */
@@ -609,6 +612,7 @@ export class Engine {
     this.controller.setSettings(this.effectiveControls());
     this.scenes.setMaxCached(this.settings.preload.maxCachedPages);
     this.syncSelectionAnimation();
+    this.updateSelectionOutline();
     if (
       this.settings.view.isoVolume !== previous.view.isoVolume ||
       this.settings.view.isoDepth !== previous.view.isoDepth
@@ -974,7 +978,11 @@ export class Engine {
    * une sélection ; arrêté sans sélection, si désactivé, ou si les animations sont réduites.
    */
   private syncSelectionAnimation(): void {
-    const run = this.selection !== undefined && this.settings.selection.animated && !this.reducedMotion();
+    const run =
+      this.selection !== undefined &&
+      this.settings.selection.style === 'outline' &&
+      this.settings.selection.animated &&
+      !this.reducedMotion();
     if (!run) {
       cancelAnimationFrame(this.selectionAnimation);
       this.selectionAnimation = 0;
@@ -997,6 +1005,10 @@ export class Engine {
     this.selectionAnimation = requestAnimationFrame(tick);
   }
 
+  /**
+   * Mise en valeur de la sélection (paramètre `selection.style`) : voile d'ombre sur le reste de la
+   * page (défaut), ou contour bleu pointillé (éventuellement animé).
+   */
   private updateSelectionOutline(): void {
     if (this.selectionObject) {
       this.selectionObject.parent?.remove(this.selectionObject);
@@ -1005,8 +1017,27 @@ export class Engine {
     }
     const selection = this.selection;
     const root = this.scenes.current?.root;
-    if (selection && root && selection.pageId === this.currentPageId) {
-      const { picked } = selection;
+    const visible = selection && root && selection.pageId === this.currentPageId ? selection : undefined;
+
+    // Voile : gardé tant que la même sélection est affichée dans la même scène.
+    const veilKey =
+      visible && root && this.settings.selection.style === 'veil'
+        ? `${root.uuid}:${visible.picked.element.id}:${this.settings.selection.veilOpacity}`
+        : undefined;
+    if (this.veil?.key !== veilKey) {
+      this.clearVeil();
+      const page = this.getCurrentPage();
+      if (veilKey && visible && root && page) {
+        const id = visible.picked.element.id;
+        const object = createVeil(page.bounds, this.settings.selection.veilOpacity);
+        root.add(object);
+        const lifted = root.children.filter((c) => c.userData.elementId === id || c.userData.highlightWith === id);
+        this.veil = { key: veilKey, object, restore: liftAboveVeil(lifted) };
+      }
+    }
+
+    if (visible && root && this.settings.selection.style === 'outline') {
+      const { picked } = visible;
       const bounds = picked.type === 'shape' ? picked.element.bounds : this.drawnBounds(picked.element.id);
       if (bounds) {
         this.selectionObject = selectionOutline(bounds, this.cameraState.zoom, this.selectionPhase);
@@ -1019,6 +1050,14 @@ export class Engine {
       }
     }
     this.requestRender();
+  }
+
+  private clearVeil(): void {
+    if (!this.veil) return;
+    this.veil.restore();
+    this.veil.object.removeFromParent();
+    disposeObject(this.veil.object);
+    this.veil = undefined;
   }
 
   on<K extends EngineEvent>(event: K, handler: (...args: EngineEvents[K]) => void): () => void {

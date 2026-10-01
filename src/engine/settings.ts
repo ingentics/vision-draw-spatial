@@ -48,7 +48,11 @@ export interface MinimapSettings {
 
 /** Contour de sélection (SPEC §11.1). */
 export interface SelectionSettings {
-  /** Tirets qui défilent lentement le long du contour (« fourmis »). */
+  /** Mise en valeur : voile d'ombre sur le reste de la page, ou contour bleu pointillé. */
+  style: 'veil' | 'outline';
+  /** Opacité du voile (0 = invisible, 1 = noir). */
+  veilOpacity: number;
+  /** Contour : tirets qui défilent lentement le long du contour (« fourmis »). */
   animated: boolean;
   /** Vitesse de défilement, en pixels écran par seconde. */
   speed: number;
@@ -95,7 +99,7 @@ export const DEFAULT_SETTINGS: Settings = {
     isoDepth: 16,
   },
   minimap: { visible: true, size: 200 },
-  selection: { animated: true, speed: 12 },
+  selection: { style: 'veil', veilOpacity: 0.35, animated: true, speed: 12 },
   debug: { showUnsupportedPanel: true },
   accessibility: { reducedMotion: 'system' },
 };
@@ -115,6 +119,7 @@ export const SETTINGS_LIMITS = {
   'view.isoDepth': { min: 2, max: 120, step: 1 },
   'minimap.size': { min: 120, max: 400, step: 10 },
   'selection.speed': { min: 2, max: 80, step: 1 },
+  'selection.veilOpacity': { min: 0.05, max: 0.85, step: 0.05 },
 } as const;
 
 const EASINGS = ['linear', 'ease-in', 'ease-out', 'ease-in-out'] as const;
@@ -122,6 +127,7 @@ const MOVE_KEYS = ['letters', 'arrows', 'all'] as const;
 const MIDDLE_DRAG = ['pan', 'rotate'] as const;
 const VIEW_MODES = ['top', 'iso'] as const;
 const REDUCED_MOTION = ['system', 'always', 'never'] as const;
+const SELECTION_STYLES = ['veil', 'outline'] as const;
 
 /**
  * Fusionne une modification dans des paramètres. Les valeurs invalides (mauvais type, hors liste)
@@ -186,6 +192,8 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
       size: num('minimap.size', m.size, base.minimap.size),
     },
     selection: {
+      style: oneOf(SELECTION_STYLES, p.selection?.style, base.selection.style),
+      veilOpacity: num('selection.veilOpacity', p.selection?.veilOpacity, base.selection.veilOpacity),
       animated: bool(p.selection?.animated, base.selection.animated),
       speed: num('selection.speed', p.selection?.speed, base.selection.speed),
     },

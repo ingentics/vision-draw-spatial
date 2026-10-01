@@ -6,6 +6,7 @@ import type { ShapeRegistry } from '../render/shapes/registry';
 import type { SceneLevel } from '../render/shapes/types';
 import { setLocalEmbedding } from '../render/space';
 import type { RenderContext } from '../render/types';
+import { cardId } from './graphPage';
 import type { GraphLayout } from './graphPage';
 
 /**
@@ -35,6 +36,8 @@ export function buildGraphScene(
     const thumbnail = buildPageScene(page, registry, ctx, level);
     setLocalEmbedding(thumbnail.root, embedIn(page.bounds, card.bounds));
     thumbnail.root.name = `thumbnail:${page.id}`;
+    // Mise en valeur de la sélection : la miniature suit sa carte.
+    thumbnail.root.userData.highlightWith = cardId(page.id);
     thumbnail.root.traverse((object) => {
       object.renderOrder += THUMBNAIL_ORDER;
     });

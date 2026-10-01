@@ -22,8 +22,10 @@ describe('mergeSettings', () => {
     expect(merged.controls.shortcuts).toEqual({ ...DEFAULT_SHORTCUTS, toggleGraph: 'p' });
   });
 
-  it('sélection : contour animé lentement par défaut, vitesse bornée', () => {
-    expect(DEFAULT_SETTINGS.selection).toEqual({ animated: true, speed: 12 });
+  it('sélection : voile par défaut, contour animé en option, valeurs bornées', () => {
+    expect(DEFAULT_SETTINGS.selection).toEqual({ style: 'veil', veilOpacity: 0.35, animated: true, speed: 12 });
+    expect(mergeSettings(DEFAULT_SETTINGS, { selection: { style: 'outline' } }).selection.style).toBe('outline');
+    expect(mergeSettings(DEFAULT_SETTINGS, { selection: { veilOpacity: 2 } }).selection.veilOpacity).toBe(0.85);
     expect(mergeSettings(DEFAULT_SETTINGS, { selection: { speed: 500 } }).selection.speed).toBe(80);
     expect(mergeSettings(DEFAULT_SETTINGS, { selection: { animated: false } }).selection.animated).toBe(false);
   });
