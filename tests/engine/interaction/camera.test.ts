@@ -71,11 +71,25 @@ describe('vue globale ↔ 1:1', () => {
     const from = state({ zoom: 1, rotation: 3 });
     const to = state({ zoom: 4, rotation: -3, center: { x: 300, y: 50 } });
     expect(interpolateCamera(from, to, 0)).toEqual(from);
-    expect(interpolateCamera(from, to, 1).zoom).toBeCloseTo(4);
+    const end = interpolateCamera(from, to, 1);
+    expect(end.zoom).toBeCloseTo(4);
+    expect(end.center.x).toBeCloseTo(300);
     const mid = interpolateCamera(from, to, 0.5);
     expect(mid.zoom).toBeCloseTo(2);
-    expect(mid.center.x).toBeCloseTo(200);
     expect(Math.abs(mid.rotation)).toBeCloseTo(Math.PI, 1); // passe par π, pas par 0
+  });
+
+  it('interpolation : un point de l’écran reste fixe pendant le zoom (vrai zoom, pas de glissade)', () => {
+    const from = state({ zoom: 1, center: { x: 0, y: 0 } });
+    const to = state({ zoom: 8, center: { x: 350, y: 140 } });
+    // Point fixe : P = (c1·z1 − c0·z0) / (z1 − z0)
+    const fixed = { x: (350 * 8) / 7, y: (140 * 8) / 7 };
+    const screenAt = (t: number) => pageToScreen(interpolateCamera(from, to, t), viewport, fixed);
+    const start = screenAt(0);
+    for (const t of [0.2, 0.5, 0.8, 1]) {
+      expect(screenAt(t).x).toBeCloseTo(start.x, 6);
+      expect(screenAt(t).y).toBeCloseTo(start.y, 6);
+    }
   });
 });
 

@@ -1,23 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { pageToScreen } from '../../../src/engine/interaction/camera';
 import type { CameraState } from '../../../src/engine/interaction/camera';
-import { coverBounds, easing, embedIn, equivalentCamera, phase } from '../../../src/engine/interaction/transitions';
+import { easing, embedIn, embeddedCamera, equivalentCamera, phase } from '../../../src/engine/interaction/transitions';
 
 const viewport = { width: 800, height: 600 };
-
-describe('coverBounds', () => {
-  it('la forme recouvre tout l’écran (aucun bord visible)', () => {
-    const shape = { x: 280, y: 400, width: 120, height: 80 };
-    const camera = coverBounds(shape, viewport, 0);
-    expect(camera.zoom).toBeCloseTo(Math.max(800 / 120, 600 / 80));
-    const topLeft = pageToScreen(camera, viewport, { x: shape.x, y: shape.y });
-    const bottomRight = pageToScreen(camera, viewport, { x: shape.x + shape.width, y: shape.y + shape.height });
-    expect(topLeft.x).toBeLessThanOrEqual(0);
-    expect(topLeft.y).toBeLessThanOrEqual(1e-9);
-    expect(bottomRight.x).toBeGreaterThanOrEqual(800);
-    expect(bottomRight.y).toBeGreaterThanOrEqual(600 - 1e-9);
-  });
-});
 
 describe('embedIn', () => {
   it('pose la page cible au centre de la forme, avec marge', () => {
@@ -48,6 +34,26 @@ describe('equivalentCamera', () => {
       expect(after.x).toBeCloseTo(before.x, 6);
       expect(after.y).toBeCloseTo(before.y, 6);
     }
+  });
+});
+
+describe('embeddedCamera', () => {
+  it('inverse de equivalentCamera : la vue finale sur la page posée dans la forme', () => {
+    const embedding = { scale: 0.4, offset: { x: 150, y: 300 } };
+    const destination: CameraState = { mode: 'top', center: { x: 414, y: 290 }, zoom: 1.8, rotation: 0.2 };
+    const inSource = embeddedCamera(destination, embedding);
+    expect(inSource.zoom).toBeCloseTo(4.5);
+    const back = equivalentCamera(inSource, embedding);
+    expect(back.zoom).toBeCloseTo(destination.zoom);
+    expect(back.center.x).toBeCloseTo(destination.center.x);
+    expect(back.center.y).toBeCloseTo(destination.center.y);
+    // Même image : la page transformée vue par inSource = la page vue par destination.
+    const p = { x: 380, y: 250 };
+    const embedded = { x: 0.4 * p.x + 150, y: 0.4 * p.y + 300 };
+    const a = pageToScreen(inSource, viewport, embedded);
+    const b = pageToScreen(destination, viewport, p);
+    expect(a.x).toBeCloseTo(b.x, 6);
+    expect(a.y).toBeCloseTo(b.y, 6);
   });
 });
 

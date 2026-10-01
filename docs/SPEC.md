@@ -429,10 +429,12 @@ Contraintes :
 - Les entrées utilisateur sont ignorées ou mises en file pendant la transition.
 - Une option permet de désactiver les animations (accessibilité, `prefers-reduced-motion`).
 
-Réalisation retenue :
+Réalisation retenue — **un seul trajet de caméra**, sans étape intermédiaire :
 
-- Pendant le plongeon, la page cible est **posée dans la forme** (similitude de son espace page : centrée, à l'échelle de la forme avec 10 % de marge) et grossit avec elle ; le fondu croisé (page source 1 → 0, cible 0 → 1) a lieu entre 35 % et 70 % de la durée.
-- À 70 %, **bascule invisible** : la page cible devient la page courante sans transformation, avec une caméra équivalente (image identique à l'écran) ; les 30 % restants recadrent sur la caméra mémorisée de la cible, ou sa vue d'ensemble.
+- La page cible est **posée dans la forme** (similitude de son espace page : centrée, à l'échelle de la forme avec 10 % de marge) et grossit avec elle.
+- La vue finale (caméra mémorisée de la page cible, sinon sa vue d'ensemble) est exprimée dans ce repère ; la caméra y va **directement**, en un zoom continu où un point de l'écran reste fixe (vrai zoom, pas de glissade du centre).
+- Le fondu croisé (page source 1 → 0, cible 0 → 1) a lieu entre 25 % et 75 % de la durée.
+- À l'arrivée, **bascule invisible** : la page cible devient la page courante sans transformation, avec sa vue finale (image identique à l'écran).
 - La page source garde la caméra d'avant le plongeon (pour le retour).
 - Changer de page ou de fichier pendant une transition l'interrompt proprement (opacités et transformations restaurées).
 

@@ -100,16 +100,24 @@ export function sameView(a: CameraState, b: CameraState, viewport: Viewport): bo
   );
 }
 
-/** Interpolation entre deux vues : zoom géométrique, rotation par le plus court chemin. */
+/**
+ * Interpolation entre deux vues, comme un vrai zoom : le zoom progresse géométriquement et le
+ * centre suit l'inverse du zoom, si bien qu'un point de l'écran reste fixe pendant tout le trajet
+ * (pas de « glissade » du centre en ligne droite). Rotation par le plus court chemin.
+ */
 export function interpolateCamera(from: CameraState, to: CameraState, t: number): CameraState {
   const rotationDelta = normalizeAngle(to.rotation - from.rotation);
+  const zoom = from.zoom * Math.pow(to.zoom / from.zoom, t);
+  // Poids du centre : linéaire en 1/zoom (repli linéaire si le zoom ne change pas).
+  const inverseSpan = 1 / from.zoom - 1 / to.zoom;
+  const weight = Math.abs(inverseSpan) < 1e-12 ? t : (1 / from.zoom - 1 / zoom) / inverseSpan;
   return {
     mode: 'top',
     center: {
-      x: from.center.x + (to.center.x - from.center.x) * t,
-      y: from.center.y + (to.center.y - from.center.y) * t,
+      x: from.center.x + (to.center.x - from.center.x) * weight,
+      y: from.center.y + (to.center.y - from.center.y) * weight,
     },
-    zoom: from.zoom * Math.pow(to.zoom / from.zoom, t),
+    zoom,
     rotation: normalizeAngle(from.rotation + rotationDelta * t),
   };
 }

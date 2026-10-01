@@ -20,7 +20,7 @@ import { CameraController } from './interaction/controls';
 import type { ControlSettings } from './interaction/controls';
 import { pickElement } from './interaction/pick';
 import type { PickedElement } from './interaction/pick';
-import { coverBounds, easing, embedIn, equivalentCamera, phase } from './interaction/transitions';
+import { easing, embedIn, embeddedCamera, phase } from './interaction/transitions';
 import type { DocumentModel, LinkModel, PageModel, Point, Rect } from './model/types';
 import { selectionOutline } from './render/decorations';
 import { disposeObject } from './render/meshes';
@@ -439,10 +439,12 @@ export class Engine {
   }
 
   /**
-   * Transition « zoom + fondu » (SPEC §11.2) :
-   * 1. la caméra plonge dans la forme jusqu'à ce qu'elle remplisse l'écran ;
-   * 2. pendant la fin du zoom, la page source s'efface et la page cible apparaît, posée dans la forme ;
-   * 3. bascule invisible sur la page cible, puis recadrage sur sa caméra mémorisée (ou vue d'ensemble).
+   * Transition « zoom + fondu » (SPEC §11.2), en un seul trajet de caméra :
+   * - la page cible est posée dans la forme cliquée et grossit avec elle ;
+   * - la caméra va directement de la vue courante à la vue finale de la page cible (sa caméra
+   *   mémorisée, sinon sa vue d'ensemble), exprimée dans ce repère ;
+   * - pendant le trajet, la page source s'efface et la page cible apparaît ;
+   * - à l'arrivée, bascule invisible : la page cible devient la page courante, sans transformation.
    * La page cible est construite avant le départ. Entrées ignorées pendant la transition.
    */
   transitionToPage(targetPageId: string, frame: Rect | undefined): void {
@@ -467,20 +469,18 @@ export class Engine {
     target.root.visible = true;
 
     const from = this.cameraState;
-    const plunge = coverBounds(frame, this.viewport, from.rotation);
-    const remembered = this.pageCameras.get(targetPageId);
+    const destination =
+      this.pageCameras.get(targetPageId) ?? fitBounds(targetPage.bounds, this.viewport, { rotation: from.rotation });
+    const destinationInSource = embeddedCamera(destination, embedding);
     const ease = easing(this.transitionSettings.easing);
     const duration = this.transitionSettings.durationMs;
-    /** Fin du plongeon (et du fondu) en part de la durée totale ; le reste sert au recadrage. */
-    const SWITCH = 0.7;
-    const FADE_START = 0.35;
+    /** Fenêtre du fondu croisé, en part de la durée totale. */
+    const FADE_START = 0.25;
+    const FADE_END = 0.75;
 
     this.controller.setEnabled(false);
     this.events.emit('transitionStart', sourcePage.id, targetPageId);
 
-    let switched = false;
-    let settleFrom: CameraState | undefined;
-    let settleTo: CameraState | undefined;
     const restore = () => {
       setPageOpacity(source.root, 1);
       setPageOpacity(target.root, 1);
@@ -496,10 +496,9 @@ export class Engine {
       abort: () => {
         cancelAnimationFrame(this.animation);
         restore();
-        if (!switched) {
-          target.root.visible = false;
-          source.root.visible = true;
-        }
+        target.root.visible = false;
+        source.root.visible = true;
+        this.applyCamera(from);
         finish();
       },
     };
@@ -507,34 +506,23 @@ export class Engine {
     const start = performance.now();
     const step = (now: number) => {
       const t = Math.min((now - start) / duration, 1);
-      if (!switched) {
-        this.applyCamera(interpolateCamera(from, plunge, ease(phase(t, 0, SWITCH))));
-        const fade = phase(t, FADE_START, SWITCH);
+      if (t < 1) {
+        this.applyCamera(interpolateCamera(from, destinationInSource, ease(t)));
+        const fade = phase(t, FADE_START, FADE_END);
         setPageOpacity(source.root, 1 - fade);
         setPageOpacity(target.root, fade);
-      }
-      if (!switched && t >= SWITCH) {
-        // Bascule : même image à l'écran, mais la page cible est la page courante, sans transformation.
-        switched = true;
-        restore();
-        // La page source garde la vue d'avant le plongeon (retour, SPEC §11.3).
-        this.pageCameras.set(sourcePage.id, from);
-        this.currentPageId = targetPageId;
-        this.scenes.show(targetPage);
-        settleFrom = equivalentCamera(this.cameraState, embedding);
-        settleTo = remembered ?? fitBounds(targetPage.bounds, this.viewport, { rotation: from.rotation });
-        this.applyCamera(settleFrom);
-        this.events.emit('pageChange', targetPage);
-      }
-      if (switched && settleFrom && settleTo) {
-        this.applyCamera(interpolateCamera(settleFrom, settleTo, ease(phase(t, SWITCH, 1))));
-      }
-      if (t < 1) {
         this.animation = requestAnimationFrame(step);
-      } else {
-        finish();
-        this.events.emit('cameraChange', this.getCameraState());
+        return;
       }
+      // Arrivée : même image à l'écran, mais sur la page cible sans transformation.
+      restore();
+      // La page source garde la vue d'avant le plongeon (retour, SPEC §11.3).
+      this.pageCameras.set(sourcePage.id, from);
+      this.currentPageId = targetPageId;
+      this.scenes.show(targetPage);
+      this.applyCamera(destination);
+      this.events.emit('pageChange', targetPage);
+      finish();
     };
     this.animation = requestAnimationFrame(step);
   }

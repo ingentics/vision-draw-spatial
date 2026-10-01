@@ -1,14 +1,14 @@
 import type { Rect } from '../model/types';
-import { normalizeAngle, screenAxes } from './camera';
-import type { CameraState, Viewport } from './camera';
+import type { CameraState } from './camera';
 
 /**
  * Transition « zoom + fondu » entre pages (SPEC §11.2), partie calcul.
  *
  * Pendant la transition, la page cible est posée *dans* la forme cliquée (transformation
  * d'échelle + translation de son espace page) : elle grossit avec la forme pendant le zoom.
- * À la fin, on retire cette transformation et on passe à une caméra équivalente : l'image
- * à l'écran est identique, la bascule est invisible.
+ * La caméra va en un seul trajet jusqu'à la vue finale de la page cible, exprimée dans ce
+ * repère transformé (`embeddedCamera`). À l'arrivée, on retire la transformation et on applique
+ * la vue finale elle-même : l'image à l'écran est identique, la bascule est invisible.
  */
 
 /** Similitude 2D de l'espace page : p ↦ scale · p + offset. */
@@ -31,22 +31,6 @@ export function easing(name: string): (t: number) => number {
     default:
       return (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
   }
-}
-
-/** Caméra pour laquelle `bounds` recouvre tout l'écran (dans l'orientation donnée). */
-export function coverBounds(bounds: Rect, viewport: Viewport, rotation: number): CameraState {
-  const { right, down } = screenAxes(rotation);
-  const hw = bounds.width / 2;
-  const hh = bounds.height / 2;
-  const screenWidth = 2 * (Math.abs(hw * right.x) + Math.abs(hh * right.y));
-  const screenHeight = 2 * (Math.abs(hw * down.x) + Math.abs(hh * down.y));
-  const zoom = Math.max(viewport.width / Math.max(screenWidth, 1e-6), viewport.height / Math.max(screenHeight, 1e-6));
-  return {
-    mode: 'top',
-    center: { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 },
-    zoom,
-    rotation: normalizeAngle(rotation),
-  };
 }
 
 /**
@@ -76,6 +60,21 @@ export function equivalentCamera(camera: CameraState, embedding: PageEmbedding):
       y: (camera.center.y - embedding.offset.y) / embedding.scale,
     },
     zoom: camera.zoom * embedding.scale,
+  };
+}
+
+/**
+ * Inverse de `equivalentCamera` : la caméra qui montre la page transformée par `embedding`
+ * exactement comme `camera` montre la page sans transformation.
+ */
+export function embeddedCamera(camera: CameraState, embedding: PageEmbedding): CameraState {
+  return {
+    ...camera,
+    center: {
+      x: embedding.scale * camera.center.x + embedding.offset.x,
+      y: embedding.scale * camera.center.y + embedding.offset.y,
+    },
+    zoom: camera.zoom / embedding.scale,
   };
 }
 
