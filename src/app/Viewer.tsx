@@ -14,7 +14,7 @@ import { DiagnosticsPanel } from './DiagnosticsPanel';
 import { store } from './fileLibrary';
 import { IsoSettings } from './IsoSettings';
 import { NavigationToolbar } from './NavigationToolbar';
-import { readIsoPreferences, writeIsoPreferences } from './viewPreferences';
+import { readIsoPreferences, readMinimapVisible, writeIsoPreferences, writeMinimapVisible } from './viewPreferences';
 import type { IsoPreferences } from './viewPreferences';
 import { DEFAULT_VIEW } from '../engine/Engine';
 
@@ -61,6 +61,13 @@ export function Viewer({ file, onShowFiles }: ViewerProps) {
     isoAzimuthDeg: DEFAULT_VIEW.isoAzimuthDeg,
     ...readIsoPreferences(),
   }));
+  const [minimapVisible, setMinimapVisible] = useState(readMinimapVisible);
+  const toggleMinimap = useCallback(() => {
+    setMinimapVisible((visible) => {
+      writeMinimapVisible(!visible);
+      return !visible;
+    });
+  }, []);
   // Réglages lus à la création du moteur ; les changements suivants passent par setViewSettings.
   const [initialIso] = useState(iso);
   const changeIso = (patch: Partial<IsoPreferences>) => {
@@ -235,6 +242,8 @@ export function Viewer({ file, onShowFiles }: ViewerProps) {
             fileId={file.id}
             fonts={FONTS}
             view={initialIso}
+            minimap={{ visible: minimapVisible }}
+            onMinimapToggle={toggleMinimap}
             initialView={initialView}
             onEngine={handleEngine}
             onError={(e) => setError(e instanceof Error ? e.message : String(e))}

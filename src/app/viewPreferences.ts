@@ -26,3 +26,22 @@ export function writeIsoPreferences(preferences: IsoPreferences): void {
     // Stockage indisponible : les réglages valent pour la session seulement.
   }
 }
+
+const MINIMAP_KEY = 'drawio-spatial:minimap-visible';
+
+/** Mini-carte affichée par défaut (SPEC §13 `minimap.visible`). */
+export function readMinimapVisible(): boolean {
+  try {
+    return localStorage.getItem(MINIMAP_KEY) !== '0';
+  } catch {
+    return true;
+  }
+}
+
+export function writeMinimapVisible(visible: boolean): void {
+  try {
+    localStorage.setItem(MINIMAP_KEY, visible ? '1' : '0');
+  } catch {
+    // Stockage indisponible : le choix vaut pour la session seulement.
+  }
+}

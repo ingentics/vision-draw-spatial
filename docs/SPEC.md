@@ -421,6 +421,14 @@ Les contrôles s'appuient sur les touches physiques (`KeyboardEvent.code`) pour 
 - Affiche l'**emprise du viewport** : un rectangle en vue de dessus, un **trapèze** en vue isométrique (projection du frustum sur le sol).
 - Clic / glisser sur la mini-carte pour déplacer la caméra.
 
+Réalisation retenue :
+
+- Canvas 2D superposé (`interaction/minimap.ts`), indépendant du rendu WebGL ; toujours **nord en haut**, quelle que soit la rotation de la vue principale. Largeur 200 px (`minimap.size`), hauteur selon les proportions de la page (bornée).
+- Formes simplifiées : couleur de remplissage du style, contour fin gris ; arêtes en traits fins le long de leur tracé ; textes et groupes non dessinés. Le fond est mis en cache et redessiné seulement quand la page change ; l'emprise est redessinée à chaque mouvement de caméra.
+- **Emprise exacte** : les quatre coins de l'écran projetés sur le sol. La caméra iso étant orthographique (§9.1), l'emprise en iso est un **rectangle tourné et allongé** (de 1 / cos(inclinaison)), et non un trapèze : il n'y a pas de perspective. Elle peut déborder de la mini-carte quand la vue couvre plus que la page.
+- Clic ou glisser : la vue principale se recentre sur le point visé (zoom, rotation et inclinaison conservés).
+- Repliable : bouton × sur la mini-carte, bouton « Mini-carte » pour la rouvrir, touche **M** ; choix mémorisé (`minimap.visible`).
+
 ---
 
 ## 11. Liens entre pages et transitions

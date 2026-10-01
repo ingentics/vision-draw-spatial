@@ -24,6 +24,7 @@ import { CameraController } from './interaction/controls';
 import type { ControlSettings } from './interaction/controls';
 import { NavigationHistory, findParents, usageKey } from './interaction/history';
 import type { HistoryEntry, LinkUsage, ParentLink } from './interaction/history';
+import { Minimap } from './interaction/minimap';
 import { pickElement } from './interaction/pick';
 import type { PickedElement } from './interaction/pick';
 import { easing, embedIn, embeddedCamera, phase } from './interaction/transitions';
@@ -134,6 +135,8 @@ export type EngineEvents = {
   /** Transition vers une page par un lien : début et fin (entrées ignorées entre les deux). */
   transitionStart: [fromPageId: string, toPageId: string];
   transitionEnd: [pageId: string];
+  /** Touche M : l'UI affiche ou masque la mini-carte. */
+  minimapToggle: [];
   /** La pile de navigation a changé (à persister). */
   historyChange: [entries: HistoryEntry[]];
   /** Un lien entre pages vient d'être suivi (à persister pour trier les parents). */
@@ -180,6 +183,7 @@ export class Engine {
   /** Transition en cours : de quoi l'interrompre proprement. */
   private transition: { abort: () => void } | undefined;
   private readonly history = new NavigationHistory();
+  private minimap: Minimap | undefined;
   private linkUsage: LinkUsage = {};
 
   constructor(options: EngineOptions) {
@@ -218,6 +222,7 @@ export class Engine {
         hover: (screen) => this.handleHover(screen),
         back: () => this.back(),
         toggleViewMode: () => this.toggleViewMode(),
+        toggleMinimap: () => this.events.emit('minimapToggle'),
       },
       options.controls,
     );
@@ -317,6 +322,7 @@ export class Engine {
     if (this.currentPageId !== page.id) this.clearSelection();
     this.currentPageId = page.id;
     this.scenes.show(page);
+    this.minimap?.invalidate();
     const camera = this.pageCameras.get(page.id);
     if (camera) this.setCameraState(camera);
     else this.fitToBounds(page.bounds);
@@ -396,6 +402,7 @@ export class Engine {
     const previousZoom = this.cameraState.zoom;
     this.cameraState = normalizeCameraState(state);
     if (this.currentPageId) this.pageCameras.set(this.currentPageId, this.cameraState);
+    this.minimap?.requestDraw();
     // Contour de sélection d'épaisseur constante à l'écran.
     if (this.selection && this.cameraState.zoom !== previousZoom) this.updateSelectionOutline();
     applyCameraState(this.camera, this.cameraState, this.viewport);
@@ -461,6 +468,33 @@ export class Engine {
   /** Orientation courante (rotation + inclinaison), conservée par les cadrages. */
   private orientation(): { rotation: number; tilt: number } {
     return { rotation: this.cameraState.rotation, tilt: this.cameraState.tilt };
+  }
+
+  /**
+   * Affiche la mini-carte dans un canvas fourni par l'UI (SPEC §10). Renvoie de quoi la détacher.
+   * `size` : largeur en pixels CSS (la hauteur suit les proportions de la page).
+   */
+  attachMinimap(canvas: HTMLCanvasElement, size = 200): () => void {
+    this.minimap?.dispose();
+    const minimap = new Minimap(
+      canvas,
+      {
+        getPage: () => this.getCurrentPage(),
+        getCamera: () => this.cameraState,
+        getViewport: () => this.viewport,
+        getEdgeRoute: (id) => this.sceneObject(id)?.userData.route as Point[] | undefined,
+        centerOn: (point) => {
+          if (!this.transition) this.setCameraState({ ...this.cameraState, center: point });
+        },
+      },
+      size,
+    );
+    this.minimap = minimap;
+    minimap.invalidate();
+    return () => {
+      minimap.dispose();
+      if (this.minimap === minimap) this.minimap = undefined;
+    };
   }
 
   /** Revient à l'orientation de référence du mode (nord en haut, ou l'orientation iso), autour du centre de l'écran. */
@@ -677,6 +711,7 @@ export class Engine {
     // Pendant la transition, la page courante est l'extérieure ; l'intérieure est posée dans la forme.
     this.currentPageId = outer.id;
     this.scenes.show(outer);
+    this.minimap?.invalidate();
     innerScene.root.visible = true;
     setPageTransform(innerScene.root, embedding);
     const innerAlpha = (fade: number) => (direction === 'in' ? fade : 1 - fade);
@@ -729,6 +764,7 @@ export class Engine {
       if (outerCameraBefore) this.pageCameras.set(outer.id, outerCameraBefore);
       this.currentPageId = to.id;
       this.scenes.show(to);
+      this.minimap?.invalidate();
       this.applyCamera(destination);
       this.events.emit('pageChange', to);
       finish();
@@ -801,6 +837,7 @@ export class Engine {
     this.transition?.abort();
     this.resizeObserver.disconnect();
     this.controller.dispose();
+    this.minimap?.dispose();
     this.scenes.clear();
     this.text.dispose();
     // Pas de forceContextLoss : le même canvas peut être repris par un nouveau moteur
@@ -824,6 +861,7 @@ export class Engine {
       return;
     }
     applyCameraState(this.camera, this.cameraState, this.viewport);
+    this.minimap?.requestDraw();
     this.requestRender();
   }
 

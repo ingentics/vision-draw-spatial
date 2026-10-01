@@ -124,6 +124,8 @@ export interface CameraHost {
   back?(): void;
   /** Bascule vue de dessus ↔ iso (touche I). */
   toggleViewMode?(): void;
+  /** Affiche / masque la mini-carte (touche M). */
+  toggleMinimap?(): void;
 }
 
 /** Au-delà de ce déplacement (px), un appui-relâché n'est plus un clic. */
@@ -338,6 +340,11 @@ export class CameraController {
     if (event.code === 'KeyI') {
       event.preventDefault();
       if (!event.repeat) this.host.toggleViewMode?.();
+      return;
+    }
+    if (event.code === 'KeyM') {
+      event.preventDefault();
+      if (!event.repeat) this.host.toggleMinimap?.();
       return;
     }
     if (event.code === 'Space') {

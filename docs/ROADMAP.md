@@ -66,10 +66,10 @@
 - Navigation cohérente dans les deux modes (zoom au curseur, pan, rotation, clic, liens, transitions) ; orbite au glisser en mode Tourner.
 - **Fini quand :** le même schéma se consulte en vue de dessus et en isométrique sans perte de repère.
 
-### Étape 8 — Mini-carte
-- En bas à droite, toujours en vue de dessus.
-- Emprise du viewport : rectangle (top) / trapèze (iso).
-- Clic et glisser pour déplacer la caméra.
+### Étape 8 — Mini-carte ✅
+- En bas à droite, toujours en vue de dessus (nord en haut).
+- Emprise du viewport : rectangle (top) / rectangle tourné et allongé (iso orthographique, pas de perspective donc pas de trapèze).
+- Clic et glisser pour déplacer la caméra ; repliable (×, touche M), choix mémorisé.
 - **Fini quand :** la mini-carte suit fidèlement la caméra dans les deux modes.
 
 ### Étape 9 — Liens et transitions ✅ (avancée avant les étapes 6 à 8)
