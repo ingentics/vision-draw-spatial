@@ -1,5 +1,5 @@
 import type { Point } from '../model/types';
-import { panByScreen, rotateAround, zoomAt } from './camera';
+import { panByScreen, rotateAround, tiltAround, zoomAt } from './camera';
 import type { CameraState, Viewport } from './camera';
 
 /**
@@ -122,6 +122,8 @@ export interface CameraHost {
   hover?(screen: Point | undefined): void;
   /** Retour (Retour arrière, Alt+←). */
   back?(): void;
+  /** Bascule vue de dessus ↔ iso (touche I). */
+  toggleViewMode?(): void;
 }
 
 /** Au-delà de ce déplacement (px), un appui-relâché n'est plus un clic. */
@@ -266,7 +268,10 @@ export class CameraController {
       // Rotation autour du point de départ du glisser, qui reste fixe à l'écran.
       // Glisser vers la droite fait tourner le schéma dans le sens horaire.
       const viewport = this.host.getViewport();
-      this.host.setCameraState(rotateAround(state, viewport, drag.pivot, -delta.x * this.settings.rotateSpeed));
+      let next = rotateAround(state, viewport, drag.pivot, -delta.x * this.settings.rotateSpeed);
+      // En iso, le glisser vertical règle l'inclinaison : vers le haut = vers l'horizon (orbite).
+      if (state.mode === 'iso') next = tiltAround(next, viewport, drag.pivot, -delta.y * this.settings.rotateSpeed);
+      this.host.setCameraState(next);
     }
   };
 
@@ -328,6 +333,11 @@ export class CameraController {
       event.preventDefault();
       this.stopDrift();
       this.host.toggleOverview(this.hover);
+      return;
+    }
+    if (event.code === 'KeyI') {
+      event.preventDefault();
+      if (!event.repeat) this.host.toggleViewMode?.();
       return;
     }
     if (event.code === 'Space') {

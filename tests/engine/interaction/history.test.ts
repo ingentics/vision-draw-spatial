@@ -43,7 +43,7 @@ describe('NavigationHistory', () => {
     pageId,
     targetPageId,
     elementId: `${pageId}-link`,
-    camera: { mode: 'top', center: { x: 0, y: 0 }, zoom: 1, rotation: 0 },
+    camera: { mode: 'top', center: { x: 0, y: 0 }, zoom: 1, rotation: 0, tilt: 0 },
   });
 
   it('pile LIFO, copies indépendantes', () => {

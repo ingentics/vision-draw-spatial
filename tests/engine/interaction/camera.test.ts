@@ -11,6 +11,9 @@ import {
   rotateAround,
   sameView,
   screenToPage,
+  tiltAround,
+  tiltFromElevation,
+  withViewMode,
   zoomAt,
 } from '../../../src/engine/interaction/camera';
 import type { CameraState } from '../../../src/engine/interaction/camera';
@@ -21,6 +24,7 @@ const state = (patch: Partial<CameraState> = {}): CameraState => ({
   center: { x: 100, y: 50 },
   zoom: 2,
   rotation: 0,
+  tilt: 0,
   ...patch,
 });
 
@@ -36,6 +40,7 @@ describe('fitBounds', () => {
       center: { x: 340, y: 340 },
       zoom: 1,
       rotation: 0,
+      tilt: 0,
     });
   });
 
@@ -68,7 +73,7 @@ describe('vue globale ↔ 1:1', () => {
   });
 
   it('interpolation : extrémités exactes, zoom géométrique, rotation par le plus court chemin', () => {
-    const from = state({ zoom: 1, rotation: 3 });
+    const from = state({ zoom: 1, rotation: 3, tilt: 0 });
     const to = state({ zoom: 4, rotation: -3, center: { x: 300, y: 50 } });
     expect(interpolateCamera(from, to, 0)).toEqual(from);
     const end = interpolateCamera(from, to, 1);
@@ -100,6 +105,7 @@ describe('normalisation', () => {
       center: { x: 1, y: 2 },
       zoom: 16,
       rotation: 0,
+      tilt: 0,
     });
   });
 
@@ -124,7 +130,7 @@ describe('applyCameraState', () => {
   });
 
   it('concorde avec pageToScreen, rotation comprise', () => {
-    const s = state({ rotation: 0.7 });
+    const s = state({ rotation: 0.7, tilt: 0 });
     for (const p of [
       { x: 130, y: 20 },
       { x: 60, y: 110 },
@@ -159,7 +165,7 @@ describe('navigation', () => {
 
   it('zoomAt : le point sous le curseur reste fixe, zoom borné', () => {
     const cursor = { x: 650, y: 120 };
-    const before = state({ rotation: 0.4 });
+    const before = state({ rotation: 0.4, tilt: 0 });
     const anchor = screenToPage(before, viewport, cursor);
     const after = zoomAt(before, viewport, cursor, 1.5);
     expect(after.zoom).toBeCloseTo(3);
@@ -174,5 +180,89 @@ describe('navigation', () => {
     const after = rotateAround(before, viewport, pivot, Math.PI / 3);
     expect(after.rotation).toBeCloseTo(Math.PI / 3);
     expectPoint(pageToScreen(after, viewport, anchor), pivot);
+  });
+});
+
+describe('mode isométrique (inclinaison)', () => {
+  const iso = (patch: Partial<CameraState> = {}) => state({ mode: 'iso', tilt: tiltFromElevation(35.26), ...patch });
+
+  it('élévation 35,26° (isométrie vraie) → inclinaison ≈ 54,74° ; bornée', () => {
+    expect((tiltFromElevation(35.26) * 180) / Math.PI).toBeCloseTo(54.74, 2);
+    expect(tiltFromElevation(90)).toBe(0);
+    expect((tiltFromElevation(-10) * 180) / Math.PI).toBeCloseTo(80);
+  });
+
+  it('la caméra Three.js inclinée projette exactement comme pageToScreen (rotation comprise)', () => {
+    const camera = new OrthographicCamera();
+    for (const s of [iso(), iso({ rotation: 0.8, zoom: 0.7 }), iso({ tilt: 1.2, rotation: -2 })]) {
+      applyCameraState(camera, s, viewport);
+      camera.updateMatrixWorld();
+      for (const p of [
+        { x: 130, y: 20 },
+        { x: -60, y: 410 },
+        { x: 100, y: 50 },
+      ]) {
+        const ndc = new Vector3(p.x, 0, p.y).project(camera);
+        const screen = pageToScreen(s, viewport, p);
+        expect(((ndc.x + 1) / 2) * viewport.width).toBeCloseTo(screen.x, 4);
+        expect(((1 - ndc.y) / 2) * viewport.height).toBeCloseTo(screen.y, 4);
+        expect(Math.abs(ndc.z)).toBeLessThan(1); // dans le volume de vue (ni trop près ni trop loin)
+      }
+    }
+  });
+
+  it('écran ↔ sol restent inverses ; le sol est écrasé verticalement de cos(inclinaison)', () => {
+    const s = iso({ rotation: 0 });
+    expectPoint(pageToScreen(s, viewport, screenToPage(s, viewport, { x: 13, y: 577 })), { x: 13, y: 577 });
+    const a = pageToScreen(s, viewport, { x: 100, y: 50 });
+    const b = pageToScreen(s, viewport, { x: 100, y: 150 });
+    expect(b.y - a.y).toBeCloseTo(100 * s.zoom * Math.cos(s.tilt));
+  });
+
+  it('navigation cohérente : pan, zoom au curseur et rotation gardent leur point fixe', () => {
+    const s = iso({ rotation: 0.5 });
+    const grabbed = screenToPage(s, viewport, { x: 200, y: 100 });
+    expectPoint(pageToScreen(panByScreen(s, { x: 30, y: 40 }), viewport, grabbed), { x: 230, y: 140 });
+    const anchor = screenToPage(s, viewport, { x: 650, y: 120 });
+    expectPoint(pageToScreen(zoomAt(s, viewport, { x: 650, y: 120 }, 1.7), viewport, anchor), { x: 650, y: 120 });
+    const pivot = screenToPage(s, viewport, { x: 250, y: 400 });
+    expectPoint(pageToScreen(rotateAround(s, viewport, { x: 250, y: 400 }, 1), viewport, pivot), { x: 250, y: 400 });
+  });
+
+  it('tiltAround : le pivot reste fixe, inclinaison bornée à [0, 80°]', () => {
+    const s = iso();
+    const pivot = screenToPage(s, viewport, { x: 300, y: 450 });
+    const tilted = tiltAround(s, viewport, { x: 300, y: 450 }, 0.2);
+    expectPoint(pageToScreen(tilted, viewport, pivot), { x: 300, y: 450 });
+    expect(tiltAround(s, viewport, { x: 0, y: 0 }, 10).tilt).toBeCloseTo((80 * Math.PI) / 180);
+    expect(tiltAround(s, viewport, { x: 0, y: 0 }, -10).tilt).toBe(0);
+  });
+
+  it('fitBounds incliné : la page tient à l’écran malgré la hauteur raccourcie', () => {
+    const bounds = { x: 0, y: 0, width: 400, height: 1000 };
+    const top = fitBounds(bounds, viewport, { padding: 0, maxZoom: 10 });
+    const tilted = fitBounds(bounds, viewport, { padding: 0, maxZoom: 10, tilt: Math.PI / 3 });
+    expect(top.zoom).toBeCloseTo(0.6);
+    expect(tilted.zoom).toBeCloseTo(1.2); // hauteur à l'écran divisée par 2 (cos 60°)
+    expect(tilted.mode).toBe('iso');
+  });
+
+  it('withViewMode : bascule dessus ↔ iso, rotation iso ajoutée puis retirée (aller-retour exact)', () => {
+    const s = state({ rotation: 0.3 });
+    const toIso = withViewMode(s, 'iso', 0.9, Math.PI / 4);
+    expect(toIso).toMatchObject({ mode: 'iso', tilt: 0.9, center: s.center, zoom: s.zoom });
+    expect(toIso.rotation).toBeCloseTo(0.3 + Math.PI / 4);
+    const back = withViewMode({ ...toIso, rotation: toIso.rotation + 0.2 }, 'top', 0.9, Math.PI / 4);
+    expect(back).toMatchObject({ mode: 'top', tilt: 0 });
+    expect(back.rotation).toBeCloseTo(0.5); // la rotation faite en iso est conservée
+    // Déjà dans le mode demandé : seule l'inclinaison est ajustée.
+    expect(withViewMode(toIso, 'iso', 0.5, Math.PI / 4).rotation).toBeCloseTo(toIso.rotation);
+  });
+
+  it('états anciens sans inclinaison : vue de dessus', () => {
+    expect(normalizeCameraState({ center: { x: 0, y: 0 }, zoom: 1, rotation: 0 })).toMatchObject({
+      mode: 'top',
+      tilt: 0,
+    });
   });
 });

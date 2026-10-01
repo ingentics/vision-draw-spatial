@@ -9,10 +9,14 @@ import {
   fitBounds,
   interpolateCamera,
   MAX_ZOOM,
+  normalizeAngle,
   normalizeCameraState,
   rotateAround,
+  ISOMETRIC_ELEVATION_DEG,
   sameView,
   screenToPage,
+  tiltFromElevation,
+  withViewMode,
   zoomAt,
 } from './interaction/camera';
 import type { CameraState, Viewport } from './interaction/camera';
@@ -50,6 +54,24 @@ export interface PreloadSettings {
   hoverDelayMs: number;
 }
 
+/** Modes de vue (SPEC §9.1, §13 `view`). */
+export interface ViewSettings {
+  defaultMode: 'top' | 'iso';
+  /** Élévation de la caméra au-dessus du sol en mode iso, en degrés (35,26 = isométrie vraie). */
+  isoAngleDeg: number;
+  /** Rotation ajoutée en passant en iso, en degrés (45 = isométrie vraie, 0 = simple inclinaison). */
+  isoAzimuthDeg: number;
+  /** Durée de la bascule dessus ↔ iso. */
+  switchDurationMs: number;
+}
+
+export const DEFAULT_VIEW: ViewSettings = {
+  defaultMode: 'top',
+  isoAngleDeg: ISOMETRIC_ELEVATION_DEG,
+  isoAzimuthDeg: 45,
+  switchDurationMs: 450,
+};
+
 export const DEFAULT_TRANSITION: TransitionSettings = { enabled: true, durationMs: 1000, easing: 'ease-in-out' };
 export const DEFAULT_PRELOAD: PreloadSettings = { onClick: true, onHover: false, hoverDelayMs: 300 };
 
@@ -76,6 +98,7 @@ export interface EngineOptions {
   /** Nombre de scènes de pages gardées en mémoire (SPEC §13, `preload.maxCachedPages`). */
   maxCachedPages?: number;
   transition?: Partial<TransitionSettings>;
+  view?: Partial<ViewSettings>;
   preload?: Partial<PreloadSettings>;
   /** Ouverture des liens URL (par défaut : nouvel onglet du navigateur). */
   openUrl?: (href: string) => void;
@@ -136,7 +159,8 @@ export class Engine {
   private currentPageId: string | undefined;
   /** Dernière caméra de chaque page visitée (SPEC §9.4). */
   private pageCameras = new Map<string, CameraState>();
-  private cameraState: CameraState = { mode: 'top', center: { x: 0, y: 0 }, zoom: 1, rotation: 0 };
+  private cameraState: CameraState = { mode: 'top', center: { x: 0, y: 0 }, zoom: 1, rotation: 0, tilt: 0 };
+  private viewSettings: ViewSettings;
   private viewport: Viewport = { width: 1, height: 1 };
   /** Cadrage demandé avant que le canvas ait une taille réelle : appliqué à la première mesure. */
   private pendingFit: Rect | undefined;
@@ -159,6 +183,10 @@ export class Engine {
     this.canvas = options.canvas;
     this.registry = options.registry ?? createDefaultRegistry();
     this.transitionSettings = { ...DEFAULT_TRANSITION, ...options.transition };
+    this.viewSettings = { ...DEFAULT_VIEW, ...options.view };
+    if (this.viewSettings.defaultMode === 'iso') {
+      this.cameraState = withViewMode(this.cameraState, 'iso', this.isoTilt(), this.isoAzimuth());
+    }
     this.preloadSettings = { ...DEFAULT_PRELOAD, ...options.preload };
     this.openUrl = options.openUrl ?? defaultOpenUrl;
     this.renderer = new WebGLRenderer({ canvas: this.canvas, antialias: true });
@@ -186,6 +214,7 @@ export class Engine {
         doubleClick: (screen) => this.handleDoubleClick(screen),
         hover: (screen) => this.handleHover(screen),
         back: () => this.back(),
+        toggleViewMode: () => this.toggleViewMode(),
       },
       options.controls,
     );
@@ -236,9 +265,7 @@ export class Engine {
     const page = this.getCurrentPage();
     if (!page) return;
     const bounds = page.shapes.find((s) => s.id === elementId)?.bounds ?? this.drawnBounds(elementId) ?? page.bounds;
-    this.animateCameraTo(
-      fitBounds(bounds, this.viewport, { rotation: this.cameraState.rotation, padding: 80, maxZoom: 2 }),
-    );
+    this.animateCameraTo(fitBounds(bounds, this.viewport, { ...this.orientation(), padding: 80, maxZoom: 2 }));
   }
 
   /** Emprise dessinée d'un élément de la page courante, en coordonnées page. */
@@ -304,7 +331,7 @@ export class Engine {
       this.pendingFit = bounds;
       return;
     }
-    this.setCameraState(fitBounds(bounds, this.viewport));
+    this.setCameraState(fitBounds(bounds, this.viewport, { tilt: this.cameraState.tilt }));
   }
 
   setCameraState(state: CameraState): void {
@@ -342,7 +369,7 @@ export class Engine {
   getOverviewState(): CameraState | undefined {
     const page = this.getCurrentPage();
     if (!page) return undefined;
-    return fitBounds(page.bounds, this.viewport, { rotation: this.cameraState.rotation, maxZoom: MAX_ZOOM });
+    return fitBounds(page.bounds, this.viewport, { ...this.orientation(), maxZoom: MAX_ZOOM });
   }
 
   /**
@@ -373,10 +400,57 @@ export class Engine {
     this.requestRender();
   }
 
-  /** Remet le nord en haut, en gardant le point au centre de l'écran. */
+  // -------------------------------------------------------------------------
+  // Modes de vue (SPEC §9.1)
+
+  getViewMode(): 'top' | 'iso' {
+    return this.cameraState.mode;
+  }
+
+  /** Bascule animée vers la vue de dessus ou la vue isométrique ; le centre de l'écran ne bouge pas. */
+  setViewMode(mode: 'top' | 'iso'): void {
+    if (this.transition) return;
+    this.animateCameraTo(
+      withViewMode(this.cameraState, mode, this.isoTilt(), this.isoAzimuth()),
+      this.viewSettings.switchDurationMs,
+    );
+  }
+
+  toggleViewMode(): void {
+    this.setViewMode(this.cameraState.mode === 'iso' ? 'top' : 'iso');
+  }
+
+  getViewSettings(): ViewSettings {
+    return { ...this.viewSettings };
+  }
+
+  setViewSettings(patch: Partial<ViewSettings>): void {
+    this.viewSettings = { ...this.viewSettings, ...patch };
+  }
+
+  private isoTilt(): number {
+    return tiltFromElevation(this.viewSettings.isoAngleDeg);
+  }
+
+  private isoAzimuth(): number {
+    return (this.viewSettings.isoAzimuthDeg * Math.PI) / 180;
+  }
+
+  /** Orientation de référence du mode courant : 0 en vue de dessus, l'azimut iso en isométrie. */
+  getReferenceRotation(): number {
+    return this.cameraState.mode === 'iso' ? normalizeAngle(this.isoAzimuth()) : 0;
+  }
+
+  /** Orientation courante (rotation + inclinaison), conservée par les cadrages. */
+  private orientation(): { rotation: number; tilt: number } {
+    return { rotation: this.cameraState.rotation, tilt: this.cameraState.tilt };
+  }
+
+  /** Revient à l'orientation de référence du mode (nord en haut, ou 45° en iso), autour du centre de l'écran. */
   resetRotation(): void {
     const center = { x: this.viewport.width / 2, y: this.viewport.height / 2 };
-    this.setCameraState(rotateAround(this.cameraState, this.viewport, center, -this.cameraState.rotation));
+    const delta = normalizeAngle(this.getReferenceRotation() - this.cameraState.rotation);
+    this.animateCameraTo(rotateAround(this.cameraState, this.viewport, center, delta), 300);
   }
 
   getControls(): ControlSettings {
@@ -472,9 +546,7 @@ export class Engine {
       outer: page,
       inner: target,
       frame,
-      destination:
-        this.pageCameras.get(target.id) ??
-        fitBounds(target.bounds, this.viewport, { rotation: this.cameraState.rotation }),
+      destination: this.pageCameras.get(target.id) ?? fitBounds(target.bounds, this.viewport, this.orientation()),
     });
   }
 
@@ -541,7 +613,7 @@ export class Engine {
     const inner = this.getCurrentPage();
     const outer = this.document?.pages.find((p) => p.id === pageId);
     if (!inner || !outer) return;
-    const destination = camera ?? fitBounds(outer.bounds, this.viewport, { rotation: this.cameraState.rotation });
+    const destination = camera ?? fitBounds(outer.bounds, this.viewport, this.orientation());
     this.runTransition({ direction: 'out', outer, inner, frame, destination });
   }
 
@@ -731,7 +803,7 @@ export class Engine {
     this.viewport = { width, height };
     this.renderer.setSize(width, height, false);
     if (this.pendingFit && this.isMeasured()) {
-      this.setCameraState(fitBounds(this.pendingFit, this.viewport));
+      this.setCameraState(fitBounds(this.pendingFit, this.viewport, { tilt: this.cameraState.tilt }));
       return;
     }
     applyCameraState(this.camera, this.cameraState, this.viewport);

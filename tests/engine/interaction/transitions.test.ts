@@ -21,7 +21,7 @@ describe('embedIn', () => {
 describe('equivalentCamera', () => {
   it('bascule invisible : chaque point est au même endroit à l’écran', () => {
     const embedding = { scale: 0.4, offset: { x: 150, y: 300 } };
-    const camera: CameraState = { mode: 'top', center: { x: 340, y: 440 }, zoom: 6.6, rotation: 0.3 };
+    const camera: CameraState = { mode: 'top', center: { x: 340, y: 440 }, zoom: 6.6, rotation: 0.3, tilt: 0 };
     const equivalent = equivalentCamera(camera, embedding);
     for (const p of [
       { x: 354, y: 220 },
@@ -40,7 +40,7 @@ describe('equivalentCamera', () => {
 describe('embeddedCamera', () => {
   it('inverse de equivalentCamera : la vue finale sur la page posée dans la forme', () => {
     const embedding = { scale: 0.4, offset: { x: 150, y: 300 } };
-    const destination: CameraState = { mode: 'top', center: { x: 414, y: 290 }, zoom: 1.8, rotation: 0.2 };
+    const destination: CameraState = { mode: 'top', center: { x: 414, y: 290 }, zoom: 1.8, rotation: 0.2, tilt: 0 };
     const inSource = embeddedCamera(destination, embedding);
     expect(inSource.zoom).toBeCloseTo(4.5);
     const back = equivalentCamera(inSource, embedding);

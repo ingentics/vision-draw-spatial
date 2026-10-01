@@ -4,7 +4,7 @@ import type { FileStore, StoredFile } from '../../../src/engine/persistence/File
 import { IndexedDbStore } from '../../../src/engine/persistence/IndexedDbStore';
 import { MemoryStore } from '../../../src/engine/persistence/MemoryStore';
 
-const camera = { mode: 'top' as const, center: { x: 1, y: 2 }, zoom: 1.5, rotation: 0.2 };
+const camera = { mode: 'top' as const, center: { x: 1, y: 2 }, zoom: 1.5, rotation: 0.2, tilt: 0 };
 
 const file = (id: string, lastOpenedAt: number, patch: Partial<StoredFile> = {}): StoredFile => ({
   id,

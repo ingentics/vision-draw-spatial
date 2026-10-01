@@ -50,6 +50,8 @@ export function Viewer({ file, onShowFiles }: ViewerProps) {
   const [error, setError] = useState<string>();
   const [middleDrag, setMiddleDrag] = useState(readMiddleDrag);
   const [rotationDeg, setRotationDeg] = useState(0);
+  const [northDeg, setNorthDeg] = useState(0);
+  const [viewMode, setViewMode] = useState<'top' | 'iso'>('top');
   const [report, setReport] = useState<UnsupportedReport>();
   const [cumulative, setCumulative] = useState(cumulativeEntries);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
@@ -145,7 +147,11 @@ export function Viewer({ file, onShowFiles }: ViewerProps) {
       });
       instance.on('cameraChange', (camera) => {
         // Arrondi au degré : pas de rendu React à chaque image tant que l'angle affiché ne change pas.
-        setRotationDeg(Math.round((camera.rotation * 180) / Math.PI) || 0);
+        // Écart à l'orientation de référence du mode (0° en dessus, 45° en iso).
+        const deviation = camera.rotation - instance.getReferenceRotation();
+        setRotationDeg(Math.round((Math.atan2(Math.sin(deviation), Math.cos(deviation)) * 180) / Math.PI) || 0);
+        setNorthDeg(Math.round((camera.rotation * 180) / Math.PI) || 0);
+        setViewMode(camera.mode);
         scheduleSave();
       });
     },
@@ -183,9 +189,12 @@ export function Viewer({ file, onShowFiles }: ViewerProps) {
           <span className="file-name">{file.name}</span>
         </button>
         <NavigationToolbar
+          viewMode={viewMode}
+          onViewModeChange={(mode) => engine?.setViewMode(mode)}
           middleDrag={middleDrag}
           onMiddleDragChange={changeMiddleDrag}
           rotationDeg={rotationDeg}
+          northDeg={northDeg}
           onResetRotation={() => engine?.resetRotation()}
         />
         <button

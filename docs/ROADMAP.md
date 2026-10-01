@@ -61,9 +61,9 @@
 - Mémorisation de la caméra par page, de la dernière page active, de la pile de navigation et de l'usage des liens (debounce 500 ms + à la fermeture).
 - **Fini quand :** en rouvrant l'application, on retrouve le fichier, la page et le point de vue exacts.
 
-### Étape 7 — Mode isométrique
-- Bascule `top` ↔ `iso` animée, angle configurable.
-- Navigation cohérente dans les deux modes.
+### Étape 7 — Mode isométrique ✅
+- Bascule `top` ↔ `iso` animée (boutons « Dessus | Iso », touche I), élévation et rotation iso configurables (35,26° / 45° = isométrie vraie).
+- Navigation cohérente dans les deux modes (zoom au curseur, pan, rotation, clic, liens, transitions) ; orbite au glisser en mode Tourner.
 - **Fini quand :** le même schéma se consulte en vue de dessus et en isométrique sans perte de repère.
 
 ### Étape 8 — Mini-carte
