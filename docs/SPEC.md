@@ -391,7 +391,8 @@ Les contrôles s'appuient sur les touches physiques (`KeyboardEvent.code`) pour 
 ### 9.4 Changement de page
 
 - Sélecteur de page (onglets) dans l'UI, comme dans draw.io.
-- Chaque page conserve sa propre position de caméra.
+- Chaque page conserve sa propre position de caméra : en revenant sur une page, on retrouve la vue de la dernière visite ; à la première visite, la page entière est cadrée.
+- Changer de page ne reconstruit pas une scène déjà construite : les scènes restent en cache (`render/sceneManager`), une seule est visible. Le cache est plafonné (`preload.maxCachedPages`, 8 par défaut) et libère d'abord la page la moins récemment affichée, jamais la page courante.
 
 ---
 

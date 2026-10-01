@@ -49,9 +49,10 @@
 - Panneau **Diagnostics** : éléments non supportés du fichier entier (compteur, pages, exemple de style, occurrences cliquables qui cadrent l'élément), cumul tous fichiers ouverts, avertissements de lecture, **export JSON** (SPEC §8.4).
 - **Fini quand :** un vrai schéma d'architecture est lisible ; les formes inconnues apparaissent en placeholder et sont listées.
 
-### Étape 5 — Pages / onglets
+### Étape 5 — Pages / onglets ✅
 - Sélecteur de pages dans l'UI.
-- Tout le document en mémoire ; scènes Three.js construites à la demande et mises en cache.
+- Tout le document en mémoire ; scènes Three.js construites à la demande et mises en cache (`SceneManager`, plafond `maxCachedPages`, libération de la moins récemment affichée).
+- Chaque page garde sa caméra ; mémorisée aussi pour le rechargement en dev (base du `cameraByPage` de l'étape 6).
 - **Fini quand :** on bascule entre les pages d'un fichier multi-pages sans rechargement.
 
 ### Étape 6 — Persistance et lanceur

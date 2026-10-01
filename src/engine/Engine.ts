@@ -19,6 +19,7 @@ import type { ControlSettings } from './interaction/controls';
 import type { DocumentModel, PageModel, Point, Rect } from './model/types';
 import { buildPageScene } from './render/pageScene';
 import type { PageScene } from './render/pageScene';
+import { SceneManager } from './render/sceneManager';
 import { createDefaultRegistry } from './render/registry';
 import type { RendererRegistry } from './render/registry';
 import { createTroikaTextFactory } from './render/troikaText';
@@ -31,12 +32,16 @@ export interface EngineOptions {
   registry?: RendererRegistry;
   background?: string;
   controls?: Partial<ControlSettings>;
+  /** Nombre de scènes de pages gardées en mémoire (SPEC §13, `preload.maxCachedPages`). */
+  maxCachedPages?: number;
 }
 
-/** Vue à restaurer au chargement (SPEC §5.3) : dernière page active et sa caméra. */
+/** Vue à restaurer au chargement (SPEC §5.3) : dernière page active et caméras par page. */
 export interface InitialView {
   pageId?: string;
+  /** Caméra de la page `pageId` (prioritaire sur `cameraByPage`). */
   camera?: CameraState;
+  cameraByPage?: Record<string, CameraState>;
 }
 
 export type EngineEvents = {
@@ -61,7 +66,10 @@ export class Engine {
   private document: DocumentModel | undefined;
   private unsupportedReport: UnsupportedReport | undefined;
   private fileId: string | undefined;
-  private pageScene: PageScene | undefined;
+  private readonly scenes: SceneManager;
+  private currentPageId: string | undefined;
+  /** Dernière caméra de chaque page visitée (SPEC §9.4). */
+  private pageCameras = new Map<string, CameraState>();
   private cameraState: CameraState = { mode: 'top', center: { x: 0, y: 0 }, zoom: 1, rotation: 0 };
   private viewport: Viewport = { width: 1, height: 1 };
   /** Cadrage demandé avant que le canvas ait une taille réelle : appliqué à la première mesure. */
@@ -77,6 +85,11 @@ export class Engine {
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.scene.background = new Color(options.background ?? '#ffffff');
     this.text = createTroikaTextFactory(options.fonts ?? {}, this.requestRender);
+    this.scenes = new SceneManager(
+      this.scene,
+      (page) => buildPageScene(page, this.registry, { text: this.text }),
+      options.maxCachedPages,
+    );
 
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(this.canvas);
@@ -99,14 +112,22 @@ export class Engine {
     this.document = document;
     this.fileId = fileId;
     this.unsupportedReport = collectUnsupported(document, this.registry);
+    this.scenes.clear();
+    this.currentPageId = undefined;
+    this.pageCameras = new Map(
+      Object.entries(initialView?.cameraByPage ?? {}).map(([id, camera]) => [id, normalizeCameraState(camera)]),
+    );
+    if (initialView?.pageId && initialView.camera) {
+      this.pageCameras.set(initialView.pageId, normalizeCameraState(initialView.camera));
+    }
     this.events.emit('load', document, fileId);
     const page = document.pages.find((p) => p.id === initialView?.pageId) ?? document.pages[0];
     if (!page) {
-      this.showPage(undefined);
+      this.scenes.hideAll();
+      this.requestRender();
       return;
     }
     this.goToPage(page.id);
-    if (initialView?.camera && page.id === initialView.pageId) this.setCameraState(initialView.camera);
   }
 
   getDocument(): DocumentModel | undefined {
@@ -123,7 +144,7 @@ export class Engine {
    * sur leurs bornes, les arêtes sur leur tracé dessiné.
    */
   focusElement(pageId: string, elementId: string): void {
-    if (this.pageScene?.pageId !== pageId) this.goToPage(pageId);
+    if (this.currentPageId !== pageId) this.goToPage(pageId);
     const page = this.getCurrentPage();
     if (!page) return;
     const bounds = page.shapes.find((s) => s.id === elementId)?.bounds ?? this.drawnBounds(elementId) ?? page.bounds;
@@ -134,7 +155,7 @@ export class Engine {
 
   /** Emprise dessinée d'un élément de la page courante, en coordonnées page. */
   private drawnBounds(elementId: string): Rect | undefined {
-    const object = this.pageScene?.root.children.find((c) => c.userData.elementId === elementId);
+    const object = this.scenes.current?.root.children.find((c) => c.userData.elementId === elementId);
     if (!object) return undefined;
     const box = new Box3().setFromObject(object);
     if (box.isEmpty()) return undefined;
@@ -147,19 +168,39 @@ export class Engine {
   }
 
   getCurrentPage(): PageModel | undefined {
-    return this.document?.pages.find((p) => p.id === this.pageScene?.pageId);
+    return this.document?.pages.find((p) => p.id === this.currentPageId);
   }
 
   /** Scène de la page courante (lecture seule : diagnostics, tests). */
   getPageScene(): PageScene | undefined {
-    return this.pageScene;
+    return this.scenes.current;
   }
 
+  /** Pages dont la scène est construite, de la moins à la plus récemment affichée. */
+  getCachedPageIds(): string[] {
+    return this.scenes.cachedIds();
+  }
+
+  /** Dernière caméra de chaque page visitée (à persister, SPEC §5.1 `cameraByPage`). */
+  getPageCameras(): Record<string, CameraState> {
+    return structuredClone(Object.fromEntries(this.pageCameras));
+  }
+
+  /**
+   * Affiche une page (SPEC §9.4) : sa scène est reprise du cache si elle a déjà été construite,
+   * et sa caméra est celle de la dernière visite (sinon la page entière est cadrée).
+   */
   goToPage(pageId: string): void {
     const page = this.document?.pages.find((p) => p.id === pageId);
     if (!page) throw new Error(`Page inconnue : ${pageId}`);
-    this.showPage(page);
-    this.fitToBounds(page.bounds);
+    cancelAnimationFrame(this.animation);
+    this.animation = 0;
+    this.currentPageId = page.id;
+    this.scenes.show(page);
+    const camera = this.pageCameras.get(page.id);
+    if (camera) this.setCameraState(camera);
+    else this.fitToBounds(page.bounds);
+    this.requestRender();
     this.events.emit('pageChange', page);
   }
 
@@ -233,6 +274,7 @@ export class Engine {
   private applyCamera(state: CameraState): void {
     this.pendingFit = undefined;
     this.cameraState = normalizeCameraState(state);
+    if (this.currentPageId) this.pageCameras.set(this.currentPageId, this.cameraState);
     applyCameraState(this.camera, this.cameraState, this.viewport);
     this.events.emit('cameraChange', this.getCameraState());
     this.requestRender();
@@ -263,26 +305,13 @@ export class Engine {
     cancelAnimationFrame(this.animation);
     this.resizeObserver.disconnect();
     this.controller.dispose();
-    this.showPage(undefined);
+    this.scenes.clear();
     this.text.dispose();
     this.renderer.dispose();
     this.events.clear();
   }
 
   // -------------------------------------------------------------------------
-
-  private showPage(page: PageModel | undefined): void {
-    if (this.pageScene) {
-      this.scene.remove(this.pageScene.root);
-      this.pageScene.dispose();
-      this.pageScene = undefined;
-    }
-    if (page) {
-      this.pageScene = buildPageScene(page, this.registry, { text: this.text });
-      this.scene.add(this.pageScene.root);
-    }
-    this.requestRender();
-  }
 
   private resize(): void {
     // Taille exacte (clientWidth/clientHeight arrondissent, ce qui décale le zoom au curseur).

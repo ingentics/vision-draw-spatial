@@ -57,7 +57,7 @@ export function App() {
   // Vue restaurée une seule fois, au premier chargement après un rechargement de page.
   const [initialView] = useState(() => {
     const session = readDevSession();
-    return session ? { fileId: session.fileId, pageId: session.pageId, camera: session.camera } : undefined;
+    return session ? { fileId: session.fileId, pageId: session.pageId, cameraByPage: session.cameraByPage } : undefined;
   });
   const [engine, setEngine] = useState<Engine>();
   const [document, setDocument] = useState<DocumentModel>();
@@ -96,16 +96,17 @@ export function App() {
     instance.on('pageChange', (page) => {
       setPageId(page.id);
       const fileId = instance.getFileId();
-      if (fileId) patchDevSession(fileId, { pageId: page.id, camera: undefined });
+      if (fileId) patchDevSession(fileId, { pageId: page.id });
     });
     let timer: ReturnType<typeof setTimeout> | undefined;
+    // Caméras par page enregistrées après un court délai (pas à chaque image d'un déplacement).
     instance.on('cameraChange', (camera) => {
       // Arrondi au degré : pas de rendu React à chaque image tant que l'angle affiché ne change pas.
       setRotationDeg(Math.round((camera.rotation * 180) / Math.PI) || 0);
       clearTimeout(timer);
       timer = setTimeout(() => {
         const fileId = instance.getFileId();
-        if (fileId) patchDevSession(fileId, { camera });
+        if (fileId) patchDevSession(fileId, { cameraByPage: instance.getPageCameras() });
       }, CAMERA_SAVE_DELAY_MS);
     });
   }, []);

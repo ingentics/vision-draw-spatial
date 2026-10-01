@@ -13,7 +13,8 @@ export interface DevSession {
   /** Contenu, seulement pour un fichier ouvert depuis le disque (les démos sont dans le bundle). */
   xml?: string;
   pageId?: string;
-  camera?: CameraState;
+  /** Dernière caméra de chaque page visitée. */
+  cameraByPage?: Record<string, CameraState>;
 }
 
 export function readDevSession(): DevSession | undefined {
