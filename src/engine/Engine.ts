@@ -34,7 +34,7 @@ import type { PickedElement } from './interaction/pick';
 import { easing, embedIn, embeddedCamera, phase } from './interaction/transitions';
 import type { DocumentModel, LinkModel, PageModel, Point, Rect } from './model/types';
 import { selectionOutline } from './render/decorations';
-import { createVeil, liftAboveVeil } from './render/highlight';
+import { createVeil, createVeilHole, liftAboveVeil } from './render/highlight';
 import { disposeObject } from './render/meshes';
 import { setPageOpacity } from './render/pageEffects';
 import { buildPageScene, effectiveLevel } from './render/pageScene';
@@ -63,6 +63,8 @@ function defaultOpenUrl(href: string): void {
 
 /** Pixels écran de tolérance pour attraper une arête. */
 const EDGE_PICK_TOLERANCE = 6;
+/** Marge du trou dans le voile autour d'une flèche sélectionnée, en pixels écran (de chaque côté). */
+const VEIL_HOLE_PADDING = 10;
 
 export interface EngineOptions {
   canvas: HTMLCanvasElement;
@@ -153,6 +155,8 @@ export class Engine {
   private selectionPhase = 0;
   /** Voile de mise en valeur de la sélection, et de quoi l'annuler. */
   private veil: { key: string; object: Object3D; restore: () => void } | undefined;
+  /** Trou du voile autour d'une flèche sélectionnée (dépend du zoom : largeur fixe à l'écran). */
+  private veilHole: { key: string; object: Object3D } | undefined;
   private selectionAnimation = 0;
   private hoverTimer: ReturnType<typeof setTimeout> | undefined;
   /** Transition en cours : de quoi l'interrompre proprement. */
@@ -177,7 +181,8 @@ export class Engine {
       this.cameraState = withViewMode(this.cameraState, 'iso', this.isoTilt(), this.isoAzimuth());
     }
     this.openUrl = options.openUrl ?? defaultOpenUrl;
-    this.renderer = new WebGLRenderer({ canvas: this.canvas, antialias: true });
+    // Stencil : trous du voile de sélection autour des flèches (render/highlight).
+    this.renderer = new WebGLRenderer({ canvas: this.canvas, antialias: true, stencil: true });
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.scene.background = new Color(options.background ?? '#ffffff');
     this.text = createTroikaTextFactory(options.fonts ?? {}, this.requestRender);
@@ -1036,6 +1041,26 @@ export class Engine {
       }
     }
 
+    // Flèches et liaisons : le voile est percé autour de leur tracé (≈ 10 px de chaque côté à l'écran).
+    const hole =
+      veilKey && visible?.picked.type === 'edge'
+        ? (this.sceneObject(visible.picked.element.id) as Object3D | undefined)
+        : undefined;
+    const holeKey = hole ? `${veilKey}:${this.cameraState.zoom}` : undefined;
+    if (this.veilHole?.key !== holeKey) {
+      this.veilHole?.object.removeFromParent();
+      if (this.veilHole) disposeObject(this.veilHole.object);
+      this.veilHole = undefined;
+      const route = hole?.userData.route as Point[] | undefined;
+      if (holeKey && hole && root && route && route.length >= 2) {
+        const strokeWidth = parseFloat((visible?.picked.element.style.strokeWidth as string | undefined) ?? '1') || 1;
+        const width = strokeWidth + (2 * VEIL_HOLE_PADDING) / this.cameraState.zoom;
+        const object = createVeilHole(route, hole.position.z, width);
+        root.add(object);
+        this.veilHole = { key: holeKey, object };
+      }
+    }
+
     if (visible && root && this.settings.selection.style === 'outline') {
       const { picked } = visible;
       const bounds = picked.type === 'shape' ? picked.element.bounds : this.drawnBounds(picked.element.id);
@@ -1053,6 +1078,9 @@ export class Engine {
   }
 
   private clearVeil(): void {
+    this.veilHole?.object.removeFromParent();
+    if (this.veilHole) disposeObject(this.veilHole.object);
+    this.veilHole = undefined;
     if (!this.veil) return;
     this.veil.restore();
     this.veil.object.removeFromParent();

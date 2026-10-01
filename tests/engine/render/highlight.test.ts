@@ -1,8 +1,8 @@
-import { Object3D } from 'three';
+import { AlwaysStencilFunc, Box3, NotEqualStencilFunc, Object3D, ReplaceStencilOp } from 'three';
 import type { Mesh, MeshBasicMaterial } from 'three';
 import { describe, expect, it } from 'vitest';
 import { parseDrawio } from '../../../src/engine/format/parse';
-import { VEIL_ORDER, createVeil, liftAboveVeil } from '../../../src/engine/render/highlight';
+import { VEIL_ORDER, createVeil, createVeilHole, liftAboveVeil } from '../../../src/engine/render/highlight';
 import { buildPageScene } from '../../../src/engine/render/pageScene';
 import { createDefaultRegistry } from '../../../src/engine/render/shapes/registry';
 import { fixture } from '../../helpers';
@@ -54,5 +54,43 @@ describe('voile de sélection', () => {
     const restore = liftAboveVeil(scene.root.children.filter((c) => c.userData.elementId === B));
     restore();
     expect(orders(scene.root)).toEqual(initial);
+  });
+});
+
+describe('trou dans le voile (flèches, liaisons)', () => {
+  const route = [
+    { x: 0, y: 0 },
+    { x: 100, y: 0 },
+    { x: 100, y: 50 },
+  ];
+
+  it('masque invisible qui marque le stencil juste avant le voile ; le voile l’épargne', () => {
+    const hole = createVeilHole(route, 0, 20);
+    const mask = hole.children[0] as Mesh;
+    const material = mask.material as MeshBasicMaterial;
+    expect(hole.renderOrder).toBeLessThan(VEIL_ORDER);
+    expect(material).toMatchObject({
+      colorWrite: false,
+      stencilWrite: true,
+      stencilFunc: AlwaysStencilFunc,
+      stencilZPass: ReplaceStencilOp,
+    });
+    const veil = (createVeil(page.bounds, 0.35).children[0] as Mesh).material as MeshBasicMaterial;
+    expect(veil).toMatchObject({
+      stencilWrite: true,
+      stencilFunc: NotEqualStencilFunc,
+      stencilRef: material.stencilRef,
+    });
+  });
+
+  it('bande de la largeur demandée autour du tracé, extrémités arrondies comprises', () => {
+    const mask = createVeilHole(route, 5, 20).children[0] as Mesh;
+    mask.updateMatrixWorld(true);
+    const box = new Box3().setFromObject(mask);
+    expect(box.min.x).toBeCloseTo(-10);
+    expect(box.max.x).toBeCloseTo(110);
+    expect(box.min.y).toBeCloseTo(-10);
+    expect(box.max.y).toBeCloseTo(60);
+    expect(box.min.z).toBeCloseTo(5);
   });
 });
