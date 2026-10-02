@@ -111,7 +111,8 @@
 - Sélection et déplacement à la souris (en top et en iso, projection sur le sol).
 - Écriture in situ des attributs modifiés uniquement.
 - Sauvegarde (téléchargement + mise à jour du `FileStore`).
-- **Fini quand :** le critère d'acceptation SPEC §14.4 est validé dans draw.io.
+- État de vue par page : enregistrer dans les attributs de la page la position de la caméra et le mode de rendu (`top` / `iso`) avec ses paramètres (orientation, élévation, volumes, épaisseur) ; à l'ouverture d'un fichier ou au retour sur une page, la vue reprend exactement cet état.
+- **Fini quand :** le critère d'acceptation SPEC §14.4 est validé dans draw.io, et un fichier sauvegardé puis rouvert (ici comme après un passage dans draw.io) retrouve la même caméra et le même mode de rendu sur chaque page.
 
 ### Étape 15 — Palette et création
 - Palette de formes, glisser-déposer sur le plan.
