@@ -58,6 +58,13 @@ export interface SelectionSettings {
   speed: number;
 }
 
+/** Sauvegarde automatique (édition) : peu après chaque modification, sans interrompre un geste en cours. */
+export interface SaveSettings {
+  autosave: boolean;
+  /** Délai après la dernière modification. */
+  delayMs: number;
+}
+
 export interface DebugSettings {
   /** Bouton et panneau « Diagnostics » (styles non supportés, SPEC §8.4). */
   showUnsupportedPanel: boolean;
@@ -75,6 +82,7 @@ export interface Settings {
   view: ViewSettings;
   minimap: MinimapSettings;
   selection: SelectionSettings;
+  save: SaveSettings;
   debug: DebugSettings;
   accessibility: AccessibilitySettings;
 }
@@ -100,6 +108,7 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   minimap: { visible: true, size: 200 },
   selection: { style: 'veil', veilOpacity: 0.35, animated: true, speed: 12 },
+  save: { autosave: true, delayMs: 1000 },
   debug: { showUnsupportedPanel: true },
   accessibility: { reducedMotion: 'system' },
 };
@@ -120,6 +129,7 @@ export const SETTINGS_LIMITS = {
   'minimap.size': { min: 120, max: 400, step: 10 },
   'selection.speed': { min: 2, max: 80, step: 1 },
   'selection.veilOpacity': { min: 0.05, max: 0.85, step: 0.05 },
+  'save.delayMs': { min: 300, max: 30000, step: 100 },
 } as const;
 
 const EASINGS = ['linear', 'ease-in', 'ease-out', 'ease-in-out'] as const;
@@ -196,6 +206,10 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
       veilOpacity: num('selection.veilOpacity', p.selection?.veilOpacity, base.selection.veilOpacity),
       animated: bool(p.selection?.animated, base.selection.animated),
       speed: num('selection.speed', p.selection?.speed, base.selection.speed),
+    },
+    save: {
+      autosave: bool(p.save?.autosave, base.save.autosave),
+      delayMs: num('save.delayMs', p.save?.delayMs, base.save.delayMs),
     },
     debug: { showUnsupportedPanel: bool(p.debug?.showUnsupportedPanel, base.debug.showUnsupportedPanel) },
     accessibility: {

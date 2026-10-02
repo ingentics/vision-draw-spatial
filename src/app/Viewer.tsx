@@ -69,6 +69,7 @@ export function Viewer({
   const [backTarget, setBackTarget] = useState<BackTarget>({ kind: 'none' });
   const [backChoices, setBackChoices] = useState<ParentLink[]>();
   const [modified, setModified] = useState(false);
+  const [autosavedAt, setAutosavedAt] = useState<number>();
   const [undoLabels, setUndoLabels] = useState<{ undo?: string; redo?: string }>({});
   const [selection, setSelection] = useState<Selection>();
   const [labelEdit, setLabelEdit] = useState<LabelEditRequest>();
@@ -126,25 +127,36 @@ export function Viewer({
    * Sauvegarde (SPEC §14.1) : XML réécrit en place par le moteur (avec l'état de vue des pages),
    * téléchargé sous le nom du fichier et enregistré dans la bibliothèque.
    */
+  /**
+   * Enregistre le XML sauvegardé : navigateur → bibliothèque, et téléchargement si demandé ;
+   * appli native → le vrai fichier (un exemple embarqué : « Enregistrer sous » si demandé,
+   * sinon sa copie dans la bibliothèque).
+   */
+  const persist = useCallback(
+    (xml: string, auto: boolean) => {
+      save();
+      const report = (cause: unknown) =>
+        setError(`Sauvegarde impossible : ${cause instanceof Error ? cause.message : String(cause)}`);
+      if (desktop && !isFilePath(file.id) && !auto) {
+        void saveAs(xml, file.name).then((saved) => saved && onFileReplaced?.(saved));
+        return;
+      }
+      if (!desktop && !auto) download(file.name.split('/').pop() || 'diagram.drawio', xml);
+      store.updateMeta(file.id, { content: xml, size: xml.length }).then(() => {
+        setError(undefined);
+        if (auto) setAutosavedAt(Date.now());
+      }, report);
+    },
+    [file.id, file.name, save, onFileReplaced],
+  );
+
+  /** Sauvegarde demandée (bouton, Ctrl+S hors du canvas). */
   const saveFile = useCallback(() => {
     const instance = engineRef.current;
     if (!instance || instance.getFileId() !== file.id) return;
     const xml = instance.serialize();
-    if (xml === undefined) return;
-    save();
-    if (!desktop) {
-      download(file.name.split('/').pop() || 'diagram.drawio', xml);
-      void store.updateMeta(file.id, { content: xml, size: xml.length });
-    } else if (isFilePath(file.id)) {
-      // Appli native : le vrai fichier est réécrit.
-      store.updateMeta(file.id, { content: xml, size: xml.length }).catch((cause: unknown) => {
-        setError(`Sauvegarde impossible : ${cause instanceof Error ? cause.message : String(cause)}`);
-      });
-    } else {
-      // Exemple embarqué : « Enregistrer sous », puis on continue sur le fichier créé.
-      void saveAs(xml, file.name).then((saved) => saved && onFileReplaced?.(saved));
-    }
-  }, [file.id, file.name, save, onFileReplaced]);
+    if (xml !== undefined) persist(xml, false);
+  }, [file.id, persist]);
 
   // Ctrl+S / ⌘S : sauvegarde (plutôt que l'enregistrement de la page par le navigateur).
   // Ctrl+Z annule, Ctrl+Maj+Z ou Ctrl+Y rétablit (hors saisie dans un champ).
@@ -269,11 +281,17 @@ export function Viewer({
         <button
           type="button"
           className={modified ? 'button save-button modified' : 'button save-button'}
-          title={
-            modified
-              ? 'Sauvegarder les modifications (Ctrl+S) : téléchargement et bibliothèque'
-              : 'Sauvegarder (Ctrl+S) : téléchargement, avec la vue de chaque page'
-          }
+          title={[
+            desktop ? 'Sauvegarder le fichier (Ctrl+S)' : 'Sauvegarder (Ctrl+S) : téléchargement et bibliothèque',
+            modified ? 'modifications non sauvegardées' : undefined,
+            autosavedAt
+              ? `enregistré automatiquement à ${new Date(autosavedAt).toLocaleTimeString('fr-FR')}`
+              : settings.save.autosave
+                ? 'sauvegarde automatique activée'
+                : undefined,
+          ]
+            .filter(Boolean)
+            .join(' — ')}
           onClick={saveFile}
         >
           <svg viewBox="0 0 16 16" aria-hidden="true">
@@ -398,6 +416,9 @@ export function Viewer({
             minimap={settings.minimap}
             onMinimapToggle={toggleMinimap}
             initialView={initialView}
+            autosave={settings.save.autosave}
+            autosaveDelayMs={settings.save.delayMs}
+            onSave={(xml, { auto }) => persist(xml, auto)}
             onEngine={handleEngine}
             onError={(e) => setError(e instanceof Error ? e.message : String(e))}
           />

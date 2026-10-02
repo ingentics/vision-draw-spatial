@@ -4,6 +4,7 @@ import { RESERVED_CODES } from '../engine/interaction/controls';
 import type { Shortcuts } from '../engine/interaction/controls';
 import { SETTINGS_LIMITS } from '../engine/settings';
 import type { Settings, SettingsPatch } from '../engine/settings';
+import { desktop } from './desktop';
 import { IsoIcon, IsoSettings } from './IsoSettings';
 
 interface SettingsPanelProps {
@@ -23,7 +24,7 @@ const SHORTCUT_LABELS: Record<keyof Shortcuts, string> = {
 
 /** Panneau de paramètres (SPEC §13) : tout s'applique immédiatement et est mémorisé. */
 export function SettingsPanel({ settings, onChange, onReset, onClose }: SettingsPanelProps) {
-  const { controls, view, transition, preload, minimap, selection, accessibility, debug } = settings;
+  const { controls, view, transition, preload, minimap, selection, accessibility, debug, save } = settings;
   const systemReduced = useSystemReducedMotion();
 
   return (
@@ -258,6 +259,27 @@ export function SettingsPanel({ settings, onChange, onReset, onClose }: Settings
             />
           ))}
           <p className="hint muted">Le déplacement (ZQSD / WASD, flèches) et Espace ne sont pas attribuables.</p>
+        </Section>
+
+        <Section title="Sauvegarde">
+          <Toggle
+            label="Sauvegarde automatique"
+            checked={save.autosave}
+            onChange={(autosave) => onChange({ save: { autosave } })}
+          />
+          <Slider
+            label="Délai après la dernière modification"
+            value={save.delayMs}
+            limits={SETTINGS_LIMITS['save.delayMs']}
+            format={(ms) => (ms < 1000 ? `${ms} ms` : `${(ms / 1000).toLocaleString('fr-FR')} s`)}
+            disabled={!save.autosave}
+            onChange={(delayMs) => onChange({ save: { delayMs } })}
+          />
+          <p className="hint muted">
+            {desktop
+              ? 'Le fichier est réécrit sur le disque. Un exemple est gardé dans la bibliothèque ; « Sauvegarder » l’enregistre comme fichier.'
+              : 'Le fichier est enregistré dans la bibliothèque du navigateur ; « Sauvegarder » le télécharge en plus.'}
+          </p>
         </Section>
 
         <Section title="Diagnostics">

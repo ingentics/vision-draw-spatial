@@ -436,6 +436,11 @@ export class Engine {
     this.canvas.focus({ preventScroll: true });
   }
 
+  /** Geste d'édition en cours (déplacement, redimensionnement, connecteur) : ne pas l'interrompre. */
+  isDragging(): boolean {
+    return this.drag?.started === true;
+  }
+
   isEditable(): boolean {
     return this.editable;
   }

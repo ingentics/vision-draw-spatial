@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, Ref } from 'react';
+import { Autosaver } from '../engine/edit/autosave';
 import { Engine } from '../engine/Engine';
 import type { InitialView, Selection, SettingsPatch } from '../engine/Engine';
 import type { CameraState } from '../engine/interaction/camera';
@@ -60,8 +61,15 @@ export interface DrawioSpatialProps {
   onCameraChange?: (camera: CameraState) => void;
   /** Modifications non sauvegardées (édition), ou plus après une sauvegarde / un retour en arrière. */
   onModifiedChange?: (modified: boolean) => void;
-  /** Sauvegarde demandée (Ctrl+S ou `ref.save()`), avec le XML à jour. */
-  onSave?: (xml: string) => void;
+  /**
+   * Sauvegarde, avec le XML à jour : demandée (Ctrl+S, `ref.save()`, `auto: false`) ou automatique
+   * (`autosave`, `auto: true`). Avec un `store`, le contenu y est aussi enregistré.
+   */
+  onSave?: (xml: string, info: { auto: boolean }) => void;
+  /** Sauvegarde automatique peu après chaque modification (édition). Désactivée par défaut. */
+  autosave?: boolean;
+  /** Délai de la sauvegarde automatique après la dernière modification. Défaut : 1 s. */
+  autosaveDelayMs?: number;
 }
 
 /** Vue mémorisée du fichier (SPEC §5.3) : enregistrée 500 ms après le dernier changement. */
@@ -204,16 +212,41 @@ export function DrawioSpatial(props: DrawioSpatialProps) {
     };
   }, [engine, store, fileId]);
 
-  const save = useCallback((): string | undefined => {
-    const current = propsRef.current;
-    const content = engine?.serialize();
-    if (content === undefined) return undefined;
-    current.onSave?.(content);
-    if (current.store && engine?.getFileId() === (current.fileId ?? 'inline')) {
-      void current.store.updateMeta(engine.getFileId()!, { content, size: content.length });
-    }
-    return content;
-  }, [engine]);
+  const save = useCallback(
+    (auto = false): string | undefined => {
+      const current = propsRef.current;
+      const content = engine?.serialize();
+      if (content === undefined) return undefined;
+      current.onSave?.(content, { auto });
+      if (current.store && engine?.getFileId() === (current.fileId ?? 'inline')) {
+        void current.store.updateMeta(engine.getFileId()!, { content, size: content.length });
+      }
+      return content;
+    },
+    [engine],
+  );
+
+  // Sauvegarde automatique : après chaque modification (ou annulation), une fois le geste terminé ;
+  // ce qui attend encore est sauvegardé en quittant (démontage, fermeture de la page).
+  const autosave = props.autosave ?? false;
+  const autosaveDelayMs = props.autosaveDelayMs ?? 1000;
+  useEffect(() => {
+    if (!engine || !autosave) return;
+    const saver = new Autosaver({
+      delayMs: autosaveDelayMs,
+      pending: () => engine.isModified(),
+      busy: () => engine.isDragging(),
+      save: () => save(true),
+    });
+    const unsubscribe = engine.on('undoChange', () => saver.changed());
+    const flush = () => saver.flush();
+    window.addEventListener('pagehide', flush);
+    return () => {
+      unsubscribe();
+      window.removeEventListener('pagehide', flush);
+      saver.flush();
+    };
+  }, [engine, autosave, autosaveDelayMs, save]);
 
   useImperativeHandle(
     ref,
@@ -221,7 +254,7 @@ export function DrawioSpatial(props: DrawioSpatialProps) {
       get engine() {
         return engine;
       },
-      save,
+      save: () => save(),
       undo: () => engine?.undo(),
       redo: () => engine?.redo(),
     }),

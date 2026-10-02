@@ -807,21 +807,23 @@ body {
 }
 
 /* Édition : barre de la sélection, champ de label */
+/* En bas à gauche, à côté de la mini-carte (200 px + marges) ; passe à la ligne si la vue est étroite. */
 .selection-bar {
   position: absolute;
-  left: 50%;
+  left: 12px;
   bottom: 12px;
   z-index: 5;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
-  max-width: calc(100% - 260px);
+  gap: 6px 10px;
+  max-width: calc(100% - 248px);
+  box-sizing: border-box;
   padding: 6px 10px;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--panel);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-  transform: translateX(-50%);
   white-space: nowrap;
 }
 

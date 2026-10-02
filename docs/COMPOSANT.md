@@ -52,6 +52,8 @@ y est enregistré. L'interface `FileStore` (SPEC §5.1) permet de brancher un au
 | `store` | `FileStore` | | Bibliothèque : lecture du fichier, vue mémorisée, sauvegarde |
 | `fileId` | `string` | `'inline'` | Identifiant stable du fichier (obligatoire avec `store`) |
 | `editable` | `boolean` | `false` | Édition (déplacer, redimensionner, connecter, textes, annuler…) |
+| `autosave` | `boolean` | `false` | Sauvegarde automatique après chaque modification (appelle `onSave` avec `auto: true`, et le `store`) |
+| `autosaveDelayMs` | `number` | `1000` | Délai après la dernière modification ; jamais pendant un geste en cours, et au démontage s'il reste quelque chose |
 | `background` | `string` | `'#ffffff'` | Couleur de fond de la vue (lue à la création) |
 | `fonts` | `{ regular?, bold? }` | | URLs de polices (.ttf, .otf, .woff ; Roboto conseillée). Sans police, troika en charge une depuis un CDN |
 | `settings` | `SettingsPatch` | | Paramètres (SPEC §13), fusionnés avec les valeurs par défaut, appliqués à chaud |
@@ -70,7 +72,7 @@ y est enregistré. L'interface `FileStore` (SPEC §5.1) permet de brancher un au
 | `onSelectionChange(selection)` | La sélection change (`undefined` : rien) |
 | `onCameraChange(camera)` | La caméra bouge (à chaque image pendant un mouvement) |
 | `onModifiedChange(modified)` | Le document devient modifié, ou ne l'est plus (sauvegarde, annulation) |
-| `onSave(xml)` | Sauvegarde demandée (Ctrl+S dans le composant, ou `ref.save()`) |
+| `onSave(xml, { auto })` | Sauvegarde demandée (Ctrl+S dans le composant, ou `ref.save()` : `auto: false`) ou automatique (`auto: true`) |
 | `onError(error)` | Fichier illisible (`DrawioParseError`) ou introuvable dans le `store` |
 | `onEngine(engine)` | Le moteur est créé (puis `undefined` au démontage) |
 

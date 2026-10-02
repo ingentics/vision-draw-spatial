@@ -150,6 +150,10 @@
 
 ---
 
+## Après la roadmap
+
+- Sauvegarde automatique ✅ : paramètre « Sauvegarde » (activée, 1 s), `Autosaver` (`engine/edit/autosave.ts`) dans le composant (`autosave`, `onSave(xml, { auto })`) ; bibliothèque du navigateur ou vrai fichier dans l'appli native.
+
 ## Ensuite (backlog)
 - Formes supplémentaires, priorisées par le journal des styles non supportés (une définition par forme, au minimum à plat — SPEC §8.2).
 - Rendus `iso` pour d'autres formes (ex. labels dressés face à la caméra), arêtes en hauteur, mode 3D (`volume`, perspective), forme par forme, avec repli à plat.

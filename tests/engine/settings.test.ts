@@ -76,3 +76,13 @@ describe('shortcutAction', () => {
     expect(shortcutAction('g', { ...DEFAULT_SHORTCUTS, toggleGraph: 'p' })).toBeUndefined();
   });
 });
+
+describe('sauvegarde automatique', () => {
+  it('activée par défaut (1 s) ; délai borné, valeurs invalides ignorées', () => {
+    expect(DEFAULT_SETTINGS.save).toEqual({ autosave: true, delayMs: 1000 });
+    expect(mergeSettings(DEFAULT_SETTINGS, { save: { delayMs: 10 } }).save.delayMs).toBe(300);
+    expect(mergeSettings(DEFAULT_SETTINGS, { save: { delayMs: 999_999 } }).save.delayMs).toBe(30_000);
+    const broken = { save: { autosave: 'oui', delayMs: 'vite' } } as unknown as SettingsPatch;
+    expect(mergeSettings(DEFAULT_SETTINGS, broken).save).toEqual(DEFAULT_SETTINGS.save);
+  });
+});
