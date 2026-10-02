@@ -21,7 +21,7 @@ export function createEmptyDrawio(pageName = 'Page-1', pageId = randomId()): str
 }
 
 /** Identifiant au format de draw.io (20 caractères alphanumériques, `-` et `_`). */
-function randomId(): string {
+export function randomId(): string {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
   const bytes = new Uint8Array(20);
   if (globalThis.crypto?.getRandomValues) globalThis.crypto.getRandomValues(bytes);

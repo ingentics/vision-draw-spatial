@@ -5,13 +5,16 @@ import type { UnsupportedReport } from './diagnostics/unsupportedStyles';
 import { Emitter } from './events';
 import { isNavigableLink } from './format/link';
 import { canMoveCell, gridSizeOf, moveCell } from './format/edit';
-import { readDrawio } from './format/parse';
+import { addPage, addShapeCell, removePage, renamePage } from './format/create';
+import { documentFromTree, readDrawio } from './format/parse';
 import { readPageViews, writePageViews } from './format/viewState';
 import type { IsoViewParams, PageViewState } from './format/viewState';
 import { writeDrawio } from './format/write';
 import type { DrawioTree } from './format/xmlTree';
 import { collectMoveSet, isLocked, moveTarget, snapDelta, translateMoveSet } from './edit/move';
 import type { MoveSet } from './edit/move';
+import { dropBounds } from './edit/palette';
+import type { ShapeTemplate } from './edit/palette';
 import {
   applyCameraState,
   fitBounds,
@@ -71,6 +74,16 @@ function defaultOpenUrl(href: string): void {
 
 /** Pixels écran de tolérance pour attraper une arête. */
 const EDGE_PICK_TOLERANCE = 6;
+/**
+ * Cadrage d'une page vide : le haut de la feuille draw.io, pour que les formes ajoutées
+ * tombent en coordonnées positives (sur la page, à l'ouverture dans draw.io).
+ */
+const EMPTY_PAGE_AREA: Rect = { x: 0, y: 0, width: 800, height: 600 };
+
+function isEmptyPage(page: PageModel): boolean {
+  return page.shapes.length === 0 && page.edges.length === 0;
+}
+
 /** Marge du trou dans le voile autour d'une flèche sélectionnée, en pixels écran (de chaque côté). */
 const VEIL_HOLE_PADDING = 10;
 
@@ -123,6 +136,8 @@ export type EngineEvents = {
   linkUsed: [fromPageId: string, toPageId: string, at: number];
   /** « Retour » sans historique et plusieurs parents possibles : à l'UI de proposer le choix. */
   backChoice: [parents: ParentLink[]];
+  /** Pages ou formes ajoutées, retirées ou renommées : nouveau modèle du document. */
+  documentChange: [document: DocumentModel];
   /** Le document a été modifié (déplacement) ou vient d'être sérialisé pour la sauvegarde. */
   modifiedChange: [modified: boolean];
 };
@@ -313,6 +328,125 @@ export class Engine {
     return xml;
   }
 
+  // -------------------------------------------------------------------------
+  // Création (SPEC §14.1)
+
+  /** Rend le focus clavier au canvas (ex. après un dépôt depuis la palette). */
+  focusCanvas(): void {
+    this.canvas.focus({ preventScroll: true });
+  }
+
+  /** Pages modifiables : fichier `<mxfile>` (l'ancien format n'a qu'une page sans nom). */
+  canEditPages(): boolean {
+    return this.xmlTree?.xml.documentElement?.tagName === 'mxfile';
+  }
+
+  /**
+   * Ajoute une forme de la palette sur la page courante, centrée sur un point écran (dépôt) ou au
+   * centre de la vue : point projeté au sol (vue de dessus comme iso), aimanté à la grille.
+   * Renvoie l'id de la nouvelle cellule, sélectionnée.
+   */
+  addShape(template: ShapeTemplate, screen?: Point): string | undefined {
+    const page = this.getCurrentPage();
+    const pageTree = page && this.pageTreeOf(page.id);
+    if (!page || !pageTree || pageTree.encoding === 'unreadable' || this.transition) return undefined;
+    this.endMove();
+    const at = screenToPage(
+      this.cameraState,
+      this.viewport,
+      screen ?? { x: this.viewport.width / 2, y: this.viewport.height / 2 },
+    );
+    const bounds = dropBounds(template, at, gridSizeOf(pageTree));
+    const id = addShapeCell(pageTree, { style: template.style, value: template.value, ...bounds });
+    this.documentChanged([page.id]);
+    const shape = this.getCurrentPage()?.shapes.find((s) => s.id === id);
+    if (shape) this.select({ type: 'shape', element: shape });
+    return id;
+  }
+
+  /** Ajoute une page vide (« Page-n ») et l'affiche. */
+  addPage(name?: string): string | undefined {
+    if (!this.xmlTree || !this.document || !this.canEditPages() || this.transition) return undefined;
+    const names = new Set(this.document.pages.map((p) => p.name));
+    let pageName = name?.trim();
+    for (let n = this.document.pages.length + 1; !pageName || names.has(pageName); n++) pageName = `Page-${n}`;
+    const page = addPage(this.xmlTree, pageName);
+    this.documentChanged([]);
+    this.goToPage(page.id);
+    return page.id;
+  }
+
+  renamePage(pageId: string, name: string): void {
+    const trimmed = name.trim();
+    const page = this.pageById(pageId);
+    if (!this.xmlTree || !page || !trimmed || trimmed === page.name || !this.canEditPages()) return;
+    renamePage(this.xmlTree, pageId, trimmed);
+    this.documentChanged([]);
+  }
+
+  /** Retire une page (pas la dernière) ; si c'était la page affichée, on passe à sa voisine. */
+  removePage(pageId: string): void {
+    const document = this.document;
+    if (!this.xmlTree || !document || !this.canEditPages() || document.pages.length <= 1 || this.transition) return;
+    const index = document.pages.findIndex((p) => p.id === pageId);
+    if (index < 0) return;
+    const wasCurrent = this.currentPageId === pageId || this.isGraphView();
+    this.endMove();
+    removePage(this.xmlTree, pageId);
+    this.scenes.invalidate(pageId, true);
+    this.pageCameras.delete(pageId);
+    this.pageIso.delete(pageId);
+    if (this.lastDocumentPageId === pageId) this.lastDocumentPageId = undefined;
+    const entries = this.history.entries();
+    const kept = entries.filter((e) => e.pageId !== pageId && e.targetPageId !== pageId);
+    if (kept.length !== entries.length) {
+      this.history.replace(kept);
+      this.events.emit('historyChange', kept);
+    }
+    if (this.currentPageId === pageId) this.currentPageId = undefined;
+    this.documentChanged([]);
+    if (wasCurrent && !this.isGraphView()) {
+      const next = this.document!.pages[Math.min(index, this.document!.pages.length - 1)];
+      if (next) this.goToPage(next.id);
+    }
+  }
+
+  /** Arbre XML d'une page du document (même rang que dans le modèle). */
+  private pageTreeOf(pageId: string) {
+    const index = this.document?.pages.findIndex((p) => p.id === pageId) ?? -1;
+    return index >= 0 ? this.xmlTree?.pages[index] : undefined;
+  }
+
+  /**
+   * L'arbre a changé de structure : le modèle est relu de l'arbre, les scènes des pages touchées et
+   * de la vue graphe sont reconstruites, la sélection est reprise par id.
+   */
+  private documentChanged(changedPageIds: string[]): void {
+    if (!this.xmlTree) return;
+    const selected = this.selection;
+    this.clearSelection();
+    this.document = documentFromTree(this.xmlTree);
+    this.unsupportedReport = collectUnsupported(this.document, this.registry);
+    this.graph = undefined;
+    for (const id of [...changedPageIds, GRAPH_PAGE_ID]) this.scenes.invalidate(id, true);
+    const current = this.getCurrentPage();
+    if (current) {
+      this.scenes.show(current);
+      this.applyHeightScale();
+    }
+    if (selected && selected.pageId === current?.id) {
+      const id = selected.picked.element.id;
+      const shape = current.shapes.find((s) => s.id === id);
+      const edge = current.edges.find((e) => e.id === id);
+      if (shape) this.select({ type: 'shape', element: shape });
+      else if (edge) this.select({ type: 'edge', element: edge });
+    }
+    this.minimap?.invalidate();
+    this.setModified(true);
+    this.events.emit('documentChange', this.document);
+    this.requestRender();
+  }
+
   private setModified(modified: boolean): void {
     if (this.modified === modified) return;
     this.modified = modified;
@@ -389,7 +523,7 @@ export class Engine {
     this.minimap?.invalidate();
     const camera = this.pageCameras.get(page.id);
     if (camera) this.setCameraState(camera);
-    else this.fitToBounds(page.bounds);
+    else this.fitToBounds(isEmptyPage(page) ? EMPTY_PAGE_AREA : page.bounds);
     this.requestRender();
     this.events.emit('pageChange', page);
   }
@@ -398,13 +532,13 @@ export class Engine {
     return structuredClone(this.cameraState);
   }
 
-  /** Cadre une emprise de la page courante (sans dépasser 100 %). */
+  /** Cadre une emprise de la page courante (sans dépasser 100 %), dans l'orientation courante. */
   fitToBounds(bounds: Rect): void {
     if (!this.isMeasured()) {
       this.pendingFit = bounds;
       return;
     }
-    this.setCameraState(fitBounds(bounds, this.viewport, { tilt: this.cameraState.tilt }));
+    this.setCameraState(fitBounds(bounds, this.viewport, this.orientation()));
   }
 
   setCameraState(state: CameraState): void {
@@ -1341,7 +1475,7 @@ export class Engine {
     this.viewport = { width, height };
     this.renderer.setSize(width, height, false);
     if (this.pendingFit && this.isMeasured()) {
-      this.setCameraState(fitBounds(this.pendingFit, this.viewport, { tilt: this.cameraState.tilt }));
+      this.setCameraState(fitBounds(this.pendingFit, this.viewport, this.orientation()));
       return;
     }
     applyCameraState(this.camera, this.cameraState, this.viewport);

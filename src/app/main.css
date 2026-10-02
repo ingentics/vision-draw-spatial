@@ -161,6 +161,93 @@ body {
   background: var(--bg);
 }
 
+/* Onglets modifiables : renommer (double-clic), supprimer (×), ajouter (+) */
+.tab-wrap {
+  display: inline-flex;
+  align-items: stretch;
+}
+
+.tab-wrap.active {
+  background: var(--bg);
+}
+
+.tab-remove {
+  font: inherit;
+  padding: 0 8px 0 0;
+  border: none;
+  border-top: 2px solid var(--accent);
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.tab-remove:hover {
+  color: var(--fg);
+}
+
+.tab-input {
+  width: 140px;
+  cursor: text;
+  border-top-color: var(--accent);
+  color: var(--fg);
+  background: var(--bg);
+}
+
+.tab-add {
+  font-weight: 600;
+}
+
+/* Palette de formes */
+.palette {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 88px;
+  padding: 8px 6px;
+  border-right: 1px solid var(--border);
+  background: var(--panel);
+  overflow-y: auto;
+}
+
+.palette-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 2px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  font-size: 11px;
+  cursor: grab;
+}
+
+.palette-item:hover:not(:disabled) {
+  border-color: var(--border);
+  background: var(--bg);
+}
+
+.palette-item:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.palette-item svg {
+  width: 40px;
+  height: 28px;
+  fill: var(--bg);
+  stroke: currentColor;
+  stroke-width: 1.2;
+}
+
+.palette-item svg text {
+  fill: currentColor;
+  stroke: none;
+  font-size: 11px;
+}
+
 /* Bouton Diagnostics */
 .toolbar-end {
   display: flex;

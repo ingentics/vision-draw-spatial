@@ -66,12 +66,15 @@ export class SceneManager {
   }
 
   /**
-   * Libère les scènes d'une page devenues obsolètes (page modifiée), sauf la scène affichée,
-   * tenue à jour par l'appelant. Elles seront reconstruites à la prochaine demande.
+   * Libère les scènes d'une page devenues obsolètes (page modifiée), sauf la scène affichée si elle
+   * est tenue à jour par l'appelant (`includeCurrent` : elle aussi, à réafficher par `show`).
+   * Elles seront reconstruites à la prochaine demande.
    */
-  invalidate(pageId: string): void {
+  invalidate(pageId: string, includeCurrent = false): void {
     for (const [key, scene] of [...this.scenes]) {
-      if (scene.pageId === pageId && key !== this.currentKey) this.drop(key);
+      if (scene.pageId !== pageId || (key === this.currentKey && !includeCurrent)) continue;
+      if (key === this.currentKey) this.currentKey = undefined;
+      this.drop(key);
     }
   }
 

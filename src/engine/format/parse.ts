@@ -36,10 +36,15 @@ export function parseDrawio(xml: string): DocumentModel {
  */
 export function readDrawio(xml: string): { document: DocumentModel; tree: DrawioTree } {
   const tree = readDrawioTree(xml);
+  return { document: documentFromTree(tree), tree };
+}
+
+/** Modèle d'un arbre XML (aussi pour le reconstruire après une modification de l'arbre). */
+export function documentFromTree(tree: DrawioTree): DocumentModel {
   const warnings: ParseWarning[] = [];
   const pages = tree.pages.map((page) => parsePage(page, warnings));
   checkPageLinks(pages, warnings);
-  return { document: { pages, warnings }, tree };
+  return { pages, warnings };
 }
 
 // ---------------------------------------------------------------------------

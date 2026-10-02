@@ -423,6 +423,8 @@ Formes et arêtes sont dessinées dans l'**ordre du document** (une arête décl
 | Sélectionner | Clic gauche |
 | Déplacer une forme | Clic gauche + glisser sur la forme (vue de dessus comme iso), aimanté à la grille de la page ; **Alt** maintenu : sans grille (§14.1) |
 | Sauvegarder | Bouton « Sauvegarder », **Ctrl+S** / ⌘S (§14.1) |
+| Ajouter une forme | Glisser une forme de la palette sur le plan (déposée au point visé, au sol), ou clic dessus (centre de la vue) (§14.1) |
+| Pages | Onglets : **+** ajoute, double-clic renomme, **×** supprime la page affichée (§14.1) |
 | Entrer dans un lien | Double-clic |
 | Retour | Bouton « Retour » + raccourci (ex. Backspace / Alt+←) |
 | Basculer 2D ↔ iso | Boutons « 2D \| Iso » de la barre d'outils, touche **I** |
@@ -607,6 +609,7 @@ Réalisation retenue :
 - Tout ce que le parseur ne comprend pas est donc **préservé tel quel**.
 - **Déplacement** (réalisé) : seuls `x` / `y` du `<mxGeometry>` de la forme déplacée changent (relatifs au parent : les enfants suivent sans être réécrits) ; une valeur revenue à 0 est retirée, comme draw.io. Saisir une forme d'un groupe déplace le groupe le plus externe ; les formes à géométrie relative (ports) et verrouillées (`movable=0`, `locked=1`) ne se déplacent pas ; les arêtes reliées gardent leurs points intermédiaires et sont retracées.
 - **État de vue par page** : attribut `spatial.view` de `<diagram>` (« clé=valeur; », angles en degrés), ex. `mode=iso;x=120;y=80;zoom=1.25;rotation=-45;tilt=54.74;elevation=35.26;azimuth=-45;volume=1;depth=24;`. Écrit à chaque sauvegarde pour les pages visitées. draw.io conserve le nœud `<diagram>` d'origine (il n'en remplace que le contenu), l'attribut survit donc à une sauvegarde dans draw.io. Ancien format sans `<diagram>` : non enregistré.
+- **Création** (réalisé) : une forme de la palette devient un `<mxCell vertex="1">` avec son `<mxGeometry>`, ajouté à la fin de `<root>` sur le premier calque (créé s'il manque, ainsi qu'un modèle minimal pour une page vide), avec un id à la draw.io (préfixe aléatoire de la page + compteur). Une nouvelle page est un `<diagram>` issu du squelette vide (§6), ajouté à la fin de `<mxfile>` ; renommer change `name`, supprimer retire le `<diagram>` (un fichier garde au moins une page ; l'ancien format sans `<mxfile>` n'a pas de pages modifiables). L'indentation des voisins est reprise. Après une création, le modèle neutre est relu de l'arbre.
 - **Sauvegarde** (appli de démo) : XML réécrit en place, téléchargé sous le nom du fichier et enregistré dans la bibliothèque (`FileStore`) ; pastille sur le bouton tant qu'il reste des modifications, confirmation avant de quitter sans sauvegarder.
 - Une page garde sa forme d'origine : une page compressée non modifiée est recopiée telle quelle (texte base64 intact) ; modifiée, elle est **réécrite compressée** comme le fait draw.io (XML → `encodeURIComponent` → deflate raw → base64). Une page illisible est recopiée sans y toucher et ne peut pas être modifiée.
 

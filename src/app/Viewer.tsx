@@ -12,6 +12,8 @@ import { clearLog, cumulativeEntries, exportJson, recordFile } from './diagnosti
 import { DiagnosticsPanel } from './DiagnosticsPanel';
 import { store } from './fileLibrary';
 import { NavigationToolbar } from './NavigationToolbar';
+import { PageTabs } from './PageTabs';
+import { Palette, PALETTE_MIME, templateById } from './Palette';
 import { SettingsPanel } from './SettingsPanel';
 import type { Settings, SettingsPatch } from '../engine/settings';
 import { GRAPH_PAGE_ID } from '../engine/graph/graphPage';
@@ -164,6 +166,10 @@ export function Viewer({ file, onShowFiles, settings, onSettingsChange, onResetS
       instance.on('linkUsed', scheduleSave);
       instance.on('backChoice', setBackChoices);
       instance.on('modifiedChange', setModified);
+      instance.on('documentChange', (doc) => {
+        setDocument(doc);
+        setReport(instance.getUnsupportedReport());
+      });
       // Une page peut imposer ses réglages iso (état de vue du fichier) : l'appli les reprend.
       instance.on('settingsChange', (next) => {
         const current = settingsRef.current.view;
@@ -187,6 +193,8 @@ export function Viewer({ file, onShowFiles, settings, onSettingsChange, onResetS
   );
 
   const warnings = document?.warnings ?? [];
+  const editablePages = document !== undefined && engine?.canEditPages() === true;
+  const canAddShapes = pageId !== undefined && pageId !== GRAPH_PAGE_ID;
   const issueCount = (report?.unsupportedElementCount ?? 0) + warnings.length;
 
   return (
@@ -271,7 +279,23 @@ export function Viewer({ file, onShowFiles, settings, onSettingsChange, onResetS
       </header>
 
       <div className="viewport">
-        <div className="canvas-area">
+        <Palette disabled={!canAddShapes} onAdd={(template) => engine?.addShape(template)} />
+        <div
+          className="canvas-area"
+          onDragOver={(event) => {
+            if (!canAddShapes || !event.dataTransfer.types.includes(PALETTE_MIME)) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'copy';
+          }}
+          onDrop={(event) => {
+            const template = templateById(event.dataTransfer.getData(PALETTE_MIME));
+            if (!template || !engine) return;
+            event.preventDefault();
+            const rect = event.currentTarget.getBoundingClientRect();
+            engine.addShape(template, { x: event.clientX - rect.left, y: event.clientY - rect.top });
+            engine.focusCanvas();
+          }}
+        >
           <DrawioSpatial
             xml={file.content}
             fileId={file.id}
@@ -309,28 +333,17 @@ export function Viewer({ file, onShowFiles, settings, onSettingsChange, onResetS
         )}
       </div>
 
-      {document && document.pages.length > 1 && (
-        <nav className="tabs">
-          <button
-            className={pageId === GRAPH_PAGE_ID ? 'tab graph-tab active' : 'tab graph-tab'}
-            title="Vue d’ensemble des pages et de leurs liens (touche G)"
-            onClick={() => engine?.showGraph()}
-          >
-            <svg viewBox="0 0 16 16" aria-hidden="true">
-              <path d="M4 4.5h3M9 11.5h3M5.5 6 10 10M4 3a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM12 10a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM8.5 3a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z" />
-            </svg>
-            Vue graphe
-          </button>
-          {document.pages.map((page) => (
-            <button
-              key={page.id}
-              className={page.id === pageId ? 'tab active' : 'tab'}
-              onClick={() => engine?.goToPage(page.id)}
-            >
-              {page.name}
-            </button>
-          ))}
-        </nav>
+      {document && (
+        <PageTabs
+          pages={document.pages}
+          currentPageId={pageId}
+          graphActive={pageId === GRAPH_PAGE_ID}
+          onShowGraph={() => engine?.showGraph()}
+          onSelect={(id) => engine?.goToPage(id)}
+          onAdd={editablePages ? () => engine?.addPage() : undefined}
+          onRename={editablePages ? (id, name) => engine?.renamePage(id, name) : undefined}
+          onRemove={editablePages ? (id) => engine?.removePage(id) : undefined}
+        />
       )}
     </div>
   );

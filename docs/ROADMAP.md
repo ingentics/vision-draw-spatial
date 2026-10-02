@@ -108,18 +108,20 @@
 - Fait : `format/xmlTree.ts` (arbre, `cells` id → `<mxCell>` / enveloppe / `<mxGeometry>`, forme de chaque page), `readDrawio` construit le modèle à partir de cet arbre, `format/write.ts` resérialise l'arbre (pages compressées intactes recopiées telles quelles, modifiées recompressées). L'`Engine` garde l'arbre à côté du modèle. Fixture `roundtrip.drawio` (commentaires, éléments et attributs inconnus, entités, `UserObject`).
 - **Fini quand :** les tests d'aller-retour passent sur toutes les fixtures.
 
-### Étape 14 — Déplacement et sauvegarde
+### Étape 14 — Déplacement et sauvegarde ✅
 - Sélection et déplacement à la souris (en top et en iso, projection sur le sol).
 - Écriture in situ des attributs modifiés uniquement.
 - Sauvegarde (téléchargement + mise à jour du `FileStore`).
 - État de vue par page : enregistrer dans les attributs de la page la position de la caméra et le mode de rendu (`top` / `iso`) avec ses paramètres (orientation, élévation, volumes, épaisseur) ; à l'ouverture d'un fichier ou au retour sur une page, la vue reprend exactement cet état.
 - Fait : clic gauche + glisser sur une forme (top et iso, aimanté à la grille, Alt = libre ; groupe déplacé d'un bloc, arêtes reliées retracées en direct) ; `format/edit.ts` réécrit uniquement `x` / `y` du `<mxGeometry>` ; `spatial.view` sur `<diagram>` (`format/viewState.ts`), relu à l'ouverture, réglages iso repris par page ; bouton « Sauvegarder » / Ctrl+S (téléchargement + `FileStore`), pastille de modification, confirmation avant de quitter. Fixture `three-rectangles.drawio` et test du critère §14.4 côté XML.
-- Reste : la validation manuelle dans draw.io (procédure SPEC §15).
+- Validé avec draw.io 24.7.5 (export en ligne de commande `draw.io -x -f xml`, qui relit et réécrit le fichier) : rectangles aux nouvelles positions, reste identique, `spatial.view` conservé. Procédure manuelle complète : SPEC §15.
 - **Fini quand :** le critère d'acceptation SPEC §14.4 est validé dans draw.io, et un fichier sauvegardé puis rouvert (ici comme après un passage dans draw.io) retrouve la même caméra et le même mode de rendu sur chaque page.
 
-### Étape 15 — Palette et création
+### Étape 15 — Palette et création ✅
 - Palette de formes, glisser-déposer sur le plan.
 - Nouveau fichier depuis un squelette vide, ajout / suppression / renommage de pages.
+- Fait : palette à gauche (rectangle, rectangle arrondi, ellipse, cercle, texte : styles et tailles par défaut de draw.io, seulement des formes dessinées par le moteur) ; glisser-déposer au point visé, projeté au sol (top et iso), aimanté à la grille ; clic = ajout au centre de la vue. `format/create.ts` ajoute cellules (ids à la draw.io, premier calque, créé au besoin) et pages dans l'arbre, en reprenant l'indentation ; le modèle est relu de l'arbre (`documentFromTree`). Onglets : + (nouvelle page), double-clic (renommer), × (supprimer, avec confirmation). Une page vide est cadrée sur le haut de la feuille draw.io (coordonnées positives).
+- Validé avec draw.io 24.7.5 : un fichier créé de zéro (deux pages, rectangle, ellipse, texte) se rend correctement à l'export PNG et se relit sans perte (`spatial.view` compris).
 - **Fini quand :** un schéma créé de zéro s'ouvre correctement dans draw.io.
 
 ### Étape 16 — Édition avancée

@@ -1,0 +1,25 @@
+import { describe, expect, it } from 'vitest';
+import { dropBounds, SHAPE_TEMPLATES } from '../../../src/engine/edit/palette';
+import { resolveShapeKind, parseStyle } from '../../../src/engine/format/style';
+
+describe('palette', () => {
+  it('ne propose que des formes dessinées par le moteur', () => {
+    const kinds = new Set(SHAPE_TEMPLATES.map((t) => resolveShapeKind(parseStyle(t.style))));
+    expect([...kinds].sort()).toEqual(['ellipse', 'rectangle', 'text']);
+  });
+
+  it('dropBounds : centrée sur le point de dépôt, coin aimanté à la grille', () => {
+    expect(dropBounds({ width: 120, height: 60 }, { x: 103, y: 47 }, 10)).toEqual({
+      x: 40,
+      y: 20,
+      width: 120,
+      height: 60,
+    });
+    expect(dropBounds({ width: 120, height: 60 }, { x: 103, y: 47 }, 0)).toEqual({
+      x: 43,
+      y: 17,
+      width: 120,
+      height: 60,
+    });
+  });
+});

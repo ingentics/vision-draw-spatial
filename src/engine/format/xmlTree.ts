@@ -86,7 +86,15 @@ export function markPageDirty(page: PageTree): void {
   page.dirty = true;
 }
 
-function readDiagram(diagram: Element, index: number): PageTree {
+/** Réindexe les cellules d'une page après l'ajout ou le retrait de nœuds. */
+export function reindexPage(page: PageTree): void {
+  page.cellList = page.model ? readCells(page.model) : [];
+  page.cells = new Map();
+  for (const nodes of page.cellList) if (!page.cells.has(nodes.id)) page.cells.set(nodes.id, nodes);
+}
+
+/** Lit une page `<diagram>` (aussi pour une page ajoutée au fichier). */
+export function readDiagram(diagram: Element, index: number): PageTree {
   const id = diagram.getAttribute('id') || `page-${index + 1}`;
   const name = diagram.getAttribute('name') || `Page-${index + 1}`;
 
@@ -106,10 +114,9 @@ function readDiagram(diagram: Element, index: number): PageTree {
 }
 
 function pageTree(id: string, name: string, encoding: PageEncoding, model?: Element, diagram?: Element): PageTree {
-  const cellList = model ? readCells(model) : [];
-  const cells = new Map<string, CellNodes>();
-  for (const nodes of cellList) if (!cells.has(nodes.id)) cells.set(nodes.id, nodes);
-  return { id, name, encoding, diagram, model, cellList, cells, dirty: false };
+  const page: PageTree = { id, name, encoding, diagram, model, cellList: [], cells: new Map(), dirty: false };
+  reindexPage(page);
+  return page;
 }
 
 function readCells(model: Element): CellNodes[] {
