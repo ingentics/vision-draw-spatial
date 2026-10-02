@@ -177,19 +177,27 @@ export interface CameraHost {
   toggleMinimap?(): void;
   /** Vue graphe ↔ dernière page (touche G). */
   toggleGraph?(): void;
+  /**
+   * Appui gauche (sans Espace) : vrai si un élément déplaçable est sous le pointeur ; le glisser
+   * qui suit le déplace (`moveTo`, au-delà du seuil de clic), jusqu'au relâchement (`endMove`).
+   */
+  beginMove?(screen: Point): boolean;
+  /** `snap` : aimanter à la grille (désactivé en maintenant Alt, comme dans draw.io). */
+  moveTo?(screen: Point, options: { snap: boolean }): void;
+  endMove?(): void;
 }
 
 /** Au-delà de ce déplacement (px), un appui-relâché n'est plus un clic. */
 const CLICK_SLOP = 4;
 
-type DragMode = 'pan' | 'rotate';
+type DragMode = 'pan' | 'rotate' | 'move';
 
 export class CameraController {
   private settings: ControlSettings;
   private readonly pressed = new Set<string>();
   private spaceDown = false;
   /** `pivot` : point écran de départ du glisser, centre de la rotation. */
-  private drag: { pointerId: number; mode: DragMode; last: Point; pivot: Point } | undefined;
+  private drag: { pointerId: number; mode: DragMode; last: Point; pivot: Point; moving?: boolean } | undefined;
   private frame = 0;
   private lastTick = 0;
   /** Vitesse de déplacement du contenu à l'écran (pixels / s), pour la glissade. */
@@ -285,6 +293,7 @@ export class CameraController {
     if (event.button === 1) mode = this.settings.middleDrag;
     else if (event.button === 2) mode = 'pan';
     else if (event.button === 0 && this.spaceDown) mode = 'pan';
+    else if (event.button === 0 && this.host.beginMove?.(this.localPoint(event))) mode = 'move';
     if (!mode) return;
 
     event.preventDefault();
@@ -298,7 +307,7 @@ export class CameraController {
     const start = this.localPoint(event);
     this.drag = { pointerId: event.pointerId, mode, last: start, pivot: start };
     this.samples = [{ t: event.timeStamp, p: start }];
-    this.element.style.cursor = mode === 'pan' ? 'grabbing' : 'ew-resize';
+    if (mode !== 'move') this.element.style.cursor = mode === 'pan' ? 'grabbing' : 'ew-resize';
   };
 
   private readonly onPointerMove = (event: PointerEvent): void => {
@@ -310,6 +319,14 @@ export class CameraController {
       return;
     }
     const point = this.localPoint(event);
+    if (drag.mode === 'move') {
+      // Un appui-relâché sur place reste un clic (sélection) : on ne bouge qu'au-delà du seuil.
+      if (!drag.moving && distance(drag.pivot, point) <= CLICK_SLOP) return;
+      drag.moving = true;
+      this.element.style.cursor = 'move';
+      this.host.moveTo?.(point, { snap: !event.altKey });
+      return;
+    }
     const delta = { x: point.x - drag.last.x, y: point.y - drag.last.y };
     drag.last = point;
     const state = this.host.getCameraState();
@@ -334,6 +351,8 @@ export class CameraController {
     if (this.drag.mode === 'pan') {
       this.velocity = releaseVelocity(this.samples, event.timeStamp);
       this.startLoop();
+    } else if (this.drag.mode === 'move') {
+      this.host.endMove?.();
     }
     this.samples = [];
     this.drag = undefined;

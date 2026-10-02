@@ -483,6 +483,19 @@ body {
   max-width: 260px;
 }
 
+/* Sauvegarde : pastille quand il y a des modifications non sauvegardées */
+.save-button.modified {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.modified-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
 /* Glisser-déposer */
 .drop-overlay {
   position: fixed;

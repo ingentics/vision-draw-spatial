@@ -4,8 +4,14 @@ import { collectUnsupported } from './diagnostics/unsupportedStyles';
 import type { UnsupportedReport } from './diagnostics/unsupportedStyles';
 import { Emitter } from './events';
 import { isNavigableLink } from './format/link';
+import { canMoveCell, gridSizeOf, moveCell } from './format/edit';
 import { readDrawio } from './format/parse';
+import { readPageViews, writePageViews } from './format/viewState';
+import type { IsoViewParams, PageViewState } from './format/viewState';
+import { writeDrawio } from './format/write';
 import type { DrawioTree } from './format/xmlTree';
+import { collectMoveSet, isLocked, moveTarget, snapDelta, translateMoveSet } from './edit/move';
+import type { MoveSet } from './edit/move';
 import {
   applyCameraState,
   fitBounds,
@@ -35,6 +41,7 @@ import type { PickedElement } from './interaction/pick';
 import { easing, embedIn, embeddedCamera, phase } from './interaction/transitions';
 import type { DocumentModel, LinkModel, PageModel, Point, Rect } from './model/types';
 import { selectionOutline } from './render/decorations';
+import { createEdge } from './render/edges/edge';
 import { createVeil, createVeilHole, liftAboveVeil } from './render/highlight';
 import { disposeObject } from './render/meshes';
 import { setPageOpacity } from './render/pageEffects';
@@ -116,6 +123,8 @@ export type EngineEvents = {
   linkUsed: [fromPageId: string, toPageId: string, at: number];
   /** « Retour » sans historique et plusieurs parents possibles : à l'UI de proposer le choix. */
   backChoice: [parents: ParentLink[]];
+  /** Le document a été modifié (déplacement) ou vient d'être sérialisé pour la sauvegarde. */
+  modifiedChange: [modified: boolean];
 };
 export type EngineEvent = keyof EngineEvents;
 
@@ -173,6 +182,14 @@ export class Engine {
   private lastDocumentPageId: string | undefined;
   private minimap: Minimap | undefined;
   private linkUsage: LinkUsage = {};
+  /** Réglages iso de chaque page (lus du fichier, puis ceux en vigueur à la dernière visite). */
+  private pageIso = new Map<string, IsoViewParams>();
+  /** Modifications non sauvegardées. */
+  private modified = false;
+  /** Déplacement à la souris en cours (SPEC §14.1). */
+  private move:
+    | { pageId: string; set: MoveSet; start: Point; origin: Rect; applied: Point; grid: number; started: boolean }
+    | undefined;
 
   constructor(options: EngineOptions) {
     this.canvas = options.canvas;
@@ -217,6 +234,9 @@ export class Engine {
         toggleViewMode: () => this.toggleViewMode(),
         toggleMinimap: () => this.events.emit('minimapToggle'),
         toggleGraph: () => this.toggleGraph(),
+        beginMove: (screen) => this.beginMove(screen),
+        moveTo: (screen, options) => this.moveTo(screen, options.snap),
+        endMove: () => this.endMove(),
       },
       this.effectiveControls(),
     );
@@ -234,11 +254,17 @@ export class Engine {
     this.currentPageId = undefined;
     this.graph = undefined;
     this.lastDocumentPageId = undefined;
+    this.move = undefined;
+    this.setModified(false);
     this.history.replace(initialView?.history ?? []);
     this.linkUsage = { ...initialView?.linkUsage };
-    this.pageCameras = new Map(
-      Object.entries(initialView?.cameraByPage ?? {}).map(([id, camera]) => [id, normalizeCameraState(camera)]),
-    );
+    // Vues enregistrées dans le fichier, remplacées par celles mémorisées localement (plus récentes).
+    const fileViews = readPageViews(tree);
+    this.pageIso = new Map([...fileViews].flatMap(([id, view]) => (view.iso ? [[id, view.iso] as const] : [])));
+    this.pageCameras = new Map([...fileViews].map(([id, view]) => [id, normalizeCameraState(view.camera)]));
+    for (const [id, camera] of Object.entries(initialView?.cameraByPage ?? {})) {
+      this.pageCameras.set(id, normalizeCameraState(camera));
+    }
     if (initialView?.pageId && initialView.camera) {
       this.pageCameras.set(initialView.pageId, normalizeCameraState(initialView.camera));
     }
@@ -259,6 +285,38 @@ export class Engine {
   /** Arbre XML d'origine du document chargé : ses `cells` ont les mêmes ids que le modèle. */
   getXmlTree(): DrawioTree | undefined {
     return this.xmlTree;
+  }
+
+  /** Modifications non sauvegardées depuis le chargement ou la dernière sérialisation. */
+  isModified(): boolean {
+    return this.modified;
+  }
+
+  /**
+   * XML du document à sauvegarder (SPEC §14.2) : l'arbre d'origine, modifié en place, avec l'état
+   * de vue de chaque page visitée (caméra, mode et réglages de rendu). Le document est ensuite
+   * considéré comme sauvegardé.
+   */
+  serialize(): string | undefined {
+    if (!this.xmlTree) return undefined;
+    this.endMove();
+    if (this.currentPageId) this.pageIso.set(this.currentPageId, this.isoParams());
+    const views = new Map<string, PageViewState>();
+    for (const [id, camera] of this.pageCameras) {
+      if (id === GRAPH_PAGE_ID) continue;
+      const iso = this.pageIso.get(id);
+      views.set(id, iso ? { camera, iso } : { camera });
+    }
+    writePageViews(this.xmlTree, views);
+    const xml = writeDrawio(this.xmlTree);
+    this.setModified(false);
+    return xml;
+  }
+
+  private setModified(modified: boolean): void {
+    if (this.modified === modified) return;
+    this.modified = modified;
+    this.events.emit('modifiedChange', modified);
   }
 
   /** Éléments non supportés du document chargé, triés par fréquence (SPEC §8.4). */
@@ -321,7 +379,9 @@ export class Engine {
     this.transition?.abort();
     cancelAnimationFrame(this.animation);
     this.animation = 0;
+    this.endMove();
     if (this.currentPageId !== page.id) this.clearSelection();
+    this.applyPageIso(page.id);
     this.currentPageId = page.id;
     if (page.id !== GRAPH_PAGE_ID) this.lastDocumentPageId = page.id;
     this.scenes.show(page);
@@ -467,7 +527,10 @@ export class Engine {
         this.minimap?.invalidate();
       }
     }
-    if (this.currentPageId) this.pageCameras.set(this.currentPageId, this.cameraState);
+    if (this.currentPageId) {
+      this.pageCameras.set(this.currentPageId, this.cameraState);
+      if (!this.transition) this.pageIso.set(this.currentPageId, this.isoParams());
+    }
     this.minimap?.requestDraw();
     // Contour de sélection d'épaisseur constante à l'écran.
     if (this.selection && this.cameraState.zoom !== previousZoom) this.updateSelectionOutline();
@@ -503,6 +566,35 @@ export class Engine {
 
   setViewSettings(patch: Partial<ViewSettings>): void {
     this.updateSettings({ view: patch });
+  }
+
+  /** Réglages iso en vigueur (enregistrés par page). */
+  private isoParams(): IsoViewParams {
+    const { isoAngleDeg, isoAzimuthDeg, isoVolume, isoDepth } = this.settings.view;
+    return { isoAngleDeg, isoAzimuthDeg, isoVolume, isoDepth };
+  }
+
+  /**
+   * Reprend les réglages iso enregistrés pour une page (fichier ou dernière visite), sans animer :
+   * la caméra de la page est appliquée juste après. L'UI les reçoit par `settingsChange`.
+   */
+  private applyPageIso(pageId: string): void {
+    const iso = this.pageIso.get(pageId);
+    const view = this.settings.view;
+    if (
+      !iso ||
+      (view.isoAngleDeg === iso.isoAngleDeg &&
+        view.isoAzimuthDeg === iso.isoAzimuthDeg &&
+        view.isoVolume === iso.isoVolume &&
+        view.isoDepth === iso.isoDepth)
+    ) {
+      return;
+    }
+    this.settings = mergeSettings(this.settings, { view: iso });
+    if (view.isoVolume !== this.settings.view.isoVolume || view.isoDepth !== this.settings.view.isoDepth) {
+      this.scenes.clear();
+    }
+    this.events.emit('settingsChange', this.getSettings());
   }
 
   private isoTilt(): number {
@@ -635,6 +727,7 @@ export class Engine {
     }
 
     const view = this.settings.view;
+    if (this.currentPageId && !this.transition) this.pageIso.set(this.currentPageId, this.isoParams());
     const isoChanged =
       view.isoAngleDeg !== previous.view.isoAngleDeg || view.isoAzimuthDeg !== previous.view.isoAzimuthDeg;
     if (isoChanged && this.cameraState.mode === 'iso' && !this.transition) {
@@ -926,6 +1019,7 @@ export class Engine {
       // Arrivée : même image à l'écran, sur la page de destination sans transformation.
       restore();
       if (outerCameraBefore) this.pageCameras.set(outer.id, outerCameraBefore);
+      this.applyPageIso(to.id);
       this.currentPageId = to.id;
       if (to.id !== GRAPH_PAGE_ID) this.lastDocumentPageId = to.id;
       this.scenes.show(to);
@@ -935,6 +1029,110 @@ export class Engine {
       finish();
     };
     this.animation = requestAnimationFrame(step);
+  }
+
+  // -------------------------------------------------------------------------
+  // Déplacement à la souris (SPEC §14.1)
+
+  /** Appui sur une forme déplaçable de la page courante : prépare son déplacement. */
+  private beginMove(screen: Point): boolean {
+    const page = this.getCurrentPage();
+    if (!page || !this.document || !this.xmlTree || this.transition || page.id === GRAPH_PAGE_ID) return false;
+    const pageTree = this.xmlTree.pages[this.document.pages.indexOf(page)];
+    const picked = this.pickAt(screen);
+    if (!pageTree || picked?.type !== 'shape') return false;
+    const shape = moveTarget(page, picked.element);
+    if (isLocked(shape) || !canMoveCell(pageTree, shape.id)) return false;
+    this.move = {
+      pageId: page.id,
+      set: collectMoveSet(page, shape.id),
+      start: screenToPage(this.cameraState, this.viewport, screen),
+      origin: { ...shape.bounds },
+      applied: { x: 0, y: 0 },
+      grid: gridSizeOf(pageTree),
+      started: false,
+    };
+    return true;
+  }
+
+  /**
+   * Suit le pointeur : le déplacement est mesuré au sol (projection orthographique, identique à
+   * toute hauteur : une forme en volume reste sous le curseur). Modèle et scène sont mis à jour
+   * en place ; les arêtes reliées sont retracées.
+   */
+  private moveTo(screen: Point, snap: boolean): void {
+    const move = this.move;
+    const page = this.getCurrentPage();
+    if (!move || page?.id !== move.pageId) return;
+    if (!move.started) {
+      move.started = true;
+      const shape = page.shapes.find((s) => s.id === move.set.rootId);
+      if (shape) this.select({ type: 'shape', element: shape });
+    }
+    const point = screenToPage(this.cameraState, this.viewport, screen);
+    const raw = { x: point.x - move.start.x, y: point.y - move.start.y };
+    const target = snapDelta(move.origin, raw, snap ? move.grid : 0);
+    const step = { x: target.x - move.applied.x, y: target.y - move.applied.y };
+    if (step.x === 0 && step.y === 0) return;
+    move.applied = target;
+    translateMoveSet(page, move.set, step);
+
+    for (const object of this.scenes.current?.root.children ?? []) {
+      const id = object.userData.elementId as string | undefined;
+      if (id && (move.set.shapeIds.has(id) || move.set.edgeIds.has(id))) {
+        object.position.x += step.x;
+        object.position.y += step.y;
+      }
+    }
+    this.retraceEdges(page, move.set.connectedEdgeIds);
+    this.updateSelectionOutline();
+    this.minimap?.invalidate();
+    this.requestRender();
+  }
+
+  /** Fin du glisser : la géométrie XML de la forme est réécrite (seuls `x` et `y` changent). */
+  private endMove(): void {
+    const move = this.move;
+    this.move = undefined;
+    if (!move?.started || !this.document || !this.xmlTree) return;
+    if (move.applied.x === 0 && move.applied.y === 0) return;
+    const index = this.document.pages.findIndex((p) => p.id === move.pageId);
+    const pageTree = this.xmlTree.pages[index];
+    if (!pageTree) return;
+    moveCell(pageTree, move.set.rootId, move.applied);
+    this.setModified(true);
+    // Scènes de cette page à d'autres niveaux, et vue graphe (miniatures) : à reconstruire.
+    this.scenes.invalidate(move.pageId);
+    this.scenes.invalidate(GRAPH_PAGE_ID);
+    this.graph = undefined;
+    this.minimap?.invalidate();
+  }
+
+  /** Reconstruit les arêtes reliées à des formes déplacées (même ordre de dessin, même hauteur). */
+  private retraceEdges(page: PageModel, edgeIds: Set<string>): void {
+    const root = this.scenes.current?.root;
+    if (!root || edgeIds.size === 0) return;
+    const shapes = new Map(page.shapes.map((shape) => [shape.id, shape]));
+    for (const edge of page.edges) {
+      if (!edgeIds.has(edge.id)) continue;
+      const old = this.sceneObject(edge.id);
+      if (!old) continue;
+      const object = createEdge(
+        edge,
+        { source: shapes.get(edge.sourceId ?? ''), target: shapes.get(edge.targetId ?? '') },
+        this.renderContext(),
+      );
+      object.position.z = old.position.z;
+      object.userData.elementId = edge.id;
+      object.userData.top = old.userData.top;
+      const base = old.renderOrder;
+      object.traverse((child) => {
+        child.renderOrder += base;
+      });
+      old.removeFromParent();
+      disposeObject(old);
+      root.add(object);
+    }
   }
 
   private handleClick(screen: Point): void {
@@ -1034,9 +1232,11 @@ export class Engine {
     const visible = selection && root && selection.pageId === this.currentPageId ? selection : undefined;
 
     // Voile : gardé tant que la même sélection est affichée dans la même scène.
+    // L'emprise de la page en fait partie : le voile la couvre, et un déplacement peut l'agrandir.
+    const pageBounds = this.getCurrentPage()?.bounds;
     const veilKey =
-      visible && root && this.settings.selection.style === 'veil'
-        ? `${root.uuid}:${visible.picked.element.id}:${this.settings.selection.veilOpacity}`
+      visible && root && pageBounds && this.settings.selection.style === 'veil'
+        ? `${root.uuid}:${visible.picked.element.id}:${this.settings.selection.veilOpacity}:${Object.values(pageBounds).join(',')}`
         : undefined;
     if (this.veil?.key !== veilKey) {
       this.clearVeil();
@@ -1045,7 +1245,16 @@ export class Engine {
         const id = visible.picked.element.id;
         const object = createVeil(page.bounds, this.settings.selection.veilOpacity);
         root.add(object);
-        const lifted = root.children.filter((c) => c.userData.elementId === id || c.userData.highlightWith === id);
+        // Une forme sélectionnée est mise en valeur avec son contenu (enfants d'un groupe, d'un conteneur).
+        const content = visible.picked.type === 'shape' ? collectMoveSet(page, id) : undefined;
+        const lifted = root.children.filter((c) => {
+          const elementId = c.userData.elementId as string | undefined;
+          return (
+            elementId === id ||
+            c.userData.highlightWith === id ||
+            (elementId !== undefined && (content?.shapeIds.has(elementId) || content?.edgeIds.has(elementId)))
+          );
+        });
         this.veil = { key: veilKey, object, restore: liftAboveVeil(lifted) };
       }
     }

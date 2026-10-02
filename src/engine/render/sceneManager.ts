@@ -65,6 +65,16 @@ export class SceneManager {
     this.evict();
   }
 
+  /**
+   * Libère les scènes d'une page devenues obsolètes (page modifiée), sauf la scène affichée,
+   * tenue à jour par l'appelant. Elles seront reconstruites à la prochaine demande.
+   */
+  invalidate(pageId: string): void {
+    for (const [key, scene] of [...this.scenes]) {
+      if (scene.pageId === pageId && key !== this.currentKey) this.drop(key);
+    }
+  }
+
   /** Libère toutes les scènes (nouveau document). */
   clear(): void {
     for (const key of [...this.scenes.keys()]) this.drop(key);

@@ -17,6 +17,8 @@ import type { Settings, SettingsPatch } from '../engine/settings';
 import { GRAPH_PAGE_ID } from '../engine/graph/graphPage';
 
 const FONTS = { regular: robotoRegular, bold: robotoBold };
+/** Réglages iso qu'une page peut imposer (état de vue enregistré dans le fichier). */
+const ISO_KEYS = ['isoAngleDeg', 'isoAzimuthDeg', 'isoVolume', 'isoDepth'] as const;
 /** SPEC §5.3 : état de consultation sauvegardé 500 ms après le dernier changement, et à la fermeture. */
 const SAVE_DELAY_MS = 500;
 interface ViewerProps {
@@ -51,6 +53,9 @@ export function Viewer({ file, onShowFiles, settings, onSettingsChange, onResetS
   const togglePanel = (name: 'diagnostics' | 'settings') => setPanel((open) => (open === name ? undefined : name));
   const [backTarget, setBackTarget] = useState<BackTarget>({ kind: 'none' });
   const [backChoices, setBackChoices] = useState<ParentLink[]>();
+  const [modified, setModified] = useState(false);
+  const modifiedRef = useRef(false);
+  modifiedRef.current = modified;
 
   // Vue mémorisée du fichier (SPEC §5.3), lue une seule fois au chargement.
   const initialView = useMemo<InitialView>(
@@ -99,6 +104,40 @@ export function Viewer({ file, onShowFiles, settings, onSettingsChange, onResetS
     };
   }, [flush]);
 
+  /**
+   * Sauvegarde (SPEC §14.1) : XML réécrit en place par le moteur (avec l'état de vue des pages),
+   * téléchargé sous le nom du fichier et enregistré dans la bibliothèque.
+   */
+  const saveFile = useCallback(() => {
+    const instance = engineRef.current;
+    if (!instance || instance.getFileId() !== file.id) return;
+    const xml = instance.serialize();
+    if (xml === undefined) return;
+    download(file.name.split('/').pop() || 'diagram.drawio', xml);
+    void store.updateMeta(file.id, { content: xml, size: xml.length });
+    save();
+  }, [file.id, file.name, save]);
+
+  // Ctrl+S / ⌘S : sauvegarde (plutôt que l'enregistrement de la page par le navigateur).
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === 's') {
+        event.preventDefault();
+        saveFile();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [saveFile]);
+
+  // Modifications non sauvegardées : le navigateur demande confirmation avant de quitter.
+  useEffect(() => {
+    if (!modified) return;
+    const onBeforeUnload = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [modified]);
+
   const handleEngine = useCallback(
     (instance: Engine | undefined) => {
       engineRef.current = instance;
@@ -124,6 +163,14 @@ export function Viewer({ file, onShowFiles, settings, onSettingsChange, onResetS
       });
       instance.on('linkUsed', scheduleSave);
       instance.on('backChoice', setBackChoices);
+      instance.on('modifiedChange', setModified);
+      // Une page peut imposer ses réglages iso (état de vue du fichier) : l'appli les reprend.
+      instance.on('settingsChange', (next) => {
+        const current = settingsRef.current.view;
+        if (ISO_KEYS.some((key) => next.view[key] !== current[key])) {
+          onSettingsChange({ view: Object.fromEntries(ISO_KEYS.map((key) => [key, next.view[key]])) });
+        }
+      });
       instance.on('pageChange', (page) => {
         setPageId(page.id);
         setBackChoices(undefined);
@@ -136,7 +183,7 @@ export function Viewer({ file, onShowFiles, settings, onSettingsChange, onResetS
         scheduleSave();
       });
     },
-    [file.id, file.name, scheduleSave],
+    [file.id, file.name, scheduleSave, onSettingsChange],
   );
 
   const warnings = document?.warnings ?? [];
@@ -160,6 +207,7 @@ export function Viewer({ file, onShowFiles, settings, onSettingsChange, onResetS
           className="button file-button"
           title="Revenir à la liste des fichiers"
           onClick={() => {
+            if (modifiedRef.current && !window.confirm('Quitter sans sauvegarder les modifications ?')) return;
             flush();
             onShowFiles();
           }}
@@ -168,6 +216,22 @@ export function Viewer({ file, onShowFiles, settings, onSettingsChange, onResetS
             <path d="M2.5 3.5h4l1.5 1.5h5.5v7.5h-11z" />
           </svg>
           <span className="file-name">{file.name}</span>
+        </button>
+        <button
+          type="button"
+          className={modified ? 'button save-button modified' : 'button save-button'}
+          title={
+            modified
+              ? 'Sauvegarder les modifications (Ctrl+S) : téléchargement et bibliothèque'
+              : 'Sauvegarder (Ctrl+S) : téléchargement, avec la vue de chaque page'
+          }
+          onClick={saveFile}
+        >
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M8 2.5v7M5 6.5l3 3 3-3M3 11v2.5h10V11" />
+          </svg>
+          Sauvegarder
+          {modified && <span className="modified-dot" aria-label="modifications non sauvegardées" />}
         </button>
         <NavigationToolbar
           viewMode={viewMode}
@@ -270,4 +334,14 @@ export function Viewer({ file, onShowFiles, settings, onSettingsChange, onResetS
       )}
     </div>
   );
+}
+
+/** Propose le fichier au téléchargement (sous son nom d'origine). */
+function download(name: string, content: string): void {
+  const url = URL.createObjectURL(new Blob([content], { type: 'application/xml' }));
+  const link = window.document.createElement('a');
+  link.href = url;
+  link.download = name;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 }

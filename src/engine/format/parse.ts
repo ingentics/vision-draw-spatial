@@ -11,6 +11,7 @@ import type {
   Rect,
   ShapeModel,
 } from '../model/types';
+import { computeBounds } from '../model/bounds';
 import { htmlToText, resolvePlaceholders } from './label';
 import { parseLink } from './link';
 import { parseStyle, resolveShapeKind } from './style';
@@ -332,28 +333,6 @@ function edgeLabelPlacement(geo: RawGeometry | undefined): EdgeLabelPlacement {
     distance: geo?.relative ? geo.y : 0,
     offset: geo?.offset ?? { x: 0, y: 0 },
   };
-}
-
-function computeBounds(shapes: ShapeModel[], edges: EdgeModel[]): Rect {
-  let minX = Infinity;
-  let minY = Infinity;
-  let maxX = -Infinity;
-  let maxY = -Infinity;
-  const add = (x: number, y: number) => {
-    minX = Math.min(minX, x);
-    minY = Math.min(minY, y);
-    maxX = Math.max(maxX, x);
-    maxY = Math.max(maxY, y);
-  };
-  for (const { bounds: b } of shapes) {
-    add(b.x, b.y);
-    add(b.x + b.width, b.y + b.height);
-  }
-  for (const edge of edges) {
-    for (const p of [edge.sourcePoint, edge.targetPoint, ...edge.points]) if (p) add(p.x, p.y);
-  }
-  if (minX === Infinity) return { x: 0, y: 0, width: 0, height: 0 };
-  return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
 }
 
 function checkPageLinks(pages: PageModel[], warnings: ParseWarning[]): void {
