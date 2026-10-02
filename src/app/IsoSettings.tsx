@@ -25,10 +25,11 @@ export function IsoIcon() {
 
 /**
  * Réglages de la vue isométrique (section du panneau Paramètres) : orientation avec aperçu
- * dessiné, élévation de la caméra, retour à l'isométrie vraie.
+ * dessiné et angle libre, élévation de la caméra, retour à l'isométrie vraie.
  */
 export function IsoSettings({ value, onChange }: IsoSettingsProps) {
   const elevation = Math.round(value.isoAngleDeg);
+  const azimuth = Math.round(value.isoAzimuthDeg);
   const isTrueIso = Math.abs(value.isoAngleDeg - ISOMETRIC_ELEVATION_DEG) < 0.5;
 
   return (
@@ -51,6 +52,26 @@ export function IsoSettings({ value, onChange }: IsoSettingsProps) {
           ))}
         </div>
       </div>
+
+      <label className="field">
+        <span className="field-row">
+          <span>Angle de rotation</span>
+          <span className="field-value">{azimuthLabel(azimuth)}</span>
+        </span>
+        {/* Curseur inversé : vers la droite (azimut négatif) en tirant à droite. */}
+        <input
+          type="range"
+          min={-90}
+          max={90}
+          step={1}
+          value={-azimuth}
+          onChange={(event) => onChange({ isoAzimuthDeg: -Number(event.target.value) })}
+        />
+        <span className="range-hints muted">
+          <span>vers la gauche</span>
+          <span>vers la droite</span>
+        </span>
+      </label>
 
       <label className="field">
         <span className="field-row">
@@ -105,6 +126,12 @@ export function IsoSettings({ value, onChange }: IsoSettingsProps) {
       </label>
     </>
   );
+}
+
+/** Libellé de l'azimut : sens de rotation (azimut négatif = vers la droite) et amplitude. */
+function azimuthLabel(azimuthDeg: number): string {
+  if (azimuthDeg === 0) return '0°';
+  return `${Math.abs(azimuthDeg)}° ${azimuthDeg < 0 ? 'à droite' : 'à gauche'}`;
 }
 
 /**
