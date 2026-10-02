@@ -602,7 +602,7 @@ Réalisation retenue :
 - On conserve l'**arbre XML d'origine** en mémoire et on ne modifie que les **nœuds et attributs concernés** (ex. `x`/`y` d'un `mxGeometry` après un déplacement).
 - Les nouvelles formes sont ajoutées comme de nouveaux nœuds `<mxCell>` valides.
 - Tout ce que le parseur ne comprend pas est donc **préservé tel quel**.
-- Les pages compressées modifiées peuvent être réécrites compressées ou non (draw.io accepte les deux) — à choisir et documenter.
+- Une page garde sa forme d'origine : une page compressée non modifiée est recopiée telle quelle (texte base64 intact) ; modifiée, elle est **réécrite compressée** comme le fait draw.io (XML → `encodeURIComponent` → deflate raw → base64). Une page illisible est recopiée sans y toucher et ne peut pas être modifiée.
 
 ### 14.3 Attributs 3D personnalisés
 
@@ -639,5 +639,5 @@ Ouvrir un fichier avec trois rectangles, les déplacer, sauvegarder, ouvrir le f
 - ~~Comportement exact du pan à la souris~~ → glisser molette = Déplacer par défaut, ou Tourner (barre d'outils) ; clic droit et Espace + glisser déplacent toujours (§9.2).
 - Rendu des formes en volume (extrusion) : souhaité un jour ?
 - Disposition de la vue graphe (force-directed vs couches).
-- Réécriture compressée ou non des pages modifiées.
+- ~~Réécriture compressée ou non des pages modifiées~~ → page compressée réécrite compressée (§14.2).
 - Gestion des calques draw.io multiples (affichage, visibilité).

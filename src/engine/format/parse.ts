@@ -1,4 +1,4 @@
-import { DOMParser, type Element } from '@xmldom/xmldom';
+import type { Element } from '@xmldom/xmldom';
 import type {
   DocumentModel,
   EdgeLabelModel,
@@ -11,10 +11,12 @@ import type {
   Rect,
   ShapeModel,
 } from '../model/types';
-import { decodeDiagram } from './decode';
 import { htmlToText, resolvePlaceholders } from './label';
 import { parseLink } from './link';
 import { parseStyle, resolveShapeKind } from './style';
+import { childElements, type DrawioTree, type PageTree, readDrawioTree } from './xmlTree';
+
+export { DrawioParseError } from './xmlTree';
 
 /**
  * Lecture d'un fichier draw.io (SPEC §7) : `<mxfile>` → `DocumentModel`.
@@ -23,52 +25,29 @@ import { parseStyle, resolveShapeKind } from './style';
  * manquant, lien vers une page absente…) produit un avertissement dans `warnings`.
  */
 
-export class DrawioParseError extends Error {
-  override name = 'DrawioParseError';
+export function parseDrawio(xml: string): DocumentModel {
+  return readDrawio(xml).document;
 }
 
-export function parseDrawio(xml: string): DocumentModel {
-  const root = parseXml(xml).documentElement;
-  if (!root) throw new DrawioParseError('Document XML vide');
-
+/**
+ * Lecture avec conservation de l'arbre XML d'origine (SPEC §14.2) : les ids du modèle
+ * (pages, formes, arêtes, labels) sont les clés de `tree.pages[i].cells`.
+ */
+export function readDrawio(xml: string): { document: DocumentModel; tree: DrawioTree } {
+  const tree = readDrawioTree(xml);
   const warnings: ParseWarning[] = [];
-  let pages: PageModel[];
-
-  if (root.tagName === 'mxfile') {
-    pages = childElements(root, 'diagram').map((diagram, index) => parseDiagram(diagram, index, warnings));
-  } else if (root.tagName === 'mxGraphModel') {
-    // Ancien format : un unique modèle, sans enveloppe <mxfile>.
-    pages = [parseGraphModel(root, 'page-1', 'Page-1', warnings)];
-  } else {
-    throw new DrawioParseError(`Racine inattendue <${root.tagName}> : ce n'est pas un fichier draw.io`);
-  }
-
+  const pages = tree.pages.map((page) => parsePage(page, warnings));
   checkPageLinks(pages, warnings);
-  return { pages, warnings };
+  return { document: { pages, warnings }, tree };
 }
 
 // ---------------------------------------------------------------------------
 // Pages
 
-function parseDiagram(diagram: Element, index: number, warnings: ParseWarning[]): PageModel {
-  const id = diagram.getAttribute('id') || `page-${index + 1}`;
-  const name = diagram.getAttribute('name') || `Page-${index + 1}`;
-
-  const inline = childElements(diagram, 'mxGraphModel')[0];
-  if (inline) return parseGraphModel(inline, id, name, warnings);
-
-  const text = diagram.textContent ?? '';
-  if (!text.trim()) return emptyPage(id, name);
-
-  try {
-    const decoded = decodeDiagram(text);
-    const model = parseXml(decoded).documentElement;
-    if (!model || model.tagName !== 'mxGraphModel') throw new Error('<mxGraphModel> attendu');
-    return parseGraphModel(model, id, name, warnings);
-  } catch (error) {
-    warnings.push({ pageId: id, message: `Page illisible : ${errorMessage(error)}` });
-    return emptyPage(id, name);
-  }
+function parsePage(page: PageTree, warnings: ParseWarning[]): PageModel {
+  if (page.encoding === 'unreadable') warnings.push({ pageId: page.id, message: `Page illisible : ${page.error}` });
+  if (!page.model) return emptyPage(page.id, page.name);
+  return parseGraphModel(page, warnings);
 }
 
 function emptyPage(id: string, name: string): PageModel {
@@ -110,27 +89,11 @@ interface RawCell {
 /** Attributs de `<object>` / `<UserObject>` qui ne sont pas des attributs personnalisés. */
 const OBJECT_RESERVED_ATTRIBUTES = new Set(['id', 'label', 'link', 'placeholders']);
 
-function readCells(rootEl: Element, pageId: string, warnings: ParseWarning[]): RawCell[] {
-  const cells: RawCell[] = [];
-  let anonymous = 0;
-
-  for (const el of childElements(rootEl)) {
-    let cellEl: Element | undefined;
-    let wrapper: Element | undefined;
-
-    if (el.tagName === 'mxCell') {
-      cellEl = el;
-    } else if (el.tagName === 'UserObject' || el.tagName === 'object') {
-      wrapper = el;
-      cellEl = childElements(el, 'mxCell')[0];
-    } else {
-      continue;
-    }
-
-    let id = (wrapper ?? cellEl)?.getAttribute('id') || '';
-    if (!id) {
-      id = `__anonymous-${++anonymous}`;
-      warnings.push({ pageId, message: `Cellule sans id (<${el.tagName}>), identifiant généré : ${id}` });
+function readCells(page: PageTree, warnings: ParseWarning[]): RawCell[] {
+  return page.cellList.map((nodes, order) => {
+    const { id, cell: cellEl, wrapper, element } = nodes;
+    if (nodes.generatedId) {
+      warnings.push({ pageId: page.id, message: `Cellule sans id (<${element.tagName}>), identifiant généré : ${id}` });
     }
 
     const attributes: Record<string, string> = {};
@@ -141,9 +104,7 @@ function readCells(rootEl: Element, pageId: string, warnings: ParseWarning[]): R
       }
     }
 
-    const geometryEl = cellEl ? childElements(cellEl, 'mxGeometry')[0] : undefined;
-
-    cells.push({
+    return {
       id,
       parent: cellEl?.getAttribute('parent') || undefined,
       label: (wrapper ? wrapper.getAttribute('label') : cellEl?.getAttribute('value')) ?? '',
@@ -153,14 +114,13 @@ function readCells(rootEl: Element, pageId: string, warnings: ParseWarning[]): R
       source: cellEl?.getAttribute('source') || undefined,
       target: cellEl?.getAttribute('target') || undefined,
       visible: cellEl?.getAttribute('visible') !== '0',
-      geometry: geometryEl ? readGeometry(geometryEl) : undefined,
+      geometry: nodes.geometry ? readGeometry(nodes.geometry) : undefined,
       attributes,
       link: wrapper?.getAttribute('link') ?? undefined,
       placeholders: wrapper?.getAttribute('placeholders') === '1',
-      order: cells.length,
-    });
-  }
-  return cells;
+      order,
+    } satisfies RawCell;
+  });
 }
 
 function readGeometry(el: Element): RawGeometry {
@@ -193,11 +153,9 @@ function readPoint(el: Element): Point {
 // ---------------------------------------------------------------------------
 // Construction du modèle d'une page
 
-function parseGraphModel(model: Element, id: string, name: string, warnings: ParseWarning[]): PageModel {
-  const rootEl = childElements(model, 'root')[0];
-  if (!rootEl) return emptyPage(id, name);
-
-  const cells = readCells(rootEl, id, warnings);
+function parseGraphModel(page: PageTree, warnings: ParseWarning[]): PageModel {
+  const { id, name } = page;
+  const cells = readCells(page, warnings);
   const byId = new Map<string, RawCell>();
   for (const cell of cells) {
     if (byId.has(cell.id)) warnings.push({ pageId: id, cellId: cell.id, message: 'Identifiant de cellule dupliqué' });
@@ -416,40 +374,9 @@ function checkPageLinks(pages: PageModel[], warnings: ParseWarning[]): void {
 // ---------------------------------------------------------------------------
 // Utilitaires XML
 
-function parseXml(xml: string) {
-  try {
-    return new DOMParser({ onError: onXmlError }).parseFromString(xml, 'text/xml');
-  } catch (error) {
-    throw new DrawioParseError(`XML invalide (${xmlErrorDetail(error)})`, { cause: error });
-  }
-}
-
-function onXmlError(level: 'warning' | 'error' | 'fatalError', message: string): void {
-  if (level !== 'warning') throw new Error(message);
-}
-
-function childElements(parent: Element, tagName?: string): Element[] {
-  const result: Element[] = [];
-  for (let node = parent.firstChild; node; node = node.nextSibling) {
-    if (node.nodeType === 1 && (!tagName || (node as Element).tagName === tagName)) result.push(node as Element);
-  }
-  return result;
-}
-
 function num(el: Element, name: string): number {
   const value = parseFloat(el.getAttribute(name) ?? '');
   return Number.isFinite(value) ? value : 0;
-}
-
-/** Détail lisible d'une erreur xmldom (« Reporting fatalError "x" caused Error: x » → « x »). */
-function xmlErrorDetail(error: unknown): string {
-  const message = errorMessage(error);
-  const detail = /caused (?:\w*Error: )?(.+)$/s.exec(message)?.[1] ?? message;
-  return detail.replace(/\s+/g, ' ').trim();
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }
 
 /** Retire les clés à `undefined` pour garder un modèle propre (et des égalités de test simples). */

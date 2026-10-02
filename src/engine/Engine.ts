@@ -4,7 +4,8 @@ import { collectUnsupported } from './diagnostics/unsupportedStyles';
 import type { UnsupportedReport } from './diagnostics/unsupportedStyles';
 import { Emitter } from './events';
 import { isNavigableLink } from './format/link';
-import { parseDrawio } from './format/parse';
+import { readDrawio } from './format/parse';
+import type { DrawioTree } from './format/xmlTree';
 import {
   applyCameraState,
   fitBounds,
@@ -131,6 +132,8 @@ export class Engine {
   private readonly controller: CameraController;
 
   private document: DocumentModel | undefined;
+  /** Arbre XML d'origine du document chargé, base de l'écriture in situ (SPEC §14.2). */
+  private xmlTree: DrawioTree | undefined;
   private unsupportedReport: UnsupportedReport | undefined;
   private fileId: string | undefined;
   private readonly scenes: SceneManager;
@@ -220,8 +223,9 @@ export class Engine {
   }
 
   async load(xml: string, fileId: string, initialView?: InitialView): Promise<void> {
-    const document = parseDrawio(xml);
+    const { document, tree } = readDrawio(xml);
     this.document = document;
+    this.xmlTree = tree;
     this.fileId = fileId;
     this.unsupportedReport = collectUnsupported(document, this.registry);
     this.transition?.abort();
@@ -250,6 +254,11 @@ export class Engine {
 
   getDocument(): DocumentModel | undefined {
     return this.document;
+  }
+
+  /** Arbre XML d'origine du document chargé : ses `cells` ont les mêmes ids que le modèle. */
+  getXmlTree(): DrawioTree | undefined {
+    return this.xmlTree;
   }
 
   /** Éléments non supportés du document chargé, triés par fréquence (SPEC §8.4). */
