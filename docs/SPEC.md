@@ -49,7 +49,7 @@ Tout le moteur (parsing, modèle, rendu, interaction, persistance) est écrit en
 - expose quelques callbacks (`onPageChange`, `onSelectionChange`, `onSave`…),
 - affiche l'UI annexe (lanceur, palette, barre de menu, boutons).
 
-Conséquences : le moteur est testable seul, et le composant `<DrawioSpatial />` reste trivial à intégrer dans une autre application React.
+Conséquences : le moteur est testable seul, et le composant `<DrawioSpatial />` reste trivial à intégrer dans une autre application React. Documentation du composant : [`docs/COMPOSANT.md`](COMPOSANT.md).
 
 ### 3.3 Appli web d'abord, binaire ensuite
 
@@ -58,7 +58,7 @@ On développe une **application web**. Le jour où un binaire natif est nécessa
 ### 3.4 Environnement de développement
 
 - **Conteneurisé** : Node est figé par l'image Docker (`node:24.21.0-bookworm-slim`), les dépendances installées par `npm ci` depuis le lockfile. Aucune version de Node n'est requise sur la machine, seulement Docker.
-- **Makefile** comme point d'entrée unique : `make dev` (affiche le lien cliquable), `make test`, `make lint`, `make check`, `make build`, `make preview`, `make lock` (régénère le lockfile dans le conteneur), `make shell`, `make down`, `make clean`.
+- **Makefile** comme point d'entrée unique : `make dev` (affiche le lien cliquable), `make test`, `make lint`, `make check`, `make build`, `make lib` (bibliothèque), `make drawio-check` (conservation par draw.io), `make preview`, `make lock` (régénère le lockfile dans le conteneur), `make shell`, `make down`, `make clean`.
 - **Hot reload permanent** : pendant toute la phase de dev, un seul serveur (`make dev`, port 5173) reste ouvert et on travaille directement dessus.
   - Une modification de l'UI React est appliquée à chaud.
   - Une modification du moteur (`src/engine`) recharge la page (le moteur n'est pas remplaçable à chaud) ; l'appli de démo restaure alors le fichier, la page et la caméra en cours (stockage de l'onglet), on reste au même endroit.

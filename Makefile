@@ -6,7 +6,7 @@ COMPOSE := PORT=$(PORT) COMPOSE_BAKE=false docker compose
 RUN     := $(COMPOSE) run --rm --no-deps app
 
 .DEFAULT_GOAL := help
-.PHONY: help image .image dev test lint check drawio-check build preview shell lock down clean
+.PHONY: help image .image dev test lint check drawio-check build lib preview shell lock down clean
 
 help: ## Affiche les commandes disponibles
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  \033[36mmake %-8s\033[0m %s\n", $$1, $$2}'
@@ -47,6 +47,9 @@ drawio-check: .image ## Réenregistre les fixtures avec draw.io et vérifie la c
 
 build: .image ## Build de production dans dist/
 	$(RUN) npm run build
+
+lib: .image ## Build de la bibliothèque (composant React + moteur) dans dist-lib/
+	$(RUN) npm run build:lib
 
 preview: build ## Sert le build de production
 	@printf '\n  Drawio Spatial (build) → \033]8;;$(URL)\033\\\033[1;36m$(URL)\033[0m\033]8;;\033\\\n\n'

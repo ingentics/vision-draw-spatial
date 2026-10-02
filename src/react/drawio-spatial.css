@@ -1,0 +1,50 @@
+/*
+ * Styles du composant <DrawioSpatial /> (mini-carte). Personnalisables par les variables
+ * --drawio-spatial-* sur le composant ou un parent.
+ */
+.drawio-spatial {
+  --drawio-spatial-border: #dadce0;
+  --drawio-spatial-muted: #6b6b6b;
+  --drawio-spatial-surface: #ffffff;
+  --drawio-spatial-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+}
+
+.drawio-spatial canvas:focus-visible {
+  outline: none;
+}
+
+.drawio-minimap canvas {
+  display: block;
+  border: 1px solid var(--drawio-spatial-border);
+  border-radius: 6px;
+  background: var(--drawio-spatial-surface);
+  box-shadow: var(--drawio-spatial-shadow);
+}
+
+.drawio-minimap-toggle {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  font: inherit;
+  font-size: 15px;
+  line-height: 18px;
+  color: var(--drawio-spatial-muted);
+  border: none;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+}
+
+.drawio-minimap-show {
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 12px;
+  border: 1px solid var(--drawio-spatial-border);
+  border-radius: 6px;
+  background: var(--drawio-spatial-surface);
+  box-shadow: var(--drawio-spatial-shadow);
+  cursor: pointer;
+}

@@ -121,6 +121,11 @@ export interface EngineOptions {
   settings?: SettingsPatch;
   /** Ouverture des liens URL (par défaut : nouvel onglet du navigateur). */
   openUrl?: (href: string) => void;
+  /**
+   * Édition (SPEC §14) : déplacer, redimensionner, créer, modifier… Désactivée par défaut :
+   * le moteur est alors une visionneuse (navigation, liens, sélection).
+   */
+  editable?: boolean;
 }
 
 /** Vue à restaurer au chargement (SPEC §5.3) : dernière page active et caméras par page. */
@@ -293,6 +298,7 @@ export class Engine {
   /** Poignées de la forme sélectionnée. */
   private handlesObject: Object3D | undefined;
   private readonly undoStack = new UndoStack<string>();
+  private editable: boolean;
 
   constructor(options: EngineOptions) {
     this.canvas = options.canvas;
@@ -304,6 +310,7 @@ export class Engine {
       this.cameraState = withViewMode(this.cameraState, 'iso', this.isoTilt(), this.isoAzimuth());
     }
     this.openUrl = options.openUrl ?? defaultOpenUrl;
+    this.editable = options.editable ?? false;
     // Stencil : trous du voile de sélection autour des flèches (render/highlight).
     this.renderer = new WebGLRenderer({ canvas: this.canvas, antialias: true, stencil: true });
     this.renderer.setPixelRatio(window.devicePixelRatio);
@@ -429,9 +436,21 @@ export class Engine {
     this.canvas.focus({ preventScroll: true });
   }
 
+  isEditable(): boolean {
+    return this.editable;
+  }
+
+  /** Active ou désactive l'édition (poignées, glisser, commandes d'édition). */
+  setEditable(editable: boolean): void {
+    if (this.editable === editable) return;
+    this.endMove();
+    this.editable = editable;
+    this.updateSelectionOutline();
+  }
+
   /** Pages modifiables : fichier `<mxfile>` (l'ancien format n'a qu'une page sans nom). */
   canEditPages(): boolean {
-    return this.xmlTree?.xml.documentElement?.tagName === 'mxfile';
+    return this.editable && this.xmlTree?.xml.documentElement?.tagName === 'mxfile';
   }
 
   /**
@@ -440,9 +459,9 @@ export class Engine {
    * Renvoie l'id de la nouvelle cellule, sélectionnée.
    */
   addShape(template: ShapeTemplate, screen?: Point): string | undefined {
-    const page = this.getCurrentPage();
-    const pageTree = page && this.pageTreeOf(page.id);
-    if (!page || !pageTree || pageTree.encoding === 'unreadable' || this.transition) return undefined;
+    const editable = this.editablePage();
+    if (!editable) return undefined;
+    const { page, pageTree } = editable;
     this.endMove();
     const at = screenToPage(
       this.cameraState,
@@ -1267,6 +1286,7 @@ export class Engine {
 
   /** Page courante modifiable (pas la vue graphe, ni une page illisible) et son arbre XML. */
   private editablePage(): { page: PageModel; pageTree: PageTree } | undefined {
+    if (!this.editable) return undefined;
     const page = this.getCurrentPage();
     if (!page || page.id === GRAPH_PAGE_ID || this.transition) return undefined;
     const pageTree = this.pageTreeOf(page.id);
@@ -1637,22 +1657,22 @@ export class Engine {
   }
 
   canUndo(): boolean {
-    return this.undoStack.undoLabel() !== undefined;
+    return this.editable && this.undoStack.undoLabel() !== undefined;
   }
 
   canRedo(): boolean {
-    return this.undoStack.redoLabel() !== undefined;
+    return this.editable && this.undoStack.redoLabel() !== undefined;
   }
 
   undo(): void {
-    if (!this.xmlTree || this.transition) return;
+    if (!this.editable || !this.xmlTree || this.transition) return;
     this.endMove();
     const previous = this.undoStack.undo(writeDrawio(this.xmlTree));
     if (previous !== undefined) this.restore(previous);
   }
 
   redo(): void {
-    if (!this.xmlTree || this.transition) return;
+    if (!this.editable || !this.xmlTree || this.transition) return;
     this.endMove();
     const next = this.undoStack.redo(writeDrawio(this.xmlTree));
     if (next !== undefined) this.restore(next);

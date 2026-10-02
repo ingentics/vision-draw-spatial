@@ -1,0 +1,39 @@
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  font:
+    13px/1.4 system-ui,
+    sans-serif;
+}
+
+.example {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100%;
+}
+
+.example header,
+.example footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: #f8f9fa;
+}
+
+.example header {
+  border-bottom: 1px solid #dadce0;
+}
+
+.example footer {
+  border-top: 1px solid #dadce0;
+  color: #6b6b6b;
+}
+
+/* Le composant prend toute la place de son parent : il faut lui en donner une. */
+.example main {
+  min-height: 0;
+}

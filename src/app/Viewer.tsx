@@ -371,6 +371,7 @@ export function Viewer({ file, onShowFiles, settings, onSettingsChange, onResetS
           <DrawioSpatial
             xml={file.content}
             fileId={file.id}
+            editable
             fonts={FONTS}
             settings={settings}
             minimap={settings.minimap}
