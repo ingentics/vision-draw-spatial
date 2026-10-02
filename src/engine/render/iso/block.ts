@@ -9,6 +9,7 @@ import type { SceneRenderer } from '../shapes/types';
 import { styleColor, styleNumber, styleOpacity } from '../styleValues';
 import { PART_ORDER } from '../types';
 import type { RenderContext } from '../types';
+import { SPATIAL, spatialNumber } from '../../spatial';
 
 /**
  * Rendu iso en volume (niveau `iso`) : la forme devient un bloc posé au sol.
@@ -33,11 +34,9 @@ const SHARP_CORNER_DEG = 30;
  */
 const LIGHT = normalize({ x: 1, y: 2 });
 
-/** Hauteur d'une forme en volume : `spatial.height` dans le style, sinon l'épaisseur par défaut. */
+/** Hauteur d'une forme en volume : `spatial.height` (style ou objet), sinon l'épaisseur par défaut. */
 export function blockHeight(shape: ShapeModel, ctx: RenderContext): number {
-  const own = parseFloat(shape.style['spatial.height'] ?? '');
-  if (Number.isFinite(own) && own >= 0) return own;
-  return ctx.volume?.depth ?? DEFAULT_DEPTH;
+  return spatialNumber(shape, SPATIAL.height) ?? ctx.volume?.depth ?? DEFAULT_DEPTH;
 }
 
 /** Rendu iso d'une forme définie par son contour. */

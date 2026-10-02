@@ -362,6 +362,8 @@ export function Viewer({ file, onShowFiles, settings, onSettingsChange, onResetS
               selection={selection}
               pages={document.pages}
               onLink={(link) => engine?.setLink(selection.picked.element.id, link)}
+              onSpatial={(key, value) => engine?.setSpatial(selection.picked.element.id, key, value)}
+              defaultDepth={settings.view.isoDepth}
               onEditLabel={() => engine?.editLabel(selection.picked.element.id)}
               onDelete={() => engine?.deleteSelection()}
             />

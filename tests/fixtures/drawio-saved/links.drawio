@@ -1,0 +1,48 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/24.7.5 Chrome/126.0.6478.183 Electron/31.3.0 Safari/537.36" version="24.7.5" pages="2">
+  <diagram id="home" name="Accueil">
+    <mxGraphModel dx="-164" dy="-44" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="0" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <UserObject label="Voir le détail" link="data:page/id,detail" id="to-detail">
+          <mxCell style="rounded=0;html=1;" parent="1" vertex="1">
+            <mxGeometry width="120" height="60" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <object label="%name% v%version% (100%%)" placeholders="1" name="Docs" version="2" tooltip="Documentation" link="https://example.com/docs" id="ext">
+          <mxCell style="ellipse;" parent="1" vertex="1">
+            <mxGeometry x="200" width="80" height="80" as="geometry" />
+          </mxCell>
+        </object>
+        <UserObject label="Cassé" link="data:page/id,missing" id="broken-link">
+          <mxCell style="rounded=0;" parent="1" vertex="1">
+            <mxGeometry y="100" width="60" height="30" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="Action" link="data:action/json,{&quot;actions&quot;:[]}" id="action">
+          <mxCell style="rounded=0;" parent="1" vertex="1">
+            <mxGeometry x="100" y="100" width="60" height="30" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="" link="data:page/id,detail" id="edge-link">
+          <mxCell style="endArrow=classic;" parent="1" source="to-detail" target="ext" edge="1">
+            <mxGeometry relative="1" as="geometry" />
+          </mxCell>
+        </UserObject>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="detail" name="Détail">
+    <mxGraphModel>
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <UserObject label="Retour" link="data:page/id,home" id="to-home">
+          <mxCell style="rounded=0;" vertex="1" parent="1">
+            <mxGeometry x="0" y="0" width="80" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

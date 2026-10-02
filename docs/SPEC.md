@@ -428,6 +428,7 @@ Formes et arêtes sont dessinées dans l'**ordre du document** (une arête décl
 | Redimensionner / connecter | Poignées de la forme sélectionnée : carrés = redimensionner (grille, Alt = libre), disque bleu à droite = tirer vers une autre forme pour la relier (§14.1) |
 | Éditer un texte | Double-clic (élément sans lien), **F2** ou bouton « Texte » ; Ctrl+Entrée valide, Échap annule (§14.1) |
 | Lien, suppression | Barre de la sélection : menu « Lien » (page ou URL), « Supprimer » / **Suppr** ; **Échap** désélectionne (§14.1) |
+| Volume d'une forme | Barre de la sélection : « Épaisseur » (`spatial.height`), « Élévation » (`spatial.elevation`) (§14.3) |
 | Annuler / rétablir | Boutons de la barre d'outils, **Ctrl+Z**, **Ctrl+Maj+Z** / Ctrl+Y (§14.1) |
 | Entrer dans un lien | Double-clic |
 | Retour | Bouton « Retour » + raccourci (ex. Backspace / Alt+←) |
@@ -625,6 +626,19 @@ Réalisation retenue :
 - Préfixe unique pour éviter toute collision avec les attributs draw.io.
 - Ces attributs **ne doivent pas être perdus** quand le fichier est ouvert puis sauvegardé dans draw.io. À vérifier par des tests manuels documentés (voir §15).
 
+Réalisation retenue (`engine/spatial.ts`) :
+
+| Attribut | Où | Effet |
+|---|---|---|
+| `spatial.height` | style ou objet | Épaisseur du volume en iso, en pixels de page (défaut : réglage « Épaisseur ») |
+| `spatial.elevation` | style ou objet | La forme flotte à cette hauteur au-dessus de sa base (sol, ou dessus de son conteneur) |
+| `spatial.noLinkBadge` | style | `1` : lien sans pastille (cartes de la vue graphe) |
+| `spatial.view` | `<diagram>` | État de vue de la page (§14.2) |
+
+- Lecture : style de la cellule, sinon attribut de son `<object>` / `<UserObject>` (« Modifier les données » dans draw.io) ; le style l'emporte. Valeurs négatives ou invalides ignorées.
+- Écriture (barre de la sélection : « Épaisseur », « Élévation » ; vide = valeur par défaut) : là où l'attribut est déjà (objet), sinon dans le style, clé modifiée en place ou ajoutée à la fin.
+- Tout attribut préfixé `spatial.`, connu ou non, est conservé par l'appli (arbre XML d'origine) et par draw.io (vérifié avec draw.io 24.7.5, ci-dessous).
+
 ### 14.4 Critère d'acceptation
 
 Ouvrir un fichier avec trois rectangles, les déplacer, sauvegarder, ouvrir le fichier dans draw.io : **les rectangles sont aux nouvelles positions** et le reste du fichier est **identique**.
@@ -640,6 +654,11 @@ Ouvrir un fichier avec trois rectangles, les déplacer, sauvegarder, ouvrir le f
   1. Ouvrir l'exemple `fixtures/three-rectangles.drawio`, déplacer A, B et C (en 2D et en iso), passer en iso, Sauvegarder.
   2. Ouvrir le fichier téléchargé dans draw.io : rectangles aux nouvelles positions, flèche A → B retracée, rien d'autre de changé. Le déplacer un peu dans draw.io, enregistrer.
   3. Rouvrir ce fichier dans l'application (glisser-déposer) : positions de draw.io, et même vue iso qu'à l'étape 1 (attribut `spatial.view` conservé).
+- **Conservation par draw.io, automatisée** : `make drawio-check` fait réenregistrer les fixtures par le draw.io installé (`draw.io -x -f xml --uncompressed`, qui charge le fichier dans l'éditeur puis l'écrit) dans `tests/fixtures/drawio-saved/`, puis vérifie que pages, `spatial.view`, attributs `spatial.*` (style et objet) et géométries sont identiques (`tests/engine/spatial`). Les sorties sont versionnées : le test tourne aussi sans draw.io. Exclues car volontairement invalides pour draw.io : `broken.drawio`, `groups.drawio` (parent inexistant : draw.io perd la page), `roundtrip.drawio` (élément inconnu dans `<root>` : export refusé). L'export en ligne de commande passe en mode visionneuse (`grid`, `page`, `dx`/`dy` de `<mxGraphModel>` réécrits) : ces attributs ne sont pas comparés.
+- **Procédure manuelle des attributs spatiaux** (sauvegarde interactive, complément de `make drawio-check`) :
+  1. Ouvrir l'exemple `fixtures/spatial.drawio` dans l'appli (vue iso : socle épais, forme posée dessus, bloc haut, ellipse qui flotte) ; changer l'épaisseur d'une forme dans la barre de sélection ; Sauvegarder.
+  2. Ouvrir le fichier dans draw.io : clic droit sur une forme → « Modifier le style » (`spatial.height=…`, `spatial.elevation=…`) et « Modifier les données » (`spatial.height`, `spatial.note` du bloc vert) ; déplacer une forme, enregistrer.
+  3. Rouvrir le fichier dans l'appli : mêmes volumes, même élévation, même vue iso ; seule la forme déplacée a bougé.
 - Le moteur étant indépendant de React, la majorité des tests ne nécessite pas de navigateur.
 
 ---

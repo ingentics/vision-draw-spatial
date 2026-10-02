@@ -1,10 +1,15 @@
 import type { Selection } from '../engine/Engine';
 import type { LinkModel, PageModel } from '../engine/model/types';
+import { SPATIAL, spatialNumber } from '../engine/spatial';
 
 interface SelectionBarProps {
   selection: Selection;
   pages: PageModel[];
   onLink: (link: LinkModel | undefined) => void;
+  /** Attribut spatial d'une forme (épaisseur, élévation) ; undefined = valeur par défaut. */
+  onSpatial: (key: string, value: number | undefined) => void;
+  /** Épaisseur par défaut des volumes (réglage), affichée quand la forme n'a pas la sienne. */
+  defaultDepth: number;
   onEditLabel: () => void;
   onDelete: () => void;
 }
@@ -16,7 +21,15 @@ const URL_OPTION = '__url__';
  * Barre de la sélection (SPEC §14.1) : lien vers une page ou une URL, édition du texte (F2),
  * suppression (Suppr).
  */
-export function SelectionBar({ selection, pages, onLink, onEditLabel, onDelete }: SelectionBarProps) {
+export function SelectionBar({
+  selection,
+  pages,
+  onLink,
+  onSpatial,
+  defaultDepth,
+  onEditLabel,
+  onDelete,
+}: SelectionBarProps) {
   const { element, type } = selection.picked;
   const link = element.link;
   const value = link?.type === 'page' ? `page:${link.pageId}` : link?.type === 'url' ? URL_OPTION : NONE;
@@ -54,6 +67,26 @@ export function SelectionBar({ selection, pages, onLink, onEditLabel, onDelete }
           <option value={URL_OPTION}>{link?.type === 'url' ? `URL : ${link.href}` : 'URL…'}</option>
         </select>
       </label>
+      {type === 'shape' && (
+        <>
+          <SpatialField
+            key={`h:${element.id}:${spatialNumber(element, SPATIAL.height) ?? ''}`}
+            label="Épaisseur"
+            title="Épaisseur du volume en vue iso (spatial.height) ; vide = réglage par défaut"
+            value={spatialNumber(element, SPATIAL.height)}
+            placeholder={String(defaultDepth)}
+            onCommit={(value) => onSpatial(SPATIAL.height, value)}
+          />
+          <SpatialField
+            key={`e:${element.id}:${spatialNumber(element, SPATIAL.elevation) ?? ''}`}
+            label="Élévation"
+            title="Hauteur au-dessus du sol ou du conteneur en vue iso (spatial.elevation)"
+            value={spatialNumber(element, SPATIAL.elevation)}
+            placeholder="0"
+            onCommit={(value) => onSpatial(SPATIAL.elevation, value)}
+          />
+        </>
+      )}
       <button type="button" className="button" title="Modifier le texte (F2, ou double-clic)" onClick={onEditLabel}>
         Texte
       </button>
@@ -61,5 +94,42 @@ export function SelectionBar({ selection, pages, onLink, onEditLabel, onDelete }
         Supprimer
       </button>
     </div>
+  );
+}
+
+/** Champ numérique d'un attribut spatial : validé à Entrée ou en quittant le champ. */
+function SpatialField({
+  label,
+  title,
+  value,
+  placeholder,
+  onCommit,
+}: {
+  label: string;
+  title: string;
+  value: number | undefined;
+  placeholder: string;
+  onCommit: (value: number | undefined) => void;
+}) {
+  const commit = (text: string) => {
+    const trimmed = text.trim();
+    const next = trimmed === '' ? undefined : Number(trimmed.replace(',', '.'));
+    if (next === undefined || (Number.isFinite(next) && next >= 0)) onCommit(next);
+  };
+  return (
+    <label className="selection-field" title={title}>
+      {label}
+      <input
+        type="number"
+        min={0}
+        step={1}
+        defaultValue={value ?? ''}
+        placeholder={placeholder}
+        onBlur={(event) => commit(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') event.currentTarget.blur();
+        }}
+      />
+    </label>
   );
 }

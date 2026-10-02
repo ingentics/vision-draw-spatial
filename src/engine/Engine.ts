@@ -4,7 +4,16 @@ import { collectUnsupported } from './diagnostics/unsupportedStyles';
 import type { UnsupportedReport } from './diagnostics/unsupportedStyles';
 import { Emitter } from './events';
 import { formatLink, isNavigableLink } from './format/link';
-import { canMoveCell, gridSizeOf, moveCell, resizeCell, setCellLabel } from './format/edit';
+import {
+  canMoveCell,
+  formatNumber,
+  gridSizeOf,
+  moveCell,
+  resizeCell,
+  setCellLabel,
+  setCellObjectAttribute,
+  setCellStyleValue,
+} from './format/edit';
 import {
   addEdgeCell,
   addPage,
@@ -71,6 +80,7 @@ import type { SceneLevel } from './render/shapes/types';
 import { setPageTransform } from './render/space';
 import { createTroikaTextFactory } from './render/troikaText';
 import { DEFAULT_SETTINGS, mergeSettings, resolveReducedMotion } from './settings';
+import { SPATIAL_PREFIX, spatialValue } from './spatial';
 import type { PreloadSettings, Settings, SettingsPatch, TransitionSettings, ViewSettings } from './settings';
 import type { FontSet } from './render/troikaText';
 
@@ -1594,6 +1604,24 @@ export class Engine {
     if (href === (element.link ? formatLink(element.link) : undefined)) return;
     this.recordEdit(link ? 'Lien' : 'Lien retiré');
     setCellLink(editable.pageTree, elementId, href);
+    this.documentChanged([editable.page.id]);
+  }
+
+  /**
+   * Attribut spatial d'une forme (SPEC §14.3), ex. `spatial.height`, `spatial.elevation` ; undefined
+   * le retire (valeur par défaut). Écrit là où il est déjà (attribut de l'objet), sinon dans le style.
+   */
+  setSpatial(elementId: string, key: string, value: number | undefined): void {
+    const editable = this.editablePage();
+    const shape = editable?.page.shapes.find((s) => s.id === elementId);
+    if (!editable || !shape || !key.startsWith(SPATIAL_PREFIX)) return;
+    const text = value === undefined || !Number.isFinite(value) ? undefined : formatNumber(Math.max(0, value));
+    if (spatialValue(shape, key) === text) return;
+    this.recordEdit('Attribut spatial');
+    const inObject = shape.attributes[key] !== undefined && shape.style[key] === undefined;
+    if (!inObject || !setCellObjectAttribute(editable.pageTree, elementId, key, text)) {
+      setCellStyleValue(editable.pageTree, elementId, key, text);
+    }
     this.documentChanged([editable.page.id]);
   }
 

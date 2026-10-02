@@ -8,7 +8,9 @@ import { writeDrawio } from '../../../src/engine/format/write';
 import { childElements, markPageDirty, parseXml } from '../../../src/engine/format/xmlTree';
 import { fixture } from '../../helpers';
 
-const FIXTURES = readdirSync(fileURLToPath(new URL('../../fixtures/', import.meta.url))).sort();
+const FIXTURES = readdirSync(fileURLToPath(new URL('../../fixtures/', import.meta.url)))
+  .filter((name) => /\.(drawio|xml)$/.test(name))
+  .sort();
 
 /**
  * Forme canonique d'un fichier draw.io, pour comparer « sémantiquement » : attributs triés,

@@ -1,0 +1,27 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/24.7.5 Chrome/126.0.6478.183 Electron/31.3.0 Safari/537.36" version="24.7.5">
+  <diagram id="spatial-page" name="Attributs spatiaux" spatial.view="mode=iso;x=260;y=180;zoom=1;rotation=-45;tilt=54.74;elevation=35.26;azimuth=-45;volume=1;depth=16;">
+    <mxGraphModel dx="-294" dy="-107" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="0" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="socle" value="Socle (style)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spatial.height=40;" parent="1" vertex="1">
+          <mxGeometry x="40" y="40" width="280" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="pose" value="Posé sur le socle" style="rounded=1;whiteSpace=wrap;html=1;" parent="socle" vertex="1">
+          <mxGeometry x="20" y="20" width="120" height="60" as="geometry" />
+        </mxCell>
+        <UserObject label="Hauteur (objet)" spatial.height="60" spatial.note="garder" id="objet">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+            <mxGeometry x="380" y="40" width="120" height="80" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="flotte" value="Flotte (élévation)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;spatial.elevation=50;spatial.height=10;" parent="1" vertex="1">
+          <mxGeometry x="380" y="180" width="120" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="lien" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;spatial.custom=1;" parent="1" source="socle" target="objet" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

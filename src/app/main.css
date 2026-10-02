@@ -906,3 +906,14 @@ body {
 .icon-button:disabled svg {
   opacity: 0.4;
 }
+
+.selection-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.selection-field input {
+  width: 52px;
+  font: inherit;
+}

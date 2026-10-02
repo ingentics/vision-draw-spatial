@@ -3,6 +3,7 @@ import type { Object3D } from 'three';
 import { isNavigableLink } from '../format/link';
 import type { EdgeModel, PageModel, ShapeModel } from '../model/types';
 import { linkBadge } from './decorations';
+import { SPATIAL, spatialNumber, spatialValue } from '../spatial';
 import { blockHeight } from './iso/block';
 import { disposeObject } from './meshes';
 import { createEdge } from './edges/edge';
@@ -103,7 +104,7 @@ export function createShapeObject(
 ): Object3D {
   const object = registry.sceneRenderer(shape, level).create(shape, ctx);
   // `spatial.noLinkBadge=1` : lien sans pastille (ex. cartes de la vue graphe, entièrement cliquables).
-  if (isNavigableLink(shape.link) && shape.style['spatial.noLinkBadge'] !== '1') {
+  if (isNavigableLink(shape.link) && spatialValue(shape, SPATIAL.noLinkBadge) !== '1') {
     const badge = linkBadge(shape, shape.link);
     badge.position.z = elevation.height + 0.1; // posée sur le dessus du bloc
     object.add(badge);
@@ -139,7 +140,9 @@ function volumeLayout(
     const cached = bases.get(shape.id);
     if (cached !== undefined) return cached;
     const parent = shape.parentId ? shapesById.get(shape.parentId) : undefined;
-    const value = parent && !seen.has(parent.id) ? base(parent, seen.add(shape.id)) + height(parent) : 0;
+    const below = parent && !seen.has(parent.id) ? base(parent, seen.add(shape.id)) + height(parent) : 0;
+    // `spatial.elevation` : la forme flotte au-dessus de sa base (sol ou dessus de son conteneur).
+    const value = below + (spatialNumber(shape, SPATIAL.elevation) ?? 0);
     bases.set(shape.id, value);
     return value;
   };

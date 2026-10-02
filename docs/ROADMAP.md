@@ -130,9 +130,10 @@
 - Fait : poignées sur la forme sélectionnée, sur le dessus du volume en iso (8 pour redimensionner, aimantées à la grille, taille minimale ; 1 pour connecter : tirer vers une autre forme crée un connecteur au style draw.io par défaut) ; label au double-clic (élément sans lien), F2 ou bouton « Texte » (champ posé sur l'élément : Entrée = ligne, Ctrl+Entrée / clic ailleurs = valider, Échap = annuler ; HTML échappé avec `<br>` si `html=1`) ; barre de sélection : lien vers une page ou une URL (cellule enveloppée dans un `<UserObject>` comme draw.io), suppression (Suppr : avec le contenu, les labels et les arêtes reliées) ; annuler / rétablir par instantanés de l'arbre XML (boutons, Ctrl+Z, Ctrl+Maj+Z / Ctrl+Y), « modifié » qui revient à faux en annulant jusqu'à la dernière sauvegarde.
 - Validé avec draw.io 24.7.5 : forme redimensionnée, label sur deux lignes avec `<`, `>`, `&`, connecteur créé et lien vers une nouvelle page rendus et relus à l'identique.
 
-### Étape 17 — Attributs spatiaux
+### Étape 17 — Attributs spatiaux ✅
 - Attributs personnalisés préfixés (ex. `spatial.*`).
 - Procédure de test manuelle : ouvrir dans draw.io, sauvegarder, rouvrir, vérifier la conservation.
+- Fait : `engine/spatial.ts` (attributs connus, lecture style ou objet) ; `spatial.height` lu aussi sur l'objet, nouveau `spatial.elevation` (forme qui flotte en iso) ; champs « Épaisseur » / « Élévation » dans la barre de sélection (écriture en place, annulable) ; fixture `spatial.drawio`. `make drawio-check` fait réenregistrer les fixtures par draw.io et vérifie la conservation (sorties versionnées dans `tests/fixtures/drawio-saved/`, testées à chaque `make check`) ; procédure manuelle en SPEC §15.
 
 ---
 
