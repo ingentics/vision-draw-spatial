@@ -10,7 +10,9 @@ import { BackButton } from '../react/BackButton';
 import { DrawioSpatial } from '../react/DrawioSpatial';
 import { clearLog, cumulativeEntries, exportJson, recordFile } from './diagnosticsLog';
 import { DiagnosticsPanel } from './DiagnosticsPanel';
-import { store } from './fileLibrary';
+import { desktop } from './desktop';
+import { isFilePath } from '../engine/persistence/FsStore';
+import { saveAs, store } from './fileLibrary';
 import { NavigationToolbar } from './NavigationToolbar';
 import { LabelEditor } from './LabelEditor';
 import { PageTabs } from './PageTabs';
@@ -29,6 +31,8 @@ interface ViewerProps {
   file: StoredFile;
   /** Retour au lanceur (l'état est sauvegardé avant). */
   onShowFiles: () => void;
+  /** Appli native : « Enregistrer sous » a créé un vrai fichier, à afficher à la place. */
+  onFileReplaced?: (file: StoredFile) => void;
   /** Paramètres (SPEC §13), partagés entre fichiers et persistés par l'appli. */
   settings: Settings;
   onSettingsChange: (patch: SettingsPatch) => void;
@@ -36,7 +40,14 @@ interface ViewerProps {
 }
 
 /** Visionneuse d'un fichier : moteur, barre d'outils, onglets, diagnostics, persistance de la vue. */
-export function Viewer({ file, onShowFiles, settings, onSettingsChange, onResetSettings }: ViewerProps) {
+export function Viewer({
+  file,
+  onShowFiles,
+  onFileReplaced,
+  settings,
+  onSettingsChange,
+  onResetSettings,
+}: ViewerProps) {
   const [engine, setEngine] = useState<Engine>();
   const [document, setDocument] = useState<DocumentModel>();
   const [pageId, setPageId] = useState<string>();
@@ -120,10 +131,20 @@ export function Viewer({ file, onShowFiles, settings, onSettingsChange, onResetS
     if (!instance || instance.getFileId() !== file.id) return;
     const xml = instance.serialize();
     if (xml === undefined) return;
-    download(file.name.split('/').pop() || 'diagram.drawio', xml);
-    void store.updateMeta(file.id, { content: xml, size: xml.length });
     save();
-  }, [file.id, file.name, save]);
+    if (!desktop) {
+      download(file.name.split('/').pop() || 'diagram.drawio', xml);
+      void store.updateMeta(file.id, { content: xml, size: xml.length });
+    } else if (isFilePath(file.id)) {
+      // Appli native : le vrai fichier est réécrit.
+      store.updateMeta(file.id, { content: xml, size: xml.length }).catch((cause: unknown) => {
+        setError(`Sauvegarde impossible : ${cause instanceof Error ? cause.message : String(cause)}`);
+      });
+    } else {
+      // Exemple embarqué : « Enregistrer sous », puis on continue sur le fichier créé.
+      void saveAs(xml, file.name).then((saved) => saved && onFileReplaced?.(saved));
+    }
+  }, [file.id, file.name, save, onFileReplaced]);
 
   // Ctrl+S / ⌘S : sauvegarde (plutôt que l'enregistrement de la page par le navigateur).
   // Ctrl+Z annule, Ctrl+Maj+Z ou Ctrl+Y rétablit (hors saisie dans un champ).

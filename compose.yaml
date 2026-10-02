@@ -11,3 +11,13 @@ services:
       - .:/app
       # …mais node_modules reste celui de l'image (binaires Linux, versions du lockfile).
       - /app/node_modules
+
+  # Appli native (make desktop*) : runtime Electron de la plateforme cible, empaquetage, signature.
+  desktop:
+    build:
+      context: .
+      dockerfile: desktop/Dockerfile
+    image: drawio-spatial-desktop
+    profiles: ['desktop']
+    volumes:
+      - .:/app

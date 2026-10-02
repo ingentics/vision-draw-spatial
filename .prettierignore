@@ -1,5 +1,9 @@
 dist
 dist-lib
+dist-desktop
+desktop/node_modules
+desktop/web
+desktop/package-lock.json
 node_modules
 tests/fixtures
 docs

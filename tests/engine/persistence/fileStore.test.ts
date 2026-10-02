@@ -2,7 +2,32 @@ import { IDBFactory } from 'fake-indexeddb';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { FileStore, StoredFile } from '../../../src/engine/persistence/FileStore';
 import { IndexedDbStore } from '../../../src/engine/persistence/IndexedDbStore';
+import { FsStore, isFilePath } from '../../../src/engine/persistence/FsStore';
+import type { FileSystemAccess } from '../../../src/engine/persistence/FsStore';
 import { MemoryStore } from '../../../src/engine/persistence/MemoryStore';
+
+/** Système de fichiers en mémoire, comme celui de l'appli native (main.cjs). */
+function memoryFs(files: Record<string, string> = {}) {
+  const disk = new Map(Object.entries(files));
+  let library: string | undefined;
+  const writes: string[] = [];
+  const fs: FileSystemAccess = {
+    readFile: async (path) => {
+      const content = disk.get(path);
+      if (content === undefined) throw new Error(`ENOENT ${path}`);
+      return content;
+    },
+    writeFile: async (path, content) => {
+      writes.push(path);
+      disk.set(path, content);
+    },
+    readLibrary: async () => library,
+    writeLibrary: async (json) => {
+      library = json;
+    },
+  };
+  return { fs, disk, writes, library: () => library };
+}
 
 const camera = { mode: 'top' as const, center: { x: 1, y: 2 }, zoom: 1.5, rotation: 0.2, tilt: 0 };
 
@@ -19,6 +44,7 @@ const file = (id: string, lastOpenedAt: number, patch: Partial<StoredFile> = {})
 const stores: Array<[string, () => FileStore]> = [
   ['MemoryStore', () => new MemoryStore()],
   ['IndexedDbStore', () => new IndexedDbStore('test', new IDBFactory())],
+  ['FsStore', () => new FsStore(memoryFs().fs)],
 ];
 
 describe.each(stores)('%s', (_name, create) => {
@@ -77,5 +103,62 @@ describe.each(stores)('%s', (_name, create) => {
     const copy = (await store.get('a'))!;
     copy.cameraByPage.p1!.zoom = 99;
     expect((await store.get('a'))!.cameraByPage.p1!.zoom).toBe(1.5);
+  });
+});
+
+describe('FsStore : vrais fichiers', () => {
+  const PATH = '/Users/moi/archi.drawio';
+
+  it('isFilePath : chemins POSIX et Windows', () => {
+    expect(isFilePath(PATH)).toBe(true);
+    expect(isFilePath('C:\\docs\\a.drawio')).toBe(true);
+    expect(isFilePath('demo:fixtures/a.drawio')).toBe(false);
+  });
+
+  it('le contenu vit sur le disque, pas dans la bibliothèque', async () => {
+    const { fs, disk, library } = memoryFs({ [PATH]: '<mxfile v="1"/>' });
+    const store = new FsStore(fs);
+    await store.put(file(PATH, 10, { content: '<mxfile v="1"/>', cameraByPage: { p1: camera } }));
+    expect(library()).not.toContain('mxfile');
+    disk.set(PATH, '<mxfile v="2"/>'); // modifié dans draw.io
+    expect(await store.get(PATH)).toMatchObject({ content: '<mxfile v="2"/>', cameraByPage: { p1: camera } });
+  });
+
+  it('ouvrir ne réécrit pas le fichier ; sauvegarder l’écrit', async () => {
+    const { fs, disk, writes } = memoryFs({ [PATH]: '<a/>' });
+    const store = new FsStore(fs);
+    await store.put(file(PATH, 10, { content: '<a/>' }));
+    expect(writes).toEqual([]);
+    await store.updateMeta(PATH, { lastOpenedAt: 20 });
+    expect(writes).toEqual([]);
+    await store.updateMeta(PATH, { content: '<b/>', size: 4 });
+    expect(disk.get(PATH)).toBe('<b/>');
+  });
+
+  it('fichier disparu : absent, mais toujours listé ; retirer ne supprime pas le fichier', async () => {
+    const { fs, disk } = memoryFs({ [PATH]: '<a/>' });
+    const store = new FsStore(fs);
+    await store.put(file(PATH, 10, { content: '<a/>' }));
+    disk.delete(PATH);
+    expect(await store.get(PATH)).toBeUndefined();
+    expect((await store.listRecent()).map((f) => f.id)).toEqual([PATH]);
+    disk.set(PATH, '<a/>');
+    await store.remove(PATH);
+    expect(disk.has(PATH)).toBe(true);
+    expect(await store.listRecent()).toEqual([]);
+  });
+
+  it('bibliothèque relue par une nouvelle instance (redémarrage de l’appli)', async () => {
+    const mem = memoryFs({ [PATH]: '<a/>' });
+    await new FsStore(mem.fs).put(file(PATH, 10, { content: '<a/>', lastPageId: 'p2' }));
+    expect(await new FsStore(mem.fs).get(PATH)).toMatchObject({ id: PATH, lastPageId: 'p2', content: '<a/>' });
+  });
+
+  it('écritures de la bibliothèque dans l’ordre (pas de mise à jour perdue)', async () => {
+    const mem = memoryFs();
+    const store = new FsStore(mem.fs);
+    await store.put(file('a', 1));
+    await Promise.all([store.updateMeta('a', { lastPageId: 'x' }), store.updateMeta('a', { lastOpenedAt: 99 })]);
+    expect(await new FsStore(mem.fs).get('a')).toMatchObject({ lastPageId: 'x', lastOpenedAt: 99 });
   });
 });

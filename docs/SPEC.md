@@ -58,7 +58,7 @@ On développe une **application web**. Le jour où un binaire natif est nécessa
 ### 3.4 Environnement de développement
 
 - **Conteneurisé** : Node est figé par l'image Docker (`node:24.21.0-bookworm-slim`), les dépendances installées par `npm ci` depuis le lockfile. Aucune version de Node n'est requise sur la machine, seulement Docker.
-- **Makefile** comme point d'entrée unique : `make dev` (affiche le lien cliquable), `make test`, `make lint`, `make check`, `make build`, `make lib` (bibliothèque), `make drawio-check` (conservation par draw.io), `make preview`, `make lock` (régénère le lockfile dans le conteneur), `make shell`, `make down`, `make clean`.
+- **Makefile** comme point d'entrée unique : `make dev` (affiche le lien cliquable), `make test`, `make lint`, `make check`, `make build`, `make lib` (bibliothèque), `make drawio-check` (conservation par draw.io), `make desktop` / `desktop-dev` / `desktop-package` (appli native, §16), `make preview`, `make lock` (régénère le lockfile dans le conteneur), `make shell`, `make down`, `make clean`.
 - **Hot reload permanent** : pendant toute la phase de dev, un seul serveur (`make dev`, port 5173) reste ouvert et on travaille directement dessus.
   - Une modification de l'UI React est appliquée à chaud.
   - Une modification du moteur (`src/engine`) recharge la page (le moteur n'est pas remplaçable à chaud) ; l'appli de démo restaure alors le fichier, la page et la caméra en cours (stockage de l'onglet), on reste au même endroit.
@@ -213,7 +213,7 @@ interface FileStore {
 ### 5.2 Implémentations
 
 - **M1 :** `IndexedDbStore`. Le fichier choisi par l'utilisateur est lu (input file / drag & drop) et son contenu stocké avec ses métadonnées.
-- **Plus tard :** `FsStore` (Electron/Tauri) qui stocke des chemins réels sur le disque. L'interface et l'UI ne changent pas.
+- **`FsStore`** (appli native, §16) : l'id d'un fichier est son chemin ; le contenu est lu et écrit sur le disque, l'état de consultation (vue, historique…) gardé dans `library.json` (dossier de l'application). Les autres ids (exemples embarqués) gardent leur contenu dans la bibliothèque. Retirer un fichier de la liste ne le supprime jamais ; un fichier déplacé hors de l'appli reste listé mais ne s'ouvre plus. L'interface et l'UI ne changent pas.
 
 ### 5.3 Restauration
 
@@ -667,6 +667,15 @@ Ouvrir un fichier avec trois rectangles, les déplacer, sauvegarder, ouvrir le f
 
 - Composant `<DrawioSpatial />` publiable (props : contenu ou `FileStore`, `settings`, callbacks).
 - Wrapper Electron ou Tauri avec `FsStore` (fichiers récents = vrais chemins sur le disque, sauvegarde directe).
+
+Réalisation retenue : **Electron**, construit entièrement dans Docker (Tauri exigerait le SDK macOS et Rust sur la machine).
+
+- `desktop/` : `main.cjs` (fenêtre, dialogues, lecture / écriture de fichiers), `preload.cjs` (pont `window.drawioSpatialDesktop`, contexte isolé et bac à sable), `package.mjs` (empaquetage), `Dockerfile` (Node figé, `zip`, `rcodesign`).
+- Le runtime Electron **de la machine hôte** (ex. macOS arm64) est téléchargé dans le conteneur (`ELECTRON_INSTALL_PLATFORM`), l'appli web construite en chemins relatifs (`desktop/web/`), puis assemblée en `dist-desktop/Drawio Spatial.app` (Info.plist renommé) et **signée ad hoc par `rcodesign`** (signature valide pour `codesign --deep --strict`, obligatoire sur Apple Silicon), avec un `.zip`. Linux : dossier + `tar.gz`. Sur la machine, seule l'ouverture de l'appli (`open`) a lieu.
+- Pas de `.dmg` (impossible sous Linux) ; signature Developer ID et notarisation : possibles plus tard avec `rcodesign` et un compte Apple.
+- **Sécurité** : l'interface n'a accès qu'au pont ; lecture des seuls `.drawio` / `.xml` en chemin absolu ; écriture seulement des fichiers choisis par l'utilisateur (dialogue, glisser-déposer) ou déjà dans la bibliothèque au démarrage ; écritures atomiques ; liens externes ouverts dans le navigateur (http, https, mailto), aucune autre navigation.
+- **Dans l'appli** : « Ouvrir un fichier… » et « Nouveau fichier » passent par les dialogues du système ; un fichier glissé-déposé garde son chemin ; « Sauvegarder » réécrit le vrai fichier (un exemple embarqué propose « Enregistrer sous », puis on continue sur le fichier créé).
+- Commandes : `make desktop-install` (runtime), `make desktop-package` (construit et signe), `make desktop` (construit puis ouvre), `make desktop-dev` (fenêtre native sur le serveur de dev, rechargement à chaud), `make desktop-lock`.
 
 ---
 

@@ -13,6 +13,8 @@ interface LauncherProps {
   onOpenRecent: (id: string) => void;
   onRemoveRecent: (id: string) => void;
   onOpenFile: (file: File) => void;
+  /** Ouverture par le dialogue du système (appli native) ; sinon, sélecteur de fichier du navigateur. */
+  onOpenDialog?: () => void;
   onNewFile: () => void;
   onOpenExample?: (id: string) => void;
   error?: string;
@@ -30,6 +32,7 @@ export function Launcher({
   onOpenRecent,
   onRemoveRecent,
   onOpenFile,
+  onOpenDialog,
   onNewFile,
   onOpenExample,
   error,
@@ -44,7 +47,11 @@ export function Launcher({
         <p className="muted">Vos schémas draw.io, posés dans l’espace.</p>
 
         <div className="launcher-actions">
-          <button type="button" className="button primary" onClick={() => input.current?.click()}>
+          <button
+            type="button"
+            className="button primary"
+            onClick={() => (onOpenDialog ? onOpenDialog() : input.current?.click())}
+          >
             Ouvrir un fichier…
           </button>
           <button type="button" className="button" onClick={onNewFile}>

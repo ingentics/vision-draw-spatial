@@ -4,7 +4,8 @@ import { DEFAULT_SETTINGS, mergeSettings } from '../engine/settings';
 import type { Settings, SettingsPatch } from '../engine/settings';
 import { Launcher } from '../react/Launcher';
 import { demoFiles } from './demoFiles';
-import { createNewFile, importFile, openDemo, openStored, store } from './fileLibrary';
+import { desktop } from './desktop';
+import { createNewFile, importFile, openDemo, openFromDialog, openPath, openStored, store } from './fileLibrary';
 import { loadSettings, saveSettings } from './settingsStore';
 import { getCurrentFileId, setCurrentFileId } from './tabSession';
 import { Viewer } from './Viewer';
@@ -58,8 +59,13 @@ export function App() {
     [show, refreshRecents],
   );
 
+  // Appli native : un fichier déposé garde son chemin (il sera réécrit à la sauvegarde).
   const openFromDisk = useCallback(
-    (file: File) => void open(file.name, async () => importFile(file.name, await file.text())),
+    (file: File) =>
+      void open(file.name, async () => {
+        const path = await desktop?.pathForFile(file);
+        return path ? openPath(path, await file.text()) : importFile(file.name, await file.text());
+      }),
     [open],
   );
 
@@ -129,6 +135,7 @@ export function App() {
           key={current.id}
           file={current}
           onShowFiles={showLauncher}
+          onFileReplaced={show}
           settings={settings}
           onSettingsChange={updateSettings}
           onResetSettings={resetSettings}
@@ -141,6 +148,7 @@ export function App() {
           onOpenRecent={(id) => void open(recents.find((f) => f.id === id)?.name ?? id, () => openStored(id))}
           onRemoveRecent={(id) => void store.remove(id).then(refreshRecents)}
           onOpenFile={openFromDisk}
+          onOpenDialog={desktop ? () => void open('fichier', openFromDialog) : undefined}
           onNewFile={() => void open('Nouveau fichier', createNewFile)}
           onOpenExample={(id) => {
             const demo = demoFiles.find((f) => f.id === id);

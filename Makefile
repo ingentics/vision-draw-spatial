@@ -6,10 +6,10 @@ COMPOSE := PORT=$(PORT) COMPOSE_BAKE=false docker compose
 RUN     := $(COMPOSE) run --rm --no-deps app
 
 .DEFAULT_GOAL := help
-.PHONY: help image .image dev test lint check drawio-check build lib preview shell lock down clean
+.PHONY: help image .image dev test lint check drawio-check build lib desktop desktop-dev desktop-package desktop-install desktop-web desktop-lock preview shell lock down clean
 
 help: ## Affiche les commandes disponibles
-	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  \033[36mmake %-8s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  \033[36mmake %-16s\033[0m %s\n", $$1, $$2}'
 
 image: ## Construit l'image (Node + dépendances)
 	$(COMPOSE) build
@@ -51,6 +51,44 @@ build: .image ## Build de production dans dist/
 lib: .image ## Build de la bibliothèque (composant React + moteur) dans dist-lib/
 	$(RUN) npm run build:lib
 
+# Appli native (SPEC §16, Electron) : tout se construit dans Docker (runtime Electron de la machine
+# hôte, appli web, empaquetage, signature ad hoc) ; seule l'ouverture de l'appli se fait sur la machine.
+DESKTOP_OS   ?= $(shell uname -s | tr '[:upper:]' '[:lower:]')
+DESKTOP_ARCH ?= $(shell uname -m | sed 's/x86_64/x64/;s/aarch64/arm64/')
+DESKTOP_RUN  := $(COMPOSE) --profile desktop run --rm --no-deps desktop
+ELECTRON_DIST := desktop/node_modules/electron/dist
+ifeq ($(DESKTOP_OS),darwin)
+  ELECTRON_BIN := $(ELECTRON_DIST)/Electron.app/Contents/MacOS/Electron
+  DESKTOP_OPEN := open "dist-desktop/Drawio Spatial.app"
+else
+  ELECTRON_BIN := $(ELECTRON_DIST)/electron
+  DESKTOP_OPEN := "dist-desktop/drawio-spatial-linux-$(DESKTOP_ARCH)/electron" &
+endif
+
+desktop-install: ## Installe le runtime Electron de cette machine (téléchargé dans Docker)
+	@$(COMPOSE) --profile desktop build -q desktop
+	$(DESKTOP_RUN) sh -c 'npm ci --no-audit --no-fund && ELECTRON_INSTALL_PLATFORM=$(DESKTOP_OS) ELECTRON_INSTALL_ARCH=$(DESKTOP_ARCH) node node_modules/electron/install.js'
+
+desktop-lock: ## Met à jour desktop/package-lock.json (après modif de desktop/package.json)
+	@$(COMPOSE) --profile desktop build -q desktop
+	$(DESKTOP_RUN) npm install --no-audit --no-fund --ignore-scripts
+
+# Appli web en chemins relatifs (chargée depuis le disque par Electron).
+desktop-web: .image
+	$(RUN) node_modules/.bin/vite build --base ./ --outDir desktop/web --emptyOutDir
+
+desktop-package: desktop-web ## Construit et signe l'appli native dans dist-desktop/ (.app + .zip)
+	@test -x "$(ELECTRON_BIN)" || $(MAKE) desktop-install
+	@$(COMPOSE) --profile desktop build -q desktop
+	$(DESKTOP_RUN) node package.mjs $(DESKTOP_OS) $(DESKTOP_ARCH)
+
+desktop: desktop-package ## Construit puis ouvre l'appli native
+	$(DESKTOP_OPEN)
+
+desktop-dev: ## Ouvre l'appli native sur le serveur de dev (make dev doit tourner : rechargement à chaud)
+	@test -x "$(ELECTRON_BIN)" || $(MAKE) desktop-install
+	DRAWIO_SPATIAL_DEV_URL=$(URL) "$(ELECTRON_BIN)" desktop
+
 preview: build ## Sert le build de production
 	@printf '\n  Drawio Spatial (build) → \033]8;;$(URL)\033\\\033[1;36m$(URL)\033[0m\033]8;;\033\\\n\n'
 	@$(COMPOSE) run --rm --no-deps --service-ports app node_modules/.bin/vite preview --host 0.0.0.0 --port 5173 --strictPort
@@ -66,5 +104,5 @@ down: ## Arrête les conteneurs
 	$(COMPOSE) down --remove-orphans
 
 clean: down ## Supprime dist/, les caches et l'image
-	rm -rf dist node_modules/.tmp node_modules/.vite
-	-docker image rm drawio-spatial-dev
+	rm -rf dist dist-lib dist-desktop desktop/web node_modules/.tmp node_modules/.vite
+	-docker image rm drawio-spatial-dev drawio-spatial-desktop

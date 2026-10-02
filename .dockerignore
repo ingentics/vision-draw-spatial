@@ -4,3 +4,7 @@ dist
 .idea
 *.tsbuildinfo
 .DS_Store
+dist-lib
+dist-desktop
+desktop/node_modules
+desktop/web

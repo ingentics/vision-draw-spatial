@@ -11,7 +11,7 @@ module.exports = {
     'prettier',
   ],
   env: { browser: true, es2022: true },
-  ignorePatterns: ['dist', 'dist-lib', 'node_modules', '.eslintrc.cjs'],
+  ignorePatterns: ['dist', 'dist-lib', 'dist-desktop', 'desktop', 'node_modules', '.eslintrc.cjs'],
   rules: {
     '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     '@typescript-eslint/consistent-type-imports': 'error',

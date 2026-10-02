@@ -1,6 +1,9 @@
 node_modules
 dist
 dist-lib
+dist-desktop
+desktop/node_modules
+desktop/web
 *.tsbuildinfo
 .DS_Store
 
