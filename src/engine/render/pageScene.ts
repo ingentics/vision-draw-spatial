@@ -1,4 +1,5 @@
 import { Group } from 'three';
+import type { Object3D } from 'three';
 import { isNavigableLink } from '../format/link';
 import type { EdgeModel, PageModel, ShapeModel } from '../model/types';
 import { linkBadge } from './decorations';
@@ -58,16 +59,10 @@ export function buildPageScene(
 
     let object;
     if ('shape' in item) {
-      // Rendu du niveau demandé, repli à plat si la forme n'en a pas.
-      object = registry.sceneRenderer(item.shape, level).create(item.shape, ctx);
-      // `spatial.noLinkBadge=1` : lien sans pastille (ex. cartes de la vue graphe, entièrement cliquables).
-      if (isNavigableLink(item.shape.link) && item.shape.style['spatial.noLinkBadge'] !== '1') {
-        const badge = linkBadge(item.shape, item.shape.link);
-        badge.position.z = elevation.height(item.shape) + 0.1; // posée sur le dessus du bloc
-        object.add(badge);
-      }
-      object.position.z = elevation.base(item.shape);
-      object.userData.top = elevation.base(item.shape) + elevation.height(item.shape);
+      object = createShapeObject(item.shape, registry, ctx, level, {
+        base: elevation.base(item.shape),
+        height: elevation.height(item.shape),
+      });
     } else {
       const terminals = {
         source: item.edge.sourceId ? shapesById.get(item.edge.sourceId) : undefined,
@@ -92,6 +87,30 @@ export function buildPageScene(
     root,
     dispose: () => disposeObject(root),
   };
+}
+
+/**
+ * Objet d'une forme, posé à sa hauteur (`base` : dessous du volume, `height` : épaisseur) :
+ * rendu du niveau demandé (repli à plat), pastille de lien sur le dessus. Sert aussi à
+ * reconstruire une seule forme (ex. pendant un redimensionnement).
+ */
+export function createShapeObject(
+  shape: ShapeModel,
+  registry: ShapeRegistry,
+  ctx: RenderContext,
+  level: SceneLevel,
+  elevation: { base: number; height: number },
+): Object3D {
+  const object = registry.sceneRenderer(shape, level).create(shape, ctx);
+  // `spatial.noLinkBadge=1` : lien sans pastille (ex. cartes de la vue graphe, entièrement cliquables).
+  if (isNavigableLink(shape.link) && shape.style['spatial.noLinkBadge'] !== '1') {
+    const badge = linkBadge(shape, shape.link);
+    badge.position.z = elevation.height + 0.1; // posée sur le dessus du bloc
+    object.add(badge);
+  }
+  object.position.z = elevation.base;
+  object.userData.top = elevation.base + elevation.height;
+  return object;
 }
 
 function zOf(item: { shape: ShapeModel } | { edge: EdgeModel }): number {

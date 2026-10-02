@@ -3,17 +3,28 @@ import type { MeshBasicMaterial, Object3D } from 'three';
 import { collectUnsupported } from './diagnostics/unsupportedStyles';
 import type { UnsupportedReport } from './diagnostics/unsupportedStyles';
 import { Emitter } from './events';
-import { isNavigableLink } from './format/link';
-import { canMoveCell, gridSizeOf, moveCell } from './format/edit';
-import { addPage, addShapeCell, removePage, renamePage } from './format/create';
+import { formatLink, isNavigableLink } from './format/link';
+import { canMoveCell, gridSizeOf, moveCell, resizeCell, setCellLabel } from './format/edit';
+import {
+  addEdgeCell,
+  addPage,
+  addShapeCell,
+  removeCellsDeep,
+  removePage,
+  renamePage,
+  setCellLink,
+} from './format/create';
 import { documentFromTree, readDrawio } from './format/parse';
 import { readPageViews, writePageViews } from './format/viewState';
 import type { IsoViewParams, PageViewState } from './format/viewState';
 import { writeDrawio } from './format/write';
-import type { DrawioTree } from './format/xmlTree';
+import type { DrawioTree, PageTree } from './format/xmlTree';
 import { collectMoveSet, isLocked, moveTarget, snapDelta, translateMoveSet } from './edit/move';
 import type { MoveSet } from './edit/move';
+import { handlePoints, resizeBounds } from './edit/handles';
+import type { HandleKind, ResizeHandle } from './edit/handles';
 import { dropBounds } from './edit/palette';
+import { UndoStack } from './edit/undo';
 import type { ShapeTemplate } from './edit/palette';
 import {
   applyCameraState,
@@ -22,6 +33,7 @@ import {
   MAX_ZOOM,
   normalizeAngle,
   normalizeCameraState,
+  pageToScreen,
   rotateAround,
   sameView,
   screenAxes,
@@ -42,13 +54,15 @@ import { Minimap } from './interaction/minimap';
 import { pickElement } from './interaction/pick';
 import type { PickedElement } from './interaction/pick';
 import { easing, embedIn, embeddedCamera, phase } from './interaction/transitions';
-import type { DocumentModel, LinkModel, PageModel, Point, Rect } from './model/types';
+import { computeBounds } from './model/bounds';
+import type { DocumentModel, LinkModel, PageModel, Point, Rect, ShapeModel } from './model/types';
 import { selectionOutline } from './render/decorations';
 import { createEdge } from './render/edges/edge';
+import { connectorPreview, selectionHandles } from './render/handles';
 import { createVeil, createVeilHole, liftAboveVeil } from './render/highlight';
 import { disposeObject } from './render/meshes';
 import { setPageOpacity } from './render/pageEffects';
-import { buildPageScene, effectiveLevel } from './render/pageScene';
+import { buildPageScene, createShapeObject, effectiveLevel } from './render/pageScene';
 import type { PageScene } from './render/pageScene';
 import { SceneManager } from './render/sceneManager';
 import { createDefaultRegistry } from './render/shapes/registry';
@@ -138,10 +152,72 @@ export type EngineEvents = {
   backChoice: [parents: ParentLink[]];
   /** Pages ou formes ajoutées, retirées ou renommées : nouveau modèle du document. */
   documentChange: [document: DocumentModel];
+  /** Édition du label d'un élément demandée (double-clic, F2) : à l'UI d'afficher un champ. */
+  labelEdit: [request: LabelEditRequest];
+  /** Ce qu'annuleraient / rétabliraient `undo` et `redo` (undefined : rien). */
+  undoChange: [undoLabel: string | undefined, redoLabel: string | undefined];
   /** Le document a été modifié (déplacement) ou vient d'être sérialisé pour la sauvegarde. */
   modifiedChange: [modified: boolean];
 };
 export type EngineEvent = keyof EngineEvents;
+
+/** Champ d'édition de label à afficher par l'UI, à l'emprise de l'élément (pixels du canvas). */
+export interface LabelEditRequest {
+  pageId: string;
+  elementId: string;
+  /** Texte brut actuel. */
+  text: string;
+  screen: Rect;
+}
+
+/** Glisser d'édition en cours (SPEC §14.1). */
+interface MoveDrag {
+  kind: 'move';
+  pageId: string;
+  set: MoveSet;
+  start: Point;
+  origin: Rect;
+  applied: Point;
+  grid: number;
+  started: boolean;
+}
+
+interface ResizeDrag {
+  kind: 'resize';
+  pageId: string;
+  shapeId: string;
+  handle: ResizeHandle;
+  start: Point;
+  origin: Rect;
+  grid: number;
+  /** La forme, son contenu (déplacé si le coin haut-gauche bouge) et ses arêtes reliées. */
+  children: MoveSet;
+  started: boolean;
+}
+
+interface ConnectDrag {
+  kind: 'connect';
+  pageId: string;
+  sourceId: string;
+  targetId?: string;
+  started: boolean;
+}
+
+/** Tolérance pour attraper une poignée, en pixels écran. */
+const HANDLE_PICK_TOLERANCE = 8;
+/** Style des connecteurs créés (celui de draw.io par défaut). */
+const CONNECTOR_STYLE = 'edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;';
+/** Curseur de chaque poignée de redimensionnement. */
+const HANDLE_CURSORS: Record<ResizeHandle, string> = {
+  nw: 'nwse-resize',
+  se: 'nwse-resize',
+  ne: 'nesw-resize',
+  sw: 'nesw-resize',
+  n: 'ns-resize',
+  s: 'ns-resize',
+  e: 'ew-resize',
+  w: 'ew-resize',
+};
 
 /** Façade publique du moteur (SPEC §4.3). Aucune dépendance à React. */
 export class Engine {
@@ -201,10 +277,12 @@ export class Engine {
   private pageIso = new Map<string, IsoViewParams>();
   /** Modifications non sauvegardées. */
   private modified = false;
-  /** Déplacement à la souris en cours (SPEC §14.1). */
-  private move:
-    | { pageId: string; set: MoveSet; start: Point; origin: Rect; applied: Point; grid: number; started: boolean }
-    | undefined;
+  /** Glisser d'édition en cours (déplacement, redimensionnement, connecteur). */
+  private drag: MoveDrag | ResizeDrag | ConnectDrag | undefined;
+  private connectorPreview: Object3D | undefined;
+  /** Poignées de la forme sélectionnée. */
+  private handlesObject: Object3D | undefined;
+  private readonly undoStack = new UndoStack<string>();
 
   constructor(options: EngineOptions) {
     this.canvas = options.canvas;
@@ -252,6 +330,9 @@ export class Engine {
         beginMove: (screen) => this.beginMove(screen),
         moveTo: (screen, options) => this.moveTo(screen, options.snap),
         endMove: () => this.endMove(),
+        editSelection: () => this.editLabel(),
+        deleteSelection: () => this.deleteSelection(),
+        escape: () => this.clearSelection(),
       },
       this.effectiveControls(),
     );
@@ -269,8 +350,9 @@ export class Engine {
     this.currentPageId = undefined;
     this.graph = undefined;
     this.lastDocumentPageId = undefined;
-    this.move = undefined;
-    this.setModified(false);
+    this.drag = undefined;
+    this.undoStack.clear();
+    this.syncModified();
     this.history.replace(initialView?.history ?? []);
     this.linkUsage = { ...initialView?.linkUsage };
     // Vues enregistrées dans le fichier, remplacées par celles mémorisées localement (plus récentes).
@@ -324,7 +406,8 @@ export class Engine {
     }
     writePageViews(this.xmlTree, views);
     const xml = writeDrawio(this.xmlTree);
-    this.setModified(false);
+    this.undoStack.markSaved();
+    this.syncModified();
     return xml;
   }
 
@@ -357,6 +440,7 @@ export class Engine {
       screen ?? { x: this.viewport.width / 2, y: this.viewport.height / 2 },
     );
     const bounds = dropBounds(template, at, gridSizeOf(pageTree));
+    this.recordEdit('Nouvelle forme');
     const id = addShapeCell(pageTree, { style: template.style, value: template.value, ...bounds });
     this.documentChanged([page.id]);
     const shape = this.getCurrentPage()?.shapes.find((s) => s.id === id);
@@ -370,6 +454,7 @@ export class Engine {
     const names = new Set(this.document.pages.map((p) => p.name));
     let pageName = name?.trim();
     for (let n = this.document.pages.length + 1; !pageName || names.has(pageName); n++) pageName = `Page-${n}`;
+    this.recordEdit('Nouvelle page');
     const page = addPage(this.xmlTree, pageName);
     this.documentChanged([]);
     this.goToPage(page.id);
@@ -380,6 +465,7 @@ export class Engine {
     const trimmed = name.trim();
     const page = this.pageById(pageId);
     if (!this.xmlTree || !page || !trimmed || trimmed === page.name || !this.canEditPages()) return;
+    this.recordEdit('Page renommée');
     renamePage(this.xmlTree, pageId, trimmed);
     this.documentChanged([]);
   }
@@ -392,6 +478,7 @@ export class Engine {
     if (index < 0) return;
     const wasCurrent = this.currentPageId === pageId || this.isGraphView();
     this.endMove();
+    this.recordEdit('Page supprimée');
     removePage(this.xmlTree, pageId);
     this.scenes.invalidate(pageId, true);
     this.pageCameras.delete(pageId);
@@ -442,7 +529,7 @@ export class Engine {
       else if (edge) this.select({ type: 'edge', element: edge });
     }
     this.minimap?.invalidate();
-    this.setModified(true);
+    this.syncModified();
     this.events.emit('documentChange', this.document);
     this.requestRender();
   }
@@ -1166,83 +1253,274 @@ export class Engine {
   }
 
   // -------------------------------------------------------------------------
-  // Déplacement à la souris (SPEC §14.1)
+  // Édition à la souris (SPEC §14.1) : déplacer, redimensionner, connecter
 
-  /** Appui sur une forme déplaçable de la page courante : prépare son déplacement. */
-  private beginMove(screen: Point): boolean {
+  /** Page courante modifiable (pas la vue graphe, ni une page illisible) et son arbre XML. */
+  private editablePage(): { page: PageModel; pageTree: PageTree } | undefined {
     const page = this.getCurrentPage();
-    if (!page || !this.document || !this.xmlTree || this.transition || page.id === GRAPH_PAGE_ID) return false;
-    const pageTree = this.xmlTree.pages[this.document.pages.indexOf(page)];
+    if (!page || page.id === GRAPH_PAGE_ID || this.transition) return undefined;
+    const pageTree = this.pageTreeOf(page.id);
+    if (!pageTree || pageTree.encoding === 'unreadable') return undefined;
+    return { page, pageTree };
+  }
+
+  /** Forme sélectionnée sur la page courante, si on peut la modifier (poignées affichées). */
+  private editableSelection(): { page: PageModel; pageTree: PageTree; shape: ShapeModel } | undefined {
+    const editable = this.editablePage();
+    const picked = this.selection?.picked;
+    if (!editable || picked?.type !== 'shape' || this.selection?.pageId !== editable.page.id) return undefined;
+    const shape = editable.page.shapes.find((s) => s.id === picked.element.id);
+    if (!shape || isLocked(shape) || !canMoveCell(editable.pageTree, shape.id)) return undefined;
+    return { ...editable, shape };
+  }
+
+  /** Point écran d'un point de la page posé à `height` au-dessus du sol (inverse de `groundPointAtHeight`). */
+  private screenOfPoint(point: Point, height: number): Point {
+    const shift = height * Math.tan(this.cameraState.tilt);
+    const { down } = screenAxes(this.cameraState.rotation);
+    return pageToScreen(this.cameraState, this.viewport, { x: point.x - shift * down.x, y: point.y - shift * down.y });
+  }
+
+  /** Poignée de la sélection sous un point écran (8 px de tolérance). */
+  private handleAt(screen: Point): HandleKind | undefined {
+    const editable = this.editableSelection();
+    if (!editable) return undefined;
+    const { shape } = editable;
+    const top = this.elementTop(shape.id);
+    const resizable = shape.kind !== 'group';
+    let best: { kind: HandleKind; distance: number } | undefined;
+    for (const { kind, point } of handlePoints(shape.bounds, this.cameraState.zoom)) {
+      if (kind !== 'connect' && !resizable) continue;
+      const at = this.screenOfPoint(point, top);
+      const distance = Math.hypot(at.x - screen.x, at.y - screen.y);
+      if (distance <= HANDLE_PICK_TOLERANCE && (!best || distance < best.distance)) best = { kind, distance };
+    }
+    return best?.kind;
+  }
+
+  /**
+   * Appui gauche : sur une poignée de la sélection, prépare un redimensionnement ou un connecteur ;
+   * sur une forme déplaçable, prépare son déplacement.
+   */
+  private beginMove(screen: Point): boolean {
+    const editable = this.editablePage();
+    if (!editable) return false;
+    const { page, pageTree } = editable;
+    const start = screenToPage(this.cameraState, this.viewport, screen);
+    const grid = gridSizeOf(pageTree);
+
+    const handle = this.handleAt(screen);
+    const selected = handle ? this.editableSelection()?.shape : undefined;
+    if (handle && selected) {
+      this.drag =
+        handle === 'connect'
+          ? { kind: 'connect', pageId: page.id, sourceId: selected.id, started: false }
+          : {
+              kind: 'resize',
+              pageId: page.id,
+              shapeId: selected.id,
+              handle,
+              start,
+              origin: { ...selected.bounds },
+              grid,
+              children: collectMoveSet(page, selected.id),
+              started: false,
+            };
+      return true;
+    }
+
     const picked = this.pickAt(screen);
-    if (!pageTree || picked?.type !== 'shape') return false;
+    if (picked?.type !== 'shape') return false;
     const shape = moveTarget(page, picked.element);
     if (isLocked(shape) || !canMoveCell(pageTree, shape.id)) return false;
-    this.move = {
+    this.drag = {
+      kind: 'move',
       pageId: page.id,
       set: collectMoveSet(page, shape.id),
-      start: screenToPage(this.cameraState, this.viewport, screen),
+      start,
       origin: { ...shape.bounds },
       applied: { x: 0, y: 0 },
-      grid: gridSizeOf(pageTree),
+      grid,
       started: false,
     };
     return true;
   }
 
   /**
-   * Suit le pointeur : le déplacement est mesuré au sol (projection orthographique, identique à
-   * toute hauteur : une forme en volume reste sous le curseur). Modèle et scène sont mis à jour
-   * en place ; les arêtes reliées sont retracées.
+   * Suit le pointeur, mesuré au sol (projection orthographique, identique à toute hauteur : une
+   * forme en volume reste sous le curseur). Modèle et scène sont mis à jour en place.
    */
   private moveTo(screen: Point, snap: boolean): void {
-    const move = this.move;
+    const drag = this.drag;
     const page = this.getCurrentPage();
-    if (!move || page?.id !== move.pageId) return;
+    if (!drag || page?.id !== drag.pageId) return;
+    const point = screenToPage(this.cameraState, this.viewport, screen);
+    if (drag.kind === 'move') this.dragMove(page, drag, point, snap);
+    else if (drag.kind === 'resize') this.dragResize(page, drag, point, snap);
+    else this.dragConnect(page, drag, screen);
+  }
+
+  private dragMove(page: PageModel, move: MoveDrag, point: Point, snap: boolean): void {
     if (!move.started) {
       move.started = true;
       const shape = page.shapes.find((s) => s.id === move.set.rootId);
       if (shape) this.select({ type: 'shape', element: shape });
     }
-    const point = screenToPage(this.cameraState, this.viewport, screen);
     const raw = { x: point.x - move.start.x, y: point.y - move.start.y };
     const target = snapDelta(move.origin, raw, snap ? move.grid : 0);
     const step = { x: target.x - move.applied.x, y: target.y - move.applied.y };
     if (step.x === 0 && step.y === 0) return;
     move.applied = target;
     translateMoveSet(page, move.set, step);
+    this.translateObjects(move.set, step);
+    this.retraceEdges(page, move.set.connectedEdgeIds);
+    this.afterLiveEdit();
+  }
 
+  private dragResize(page: PageModel, resize: ResizeDrag, point: Point, snap: boolean): void {
+    const shape = page.shapes.find((s) => s.id === resize.shapeId);
+    if (!shape) return;
+    resize.started = true;
+    const delta = { x: point.x - resize.start.x, y: point.y - resize.start.y };
+    const bounds = resizeBounds(resize.origin, resize.handle, delta, snap ? resize.grid : 0);
+    const previous = shape.bounds;
+    if (
+      bounds.x === previous.x &&
+      bounds.y === previous.y &&
+      bounds.width === previous.width &&
+      bounds.height === previous.height
+    ) {
+      return;
+    }
+    // Le contenu garde sa place relative au coin haut-gauche (comme les enfants d'un conteneur draw.io).
+    const step = { x: bounds.x - previous.x, y: bounds.y - previous.y };
+    const content: MoveSet = { ...resize.children, shapeIds: new Set(resize.children.shapeIds) };
+    content.shapeIds.delete(shape.id);
+    translateMoveSet(page, content, step);
+    this.translateObjects(content, step);
+    shape.bounds = bounds;
+    page.bounds = computeBounds(page.shapes, page.edges);
+    this.rebuildShapeObject(shape);
+    this.retraceEdges(page, resize.children.connectedEdgeIds);
+    this.afterLiveEdit();
+  }
+
+  private dragConnect(page: PageModel, connect: ConnectDrag, screen: Point): void {
+    const source = page.shapes.find((s) => s.id === connect.sourceId);
+    const root = this.scenes.current?.root;
+    if (!source || !root) return;
+    connect.started = true;
+    const target = this.connectTarget(screen, source.id);
+    connect.targetId = target?.id;
+    const top = this.elementTop(source.id);
+    const end = target
+      ? { x: target.bounds.x + target.bounds.width / 2, y: target.bounds.y + target.bounds.height / 2 }
+      : this.groundPointAtHeight(screen, top);
+    const from = { x: source.bounds.x + source.bounds.width / 2, y: source.bounds.y + source.bounds.height / 2 };
+    this.clearConnectorPreview();
+    this.connectorPreview = connectorPreview(from, end, this.cameraState.zoom);
+    this.connectorPreview.position.z = top + 0.2;
+    root.add(this.connectorPreview);
+    this.requestRender();
+  }
+
+  /** Forme visée par un connecteur (pas la source, pas un groupe invisible). */
+  private connectTarget(screen: Point, sourceId: string): ShapeModel | undefined {
+    const picked = this.pickAt(screen);
+    if (picked?.type !== 'shape' || picked.element.id === sourceId || picked.element.kind === 'group') return undefined;
+    return picked.element;
+  }
+
+  private clearConnectorPreview(): void {
+    if (!this.connectorPreview) return;
+    this.connectorPreview.removeFromParent();
+    disposeObject(this.connectorPreview);
+    this.connectorPreview = undefined;
+  }
+
+  /** Fin du glisser : la modification est écrite dans l'arbre XML (seuls les attributs concernés). */
+  private endMove(): void {
+    const drag = this.drag;
+    this.drag = undefined;
+    this.clearConnectorPreview();
+    if (!drag?.started || !this.document || !this.xmlTree) return;
+    const pageTree = this.pageTreeOf(drag.pageId);
+    if (!pageTree) return;
+
+    if (drag.kind === 'connect') {
+      if (!drag.targetId) {
+        this.requestRender();
+        return;
+      }
+      this.recordEdit('Connecteur');
+      const id = addEdgeCell(pageTree, { source: drag.sourceId, target: drag.targetId, style: CONNECTOR_STYLE });
+      this.documentChanged([drag.pageId]);
+      const edge = this.getCurrentPage()?.edges.find((e) => e.id === id);
+      if (edge) this.select({ type: 'edge', element: edge });
+      return;
+    }
+
+    if (drag.kind === 'move') {
+      if (drag.applied.x === 0 && drag.applied.y === 0) return;
+      this.recordEdit('Déplacement');
+      moveCell(pageTree, drag.set.rootId, drag.applied);
+    } else {
+      const shape = this.pageById(drag.pageId)?.shapes.find((s) => s.id === drag.shapeId);
+      if (!shape) return;
+      const { origin } = drag;
+      const delta = {
+        x: shape.bounds.x - origin.x,
+        y: shape.bounds.y - origin.y,
+        width: shape.bounds.width - origin.width,
+        height: shape.bounds.height - origin.height,
+      };
+      if (Object.values(delta).every((d) => d === 0)) return;
+      this.recordEdit('Redimensionnement');
+      resizeCell(pageTree, drag.shapeId, delta);
+    }
+    // Scènes de cette page à d'autres niveaux, et vue graphe (miniatures) : à reconstruire.
+    this.scenes.invalidate(drag.pageId);
+    this.scenes.invalidate(GRAPH_PAGE_ID);
+    this.graph = undefined;
+    this.minimap?.invalidate();
+    this.syncModified();
+  }
+
+  private translateObjects(set: MoveSet, step: Point): void {
     for (const object of this.scenes.current?.root.children ?? []) {
       const id = object.userData.elementId as string | undefined;
-      if (id && (move.set.shapeIds.has(id) || move.set.edgeIds.has(id))) {
+      if (id && (set.shapeIds.has(id) || set.edgeIds.has(id))) {
         object.position.x += step.x;
         object.position.y += step.y;
       }
     }
-    this.retraceEdges(page, move.set.connectedEdgeIds);
+  }
+
+  /** Après une modification en direct : contour, poignées, voile et mini-carte à jour. */
+  private afterLiveEdit(): void {
+    // Le voile met en valeur des objets précis : il est reconstruit (objets remplacés).
+    this.clearVeil();
     this.updateSelectionOutline();
     this.minimap?.invalidate();
     this.requestRender();
   }
 
-  /** Fin du glisser : la géométrie XML de la forme est réécrite (seuls `x` et `y` changent). */
-  private endMove(): void {
-    const move = this.move;
-    this.move = undefined;
-    if (!move?.started || !this.document || !this.xmlTree) return;
-    if (move.applied.x === 0 && move.applied.y === 0) return;
-    const index = this.document.pages.findIndex((p) => p.id === move.pageId);
-    const pageTree = this.xmlTree.pages[index];
-    if (!pageTree) return;
-    moveCell(pageTree, move.set.rootId, move.applied);
-    this.setModified(true);
-    // Scènes de cette page à d'autres niveaux, et vue graphe (miniatures) : à reconstruire.
-    this.scenes.invalidate(move.pageId);
-    this.scenes.invalidate(GRAPH_PAGE_ID);
-    this.graph = undefined;
-    this.minimap?.invalidate();
+  /** Remplace l'objet d'une forme (taille changée), à la même hauteur et dans le même ordre de dessin. */
+  private rebuildShapeObject(shape: ShapeModel): void {
+    const root = this.scenes.current?.root;
+    const old = this.sceneObject(shape.id);
+    if (!root || !old) return;
+    const base = old.position.z;
+    const height = ((old.userData.top as number | undefined) ?? base) - base;
+    const object = createShapeObject(shape, this.registry, this.renderContext(), this.scenes.current!.level, {
+      base,
+      height,
+    });
+    object.userData.elementId = shape.id;
+    this.replaceObject(old, object, root);
   }
 
-  /** Reconstruit les arêtes reliées à des formes déplacées (même ordre de dessin, même hauteur). */
+  /** Reconstruit les arêtes reliées à des formes modifiées (même ordre de dessin, même hauteur). */
   private retraceEdges(page: PageModel, edgeIds: Set<string>): void {
     const root = this.scenes.current?.root;
     if (!root || edgeIds.size === 0) return;
@@ -1259,14 +1537,156 @@ export class Engine {
       object.position.z = old.position.z;
       object.userData.elementId = edge.id;
       object.userData.top = old.userData.top;
-      const base = old.renderOrder;
-      object.traverse((child) => {
-        child.renderOrder += base;
-      });
-      old.removeFromParent();
-      disposeObject(old);
-      root.add(object);
+      this.replaceObject(old, object, root);
     }
+  }
+
+  private replaceObject(old: Object3D, object: Object3D, root: Object3D): void {
+    // Hors voile, la racine d'un élément porte son rang dans l'ordre de dessin.
+    const base = old.renderOrder;
+    object.traverse((child) => {
+      child.renderOrder += base;
+    });
+    old.removeFromParent();
+    disposeObject(old);
+    root.add(object);
+  }
+
+  // -------------------------------------------------------------------------
+  // Édition par commandes (SPEC §14.1) : label, lien, suppression, annuler / rétablir
+
+  /**
+   * Demande d'édition du label d'un élément de la page courante (double-clic, F2) : l'UI reçoit
+   * le texte et l'emprise à l'écran (événement `labelEdit`), puis appelle `setLabel`.
+   */
+  editLabel(elementId?: string): void {
+    const editable = this.editablePage();
+    const id = elementId ?? this.selection?.picked.element.id;
+    const element =
+      editable && id ? [...editable.page.shapes, ...editable.page.edges].find((e) => e.id === id) : undefined;
+    if (!editable || !element || !editable.pageTree.cells.get(element.id)?.cell) return;
+    const rect = this.screenRectOf(element.id);
+    if (!rect) return;
+    this.events.emit('labelEdit', {
+      pageId: editable.page.id,
+      elementId: element.id,
+      text: element.label,
+      screen: rect,
+    });
+  }
+
+  /** Remplace le label d'un élément (texte brut ; converti en HTML si le style l'exige). */
+  setLabel(elementId: string, text: string): void {
+    const editable = this.editablePage();
+    const element = editable && [...editable.page.shapes, ...editable.page.edges].find((e) => e.id === elementId);
+    if (!editable || !element || element.label === text) return;
+    this.recordEdit('Texte');
+    setCellLabel(editable.pageTree, elementId, text);
+    this.documentChanged([editable.page.id]);
+  }
+
+  /** Lien d'un élément de la page courante (vers une page ou une URL) ; undefined = retiré. */
+  setLink(elementId: string, link: LinkModel | undefined): void {
+    const editable = this.editablePage();
+    const element = editable && [...editable.page.shapes, ...editable.page.edges].find((e) => e.id === elementId);
+    if (!editable || !element) return;
+    const href = link ? formatLink(link) : undefined;
+    if (href === (element.link ? formatLink(element.link) : undefined)) return;
+    this.recordEdit(link ? 'Lien' : 'Lien retiré');
+    setCellLink(editable.pageTree, elementId, href);
+    this.documentChanged([editable.page.id]);
+  }
+
+  /** Supprime la sélection : avec son contenu, ses labels et les arêtes qui y sont reliées (comme draw.io). */
+  deleteSelection(): void {
+    const editable = this.editablePage();
+    const picked = this.selection?.picked;
+    if (!editable || !picked || this.selection?.pageId !== editable.page.id) return;
+    this.recordEdit('Suppression');
+    removeCellsDeep(editable.pageTree, [picked.element.id]);
+    this.clearSelection();
+    this.documentChanged([editable.page.id]);
+  }
+
+  canUndo(): boolean {
+    return this.undoStack.undoLabel() !== undefined;
+  }
+
+  canRedo(): boolean {
+    return this.undoStack.redoLabel() !== undefined;
+  }
+
+  undo(): void {
+    if (!this.xmlTree || this.transition) return;
+    this.endMove();
+    const previous = this.undoStack.undo(writeDrawio(this.xmlTree));
+    if (previous !== undefined) this.restore(previous);
+  }
+
+  redo(): void {
+    if (!this.xmlTree || this.transition) return;
+    this.endMove();
+    const next = this.undoStack.redo(writeDrawio(this.xmlTree));
+    if (next !== undefined) this.restore(next);
+  }
+
+  /** État avant une modification, pour pouvoir l'annuler. */
+  private recordEdit(label: string): void {
+    if (this.xmlTree) this.undoStack.record(label, writeDrawio(this.xmlTree));
+  }
+
+  /** Revient à un instantané : document relu, scènes reconstruites, même page si elle existe encore. */
+  private restore(xml: string): void {
+    const { document, tree } = readDrawio(xml);
+    this.document = document;
+    this.xmlTree = tree;
+    this.unsupportedReport = collectUnsupported(document, this.registry);
+    this.clearSelection();
+    this.graph = undefined;
+    this.scenes.clear();
+    const current = this.currentPageId;
+    const pageId =
+      current && (current === GRAPH_PAGE_ID || document.pages.some((p) => p.id === current))
+        ? current
+        : document.pages[0]?.id;
+    this.currentPageId = undefined;
+    this.syncModified();
+    this.events.emit('documentChange', document);
+    if (pageId) this.goToPage(pageId);
+  }
+
+  /** État « modifié » et libellés annuler / rétablir, d'après la pile d'annulation. */
+  private syncModified(): void {
+    this.setModified(this.undoStack.isModified());
+    this.events.emit('undoChange', this.undoStack.undoLabel(), this.undoStack.redoLabel());
+  }
+
+  /** Emprise à l'écran d'un élément de la page courante (formes : dessus du volume). */
+  private screenRectOf(elementId: string): Rect | undefined {
+    const page = this.getCurrentPage();
+    const shape = page?.shapes.find((s) => s.id === elementId);
+    let corners: Point[];
+    if (shape) {
+      const { x, y, width, height } = shape.bounds;
+      const top = this.elementTop(shape.id);
+      corners = [
+        { x, y },
+        { x: x + width, y },
+        { x: x + width, y: y + height },
+        { x, y: y + height },
+      ].map((p) => this.screenOfPoint(p, top));
+    } else {
+      const route = this.sceneObject(elementId)?.userData.route as Point[] | undefined;
+      if (!route?.length) return undefined;
+      const middle = route[Math.floor(route.length / 2)]!;
+      const center = this.screenOfPoint(middle, this.elementTop(elementId));
+      return { x: center.x - 60, y: center.y - 16, width: 120, height: 32 };
+    }
+    const xs = corners.map((p) => p.x);
+    const ys = corners.map((p) => p.y);
+    const left = Math.min(...xs);
+    const top = Math.min(...ys);
+    return { x: left, y: top, width: Math.max(...xs) - left, height: Math.max(...ys) - top };
   }
 
   private handleClick(screen: Point): void {
@@ -1275,16 +1695,20 @@ export class Engine {
     if (this.settings.preload.onClick) this.preloadLink(picked?.element.link);
   }
 
+  /** Double-clic : suit un lien ; sinon, édite le label de l'élément (page modifiable). */
   private handleDoubleClick(screen: Point): void {
     const picked = this.pickAt(screen);
     if (picked && isNavigableLink(picked.element.link)) this.followLink(picked.element.id);
+    else if (picked) this.editLabel(picked.element.id);
   }
 
   /** Survol : curseur main et infobulle sur les éléments liés ; préchargement optionnel. */
   private handleHover(screen: Point | undefined): void {
     const picked = screen ? this.pickAt(screen) : undefined;
     const link = isNavigableLink(picked?.element.link) ? picked?.element.link : undefined;
-    if (!this.canvas.style.cursor.startsWith('grab')) this.canvas.style.cursor = link ? 'pointer' : '';
+    const handle = screen ? this.handleAt(screen) : undefined;
+    const cursor = handle === 'connect' ? 'crosshair' : handle ? HANDLE_CURSORS[handle] : link ? 'pointer' : '';
+    if (!this.canvas.style.cursor.startsWith('grab')) this.canvas.style.cursor = cursor;
     this.canvas.title = link ? this.describeLink(link) : '';
     clearTimeout(this.hoverTimer);
     if (link && this.settings.preload.onHover) {
@@ -1425,6 +1849,26 @@ export class Engine {
         });
         root.add(this.selectionObject);
       }
+    }
+
+    // Poignées (redimensionner, connecter) de la forme sélectionnée, si on peut la modifier.
+    if (this.handlesObject) {
+      this.handlesObject.removeFromParent();
+      disposeObject(this.handlesObject);
+      this.handlesObject = undefined;
+    }
+    const editable = visible && root ? this.editableSelection() : undefined;
+    if (editable && root) {
+      const { shape } = editable;
+      this.handlesObject = selectionHandles(shape.bounds, this.cameraState.zoom, {
+        resize: shape.kind !== 'group',
+        connect: true,
+      });
+      this.handlesObject.position.z = this.elementTop(shape.id) + 0.3;
+      this.handlesObject.traverse((o) => {
+        if (o instanceof Mesh) (o.material as MeshBasicMaterial).depthTest = false;
+      });
+      root.add(this.handlesObject);
     }
     this.requestRender();
   }

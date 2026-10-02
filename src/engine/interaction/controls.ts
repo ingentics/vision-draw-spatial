@@ -185,6 +185,12 @@ export interface CameraHost {
   /** `snap` : aimanter à la grille (désactivé en maintenant Alt, comme dans draw.io). */
   moveTo?(screen: Point, options: { snap: boolean }): void;
   endMove?(): void;
+  /** F2 : éditer le label de la sélection. */
+  editSelection?(): void;
+  /** Suppr : supprimer la sélection. */
+  deleteSelection?(): void;
+  /** Échap : désélectionner. */
+  escape?(): void;
 }
 
 /** Au-delà de ce déplacement (px), un appui-relâché n'est plus un clic. */
@@ -403,6 +409,15 @@ export class CameraController {
       return;
     }
     if (event.ctrlKey || event.metaKey || event.altKey) return;
+    // Édition (touches fixes) : F2 = texte, Suppr = supprimer, Échap = désélectionner.
+    if (event.key === 'F2' || event.key === 'Delete' || event.key === 'Escape') {
+      if (event.repeat) return;
+      event.preventDefault();
+      if (event.key === 'F2') this.host.editSelection?.();
+      else if (event.key === 'Delete') this.host.deleteSelection?.();
+      else this.host.escape?.();
+      return;
+    }
     if (action === 'overview') {
       // Sur un bouton, Entrée (ou Espace) l'active : on ne détourne pas la touche.
       if (event.repeat || (event.target instanceof HTMLElement && event.target.tagName === 'BUTTON')) return;

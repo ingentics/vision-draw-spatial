@@ -2,7 +2,7 @@ import robotoBold from '@fontsource/roboto/files/roboto-latin-700-normal.woff?ur
 import robotoRegular from '@fontsource/roboto/files/roboto-latin-400-normal.woff?url';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { UnsupportedReport } from '../engine/diagnostics/unsupportedStyles';
-import type { BackTarget, Engine, InitialView } from '../engine/Engine';
+import type { BackTarget, Engine, InitialView, LabelEditRequest, Selection } from '../engine/Engine';
 import type { ParentLink } from '../engine/interaction/history';
 import type { DocumentModel } from '../engine/model/types';
 import type { StoredFile } from '../engine/persistence/FileStore';
@@ -12,7 +12,9 @@ import { clearLog, cumulativeEntries, exportJson, recordFile } from './diagnosti
 import { DiagnosticsPanel } from './DiagnosticsPanel';
 import { store } from './fileLibrary';
 import { NavigationToolbar } from './NavigationToolbar';
+import { LabelEditor } from './LabelEditor';
 import { PageTabs } from './PageTabs';
+import { SelectionBar } from './SelectionBar';
 import { Palette, PALETTE_MIME, templateById } from './Palette';
 import { SettingsPanel } from './SettingsPanel';
 import type { Settings, SettingsPatch } from '../engine/settings';
@@ -56,6 +58,9 @@ export function Viewer({ file, onShowFiles, settings, onSettingsChange, onResetS
   const [backTarget, setBackTarget] = useState<BackTarget>({ kind: 'none' });
   const [backChoices, setBackChoices] = useState<ParentLink[]>();
   const [modified, setModified] = useState(false);
+  const [undoLabels, setUndoLabels] = useState<{ undo?: string; redo?: string }>({});
+  const [selection, setSelection] = useState<Selection>();
+  const [labelEdit, setLabelEdit] = useState<LabelEditRequest>();
   const modifiedRef = useRef(false);
   modifiedRef.current = modified;
 
@@ -121,12 +126,24 @@ export function Viewer({ file, onShowFiles, settings, onSettingsChange, onResetS
   }, [file.id, file.name, save]);
 
   // Ctrl+S / ⌘S : sauvegarde (plutôt que l'enregistrement de la page par le navigateur).
+  // Ctrl+Z annule, Ctrl+Maj+Z ou Ctrl+Y rétablit (hors saisie dans un champ).
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === 's') {
+      if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
+      const key = event.key.toLowerCase();
+      if (key === 's') {
         event.preventDefault();
         saveFile();
+        return;
       }
+      const target = event.target;
+      const typing =
+        target instanceof HTMLElement &&
+        (target.isContentEditable || ['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName));
+      if (typing || (key !== 'z' && key !== 'y')) return;
+      event.preventDefault();
+      if (key === 'y' || event.shiftKey) engineRef.current?.redo();
+      else engineRef.current?.undo();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -166,6 +183,9 @@ export function Viewer({ file, onShowFiles, settings, onSettingsChange, onResetS
       instance.on('linkUsed', scheduleSave);
       instance.on('backChoice', setBackChoices);
       instance.on('modifiedChange', setModified);
+      instance.on('undoChange', (undo, redo) => setUndoLabels({ undo, redo }));
+      instance.on('selectionChange', setSelection);
+      instance.on('labelEdit', setLabelEdit);
       instance.on('documentChange', (doc) => {
         setDocument(doc);
         setReport(instance.getUnsupportedReport());
@@ -241,6 +261,32 @@ export function Viewer({ file, onShowFiles, settings, onSettingsChange, onResetS
           Sauvegarder
           {modified && <span className="modified-dot" aria-label="modifications non sauvegardées" />}
         </button>
+        <span className="button-group">
+          <button
+            type="button"
+            className="button icon-button"
+            disabled={!undoLabels.undo}
+            title={undoLabels.undo ? `Annuler : ${undoLabels.undo} (Ctrl+Z)` : 'Annuler (Ctrl+Z)'}
+            aria-label="Annuler"
+            onClick={() => engine?.undo()}
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M5.5 3.5 2.5 6.5l3 3M2.5 6.5h7a4 4 0 0 1 0 8h-2" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className="button icon-button"
+            disabled={!undoLabels.redo}
+            title={undoLabels.redo ? `Rétablir : ${undoLabels.redo} (Ctrl+Maj+Z)` : 'Rétablir (Ctrl+Maj+Z)'}
+            aria-label="Rétablir"
+            onClick={() => engine?.redo()}
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M10.5 3.5l3 3-3 3M13.5 6.5h-7a4 4 0 0 0 0 8h2" />
+            </svg>
+          </button>
+        </span>
         <NavigationToolbar
           viewMode={viewMode}
           onViewModeChange={(mode) => engine?.setViewMode(mode)}
@@ -296,6 +342,30 @@ export function Viewer({ file, onShowFiles, settings, onSettingsChange, onResetS
             engine.focusCanvas();
           }}
         >
+          {labelEdit && (
+            <LabelEditor
+              key={`${labelEdit.pageId}:${labelEdit.elementId}`}
+              request={labelEdit}
+              onCommit={(text) => {
+                setLabelEdit(undefined);
+                engine?.setLabel(labelEdit.elementId, text);
+                engine?.focusCanvas();
+              }}
+              onCancel={() => {
+                setLabelEdit(undefined);
+                engine?.focusCanvas();
+              }}
+            />
+          )}
+          {selection && document && selection.pageId === pageId && pageId !== GRAPH_PAGE_ID && !labelEdit && (
+            <SelectionBar
+              selection={selection}
+              pages={document.pages}
+              onLink={(link) => engine?.setLink(selection.picked.element.id, link)}
+              onEditLabel={() => engine?.editLabel(selection.picked.element.id)}
+              onDelete={() => engine?.deleteSelection()}
+            />
+          )}
           <DrawioSpatial
             xml={file.content}
             fileId={file.id}

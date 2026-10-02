@@ -28,3 +28,8 @@ export function isNavigableLink(link: LinkModel | undefined): link is LinkModel 
   if (!link) return false;
   return link.type === 'page' || SAFE_URL.test(link.href);
 }
+
+/** Attribut `link` draw.io d'un lien du modèle (inverse de `parseLink`). */
+export function formatLink(link: LinkModel): string {
+  return link.type === 'page' ? `${PAGE_LINK_PREFIX}${link.pageId}` : link.href;
+}

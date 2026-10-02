@@ -28,20 +28,50 @@ export function canMoveCell(page: PageTree, cellId: string): boolean {
  * suivent donc d'eux-mêmes). Un attribut absent vaut 0, comme dans draw.io.
  */
 export function moveCell(page: PageTree, cellId: string, delta: Point): void {
-  if (!canMoveCell(page, cellId)) throw new Error(`Cellule ${cellId} non déplaçable`);
-  if (delta.x === 0 && delta.y === 0) return;
+  shiftGeometry(page, cellId, { x: delta.x, y: delta.y });
+}
+
+/**
+ * Redimensionne une cellule : variations de position (bord gauche / haut déplacé) et de taille,
+ * appliquées aux attributs de son `<mxGeometry>`. Seuls les attributs qui changent sont réécrits.
+ */
+export function resizeCell(page: PageTree, cellId: string, delta: Partial<Record<GeometryKey, number>>): void {
+  shiftGeometry(page, cellId, delta);
+}
+
+type GeometryKey = 'x' | 'y' | 'width' | 'height';
+
+function shiftGeometry(page: PageTree, cellId: string, delta: Partial<Record<GeometryKey, number>>): void {
+  if (!canMoveCell(page, cellId)) throw new Error(`Cellule ${cellId} non modifiable`);
+  const changes = (Object.entries(delta) as Array<[GeometryKey, number]>).filter(([, d]) => d !== 0);
+  if (changes.length === 0) return;
   const geometry = page.cells.get(cellId)!.geometry!;
-  for (const [name, d] of [
-    ['x', delta.x],
-    ['y', delta.y],
-  ] as const) {
-    if (d === 0) continue;
+  for (const [name, d] of changes) {
     const current = parseFloat(geometry.getAttribute(name) ?? '');
     const value = (Number.isFinite(current) ? current : 0) + d;
-    if (value === 0) geometry.removeAttribute(name);
+    if (value === 0 && (name === 'x' || name === 'y')) geometry.removeAttribute(name);
     else geometry.setAttribute(name, formatNumber(value));
   }
   markPageDirty(page);
+}
+
+/**
+ * Remplace le label d'une cellule (attribut `label` de l'enveloppe, sinon `value`). Avec
+ * `html=1`, le texte est échappé et les retours à la ligne deviennent des `<br>`, comme draw.io.
+ */
+export function setCellLabel(page: PageTree, cellId: string, text: string): void {
+  const nodes = page.cells.get(cellId);
+  if (!nodes?.cell) throw new Error(`Cellule ${cellId} introuvable`);
+  const html = /(^|;)\s*html=1\s*(;|$)/.test(nodes.cell.getAttribute('style') ?? '');
+  const value = html ? textToHtml(text) : text;
+  if (nodes.wrapper) nodes.wrapper.setAttribute('label', value);
+  else nodes.cell.setAttribute('value', value);
+  markPageDirty(page);
+}
+
+/** Texte brut → label HTML draw.io. */
+export function textToHtml(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\r?\n/g, '<br>');
 }
 
 /** Nombre au format draw.io : entier tel quel, sinon au plus deux décimales. */

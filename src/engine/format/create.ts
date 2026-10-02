@@ -55,6 +55,93 @@ export function addShapeCell(page: PageTree, shape: NewShape): string {
   return id;
 }
 
+/** Ajoute une arête entre deux cellules, sur le premier calque (style des connecteurs draw.io). */
+export function addEdgeCell(page: PageTree, edge: { source: string; target: string; style: string }): string {
+  if (page.encoding === 'unreadable') throw new Error(`Page ${page.id} illisible : ajout impossible`);
+  for (const end of [edge.source, edge.target]) if (!page.cells.has(end)) throw new Error(`Cellule ${end} introuvable`);
+  const rootEl = ensureRoot(page);
+  const document = ownerOf(rootEl);
+  const layerId = ensureLayer(page, rootEl);
+  const id = newCellId(page);
+  const cell = document.createElement('mxCell');
+  cell.setAttribute('id', id);
+  cell.setAttribute('style', edge.style);
+  cell.setAttribute('edge', '1');
+  cell.setAttribute('parent', layerId);
+  cell.setAttribute('source', edge.source);
+  cell.setAttribute('target', edge.target);
+  const geometry = document.createElement('mxGeometry');
+  geometry.setAttribute('relative', '1');
+  geometry.setAttribute('as', 'geometry');
+  cell.appendChild(geometry);
+  appendIndented(rootEl, cell);
+  reindexPage(page);
+  markPageDirty(page);
+  return id;
+}
+
+/**
+ * Lien d'une cellule (attribut `link`, ex. `data:page/id,…`), absent = retiré. Comme draw.io,
+ * une cellule sans enveloppe est d'abord enveloppée dans un `<UserObject>` qui reprend son id et
+ * son label (`value` → `label`).
+ */
+export function setCellLink(page: PageTree, cellId: string, href: string | undefined): void {
+  const nodes = page.cells.get(cellId);
+  if (!nodes?.cell) throw new Error(`Cellule ${cellId} introuvable`);
+  let wrapper = nodes.wrapper;
+  if (!wrapper) {
+    if (!href) return;
+    const cell = nodes.cell;
+    wrapper = ownerOf(cell).createElement('UserObject');
+    wrapper.setAttribute('label', cell.getAttribute('value') ?? '');
+    wrapper.setAttribute('id', cellId);
+    cell.removeAttribute('value');
+    cell.removeAttribute('id');
+    cell.parentNode!.replaceChild(wrapper, cell);
+    wrapper.appendChild(cell);
+  }
+  if (href) wrapper.setAttribute('link', href);
+  else wrapper.removeAttribute('link');
+  reindexPage(page);
+  markPageDirty(page);
+}
+
+/**
+ * Retire des cellules avec tout ce qui en dépend, comme la suppression de draw.io : leurs
+ * descendants (contenu d'un groupe, labels d'une arête) et les arêtes qui y sont reliées.
+ */
+export function removeCellsDeep(page: PageTree, cellIds: Iterable<string>): void {
+  const removed = new Set(cellIds);
+  for (let grew = true; grew;) {
+    grew = false;
+    for (const { id, cell } of page.cellList) {
+      if (removed.has(id) || !cell) continue;
+      const ends = [cell.getAttribute('parent'), cell.getAttribute('source'), cell.getAttribute('target')];
+      if (ends.some((end) => end && removed.has(end))) {
+        removed.add(id);
+        grew = true;
+      }
+    }
+  }
+  removeCells(page, removed);
+}
+
+/** Retire des cellules (leur nœud et l'indentation qui le précède). */
+export function removeCells(page: PageTree, cellIds: Iterable<string>): void {
+  let removed = false;
+  for (const id of cellIds) {
+    const element = page.cells.get(id)?.element;
+    if (!element?.parentNode) continue;
+    const previous = element.previousSibling;
+    if (previous && isWhitespace(previous)) previous.parentNode?.removeChild(previous);
+    element.parentNode.removeChild(element);
+    removed = true;
+  }
+  if (!removed) return;
+  reindexPage(page);
+  markPageDirty(page);
+}
+
 /** Ajoute une page vide (calque par défaut) à la fin du fichier. */
 export function addPage(tree: DrawioTree, name: string): PageTree {
   const mxfile = tree.xml.documentElement;

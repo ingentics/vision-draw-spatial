@@ -29,11 +29,13 @@ body {
 .app {
   display: grid;
   grid-template-rows: auto 1fr auto;
+  grid-template-columns: minmax(0, 1fr);
   height: 100%;
 }
 
 .toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   padding: 6px 10px;
@@ -839,4 +841,68 @@ body {
 .toolbar .button[aria-pressed='true'] {
   border-color: var(--accent);
   color: var(--accent);
+}
+
+/* Édition : barre de la sélection, champ de label */
+.selection-bar {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 260px);
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.selection-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+  color: var(--muted);
+}
+
+.selection-name strong {
+  color: var(--fg);
+  font-weight: 500;
+}
+
+.selection-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.selection-link select {
+  font: inherit;
+  max-width: 200px;
+}
+
+.label-editor {
+  position: absolute;
+  z-index: 6;
+  box-sizing: border-box;
+  padding: 4px;
+  border: 2px solid var(--accent);
+  border-radius: 3px;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  text-align: center;
+  resize: none;
+}
+
+.icon-button {
+  padding: 3px 6px;
+}
+
+.icon-button:disabled svg {
+  opacity: 0.4;
 }
