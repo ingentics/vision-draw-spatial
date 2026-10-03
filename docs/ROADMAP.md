@@ -150,6 +150,112 @@
 
 ---
 
+## Milestone 4 — Éditeur de forme (prochain chantier)
+
+### Étape 20 — Panneau de forme et styles
+- **Panneau « Forme » à droite**, comme le panneau Format de draw.io : il s'ouvre quand une forme est sélectionnée,
+  se met à jour quand la sélection change, se ferme quand on désélectionne (ou par ×). Il partage l'emplacement des
+  panneaux Paramètres / Diagnostics (un seul ouvert à la fois). La barre de sélection du bas garde les actions
+  rapides ; les réglages de la forme migrent progressivement dans le panneau.
+- **Première section : Style**, une grille de vignettes cliquables (aperçu de la forme avec ce style, au survol le nom
+  du style) ; le style courant de la forme est mis en évidence.
+  - **Styles de base de draw.io** (les mêmes que la palette Style de draw.io, valeurs exactes) :
+
+    | Style | `fillColor` | `strokeColor` | Autres |
+    |---|---|---|---|
+    | Par défaut | `#ffffff` | `#000000` | |
+    | Gris | `#f5f5f5` | `#666666` | `fontColor=#333333` |
+    | Bleu | `#dae8fc` | `#6c8ebf` | |
+    | Vert | `#d5e8d4` | `#82b366` | |
+    | Orange | `#ffe6cc` | `#d79b00` | |
+    | Jaune | `#fff2cc` | `#d6b656` | |
+    | Rouge | `#f8cecc` | `#b85450` | |
+    | Violet | `#e1d5e7` | `#9673a6` | |
+
+  - **Palette étendue** : 12 teintes pastel (menthe, jaune pâle, lavande, rose saumon, bleu, pêche, vert tendre,
+    rose, gris, mauve, vert pâle, crème), en plus des styles de base. Fond pastel et **contour dérivé** (même teinte,
+    plus soutenue), pour garder le principe fond + contour de draw.io. Valeurs de départ, à affiner à l'œil :
+    `#dcefea`, `#ffffe5`, `#e8e5f0`, `#fdd8d6`, `#d8e4f0`, `#ffe4d3`, `#e4f1d3`, `#fdebf2`, `#f2f2f2`, `#e8d7e8`,
+    `#edf5e8`, `#fef7d7`.
+- **Appliquer un style** écrit seulement les clés concernées dans le style draw.io de la cellule
+  (`fillColor`, `strokeColor`, `fontColor` si le style en a une ; le reste du style intact, SPEC §14.2), avec
+  annuler / rétablir. En **sélection multiple**, le style s'applique à toutes les formes sélectionnées.
+- Les palettes sont des **paramètres** (`Settings`, source de vérité) : listes de styles modifiables plus tard,
+  valeurs par défaut ci-dessus.
+- Rendu immédiat dans les trois modes (2D, iso, 3D : fond, côtés ombrés, arêtes) ; réouverture identique dans draw.io.
+- **Fini quand :** sélectionner une forme ouvre le panneau, un clic sur une vignette change ses couleurs (une ou
+  plusieurs formes), Ctrl+Z annule, et draw.io affiche le même style.
+
+---
+
+## Milestone 5 — Formes géométriques
+
+> Formes demandées : Actor, Hexagon, Octagon, Pentagon, Triangle (vers la droite), Triangle (vers le haut),
+> Parallelogram, Step, Diamond, étoile à 4 branches, étoile à 6 branches.
+> Règles communes (SPEC §8, guide `docs/AJOUTER_UNE_FORME.md`) : formes **natives de draw.io**, dessinées comme
+> draw.io en 2D (même rendu à la réouverture dans draw.io), en volume en iso / 3D, créables depuis la palette avec le
+> style et la taille par défaut de la palette draw.io. La géométrie se vérifie contre l'export de draw.io (CLI :
+> `draw.io -x -f svg` ou `png`, comme pour `direct_data`).
+
+### Étape 21 — Socle commun des formes géométriques
+Prérequis aux étapes 22 et 23 : aujourd'hui, seuls le rectangle et l'ellipse sont gérés hors du rendu.
+- **Contour polygonal** par forme (`outline`), utilisé partout : rendu 2D (`flatBox`), volume iso (`isoBlock` : prisme
+  du contour, toit avec le label, arêtes verticales aux angles vifs, rentrants compris), mini-carte (repli contour).
+- **Clic et survol sur le contour réel** (point dans le polygone) au lieu des bornes (`shapeContains`) : les coins
+  vides d'un losange ou d'une étoile ne sont pas cliquables.
+- **Accroche des flèches sur le contour** (intersection avec le polygone) : périmètre générique `polygon` dans
+  `edges/route.ts`, en plus de `rectangle` et `ellipse`.
+- **`direction`** draw.io (`east` par défaut, `south`, `west`, `north`) générique pour toutes les formes polygonales :
+  contour tracé dans un cadre local puis tourné dans les bornes (comme le cylindre couché) ; `flipH` / `flipV`.
+- **Labels hors de la forme** : `verticalLabelPosition=bottom|top`, `labelPosition=left|right` dans `createLabel`
+  (Actor, étoiles), aussi en iso (label posé au sol à côté du volume, ou sous l'Actor).
+- Fixture `tests/fixtures/shapes.drawio` **enregistrée par draw.io**, avec toutes les formes de l'étape 22 et leurs
+  variantes (directions, tailles, `size` / `dx`) ; `make drawio-check`.
+- **Fini quand :** une forme polygonale de test se clique sur son contour, reçoit les flèches sur son contour,
+  s'oriente avec `direction`, et son label peut être placé dessous.
+
+### Étape 22 — Polygones et étoiles
+Pour chaque forme : définition (`render/shapes/`), entrée de palette avec aperçu, tests (contour 2D, volume iso,
+clic, accroche des flèches), comparaison visuelle avec l'export draw.io.
+
+| Forme | Style draw.io (palette) | Taille | Géométrie 2D | Iso / 3D |
+|---|---|---|---|---|
+| Hexagon | `shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;` | 120 × 80 | hexagone couché (pointes à gauche et à droite) ; `size` = largeur des pans coupés (px avec `fixedSize=1`, défaut 20 ; sinon fraction de la largeur) | prisme du contour |
+| Octagon | `whiteSpace=wrap;html=1;shape=mxgraph.basic.octagon2;align=center;verticalAlign=middle;dx=15;` | 100 × 100 | rectangle aux quatre coins coupés de `dx` px | prisme du contour |
+| Pentagon | `whiteSpace=wrap;html=1;shape=mxgraph.basic.pentagon` | 100 × 90 | pentagone pointe en haut, inscrit dans les bornes (proportions à relever sur l'export draw.io) | prisme du contour |
+| Triangle (vers la droite) | `triangle;whiteSpace=wrap;html=1;` | 60 × 80 | triangle isocèle, base à gauche, pointe au milieu du bord droit (`direction=east`, défaut) | prisme du contour |
+| Triangle (vers le haut) | `triangle;whiteSpace=wrap;html=1;direction=north;` | 80 × 60 | le même tourné (`direction=north`) : base en bas, pointe en haut | prisme du contour |
+| Parallelogram | `shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;` | 120 × 60 | côtés obliques décalés de `size` (px avec `fixedSize=1`, défaut 20) | prisme du contour |
+| Step | `shape=step;perimeter=stepPerimeter;whiteSpace=wrap;html=1;fixedSize=1;` | 120 × 80 | chevron d'étape : encoche à gauche, pointe à droite, de profondeur `size` (défaut 20) | prisme du contour |
+| Diamond | `rhombus;whiteSpace=wrap;html=1;` | 80 × 80 | losange inscrit (sommets au milieu des bords) | prisme du contour |
+| Étoile à 4 branches | `html=1;shape=mxgraph.basic.4_point_star_2;dx=0.8;` (préfixe de la palette « Basic » à relever) | 100 × 100 | étoile à 4 pointes ; `dx` = creux des branches (0,8 par défaut) | prisme du contour, arêtes verticales aux pointes et aux creux |
+| Étoile à 6 branches | `html=1;shape=mxgraph.basic.6_point_star` (idem) | 100 × 90 | étoile à 6 pointes (proportions à relever sur l'export draw.io) | prisme du contour, idem |
+
+- Les volumes suivent la règle commune : épaisseur par défaut (`view.isoDepth`, 32 px), `spatial.height` prioritaire,
+  `spatial.elevation`, empilement sur le conteneur, repli à plat sans fond.
+- Les noms de forme sont ceux de `resolveShapeKind` : `hexagon`, `mxgraph.basic.octagon2`, `mxgraph.basic.pentagon`,
+  `triangle`, `parallelogram`, `step`, `rhombus`, `mxgraph.basic.4_point_star_2`, `mxgraph.basic.6_point_star`
+  (alias dans `SHAPE_ALIASES` si draw.io écrit la même forme autrement).
+- **Fini quand :** les 10 formes s'affichent comme dans draw.io en 2D (comparaison avec l'export), en volume en iso et
+  en 3D, se cliquent et reçoivent les flèches sur leur contour, se créent depuis la palette ; plus aucune n'apparaît
+  dans le panneau Diagnostics.
+
+### Étape 23 — Actor
+- Style draw.io (palette) : `shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;`,
+  30 × 60.
+- **2D** : bonhomme draw.io (tête ronde remplie de la couleur de fond, corps, bras, jambes en traits), aux proportions
+  de draw.io, étiré dans ses bornes ; **label sous la forme** (`verticalLabelPosition=bottom`, étape 21).
+- **Iso / 3D** : pas d'extrusion (un bonhomme en prisme n'a pas de sens). Le personnage est **debout** : sa silhouette
+  2D dans un plan vertical tourné vers la caméra, pieds au centre de l'emprise, hauteur = hauteur de la forme (ou
+  `spatial.height`), comme une unité de jeu ; label au sol devant lui. Demande de remettre en place l'orientation des
+  objets selon la vue (supprimée avec les arêtes verticales en rubans), de façon exacte en perspective.
+- Clic sur ses bornes (bonhomme fin : le contour réel serait trop difficile à viser) ; accroche des flèches sur ses
+  bornes, comme draw.io (`outlineConnect=0`) ; mini-carte : sa silhouette.
+- **Fini quand :** l'Actor s'affiche comme dans draw.io en 2D, se tient debout face à la caméra en iso et en 3D sous
+  tous les angles, se crée depuis la palette.
+
+---
+
 ## Après la roadmap
 
 - Fond et grille ✅ : couleur de fond réglable, grille au sol dans les trois modes (pas de la page draw.io ou 10 px, ligne principale toutes les 4 cases, couleur), shader net à tout zoom qui s'estompe au dézoom et au loin en 3D ; section « Fond et grille » des paramètres.
