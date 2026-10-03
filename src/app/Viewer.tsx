@@ -17,7 +17,6 @@ import { saveAs, store } from './fileLibrary';
 import { NavigationToolbar } from './NavigationToolbar';
 import { LabelEditor } from './LabelEditor';
 import { PageTabs } from './PageTabs';
-import { SelectionBar } from './SelectionBar';
 import { MULTI_SELECT_LABELS } from './SettingsPanel';
 import { Palette, PALETTE_MIME, templateById } from './Palette';
 import { SettingsPanel } from './SettingsPanel';
@@ -415,19 +414,6 @@ export function Viewer({
               }}
             />
           )}
-          {selection && document && selection.pageId === pageId && pageId !== GRAPH_PAGE_ID && !labelEdit && (
-            <SelectionBar
-              selection={selection}
-              pages={document.pages}
-              onLink={(link) => engine?.setLink(selection.picked.element.id, link)}
-              onSpatial={(key, value) => engine?.setSpatial(selection.picked.element.id, key, value)}
-              defaultDepth={settings.view.isoDepth}
-              onEditLabel={() => engine?.editLabel(selection.picked.element.id)}
-              onEndLabel={(end, text) => engine?.setEdgeEndLabel(selection.picked.element.id, end, text)}
-              onDelete={() => engine?.deleteSelection()}
-              multiSelectKey={MULTI_SELECT_LABELS[settings.controls.multiSelectKey]}
-            />
-          )}
           <DrawioSpatial
             xml={file.content}
             fileId={file.id}
@@ -462,9 +448,17 @@ export function Viewer({
         {!diagnosticsOpen && panel !== 'settings' && currentPage && (
           <ContextPanel
             page={currentPage}
+            pages={document?.pages ?? []}
             shapes={selected.shapes}
             edges={selected.edges}
             styles={settings.styles}
+            defaultDepth={settings.view.isoDepth}
+            multiSelectKey={MULTI_SELECT_LABELS[settings.controls.multiSelectKey]}
+            onLink={(link) => selection && engine?.setLink(selection.picked.element.id, link)}
+            onSpatial={(key, value) => selection && engine?.setSpatial(selection.picked.element.id, key, value)}
+            onEditLabel={() => selection && engine?.editLabel(selection.picked.element.id)}
+            onEndLabel={(end, text) => selection && engine?.setEdgeEndLabel(selection.picked.element.id, end, text)}
+            onDelete={() => engine?.deleteSelection()}
             onApplyStyle={(preset) =>
               engine?.applyStylePreset(
                 selected.shapes.map((shape) => shape.id),
