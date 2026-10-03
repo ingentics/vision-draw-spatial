@@ -7,6 +7,7 @@ import type { EdgeModel, LinkModel, PageModel, ShapeModel } from '../engine/mode
 import type { StyleSettings } from '../engine/settings';
 import { SPATIAL, spatialNumber } from '../engine/spatial';
 import { TEXT_FORMAT_ATTRIBUTE } from './LabelEditor';
+import { BorderSection } from './BorderSection';
 import { Section } from './PanelSection';
 import { TextFormatSections } from './TextFormat';
 import type { TextEdit } from './TextFormat';
@@ -24,6 +25,8 @@ export interface ContextPanelProps {
   /** Libellé de la touche de sélection multiple (ex. « Ctrl »), pour l'aide. */
   multiSelectKey: string;
   onApplyStyle: (preset: StylePreset) => void;
+  /** Clés de style des formes sélectionnées (bordure : couleur, épaisseur, trait, coins). */
+  onShapeStyle: (patch: Record<string, string | undefined>) => void;
   /** Renommer la page ; absent si les pages ne sont pas modifiables. */
   onRenamePage?: (name: string) => void;
   /** Lien de l'élément sélectionné (vers une page ou une URL) ; undefined = retiré. */
@@ -125,6 +128,7 @@ function ShapeSections({ shape, ...props }: ContextPanelProps & { shape: ShapeMo
           <p className="panel-hint">Style actuel : couleurs personnalisées.</p>
         )}
       </Section>
+      <BorderSection shape={shape} onChange={props.onShapeStyle} />
       <Section title="Volume">
         <NumberField
           key={`h:${shape.id}:${spatialNumber(shape, SPATIAL.height) ?? ''}`}
@@ -277,6 +281,7 @@ function MultiSections(props: ContextPanelProps) {
           {edges.length > 0 && <p className="panel-hint">Appliqué aux formes de la sélection.</p>}
         </Section>
       )}
+      {current && <BorderSection shape={current} onChange={props.onShapeStyle} />}
       <DeleteButton onDelete={props.onDelete} />
     </>
   );

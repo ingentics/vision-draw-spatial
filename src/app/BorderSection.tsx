@@ -1,0 +1,177 @@
+import { useEffect, useRef } from 'react';
+import type { ShapeModel } from '../engine/model/types';
+import { Section } from './PanelSection';
+
+/** Style du trait : plein, tirets ou pointillés (clés draw.io `dashed`, `dashPattern`). */
+type LineStyle = 'solid' | 'dashed' | 'dotted';
+
+const LINE_STYLES: Record<LineStyle, { label: string; patch: Record<string, string | undefined> }> = {
+  solid: { label: 'Plein', patch: { dashed: undefined, dashPattern: undefined } },
+  dashed: { label: 'Tirets', patch: { dashed: '1', dashPattern: undefined } },
+  dotted: { label: 'Pointillés', patch: { dashed: '1', dashPattern: '1 2' } },
+};
+
+/** Couleurs de bordure rapides : noir, gris, puis les contours des styles draw.io. */
+const STROKE_COLORS = [
+  '#000000',
+  '#666666',
+  '#b3b3b3',
+  '#6c8ebf',
+  '#82b366',
+  '#d79b00',
+  '#d6b656',
+  '#b85450',
+  '#9673a6',
+];
+const WIDTH_LIMITS = { min: 0.5, max: 20 };
+
+/** Formes dont les coins peuvent s'arrondir (`rounded=1`). */
+const ROUNDABLE = new Set(['rectangle']);
+
+/**
+ * Bordure des formes sélectionnées (la dernière choisie donne les valeurs affichées) : le trait 2D, qui
+ * est aussi les arêtes du volume en iso / 3D. Couleur (ou aucune), épaisseur, style du trait, coins
+ * arrondis ; écrit dans les clés du style draw.io.
+ */
+export function BorderSection({
+  shape,
+  onChange,
+}: {
+  shape: ShapeModel;
+  onChange: (patch: Record<string, string | undefined>) => void;
+}) {
+  const { style } = shape;
+  const none = style.strokeColor === 'none';
+  const color = /^#[0-9a-f]{6}$/i.test(style.strokeColor ?? '') ? style.strokeColor!.toLowerCase() : '#000000';
+  const width = Number(style.strokeWidth) || 1;
+  const line: LineStyle =
+    style.dashed !== '1' ? 'solid' : /^1(\s|$)/.test(style.dashPattern ?? '') ? 'dotted' : 'dashed';
+  const setWidth = (next: number) => {
+    if (!Number.isFinite(next)) return;
+    const value = Math.round(Math.min(WIDTH_LIMITS.max, Math.max(WIDTH_LIMITS.min, next)) * 2) / 2;
+    onChange({ strokeWidth: value === 1 ? undefined : String(value) });
+  };
+
+  return (
+    <Section title="Bordure">
+      <div className="field-row color-row">
+        Couleur
+        <ColorInput key={color} value={color} onChange={(next) => onChange({ strokeColor: next })} />
+      </div>
+      <div className="text-colors">
+        <button
+          type="button"
+          className="text-color no-color"
+          title="Aucune bordure"
+          aria-label="Aucune bordure"
+          aria-pressed={none}
+          onClick={() => onChange({ strokeColor: 'none' })}
+        />
+        {STROKE_COLORS.map((swatch) => (
+          <button
+            key={swatch}
+            type="button"
+            className="text-color"
+            style={{ background: swatch }}
+            title={swatch}
+            aria-label={`Bordure ${swatch}`}
+            aria-pressed={!none && swatch === color}
+            onClick={() => onChange({ strokeColor: swatch })}
+          />
+        ))}
+      </div>
+      <fieldset className="text-format" disabled={none}>
+        <div className="field-row">
+          Épaisseur
+          <span className="button-group">
+            <button
+              type="button"
+              className="group-button format-button"
+              title="Plus fine"
+              onClick={() => setWidth(width - 0.5)}
+            >
+              −
+            </button>
+            <input
+              key={width}
+              type="number"
+              className="size-input"
+              aria-label="Épaisseur de la bordure"
+              min={WIDTH_LIMITS.min}
+              max={WIDTH_LIMITS.max}
+              step={0.5}
+              defaultValue={width}
+              onBlur={(event) => {
+                if (Number(event.target.value) !== width) setWidth(Number(event.target.value));
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') setWidth(Number(event.currentTarget.value));
+              }}
+            />
+            <button
+              type="button"
+              className="group-button format-button"
+              title="Plus épaisse"
+              onClick={() => setWidth(width + 0.5)}
+            >
+              +
+            </button>
+          </span>
+        </div>
+        <div className="field-row">
+          Trait
+          <span className="button-group" role="radiogroup" aria-label="Style du trait">
+            {(Object.keys(LINE_STYLES) as LineStyle[]).map((value) => (
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                className="group-button format-button"
+                aria-checked={line === value}
+                aria-pressed={line === value}
+                title={LINE_STYLES[value].label}
+                onClick={() => onChange(LINE_STYLES[value].patch)}
+              >
+                <LineIcon kind={value} />
+              </button>
+            ))}
+          </span>
+        </div>
+        {ROUNDABLE.has(shape.kind) && (
+          <label className="field toggle">
+            <input
+              type="checkbox"
+              checked={style.rounded === '1'}
+              onChange={(event) => onChange({ rounded: event.target.checked ? '1' : '0' })}
+            />
+            Coins arrondis
+          </label>
+        )}
+      </fieldset>
+    </Section>
+  );
+}
+
+function LineIcon({ kind }: { kind: LineStyle }) {
+  const dash = kind === 'solid' ? undefined : kind === 'dashed' ? '4 2.5' : '1.2 2';
+  return (
+    <svg viewBox="0 0 20 8" aria-hidden="true" className="line-icon">
+      <path d="M1 4h18" strokeDasharray={dash} />
+    </svg>
+  );
+}
+
+/** Sélecteur de couleur : appliqué à la fermeture du sélecteur (événement natif `change`). */
+function ColorInput({ value, onChange }: { value: string; onChange: (color: string) => void }) {
+  const ref = useRef<HTMLInputElement>(null);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  useEffect(() => {
+    const input = ref.current;
+    if (!input) return;
+    const listener = () => onChangeRef.current(input.value.toLowerCase());
+    input.addEventListener('change', listener);
+    return () => input.removeEventListener('change', listener);
+  }, []);
+  return <input ref={ref} type="color" aria-label="Couleur de la bordure" defaultValue={value} />;
+}

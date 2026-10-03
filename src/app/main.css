@@ -1189,3 +1189,16 @@ body {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+
+/* Bordure : « aucune » (case barrée), aperçu du style de trait. */
+.text-color.no-color {
+  background: linear-gradient(to top right, #ffffff calc(50% - 1px), #d93025 50%, #ffffff calc(50% + 1px));
+}
+
+.line-icon {
+  width: 20px;
+  height: 8px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+}

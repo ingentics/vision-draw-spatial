@@ -2429,6 +2429,25 @@ export class Engine {
     this.documentChanged([editable.page.id]);
   }
 
+  /**
+   * Clés de style draw.io sur des formes de la page courante (ex. bordure : `strokeColor`, `strokeWidth`,
+   * `dashed`…), en une étape d'annulation ; undefined retire la clé. Seules les clés qui changent.
+   */
+  setShapesStyle(elementIds: string[], patch: Record<string, string | undefined>, label = 'Style'): void {
+    const editable = this.editablePage();
+    if (!editable) return;
+    const shapes = editable.page.shapes.filter((s) => elementIds.includes(s.id));
+    const changes = shapes.flatMap((shape) =>
+      Object.entries(patch)
+        .filter(([key, value]) => shape.style[key] !== value)
+        .map(([key, value]) => ({ id: shape.id, key, value })),
+    );
+    if (changes.length === 0) return;
+    this.recordEdit(label);
+    for (const { id, key, value } of changes) setCellStyleValue(editable.pageTree, id, key, value);
+    this.documentChanged([editable.page.id]);
+  }
+
   /** Supprime la sélection : avec son contenu, ses labels et les arêtes qui y sont reliées (comme draw.io). */
   deleteSelection(): void {
     const editable = this.editablePage();

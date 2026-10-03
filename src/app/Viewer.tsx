@@ -517,6 +517,13 @@ export function Viewer({
             onEditLabel={() => selection && engine?.editLabel(selection.picked.element.id)}
             onEndLabel={(end, text) => selection && engine?.setEdgeEndLabel(selection.picked.element.id, end, text)}
             onDelete={() => engine?.deleteSelection()}
+            onShapeStyle={(patch) =>
+              engine?.setShapesStyle(
+                selected.shapes.map((shape) => shape.id),
+                patch,
+                'Bordure',
+              )
+            }
             onTextAnchor={(cellId, anchor) =>
               selection && engine?.setEdgeTextAnchor(selection.picked.element.id, cellId, anchor)
             }
