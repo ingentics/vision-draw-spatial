@@ -211,8 +211,13 @@ export interface LabelEditRequest {
   html?: string;
   /** Pixels écran par pixel de page à cet endroit : taille du texte dans l'éditeur. */
   scale: number;
-  /** Texte d'une flèche (fond de la page sous le texte) plutôt que d'une forme. */
+  /**
+   * Texte d'une flèche : `screen` est alors le point du texte (largeur et hauteur nulles), l'éditeur se
+   * centre dessus et prend la taille du texte, comme le label dessiné.
+   */
   onEdge: boolean;
+  /** Fond du texte (`labelBackgroundColor`, fond de la page pour une flèche) ; absent : transparent. */
+  background?: string;
 }
 
 /** Glisser d'édition en cours (SPEC §14.1). */
@@ -1847,6 +1852,10 @@ export class Engine {
       html: element.style.html === '1' ? cellLabelValue(editable.pageTree, element.id) : undefined,
       scale: this.textScale(element.id),
       onEdge: editable.page.edges.some((e) => e.id === element.id),
+      background: this.labelEditBackground(
+        element.style,
+        editable.page.edges.some((e) => e.id === element.id),
+      ),
     });
   }
 
@@ -1871,7 +1880,16 @@ export class Engine {
       html: current?.style.html === '1' ? cellLabelValue(editable.pageTree, current.id) : undefined,
       scale: this.textScale(edgeId),
       onEdge: true,
+      background: this.labelEditBackground(current?.style ?? edge.style, true),
     });
+  }
+
+  /** Fond du texte édité, comme celui du label dessiné (une flèche : fond de la page par défaut). */
+  private labelEditBackground(style: Record<string, string>, onEdge: boolean): string | undefined {
+    const value = style.labelBackgroundColor?.trim().toLowerCase();
+    if (value === 'none') return undefined;
+    if (value && /^#[0-9a-f]{3}([0-9a-f]{3})?$/.test(value)) return value;
+    return onEdge || value === 'default' ? this.settings.background.color : undefined;
   }
 
   /**
@@ -1890,17 +1908,16 @@ export class Engine {
    * de son texte de début / fin.
    */
   private labelEditScreen(elementId: string, end?: EdgeEnd): Rect | undefined {
-    if (!end) return this.screenRectOf(elementId);
     const edge = this.getCurrentPage()?.edges.find((e) => e.id === elementId);
+    if (!edge) return this.screenRectOf(elementId);
+    // Flèche : le point où le texte est dessiné (placement du label du milieu, du début ou de la fin).
     const route = this.sceneObject(elementId)?.userData.route as Point[] | undefined;
-    if (!edge || !route?.length) return undefined;
-    const placement = endLabelOf(edge, end)?.placement ?? {
-      position: endLabelPosition(end),
-      distance: 0,
-      offset: { x: 0, y: 0 },
-    };
+    if (!route?.length) return undefined;
+    const placement = end
+      ? (endLabelOf(edge, end)?.placement ?? { position: endLabelPosition(end), distance: 0, offset: { x: 0, y: 0 } })
+      : edge.labelPlacement;
     const center = this.screenOfPoint(labelPoint(route, placement), this.elementTop(elementId));
-    return { x: center.x - 60, y: center.y - 16, width: 120, height: 32 };
+    return { x: center.x, y: center.y, width: 0, height: 0 };
   }
 
   /**

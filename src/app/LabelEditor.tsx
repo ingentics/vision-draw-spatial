@@ -176,31 +176,43 @@ export function LabelEditor({ request, onCommit, onCancel, onToggle, onSelection
   // Posée sur l'élément, mais ramenée dans la vue si l'élément touche un bord ; recalculé quand
   // l'élément bouge à l'écran (vue déplacée, panneau latéral qui change la taille du plan).
   const [shift, setShift] = useState({ x: 0, y: 0 });
+  const shiftRef = useRef(shift);
+  shiftRef.current = shift;
   const { x: left, y: top, width, height } = request.screen;
   useLayoutEffect(() => {
     const element = box.current;
     const area = element?.offsetParent as HTMLElement | null;
     if (!element || !area) return;
+    // Emprise affichée (agrandie, centrée pour une flèche), sans le décalage déjà appliqué.
     const rect = element.getBoundingClientRect();
+    const origin = area.getBoundingClientRect();
     const clamp = (start: number, size: number, max: number) =>
       Math.min(Math.max(start, 0), Math.max(max - size, 0)) - start;
-    setShift({ x: clamp(left, rect.width, area.clientWidth), y: clamp(top, rect.height, area.clientHeight) });
+    setShift({
+      x: clamp(rect.left - origin.left - shiftRef.current.x, rect.width, area.clientWidth),
+      y: clamp(rect.top - origin.top - shiftRef.current.y, rect.height, area.clientHeight),
+    });
   }, [left, top]);
 
-  const { style, scale } = request;
+  const { style, scale, onEdge } = request;
   const bits = Number(style.fontStyle) || 0;
-  // Boîte en pixels de page, agrandie au zoom : tailles du texte riche = tailles draw.io.
+  // Boîte en pixels de page, agrandie au zoom : tailles du texte riche = tailles draw.io. Une forme : sur
+  // son emprise. Une flèche : centrée sur le point du texte, à la taille du texte, comme le label dessiné.
   const boxStyle: CSSProperties = {
     left: left + shift.x,
     top: top + shift.y,
-    width: Math.max(width, 40) / scale,
-    minHeight: Math.max(height, 20) / scale,
-    padding: 2,
-    transform: `scale(${scale})`,
     outlineWidth: 1 / scale,
-    justifyContent:
-      style.verticalAlign === 'top' ? 'flex-start' : style.verticalAlign === 'bottom' ? 'flex-end' : 'center',
-    background: request.onEdge ? 'var(--bg)' : 'transparent',
+    background: request.background ?? 'transparent',
+    ...(onEdge
+      ? { padding: 1, minWidth: 8, transform: `scale(${scale}) translate(-50%, -50%)` }
+      : {
+          width: Math.max(width, 40) / scale,
+          minHeight: Math.max(height, 20) / scale,
+          padding: 2,
+          transform: `scale(${scale})`,
+          justifyContent:
+            style.verticalAlign === 'top' ? 'flex-start' : style.verticalAlign === 'bottom' ? 'flex-end' : 'center',
+        }),
   };
   const decorations = [bits & 4 && 'underline', bits & 8 && 'line-through'].filter(Boolean).join(' ');
   const textStyle: CSSProperties = {
@@ -211,7 +223,7 @@ export function LabelEditor({ request, onCommit, onCancel, onToggle, onSelection
     textDecoration: decorations || 'none',
     fontFamily: isMonospace(style.fontFamily) ? "'Roboto Mono', monospace" : "'Roboto', sans-serif",
     textAlign: style.align === 'left' || style.align === 'right' ? style.align : 'center',
-    whiteSpace: request.onEdge || style.whiteSpace !== 'wrap' ? 'pre' : 'pre-wrap',
+    whiteSpace: onEdge || style.whiteSpace !== 'wrap' ? 'pre' : 'pre-wrap',
   };
 
   return (
