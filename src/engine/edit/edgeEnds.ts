@@ -1,3 +1,5 @@
+import { setCellStyleValue, setEdgeTerminal } from '../format/edit';
+import type { PageTree } from '../format/xmlTree';
 import type { EdgeModel, PageModel, Point, Rect, ShapeModel } from '../model/types';
 
 /**
@@ -113,4 +115,28 @@ export function restoreEnds(edge: EdgeModel, snapshot: EdgeEndsSnapshot): void {
   edge.sourcePoint = snapshot.sourcePoint && { ...snapshot.sourcePoint };
   edge.targetPoint = snapshot.targetPoint && { ...snapshot.targetPoint };
   edge.style = { ...snapshot.style };
+}
+
+/**
+ * Écrit l'attache d'un bout de flèche dans l'arbre XML : cellule ou point libre (dans le repère du
+ * parent de la flèche, groupe ou conteneur, comme draw.io), et clés `exit…` / `entry…` du style.
+ */
+export function writeEndAttachment(
+  pageTree: PageTree,
+  page: PageModel,
+  edge: EdgeModel,
+  end: TerminalEnd,
+  attachment: EndAttachment,
+): void {
+  if (attachment.kind === 'free') {
+    const origin = page.shapes.find((s) => s.id === edge.parentId)?.bounds ?? { x: 0, y: 0 };
+    setEdgeTerminal(pageTree, edge.id, end, {
+      point: { x: attachment.point.x - origin.x, y: attachment.point.y - origin.y },
+    });
+  } else {
+    setEdgeTerminal(pageTree, edge.id, end, { cellId: attachment.shapeId });
+  }
+  const constraint = attachment.kind === 'fixed' ? attachment.constraint : undefined;
+  for (const [key, value] of Object.entries(constraintStyle(end, constraint)))
+    setCellStyleValue(pageTree, edge.id, key, value);
 }

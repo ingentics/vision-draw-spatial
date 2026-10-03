@@ -202,8 +202,9 @@ export function setEdgeTerminal(
   if (!point) {
     point = document.createElement('mxPoint');
     point.setAttribute('as', as);
-    // draw.io écrit les extrémités libres avant les points intermédiaires.
-    geometry.insertBefore(point, geometry.firstChild);
+    // draw.io écrit `sourcePoint`, puis `targetPoint`, puis les points intermédiaires.
+    const source = childElements(geometry, 'mxPoint').find((p) => p.getAttribute('as') === 'sourcePoint');
+    geometry.insertBefore(point, end === 'target' && source ? source.nextSibling : geometry.firstChild);
   }
   point.setAttribute('x', formatNumber(terminal.point.x));
   point.setAttribute('y', formatNumber(terminal.point.y));

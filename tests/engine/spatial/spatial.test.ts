@@ -89,7 +89,9 @@ describe('écriture en place', () => {
  * Fichiers réenregistrés par draw.io (`tests/fixtures/drawio-saved/`, produits par `make drawio-check`) :
  * attributs spatiaux, état de vue et géométries identiques à l'original.
  */
-const SAVED = readdirSync(fileURLToPath(new URL('../../fixtures/drawio-saved/', import.meta.url))).sort();
+const SAVED = readdirSync(fileURLToPath(new URL('../../fixtures/drawio-saved/', import.meta.url)))
+  .filter((name) => !name.endsWith('.svg'))
+  .sort();
 
 describe('conservation par draw.io', () => {
   it.each(SAVED)('%s', (name) => {

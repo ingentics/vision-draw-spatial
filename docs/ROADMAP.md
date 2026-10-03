@@ -263,7 +263,7 @@ clic, accroche des flèches), comparaison visuelle avec l'export draw.io.
 > Édition dans les **trois modes** (2D, iso, 3D : poignées posées au sol, à la hauteur de la flèche). Chaque étape :
 > annuler / rétablir, réouverture identique dans draw.io (`make drawio-check` sur une fixture dédiée).
 
-### Étape 24 — Extrémités : d'où part et où arrive la flèche 🟡
+### Étape 24 — Extrémités : d'où part et où arrive la flèche ✅
 - Flèche sélectionnée : une **poignée à chaque bout** du tracé.
 - Tirer une poignée (comme draw.io) :
   - **sur l'intérieur d'une forme** (contour surligné) : attache **auto**, le moteur choisit le côté ; `source` /
@@ -279,12 +279,17 @@ clic, accroche des flèches), comparaison visuelle avec l'export draw.io.
   draw.io affiche la même flèche.
 - Fait : `edit/edgeEnds.ts` (points de connexion, attaches, aperçu sur le modèle), `setEdgeTerminal` dans
   `format/edit.ts`, poignées des bouts et repères d'accroche (`render/handles.ts`), glisser `edgeEnd` et connecteur à
-  entrée fixe dans `Engine` ; testé à la main en 2D et en iso. Reste : validation dans draw.io (fixture dédiée,
-  `make drawio-check`).
+  entrée fixe dans `Engine` ; testé à la main en 2D et en iso.
+- Validé avec draw.io 24.7.5 : fixture `edge-ends.drawio` écrite par le moteur (`writeEndAttachment`), un cas par
+  attache (auto, fixe, ellipse, libre au départ / à l'arrivée / des deux côtés, flèche dans un groupe) ;
+  `make drawio-check` la fait réenregistrer (bouts conservés) et **exporter en SVG** : chaque bout tombe au pixel près
+  sur celui de draw.io (`DRAWIO_SVG` du Makefile, test `edgeEndsFixture`).
 
 ### Étape 25 — Découpage en morceaux
 - Préalable : interprétation des points des flèches orthogonales **alignée sur draw.io** (un point fixe la position
-  d'un segment, il ne force pas un passage exact), sinon un segment déplacé ici serait ailleurs dans draw.io.
+  d'un segment, il ne force pas un passage exact), sinon un segment déplacé ici serait ailleurs dans draw.io. Le
+  routeur orthogonal lui-même diffère encore au milieu du tracé : `e8` de `edge-ends.drawio` (sortie à droite, entrée
+  par le bas) tourne à x = 180 / y = 340 chez nous, 240 / 330 dans draw.io (`KNOWN_ROUTE_DIFFERENCES`, à vider).
 - **Orthogonale** : une poignée au milieu de chaque segment, glissée perpendiculairement ; le segment devient un point
   de passage, le reste reste automatique.
 - **Droite / courbe** : points de passage déplaçables et poignées « fantômes » au milieu de chaque morceau (tirer =

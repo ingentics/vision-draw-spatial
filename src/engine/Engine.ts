@@ -27,7 +27,6 @@ import {
   setCellObjectAttribute,
   setCellRichLabel,
   setCellStyleValue,
-  setEdgeTerminal,
 } from './format/edit';
 import {
   addEdgeCell,
@@ -55,6 +54,7 @@ import {
   restoreEnds,
   sameAttachment,
   snapshotEnds,
+  writeEndAttachment,
 } from './edit/edgeEnds';
 import type { EdgeEndsSnapshot, EndAttachment, TerminalEnd } from './edit/edgeEnds';
 import { collectMoveSet, isLocked, moveTarget, snapDelta, translateMoveSet, unionMoveSets } from './edit/move';
@@ -2219,7 +2219,7 @@ export class Engine {
         return;
       }
       this.recordEdit('Extrémité de flèche');
-      this.writeEdgeEnd(page, pageTree, edge, drag.end, after);
+      writeEndAttachment(pageTree, page, edge, drag.end, after);
       this.documentChanged([drag.pageId]);
       return;
     }
@@ -2266,28 +2266,6 @@ export class Engine {
     this.graph = undefined;
     this.minimap?.invalidate();
     this.syncModified();
-  }
-
-  /** Écrit l'attache d'un bout de flèche dans l'arbre XML (cellule, point libre, clés `exit…` / `entry…`). */
-  private writeEdgeEnd(
-    page: PageModel,
-    pageTree: PageTree,
-    edge: EdgeModel,
-    end: TerminalEnd,
-    attachment: EndAttachment,
-  ): void {
-    if (attachment.kind === 'free') {
-      // Point libre exprimé dans le repère du parent de la flèche (groupe, conteneur), comme draw.io.
-      const origin = page.shapes.find((s) => s.id === edge.parentId)?.bounds ?? { x: 0, y: 0 };
-      setEdgeTerminal(pageTree, edge.id, end, {
-        point: { x: attachment.point.x - origin.x, y: attachment.point.y - origin.y },
-      });
-    } else {
-      setEdgeTerminal(pageTree, edge.id, end, { cellId: attachment.shapeId });
-    }
-    const constraint = attachment.kind === 'fixed' ? attachment.constraint : undefined;
-    for (const [key, value] of Object.entries(constraintStyle(end, constraint)))
-      setCellStyleValue(pageTree, edge.id, key, value);
   }
 
   private translateObjects(set: MoveSet, step: Point): void {
