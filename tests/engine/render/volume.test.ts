@@ -88,24 +88,39 @@ describe('volumes iso', () => {
     }
   });
 
-  it('arêtes à l’extérieur de la forme, collées aux faces, convergeant au même point à chaque angle', () => {
+  it('contour du dessus centré sur le bord (formes accolées : une seule ligne), arêtes du bas et verticales à l’extérieur', () => {
     const b = element(isoScene().root, B);
-    // B : emprise x 440–560, y 200–280, bordure de 1 px : les arêtes passent à une demi-épaisseur de
-    // l'angle (sur la bissectrice), donc à moins d'une demi-épaisseur des faces : elles les touchent.
+    // B : emprise x 440–560, y 200–280, bordure de 1 px. Le dessus suit le bord, comme en 2D : une
+    // forme accolée trace sa bordure au même endroit au lieu d'une seconde bande à côté.
     const top = segments(b.getObjectByName('stroke')!);
     const xs = top.flatMap(([x0, , , x1]) => [x0!, x1!]);
-    expect(Math.min(...xs)).toBeLessThan(440);
-    expect(Math.min(...xs)).toBeGreaterThan(439.5);
-    expect(Math.max(...xs)).toBeGreaterThan(560);
-    expect(Math.max(...xs)).toBeLessThan(560.5);
-    // Chaque arête verticale part d'un sommet du contour du bas et arrive sur un sommet du dessus.
+    expect(Math.min(...xs)).toBe(440);
+    expect(Math.max(...xs)).toBe(560);
+    // Le bas et les verticales passent à une demi-épaisseur de l'angle (sur la bissectrice) : ils
+    // touchent les faces sans être mangés par elles ; chaque verticale part d'un sommet du bas.
+    const bottom = segments(b.getObjectByName('stroke-bottom')!);
+    const bx = bottom.flatMap(([x0, , , x1]) => [x0!, x1!]);
+    expect(Math.min(...bx)).toBeLessThan(440);
+    expect(Math.min(...bx)).toBeGreaterThan(439.5);
     const key = (x: number, y: number) => `${x.toFixed(4)},${y.toFixed(4)}`;
-    const topCorners = new Set(top.map(([x, y]) => key(x!, y!)));
-    const bottomCorners = new Set(segments(b.getObjectByName('stroke-bottom')!).map(([x, y]) => key(x!, y!)));
+    const bottomCorners = new Set(bottom.map(([x, y]) => key(x!, y!)));
     for (const [x0, y0, , x1, y1] of segments(b.getObjectByName('stroke-vertical')!)) {
       expect(bottomCorners.has(key(x0!, y0!))).toBe(true);
-      expect(topCorners.has(key(x1!, y1!))).toBe(true);
+      // Le haut de la verticale reste dans l'épaisseur du contour du dessus (à moins d'une épaisseur de l'angle).
+      const corner = top.find(([x, y]) => Math.hypot(x! - x1!, y! - y1!) < 1);
+      expect(corner).toBeDefined();
     }
+  });
+
+  it('formes accolées : la ligne commune est celle de la forme dessinée en dernier (biais de profondeur)', () => {
+    const root = isoScene().root;
+    const offset = (id: string) => {
+      const material = (element(root, id).getObjectByName('stroke') as Mesh).material as MeshBasicMaterial;
+      expect(material.polygonOffset).toBe(true);
+      return material.polygonOffsetUnits;
+    };
+    // A est dessinée avant B : B passe devant à profondeur égale.
+    expect(offset(B)).toBeLessThan(offset(A));
   });
 
   it('arêtes pointillées comme la bordure 2D (A est en pointillés)', () => {

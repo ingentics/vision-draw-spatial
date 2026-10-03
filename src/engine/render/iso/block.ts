@@ -17,8 +17,10 @@ import { edgeLines } from '../lines';
  * - Côtés : la couleur de fond, assombrie selon l'orientation de chaque face (lumière fixe dans
  *   la page) : relief lisible sans éclairage 3D, cohérent avec le style à plat.
  * - Arêtes : toutes celles du volume (contour du dessus, contour du bas, arêtes verticales aux
- *   angles vifs) avec la couleur, l'épaisseur et le style (pointillés) de la bordure 2D, tracées
- *   **à l'extérieur** de la forme : visibles sur toute leur épaisseur.
+ *   angles vifs) avec la couleur, l'épaisseur et le style (pointillés) de la bordure 2D. Le contour
+ *   du dessus est **centré** sur le bord, comme en 2D : deux formes accolées partagent la même ligne
+ *   (la dernière dessinée l'emporte, comme dans draw.io) au lieu de déborder l'une sur l'autre. Le
+ *   contour du bas et les arêtes verticales sont tracés **à l'extérieur** : pas mangés par les faces.
  * Une forme sans fond reste à plat (pas de volume « fantôme »).
  */
 
@@ -87,9 +89,10 @@ export function isoBlock(
  * Arêtes du volume : contours du dessus et du bas, arêtes verticales aux angles vifs, avec la couleur,
  * l'épaisseur et les pointillés de la bordure 2D. Ce sont des lignes d'épaisseur constante à l'écran
  * quelle que soit leur orientation (`render/lines`) : une arête couchée et une arête debout ont la même
- * épaisseur apparente. Toutes passent par les mêmes points d'angle, une demi-épaisseur à l'extérieur
- * du contour (sur la bissectrice) : elles se superposent exactement aux angles, touchent les faces et
- * ne sont pas mangées par elles. Celles qui sont derrière le bloc restent cachées.
+ * épaisseur apparente. Le contour du dessus suit le bord de la forme (centré, comme la bordure 2D) ;
+ * le contour du bas et les arêtes verticales passent une demi-épaisseur à l'extérieur des angles (sur
+ * la bissectrice) : ils touchent les faces sans être mangés par elles, et l'arête verticale finit dans
+ * l'épaisseur du contour du dessus. Celles qui sont derrière le bloc restent cachées.
  */
 function volumeEdges(shape: ShapeModel, outline: Point[], top: number, defaults: BoxDefaults): Object3D[] {
   const { style } = shape;
@@ -107,18 +110,18 @@ function volumeEdges(shape: ShapeModel, outline: Point[], top: number, defaults:
     const length = Math.hypot(out.x, out.y) || 1;
     return { x: corner.x + (out.x / length) * (width / 2), y: corner.y + (out.y / length) * (width / 2) };
   });
-  const loop = (z: number) =>
-    points.flatMap((p, i) => {
-      const q = points[(i + 1) % n]!;
+  const loop = (corners: Point[], z: number) =>
+    corners.flatMap((p, i) => {
+      const q = corners[(i + 1) % n]!;
       return [p.x, p.y, z, q.x, q.y, z];
     });
 
   const edges: Object3D[] = [];
-  for (const [name, z] of [
-    ['stroke', top],
-    ['stroke-bottom', TOP_OFFSET],
+  for (const [name, corners, z] of [
+    ['stroke', path, top],
+    ['stroke-bottom', points, TOP_OFFSET],
   ] as const) {
-    const lines = edgeLines(loop(z), lineStyle);
+    const lines = edgeLines(loop(corners, z), lineStyle);
     lines.name = name;
     edges.push(lines);
   }

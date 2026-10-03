@@ -138,8 +138,8 @@ Pour un volume simple (prisme droit du contour), réutilisez `isoBlock(outline, 
 
 - le **dessus** : fond opaque et rendu 2D surélevé (label, détails) ;
 - les **côtés**, ombrés selon leur orientation (paramètres `view.shadeLight` et `view.shadeDark`) ;
-- les **arêtes du volume**, tracées à l'extérieur du contour avec la couleur, l'épaisseur et les pointillés de la
-  bordure 2D. Les arêtes verticales ne sont tracées qu'aux angles vifs (> 30°), pas sur les courbes ;
+- les **arêtes du volume**, avec la couleur, l'épaisseur et les pointillés de la bordure 2D : contour du dessus
+  centré sur le bord (formes accolées : une seule ligne), contour du bas et arêtes verticales à l'extérieur. Les arêtes verticales ne sont tracées qu'aux angles vifs (> 30°), pas sur les courbes ;
 - le **repli à plat** si la forme n'a pas de fond (`fillColor=none`) ou une épaisseur nulle.
 
 Sans rendu `iso`, la forme reste **à plat au sol** en iso et en 3D, sans hauteur. Si elle est dans un conteneur en

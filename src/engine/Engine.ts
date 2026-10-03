@@ -85,7 +85,7 @@ import { connectorPreview, selectionHandles } from './render/handles';
 import { createVeil, createVeilHole, liftAboveVeil } from './render/highlight';
 import { disposeObject } from './render/meshes';
 import { setPageOpacity } from './render/pageEffects';
-import { buildPageScene, createShapeObject, effectiveLevel } from './render/pageScene';
+import { buildPageScene, createShapeObject, effectiveLevel, placeInDrawOrder } from './render/pageScene';
 import type { PageScene } from './render/pageScene';
 import { SceneManager } from './render/sceneManager';
 import { createDefaultRegistry } from './render/shapes/registry';
@@ -1797,10 +1797,7 @@ export class Engine {
     // porte en plus la mise en avant : on la retire d'abord (le voile est remis par `afterLiveEdit`),
     // sinon le nouvel objet la garderait, et chaque pas d'un glisser l'ajouterait encore.
     this.clearVeil();
-    const base = old.renderOrder;
-    object.traverse((child) => {
-      child.renderOrder += base;
-    });
+    placeInDrawOrder(object, old.renderOrder);
     old.removeFromParent();
     disposeObject(old);
     root.add(object);

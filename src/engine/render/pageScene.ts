@@ -1,5 +1,5 @@
 import { Group } from 'three';
-import type { Object3D } from 'three';
+import type { Material, Object3D } from 'three';
 import { isNavigableLink } from '../format/link';
 import type { EdgeModel, PageModel, ShapeModel } from '../model/types';
 import { linkBadge } from './decorations';
@@ -74,10 +74,7 @@ export function buildPageScene(
     }
 
     object.userData.elementId = element.id;
-    const base = rank * PARTS_PER_ELEMENT;
-    object.traverse((child) => {
-      child.renderOrder += base;
-    });
+    placeInDrawOrder(object, rank * PARTS_PER_ELEMENT);
     root.add(object);
   });
 
@@ -87,6 +84,29 @@ export function buildPageScene(
     root,
     dispose: () => disposeObject(root),
   };
+}
+
+/** Biais de profondeur par rang, en unités de profondeur : assez pour départager au loin en perspective. */
+const EDGE_DEPTH_BIAS = 16;
+/** Au-delà de ce rang, le biais n'augmente plus (il reste négligeable devant l'épaisseur des volumes). */
+const EDGE_BIAS_MAX_RANK = 256;
+
+/**
+ * Place l'objet d'un élément à son rang dans l'ordre de dessin (`base` = rang × PARTS_PER_ELEMENT).
+ * Arêtes des volumes : deux formes accolées tracent la même ligne à la même profondeur ; un léger
+ * biais de profondeur selon le rang fait gagner la dernière dessinée (comme dans draw.io) au lieu
+ * d'un mélange des deux couleurs pixel par pixel.
+ */
+export function placeInDrawOrder(object: Object3D, base: number): void {
+  const rank = Math.floor(base / PARTS_PER_ELEMENT);
+  object.traverse((child) => {
+    child.renderOrder += base;
+    const material = (child as { material?: Material & { isLineMaterial?: boolean } }).material;
+    if (material?.isLineMaterial) {
+      material.polygonOffset = true;
+      material.polygonOffsetUnits = -EDGE_DEPTH_BIAS * (Math.min(rank, EDGE_BIAS_MAX_RANK) + 1);
+    }
+  });
 }
 
 /**
