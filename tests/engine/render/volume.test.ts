@@ -44,50 +44,74 @@ describe('volumes iso', () => {
     expect(shades.size).toBeGreaterThan(1);
   });
 
-  it('toutes les arêtes du bloc ont la couleur et le style de la bordure 2D', () => {
+  /** Segments d'une arête (lignes d'épaisseur constante à l'écran) : [[x0, y0, z0, x1, y1, z1], …] en espace page. */
+  const segments = (object: Object3D) => {
+    const start = (object as Mesh).geometry.getAttribute('instanceStart');
+    const end = (object as Mesh).geometry.getAttribute('instanceEnd');
+    return Array.from({ length: start.count }, (_, i) => [
+      start.getX(i),
+      start.getY(i),
+      start.getZ(i),
+      end.getX(i),
+      end.getY(i),
+      end.getZ(i),
+    ]);
+  };
+
+  it('arêtes du bloc : elles écrivent la profondeur (un label dessiné après, derrière le bloc, est masqué)', () => {
     const b = element(isoScene().root, B);
-    const color = (name: string) =>
-      ((b.getObjectByName(name) as Mesh).material as MeshBasicMaterial).color.getHexString();
-    expect(color('stroke')).toBe('b85450'); // contour du dessus (rendu à plat)
-    expect(color('stroke-bottom')).toBe('b85450');
-    const vertical = b.getObjectByName('stroke-vertical')!;
-    const ribbons = vertical.children as Mesh[];
-    expect(ribbons.map((r) => (r.material as MeshBasicMaterial).color.getHexString())).toEqual(Array(4).fill('b85450'));
-    // 4 coins → 4 rubans plats (un quadrilatère chacun), tournés face à l'écran par le moteur.
-    expect(ribbons.map((r) => r.geometry.getAttribute('position').count)).toEqual([6, 6, 6, 6]);
-    expect(ribbons.every((r) => r.userData.billboard === true)).toBe(true);
-    const box = new Box3().setFromObject(vertical);
-    expect(box.min.y).toBeCloseTo(0);
-    expect(box.max.y).toBeCloseTo(20, 1); // jusqu'au contour du dessus (posé 0,05 px au-dessus)
+    for (const name of ['stroke', 'stroke-bottom', 'stroke-vertical']) {
+      expect(((b.getObjectByName(name) as Mesh).material as MeshBasicMaterial).depthWrite, name).toBe(true);
+    }
   });
 
-  it('arêtes tracées à l’extérieur de la forme, sur toute leur épaisseur', () => {
+  it('toutes les arêtes du bloc ont la couleur et le style de la bordure 2D, épaisseur comprise', () => {
     const b = element(isoScene().root, B);
-    // B : emprise x 440–560, bordure de 1 px → arêtes entre 439 et 440 (et 560–561).
     for (const name of ['stroke', 'stroke-bottom', 'stroke-vertical']) {
-      const box = new Box3().setFromObject(b.getObjectByName(name)!);
-      expect(box.min.x).toBeCloseTo(439);
-      expect(box.max.x).toBeCloseTo(561);
+      const material = (b.getObjectByName(name) as Mesh).material as MeshBasicMaterial & {
+        linewidth: number;
+        worldUnits: boolean;
+      };
+      expect(material.color.getHexString(), name).toBe('b85450');
+      // Même épaisseur (celle de la bordure) pour toutes, mesurée face à la caméra quelle que soit
+      // l'orientation de l'arête : couchée ou debout, elle paraît aussi épaisse.
+      expect(material.linewidth, name).toBe(1);
+      expect(material.worldUnits, name).toBe(true);
+    }
+    // 4 angles vifs → 4 arêtes verticales, du sol au contour du dessus.
+    const vertical = segments(b.getObjectByName('stroke-vertical')!);
+    expect(vertical).toHaveLength(4);
+    for (const [, , z0, , , z1] of vertical) {
+      // Du contour du bas (posé 0,05 px au-dessus du sol) au contour du dessus.
+      expect(z0).toBeCloseTo(0.05, 3);
+      expect(z1).toBeCloseTo(20.05, 3);
+    }
+  });
+
+  it('arêtes à l’extérieur de la forme, collées aux faces, convergeant au même point à chaque angle', () => {
+    const b = element(isoScene().root, B);
+    // B : emprise x 440–560, y 200–280, bordure de 1 px : les arêtes passent à une demi-épaisseur de
+    // l'angle (sur la bissectrice), donc à moins d'une demi-épaisseur des faces : elles les touchent.
+    const top = segments(b.getObjectByName('stroke')!);
+    const xs = top.flatMap(([x0, , , x1]) => [x0!, x1!]);
+    expect(Math.min(...xs)).toBeLessThan(440);
+    expect(Math.min(...xs)).toBeGreaterThan(439.5);
+    expect(Math.max(...xs)).toBeGreaterThan(560);
+    expect(Math.max(...xs)).toBeLessThan(560.5);
+    // Chaque arête verticale part d'un sommet du contour du bas et arrive sur un sommet du dessus.
+    const key = (x: number, y: number) => `${x.toFixed(4)},${y.toFixed(4)}`;
+    const topCorners = new Set(top.map(([x, y]) => key(x!, y!)));
+    const bottomCorners = new Set(segments(b.getObjectByName('stroke-bottom')!).map(([x, y]) => key(x!, y!)));
+    for (const [x0, y0, , x1, y1] of segments(b.getObjectByName('stroke-vertical')!)) {
+      expect(bottomCorners.has(key(x0!, y0!))).toBe(true);
+      expect(topCorners.has(key(x1!, y1!))).toBe(true);
     }
   });
 
   it('arêtes pointillées comme la bordure 2D (A est en pointillés)', () => {
     const a = element(isoScene().root, A);
-    const ribbon = a.getObjectByName('stroke-vertical')!.children[0] as Mesh;
-    // Plusieurs tirets par arête verticale au lieu d'un seul ruban plein.
-    expect(ribbon.geometry.getAttribute('position').count).toBeGreaterThan(6);
-  });
-
-  it('ruban vertical : largeur exacte face à l’écran, quelle que soit la rotation de la vue', () => {
-    const b = element(isoScene().root, B);
-    const ribbon = b.getObjectByName('stroke-vertical')!.children[0] as Mesh;
-    for (const rotation of [0, 0.7, -Math.PI / 4]) {
-      ribbon.rotation.z = rotation; // ce que fait le moteur
-      ribbon.updateMatrixWorld(true);
-      const box = new Box3().setFromObject(ribbon);
-      // Largeur horizontale du ruban = épaisseur du trait (1 px), mesurée dans son orientation.
-      const extent = Math.hypot(box.max.x - box.min.x, box.max.z - box.min.z);
-      expect(extent).toBeCloseTo(1, 5);
+    for (const name of ['stroke', 'stroke-vertical']) {
+      expect(((a.getObjectByName(name) as Mesh).material as MeshBasicMaterial & { dashed: boolean }).dashed).toBe(true);
     }
   });
 

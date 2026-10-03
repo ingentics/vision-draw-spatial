@@ -1,4 +1,5 @@
 import { ISOMETRIC_ELEVATION_DEG } from './interaction/camera';
+import { DEFAULT_DEPTH } from './spatial';
 import { DEFAULT_CONTROLS } from './interaction/controls';
 import type { ControlSettings, Shortcuts } from './interaction/controls';
 import { MULTI_SELECT_KEYS } from './interaction/selection';
@@ -191,7 +192,7 @@ export const DEFAULT_SETTINGS: Settings = {
     isoAzimuthDeg: -45,
     switchDurationMs: 450,
     isoVolume: true,
-    isoDepth: 16,
+    isoDepth: DEFAULT_DEPTH,
     shadeLight: 0.9,
     shadeDark: 0.62,
     facadeTags: true,

@@ -3,13 +3,13 @@ import type { Object3D } from 'three';
 import type { Point, ShapeModel } from '../../model/types';
 import { createBox, VERTEX_DEFAULTS } from '../flat/box';
 import type { BoxDefaults } from '../flat/box';
-import { cleanOutline, dashPolyline, dashPattern, offsetOutline } from '../geometry/stroke';
-import { fillMesh, flatMaterial, solidMaterial, strokeMesh } from '../meshes';
+import { cleanOutline, dashPattern, offsetOutline } from '../geometry/stroke';
+import { fillMesh, solidMaterial } from '../meshes';
 import type { SceneRenderer } from '../shapes/types';
 import { styleColor, styleNumber, styleOpacity } from '../styleValues';
-import { PART_ORDER } from '../types';
 import type { RenderContext } from '../types';
-import { SPATIAL, spatialNumber } from '../../spatial';
+import { DEFAULT_DEPTH, SPATIAL, spatialNumber } from '../../spatial';
+import { edgeLines } from '../lines';
 
 /**
  * Rendu iso en volume (niveau `iso`) : la forme devient un bloc posé au sol.
@@ -23,7 +23,7 @@ import { SPATIAL, spatialNumber } from '../../spatial';
  */
 
 /** Épaisseur par défaut d'un bloc, en pixels de page. */
-export const DEFAULT_DEPTH = 16;
+export { DEFAULT_DEPTH };
 /** Léger décalage pour que bordure et label du dessus ne se battent pas avec le fond (z-fighting). */
 export const TOP_OFFSET = 0.05;
 /** Angle minimal (degrés) entre deux côtés pour tracer une arête verticale (pas sur les courbes). */
@@ -85,36 +85,45 @@ export function isoBlock(
 
 /**
  * Arêtes du volume : contours du dessus et du bas, arêtes verticales aux angles vifs, avec la couleur,
- * l'épaisseur et les pointillés de la bordure 2D. Elles sont tracées **à l'extérieur** de la forme
- * (contours décalés d'une demi-épaisseur, arêtes verticales au coin extérieur) : rien n'est caché par les
- * faces du bloc, toutes ont la même épaisseur à l'écran. Celles qui sont derrière le bloc restent cachées.
+ * l'épaisseur et les pointillés de la bordure 2D. Ce sont des lignes d'épaisseur constante à l'écran
+ * quelle que soit leur orientation (`render/lines`) : une arête couchée et une arête debout ont la même
+ * épaisseur apparente. Toutes passent par les mêmes points d'angle, une demi-épaisseur à l'extérieur
+ * du contour (sur la bissectrice) : elles se superposent exactement aux angles, touchent les faces et
+ * ne sont pas mangées par elles. Celles qui sont derrière le bloc restent cachées.
  */
 function volumeEdges(shape: ShapeModel, outline: Point[], top: number, defaults: BoxDefaults): Object3D[] {
   const { style } = shape;
   const color = styleColor(style, 'strokeColor', defaults.stroke);
   const width = styleNumber(style, 'strokeWidth', 1);
   if (!color || width <= 0) return [];
-  const opacity = styleOpacity(style, 'strokeOpacity');
-  const dash = dashPattern(style, width);
+  const lineStyle = { color, opacity: styleOpacity(style, 'strokeOpacity'), width, dash: dashPattern(style, width) };
   // Même indexation pour le contour et son décalé (points répétés retirés une seule fois).
   const path = cleanOutline(outline);
   const outside = offsetOutline(path, width / 2);
-  const edges: Object3D[] = [];
+  const n = path.length;
+  // Points d'angle des arêtes : à une demi-épaisseur de l'angle, vers l'extérieur.
+  const points = path.map((corner, i) => {
+    const out = { x: outside[i]!.x - corner.x, y: outside[i]!.y - corner.y };
+    const length = Math.hypot(out.x, out.y) || 1;
+    return { x: corner.x + (out.x / length) * (width / 2), y: corner.y + (out.y / length) * (width / 2) };
+  });
+  const loop = (z: number) =>
+    points.flatMap((p, i) => {
+      const q = points[(i + 1) % n]!;
+      return [p.x, p.y, z, q.x, q.y, z];
+    });
 
+  const edges: Object3D[] = [];
   for (const [name, z] of [
     ['stroke', top],
     ['stroke-bottom', TOP_OFFSET],
   ] as const) {
-    const mesh = strokeMesh(outside, color, opacity, { width, closed: true, dash });
-    if (!mesh) continue;
-    mesh.name = name;
-    mesh.position.z = z;
-    edges.push(mesh);
+    const lines = edgeLines(loop(z), lineStyle);
+    lines.name = name;
+    edges.push(lines);
   }
 
-  const vertical = new Group();
-  vertical.name = 'stroke-vertical';
-  const n = path.length;
+  const vertical: number[] = [];
   for (let i = 0; i < n; i++) {
     const previous = path[(i - 1 + n) % n]!;
     const corner = path[i]!;
@@ -123,46 +132,15 @@ function volumeEdges(shape: ShapeModel, outline: Point[], top: number, defaults:
     const outgoing = normalize({ x: next.x - corner.x, y: next.y - corner.y });
     const turn = Math.acos(Math.max(-1, Math.min(1, incoming.x * outgoing.x + incoming.y * outgoing.y)));
     if ((turn * 180) / Math.PI < SHARP_CORNER_DEG) continue;
-    // Tirets le long de la hauteur, comme sur les côtés du contour.
-    const pieces = dash
-      ? dashPolyline(
-          [
-            { x: 0, y: 0 },
-            { x: top, y: 0 },
-          ],
-          dash,
-          false,
-        ).map((d) => [d[0]!.x, d[d.length - 1]!.x])
-      : [[0, top]];
-    const ribbon = verticalRibbon(pieces as Array<[number, number]>, width, color, opacity);
-    // Au coin extérieur, là où se rejoignent les contours du dessus et du bas décalés.
-    ribbon.position.set(outside[i]!.x, outside[i]!.y, 0);
-    vertical.add(ribbon);
+    const p = points[i]!;
+    vertical.push(p.x, p.y, TOP_OFFSET, p.x, p.y, top);
   }
-  if (vertical.children.length > 0) edges.push(vertical);
-  for (const edge of edges) {
-    edge.traverse((object) => {
-      object.renderOrder = PART_ORDER.stroke;
-    });
+  if (vertical.length > 0) {
+    const lines = edgeLines(vertical, lineStyle);
+    lines.name = 'stroke-vertical';
+    edges.push(lines);
   }
   return edges;
-}
-
-/**
- * Arête verticale : ruban plat d'épaisseur `width`, tourné face à l'écran (le moteur l'oriente selon
- * la rotation de la vue, `userData.billboard`) ; extrémités horizontales, nettes.
- */
-function verticalRibbon(pieces: Array<[number, number]>, width: number, color: Color, opacity: number): Mesh {
-  const half = width / 2;
-  const positions: number[] = [];
-  for (const [z0, z1] of pieces) {
-    positions.push(-half, 0, z0, half, 0, z0, half, 0, z1, -half, 0, z0, half, 0, z1, -half, 0, z1);
-  }
-  const geometry = new BufferGeometry();
-  geometry.setAttribute('position', new Float32BufferAttribute(positions, 3));
-  const mesh = new Mesh(geometry, flatMaterial(color, opacity));
-  mesh.userData.billboard = true;
-  return mesh;
 }
 
 /** Faces latérales d'un prisme droit de contour `path` et de hauteur `height`, ombrées. */

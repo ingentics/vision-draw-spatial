@@ -152,7 +152,7 @@ Pour un rendu iso sur mesure :
   vous-même.
 - **Hauteur.** Lisez-la avec `blockHeight(shape, ctx)`, pour respecter `spatial.height` et le réglage d'épaisseur.
   Écrivez la hauteur réelle dans `group.userData.height`. Si la forme a une hauteur par défaut qui lui est propre
-  (ex. bâtiments : le double de l'épaisseur, `buildingHeight`), déclarez-la dans `volumeHeight` **et** utilisez-la dans le
+  (ex. une forme qui serait aussi haute que large), déclarez-la dans `volumeHeight` **et** utilisez-la dans le
   rendu : l'empilement, la pastille de lien et la sélection passent par `registry.volumeHeight`, pas par le rendu.
   `blockHeight(shape, ctx, défaut)` garde `spatial.height` prioritaire.
 - **Z-fighting.** Décalez légèrement ce qui est posé sur une face (`TOP_OFFSET = 0.05` dans `block.ts`).
@@ -194,7 +194,7 @@ draw.io codés dans le moteur.**
 | Opacités | `opacity` × `fillOpacity` / `strokeOpacity` / `textOpacity` | — | — | 100 % |
 | Texte | `fontColor`, `fontSize`, `fontStyle`, `align`, `verticalAlign`, `spacing*`, `whiteSpace` | — | — | noir, 11, centré |
 | Fond du label | `labelBackgroundColor` (`default` = fond de la vue) | — | `background.color` | aucun |
-| Épaisseur (iso) | `spatial.height` | `spatial.height` (`<UserObject>`) | `view.isoDepth` | 16 |
+| Épaisseur (iso) | `spatial.height` | `spatial.height` (`<UserObject>`) | `view.isoDepth` (toutes les formes) | 32 |
 | Élévation | `spatial.elevation` | `spatial.elevation` | — | 0 |
 | Ombrage des côtés | — | — | `view.shadeLight`, `view.shadeDark` | 0,9 / 0,62 |
 | Pastille de lien | — | — | `selection.accentColor` | `#1a73e8` |

@@ -8,6 +8,11 @@
 
 export const SPATIAL_PREFIX = 'spatial.';
 
+/** Épaisseur par défaut des volumes (iso / 3D), commune à toutes les formes, en pixels de page. */
+export const DEFAULT_DEPTH = 32;
+/** Ancienne épaisseur par défaut (avant que toutes les formes partagent 32) : migrée vers `DEFAULT_DEPTH`. */
+export const LEGACY_DEFAULT_DEPTH = 16;
+
 /** Attributs connus du moteur. */
 export const SPATIAL = {
   /** Épaisseur du volume en iso, en pixels de page (défaut : réglage « Épaisseur »). */

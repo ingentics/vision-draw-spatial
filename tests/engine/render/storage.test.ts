@@ -20,7 +20,7 @@ function build(level: 'flat' | 'iso') {
         return new Object3D();
       },
     },
-    volume: { depth: 20 },
+    volume: { depth: 40 },
   };
   const scene = buildPageScene(page, registry, ctx, level);
   scene.root.updateMatrixWorld(true);
@@ -125,10 +125,12 @@ describe('formes de stockage : BDD, queue, cache distribué', () => {
   });
 
   describe('iso / 3D : bâtiments (toit plat rectangulaire avec le label, façade du type)', () => {
-    const ctx: RenderContext = { text: { create: () => new Object3D() }, volume: { depth: 20 } };
+    const ctx: RenderContext = { text: { create: () => new Object3D() }, volume: { depth: 40 } };
     const shape = (id: string) => page.shapes.find((s) => s.id === id)!;
 
-    it('hauteur : le double de l’épaisseur des blocs, spatial.height prioritaire', () => {
+    it('hauteur : la même épaisseur par défaut que toutes les formes, spatial.height prioritaire', () => {
+      const rectangle = { ...shape('db'), kind: 'rectangle', style: {} };
+      expect(registry.volumeHeight(rectangle, ctx)).toBe(40);
       for (const id of ['db', 'queue', 'cache', 'flow']) expect(registry.volumeHeight(shape(id), ctx), id).toBe(40);
       const low = { ...shape('queue'), style: { ...shape('queue').style, 'spatial.height': '12' } };
       expect(registry.volumeHeight(low, ctx)).toBe(12);

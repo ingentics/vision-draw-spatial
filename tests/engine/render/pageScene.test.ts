@@ -121,9 +121,12 @@ describe('buildPageScene — formes', () => {
     const color = (name: string) => ((block.getObjectByName(name) as Mesh).material as MeshBasicMaterial).color;
     expect(color('top').getHexString()).toBe('eeeeee');
     expect(color('stroke').getHexString()).toBe('9e9e9e');
-    // Pointillés : arêtes verticales découpées en plusieurs tirets.
-    const ribbon = block.getObjectByName('stroke-vertical')!.children[0] as Mesh;
-    expect(ribbon.geometry.getAttribute('position').count).toBeGreaterThan(6);
+    // Pointillés : les arêtes du volume (dessus, bas, verticales) sont en tirets.
+    for (const name of ['stroke', 'stroke-bottom', 'stroke-vertical']) {
+      expect(((block.getObjectByName(name) as Mesh).material as MeshBasicMaterial & { dashed: boolean }).dashed).toBe(
+        true,
+      );
+    }
   });
 
   it('texte seul : ni fond ni bordure', () => {

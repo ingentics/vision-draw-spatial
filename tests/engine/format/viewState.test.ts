@@ -26,8 +26,15 @@ const ISO_VIEW: PageViewState = {
 describe('formatViewState / parseViewState', () => {
   it('format « clé=valeur; », angles en degrés', () => {
     expect(formatViewState(ISO_VIEW)).toBe(
-      'mode=iso;x=120.5;y=-80;zoom=1.25;rotation=-45;tilt=54.74;elevation=35.26;azimuth=-45;volume=1;depth=24;',
+      'mode=iso;x=120.5;y=-80;zoom=1.25;rotation=-45;tilt=54.74;elevation=35.26;azimuth=-45;volume=1;depth=24;v=2;',
     );
+  });
+
+  it('migration : l’ancienne épaisseur par défaut (16, sans version) devient 32 ; une valeur choisie reste', () => {
+    const old = 'mode=iso;x=0;y=0;zoom=1;rotation=-45;tilt=54.74;elevation=35.26;azimuth=-45;volume=1;';
+    expect(parseViewState(`${old}depth=16;`)!.iso!.isoDepth).toBe(32);
+    expect(parseViewState(`${old}depth=24;`)!.iso!.isoDepth).toBe(24);
+    expect(parseViewState(`${old}depth=16;v=2;`)!.iso!.isoDepth).toBe(16);
   });
 
   it('aller-retour (à l’arrondi près)', () => {

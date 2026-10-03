@@ -2,7 +2,7 @@ import type { Point, Rect, ShapeModel } from '../../model/types';
 import { createBox, createLabel, VERTEX_DEFAULTS } from '../flat/box';
 import { cubicTo, halfEllipseTo } from '../geometry/curves';
 import { dashPattern } from '../geometry/stroke';
-import { buildingHeight, isoCache, isoDatabase, isoQueue } from '../iso/buildings';
+import { isoCache, isoDatabase, isoQueue } from '../iso/buildings';
 import { strokeMesh } from '../meshes';
 import { styleColor, styleNumber, styleOpacity } from '../styleValues';
 import { PART_ORDER } from '../types';
@@ -214,7 +214,6 @@ export const cylinderShape: ShapeDefinition = {
   outline: cylinder3Outline,
   flat: cylinder3Flat,
   iso: { create: (shape, ctx) => (isLying(shape) ? queue : database).create(shape, ctx) },
-  volumeHeight: buildingHeight,
 };
 
 const datastoreFlat = cylinderFlat(datastoreDrawing);
@@ -225,7 +224,6 @@ export const datastoreShape: ShapeDefinition = {
   outline: (shape) => datastoreDrawing(shape).silhouette,
   flat: datastoreFlat,
   iso: isoCache(datastoreFlat),
-  volumeHeight: buildingHeight,
 };
 
 const directDataFlat = cylinderFlat(directDataDrawing);
@@ -236,5 +234,4 @@ export const directDataShape: ShapeDefinition = {
   outline: (shape) => directDataDrawing(shape).silhouette,
   flat: directDataFlat,
   iso: isoQueue(directDataFlat, () => false),
-  volumeHeight: buildingHeight,
 };

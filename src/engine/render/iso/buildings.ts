@@ -10,7 +10,7 @@ import type { SceneRenderer } from '../shapes/types';
 import { styleColor, styleNumber, styleOpacity } from '../styleValues';
 import { PART_ORDER } from '../types';
 import type { RenderContext } from '../types';
-import { blockHeight, DEFAULT_DEPTH, isoBlock, TOP_OFFSET } from './block';
+import { blockHeight, isoBlock, TOP_OFFSET } from './block';
 
 /**
  * « Bâtiments » (niveau `iso`) : les composants d'architecture ont tous la même grammaire, comme les
@@ -22,10 +22,8 @@ import { blockHeight, DEFAULT_DEPTH, isoBlock, TOP_OFFSET } from './block';
  * Le rendu 2D reste celui de draw.io. Sans fond ou sans épaisseur : le rendu `flat`.
  */
 
-/** Hauteur par défaut des bâtiments : le double de l'épaisseur des blocs (façade lisible), `spatial.height` prioritaire. */
-export function buildingHeight(shape: ShapeModel, ctx: RenderContext): number {
-  return blockHeight(shape, ctx, 2 * (ctx.volume?.depth ?? DEFAULT_DEPTH));
-}
+/** Hauteur des bâtiments : la même que toutes les formes (`spatial.height`, sinon l'épaisseur par défaut). */
+export const buildingHeight = blockHeight;
 
 /** Rendu iso d'un bâtiment : façade du type, repli à plat sans fond ou sans épaisseur. */
 function building(

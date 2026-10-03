@@ -34,6 +34,7 @@ import { collectMoveSet, isLocked, moveTarget, snapDelta, translateMoveSet, unio
 import type { MoveSet } from './edit/move';
 import { endAt, endLabelOf, endLabelPosition } from './edit/edgeLabels';
 import { labelPoint, positionAlong } from './render/edges/polyline';
+import { setLineResolution } from './render/lines';
 import type { EdgeEnd } from './edit/edgeLabels';
 import { handlePoints, resizeBounds } from './edit/handles';
 import type { HandleKind, ResizeHandle } from './edit/handles';
@@ -825,27 +826,11 @@ export class Engine {
   }
 
   /**
-   * Éléments tournés face à l'écran (`userData.billboard`, ex. arêtes verticales des volumes) :
-   * rotation autour de la verticale égale à celle de la vue.
-   */
-  private orientBillboards(): void {
-    const scene = this.scenes.current;
-    if (!scene || scene.level !== 'iso') return;
-    const rotation = this.cameraState.rotation;
-    if (scene.root.userData.billboardRotation === rotation) return;
-    scene.root.userData.billboardRotation = rotation;
-    scene.root.traverse((object) => {
-      if (object.userData.billboard) object.rotation.z = rotation;
-    });
-  }
-
-  /**
    * Volumes iso : la hauteur des blocs suit l'inclinaison (ils « poussent » pendant la bascule
    * 2D → iso, et s'aplatissent si l'on remonte vers la vue de dessus), ou la perspective : pleine
    * hauteur en 3D, même vue d'aplomb.
    */
   private applyHeightScale(): void {
-    this.orientBillboards();
     const scene = this.scenes.current;
     if (!scene || scene.level !== 'iso' || this.transition) return;
     const tilted = this.cameraState.tilt / Math.max(this.isoTilt(), 1e-6);
@@ -2280,6 +2265,7 @@ export class Engine {
     if (width === this.viewport.width && height === this.viewport.height) return;
     this.viewport = { width, height };
     this.renderer.setSize(width, height, false);
+    setLineResolution(width, height);
     if (this.pendingFit && this.isMeasured()) {
       this.setCameraState(fitBounds(this.pendingFit, this.viewport, this.orientation()));
       return;
