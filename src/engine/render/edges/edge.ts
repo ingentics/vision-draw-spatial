@@ -2,7 +2,7 @@ import { Color, Group } from 'three';
 import type { Object3D } from 'three';
 import type { EdgeLabelPlacement, EdgeModel, Point, RichLine, ShapeModel } from '../../model/types';
 import { buildMarker } from '../edges/markers';
-import { labelPoint, roundCorners, shorten, unit } from '../edges/polyline';
+import { curveThrough, labelPoint, roundCorners, shorten, unit } from '../edges/polyline';
 import { routeEdge } from '../edges/route';
 import type { Terminal } from '../edges/route';
 import { dashPattern } from '../geometry/stroke';
@@ -48,9 +48,16 @@ export function createEdge(edge: EdgeModel, terminals: EdgeTerminals, ctx: Rende
     waypoints: edge.points,
     style,
   });
-  // Tracé conservé pour la sélection au clic (interaction/pick).
+  // Tracé conservé pour placer les textes ; trait dessiné (coudes arrondis, courbe) pour la sélection au
+  // clic (interaction/pick) et le voile de la sélection.
   group.userData.route = route;
   if (route.length < 2) return group;
+  group.userData.path =
+    style.curved === '1'
+      ? curveThrough(route)
+      : style.rounded === '1'
+        ? roundCorners(route, styleNumber(style, 'arcSize', DEFAULT_EDGE_ARC_SIZE) / 2)
+        : route;
 
   const stroke = styleColor(style, 'strokeColor', '#000000');
   const strokeWidth = styleNumber(style, 'strokeWidth', 1);
@@ -78,7 +85,8 @@ export function createEdge(edge: EdgeModel, terminals: EdgeTerminals, ctx: Rende
 
   if (stroke && strokeWidth > 0) {
     let line = shorten(route, start?.inset ?? 0, end?.inset ?? 0);
-    if (style.rounded === '1') line = roundCorners(line, styleNumber(style, 'arcSize', DEFAULT_EDGE_ARC_SIZE) / 2);
+    if (style.curved === '1') line = curveThrough(line);
+    else if (style.rounded === '1') line = roundCorners(line, styleNumber(style, 'arcSize', DEFAULT_EDGE_ARC_SIZE) / 2);
     const mesh = strokeMesh(line, stroke, opacity, {
       width: strokeWidth,
       closed: false,

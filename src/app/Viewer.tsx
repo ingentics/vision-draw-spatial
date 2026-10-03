@@ -517,8 +517,15 @@ export function Viewer({
             onEditLabel={() => selection && engine?.editLabel(selection.picked.element.id)}
             onEndLabel={(end, text) => selection && engine?.setEdgeEndLabel(selection.picked.element.id, end, text)}
             onDelete={() => engine?.deleteSelection()}
+            onEdgeStyle={(patch) =>
+              engine?.setElementsStyle(
+                selected.edges.map((edge) => edge.id),
+                patch,
+                'Tracé',
+              )
+            }
             onShapeStyle={(patch) =>
-              engine?.setShapesStyle(
+              engine?.setElementsStyle(
                 selected.shapes.map((shape) => shape.id),
                 patch,
                 'Bordure',

@@ -60,6 +60,34 @@ export function roundCorners(points: Point[], radius: number, steps = 8): Point[
 }
 
 /**
+ * Tracé courbe (`curved=1`), comme draw.io : courbes quadratiques contrôlées par chaque coude, passant
+ * par le milieu des segments intermédiaires ; deux points : segment droit.
+ */
+export function curveThrough(points: Point[], steps = 12): Point[] {
+  if (points.length < 3) return points;
+  const result: Point[] = [points[0]!];
+  const quad = (from: Point, control: Point, to: Point) => {
+    for (let s = 1; s <= steps; s++) {
+      const t = s / steps;
+      const k0 = (1 - t) * (1 - t);
+      const k1 = 2 * (1 - t) * t;
+      const k2 = t * t;
+      result.push({ x: k0 * from.x + k1 * control.x + k2 * to.x, y: k0 * from.y + k1 * control.y + k2 * to.y });
+    }
+  };
+  let from = points[0]!;
+  for (let i = 1; i < points.length - 2; i++) {
+    const control = points[i]!;
+    const next = points[i + 1]!;
+    const middle = { x: (control.x + next.x) / 2, y: (control.y + next.y) / 2 };
+    quad(from, control, middle);
+    from = middle;
+  }
+  quad(from, points[points.length - 2]!, points[points.length - 1]!);
+  return result;
+}
+
+/**
  * Position d'un label d'arête (comme mxGraphView.getPoint) : `position` de -1 (source) à 1 (cible)
  * le long de la polyligne, `distance` perpendiculaire au segment, puis décalage libre.
  */

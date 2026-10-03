@@ -27,6 +27,8 @@ export interface ContextPanelProps {
   onApplyStyle: (preset: StylePreset) => void;
   /** Clés de style des formes sélectionnées (bordure : couleur, épaisseur, trait, coins). */
   onShapeStyle: (patch: Record<string, string | undefined>) => void;
+  /** Clés de style des flèches sélectionnées (tracé : angles droits, arrondi, courbe). */
+  onEdgeStyle: (patch: Record<string, string | undefined>) => void;
   /** Renommer la page ; absent si les pages ne sont pas modifiables. */
   onRenamePage?: (name: string) => void;
   /** Lien de l'élément sélectionné (vers une page ou une URL) ; undefined = retiré. */
@@ -187,6 +189,7 @@ function EdgeSections({ edge, ...props }: ContextPanelProps & { edge: EdgeModel 
         })}
       </Section>
       <TextAnchors edge={edge} onAnchor={props.onTextAnchor} />
+      <EdgeLineSection edge={edge} onChange={props.onEdgeStyle} />
       <Section title="Liaison">
         <div className="field-row">
           De
@@ -250,6 +253,50 @@ function TextAnchors({
       <p className="panel-hint">
         Placement libre : en modifiant le texte (double-clic), tirer la poignée ◇ sous le texte.
       </p>
+    </Section>
+  );
+}
+
+/** Tracé d'une flèche : angles droits, coudes arrondis (par défaut des flèches créées), ou courbe. */
+type EdgeLine = 'sharp' | 'rounded' | 'curved';
+
+const EDGE_LINES: Record<EdgeLine, { label: string; patch: Record<string, string | undefined>; icon: string }> = {
+  sharp: { label: 'Angles droits', patch: { rounded: '0', curved: undefined }, icon: 'M2 13V5h12' },
+  rounded: { label: 'Arrondi', patch: { rounded: '1', curved: undefined }, icon: 'M2 13V8a3 3 0 0 1 3-3h9' },
+  curved: { label: 'Courbe', patch: { rounded: '0', curved: '1' }, icon: 'M2 13C2 7 7 5 14 5' },
+};
+
+function EdgeLineSection({
+  edge,
+  onChange,
+}: {
+  edge: EdgeModel;
+  onChange: (patch: Record<string, string | undefined>) => void;
+}) {
+  const current: EdgeLine = edge.style.curved === '1' ? 'curved' : edge.style.rounded === '1' ? 'rounded' : 'sharp';
+  return (
+    <Section title="Tracé">
+      <div className="field-row">
+        Coudes
+        <span className="button-group" role="radiogroup" aria-label="Tracé de la flèche">
+          {(Object.keys(EDGE_LINES) as EdgeLine[]).map((value) => (
+            <button
+              key={value}
+              type="button"
+              role="radio"
+              className="group-button format-button"
+              aria-checked={current === value}
+              aria-pressed={current === value}
+              title={EDGE_LINES[value].label}
+              onClick={() => onChange(EDGE_LINES[value].patch)}
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d={EDGE_LINES[value].icon} />
+              </svg>
+            </button>
+          ))}
+        </span>
+      </div>
     </Section>
   );
 }

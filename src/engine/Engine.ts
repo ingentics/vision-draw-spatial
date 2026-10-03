@@ -319,7 +319,8 @@ interface LabelDrag {
 export type EdgeTextAnchor = 'start' | 'middle' | 'end';
 
 /** Style des connecteurs créés (celui de draw.io par défaut). */
-const CONNECTOR_STYLE = 'edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;';
+/** Coudes arrondis par défaut (`rounded=1`) ; tracé au choix dans le panneau (angles droits, courbe). */
+const CONNECTOR_STYLE = 'edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;';
 /** Curseur de chaque poignée de redimensionnement. */
 const HANDLE_CURSORS: Record<ResizeHandle, string> = {
   nw: 'nwse-resize',
@@ -1309,7 +1310,10 @@ export class Engine {
     const point = screenToPage(this.cameraState, this.viewport, screen);
     return pickElement(page, point, {
       edgeTolerance: this.settings.edit.edgePickTolerance / this.cameraState.zoom,
-      edgeRoute: (id) => this.sceneObject(id)?.userData.route as Point[] | undefined,
+      edgeRoute: (id) => {
+        const data = this.sceneObject(id)?.userData;
+        return (data?.path ?? data?.route) as Point[] | undefined;
+      },
       heightOf: (id) => this.elementTop(id),
       pointAtHeight: (height) => this.groundPointAtHeight(screen, height),
     });
@@ -2430,13 +2434,14 @@ export class Engine {
   }
 
   /**
-   * Clés de style draw.io sur des formes de la page courante (ex. bordure : `strokeColor`, `strokeWidth`,
+   * Clés de style draw.io sur des formes ou des flèches de la page courante (ex. bordure : `strokeColor`, `strokeWidth`,
    * `dashed`…), en une étape d'annulation ; undefined retire la clé. Seules les clés qui changent.
    */
-  setShapesStyle(elementIds: string[], patch: Record<string, string | undefined>, label = 'Style'): void {
+  setElementsStyle(elementIds: string[], patch: Record<string, string | undefined>, label = 'Style'): void {
     const editable = this.editablePage();
     if (!editable) return;
-    const shapes = editable.page.shapes.filter((s) => elementIds.includes(s.id));
+    // Formes ou flèches (ex. tracé d'une flèche : `rounded`, `curved`).
+    const shapes = [...editable.page.shapes, ...editable.page.edges].filter((s) => elementIds.includes(s.id));
     const changes = shapes.flatMap((shape) =>
       Object.entries(patch)
         .filter(([key, value]) => shape.style[key] !== value)
@@ -2701,7 +2706,7 @@ export class Engine {
         holes.name = 'selection-veil-holes';
         for (const { element } of edges) {
           const object = this.sceneObject(element.id);
-          const route = object?.userData.route as Point[] | undefined;
+          const route = (object?.userData.path ?? object?.userData.route) as Point[] | undefined;
           if (!object || !route || route.length < 2) continue;
           const strokeWidth = parseFloat((element.style.strokeWidth as string | undefined) ?? '1') || 1;
           const width = strokeWidth + (2 * this.settings.selection.veilPadding) / this.cameraState.zoom;
