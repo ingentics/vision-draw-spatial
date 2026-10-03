@@ -5,7 +5,7 @@ import type { UnsupportedReport } from '../engine/diagnostics/unsupportedStyles'
 import type { BackTarget, Engine, InitialView, LabelEditRequest, Selection } from '../engine/Engine';
 import type { ViewMode } from '../engine/interaction/camera';
 import type { ParentLink } from '../engine/interaction/history';
-import type { DocumentModel, ShapeModel } from '../engine/model/types';
+import type { DocumentModel, EdgeModel, ShapeModel } from '../engine/model/types';
 import type { StoredFile } from '../engine/persistence/FileStore';
 import { BackButton } from '../react/BackButton';
 import { DrawioSpatial } from '../react/DrawioSpatial';
@@ -21,7 +21,7 @@ import { SelectionBar } from './SelectionBar';
 import { MULTI_SELECT_LABELS } from './SettingsPanel';
 import { Palette, PALETTE_MIME, templateById } from './Palette';
 import { SettingsPanel } from './SettingsPanel';
-import { ShapePanel } from './ShapePanel';
+import { ContextPanel } from './ContextPanel';
 import type { Settings, SettingsPatch } from '../engine/settings';
 import { GRAPH_PAGE_ID } from '../engine/graph/graphPage';
 
@@ -64,7 +64,8 @@ export function Viewer({
   const [report, setReport] = useState<UnsupportedReport>();
   const [cumulative, setCumulative] = useState(cumulativeEntries);
   /** Panneau latéral ouvert (un seul à la fois). */
-  const [panel, setPanel] = useState<'diagnostics' | 'settings' | 'shape'>();
+  /** Paramètres ou diagnostics ; sinon le panneau contextuel (page, forme, flèche) est affiché. */
+  const [panel, setPanel] = useState<'diagnostics' | 'settings'>();
   const diagnosticsOpen = panel === 'diagnostics' && settings.debug.showUnsupportedPanel;
   const togglePanel = (name: 'diagnostics' | 'settings') => setPanel((open) => (open === name ? undefined : name));
   const [backTarget, setBackTarget] = useState<BackTarget>({ kind: 'none' });
@@ -77,19 +78,18 @@ export function Viewer({
   const modifiedRef = useRef(false);
   modifiedRef.current = modified;
 
-  // Formes sélectionnées sur la page courante (éditable) : objet du panneau « Forme ».
-  const selectedShapes = useMemo<ShapeModel[]>(
-    () =>
-      selection && selection.pageId === pageId && pageId !== GRAPH_PAGE_ID
-        ? selection.items.filter((item) => item.type === 'shape').map((item) => item.element as ShapeModel)
-        : [],
-    [selection, pageId],
-  );
-  // Le panneau s'ouvre quand la sélection de formes change, se ferme quand il n'y en a plus.
-  const selectedKey = selectedShapes.map((shape) => shape.id).join('\n');
+  // Sélection de la page courante, objet du panneau contextuel.
+  const selected = useMemo(() => {
+    const items = selection && selection.pageId === pageId && pageId !== GRAPH_PAGE_ID ? selection.items : [];
+    return {
+      shapes: items.filter((item) => item.type === 'shape').map((item) => item.element as ShapeModel),
+      edges: items.filter((item) => item.type === 'edge').map((item) => item.element as EdgeModel),
+    };
+  }, [selection, pageId]);
+  // Choisir un élément ramène le panneau contextuel (paramètres ou diagnostics fermés).
+  const selectedKey = [...selected.shapes, ...selected.edges].map((element) => element.id).join('\n');
   useEffect(() => {
-    if (selectedKey) setPanel('shape');
-    else setPanel((open) => (open === 'shape' ? undefined : open));
+    if (selectedKey) setPanel(undefined);
   }, [selectedKey]);
 
   // Vue mémorisée du fichier (SPEC §5.3), lue une seule fois au chargement.
@@ -266,6 +266,8 @@ export function Viewer({
   const editablePages = document !== undefined && engine?.canEditPages() === true;
   const canAddShapes = pageId !== undefined && pageId !== GRAPH_PAGE_ID;
   const issueCount = (report?.unsupportedElementCount ?? 0) + warnings.length;
+  // Page affichée (pas la vue graphe) : le panneau contextuel est toujours ouvert dessus.
+  const currentPage = pageId !== GRAPH_PAGE_ID ? document?.pages.find((page) => page.id === pageId) : undefined;
 
   return (
     <div className="app">
@@ -457,18 +459,20 @@ export function Viewer({
             onClose={() => setPanel(undefined)}
           />
         )}
-        {panel === 'shape' && selectedShapes.length > 0 && !labelEdit && (
-          <ShapePanel
-            shapes={selectedShapes}
+        {!diagnosticsOpen && panel !== 'settings' && currentPage && (
+          <ContextPanel
+            page={currentPage}
+            shapes={selected.shapes}
+            edges={selected.edges}
             styles={settings.styles}
             onApplyStyle={(preset) =>
               engine?.applyStylePreset(
-                selectedShapes.map((shape) => shape.id),
+                selected.shapes.map((shape) => shape.id),
                 preset,
                 [...settings.styles.base, ...settings.styles.extended],
               )
             }
-            onClose={() => setPanel(undefined)}
+            onRenamePage={editablePages ? (name) => engine?.renamePage(currentPage.id, name) : undefined}
           />
         )}
         {panel === 'settings' && (

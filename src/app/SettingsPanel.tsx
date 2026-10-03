@@ -1,5 +1,4 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { ReactNode } from 'react';
 import { RESERVED_CODES } from '../engine/interaction/controls';
 import type { Shortcuts } from '../engine/interaction/controls';
 import type { MultiSelectKey } from '../engine/interaction/selection';
@@ -7,6 +6,7 @@ import { SETTINGS_LIMITS } from '../engine/settings';
 import type { Settings, SettingsPatch } from '../engine/settings';
 import { desktop } from './desktop';
 import { IsoIcon, IsoSettings } from './IsoSettings';
+import { Section, Subsection } from './PanelSection';
 
 interface SettingsPanelProps {
   settings: Settings;
@@ -65,7 +65,7 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
   const ms = (v: number) => (v === 0 ? 'instantané' : v < 1000 ? `${v} ms` : `${(v / 1000).toLocaleString('fr-FR')} s`);
 
   return (
-    <aside className="side-panel settings-panel" aria-label="Paramètres">
+    <aside className="side-panel card-panel settings-panel" aria-label="Paramètres">
       <header className="side-panel-header">
         <h2>Paramètres</h2>
         <button type="button" className="button" onClick={onReset} title="Revenir aux valeurs par défaut">
@@ -710,24 +710,6 @@ function filterSections(root: HTMLElement, query: string): boolean {
 
 // ---------------------------------------------------------------------------
 // Champs
-
-function Section({ title, children }: { title: ReactNode; children: ReactNode }) {
-  return (
-    <section className="settings-section">
-      <h3>{title}</h3>
-      {children}
-    </section>
-  );
-}
-
-function Subsection({ title, children }: { title: ReactNode; children: ReactNode }) {
-  return (
-    <div className="settings-subsection">
-      <h4>{title}</h4>
-      {children}
-    </div>
-  );
-}
 
 function Slider({
   label,

@@ -736,13 +736,13 @@ body {
   border-bottom: 1px solid var(--border);
 }
 
-/* Paramètres : chaque section est une carte, sur le fond gris du panneau. */
-.settings-panel .side-panel-body {
+/* Paramètres et panneau contextuel : chaque section est une carte, sur le fond gris du panneau. */
+.card-panel .side-panel-body {
   padding: 8px 10px 16px;
   background: var(--panel);
 }
 
-.settings-panel .settings-section {
+.card-panel .settings-section {
   margin: 0 0 10px;
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -759,7 +759,7 @@ body {
 }
 
 /* Titre de section : reste visible en haut du panneau tant qu'on parcourt la section. */
-.settings-panel .settings-section > h3 {
+.card-panel .settings-section > h3 {
   position: sticky;
   /* La zone collante s'arrête à la marge intérieure du panneau (8 px) : on remonte jusqu'au bord. */
   top: -8px;
@@ -777,7 +777,7 @@ body {
   font-weight: 700;
 }
 
-.settings-panel .settings-section > h3::before {
+.card-panel .settings-section > h3::before {
   content: '';
   width: 3px;
   height: 14px;
@@ -1005,25 +1005,31 @@ body {
   width: 90px;
 }
 
-/* Panneau « Forme » : grilles de styles */
-.shape-section {
-  padding: 8px 0 4px;
+/* Panneau contextuel (page, forme, flèche) */
+.context-panel {
+  flex-basis: min(260px, 45%);
 }
 
-.shape-section h3 {
-  margin: 0 0 8px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+.context-panel .field-row {
+  margin: 6px 0;
+}
+
+.context-panel .field-row input[type='text'] {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--fg);
 }
 
 .style-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 6px;
-  margin-bottom: 10px;
+  margin: 8px 0 10px;
 }
 
 .style-swatch {
@@ -1058,12 +1064,8 @@ body {
   font-size: 9px;
 }
 
-.shape-hint {
-  margin: 0;
+.panel-hint {
+  margin: 0 0 6px;
   font-size: 12px;
   color: var(--muted);
-}
-
-.shape-panel {
-  flex-basis: min(260px, 45%);
 }
