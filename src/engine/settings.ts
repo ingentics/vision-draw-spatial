@@ -1,5 +1,7 @@
 import { ISOMETRIC_ELEVATION_DEG } from './interaction/camera';
 import { DEFAULT_DEPTH } from './spatial';
+import { DRAWIO_STYLES, PASTEL_STYLES } from './edit/styles';
+import type { StylePreset } from './edit/styles';
 import { DEFAULT_CONTROLS } from './interaction/controls';
 import type { ControlSettings, Shortcuts } from './interaction/controls';
 import { MULTI_SELECT_KEYS } from './interaction/selection';
@@ -120,6 +122,14 @@ export interface ShapeSettings {
   placeholderStroke: string;
 }
 
+/** Palettes de styles du panneau « Forme » (fond, contour, texte). */
+export interface StyleSettings {
+  /** Styles de base de draw.io. */
+  base: StylePreset[];
+  /** Palette étendue (pastels). */
+  extended: StylePreset[];
+}
+
 /** Vue graphe (SPEC §12) : disposition des cartes de pages. */
 export interface GraphSettings {
   cardWidth: number;
@@ -168,6 +178,7 @@ export interface Settings {
   minimap: MinimapSettings;
   selection: SelectionSettings;
   shapes: ShapeSettings;
+  styles: StyleSettings;
   graph: GraphSettings;
   edit: EditSettings;
   save: SaveSettings;
@@ -228,6 +239,7 @@ export const DEFAULT_SETTINGS: Settings = {
     accentColor: '#1a73e8',
   },
   shapes: { edgeFontColor: '#000000', placeholderFill: '#eeeeee', placeholderStroke: '#9e9e9e' },
+  styles: { base: DRAWIO_STYLES, extended: PASTEL_STYLES },
   graph: { cardWidth: 260, columnGap: 200, rowGap: 90 },
   edit: { edgePickTolerance: 6, handlePickTolerance: 8, handleSize: 4, minShapeSize: 10 },
   save: { autosave: true, delayMs: 1000, viewStateDelayMs: 500 },
@@ -305,6 +317,26 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
   const color = (value: unknown, fallback: string) =>
     typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value) ? value.toLowerCase() : fallback;
 
+  /** Liste de styles : remplacée en entier si chaque entrée est valide (nom, couleurs #rrggbb). */
+  const presets = (value: unknown, fallback: StylePreset[]): StylePreset[] => {
+    if (!Array.isArray(value)) return fallback;
+    const valid = (c: unknown) => typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c);
+    const list = value.map((entry: Partial<StylePreset> | null) =>
+      entry &&
+      typeof entry.name === 'string' &&
+      valid(entry.fillColor) &&
+      valid(entry.strokeColor) &&
+      (entry.fontColor === undefined || valid(entry.fontColor))
+        ? {
+            name: entry.name,
+            fillColor: entry.fillColor!.toLowerCase(),
+            strokeColor: entry.strokeColor!.toLowerCase(),
+            ...(entry.fontColor ? { fontColor: entry.fontColor.toLowerCase() } : {}),
+          }
+        : undefined,
+    );
+    return list.every((entry) => entry !== undefined) ? (list as StylePreset[]) : fallback;
+  };
   const t = p.transition ?? {};
   const pr = p.preload ?? {};
   const c = p.controls ?? {};
@@ -382,6 +414,10 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
       edgeFontColor: color(p.shapes?.edgeFontColor, base.shapes.edgeFontColor),
       placeholderFill: color(p.shapes?.placeholderFill, base.shapes.placeholderFill),
       placeholderStroke: color(p.shapes?.placeholderStroke, base.shapes.placeholderStroke),
+    },
+    styles: {
+      base: presets(p.styles?.base, base.styles.base),
+      extended: presets(p.styles?.extended, base.styles.extended),
     },
     graph: {
       cardWidth: num('graph.cardWidth', p.graph?.cardWidth, base.graph.cardWidth),

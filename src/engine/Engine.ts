@@ -39,6 +39,8 @@ import type { EdgeEnd } from './edit/edgeLabels';
 import { handlePoints, resizeBounds } from './edit/handles';
 import type { HandleKind, ResizeHandle } from './edit/handles';
 import { dropBounds } from './edit/palette';
+import { applyStylePreset } from './edit/styles';
+import type { StylePreset } from './edit/styles';
 import { UndoStack } from './edit/undo';
 import type { ShapeTemplate } from './edit/palette';
 import {
@@ -1906,6 +1908,24 @@ export class Engine {
     if (!inObject || !setCellObjectAttribute(editable.pageTree, elementId, key, text)) {
       setCellStyleValue(editable.pageTree, elementId, key, text);
     }
+    this.documentChanged([editable.page.id]);
+  }
+
+  /**
+   * Applique un style (fond, contour, texte) à des formes de la page courante, en une seule étape
+   * d'annulation. `known` : styles de la palette, pour retirer une couleur de texte posée par l'un d'eux.
+   */
+  applyStylePreset(elementIds: string[], preset: StylePreset, known: StylePreset[] = []): void {
+    const editable = this.editablePage();
+    if (!editable || !this.xmlTree) return;
+    const shapes = editable.page.shapes.filter((s) => elementIds.includes(s.id));
+    const before = writeDrawio(this.xmlTree);
+    let changed = false;
+    for (const shape of shapes) {
+      changed = applyStylePreset(editable.pageTree, shape.id, shape.style, preset, known) || changed;
+    }
+    if (!changed) return;
+    this.undoStack.record(shapes.length > 1 ? 'Style des formes' : 'Style', before);
     this.documentChanged([editable.page.id]);
   }
 

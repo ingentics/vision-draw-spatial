@@ -5,7 +5,7 @@ import type { UnsupportedReport } from '../engine/diagnostics/unsupportedStyles'
 import type { BackTarget, Engine, InitialView, LabelEditRequest, Selection } from '../engine/Engine';
 import type { ViewMode } from '../engine/interaction/camera';
 import type { ParentLink } from '../engine/interaction/history';
-import type { DocumentModel } from '../engine/model/types';
+import type { DocumentModel, ShapeModel } from '../engine/model/types';
 import type { StoredFile } from '../engine/persistence/FileStore';
 import { BackButton } from '../react/BackButton';
 import { DrawioSpatial } from '../react/DrawioSpatial';
@@ -21,6 +21,7 @@ import { SelectionBar } from './SelectionBar';
 import { MULTI_SELECT_LABELS } from './SettingsPanel';
 import { Palette, PALETTE_MIME, templateById } from './Palette';
 import { SettingsPanel } from './SettingsPanel';
+import { ShapePanel } from './ShapePanel';
 import type { Settings, SettingsPatch } from '../engine/settings';
 import { GRAPH_PAGE_ID } from '../engine/graph/graphPage';
 
@@ -63,7 +64,7 @@ export function Viewer({
   const [report, setReport] = useState<UnsupportedReport>();
   const [cumulative, setCumulative] = useState(cumulativeEntries);
   /** Panneau latéral ouvert (un seul à la fois). */
-  const [panel, setPanel] = useState<'diagnostics' | 'settings'>();
+  const [panel, setPanel] = useState<'diagnostics' | 'settings' | 'shape'>();
   const diagnosticsOpen = panel === 'diagnostics' && settings.debug.showUnsupportedPanel;
   const togglePanel = (name: 'diagnostics' | 'settings') => setPanel((open) => (open === name ? undefined : name));
   const [backTarget, setBackTarget] = useState<BackTarget>({ kind: 'none' });
@@ -75,6 +76,21 @@ export function Viewer({
   const [labelEdit, setLabelEdit] = useState<LabelEditRequest>();
   const modifiedRef = useRef(false);
   modifiedRef.current = modified;
+
+  // Formes sélectionnées sur la page courante (éditable) : objet du panneau « Forme ».
+  const selectedShapes = useMemo<ShapeModel[]>(
+    () =>
+      selection && selection.pageId === pageId && pageId !== GRAPH_PAGE_ID
+        ? selection.items.filter((item) => item.type === 'shape').map((item) => item.element as ShapeModel)
+        : [],
+    [selection, pageId],
+  );
+  // Le panneau s'ouvre quand la sélection de formes change, se ferme quand il n'y en a plus.
+  const selectedKey = selectedShapes.map((shape) => shape.id).join('\n');
+  useEffect(() => {
+    if (selectedKey) setPanel('shape');
+    else setPanel((open) => (open === 'shape' ? undefined : open));
+  }, [selectedKey]);
 
   // Vue mémorisée du fichier (SPEC §5.3), lue une seule fois au chargement.
   const initialView = useMemo<InitialView>(
@@ -438,6 +454,20 @@ export function Viewer({
               clearLog();
               setCumulative(cumulativeEntries());
             }}
+            onClose={() => setPanel(undefined)}
+          />
+        )}
+        {panel === 'shape' && selectedShapes.length > 0 && !labelEdit && (
+          <ShapePanel
+            shapes={selectedShapes}
+            styles={settings.styles}
+            onApplyStyle={(preset) =>
+              engine?.applyStylePreset(
+                selectedShapes.map((shape) => shape.id),
+                preset,
+                [...settings.styles.base, ...settings.styles.extended],
+              )
+            }
             onClose={() => setPanel(undefined)}
           />
         )}

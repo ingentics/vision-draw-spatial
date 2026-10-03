@@ -1004,3 +1004,66 @@ body {
 .selection-field input.selection-text {
   width: 90px;
 }
+
+/* Panneau « Forme » : grilles de styles */
+.shape-section {
+  padding: 8px 0 4px;
+}
+
+.shape-section h3 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.style-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.style-swatch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  cursor: pointer;
+}
+
+.style-swatch:hover {
+  border-color: var(--muted);
+}
+
+.style-swatch[aria-pressed='true'] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.style-swatch svg {
+  width: 100%;
+  max-width: 56px;
+  height: 36px;
+  stroke-width: 1.2;
+}
+
+.style-swatch svg text {
+  stroke: none;
+  font-size: 9px;
+}
+
+.shape-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.shape-panel {
+  flex-basis: min(260px, 45%);
+}

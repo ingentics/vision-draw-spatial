@@ -163,4 +163,14 @@ describe('réglages exposés (caméra, vue graphe, édition…)', () => {
     expect(merged.shapes.placeholderFill).toBe('#abcdef');
     expect(DEFAULT_SETTINGS.shapes.edgeFontColor).toBe('#000000');
   });
+  it('palettes de styles : remplacées si toutes les entrées sont valides, sinon gardées', () => {
+    expect(DEFAULT_SETTINGS.styles.base[2]).toEqual({ name: 'Bleu', fillColor: '#dae8fc', strokeColor: '#6c8ebf' });
+    const custom = [{ name: 'Mon style', fillColor: '#AABBCC', strokeColor: '#112233' }];
+    expect(mergeSettings(DEFAULT_SETTINGS, { styles: { base: custom } }).styles.base).toEqual([
+      { name: 'Mon style', fillColor: '#aabbcc', strokeColor: '#112233' },
+    ]);
+    const broken = [...custom, { name: 'Abîmé', fillColor: 'rouge', strokeColor: '#000000' }];
+    const merged = mergeSettings(DEFAULT_SETTINGS, { styles: { extended: broken } });
+    expect(merged.styles.extended).toBe(DEFAULT_SETTINGS.styles.extended);
+  });
 });
