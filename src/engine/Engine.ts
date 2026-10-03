@@ -198,6 +198,17 @@ export interface LabelEditRequest {
   /** Texte brut actuel. */
   text: string;
   screen: Rect;
+  /**
+   * Cellule dont le style porte le format du texte (la forme, l'arête, ou le label enfant d'un début /
+   * fin) ; absente quand le texte n'existe pas encore (début / fin à créer) : pas de format possible.
+   */
+  styleCellId?: string;
+  /** Style draw.io de cette cellule (police, taille, couleur, alignement), pour un éditeur fidèle. */
+  style: Record<string, string>;
+  /** Pixels écran par pixel de page à cet endroit : taille du texte dans l'éditeur. */
+  scale: number;
+  /** Texte d'une flèche (fond de la page sous le texte) plutôt que d'une forme. */
+  onEdge: boolean;
 }
 
 /** Glisser d'édition en cours (SPEC §14.1). */
@@ -276,6 +287,8 @@ export class Engine {
   private currentPageId: string | undefined;
   /** Dernière caméra de chaque page visitée (SPEC §9.4). */
   private pageCameras = new Map<string, CameraState>();
+  /** Texte en cours d'édition en place (son label dessiné est masqué). */
+  private labelEditing?: LabelEditRequest;
   private cameraState: CameraState = { mode: 'top', center: { x: 0, y: 0 }, zoom: 1, rotation: 0, tilt: 0 };
   private settings: Settings;
   /** Préférence système « réduire les animations » (suivie en direct). */
@@ -594,6 +607,7 @@ export class Engine {
     if (current) {
       this.scenes.show(current);
       this.applyHeightScale();
+      this.hideEditedLabel();
     }
     if (selected && selected.pageId === current?.id) {
       const items: PickedElement[] = [];
@@ -1818,11 +1832,15 @@ export class Engine {
     if (!editable || !element || !editable.pageTree.cells.get(element.id)?.cell) return;
     const rect = this.screenRectOf(element.id);
     if (!rect) return;
-    this.events.emit('labelEdit', {
+    this.startLabelEdit({
       pageId: editable.page.id,
       elementId: element.id,
       text: element.label,
       screen: rect,
+      styleCellId: element.id,
+      style: element.style,
+      scale: this.textScale(element.id),
+      onEdge: editable.page.edges.some((e) => e.id === element.id),
     });
   }
 
@@ -1838,13 +1856,96 @@ export class Engine {
     const current = endLabelOf(edge, end);
     const placement = current?.placement ?? { position: endLabelPosition(end), distance: 0, offset: { x: 0, y: 0 } };
     const center = this.screenOfPoint(labelPoint(route, placement), this.elementTop(edgeId));
-    this.events.emit('labelEdit', {
+    this.startLabelEdit({
       pageId: editable.page.id,
       elementId: edgeId,
       end,
       text: current?.label ?? '',
       screen: { x: center.x - 60, y: center.y - 16, width: 120, height: 32 },
+      styleCellId: current?.id,
+      style: current?.style ?? edge.style,
+      scale: this.textScale(edgeId),
+      onEdge: true,
     });
+  }
+
+  /**
+   * Édition en place : le label dessiné de la cellule est masqué (l'éditeur de l'UI le remplace, au même
+   * endroit et dans le même format) jusqu'à `closeLabelEdit`.
+   */
+  private startLabelEdit(request: LabelEditRequest): void {
+    this.closeLabelEdit();
+    this.labelEditing = request;
+    this.hideEditedLabel();
+    this.events.emit('labelEdit', request);
+  }
+
+  /** Fin de l'édition en place (validée ou annulée) : le label dessiné réapparaît. */
+  closeLabelEdit(): void {
+    const editing = this.labelEditing;
+    if (!editing) return;
+    this.labelEditing = undefined;
+    this.labelObjects(editing.styleCellId).forEach((object) => (object.visible = true));
+    this.requestRender();
+  }
+
+  private hideEditedLabel(): void {
+    const editing = this.labelEditing;
+    if (!editing || editing.pageId !== this.currentPageId) return;
+    this.labelObjects(editing.styleCellId).forEach((object) => (object.visible = false));
+    this.requestRender();
+  }
+
+  /** Objets de label (texte dessiné) d'une cellule dans la scène courante. */
+  private labelObjects(cellId: string | undefined): Object3D[] {
+    const found: Object3D[] = [];
+    if (cellId) {
+      this.scenes.current?.root.traverse((object) => {
+        if (object.userData.labelCellId === cellId) found.push(object);
+      });
+    }
+    return found;
+  }
+
+  /** Pixels écran par pixel de page au niveau d'un élément (taille du texte de l'éditeur en place). */
+  private textScale(elementId: string): number {
+    if (this.cameraState.mode !== '3d') return this.cameraState.zoom;
+    const rect = this.screenRectOf(elementId);
+    const top = this.elementTop(elementId);
+    const center = rect
+      ? screenToPage(this.cameraState, this.viewport, { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 })
+      : { x: 0, y: 0 };
+    const at = this.screenOfPoint(center, top);
+    const dx = this.screenOfPoint({ x: center.x + 10, y: center.y }, top);
+    const dy = this.screenOfPoint({ x: center.x, y: center.y + 10 }, top);
+    return Math.max(Math.hypot(dx.x - at.x, dx.y - at.y), Math.hypot(dy.x - at.x, dy.y - at.y)) / 10;
+  }
+
+  /**
+   * Format du texte d'une cellule de la page courante (forme, arête ou label enfant) : clés de style
+   * `fontStyle`, `fontSize`, `fontColor`, `align`, `verticalAlign`… (undefined = clé retirée). Une
+   * étape d'annulation ; pendant l'édition en place, l'éditeur reçoit le nouveau format.
+   */
+  setTextFormat(cellId: string, patch: Record<string, string | undefined>): void {
+    const editable = this.editablePage();
+    if (!editable || !editable.pageTree.cells.get(cellId)?.cell) return;
+    const page = editable.page;
+    const style =
+      [...page.shapes, ...page.edges].find((e) => e.id === cellId)?.style ??
+      page.edges.flatMap((e) => e.labels).find((l) => l.id === cellId)?.style;
+    if (!style) return;
+    const changes = Object.entries(patch).filter(([key, value]) => style[key] !== value);
+    if (changes.length === 0) return;
+    this.recordEdit('Format du texte');
+    for (const [key, value] of changes) setCellStyleValue(editable.pageTree, cellId, key, value);
+    this.documentChanged([page.id]);
+    const editing = this.labelEditing;
+    if (editing?.styleCellId === cellId) {
+      const next = { ...style, ...Object.fromEntries(changes) };
+      for (const [key, value] of changes) if (value === undefined) delete next[key];
+      this.labelEditing = { ...editing, style: next as Record<string, string> };
+      this.events.emit('labelEdit', this.labelEditing);
+    }
   }
 
   /** Remplace le label d'un élément (texte brut ; converti en HTML si le style l'exige). */

@@ -1,6 +1,11 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
+// Police des textes du plan (Roboto, comme le rendu SDF) : l'éditeur de texte en place l'utilise aussi.
+import '@fontsource/roboto/latin-400.css';
+import '@fontsource/roboto/latin-400-italic.css';
+import '@fontsource/roboto/latin-700.css';
+import '@fontsource/roboto/latin-700-italic.css';
 import './main.css';
 
 const container = document.getElementById('root');

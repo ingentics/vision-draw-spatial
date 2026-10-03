@@ -447,7 +447,7 @@ Formes et arêtes sont dessinées dans l'**ordre du document** (une arête décl
 | Ajouter une forme | Glisser une forme de la palette sur le plan (déposée au point visé, au sol), ou clic dessus (centre de la vue) (§14.1) |
 | Pages | Onglets : **+** ajoute, double-clic renomme, **×** supprime la page affichée (§14.1) |
 | Redimensionner / connecter | Poignées de la forme sélectionnée : carrés = redimensionner (grille, Alt = libre), disque bleu à droite = tirer vers une autre forme pour la relier (§14.1) |
-| Éditer un texte | Double-clic (élément sans lien), **F2** ou bouton « Texte » ; Ctrl+Entrée valide, Échap annule (§14.1) |
+| Éditer un texte | Double-clic (élément sans lien), **F2** ou « Modifier » dans le panneau contextuel : **édition en place**, dans la police, la taille, la couleur et l'alignement du label (le label dessiné est masqué pendant la saisie). Pendant l'édition, le panneau contextuel montre le **format du texte** : gras, italique (**Ctrl+B**, **Ctrl+I**), taille, couleur, alignement horizontal et vertical (pas de vertical pour une flèche) ; appliqué tout de suite à tout le texte (clés `fontStyle`, `fontSize`, `fontColor`, `align`, `verticalAlign` du style draw.io), une étape d'annulation par changement. Ctrl+Entrée ou clic ailleurs valide, Échap annule le texte (§14.1) |
 | Lien, suppression | Panneau contextuel (à droite) : section « Lien » (page ou URL), « Supprimer » / **Suppr** ; **Échap** désélectionne (§14.1) |
 | Volume d'une forme | Panneau contextuel, section « Volume » : « Épaisseur » (`spatial.height`), « Élévation » (`spatial.elevation`) (§14.3) |
 | Annuler / rétablir | Boutons de la barre d'outils, **Ctrl+Z**, **Ctrl+Maj+Z** / Ctrl+Y (§14.1) |

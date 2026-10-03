@@ -31,6 +31,20 @@ function updateBackground(text: Text, color: Color, opacity: number): void {
 export interface FontSet {
   regular?: string;
   bold?: string;
+  italic?: string;
+  boldItalic?: string;
+}
+
+/** Police d'un texte : la variante demandée, sinon la plus proche disponible. */
+export function pickFont(fonts: FontSet, bold: boolean, italic: boolean): string | null {
+  const candidates = italic
+    ? bold
+      ? [fonts.boldItalic, fonts.bold, fonts.italic]
+      : [fonts.italic]
+    : bold
+      ? [fonts.bold]
+      : [];
+  return candidates.find(Boolean) ?? fonts.regular ?? null;
 }
 
 /**
@@ -45,7 +59,7 @@ export function createTroikaTextFactory(fonts: FontSet, onReady: () => void): Te
       const text = new Text();
       text.material = baseMaterial;
       text.text = spec.text;
-      text.font = (spec.bold ? fonts.bold : fonts.regular) ?? fonts.regular ?? null;
+      text.font = pickFont(fonts, spec.bold, spec.italic ?? false);
       text.fontSize = spec.fontSize;
       text.color = spec.color;
       text.fillOpacity = spec.opacity;

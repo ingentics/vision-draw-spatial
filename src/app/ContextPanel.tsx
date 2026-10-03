@@ -5,7 +5,10 @@ import type { StylePreset } from '../engine/edit/styles';
 import type { EdgeModel, LinkModel, PageModel, ShapeModel } from '../engine/model/types';
 import type { StyleSettings } from '../engine/settings';
 import { SPATIAL, spatialNumber } from '../engine/spatial';
+import { TEXT_FORMAT_ATTRIBUTE } from './LabelEditor';
 import { Section } from './PanelSection';
+import { TextFormatSections } from './TextFormat';
+import type { TextEdit } from './TextFormat';
 
 export interface ContextPanelProps {
   page: PageModel;
@@ -31,6 +34,8 @@ export interface ContextPanelProps {
   /** Texte de début ou de fin d'une flèche (vide = retiré). */
   onEndLabel: (end: EdgeEnd, text: string) => void;
   onDelete: () => void;
+  /** Texte en cours d'édition en place : le panneau montre son format. */
+  textEdit?: TextEdit;
 }
 
 /**
@@ -44,7 +49,10 @@ export function ContextPanel(props: ContextPanelProps) {
   const count = shapes.length + edges.length;
   let title: string;
   let body;
-  if (count === 0) {
+  if (props.textEdit) {
+    title = 'Texte';
+    body = <TextFormatSections edit={props.textEdit} />;
+  } else if (count === 0) {
     title = 'Page';
     body = <PageSections page={props.page} onRename={props.onRenamePage} />;
   } else if (count > 1) {
@@ -58,7 +66,11 @@ export function ContextPanel(props: ContextPanelProps) {
     body = <EdgeSections {...props} edge={edges[0]!} />;
   }
   return (
-    <aside className="side-panel card-panel context-panel" aria-label={title}>
+    <aside
+      className="side-panel card-panel context-panel"
+      aria-label={title}
+      {...(props.textEdit ? { [TEXT_FORMAT_ATTRIBUTE]: '' } : {})}
+    >
       <header className="side-panel-header">
         <h2>{title}</h2>
       </header>

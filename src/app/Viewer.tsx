@@ -1,4 +1,6 @@
+import robotoBoldItalic from '@fontsource/roboto/files/roboto-latin-700-italic.woff?url';
 import robotoBold from '@fontsource/roboto/files/roboto-latin-700-normal.woff?url';
+import robotoItalic from '@fontsource/roboto/files/roboto-latin-400-italic.woff?url';
 import robotoRegular from '@fontsource/roboto/files/roboto-latin-400-normal.woff?url';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { UnsupportedReport } from '../engine/diagnostics/unsupportedStyles';
@@ -24,7 +26,7 @@ import { ContextPanel } from './ContextPanel';
 import type { Settings, SettingsPatch } from '../engine/settings';
 import { GRAPH_PAGE_ID } from '../engine/graph/graphPage';
 
-const FONTS = { regular: robotoRegular, bold: robotoBold };
+const FONTS = { regular: robotoRegular, bold: robotoBold, italic: robotoItalic, boldItalic: robotoBoldItalic };
 /** Réglages iso qu'une page peut imposer (état de vue enregistré dans le fichier). */
 const ISO_KEYS = ['isoAngleDeg', 'isoAzimuthDeg', 'isoVolume', 'isoDepth'] as const;
 interface ViewerProps {
@@ -265,6 +267,10 @@ export function Viewer({
   const editablePages = document !== undefined && engine?.canEditPages() === true;
   const canAddShapes = pageId !== undefined && pageId !== GRAPH_PAGE_ID;
   const issueCount = (report?.unsupportedElementCount ?? 0) + warnings.length;
+  /** Format du texte en cours d'édition en place (panneau latéral, Ctrl+B / Ctrl+I). */
+  const formatText = (patch: Record<string, string | undefined>) => {
+    if (labelEdit?.styleCellId) engine?.setTextFormat(labelEdit.styleCellId, patch);
+  };
   // Page affichée (pas la vue graphe) : le panneau contextuel est toujours ouvert dessus.
   const currentPage = pageId !== GRAPH_PAGE_ID ? document?.pages.find((page) => page.id === pageId) : undefined;
 
@@ -402,14 +408,17 @@ export function Viewer({
             <LabelEditor
               key={`${labelEdit.pageId}:${labelEdit.elementId}:${labelEdit.end ?? ''}`}
               request={labelEdit}
+              onFormat={formatText}
               onCommit={(text) => {
                 setLabelEdit(undefined);
+                engine?.closeLabelEdit();
                 if (labelEdit.end) engine?.setEdgeEndLabel(labelEdit.elementId, labelEdit.end, text);
                 else engine?.setLabel(labelEdit.elementId, text);
                 engine?.focusCanvas();
               }}
               onCancel={() => {
                 setLabelEdit(undefined);
+                engine?.closeLabelEdit();
                 engine?.focusCanvas();
               }}
             />
@@ -459,6 +468,14 @@ export function Viewer({
             onEditLabel={() => selection && engine?.editLabel(selection.picked.element.id)}
             onEndLabel={(end, text) => selection && engine?.setEdgeEndLabel(selection.picked.element.id, end, text)}
             onDelete={() => engine?.deleteSelection()}
+            textEdit={
+              labelEdit && {
+                style: labelEdit.style,
+                canFormat: labelEdit.styleCellId !== undefined,
+                onEdge: labelEdit.onEdge,
+                onFormat: formatText,
+              }
+            }
             onApplyStyle={(preset) =>
               engine?.applyStylePreset(
                 selected.shapes.map((shape) => shape.id),

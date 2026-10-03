@@ -77,11 +77,14 @@ export function createLabel(shape: ShapeModel, ctx: RenderContext, text = shape.
     color: styleColor(style, 'fontColor', '#000000')!,
     opacity: styleOpacity(style, 'textOpacity'),
     bold: fontStyleBits(style).bold,
+    italic: fontStyleBits(style).italic,
     maxWidth: style.whiteSpace === 'wrap' ? Math.max(right - left, 1) : undefined,
     background: labelBackground(style, null, ctx.background),
   };
   const object = ctx.text.create(spec);
   object.name = 'label';
+  // Cellule qui porte le texte : l'éditeur en place masque ce label pendant la saisie.
+  object.userData.labelCellId = shape.id;
   object.renderOrder = PART_ORDER.label;
   return object;
 }

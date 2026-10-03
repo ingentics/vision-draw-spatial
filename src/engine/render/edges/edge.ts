@@ -90,10 +90,10 @@ export function createEdge(edge: EdgeModel, terminals: EdgeTerminals, ctx: Rende
     }
   }
 
-  const main = createEdgeLabel(edge.label, route, edge.labelPlacement, style, ctx);
+  const main = createEdgeLabel(edge.id, edge.label, route, edge.labelPlacement, style, ctx);
   if (main) group.add(main);
   for (const child of edge.labels) {
-    const label = createEdgeLabel(child.label, route, child.placement, child.style, ctx);
+    const label = createEdgeLabel(child.id, child.label, route, child.placement, child.style, ctx);
     if (label) group.add(label);
   }
 
@@ -101,6 +101,7 @@ export function createEdge(edge: EdgeModel, terminals: EdgeTerminals, ctx: Rende
 }
 
 function createEdgeLabel(
+  cellId: string,
   text: string,
   route: Point[],
   placement: EdgeLabelPlacement,
@@ -121,10 +122,13 @@ function createEdgeLabel(
     color: styleColor(style, 'fontColor', ctx.edgeFontColor ?? DEFAULT_EDGE_FONT_COLOR)!,
     opacity: styleOpacity(style, 'textOpacity'),
     bold: fontStyleBits(style).bold,
+    italic: fontStyleBits(style).italic,
     // Les labels d'arêtes draw.io ont un fond de la couleur de la page par défaut.
     background: labelBackground(style, ctx.background ?? PAGE_BACKGROUND, ctx.background),
   });
   object.name = 'label';
+  // Cellule qui porte le texte (l'arête, ou le label enfant) : masqué pendant l'édition en place.
+  object.userData.labelCellId = cellId;
   object.renderOrder = PART_ORDER.label;
   return object;
 }
