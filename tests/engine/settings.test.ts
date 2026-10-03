@@ -25,6 +25,7 @@ describe('mergeSettings', () => {
       gridSize: 10,
       majorEvery: 4,
       gridColor: '#d4d9e0',
+      minorStrength: 0.55,
     });
     const merged = mergeSettings(DEFAULT_SETTINGS, {
       background: { color: '#1F2530', gridSize: 1000, majorEvery: 2.6 },
@@ -40,7 +41,15 @@ describe('mergeSettings', () => {
   });
 
   it('sélection : voile par défaut, contour animé en option, valeurs bornées', () => {
-    expect(DEFAULT_SETTINGS.selection).toEqual({ style: 'veil', veilOpacity: 0.35, animated: true, speed: 12 });
+    expect(DEFAULT_SETTINGS.selection).toEqual({
+      style: 'veil',
+      veilOpacity: 0.35,
+      animated: true,
+      speed: 12,
+      veilColor: '#202124',
+      veilPadding: 10,
+      accentColor: '#1a73e8',
+    });
     expect(mergeSettings(DEFAULT_SETTINGS, { selection: { style: 'outline' } }).selection.style).toBe('outline');
     expect(mergeSettings(DEFAULT_SETTINGS, { selection: { veilOpacity: 2 } }).selection.veilOpacity).toBe(0.85);
     expect(mergeSettings(DEFAULT_SETTINGS, { selection: { speed: 500 } }).selection.speed).toBe(80);
@@ -97,10 +106,58 @@ describe('shortcutAction', () => {
 
 describe('sauvegarde automatique', () => {
   it('activée par défaut (1 s) ; délai borné, valeurs invalides ignorées', () => {
-    expect(DEFAULT_SETTINGS.save).toEqual({ autosave: true, delayMs: 1000 });
+    expect(DEFAULT_SETTINGS.save).toEqual({ autosave: true, delayMs: 1000, viewStateDelayMs: 500 });
     expect(mergeSettings(DEFAULT_SETTINGS, { save: { delayMs: 10 } }).save.delayMs).toBe(300);
     expect(mergeSettings(DEFAULT_SETTINGS, { save: { delayMs: 999_999 } }).save.delayMs).toBe(30_000);
     const broken = { save: { autosave: 'oui', delayMs: 'vite' } } as unknown as SettingsPatch;
     expect(mergeSettings(DEFAULT_SETTINGS, broken).save).toEqual(DEFAULT_SETTINGS.save);
+  });
+});
+
+describe('réglages exposés (caméra, vue graphe, édition…)', () => {
+  it('valeurs par défaut identiques aux anciennes constantes du moteur', () => {
+    expect(DEFAULT_SETTINGS.camera).toEqual({
+      minZoom: 0.05,
+      maxZoom: 16,
+      minZoom3d: 0.1,
+      maxZoom3d: 4,
+      maxTilt3dDeg: 65,
+      fovDeg: 45,
+      animationMs: 250,
+      focusMaxZoom: 2,
+      focusPadding: 80,
+    });
+    expect(DEFAULT_SETTINGS.graph).toEqual({ cardWidth: 260, columnGap: 200, rowGap: 90 });
+    expect(DEFAULT_SETTINGS.edit).toEqual({
+      edgePickTolerance: 6,
+      handlePickTolerance: 8,
+      handleSize: 4,
+      minShapeSize: 10,
+    });
+    expect(DEFAULT_SETTINGS.controls.orbitSpeed).toBe(0.005);
+    expect(DEFAULT_SETTINGS.controls.multiSelectKey).toBe('ctrl');
+    expect(mergeSettings(DEFAULT_SETTINGS, { controls: { multiSelectKey: 'shift' } }).controls.multiSelectKey).toBe(
+      'shift',
+    );
+    const broken = { controls: { multiSelectKey: 'f' } } as unknown as SettingsPatch;
+    expect(mergeSettings(DEFAULT_SETTINGS, broken).controls.multiSelectKey).toBe('ctrl');
+    expect(DEFAULT_SETTINGS.transition).toMatchObject({ fadeStart: 0.25, fadeEnd: 0.75 });
+  });
+
+  it('caméra : bornes cohérentes (le zoom maximal ne passe jamais sous le minimal)', () => {
+    const camera = mergeSettings(DEFAULT_SETTINGS, { camera: { minZoom: 0.8, maxZoom: 0.2, fovDeg: 500 } }).camera;
+    expect(camera.minZoom).toBe(0.8);
+    expect(camera.maxZoom).toBe(1);
+    expect(camera.fovDeg).toBe(100);
+  });
+
+  it('couleurs invalides ignorées', () => {
+    const merged = mergeSettings(DEFAULT_SETTINGS, {
+      selection: { accentColor: 'bleu' },
+      shapes: { placeholderFill: '#ABCDEF' },
+    });
+    expect(merged.selection.accentColor).toBe('#1a73e8');
+    expect(merged.shapes.placeholderFill).toBe('#abcdef');
+    expect(DEFAULT_SETTINGS.shapes.edgeFontColor).toBe('#000000');
   });
 });

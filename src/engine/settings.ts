@@ -1,6 +1,7 @@
 import { ISOMETRIC_ELEVATION_DEG } from './interaction/camera';
 import { DEFAULT_CONTROLS } from './interaction/controls';
 import type { ControlSettings, Shortcuts } from './interaction/controls';
+import { MULTI_SELECT_KEYS } from './interaction/selection';
 
 /**
  * Paramètres de l'expérience (SPEC §13) : tout ce qui touche au ressenti est réglable, avec des
@@ -12,6 +13,9 @@ export interface TransitionSettings {
   enabled: boolean;
   durationMs: number;
   easing: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out';
+  /** Fondu croisé des deux pages, en fraction de la durée (début et fin, SPEC §11.2). */
+  fadeStart: number;
+  fadeEnd: number;
 }
 
 /** Préchargement de la page cible d'un lien (SPEC §11.1) et cache des scènes. */
@@ -38,6 +42,28 @@ export interface ViewSettings {
   isoVolume: boolean;
   /** Épaisseur par défaut des volumes, en pixels de page (`spatial.height` par forme). */
   isoDepth: number;
+  /** Luminosité des côtés des volumes (fraction de la couleur de fond) : face éclairée, face à l'ombre. */
+  shadeLight: number;
+  shadeDark: number;
+}
+
+/** Caméra (SPEC §9) : bornes de zoom et d'inclinaison, perspective, animations. */
+export interface CameraSettings {
+  /** Zoom minimal et maximal en 2D et en iso (1 = 100 %). */
+  minZoom: number;
+  maxZoom: number;
+  /** Zoom minimal et maximal en 3D. */
+  minZoom3d: number;
+  maxZoom3d: number;
+  /** Inclinaison maximale de la caméra en 3D, en degrés depuis la verticale. */
+  maxTilt3dDeg: number;
+  /** Champ de vision vertical de la perspective 3D, en degrés. */
+  fovDeg: number;
+  /** Durée des déplacements animés (vue globale, réinitialiser la vue, aller à un élément). */
+  animationMs: number;
+  /** Aller à un élément : zoom maximal et marge autour, en pixels écran. */
+  focusMaxZoom: number;
+  focusPadding: number;
 }
 
 /** Fond de la vue et grille (SPEC §9.5), dans les trois modes. */
@@ -54,6 +80,8 @@ export interface BackgroundSettings {
   majorEvery: number;
   /** Couleur des lignes (#rrggbb) ; les lignes secondaires en sont une version plus légère. */
   gridColor: string;
+  /** Intensité des lignes secondaires par rapport aux principales (0–1). */
+  minorStrength: number;
 }
 
 export interface MinimapSettings {
@@ -72,6 +100,40 @@ export interface SelectionSettings {
   animated: boolean;
   /** Vitesse de défilement, en pixels écran par seconde. */
   speed: number;
+  /** Couleur du voile (#rrggbb). */
+  veilColor: string;
+  /** Marge autour de l'élément sélectionné, dans le voile, en pixels de page. */
+  veilPadding: number;
+  /** Couleur d'accent : contour de sélection, poignées, pastilles de lien, cadre de la mini-carte. */
+  accentColor: string;
+}
+
+/** Rendu des formes et des flèches : valeurs par défaut quand le style draw.io ne précise rien. */
+export interface ShapeSettings {
+  /** Couleur du texte des flèches sans `fontColor` (#rrggbb). */
+  edgeFontColor: string;
+  /** Formes non supportées (SPEC §8.4). */
+  placeholderFill: string;
+  placeholderStroke: string;
+}
+
+/** Vue graphe (SPEC §12) : disposition des cartes de pages. */
+export interface GraphSettings {
+  cardWidth: number;
+  columnGap: number;
+  rowGap: number;
+}
+
+/** Édition (SPEC §16) : tolérances et tailles. */
+export interface EditSettings {
+  /** Distance de clic sur une flèche, en pixels écran. */
+  edgePickTolerance: number;
+  /** Distance de clic sur une poignée, en pixels écran. */
+  handlePickTolerance: number;
+  /** Demi-taille des poignées, en pixels écran. */
+  handleSize: number;
+  /** Taille minimale d'une forme redimensionnée, en pixels de page. */
+  minShapeSize: number;
 }
 
 /** Sauvegarde automatique (édition) : peu après chaque modification, sans interrompre un geste en cours. */
@@ -79,6 +141,8 @@ export interface SaveSettings {
   autosave: boolean;
   /** Délai après la dernière modification. */
   delayMs: number;
+  /** Délai avant de mémoriser la position de consultation (page, caméra) après le dernier changement. */
+  viewStateDelayMs: number;
 }
 
 export interface DebugSettings {
@@ -96,9 +160,13 @@ export interface Settings {
   preload: PreloadSettings;
   controls: ControlSettings;
   view: ViewSettings;
+  camera: CameraSettings;
   background: BackgroundSettings;
   minimap: MinimapSettings;
   selection: SelectionSettings;
+  shapes: ShapeSettings;
+  graph: GraphSettings;
+  edit: EditSettings;
   save: SaveSettings;
   debug: DebugSettings;
   accessibility: AccessibilitySettings;
@@ -112,7 +180,7 @@ export type SettingsPatch = {
 };
 
 export const DEFAULT_SETTINGS: Settings = {
-  transition: { enabled: true, durationMs: 1000, easing: 'ease-in-out' },
+  transition: { enabled: true, durationMs: 1000, easing: 'ease-in-out', fadeStart: 0.25, fadeEnd: 0.75 },
   preload: { onClick: true, onHover: false, hoverDelayMs: 300, maxCachedPages: 8 },
   controls: DEFAULT_CONTROLS,
   view: {
@@ -122,6 +190,19 @@ export const DEFAULT_SETTINGS: Settings = {
     switchDurationMs: 450,
     isoVolume: true,
     isoDepth: 16,
+    shadeLight: 0.9,
+    shadeDark: 0.62,
+  },
+  camera: {
+    minZoom: 0.05,
+    maxZoom: 16,
+    minZoom3d: 0.1,
+    maxZoom3d: 4,
+    maxTilt3dDeg: 65,
+    fovDeg: 45,
+    animationMs: 250,
+    focusMaxZoom: 2,
+    focusPadding: 80,
   },
   background: {
     color: '#ffffff',
@@ -130,10 +211,22 @@ export const DEFAULT_SETTINGS: Settings = {
     gridSize: 10,
     majorEvery: 4,
     gridColor: '#d4d9e0',
+    minorStrength: 0.55,
   },
   minimap: { visible: true, size: 200 },
-  selection: { style: 'veil', veilOpacity: 0.35, animated: true, speed: 12 },
-  save: { autosave: true, delayMs: 1000 },
+  selection: {
+    style: 'veil',
+    veilOpacity: 0.35,
+    animated: true,
+    speed: 12,
+    veilColor: '#202124',
+    veilPadding: 10,
+    accentColor: '#1a73e8',
+  },
+  shapes: { edgeFontColor: '#000000', placeholderFill: '#eeeeee', placeholderStroke: '#9e9e9e' },
+  graph: { cardWidth: 260, columnGap: 200, rowGap: 90 },
+  edit: { edgePickTolerance: 6, handlePickTolerance: 8, handleSize: 4, minShapeSize: 10 },
+  save: { autosave: true, delayMs: 1000, viewStateDelayMs: 500 },
   debug: { showUnsupportedPanel: true },
   accessibility: { reducedMotion: 'system' },
 };
@@ -141,6 +234,9 @@ export const DEFAULT_SETTINGS: Settings = {
 /** Bornes des réglages numériques (et pas des curseurs de l'UI). */
 export const SETTINGS_LIMITS = {
   'transition.durationMs': { min: 0, max: 5000, step: 50 },
+  'transition.fadeStart': { min: 0, max: 1, step: 0.05 },
+  'transition.fadeEnd': { min: 0, max: 1, step: 0.05 },
+  'controls.orbitSpeed': { min: 0.001, max: 0.02, step: 0.0005 },
   'preload.hoverDelayMs': { min: 50, max: 3000, step: 50 },
   'preload.maxCachedPages': { min: 1, max: 64, step: 1 },
   'controls.moveSpeed': { min: 50, max: 5000, step: 50 },
@@ -150,12 +246,33 @@ export const SETTINGS_LIMITS = {
   'view.isoAzimuthDeg': { min: -180, max: 180, step: 1 },
   'view.switchDurationMs': { min: 0, max: 3000, step: 50 },
   'view.isoDepth': { min: 2, max: 120, step: 1 },
+  'view.shadeLight': { min: 0.3, max: 1.2, step: 0.02 },
+  'view.shadeDark': { min: 0.2, max: 1.2, step: 0.02 },
+  'camera.minZoom': { min: 0.01, max: 1, step: 0.01 },
+  'camera.maxZoom': { min: 1, max: 64, step: 1 },
+  'camera.minZoom3d': { min: 0.02, max: 1, step: 0.01 },
+  'camera.maxZoom3d': { min: 1, max: 16, step: 0.5 },
+  'camera.maxTilt3dDeg': { min: 10, max: 85, step: 1 },
+  'camera.fovDeg': { min: 15, max: 100, step: 1 },
+  'camera.animationMs': { min: 0, max: 2000, step: 25 },
+  'camera.focusMaxZoom': { min: 0.25, max: 8, step: 0.25 },
+  'camera.focusPadding': { min: 0, max: 300, step: 5 },
   'background.gridSize': { min: 2, max: 200, step: 1 },
   'background.majorEvery': { min: 1, max: 20, step: 1 },
+  'background.minorStrength': { min: 0, max: 1, step: 0.05 },
   'minimap.size': { min: 120, max: 400, step: 10 },
   'selection.speed': { min: 2, max: 80, step: 1 },
   'selection.veilOpacity': { min: 0.05, max: 0.85, step: 0.05 },
+  'selection.veilPadding': { min: 0, max: 60, step: 1 },
+  'graph.cardWidth': { min: 120, max: 600, step: 10 },
+  'graph.columnGap': { min: 40, max: 600, step: 10 },
+  'graph.rowGap': { min: 20, max: 400, step: 10 },
+  'edit.edgePickTolerance': { min: 1, max: 30, step: 1 },
+  'edit.handlePickTolerance': { min: 2, max: 30, step: 1 },
+  'edit.handleSize': { min: 2, max: 12, step: 0.5 },
+  'edit.minShapeSize': { min: 1, max: 100, step: 1 },
   'save.delayMs': { min: 300, max: 30000, step: 100 },
+  'save.viewStateDelayMs': { min: 100, max: 5000, step: 100 },
 } as const;
 
 const EASINGS = ['linear', 'ease-in', 'ease-out', 'ease-in-out'] as const;
@@ -195,6 +312,8 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
       enabled: bool(t.enabled, base.transition.enabled),
       durationMs: num('transition.durationMs', t.durationMs, base.transition.durationMs),
       easing: oneOf(EASINGS, t.easing, base.transition.easing),
+      fadeStart: num('transition.fadeStart', t.fadeStart, base.transition.fadeStart),
+      fadeEnd: num('transition.fadeEnd', t.fadeEnd, base.transition.fadeEnd),
     },
     preload: {
       onClick: bool(pr.onClick, base.preload.onClick),
@@ -207,6 +326,8 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
       moveSpeed: num('controls.moveSpeed', c.moveSpeed, base.controls.moveSpeed),
       zoomSpeed: num('controls.zoomSpeed', c.zoomSpeed, base.controls.zoomSpeed),
       decelerationMs: num('controls.decelerationMs', c.decelerationMs, base.controls.decelerationMs),
+      orbitSpeed: num('controls.orbitSpeed', c.orbitSpeed, base.controls.orbitSpeed),
+      multiSelectKey: oneOf(MULTI_SELECT_KEYS, c.multiSelectKey, base.controls.multiSelectKey),
       shortcuts: {
         toggleViewMode: code(shortcuts.toggleViewMode, base.controls.shortcuts.toggleViewMode),
         toggle3d: code(shortcuts.toggle3d, base.controls.shortcuts.toggle3d),
@@ -214,6 +335,7 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
         toggleMinimap: code(shortcuts.toggleMinimap, base.controls.shortcuts.toggleMinimap),
         overview: code(shortcuts.overview, base.controls.shortcuts.overview),
         back: code(shortcuts.back, base.controls.shortcuts.back),
+        deleteSelection: code(shortcuts.deleteSelection, base.controls.shortcuts.deleteSelection),
       },
     },
     view: {
@@ -223,7 +345,10 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
       switchDurationMs: num('view.switchDurationMs', v.switchDurationMs, base.view.switchDurationMs),
       isoVolume: bool(v.isoVolume, base.view.isoVolume),
       isoDepth: num('view.isoDepth', v.isoDepth, base.view.isoDepth),
+      shadeLight: num('view.shadeLight', v.shadeLight, base.view.shadeLight),
+      shadeDark: num('view.shadeDark', v.shadeDark, base.view.shadeDark),
     },
+    camera: mergeCamera(base.camera, p.camera ?? {}, num),
     background: {
       color: color(b.color, base.background.color),
       grid: bool(b.grid, base.background.grid),
@@ -231,6 +356,7 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
       gridSize: num('background.gridSize', b.gridSize, base.background.gridSize),
       majorEvery: Math.round(num('background.majorEvery', b.majorEvery, base.background.majorEvery)),
       gridColor: color(b.gridColor, base.background.gridColor),
+      minorStrength: num('background.minorStrength', b.minorStrength, base.background.minorStrength),
     },
     minimap: {
       visible: bool(m.visible, base.minimap.visible),
@@ -241,15 +367,60 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
       veilOpacity: num('selection.veilOpacity', p.selection?.veilOpacity, base.selection.veilOpacity),
       animated: bool(p.selection?.animated, base.selection.animated),
       speed: num('selection.speed', p.selection?.speed, base.selection.speed),
+      veilColor: color(p.selection?.veilColor, base.selection.veilColor),
+      veilPadding: num('selection.veilPadding', p.selection?.veilPadding, base.selection.veilPadding),
+      accentColor: color(p.selection?.accentColor, base.selection.accentColor),
+    },
+    shapes: {
+      edgeFontColor: color(p.shapes?.edgeFontColor, base.shapes.edgeFontColor),
+      placeholderFill: color(p.shapes?.placeholderFill, base.shapes.placeholderFill),
+      placeholderStroke: color(p.shapes?.placeholderStroke, base.shapes.placeholderStroke),
+    },
+    graph: {
+      cardWidth: num('graph.cardWidth', p.graph?.cardWidth, base.graph.cardWidth),
+      columnGap: num('graph.columnGap', p.graph?.columnGap, base.graph.columnGap),
+      rowGap: num('graph.rowGap', p.graph?.rowGap, base.graph.rowGap),
+    },
+    edit: {
+      edgePickTolerance: num('edit.edgePickTolerance', p.edit?.edgePickTolerance, base.edit.edgePickTolerance),
+      handlePickTolerance: num('edit.handlePickTolerance', p.edit?.handlePickTolerance, base.edit.handlePickTolerance),
+      handleSize: num('edit.handleSize', p.edit?.handleSize, base.edit.handleSize),
+      minShapeSize: num('edit.minShapeSize', p.edit?.minShapeSize, base.edit.minShapeSize),
     },
     save: {
       autosave: bool(p.save?.autosave, base.save.autosave),
       delayMs: num('save.delayMs', p.save?.delayMs, base.save.delayMs),
+      viewStateDelayMs: num('save.viewStateDelayMs', p.save?.viewStateDelayMs, base.save.viewStateDelayMs),
     },
     debug: { showUnsupportedPanel: bool(p.debug?.showUnsupportedPanel, base.debug.showUnsupportedPanel) },
     accessibility: {
       reducedMotion: oneOf(REDUCED_MOTION, p.accessibility?.reducedMotion, base.accessibility.reducedMotion),
     },
+  };
+}
+
+/**
+ * Caméra : bornes cohérentes (le minimum ne dépasse pas le maximum, même s'ils arrivent dans le
+ * désordre d'un stockage ancien).
+ */
+function mergeCamera(
+  base: CameraSettings,
+  patch: Partial<CameraSettings>,
+  num: (key: keyof typeof SETTINGS_LIMITS, value: unknown, fallback: number) => number,
+): CameraSettings {
+  const value = (key: keyof CameraSettings) => num(`camera.${key}`, patch[key], base[key]);
+  const minZoom = value('minZoom');
+  const minZoom3d = value('minZoom3d');
+  return {
+    minZoom,
+    maxZoom: Math.max(minZoom, value('maxZoom')),
+    minZoom3d,
+    maxZoom3d: Math.max(minZoom3d, value('maxZoom3d')),
+    maxTilt3dDeg: value('maxTilt3dDeg'),
+    fovDeg: value('fovDeg'),
+    animationMs: value('animationMs'),
+    focusMaxZoom: value('focusMaxZoom'),
+    focusPadding: value('focusPadding'),
   };
 }
 

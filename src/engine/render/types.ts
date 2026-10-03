@@ -34,8 +34,17 @@ export interface TextFactory {
 
 export interface RenderContext {
   text: TextFactory;
-  /** Volume des formes en vue iso (niveau `iso`) : épaisseur par défaut, en pixels de page. */
-  volume?: { depth: number };
+  /**
+   * Volume des formes en vue iso (niveau `iso`) : épaisseur par défaut, en pixels de page, et
+   * luminosité des côtés (fraction de la couleur de fond) face éclairée / face à l'ombre.
+   */
+  volume?: { depth: number; shadeLight?: number; shadeDark?: number };
+  /** Couleurs du placeholder des formes non supportées (#rrggbb). */
+  placeholder?: { fill: string; stroke: string };
+  /** Couleur d'accent (pastilles de lien), #rrggbb. */
+  accent?: string;
+  /** Couleur du texte des flèches sans `fontColor` (#rrggbb, noir par défaut). */
+  edgeFontColor?: string;
   /** Couleur du fond de la vue : fond des labels `labelBackgroundColor=default` (blanc par défaut). */
   background?: string;
 }

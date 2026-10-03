@@ -4,9 +4,9 @@ import { ellipsePath, rectPath } from './geometry/paths';
 import { fillMesh, strokeMesh } from './meshes';
 import { PART_ORDER } from './types';
 
-const LINK_COLOR = new Color('#1a73e8');
+/** Couleur d'accent par défaut (paramètre `selection.accentColor`). */
+export const DEFAULT_ACCENT = '#1a73e8';
 const WHITE = new Color('#ffffff');
-const SELECTION_COLOR = new Color('#1a73e8');
 /** Rayon de la pastille de lien, en pixels de page. */
 const BADGE_RADIUS = 6;
 
@@ -14,7 +14,7 @@ const BADGE_RADIUS = 6;
  * Pastille de lien au coin haut-droit d'une forme (SPEC §11.4) : flèche droite pour un lien
  * vers une page, flèche oblique (sortante) pour une URL.
  */
-export function linkBadge(shape: ShapeModel, link: LinkModel): Group {
+export function linkBadge(shape: ShapeModel, link: LinkModel, accent = DEFAULT_ACCENT): Group {
   const group = new Group();
   group.name = 'link-badge';
   const c = { x: shape.bounds.x + shape.bounds.width, y: shape.bounds.y };
@@ -23,7 +23,7 @@ export function linkBadge(shape: ShapeModel, link: LinkModel): Group {
       { x: c.x - BADGE_RADIUS, y: c.y - BADGE_RADIUS, width: 2 * BADGE_RADIUS, height: 2 * BADGE_RADIUS },
       24,
     ),
-    LINK_COLOR,
+    new Color(accent),
     1,
   );
   const r = BADGE_RADIUS * 0.45;
@@ -69,7 +69,7 @@ export function linkBadge(shape: ShapeModel, link: LinkModel): Group {
  * Contour de sélection, d'épaisseur constante à l'écran (reconstruit quand le zoom change).
  * `phase` : décalage des tirets en pixels écran (contour animé : les tirets défilent).
  */
-export function selectionOutline(bounds: Rect, zoom: number, phase = 0): Group {
+export function selectionOutline(bounds: Rect, zoom: number, phase = 0, accent = DEFAULT_ACCENT): Group {
   const group = new Group();
   group.name = 'selection';
   const gap = 3 / zoom;
@@ -80,7 +80,7 @@ export function selectionOutline(bounds: Rect, zoom: number, phase = 0): Group {
       width: bounds.width + 2 * gap,
       height: bounds.height + 2 * gap,
     }),
-    SELECTION_COLOR,
+    new Color(accent),
     1,
     { width: 1.5 / zoom, closed: true, dash: [5 / zoom, 3 / zoom], dashOffset: phase / zoom },
   );

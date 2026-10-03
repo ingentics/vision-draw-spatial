@@ -81,6 +81,42 @@ export function addEdgeCell(page: PageTree, edge: { source: string; target: stri
 }
 
 /**
+ * Ajoute un label enfant à une arête, comme draw.io : vertex `edgeLabel` non connectable, géométrie
+ * relative (`x` = position le long de l'arête, -1 = source, 1 = cible). Renvoie son id.
+ */
+export function addEdgeLabelCell(page: PageTree, edgeId: string, label: { value: string; position: number }): string {
+  if (page.encoding === 'unreadable') throw new Error(`Page ${page.id} illisible : ajout impossible`);
+  const edge = page.cells.get(edgeId)?.element;
+  if (!edge?.parentNode) throw new Error(`Arête ${edgeId} introuvable`);
+  const document = ownerOf(edge);
+  const id = newCellId(page);
+  const cell = document.createElement('mxCell');
+  cell.setAttribute('id', id);
+  cell.setAttribute('value', label.value);
+  cell.setAttribute('style', 'edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];');
+  cell.setAttribute('vertex', '1');
+  cell.setAttribute('connectable', '0');
+  cell.setAttribute('parent', edgeId);
+  const geometry = document.createElement('mxGeometry');
+  geometry.setAttribute('x', formatNumber(label.position));
+  geometry.setAttribute('relative', '1');
+  geometry.setAttribute('as', 'geometry');
+  const offset = document.createElement('mxPoint');
+  offset.setAttribute('as', 'offset');
+  geometry.appendChild(offset);
+  cell.appendChild(geometry);
+  // Juste après l'arête (là où draw.io les écrit), avec la même indentation qu'elle.
+  const parent = edge.parentNode as Element;
+  const before = edge.previousSibling;
+  const next = edge.nextSibling;
+  if (before && isWhitespace(before)) parent.insertBefore(document.createTextNode(before.nodeValue!), next);
+  parent.insertBefore(cell, next);
+  reindexPage(page);
+  markPageDirty(page);
+  return id;
+}
+
+/**
  * Lien d'une cellule (attribut `link`, ex. `data:page/id,…`), absent = retiré. Comme draw.io,
  * une cellule sans enveloppe est d'abord enveloppée dans un `<UserObject>` qui reprend son id et
  * son label (`value` → `label`).

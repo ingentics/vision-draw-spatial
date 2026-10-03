@@ -13,13 +13,19 @@ import { SPATIAL } from '../spatial';
 export const GRAPH_PAGE_ID = '__graph__';
 export const GRAPH_PAGE_NAME = 'Vue graphe';
 
-/** Largeur d'une carte ; la hauteur suit les proportions de la page. */
-const CARD_WIDTH = 260;
-const CARD_MIN_HEIGHT = 110;
-const CARD_MAX_HEIGHT = 260;
-const COLUMN_GAP = 200;
-/** Espace vertical entre cartes (le titre se place au-dessus de chaque carte). */
-const ROW_GAP = 90;
+/** Disposition des cartes (paramètres « Vue graphe »). */
+export interface GraphLayoutOptions {
+  /** Largeur d'une carte ; la hauteur suit les proportions de la page. */
+  cardWidth: number;
+  columnGap: number;
+  /** Espace vertical entre cartes (le titre se place au-dessus de chaque carte). */
+  rowGap: number;
+}
+
+export const DEFAULT_GRAPH_LAYOUT: GraphLayoutOptions = { cardWidth: 260, columnGap: 200, rowGap: 90 };
+/** Hauteur d'une carte bornée, en fraction de sa largeur. */
+const CARD_MIN_RATIO = 110 / 260;
+const CARD_MAX_RATIO = 1;
 const TITLE_HEIGHT = 26;
 /** Décalage des deux flèches d'un aller-retour, pour qu'elles ne se superposent pas. */
 const PAIR_OFFSET = 16;
@@ -53,7 +59,8 @@ export const titleId = (pageId: string) => `graph-title:${pageId}`;
  * les pages inaccessibles, puis une pour les orphelines. Ordre du document dans chaque colonne,
  * colonnes centrées verticalement.
  */
-export function layoutGraph(document: DocumentModel): GraphLayout {
+export function layoutGraph(document: DocumentModel, options = DEFAULT_GRAPH_LAYOUT): GraphLayout {
+  const { cardWidth, columnGap, rowGap } = options;
   const graph = buildNavigationGraph(document);
   const reachableDepth = Math.max(-1, ...graph.nodes.filter((n) => n.reachable).map((n) => n.depth!));
   const columnOf = (node: GraphNode) =>
@@ -68,7 +75,7 @@ export function layoutGraph(document: DocumentModel): GraphLayout {
   const heightOf = (node: GraphNode) => {
     const bounds = pages.get(node.pageId)!.bounds;
     const aspect = bounds.width > 0 && bounds.height > 0 ? bounds.height / bounds.width : 0.6;
-    return Math.min(CARD_MAX_HEIGHT, Math.max(CARD_MIN_HEIGHT, CARD_WIDTH * aspect));
+    return cardWidth * Math.min(CARD_MAX_RATIO, Math.max(CARD_MIN_RATIO, aspect));
   };
 
   const cards: GraphCard[] = [];
@@ -76,25 +83,28 @@ export function layoutGraph(document: DocumentModel): GraphLayout {
     .sort((a, b) => a - b)
     .forEach((column, i) => {
       const nodes = columns.get(column)!;
-      const total = nodes.reduce((sum, n) => sum + heightOf(n) + TITLE_HEIGHT, 0) + ROW_GAP * (nodes.length - 1);
+      const total = nodes.reduce((sum, n) => sum + heightOf(n) + TITLE_HEIGHT, 0) + rowGap * (nodes.length - 1);
       let y = -total / 2;
       for (const node of nodes) {
         const height = heightOf(node);
         y += TITLE_HEIGHT;
         cards.push({
           pageId: node.pageId,
-          bounds: { x: i * (CARD_WIDTH + COLUMN_GAP), y, width: CARD_WIDTH, height },
+          bounds: { x: i * (cardWidth + columnGap), y, width: cardWidth, height },
           node,
         });
-        y += height + ROW_GAP;
+        y += height + rowGap;
       }
     });
   return { graph, cards };
 }
 
 /** Construit la page graphe d'un document. */
-export function buildGraphPage(document: DocumentModel): { page: PageModel; layout: GraphLayout } {
-  const layout = layoutGraph(document);
+export function buildGraphPage(
+  document: DocumentModel,
+  options = DEFAULT_GRAPH_LAYOUT,
+): { page: PageModel; layout: GraphLayout } {
+  const layout = layoutGraph(document, options);
   const { graph, cards } = layout;
   const byPage = new Map(cards.map((c) => [c.pageId, c]));
   const shapes: ShapeModel[] = [];

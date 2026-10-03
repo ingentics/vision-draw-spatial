@@ -65,6 +65,18 @@ export function collectMoveSet(page: PageModel, rootId: string): MoveSet {
   return { rootId, shapeIds, edgeIds, connectedEdgeIds };
 }
 
+/**
+ * Déplacement de plusieurs formes ensemble (sélection multiple) : réunion de leurs ensembles. La
+ * première forme reste la forme saisie ; une arête reliée à une forme mais contenue dans une autre
+ * est déplacée avec elle, pas seulement retracée.
+ */
+export function unionMoveSets(sets: MoveSet[]): MoveSet {
+  const shapeIds = new Set(sets.flatMap((set) => [...set.shapeIds]));
+  const edgeIds = new Set(sets.flatMap((set) => [...set.edgeIds]));
+  const connectedEdgeIds = new Set(sets.flatMap((set) => [...set.connectedEdgeIds]).filter((id) => !edgeIds.has(id)));
+  return { rootId: sets[0]?.rootId ?? '', shapeIds, edgeIds, connectedEdgeIds };
+}
+
 /** Applique un déplacement au modèle (en place) et recalcule l'emprise de la page. */
 export function translateMoveSet(page: PageModel, set: MoveSet, delta: Point): void {
   if (delta.x === 0 && delta.y === 0) return;

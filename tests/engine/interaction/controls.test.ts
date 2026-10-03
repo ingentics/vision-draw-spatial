@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { decelerate, keyDirection, releaseVelocity, wheelZoomFactor } from '../../../src/engine/interaction/controls';
+import {
+  decelerate,
+  DEFAULT_SHORTCUTS,
+  keyDirection,
+  releaseVelocity,
+  resolveShortcut,
+  wheelZoomFactor,
+} from '../../../src/engine/interaction/controls';
 
 describe('keyDirection', () => {
   it('lettres par position physique : Z Q S D (AZERTY) = W A S D (QWERTY)', () => {
@@ -76,5 +83,19 @@ describe('glissade', () => {
       { t: 10, p: { x: 1000, y: 0 } },
     ];
     expect(releaseVelocity(fast, 10).x).toBe(3000);
+  });
+});
+
+describe('raccourci « supprimer la sélection »', () => {
+  it('Backspace supprime s’il y a une sélection, sinon c’est Retour', () => {
+    expect(resolveShortcut('Backspace', DEFAULT_SHORTCUTS, { canDelete: true })).toBe('deleteSelection');
+    expect(resolveShortcut('Backspace', DEFAULT_SHORTCUTS, { canDelete: false })).toBe('back');
+  });
+
+  it('touche paramétrable ; sans sélection, une touche dédiée ne fait rien', () => {
+    const shortcuts = { ...DEFAULT_SHORTCUTS, deleteSelection: 'x' };
+    expect(resolveShortcut('X', shortcuts, { canDelete: true })).toBe('deleteSelection');
+    expect(resolveShortcut('x', shortcuts, { canDelete: false })).toBeUndefined();
+    expect(resolveShortcut('Backspace', shortcuts, { canDelete: true })).toBe('back');
   });
 });

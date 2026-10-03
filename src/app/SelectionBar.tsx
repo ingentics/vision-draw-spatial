@@ -1,5 +1,7 @@
 import type { Selection } from '../engine/Engine';
-import type { LinkModel, PageModel } from '../engine/model/types';
+import { endLabelOf } from '../engine/edit/edgeLabels';
+import type { EdgeEnd } from '../engine/edit/edgeLabels';
+import type { EdgeModel, LinkModel, PageModel } from '../engine/model/types';
 import { SPATIAL, spatialNumber } from '../engine/spatial';
 
 interface SelectionBarProps {
@@ -11,7 +13,11 @@ interface SelectionBarProps {
   /** Épaisseur par défaut des volumes (réglage), affichée quand la forme n'a pas la sienne. */
   defaultDepth: number;
   onEditLabel: () => void;
+  /** Texte de début ou de fin d'une flèche (vide = retiré). */
+  onEndLabel: (end: EdgeEnd, text: string) => void;
   onDelete: () => void;
+  /** Libellé de la touche de sélection multiple (ex. « Ctrl »), pour l'aide. */
+  multiSelectKey: string;
 }
 
 const NONE = '';
@@ -19,7 +25,7 @@ const URL_OPTION = '__url__';
 
 /**
  * Barre de la sélection (SPEC §14.1) : lien vers une page ou une URL, édition du texte (F2),
- * suppression (Suppr).
+ * suppression (Suppr). En sélection multiple : nombre d'éléments et suppression seulement.
  */
 export function SelectionBar({
   selection,
@@ -28,8 +34,28 @@ export function SelectionBar({
   onSpatial,
   defaultDepth,
   onEditLabel,
+  onEndLabel,
   onDelete,
+  multiSelectKey,
 }: SelectionBarProps) {
+  if (selection.items.length > 1) {
+    const shapes = selection.items.filter((item) => item.type === 'shape').length;
+    const edges = selection.items.length - shapes;
+    const parts = [
+      shapes > 0 && `${shapes} forme${shapes > 1 ? 's' : ''}`,
+      edges > 0 && `${edges} flèche${edges > 1 ? 's' : ''}`,
+    ].filter(Boolean);
+    return (
+      <div className="selection-bar" role="toolbar" aria-label="Sélection">
+        <span className="selection-name" title={`${multiSelectKey} + clic : ajouter ou retirer un élément`}>
+          <strong>{selection.items.length} éléments</strong> ({parts.join(', ')})
+        </span>
+        <button type="button" className="button" title="Supprimer les éléments sélectionnés (Suppr)" onClick={onDelete}>
+          Supprimer
+        </button>
+      </div>
+    );
+  }
   const { element, type } = selection.picked;
   const link = element.link;
   const value = link?.type === 'page' ? `page:${link.pageId}` : link?.type === 'url' ? URL_OPTION : NONE;
@@ -87,13 +113,65 @@ export function SelectionBar({
           />
         </>
       )}
+      {type === 'edge' &&
+        (['start', 'end'] as const).map((end) => {
+          const current = endLabelOf(element as EdgeModel, end)?.label ?? '';
+          return (
+            <TextField
+              key={`${end}:${element.id}:${current}`}
+              label={end === 'start' ? 'Début' : 'Fin'}
+              title={
+                end === 'start'
+                  ? 'Texte près du début de la flèche (côté source) ; vide = aucun'
+                  : 'Texte près de la fin de la flèche (côté pointe) ; vide = aucun'
+              }
+              value={current}
+              onCommit={(text) => onEndLabel(end, text)}
+            />
+          );
+        })}
       <button type="button" className="button" title="Modifier le texte (F2, ou double-clic)" onClick={onEditLabel}>
-        Texte
+        {type === 'edge' ? 'Texte du milieu' : 'Texte'}
       </button>
       <button type="button" className="button" title="Supprimer (Suppr)" onClick={onDelete}>
         Supprimer
       </button>
     </div>
+  );
+}
+
+/** Champ texte (début / fin d'une flèche) : validé à Entrée ou en quittant le champ, Échap annule. */
+function TextField({
+  label,
+  title,
+  value,
+  onCommit,
+}: {
+  label: string;
+  title: string;
+  value: string;
+  onCommit: (text: string) => void;
+}) {
+  return (
+    <label className="selection-field" title={title}>
+      {label}
+      <input
+        type="text"
+        className="selection-text"
+        defaultValue={value}
+        placeholder="aucun"
+        onBlur={(event) => {
+          if (event.target.value !== value) onCommit(event.target.value);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') event.currentTarget.blur();
+          else if (event.key === 'Escape') {
+            event.currentTarget.value = value;
+            event.currentTarget.blur();
+          }
+        }}
+      />
+    </label>
   );
 }
 

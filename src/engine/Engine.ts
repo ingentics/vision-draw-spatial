@@ -1,4 +1,4 @@
-import { Box3, Color, Mesh, OrthographicCamera, PerspectiveCamera, Scene, WebGLRenderer } from 'three';
+import { Box3, Color, Group, Mesh, OrthographicCamera, PerspectiveCamera, Scene, WebGLRenderer } from 'three';
 import type { MeshBasicMaterial, Object3D } from 'three';
 import { collectUnsupported } from './diagnostics/unsupportedStyles';
 import type { UnsupportedReport } from './diagnostics/unsupportedStyles';
@@ -16,8 +16,10 @@ import {
 } from './format/edit';
 import {
   addEdgeCell,
+  addEdgeLabelCell,
   addPage,
   addShapeCell,
+  removeCells,
   removeCellsDeep,
   removePage,
   renamePage,
@@ -28,8 +30,11 @@ import { readPageViews, writePageViews } from './format/viewState';
 import type { IsoViewParams, PageViewState } from './format/viewState';
 import { writeDrawio } from './format/write';
 import type { DrawioTree, PageTree } from './format/xmlTree';
-import { collectMoveSet, isLocked, moveTarget, snapDelta, translateMoveSet } from './edit/move';
+import { collectMoveSet, isLocked, moveTarget, snapDelta, translateMoveSet, unionMoveSets } from './edit/move';
 import type { MoveSet } from './edit/move';
+import { endAt, endLabelOf, endLabelPosition } from './edit/edgeLabels';
+import { labelPoint, positionAlong } from './render/edges/polyline';
+import type { EdgeEnd } from './edit/edgeLabels';
 import { handlePoints, resizeBounds } from './edit/handles';
 import type { HandleKind, ResizeHandle } from './edit/handles';
 import { dropBounds } from './edit/palette';
@@ -38,9 +43,10 @@ import type { ShapeTemplate } from './edit/palette';
 import {
   applyCameraState,
   applyPerspectiveState,
+  defaultView,
+  setCameraLimits,
   fitBounds,
   interpolateCamera,
-  MAX_ZOOM,
   normalizeAngle,
   normalizeCameraState,
   pageToScreen,
@@ -66,6 +72,7 @@ import { buildGraphScene } from './graph/graphScene';
 import { Minimap } from './interaction/minimap';
 import { pickElement } from './interaction/pick';
 import type { PickedElement } from './interaction/pick';
+import { independentRoots, toggleSelected } from './interaction/selection';
 import { easing, embedIn, embeddedCamera, phase } from './interaction/transitions';
 import { computeBounds } from './model/bounds';
 import type { DocumentModel, LinkModel, PageModel, Point, Rect, ShapeModel } from './model/types';
@@ -92,7 +99,10 @@ export type { PreloadSettings, Settings, SettingsPatch, TransitionSettings, View
 
 export interface Selection {
   pageId: string;
+  /** Dernier élément sélectionné (le seul, hors sélection multiple). */
   picked: PickedElement;
+  /** Tous les éléments sélectionnés, dans l'ordre de sélection (`picked` est le dernier). */
+  items: PickedElement[];
 }
 
 /** Ouvre une URL externe (SPEC §11.4) : nouvel onglet, sans accès retour à cette page. */
@@ -100,8 +110,6 @@ function defaultOpenUrl(href: string): void {
   window.open(href, '_blank', 'noopener,noreferrer');
 }
 
-/** Pixels écran de tolérance pour attraper une arête. */
-const EDGE_PICK_TOLERANCE = 6;
 /**
  * Cadrage d'une page vide : le haut de la feuille draw.io, pour que les formes ajoutées
  * tombent en coordonnées positives (sur la page, à l'ouverture dans draw.io).
@@ -111,9 +119,6 @@ const EMPTY_PAGE_AREA: Rect = { x: 0, y: 0, width: 800, height: 600 };
 function isEmptyPage(page: PageModel): boolean {
   return page.shapes.length === 0 && page.edges.length === 0;
 }
-
-/** Marge du trou dans le voile autour d'une flèche sélectionnée, en pixels écran (de chaque côté). */
-const VEIL_HOLE_PADDING = 10;
 
 export interface EngineOptions {
   canvas: HTMLCanvasElement;
@@ -185,6 +190,8 @@ export type EngineEvent = keyof EngineEvents;
 export interface LabelEditRequest {
   pageId: string;
   elementId: string;
+  /** Texte de début ou de fin d'une flèche (`setEdgeEndLabel`) ; absent = label de l'élément (`setLabel`). */
+  end?: EdgeEnd;
   /** Texte brut actuel. */
   text: string;
   screen: Rect;
@@ -194,6 +201,8 @@ export interface LabelEditRequest {
 interface MoveDrag {
   kind: 'move';
   pageId: string;
+  /** Formes dont la géométrie XML est réécrite (plusieurs en sélection multiple). */
+  rootIds: string[];
   set: MoveSet;
   start: Point;
   origin: Rect;
@@ -223,8 +232,6 @@ interface ConnectDrag {
   started: boolean;
 }
 
-/** Tolérance pour attraper une poignée, en pixels écran. */
-const HANDLE_PICK_TOLERANCE = 8;
 /** Style des connecteurs créés (celui de draw.io par défaut). */
 const CONNECTOR_STYLE = 'edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;';
 /** Curseur de chaque poignée de redimensionnement. */
@@ -279,7 +286,8 @@ export class Engine {
 
   private readonly openUrl: (href: string) => void;
   private selection: Selection | undefined;
-  private selectionObject: ReturnType<typeof selectionOutline> | undefined;
+  /** Contours de la sélection (style « contour »), un par élément sélectionné. */
+  private selectionObject: Group | undefined;
   /** Contour animé : décalage des tirets (pixels écran) et boucle d'animation. */
   private selectionPhase = 0;
   /** Voile de mise en valeur de la sélection, et de quoi l'annuler. */
@@ -320,6 +328,7 @@ export class Engine {
       ? mergeSettings(DEFAULT_SETTINGS, { background: { color: options.background } })
       : DEFAULT_SETTINGS;
     this.settings = mergeSettings(initial, options.settings);
+    this.applyCameraLimits();
     this.reducedMotionQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)');
     this.reducedMotionQuery?.addEventListener?.('change', this.onReducedMotionChange);
     if (this.settings.view.defaultMode !== 'top') {
@@ -360,7 +369,7 @@ export class Engine {
         setCameraState: (state) => this.setCameraState(state),
         getViewport: () => this.viewport,
         toggleOverview: (screen) => this.toggleOverview(screen),
-        click: (screen) => this.handleClick(screen),
+        click: (screen, options) => this.handleClick(screen, options.toggle),
         doubleClick: (screen) => this.handleDoubleClick(screen),
         hover: (screen) => this.handleHover(screen),
         back: () => this.back(),
@@ -373,6 +382,10 @@ export class Engine {
         endMove: () => this.endMove(),
         editSelection: () => this.editLabel(),
         deleteSelection: () => this.deleteSelection(),
+        canDeleteSelection: () => {
+          const editable = this.editablePage();
+          return !!editable && this.selection?.pageId === editable.page.id;
+        },
         escape: () => this.clearSelection(),
       },
       this.effectiveControls(),
@@ -580,11 +593,14 @@ export class Engine {
       this.applyHeightScale();
     }
     if (selected && selected.pageId === current?.id) {
-      const id = selected.picked.element.id;
-      const shape = current.shapes.find((s) => s.id === id);
-      const edge = current.edges.find((e) => e.id === id);
-      if (shape) this.select({ type: 'shape', element: shape });
-      else if (edge) this.select({ type: 'edge', element: edge });
+      const items: PickedElement[] = [];
+      for (const { element } of selected.items) {
+        const shape = current.shapes.find((s) => s.id === element.id);
+        const edge = current.edges.find((e) => e.id === element.id);
+        if (shape) items.push({ type: 'shape', element: shape });
+        else if (edge) items.push({ type: 'edge', element: edge });
+      }
+      if (items.length > 0) this.selectItems(items);
     }
     this.syncBackground();
     this.minimap?.invalidate();
@@ -613,7 +629,13 @@ export class Engine {
     const page = this.getCurrentPage();
     if (!page) return;
     const bounds = page.shapes.find((s) => s.id === elementId)?.bounds ?? this.drawnBounds(elementId) ?? page.bounds;
-    this.animateCameraTo(fitBounds(bounds, this.viewport, { ...this.orientation(), padding: 80, maxZoom: 2 }));
+    this.animateCameraTo(
+      fitBounds(bounds, this.viewport, {
+        ...this.orientation(),
+        padding: this.settings.camera.focusPadding,
+        maxZoom: this.settings.camera.focusMaxZoom,
+      }),
+    );
   }
 
   /** Emprise dessinée d'un élément de la page courante, en coordonnées page. */
@@ -699,7 +721,7 @@ export class Engine {
    * Anime la caméra vers un état (instantané si les animations sont réduites). Toute autre entrée
    * l'interrompt. `blendLevels` : bascule 2D ↔ volume, en fondu enchaîné des deux rendus.
    */
-  animateCameraTo(target: CameraState, durationMs = 250, blendLevels = false): void {
+  animateCameraTo(target: CameraState, durationMs = this.settings.camera.animationMs, blendLevels = false): void {
     this.endLevelBlend();
     if (this.reducedMotion() || durationMs <= 0) {
       this.setCameraState(target);
@@ -729,7 +751,7 @@ export class Engine {
   getOverviewState(): CameraState | undefined {
     const page = this.getCurrentPage();
     if (!page) return undefined;
-    return fitBounds(page.bounds, this.viewport, { ...this.orientation(), maxZoom: MAX_ZOOM });
+    return fitBounds(page.bounds, this.viewport, { ...this.orientation(), maxZoom: this.settings.camera.maxZoom });
   }
 
   /**
@@ -768,8 +790,15 @@ export class Engine {
   private renderContext() {
     return {
       text: this.text,
-      volume: { depth: this.settings.view.isoDepth },
+      volume: {
+        depth: this.settings.view.isoDepth,
+        shadeLight: this.settings.view.shadeLight,
+        shadeDark: this.settings.view.shadeDark,
+      },
       background: this.settings.background.color,
+      placeholder: { fill: this.settings.shapes.placeholderFill, stroke: this.settings.shapes.placeholderStroke },
+      accent: this.settings.selection.accentColor,
+      edgeFontColor: this.settings.shapes.edgeFontColor,
     };
   }
 
@@ -784,6 +813,7 @@ export class Engine {
       color: background.gridColor,
       cell: pageCell > 0 ? pageCell : background.gridSize,
       majorEvery: background.majorEvery,
+      minorStrength: background.minorStrength,
     };
   }
 
@@ -850,6 +880,8 @@ export class Engine {
     if (page && !this.transition && (blend.volume || blend.flat)) {
       this.scenes.show(page);
       this.applyHeightScale();
+      // La sélection suit la scène affichée (voile, contour, poignées).
+      this.updateSelectionOutline();
       this.requestRender();
     }
   }
@@ -872,11 +904,13 @@ export class Engine {
     this.cameraState = normalizeCameraState(state);
     // Changement de niveau (mode, ou fin d'une bascule vers la 2D) : la page passe au rendu de ce
     // niveau (même scène si tout est à plat).
+    let sceneChanged = false;
     if (this.requestedLevel() !== previousLevel && !this.transition) {
       const page = this.getCurrentPage();
       if (page) {
         this.scenes.show(page);
         this.minimap?.invalidate();
+        sceneChanged = true;
       }
     }
     if (this.currentPageId) {
@@ -884,8 +918,9 @@ export class Engine {
       if (!this.transition) this.pageIso.set(this.currentPageId, this.isoParams());
     }
     this.minimap?.requestDraw();
-    // Contour de sélection d'épaisseur constante à l'écran.
-    if (this.selection && this.cameraState.zoom !== previousZoom) this.updateSelectionOutline();
+    // Contour de sélection d'épaisseur constante à l'écran ; la sélection est transférée à la scène
+    // du nouveau niveau quand on change de vue (2D ↔ iso / 3D).
+    if (this.selection && (sceneChanged || this.cameraState.zoom !== previousZoom)) this.updateSelectionOutline();
     this.applyProjection();
     this.applyHeightScale();
     this.events.emit('cameraChange', this.getCameraState());
@@ -982,7 +1017,7 @@ export class Engine {
   /** Page générée de la vue graphe (cartes des pages, flèches des liens). */
   getGraphPage(): PageModel | undefined {
     if (!this.document) return undefined;
-    this.graph ??= buildGraphPage(this.document);
+    this.graph ??= buildGraphPage(this.document, this.settings.graph);
     return this.graph.page;
   }
 
@@ -1031,6 +1066,7 @@ export class Engine {
         getCamera: () => this.cameraState,
         getViewport: () => this.viewport,
         getBackground: () => this.settings.background.color,
+        getAccent: () => this.settings.selection.accentColor,
         getEdgeRoute: (id) => this.sceneObject(id)?.userData.route as Point[] | undefined,
         paintShape: (context, shape, map) => this.registry.minimapPainter(shape)?.(context, shape, map),
         centerOn: (point) => {
@@ -1047,11 +1083,19 @@ export class Engine {
     };
   }
 
+  /** Vue par défaut du mode courant (orientation de référence, page entière), en animation. */
+  resetView(): void {
+    const page = this.getCurrentPage();
+    if (!page || this.transition) return;
+    const { mode } = this.cameraState;
+    this.animateCameraTo(defaultView(page.bounds, this.viewport, mode, this.isoTilt(), this.isoAzimuth()));
+  }
+
   /** Revient à l'orientation de référence du mode (nord en haut, ou l'orientation iso), autour du centre de l'écran. */
   resetRotation(): void {
     const center = { x: this.viewport.width / 2, y: this.viewport.height / 2 };
     const delta = normalizeAngle(this.getReferenceRotation() - this.cameraState.rotation);
-    this.animateCameraTo(rotateAround(this.cameraState, this.viewport, center, delta), 300);
+    this.animateCameraTo(rotateAround(this.cameraState, this.viewport, center, delta));
   }
 
   getControls(): ControlSettings {
@@ -1081,14 +1125,25 @@ export class Engine {
     this.scenes.setMaxCached(this.settings.preload.maxCachedPages);
     this.syncSelectionAnimation();
     this.updateSelectionOutline();
+    const changed = <K extends keyof Settings>(section: K) =>
+      JSON.stringify(this.settings[section]) !== JSON.stringify(previous[section]);
+    if (changed('camera')) this.applyCameraLimits();
+    if (changed('graph')) this.graph = undefined;
     if (
       this.settings.view.isoVolume !== previous.view.isoVolume ||
       this.settings.view.isoDepth !== previous.view.isoDepth ||
+      this.settings.view.shadeLight !== previous.view.shadeLight ||
+      this.settings.view.shadeDark !== previous.view.shadeDark ||
       // Fonds de labels « default » = couleur du fond.
-      this.settings.background.color !== previous.background.color
+      this.settings.background.color !== previous.background.color ||
+      this.settings.selection.accentColor !== previous.selection.accentColor ||
+      changed('shapes') ||
+      changed('graph')
     ) {
       this.rebuildScenes();
     }
+    if (changed('camera') && !this.transition && !this.animation) this.setCameraState(this.cameraState);
+    if (this.settings.selection.accentColor !== previous.selection.accentColor) this.minimap?.requestDraw();
     this.syncBackground();
 
     const view = this.settings.view;
@@ -1103,6 +1158,19 @@ export class Engine {
       if (!sameView(target, this.cameraState, this.viewport)) this.animateCameraTo(target, view.switchDurationMs);
     }
     this.events.emit('settingsChange', this.getSettings());
+  }
+
+  /** Bornes de la caméra (zoom, inclinaison et champ de vision de la 3D) : paramètres « Caméra ». */
+  private applyCameraLimits(): void {
+    const camera = this.settings.camera;
+    setCameraLimits({
+      minZoom: camera.minZoom,
+      maxZoom: camera.maxZoom,
+      minZoom3d: camera.minZoom3d,
+      maxZoom3d: camera.maxZoom3d,
+      maxTilt3d: (camera.maxTilt3dDeg * Math.PI) / 180,
+      fov: (camera.fovDeg * Math.PI) / 180,
+    });
   }
 
   /** Animations réduites : réglage d'accessibilité, ou préférence système si « système ». */
@@ -1155,7 +1223,7 @@ export class Engine {
     if (!page) return undefined;
     const point = screenToPage(this.cameraState, this.viewport, screen);
     return pickElement(page, point, {
-      edgeTolerance: EDGE_PICK_TOLERANCE / this.cameraState.zoom,
+      edgeTolerance: this.settings.edit.edgePickTolerance / this.cameraState.zoom,
       edgeRoute: (id) => this.sceneObject(id)?.userData.route as Point[] | undefined,
       heightOf: (id) => this.elementTop(id),
       pointAtHeight: (height) => this.groundPointAtHeight(screen, height),
@@ -1163,11 +1231,31 @@ export class Engine {
   }
 
   select(picked: PickedElement | undefined): void {
+    this.selectItems(picked ? [picked] : []);
+  }
+
+  /**
+   * Sélection multiple (touche `controls.multiSelectKey` + clic) : ajoute l'élément à la sélection
+   * de la page courante, ou l'en retire s'il y est déjà.
+   */
+  toggleSelect(picked: PickedElement): void {
+    const current = this.selection?.pageId === this.currentPageId ? (this.selection?.items ?? []) : [];
+    this.selectItems(toggleSelected(current, picked));
+  }
+
+  /** Sélectionne ces éléments de la page courante (aucun = désélection). */
+  selectItems(items: PickedElement[]): void {
     const page = this.getCurrentPage();
-    this.selection = picked && page ? { pageId: page.id, picked } : undefined;
+    const picked = items[items.length - 1];
+    this.selection = picked && page ? { pageId: page.id, picked, items: [...items] } : undefined;
     this.updateSelectionOutline();
     this.syncSelectionAnimation();
     this.events.emit('selectionChange', this.selection);
+  }
+
+  /** La sélection compte-t-elle plusieurs éléments ? */
+  private isMultiSelection(): boolean {
+    return (this.selection?.items.length ?? 0) > 1;
   }
 
   clearSelection(): void {
@@ -1341,8 +1429,7 @@ export class Engine {
 
     const ease = easing(this.settings.transition.easing);
     const duration = this.settings.transition.durationMs;
-    const FADE_START = 0.25;
-    const FADE_END = 0.75;
+    const { fadeStart, fadeEnd } = this.settings.transition;
 
     this.controller.setEnabled(false);
     this.events.emit('transitionStart', from.id, to.id);
@@ -1373,7 +1460,7 @@ export class Engine {
       const t = Math.min((now - start) / duration, 1);
       if (t < 1) {
         this.applyCamera(interpolateCamera(startCamera, endCamera, ease(t)));
-        const fade = phase(t, FADE_START, FADE_END);
+        const fade = phase(t, fadeStart, fadeEnd);
         setPageOpacity(innerScene.root, innerAlpha(fade));
         setPageOpacity(outerScene.root, 1 - innerAlpha(fade));
         this.animation = requestAnimationFrame(step);
@@ -1412,6 +1499,8 @@ export class Engine {
     const editable = this.editablePage();
     const picked = this.selection?.picked;
     if (!editable || picked?.type !== 'shape' || this.selection?.pageId !== editable.page.id) return undefined;
+    // Poignées, redimensionnement et connecteur : une seule forme sélectionnée.
+    if (this.isMultiSelection()) return undefined;
     const shape = editable.page.shapes.find((s) => s.id === picked.element.id);
     if (!shape || isLocked(shape) || !canMoveCell(editable.pageTree, shape.id)) return undefined;
     return { ...editable, shape };
@@ -1434,7 +1523,8 @@ export class Engine {
       if (kind !== 'connect' && !resizable) continue;
       const at = this.screenOfPoint(point, top);
       const distance = Math.hypot(at.x - screen.x, at.y - screen.y);
-      if (distance <= HANDLE_PICK_TOLERANCE && (!best || distance < best.distance)) best = { kind, distance };
+      if (distance <= this.settings.edit.handlePickTolerance && (!best || distance < best.distance))
+        best = { kind, distance };
     }
     return best?.kind;
   }
@@ -1474,10 +1564,34 @@ export class Engine {
     if (picked?.type !== 'shape') return false;
     const shape = moveTarget(page, picked.element);
     if (isLocked(shape) || !canMoveCell(pageTree, shape.id)) return false;
+    // Forme saisie dans une sélection multiple : toutes les formes sélectionnées bougent ensemble
+    // (celles qu'on ne peut pas déplacer restent en place).
+    const selection = this.selection;
+    const grabbedSelected =
+      this.isMultiSelection() &&
+      selection?.pageId === page.id &&
+      selection.items.some((item) => item.type === 'shape' && moveTarget(page, item.element).id === shape.id);
+    const candidates = grabbedSelected
+      ? [
+          shape.id,
+          ...selection!.items
+            .filter((item) => item.type === 'shape')
+            .map((item) => moveTarget(page, item.element))
+            .filter((target) => !isLocked(target) && canMoveCell(pageTree, target.id))
+            .map((target) => target.id),
+        ]
+      : [shape.id];
+    const sets = new Map<string, MoveSet>();
+    const setOf = (id: string) => {
+      if (!sets.has(id)) sets.set(id, collectMoveSet(page, id));
+      return sets.get(id)!;
+    };
+    const rootIds = independentRoots(candidates, (id) => setOf(id).shapeIds);
     this.drag = {
       kind: 'move',
       pageId: page.id,
-      set: collectMoveSet(page, shape.id),
+      rootIds,
+      set: unionMoveSets(rootIds.map(setOf)),
       start,
       origin: { ...shape.bounds },
       applied: { x: 0, y: 0 },
@@ -1504,8 +1618,9 @@ export class Engine {
   private dragMove(page: PageModel, move: MoveDrag, point: Point, snap: boolean): void {
     if (!move.started) {
       move.started = true;
+      // Une forme seule devient la sélection ; une sélection multiple déplacée reste telle quelle.
       const shape = page.shapes.find((s) => s.id === move.set.rootId);
-      if (shape) this.select({ type: 'shape', element: shape });
+      if (shape && move.rootIds.length === 1) this.select({ type: 'shape', element: shape });
     }
     const raw = { x: point.x - move.start.x, y: point.y - move.start.y };
     const target = snapDelta(move.origin, raw, snap ? move.grid : 0);
@@ -1523,7 +1638,13 @@ export class Engine {
     if (!shape) return;
     resize.started = true;
     const delta = { x: point.x - resize.start.x, y: point.y - resize.start.y };
-    const bounds = resizeBounds(resize.origin, resize.handle, delta, snap ? resize.grid : 0);
+    const bounds = resizeBounds(
+      resize.origin,
+      resize.handle,
+      delta,
+      snap ? resize.grid : 0,
+      this.settings.edit.minShapeSize,
+    );
     const previous = shape.bounds;
     if (
       bounds.x === previous.x &&
@@ -1559,7 +1680,7 @@ export class Engine {
       : this.groundPointAtHeight(screen, top);
     const from = { x: source.bounds.x + source.bounds.width / 2, y: source.bounds.y + source.bounds.height / 2 };
     this.clearConnectorPreview();
-    this.connectorPreview = connectorPreview(from, end, this.cameraState.zoom);
+    this.connectorPreview = connectorPreview(from, end, this.cameraState.zoom, this.settings.selection.accentColor);
     this.connectorPreview.position.z = top + 0.2;
     root.add(this.connectorPreview);
     this.requestRender();
@@ -1604,7 +1725,7 @@ export class Engine {
     if (drag.kind === 'move') {
       if (drag.applied.x === 0 && drag.applied.y === 0) return;
       this.recordEdit('Déplacement');
-      moveCell(pageTree, drag.set.rootId, drag.applied);
+      for (const id of drag.rootIds) moveCell(pageTree, id, drag.applied);
     } else {
       const shape = this.pageById(drag.pageId)?.shapes.find((s) => s.id === drag.shapeId);
       if (!shape) return;
@@ -1683,7 +1804,10 @@ export class Engine {
   }
 
   private replaceObject(old: Object3D, object: Object3D, root: Object3D): void {
-    // Hors voile, la racine d'un élément porte son rang dans l'ordre de dessin.
+    // Hors voile, la racine d'un élément porte son rang dans l'ordre de dessin. Sous le voile, elle
+    // porte en plus la mise en avant : on la retire d'abord (le voile est remis par `afterLiveEdit`),
+    // sinon le nouvel objet la garderait, et chaque pas d'un glisser l'ajouterait encore.
+    this.clearVeil();
     const base = old.renderOrder;
     object.traverse((child) => {
       child.renderOrder += base;
@@ -1716,6 +1840,27 @@ export class Engine {
     });
   }
 
+  /**
+   * Demande d'édition du texte de début ou de fin d'une flèche (double-clic près d'un bout) : comme
+   * `editLabel`, avec `end` dans la demande ; l'UI appelle ensuite `setEdgeEndLabel`.
+   */
+  editEdgeEndLabel(edgeId: string, end: EdgeEnd): void {
+    const editable = this.editablePage();
+    const edge = editable?.page.edges.find((e) => e.id === edgeId);
+    const route = this.sceneObject(edgeId)?.userData.route as Point[] | undefined;
+    if (!editable || !edge || !route?.length) return;
+    const current = endLabelOf(edge, end);
+    const placement = current?.placement ?? { position: endLabelPosition(end), distance: 0, offset: { x: 0, y: 0 } };
+    const center = this.screenOfPoint(labelPoint(route, placement), this.elementTop(edgeId));
+    this.events.emit('labelEdit', {
+      pageId: editable.page.id,
+      elementId: edgeId,
+      end,
+      text: current?.label ?? '',
+      screen: { x: center.x - 60, y: center.y - 16, width: 120, height: 32 },
+    });
+  }
+
   /** Remplace le label d'un élément (texte brut ; converti en HTML si le style l'exige). */
   setLabel(elementId: string, text: string): void {
     const editable = this.editablePage();
@@ -1723,6 +1868,27 @@ export class Engine {
     if (!editable || !element || element.label === text) return;
     this.recordEdit('Texte');
     setCellLabel(editable.pageTree, elementId, text);
+    this.documentChanged([editable.page.id]);
+  }
+
+  /**
+   * Texte de début ou de fin d'une flèche de la page courante (label enfant près de la source ou de
+   * la cible, comme dans draw.io) : créé, modifié, ou retiré si le texte est vide.
+   */
+  setEdgeEndLabel(edgeId: string, end: EdgeEnd, text: string): void {
+    const editable = this.editablePage();
+    const edge = editable?.page.edges.find((e) => e.id === edgeId);
+    if (!editable || !edge) return;
+    const current = endLabelOf(edge, end);
+    const value = text.trim() === '' ? '' : text;
+    if ((current?.label ?? '') === value) return;
+    this.recordEdit(end === 'start' ? 'Texte de début' : 'Texte de fin');
+    if (!value && current) removeCells(editable.pageTree, [current.id]);
+    else if (current) setCellLabel(editable.pageTree, current.id, value);
+    else {
+      const id = addEdgeLabelCell(editable.pageTree, edgeId, { value: '', position: endLabelPosition(end) });
+      setCellLabel(editable.pageTree, id, value);
+    }
     this.documentChanged([editable.page.id]);
   }
 
@@ -1759,10 +1925,13 @@ export class Engine {
   /** Supprime la sélection : avec son contenu, ses labels et les arêtes qui y sont reliées (comme draw.io). */
   deleteSelection(): void {
     const editable = this.editablePage();
-    const picked = this.selection?.picked;
-    if (!editable || !picked || this.selection?.pageId !== editable.page.id) return;
+    const selection = this.selection;
+    if (!editable || !selection || selection.pageId !== editable.page.id) return;
     this.recordEdit('Suppression');
-    removeCellsDeep(editable.pageTree, [picked.element.id]);
+    removeCellsDeep(
+      editable.pageTree,
+      selection.items.map((item) => item.element.id),
+    );
     this.clearSelection();
     this.documentChanged([editable.page.id]);
   }
@@ -1848,17 +2017,32 @@ export class Engine {
     return { x: left, y: top, width: Math.max(...xs) - left, height: Math.max(...ys) - top };
   }
 
-  private handleClick(screen: Point): void {
+  /** Clic : sélectionne l'élément ; avec la touche de sélection multiple, l'ajoute ou le retire (le vide ne désélectionne pas). */
+  private handleClick(screen: Point, toggle = false): void {
     const picked = this.pickAt(screen);
+    if (toggle) {
+      if (picked) this.toggleSelect(picked);
+      return;
+    }
     this.select(picked);
     if (this.settings.preload.onClick) this.preloadLink(picked?.element.link);
   }
 
-  /** Double-clic : suit un lien ; sinon, édite le label de l'élément (page modifiable). */
+  /**
+   * Double-clic : suit un lien ; sinon, édite le label de l'élément (page modifiable). Sur une flèche,
+   * près d'un bout, édite son texte de début ou de fin.
+   */
   private handleDoubleClick(screen: Point): void {
     const picked = this.pickAt(screen);
     if (picked && isNavigableLink(picked.element.link)) this.followLink(picked.element.id);
-    else if (picked) this.editLabel(picked.element.id);
+    else if (picked?.type === 'edge') {
+      // Près d'un bout : texte de début ou de fin ; vers le milieu : label de la flèche.
+      const route = this.sceneObject(picked.element.id)?.userData.route as Point[] | undefined;
+      const point = this.groundPointAtHeight(screen, this.elementTop(picked.element.id));
+      const end = route ? endAt(positionAlong(route, point)) : undefined;
+      if (end) this.editEdgeEndLabel(picked.element.id, end);
+      else this.editLabel(picked.element.id);
+    } else if (picked) this.editLabel(picked.element.id);
   }
 
   /** Survol : curseur main et infobulle sur les éléments liés ; préchargement optionnel. */
@@ -1941,29 +2125,35 @@ export class Engine {
     const selection = this.selection;
     const root = this.scenes.current?.root;
     const visible = selection && root && selection.pageId === this.currentPageId ? selection : undefined;
+    const items = visible?.items ?? [];
+    const ids = items.map((item) => item.element.id);
 
     // Voile : gardé tant que la même sélection est affichée dans la même scène.
     // L'emprise de la page en fait partie : le voile la couvre, et un déplacement peut l'agrandir.
     const pageBounds = this.getCurrentPage()?.bounds;
     const veilKey =
       visible && root && pageBounds && this.settings.selection.style === 'veil'
-        ? `${root.uuid}:${visible.picked.element.id}:${this.settings.selection.veilOpacity}:${Object.values(pageBounds).join(',')}`
+        ? `${root.uuid}:${ids.join('|')}:${this.settings.selection.veilOpacity}:${this.settings.selection.veilColor}:${Object.values(pageBounds).join(',')}`
         : undefined;
     if (this.veil?.key !== veilKey) {
       this.clearVeil();
       const page = this.getCurrentPage();
-      if (veilKey && visible && root && page) {
-        const id = visible.picked.element.id;
-        const object = createVeil(page.bounds, this.settings.selection.veilOpacity);
+      if (veilKey && root && page) {
+        const object = createVeil(page.bounds, this.settings.selection.veilOpacity, this.settings.selection.veilColor);
         root.add(object);
         // Une forme sélectionnée est mise en valeur avec son contenu (enfants d'un groupe, d'un conteneur).
-        const content = visible.picked.type === 'shape' ? collectMoveSet(page, id) : undefined;
+        const highlighted = new Set(ids);
+        for (const item of items) {
+          if (item.type !== 'shape') continue;
+          const content = collectMoveSet(page, item.element.id);
+          for (const id of [...content.shapeIds, ...content.edgeIds]) highlighted.add(id);
+        }
         const lifted = root.children.filter((c) => {
           const elementId = c.userData.elementId as string | undefined;
+          const partner = c.userData.highlightWith as string | undefined;
           return (
-            elementId === id ||
-            c.userData.highlightWith === id ||
-            (elementId !== undefined && (content?.shapeIds.has(elementId) || content?.edgeIds.has(elementId)))
+            (elementId !== undefined && highlighted.has(elementId)) ||
+            (partner !== undefined && highlighted.has(partner))
           );
         });
         this.veil = { key: veilKey, object, restore: liftAboveVeil(lifted) };
@@ -1971,37 +2161,51 @@ export class Engine {
     }
 
     // Flèches et liaisons : le voile est percé autour de leur tracé (≈ 10 px de chaque côté à l'écran).
-    const hole =
-      veilKey && visible?.picked.type === 'edge'
-        ? (this.sceneObject(visible.picked.element.id) as Object3D | undefined)
-        : undefined;
-    const holeKey = hole ? `${veilKey}:${this.cameraState.zoom}` : undefined;
+    const edges = veilKey ? items.filter((item) => item.type === 'edge') : [];
+    const holeKey =
+      edges.length > 0 ? `${veilKey}:${this.cameraState.zoom}:${this.settings.selection.veilPadding}` : undefined;
     if (this.veilHole?.key !== holeKey) {
       this.veilHole?.object.removeFromParent();
       if (this.veilHole) disposeObject(this.veilHole.object);
       this.veilHole = undefined;
-      const route = hole?.userData.route as Point[] | undefined;
-      if (holeKey && hole && root && route && route.length >= 2) {
-        const strokeWidth = parseFloat((visible?.picked.element.style.strokeWidth as string | undefined) ?? '1') || 1;
-        const width = strokeWidth + (2 * VEIL_HOLE_PADDING) / this.cameraState.zoom;
-        const object = createVeilHole(route, hole.position.z, width);
-        root.add(object);
-        this.veilHole = { key: holeKey, object };
+      if (holeKey && root) {
+        const holes = new Group();
+        holes.name = 'selection-veil-holes';
+        for (const { element } of edges) {
+          const object = this.sceneObject(element.id);
+          const route = object?.userData.route as Point[] | undefined;
+          if (!object || !route || route.length < 2) continue;
+          const strokeWidth = parseFloat((element.style.strokeWidth as string | undefined) ?? '1') || 1;
+          const width = strokeWidth + (2 * this.settings.selection.veilPadding) / this.cameraState.zoom;
+          holes.add(createVeilHole(route, object.position.z, width));
+        }
+        root.add(holes);
+        this.veilHole = { key: holeKey, object: holes };
       }
     }
 
-    if (visible && root && this.settings.selection.style === 'outline') {
-      const { picked } = visible;
-      const bounds = picked.type === 'shape' ? picked.element.bounds : this.drawnBounds(picked.element.id);
-      if (bounds) {
-        this.selectionObject = selectionOutline(bounds, this.cameraState.zoom, this.selectionPhase);
+    if (root && items.length > 0 && this.settings.selection.style === 'outline') {
+      const outlines = new Group();
+      outlines.name = 'selection';
+      for (const { type, element } of items) {
+        const bounds = type === 'shape' ? element.bounds : this.drawnBounds(element.id);
+        if (!bounds) continue;
+        const outline = selectionOutline(
+          bounds,
+          this.cameraState.zoom,
+          this.selectionPhase,
+          this.settings.selection.accentColor,
+        );
         // Posé sur le dessus d'un volume, et toujours visible (pas caché par les blocs).
-        this.selectionObject.position.z = ((this.sceneObject(picked.element.id)?.userData.top as number) ?? 0) + 0.2;
-        this.selectionObject.traverse((o) => {
+        outline.position.z = ((this.sceneObject(element.id)?.userData.top as number) ?? 0) + 0.2;
+        outline.traverse((o) => {
           if (o instanceof Mesh) (o.material as MeshBasicMaterial).depthTest = false;
         });
-        root.add(this.selectionObject);
+        outlines.add(outline);
       }
+      outlines.renderOrder = Number.MAX_SAFE_INTEGER;
+      this.selectionObject = outlines;
+      root.add(outlines);
     }
 
     // Poignées (redimensionner, connecter) de la forme sélectionnée, si on peut la modifier.
@@ -2016,6 +2220,8 @@ export class Engine {
       this.handlesObject = selectionHandles(shape.bounds, this.cameraState.zoom, {
         resize: shape.kind !== 'group',
         connect: true,
+        size: this.settings.edit.handleSize,
+        accent: this.settings.selection.accentColor,
       });
       this.handlesObject.position.z = this.elementTop(shape.id) + 0.3;
       this.handlesObject.traverse((o) => {

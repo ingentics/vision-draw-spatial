@@ -2,21 +2,33 @@ import { Color, Group } from 'three';
 import { handlePoints } from '../edit/handles';
 import type { Point, Rect } from '../model/types';
 import { ellipsePath, rectPath } from './geometry/paths';
+import { DEFAULT_ACCENT } from './decorations';
 import { fillMesh, strokeMesh } from './meshes';
 
-const ACCENT = new Color('#1a73e8');
 const WHITE = new Color('#ffffff');
-/** Demi-côté des poignées, en pixels écran. */
+/** Demi-côté des poignées par défaut, en pixels écran (paramètre `edit.handleSize`). */
 const HANDLE_SIZE = 4;
+
+export interface HandleStyle {
+  /** Demi-côté des poignées, en pixels écran. */
+  size?: number;
+  /** Couleur d'accent (#rrggbb). */
+  accent?: string;
+}
 
 /**
  * Poignées de la sélection, de taille constante à l'écran (reconstruites quand le zoom change) :
  * carrés blancs bordés de bleu pour redimensionner, disque bleu pour connecter.
  */
-export function selectionHandles(bounds: Rect, zoom: number, options: { resize: boolean; connect: boolean }): Group {
+export function selectionHandles(
+  bounds: Rect,
+  zoom: number,
+  options: { resize: boolean; connect: boolean } & HandleStyle,
+): Group {
   const group = new Group();
   group.name = 'handles';
-  const r = HANDLE_SIZE / zoom;
+  const r = (options.size ?? HANDLE_SIZE) / zoom;
+  const ACCENT = new Color(options.accent ?? DEFAULT_ACCENT);
   for (const { kind, point } of handlePoints(bounds, zoom)) {
     if (kind === 'connect') {
       if (!options.connect) continue;
@@ -49,10 +61,14 @@ export function selectionHandles(bounds: Rect, zoom: number, options: { resize: 
 }
 
 /** Trait d'aperçu d'un connecteur en cours de création. */
-export function connectorPreview(from: Point, to: Point, zoom: number): Group {
+export function connectorPreview(from: Point, to: Point, zoom: number, accent = DEFAULT_ACCENT): Group {
   const group = new Group();
   group.name = 'connector-preview';
-  const line = strokeMesh([from, to], ACCENT, 1, { width: 1.5 / zoom, closed: false, dash: [6 / zoom, 4 / zoom] });
+  const line = strokeMesh([from, to], new Color(accent), 1, {
+    width: 1.5 / zoom,
+    closed: false,
+    dash: [6 / zoom, 4 / zoom],
+  });
   if (line) group.add(line);
   group.traverse((o) => {
     o.renderOrder = Number.MAX_SAFE_INTEGER;

@@ -33,6 +33,31 @@ export const SHAPE_TEMPLATES: ShapeTemplate[] = [
     height: 80,
   },
   {
+    id: 'database',
+    name: 'Base de données',
+    style: 'shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=8;',
+    value: '',
+    width: 60,
+    height: 80,
+  },
+  {
+    id: 'queue',
+    name: 'File (queue)',
+    // Cylindre couché (bout visible à droite) : le bout garde sa taille quand on l'allonge.
+    style: 'shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=8;direction=south;',
+    value: '',
+    width: 100,
+    height: 30,
+  },
+  {
+    id: 'cache',
+    name: 'Cache distribué',
+    style: 'shape=datastore;whiteSpace=wrap;html=1;',
+    value: '',
+    width: 60,
+    height: 60,
+  },
+  {
     id: 'text',
     name: 'Texte',
     style: 'text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;',

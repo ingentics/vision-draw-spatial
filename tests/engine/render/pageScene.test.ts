@@ -98,11 +98,32 @@ describe('buildPageScene — drawio-desktop.drawio', () => {
 });
 
 describe('buildPageScene — formes', () => {
+  /** `simple.drawio` avec « Stockage » changé en forme inconnue du moteur (`shape=cube`). */
+  const withUnknownShape = () => {
+    const page = parseDrawio(fixture('simple.drawio')).pages[0]!;
+    page.shapes.find((s) => s.id === 'c1')!.kind = 'cube';
+    return page;
+  };
+
   it('formes inconnues : placeholder gris', () => {
-    const { scene, texts } = build('simple.drawio');
-    expect(texts.some((t) => t.text === 'Stockage\n[cylinder3]')).toBe(true);
+    const { ctx, texts } = stubContext();
+    const scene = buildPageScene(withUnknownShape(), createDefaultRegistry(), ctx);
+    expect(texts.some((t) => t.text === 'Stockage\n[cube]')).toBe(true);
     const fill = element(scene.root, 'c1').getObjectByName('fill') as Mesh;
     expect((fill.material as MeshBasicMaterial).color.getHexString()).toBe('eeeeee');
+  });
+
+  it('formes inconnues en iso : le rendu 2D sur un bloc gris en pointillés', () => {
+    const { ctx, texts } = stubContext();
+    const scene = buildPageScene(withUnknownShape(), createDefaultRegistry(), ctx, 'iso');
+    expect(texts.some((t) => t.text === 'Stockage\n[cube]' && t.color.getHexString() === '616161')).toBe(true);
+    const block = element(scene.root, 'c1');
+    const color = (name: string) => ((block.getObjectByName(name) as Mesh).material as MeshBasicMaterial).color;
+    expect(color('top').getHexString()).toBe('eeeeee');
+    expect(color('stroke').getHexString()).toBe('9e9e9e');
+    // Pointillés : arêtes verticales découpées en plusieurs tirets.
+    const ribbon = block.getObjectByName('stroke-vertical')!.children[0] as Mesh;
+    expect(ribbon.geometry.getAttribute('position').count).toBeGreaterThan(6);
   });
 
   it('texte seul : ni fond ni bordure', () => {

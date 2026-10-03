@@ -25,7 +25,7 @@ import { SPATIAL, spatialNumber } from '../../spatial';
 /** Épaisseur par défaut d'un bloc, en pixels de page. */
 export const DEFAULT_DEPTH = 16;
 /** Léger décalage pour que bordure et label du dessus ne se battent pas avec le fond (z-fighting). */
-const TOP_OFFSET = 0.05;
+export const TOP_OFFSET = 0.05;
 /** Angle minimal (degrés) entre deux côtés pour tracer une arête verticale (pas sur les courbes). */
 const SHARP_CORNER_DEG = 30;
 /**
@@ -33,6 +33,9 @@ const SHARP_CORNER_DEG = 30;
  * est claire et celle de droite plus sombre, comme une illustration isométrique classique.
  */
 const LIGHT = normalize({ x: 1, y: 2 });
+/** Luminosité des côtés par défaut (fraction de la couleur de fond) : face éclairée, face à l'ombre. */
+export const SHADE_LIGHT = 0.9;
+export const SHADE_DARK = 0.62;
 
 /** Hauteur d'une forme en volume : `spatial.height` (style ou objet), sinon l'épaisseur par défaut. */
 export function blockHeight(shape: ShapeModel, ctx: RenderContext): number {
@@ -57,7 +60,7 @@ export function isoBlock(
       group.userData.height = height;
 
       // Côtés (opaques, avec profondeur).
-      group.add(sides(path, height, fill));
+      group.add(sides(path, height, fill, ctx.volume?.shadeLight ?? SHADE_LIGHT, ctx.volume?.shadeDark ?? SHADE_DARK));
       // Dessus : fond opaque, puis le rendu à plat (bordure, label) juste au-dessus.
       const top = fillMesh(path, fill, 1);
       top.material = solidMaterial(fill);
@@ -160,7 +163,7 @@ function verticalRibbon(pieces: Array<[number, number]>, width: number, color: C
 }
 
 /** Faces latérales d'un prisme droit de contour `path` et de hauteur `height`, ombrées. */
-function sides(path: Point[], height: number, color: Color): Mesh {
+function sides(path: Point[], height: number, color: Color, shadeLight: number, shadeDark: number): Mesh {
   const positions: number[] = [];
   const colors: number[] = [];
   const shaded = new Color();
@@ -174,9 +177,9 @@ function sides(path: Point[], height: number, color: Color): Mesh {
     const length = Math.hypot(dx, dy);
     if (length === 0) continue;
     const normal = clockwise ? { x: -dy / length, y: dx / length } : { x: dy / length, y: -dx / length };
-    // Face éclairée : 0,9 ; face à l'ombre : 0,62.
+    // De la face à l'ombre (`shadeDark`) à la face éclairée (`shadeLight`).
     const light = Math.max(0, normal.x * LIGHT.x + normal.y * LIGHT.y);
-    shaded.copy(color).multiplyScalar(0.62 + 0.28 * light);
+    shaded.copy(color).multiplyScalar(shadeDark + (shadeLight - shadeDark) * light);
     for (const [x, y, z] of [
       [a.x, a.y, 0],
       [b.x, b.y, 0],

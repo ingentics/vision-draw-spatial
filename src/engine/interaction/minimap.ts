@@ -70,6 +70,8 @@ export interface MinimapSource {
   getViewport(): Viewport;
   /** Couleur du fond de la vue (blanc par défaut). */
   getBackground?(): string;
+  /** Couleur d'accent (cadre de la vue), #rrggbb. */
+  getAccent?(): string;
   /** Tracé dessiné d'une arête (coordonnées page). */
   getEdgeRoute(edgeId: string): Point[] | undefined;
   /** Dessin d'une forme : niveau `minimap` de sa définition, repli sur son contour. */
@@ -78,8 +80,8 @@ export interface MinimapSource {
   centerOn(point: Point): void;
 }
 
+/** Couleur du cadre de la vue par défaut ; son remplissage en est une version transparente. */
 const FOOTPRINT_STROKE = '#1a73e8';
-const FOOTPRINT_FILL = 'rgba(26, 115, 232, 0.10)';
 const BACKGROUND = '#ffffff';
 const EDGE_STROKE = '#80868b';
 
@@ -165,10 +167,13 @@ export class Minimap {
     context.beginPath();
     footprint.forEach((p, i) => (i === 0 ? context.moveTo(p.x, p.y) : context.lineTo(p.x, p.y)));
     context.closePath();
-    context.fillStyle = FOOTPRINT_FILL;
+    const accent = this.source.getAccent?.() ?? FOOTPRINT_STROKE;
+    context.globalAlpha = 0.1;
+    context.fillStyle = accent;
     context.fill();
+    context.globalAlpha = 1;
     context.lineWidth = 1.5;
-    context.strokeStyle = FOOTPRINT_STROKE;
+    context.strokeStyle = accent;
     context.stroke();
   }
 

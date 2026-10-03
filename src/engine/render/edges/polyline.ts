@@ -84,6 +84,31 @@ export function labelPoint(points: Point[], placement: EdgeLabelPlacement): Poin
   return points[0]!;
 }
 
+/**
+ * Position le long d'un tracé du point du tracé le plus proche de `point`, comme `placement.position` :
+ * -1 = début, 0 = milieu, 1 = fin.
+ */
+export function positionAlong(points: Point[], point: Point): number {
+  const total = length(points);
+  if (points.length < 2 || total === 0) return 0;
+  let best = { distance: Infinity, along: 0 };
+  let travelled = 0;
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1]!;
+    const b = points[i]!;
+    const segment = distance(a, b);
+    const t =
+      segment === 0
+        ? 0
+        : Math.min(1, Math.max(0, ((point.x - a.x) * (b.x - a.x) + (point.y - a.y) * (b.y - a.y)) / segment ** 2));
+    const closest = { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+    const d = distance(closest, point);
+    if (d < best.distance) best = { distance: d, along: travelled + t * segment };
+    travelled += segment;
+  }
+  return (best.along / total) * 2 - 1;
+}
+
 function distance(a: Point, b: Point): number {
   return Math.hypot(b.x - a.x, b.y - a.y);
 }

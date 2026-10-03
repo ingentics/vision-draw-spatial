@@ -608,7 +608,8 @@ body {
 }
 
 /* Réglages de la vue iso (panneau Paramètres) */
-.settings-section h3 .iso-icon {
+.settings-section h3 .iso-icon,
+.settings-subsection h4 .iso-icon {
   width: 14px;
   height: 14px;
   margin-right: 6px;
@@ -716,8 +717,21 @@ body {
 }
 
 .settings-section {
-  padding: 10px 0;
+  padding: 0 12px 10px;
   border-bottom: 1px solid var(--border);
+}
+
+/* Paramètres : chaque section est une carte, sur le fond gris du panneau. */
+.settings-panel .side-panel-body {
+  padding: 8px 10px 16px;
+  background: var(--panel);
+}
+
+.settings-panel .settings-section {
+  margin: 0 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
 }
 
 .settings-section h3 {
@@ -727,6 +741,77 @@ body {
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+
+/* Titre de section : reste visible en haut du panneau tant qu'on parcourt la section. */
+.settings-panel .settings-section > h3 {
+  position: sticky;
+  /* La zone collante s'arrête à la marge intérieure du panneau (8 px) : on remonte jusqu'au bord. */
+  top: -8px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 -12px 4px;
+  padding: 9px 12px 8px;
+  border-bottom: 1px solid var(--border);
+  border-radius: 6px 6px 0 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.settings-panel .settings-section > h3::before {
+  content: '';
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+/* Sous-section : liseré à gauche, titre plus discret que celui de la section. */
+.settings-subsection {
+  margin-top: 10px;
+  padding-left: 10px;
+  border-left: 3px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+}
+
+.settings-subsection h4 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 2px;
+  padding-top: 2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+/* Recherche : filtre les sections (attribut hidden posé par le panneau). */
+.settings-search {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-search input {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--panel);
+  color: var(--fg);
+}
+
+.settings-search input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.settings-panel [hidden] {
+  display: none !important;
 }
 
 .field {
@@ -749,6 +834,7 @@ body {
 .field-value {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .field input[type='range'] {
@@ -898,4 +984,8 @@ body {
 .selection-field input {
   width: 52px;
   font: inherit;
+}
+
+.selection-field input.selection-text {
+  width: 90px;
 }

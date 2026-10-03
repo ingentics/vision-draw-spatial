@@ -4,6 +4,7 @@ import { groupShape } from './group';
 import { outlinePainter } from './minimapPainters';
 import { placeholderShape } from './placeholder';
 import { rectangleShape } from './rectangle';
+import { cylinderShape, datastoreShape, directDataShape } from './storage';
 import { textShape } from './text';
 import type { MinimapPainter, SceneLevel, SceneRenderer, ShapeDefinition } from './types';
 
@@ -56,7 +57,14 @@ export class ShapeRegistry {
   }
 }
 
-/** Formes supportées en M1 (SPEC §8.3). */
+/** Formes supportées (SPEC §8.3). */
 export function createDefaultRegistry(): ShapeRegistry {
-  return new ShapeRegistry().register(rectangleShape).register(ellipseShape).register(textShape).register(groupShape);
+  return new ShapeRegistry()
+    .register(rectangleShape)
+    .register(ellipseShape)
+    .register(textShape)
+    .register(groupShape)
+    .register(cylinderShape)
+    .register(directDataShape)
+    .register(datastoreShape);
 }

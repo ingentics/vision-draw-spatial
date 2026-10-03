@@ -1,6 +1,8 @@
 import type { Point } from '../model/types';
 import { dragGround, orbit, panByScreen, zoomAt } from './camera';
 import type { CameraState, Viewport } from './camera';
+import { hasMultiSelectKey } from './selection';
+import type { MultiSelectKey } from './selection';
 
 /**
  * Contrôles de navigation (SPEC §9.2). Les touches sont lues par position physique
@@ -25,6 +27,12 @@ export interface Shortcuts {
   overview: string;
   /** Retour (Alt+← fonctionne en plus, comme dans un navigateur). */
   back: string;
+  /**
+   * Supprimer la sélection (Suppr fonctionne en plus). Prioritaire seulement s'il y a une sélection
+   * supprimable : la même touche que Retour (Backspace, la touche « delete » du Mac) supprime la
+   * sélection, sinon revient en arrière.
+   */
+  deleteSelection: string;
 }
 
 export const DEFAULT_SHORTCUTS: Shortcuts = {
@@ -34,6 +42,7 @@ export const DEFAULT_SHORTCUTS: Shortcuts = {
   toggleMinimap: 'm',
   overview: 'Enter',
   back: 'Backspace',
+  deleteSelection: 'Backspace',
 };
 
 /** Positions physiques réservées au déplacement et au pan : non attribuables à un raccourci. */
@@ -48,6 +57,20 @@ export const RESERVED_CODES = [
   'ArrowRight',
   'Space',
 ];
+
+/**
+ * Action d'une touche, selon le contexte : `deleteSelection` d'abord s'il y a une sélection
+ * supprimable (elle peut partager sa touche avec Retour), sinon le premier raccourci de la touche.
+ */
+export function resolveShortcut(
+  key: string,
+  shortcuts: Shortcuts,
+  context: { canDelete: boolean },
+): keyof Shortcuts | undefined {
+  if (context.canDelete && shortcuts.deleteSelection.toLowerCase() === key.toLowerCase()) return 'deleteSelection';
+  const action = shortcutAction(key, shortcuts);
+  return action === 'deleteSelection' ? undefined : action;
+}
 
 /** Action d'un raccourci pour une touche (`KeyboardEvent.key`) ; undefined si aucune. */
 export function shortcutAction(key: string, shortcuts: Shortcuts): keyof Shortcuts | undefined {
@@ -70,6 +93,10 @@ export interface ControlSettings {
    * décélération, en ms. Pas d'accélération au départ. 0 = arrêt net.
    */
   decelerationMs: number;
+  /** Sensibilité de l'orbite au glisser clic droit (iso, 3D), en radians par pixel écran. */
+  orbitSpeed: number;
+  /** Touche qui, maintenue pendant un clic, ajoute l'élément à la sélection ou l'en retire. */
+  multiSelectKey: MultiSelectKey;
 }
 
 export const DEFAULT_CONTROLS: ControlSettings = {
@@ -77,6 +104,8 @@ export const DEFAULT_CONTROLS: ControlSettings = {
   moveSpeed: 600,
   zoomSpeed: 0.0015,
   decelerationMs: 80,
+  orbitSpeed: 0.005,
+  multiSelectKey: 'ctrl',
   shortcuts: DEFAULT_SHORTCUTS,
 };
 
@@ -160,8 +189,11 @@ export interface CameraHost {
   getViewport(): Viewport;
   /** Bascule vue globale ↔ 1:1, autour du point écran donné. */
   toggleOverview(screen?: Point): void;
-  /** Clic gauche simple (sans glisser) : sélection. */
-  click?(screen: Point): void;
+  /**
+   * Clic gauche simple (sans glisser) : sélection. `toggle` : la touche de sélection multiple est
+   * enfoncée (ajouter l'élément à la sélection, ou l'en retirer).
+   */
+  click?(screen: Point, options: { toggle: boolean }): void;
   /** Double-clic gauche : entrer dans un lien. */
   doubleClick?(screen: Point): void;
   /** Survol (undefined quand le pointeur quitte le canvas). */
@@ -186,16 +218,16 @@ export interface CameraHost {
   endMove?(): void;
   /** F2 : éditer le label de la sélection. */
   editSelection?(): void;
-  /** Suppr : supprimer la sélection. */
+  /** Suppr (ou le raccourci `deleteSelection`) : supprimer la sélection. */
   deleteSelection?(): void;
+  /** Y a-t-il une sélection supprimable (page modifiable) ? Décide entre supprimer et Retour. */
+  canDeleteSelection?(): boolean;
   /** Échap : désélectionner. */
   escape?(): void;
 }
 
 /** Au-delà de ce déplacement (px), un appui-relâché n'est plus un clic. */
 const CLICK_SLOP = 4;
-/** Glisser clic droit (iso, 3D) : radians par pixel (rotation à l'horizontale, inclinaison à la verticale en 3D). */
-export const ORBIT_SPEED = 0.005;
 
 type DragMode = 'pan' | 'move' | 'orbit';
 
@@ -216,6 +248,8 @@ export class CameraController {
   /** Point d'appui du bouton gauche, pour distinguer un clic d'un glisser. */
   private pressPoint: Point | undefined;
   private suppressClick = false;
+  /** Instant du dernier Ctrl+clic traité par le menu contextuel (pour ne pas le compter deux fois). */
+  private ctrlClickAt = -Infinity;
   private enabled = true;
 
   constructor(
@@ -346,8 +380,9 @@ export class CameraController {
       // C'est la caméra qui bouge, la page reste fixe : vers la droite, la caméra tourne vers la
       // droite autour du centre ; en 3D, vers le haut, elle monte (vers la vue d'aplomb), vers le
       // bas, elle descend vers l'horizon. L'iso garde l'élévation de ses réglages.
-      const tilt = state.mode === '3d' ? delta.y * ORBIT_SPEED : 0;
-      this.host.setCameraState(orbit(state, delta.x * ORBIT_SPEED, tilt));
+      const speed = this.settings.orbitSpeed;
+      const tilt = state.mode === '3d' ? delta.y * speed : 0;
+      this.host.setCameraState(orbit(state, delta.x * speed, tilt));
       return;
     }
     this.samples.push({ t: event.timeStamp, p: point });
@@ -378,8 +413,10 @@ export class CameraController {
     const suppressed = this.suppressClick || this.spaceDown;
     this.pressPoint = undefined;
     this.suppressClick = false;
+    // Déjà traité par le menu contextuel (Ctrl+clic sur Mac).
+    if (event.timeStamp - this.ctrlClickAt < 500) return;
     if (!this.enabled || event.button !== 0 || suppressed) return;
-    this.host.click?.(this.localPoint(event));
+    this.host.click?.(this.localPoint(event), { toggle: hasMultiSelectKey(event, this.settings.multiSelectKey) });
   };
 
   private readonly onDoubleClick = (event: MouseEvent): void => {
@@ -388,7 +425,20 @@ export class CameraController {
     this.host.doubleClick?.(this.localPoint(event));
   };
 
-  private readonly onContextMenu = (event: Event): void => event.preventDefault();
+  /**
+   * Pas de menu contextuel. Sur Mac, Ctrl+clic gauche ouvre le menu au lieu de produire un clic :
+   * c'est alors un clic avec Ctrl (sélection multiple si c'est la touche choisie).
+   */
+  private readonly onContextMenu = (event: MouseEvent): void => {
+    event.preventDefault();
+    if (event.button !== 0 || !event.ctrlKey || this.settings.multiSelectKey !== 'ctrl') return;
+    const suppressed = this.suppressClick || this.spaceDown;
+    this.pressPoint = undefined;
+    this.suppressClick = false;
+    if (!this.enabled || suppressed) return;
+    this.ctrlClickAt = event.timeStamp;
+    this.host.click?.(this.localPoint(event), { toggle: true });
+  };
 
   private readonly onMouseDown = (event: MouseEvent): void => {
     if (event.button === 1) event.preventDefault();
@@ -402,7 +452,14 @@ export class CameraController {
     // Une touche de déplacement reste une touche de déplacement, même si elle porte une lettre de raccourci.
     const action = isMoveKey(event.code, this.settings.moveKeys)
       ? undefined
-      : shortcutAction(event.key, this.settings.shortcuts);
+      : resolveShortcut(event.key, this.settings.shortcuts, {
+          canDelete: this.host.canDeleteSelection?.() ?? false,
+        });
+    if (action === 'deleteSelection' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      event.preventDefault();
+      if (!event.repeat) this.host.deleteSelection?.();
+      return;
+    }
     // Retour (SPEC §9.2) : son raccourci, ou Alt+← comme dans un navigateur.
     const isBack =
       (action === 'back' && !event.ctrlKey && !event.metaKey && !event.altKey) ||

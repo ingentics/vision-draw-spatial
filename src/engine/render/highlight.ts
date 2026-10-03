@@ -11,7 +11,7 @@ import {
   PlaneGeometry,
   ReplaceStencilOp,
 } from 'three';
-import type { Material, Object3D } from 'three';
+import type { ColorRepresentation, Material, Object3D } from 'three';
 import type { Point, Rect } from '../model/types';
 import { strokeTriangles } from './geometry/stroke';
 
@@ -38,12 +38,12 @@ const VEIL_EXTENT = 1e6;
 const HOLE_STENCIL = 1;
 
 /** Voile sombre posé sur toute la page, centré sur `around`. */
-export function createVeil(around: Rect, opacity: number): Group {
+export function createVeil(around: Rect, opacity: number, color: ColorRepresentation = VEIL_COLOR): Group {
   const group = new Group();
   group.name = 'selection-veil';
   group.renderOrder = VEIL_ORDER;
   const material = new MeshBasicMaterial({
-    color: VEIL_COLOR,
+    color,
     opacity,
     transparent: true,
     depthTest: false,

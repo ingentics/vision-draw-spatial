@@ -18,10 +18,9 @@ export interface GridOptions {
   cell: number;
   /** Une ligne principale toutes les `majorEvery` cases ; 1 = pas de lignes principales. */
   majorEvery: number;
+  /** Intensité des lignes secondaires (les principales sont pleines), 0–1. */
+  minorStrength: number;
 }
-
-/** Opacité des lignes secondaires (les principales sont pleines). */
-const MINOR_STRENGTH = 0.55;
 
 const vertexShader = /* glsl */ `
   varying vec2 vPage;
@@ -38,6 +37,7 @@ const fragmentShader = /* glsl */ `
   uniform float uCell;
   uniform float uMajor;
   uniform float uShowGrid;
+  uniform float uMinor;
   varying vec2 vPage;
 
   // Intensité des lignes d'une grille de pas \`cell\` : distance à la ligne la plus proche
@@ -55,7 +55,7 @@ const fragmentShader = /* glsl */ `
   void main() {
     float a = 0.0;
     if (uShowGrid > 0.5) {
-      a = lines(uCell, uMajor > 1.5 ? ${MINOR_STRENGTH.toFixed(2)} : 1.0);
+      a = lines(uCell, uMajor > 1.5 ? uMinor : 1.0);
       if (uMajor > 1.5) a = max(a, lines(uCell * uMajor, 1.0));
     }
     gl_FragColor = vec4(mix(uBackground, uColor, a), 1.0);
@@ -83,6 +83,7 @@ export function createGrid(options: GridOptions): Grid {
       uCell: { value: 10 },
       uMajor: { value: 1 },
       uShowGrid: { value: 1 },
+      uMinor: { value: 0.55 },
     },
     // Fond : dessiné en premier, sans toucher à la profondeur ; tout le reste passe par-dessus.
     depthTest: false,
@@ -102,6 +103,7 @@ export function createGrid(options: GridOptions): Grid {
       u.uCell!.value = Math.max(next.cell, 1e-3);
       u.uMajor!.value = Math.max(1, Math.round(next.majorEvery));
       u.uShowGrid!.value = next.visible ? 1 : 0;
+      u.uMinor!.value = Math.min(1, Math.max(0, next.minorStrength));
     },
     follow(center, extent) {
       mesh.position.set(center.x, 0, center.y);

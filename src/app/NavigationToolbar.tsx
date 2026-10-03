@@ -4,6 +4,7 @@ import type { ViewMode } from '../engine/interaction/camera';
 interface NavigationToolbarProps {
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
+  onResetView: () => void;
 }
 
 const VIEW_MODES: Array<{ value: ViewMode; label: string; title: string; icon: ReactElement }> = [
@@ -29,8 +30,8 @@ const VIEW_MODES: Array<{ value: ViewMode; label: string; title: string; icon: R
   },
 ];
 
-/** Mode de vue (groupe de boutons liés). */
-export function NavigationToolbar({ viewMode, onViewModeChange }: NavigationToolbarProps) {
+/** Mode de vue (groupe de boutons liés) et retour à la vue par défaut. */
+export function NavigationToolbar({ viewMode, onViewModeChange, onResetView }: NavigationToolbarProps) {
   return (
     <div className="nav-tools">
       <div className="button-group" role="group" aria-label="Mode de vue">
@@ -50,6 +51,18 @@ export function NavigationToolbar({ viewMode, onViewModeChange }: NavigationTool
           </button>
         ))}
       </div>
+      <button
+        type="button"
+        className="button icon-button"
+        title="Réinitialiser la vue : orientation par défaut du mode, page entière"
+        aria-label="Réinitialiser la vue"
+        onClick={onResetView}
+      >
+        {/* Flèche circulaire autour d'un cadre. */}
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M12 1.5v2.8H9.2M6 6h4v4H6z" />
+        </svg>
+      </button>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { DoubleSide, Mesh, MeshBasicMaterial, PlaneGeometry } from 'three';
 import type { Color } from 'three';
 import { Text } from 'troika-three-text';
+import { followRenderOrder } from './renderOrder';
 import type { TextFactory } from './types';
 
 const BACKGROUND_PADDING = 1;
@@ -22,8 +23,7 @@ function updateBackground(text: Text, color: Color, opacity: number): void {
   );
   mesh.name = 'label-background';
   mesh.position.set((minX + maxX) / 2, (minY + maxY) / 2, 0);
-  // Juste sous le texte, mais au-dessus du trait de l'élément.
-  mesh.renderOrder = text.renderOrder - 0.5;
+  followRenderOrder(mesh, text);
   text.add(mesh);
 }
 
@@ -55,7 +55,8 @@ export function createTroikaTextFactory(fonts: FontSet, onReady: () => void): Te
       text.lineHeight = 1.2;
       if (spec.maxWidth !== undefined) {
         text.maxWidth = spec.maxWidth;
-        text.overflowWrap = 'break-word';
+        // Comme draw.io : retour à la ligne entre les mots seulement, un mot trop long déborde.
+        text.overflowWrap = 'normal';
       } else {
         text.whiteSpace = 'nowrap';
       }

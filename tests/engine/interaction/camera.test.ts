@@ -1,6 +1,7 @@
 import { OrthographicCamera, PerspectiveCamera, Vector3 } from 'three';
 import { describe, expect, it } from 'vitest';
 import {
+  defaultView,
   applyCameraState,
   applyPerspectiveState,
   dragGround,
@@ -395,5 +396,30 @@ describe('vue 3D (perspective)', () => {
       expect(p.y).toBeGreaterThanOrEqual(19);
       expect(p.y).toBeLessThanOrEqual(581);
     }
+  });
+});
+
+describe('vue par défaut (bouton Réinitialiser la vue)', () => {
+  const bounds = { x: 0, y: 0, width: 400, height: 300 };
+  const isoTilt = (35 * Math.PI) / 180;
+  const azimuth = Math.PI / 4;
+
+  it('2D : nord en haut, page entière à au plus 100 %', () => {
+    expect(defaultView(bounds, viewport, 'top', isoTilt, azimuth)).toEqual(fitBounds(bounds, viewport));
+  });
+
+  it('iso : orientation et élévation des réglages, page centrée', () => {
+    const view = defaultView(bounds, viewport, 'iso', isoTilt, azimuth);
+    expect(view).toMatchObject({ mode: 'iso', center: { x: 200, y: 150 } });
+    expect(view.rotation).toBeCloseTo(azimuth);
+    expect(view.tilt).toBeCloseTo(isoTilt);
+  });
+
+  it('3D : perspective sur l’orientation iso, page entière', () => {
+    const view = defaultView(bounds, viewport, '3d', isoTilt, azimuth);
+    expect(view.mode).toBe('3d');
+    expect(view.fov).toBeDefined();
+    expect(view.rotation).toBeCloseTo(azimuth);
+    expect(view.zoom).toBeLessThanOrEqual(1);
   });
 });

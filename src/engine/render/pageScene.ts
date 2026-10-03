@@ -105,7 +105,7 @@ export function createShapeObject(
   const object = registry.sceneRenderer(shape, level).create(shape, ctx);
   // `spatial.noLinkBadge=1` : lien sans pastille (ex. cartes de la vue graphe, entièrement cliquables).
   if (isNavigableLink(shape.link) && spatialValue(shape, SPATIAL.noLinkBadge) !== '1') {
-    const badge = linkBadge(shape, shape.link);
+    const badge = linkBadge(shape, shape.link, ctx.accent);
     badge.position.z = elevation.height + 0.1; // posée sur le dessus du bloc
     object.add(badge);
   }

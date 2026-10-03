@@ -13,6 +13,7 @@ import type { RenderContext } from '../types';
 
 /** Défauts draw.io pour les arêtes. */
 const DEFAULT_END_ARROW = 'classic';
+const DEFAULT_EDGE_FONT_COLOR = '#000000';
 const DEFAULT_MARKER_SIZE = 6;
 /** `arcSize` par défaut des arêtes arrondies (diamètre). */
 const DEFAULT_EDGE_ARC_SIZE = 20;
@@ -116,7 +117,8 @@ function createEdgeLabel(
     anchorY: 'middle',
     align: style.align === 'left' || style.align === 'right' ? style.align : 'center',
     fontSize: styleNumber(style, 'fontSize', 11),
-    color: styleColor(style, 'fontColor', '#000000')!,
+    // Sans `fontColor` : couleur par défaut du paramètre `shapes.edgeFontColor` (noir).
+    color: styleColor(style, 'fontColor', ctx.edgeFontColor ?? DEFAULT_EDGE_FONT_COLOR)!,
     opacity: styleOpacity(style, 'textOpacity'),
     bold: fontStyleBits(style).bold,
     // Les labels d'arêtes draw.io ont un fond de la couleur de la page par défaut.

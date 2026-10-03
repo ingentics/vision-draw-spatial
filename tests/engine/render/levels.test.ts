@@ -33,7 +33,7 @@ describe('niveaux de rendu : repli à plat', () => {
   });
 
   it('formes inconnues : placeholder à tous les niveaux (son volume en iso, repli à plat en 3D)', () => {
-    const unknown = { ...shape, kind: 'cylinder3' };
+    const unknown = { ...shape, kind: 'cube' };
     const registry = createDefaultRegistry();
     const placeholder = registry.resolve(unknown).definition;
     expect(placeholder.kind).toBe('placeholder');

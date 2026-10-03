@@ -50,6 +50,11 @@ function ShapePreview({ id }: { id: string }) {
       {id === 'rounded' && <rect x="4" y="6" width="32" height="16" rx="4" />}
       {id === 'ellipse' && <ellipse cx="20" cy="14" rx="16" ry="9" />}
       {id === 'circle' && <circle cx="20" cy="14" r="10" />}
+      {id === 'database' && <path d="M12 6c0-3 16-3 16 0v16c0 3-16 3-16 0zM12 6c0 3 16 3 16 0" />}
+      {id === 'queue' && <path d="M10 5h20a4 9 0 0 1 0 18H10a4 9 0 0 1 0-18zM30 5a4 9 0 0 0 0 18" />}
+      {id === 'cache' && (
+        <path d="M12 6c0-3 16-3 16 0v16c0 3-16 3-16 0zM12 6c0 3 16 3 16 0M12 9c0 3 16 3 16 0M12 12c0 3 16 3 16 0" />
+      )}
       {id === 'text' && (
         <text x="20" y="18" textAnchor="middle">
           Abc

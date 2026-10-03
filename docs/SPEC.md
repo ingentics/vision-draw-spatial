@@ -171,6 +171,7 @@ class Engine {
   animateCameraTo(state: CameraState, durationMs?: number): void;
   toggleOverview(screenPoint?: Point): void; // vue globale ↔ 1:1 (§9.3)
   resetRotation(): void; // remet le nord en haut (§9.1)
+  resetView(): void; // vue par défaut du mode : orientation de référence, page entière (§9.1)
   setControls(patch: Partial<ControlSettings>): void;
   on(event: EngineEvent, handler: (...args: any[]) => void): () => void;
   dispose(): void;
@@ -314,7 +315,7 @@ type LinkModel =
 
 ### 8.2 Registre de renderers
 
-Chaque type de forme est décrit par une **définition** qui s'enregistre auprès d'un registre. Le moteur ne connaît que l'interface commune.
+Chaque type de forme est décrit par une **définition** qui s'enregistre auprès d'un registre. Le moteur ne connaît que l'interface commune. Guide pas à pas pour en ajouter une : [AJOUTER_UNE_FORME.md](AJOUTER_UNE_FORME.md).
 
 Une forme a **plusieurs niveaux de rendu** selon le contexte, avec un **repli systématique sur le rendu à plat** :
 
@@ -355,6 +356,17 @@ Ajouter une forme = **écrire sa définition et l'enregistrer** (au minimum `fla
 - Rectangle (y compris arrondi),
 - Ellipse,
 - Texte seul,
+- **Stockage** (formes natives de draw.io, dessinées comme draw.io en 2D, en vrai volume en iso / 3D ; aussi dans la palette) :
+
+  | Usage | Style draw.io | 2D | Iso / 3D |
+  |---|---|---|---|
+  | Base de données | `shape=cylinder3` (`size`, 8 dans la palette ; `boundedLbl`) | le cache avec une seule lèvre (même ellipse de 8 px), label sous l'ellipse du haut | cylindre debout sur l'ellipse inscrite dans l'emprise |
+  | File (queue) | `shape=cylinder3;direction=south` (palette : 100 × 30, `size=8`) ; `shape=mxgraph.flowchart.direct_data` aussi | cylindre couché, bout visible à droite (`north` : à gauche) ; label décalé comme dans draw.io | tube couché dans le sens de la largeur, extrémités pleines et bordées |
+  | Cache distribué | `shape=datastore` | cylindre à trois anneaux, de taille fixe | pile de disques espacés, un par nœud (`spatial.nodes`, 3 par défaut, 1–12), label sur celui du haut |
+
+  Hauteur des volumes : la règle commune (`spatial.height`, sinon l'épaisseur par défaut) ; pour la file, c'est la hauteur de la section du tube. Sans fond (`fillColor=none`), le dessin 2D reste à plat.
+
+  **Redimensionnement** : le corps du cylindre s'étire, les ellipses gardent leur taille. Les trois formes ont la **même ellipse**, de 8 px (celle de draw.io pour un cache de 60 px de haut) ; le bout de `direct_data` reste à 9/98 de la largeur, comme draw.io. **Écarts assumés avec draw.io** : draw.io agrandit les anneaux du cache avec sa hauteur, et dessine l'ellipse du `cylinder3` de hauteur `size` (15 par défaut) ; avec les valeurs de la palette (`size=8`, cache de 60 px), le rendu est identique dans les deux. Contour par défaut : épaisseur 1, comme les autres formes.
 - Connecteurs (arêtes) : segments, points intermédiaires, flèche de fin,
 - Couleurs de remplissage, de bordure, épaisseur de trait, pointillés, label centré.
 
@@ -366,11 +378,13 @@ Ajouter une forme = **écrire sa définition et l'enregistrer** (au minimum `fla
 - arêtes arrondies (`rounded=1`) ;
 - labels d'arête (principal et cellules enfants) positionnés comme draw.io, avec un **fond de la couleur de la page** par défaut, qui coupe la ligne.
 
+**Labels.** Avec `whiteSpace=wrap`, retour à la ligne entre les mots seulement, comme draw.io : un mot plus long que la forme déborde au lieu d'être coupé.
+
 Formes et arêtes sont dessinées dans l'**ordre du document** (une arête déclarée avant une forme passe dessous).
 
 ### 8.4 Formes non supportées
 
-- Affichées avec un **placeholder** : rectangle gris aux dimensions de la forme, avec le nom du style non reconnu.
+- Affichées avec un **placeholder** : rectangle gris en pointillés aux dimensions de la forme, avec le nom du style non reconnu sous le label. En iso et en 3D, le même rendu sur le dessus d'un bloc gris, arêtes en pointillés (attributs spatiaux de la forme conservés, ex. `spatial.height`).
 - Le chargement d'un fichier **n'échoue jamais** à cause d'une forme inconnue.
 - Chaque style inconnu est **journalisé** avec son nombre d'occurrences (module `diagnostics/unsupportedStyles`), consultable dans l'UI (panneau debug) et exportable en JSON. Cela sert de **backlog priorisé par fréquence réelle**.
 - Sont recensés : les formes dessinées en placeholder, les tracés d'arête approchés (`edgeStyle` inconnu) et les pointes inconnues (`startArrow` / `endArrow`). Le recensement porte sur **tout le document** (pas seulement les pages affichées) et est calculé au chargement.
@@ -413,7 +427,7 @@ Formes et arêtes sont dessinées dans l'**ordre du document** (une arête décl
   - **Bascule** : depuis la 2D, la 3D part de l'orientation iso (élévation et azimut des réglages iso) ; depuis l'iso, elle garde l'orientation courante. En sortant, la 2D revient au nord en haut, l'iso à son azimut. La perspective s'ouvre (et se referme) progressivement pendant la bascule, depuis une vue quasi orthographique : pas de saut d'image.
   - Le zoom (`CameraState.zoom`) est celui du centre de l'écran : la caméra est placée à la distance qui donne ce zoom ; `CameraState.fov` (champ de vision) n'est présent qu'en perspective.
   - Conversions écran ↔ sol par lancer de rayon ; la mini-carte montre une emprise en **trapèze**.
-- **Rotation de la vue** (`CameraState.rotation`) : **jamais en 2D** (nord en haut, comme draw.io ; une caméra enregistrée tournée est remise droite). En iso et en 3D, **clic droit + glisser** fait tourner la caméra autour du centre de l'écran (la page reste fixe ; en iso, seule la rotation change, l'élévation reste celle des réglages) ; aussi par les réglages iso et l'état de vue enregistré. Pas de bouton dédié pour revenir à l'orientation de référence ; `engine.resetRotation()` reste disponible, et la bascule de mode redonne une orientation de référence.
+- **Rotation de la vue** (`CameraState.rotation`) : **jamais en 2D** (nord en haut, comme draw.io ; une caméra enregistrée tournée est remise droite). En iso et en 3D, **clic droit + glisser** fait tourner la caméra autour du centre de l'écran (la page reste fixe ; en iso, seule la rotation change, l'élévation reste celle des réglages) ; aussi par les réglages iso et l'état de vue enregistré. Le bouton **Réinitialiser la vue** de la barre d'outils (à côté de « 2D | Iso | 3D », dans tous les modes) revient en animation à la vue par défaut du mode, comme à l'ouverture de la page : orientation de référence (nord en haut en 2D, orientation et élévation des réglages iso en iso et en 3D) et page entière à l'écran (au plus 100 %). `engine.resetRotation()` reste disponible, et la bascule de mode redonne aussi une orientation de référence.
 
 ### 9.2 Contrôles
 
@@ -498,7 +512,8 @@ Réalisation retenue :
 - **Simple clic** sur une forme ayant un lien vers une page : sélection + **préchargement** de la page cible en arrière-plan (construction de sa scène), sans rien afficher.
 - **Double-clic** : déclenche la **transition**.
 - Option : préchargement au **survol prolongé** (≈ 300 ms, configurable), avec un **plafond** sur le nombre de scènes préchargées gardées en cache.
-- **Sélection** : clic gauche sur une forme ou une arête (tolérance ≈ 6 px écran autour du tracé) ; mise en valeur par un **voile d'ombre** sur le reste de la page (défaut) : l'élément sélectionné est redessiné intact par-dessus (en iso, un bloc devant lui continue de le cacher, assombri) ; dans la vue graphe, la miniature suit sa carte ; pour une **flèche ou liaison**, le voile est **percé** d'une bande d'≈ 10 px (écran) de chaque côté de son tracé, extrémités arrondies (masque stencil, testé en profondeur : un bloc devant reste voilé). Variante (paramètre `selection.style`) : **contour** bleu pointillé d'épaisseur constante à l'écran, dont les tirets défilent lentement (« fourmis », 12 px/s ; fixe si les animations sont réduites). Clic dans le vide = désélection. L'élément le plus haut dans l'ordre de dessin gagne (un enfant avant son conteneur) ; les groupes invisibles ne sont attrapés que s'ils portent un lien. Un appui suivi d'un glisser n'est pas un clic.
+- **Sélection** : clic gauche sur une forme ou une arête (tolérance ≈ 6 px écran autour du tracé) ; mise en valeur par un **voile d'ombre** sur le reste de la page (défaut) : l'élément sélectionné est redessiné intact par-dessus (en iso, un bloc devant lui continue de le cacher, assombri) ; dans la vue graphe, la miniature suit sa carte ; pour une **flèche ou liaison**, le voile est **percé** d'une bande d'≈ 10 px (écran) de chaque côté de son tracé, extrémités arrondies (masque stencil, testé en profondeur : un bloc devant reste voilé). Variante (paramètre `selection.style`) : **contour** bleu pointillé d'épaisseur constante à l'écran, dont les tirets défilent lentement (« fourmis », 12 px/s ; fixe si les animations sont réduites). Clic dans le vide = désélection. **Changer de vue (2D ↔ iso ↔ 3D) garde la sélection** : voile, contour et poignées passent sur le rendu du nouveau mode.
+- **Sélection multiple** : clic avec la touche de sélection multiple (paramètre `controls.multiSelectKey`, **Ctrl** par défaut ; ⌘ / Windows, Maj ou Alt au choix) = ajouter l'élément à la sélection, ou l'en retirer ; dans le vide, la sélection est gardée. Sur Mac, Ctrl+clic (qui ouvre normalement le menu contextuel) compte comme un clic avec Ctrl. Tous les éléments sélectionnés sont mis en valeur (voile percé autour de chaque flèche, ou un contour par élément) ; les poignées n'apparaissent que pour une forme seule. Glisser une forme sélectionnée déplace **toutes** les formes sélectionnées (une forme déjà emportée par un conteneur sélectionné ne bouge pas deux fois ; un seul « Déplacement » à annuler) ; Suppr les supprime toutes. La barre de sélection affiche le nombre d'éléments et « Supprimer ». API : `Selection.items` (tous les éléments, dans l'ordre), `Selection.picked` (le dernier) ; `engine.toggleSelect(picked)`, `engine.selectItems(items)`. L'élément le plus haut dans l'ordre de dessin gagne (un enfant avant son conteneur) ; les groupes invisibles ne sont attrapés que s'ils portent un lien. Un appui suivi d'un glisser n'est pas un clic.
 - **Repérage des liens** : pastille bleue au coin haut-droit des formes liées (→ page, ↗ URL) ; au survol, curseur main et infobulle (« Double-clic : aller à « Page-2 » », ou l'URL).
 
 ### 11.2 Transition « zoom + fondu »
@@ -571,25 +586,53 @@ Tout ce qui touche à l'expérience utilisateur est paramétrable, avec des vale
 
 ```ts
 interface Settings {
-  transition: { enabled: boolean; durationMs: number; easing: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out' }; // true, 1000, ease-in-out
+  transition: {
+    enabled: boolean; durationMs: number; easing: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out'; // true, 1000, ease-in-out
+    fadeStart: number; fadeEnd: number;                                                               // fondu croisé (§11.2) : 0.25, 0.75
+  };
   preload: { onClick: boolean; onHover: boolean; hoverDelayMs: number; maxCachedPages: number };            // true, false, 300, 8
   controls: {
     moveKeys: 'letters' | 'arrows' | 'all'; // 'letters' = ZQSD (AZERTY) = WASD (QWERTY), mêmes touches physiques
     moveSpeed: number;                      // px écran / s au clavier (600)
     zoomSpeed: number;
     decelerationMs: number;                 // glissade à l'arrêt (§9.2), 0 = arrêt net (80)
-    shortcuts: { toggleViewMode: 'i'; toggle3d: 'p'; toggleGraph: 'g'; toggleMinimap: 'm'; overview: 'Enter'; back: 'Backspace' };
+    orbitSpeed: number;                     // rotation au clic droit, rad / px écran (0.005)
+    multiSelectKey: 'ctrl' | 'meta' | 'shift' | 'alt'; // touche + clic = sélection multiple (§11.1) : 'ctrl'
+    shortcuts: { toggleViewMode: 'i'; toggle3d: 'p'; toggleGraph: 'g'; toggleMinimap: 'm'; overview: 'Enter'; back: 'Backspace'; deleteSelection: 'Backspace' };
   };
   view: {
     defaultMode: 'top' | 'iso' | '3d'; isoAngleDeg: number; isoAzimuthDeg: number; switchDurationMs: number; // 'top', 35.26, -45, 450
     isoVolume: boolean; isoDepth: number;                                                              // true, 16 (px)
+    shadeLight: number; shadeDark: number;                    // luminosité des côtés des volumes : 0.9, 0.62
+  };
+  camera: {                                                   // bornes et animations de la caméra (§9)
+    minZoom: number; maxZoom: number;                         // 2D et iso : 0.05, 16
+    minZoom3d: number; maxZoom3d: number;                     // 3D : 0.1, 4
+    maxTilt3dDeg: number; fovDeg: number;                     // 3D : 65, 45
+    animationMs: number;                                      // vue globale, réinitialiser la vue, aller à un élément : 250
+    focusMaxZoom: number; focusPadding: number;               // aller à un élément : 2, 80 (px écran)
   };
   background: {                                                   // fond et grille (§9.5)
     color: string; grid: boolean; gridFromPage: boolean;          // '#ffffff', true, true
     gridSize: number; majorEvery: number; gridColor: string;      // 10 (2–200), 4 (1 = aucune), '#d4d9e0'
+    minorStrength: number;                                        // intensité des lignes secondaires : 0.55
   };
   minimap: { visible: boolean; size: number };                    // true, 200
-  selection: { style: 'veil' | 'outline'; veilOpacity: number; animated: boolean; speed: number }; // 'veil', 0.35, true, 12
+  selection: {
+    style: 'veil' | 'outline'; veilOpacity: number; animated: boolean; speed: number; // 'veil', 0.35, true, 12
+    veilColor: string; veilPadding: number;                       // '#202124', 10 (px écran autour d'une flèche)
+    accentColor: string;                                          // contour, poignées, pastilles de lien, mini-carte : '#1a73e8'
+  };
+  shapes: {
+    edgeFontColor: string;                                        // texte des flèches sans fontColor : '#000000'
+    placeholderFill: string; placeholderStroke: string;           // formes non supportées (§8.4) : '#eeeeee', '#9e9e9e'
+  };
+  graph: { cardWidth: number; columnGap: number; rowGap: number }; // vue graphe (§12) : 260, 200, 90
+  edit: {                                                         // édition (§14)
+    edgePickTolerance: number; handlePickTolerance: number;       // px écran : 6, 8
+    handleSize: number; minShapeSize: number;                     // demi-côté des poignées (px écran) : 4 ; px de page : 10
+  };
+  save: { autosave: boolean; delayMs: number; viewStateDelayMs: number }; // true, 1000, 500 (position de consultation, §5.3)
   debug: { showUnsupportedPanel: boolean };                       // true
   accessibility: { reducedMotion: 'system' | 'always' | 'never' }; // 'system'
 }
@@ -600,10 +643,13 @@ Les paramètres sont persistés (IndexedDB ou localStorage) et peuvent être pas
 Réalisation retenue :
 
 - `mergeSettings` fusionne une modification **section par section** (raccourcis un par un), ignore les valeurs invalides et borne les nombres : un stockage abîmé ou ancien ne casse jamais l'application.
-- Moteur : `new Engine({ settings })`, puis `engine.updateSettings(patch)` — tout s'applique immédiatement (contrôles, transitions, préchargement, taille du cache ; en iso, élévation et orientation animées). `<DrawioSpatial settings={…} />` les transmet.
+- Moteur : `new Engine({ settings })`, puis `engine.updateSettings(patch)` — tout s'applique immédiatement (contrôles, transitions, préchargement, taille du cache ; en iso, élévation et orientation animées ; bornes de caméra, couleurs, vue graphe). `<DrawioSpatial settings={…} />` les transmet.
+- Les bornes de la caméra (zoom, inclinaison et champ de vision de la 3D) sont un réglage du module `interaction/camera` (`setCameraLimits`), commun à toutes les vues de la page. Un zoom maximal inférieur au minimal est ramené au minimal.
+- Restent dans le code les valeurs purement techniques (ordres de dessin, tolérances numériques, stencil) et les valeurs de fidélité à draw.io (couleurs et tailles par défaut des styles).
 - **Réduire les animations** : « comme le système » (`prefers-reduced-motion`, suivi en direct), « toujours » ou « jamais ». Réduites = transitions de liens, bascule iso, vue globale ↔ 1:1 instantanées, **glissade et contour de sélection animé** coupés.
+- **Supprimer la sélection** (`deleteSelection`, Backspace par défaut, la touche « delete » du Mac ; Suppr fonctionne toujours) : prioritaire seulement s'il y a une sélection supprimable. Il peut partager sa touche avec Retour : Backspace supprime la sélection, sinon revient en arrière.
 - **Raccourcis par touche affichée** (`KeyboardEvent.key`, insensibles à la casse) : « M » est la touche M en AZERTY comme en QWERTY. Le déplacement reste par position physique (`code`). Les touches de déplacement et Espace ne sont pas attribuables ; une touche déjà utilisée est refusée.
-- Appli de démo : paramètres partagés entre fichiers, persistés dans le navigateur (`localStorage`, une seule clé ; les réglages enregistrés séparément auparavant sont repris une fois). Panneau **« Paramètres »** (bouton de la barre d'outils) à côté de la vue : Navigation, Vue, Transitions, Préchargement, Fond et grille, Mini-carte, Accessibilité, Raccourcis (cliquer puis appuyer sur la touche), Diagnostics ; bouton « Réinitialiser ». Les réglages rapides de la barre (× de la mini-carte) écrivent dans les mêmes paramètres ; les réglages iso (orientation avec aperçu, élévation) ont leur section « Vue isométrique ».
+- Appli de démo : paramètres partagés entre fichiers, persistés dans le navigateur (`localStorage`, une seule clé ; les réglages enregistrés séparément auparavant sont repris une fois). Panneau **« Paramètres »** (bouton de la barre d'outils) à côté de la vue, avec **tous** les paramètres, en sections et sous-sections : Navigation (clavier, souris), Vue (modes, vue isométrique, vue 3D, volumes), Caméra (zoom, animations, aller à un élément), Fond et grille, Sélection (mise en valeur, voile, contour), Liens entre pages (transitions, préchargement, vue graphe), Mini-carte, Formes et flèches (texte des flèches, formes non supportées), Édition, Sauvegarde, Raccourcis (cliquer puis appuyer sur la touche), Accessibilité, Diagnostics ; bouton « Réinitialiser ». Un réglage sans effet dans la configuration actuelle reste affiché, grisé. **Recherche** en haut du panneau : seules les sections dont le texte (titres, libellés, choix, aides) contient la recherche restent affichées, sans tenir compte des accents ni de la casse ; dans une section dont le titre ne correspond pas, seules les sous-sections qui correspondent restent. Échap vide la recherche. Les réglages rapides de la barre (× de la mini-carte) écrivent dans les mêmes paramètres ; les réglages iso (orientation avec aperçu, élévation) ont leur section « Vue isométrique ».
 
 ---
 
@@ -615,6 +661,7 @@ Réalisation retenue :
 - Ajout / suppression / renommage de **pages**.
 - **Palette** de formes (barre latérale ou barre de menu) : on **glisse-dépose** une forme sur le plan, elle est placée au point de dépôt (projection du curseur sur le sol, valable en vue de dessus comme en iso).
 - **Déplacement** des formes à la souris, redimensionnement, édition du label.
+- **Textes de début et de fin d'une flèche** (comme les multiplicités UML) : labels enfants de l'arête au format draw.io (`edgeLabel`, géométrie relative `x=-0.8` côté source, `x=0.8` côté cible, soit 10 % de la longueur depuis chaque bout). **Double-clic près d'un bout** de la flèche (dernier quart du tracé de chaque côté) : boîte de texte du début ou de la fin ; vers le milieu : label principal. Aussi par les champs « Début » et « Fin » de la barre de sélection. Texte vide = label retiré. Un label enfant existant au-delà de ±0,5 compte comme texte de début ou de fin (le plus proche du bout). API : `engine.setEdgeEndLabel(edgeId, 'start' | 'end', texte)`, `engine.editEdgeEndLabel(edgeId, end)` (événement `labelEdit` avec `end`).
 - Création de connecteurs entre formes.
 - Création de liens entre pages.
 - Annuler / rétablir.
@@ -647,6 +694,7 @@ Réalisation retenue (`engine/spatial.ts`) :
 |---|---|---|
 | `spatial.height` | style ou objet | Épaisseur du volume en iso, en pixels de page (défaut : réglage « Épaisseur ») |
 | `spatial.elevation` | style ou objet | La forme flotte à cette hauteur au-dessus de sa base (sol, ou dessus de son conteneur) |
+| `spatial.nodes` | style ou objet | Cache distribué (`shape=datastore`) : nombre de disques empilés en iso / 3D (3 par défaut, 1–12) |
 | `spatial.noLinkBadge` | style | `1` : lien sans pastille (cartes de la vue graphe) |
 | `spatial.view` | `<diagram>` | État de vue de la page (§14.2) |
 

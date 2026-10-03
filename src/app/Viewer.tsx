@@ -18,6 +18,7 @@ import { NavigationToolbar } from './NavigationToolbar';
 import { LabelEditor } from './LabelEditor';
 import { PageTabs } from './PageTabs';
 import { SelectionBar } from './SelectionBar';
+import { MULTI_SELECT_LABELS } from './SettingsPanel';
 import { Palette, PALETTE_MIME, templateById } from './Palette';
 import { SettingsPanel } from './SettingsPanel';
 import type { Settings, SettingsPatch } from '../engine/settings';
@@ -26,8 +27,6 @@ import { GRAPH_PAGE_ID } from '../engine/graph/graphPage';
 const FONTS = { regular: robotoRegular, bold: robotoBold };
 /** Réglages iso qu'une page peut imposer (état de vue enregistré dans le fichier). */
 const ISO_KEYS = ['isoAngleDeg', 'isoAzimuthDeg', 'isoVolume', 'isoDepth'] as const;
-/** SPEC §5.3 : état de consultation sauvegardé 500 ms après le dernier changement, et à la fermeture. */
-const SAVE_DELAY_MS = 500;
 interface ViewerProps {
   file: StoredFile;
   /** Retour au lanceur (l'état est sauvegardé avant). */
@@ -105,7 +104,8 @@ export function Viewer({
   }, [file.id]);
   const scheduleSave = useCallback(() => {
     clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(save, SAVE_DELAY_MS);
+    // SPEC §5.3 : état de consultation sauvegardé peu après le dernier changement, et à la fermeture.
+    saveTimer.current = setTimeout(save, settingsRef.current.save.viewStateDelayMs);
   }, [save]);
   const flush = useCallback(() => {
     if (saveTimer.current) save();
@@ -327,7 +327,11 @@ export function Viewer({
             </svg>
           </button>
         </span>
-        <NavigationToolbar viewMode={viewMode} onViewModeChange={(mode) => engine?.setViewMode(mode)} />
+        <NavigationToolbar
+          viewMode={viewMode}
+          onViewModeChange={(mode) => engine?.setViewMode(mode)}
+          onResetView={() => engine?.resetView()}
+        />
         <div className="toolbar-end">
           {settings.debug.showUnsupportedPanel && (
             <button
@@ -379,11 +383,12 @@ export function Viewer({
         >
           {labelEdit && (
             <LabelEditor
-              key={`${labelEdit.pageId}:${labelEdit.elementId}`}
+              key={`${labelEdit.pageId}:${labelEdit.elementId}:${labelEdit.end ?? ''}`}
               request={labelEdit}
               onCommit={(text) => {
                 setLabelEdit(undefined);
-                engine?.setLabel(labelEdit.elementId, text);
+                if (labelEdit.end) engine?.setEdgeEndLabel(labelEdit.elementId, labelEdit.end, text);
+                else engine?.setLabel(labelEdit.elementId, text);
                 engine?.focusCanvas();
               }}
               onCancel={() => {
@@ -400,7 +405,9 @@ export function Viewer({
               onSpatial={(key, value) => engine?.setSpatial(selection.picked.element.id, key, value)}
               defaultDepth={settings.view.isoDepth}
               onEditLabel={() => engine?.editLabel(selection.picked.element.id)}
+              onEndLabel={(end, text) => engine?.setEdgeEndLabel(selection.picked.element.id, end, text)}
               onDelete={() => engine?.deleteSelection()}
+              multiSelectKey={MULTI_SELECT_LABELS[settings.controls.multiSelectKey]}
             />
           )}
           <DrawioSpatial

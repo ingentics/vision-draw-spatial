@@ -19,7 +19,7 @@ export interface UnsupportedOccurrence {
 
 export interface UnsupportedEntry {
   category: UnsupportedCategory;
-  /** Nom de forme ou valeur du style (ex. `cylinder3`, `isometricEdgeStyle`, `ERmandOne`). */
+  /** Nom de forme ou valeur du style (ex. `cube`, `isometricEdgeStyle`, `ERmandOne`). */
   name: string;
   count: number;
   /** Noms des pages concernées, dans l'ordre du document. */

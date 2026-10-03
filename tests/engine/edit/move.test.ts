@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { collectMoveSet, isLocked, moveTarget, snapDelta, translateMoveSet } from '../../../src/engine/edit/move';
+import {
+  collectMoveSet,
+  isLocked,
+  moveTarget,
+  snapDelta,
+  translateMoveSet,
+  unionMoveSets,
+} from '../../../src/engine/edit/move';
 import { parseDrawio } from '../../../src/engine/format/parse';
 import type { PageModel } from '../../../src/engine/model/types';
 import { fixture } from '../../helpers';
@@ -77,5 +84,22 @@ describe('isLocked', () => {
     expect(isLocked(a)).toBe(false);
     expect(isLocked({ ...a, style: { ...a.style, movable: '0' } })).toBe(true);
     expect(isLocked({ ...a, style: { ...a.style, locked: '1' } })).toBe(true);
+  });
+});
+
+describe('unionMoveSets (sélection multiple)', () => {
+  it('réunit les formes ; une arête reliée aux deux formes déplacées est retracée une fois', () => {
+    const page = parseDrawio(fixture('three-rectangles.drawio')).pages[0]!;
+    const set = unionMoveSets([collectMoveSet(page, 'a'), collectMoveSet(page, 'b')]);
+    expect(set.rootId).toBe('a');
+    expect([...set.shapeIds].sort()).toEqual(['a', 'b']);
+    expect([...set.connectedEdgeIds]).toEqual(['ab']);
+  });
+
+  it('une arête contenue dans une forme déplacée n’est pas seulement retracée', () => {
+    const page = parseDrawio(fixture('groups.drawio')).pages[0]!;
+    const set = unionMoveSets([collectMoveSet(page, 'lane'), collectMoveSet(page, 'lane-a')]);
+    expect(set.edgeIds.has('lane-edge')).toBe(true);
+    expect(set.connectedEdgeIds.has('lane-edge')).toBe(false);
   });
 });
