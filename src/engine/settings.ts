@@ -123,6 +123,11 @@ export interface ShapeSettings {
   edgeEndTextSize: number;
   /** Couleur des textes de début et de fin de flèche créés (#rrggbb). */
   edgeEndTextColor: string;
+  /** Écarts du placement par défaut d'un texte de début / fin : le long de la flèche, et de côté. */
+  edgeEndTextGapAlong: number;
+  edgeEndTextGapAcross: number;
+  /** Tracé des flèches créées : angles droits, coudes arrondis, ou courbe. */
+  edgeLineStyle: 'sharp' | 'rounded' | 'curved';
   /**
    * Fond du texte des flèches sans `labelBackgroundColor` explicite : halo de la couleur de la page
    * autour de chaque lettre, fond uni de la couleur de la page, ou transparent.
@@ -260,6 +265,9 @@ export const DEFAULT_SETTINGS: Settings = {
     textSize: 12,
     edgeEndTextSize: 9,
     edgeEndTextColor: '#808080',
+    edgeEndTextGapAlong: 6,
+    edgeEndTextGapAcross: 4,
+    edgeLineStyle: 'rounded',
     edgeLabelBackdrop: 'halo',
     edgeLabelHaloWidth: 1.5,
     edgeLabelHaloBlur: 1,
@@ -307,6 +315,8 @@ export const SETTINGS_LIMITS = {
   'minimap.size': { min: 120, max: 400, step: 10 },
   'shapes.textSize': { min: 4, max: 72, step: 1 },
   'shapes.edgeEndTextSize': { min: 4, max: 72, step: 1 },
+  'shapes.edgeEndTextGapAlong': { min: 0, max: 40, step: 1 },
+  'shapes.edgeEndTextGapAcross': { min: 0, max: 40, step: 1 },
   'shapes.edgeLabelHaloWidth': { min: 0.5, max: 6, step: 0.25 },
   'shapes.edgeLabelHaloBlur': { min: 0, max: 4, step: 0.25 },
   'selection.speed': { min: 2, max: 80, step: 1 },
@@ -329,6 +339,7 @@ const VIEW_MODES = ['top', 'iso', '3d'] as const;
 const REDUCED_MOTION = ['system', 'always', 'never'] as const;
 const SELECTION_STYLES = ['veil', 'outline'] as const;
 const LABEL_BACKDROPS = ['halo', 'solid', 'none'] as const;
+const EDGE_LINES = ['sharp', 'rounded', 'curved'] as const;
 
 /**
  * Fusionne une modification dans des paramètres. Les valeurs invalides (mauvais type, hors liste)
@@ -468,6 +479,17 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
       edgeFontColor: color(p.shapes?.edgeFontColor, base.shapes.edgeFontColor),
       textSize: Math.round(num('shapes.textSize', p.shapes?.textSize, base.shapes.textSize)),
       edgeEndTextColor: color(p.shapes?.edgeEndTextColor, base.shapes.edgeEndTextColor),
+      edgeEndTextGapAlong: num(
+        'shapes.edgeEndTextGapAlong',
+        p.shapes?.edgeEndTextGapAlong,
+        base.shapes.edgeEndTextGapAlong,
+      ),
+      edgeEndTextGapAcross: num(
+        'shapes.edgeEndTextGapAcross',
+        p.shapes?.edgeEndTextGapAcross,
+        base.shapes.edgeEndTextGapAcross,
+      ),
+      edgeLineStyle: oneOf(EDGE_LINES, p.shapes?.edgeLineStyle, base.shapes.edgeLineStyle),
       edgeEndTextSize: Math.round(
         num('shapes.edgeEndTextSize', p.shapes?.edgeEndTextSize, base.shapes.edgeEndTextSize),
       ),

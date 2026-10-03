@@ -61,8 +61,12 @@ export function setEdgeTextPlacement(edge: EdgeModel, cellId: string, placement:
   }
 }
 
-/** Écarts d'un texte de début / fin : le long de la flèche depuis la forme, et de côté depuis le trait. */
+/**
+ * Écarts par défaut d'un texte de début / fin, en pixels de page : le long de la flèche depuis la forme,
+ * et de côté depuis le trait (paramètres `shapes.edgeEndTextGapAlong`, `edgeEndTextGapAcross`).
+ */
 export const END_TEXT_GAP = { along: 6, across: 4 };
+export type EndTextGap = typeof END_TEXT_GAP;
 
 /** Placement et alignement d'un texte de flèche (configuration par défaut d'un début, d'un milieu ou d'une fin). */
 export interface EdgeTextLayout {
@@ -82,7 +86,12 @@ export interface EdgeTextLayout {
  * Placement écrit comme draw.io : au bout (x = ±1) avec un décalage `offset`. `flipped` : de l'autre
  * côté du trait (règle inversée : dessous / dessus, ou à gauche / à droite).
  */
-export function edgeTextLayout(route: Point[], anchor: EdgeEnd | 'middle', flipped = false): EdgeTextLayout {
+export function edgeTextLayout(
+  route: Point[],
+  anchor: EdgeEnd | 'middle',
+  flipped = false,
+  gap: EndTextGap = END_TEXT_GAP,
+): EdgeTextLayout {
   const middle: EdgeTextLayout = {
     placement: { position: 0, distance: 0, offset: { x: 0, y: 0 } },
     align: 'center',
@@ -96,7 +105,7 @@ export function edgeTextLayout(route: Point[], anchor: EdgeEnd | 'middle', flipp
   if (!next) return middle;
   const length = Math.hypot(next.x - tip.x, next.y - tip.y);
   const u = { x: (next.x - tip.x) / length, y: (next.y - tip.y) / length };
-  const { along, across } = END_TEXT_GAP;
+  const { along, across } = gap;
   // Côté du trait : celui de la règle (début au-dessus / à droite), ou l'autre si retourné.
   const start = (anchor === 'start') !== flipped;
   const tipPosition = anchor === 'start' ? -1 : 1;
@@ -153,9 +162,10 @@ export function flipTarget(
   end: EdgeEnd,
   placement: EdgeLabelPlacement,
   style: Record<string, string>,
+  gap: EndTextGap = END_TEXT_GAP,
 ): { flipped: boolean; layout: EdgeTextLayout; direction: 'up' | 'down' | 'left' | 'right' } | undefined {
-  const normal = edgeTextLayout(route, end, false);
-  const reversed = edgeTextLayout(route, end, true);
+  const normal = edgeTextLayout(route, end, false, gap);
+  const reversed = edgeTextLayout(route, end, true, gap);
   const from = matchesLayout(placement, style, normal)
     ? normal
     : matchesLayout(placement, style, reversed)

@@ -190,4 +190,15 @@ describe('réglages exposés (caméra, vue graphe, édition…)', () => {
     const merged = mergeSettings(DEFAULT_SETTINGS, { shapes: { textSize: 200, edgeEndTextSize: 8.6 } });
     expect(merged.shapes).toMatchObject({ textSize: 72, edgeEndTextSize: 9 });
   });
+  it('nouvelles flèches : coudes arrondis par défaut ; écarts des textes de début et de fin', () => {
+    expect(DEFAULT_SETTINGS.shapes).toMatchObject({
+      edgeLineStyle: 'rounded',
+      edgeEndTextGapAlong: 6,
+      edgeEndTextGapAcross: 4,
+    });
+    const merged = mergeSettings(DEFAULT_SETTINGS, {
+      shapes: { edgeLineStyle: 'zigzag' as never, edgeEndTextGapAcross: 100 },
+    });
+    expect(merged.shapes).toMatchObject({ edgeLineStyle: 'rounded', edgeEndTextGapAcross: 40 });
+  });
 });

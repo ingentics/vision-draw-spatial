@@ -55,7 +55,7 @@ import {
   flipTarget,
   setEdgeTextPlacement,
 } from './edit/edgeLabels';
-import type { EdgeTextLayout } from './edit/edgeLabels';
+import type { EdgeTextLayout, EndTextGap } from './edit/edgeLabels';
 import { labelPoint, placementAt, positionAlong } from './render/edges/polyline';
 import { setLineResolution } from './render/lines';
 import type { EdgeEnd } from './edit/edgeLabels';
@@ -319,8 +319,10 @@ interface LabelDrag {
 export type EdgeTextAnchor = 'start' | 'middle' | 'end';
 
 /** Style des connecteurs créés (celui de draw.io par défaut). */
-/** Coudes arrondis par défaut (`rounded=1`) ; tracé au choix dans le panneau (angles droits, courbe). */
-const CONNECTOR_STYLE = 'edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;';
+/** Style des connecteurs créés (orthogonal, comme draw.io) ; le tracé vient du paramètre `shapes.edgeLineStyle`. */
+const CONNECTOR_STYLE = 'edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;jettySize=auto;html=1;';
+/** Clés du tracé d'une flèche : angles droits, coudes arrondis, courbe. */
+const EDGE_LINE_KEYS = { sharp: 'rounded=0;', rounded: 'rounded=1;', curved: 'rounded=0;curved=1;' } as const;
 /** Curseur de chaque poignée de redimensionnement. */
 const HANDLE_CURSORS: Record<ResizeHandle, string> = {
   nw: 'nwse-resize',
@@ -1847,7 +1849,7 @@ export class Engine {
     const route = this.sceneObject(edgeId)?.userData.route as Point[] | undefined;
     if (!route?.length) return;
     // Même configuration qu'un texte créé à cet endroit : placement et alignement.
-    const layout = edgeTextLayout(route, anchor);
+    const layout = edgeTextLayout(route, anchor, false, this.endTextGap());
     this.recordEdit('Position du texte');
     setLabelPlacement(editable.pageTree, cellId, layout.placement);
     const centered = anchor === 'middle';
@@ -1856,10 +1858,15 @@ export class Engine {
     this.documentChanged([editable.page.id]);
   }
 
+  /** Écarts du placement par défaut des textes de début / fin (paramètres). */
+  private endTextGap(): EndTextGap {
+    return { along: this.settings.shapes.edgeEndTextGapAlong, across: this.settings.shapes.edgeEndTextGapAcross };
+  }
+
   /** Configuration par défaut d'un texte de début / fin d'une flèche de la page courante. */
   private endTextLayout(edgeId: string, end: EdgeEnd, flipped = false): EdgeTextLayout {
     const route = (this.sceneObject(edgeId)?.userData.route as Point[] | undefined) ?? [];
-    return edgeTextLayout(route, end, flipped);
+    return edgeTextLayout(route, end, flipped, this.endTextGap());
   }
 
   /** Demande d'édition complétée de la bascule possible (texte de début / fin en configuration par défaut). */
@@ -1870,8 +1877,9 @@ export class Engine {
     delete rest.flip;
     if (!request.onEdge || !request.end || !edge || !route?.length) return rest;
     const child = request.labelCellId ? edge.labels.find((l) => l.id === request.labelCellId) : undefined;
-    const placement = child?.placement ?? edgeTextLayout(route, request.end, request.flipped).placement;
-    const target = flipTarget(route, request.end, placement, child?.style ?? request.style);
+    const placement =
+      child?.placement ?? edgeTextLayout(route, request.end, request.flipped, this.endTextGap()).placement;
+    const target = flipTarget(route, request.end, placement, child?.style ?? request.style, this.endTextGap());
     return target ? { ...rest, flip: target.direction } : rest;
   }
 
@@ -1888,7 +1896,7 @@ export class Engine {
     const child = editing.labelCellId ? edge.labels.find((l) => l.id === editing.labelCellId) : undefined;
     let next: LabelEditRequest;
     if (child) {
-      const target = flipTarget(route, editing.end, child.placement, child.style);
+      const target = flipTarget(route, editing.end, child.placement, child.style, this.endTextGap());
       if (!target) return;
       this.recordEdit('Côté du texte');
       setLabelPlacement(editable.pageTree, child.id, target.layout.placement);
@@ -1901,7 +1909,7 @@ export class Engine {
       next = { ...editing, style: style ?? editing.style };
     } else {
       const flipped = !editing.flipped;
-      const layout = edgeTextLayout(route, editing.end, flipped);
+      const layout = edgeTextLayout(route, editing.end, flipped, this.endTextGap());
       next = {
         ...editing,
         flipped,
@@ -2031,7 +2039,8 @@ export class Engine {
         return;
       }
       this.recordEdit('Connecteur');
-      const style = withStyleValue(CONNECTOR_STYLE, 'fontSize', String(this.settings.shapes.textSize));
+      const line = CONNECTOR_STYLE + EDGE_LINE_KEYS[this.settings.shapes.edgeLineStyle];
+      const style = withStyleValue(line, 'fontSize', String(this.settings.shapes.textSize));
       const id = addEdgeCell(pageTree, { source: drag.sourceId, target: drag.targetId, style });
       this.documentChanged([drag.pageId]);
       const edge = this.getCurrentPage()?.edges.find((e) => e.id === id);
@@ -2238,7 +2247,9 @@ export class Engine {
     const route = this.sceneObject(elementId)?.userData.route as Point[] | undefined;
     if (!route?.length) return undefined;
     const child = labelCellId ? edge.labels.find((l) => l.id === labelCellId) : undefined;
-    const placement = child?.placement ?? (end ? edgeTextLayout(route, end, flipped).placement : edge.labelPlacement);
+    const placement =
+      child?.placement ??
+      (end ? edgeTextLayout(route, end, flipped, this.endTextGap()).placement : edge.labelPlacement);
     const center = this.screenOfPoint(labelPoint(route, placement), this.elementTop(elementId));
     return { x: center.x, y: center.y, width: 0, height: 0 };
   }

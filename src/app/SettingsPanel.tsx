@@ -521,17 +521,59 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
         </Section>
 
         <Section title="Formes et flèches">
-          <Subsection title="Texte">
+          <Subsection title="Nouvelles formes et flèches">
             <Slider
-              label="Taille du texte des nouvelles formes et flèches"
+              label="Taille du texte"
               value={shapes.textSize}
               limits={SETTINGS_LIMITS['shapes.textSize']}
               format={(v) => `${v} px`}
               onChange={(textSize) => onChange({ shapes: { textSize } })}
             />
+            <Choice
+              label="Tracé des flèches"
+              value={shapes.edgeLineStyle}
+              options={[
+                ['sharp', 'Angles droits'],
+                ['rounded', 'Arrondi'],
+                ['curved', 'Courbe'],
+              ]}
+              onChange={(edgeLineStyle) => onChange({ shapes: { edgeLineStyle } })}
+            />
             <p className="hint muted">
-              Écrite dans le style draw.io des formes et flèches créées ; les textes de début et de fin d'une flèche ont
-              leur propre taille (Flèches).
+              Écrits dans le style draw.io des formes de la palette et des flèches tirées depuis une forme ; à changer
+              ensuite forme par forme dans le panneau de droite.
+            </p>
+          </Subsection>
+          <Subsection title="Textes de début et de fin">
+            <Slider
+              label="Taille"
+              value={shapes.edgeEndTextSize}
+              limits={SETTINGS_LIMITS['shapes.edgeEndTextSize']}
+              format={(v) => `${v} px`}
+              onChange={(edgeEndTextSize) => onChange({ shapes: { edgeEndTextSize } })}
+            />
+            <ColorField
+              label="Couleur"
+              value={shapes.edgeEndTextColor}
+              onChange={(edgeEndTextColor) => onChange({ shapes: { edgeEndTextColor } })}
+            />
+            <Slider
+              label="Écart le long de la flèche"
+              value={shapes.edgeEndTextGapAlong}
+              limits={SETTINGS_LIMITS['shapes.edgeEndTextGapAlong']}
+              format={(v) => `${v} px`}
+              onChange={(edgeEndTextGapAlong) => onChange({ shapes: { edgeEndTextGapAlong } })}
+            />
+            <Slider
+              label="Écart depuis le trait"
+              value={shapes.edgeEndTextGapAcross}
+              limits={SETTINGS_LIMITS['shapes.edgeEndTextGapAcross']}
+              format={(v) => `${v} px`}
+              onChange={(edgeEndTextGapAcross) => onChange({ shapes: { edgeEndTextGapAcross } })}
+            />
+            <p className="hint muted">
+              Textes créés au début ou à la fin d'une flèche : contre leur bout (à ces écarts de la forme et du trait),
+              du côté et avec l'alignement qui les éloignent de la forme.
             </p>
           </Subsection>
           <Subsection title="Flèches">
@@ -541,22 +583,6 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
               onChange={(edgeFontColor) => onChange({ shapes: { edgeFontColor } })}
             />
             <p className="hint muted">Quand le style draw.io de la flèche ne précise pas de couleur de texte.</p>
-            <Slider
-              label="Taille des textes de début et de fin"
-              value={shapes.edgeEndTextSize}
-              limits={SETTINGS_LIMITS['shapes.edgeEndTextSize']}
-              format={(v) => `${v} px`}
-              onChange={(edgeEndTextSize) => onChange({ shapes: { edgeEndTextSize } })}
-            />
-            <ColorField
-              label="Couleur des textes de début et de fin"
-              value={shapes.edgeEndTextColor}
-              onChange={(edgeEndTextColor) => onChange({ shapes: { edgeEndTextColor } })}
-            />
-            <p className="hint muted">
-              Textes créés au début ou à la fin d'une flèche : contre leur bout, du côté et avec l'alignement qui les
-              éloignent de la forme.
-            </p>
             <Choice
               label="Fond du texte des flèches"
               value={shapes.edgeLabelBackdrop}

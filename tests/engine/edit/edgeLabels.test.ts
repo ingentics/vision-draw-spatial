@@ -214,4 +214,9 @@ describe('bascule d’un texte de début / fin de l’autre côté du trait', ()
     expect(flipTarget(route, 'end', moved, styleOf(normal))).toBeUndefined();
     expect(flipTarget(route, 'end', normal.placement, { ...styleOf(normal), align: 'center' })).toBeUndefined();
   });
+
+  it('écarts réglables (paramètres)', () => {
+    const layout = edgeTextLayout(route, 'start', false, { along: 10, across: 8 });
+    expect(layout.placement.offset).toEqual({ x: 10, y: -8 });
+  });
 });
