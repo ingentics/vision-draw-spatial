@@ -56,6 +56,9 @@ interface LabelEditorProps {
   onFlip?: () => void;
 }
 
+/** Police par défaut des textes draw.io (style sans `fontFamily`). */
+const DEFAULT_FONT_FAMILY = 'Helvetica';
+
 /** Les clics dans cette zone (format du texte, panneau latéral) ne terminent pas l'édition. */
 export const TEXT_FORMAT_ATTRIBUTE = 'data-text-format';
 
@@ -101,6 +104,8 @@ export function LabelEditor({
   };
   const finishRef = useRef(finish);
   finishRef.current = finish;
+  const requestRef = useRef(request);
+  requestRef.current = request;
   const onSelectionFormatRef = useRef(onSelectionFormat);
   onSelectionFormatRef.current = onSelectionFormat;
 
@@ -177,6 +182,19 @@ export function LabelEditor({
         if (marks.fontFamily) span.style.fontFamily = marks.fontFamily;
         span.append(content);
         range.insertNode(span);
+        // « Aucune » couleur / police (style de texte sans elles) : celles de tout le texte. Si la sélection
+        // était dans une partie d'une autre police ou couleur (ex. du code), le segment l'hériterait :
+        // la valeur de tout le texte est alors écrite.
+        const root = ref.current;
+        if (root) {
+          const base = requestRef.current.style;
+          const computed = getComputedStyle(span);
+          const whole = getComputedStyle(root);
+          if (marks.fontFamily === null && computed.fontFamily !== whole.fontFamily)
+            span.style.fontFamily = base.fontFamily ?? DEFAULT_FONT_FAMILY;
+          if (marks.color === null && computed.color !== whole.color)
+            span.style.color = isColor(base.fontColor) ? base.fontColor : '#000000';
+        }
         const next = document.createRange();
         next.selectNodeContents(span);
         select(next);
