@@ -52,6 +52,8 @@ interface LabelEditorProps {
    */
   onMoveText?: (screen: { x: number; y: number }) => void;
   onMoveTextEnd?: () => void;
+  /** Bascule du texte de début / fin de l'autre côté du trait (flèche sous le texte, `request.flip`). */
+  onFlip?: () => void;
 }
 
 /** Les clics dans cette zone (format du texte, panneau latéral) ne terminent pas l'édition. */
@@ -81,6 +83,7 @@ export function LabelEditor({
   handle,
   onMoveText,
   onMoveTextEnd,
+  onFlip,
 }: LabelEditorProps) {
   const box = useRef<HTMLDivElement>(null);
   const ref = useRef<HTMLDivElement>(null);
@@ -287,30 +290,43 @@ export function LabelEditor({
         />
       </div>
       {onMoveText && (
-        <TextMoveHandle box={box} anchor={{ x: left, y: top }} onMove={onMoveText} onEnd={onMoveTextEnd} />
+        <TextTools
+          box={box}
+          anchor={{ x: left, y: top }}
+          onMove={onMoveText}
+          onEnd={onMoveTextEnd}
+          flip={request.flip}
+          onFlip={onFlip}
+        />
       )}
     </>
   );
 }
 
 /**
- * Poignée sous le texte d'une flèche en cours d'édition : la tirer déplace le texte (son ancre suit le
- * pointeur, au même écart qu'au moment de la saisie). Elle ne prend pas le focus : la saisie continue.
+ * Outils sous le texte d'une flèche en cours d'édition : la poignée ◇ (la tirer déplace le texte, son
+ * ancre suit le pointeur au même écart qu'au moment de la saisie) et, pour un texte de début / fin dans
+ * sa configuration par défaut, une flèche qui le fait sauter de l'autre côté du trait (et revenir). Ils
+ * ne prennent pas le focus : la saisie continue.
  */
-function TextMoveHandle({
+function TextTools({
   box,
   anchor,
   onMove,
   onEnd,
+  flip,
+  onFlip,
 }: {
   box: RefObject<HTMLDivElement | null>;
   anchor: { x: number; y: number };
-  onMove: (screen: { x: number; y: number }) => void;
+  onMove?: (screen: { x: number; y: number }) => void;
   onEnd?: () => void;
+  flip?: 'up' | 'down' | 'left' | 'right';
+  onFlip?: () => void;
 }) {
   const [position, setPosition] = useState<{ x: number; y: number }>();
   const grab = useRef<{ dx: number; dy: number } | undefined>(undefined);
-  // Sous la boîte du texte (qui change de taille pendant la saisie), centrée.
+  // Sous la boîte du texte (qui change de taille pendant la saisie), centrés.
   useLayoutEffect(() => {
     const element = box.current;
     const area = element?.offsetParent as HTMLElement | null;
@@ -325,32 +341,54 @@ function TextMoveHandle({
     observer.observe(element);
     return () => observer.disconnect();
   }, [box, anchor.x, anchor.y]);
-  if (!position) return null;
-  const areaOf = (target: Element) => (target.parentElement as HTMLElement).getBoundingClientRect();
+  if (!position || (!onMove && !(flip && onFlip))) return null;
+  const areaOf = (target: Element) =>
+    (target.closest('.text-tools')!.parentElement as HTMLElement).getBoundingClientRect();
+  const FLIP_LABELS = { up: 'au-dessus', down: 'en dessous', left: 'à gauche', right: 'à droite' };
   return (
-    <div
-      className="text-move-handle"
-      {...{ [TEXT_FORMAT_ATTRIBUTE]: '' }}
-      title="Déplacer le texte"
-      style={{ left: position.x, top: position.y }}
-      onPointerDown={(event) => {
-        event.preventDefault();
-        event.currentTarget.setPointerCapture(event.pointerId);
-        const area = areaOf(event.currentTarget);
-        grab.current = { dx: event.clientX - area.left - anchor.x, dy: event.clientY - area.top - anchor.y };
-      }}
-      onPointerMove={(event) => {
-        if (!grab.current) return;
-        const area = areaOf(event.currentTarget);
-        onMove({ x: event.clientX - area.left - grab.current.dx, y: event.clientY - area.top - grab.current.dy });
-      }}
-      onPointerUp={(event) => {
-        if (!grab.current) return;
-        grab.current = undefined;
-        event.currentTarget.releasePointerCapture(event.pointerId);
-        onEnd?.();
-      }}
-    />
+    <div className="text-tools" {...{ [TEXT_FORMAT_ATTRIBUTE]: '' }} style={{ left: position.x, top: position.y }}>
+      {onMove && (
+        <div
+          className="text-move-handle"
+          title="Déplacer le texte"
+          onPointerDown={(event) => {
+            event.preventDefault();
+            event.currentTarget.setPointerCapture(event.pointerId);
+            const area = areaOf(event.currentTarget);
+            grab.current = { dx: event.clientX - area.left - anchor.x, dy: event.clientY - area.top - anchor.y };
+          }}
+          onPointerMove={(event) => {
+            if (!grab.current) return;
+            const area = areaOf(event.currentTarget);
+            onMove({ x: event.clientX - area.left - grab.current.dx, y: event.clientY - area.top - grab.current.dy });
+          }}
+          onPointerUp={(event) => {
+            if (!grab.current) return;
+            grab.current = undefined;
+            event.currentTarget.releasePointerCapture(event.pointerId);
+            onEnd?.();
+          }}
+        />
+      )}
+      {flip && onFlip && (
+        <button
+          type="button"
+          className="text-flip"
+          title={`Passer le texte ${FLIP_LABELS[flip]} du trait`}
+          aria-label={`Passer le texte ${FLIP_LABELS[flip]} du trait`}
+          onPointerDown={(event) => event.preventDefault()}
+          onClick={onFlip}
+        >
+          <svg
+            viewBox="0 0 12 12"
+            aria-hidden="true"
+            style={{ transform: `rotate(${{ up: 0, right: 90, down: 180, left: 270 }[flip]}deg)` }}
+          >
+            <path d="M6 10.5V2M2.5 5.5 6 2l3.5 3.5" />
+          </svg>
+        </button>
+      )}
+    </div>
   );
 }
 

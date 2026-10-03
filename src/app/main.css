@@ -1142,13 +1142,21 @@ body {
   flex: 1 1 100%;
 }
 
-/* Poignée sous le texte d'une flèche en cours d'édition : la tirer déplace le texte. */
-.text-move-handle {
+/* Outils sous le texte d'une flèche en cours d'édition : poignée de déplacement, bascule de côté. */
+.text-tools {
   position: absolute;
   z-index: 7;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  transform: translateX(-50%);
+}
+
+.text-move-handle {
   width: 10px;
   height: 10px;
-  margin: 5px 0 0 -5px;
+  margin: 2px;
   box-sizing: border-box;
   border: 1.5px solid var(--accent);
   border-radius: 2px;
@@ -1156,4 +1164,28 @@ body {
   transform: rotate(45deg);
   cursor: move;
   touch-action: none;
+}
+
+.text-flip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1.5px solid var(--accent);
+  border-radius: 50%;
+  background: #ffffff;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.text-flip svg {
+  width: 11px;
+  height: 11px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }

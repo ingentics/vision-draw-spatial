@@ -79,9 +79,10 @@ export interface EdgeTextLayout {
  *   part vers la droite depuis ce bout, à droite sinon ;
  * - segment vertical : le début à droite du trait, la fin à gauche ; le texte part vers le bas si la
  *   flèche descend depuis ce bout, vers le haut sinon.
- * Placement écrit comme draw.io : au bout (x = ±1) avec un décalage `offset`.
+ * Placement écrit comme draw.io : au bout (x = ±1) avec un décalage `offset`. `flipped` : de l'autre
+ * côté du trait (règle inversée : dessous / dessus, ou à gauche / à droite).
  */
-export function edgeTextLayout(route: Point[], anchor: EdgeEnd | 'middle'): EdgeTextLayout {
+export function edgeTextLayout(route: Point[], anchor: EdgeEnd | 'middle', flipped = false): EdgeTextLayout {
   const middle: EdgeTextLayout = {
     placement: { position: 0, distance: 0, offset: { x: 0, y: 0 } },
     align: 'center',
@@ -96,13 +97,15 @@ export function edgeTextLayout(route: Point[], anchor: EdgeEnd | 'middle'): Edge
   const length = Math.hypot(next.x - tip.x, next.y - tip.y);
   const u = { x: (next.x - tip.x) / length, y: (next.y - tip.y) / length };
   const { along, across } = END_TEXT_GAP;
-  const start = anchor === 'start';
+  // Côté du trait : celui de la règle (début au-dessus / à droite), ou l'autre si retourné.
+  const start = (anchor === 'start') !== flipped;
+  const tipPosition = anchor === 'start' ? -1 : 1;
   const round = (v: number) => Math.round(v * 100) / 100 || 0;
   if (Math.abs(u.x) >= Math.abs(u.y)) {
     // Horizontal : au-dessus (début) ou en dessous (fin), le texte s'éloigne de la forme.
     return {
       placement: {
-        position: start ? -1 : 1,
+        position: tipPosition,
         distance: 0,
         offset: { x: round(u.x * along), y: round(u.y * along + (start ? -across : across)) },
       },
@@ -113,11 +116,55 @@ export function edgeTextLayout(route: Point[], anchor: EdgeEnd | 'middle'): Edge
   // Vertical : à droite (début) ou à gauche (fin), le texte s'éloigne de la forme le long du trait.
   return {
     placement: {
-      position: start ? -1 : 1,
+      position: tipPosition,
       distance: 0,
       offset: { x: round(u.x * along + (start ? across : -across)), y: round(u.y * along) },
     },
     align: start ? 'left' : 'right',
     verticalAlign: u.y > 0 ? 'top' : 'bottom',
   };
+}
+
+/** Le texte (placement et alignement) est-il exactement dans cette configuration ? */
+export function matchesLayout(
+  placement: EdgeLabelPlacement,
+  style: Record<string, string>,
+  layout: EdgeTextLayout,
+): boolean {
+  const close = (a: number, b: number) => Math.abs(a - b) < 0.01;
+  const p = layout.placement;
+  return (
+    close(placement.position, p.position) &&
+    close(placement.distance, p.distance) &&
+    close(placement.offset.x, p.offset.x) &&
+    close(placement.offset.y, p.offset.y) &&
+    (style.align ?? 'center') === layout.align &&
+    (style.verticalAlign ?? 'middle') === layout.verticalAlign
+  );
+}
+
+/**
+ * Bascule d'un texte de début / fin de l'autre côté du trait, s'il est dans une configuration par défaut
+ * (côté de la règle, ou retourné) : la configuration d'arrivée et la direction du saut à l'écran de la
+ * page. Undefined si le texte a été placé à la main (plus de bascule).
+ */
+export function flipTarget(
+  route: Point[],
+  end: EdgeEnd,
+  placement: EdgeLabelPlacement,
+  style: Record<string, string>,
+): { flipped: boolean; layout: EdgeTextLayout; direction: 'up' | 'down' | 'left' | 'right' } | undefined {
+  const normal = edgeTextLayout(route, end, false);
+  const reversed = edgeTextLayout(route, end, true);
+  const from = matchesLayout(placement, style, normal)
+    ? normal
+    : matchesLayout(placement, style, reversed)
+      ? reversed
+      : undefined;
+  if (!from) return undefined;
+  const to = from === normal ? reversed : normal;
+  const dx = to.placement.offset.x - from.placement.offset.x;
+  const dy = to.placement.offset.y - from.placement.offset.y;
+  const direction = Math.abs(dx) >= Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up';
+  return { flipped: to === reversed, layout: to, direction };
 }

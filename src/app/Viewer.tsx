@@ -453,13 +453,15 @@ export function Viewer({
                 labelEdit.onEdge && labelEdit.styleCellId ? (screen) => engine?.moveEditedText(screen) : undefined
               }
               onMoveTextEnd={() => engine?.endEditedTextMove()}
+              onFlip={() => engine?.flipEditedText()}
               onToggle={(mark) => formatText({ type: 'toggle', mark })}
               onSelectionFormat={setSelectionFormat}
               onCommit={({ text, html }) => {
                 setLabelEdit(undefined);
                 engine?.closeLabelEdit();
                 if (labelEdit.labelCellId) engine?.setEdgeText(labelEdit.elementId, labelEdit.labelCellId, text, html);
-                else if (labelEdit.end) engine?.setEdgeEndLabel(labelEdit.elementId, labelEdit.end, text, html);
+                else if (labelEdit.end)
+                  engine?.setEdgeEndLabel(labelEdit.elementId, labelEdit.end, text, html, labelEdit.flipped);
                 else engine?.setLabel(labelEdit.elementId, text, html);
                 engine?.focusCanvas();
               }}

@@ -3,6 +3,7 @@ import {
   anchorOf,
   edgeTextLayout,
   edgeTexts,
+  flipTarget,
   endAt,
   endLabelOf,
   endLabelPosition,
@@ -174,5 +175,43 @@ describe('configuration par défaut des textes de début et de fin', () => {
     ];
     expect(anchorOf(at(route, 'start').placement)).toBe('start');
     expect(anchorOf(at(route, 'end').placement)).toBe('end');
+  });
+});
+
+describe('bascule d’un texte de début / fin de l’autre côté du trait', () => {
+  const route = [
+    { x: 0, y: 0 },
+    { x: 100, y: 0 },
+  ];
+  const down = [
+    { x: 0, y: 0 },
+    { x: 0, y: 100 },
+  ];
+  const styleOf = (layout: { align: string; verticalAlign: string }) => ({
+    align: layout.align,
+    verticalAlign: layout.verticalAlign,
+  });
+
+  it('segment horizontal : au-dessus ↔ en dessous (alignement vertical inversé), et retour', () => {
+    const normal = edgeTextLayout(route, 'start');
+    const there = flipTarget(route, 'start', normal.placement, styleOf(normal))!;
+    expect(there).toMatchObject({ flipped: true, direction: 'down', layout: { align: 'left', verticalAlign: 'top' } });
+    const back = flipTarget(route, 'start', there.layout.placement, styleOf(there.layout))!;
+    expect(back).toMatchObject({ flipped: false, direction: 'up' });
+    expect(back.layout).toEqual(normal);
+  });
+
+  it('segment vertical : aligné à gauche à droite ↔ aligné à droite à gauche', () => {
+    const normal = edgeTextLayout(down, 'start');
+    expect(normal).toMatchObject({ align: 'left', placement: { offset: { x: 4 } } });
+    const there = flipTarget(down, 'start', normal.placement, styleOf(normal))!;
+    expect(there).toMatchObject({ direction: 'left', layout: { align: 'right', placement: { offset: { x: -4 } } } });
+  });
+
+  it('texte placé à la main (ou alignement changé) : plus de bascule', () => {
+    const normal = edgeTextLayout(route, 'end');
+    const moved = { ...normal.placement, offset: { x: normal.placement.offset.x + 10, y: normal.placement.offset.y } };
+    expect(flipTarget(route, 'end', moved, styleOf(normal))).toBeUndefined();
+    expect(flipTarget(route, 'end', normal.placement, { ...styleOf(normal), align: 'center' })).toBeUndefined();
   });
 });

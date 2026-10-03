@@ -46,7 +46,15 @@ import { writeDrawio } from './format/write';
 import type { DrawioTree, PageTree } from './format/xmlTree';
 import { collectMoveSet, isLocked, moveTarget, snapDelta, translateMoveSet, unionMoveSets } from './edit/move';
 import type { MoveSet } from './edit/move';
-import { anchorOf, edgeTextLayout, edgeTexts, endAt, endLabelOf, setEdgeTextPlacement } from './edit/edgeLabels';
+import {
+  anchorOf,
+  edgeTextLayout,
+  edgeTexts,
+  endAt,
+  endLabelOf,
+  flipTarget,
+  setEdgeTextPlacement,
+} from './edit/edgeLabels';
 import type { EdgeTextLayout } from './edit/edgeLabels';
 import { labelPoint, placementAt, positionAlong } from './render/edges/polyline';
 import { setLineResolution } from './render/lines';
@@ -245,6 +253,13 @@ export interface LabelEditRequest {
   onEdge: boolean;
   /** Fond du texte (`labelBackgroundColor` explicite) ; absent : transparent. */
   background?: string;
+  /** Texte de début / fin encore à créer, de l'autre côté du trait (bascule avant la création). */
+  flipped?: boolean;
+  /**
+   * Bascule possible de l'autre côté du trait (texte de début / fin dans sa configuration par défaut) :
+   * direction du saut à l'écran de la page. Absente si le texte a été placé à la main.
+   */
+  flip?: 'up' | 'down' | 'left' | 'right';
   /** Halo autour des lettres (texte de flèche sans fond, paramètre `shapes.edgeLabelBackdrop`) : couleur de la page. */
   halo?: string;
   /** Épaisseur et flou du halo, en pixels de page. */
@@ -1782,7 +1797,9 @@ export class Engine {
 
   /** Fin du déplacement du texte en cours d'édition : une étape d'annulation, écrite comme draw.io. */
   endEditedTextMove(): void {
-    if (this.drag?.kind === 'label') this.endMove();
+    if (this.drag?.kind !== 'label') return;
+    this.endMove();
+    this.relocateLabelEdit();
   }
 
   /**
@@ -1836,9 +1853,60 @@ export class Engine {
   }
 
   /** Configuration par défaut d'un texte de début / fin d'une flèche de la page courante. */
-  private endTextLayout(edgeId: string, end: EdgeEnd): EdgeTextLayout {
+  private endTextLayout(edgeId: string, end: EdgeEnd, flipped = false): EdgeTextLayout {
     const route = (this.sceneObject(edgeId)?.userData.route as Point[] | undefined) ?? [];
-    return edgeTextLayout(route, end);
+    return edgeTextLayout(route, end, flipped);
+  }
+
+  /** Demande d'édition complétée de la bascule possible (texte de début / fin en configuration par défaut). */
+  private withFlip(request: LabelEditRequest): LabelEditRequest {
+    const edge = this.getCurrentPage()?.edges.find((e) => e.id === request.elementId);
+    const route = this.sceneObject(request.elementId)?.userData.route as Point[] | undefined;
+    const rest = { ...request };
+    delete rest.flip;
+    if (!request.onEdge || !request.end || !edge || !route?.length) return rest;
+    const child = request.labelCellId ? edge.labels.find((l) => l.id === request.labelCellId) : undefined;
+    const placement = child?.placement ?? edgeTextLayout(route, request.end, request.flipped).placement;
+    const target = flipTarget(route, request.end, placement, child?.style ?? request.style);
+    return target ? { ...rest, flip: target.direction } : rest;
+  }
+
+  /**
+   * Fait sauter le texte de début / fin en cours d'édition de l'autre côté du trait (règle inversée), s'il
+   * est dans une configuration par défaut ; un texte encore à créer sera créé de ce côté.
+   */
+  flipEditedText(): void {
+    const editing = this.labelEditing;
+    const editable = this.editablePage();
+    const edge = editable?.page.edges.find((e) => e.id === editing?.elementId);
+    const route = edge && (this.sceneObject(edge.id)?.userData.route as Point[] | undefined);
+    if (!editing?.onEdge || !editing.end || !editable || !edge || !route?.length) return;
+    const child = editing.labelCellId ? edge.labels.find((l) => l.id === editing.labelCellId) : undefined;
+    let next: LabelEditRequest;
+    if (child) {
+      const target = flipTarget(route, editing.end, child.placement, child.style);
+      if (!target) return;
+      this.recordEdit('Côté du texte');
+      setLabelPlacement(editable.pageTree, child.id, target.layout.placement);
+      setCellStyleValue(editable.pageTree, child.id, 'align', target.layout.align);
+      setCellStyleValue(editable.pageTree, child.id, 'verticalAlign', target.layout.verticalAlign);
+      this.documentChanged([editable.page.id]);
+      const style = this.getCurrentPage()
+        ?.edges.find((e) => e.id === edge.id)
+        ?.labels.find((l) => l.id === child.id)?.style;
+      next = { ...editing, style: style ?? editing.style };
+    } else {
+      const flipped = !editing.flipped;
+      const layout = edgeTextLayout(route, editing.end, flipped);
+      next = {
+        ...editing,
+        flipped,
+        style: { ...editing.style, align: layout.align, verticalAlign: layout.verticalAlign },
+      };
+    }
+    const screen = this.labelEditScreen(next.elementId, next.end, next.labelCellId, next.flipped);
+    this.labelEditing = this.withFlip({ ...next, screen: screen ?? next.screen });
+    this.events.emit('labelEdit', this.labelEditing);
   }
 
   /** Style d'un texte de début / fin créé : taille et couleur (paramètres), alignement de sa configuration. */
@@ -2150,23 +2218,23 @@ export class Engine {
    */
   private startLabelEdit(request: LabelEditRequest): void {
     this.closeLabelEdit();
-    this.labelEditing = request;
+    this.labelEditing = this.withFlip(request);
     this.hideEditedLabel();
-    this.events.emit('labelEdit', request);
+    this.events.emit('labelEdit', this.labelEditing);
   }
 
   /**
    * Emprise à l'écran du texte édité : la forme (dessus du volume), le milieu d'une flèche, ou le point
    * de son texte de début / fin.
    */
-  private labelEditScreen(elementId: string, end?: EdgeEnd, labelCellId?: string): Rect | undefined {
+  private labelEditScreen(elementId: string, end?: EdgeEnd, labelCellId?: string, flipped = false): Rect | undefined {
     const edge = this.getCurrentPage()?.edges.find((e) => e.id === elementId);
     if (!edge) return this.screenRectOf(elementId);
     // Flèche : le point où le texte est dessiné (son label, un label enfant, ou un début / fin à créer).
     const route = this.sceneObject(elementId)?.userData.route as Point[] | undefined;
     if (!route?.length) return undefined;
     const child = labelCellId ? edge.labels.find((l) => l.id === labelCellId) : undefined;
-    const placement = child?.placement ?? (end ? edgeTextLayout(route, end).placement : edge.labelPlacement);
+    const placement = child?.placement ?? (end ? edgeTextLayout(route, end, flipped).placement : edge.labelPlacement);
     const center = this.screenOfPoint(labelPoint(route, placement), this.elementTop(elementId));
     return { x: center.x, y: center.y, width: 0, height: 0 };
   }
@@ -2178,12 +2246,14 @@ export class Engine {
   private relocateLabelEdit(): void {
     const editing = this.labelEditing;
     if (!editing || editing.pageId !== this.currentPageId) return;
-    const screen = this.labelEditScreen(editing.elementId, editing.end, editing.labelCellId);
+    const screen = this.labelEditScreen(editing.elementId, editing.end, editing.labelCellId, editing.flipped);
     if (!screen) return;
     const scale = this.textScale(editing.elementId);
+    // La bascule disparaît dès que le texte est placé à la main (glisser de sa poignée).
+    const next = this.withFlip({ ...editing, screen, scale });
     const same = (a: Rect, b: Rect) => a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
-    if (same(screen, editing.screen) && scale === editing.scale) return;
-    this.labelEditing = { ...editing, screen, scale };
+    if (same(screen, editing.screen) && scale === editing.scale && next.flip === editing.flip) return;
+    this.labelEditing = next;
     this.events.emit('labelEdit', this.labelEditing);
   }
 
@@ -2280,7 +2350,7 @@ export class Engine {
    * Texte de début ou de fin d'une flèche de la page courante (label enfant près de la source ou de
    * la cible, comme dans draw.io) : créé, modifié, ou retiré si le texte est vide.
    */
-  setEdgeEndLabel(edgeId: string, end: EdgeEnd, text: string, html?: string): void {
+  setEdgeEndLabel(edgeId: string, end: EdgeEnd, text: string, html?: string, flipped = false): void {
     const editable = this.editablePage();
     const edge = editable?.page.edges.find((e) => e.id === edgeId);
     if (!editable || !edge) return;
@@ -2300,7 +2370,7 @@ export class Engine {
     else {
       // Texte de début / fin créé : configuration par défaut d'après le tracé (contre son bout, côté et
       // alignement qui l'éloignent de la forme), plus petit et grisé (paramètres).
-      const layout = this.endTextLayout(edgeId, end);
+      const layout = this.endTextLayout(edgeId, end, flipped);
       const id = addEdgeLabelCell(editable.pageTree, edgeId, { value: '', position: layout.placement.position });
       setLabelPlacement(editable.pageTree, id, layout.placement);
       for (const [key, value] of Object.entries(this.endTextStyle(layout))) {
