@@ -25,4 +25,13 @@ describe('handlePoints', () => {
     expect(points.find((p) => p.kind === 'se')!.point).toEqual({ x: 160, y: 100 });
     expect(points.find((p) => p.kind === 'connect')!.point).toEqual({ x: 169, y: 70 });
   });
+
+  it('forme étroite ou plate à l’écran : poignées du milieu masquées sur les côtés trop courts', () => {
+    const tall = { x: 0, y: 0, width: 20, height: 200 };
+    expect(handlePoints(tall, 1).map((p) => p.kind)).toEqual(['nw', 'ne', 'e', 'se', 'sw', 'w', 'connect']);
+    // Plus grande à l'écran (zoom) : toutes les poignées reviennent.
+    expect(handlePoints(tall, 2).map((p) => p.kind)).toHaveLength(9);
+    const flat = { x: 0, y: 0, width: 200, height: 10 };
+    expect(handlePoints(flat, 1).map((p) => p.kind)).toEqual(['nw', 'n', 'ne', 'se', 's', 'sw', 'connect']);
+  });
 });

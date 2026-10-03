@@ -9,8 +9,23 @@ export type HandleKind = ResizeHandle | 'connect';
 
 /** Écart de la poignée de connexion au bord droit, en pixels écran. */
 export const CONNECT_HANDLE_OFFSET = 18;
+/**
+ * En dessous de cette taille à l'écran (pixels), les poignées du milieu d'un côté se chevaucheraient
+ * avec celles des coins : elles sont masquées (haut / bas si la forme est étroite, gauche / droite si
+ * elle est plate), comme draw.io.
+ */
+export const MIDDLE_HANDLE_MIN_SPAN = 32;
 
 export function handlePoints(bounds: Rect, zoom: number): Array<{ kind: HandleKind; point: Point }> {
+  const { width: w, height: h } = bounds;
+  const narrow = w * zoom < MIDDLE_HANDLE_MIN_SPAN;
+  const flat = h * zoom < MIDDLE_HANDLE_MIN_SPAN;
+  return allHandlePoints(bounds, zoom).filter(
+    ({ kind }) => !(narrow && (kind === 'n' || kind === 's')) && !(flat && (kind === 'e' || kind === 'w')),
+  );
+}
+
+function allHandlePoints(bounds: Rect, zoom: number): Array<{ kind: HandleKind; point: Point }> {
   const { x, y, width: w, height: h } = bounds;
   return [
     { kind: 'nw', point: { x, y } },

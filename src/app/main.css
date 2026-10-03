@@ -941,7 +941,8 @@ body {
 
 /* Texte édité en place : police, taille, couleur et alignement du label (style posé par l'éditeur). */
 .label-editor-text {
-  min-width: 1em;
+  min-width: max(1em, min-content);
+  max-width: 100%;
   font-family: 'Roboto', sans-serif;
   line-height: 1.2;
   overflow-wrap: normal;

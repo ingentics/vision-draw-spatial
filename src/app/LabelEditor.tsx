@@ -228,8 +228,10 @@ export function LabelEditor({
     ...(onEdge
       ? { padding: 1, minWidth: 8, transform: `scale(${scale}) translate(${anchorShift}, ${anchorShiftY})` }
       : {
-          width: Math.max(width, 40) / scale,
-          minHeight: Math.max(height, 20) / scale,
+          // Exactement l'emprise de la forme (même étroite) : le texte qui dépasse déborde, centré
+          // selon son alignement, comme le label dessiné.
+          width: width / scale,
+          height: height / scale,
           padding: 2,
           transform: `scale(${scale})`,
           justifyContent:
@@ -245,6 +247,9 @@ export function LabelEditor({
     textDecoration: decorations || 'none',
     fontFamily: isMonospace(style.fontFamily) ? "'Roboto Mono', monospace" : "'Roboto', sans-serif",
     textAlign: align,
+    // Pas plus large que la forme (retour à la ligne), mais jamais plus étroit que le mot le plus long :
+    // un débordement se répartit selon l'alignement (centré : des deux côtés).
+    alignSelf: onEdge ? undefined : align === 'left' ? 'flex-start' : align === 'right' ? 'flex-end' : 'center',
     // Halo autour des lettres (texte de flèche sans fond), comme le label dessiné.
     textShadow: request.halo ? haloShadow(request.halo, request.haloWidth ?? 1.5, request.haloBlur ?? 0) : undefined,
     whiteSpace: onEdge || style.whiteSpace !== 'wrap' ? 'pre' : 'pre-wrap',
