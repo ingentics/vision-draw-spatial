@@ -1131,3 +1131,13 @@ body {
 .format-target {
   margin: 0 2px 8px;
 }
+
+/* Ancre d'un texte de flèche : le texte sur sa ligne, le choix début / milieu / fin dessous, à droite. */
+.anchor-row {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.anchor-row .label-value {
+  flex: 1 1 100%;
+}

@@ -1,4 +1,5 @@
-import { endLabelOf } from '../engine/edit/edgeLabels';
+import { anchorOf, edgeTexts, endLabelOf } from '../engine/edit/edgeLabels';
+import type { EdgeTextAnchor } from '../engine/Engine';
 import type { EdgeEnd } from '../engine/edit/edgeLabels';
 import { matchesPreset } from '../engine/edit/styles';
 import type { StylePreset } from '../engine/edit/styles';
@@ -34,6 +35,8 @@ export interface ContextPanelProps {
   /** Texte de début ou de fin d'une flèche (vide = retiré). */
   onEndLabel: (end: EdgeEnd, text: string) => void;
   onDelete: () => void;
+  /** Ancre d'un texte de la flèche (début, milieu, fin). */
+  onTextAnchor: (cellId: string, anchor: EdgeTextAnchor) => void;
   /** Texte en cours d'édition en place : le panneau montre son format. */
   textEdit?: TextEdit;
 }
@@ -179,6 +182,7 @@ function EdgeSections({ edge, ...props }: ContextPanelProps & { edge: EdgeModel 
           );
         })}
       </Section>
+      <TextAnchors edge={edge} onAnchor={props.onTextAnchor} />
       <Section title="Liaison">
         <div className="field-row">
           De
@@ -194,6 +198,53 @@ function EdgeSections({ edge, ...props }: ContextPanelProps & { edge: EdgeModel 
       </Section>
       <DeleteButton onDelete={props.onDelete} />
     </>
+  );
+}
+
+/**
+ * Ancre de chaque texte de la flèche : début, milieu ou fin du tracé. Pour un placement libre, on tire
+ * la poignée du texte sur le plan.
+ */
+function TextAnchors({
+  edge,
+  onAnchor,
+}: {
+  edge: EdgeModel;
+  onAnchor: (cellId: string, anchor: EdgeTextAnchor) => void;
+}) {
+  const texts = edgeTexts(edge);
+  if (texts.length === 0) return null;
+  const names: Record<EdgeTextAnchor, string> = { start: 'Début', middle: 'Milieu', end: 'Fin' };
+  return (
+    <Section title="Position des textes">
+      {texts.map((text) => {
+        const anchor = anchorOf(text.placement);
+        return (
+          <div key={text.cellId} className="field-row anchor-row">
+            <span className="field-value label-value" title={text.label}>
+              « {text.label.replace(/\n/g, ' ')} »
+            </span>
+            <span className="button-group" role="radiogroup" aria-label={`Ancre de « ${text.label} »`}>
+              {(['start', 'middle', 'end'] as const).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="radio"
+                  className="group-button format-button"
+                  aria-checked={anchor === value}
+                  aria-pressed={anchor === value}
+                  title={`Ancrer au ${value === 'start' ? 'début' : value === 'end' ? 'bout' : 'milieu'} de la flèche`}
+                  onClick={() => onAnchor(text.cellId, value)}
+                >
+                  {names[value]}
+                </button>
+              ))}
+            </span>
+          </div>
+        );
+      })}
+      <p className="panel-hint">Placement libre : tirer la poignée ◇ du texte sur le plan.</p>
+    </Section>
   );
 }
 

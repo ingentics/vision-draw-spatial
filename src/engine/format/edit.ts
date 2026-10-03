@@ -1,5 +1,6 @@
 import type { Point } from '../model/types';
-import { markPageDirty } from './xmlTree';
+import type { Element } from '@xmldom/xmldom';
+import { childElements, markPageDirty } from './xmlTree';
 import type { PageTree } from './xmlTree';
 
 /**
@@ -129,6 +130,39 @@ export function setCellObjectAttribute(
   else wrapper.setAttribute(name, value);
   markPageDirty(page);
   return true;
+}
+
+/**
+ * Placement d'un label d'arête (le label de l'arête, ou un label enfant) dans sa géométrie relative,
+ * comme draw.io : `x` = position le long de l'arête (−1 … 1), `y` = distance perpendiculaire,
+ * `<mxPoint as="offset">` = décalage libre. Une valeur nulle n'est pas écrite.
+ */
+export function setLabelPlacement(
+  page: PageTree,
+  cellId: string,
+  placement: { position: number; distance: number; offset: Point },
+): void {
+  const geometry = page.cells.get(cellId)?.geometry;
+  if (!geometry) throw new Error(`Cellule ${cellId} sans géométrie`);
+  const write = (element: Element, name: string, value: number) => {
+    const text = formatNumber(value);
+    if (text === '0') element.removeAttribute(name);
+    else element.setAttribute(name, text);
+  };
+  write(geometry, 'x', placement.position);
+  write(geometry, 'y', placement.distance);
+  geometry.setAttribute('relative', '1');
+  let offset = childElements(geometry, 'mxPoint').find((point) => point.getAttribute('as') === 'offset');
+  if (!offset && (placement.offset.x !== 0 || placement.offset.y !== 0) && geometry.ownerDocument) {
+    offset = geometry.ownerDocument.createElement('mxPoint');
+    offset.setAttribute('as', 'offset');
+    geometry.appendChild(offset);
+  }
+  if (offset) {
+    write(offset, 'x', placement.offset.x);
+    write(offset, 'y', placement.offset.y);
+  }
+  markPageDirty(page);
 }
 
 /** Texte brut → label HTML draw.io. */

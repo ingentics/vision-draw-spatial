@@ -109,6 +109,24 @@ export function positionAlong(points: Point[], point: Point): number {
   return (best.along / total) * 2 - 1;
 }
 
+/**
+ * Placement d'un label (inverse de `labelPoint`) pour qu'il soit dessiné en `point` : position le long
+ * du tracé du point le plus proche, et distance perpendiculaire (même signe que `labelPoint`) ; le
+ * décalage libre `offset` est gardé tel quel.
+ */
+export function placementAt(points: Point[], point: Point, offset: Point = { x: 0, y: 0 }): EdgeLabelPlacement {
+  const target = { x: point.x - offset.x, y: point.y - offset.y };
+  const position = positionAlong(points, target);
+  const onRoute = labelPoint(points, { position, distance: 0, offset: { x: 0, y: 0 } });
+  // Direction du segment au point trouvé (celle qu'utilise `labelPoint`).
+  const ahead = labelPoint(points, { position: Math.min(position + 1e-6, 1), distance: 0, offset: { x: 0, y: 0 } });
+  const behind = labelPoint(points, { position: Math.max(position - 1e-6, -1), distance: 0, offset: { x: 0, y: 0 } });
+  const length = Math.hypot(ahead.x - behind.x, ahead.y - behind.y);
+  const u = length === 0 ? { x: 1, y: 0 } : { x: (ahead.x - behind.x) / length, y: (ahead.y - behind.y) / length };
+  const distanceAcross = (target.x - onRoute.x) * u.y - (target.y - onRoute.y) * u.x;
+  return { position, distance: distanceAcross, offset };
+}
+
 function distance(a: Point, b: Point): number {
   return Math.hypot(b.x - a.x, b.y - a.y);
 }

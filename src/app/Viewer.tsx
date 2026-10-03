@@ -510,6 +510,9 @@ export function Viewer({
             onEditLabel={() => selection && engine?.editLabel(selection.picked.element.id)}
             onEndLabel={(end, text) => selection && engine?.setEdgeEndLabel(selection.picked.element.id, end, text)}
             onDelete={() => engine?.deleteSelection()}
+            onTextAnchor={(cellId, anchor) =>
+              selection && engine?.setEdgeTextAnchor(selection.picked.element.id, cellId, anchor)
+            }
             textEdit={
               labelEdit && {
                 style: labelEdit.style,

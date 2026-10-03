@@ -11,6 +11,7 @@ import {
   gridSizeOf,
   moveCell,
   resizeCell,
+  setLabelPlacement,
   setCellLabel,
   setCellObjectAttribute,
   setCellRichLabel,
@@ -34,8 +35,9 @@ import { writeDrawio } from './format/write';
 import type { DrawioTree, PageTree } from './format/xmlTree';
 import { collectMoveSet, isLocked, moveTarget, snapDelta, translateMoveSet, unionMoveSets } from './edit/move';
 import type { MoveSet } from './edit/move';
-import { endAt, endLabelOf, endLabelPosition } from './edit/edgeLabels';
-import { labelPoint, positionAlong } from './render/edges/polyline';
+import { edgeTexts, endAt, endLabelOf, endLabelPosition, setEdgeTextPlacement } from './edit/edgeLabels';
+import type { EdgeText } from './edit/edgeLabels';
+import { labelPoint, placementAt, positionAlong } from './render/edges/polyline';
 import { setLineResolution } from './render/lines';
 import type { EdgeEnd } from './edit/edgeLabels';
 import { handlePoints, resizeBounds } from './edit/handles';
@@ -80,10 +82,19 @@ import type { PickedElement } from './interaction/pick';
 import { independentRoots, toggleSelected } from './interaction/selection';
 import { easing, embedIn, embeddedCamera, phase } from './interaction/transitions';
 import { computeBounds } from './model/bounds';
-import type { DocumentModel, LinkModel, PageModel, Point, Rect, ShapeModel } from './model/types';
+import type {
+  DocumentModel,
+  EdgeLabelPlacement,
+  EdgeModel,
+  LinkModel,
+  PageModel,
+  Point,
+  Rect,
+  ShapeModel,
+} from './model/types';
 import { selectionOutline } from './render/decorations';
 import { createEdge } from './render/edges/edge';
-import { connectorPreview, selectionHandles } from './render/handles';
+import { connectorPreview, labelHandles, selectionHandles } from './render/handles';
 import { createVeil, createVeilHole, liftAboveVeil } from './render/highlight';
 import { disposeObject } from './render/meshes';
 import { setPageOpacity } from './render/pageEffects';
@@ -255,6 +266,22 @@ interface ConnectDrag {
   started: boolean;
 }
 
+/** Texte d'une flèche déplacé par sa poignée (le long du tracé et de côté). */
+interface LabelDrag {
+  kind: 'label';
+  pageId: string;
+  edgeId: string;
+  /** Cellule du texte : l'arête (son label) ou un label enfant (début, fin…). */
+  cellId: string;
+  /** Décalage libre du label, gardé ; position et distance suivent le pointeur. */
+  offset: Point;
+  placement?: EdgeLabelPlacement;
+  started: boolean;
+}
+
+/** Ancre d'un texte de flèche : début, milieu ou fin (position le long du tracé). */
+export type EdgeTextAnchor = 'start' | 'middle' | 'end';
+
 /** Style des connecteurs créés (celui de draw.io par défaut). */
 const CONNECTOR_STYLE = 'edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;';
 /** Curseur de chaque poignée de redimensionnement. */
@@ -339,7 +366,7 @@ export class Engine {
   /** Modifications non sauvegardées. */
   private modified = false;
   /** Glisser d'édition en cours (déplacement, redimensionnement, connecteur). */
-  private drag: MoveDrag | ResizeDrag | ConnectDrag | undefined;
+  private drag: MoveDrag | ResizeDrag | ConnectDrag | LabelDrag | undefined;
   private connectorPreview: Object3D | undefined;
   /** Poignées de la forme sélectionnée. */
   private handlesObject: Object3D | undefined;
@@ -1553,6 +1580,12 @@ export class Engine {
     const start = screenToPage(this.cameraState, this.viewport, screen);
     const grid = gridSizeOf(pageTree);
 
+    const text = this.labelHandleAt(screen);
+    if (text) {
+      this.drag = { kind: 'label', pageId: page.id, ...text, started: false };
+      return true;
+    }
+
     const handle = this.handleAt(screen);
     const selected = handle ? this.editableSelection()?.shape : undefined;
     if (handle && selected) {
@@ -1625,7 +1658,65 @@ export class Engine {
     const point = screenToPage(this.cameraState, this.viewport, screen);
     if (drag.kind === 'move') this.dragMove(page, drag, point, snap);
     else if (drag.kind === 'resize') this.dragResize(page, drag, point, snap);
+    else if (drag.kind === 'label') this.dragLabel(page, drag, screen);
     else this.dragConnect(page, drag, screen);
+  }
+
+  /** Texte de flèche suivant le pointeur : le point du tracé le plus proche, et l'écart de côté. */
+  private dragLabel(page: PageModel, drag: LabelDrag, screen: Point): void {
+    const edge = page.edges.find((e) => e.id === drag.edgeId);
+    const route = this.sceneObject(drag.edgeId)?.userData.route as Point[] | undefined;
+    if (!edge || !route?.length) return;
+    drag.started = true;
+    const point = this.groundPointAtHeight(screen, this.elementTop(drag.edgeId));
+    const placement = placementAt(route, point, drag.offset);
+    drag.placement = placement;
+    setEdgeTextPlacement(edge, drag.cellId, placement);
+    this.retraceEdges(page, new Set([edge.id]));
+    this.afterLiveEdit();
+  }
+
+  /**
+   * Textes d'une flèche sélectionnée seule, sur une page modifiable : son label puis ses labels enfants
+   * (non vides), avec leur placement. Poignées et ancres du panneau.
+   */
+  private selectedEdgeTexts(): { edge: EdgeModel; texts: EdgeText[] } | undefined {
+    const editable = this.editablePage();
+    const picked = this.selection?.picked;
+    if (!editable || picked?.type !== 'edge' || this.isMultiSelection()) return undefined;
+    if (this.selection?.pageId !== editable.page.id) return undefined;
+    const edge = editable.page.edges.find((e) => e.id === picked.element.id);
+    return edge ? { edge, texts: edgeTexts(edge) } : undefined;
+  }
+
+  /** Poignée de texte de la flèche sélectionnée sous un point écran. */
+  private labelHandleAt(screen: Point): { edgeId: string; cellId: string; offset: Point } | undefined {
+    const selected = this.selectedEdgeTexts();
+    const route = selected && (this.sceneObject(selected.edge.id)?.userData.route as Point[] | undefined);
+    if (!selected || !route?.length) return undefined;
+    const top = this.elementTop(selected.edge.id);
+    let best: { cellId: string; offset: Point; distance: number } | undefined;
+    for (const text of selected.texts) {
+      const at = this.screenOfPoint(labelPoint(route, text.placement), top);
+      const distance = Math.hypot(at.x - screen.x, at.y - screen.y);
+      if (distance <= this.settings.edit.handlePickTolerance && (!best || distance < best.distance))
+        best = { cellId: text.cellId, offset: text.placement.offset, distance };
+    }
+    return best && { edgeId: selected.edge.id, cellId: best.cellId, offset: best.offset };
+  }
+
+  /**
+   * Ancre un texte de flèche au début, au milieu ou à la fin du tracé (à 10 % du bout pour le début et
+   * la fin, comme les textes créés), sur le tracé (distance et décalage remis à zéro).
+   */
+  setEdgeTextAnchor(edgeId: string, cellId: string, anchor: EdgeTextAnchor): void {
+    const editable = this.editablePage();
+    const edge = editable?.page.edges.find((e) => e.id === edgeId);
+    if (!editable || !edge || !edgeTexts(edge).some((text) => text.cellId === cellId)) return;
+    const position = anchor === 'middle' ? 0 : endLabelPosition(anchor);
+    this.recordEdit('Position du texte');
+    setLabelPlacement(editable.pageTree, cellId, { position, distance: 0, offset: { x: 0, y: 0 } });
+    this.documentChanged([editable.page.id]);
   }
 
   private dragMove(page: PageModel, move: MoveDrag, point: Point, snap: boolean): void {
@@ -1721,6 +1812,14 @@ export class Engine {
     if (!drag?.started || !this.document || !this.xmlTree) return;
     const pageTree = this.pageTreeOf(drag.pageId);
     if (!pageTree) return;
+
+    if (drag.kind === 'label') {
+      if (!drag.placement) return;
+      this.recordEdit('Position du texte');
+      setLabelPlacement(pageTree, drag.cellId, drag.placement);
+      this.documentChanged([drag.pageId]);
+      return;
+    }
 
     if (drag.kind === 'connect') {
       if (!drag.targetId) {
@@ -2226,7 +2325,9 @@ export class Engine {
     const picked = screen ? this.pickAt(screen) : undefined;
     const link = isNavigableLink(picked?.element.link) ? picked?.element.link : undefined;
     const handle = screen ? this.handleAt(screen) : undefined;
-    const cursor = handle === 'connect' ? 'crosshair' : handle ? HANDLE_CURSORS[handle] : link ? 'pointer' : '';
+    const text = screen && !handle ? this.labelHandleAt(screen) : undefined;
+    const cursor =
+      handle === 'connect' ? 'crosshair' : handle ? HANDLE_CURSORS[handle] : text ? 'move' : link ? 'pointer' : '';
     if (!this.canvas.style.cursor.startsWith('grab')) this.canvas.style.cursor = cursor;
     this.canvas.title = link ? this.describeLink(link) : '';
     clearTimeout(this.hoverTimer);
@@ -2400,6 +2501,21 @@ export class Engine {
         accent: this.settings.selection.accentColor,
       });
       this.handlesObject.position.z = this.elementTop(shape.id) + 0.3;
+      this.handlesObject.traverse((o) => {
+        if (o instanceof Mesh) (o.material as MeshBasicMaterial).depthTest = false;
+      });
+      root.add(this.handlesObject);
+    }
+    // Poignées des textes de la flèche sélectionnée : on les tire pour placer le texte.
+    const texts = visible && root ? this.selectedEdgeTexts() : undefined;
+    const route = texts && (this.sceneObject(texts.edge.id)?.userData.route as Point[] | undefined);
+    if (texts && route?.length && root && texts.texts.length > 0) {
+      this.handlesObject = labelHandles(
+        texts.texts.map((text) => labelPoint(route, text.placement)),
+        this.cameraState.zoom,
+        { size: this.settings.edit.handleSize, accent: this.settings.selection.accentColor },
+      );
+      this.handlesObject.position.z = this.elementTop(texts.edge.id) + 0.3;
       this.handlesObject.traverse((o) => {
         if (o instanceof Mesh) (o.material as MeshBasicMaterial).depthTest = false;
       });

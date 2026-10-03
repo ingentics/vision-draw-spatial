@@ -60,6 +60,32 @@ export function selectionHandles(
   return group;
 }
 
+/**
+ * Poignées des textes d'une flèche sélectionnée (au centre de chaque texte) : losanges blancs bordés
+ * d'accent, qu'on tire pour placer le texte le long du tracé ou de côté.
+ */
+export function labelHandles(points: Point[], zoom: number, options: HandleStyle = {}): Group {
+  const group = new Group();
+  group.name = 'handles';
+  const r = ((options.size ?? HANDLE_SIZE) * 1.3) / zoom;
+  const accent = new Color(options.accent ?? DEFAULT_ACCENT);
+  for (const point of points) {
+    const diamond: Point[] = [
+      { x: point.x, y: point.y - r },
+      { x: point.x + r, y: point.y },
+      { x: point.x, y: point.y + r },
+      { x: point.x - r, y: point.y },
+    ];
+    group.add(fillMesh(diamond, WHITE, 1));
+    const outline = strokeMesh(diamond, accent, 1, { width: 1.2 / zoom, closed: true });
+    if (outline) group.add(outline);
+  }
+  group.traverse((o) => {
+    o.renderOrder = Number.MAX_SAFE_INTEGER;
+  });
+  return group;
+}
+
 /** Trait d'aperçu d'un connecteur en cours de création. */
 export function connectorPreview(from: Point, to: Point, zoom: number, accent = DEFAULT_ACCENT): Group {
   const group = new Group();
