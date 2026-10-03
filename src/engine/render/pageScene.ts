@@ -4,7 +4,6 @@ import { isNavigableLink } from '../format/link';
 import type { EdgeModel, PageModel, ShapeModel } from '../model/types';
 import { linkBadge } from './decorations';
 import { SPATIAL, spatialNumber, spatialValue } from '../spatial';
-import { blockHeight } from './iso/block';
 import { disposeObject } from './meshes';
 import { createEdge } from './edges/edge';
 import type { ShapeRegistry } from './shapes/registry';
@@ -132,7 +131,7 @@ function volumeLayout(
   const flat = level !== 'iso';
   const height = (shape: ShapeModel): number => {
     if (flat || !registry.hasLevel(shape, 'iso') || shape.style.fillColor === 'none') return 0;
-    return blockHeight(shape, ctx);
+    return registry.volumeHeight(shape, ctx);
   };
   const bases = new Map<string, number>();
   const base = (shape: ShapeModel, seen = new Set<string>()): number => {

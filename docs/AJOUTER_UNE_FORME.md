@@ -41,8 +41,8 @@ la même forme de plusieurs façons, ajoutez l'alias à cet endroit plutôt que 
 Cas particulier : `swimlane` a un alias mais **aucune définition**, donc il s'affiche en placeholder.
 
 Exemples réels à lire : [render/shapes/storage.ts](../src/engine/render/shapes/storage.ts) (BDD, file, cache : tracés
-draw.io en courbes de Bézier, cylindre debout, tube couché [render/iso/tube.ts](../src/engine/render/iso/tube.ts), pile de
-disques, repli à plat avec le dessin 2D).
+draw.io en courbes de Bézier, « bâtiments » iso à toit plat et façade par type [render/iso/buildings.ts](../src/engine/render/iso/buildings.ts),
+repli à plat avec le dessin 2D).
 
 Pour trouver le nom exact d'une forme, insérez-la dans draw.io, ouvrez « Modifier le style », ou consultez le panneau
 **Diagnostics** de l'appli, qui liste les noms non reconnus avec leur nombre d'occurrences.
@@ -59,6 +59,7 @@ interface ShapeDefinition {
   flat: SceneRenderer;                     // OBLIGATOIRE : 2D, et repli de tous les autres niveaux
   iso?: SceneRenderer;                     // vues iso ET 3D (voir § 3)
   volume?: SceneRenderer;                  // réservé (extrusion, SPEC §17) : jamais demandé aujourd'hui
+  volumeHeight?(shape, ctx): number;       // hauteur par défaut propre à la forme (défaut : blockHeight)
   minimap?: MinimapPainter | null;         // absent = contour rempli ; null = rien
 }
 
@@ -150,7 +151,10 @@ Pour un rendu iso sur mesure :
   `createShapeObject` pose ensuite le groupe à sa base (`object.position.z = base`). Ne mettez donc pas l'élévation
   vous-même.
 - **Hauteur.** Lisez-la avec `blockHeight(shape, ctx)`, pour respecter `spatial.height` et le réglage d'épaisseur.
-  Écrivez la hauteur réelle dans `group.userData.height`.
+  Écrivez la hauteur réelle dans `group.userData.height`. Si la forme a une hauteur par défaut qui lui est propre
+  (ex. bâtiments : le double de l'épaisseur, `buildingHeight`), déclarez-la dans `volumeHeight` **et** utilisez-la dans le
+  rendu : l'empilement, la pastille de lien et la sélection passent par `registry.volumeHeight`, pas par le rendu.
+  `blockHeight(shape, ctx, défaut)` garde `spatial.height` prioritaire.
 - **Z-fighting.** Décalez légèrement ce qui est posé sur une face (`TOP_OFFSET = 0.05` dans `block.ts`).
 - **Matériaux.** Les faces opaques avec test de profondeur doivent utiliser `solidMaterial`, pour que les blocs se
   cachent entre eux. Les traits et les fonds plats utilisent `flatMaterial` (sans écriture de profondeur).
@@ -170,7 +174,7 @@ Pour un rendu iso sur mesure :
 
 C'est calculé par `volumeLayout` ([render/pageScene.ts](../src/engine/render/pageScene.ts)), pas par la définition :
 
-- **épaisseur** : 0 sans rendu `iso` ou avec `fillColor=none` ; sinon `blockHeight(shape, ctx)` ;
+- **épaisseur** : 0 sans rendu `iso` ou avec `fillColor=none` ; sinon `registry.volumeHeight(shape, ctx)` (la `volumeHeight` de la définition, sinon `blockHeight`) ;
 - **base** : dessus du conteneur parent s'il est en volume, plus `spatial.elevation` ;
 - **flèches** : à la hauteur de la plus haute de leurs extrémités ;
 - **pastille de lien** : posée sur le dessus (`elevation.height + 0.1`). Si votre rendu n'est pas un prisme, elle

@@ -14,6 +14,8 @@ export const SPATIAL = {
   height: 'spatial.height',
   /** Hauteur du dessous du volume au-dessus de sa base (sol ou dessus du conteneur), en pixels de page. */
   elevation: 'spatial.elevation',
+  /** Étiquette des façades d'un bâtiment iso (BDD, queue, cache) : remplace « DB »… ; vide = aucune. */
+  tag: 'spatial.tag',
   /** Nombre de nœuds d'un cache distribué (`shape=datastore`) : disques empilés en iso (3 par défaut). */
   nodes: 'spatial.nodes',
   /** `1` : lien sans pastille (ex. cartes de la vue graphe). */

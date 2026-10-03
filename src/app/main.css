@@ -18,6 +18,20 @@ body,
   height: 100%;
 }
 
+/*
+ * L'appli occupe exactement la fenêtre : fixée à ses bords, elle ne laisse rien à faire défiler à la
+ * page (un overflow masqué peut encore défiler par programme, ex. au focus d'un champ).
+ */
+html,
+body {
+  overflow: hidden;
+}
+
+#root {
+  position: fixed;
+  inset: 0;
+}
+
 body {
   background: var(--bg);
   color: var(--fg);
@@ -135,6 +149,7 @@ body {
   position: relative;
   flex: 1;
   min-width: 0;
+  overflow: hidden;
 }
 
 .tabs {

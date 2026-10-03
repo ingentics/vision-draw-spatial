@@ -107,6 +107,8 @@ function createWindow() {
   window.webContents.on('will-navigate', (event, url) => {
     if (DEV_URL ? !url.startsWith(DEV_URL) : !url.startsWith('file:')) event.preventDefault();
   });
+  // Pas de zoom de la page par pincement (le pincement zoome la vue du schéma, géré par l'appli).
+  void window.webContents.setVisualZoomLevelLimits(1, 1);
   if (DEV_URL) void window.loadURL(DEV_URL);
   else void window.loadFile(path.join(__dirname, 'web', 'index.html'));
 }

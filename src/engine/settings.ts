@@ -45,6 +45,8 @@ export interface ViewSettings {
   /** Luminosité des côtés des volumes (fraction de la couleur de fond) : face éclairée, face à l'ombre. */
   shadeLight: number;
   shadeDark: number;
+  /** Étiquettes sur les façades des bâtiments iso (DB, QUEUE, CACHE ; `spatial.tag` par forme). */
+  facadeTags: boolean;
 }
 
 /** Caméra (SPEC §9) : bornes de zoom et d'inclinaison, perspective, animations. */
@@ -192,6 +194,7 @@ export const DEFAULT_SETTINGS: Settings = {
     isoDepth: 16,
     shadeLight: 0.9,
     shadeDark: 0.62,
+    facadeTags: true,
   },
   camera: {
     minZoom: 0.05,
@@ -237,6 +240,7 @@ export const SETTINGS_LIMITS = {
   'transition.fadeStart': { min: 0, max: 1, step: 0.05 },
   'transition.fadeEnd': { min: 0, max: 1, step: 0.05 },
   'controls.orbitSpeed': { min: 0.001, max: 0.02, step: 0.0005 },
+  'controls.rotateSpeed': { min: 15, max: 360, step: 5 },
   'preload.hoverDelayMs': { min: 50, max: 3000, step: 50 },
   'preload.maxCachedPages': { min: 1, max: 64, step: 1 },
   'controls.moveSpeed': { min: 50, max: 5000, step: 50 },
@@ -328,6 +332,7 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
       decelerationMs: num('controls.decelerationMs', c.decelerationMs, base.controls.decelerationMs),
       orbitSpeed: num('controls.orbitSpeed', c.orbitSpeed, base.controls.orbitSpeed),
       multiSelectKey: oneOf(MULTI_SELECT_KEYS, c.multiSelectKey, base.controls.multiSelectKey),
+      rotateSpeed: num('controls.rotateSpeed', c.rotateSpeed, base.controls.rotateSpeed),
       shortcuts: {
         toggleViewMode: code(shortcuts.toggleViewMode, base.controls.shortcuts.toggleViewMode),
         toggle3d: code(shortcuts.toggle3d, base.controls.shortcuts.toggle3d),
@@ -347,6 +352,7 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
       isoDepth: num('view.isoDepth', v.isoDepth, base.view.isoDepth),
       shadeLight: num('view.shadeLight', v.shadeLight, base.view.shadeLight),
       shadeDark: num('view.shadeDark', v.shadeDark, base.view.shadeDark),
+      facadeTags: bool(v.facadeTags, base.view.facadeTags),
     },
     camera: mergeCamera(base.camera, p.camera ?? {}, num),
     background: {

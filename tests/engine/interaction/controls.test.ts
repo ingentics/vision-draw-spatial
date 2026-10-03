@@ -3,6 +3,9 @@ import {
   decelerate,
   DEFAULT_SHORTCUTS,
   keyDirection,
+  keyRotation,
+  decelerateSpin,
+  RESERVED_CODES,
   releaseVelocity,
   resolveShortcut,
   wheelZoomFactor,
@@ -97,5 +100,24 @@ describe('raccourci « supprimer la sélection »', () => {
     expect(resolveShortcut('X', shortcuts, { canDelete: true })).toBe('deleteSelection');
     expect(resolveShortcut('x', shortcuts, { canDelete: false })).toBeUndefined();
     expect(resolveShortcut('Backspace', shortcuts, { canDelete: true })).toBe('back');
+  });
+});
+
+describe('rotation au clavier (A / E, iso et 3D)', () => {
+  it('par position physique : A (AZERTY) = Q (QWERTY) à gauche, E à droite, les deux s’annulent', () => {
+    expect(keyRotation(['KeyQ'])).toBe(1);
+    expect(keyRotation(['KeyE'])).toBe(-1);
+    expect(keyRotation(['KeyQ', 'KeyE'])).toBe(0);
+    expect(keyRotation(['KeyW'])).toBe(0);
+  });
+
+  it('glissade à l’arrêt, comme le déplacement ; arrêt net si désactivée', () => {
+    expect(decelerateSpin(90, 0.08, 80)).toBeCloseTo(90 / Math.E);
+    expect(decelerateSpin(2, 0.016, 80)).toBe(0);
+    expect(decelerateSpin(90, 0.016, 0)).toBe(0);
+  });
+
+  it('touches réservées : pas attribuables à un raccourci', () => {
+    expect(RESERVED_CODES).toEqual(expect.arrayContaining(['KeyQ', 'KeyE']));
   });
 });

@@ -37,9 +37,12 @@ const LIGHT = normalize({ x: 1, y: 2 });
 export const SHADE_LIGHT = 0.9;
 export const SHADE_DARK = 0.62;
 
-/** Hauteur d'une forme en volume : `spatial.height` (style ou objet), sinon l'épaisseur par défaut. */
-export function blockHeight(shape: ShapeModel, ctx: RenderContext): number {
-  return spatialNumber(shape, SPATIAL.height) ?? ctx.volume?.depth ?? DEFAULT_DEPTH;
+/**
+ * Hauteur d'une forme en volume : `spatial.height` (style ou objet), sinon la hauteur par défaut
+ * propre à la forme (`fallback`, ex. tube couché : rond), sinon l'épaisseur par défaut du réglage.
+ */
+export function blockHeight(shape: ShapeModel, ctx: RenderContext, fallback?: number): number {
+  return spatialNumber(shape, SPATIAL.height) ?? fallback ?? ctx.volume?.depth ?? DEFAULT_DEPTH;
 }
 
 /** Rendu iso d'une forme définie par son contour. */

@@ -794,6 +794,7 @@ export class Engine {
         depth: this.settings.view.isoDepth,
         shadeLight: this.settings.view.shadeLight,
         shadeDark: this.settings.view.shadeDark,
+        tags: this.settings.view.facadeTags,
       },
       background: this.settings.background.color,
       placeholder: { fill: this.settings.shapes.placeholderFill, stroke: this.settings.shapes.placeholderStroke },
@@ -1134,6 +1135,7 @@ export class Engine {
       this.settings.view.isoDepth !== previous.view.isoDepth ||
       this.settings.view.shadeLight !== previous.view.shadeLight ||
       this.settings.view.shadeDark !== previous.view.shadeDark ||
+      this.settings.view.facadeTags !== previous.view.facadeTags ||
       // Fonds de labels « default » = couleur du fond.
       this.settings.background.color !== previous.background.color ||
       this.settings.selection.accentColor !== previous.selection.accentColor ||

@@ -1,24 +1,20 @@
-import { Group } from 'three';
 import type { Point, Rect, ShapeModel } from '../../model/types';
-import { SPATIAL, spatialNumber } from '../../spatial';
 import { createBox, createLabel, VERTEX_DEFAULTS } from '../flat/box';
 import { cubicTo, halfEllipseTo } from '../geometry/curves';
-import { ellipsePath } from '../geometry/paths';
 import { dashPattern } from '../geometry/stroke';
-import { blockHeight, isoBlock } from '../iso/block';
-import { isoTube } from '../iso/tube';
+import { buildingHeight, isoCache, isoDatabase, isoQueue } from '../iso/buildings';
 import { strokeMesh } from '../meshes';
 import { styleColor, styleNumber, styleOpacity } from '../styleValues';
 import { PART_ORDER } from '../types';
 import type { SceneRenderer, ShapeDefinition } from './types';
 
 /**
- * Formes de stockage (SPEC §8.3), natives de draw.io, dessinées comme draw.io en 2D et en vrai
- * volume en iso / 3D :
- * - BDD : `shape=cylinder3` (cylindre) ► cylindre debout ;
- * - queue : `shape=cylinder3;direction=south` (cylindre couché, bout visible à droite) ► tube couché
- *   au sol ; `shape=mxgraph.flowchart.direct_data` (cylindre couché des organigrammes) aussi ;
- * - cache distribué : `shape=datastore` (cylindre à anneaux) ► pile de disques, un par nœud.
+ * Formes de stockage (SPEC §8.3), natives de draw.io, dessinées comme draw.io en 2D, et en
+ * « bâtiments » en iso / 3D (toit plat rectangulaire avec le label, façade du type : `iso/buildings`) :
+ * - BDD : `shape=cylinder3` (cylindre) ► corps arrondi cerclé ;
+ * - queue : `shape=cylinder3;direction=south` (cylindre couché, bout visible à droite), ou
+ *   `shape=mxgraph.flowchart.direct_data` (cylindre couché des organigrammes) ► chevrons de flux ;
+ * - cache distribué : `shape=datastore` (cylindre à anneaux) ► tranches et voyants, une par nœud.
  *
  * Les trois ont la même ellipse, de taille fixe (`CYLINDER_RING`) : au redimensionnement, le corps du
  * cylindre s'étire, pas les ellipses. Écarts volontaires avec draw.io (choix produit) : draw.io
@@ -200,75 +196,25 @@ function cylinderFlat(drawing: (shape: ShapeModel) => CylinderDrawing): SceneRen
   };
 }
 
-/**
- * Sans fond ou sans épaisseur, un volume reste à plat : avec le dessin 2D de la forme (cylindre vu
- * de côté), pas avec l'emprise elliptique que `isoBlock` dessinerait.
- */
-function withFlatFallback(iso: SceneRenderer, flat: SceneRenderer): SceneRenderer {
-  return {
-    create(shape, ctx) {
-      const filled = styleColor(shape.style, 'fillColor', VERTEX_DEFAULTS.fill) !== null;
-      return filled && blockHeight(shape, ctx) > 0 ? iso.create(shape, ctx) : flat.create(shape, ctx);
-    },
-  };
-}
-
-/** Emprise au sol des volumes : l'ellipse inscrite dans les bornes de la forme. */
-const footprint = (shape: ShapeModel) => ellipsePath(shape.bounds);
-
-/** Nombre de nœuds par défaut d'un cache distribué. */
-export const DEFAULT_CACHE_NODES = 3;
-/** Espace entre deux disques, en fraction de l'épaisseur d'un disque. */
-const DISC_GAP = 0.25;
-
-/**
- * Pile de disques (cache distribué) : `spatial.nodes` disques (3 par défaut, 1 à 12) sur l'épaisseur
- * du volume, séparés d'un petit espace ; le label sur le disque du haut.
- */
-function isoDiscStack(flat: SceneRenderer): SceneRenderer {
-  const disc = isoBlock(footprint);
-  return {
-    create(shape, ctx) {
-      const total = blockHeight(shape, ctx);
-      if (!styleColor(shape.style, 'fillColor', VERTEX_DEFAULTS.fill) || total <= 0) return flat.create(shape, ctx);
-      const nodes = Math.min(12, Math.max(1, Math.round(spatialNumber(shape, SPATIAL.nodes) ?? DEFAULT_CACHE_NODES)));
-      const discHeight = total / (nodes + (nodes - 1) * DISC_GAP);
-      const group = new Group();
-      group.name = `shape:${shape.id}`;
-      group.userData.height = total;
-      for (let i = 0; i < nodes; i++) {
-        const top = i === nodes - 1;
-        const part = disc.create(
-          { ...shape, label: top ? shape.label : '', style: { ...shape.style, [SPATIAL.height]: String(discHeight) } },
-          ctx,
-        );
-        part.name = `node:${i}`;
-        part.position.z = i * discHeight * (1 + DISC_GAP);
-        group.add(part);
-      }
-      return group;
-    },
-  };
-}
-
 // ---------------------------------------------------------------------------
 // Définitions
 
 const cylinder3Outline = (shape: ShapeModel) => cylinder3Drawing(shape).silhouette;
 const cylinder3Flat = cylinderFlat(cylinder3Drawing);
 
-const standingCylinder = withFlatFallback(isoBlock(footprint), cylinder3Flat);
-const lyingCylinder = isoTube(cylinder3Flat, VERTEX_DEFAULTS);
+const database = isoDatabase(cylinder3Flat);
+const queue = isoQueue(cylinder3Flat, (shape) => directionOf(shape.style) === 'north');
 
 /**
  * BDD (debout) et queue (couché, `direction=south` / `north`) : cylindre draw.io ; en iso, cylindre
- * debout sur l'ellipse inscrite dans l'emprise, ou tube couché dans le sens de la largeur.
+ * debout sur l'ellipse inscrite dans l'emprise, ou demi-cylindre couché dans le sens de la largeur.
  */
 export const cylinderShape: ShapeDefinition = {
   kind: 'cylinder3',
   outline: cylinder3Outline,
   flat: cylinder3Flat,
-  iso: { create: (shape, ctx) => (isLying(shape) ? lyingCylinder : standingCylinder).create(shape, ctx) },
+  iso: { create: (shape, ctx) => (isLying(shape) ? queue : database).create(shape, ctx) },
+  volumeHeight: buildingHeight,
 };
 
 const datastoreFlat = cylinderFlat(datastoreDrawing);
@@ -278,15 +224,17 @@ export const datastoreShape: ShapeDefinition = {
   kind: 'datastore',
   outline: (shape) => datastoreDrawing(shape).silhouette,
   flat: datastoreFlat,
-  iso: isoDiscStack(datastoreFlat),
+  iso: isoCache(datastoreFlat),
+  volumeHeight: buildingHeight,
 };
 
 const directDataFlat = cylinderFlat(directDataDrawing);
 
-/** Queue : « Direct Data » des organigrammes draw.io ; en iso, tube couché dans le sens de la largeur. */
+/** Queue : « Direct Data » des organigrammes draw.io ; en iso, demi-cylindre couché dans le sens de la largeur. */
 export const directDataShape: ShapeDefinition = {
   kind: 'mxgraph.flowchart.direct_data',
   outline: (shape) => directDataDrawing(shape).silhouette,
   flat: directDataFlat,
-  iso: isoTube(directDataFlat, VERTEX_DEFAULTS),
+  iso: isoQueue(directDataFlat, () => false),
+  volumeHeight: buildingHeight,
 };

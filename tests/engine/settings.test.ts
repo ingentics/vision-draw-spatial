@@ -136,6 +136,9 @@ describe('réglages exposés (caméra, vue graphe, édition…)', () => {
     });
     expect(DEFAULT_SETTINGS.controls.orbitSpeed).toBe(0.005);
     expect(DEFAULT_SETTINGS.controls.multiSelectKey).toBe('ctrl');
+    expect(DEFAULT_SETTINGS.controls.rotateSpeed).toBe(90);
+    expect(DEFAULT_SETTINGS.view.facadeTags).toBe(true);
+    expect(mergeSettings(DEFAULT_SETTINGS, { controls: { rotateSpeed: 9999 } }).controls.rotateSpeed).toBe(360);
     expect(mergeSettings(DEFAULT_SETTINGS, { controls: { multiSelectKey: 'shift' } }).controls.multiSelectKey).toBe(
       'shift',
     );

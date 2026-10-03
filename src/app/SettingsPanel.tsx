@@ -115,6 +115,13 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
               onChange={(moveSpeed) => onChange({ controls: { moveSpeed } })}
             />
             <Slider
+              label="Rotation au clavier (A / E, iso et 3D)"
+              value={controls.rotateSpeed}
+              limits={SETTINGS_LIMITS['controls.rotateSpeed']}
+              format={(v) => `${v}°/s`}
+              onChange={(rotateSpeed) => onChange({ controls: { rotateSpeed } })}
+            />
+            <Slider
               label="Glissade à l’arrêt"
               value={controls.decelerationMs}
               limits={SETTINGS_LIMITS['controls.decelerationMs']}
@@ -219,6 +226,13 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
               onChange={(isoDepth) => onChange({ view: { isoDepth } })}
             />
             <p className="hint muted">Par forme : style draw.io « spatial.height=… »</p>
+            <Toggle
+              label="Étiquettes sur les façades (DB, QUEUE, CACHE)"
+              checked={view.facadeTags}
+              disabled={!view.isoVolume}
+              onChange={(facadeTags) => onChange({ view: { facadeTags } })}
+            />
+            <p className="hint muted">Par forme : style draw.io « spatial.tag=… » (vide = aucune).</p>
             <Slider
               label="Luminosité de la face éclairée"
               value={view.shadeLight}
@@ -605,8 +619,8 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
             />
           ))}
           <p className="hint muted">
-            Le déplacement (ZQSD / WASD, flèches) et Espace ne sont pas attribuables. Supprimer et Retour peuvent
-            partager une touche : elle supprime s’il y a une sélection, sinon elle revient en arrière.
+            Le déplacement (ZQSD / WASD, flèches), la rotation (A / E) et Espace ne sont pas attribuables. Supprimer et
+            Retour peuvent partager une touche : elle supprime s’il y a une sélection, sinon elle revient en arrière.
           </p>
           <Choice
             label="Sélection multiple : touche + clic"

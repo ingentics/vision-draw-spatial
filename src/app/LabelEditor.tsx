@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { LabelEditRequest } from '../engine/Engine';
 
 interface LabelEditorProps {
@@ -16,8 +16,23 @@ export function LabelEditor({ request, onCommit, onCancel }: LabelEditorProps) {
   const done = useRef(false);
 
   useEffect(() => {
-    ref.current?.focus();
+    // Sans faire défiler la page (la boîte peut toucher un bord de la vue).
+    ref.current?.focus({ preventScroll: true });
     ref.current?.select();
+  }, []);
+
+  // Posée sur l'élément, mais ramenée dans la vue si l'élément touche un bord.
+  const [shift, setShift] = useState({ x: 0, y: 0 });
+  useLayoutEffect(() => {
+    const box = ref.current;
+    const area = box?.offsetParent as HTMLElement | null;
+    if (!box || !area) return;
+    const clamp = (start: number, size: number, max: number) =>
+      Math.min(Math.max(start, 0), Math.max(max - size, 0)) - start;
+    setShift({
+      x: clamp(box.offsetLeft, box.offsetWidth, area.clientWidth),
+      y: clamp(box.offsetTop, box.offsetHeight, area.clientHeight),
+    });
   }, []);
 
   const finish = (commit: boolean) => {
@@ -34,7 +49,7 @@ export function LabelEditor({ request, onCommit, onCancel }: LabelEditorProps) {
       className="label-editor"
       defaultValue={request.text}
       aria-label="Texte de l’élément"
-      style={{ left: x, top: y, width: Math.max(width, 120), height: Math.max(height, 32) }}
+      style={{ left: x + shift.x, top: y + shift.y, width: Math.max(width, 120), height: Math.max(height, 32) }}
       onBlur={() => finish(true)}
       onKeyDown={(event) => {
         if (event.key === 'Escape') {

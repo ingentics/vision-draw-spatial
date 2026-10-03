@@ -1,4 +1,6 @@
 import type { ShapeModel } from '../../model/types';
+import { blockHeight } from '../iso/block';
+import type { RenderContext } from '../types';
 import { ellipseShape } from './ellipse';
 import { groupShape } from './group';
 import { outlinePainter } from './minimapPainters';
@@ -47,6 +49,11 @@ export class ShapeRegistry {
   /** La forme a-t-elle un rendu propre à ce niveau (sinon elle se dessine à plat) ? */
   hasLevel(shape: ShapeModel, level: SceneLevel): boolean {
     return level === 'flat' || this.resolve(shape).definition[level] !== undefined;
+  }
+
+  /** Hauteur du volume d'une forme en iso / 3D : celle propre à sa définition, sinon `blockHeight`. */
+  volumeHeight(shape: ShapeModel, ctx: RenderContext): number {
+    return this.resolve(shape).definition.volumeHeight?.(shape, ctx) ?? blockHeight(shape, ctx);
   }
 
   /** Dessin en mini-carte ; repli sur le contour. `undefined` = ne rien dessiner. */

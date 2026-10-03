@@ -56,7 +56,32 @@ export const RESERVED_CODES = [
   'ArrowLeft',
   'ArrowRight',
   'Space',
+  // Rotation (iso, 3D) : A / E en AZERTY = Q / E en QWERTY.
+  'KeyQ',
+  'KeyE',
 ];
+
+/**
+ * Sens de rotation au clavier, par position physique : la touche à gauche de Z / W (A en AZERTY,
+ * Q en QWERTY) fait pivoter la vue vers la gauche, E vers la droite ; les deux s'annulent. Le signe
+ * est celui de `CameraState.rotation`.
+ */
+export function keyRotation(pressed: Iterable<string>): number {
+  const keys = new Set(pressed);
+  return (keys.has('KeyQ') ? 1 : 0) - (keys.has('KeyE') ? 1 : 0);
+}
+
+/** Vitesse angulaire (degrés / s) sous laquelle la rotation glissée s'arrête. */
+const STOP_SPIN = 3;
+
+/** Décélération exponentielle d'une vitesse angulaire (degrés / s) sur `dt` secondes, comme `decelerate`. */
+export function decelerateSpin(spin: number, dt: number, decelerationMs: number): number {
+  if (decelerationMs <= 0) return 0;
+  const next = spin * Math.exp(-(dt * 1000) / decelerationMs);
+  return Math.abs(next) < STOP_SPIN ? 0 : next;
+}
+
+const ROTATE_CODES = ['KeyQ', 'KeyE'];
 
 /**
  * Action d'une touche, selon le contexte : `deleteSelection` d'abord s'il y a une sélection
@@ -97,6 +122,8 @@ export interface ControlSettings {
   orbitSpeed: number;
   /** Touche qui, maintenue pendant un clic, ajoute l'élément à la sélection ou l'en retire. */
   multiSelectKey: MultiSelectKey;
+  /** Rotation au clavier (A / E en AZERTY, Q / E en QWERTY), en iso et en 3D, en degrés par seconde. */
+  rotateSpeed: number;
 }
 
 export const DEFAULT_CONTROLS: ControlSettings = {
@@ -106,6 +133,7 @@ export const DEFAULT_CONTROLS: ControlSettings = {
   decelerationMs: 80,
   orbitSpeed: 0.005,
   multiSelectKey: 'ctrl',
+  rotateSpeed: 90,
   shortcuts: DEFAULT_SHORTCUTS,
 };
 
@@ -241,6 +269,8 @@ export class CameraController {
   private lastTick = 0;
   /** Vitesse de déplacement du contenu à l'écran (pixels / s), pour la glissade. */
   private velocity: Point = { x: 0, y: 0 };
+  /** Vitesse de rotation au clavier (A / E), en degrés par seconde. */
+  private spin = 0;
   /** Dernières positions du glisser en cours, pour mesurer la vitesse au relâchement. */
   private samples: Array<{ t: number; p: Point }> = [];
   /** Dernière position du pointeur sur le canvas (pour la bascule 1:1 autour du curseur). */
@@ -501,6 +531,14 @@ export class CameraController {
       else this.host.toggleMinimap?.();
       return;
     }
+    // Rotation (A / E) : en iso et en 3D seulement ; en 2D, la vue n'est jamais tournée.
+    if (ROTATE_CODES.includes(event.code) && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      event.preventDefault();
+      if (this.host.getCameraState().mode === 'top') return;
+      this.pressed.add(event.code);
+      this.startLoop();
+      return;
+    }
     if (event.code === 'Space') {
       this.spaceDown = true;
       if (!this.drag) this.element.style.cursor = 'grab';
@@ -536,6 +574,7 @@ export class CameraController {
 
   private stopDrift(): void {
     this.velocity = { x: 0, y: 0 };
+    this.spin = 0;
   }
 
   /**
@@ -552,13 +591,20 @@ export class CameraController {
     } else {
       this.velocity = decelerate(this.velocity, dt, this.settings.decelerationMs);
     }
-    if (this.velocity.x === 0 && this.velocity.y === 0) {
+    // Rotation (jamais en 2D) autour du centre de l'écran : vitesse pleine tant que A / E est
+    // enfoncée, puis la même courte glissade que le déplacement.
+    const state = this.host.getCameraState();
+    const rotation = keyRotation(this.pressed);
+    if (state.mode === 'top') this.spin = 0;
+    else if (rotation !== 0) this.spin = rotation * this.settings.rotateSpeed;
+    else this.spin = decelerateSpin(this.spin, dt, this.settings.decelerationMs);
+    if (this.velocity.x === 0 && this.velocity.y === 0 && this.spin === 0) {
       this.frame = 0;
       return;
     }
-    this.host.setCameraState(
-      panByScreen(this.host.getCameraState(), { x: this.velocity.x * dt, y: this.velocity.y * dt }),
-    );
+    let next = panByScreen(state, { x: this.velocity.x * dt, y: this.velocity.y * dt });
+    if (this.spin !== 0) next = orbit(next, (this.spin * Math.PI * dt) / 180, 0);
+    this.host.setCameraState(next);
     this.frame = requestAnimationFrame(this.tick);
   };
 

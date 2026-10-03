@@ -12,7 +12,8 @@ export interface TextSpec {
   x: number;
   y: number;
   anchorX: 'left' | 'center' | 'right';
-  anchorY: 'top' | 'middle' | 'bottom';
+  /** `bottom-baseline` : la ligne de base du texte (alignement visuel des capitales, sans jambages). */
+  anchorY: 'top' | 'middle' | 'bottom' | 'bottom-baseline';
   align: 'left' | 'center' | 'right';
   fontSize: number;
   color: Color;
@@ -38,7 +39,7 @@ export interface RenderContext {
    * Volume des formes en vue iso (niveau `iso`) : épaisseur par défaut, en pixels de page, et
    * luminosité des côtés (fraction de la couleur de fond) face éclairée / face à l'ombre.
    */
-  volume?: { depth: number; shadeLight?: number; shadeDark?: number };
+  volume?: { depth: number; shadeLight?: number; shadeDark?: number; tags?: boolean };
   /** Couleurs du placeholder des formes non supportées (#rrggbb). */
   placeholder?: { fill: string; stroke: string };
   /** Couleur d'accent (pastilles de lien), #rrggbb. */

@@ -1,5 +1,4 @@
 import { Box3, Object3D } from 'three';
-import type { Mesh } from 'three';
 import { describe, expect, it } from 'vitest';
 import { collectUnsupported } from '../../../src/engine/diagnostics/unsupportedStyles';
 import { parseDrawio } from '../../../src/engine/format/parse';
@@ -125,36 +124,98 @@ describe('formes de stockage : BDD, queue, cache distribué', () => {
     });
   });
 
-  describe('iso / 3D, en volume', () => {
-    it('BDD : cylindre debout sur l’ellipse inscrite, de 0 à l’épaisseur', () => {
-      const { element } = build('iso');
-      expect(box(element('db').getObjectByName('sides')!)).toEqual([
-        [40, 0, 40],
-        [100, 20, 120],
-      ]);
+  describe('iso / 3D : bâtiments (toit plat rectangulaire avec le label, façade du type)', () => {
+    const ctx: RenderContext = { text: { create: () => new Object3D() }, volume: { depth: 20 } };
+    const shape = (id: string) => page.shapes.find((s) => s.id === id)!;
+
+    it('hauteur : le double de l’épaisseur des blocs, spatial.height prioritaire', () => {
+      for (const id of ['db', 'queue', 'cache', 'flow']) expect(registry.volumeHeight(shape(id), ctx), id).toBe(40);
+      const low = { ...shape('queue'), style: { ...shape('queue').style, 'spatial.height': '12' } };
+      expect(registry.volumeHeight(low, ctx)).toBe(12);
     });
 
-    it('cache : une pile de disques par nœud (spatial.nodes = 4), label sur celui du haut', () => {
+    it('toit commun : rectangle de l’emprise, en haut, avec le label', () => {
       const { element, texts } = build('iso');
-      const cache = element('cache');
-      const nodes = cache.children.filter((c) => c.name.startsWith('node:'));
-      expect(nodes).toHaveLength(4);
-      // Épaisseur totale = 20 : le haut du dernier disque.
-      expect(box(cache)[1]![1]).toBeCloseTo(20, 0);
-      expect(cache.userData.height).toBe(20);
-      expect(texts.filter((t) => t.text === 'Sessions')).toHaveLength(1);
+      for (const [id, label] of [
+        ['db', 'Commandes'],
+        ['queue', 'Événements'],
+        ['cache', 'Sessions'],
+      ] as const) {
+        const roof = element(id).getObjectByName('roof')!;
+        const [min, max] = box(roof.getObjectByName('top')!);
+        const { x, y, width, height } = shape(id).bounds;
+        expect([min, max], id).toEqual([
+          [x, 40, y],
+          [x + width, 40, y + height],
+        ]);
+        expect(
+          texts.filter((t) => t.text === label),
+          id,
+        ).toHaveLength(1);
+      }
     });
 
-    it('queue : tube couché dans le sens de la largeur, deux extrémités pleines et bordées', () => {
+    it('BDD : bloc droit, arcs gravés (rainure + arête) sur les quatre faces', () => {
       const { element } = build('iso');
-      const queue = element('queue');
-      expect(box(queue.getObjectByName('sides')!)).toEqual([
-        [160, 0, 50],
-        [260, 20, 110],
-      ]);
-      expect(named(queue, 'cap')).toHaveLength(2);
-      expect(named(queue, 'stroke')).toHaveLength(2);
-      expect((queue.getObjectByName('sides') as Mesh).material).toMatchObject({ depthWrite: true });
+      const db = element('db');
+      // Bloc plein : l'emprise de la forme (40–100 × 40–120), sans retrait.
+      const [min, max] = box(db.getObjectByName('roof')!.getObjectByName('sides')!);
+      expect([min![0], max![0], min![2], max![2]]).toEqual([40, 100, 40, 120]);
+      // 3 arcs par face (hauteur 40), chacun gravé : une rainure et son arête.
+      expect(named(db, 'facade-groove')).toHaveLength(4 * 3);
+      expect(named(db, 'facade')).toHaveLength(4 * 3);
+    });
+
+    it('cache : une tranche par nœud (spatial.nodes = 4), rainures en retrait, voyants sur les faces', () => {
+      const { element } = build('iso');
+      const cache = element('cache');
+      expect(cache.children.filter((c) => c.name.startsWith('node:') || c.name === 'roof')).toHaveLength(4);
+      expect(named(cache, 'led').length).toBeGreaterThanOrEqual(4 * 4);
+      expect(box(cache)[1]![1]).toBeCloseTo(40, 0);
+    });
+
+    it('queue : chevrons de flux sur les deux faces longues, vers le bout visible en 2D', () => {
+      const { element } = build('iso');
+      const chevrons = named(element('queue'), 'facade');
+      expect(chevrons.length).toBeGreaterThanOrEqual(2);
+      expect(chevrons.length % 2).toBe(0);
+      // Face nord (y = 50) : la pointe du chevron (x max) est à droite, vers le bout visible (direction=south).
+      const north = chevrons.filter((c) => box(c)[0]![2]! < 50);
+      expect(north.length).toBe(chevrons.length / 2);
+      // Creusés : une rainure sombre sous chaque chevron.
+      expect(named(element('queue'), 'facade-groove')).toHaveLength(chevrons.length);
+    });
+
+    it('étiquettes de façade : DB, QUEUE, CACHE sur les quatre faces, en bas', () => {
+      const { element, texts } = build('iso');
+      for (const id of ['db', 'queue', 'flow', 'cache']) {
+        expect(named(element(id), 'facade-tag'), id).toHaveLength(4);
+      }
+      // Deux queues dans la page (« Événements » et « Flux ») : 8 étiquettes QUEUE.
+      expect(texts.filter((t) => t.text === 'DB')).toHaveLength(4);
+      expect(texts.filter((t) => t.text === 'QUEUE')).toHaveLength(8);
+      expect(texts.filter((t) => t.text === 'CACHE')).toHaveLength(4);
+      // Ancrées en bas à droite de la face, dans leur repère.
+      expect(texts.find((t) => t.text === 'DB')).toMatchObject({ anchorX: 'right', anchorY: 'bottom-baseline' });
+    });
+
+    it('étiquettes : spatial.tag les remplace, vide = aucune ; désactivables par le réglage', () => {
+      const texts: TextSpec[] = [];
+      const ctx: RenderContext = {
+        text: {
+          create(spec) {
+            texts.push(spec);
+            return new Object3D();
+          },
+        },
+        volume: { depth: 20 },
+      };
+      const db = page.shapes.find((s) => s.id === 'db')!;
+      const render = (shape: typeof db, context = ctx) => registry.sceneRenderer(shape, 'iso').create(shape, context);
+      render({ ...db, style: { ...db.style, 'spatial.tag': 'PostgreSQL' } });
+      expect(texts.filter((t) => t.text === 'PostgreSQL')).toHaveLength(4);
+      expect(named(render({ ...db, style: { ...db.style, 'spatial.tag': '' } }), 'facade-tag')).toHaveLength(0);
+      expect(named(render(db, { ...ctx, volume: { depth: 20, tags: false } }), 'facade-tag')).toHaveLength(0);
     });
 
     it('sans fond : reste à plat (pas de volume fantôme)', () => {

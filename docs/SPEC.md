@@ -360,11 +360,11 @@ Ajouter une forme = **écrire sa définition et l'enregistrer** (au minimum `fla
 
   | Usage | Style draw.io | 2D | Iso / 3D |
   |---|---|---|---|
-  | Base de données | `shape=cylinder3` (`size`, 8 dans la palette ; `boundedLbl`) | le cache avec une seule lèvre (même ellipse de 8 px), label sous l'ellipse du haut | cylindre debout sur l'ellipse inscrite dans l'emprise |
-  | File (queue) | `shape=cylinder3;direction=south` (palette : 100 × 30, `size=8`) ; `shape=mxgraph.flowchart.direct_data` aussi | cylindre couché, bout visible à droite (`north` : à gauche) ; label décalé comme dans draw.io | tube couché dans le sens de la largeur, extrémités pleines et bordées |
-  | Cache distribué | `shape=datastore` | cylindre à trois anneaux, de taille fixe | pile de disques espacés, un par nœud (`spatial.nodes`, 3 par défaut, 1–12), label sur celui du haut |
+  | Base de données | `shape=cylinder3` (`size`, 8 dans la palette ; `boundedLbl`) | le cache avec une seule lèvre (même ellipse de 8 px), label sous l'ellipse du haut | bloc plein et droit, dont les quatre faces portent 2 ou 3 arcs « sourire » **gravés** (les lèvres du pictogramme BDD ; même gravure que les chevrons de la file : rainure sombre et arête claire) |
+  | File (queue) | `shape=cylinder3;direction=south` (palette : 100 × 30, `size=8`) ; `shape=mxgraph.flowchart.direct_data` aussi | cylindre couché, bout visible à droite (`north` : à gauche) ; label décalé comme dans draw.io | bloc dont les faces longues portent une rangée de chevrons ▶ **creusés** (rainure sombre et arête claire) dans le sens du flux (vers le bout visible en 2D) |
+  | Cache distribué | `shape=datastore` | cylindre à trois anneaux, de taille fixe | tranches empilées, une par nœud (`spatial.nodes`, 3 par défaut, 1–12), séparées par une rainure en retrait plus sombre, voyants (couleur d'accent) sur les quatre faces |
 
-  Hauteur des volumes : la règle commune (`spatial.height`, sinon l'épaisseur par défaut) ; pour la file, c'est la hauteur de la section du tube. Sans fond (`fillColor=none`), le dessin 2D reste à plat.
+  En iso / 3D, ce sont des **« bâtiments »** (`render/iso/buildings.ts`), comme les familles de bâtiments d'un jeu de construction : emprise = le rectangle 2D de la forme, **toit plat et rectangulaire** en haut (bordé, avec le label : toujours lisible), et une **façade propre au type** dans l'épaisseur, sur les quatre côtés (lisible sous tous les angles). Hauteur par défaut : le **double de l'épaisseur des blocs** (32 px avec le réglage par défaut), `spatial.height` prioritaire. **Étiquette de façade**, comme une enseigne : « DB », « QUEUE » ou « CACHE » en bas à droite de chaque face, à l'endroit vu de l'extérieur, discrète (teinte des gravures) ; les motifs (arcs, chevrons) se placent au-dessus ; sur le cache, dans la tranche du bas (voyants à l'autre bout). `spatial.tag` la remplace (ex. `PostgreSQL`, `Kafka`), vide = aucune ; réglage `view.facadeTags` (activé) pour toutes les couper. Sans fond (`fillColor=none`), le dessin 2D reste à plat.
 
   **Redimensionnement** : le corps du cylindre s'étire, les ellipses gardent leur taille. Les trois formes ont la **même ellipse**, de 8 px (celle de draw.io pour un cache de 60 px de haut) ; le bout de `direct_data` reste à 9/98 de la largeur, comme draw.io. **Écarts assumés avec draw.io** : draw.io agrandit les anneaux du cache avec sa hauteur, et dessine l'ellipse du `cylinder3` de hauteur `size` (15 par défaut) ; avec les valeurs de la palette (`size=8`, cache de 60 px), le rendu est identique dans les deux. Contour par défaut : épaisseur 1, comme les autres formes.
 - Connecteurs (arêtes) : segments, points intermédiaires, flèche de fin,
@@ -437,6 +437,7 @@ Formes et arêtes sont dessinées dans l'**ordre du document** (une arête décl
 | Zoomer | Molette, **zoom centré sur le curseur** (pincement trackpad pris en compte) |
 | Pan | Glisser molette enfoncée, clic droit + glisser (en 2D seulement), ou Espace + glisser |
 | Orienter (iso, 3D) | Clic droit + glisser : la caméra tourne autour du centre (horizontal) ; en 3D, s'incline aussi (vertical) (§9.1) |
+| Pivoter (iso, 3D) | **A / E** (AZERTY) = Q / E (QWERTY), par position physique : la vue pivote autour du centre de l'écran, vers la gauche / la droite, tant que la touche est enfoncée (`controls.rotateSpeed`, 90°/s), puis courte glissade (`controls.decelerationMs`) ; sans effet en 2D. Touches non attribuables à un raccourci |
 | Vue globale ↔ 1:1 | **Entrée** (§9.3) |
 | Vue graphe ↔ dernière page | Onglet « Vue graphe », touche **G** (§12) |
 | Mini-carte | Bouton × / « Mini-carte », touche **M** (§10) |
@@ -604,6 +605,7 @@ interface Settings {
     defaultMode: 'top' | 'iso' | '3d'; isoAngleDeg: number; isoAzimuthDeg: number; switchDurationMs: number; // 'top', 35.26, -45, 450
     isoVolume: boolean; isoDepth: number;                                                              // true, 16 (px)
     shadeLight: number; shadeDark: number;                    // luminosité des côtés des volumes : 0.9, 0.62
+    facadeTags: boolean;                                      // étiquettes DB / QUEUE / CACHE sur les façades : true
   };
   camera: {                                                   // bornes et animations de la caméra (§9)
     minZoom: number; maxZoom: number;                         // 2D et iso : 0.05, 16
@@ -694,6 +696,7 @@ Réalisation retenue (`engine/spatial.ts`) :
 |---|---|---|
 | `spatial.height` | style ou objet | Épaisseur du volume en iso, en pixels de page (défaut : réglage « Épaisseur ») |
 | `spatial.elevation` | style ou objet | La forme flotte à cette hauteur au-dessus de sa base (sol, ou dessus de son conteneur) |
+| `spatial.tag` | style ou objet | Étiquette des façades d'un bâtiment iso (BDD, file, cache) : remplace « DB », « QUEUE », « CACHE » ; vide = aucune |
 | `spatial.nodes` | style ou objet | Cache distribué (`shape=datastore`) : nombre de disques empilés en iso / 3D (3 par défaut, 1–12) |
 | `spatial.noLinkBadge` | style | `1` : lien sans pastille (cartes de la vue graphe) |
 | `spatial.view` | `<diagram>` | État de vue de la page (§14.2) |
