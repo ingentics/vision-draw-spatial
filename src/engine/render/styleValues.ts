@@ -1,4 +1,5 @@
 import { Color } from 'three';
+import type { RichLine } from '../model/types';
 
 /** Lecture typée des valeurs de style du modèle neutre, avec les défauts de draw.io. */
 
@@ -31,10 +32,31 @@ export function styleOpacity(style: Record<string, string>, key: string): number
   return (styleNumber(style, 'opacity', 100) / 100) * (styleNumber(style, key, 100) / 100);
 }
 
-/** Bits de `fontStyle` : 1 gras, 2 italique, 4 souligné. */
-export function fontStyleBits(style: Record<string, string>): { bold: boolean; italic: boolean; underline: boolean } {
+/** Bits de `fontStyle` : 1 gras, 2 italique, 4 souligné, 8 barré. */
+export function fontStyleBits(style: Record<string, string>): {
+  bold: boolean;
+  italic: boolean;
+  underline: boolean;
+  strike: boolean;
+} {
   const bits = styleNumber(style, 'fontStyle', 0);
-  return { bold: (bits & 1) !== 0, italic: (bits & 2) !== 0, underline: (bits & 4) !== 0 };
+  return { bold: (bits & 1) !== 0, italic: (bits & 2) !== 0, underline: (bits & 4) !== 0, strike: (bits & 8) !== 0 };
+}
+
+/**
+ * Format du texte d'un style (gras, italique, souligné, barré, police) et texte riche éventuel, pour
+ * une `TextSpec`.
+ */
+export function textFormat(style: Record<string, string>, rich: RichLine[] | undefined) {
+  const bits = fontStyleBits(style);
+  return {
+    bold: bits.bold,
+    italic: bits.italic,
+    underline: bits.underline,
+    strike: bits.strike,
+    fontFamily: style.fontFamily,
+    rich,
+  };
 }
 
 /** Couleur de fond de la page, utilisée quand un style vaut `default` pour un fond de label. */

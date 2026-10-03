@@ -6,12 +6,14 @@ import { Emitter } from './events';
 import { formatLink, isNavigableLink } from './format/link';
 import {
   canMoveCell,
+  cellLabelValue,
   formatNumber,
   gridSizeOf,
   moveCell,
   resizeCell,
   setCellLabel,
   setCellObjectAttribute,
+  setCellRichLabel,
   setCellStyleValue,
 } from './format/edit';
 import {
@@ -205,6 +207,8 @@ export interface LabelEditRequest {
   styleCellId?: string;
   /** Style draw.io de cette cellule (police, taille, couleur, alignement), pour un éditeur fidèle. */
   style: Record<string, string>;
+  /** Label HTML de la cellule (`html=1`), avec sa mise en forme partielle ; absent : texte brut. */
+  html?: string;
   /** Pixels écran par pixel de page à cet endroit : taille du texte dans l'éditeur. */
   scale: number;
   /** Texte d'une flèche (fond de la page sous le texte) plutôt que d'une forme. */
@@ -1840,6 +1844,7 @@ export class Engine {
       screen: rect,
       styleCellId: element.id,
       style: element.style,
+      html: element.style.html === '1' ? cellLabelValue(editable.pageTree, element.id) : undefined,
       scale: this.textScale(element.id),
       onEdge: editable.page.edges.some((e) => e.id === element.id),
     });
@@ -1863,6 +1868,7 @@ export class Engine {
       screen,
       styleCellId: current?.id,
       style: current?.style ?? edge.style,
+      html: current?.style.html === '1' ? cellLabelValue(editable.pageTree, current.id) : undefined,
       scale: this.textScale(edgeId),
       onEdge: true,
     });
@@ -1982,12 +1988,23 @@ export class Engine {
   }
 
   /** Remplace le label d'un élément (texte brut ; converti en HTML si le style l'exige). */
-  setLabel(elementId: string, text: string): void {
+  /**
+   * Remplace le label d'un élément : texte brut (converti en HTML si le style l'exige), ou HTML draw.io
+   * si le texte a une mise en forme partielle (`html`, le style passe en `html=1`).
+   */
+  setLabel(elementId: string, text: string, html?: string): void {
     const editable = this.editablePage();
     const element = editable && [...editable.page.shapes, ...editable.page.edges].find((e) => e.id === elementId);
-    if (!editable || !element || element.label === text) return;
+    if (!editable || !element) return;
+    if (
+      html === undefined
+        ? element.label === text && !element.rich
+        : cellLabelValue(editable.pageTree, elementId) === html
+    )
+      return;
     this.recordEdit('Texte');
-    setCellLabel(editable.pageTree, elementId, text);
+    if (html === undefined) setCellLabel(editable.pageTree, elementId, text);
+    else setCellRichLabel(editable.pageTree, elementId, html);
     this.documentChanged([editable.page.id]);
   }
 
@@ -1995,20 +2012,24 @@ export class Engine {
    * Texte de début ou de fin d'une flèche de la page courante (label enfant près de la source ou de
    * la cible, comme dans draw.io) : créé, modifié, ou retiré si le texte est vide.
    */
-  setEdgeEndLabel(edgeId: string, end: EdgeEnd, text: string): void {
+  setEdgeEndLabel(edgeId: string, end: EdgeEnd, text: string, html?: string): void {
     const editable = this.editablePage();
     const edge = editable?.page.edges.find((e) => e.id === edgeId);
     if (!editable || !edge) return;
     const current = endLabelOf(edge, end);
     const value = text.trim() === '' ? '' : text;
-    if ((current?.label ?? '') === value) return;
+    const rich = value ? html : undefined;
+    const unchanged =
+      rich === undefined
+        ? (current?.label ?? '') === value && !current?.rich
+        : current !== undefined && cellLabelValue(editable.pageTree, current.id) === rich;
+    if (unchanged) return;
     this.recordEdit(end === 'start' ? 'Texte de début' : 'Texte de fin');
+    const write = (id: string) =>
+      rich === undefined ? setCellLabel(editable.pageTree, id, value) : setCellRichLabel(editable.pageTree, id, rich);
     if (!value && current) removeCells(editable.pageTree, [current.id]);
-    else if (current) setCellLabel(editable.pageTree, current.id, value);
-    else {
-      const id = addEdgeLabelCell(editable.pageTree, edgeId, { value: '', position: endLabelPosition(end) });
-      setCellLabel(editable.pageTree, id, value);
-    }
+    else if (current) write(current.id);
+    else write(addEdgeLabelCell(editable.pageTree, edgeId, { value: '', position: endLabelPosition(end) }));
     this.documentChanged([editable.page.id]);
   }
 

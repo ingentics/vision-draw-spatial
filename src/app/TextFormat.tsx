@@ -1,27 +1,40 @@
 import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
-import { fontStyleValue } from './LabelEditor';
+import { matchesTextPreset } from '../engine/edit/styles';
+import type { TextPreset } from '../engine/edit/styles';
+import { isMonospace } from '../engine/format/richText';
+import type { SelectionFormat, ToggleMark } from './LabelEditor';
 import { Section } from './PanelSection';
+
+/** Action du panneau de format : sur la sélection dans le texte, sinon sur tout le texte. */
+export type TextAction =
+  | { type: 'toggle'; mark: ToggleMark }
+  | { type: 'size'; size: number }
+  | { type: 'color'; color: string | undefined }
+  | { type: 'preset'; preset: TextPreset }
+  | { type: 'align'; key: 'align' | 'verticalAlign'; value: string };
 
 /** Texte en cours d'édition en place, vu par le panneau de format. */
 export interface TextEdit {
-  /** Style draw.io de la cellule du texte. */
+  /** Style draw.io de la cellule du texte (format de tout le texte). */
   style: Record<string, string>;
-  /** Faux tant que le texte n'existe pas (début / fin d'une flèche à créer) : rien à formater. */
+  /** Format de la sélection dans le texte ; absent : pas de sélection, le format vaut pour tout le texte. */
+  selection?: SelectionFormat;
+  /** Faux tant que le texte n'existe pas (début / fin d'une flèche à créer) : seule la sélection se formate. */
   canFormat: boolean;
   /** Texte d'une flèche : pas d'alignement vertical (centré sur le tracé). */
   onEdge: boolean;
-  /** Écrit des clés de style (undefined = retirée), une étape d'annulation. */
-  onFormat: (patch: Record<string, string | undefined>) => void;
+  presets: TextPreset[];
+  onAction: (action: TextAction) => void;
 }
 
 const DEFAULT_SIZE = 11;
-const SIZE_LIMITS = { min: 4, max: 128 };
+export const SIZE_LIMITS = { min: 4, max: 128 };
 /** Couleurs de texte rapides : noir, gris, blanc, puis les contours des styles draw.io. */
 const TEXT_COLORS = [
   '#000000',
   '#333333',
-  '#666666',
+  '#808080',
   '#ffffff',
   '#6c8ebf',
   '#82b366',
@@ -30,75 +43,130 @@ const TEXT_COLORS = [
   '#9673a6',
   '#1a73e8',
 ];
+const MARKS: Array<{ mark: ToggleMark; label: string; content: ReactNode }> = [
+  { mark: 'bold', label: 'Gras (Ctrl+B)', content: <strong>B</strong> },
+  { mark: 'italic', label: 'Italique (Ctrl+I)', content: <em>I</em> },
+  { mark: 'underline', label: 'Souligné (Ctrl+U)', content: <u>U</u> },
+  { mark: 'strike', label: 'Barré', content: <s>S</s> },
+];
+const BITS: Record<ToggleMark, number> = { bold: 1, italic: 2, underline: 4, strike: 8 };
 
 /**
- * Format du texte en cours d'édition (panneau latéral) : gras, italique, taille, couleur, alignement.
- * S'applique tout de suite à tout le texte (clés du style draw.io de la cellule), l'édition continue :
- * les boutons ne prennent pas le focus.
+ * Format du texte en cours d'édition (panneau latéral). Avec une partie du texte sélectionnée : gras,
+ * italique, souligné, barré, taille, couleur et styles de texte s'appliquent à la sélection ; sans
+ * sélection, à tout le texte. Les boutons ne prennent pas le focus : la saisie continue.
  */
 export function TextFormatSections({ edit }: { edit: TextEdit }) {
-  const { style, canFormat, onEdge, onFormat } = edit;
+  const { style, selection, canFormat, onEdge, presets, onAction } = edit;
   const bits = Number(style.fontStyle) || 0;
-  const size = Number(style.fontSize) || DEFAULT_SIZE;
-  const color = /^#[0-9a-f]{6}$/i.test(style.fontColor ?? '') ? style.fontColor!.toLowerCase() : '#000000';
+  const whole = {
+    bold: (bits & 1) !== 0,
+    italic: (bits & 2) !== 0,
+    underline: (bits & 4) !== 0,
+    strike: (bits & 8) !== 0,
+    fontSize: Number(style.fontSize) || DEFAULT_SIZE,
+    color: /^#[0-9a-f]{6}$/i.test(style.fontColor ?? '') ? style.fontColor!.toLowerCase() : '#000000',
+    fontFamily: style.fontFamily,
+  };
+  const current = selection ?? whole;
+  const enabled = canFormat || selection !== undefined;
   const setSize = (next: number) => {
     if (!Number.isFinite(next)) return;
-    const value = Math.round(Math.min(SIZE_LIMITS.max, Math.max(SIZE_LIMITS.min, next)));
-    onFormat({ fontSize: value === DEFAULT_SIZE ? undefined : String(value) });
+    onAction({ type: 'size', size: Math.round(Math.min(SIZE_LIMITS.max, Math.max(SIZE_LIMITS.min, next))) });
   };
   const align = style.align === 'left' || style.align === 'right' ? style.align : 'center';
   const vertical = style.verticalAlign === 'top' || style.verticalAlign === 'bottom' ? style.verticalAlign : 'middle';
+  // Police de la sélection : la police calculée de l'éditeur (« Roboto ») vaut la police par défaut.
+  const family = selection ? (isMonospace(current.fontFamily) ? current.fontFamily : undefined) : whole.fontFamily;
 
   return (
     <>
+      <p className="panel-hint format-target">
+        {selection
+          ? 'Appliqué à la sélection.'
+          : 'Appliqué à tout le texte (sélectionnez une partie pour la formater).'}
+      </p>
+      <Section title="Style">
+        <fieldset className="text-format" disabled={!enabled}>
+          <div className="text-presets">
+            {presets.map((preset) => (
+              <button
+                key={preset.name}
+                type="button"
+                className="style-swatch text-preset"
+                title={`${preset.name} : ${preset.fontSize} px${preset.fontFamily ? `, ${preset.fontFamily}` : ''}`}
+                aria-label={`Style de texte ${preset.name}`}
+                aria-pressed={matchesTextPreset(
+                  { fontSize: current.fontSize, fontColor: current.color, fontFamily: family },
+                  preset,
+                )}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => onAction({ type: 'preset', preset })}
+              >
+                <span
+                  style={{
+                    color: preset.fontColor ?? '#000000',
+                    fontSize: Math.min(Math.max(preset.fontSize, 9), 12),
+                    fontFamily: preset.fontFamily ? "'Roboto Mono', monospace" : undefined,
+                  }}
+                >
+                  {preset.name}
+                </span>
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      </Section>
       <Section title="Police">
-        <fieldset className="text-format" disabled={!canFormat}>
+        <fieldset className="text-format" disabled={!enabled}>
           <div className="field-row">
             Style
             <span className="button-group">
-              <FormatButton
-                label="Gras (Ctrl+B)"
-                pressed={(bits & 1) !== 0}
-                onClick={() => onFormat({ fontStyle: fontStyleValue(bits ^ 1) })}
-              >
-                <strong>B</strong>
-              </FormatButton>
-              <FormatButton
-                label="Italique (Ctrl+I)"
-                pressed={(bits & 2) !== 0}
-                onClick={() => onFormat({ fontStyle: fontStyleValue(bits ^ 2) })}
-              >
-                <em>I</em>
-              </FormatButton>
+              {MARKS.map(({ mark, label, content }) => (
+                <FormatButton
+                  key={mark}
+                  label={label}
+                  pressed={current[mark]}
+                  onClick={() => onAction({ type: 'toggle', mark })}
+                >
+                  {content}
+                </FormatButton>
+              ))}
             </span>
           </div>
           <div className="field-row">
             Taille
             <span className="button-group">
-              <FormatButton label="Plus petit" onClick={() => setSize(size - 1)}>
+              <FormatButton label="Plus petit" onClick={() => setSize(current.fontSize - 1)}>
                 −
               </FormatButton>
               <input
-                key={size}
+                key={current.fontSize}
                 type="number"
                 className="size-input"
                 aria-label="Taille du texte"
                 min={SIZE_LIMITS.min}
                 max={SIZE_LIMITS.max}
-                defaultValue={size}
-                onBlur={(event) => setSize(Number(event.target.value))}
+                defaultValue={current.fontSize}
+                onBlur={(event) => {
+                  if (Number(event.target.value) !== current.fontSize) setSize(Number(event.target.value));
+                }}
                 onKeyDown={(event) => {
                   if (event.key === 'Enter') setSize(Number(event.currentTarget.value));
                 }}
               />
-              <FormatButton label="Plus grand" onClick={() => setSize(size + 1)}>
+              <FormatButton label="Plus grand" onClick={() => setSize(current.fontSize + 1)}>
                 +
               </FormatButton>
             </span>
           </div>
           <div className="field-row color-row">
             Couleur
-            <ColorInput key={color} value={color} onChange={(next) => onFormat({ fontColor: next })} />
+            <ColorInput
+              key={current.color}
+              value={current.color}
+              onChange={(color) => onAction({ type: 'color', color })}
+            />
           </div>
           <div className="text-colors">
             {TEXT_COLORS.map((swatch) => (
@@ -109,9 +177,9 @@ export function TextFormatSections({ edit }: { edit: TextEdit }) {
                 style={{ background: swatch }}
                 title={swatch}
                 aria-label={`Couleur ${swatch}`}
-                aria-pressed={swatch === color}
+                aria-pressed={swatch === current.color}
                 onMouseDown={(event) => event.preventDefault()}
-                onClick={() => onFormat({ fontColor: swatch === '#000000' ? undefined : swatch })}
+                onClick={() => onAction({ type: 'color', color: swatch === '#000000' ? undefined : swatch })}
               />
             ))}
           </div>
@@ -127,7 +195,7 @@ export function TextFormatSections({ edit }: { edit: TextEdit }) {
                   key={value}
                   label={{ left: 'À gauche', center: 'Centré', right: 'À droite' }[value]}
                   pressed={align === value}
-                  onClick={() => onFormat({ align: value })}
+                  onClick={() => onAction({ type: 'align', key: 'align', value })}
                 >
                   <AlignIcon kind={value} />
                 </FormatButton>
@@ -143,7 +211,7 @@ export function TextFormatSections({ edit }: { edit: TextEdit }) {
                     key={value}
                     label={{ top: 'En haut', middle: 'Au milieu', bottom: 'En bas' }[value]}
                     pressed={vertical === value}
-                    onClick={() => onFormat({ verticalAlign: value })}
+                    onClick={() => onAction({ type: 'align', key: 'verticalAlign', value })}
                   >
                     <AlignIcon kind={value} />
                   </FormatButton>
@@ -156,13 +224,45 @@ export function TextFormatSections({ edit }: { edit: TextEdit }) {
       <p className="panel-hint">
         {canFormat
           ? 'Ctrl+Entrée ou clic ailleurs : valider · Échap : annuler.'
-          : 'Le format sera disponible une fois ce texte créé (Ctrl+Entrée pour valider).'}
+          : 'Sélectionnez une partie du texte pour la formater ; le format de tout le texte sera disponible une fois ce texte créé.'}
       </p>
     </>
   );
 }
 
-/** Bouton de format : ne prend pas le focus (la saisie continue dans le texte). */
+/** Clés de style de tout le texte pour une action, et mises en forme partielles qu'elle remplace. */
+export function wholeTextChange(
+  action: Exclude<TextAction, { type: 'align' }>,
+  style: Record<string, string>,
+): {
+  patch: Record<string, string | undefined>;
+  clear: Array<'bold' | 'italic' | 'underline' | 'strike' | 'fontSize' | 'color' | 'fontFamily'>;
+} {
+  switch (action.type) {
+    case 'toggle': {
+      const bits = (Number(style.fontStyle) || 0) ^ BITS[action.mark];
+      return { patch: { fontStyle: bits === 0 ? undefined : String(bits) }, clear: [action.mark] };
+    }
+    case 'size':
+      return {
+        patch: { fontSize: action.size === DEFAULT_SIZE ? undefined : String(action.size) },
+        clear: ['fontSize'],
+      };
+    case 'color':
+      return { patch: { fontColor: action.color }, clear: ['color'] };
+    case 'preset':
+      return {
+        patch: {
+          fontSize: String(action.preset.fontSize),
+          fontColor: action.preset.fontColor,
+          fontFamily: action.preset.fontFamily,
+        },
+        clear: ['fontSize', 'color', 'fontFamily'],
+      };
+  }
+}
+
+/** Bouton de format : ne prend pas le focus (la saisie et la sélection restent dans le texte). */
 function FormatButton({
   label,
   pressed,

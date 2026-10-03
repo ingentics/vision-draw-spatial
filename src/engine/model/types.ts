@@ -47,10 +47,35 @@ export interface PageModel {
   bounds: Rect;
 }
 
+/**
+ * Mise en forme d'une partie d'un label HTML (`<b>`, `<span style="font-size: …">`…) ; absente = celle
+ * du style de l'élément. `false` annule explicitement (ex. partie non grasse d'un label en gras).
+ */
+export interface TextMarks {
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  strike?: boolean;
+  /** Taille en pixels de page. */
+  fontSize?: number;
+  /** #rrggbb */
+  color?: string;
+  fontFamily?: string;
+}
+
+export interface TextRun extends TextMarks {
+  text: string;
+}
+
+/** Une ligne de texte riche : segments de même mise en forme. */
+export type RichLine = TextRun[];
+
 interface ElementBase {
   id: string;
   /** Texte brut du label (HTML éventuel déjà converti en texte). */
   label: string;
+  /** Texte riche, seulement si le label HTML a une mise en forme partielle (sinon `label` + style). */
+  rich?: RichLine[];
   style: Record<string, string>;
   link?: LinkModel;
   /** Forme parente (groupe / conteneur), absente si l'élément est directement sur un calque. */
@@ -87,6 +112,7 @@ export interface EdgeLabelPlacement {
 export interface EdgeLabelModel {
   id: string;
   label: string;
+  rich?: RichLine[];
   placement: EdgeLabelPlacement;
   style: Record<string, string>;
 }

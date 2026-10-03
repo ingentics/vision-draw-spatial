@@ -1,13 +1,13 @@
 import { Group } from 'three';
 import type { Object3D } from 'three';
-import type { EdgeLabelPlacement, EdgeModel, Point, ShapeModel } from '../../model/types';
+import type { EdgeLabelPlacement, EdgeModel, Point, RichLine, ShapeModel } from '../../model/types';
 import { buildMarker } from '../edges/markers';
 import { labelPoint, roundCorners, shorten, unit } from '../edges/polyline';
 import { routeEdge } from '../edges/route';
 import type { Terminal } from '../edges/route';
 import { dashPattern } from '../geometry/stroke';
 import { fillMesh, strokeMesh } from '../meshes';
-import { PAGE_BACKGROUND, fontStyleBits, labelBackground, styleColor, styleNumber, styleOpacity } from '../styleValues';
+import { PAGE_BACKGROUND, labelBackground, styleColor, styleNumber, styleOpacity, textFormat } from '../styleValues';
 import { PART_ORDER } from '../types';
 import type { RenderContext } from '../types';
 
@@ -90,10 +90,10 @@ export function createEdge(edge: EdgeModel, terminals: EdgeTerminals, ctx: Rende
     }
   }
 
-  const main = createEdgeLabel(edge.id, edge.label, route, edge.labelPlacement, style, ctx);
+  const main = createEdgeLabel(edge.id, edge.label, edge.rich, route, edge.labelPlacement, style, ctx);
   if (main) group.add(main);
   for (const child of edge.labels) {
-    const label = createEdgeLabel(child.id, child.label, route, child.placement, child.style, ctx);
+    const label = createEdgeLabel(child.id, child.label, child.rich, route, child.placement, child.style, ctx);
     if (label) group.add(label);
   }
 
@@ -103,6 +103,7 @@ export function createEdge(edge: EdgeModel, terminals: EdgeTerminals, ctx: Rende
 function createEdgeLabel(
   cellId: string,
   text: string,
+  rich: RichLine[] | undefined,
   route: Point[],
   placement: EdgeLabelPlacement,
   style: Record<string, string>,
@@ -121,8 +122,7 @@ function createEdgeLabel(
     // Sans `fontColor` : couleur par défaut du paramètre `shapes.edgeFontColor` (noir).
     color: styleColor(style, 'fontColor', ctx.edgeFontColor ?? DEFAULT_EDGE_FONT_COLOR)!,
     opacity: styleOpacity(style, 'textOpacity'),
-    bold: fontStyleBits(style).bold,
-    italic: fontStyleBits(style).italic,
+    ...textFormat(style, rich),
     // Les labels d'arêtes draw.io ont un fond de la couleur de la page par défaut.
     background: labelBackground(style, ctx.background ?? PAGE_BACKGROUND, ctx.background),
   });

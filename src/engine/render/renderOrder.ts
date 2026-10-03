@@ -6,10 +6,10 @@ import type { Object3D } from 'three';
  * une copie de l'ordre à cet instant resterait figée, par exemple sur l'ordre « au-dessus du voile »
  * d'une sélection, et le fond masquerait le texte une fois la sélection retirée.
  */
-export function followRenderOrder(background: Object3D, text: Object3D): void {
+export function followRenderOrder(background: Object3D, text: Object3D, offset = -0.5): void {
   Object.defineProperty(background, 'renderOrder', {
     configurable: true,
-    get: () => text.renderOrder - 0.5,
+    get: () => text.renderOrder + offset,
     // Les changements d'ordre (voile, page) passent par le texte : rien à mémoriser ici.
     set: () => undefined,
   });

@@ -1,0 +1,136 @@
+import type { RichLine } from '../model/types';
+
+/**
+ * Mise en page d'un texte riche (segments de tailles, graisses et polices différentes) : retour à la
+ * ligne entre les mots, alignement des lignes, lignes de base, soulignés et barrés. Pure : la mesure
+ * des largeurs est injectée (canvas 2D dans le navigateur, approximation en test).
+ */
+
+export interface FontSpec {
+  size: number;
+  bold: boolean;
+  italic: boolean;
+  family?: string;
+}
+
+/** Largeur d'un texte dans une police, en pixels de page. */
+export type MeasureText = (text: string, font: FontSpec) => number;
+
+/** Format de base (style de l'élément), complété ou remplacé segment par segment. */
+export interface BaseTextFormat extends FontSpec {
+  underline: boolean;
+  strike: boolean;
+  color?: string;
+}
+
+/** Morceau placé : un mot ou des espaces (gardés pour leurs traits : souligné continu sous « deux mots »). */
+export interface PlacedRun extends FontSpec {
+  text: string;
+  /** Bord gauche et ligne de base, relatifs au coin haut-gauche du bloc. */
+  x: number;
+  baseline: number;
+  width: number;
+  color?: string;
+  underline: boolean;
+  strike: boolean;
+}
+
+export interface RichTextLayout {
+  runs: PlacedRun[];
+  width: number;
+  height: number;
+}
+
+/** Hauteur de ligne en multiple de la taille, comme le texte SDF. */
+export const LINE_HEIGHT = 1.2;
+/** Ligne de base sous le haut de la ligne, en multiple de la taille (Roboto, interligne 1,2). */
+const BASELINE = 0.942;
+
+export function layoutRichText(
+  lines: RichLine[],
+  base: BaseTextFormat,
+  measure: MeasureText,
+  options: { maxWidth?: number; align: 'left' | 'center' | 'right' },
+): RichTextLayout {
+  type Piece = Omit<PlacedRun, 'x' | 'baseline'> & { space: boolean };
+  const laidOut: Array<{ pieces: Piece[]; width: number; size: number }> = [];
+
+  for (const line of lines) {
+    // Mots et espaces, chacun avec sa police.
+    const pieces: Piece[] = [];
+    for (const run of line) {
+      const format = {
+        size: run.fontSize ?? base.size,
+        bold: run.bold ?? base.bold,
+        italic: run.italic ?? base.italic,
+        family: run.fontFamily ?? base.family,
+        color: run.color ?? base.color,
+        underline: run.underline ?? base.underline,
+        strike: run.strike ?? base.strike,
+      };
+      for (const token of run.text.split(/( +)/)) {
+        if (token) pieces.push({ ...format, text: token, width: measure(token, format), space: token[0] === ' ' });
+      }
+    }
+    // Retour à la ligne entre les mots (un mot trop long déborde, comme draw.io).
+    let current: Piece[] = [];
+    let width = 0;
+    const flush = () => {
+      while (current.length && current[current.length - 1]!.space) width -= current.pop()!.width;
+      const size = current.reduce((max, piece) => Math.max(max, piece.size), 0) || lineSize(line, base);
+      laidOut.push({ pieces: current, width: Math.max(width, 0), size });
+      current = [];
+      width = 0;
+    };
+    const maxWidth = options.maxWidth;
+    let wrapped = false;
+    for (const piece of pieces) {
+      if (maxWidth !== undefined && !piece.space && current.length > 0 && width + piece.width > maxWidth) {
+        flush();
+        wrapped = true;
+      }
+      // Les espaces au début d'une ligne coupée disparaissent.
+      if (piece.space && wrapped && current.length === 0) continue;
+      current.push(piece);
+      width += piece.width;
+    }
+    flush();
+  }
+
+  const blockWidth = laidOut.reduce((max, line) => Math.max(max, line.width), 0);
+  const runs: PlacedRun[] = [];
+  let top = 0;
+  for (const line of laidOut) {
+    const baseline = top + BASELINE * line.size;
+    let x =
+      options.align === 'left'
+        ? 0
+        : options.align === 'right'
+          ? blockWidth - line.width
+          : (blockWidth - line.width) / 2;
+    for (const { space: _space, ...piece } of line.pieces) {
+      runs.push({ ...piece, x, baseline });
+      x += piece.width;
+    }
+    top += LINE_HEIGHT * line.size;
+  }
+  return { runs, width: blockWidth, height: top };
+}
+
+/** Taille d'une ligne vide : celle de son premier segment, sinon la taille de base. */
+function lineSize(line: RichLine, base: BaseTextFormat): number {
+  return line[0]?.fontSize ?? base.size;
+}
+
+/** Traits de souligné et de barré d'un segment : décalage sous (+) ou sur (−) la ligne de base, épaisseur. */
+export function decorationLines(run: PlacedRun): Array<{ y: number; thickness: number }> {
+  const thickness = Math.max(run.size / 14, 0.5);
+  const lines: Array<{ y: number; thickness: number }> = [];
+  if (run.underline) lines.push({ y: run.baseline + run.size * 0.12, thickness });
+  if (run.strike) lines.push({ y: run.baseline - run.size * 0.28, thickness });
+  return lines;
+}
+
+/** Largeur approximative (sans canvas) : 0,55 em par caractère, 0,6 em en chasse fixe. */
+export const approximateMeasure: MeasureText = (text, font) =>
+  text.length * font.size * (font.family && /mono|courier/i.test(font.family) ? 0.6 : font.bold ? 0.58 : 0.55);

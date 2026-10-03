@@ -1,4 +1,5 @@
 import type { Color, Object3D } from 'three';
+import type { RichLine } from '../model/types';
 
 /** Ordre de dessin des sous-parties d'un élément (ajouté à l'ordre de l'élément dans la page). */
 export const PART_ORDER = { fill: 0, stroke: 1, label: 2 } as const;
@@ -20,6 +21,12 @@ export interface TextSpec {
   opacity: number;
   bold: boolean;
   italic?: boolean;
+  underline?: boolean;
+  strike?: boolean;
+  /** Police draw.io (`fontFamily`) : une police à chasse fixe donne la police de code. */
+  fontFamily?: string;
+  /** Texte riche (mise en forme partielle) : remplace `text` pour le dessin. */
+  rich?: RichLine[];
   /** Largeur de retour à la ligne ; absente = pas de retour automatique. */
   maxWidth?: number;
   /** Fond du label (`labelBackgroundColor`), ajusté à la taille du texte. */

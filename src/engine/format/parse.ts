@@ -13,6 +13,7 @@ import type {
 } from '../model/types';
 import { computeBounds } from '../model/bounds';
 import { htmlToText, resolvePlaceholders } from './label';
+import { isRich, parseRichHtml } from './richText';
 import { parseLink } from './link';
 import { parseStyle, resolveShapeKind } from './style';
 import { childElements, type DrawioTree, type PageTree, readDrawioTree } from './xmlTree';
@@ -247,6 +248,14 @@ function parseGraphModel(page: PageTree, warnings: ParseWarning[]): PageModel {
     if (cell.placeholders || style.placeholders === '1') label = resolvePlaceholders(label, cell.attributes);
     return style.html === '1' ? htmlToText(label) : label;
   };
+  /** Mise en forme partielle d'un label HTML (gras sur un mot, taille d'une ligne…), sinon undefined. */
+  const richOf = (cell: RawCell, style: Record<string, string>) => {
+    if (style.html !== '1' || !/<|&/.test(cell.label)) return undefined;
+    let label = cell.label;
+    if (cell.placeholders || style.placeholders === '1') label = resolvePlaceholders(label, cell.attributes);
+    const lines = parseRichHtml(label);
+    return isRich(lines) ? lines : undefined;
+  };
 
   const linkOf = (cell: RawCell) => {
     const link = parseLink(cell.link);
@@ -277,6 +286,7 @@ function parseGraphModel(page: PageTree, warnings: ParseWarning[]): PageModel {
     const base = {
       id: cell.id,
       label: labelOf(cell, style),
+      rich: richOf(cell, style),
       style,
       link: linkOf(cell),
       parentId,
@@ -322,6 +332,7 @@ function parseGraphModel(page: PageTree, warnings: ParseWarning[]): PageModel {
     const label: EdgeLabelModel = {
       id: cell.id,
       label: labelOf(cell, style),
+      rich: richOf(cell, style),
       placement: edgeLabelPlacement(cell.geometry),
       style,
     };

@@ -173,4 +173,16 @@ describe('réglages exposés (caméra, vue graphe, édition…)', () => {
     const merged = mergeSettings(DEFAULT_SETTINGS, { styles: { extended: broken } });
     expect(merged.styles.extended).toBe(DEFAULT_SETTINGS.styles.extended);
   });
+  it('styles de texte : Classique, Feutré, Code ; liste invalide ignorée', () => {
+    expect(DEFAULT_SETTINGS.styles.text.map((preset) => preset.name)).toEqual(['Classique', 'Feutré', 'Code']);
+    expect(DEFAULT_SETTINGS.styles.text[2]).toMatchObject({ fontFamily: 'Courier New' });
+    const custom = [{ name: 'Titre', fontSize: 18, fontColor: '#1A73E8' }];
+    expect(mergeSettings(DEFAULT_SETTINGS, { styles: { text: custom } }).styles.text).toEqual([
+      { name: 'Titre', fontSize: 18, fontColor: '#1a73e8' },
+    ]);
+    const broken = [{ name: 'Sans taille', fontColor: '#000000' }] as unknown as typeof custom;
+    expect(mergeSettings(DEFAULT_SETTINGS, { styles: { text: broken } }).styles.text).toBe(
+      DEFAULT_SETTINGS.styles.text,
+    );
+  });
 });

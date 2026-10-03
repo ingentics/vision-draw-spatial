@@ -1,4 +1,5 @@
 import { setCellStyleValue } from '../format/edit';
+import { MONOSPACE_FAMILY } from '../format/richText';
 import type { PageTree } from '../format/xmlTree';
 
 /**
@@ -139,4 +140,46 @@ function hslToHex(h: number, s: number, l: number): string {
         .padStart(2, '0'),
     )
     .join('')}`;
+}
+
+/**
+ * Style de texte (panneau « Texte ») : taille, couleur et police, appliqués à la sélection dans le
+ * texte, ou à tout le texte (clés `fontSize`, `fontColor`, `fontFamily` du style draw.io).
+ */
+export interface TextPreset {
+  name: string;
+  /** Taille en pixels de page (draw.io). */
+  fontSize: number;
+  /** #rrggbb ; absente = couleur par défaut (noir). */
+  fontColor?: string;
+  /** Police draw.io ; absente = police par défaut. */
+  fontFamily?: string;
+}
+
+export const TEXT_STYLES: TextPreset[] = [
+  { name: 'Classique', fontSize: 12 },
+  { name: 'Feutré', fontSize: 9, fontColor: '#808080' },
+  { name: 'Code', fontSize: 11, fontFamily: MONOSPACE_FAMILY },
+];
+
+/** Clés de style d'un style de texte appliqué à tout le texte (undefined = clé retirée). */
+export function textPresetPatch(preset: TextPreset): Record<string, string | undefined> {
+  return {
+    fontSize: String(preset.fontSize),
+    fontColor: preset.fontColor,
+    fontFamily: preset.fontFamily,
+  };
+}
+
+/** Le format (style de la cellule, ou mise en forme de la sélection) correspond-il à ce style de texte ? */
+export function matchesTextPreset(
+  format: { fontSize?: number; fontColor?: string; fontFamily?: string },
+  preset: TextPreset,
+): boolean {
+  const color = (value: string | undefined) => normalize(value) ?? '#000000';
+  return (
+    format.fontSize === preset.fontSize &&
+    color(format.fontColor) === color(preset.fontColor) &&
+    (format.fontFamily ?? '').toLowerCase() === (preset.fontFamily ?? '').toLowerCase()
+  );
 }

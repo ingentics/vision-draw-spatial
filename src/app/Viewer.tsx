@@ -2,6 +2,8 @@ import robotoBoldItalic from '@fontsource/roboto/files/roboto-latin-700-italic.w
 import robotoBold from '@fontsource/roboto/files/roboto-latin-700-normal.woff?url';
 import robotoItalic from '@fontsource/roboto/files/roboto-latin-400-italic.woff?url';
 import robotoRegular from '@fontsource/roboto/files/roboto-latin-400-normal.woff?url';
+import robotoMonoBold from '@fontsource/roboto-mono/files/roboto-mono-latin-700-normal.woff?url';
+import robotoMono from '@fontsource/roboto-mono/files/roboto-mono-latin-400-normal.woff?url';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { UnsupportedReport } from '../engine/diagnostics/unsupportedStyles';
 import type { BackTarget, Engine, InitialView, LabelEditRequest, Selection } from '../engine/Engine';
@@ -18,6 +20,9 @@ import { isFilePath } from '../engine/persistence/FsStore';
 import { saveAs, store } from './fileLibrary';
 import { NavigationToolbar } from './NavigationToolbar';
 import { LabelEditor } from './LabelEditor';
+import type { RichEditorHandle, SelectionFormat } from './LabelEditor';
+import { wholeTextChange } from './TextFormat';
+import type { TextAction } from './TextFormat';
 import { PageTabs } from './PageTabs';
 import { MULTI_SELECT_LABELS } from './SettingsPanel';
 import { Palette, PALETTE_MIME, templateById } from './Palette';
@@ -26,7 +31,14 @@ import { ContextPanel } from './ContextPanel';
 import type { Settings, SettingsPatch } from '../engine/settings';
 import { GRAPH_PAGE_ID } from '../engine/graph/graphPage';
 
-const FONTS = { regular: robotoRegular, bold: robotoBold, italic: robotoItalic, boldItalic: robotoBoldItalic };
+const FONTS = {
+  regular: robotoRegular,
+  bold: robotoBold,
+  italic: robotoItalic,
+  boldItalic: robotoBoldItalic,
+  mono: robotoMono,
+  monoBold: robotoMonoBold,
+};
 /** Réglages iso qu'une page peut imposer (état de vue enregistré dans le fichier). */
 const ISO_KEYS = ['isoAngleDeg', 'isoAzimuthDeg', 'isoVolume', 'isoDepth'] as const;
 interface ViewerProps {
@@ -76,6 +88,9 @@ export function Viewer({
   const [undoLabels, setUndoLabels] = useState<{ undo?: string; redo?: string }>({});
   const [selection, setSelection] = useState<Selection>();
   const [labelEdit, setLabelEdit] = useState<LabelEditRequest>();
+  /** Éditeur de texte en place (commandes du panneau de format) et format de sa sélection. */
+  const editorHandle = useRef<RichEditorHandle | undefined>(undefined);
+  const [selectionFormat, setSelectionFormat] = useState<SelectionFormat>();
   const modifiedRef = useRef(false);
   modifiedRef.current = modified;
 
@@ -267,9 +282,34 @@ export function Viewer({
   const editablePages = document !== undefined && engine?.canEditPages() === true;
   const canAddShapes = pageId !== undefined && pageId !== GRAPH_PAGE_ID;
   const issueCount = (report?.unsupportedElementCount ?? 0) + warnings.length;
-  /** Format du texte en cours d'édition en place (panneau latéral, Ctrl+B / Ctrl+I). */
-  const formatText = (patch: Record<string, string | undefined>) => {
-    if (labelEdit?.styleCellId) engine?.setTextFormat(labelEdit.styleCellId, patch);
+  /**
+   * Format du texte en cours d'édition en place (panneau latéral, Ctrl+B / I / U) : sur la sélection
+   * dans le texte (mise en forme partielle, écrite à la validation), sinon sur tout le texte (clés du
+   * style de la cellule, et les mises en forme partielles de même nature sont retirées).
+   */
+  const formatText = (action: TextAction) => {
+    const editor = editorHandle.current;
+    const cellId = labelEdit?.styleCellId;
+    if (action.type === 'align') {
+      if (cellId) engine?.setTextFormat(cellId, { [action.key]: action.value });
+      return;
+    }
+    if (editor?.hasSelection()) {
+      if (action.type === 'toggle') editor.toggle(action.mark);
+      else if (action.type === 'size') editor.setMarks({ fontSize: action.size });
+      else if (action.type === 'color') editor.setMarks({ color: action.color ?? null });
+      else
+        editor.setMarks({
+          fontSize: action.preset.fontSize,
+          color: action.preset.fontColor ?? null,
+          fontFamily: action.preset.fontFamily ?? null,
+        });
+      return;
+    }
+    if (!cellId || !labelEdit) return;
+    const { patch, clear } = wholeTextChange(action, labelEdit.style);
+    editor?.clear(clear);
+    engine?.setTextFormat(cellId, patch);
   };
   // Page affichée (pas la vue graphe) : le panneau contextuel est toujours ouvert dessus.
   const currentPage = pageId !== GRAPH_PAGE_ID ? document?.pages.find((page) => page.id === pageId) : undefined;
@@ -408,12 +448,14 @@ export function Viewer({
             <LabelEditor
               key={`${labelEdit.pageId}:${labelEdit.elementId}:${labelEdit.end ?? ''}`}
               request={labelEdit}
-              onFormat={formatText}
-              onCommit={(text) => {
+              handle={editorHandle}
+              onToggle={(mark) => formatText({ type: 'toggle', mark })}
+              onSelectionFormat={setSelectionFormat}
+              onCommit={({ text, html }) => {
                 setLabelEdit(undefined);
                 engine?.closeLabelEdit();
-                if (labelEdit.end) engine?.setEdgeEndLabel(labelEdit.elementId, labelEdit.end, text);
-                else engine?.setLabel(labelEdit.elementId, text);
+                if (labelEdit.end) engine?.setEdgeEndLabel(labelEdit.elementId, labelEdit.end, text, html);
+                else engine?.setLabel(labelEdit.elementId, text, html);
                 engine?.focusCanvas();
               }}
               onCancel={() => {
@@ -471,9 +513,11 @@ export function Viewer({
             textEdit={
               labelEdit && {
                 style: labelEdit.style,
+                selection: selectionFormat,
                 canFormat: labelEdit.styleCellId !== undefined,
                 onEdge: labelEdit.onEdge,
-                onFormat: formatText,
+                presets: settings.styles.text,
+                onAction: formatText,
               }
             }
             onApplyStyle={(preset) =>

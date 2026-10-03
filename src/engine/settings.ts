@@ -1,7 +1,7 @@
 import { ISOMETRIC_ELEVATION_DEG } from './interaction/camera';
 import { DEFAULT_DEPTH } from './spatial';
-import { DRAWIO_STYLES, PASTEL_STYLES } from './edit/styles';
-import type { StylePreset } from './edit/styles';
+import { DRAWIO_STYLES, PASTEL_STYLES, TEXT_STYLES } from './edit/styles';
+import type { StylePreset, TextPreset } from './edit/styles';
 import { DEFAULT_CONTROLS } from './interaction/controls';
 import type { ControlSettings, Shortcuts } from './interaction/controls';
 import { MULTI_SELECT_KEYS } from './interaction/selection';
@@ -128,6 +128,8 @@ export interface StyleSettings {
   base: StylePreset[];
   /** Palette étendue (pastels). */
   extended: StylePreset[];
+  /** Styles de texte (taille, couleur, police). */
+  text: TextPreset[];
 }
 
 /** Vue graphe (SPEC §12) : disposition des cartes de pages. */
@@ -239,7 +241,7 @@ export const DEFAULT_SETTINGS: Settings = {
     accentColor: '#1a73e8',
   },
   shapes: { edgeFontColor: '#000000', placeholderFill: '#eeeeee', placeholderStroke: '#9e9e9e' },
-  styles: { base: DRAWIO_STYLES, extended: PASTEL_STYLES },
+  styles: { base: DRAWIO_STYLES, extended: PASTEL_STYLES, text: TEXT_STYLES },
   graph: { cardWidth: 260, columnGap: 200, rowGap: 90 },
   edit: { edgePickTolerance: 6, handlePickTolerance: 8, handleSize: 4, minShapeSize: 10 },
   save: { autosave: true, delayMs: 1000, viewStateDelayMs: 500 },
@@ -337,6 +339,28 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
     );
     return list.every((entry) => entry !== undefined) ? (list as StylePreset[]) : fallback;
   };
+  /** Styles de texte : remplacés en entier si chaque entrée est valide (nom, taille, couleur, police). */
+  const textPresets = (value: unknown, fallback: TextPreset[]): TextPreset[] => {
+    if (!Array.isArray(value)) return fallback;
+    const list = value.map((entry: Partial<TextPreset> | null) => {
+      if (!entry || typeof entry.name !== 'string') return undefined;
+      const size = entry.fontSize;
+      if (typeof size !== 'number' || !Number.isFinite(size) || size <= 0) return undefined;
+      if (
+        entry.fontColor !== undefined &&
+        !(typeof entry.fontColor === 'string' && /^#[0-9a-f]{6}$/i.test(entry.fontColor))
+      )
+        return undefined;
+      if (entry.fontFamily !== undefined && typeof entry.fontFamily !== 'string') return undefined;
+      return {
+        name: entry.name,
+        fontSize: size,
+        ...(entry.fontColor ? { fontColor: entry.fontColor.toLowerCase() } : {}),
+        ...(entry.fontFamily ? { fontFamily: entry.fontFamily } : {}),
+      };
+    });
+    return list.every((entry) => entry !== undefined) ? (list as TextPreset[]) : fallback;
+  };
   const t = p.transition ?? {};
   const pr = p.preload ?? {};
   const c = p.controls ?? {};
@@ -418,6 +442,7 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
     styles: {
       base: presets(p.styles?.base, base.styles.base),
       extended: presets(p.styles?.extended, base.styles.extended),
+      text: textPresets(p.styles?.text, base.styles.text),
     },
     graph: {
       cardWidth: num('graph.cardWidth', p.graph?.cardWidth, base.graph.cardWidth),

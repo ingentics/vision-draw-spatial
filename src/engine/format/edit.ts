@@ -69,6 +69,26 @@ export function setCellLabel(page: PageTree, cellId: string, text: string): void
   markPageDirty(page);
 }
 
+/** Label tel qu'écrit dans le fichier (HTML si `html=1`) : attribut `label` de l'enveloppe, sinon `value`. */
+export function cellLabelValue(page: PageTree, cellId: string): string {
+  const nodes = page.cells.get(cellId);
+  return (nodes?.wrapper ? nodes.wrapper.getAttribute('label') : nodes?.cell?.getAttribute('value')) ?? '';
+}
+
+/**
+ * Label riche (HTML draw.io : `<b>`, `<span style>`…) : écrit tel quel, et le style passe en `html=1`
+ * s'il ne l'est pas (draw.io affiche alors la mise en forme).
+ */
+export function setCellRichLabel(page: PageTree, cellId: string, html: string): void {
+  const nodes = page.cells.get(cellId);
+  if (!nodes?.cell) throw new Error(`Cellule ${cellId} introuvable`);
+  if (!/(^|;)\s*html=1\s*(;|$)/.test(nodes.cell.getAttribute('style') ?? ''))
+    setCellStyleValue(page, cellId, 'html', '1');
+  if (nodes.wrapper) nodes.wrapper.setAttribute('label', html);
+  else nodes.cell.setAttribute('value', html);
+  markPageDirty(page);
+}
+
 /**
  * Valeur d'une clé du style d'une cellule (`clé=valeur;`), en place : la clé garde sa position si
  * elle existe, sinon elle est ajoutée à la fin ; undefined la retire. Le reste du style est intact.

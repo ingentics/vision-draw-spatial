@@ -6,6 +6,8 @@ import '@fontsource/roboto/latin-400.css';
 import '@fontsource/roboto/latin-400-italic.css';
 import '@fontsource/roboto/latin-700.css';
 import '@fontsource/roboto/latin-700-italic.css';
+import '@fontsource/roboto-mono/latin-400.css';
+import '@fontsource/roboto-mono/latin-700.css';
 import './main.css';
 
 const container = document.getElementById('root');
