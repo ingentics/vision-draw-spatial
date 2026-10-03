@@ -165,7 +165,7 @@ class Engine {
   load(xml: string, fileId: string, initialView?: { pageId?: string; camera?: CameraState }): Promise<void>;
   goToPage(pageId: string, opts?: { transition?: boolean }): void;
   back(): void;
-  setViewMode(mode: 'top' | 'iso'): void;
+  setViewMode(mode: 'top' | 'iso' | '3d'): void;
   getCameraState(): CameraState;
   setCameraState(state: CameraState): void;
   animateCameraTo(state: CameraState, durationMs?: number): void;
@@ -395,19 +395,25 @@ Formes et arêtes sont dessinées dans l'**ordre du document** (une arête décl
 
 - **Vue de dessus (`top`)** : caméra **orthographique**, perpendiculaire au sol, sans perspective. Équivalent fonctionnel de draw.io (même ratio au zoom, même ressenti au pan).
 - **Vue isométrique (`iso`)** : caméra inclinée, projection isométrique sur le plan au sol.
-- Bascule entre les deux modes par un bouton et un raccourci, avec une animation douce.
-- **Réalisation retenue pour l'iso** : la même caméra orthographique, inclinée de `tilt` au-dessus du sol (vers le haut de l'écran). Par défaut, élévation de 35,26° (inclinaison 54,74°) **et** rotation de −45° (« vers la droite ») : l'isométrie vraie (losanges). La rotation iso (`isoAzimuthDeg`) est ajoutée en entrant en iso et retirée en sortant : 2D → iso → 2D rend l'orientation de départ. Le centre de l'écran et le zoom ne bougent pas pendant la bascule (≈ 450 ms, animée).
-- **Réglages de la vue iso** (section « Vue isométrique » du panneau Paramètres, §13) : orientation **vers la droite** (−45°, défaut), **vers la gauche** (+45°) ou **sans rotation** (0°), chacune avec un aperçu dessiné, ou un **angle libre** au curseur (90° à gauche à 90° à droite) ; **élévation** de la caméra de 10° (rasante) à 80° (presque de dessus), avec un retour à l'isométrie vraie (35°). Les changements s'appliquent immédiatement en iso (animés, en gardant l'écart de rotation choisi par l'utilisateur) et sont mémorisés avec les autres paramètres.
+- **Vue 3D (`3d`)** : caméra **en perspective**, comme un jeu de construction (§9.1, « Vue 3D » ci-dessous).
+- Bascule entre les modes par des boutons liés « 2D | Iso | 3D » et des raccourcis (I : 2D ↔ iso, P : 3D ↔ dernier mode 2D / iso), avec une animation douce.
+- **Réalisation retenue pour l'iso** : la même caméra orthographique, inclinée de `tilt` au-dessus du sol (vers le haut de l'écran). Par défaut, élévation de 35,26° (inclinaison 54,74°) **et** rotation de −45° (« vers la droite ») : l'isométrie vraie (losanges). En entrant en iso (depuis la 2D ou la 3D), la vue prend l'orientation iso (`isoAzimuthDeg`) ; en revenant en 2D, le nord est en haut. Le centre de l'écran et le zoom ne bougent pas pendant la bascule (≈ 450 ms, animée).
+- **Réglages de la vue iso** (section « Vue isométrique » du panneau Paramètres, §13) : orientation **vers la droite** (−45°, défaut), **vers la gauche** (+45°) ou **sans rotation** (0°), chacune avec un aperçu dessiné, ou un **angle libre** au curseur (tour complet : 180° à gauche à 180° à droite) ; **élévation** de la caméra de 10° (rasante) à 80° (presque de dessus), avec un retour à l'isométrie vraie (35°). Les changements s'appliquent immédiatement en iso (animés) et sont mémorisés avec les autres paramètres ; l'orientation est absolue : un clic sur une orientation prédéfinie ramène toujours la vue exactement à cet angle, même déjà sélectionnée (y compris après une rotation à la souris). Changer seulement l'élévation garde la rotation faite à la souris.
 - **Volume en iso** (niveau de rendu `iso`, §8.2) : rectangles, ellipses et placeholders deviennent des **blocs** posés au sol. Le dessus reprend le rendu à plat (fond, bordure, label, pastille de lien) ; les côtés reprennent la couleur de fond, assombrie selon l'orientation de chaque face (lumière fixe dans la page : en iso par défaut, face visible gauche claire, droite plus sombre). Matériaux opaques avec test de profondeur : les blocs se cachent entre eux et cachent ce qui est derrière.
   - **Toutes les arêtes du bloc** reprennent la bordure 2D de la forme (couleur, épaisseur, pointillés, opacité) : contour du dessus, contour du bas et arêtes verticales aux angles vifs, tracés **à l'extérieur** de la forme (contours décalés d'une demi-épaisseur, arêtes verticales au coin extérieur, en rubans plats tournés face à l'écran : même épaisseur que les autres, extrémités nettes) : aucune n'est à moitié cachée par les faces, toutes ont la même épaisseur à l'écran. En 2D, la bordure reste centrée sur le bord, comme dans draw.io (> 30° ; pas sur les courbes : ellipses et coins arrondis n'en ont pas). Celles qui sont derrière le bloc restent cachées.
   - Épaisseur réglable (16 px par défaut, §13), et par forme avec le style draw.io **`spatial.height=…`** (préfixe spatial, §14.3). Une forme sans fond reste à plat.
   - Les formes contenues sont **posées sur le dessus** de leur conteneur ; une arête est à la hauteur de la plus haute de ses extrémités (ou du dessus de son conteneur). Les groupes, invisibles, n'ont pas de volume.
-  - La hauteur suit l'inclinaison : les blocs **poussent** pendant la bascule 2D → iso et s'aplatissent si l'on remonte vers la vue de dessus.
+  - La hauteur suit l'inclinaison (ou, en 3D, la perspective) : les blocs **poussent** pendant la bascule 2D → iso / 3D et **s'aplatissent progressivement** pendant la bascule inverse (ils restent en volume jusqu'à l'arrivée, la page ne passe à plat qu'une fois la caméra à la verticale).
+  - Pendant toute la bascule, **fondu enchaîné** des deux rendus : la page en volume a une opacité égale à la hauteur relative des blocs, la page à plat l'opacité inverse. Le rendu se fait en deux passes (page à plat puis volumes, profondeur remise à zéro entre les deux) : les blocs s'occultent entre eux, mais des blocs presque aplatis ne masquent pas les traits et labels à plat. Une bascule interrompue ou instantanée (animations réduites) termine le fondu.
   - Le clic vise le **dessus** des blocs (point décalé de hauteur × tan(inclinaison) vers la caméra) ; le contour de sélection y est posé et reste toujours visible.
   - Les arêtes restent au sol : une pointe qui arrive contre la face arrière d'un bloc est masquée par lui (occlusion normale).
 - **Navigation cohérente** : les conversions écran ↔ sol tiennent compte de l'inclinaison (raccourcissement vertical de cos(tilt)) ; zoom au curseur, déplacement, rotation, clic, sélection et liens se comportent de la même façon dans les deux modes. Le texte reste posé à plat sur le sol (lisible, raccourci en iso).
-- **Orbite** : en iso et en mode « Tourner », le glisser molette vertical règle l'inclinaison (vers le haut = vers l'horizon, de 0 à 80°), le glisser horizontal tourne la vue, autour du point de départ du glisser.
-- **Rotation de la vue** : dans les deux modes, la vue peut tourner autour de la verticale (`CameraState.rotation`). Pas de bouton dédié pour revenir au nord (retiré de la barre d'outils) ; `engine.resetRotation()` reste disponible, et l'ouverture d'une page ou la bascule 2D ↔ iso redonnent une orientation de référence.
+- **Vue 3D** : mêmes volumes qu'en iso (pleine hauteur, même vue d'aplomb), vus en perspective (champ vertical 45°).
+  - **Contrôles** : molette = zoom au curseur, **borné** (dézoom maximal ×0,1, zoom maximal ×4) ; **glisser molette enfoncée** = déplacer (le point du sol attrapé reste sous le curseur) ; **glisser clic droit** = orienter la caméra en orbite autour du centre de l'écran : c'est la caméra qui bouge, la page reste fixe : à l'horizontale, rotation libre (vers la droite, la caméra tourne vers la droite autour du centre) ; à la verticale, inclinaison de 0 (d'aplomb) à 65° (vers le haut, la caméra monte vers la vue d'aplomb ; vers le bas, elle descend vers l'horizon, qui reste hors de l'écran). Clavier, Espace + glisser, Entrée, clic, liens : comme dans les autres modes.
+  - **Bascule** : depuis la 2D, la 3D part de l'orientation iso (élévation et azimut des réglages iso) ; depuis l'iso, elle garde l'orientation courante. En sortant, la 2D revient au nord en haut, l'iso à son azimut. La perspective s'ouvre (et se referme) progressivement pendant la bascule, depuis une vue quasi orthographique : pas de saut d'image.
+  - Le zoom (`CameraState.zoom`) est celui du centre de l'écran : la caméra est placée à la distance qui donne ce zoom ; `CameraState.fov` (champ de vision) n'est présent qu'en perspective.
+  - Conversions écran ↔ sol par lancer de rayon ; la mini-carte montre une emprise en **trapèze**.
+- **Rotation de la vue** (`CameraState.rotation`) : **jamais en 2D** (nord en haut, comme draw.io ; une caméra enregistrée tournée est remise droite). En iso et en 3D, **clic droit + glisser** fait tourner la caméra autour du centre de l'écran (la page reste fixe ; en iso, seule la rotation change, l'élévation reste celle des réglages) ; aussi par les réglages iso et l'état de vue enregistré. Pas de bouton dédié pour revenir à l'orientation de référence ; `engine.resetRotation()` reste disponible, et la bascule de mode redonne une orientation de référence.
 
 ### 9.2 Contrôles
 
@@ -415,8 +421,8 @@ Formes et arêtes sont dessinées dans l'**ordre du document** (une arête décl
 |---|---|
 | Se déplacer | **Z Q S D** (AZERTY) = W A S D (QWERTY), et les flèches ; dans le sens de l'écran, même vue tournée |
 | Zoomer | Molette, **zoom centré sur le curseur** (pincement trackpad pris en compte) |
-| Glisser molette enfoncée | **Déplacer** (défaut) ou **Tourner**, au choix dans la barre d'outils (§9.3) |
-| Pan | Clic droit + glisser, ou Espace + glisser (toujours, quel que soit le mode molette) |
+| Pan | Glisser molette enfoncée, clic droit + glisser (en 2D seulement), ou Espace + glisser |
+| Orienter (iso, 3D) | Clic droit + glisser : la caméra tourne autour du centre (horizontal) ; en 3D, s'incline aussi (vertical) (§9.1) |
 | Vue globale ↔ 1:1 | **Entrée** (§9.3) |
 | Vue graphe ↔ dernière page | Onglet « Vue graphe », touche **G** (§12) |
 | Mini-carte | Bouton × / « Mini-carte », touche **M** (§10) |
@@ -445,8 +451,6 @@ Le déplacement s'appuie sur les touches physiques (`KeyboardEvent.code`) pour g
 
 ### 9.3 Barre d'outils de navigation
 
-- **Groupe de deux boutons liés** (style input-group) : **Déplacer** | **Tourner**. Règle l'effet du glisser molette enfoncée ; **Déplacer** par défaut ; le choix est mémorisé.
-- En mode **Tourner**, la vue pivote autour du **point où le glisser a commencé**, qui reste fixe sous le curseur ; glisser vers la droite tourne le schéma dans le sens horaire.
 - **Entrée** bascule entre :
   - la **vue globale** : toute la page visible, dans l'orientation actuelle, sans plafond de zoom (un petit schéma remplit l'écran) ;
   - la vue **1:1** (zoom 100 %), autour du curseur s'il est sur le plan, sinon autour du centre.
@@ -461,6 +465,14 @@ Le déplacement s'appuie sur les touches physiques (`KeyboardEvent.code`) pour g
 
 ---
 
+### 9.5 Fond et grille
+
+- La vue a un **fond** de couleur réglable (blanc par défaut) et une **grille** au sol, affichée par défaut, dans les trois modes (2D, iso, 3D) et la vue graphe.
+- Grille par défaut comme draw.io : pas de **10 px**, une **ligne principale toutes les 4 cases**, lignes gris clair (les secondaires plus légères). Par défaut, le pas est celui de la page draw.io (`gridSize` de `<mxGraphModel>`, le même que l'aimantation à la grille §14.1) ; une page sans grille (`grid="0"`) prend le pas des paramètres.
+- Réalisation : un plan au sol sous tout le reste, peint par un shader (couleur de fond + lignes) : lignes d'un pixel, nettes à tout zoom, couchées sur le sol en iso et en perspective en 3D. Quand les cases deviennent trop petites à l'écran (dézoom, lointain de la vue 3D), les lignes s'estompent au lieu de produire du moiré. Les formes, arêtes et volumes passent par-dessus ; la grille ne cache rien.
+- Les labels `labelBackgroundColor=default` et le fond de la mini-carte suivent la couleur du fond.
+- Réglages : section « Fond et grille » du panneau Paramètres (§13).
+
 ## 10. Mini-carte
 
 - En **bas à droite**.
@@ -473,7 +485,7 @@ Réalisation retenue :
 
 - Canvas 2D superposé (`interaction/minimap.ts`), indépendant du rendu WebGL ; toujours **nord en haut**, quelle que soit la rotation de la vue principale. Largeur 200 px (`minimap.size`), hauteur selon les proportions de la page (bornée).
 - Formes simplifiées : couleur de remplissage du style, contour fin gris ; arêtes en traits fins le long de leur tracé ; textes et groupes non dessinés. Le fond est mis en cache et redessiné seulement quand la page change ; l'emprise est redessinée à chaque mouvement de caméra.
-- **Emprise exacte** : les quatre coins de l'écran projetés sur le sol. La caméra iso étant orthographique (§9.1), l'emprise en iso est un **rectangle tourné et allongé** (de 1 / cos(inclinaison)), et non un trapèze : il n'y a pas de perspective. Elle peut déborder de la mini-carte quand la vue couvre plus que la page.
+- **Emprise exacte** : les quatre coins de l'écran projetés sur le sol. La caméra iso étant orthographique (§9.1), l'emprise en iso est un **rectangle tourné et allongé** (de 1 / cos(inclinaison)), et non un trapèze : il n'y a pas de perspective. En 3D (perspective), c'est un trapèze. Elle peut déborder de la mini-carte quand la vue couvre plus que la page.
 - Clic ou glisser : la vue principale se recentre sur le point visé (zoom, rotation et inclinaison conservés).
 - Repliable : bouton × sur la mini-carte, bouton « Mini-carte » pour la rouvrir, touche **M** ; choix mémorisé (`minimap.visible`).
 
@@ -563,16 +575,18 @@ interface Settings {
   preload: { onClick: boolean; onHover: boolean; hoverDelayMs: number; maxCachedPages: number };            // true, false, 300, 8
   controls: {
     moveKeys: 'letters' | 'arrows' | 'all'; // 'letters' = ZQSD (AZERTY) = WASD (QWERTY), mêmes touches physiques
-    middleDrag: 'pan' | 'rotate';           // effet du glisser molette (barre d'outils §9.3)
     moveSpeed: number;                      // px écran / s au clavier (600)
     zoomSpeed: number;
-    rotateSpeed: number;                    // rad / px de glisser en mode Tourner
     decelerationMs: number;                 // glissade à l'arrêt (§9.2), 0 = arrêt net (80)
-    shortcuts: { toggleViewMode: 'i'; toggleGraph: 'g'; toggleMinimap: 'm'; overview: 'Enter'; back: 'Backspace' };
+    shortcuts: { toggleViewMode: 'i'; toggle3d: 'p'; toggleGraph: 'g'; toggleMinimap: 'm'; overview: 'Enter'; back: 'Backspace' };
   };
   view: {
-    defaultMode: 'top' | 'iso'; isoAngleDeg: number; isoAzimuthDeg: number; switchDurationMs: number; // 'top', 35.26, -45, 450
+    defaultMode: 'top' | 'iso' | '3d'; isoAngleDeg: number; isoAzimuthDeg: number; switchDurationMs: number; // 'top', 35.26, -45, 450
     isoVolume: boolean; isoDepth: number;                                                              // true, 16 (px)
+  };
+  background: {                                                   // fond et grille (§9.5)
+    color: string; grid: boolean; gridFromPage: boolean;          // '#ffffff', true, true
+    gridSize: number; majorEvery: number; gridColor: string;      // 10 (2–200), 4 (1 = aucune), '#d4d9e0'
   };
   minimap: { visible: boolean; size: number };                    // true, 200
   selection: { style: 'veil' | 'outline'; veilOpacity: number; animated: boolean; speed: number }; // 'veil', 0.35, true, 12
@@ -589,7 +603,7 @@ Réalisation retenue :
 - Moteur : `new Engine({ settings })`, puis `engine.updateSettings(patch)` — tout s'applique immédiatement (contrôles, transitions, préchargement, taille du cache ; en iso, élévation et orientation animées). `<DrawioSpatial settings={…} />` les transmet.
 - **Réduire les animations** : « comme le système » (`prefers-reduced-motion`, suivi en direct), « toujours » ou « jamais ». Réduites = transitions de liens, bascule iso, vue globale ↔ 1:1 instantanées, **glissade et contour de sélection animé** coupés.
 - **Raccourcis par touche affichée** (`KeyboardEvent.key`, insensibles à la casse) : « M » est la touche M en AZERTY comme en QWERTY. Le déplacement reste par position physique (`code`). Les touches de déplacement et Espace ne sont pas attribuables ; une touche déjà utilisée est refusée.
-- Appli de démo : paramètres partagés entre fichiers, persistés dans le navigateur (`localStorage`, une seule clé ; les réglages enregistrés séparément auparavant sont repris une fois). Panneau **« Paramètres »** (bouton de la barre d'outils) à côté de la vue : Navigation, Vue, Transitions, Préchargement, Mini-carte, Accessibilité, Raccourcis (cliquer puis appuyer sur la touche), Diagnostics ; bouton « Réinitialiser ». Les réglages rapides de la barre (Déplacer/Tourner, × de la mini-carte) écrivent dans les mêmes paramètres ; les réglages iso (orientation avec aperçu, élévation) ont leur section « Vue isométrique ».
+- Appli de démo : paramètres partagés entre fichiers, persistés dans le navigateur (`localStorage`, une seule clé ; les réglages enregistrés séparément auparavant sont repris une fois). Panneau **« Paramètres »** (bouton de la barre d'outils) à côté de la vue : Navigation, Vue, Transitions, Préchargement, Fond et grille, Mini-carte, Accessibilité, Raccourcis (cliquer puis appuyer sur la touche), Diagnostics ; bouton « Réinitialiser ». Les réglages rapides de la barre (× de la mini-carte) écrivent dans les mêmes paramètres ; les réglages iso (orientation avec aperçu, élévation) ont leur section « Vue isométrique ».
 
 ---
 
@@ -683,7 +697,7 @@ Réalisation retenue : **Electron**, construit entièrement dans Docker (Tauri e
 ## 17. Questions ouvertes
 
 - ~~Bibliothèque de texte définitive~~ → troika-three-text (SDF), Roboto embarquée (§8.5).
-- ~~Comportement exact du pan à la souris~~ → glisser molette = Déplacer par défaut, ou Tourner (barre d'outils) ; clic droit et Espace + glisser déplacent toujours (§9.2).
+- ~~Comportement exact du pan à la souris~~ → glisser molette, clic droit et Espace + glisser déplacent la vue (§9.2) ; le mode « Tourner » a été retiré.
 - Rendu des formes en volume (extrusion) : souhaité un jour ?
 - Disposition de la vue graphe (force-directed vs couches).
 - ~~Réécriture compressée ou non des pages modifiées~~ → page compressée réécrite compressée (§14.2).

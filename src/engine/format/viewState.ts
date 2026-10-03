@@ -16,7 +16,7 @@ export const VIEW_ATTRIBUTE = 'spatial.view';
 
 /** Caméra enregistrée (même forme que l'état de caméra du moteur, qui la normalise à la lecture). */
 export interface SavedCamera {
-  mode: 'top' | 'iso';
+  mode: 'top' | 'iso' | '3d';
   center: Point;
   zoom: number;
   /** Radians. */
@@ -80,7 +80,7 @@ export function parseViewState(text: string | null | undefined): PageViewState |
   const tilt = (num('tilt') ?? 0) / DEG;
   const mode = values.get('mode');
   const camera: SavedCamera = {
-    mode: mode === 'iso' || mode === 'top' ? mode : tilt > 0 ? 'iso' : 'top',
+    mode: mode === 'iso' || mode === 'top' || mode === '3d' ? mode : tilt > 0 ? 'iso' : 'top',
     center: { x, y },
     zoom,
     rotation: (num('rotation') ?? 0) / DEG,

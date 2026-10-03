@@ -68,6 +68,8 @@ export interface MinimapSource {
   getPage(): PageModel | undefined;
   getCamera(): CameraState;
   getViewport(): Viewport;
+  /** Couleur du fond de la vue (blanc par défaut). */
+  getBackground?(): string;
   /** Tracé dessiné d'une arête (coordonnées page). */
   getEdgeRoute(edgeId: string): Point[] | undefined;
   /** Dessin d'une forme : niveau `minimap` de sa définition, repli sur son contour. */
@@ -177,7 +179,7 @@ export class Minimap {
     base.height = Math.round(layout.height * dpr);
     const context = base.getContext('2d')!;
     context.setTransform(dpr, 0, 0, dpr, 0, 0);
-    context.fillStyle = BACKGROUND;
+    context.fillStyle = this.source.getBackground?.() ?? BACKGROUND;
     context.fillRect(0, 0, layout.width, layout.height);
 
     const hidden = new Set(page.layers.filter((l) => !l.visible).map((l) => l.id));

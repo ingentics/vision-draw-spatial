@@ -24,7 +24,7 @@ export interface PreloadSettings {
 
 /** Modes de vue (SPEC §9.1). */
 export interface ViewSettings {
-  defaultMode: 'top' | 'iso';
+  defaultMode: 'top' | 'iso' | '3d';
   /** Élévation de la caméra au-dessus du sol en mode iso, en degrés (35,26 = isométrie vraie). */
   isoAngleDeg: number;
   /**
@@ -38,6 +38,22 @@ export interface ViewSettings {
   isoVolume: boolean;
   /** Épaisseur par défaut des volumes, en pixels de page (`spatial.height` par forme). */
   isoDepth: number;
+}
+
+/** Fond de la vue et grille (SPEC §9.5), dans les trois modes. */
+export interface BackgroundSettings {
+  /** Couleur du fond (#rrggbb). */
+  color: string;
+  /** Grille affichée. */
+  grid: boolean;
+  /** Pas de la grille : celui de la page draw.io (`gridSize`) quand elle en a un, sinon `gridSize` ci-dessous. */
+  gridFromPage: boolean;
+  /** Pas de la grille en pixels de page (draw.io : 10). */
+  gridSize: number;
+  /** Une ligne principale toutes les N cases (draw.io : 4) ; 1 = pas de lignes principales. */
+  majorEvery: number;
+  /** Couleur des lignes (#rrggbb) ; les lignes secondaires en sont une version plus légère. */
+  gridColor: string;
 }
 
 export interface MinimapSettings {
@@ -80,6 +96,7 @@ export interface Settings {
   preload: PreloadSettings;
   controls: ControlSettings;
   view: ViewSettings;
+  background: BackgroundSettings;
   minimap: MinimapSettings;
   selection: SelectionSettings;
   save: SaveSettings;
@@ -106,6 +123,14 @@ export const DEFAULT_SETTINGS: Settings = {
     isoVolume: true,
     isoDepth: 16,
   },
+  background: {
+    color: '#ffffff',
+    grid: true,
+    gridFromPage: true,
+    gridSize: 10,
+    majorEvery: 4,
+    gridColor: '#d4d9e0',
+  },
   minimap: { visible: true, size: 200 },
   selection: { style: 'veil', veilOpacity: 0.35, animated: true, speed: 12 },
   save: { autosave: true, delayMs: 1000 },
@@ -120,12 +145,13 @@ export const SETTINGS_LIMITS = {
   'preload.maxCachedPages': { min: 1, max: 64, step: 1 },
   'controls.moveSpeed': { min: 50, max: 5000, step: 50 },
   'controls.zoomSpeed': { min: 0.0002, max: 0.01, step: 0.0001 },
-  'controls.rotateSpeed': { min: 0.001, max: 0.03, step: 0.001 },
   'controls.decelerationMs': { min: 0, max: 600, step: 10 },
   'view.isoAngleDeg': { min: 10, max: 80, step: 1 },
-  'view.isoAzimuthDeg': { min: -90, max: 90, step: 1 },
+  'view.isoAzimuthDeg': { min: -180, max: 180, step: 1 },
   'view.switchDurationMs': { min: 0, max: 3000, step: 50 },
   'view.isoDepth': { min: 2, max: 120, step: 1 },
+  'background.gridSize': { min: 2, max: 200, step: 1 },
+  'background.majorEvery': { min: 1, max: 20, step: 1 },
   'minimap.size': { min: 120, max: 400, step: 10 },
   'selection.speed': { min: 2, max: 80, step: 1 },
   'selection.veilOpacity': { min: 0.05, max: 0.85, step: 0.05 },
@@ -134,8 +160,7 @@ export const SETTINGS_LIMITS = {
 
 const EASINGS = ['linear', 'ease-in', 'ease-out', 'ease-in-out'] as const;
 const MOVE_KEYS = ['letters', 'arrows', 'all'] as const;
-const MIDDLE_DRAG = ['pan', 'rotate'] as const;
-const VIEW_MODES = ['top', 'iso'] as const;
+const VIEW_MODES = ['top', 'iso', '3d'] as const;
 const REDUCED_MOTION = ['system', 'always', 'never'] as const;
 const SELECTION_STYLES = ['veil', 'outline'] as const;
 
@@ -155,12 +180,15 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
   const oneOf = <T extends string>(list: readonly T[], value: unknown, fallback: T): T =>
     list.includes(value as T) ? (value as T) : fallback;
   const code = (value: unknown, fallback: string) => (typeof value === 'string' && value.length > 0 ? value : fallback);
+  const color = (value: unknown, fallback: string) =>
+    typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value) ? value.toLowerCase() : fallback;
 
   const t = p.transition ?? {};
   const pr = p.preload ?? {};
   const c = p.controls ?? {};
   const v = p.view ?? {};
   const m = p.minimap ?? {};
+  const b = p.background ?? {};
   const shortcuts = c.shortcuts ?? {};
   return {
     transition: {
@@ -176,13 +204,12 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
     },
     controls: {
       moveKeys: oneOf(MOVE_KEYS, c.moveKeys, base.controls.moveKeys),
-      middleDrag: oneOf(MIDDLE_DRAG, c.middleDrag, base.controls.middleDrag),
       moveSpeed: num('controls.moveSpeed', c.moveSpeed, base.controls.moveSpeed),
       zoomSpeed: num('controls.zoomSpeed', c.zoomSpeed, base.controls.zoomSpeed),
-      rotateSpeed: num('controls.rotateSpeed', c.rotateSpeed, base.controls.rotateSpeed),
       decelerationMs: num('controls.decelerationMs', c.decelerationMs, base.controls.decelerationMs),
       shortcuts: {
         toggleViewMode: code(shortcuts.toggleViewMode, base.controls.shortcuts.toggleViewMode),
+        toggle3d: code(shortcuts.toggle3d, base.controls.shortcuts.toggle3d),
         toggleGraph: code(shortcuts.toggleGraph, base.controls.shortcuts.toggleGraph),
         toggleMinimap: code(shortcuts.toggleMinimap, base.controls.shortcuts.toggleMinimap),
         overview: code(shortcuts.overview, base.controls.shortcuts.overview),
@@ -196,6 +223,14 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
       switchDurationMs: num('view.switchDurationMs', v.switchDurationMs, base.view.switchDurationMs),
       isoVolume: bool(v.isoVolume, base.view.isoVolume),
       isoDepth: num('view.isoDepth', v.isoDepth, base.view.isoDepth),
+    },
+    background: {
+      color: color(b.color, base.background.color),
+      grid: bool(b.grid, base.background.grid),
+      gridFromPage: bool(b.gridFromPage, base.background.gridFromPage),
+      gridSize: num('background.gridSize', b.gridSize, base.background.gridSize),
+      majorEvery: Math.round(num('background.majorEvery', b.majorEvery, base.background.majorEvery)),
+      gridColor: color(b.gridColor, base.background.gridColor),
     },
     minimap: {
       visible: bool(m.visible, base.minimap.visible),

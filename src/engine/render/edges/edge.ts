@@ -120,7 +120,7 @@ function createEdgeLabel(
     opacity: styleOpacity(style, 'textOpacity'),
     bold: fontStyleBits(style).bold,
     // Les labels d'arêtes draw.io ont un fond de la couleur de la page par défaut.
-    background: labelBackground(style, PAGE_BACKGROUND),
+    background: labelBackground(style, ctx.background ?? PAGE_BACKGROUND, ctx.background),
   });
   object.name = 'label';
   object.renderOrder = PART_ORDER.label;

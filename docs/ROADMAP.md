@@ -38,7 +38,7 @@
 ### Étape 3 — Navigation ✅
 - Z Q S D (via `KeyboardEvent.code`, = W A S D sur QWERTY), flèches.
 - Zoom molette centré sur le curseur ; pan au clic droit et Espace + glisser.
-- **Glisser molette enfoncée** : déplacer la vue, ou **tourner la vue** — au choix dans une **barre d'outils** (deux boutons liés « Déplacer » | « Tourner », Déplacer par défaut). (SPEC §9.3).
+- **Glisser molette enfoncée** : déplacer la vue (le mode « Tourner » a été retiré).
 - **Entrée** : bascule vue globale ↔ 1:1 (SPEC §9.3).
 - **Glissade** : pas d'accélération, courte décélération à l'arrêt, au clavier comme au glisser (SPEC §9.2).
 - **Fini quand :** le ressenti est équivalent à draw.io en vue de dessus.
@@ -62,8 +62,8 @@
 - **Fini quand :** en rouvrant l'application, on retrouve le fichier, la page et le point de vue exacts.
 
 ### Étape 7 — Mode isométrique ✅
-- Bascule `top` ↔ `iso` animée (boutons « 2D | Iso », touche I) ; réglages iso (section « Vue isométrique » des paramètres) : orientation vers la droite / la gauche / sans rotation ou angle libre au curseur (±90°), élévation 10–80° (35,26° = isométrie vraie), appliqués en direct.
-- Navigation cohérente dans les deux modes (zoom au curseur, pan, rotation, clic, liens, transitions) ; orbite au glisser en mode Tourner.
+- Bascule `top` ↔ `iso` animée (boutons « 2D | Iso », touche I) ; réglages iso (section « Vue isométrique » des paramètres) : orientation vers la droite / la gauche / sans rotation ou angle libre au curseur (±180°), élévation 10–80° (35,26° = isométrie vraie), appliqués en direct.
+- Navigation cohérente dans les deux modes (zoom au curseur, pan, rotation, clic, liens, transitions).
 - Volume en iso : rectangles, ellipses et placeholders en blocs ombrés (épaisseur réglable, `spatial.height` par forme), empilés sur leur conteneur, qui poussent avec l'inclinaison.
 - **Fini quand :** le même schéma se consulte en vue de dessus et en isométrique sans perte de repère.
 
@@ -152,11 +152,14 @@
 
 ## Après la roadmap
 
+- Fond et grille ✅ : couleur de fond réglable, grille au sol dans les trois modes (pas de la page draw.io ou 10 px, ligne principale toutes les 4 cases, couleur), shader net à tout zoom qui s'estompe au dézoom et au loin en 3D ; section « Fond et grille » des paramètres.
+- Rotation à la souris ✅ : clic droit + glisser fait tourner la caméra en iso (élévation inchangée) et en 3D (avec l'inclinaison) ; la caméra bouge, la page reste fixe. Jamais de rotation en 2D.
+- Vue 3D ✅ : troisième mode (« 2D | Iso | 3D », touche P), caméra en perspective façon jeu de construction : zoom borné (×0,1 à ×4), glisser molette = déplacer, glisser clic droit = tourner / incliner (0–65°) autour du centre ; bascule animée sans saut (la perspective s'ouvre progressivement), mini-carte en trapèze.
 - Sauvegarde automatique ✅ : paramètre « Sauvegarde » (activée, 1 s), `Autosaver` (`engine/edit/autosave.ts`) dans le composant (`autosave`, `onSave(xml, { auto })`) ; bibliothèque du navigateur ou vrai fichier dans l'appli native.
 
 ## Ensuite (backlog)
 - Formes supplémentaires, priorisées par le journal des styles non supportés (une définition par forme, au minimum à plat — SPEC §8.2).
-- Rendus `iso` pour d'autres formes (ex. labels dressés face à la caméra), arêtes en hauteur, mode 3D (`volume`, perspective), forme par forme, avec repli à plat.
+- Rendus `iso` pour d'autres formes (ex. labels dressés face à la caméra), arêtes en hauteur, rendu `volume` forme par forme, avec repli à plat.
 - Optimisations mémoire / rendu si nécessaire.
 - Rendu en volume (extrusion), si souhaité.
 

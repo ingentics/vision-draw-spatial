@@ -11,11 +11,13 @@ interface SettingsPanelProps {
   settings: Settings;
   onChange: (patch: SettingsPatch) => void;
   onReset: () => void;
+  onResetOrientation: () => void;
   onClose: () => void;
 }
 
 const SHORTCUT_LABELS: Record<keyof Shortcuts, string> = {
   toggleViewMode: 'Basculer 2D ↔ iso',
+  toggle3d: 'Basculer vers / depuis la 3D',
   toggleGraph: 'Vue graphe ↔ dernière page',
   toggleMinimap: 'Afficher / masquer la mini-carte',
   overview: 'Vue globale ↔ 1:1',
@@ -23,8 +25,8 @@ const SHORTCUT_LABELS: Record<keyof Shortcuts, string> = {
 };
 
 /** Panneau de paramètres (SPEC §13) : tout s'applique immédiatement et est mémorisé. */
-export function SettingsPanel({ settings, onChange, onReset, onClose }: SettingsPanelProps) {
-  const { controls, view, transition, preload, minimap, selection, accessibility, debug, save } = settings;
+export function SettingsPanel({ settings, onChange, onReset, onResetOrientation, onClose }: SettingsPanelProps) {
+  const { controls, view, background, transition, preload, minimap, selection, accessibility, debug, save } = settings;
   const systemReduced = useSystemReducedMotion();
 
   return (
@@ -51,15 +53,6 @@ export function SettingsPanel({ settings, onChange, onReset, onClose }: Settings
             ]}
             onChange={(moveKeys) => onChange({ controls: { moveKeys } })}
           />
-          <Choice
-            label="Glisser avec la molette"
-            value={controls.middleDrag}
-            options={[
-              ['pan', 'Déplacer'],
-              ['rotate', 'Tourner'],
-            ]}
-            onChange={(middleDrag) => onChange({ controls: { middleDrag } })}
-          />
           <Slider
             label="Vitesse au clavier"
             value={controls.moveSpeed}
@@ -73,13 +66,6 @@ export function SettingsPanel({ settings, onChange, onReset, onClose }: Settings
             limits={SETTINGS_LIMITS['controls.zoomSpeed']}
             format={(v) => `×${(v / 0.0015).toFixed(1)}`}
             onChange={(zoomSpeed) => onChange({ controls: { zoomSpeed } })}
-          />
-          <Slider
-            label="Vitesse de rotation"
-            value={controls.rotateSpeed}
-            limits={SETTINGS_LIMITS['controls.rotateSpeed']}
-            format={(v) => `${((v * 100 * 180) / Math.PI).toFixed(0)}° / 100 px`}
-            onChange={(rotateSpeed) => onChange({ controls: { rotateSpeed } })}
           />
           <Slider
             label="Glissade à l’arrêt"
@@ -97,11 +83,12 @@ export function SettingsPanel({ settings, onChange, onReset, onClose }: Settings
             options={[
               ['top', '2D'],
               ['iso', 'Iso'],
+              ['3d', '3D'],
             ]}
             onChange={(defaultMode) => onChange({ view: { defaultMode } })}
           />
           <Slider
-            label="Durée de la bascule 2D ↔ iso"
+            label="Durée de la bascule 2D ↔ iso ↔ 3D"
             value={view.switchDurationMs}
             limits={SETTINGS_LIMITS['view.switchDurationMs']}
             format={(v) => (v === 0 ? 'instantanée' : `${v} ms`)}
@@ -117,7 +104,11 @@ export function SettingsPanel({ settings, onChange, onReset, onClose }: Settings
             </>
           }
         >
-          <IsoSettings value={view} onChange={(patch) => onChange({ view: patch })} />
+          <IsoSettings
+            value={view}
+            onChange={(patch) => onChange({ view: patch })}
+            onResetOrientation={onResetOrientation}
+          />
         </Section>
 
         <Section title="Transitions entre pages">
@@ -173,6 +164,46 @@ export function SettingsPanel({ settings, onChange, onReset, onClose }: Settings
             limits={SETTINGS_LIMITS['preload.maxCachedPages']}
             format={(v) => `${v}`}
             onChange={(maxCachedPages) => onChange({ preload: { maxCachedPages } })}
+          />
+        </Section>
+
+        <Section title="Fond et grille">
+          <ColorField
+            label="Couleur du fond"
+            value={background.color}
+            onChange={(color) => onChange({ background: { color } })}
+          />
+          <Toggle
+            label="Afficher la grille"
+            checked={background.grid}
+            onChange={(grid) => onChange({ background: { grid } })}
+          />
+          <Toggle
+            label="Pas de la page draw.io quand elle en a un"
+            checked={background.gridFromPage}
+            onChange={(gridFromPage) => onChange({ background: { gridFromPage } })}
+          />
+          <Slider
+            label={background.gridFromPage ? 'Pas par défaut' : 'Pas de la grille'}
+            value={background.gridSize}
+            limits={SETTINGS_LIMITS['background.gridSize']}
+            format={(v) => `${v} px`}
+            disabled={!background.grid}
+            onChange={(gridSize) => onChange({ background: { gridSize } })}
+          />
+          <Slider
+            label="Ligne principale"
+            value={background.majorEvery}
+            limits={SETTINGS_LIMITS['background.majorEvery']}
+            format={(v) => (v === 1 ? 'aucune' : `toutes les ${v} cases`)}
+            disabled={!background.grid}
+            onChange={(majorEvery) => onChange({ background: { majorEvery } })}
+          />
+          <ColorField
+            label="Couleur de la grille"
+            value={background.gridColor}
+            disabled={!background.grid}
+            onChange={(gridColor) => onChange({ background: { gridColor } })}
           />
         </Section>
 
@@ -336,6 +367,28 @@ function Slider({
         disabled={disabled}
         onChange={(event) => onChange(Number(event.target.value))}
       />
+    </label>
+  );
+}
+
+function ColorField({
+  label,
+  value,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  disabled?: boolean;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className={disabled ? 'field color-field disabled' : 'field color-field'}>
+      <span>{label}</span>
+      <span className="field-row">
+        <span className="field-value">{value}</span>
+        <input type="color" value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)} />
+      </span>
     </label>
   );
 }

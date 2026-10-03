@@ -17,6 +17,23 @@ describe('mergeSettings', () => {
     expect(merged.controls).toEqual(DEFAULT_SETTINGS.controls);
   });
 
+  it('fond et grille : grille draw.io par défaut, couleurs #rrggbb, pas bornés', () => {
+    expect(DEFAULT_SETTINGS.background).toEqual({
+      color: '#ffffff',
+      grid: true,
+      gridFromPage: true,
+      gridSize: 10,
+      majorEvery: 4,
+      gridColor: '#d4d9e0',
+    });
+    const merged = mergeSettings(DEFAULT_SETTINGS, {
+      background: { color: '#1F2530', gridSize: 1000, majorEvery: 2.6 },
+    });
+    expect(merged.background).toMatchObject({ color: '#1f2530', gridSize: 200, majorEvery: 3 });
+    const broken = { background: { color: 'red', gridColor: '#12', grid: 'oui' } } as unknown as SettingsPatch;
+    expect(mergeSettings(DEFAULT_SETTINGS, broken).background).toEqual(DEFAULT_SETTINGS.background);
+  });
+
   it('raccourcis : modifiables un par un', () => {
     const merged = mergeSettings(DEFAULT_SETTINGS, { controls: { shortcuts: { toggleGraph: 'p' } } });
     expect(merged.controls.shortcuts).toEqual({ ...DEFAULT_SHORTCUTS, toggleGraph: 'p' });
@@ -66,14 +83,15 @@ describe('shortcutAction', () => {
     expect(shortcutAction('m', DEFAULT_SHORTCUTS)).toBe('toggleMinimap');
     expect(shortcutAction('M', DEFAULT_SHORTCUTS)).toBe('toggleMinimap');
     expect(shortcutAction('I', DEFAULT_SHORTCUTS)).toBe('toggleViewMode');
+    expect(shortcutAction('P', DEFAULT_SHORTCUTS)).toBe('toggle3d');
     expect(shortcutAction('Enter', DEFAULT_SHORTCUTS)).toBe('overview');
     expect(shortcutAction('Backspace', DEFAULT_SHORTCUTS)).toBe('back');
     expect(shortcutAction('x', DEFAULT_SHORTCUTS)).toBeUndefined();
   });
 
   it('raccourcis personnalisés', () => {
-    expect(shortcutAction('p', { ...DEFAULT_SHORTCUTS, toggleGraph: 'p' })).toBe('toggleGraph');
-    expect(shortcutAction('g', { ...DEFAULT_SHORTCUTS, toggleGraph: 'p' })).toBeUndefined();
+    expect(shortcutAction('k', { ...DEFAULT_SHORTCUTS, toggleGraph: 'k' })).toBe('toggleGraph');
+    expect(shortcutAction('g', { ...DEFAULT_SHORTCUTS, toggleGraph: 'k' })).toBeUndefined();
   });
 });
 

@@ -54,7 +54,7 @@ y est enregistré. L'interface `FileStore` (SPEC §5.1) permet de brancher un au
 | `editable` | `boolean` | `false` | Édition (déplacer, redimensionner, connecter, textes, annuler…) |
 | `autosave` | `boolean` | `false` | Sauvegarde automatique après chaque modification (appelle `onSave` avec `auto: true`, et le `store`) |
 | `autosaveDelayMs` | `number` | `1000` | Délai après la dernière modification ; jamais pendant un geste en cours, et au démontage s'il reste quelque chose |
-| `background` | `string` | `'#ffffff'` | Couleur de fond de la vue (lue à la création) |
+| `background` | `string` | `'#ffffff'` | Couleur de fond initiale de la vue (#rrggbb, lue à la création) ; `settings.background` (couleur, grille) la remplace |
 | `fonts` | `{ regular?, bold? }` | | URLs de polices (.ttf, .otf, .woff ; Roboto conseillée). Sans police, troika en charge une depuis un CDN |
 | `settings` | `SettingsPatch` | | Paramètres (SPEC §13), fusionnés avec les valeurs par défaut, appliqués à chaud |
 | `minimap` | `{ visible, size? }` | | Mini-carte contrôlée par l'hôte ; absente, le composant gère son affichage (×, touche M) |
@@ -87,16 +87,16 @@ viewer.current?.redo();
 viewer.current?.engine?.goToPage(pageId); // tout le moteur : navigation, vue, sélection, édition
 ```
 
-Quelques méthodes utiles du moteur : `goToPage`, `setViewMode('top' | 'iso')`, `toggleViewMode`,
+Quelques méthodes utiles du moteur : `goToPage`, `setViewMode('top' | 'iso' | '3d')`, `toggleViewMode`, `toggle3d`,
 `showGraph`, `back`, `focusElement(pageId, elementId)`, `getDocument`, `getCurrentPage`,
 `getCameraState`, `select`, `followLink`, `addShape(SHAPE_TEMPLATES[0])`, `addPage`, `setLabel`,
 `setLink`, `setSpatial`, `deleteSelection`, `serialize`, `isModified`.
 
 ## Clavier et souris
 
-Navigation (toujours) : ZQSD / WASD et flèches, molette (zoom au curseur), clic droit ou
-Espace + glisser (déplacer), molette enfoncée (déplacer ou tourner), Entrée (vue globale ↔ 1:1),
-I (2D ↔ iso), G (vue graphe), M (mini-carte), Retour arrière / Alt+← (retour), clic (sélection),
+Navigation (toujours) : ZQSD / WASD et flèches, molette (zoom au curseur), clic droit (en 2D) ou
+Espace + glisser (déplacer), molette enfoncée (déplacer), Entrée (vue globale ↔ 1:1),
+I (2D ↔ iso), P (3D ↔ 2D / iso), clic droit + glisser en iso et en 3D (tourner la caméra ; en 3D, l'incliner aussi), G (vue graphe), M (mini-carte), Retour arrière / Alt+← (retour), clic (sélection),
 double-clic (suivre un lien). Les raccourcis sont réglables (`settings.controls.shortcuts`).
 
 Édition (`editable`) : glisser une forme pour la déplacer, poignées pour la redimensionner ou la
@@ -113,7 +113,7 @@ d'édition autour du moteur.
 
 Les styles du composant (mini-carte) se règlent par variables CSS sur `.drawio-spatial` ou un
 parent : `--drawio-spatial-border`, `--drawio-spatial-muted`, `--drawio-spatial-surface`,
-`--drawio-spatial-shadow`. Le fond de la vue se règle par la prop `background`.
+`--drawio-spatial-shadow`. Le fond de la vue et sa grille se règlent par `settings.background` (couleur, grille affichée, pas, ligne principale, couleur des lignes), ou la prop `background` pour la seule couleur initiale.
 
 ## Sans React
 

@@ -3,6 +3,7 @@ import robotoRegular from '@fontsource/roboto/files/roboto-latin-400-normal.woff
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { UnsupportedReport } from '../engine/diagnostics/unsupportedStyles';
 import type { BackTarget, Engine, InitialView, LabelEditRequest, Selection } from '../engine/Engine';
+import type { ViewMode } from '../engine/interaction/camera';
 import type { ParentLink } from '../engine/interaction/history';
 import type { DocumentModel } from '../engine/model/types';
 import type { StoredFile } from '../engine/persistence/FileStore';
@@ -52,7 +53,7 @@ export function Viewer({
   const [document, setDocument] = useState<DocumentModel>();
   const [pageId, setPageId] = useState<string>();
   const [error, setError] = useState<string>();
-  const [viewMode, setViewMode] = useState<'top' | 'iso'>('top');
+  const [viewMode, setViewMode] = useState<ViewMode>('top');
   const toggleMinimap = useCallback(
     () => onSettingsChange({ minimap: { visible: !settingsRef.current.minimap.visible } }),
     [onSettingsChange],
@@ -326,12 +327,7 @@ export function Viewer({
             </svg>
           </button>
         </span>
-        <NavigationToolbar
-          viewMode={viewMode}
-          onViewModeChange={(mode) => engine?.setViewMode(mode)}
-          middleDrag={settings.controls.middleDrag}
-          onMiddleDragChange={(middleDrag) => onSettingsChange({ controls: { middleDrag } })}
-        />
+        <NavigationToolbar viewMode={viewMode} onViewModeChange={(mode) => engine?.setViewMode(mode)} />
         <div className="toolbar-end">
           {settings.debug.showUnsupportedPanel && (
             <button
@@ -443,6 +439,7 @@ export function Viewer({
             settings={settings}
             onChange={onSettingsChange}
             onReset={onResetSettings}
+            onResetOrientation={() => engine?.resetRotation()}
             onClose={() => setPanel(undefined)}
           />
         )}

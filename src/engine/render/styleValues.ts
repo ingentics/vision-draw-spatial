@@ -41,8 +41,12 @@ export function fontStyleBits(style: Record<string, string>): { bold: boolean; i
 export const PAGE_BACKGROUND = '#ffffff';
 
 /** `labelBackgroundColor` : `default` = fond de la page ; défaut propre au type d'élément sinon. */
-export function labelBackground(style: Record<string, string>, fallback: string | null): Color | undefined {
+export function labelBackground(
+  style: Record<string, string>,
+  fallback: string | null,
+  page = PAGE_BACKGROUND,
+): Color | undefined {
   const raw = style.labelBackgroundColor?.trim();
-  if (raw === 'default') return new Color(PAGE_BACKGROUND);
+  if (raw === 'default') return new Color(page);
   return styleColor(style, 'labelBackgroundColor', fallback) ?? undefined;
 }

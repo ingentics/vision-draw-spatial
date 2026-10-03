@@ -41,6 +41,23 @@ export class SceneManager {
     return scene;
   }
 
+  /**
+   * Affiche en plus de la scène courante celle d'un autre niveau de la même page (fondu
+   * enchaîné d'une bascule de mode), sans changer la scène courante. Le prochain `show` la masque.
+   */
+  overlay(page: PageModel, level: SceneLevel): PageScene {
+    const key = `${page.id}@${level}`;
+    let scene = this.scenes.get(key);
+    if (!scene) {
+      scene = this.build(page, level);
+      this.scenes.set(key, scene);
+      this.container.add(scene.root);
+    }
+    scene.root.visible = true;
+    this.touch(key);
+    return scene;
+  }
+
   /** Masque toutes les pages (document vide). */
   hideAll(): void {
     this.currentKey = undefined;

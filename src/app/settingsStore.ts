@@ -3,12 +3,11 @@ import type { Settings, SettingsPatch } from '../engine/settings';
 
 /**
  * Paramètres persistés dans le navigateur (SPEC §13). Reprend au premier lancement les réglages
- * enregistrés séparément auparavant (glisser molette, vue iso, mini-carte).
+ * enregistrés séparément auparavant (vue iso, mini-carte).
  */
 
 const KEY = 'drawio-spatial:settings';
 const LEGACY = {
-  middleDrag: 'drawio-spatial:middle-drag',
   iso: 'drawio-spatial:view-settings',
   minimap: 'drawio-spatial:minimap-visible',
 };
@@ -34,8 +33,6 @@ export function saveSettings(settings: Settings): void {
 
 function legacySettings(): SettingsPatch {
   const patch: SettingsPatch = {};
-  const middleDrag = localStorage.getItem(LEGACY.middleDrag);
-  if (middleDrag === 'pan' || middleDrag === 'rotate') patch.controls = { middleDrag };
   const iso = localStorage.getItem(LEGACY.iso);
   if (iso) patch.view = JSON.parse(iso) as SettingsPatch['view'];
   const minimap = localStorage.getItem(LEGACY.minimap);

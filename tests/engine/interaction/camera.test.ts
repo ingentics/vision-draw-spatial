@@ -1,16 +1,25 @@
-import { OrthographicCamera, Vector3 } from 'three';
+import { OrthographicCamera, PerspectiveCamera, Vector3 } from 'three';
 import { describe, expect, it } from 'vitest';
 import {
   applyCameraState,
+  applyPerspectiveState,
+  dragGround,
+  FLAT_FOV,
   fitBounds,
   interpolateCamera,
+  MAX_TILT_3D,
+  MAX_ZOOM_3D,
+  MIN_ZOOM_3D,
   normalizeAngle,
   normalizeCameraState,
+  orbit,
   pageToScreen,
   panByScreen,
+  PERSPECTIVE_FOV,
   rotateAround,
   sameView,
   screenToPage,
+  settleProjection,
   tiltAround,
   tiltFromElevation,
   withViewMode,
@@ -247,16 +256,28 @@ describe('mode isométrique (inclinaison)', () => {
     expect(tilted.mode).toBe('iso');
   });
 
-  it('withViewMode : bascule dessus ↔ iso, rotation iso ajoutée puis retirée (aller-retour exact)', () => {
+  it('withViewMode : la 2D n’est jamais tournée, l’iso part de son azimut, rotation gardée dans le même mode', () => {
     const s = state({ rotation: 0.3 });
     const toIso = withViewMode(s, 'iso', 0.9, Math.PI / 4);
     expect(toIso).toMatchObject({ mode: 'iso', tilt: 0.9, center: s.center, zoom: s.zoom });
-    expect(toIso.rotation).toBeCloseTo(0.3 + Math.PI / 4);
+    expect(toIso.rotation).toBeCloseTo(Math.PI / 4);
     const back = withViewMode({ ...toIso, rotation: toIso.rotation + 0.2 }, 'top', 0.9, Math.PI / 4);
-    expect(back).toMatchObject({ mode: 'top', tilt: 0 });
-    expect(back.rotation).toBeCloseTo(0.5); // la rotation faite en iso est conservée
+    expect(back).toMatchObject({ mode: 'top', tilt: 0, rotation: 0 });
     // Déjà dans le mode demandé : seule l'inclinaison est ajustée.
-    expect(withViewMode(toIso, 'iso', 0.5, Math.PI / 4).rotation).toBeCloseTo(toIso.rotation);
+    const turned = { ...toIso, rotation: 1.2 };
+    expect(withViewMode(turned, 'iso', 0.5, Math.PI / 4).rotation).toBeCloseTo(1.2);
+  });
+
+  it('état stable : jamais de rotation en 2D ; iso tournée conservée', () => {
+    expect(settleProjection(state({ rotation: 0.7 })).rotation).toBe(0);
+    expect(settleProjection(state({ mode: 'iso', tilt: 0.9, rotation: 0.7 })).rotation).toBe(0.7);
+  });
+
+  it('orbite en iso : rotation autour du centre, élévation inchangée', () => {
+    const s = state({ mode: 'iso', tilt: 0.9, rotation: 0.2 });
+    const turned = orbit(s, 0.5, 0);
+    expect(turned).toMatchObject({ center: s.center, tilt: 0.9 });
+    expect(turned.rotation).toBeCloseTo(0.7);
   });
 
   it('états anciens sans inclinaison : vue de dessus', () => {
@@ -264,5 +285,115 @@ describe('mode isométrique (inclinaison)', () => {
       mode: 'top',
       tilt: 0,
     });
+  });
+});
+
+describe('vue 3D (perspective)', () => {
+  const persp = (patch: Partial<CameraState> = {}) =>
+    state({ mode: '3d', tilt: 0.8, rotation: 0.4, zoom: 1, fov: PERSPECTIVE_FOV, ...patch });
+
+  it('écran ↔ sol inverses l’un de l’autre, au sol comme en hauteur', () => {
+    const s = persp();
+    for (const screen of [
+      { x: 400, y: 300 },
+      { x: 30, y: 40 },
+      { x: 770, y: 590 },
+    ]) {
+      expectPoint(pageToScreen(s, viewport, screenToPage(s, viewport, screen)), screen);
+      expectPoint(pageToScreen(s, viewport, screenToPage(s, viewport, screen, 40), 40), screen);
+    }
+  });
+
+  it('au centre de l’écran, même échelle qu’en orthographique ; le lointain rapetisse', () => {
+    const s = persp({ zoom: 2 });
+    expectPoint(screenToPage(s, viewport, { x: 400, y: 300 }), s.center);
+    const right = screenToPage(s, viewport, { x: 401, y: 300 });
+    expect(Math.hypot(right.x - s.center.x, right.y - s.center.y)).toBeCloseTo(0.5, 3);
+    // Un pixel en haut de l'écran couvre plus de sol qu'un pixel en bas.
+    const span = (y: number) => {
+      const a = screenToPage(s, viewport, { x: 400, y });
+      const b = screenToPage(s, viewport, { x: 401, y });
+      return Math.hypot(a.x - b.x, a.y - b.y);
+    };
+    expect(span(50)).toBeGreaterThan(span(550));
+  });
+
+  it('concorde avec la caméra three.js', () => {
+    const s = persp();
+    const camera = new PerspectiveCamera();
+    applyPerspectiveState(camera, s, viewport);
+    camera.updateMatrixWorld();
+    const page = { x: 180, y: -20 };
+    const ndc = new Vector3(page.x, 15, page.y).project(camera);
+    const expected = pageToScreen(s, viewport, page, 15);
+    expect(((ndc.x + 1) / 2) * viewport.width).toBeCloseTo(expected.x, 3);
+    expect(((1 - ndc.y) / 2) * viewport.height).toBeCloseTo(expected.y, 3);
+  });
+
+  it('zoom borné (dézoom et zoom maximaux) ; le point sous le curseur reste fixe', () => {
+    const s = persp();
+    const cursor = { x: 200, y: 150 };
+    const anchor = screenToPage(s, viewport, cursor);
+    const zoomed = zoomAt(s, viewport, cursor, 1.5);
+    expectPoint(pageToScreen(zoomed, viewport, anchor), cursor);
+    expect(zoomAt(s, viewport, cursor, 1000).zoom).toBe(MAX_ZOOM_3D);
+    expect(zoomAt(s, viewport, cursor, 0.0001).zoom).toBe(MIN_ZOOM_3D);
+  });
+
+  it('glisser : le point du sol attrapé suit le pointeur', () => {
+    const s = persp();
+    const from = { x: 300, y: 120 };
+    const to = { x: 420, y: 260 };
+    const grabbed = screenToPage(s, viewport, from);
+    expectPoint(pageToScreen(dragGround(s, viewport, from, to), viewport, grabbed), to);
+  });
+
+  it('orbite autour du centre : rotation libre, inclinaison bornée', () => {
+    const s = persp();
+    const turned = orbit(s, 1, 0);
+    expect(turned.center).toEqual(s.center);
+    expect(turned.rotation).toBeCloseTo(1.4);
+    expect(orbit(s, 0, 10).tilt).toBeCloseTo(MAX_TILT_3D);
+    expect(orbit(s, 0, -10).tilt).toBe(0);
+  });
+
+  it('bascule : depuis iso, garde l’orientation ; vers 2D, nord en haut ; vers iso, l’azimut iso', () => {
+    const iso = state({ mode: 'iso', tilt: 0.9, rotation: 0.6, zoom: 30 });
+    const three = withViewMode(iso, '3d', 0.9, -Math.PI / 4);
+    expect(three).toMatchObject({ mode: '3d', tilt: 0.9, rotation: 0.6, zoom: MAX_ZOOM_3D, fov: PERSPECTIVE_FOV });
+    const top = withViewMode({ ...three, rotation: 2 }, 'top', 0.9, -Math.PI / 4);
+    expect(top).toMatchObject({ mode: 'top', tilt: 0, rotation: 0 });
+    expect(top.fov).toBeUndefined();
+    expect(withViewMode({ ...three, rotation: 2 }, 'iso', 0.9, -Math.PI / 4).rotation).toBeCloseTo(-Math.PI / 4);
+  });
+
+  it('interpolation : la perspective part de presque rien et arrive pleine ; bascule interrompue stabilisée', () => {
+    const from = state({ mode: 'iso', tilt: 0.9 });
+    const to = persp({ tilt: 0.9 });
+    expect(interpolateCamera(from, to, 0).fov).toBeCloseTo(FLAT_FOV);
+    expect(interpolateCamera(from, to, 1).fov).toBe(PERSPECTIVE_FOV);
+    const back = interpolateCamera(to, from, 1);
+    expect(back.fov).toBeUndefined();
+    const halfway = interpolateCamera(to, from, 0.5);
+    expect(settleProjection(halfway).fov).toBeUndefined();
+    expect(settleProjection(interpolateCamera(from, to, 0.5)).fov).toBe(PERSPECTIVE_FOV);
+  });
+
+  it('fitBounds en 3D : les coins projetés tiennent à l’écran', () => {
+    const bounds = { x: 0, y: 0, width: 2000, height: 1200 };
+    const fit = fitBounds(bounds, viewport, { padding: 20, maxZoom: 10, mode: '3d', tilt: 0.9, rotation: 0.3 });
+    expect(fit.mode).toBe('3d');
+    for (const corner of [
+      { x: 0, y: 0 },
+      { x: 2000, y: 0 },
+      { x: 0, y: 1200 },
+      { x: 2000, y: 1200 },
+    ]) {
+      const p = pageToScreen(fit, viewport, corner);
+      expect(p.x).toBeGreaterThanOrEqual(19);
+      expect(p.x).toBeLessThanOrEqual(781);
+      expect(p.y).toBeGreaterThanOrEqual(19);
+      expect(p.y).toBeLessThanOrEqual(581);
+    }
   });
 });

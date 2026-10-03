@@ -1,4 +1,4 @@
-import { Box3, Color, Mesh, OrthographicCamera, Scene, WebGLRenderer } from 'three';
+import { Box3, Color, Mesh, OrthographicCamera, PerspectiveCamera, Scene, WebGLRenderer } from 'three';
 import type { MeshBasicMaterial, Object3D } from 'three';
 import { collectUnsupported } from './diagnostics/unsupportedStyles';
 import type { UnsupportedReport } from './diagnostics/unsupportedStyles';
@@ -37,21 +37,25 @@ import { UndoStack } from './edit/undo';
 import type { ShapeTemplate } from './edit/palette';
 import {
   applyCameraState,
+  applyPerspectiveState,
   fitBounds,
   interpolateCamera,
   MAX_ZOOM,
   normalizeAngle,
   normalizeCameraState,
   pageToScreen,
+  perspectiveAmount,
   rotateAround,
   sameView,
-  screenAxes,
   screenToPage,
+  settleProjection,
   tiltFromElevation,
   withViewMode,
   zoomAt,
 } from './interaction/camera';
-import type { CameraState, Viewport } from './interaction/camera';
+import type { CameraState, ViewMode, Viewport } from './interaction/camera';
+import { createGrid } from './render/grid';
+import type { Grid, GridOptions } from './render/grid';
 import { CameraController } from './interaction/controls';
 import type { ControlSettings } from './interaction/controls';
 import { NavigationHistory, findParents, usageKey } from './interaction/history';
@@ -116,6 +120,7 @@ export interface EngineOptions {
   fonts?: FontSet;
   /** Pour ajouter ou surcharger des renderers de formes. */
   registry?: ShapeRegistry;
+  /** Couleur de fond initiale (#rrggbb) ; le paramètre `background.color` la remplace s'il est fourni. */
   background?: string;
   /** Paramètres (SPEC §13) ; ensuite modifiables par `updateSettings`. */
   settings?: SettingsPatch;
@@ -240,6 +245,12 @@ export class Engine {
   private readonly renderer: WebGLRenderer;
   private readonly scene = new Scene();
   private readonly camera = new OrthographicCamera();
+  /** Caméra de la vue 3D (et des bascules vers / depuis la 3D). */
+  private readonly perspectiveCamera = new PerspectiveCamera();
+  /** Fond de la vue et grille (SPEC §9.5). */
+  private readonly grid: Grid;
+  /** Dernier mode hors 3D, où revient la touche P. */
+  private lastFlatMode: 'top' | 'iso' = 'top';
   private readonly registry: ShapeRegistry;
   private readonly text: ReturnType<typeof createTroikaTextFactory>;
   private readonly events = new Emitter<EngineEvents>();
@@ -280,6 +291,8 @@ export class Engine {
   /** Transition en cours : de quoi l'interrompre proprement. */
   private transition: { abort: () => void } | undefined;
   private readonly history = new NavigationHistory();
+  /** Bascule 2D ↔ volume en cours : scènes en fondu enchaîné (renseignées à la première image). */
+  private levelBlend: { volume?: PageScene; flat?: PageScene } | undefined;
   /** Hauteur courante des volumes iso (0 à 1, suit l'inclinaison). */
   private heightScale = 1;
   /** Vue graphe du document (SPEC §12), construite à la première demande. */
@@ -303,18 +316,28 @@ export class Engine {
   constructor(options: EngineOptions) {
     this.canvas = options.canvas;
     this.registry = options.registry ?? createDefaultRegistry();
-    this.settings = mergeSettings(DEFAULT_SETTINGS, options.settings);
+    const initial = options.background
+      ? mergeSettings(DEFAULT_SETTINGS, { background: { color: options.background } })
+      : DEFAULT_SETTINGS;
+    this.settings = mergeSettings(initial, options.settings);
     this.reducedMotionQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)');
     this.reducedMotionQuery?.addEventListener?.('change', this.onReducedMotionChange);
-    if (this.settings.view.defaultMode === 'iso') {
-      this.cameraState = withViewMode(this.cameraState, 'iso', this.isoTilt(), this.isoAzimuth());
+    if (this.settings.view.defaultMode !== 'top') {
+      this.cameraState = withViewMode(
+        this.cameraState,
+        this.settings.view.defaultMode,
+        this.isoTilt(),
+        this.isoAzimuth(),
+      );
     }
     this.openUrl = options.openUrl ?? defaultOpenUrl;
     this.editable = options.editable ?? false;
     // Stencil : trous du voile de sélection autour des flèches (render/highlight).
     this.renderer = new WebGLRenderer({ canvas: this.canvas, antialias: true, stencil: true });
     this.renderer.setPixelRatio(window.devicePixelRatio);
-    this.scene.background = new Color(options.background ?? '#ffffff');
+    this.scene.background = new Color(this.settings.background.color);
+    this.grid = createGrid(this.gridOptions());
+    this.scene.add(this.grid.mesh);
     this.text = createTroikaTextFactory(options.fonts ?? {}, this.requestRender);
     this.scenes = new SceneManager(
       this.scene,
@@ -342,6 +365,7 @@ export class Engine {
         hover: (screen) => this.handleHover(screen),
         back: () => this.back(),
         toggleViewMode: () => this.toggleViewMode(),
+        toggle3d: () => this.toggle3d(),
         toggleMinimap: () => this.events.emit('minimapToggle'),
         toggleGraph: () => this.toggleGraph(),
         beginMove: (screen) => this.beginMove(screen),
@@ -562,6 +586,7 @@ export class Engine {
       if (shape) this.select({ type: 'shape', element: shape });
       else if (edge) this.select({ type: 'edge', element: edge });
     }
+    this.syncBackground();
     this.minimap?.invalidate();
     this.syncModified();
     this.events.emit('documentChange', this.document);
@@ -641,6 +666,7 @@ export class Engine {
     if (page.id !== GRAPH_PAGE_ID) this.lastDocumentPageId = page.id;
     this.scenes.show(page);
     this.applyHeightScale();
+    this.syncBackground();
     this.minimap?.invalidate();
     const camera = this.pageCameras.get(page.id);
     if (camera) this.setCameraState(camera);
@@ -665,16 +691,22 @@ export class Engine {
   setCameraState(state: CameraState): void {
     cancelAnimationFrame(this.animation);
     this.animation = 0;
-    this.applyCamera(state);
+    this.endLevelBlend();
+    this.applyCamera(settleProjection(normalizeCameraState(state)));
   }
 
-  /** Anime la caméra vers un état (instantané si les animations sont réduites). Toute autre entrée l'interrompt. */
-  animateCameraTo(target: CameraState, durationMs = 250): void {
+  /**
+   * Anime la caméra vers un état (instantané si les animations sont réduites). Toute autre entrée
+   * l'interrompt. `blendLevels` : bascule 2D ↔ volume, en fondu enchaîné des deux rendus.
+   */
+  animateCameraTo(target: CameraState, durationMs = 250, blendLevels = false): void {
+    this.endLevelBlend();
     if (this.reducedMotion() || durationMs <= 0) {
       this.setCameraState(target);
       return;
     }
     cancelAnimationFrame(this.animation);
+    if (blendLevels && this.settings.view.isoVolume) this.levelBlend = {};
     const from = this.cameraState;
     const to = normalizeCameraState(target);
     const start = performance.now();
@@ -684,6 +716,7 @@ export class Engine {
       const eased = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
       this.applyCamera(interpolateCamera(from, to, eased));
       this.animation = t < 1 ? requestAnimationFrame(step) : 0;
+      if (t >= 1) this.endLevelBlend();
     };
     this.animation = requestAnimationFrame(step);
   }
@@ -721,19 +754,45 @@ export class Engine {
     return this.document?.pages.find((p) => p.id === id);
   }
 
-  /** Niveau de rendu demandé par le mode de vue (repli à plat si les formes n'en ont pas). */
+  /**
+   * Niveau de rendu demandé par le mode de vue (repli à plat si les formes n'en ont pas). En
+   * revenant à la 2D, les volumes restent tant que la caméra est inclinée ou en perspective :
+   * ils s'aplatissent pendant l'animation (`applyHeightScale`), la page passe à plat à l'arrivée.
+   */
   private requestedLevel(): SceneLevel {
-    return this.cameraState.mode === 'iso' && this.settings.view.isoVolume ? 'iso' : 'flat';
+    const { mode, tilt, fov } = this.cameraState;
+    const volume = mode !== 'top' || tilt > 0 || fov !== undefined;
+    return volume && this.settings.view.isoVolume ? 'iso' : 'flat';
   }
 
   private renderContext() {
-    return { text: this.text, volume: { depth: this.settings.view.isoDepth } };
+    return {
+      text: this.text,
+      volume: { depth: this.settings.view.isoDepth },
+      background: this.settings.background.color,
+    };
   }
 
-  /**
-   * Volumes iso : la hauteur des blocs suit l'inclinaison (ils « poussent » pendant la bascule
-   * 2D → iso, et s'aplatissent si l'on remonte vers la vue de dessus).
-   */
+  /** Grille de la page courante : pas de la page draw.io (`gridSize`) si demandé et défini, sinon celui des paramètres. */
+  private gridOptions(): GridOptions {
+    const background = this.settings.background;
+    const tree = background.gridFromPage && this.currentPageId ? this.pageTreeOf(this.currentPageId) : undefined;
+    const pageCell = tree && tree.encoding !== 'unreadable' ? gridSizeOf(tree) : 0;
+    return {
+      visible: background.grid,
+      background: background.color,
+      color: background.gridColor,
+      cell: pageCell > 0 ? pageCell : background.gridSize,
+      majorEvery: background.majorEvery,
+    };
+  }
+
+  private syncBackground(): void {
+    (this.scene.background as Color).set(this.settings.background.color);
+    this.grid.setOptions(this.gridOptions());
+    this.requestRender();
+  }
+
   /**
    * Éléments tournés face à l'écran (`userData.billboard`, ex. arêtes verticales des volumes) :
    * rotation autour de la verticale égale à celle de la vue.
@@ -749,13 +808,50 @@ export class Engine {
     });
   }
 
+  /**
+   * Volumes iso : la hauteur des blocs suit l'inclinaison (ils « poussent » pendant la bascule
+   * 2D → iso, et s'aplatissent si l'on remonte vers la vue de dessus), ou la perspective : pleine
+   * hauteur en 3D, même vue d'aplomb.
+   */
   private applyHeightScale(): void {
     this.orientBillboards();
     const scene = this.scenes.current;
     if (!scene || scene.level !== 'iso' || this.transition) return;
-    const scale = Math.min(1, Math.max(0, this.cameraState.tilt / Math.max(this.isoTilt(), 1e-6)));
+    const tilted = this.cameraState.tilt / Math.max(this.isoTilt(), 1e-6);
+    const scale = Math.min(1, Math.max(0, tilted, perspectiveAmount(this.cameraState)));
     this.heightScale = scale;
     setPageTransform(scene.root, undefined, scale);
+    this.blendLevels(scene, scale);
+  }
+
+  /**
+   * Fondu enchaîné d'une bascule 2D ↔ volume : la scène en volume (qui s'aplatit ou pousse)
+   * apparaît avec la hauteur des blocs, la scène à plat de la même page disparaît d'autant.
+   */
+  private blendLevels(volume: PageScene, weight: number): void {
+    const blend = this.levelBlend;
+    const page = this.getCurrentPage();
+    if (!blend || !page) return;
+    const flat = blend.flat ?? this.scenes.overlay(page, 'flat');
+    if (flat === volume) return;
+    blend.flat = flat;
+    blend.volume = volume;
+    setPageOpacity(volume.root, weight);
+    setPageOpacity(flat.root, 1 - weight);
+  }
+
+  /** Fin (ou interruption) du fondu enchaîné : chaque scène retrouve son opacité, seule la courante reste visible. */
+  private endLevelBlend(): void {
+    const blend = this.levelBlend;
+    if (!blend) return;
+    this.levelBlend = undefined;
+    for (const scene of [blend.volume, blend.flat]) if (scene) setPageOpacity(scene.root, 1);
+    const page = this.getCurrentPage();
+    if (page && !this.transition && (blend.volume || blend.flat)) {
+      this.scenes.show(page);
+      this.applyHeightScale();
+      this.requestRender();
+    }
   }
 
   /** Les volumes ont changé (activés, épaisseur) : on reconstruit les scènes. */
@@ -772,10 +868,11 @@ export class Engine {
   private applyCamera(state: CameraState): void {
     this.pendingFit = undefined;
     const previousZoom = this.cameraState.zoom;
-    const previousMode = this.cameraState.mode;
+    const previousLevel = this.requestedLevel();
     this.cameraState = normalizeCameraState(state);
-    // Changement de mode : la page passe au rendu de ce niveau (même scène si tout est à plat).
-    if (this.cameraState.mode !== previousMode && !this.transition) {
+    // Changement de niveau (mode, ou fin d'une bascule vers la 2D) : la page passe au rendu de ce
+    // niveau (même scène si tout est à plat).
+    if (this.requestedLevel() !== previousLevel && !this.transition) {
       const page = this.getCurrentPage();
       if (page) {
         this.scenes.show(page);
@@ -789,7 +886,7 @@ export class Engine {
     this.minimap?.requestDraw();
     // Contour de sélection d'épaisseur constante à l'écran.
     if (this.selection && this.cameraState.zoom !== previousZoom) this.updateSelectionOutline();
-    applyCameraState(this.camera, this.cameraState, this.viewport);
+    this.applyProjection();
     this.applyHeightScale();
     this.events.emit('cameraChange', this.getCameraState());
     this.requestRender();
@@ -798,21 +895,30 @@ export class Engine {
   // -------------------------------------------------------------------------
   // Modes de vue (SPEC §9.1)
 
-  getViewMode(): 'top' | 'iso' {
+  getViewMode(): ViewMode {
     return this.cameraState.mode;
   }
 
-  /** Bascule animée vers la vue de dessus ou la vue isométrique ; le centre de l'écran ne bouge pas. */
-  setViewMode(mode: 'top' | 'iso'): void {
+  /** Bascule animée vers la vue de dessus, isométrique ou 3D ; le centre de l'écran ne bouge pas. */
+  setViewMode(mode: ViewMode): void {
     if (this.transition) return;
+    if (this.cameraState.mode !== '3d') this.lastFlatMode = this.cameraState.mode;
+    // Entre la 2D (à plat) et l'iso / la 3D (volumes) : fondu enchaîné des deux rendus.
+    const crossesFlat = (this.cameraState.mode === 'top') !== (mode === 'top');
     this.animateCameraTo(
       withViewMode(this.cameraState, mode, this.isoTilt(), this.isoAzimuth()),
       this.settings.view.switchDurationMs,
+      crossesFlat,
     );
   }
 
   toggleViewMode(): void {
     this.setViewMode(this.cameraState.mode === 'iso' ? 'top' : 'iso');
+  }
+
+  /** Touche P : vers la 3D, ou retour au dernier mode 2D / iso. */
+  toggle3d(): void {
+    this.setViewMode(this.cameraState.mode === '3d' ? this.lastFlatMode : '3d');
   }
 
   getViewSettings(): ViewSettings {
@@ -860,14 +966,14 @@ export class Engine {
     return (this.settings.view.isoAzimuthDeg * Math.PI) / 180;
   }
 
-  /** Orientation de référence du mode courant : 0 en vue de dessus, l'azimut iso en isométrie. */
+  /** Orientation de référence du mode courant : 0 en vue de dessus, l'azimut iso en isométrie et en 3D. */
   getReferenceRotation(): number {
-    return this.cameraState.mode === 'iso' ? normalizeAngle(this.isoAzimuth()) : 0;
+    return this.cameraState.mode === 'top' ? 0 : normalizeAngle(this.isoAzimuth());
   }
 
-  /** Orientation courante (rotation + inclinaison), conservée par les cadrages. */
-  private orientation(): { rotation: number; tilt: number } {
-    return { rotation: this.cameraState.rotation, tilt: this.cameraState.tilt };
+  /** Orientation courante (mode, rotation, inclinaison), conservée par les cadrages. */
+  private orientation(): { rotation: number; tilt: number; mode: ViewMode } {
+    return { rotation: this.cameraState.rotation, tilt: this.cameraState.tilt, mode: this.cameraState.mode };
   }
 
   // -------------------------------------------------------------------------
@@ -924,6 +1030,7 @@ export class Engine {
         getPage: () => this.getCurrentPage(),
         getCamera: () => this.cameraState,
         getViewport: () => this.viewport,
+        getBackground: () => this.settings.background.color,
         getEdgeRoute: (id) => this.sceneObject(id)?.userData.route as Point[] | undefined,
         paintShape: (context, shape, map) => this.registry.minimapPainter(shape)?.(context, shape, map),
         centerOn: (point) => {
@@ -964,8 +1071,8 @@ export class Engine {
 
   /**
    * Modifie des paramètres, section par section ; tout s'applique immédiatement : contrôles,
-   * transitions, préchargement, taille du cache, et en iso l'élévation / l'orientation (animées,
-   * en gardant l'écart de rotation choisi par l'utilisateur).
+   * transitions, préchargement, taille du cache, et en iso l'élévation / l'orientation (animées ;
+   * l'orientation est absolue : la vue prend exactement l'angle choisi).
    */
   updateSettings(patch: SettingsPatch): void {
     const previous = this.settings;
@@ -976,22 +1083,23 @@ export class Engine {
     this.updateSelectionOutline();
     if (
       this.settings.view.isoVolume !== previous.view.isoVolume ||
-      this.settings.view.isoDepth !== previous.view.isoDepth
+      this.settings.view.isoDepth !== previous.view.isoDepth ||
+      // Fonds de labels « default » = couleur du fond.
+      this.settings.background.color !== previous.background.color
     ) {
       this.rebuildScenes();
     }
+    this.syncBackground();
 
     const view = this.settings.view;
     if (this.currentPageId && !this.transition) this.pageIso.set(this.currentPageId, this.isoParams());
     const isoChanged =
       view.isoAngleDeg !== previous.view.isoAngleDeg || view.isoAzimuthDeg !== previous.view.isoAzimuthDeg;
     if (isoChanged && this.cameraState.mode === 'iso' && !this.transition) {
-      const azimuthDelta = ((view.isoAzimuthDeg - previous.view.isoAzimuthDeg) * Math.PI) / 180;
-      const target = {
-        ...this.cameraState,
-        tilt: this.isoTilt(),
-        rotation: normalizeAngle(this.cameraState.rotation + azimuthDelta),
-      };
+      // Orientation absolue quand l'azimut change ; sinon la rotation faite à la souris est gardée.
+      const azimuthChanged = view.isoAzimuthDeg !== previous.view.isoAzimuthDeg;
+      const rotation = azimuthChanged ? normalizeAngle(this.isoAzimuth()) : this.cameraState.rotation;
+      const target = { ...this.cameraState, tilt: this.isoTilt(), rotation };
       if (!sameView(target, this.cameraState, this.viewport)) this.animateCameraTo(target, view.switchDurationMs);
     }
     this.events.emit('settingsChange', this.getSettings());
@@ -1311,9 +1419,7 @@ export class Engine {
 
   /** Point écran d'un point de la page posé à `height` au-dessus du sol (inverse de `groundPointAtHeight`). */
   private screenOfPoint(point: Point, height: number): Point {
-    const shift = height * Math.tan(this.cameraState.tilt);
-    const { down } = screenAxes(this.cameraState.rotation);
-    return pageToScreen(this.cameraState, this.viewport, { x: point.x - shift * down.x, y: point.y - shift * down.y });
+    return pageToScreen(this.cameraState, this.viewport, point, height);
   }
 
   /** Poignée de la sélection sous un point écran (8 px de tolérance). */
@@ -1781,15 +1887,9 @@ export class Engine {
     return this.scenes.current?.level === 'iso' ? top * this.heightScale : 0;
   }
 
-  /**
-   * Point de la page visé par un point écran, sur le plan horizontal à `height` au-dessus du sol :
-   * le rayon de vue y arrive plus près de la caméra, de height · tan(inclinaison).
-   */
+  /** Point de la page visé par un point écran, sur le plan horizontal à `height` au-dessus du sol. */
   private groundPointAtHeight(screen: Point, height: number): Point {
-    const ground = screenToPage(this.cameraState, this.viewport, screen);
-    const shift = height * Math.tan(this.cameraState.tilt);
-    const { down } = screenAxes(this.cameraState.rotation);
-    return { x: ground.x + shift * down.x, y: ground.y + shift * down.y };
+    return screenToPage(this.cameraState, this.viewport, screen, height);
   }
 
   private sceneObject(elementId: string) {
@@ -1954,6 +2054,7 @@ export class Engine {
     this.reducedMotionQuery?.removeEventListener?.('change', this.onReducedMotionChange);
     this.minimap?.dispose();
     this.scenes.clear();
+    this.grid.dispose();
     this.text.dispose();
     // Pas de forceContextLoss : le même canvas peut être repris par un nouveau moteur
     // (double montage de React en dev). Le contexte est libéré avec le canvas.
@@ -1975,9 +2076,46 @@ export class Engine {
       this.setCameraState(fitBounds(this.pendingFit, this.viewport, this.orientation()));
       return;
     }
-    applyCameraState(this.camera, this.cameraState, this.viewport);
+    this.applyProjection();
     this.minimap?.requestDraw();
     this.requestRender();
+  }
+
+  /**
+   * Fondu enchaîné 2D ↔ volume en deux passes : la page à plat (avec le fond), puis les volumes
+   * par-dessus, profondeur remise à zéro. Les blocs s'occultent entre eux, mais des blocs presque
+   * aplatis ne masquent pas les traits et labels de la page à plat.
+   */
+  private renderBlend(flat: PageScene, volume: PageScene): void {
+    const camera = this.activeCamera();
+    const background = this.scene.background;
+    const gridVisible = this.grid.mesh.visible;
+    volume.root.visible = false;
+    flat.root.visible = true;
+    this.renderer.render(this.scene, camera);
+    flat.root.visible = false;
+    volume.root.visible = true;
+    this.grid.mesh.visible = false;
+    this.scene.background = null;
+    this.renderer.autoClear = false;
+    this.renderer.clearDepth();
+    this.renderer.render(this.scene, camera);
+    this.renderer.autoClear = true;
+    this.scene.background = background;
+    this.grid.mesh.visible = gridVisible;
+    flat.root.visible = true;
+  }
+
+  /** Caméra du rendu : en perspective quand l'état a un champ de vision (3D, bascules). */
+  private activeCamera(): OrthographicCamera | PerspectiveCamera {
+    return this.cameraState.fov === undefined ? this.camera : this.perspectiveCamera;
+  }
+
+  private applyProjection(): void {
+    if (this.cameraState.fov === undefined) applyCameraState(this.camera, this.cameraState, this.viewport);
+    else applyPerspectiveState(this.perspectiveCamera, this.cameraState, this.viewport);
+    // Le plan du fond couvre tout ce que la caméra peut voir.
+    this.grid.follow(this.cameraState.center, 2 * this.activeCamera().far);
   }
 
   /** Un canvas masqué ou pas encore mis en page mesure 0 (ramené à 1). */
@@ -1990,7 +2128,9 @@ export class Engine {
     if (this.frame || this.disposed) return;
     this.frame = requestAnimationFrame(() => {
       this.frame = 0;
-      this.renderer.render(this.scene, this.camera);
+      const blend = this.levelBlend;
+      if (blend?.flat && blend.volume) this.renderBlend(blend.flat, blend.volume);
+      else this.renderer.render(this.scene, this.activeCamera());
     });
   };
 }

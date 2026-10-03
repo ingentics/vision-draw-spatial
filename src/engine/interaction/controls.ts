@@ -1,5 +1,5 @@
 import type { Point } from '../model/types';
-import { panByScreen, rotateAround, tiltAround, zoomAt } from './camera';
+import { dragGround, orbit, panByScreen, zoomAt } from './camera';
 import type { CameraState, Viewport } from './camera';
 
 /**
@@ -15,6 +15,8 @@ import type { CameraState, Viewport } from './camera';
 export interface Shortcuts {
   /** Bascule 2D ↔ iso. */
   toggleViewMode: string;
+  /** Bascule vers / depuis la vue 3D. */
+  toggle3d: string;
   /** Vue graphe ↔ dernière page. */
   toggleGraph: string;
   /** Affiche / masque la mini-carte. */
@@ -27,6 +29,7 @@ export interface Shortcuts {
 
 export const DEFAULT_SHORTCUTS: Shortcuts = {
   toggleViewMode: 'i',
+  toggle3d: 'p',
   toggleGraph: 'g',
   toggleMinimap: 'm',
   overview: 'Enter',
@@ -57,14 +60,10 @@ export function shortcutAction(key: string, shortcuts: Shortcuts): keyof Shortcu
 export interface ControlSettings {
   /** Touches de déplacement : lettres (ZQSD / WASD selon le clavier), flèches, ou les deux. */
   moveKeys: 'letters' | 'arrows' | 'all';
-  /** Effet du glisser avec la molette enfoncée. Clic droit et Espace + clic gauche déplacent toujours. */
-  middleDrag: 'pan' | 'rotate';
   /** Vitesse de déplacement au clavier, en pixels écran par seconde. */
   moveSpeed: number;
   /** Sensibilité de la molette. */
   zoomSpeed: number;
-  /** Radians par pixel de glisser horizontal, en mode rotation. */
-  rotateSpeed: number;
   shortcuts: Shortcuts;
   /**
    * Glissade à l'arrêt d'un déplacement (clavier ou glisser) : constante de temps de la
@@ -75,10 +74,8 @@ export interface ControlSettings {
 
 export const DEFAULT_CONTROLS: ControlSettings = {
   moveKeys: 'all',
-  middleDrag: 'pan',
   moveSpeed: 600,
   zoomSpeed: 0.0015,
-  rotateSpeed: 0.005,
   decelerationMs: 80,
   shortcuts: DEFAULT_SHORTCUTS,
 };
@@ -173,6 +170,8 @@ export interface CameraHost {
   back?(): void;
   /** Bascule vue 2D ↔ iso (touche I). */
   toggleViewMode?(): void;
+  /** Bascule vers / depuis la vue 3D (touche P). */
+  toggle3d?(): void;
   /** Affiche / masque la mini-carte (touche M). */
   toggleMinimap?(): void;
   /** Vue graphe ↔ dernière page (touche G). */
@@ -195,15 +194,17 @@ export interface CameraHost {
 
 /** Au-delà de ce déplacement (px), un appui-relâché n'est plus un clic. */
 const CLICK_SLOP = 4;
+/** Glisser clic droit (iso, 3D) : radians par pixel (rotation à l'horizontale, inclinaison à la verticale en 3D). */
+export const ORBIT_SPEED = 0.005;
 
-type DragMode = 'pan' | 'rotate' | 'move';
+type DragMode = 'pan' | 'move' | 'orbit';
 
 export class CameraController {
   private settings: ControlSettings;
   private readonly pressed = new Set<string>();
   private spaceDown = false;
-  /** `pivot` : point écran de départ du glisser, centre de la rotation. */
-  private drag: { pointerId: number; mode: DragMode; last: Point; pivot: Point; moving?: boolean } | undefined;
+  /** `start` : point écran de départ du glisser. */
+  private drag: { pointerId: number; mode: DragMode; last: Point; start: Point; moving?: boolean } | undefined;
   private frame = 0;
   private lastTick = 0;
   /** Vitesse de déplacement du contenu à l'écran (pixels / s), pour la glissade. */
@@ -296,8 +297,10 @@ export class CameraController {
     }
     if (!this.enabled || this.drag) return;
     let mode: DragMode | undefined;
-    if (event.button === 1) mode = this.settings.middleDrag;
-    else if (event.button === 2) mode = 'pan';
+    // Iso et 3D : le clic droit oriente la caméra (orbite), la molette enfoncée la déplace.
+    // En 2D, jamais de rotation : le clic droit déplace.
+    if (event.button === 2 && this.host.getCameraState().mode !== 'top') mode = 'orbit';
+    else if (event.button === 1 || event.button === 2) mode = 'pan';
     else if (event.button === 0 && this.spaceDown) mode = 'pan';
     else if (event.button === 0 && this.host.beginMove?.(this.localPoint(event))) mode = 'move';
     if (!mode) return;
@@ -311,9 +314,11 @@ export class CameraController {
     }
     this.stopDrift();
     const start = this.localPoint(event);
-    this.drag = { pointerId: event.pointerId, mode, last: start, pivot: start };
+    this.drag = { pointerId: event.pointerId, mode, last: start, start };
     this.samples = [{ t: event.timeStamp, p: start }];
-    if (mode !== 'move') this.element.style.cursor = mode === 'pan' ? 'grabbing' : 'ew-resize';
+    if (mode === 'pan') this.element.style.cursor = 'grabbing';
+    else if (mode === 'orbit')
+      this.element.style.cursor = this.host.getCameraState().mode === '3d' ? 'all-scroll' : 'ew-resize';
   };
 
   private readonly onPointerMove = (event: PointerEvent): void => {
@@ -327,28 +332,27 @@ export class CameraController {
     const point = this.localPoint(event);
     if (drag.mode === 'move') {
       // Un appui-relâché sur place reste un clic (sélection) : on ne bouge qu'au-delà du seuil.
-      if (!drag.moving && distance(drag.pivot, point) <= CLICK_SLOP) return;
+      if (!drag.moving && distance(drag.start, point) <= CLICK_SLOP) return;
       drag.moving = true;
       this.element.style.cursor = 'move';
       this.host.moveTo?.(point, { snap: !event.altKey });
       return;
     }
     const delta = { x: point.x - drag.last.x, y: point.y - drag.last.y };
+    const previous = drag.last;
     drag.last = point;
     const state = this.host.getCameraState();
-    if (drag.mode === 'pan') {
-      this.samples.push({ t: event.timeStamp, p: point });
-      if (this.samples.length > 20) this.samples.shift();
-      this.host.setCameraState(panByScreen(state, delta));
-    } else {
-      // Rotation autour du point de départ du glisser, qui reste fixe à l'écran.
-      // Glisser vers la droite fait tourner le schéma dans le sens horaire.
-      const viewport = this.host.getViewport();
-      let next = rotateAround(state, viewport, drag.pivot, -delta.x * this.settings.rotateSpeed);
-      // En iso, le glisser vertical règle l'inclinaison : vers le haut = vers l'horizon (orbite).
-      if (state.mode === 'iso') next = tiltAround(next, viewport, drag.pivot, -delta.y * this.settings.rotateSpeed);
-      this.host.setCameraState(next);
+    if (drag.mode === 'orbit') {
+      // C'est la caméra qui bouge, la page reste fixe : vers la droite, la caméra tourne vers la
+      // droite autour du centre ; en 3D, vers le haut, elle monte (vers la vue d'aplomb), vers le
+      // bas, elle descend vers l'horizon. L'iso garde l'élévation de ses réglages.
+      const tilt = state.mode === '3d' ? delta.y * ORBIT_SPEED : 0;
+      this.host.setCameraState(orbit(state, delta.x * ORBIT_SPEED, tilt));
+      return;
     }
+    this.samples.push({ t: event.timeStamp, p: point });
+    if (this.samples.length > 20) this.samples.shift();
+    this.host.setCameraState(dragGround(state, this.host.getViewport(), previous, point));
   };
 
   private readonly onPointerUp = (event: PointerEvent): void => {
@@ -426,10 +430,16 @@ export class CameraController {
       this.host.toggleOverview(this.hover);
       return;
     }
-    if (action === 'toggleViewMode' || action === 'toggleGraph' || action === 'toggleMinimap') {
+    if (
+      action === 'toggleViewMode' ||
+      action === 'toggle3d' ||
+      action === 'toggleGraph' ||
+      action === 'toggleMinimap'
+    ) {
       event.preventDefault();
       if (event.repeat) return;
       if (action === 'toggleViewMode') this.host.toggleViewMode?.();
+      else if (action === 'toggle3d') this.host.toggle3d?.();
       else if (action === 'toggleGraph') this.host.toggleGraph?.();
       else this.host.toggleMinimap?.();
       return;

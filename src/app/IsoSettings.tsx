@@ -6,6 +6,8 @@ type IsoPreferences = Pick<ViewSettings, 'isoAngleDeg' | 'isoAzimuthDeg' | 'isoV
 interface IsoSettingsProps {
   value: IsoPreferences;
   onChange: (patch: Partial<IsoPreferences>) => void;
+  /** Ramène la vue à l'orientation de référence (même si l'angle choisi ne change pas). */
+  onResetOrientation: () => void;
 }
 
 const ORIENTATIONS: Array<{ azimuth: number; label: string }> = [
@@ -27,7 +29,7 @@ export function IsoIcon() {
  * Réglages de la vue isométrique (section du panneau Paramètres) : orientation avec aperçu
  * dessiné et angle libre, élévation de la caméra, retour à l'isométrie vraie.
  */
-export function IsoSettings({ value, onChange }: IsoSettingsProps) {
+export function IsoSettings({ value, onChange, onResetOrientation }: IsoSettingsProps) {
   const elevation = Math.round(value.isoAngleDeg);
   const azimuth = Math.round(value.isoAzimuthDeg);
   const isTrueIso = Math.abs(value.isoAngleDeg - ISOMETRIC_ELEVATION_DEG) < 0.5;
@@ -44,7 +46,11 @@ export function IsoSettings({ value, onChange }: IsoSettingsProps) {
               role="radio"
               aria-checked={value.isoAzimuthDeg === option.azimuth}
               className="orientation-choice"
-              onClick={() => onChange({ isoAzimuthDeg: option.azimuth })}
+              onClick={() => {
+                // Angle inchangé : rien ne bouge côté paramètres, on ramène la vue nous-mêmes.
+                if (value.isoAzimuthDeg === option.azimuth) onResetOrientation();
+                else onChange({ isoAzimuthDeg: option.azimuth });
+              }}
             >
               <Preview azimuthDeg={option.azimuth} elevationDeg={value.isoAngleDeg} />
               <span>{option.label}</span>
@@ -61,8 +67,8 @@ export function IsoSettings({ value, onChange }: IsoSettingsProps) {
         {/* Curseur inversé : vers la droite (azimut négatif) en tirant à droite. */}
         <input
           type="range"
-          min={-90}
-          max={90}
+          min={-180}
+          max={180}
           step={1}
           value={-azimuth}
           onChange={(event) => onChange({ isoAzimuthDeg: -Number(event.target.value) })}
