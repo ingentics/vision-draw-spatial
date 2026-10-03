@@ -62,6 +62,9 @@ export function textFormat(style: Record<string, string>, rich: RichLine[] | und
 /** Couleur de fond de la page, utilisée quand un style vaut `default` pour un fond de label. */
 export const PAGE_BACKGROUND = '#ffffff';
 
+/** Fond par défaut du texte des flèches : halo de 1,5 px, flou de 1 px (paramètres `shapes.edgeLabel…`). */
+export const DEFAULT_LABEL_BACKDROP = { kind: 'halo', haloWidth: 1.5, haloBlur: 1 } as const;
+
 /** `labelBackgroundColor` : `default` = fond de la page ; défaut propre au type d'élément sinon. */
 export function labelBackground(
   style: Record<string, string>,

@@ -117,6 +117,15 @@ export interface SelectionSettings {
 export interface ShapeSettings {
   /** Couleur du texte des flèches sans `fontColor` (#rrggbb). */
   edgeFontColor: string;
+  /**
+   * Fond du texte des flèches sans `labelBackgroundColor` explicite : halo de la couleur de la page
+   * autour de chaque lettre, fond uni de la couleur de la page, ou transparent.
+   */
+  edgeLabelBackdrop: 'halo' | 'solid' | 'none';
+  /** Épaisseur du halo, en pixels de page. */
+  edgeLabelHaloWidth: number;
+  /** Flou du bord du halo, en pixels de page (0 = net). */
+  edgeLabelHaloBlur: number;
   /** Formes non supportées (SPEC §8.4). */
   placeholderFill: string;
   placeholderStroke: string;
@@ -240,7 +249,14 @@ export const DEFAULT_SETTINGS: Settings = {
     veilPadding: 10,
     accentColor: '#1a73e8',
   },
-  shapes: { edgeFontColor: '#000000', placeholderFill: '#eeeeee', placeholderStroke: '#9e9e9e' },
+  shapes: {
+    edgeFontColor: '#000000',
+    edgeLabelBackdrop: 'halo',
+    edgeLabelHaloWidth: 1.5,
+    edgeLabelHaloBlur: 1,
+    placeholderFill: '#eeeeee',
+    placeholderStroke: '#9e9e9e',
+  },
   styles: { base: DRAWIO_STYLES, extended: PASTEL_STYLES, text: TEXT_STYLES },
   graph: { cardWidth: 260, columnGap: 200, rowGap: 90 },
   edit: { edgePickTolerance: 6, handlePickTolerance: 8, handleSize: 4, minShapeSize: 10 },
@@ -280,6 +296,8 @@ export const SETTINGS_LIMITS = {
   'background.majorEvery': { min: 1, max: 20, step: 1 },
   'background.minorStrength': { min: 0, max: 1, step: 0.05 },
   'minimap.size': { min: 120, max: 400, step: 10 },
+  'shapes.edgeLabelHaloWidth': { min: 0.5, max: 6, step: 0.25 },
+  'shapes.edgeLabelHaloBlur': { min: 0, max: 4, step: 0.25 },
   'selection.speed': { min: 2, max: 80, step: 1 },
   'selection.veilOpacity': { min: 0.05, max: 0.85, step: 0.05 },
   'selection.veilPadding': { min: 0, max: 60, step: 1 },
@@ -299,6 +317,7 @@ const MOVE_KEYS = ['letters', 'arrows', 'all'] as const;
 const VIEW_MODES = ['top', 'iso', '3d'] as const;
 const REDUCED_MOTION = ['system', 'always', 'never'] as const;
 const SELECTION_STYLES = ['veil', 'outline'] as const;
+const LABEL_BACKDROPS = ['halo', 'solid', 'none'] as const;
 
 /**
  * Fusionne une modification dans des paramètres. Les valeurs invalides (mauvais type, hors liste)
@@ -436,6 +455,13 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
     },
     shapes: {
       edgeFontColor: color(p.shapes?.edgeFontColor, base.shapes.edgeFontColor),
+      edgeLabelBackdrop: oneOf(LABEL_BACKDROPS, p.shapes?.edgeLabelBackdrop, base.shapes.edgeLabelBackdrop),
+      edgeLabelHaloWidth: num(
+        'shapes.edgeLabelHaloWidth',
+        p.shapes?.edgeLabelHaloWidth,
+        base.shapes.edgeLabelHaloWidth,
+      ),
+      edgeLabelHaloBlur: num('shapes.edgeLabelHaloBlur', p.shapes?.edgeLabelHaloBlur, base.shapes.edgeLabelHaloBlur),
       placeholderFill: color(p.shapes?.placeholderFill, base.shapes.placeholderFill),
       placeholderStroke: color(p.shapes?.placeholderStroke, base.shapes.placeholderStroke),
     },

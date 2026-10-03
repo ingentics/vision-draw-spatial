@@ -71,8 +71,16 @@ export function createTroikaTextFactory(fonts: FontSet, onReady: () => void): Te
   let measuring: Promise<MeasureText> | undefined;
   const measure = () => (measuring ??= createMeasure(fonts));
 
-  const sdfText = (content: string, font: FontSpec, color: Color, opacity: number) => {
+  const sdfText = (content: string, font: FontSpec, color: Color, opacity: number, halo?: TextSpec['halo']) => {
     const text = new Text();
+    if (halo) {
+      // Contour derrière le glyphe (troika le dessine sous le remplissage).
+      text.outlineWidth = halo.width;
+      text.outlineColor = halo.color;
+      text.outlineOpacity = opacity;
+      // Bord du halo adouci (flou au-delà de l'épaisseur).
+      if (halo.blur) text.outlineBlur = halo.blur;
+    }
     text.material = baseMaterial;
     text.text = content;
     text.font = pickFont(fonts, font.bold, font.italic, font.family);
@@ -93,6 +101,7 @@ export function createTroikaTextFactory(fonts: FontSet, onReady: () => void): Te
         { size: spec.fontSize, bold: spec.bold, italic: spec.italic ?? false, family: spec.fontFamily },
         spec.color,
         spec.opacity,
+        spec.halo,
       );
       text.anchorX = spec.anchorX;
       text.anchorY = spec.anchorY;
@@ -167,7 +176,7 @@ export function createTroikaTextFactory(fonts: FontSet, onReady: () => void): Te
           add(line);
         }
         if (run.text.trim() === '') continue;
-        const text = sdfText(run.text, run, color, spec.opacity);
+        const text = sdfText(run.text, run, color, spec.opacity, spec.halo);
         text.anchorX = 'left';
         // Ligne de base au point donné : tous les segments d'une ligne s'alignent.
         text.anchorY = 'top-baseline';

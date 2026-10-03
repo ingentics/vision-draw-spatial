@@ -185,11 +185,33 @@ describe('buildPageScene — arêtes', () => {
     expect((tip.min.z + tip.max.z) / 2).toBeCloseTo(440);
   });
 
-  it('labels d’arête : principal et enfants, avec fond blanc par défaut', () => {
+  it('labels d’arête : principal et enfants, sans fond mais avec un halo blanc par défaut', () => {
     const { texts } = build('simple.drawio');
-    expect(texts.find((t) => t.text === 'appelle')).toMatchObject({ anchorX: 'center', anchorY: 'middle' });
-    expect(texts.find((t) => t.text === 'appelle')!.background?.getHexString()).toBe('ffffff');
+    const appelle = texts.find((t) => t.text === 'appelle')!;
+    expect(appelle).toMatchObject({ anchorX: 'center', anchorY: 'middle' });
+    expect(appelle.background).toBeUndefined();
+    expect(appelle.halo).toMatchObject({ width: 1.5, blur: 1 });
+    expect(appelle.halo!.color.getHexString()).toBe('ffffff');
     expect(texts.find((t) => t.text === 'lit')).toBeDefined();
+  });
+
+  it('labels d’arête : fond uni ou aucun selon le paramètre ; une couleur de fond explicite l’emporte', () => {
+    const xml = `<mxfile><diagram id="p"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+      <mxCell id="e" value="a" style="html=1;" edge="1" parent="1">
+        <mxGeometry relative="1" as="geometry"><mxPoint x="0" y="0" as="sourcePoint"/><mxPoint x="50" y="0" as="targetPoint"/></mxGeometry>
+      </mxCell>
+      <mxCell id="f" value="b" style="html=1;labelBackgroundColor=#ffcc00;" edge="1" parent="1">
+        <mxGeometry relative="1" as="geometry"><mxPoint x="0" y="20" as="sourcePoint"/><mxPoint x="50" y="20" as="targetPoint"/></mxGeometry>
+      </mxCell></root></mxGraphModel></diagram></mxfile>`;
+    const page = parseDrawio(xml).pages[0]!;
+    for (const kind of ['solid', 'none'] as const) {
+      const { ctx, texts } = stubContext();
+      buildPageScene(page, createDefaultRegistry(), { ...ctx, edgeLabelBackdrop: { kind, haloWidth: 2, haloBlur: 0 } });
+      const a = texts.find((t) => t.text === 'a')!;
+      expect(a.halo).toBeUndefined();
+      expect(a.background?.getHexString()).toBe(kind === 'solid' ? 'ffffff' : undefined);
+      expect(texts.find((t) => t.text === 'b')!.background?.getHexString()).toBe('ffcc00');
+    }
   });
 
   it('arête sans flèche (endArrow=none) en pointillés', () => {

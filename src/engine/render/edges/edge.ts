@@ -1,4 +1,4 @@
-import { Group } from 'three';
+import { Color, Group } from 'three';
 import type { Object3D } from 'three';
 import type { EdgeLabelPlacement, EdgeModel, Point, RichLine, ShapeModel } from '../../model/types';
 import { buildMarker } from '../edges/markers';
@@ -7,7 +7,15 @@ import { routeEdge } from '../edges/route';
 import type { Terminal } from '../edges/route';
 import { dashPattern } from '../geometry/stroke';
 import { fillMesh, strokeMesh } from '../meshes';
-import { PAGE_BACKGROUND, labelBackground, styleColor, styleNumber, styleOpacity, textFormat } from '../styleValues';
+import {
+  DEFAULT_LABEL_BACKDROP,
+  PAGE_BACKGROUND,
+  labelBackground,
+  styleColor,
+  styleNumber,
+  styleOpacity,
+  textFormat,
+} from '../styleValues';
 import { PART_ORDER } from '../types';
 import type { RenderContext } from '../types';
 
@@ -126,14 +134,25 @@ function createEdgeLabel(
     color: styleColor(style, 'fontColor', ctx.edgeFontColor ?? DEFAULT_EDGE_FONT_COLOR)!,
     opacity: styleOpacity(style, 'textOpacity'),
     ...textFormat(style, rich),
-    // Les labels d'arêtes draw.io ont un fond de la couleur de la page par défaut.
-    background: labelBackground(style, ctx.background ?? PAGE_BACKGROUND, ctx.background),
+    // Fond explicite (`labelBackgroundColor=#…`), sinon le paramètre : halo de la couleur de la page
+    // autour de chaque lettre (lisible sur le trait, sans fond), fond uni, ou rien.
+    ...edgeLabelBackdrop(style, ctx),
   });
   object.name = 'label';
   // Cellule qui porte le texte (l'arête, ou le label enfant) : masqué pendant l'édition en place.
   object.userData.labelCellId = cellId;
   object.renderOrder = PART_ORDER.label;
   return object;
+}
+
+/** Fond explicite d'un texte de flèche, sinon celui du paramètre (halo par défaut). */
+function edgeLabelBackdrop(style: Record<string, string>, ctx: RenderContext) {
+  const explicit = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(style.labelBackgroundColor?.trim() ?? '');
+  if (explicit) return { background: labelBackground(style, null, ctx.background) };
+  const page = new Color(ctx.background ?? PAGE_BACKGROUND);
+  const { kind, haloWidth, haloBlur } = ctx.edgeLabelBackdrop ?? DEFAULT_LABEL_BACKDROP;
+  if (kind === 'solid') return { background: page };
+  return kind === 'halo' ? { halo: { color: page, width: haloWidth, blur: haloBlur } } : {};
 }
 
 function toTerminal(shape: ShapeModel | undefined): Terminal | undefined {

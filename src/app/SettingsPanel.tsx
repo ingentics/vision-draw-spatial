@@ -528,6 +528,37 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
               onChange={(edgeFontColor) => onChange({ shapes: { edgeFontColor } })}
             />
             <p className="hint muted">Quand le style draw.io de la flèche ne précise pas de couleur de texte.</p>
+            <Choice
+              label="Fond du texte des flèches"
+              value={shapes.edgeLabelBackdrop}
+              options={[
+                ['halo', 'Halo'],
+                ['solid', 'Fond uni'],
+                ['none', 'Aucun'],
+              ]}
+              onChange={(edgeLabelBackdrop) => onChange({ shapes: { edgeLabelBackdrop } })}
+            />
+            <Slider
+              label="Épaisseur du halo"
+              value={shapes.edgeLabelHaloWidth}
+              limits={SETTINGS_LIMITS['shapes.edgeLabelHaloWidth']}
+              format={(v) => `${v.toLocaleString('fr-FR')} px`}
+              disabled={shapes.edgeLabelBackdrop !== 'halo'}
+              onChange={(edgeLabelHaloWidth) => onChange({ shapes: { edgeLabelHaloWidth } })}
+            />
+            <Slider
+              label="Flou du halo"
+              value={shapes.edgeLabelHaloBlur}
+              limits={SETTINGS_LIMITS['shapes.edgeLabelHaloBlur']}
+              format={(v) => (v === 0 ? 'net' : `${v.toLocaleString('fr-FR')} px`)}
+              disabled={shapes.edgeLabelBackdrop !== 'halo'}
+              onChange={(edgeLabelHaloBlur) => onChange({ shapes: { edgeLabelHaloBlur } })}
+            />
+            <p className="hint muted">
+              Halo : un contour de la couleur du fond autour de chaque lettre, lisible sur le trait sans cacher la
+              flèche. Fond uni : un rectangle de la couleur du fond. Une couleur de fond précisée dans le style draw.io
+              l'emporte.
+            </p>
           </Subsection>
           <Subsection title="Formes non supportées">
             <ColorField

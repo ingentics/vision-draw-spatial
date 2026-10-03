@@ -242,8 +242,13 @@ export interface LabelEditRequest {
    * centre dessus et prend la taille du texte, comme le label dessiné.
    */
   onEdge: boolean;
-  /** Fond du texte (`labelBackgroundColor`, fond de la page pour une flèche) ; absent : transparent. */
+  /** Fond du texte (`labelBackgroundColor` explicite) ; absent : transparent. */
   background?: string;
+  /** Halo autour des lettres (texte de flèche sans fond, paramètre `shapes.edgeLabelBackdrop`) : couleur de la page. */
+  halo?: string;
+  /** Épaisseur et flou du halo, en pixels de page. */
+  haloWidth?: number;
+  haloBlur?: number;
 }
 
 /** Glisser d'édition en cours (SPEC §14.1). */
@@ -868,6 +873,11 @@ export class Engine {
       placeholder: { fill: this.settings.shapes.placeholderFill, stroke: this.settings.shapes.placeholderStroke },
       accent: this.settings.selection.accentColor,
       edgeFontColor: this.settings.shapes.edgeFontColor,
+      edgeLabelBackdrop: {
+        kind: this.settings.shapes.edgeLabelBackdrop,
+        haloWidth: this.settings.shapes.edgeLabelHaloWidth,
+        haloBlur: this.settings.shapes.edgeLabelHaloBlur,
+      },
     };
   }
 
@@ -1719,7 +1729,7 @@ export class Engine {
       html: label.style.html === '1' ? cellLabelValue(editable.pageTree, cellId) : undefined,
       scale: this.textScale(edgeId),
       onEdge: true,
-      background: this.labelEditBackground(label.style, true),
+      ...this.labelEditBackdrop(label.style, true),
     });
   }
 
@@ -2049,7 +2059,7 @@ export class Engine {
       html: element.style.html === '1' ? cellLabelValue(editable.pageTree, element.id) : undefined,
       scale: this.textScale(element.id),
       onEdge: editable.page.edges.some((e) => e.id === element.id),
-      background: this.labelEditBackground(
+      ...this.labelEditBackdrop(
         element.style,
         editable.page.edges.some((e) => e.id === element.id),
       ),
@@ -2078,16 +2088,34 @@ export class Engine {
       html: current?.style.html === '1' ? cellLabelValue(editable.pageTree, current.id) : undefined,
       scale: this.textScale(edgeId),
       onEdge: true,
-      background: this.labelEditBackground(current?.style ?? edge.style, true),
+      ...this.labelEditBackdrop(current?.style ?? edge.style, true),
     });
   }
 
-  /** Fond du texte édité, comme celui du label dessiné (une flèche : fond de la page par défaut). */
-  private labelEditBackground(style: Record<string, string>, onEdge: boolean): string | undefined {
+  /**
+   * Fond et halo du texte édité, comme le label dessiné : une forme a le fond de `labelBackgroundColor`
+   * (`default` = la page) ; une flèche n'a de fond que s'il est explicite, sinon un halo autour des lettres.
+   */
+  private labelEditBackdrop(
+    style: Record<string, string>,
+    onEdge: boolean,
+  ): Pick<LabelEditRequest, 'background' | 'halo' | 'haloWidth' | 'haloBlur'> {
     const value = style.labelBackgroundColor?.trim().toLowerCase();
-    if (value === 'none') return undefined;
-    if (value && /^#[0-9a-f]{3}([0-9a-f]{3})?$/.test(value)) return value;
-    return onEdge || value === 'default' ? this.settings.background.color : undefined;
+    if (value && /^#([0-9a-f]{3}|[0-9a-f]{6})$/.test(value)) return { background: value };
+    const page = this.settings.background.color;
+    if (onEdge) {
+      const backdrop = this.settings.shapes.edgeLabelBackdrop;
+      return backdrop === 'halo'
+        ? {
+            halo: page,
+            haloWidth: this.settings.shapes.edgeLabelHaloWidth,
+            haloBlur: this.settings.shapes.edgeLabelHaloBlur,
+          }
+        : backdrop === 'solid'
+          ? { background: page }
+          : {};
+    }
+    return value === 'default' ? { background: page } : {};
   }
 
   /**

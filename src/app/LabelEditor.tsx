@@ -241,6 +241,8 @@ export function LabelEditor({
     textDecoration: decorations || 'none',
     fontFamily: isMonospace(style.fontFamily) ? "'Roboto Mono', monospace" : "'Roboto', sans-serif",
     textAlign: align,
+    // Halo autour des lettres (texte de flèche sans fond), comme le label dessiné.
+    textShadow: request.halo ? haloShadow(request.halo, request.haloWidth ?? 1.5, request.haloBlur ?? 0) : undefined,
     whiteSpace: onEdge || style.whiteSpace !== 'wrap' ? 'pre' : 'pre-wrap',
   };
 
@@ -433,4 +435,18 @@ function isColor(value: string | undefined): value is string {
 /** Valeur de `fontStyle` (bits : 1 gras, 2 italique, 4 souligné, 8 barré) ; 0 = clé retirée. */
 export function fontStyleValue(bits: number): string | undefined {
   return bits === 0 ? undefined : String(bits);
+}
+
+/**
+ * Halo CSS autour des lettres : ombres tout autour à `width` pixels de page (contenu non agrandi), au
+ * bord flouté de `blur`.
+ */
+function haloShadow(color: string, width: number, blur: number): string {
+  const steps = 12;
+  return Array.from({ length: steps }, (_, i) => {
+    const angle = (i / steps) * 2 * Math.PI;
+    const x = Math.round(Math.cos(angle) * width * 100) / 100;
+    const y = Math.round(Math.sin(angle) * width * 100) / 100;
+    return `${x}px ${y}px ${blur}px ${color}`;
+  }).join(', ');
 }

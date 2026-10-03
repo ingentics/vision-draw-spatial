@@ -29,6 +29,11 @@ export interface TextSpec {
   rich?: RichLine[];
   /** Largeur de retour à la ligne ; absente = pas de retour automatique. */
   maxWidth?: number;
+  /**
+   * Halo autour de chaque lettre (contour de la couleur donnée, derrière le glyphe) : texte lisible sur
+   * un trait ou une forme sombre, sans fond. Épaisseur en pixels de page.
+   */
+  halo?: { color: Color; width: number; blur?: number };
   /** Fond du label (`labelBackgroundColor`), ajusté à la taille du texte. */
   background?: Color;
 }
@@ -54,6 +59,8 @@ export interface RenderContext {
   accent?: string;
   /** Couleur du texte des flèches sans `fontColor` (#rrggbb, noir par défaut). */
   edgeFontColor?: string;
+  /** Fond du texte des flèches sans fond explicite : halo (épaisseur et flou en pixels de page), uni, ou aucun. */
+  edgeLabelBackdrop?: { kind: 'halo' | 'solid' | 'none'; haloWidth: number; haloBlur: number };
   /** Couleur du fond de la vue : fond des labels `labelBackgroundColor=default` (blanc par défaut). */
   background?: string;
 }
