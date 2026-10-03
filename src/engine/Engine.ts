@@ -925,6 +925,7 @@ export class Engine {
     if (this.selection && (sceneChanged || this.cameraState.zoom !== previousZoom)) this.updateSelectionOutline();
     this.applyProjection();
     this.applyHeightScale();
+    this.relocateLabelEdit();
     this.events.emit('cameraChange', this.getCameraState());
     this.requestRender();
   }
@@ -1830,7 +1831,7 @@ export class Engine {
     const element =
       editable && id ? [...editable.page.shapes, ...editable.page.edges].find((e) => e.id === id) : undefined;
     if (!editable || !element || !editable.pageTree.cells.get(element.id)?.cell) return;
-    const rect = this.screenRectOf(element.id);
+    const rect = this.labelEditScreen(element.id);
     if (!rect) return;
     this.startLabelEdit({
       pageId: editable.page.id,
@@ -1851,17 +1852,15 @@ export class Engine {
   editEdgeEndLabel(edgeId: string, end: EdgeEnd): void {
     const editable = this.editablePage();
     const edge = editable?.page.edges.find((e) => e.id === edgeId);
-    const route = this.sceneObject(edgeId)?.userData.route as Point[] | undefined;
-    if (!editable || !edge || !route?.length) return;
+    const screen = this.labelEditScreen(edgeId, end);
+    if (!editable || !edge || !screen) return;
     const current = endLabelOf(edge, end);
-    const placement = current?.placement ?? { position: endLabelPosition(end), distance: 0, offset: { x: 0, y: 0 } };
-    const center = this.screenOfPoint(labelPoint(route, placement), this.elementTop(edgeId));
     this.startLabelEdit({
       pageId: editable.page.id,
       elementId: edgeId,
       end,
       text: current?.label ?? '',
-      screen: { x: center.x - 60, y: center.y - 16, width: 120, height: 32 },
+      screen,
       styleCellId: current?.id,
       style: current?.style ?? edge.style,
       scale: this.textScale(edgeId),
@@ -1878,6 +1877,40 @@ export class Engine {
     this.labelEditing = request;
     this.hideEditedLabel();
     this.events.emit('labelEdit', request);
+  }
+
+  /**
+   * Emprise à l'écran du texte édité : la forme (dessus du volume), le milieu d'une flèche, ou le point
+   * de son texte de début / fin.
+   */
+  private labelEditScreen(elementId: string, end?: EdgeEnd): Rect | undefined {
+    if (!end) return this.screenRectOf(elementId);
+    const edge = this.getCurrentPage()?.edges.find((e) => e.id === elementId);
+    const route = this.sceneObject(elementId)?.userData.route as Point[] | undefined;
+    if (!edge || !route?.length) return undefined;
+    const placement = endLabelOf(edge, end)?.placement ?? {
+      position: endLabelPosition(end),
+      distance: 0,
+      offset: { x: 0, y: 0 },
+    };
+    const center = this.screenOfPoint(labelPoint(route, placement), this.elementTop(elementId));
+    return { x: center.x - 60, y: center.y - 16, width: 120, height: 32 };
+  }
+
+  /**
+   * La vue a bougé ou changé de taille (panneau latéral, fenêtre) pendant une édition en place :
+   * l'éditeur suit l'élément (nouvelle emprise et taille du texte).
+   */
+  private relocateLabelEdit(): void {
+    const editing = this.labelEditing;
+    if (!editing || editing.pageId !== this.currentPageId) return;
+    const screen = this.labelEditScreen(editing.elementId, editing.end);
+    if (!screen) return;
+    const scale = this.textScale(editing.elementId);
+    const same = (a: Rect, b: Rect) => a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
+    if (same(screen, editing.screen) && scale === editing.scale) return;
+    this.labelEditing = { ...editing, screen, scale };
+    this.events.emit('labelEdit', this.labelEditing);
   }
 
   /** Fin de l'édition en place (validée ou annulée) : le label dessiné réapparaît. */
@@ -2389,6 +2422,7 @@ export class Engine {
       return;
     }
     this.applyProjection();
+    this.relocateLabelEdit();
     this.minimap?.requestDraw();
     this.requestRender();
   }

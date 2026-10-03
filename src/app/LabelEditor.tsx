@@ -55,8 +55,10 @@ export function LabelEditor({ request, onCommit, onCancel, onFormat }: LabelEdit
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Posée sur l'élément, mais ramenée dans la vue si l'élément touche un bord.
+  // Posée sur l'élément, mais ramenée dans la vue si l'élément touche un bord ; recalculé quand
+  // l'élément bouge à l'écran (vue déplacée, panneau latéral qui change la taille du plan).
   const [shift, setShift] = useState({ x: 0, y: 0 });
+  const { x: left, y: top } = request.screen;
   useLayoutEffect(() => {
     const element = box.current;
     const area = element?.offsetParent as HTMLElement | null;
@@ -64,10 +66,10 @@ export function LabelEditor({ request, onCommit, onCancel, onFormat }: LabelEdit
     const clamp = (start: number, size: number, max: number) =>
       Math.min(Math.max(start, 0), Math.max(max - size, 0)) - start;
     setShift({
-      x: clamp(element.offsetLeft, element.offsetWidth, area.clientWidth),
-      y: clamp(element.offsetTop, element.offsetHeight, area.clientHeight),
+      x: clamp(left, element.offsetWidth, area.clientWidth),
+      y: clamp(top, element.offsetHeight, area.clientHeight),
     });
-  }, []);
+  }, [left, top]);
 
   const { style, scale } = request;
   const bits = Number(style.fontStyle) || 0;

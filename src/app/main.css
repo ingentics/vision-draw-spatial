@@ -703,6 +703,8 @@ body {
 /* Panneaux latéraux (paramètres) */
 .side-panel {
   flex: 0 0 min(360px, 45%);
+  /* Largeur fixe : le contenu s'y adapte au lieu d'élargir le panneau (et de redimensionner le plan). */
+  min-width: 0;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -978,7 +980,7 @@ body {
 
 .style-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
   margin: 8px 0 10px;
 }
@@ -1088,7 +1090,7 @@ body {
 
 .text-colors {
   display: grid;
-  grid-template-columns: repeat(10, 1fr);
+  grid-template-columns: repeat(10, minmax(0, 1fr));
   gap: 4px;
   margin: 2px 0 6px;
 }
