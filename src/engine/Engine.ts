@@ -584,7 +584,8 @@ export class Engine {
     );
     const bounds = dropBounds(template, at, gridSizeOf(pageTree));
     this.recordEdit('Nouvelle forme');
-    const id = addShapeCell(pageTree, { style: template.style, value: template.value, ...bounds });
+    const style = withStyleValue(template.style, 'fontSize', String(this.settings.shapes.textSize));
+    const id = addShapeCell(pageTree, { style, value: template.value, ...bounds });
     this.documentChanged([page.id]);
     const shape = this.getCurrentPage()?.shapes.find((s) => s.id === id);
     if (shape) this.select({ type: 'shape', element: shape });
@@ -1935,7 +1936,8 @@ export class Engine {
         return;
       }
       this.recordEdit('Connecteur');
-      const id = addEdgeCell(pageTree, { source: drag.sourceId, target: drag.targetId, style: CONNECTOR_STYLE });
+      const style = withStyleValue(CONNECTOR_STYLE, 'fontSize', String(this.settings.shapes.textSize));
+      const id = addEdgeCell(pageTree, { source: drag.sourceId, target: drag.targetId, style });
       this.documentChanged([drag.pageId]);
       const edge = this.getCurrentPage()?.edges.find((e) => e.id === id);
       if (edge) this.select({ type: 'edge', element: edge });
@@ -2084,7 +2086,8 @@ export class Engine {
       text: current?.label ?? '',
       screen,
       styleCellId: current?.id,
-      style: current?.style ?? edge.style,
+      // Texte à créer : à la taille des textes de début / fin (paramètre).
+      style: current?.style ?? { ...edge.style, fontSize: String(this.settings.shapes.edgeEndTextSize) },
       html: current?.style.html === '1' ? cellLabelValue(editable.pageTree, current.id) : undefined,
       scale: this.textScale(edgeId),
       onEdge: true,
@@ -2273,7 +2276,12 @@ export class Engine {
       rich === undefined ? setCellLabel(editable.pageTree, id, value) : setCellRichLabel(editable.pageTree, id, rich);
     if (!value && current) removeCells(editable.pageTree, [current.id]);
     else if (current) write(current.id);
-    else write(addEdgeLabelCell(editable.pageTree, edgeId, { value: '', position: endLabelPosition(end) }));
+    else {
+      // Texte de début / fin créé : plus petit que le texte de la flèche (paramètre).
+      const id = addEdgeLabelCell(editable.pageTree, edgeId, { value: '', position: endLabelPosition(end) });
+      setCellStyleValue(editable.pageTree, id, 'fontSize', String(this.settings.shapes.edgeEndTextSize));
+      write(id);
+    }
     this.documentChanged([editable.page.id]);
   }
 
@@ -2769,4 +2777,11 @@ function drawnTextBox(object: Object3D, toPage: Matrix4): Box3 | undefined {
     }
   });
   return box.isEmpty() ? undefined : box;
+}
+
+/** Style draw.io avec une clé ajoutée à la fin si elle n'y est pas déjà (`clé=valeur;`). */
+function withStyleValue(style: string, key: string, value: string): string {
+  if (style.split(';').some((token) => token.split('=')[0]!.trim() === key && token.includes('='))) return style;
+  const base = style.trim() === '' || style.trimEnd().endsWith(';') ? style : `${style};`;
+  return `${base}${key}=${value};`;
 }

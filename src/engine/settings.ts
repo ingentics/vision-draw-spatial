@@ -117,6 +117,10 @@ export interface SelectionSettings {
 export interface ShapeSettings {
   /** Couleur du texte des flèches sans `fontColor` (#rrggbb). */
   edgeFontColor: string;
+  /** Taille du texte des formes et des flèches créées (`fontSize`, pixels de page). */
+  textSize: number;
+  /** Taille des textes de début et de fin de flèche créés. */
+  edgeEndTextSize: number;
   /**
    * Fond du texte des flèches sans `labelBackgroundColor` explicite : halo de la couleur de la page
    * autour de chaque lettre, fond uni de la couleur de la page, ou transparent.
@@ -251,6 +255,8 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   shapes: {
     edgeFontColor: '#000000',
+    textSize: 12,
+    edgeEndTextSize: 9,
     edgeLabelBackdrop: 'halo',
     edgeLabelHaloWidth: 1.5,
     edgeLabelHaloBlur: 1,
@@ -296,6 +302,8 @@ export const SETTINGS_LIMITS = {
   'background.majorEvery': { min: 1, max: 20, step: 1 },
   'background.minorStrength': { min: 0, max: 1, step: 0.05 },
   'minimap.size': { min: 120, max: 400, step: 10 },
+  'shapes.textSize': { min: 4, max: 72, step: 1 },
+  'shapes.edgeEndTextSize': { min: 4, max: 72, step: 1 },
   'shapes.edgeLabelHaloWidth': { min: 0.5, max: 6, step: 0.25 },
   'shapes.edgeLabelHaloBlur': { min: 0, max: 4, step: 0.25 },
   'selection.speed': { min: 2, max: 80, step: 1 },
@@ -455,6 +463,10 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
     },
     shapes: {
       edgeFontColor: color(p.shapes?.edgeFontColor, base.shapes.edgeFontColor),
+      textSize: Math.round(num('shapes.textSize', p.shapes?.textSize, base.shapes.textSize)),
+      edgeEndTextSize: Math.round(
+        num('shapes.edgeEndTextSize', p.shapes?.edgeEndTextSize, base.shapes.edgeEndTextSize),
+      ),
       edgeLabelBackdrop: oneOf(LABEL_BACKDROPS, p.shapes?.edgeLabelBackdrop, base.shapes.edgeLabelBackdrop),
       edgeLabelHaloWidth: num(
         'shapes.edgeLabelHaloWidth',

@@ -521,6 +521,19 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
         </Section>
 
         <Section title="Formes et flèches">
+          <Subsection title="Texte">
+            <Slider
+              label="Taille du texte des nouvelles formes et flèches"
+              value={shapes.textSize}
+              limits={SETTINGS_LIMITS['shapes.textSize']}
+              format={(v) => `${v} px`}
+              onChange={(textSize) => onChange({ shapes: { textSize } })}
+            />
+            <p className="hint muted">
+              Écrite dans le style draw.io des formes et flèches créées ; les textes de début et de fin d'une flèche ont
+              leur propre taille (Flèches).
+            </p>
+          </Subsection>
           <Subsection title="Flèches">
             <ColorField
               label="Couleur du texte des flèches"
@@ -528,6 +541,13 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
               onChange={(edgeFontColor) => onChange({ shapes: { edgeFontColor } })}
             />
             <p className="hint muted">Quand le style draw.io de la flèche ne précise pas de couleur de texte.</p>
+            <Slider
+              label="Taille des textes de début et de fin"
+              value={shapes.edgeEndTextSize}
+              limits={SETTINGS_LIMITS['shapes.edgeEndTextSize']}
+              format={(v) => `${v} px`}
+              onChange={(edgeEndTextSize) => onChange({ shapes: { edgeEndTextSize } })}
+            />
             <Choice
               label="Fond du texte des flèches"
               value={shapes.edgeLabelBackdrop}

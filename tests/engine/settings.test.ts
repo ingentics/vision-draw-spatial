@@ -185,4 +185,9 @@ describe('réglages exposés (caméra, vue graphe, édition…)', () => {
       DEFAULT_SETTINGS.styles.text,
     );
   });
+  it('tailles du texte créé : 12 px, 9 px pour les textes de début et de fin ; bornées et entières', () => {
+    expect(DEFAULT_SETTINGS.shapes).toMatchObject({ textSize: 12, edgeEndTextSize: 9 });
+    const merged = mergeSettings(DEFAULT_SETTINGS, { shapes: { textSize: 200, edgeEndTextSize: 8.6 } });
+    expect(merged.shapes).toMatchObject({ textSize: 72, edgeEndTextSize: 9 });
+  });
 });
