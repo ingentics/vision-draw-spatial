@@ -449,12 +449,17 @@ export function Viewer({
               key={`${labelEdit.pageId}:${labelEdit.elementId}:${labelEdit.end ?? ''}`}
               request={labelEdit}
               handle={editorHandle}
+              onMoveText={
+                labelEdit.onEdge && labelEdit.styleCellId ? (screen) => engine?.moveEditedText(screen) : undefined
+              }
+              onMoveTextEnd={() => engine?.endEditedTextMove()}
               onToggle={(mark) => formatText({ type: 'toggle', mark })}
               onSelectionFormat={setSelectionFormat}
               onCommit={({ text, html }) => {
                 setLabelEdit(undefined);
                 engine?.closeLabelEdit();
-                if (labelEdit.end) engine?.setEdgeEndLabel(labelEdit.elementId, labelEdit.end, text, html);
+                if (labelEdit.labelCellId) engine?.setEdgeText(labelEdit.elementId, labelEdit.labelCellId, text, html);
+                else if (labelEdit.end) engine?.setEdgeEndLabel(labelEdit.elementId, labelEdit.end, text, html);
                 else engine?.setLabel(labelEdit.elementId, text, html);
                 engine?.focusCanvas();
               }}

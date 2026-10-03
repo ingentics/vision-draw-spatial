@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { CSSProperties, MutableRefObject } from 'react';
+import type { CSSProperties, MutableRefObject, RefObject } from 'react';
 import type { LabelEditRequest } from '../engine/Engine';
 import { isMonospace, isRich, parseColor, parseRichHtml, richToHtml, richToText } from '../engine/format/richText';
 import type { TextMarks } from '../engine/model/types';
@@ -46,6 +46,12 @@ interface LabelEditorProps {
   /** Format de la sélection (undefined : pas de sélection, le format est celui de tout le texte). */
   onSelectionFormat: (format: SelectionFormat | undefined) => void;
   handle: MutableRefObject<RichEditorHandle | undefined>;
+  /**
+   * Texte de flèche déplaçable (poignée sous le texte) : point du canvas visé pour l'ancre du texte,
+   * puis fin du déplacement. Absent : pas de poignée (forme, ou texte pas encore créé).
+   */
+  onMoveText?: (screen: { x: number; y: number }) => void;
+  onMoveTextEnd?: () => void;
 }
 
 /** Les clics dans cette zone (format du texte, panneau latéral) ne terminent pas l'édition. */
@@ -66,7 +72,16 @@ const COMMANDS: Record<ToggleMark, string> = {
  * les tailles écrites sont celles de draw.io. Entrée ajoute une ligne, Ctrl+Entrée (ou un clic
  * ailleurs) valide, Échap annule.
  */
-export function LabelEditor({ request, onCommit, onCancel, onToggle, onSelectionFormat, handle }: LabelEditorProps) {
+export function LabelEditor({
+  request,
+  onCommit,
+  onCancel,
+  onToggle,
+  onSelectionFormat,
+  handle,
+  onMoveText,
+  onMoveTextEnd,
+}: LabelEditorProps) {
   const box = useRef<HTMLDivElement>(null);
   const ref = useRef<HTMLDivElement>(null);
   const done = useRef(false);
@@ -196,15 +211,18 @@ export function LabelEditor({ request, onCommit, onCancel, onToggle, onSelection
 
   const { style, scale, onEdge } = request;
   const bits = Number(style.fontStyle) || 0;
+  const align = style.align === 'left' || style.align === 'right' ? style.align : 'center';
   // Boîte en pixels de page, agrandie au zoom : tailles du texte riche = tailles draw.io. Une forme : sur
-  // son emprise. Une flèche : centrée sur le point du texte, à la taille du texte, comme le label dessiné.
+  // son emprise. Une flèche : à la taille du texte, ancrée sur son point comme le label dessiné (aligné à
+  // gauche : le texte part du point vers la droite ; à droite : l'inverse ; centré : de part et d'autre).
+  const anchorShift = { left: '0', center: '-50%', right: '-100%' }[align];
   const boxStyle: CSSProperties = {
     left: left + shift.x,
     top: top + shift.y,
     outlineWidth: 1 / scale,
     background: request.background ?? 'transparent',
     ...(onEdge
-      ? { padding: 1, minWidth: 8, transform: `scale(${scale}) translate(-50%, -50%)` }
+      ? { padding: 1, minWidth: 8, transform: `scale(${scale}) translate(${anchorShift}, -50%)` }
       : {
           width: Math.max(width, 40) / scale,
           minHeight: Math.max(height, 20) / scale,
@@ -222,48 +240,114 @@ export function LabelEditor({ request, onCommit, onCancel, onToggle, onSelection
     fontStyle: bits & 2 ? 'italic' : 'normal',
     textDecoration: decorations || 'none',
     fontFamily: isMonospace(style.fontFamily) ? "'Roboto Mono', monospace" : "'Roboto', sans-serif",
-    textAlign: style.align === 'left' || style.align === 'right' ? style.align : 'center',
+    textAlign: align,
     whiteSpace: onEdge || style.whiteSpace !== 'wrap' ? 'pre' : 'pre-wrap',
   };
 
   return (
-    <div ref={box} className="label-editor" style={boxStyle}>
-      <div
-        ref={ref}
-        className="label-editor-text"
-        contentEditable
-        suppressContentEditableWarning
-        role="textbox"
-        aria-multiline="true"
-        aria-label="Texte de l’élément"
-        style={textStyle}
-        onBlur={(event) => {
-          // Focus passé au format du texte (taille, couleur) : l'édition continue.
-          const next = event.relatedTarget as Element | null;
-          if (next?.closest(`[${TEXT_FORMAT_ATTRIBUTE}]`)) return;
-          finish(true);
-        }}
-        onPaste={(event) => {
-          // Texte collé sans sa mise en forme d'origine.
-          event.preventDefault();
-          document.execCommand('insertText', false, event.clipboardData.getData('text/plain'));
-        }}
-        onKeyDown={(event) => {
-          const mod = event.ctrlKey || event.metaKey;
-          const key = event.key.toLowerCase();
-          if (event.key === 'Escape') {
-            event.preventDefault();
-            finish(false);
-          } else if (event.key === 'Enter' && mod) {
-            event.preventDefault();
+    <>
+      <div ref={box} className="label-editor" style={boxStyle}>
+        <div
+          ref={ref}
+          className="label-editor-text"
+          contentEditable
+          suppressContentEditableWarning
+          role="textbox"
+          aria-multiline="true"
+          aria-label="Texte de l’élément"
+          style={textStyle}
+          onBlur={(event) => {
+            // Focus passé au format du texte (taille, couleur) : l'édition continue.
+            const next = event.relatedTarget as Element | null;
+            if (next?.closest(`[${TEXT_FORMAT_ATTRIBUTE}]`)) return;
             finish(true);
-          } else if (mod && !event.altKey && (key === 'b' || key === 'i' || key === 'u')) {
+          }}
+          onPaste={(event) => {
+            // Texte collé sans sa mise en forme d'origine.
             event.preventDefault();
-            onToggle(({ b: 'bold', i: 'italic', u: 'underline' } as const)[key]);
-          }
-        }}
-      />
-    </div>
+            document.execCommand('insertText', false, event.clipboardData.getData('text/plain'));
+          }}
+          onKeyDown={(event) => {
+            const mod = event.ctrlKey || event.metaKey;
+            const key = event.key.toLowerCase();
+            if (event.key === 'Escape') {
+              event.preventDefault();
+              finish(false);
+            } else if (event.key === 'Enter' && mod) {
+              event.preventDefault();
+              finish(true);
+            } else if (mod && !event.altKey && (key === 'b' || key === 'i' || key === 'u')) {
+              event.preventDefault();
+              onToggle(({ b: 'bold', i: 'italic', u: 'underline' } as const)[key]);
+            }
+          }}
+        />
+      </div>
+      {onMoveText && (
+        <TextMoveHandle box={box} anchor={{ x: left, y: top }} onMove={onMoveText} onEnd={onMoveTextEnd} />
+      )}
+    </>
+  );
+}
+
+/**
+ * Poignée sous le texte d'une flèche en cours d'édition : la tirer déplace le texte (son ancre suit le
+ * pointeur, au même écart qu'au moment de la saisie). Elle ne prend pas le focus : la saisie continue.
+ */
+function TextMoveHandle({
+  box,
+  anchor,
+  onMove,
+  onEnd,
+}: {
+  box: RefObject<HTMLDivElement | null>;
+  anchor: { x: number; y: number };
+  onMove: (screen: { x: number; y: number }) => void;
+  onEnd?: () => void;
+}) {
+  const [position, setPosition] = useState<{ x: number; y: number }>();
+  const grab = useRef<{ dx: number; dy: number } | undefined>(undefined);
+  // Sous la boîte du texte (qui change de taille pendant la saisie), centrée.
+  useLayoutEffect(() => {
+    const element = box.current;
+    const area = element?.offsetParent as HTMLElement | null;
+    if (!element || !area) return;
+    const place = () => {
+      const rect = element.getBoundingClientRect();
+      const origin = area.getBoundingClientRect();
+      setPosition({ x: rect.left - origin.left + rect.width / 2, y: rect.bottom - origin.top });
+    };
+    place();
+    const observer = new ResizeObserver(place);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [box, anchor.x, anchor.y]);
+  if (!position) return null;
+  const areaOf = (target: Element) => (target.parentElement as HTMLElement).getBoundingClientRect();
+  return (
+    <div
+      className="text-move-handle"
+      {...{ [TEXT_FORMAT_ATTRIBUTE]: '' }}
+      title="Déplacer le texte"
+      style={{ left: position.x, top: position.y }}
+      onPointerDown={(event) => {
+        event.preventDefault();
+        event.currentTarget.setPointerCapture(event.pointerId);
+        const area = areaOf(event.currentTarget);
+        grab.current = { dx: event.clientX - area.left - anchor.x, dy: event.clientY - area.top - anchor.y };
+      }}
+      onPointerMove={(event) => {
+        if (!grab.current) return;
+        const area = areaOf(event.currentTarget);
+        onMove({ x: event.clientX - area.left - grab.current.dx, y: event.clientY - area.top - grab.current.dy });
+      }}
+      onPointerUp={(event) => {
+        if (!grab.current) return;
+        grab.current = undefined;
+        event.currentTarget.releasePointerCapture(event.pointerId);
+        onEnd?.();
+      }}
+    />
   );
 }
 

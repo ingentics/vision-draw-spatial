@@ -243,7 +243,9 @@ function TextAnchors({
           </div>
         );
       })}
-      <p className="panel-hint">Placement libre : tirer la poignée ◇ du texte sur le plan.</p>
+      <p className="panel-hint">
+        Placement libre : en modifiant le texte (double-clic), tirer la poignée ◇ sous le texte.
+      </p>
     </Section>
   );
 }

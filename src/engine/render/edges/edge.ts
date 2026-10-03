@@ -111,13 +111,16 @@ function createEdgeLabel(
 ): Object3D | null {
   if (!text.trim() || style.noLabel === '1') return null;
   const point = labelPoint(route, placement);
+  // Comme draw.io : aligné à gauche, le texte part du point vers la droite (le côté gauche est fixe) ;
+  // à droite, l'inverse ; centré, de part et d'autre.
+  const align = style.align === 'left' || style.align === 'right' ? style.align : 'center';
   const object = ctx.text.create({
     text,
     x: point.x,
     y: point.y,
-    anchorX: 'center',
+    anchorX: align,
     anchorY: 'middle',
-    align: style.align === 'left' || style.align === 'right' ? style.align : 'center',
+    align,
     fontSize: styleNumber(style, 'fontSize', 11),
     // Sans `fontColor` : couleur par défaut du paramètre `shapes.edgeFontColor` (noir).
     color: styleColor(style, 'fontColor', ctx.edgeFontColor ?? DEFAULT_EDGE_FONT_COLOR)!,

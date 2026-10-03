@@ -1,4 +1,15 @@
-import { Box3, Color, Group, Mesh, OrthographicCamera, PerspectiveCamera, Scene, WebGLRenderer } from 'three';
+import {
+  Box3,
+  Color,
+  Group,
+  Matrix4,
+  Mesh,
+  OrthographicCamera,
+  PerspectiveCamera,
+  Scene,
+  Vector3,
+  WebGLRenderer,
+} from 'three';
 import type { MeshBasicMaterial, Object3D } from 'three';
 import { collectUnsupported } from './diagnostics/unsupportedStyles';
 import type { UnsupportedReport } from './diagnostics/unsupportedStyles';
@@ -35,8 +46,7 @@ import { writeDrawio } from './format/write';
 import type { DrawioTree, PageTree } from './format/xmlTree';
 import { collectMoveSet, isLocked, moveTarget, snapDelta, translateMoveSet, unionMoveSets } from './edit/move';
 import type { MoveSet } from './edit/move';
-import { edgeTexts, endAt, endLabelOf, endLabelPosition, setEdgeTextPlacement } from './edit/edgeLabels';
-import type { EdgeText } from './edit/edgeLabels';
+import { anchorOf, edgeTexts, endAt, endLabelOf, endLabelPosition, setEdgeTextPlacement } from './edit/edgeLabels';
 import { labelPoint, placementAt, positionAlong } from './render/edges/polyline';
 import { setLineResolution } from './render/lines';
 import type { EdgeEnd } from './edit/edgeLabels';
@@ -94,7 +104,7 @@ import type {
 } from './model/types';
 import { selectionOutline } from './render/decorations';
 import { createEdge } from './render/edges/edge';
-import { connectorPreview, labelHandles, selectionHandles } from './render/handles';
+import { connectorPreview, selectionHandles } from './render/handles';
 import { createVeil, createVeilHole, liftAboveVeil } from './render/highlight';
 import { disposeObject } from './render/meshes';
 import { setPageOpacity } from './render/pageEffects';
@@ -208,6 +218,11 @@ export interface LabelEditRequest {
   elementId: string;
   /** Texte de début ou de fin d'une flèche (`setEdgeEndLabel`) ; absent = label de l'élément (`setLabel`). */
   end?: EdgeEnd;
+  /**
+   * Label enfant d'une flèche en cours d'édition (texte de début, de fin, ou placé ailleurs) : validé par
+   * `setEdgeText`. Absent : le label de l'élément, ou un texte de début / fin encore à créer (`end`).
+   */
+  labelCellId?: string;
   /** Texte brut actuel. */
   text: string;
   screen: Rect;
@@ -1261,6 +1276,9 @@ export class Engine {
   pickAt(screen: Point): PickedElement | undefined {
     const page = this.getCurrentPage();
     if (!page) return undefined;
+    // Texte d'une flèche, même placé loin d'elle : la flèche.
+    const text = this.edgeTextAt(screen);
+    if (text) return { type: 'edge', element: text.edge };
     const point = screenToPage(this.cameraState, this.viewport, screen);
     return pickElement(page, point, {
       edgeTolerance: this.settings.edit.edgePickTolerance / this.cameraState.zoom,
@@ -1580,12 +1598,6 @@ export class Engine {
     const start = screenToPage(this.cameraState, this.viewport, screen);
     const grid = gridSizeOf(pageTree);
 
-    const text = this.labelHandleAt(screen);
-    if (text) {
-      this.drag = { kind: 'label', pageId: page.id, ...text, started: false };
-      return true;
-    }
-
     const handle = this.handleAt(screen);
     const selected = handle ? this.editableSelection()?.shape : undefined;
     if (handle && selected) {
@@ -1677,38 +1689,124 @@ export class Engine {
   }
 
   /**
-   * Textes d'une flèche sélectionnée seule, sur une page modifiable : son label puis ses labels enfants
-   * (non vides), avec leur placement. Poignées et ancres du panneau.
-   */
-  private selectedEdgeTexts(): { edge: EdgeModel; texts: EdgeText[] } | undefined {
-    const editable = this.editablePage();
-    const picked = this.selection?.picked;
-    if (!editable || picked?.type !== 'edge' || this.isMultiSelection()) return undefined;
-    if (this.selection?.pageId !== editable.page.id) return undefined;
-    const edge = editable.page.edges.find((e) => e.id === picked.element.id);
-    return edge ? { edge, texts: edgeTexts(edge) } : undefined;
-  }
-
-  /** Poignée de texte de la flèche sélectionnée sous un point écran. */
-  private labelHandleAt(screen: Point): { edgeId: string; cellId: string; offset: Point } | undefined {
-    const selected = this.selectedEdgeTexts();
-    const route = selected && (this.sceneObject(selected.edge.id)?.userData.route as Point[] | undefined);
-    if (!selected || !route?.length) return undefined;
-    const top = this.elementTop(selected.edge.id);
-    let best: { cellId: string; offset: Point; distance: number } | undefined;
-    for (const text of selected.texts) {
-      const at = this.screenOfPoint(labelPoint(route, text.placement), top);
-      const distance = Math.hypot(at.x - screen.x, at.y - screen.y);
-      if (distance <= this.settings.edit.handlePickTolerance && (!best || distance < best.distance))
-        best = { cellId: text.cellId, offset: text.placement.offset, distance };
-    }
-    return best && { edgeId: selected.edge.id, cellId: best.cellId, offset: best.offset };
-  }
-
-  /**
    * Ancre un texte de flèche au début, au milieu ou à la fin du tracé (à 10 % du bout pour le début et
    * la fin, comme les textes créés), sur le tracé (distance et décalage remis à zéro).
    */
+  /**
+   * Édition en place d'un texte existant d'une flèche (son label ou un label enfant), où qu'il soit
+   * placé : double-clic sur le texte.
+   */
+  editEdgeText(edgeId: string, cellId: string): void {
+    if (cellId === edgeId) {
+      this.editLabel(edgeId);
+      return;
+    }
+    const editable = this.editablePage();
+    const edge = editable?.page.edges.find((e) => e.id === edgeId);
+    const label = edge?.labels.find((l) => l.id === cellId);
+    const screen = label && this.labelEditScreen(edgeId, undefined, cellId);
+    if (!editable || !edge || !label || !screen) return;
+    const anchor = anchorOf(label.placement);
+    this.startLabelEdit({
+      pageId: editable.page.id,
+      elementId: edgeId,
+      end: anchor === 'middle' ? undefined : anchor,
+      labelCellId: cellId,
+      text: label.label,
+      screen,
+      styleCellId: cellId,
+      style: label.style,
+      html: label.style.html === '1' ? cellLabelValue(editable.pageTree, cellId) : undefined,
+      scale: this.textScale(edgeId),
+      onEdge: true,
+      background: this.labelEditBackground(label.style, true),
+    });
+  }
+
+  /**
+   * Texte d'une flèche : son label (`cellId` = l'arête) ou un label enfant, retiré si le texte est vide ;
+   * HTML draw.io s'il a une mise en forme partielle.
+   */
+  setEdgeText(edgeId: string, cellId: string, text: string, html?: string): void {
+    if (cellId === edgeId) {
+      this.setLabel(edgeId, text, html);
+      return;
+    }
+    const editable = this.editablePage();
+    const label = editable?.page.edges.find((e) => e.id === edgeId)?.labels.find((l) => l.id === cellId);
+    if (!editable || !label) return;
+    const value = text.trim() === '' ? '' : text;
+    const rich = value ? html : undefined;
+    const unchanged =
+      rich === undefined ? label.label === value && !label.rich : cellLabelValue(editable.pageTree, cellId) === rich;
+    if (unchanged) return;
+    this.recordEdit('Texte');
+    if (!value) removeCells(editable.pageTree, [cellId]);
+    else if (rich === undefined) setCellLabel(editable.pageTree, cellId, value);
+    else setCellRichLabel(editable.pageTree, cellId, rich);
+    this.documentChanged([editable.page.id]);
+  }
+
+  /**
+   * Déplace le texte de flèche en cours d'édition (poignée sous l'éditeur) : `screen` est le point visé
+   * pour le texte (son ancre). Suivi en direct ; `endEditedTextMove` l'écrit dans le fichier.
+   */
+  moveEditedText(screen: Point): void {
+    const editing = this.labelEditing;
+    const page = this.getCurrentPage();
+    const cellId = editing?.styleCellId;
+    if (!editing?.onEdge || !cellId || !page || editing.pageId !== page.id) return;
+    const edge = page.edges.find((e) => e.id === editing.elementId);
+    if (!edge) return;
+    if (this.drag?.kind !== 'label') {
+      const current = cellId === edge.id ? edge.labelPlacement : edge.labels.find((l) => l.id === cellId)?.placement;
+      if (!current) return;
+      this.drag = { kind: 'label', pageId: page.id, edgeId: edge.id, cellId, offset: current.offset, started: false };
+    }
+    this.dragLabel(page, this.drag, screen);
+    this.hideEditedLabel();
+    this.relocateLabelEdit();
+  }
+
+  /** Fin du déplacement du texte en cours d'édition : une étape d'annulation, écrite comme draw.io. */
+  endEditedTextMove(): void {
+    if (this.drag?.kind === 'label') this.endMove();
+  }
+
+  /**
+   * Texte de flèche sous un point écran (sa boîte de texte dessinée, où qu'il soit placé) : le plus
+   * haut dans l'ordre de dessin. Cliquer un texte éloigné de sa flèche la sélectionne.
+   */
+  private edgeTextAt(screen: Point): { edge: EdgeModel; cellId: string } | undefined {
+    const page = this.getCurrentPage();
+    const root = this.scenes.current?.root;
+    if (!page || !root) return undefined;
+    root.updateMatrixWorld();
+    const toPage = new Matrix4().copy(root.matrixWorld).invert();
+    const padding = 2 / this.cameraState.zoom;
+    for (const edge of [...page.edges].reverse()) {
+      const object = this.sceneObject(edge.id);
+      if (!object?.visible) continue;
+      const point = this.groundPointAtHeight(screen, this.elementTop(edge.id));
+      let hit: string | undefined;
+      object.traverse((child) => {
+        const cellId = child.userData.labelCellId as string | undefined;
+        if (hit || !cellId || !child.visible) return;
+        const box = drawnTextBox(child, toPage);
+        if (
+          box &&
+          point.x >= box.min.x - padding &&
+          point.x <= box.max.x + padding &&
+          point.y >= box.min.y - padding &&
+          point.y <= box.max.y + padding
+        )
+          hit = cellId;
+      });
+      if (hit) return { edge, cellId: hit };
+    }
+    return undefined;
+  }
+
   setEdgeTextAnchor(edgeId: string, cellId: string, anchor: EdgeTextAnchor): void {
     const editable = this.editablePage();
     const edge = editable?.page.edges.find((e) => e.id === edgeId);
@@ -1965,13 +2063,14 @@ export class Engine {
   editEdgeEndLabel(edgeId: string, end: EdgeEnd): void {
     const editable = this.editablePage();
     const edge = editable?.page.edges.find((e) => e.id === edgeId);
-    const screen = this.labelEditScreen(edgeId, end);
+    const current = edge && endLabelOf(edge, end);
+    const screen = this.labelEditScreen(edgeId, end, current?.id);
     if (!editable || !edge || !screen) return;
-    const current = endLabelOf(edge, end);
     this.startLabelEdit({
       pageId: editable.page.id,
       elementId: edgeId,
       end,
+      labelCellId: current?.id,
       text: current?.label ?? '',
       screen,
       styleCellId: current?.id,
@@ -2006,15 +2105,16 @@ export class Engine {
    * Emprise à l'écran du texte édité : la forme (dessus du volume), le milieu d'une flèche, ou le point
    * de son texte de début / fin.
    */
-  private labelEditScreen(elementId: string, end?: EdgeEnd): Rect | undefined {
+  private labelEditScreen(elementId: string, end?: EdgeEnd, labelCellId?: string): Rect | undefined {
     const edge = this.getCurrentPage()?.edges.find((e) => e.id === elementId);
     if (!edge) return this.screenRectOf(elementId);
-    // Flèche : le point où le texte est dessiné (placement du label du milieu, du début ou de la fin).
+    // Flèche : le point où le texte est dessiné (son label, un label enfant, ou un début / fin à créer).
     const route = this.sceneObject(elementId)?.userData.route as Point[] | undefined;
     if (!route?.length) return undefined;
-    const placement = end
-      ? (endLabelOf(edge, end)?.placement ?? { position: endLabelPosition(end), distance: 0, offset: { x: 0, y: 0 } })
-      : edge.labelPlacement;
+    const child = labelCellId ? edge.labels.find((l) => l.id === labelCellId) : undefined;
+    const placement =
+      child?.placement ??
+      (end ? { position: endLabelPosition(end), distance: 0, offset: { x: 0, y: 0 } } : edge.labelPlacement);
     const center = this.screenOfPoint(labelPoint(route, placement), this.elementTop(elementId));
     return { x: center.x, y: center.y, width: 0, height: 0 };
   }
@@ -2026,7 +2126,7 @@ export class Engine {
   private relocateLabelEdit(): void {
     const editing = this.labelEditing;
     if (!editing || editing.pageId !== this.currentPageId) return;
-    const screen = this.labelEditScreen(editing.elementId, editing.end);
+    const screen = this.labelEditScreen(editing.elementId, editing.end, editing.labelCellId);
     if (!screen) return;
     const scale = this.textScale(editing.elementId);
     const same = (a: Rect, b: Rect) => a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
@@ -2309,7 +2409,9 @@ export class Engine {
    */
   private handleDoubleClick(screen: Point): void {
     const picked = this.pickAt(screen);
+    const text = picked?.type === 'edge' ? this.edgeTextAt(screen) : undefined;
     if (picked && isNavigableLink(picked.element.link)) this.followLink(picked.element.id);
+    else if (text) this.editEdgeText(text.edge.id, text.cellId);
     else if (picked?.type === 'edge') {
       // Près d'un bout : texte de début ou de fin ; vers le milieu : label de la flèche.
       const route = this.sceneObject(picked.element.id)?.userData.route as Point[] | undefined;
@@ -2325,9 +2427,7 @@ export class Engine {
     const picked = screen ? this.pickAt(screen) : undefined;
     const link = isNavigableLink(picked?.element.link) ? picked?.element.link : undefined;
     const handle = screen ? this.handleAt(screen) : undefined;
-    const text = screen && !handle ? this.labelHandleAt(screen) : undefined;
-    const cursor =
-      handle === 'connect' ? 'crosshair' : handle ? HANDLE_CURSORS[handle] : text ? 'move' : link ? 'pointer' : '';
+    const cursor = handle === 'connect' ? 'crosshair' : handle ? HANDLE_CURSORS[handle] : link ? 'pointer' : '';
     if (!this.canvas.style.cursor.startsWith('grab')) this.canvas.style.cursor = cursor;
     this.canvas.title = link ? this.describeLink(link) : '';
     clearTimeout(this.hoverTimer);
@@ -2506,21 +2606,6 @@ export class Engine {
       });
       root.add(this.handlesObject);
     }
-    // Poignées des textes de la flèche sélectionnée : on les tire pour placer le texte.
-    const texts = visible && root ? this.selectedEdgeTexts() : undefined;
-    const route = texts && (this.sceneObject(texts.edge.id)?.userData.route as Point[] | undefined);
-    if (texts && route?.length && root && texts.texts.length > 0) {
-      this.handlesObject = labelHandles(
-        texts.texts.map((text) => labelPoint(route, text.placement)),
-        this.cameraState.zoom,
-        { size: this.settings.edit.handleSize, accent: this.settings.selection.accentColor },
-      );
-      this.handlesObject.position.z = this.elementTop(texts.edge.id) + 0.3;
-      this.handlesObject.traverse((o) => {
-        if (o instanceof Mesh) (o.material as MeshBasicMaterial).depthTest = false;
-      });
-      root.add(this.handlesObject);
-    }
     this.requestRender();
   }
 
@@ -2633,4 +2718,27 @@ export class Engine {
       else this.renderer.render(this.scene, this.activeCamera());
     });
   };
+}
+
+/**
+ * Boîte d'un texte dessiné (texte SDF mis en page, ou segments d'un texte riche), en coordonnées de
+ * page ; undefined tant que la mise en page n'est pas prête.
+ */
+function drawnTextBox(object: Object3D, toPage: Matrix4): Box3 | undefined {
+  const box = new Box3();
+  object.traverse((child) => {
+    const info = (child as Object3D & { textRenderInfo?: { blockBounds: [number, number, number, number] } })
+      .textRenderInfo;
+    if (!info) return;
+    const [minX, minY, maxX, maxY] = info.blockBounds;
+    for (const [x, y] of [
+      [minX, minY],
+      [maxX, minY],
+      [minX, maxY],
+      [maxX, maxY],
+    ] as const) {
+      box.expandByPoint(new Vector3(x, y, 0).applyMatrix4(child.matrixWorld).applyMatrix4(toPage));
+    }
+  });
+  return box.isEmpty() ? undefined : box;
 }
