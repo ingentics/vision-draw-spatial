@@ -46,7 +46,8 @@ import { writeDrawio } from './format/write';
 import type { DrawioTree, PageTree } from './format/xmlTree';
 import { collectMoveSet, isLocked, moveTarget, snapDelta, translateMoveSet, unionMoveSets } from './edit/move';
 import type { MoveSet } from './edit/move';
-import { anchorOf, edgeTexts, endAt, endLabelOf, endLabelPosition, setEdgeTextPlacement } from './edit/edgeLabels';
+import { anchorOf, edgeTextLayout, edgeTexts, endAt, endLabelOf, setEdgeTextPlacement } from './edit/edgeLabels';
+import type { EdgeTextLayout } from './edit/edgeLabels';
 import { labelPoint, placementAt, positionAlong } from './render/edges/polyline';
 import { setLineResolution } from './render/lines';
 import type { EdgeEnd } from './edit/edgeLabels';
@@ -1822,10 +1823,32 @@ export class Engine {
     const editable = this.editablePage();
     const edge = editable?.page.edges.find((e) => e.id === edgeId);
     if (!editable || !edge || !edgeTexts(edge).some((text) => text.cellId === cellId)) return;
-    const position = anchor === 'middle' ? 0 : endLabelPosition(anchor);
+    const route = this.sceneObject(edgeId)?.userData.route as Point[] | undefined;
+    if (!route?.length) return;
+    // Même configuration qu'un texte créé à cet endroit : placement et alignement.
+    const layout = edgeTextLayout(route, anchor);
     this.recordEdit('Position du texte');
-    setLabelPlacement(editable.pageTree, cellId, { position, distance: 0, offset: { x: 0, y: 0 } });
+    setLabelPlacement(editable.pageTree, cellId, layout.placement);
+    const centered = anchor === 'middle';
+    setCellStyleValue(editable.pageTree, cellId, 'align', centered ? undefined : layout.align);
+    setCellStyleValue(editable.pageTree, cellId, 'verticalAlign', centered ? undefined : layout.verticalAlign);
     this.documentChanged([editable.page.id]);
+  }
+
+  /** Configuration par défaut d'un texte de début / fin d'une flèche de la page courante. */
+  private endTextLayout(edgeId: string, end: EdgeEnd): EdgeTextLayout {
+    const route = (this.sceneObject(edgeId)?.userData.route as Point[] | undefined) ?? [];
+    return edgeTextLayout(route, end);
+  }
+
+  /** Style d'un texte de début / fin créé : taille et couleur (paramètres), alignement de sa configuration. */
+  private endTextStyle(layout: EdgeTextLayout): Record<string, string> {
+    return {
+      fontSize: String(this.settings.shapes.edgeEndTextSize),
+      fontColor: this.settings.shapes.edgeEndTextColor,
+      align: layout.align,
+      verticalAlign: layout.verticalAlign,
+    };
   }
 
   private dragMove(page: PageModel, move: MoveDrag, point: Point, snap: boolean): void {
@@ -2086,8 +2109,8 @@ export class Engine {
       text: current?.label ?? '',
       screen,
       styleCellId: current?.id,
-      // Texte à créer : à la taille des textes de début / fin (paramètre).
-      style: current?.style ?? { ...edge.style, fontSize: String(this.settings.shapes.edgeEndTextSize) },
+      // Texte à créer : avec la configuration qu'il aura (taille, couleur, alignement).
+      style: current?.style ?? { ...edge.style, ...this.endTextStyle(this.endTextLayout(edgeId, end)) },
       html: current?.style.html === '1' ? cellLabelValue(editable.pageTree, current.id) : undefined,
       scale: this.textScale(edgeId),
       onEdge: true,
@@ -2143,9 +2166,7 @@ export class Engine {
     const route = this.sceneObject(elementId)?.userData.route as Point[] | undefined;
     if (!route?.length) return undefined;
     const child = labelCellId ? edge.labels.find((l) => l.id === labelCellId) : undefined;
-    const placement =
-      child?.placement ??
-      (end ? { position: endLabelPosition(end), distance: 0, offset: { x: 0, y: 0 } } : edge.labelPlacement);
+    const placement = child?.placement ?? (end ? edgeTextLayout(route, end).placement : edge.labelPlacement);
     const center = this.screenOfPoint(labelPoint(route, placement), this.elementTop(elementId));
     return { x: center.x, y: center.y, width: 0, height: 0 };
   }
@@ -2277,9 +2298,14 @@ export class Engine {
     if (!value && current) removeCells(editable.pageTree, [current.id]);
     else if (current) write(current.id);
     else {
-      // Texte de début / fin créé : plus petit que le texte de la flèche (paramètre).
-      const id = addEdgeLabelCell(editable.pageTree, edgeId, { value: '', position: endLabelPosition(end) });
-      setCellStyleValue(editable.pageTree, id, 'fontSize', String(this.settings.shapes.edgeEndTextSize));
+      // Texte de début / fin créé : configuration par défaut d'après le tracé (contre son bout, côté et
+      // alignement qui l'éloignent de la forme), plus petit et grisé (paramètres).
+      const layout = this.endTextLayout(edgeId, end);
+      const id = addEdgeLabelCell(editable.pageTree, edgeId, { value: '', position: layout.placement.position });
+      setLabelPlacement(editable.pageTree, id, layout.placement);
+      for (const [key, value] of Object.entries(this.endTextStyle(layout))) {
+        setCellStyleValue(editable.pageTree, id, key, value);
+      }
       write(id);
     }
     this.documentChanged([editable.page.id]);

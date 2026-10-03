@@ -548,6 +548,15 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
               format={(v) => `${v} px`}
               onChange={(edgeEndTextSize) => onChange({ shapes: { edgeEndTextSize } })}
             />
+            <ColorField
+              label="Couleur des textes de début et de fin"
+              value={shapes.edgeEndTextColor}
+              onChange={(edgeEndTextColor) => onChange({ shapes: { edgeEndTextColor } })}
+            />
+            <p className="hint muted">
+              Textes créés au début ou à la fin d'une flèche : contre leur bout, du côté et avec l'alignement qui les
+              éloignent de la forme.
+            </p>
             <Choice
               label="Fond du texte des flèches"
               value={shapes.edgeLabelBackdrop}

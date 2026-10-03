@@ -216,13 +216,14 @@ export function LabelEditor({
   // son emprise. Une flèche : à la taille du texte, ancrée sur son point comme le label dessiné (aligné à
   // gauche : le texte part du point vers la droite ; à droite : l'inverse ; centré : de part et d'autre).
   const anchorShift = { left: '0', center: '-50%', right: '-100%' }[align];
+  const anchorShiftY = style.verticalAlign === 'top' ? '0' : style.verticalAlign === 'bottom' ? '-100%' : '-50%';
   const boxStyle: CSSProperties = {
     left: left + shift.x,
     top: top + shift.y,
     outlineWidth: 1 / scale,
     background: request.background ?? 'transparent',
     ...(onEdge
-      ? { padding: 1, minWidth: 8, transform: `scale(${scale}) translate(${anchorShift}, -50%)` }
+      ? { padding: 1, minWidth: 8, transform: `scale(${scale}) translate(${anchorShift}, ${anchorShiftY})` }
       : {
           width: Math.max(width, 40) / scale,
           minHeight: Math.max(height, 20) / scale,

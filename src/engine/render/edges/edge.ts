@@ -127,7 +127,8 @@ function createEdgeLabel(
     x: point.x,
     y: point.y,
     anchorX: align,
-    anchorY: 'middle',
+    // Même logique en hauteur : aligné en haut, le texte part du point vers le bas ; en bas, vers le haut.
+    anchorY: style.verticalAlign === 'top' ? 'top' : style.verticalAlign === 'bottom' ? 'bottom' : 'middle',
     align,
     fontSize: styleNumber(style, 'fontSize', 11),
     // Sans `fontColor` : couleur par défaut du paramètre `shapes.edgeFontColor` (noir).

@@ -121,6 +121,8 @@ export interface ShapeSettings {
   textSize: number;
   /** Taille des textes de début et de fin de flèche créés. */
   edgeEndTextSize: number;
+  /** Couleur des textes de début et de fin de flèche créés (#rrggbb). */
+  edgeEndTextColor: string;
   /**
    * Fond du texte des flèches sans `labelBackgroundColor` explicite : halo de la couleur de la page
    * autour de chaque lettre, fond uni de la couleur de la page, ou transparent.
@@ -257,6 +259,7 @@ export const DEFAULT_SETTINGS: Settings = {
     edgeFontColor: '#000000',
     textSize: 12,
     edgeEndTextSize: 9,
+    edgeEndTextColor: '#808080',
     edgeLabelBackdrop: 'halo',
     edgeLabelHaloWidth: 1.5,
     edgeLabelHaloBlur: 1,
@@ -464,6 +467,7 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
     shapes: {
       edgeFontColor: color(p.shapes?.edgeFontColor, base.shapes.edgeFontColor),
       textSize: Math.round(num('shapes.textSize', p.shapes?.textSize, base.shapes.textSize)),
+      edgeEndTextColor: color(p.shapes?.edgeEndTextColor, base.shapes.edgeEndTextColor),
       edgeEndTextSize: Math.round(
         num('shapes.edgeEndTextSize', p.shapes?.edgeEndTextSize, base.shapes.edgeEndTextSize),
       ),

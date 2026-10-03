@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { anchorOf, edgeTexts, endAt, endLabelOf, endLabelPosition } from '../../../src/engine/edit/edgeLabels';
+import {
+  anchorOf,
+  edgeTextLayout,
+  edgeTexts,
+  endAt,
+  endLabelOf,
+  endLabelPosition,
+} from '../../../src/engine/edit/edgeLabels';
 import { labelPoint, placementAt, positionAlong } from '../../../src/engine/render/edges/polyline';
 import { addEdgeLabelCell } from '../../../src/engine/format/create';
 import { setCellLabel, setLabelPlacement } from '../../../src/engine/format/edit';
@@ -112,5 +119,60 @@ describe('position des textes d’une flèche', () => {
       ['e', 'middle'],
       ['a', 'start'],
     ]);
+  });
+});
+
+describe('configuration par défaut des textes de début et de fin', () => {
+  const at = (route: Array<[number, number]>, end: 'start' | 'end' | 'middle') => {
+    const layout = edgeTextLayout(
+      route.map(([x, y]) => ({ x, y })),
+      end,
+    );
+    return {
+      ...layout,
+      point: labelPoint(
+        route.map(([x, y]) => ({ x, y })),
+        layout.placement,
+      ),
+    };
+  };
+
+  it('flèche qui part vers la droite et arrive par la gauche (comme l’exemple) : début au-dessus aligné à gauche, fin en dessous alignée à droite', () => {
+    const route: Array<[number, number]> = [
+      [0, 0],
+      [50, 0],
+      [50, 100],
+      [100, 100],
+    ];
+    expect(at(route, 'start')).toMatchObject({ align: 'left', verticalAlign: 'bottom', point: { x: 6, y: -4 } });
+    expect(at(route, 'end')).toMatchObject({ align: 'right', verticalAlign: 'top', point: { x: 94, y: 104 } });
+    expect(at(route, 'middle')).toMatchObject({ align: 'center', verticalAlign: 'middle' });
+  });
+
+  it('sens inverse : les alignements s’inversent (le texte s’éloigne toujours de la forme)', () => {
+    const route: Array<[number, number]> = [
+      [100, 0],
+      [0, 0],
+    ];
+    expect(at(route, 'start')).toMatchObject({ align: 'right', verticalAlign: 'bottom', point: { x: 94, y: -4 } });
+    expect(at(route, 'end')).toMatchObject({ align: 'left', verticalAlign: 'top', point: { x: 6, y: 4 } });
+  });
+
+  it('segments verticaux : début à droite du trait, fin à gauche, le texte part le long du trait', () => {
+    const down: Array<[number, number]> = [
+      [0, 0],
+      [0, 100],
+    ];
+    expect(at(down, 'start')).toMatchObject({ align: 'left', verticalAlign: 'top', point: { x: 4, y: 6 } });
+    expect(at(down, 'end')).toMatchObject({ align: 'right', verticalAlign: 'bottom', point: { x: -4, y: 94 } });
+  });
+
+  it('placement au bout (x = ±1) : reconnu comme texte de début ou de fin', () => {
+    const route: Array<[number, number]> = [
+      [0, 0],
+      [100, 0],
+    ];
+    expect(anchorOf(at(route, 'start').placement)).toBe('start');
+    expect(anchorOf(at(route, 'end').placement)).toBe('end');
   });
 });

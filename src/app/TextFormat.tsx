@@ -22,7 +22,7 @@ export interface TextEdit {
   selection?: SelectionFormat;
   /** Faux tant que le texte n'existe pas (début / fin d'une flèche à créer) : seule la sélection se formate. */
   canFormat: boolean;
-  /** Texte d'une flèche : pas d'alignement vertical (centré sur le tracé). */
+  /** Texte d'une flèche (l'alignement fixe le côté du texte qui reste sur son point). */
   onEdge: boolean;
   presets: TextPreset[];
   onAction: (action: TextAction) => void;
@@ -57,7 +57,7 @@ const BITS: Record<ToggleMark, number> = { bold: 1, italic: 2, underline: 4, str
  * sélection, à tout le texte. Les boutons ne prennent pas le focus : la saisie continue.
  */
 export function TextFormatSections({ edit }: { edit: TextEdit }) {
-  const { style, selection, canFormat, onEdge, presets, onAction } = edit;
+  const { style, selection, canFormat, presets, onAction } = edit;
   const bits = Number(style.fontStyle) || 0;
   const whole = {
     bold: (bits & 1) !== 0,
@@ -202,7 +202,7 @@ export function TextFormatSections({ edit }: { edit: TextEdit }) {
               ))}
             </span>
           </div>
-          {!onEdge && (
+          {
             <div className="field-row">
               Vertical
               <span className="button-group">
@@ -218,7 +218,7 @@ export function TextFormatSections({ edit }: { edit: TextEdit }) {
                 ))}
               </span>
             </div>
-          )}
+          }
         </fieldset>
       </Section>
       <p className="panel-hint">
