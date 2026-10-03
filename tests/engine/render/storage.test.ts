@@ -176,16 +176,27 @@ describe('formes de stockage : BDD, queue, cache distribué', () => {
       expect(box(cache)[1]![1]).toBeCloseTo(40, 0);
     });
 
-    it('queue : chevrons de flux sur les deux faces longues, vers le bout visible en 2D', () => {
+    it('queue : chevrons de flux sur les deux faces longues, cercle sur chaque bout', () => {
       const { element } = build('iso');
-      const chevrons = named(element('queue'), 'facade');
+      const engravings = named(element('queue'), 'facade');
+      // Bouts (faces ouest / est) : x constant ; faces longues (nord / sud) : y constant.
+      const flat = (c: Object3D, axis: 0 | 2) => box(c)[1]![axis]! - box(c)[0]![axis]! < 0.5;
+      const chevrons = engravings.filter((c) => flat(c, 2));
+      const circles = engravings.filter((c) => flat(c, 0));
       expect(chevrons.length).toBeGreaterThanOrEqual(2);
       expect(chevrons.length % 2).toBe(0);
-      // Face nord (y = 50) : la pointe du chevron (x max) est à droite, vers le bout visible (direction=south).
+      // Face nord (y = 50) : la moitié des chevrons.
       const north = chevrons.filter((c) => box(c)[0]![2]! < 50);
       expect(north.length).toBe(chevrons.length / 2);
-      // Creusés : une rainure sombre sous chaque chevron.
-      expect(named(element('queue'), 'facade-groove')).toHaveLength(chevrons.length);
+      // Un cercle par bout, au niveau des chevrons, centré sur la face.
+      expect(circles).toHaveLength(2);
+      const [chevronMin, chevronMax] = box(chevrons[0]!).map((v) => v[1]!);
+      for (const circle of circles) {
+        const [min, max] = box(circle);
+        expect((min![1]! + max![1]!) / 2).toBeCloseTo((chevronMin! + chevronMax!) / 2, 0);
+      }
+      // Creusés : une rainure sombre sous chaque gravure.
+      expect(named(element('queue'), 'facade-groove')).toHaveLength(engravings.length);
     });
 
     it('étiquettes de façade : DB, QUEUE, CACHE sur les quatre faces, en bas', () => {
