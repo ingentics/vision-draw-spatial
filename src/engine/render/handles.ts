@@ -75,3 +75,76 @@ export function connectorPreview(from: Point, to: Point, zoom: number, accent = 
   });
   return group;
 }
+
+/**
+ * Poignées des bouts d'une flèche sélectionnée : disque bleu si le bout est attaché à une forme,
+ * blanc bordé de bleu s'il est libre (comme draw.io).
+ */
+export function edgeEndHandles(
+  ends: Array<{ point: Point; attached: boolean }>,
+  zoom: number,
+  options: HandleStyle = {},
+): Group {
+  const group = new Group();
+  group.name = 'edge-handles';
+  const r = ((options.size ?? HANDLE_SIZE) * 1.25) / zoom;
+  const accent = new Color(options.accent ?? DEFAULT_ACCENT);
+  for (const { point, attached } of ends) {
+    const disc = ellipsePath({ x: point.x - r, y: point.y - r, width: 2 * r, height: 2 * r }, 24);
+    group.add(fillMesh(disc, attached ? accent : WHITE, 1));
+    const outline = strokeMesh(disc, attached ? WHITE : accent, 1, { width: 1.2 / zoom, closed: true });
+    if (outline) group.add(outline);
+  }
+  group.traverse((o) => {
+    o.renderOrder = Number.MAX_SAFE_INTEGER;
+  });
+  return group;
+}
+
+/**
+ * Repères d'accroche sur la forme visée par un bout de flèche : contour surligné (attache auto) et
+ * croix sur les points de connexion, celui retenu cerclé.
+ */
+export function connectionHints(
+  shape: { bounds: Rect; ellipse: boolean },
+  points: Point[],
+  zoom: number,
+  options: { active?: number; outline: boolean; accent?: string },
+): Group {
+  const group = new Group();
+  group.name = 'connection-hints';
+  const accent = new Color(options.accent ?? DEFAULT_ACCENT);
+  if (options.outline) {
+    const path = shape.ellipse ? ellipsePath(shape.bounds, 64) : rectPath(shape.bounds);
+    const outline = strokeMesh(path, accent, 0.8, { width: 3 / zoom, closed: true });
+    if (outline) group.add(outline);
+  }
+  const c = 3.5 / zoom;
+  points.forEach((p, index) => {
+    for (const stroke of [
+      [
+        { x: p.x - c, y: p.y - c },
+        { x: p.x + c, y: p.y + c },
+      ],
+      [
+        { x: p.x - c, y: p.y + c },
+        { x: p.x + c, y: p.y - c },
+      ],
+    ]) {
+      const mesh = strokeMesh(stroke, accent, 1, { width: 1.5 / zoom, closed: false });
+      if (mesh) group.add(mesh);
+    }
+    if (index === options.active) {
+      const r = 7 / zoom;
+      const ring = strokeMesh(ellipsePath({ x: p.x - r, y: p.y - r, width: 2 * r, height: 2 * r }, 24), accent, 1, {
+        width: 2 / zoom,
+        closed: true,
+      });
+      if (ring) group.add(ring);
+    }
+  });
+  group.traverse((o) => {
+    o.renderOrder = Number.MAX_SAFE_INTEGER;
+  });
+  return group;
+}

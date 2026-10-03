@@ -27,6 +27,7 @@ import {
   setCellObjectAttribute,
   setCellRichLabel,
   setCellStyleValue,
+  setEdgeTerminal,
 } from './format/edit';
 import {
   addEdgeCell,
@@ -44,6 +45,18 @@ import { readPageViews, writePageViews } from './format/viewState';
 import type { IsoViewParams, PageViewState } from './format/viewState';
 import { writeDrawio } from './format/write';
 import type { DrawioTree, PageTree } from './format/xmlTree';
+import {
+  applyEndAttachment,
+  connectableShapes,
+  connectionPoints,
+  constraintStyle,
+  CONNECTION_POINTS,
+  endAttachmentOf,
+  restoreEnds,
+  sameAttachment,
+  snapshotEnds,
+} from './edit/edgeEnds';
+import type { EdgeEndsSnapshot, EndAttachment, TerminalEnd } from './edit/edgeEnds';
 import { collectMoveSet, isLocked, moveTarget, snapDelta, translateMoveSet, unionMoveSets } from './edit/move';
 import type { MoveSet } from './edit/move';
 import {
@@ -113,7 +126,7 @@ import type {
 } from './model/types';
 import { selectionOutline } from './render/decorations';
 import { createEdge } from './render/edges/edge';
-import { connectorPreview, selectionHandles } from './render/handles';
+import { connectionHints, connectorPreview, edgeEndHandles, selectionHandles } from './render/handles';
 import { createVeil, createVeilHole, liftAboveVeil } from './render/highlight';
 import { disposeObject } from './render/meshes';
 import { setPageOpacity } from './render/pageEffects';
@@ -298,7 +311,20 @@ interface ConnectDrag {
   kind: 'connect';
   pageId: string;
   sourceId: string;
-  targetId?: string;
+  /** Forme visée, en attache auto ou sur un point de connexion (entrée fixe). */
+  target?: Exclude<EndAttachment, { kind: 'free' }>;
+  started: boolean;
+}
+
+/** Bout d'une flèche déplacé par sa poignée : attaché à une forme (auto ou point fixe) ou libre. */
+interface EdgeEndDrag {
+  kind: 'edgeEnd';
+  pageId: string;
+  edgeId: string;
+  end: TerminalEnd;
+  /** Extrémités d'origine, remises en place si le bout revient où il était. */
+  original: EdgeEndsSnapshot;
+  attachment?: EndAttachment;
   started: boolean;
 }
 
@@ -405,7 +431,7 @@ export class Engine {
   /** Modifications non sauvegardées. */
   private modified = false;
   /** Glisser d'édition en cours (déplacement, redimensionnement, connecteur). */
-  private drag: MoveDrag | ResizeDrag | ConnectDrag | LabelDrag | undefined;
+  private drag: MoveDrag | ResizeDrag | ConnectDrag | EdgeEndDrag | LabelDrag | undefined;
   private connectorPreview: Object3D | undefined;
   /** Poignées de la forme sélectionnée. */
   private handlesObject: Object3D | undefined;
@@ -1597,6 +1623,121 @@ export class Engine {
     return { ...editable, shape };
   }
 
+  /** Flèche sélectionnée seule sur la page courante, si on peut la modifier (poignées de ses bouts). */
+  private editableEdgeSelection(): { page: PageModel; pageTree: PageTree; edge: EdgeModel } | undefined {
+    const editable = this.editablePage();
+    const picked = this.selection?.picked;
+    if (!editable || picked?.type !== 'edge' || this.selection?.pageId !== editable.page.id) return undefined;
+    if (this.isMultiSelection()) return undefined;
+    const edge = editable.page.edges.find((e) => e.id === picked.element.id);
+    if (!edge || isLocked(edge) || !editable.pageTree.cells.get(edge.id)?.cell) return undefined;
+    return { ...editable, edge };
+  }
+
+  /** Bouts du tracé d'une flèche, en coordonnées page (objet éventuellement décalé en cours de glisser). */
+  private edgeEndPoints(edgeId: string): Record<TerminalEnd, Point> | undefined {
+    const object = this.sceneObject(edgeId);
+    const route = object?.userData.route as Point[] | undefined;
+    if (!object || !route || route.length < 2) return undefined;
+    const at = (p: Point) => ({ x: p.x + object.position.x, y: p.y + object.position.y });
+    return { source: at(route[0]!), target: at(route[route.length - 1]!) };
+  }
+
+  /** Bout de la flèche sélectionnée sous un point écran (tolérance des poignées). */
+  private edgeEndAt(screen: Point): TerminalEnd | undefined {
+    const edge = this.editableEdgeSelection()?.edge;
+    const ends = edge && this.edgeEndPoints(edge.id);
+    if (!edge || !ends) return undefined;
+    const top = this.elementTop(edge.id);
+    let best: { end: TerminalEnd; distance: number } | undefined;
+    for (const end of ['target', 'source'] as const) {
+      const at = this.screenOfPoint(ends[end], top);
+      const distance = Math.hypot(at.x - screen.x, at.y - screen.y);
+      if (distance <= this.settings.edit.handlePickTolerance && (!best || distance < best.distance))
+        best = { end, distance };
+    }
+    return best?.end;
+  }
+
+  /**
+   * Accroche d'un bout de flèche sous le pointeur, comme draw.io : point de connexion proche (attache
+   * fixe), sinon intérieur d'une forme (attache auto), sinon un point libre au niveau de la flèche.
+   */
+  private endAttachmentAt(
+    page: PageModel,
+    screen: Point,
+    options: { exclude?: string; height: number; snap: boolean; grid: number },
+  ): EndAttachment {
+    const shapes = connectableShapes(page).filter((s) => s.id !== options.exclude);
+    let best: { shapeId: string; index: number; distance: number } | undefined;
+    for (const shape of shapes) {
+      const top = this.elementTop(shape.id);
+      connectionPoints(shape.bounds).forEach((point, index) => {
+        const at = this.screenOfPoint(point, top);
+        const distance = Math.hypot(at.x - screen.x, at.y - screen.y);
+        if (distance <= this.settings.edit.handlePickTolerance * 1.5 && (!best || distance < best.distance))
+          best = { shapeId: shape.id, index, distance };
+      });
+    }
+    if (best) return { kind: 'fixed', shapeId: best.shapeId, constraint: { ...CONNECTION_POINTS[best.index]! } };
+    const shape = this.shapeAt(screen, options.exclude);
+    if (shape) return { kind: 'floating', shapeId: shape.id };
+    const point = this.groundPointAtHeight(screen, options.height);
+    const step = options.snap && options.grid > 0 ? options.grid : 1;
+    return { kind: 'free', point: { x: Math.round(point.x / step) * step, y: Math.round(point.y / step) * step } };
+  }
+
+  /** Forme sous un point écran à laquelle on peut attacher une flèche (les flèches sont ignorées). */
+  private shapeAt(screen: Point, exclude?: string): ShapeModel | undefined {
+    const page = this.getCurrentPage();
+    if (!page) return undefined;
+    const connectable = new Set(connectableShapes(page).map((s) => s.id));
+    const picked = pickElement(
+      { ...page, shapes: page.shapes.filter((s) => connectable.has(s.id) && s.id !== exclude), edges: [] },
+      screenToPage(this.cameraState, this.viewport, screen),
+      {
+        edgeTolerance: 0,
+        edgeRoute: () => undefined,
+        heightOf: (id) => this.elementTop(id),
+        pointAtHeight: (height) => this.groundPointAtHeight(screen, height),
+      },
+    );
+    return picked?.type === 'shape' ? picked.element : undefined;
+  }
+
+  /** Repères d'accroche (contour, points de connexion) sur la forme visée par un bout de flèche. */
+  private showConnectionHints(page: PageModel, attachment: EndAttachment | undefined, extra?: Object3D): void {
+    this.clearConnectorPreview();
+    const root = this.scenes.current?.root;
+    if (!root) return;
+    const group = new Group();
+    group.name = 'connector-preview';
+    if (extra) group.add(extra);
+    const shape =
+      attachment && attachment.kind !== 'free' ? page.shapes.find((s) => s.id === attachment.shapeId) : undefined;
+    if (shape && attachment?.kind !== 'free') {
+      const active =
+        attachment?.kind === 'fixed'
+          ? CONNECTION_POINTS.findIndex((c) => c.x === attachment.constraint.x && c.y === attachment.constraint.y)
+          : undefined;
+      const hints = connectionHints(
+        { bounds: shape.bounds, ellipse: shape.kind === 'ellipse' },
+        connectionPoints(shape.bounds),
+        this.cameraState.zoom,
+        { active, outline: attachment?.kind === 'floating', accent: this.settings.selection.accentColor },
+      );
+      hints.position.z = this.elementTop(shape.id) + 0.3;
+      group.add(hints);
+    }
+    group.traverse((o) => {
+      o.renderOrder = Number.MAX_SAFE_INTEGER;
+      if (o instanceof Mesh) (o.material as MeshBasicMaterial).depthTest = false;
+    });
+    this.connectorPreview = group;
+    root.add(group);
+    this.requestRender();
+  }
+
   /** Point écran d'un point de la page posé à `height` au-dessus du sol (inverse de `groundPointAtHeight`). */
   private screenOfPoint(point: Point, height: number): Point {
     return pageToScreen(this.cameraState, this.viewport, point, height);
@@ -1630,6 +1771,20 @@ export class Engine {
     const { page, pageTree } = editable;
     const start = screenToPage(this.cameraState, this.viewport, screen);
     const grid = gridSizeOf(pageTree);
+
+    const end = this.edgeEndAt(screen);
+    const selectedEdge = end ? this.editableEdgeSelection()?.edge : undefined;
+    if (end && selectedEdge) {
+      this.drag = {
+        kind: 'edgeEnd',
+        pageId: page.id,
+        edgeId: selectedEdge.id,
+        end,
+        original: snapshotEnds(selectedEdge),
+        started: false,
+      };
+      return true;
+    }
 
     const handle = this.handleAt(screen);
     const selected = handle ? this.editableSelection()?.shape : undefined;
@@ -1704,6 +1859,7 @@ export class Engine {
     if (drag.kind === 'move') this.dragMove(page, drag, point, snap);
     else if (drag.kind === 'resize') this.dragResize(page, drag, point, snap);
     else if (drag.kind === 'label') this.dragLabel(page, drag, screen);
+    else if (drag.kind === 'edgeEnd') this.dragEdgeEnd(page, drag, screen, snap);
     else this.dragConnect(page, drag, screen);
   }
 
@@ -1985,28 +2141,45 @@ export class Engine {
 
   private dragConnect(page: PageModel, connect: ConnectDrag, screen: Point): void {
     const source = page.shapes.find((s) => s.id === connect.sourceId);
-    const root = this.scenes.current?.root;
-    if (!source || !root) return;
+    if (!source) return;
     connect.started = true;
-    const target = this.connectTarget(screen, source.id);
-    connect.targetId = target?.id;
     const top = this.elementTop(source.id);
-    const end = target
-      ? { x: target.bounds.x + target.bounds.width / 2, y: target.bounds.y + target.bounds.height / 2 }
-      : this.groundPointAtHeight(screen, top);
+    const attachment = this.endAttachmentAt(page, screen, { exclude: source.id, height: top, snap: false, grid: 0 });
+    connect.target = attachment.kind === 'free' ? undefined : attachment;
+    const target = connect.target && page.shapes.find((s) => s.id === connect.target!.shapeId);
+    const end =
+      connect.target?.kind === 'fixed' && target
+        ? {
+            x: target.bounds.x + connect.target.constraint.x * target.bounds.width,
+            y: target.bounds.y + connect.target.constraint.y * target.bounds.height,
+          }
+        : target
+          ? { x: target.bounds.x + target.bounds.width / 2, y: target.bounds.y + target.bounds.height / 2 }
+          : this.groundPointAtHeight(screen, top);
     const from = { x: source.bounds.x + source.bounds.width / 2, y: source.bounds.y + source.bounds.height / 2 };
-    this.clearConnectorPreview();
-    this.connectorPreview = connectorPreview(from, end, this.cameraState.zoom, this.settings.selection.accentColor);
-    this.connectorPreview.position.z = top + 0.2;
-    root.add(this.connectorPreview);
-    this.requestRender();
+    const line = connectorPreview(from, end, this.cameraState.zoom, this.settings.selection.accentColor);
+    line.position.z = top + 0.2;
+    this.showConnectionHints(page, connect.target, line);
   }
 
-  /** Forme visée par un connecteur (pas la source, pas un groupe invisible). */
-  private connectTarget(screen: Point, sourceId: string): ShapeModel | undefined {
-    const picked = this.pickAt(screen);
-    if (picked?.type !== 'shape' || picked.element.id === sourceId || picked.element.kind === 'group') return undefined;
-    return picked.element;
+  /** Bout de flèche suivant le pointeur : tracé recalculé en direct, repères sur la forme visée. */
+  private dragEdgeEnd(page: PageModel, drag: EdgeEndDrag, screen: Point, snap: boolean): void {
+    const edge = page.edges.find((e) => e.id === drag.edgeId);
+    const pageTree = this.pageTreeOf(page.id);
+    if (!edge || !pageTree) return;
+    drag.started = true;
+    const attachment = this.endAttachmentAt(page, screen, {
+      height: this.elementTop(edge.id),
+      snap,
+      grid: gridSizeOf(pageTree),
+    });
+    this.showConnectionHints(page, attachment);
+    if (sameAttachment(attachment, drag.attachment)) return;
+    drag.attachment = attachment;
+    restoreEnds(edge, drag.original);
+    applyEndAttachment(edge, drag.end, attachment);
+    this.retraceEdges(page, new Set([edge.id]));
+    this.afterLiveEdit();
   }
 
   private clearConnectorPreview(): void {
@@ -2033,15 +2206,36 @@ export class Engine {
       return;
     }
 
+    if (drag.kind === 'edgeEnd') {
+      const page = this.pageById(drag.pageId);
+      const edge = page?.edges.find((e) => e.id === drag.edgeId);
+      if (!page || !edge) return;
+      const before = endAttachmentOf({ ...edge, ...drag.original }, drag.end);
+      const after = drag.attachment;
+      if (!after || sameAttachment(after, before)) {
+        restoreEnds(edge, drag.original);
+        if (this.getCurrentPage()?.id === drag.pageId) this.retraceEdges(page, new Set([edge.id]));
+        this.afterLiveEdit();
+        return;
+      }
+      this.recordEdit('Extrémité de flèche');
+      this.writeEdgeEnd(page, pageTree, edge, drag.end, after);
+      this.documentChanged([drag.pageId]);
+      return;
+    }
+
     if (drag.kind === 'connect') {
-      if (!drag.targetId) {
+      if (!drag.target) {
         this.requestRender();
         return;
       }
       this.recordEdit('Connecteur');
       const line = CONNECTOR_STYLE + EDGE_LINE_KEYS[this.settings.shapes.edgeLineStyle];
-      const style = withStyleValue(line, 'fontSize', String(this.settings.shapes.textSize));
-      const id = addEdgeCell(pageTree, { source: drag.sourceId, target: drag.targetId, style });
+      let style = withStyleValue(line, 'fontSize', String(this.settings.shapes.textSize));
+      if (drag.target.kind === 'fixed')
+        for (const [key, value] of Object.entries(constraintStyle('target', drag.target.constraint)))
+          if (value !== undefined) style = withStyleValue(style, key, value);
+      const id = addEdgeCell(pageTree, { source: drag.sourceId, target: drag.target.shapeId, style });
       this.documentChanged([drag.pageId]);
       const edge = this.getCurrentPage()?.edges.find((e) => e.id === id);
       if (edge) this.select({ type: 'edge', element: edge });
@@ -2072,6 +2266,28 @@ export class Engine {
     this.graph = undefined;
     this.minimap?.invalidate();
     this.syncModified();
+  }
+
+  /** Écrit l'attache d'un bout de flèche dans l'arbre XML (cellule, point libre, clés `exit…` / `entry…`). */
+  private writeEdgeEnd(
+    page: PageModel,
+    pageTree: PageTree,
+    edge: EdgeModel,
+    end: TerminalEnd,
+    attachment: EndAttachment,
+  ): void {
+    if (attachment.kind === 'free') {
+      // Point libre exprimé dans le repère du parent de la flèche (groupe, conteneur), comme draw.io.
+      const origin = page.shapes.find((s) => s.id === edge.parentId)?.bounds ?? { x: 0, y: 0 };
+      setEdgeTerminal(pageTree, edge.id, end, {
+        point: { x: attachment.point.x - origin.x, y: attachment.point.y - origin.y },
+      });
+    } else {
+      setEdgeTerminal(pageTree, edge.id, end, { cellId: attachment.shapeId });
+    }
+    const constraint = attachment.kind === 'fixed' ? attachment.constraint : undefined;
+    for (const [key, value] of Object.entries(constraintStyle(end, constraint)))
+      setCellStyleValue(pageTree, edge.id, key, value);
   }
 
   private translateObjects(set: MoveSet, step: Point): void {
@@ -2594,7 +2810,9 @@ export class Engine {
     const picked = screen ? this.pickAt(screen) : undefined;
     const link = isNavigableLink(picked?.element.link) ? picked?.element.link : undefined;
     const handle = screen ? this.handleAt(screen) : undefined;
-    const cursor = handle === 'connect' ? 'crosshair' : handle ? HANDLE_CURSORS[handle] : link ? 'pointer' : '';
+    const edgeEnd = screen && !handle ? this.edgeEndAt(screen) : undefined;
+    const cursor =
+      handle === 'connect' || edgeEnd ? 'crosshair' : handle ? HANDLE_CURSORS[handle] : link ? 'pointer' : '';
     if (!this.canvas.style.cursor.startsWith('grab')) this.canvas.style.cursor = cursor;
     this.canvas.title = link ? this.describeLink(link) : '';
     clearTimeout(this.hoverTimer);
@@ -2757,6 +2975,24 @@ export class Engine {
       this.handlesObject.removeFromParent();
       disposeObject(this.handlesObject);
       this.handlesObject = undefined;
+    }
+    const editableEdge = visible && root ? this.editableEdgeSelection() : undefined;
+    const ends = editableEdge && this.edgeEndPoints(editableEdge.edge.id);
+    if (editableEdge && ends && root) {
+      const { edge } = editableEdge;
+      this.handlesObject = edgeEndHandles(
+        [
+          { point: ends.source, attached: !!edge.sourceId },
+          { point: ends.target, attached: !!edge.targetId },
+        ],
+        this.cameraState.zoom,
+        { size: this.settings.edit.handleSize, accent: this.settings.selection.accentColor },
+      );
+      this.handlesObject.position.z = this.elementTop(edge.id) + 0.3;
+      this.handlesObject.traverse((o) => {
+        if (o instanceof Mesh) (o.material as MeshBasicMaterial).depthTest = false;
+      });
+      root.add(this.handlesObject);
     }
     const editable = visible && root ? this.editableSelection() : undefined;
     if (editable && root) {

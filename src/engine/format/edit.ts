@@ -165,6 +165,51 @@ export function setLabelPlacement(
   markPageDirty(page);
 }
 
+/**
+ * Extrémité d'une arête (`source` ou `target`) : attachée à une cellule (attribut `source` / `target`),
+ * ou libre en un point (relatif au parent de l'arête), écrit dans `<mxPoint as="sourcePoint|targetPoint">`
+ * comme draw.io. Le point libre déjà écrit reste en place quand l'extrémité est attachée (draw.io
+ * l'ignore alors). Les clés de style du point d'attache sont à écrire à part (`setCellStyleValue`).
+ */
+export function setEdgeTerminal(
+  page: PageTree,
+  edgeId: string,
+  end: 'source' | 'target',
+  terminal: { cellId: string } | { point: Point },
+): void {
+  const nodes = page.cells.get(edgeId);
+  const cell = nodes?.cell;
+  if (!cell) throw new Error(`Arête ${edgeId} introuvable`);
+  if ('cellId' in terminal) {
+    if (!page.cells.has(terminal.cellId)) throw new Error(`Cellule ${terminal.cellId} introuvable`);
+    cell.setAttribute(end, terminal.cellId);
+    markPageDirty(page);
+    return;
+  }
+  cell.removeAttribute(end);
+  const document = cell.ownerDocument;
+  if (!document) throw new Error(`Arête ${edgeId} hors document`);
+  let geometry = nodes.geometry;
+  if (!geometry) {
+    geometry = document.createElement('mxGeometry');
+    geometry.setAttribute('relative', '1');
+    geometry.setAttribute('as', 'geometry');
+    cell.appendChild(geometry);
+    nodes.geometry = geometry;
+  }
+  const as = `${end}Point`;
+  let point = childElements(geometry, 'mxPoint').find((p) => p.getAttribute('as') === as);
+  if (!point) {
+    point = document.createElement('mxPoint');
+    point.setAttribute('as', as);
+    // draw.io écrit les extrémités libres avant les points intermédiaires.
+    geometry.insertBefore(point, geometry.firstChild);
+  }
+  point.setAttribute('x', formatNumber(terminal.point.x));
+  point.setAttribute('y', formatNumber(terminal.point.y));
+  markPageDirty(page);
+}
+
 /** Texte brut → label HTML draw.io. */
 export function textToHtml(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\r?\n/g, '<br>');

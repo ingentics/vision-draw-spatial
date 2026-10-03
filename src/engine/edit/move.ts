@@ -35,7 +35,7 @@ export function moveTarget(page: PageModel, shape: ShapeModel): ShapeModel {
 }
 
 /** Style draw.io interdisant le déplacement (`movable=0`, `locked=1`). */
-export function isLocked(shape: ShapeModel): boolean {
+export function isLocked(shape: Pick<ShapeModel, 'style'>): boolean {
   return shape.style.movable === '0' || shape.style.locked === '1';
 }
 

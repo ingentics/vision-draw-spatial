@@ -256,6 +256,50 @@ clic, accroche des flèches), comparaison visuelle avec l'export draw.io.
 
 ---
 
+## Milestone 6 — Moteur des flèches (mode manuel + auto)
+
+> Principe, celui de draw.io : **tout ce qui n'est pas fixé à la main est recalculé**. Une extrémité non fixée choisit
+> son côté, un segment non déplacé se place seul ; « manuel » et « auto » se mélangent sur une même flèche.
+> Édition dans les **trois modes** (2D, iso, 3D : poignées posées au sol, à la hauteur de la flèche). Chaque étape :
+> annuler / rétablir, réouverture identique dans draw.io (`make drawio-check` sur une fixture dédiée).
+
+### Étape 24 — Extrémités : d'où part et où arrive la flèche 🟡
+- Flèche sélectionnée : une **poignée à chaque bout** du tracé.
+- Tirer une poignée (comme draw.io) :
+  - **sur l'intérieur d'une forme** (contour surligné) : attache **auto**, le moteur choisit le côté ; `source` /
+    `target` écrit, `exitX/exitY/exitDx/exitDy` (ou `entry…`) retirés ;
+  - **sur un point de connexion** : les **4 milieux de côtés** (petites croix affichées sur la forme survolée) ;
+    attache **fixe**, `exitX/exitY` (source) ou `entryX/entryY` (cible) écrits ;
+  - **dans le vide** : extrémité **libre**, `<mxPoint as="sourcePoint|targetPoint">` dans la géométrie, `source` /
+    `target` retiré.
+- La poignée de connexion d'une forme suit les mêmes règles à la création (lâcher sur un point de connexion = entrée
+  fixe ; dans le vide = rien, comme aujourd'hui).
+- Tracé recalculé en direct pendant le glisser.
+- **Fini quand :** on change le départ et l'arrivée d'une flèche (auto, point fixe, libre), en 2D, iso et 3D, et
+  draw.io affiche la même flèche.
+- Fait : `edit/edgeEnds.ts` (points de connexion, attaches, aperçu sur le modèle), `setEdgeTerminal` dans
+  `format/edit.ts`, poignées des bouts et repères d'accroche (`render/handles.ts`), glisser `edgeEnd` et connecteur à
+  entrée fixe dans `Engine` ; testé à la main en 2D et en iso. Reste : validation dans draw.io (fixture dédiée,
+  `make drawio-check`).
+
+### Étape 25 — Découpage en morceaux
+- Préalable : interprétation des points des flèches orthogonales **alignée sur draw.io** (un point fixe la position
+  d'un segment, il ne force pas un passage exact), sinon un segment déplacé ici serait ailleurs dans draw.io.
+- **Orthogonale** : une poignée au milieu de chaque segment, glissée perpendiculairement ; le segment devient un point
+  de passage, le reste reste automatique.
+- **Droite / courbe** : points de passage déplaçables et poignées « fantômes » au milieu de chaque morceau (tirer =
+  nouveau coude).
+- Double-clic sur un coude : supprimé. Bouton **« Retour en auto »** : points de passage et attaches fixes effacés.
+- **Fini quand :** on découpe une flèche en morceaux, on les déplace, on revient en auto, et draw.io affiche la même
+  chose.
+
+### Étape 26 — Cohérence au déplacement des formes
+- Les attaches fixes suivent la forme ; les points de passage suivent la flèche si ses deux bouts bougent ensemble
+  (déplacement d'un groupe ou d'une sélection), restent en place sinon (comme draw.io).
+- **Fini quand :** déplacer formes et groupes garde des flèches cohérentes, identiques dans draw.io.
+
+---
+
 ## Après la roadmap
 
 - Fond et grille ✅ : couleur de fond réglable, grille au sol dans les trois modes (pas de la page draw.io ou 10 px, ligne principale toutes les 4 cases, couleur), shader net à tout zoom qui s'estompe au dézoom et au loin en 3D ; section « Fond et grille » des paramètres.
