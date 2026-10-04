@@ -19,7 +19,7 @@ export const definition: ShapeDefinition = {
   swatch: () => '<ellipse cx="20" cy="14" rx="15" ry="10"/>',
   palette: {
     name: 'Ellipse',
-    category: 'general',
+    category: 'geometry',
     order: 30,
     keywords: ['ovale', 'oval'],
     style: 'ellipse;whiteSpace=wrap;html=1;',

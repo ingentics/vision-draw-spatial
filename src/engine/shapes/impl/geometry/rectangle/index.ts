@@ -19,7 +19,7 @@ export const definition: ShapeDefinition = {
   properties: [{ type: 'toggle', key: 'rounded', label: 'Coins arrondis', section: 'border' }],
   palette: {
     name: 'Rectangle',
-    category: 'general',
+    category: 'geometry',
     order: 10,
     keywords: ['rect', 'carré', 'boîte', 'square', 'box'],
     style: 'rounded=0;whiteSpace=wrap;html=1;',

@@ -21,20 +21,26 @@ const FOLDERS = Object.entries(
 
 describe('formes en plugins (étapes 65, 67) : contrat des définitions', () => {
   it('une forme par élément de la palette, nommée comme l’interface, rangée par catégorie', () => {
-    expect(FOLDERS.map(({ category, folder }) => `${category}/${folder}`).sort()).toEqual([
-      'architecture/database',
-      'architecture/distributed-cache',
-      'architecture/plug',
-      'architecture/queue',
-      'general/circle',
-      'general/diamond',
-      'general/ellipse',
-      'general/rectangle',
-      'general/rounded-rectangle',
-      'general/text',
-      'internal/group',
-    ]);
+    // Pas de liste figée : une nouvelle forme n'a qu'à déposer son dossier. Les formes de base sont bien là.
+    const folders = FOLDERS.map(({ category, folder }) => `${category}/${folder}`);
+    expect(folders).toEqual(
+      expect.arrayContaining([
+        'geometry/rectangle',
+        'geometry/rounded-rectangle',
+        'geometry/ellipse',
+        'geometry/circle',
+        'geometry/diamond',
+        'general/text',
+        'architecture/database',
+        'architecture/queue',
+        'architecture/distributed-cache',
+        'architecture/plug',
+        'internal/group',
+      ]),
+    );
     expect(SHAPE_DEFINITIONS).toHaveLength(FOLDERS.length);
+    const ids = SHAPE_DEFINITIONS.map((definition) => definition.id);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 
   it('id = nom du dossier, catégorie de palette = dossier de catégorie (internal : hors palette), rendu à plat', () => {

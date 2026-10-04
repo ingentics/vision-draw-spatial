@@ -9,7 +9,7 @@ export const definition: ShapeDefinition = {
   matches: (shape) => shape.style.aspect === 'fixed',
   palette: {
     name: 'Cercle',
-    category: 'general',
+    category: 'geometry',
     order: 40,
     keywords: ['rond', 'circle'],
     style: 'ellipse;whiteSpace=wrap;html=1;aspect=fixed;',

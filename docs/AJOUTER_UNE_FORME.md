@@ -112,7 +112,8 @@ src/engine/shapes/
 │   ├── cylinder/               tracés draw.io des cylindres, rendu 2D à lèvres
 │   └── building/               bâtiment iso : toit, faces, gravures, étiquette
 ├── impl/                       les formes, une par élément de la palette
-│   ├── general/                catégorie « Général » : rectangle, rounded-rectangle, ellipse, circle, diamond, text
+│   ├── geometry/               catégorie « Géométrie » : rectangle, rounded-rectangle, ellipse, circle, diamond
+│   ├── general/                catégorie « Général » : text
 │   ├── architecture/           catégorie « Architecture » : database, queue, distributed-cache, plug
 │   │   └── database/
 │   │       ├── index.ts        export const definition: ShapeDefinition = { … }
@@ -352,7 +353,7 @@ draw.io : `shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.0
 `docs/test.drawio`).
 
 ```ts
-// src/engine/shapes/impl/general/note/index.ts
+// src/engine/shapes/impl/geometry/note/index.ts
 import type { Point, ShapeModel } from '../../../../model/types';
 import { createBox, VERTEX_DEFAULTS } from '../../../../render/flat/box';
 import { isoBlock } from '../../../../render/iso/block';
@@ -416,7 +417,7 @@ export const definition: ShapeDefinition = {
   // Palette : le modèle de draw.io (style et taille), rangé après les formes générales existantes.
   palette: {
     name: 'Note',
-    category: 'general',
+    category: 'geometry',
     order: 110,
     keywords: ['note', 'post-it', 'mémo'],
     style: 'shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;size=15;',
@@ -436,7 +437,7 @@ n'apparaît donc **pas** sur le dessus du bloc. Pour l'avoir, écrivez un `iso.c
 
 Enfin :
 
-1. rien à enregistrer : le dossier `impl/general/note/` suffit (palette, panneau et rendu la trouvent) ;
+1. rien à enregistrer : le dossier `impl/geometry/note/` suffit (palette, panneau et rendu la trouvent) ;
 2. ajoutez `note` dans le tableau de SPEC §8.3 ;
 3. écrivez les tests (section 8).
 

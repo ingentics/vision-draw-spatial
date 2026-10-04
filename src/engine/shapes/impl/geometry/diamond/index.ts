@@ -20,7 +20,7 @@ export const definition: ShapeDefinition = {
   ...box(outline),
   palette: {
     name: 'Losange',
-    category: 'general',
+    category: 'geometry',
     order: 90,
     keywords: ['rhombus', 'diamond', 'décision', 'condition'],
     style: 'rhombus;whiteSpace=wrap;html=1;',

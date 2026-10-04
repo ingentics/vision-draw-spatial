@@ -9,7 +9,7 @@ export const definition: ShapeDefinition = {
   matches: (shape) => shape.style.rounded === '1',
   palette: {
     name: 'Rectangle arrondi',
-    category: 'general',
+    category: 'geometry',
     order: 20,
     keywords: ['rect', 'arrondi', 'rounded', 'boîte', 'box'],
     style: 'rounded=1;whiteSpace=wrap;html=1;',

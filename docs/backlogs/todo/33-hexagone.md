@@ -17,8 +17,7 @@
 - **Dossier** `src/engine/shapes/impl/geometry/<id>/` (`index.ts` exporte `definition`), nommé comme dans l'interface,
   en anglais ; `kinds` = nom de forme draw.io quand il diffère de l'`id`. Tout ce qui est propre à la forme vit dans
   son dossier ; elle étend `generic/box` (contour → rendu 2D + prisme iso). Catégorie de palette `geometry`
-  (« Géométrie ») : la première forme livrée l'ajoute à `PaletteCategoryId` (`shapes/types.ts`) et à
-  `PALETTE_CATEGORIES` (`edit/palette.ts`).
+  (« Géométrie », existe depuis 68), à côté du rectangle, de l'ellipse et du losange.
 - À faire pour la forme : définition (`id`, `kinds`, contour, `palette` avec icône ; clic par le contour, repli par
   défaut), périmètre de draw.io porté (`perimeterKind`, accroche des flèches), tests (contour 2D, volume iso, clic,
   accroche des flèches ; dans le dossier de la forme ou `tests/engine/shapes/`), ajout à la fixture

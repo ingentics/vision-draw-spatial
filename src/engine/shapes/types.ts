@@ -27,7 +27,7 @@ export interface MinimapMapping {
 /** Dessin d'une forme dans la mini-carte (contexte déjà mis à l'échelle des pixels CSS). */
 export type MinimapPainter = (context: CanvasRenderingContext2D, shape: ShapeModel, map: MinimapMapping) => void;
 
-export type PaletteCategoryId = 'general' | 'architecture';
+export type PaletteCategoryId = 'geometry' | 'general' | 'architecture';
 
 /**
  * Élément de la palette (SPEC §14.1) déclaré par une forme : la forme telle que la palette la crée, avec le style et

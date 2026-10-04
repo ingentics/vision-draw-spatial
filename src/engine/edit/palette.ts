@@ -17,6 +17,7 @@ export interface PaletteCategory {
 
 /** Catégories de la palette, dans l'ordre d'affichage. */
 export const PALETTE_CATEGORIES: PaletteCategory[] = [
+  { id: 'geometry', name: 'Géométrie' },
   { id: 'general', name: 'Général' },
   { id: 'architecture', name: 'Architecture' },
 ];
