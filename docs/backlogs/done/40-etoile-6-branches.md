@@ -29,3 +29,11 @@
 - **Fini quand :** la forme s'affiche comme dans draw.io en 2D (comparaison avec l'export), en volume en iso et en 3D,
   se clique et reçoit les flèches sur son contour, se crée depuis la palette (catégorie « Géométrie ») ; elle
   n'apparaît plus dans le panneau Diagnostics ; `spatial.kind=<id>` la dessine.
+
+Fait : forme `src/engine/shapes/impl/geometry/six-point-star/` (`kinds: ['mxgraph.basic.6_point_star']`). C'est un
+stencil de draw.io (`stencils/basic.xml`, cadre 96 × 84,5, 12 sommets, `aspect="variable"`) : contour repris tel
+quel, étiré dans les bornes, orienté par `orientedPath` ; prisme en iso / 3D, arêtes verticales aux pointes et aux
+creux. Palette : style exact de la palette « Basic » de draw.io, `verticalLabelPosition=bottom;verticalAlign=top;
+html=1;shape=mxgraph.basic.6_point_star` (label sous la forme), 100 × 90. Pas de périmètre propre : flèches sur
+les bornes. Fixture `shapes.drawio` (orientations, étoile large, flèches) identique à l'export SVG de draw.io ;
+tests dans `tests/engine/shapes/geometry.test.ts`. Vérifié dans l'appli : palette, iso.

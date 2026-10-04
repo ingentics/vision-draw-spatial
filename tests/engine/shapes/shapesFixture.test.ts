@@ -56,6 +56,7 @@ const PENTAGON = 'whiteSpace=wrap;html=1;shape=mxgraph.basic.pentagon;';
 const TRIANGLE = 'triangle;whiteSpace=wrap;html=1;';
 const FOUR_POINT_STAR =
   'verticalLabelPosition=bottom;verticalAlign=top;html=1;shape=mxgraph.basic.4_point_star_2;dx=0.8;';
+const SIX_POINT_STAR = 'verticalLabelPosition=bottom;verticalAlign=top;html=1;shape=mxgraph.basic.6_point_star;';
 const STEP = 'shape=step;perimeter=stepPerimeter;whiteSpace=wrap;html=1;fixedSize=1;';
 const PARALLELOGRAM = 'shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;';
 const ORIENTATIONS = [...VARIANTS, ...NORTH_FLIPS];
@@ -104,6 +105,8 @@ const SERIES = [
     variants: [...ORIENTATIONS, 'dx=0.3;', 'dx=0;', 'dx=1;'],
   },
   { prefix: 'fd', style: FOUR_POINT_STAR.replace('dx=0.8;', ''), w: 100, h: 100, variants: [''] },
+  { prefix: 'six', style: SIX_POINT_STAR, w: 100, h: 90, variants: ORIENTATIONS },
+  { prefix: 'sixw', style: SIX_POINT_STAR, w: 160, h: 60, variants: [''] },
 ];
 /**
  * Autres cibles des flèches (après le losange `d`), mêmes sources tout autour : préfixe des ids (`<p><k>` la
@@ -123,6 +126,7 @@ const EDGE_TARGETS = [
   { prefix: 'xgn', style: `${PARALLELOGRAM}direction=north;`, w: 120, h: 60 },
   { prefix: 'xgs', style: `${PARALLELOGRAM}size=50;flipH=1;`, w: 120, h: 60 },
   { prefix: 'xf', style: FOUR_POINT_STAR, w: 100, h: 100 },
+  { prefix: 'xsix', style: SIX_POINT_STAR, w: 100, h: 90 },
   ...['', 'direction=north;', 'direction=south;', 'direction=west;', 'flipV=1;'].map((variant, v) => ({
     prefix: `y${v}_`,
     style: `${STEP}${variant}`,

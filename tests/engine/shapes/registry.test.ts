@@ -38,6 +38,7 @@ describe('formes en plugins (étapes 65, 67) : contrat des définitions', () => 
         'geometry/parallelogram',
         'geometry/step',
         'geometry/four-point-star',
+        'geometry/six-point-star',
         'general/text',
         'architecture/database',
         'architecture/queue',
@@ -89,6 +90,7 @@ describe('formes en plugins (étapes 65, 67) : contrat des définitions', () => 
     expect(id('parallelogram')).toBe('parallelogram');
     expect(id('step')).toBe('step');
     expect(id('mxgraph.basic.4_point_star_2')).toBe('four-point-star');
+    expect(id('mxgraph.basic.6_point_star')).toBe('six-point-star');
     expect(id('database', { direction: 'south' })).toBe('database');
     expect(id('queue')).toBe('queue');
     expect(registry.resolve(model('note')).supported).toBe(false);

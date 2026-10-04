@@ -301,3 +301,31 @@ describe('étoile à 4 branches (39)', () => {
     expect(registry.contains(s, { x: 120, y: 120 })).toBe(false);
   });
 });
+
+describe('étoile à 6 branches (40)', () => {
+  const STYLE = 'verticalLabelPosition=bottom;verticalAlign=top;html=1;shape=mxgraph.basic.6_point_star';
+  const shape = (style = STYLE, width = 96, height = 84.5) => page([style], width, height).page.shapes[0]!;
+
+  it('dessinée par sa définition, absente des Diagnostics ; spatial.kind=six-point-star la dessine', () => {
+    const { document, page: p } = page([STYLE, 'shape=note;spatial.kind=six-point-star;'], 100, 90);
+    expect(p.shapes.map((s) => registry.resolve(s).definition.id)).toEqual(['six-point-star', 'six-point-star']);
+    expect(collectUnsupported(document, registry).entries).toEqual([]);
+  });
+
+  it('contour : le stencil de draw.io (12 sommets) étiré dans les bornes', () => {
+    const s = shape();
+    const points = round(registry.resolve(s).definition.outline!(s));
+    expect(points).toHaveLength(12);
+    expect(points[0]).toEqual([123, 128.9]);
+    expect(points[5]).toEqual([196, 142.2]);
+    const wide = shape(STYLE, 192, 84.5);
+    expect(round(registry.resolve(wide).definition.outline!(wide))[5]).toEqual([292, 142.2]);
+  });
+
+  it('volume : prisme du contour, arêtes verticales ; clic dans le contour, pas entre les branches', () => {
+    expect(volume(STYLE, 96, 84.5)).toEqual({ min: [100, 0, 100], max: [196, 20, 184.5] });
+    const s = shape();
+    expect(registry.contains(s, { x: 148, y: 142 })).toBe(true);
+    expect(registry.contains(s, { x: 105, y: 105 })).toBe(false);
+  });
+});
