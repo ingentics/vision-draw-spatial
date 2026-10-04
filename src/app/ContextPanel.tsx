@@ -29,6 +29,8 @@ export interface ContextPanelProps {
   onShapeStyle: (patch: Record<string, string | undefined>) => void;
   /** Clés de style des flèches sélectionnées (tracé : angles droits, arrondi, courbe). */
   onEdgeStyle: (patch: Record<string, string | undefined>) => void;
+  /** Retour en auto de la flèche : points intermédiaires et points d'attache imposés retirés. */
+  onResetRoute: () => void;
   /** Renommer la page ; absent si les pages ne sont pas modifiables. */
   onRenamePage?: (name: string) => void;
   /** Lien de l'élément sélectionné (vers une page ou une URL) ; undefined = retiré. */
@@ -189,7 +191,7 @@ function EdgeSections({ edge, ...props }: ContextPanelProps & { edge: EdgeModel 
         })}
       </Section>
       <TextAnchors edge={edge} onAnchor={props.onTextAnchor} />
-      <EdgeLineSection edge={edge} onChange={props.onEdgeStyle} />
+      <EdgeLineSection edge={edge} onChange={props.onEdgeStyle} onResetRoute={props.onResetRoute} />
       <Section title="Liaison">
         <div className="field-row">
           De
@@ -266,14 +268,20 @@ const EDGE_LINES: Record<EdgeLine, { label: string; patch: Record<string, string
   curved: { label: 'Courbe', patch: { rounded: '0', curved: '1' }, icon: 'M2 13C2 7 7 5 14 5' },
 };
 
+/** Clés de style des points d'attache imposés (`exitX`…, `entryX`…). */
+const CONSTRAINT_KEYS = ['exit', 'entry'].flatMap((prefix) => ['X', 'Y'].map((axis) => `${prefix}${axis}`));
+
 function EdgeLineSection({
   edge,
   onChange,
+  onResetRoute,
 }: {
   edge: EdgeModel;
   onChange: (patch: Record<string, string | undefined>) => void;
+  onResetRoute: () => void;
 }) {
   const current: EdgeLine = edge.style.curved === '1' ? 'curved' : edge.style.rounded === '1' ? 'rounded' : 'sharp';
+  const manual = edge.points.length > 0 || CONSTRAINT_KEYS.some((key) => edge.style[key] !== undefined);
   return (
     <Section title="Tracé">
       <div className="field-row">
@@ -296,6 +304,22 @@ function EdgeLineSection({
             </button>
           ))}
         </span>
+      </div>
+      <div className="field-row">
+        Chemin
+        <button
+          type="button"
+          className="button"
+          disabled={!manual}
+          title={
+            manual
+              ? 'Retirer les points posés et les points d’attache imposés : le tracé redevient automatique'
+              : 'Le tracé est déjà automatique'
+          }
+          onClick={onResetRoute}
+        >
+          Retour en auto
+        </button>
       </div>
     </Section>
   );

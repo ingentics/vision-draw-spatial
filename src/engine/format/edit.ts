@@ -211,6 +211,53 @@ export function setEdgeTerminal(
   markPageDirty(page);
 }
 
+/**
+ * Points intermédiaires d'une arête (relatifs à son parent), dans `<Array as="points">` comme draw.io ;
+ * une liste vide retire le tableau.
+ */
+export function setEdgePoints(page: PageTree, edgeId: string, points: Point[]): void {
+  const nodes = page.cells.get(edgeId);
+  const cell = nodes?.cell;
+  if (!cell) throw new Error(`Arête ${edgeId} introuvable`);
+  const document = cell.ownerDocument;
+  if (!document) throw new Error(`Arête ${edgeId} hors document`);
+  let geometry = nodes.geometry;
+  if (!geometry) {
+    if (points.length === 0) return;
+    geometry = document.createElement('mxGeometry');
+    geometry.setAttribute('relative', '1');
+    geometry.setAttribute('as', 'geometry');
+    cell.appendChild(geometry);
+    nodes.geometry = geometry;
+  }
+  const existing = childElements(geometry, 'Array').find((a) => a.getAttribute('as') === 'points');
+  if (points.length === 0) {
+    if (!existing) return;
+    geometry.removeChild(existing);
+    markPageDirty(page);
+    return;
+  }
+  const array = document.createElement('Array');
+  array.setAttribute('as', 'points');
+  for (const p of points) {
+    const point = document.createElement('mxPoint');
+    point.setAttribute('x', formatNumber(p.x));
+    point.setAttribute('y', formatNumber(p.y));
+    array.appendChild(point);
+  }
+  if (existing) {
+    geometry.replaceChild(array, existing);
+  } else {
+    // Après les extrémités libres, avant le décalage du label (ordre de draw.io).
+    const terminals = childElements(geometry, 'mxPoint').filter((p) =>
+      ['sourcePoint', 'targetPoint'].includes(p.getAttribute('as') ?? ''),
+    );
+    const after = terminals[terminals.length - 1];
+    geometry.insertBefore(array, after ? after.nextSibling : geometry.firstChild);
+  }
+  markPageDirty(page);
+}
+
 /** Texte brut → label HTML draw.io. */
 export function textToHtml(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\r?\n/g, '<br>');

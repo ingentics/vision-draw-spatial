@@ -27,6 +27,7 @@ import {
   setCellObjectAttribute,
   setCellRichLabel,
   setCellStyleValue,
+  setEdgePoints,
 } from './format/edit';
 import {
   addEdgeCell,
@@ -57,6 +58,8 @@ import {
   writeEndAttachment,
 } from './edit/edgeEnds';
 import type { EdgeEndsSnapshot, EndAttachment, TerminalEnd } from './edit/edgeEnds';
+import { dragPoints, pointHandles, pointsEditor, removePoint } from './edit/edgePoints';
+import type { PointHandle, PointsContext } from './edit/edgePoints';
 import { collectMoveSet, isLocked, moveTarget, snapDelta, translateMoveSet, unionMoveSets } from './edit/move';
 import type { MoveSet } from './edit/move';
 import {
@@ -125,8 +128,15 @@ import type {
   ShapeModel,
 } from './model/types';
 import { selectionOutline } from './render/decorations';
-import { createEdge } from './render/edges/edge';
-import { connectionHints, connectorPreview, edgeEndHandles, selectionHandles } from './render/handles';
+import { createEdge, toTerminal } from './render/edges/edge';
+import { fixedAnchor, routeEdgePoints, routingCenter } from './render/edges/route';
+import {
+  connectionHints,
+  connectorPreview,
+  edgeEndHandles,
+  edgePointHandles,
+  selectionHandles,
+} from './render/handles';
 import { createVeil, createVeilHole, liftAboveVeil } from './render/highlight';
 import { disposeObject } from './render/meshes';
 import { setPageOpacity } from './render/pageEffects';
@@ -328,6 +338,19 @@ interface EdgeEndDrag {
   started: boolean;
 }
 
+/** Poignée entre les bouts d'une flèche (segment, coude, point) : points intermédiaires réécrits. */
+interface EdgePointsDrag {
+  kind: 'edgePoints';
+  pageId: string;
+  edgeId: string;
+  handle: PointHandle;
+  /** État de la flèche au début du glisser : les points se calculent toujours à partir de lui. */
+  context: PointsContext;
+  original: Point[];
+  points?: Point[];
+  started: boolean;
+}
+
 /** Texte d'une flèche déplacé par sa poignée (le long du tracé et de côté). */
 interface LabelDrag {
   kind: 'label';
@@ -349,6 +372,13 @@ export type EdgeTextAnchor = 'start' | 'middle' | 'end';
 const CONNECTOR_STYLE = 'edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;jettySize=auto;html=1;';
 /** Clés du tracé d'une flèche : angles droits, coudes arrondis, courbe. */
 const EDGE_LINE_KEYS = { sharp: 'rounded=0;', rounded: 'rounded=1;', curved: 'rounded=0;curved=1;' } as const;
+/** Tolérance d'alignement des points d'une flèche (mxGraph.tolerance de draw.io), en pixels écran. */
+const EDGE_POINT_TOLERANCE = 4;
+
+function samePoints(a: Point[], b: Point[]): boolean {
+  return a.length === b.length && a.every((p, i) => p.x === b[i]!.x && p.y === b[i]!.y);
+}
+
 /** Curseur de chaque poignée de redimensionnement. */
 const HANDLE_CURSORS: Record<ResizeHandle, string> = {
   nw: 'nwse-resize',
@@ -431,7 +461,7 @@ export class Engine {
   /** Modifications non sauvegardées. */
   private modified = false;
   /** Glisser d'édition en cours (déplacement, redimensionnement, connecteur). */
-  private drag: MoveDrag | ResizeDrag | ConnectDrag | EdgeEndDrag | LabelDrag | undefined;
+  private drag: MoveDrag | ResizeDrag | ConnectDrag | EdgeEndDrag | EdgePointsDrag | LabelDrag | undefined;
   private connectorPreview: Object3D | undefined;
   /** Poignées de la forme sélectionnée. */
   private handlesObject: Object3D | undefined;
@@ -1659,6 +1689,98 @@ export class Engine {
     return best?.end;
   }
 
+  /** Ce que les poignées entre les bouts savent de la flèche (tracé brut affiché, formes, points d'appui). */
+  private pointsContext(page: PageModel, edge: EdgeModel): PointsContext | undefined {
+    const object = this.sceneObject(edge.id);
+    const raw = object?.userData.points as Point[] | undefined;
+    if (!object || !raw || raw.length < 2) return undefined;
+    const shapes = new Map(page.shapes.map((s) => [s.id, s]));
+    const source = toTerminal(shapes.get(edge.sourceId ?? ''));
+    const target = toTerminal(shapes.get(edge.targetId ?? ''));
+    const sourceFixed = source && fixedAnchor(source, edge.style, 'source');
+    const targetFixed = target && fixedAnchor(target, edge.style, 'target');
+    const { zoom } = this.cameraState;
+    return {
+      editor: pointsEditor(edge.style),
+      route: raw.map((p) => ({ x: p.x + object.position.x, y: p.y + object.position.y })),
+      waypoints: edge.points.map((p) => ({ ...p })),
+      source: source?.bounds,
+      target: target?.bounds,
+      sourceAnchor: sourceFixed ?? (source && routingCenter(source)),
+      targetAnchor: targetFixed ?? (target && routingCenter(target)),
+      sourceFixed: !!sourceFixed,
+      targetFixed: !!targetFixed,
+      reroute: (waypoints) =>
+        routeEdgePoints({
+          source,
+          target,
+          sourcePoint: edge.sourcePoint,
+          targetPoint: edge.targetPoint,
+          waypoints,
+          style: edge.style,
+        }),
+      tolerance: EDGE_POINT_TOLERANCE / zoom,
+      handleRadius: (this.settings.edit.handleSize * 1.5) / zoom,
+    };
+  }
+
+  /** Poignée entre les bouts de la flèche sélectionnée sous un point écran. */
+  private pointHandleAt(screen: Point): PointHandle | undefined {
+    const editable = this.editableEdgeSelection();
+    const context = editable && this.pointsContext(editable.page, editable.edge);
+    if (!editable || !context) return undefined;
+    const top = this.elementTop(editable.edge.id);
+    let best: { handle: PointHandle; distance: number } | undefined;
+    for (const handle of pointHandles(context)) {
+      const at = this.screenOfPoint(handle.point, top);
+      // À distance égale, une vraie poignée passe avant une poignée en transparence.
+      const distance = Math.hypot(at.x - screen.x, at.y - screen.y) + (handle.faded ? 0.5 : 0);
+      if (distance <= this.settings.edit.handlePickTolerance && (!best || distance < best.distance))
+        best = { handle, distance };
+    }
+    return best?.handle;
+  }
+
+  /** Curseur d'une poignée entre les bouts (segment : perpendiculaire à lui). */
+  private pointHandleCursor(handle: PointHandle, style: Record<string, string>): string {
+    if (handle.kind === 'segment') return handle.vertical ? 'col-resize' : 'row-resize';
+    if (handle.kind === 'elbow')
+      return style.edgeStyle === 'topToBottomEdgeStyle' ||
+        (style.edgeStyle === 'elbowEdgeStyle' && style.elbow === 'vertical')
+        ? 'row-resize'
+        : 'col-resize';
+    return 'move';
+  }
+
+  /** Écrit les points intermédiaires d'une flèche (repère de son parent, comme draw.io). */
+  private writeEdgePoints(page: PageModel, pageTree: PageTree, edge: EdgeModel, points: Point[]): void {
+    const origin = page.shapes.find((s) => s.id === edge.parentId)?.bounds ?? { x: 0, y: 0 };
+    setEdgePoints(
+      pageTree,
+      edge.id,
+      points.map((p) => ({ x: p.x - origin.x, y: p.y - origin.y })),
+    );
+  }
+
+  /**
+   * Retour en auto : points intermédiaires et points d'attache imposés retirés, la flèche reste reliée
+   * aux mêmes formes (le tracé redevient entièrement calculé).
+   */
+  resetEdgeRoute(edgeId: string): void {
+    const editable = this.editablePage();
+    const edge = editable?.page.edges.find((e) => e.id === edgeId);
+    if (!editable || !edge) return;
+    const keys = ['exit', 'entry'].flatMap((prefix) =>
+      ['X', 'Y', 'Dx', 'Dy', 'Perimeter'].map((suffix) => `${prefix}${suffix}`),
+    );
+    const constrained = keys.some((key) => edge.style[key] !== undefined);
+    if (edge.points.length === 0 && !constrained) return;
+    this.recordEdit('Tracé automatique');
+    setEdgePoints(editable.pageTree, edge.id, []);
+    for (const key of keys) setCellStyleValue(editable.pageTree, edge.id, key, undefined);
+    this.documentChanged([editable.page.id]);
+  }
+
   /**
    * Accroche d'un bout de flèche sous le pointeur, comme draw.io : point de connexion proche (attache
    * fixe), sinon intérieur d'une forme (attache auto), sinon un point libre au niveau de la flèche.
@@ -1786,6 +1908,22 @@ export class Engine {
       return true;
     }
 
+    const pointHandle = this.pointHandleAt(screen);
+    const bentEdge = pointHandle ? this.editableEdgeSelection()?.edge : undefined;
+    const context = bentEdge && this.pointsContext(page, bentEdge);
+    if (pointHandle && bentEdge && context) {
+      this.drag = {
+        kind: 'edgePoints',
+        pageId: page.id,
+        edgeId: bentEdge.id,
+        handle: pointHandle,
+        context,
+        original: bentEdge.points.map((p) => ({ ...p })),
+        started: false,
+      };
+      return true;
+    }
+
     const handle = this.handleAt(screen);
     const selected = handle ? this.editableSelection()?.shape : undefined;
     if (handle && selected) {
@@ -1860,6 +1998,7 @@ export class Engine {
     else if (drag.kind === 'resize') this.dragResize(page, drag, point, snap);
     else if (drag.kind === 'label') this.dragLabel(page, drag, screen);
     else if (drag.kind === 'edgeEnd') this.dragEdgeEnd(page, drag, screen, snap);
+    else if (drag.kind === 'edgePoints') this.dragEdgePoints(page, drag, screen, snap);
     else this.dragConnect(page, drag, screen);
   }
 
@@ -2163,6 +2302,24 @@ export class Engine {
   }
 
   /** Bout de flèche suivant le pointeur : tracé recalculé en direct, repères sur la forme visée. */
+  /** Poignée entre les bouts suivant le pointeur (aimanté à la grille) : points recalculés, tracé en direct. */
+  private dragEdgePoints(page: PageModel, drag: EdgePointsDrag, screen: Point, snap: boolean): void {
+    const edge = page.edges.find((e) => e.id === drag.edgeId);
+    const pageTree = this.pageTreeOf(page.id);
+    if (!edge || !pageTree) return;
+    drag.started = true;
+    const raw = this.groundPointAtHeight(screen, this.elementTop(edge.id));
+    const grid = gridSizeOf(pageTree);
+    const step = snap && grid > 0 ? grid : 1;
+    const pointer = { x: Math.round(raw.x / step) * step, y: Math.round(raw.y / step) * step };
+    const points = dragPoints(drag.context, drag.handle, pointer);
+    if (drag.points && samePoints(points, drag.points)) return;
+    drag.points = points;
+    edge.points = points;
+    this.retraceEdges(page, new Set([edge.id]));
+    this.afterLiveEdit();
+  }
+
   private dragEdgeEnd(page: PageModel, drag: EdgeEndDrag, screen: Point, snap: boolean): void {
     const edge = page.edges.find((e) => e.id === drag.edgeId);
     const pageTree = this.pageTreeOf(page.id);
@@ -2202,6 +2359,22 @@ export class Engine {
       if (!drag.placement) return;
       this.recordEdit('Position du texte');
       setLabelPlacement(pageTree, drag.cellId, drag.placement);
+      this.documentChanged([drag.pageId]);
+      return;
+    }
+
+    if (drag.kind === 'edgePoints') {
+      const page = this.pageById(drag.pageId);
+      const edge = page?.edges.find((e) => e.id === drag.edgeId);
+      if (!page || !edge) return;
+      if (!drag.points || samePoints(drag.points, drag.original)) {
+        edge.points = drag.original;
+        if (this.getCurrentPage()?.id === drag.pageId) this.retraceEdges(page, new Set([edge.id]));
+        this.afterLiveEdit();
+        return;
+      }
+      this.recordEdit('Points de la flèche');
+      this.writeEdgePoints(page, pageTree, edge, drag.points);
       this.documentChanged([drag.pageId]);
       return;
     }
@@ -2769,6 +2942,7 @@ export class Engine {
    * près d'un bout, édite son texte de début ou de fin.
    */
   private handleDoubleClick(screen: Point): void {
+    if (this.doubleClickPointHandle(screen)) return;
     const picked = this.pickAt(screen);
     const text = picked?.type === 'edge' ? this.edgeTextAt(screen) : undefined;
     if (picked && isNavigableLink(picked.element.link)) this.followLink(picked.element.id);
@@ -2783,14 +2957,48 @@ export class Engine {
     } else if (picked) this.editLabel(picked.element.id);
   }
 
+  /**
+   * Double-clic sur une poignée de la flèche sélectionnée, comme draw.io : un point intermédiaire est
+   * retiré ; le coude d'une flèche en coude bascule entre horizontal et vertical.
+   */
+  private doubleClickPointHandle(screen: Point): boolean {
+    const handle = this.pointHandleAt(screen);
+    const editable = handle && this.editableEdgeSelection();
+    if (!handle || !editable) return false;
+    const { page, pageTree, edge } = editable;
+    if (handle.kind === 'point') {
+      this.recordEdit('Point retiré');
+      this.writeEdgePoints(page, pageTree, edge, removePoint(edge.points, handle.index));
+      this.documentChanged([page.id]);
+      return true;
+    }
+    if (handle.kind === 'elbow') {
+      this.recordEdit('Coude basculé');
+      setCellStyleValue(pageTree, edge.id, 'elbow', edge.style.elbow === 'vertical' ? 'horizontal' : 'vertical');
+      this.documentChanged([page.id]);
+      return true;
+    }
+    return false;
+  }
+
   /** Survol : curseur main et infobulle sur les éléments liés ; préchargement optionnel. */
   private handleHover(screen: Point | undefined): void {
     const picked = screen ? this.pickAt(screen) : undefined;
     const link = isNavigableLink(picked?.element.link) ? picked?.element.link : undefined;
     const handle = screen ? this.handleAt(screen) : undefined;
     const edgeEnd = screen && !handle ? this.edgeEndAt(screen) : undefined;
+    const pointHandle = screen && !handle && !edgeEnd ? this.pointHandleAt(screen) : undefined;
+    const bent = pointHandle && this.editableEdgeSelection()?.edge;
     const cursor =
-      handle === 'connect' || edgeEnd ? 'crosshair' : handle ? HANDLE_CURSORS[handle] : link ? 'pointer' : '';
+      handle === 'connect' || edgeEnd
+        ? 'crosshair'
+        : handle
+          ? HANDLE_CURSORS[handle]
+          : pointHandle && bent
+            ? this.pointHandleCursor(pointHandle, bent.style)
+            : link
+              ? 'pointer'
+              : '';
     if (!this.canvas.style.cursor.startsWith('grab')) this.canvas.style.cursor = cursor;
     this.canvas.title = link ? this.describeLink(link) : '';
     clearTimeout(this.hoverTimer);
@@ -2958,14 +3166,17 @@ export class Engine {
     const ends = editableEdge && this.edgeEndPoints(editableEdge.edge.id);
     if (editableEdge && ends && root) {
       const { edge } = editableEdge;
+      const handleStyle = { size: this.settings.edit.handleSize, accent: this.settings.selection.accentColor };
       this.handlesObject = edgeEndHandles(
         [
           { point: ends.source, attached: !!edge.sourceId },
           { point: ends.target, attached: !!edge.targetId },
         ],
         this.cameraState.zoom,
-        { size: this.settings.edit.handleSize, accent: this.settings.selection.accentColor },
+        handleStyle,
       );
+      const context = this.pointsContext(editableEdge.page, edge);
+      if (context) this.handlesObject.add(edgePointHandles(pointHandles(context), this.cameraState.zoom, handleStyle));
       this.handlesObject.position.z = this.elementTop(edge.id) + 0.3;
       this.handlesObject.traverse((o) => {
         if (o instanceof Mesh) (o.material as MeshBasicMaterial).depthTest = false;

@@ -148,3 +148,29 @@ export function connectionHints(
   });
   return group;
 }
+
+/**
+ * Poignées entre les bouts d'une flèche (segments, coude, points) : carrés blancs bordés de bleu, ceux
+ * en transparence (poignées virtuelles, milieux d'un tracé droit) à 40 %, comme draw.io.
+ */
+export function edgePointHandles(
+  handles: Array<{ point: Point; faded?: boolean }>,
+  zoom: number,
+  options: HandleStyle = {},
+): Group {
+  const group = new Group();
+  group.name = 'edge-point-handles';
+  const r = (options.size ?? HANDLE_SIZE) / zoom;
+  const accent = new Color(options.accent ?? DEFAULT_ACCENT);
+  for (const { point, faded } of handles) {
+    const opacity = faded ? 0.4 : 1;
+    const square = rectPath({ x: point.x - r, y: point.y - r, width: 2 * r, height: 2 * r });
+    group.add(fillMesh(square, WHITE, opacity));
+    const outline = strokeMesh(square, accent, opacity, { width: 1.2 / zoom, closed: true });
+    if (outline) group.add(outline);
+  }
+  group.traverse((o) => {
+    o.renderOrder = Number.MAX_SAFE_INTEGER;
+  });
+  return group;
+}

@@ -35,7 +35,7 @@ DRAWIO ?= /Applications/draw.io.app/Contents/MacOS/draw.io
 # Fixtures volontairement invalides pour draw.io (robustesse du parseur) : non réenregistrées.
 DRAWIO_SKIP := broken.drawio groups.drawio roundtrip.drawio
 # Fixtures dont on compare aussi le rendu de draw.io (export SVG) avec le nôtre.
-DRAWIO_SVG := edge-ends.drawio edge-routing.drawio
+DRAWIO_SVG := edge-ends.drawio edge-routing.drawio edge-points.drawio
 
 drawio-check: .image ## Réenregistre les fixtures avec draw.io, vérifie la conservation (spatial.*, bouts des flèches) et le tracé (SVG)
 	@test -x "$(DRAWIO)" || { echo "draw.io introuvable : make drawio-check DRAWIO=/chemin/vers/draw.io"; exit 1; }
@@ -48,7 +48,7 @@ drawio-check: .image ## Réenregistre les fixtures avec draw.io, vérifie la con
 	@for n in $(DRAWIO_SVG); do \
 	  "$(DRAWIO)" -x -f svg -o tests/fixtures/drawio-saved/$${n%.drawio}.svg tests/fixtures/$$n > /dev/null || exit 1; \
 	done
-	$(RUN) npx vitest run tests/engine/spatial tests/engine/edit/edgeEndsFixture.test.ts tests/engine/render/edges/routingFixture.test.ts
+	$(RUN) npx vitest run tests/engine/spatial tests/engine/edit/edgeEndsFixture.test.ts tests/engine/render/edges/routingFixture.test.ts tests/engine/edit/edgePointsFixture.test.ts
 
 build: .image ## Build de production dans dist/
 	$(RUN) npm run build

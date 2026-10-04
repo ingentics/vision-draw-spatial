@@ -71,6 +71,14 @@ export function routingKind(style: Record<string, string>): { kind: RoutingKind;
 
 /** Tracé complet de l'arête, extrémités comprises. Vide si l'arête n'a pas deux extrémités. */
 export function routeEdge(input: RouteInput): Point[] {
+  return simplify(routeEdgePoints(input));
+}
+
+/**
+ * Tracé brut, tel que draw.io le calcule (`state.absolutePoints`) : points alignés ou confondus compris.
+ * C'est sur lui que travaillent les poignées des segments (`edit/edgePoints.ts`), comme dans draw.io.
+ */
+export function routeEdgePoints(input: RouteInput): Point[] {
   const { source, target, style } = input;
   const view = new View(style);
 
@@ -115,7 +123,7 @@ export function routeEdge(input: RouteInput): Point[] {
       : null;
   }
   if (result.some((p) => p === null) || result.length < 2) return [];
-  return simplify(result as Point[]);
+  return result as Point[];
 }
 
 // ---------------------------------------------------------------------------
@@ -142,6 +150,23 @@ function fixedTerminalPoint(
     return point;
   }
   return terminal ? undefined : free && { ...free };
+}
+
+/** Point d'attache imposé d'un bout, s'il y en a un. */
+export function fixedAnchor(
+  terminal: Terminal,
+  style: Record<string, string>,
+  end: 'source' | 'target',
+): Point | undefined {
+  const prefix = end === 'source' ? 'exit' : 'entry';
+  return fixedTerminalPoint(terminal, constraintFromStyle(style, prefix), undefined, perimeterOn(style, prefix));
+}
+
+/** Centre de routage d'une forme (`routingCenterX/Y`). */
+export function routingCenter(terminal: Terminal): Point {
+  const view = new View({});
+  const state = stateOf(terminal);
+  return { x: view.routingCenterX(state), y: view.routingCenterY(state) };
 }
 
 export function constraintFromStyle(style: Record<string, string>, prefix: 'exit' | 'entry'): Constraint | undefined {

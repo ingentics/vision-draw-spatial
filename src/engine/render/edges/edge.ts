@@ -3,7 +3,7 @@ import type { Object3D } from 'three';
 import type { EdgeLabelPlacement, EdgeModel, Point, RichLine, ShapeModel } from '../../model/types';
 import { buildMarker } from '../edges/markers';
 import { curveThrough, labelPoint, roundCorners, shorten, unit } from '../edges/polyline';
-import { routeEdge } from '../edges/route';
+import { routeEdgePoints, simplify } from '../edges/route';
 import type { Terminal } from '../edges/route';
 import { dashPattern } from '../geometry/stroke';
 import { fillMesh, strokeMesh } from '../meshes';
@@ -40,7 +40,7 @@ export function createEdge(edge: EdgeModel, terminals: EdgeTerminals, ctx: Rende
   group.name = `edge:${edge.id}`;
   const { style } = edge;
 
-  const route = routeEdge({
+  const points = routeEdgePoints({
     source: toTerminal(terminals.source),
     target: toTerminal(terminals.target),
     sourcePoint: edge.sourcePoint,
@@ -48,9 +48,11 @@ export function createEdge(edge: EdgeModel, terminals: EdgeTerminals, ctx: Rende
     waypoints: edge.points,
     style,
   });
-  // Tracé conservé pour placer les textes ; trait dessiné (coudes arrondis, courbe) pour la sélection au
-  // clic (interaction/pick) et le voile de la sélection.
+  const route = simplify(points);
+  // Tracé conservé pour placer les textes ; tracé brut pour les poignées des segments (edit/edgePoints) ;
+  // trait dessiné (coudes arrondis, courbe) pour la sélection au clic (interaction/pick) et le voile.
   group.userData.route = route;
+  group.userData.points = points;
   if (route.length < 2) return group;
   group.userData.path =
     style.curved === '1'

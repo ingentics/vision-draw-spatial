@@ -285,7 +285,7 @@ clic, accroche des flèches), comparaison visuelle avec l'export draw.io.
   `make drawio-check` la fait réenregistrer (bouts conservés) et **exporter en SVG** : chaque bout tombe au pixel près
   sur celui de draw.io (`DRAWIO_SVG` du Makefile, test `edgeEndsFixture`).
 
-### Étape 25 — Découpage en morceaux
+### Étape 25 — Découpage en morceaux ✅
 - ✅ Préalable : tracé **aligné sur draw.io**. Les routeurs de draw.io sont portés tels quels (`route.ts`, mxGraph
   Apache 2.0 : orthogonal, segments, coudes, côte à côte, haut en bas, relation d'entités, boucle ; bouts fixes puis
   flottants) ; fixture `edge-routing.drawio` (144 tracés) exportée en SVG par draw.io (`make drawio-check`) : tous
@@ -297,6 +297,11 @@ clic, accroche des flèches), comparaison visuelle avec l'export draw.io.
 - Double-clic sur un coude : supprimé. Bouton **« Retour en auto »** : points de passage et attaches fixes effacés.
 - **Fini quand :** on découpe une flèche en morceaux, on les déplace, on revient en auto, et draw.io affiche la même
   chose.
+- Fait : `edit/edgePoints.ts` porte les éditeurs de draw.io (`mxEdgeSegmentHandler`, `mxElbowEdgeHandler`,
+  `mxEdgeHandler`) : poignées de segments (orthogonal), de coude, de points et virtuelles (droit) ; point aligné ou
+  lâché sur une poignée retiré, double-clic (point retiré, coude basculé), « Retour en auto » (`resetEdgeRoute`) ;
+  `setEdgePoints` dans `format/edit.ts`. Testé à la main en 2D et en iso. Validé avec draw.io 24.7.5 : fixture
+  `edge-points.drawio` (48 glisser écrits par `dragPoints`) exportée en SVG, tous les tracés identiques.
 
 ### Étape 26 — Cohérence au déplacement des formes
 - Les attaches fixes suivent la forme ; les points de passage suivent la flèche si ses deux bouts bougent ensemble
