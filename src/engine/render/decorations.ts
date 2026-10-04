@@ -71,11 +71,12 @@ export function linkBadge(shape: ShapeModel, link: LinkModel, accent = DEFAULT_A
 
 /** Pastille d'une flèche : rayon et taille du texte, au-dessus d'un texte ou seule au milieu de la flèche. */
 const EDGE_BADGE = {
-  labelled: { radius: 12, fontSize: 15, border: 1.5 },
-  alone: { radius: 5.5, fontSize: 7, border: 1 },
+  labelled: { radius: 12, fontSize: 15 },
+  alone: { radius: 5.5, fontSize: 7 },
 };
-/** Bordure de la pastille. */
+/** Bordure de la pastille : noire, 1 px de page. */
 const EDGE_BADGE_BORDER = new Color('#000000');
+const EDGE_BADGE_BORDER_WIDTH = 1;
 /**
  * Hauteur des chiffres en fraction de la taille du texte (Roboto : 1456 / 2048) : la ligne de base est posée à une
  * demi-hauteur sous le centre, pour centrer les chiffres eux-mêmes (et non la ligne, qui réserve les jambages).
@@ -91,7 +92,7 @@ const EDGE_BADGE_GAP = 2;
  */
 export function edgeBadge(edge: EdgeModel, route: Point[], badge: EdgeBadge, ctx: RenderContext): Group {
   const labelled = edge.label.trim() !== '' && edge.style.noLabel !== '1';
-  const { radius, fontSize, border } = labelled ? EDGE_BADGE.labelled : EDGE_BADGE.alone;
+  const { radius, fontSize } = labelled ? EDGE_BADGE.labelled : EDGE_BADGE.alone;
   const anchor = labelPoint(
     route,
     labelled ? edge.labelPlacement : { position: 0, distance: 0, offset: { x: 0, y: 0 } },
@@ -110,7 +111,7 @@ export function edgeBadge(edge: EdgeModel, route: Point[], badge: EdgeBadge, ctx
   const circle = ellipsePath({ x: -radius, y: -lift - radius, width: 2 * radius, height: 2 * radius }, 48);
   const disc = fillMesh(circle, new Color(badge.color), 1);
   disc.renderOrder = PART_ORDER.label + 1;
-  const outline = strokeMesh(circle, EDGE_BADGE_BORDER, 1, { width: border, closed: true });
+  const outline = strokeMesh(circle, EDGE_BADGE_BORDER, 1, { width: EDGE_BADGE_BORDER_WIDTH, closed: true });
   if (outline) outline.renderOrder = PART_ORDER.label + 1.25;
   const text = ctx.text.create({
     text: badge.text,
