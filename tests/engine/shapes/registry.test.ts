@@ -32,6 +32,7 @@ describe('formes en plugins (étapes 65, 67) : contrat des définitions', () => 
         'geometry/diamond',
         'geometry/hexagon',
         'geometry/octagon',
+        'geometry/pentagon',
         'general/text',
         'architecture/database',
         'architecture/queue',
@@ -77,6 +78,7 @@ describe('formes en plugins (étapes 65, 67) : contrat des définitions', () => 
     expect(id('rhombus')).toBe('diamond');
     expect(id('hexagon')).toBe('hexagon');
     expect(id('mxgraph.basic.octagon2')).toBe('octagon');
+    expect(id('mxgraph.basic.pentagon')).toBe('pentagon');
     expect(id('database', { direction: 'south' })).toBe('database');
     expect(id('queue')).toBe('queue');
     expect(registry.resolve(model('note')).supported).toBe(false);

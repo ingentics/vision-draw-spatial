@@ -17,7 +17,8 @@ import { drawioSvgOutlines, drawioSvgRoutes, dropCollinear, fixture } from '../.
  * doit tomber au pixel près sur le nôtre.
  *
  * La prise (`stencil:plug`) vérifie aussi les stencils embarqués (`mxStencil.computeAspect`) ; l'hexagone, ses pans
- * (`size`, `fixedSize`) et son périmètre (`hexagonPerimeter2`, couché et debout) ; l'octogone (`dx`).
+ * (`size`, `fixedSize`) et son périmètre (`hexagonPerimeter2`, couché et debout) ; l'octogone (`dx`) ; le
+ * pentagone (stencil de draw.io).
  *
  * Les triangles ne sont pas encore dessinés par le moteur : ils servent à vérifier l'orientation commune
  * (`orientedPath`) sur une forme asymétrique, avec le contour local de `mxTriangle`.
@@ -52,6 +53,7 @@ const AROUND = [
 const EDGE_STYLES = ['endArrow=none;html=1;', 'edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;html=1;'];
 const HEXAGON = 'shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;';
 const OCTAGON = 'whiteSpace=wrap;html=1;shape=mxgraph.basic.octagon2;align=center;verticalAlign=middle;dx=15;';
+const PENTAGON = 'whiteSpace=wrap;html=1;shape=mxgraph.basic.pentagon;';
 const ORIENTATIONS = [...VARIANTS, ...NORTH_FLIPS];
 /**
  * Formes de la palette « Géométrie », chacune dans ses variantes (id `<préfixe><n>`) : orientations, puis
@@ -70,6 +72,8 @@ const SERIES = [
   { prefix: 'o', style: OCTAGON, w: 160, h: 80, variants: [...ORIENTATIONS, 'dx=30;', 'dx=0;'] },
   { prefix: 'oc', style: OCTAGON, w: 100, h: 100, variants: [''] },
   { prefix: 'od', style: OCTAGON.replace('dx=15;', ''), w: 100, h: 100, variants: [''] },
+  { prefix: 'pe', style: PENTAGON, w: 100, h: 90, variants: ORIENTATIONS },
+  { prefix: 'pw', style: PENTAGON, w: 160, h: 60, variants: [''] },
 ];
 /**
  * Autres cibles des flèches (après le losange `d`), mêmes sources tout autour : préfixe des ids (`<p><k>` la
@@ -79,6 +83,7 @@ const EDGE_TARGETS = [
   { prefix: 'x', style: HEXAGON, w: 120, h: 80 },
   { prefix: 'xn', style: `${HEXAGON}direction=north;`, w: 120, h: 80 },
   { prefix: 'xo', style: OCTAGON, w: 100, h: 100 },
+  { prefix: 'xp', style: PENTAGON, w: 100, h: 90 },
 ];
 
 interface Vertex {

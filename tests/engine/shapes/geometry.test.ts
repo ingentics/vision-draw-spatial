@@ -128,3 +128,34 @@ describe('octogone (34)', () => {
     expect(registry.contains(s, { x: 105, y: 105 })).toBe(false);
   });
 });
+
+describe('pentagone (35)', () => {
+  const STYLE = 'whiteSpace=wrap;html=1;shape=mxgraph.basic.pentagon';
+  const shape = (style = STYLE, width = 97, height = 90) => page([style], width, height).page.shapes[0]!;
+
+  it('dessiné par sa définition, absent des Diagnostics ; spatial.kind=pentagon le dessine', () => {
+    const { document, page: p } = page([STYLE, 'shape=note;spatial.kind=pentagon;'], 100, 90);
+    expect(p.shapes.map((s) => registry.resolve(s).definition.id)).toEqual(['pentagon', 'pentagon']);
+    expect(collectUnsupported(document, registry).entries).toEqual([]);
+  });
+
+  it('contour : le stencil de draw.io (pointe en haut) étiré dans les bornes', () => {
+    const s = shape();
+    expect(round(registry.resolve(s).definition.outline!(s))).toEqual([
+      [118.5, 190],
+      [100, 133],
+      [148.5, 100],
+      [197, 133],
+      [178.5, 190],
+    ]);
+    const wide = shape(STYLE, 194, 45);
+    expect(round(registry.resolve(wide).definition.outline!(wide))[2]).toEqual([197, 100]);
+  });
+
+  it('volume : prisme du contour ; clic dans le contour, pas dans les coins vides', () => {
+    expect(volume(STYLE, 100, 90)).toEqual({ min: [100, 0, 100], max: [200, 20, 190] });
+    const s = shape();
+    expect(registry.contains(s, { x: 148, y: 150 })).toBe(true);
+    expect(registry.contains(s, { x: 103, y: 103 })).toBe(false);
+  });
+});

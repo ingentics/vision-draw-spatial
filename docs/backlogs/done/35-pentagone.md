@@ -28,3 +28,10 @@
 - **Fini quand :** la forme s'affiche comme dans draw.io en 2D (comparaison avec l'export), en volume en iso et en 3D,
   se clique et reçoit les flèches sur son contour, se crée depuis la palette (catégorie « Géométrie ») ; elle
   n'apparaît plus dans le panneau Diagnostics ; `spatial.kind=<id>` la dessine.
+
+Fait : forme `src/engine/shapes/impl/geometry/pentagon/` (`kinds: ['mxgraph.basic.pentagon']`). C'est un stencil de
+draw.io (`stencils/basic.xml`, cadre 97 × 90, `aspect="variable"`) : son contour est repris tel quel et étiré dans
+les bornes, orienté par `orientedPath` ; prisme en iso / 3D ; « Pentagone » dans la palette. Pas de périmètre
+propre : flèches sur les bornes, comme draw.io. Fixture `shapes.drawio` (orientations, pentagone large, flèches)
+identique à l'export SVG de draw.io ; tests dans `tests/engine/shapes/geometry.test.ts`. Vérifié dans l'appli :
+palette, 2D, iso.
