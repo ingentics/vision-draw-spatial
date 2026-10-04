@@ -2,6 +2,9 @@
 
 > Milestone 5 — Formes géométriques
 
+- Forme : `src/engine/shapes/impl/general/actor/`, `id: 'actor'`, `kinds: ['umlActor']` ; « Acteur » dans la palette
+  (catégorie « Général »). Tout son rendu, silhouette debout en iso / 3D comprise, vit dans son dossier (pas
+  d'extension de `generic/box`) ; clic et accroche sur les bornes : `contains: () => true`.
 - Style draw.io (palette) : `shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;`,
   30 × 60.
 - **2D** : bonhomme draw.io (tête ronde remplie de la couleur de fond, corps, bras, jambes en traits), aux proportions
@@ -13,4 +16,4 @@
 - Clic sur ses bornes (bonhomme fin : le contour réel serait trop difficile à viser) ; accroche des flèches sur ses
   bornes, comme draw.io (`outlineConnect=0`) ; mini-carte : sa silhouette.
 - **Fini quand :** l'Actor s'affiche comme dans draw.io en 2D, se tient debout face à la caméra en iso et en 3D sous
-  tous les angles, se crée depuis la palette.
+  tous les angles, se crée depuis la palette ; `spatial.kind=actor` le dessine.
