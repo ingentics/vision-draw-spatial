@@ -486,6 +486,40 @@ body {
   opacity: 0.6;
 }
 
+/*
+ * Infobulle du nom d'une forme : fixée à la fenêtre pour ne pas être coupée par le défilement de la palette.
+ * Fondu et léger glissement, plus rapides en sortie qu'en entrée.
+ */
+.palette-tooltip {
+  position: fixed;
+  z-index: 100;
+  padding: 3px 7px;
+  border-radius: 4px;
+  background: var(--fg);
+  color: var(--bg);
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -3px);
+  transition:
+    opacity 80ms ease-in,
+    transform 80ms ease-in;
+}
+
+.palette-tooltip.visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  animation: palette-tooltip-in 120ms ease-out;
+}
+
+@keyframes palette-tooltip-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -3px);
+  }
+}
+
 /* Bouton Diagnostics */
 .toolbar-end {
   display: flex;
