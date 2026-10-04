@@ -34,6 +34,7 @@ const SHORTCUT_LABELS: Record<keyof Shortcuts, string> = {
   toggle3d: 'Basculer vers / depuis la 3D',
   toggleGraph: 'Vue graphe ↔ dernière page',
   toggleMinimap: 'Afficher / masquer la mini-carte',
+  toggleFlatten: 'Aplatir / rétablir les volumes (iso, 3D)',
   overview: 'Vue globale ↔ 1:1',
   back: 'Retour (Alt+← aussi)',
   deleteSelection: 'Supprimer la sélection (Suppr aussi)',

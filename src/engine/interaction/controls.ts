@@ -24,6 +24,8 @@ export interface Shortcuts {
   toggleGraph: string;
   /** Affiche / masque la mini-carte. */
   toggleMinimap: string;
+  /** Aplatit / rétablit les volumes (iso, 3D). */
+  toggleFlatten: string;
   /** Vue globale ↔ 1:1 (l'Entrée du pavé numérique donne aussi la touche « Enter »). */
   overview: string;
   /** Retour (Alt+← fonctionne en plus, comme dans un navigateur). */
@@ -41,6 +43,7 @@ export const DEFAULT_SHORTCUTS: Shortcuts = {
   toggle3d: 'p',
   toggleGraph: 'g',
   toggleMinimap: 'm',
+  toggleFlatten: 'v',
   overview: 'Enter',
   back: 'Backspace',
   deleteSelection: 'Backspace',
@@ -255,6 +258,8 @@ export interface CameraHost {
   toggle3d?(): void;
   /** Affiche / masque la mini-carte (touche M). */
   toggleMinimap?(): void;
+  /** Aplatit / rétablit les volumes en iso et en 3D (touche V). */
+  toggleFlatten?(): void;
   /** Vue graphe ↔ dernière page (touche G). */
   toggleGraph?(): void;
   /**
@@ -605,13 +610,15 @@ export class CameraController {
       action === 'toggleViewMode' ||
       action === 'toggle3d' ||
       action === 'toggleGraph' ||
-      action === 'toggleMinimap'
+      action === 'toggleMinimap' ||
+      action === 'toggleFlatten'
     ) {
       event.preventDefault();
       if (event.repeat) return;
       if (action === 'toggleViewMode') this.host.toggleViewMode?.();
       else if (action === 'toggle3d') this.host.toggle3d?.();
       else if (action === 'toggleGraph') this.host.toggleGraph?.();
+      else if (action === 'toggleFlatten') this.host.toggleFlatten?.();
       else this.host.toggleMinimap?.();
       return;
     }

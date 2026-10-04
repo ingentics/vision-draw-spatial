@@ -490,6 +490,7 @@ Formes et arêtes sont dessinées dans l'**ordre du document** (une arête décl
 | Vue globale ↔ 1:1 | **Entrée** (§9.3) |
 | Vue graphe ↔ dernière page | Onglet « Vue graphe », touche **G** (§12) |
 | Mini-carte | Bouton × / « Mini-carte », touche **M** (§10) |
+| Aplatir les volumes (iso, 3D) | Touche **V** : rendu à plat (épaisseur nulle), caméra inchangée ; un second appui, ou un clic sur l'icône apparue à gauche de la mini-carte, rétablit les volumes. État passager, non enregistré ; sans effet en 2D |
 | Sélectionner | Clic gauche |
 | Déplacer une forme | Clic gauche + glisser sur la forme (vue de dessus comme iso), aimanté à la grille de la page ; **Alt** maintenu : sans grille (§14.1) |
 | Sauvegarder | Bouton « Sauvegarder », **Ctrl+S** / ⌘S (§14.1) |
@@ -657,7 +658,7 @@ interface Settings {
     multiSelectKey: 'ctrl' | 'meta' | 'shift' | 'alt'; // touche + clic = sélection multiple (§11.1) : 'ctrl'
     followLinkKey: 'ctrl' | 'meta' | 'shift' | 'alt' | 'none'; // touche + geste = suivre un lien (§11.1) : 'meta'
     followLinkGesture: 'click' | 'doubleClick'; // geste pour suivre un lien, avec la touche : 'click'
-    shortcuts: { toggleViewMode: 'i'; toggle3d: 'p'; toggleGraph: 'g'; toggleMinimap: 'm'; overview: 'Enter'; back: 'Backspace'; deleteSelection: 'Backspace' };
+    shortcuts: { toggleViewMode: 'i'; toggle3d: 'p'; toggleGraph: 'g'; toggleMinimap: 'm'; toggleFlatten: 'v'; overview: 'Enter'; back: 'Backspace'; deleteSelection: 'Backspace' };
   };
   view: {
     defaultMode: 'top' | 'iso' | '3d'; isoAngleDeg: number; isoAzimuthDeg: number; switchDurationMs: number; // 'top', 35.26, -45, 450

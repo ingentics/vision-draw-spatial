@@ -499,6 +499,7 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
         toggle3d: code(shortcuts.toggle3d, base.controls.shortcuts.toggle3d),
         toggleGraph: code(shortcuts.toggleGraph, base.controls.shortcuts.toggleGraph),
         toggleMinimap: code(shortcuts.toggleMinimap, base.controls.shortcuts.toggleMinimap),
+        toggleFlatten: code(shortcuts.toggleFlatten, base.controls.shortcuts.toggleFlatten),
         overview: code(shortcuts.overview, base.controls.shortcuts.overview),
         back: code(shortcuts.back, base.controls.shortcuts.back),
         deleteSelection: code(shortcuts.deleteSelection, base.controls.shortcuts.deleteSelection),

@@ -1,16 +1,27 @@
 /*
- * Styles du composant <DrawioSpatial /> (mini-carte). Personnalisables par les variables
- * --drawio-spatial-* sur le composant ou un parent.
+ * Styles du composant <DrawioSpatial /> (mini-carte, icône des volumes aplatis). Personnalisables par
+ * les variables --drawio-spatial-* sur le composant ou un parent.
  */
 .drawio-spatial {
   --drawio-spatial-border: #dadce0;
   --drawio-spatial-muted: #6b6b6b;
+  --drawio-spatial-accent: #1a73e8;
   --drawio-spatial-surface: #ffffff;
   --drawio-spatial-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
 }
 
 .drawio-spatial canvas:focus-visible {
   outline: none;
+}
+
+.drawio-corner {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.drawio-minimap {
+  position: relative;
 }
 
 .drawio-minimap canvas {
@@ -42,6 +53,21 @@
   padding: 4px 10px;
   font: inherit;
   font-size: 12px;
+  border: 1px solid var(--drawio-spatial-border);
+  border-radius: 6px;
+  background: var(--drawio-spatial-surface);
+  box-shadow: var(--drawio-spatial-shadow);
+  cursor: pointer;
+}
+
+.drawio-flatten {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: var(--drawio-spatial-accent);
   border: 1px solid var(--drawio-spatial-border);
   border-radius: 6px;
   background: var(--drawio-spatial-surface);

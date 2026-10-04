@@ -99,6 +99,9 @@ export function DrawioSpatial(props: DrawioSpatialProps) {
   const [engine, setEngine] = useState<Engine>();
   const [localMinimap, setLocalMinimap] = useState(true);
   const minimapVisible = minimap?.visible ?? localMinimap;
+  /** Volumes aplatis (touche V) en iso ou en 3D : icône pour les rétablir. */
+  const [flattened, setFlattened] = useState(false);
+  const [flatView, setFlatView] = useState(true);
 
   // Rappels lus au moment de l'événement (pas de réabonnement à chaque rendu).
   const propsRef = useRef(props);
@@ -133,7 +136,11 @@ export function DrawioSpatial(props: DrawioSpatialProps) {
       instance.on('load', (document) => propsRef.current.onLoad?.(document)),
       instance.on('pageChange', (page) => propsRef.current.onPageChange?.(page)),
       instance.on('selectionChange', (selection) => propsRef.current.onSelectionChange?.(selection)),
-      instance.on('cameraChange', (camera) => propsRef.current.onCameraChange?.(camera)),
+      instance.on('cameraChange', (camera) => {
+        setFlatView(camera.mode === 'top');
+        propsRef.current.onCameraChange?.(camera);
+      }),
+      instance.on('flattenChange', setFlattened),
       instance.on('modifiedChange', (modified) => propsRef.current.onModifiedChange?.(modified)),
       instance.on('minimapToggle', toggleMinimap),
     ];
@@ -284,34 +291,63 @@ export function DrawioSpatial(props: DrawioSpatialProps) {
       onKeyDown={onKeyDown}
     >
       <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
-      <div className="drawio-minimap" style={{ position: 'absolute', right: 12, bottom: 12 }}>
-        {minimapVisible ? (
-          <>
-            <canvas ref={minimapRef} aria-label="Mini-carte : cliquer ou glisser pour se déplacer" />
-            {canToggle && (
+      <div className="drawio-corner" style={{ position: 'absolute', right: 12, bottom: 12 }}>
+        {flattened && !flatView && (
+          <button
+            type="button"
+            className="drawio-flatten"
+            aria-label="Volumes aplatis : cliquer pour les rétablir (V)"
+            title="Volumes aplatis : cliquer pour les rétablir (V)"
+            onClick={() => engine?.setFlattened(false)}
+          >
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+              <path
+                d="M12 4 21 9 12 14 3 9Z"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M3 14.5 12 19.5 21 14.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinejoin="round"
+                strokeDasharray="2 2"
+              />
+            </svg>
+          </button>
+        )}
+        <div className="drawio-minimap">
+          {minimapVisible ? (
+            <>
+              <canvas ref={minimapRef} aria-label="Mini-carte : cliquer ou glisser pour se déplacer" />
+              {canToggle && (
+                <button
+                  type="button"
+                  className="drawio-minimap-toggle"
+                  aria-label="Masquer la mini-carte (M)"
+                  title="Masquer la mini-carte (M)"
+                  onClick={toggleMinimap}
+                >
+                  ×
+                </button>
+              )}
+            </>
+          ) : (
+            canToggle && (
               <button
                 type="button"
-                className="drawio-minimap-toggle"
-                aria-label="Masquer la mini-carte (M)"
-                title="Masquer la mini-carte (M)"
+                className="drawio-minimap-show"
+                title="Afficher la mini-carte (M)"
                 onClick={toggleMinimap}
               >
-                ×
+                Mini-carte
               </button>
-            )}
-          </>
-        ) : (
-          canToggle && (
-            <button
-              type="button"
-              className="drawio-minimap-show"
-              title="Afficher la mini-carte (M)"
-              onClick={toggleMinimap}
-            >
-              Mini-carte
-            </button>
-          )
-        )}
+            )
+          )}
+        </div>
       </div>
     </div>
   );

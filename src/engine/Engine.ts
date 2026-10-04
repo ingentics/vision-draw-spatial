@@ -253,6 +253,8 @@ export type EngineEvents = {
   settingsChange: [settings: Settings];
   /** Touche M : l'UI affiche ou masque la mini-carte. */
   minimapToggle: [];
+  /** Volumes aplatis ou rétablis (touche V, `setFlattened`). */
+  flattenChange: [flattened: boolean];
   /** La pile de navigation a changé (à persister). */
   historyChange: [entries: HistoryEntry[]];
   /** Un lien entre pages vient d'être suivi (à persister pour trier les parents). */
@@ -518,6 +520,8 @@ export class Engine {
   private levelBlend: { volume?: PageScene; flat?: PageScene } | undefined;
   /** Hauteur courante des volumes iso (0 à 1, suit l'inclinaison). */
   private heightScale = 1;
+  /** Volumes aplatis à la demande (touche V, iso et 3D) : état passager, non enregistré. */
+  private flattened = false;
   /** Vue graphe du document (SPEC §12), construite à la première demande. */
   private graph: { page: PageModel; layout: GraphLayout } | undefined;
   /** Dernière page du document affichée (pour revenir du graphe). */
@@ -604,6 +608,7 @@ export class Engine {
         toggleViewMode: () => this.toggleViewMode(),
         toggle3d: () => this.toggle3d(),
         toggleMinimap: () => this.events.emit('minimapToggle'),
+        toggleFlatten: () => this.toggleFlatten(),
         toggleGraph: () => this.toggleGraph(),
         beginMove: (screen) => this.beginMove(screen),
         moveTo: (screen, options) => this.moveTo(screen, options.snap),
@@ -963,7 +968,7 @@ export class Engine {
       return;
     }
     cancelAnimationFrame(this.animation);
-    if (blendLevels && this.settings.view.isoVolume) this.levelBlend = {};
+    if (blendLevels && this.settings.view.isoVolume && !this.flattened) this.levelBlend = {};
     const from = this.cameraState;
     const to = normalizeCameraState(target);
     const start = performance.now();
@@ -1019,7 +1024,7 @@ export class Engine {
   private requestedLevel(): SceneLevel {
     const { mode, tilt, fov } = this.cameraState;
     const volume = mode !== 'top' || tilt > 0 || fov !== undefined;
-    return volume && this.settings.view.isoVolume ? 'iso' : 'flat';
+    return volume && this.settings.view.isoVolume && !this.flattened ? 'iso' : 'flat';
   }
 
   private renderContext() {
@@ -1193,6 +1198,38 @@ export class Engine {
   /** Touche P : vers la 3D, ou retour au dernier mode 2D / iso. */
   toggle3d(): void {
     this.setViewMode(this.cameraState.mode === '3d' ? this.lastFlatMode : '3d');
+  }
+
+  isFlattened(): boolean {
+    return this.flattened;
+  }
+
+  /**
+   * Aplatit ou rétablit les volumes : rendu à plat, comme une épaisseur nulle, sans toucher à la
+   * caméra ni aux réglages. Rien en 2D, où tout est déjà à plat (l'état y est seulement levé).
+   */
+  setFlattened(flattened: boolean): void {
+    if (flattened === this.flattened || this.transition) return;
+    if (flattened && this.cameraState.mode === 'top') return;
+    this.endLevelBlend();
+    const previousLevel = this.requestedLevel();
+    this.flattened = flattened;
+    const page = this.getCurrentPage();
+    if (page && this.requestedLevel() !== previousLevel) {
+      this.scenes.show(page);
+      this.applyHeightScale();
+      this.updateSelectionOutline();
+      if (this.linkZonesShown) this.updateLinkZones();
+      this.minimap?.invalidate();
+      this.requestRender();
+    }
+    this.events.emit('flattenChange', flattened);
+  }
+
+  /** Touche V : sans effet en 2D. */
+  toggleFlatten(): void {
+    if (this.cameraState.mode === 'top') return;
+    this.setFlattened(!this.flattened);
   }
 
   getViewSettings(): ViewSettings {
