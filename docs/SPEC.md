@@ -375,7 +375,8 @@ Ajouter une forme = **déposer son dossier** (au minimum `kind` et `flat`, idéa
   stencil de draw.io étiré dans les bornes ; flèches sur les bornes), triangles (`triangle`, vers la droite, et
   `triangle;direction=north`, vers le haut ; périmètre `trianglePerimeter`), parallélogramme (`shape=parallelogram`,
   côtés obliques décalés de `size` ; périmètre `parallelogramPerimeter`), étape (`shape=step`, chevron de profondeur
-  `size` ; périmètre `stepPerimeter`),
+  `size` ; périmètre `stepPerimeter`), étoile à 4 branches (`shape=mxgraph.basic.4_point_star_2`, creux à `dx / 2`
+  des bornes ; palette « Basic » de draw.io, label sous la forme ; flèches sur les bornes),
 - Texte seul,
 - **Stockage** (formes natives de draw.io, dessinées comme draw.io en 2D, en vrai volume en iso / 3D ; aussi dans la palette) :
 

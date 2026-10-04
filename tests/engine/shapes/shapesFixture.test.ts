@@ -54,6 +54,8 @@ const HEXAGON = 'shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=
 const OCTAGON = 'whiteSpace=wrap;html=1;shape=mxgraph.basic.octagon2;align=center;verticalAlign=middle;dx=15;';
 const PENTAGON = 'whiteSpace=wrap;html=1;shape=mxgraph.basic.pentagon;';
 const TRIANGLE = 'triangle;whiteSpace=wrap;html=1;';
+const FOUR_POINT_STAR =
+  'verticalLabelPosition=bottom;verticalAlign=top;html=1;shape=mxgraph.basic.4_point_star_2;dx=0.8;';
 const STEP = 'shape=step;perimeter=stepPerimeter;whiteSpace=wrap;html=1;fixedSize=1;';
 const PARALLELOGRAM = 'shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;';
 const ORIENTATIONS = [...VARIANTS, ...NORTH_FLIPS];
@@ -93,6 +95,15 @@ const SERIES = [
     h: 80,
     variants: [...ORIENTATIONS, 'size=50;', 'size=200;', 'fixedSize=0;', 'fixedSize=0;size=0.4;'],
   },
+  // Creux de l'étoile à 4 branches : dx / 2 des bornes ; 0,8 sans dx.
+  {
+    prefix: 'f',
+    style: FOUR_POINT_STAR,
+    w: 140,
+    h: 100,
+    variants: [...ORIENTATIONS, 'dx=0.3;', 'dx=0;', 'dx=1;'],
+  },
+  { prefix: 'fd', style: FOUR_POINT_STAR.replace('dx=0.8;', ''), w: 100, h: 100, variants: [''] },
 ];
 /**
  * Autres cibles des flèches (après le losange `d`), mêmes sources tout autour : préfixe des ids (`<p><k>` la
@@ -111,6 +122,7 @@ const EDGE_TARGETS = [
   { prefix: 'xg', style: PARALLELOGRAM, w: 120, h: 60 },
   { prefix: 'xgn', style: `${PARALLELOGRAM}direction=north;`, w: 120, h: 60 },
   { prefix: 'xgs', style: `${PARALLELOGRAM}size=50;flipH=1;`, w: 120, h: 60 },
+  { prefix: 'xf', style: FOUR_POINT_STAR, w: 100, h: 100 },
   ...['', 'direction=north;', 'direction=south;', 'direction=west;', 'flipV=1;'].map((variant, v) => ({
     prefix: `y${v}_`,
     style: `${STEP}${variant}`,

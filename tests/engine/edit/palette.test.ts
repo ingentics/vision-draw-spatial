@@ -19,6 +19,7 @@ describe('palette', () => {
       'datastore',
       'ellipse',
       'hexagon',
+      'mxgraph.basic.4_point_star_2',
       'mxgraph.basic.octagon2',
       'mxgraph.basic.pentagon',
       'parallelogram',
@@ -71,6 +72,7 @@ describe('palette', () => {
       'triangle-up',
       'parallelogram',
       'step',
+      'four-point-star',
     ]);
     expect(byCategory('general')).toEqual(['text']);
     const known = new Set(PALETTE_CATEGORIES.map((c) => c.id));

@@ -29,3 +29,11 @@
 - **Fini quand :** la forme s'affiche comme dans draw.io en 2D (comparaison avec l'export), en volume en iso et en 3D,
   se clique et reçoit les flèches sur son contour, se crée depuis la palette (catégorie « Géométrie ») ; elle
   n'apparaît plus dans le panneau Diagnostics ; `spatial.kind=<id>` la dessine.
+
+Fait : forme `src/engine/shapes/impl/geometry/four-point-star/` (`kinds: ['mxgraph.basic.4_point_star_2']`), contour
+de `mxShapeBasic4PointStar2` : pointes au milieu des côtés, creux à `dx / 2` des bornes (0,8 sans `dx`), orienté par
+`orientedPath` ; prisme en iso / 3D, arêtes verticales aux pointes et aux creux (angles vifs de `isoBlock`).
+Palette : le style exact de la palette « Basic » de draw.io, `verticalLabelPosition=bottom;verticalAlign=top;html=1;
+shape=mxgraph.basic.4_point_star_2;dx=0.8;` (label sous la forme), 100 × 100. Pas de périmètre propre : flèches sur
+les bornes. Fixture `shapes.drawio` (orientations, `dx`, sans `dx`, flèches) identique à l'export SVG de draw.io ;
+tests dans `tests/engine/shapes/geometry.test.ts`. Vérifié dans l'appli : palette, iso.

@@ -261,3 +261,43 @@ describe('étape (38)', () => {
     expect(registry.contains(s, { x: 105, y: 140 })).toBe(false);
   });
 });
+
+describe('étoile à 4 branches (39)', () => {
+  const STYLE = 'verticalLabelPosition=bottom;verticalAlign=top;html=1;shape=mxgraph.basic.4_point_star_2;dx=0.8;';
+  const shape = (style = STYLE, width = 100, height = 100) => page([style], width, height).page.shapes[0]!;
+  const outline = (style?: string, width?: number, height?: number) => {
+    const s = shape(style, width, height);
+    return round(registry.resolve(s).definition.outline!(s));
+  };
+
+  it('dessinée par sa définition, absente des Diagnostics ; spatial.kind=four-point-star la dessine', () => {
+    const { document, page: p } = page([STYLE, 'shape=note;spatial.kind=four-point-star;'], 100, 100);
+    expect(p.shapes.map((s) => registry.resolve(s).definition.id)).toEqual(['four-point-star', 'four-point-star']);
+    expect(collectUnsupported(document, registry).entries).toEqual([]);
+  });
+
+  it('contour : pointes au milieu des côtés, creux à dx / 2 des bornes', () => {
+    expect(outline()).toEqual([
+      [100, 150],
+      [140, 140],
+      [150, 100],
+      [160, 140],
+      [200, 150],
+      [160, 160],
+      [150, 200],
+      [140, 160],
+    ]);
+    expect(outline(`${STYLE}dx=0.2;`)[1]).toEqual([110, 110]);
+  });
+
+  it('volume : prisme du contour, arêtes verticales aux pointes et aux creux ; clic hors des creux', () => {
+    expect(volume(STYLE, 100, 100)).toEqual({ min: [100, 0, 100], max: [200, 20, 200] });
+    const { page: p } = page([STYLE], 100, 100);
+    const scene = buildPageScene(p, registry, ctx, 'iso');
+    const star = scene.root.children.find((c) => c.userData.elementId === 's0')!;
+    expect(star.getObjectByName('stroke-vertical')).toBeDefined();
+    const s = shape();
+    expect(registry.contains(s, { x: 150, y: 150 })).toBe(true);
+    expect(registry.contains(s, { x: 120, y: 120 })).toBe(false);
+  });
+});
