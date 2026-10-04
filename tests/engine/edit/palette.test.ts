@@ -6,7 +6,15 @@ import { createDefaultRegistry } from '../../../src/engine/render/shapes/registr
 describe('palette', () => {
   it('ne propose que des formes dessinées par le moteur', () => {
     const kinds = new Set(SHAPE_TEMPLATES.map((t) => resolveShapeKind(parseStyle(t.style))));
-    expect([...kinds].sort()).toEqual(['cylinder3', 'datastore', 'ellipse', 'rectangle', 'rhombus', 'text']);
+    expect([...kinds].sort()).toEqual([
+      'cylinder3',
+      'datastore',
+      'ellipse',
+      'rectangle',
+      'rhombus',
+      'stencil:plug',
+      'text',
+    ]);
   });
 
   it('toutes les formes de la palette sont dessinées par le moteur (pas de placeholder)', () => {
@@ -37,7 +45,7 @@ describe('palette', () => {
     expect(PALETTE_CATEGORIES.map((c) => c.name)).toEqual(['Général', 'Architecture']);
     const byCategory = (id: string) => SHAPE_TEMPLATES.filter((t) => t.category === id).map((t) => t.id);
     expect(byCategory('general')).toEqual(['rectangle', 'rounded', 'ellipse', 'circle', 'rhombus', 'text']);
-    expect(byCategory('architecture')).toEqual(['database', 'queue', 'cache']);
+    expect(byCategory('architecture')).toEqual(['database', 'queue', 'cache', 'plug']);
   });
 
   describe('searchTemplates', () => {
@@ -57,7 +65,8 @@ describe('palette', () => {
     it('sur les mots-clés et le nom de la catégorie', () => {
       expect(ids('bdd')).toEqual(['database']);
       expect(ids('cyl')).toEqual(['database', 'queue']);
-      expect(ids('architecture')).toEqual(['database', 'queue', 'cache']);
+      expect(ids('architecture')).toEqual(['database', 'queue', 'cache', 'plug']);
+      expect(ids('plugin')).toEqual(['plug']);
     });
 
     it('plusieurs mots : chacun doit apparaître', () => {

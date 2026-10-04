@@ -6,6 +6,7 @@ import type { PageModel, Point, ShapeModel } from '../../../../src/engine/model/
 import { toTerminal } from '../../../../src/engine/render/edges/edge';
 import { routeEdge, simplify } from '../../../../src/engine/render/edges/route';
 import { orientedPath } from '../../../../src/engine/render/geometry/orient';
+import { PLUG_SHAPE } from '../../../../src/engine/render/shapes/plug';
 import { createDefaultRegistry } from '../../../../src/engine/render/shapes/registry';
 import { drawioSvgOutlines, drawioSvgRoutes, dropCollinear, fixture } from '../../../helpers';
 
@@ -14,6 +15,8 @@ import { drawioSvgOutlines, drawioSvgRoutes, dropCollinear, fixture } from '../.
  * `direction`, `flipH` / `flipV`) et flèches qui s'y accrochent. `WRITE_FIXTURES=1` la régénère ;
  * `make drawio-check` la fait réenregistrer et exporter en SVG par draw.io : chaque contour et chaque tracé
  * doit tomber au pixel près sur le nôtre.
+ *
+ * La prise (`stencil:plug`) vérifie aussi les stencils embarqués (`mxStencil.computeAspect`).
  *
  * Les triangles ne sont pas encore dessinés par le moteur : ils servent à vérifier l'orientation commune
  * (`orientedPath`) sur une forme asymétrique, avec le contour local de `mxTriangle`.
@@ -83,9 +86,19 @@ function layout(): { vertices: Vertex[]; edges: Edge[] } {
     const at = place();
     vertices.push({ id: `t${v}`, style: `triangle;whiteSpace=wrap;html=1;${variant}`, ...at, w: 80, h: 60 });
   });
+  // Prise : stencil embarqué, orienté et étiré par draw.io lui-même.
+  [
+    { w: 100, h: 60 },
+    { w: 60, h: 100 },
+  ].forEach(({ w, h }, s) =>
+    [...VARIANTS, ...NORTH_FLIPS].forEach((variant, v) => {
+      const at = place();
+      vertices.push({ id: `p${s}_${v}`, style: `shape=${PLUG_SHAPE};whiteSpace=wrap;html=1;${variant}`, ...at, w, h });
+    }),
+  );
   // Flèches : un losange par style de tracé, les sources tout autour.
   EDGE_STYLES.forEach((style, k) => {
-    const center = { x: 600 + k * 700, y: 1100 };
+    const center = { x: 600 + k * 700, y: 1600 };
     vertices.push({ id: `d${k}`, style: 'rhombus;whiteSpace=wrap;html=1;', ...center, w: 80, h: 80 });
     AROUND.forEach((p, i) => {
       vertices.push({
@@ -168,7 +181,7 @@ describe.runIf(existsSync(SVG))('shapes.drawio : mêmes contours et mêmes flèc
   const registry = createDefaultRegistry();
   const { vertices, edges } = layout();
 
-  for (const vertex of vertices.filter((v) => /^[rtd]\d/.test(v.id))) {
+  for (const vertex of vertices.filter((v) => /^[rtdp]\d/.test(v.id))) {
     it(`contour ${vertex.id} ${vertex.style}`, () => {
       const { shapes, svg } = load();
       const shape = shapes.get(vertex.id)!;

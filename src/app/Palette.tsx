@@ -213,6 +213,7 @@ function ShapePreview({ id }: { id: string }) {
       {id === 'cache' && (
         <path d="M12 6c0-3 16-3 16 0v16c0 3-16 3-16 0zM12 6c0 3 16 3 16 0M12 9c0 3 16 3 16 0M12 12c0 3 16 3 16 0" />
       )}
+      {id === 'plug' && <path d="M6 6h20v4h8v3h-8v2h8v3h-8v4H6z" />}
       {id === 'text' && (
         <text x="20" y="18" textAnchor="middle">
           Abc

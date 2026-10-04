@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { stencilShape } from '../../../src/engine/format/stencil';
 import { parseStyle, resolveShapeKind } from '../../../src/engine/format/style';
+import { PLUG_SHAPE } from '../../../src/engine/render/shapes/plug';
 
 describe('parseStyle', () => {
   it('sépare noms et paires clé=valeur', () => {
@@ -44,5 +46,12 @@ describe('resolveShapeKind', () => {
     expect(kind('shape=cylinder3;html=1')).toBe('cylinder3');
     expect(kind('shape=rect')).toBe('rectangle');
     expect(kind('shape=mxgraph.aws4.lambda')).toBe('mxgraph.aws4.lambda');
+  });
+
+  it('stencil embarqué : nom de son XML, valeur brute s’il est illisible', () => {
+    const shape = stencilShape('<shape name="plug" w="10" h="10"><foreground><fillstroke/></foreground></shape>');
+    expect(kind(`shape=${shape};whiteSpace=wrap;html=1;`)).toBe('stencil:plug');
+    expect(kind(`shape=${PLUG_SHAPE};`)).toBe('stencil:plug');
+    expect(kind('shape=stencil(pas-du-base64);')).toBe('stencil(pas-du-base64)');
   });
 });

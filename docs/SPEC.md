@@ -367,6 +367,12 @@ Ajouter une forme = **écrire sa définition et l'enregistrer** (au minimum `fla
   En iso / 3D, ce sont des **« bâtiments »** (`render/iso/buildings.ts`), comme les familles de bâtiments d'un jeu de construction : emprise = le rectangle 2D de la forme, **toit plat et rectangulaire** en haut (bordé, avec le label : toujours lisible), et une **façade propre au type** dans l'épaisseur, sur les quatre côtés (lisible sous tous les angles). Hauteur par défaut : la **même épaisseur que toutes les formes** (réglage `view.isoDepth`, 32 px), `spatial.height` prioritaire. **Étiquette de façade**, comme une enseigne : « DB », « QUEUE » ou « CACHE » en bas à droite de chaque face, à l'endroit vu de l'extérieur, discrète (teinte des gravures) ; les motifs (arcs, chevrons) se placent au-dessus ; sur le cache, dans la tranche du bas (voyants à l'autre bout). `spatial.tag` la remplace (ex. `PostgreSQL`, `Kafka`), vide = aucune ; réglage `view.facadeTags` (activé) pour toutes les couper. Sans fond (`fillColor=none`), le dessin 2D reste à plat.
 
   **Redimensionnement** : le corps du cylindre s'étire, les ellipses gardent leur taille. Les trois formes ont la **même ellipse**, de 8 px (celle de draw.io pour un cache de 60 px de haut) ; le bout de `direct_data` reste à 9/98 de la largeur, comme draw.io. **Écarts assumés avec draw.io** : draw.io agrandit les anneaux du cache avec sa hauteur, et dessine l'ellipse du `cylinder3` de hauteur `size` (15 par défaut) ; avec les valeurs de la palette (`size=8`, cache de 60 px), le rendu est identique dans les deux. Contour par défaut : épaisseur 1, comme les autres formes.
+- **Prise** (connecteur logiciel, module qui se branche ; palette « Architecture », 100 × 60) : draw.io n'a pas de prise
+  native, c'est un **stencil embarqué** dans le style (`shape=stencil(…)`, XML `<shape name="plug">` compressé comme
+  draw.io), que draw.io dessine donc à l'identique : corps sur les 7/10 de la largeur, deux broches à droite, étiré dans
+  les bornes et orienté par `direction` / `flipH` / `flipV` ; prisme du contour en iso / 3D ; périmètre rectangle.
+  Un `shape=stencil(…)` prend le nom de forme `stencil:<nom>` (`format/stencil.ts`) : les stencils inconnus apparaissent
+  sous ce nom dans Diagnostics.
 - Connecteurs (arêtes) : segments, points intermédiaires, flèche de fin,
 - Couleurs de remplissage, de bordure, épaisseur de trait, pointillés, label centré.
 

@@ -36,6 +36,10 @@ l'édition ne changent, sauf pour les points de la section 6.
 2. sinon le premier nom de style sans valeur (`ellipse;whiteSpace=wrap;` ► `'ellipse'`) ;
 3. sinon `'rectangle'` (forme par défaut de draw.io).
 
+Un stencil embarqué (`shape=stencil(<XML compressé>)`) prend le nom `stencil:<nom>` de son `<shape name="…">` : c'est
+la façon d'ajouter une forme que draw.io n'a pas, tout en restant dessinée par draw.io (exemple :
+[render/shapes/plug.ts](../src/engine/render/shapes/plug.ts), XML tiré du même contour que le moteur).
+
 `SHAPE_ALIASES` ramène des synonymes à un nom canonique (`rect`, `label` ► `rectangle`). Si draw.io écrit
 la même forme de plusieurs façons, ajoutez l'alias à cet endroit plutôt que de multiplier les définitions.
 Cas particulier : `swimlane` a un alias mais **aucune définition**, donc il s'affiche en placeholder.

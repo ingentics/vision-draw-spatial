@@ -1,4 +1,5 @@
 import type { Point, Rect } from '../model/types';
+import { PLUG_SHAPE } from '../render/shapes/plug';
 
 /**
  * Palette de formes (SPEC §14.1) : uniquement des formes que le moteur sait dessiner,
@@ -100,6 +101,17 @@ export const SHAPE_TEMPLATES: ShapeTemplate[] = [
     style: 'shape=datastore;whiteSpace=wrap;html=1;',
     value: '',
     width: 60,
+    height: 60,
+  },
+  {
+    id: 'plug',
+    name: 'Prise',
+    category: 'architecture',
+    keywords: ['plug', 'plugin', 'connecteur', 'connector', 'module', 'extension'],
+    // Pas de prise native dans draw.io : stencil embarqué, dessiné à l'identique par draw.io.
+    style: `shape=${PLUG_SHAPE};whiteSpace=wrap;html=1;`,
+    value: '',
+    width: 100,
     height: 60,
   },
   {

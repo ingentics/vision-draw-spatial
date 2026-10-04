@@ -1,3 +1,5 @@
+import { stencilName } from './stencil';
+
 /**
  * Chaînes de style draw.io : `nom;clé=valeur;clé=valeur;`.
  *
@@ -46,10 +48,15 @@ const SHAPE_ALIASES: Record<string, string> = {
  * Détermine le nom de forme d'un vertex.
  *
  * Priorité : `shape=…` explicite, puis premier nom de style, puis rectangle
- * (forme par défaut de draw.io).
+ * (forme par défaut de draw.io). Un stencil embarqué (`shape=stencil(…)`) prend le nom
+ * `stencil:<nom>` de son XML ; illisible, il garde sa valeur brute.
  */
 export function resolveShapeKind(style: ParsedStyle): string {
   const explicit = style.values.shape;
+  if (explicit?.startsWith('stencil(') && explicit.endsWith(')')) {
+    const name = stencilName(explicit.slice('stencil('.length, -1));
+    return name ? `stencil:${name}` : explicit;
+  }
   if (explicit) return SHAPE_ALIASES[explicit] ?? explicit;
 
   const first = style.names[0];

@@ -5,6 +5,7 @@ import { ellipseShape } from './ellipse';
 import { groupShape } from './group';
 import { outlinePainter } from './minimapPainters';
 import { placeholderShape } from './placeholder';
+import { plugShape } from './plug';
 import { rectangleShape } from './rectangle';
 import { rhombusShape } from './rhombus';
 import { cylinderShape, datastoreShape, directDataShape } from './storage';
@@ -75,5 +76,6 @@ export function createDefaultRegistry(): ShapeRegistry {
     .register(cylinderShape)
     .register(directDataShape)
     .register(datastoreShape)
-    .register(rhombusShape);
+    .register(rhombusShape)
+    .register(plugShape);
 }
