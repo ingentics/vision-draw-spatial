@@ -15,7 +15,7 @@ function outline(shape: ShapeModel) {
 /** Triangle (`triangle`, vers la droite par défaut) : boîte du contour ; flèches sur `trianglePerimeter`. */
 export const definition: ShapeDefinition = {
   id: 'triangle',
-  ...box(outline),
+  ...box(outline, { roundable: true }),
   swatch: () => '<path d="M10 4l20 10l-20 10z"/>',
   palette: {
     name: 'Triangle',

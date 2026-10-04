@@ -32,7 +32,7 @@ function outline(shape: ShapeModel) {
 /** Hexagone (`shape=hexagon`) : boîte du contour. */
 export const definition: ShapeDefinition = {
   id: 'hexagon',
-  ...box(outline),
+  ...box(outline, { roundable: true }),
   swatch: () => '<path d="M12 5h16l6 9l-6 9H12l-6-9z"/>',
   palette: {
     name: 'Hexagone',

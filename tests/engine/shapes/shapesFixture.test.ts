@@ -105,6 +105,17 @@ const SERIES = [
     variants: [...ORIENTATIONS, 'dx=0.3;', 'dx=0;', 'dx=1;'],
   },
   { prefix: 'fd', style: FOUR_POINT_STAR.replace('dx=0.8;', ''), w: 100, h: 100, variants: [''] },
+  // Coins arrondis (`rounded=1`, rayon arcSize / 2) des polygones que draw.io sait arrondir.
+  ...[
+    { prefix: 'rr', style: 'rhombus;whiteSpace=wrap;html=1;', w: 120, h: 60 },
+    { prefix: 'hr', style: HEXAGON, w: 120, h: 80 },
+    { prefix: 'tr', style: TRIANGLE, w: 60, h: 80 },
+    { prefix: 'gr', style: PARALLELOGRAM, w: 120, h: 60 },
+    { prefix: 'sr', style: STEP, w: 120, h: 80 },
+  ].map((series) => ({
+    ...series,
+    variants: ['rounded=1;', 'rounded=1;arcSize=40;', 'rounded=1;arcSize=300;', 'rounded=1;direction=north;flipH=1;'],
+  })),
   { prefix: 'six', style: SIX_POINT_STAR, w: 100, h: 90, variants: ORIENTATIONS },
   { prefix: 'sixw', style: SIX_POINT_STAR, w: 160, h: 60, variants: [''] },
 ];

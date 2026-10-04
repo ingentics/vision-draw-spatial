@@ -29,7 +29,7 @@ function outline(shape: ShapeModel) {
 /** Parallélogramme (`shape=parallelogram`) : boîte du contour ; flèches sur `parallelogramPerimeter`. */
 export const definition: ShapeDefinition = {
   id: 'parallelogram',
-  ...box(outline),
+  ...box(outline, { roundable: true }),
   swatch: () => '<path d="M6 23l8-18h20l-8 18z"/>',
   palette: {
     name: 'Parallélogramme',

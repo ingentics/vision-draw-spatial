@@ -5,7 +5,7 @@ import { parseDrawio } from '../../../src/engine/format/parse';
 import type { Point } from '../../../src/engine/model/types';
 import { buildPageScene } from '../../../src/engine/render/pageScene';
 import type { RenderContext } from '../../../src/engine/render/types';
-import { createDefaultRegistry } from '../../../src/engine/shapes/registry';
+import { createDefaultRegistry, SHAPE_DEFINITIONS } from '../../../src/engine/shapes/registry';
 
 /**
  * Formes géométriques (Milestone 5) : contour 2D, volume iso, clic, nom de forme imposé. Le tracé et l'accroche
@@ -327,5 +327,40 @@ describe('étoile à 6 branches (40)', () => {
     const s = shape();
     expect(registry.contains(s, { x: 148, y: 142 })).toBe(true);
     expect(registry.contains(s, { x: 105, y: 105 })).toBe(false);
+  });
+});
+
+describe('polygones arrondis (32)', () => {
+  const ROUNDABLE = ['diamond', 'hexagon', 'triangle', 'triangle-up', 'parallelogram', 'step'];
+
+  it('« Coins arrondis » dans le panneau des polygones que draw.io sait arrondir, pas des autres', () => {
+    for (const definition of SHAPE_DEFINITIONS) {
+      const toggle = definition.properties?.some((p) => p.key === 'rounded') ?? false;
+      if (ROUNDABLE.includes(definition.id)) expect(toggle, definition.id).toBe(true);
+      if (['octagon', 'pentagon', 'four-point-star', 'six-point-star'].includes(definition.id))
+        expect(toggle, definition.id).toBe(false);
+    }
+  });
+
+  it('losange arrondi : coins contournés à arcSize / 2 px (10 par défaut), du milieu du dernier côté', () => {
+    const { page: p } = page(['rhombus;whiteSpace=wrap;html=1;rounded=1;'], 80, 80);
+    const shape = p.shapes[0]!;
+    const outline = round(registry.resolve(shape).definition.outline!(shape));
+    // Départ : milieu du côté gauche-haut ; puis arrêt à 10 px du sommet du haut, courbe, etc.
+    expect(outline[0]).toEqual([120, 120]);
+    const d = 10 / Math.SQRT2;
+    expect(outline[1]).toEqual([+(140 - d).toFixed(3), +(100 + d).toFixed(3)]);
+    expect(outline).toHaveLength(1 + 4 * 9);
+    // Le sommet du haut n'est plus sur le contour : le coin ne se clique plus.
+    expect(registry.contains(shape, { x: 140, y: 101 })).toBe(false);
+    expect(registry.contains(shape, { x: 140, y: 140 })).toBe(true);
+  });
+
+  it('volume : prisme du contour arrondi, sans arête verticale dans les courbes', () => {
+    const { page: p } = page(['rhombus;whiteSpace=wrap;html=1;rounded=1;'], 80, 80);
+    const scene = buildPageScene(p, registry, ctx, 'iso');
+    const diamond = scene.root.children.find((c) => c.userData.elementId === 's0')!;
+    expect(diamond.getObjectByName('sides')).toBeDefined();
+    expect(diamond.getObjectByName('stroke-vertical')).toBeUndefined();
   });
 });

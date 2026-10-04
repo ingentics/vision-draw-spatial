@@ -17,7 +17,7 @@ function outline(shape: ShapeModel) {
 export const definition: ShapeDefinition = {
   id: 'diamond',
   kinds: ['rhombus'],
-  ...box(outline),
+  ...box(outline, { roundable: true }),
   palette: {
     name: 'Losange',
     category: 'geometry',

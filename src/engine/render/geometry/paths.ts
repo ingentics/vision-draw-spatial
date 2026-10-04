@@ -53,3 +53,63 @@ export function cornerRadius(style: Record<string, string>, rect: Rect): number 
   if (absolute) return (Number.isFinite(arcSize) ? arcSize : 20) / 2;
   return (Math.min(rect.width, rect.height) * (Number.isFinite(arcSize) ? arcSize : 15)) / 100;
 }
+
+/** Rayon des coins d'un polygone arrondi de draw.io (`rounded=1`) : la moitié de `arcSize`, en px (10 par défaut). */
+export function polygonArc(style: Record<string, string>): number {
+  const arcSize = parseFloat(style.arcSize ?? '');
+  return (Number.isFinite(arcSize) ? arcSize : 20) / 2;
+}
+
+/**
+ * Polygone fermé aux coins arrondis, **porté de draw.io** (`mxShape.addPoints`, mxGraph, Apache 2.0) : le tracé
+ * part du milieu du dernier côté ; à chaque sommet, il s'arrête à `arc` px du coin (au plus la moitié du côté) et le
+ * contourne par une courbe quadratique dont le coin est le point de contrôle, découpée en `segments` segments. Les
+ * sommets confondus avec le précédent sont sautés, comme dans draw.io.
+ */
+export function roundedPolygon(points: Point[], arc: number, segments = 8): Point[] {
+  if (points.length < 3 || arc <= 0) return points;
+  const last = points[points.length - 1]!;
+  const first = points[0]!;
+  const pts = [{ x: last.x + (first.x - last.x) / 2, y: last.y + (first.y - last.y) / 2 }, ...points];
+  const n = pts.length;
+  const out: Point[] = [pts[0]!];
+  let current = pts[0]!;
+  for (let l = 1; l < n; l++) {
+    const corner = pts[l % n]!;
+    let dx = current.x - corner.x;
+    let dy = current.y - corner.y;
+    if (dx === 0 && dy === 0) {
+      out.push(corner);
+      current = corner;
+      continue;
+    }
+    let length = Math.hypot(dx, dy);
+    const start = {
+      x: corner.x + (dx * Math.min(arc, length / 2)) / length,
+      y: corner.y + (dy * Math.min(arc, length / 2)) / length,
+    };
+    let next = pts[(l + 1) % n]!;
+    while (l < n - 2 && Math.round(next.x - corner.x) === 0 && Math.round(next.y - corner.y) === 0) {
+      next = pts[(l + 2) % n]!;
+      l++;
+    }
+    dx = next.x - corner.x;
+    dy = next.y - corner.y;
+    length = Math.max(1, Math.hypot(dx, dy));
+    const end = {
+      x: corner.x + (dx * Math.min(arc, length / 2)) / length,
+      y: corner.y + (dy * Math.min(arc, length / 2)) / length,
+    };
+    out.push(start);
+    for (let i = 1; i <= segments; i++) {
+      const t = i / segments;
+      const u = 1 - t;
+      out.push({
+        x: u * u * start.x + 2 * u * t * corner.x + t * t * end.x,
+        y: u * u * start.y + 2 * u * t * corner.y + t * t * end.y,
+      });
+    }
+    current = end;
+  }
+  return out;
+}

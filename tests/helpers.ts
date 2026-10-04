@@ -59,6 +59,32 @@ export function dropCollinear(points: Array<{ x: number; y: number }>, tolerance
  * `ids`, avec sa transformation (`translate`, `scale`, `rotate(a, cx, cy)`, appliquées de droite à gauche
  * comme en SVG), ramené en coordonnées de page (décalage mesuré sur le rectangle de référence).
  */
+/** Segments d'une courbe quadratique (`Q`) du tracé : autant que les coins arrondis du moteur (`roundedPolygon`). */
+const QUAD_SEGMENTS = 8;
+
+/** Points d'un tracé SVG (`M`, `L`, `Q`, `Z`) : sommets des lignes, courbes quadratiques découpées. */
+function pathPoints(d: string): Array<{ x: number; y: number }> {
+  const points: Array<{ x: number; y: number }> = [];
+  for (const [, command, args] of d.matchAll(/([MLQZ])([^MLQZ]*)/gi)) {
+    const n = (args!.match(/-?[\d.]+(?:e-?\d+)?/gi) ?? []).map(Number);
+    if (command!.toUpperCase() === 'Q') {
+      const start = points[points.length - 1] ?? { x: 0, y: 0 };
+      for (let k = 0; k + 3 < n.length; k += 4) {
+        const from = k === 0 ? start : { x: n[k - 2]!, y: n[k - 1]! };
+        for (let i = 1; i <= QUAD_SEGMENTS; i++) {
+          const t = i / QUAD_SEGMENTS;
+          const u = 1 - t;
+          points.push({
+            x: u * u * from.x + 2 * u * t * n[k]! + t * t * n[k + 2]!,
+            y: u * u * from.y + 2 * u * t * n[k + 1]! + t * t * n[k + 3]!,
+          });
+        }
+      }
+    } else for (let i = 0; i + 1 < n.length; i += 2) points.push({ x: n[i]!, y: n[i + 1]! });
+  }
+  return points;
+}
+
 export function drawioSvgOutlines(
   svg: string,
   reference: { id: string; x: number; y: number },
@@ -77,9 +103,7 @@ export function drawioSvgOutlines(
     const d = tag && /\bd="([^"]*)"/.exec(tag)?.[1];
     if (!tag || !d) continue;
     const transform = /\btransform="([^"]*)"/.exec(tag)?.[1];
-    const numbers = d.match(/-?[\d.]+/g)!.map(Number);
-    let points: Array<{ x: number; y: number }> = [];
-    for (let i = 0; i + 1 < numbers.length; i += 2) points.push({ x: numbers[i]!, y: numbers[i + 1]! });
+    let points = pathPoints(d);
     const steps = [...(transform ?? '').matchAll(/(translate|scale|rotate)\(([^)]*)\)/g)].reverse();
     for (const [, op, args] of steps) {
       const [a = 0, b = op === 'scale' ? a : 0, c = 0] = args!.split(',').map(Number);

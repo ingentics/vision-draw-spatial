@@ -31,7 +31,7 @@ function outline(shape: ShapeModel) {
 /** Étape (`shape=step`) : boîte du contour ; flèches sur `stepPerimeter`. */
 export const definition: ShapeDefinition = {
   id: 'step',
-  ...box(outline),
+  ...box(outline, { roundable: true }),
   swatch: () => '<path d="M6 5h22l6 9l-6 9H6l6-9z"/>',
   palette: {
     name: 'Étape',

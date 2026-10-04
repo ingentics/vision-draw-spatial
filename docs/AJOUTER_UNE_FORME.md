@@ -108,7 +108,7 @@ l'`id` (`text`, `ellipse`) et il n'y a pas de `kinds` à écrire.
 ```
 src/engine/shapes/
 ├── generic/                    bases à étendre (hors palette, hors registre)
-│   ├── box/                    contour → rendu 2D + bloc iso
+│   ├── box/                    contour → rendu 2D + bloc iso (`roundable` : coins arrondis de draw.io)
 │   ├── cylinder/               tracés draw.io des cylindres, rendu 2D à lèvres
 │   └── building/               bâtiment iso : toit, faces, gravures, étiquette
 ├── impl/                       les formes, une par élément de la palette
