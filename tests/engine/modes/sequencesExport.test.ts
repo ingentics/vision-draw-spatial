@@ -6,6 +6,7 @@ import { sequencePlantUml } from '../../../src/engine/modes/sequences/export/pla
 import { fixture } from '../../helpers';
 
 const page = () => readDrawio(fixture('sequences.drawio')).document.pages[0]!;
+const flowsPage = () => readDrawio(fixture('flows.drawio')).document.pages[0]!;
 
 /**
  * Page de la fixture avec une forme « Cache » en plus et le flux f1 remplacé par les flèches données
@@ -36,7 +37,7 @@ function flow(...arrows: Array<[string | undefined, string | undefined, string?]
 /** Lignes des messages (après la ligne vide qui suit les participants). */
 const messages = (text: string) => text.split('\n').slice(text.split('\n').indexOf('') + 1, -2);
 
-describe('export PlantUML des flux (sujets 90 à 92)', () => {
+describe('export PlantUML des flux (sujets 90 à 93)', () => {
   it('est enregistré parmi les exporteurs de séquence', () => {
     expect(SEQUENCE_EXPORTERS.map((exporter) => exporter.id)).toContain('plantuml');
     expect(sequenceExporter('plantuml')?.name).toBe('PlantUML');
@@ -66,6 +67,48 @@ describe('export PlantUML des flux (sujets 90 à 92)', () => {
     expect(text).toContain('title Paiement « carte »');
     expect(text).toContain('database "Base" as P2 order 2');
     expect(text).toContain('P1 -> P2 ++ : payer');
+  });
+
+  it('écrit le flux « Inscription flow » de flows.drawio, appel à soi-même sans nouveau niveau', () => {
+    expect(sequencePlantUml(flowsPage(), 'f1')).toBe(
+      [
+        '@startuml',
+        'title Inscription flow',
+        'actor "Actor" as P1 order 1',
+        'participant "User" as P2 order 2',
+        'participant "Notifications" as P3 order 3',
+        'database "C" as P4 order 4',
+        '',
+        'P1 -> P2 ++ : send form',
+        'P2 -> P2 : Create',
+        'P2 -> P3 ++ : Notify',
+        'P3 -> P4 ++ : Enqueue the email',
+        'P4 --> P3 --',
+        'P3 --> P2 --',
+        'P2 --> P1 --',
+        '@enduml',
+        '',
+      ].join('\n'),
+    );
+  });
+
+  it('écrit le flux « Sending flow » de flows.drawio, en remontant à la source du premier aller', () => {
+    expect(messages(sequencePlantUml(flowsPage(), 'f2'))).toEqual([
+      'P1 -> P2 ++ : Read',
+      'P2 --> P1 --',
+      'P1 -> P3 ++ : Send Mailjet',
+      'P3 --> P1 --',
+    ]);
+  });
+
+  it('remonte la pile avant un appel à soi-même, sans l’empiler', () => {
+    expect(messages(sequencePlantUml(flow(['client', 'api'], ['api', 'db'], ['api', 'api', 'calcul']), 'f1'))).toEqual([
+      'P1 -> P2 ++',
+      'P2 -> P3 ++',
+      'P3 --> P2 --',
+      'P2 -> P2 : calcul',
+      'P2 --> P1 --',
+    ]);
   });
 
   it('écrit un flux vide sans participant', () => {

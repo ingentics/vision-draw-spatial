@@ -3,11 +3,12 @@ import { sequenceState } from '../steps';
 import type { SequenceExporter } from './index';
 
 /**
- * Flux en diagramme de séquence PlantUML (sujets 90 à 92). Participants déclarés en tête dans l'ordre de première
+ * Flux en diagramme de séquence PlantUML (sujets 90 à 93). Participants déclarés en tête dans l'ordre de première
  * apparition (alias `P1`, `P2`… et `order`), seuls les alias servant ensuite ; une forme `umlActor` est un `actor`, un
  * cylindre une `database`. Une extrémité sans forme entre ou sort du diagramme (`[->`, `->]`).
  *
- * Messages en pile d'appels, dans l'ordre des rangs : une flèche pleine est un aller qui active sa cible (`++`) ; une
+ * Messages en pile d'appels, dans l'ordre des rangs : une flèche pleine est un aller qui active sa cible (`++`), sauf
+ * vers soi-même ou vers l'extérieur (message simple, sans nouveau niveau) ; une
  * flèche en pointillés qui ferme un aller encore ouvert est son retour (`--`), les allers ouverts au-dessus étant
  * refermés d'abord. Un aller qui part d'un participant plus bas dans la pile (cible d'un aller ouvert, ou source du
  * premier) remonte jusqu'à lui en refermant les allers au-dessus ; parti d'un participant absent de la pile, il
@@ -71,8 +72,10 @@ export function sequencePlantUml(page: PageModel, flowId: string): string {
     const source = from === undefined ? -1 : lastIndex(stack, (call) => call.callee === from);
     if (source >= 0) while (stack.length > source + 1) close();
     else if (stack.length > 0 && stack[0]!.caller === from) while (stack.length > 0) close();
-    messages.push(`${message(from, '->', to)}${to === undefined ? '' : ' ++'}${label}`);
-    if (to !== undefined) stack.push({ caller: from, callee: to });
+    // Vers l'extérieur ou vers soi-même : message simple, sans nouveau niveau.
+    const opens = to !== undefined && to !== from;
+    messages.push(`${message(from, '->', to)}${opens ? ' ++' : ''}${label}`);
+    if (opens) stack.push({ caller: from, callee: to });
   }
   while (stack.length > 0) close();
 
