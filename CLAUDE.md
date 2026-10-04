@@ -15,3 +15,9 @@ Référence fonctionnelle et technique : `docs/SPEC.md` (à lire au besoin, pas 
   (avec `COMPOSE_PROJECT_NAME=drawio-claude` pour ne pas toucher au conteneur de l'utilisateur), récupérer son code
   de retour et ne lancer `git commit` que s'il vaut 0 — jamais `make check ; git commit`. Les fichiers modifiés par
   l'utilisateur lui-même restent hors du commit.
+- **Messages de commit : Conventional Commits.** `type(portée): description`, description en français, à
+  l'impératif ou au nominal, sans point final. Types : `feat` (fonctionnalité), `fix` (correction), `docs`
+  (documentation, backlogs), `refactor`, `perf`, `test`, `style` (format seul), `build` (Docker, Makefile,
+  dépendances), `chore` (le reste). Portée facultative : la partie de l'appli (`engine`, `app`, `palette`,
+  `drawio`…). Un changement cassant prend `!` (`feat(engine)!: …`) et un pied `BREAKING CHANGE: …`. Le numéro du
+  ticket va en pied de message : `Sujet : 49`.
