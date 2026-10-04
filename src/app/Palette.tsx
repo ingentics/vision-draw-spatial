@@ -1,8 +1,29 @@
-import { SHAPE_TEMPLATES } from '../engine/edit/palette';
-import type { ShapeTemplate } from '../engine/edit/palette';
+import { useState } from 'react';
+import { PALETTE_CATEGORIES, SHAPE_TEMPLATES, searchTemplates } from '../engine/edit/palette';
+import type { PaletteCategoryId, ShapeTemplate } from '../engine/edit/palette';
 
 /** Type de données du glisser-déposer d'une forme de la palette vers le plan. */
 export const PALETTE_MIME = 'application/x-drawio-spatial-shape';
+
+/** Catégories repliées, retenues d'une session à l'autre. */
+const COLLAPSED_KEY = 'drawio-spatial:palette-collapsed';
+
+function loadCollapsed(): Set<PaletteCategoryId> {
+  try {
+    const raw = localStorage.getItem(COLLAPSED_KEY);
+    return new Set(raw ? (JSON.parse(raw) as PaletteCategoryId[]) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveCollapsed(collapsed: Set<PaletteCategoryId>): void {
+  try {
+    localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...collapsed]));
+  } catch {
+    // Stockage indisponible : l'état vaut pour la session seulement.
+  }
+}
 
 interface PaletteProps {
   /** Clic (ou Entrée) sur une forme : ajout au centre de la vue. */
@@ -11,30 +32,105 @@ interface PaletteProps {
 }
 
 /**
- * Palette de formes (SPEC §14.1) : glisser une forme sur le plan la dépose au point visé
- * (projeté au sol, en vue de dessus comme en iso) ; un clic l'ajoute au centre de la vue.
+ * Palette de formes (SPEC §14.1), comme la barre latérale de draw.io : une recherche, puis les formes rangées
+ * par catégorie, chacune repliable. Glisser une forme sur le plan la dépose au point visé (projeté au sol, en
+ * vue de dessus comme en iso) ; un clic l'ajoute au centre de la vue.
  */
 export function Palette({ onAdd, disabled }: PaletteProps) {
+  const [query, setQuery] = useState('');
+  const [collapsed, setCollapsed] = useState(loadCollapsed);
+  const searching = query.trim() !== '';
+  const found = searchTemplates(SHAPE_TEMPLATES, query);
+
+  const toggle = (id: PaletteCategoryId) => {
+    const next = new Set(collapsed);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setCollapsed(next);
+    saveCollapsed(next);
+  };
+
+  const sections = PALETTE_CATEGORIES.map((category) => ({
+    category,
+    templates: found.filter((t) => t.category === category.id),
+  })).filter((section) => !searching || section.templates.length > 0);
+
   return (
     <aside className="palette" aria-label="Formes">
-      {SHAPE_TEMPLATES.map((template) => (
-        <button
-          key={template.id}
-          type="button"
-          className="palette-item"
-          draggable={!disabled}
+      <div className="palette-search">
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+          <circle cx="6.5" cy="6.5" r="4.5" />
+          <path d="M10 10l4 4" />
+        </svg>
+        <input
+          type="search"
+          placeholder="Rechercher une forme"
+          aria-label="Rechercher une forme"
+          value={query}
           disabled={disabled}
-          title={`${template.name} : glisser sur le plan, ou cliquer pour l’ajouter au centre`}
-          onDragStart={(event) => {
-            event.dataTransfer.setData(PALETTE_MIME, template.id);
-            event.dataTransfer.effectAllowed = 'copy';
+          onChange={(event) => setQuery(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              event.stopPropagation();
+              setQuery('');
+            }
           }}
-          onClick={() => onAdd(template)}
-        >
-          <ShapePreview id={template.id} />
-          <span>{template.name}</span>
-        </button>
-      ))}
+        />
+        {query !== '' && (
+          <button
+            type="button"
+            className="palette-search-clear"
+            title="Vider la recherche"
+            onClick={() => setQuery('')}
+          >
+            ×
+          </button>
+        )}
+      </div>
+      <div className="palette-sections">
+        {sections.map(({ category, templates }) => {
+          const open = searching || !collapsed.has(category.id);
+          return (
+            <section key={category.id} className="palette-category">
+              <button
+                type="button"
+                className="palette-category-header"
+                aria-expanded={open}
+                disabled={searching}
+                onClick={() => toggle(category.id)}
+              >
+                <span className="palette-chevron" aria-hidden="true">
+                  {open ? '▾' : '▸'}
+                </span>
+                {category.name}
+              </button>
+              {open && (
+                <div className="palette-grid">
+                  {templates.map((template) => (
+                    <button
+                      key={template.id}
+                      type="button"
+                      className="palette-item"
+                      draggable={!disabled}
+                      disabled={disabled}
+                      aria-label={template.name}
+                      title={`${template.name} : glisser sur le plan, ou cliquer pour l’ajouter au centre`}
+                      onDragStart={(event) => {
+                        event.dataTransfer.setData(PALETTE_MIME, template.id);
+                        event.dataTransfer.effectAllowed = 'copy';
+                      }}
+                      onClick={() => onAdd(template)}
+                    >
+                      <ShapePreview id={template.id} />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </section>
+          );
+        })}
+        {sections.length === 0 && <p className="palette-empty">Aucune forme trouvée</p>}
+      </div>
     </aside>
   );
 }

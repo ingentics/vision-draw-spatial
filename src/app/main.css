@@ -214,30 +214,124 @@ body {
   font-weight: 600;
 }
 
-/* Palette de formes */
+/* Palette de formes (comme la barre latérale de draw.io) */
 .palette {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  width: 88px;
-  padding: 8px 6px;
+  width: 208px;
   border-right: 1px solid var(--border);
   background: var(--panel);
+}
+
+.palette-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.palette-search svg {
+  position: absolute;
+  left: 15px;
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.palette-search input {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 24px 5px 26px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  font-size: 12px;
+}
+
+.palette-search input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.palette-search-clear {
+  position: absolute;
+  right: 12px;
+  padding: 0 4px;
+  border: none;
+  background: none;
+  color: var(--fg);
+  font-size: 15px;
+  line-height: 1;
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+.palette-search-clear:hover {
+  opacity: 1;
+}
+
+.palette-sections {
+  flex: 1;
   overflow-y: auto;
+}
+
+.palette-category {
+  border-bottom: 1px solid var(--border);
+}
+
+.palette-category-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 7px 8px;
+  border: none;
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.palette-category-header:hover:not(:disabled) {
+  background: var(--bg);
+}
+
+.palette-category-header:disabled {
+  cursor: default;
+}
+
+.palette-chevron {
+  width: 10px;
+  font-size: 10px;
+}
+
+.palette-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 44px);
+  gap: 2px;
+  padding: 2px 8px 8px;
 }
 
 .palette-item {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 6px 2px;
+  justify-content: center;
+  width: 44px;
+  height: 40px;
+  padding: 0;
   border: 1px solid transparent;
   border-radius: 4px;
   background: none;
   color: var(--fg);
-  font: inherit;
-  font-size: 11px;
   cursor: grab;
 }
 
@@ -263,6 +357,12 @@ body {
   fill: currentColor;
   stroke: none;
   font-size: 11px;
+}
+
+.palette-empty {
+  margin: 12px 8px;
+  font-size: 12px;
+  opacity: 0.6;
 }
 
 /* Bouton Diagnostics */
