@@ -69,7 +69,7 @@ export function linkBadge(shape: ShapeModel, link: LinkModel, accent = DEFAULT_A
   return group;
 }
 
-/** Pastille d'une flèche par défaut (paramètres « Pastilles des flèches »). */
+/** Pastille d'une flèche par défaut (paramètres « Modes › Séquences »). */
 export const DEFAULT_EDGE_BADGE: EdgeBadgeStyle = {
   radius: 12,
   textSize: 15,

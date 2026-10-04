@@ -246,6 +246,8 @@ describe('flux courant (sujet 79)', () => {
     expect(current.valid(page(), 'f9')).toBe(false);
     expect(current.values!(page())).toEqual(['f1', 'f2', 'f3']);
     expect(current.label!(page(), 'f2')).toBe('Paiement « carte »');
+    expect(current.focus!(page(), 'f1')!.sort()).toEqual(['api', 'client', 'db', 'lecture', 'login']);
+    expect(current.focus!(page(), 'f3')).toBeUndefined();
   });
 
   it('une flèche créée va à la fin du flux courant', () => {
@@ -270,7 +272,7 @@ describe('flux courant (sujet 79)', () => {
   });
 });
 
-describe('pastille : paramètres « Pastilles des flèches » (sujet 77)', () => {
+describe('pastille : paramètres de la pastille (sujet 77)', () => {
   it('taille, couleurs, gras et assombrissement viennent du contexte de rendu', () => {
     const { page } = setup();
     const texts: TextSpec[] = [];

@@ -691,6 +691,7 @@ interface Settings {
     edgeBadgeTextColor: string; edgeBadgeBold: boolean;           // '#000000', false
     edgeBadgeGap: number;                                         // écart avec le texte de la flèche : 2
     edgeDressingDarken: number;                                   // trait d'une flèche colorée par un mode : 0.25 (−25 %)
+    modeDimOpacity: number;                                       // hors du courant d'un mode (flux courant) : 0.3
     placeholderFill: string; placeholderStroke: string;           // formes non supportées (§8.4) : '#eeeeee', '#9e9e9e'
   };
   graph: { cardWidth: number; columnGap: number; rowGap: number }; // vue graphe (§12) : 260, 200, 90
@@ -812,12 +813,14 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   (`spatial.flow`, `spatial.step`), rangs toujours consécutifs (ajout en n + 1, échange, resserrement). Flèche d'un
   flux : trait et pointes dans la couleur du flux assombrie (−25 % de luminosité), pastille du rang au-dessus du
   texte du milieu (plus petite au milieu de la flèche sans texte). Taille, bordure, chiffre et assombrissement : paramètres
-  « Pastilles des flèches » (§13). Couleur d'un nouveau flux : fonds des styles de forme des paramètres, à partir du
+  « Modes › Séquences » (§13). Couleur d'un nouveau flux : fonds des styles de forme des paramètres, à partir du
   troisième (`modePalette`, passée aux opérations par `ModeEdit.palette`).
 - **Flux courant** (mode Séquences) : par défaut le premier flux, puis celui de la dernière flèche cliquée ou choisi
   dans la barre (état de session par page, non écrit). Barre en haut de la zone de dessin, de la couleur du flux, avec
   son titre centré (texte noir ou blanc selon le contraste) et, s'il y a au moins deux flux, des boutons précédent /
-  suivant en boucle ; flux encadré dans le panneau. Une flèche tirée depuis une forme va à la fin du flux courant (même étape d'annulation). « + » / « - » sur
+  suivant en boucle ; flux encadré dans le panneau. Tout ce qui ne touche pas ses flèches (flèches hors du flux,
+  formes qu'aucune ne relie) est estompé à 30 % (paramètre « Opacité hors du flux courant ») ; flux sans flèche :
+  rien d'estompé. Une flèche tirée depuis une forme va à la fin du flux courant (même étape d'annulation). « + » / « - » sur
   une flèche d'un flux sélectionnée seule : rang suivant / précédent. Cadre générique : `current`, `edgeCreated` et
   `keys` de `PageModeDefinition`, courant gardé par le moteur (`getModeCurrent`, `getModeIndicator`, `setModeCurrent`, événement
   `modeCurrentChange`).

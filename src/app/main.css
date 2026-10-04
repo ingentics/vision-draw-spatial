@@ -1777,3 +1777,13 @@ body {
   border-color: var(--accent);
   box-shadow: 0 0 0 1px var(--accent);
 }
+
+/* Groupe de réglages dans une sous-catégorie des paramètres (ex. « Modes › Séquences »). */
+.settings-group {
+  margin: 14px 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}

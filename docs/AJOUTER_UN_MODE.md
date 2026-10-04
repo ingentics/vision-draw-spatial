@@ -63,14 +63,15 @@ paramètre « Assombrissement du trait ») et une pastille
 (`edgeBadge` : texte et couleur de fond). Le style draw.io n'est jamais modifié : l'habillage est appliqué au dessin
 (`render/pageScene.ts`, `createEdgeObject`), à la construction de la page comme pendant un déplacement. La pastille
 fait face à la caméra en iso / 3D (`userData.billboard = 'screen'`). Son apparence (tailles, bordure, chiffre) vient des
-paramètres « Pastilles des flèches », communs à tous les modes.
+paramètres « Modes › Séquences » (clés `shapes.edgeBadge…`, communes à tous les modes).
 
 ## 5. Courant, flèche créée, touches
 
 - `current` : un « courant » de session par page (ex. flux courant), gardé par le moteur et jamais écrit :
   `initial` (défaut), `valid` (choix encore valable), `pick` (élément sélectionné seul → nouveau courant), `color`,
   `label` et `values` (barre en haut de la zone de dessin : couleur, libellé centré, boutons précédent / suivant
-  dans l'ordre de `values`, choix par `engine.setModeCurrent`). L'appli le lit par `engine.getModeCurrent()` et le
+  dans l'ordre de `values`, choix par `engine.setModeCurrent`). `focus` : éléments gardés nets pour le courant, les autres estompés
+  (paramètre `shapes.modeDimOpacity`, opacité multipliée par `setElementsDim`, compatible avec les fondus). L'appli le lit par `engine.getModeCurrent()` et le
   reçoit dans ses
   sections (`current` des props) ; l'événement `modeCurrentChange` signale un changement.
 - `edgeCreated(edit, edgeId, current)` : une flèche tirée depuis une forme, dans la même étape d'annulation.

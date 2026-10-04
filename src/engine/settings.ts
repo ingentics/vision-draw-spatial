@@ -152,6 +152,8 @@ export interface ShapeSettings {
   edgeBadgeGap: number;
   /** Assombrissement du trait d'une flèche colorée par un mode (fraction de la luminosité, 0,25 = −25 %). */
   edgeDressingDarken: number;
+  /** Opacité de ce qui est hors du courant d'un mode (ex. hors du flux courant du mode Séquences). */
+  modeDimOpacity: number;
   /** Formes non supportées (SPEC §8.4). */
   placeholderFill: string;
   placeholderStroke: string;
@@ -317,6 +319,7 @@ export const DEFAULT_SETTINGS: Settings = {
     edgeBadgeBold: false,
     edgeBadgeGap: 2,
     edgeDressingDarken: 0.25,
+    modeDimOpacity: 0.3,
     placeholderFill: '#eeeeee',
     placeholderStroke: '#9e9e9e',
   },
@@ -373,6 +376,7 @@ export const SETTINGS_LIMITS = {
   'shapes.edgeBadgeBorderWidth': { min: 0, max: 6, step: 0.5 },
   'shapes.edgeBadgeGap': { min: 0, max: 30, step: 1 },
   'shapes.edgeDressingDarken': { min: 0, max: 0.9, step: 0.05 },
+  'shapes.modeDimOpacity': { min: 0.05, max: 1, step: 0.05 },
   'selection.speed': { min: 2, max: 80, step: 1 },
   'selection.veilOpacity': { min: 0.05, max: 0.85, step: 0.05 },
   'selection.veilPadding': { min: 0, max: 60, step: 1 },
@@ -585,6 +589,7 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
         p.shapes?.edgeDressingDarken,
         base.shapes.edgeDressingDarken,
       ),
+      modeDimOpacity: num('shapes.modeDimOpacity', p.shapes?.modeDimOpacity, base.shapes.modeDimOpacity),
       placeholderFill: color(p.shapes?.placeholderFill, base.shapes.placeholderFill),
       placeholderStroke: color(p.shapes?.placeholderStroke, base.shapes.placeholderStroke),
     },

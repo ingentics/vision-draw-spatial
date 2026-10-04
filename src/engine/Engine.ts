@@ -147,7 +147,7 @@ import {
 } from './render/handles';
 import { createVeil, createVeilHole, liftAboveVeil } from './render/highlight';
 import { disposeObject } from './render/meshes';
-import { setPageOpacity } from './render/pageEffects';
+import { setElementsDim, setPageOpacity } from './render/pageEffects';
 import {
   buildPageScene,
   createEdgeObject,
@@ -3173,6 +3173,24 @@ export class Engine {
     if (!page || !current?.valid(page, value) || value === this.getModeCurrent(page.id)) return;
     this.modeCurrents.set(page.id, value);
     this.events.emit('modeCurrentChange', page.id, value);
+    this.requestRender();
+  }
+
+  /**
+   * Estompe ce qui n'est pas gardé net par le courant du mode de la page courante (`ModeCurrent.focus`, paramètre
+   * `shapes.modeDimOpacity`) ; seuls les éléments dont l'état change sont repris. Appelé avant chaque image : suit
+   * le courant, les modifications du schéma et les scènes reconstruites.
+   */
+  private applyModeFocus(): void {
+    const page = this.getCurrentPage();
+    const value = page && this.getModeCurrent(page.id);
+    const focus = page && value !== undefined ? this.modes.modeOf(page)?.current?.focus?.(page, value) : undefined;
+    const kept = focus && new Set(focus);
+    const opacity = this.settings.shapes.modeDimOpacity;
+    const scenes = new Set([this.scenes.current, this.levelBlend?.flat, this.levelBlend?.volume]);
+    for (const scene of scenes) {
+      if (scene && scene.pageId === page?.id) setElementsDim(scene.root, (id) => (kept && !kept.has(id) ? opacity : 1));
+    }
   }
 
   /** Un élément sélectionné seul peut changer le courant du mode (ex. flèche d'un flux). */
@@ -3181,6 +3199,7 @@ export class Engine {
     if (value === undefined || value === this.getModeCurrent(page.id)) return;
     this.modeCurrents.set(page.id, value);
     this.events.emit('modeCurrentChange', page.id, value);
+    this.requestRender();
   }
 
   /**
@@ -3943,6 +3962,8 @@ export class Engine {
       this.frame = 0;
       // Silhouettes debout (Actor) face à la caméra de cette image.
       orientBillboards(this.scene, this.activeCamera());
+      // Estompage de ce qui est hors du courant du mode de la page (ex. hors du flux courant).
+      this.applyModeFocus();
       const blend = this.levelBlend;
       if (blend?.flat && blend.volume) this.renderBlend(blend.flat, blend.volume);
       else this.renderer.render(this.scene, this.activeCamera());

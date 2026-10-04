@@ -74,7 +74,7 @@ export interface RenderContext {
   dressingDarken?: number;
 }
 
-/** Apparence de la pastille d'une flèche (paramètres « Pastilles des flèches »), en pixels de page. */
+/** Apparence de la pastille d'une flèche (paramètres « Modes › Séquences »), en pixels de page. */
 export interface EdgeBadgeStyle {
   /** Flèche avec texte : pastille au-dessus du texte du milieu. */
   radius: number;

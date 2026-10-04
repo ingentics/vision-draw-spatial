@@ -47,6 +47,11 @@ export interface ModeCurrent {
   label?(page: PageModel, value: string): string;
   /** Valeurs possibles, dans l'ordre (boutons précédent / suivant de la barre) ; défaut : aucune. */
   values?(page: PageModel): string[];
+  /**
+   * Éléments gardés nets pour ce courant (ex. flèches du flux et leurs formes) ; les autres sont estompés (paramètre
+   * « Opacité hors du flux courant »). Undefined : rien n'est estompé.
+   */
+  focus?(page: PageModel, value: string): string[] | undefined;
 }
 
 /** Touche d'un mode sur l'élément sélectionné : opération (une étape d'annulation, libellée `label`). */

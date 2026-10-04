@@ -798,10 +798,36 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   draw.io l'emporte.
                 </p>
               </Subsection>
-              <Subsection title="Pastilles des flèches">
+              <Subsection title="Formes non supportées">
+                <ColorField
+                  label="Fond du placeholder"
+                  value={shapes.placeholderFill}
+                  onChange={(placeholderFill) => onChange({ shapes: { placeholderFill } })}
+                />
+                <ColorField
+                  label="Bordure du placeholder"
+                  value={shapes.placeholderStroke}
+                  onChange={(placeholderStroke) => onChange({ shapes: { placeholderStroke } })}
+                />
+              </Subsection>
+            </Section>
+
+            <Section title="Modes">
+              <Subsection title="Séquences">
+                <h5 className="settings-group">Flux courant</h5>
+                <Slider
+                  label="Opacité hors du flux courant"
+                  value={shapes.modeDimOpacity}
+                  limits={SETTINGS_LIMITS['shapes.modeDimOpacity']}
+                  format={(v) => `${Math.round(v * 100)} %`}
+                  onChange={(modeDimOpacity) => onChange({ shapes: { modeDimOpacity } })}
+                />
                 <p className="hint muted">
-                  Posées par un mode de page (ex. rang d’une flèche dans un flux du mode Séquences), face à la caméra.
+                  Flèches hors du flux courant et formes qu’aucune de ses flèches ne relie ; rien n’est estompé si le
+                  flux courant n’a pas de flèche.
                 </p>
+                <h5 className="settings-group">Pastilles</h5>
+                <p className="hint muted">Rang d’une flèche dans son flux, face à la caméra.</p>
                 <Slider
                   label="Rayon (flèche avec texte)"
                   value={shapes.edgeBadgeRadius}
@@ -859,6 +885,7 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   checked={shapes.edgeBadgeBold}
                   onChange={(edgeBadgeBold) => onChange({ shapes: { edgeBadgeBold } })}
                 />
+                <h5 className="settings-group">Flèches et couleurs</h5>
                 <Slider
                   label="Assombrissement du trait"
                   value={shapes.edgeDressingDarken}
@@ -870,18 +897,6 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   Une flèche colorée par un mode (couleur de son flux) prend cette couleur assombrie. Les couleurs des
                   nouveaux flux sont les fonds des styles de forme, à partir du troisième.
                 </p>
-              </Subsection>
-              <Subsection title="Formes non supportées">
-                <ColorField
-                  label="Fond du placeholder"
-                  value={shapes.placeholderFill}
-                  onChange={(placeholderFill) => onChange({ shapes: { placeholderFill } })}
-                />
-                <ColorField
-                  label="Bordure du placeholder"
-                  value={shapes.placeholderStroke}
-                  onChange={(placeholderStroke) => onChange({ shapes: { placeholderStroke } })}
-                />
               </Subsection>
             </Section>
 

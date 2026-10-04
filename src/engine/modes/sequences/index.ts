@@ -69,6 +69,14 @@ export const definition: PageModeDefinition = {
       return flow?.title || value;
     },
     values: (page) => sequenceState(page).flows.map((flow) => flow.id),
+    // Flèches du flux et formes qu'elles relient ; flux sans flèche : rien d'estompé.
+    focus: (page, value) => {
+      const ids = sequenceState(page).members.get(value) ?? [];
+      if (ids.length === 0) return undefined;
+      const edges = page.edges.filter((edge) => ids.includes(edge.id));
+      const ends = edges.flatMap((edge) => [edge.sourceId, edge.targetId]).filter((id) => id !== undefined);
+      return [...new Set([...ids, ...ends])];
+    },
   },
   edgeCreated: (edit, edgeId, current) => {
     if (current !== undefined) setEdgeFlow(edit, edgeId, current);
