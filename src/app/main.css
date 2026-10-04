@@ -46,6 +46,8 @@ body {
   grid-template-rows: auto 1fr auto;
   grid-template-columns: minmax(0, 1fr);
   height: 100%;
+  /* Ombre des barres sur la zone de dessin (paramètre `panels.shadow`, posé en ligne). */
+  --bar-shadow: rgba(0, 0, 0, var(--bar-shadow-opacity, 0.06));
 }
 
 .toolbar {
@@ -62,7 +64,7 @@ body {
    */
   position: relative;
   z-index: 8;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 12px var(--bar-shadow);
 }
 
 .toolbar select,
@@ -169,7 +171,7 @@ body {
   /* Ombre sur la zone de dessin, comme la barre d'outils. */
   position: relative;
   z-index: 8;
-  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 -4px 12px var(--bar-shadow);
 }
 
 .tabs {
@@ -350,7 +352,7 @@ body {
   flex-direction: column;
   border-right: 1px solid var(--border);
   background: var(--panel);
-  box-shadow: 4px 0 12px rgba(0, 0, 0, 0.06);
+  box-shadow: 4px 0 12px var(--bar-shadow);
 }
 
 .palette-search {
@@ -567,7 +569,7 @@ body {
   flex-direction: column;
   background: var(--bg);
   border-left: 1px solid var(--border);
-  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.06);
+  box-shadow: -4px 0 12px var(--bar-shadow);
 }
 
 .diagnostics-header {
@@ -981,7 +983,7 @@ body {
   min-height: 0;
   background: var(--bg);
   border-left: 1px solid var(--border);
-  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.06);
+  box-shadow: -4px 0 12px var(--bar-shadow);
 }
 
 .side-panel-header {

@@ -698,6 +698,13 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                 ]}
                 onChange={(stripText) => onChange({ panels: { stripText } })}
               />
+              <Slider
+                label="Ombre sur la zone de dessin"
+                value={settings.panels.shadow}
+                limits={SETTINGS_LIMITS['panels.shadow']}
+                format={(v) => (v === 0 ? 'Aucune' : percent(v))}
+                onChange={(shadow) => onChange({ panels: { shadow } })}
+              />
               <p className="hint muted">
                 Replier : double flèche en haut de la barre ; largeur : glisser son bord (double-clic = par défaut).
               </p>

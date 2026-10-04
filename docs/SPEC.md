@@ -707,6 +707,7 @@ interface Settings {
     left: { collapsed: boolean; width: number };                  // false, 208 (160–400)
     right: { collapsed: boolean; width: number };                 // false, 380 (240–600)
     stripText: 'up' | 'down';                                     // nom sur la bande repliée : 'up' (de bas en haut)
+    shadow: number;                                               // ombre des barres sur la zone de dessin : 0.06 (0–0.3, 0 = aucune)
   };
 }
 ```

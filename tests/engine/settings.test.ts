@@ -120,7 +120,15 @@ describe('barres latérales (étape 47)', () => {
       left: { collapsed: false, width: 208 },
       right: { collapsed: false, width: 380 },
       stripText: 'up',
+      shadow: 0.06,
     });
+  });
+
+  it('ombre des barres sur la zone de dessin : 6 % par défaut, bornée entre 0 et 30 % (étape 88)', () => {
+    expect(mergeSettings(DEFAULT_SETTINGS, { panels: { shadow: 0 } }).panels.shadow).toBe(0);
+    expect(mergeSettings(DEFAULT_SETTINGS, { panels: { shadow: 0.9 } }).panels.shadow).toBe(0.3);
+    const broken = { panels: { shadow: 'forte' } } as unknown as SettingsPatch;
+    expect(mergeSettings(DEFAULT_SETTINGS, broken).panels.shadow).toBe(0.06);
   });
 
   it('sens du nom des bandes : « up » ou « down », sinon la valeur par défaut (étape 48)', () => {

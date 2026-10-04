@@ -219,6 +219,8 @@ export interface PanelsSettings {
   right: SidePanelSettings;
   /** Sens du nom écrit sur la bande d'une barre repliée : de bas en haut, ou de haut en bas. */
   stripText: 'up' | 'down';
+  /** Ombre que les barres projettent sur la zone de dessin : opacité, 0 = pas d'ombre. */
+  shadow: number;
 }
 
 export interface Settings {
@@ -249,6 +251,7 @@ export type SettingsPatch = {
           left?: Partial<SidePanelSettings>;
           right?: Partial<SidePanelSettings>;
           stripText?: PanelsSettings['stripText'];
+          shadow?: number;
         }
       : Partial<Settings[K]>;
 };
@@ -329,7 +332,12 @@ export const DEFAULT_SETTINGS: Settings = {
   save: { autosave: true, delayMs: 1000, viewStateDelayMs: 500 },
   debug: { showUnsupportedPanel: true },
   accessibility: { reducedMotion: 'system' },
-  panels: { left: { collapsed: false, width: 208 }, right: { collapsed: false, width: 380 }, stripText: 'up' },
+  panels: {
+    left: { collapsed: false, width: 208 },
+    right: { collapsed: false, width: 380 },
+    stripText: 'up',
+    shadow: 0.06,
+  },
 };
 
 /** Bornes des réglages numériques (et pas des curseurs de l'UI). */
@@ -391,6 +399,7 @@ export const SETTINGS_LIMITS = {
   'save.viewStateDelayMs': { min: 100, max: 5000, step: 100 },
   'panels.left.width': { min: 160, max: 400, step: 16 },
   'panels.right.width': { min: 240, max: 600, step: 16 },
+  'panels.shadow': { min: 0, max: 0.3, step: 0.01 },
 } as const;
 
 const EASINGS = ['linear', 'ease-in', 'ease-out', 'ease-in-out'] as const;
@@ -629,6 +638,7 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
         width: Math.round(num('panels.right.width', p.panels?.right?.width, base.panels.right.width)),
       },
       stripText: oneOf(STRIP_TEXT, p.panels?.stripText, base.panels.stripText),
+      shadow: num('panels.shadow', p.panels?.shadow, base.panels.shadow),
     },
   };
 }

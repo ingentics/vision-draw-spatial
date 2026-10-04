@@ -5,6 +5,7 @@ import robotoRegular from '@fontsource/roboto/files/roboto-latin-400-normal.woff
 import robotoMonoBold from '@fontsource/roboto-mono/files/roboto-mono-latin-700-normal.woff?url';
 import robotoMono from '@fontsource/roboto-mono/files/roboto-mono-latin-400-normal.woff?url';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import type { UnsupportedReport } from '../engine/diagnostics/unsupportedStyles';
 import type { BackTarget, Engine, InitialView, LabelEditRequest, ModeHint, Selection } from '../engine/Engine';
 import type { ViewMode } from '../engine/interaction/camera';
@@ -415,7 +416,7 @@ export function Viewer({
     : currentPage && contextTitle(selected.shapes, selected.edges, labelEdit !== undefined);
 
   return (
-    <div className="app">
+    <div className="app" style={{ '--bar-shadow-opacity': settings.panels.shadow } as CSSProperties}>
       <header className="toolbar">
         <BackButton
           target={backTarget}
