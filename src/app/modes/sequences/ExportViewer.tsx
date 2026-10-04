@@ -38,6 +38,8 @@ export function ExportViewer({
   const [preview, setPreview] = useState<Awaited<ReturnType<Preview>>>();
   const [failed, setFailed] = useState(false);
   const [copied, setCopied] = useState(false);
+  /** Rendu ajusté à la zone (réduit si besoin) ; sinon à sa taille réelle, la zone défile. */
+  const [fit, setFit] = useState(false);
 
   useEffect(() => {
     const element = dialog.current;
@@ -106,10 +108,23 @@ export function ExportViewer({
               <p className="panel-hint">Rendu impossible.</p>
             ) : preview ? (
               <>
-                <img src={preview.image} alt={`Rendu ${exporter.name}`} onError={() => setFailed(true)} />
-                <a href={preview.link} target="_blank" rel="noreferrer">
-                  {preview.linkLabel}
-                </a>
+                <div className="export-preview-bar">
+                  <button
+                    type="button"
+                    className="button"
+                    aria-pressed={fit}
+                    title={fit ? 'Afficher le rendu à sa taille réelle' : 'Faire tenir tout le rendu dans la zone'}
+                    onClick={() => setFit(!fit)}
+                  >
+                    {fit ? '100 %' : 'Ajuster'}
+                  </button>
+                  <a href={preview.link} target="_blank" rel="noreferrer">
+                    {preview.linkLabel}
+                  </a>
+                </div>
+                <div className={fit ? 'export-canvas fit' : 'export-canvas'}>
+                  <img src={preview.image} alt={`Rendu ${exporter.name}`} onError={() => setFailed(true)} />
+                </div>
               </>
             ) : (
               <p className="panel-hint">Rendu en cours…</p>
