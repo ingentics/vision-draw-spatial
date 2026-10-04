@@ -257,6 +257,11 @@ body {
   touch-action: none;
 }
 
+.sidebar-left {
+  /* Au-dessus de la zone de dessin (qui la suit dans le DOM) pour que l'ombre de la palette s'y voie. */
+  z-index: 1;
+}
+
 .sidebar-left .sidebar-resizer {
   right: -3px;
 }
@@ -334,6 +339,7 @@ body {
   flex-direction: column;
   border-right: 1px solid var(--border);
   background: var(--panel);
+  box-shadow: 4px 0 12px rgba(0, 0, 0, 0.06);
 }
 
 .palette-search {
