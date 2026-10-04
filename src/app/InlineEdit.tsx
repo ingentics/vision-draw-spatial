@@ -4,7 +4,9 @@ import type { ReactNode } from 'react';
 /**
  * Texte modifiable sur place (nom d'une page, titre d'un flux…) : un bouton qui affiche la valeur et devient un champ
  * au clic ou au double-clic. Entrée ou quitter le champ : valider ; Échap : annuler. La valeur est validée sans les
- * espaces autour ; une valeur vide est refusée (l'ancienne revient), une valeur inchangée n'est pas transmise.
+ * espaces autour ; une valeur vide est refusée (l'ancienne revient), une valeur inchangée n'est pas transmise. Le champ
+ * ne se voit pas (`.inline-edit-input` : sans cadre ni fond, à la largeur de son texte) : seuls le curseur et la
+ * sélection montrent la saisie.
  */
 export function InlineEdit({
   value,
@@ -36,7 +38,7 @@ export function InlineEdit({
   if (editing && onCommit) {
     return (
       <input
-        className={inputClassName}
+        className={inputClassName ? `inline-edit-input ${inputClassName}` : 'inline-edit-input'}
         defaultValue={value}
         aria-label={label}
         autoFocus
