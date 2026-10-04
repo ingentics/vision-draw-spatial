@@ -57,6 +57,7 @@ export const SHAPE_TEMPLATES: ShapeTemplate[] = [
     width: 60,
     height: 60,
   },
+  { id: 'rhombus', name: 'Losange', style: 'rhombus;whiteSpace=wrap;html=1;', value: '', width: 80, height: 80 },
   {
     id: 'text',
     name: 'Texte',

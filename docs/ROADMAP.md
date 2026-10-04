@@ -150,9 +150,9 @@
 
 ---
 
-## Milestone 4 — Éditeur de forme (prochain chantier)
+## Milestone 4 — Éditeur de forme ✅
 
-### Étape 20 — Panneau de forme et styles
+### Étape 20 — Panneau de forme et styles ✅
 - **Panneau « Forme » à droite**, comme le panneau Format de draw.io : il s'ouvre quand une forme est sélectionnée,
   se met à jour quand la sélection change, se ferme quand on désélectionne (ou par ×). Il partage l'emplacement des
   panneaux Paramètres / Diagnostics (un seul ouvert à la fois). La barre de sélection du bas garde les actions
@@ -185,6 +185,9 @@
 - Rendu immédiat dans les trois modes (2D, iso, 3D : fond, côtés ombrés, arêtes) ; réouverture identique dans draw.io.
 - **Fini quand :** sélectionner une forme ouvre le panneau, un clic sur une vignette change ses couleurs (une ou
   plusieurs formes), Ctrl+Z annule, et draw.io affiche le même style.
+- Fait : styles de base et palette pastel (`edit/styles.ts`, paramètres `styles`), appliqués à une ou plusieurs formes
+  avec annuler / rétablir. Le panneau a ensuite évolué en **panneau contextuel toujours ouvert** (page, forme ou
+  flèche ; la barre de sélection du bas a été retirée), avec les sections Texte, Bordure, Volume, Lien.
 
 ---
 
@@ -197,7 +200,7 @@
 > style et la taille par défaut de la palette draw.io. La géométrie se vérifie contre l'export de draw.io (CLI :
 > `draw.io -x -f svg` ou `png`, comme pour `direct_data`).
 
-### Étape 21 — Socle commun des formes géométriques
+### Étape 21 — Socle commun des formes géométriques 🟡
 Prérequis aux étapes 22 et 23 : aujourd'hui, seuls le rectangle et l'ellipse sont gérés hors du rendu.
 - **Contour polygonal** par forme (`outline`), utilisé partout : rendu 2D (`flatBox`), volume iso (`isoBlock` : prisme
   du contour, toit avec le label, arêtes verticales aux angles vifs, rentrants compris), mini-carte (repli contour).
@@ -213,6 +216,19 @@ Prérequis aux étapes 22 et 23 : aujourd'hui, seuls le rectangle et l'ellipse s
   variantes (directions, tailles, `size` / `dx`) ; `make drawio-check`.
 - **Fini quand :** une forme polygonale de test se clique sur son contour, reçoit les flèches sur son contour,
   s'oriente avec `direction`, et son label peut être placé dessous.
+- Fait, avec le Losange comme première forme :
+  - orientation commune `render/geometry/orient.ts` (portée de draw.io : cadre couché pour north / south, rotation,
+    `flipH` / `flipV`, **échangés** par draw.io pour un cadre couché) ;
+  - clic sur le contour réel (`shapeContains` + `outlineOf`, contour de la définition mis en cache) ;
+  - **périmètres de draw.io** plutôt qu'un polygone générique : `perimeter=…`, sinon celui du style nommé
+    (`ellipse`, `rhombus`, `triangle` dans la feuille de style de draw.io), sinon rectangle ; `rhombusPerimeter`
+    porté. Conséquence fidèle : `shape=ellipse` sans le style nommé `ellipse;` s'accroche sur son rectangle, comme
+    dans draw.io ;
+  - fixture `shapes.drawio` exportée en SVG par draw.io (`make drawio-check`) : 32 losanges (3 tailles, directions,
+    retournements) et 10 triangles (orientation sur une forme asymétrique) au pixel près, 16 flèches (droites et
+    orthogonales) accrochées au losange comme dans draw.io.
+- Reste : labels hors de la forme (`labelPosition`, `verticalLabelPosition`, aussi en iso) ; formes arrondies
+  (`rounded=1` sur un polygone) ; périmètres des formes suivantes (triangle, hexagone, parallélogramme, étape).
 
 ### Étape 22 — Polygones et étoiles
 Pour chaque forme : définition (`render/shapes/`), entrée de palette avec aperçu, tests (contour 2D, volume iso,
@@ -227,7 +243,7 @@ clic, accroche des flèches), comparaison visuelle avec l'export draw.io.
 | Triangle (vers le haut) | `triangle;whiteSpace=wrap;html=1;direction=north;` | 80 × 60 | le même tourné (`direction=north`) : base en bas, pointe en haut | prisme du contour |
 | Parallelogram | `shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;` | 120 × 60 | côtés obliques décalés de `size` (px avec `fixedSize=1`, défaut 20) | prisme du contour |
 | Step | `shape=step;perimeter=stepPerimeter;whiteSpace=wrap;html=1;fixedSize=1;` | 120 × 80 | chevron d'étape : encoche à gauche, pointe à droite, de profondeur `size` (défaut 20) | prisme du contour |
-| Diamond | `rhombus;whiteSpace=wrap;html=1;` | 80 × 80 | losange inscrit (sommets au milieu des bords) | prisme du contour |
+| Diamond ✅ | `rhombus;whiteSpace=wrap;html=1;` | 80 × 80 | losange inscrit (sommets au milieu des bords) | prisme du contour |
 | Étoile à 4 branches | `html=1;shape=mxgraph.basic.4_point_star_2;dx=0.8;` (préfixe de la palette « Basic » à relever) | 100 × 100 | étoile à 4 pointes ; `dx` = creux des branches (0,8 par défaut) | prisme du contour, arêtes verticales aux pointes et aux creux |
 | Étoile à 6 branches | `html=1;shape=mxgraph.basic.6_point_star` (idem) | 100 × 90 | étoile à 6 pointes (proportions à relever sur l'export draw.io) | prisme du contour, idem |
 

@@ -6,7 +6,7 @@ import { createDefaultRegistry } from '../../../src/engine/render/shapes/registr
 describe('palette', () => {
   it('ne propose que des formes dessinées par le moteur', () => {
     const kinds = new Set(SHAPE_TEMPLATES.map((t) => resolveShapeKind(parseStyle(t.style))));
-    expect([...kinds].sort()).toEqual(['cylinder3', 'datastore', 'ellipse', 'rectangle', 'text']);
+    expect([...kinds].sort()).toEqual(['cylinder3', 'datastore', 'ellipse', 'rectangle', 'rhombus', 'text']);
   });
 
   it('toutes les formes de la palette sont dessinées par le moteur (pas de placeholder)', () => {

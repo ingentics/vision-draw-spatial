@@ -18,6 +18,11 @@ export interface PickOptions {
    */
   heightOf?: (elementId: string) => number;
   pointAtHeight?: (height: number) => Point;
+  /**
+   * Contour réel d'une forme (polygone, coordonnées page) : un losange ne se clique pas dans ses coins
+   * vides. Absent = bornes (ellipse exacte).
+   */
+  outlineOf?: (shape: ShapeModel) => Point[] | undefined;
 }
 
 export function pickElement(page: PageModel, point: Point, options: PickOptions): PickedElement | undefined {
@@ -35,7 +40,7 @@ export function pickElement(page: PageModel, point: Point, options: PickOptions)
     if (candidate.type === 'shape') {
       // Les groupes sont invisibles : on ne les attrape que s'ils portent un lien.
       if (candidate.element.kind === 'group' && !candidate.element.link) continue;
-      if (shapeContains(candidate.element, target)) return candidate;
+      if (shapeContains(candidate.element, target, options.outlineOf?.(candidate.element))) return candidate;
     } else {
       const route = options.edgeRoute(element.id);
       if (route && distanceToPolyline(target, route) <= options.edgeTolerance) return candidate;
@@ -44,8 +49,11 @@ export function pickElement(page: PageModel, point: Point, options: PickOptions)
   return undefined;
 }
 
-export function shapeContains(shape: ShapeModel, p: Point): boolean {
+export function shapeContains(shape: ShapeModel, p: Point, outline?: Point[]): boolean {
   const { x, y, width, height } = shape.bounds;
+  if (p.x < x || p.x > x + width || p.y < y || p.y > y + height) return false;
+  if (outline && outline.length >= 3 && shape.kind !== 'rectangle' && shape.kind !== 'ellipse')
+    return insidePolygon(outline, p);
   if (shape.kind === 'ellipse') {
     const rx = width / 2;
     const ry = height / 2;
@@ -71,4 +79,16 @@ function distanceToSegment(p: Point, a: Point, b: Point): number {
   const lengthSq = dx * dx + dy * dy;
   const t = lengthSq === 0 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / lengthSq));
   return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+}
+
+/** Point dans un polygone (règle pair-impair), bord compris à la précision près. */
+export function insidePolygon(polygon: Point[], p: Point): boolean {
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const a = polygon[i]!;
+    const b = polygon[j]!;
+    if (distanceToSegment(p, a, b) < 1e-6) return true;
+    if (a.y > p.y !== b.y > p.y && p.x < ((b.x - a.x) * (p.y - a.y)) / (b.y - a.y) + a.x) inside = !inside;
+  }
+  return inside;
 }

@@ -267,8 +267,8 @@ une ellipse.
 
 | Aspect | Où | Comportement actuel | À faire pour une forme non rectangulaire |
 | --- | --- | --- | --- |
-| Clic, survol | `shapeContains` dans [interaction/pick.ts](../src/engine/interaction/pick.ts) | ellipse exacte, sinon **bornes** | Tester le contour si les coins vides ne doivent pas être cliquables (ex. losange, triangle). |
-| Accroche des flèches | `toTerminal` dans [render/edges/edge.ts](../src/engine/render/edges/edge.ts) | périmètre ellipse ou **rectangle** | Une flèche vers un losange s'arrête sinon sur son rectangle englobant. |
+| Clic, survol | `shapeContains` dans [interaction/pick.ts](../src/engine/interaction/pick.ts) | rectangle et ellipse exacts ; sinon le **contour** (`outline`) de la définition | Rien : fournir un `outline` suffit (les coins vides d'un losange ne se cliquent pas). |
+| Accroche des flèches | `perimeterKind` dans [render/edges/route.ts](../src/engine/render/edges/route.ts) | périmètre de draw.io : `perimeter=…`, sinon style nommé (`ellipse`, `rhombus`), sinon **rectangle** | Porter le périmètre de draw.io de la forme (mxPerimeter, ou celui de draw.io) s'il en a un ; sinon draw.io lui-même s'arrête sur le rectangle. |
 | Poignées, redimensionnement | [edit/handles.ts](../src/engine/edit/handles.ts) | sur les **bornes**, sans `aspect=fixed` | Rien d'obligatoire ; à noter si la forme doit garder ses proportions. |
 | Création | palette, [edit/palette.ts](../src/engine/edit/palette.ts) | 8 formes | Ajouter un modèle (style **et** taille par défaut de draw.io) si la forme doit être créable. |
 | Position du label | `createLabel` | dans les bornes (`align`, `verticalAlign`, `spacing*`) | `labelPosition` / `verticalLabelPosition` (label **hors** de la forme, ex. `umlActor`) ne sont pas gérés : à ajouter à `createLabel` s'il le faut. |
@@ -359,6 +359,13 @@ Enfin :
 ---
 
 ## 8. Tests
+
+**Orientation et contour contre draw.io.** Dessinez le contour dans le cadre local avec `orientedPath`
+([render/geometry/orient.ts](../src/engine/render/geometry/orient.ts)), qui reproduit `direction`, `flipH` / `flipV`
+comme draw.io, puis ajoutez la forme et ses variantes à la fixture `shapes.drawio`
+([tests/engine/render/shapes/shapesFixture.test.ts](../tests/engine/render/shapes/shapesFixture.test.ts)) :
+`make drawio-check` la fait exporter en SVG par draw.io et compare chaque contour et chaque flèche au pixel près.
+
 
 Les rendus se testent sans navigateur, avec une fabrique de texte factice. Modèles à suivre :
 [tests/engine/render/pageScene.test.ts](../tests/engine/render/pageScene.test.ts) (2D),

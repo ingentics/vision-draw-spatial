@@ -6,6 +6,7 @@ import { groupShape } from './group';
 import { outlinePainter } from './minimapPainters';
 import { placeholderShape } from './placeholder';
 import { rectangleShape } from './rectangle';
+import { rhombusShape } from './rhombus';
 import { cylinderShape, datastoreShape, directDataShape } from './storage';
 import { textShape } from './text';
 import type { MinimapPainter, SceneLevel, SceneRenderer, ShapeDefinition } from './types';
@@ -73,5 +74,6 @@ export function createDefaultRegistry(): ShapeRegistry {
     .register(groupShape)
     .register(cylinderShape)
     .register(directDataShape)
-    .register(datastoreShape);
+    .register(datastoreShape)
+    .register(rhombusShape);
 }

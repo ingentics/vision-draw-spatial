@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { perimeterToward, routeEdge, routingKind, simplify } from '../../../../src/engine/render/edges/route';
+import {
+  perimeterKind,
+  perimeterToward,
+  routeEdge,
+  routingKind,
+  simplify,
+} from '../../../../src/engine/render/edges/route';
 import type { Terminal } from '../../../../src/engine/render/edges/route';
 
 const box = (
@@ -214,5 +220,16 @@ describe('simplify', () => {
       { x: 10, y: 0 },
       { x: 10, y: 5 },
     ]);
+  });
+});
+
+describe('perimeterKind', () => {
+  it('comme draw.io : perimeter=…, sinon style nommé, sinon rectangle', () => {
+    expect(perimeterKind({}, ['rhombus'])).toBe('rhombus');
+    expect(perimeterKind({}, ['ellipse'])).toBe('ellipse');
+    // shape=ellipse sans le style nommé : rectangle dans draw.io.
+    expect(perimeterKind({ shape: 'ellipse' }, [])).toBe('rectangle');
+    expect(perimeterKind({ perimeter: 'ellipsePerimeter' }, [])).toBe('ellipse');
+    expect(perimeterKind({ perimeter: 'calloutPerimeter' }, ['ellipse'])).toBe('rectangle');
   });
 });

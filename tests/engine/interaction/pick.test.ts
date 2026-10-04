@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parseDrawio } from '../../../src/engine/format/parse';
-import { distanceToPolyline, pickElement } from '../../../src/engine/interaction/pick';
+import { distanceToPolyline, pickElement, shapeContains } from '../../../src/engine/interaction/pick';
 import { fixture } from '../../helpers';
 
 const options = (routes: Record<string, { x: number; y: number }[]> = {}) => ({
@@ -58,5 +58,28 @@ describe('distanceToPolyline', () => {
     ];
     expect(distanceToPolyline({ x: 5, y: 3 }, line)).toBe(3);
     expect(distanceToPolyline({ x: 13, y: 4 }, line)).toBe(5);
+  });
+});
+
+describe('shapeContains : contour réel', () => {
+  const diamond = {
+    kind: 'rhombus',
+    bounds: { x: 0, y: 0, width: 80, height: 80 },
+  } as Parameters<typeof shapeContains>[0];
+  const outline = [
+    { x: 40, y: 0 },
+    { x: 80, y: 40 },
+    { x: 40, y: 80 },
+    { x: 0, y: 40 },
+  ];
+
+  it('un coin vide du losange ne se clique pas', () => {
+    expect(shapeContains(diamond, { x: 5, y: 5 }, outline)).toBe(false);
+    expect(shapeContains(diamond, { x: 40, y: 40 }, outline)).toBe(true);
+    expect(shapeContains(diamond, { x: 20, y: 20 }, outline)).toBe(true); // sur le bord
+  });
+
+  it('sans contour : les bornes', () => {
+    expect(shapeContains(diamond, { x: 5, y: 5 })).toBe(true);
   });
 });

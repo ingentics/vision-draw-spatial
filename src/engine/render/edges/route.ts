@@ -19,10 +19,32 @@ import type { Point, Rect } from '../../model/types';
  * géométries relatives (ports) dans `entityRelationEdgeStyle`.
  */
 
+/** Périmètres de draw.io gérés (`rectanglePerimeter`, `ellipsePerimeter`, `rhombusPerimeter`). */
+export type PerimeterKind = 'rectangle' | 'ellipse' | 'rhombus';
+
+/**
+ * Périmètre d'une forme, comme draw.io : `perimeter=…` du style, sinon celui du style nommé (`ellipse;`,
+ * `rhombus;` dans la feuille de style par défaut de draw.io), sinon le rectangle (`defaultVertex`). Un
+ * périmètre inconnu est approché par le rectangle.
+ */
+export function perimeterKind(style: Record<string, string>, names: string[]): PerimeterKind {
+  const explicit = style.perimeter;
+  if (explicit !== undefined) {
+    if (explicit === 'ellipsePerimeter') return 'ellipse';
+    if (explicit === 'rhombusPerimeter') return 'rhombus';
+    return 'rectangle';
+  }
+  for (const name of names) {
+    if (name === 'ellipse') return 'ellipse';
+    if (name === 'rhombus') return 'rhombus';
+  }
+  return 'rectangle';
+}
+
 export interface Terminal {
   bounds: Rect;
-  /** Contour : ellipse ou rectangle (défaut). */
-  perimeter: 'rectangle' | 'ellipse';
+  /** Contour sur lequel les flèches s'accrochent (`perimeter` de draw.io) ; rectangle par défaut. */
+  perimeter: PerimeterKind;
   /** Style de la forme (`portConstraint`, `perimeterSpacing`, `routingCenterX`…, `flipH` / `flipV`). */
   style?: Record<string, string>;
   /** Identifiant de la forme : une boucle relie une forme à elle-même. */
@@ -196,7 +218,9 @@ function perimeterPoint(terminal: Terminal, next: Point, orthogonal: boolean, bo
   const point =
     terminal.perimeter === 'ellipse'
       ? ellipsePerimeter(bounds, aim, orthogonal)
-      : rectanglePerimeter(bounds, aim, orthogonal);
+      : terminal.perimeter === 'rhombus'
+        ? rhombusPerimeter(bounds, aim, orthogonal)
+        : rectanglePerimeter(bounds, aim, orthogonal);
   if (flipH) point.x = 2 * cx - point.x;
   if (flipV) point.y = 2 * cy - point.y;
   return point;
@@ -231,6 +255,52 @@ function rectanglePerimeter(bounds: Rect, next: Point, orthogonal: boolean): Poi
     else if (next.y > bounds.y + bounds.height) p.y = bounds.y + bounds.height;
   }
   return p;
+}
+
+function rhombusPerimeter(bounds: Rect, next: Point, orthogonal: boolean): Point {
+  const { x, y, width: w, height: h } = bounds;
+  const cx = x + w / 2;
+  const cy = y + h / 2;
+  const px = next.x;
+  const py = next.y;
+  // Dans l'axe d'un sommet : le sommet.
+  if (cx === px) return cy > py ? { x: cx, y } : { x: cx, y: y + h };
+  if (cy === py) return cx > px ? { x, y: cy } : { x: x + w, y: cy };
+  let tx = cx;
+  let ty = cy;
+  if (orthogonal) {
+    if (px >= x && px <= x + w) tx = px;
+    else if (py >= y && py <= y + h) ty = py;
+  }
+  // Côté du losange selon le quadrant.
+  const hit =
+    px < cx
+      ? py < cy
+        ? intersection(px, py, tx, ty, cx, y, x, cy)
+        : intersection(px, py, tx, ty, cx, y + h, x, cy)
+      : py < cy
+        ? intersection(px, py, tx, ty, cx, y, x + w, cy)
+        : intersection(px, py, tx, ty, cx, y + h, x + w, cy);
+  // draw.io renvoie alors `null` (bout au centre de la forme, via getPoint) : même repli.
+  return hit ?? { x: cx, y: cy };
+}
+
+/** Intersection des segments [p0, p1] et [p2, p3] (mxUtils.intersection), ou `undefined`. */
+function intersection(
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  x3: number,
+  y3: number,
+): Point | undefined {
+  const denom = (y3 - y2) * (x1 - x0) - (x3 - x2) * (y1 - y0);
+  const ua = ((x3 - x2) * (y0 - y2) - (y3 - y2) * (x0 - x2)) / denom;
+  const ub = ((x1 - x0) * (y0 - y2) - (y1 - y0) * (x0 - x2)) / denom;
+  if (ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1) return { x: x0 + ua * (x1 - x0), y: y0 + ua * (y1 - y0) };
+  return undefined;
 }
 
 function ellipsePerimeter(bounds: Rect, next: Point, orthogonal: boolean): Point {

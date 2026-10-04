@@ -3,7 +3,8 @@ import type { Object3D } from 'three';
 import type { EdgeLabelPlacement, EdgeModel, Point, RichLine, ShapeModel } from '../../model/types';
 import { buildMarker } from '../edges/markers';
 import { curveThrough, labelPoint, roundCorners, shorten, unit } from '../edges/polyline';
-import { routeEdgePoints, simplify } from '../edges/route';
+import { parseStyle } from '../../format/style';
+import { perimeterKind, routeEdgePoints, simplify } from '../edges/route';
 import type { Terminal } from '../edges/route';
 import { dashPattern } from '../geometry/stroke';
 import { fillMesh, strokeMesh } from '../meshes';
@@ -170,7 +171,7 @@ export function toTerminal(shape: ShapeModel | undefined): Terminal | undefined 
   if (!shape) return undefined;
   return {
     bounds: shape.bounds,
-    perimeter: shape.kind === 'ellipse' ? 'ellipse' : 'rectangle',
+    perimeter: perimeterKind(shape.style, parseStyle(shape.raw?.styleString).names),
     style: shape.style,
     id: shape.id,
   };

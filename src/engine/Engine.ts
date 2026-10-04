@@ -470,6 +470,11 @@ export class Engine {
   /** Glisser d'édition en cours (déplacement, redimensionnement, connecteur). */
   private drag: MoveDrag | ResizeDrag | ConnectDrag | EdgeEndDrag | EdgePointsDrag | LabelDrag | undefined;
   private connectorPreview: Object3D | undefined;
+  /** Contours des formes pour le clic (`shapeOutline`). */
+  private readonly outlines = new WeakMap<
+    ShapeModel,
+    { bounds: Rect; style: Record<string, string>; outline: Point[] | undefined }
+  >();
   /** Poignées de la forme sélectionnée. */
   private handlesObject: Object3D | undefined;
   private readonly undoStack = new UndoStack<string>();
@@ -1381,7 +1386,17 @@ export class Engine {
       },
       heightOf: (id) => this.elementTop(id),
       pointAtHeight: (height) => this.groundPointAtHeight(screen, height),
+      outlineOf: (shape) => this.shapeOutline(shape),
     });
+  }
+
+  /** Contour d'une forme (sa définition), mémorisé tant que ses bornes et son style ne changent pas. */
+  private shapeOutline(shape: ShapeModel): Point[] | undefined {
+    const cached = this.outlines.get(shape);
+    if (cached && cached.bounds === shape.bounds && cached.style === shape.style) return cached.outline;
+    const outline = this.registry.resolve(shape).definition.outline?.(shape);
+    this.outlines.set(shape, { bounds: shape.bounds, style: shape.style, outline });
+    return outline;
   }
 
   select(picked: PickedElement | undefined): void {
@@ -1829,6 +1844,7 @@ export class Engine {
         edgeRoute: () => undefined,
         heightOf: (id) => this.elementTop(id),
         pointAtHeight: (height) => this.groundPointAtHeight(screen, height),
+        outlineOf: (shape) => this.shapeOutline(shape),
       },
     );
     return picked?.type === 'shape' ? picked.element : undefined;
