@@ -1081,8 +1081,184 @@ body {
   outline-offset: 1px;
 }
 
-.settings-panel [hidden] {
+/* Paramètres : fenêtre modale, arbre des catégories à gauche, réglages du nœud choisi à droite. */
+.settings-dialog {
+  width: min(960px, calc(100vw - 32px));
+  height: min(680px, calc(100vh - 32px));
+  max-width: none;
+  max-height: none;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--fg);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.settings-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.settings-dialog [hidden] {
   display: none !important;
+}
+
+.settings-dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px 8px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-dialog-header h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 15px;
+}
+
+.settings-dialog-main {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.settings-nav {
+  flex: 0 0 260px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.settings-nav .settings-search {
+  border-bottom: none;
+}
+
+.settings-tree,
+.settings-tree ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.settings-tree {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 6px 12px;
+}
+
+.settings-tree-row {
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+}
+
+.settings-tree ul .settings-tree-row {
+  padding-left: 18px;
+}
+
+.settings-tree-row:hover {
+  background: color-mix(in srgb, var(--fg) 6%, transparent);
+}
+
+.settings-tree-row.selected {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.settings-tree-toggle {
+  flex: 0 0 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.settings-tree-toggle:disabled {
+  cursor: default;
+}
+
+.settings-tree-toggle svg {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.12s;
+}
+
+.settings-tree-toggle[aria-expanded='true'] svg {
+  transform: rotate(90deg);
+}
+
+.settings-tree-label {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 6px 5px 2px;
+  border: none;
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.settings-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.settings-breadcrumb {
+  margin: 0;
+  padding: 14px 24px 10px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.settings-breadcrumb .link-button {
+  font-weight: inherit;
+}
+
+.settings-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 24px 24px;
+}
+
+/* Hors recherche, le fil d'Ariane tient lieu de titre de section (et de sous-section quand elle est seule). */
+.settings-body:not(.searching) .settings-section {
+  padding: 0;
+  border-bottom: none;
+}
+
+.settings-body:not(.searching) .settings-section > h3,
+.settings-body.single .settings-subsection > h4 {
+  display: none;
+}
+
+.settings-body.single .settings-subsection {
+  margin-top: 0;
+  padding-left: 0;
+  border-left: none;
+}
+
+.settings-body.searching .settings-section {
+  padding: 10px 0;
 }
 
 .field {

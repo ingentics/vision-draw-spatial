@@ -7,7 +7,6 @@ import type { Settings, SettingsPatch } from '../engine/settings';
 import { desktop } from './desktop';
 import { IsoIcon, IsoSettings } from './IsoSettings';
 import { Section, Subsection } from './PanelSection';
-import { CollapseButton } from './Sidebar';
 
 interface SettingsPanelProps {
   settings: Settings;
@@ -48,10 +47,28 @@ const SHARED_KEYS: Array<[keyof Shortcuts, keyof Shortcuts]> = [['deleteSelectio
 const canShare = (a: keyof Shortcuts, b: keyof Shortcuts) =>
   SHARED_KEYS.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
 
+/** Nœud de l'arbre des catégories : une section, ou l'une de ses sous-sections (rangs dans le panneau). */
+interface SettingsNode {
+  section: number;
+  subsection?: number;
+}
+
+/** Arbre des catégories, lu sur les titres affichés ; `shown` : nœud gardé par la recherche. */
+interface TreeSection {
+  title: string;
+  shown: boolean;
+  subsections: Array<{ title: string; shown: boolean }>;
+}
+
+/** Dernier nœud choisi, repris à la réouverture des paramètres. */
+let lastNode: SettingsNode = { section: 0 };
+
 /**
- * Panneau de paramètres (SPEC §13) : tous les réglages de l'application, par section et
- * sous-section ; tout s'applique immédiatement et est mémorisé. La recherche en haut ne garde
- * que les sections (ou sous-sections) dont le texte contient la recherche.
+ * Paramètres (SPEC §13), dans une fenêtre modale : l'arbre des catégories (sections dépliables
+ * sur leurs sous-sections) à gauche, les réglages du nœud choisi à droite ; tout s'applique
+ * immédiatement et est mémorisé. La recherche, au-dessus de l'arbre, porte sur tous les réglages :
+ * à droite ne restent que les sections (ou sous-sections) dont le texte contient la recherche,
+ * et l'arbre ne garde que celles-là. Croix ou Échap : fermer.
  */
 export function SettingsPanel({ settings, onChange, onReset, onResetOrientation, onClose }: SettingsPanelProps) {
   const { controls, view, camera, background, transition, preload, minimap, selection, accessibility, debug, save } =
@@ -59,813 +76,962 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
   const { shapes, graph, edit } = settings;
   const systemReduced = useSystemReducedMotion();
   const [query, setQuery] = useState('');
+  const [node, setNode] = useState(lastNode);
+  const [expanded, setExpanded] = useState(() => new Set([lastNode.section]));
+  const [tree, setTree] = useState<TreeSection[]>([]);
+  const dialog = useRef<HTMLDialogElement>(null);
   const body = useRef<HTMLDivElement>(null);
   const [empty, setEmpty] = useState(false);
+  const searching = normalizeSearch(query) !== '';
 
-  // Filtrage sur le texte affiché (titres, libellés, choix, aides) : rien à maintenir à la main.
+  useEffect(() => {
+    const element = dialog.current;
+    if (element && !element.open) element.showModal();
+    return () => element?.close();
+  }, []);
+
+  // Nœud affiché, ou filtrage sur le texte affiché (titres, libellés, choix, aides) : rien à maintenir à la main.
   useLayoutEffect(() => {
-    if (body.current) setEmpty(!filterSections(body.current, query));
-  }, [query, settings]);
+    if (!body.current) return;
+    setEmpty(!(searching ? filterSections(body.current, query) : showNode(body.current, node)));
+    const next = readTree(body.current, searching);
+    setTree((current) => (JSON.stringify(current) === JSON.stringify(next) ? current : next));
+  }, [query, searching, node, settings]);
+
+  useLayoutEffect(() => {
+    if (body.current) body.current.scrollTop = 0;
+  }, [node, searching]);
+
+  const choose = (next: SettingsNode) => {
+    if (searching) {
+      // Recherche : tous les résultats restent affichés, on va jusqu'au nœud.
+      const section = sectionsOf(body.current)[next.section];
+      const target = next.subsection === undefined ? section : subsectionsOf(section)[next.subsection];
+      target?.scrollIntoView({ block: 'start' });
+      return;
+    }
+    lastNode = next;
+    setNode(next);
+    setExpanded((open) => new Set(open).add(next.section));
+  };
+  const toggle = (section: number) =>
+    setExpanded((open) => {
+      const next = new Set(open);
+      if (!next.delete(section)) next.add(section);
+      return next;
+    });
 
   const percent = (v: number) => `${Math.round(v * 100)} %`;
   const ms = (v: number) => (v === 0 ? 'instantané' : v < 1000 ? `${v} ms` : `${(v / 1000).toLocaleString('fr-FR')} s`);
+  const current = tree[node.section];
+  const currentSub = node.subsection === undefined ? undefined : current?.subsections[node.subsection];
 
   return (
-    <aside className="side-panel card-panel settings-panel" aria-label="Paramètres">
-      <header className="side-panel-header">
-        <CollapseButton />
+    <dialog
+      ref={dialog}
+      className="settings-dialog"
+      aria-label="Paramètres"
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose();
+      }}
+      // Les touches tapées dans les paramètres n'agissent pas sur la vue derrière.
+      onKeyDown={(event) => event.stopPropagation()}
+      onKeyUp={(event) => event.stopPropagation()}
+    >
+      <header className="settings-dialog-header">
         <h2>Paramètres</h2>
         <button type="button" className="button" onClick={onReset} title="Revenir aux valeurs par défaut">
           Réinitialiser
         </button>
-        <button type="button" className="icon-button" onClick={onClose} aria-label="Fermer">
+        <button type="button" className="icon-button" onClick={onClose} aria-label="Fermer" title="Fermer (Échap)">
           ×
         </button>
       </header>
-      <div className="settings-search">
-        <input
-          type="search"
-          placeholder="Rechercher un paramètre…"
-          aria-label="Rechercher un paramètre"
-          value={query}
-          autoFocus
-          onChange={(event) => setQuery(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Escape' && query) {
-              event.stopPropagation();
-              setQuery('');
-            }
-          }}
-        />
-      </div>
+      <div className="settings-dialog-main">
+        <nav className="settings-nav" aria-label="Catégories des paramètres">
+          <div className="settings-search">
+            <input
+              type="search"
+              placeholder="Rechercher un paramètre…"
+              aria-label="Rechercher un paramètre"
+              value={query}
+              autoFocus
+              onChange={(event) => setQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape' && query) {
+                  // Échap vide d'abord la recherche ; la fenêtre ne se ferme qu'au suivant.
+                  event.preventDefault();
+                  event.stopPropagation();
+                  setQuery('');
+                }
+              }}
+            />
+          </div>
+          <ul className="settings-tree">
+            {tree.map(
+              (section, i) =>
+                section.shown && (
+                  <li key={i}>
+                    <div
+                      className={
+                        !searching && node.section === i && node.subsection === undefined
+                          ? 'settings-tree-row selected'
+                          : 'settings-tree-row'
+                      }
+                    >
+                      {section.subsections.length > 0 ? (
+                        <button
+                          type="button"
+                          className="settings-tree-toggle"
+                          aria-expanded={searching || expanded.has(i)}
+                          aria-label={expanded.has(i) ? 'Replier' : 'Déplier'}
+                          disabled={searching}
+                          onClick={() => toggle(i)}
+                        >
+                          <svg viewBox="0 0 16 16" aria-hidden="true">
+                            <path d="M6 4l4 4-4 4" />
+                          </svg>
+                        </button>
+                      ) : (
+                        <span className="settings-tree-toggle" />
+                      )}
+                      <button
+                        type="button"
+                        className="settings-tree-label"
+                        aria-current={!searching && node.section === i && node.subsection === undefined}
+                        onClick={() => choose({ section: i })}
+                      >
+                        {section.title}
+                      </button>
+                    </div>
+                    {(searching || expanded.has(i)) && section.subsections.length > 0 && (
+                      <ul>
+                        {section.subsections.map(
+                          (subsection, j) =>
+                            subsection.shown && (
+                              <li
+                                key={j}
+                                className={
+                                  !searching && node.section === i && node.subsection === j
+                                    ? 'settings-tree-row selected'
+                                    : 'settings-tree-row'
+                                }
+                              >
+                                <span className="settings-tree-toggle" />
+                                <button
+                                  type="button"
+                                  className="settings-tree-label"
+                                  aria-current={!searching && node.section === i && node.subsection === j}
+                                  onClick={() => choose({ section: i, subsection: j })}
+                                >
+                                  {subsection.title}
+                                </button>
+                              </li>
+                            ),
+                        )}
+                      </ul>
+                    )}
+                  </li>
+                ),
+            )}
+          </ul>
+        </nav>
 
-      <div className="side-panel-body" ref={body}>
-        {empty && <p className="hint muted">Aucun paramètre ne correspond à « {query} ».</p>}
-
-        <Section title="Navigation">
-          <Subsection title="Clavier">
-            <Choice
-              label="Touches de déplacement"
-              value={controls.moveKeys}
-              options={[
-                ['all', 'Lettres + flèches'],
-                ['letters', 'ZQSD / WASD'],
-                ['arrows', 'Flèches'],
-              ]}
-              onChange={(moveKeys) => onChange({ controls: { moveKeys } })}
-            />
-            <Slider
-              label="Vitesse au clavier"
-              value={controls.moveSpeed}
-              limits={SETTINGS_LIMITS['controls.moveSpeed']}
-              format={(v) => `${v} px/s`}
-              onChange={(moveSpeed) => onChange({ controls: { moveSpeed } })}
-            />
-            <Slider
-              label="Rotation au clavier (A / E, iso et 3D)"
-              value={controls.rotateSpeed}
-              limits={SETTINGS_LIMITS['controls.rotateSpeed']}
-              format={(v) => `${v}°/s`}
-              onChange={(rotateSpeed) => onChange({ controls: { rotateSpeed } })}
-            />
-            <Slider
-              label="Glissade à l’arrêt"
-              value={controls.decelerationMs}
-              limits={SETTINGS_LIMITS['controls.decelerationMs']}
-              format={(v) => (v === 0 ? 'aucune' : `${v} ms`)}
-              onChange={(decelerationMs) => onChange({ controls: { decelerationMs } })}
-            />
-          </Subsection>
-          <Subsection title="Souris">
-            <Slider
-              label="Sensibilité de la molette (zoom)"
-              value={controls.zoomSpeed}
-              limits={SETTINGS_LIMITS['controls.zoomSpeed']}
-              format={(v) => `×${(v / 0.0015).toFixed(1)}`}
-              onChange={(zoomSpeed) => onChange({ controls: { zoomSpeed } })}
-            />
-            <Slider
-              label="Sensibilité de la rotation (clic droit, iso et 3D)"
-              value={controls.orbitSpeed}
-              limits={SETTINGS_LIMITS['controls.orbitSpeed']}
-              format={(v) => `${((v * 100 * 180) / Math.PI).toFixed(0)}° / 100 px`}
-              onChange={(orbitSpeed) => onChange({ controls: { orbitSpeed } })}
-            />
-          </Subsection>
-        </Section>
-
-        <Section title="Vue">
-          <Subsection title="Modes">
-            <Choice
-              label="Mode à l’ouverture"
-              value={view.defaultMode}
-              options={[
-                ['top', '2D'],
-                ['iso', 'Iso'],
-                ['3d', '3D'],
-              ]}
-              onChange={(defaultMode) => onChange({ view: { defaultMode } })}
-            />
-            <Slider
-              label="Durée de la bascule 2D ↔ iso ↔ 3D"
-              value={view.switchDurationMs}
-              limits={SETTINGS_LIMITS['view.switchDurationMs']}
-              format={(v) => (v === 0 ? 'instantanée' : `${v} ms`)}
-              onChange={(switchDurationMs) => onChange({ view: { switchDurationMs } })}
-            />
-          </Subsection>
-          <Subsection
-            title={
+        <div className="settings-content">
+          <p className="settings-breadcrumb">
+            {searching ? (
+              'Résultats de la recherche'
+            ) : currentSub ? (
               <>
-                <IsoIcon />
-                Vue isométrique
+                <button type="button" className="link-button" onClick={() => choose({ section: node.section })}>
+                  {current?.title}
+                </button>
+                <span aria-hidden="true"> › </span>
+                {currentSub.title}
               </>
-            }
+            ) : (
+              current?.title
+            )}
+          </p>
+          <div
+            className={['settings-body', searching && 'searching', !searching && currentSub && 'single']
+              .filter(Boolean)
+              .join(' ')}
+            ref={body}
           >
-            <IsoSettings
-              value={view}
-              onChange={(patch) => onChange({ view: patch })}
-              onResetOrientation={onResetOrientation}
-            />
-          </Subsection>
-          <Subsection title="Vue 3D">
-            <Slider
-              label="Champ de vision"
-              value={camera.fovDeg}
-              limits={SETTINGS_LIMITS['camera.fovDeg']}
-              format={(v) => `${v}°`}
-              onChange={(fovDeg) => onChange({ camera: { fovDeg } })}
-            />
-            <Slider
-              label="Inclinaison maximale"
-              value={camera.maxTilt3dDeg}
-              limits={SETTINGS_LIMITS['camera.maxTilt3dDeg']}
-              format={(v) => `${v}°`}
-              onChange={(maxTilt3dDeg) => onChange({ camera: { maxTilt3dDeg } })}
-            />
-            <Slider
-              label="Dézoom maximal (3D)"
-              value={camera.minZoom3d}
-              limits={SETTINGS_LIMITS['camera.minZoom3d']}
-              format={percent}
-              onChange={(minZoom3d) => onChange({ camera: { minZoom3d } })}
-            />
-            <Slider
-              label="Zoom maximal (3D)"
-              value={camera.maxZoom3d}
-              limits={SETTINGS_LIMITS['camera.maxZoom3d']}
-              format={percent}
-              onChange={(maxZoom3d) => onChange({ camera: { maxZoom3d } })}
-            />
-          </Subsection>
-          <Subsection title="Volumes (iso et 3D)">
-            <Toggle
-              label="Formes en volume"
-              checked={view.isoVolume}
-              onChange={(isoVolume) => onChange({ view: { isoVolume } })}
-            />
-            <Slider
-              label="Épaisseur par défaut"
-              value={view.isoDepth}
-              limits={SETTINGS_LIMITS['view.isoDepth']}
-              format={(v) => `${v} px`}
-              disabled={!view.isoVolume}
-              onChange={(isoDepth) => onChange({ view: { isoDepth } })}
-            />
-            <p className="hint muted">Par forme : style draw.io « spatial.height=… »</p>
-            <Toggle
-              label="Étiquettes sur les façades (DB, QUEUE, CACHE)"
-              checked={view.facadeTags}
-              disabled={!view.isoVolume}
-              onChange={(facadeTags) => onChange({ view: { facadeTags } })}
-            />
-            <p className="hint muted">Par forme : style draw.io « spatial.tag=… » (vide = aucune).</p>
-            <Slider
-              label="Luminosité de la face éclairée"
-              value={view.shadeLight}
-              limits={SETTINGS_LIMITS['view.shadeLight']}
-              format={percent}
-              disabled={!view.isoVolume}
-              onChange={(shadeLight) => onChange({ view: { shadeLight } })}
-            />
-            <Slider
-              label="Luminosité de la face à l’ombre"
-              value={view.shadeDark}
-              limits={SETTINGS_LIMITS['view.shadeDark']}
-              format={percent}
-              disabled={!view.isoVolume}
-              onChange={(shadeDark) => onChange({ view: { shadeDark } })}
-            />
-          </Subsection>
-        </Section>
+            {empty && <p className="hint muted">Aucun paramètre ne correspond à « {query} ».</p>}
 
-        <Section title="Caméra">
-          <Subsection title="Zoom (2D et iso)">
-            <Slider
-              label="Dézoom maximal"
-              value={camera.minZoom}
-              limits={SETTINGS_LIMITS['camera.minZoom']}
-              format={percent}
-              onChange={(minZoom) => onChange({ camera: { minZoom } })}
-            />
-            <Slider
-              label="Zoom maximal"
-              value={camera.maxZoom}
-              limits={SETTINGS_LIMITS['camera.maxZoom']}
-              format={percent}
-              onChange={(maxZoom) => onChange({ camera: { maxZoom } })}
-            />
-          </Subsection>
-          <Subsection title="Animations de la caméra">
-            <Slider
-              label="Durée (vue globale, réinitialiser la vue, aller à un élément)"
-              value={camera.animationMs}
-              limits={SETTINGS_LIMITS['camera.animationMs']}
-              format={ms}
-              onChange={(animationMs) => onChange({ camera: { animationMs } })}
-            />
-          </Subsection>
-          <Subsection title="Aller à un élément (diagnostics, liens)">
-            <Slider
-              label="Zoom maximal"
-              value={camera.focusMaxZoom}
-              limits={SETTINGS_LIMITS['camera.focusMaxZoom']}
-              format={percent}
-              onChange={(focusMaxZoom) => onChange({ camera: { focusMaxZoom } })}
-            />
-            <Slider
-              label="Marge autour de l’élément"
-              value={camera.focusPadding}
-              limits={SETTINGS_LIMITS['camera.focusPadding']}
-              format={(v) => `${v} px`}
-              onChange={(focusPadding) => onChange({ camera: { focusPadding } })}
-            />
-          </Subsection>
-        </Section>
+            <Section title="Navigation">
+              <Subsection title="Clavier">
+                <Choice
+                  label="Touches de déplacement"
+                  value={controls.moveKeys}
+                  options={[
+                    ['all', 'Lettres + flèches'],
+                    ['letters', 'ZQSD / WASD'],
+                    ['arrows', 'Flèches'],
+                  ]}
+                  onChange={(moveKeys) => onChange({ controls: { moveKeys } })}
+                />
+                <Slider
+                  label="Vitesse au clavier"
+                  value={controls.moveSpeed}
+                  limits={SETTINGS_LIMITS['controls.moveSpeed']}
+                  format={(v) => `${v} px/s`}
+                  onChange={(moveSpeed) => onChange({ controls: { moveSpeed } })}
+                />
+                <Slider
+                  label="Rotation au clavier (A / E, iso et 3D)"
+                  value={controls.rotateSpeed}
+                  limits={SETTINGS_LIMITS['controls.rotateSpeed']}
+                  format={(v) => `${v}°/s`}
+                  onChange={(rotateSpeed) => onChange({ controls: { rotateSpeed } })}
+                />
+                <Slider
+                  label="Glissade à l’arrêt"
+                  value={controls.decelerationMs}
+                  limits={SETTINGS_LIMITS['controls.decelerationMs']}
+                  format={(v) => (v === 0 ? 'aucune' : `${v} ms`)}
+                  onChange={(decelerationMs) => onChange({ controls: { decelerationMs } })}
+                />
+              </Subsection>
+              <Subsection title="Souris">
+                <Slider
+                  label="Sensibilité de la molette (zoom)"
+                  value={controls.zoomSpeed}
+                  limits={SETTINGS_LIMITS['controls.zoomSpeed']}
+                  format={(v) => `×${(v / 0.0015).toFixed(1)}`}
+                  onChange={(zoomSpeed) => onChange({ controls: { zoomSpeed } })}
+                />
+                <Slider
+                  label="Sensibilité de la rotation (clic droit, iso et 3D)"
+                  value={controls.orbitSpeed}
+                  limits={SETTINGS_LIMITS['controls.orbitSpeed']}
+                  format={(v) => `${((v * 100 * 180) / Math.PI).toFixed(0)}° / 100 px`}
+                  onChange={(orbitSpeed) => onChange({ controls: { orbitSpeed } })}
+                />
+              </Subsection>
+            </Section>
 
-        <Section title="Fond et grille">
-          <Subsection title="Fond">
-            <ColorField
-              label="Couleur du fond"
-              value={background.color}
-              onChange={(color) => onChange({ background: { color } })}
-            />
-          </Subsection>
-          <Subsection title="Grille">
-            <Toggle
-              label="Afficher la grille"
-              checked={background.grid}
-              onChange={(grid) => onChange({ background: { grid } })}
-            />
-            <Toggle
-              label="Pas de la page draw.io quand elle en a un"
-              checked={background.gridFromPage}
-              disabled={!background.grid}
-              onChange={(gridFromPage) => onChange({ background: { gridFromPage } })}
-            />
-            <Slider
-              label={background.gridFromPage ? 'Pas par défaut' : 'Pas de la grille'}
-              value={background.gridSize}
-              limits={SETTINGS_LIMITS['background.gridSize']}
-              format={(v) => `${v} px`}
-              disabled={!background.grid}
-              onChange={(gridSize) => onChange({ background: { gridSize } })}
-            />
-            <Slider
-              label="Ligne principale"
-              value={background.majorEvery}
-              limits={SETTINGS_LIMITS['background.majorEvery']}
-              format={(v) => (v === 1 ? 'aucune' : `toutes les ${v} cases`)}
-              disabled={!background.grid}
-              onChange={(majorEvery) => onChange({ background: { majorEvery } })}
-            />
-            <ColorField
-              label="Couleur de la grille"
-              value={background.gridColor}
-              disabled={!background.grid}
-              onChange={(gridColor) => onChange({ background: { gridColor } })}
-            />
-            <Slider
-              label="Intensité des lignes secondaires"
-              value={background.minorStrength}
-              limits={SETTINGS_LIMITS['background.minorStrength']}
-              format={percent}
-              disabled={!background.grid || background.majorEvery === 1}
-              onChange={(minorStrength) => onChange({ background: { minorStrength } })}
-            />
-          </Subsection>
-        </Section>
+            <Section title="Vue">
+              <Subsection title="Modes">
+                <Choice
+                  label="Mode à l’ouverture"
+                  value={view.defaultMode}
+                  options={[
+                    ['top', '2D'],
+                    ['iso', 'Iso'],
+                    ['3d', '3D'],
+                  ]}
+                  onChange={(defaultMode) => onChange({ view: { defaultMode } })}
+                />
+                <Slider
+                  label="Durée de la bascule 2D ↔ iso ↔ 3D"
+                  value={view.switchDurationMs}
+                  limits={SETTINGS_LIMITS['view.switchDurationMs']}
+                  format={(v) => (v === 0 ? 'instantanée' : `${v} ms`)}
+                  onChange={(switchDurationMs) => onChange({ view: { switchDurationMs } })}
+                />
+              </Subsection>
+              <Subsection
+                title={
+                  <>
+                    <IsoIcon />
+                    Vue isométrique
+                  </>
+                }
+              >
+                <IsoSettings
+                  value={view}
+                  onChange={(patch) => onChange({ view: patch })}
+                  onResetOrientation={onResetOrientation}
+                />
+              </Subsection>
+              <Subsection title="Vue 3D">
+                <Slider
+                  label="Champ de vision"
+                  value={camera.fovDeg}
+                  limits={SETTINGS_LIMITS['camera.fovDeg']}
+                  format={(v) => `${v}°`}
+                  onChange={(fovDeg) => onChange({ camera: { fovDeg } })}
+                />
+                <Slider
+                  label="Inclinaison maximale"
+                  value={camera.maxTilt3dDeg}
+                  limits={SETTINGS_LIMITS['camera.maxTilt3dDeg']}
+                  format={(v) => `${v}°`}
+                  onChange={(maxTilt3dDeg) => onChange({ camera: { maxTilt3dDeg } })}
+                />
+                <Slider
+                  label="Dézoom maximal (3D)"
+                  value={camera.minZoom3d}
+                  limits={SETTINGS_LIMITS['camera.minZoom3d']}
+                  format={percent}
+                  onChange={(minZoom3d) => onChange({ camera: { minZoom3d } })}
+                />
+                <Slider
+                  label="Zoom maximal (3D)"
+                  value={camera.maxZoom3d}
+                  limits={SETTINGS_LIMITS['camera.maxZoom3d']}
+                  format={percent}
+                  onChange={(maxZoom3d) => onChange({ camera: { maxZoom3d } })}
+                />
+              </Subsection>
+              <Subsection title="Volumes (iso et 3D)">
+                <Toggle
+                  label="Formes en volume"
+                  checked={view.isoVolume}
+                  onChange={(isoVolume) => onChange({ view: { isoVolume } })}
+                />
+                <Slider
+                  label="Épaisseur par défaut"
+                  value={view.isoDepth}
+                  limits={SETTINGS_LIMITS['view.isoDepth']}
+                  format={(v) => `${v} px`}
+                  disabled={!view.isoVolume}
+                  onChange={(isoDepth) => onChange({ view: { isoDepth } })}
+                />
+                <p className="hint muted">Par forme : style draw.io « spatial.height=… »</p>
+                <Toggle
+                  label="Étiquettes sur les façades (DB, QUEUE, CACHE)"
+                  checked={view.facadeTags}
+                  disabled={!view.isoVolume}
+                  onChange={(facadeTags) => onChange({ view: { facadeTags } })}
+                />
+                <p className="hint muted">Par forme : style draw.io « spatial.tag=… » (vide = aucune).</p>
+                <Slider
+                  label="Luminosité de la face éclairée"
+                  value={view.shadeLight}
+                  limits={SETTINGS_LIMITS['view.shadeLight']}
+                  format={percent}
+                  disabled={!view.isoVolume}
+                  onChange={(shadeLight) => onChange({ view: { shadeLight } })}
+                />
+                <Slider
+                  label="Luminosité de la face à l’ombre"
+                  value={view.shadeDark}
+                  limits={SETTINGS_LIMITS['view.shadeDark']}
+                  format={percent}
+                  disabled={!view.isoVolume}
+                  onChange={(shadeDark) => onChange({ view: { shadeDark } })}
+                />
+              </Subsection>
+            </Section>
 
-        <Section title="Sélection">
-          <Subsection title="Mise en valeur">
-            <Choice
-              label="Style"
-              value={selection.style}
-              options={[
-                ['veil', 'Voile sur le reste'],
-                ['outline', 'Contour'],
-              ]}
-              onChange={(style) => onChange({ selection: { style } })}
-            />
-            <ColorField
-              label="Couleur d’accent (contour, poignées, liens, mini-carte)"
-              value={selection.accentColor}
-              onChange={(accentColor) => onChange({ selection: { accentColor } })}
-            />
-          </Subsection>
-          <Subsection title="Voile">
-            <Slider
-              label="Intensité du voile"
-              value={selection.veilOpacity}
-              limits={SETTINGS_LIMITS['selection.veilOpacity']}
-              format={percent}
-              disabled={selection.style !== 'veil'}
-              onChange={(veilOpacity) => onChange({ selection: { veilOpacity } })}
-            />
-            <ColorField
-              label="Couleur du voile"
-              value={selection.veilColor}
-              disabled={selection.style !== 'veil'}
-              onChange={(veilColor) => onChange({ selection: { veilColor } })}
-            />
-            <Slider
-              label="Marge autour d’une flèche sélectionnée"
-              value={selection.veilPadding}
-              limits={SETTINGS_LIMITS['selection.veilPadding']}
-              format={(v) => `${v} px`}
-              disabled={selection.style !== 'veil'}
-              onChange={(veilPadding) => onChange({ selection: { veilPadding } })}
-            />
-          </Subsection>
-          <Subsection title="Contour">
-            <Toggle
-              label="Contour animé (les tirets défilent)"
-              checked={selection.animated}
-              disabled={selection.style !== 'outline'}
-              onChange={(animated) => onChange({ selection: { animated } })}
-            />
-            <Slider
-              label="Vitesse des tirets"
-              value={selection.speed}
-              limits={SETTINGS_LIMITS['selection.speed']}
-              format={(v) => `${v} px/s`}
-              disabled={selection.style !== 'outline' || !selection.animated}
-              onChange={(speed) => onChange({ selection: { speed } })}
-            />
-          </Subsection>
-        </Section>
+            <Section title="Caméra">
+              <Subsection title="Zoom (2D et iso)">
+                <Slider
+                  label="Dézoom maximal"
+                  value={camera.minZoom}
+                  limits={SETTINGS_LIMITS['camera.minZoom']}
+                  format={percent}
+                  onChange={(minZoom) => onChange({ camera: { minZoom } })}
+                />
+                <Slider
+                  label="Zoom maximal"
+                  value={camera.maxZoom}
+                  limits={SETTINGS_LIMITS['camera.maxZoom']}
+                  format={percent}
+                  onChange={(maxZoom) => onChange({ camera: { maxZoom } })}
+                />
+              </Subsection>
+              <Subsection title="Animations de la caméra">
+                <Slider
+                  label="Durée (vue globale, réinitialiser la vue, aller à un élément)"
+                  value={camera.animationMs}
+                  limits={SETTINGS_LIMITS['camera.animationMs']}
+                  format={ms}
+                  onChange={(animationMs) => onChange({ camera: { animationMs } })}
+                />
+              </Subsection>
+              <Subsection title="Aller à un élément (diagnostics, liens)">
+                <Slider
+                  label="Zoom maximal"
+                  value={camera.focusMaxZoom}
+                  limits={SETTINGS_LIMITS['camera.focusMaxZoom']}
+                  format={percent}
+                  onChange={(focusMaxZoom) => onChange({ camera: { focusMaxZoom } })}
+                />
+                <Slider
+                  label="Marge autour de l’élément"
+                  value={camera.focusPadding}
+                  limits={SETTINGS_LIMITS['camera.focusPadding']}
+                  format={(v) => `${v} px`}
+                  onChange={(focusPadding) => onChange({ camera: { focusPadding } })}
+                />
+              </Subsection>
+            </Section>
 
-        <Section title="Liens entre pages">
-          <Subsection title="Transitions">
-            <Toggle
-              label="Animer le passage par un lien"
-              checked={transition.enabled}
-              onChange={(enabled) => onChange({ transition: { enabled } })}
-            />
-            <Slider
-              label="Durée"
-              value={transition.durationMs}
-              limits={SETTINGS_LIMITS['transition.durationMs']}
-              format={(v) => `${(v / 1000).toFixed(2)} s`}
-              disabled={!transition.enabled}
-              onChange={(durationMs) => onChange({ transition: { durationMs } })}
-            />
-            <Choice
-              label="Courbe"
-              value={transition.easing}
-              options={[
-                ['ease-in-out', 'Douce'],
-                ['ease-out', 'Freinée'],
-                ['ease-in', 'Accélérée'],
-                ['linear', 'Linéaire'],
-              ]}
-              disabled={!transition.enabled}
-              onChange={(easing) => onChange({ transition: { easing } })}
-            />
-            <Slider
-              label="Début du fondu entre les pages"
-              value={transition.fadeStart}
-              limits={SETTINGS_LIMITS['transition.fadeStart']}
-              format={percent}
-              disabled={!transition.enabled}
-              onChange={(fadeStart) => onChange({ transition: { fadeStart } })}
-            />
-            <Slider
-              label="Fin du fondu entre les pages"
-              value={transition.fadeEnd}
-              limits={SETTINGS_LIMITS['transition.fadeEnd']}
-              format={percent}
-              disabled={!transition.enabled}
-              onChange={(fadeEnd) => onChange({ transition: { fadeEnd } })}
-            />
-          </Subsection>
-          <Subsection title="Préchargement">
-            <Toggle
-              label="Préparer la page cible au clic sur un lien"
-              checked={preload.onClick}
-              onChange={(onClick) => onChange({ preload: { onClick } })}
-            />
-            <Toggle
-              label="Préparer au survol prolongé"
-              checked={preload.onHover}
-              onChange={(onHover) => onChange({ preload: { onHover } })}
-            />
-            <Slider
-              label="Délai de survol"
-              value={preload.hoverDelayMs}
-              limits={SETTINGS_LIMITS['preload.hoverDelayMs']}
-              format={(v) => `${v} ms`}
-              disabled={!preload.onHover}
-              onChange={(hoverDelayMs) => onChange({ preload: { hoverDelayMs } })}
-            />
-            <Slider
-              label="Pages gardées en mémoire"
-              value={preload.maxCachedPages}
-              limits={SETTINGS_LIMITS['preload.maxCachedPages']}
-              format={(v) => `${v}`}
-              onChange={(maxCachedPages) => onChange({ preload: { maxCachedPages } })}
-            />
-          </Subsection>
-          <Subsection title="Vue graphe">
-            <Slider
-              label="Largeur des cartes de pages"
-              value={graph.cardWidth}
-              limits={SETTINGS_LIMITS['graph.cardWidth']}
-              format={(v) => `${v} px`}
-              onChange={(cardWidth) => onChange({ graph: { cardWidth } })}
-            />
-            <Slider
-              label="Écart entre les colonnes"
-              value={graph.columnGap}
-              limits={SETTINGS_LIMITS['graph.columnGap']}
-              format={(v) => `${v} px`}
-              onChange={(columnGap) => onChange({ graph: { columnGap } })}
-            />
-            <Slider
-              label="Écart entre les cartes d’une colonne"
-              value={graph.rowGap}
-              limits={SETTINGS_LIMITS['graph.rowGap']}
-              format={(v) => `${v} px`}
-              onChange={(rowGap) => onChange({ graph: { rowGap } })}
-            />
-          </Subsection>
-        </Section>
+            <Section title="Fond et grille">
+              <Subsection title="Fond">
+                <ColorField
+                  label="Couleur du fond"
+                  value={background.color}
+                  onChange={(color) => onChange({ background: { color } })}
+                />
+              </Subsection>
+              <Subsection title="Grille">
+                <Toggle
+                  label="Afficher la grille"
+                  checked={background.grid}
+                  onChange={(grid) => onChange({ background: { grid } })}
+                />
+                <Toggle
+                  label="Pas de la page draw.io quand elle en a un"
+                  checked={background.gridFromPage}
+                  disabled={!background.grid}
+                  onChange={(gridFromPage) => onChange({ background: { gridFromPage } })}
+                />
+                <Slider
+                  label={background.gridFromPage ? 'Pas par défaut' : 'Pas de la grille'}
+                  value={background.gridSize}
+                  limits={SETTINGS_LIMITS['background.gridSize']}
+                  format={(v) => `${v} px`}
+                  disabled={!background.grid}
+                  onChange={(gridSize) => onChange({ background: { gridSize } })}
+                />
+                <Slider
+                  label="Ligne principale"
+                  value={background.majorEvery}
+                  limits={SETTINGS_LIMITS['background.majorEvery']}
+                  format={(v) => (v === 1 ? 'aucune' : `toutes les ${v} cases`)}
+                  disabled={!background.grid}
+                  onChange={(majorEvery) => onChange({ background: { majorEvery } })}
+                />
+                <ColorField
+                  label="Couleur de la grille"
+                  value={background.gridColor}
+                  disabled={!background.grid}
+                  onChange={(gridColor) => onChange({ background: { gridColor } })}
+                />
+                <Slider
+                  label="Intensité des lignes secondaires"
+                  value={background.minorStrength}
+                  limits={SETTINGS_LIMITS['background.minorStrength']}
+                  format={percent}
+                  disabled={!background.grid || background.majorEvery === 1}
+                  onChange={(minorStrength) => onChange({ background: { minorStrength } })}
+                />
+              </Subsection>
+            </Section>
 
-        <Section title="Mini-carte">
-          <Toggle
-            label="Afficher la mini-carte"
-            checked={minimap.visible}
-            onChange={(visible) => onChange({ minimap: { visible } })}
-          />
-          <Slider
-            label="Largeur de la mini-carte"
-            value={minimap.size}
-            limits={SETTINGS_LIMITS['minimap.size']}
-            format={(v) => `${v} px`}
-            disabled={!minimap.visible}
-            onChange={(size) => onChange({ minimap: { size } })}
-          />
-        </Section>
+            <Section title="Sélection">
+              <Subsection title="Mise en valeur">
+                <Choice
+                  label="Style"
+                  value={selection.style}
+                  options={[
+                    ['veil', 'Voile sur le reste'],
+                    ['outline', 'Contour'],
+                  ]}
+                  onChange={(style) => onChange({ selection: { style } })}
+                />
+                <ColorField
+                  label="Couleur d’accent (contour, poignées, liens, mini-carte)"
+                  value={selection.accentColor}
+                  onChange={(accentColor) => onChange({ selection: { accentColor } })}
+                />
+              </Subsection>
+              <Subsection title="Voile">
+                <Slider
+                  label="Intensité du voile"
+                  value={selection.veilOpacity}
+                  limits={SETTINGS_LIMITS['selection.veilOpacity']}
+                  format={percent}
+                  disabled={selection.style !== 'veil'}
+                  onChange={(veilOpacity) => onChange({ selection: { veilOpacity } })}
+                />
+                <ColorField
+                  label="Couleur du voile"
+                  value={selection.veilColor}
+                  disabled={selection.style !== 'veil'}
+                  onChange={(veilColor) => onChange({ selection: { veilColor } })}
+                />
+                <Slider
+                  label="Marge autour d’une flèche sélectionnée"
+                  value={selection.veilPadding}
+                  limits={SETTINGS_LIMITS['selection.veilPadding']}
+                  format={(v) => `${v} px`}
+                  disabled={selection.style !== 'veil'}
+                  onChange={(veilPadding) => onChange({ selection: { veilPadding } })}
+                />
+              </Subsection>
+              <Subsection title="Contour">
+                <Toggle
+                  label="Contour animé (les tirets défilent)"
+                  checked={selection.animated}
+                  disabled={selection.style !== 'outline'}
+                  onChange={(animated) => onChange({ selection: { animated } })}
+                />
+                <Slider
+                  label="Vitesse des tirets"
+                  value={selection.speed}
+                  limits={SETTINGS_LIMITS['selection.speed']}
+                  format={(v) => `${v} px/s`}
+                  disabled={selection.style !== 'outline' || !selection.animated}
+                  onChange={(speed) => onChange({ selection: { speed } })}
+                />
+              </Subsection>
+            </Section>
 
-        <Section title="Barres latérales">
-          <Choice
-            label="Nom sur la bande d'une barre repliée"
-            value={settings.panels.stripText}
-            options={[
-              ['up', 'De bas en haut'],
-              ['down', 'De haut en bas'],
-            ]}
-            onChange={(stripText) => onChange({ panels: { stripText } })}
-          />
-          <p className="hint muted">
-            Replier : double flèche en haut de la barre ; largeur : glisser son bord (double-clic = par défaut).
-          </p>
-        </Section>
+            <Section title="Liens entre pages">
+              <Subsection title="Transitions">
+                <Toggle
+                  label="Animer le passage par un lien"
+                  checked={transition.enabled}
+                  onChange={(enabled) => onChange({ transition: { enabled } })}
+                />
+                <Slider
+                  label="Durée"
+                  value={transition.durationMs}
+                  limits={SETTINGS_LIMITS['transition.durationMs']}
+                  format={(v) => `${(v / 1000).toFixed(2)} s`}
+                  disabled={!transition.enabled}
+                  onChange={(durationMs) => onChange({ transition: { durationMs } })}
+                />
+                <Choice
+                  label="Courbe"
+                  value={transition.easing}
+                  options={[
+                    ['ease-in-out', 'Douce'],
+                    ['ease-out', 'Freinée'],
+                    ['ease-in', 'Accélérée'],
+                    ['linear', 'Linéaire'],
+                  ]}
+                  disabled={!transition.enabled}
+                  onChange={(easing) => onChange({ transition: { easing } })}
+                />
+                <Slider
+                  label="Début du fondu entre les pages"
+                  value={transition.fadeStart}
+                  limits={SETTINGS_LIMITS['transition.fadeStart']}
+                  format={percent}
+                  disabled={!transition.enabled}
+                  onChange={(fadeStart) => onChange({ transition: { fadeStart } })}
+                />
+                <Slider
+                  label="Fin du fondu entre les pages"
+                  value={transition.fadeEnd}
+                  limits={SETTINGS_LIMITS['transition.fadeEnd']}
+                  format={percent}
+                  disabled={!transition.enabled}
+                  onChange={(fadeEnd) => onChange({ transition: { fadeEnd } })}
+                />
+              </Subsection>
+              <Subsection title="Préchargement">
+                <Toggle
+                  label="Préparer la page cible au clic sur un lien"
+                  checked={preload.onClick}
+                  onChange={(onClick) => onChange({ preload: { onClick } })}
+                />
+                <Toggle
+                  label="Préparer au survol prolongé"
+                  checked={preload.onHover}
+                  onChange={(onHover) => onChange({ preload: { onHover } })}
+                />
+                <Slider
+                  label="Délai de survol"
+                  value={preload.hoverDelayMs}
+                  limits={SETTINGS_LIMITS['preload.hoverDelayMs']}
+                  format={(v) => `${v} ms`}
+                  disabled={!preload.onHover}
+                  onChange={(hoverDelayMs) => onChange({ preload: { hoverDelayMs } })}
+                />
+                <Slider
+                  label="Pages gardées en mémoire"
+                  value={preload.maxCachedPages}
+                  limits={SETTINGS_LIMITS['preload.maxCachedPages']}
+                  format={(v) => `${v}`}
+                  onChange={(maxCachedPages) => onChange({ preload: { maxCachedPages } })}
+                />
+              </Subsection>
+              <Subsection title="Vue graphe">
+                <Slider
+                  label="Largeur des cartes de pages"
+                  value={graph.cardWidth}
+                  limits={SETTINGS_LIMITS['graph.cardWidth']}
+                  format={(v) => `${v} px`}
+                  onChange={(cardWidth) => onChange({ graph: { cardWidth } })}
+                />
+                <Slider
+                  label="Écart entre les colonnes"
+                  value={graph.columnGap}
+                  limits={SETTINGS_LIMITS['graph.columnGap']}
+                  format={(v) => `${v} px`}
+                  onChange={(columnGap) => onChange({ graph: { columnGap } })}
+                />
+                <Slider
+                  label="Écart entre les cartes d’une colonne"
+                  value={graph.rowGap}
+                  limits={SETTINGS_LIMITS['graph.rowGap']}
+                  format={(v) => `${v} px`}
+                  onChange={(rowGap) => onChange({ graph: { rowGap } })}
+                />
+              </Subsection>
+            </Section>
 
-        <Section title="Formes et flèches">
-          <Subsection title="Nouvelles formes et flèches">
-            <Slider
-              label="Taille du texte"
-              value={shapes.textSize}
-              limits={SETTINGS_LIMITS['shapes.textSize']}
-              format={(v) => `${v} px`}
-              onChange={(textSize) => onChange({ shapes: { textSize } })}
-            />
-            <Choice
-              label="Tracé des flèches"
-              value={shapes.edgeLineStyle}
-              options={[
-                ['straight', 'Droite'],
-                ['sharp', 'Angles droits'],
-                ['rounded', 'Arrondi'],
-                ['curved', 'Courbe'],
-              ]}
-              onChange={(edgeLineStyle) => onChange({ shapes: { edgeLineStyle } })}
-            />
-            <p className="hint muted">
-              Écrits dans le style draw.io des formes de la palette et des flèches tirées depuis une forme ; à changer
-              ensuite forme par forme dans le panneau de droite.
-            </p>
-          </Subsection>
-          <Subsection title="Textes de début et de fin">
-            <Slider
-              label="Taille"
-              value={shapes.edgeEndTextSize}
-              limits={SETTINGS_LIMITS['shapes.edgeEndTextSize']}
-              format={(v) => `${v} px`}
-              onChange={(edgeEndTextSize) => onChange({ shapes: { edgeEndTextSize } })}
-            />
-            <ColorField
-              label="Couleur"
-              value={shapes.edgeEndTextColor}
-              onChange={(edgeEndTextColor) => onChange({ shapes: { edgeEndTextColor } })}
-            />
-            <Slider
-              label="Écart le long de la flèche"
-              value={shapes.edgeEndTextGapAlong}
-              limits={SETTINGS_LIMITS['shapes.edgeEndTextGapAlong']}
-              format={(v) => `${v} px`}
-              onChange={(edgeEndTextGapAlong) => onChange({ shapes: { edgeEndTextGapAlong } })}
-            />
-            <Slider
-              label="Écart depuis le trait"
-              value={shapes.edgeEndTextGapAcross}
-              limits={SETTINGS_LIMITS['shapes.edgeEndTextGapAcross']}
-              format={(v) => `${v} px`}
-              onChange={(edgeEndTextGapAcross) => onChange({ shapes: { edgeEndTextGapAcross } })}
-            />
-            <p className="hint muted">
-              Textes créés au début ou à la fin d'une flèche : contre leur bout (à ces écarts de la forme et du trait),
-              du côté et avec l'alignement qui les éloignent de la forme.
-            </p>
-          </Subsection>
-          <Subsection title="Flèches">
-            <ColorField
-              label="Couleur du texte des flèches"
-              value={shapes.edgeFontColor}
-              onChange={(edgeFontColor) => onChange({ shapes: { edgeFontColor } })}
-            />
-            <p className="hint muted">Quand le style draw.io de la flèche ne précise pas de couleur de texte.</p>
-            <Choice
-              label="Fond du texte des flèches"
-              value={shapes.edgeLabelBackdrop}
-              options={[
-                ['halo', 'Halo'],
-                ['solid', 'Fond uni'],
-                ['none', 'Aucun'],
-              ]}
-              onChange={(edgeLabelBackdrop) => onChange({ shapes: { edgeLabelBackdrop } })}
-            />
-            <Slider
-              label="Épaisseur du halo"
-              value={shapes.edgeLabelHaloWidth}
-              limits={SETTINGS_LIMITS['shapes.edgeLabelHaloWidth']}
-              format={(v) => `${v.toLocaleString('fr-FR')} px`}
-              disabled={shapes.edgeLabelBackdrop !== 'halo'}
-              onChange={(edgeLabelHaloWidth) => onChange({ shapes: { edgeLabelHaloWidth } })}
-            />
-            <Slider
-              label="Flou du halo"
-              value={shapes.edgeLabelHaloBlur}
-              limits={SETTINGS_LIMITS['shapes.edgeLabelHaloBlur']}
-              format={(v) => (v === 0 ? 'net' : `${v.toLocaleString('fr-FR')} px`)}
-              disabled={shapes.edgeLabelBackdrop !== 'halo'}
-              onChange={(edgeLabelHaloBlur) => onChange({ shapes: { edgeLabelHaloBlur } })}
-            />
-            <p className="hint muted">
-              Halo : un contour de la couleur du fond autour de chaque lettre, lisible sur le trait sans cacher la
-              flèche. Fond uni : un rectangle de la couleur du fond. Une couleur de fond précisée dans le style draw.io
-              l'emporte.
-            </p>
-          </Subsection>
-          <Subsection title="Pastilles des flèches">
-            <p className="hint muted">
-              Posées par un mode de page (ex. rang d’une flèche dans un flux du mode Séquences), face à la caméra.
-            </p>
-            <Slider
-              label="Rayon (flèche avec texte)"
-              value={shapes.edgeBadgeRadius}
-              limits={SETTINGS_LIMITS['shapes.edgeBadgeRadius']}
-              format={(v) => `${v.toLocaleString('fr-FR')} px`}
-              onChange={(edgeBadgeRadius) => onChange({ shapes: { edgeBadgeRadius } })}
-            />
-            <Slider
-              label="Taille du chiffre (flèche avec texte)"
-              value={shapes.edgeBadgeTextSize}
-              limits={SETTINGS_LIMITS['shapes.edgeBadgeTextSize']}
-              format={(v) => `${v.toLocaleString('fr-FR')} px`}
-              onChange={(edgeBadgeTextSize) => onChange({ shapes: { edgeBadgeTextSize } })}
-            />
-            <Slider
-              label="Rayon (flèche sans texte)"
-              value={shapes.edgeBadgeSmallRadius}
-              limits={SETTINGS_LIMITS['shapes.edgeBadgeSmallRadius']}
-              format={(v) => `${v.toLocaleString('fr-FR')} px`}
-              onChange={(edgeBadgeSmallRadius) => onChange({ shapes: { edgeBadgeSmallRadius } })}
-            />
-            <Slider
-              label="Taille du chiffre (flèche sans texte)"
-              value={shapes.edgeBadgeSmallTextSize}
-              limits={SETTINGS_LIMITS['shapes.edgeBadgeSmallTextSize']}
-              format={(v) => `${v.toLocaleString('fr-FR')} px`}
-              onChange={(edgeBadgeSmallTextSize) => onChange({ shapes: { edgeBadgeSmallTextSize } })}
-            />
-            <Slider
-              label="Écart avec le texte de la flèche"
-              value={shapes.edgeBadgeGap}
-              limits={SETTINGS_LIMITS['shapes.edgeBadgeGap']}
-              format={(v) => `${v.toLocaleString('fr-FR')} px`}
-              onChange={(edgeBadgeGap) => onChange({ shapes: { edgeBadgeGap } })}
-            />
-            <ColorField
-              label="Couleur de la bordure"
-              value={shapes.edgeBadgeBorderColor}
-              onChange={(edgeBadgeBorderColor) => onChange({ shapes: { edgeBadgeBorderColor } })}
-            />
-            <Slider
-              label="Épaisseur de la bordure"
-              value={shapes.edgeBadgeBorderWidth}
-              limits={SETTINGS_LIMITS['shapes.edgeBadgeBorderWidth']}
-              format={(v) => (v === 0 ? 'aucune' : `${v.toLocaleString('fr-FR')} px`)}
-              onChange={(edgeBadgeBorderWidth) => onChange({ shapes: { edgeBadgeBorderWidth } })}
-            />
-            <ColorField
-              label="Couleur du chiffre"
-              value={shapes.edgeBadgeTextColor}
-              onChange={(edgeBadgeTextColor) => onChange({ shapes: { edgeBadgeTextColor } })}
-            />
-            <Toggle
-              label="Chiffre en gras"
-              checked={shapes.edgeBadgeBold}
-              onChange={(edgeBadgeBold) => onChange({ shapes: { edgeBadgeBold } })}
-            />
-            <Slider
-              label="Assombrissement du trait"
-              value={shapes.edgeDressingDarken}
-              limits={SETTINGS_LIMITS['shapes.edgeDressingDarken']}
-              format={(v) => `${Math.round(v * 100)} %`}
-              onChange={(edgeDressingDarken) => onChange({ shapes: { edgeDressingDarken } })}
-            />
-            <p className="hint muted">
-              Une flèche colorée par un mode (couleur de son flux) prend cette couleur assombrie. Les couleurs des
-              nouveaux flux sont les fonds des styles de forme, à partir du troisième.
-            </p>
-          </Subsection>
-          <Subsection title="Formes non supportées">
-            <ColorField
-              label="Fond du placeholder"
-              value={shapes.placeholderFill}
-              onChange={(placeholderFill) => onChange({ shapes: { placeholderFill } })}
-            />
-            <ColorField
-              label="Bordure du placeholder"
-              value={shapes.placeholderStroke}
-              onChange={(placeholderStroke) => onChange({ shapes: { placeholderStroke } })}
-            />
-          </Subsection>
-        </Section>
+            <Section title="Mini-carte">
+              <Toggle
+                label="Afficher la mini-carte"
+                checked={minimap.visible}
+                onChange={(visible) => onChange({ minimap: { visible } })}
+              />
+              <Slider
+                label="Largeur de la mini-carte"
+                value={minimap.size}
+                limits={SETTINGS_LIMITS['minimap.size']}
+                format={(v) => `${v} px`}
+                disabled={!minimap.visible}
+                onChange={(size) => onChange({ minimap: { size } })}
+              />
+            </Section>
 
-        <Section title="Édition">
-          <Subsection title="Clic">
-            <Slider
-              label="Tolérance de clic sur une flèche"
-              value={edit.edgePickTolerance}
-              limits={SETTINGS_LIMITS['edit.edgePickTolerance']}
-              format={(v) => `${v} px`}
-              onChange={(edgePickTolerance) => onChange({ edit: { edgePickTolerance } })}
-            />
-            <Slider
-              label="Tolérance de clic sur une poignée"
-              value={edit.handlePickTolerance}
-              limits={SETTINGS_LIMITS['edit.handlePickTolerance']}
-              format={(v) => `${v} px`}
-              onChange={(handlePickTolerance) => onChange({ edit: { handlePickTolerance } })}
-            />
-          </Subsection>
-          <Subsection title="Poignées et redimensionnement">
-            <Slider
-              label="Taille des poignées"
-              value={edit.handleSize}
-              limits={SETTINGS_LIMITS['edit.handleSize']}
-              format={(v) => `${v * 2} px`}
-              onChange={(handleSize) => onChange({ edit: { handleSize } })}
-            />
-            <Slider
-              label="Taille minimale d’une forme"
-              value={edit.minShapeSize}
-              limits={SETTINGS_LIMITS['edit.minShapeSize']}
-              format={(v) => `${v} px`}
-              onChange={(minShapeSize) => onChange({ edit: { minShapeSize } })}
-            />
-          </Subsection>
-        </Section>
+            <Section title="Barres latérales">
+              <Choice
+                label="Nom sur la bande d'une barre repliée"
+                value={settings.panels.stripText}
+                options={[
+                  ['up', 'De bas en haut'],
+                  ['down', 'De haut en bas'],
+                ]}
+                onChange={(stripText) => onChange({ panels: { stripText } })}
+              />
+              <p className="hint muted">
+                Replier : double flèche en haut de la barre ; largeur : glisser son bord (double-clic = par défaut).
+              </p>
+            </Section>
 
-        <Section title="Sauvegarde">
-          <Toggle
-            label="Sauvegarde automatique"
-            checked={save.autosave}
-            onChange={(autosave) => onChange({ save: { autosave } })}
-          />
-          <Slider
-            label="Délai après la dernière modification"
-            value={save.delayMs}
-            limits={SETTINGS_LIMITS['save.delayMs']}
-            format={ms}
-            disabled={!save.autosave}
-            onChange={(delayMs) => onChange({ save: { delayMs } })}
-          />
-          <p className="hint muted">
-            {desktop
-              ? 'Le fichier est réécrit sur le disque. Un exemple est gardé dans la bibliothèque ; « Sauvegarder » l’enregistre comme fichier.'
-              : 'Le fichier est enregistré dans la bibliothèque du navigateur ; « Sauvegarder » le télécharge en plus.'}
-          </p>
-          <Slider
-            label="Mémoriser la position de consultation (page, vue) après"
-            value={save.viewStateDelayMs}
-            limits={SETTINGS_LIMITS['save.viewStateDelayMs']}
-            format={ms}
-            onChange={(viewStateDelayMs) => onChange({ save: { viewStateDelayMs } })}
-          />
-        </Section>
+            <Section title="Formes et flèches">
+              <Subsection title="Nouvelles formes et flèches">
+                <Slider
+                  label="Taille du texte"
+                  value={shapes.textSize}
+                  limits={SETTINGS_LIMITS['shapes.textSize']}
+                  format={(v) => `${v} px`}
+                  onChange={(textSize) => onChange({ shapes: { textSize } })}
+                />
+                <Choice
+                  label="Tracé des flèches"
+                  value={shapes.edgeLineStyle}
+                  options={[
+                    ['straight', 'Droite'],
+                    ['sharp', 'Angles droits'],
+                    ['rounded', 'Arrondi'],
+                    ['curved', 'Courbe'],
+                  ]}
+                  onChange={(edgeLineStyle) => onChange({ shapes: { edgeLineStyle } })}
+                />
+                <p className="hint muted">
+                  Écrits dans le style draw.io des formes de la palette et des flèches tirées depuis une forme ; à
+                  changer ensuite forme par forme dans le panneau de droite.
+                </p>
+              </Subsection>
+              <Subsection title="Textes de début et de fin">
+                <Slider
+                  label="Taille"
+                  value={shapes.edgeEndTextSize}
+                  limits={SETTINGS_LIMITS['shapes.edgeEndTextSize']}
+                  format={(v) => `${v} px`}
+                  onChange={(edgeEndTextSize) => onChange({ shapes: { edgeEndTextSize } })}
+                />
+                <ColorField
+                  label="Couleur"
+                  value={shapes.edgeEndTextColor}
+                  onChange={(edgeEndTextColor) => onChange({ shapes: { edgeEndTextColor } })}
+                />
+                <Slider
+                  label="Écart le long de la flèche"
+                  value={shapes.edgeEndTextGapAlong}
+                  limits={SETTINGS_LIMITS['shapes.edgeEndTextGapAlong']}
+                  format={(v) => `${v} px`}
+                  onChange={(edgeEndTextGapAlong) => onChange({ shapes: { edgeEndTextGapAlong } })}
+                />
+                <Slider
+                  label="Écart depuis le trait"
+                  value={shapes.edgeEndTextGapAcross}
+                  limits={SETTINGS_LIMITS['shapes.edgeEndTextGapAcross']}
+                  format={(v) => `${v} px`}
+                  onChange={(edgeEndTextGapAcross) => onChange({ shapes: { edgeEndTextGapAcross } })}
+                />
+                <p className="hint muted">
+                  Textes créés au début ou à la fin d'une flèche : contre leur bout (à ces écarts de la forme et du
+                  trait), du côté et avec l'alignement qui les éloignent de la forme.
+                </p>
+              </Subsection>
+              <Subsection title="Flèches">
+                <ColorField
+                  label="Couleur du texte des flèches"
+                  value={shapes.edgeFontColor}
+                  onChange={(edgeFontColor) => onChange({ shapes: { edgeFontColor } })}
+                />
+                <p className="hint muted">Quand le style draw.io de la flèche ne précise pas de couleur de texte.</p>
+                <Choice
+                  label="Fond du texte des flèches"
+                  value={shapes.edgeLabelBackdrop}
+                  options={[
+                    ['halo', 'Halo'],
+                    ['solid', 'Fond uni'],
+                    ['none', 'Aucun'],
+                  ]}
+                  onChange={(edgeLabelBackdrop) => onChange({ shapes: { edgeLabelBackdrop } })}
+                />
+                <Slider
+                  label="Épaisseur du halo"
+                  value={shapes.edgeLabelHaloWidth}
+                  limits={SETTINGS_LIMITS['shapes.edgeLabelHaloWidth']}
+                  format={(v) => `${v.toLocaleString('fr-FR')} px`}
+                  disabled={shapes.edgeLabelBackdrop !== 'halo'}
+                  onChange={(edgeLabelHaloWidth) => onChange({ shapes: { edgeLabelHaloWidth } })}
+                />
+                <Slider
+                  label="Flou du halo"
+                  value={shapes.edgeLabelHaloBlur}
+                  limits={SETTINGS_LIMITS['shapes.edgeLabelHaloBlur']}
+                  format={(v) => (v === 0 ? 'net' : `${v.toLocaleString('fr-FR')} px`)}
+                  disabled={shapes.edgeLabelBackdrop !== 'halo'}
+                  onChange={(edgeLabelHaloBlur) => onChange({ shapes: { edgeLabelHaloBlur } })}
+                />
+                <p className="hint muted">
+                  Halo : un contour de la couleur du fond autour de chaque lettre, lisible sur le trait sans cacher la
+                  flèche. Fond uni : un rectangle de la couleur du fond. Une couleur de fond précisée dans le style
+                  draw.io l'emporte.
+                </p>
+              </Subsection>
+              <Subsection title="Pastilles des flèches">
+                <p className="hint muted">
+                  Posées par un mode de page (ex. rang d’une flèche dans un flux du mode Séquences), face à la caméra.
+                </p>
+                <Slider
+                  label="Rayon (flèche avec texte)"
+                  value={shapes.edgeBadgeRadius}
+                  limits={SETTINGS_LIMITS['shapes.edgeBadgeRadius']}
+                  format={(v) => `${v.toLocaleString('fr-FR')} px`}
+                  onChange={(edgeBadgeRadius) => onChange({ shapes: { edgeBadgeRadius } })}
+                />
+                <Slider
+                  label="Taille du chiffre (flèche avec texte)"
+                  value={shapes.edgeBadgeTextSize}
+                  limits={SETTINGS_LIMITS['shapes.edgeBadgeTextSize']}
+                  format={(v) => `${v.toLocaleString('fr-FR')} px`}
+                  onChange={(edgeBadgeTextSize) => onChange({ shapes: { edgeBadgeTextSize } })}
+                />
+                <Slider
+                  label="Rayon (flèche sans texte)"
+                  value={shapes.edgeBadgeSmallRadius}
+                  limits={SETTINGS_LIMITS['shapes.edgeBadgeSmallRadius']}
+                  format={(v) => `${v.toLocaleString('fr-FR')} px`}
+                  onChange={(edgeBadgeSmallRadius) => onChange({ shapes: { edgeBadgeSmallRadius } })}
+                />
+                <Slider
+                  label="Taille du chiffre (flèche sans texte)"
+                  value={shapes.edgeBadgeSmallTextSize}
+                  limits={SETTINGS_LIMITS['shapes.edgeBadgeSmallTextSize']}
+                  format={(v) => `${v.toLocaleString('fr-FR')} px`}
+                  onChange={(edgeBadgeSmallTextSize) => onChange({ shapes: { edgeBadgeSmallTextSize } })}
+                />
+                <Slider
+                  label="Écart avec le texte de la flèche"
+                  value={shapes.edgeBadgeGap}
+                  limits={SETTINGS_LIMITS['shapes.edgeBadgeGap']}
+                  format={(v) => `${v.toLocaleString('fr-FR')} px`}
+                  onChange={(edgeBadgeGap) => onChange({ shapes: { edgeBadgeGap } })}
+                />
+                <ColorField
+                  label="Couleur de la bordure"
+                  value={shapes.edgeBadgeBorderColor}
+                  onChange={(edgeBadgeBorderColor) => onChange({ shapes: { edgeBadgeBorderColor } })}
+                />
+                <Slider
+                  label="Épaisseur de la bordure"
+                  value={shapes.edgeBadgeBorderWidth}
+                  limits={SETTINGS_LIMITS['shapes.edgeBadgeBorderWidth']}
+                  format={(v) => (v === 0 ? 'aucune' : `${v.toLocaleString('fr-FR')} px`)}
+                  onChange={(edgeBadgeBorderWidth) => onChange({ shapes: { edgeBadgeBorderWidth } })}
+                />
+                <ColorField
+                  label="Couleur du chiffre"
+                  value={shapes.edgeBadgeTextColor}
+                  onChange={(edgeBadgeTextColor) => onChange({ shapes: { edgeBadgeTextColor } })}
+                />
+                <Toggle
+                  label="Chiffre en gras"
+                  checked={shapes.edgeBadgeBold}
+                  onChange={(edgeBadgeBold) => onChange({ shapes: { edgeBadgeBold } })}
+                />
+                <Slider
+                  label="Assombrissement du trait"
+                  value={shapes.edgeDressingDarken}
+                  limits={SETTINGS_LIMITS['shapes.edgeDressingDarken']}
+                  format={(v) => `${Math.round(v * 100)} %`}
+                  onChange={(edgeDressingDarken) => onChange({ shapes: { edgeDressingDarken } })}
+                />
+                <p className="hint muted">
+                  Une flèche colorée par un mode (couleur de son flux) prend cette couleur assombrie. Les couleurs des
+                  nouveaux flux sont les fonds des styles de forme, à partir du troisième.
+                </p>
+              </Subsection>
+              <Subsection title="Formes non supportées">
+                <ColorField
+                  label="Fond du placeholder"
+                  value={shapes.placeholderFill}
+                  onChange={(placeholderFill) => onChange({ shapes: { placeholderFill } })}
+                />
+                <ColorField
+                  label="Bordure du placeholder"
+                  value={shapes.placeholderStroke}
+                  onChange={(placeholderStroke) => onChange({ shapes: { placeholderStroke } })}
+                />
+              </Subsection>
+            </Section>
 
-        <Section title="Raccourcis clavier">
-          {(Object.keys(SHORTCUT_LABELS) as Array<keyof Shortcuts>).map((action) => (
-            <ShortcutField
-              key={action}
-              label={SHORTCUT_LABELS[action]}
-              value={controls.shortcuts[action]}
-              taken={Object.entries(controls.shortcuts)
-                .filter(([other]) => other !== action && !canShare(action, other as keyof Shortcuts))
-                .map(([, key]) => key.toLowerCase())}
-              onChange={(key) => onChange({ controls: { shortcuts: { [action]: key } } })}
-            />
-          ))}
-          <p className="hint muted">
-            Le déplacement (ZQSD / WASD, flèches), la rotation (A / E) et Espace ne sont pas attribuables. Supprimer et
-            Retour peuvent partager une touche : elle supprime s’il y a une sélection, sinon elle revient en arrière.
-          </p>
-          <Choice
-            label="Sélection multiple : touche + clic"
-            value={controls.multiSelectKey}
-            options={(Object.keys(MULTI_SELECT_LABELS) as MultiSelectKey[]).map((key) => [
-              key,
-              MULTI_SELECT_LABELS[key],
-            ])}
-            onChange={(multiSelectKey) => onChange({ controls: { multiSelectKey } })}
-          />
-          <p className="hint muted">
-            Maintenir la touche en cliquant ajoute l’élément à la sélection, ou l’en retire. Glisser une forme
-            sélectionnée déplace toute la sélection.
-          </p>
-          <Choice
-            label="Suivre un lien : touche"
-            value={controls.followLinkKey}
-            options={(Object.keys(FOLLOW_LINK_LABELS) as FollowLinkKey[]).map((key) => [key, FOLLOW_LINK_LABELS[key]])}
-            onChange={(followLinkKey) => onChange({ controls: { followLinkKey } })}
-          />
-          <Choice
-            label="Suivre un lien : touche +"
-            value={controls.followLinkKey === 'none' ? 'doubleClick' : controls.followLinkGesture}
-            options={(Object.keys(FOLLOW_LINK_GESTURE_LABELS) as FollowLinkGesture[]).map((gesture) => [
-              gesture,
-              FOLLOW_LINK_GESTURE_LABELS[gesture],
-            ])}
-            disabled={controls.followLinkKey === 'none'}
-            onChange={(followLinkGesture) => onChange({ controls: { followLinkGesture } })}
-          />
-          <p className="hint muted">
-            Maintenir la touche fait ressortir les zones liées (« Mode navigation » en bas à droite). Sans elle, le
-            double-clic sur une forme liée modifie son texte. Dans la vue graphe, le double-clic seul plonge dans la
-            page.
-          </p>
-        </Section>
+            <Section title="Édition">
+              <Subsection title="Clic">
+                <Slider
+                  label="Tolérance de clic sur une flèche"
+                  value={edit.edgePickTolerance}
+                  limits={SETTINGS_LIMITS['edit.edgePickTolerance']}
+                  format={(v) => `${v} px`}
+                  onChange={(edgePickTolerance) => onChange({ edit: { edgePickTolerance } })}
+                />
+                <Slider
+                  label="Tolérance de clic sur une poignée"
+                  value={edit.handlePickTolerance}
+                  limits={SETTINGS_LIMITS['edit.handlePickTolerance']}
+                  format={(v) => `${v} px`}
+                  onChange={(handlePickTolerance) => onChange({ edit: { handlePickTolerance } })}
+                />
+              </Subsection>
+              <Subsection title="Poignées et redimensionnement">
+                <Slider
+                  label="Taille des poignées"
+                  value={edit.handleSize}
+                  limits={SETTINGS_LIMITS['edit.handleSize']}
+                  format={(v) => `${v * 2} px`}
+                  onChange={(handleSize) => onChange({ edit: { handleSize } })}
+                />
+                <Slider
+                  label="Taille minimale d’une forme"
+                  value={edit.minShapeSize}
+                  limits={SETTINGS_LIMITS['edit.minShapeSize']}
+                  format={(v) => `${v} px`}
+                  onChange={(minShapeSize) => onChange({ edit: { minShapeSize } })}
+                />
+              </Subsection>
+            </Section>
 
-        <Section title="Accessibilité">
-          <Choice
-            label="Réduire les animations"
-            value={accessibility.reducedMotion}
-            options={[
-              ['system', 'Comme le système'],
-              ['always', 'Toujours'],
-              ['never', 'Jamais'],
-            ]}
-            onChange={(reducedMotion) => onChange({ accessibility: { reducedMotion } })}
-          />
-          <p className="hint muted">
-            Système : {systemReduced ? 'animations réduites demandées' : 'animations normales'}. Réduites = transitions,
-            bascule iso, vue globale et glissade instantanées.
-          </p>
-        </Section>
+            <Section title="Sauvegarde">
+              <Toggle
+                label="Sauvegarde automatique"
+                checked={save.autosave}
+                onChange={(autosave) => onChange({ save: { autosave } })}
+              />
+              <Slider
+                label="Délai après la dernière modification"
+                value={save.delayMs}
+                limits={SETTINGS_LIMITS['save.delayMs']}
+                format={ms}
+                disabled={!save.autosave}
+                onChange={(delayMs) => onChange({ save: { delayMs } })}
+              />
+              <p className="hint muted">
+                {desktop
+                  ? 'Le fichier est réécrit sur le disque. Un exemple est gardé dans la bibliothèque ; « Sauvegarder » l’enregistre comme fichier.'
+                  : 'Le fichier est enregistré dans la bibliothèque du navigateur ; « Sauvegarder » le télécharge en plus.'}
+              </p>
+              <Slider
+                label="Mémoriser la position de consultation (page, vue) après"
+                value={save.viewStateDelayMs}
+                limits={SETTINGS_LIMITS['save.viewStateDelayMs']}
+                format={ms}
+                onChange={(viewStateDelayMs) => onChange({ save: { viewStateDelayMs } })}
+              />
+            </Section>
 
-        <Section title="Diagnostics">
-          <Toggle
-            label="Bouton « Diagnostics » (styles non supportés)"
-            checked={debug.showUnsupportedPanel}
-            onChange={(showUnsupportedPanel) => onChange({ debug: { showUnsupportedPanel } })}
-          />
-        </Section>
+            <Section title="Raccourcis clavier">
+              {(Object.keys(SHORTCUT_LABELS) as Array<keyof Shortcuts>).map((action) => (
+                <ShortcutField
+                  key={action}
+                  label={SHORTCUT_LABELS[action]}
+                  value={controls.shortcuts[action]}
+                  taken={Object.entries(controls.shortcuts)
+                    .filter(([other]) => other !== action && !canShare(action, other as keyof Shortcuts))
+                    .map(([, key]) => key.toLowerCase())}
+                  onChange={(key) => onChange({ controls: { shortcuts: { [action]: key } } })}
+                />
+              ))}
+              <p className="hint muted">
+                Le déplacement (ZQSD / WASD, flèches), la rotation (A / E) et Espace ne sont pas attribuables. Supprimer
+                et Retour peuvent partager une touche : elle supprime s’il y a une sélection, sinon elle revient en
+                arrière.
+              </p>
+              <Choice
+                label="Sélection multiple : touche + clic"
+                value={controls.multiSelectKey}
+                options={(Object.keys(MULTI_SELECT_LABELS) as MultiSelectKey[]).map((key) => [
+                  key,
+                  MULTI_SELECT_LABELS[key],
+                ])}
+                onChange={(multiSelectKey) => onChange({ controls: { multiSelectKey } })}
+              />
+              <p className="hint muted">
+                Maintenir la touche en cliquant ajoute l’élément à la sélection, ou l’en retire. Glisser une forme
+                sélectionnée déplace toute la sélection.
+              </p>
+              <Choice
+                label="Suivre un lien : touche"
+                value={controls.followLinkKey}
+                options={(Object.keys(FOLLOW_LINK_LABELS) as FollowLinkKey[]).map((key) => [
+                  key,
+                  FOLLOW_LINK_LABELS[key],
+                ])}
+                onChange={(followLinkKey) => onChange({ controls: { followLinkKey } })}
+              />
+              <Choice
+                label="Suivre un lien : touche +"
+                value={controls.followLinkKey === 'none' ? 'doubleClick' : controls.followLinkGesture}
+                options={(Object.keys(FOLLOW_LINK_GESTURE_LABELS) as FollowLinkGesture[]).map((gesture) => [
+                  gesture,
+                  FOLLOW_LINK_GESTURE_LABELS[gesture],
+                ])}
+                disabled={controls.followLinkKey === 'none'}
+                onChange={(followLinkGesture) => onChange({ controls: { followLinkGesture } })}
+              />
+              <p className="hint muted">
+                Maintenir la touche fait ressortir les zones liées (« Mode navigation » en bas à droite). Sans elle, le
+                double-clic sur une forme liée modifie son texte. Dans la vue graphe, le double-clic seul plonge dans la
+                page.
+              </p>
+            </Section>
+
+            <Section title="Accessibilité">
+              <Choice
+                label="Réduire les animations"
+                value={accessibility.reducedMotion}
+                options={[
+                  ['system', 'Comme le système'],
+                  ['always', 'Toujours'],
+                  ['never', 'Jamais'],
+                ]}
+                onChange={(reducedMotion) => onChange({ accessibility: { reducedMotion } })}
+              />
+              <p className="hint muted">
+                Système : {systemReduced ? 'animations réduites demandées' : 'animations normales'}. Réduites =
+                transitions, bascule iso, vue globale et glissade instantanées.
+              </p>
+            </Section>
+
+            <Section title="Diagnostics">
+              <Toggle
+                label="Bouton « Diagnostics » (styles non supportés)"
+                checked={debug.showUnsupportedPanel}
+                onChange={(showUnsupportedPanel) => onChange({ debug: { showUnsupportedPanel } })}
+              />
+            </Section>
+          </div>
+        </div>
       </div>
-    </aside>
+    </dialog>
   );
 }
 
@@ -891,11 +1057,9 @@ function filterSections(root: HTMLElement, query: string): boolean {
   const needle = normalizeSearch(query);
   const matches = (element: Element | null) => !!element && normalizeSearch(element.textContent ?? '').includes(needle);
   let any = false;
-  for (const section of root.querySelectorAll<HTMLElement>(':scope > .settings-section')) {
-    const subsections = [...section.querySelectorAll<HTMLElement>(':scope > .settings-subsection')];
-    const loose = [...section.children].filter(
-      (child) => !child.classList.contains('settings-subsection') && child.tagName !== 'H3',
-    ) as HTMLElement[];
+  for (const section of sectionsOf(root)) {
+    const subsections = subsectionsOf(section);
+    const loose = looseOf(section);
     const whole = !needle || matches(section.querySelector(':scope > h3'));
     const looseMatch = loose.some((child) => matches(child));
     let shown = whole || looseMatch;
@@ -909,6 +1073,47 @@ function filterSections(root: HTMLElement, query: string): boolean {
     any ||= shown;
   }
   return any;
+}
+
+const sectionsOf = (root: HTMLElement | null) => [
+  ...(root?.querySelectorAll<HTMLElement>(':scope > .settings-section') ?? []),
+];
+const subsectionsOf = (section: HTMLElement | undefined) => [
+  ...(section?.querySelectorAll<HTMLElement>(':scope > .settings-subsection') ?? []),
+];
+/** Contenu d'une section hors sous-sections et titre (réglages posés directement dans la section). */
+const looseOf = (section: HTMLElement) =>
+  [...section.children].filter(
+    (child) => !child.classList.contains('settings-subsection') && child.tagName !== 'H3',
+  ) as HTMLElement[];
+
+/** N'affiche que le nœud choisi : la section entière, ou une seule de ses sous-sections. Vrai s'il existe. */
+function showNode(root: HTMLElement, node: SettingsNode): boolean {
+  let found = false;
+  sectionsOf(root).forEach((section, i) => {
+    const subsections = subsectionsOf(section);
+    const visible = i === node.section && (node.subsection === undefined || node.subsection < subsections.length);
+    section.hidden = !visible;
+    found ||= visible;
+    subsections.forEach((subsection, j) => {
+      subsection.hidden = node.subsection !== undefined && j !== node.subsection;
+    });
+    for (const child of looseOf(section)) child.hidden = node.subsection !== undefined;
+  });
+  return found;
+}
+
+/** Arbre des catégories d'après les titres affichés ; avec une recherche, les nœuds masqués par elle. */
+function readTree(root: HTMLElement, searching: boolean): TreeSection[] {
+  const title = (element: Element | null) => element?.textContent?.trim() ?? '';
+  return sectionsOf(root).map((section) => ({
+    title: title(section.querySelector(':scope > h3')),
+    shown: !searching || !section.hidden,
+    subsections: subsectionsOf(section).map((subsection) => ({
+      title: title(subsection.querySelector(':scope > h4')),
+      shown: !searching || !subsection.hidden,
+    })),
+  }));
 }
 
 // ---------------------------------------------------------------------------

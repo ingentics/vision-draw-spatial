@@ -85,17 +85,18 @@ export function Viewer({
   settingsRef.current = settings;
   const [report, setReport] = useState<UnsupportedReport>();
   const [cumulative, setCumulative] = useState(cumulativeEntries);
-  /** Panneau latéral ouvert (un seul à la fois). */
-  /** Paramètres ou diagnostics ; sinon le panneau contextuel (page, forme, flèche) est affiché. */
-  const [panel, setPanel] = useState<'diagnostics' | 'settings'>();
+  /** Diagnostics dans la barre de droite ; sinon le panneau contextuel (page, forme, flèche) est affiché. */
+  const [panel, setPanel] = useState<'diagnostics'>();
   const diagnosticsOpen = panel === 'diagnostics' && settings.debug.showUnsupportedPanel;
-  const togglePanel = (name: 'diagnostics' | 'settings') => {
+  const togglePanel = (name: 'diagnostics') => {
     // Barre de droite repliée : on a demandé ce panneau, elle se rouvre dessus.
     if (settings.panels.right.collapsed) {
       onSettingsChange({ panels: { right: { collapsed: false } } });
       setPanel(name);
     } else setPanel((open) => (open === name ? undefined : name));
   };
+  /** Paramètres : fenêtre modale au-dessus de l'appli. */
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [backTarget, setBackTarget] = useState<BackTarget>({ kind: 'none' });
   const [backChoices, setBackChoices] = useState<ParentLink[]>();
   const [modified, setModified] = useState(false);
@@ -120,7 +121,7 @@ export function Viewer({
       edges: items.filter((item) => item.type === 'edge').map((item) => item.element as EdgeModel),
     };
   }, [selection, pageId]);
-  // Choisir un élément ramène le panneau contextuel (paramètres ou diagnostics fermés).
+  // Choisir un élément ramène le panneau contextuel (diagnostics fermés).
   const selectedKey = [...selected.shapes, ...selected.edges].map((element) => element.id).join('\n');
   useEffect(() => {
     if (selectedKey) setPanel(undefined);
@@ -405,9 +406,7 @@ export function Viewer({
   // Titre de la barre de droite (et de sa bande quand elle est repliée) ; pas de panneau, pas de barre.
   const rightTitle = diagnosticsOpen
     ? 'Diagnostics'
-    : panel === 'settings'
-      ? 'Paramètres'
-      : currentPage && contextTitle(selected.shapes, selected.edges, labelEdit !== undefined);
+    : currentPage && contextTitle(selected.shapes, selected.edges, labelEdit !== undefined);
 
   return (
     <div className="app">
@@ -506,9 +505,10 @@ export function Viewer({
           <button
             type="button"
             className="button"
-            aria-pressed={panel === 'settings'}
+            aria-pressed={settingsOpen}
+            aria-haspopup="dialog"
             title="Paramètres"
-            onClick={() => togglePanel('settings')}
+            onClick={() => setSettingsOpen(true)}
           >
             <svg viewBox="0 0 16 16" aria-hidden="true">
               <path d="M2.5 4.5h7M12.5 4.5h1M2.5 11.5h1M6.5 11.5h7" />
@@ -614,14 +614,6 @@ export function Viewer({
                 }}
                 onClose={() => setPanel(undefined)}
               />
-            ) : panel === 'settings' ? (
-              <SettingsPanel
-                settings={settings}
-                onChange={onSettingsChange}
-                onReset={onResetSettings}
-                onResetOrientation={() => engine?.resetRotation()}
-                onClose={() => setPanel(undefined)}
-              />
             ) : (
               currentPage && (
                 <ContextPanel
@@ -708,6 +700,15 @@ export function Viewer({
             {modeHint && MODE_HINT_LABELS[modeHint]}
           </span>
         </footer>
+      )}
+      {settingsOpen && (
+        <SettingsPanel
+          settings={settings}
+          onChange={onSettingsChange}
+          onReset={onResetSettings}
+          onResetOrientation={() => engine?.resetRotation()}
+          onClose={() => setSettingsOpen(false)}
+        />
       )}
     </div>
   );
