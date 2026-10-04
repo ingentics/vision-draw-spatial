@@ -1,4 +1,5 @@
-import type { Point, Rect } from '../model/types';
+import { parseStyle, resolveShapeKind } from '../format/style';
+import type { PageModel, Point, Rect, ShapeModel } from '../model/types';
 import { PLUG_SHAPE } from '../render/shapes/plug';
 
 /**
@@ -168,4 +169,48 @@ export function searchTemplates(templates: ShapeTemplate[], query: string): Shap
     const haystack = normalize([template.name, category, ...template.keywords].join(' '));
     return words.every((word) => haystack.includes(word));
   });
+}
+
+/**
+ * Clés de style qui distinguent deux modèles de même forme (rectangle / arrondi, ellipse / cercle, base de
+ * données debout / file couchée), ramenées à une valeur comparable (style absent compris).
+ */
+type Normalize = (value: string | undefined) => string;
+const DISTINGUISHING_KEYS: Record<string, Normalize> = {
+  rounded: (value) => (value === '1' ? '1' : '0'),
+  aspect: (value) => (value === 'fixed' ? 'fixed' : ''),
+  direction: (value) => (value === 'south' || value === 'north' ? 'lying' : 'standing'),
+};
+
+/** Nom de forme de chaque modèle et clés distinctives utiles (celles qu'un modèle de même forme porte). */
+const TEMPLATE_SIGNATURES = SHAPE_TEMPLATES.map((template) => {
+  const parsed = parseStyle(template.style);
+  return { template, kind: resolveShapeKind(parsed), values: parsed.values };
+}).map((signature, _, all) => ({
+  ...signature,
+  keys: Object.entries(DISTINGUISHING_KEYS).filter(([key]) =>
+    all.some((other) => other.kind === signature.kind && key in other.values),
+  ),
+}));
+
+/**
+ * Modèle de la palette d'une forme, déduit de son nom de forme et de ses clés distinctives (une forme d'un
+ * fichier ouvert est reconnue comme une forme posée depuis la palette). `undefined` : aucun modèle.
+ */
+export function templateOfShape(shape: Pick<ShapeModel, 'kind' | 'style'>): ShapeTemplate | undefined {
+  return TEMPLATE_SIGNATURES.find(
+    ({ kind, values, keys }) =>
+      kind === shape.kind && keys.every(([key, normalize]) => normalize(values[key]) === normalize(shape.style[key])),
+  )?.template;
+}
+
+/** Modèles des formes présentes sur la page, une fois chacun, dans l'ordre de la palette. */
+export function usedTemplates(page: Pick<PageModel, 'shapes'> | undefined): ShapeTemplate[] {
+  if (!page) return [];
+  const used = new Set<string>();
+  for (const shape of page.shapes) {
+    const template = templateOfShape(shape);
+    if (template) used.add(template.id);
+  }
+  return SHAPE_TEMPLATES.filter((template) => used.has(template.id));
 }

@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { dropBounds, PALETTE_CATEGORIES, SHAPE_TEMPLATES, searchTemplates } from '../../../src/engine/edit/palette';
+import {
+  dropBounds,
+  PALETTE_CATEGORIES,
+  SHAPE_TEMPLATES,
+  searchTemplates,
+  templateOfShape,
+  usedTemplates,
+} from '../../../src/engine/edit/palette';
 import { resolveShapeKind, parseStyle } from '../../../src/engine/format/style';
 import { createDefaultRegistry } from '../../../src/engine/render/shapes/registry';
 
@@ -76,5 +83,32 @@ describe('palette', () => {
     it('aucun résultat', () => {
       expect(ids('zzz')).toEqual([]);
     });
+  });
+});
+
+describe('formes utilisées (étape 56)', () => {
+  const shape = (style: string) => {
+    const parsed = parseStyle(style);
+    return { kind: resolveShapeKind(parsed), style: parsed.values };
+  };
+
+  it('reconnaît chaque modèle depuis son propre style', () => {
+    for (const template of SHAPE_TEMPLATES) expect(templateOfShape(shape(template.style))?.id).toBe(template.id);
+  });
+
+  it('reconnaît les formes d’un fichier depuis les clés distinctives', () => {
+    expect(templateOfShape(shape('whiteSpace=wrap;html=1;'))?.id).toBe('rectangle');
+    expect(templateOfShape(shape('rounded=1;fillColor=#f00;'))?.id).toBe('rounded');
+    expect(templateOfShape(shape('ellipse;aspect=fixed;'))?.id).toBe('circle');
+    expect(templateOfShape(shape('shape=cylinder3;direction=north;'))?.id).toBe('queue');
+    expect(templateOfShape(shape('shape=cylinder3;'))?.id).toBe('database');
+    expect(templateOfShape(shape('shape=mxgraph.aws4.lambda;'))).toBeUndefined();
+  });
+
+  it('liste chaque type une fois, dans l’ordre de la palette', () => {
+    const shapes = ['shape=cylinder3;', 'rounded=0;', 'shape=cylinder3;size=8;', 'shape=unknown;'].map(shape);
+    expect(usedTemplates({ shapes: shapes as never }).map((t) => t.id)).toEqual(['rectangle', 'database']);
+    expect(usedTemplates({ shapes: [] })).toEqual([]);
+    expect(usedTemplates(undefined)).toEqual([]);
   });
 });

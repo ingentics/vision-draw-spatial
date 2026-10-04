@@ -1,7 +1,11 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { CollapseButton } from './Sidebar';
 import { PALETTE_CATEGORIES, SHAPE_TEMPLATES, searchTemplates } from '../engine/edit/palette';
-import type { PaletteCategoryId, ShapeTemplate } from '../engine/edit/palette';
+import type { PaletteCategory, PaletteCategoryId, ShapeTemplate } from '../engine/edit/palette';
+
+/** Catégorie des formes présentes sur la page, en tête de la palette (hors `PALETTE_CATEGORIES`). */
+const USED_CATEGORY = { id: 'used', name: 'Utilisées' } as const;
+type SectionId = PaletteCategoryId | typeof USED_CATEGORY.id;
 
 /** Type de données du glisser-déposer d'une forme de la palette vers le plan. */
 export const PALETTE_MIME = 'application/x-drawio-spatial-shape';
@@ -9,16 +13,16 @@ export const PALETTE_MIME = 'application/x-drawio-spatial-shape';
 /** Catégories repliées, retenues d'une session à l'autre. */
 const COLLAPSED_KEY = 'drawio-spatial:palette-collapsed';
 
-function loadCollapsed(): Set<PaletteCategoryId> {
+function loadCollapsed(): Set<SectionId> {
   try {
     const raw = localStorage.getItem(COLLAPSED_KEY);
-    return new Set(raw ? (JSON.parse(raw) as PaletteCategoryId[]) : []);
+    return new Set(raw ? (JSON.parse(raw) as SectionId[]) : []);
   } catch {
     return new Set();
   }
 }
 
-function saveCollapsed(collapsed: Set<PaletteCategoryId>): void {
+function saveCollapsed(collapsed: Set<SectionId>): void {
   try {
     localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...collapsed]));
   } catch {
@@ -55,6 +59,8 @@ function tooltipPosition(
 interface PaletteProps {
   /** Clic (ou Entrée) sur une forme : ajout au centre de la vue. */
   onAdd: (template: ShapeTemplate) => void;
+  /** Modèles des formes de la page courante (catégorie « Utilisées », masquée si vide). */
+  used?: ShapeTemplate[];
   disabled?: boolean;
 }
 
@@ -63,7 +69,7 @@ interface PaletteProps {
  * par catégorie, chacune repliable. Glisser une forme sur le plan la dépose au point visé (projeté au sol, en
  * vue de dessus comme en iso) ; un clic l'ajoute au centre de la vue.
  */
-export function Palette({ onAdd, disabled }: PaletteProps) {
+export function Palette({ onAdd, used = [], disabled }: PaletteProps) {
   const [query, setQuery] = useState('');
   const [collapsed, setCollapsed] = useState(loadCollapsed);
   const [tooltip, setTooltip] = useState<Tooltip | null>(null);
@@ -88,7 +94,7 @@ export function Palette({ onAdd, disabled }: PaletteProps) {
   const searching = query.trim() !== '';
   const found = searchTemplates(SHAPE_TEMPLATES, query);
 
-  const toggle = (id: PaletteCategoryId) => {
+  const toggle = (id: SectionId) => {
     const next = new Set(collapsed);
     if (next.has(id)) next.delete(id);
     else next.add(id);
@@ -96,10 +102,13 @@ export function Palette({ onAdd, disabled }: PaletteProps) {
     saveCollapsed(next);
   };
 
-  const sections = PALETTE_CATEGORIES.map((category) => ({
-    category,
-    templates: found.filter((t) => t.category === category.id),
-  })).filter((section) => !searching || section.templates.length > 0);
+  const sections: { category: PaletteCategory | typeof USED_CATEGORY; templates: ShapeTemplate[] }[] = [
+    { category: USED_CATEGORY, templates: used.filter((t) => found.includes(t)) },
+    ...PALETTE_CATEGORIES.map((category) => ({
+      category,
+      templates: found.filter((t) => t.category === category.id),
+    })),
+  ].filter((section) => section.templates.length > 0 || (!searching && section.category !== USED_CATEGORY));
 
   return (
     <aside className="palette" aria-label="Formes">

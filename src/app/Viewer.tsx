@@ -31,6 +31,7 @@ import { ContextPanel, contextTitle } from './ContextPanel';
 import { Sidebar } from './Sidebar';
 import type { Settings, SettingsPatch } from '../engine/settings';
 import { GRAPH_PAGE_ID } from '../engine/graph/graphPage';
+import { usedTemplates } from '../engine/edit/palette';
 
 const FONTS = {
   regular: robotoRegular,
@@ -296,6 +297,11 @@ export function Viewer({
   const warnings = document?.warnings ?? [];
   const editablePages = document !== undefined && engine?.canEditPages() === true;
   const canAddShapes = pageId !== undefined && pageId !== GRAPH_PAGE_ID;
+  // Formes de la page courante, pour la catégorie « Utilisées » de la palette.
+  const usedShapes = useMemo(
+    () => (canAddShapes ? usedTemplates(document?.pages.find((page) => page.id === pageId)) : []),
+    [canAddShapes, document, pageId],
+  );
   const issueCount = (report?.unsupportedElementCount ?? 0) + warnings.length;
   /**
    * Format du texte en cours d'édition en place (panneau latéral, Ctrl+B / I / U) : sur la sélection
@@ -455,7 +461,7 @@ export function Viewer({
           stripText={settings.panels.stripText}
           onChange={(left) => onSettingsChange({ panels: { left } })}
         >
-          <Palette disabled={!canAddShapes} onAdd={(template) => engine?.addShape(template)} />
+          <Palette disabled={!canAddShapes} used={usedShapes} onAdd={(template) => engine?.addShape(template)} />
         </Sidebar>
         <div
           className="canvas-area"
