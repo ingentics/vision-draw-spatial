@@ -1,4 +1,6 @@
 import type { EdgeModel, PageModel, ShapeModel } from '../../../model/types';
+import { spatialValue } from '../../../spatial';
+import { EVENT_SOURCES, PARTICIPANT } from '../flows';
 import { sequenceState } from '../steps';
 import type { SequenceExporter } from './index';
 
@@ -15,6 +17,9 @@ import type { SequenceExporter } from './index';
  * commencé : tant qu'elle est ouverte, un aller qui part de son initiateur (source du premier aller) part du
  * participant actif, et l'aller de l'initiateur n'est refermé qu'à la fin, avec tous ceux encore ouverts. Ces retours
  * générés sont sans texte.
+ *
+ * Une forme de type `bus` ou `queue` (`spatial.participant`, sujet 97) est une `queue` ; si la première flèche d'un
+ * flux va vers elle, elle est lue dans l'autre sens : le flux part du bus.
  */
 export const plantUml: SequenceExporter = {
   id: 'plantuml',
@@ -48,11 +53,14 @@ export function sequencePlantUml(page: PageModel, flowId?: string): string {
     }
     return name;
   };
-  const flowMessages = (id: string) =>
-    messages(
-      (state.members.get(id) ?? []).map((edgeId) => edges.get(edgeId)!),
-      alias,
-    );
+  const flowMessages = (id: string) => {
+    const order = (state.members.get(id) ?? []).map((edgeId) => edges.get(edgeId)!);
+    // Première flèche vers un bus ou une queue : le flux part de lui (consommateur d'événement).
+    const first = order[0];
+    const target = first?.targetId === undefined ? undefined : shapes.get(first.targetId);
+    if (first && target && eventSource(target)) order[0] = { ...first, sourceId: target.id, targetId: first.sourceId };
+    return messages(order, alias);
+  };
 
   let title: string | undefined;
   let body: string[];
@@ -131,7 +139,12 @@ function lastIndex<T>(items: T[], test: (item: T) => boolean): number {
   return -1;
 }
 
+function eventSource(shape: ShapeModel): boolean {
+  return EVENT_SOURCES.includes(spatialValue(shape, PARTICIPANT) ?? '');
+}
+
 function participantKind(shape: ShapeModel): string {
+  if (eventSource(shape)) return 'queue';
   if (shape.kind === 'umlActor') return 'actor';
   if (shape.kind.startsWith('cylinder')) return 'database';
   return 'participant';

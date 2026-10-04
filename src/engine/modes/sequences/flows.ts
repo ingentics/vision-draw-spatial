@@ -8,6 +8,10 @@ export const FLOWS = 'spatial.flows';
 export const FLOW = 'spatial.flow';
 /** Rang d'une flèche dans son flux, à partir de 1. */
 export const STEP = 'spatial.step';
+/** Type d'une forme dans les séquences (sujet 97) : vide (selon la forme), `bus` ou `queue`. */
+export const PARTICIPANT = 'spatial.participant';
+/** Types de participant qui sont des points de départ d'événements : une première flèche vers eux part d'eux. */
+export const EVENT_SOURCES = ['bus', 'queue'];
 
 export interface Flow {
   /** Identifiant stable (`f1`, `f2`…) : renommer un flux ne touche pas ses flèches. */

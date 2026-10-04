@@ -1,6 +1,6 @@
 import type { EdgeModel } from '../../model/types';
 import type { ModeKey, PageModeDefinition } from '../types';
-import { FLOW, STEP } from './flows';
+import { FLOW, PARTICIPANT, STEP } from './flows';
 import { renameFlow, repairSequences, sequenceState, setEdgeFlow, setEdgeStep } from './steps';
 
 /**
@@ -39,6 +39,20 @@ export const definition: PageModeDefinition = {
         if (value !== undefined) setEdgeStep(edit, target.id, Number(value));
       },
       hidden: (page, target) => !sequenceState(page).placement.has(target.id),
+    },
+  ],
+  shapeProperties: [
+    {
+      type: 'select',
+      key: PARTICIPANT,
+      label: 'Type',
+      title:
+        'Type de la forme dans les séquences (spatial.participant) : un bus ou une queue est le point de départ d’un flux dont la première flèche va vers lui',
+      options: () => [
+        { value: '', label: '—' },
+        { value: 'bus', label: 'Bus' },
+        { value: 'queue', label: 'Queue' },
+      ],
     },
   ],
   dressing(page) {

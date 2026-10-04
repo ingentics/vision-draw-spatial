@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { readDrawio } from '../../../src/engine/format/parse';
 import type { EdgeModel, PageModel } from '../../../src/engine/model/types';
+import { definition as sequences } from '../../../src/engine/modes/sequences';
 import { SEQUENCE_EXPORTERS, sequenceExporter } from '../../../src/engine/modes/sequences/export';
+import { PARTICIPANT } from '../../../src/engine/modes/sequences/flows';
 import { sequencePlantUml } from '../../../src/engine/modes/sequences/export/plantuml';
 import { fixture } from '../../helpers';
 
@@ -37,7 +39,7 @@ function flow(...arrows: Array<[string | undefined, string | undefined, string?]
 /** Lignes des messages (après la ligne vide qui suit les participants). */
 const messages = (text: string) => text.split('\n').slice(text.split('\n').indexOf('') + 1, -2);
 
-describe('export PlantUML des flux (sujets 90 à 94)', () => {
+describe('export PlantUML des flux (sujets 90 à 97)', () => {
   it('est enregistré parmi les exporteurs de séquence', () => {
     expect(SEQUENCE_EXPORTERS.map((exporter) => exporter.id)).toContain('plantuml');
     expect(sequenceExporter('plantuml')?.name).toBe('PlantUML');
@@ -77,7 +79,7 @@ describe('export PlantUML des flux (sujets 90 à 94)', () => {
         'actor "Actor" as P1 order 1',
         'participant "User" as P2 order 2',
         'participant "Notifications" as P3 order 3',
-        'database "BUS" as P4 order 4',
+        'queue "BUS" as P4 order 4',
         '',
         'P1 -> P2 ++ : send form',
         'P2 -> P2 : Create',
@@ -92,13 +94,10 @@ describe('export PlantUML des flux (sujets 90 à 94)', () => {
     );
   });
 
-  it('écrit le flux « Sending flow » de flows.drawio, terminé là où il a commencé', () => {
-    expect(messages(sequencePlantUml(flowsPage(), 'f2'))).toEqual([
-      'P1 -> P2 ++ : Read',
-      'P2 -> P3 ++ : Send',
-      'P3 --> P2 --',
-      'P2 --> P1 --',
-    ]);
+  it('écrit le flux « Sending flow » de flows.drawio, parti du bus vers lequel va sa première flèche', () => {
+    const text = sequencePlantUml(flowsPage(), 'f2');
+    expect(text).toContain('queue "BUS" as P1 order 1\nparticipant "Notifications" as P2 order 2');
+    expect(messages(text)).toEqual(['P1 -> P2 ++ : Read', 'P2 -> P3 ++ : Send', 'P3 --> P2 --', 'P2 --> P1 --']);
   });
 
   it('remonte la pile avant un appel à soi-même, sans l’empiler', () => {
@@ -119,7 +118,7 @@ describe('export PlantUML des flux (sujets 90 à 94)', () => {
         'actor "Actor" as P1 order 1',
         'participant "User" as P2 order 2',
         'participant "Notifications" as P3 order 3',
-        'database "BUS" as P4 order 4',
+        'queue "BUS" as P4 order 4',
         'participant "Mailjet" as P5 order 5',
         '',
         '== Inscription flow ==',
@@ -132,10 +131,10 @@ describe('export PlantUML des flux (sujets 90 à 94)', () => {
         'P2 --> P1 --',
         '',
         '== Sending flow ==',
-        'P3 -> P4 ++ : Read',
-        'P4 -> P5 ++ : Send',
-        'P5 --> P4 --',
-        'P4 --> P3 --',
+        'P4 -> P3 ++ : Read',
+        'P3 -> P5 ++ : Send',
+        'P5 --> P3 --',
+        'P3 --> P4 --',
         '@enduml',
         '',
       ].join('\n'),
@@ -146,6 +145,20 @@ describe('export PlantUML des flux (sujets 90 à 94)', () => {
     const text = sequencePlantUml(page());
     expect(text).toContain('title Séquences');
     expect(text).toContain('== Vide ==\n@enduml');
+  });
+
+  it('déclare le type d’une forme (bus, queue) dans le panneau des formes', () => {
+    const property = sequences.shapeProperties?.find((p) => p.key === PARTICIPANT);
+    expect(property?.type).toBe('select');
+    if (property?.type === 'select') {
+      expect(property.options(flowsPage()).map((option) => option.value)).toEqual(['', 'bus', 'queue']);
+    }
+  });
+
+  it('ne retourne pas une première flèche qui ne va pas vers un bus, ni les suivantes', () => {
+    const text = sequencePlantUml(flowsPage(), 'f1');
+    expect(text).toContain('P1 -> P2 ++ : send form');
+    expect(text).toContain('P3 -> P4 ++ : Enqueue the email');
   });
 
   it('écrit un flux vide sans participant', () => {
