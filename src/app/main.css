@@ -56,6 +56,13 @@ body {
   padding: 6px 10px;
   border-bottom: 1px solid var(--border);
   background: var(--panel);
+  /*
+   * Ombre sur la zone de dessin, comme la palette et les panneaux : la barre passe au-dessus du canevas et de ses
+   * outils flottants (`.text-tools`, z-index 7), pour que l'ombre se voie et que ses menus restent devant.
+   */
+  position: relative;
+  z-index: 8;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
 .toolbar select,
@@ -159,6 +166,10 @@ body {
   align-items: center;
   border-top: 1px solid var(--border);
   background: var(--panel);
+  /* Ombre sur la zone de dessin, comme la barre d'outils. */
+  position: relative;
+  z-index: 8;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.06);
 }
 
 .tabs {
