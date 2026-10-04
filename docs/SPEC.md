@@ -400,10 +400,11 @@ Ajouter une forme = **déposer son dossier** (au minimum `kind` et `flat`, idéa
   **Redimensionnement** : le corps du cylindre s'étire, les ellipses gardent leur taille. Les trois formes ont la **même ellipse**, de 8 px (celle de draw.io pour un cache de 60 px de haut) ; le bout de `direct_data` reste à 9/98 de la largeur, comme draw.io. **Écarts assumés avec draw.io** : draw.io agrandit les anneaux du cache avec sa hauteur, et dessine l'ellipse du `cylinder3` de hauteur `size` (15 par défaut) ; avec les valeurs de la palette (`size=8`, cache de 60 px), le rendu est identique dans les deux. Contour par défaut : épaisseur 1, comme les autres formes.
 
   **Zone de texte**, en 2D, comme draw.io : le texte se place dans le corps du cylindre, sous l'ellipse (BDD) ou à gauche du bout visible (file) avec `boundedLbl=1` (sinon dans toute la forme), et toujours sous les anneaux pour le cache (draw.io y ignore `boundedLbl`). En iso / 3D, sur le toit entier. L'éditeur en place s'ouvre sur cette même zone (`textZone` des définitions de formes, bornes par défaut) : le texte ne bouge pas entre affichage et édition.
-- **Prise** (connecteur logiciel, module qui se branche ; palette « Architecture », 100 × 60) : draw.io n'a pas de prise
+- **Prise** (connecteur logiciel, module qui se branche ; palette « Architecture », 96 × 80) : draw.io n'a pas de prise
   native, c'est un **stencil embarqué** dans le style (`shape=stencil(…)`, XML `<shape name="plug">` compressé comme
-  draw.io), que draw.io dessine donc à l'identique : corps sur les 7/10 de la largeur, deux broches à droite, étiré dans
-  les bornes et orienté par `direction` / `flipH` / `flipV` ; prisme du contour en iso / 3D ; périmètre rectangle.
+  draw.io), que draw.io dessine donc à l'identique : fiche électrique vue de face (deux broches en haut, corps, bas en
+  trapèze), étirée dans les bornes et orientée par `direction` / `flipH` / `flipV` ; prisme du contour en iso / 3D ;
+  périmètre rectangle.
   Un `shape=stencil(…)` prend le nom de forme `stencil:<nom>` (`format/stencil.ts`) : les stencils inconnus apparaissent
   sous ce nom dans Diagnostics.
 - Connecteurs (arêtes) : segments, points intermédiaires, flèche de fin,
