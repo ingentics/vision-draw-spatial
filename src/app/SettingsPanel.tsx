@@ -828,41 +828,6 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                 </p>
                 <h5 className="settings-group">Pastilles</h5>
                 <p className="hint muted">Rang d’une flèche dans son flux, face à la caméra.</p>
-                <Slider
-                  label="Rayon (flèche avec texte)"
-                  value={shapes.edgeBadgeRadius}
-                  limits={SETTINGS_LIMITS['shapes.edgeBadgeRadius']}
-                  format={(v) => `${v.toLocaleString('fr-FR')} px`}
-                  onChange={(edgeBadgeRadius) => onChange({ shapes: { edgeBadgeRadius } })}
-                />
-                <Slider
-                  label="Taille du chiffre (flèche avec texte)"
-                  value={shapes.edgeBadgeTextSize}
-                  limits={SETTINGS_LIMITS['shapes.edgeBadgeTextSize']}
-                  format={(v) => `${v.toLocaleString('fr-FR')} px`}
-                  onChange={(edgeBadgeTextSize) => onChange({ shapes: { edgeBadgeTextSize } })}
-                />
-                <Slider
-                  label="Rayon (flèche sans texte)"
-                  value={shapes.edgeBadgeSmallRadius}
-                  limits={SETTINGS_LIMITS['shapes.edgeBadgeSmallRadius']}
-                  format={(v) => `${v.toLocaleString('fr-FR')} px`}
-                  onChange={(edgeBadgeSmallRadius) => onChange({ shapes: { edgeBadgeSmallRadius } })}
-                />
-                <Slider
-                  label="Taille du chiffre (flèche sans texte)"
-                  value={shapes.edgeBadgeSmallTextSize}
-                  limits={SETTINGS_LIMITS['shapes.edgeBadgeSmallTextSize']}
-                  format={(v) => `${v.toLocaleString('fr-FR')} px`}
-                  onChange={(edgeBadgeSmallTextSize) => onChange({ shapes: { edgeBadgeSmallTextSize } })}
-                />
-                <Slider
-                  label="Écart avec le texte de la flèche"
-                  value={shapes.edgeBadgeGap}
-                  limits={SETTINGS_LIMITS['shapes.edgeBadgeGap']}
-                  format={(v) => `${v.toLocaleString('fr-FR')} px`}
-                  onChange={(edgeBadgeGap) => onChange({ shapes: { edgeBadgeGap } })}
-                />
                 <ColorField
                   label="Couleur de la bordure"
                   value={shapes.edgeBadgeBorderColor}
@@ -884,6 +849,43 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   label="Chiffre en gras"
                   checked={shapes.edgeBadgeBold}
                   onChange={(edgeBadgeBold) => onChange({ shapes: { edgeBadgeBold } })}
+                />
+                <h5 className="settings-group">Pastille d’une flèche avec texte</h5>
+                <Slider
+                  label="Rayon"
+                  value={shapes.edgeBadgeRadius}
+                  limits={SETTINGS_LIMITS['shapes.edgeBadgeRadius']}
+                  format={(v) => `${v.toLocaleString('fr-FR')} px`}
+                  onChange={(edgeBadgeRadius) => onChange({ shapes: { edgeBadgeRadius } })}
+                />
+                <Slider
+                  label="Taille du chiffre"
+                  value={shapes.edgeBadgeTextSize}
+                  limits={SETTINGS_LIMITS['shapes.edgeBadgeTextSize']}
+                  format={(v) => `${v.toLocaleString('fr-FR')} px`}
+                  onChange={(edgeBadgeTextSize) => onChange({ shapes: { edgeBadgeTextSize } })}
+                />
+                <Slider
+                  label="Écart avec le texte"
+                  value={shapes.edgeBadgeGap}
+                  limits={SETTINGS_LIMITS['shapes.edgeBadgeGap']}
+                  format={(v) => `${v.toLocaleString('fr-FR')} px`}
+                  onChange={(edgeBadgeGap) => onChange({ shapes: { edgeBadgeGap } })}
+                />
+                <h5 className="settings-group">Pastille d’une flèche sans texte</h5>
+                <Slider
+                  label="Rayon"
+                  value={shapes.edgeBadgeSmallRadius}
+                  limits={SETTINGS_LIMITS['shapes.edgeBadgeSmallRadius']}
+                  format={(v) => `${v.toLocaleString('fr-FR')} px`}
+                  onChange={(edgeBadgeSmallRadius) => onChange({ shapes: { edgeBadgeSmallRadius } })}
+                />
+                <Slider
+                  label="Taille du chiffre"
+                  value={shapes.edgeBadgeSmallTextSize}
+                  limits={SETTINGS_LIMITS['shapes.edgeBadgeSmallTextSize']}
+                  format={(v) => `${v.toLocaleString('fr-FR')} px`}
+                  onChange={(edgeBadgeSmallTextSize) => onChange({ shapes: { edgeBadgeSmallTextSize } })}
                 />
                 <h5 className="settings-group">Flèches et couleurs</h5>
                 <Slider
