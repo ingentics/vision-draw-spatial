@@ -1,4 +1,5 @@
 import { Color, SRGBColorSpace } from 'three';
+import { DRAWIO_STYLES, PASTEL_STYLES } from '../../edit/styles';
 import type { PageModel } from '../../model/types';
 
 /** Flux de la page (attribut de `<diagram>`) : liste ordonnée en JSON `[{"id","title","color"}, …]`. */
@@ -16,19 +17,11 @@ export interface Flow {
   color: string;
 }
 
-/** Suite fixe des couleurs des flux (Tableau 10) : un nouveau flux prend la première libre. */
-export const FLOW_COLORS = [
-  '#4e79a7',
-  '#f28e2b',
-  '#e15759',
-  '#76b7b2',
-  '#59a14f',
-  '#edc948',
-  '#b07aa1',
-  '#ff9da7',
-  '#9c755f',
-  '#bab0ac',
-];
+/**
+ * Suite des couleurs des flux : les fonds des styles de forme (panneau « Forme »), palette partagée, à partir de
+ * « Bleu » (sans le blanc ni le gris du début). Un nouveau flux prend la première libre.
+ */
+export const FLOW_COLORS = [...DRAWIO_STYLES, ...PASTEL_STYLES].slice(2).map((preset) => preset.fillColor);
 
 const HEX = /^#[0-9a-f]{6}$/i;
 

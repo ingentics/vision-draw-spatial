@@ -6,7 +6,7 @@ import type { PageModel } from '../../../src/engine/model/types';
 import { applyModeEdit } from '../../../src/engine/modes/edit';
 import { createDefaultModeRegistry } from '../../../src/engine/modes/registry';
 import { definition as sequences } from '../../../src/engine/modes/sequences';
-import { FLOW, STEP, flowStrokeColor, readFlows } from '../../../src/engine/modes/sequences/flows';
+import { FLOW, FLOW_COLORS, STEP, flowStrokeColor, readFlows } from '../../../src/engine/modes/sequences/flows';
 import {
   addFlow,
   moveFlow,
@@ -64,16 +64,21 @@ describe('mode Séquences (sujet 70) : lecture', () => {
     const page = (flows: string) => ({ attributes: { 'spatial.flows': flows } }) as unknown as PageModel;
     expect(readFlows(page('pas du JSON'))).toEqual([]);
     expect(readFlows(page('[{"id":"a","title":"A","color":"rouge"},{"id":"a"},{"title":"sans id"}]'))).toEqual([
-      { id: 'a', title: 'A', color: '#4e79a7' },
+      { id: 'a', title: 'A', color: '#dae8fc' },
     ]);
   });
 });
 
 describe('mode Séquences : opérations', () => {
+  it('couleurs des flux : fonds des styles de forme, à partir de « Bleu »', () => {
+    expect(FLOW_COLORS.slice(0, 3)).toEqual(['#dae8fc', '#d5e8d4', '#ffe6cc']);
+    expect(FLOW_COLORS).toHaveLength(18);
+  });
+
   it('ajouter un flux : id libre suivant, première couleur libre', () => {
     const { run, page } = setup();
     run((edit) => addFlow(edit, '  Inscription '));
-    expect(readFlows(page()).at(-1)).toEqual({ id: 'f4', title: 'Inscription', color: '#76b7b2' });
+    expect(readFlows(page()).at(-1)).toEqual({ id: 'f4', title: 'Inscription', color: '#dae8fc' });
   });
 
   it('renommer, réordonner : les flèches ne bougent pas', () => {
