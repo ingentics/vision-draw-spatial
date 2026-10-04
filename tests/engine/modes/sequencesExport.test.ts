@@ -36,7 +36,7 @@ function flow(...arrows: Array<[string | undefined, string | undefined, string?]
 /** Lignes des messages (après la ligne vide qui suit les participants). */
 const messages = (text: string) => text.split('\n').slice(text.split('\n').indexOf('') + 1, -2);
 
-describe('export PlantUML des flux (sujets 90, 91)', () => {
+describe('export PlantUML des flux (sujets 90 à 92)', () => {
   it('est enregistré parmi les exporteurs de séquence', () => {
     expect(SEQUENCE_EXPORTERS.map((exporter) => exporter.id)).toContain('plantuml');
     expect(sequenceExporter('plantuml')?.name).toBe('PlantUML');
@@ -81,6 +81,26 @@ describe('export PlantUML des flux (sujets 90, 91)', () => {
       'P3 --> P2 --',
       'P2 -> P4 ++',
       'P4 --> P2 --',
+      'P2 --> P1 --',
+    ]);
+  });
+
+  it('remonte jusqu’à la source du premier aller', () => {
+    expect(messages(sequencePlantUml(flow(['client', 'api'], ['api', 'db'], ['client', 'cache']), 'f1'))).toEqual([
+      'P1 -> P2 ++',
+      'P2 -> P3 ++',
+      'P3 --> P2 --',
+      'P2 --> P1 --',
+      'P1 -> P4 ++',
+      'P4 --> P1 --',
+    ]);
+  });
+
+  it('empile sans rien refermer un aller parti d’un participant absent de la pile', () => {
+    expect(messages(sequencePlantUml(flow(['api', 'db'], ['client', 'api', 'login']), 'f1'))).toEqual([
+      'P1 -> P2 ++',
+      'P3 -> P1 ++ : login',
+      'P1 --> P3 --',
       'P2 --> P1 --',
     ]);
   });

@@ -3,15 +3,15 @@ import { sequenceState } from '../steps';
 import type { SequenceExporter } from './index';
 
 /**
- * Flux en diagramme de séquence PlantUML (sujets 90, 91). Participants déclarés en tête dans l'ordre de première
+ * Flux en diagramme de séquence PlantUML (sujets 90 à 92). Participants déclarés en tête dans l'ordre de première
  * apparition (alias `P1`, `P2`… et `order`), seuls les alias servant ensuite ; une forme `umlActor` est un `actor`, un
  * cylindre une `database`. Une extrémité sans forme entre ou sort du diagramme (`[->`, `->]`).
  *
  * Messages en pile d'appels, dans l'ordre des rangs : une flèche pleine est un aller qui active sa cible (`++`) ; une
  * flèche en pointillés qui ferme un aller encore ouvert est son retour (`--`), les allers ouverts au-dessus étant
- * refermés d'abord. Un aller qui ne part pas de la dernière cible activée referme les allers jusqu'à celui dont la
- * cible est sa source (tous s'il n'y en a pas) ; les allers encore ouverts à la fin sont refermés. Ces retours
- * générés sont sans texte.
+ * refermés d'abord. Un aller qui part d'un participant plus bas dans la pile (cible d'un aller ouvert, ou source du
+ * premier) remonte jusqu'à lui en refermant les allers au-dessus ; parti d'un participant absent de la pile, il
+ * s'empile par-dessus. Les allers encore ouverts à la fin sont refermés. Ces retours générés sont sans texte.
  */
 export const plantUml: SequenceExporter = {
   id: 'plantuml',
@@ -67,8 +67,10 @@ export function sequencePlantUml(page: PageModel, flowId: string): string {
       } else messages.push(`${message(from, '-->', to)}${label}`);
       continue;
     }
+    // On ne remonte que vers un participant de la pile (cible d'un aller ouvert, ou source du premier).
     const source = from === undefined ? -1 : lastIndex(stack, (call) => call.callee === from);
-    while (stack.length > source + 1) close();
+    if (source >= 0) while (stack.length > source + 1) close();
+    else if (stack.length > 0 && stack[0]!.caller === from) while (stack.length > 0) close();
     messages.push(`${message(from, '->', to)}${to === undefined ? '' : ' ++'}${label}`);
     if (to !== undefined) stack.push({ caller: from, callee: to });
   }
