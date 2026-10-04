@@ -115,7 +115,7 @@ src/engine/shapes/
 │   ├── geometry/               catégorie « Géométrie » : rectangle, rounded-rectangle, ellipse, circle, diamond,
 │   │                           hexagon, octagon, pentagon, triangle, triangle-up, parallelogram, step,
 │   │                           four-point-star, six-point-star
-│   ├── general/                catégorie « Général » : text
+│   ├── general/                catégorie « Général » : text, actor (debout face à la caméra en iso / 3D)
 │   ├── architecture/           catégorie « Architecture » : database, queue, distributed-cache, plug
 │   │   └── database/
 │   │       ├── index.ts        export const definition: ShapeDefinition = { … }
@@ -214,8 +214,10 @@ Pour un rendu iso sur mesure :
 - **Z-fighting.** Décalez légèrement ce qui est posé sur une face (`TOP_OFFSET = 0.05` dans `block.ts`).
 - **Matériaux.** Les faces opaques avec test de profondeur doivent utiliser `solidMaterial`, pour que les blocs se
   cachent entre eux. Les traits et les fonds plats utilisent `flatMaterial` (sans écriture de profondeur).
-- **Billboard.** Un élément qui doit toujours faire face à la caméra (comme les arêtes verticales des blocs) porte
-  `userData.billboard = true` : le moteur le tourne avec la vue.
+- **Billboard.** Un élément qui doit toujours faire face à la caméra (silhouette de l'Actor) porte
+  `userData.billboard = true` : avant chaque image, le moteur le tourne autour de la verticale pour que son axe −y
+  vise la caméra (sa position en perspective, `render/billboard.ts`). Le groupe d'une forme debout porte aussi
+  `userData.standing = true` : il se clique sur toute sa hauteur.
 - **Volume « fantôme ».** Une forme sans fond ne doit pas produire de volume : renvoyez le rendu 2D.
 
 ### 3.3 Mini-carte

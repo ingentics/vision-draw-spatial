@@ -368,6 +368,11 @@ Ajouter une forme = **déposer son dossier** (au minimum `kind` et `flat`, idéa
 
 - Rectangle (y compris arrondi),
 - Ellipse,
+- **Actor** (`shape=umlActor`, palette « Général », 30 × 60) : le bonhomme de draw.io en 2D (tête remplie, traits),
+  label sous la forme ; en iso / 3D, pas d'extrusion : il se tient **debout face à la caméra** (silhouette dans un
+  plan vertical, pieds au centre de l'emprise, hauteur de la forme ou `spatial.height`), tourné à chaque image vers
+  la caméra, exactement en perspective (`userData.billboard`, `render/billboard.ts`) ; label au sol ; se clique sur
+  toute sa hauteur et reçoit les flèches sur ses bornes (`outlineConnect=0`).
 - **Géométrie** (formes natives de draw.io, dessinées comme draw.io en 2D, prisme du contour en iso / 3D, palette
   « Géométrie ») : losange (`rhombus`), hexagone (`shape=hexagon`, pans de `size` px avec `fixedSize=1`, sinon
   fraction de la largeur ; périmètre `hexagonPerimeter2`), octogone (`shape=mxgraph.basic.octagon2`, coins coupés de

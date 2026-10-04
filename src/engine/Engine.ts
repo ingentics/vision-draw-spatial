@@ -134,6 +134,7 @@ import type {
 } from './model/types';
 import { linkZone, selectionOutline } from './render/decorations';
 import { createEdge, toTerminal } from './render/edges/edge';
+import { orientBillboards } from './render/billboard';
 import { fixedAnchor, perimeterKind, routeEdgePoints, routingCenter } from './render/edges/route';
 import { parseStyle } from './format/style';
 import {
@@ -1428,6 +1429,7 @@ export class Engine {
         return (data?.path ?? data?.route) as Point[] | undefined;
       },
       heightOf: (id) => this.elementTop(id),
+      baseOf: (id) => this.standingBase(id),
       pointAtHeight: (height) => this.groundPointAtHeight(screen, height),
       contains: (shape, p) => this.registry.contains(shape, p, () => this.shapeOutline(shape)),
       pickable: (shape) => this.registry.isPickable(shape),
@@ -1954,6 +1956,7 @@ export class Engine {
         edgeTolerance: 0,
         edgeRoute: () => undefined,
         heightOf: (id) => this.elementTop(id),
+        baseOf: (id) => this.standingBase(id),
         pointAtHeight: (height) => this.groundPointAtHeight(screen, height),
         contains: (shape, p) => this.registry.contains(shape, p, () => this.shapeOutline(shape)),
       },
@@ -3397,6 +3400,13 @@ export class Engine {
     return this.scenes.current?.level === 'iso' ? top * this.heightScale : 0;
   }
 
+  /** Base d'un élément debout (`userData.standing`, silhouette de l'Actor) en iso / 3D, sinon `undefined`. */
+  private standingBase(elementId: string): number | undefined {
+    const object = this.sceneObject(elementId);
+    if (this.scenes.current?.level !== 'iso' || !object?.userData.standing) return undefined;
+    return ((object.userData.base as number | undefined) ?? 0) * this.heightScale;
+  }
+
   /** Point de la page visé par un point écran, sur le plan horizontal à `height` au-dessus du sol. */
   private groundPointAtHeight(screen: Point, height: number): Point {
     return screenToPage(this.cameraState, this.viewport, screen, height);
@@ -3749,6 +3759,8 @@ export class Engine {
     if (this.frame || this.disposed) return;
     this.frame = requestAnimationFrame(() => {
       this.frame = 0;
+      // Silhouettes debout (Actor) face à la caméra de cette image.
+      orientBillboards(this.scene, this.activeCamera());
       const blend = this.levelBlend;
       if (blend?.flat && blend.volume) this.renderBlend(blend.flat, blend.volume);
       else this.renderer.render(this.scene, this.activeCamera());

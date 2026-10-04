@@ -30,6 +30,7 @@ describe('palette', () => {
       'step',
       'text',
       'triangle',
+      'umlActor',
     ]);
   });
 
@@ -76,7 +77,7 @@ describe('palette', () => {
       'four-point-star',
       'six-point-star',
     ]);
-    expect(byCategory('general')).toEqual(['text']);
+    expect(byCategory('general')).toEqual(['text', 'actor']);
     const known = new Set(PALETTE_CATEGORIES.map((c) => c.id));
     for (const template of SHAPE_TEMPLATES) expect(known.has(template.category), template.id).toBe(true);
     expect(byCategory('architecture')).toEqual(['database', 'queue', 'distributed-cache', 'plug']);

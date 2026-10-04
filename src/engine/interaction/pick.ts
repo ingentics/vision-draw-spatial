@@ -19,6 +19,11 @@ export interface PickOptions {
   heightOf?: (elementId: string) => number;
   pointAtHeight?: (height: number) => Point;
   /**
+   * Élément debout (silhouette de l'Actor) : hauteur de sa base. Il se teste alors sur toute sa hauteur, du dessus
+   * à la base, et pas seulement au dessus. Absent = au dessus seulement (blocs).
+   */
+  baseOf?: (elementId: string) => number | undefined;
+  /**
    * Le point (déjà dans les bornes) est-il dans la forme ? Sa définition répond (un losange ne se clique pas dans
    * ses coins vides). Absent = les bornes.
    */
@@ -26,6 +31,9 @@ export interface PickOptions {
   /** La forme se prend-elle au clic (un groupe invisible seulement s'il porte un lien) ? Absent = toutes. */
   pickable?: (shape: ShapeModel) => boolean;
 }
+
+/** Hauteurs testées sous le dessus d'un élément debout. */
+const STANDING_STEPS = 12;
 
 export function pickElement(page: PageModel, point: Point, options: PickOptions): PickedElement | undefined {
   const hiddenLayers = new Set(page.layers.filter((l) => !l.visible).map((l) => l.id));
@@ -42,6 +50,14 @@ export function pickElement(page: PageModel, point: Point, options: PickOptions)
     if (candidate.type === 'shape') {
       if (options.pickable && !options.pickable(candidate.element)) continue;
       if (shapeContains(candidate.element, target, options.contains)) return candidate;
+      const base = options.baseOf?.(element.id);
+      if (base !== undefined && base < height && options.pointAtHeight) {
+        const at = options.pointAtHeight;
+        for (let step = 1; step <= STANDING_STEPS; step++) {
+          const p = at(height - ((height - base) * step) / STANDING_STEPS);
+          if (shapeContains(candidate.element, p, options.contains)) return candidate;
+        }
+      }
     } else {
       const route = options.edgeRoute(element.id);
       if (route && distanceToPolyline(target, route) <= options.edgeTolerance) return candidate;
