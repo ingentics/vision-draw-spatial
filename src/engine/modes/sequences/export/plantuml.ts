@@ -3,15 +3,27 @@ import { sequenceState } from '../steps';
 import type { SequenceExporter } from './index';
 
 /**
- * Flux en diagramme de séquence PlantUML (sujet 90) : participants dans l'ordre de première apparition, un message
- * par flèche dans l'ordre des rangs. Une forme `umlActor` est un `actor`, un cylindre une `database`. Une flèche en
- * pointillés est une réponse (`-->`) ; une extrémité sans forme entre ou sort du diagramme (`[->`, `->]`).
+ * Flux en diagramme de séquence PlantUML (sujets 90, 91). Participants déclarés en tête dans l'ordre de première
+ * apparition (alias `P1`, `P2`… et `order`), seuls les alias servant ensuite ; une forme `umlActor` est un `actor`, un
+ * cylindre une `database`. Une extrémité sans forme entre ou sort du diagramme (`[->`, `->]`).
+ *
+ * Messages en pile d'appels, dans l'ordre des rangs : une flèche pleine est un aller qui active sa cible (`++`) ; une
+ * flèche en pointillés qui ferme un aller encore ouvert est son retour (`--`), les allers ouverts au-dessus étant
+ * refermés d'abord. Un aller qui ne part pas de la dernière cible activée referme les allers jusqu'à celui dont la
+ * cible est sa source (tous s'il n'y en a pas) ; les allers encore ouverts à la fin sont refermés. Ces retours
+ * générés sont sans texte.
  */
 export const plantUml: SequenceExporter = {
   id: 'plantuml',
   name: 'PlantUML',
   export: sequencePlantUml,
 };
+
+/** Aller encore ouvert : alias de sa source (undefined = extérieur) et de sa cible activée. */
+interface Call {
+  caller: string | undefined;
+  callee: string;
+}
 
 export function sequencePlantUml(page: PageModel, flowId: string): string {
   const state = sequenceState(page);
@@ -27,19 +39,40 @@ export function sequencePlantUml(page: PageModel, flowId: string): string {
     if (!shape) return undefined;
     let name = aliases.get(shape.id);
     if (!name) {
-      name = `P${aliases.size + 1}`;
+      const rank = aliases.size + 1;
+      name = `P${rank}`;
       aliases.set(shape.id, name);
-      participants.push(`${participantKind(shape)} ${quote(shape.label || shape.id)} as ${name}`);
+      participants.push(`${participantKind(shape)} ${quote(shape.label || shape.id)} as ${name} order ${rank}`);
     }
     return name;
   };
-  const messages = order.map((edge) => {
+
+  const messages: string[] = [];
+  const stack: Call[] = [];
+  const close = () => {
+    const { caller, callee } = stack.pop()!;
+    messages.push(`${message(callee, '-->', caller, true)} --`);
+  };
+  for (const edge of order) {
     const from = alias(edge.sourceId);
     const to = alias(edge.targetId);
-    const arrow = edge.style.dashed === '1' ? '-->' : '->';
     const text = messageText(edge);
-    return `${from ?? '['}${arrow}${to ?? ']'}${text ? ` : ${text}` : ''}`;
-  });
+    const label = text ? ` : ${text}` : '';
+    if (edge.style.dashed === '1') {
+      const opened = from === undefined ? -1 : lastIndex(stack, (call) => call.callee === from && call.caller === to);
+      if (opened >= 0) {
+        while (stack.length > opened + 1) close();
+        stack.pop();
+        messages.push(`${message(from, '-->', to, true)} --${label}`);
+      } else messages.push(`${message(from, '-->', to)}${label}`);
+      continue;
+    }
+    const source = from === undefined ? -1 : lastIndex(stack, (call) => call.callee === from);
+    while (stack.length > source + 1) close();
+    messages.push(`${message(from, '->', to)}${to === undefined ? '' : ' ++'}${label}`);
+    if (to !== undefined) stack.push({ caller: from, callee: to });
+  }
+  while (stack.length > 0) close();
 
   return [
     '@startuml',
@@ -50,6 +83,21 @@ export function sequencePlantUml(page: PageModel, flowId: string): string {
     '@enduml',
     '',
   ].join('\n');
+}
+
+/**
+ * Flèche entre deux alias ; undefined = extérieur, à gauche (`[->`) pour une source, à droite (`->]`) pour une cible,
+ * sauf un retour vers l'extérieur d'un aller entré par la gauche, que l'on écrit vers la gauche (`[<--`).
+ */
+function message(from: string | undefined, arrow: '->' | '-->', to: string | undefined, back = false): string {
+  if (from === undefined) return `[${arrow} ${to ?? ']'}`;
+  if (to === undefined) return back ? `[<${arrow.slice(0, -1)} ${from}` : `${from} ${arrow}]`;
+  return `${from} ${arrow} ${to}`;
+}
+
+function lastIndex<T>(items: T[], test: (item: T) => boolean): number {
+  for (let i = items.length - 1; i >= 0; i--) if (test(items[i]!)) return i;
+  return -1;
 }
 
 function participantKind(shape: ShapeModel): string {

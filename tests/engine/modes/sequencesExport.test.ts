@@ -1,28 +1,60 @@
 import { describe, expect, it } from 'vitest';
 import { readDrawio } from '../../../src/engine/format/parse';
+import type { EdgeModel, PageModel } from '../../../src/engine/model/types';
 import { SEQUENCE_EXPORTERS, sequenceExporter } from '../../../src/engine/modes/sequences/export';
 import { sequencePlantUml } from '../../../src/engine/modes/sequences/export/plantuml';
 import { fixture } from '../../helpers';
 
 const page = () => readDrawio(fixture('sequences.drawio')).document.pages[0]!;
 
-describe('export PlantUML des flux (sujet 90)', () => {
+/**
+ * Page de la fixture avec une forme « Cache » en plus et le flux f1 remplacé par les flèches données
+ * (`[source, cible]`, `--` en tête de la source pour des pointillés), dans l'ordre des rangs.
+ */
+function flow(...arrows: Array<[string | undefined, string | undefined, string?]>): PageModel {
+  const base = page();
+  const client = base.shapes.find((shape) => shape.id === 'client')!;
+  const model = base.edges.find((edge) => edge.id === 'login')!;
+  const edges: EdgeModel[] = arrows.map(([source, target, label = ''], i) => {
+    const dashed = source?.startsWith('--') ?? false;
+    return {
+      ...model,
+      id: `e${i + 1}`,
+      label,
+      sourceId: source?.replace(/^--/, '') || undefined,
+      targetId: target,
+      style: { ...(dashed ? { dashed: '1' } : {}), 'spatial.flow': 'f1', 'spatial.step': String(i + 1) },
+    };
+  });
+  return {
+    ...base,
+    shapes: [...base.shapes, { ...client, id: 'cache', label: 'Cache' }],
+    edges,
+  };
+}
+
+/** Lignes des messages (après la ligne vide qui suit les participants). */
+const messages = (text: string) => text.split('\n').slice(text.split('\n').indexOf('') + 1, -2);
+
+describe('export PlantUML des flux (sujets 90, 91)', () => {
   it('est enregistré parmi les exporteurs de séquence', () => {
     expect(SEQUENCE_EXPORTERS.map((exporter) => exporter.id)).toContain('plantuml');
     expect(sequenceExporter('plantuml')?.name).toBe('PlantUML');
   });
 
-  it('écrit les participants dans l’ordre d’apparition et un message par flèche, par rang', () => {
+  it('déclare les participants en tête, ordonnés et aliasés, puis active et referme chaque aller', () => {
     expect(sequencePlantUml(page(), 'f1')).toBe(
       [
         '@startuml',
         'title Connexion',
-        'participant "Client" as P1',
-        'participant "API" as P2',
-        'database "Base" as P3',
+        'participant "Client" as P1 order 1',
+        'participant "API" as P2 order 2',
+        'database "Base" as P3 order 3',
         '',
-        'P1->P2 : login',
-        'P2->P3',
+        'P1 -> P2 ++ : login',
+        'P2 -> P3 ++',
+        'P3 --> P2 --',
+        'P2 --> P1 --',
         '@enduml',
         '',
       ].join('\n'),
@@ -32,26 +64,57 @@ describe('export PlantUML des flux (sujet 90)', () => {
   it('garde le titre du flux tel quel et numérote les participants par flux', () => {
     const text = sequencePlantUml(page(), 'f2');
     expect(text).toContain('title Paiement « carte »');
-    expect(text).toContain('P1->P2 : payer');
-    expect(text).toContain('database "Base" as P2');
+    expect(text).toContain('database "Base" as P2 order 2');
+    expect(text).toContain('P1 -> P2 ++ : payer');
   });
 
   it('écrit un flux vide sans participant', () => {
     expect(sequencePlantUml(page(), 'f3')).toBe('@startuml\ntitle Vide\n@enduml\n');
   });
 
-  it('écrit une flèche en pointillés en réponse et une extrémité libre hors du diagramme', () => {
-    const base = page();
-    const [login, lecture] = base.edges;
-    const edges = base.edges.map((edge) =>
-      edge === login
-        ? { ...edge, sourceId: undefined }
-        : edge === lecture
-          ? { ...edge, targetId: undefined, style: { ...edge.style, dashed: '1' } }
-          : edge,
+  it('referme les allers ouverts quand le flux repart d’une cible plus ancienne', () => {
+    const text = sequencePlantUml(flow(['client', 'api'], ['api', 'db'], ['api', 'cache']), 'f1');
+    expect(text).toContain('participant "Cache" as P4 order 4');
+    expect(messages(text)).toEqual([
+      'P1 -> P2 ++',
+      'P2 -> P3 ++',
+      'P3 --> P2 --',
+      'P2 -> P4 ++',
+      'P4 --> P2 --',
+      'P2 --> P1 --',
+    ]);
+  });
+
+  it('prend une flèche en pointillés qui ferme un aller ouvert pour son retour, avec son texte', () => {
+    const text = sequencePlantUml(
+      flow(['client', 'api'], ['api', 'db'], ['db', 'cache'], ['--db', 'api', 'lignes'], ['--api', 'client', 'ok']),
+      'f1',
     );
-    const text = sequencePlantUml({ ...base, edges }, 'f1');
-    expect(text).toContain('[->P1 : login');
-    expect(text).toContain('P1-->]');
+    expect(messages(text)).toEqual([
+      'P1 -> P2 ++',
+      'P2 -> P3 ++',
+      'P3 -> P4 ++',
+      'P4 --> P3 --',
+      'P3 --> P2 -- : lignes',
+      'P2 --> P1 -- : ok',
+    ]);
+  });
+
+  it('fait d’une flèche pleine de retour un nouvel aller, et d’une flèche en pointillés sans aller un message', () => {
+    expect(messages(sequencePlantUml(flow(['client', 'api'], ['api', 'client', 'rappel']), 'f1'))).toEqual([
+      'P1 -> P2 ++',
+      'P2 -> P1 ++ : rappel',
+      'P1 --> P2 --',
+      'P2 --> P1 --',
+    ]);
+    expect(messages(sequencePlantUml(flow(['--client', 'api', 'note']), 'f1'))).toEqual(['P1 --> P2 : note']);
+  });
+
+  it('entre et sort du diagramme par une extrémité sans forme', () => {
+    expect(messages(sequencePlantUml(flow([undefined, 'api'], ['api', undefined]), 'f1'))).toEqual([
+      '[-> P1 ++',
+      'P1 ->]',
+      '[<-- P1 --',
+    ]);
   });
 });
