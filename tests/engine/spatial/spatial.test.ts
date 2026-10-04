@@ -87,7 +87,7 @@ describe('écriture en place', () => {
 
 /**
  * Fichiers réenregistrés par draw.io (`tests/fixtures/drawio-saved/`, produits par `make drawio-check`) :
- * attributs spatiaux, état de vue et géométries identiques à l'original.
+ * attributs spatiaux, clés de style propres à l'appli, état de vue et géométries identiques à l'original.
  */
 const SAVED = readdirSync(fileURLToPath(new URL('../../fixtures/drawio-saved/', import.meta.url)))
   .filter((name) => !name.endsWith('.svg'))
@@ -108,6 +108,8 @@ describe('conservation par draw.io', () => {
       for (const before of [...page.shapes, ...page.edges]) {
         const kept = element(after, before.id);
         expect(spatialAttributes(kept), `${page.id}/${before.id}`).toEqual(spatialAttributes(before));
+        // Clés propres à l'appli dans le style (ex. `fitText`, étape 57), inconnues de draw.io.
+        expect(kept.style.fitText, `${page.id}/${before.id}`).toBe(before.style.fitText);
         if ('bounds' in before) expect((kept as typeof before).bounds).toEqual(before.bounds);
       }
     });

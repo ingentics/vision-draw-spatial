@@ -106,6 +106,8 @@ export function Viewer({
   /** Éditeur de texte en place (commandes du panneau de format) et format de sa sélection. */
   const editorHandle = useRef<RichEditorHandle | undefined>(undefined);
   const [selectionFormat, setSelectionFormat] = useState<SelectionFormat>();
+  /** Taille obtenue par « Ajuster » dans le texte en cours d'édition (panneau de format). */
+  const [fittedSize, setFittedSize] = useState<number>();
   const modifiedRef = useRef(false);
   modifiedRef.current = modified;
 
@@ -372,6 +374,10 @@ export function Viewer({
       if (cellId) engine?.setTextFormat(cellId, { [action.key]: action.value });
       return;
     }
+    if (action.type === 'fit') {
+      if (cellId) engine?.setTextFormat(cellId, { fitText: action.on ? '1' : undefined });
+      return;
+    }
     if (editor?.hasSelection()) {
       if (action.type === 'toggle') editor.toggle(action.mark);
       else if (action.type === 'size') editor.setMarks({ fontSize: action.size });
@@ -548,6 +554,7 @@ export function Viewer({
               onFlip={() => engine?.flipEditedText()}
               onToggle={(mark) => formatText({ type: 'toggle', mark })}
               onSelectionFormat={setSelectionFormat}
+              onFitSize={setFittedSize}
               onCommit={({ text, html }) => {
                 setLabelEdit(undefined);
                 engine?.closeLabelEdit();
@@ -651,6 +658,7 @@ export function Viewer({
                       selection: selectionFormat,
                       canFormat: labelEdit.styleCellId !== undefined,
                       onEdge: labelEdit.onEdge,
+                      fittedSize,
                       presets: settings.styles.text,
                       onAction: formatText,
                     }

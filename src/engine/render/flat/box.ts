@@ -78,6 +78,7 @@ export function createLabel(shape: ShapeModel, ctx: RenderContext, text = shape.
     opacity: styleOpacity(style, 'textOpacity'),
     ...textFormat(style, text === shape.label ? shape.rich : undefined),
     maxWidth: style.whiteSpace === 'wrap' ? Math.max(right - left, 1) : undefined,
+    fit: style.fitText === '1' ? { width: Math.max(right - left, 0), height: Math.max(bottom - top, 0) } : undefined,
     background: labelBackground(style, null, ctx.background),
   };
   const object = ctx.text.create(spec);

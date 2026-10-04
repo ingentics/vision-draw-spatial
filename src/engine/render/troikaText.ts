@@ -3,7 +3,7 @@ import type { Object3D } from 'three';
 import { Text } from 'troika-three-text';
 import type { RichLine } from '../model/types';
 import { isMonospace } from '../format/richText';
-import { approximateMeasure, decorationLines, layoutRichText } from './richLayout';
+import { approximateMeasure, decorationLines, fitFontSize, layoutRichText, scaleRichLines } from './richLayout';
 import type { FontSpec, MeasureText } from './richLayout';
 import { followRenderOrder } from './renderOrder';
 import type { TextFactory, TextSpec } from './types';
@@ -63,8 +63,8 @@ export function pickFont(fonts: FontSet, bold: boolean, italic: boolean, family?
 /**
  * Texte SDF (SPEC §8.5) : net en vue de dessus quel que soit le zoom, et posé à plat sur le sol.
  * La mise en page se fait dans un worker ; `onReady` est appelé à chaque texte prêt, pour redessiner.
- * Un texte riche (mise en forme partielle), souligné ou barré est mis en page ici (`richLayout`) :
- * un texte SDF par mot, des traits pour les soulignés et barrés.
+ * Un texte riche (mise en forme partielle), souligné, barré ou ajusté (`fit`) est mis en page ici
+ * (`richLayout`) : un texte SDF par mot, des traits pour les soulignés et barrés.
  */
 export function createTroikaTextFactory(fonts: FontSet, onReady: () => void): TextFactory & { dispose(): void } {
   const baseMaterial = new MeshBasicMaterial({ transparent: true, depthWrite: false, side: DoubleSide });
@@ -95,7 +95,7 @@ export function createTroikaTextFactory(fonts: FontSet, onReady: () => void): Te
 
   return {
     create(spec) {
-      if (spec.rich || spec.underline || spec.strike) return createRich(spec);
+      if (spec.rich || spec.underline || spec.strike || spec.fit) return createRich(spec);
       const text = sdfText(
         spec.text,
         { size: spec.fontSize, bold: spec.bold, italic: spec.italic ?? false, family: spec.fontFamily },
@@ -129,21 +129,25 @@ export function createTroikaTextFactory(fonts: FontSet, onReady: () => void): Te
   /** Texte riche : groupe vide tout de suite, rempli une fois les polices prêtes (mesure des mots). */
   function createRich(spec: TextSpec): Object3D {
     const group = new Group();
-    const lines: RichLine[] = spec.rich ?? spec.text.split('\n').map((text) => [{ text }]);
+    const given: RichLine[] = spec.rich ?? spec.text.split('\n').map((text) => [{ text }]);
     void measure().then((measureText) => {
-      const layout = layoutRichText(
-        lines,
-        {
-          size: spec.fontSize,
-          bold: spec.bold,
-          italic: spec.italic ?? false,
-          family: spec.fontFamily,
-          underline: spec.underline ?? false,
-          strike: spec.strike ?? false,
-        },
-        measureText,
-        { maxWidth: spec.maxWidth, align: spec.align },
-      );
+      const base = {
+        size: spec.fontSize,
+        bold: spec.bold,
+        italic: spec.italic ?? false,
+        family: spec.fontFamily,
+        underline: spec.underline ?? false,
+        strike: spec.strike ?? false,
+      };
+      // « Ajuster » : taille réduite pour tenir dans la zone, tailles partielles à proportion.
+      const size = spec.fit
+        ? fitFontSize(given, base, measureText, { ...spec.fit, wrap: spec.maxWidth !== undefined, align: spec.align })
+        : spec.fontSize;
+      const lines = size === spec.fontSize ? given : scaleRichLines(given, size / spec.fontSize);
+      const layout = layoutRichText(lines, { ...base, size }, measureText, {
+        maxWidth: spec.maxWidth,
+        align: spec.align,
+      });
       const left =
         spec.anchorX === 'left' ? spec.x : spec.anchorX === 'right' ? spec.x - layout.width : spec.x - layout.width / 2;
       const top =

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { decorationLines, layoutRichText } from '../../../src/engine/render/richLayout';
+import { decorationLines, fitFontSize, layoutRichText, scaleRichLines } from '../../../src/engine/render/richLayout';
 import type { MeasureText } from '../../../src/engine/render/richLayout';
 
 /** 1 px par caractère et par point de taille / 10 : largeurs faciles à vérifier. */
@@ -43,5 +43,39 @@ describe('mise en page du texte riche', () => {
     const [under, strike] = decorationLines(run!);
     expect(under!.y).toBeGreaterThan(run!.baseline);
     expect(strike!.y).toBeLessThan(run!.baseline);
+  });
+});
+
+describe('taille « Ajuster » (étape 57)', () => {
+  const zone = (width: number, height: number, wrap = false) => ({ width, height, wrap, align: 'center' as const });
+
+  it('un texte qui tient garde la taille réglée (jamais agrandi)', () => {
+    expect(fitFontSize([[{ text: 'abc' }]], base, measure, zone(100, 100))).toBe(10);
+    expect(fitFontSize([[{ text: 'abc' }]], { ...base, size: 10.5 }, measure, zone(100, 100))).toBe(10.5);
+  });
+
+  it('trop large : plus grande taille entière qui tient en largeur', () => {
+    // 10 caractères : largeur = taille.
+    expect(fitFontSize([[{ text: 'aaaaaaaaaa' }]], base, measure, zone(6.5, 100))).toBe(6);
+  });
+
+  it('trop haut : plus grande taille entière qui tient en hauteur (interligne 1,2)', () => {
+    expect(fitFontSize([[{ text: 'a' }], [{ text: 'b' }]], base, measure, zone(100, 12))).toBe(5);
+  });
+
+  it('avec retour à la ligne : la réduction peut éviter une ligne', () => {
+    // « aa bb » : 0,5 × taille de large ; à 8, il tient sur une ligne de 4 ; à 9, deux lignes (21,6 > 20).
+    expect(fitFontSize([[{ text: 'aa bb' }]], base, measure, zone(4, 20, true))).toBe(8);
+  });
+
+  it('pas sous 1 : le texte déborde', () => {
+    expect(fitFontSize([[{ text: 'aaaa' }]], base, measure, zone(0.1, 0.1))).toBe(1);
+  });
+
+  it('texte riche : les tailles partielles gardent leur rapport à la taille de base', () => {
+    const lines = [[{ text: 'ab' }, { text: 'cd', fontSize: 20 }]];
+    // Largeur = 0,2 × s + 0,4 × s = 0,6 × s.
+    expect(fitFontSize(lines, base, measure, zone(3, 100))).toBe(5);
+    expect(scaleRichLines(lines, 0.5)).toEqual([[{ text: 'ab' }, { text: 'cd', fontSize: 10 }]]);
   });
 });

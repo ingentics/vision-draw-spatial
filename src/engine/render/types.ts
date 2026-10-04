@@ -30,6 +30,11 @@ export interface TextSpec {
   /** Largeur de retour à la ligne ; absente = pas de retour automatique. */
   maxWidth?: number;
   /**
+   * Mode « Ajuster » (`fitText=1`) : zone que le texte doit tenir (largeur et hauteur, marges déduites).
+   * `fontSize` (et les tailles partielles, à proportion) y est réduite si besoin (`fitFontSize`).
+   */
+  fit?: { width: number; height: number };
+  /**
    * Halo autour de chaque lettre (contour de la couleur donnée, derrière le glyphe) : texte lisible sur
    * un trait ou une forme sombre, sans fond. Épaisseur en pixels de page.
    */

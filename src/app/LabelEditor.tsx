@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties, MutableRefObject, RefObject } from 'react';
 import type { LabelEditRequest } from '../engine/Engine';
 import { isMonospace, isRich, parseColor, parseRichHtml, richToHtml, richToText } from '../engine/format/richText';
+import { largestFitting, MIN_FIT_SIZE } from '../engine/render/richLayout';
 import type { TextMarks } from '../engine/model/types';
 
 /** Mise en forme qui se bascule (gras, italique, souligné, barré). */
@@ -54,6 +55,8 @@ interface LabelEditorProps {
   onMoveTextEnd?: () => void;
   /** Bascule du texte de début / fin de l'autre côté du trait (flèche sous le texte, `request.flip`). */
   onFlip?: () => void;
+  /** Taille obtenue en mode « Ajuster » (`fitText=1`), à chaque recalcul ; undefined hors de ce mode. */
+  onFitSize?: (size: number | undefined) => void;
 }
 
 /** Police par défaut des textes draw.io (style sans `fontFamily`). */
@@ -87,6 +90,7 @@ export function LabelEditor({
   onMoveText,
   onMoveTextEnd,
   onFlip,
+  onFitSize,
 }: LabelEditorProps) {
   const box = useRef<HTMLDivElement>(null);
   const ref = useRef<HTMLDivElement>(null);
@@ -145,6 +149,55 @@ export function LabelEditor({
       window.removeEventListener('pointerdown', onPointerDown, true);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // « Ajuster » (`fitText=1`, texte d'une forme) : le texte est réduit (CSS `zoom`, tailles partielles à
+  // proportion, retour à la ligne à la largeur de la forme) jusqu'à tenir dans la boîte, comme le label
+  // dessiné (`fitFontSize`) : même recherche des tailles entières, mesurée ici dans le DOM.
+  const fitOn = !request.onEdge && request.style.fitText === '1';
+  const baseSize = Number(request.style.fontSize) || 11;
+  const onFitSizeRef = useRef(onFitSize);
+  onFitSizeRef.current = onFitSize;
+  const fitRef = useRef<() => void>(() => undefined);
+  fitRef.current = () => {
+    const editor = ref.current;
+    const frame = box.current;
+    if (!editor || !frame) return;
+    if (!fitOn) {
+      editor.style.removeProperty('zoom');
+      onFitSizeRef.current?.(undefined);
+      return;
+    }
+    // Boîte sans ses marges (2 pixels de page, agrandis au zoom de la vue).
+    const outer = frame.getBoundingClientRect();
+    const padding = 2 * request.scale;
+    const room = { width: outer.width - 2 * padding + 0.5, height: outer.height - 2 * padding + 0.5 };
+    const fits = (size: number) => {
+      editor.style.zoom = String(size / baseSize);
+      const rect = editor.getBoundingClientRect();
+      return rect.width <= room.width && rect.height <= room.height;
+    };
+    const size = fits(baseSize) ? baseSize : largestFitting(Math.max(Math.ceil(baseSize) - 1, MIN_FIT_SIZE), fits);
+    editor.style.zoom = String(size / baseSize);
+    onFitSizeRef.current?.(size);
+  };
+  const { width: screenWidth, height: screenHeight } = request.screen;
+  useLayoutEffect(() => fitRef.current(), [fitOn, baseSize, screenWidth, screenHeight, request.scale, request.style]);
+  // Recalcul à chaque changement du contenu (saisie, mise en forme partielle).
+  useEffect(() => {
+    const editor = ref.current;
+    if (!editor) return;
+    fitRef.current();
+    const observer = new MutationObserver((mutations) => {
+      // Le zoom posé par le calcul lui-même ne relance pas le calcul.
+      if (mutations.every((m) => m.target === editor && m.type === 'attributes')) return;
+      fitRef.current();
+    });
+    observer.observe(editor, { childList: true, characterData: true, subtree: true, attributes: true });
+    return () => {
+      observer.disconnect();
+      onFitSizeRef.current?.(undefined);
+    };
   }, []);
 
   // Commandes du panneau de format.

@@ -12,7 +12,8 @@ export type TextAction =
   | { type: 'size'; size: number }
   | { type: 'color'; color: string | undefined }
   | { type: 'preset'; preset: TextPreset }
-  | { type: 'align'; key: 'align' | 'verticalAlign'; value: string };
+  | { type: 'align'; key: 'align' | 'verticalAlign'; value: string }
+  | { type: 'fit'; on: boolean };
 
 /** Texte en cours d'édition en place, vu par le panneau de format. */
 export interface TextEdit {
@@ -24,6 +25,8 @@ export interface TextEdit {
   canFormat: boolean;
   /** Texte d'une flèche (l'alignement fixe le côté du texte qui reste sur son point). */
   onEdge: boolean;
+  /** Taille obtenue en mode « Ajuster » (`fitText=1`), mesurée par l'éditeur ; absente hors de ce mode. */
+  fittedSize?: number;
   presets: TextPreset[];
   onAction: (action: TextAction) => void;
 }
@@ -57,7 +60,10 @@ const BITS: Record<ToggleMark, number> = { bold: 1, italic: 2, underline: 4, str
  * sélection, à tout le texte. Les boutons ne prennent pas le focus : la saisie continue.
  */
 export function TextFormatSections({ edit }: { edit: TextEdit }) {
-  const { style, selection, canFormat, presets, onAction } = edit;
+  const { style, selection, canFormat, onEdge, fittedSize, presets, onAction } = edit;
+  // « Ajuster » : texte d'une forme seulement ; la taille réglée devient la taille maximale.
+  const canFit = canFormat && !onEdge;
+  const fit = canFit && style.fitText === '1';
   const bits = Number(style.fontStyle) || 0;
   const whole = {
     bold: (bits & 1) !== 0,
@@ -137,27 +143,44 @@ export function TextFormatSections({ edit }: { edit: TextEdit }) {
           <div className="field-row">
             Taille
             <span className="button-group">
-              <FormatButton label="Plus petit" onClick={() => setSize(current.fontSize - 1)}>
-                −
-              </FormatButton>
-              <input
-                key={current.fontSize}
-                type="number"
-                className="size-input"
-                aria-label="Taille du texte"
-                min={SIZE_LIMITS.min}
-                max={SIZE_LIMITS.max}
-                defaultValue={current.fontSize}
-                onBlur={(event) => {
-                  if (Number(event.target.value) !== current.fontSize) setSize(Number(event.target.value));
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') setSize(Number(event.currentTarget.value));
-                }}
-              />
-              <FormatButton label="Plus grand" onClick={() => setSize(current.fontSize + 1)}>
-                +
-              </FormatButton>
+              {fit ? (
+                <span className="size-fitted" title="Taille ajustée à la forme (au plus la taille réglée)">
+                  {formatSize(fittedSize ?? whole.fontSize)}
+                </span>
+              ) : (
+                <>
+                  <FormatButton label="Plus petit" onClick={() => setSize(current.fontSize - 1)}>
+                    −
+                  </FormatButton>
+                  <input
+                    key={current.fontSize}
+                    type="number"
+                    className="size-input"
+                    aria-label="Taille du texte"
+                    min={SIZE_LIMITS.min}
+                    max={SIZE_LIMITS.max}
+                    defaultValue={current.fontSize}
+                    onBlur={(event) => {
+                      if (Number(event.target.value) !== current.fontSize) setSize(Number(event.target.value));
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') setSize(Number(event.currentTarget.value));
+                    }}
+                  />
+                  <FormatButton label="Plus grand" onClick={() => setSize(current.fontSize + 1)}>
+                    +
+                  </FormatButton>
+                </>
+              )}
+              {canFit && (
+                <FormatButton
+                  label="Ajuster : réduire le texte pour qu’il tienne dans la forme"
+                  pressed={fit}
+                  onClick={() => onAction({ type: 'fit', on: !fit })}
+                >
+                  Ajuster
+                </FormatButton>
+              )}
             </span>
           </div>
           <div className="field-row color-row">
@@ -230,9 +253,14 @@ export function TextFormatSections({ edit }: { edit: TextEdit }) {
   );
 }
 
+/** Taille affichée : entière, ou au dixième. */
+function formatSize(size: number): string {
+  return String(Math.round(size * 10) / 10);
+}
+
 /** Clés de style de tout le texte pour une action, et mises en forme partielles qu'elle remplace. */
 export function wholeTextChange(
-  action: Exclude<TextAction, { type: 'align' }>,
+  action: Exclude<TextAction, { type: 'align' } | { type: 'fit' }>,
   style: Record<string, string>,
 ): {
   patch: Record<string, string | undefined>;

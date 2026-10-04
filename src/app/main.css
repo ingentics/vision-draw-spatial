@@ -1339,6 +1339,16 @@ body {
   text-align: center;
 }
 
+/* Taille obtenue par « Ajuster » : à la place du réglage de taille, non éditable. */
+.context-panel .size-fitted {
+  min-width: 44px;
+  padding: 0 6px;
+  align-self: center;
+  text-align: center;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
 .context-panel .color-row input[type='color'] {
   flex: 0 0 36px;
   width: 36px;

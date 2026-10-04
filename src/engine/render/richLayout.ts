@@ -134,3 +134,53 @@ export function decorationLines(run: PlacedRun): Array<{ y: number; thickness: n
 /** Largeur approximative (sans canvas) : 0,55 em par caractère, 0,6 em en chasse fixe. */
 export const approximateMeasure: MeasureText = (text, font) =>
   text.length * font.size * (font.family && /mono|courier/i.test(font.family) ? 0.6 : font.bold ? 0.58 : 0.55);
+
+/** Texte dont toutes les tailles (base et tailles partielles) sont multipliées par `factor`. */
+export function scaleRichLines(lines: RichLine[], factor: number): RichLine[] {
+  return lines.map((line) =>
+    line.map((run) => (run.fontSize === undefined ? run : { ...run, fontSize: run.fontSize * factor })),
+  );
+}
+
+/** Plus petite taille du mode « Ajuster » (`fitText=1`) : en dessous, le texte garde 1 et déborde. */
+export const MIN_FIT_SIZE = 1;
+
+/**
+ * Taille du texte « Ajuster » (`fitText=1`) : `base.size` si le texte tient, sinon la plus grande taille entière à
+ * laquelle le texte mis en page (retour à la ligne à `width` si `wrap`) tient dans `width` × `height`.
+ * Les tailles partielles suivent la taille de base, à proportion. Jamais sous `MIN_FIT_SIZE`.
+ */
+export function fitFontSize(
+  lines: RichLine[],
+  base: BaseTextFormat,
+  measure: MeasureText,
+  zone: { width: number; height: number; wrap: boolean; align: 'left' | 'center' | 'right' },
+): number {
+  const fits = (size: number) => {
+    const factor = size / base.size;
+    const layout = layoutRichText(scaleRichLines(lines, factor), { ...base, size }, measure, {
+      maxWidth: zone.wrap ? zone.width : undefined,
+      align: zone.align,
+    });
+    return layout.width <= zone.width + 1e-6 && layout.height <= zone.height + 1e-6;
+  };
+  if (fits(base.size)) return base.size;
+  return largestFitting(Math.max(Math.ceil(base.size) - 1, MIN_FIT_SIZE), fits);
+}
+
+/**
+ * Plus grande taille entière de `MIN_FIT_SIZE` à `max` pour laquelle `fits` est vrai (recherche
+ * dichotomique : un texte plus petit tient toujours mieux) ; `MIN_FIT_SIZE` si aucune ne convient.
+ * Partagée par le rendu et l'éditeur en place (qui mesure, lui, dans le DOM).
+ */
+export function largestFitting(max: number, fits: (size: number) => boolean): number {
+  if (fits(max)) return max;
+  let low = MIN_FIT_SIZE;
+  let high = max;
+  while (high - low > 1) {
+    const middle = Math.floor((low + high) / 2);
+    if (fits(middle)) low = middle;
+    else high = middle;
+  }
+  return low;
+}
