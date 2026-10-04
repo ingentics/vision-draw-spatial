@@ -69,7 +69,7 @@ function computeState(page: PageModel): SequenceState {
 /** Ajoute un flux à la fin de la liste ; renvoie son id. */
 export function addFlow(edit: ModeEdit, title: string): string {
   const { flows } = sequenceState(edit.page);
-  const flow: Flow = { id: nextFlowId(flows), title: title.trim(), color: nextFlowColor(flows) };
+  const flow: Flow = { id: nextFlowId(flows), title: title.trim(), color: nextFlowColor(flows, edit.palette) };
   edit.setPageAttribute(FLOWS, writeFlows([...flows, flow]));
   return flow.id;
 }

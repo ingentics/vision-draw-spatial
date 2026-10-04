@@ -167,7 +167,7 @@ import type { ShapeRegistry } from './shapes/registry';
 import type { SceneLevel } from './shapes/types';
 import { setPageTransform } from './render/space';
 import { createTroikaTextFactory } from './render/troikaText';
-import { DEFAULT_SETTINGS, mergeSettings, resolveReducedMotion } from './settings';
+import { DEFAULT_SETTINGS, mergeSettings, modePalette, resolveReducedMotion } from './settings';
 import { SPATIAL, SPATIAL_PREFIX, spatialValue } from './spatial';
 import type { PreloadSettings, Settings, SettingsPatch, TransitionSettings, ViewSettings } from './settings';
 import type { FontSet } from './render/troikaText';
@@ -1024,6 +1024,18 @@ export class Engine {
         haloWidth: this.settings.shapes.edgeLabelHaloWidth,
         haloBlur: this.settings.shapes.edgeLabelHaloBlur,
       },
+      edgeBadge: {
+        radius: this.settings.shapes.edgeBadgeRadius,
+        textSize: this.settings.shapes.edgeBadgeTextSize,
+        smallRadius: this.settings.shapes.edgeBadgeSmallRadius,
+        smallTextSize: this.settings.shapes.edgeBadgeSmallTextSize,
+        borderColor: this.settings.shapes.edgeBadgeBorderColor,
+        borderWidth: this.settings.shapes.edgeBadgeBorderWidth,
+        textColor: this.settings.shapes.edgeBadgeTextColor,
+        bold: this.settings.shapes.edgeBadgeBold,
+        gap: this.settings.shapes.edgeBadgeGap,
+      },
+      dressingDarken: this.settings.shapes.edgeDressingDarken,
     };
   }
 
@@ -3078,7 +3090,7 @@ export class Engine {
     const editable = this.editablePage();
     if (!editable || !this.xmlTree) return;
     const before = writeDrawio(this.xmlTree);
-    if (!applyModeEdit(editable.page, editable.pageTree, edit)) return;
+    if (!applyModeEdit(editable.page, editable.pageTree, edit, modePalette(this.settings.styles))) return;
     this.undoStack.record(label, before);
     this.documentChanged([editable.page.id]);
   }
@@ -3166,7 +3178,7 @@ export class Engine {
     // Le mode de la page remet ses données en ordre (ex. rangs resserrés), dans la même étape d'annulation.
     const repair = this.modes.modeOf(editable.page)?.repair;
     const page = repair && this.xmlTree && documentFromTree(this.xmlTree).pages.find((p) => p.id === editable.page.id);
-    if (repair && page) applyModeEdit(page, editable.pageTree, repair);
+    if (repair && page) applyModeEdit(page, editable.pageTree, repair, modePalette(this.settings.styles));
     this.clearSelection();
     this.documentChanged([editable.page.id]);
   }

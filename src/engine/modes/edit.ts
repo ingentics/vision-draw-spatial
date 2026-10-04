@@ -10,12 +10,18 @@ import type { ModeEdit } from './types';
  * pour un élément, là où l'attribut est déjà (objet), sinon dans le style. Les valeurs sont suivies au fil des
  * écritures : une écriture identique à la valeur en place est ignorée.
  */
-export function applyModeEdit(page: PageModel, pageTree: PageTree, edit: (edit: ModeEdit) => void): boolean {
+export function applyModeEdit(
+  page: PageModel,
+  pageTree: PageTree,
+  edit: (edit: ModeEdit) => void,
+  palette: readonly string[] = [],
+): boolean {
   let changed = false;
   const elements = new Map([...page.shapes, ...page.edges].map((element) => [element.id, element]));
   const written = new Map<string, string | undefined>();
   edit({
     page,
+    palette,
     setPageAttribute: (key, value) => {
       const diagram = pageTree.diagram;
       const current = diagram?.hasAttribute(key) ? diagram.getAttribute(key) : undefined;

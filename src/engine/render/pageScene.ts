@@ -2,7 +2,7 @@ import { Group } from 'three';
 import type { Material, Object3D } from 'three';
 import { isNavigableLink } from '../format/link';
 import type { EdgeModel, PageModel, Point, ShapeModel } from '../model/types';
-import { edgeBadge, linkBadge } from './decorations';
+import { darken, edgeBadge, linkBadge } from './decorations';
 import { SPATIAL, spatialNumber, spatialValue } from '../spatial';
 import { TOP_OFFSET } from './iso/block';
 import { disposeObject } from './meshes';
@@ -100,13 +100,18 @@ export function createEdgeObject(
   ctx: RenderContext,
   dressing?: PageDressing,
 ): Object3D {
-  const color = dressing?.edgeColor?.(edge);
+  // Couleur du mode, assombrie pour le trait (paramètre « Assombrissement du trait »).
+  const base = dressing?.edgeColor?.(edge);
+  const color = base && darken(base, ctx.dressingDarken ?? DEFAULT_DRESSING_DARKEN);
   const object = createEdge(color ? { ...edge, style: { ...edge.style, strokeColor: color } } : edge, terminals, ctx);
   const badge = dressing?.edgeBadge?.(edge);
   const route = object.userData.route as Point[] | undefined;
   if (badge && route && route.length >= 2) object.add(edgeBadge(edge, route, badge, ctx));
   return object;
 }
+
+/** Assombrissement par défaut du trait d'une flèche colorée par un mode (−25 % de luminosité). */
+const DEFAULT_DRESSING_DARKEN = 0.25;
 
 /** Biais de profondeur par rang, en unités de profondeur : assez pour départager au loin en perspective. */
 const EDGE_DEPTH_BIAS = 16;

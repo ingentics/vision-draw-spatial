@@ -1,6 +1,6 @@
 import type { EdgeModel } from '../../model/types';
 import type { PageModeDefinition } from '../types';
-import { FLOW, STEP, flowStrokeColor } from './flows';
+import { FLOW, STEP } from './flows';
 import { repairSequences, sequenceState, setEdgeFlow, setEdgeStep } from './steps';
 
 /**
@@ -50,7 +50,7 @@ export const definition: PageModeDefinition = {
     return {
       edgeColor: (edge) => {
         const found = flowOf(edge);
-        return found && flowStrokeColor(found.flow.color);
+        return found?.flow.color;
       },
       edgeBadge: (edge) => {
         const found = flowOf(edge);

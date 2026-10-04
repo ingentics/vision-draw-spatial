@@ -685,6 +685,12 @@ interface Settings {
   };
   shapes: {
     edgeFontColor: string;                                        // texte des flèches sans fontColor : '#000000'
+    edgeBadgeRadius: number; edgeBadgeTextSize: number;           // pastille d'une flèche avec texte (§14.5) : 12, 15
+    edgeBadgeSmallRadius: number; edgeBadgeSmallTextSize: number; // pastille d'une flèche sans texte : 5.5, 7
+    edgeBadgeBorderColor: string; edgeBadgeBorderWidth: number;   // '#000000', 1
+    edgeBadgeTextColor: string; edgeBadgeBold: boolean;           // '#000000', false
+    edgeBadgeGap: number;                                         // écart avec le texte de la flèche : 2
+    edgeDressingDarken: number;                                   // trait d'une flèche colorée par un mode : 0.25 (−25 %)
     placeholderFill: string; placeholderStroke: string;           // formes non supportées (§8.4) : '#eeeeee', '#9e9e9e'
   };
   graph: { cardWidth: number; columnGap: number; rowGap: number }; // vue graphe (§12) : 260, 200, 90
@@ -805,7 +811,9 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
 - **Mode Séquences** (`sequences`) : flux ordonnés (`spatial.flows`), une flèche dans un flux au plus
   (`spatial.flow`, `spatial.step`), rangs toujours consécutifs (ajout en n + 1, échange, resserrement). Flèche d'un
   flux : trait et pointes dans la couleur du flux assombrie (−25 % de luminosité), pastille du rang au-dessus du
-  texte du milieu (plus petite au milieu de la flèche sans texte).
+  texte du milieu (plus petite au milieu de la flèche sans texte). Taille, bordure, chiffre et assombrissement : paramètres
+  « Pastilles des flèches » (§13). Couleur d'un nouveau flux : fonds des styles de forme des paramètres, à partir du
+  troisième (`modePalette`, passée aux opérations par `ModeEdit.palette`).
 
 ---
 

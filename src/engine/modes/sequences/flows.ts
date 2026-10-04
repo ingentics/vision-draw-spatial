@@ -1,5 +1,5 @@
-import { Color, SRGBColorSpace } from 'three';
 import { DRAWIO_STYLES, PASTEL_STYLES } from '../../edit/styles';
+import { modePalette } from '../../settings';
 import type { PageModel } from '../../model/types';
 
 /** Flux de la page (attribut de `<diagram>`) : liste ordonnée en JSON `[{"id","title","color"}, …]`. */
@@ -18,10 +18,10 @@ export interface Flow {
 }
 
 /**
- * Suite des couleurs des flux : les fonds des styles de forme (panneau « Forme »), palette partagée, à partir de
- * « Bleu » (sans le blanc ni le gris du début). Un nouveau flux prend la première libre.
+ * Couleurs des flux par défaut : les fonds des styles de forme par défaut, à partir de « Bleu » (`modePalette`).
+ * L'appli passe ceux de ses paramètres aux opérations (`ModeEdit.palette`).
  */
-export const FLOW_COLORS = [...DRAWIO_STYLES, ...PASTEL_STYLES].slice(2).map((preset) => preset.fillColor);
+export const FLOW_COLORS = modePalette({ base: DRAWIO_STYLES, extended: PASTEL_STYLES, text: [] });
 
 const HEX = /^#[0-9a-f]{6}$/i;
 
@@ -53,9 +53,10 @@ export function writeFlows(flows: Flow[]): string | undefined {
 }
 
 /** Couleur d'un nouveau flux : la première de la suite qui n'est pas prise, sinon la suite reprend. */
-export function nextFlowColor(flows: Flow[]): string {
+export function nextFlowColor(flows: Flow[], palette: readonly string[] = FLOW_COLORS): string {
+  const colors = palette.length > 0 ? palette : FLOW_COLORS;
   const used = new Set(flows.map((flow) => flow.color));
-  return FLOW_COLORS.find((color) => !used.has(color)) ?? FLOW_COLORS[flows.length % FLOW_COLORS.length]!;
+  return colors.find((color) => !used.has(color)) ?? colors[flows.length % colors.length]!;
 }
 
 /** Identifiant d'un nouveau flux : `f` + le plus petit numéro libre. */
@@ -64,11 +65,4 @@ export function nextFlowId(flows: Flow[]): string {
   let n = 1;
   while (ids.has(`f${n}`)) n++;
   return `f${n}`;
-}
-
-/** Couleur du trait d'une flèche d'un flux : celle du flux assombrie (luminosité −25 %). */
-export function flowStrokeColor(color: string): string {
-  const hsl = { h: 0, s: 0, l: 0 };
-  new Color(color).getHSL(hsl, SRGBColorSpace);
-  return `#${new Color().setHSL(hsl.h, hsl.s, hsl.l * 0.75, SRGBColorSpace).getHexString()}`;
 }

@@ -45,8 +45,8 @@ page, section au nom du mode dans le panneau d'une flèche ou d'une forme. Par d
 `key` de sa cible ; `value`, `write` et `hidden` le font passer par les règles du mode (ex. le rang d'une flèche, qui
 s'échange avec une autre).
 
-Une **opération** reçoit un `ModeEdit` : la page avant l'opération (`page`), `setPageAttribute` et
-`setElementAttribute`. Toutes ses écritures forment une étape d'annulation, et rien n'est enregistré si elle ne
+Une **opération** reçoit un `ModeEdit` : la page avant l'opération (`page`), les couleurs proposées par l'appli
+(`palette` : fonds des styles de forme des paramètres), `setPageAttribute` et `setElementAttribute`. Toutes ses écritures forment une étape d'annulation, et rien n'est enregistré si elle ne
 change rien. Depuis l'appli : `onEdit(label, (edit) => monOperation(edit, …))` (prop des sections React), ou
 `engine.editPageMode(label, …)`.
 
@@ -55,10 +55,12 @@ relu après chaque modification) : un `WeakMap` suffit.
 
 ## 4. Habillage
 
-`dressing(page)` renvoie une couleur imposée au trait et aux pointes d'une flèche (`edgeColor`) et une pastille
+`dressing(page)` renvoie la couleur du mode pour une flèche (`edgeColor`, trait et pointes, assombrie selon le
+paramètre « Assombrissement du trait ») et une pastille
 (`edgeBadge` : texte et couleur de fond). Le style draw.io n'est jamais modifié : l'habillage est appliqué au dessin
 (`render/pageScene.ts`, `createEdgeObject`), à la construction de la page comme pendant un déplacement. La pastille
-fait face à la caméra en iso / 3D (`userData.billboard = 'screen'`).
+fait face à la caméra en iso / 3D (`userData.billboard = 'screen'`). Son apparence (tailles, bordure, chiffre) vient des
+paramètres « Pastilles des flèches », communs à tous les modes.
 
 ## 5. Vérifier
 

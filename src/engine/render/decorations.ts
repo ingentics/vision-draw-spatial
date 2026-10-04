@@ -1,9 +1,9 @@
-import { Color, Group } from 'three';
+import { Color, Group, SRGBColorSpace } from 'three';
 import type { EdgeModel, LinkModel, Point, Rect, ShapeModel } from '../model/types';
 import type { EdgeBadge } from '../modes/types';
 import { labelPoint } from './edges/polyline';
 import { styleNumber } from './styleValues';
-import type { RenderContext } from './types';
+import type { EdgeBadgeStyle, RenderContext } from './types';
 import { ellipsePath, rectPath } from './geometry/paths';
 import { fillMesh, strokeMesh } from './meshes';
 import { PART_ORDER } from './types';
@@ -69,21 +69,23 @@ export function linkBadge(shape: ShapeModel, link: LinkModel, accent = DEFAULT_A
   return group;
 }
 
-/** Pastille d'une flèche : rayon et taille du texte, au-dessus d'un texte ou seule au milieu de la flèche. */
-const EDGE_BADGE = {
-  labelled: { radius: 12, fontSize: 15 },
-  alone: { radius: 5.5, fontSize: 7 },
+/** Pastille d'une flèche par défaut (paramètres « Pastilles des flèches »). */
+export const DEFAULT_EDGE_BADGE: EdgeBadgeStyle = {
+  radius: 12,
+  textSize: 15,
+  smallRadius: 5.5,
+  smallTextSize: 7,
+  borderColor: '#000000',
+  borderWidth: 1,
+  textColor: '#000000',
+  bold: false,
+  gap: 2,
 };
-/** Bordure et chiffre de la pastille : noirs (lisibles sur les fonds pastel) ; bordure de 1 px de page. */
-const EDGE_BADGE_BORDER = new Color('#000000');
-const EDGE_BADGE_BORDER_WIDTH = 1;
 /**
  * Hauteur des chiffres en fraction de la taille du texte (Roboto : 1456 / 2048) : la ligne de base est posée à une
  * demi-hauteur sous le centre, pour centrer les chiffres eux-mêmes (et non la ligne, qui réserve les jambages).
  */
 const DIGIT_HEIGHT = 0.71;
-/** Écart entre la pastille et le texte du milieu, en pixels de page. */
-const EDGE_BADGE_GAP = 2;
 
 /**
  * Pastille ronde d'une flèche (mode de page, ex. rang dans un flux) : au-dessus du texte du milieu, ou plus petite
@@ -92,7 +94,9 @@ const EDGE_BADGE_GAP = 2;
  */
 export function edgeBadge(edge: EdgeModel, route: Point[], badge: EdgeBadge, ctx: RenderContext): Group {
   const labelled = edge.label.trim() !== '' && edge.style.noLabel !== '1';
-  const { radius, fontSize } = labelled ? EDGE_BADGE.labelled : EDGE_BADGE.alone;
+  const look = ctx.edgeBadge ?? DEFAULT_EDGE_BADGE;
+  const radius = labelled ? look.radius : look.smallRadius;
+  const fontSize = labelled ? look.textSize : look.smallTextSize;
   const anchor = labelPoint(
     route,
     labelled ? edge.labelPlacement : { position: 0, distance: 0, offset: { x: 0, y: 0 } },
@@ -102,7 +106,7 @@ export function edgeBadge(edge: EdgeModel, route: Point[], badge: EdgeBadge, ctx
   const textHeight = lines * styleNumber(edge.style, 'fontSize', 11) * 1.2;
   const above =
     edge.style.verticalAlign === 'top' ? 0 : edge.style.verticalAlign === 'bottom' ? textHeight : textHeight / 2;
-  const lift = labelled ? above + EDGE_BADGE_GAP + radius : 0;
+  const lift = labelled ? above + look.gap + radius : 0;
 
   const group = new Group();
   group.name = 'edge-badge';
@@ -111,7 +115,10 @@ export function edgeBadge(edge: EdgeModel, route: Point[], badge: EdgeBadge, ctx
   const circle = ellipsePath({ x: -radius, y: -lift - radius, width: 2 * radius, height: 2 * radius }, 48);
   const disc = fillMesh(circle, new Color(badge.color), 1);
   disc.renderOrder = PART_ORDER.label + 1;
-  const outline = strokeMesh(circle, EDGE_BADGE_BORDER, 1, { width: EDGE_BADGE_BORDER_WIDTH, closed: true });
+  const outline =
+    look.borderWidth > 0
+      ? strokeMesh(circle, new Color(look.borderColor), 1, { width: look.borderWidth, closed: true })
+      : null;
   if (outline) outline.renderOrder = PART_ORDER.label + 1.25;
   const text = ctx.text.create({
     text: badge.text,
@@ -121,9 +128,9 @@ export function edgeBadge(edge: EdgeModel, route: Point[], badge: EdgeBadge, ctx
     anchorY: 'bottom-baseline',
     align: 'center',
     fontSize,
-    color: EDGE_BADGE_BORDER,
+    color: new Color(look.textColor),
     opacity: 1,
-    bold: false,
+    bold: look.bold,
   });
   text.renderOrder = PART_ORDER.label + 1.5;
   group.add(disc, text);
@@ -180,4 +187,11 @@ export function linkZone(bounds: Rect, zoom: number, accent = DEFAULT_ACCENT): G
     o.renderOrder = Number.MAX_SAFE_INTEGER;
   });
   return group;
+}
+
+/** Couleur assombrie (luminosité × (1 − `amount`), en HSL sRGB) : trait d'une flèche colorée par un mode. */
+export function darken(color: string, amount: number): string {
+  const hsl = { h: 0, s: 0, l: 0 };
+  new Color(color).getHSL(hsl, SRGBColorSpace);
+  return `#${new Color().setHSL(hsl.h, hsl.s, hsl.l * (1 - amount), SRGBColorSpace).getHexString()}`;
 }

@@ -6,7 +6,7 @@ import type { PageModel } from '../../../src/engine/model/types';
 import { applyModeEdit } from '../../../src/engine/modes/edit';
 import { createDefaultModeRegistry } from '../../../src/engine/modes/registry';
 import { definition as sequences } from '../../../src/engine/modes/sequences';
-import { FLOW, FLOW_COLORS, STEP, flowStrokeColor, readFlows } from '../../../src/engine/modes/sequences/flows';
+import { FLOW, FLOW_COLORS, STEP, readFlows } from '../../../src/engine/modes/sequences/flows';
 import {
   addFlow,
   moveFlow,
@@ -18,6 +18,7 @@ import {
   setEdgeStep,
 } from '../../../src/engine/modes/sequences/steps';
 import type { ModeEdit } from '../../../src/engine/modes/types';
+import { darken } from '../../../src/engine/render/decorations';
 import { buildPageScene } from '../../../src/engine/render/pageScene';
 import type { RenderContext, TextSpec } from '../../../src/engine/render/types';
 import { createDefaultRegistry } from '../../../src/engine/shapes/registry';
@@ -73,6 +74,14 @@ describe('mode Séquences : opérations', () => {
   it('couleurs des flux : fonds des styles de forme, à partir de « Bleu »', () => {
     expect(FLOW_COLORS.slice(0, 3)).toEqual(['#dae8fc', '#d5e8d4', '#ffe6cc']);
     expect(FLOW_COLORS).toHaveLength(18);
+  });
+
+  it('la couleur d’un nouveau flux vient de la palette passée par l’appli (styles des paramètres)', () => {
+    const { page } = setup();
+    let id = '';
+    const { tree } = readDrawio(fixture('sequences.drawio'));
+    applyModeEdit(page(), tree.pages[0]!, (edit) => (id = addFlow(edit, 'Essai')), ['#4e79a7', '#123456']);
+    expect(readFlows(documentFromTree(tree).pages[0]!).find((flow) => flow.id === id)!.color).toBe('#123456');
   });
 
   it('ajouter un flux : id libre suivant, première couleur libre', () => {
@@ -178,14 +187,15 @@ describe('mode Séquences : réglages déclarés et habillage', () => {
 
   it('flèche d’un flux : trait dans la couleur du flux assombrie, pastille du rang ; hors flux : rien', () => {
     const dressing = sequences.dressing!(page());
-    expect(dressing.edgeColor!(edge(page(), 'login'))).toBe(flowStrokeColor('#4e79a7'));
+    expect(dressing.edgeColor!(edge(page(), 'login'))).toBe('#4e79a7');
     expect(dressing.edgeBadge!(edge(page(), 'lecture'))).toEqual({ text: '2', color: '#4e79a7' });
     expect(dressing.edgeColor!(edge(page(), 'libre'))).toBeUndefined();
     expect(dressing.edgeBadge!(edge(page(), 'libre'))).toBeUndefined();
   });
 
-  it('couleur assombrie : luminosité −25 %', () => {
-    expect(flowStrokeColor('#ffffff')).toBe('#bfbfbf');
+  it('couleur assombrie : luminosité × (1 − assombrissement)', () => {
+    expect(darken('#ffffff', 0.25)).toBe('#bfbfbf');
+    expect(darken('#ffffff', 0)).toBe('#ffffff');
   });
 
   it('rendu : trait recoloré (style draw.io intact), pastille face à l’écran, plus petite sans texte', () => {
@@ -204,7 +214,7 @@ describe('mode Séquences : réglages déclarés et habillage', () => {
     const strokeHex = (o: Object3D) =>
       ((o.children.find((c) => c instanceof Mesh) as Mesh).material as MeshBasicMaterial).color.getHexString();
 
-    expect(`#${strokeHex(object('lecture'))}`).toBe(flowStrokeColor('#4e79a7'));
+    expect(`#${strokeHex(object('lecture'))}`).toBe(darken('#4e79a7', 0.25));
     expect(edge(page(), 'lecture').style.strokeColor).toBe('#000000');
     expect(strokeHex(object('libre'))).toBe('000000');
 
@@ -220,6 +230,42 @@ describe('mode Séquences : réglages déclarés et habillage', () => {
         ['2', 7],
       ]),
     );
+  });
+});
+
+describe('pastille : paramètres « Pastilles des flèches » (sujet 77)', () => {
+  it('taille, couleurs, gras et assombrissement viennent du contexte de rendu', () => {
+    const { page } = setup();
+    const texts: TextSpec[] = [];
+    const ctx: RenderContext = {
+      text: {
+        create(spec) {
+          texts.push(spec);
+          return new Object3D();
+        },
+      },
+      edgeBadge: {
+        radius: 20,
+        textSize: 18,
+        smallRadius: 4,
+        smallTextSize: 6,
+        borderColor: '#ff0000',
+        borderWidth: 0,
+        textColor: '#00ff00',
+        bold: true,
+        gap: 0,
+      },
+      dressingDarken: 0,
+    };
+    const dressing = createDefaultModeRegistry().dressing(page());
+    const root = buildPageScene(page(), createDefaultRegistry(), ctx, 'flat', dressing).root;
+    const login = root.children.find((child) => child.userData.elementId === 'login')!;
+    const digit = texts.find((spec) => spec.text === '1')!;
+    expect([digit.fontSize, digit.bold, digit.color.getHexString()]).toEqual([18, true, '00ff00']);
+    // Bordure d'épaisseur nulle : pas de contour ; trait non assombri.
+    expect(login.getObjectByName('edge-badge')!.children).toHaveLength(2);
+    const stroke = login.children.find((c) => c instanceof Mesh) as Mesh;
+    expect((stroke.material as MeshBasicMaterial).color.getHexString()).toBe('4e79a7');
   });
 });
 

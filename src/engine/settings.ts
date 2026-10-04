@@ -137,6 +137,21 @@ export interface ShapeSettings {
   edgeLabelHaloWidth: number;
   /** Flou du bord du halo, en pixels de page (0 = net). */
   edgeLabelHaloBlur: number;
+  /** Pastille d'une flèche posée par un mode de page (ex. rang dans un flux) : flèche avec texte, puis sans. */
+  edgeBadgeRadius: number;
+  edgeBadgeTextSize: number;
+  edgeBadgeSmallRadius: number;
+  edgeBadgeSmallTextSize: number;
+  /** Bordure de la pastille (#rrggbb, pixels de page). */
+  edgeBadgeBorderColor: string;
+  edgeBadgeBorderWidth: number;
+  /** Chiffre de la pastille (#rrggbb). */
+  edgeBadgeTextColor: string;
+  edgeBadgeBold: boolean;
+  /** Écart entre la pastille et le texte du milieu de la flèche, en pixels de page. */
+  edgeBadgeGap: number;
+  /** Assombrissement du trait d'une flèche colorée par un mode (fraction de la luminosité, 0,25 = −25 %). */
+  edgeDressingDarken: number;
   /** Formes non supportées (SPEC §8.4). */
   placeholderFill: string;
   placeholderStroke: string;
@@ -292,6 +307,16 @@ export const DEFAULT_SETTINGS: Settings = {
     edgeLabelBackdrop: 'halo',
     edgeLabelHaloWidth: 1.5,
     edgeLabelHaloBlur: 1,
+    edgeBadgeRadius: 12,
+    edgeBadgeTextSize: 15,
+    edgeBadgeSmallRadius: 5.5,
+    edgeBadgeSmallTextSize: 7,
+    edgeBadgeBorderColor: '#000000',
+    edgeBadgeBorderWidth: 1,
+    edgeBadgeTextColor: '#000000',
+    edgeBadgeBold: false,
+    edgeBadgeGap: 2,
+    edgeDressingDarken: 0.25,
     placeholderFill: '#eeeeee',
     placeholderStroke: '#9e9e9e',
   },
@@ -341,6 +366,13 @@ export const SETTINGS_LIMITS = {
   'shapes.edgeEndTextGapAcross': { min: 0, max: 40, step: 1 },
   'shapes.edgeLabelHaloWidth': { min: 0.5, max: 6, step: 0.25 },
   'shapes.edgeLabelHaloBlur': { min: 0, max: 4, step: 0.25 },
+  'shapes.edgeBadgeRadius': { min: 3, max: 40, step: 0.5 },
+  'shapes.edgeBadgeTextSize': { min: 4, max: 60, step: 1 },
+  'shapes.edgeBadgeSmallRadius': { min: 2, max: 20, step: 0.5 },
+  'shapes.edgeBadgeSmallTextSize': { min: 3, max: 30, step: 1 },
+  'shapes.edgeBadgeBorderWidth': { min: 0, max: 6, step: 0.5 },
+  'shapes.edgeBadgeGap': { min: 0, max: 30, step: 1 },
+  'shapes.edgeDressingDarken': { min: 0, max: 0.9, step: 0.05 },
   'selection.speed': { min: 2, max: 80, step: 1 },
   'selection.veilOpacity': { min: 0.05, max: 0.85, step: 0.05 },
   'selection.veilPadding': { min: 0, max: 60, step: 1 },
@@ -527,6 +559,32 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
         base.shapes.edgeLabelHaloWidth,
       ),
       edgeLabelHaloBlur: num('shapes.edgeLabelHaloBlur', p.shapes?.edgeLabelHaloBlur, base.shapes.edgeLabelHaloBlur),
+      edgeBadgeRadius: num('shapes.edgeBadgeRadius', p.shapes?.edgeBadgeRadius, base.shapes.edgeBadgeRadius),
+      edgeBadgeTextSize: num('shapes.edgeBadgeTextSize', p.shapes?.edgeBadgeTextSize, base.shapes.edgeBadgeTextSize),
+      edgeBadgeSmallRadius: num(
+        'shapes.edgeBadgeSmallRadius',
+        p.shapes?.edgeBadgeSmallRadius,
+        base.shapes.edgeBadgeSmallRadius,
+      ),
+      edgeBadgeSmallTextSize: num(
+        'shapes.edgeBadgeSmallTextSize',
+        p.shapes?.edgeBadgeSmallTextSize,
+        base.shapes.edgeBadgeSmallTextSize,
+      ),
+      edgeBadgeBorderColor: color(p.shapes?.edgeBadgeBorderColor, base.shapes.edgeBadgeBorderColor),
+      edgeBadgeBorderWidth: num(
+        'shapes.edgeBadgeBorderWidth',
+        p.shapes?.edgeBadgeBorderWidth,
+        base.shapes.edgeBadgeBorderWidth,
+      ),
+      edgeBadgeTextColor: color(p.shapes?.edgeBadgeTextColor, base.shapes.edgeBadgeTextColor),
+      edgeBadgeBold: bool(p.shapes?.edgeBadgeBold, base.shapes.edgeBadgeBold),
+      edgeBadgeGap: num('shapes.edgeBadgeGap', p.shapes?.edgeBadgeGap, base.shapes.edgeBadgeGap),
+      edgeDressingDarken: num(
+        'shapes.edgeDressingDarken',
+        p.shapes?.edgeDressingDarken,
+        base.shapes.edgeDressingDarken,
+      ),
       placeholderFill: color(p.shapes?.placeholderFill, base.shapes.placeholderFill),
       placeholderStroke: color(p.shapes?.placeholderStroke, base.shapes.placeholderStroke),
     },
@@ -600,4 +658,12 @@ export function resolveReducedMotion(
   systemPrefersReduced: boolean,
 ): boolean {
   return setting === 'always' || (setting === 'system' && systemPrefersReduced);
+}
+
+/**
+ * Couleurs proposées aux modes de page (ex. couleur d'un nouveau flux) : les fonds des styles de forme, styles de base
+ * puis palette étendue, à partir du 3ᵉ (ni le blanc ni le gris du début).
+ */
+export function modePalette(styles: StyleSettings): string[] {
+  return [...styles.base, ...styles.extended].slice(2).map((preset) => preset.fillColor);
 }

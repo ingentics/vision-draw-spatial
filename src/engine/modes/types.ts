@@ -36,6 +36,8 @@ export type ModeTarget = PageModel | ShapeModel | EdgeModel;
  */
 export interface ModeEdit {
   readonly page: PageModel;
+  /** Couleurs proposées par l'appli (fonds des styles de forme des paramètres, `modePalette`) ; peut être vide. */
+  readonly palette: readonly string[];
   /** Attribut de `<diagram>` ; undefined le retire. */
   setPageAttribute(key: string, value: string | undefined): void;
   /** Attribut spatial d'une forme ou d'une flèche (là où il est déjà, sinon dans le style) ; undefined le retire. */
@@ -78,7 +80,10 @@ export type ModeProperty = {
 
 /** Habillage d'une page par son mode. */
 export interface PageDressing {
-  /** Couleur imposée au trait et aux pointes d'une flèche (#rrggbb) ; undefined = son style. */
+  /**
+   * Couleur du mode pour une flèche (#rrggbb, ex. celle de son flux) : trait et pointes la prennent, assombrie selon
+   * le paramètre « Assombrissement du trait » ; undefined = son style.
+   */
   edgeColor?(edge: EdgeModel): string | undefined;
   /** Pastille posée sur une flèche, face à la caméra. */
   edgeBadge?(edge: EdgeModel): EdgeBadge | undefined;

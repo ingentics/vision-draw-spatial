@@ -638,6 +638,79 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
               l'emporte.
             </p>
           </Subsection>
+          <Subsection title="Pastilles des flèches">
+            <p className="hint muted">
+              Posées par un mode de page (ex. rang d’une flèche dans un flux du mode Séquences), face à la caméra.
+            </p>
+            <Slider
+              label="Rayon (flèche avec texte)"
+              value={shapes.edgeBadgeRadius}
+              limits={SETTINGS_LIMITS['shapes.edgeBadgeRadius']}
+              format={(v) => `${v.toLocaleString('fr-FR')} px`}
+              onChange={(edgeBadgeRadius) => onChange({ shapes: { edgeBadgeRadius } })}
+            />
+            <Slider
+              label="Taille du chiffre (flèche avec texte)"
+              value={shapes.edgeBadgeTextSize}
+              limits={SETTINGS_LIMITS['shapes.edgeBadgeTextSize']}
+              format={(v) => `${v.toLocaleString('fr-FR')} px`}
+              onChange={(edgeBadgeTextSize) => onChange({ shapes: { edgeBadgeTextSize } })}
+            />
+            <Slider
+              label="Rayon (flèche sans texte)"
+              value={shapes.edgeBadgeSmallRadius}
+              limits={SETTINGS_LIMITS['shapes.edgeBadgeSmallRadius']}
+              format={(v) => `${v.toLocaleString('fr-FR')} px`}
+              onChange={(edgeBadgeSmallRadius) => onChange({ shapes: { edgeBadgeSmallRadius } })}
+            />
+            <Slider
+              label="Taille du chiffre (flèche sans texte)"
+              value={shapes.edgeBadgeSmallTextSize}
+              limits={SETTINGS_LIMITS['shapes.edgeBadgeSmallTextSize']}
+              format={(v) => `${v.toLocaleString('fr-FR')} px`}
+              onChange={(edgeBadgeSmallTextSize) => onChange({ shapes: { edgeBadgeSmallTextSize } })}
+            />
+            <Slider
+              label="Écart avec le texte de la flèche"
+              value={shapes.edgeBadgeGap}
+              limits={SETTINGS_LIMITS['shapes.edgeBadgeGap']}
+              format={(v) => `${v.toLocaleString('fr-FR')} px`}
+              onChange={(edgeBadgeGap) => onChange({ shapes: { edgeBadgeGap } })}
+            />
+            <ColorField
+              label="Couleur de la bordure"
+              value={shapes.edgeBadgeBorderColor}
+              onChange={(edgeBadgeBorderColor) => onChange({ shapes: { edgeBadgeBorderColor } })}
+            />
+            <Slider
+              label="Épaisseur de la bordure"
+              value={shapes.edgeBadgeBorderWidth}
+              limits={SETTINGS_LIMITS['shapes.edgeBadgeBorderWidth']}
+              format={(v) => (v === 0 ? 'aucune' : `${v.toLocaleString('fr-FR')} px`)}
+              onChange={(edgeBadgeBorderWidth) => onChange({ shapes: { edgeBadgeBorderWidth } })}
+            />
+            <ColorField
+              label="Couleur du chiffre"
+              value={shapes.edgeBadgeTextColor}
+              onChange={(edgeBadgeTextColor) => onChange({ shapes: { edgeBadgeTextColor } })}
+            />
+            <Toggle
+              label="Chiffre en gras"
+              checked={shapes.edgeBadgeBold}
+              onChange={(edgeBadgeBold) => onChange({ shapes: { edgeBadgeBold } })}
+            />
+            <Slider
+              label="Assombrissement du trait"
+              value={shapes.edgeDressingDarken}
+              limits={SETTINGS_LIMITS['shapes.edgeDressingDarken']}
+              format={(v) => `${Math.round(v * 100)} %`}
+              onChange={(edgeDressingDarken) => onChange({ shapes: { edgeDressingDarken } })}
+            />
+            <p className="hint muted">
+              Une flèche colorée par un mode (couleur de son flux) prend cette couleur assombrie. Les couleurs des
+              nouveaux flux sont les fonds des styles de forme, à partir du troisième.
+            </p>
+          </Subsection>
           <Subsection title="Formes non supportées">
             <ColorField
               label="Fond du placeholder"
