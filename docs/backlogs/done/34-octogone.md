@@ -28,3 +28,10 @@
 - **Fini quand :** la forme s'affiche comme dans draw.io en 2D (comparaison avec l'export), en volume en iso et en 3D,
   se clique et reçoit les flèches sur son contour, se crée depuis la palette (catégorie « Géométrie ») ; elle
   n'apparaît plus dans le panneau Diagnostics ; `spatial.kind=<id>` la dessine.
+
+Fait : forme `src/engine/shapes/impl/geometry/octagon/` (`kinds: ['mxgraph.basic.octagon2']`), contour de
+`mxShapeBasicOctagon` : coins coupés de **2 × `dx`** (et non `dx`), au plus la moitié du petit côté, `dx` = 0,5 sans
+valeur ; orienté par `orientedPath` ; prisme en iso / 3D ; « Octogone » dans la palette. Pas de périmètre propre
+dans draw.io : flèches sur les bornes. Fixture `shapes.drawio` (série d'octogones : orientations, `dx`, sans `dx`,
+et flèches vers un octogone) identique à l'export SVG de draw.io ; la comparaison des contours ignore les points
+confondus (coupe nulle). Tests dans `tests/engine/shapes/geometry.test.ts`. Vérifié dans l'appli : palette, 2D, iso.

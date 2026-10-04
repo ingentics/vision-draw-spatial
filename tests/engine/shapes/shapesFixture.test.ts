@@ -17,7 +17,7 @@ import { drawioSvgOutlines, drawioSvgRoutes, dropCollinear, fixture } from '../.
  * doit tomber au pixel près sur le nôtre.
  *
  * La prise (`stencil:plug`) vérifie aussi les stencils embarqués (`mxStencil.computeAspect`) ; l'hexagone, ses pans
- * (`size`, `fixedSize`) et son périmètre (`hexagonPerimeter2`, couché et debout).
+ * (`size`, `fixedSize`) et son périmètre (`hexagonPerimeter2`, couché et debout) ; l'octogone (`dx`).
  *
  * Les triangles ne sont pas encore dessinés par le moteur : ils servent à vérifier l'orientation commune
  * (`orientedPath`) sur une forme asymétrique, avec le contour local de `mxTriangle`.
@@ -51,8 +51,26 @@ const AROUND = [
 ];
 const EDGE_STYLES = ['endArrow=none;html=1;', 'edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;html=1;'];
 const HEXAGON = 'shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;';
-/** Pans de l'hexagone : px (`fixedSize=1`, bornés à la demi-largeur), puis fraction de la largeur. */
-const HEXAGON_SIZES = ['size=40;', 'size=80;', 'fixedSize=0;', 'fixedSize=0;size=0.1;'];
+const OCTAGON = 'whiteSpace=wrap;html=1;shape=mxgraph.basic.octagon2;align=center;verticalAlign=middle;dx=15;';
+const ORIENTATIONS = [...VARIANTS, ...NORTH_FLIPS];
+/**
+ * Formes de la palette « Géométrie », chacune dans ses variantes (id `<préfixe><n>`) : orientations, puis
+ * réglages propres à la forme.
+ */
+const SERIES = [
+  // Pans de l'hexagone : px (`fixedSize=1`, bornés à la demi-largeur), puis fraction de la largeur.
+  {
+    prefix: 'h',
+    style: HEXAGON,
+    w: 120,
+    h: 80,
+    variants: [...ORIENTATIONS, 'size=40;', 'size=80;', 'fixedSize=0;', 'fixedSize=0;size=0.1;'],
+  },
+  // Coins de l'octogone : coupés de 2 × dx, bornés à la moitié du petit côté ; 0,5 sans dx.
+  { prefix: 'o', style: OCTAGON, w: 160, h: 80, variants: [...ORIENTATIONS, 'dx=30;', 'dx=0;'] },
+  { prefix: 'oc', style: OCTAGON, w: 100, h: 100, variants: [''] },
+  { prefix: 'od', style: OCTAGON.replace('dx=15;', ''), w: 100, h: 100, variants: [''] },
+];
 /**
  * Autres cibles des flèches (après le losange `d`), mêmes sources tout autour : préfixe des ids (`<p><k>` la
  * cible, `<p>s<k>_<i>` les sources, `<p>e<k>_<i>` les flèches), style et taille.
@@ -60,6 +78,7 @@ const HEXAGON_SIZES = ['size=40;', 'size=80;', 'fixedSize=0;', 'fixedSize=0;size
 const EDGE_TARGETS = [
   { prefix: 'x', style: HEXAGON, w: 120, h: 80 },
   { prefix: 'xn', style: `${HEXAGON}direction=north;`, w: 120, h: 80 },
+  { prefix: 'xo', style: OCTAGON, w: 100, h: 100 },
 ];
 
 interface Vertex {
@@ -69,6 +88,8 @@ interface Vertex {
   y: number;
   w: number;
   h: number;
+  /** Contour comparé à celui de l'export de draw.io (pas écrit dans le fichier). */
+  outline?: boolean;
 }
 interface Edge {
   id: string;
@@ -91,12 +112,20 @@ function layout(): { vertices: Vertex[]; edges: Edge[] } {
   RHOMBUS_SIZES.forEach(({ w, h }, s) =>
     [...VARIANTS, ...NORTH_FLIPS].forEach((variant, v) => {
       const at = place();
-      vertices.push({ id: `r${s}_${v}`, style: `rhombus;whiteSpace=wrap;html=1;${variant}`, ...at, w, h });
+      vertices.push({
+        id: `r${s}_${v}`,
+        style: `rhombus;whiteSpace=wrap;html=1;${variant}`,
+        ...at,
+        w,
+        h,
+        outline: true,
+      });
     }),
   );
   [...VARIANTS, ...NORTH_FLIPS].forEach((variant, v) => {
     const at = place();
-    vertices.push({ id: `t${v}`, style: `triangle;whiteSpace=wrap;html=1;${variant}`, ...at, w: 80, h: 60 });
+    const style = `triangle;whiteSpace=wrap;html=1;${variant}`;
+    vertices.push({ id: `t${v}`, style, ...at, w: 80, h: 60, outline: true });
   });
   // Prise : stencil embarqué, orienté et étiré par draw.io lui-même.
   [
@@ -105,19 +134,20 @@ function layout(): { vertices: Vertex[]; edges: Edge[] } {
   ].forEach(({ w, h }, s) =>
     [...VARIANTS, ...NORTH_FLIPS].forEach((variant, v) => {
       const at = place();
-      vertices.push({ id: `p${s}_${v}`, style: `shape=${PLUG_SHAPE};whiteSpace=wrap;html=1;${variant}`, ...at, w, h });
+      const style = `shape=${PLUG_SHAPE};whiteSpace=wrap;html=1;${variant}`;
+      vertices.push({ id: `p${s}_${v}`, style, ...at, w, h, outline: true });
     }),
   );
-  // Hexagone : orientations, puis pans fixes ou relatifs.
-  [...VARIANTS, ...NORTH_FLIPS, ...HEXAGON_SIZES].forEach((variant, v) => {
-    const at = place();
-    vertices.push({ id: `h${v}`, style: `${HEXAGON}${variant}`, ...at, w: 120, h: 80 });
-  });
+  SERIES.forEach(({ prefix, style, w, h, variants }) =>
+    variants.forEach((variant, v) => {
+      vertices.push({ id: `${prefix}${v}`, style: `${style}${variant}`, ...place(), w, h, outline: true });
+    }),
+  );
   // Flèches : un losange par style de tracé, les sources tout autour, sous les formes.
   const below = 100 + (row + 1) * 160 + 300;
   EDGE_STYLES.forEach((style, k) => {
     const center = { x: 600 + k * 700, y: below };
-    vertices.push({ id: `d${k}`, style: 'rhombus;whiteSpace=wrap;html=1;', ...center, w: 80, h: 80 });
+    vertices.push({ id: `d${k}`, style: 'rhombus;whiteSpace=wrap;html=1;', ...center, w: 80, h: 80, outline: true });
     AROUND.forEach((p, i) => {
       vertices.push({
         id: `s${k}_${i}`,
@@ -133,7 +163,7 @@ function layout(): { vertices: Vertex[]; edges: Edge[] } {
   EDGE_TARGETS.forEach(({ prefix, style: shapeStyle, w, h }, t) =>
     EDGE_STYLES.forEach((style, k) => {
       const center = { x: 600 + k * 700, y: below + (t + 1) * 500 };
-      vertices.push({ id: `${prefix}${k}`, style: shapeStyle, ...center, w, h });
+      vertices.push({ id: `${prefix}${k}`, style: shapeStyle, ...center, w, h, outline: true });
       AROUND.forEach((p, i) => {
         vertices.push({
           id: `${prefix}s${k}_${i}`,
@@ -187,10 +217,17 @@ const triangle = (w: number, h: number): Point[] => [
 
 const near = (a: Point, b: Point) => Math.abs(a.x - b.x) <= 0.5 && Math.abs(a.y - b.y) <= 0.5;
 
-/** Même polygone, quel que soit le point de départ (le chemin SVG se referme sur son premier point). */
-function samePolygon(ours: Point[], theirsIn: Point[]): boolean {
-  const theirs =
-    theirsIn.length > 1 && near(theirsIn[0]!, theirsIn[theirsIn.length - 1]!) ? theirsIn.slice(0, -1) : theirsIn;
+/** Sommets distincts d'un polygone fermé : points confondus avec le précédent retirés (le dernier compris). */
+const corners = (points: Point[]) =>
+  points.filter((p, i) => !near(p, points[(i + points.length - 1) % points.length]!) || points.length === 1);
+
+/**
+ * Même polygone, quel que soit le point de départ (le chemin SVG se referme sur son premier point ; une coupe nulle,
+ * octogone à `dx=0`, y laisse des points confondus).
+ */
+function samePolygon(oursIn: Point[], theirsIn: Point[]): boolean {
+  const ours = corners(oursIn);
+  const theirs = corners(theirsIn);
   return ours.length === theirs.length && ours.every((p) => theirs.some((q) => near(p, q)));
 }
 
@@ -216,7 +253,7 @@ describe.runIf(existsSync(SVG))('shapes.drawio : mêmes contours et mêmes flèc
   const registry = createDefaultRegistry();
   const { vertices, edges } = layout();
 
-  for (const vertex of vertices.filter((v) => /^([rtdphx]|xn)\d/.test(v.id))) {
+  for (const vertex of vertices.filter((v) => v.outline)) {
     it(`contour ${vertex.id} ${vertex.style}`, () => {
       const { shapes, svg } = load();
       const shape = shapes.get(vertex.id)!;

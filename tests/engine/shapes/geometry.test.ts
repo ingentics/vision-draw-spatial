@@ -86,3 +86,45 @@ describe('hexagone (33)', () => {
     expect(registry.contains(s, { x: 103, y: 103 })).toBe(false);
   });
 });
+
+describe('octogone (34)', () => {
+  const STYLE = 'whiteSpace=wrap;html=1;shape=mxgraph.basic.octagon2;align=center;verticalAlign=middle;dx=15;';
+  const shape = (style = STYLE, width = 100, height = 100) => page([style], width, height).page.shapes[0]!;
+  const outline = (style?: string, width?: number, height?: number) => {
+    const s = shape(style, width, height);
+    return round(registry.resolve(s).definition.outline!(s));
+  };
+
+  it('dessiné par sa définition, absent des Diagnostics ; spatial.kind=octagon le dessine', () => {
+    const { document, page: p } = page([STYLE, 'shape=note;spatial.kind=octagon;'], 100, 100);
+    expect(p.shapes.map((s) => registry.resolve(s).definition.id)).toEqual(['octagon', 'octagon']);
+    expect(collectUnsupported(document, registry).entries).toEqual([]);
+  });
+
+  it('contour : coins coupés de 2 × dx, au plus la moitié du petit côté', () => {
+    expect(outline()).toEqual([
+      [130, 100],
+      [170, 100],
+      [200, 130],
+      [200, 170],
+      [170, 200],
+      [130, 200],
+      [100, 170],
+      [100, 130],
+    ]);
+    expect(outline(`${STYLE}dx=40;`, 160, 80)[0]).toEqual([140, 100]);
+    // Sans dx : 0,5 (coins coupés d'un pixel).
+    expect(outline(STYLE.replace('dx=15;', ''))[0]).toEqual([101, 100]);
+  });
+
+  it('volume : prisme du contour, à plat sans fond', () => {
+    expect(volume(STYLE, 100, 100)).toEqual({ min: [100, 0, 100], max: [200, 20, 200] });
+    expect(volume(`${STYLE}fillColor=none;`, 100, 100)).toBeUndefined();
+  });
+
+  it('clic : dans le contour, pas dans les coins coupés', () => {
+    const s = shape();
+    expect(registry.contains(s, { x: 150, y: 150 })).toBe(true);
+    expect(registry.contains(s, { x: 105, y: 105 })).toBe(false);
+  });
+});

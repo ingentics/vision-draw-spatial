@@ -19,6 +19,7 @@ describe('palette', () => {
       'datastore',
       'ellipse',
       'hexagon',
+      'mxgraph.basic.octagon2',
       'rectangle',
       'rhombus',
       'stencil:plug',
@@ -60,6 +61,7 @@ describe('palette', () => {
       'circle',
       'diamond',
       'hexagon',
+      'octagon',
     ]);
     expect(byCategory('general')).toEqual(['text']);
     const known = new Set(PALETTE_CATEGORIES.map((c) => c.id));
