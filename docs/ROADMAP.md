@@ -45,6 +45,31 @@ feuille de route.
 
 Un fichier `idea/` peut se limiter au titre et à une ligne de description.
 
+### Les itérations
+
+Une **itération** est un petit sujet : une retouche, un réglage, une correction sur une partie précise de l'appli
+(ex. « le double-clic seul édite le texte, ⌘ + double-clic suit le lien »). Elle suit le même formalisme qu'un sujet,
+en plus court :
+
+- **Toute demande de modification devient un ticket.** Même formulée en une phrase dans la conversation, elle est
+  d'abord écrite en fichier `todo/` (numéro suivant, mêmes règles de nommage) avant d'écrire le code ; si elle est
+  ambiguë, on la précise avant de commencer.
+- Le fichier tient en quelques lignes : titre, rattachement (`> Itération — <partie de l'appli>`, et le sujet repris
+  s'il y en a un, ex. « reprise de 47 »), ce qui change, **Fini quand**.
+- Comme tout sujet, elle se termine par `make check` et un commit qui passe le fichier en `done/` avec sa ligne
+  « Fait : » (fichiers touchés, vérification dans l'appli).
+- Plusieurs petites demandes sur la même partie, faites ensemble, peuvent partager une itération ; des demandes sans
+  rapport font chacune la leur.
+
+```markdown
+# Suivre un lien au ⌘ + double-clic
+
+> Itération — interaction (sélection et liens) ; reprise de 09
+
+- Le double-clic seul édite le texte ; ⌘ + double-clic suit le lien (touche réglable dans les paramètres).
+- **Fini quand :** sur une forme liée, double-clic = édition, ⌘ + double-clic = navigation ; `make check` vert.
+```
+
 ## Façon de travailler (phase de dev)
 
 - Tout tourne dans Docker (Node figé par l'image) ; `make dev` lance l'appli et affiche le lien (SPEC §3.4).
