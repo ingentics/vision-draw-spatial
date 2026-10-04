@@ -43,6 +43,11 @@ export interface PageModel {
   layers: LayerModel[];
   shapes: ShapeModel[];
   edges: EdgeModel[];
+  /**
+   * Attributs spatiaux de la page (`spatial.…` de `<diagram>`, SPEC §14.3) : mode de la page et ses données
+   * (`spatial.mode`, `spatial.flows`…). Vide pour une page sans `<diagram>` (ancien format) ou calculée.
+   */
+  attributes: Record<string, string>;
   /** Emprise de toutes les formes et arêtes ; rectangle nul si la page est vide. */
   bounds: Rect;
 }

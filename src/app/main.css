@@ -1507,3 +1507,51 @@ body {
   stroke: currentColor;
   stroke-width: 1.6;
 }
+
+/* Modes de page (sujet 69) : liste de choix avec pastille, liste des flux. */
+.select-with-swatch {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+
+.color-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+.flow-list {
+  display: grid;
+  gap: 4px;
+  margin: 6px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.flow-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.context-panel .flow-item input[type='text'] {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.flow-item .icon-button {
+  font-size: 14px;
+  padding: 2px 4px;
+}

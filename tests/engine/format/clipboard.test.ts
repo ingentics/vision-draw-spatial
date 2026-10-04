@@ -1,5 +1,6 @@
+import { XMLSerializer } from '@xmldom/xmldom';
 import { describe, expect, it } from 'vitest';
-import { copyCells, pasteCells, readClipboardModel } from '../../../src/engine/format/clipboard';
+import { copyCells, pasteCells, readClipboardModel, stripCellKeys } from '../../../src/engine/format/clipboard';
 import type { CopyOptions } from '../../../src/engine/format/clipboard';
 import { encodeDiagram } from '../../../src/engine/format/decode';
 import { readDrawio } from '../../../src/engine/format/parse';
@@ -100,5 +101,23 @@ describe('readClipboardModel', () => {
     expect(readClipboardModel('bonjour')).toBeUndefined();
     expect(readClipboardModel('<p>x</p>')).toBeUndefined();
     expect(readClipboardModel('<mxGraphModel><root><mxCell id="0"/></root></mxGraphModel>')).toBeUndefined();
+  });
+});
+
+describe('stripCellKeys (modes de page, sujet 69)', () => {
+  it('retire les clés du style et de l’objet des cellules collées, sans toucher au reste', () => {
+    const model = readClipboardModel(`<mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+      <mxCell id="e" style="endArrow=classic;spatial.flow=f1;spatial.step=2;html=1;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+      <UserObject id="o" label="o" spatial.flow="f2" spatial.note="garder"><mxCell style="spatial.step=1" edge="1" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell></UserObject>
+    </root></mxGraphModel>`)!;
+    stripCellKeys(model, ['spatial.flow', 'spatial.step']);
+    const page = readDrawio(
+      `<mxfile><diagram id="c">${new XMLSerializer().serializeToString(model)}</diagram></mxfile>`,
+    ).document.pages[0]!;
+    const e = page.edges.find((edge) => edge.id === 'e')!;
+    const o = page.edges.find((edge) => edge.id === 'o')!;
+    expect(e.raw.styleString).toBe('endArrow=classic;html=1;');
+    expect(o.attributes).toEqual({ 'spatial.note': 'garder' });
+    expect(o.style['spatial.step']).toBeUndefined();
   });
 });

@@ -12,7 +12,7 @@ import type {
   ShapeModel,
 } from '../model/types';
 import { computeBounds } from '../model/bounds';
-import { SPATIAL, spatialValue } from '../spatial';
+import { SPATIAL, SPATIAL_PREFIX, spatialValue } from '../spatial';
 import { htmlToText, resolvePlaceholders } from './label';
 import { isRich, parseRichHtml } from './richText';
 import { parseLink } from './link';
@@ -54,12 +54,23 @@ export function documentFromTree(tree: DrawioTree): DocumentModel {
 
 function parsePage(page: PageTree, warnings: ParseWarning[]): PageModel {
   if (page.encoding === 'unreadable') warnings.push({ pageId: page.id, message: `Page illisible : ${page.error}` });
-  if (!page.model) return emptyPage(page.id, page.name);
+  if (!page.model) return emptyPage(page);
   return parseGraphModel(page, warnings);
 }
 
-function emptyPage(id: string, name: string): PageModel {
-  return { id, name, layers: [], shapes: [], edges: [], bounds: { x: 0, y: 0, width: 0, height: 0 } };
+function emptyPage({ id, name, diagram }: PageTree): PageModel {
+  const bounds = { x: 0, y: 0, width: 0, height: 0 };
+  return { id, name, layers: [], shapes: [], edges: [], attributes: pageAttributes(diagram), bounds };
+}
+
+/** Attributs spatiaux de la page (`spatial.…` de `<diagram>`) : mode de la page et ses données. */
+function pageAttributes(diagram: Element | undefined): Record<string, string> {
+  const attributes: Record<string, string> = {};
+  for (let i = 0; i < (diagram?.attributes.length ?? 0); i++) {
+    const attr = diagram!.attributes.item(i);
+    if (attr?.name.startsWith(SPATIAL_PREFIX)) attributes[attr.name] = attr.value;
+  }
+  return attributes;
 }
 
 // ---------------------------------------------------------------------------
@@ -342,7 +353,8 @@ function parseGraphModel(page: PageTree, warnings: ParseWarning[]): PageModel {
     edge.labels.push(label);
   }
 
-  return { id, name, layers, shapes, edges, bounds: computeBounds(shapes, edges) };
+  const attributes = pageAttributes(page.diagram);
+  return { id, name, layers, shapes, edges, attributes, bounds: computeBounds(shapes, edges) };
 }
 
 /** Pour une arête et ses labels enfants, la géométrie relative encode x = position, y = distance. */

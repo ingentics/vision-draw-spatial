@@ -75,3 +75,37 @@ export function NumberField({
     </label>
   );
 }
+
+/** Liste de choix : validée au changement. Une option peut porter une pastille de couleur (montrée à côté). */
+export function SelectField({
+  label,
+  title,
+  value,
+  options,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  title: string;
+  value: string;
+  options: Array<{ value: string; label: string; color?: string }>;
+  disabled?: boolean;
+  onChange: (value: string) => void;
+}) {
+  const color = options.find((option) => option.value === value)?.color;
+  return (
+    <label className="field-row" title={title}>
+      {label}
+      <span className="select-with-swatch">
+        {color && <span className="color-dot" style={{ background: color }} aria-hidden="true" />}
+        <select value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)}>
+          {options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </span>
+    </label>
+  );
+}

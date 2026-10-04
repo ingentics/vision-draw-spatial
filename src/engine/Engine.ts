@@ -27,6 +27,7 @@ import {
   setCellObjectAttribute,
   setCellRichLabel,
   setCellStyleValue,
+  setPageAttribute,
   moveEdgeCell,
   setEdgePoints,
   setEdgeTerminal,
@@ -42,7 +43,7 @@ import {
   renamePage,
   setCellLink,
 } from './format/create';
-import { copyCells, pasteCells, readClipboardModel } from './format/clipboard';
+import { copyCells, pasteCells, readClipboardModel, stripCellKeys } from './format/clipboard';
 import { documentFromTree, readDrawio } from './format/parse';
 import { readPageViews, writePageViews } from './format/viewState';
 import type { IsoViewParams, PageViewState } from './format/viewState';
@@ -133,7 +134,7 @@ import type {
   ShapeModel,
 } from './model/types';
 import { linkZone, selectionOutline } from './render/decorations';
-import { createEdge, toTerminal } from './render/edges/edge';
+import { toTerminal } from './render/edges/edge';
 import { orientBillboards } from './render/billboard';
 import { fixedAnchor, perimeterKind, routeEdgePoints, routingCenter } from './render/edges/route';
 import { parseStyle } from './format/style';
@@ -147,7 +148,17 @@ import {
 import { createVeil, createVeilHole, liftAboveVeil } from './render/highlight';
 import { disposeObject } from './render/meshes';
 import { setPageOpacity } from './render/pageEffects';
-import { buildPageScene, createShapeObject, effectiveLevel, placeInDrawOrder } from './render/pageScene';
+import {
+  buildPageScene,
+  createEdgeObject,
+  createShapeObject,
+  effectiveLevel,
+  placeInDrawOrder,
+} from './render/pageScene';
+import { applyModeEdit } from './modes/edit';
+import { defaultModeRegistry } from './modes/registry';
+import type { ModeScope, PageModeRegistry } from './modes/registry';
+import type { ModeEdit, ModeTarget } from './modes/types';
 import type { PageScene } from './render/pageScene';
 import { SceneManager } from './render/sceneManager';
 import { outsideLabelBox } from './render/labelPosition';
@@ -157,7 +168,7 @@ import type { SceneLevel } from './shapes/types';
 import { setPageTransform } from './render/space';
 import { createTroikaTextFactory } from './render/troikaText';
 import { DEFAULT_SETTINGS, mergeSettings, resolveReducedMotion } from './settings';
-import { SPATIAL_PREFIX, spatialValue } from './spatial';
+import { SPATIAL, SPATIAL_PREFIX, spatialValue } from './spatial';
 import type { PreloadSettings, Settings, SettingsPatch, TransitionSettings, ViewSettings } from './settings';
 import type { FontSet } from './render/troikaText';
 
@@ -191,6 +202,8 @@ export interface EngineOptions {
   fonts?: FontSet;
   /** Pour ajouter ou surcharger des renderers de formes. */
   registry?: ShapeRegistry;
+  /** Pour ajouter ou surcharger des modes de page (sujet 69). */
+  modes?: PageModeRegistry;
   /** Couleur de fond initiale (#rrggbb) ; le paramètre `background.color` la remplace s'il est fourni. */
   background?: string;
   /** Paramètres (SPEC §13) ; ensuite modifiables par `updateSettings`. */
@@ -439,6 +452,7 @@ export class Engine {
   /** Dernier mode hors 3D, où revient la touche P. */
   private lastFlatMode: 'top' | 'iso' = 'top';
   private readonly registry: ShapeRegistry;
+  private readonly modes: PageModeRegistry;
   private readonly text: ReturnType<typeof createTroikaTextFactory>;
   private readonly events = new Emitter<EngineEvents>();
   private readonly resizeObserver: ResizeObserver;
@@ -522,6 +536,7 @@ export class Engine {
   constructor(options: EngineOptions) {
     this.canvas = options.canvas;
     this.registry = options.registry ?? defaultShapeRegistry;
+    this.modes = options.modes ?? defaultModeRegistry;
     const initial = options.background
       ? mergeSettings(DEFAULT_SETTINGS, { background: { color: options.background } })
       : DEFAULT_SETTINGS;
@@ -551,7 +566,7 @@ export class Engine {
       (page, level) =>
         page.id === GRAPH_PAGE_ID && this.graph && this.document
           ? buildGraphScene(page, this.graph.layout, this.document, this.registry, this.renderContext(), level)
-          : buildPageScene(page, this.registry, this.renderContext(), level),
+          : buildPageScene(page, this.registry, this.renderContext(), level, this.modes.dressing(page)),
       this.settings.preload.maxCachedPages,
       (page) => effectiveLevel(page, this.registry, this.requestedLevel()),
     );
@@ -595,7 +610,7 @@ export class Engine {
 
   async load(xml: string, fileId: string, initialView?: InitialView): Promise<void> {
     const { document, tree } = readDrawio(xml);
-    this.document = document;
+    this.document = this.withModeWarnings(document);
     this.xmlTree = tree;
     this.fileId = fileId;
     this.unsupportedReport = collectUnsupported(document, this.registry);
@@ -785,7 +800,7 @@ export class Engine {
     if (!this.xmlTree) return;
     const selected = this.selection;
     this.clearSelection();
-    this.document = documentFromTree(this.xmlTree);
+    this.document = this.withModeWarnings(documentFromTree(this.xmlTree));
     this.unsupportedReport = collectUnsupported(this.document, this.registry);
     this.graph = undefined;
     for (const id of [...changedPageIds, GRAPH_PAGE_ID]) this.scenes.invalidate(id, true);
@@ -2679,14 +2694,16 @@ export class Engine {
     const root = this.scenes.current?.root;
     if (!root || edgeIds.size === 0) return;
     const shapes = new Map(page.shapes.map((shape) => [shape.id, shape]));
+    const dressing = this.modes.dressing(page);
     for (const edge of page.edges) {
       if (!edgeIds.has(edge.id)) continue;
       const old = this.sceneObject(edge.id);
       if (!old) continue;
-      const object = createEdge(
+      const object = createEdgeObject(
         edge,
         { source: shapes.get(edge.sourceId ?? ''), target: shapes.get(edge.targetId ?? '') },
         this.renderContext(),
+        dressing,
       );
       object.position.z = old.position.z;
       object.userData.elementId = edge.id;
@@ -3030,6 +3047,69 @@ export class Engine {
     this.documentChanged([editable.page.id]);
   }
 
+  // -------------------------------------------------------------------------
+  // Modes de page (sujet 69)
+
+  /** Registre des modes de page du moteur (choix du mode, réglages déclarés). */
+  getModeRegistry(): PageModeRegistry {
+    return this.modes;
+  }
+
+  /**
+   * Mode d'une page (`spatial.mode`) ; undefined : page normale. Les données du mode restent en sommeil sur la page
+   * et ses éléments : revenir au mode les retrouve.
+   */
+  setPageMode(pageId: string, modeId: string | undefined): void {
+    const page = this.pageById(pageId);
+    const pageTree = this.pageTreeOf(pageId);
+    if (!this.xmlTree || !page || !pageTree?.diagram || !this.editable || this.transition) return;
+    if ((this.modes.modeId(page) ?? '') === (modeId ?? '')) return;
+    const name = modeId && this.modes.get(modeId)?.name;
+    this.recordEdit(name ? `Mode ${name}` : 'Page normale');
+    setPageAttribute(pageTree, SPATIAL.mode, modeId);
+    this.documentChanged([pageId]);
+  }
+
+  /**
+   * Opération d'un mode sur la page courante (ex. ajouter un flux) : ses écritures forment une étape d'annulation ;
+   * rien n'est enregistré si elle ne change rien.
+   */
+  editPageMode(label: string, edit: (edit: ModeEdit) => void): void {
+    const editable = this.editablePage();
+    if (!editable || !this.xmlTree) return;
+    const before = writeDrawio(this.xmlTree);
+    if (!applyModeEdit(editable.page, editable.pageTree, edit)) return;
+    this.undoStack.record(label, before);
+    this.documentChanged([editable.page.id]);
+  }
+
+  /**
+   * Réglage déclaré par le mode de la page courante (`scope` : la page, ou la flèche / forme `targetId`), écrit par
+   * sa règle s'il en a une, sinon dans son attribut. undefined = vide.
+   */
+  setModeProperty(scope: ModeScope, targetId: string | undefined, key: string, value: string | undefined): void {
+    const page = this.editablePage()?.page;
+    const property = page && this.modes.properties(page, scope).find((p) => p.key === key);
+    const target: ModeTarget | undefined =
+      scope === 'page'
+        ? page
+        : scope === 'edge'
+          ? page?.edges.find((e) => e.id === targetId)
+          : page?.shapes.find((s) => s.id === targetId);
+    if (!property || !target) return;
+    this.editPageMode(property.label, (edit) => {
+      if (property.write) property.write(edit, target, value);
+      else if (scope === 'page') edit.setPageAttribute(key, value);
+      else edit.setElementAttribute(target.id, key, value);
+    });
+  }
+
+  /** Avertissements des modes de page (mode inconnu, données remises en ordre) ajoutés à ceux de la lecture. */
+  private withModeWarnings(document: DocumentModel): DocumentModel {
+    document.warnings.push(...this.modes.warnings(document));
+    return document;
+  }
+
   /**
    * Applique un style (fond, contour, texte) à des formes de la page courante, en une seule étape
    * d'annulation. `known` : styles de la palette, pour retirer une couleur de texte posée par l'un d'eux.
@@ -3083,6 +3163,10 @@ export class Engine {
       editable.pageTree,
       selection.items.map((item) => item.element.id),
     );
+    // Le mode de la page remet ses données en ordre (ex. rangs resserrés), dans la même étape d'annulation.
+    const repair = this.modes.modeOf(editable.page)?.repair;
+    const page = repair && this.xmlTree && documentFromTree(this.xmlTree).pages.find((p) => p.id === editable.page.id);
+    if (repair && page) applyModeEdit(page, editable.pageTree, repair);
     this.clearSelection();
     this.documentChanged([editable.page.id]);
   }
@@ -3178,6 +3262,8 @@ export class Engine {
     this.endMove();
     const { page, pageTree } = editable;
     this.recordEdit(label);
+    // Données des modes de page (ex. flux et rang d'une flèche) : la copie ne les reprend pas.
+    stripCellKeys(model, this.modes.pasteKeys());
     const ids = pasteCells(pageTree, model, {
       delta,
       parentOf: (id) => {
@@ -3228,7 +3314,7 @@ export class Engine {
   /** Revient à un instantané : document relu, scènes reconstruites, même page si elle existe encore. */
   private restore(xml: string): void {
     const { document, tree } = readDrawio(xml);
-    this.document = document;
+    this.document = this.withModeWarnings(document);
     this.xmlTree = tree;
     this.unsupportedReport = collectUnsupported(document, this.registry);
     this.clearSelection();

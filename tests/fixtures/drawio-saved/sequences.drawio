@@ -1,0 +1,70 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/24.7.5 Chrome/126.0.6478.183 Electron/31.3.0 Safari/537.36" version="24.7.5" pages="3">
+  <diagram id="seq" name="Séquences" spatial.mode="sequences" spatial.flows="[{&quot;id&quot;:&quot;f1&quot;,&quot;title&quot;:&quot;Connexion&quot;,&quot;color&quot;:&quot;#4e79a7&quot;},{&quot;id&quot;:&quot;f2&quot;,&quot;title&quot;:&quot;Paiement « carte »&quot;,&quot;color&quot;:&quot;#f28e2b&quot;},{&quot;id&quot;:&quot;f3&quot;,&quot;title&quot;:&quot;Vide&quot;,&quot;color&quot;:&quot;#e15759&quot;}]">
+    <mxGraphModel dx="-264" dy="-112" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="0" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="client" value="Client" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="40" y="40" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="api" value="API" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="320" y="40" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="db" value="Base" style="shape=cylinder3;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="320" y="200" width="120" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="login" value="login" style="endArrow=classic;html=1;spatial.flow=f1;spatial.step=1;" parent="1" source="client" target="api" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lecture" value="" style="endArrow=classic;html=1;strokeColor=#000000;spatial.flow=f1;spatial.step=2;" parent="1" source="api" target="db" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <UserObject label="payer" spatial.flow="f2" spatial.step="1" id="paiement">
+          <mxCell style="endArrow=classic;html=1;" parent="1" source="client" target="db" edge="1">
+            <mxGeometry relative="1" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="libre" value="hors flux" style="endArrow=classic;html=1;" parent="1" source="db" target="client" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="desordre" name="Rangs en désordre" spatial.mode="sequences" spatial.flows="[{&quot;id&quot;:&quot;f1&quot;,&quot;title&quot;:&quot;Flux&quot;,&quot;color&quot;:&quot;#4e79a7&quot;}]">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="a" value="A" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="80" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="b" value="B" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="240" y="40" width="80" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="trois" value="" style="endArrow=classic;html=1;spatial.flow=f1;spatial.step=3;" edge="1" parent="1" source="a" target="b">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="sept" value="" style="endArrow=classic;html=1;spatial.flow=f1;spatial.step=7;" edge="1" parent="1" source="b" target="a">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="trois-bis" value="" style="endArrow=classic;html=1;spatial.flow=f1;spatial.step=3;" edge="1" parent="1" source="a" target="b">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="sans-rang" value="" style="endArrow=classic;html=1;spatial.flow=f1;" edge="1" parent="1" source="b" target="a">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="perdu" value="" style="endArrow=classic;html=1;spatial.flow=f9;spatial.step=1;" edge="1" parent="1" source="a" target="b">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="inconnu" name="Mode inconnu" spatial.mode="plus-tard">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

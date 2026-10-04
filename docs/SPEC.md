@@ -772,6 +772,9 @@ Réalisation retenue (`engine/spatial.ts`) :
 | `spatial.nodes` | style ou objet | Cache distribué (`shape=datastore`) : nombre de disques empilés en iso / 3D (3 par défaut, 1–12) |
 | `spatial.noLinkBadge` | style | `1` : lien sans pastille (cartes de la vue graphe) |
 | `spatial.view` | `<diagram>` | État de vue de la page (§14.2) |
+| `spatial.mode` | `<diagram>` | Mode de la page (§14.5) : id d'un mode (`sequences`) ; absent = page normale |
+| `spatial.flows` | `<diagram>` | Mode Séquences : flux de la page, liste ordonnée en JSON `[{"id","title","color"}, …]` |
+| `spatial.flow`, `spatial.step` | style ou objet | Mode Séquences : flux d'une flèche (`id`) et son rang dans le flux (1…n) |
 
 - Lecture : style de la cellule, sinon attribut de son `<object>` / `<UserObject>` (« Modifier les données » dans draw.io) ; le style l'emporte. Valeurs négatives ou invalides ignorées.
 - Écriture (panneau contextuel, section « Volume » : « Épaisseur », « Élévation » ; vide = valeur par défaut) : là où l'attribut est déjà (objet), sinon dans le style, clé modifiée en place ou ajoutée à la fin.
@@ -780,6 +783,29 @@ Réalisation retenue (`engine/spatial.ts`) :
 ### 14.4 Critère d'acceptation
 
 Ouvrir un fichier avec trois rectangles, les déplacer, sauvegarder, ouvrir le fichier dans draw.io : **les rectangles sont aux nouvelles positions** et le reste du fichier est **identique**.
+
+### 14.5 Modes de page
+
+Un **mode** spécialise une page (`spatial.mode` sur `<diagram>`) : données de page, réglages sur les éléments et
+habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste une page normale. Guide :
+`docs/AJOUTER_UN_MODE.md`.
+
+- **Un dossier par mode, en miroir** : `src/engine/modes/<id>/` porte tout le mode (données, règles, opérations,
+  habillage, cohérence ; `index.ts` exporte `definition: PageModeDefinition`) ; `src/app/modes/<id>/` porte seulement
+  ses sections React du panneau (facultatif). Les deux registres collectent les dossiers tout seuls.
+- **Un mode par page**, choisi dans le panneau de la page (« Mode »). Quitter un mode retire seulement
+  `spatial.mode` : ses données dorment sur la page et ses éléments, et réapparaissent si on y revient. Un mode inconnu
+  est signalé dans les diagnostics et affiché tel quel.
+- **Contrat** (`modes/types.ts`) : réglages déclarés de la page, d'une flèche, d'une forme (case, nombre, texte,
+  liste de choix ; lecture et écriture propres possibles), habillage (couleur imposée à une flèche, pastille face à
+  la caméra), remise en ordre au mieux à la lecture (signalée dans les diagnostics) et écrite après une suppression,
+  clés retirées des éléments collés ou dupliqués (sur toutes les pages).
+- **Écritures** : une opération de mode est une étape d'annulation (`Engine.editPageMode`) ; attribut de page sur
+  `<diagram>`, attribut d'élément là où il est déjà (objet), sinon dans le style.
+- **Mode Séquences** (`sequences`) : flux ordonnés (`spatial.flows`), une flèche dans un flux au plus
+  (`spatial.flow`, `spatial.step`), rangs toujours consécutifs (ajout en n + 1, échange, resserrement). Flèche d'un
+  flux : trait et pointes dans la couleur du flux assombrie (−25 % de luminosité), pastille du rang au-dessus du
+  texte du milieu (plus petite au milieu de la flèche sans texte).
 
 ---
 

@@ -170,6 +170,25 @@ export function pasteCells(page: PageTree, model: Element, options: PasteOptions
   return roots;
 }
 
+/**
+ * Retire des clés (ex. `spatial.flow`) des cellules d'un modèle du presse-papier, avant de le coller : attribut de
+ * l'objet et clé du style. Le reste du style est intact.
+ */
+export function stripCellKeys(model: Element, keys: readonly string[]): void {
+  if (keys.length === 0) return;
+  const removed = new Set(keys);
+  for (const { element, cell } of contentCells(model)) {
+    if (element !== cell) for (const key of keys) element.removeAttribute(key);
+    const style = cell.getAttribute('style');
+    if (!style) continue;
+    const next = style
+      .split(';')
+      .filter((token) => !(token.includes('=') && removed.has(token.split('=')[0]!.trim())))
+      .join(';');
+    if (next !== style) cell.setAttribute('style', next);
+  }
+}
+
 /** Formes et flèches d'un modèle (sans la cellule racine ni les calques), avec un id. */
 function contentCells(model: Element): Array<{ id: string; element: Element; cell: Element }> {
   const rootEl = childElements(model, 'root')[0];

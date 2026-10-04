@@ -37,3 +37,18 @@ séquence n'est pas traité ici ; les formes ne reçoivent rien.
   retrait, changement de flux, suppression de flèche ou de flux, et annulation ; un collage ne crée pas de doublon ;
   après un réenregistrement par draw.io, la page se rouvre à l'identique et les flèches y sont normales ;
   `make check` vert.
+- Fait :
+  - Lib : `engine/modes/sequences/` — `flows.ts` (lecture au mieux de `spatial.flows`, couleurs Tableau 10, id
+    `f1`, `f2`…, couleur assombrie en HSL sRGB), `steps.ts` (état remis en ordre et mémorisé par page ; opérations
+    `addFlow`, `renameFlow`, `removeFlow`, `moveFlow`, `setEdgeFlow`, `setEdgeStep`, `repairSequences`),
+    `index.ts` (réglages « Flux » et « Rang » d'une flèche, rang masqué hors flux ; habillage ; incohérences ;
+    remise en ordre après suppression ; `spatial.flow` / `spatial.step` retirés au collage).
+  - Appli : `app/modes/sequences/index.tsx`, section « Flux » du panneau de la page (titre modifiable, nombre de
+    flèches, ↑ ↓, ×, ajout).
+  - Tests : `tests/engine/modes/sequences.test.ts` (lecture, incohérences, chaque opération, rien d'écrit sans
+    changement, réglages, habillage et rendu) sur `tests/fixtures/sequences.drawio` (page cohérente, page en
+    désordre, mode inconnu).
+  - Vérifié dans l'appli sur `sequences.drawio` : flèches teintées et pastilles (avec et sans texte, en 2D et en
+    iso, face caméra), rang 1 → échange avec « login », ajout et réordonnancement de flux, suppression d'une flèche
+    (rang resserré, pas d'avertissement), annulation, duplication sans flux ni pastille, avertissements de la page
+    en désordre dans Diagnostics ; draw.io garde `spatial.mode`, `spatial.flows` et les attributs des flèches.

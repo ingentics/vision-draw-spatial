@@ -27,6 +27,8 @@ export const SPATIAL = {
   nodes: 'spatial.nodes',
   /** `1` : lien sans pastille (ex. cartes de la vue graphe). */
   noLinkBadge: 'spatial.noLinkBadge',
+  /** Mode de la page (attribut de `<diagram>`) : id d'un mode de `modes/` (ex. `sequences`) ; absent = page normale. */
+  mode: 'spatial.mode',
   /** État de vue d'une page (attribut de `<diagram>`, voir `format/viewState`). */
   view: 'spatial.view',
 } as const;

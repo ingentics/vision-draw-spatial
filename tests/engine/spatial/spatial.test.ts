@@ -122,6 +122,8 @@ describe('conservation par draw.io', () => {
         original.tree.pages[index]!.diagram?.getAttribute(VIEW_ATTRIBUTE),
       );
     });
+    // Attributs spatiaux des pages (`spatial.mode`, `spatial.flows`…, sujet 69).
+    expect(saved.document.pages.map((p) => p.attributes)).toEqual(original.document.pages.map((p) => p.attributes));
     original.document.pages.forEach((page, index) => {
       const after = saved.document.pages[index]!;
       for (const before of [...page.shapes, ...page.edges]) {

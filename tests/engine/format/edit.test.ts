@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { canMoveCell, formatNumber, gridSizeOf, moveCell, moveEdgeCell } from '../../../src/engine/format/edit';
+import {
+  canMoveCell,
+  formatNumber,
+  gridSizeOf,
+  moveCell,
+  moveEdgeCell,
+  setPageAttribute,
+} from '../../../src/engine/format/edit';
 import { readDrawio } from '../../../src/engine/format/parse';
 import { writeDrawio } from '../../../src/engine/format/write';
 import { parseXml } from '../../../src/engine/format/xmlTree';
@@ -105,5 +112,24 @@ describe('moveEdgeCell', () => {
     expect(edge.targetPoint).toEqual({ x: 5, y: -10 });
     expect(edge.points).toEqual([{ x: 55, y: 50 }]);
     expect(writeDrawio(tree)).toContain('<mxPoint x="3" y="4" as="offset"/>');
+  });
+});
+
+describe('setPageAttribute (modes de page, sujet 69)', () => {
+  it('écrit et retire un attribut de <diagram> sans toucher au contenu, même compressé', () => {
+    const xml = fixture('compressed.drawio');
+    const { tree } = readDrawio(xml);
+    const page = tree.pages[0]!;
+    expect(setPageAttribute(page, 'spatial.mode', 'sequences')).toBe(true);
+    expect(page.dirty).toBe(false);
+    const written = readDrawio(writeDrawio(tree));
+    expect(written.document.pages[0]!.attributes['spatial.mode']).toBe('sequences');
+    setPageAttribute(written.tree.pages[0]!, 'spatial.mode', undefined);
+    expect(writeDrawio(written.tree).trimEnd()).toBe(writeDrawio(readDrawio(xml).tree).trimEnd());
+  });
+
+  it('ancien format (sans <diagram>) : rien n’est écrit', () => {
+    const { tree } = readDrawio(fixture('legacy.xml'));
+    expect(setPageAttribute(tree.pages[0]!, 'spatial.mode', 'sequences')).toBe(false);
   });
 });

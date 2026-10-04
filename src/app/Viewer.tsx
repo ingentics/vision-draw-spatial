@@ -677,6 +677,13 @@ export function Viewer({
                     )
                   }
                   onRenamePage={editablePages ? (name) => engine?.renamePage(currentPage.id, name) : undefined}
+                  onPageMode={editablePages ? (modeId) => engine?.setPageMode(currentPage.id, modeId) : undefined}
+                  onModeEdit={editablePages ? (label, edit) => engine?.editPageMode(label, edit) : undefined}
+                  onModeProperty={
+                    editablePages
+                      ? (scope, targetId, key, value) => engine?.setModeProperty(scope, targetId, key, value)
+                      : undefined
+                  }
                 />
               )
             )}

@@ -10,7 +10,12 @@ import type { StyleSettings } from '../engine/settings';
 import { SPATIAL, spatialNumber } from '../engine/spatial';
 import { TEXT_FORMAT_ATTRIBUTE } from './LabelEditor';
 import { BorderSection } from './BorderSection';
-import { NumberField, TextField } from './Fields';
+import { NumberField, SelectField, TextField } from './Fields';
+import { defaultModeRegistry } from '../engine/modes/registry';
+import type { ModeScope } from '../engine/modes/registry';
+import type { ModeEdit, ModeTarget } from '../engine/modes/types';
+import { ModePropertyFields } from './modes/ModeFields';
+import { modePanel } from './modes/registry';
 import { ShapePropertyFields } from './ShapeProperties';
 import { CollapseButton } from './Sidebar';
 import { Section } from './PanelSection';
@@ -38,6 +43,12 @@ export interface ContextPanelProps {
   onResetRoute: () => void;
   /** Renommer la page ; absent si les pages ne sont pas modifiables. */
   onRenamePage?: (name: string) => void;
+  /** Mode de la page (undefined = page normale) ; absent si la page n'est pas modifiable. */
+  onPageMode?: (modeId: string | undefined) => void;
+  /** Opération du mode de la page (sections propres au mode) ; absent si la page n'est pas modifiable. */
+  onModeEdit?: (label: string, edit: (edit: ModeEdit) => void) => void;
+  /** Réglage déclaré par le mode de la page (undefined = vide) ; absent si la page n'est pas modifiable. */
+  onModeProperty?: (scope: ModeScope, targetId: string | undefined, key: string, value: string | undefined) => void;
   /** Lien de l'élément sélectionné (vers une page ou une URL) ; undefined = retiré. */
   onLink: (link: LinkModel | undefined) => void;
   /** Attribut spatial de la forme sélectionnée (épaisseur, élévation…) ; undefined = valeur par défaut. */
@@ -65,7 +76,7 @@ export function ContextPanel(props: ContextPanelProps) {
   const title = contextTitle(shapes, edges, props.textEdit !== undefined);
   let body;
   if (props.textEdit) body = <TextFormatSections edit={props.textEdit} />;
-  else if (count === 0) body = <PageSections page={props.page} onRename={props.onRenamePage} />;
+  else if (count === 0) body = <PageSections {...props} />;
   else if (count > 1) body = <MultiSections {...props} />;
   else if (shapes.length === 1) body = <ShapeSections {...props} shape={shapes[0]!} />;
   else body = <EdgeSections {...props} edge={edges[0]!} />;
@@ -97,25 +108,110 @@ export function contextTitle(shapes: readonly ShapeModel[], edges: readonly Edge
 // ---------------------------------------------------------------------------
 // Page
 
-function PageSections({ page, onRename }: { page: PageModel; onRename?: (name: string) => void }) {
+function PageSections({ page, onRenamePage: onRename, ...props }: ContextPanelProps) {
   return (
-    <Section title="Page">
-      <TextField
-        key={`name:${page.id}:${page.name}`}
-        label="Nom"
-        title={onRename ? 'Nom de la page (Entrée pour valider)' : 'Nom de la page'}
-        value={page.name}
-        readOnly={!onRename}
-        onCommit={(name) => {
-          if (name.trim()) onRename?.(name.trim());
-        }}
+    <>
+      <Section title="Page">
+        <TextField
+          key={`name:${page.id}:${page.name}`}
+          label="Nom"
+          title={onRename ? 'Nom de la page (Entrée pour valider)' : 'Nom de la page'}
+          value={page.name}
+          readOnly={!onRename}
+          onCommit={(name) => {
+            if (name.trim()) onRename?.(name.trim());
+          }}
+        />
+        <div className="field-row">
+          Contenu
+          <span className="field-value">
+            {plural(page.shapes.length, 'forme')}, {plural(page.edges.length, 'flèche')}
+          </span>
+        </div>
+      </Section>
+      <PageModeSections
+        page={page}
+        onPageMode={props.onPageMode}
+        onModeEdit={props.onModeEdit}
+        onModeProperty={props.onModeProperty}
       />
-      <div className="field-row">
-        Contenu
-        <span className="field-value">
-          {plural(page.shapes.length, 'forme')}, {plural(page.edges.length, 'flèche')}
-        </span>
-      </div>
+    </>
+  );
+}
+
+/**
+ * Mode de la page (sujet 69) : choix du mode, puis ses réglages déclarés et ses sections propres
+ * (`src/app/modes/<id>/`). Un mode inconnu (écrit par une version plus récente) reste affiché tel quel.
+ */
+function PageModeSections({
+  page,
+  onPageMode,
+  onModeEdit,
+  onModeProperty,
+}: Pick<ContextPanelProps, 'page' | 'onPageMode' | 'onModeEdit' | 'onModeProperty'>) {
+  const modeId = defaultModeRegistry.modeId(page);
+  const mode = defaultModeRegistry.modeOf(page);
+  const options = [
+    { value: '', label: 'Aucun' },
+    ...defaultModeRegistry.list().map((m) => ({ value: m.id, label: m.name })),
+    ...(modeId && !mode ? [{ value: modeId, label: `Inconnu (${modeId})` }] : []),
+  ];
+  const PageSection = modePanel(mode?.id)?.PageSection;
+  return (
+    <>
+      <Section title="Mode">
+        <SelectField
+          label="Mode"
+          title={
+            mode?.description ?? 'Mode de la page (spatial.mode) : spécialise la page ; rien ne change dans draw.io'
+          }
+          value={modeId ?? ''}
+          options={options}
+          disabled={!onPageMode}
+          onChange={(value) => onPageMode?.(value || undefined)}
+        />
+        <ModeFields page={page} scope="page" target={page} onModeProperty={onModeProperty} />
+      </Section>
+      {PageSection && <PageSection page={page} onEdit={onModeEdit} />}
+    </>
+  );
+}
+
+/** Réglages déclarés par le mode de la page pour une cible. */
+function ModeFields({
+  page,
+  scope,
+  target,
+  onModeProperty,
+}: {
+  page: PageModel;
+  scope: ModeScope;
+  target: ModeTarget;
+  onModeProperty?: ContextPanelProps['onModeProperty'];
+}) {
+  return (
+    <ModePropertyFields
+      page={page}
+      scope={scope}
+      target={target}
+      onChange={
+        onModeProperty && ((key, value) => onModeProperty(scope, scope === 'page' ? undefined : target.id, key, value))
+      }
+    />
+  );
+}
+
+/** Section des réglages du mode de la page sur un élément (flèche ou forme), s'il en déclare. */
+function ElementModeSection({
+  element,
+  scope,
+  ...props
+}: ContextPanelProps & { element: ModeTarget; scope: ModeScope }) {
+  const mode = defaultModeRegistry.modeOf(props.page);
+  if (!mode || defaultModeRegistry.properties(props.page, scope).length === 0) return null;
+  return (
+    <Section title={mode.name}>
+      <ModeFields page={props.page} scope={scope} target={element} onModeProperty={props.onModeProperty} />
     </Section>
   );
 }
@@ -130,6 +226,7 @@ function ShapeSections({ shape, ...props }: ContextPanelProps & { shape: ShapeMo
       <Section title="Texte">
         <LabelRow label={shape.label} onEdit={props.onEditLabel} />
       </Section>
+      <ElementModeSection {...props} element={shape} scope="shape" />
       <Section title="Style">
         <StyleGrid presets={props.styles.base} shape={shape} onApply={props.onApplyStyle} />
         <StyleGrid presets={props.styles.extended} shape={shape} onApply={props.onApplyStyle} />
@@ -198,6 +295,7 @@ function EdgeSections({ edge, ...props }: ContextPanelProps & { edge: EdgeModel 
           );
         })}
       </Section>
+      <ElementModeSection {...props} element={edge} scope="edge" />
       <TextAnchors edge={edge} onAnchor={props.onTextAnchor} />
       <EdgeLineSection edge={edge} onChange={props.onEdgeStyle} onResetRoute={props.onResetRoute} />
       <Section title="Liaison">

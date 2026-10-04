@@ -202,6 +202,7 @@ export function buildGraphPage(
     layers: [{ id: layerId, name: '', visible: true }],
     shapes,
     edges,
+    attributes: {},
     bounds: unionBounds(shapes.map((s) => s.bounds)),
   };
   return { page, layout };

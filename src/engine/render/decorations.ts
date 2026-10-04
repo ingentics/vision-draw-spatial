@@ -1,5 +1,9 @@
 import { Color, Group } from 'three';
-import type { LinkModel, Point, Rect, ShapeModel } from '../model/types';
+import type { EdgeModel, LinkModel, Point, Rect, ShapeModel } from '../model/types';
+import type { EdgeBadge } from '../modes/types';
+import { labelPoint } from './edges/polyline';
+import { styleNumber } from './styleValues';
+import type { RenderContext } from './types';
 import { ellipsePath, rectPath } from './geometry/paths';
 import { fillMesh, strokeMesh } from './meshes';
 import { PART_ORDER } from './types';
@@ -63,6 +67,65 @@ export function linkBadge(shape: ShapeModel, link: LinkModel, accent = DEFAULT_A
     o.renderOrder = PART_ORDER.label + 1;
   });
   return group;
+}
+
+/** Pastille d'une flèche : rayon et taille du texte, au-dessus d'un texte ou seule au milieu de la flèche. */
+const EDGE_BADGE = { labelled: { radius: 8, fontSize: 10 }, alone: { radius: 5.5, fontSize: 7 } };
+/** Écart entre la pastille et le texte du milieu, en pixels de page. */
+const EDGE_BADGE_GAP = 2;
+
+/**
+ * Pastille ronde d'une flèche (mode de page, ex. rang dans un flux) : au-dessus du texte du milieu, ou plus petite
+ * au milieu de la flèche sans texte. Elle fait face à la caméra (`userData.billboard = 'screen'`) : « au-dessus »
+ * est le haut de l'écran, quel que soit l'angle de vue.
+ */
+export function edgeBadge(edge: EdgeModel, route: Point[], badge: EdgeBadge, ctx: RenderContext): Group {
+  const labelled = edge.label.trim() !== '' && edge.style.noLabel !== '1';
+  const { radius, fontSize } = labelled ? EDGE_BADGE.labelled : EDGE_BADGE.alone;
+  const anchor = labelPoint(
+    route,
+    labelled ? edge.labelPlacement : { position: 0, distance: 0, offset: { x: 0, y: 0 } },
+  );
+  // Hauteur estimée du texte (sa mise en page est asynchrone) : lignes × interligne.
+  const lines = edge.rich?.length ?? edge.label.split('\n').length;
+  const textHeight = lines * styleNumber(edge.style, 'fontSize', 11) * 1.2;
+  const above =
+    edge.style.verticalAlign === 'top' ? 0 : edge.style.verticalAlign === 'bottom' ? textHeight : textHeight / 2;
+  const lift = labelled ? above + EDGE_BADGE_GAP + radius : 0;
+
+  const group = new Group();
+  group.name = 'edge-badge';
+  group.userData.billboard = 'screen';
+  group.position.set(anchor.x, anchor.y, 0.2);
+  const disc = fillMesh(
+    ellipsePath({ x: -radius, y: -lift - radius, width: 2 * radius, height: 2 * radius }, 24),
+    new Color(badge.color),
+    1,
+  );
+  disc.renderOrder = PART_ORDER.label + 1;
+  const text = ctx.text.create({
+    text: badge.text,
+    x: 0,
+    y: -lift,
+    anchorX: 'center',
+    anchorY: 'middle',
+    align: 'center',
+    fontSize,
+    color: new Color(contrastText(badge.color)),
+    opacity: 1,
+    bold: true,
+  });
+  text.renderOrder = PART_ORDER.label + 1.5;
+  group.add(disc, text);
+  return group;
+}
+
+/** Texte lisible sur un fond : noir sur une couleur claire, blanc sinon (luminance relative, WCAG). */
+export function contrastText(background: string): string {
+  const { r, g, b } = new Color(background); // composantes linéaires
+  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  // Contraste égal avec le blanc et le noir pour une luminance d'environ 0,18.
+  return luminance > 0.18 ? '#000000' : '#ffffff';
 }
 
 /**

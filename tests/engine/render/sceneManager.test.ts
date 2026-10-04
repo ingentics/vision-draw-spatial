@@ -10,6 +10,7 @@ const page = (id: string): PageModel => ({
   layers: [],
   shapes: [],
   edges: [],
+  attributes: {},
   bounds: { x: 0, y: 0, width: 0, height: 0 },
 });
 

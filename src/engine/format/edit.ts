@@ -133,6 +133,18 @@ export function setCellObjectAttribute(
 }
 
 /**
+ * Attribut de la page (`<diagram>`, ex. `spatial.mode`) ; undefined le retire. Hors du contenu de la page : une
+ * page compressée n'a pas à être recompressée, et draw.io garde le nœud `<diagram>` en réenregistrant. False si la
+ * page n'a pas de `<diagram>` (ancien format).
+ */
+export function setPageAttribute(page: PageTree, name: string, value: string | undefined): boolean {
+  if (!page.diagram) return false;
+  if (value === undefined) page.diagram.removeAttribute(name);
+  else page.diagram.setAttribute(name, value);
+  return true;
+}
+
+/**
  * Placement d'un label d'arête (le label de l'arête, ou un label enfant) dans sa géométrie relative,
  * comme draw.io : `x` = position le long de l'arête (−1 … 1), `y` = distance perpendiculaire,
  * `<mxPoint as="offset">` = décalage libre. Une valeur nulle n'est pas écrite.

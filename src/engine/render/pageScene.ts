@@ -1,12 +1,14 @@
 import { Group } from 'three';
 import type { Material, Object3D } from 'three';
 import { isNavigableLink } from '../format/link';
-import type { EdgeModel, PageModel, ShapeModel } from '../model/types';
-import { linkBadge } from './decorations';
+import type { EdgeModel, PageModel, Point, ShapeModel } from '../model/types';
+import { edgeBadge, linkBadge } from './decorations';
 import { SPATIAL, spatialNumber, spatialValue } from '../spatial';
 import { TOP_OFFSET } from './iso/block';
 import { disposeObject } from './meshes';
 import { createEdge } from './edges/edge';
+import type { EdgeTerminals } from './edges/edge';
+import type { PageDressing } from '../modes/types';
 import type { ShapeRegistry } from '../shapes/registry';
 import type { SceneLevel } from '../shapes/types';
 import { applyPageSpace } from './space';
@@ -37,6 +39,7 @@ export function buildPageScene(
   registry: ShapeRegistry,
   ctx: RenderContext,
   level: SceneLevel = 'flat',
+  dressing?: PageDressing,
 ): PageScene {
   const root = new Group();
   root.name = `page:${page.id}`;
@@ -69,7 +72,7 @@ export function buildPageScene(
         source: item.edge.sourceId ? shapesById.get(item.edge.sourceId) : undefined,
         target: item.edge.targetId ? shapesById.get(item.edge.targetId) : undefined,
       };
-      object = createEdge(item.edge, terminals, ctx);
+      object = createEdgeObject(item.edge, terminals, ctx, dressing);
       object.position.z = elevation.edgeBase(item.edge);
       object.userData.top = object.position.z;
     }
@@ -85,6 +88,24 @@ export function buildPageScene(
     root,
     dispose: () => disposeObject(root),
   };
+}
+
+/**
+ * Objet d'une flèche, habillé par le mode de la page : couleur imposée au trait et aux pointes (le style draw.io
+ * reste intact), pastille. Sert aussi à retracer une seule flèche (ex. pendant un déplacement).
+ */
+export function createEdgeObject(
+  edge: EdgeModel,
+  terminals: EdgeTerminals,
+  ctx: RenderContext,
+  dressing?: PageDressing,
+): Object3D {
+  const color = dressing?.edgeColor?.(edge);
+  const object = createEdge(color ? { ...edge, style: { ...edge.style, strokeColor: color } } : edge, terminals, ctx);
+  const badge = dressing?.edgeBadge?.(edge);
+  const route = object.userData.route as Point[] | undefined;
+  if (badge && route && route.length >= 2) object.add(edgeBadge(edge, route, badge, ctx));
+  return object;
 }
 
 /** Biais de profondeur par rang, en unités de profondeur : assez pour départager au loin en perspective. */
