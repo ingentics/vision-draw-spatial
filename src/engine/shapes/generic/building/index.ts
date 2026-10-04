@@ -1,15 +1,15 @@
 import { Color, Group, Matrix4, Vector3 } from 'three';
 import type { Mesh, Object3D } from 'three';
-import type { Point, Rect, ShapeModel } from '../../model/types';
-import { VERTEX_DEFAULTS } from '../../render/flat/box';
-import { rectPath } from '../../render/geometry/paths';
-import { blockHeight, isoBlock, TOP_OFFSET } from '../../render/iso/block';
-import { strokeMesh } from '../../render/meshes';
-import { styleColor, styleNumber, styleOpacity } from '../../render/styleValues';
-import { PART_ORDER } from '../../render/types';
-import type { RenderContext } from '../../render/types';
-import { SPATIAL, spatialValue } from '../../spatial';
-import type { SceneRenderer, ShapeProperty } from '../types';
+import type { Point, Rect, ShapeModel } from '../../../model/types';
+import { VERTEX_DEFAULTS } from '../../../render/flat/box';
+import { rectPath } from '../../../render/geometry/paths';
+import { blockHeight, isoBlock, TOP_OFFSET } from '../../../render/iso/block';
+import { strokeMesh } from '../../../render/meshes';
+import { styleColor, styleNumber, styleOpacity } from '../../../render/styleValues';
+import { PART_ORDER } from '../../../render/types';
+import type { RenderContext } from '../../../render/types';
+import { SPATIAL, spatialValue } from '../../../spatial';
+import type { SceneRenderer, ShapeProperty } from '../../types';
 
 /**
  * « Bâtiments » (niveau `iso`) : les composants d'architecture ont tous la même grammaire, comme les
@@ -19,8 +19,7 @@ import type { SceneRenderer, ShapeProperty } from '../types';
  * - **façade** dans l'épaisseur, propre au type, sur les quatre côtés (lisible sous tous les angles) :
  *   BDD (corps arrondi, cerclages), cache distribué (tranches, voyants), queue (chevrons de flux).
  * Le rendu 2D reste celui de draw.io. Sans fond ou sans épaisseur : le rendu `flat`.
- * Ce fichier rassemble les briques communes ; chaque façade est dans le dossier de sa forme (la queue, partagée par
- * deux formes, dans `utils/queue`).
+ * Bâtiment générique : les briques communes ; chaque façade est dans le dossier de sa forme (`impl/…/facade.ts`).
  */
 
 /** Hauteur des bâtiments : la même que toutes les formes (`spatial.height`, sinon l'épaisseur par défaut). */

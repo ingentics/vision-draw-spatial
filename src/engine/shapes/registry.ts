@@ -5,7 +5,7 @@ import { outsideLabelBox } from '../render/labelPosition';
 import type { RenderContext } from '../render/types';
 import { placeholderShape } from './placeholder';
 import type { MinimapPainter, SceneLevel, SceneRenderer, ShapeDefinition, ShapeProperty, ShapeTemplate } from './types';
-import { outlinePainter } from './utils/minimap';
+import { outlinePainter } from './minimap';
 
 export interface ResolvedShape {
   definition: ShapeDefinition;
@@ -14,7 +14,7 @@ export interface ResolvedShape {
 }
 
 /**
- * Registre des formes (SPEC §8.2) : ajouter une forme = écrire sa définition dans son dossier (`SHAPE_DEFINITIONS`).
+ * Registre des formes (SPEC §8.2) : ajouter une forme = déposer son dossier dans `impl/<catégorie>/` (`SHAPE_DEFINITIONS`).
  * Le registre résout la définition d'une forme, puis le rendu d'un niveau avec repli sur `flat`.
  */
 export class ShapeRegistry {
@@ -28,13 +28,25 @@ export class ShapeRegistry {
     return this;
   }
 
+  /**
+   * Définition d'une forme, de la plus précise à la plus générale (à égalité, la dernière enregistrée l'emporte) :
+   * 1. une définition qui gère ce nom draw.io et dont la condition (`matches`) est vérifiée (rectangle arrondi) ;
+   * 2. celle dont l'`id` est le nom de la forme (`spatial.kind=database`), sans condition ;
+   * 3. une définition qui gère ce nom draw.io sans condition.
+   */
   resolve(shape: ShapeModel): ResolvedShape {
+    let named: ShapeDefinition | undefined;
+    let unconditional: ShapeDefinition | undefined;
     for (let i = this.definitions.length - 1; i >= 0; i--) {
       const definition = this.definitions[i]!;
-      const matches = definition.matches ? definition.matches(shape) : definition.kind === shape.kind;
-      if (matches) return { definition, supported: true };
+      if ((definition.kinds ?? [definition.id]).includes(shape.kind)) {
+        if (definition.matches?.(shape)) return { definition, supported: true };
+        if (!definition.matches) unconditional ??= definition;
+      }
+      if (definition.id === shape.kind) named ??= definition;
     }
-    return { definition: this.fallback, supported: false };
+    const definition = named ?? unconditional;
+    return definition ? { definition, supported: true } : { definition: this.fallback, supported: false };
   }
 
   /** Rendu de scène d'une forme au niveau demandé ; repli sur le rendu à plat. */
@@ -113,18 +125,14 @@ export class ShapeRegistry {
   /** Modèles de la palette de toutes les formes, par rang (`order`). */
   templates(): ShapeTemplate[] {
     return this.definitions
-      .flatMap((definition) => definition.templates ?? [])
+      .flatMap((definition) => (definition.palette ? [{ id: definition.id, ...definition.palette }] : []))
       .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
   }
 
-  /** Modèle de la palette d'une forme (la variante qu'elle est, d'après son style) ; `undefined` : aucun. */
+  /** Modèle de la palette d'une forme : celui de sa définition ; `undefined` : aucun. */
   templateOf(shape: ShapeModel): ShapeTemplate | undefined {
     const { definition, supported } = this.resolve(shape);
-    const templates = definition.templates ?? [];
-    if (!supported || templates.length === 0) return undefined;
-    if (!definition.templateOf) return templates.length === 1 ? templates[0] : undefined;
-    const id = definition.templateOf(shape.style);
-    return templates.find((template) => template.id === id);
+    return supported && definition.palette ? { id: definition.id, ...definition.palette } : undefined;
   }
 
   /** Aperçu de la forme dans les styles du panneau (contenu SVG, cadre `0 0 40 28`) ; repli sur le rectangle. */
@@ -139,11 +147,11 @@ function rectangleSwatch(style: Record<string, string>): string {
 }
 
 /**
- * Formes supportées (SPEC §8.3) : une par dossier (`<forme>/index.ts`, qui exporte `definition`), collectées toutes
- * seules ; le code commun aux formes est dans `utils/`.
+ * Formes supportées (SPEC §8.3) : une par dossier `impl/<catégorie>/<id>/index.ts` (qui exporte `definition`),
+ * collectées toutes seules ; les bases qu'elles étendent sont dans `generic/`.
  */
 export const SHAPE_DEFINITIONS: ShapeDefinition[] = Object.values(
-  import.meta.glob<ShapeDefinition>('./*/index.ts', { eager: true, import: 'definition' }),
+  import.meta.glob<ShapeDefinition>('./impl/*/*/index.ts', { eager: true, import: 'definition' }),
 );
 
 /** Registre des formes supportées. */

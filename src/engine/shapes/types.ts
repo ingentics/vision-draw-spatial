@@ -30,11 +30,11 @@ export type MinimapPainter = (context: CanvasRenderingContext2D, shape: ShapeMod
 export type PaletteCategoryId = 'general' | 'architecture';
 
 /**
- * Modèle de la palette (SPEC §14.1) : une forme telle que la palette la crée, avec le style et la taille par
- * défaut de draw.io (même rendu à la réouverture dans draw.io).
+ * Élément de la palette (SPEC §14.1) déclaré par une forme : la forme telle que la palette la crée, avec le style et
+ * la taille par défaut de draw.io (même rendu à la réouverture dans draw.io).
  */
-export interface ShapeTemplate {
-  id: string;
+export interface PaletteEntry {
+  /** Nom affiché (celui de l'interface). */
   name: string;
   /** Catégorie de la palette (`PALETTE_CATEGORIES`). */
   category: PaletteCategoryId;
@@ -48,6 +48,11 @@ export interface ShapeTemplate {
   height: number;
   /** Icône de la palette : contenu SVG d'un cadre `0 0 40 28`, sans couleurs (celles de la palette). */
   icon: string;
+}
+
+/** Modèle de la palette : l'élément déclaré par une forme, identifié par l'`id` de la forme. */
+export interface ShapeTemplate extends PaletteEntry {
+  id: string;
 }
 
 /** Section du panneau de la forme où se range un réglage propre à la forme. */
@@ -85,13 +90,19 @@ export type ShapeProperty =
 
 /**
  * Définition d'une forme (SPEC §8.2) : tout ce que le moteur et l'appli savent d'une forme passe par elle. Chaque
- * forme vit dans son dossier (`shapes/<forme>/index.ts`, qui exporte `definition`) ; seuls `kind` et `flat` sont
- * obligatoires, tout le reste a un repli générique.
+ * forme vit dans son dossier (`shapes/impl/<catégorie>/<id>/index.ts`, qui exporte `definition`) ; seuls `id` et
+ * `flat` sont obligatoires, tout le reste a un repli générique. Une forme en étend une autre en reprenant sa
+ * définition (`{ ...rectangle, id: 'rounded-rectangle', … }`) ou une base de `shapes/generic/`.
  */
 export interface ShapeDefinition {
-  /** Nom de forme géré (`ShapeModel.kind`). */
-  kind: string;
-  /** Par défaut : correspondance exacte sur `kind`. */
+  /** Nom de la forme, celui de l'interface en anglais (ex. `database`) : nom de son dossier, accepté par `spatial.kind`. */
+  id: string;
+  /** Formes draw.io gérées (`ShapeModel.kind`, ex. `cylinder3`). Défaut : `[id]`. */
+  kinds?: string[];
+  /**
+   * Condition en plus du nom draw.io (ex. `rounded=1` pour le rectangle arrondi). Une définition dont la condition est
+   * vérifiée l'emporte sur une définition du même nom draw.io sans condition.
+   */
   matches?(shape: ShapeModel): boolean;
   /**
    * Contour au sol, en coordonnées page (polygone fermé). Géométrie de référence de la forme :
@@ -132,13 +143,8 @@ export interface ShapeDefinition {
   pickable?: 'always' | 'withLink';
   /** Saisir une forme qu'elle contient la déplace elle, d'un bloc avec ses enfants (ex. groupe ; défaut : non). */
   movesAsBlock?: boolean;
-  /** Modèles de la palette qui créent cette forme ; absent = forme absente de la palette. */
-  templates?: ShapeTemplate[];
-  /**
-   * Modèle (`id` parmi `templates`) d'une forme de ce type, d'après son style : la variante qu'elle est (ex. rectangle
-   * ou arrondi). Absent = le seul modèle s'il n'y en a qu'un. `undefined` = aucun modèle.
-   */
-  templateOf?(style: Record<string, string>): string | undefined;
+  /** Élément de la palette qui crée cette forme ; absent = forme absente de la palette. */
+  palette?: PaletteEntry;
   /** Réglages propres à la forme, affichés dans le panneau. */
   properties?: ShapeProperty[];
   /**

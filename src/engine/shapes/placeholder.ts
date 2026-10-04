@@ -39,7 +39,7 @@ const block = isoBlock(outline, NO_DEFAULTS);
  * gris aux arêtes en pointillés. En mini-carte : le même rectangle gris.
  */
 export const placeholderShape: ShapeDefinition = {
-  kind: 'placeholder',
+  id: 'placeholder',
   outline,
   flat: { create: (shape, ctx) => createBox(asPlaceholder(shape, ctx), outline(shape), ctx, NO_DEFAULTS) },
   iso: { create: (shape, ctx) => block.create(asPlaceholder(shape, ctx), ctx) },

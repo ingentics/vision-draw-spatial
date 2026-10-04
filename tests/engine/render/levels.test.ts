@@ -12,14 +12,14 @@ const ctx: RenderContext = { text: { create: () => new Object3D() } };
 const named = (name: string) => ({ create: () => Object.assign(new Object3D(), { name }) });
 
 /** Rectangle avec un rendu iso propre (ex. labels dressés), sans volume ni mini-carte dédiés. */
-const isoRectangle: ShapeDefinition = { kind: 'rectangle', flat: named('flat'), iso: named('iso') };
+const isoRectangle: ShapeDefinition = { id: 'rectangle', flat: named('flat'), iso: named('iso') };
 
 const page = parseDrawio(fixture('drawio-desktop.drawio')).pages[0]!;
 const shape = page.shapes[0]!;
 
 describe('niveaux de rendu : repli à plat', () => {
   it('un niveau absent se rabat sur flat', () => {
-    const registry = new ShapeRegistry().register({ kind: 'rectangle', flat: named('flat') });
+    const registry = new ShapeRegistry().register({ id: 'rectangle', flat: named('flat') });
     expect(registry.sceneRenderer(shape, 'iso').create(shape, ctx).name).toBe('flat');
     expect(registry.sceneRenderer(shape, 'volume').create(shape, ctx).name).toBe('flat');
     expect(registry.hasLevel(shape, 'iso')).toBe(false);
@@ -36,7 +36,7 @@ describe('niveaux de rendu : repli à plat', () => {
     const unknown = { ...shape, kind: 'cube' };
     const registry = createDefaultRegistry();
     const placeholder = registry.resolve(unknown).definition;
-    expect(placeholder.kind).toBe('placeholder');
+    expect(placeholder.id).toBe('placeholder');
     expect(registry.sceneRenderer(unknown, 'iso')).toBe(placeholder.iso);
     expect(registry.sceneRenderer(unknown, 'volume')).toBe(placeholder.flat);
   });
@@ -44,7 +44,7 @@ describe('niveaux de rendu : repli à plat', () => {
 
 describe('effectiveLevel : une scène par niveau seulement si utile', () => {
   it('flat partagé par tous les modes quand aucune forme n’a de rendu propre', () => {
-    const flatOnly = new ShapeRegistry().register({ kind: 'rectangle', flat: named('flat') });
+    const flatOnly = new ShapeRegistry().register({ id: 'rectangle', flat: named('flat') });
     expect(effectiveLevel(page, flatOnly, 'iso')).toBe('flat');
     expect(effectiveLevel(page, createDefaultRegistry(), 'flat')).toBe('flat');
     // Les rectangles ont un volume par défaut : scène iso dédiée.
@@ -107,7 +107,7 @@ describe('mini-carte : rendu propre, repli sur le contour, ou rien', () => {
     expect(registry.minimapPainter(text)).toBeUndefined();
     expect(registry.minimapPainter(group)).toBeUndefined();
     const own = vi.fn();
-    const custom = new ShapeRegistry().register({ kind: 'rectangle', flat: named('flat'), minimap: own });
+    const custom = new ShapeRegistry().register({ id: 'rectangle', flat: named('flat'), minimap: own });
     custom.minimapPainter(shape)!(fakeContext(), shape, map);
     expect(own).toHaveBeenCalled();
   });

@@ -1,6 +1,6 @@
-import { cubicTo } from '../../render/geometry/curves';
-import { SPATIAL } from '../../spatial';
-import type { SceneRenderer } from '../types';
+import { cubicTo } from '../../../../render/geometry/curves';
+import { SPATIAL } from '../../../../spatial';
+import type { SceneRenderer } from '../../../types';
 import {
   building,
   engrave,
@@ -11,7 +11,7 @@ import {
   strokeOf,
   tagOf,
   tagSize,
-} from '../utils/building';
+} from '../../../generic/building';
 
 /** Étiquette de façade par défaut d'une BDD (`spatial.tag` la remplace ; vide = aucune). */
 export const DATABASE_TAG = 'DB';

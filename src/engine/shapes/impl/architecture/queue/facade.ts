@@ -1,8 +1,18 @@
 import type { Group } from 'three';
-import type { Point, ShapeModel } from '../../model/types';
-import { SPATIAL } from '../../spatial';
-import type { SceneRenderer } from '../types';
-import { building, engrave, facadeTag, facesOf, plinthOf, rectBlock, strokeOf, tagOf, tagSize } from './building';
+import type { Point, ShapeModel } from '../../../../model/types';
+import { SPATIAL } from '../../../../spatial';
+import type { SceneRenderer } from '../../../types';
+import {
+  building,
+  engrave,
+  facadeTag,
+  facesOf,
+  plinthOf,
+  rectBlock,
+  strokeOf,
+  tagOf,
+  tagSize,
+} from '../../../generic/building';
 
 /** Étiquette de façade par défaut d'une queue (`spatial.tag` la remplace ; vide = aucune). */
 export const QUEUE_TAG = 'QUEUE';

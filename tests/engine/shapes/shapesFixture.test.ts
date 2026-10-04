@@ -6,7 +6,7 @@ import type { PageModel, Point, ShapeModel } from '../../../src/engine/model/typ
 import { toTerminal } from '../../../src/engine/render/edges/edge';
 import { routeEdge, simplify } from '../../../src/engine/render/edges/route';
 import { orientedPath } from '../../../src/engine/render/geometry/orient';
-import { PLUG_SHAPE } from '../../../src/engine/shapes/plug';
+import { PLUG_SHAPE } from '../../../src/engine/shapes/impl/architecture/plug';
 import { createDefaultRegistry } from '../../../src/engine/shapes/registry';
 import { drawioSvgOutlines, drawioSvgRoutes, dropCollinear, fixture } from '../../helpers';
 

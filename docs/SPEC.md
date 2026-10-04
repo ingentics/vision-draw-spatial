@@ -120,9 +120,12 @@ src/
       types.ts         # ShapeDefinition : rendus, géométrie, interaction, palette, panneau
       registry.ts      # collecte des dossiers, résolution forme → définition, replis génériques
       placeholder.ts   # repli des formes non supportées
-      rectangle/       # un dossier par forme : index.ts exporte `definition`
-      ellipse/ …
-      utils/           # code partagé entre formes (cylindres, bâtiments iso, mini-carte)
+      minimap.ts       # repli mini-carte : contour de la forme
+      generic/         # bases à étendre : box/, cylinder/, building/
+      impl/            # une forme par élément de la palette, nommée comme l'interface
+        general/       # rectangle/, rounded-rectangle/, ellipse/, circle/, diamond/, text/
+        architecture/  # database/, queue/, distributed-cache/, plug/
+        internal/      # hors palette : group/
     interaction/
       camera.ts        # ortho / iso, pan, zoom, état sérialisable
       keyboard.ts
@@ -313,7 +316,7 @@ type LinkModel =
 
 ### 8.2 Registre de renderers
 
-Chaque type de forme est décrit par une **définition**, dans son dossier `src/engine/shapes/<forme>/` (`index.ts` exporte `definition`), collectée toute seule par le registre. Le moteur et l'appli ne connaissent que l'interface commune : ils ne testent jamais le nom d'une forme, ils interrogent le registre. Guide pas à pas pour en ajouter une : [AJOUTER_UNE_FORME.md](AJOUTER_UNE_FORME.md).
+Chaque forme est décrite par une **définition**, dans son dossier `src/engine/shapes/impl/<catégorie>/<id>/` (`index.ts` exporte `definition`), collectée toute seule par le registre. Elle porte le nom de l'interface en anglais (`database`, `rounded-rectangle`…), gère une ou plusieurs formes draw.io (`kinds`, défaut `[id]`), avec au besoin une condition (`matches`, ex. `rounded=1`), et contient tout ce qui la concerne, iso / 3D compris ; elle étend une base de `shapes/generic/` ou une autre forme pour ce qu'elle partage. Le moteur et l'appli ne connaissent que l'interface commune : ils ne testent jamais le nom d'une forme, ils interrogent le registre. Guide pas à pas pour en ajouter une : [AJOUTER_UNE_FORME.md](AJOUTER_UNE_FORME.md).
 
 Une forme a **plusieurs niveaux de rendu** selon le contexte, avec un **repli systématique sur le rendu à plat** :
 
@@ -328,8 +331,9 @@ Une forme a **plusieurs niveaux de rendu** selon le contexte, avec un **repli sy
 type SceneLevel = 'flat' | 'iso' | 'volume';
 
 interface ShapeDefinition {
-  kind: string;
-  matches?(shape: ShapeModel): boolean;        // par défaut : correspondance sur kind
+  id: string;                                  // nom de l'interface = nom du dossier (accepté par spatial.kind)
+  kinds?: string[];                            // formes draw.io gérées (défaut : [id])
+  matches?(shape: ShapeModel): boolean;        // condition de variante (rounded=1, aspect=fixed, cylindre couché…)
   outline?(shape: ShapeModel): Point[];        // contour au sol : géométrie de référence (rendu à plat, replis)
   contains?(shape: ShapeModel, p: Point): boolean; // clic ; par défaut : le contour, sinon les bornes
   flat: SceneRenderer;                         // obligatoire
@@ -342,8 +346,7 @@ interface ShapeDefinition {
   connectable?: boolean;                       // défaut : oui
   pickable?: 'always' | 'withLink';            // défaut : always (groupe : withLink)
   movesAsBlock?: boolean;                      // défaut : non (groupe : oui)
-  templates?: ShapeTemplate[];                 // modèles de la palette (§14.1)
-  templateOf?(style): string | undefined;      // variante d'une forme (rectangle / arrondi…)
+  palette?: PaletteEntry;                      // élément de la palette (§14.1) ; modèle d'id = id de la forme
   swatch?(style): string;                      // aperçu des styles du panneau
   properties?: ShapeProperty[];                // réglages propres à la forme, dans le panneau
 }
@@ -353,7 +356,7 @@ interface SceneRenderer {
 }
 ```
 
-- Le registre résout la définition d'une forme (placeholder si aucune), puis le rendu d'un niveau : `registry.sceneRenderer(shape, level)` (repli `flat`), `registry.minimapPainter(shape)` (repli contour).
+- Le registre résout la définition d'une forme, de la plus précise à la plus générale : condition `matches` vérifiée, puis `id` égal au nom de la forme (`spatial.kind`), puis nom draw.io sans condition (placeholder si aucune) ; puis le rendu d'un niveau : `registry.sceneRenderer(shape, level)` (repli `flat`), `registry.minimapPainter(shape)` (repli contour).
 - Une page est construite **au niveau du mode de vue** (iso en mode iso, à plat sinon). Si aucune forme de la page n'a de rendu propre à ce niveau, la scène à plat est réutilisée telle quelle : pas de reconstruction en basculant de mode. Le cache de scènes est donc indexé par page **et** niveau.
 - Rectangles, ellipses et placeholders ont un rendu `iso` en volume (§9.1) ; le texte et les groupes restent à plat.
 - Les arêtes ont pour l'instant un rendu unique (à plat), et un tracé simplifié en mini-carte.
@@ -742,7 +745,7 @@ Réalisation retenue (`engine/spatial.ts`) :
 
 | Attribut | Où | Effet |
 |---|---|---|
-| `spatial.kind` | style ou objet | Forme dessinée par Drawio Spatial (nom d'une définition, ex. `cylinder3`), à la place de celle devinée du style ; le style draw.io reste intact. Absent ou vide : devinée (`resolveShapeKind`) |
+| `spatial.kind` | style ou objet | Forme dessinée par Drawio Spatial : nom de l'interface (`database`, `queue`…) ou nom draw.io (`cylinder3`), à la place de celle devinée du style ; le style draw.io reste intact. Absent ou vide : devinée (`resolveShapeKind`) |
 | `spatial.height` | style ou objet | Épaisseur du volume en iso, en pixels de page (défaut : réglage « Épaisseur ») |
 | `spatial.elevation` | style ou objet | La forme flotte à cette hauteur au-dessus de sa base (sol, ou dessus de son conteneur) |
 | `spatial.tag` | style ou objet | Étiquette des façades d'un bâtiment iso (BDD, file, cache) : remplace « DB », « QUEUE », « CACHE » ; vide = aucune |

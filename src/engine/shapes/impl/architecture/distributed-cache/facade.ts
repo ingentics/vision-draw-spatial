@@ -1,10 +1,10 @@
 import { Color } from 'three';
-import { rectPath } from '../../render/geometry/paths';
-import { fillMesh } from '../../render/meshes';
-import { PART_ORDER } from '../../render/types';
-import { SPATIAL, spatialNumber } from '../../spatial';
-import type { SceneRenderer } from '../types';
-import { building, CAP_HEIGHT, darker, facadeTag, facesOf, slab, tagOf } from '../utils/building';
+import { rectPath } from '../../../../render/geometry/paths';
+import { fillMesh } from '../../../../render/meshes';
+import { PART_ORDER } from '../../../../render/types';
+import { SPATIAL, spatialNumber } from '../../../../spatial';
+import type { SceneRenderer } from '../../../types';
+import { building, CAP_HEIGHT, darker, facadeTag, facesOf, slab, tagOf } from '../../../generic/building';
 
 /** Étiquette de façade par défaut d'un cache (`spatial.tag` la remplace ; vide = aucune). */
 export const CACHE_TAG = 'CACHE';

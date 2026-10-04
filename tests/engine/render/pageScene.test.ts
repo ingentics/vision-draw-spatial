@@ -152,7 +152,8 @@ describe('buildPageScene — formes', () => {
 
   it('un renderer enregistré après les autres est prioritaire', () => {
     const custom: ShapeDefinition = {
-      kind: 'cylinder3',
+      id: 'custom-cylinder',
+      kinds: ['cylinder3'],
       flat: { create: () => Object.assign(new Object3D(), { name: 'custom' }) },
     };
     const { scene } = build('simple.drawio', createDefaultRegistry().register(custom));
@@ -253,6 +254,6 @@ describe('ShapeRegistry', () => {
   it('sans définition : placeholder, non supporté', () => {
     const { page } = build('drawio-desktop.drawio', new ShapeRegistry());
     const resolved = new ShapeRegistry().resolve(page.shapes[0]!);
-    expect(resolved).toMatchObject({ supported: false, definition: { kind: 'placeholder' } });
+    expect(resolved).toMatchObject({ supported: false, definition: { id: 'placeholder' } });
   });
 });

@@ -1,6 +1,6 @@
-import type { Point, ShapeModel } from '../../model/types';
-import { rectPath } from '../../render/geometry/paths';
-import type { MinimapMapping, MinimapPainter, ShapeDefinition } from '../types';
+import type { Point, ShapeModel } from '../model/types';
+import { rectPath } from '../render/geometry/paths';
+import type { MinimapMapping, MinimapPainter, ShapeDefinition } from './types';
 
 const DEFAULT_FILL = '#ffffff';
 const OUTLINE_STROKE = '#9aa0a6';

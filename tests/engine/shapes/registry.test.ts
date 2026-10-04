@@ -8,39 +8,79 @@ import type { ShapeDefinition } from '../../../src/engine/shapes/types';
 const model = (kind: string, style: Record<string, string> = {}, extra: Partial<ShapeModel> = {}) =>
   ({ id: 's', kind, style, bounds: { x: 0, y: 0, width: 100, height: 60 }, ...extra }) as unknown as ShapeModel;
 
-describe('formes en plugins (étape 65) : contrat des définitions', () => {
-  it('chaque dossier de forme est collecté, avec un nom unique et un rendu à plat', () => {
-    const kinds = SHAPE_DEFINITIONS.map((definition) => definition.kind);
-    expect(kinds).toEqual(
-      expect.arrayContaining([
-        'rectangle',
-        'ellipse',
-        'text',
-        'group',
-        'rhombus',
-        'cylinder3',
-        'datastore',
-        'mxgraph.flowchart.direct_data',
-        'stencil:plug',
-      ]),
-    );
-    expect(new Set(kinds).size).toBe(kinds.length);
-    for (const definition of SHAPE_DEFINITIONS) expect(typeof definition.flat.create).toBe('function');
+/** Dossiers des formes : `impl/<catégorie>/<id>/index.ts`. */
+const FOLDERS = Object.entries(
+  import.meta.glob<ShapeDefinition>('../../../src/engine/shapes/impl/*/*/index.ts', {
+    eager: true,
+    import: 'definition',
+  }),
+).map(([path, definition]) => {
+  const [category, folder] = path.split('/').slice(-3, -1) as [string, string];
+  return { category, folder, definition };
+});
+
+describe('formes en plugins (étapes 65, 67) : contrat des définitions', () => {
+  it('une forme par élément de la palette, nommée comme l’interface, rangée par catégorie', () => {
+    expect(FOLDERS.map(({ category, folder }) => `${category}/${folder}`).sort()).toEqual([
+      'architecture/database',
+      'architecture/distributed-cache',
+      'architecture/plug',
+      'architecture/queue',
+      'general/circle',
+      'general/diamond',
+      'general/ellipse',
+      'general/rectangle',
+      'general/rounded-rectangle',
+      'general/text',
+      'internal/group',
+    ]);
+    expect(SHAPE_DEFINITIONS).toHaveLength(FOLDERS.length);
   });
 
-  it('chaque modèle de palette crée sa forme, qui le reconnaît comme sa variante', () => {
-    const registry = createDefaultRegistry();
-    const templates = registry.templates();
-    expect(new Set(templates.map((t) => t.id)).size).toBe(templates.length);
-    for (const definition of SHAPE_DEFINITIONS) {
-      for (const template of definition.templates ?? []) {
-        const parsed = parseStyle(template.style);
-        const shape = model(resolveShapeKind(parsed), parsed.values);
-        expect(registry.resolve(shape).definition, template.id).toBe(definition);
-        expect(registry.templateOf(shape)?.id, template.id).toBe(template.id);
-        expect(template.icon.trim().startsWith('<'), template.id).toBe(true);
-      }
+  it('id = nom du dossier, catégorie de palette = dossier de catégorie (internal : hors palette), rendu à plat', () => {
+    for (const { category, folder, definition } of FOLDERS) {
+      expect(definition.id).toBe(folder);
+      expect(definition.palette?.category ?? 'internal', folder).toBe(category);
+      expect(typeof definition.flat.create, folder).toBe('function');
     }
+  });
+
+  it('chaque élément de palette crée une forme résolue vers sa définition', () => {
+    const registry = createDefaultRegistry();
+    for (const definition of SHAPE_DEFINITIONS) {
+      if (!definition.palette) continue;
+      const parsed = parseStyle(definition.palette.style);
+      const shape = model(resolveShapeKind(parsed), parsed.values);
+      expect(registry.resolve(shape).definition.id, definition.id).toBe(definition.id);
+      expect(registry.templateOf(shape)?.id, definition.id).toBe(definition.id);
+      expect(definition.palette.icon.trim().startsWith('<'), definition.id).toBe(true);
+    }
+  });
+
+  it('résolution : la variante la plus précise, puis le nom de la forme (spatial.kind), puis le nom draw.io', () => {
+    const registry = createDefaultRegistry();
+    const id = (kind: string, style: Record<string, string> = {}) => registry.resolve(model(kind, style)).definition.id;
+    expect(id('rectangle')).toBe('rectangle');
+    expect(id('rectangle', { rounded: '1' })).toBe('rounded-rectangle');
+    expect(id('ellipse', { aspect: 'fixed' })).toBe('circle');
+    expect(id('cylinder3')).toBe('database');
+    expect(id('cylinder3', { direction: 'south' })).toBe('queue');
+    expect(id('mxgraph.flowchart.direct_data')).toBe('queue');
+    expect(id('rhombus')).toBe('diamond');
+    expect(id('database', { direction: 'south' })).toBe('database');
+    expect(id('queue')).toBe('queue');
+    expect(registry.resolve(model('note')).supported).toBe(false);
+  });
+
+  it('une forme imposée garde l’orientation de sa forme : BDD debout, queue couchée', () => {
+    const registry = createDefaultRegistry();
+    const silhouette = (kind: string, style: Record<string, string> = {}) =>
+      registry.resolve(model(kind, style)).definition.outline!(model(kind, style));
+    const width = (points: { x: number }[]) =>
+      Math.max(...points.map((p) => p.x)) - Math.min(...points.map((p) => p.x));
+    expect(silhouette('database', { direction: 'south' })).toEqual(silhouette('cylinder3'));
+    expect(silhouette('queue')).toEqual(silhouette('cylinder3', { direction: 'south' }));
+    expect(width(silhouette('queue'))).toBeCloseTo(100);
   });
 
   it('la palette suit le rang des modèles', () => {
@@ -74,6 +114,8 @@ describe('formes en plugins (étape 65) : contrat des définitions', () => {
     expect(registry.properties(model('rectangle')).map((p) => p.key)).toEqual(['rounded']);
     expect(registry.properties(model('ellipse'))).toEqual([]);
     expect(registry.properties(model('datastore')).map((p) => p.key)).toEqual(['spatial.nodes', 'spatial.tag']);
+    expect(registry.properties(model('cylinder3'))[0]).toMatchObject({ placeholder: 'DB' });
+    expect(registry.properties(model('cylinder3', { direction: 'south' }))[0]).toMatchObject({ placeholder: 'QUEUE' });
     expect(registry.swatch(model('ellipse'))).toContain('<ellipse');
     expect(registry.swatch(model('rhombus'))).toContain('<rect');
     expect(registry.swatch(model('mxgraph.aws4.lambda'))).toContain('<rect');
@@ -89,25 +131,23 @@ describe('formes en plugins (étape 65) : contrat des définitions', () => {
 });
 
 describe('formes en plugins (étape 65) : une forme déposée se branche toute seule', () => {
+  // Cas nominal : `id` = nom draw.io, pas de `kinds` à écrire.
   const note: ShapeDefinition = {
-    kind: 'note',
+    id: 'note',
     flat: { create: () => new Group() },
     resizable: false,
     properties: [{ type: 'number', key: 'size', label: 'Pli', section: 'border' }],
-    templates: [
-      {
-        id: 'note',
-        name: 'Note',
-        category: 'general',
-        order: 15,
-        keywords: [],
-        style: 'shape=note;',
-        value: '',
-        width: 80,
-        height: 100,
-        icon: '<path d="M10 3h20v22H10z"/>',
-      },
-    ],
+    palette: {
+      name: 'Note',
+      category: 'general',
+      order: 15,
+      keywords: [],
+      style: 'shape=note;',
+      value: '',
+      width: 80,
+      height: 100,
+      icon: '<path d="M10 3h20v22H10z"/>',
+    },
     swatch: () => '<path d="M8 5h24v18H8z"/>',
   };
   const registry = new ShapeRegistry();
@@ -121,7 +161,7 @@ describe('formes en plugins (étape 65) : une forme déposée se branche toute s
         .templates()
         .map((t) => t.id)
         .slice(0, 3),
-    ).toEqual(['rectangle', 'note', 'rounded']);
+    ).toEqual(['rectangle', 'note', 'rounded-rectangle']);
     expect(registry.templateOf(shape)?.id).toBe('note');
     expect(registry.properties(shape).map((p) => p.label)).toEqual(['Pli']);
     expect(registry.swatch(shape)).toBe('<path d="M8 5h24v18H8z"/>');

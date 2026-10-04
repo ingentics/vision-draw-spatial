@@ -52,8 +52,8 @@ describe('palette', () => {
   it('catégories : Général puis Architecture, chaque forme dans une catégorie connue', () => {
     expect(PALETTE_CATEGORIES.map((c) => c.name)).toEqual(['Général', 'Architecture']);
     const byCategory = (id: string) => SHAPE_TEMPLATES.filter((t) => t.category === id).map((t) => t.id);
-    expect(byCategory('general')).toEqual(['rectangle', 'rounded', 'ellipse', 'circle', 'rhombus', 'text']);
-    expect(byCategory('architecture')).toEqual(['database', 'queue', 'cache', 'plug']);
+    expect(byCategory('general')).toEqual(['rectangle', 'rounded-rectangle', 'ellipse', 'circle', 'diamond', 'text']);
+    expect(byCategory('architecture')).toEqual(['database', 'queue', 'distributed-cache', 'plug']);
   });
 
   describe('searchTemplates', () => {
@@ -73,12 +73,12 @@ describe('palette', () => {
     it('sur les mots-clés et le nom de la catégorie', () => {
       expect(ids('bdd')).toEqual(['database']);
       expect(ids('cyl')).toEqual(['database', 'queue']);
-      expect(ids('architecture')).toEqual(['database', 'queue', 'cache', 'plug']);
+      expect(ids('architecture')).toEqual(['database', 'queue', 'distributed-cache', 'plug']);
       expect(ids('plugin')).toEqual(['plug']);
     });
 
     it('plusieurs mots : chacun doit apparaître', () => {
-      expect(ids('rect arrondi')).toEqual(['rounded']);
+      expect(ids('rect arrondi')).toEqual(['rounded-rectangle']);
     });
 
     it('aucun résultat', () => {
@@ -99,7 +99,7 @@ describe('formes utilisées (étape 56)', () => {
 
   it('reconnaît les formes d’un fichier depuis les clés distinctives', () => {
     expect(templateOfShape(shape('whiteSpace=wrap;html=1;'))?.id).toBe('rectangle');
-    expect(templateOfShape(shape('rounded=1;fillColor=#f00;'))?.id).toBe('rounded');
+    expect(templateOfShape(shape('rounded=1;fillColor=#f00;'))?.id).toBe('rounded-rectangle');
     expect(templateOfShape(shape('ellipse;aspect=fixed;'))?.id).toBe('circle');
     expect(templateOfShape(shape('shape=cylinder3;direction=north;'))?.id).toBe('queue');
     expect(templateOfShape(shape('shape=cylinder3;'))?.id).toBe('database');

@@ -1,9 +1,9 @@
 import { Group } from 'three';
-import type { ShapeDefinition } from '../types';
+import type { ShapeDefinition } from '../../../types';
 
 /** Les groupes draw.io sont invisibles : seuls leurs enfants sont dessinés. */
 export const definition: ShapeDefinition = {
-  kind: 'group',
+  id: 'group',
   flat: {
     create(shape) {
       const group = new Group();

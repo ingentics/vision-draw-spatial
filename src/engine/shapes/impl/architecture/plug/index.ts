@@ -1,9 +1,8 @@
-import { stencilShape } from '../../format/stencil';
-import type { Point, ShapeModel } from '../../model/types';
-import { flatBox } from '../../render/flat/box';
-import { orientedPath } from '../../render/geometry/orient';
-import { isoBlock } from '../../render/iso/block';
-import type { ShapeDefinition } from '../types';
+import { stencilShape } from '../../../../format/stencil';
+import type { Point, ShapeModel } from '../../../../model/types';
+import { orientedPath } from '../../../../render/geometry/orient';
+import { box } from '../../../generic/box';
+import type { ShapeDefinition } from '../../../types';
 
 /** Cadre du stencil (`w`, `h` de `<shape>`) : le contour s'étire dans les bornes de la forme. */
 const STENCIL_W = 100;
@@ -47,23 +46,19 @@ function outline(shape: ShapeModel) {
  * style (`shape=stencil(…)`, nom `plug`). Prisme du contour en iso / 3D ; périmètre rectangle, comme draw.io.
  */
 export const definition: ShapeDefinition = {
-  kind: 'stencil:plug',
-  outline,
-  flat: flatBox(outline),
-  iso: isoBlock(outline),
-  templates: [
-    {
-      id: 'plug',
-      name: 'Prise',
-      category: 'architecture',
-      order: 80,
-      keywords: ['plug', 'plugin', 'connecteur', 'connector', 'module', 'extension'],
-      // Pas de prise native dans draw.io : stencil embarqué, dessiné à l'identique par draw.io.
-      style: `shape=${PLUG_SHAPE};whiteSpace=wrap;html=1;`,
-      value: '',
-      width: 100,
-      height: 60,
-      icon: '<path d="M6 6h20v4h8v3h-8v2h8v3h-8v4H6z"/>',
-    },
-  ],
+  id: 'plug',
+  kinds: ['stencil:plug'],
+  ...box(outline),
+  palette: {
+    name: 'Prise',
+    category: 'architecture',
+    order: 80,
+    keywords: ['plug', 'plugin', 'connecteur', 'connector', 'module', 'extension'],
+    // Pas de prise native dans draw.io : stencil embarqué, dessiné à l'identique par draw.io.
+    style: `shape=${PLUG_SHAPE};whiteSpace=wrap;html=1;`,
+    value: '',
+    width: 100,
+    height: 60,
+    icon: '<path d="M6 6h20v4h8v3h-8v2h8v3h-8v4H6z"/>',
+  },
 };

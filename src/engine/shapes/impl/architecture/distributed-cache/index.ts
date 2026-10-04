@@ -1,10 +1,10 @@
-import type { ShapeModel } from '../../model/types';
-import { SPATIAL } from '../../spatial';
-import { tagProperty } from '../utils/building';
-import type { CylinderDrawing } from '../utils/cylinder';
-import { cylinderFlat, cylinderLip, cylinderSilhouette, flatTextZone, ringHeight } from '../utils/cylinder';
-import type { ShapeDefinition } from '../types';
-import { CACHE_TAG, DEFAULT_CACHE_NODES, isoCache } from './cache';
+import type { ShapeModel } from '../../../../model/types';
+import { SPATIAL } from '../../../../spatial';
+import { tagProperty } from '../../../generic/building';
+import type { CylinderDrawing } from '../../../generic/cylinder';
+import { cylinderFlat, cylinderLip, cylinderSilhouette, flatTextZone, ringHeight } from '../../../generic/cylinder';
+import type { ShapeDefinition } from '../../../types';
+import { CACHE_TAG, DEFAULT_CACHE_NODES, isoCache } from './facade';
 
 /**
  * `shape=datastore` : ellipse de taille fixe, trois lèvres (les anneaux). Le label est toujours dans le
@@ -26,9 +26,13 @@ function datastoreDrawing(shape: ShapeModel): CylinderDrawing {
 
 const datastoreFlat = cylinderFlat(datastoreDrawing);
 
-/** Cache distribué : cylindre à anneaux draw.io ; en iso, pile de disques (un par nœud, `spatial.nodes`). */
+/**
+ * Cache distribué (`shape=datastore`) : étend le cylindre (cylindre à anneaux draw.io) et le bâtiment (en iso, pile
+ * de disques, un par nœud, `spatial.nodes`).
+ */
 export const definition: ShapeDefinition = {
-  kind: 'datastore',
+  id: 'distributed-cache',
+  kinds: ['datastore'],
   outline: (shape) => datastoreDrawing(shape).silhouette,
   flat: datastoreFlat,
   textZone: flatTextZone(datastoreDrawing),
@@ -44,19 +48,16 @@ export const definition: ShapeDefinition = {
     },
     tagProperty(CACHE_TAG),
   ],
-  templates: [
-    {
-      id: 'cache',
-      name: 'Cache distribué',
-      category: 'architecture',
-      order: 70,
-      keywords: ['cache', 'redis', 'datastore', 'stockage', 'storage'],
-      style: 'shape=datastore;whiteSpace=wrap;html=1;',
-      value: '',
-      width: 60,
-      height: 60,
-      icon: '<path d="M12 6c0-3 16-3 16 0v16c0 3-16 3-16 0zM12 6c0 3 16 3 16 0M12 9c0 3 16 3 16 0M12 12c0 3 16 3 16 0"/>',
-    },
-  ],
   swatch: () => '<path d="M12 6c0-3 16-3 16 0v16c0 3-16 3-16 0zM12 6c0 3 16 3 16 0"/>',
+  palette: {
+    name: 'Cache distribué',
+    category: 'architecture',
+    order: 70,
+    keywords: ['cache', 'redis', 'datastore', 'stockage', 'storage'],
+    style: 'shape=datastore;whiteSpace=wrap;html=1;',
+    value: '',
+    width: 60,
+    height: 60,
+    icon: '<path d="M12 6c0-3 16-3 16 0v16c0 3-16 3-16 0zM12 6c0 3 16 3 16 0M12 9c0 3 16 3 16 0M12 12c0 3 16 3 16 0"/>',
+  },
 };
