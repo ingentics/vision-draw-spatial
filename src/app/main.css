@@ -1194,7 +1194,7 @@ body {
 
 /* Texte édité en place : police, taille, couleur et alignement du label (style posé par l'éditeur). */
 .label-editor-text {
-  min-width: max(1em, min-content);
+  min-width: min-content;
   max-width: 100%;
   font-family: 'Roboto', sans-serif;
   line-height: 1.2;
@@ -1202,6 +1202,12 @@ body {
   caret-color: var(--accent);
   outline: none;
   cursor: text;
+}
+
+/* Texte vide (ou réduit au `<br>` laissé par un effacement) : sans largeur, le curseur ne s'afficherait pas. */
+.label-editor-text:empty,
+.label-editor-text:has(> br:only-child) {
+  min-width: 1px;
 }
 
 .icon-button {
