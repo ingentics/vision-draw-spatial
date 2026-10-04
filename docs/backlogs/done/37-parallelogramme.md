@@ -28,3 +28,11 @@
 - **Fini quand :** la forme s'affiche comme dans draw.io en 2D (comparaison avec l'export), en volume en iso et en 3D,
   se clique et reçoit les flèches sur son contour, se crée depuis la palette (catégorie « Géométrie ») ; elle
   n'apparaît plus dans le panneau Diagnostics ; `spatial.kind=<id>` la dessine.
+
+Fait : forme `src/engine/shapes/impl/geometry/parallelogram/` (contour de `ParallelogramShape.redrawPath` : décalage
+de `size` px avec `fixedSize=1`, au plus la largeur, sinon fraction de la largeur, 0,2 ; orienté par
+`orientedPath` ; prisme en iso / 3D ; « Parallélogramme » dans la palette). Périmètre `parallelogramPerimeter`
+porté dans `render/edges/route.ts` (couché et debout ; calcul de `size` commun avec l'hexagone). Fixture
+`shapes.drawio` : orientations, `size`, `fixedSize=0`, et flèches vers trois parallélogrammes (couché, debout,
+retourné) identiques à l'export SVG de draw.io ; tests dans `tests/engine/shapes/geometry.test.ts`. Vérifié dans
+l'appli : palette, iso.

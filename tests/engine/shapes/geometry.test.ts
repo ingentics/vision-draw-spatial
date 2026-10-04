@@ -195,3 +195,35 @@ describe('triangles (36)', () => {
     expect(registry.contains(s, { x: 155, y: 105 })).toBe(false);
   });
 });
+
+describe('parallélogramme (37)', () => {
+  const STYLE = 'shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;';
+  const shape = (style = STYLE, width = 120, height = 60) => page([style], width, height).page.shapes[0]!;
+  const outline = (style?: string, width?: number, height?: number) => {
+    const s = shape(style, width, height);
+    return round(registry.resolve(s).definition.outline!(s));
+  };
+
+  it('dessiné par sa définition, absent des Diagnostics ; spatial.kind=parallelogram le dessine', () => {
+    const { document, page: p } = page([STYLE, 'shape=note;spatial.kind=parallelogram;'], 120, 60);
+    expect(p.shapes.map((s) => registry.resolve(s).definition.id)).toEqual(['parallelogram', 'parallelogram']);
+    expect(collectUnsupported(document, registry).entries).toEqual([]);
+  });
+
+  it('contour : côtés obliques décalés de size px (fixedSize=1), sinon d’une fraction de la largeur', () => {
+    expect(outline()).toEqual([
+      [100, 160],
+      [120, 100],
+      [220, 100],
+      [200, 160],
+    ]);
+    expect(outline(STYLE.replace('fixedSize=1;', ''))[1]).toEqual([124, 100]);
+  });
+
+  it('volume : prisme du contour ; clic dans le contour, pas dans les coins vides', () => {
+    expect(volume(STYLE, 120, 60)).toEqual({ min: [100, 0, 100], max: [220, 20, 160] });
+    const s = shape();
+    expect(registry.contains(s, { x: 160, y: 130 })).toBe(true);
+    expect(registry.contains(s, { x: 103, y: 103 })).toBe(false);
+  });
+});

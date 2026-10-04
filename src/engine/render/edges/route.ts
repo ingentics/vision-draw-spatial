@@ -21,9 +21,9 @@ import type { Point, Rect } from '../../model/types';
 
 /**
  * Périmètres de draw.io gérés (`rectanglePerimeter`, `ellipsePerimeter`, `rhombusPerimeter`,
- * `trianglePerimeter`, `hexagonPerimeter2`).
+ * `trianglePerimeter`, `hexagonPerimeter2`, `parallelogramPerimeter`).
  */
-export type PerimeterKind = 'rectangle' | 'ellipse' | 'rhombus' | 'triangle' | 'hexagon';
+export type PerimeterKind = 'rectangle' | 'ellipse' | 'rhombus' | 'triangle' | 'hexagon' | 'parallelogram';
 
 /** Périmètres nommés par `perimeter=…` (registre de styles de draw.io). */
 const NAMED_PERIMETERS: Record<string, PerimeterKind> = {
@@ -31,6 +31,7 @@ const NAMED_PERIMETERS: Record<string, PerimeterKind> = {
   rhombusPerimeter: 'rhombus',
   trianglePerimeter: 'triangle',
   hexagonPerimeter2: 'hexagon',
+  parallelogramPerimeter: 'parallelogram',
 };
 
 /**
@@ -366,7 +367,43 @@ export function perimeterPolygon(
   style: Record<string, string>,
 ): Point[] | undefined {
   if (kind === 'hexagon') return hexagonPerimeter(bounds, style);
+  if (kind === 'parallelogram') return parallelogramPerimeter(bounds, style);
   return undefined;
+}
+
+/** Décalage d'un périmètre à pans (`size`) : px avec `fixedSize=1`, sinon fraction de `length`. */
+function perimeterSize(style: Record<string, string>, fixedDefault: number, relativeDefault: number) {
+  const fixed = (style.fixedSize ?? '0') !== '0';
+  const size = number(style.size, fixed ? fixedDefault : relativeDefault);
+  return (length: number, max = length) =>
+    fixed ? Math.max(0, Math.min(max, size)) : length * Math.max(0, Math.min(1, size));
+}
+
+/**
+ * `mxPerimeter.ParallelogramPerimeter` : côtés obliques décalés de `size` (px avec `fixedSize=1`, 20 par défaut,
+ * au plus la demi-largeur ; sinon fraction, 0,2), debout avec `direction=north|south`.
+ */
+function parallelogramPerimeter(bounds: Rect, style: Record<string, string>): Point[] {
+  const offset = perimeterSize(style, 20, 0.2);
+  const { x, y, width: w, height: h } = bounds;
+  if (style.direction === 'north' || style.direction === 'south') {
+    const s = offset(h);
+    return [
+      { x, y },
+      { x: x + w, y: y + s },
+      { x: x + w, y: y + h },
+      { x, y: y + h - s },
+      { x, y },
+    ];
+  }
+  const s = offset(w, w / 2);
+  return [
+    { x: x + s, y },
+    { x: x + w, y },
+    { x: x + w - s, y: y + h },
+    { x, y: y + h },
+    { x: x + s, y },
+  ];
 }
 
 /**
@@ -374,13 +411,12 @@ export function perimeterPolygon(
  * `direction=north|south`), pans de `size` (px avec `fixedSize=1`, 20 par défaut ; sinon fraction, 0,25).
  */
 function hexagonPerimeter(bounds: Rect, style: Record<string, string>): Point[] {
-  const fixed = (style.fixedSize ?? '0') !== '0';
-  const size = number(style.size, fixed ? 20 : 0.25);
+  const offset = perimeterSize(style, 20, 0.25);
   const { x, y, width: w, height: h } = bounds;
   const cx = x + w / 2;
   const cy = y + h / 2;
   if (style.direction === 'north' || style.direction === 'south') {
-    const s = fixed ? Math.max(0, Math.min(h, size)) : h * Math.max(0, Math.min(1, size));
+    const s = offset(h);
     return [
       { x: cx, y },
       { x: x + w, y: y + s },
@@ -391,7 +427,7 @@ function hexagonPerimeter(bounds: Rect, style: Record<string, string>): Point[] 
       { x: cx, y },
     ];
   }
-  const s = fixed ? Math.max(0, Math.min(w, size)) : w * Math.max(0, Math.min(1, size));
+  const s = offset(w);
   return [
     { x: x + s, y },
     { x: x + w - s, y },

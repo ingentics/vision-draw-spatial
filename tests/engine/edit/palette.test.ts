@@ -21,6 +21,7 @@ describe('palette', () => {
       'hexagon',
       'mxgraph.basic.octagon2',
       'mxgraph.basic.pentagon',
+      'parallelogram',
       'rectangle',
       'rhombus',
       'stencil:plug',
@@ -67,6 +68,7 @@ describe('palette', () => {
       'pentagon',
       'triangle',
       'triangle-up',
+      'parallelogram',
     ]);
     expect(byCategory('general')).toEqual(['text']);
     const known = new Set(PALETTE_CATEGORIES.map((c) => c.id));

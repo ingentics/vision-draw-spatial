@@ -113,7 +113,7 @@ src/engine/shapes/
 │   └── building/               bâtiment iso : toit, faces, gravures, étiquette
 ├── impl/                       les formes, une par élément de la palette
 │   ├── geometry/               catégorie « Géométrie » : rectangle, rounded-rectangle, ellipse, circle, diamond,
-│   │                           hexagon, octagon, pentagon, triangle, triangle-up
+│   │                           hexagon, octagon, pentagon, triangle, triangle-up, parallelogram
 │   ├── general/                catégorie « Général » : text
 │   ├── architecture/           catégorie « Architecture » : database, queue, distributed-cache, plug
 │   │   └── database/
