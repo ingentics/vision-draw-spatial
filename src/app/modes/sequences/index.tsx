@@ -1,7 +1,10 @@
 import { useState } from 'react';
+import { SEQUENCE_EXPORTERS } from '../../../engine/modes/sequences/export';
+import type { SequenceExporter } from '../../../engine/modes/sequences/export';
 import { sequenceState, addFlow, removeFlow, renameFlow } from '../../../engine/modes/sequences/steps';
 import type { Flow } from '../../../engine/modes/sequences/flows';
 import { Section } from '../../PanelSection';
+import { ExportViewer } from './ExportViewer';
 import type { ModePanel, ModePanelProps } from '../registry';
 
 /**
@@ -13,6 +16,7 @@ export const panel: ModePanel = { PageSection: FlowsSection };
 function FlowsSection({ page, onEdit, current }: ModePanelProps) {
   const { flows, members } = sequenceState(page);
   const [title, setTitle] = useState('');
+  const [exporting, setExporting] = useState<SequenceExporter>();
   const add = () => {
     if (!title.trim()) return;
     onEdit?.('Flux ajouté', (edit) => addFlow(edit, title));
@@ -56,6 +60,23 @@ function FlowsSection({ page, onEdit, current }: ModePanelProps) {
           flèche se range aussi depuis son panneau (Flux, Rang), ou «&nbsp;+&nbsp;» / «&nbsp;-&nbsp;» pour changer son
           rang.
         </p>
+      )}
+      {flows.length > 0 && (
+        <div className="flow-exports">
+          {SEQUENCE_EXPORTERS.map((exporter) => (
+            <button key={exporter.id} type="button" className="button" onClick={() => setExporting(exporter)}>
+              Exporter en {exporter.name}
+            </button>
+          ))}
+        </div>
+      )}
+      {exporting && flows.length > 0 && (
+        <ExportViewer
+          page={page}
+          exporter={exporting}
+          flowId={current !== undefined && members.has(current) ? current : flows[0]!.id}
+          onClose={() => setExporting(undefined)}
+        />
       )}
     </Section>
   );
