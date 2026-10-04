@@ -70,7 +70,17 @@ export function linkBadge(shape: ShapeModel, link: LinkModel, accent = DEFAULT_A
 }
 
 /** Pastille d'une flèche : rayon et taille du texte, au-dessus d'un texte ou seule au milieu de la flèche. */
-const EDGE_BADGE = { labelled: { radius: 16, fontSize: 20 }, alone: { radius: 5.5, fontSize: 7 } };
+const EDGE_BADGE = {
+  labelled: { radius: 12, fontSize: 15, border: 1.5 },
+  alone: { radius: 5.5, fontSize: 7, border: 1 },
+};
+/** Bordure de la pastille. */
+const EDGE_BADGE_BORDER = new Color('#000000');
+/**
+ * Hauteur des chiffres en fraction de la taille du texte (Roboto : 1456 / 2048) : la ligne de base est posée à une
+ * demi-hauteur sous le centre, pour centrer les chiffres eux-mêmes (et non la ligne, qui réserve les jambages).
+ */
+const DIGIT_HEIGHT = 0.71;
 /** Écart entre la pastille et le texte du milieu, en pixels de page. */
 const EDGE_BADGE_GAP = 2;
 
@@ -81,7 +91,7 @@ const EDGE_BADGE_GAP = 2;
  */
 export function edgeBadge(edge: EdgeModel, route: Point[], badge: EdgeBadge, ctx: RenderContext): Group {
   const labelled = edge.label.trim() !== '' && edge.style.noLabel !== '1';
-  const { radius, fontSize } = labelled ? EDGE_BADGE.labelled : EDGE_BADGE.alone;
+  const { radius, fontSize, border } = labelled ? EDGE_BADGE.labelled : EDGE_BADGE.alone;
   const anchor = labelPoint(
     route,
     labelled ? edge.labelPlacement : { position: 0, distance: 0, offset: { x: 0, y: 0 } },
@@ -97,18 +107,17 @@ export function edgeBadge(edge: EdgeModel, route: Point[], badge: EdgeBadge, ctx
   group.name = 'edge-badge';
   group.userData.billboard = 'screen';
   group.position.set(anchor.x, anchor.y, 0.2);
-  const disc = fillMesh(
-    ellipsePath({ x: -radius, y: -lift - radius, width: 2 * radius, height: 2 * radius }, 24),
-    new Color(badge.color),
-    1,
-  );
+  const circle = ellipsePath({ x: -radius, y: -lift - radius, width: 2 * radius, height: 2 * radius }, 48);
+  const disc = fillMesh(circle, new Color(badge.color), 1);
   disc.renderOrder = PART_ORDER.label + 1;
+  const outline = strokeMesh(circle, EDGE_BADGE_BORDER, 1, { width: border, closed: true });
+  if (outline) outline.renderOrder = PART_ORDER.label + 1.25;
   const text = ctx.text.create({
     text: badge.text,
     x: 0,
-    y: -lift,
+    y: -lift + (DIGIT_HEIGHT * fontSize) / 2,
     anchorX: 'center',
-    anchorY: 'middle',
+    anchorY: 'bottom-baseline',
     align: 'center',
     fontSize,
     color: WHITE,
@@ -117,6 +126,7 @@ export function edgeBadge(edge: EdgeModel, route: Point[], badge: EdgeBadge, ctx
   });
   text.renderOrder = PART_ORDER.label + 1.5;
   group.add(disc, text);
+  if (outline) group.add(outline);
   return group;
 }
 

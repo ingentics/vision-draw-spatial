@@ -211,7 +211,7 @@ describe('mode Séquences : réglages déclarés et habillage', () => {
     // login (texte « login ») : pastille normale ; lecture (sans texte) : plus petite.
     expect(badgeTexts.map((spec) => [spec.text, spec.fontSize])).toEqual(
       expect.arrayContaining([
-        ['1', 20],
+        ['1', 15],
         ['2', 7],
       ]),
     );
