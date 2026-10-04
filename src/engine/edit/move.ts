@@ -1,5 +1,6 @@
 import { computeBounds } from '../model/bounds';
 import type { PageModel, Point, Rect, ShapeModel } from '../model/types';
+import type { ShapeRegistry } from '../shapes/registry';
 
 /**
  * Déplacement de formes dans le modèle neutre (SPEC §14.1). Les coordonnées du modèle sont
@@ -19,16 +20,20 @@ export interface MoveSet {
 }
 
 /**
- * Forme réellement déplacée quand on saisit `shape` : comme dans draw.io, le groupe le plus
- * externe qui la contient (un groupe se déplace d'un bloc), sinon la forme elle-même.
+ * Forme réellement déplacée quand on saisit `shape` : comme dans draw.io, le conteneur le plus externe qui la contient
+ * et se déplace d'un bloc (`movesAsBlock`, ex. un groupe), sinon la forme elle-même.
  */
-export function moveTarget(page: PageModel, shape: ShapeModel): ShapeModel {
+export function moveTarget(
+  page: PageModel,
+  shape: ShapeModel,
+  shapes: Pick<ShapeRegistry, 'movesAsBlock'>,
+): ShapeModel {
   const byId = new Map(page.shapes.map((s) => [s.id, s]));
   let target = shape;
   const seen = new Set<string>();
   for (let parent = byId.get(shape.parentId ?? ''); parent && !seen.has(parent.id);) {
     seen.add(parent.id);
-    if (parent.kind === 'group') target = parent;
+    if (shapes.movesAsBlock(parent)) target = parent;
     parent = byId.get(parent.parentId ?? '');
   }
   return target;

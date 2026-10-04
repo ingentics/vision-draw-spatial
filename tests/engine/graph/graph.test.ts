@@ -5,7 +5,7 @@ import { GRAPH_PAGE_ID, buildGraphPage, cardId, layoutGraph, titleId } from '../
 import { buildGraphScene } from '../../../src/engine/graph/graphScene';
 import { embedIn } from '../../../src/engine/interaction/transitions';
 import { buildNavigationGraph } from '../../../src/engine/model/graph';
-import { createDefaultRegistry } from '../../../src/engine/render/shapes/registry';
+import { createDefaultRegistry } from '../../../src/engine/shapes/registry';
 import { fixture } from '../../helpers';
 
 const parents = parseDrawio(fixture('parents.drawio'));

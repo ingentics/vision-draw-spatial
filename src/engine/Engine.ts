@@ -134,7 +134,8 @@ import type {
 } from './model/types';
 import { linkZone, selectionOutline } from './render/decorations';
 import { createEdge, toTerminal } from './render/edges/edge';
-import { fixedAnchor, routeEdgePoints, routingCenter } from './render/edges/route';
+import { fixedAnchor, perimeterKind, routeEdgePoints, routingCenter } from './render/edges/route';
+import { parseStyle } from './format/style';
 import {
   connectionHints,
   connectorPreview,
@@ -149,9 +150,9 @@ import { buildPageScene, createShapeObject, effectiveLevel, placeInDrawOrder } f
 import type { PageScene } from './render/pageScene';
 import { SceneManager } from './render/sceneManager';
 import { outsideLabelBox } from './render/labelPosition';
-import { createDefaultRegistry } from './render/shapes/registry';
-import type { ShapeRegistry } from './render/shapes/registry';
-import type { SceneLevel } from './render/shapes/types';
+import { defaultShapeRegistry } from './shapes/registry';
+import type { ShapeRegistry } from './shapes/registry';
+import type { SceneLevel } from './shapes/types';
 import { setPageTransform } from './render/space';
 import { createTroikaTextFactory } from './render/troikaText';
 import { DEFAULT_SETTINGS, mergeSettings, resolveReducedMotion } from './settings';
@@ -519,7 +520,7 @@ export class Engine {
 
   constructor(options: EngineOptions) {
     this.canvas = options.canvas;
-    this.registry = options.registry ?? createDefaultRegistry();
+    this.registry = options.registry ?? defaultShapeRegistry;
     const initial = options.background
       ? mergeSettings(DEFAULT_SETTINGS, { background: { color: options.background } })
       : DEFAULT_SETTINGS;
@@ -1428,7 +1429,8 @@ export class Engine {
       },
       heightOf: (id) => this.elementTop(id),
       pointAtHeight: (height) => this.groundPointAtHeight(screen, height),
-      outlineOf: (shape) => this.shapeOutline(shape),
+      contains: (shape, p) => this.registry.contains(shape, p, () => this.shapeOutline(shape)),
+      pickable: (shape) => this.registry.isPickable(shape),
     });
   }
 
@@ -1476,8 +1478,8 @@ export class Engine {
     const hiddenLayers = new Set(page.layers.filter((l) => !l.visible).map((l) => l.id));
     const candidates: PickedElement[] = [
       ...page.shapes
-        // Les groupes sont invisibles : on prend leurs formes (sauf s'ils portent un lien, comme au clic).
-        .filter((s) => s.kind !== 'group' || s.link)
+        // Comme au clic : un groupe invisible n'est pris que s'il porte un lien (sinon on prend ses formes).
+        .filter((s) => this.registry.isPickable(s))
         .map((element) => ({ type: 'shape' as const, element })),
       ...page.edges.map((element) => ({ type: 'edge' as const, element })),
     ].filter(({ element }) => element.visible && !hiddenLayers.has(element.layerId));
@@ -1921,7 +1923,7 @@ export class Engine {
     screen: Point,
     options: { exclude?: string; height: number; snap: boolean; grid: number },
   ): EndAttachment {
-    const shapes = connectableShapes(page).filter((s) => s.id !== options.exclude);
+    const shapes = connectableShapes(page, this.registry).filter((s) => s.id !== options.exclude);
     let best: { shapeId: string; index: number; distance: number } | undefined;
     for (const shape of shapes) {
       const top = this.elementTop(shape.id);
@@ -1944,7 +1946,7 @@ export class Engine {
   private shapeAt(screen: Point, exclude?: string): ShapeModel | undefined {
     const page = this.getCurrentPage();
     if (!page) return undefined;
-    const connectable = new Set(connectableShapes(page).map((s) => s.id));
+    const connectable = new Set(connectableShapes(page, this.registry).map((s) => s.id));
     const picked = pickElement(
       { ...page, shapes: page.shapes.filter((s) => connectable.has(s.id) && s.id !== exclude), edges: [] },
       screenToPage(this.cameraState, this.viewport, screen),
@@ -1953,7 +1955,7 @@ export class Engine {
         edgeRoute: () => undefined,
         heightOf: (id) => this.elementTop(id),
         pointAtHeight: (height) => this.groundPointAtHeight(screen, height),
-        outlineOf: (shape) => this.shapeOutline(shape),
+        contains: (shape, p) => this.registry.contains(shape, p, () => this.shapeOutline(shape)),
       },
     );
     return picked?.type === 'shape' ? picked.element : undefined;
@@ -1975,7 +1977,7 @@ export class Engine {
           ? CONNECTION_POINTS.findIndex((c) => c.x === attachment.constraint.x && c.y === attachment.constraint.y)
           : undefined;
       const hints = connectionHints(
-        { bounds: shape.bounds, ellipse: shape.kind === 'ellipse' },
+        { bounds: shape.bounds, perimeter: perimeterKind(shape.style, parseStyle(shape.raw?.styleString).names) },
         connectionPoints(shape.bounds),
         this.cameraState.zoom,
         { active, outline: attachment?.kind === 'floating', accent: this.settings.selection.accentColor },
@@ -2003,7 +2005,7 @@ export class Engine {
     if (!editable) return undefined;
     const { shape } = editable;
     const top = this.elementTop(shape.id);
-    const resizable = shape.kind !== 'group';
+    const resizable = this.registry.isResizable(shape);
     let best: { kind: HandleKind; distance: number } | undefined;
     for (const { kind, point } of handlePoints(shape.bounds, this.cameraState.zoom)) {
       if (kind !== 'connect' && !resizable) continue;
@@ -2078,7 +2080,7 @@ export class Engine {
 
     const picked = this.pickAt(screen);
     if (picked?.type !== 'shape') return false;
-    const shape = moveTarget(page, picked.element);
+    const shape = moveTarget(page, picked.element, this.registry);
     if (isLocked(shape) || !canMoveCell(pageTree, shape.id)) return false;
     // Forme saisie dans une sélection multiple : toutes les formes sélectionnées bougent ensemble
     // (celles qu'on ne peut pas déplacer restent en place).
@@ -2086,13 +2088,15 @@ export class Engine {
     const grabbedSelected =
       this.isMultiSelection() &&
       selection?.pageId === page.id &&
-      selection.items.some((item) => item.type === 'shape' && moveTarget(page, item.element).id === shape.id);
+      selection.items.some(
+        (item) => item.type === 'shape' && moveTarget(page, item.element, this.registry).id === shape.id,
+      );
     const candidates = grabbedSelected
       ? [
           shape.id,
           ...selection!.items
             .filter((item) => item.type === 'shape')
-            .map((item) => moveTarget(page, item.element))
+            .map((item) => moveTarget(page, item.element, this.registry))
             .filter((target) => !isLocked(target) && canMoveCell(pageTree, target.id))
             .map((target) => target.id),
         ]
@@ -2996,14 +3000,20 @@ export class Engine {
   }
 
   /**
-   * Attribut spatial d'une forme (SPEC §14.3), ex. `spatial.height`, `spatial.elevation` ; undefined
-   * le retire (valeur par défaut). Écrit là où il est déjà (attribut de l'objet), sinon dans le style.
+   * Attribut spatial d'une forme (SPEC §14.3), ex. `spatial.height`, `spatial.tag` : nombre (positif) ou texte
+   * (sans `;`, séparateur du style) ; undefined le retire (valeur par défaut). Écrit là où il est déjà (attribut
+   * de l'objet), sinon dans le style.
    */
-  setSpatial(elementId: string, key: string, value: number | undefined): void {
+  setSpatial(elementId: string, key: string, value: number | string | undefined): void {
     const editable = this.editablePage();
     const shape = editable?.page.shapes.find((s) => s.id === elementId);
     if (!editable || !shape || !key.startsWith(SPATIAL_PREFIX)) return;
-    const text = value === undefined || !Number.isFinite(value) ? undefined : formatNumber(Math.max(0, value));
+    const text =
+      typeof value === 'string'
+        ? value.replaceAll(';', '')
+        : value === undefined || !Number.isFinite(value)
+          ? undefined
+          : formatNumber(Math.max(0, value));
     if (spatialValue(shape, key) === text) return;
     this.recordEdit('Attribut spatial');
     const inObject = shape.attributes[key] !== undefined && shape.style[key] === undefined;
@@ -3617,7 +3627,7 @@ export class Engine {
     if (editable && root) {
       const { shape } = editable;
       this.handlesObject = selectionHandles(shape.bounds, this.cameraState.zoom, {
-        resize: shape.kind !== 'group',
+        resize: this.registry.isResizable(shape),
         connect: true,
         size: this.settings.edit.handleSize,
         accent: this.settings.selection.accentColor,

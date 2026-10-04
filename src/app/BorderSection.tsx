@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import type { ReactNode } from 'react';
 import type { ShapeModel } from '../engine/model/types';
 import { Section } from './PanelSection';
 
@@ -25,20 +26,20 @@ const STROKE_COLORS = [
 ];
 const WIDTH_LIMITS = { min: 0.5, max: 20 };
 
-/** Formes dont les coins peuvent s'arrondir (`rounded=1`). */
-const ROUNDABLE = new Set(['rectangle']);
-
 /**
  * Bordure des formes sélectionnées (la dernière choisie donne les valeurs affichées) : le trait 2D, qui
- * est aussi les arêtes du volume en iso / 3D. Couleur (ou aucune), épaisseur, style du trait, coins
- * arrondis ; écrit dans les clés du style draw.io.
+ * est aussi les arêtes du volume en iso / 3D. Couleur (ou aucune), épaisseur, style du trait, puis les réglages
+ * propres à la forme ; écrit dans les clés du style draw.io.
  */
 export function BorderSection({
   shape,
   onChange,
+  children,
 }: {
   shape: ShapeModel;
   onChange: (patch: Record<string, string | undefined>) => void;
+  /** Réglages de bordure propres à la forme (ex. coins arrondis), déclarés par sa définition. */
+  children?: ReactNode;
 }) {
   const { style } = shape;
   const none = style.strokeColor === 'none';
@@ -137,16 +138,7 @@ export function BorderSection({
             ))}
           </span>
         </div>
-        {ROUNDABLE.has(shape.kind) && (
-          <label className="field toggle">
-            <input
-              type="checkbox"
-              checked={style.rounded === '1'}
-              onChange={(event) => onChange({ rounded: event.target.checked ? '1' : '0' })}
-            />
-            Coins arrondis
-          </label>
-        )}
+        {children}
       </fieldset>
     </Section>
   );

@@ -1,5 +1,5 @@
 import type { PageModel, Point, Rect, ShapeModel } from '../model/types';
-import type { MinimapMapping } from '../render/shapes/types';
+import type { MinimapMapping } from '../shapes/types';
 import { screenToPage } from './camera';
 import type { CameraState, Viewport } from './camera';
 
@@ -7,7 +7,7 @@ import type { CameraState, Viewport } from './camera';
  * Mini-carte (SPEC §10) : en bas à droite, toujours en vue de dessus et nord en haut, quel que
  * soit le mode de la vue principale. Emprise de la vue, clic/glisser pour déplacer la caméra.
  * Dessinée en Canvas 2D, indépendamment du rendu WebGL. Chaque forme est dessinée par le niveau
- * `minimap` de sa définition (repli : son contour), voir `render/shapes`.
+ * `minimap` de sa définition (repli : son contour), voir `shapes/`.
  */
 
 export interface MinimapLayout {

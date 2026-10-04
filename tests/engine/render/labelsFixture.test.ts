@@ -6,7 +6,7 @@ import { readDrawio } from '../../../src/engine/format/parse';
 import type { PageModel, ShapeModel } from '../../../src/engine/model/types';
 import { TOP_OFFSET } from '../../../src/engine/render/iso/block';
 import { buildPageScene } from '../../../src/engine/render/pageScene';
-import { createDefaultRegistry } from '../../../src/engine/render/shapes/registry';
+import { createDefaultRegistry } from '../../../src/engine/shapes/registry';
 import type { RenderContext, TextSpec } from '../../../src/engine/render/types';
 import { fixture } from '../../helpers';
 

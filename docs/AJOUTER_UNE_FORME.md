@@ -2,8 +2,12 @@
 
 Guide pour faire dessiner au moteur une forme draw.io qu'il ne connaît pas encore (aujourd'hui affichée en
 placeholder gris). Il couvre les quatre rendus (2D, iso, 3D, mini-carte), l'origine de chaque valeur (style draw.io,
-attributs `spatial.*`, paramètres) et ce qu'il faut vérifier en dehors du rendu : clic, flèches, sélection, édition,
-diagnostics.
+attributs `spatial.*`, paramètres) et tout ce qu'une forme déclare en plus du rendu : clic, poignées, flèches, palette,
+panneau.
+
+**En bref :** une forme est un dossier `src/engine/shapes/<forme>/` dont `index.ts` exporte `definition`. Déposer le
+dossier suffit : le registre le trouve tout seul, et le moteur comme l'appli ne posent leurs questions qu'à la
+définition (via le registre). Aucun autre fichier ne change.
 
 Références : SPEC §8.2 (registre), §8.3 (formes supportées), §8.4 (placeholder), §9.1 (volumes), §13 (paramètres).
 
@@ -15,7 +19,7 @@ Références : SPEC §8.2 (registre), §8.3 (formes supportées), §8.4 (placeho
 fichier .drawio
   └─ format/parse.ts ── style « shape=note;fillColor=#fff2cc;… »
         └─ format/style.ts  resolveShapeKind() ──► ShapeModel.kind = 'note'
-              └─ render/shapes/registry.ts  ShapeRegistry.resolve(shape)
+              └─ shapes/registry.ts  ShapeRegistry.resolve(shape)
                     ├─ définition trouvée (supported: true)
                     └─ sinon placeholderShape (supported: false ► panneau Diagnostics)
                           └─ render/pageScene.ts  createShapeObject(shape, registry, ctx, level, elevation)
@@ -24,9 +28,9 @@ fichier .drawio
                                 └─ hauteur (base), ordre de dessin, userData.elementId
 ```
 
-Le moteur ne connaît que l'interface `ShapeDefinition` ([render/shapes/types.ts](../src/engine/render/shapes/types.ts)).
-Ajouter une forme revient donc à **écrire une définition et l'enregistrer**. Ni la scène, ni la caméra, ni
-l'édition ne changent, sauf pour les points de la section 6.
+Le moteur ne connaît que l'interface `ShapeDefinition` ([shapes/types.ts](../src/engine/shapes/types.ts)).
+Ajouter une forme revient donc à **déposer son dossier**. Ni la scène, ni la caméra, ni l'édition, ni l'appli ne
+changent : la palette, le panneau, le clic, les poignées et les flèches interrogent la définition (section 6).
 
 ### Le nom de la forme (`kind`)
 
@@ -38,15 +42,17 @@ l'édition ne changent, sauf pour les points de la section 6.
 
 Un stencil embarqué (`shape=stencil(<XML compressé>)`) prend le nom `stencil:<nom>` de son `<shape name="…">` : c'est
 la façon d'ajouter une forme que draw.io n'a pas, tout en restant dessinée par draw.io (exemple :
-[render/shapes/plug.ts](../src/engine/render/shapes/plug.ts), XML tiré du même contour que le moteur).
+[shapes/plug/](../src/engine/shapes/plug/index.ts), XML tiré du même contour que le moteur).
 
 `SHAPE_ALIASES` ramène des synonymes à un nom canonique (`rect`, `label` ► `rectangle`). Si draw.io écrit
 la même forme de plusieurs façons, ajoutez l'alias à cet endroit plutôt que de multiplier les définitions.
 Cas particulier : `swimlane` a un alias mais **aucune définition**, donc il s'affiche en placeholder.
 
-Exemples réels à lire : [render/shapes/storage.ts](../src/engine/render/shapes/storage.ts) (BDD, file, cache : tracés
-draw.io en courbes de Bézier, « bâtiments » iso à toit plat et façade par type [render/iso/buildings.ts](../src/engine/render/iso/buildings.ts),
-repli à plat avec le dessin 2D).
+Exemples réels à lire : [shapes/cylinder3/](../src/engine/shapes/cylinder3/index.ts),
+[shapes/datastore/](../src/engine/shapes/datastore/index.ts) et [shapes/direct-data/](../src/engine/shapes/direct-data/index.ts)
+(BDD, file, cache : tracés draw.io en courbes de Bézier, « bâtiments » iso à toit plat et façade par type, repli à plat
+avec le dessin 2D). Ce qu'elles partagent est dans [shapes/utils/](../src/engine/shapes/utils/) (tracés de cylindre,
+briques des bâtiments, façade de queue).
 
 Pour trouver le nom exact d'une forme, insérez-la dans draw.io, ouvrez « Modifier le style », ou consultez le panneau
 **Diagnostics** de l'appli, qui liste les noms non reconnus avec leur nombre d'occurrences.
@@ -57,14 +63,29 @@ Pour trouver le nom exact d'une forme, insérez-la dans draw.io, ouvrez « Modif
 
 ```ts
 interface ShapeDefinition {
+  // Identité
   kind: string;                            // nom canonique (ShapeModel.kind)
   matches?(shape: ShapeModel): boolean;    // correspondance plus fine (défaut : kind === shape.kind)
+  // Géométrie
   outline?(shape: ShapeModel): Point[];    // contour au sol, polygone fermé, coordonnées page
+  contains?(shape, point): boolean;        // clic (défaut : dans le contour, sinon les bornes)
+  // Rendu
   flat: SceneRenderer;                     // OBLIGATOIRE : 2D, et repli de tous les autres niveaux
   iso?: SceneRenderer;                     // vues iso ET 3D (voir § 3)
   volume?: SceneRenderer;                  // réservé (extrusion, SPEC §17) : jamais demandé aujourd'hui
   volumeHeight?(shape, ctx): number;       // hauteur par défaut propre à la forme (défaut : blockHeight)
+  textZone?(shape, level): Rect;           // zone du texte (défaut : les bornes)
   minimap?: MinimapPainter | null;         // absent = contour rempli ; null = rien
+  // Interaction
+  resizable?: boolean;                     // poignées de redimensionnement (défaut : oui)
+  connectable?: boolean;                   // flèches accrochables (défaut : oui)
+  pickable?: 'always' | 'withLink';        // prise au clic / au rectangle (défaut : always)
+  movesAsBlock?: boolean;                  // saisir un enfant la déplace d'un bloc (défaut : non ; groupe : oui)
+  // Palette et panneau
+  templates?: ShapeTemplate[];             // modèles de la palette (style, taille, mots-clés, icône, rang)
+  templateOf?(style): string | undefined;  // variante d'une forme (défaut : le seul modèle)
+  swatch?(style): string;                  // aperçu des styles du panneau (défaut : rectangle)
+  properties?: ShapeProperty[];            // réglages propres à la forme, dans le panneau
 }
 
 interface SceneRenderer {
@@ -72,28 +93,35 @@ interface SceneRenderer {
 }
 ```
 
-### Enregistrement
+Seuls `kind` et `flat` sont obligatoires ; tout le reste a un repli générique.
 
-Dans `createDefaultRegistry()` ([render/shapes/registry.ts](../src/engine/render/shapes/registry.ts)) :
+### Enregistrement : déposer le dossier
 
-```ts
-return new ShapeRegistry()
-  .register(rectangleShape)
-  .register(ellipseShape)
-  .register(textShape)
-  .register(groupShape)
-  .register(noteShape); // ◄
+```
+src/engine/shapes/
+├── note/
+│   └── index.ts        export const definition: ShapeDefinition = { … }
+├── utils/              code partagé entre formes (pas une forme : pas d'index.ts)
+├── registry.ts         collecte ./*/index.ts (import.meta.glob)
+└── types.ts            le contrat
 ```
 
-- **La dernière définition enregistrée gagne.** Pour surcharger une forme existante (par exemple un rectangle
-  particulier repéré par `matches`), enregistrez-la après.
+`SHAPE_DEFINITIONS` ([shapes/registry.ts](../src/engine/shapes/registry.ts)) importe tous les `./*/index.ts` et
+`createDefaultRegistry()` les enregistre : **il n'y a aucune liste à tenir à jour**. Plusieurs formes peuvent donc
+s'écrire en parallèle sans se marcher dessus.
+
+- **Le code propre à la forme reste dans son dossier** (plusieurs fichiers si besoin, ex. `cylinder3/database.ts`).
+  Ce qui sert à plusieurs formes va dans `shapes/utils/` ; les briques de rendu génériques restent dans `render/`
+  (`render/flat`, `render/iso/block`, `render/geometry`).
+- **La dernière définition enregistrée gagne.** Les dossiers sont pris par ordre alphabétique ; pour surcharger une
+  forme dans un registre à vous, `register` la vôtre après.
 - `matches` sert quand `kind` ne suffit pas : par exemple `shape.kind === 'rectangle' && shape.style.rounded === '1'`.
   Gardez cette fonction rapide, elle est appelée pour chaque forme, à chaque construction de scène.
 - Une forme enregistrée sort **automatiquement** du rapport « non supportées »
   ([diagnostics/unsupportedStyles.ts](../src/engine/diagnostics/unsupportedStyles.ts) appelle `registry.resolve`).
-- `EngineOptions.registry` permet de passer un autre registre au moteur. En revanche, `ShapeRegistry` et
-  `createDefaultRegistry` ne sont **pas exportés** par l'API publique ([src/index.ts](../src/index.ts)) : pour
-  l'instant, une forme s'ajoute dans le moteur lui-même, pas depuis une application cliente.
+- `EngineOptions.registry` permet de passer un autre registre au moteur ; l'appli (palette, panneau) utilise
+  `defaultShapeRegistry`. `ShapeRegistry` n'est **pas exporté** par l'API publique ([src/index.ts](../src/index.ts)) :
+  une forme s'ajoute dans le moteur lui-même, pas depuis une application cliente.
 
 ### Le contour (`outline`)
 
@@ -266,17 +294,33 @@ Le moteur manipule l'`Object3D` renvoyé par `create` après coup. Pour que tout
 
 ## 6. En dehors du rendu
 
-Ces points ne passent pas par la définition, et il faut les vérifier pour toute forme qui n'est ni un rectangle ni
-une ellipse.
+Tout passe par la définition : le moteur et l'appli interrogent le registre (`registry.contains`, `isResizable`,
+`isConnectable`, `isPickable`, `movesAsBlock`, `templates`, `templateOf`, `swatch`, `properties`), jamais `kind`.
 
-| Aspect | Où | Comportement actuel | À faire pour une forme non rectangulaire |
+| Aspect | Champ de la définition | Défaut | Exemple |
 | --- | --- | --- | --- |
-| Clic, survol | `shapeContains` dans [interaction/pick.ts](../src/engine/interaction/pick.ts) | rectangle et ellipse exacts ; sinon le **contour** (`outline`) de la définition | Rien : fournir un `outline` suffit (les coins vides d'un losange ne se cliquent pas). |
-| Accroche des flèches | `perimeterKind` dans [render/edges/route.ts](../src/engine/render/edges/route.ts) | périmètre de draw.io : `perimeter=…`, sinon style nommé (`ellipse`, `rhombus`), sinon **rectangle** | Porter le périmètre de draw.io de la forme (mxPerimeter, ou celui de draw.io) s'il en a un ; sinon draw.io lui-même s'arrête sur le rectangle. |
-| Poignées, redimensionnement | [edit/handles.ts](../src/engine/edit/handles.ts) | sur les **bornes**, sans `aspect=fixed` | Rien d'obligatoire ; à noter si la forme doit garder ses proportions. |
-| Création | palette, [edit/palette.ts](../src/engine/edit/palette.ts) | 8 formes | Ajouter un modèle (style **et** taille par défaut de draw.io) si la forme doit être créable. |
-| Position du label | `createLabel` | dans les bornes (`align`, `verticalAlign`, `spacing*`) | `labelPosition` / `verticalLabelPosition` (label **hors** de la forme, ex. `umlActor`) ne sont pas gérés : à ajouter à `createLabel` s'il le faut. |
-| Groupes et conteneurs | `moveTarget`, `collectMoveSet` | un groupe déplace son contenu | Rien de spécial. Un conteneur en volume porte ses enfants (3.4). |
+| Clic, survol | `contains` | dans le `outline` s'il y en a un (les coins vides d'un losange ne se cliquent pas), sinon les bornes | ellipse exacte, rectangle arrondi cliquable dans ses coins |
+| Poignées | `resizable` | oui | groupe : non |
+| Accroche des flèches | `connectable` | oui | groupe : non |
+| Prise au clic et au rectangle de sélection | `pickable` | `always` | groupe : `withLink` (on prend ses formes) |
+| Déplacement | `movesAsBlock` | non | groupe : saisir un enfant déplace le groupe |
+| Création | `templates` (+ `templateOf` s'il y a des variantes) | absente de la palette | rectangle / arrondi, BDD / queue |
+| Aperçu des styles du panneau | `swatch(style)` | rectangle (arrondi si `rounded=1`) | ellipse, cylindre |
+| Réglages du panneau | `properties` | aucun | « Coins arrondis » (`rounded`), nœuds du cache (`spatial.nodes`), étiquette de façade (`spatial.tag`) |
+
+Un modèle de palette (`ShapeTemplate`) porte le style **et** la taille par défaut de draw.io, une catégorie, un rang
+`order` (ordre d'affichage, toutes formes confondues), des mots-clés de recherche et une icône (contenu SVG d'un cadre
+`0 0 40 28`, sans couleurs). Un réglage (`ShapeProperty`) est une case (`toggle`, écrit `1` / `0`), un nombre ou un
+texte, rangé dans la section `border` ou `volume` du panneau ; une clé `spatial.…` est écrite comme attribut spatial.
+
+Restent hors de la définition, parce que ce sont des règles du format draw.io et non d'une forme :
+
+| Aspect | Où | Comportement |
+| --- | --- | --- |
+| Accroche des flèches : périmètre | `perimeterKind` dans [render/edges/route.ts](../src/engine/render/edges/route.ts) | `perimeter=…`, sinon style nommé (`ellipse`, `rhombus`), sinon **rectangle** ; à porter de draw.io (mxPerimeter) si la forme en a un propre |
+| Nom de la forme | `SHAPE_ALIASES` dans [format/style.ts](../src/engine/format/style.ts) | synonymes draw.io (`rect`, `label` ► `rectangle`) |
+| Position du label | `createLabel` | `labelPosition` / `verticalLabelPosition` gérés par le registre (`textZone`) |
+| Conteneurs en volume | `volumeLayout` | un conteneur en volume porte ses enfants (3.4) |
 
 ---
 
@@ -286,14 +330,14 @@ draw.io : `shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.0
 `docs/test.drawio`).
 
 ```ts
-// src/engine/render/shapes/note.ts
+// src/engine/shapes/note/index.ts
 import type { Point, ShapeModel } from '../../model/types';
-import { createBox, VERTEX_DEFAULTS } from '../flat/box';
-import { isoBlock } from '../iso/block';
-import { strokeMesh } from '../meshes';
-import { styleColor, styleNumber, styleOpacity } from '../styleValues';
-import { PART_ORDER } from '../types';
-import type { ShapeDefinition } from './types';
+import { createBox, VERTEX_DEFAULTS } from '../../render/flat/box';
+import { isoBlock } from '../../render/iso/block';
+import { strokeMesh } from '../../render/meshes';
+import { styleColor, styleNumber, styleOpacity } from '../../render/styleValues';
+import { PART_ORDER } from '../../render/types';
+import type { ShapeDefinition } from '../types';
 
 /** Taille du pli par défaut dans draw.io (`size`). */
 const DEFAULT_FOLD = 30;
@@ -315,7 +359,7 @@ function outline(shape: ShapeModel): Point[] {
 }
 
 /** Note à coin plié (SPEC §8.3) : contour coupé, pli tracé, volume en iso. */
-export const noteShape: ShapeDefinition = {
+export const definition: ShapeDefinition = {
   kind: 'note',
   outline,
   flat: {
@@ -347,6 +391,23 @@ export const noteShape: ShapeDefinition = {
   // Volume : prisme du contour coupé ; le dessus reprend le rendu 2D (avec le pli).
   iso: isoBlock(outline),
   // Mini-carte : le contour rempli (repli par défaut), rien à écrire.
+  // Palette : le modèle de draw.io (style et taille), rangé après les formes générales existantes.
+  templates: [
+    {
+      id: 'note',
+      name: 'Note',
+      category: 'general',
+      order: 110,
+      keywords: ['note', 'post-it', 'mémo'],
+      style: 'shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;size=15;',
+      value: '',
+      width: 80,
+      height: 100,
+      icon: '<path d="M10 3h14l6 6v16H10zM24 3v6h6"/>',
+    },
+  ],
+  // Aperçu des styles : la note plutôt que le rectangle par défaut.
+  swatch: () => '<path d="M8 5h18l6 6v12H8zM26 5v6h6"/>',
 };
 ```
 
@@ -356,7 +417,7 @@ n'apparaît donc **pas** sur le dessus du bloc. Pour l'avoir, écrivez un `iso.c
 
 Enfin :
 
-1. enregistrez `noteShape` dans `createDefaultRegistry()` ;
+1. rien à enregistrer : le dossier `shapes/note/` suffit (palette, panneau et rendu la trouvent) ;
 2. ajoutez `note` dans le tableau de SPEC §8.3 ;
 3. écrivez les tests (section 8).
 
@@ -367,7 +428,7 @@ Enfin :
 **Orientation et contour contre draw.io.** Dessinez le contour dans le cadre local avec `orientedPath`
 ([render/geometry/orient.ts](../src/engine/render/geometry/orient.ts)), qui reproduit `direction`, `flipH` / `flipV`
 comme draw.io, puis ajoutez la forme et ses variantes à la fixture `shapes.drawio`
-([tests/engine/render/shapes/shapesFixture.test.ts](../tests/engine/render/shapes/shapesFixture.test.ts)) :
+([tests/engine/shapes/shapesFixture.test.ts](../tests/engine/shapes/shapesFixture.test.ts)) :
 `make drawio-check` la fait exporter en SVG par draw.io et compare chaque contour et chaque flèche au pixel près.
 
 
@@ -389,7 +450,8 @@ const scene = buildPageScene(page, createDefaultRegistry(), ctx, 'iso');
 À couvrir au minimum :
 
 - la forme est **supportée** : `registry.resolve(shape).supported === true`, et elle n'apparaît plus dans
-  `collectUnsupported` ;
+  `collectUnsupported` ; le contrat commun (modèles valides, reconnus par `templateOf`…) est vérifié pour toutes les
+  formes par [tests/engine/shapes/registry.test.ts](../tests/engine/shapes/registry.test.ts) ;
 - **2D** : contour attendu (bornes du mesh `fill`), couleurs lues du style, label présent avec les bonnes valeurs ;
 - **iso** : bloc de `0` à l'épaisseur (`spatial.height` respecté), repli à plat avec `fillColor=none` ;
 - **replis** : `sceneRenderer(shape, 'volume')` renvoie le rendu `iso` ou `flat` attendu ;
@@ -405,12 +467,13 @@ mini-carte, redimensionnement, flèches reliées, et réouverture du fichier dan
 ## 9. Récapitulatif
 
 - [ ] Nom de forme identifié (Diagnostics) ; alias dans `SHAPE_ALIASES` si besoin
-- [ ] `render/shapes/<forme>.ts` : `kind`, `outline`, `flat` (complet à lui seul)
+- [ ] `shapes/<forme>/index.ts` qui exporte `definition` : `kind`, `outline`, `flat` (complet à lui seul)
 - [ ] `iso` (souvent `isoBlock(outline)`), à vérifier aussi en 3D et sous tous les angles
 - [ ] `minimap` : défaut, `null` ou peintre sur mesure
 - [ ] Valeurs lues avec `styleValues` / `spatialNumber` ; défauts draw.io en constantes ; préférences via `RenderContext`
 - [ ] Ordres de dessin dans `PART_ORDER`, matériaux propres à chaque mesh, enfants tardifs qui suivent leur parent
-- [ ] Enregistrée dans `createDefaultRegistry()`
-- [ ] Clic (`shapeContains`) et accroche des flèches (`toTerminal`) si la forme n'est pas rectangulaire
-- [ ] Modèle de palette si la forme doit être créable
+- [ ] Code partagé avec d'autres formes dans `shapes/utils/`, le reste dans le dossier de la forme
+- [ ] Interaction si elle diffère du défaut : `contains`, `resizable`, `connectable`, `pickable`, `movesAsBlock`
+- [ ] Périmètre d'accroche des flèches (`perimeterKind`) si draw.io lui en donne un propre
+- [ ] `templates` (et `templateOf` s'il y a des variantes) si la forme doit être créable ; `swatch`, `properties`
 - [ ] Tests, fixture enregistrée par draw.io, SPEC §8.3 (et §13 si un paramètre a été ajouté)

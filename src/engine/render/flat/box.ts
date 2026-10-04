@@ -6,7 +6,7 @@ import { fillMesh, strokeMesh } from '../meshes';
 import { labelBackground, textFormat, styleColor, styleNumber, styleOpacity } from '../styleValues';
 import { PART_ORDER } from '../types';
 import type { RenderContext, TextSpec } from '../types';
-import type { SceneRenderer } from '../shapes/types';
+import type { SceneRenderer } from '../../shapes/types';
 
 /**
  * Rendu à plat (niveau `flat`) des formes « boîte » : remplissage + bordure suivant le contour

@@ -1,0 +1,149 @@
+import type { Object3D } from 'three';
+import type { Point, Rect, ShapeModel } from '../model/types';
+import type { RenderContext } from '../render/types';
+
+/**
+ * Une forme peut avoir plusieurs rendus selon le contexte (SPEC §8.2) :
+ * - `flat` : à plat sur le sol (vue de dessus) — **obligatoire**, c'est le repli de tous les autres ;
+ * - `iso` : en vue isométrique (ex. éléments dressés face à la caméra) ;
+ * - `volume` : en 3D (ex. extrusion, SPEC §17) ;
+ * - `minimap` : dans la mini-carte (Canvas 2D).
+ * Un niveau absent se rabat sur `flat` (scène) ou sur le contour de la forme (mini-carte).
+ */
+export type SceneLevel = 'flat' | 'iso' | 'volume';
+
+/** Rendu Three.js d'une forme, en espace page (coordonnées draw.io absolues). */
+export interface SceneRenderer {
+  create(shape: ShapeModel, ctx: RenderContext): Object3D;
+}
+
+/** Passage des coordonnées page aux coordonnées de la mini-carte. */
+export interface MinimapMapping {
+  toMinimap(point: Point): Point;
+  /** Pixels mini-carte par pixel de page. */
+  scale: number;
+}
+
+/** Dessin d'une forme dans la mini-carte (contexte déjà mis à l'échelle des pixels CSS). */
+export type MinimapPainter = (context: CanvasRenderingContext2D, shape: ShapeModel, map: MinimapMapping) => void;
+
+export type PaletteCategoryId = 'general' | 'architecture';
+
+/**
+ * Modèle de la palette (SPEC §14.1) : une forme telle que la palette la crée, avec le style et la taille par
+ * défaut de draw.io (même rendu à la réouverture dans draw.io).
+ */
+export interface ShapeTemplate {
+  id: string;
+  name: string;
+  /** Catégorie de la palette (`PALETTE_CATEGORIES`). */
+  category: PaletteCategoryId;
+  /** Rang dans la palette (croissant, toutes formes confondues). */
+  order: number;
+  /** Mots-clés de la recherche, en plus du nom et de la catégorie. */
+  keywords: string[];
+  style: string;
+  value: string;
+  width: number;
+  height: number;
+  /** Icône de la palette : contenu SVG d'un cadre `0 0 40 28`, sans couleurs (celles de la palette). */
+  icon: string;
+}
+
+/** Section du panneau de la forme où se range un réglage propre à la forme. */
+export type PropertySection = 'border' | 'volume';
+
+/**
+ * Réglage propre à une forme (ex. coins arrondis, nombre de nœuds), affiché par un champ générique du panneau et
+ * écrit dans une clé du style draw.io (attribut spatial si la clé commence par `spatial.`).
+ */
+export type ShapeProperty =
+  | {
+      type: 'toggle';
+      key: string;
+      label: string;
+      section: PropertySection;
+    }
+  | {
+      type: 'number';
+      key: string;
+      label: string;
+      section: PropertySection;
+      /** Aide au survol. */
+      title?: string;
+      /** Valeur affichée quand la clé est absente (la valeur par défaut). */
+      placeholder?: string;
+    }
+  | {
+      type: 'text';
+      key: string;
+      label: string;
+      section: PropertySection;
+      title?: string;
+      placeholder?: string;
+    };
+
+/**
+ * Définition d'une forme (SPEC §8.2) : tout ce que le moteur et l'appli savent d'une forme passe par elle. Chaque
+ * forme vit dans son dossier (`shapes/<forme>/index.ts`, qui exporte `definition`) ; seuls `kind` et `flat` sont
+ * obligatoires, tout le reste a un repli générique.
+ */
+export interface ShapeDefinition {
+  /** Nom de forme géré (`ShapeModel.kind`). */
+  kind: string;
+  /** Par défaut : correspondance exacte sur `kind`. */
+  matches?(shape: ShapeModel): boolean;
+  /**
+   * Contour au sol, en coordonnées page (polygone fermé). Géométrie de référence de la forme :
+   * utilisée par le rendu à plat et par les replis (mini-carte…). Absent = rectangle des bornes.
+   */
+  outline?(shape: ShapeModel): Point[];
+  /** Rendu à plat, obligatoire : repli de tous les autres niveaux. */
+  /**
+   * Le point (coordonnées page, déjà dans les bornes) est-il dans la forme ? Sert à la sélection au clic.
+   * Absent = dans le contour s'il y en a un, sinon dans les bornes.
+   */
+  contains?(shape: ShapeModel, point: Point): boolean;
+  flat: SceneRenderer;
+  iso?: SceneRenderer;
+  volume?: SceneRenderer;
+  /**
+   * Hauteur du volume en iso / 3D, si la forme en a une par défaut qui lui est propre (ex. demi-cylindre
+   * couché : hauteur = rayon). Absent = `blockHeight` (`spatial.height`, sinon le réglage).
+   * Sert à l'empilement, à la pastille de lien et à la sélection : le rendu iso doit l'utiliser aussi.
+   */
+  volumeHeight?(shape: ShapeModel, ctx: RenderContext): number;
+  /**
+   * Zone du texte, en coordonnées page, pour le rendu de ce niveau (`level` : un niveau que la forme
+   * dessine elle-même, sinon `flat`). Le label y est placé (marges `spacing*` comprises) et l'éditeur en
+   * place s'y ouvre : affichage et édition coïncident. Absent = les bornes de la forme.
+   */
+  textZone?(shape: ShapeModel, level: SceneLevel): Rect;
+  /** Dessin en mini-carte ; `null` = rien (ex. texte, groupe) ; absent = contour rempli. */
+  minimap?: MinimapPainter | null;
+  /** Poignées de redimensionnement (défaut : oui). */
+  resizable?: boolean;
+  /** On peut y accrocher une flèche (défaut : oui). */
+  connectable?: boolean;
+  /**
+   * Prise au clic et au rectangle de sélection : `always` (défaut) ou seulement si elle porte un lien
+   * (`withLink`, ex. groupe invisible : on prend ses formes).
+   */
+  pickable?: 'always' | 'withLink';
+  /** Saisir une forme qu'elle contient la déplace elle, d'un bloc avec ses enfants (ex. groupe ; défaut : non). */
+  movesAsBlock?: boolean;
+  /** Modèles de la palette qui créent cette forme ; absent = forme absente de la palette. */
+  templates?: ShapeTemplate[];
+  /**
+   * Modèle (`id` parmi `templates`) d'une forme de ce type, d'après son style : la variante qu'elle est (ex. rectangle
+   * ou arrondi). Absent = le seul modèle s'il n'y en a qu'un. `undefined` = aucun modèle.
+   */
+  templateOf?(style: Record<string, string>): string | undefined;
+  /** Réglages propres à la forme, affichés dans le panneau. */
+  properties?: ShapeProperty[];
+  /**
+   * Aperçu de la forme dans les styles du panneau : contenu SVG d'un cadre `0 0 40 28`, sans couleurs (celles du
+   * style essayé), sous le texte « Aa ». Absent = rectangle, arrondi si `rounded=1`.
+   */
+  swatch?(style: Record<string, string>): string;
+}

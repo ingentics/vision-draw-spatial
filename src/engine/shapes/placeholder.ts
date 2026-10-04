@@ -1,9 +1,9 @@
-import type { ShapeModel } from '../../model/types';
-import { createBox } from '../flat/box';
-import { rectPath } from '../geometry/paths';
-import { isoBlock } from '../iso/block';
-import { SPATIAL_PREFIX } from '../../spatial';
-import type { RenderContext } from '../types';
+import type { ShapeModel } from '../model/types';
+import { createBox } from '../render/flat/box';
+import { rectPath } from '../render/geometry/paths';
+import { isoBlock } from '../render/iso/block';
+import type { RenderContext } from '../render/types';
+import { SPATIAL_PREFIX } from '../spatial';
 import type { ShapeDefinition } from './types';
 
 /** Couleurs par défaut (paramètres `shapes.placeholderFill` / `placeholderStroke`). */

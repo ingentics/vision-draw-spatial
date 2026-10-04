@@ -21,7 +21,7 @@ export const SPATIAL = {
   elevation: 'spatial.elevation',
   /** Étiquette des façades d'un bâtiment iso (BDD, queue, cache) : remplace « DB »… ; vide = aucune. */
   tag: 'spatial.tag',
-  /** Nombre de nœuds d'un cache distribué (`shape=datastore`) : disques empilés en iso (3 par défaut). */
+  /** Nombre de nœuds d'un cache distribué : disques empilés en iso (réglage déclaré par `shapes/datastore`). */
   nodes: 'spatial.nodes',
   /** `1` : lien sans pastille (ex. cartes de la vue graphe). */
   noLinkBadge: 'spatial.noLinkBadge',

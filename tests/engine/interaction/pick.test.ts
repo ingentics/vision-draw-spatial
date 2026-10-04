@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { parseDrawio } from '../../../src/engine/format/parse';
-import { distanceToPolyline, pickElement, shapeContains } from '../../../src/engine/interaction/pick';
+import { distanceToPolyline, insidePolygon, pickElement, shapeContains } from '../../../src/engine/interaction/pick';
+import type { ShapeModel } from '../../../src/engine/model/types';
+import { defaultShapeRegistry } from '../../../src/engine/shapes/registry';
 import { fixture } from '../../helpers';
 
 const options = (routes: Record<string, { x: number; y: number }[]> = {}) => ({
   edgeTolerance: 4,
   edgeRoute: (id: string) => routes[id],
+  contains: (shape: ShapeModel, point: { x: number; y: number }) => defaultShapeRegistry.contains(shape, point),
+  pickable: (shape: ShapeModel) => defaultShapeRegistry.isPickable(shape),
 });
 
 describe('pickElement', () => {
@@ -65,7 +69,8 @@ describe('shapeContains : contour réel', () => {
   const diamond = {
     kind: 'rhombus',
     bounds: { x: 0, y: 0, width: 80, height: 80 },
-  } as Parameters<typeof shapeContains>[0];
+    style: {},
+  } as unknown as ShapeModel;
   const outline = [
     { x: 40, y: 0 },
     { x: 80, y: 40 },
@@ -74,9 +79,16 @@ describe('shapeContains : contour réel', () => {
   ];
 
   it('un coin vide du losange ne se clique pas', () => {
-    expect(shapeContains(diamond, { x: 5, y: 5 }, outline)).toBe(false);
-    expect(shapeContains(diamond, { x: 40, y: 40 }, outline)).toBe(true);
-    expect(shapeContains(diamond, { x: 20, y: 20 }, outline)).toBe(true); // sur le bord
+    const contains = (_shape: ShapeModel, p: { x: number; y: number }) => insidePolygon(outline, p);
+    expect(shapeContains(diamond, { x: 5, y: 5 }, contains)).toBe(false);
+    expect(shapeContains(diamond, { x: 40, y: 40 }, contains)).toBe(true);
+    expect(shapeContains(diamond, { x: 20, y: 20 }, contains)).toBe(true); // sur le bord
+  });
+
+  it('le registre répond avec la définition de la forme (contour du losange)', () => {
+    const contains = (shape: ShapeModel, p: { x: number; y: number }) => defaultShapeRegistry.contains(shape, p);
+    expect(shapeContains(diamond, { x: 5, y: 5 }, contains)).toBe(false);
+    expect(shapeContains(diamond, { x: 40, y: 40 }, contains)).toBe(true);
   });
 
   it('sans contour : les bornes', () => {

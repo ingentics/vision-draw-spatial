@@ -3,6 +3,7 @@ import { handlePoints } from '../edit/handles';
 import type { Point, Rect } from '../model/types';
 import { ellipsePath, rectPath } from './geometry/paths';
 import { DEFAULT_ACCENT } from './decorations';
+import type { PerimeterKind } from './edges/route';
 import { fillMesh, strokeMesh } from './meshes';
 
 const WHITE = new Color('#ffffff');
@@ -102,11 +103,11 @@ export function edgeEndHandles(
 }
 
 /**
- * Repères d'accroche sur la forme visée par un bout de flèche : contour surligné (attache auto) et
+ * Repères d'accroche sur la forme visée par un bout de flèche : périmètre d'accroche surligné (attache auto) et
  * croix sur les points de connexion, celui retenu cerclé.
  */
 export function connectionHints(
-  shape: { bounds: Rect; ellipse: boolean },
+  shape: { bounds: Rect; perimeter: PerimeterKind },
   points: Point[],
   zoom: number,
   options: { active?: number; outline: boolean; accent?: string },
@@ -115,7 +116,7 @@ export function connectionHints(
   group.name = 'connection-hints';
   const accent = new Color(options.accent ?? DEFAULT_ACCENT);
   if (options.outline) {
-    const path = shape.ellipse ? ellipsePath(shape.bounds, 64) : rectPath(shape.bounds);
+    const path = perimeterPath(shape.bounds, shape.perimeter);
     const outline = strokeMesh(path, accent, 0.8, { width: 3 / zoom, closed: true });
     if (outline) group.add(outline);
   }
@@ -173,4 +174,17 @@ export function edgePointHandles(
     o.renderOrder = Number.MAX_SAFE_INTEGER;
   });
   return group;
+}
+
+/** Périmètre d'accroche des flèches (celui de `route`), à surligner. */
+function perimeterPath(bounds: Rect, perimeter: PerimeterKind): Point[] {
+  if (perimeter === 'ellipse') return ellipsePath(bounds, 64);
+  if (perimeter === 'rectangle') return rectPath(bounds);
+  const { x, y, width: w, height: h } = bounds;
+  return [
+    { x: x + w / 2, y },
+    { x: x + w, y: y + h / 2 },
+    { x: x + w / 2, y: y + h },
+    { x, y: y + h / 2 },
+  ];
 }

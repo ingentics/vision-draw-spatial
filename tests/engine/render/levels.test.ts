@@ -3,8 +3,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { parseDrawio } from '../../../src/engine/format/parse';
 import type { ShapeModel } from '../../../src/engine/model/types';
 import { buildPageScene, effectiveLevel } from '../../../src/engine/render/pageScene';
-import { ShapeRegistry, createDefaultRegistry } from '../../../src/engine/render/shapes/registry';
-import type { MinimapMapping, ShapeDefinition } from '../../../src/engine/render/shapes/types';
+import { ShapeRegistry, createDefaultRegistry } from '../../../src/engine/shapes/registry';
+import type { MinimapMapping, ShapeDefinition } from '../../../src/engine/shapes/types';
 import type { RenderContext } from '../../../src/engine/render/types';
 import { fixture } from '../../helpers';
 

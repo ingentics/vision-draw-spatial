@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { parseDrawio } from '../../../src/engine/format/parse';
 import { VEIL_ORDER, createVeil, createVeilHole, liftAboveVeil } from '../../../src/engine/render/highlight';
 import { buildPageScene } from '../../../src/engine/render/pageScene';
-import { createDefaultRegistry } from '../../../src/engine/render/shapes/registry';
+import { createDefaultRegistry } from '../../../src/engine/shapes/registry';
 import { fixture } from '../../helpers';
 
 const ctx = { text: { create: () => new Object3D() }, volume: { depth: 16 } };

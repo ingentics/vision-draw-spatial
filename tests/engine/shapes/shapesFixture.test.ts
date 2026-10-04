@@ -1,14 +1,14 @@
 import { existsSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { readDrawio } from '../../../../src/engine/format/parse';
-import type { PageModel, Point, ShapeModel } from '../../../../src/engine/model/types';
-import { toTerminal } from '../../../../src/engine/render/edges/edge';
-import { routeEdge, simplify } from '../../../../src/engine/render/edges/route';
-import { orientedPath } from '../../../../src/engine/render/geometry/orient';
-import { PLUG_SHAPE } from '../../../../src/engine/render/shapes/plug';
-import { createDefaultRegistry } from '../../../../src/engine/render/shapes/registry';
-import { drawioSvgOutlines, drawioSvgRoutes, dropCollinear, fixture } from '../../../helpers';
+import { readDrawio } from '../../../src/engine/format/parse';
+import type { PageModel, Point, ShapeModel } from '../../../src/engine/model/types';
+import { toTerminal } from '../../../src/engine/render/edges/edge';
+import { routeEdge, simplify } from '../../../src/engine/render/edges/route';
+import { orientedPath } from '../../../src/engine/render/geometry/orient';
+import { PLUG_SHAPE } from '../../../src/engine/shapes/plug';
+import { createDefaultRegistry } from '../../../src/engine/shapes/registry';
+import { drawioSvgOutlines, drawioSvgRoutes, dropCollinear, fixture } from '../../helpers';
 
 /**
  * Fixture `shapes.drawio` (Milestone 5) : formes géométriques de draw.io dans leurs variantes (tailles,
@@ -163,12 +163,12 @@ describe('fixture shapes.drawio', () => {
   it('est à jour', () => {
     const built = build();
     if (process.env.WRITE_FIXTURES === '1')
-      writeFileSync(fileURLToPath(new URL('../../../fixtures/shapes.drawio', import.meta.url)), built);
+      writeFileSync(fileURLToPath(new URL('../../fixtures/shapes.drawio', import.meta.url)), built);
     expect(built).toBe(fixture('shapes.drawio'));
   });
 });
 
-const SVG = fileURLToPath(new URL('../../../fixtures/drawio-saved/shapes.svg', import.meta.url));
+const SVG = fileURLToPath(new URL('../../fixtures/drawio-saved/shapes.svg', import.meta.url));
 
 describe.runIf(existsSync(SVG))('shapes.drawio : mêmes contours et mêmes flèches que draw.io (export SVG)', () => {
   let loaded: { page: PageModel; shapes: Map<string, ShapeModel>; svg: string } | undefined;

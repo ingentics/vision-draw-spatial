@@ -111,20 +111,18 @@ src/
     graph/
       graphPage.ts     # vue graphe : page générée (cartes, flèches), disposition en couches
       graphScene.ts    # scène du graphe avec les miniatures des pages
-      shapes/          # une définition par forme, tous niveaux de rendu (§8.2)
-        types.ts       # ShapeDefinition, niveaux, contrat mini-carte
-        registry.ts    # résolution forme → définition → rendu d'un niveau (repli à plat)
-        rectangle.ts
-        ellipse.ts
-        text.ts
-        group.ts
-        placeholder.ts
-        minimapPainters.ts # repli mini-carte : contour de la forme
       flat/            # briques du rendu à plat (boîte, label)
       edges/           # arêtes : tracé, pointes, labels
       geometry/        # contours, traits épais, pointillés
       pageScene.ts     # construction de la scène d'une page à un niveau donné
       sceneManager.ts  # scènes construites (par page et par niveau), visibilité, cache
+    shapes/            # les formes, en plugins (§8.2)
+      types.ts         # ShapeDefinition : rendus, géométrie, interaction, palette, panneau
+      registry.ts      # collecte des dossiers, résolution forme → définition, replis génériques
+      placeholder.ts   # repli des formes non supportées
+      rectangle/       # un dossier par forme : index.ts exporte `definition`
+      ellipse/ …
+      utils/           # code partagé entre formes (cylindres, bâtiments iso, mini-carte)
     interaction/
       camera.ts        # ortho / iso, pan, zoom, état sérialisable
       keyboard.ts
@@ -315,7 +313,7 @@ type LinkModel =
 
 ### 8.2 Registre de renderers
 
-Chaque type de forme est décrit par une **définition** qui s'enregistre auprès d'un registre. Le moteur ne connaît que l'interface commune. Guide pas à pas pour en ajouter une : [AJOUTER_UNE_FORME.md](AJOUTER_UNE_FORME.md).
+Chaque type de forme est décrit par une **définition**, dans son dossier `src/engine/shapes/<forme>/` (`index.ts` exporte `definition`), collectée toute seule par le registre. Le moteur et l'appli ne connaissent que l'interface commune : ils ne testent jamais le nom d'une forme, ils interrogent le registre. Guide pas à pas pour en ajouter une : [AJOUTER_UNE_FORME.md](AJOUTER_UNE_FORME.md).
 
 Une forme a **plusieurs niveaux de rendu** selon le contexte, avec un **repli systématique sur le rendu à plat** :
 
@@ -333,10 +331,21 @@ interface ShapeDefinition {
   kind: string;
   matches?(shape: ShapeModel): boolean;        // par défaut : correspondance sur kind
   outline?(shape: ShapeModel): Point[];        // contour au sol : géométrie de référence (rendu à plat, replis)
+  contains?(shape: ShapeModel, p: Point): boolean; // clic ; par défaut : le contour, sinon les bornes
   flat: SceneRenderer;                         // obligatoire
   iso?: SceneRenderer;
   volume?: SceneRenderer;
+  volumeHeight?(shape, ctx): number;
+  textZone?(shape, level): Rect;
   minimap?: MinimapPainter | null;
+  resizable?: boolean;                         // défaut : oui
+  connectable?: boolean;                       // défaut : oui
+  pickable?: 'always' | 'withLink';            // défaut : always (groupe : withLink)
+  movesAsBlock?: boolean;                      // défaut : non (groupe : oui)
+  templates?: ShapeTemplate[];                 // modèles de la palette (§14.1)
+  templateOf?(style): string | undefined;      // variante d'une forme (rectangle / arrondi…)
+  swatch?(style): string;                      // aperçu des styles du panneau
+  properties?: ShapeProperty[];                // réglages propres à la forme, dans le panneau
 }
 
 interface SceneRenderer {
@@ -349,7 +358,7 @@ interface SceneRenderer {
 - Rectangles, ellipses et placeholders ont un rendu `iso` en volume (§9.1) ; le texte et les groupes restent à plat.
 - Les arêtes ont pour l'instant un rendu unique (à plat), et un tracé simplifié en mini-carte.
 
-Ajouter une forme = **écrire sa définition et l'enregistrer** (au minimum `flat`, idéalement `outline`). Aucune autre modification ; les niveaux plus riches s'ajoutent ensuite, forme par forme.
+Ajouter une forme = **déposer son dossier** (au minimum `kind` et `flat`, idéalement `outline`). Aucune autre modification : palette, panneau, clic, poignées et flèches la prennent en compte d'après sa définition ; les niveaux plus riches s'ajoutent ensuite, forme par forme. Le code partagé entre formes va dans `shapes/utils/`.
 
 ### 8.3 Formes supportées en M1
 

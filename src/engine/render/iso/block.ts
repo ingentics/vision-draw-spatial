@@ -5,7 +5,7 @@ import { createBox, VERTEX_DEFAULTS } from '../flat/box';
 import type { BoxDefaults } from '../flat/box';
 import { cleanOutline, dashPattern, offsetOutline } from '../geometry/stroke';
 import { fillMesh, solidMaterial } from '../meshes';
-import type { SceneRenderer } from '../shapes/types';
+import type { SceneRenderer } from '../../shapes/types';
 import { styleColor, styleNumber, styleOpacity } from '../styleValues';
 import type { RenderContext } from '../types';
 import { DEFAULT_DEPTH, SPATIAL, spatialNumber } from '../../spatial';

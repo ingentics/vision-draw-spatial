@@ -9,6 +9,7 @@ import {
 } from '../../../src/engine/edit/move';
 import { parseDrawio } from '../../../src/engine/format/parse';
 import type { PageModel } from '../../../src/engine/model/types';
+import { defaultShapeRegistry } from '../../../src/engine/shapes/registry';
 import { fixture } from '../../helpers';
 
 const shape = (page: PageModel, id: string) => page.shapes.find((s) => s.id === id)!;
@@ -17,11 +18,11 @@ describe('moveTarget', () => {
   const page = parseDrawio(fixture('groups.drawio')).pages[0]!;
 
   it('une forme dans un groupe déplace le groupe le plus externe', () => {
-    expect(moveTarget(page, shape(page, 'deep')).id).toBe('g-outer');
+    expect(moveTarget(page, shape(page, 'deep'), defaultShapeRegistry).id).toBe('g-outer');
   });
 
   it('une forme dans un conteneur (swimlane) se déplace seule', () => {
-    expect(moveTarget(page, shape(page, 'lane-a')).id).toBe('lane-a');
+    expect(moveTarget(page, shape(page, 'lane-a'), defaultShapeRegistry).id).toBe('lane-a');
   });
 });
 

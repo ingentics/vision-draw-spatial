@@ -2,6 +2,7 @@ import { anchorOf, edgeTexts, endLabelOf } from '../engine/edit/edgeLabels';
 import type { EdgeTextAnchor } from '../engine/Engine';
 import type { EdgeEnd } from '../engine/edit/edgeLabels';
 import { matchesPreset } from '../engine/edit/styles';
+import { defaultShapeRegistry } from '../engine/shapes/registry';
 import { routingKind } from '../engine/render/edges/route';
 import type { StylePreset } from '../engine/edit/styles';
 import type { EdgeModel, LinkModel, PageModel, ShapeModel } from '../engine/model/types';
@@ -9,6 +10,8 @@ import type { StyleSettings } from '../engine/settings';
 import { SPATIAL, spatialNumber } from '../engine/spatial';
 import { TEXT_FORMAT_ATTRIBUTE } from './LabelEditor';
 import { BorderSection } from './BorderSection';
+import { NumberField, TextField } from './Fields';
+import { ShapePropertyFields } from './ShapeProperties';
 import { CollapseButton } from './Sidebar';
 import { Section } from './PanelSection';
 import { TextFormatSections } from './TextFormat';
@@ -37,8 +40,8 @@ export interface ContextPanelProps {
   onRenamePage?: (name: string) => void;
   /** Lien de l'élément sélectionné (vers une page ou une URL) ; undefined = retiré. */
   onLink: (link: LinkModel | undefined) => void;
-  /** Attribut spatial de la forme sélectionnée (épaisseur, élévation) ; undefined = valeur par défaut. */
-  onSpatial: (key: string, value: number | undefined) => void;
+  /** Attribut spatial de la forme sélectionnée (épaisseur, élévation…) ; undefined = valeur par défaut. */
+  onSpatial: (key: string, value: number | string | undefined) => void;
   /** Édition du texte (du milieu, pour une flèche) dans le plan. */
   onEditLabel: () => void;
   /** Texte de début ou de fin d'une flèche (vide = retiré). */
@@ -134,7 +137,9 @@ function ShapeSections({ shape, ...props }: ContextPanelProps & { shape: ShapeMo
           <p className="panel-hint">Style actuel : couleurs personnalisées.</p>
         )}
       </Section>
-      <BorderSection shape={shape} onChange={props.onShapeStyle} />
+      <BorderSection shape={shape} onChange={props.onShapeStyle}>
+        <ShapePropertyFields shape={shape} section="border" onStyle={props.onShapeStyle} onSpatial={props.onSpatial} />
+      </BorderSection>
       <Section title="Volume">
         <NumberField
           key={`h:${shape.id}:${spatialNumber(shape, SPATIAL.height) ?? ''}`}
@@ -152,6 +157,7 @@ function ShapeSections({ shape, ...props }: ContextPanelProps & { shape: ShapeMo
           placeholder="0"
           onCommit={(value) => props.onSpatial(SPATIAL.elevation, value)}
         />
+        <ShapePropertyFields shape={shape} section="volume" onStyle={props.onShapeStyle} onSpatial={props.onSpatial} />
       </Section>
       <Section title="Lien">
         <LinkField link={shape.link} pageId={props.page.id} pages={props.pages} onLink={props.onLink} />
@@ -381,7 +387,16 @@ function MultiSections(props: ContextPanelProps) {
           {edges.length > 0 && <p className="panel-hint">Appliqué aux formes de la sélection.</p>}
         </Section>
       )}
-      {current && <BorderSection shape={current} onChange={props.onShapeStyle} />}
+      {current && (
+        <BorderSection shape={current} onChange={props.onShapeStyle}>
+          <ShapePropertyFields
+            shape={current}
+            section="border"
+            onStyle={props.onShapeStyle}
+            onSpatial={props.onSpatial}
+          />
+        </BorderSection>
+      )}
       <DeleteButton onDelete={props.onDelete} />
     </>
   );
@@ -453,82 +468,6 @@ function LinkField({
   );
 }
 
-/** Champ texte : validé à Entrée ou en quittant le champ, Échap annule. */
-function TextField({
-  label,
-  title,
-  value,
-  placeholder,
-  readOnly,
-  onCommit,
-}: {
-  label: string;
-  title: string;
-  value: string;
-  placeholder?: string;
-  readOnly?: boolean;
-  onCommit: (text: string) => void;
-}) {
-  return (
-    <label className="field-row" title={title}>
-      {label}
-      <input
-        type="text"
-        defaultValue={value}
-        placeholder={placeholder}
-        readOnly={readOnly}
-        onBlur={(event) => {
-          if (event.target.value !== value) onCommit(event.target.value);
-        }}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') event.currentTarget.blur();
-          else if (event.key === 'Escape') {
-            event.currentTarget.value = value;
-            event.currentTarget.blur();
-          }
-        }}
-      />
-    </label>
-  );
-}
-
-/** Champ numérique d'un attribut spatial : validé à Entrée ou en quittant le champ ; vide = défaut. */
-function NumberField({
-  label,
-  title,
-  value,
-  placeholder,
-  onCommit,
-}: {
-  label: string;
-  title: string;
-  value: number | undefined;
-  placeholder: string;
-  onCommit: (value: number | undefined) => void;
-}) {
-  const commit = (text: string) => {
-    const trimmed = text.trim();
-    const next = trimmed === '' ? undefined : Number(trimmed.replace(',', '.'));
-    if (next === undefined || (Number.isFinite(next) && next >= 0)) onCommit(next);
-  };
-  return (
-    <label className="field-row" title={title}>
-      {label}
-      <input
-        type="number"
-        min={0}
-        step={1}
-        defaultValue={value ?? ''}
-        placeholder={placeholder}
-        onBlur={(event) => commit(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') event.currentTarget.blur();
-        }}
-      />
-    </label>
-  );
-}
-
 function DeleteButton({ onDelete }: { onDelete: () => void }) {
   return (
     <button type="button" className="button danger-button" title="Supprimer (Suppr)" onClick={onDelete}>
@@ -565,21 +504,16 @@ function StyleGrid({
   );
 }
 
-/** Aperçu de la forme sélectionnée (rectangle, arrondi, ellipse, cylindre…) avec ce style. */
+/** Aperçu de la forme sélectionnée avec ce style : le dessin déclaré par sa forme, aux couleurs du style. */
 function StylePreview({ shape, preset }: { shape: ShapeModel; preset: StylePreset }) {
-  const paint = { fill: preset.fillColor, stroke: preset.strokeColor };
   const text = preset.fontColor ?? '#000000';
-  const kind = shape.kind;
-  let body;
-  if (kind === 'ellipse') body = <ellipse cx="20" cy="14" rx="15" ry="10" {...paint} />;
-  else if (kind === 'cylinder3' && shape.style.direction === 'south')
-    body = <path d="M10 6h20a3 8 0 0 1 0 16H10a3 8 0 0 1 0-16zM30 6a3 8 0 0 0 0 16" {...paint} />;
-  else if (kind === 'cylinder3' || kind === 'cylinder' || kind === 'datastore')
-    body = <path d="M12 6c0-3 16-3 16 0v16c0 3-16 3-16 0zM12 6c0 3 16 3 16 0" {...paint} />;
-  else body = <rect x="5" y="5" width="30" height="18" rx={shape.style.rounded === '1' ? 4 : 0} {...paint} />;
   return (
     <svg viewBox="0 0 40 28" aria-hidden="true">
-      {body}
+      <g
+        fill={preset.fillColor}
+        stroke={preset.strokeColor}
+        dangerouslySetInnerHTML={{ __html: defaultShapeRegistry.swatch(shape) }}
+      />
       <text x="20" y="17.5" textAnchor="middle" fill={text}>
         Aa
       </text>

@@ -8,7 +8,7 @@ import { VIEW_ATTRIBUTE } from '../../../src/engine/format/viewState';
 import { writeDrawio } from '../../../src/engine/format/write';
 import type { PageModel } from '../../../src/engine/model/types';
 import { buildPageScene } from '../../../src/engine/render/pageScene';
-import { createDefaultRegistry } from '../../../src/engine/render/shapes/registry';
+import { createDefaultRegistry } from '../../../src/engine/shapes/registry';
 import type { RenderContext } from '../../../src/engine/render/types';
 import { SPATIAL, spatialAttributes, spatialNumber, spatialValue } from '../../../src/engine/spatial';
 import { fixture } from '../../helpers';

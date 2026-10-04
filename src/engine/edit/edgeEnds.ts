@@ -1,6 +1,7 @@
 import { setCellStyleValue, setEdgeTerminal } from '../format/edit';
 import type { PageTree } from '../format/xmlTree';
 import type { EdgeModel, PageModel, Point, Rect, ShapeModel } from '../model/types';
+import type { ShapeRegistry } from '../shapes/registry';
 
 /**
  * Extrémités d'une flèche (SPEC §8.3, §14.1) : d'où elle part et où elle arrive, comme draw.io.
@@ -28,10 +29,13 @@ export function connectionPoints(bounds: Rect): Point[] {
   return CONNECTION_POINTS.map((c) => ({ x: bounds.x + c.x * bounds.width, y: bounds.y + c.y * bounds.height }));
 }
 
-/** Formes auxquelles on peut attacher une flèche : visibles, sur un calque visible, hors groupes (invisibles). */
-export function connectableShapes(page: PageModel): ShapeModel[] {
+/**
+ * Formes auxquelles on peut attacher une flèche : visibles, sur un calque visible, et qui l'acceptent d'après leur
+ * définition (pas un groupe invisible).
+ */
+export function connectableShapes(page: PageModel, shapes: Pick<ShapeRegistry, 'isConnectable'>): ShapeModel[] {
   const hiddenLayers = new Set(page.layers.filter((l) => !l.visible).map((l) => l.id));
-  return page.shapes.filter((s) => s.visible && !hiddenLayers.has(s.layerId) && s.kind !== 'group');
+  return page.shapes.filter((s) => s.visible && !hiddenLayers.has(s.layerId) && shapes.isConnectable(s));
 }
 
 /** Préfixe des clés de style du point d'attache : `exit…` pour la source, `entry…` pour la cible. */

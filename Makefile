@@ -48,7 +48,7 @@ drawio-check: .image ## Réenregistre les fixtures avec draw.io, vérifie la con
 	@for n in $(DRAWIO_SVG); do \
 	  "$(DRAWIO)" -x -f svg -o tests/fixtures/drawio-saved/$${n%.drawio}.svg tests/fixtures/$$n > /dev/null || exit 1; \
 	done
-	$(RUN) npx vitest run tests/engine/spatial tests/engine/edit/edgeEndsFixture.test.ts tests/engine/render/edges/routingFixture.test.ts tests/engine/edit/edgePointsFixture.test.ts tests/engine/render/shapes/shapesFixture.test.ts tests/engine/render/labelsFixture.test.ts
+	$(RUN) npx vitest run tests/engine/spatial tests/engine/edit/edgeEndsFixture.test.ts tests/engine/render/edges/routingFixture.test.ts tests/engine/edit/edgePointsFixture.test.ts tests/engine/shapes/shapesFixture.test.ts tests/engine/render/labelsFixture.test.ts
 
 build: .image ## Build de production dans dist/
 	$(RUN) npm run build

@@ -5,7 +5,7 @@ import { parseDrawio } from '../../../src/engine/format/parse';
 import { pickElement } from '../../../src/engine/interaction/pick';
 import { blockHeight } from '../../../src/engine/render/iso/block';
 import { buildPageScene } from '../../../src/engine/render/pageScene';
-import { createDefaultRegistry } from '../../../src/engine/render/shapes/registry';
+import { createDefaultRegistry } from '../../../src/engine/shapes/registry';
 import type { RenderContext } from '../../../src/engine/render/types';
 import { fixture } from '../../helpers';
 

@@ -19,10 +19,12 @@ export interface PickOptions {
   heightOf?: (elementId: string) => number;
   pointAtHeight?: (height: number) => Point;
   /**
-   * Contour réel d'une forme (polygone, coordonnées page) : un losange ne se clique pas dans ses coins
-   * vides. Absent = bornes (ellipse exacte).
+   * Le point (déjà dans les bornes) est-il dans la forme ? Sa définition répond (un losange ne se clique pas dans
+   * ses coins vides). Absent = les bornes.
    */
-  outlineOf?: (shape: ShapeModel) => Point[] | undefined;
+  contains?: (shape: ShapeModel, point: Point) => boolean;
+  /** La forme se prend-elle au clic (un groupe invisible seulement s'il porte un lien) ? Absent = toutes. */
+  pickable?: (shape: ShapeModel) => boolean;
 }
 
 export function pickElement(page: PageModel, point: Point, options: PickOptions): PickedElement | undefined {
@@ -38,9 +40,8 @@ export function pickElement(page: PageModel, point: Point, options: PickOptions)
     const height = options.heightOf?.(element.id) ?? 0;
     const target = height !== 0 && options.pointAtHeight ? options.pointAtHeight(height) : point;
     if (candidate.type === 'shape') {
-      // Les groupes sont invisibles : on ne les attrape que s'ils portent un lien.
-      if (candidate.element.kind === 'group' && !candidate.element.link) continue;
-      if (shapeContains(candidate.element, target, options.outlineOf?.(candidate.element))) return candidate;
+      if (options.pickable && !options.pickable(candidate.element)) continue;
+      if (shapeContains(candidate.element, target, options.contains)) return candidate;
     } else {
       const route = options.edgeRoute(element.id);
       if (route && distanceToPolyline(target, route) <= options.edgeTolerance) return candidate;
@@ -49,20 +50,15 @@ export function pickElement(page: PageModel, point: Point, options: PickOptions)
   return undefined;
 }
 
-export function shapeContains(shape: ShapeModel, p: Point, outline?: Point[]): boolean {
+/** Point dans la forme : dans ses bornes, puis selon `contains` (sa définition) s'il est donné. */
+export function shapeContains(
+  shape: ShapeModel,
+  p: Point,
+  contains?: (shape: ShapeModel, point: Point) => boolean,
+): boolean {
   const { x, y, width, height } = shape.bounds;
   if (p.x < x || p.x > x + width || p.y < y || p.y > y + height) return false;
-  if (outline && outline.length >= 3 && shape.kind !== 'rectangle' && shape.kind !== 'ellipse')
-    return insidePolygon(outline, p);
-  if (shape.kind === 'ellipse') {
-    const rx = width / 2;
-    const ry = height / 2;
-    if (rx <= 0 || ry <= 0) return false;
-    const dx = (p.x - (x + rx)) / rx;
-    const dy = (p.y - (y + ry)) / ry;
-    return dx * dx + dy * dy <= 1;
-  }
-  return p.x >= x && p.x <= x + width && p.y >= y && p.y <= y + height;
+  return contains ? contains(shape, p) : true;
 }
 
 export function distanceToPolyline(p: Point, points: Point[]): number {

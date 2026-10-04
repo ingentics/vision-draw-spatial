@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { collectUnsupported } from '../../../src/engine/diagnostics/unsupportedStyles';
 import { parseDrawio } from '../../../src/engine/format/parse';
 import { buildPageScene } from '../../../src/engine/render/pageScene';
-import { createDefaultRegistry } from '../../../src/engine/render/shapes/registry';
+import { createDefaultRegistry } from '../../../src/engine/shapes/registry';
 import type { RenderContext, TextSpec } from '../../../src/engine/render/types';
 import { fixture } from '../../helpers';
 

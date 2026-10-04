@@ -8,7 +8,8 @@ import {
   usedTemplates,
 } from '../../../src/engine/edit/palette';
 import { resolveShapeKind, parseStyle } from '../../../src/engine/format/style';
-import { createDefaultRegistry } from '../../../src/engine/render/shapes/registry';
+import type { ShapeModel } from '../../../src/engine/model/types';
+import { createDefaultRegistry } from '../../../src/engine/shapes/registry';
 
 describe('palette', () => {
   it('ne propose que des formes dessinées par le moteur', () => {
@@ -89,7 +90,7 @@ describe('palette', () => {
 describe('formes utilisées (étape 56)', () => {
   const shape = (style: string) => {
     const parsed = parseStyle(style);
-    return { kind: resolveShapeKind(parsed), style: parsed.values };
+    return { kind: resolveShapeKind(parsed), style: parsed.values } as unknown as ShapeModel;
   };
 
   it('reconnaît chaque modèle depuis son propre style', () => {

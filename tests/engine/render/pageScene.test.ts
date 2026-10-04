@@ -3,8 +3,8 @@ import { Box3, Mesh, Object3D, Vector3 } from 'three';
 import { describe, expect, it } from 'vitest';
 import { parseDrawio } from '../../../src/engine/format/parse';
 import { buildPageScene } from '../../../src/engine/render/pageScene';
-import { ShapeRegistry, createDefaultRegistry } from '../../../src/engine/render/shapes/registry';
-import type { ShapeDefinition } from '../../../src/engine/render/shapes/types';
+import { ShapeRegistry, createDefaultRegistry } from '../../../src/engine/shapes/registry';
+import type { ShapeDefinition } from '../../../src/engine/shapes/types';
 import type { RenderContext, TextSpec } from '../../../src/engine/render/types';
 import { fixture } from '../../helpers';
 

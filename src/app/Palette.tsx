@@ -181,7 +181,7 @@ export function Palette({ onAdd, used = [], disabled }: PaletteProps) {
                       }}
                       onClick={() => onAdd(template)}
                     >
-                      <ShapePreview id={template.id} />
+                      <ShapePreview template={template} />
                     </button>
                   ))}
                 </div>
@@ -209,25 +209,7 @@ export function templateById(id: string): ShapeTemplate | undefined {
   return SHAPE_TEMPLATES.find((t) => t.id === id);
 }
 
-function ShapePreview({ id }: { id: string }) {
-  return (
-    <svg viewBox="0 0 40 28" aria-hidden="true">
-      {id === 'rectangle' && <rect x="4" y="6" width="32" height="16" />}
-      {id === 'rounded' && <rect x="4" y="6" width="32" height="16" rx="4" />}
-      {id === 'ellipse' && <ellipse cx="20" cy="14" rx="16" ry="9" />}
-      {id === 'rhombus' && <path d="M20 3L32 14L20 25L8 14z" />}
-      {id === 'circle' && <circle cx="20" cy="14" r="10" />}
-      {id === 'database' && <path d="M12 6c0-3 16-3 16 0v16c0 3-16 3-16 0zM12 6c0 3 16 3 16 0" />}
-      {id === 'queue' && <path d="M10 5h20a4 9 0 0 1 0 18H10a4 9 0 0 1 0-18zM30 5a4 9 0 0 0 0 18" />}
-      {id === 'cache' && (
-        <path d="M12 6c0-3 16-3 16 0v16c0 3-16 3-16 0zM12 6c0 3 16 3 16 0M12 9c0 3 16 3 16 0M12 12c0 3 16 3 16 0" />
-      )}
-      {id === 'plug' && <path d="M6 6h20v4h8v3h-8v2h8v3h-8v4H6z" />}
-      {id === 'text' && (
-        <text x="20" y="18" textAnchor="middle">
-          Abc
-        </text>
-      )}
-    </svg>
-  );
+/** Icône du modèle, déclarée par sa forme (contenu SVG statique du moteur, cadre `0 0 40 28`). */
+function ShapePreview({ template }: { template: ShapeTemplate }) {
+  return <svg viewBox="0 0 40 28" aria-hidden="true" dangerouslySetInnerHTML={{ __html: template.icon }} />;
 }
