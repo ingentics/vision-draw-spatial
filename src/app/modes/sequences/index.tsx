@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { sequenceState, addFlow, moveFlow, removeFlow, renameFlow } from '../../../engine/modes/sequences/steps';
+import { sequenceState, addFlow, removeFlow, renameFlow } from '../../../engine/modes/sequences/steps';
 import type { Flow } from '../../../engine/modes/sequences/flows';
 import { Section } from '../../PanelSection';
 import type { ModePanel, ModePanelProps } from '../registry';
@@ -22,16 +22,13 @@ function FlowsSection({ page, onEdit, current }: ModePanelProps) {
     <Section title="Flux">
       {flows.length === 0 && <p className="panel-hint">Aucun flux : ajoutez-en un, puis rangez-y des flèches.</p>}
       <ul className="flow-list">
-        {flows.map((flow, index) => (
+        {flows.map((flow) => (
           <FlowRow
             key={`${flow.id}:${flow.title}`}
             flow={flow}
             count={members.get(flow.id)?.length ?? 0}
             current={flow.id === current}
-            first={index === 0}
-            last={index === flows.length - 1}
             onRename={onEdit && ((next) => onEdit('Flux renommé', (edit) => renameFlow(edit, flow.id, next)))}
-            onMove={onEdit && ((delta) => onEdit('Flux déplacé', (edit) => moveFlow(edit, flow.id, index + delta)))}
             onRemove={onEdit && (() => onEdit('Flux supprimé', (edit) => removeFlow(edit, flow.id)))}
           />
         ))}
@@ -55,8 +52,9 @@ function FlowsSection({ page, onEdit, current }: ModePanelProps) {
       )}
       {flows.length > 0 && (
         <p className="panel-hint">
-          Flux courant (encadré) : les nouvelles flèches y vont ; cliquer une flèche d’un flux le choisit. Une flèche se
-          range aussi depuis son panneau (Flux, Rang), ou « + » / « - » pour changer son rang.
+          Flux courant (pastille cerclée) : les nouvelles flèches y vont ; cliquer une flèche d’un flux le choisit. Une
+          flèche se range aussi depuis son panneau (Flux, Rang), ou «&nbsp;+&nbsp;» / «&nbsp;-&nbsp;» pour changer son
+          rang.
         </p>
       )}
     </Section>
@@ -67,20 +65,14 @@ function FlowRow({
   flow,
   count,
   current,
-  first,
-  last,
   onRename,
-  onMove,
   onRemove,
 }: {
   flow: Flow;
   count: number;
   /** Flux courant : les nouvelles flèches y vont (cliquer une flèche d'un flux le choisit). */
   current: boolean;
-  first: boolean;
-  last: boolean;
   onRename?: (title: string) => void;
-  onMove?: (delta: -1 | 1) => void;
   onRemove?: () => void;
 }) {
   return (
@@ -112,28 +104,6 @@ function FlowRow({
       <span className="field-value" title={`${count} flèche${count > 1 ? 's' : ''}`}>
         {count}
       </span>
-      {onMove && (
-        <>
-          <button
-            type="button"
-            className="icon-button"
-            title="Monter le flux"
-            disabled={first}
-            onClick={() => onMove(-1)}
-          >
-            ↑
-          </button>
-          <button
-            type="button"
-            className="icon-button"
-            title="Descendre le flux"
-            disabled={last}
-            onClick={() => onMove(1)}
-          >
-            ↓
-          </button>
-        </>
-      )}
       {onRemove && (
         <button
           type="button"

@@ -1779,9 +1779,11 @@ body {
   background: rgba(0, 0, 0, 0.1);
 }
 
-.flow-item.current input[type='text'] {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent);
+/* Flux courant : cercle autour de sa pastille de couleur. */
+.flow-item.current .color-dot {
+  box-shadow:
+    0 0 0 2px var(--panel),
+    0 0 0 3.5px var(--fg);
 }
 
 /* Groupe de réglages dans une sous-catégorie des paramètres (ex. « Modes › Séquences »). */
