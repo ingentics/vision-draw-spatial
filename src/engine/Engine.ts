@@ -42,6 +42,7 @@ import {
   renamePage,
   setCellLink,
 } from './format/create';
+import { copyCells, pasteCells, readClipboardModel } from './format/clipboard';
 import { documentFromTree, readDrawio } from './format/parse';
 import { readPageViews, writePageViews } from './format/viewState';
 import type { IsoViewParams, PageViewState } from './format/viewState';
@@ -492,6 +493,12 @@ export class Engine {
   /** Poignées de la forme sélectionnée. */
   private handlesObject: Object3D | undefined;
   private readonly undoStack = new UndoStack<string>();
+  /**
+   * Dernière copie faite dans l'appli (ticket 59) : son XML, sa page d'origine et le parent de ses
+   * éléments (pour recoller dans le même conteneur), et le décalage du prochain collage, en pas de grille.
+   */
+  private clipboard:
+    { xml: string; fileId?: string; pageId: string; parents: Map<string, string>; steps: number } | undefined;
   private editable: boolean;
 
   constructor(options: EngineOptions) {
@@ -2950,17 +2957,128 @@ export class Engine {
   }
 
   /** Supprime la sélection : avec son contenu, ses labels et les arêtes qui y sont reliées (comme draw.io). */
-  deleteSelection(): void {
+  deleteSelection(label = 'Suppression'): void {
     const editable = this.editablePage();
     const selection = this.selection;
     if (!editable || !selection || selection.pageId !== editable.page.id) return;
-    this.recordEdit('Suppression');
+    this.recordEdit(label);
     removeCellsDeep(
       editable.pageTree,
       selection.items.map((item) => item.element.id),
     );
     this.clearSelection();
     this.documentChanged([editable.page.id]);
+  }
+
+  /**
+   * Copie la sélection (ticket 59) : renvoie le XML à mettre dans le presse-papier (format draw.io),
+   * aussi gardé comme presse-papier interne. Undefined : rien à copier.
+   */
+  copySelection(): string | undefined {
+    const xml = this.selectionClipboard();
+    if (!xml || !this.selection) return undefined;
+    const parents = new Map<string, string>();
+    for (const { element } of this.selection.items) if (element.parentId) parents.set(element.id, element.parentId);
+    this.clipboard = { xml, fileId: this.fileId, pageId: this.selection.pageId, parents, steps: 1 };
+    return xml;
+  }
+
+  /** Coupe la sélection : copiée puis supprimée ; le premier collage la remet à sa place. */
+  cutSelection(): string | undefined {
+    if (!this.editablePage()) return undefined;
+    const xml = this.copySelection();
+    if (!xml || !this.clipboard) return undefined;
+    this.clipboard.steps = 0;
+    this.deleteSelection('Couper');
+    return xml;
+  }
+
+  /**
+   * Colle sur la page courante : `text` lu dans le presse-papier système (sans lui : le presse-papier
+   * interne). Les éléments collés sont décalés d'un pas de grille de plus à chaque collage du même
+   * contenu, puis sélectionnés. Renvoie false si le texte n'est pas un contenu draw.io.
+   */
+  paste(text?: string): boolean {
+    const editable = this.editablePage();
+    if (!editable) return false;
+    if (text !== undefined && text.trim() !== this.clipboard?.xml.trim()) {
+      if (!readClipboardModel(text)) return false;
+      this.clipboard = { xml: text, pageId: '', parents: new Map(), steps: 1 };
+    }
+    const clipboard = this.clipboard;
+    if (!clipboard) return false;
+    const step = this.gridStep(editable.pageTree);
+    const delta = { x: clipboard.steps * step, y: clipboard.steps * step };
+    const samePage = clipboard.fileId === this.fileId && clipboard.pageId === editable.page.id;
+    if (!this.pasteXml(clipboard.xml, delta, 'Coller', samePage ? clipboard.parents : undefined)) return false;
+    clipboard.steps++;
+    return true;
+  }
+
+  /** Duplique la sélection (copier + coller sans toucher au presse-papier), décalée d'un pas de grille. */
+  duplicateSelection(): void {
+    const editable = this.editablePage();
+    const selection = this.selection;
+    if (!editable || !selection) return;
+    const xml = this.selectionClipboard();
+    if (!xml) return;
+    const parents = new Map<string, string>();
+    for (const { element } of selection.items) if (element.parentId) parents.set(element.id, element.parentId);
+    const step = this.gridStep(editable.pageTree);
+    this.pasteXml(xml, { x: step, y: step }, 'Dupliquer', parents);
+  }
+
+  /** XML du presse-papier pour la sélection de la page courante. */
+  private selectionClipboard(): string | undefined {
+    const page = this.getCurrentPage();
+    const selection = this.selection;
+    if (!page || !selection || selection.pageId !== page.id) return undefined;
+    const pageTree = this.pageTreeOf(page.id);
+    if (!pageTree || pageTree.encoding === 'unreadable') return undefined;
+    return copyCells(
+      pageTree,
+      selection.items.map((item) => item.element.id),
+      {
+        origin: (id) => page.shapes.find((s) => s.id === id)?.bounds,
+        edgeEnd: (id, end) => {
+          const route = this.sceneObject(id)?.userData.route as Point[] | undefined;
+          return end === 'source' ? route?.[0] : route?.at(-1);
+        },
+      },
+    );
+  }
+
+  /** Pas de décalage d'un collage : la grille de la page (10 si elle est désactivée). */
+  private gridStep(pageTree: PageTree): number {
+    return gridSizeOf(pageTree) || 10;
+  }
+
+  /** Colle un contenu du presse-papier sur la page courante (une étape d'annulation) et le sélectionne. */
+  private pasteXml(xml: string, delta: Point, label: string, parents?: Map<string, string>): boolean {
+    const editable = this.editablePage();
+    const model = readClipboardModel(xml);
+    if (!editable || !model) return false;
+    this.endMove();
+    const { page, pageTree } = editable;
+    this.recordEdit(label);
+    const ids = pasteCells(pageTree, model, {
+      delta,
+      parentOf: (id) => {
+        const parentId = parents?.get(id);
+        const parent = parentId ? page.shapes.find((s) => s.id === parentId) : undefined;
+        return parent && pageTree.cells.has(parent.id) ? { id: parent.id, origin: parent.bounds } : undefined;
+      },
+    });
+    this.documentChanged([page.id]);
+    const current = this.getCurrentPage();
+    const items = ids.flatMap((id): PickedElement[] => {
+      const shape = current?.shapes.find((s) => s.id === id);
+      if (shape) return [{ type: 'shape', element: shape }];
+      const edge = current?.edges.find((e) => e.id === id);
+      return edge ? [{ type: 'edge', element: edge }] : [];
+    });
+    this.selectItems(items);
+    return true;
   }
 
   canUndo(): boolean {

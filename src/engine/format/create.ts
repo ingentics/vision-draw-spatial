@@ -236,7 +236,7 @@ function pageOf(tree: DrawioTree, pageId: string): PageTree {
 }
 
 /** `<root>` de la page ; une page vide reçoit un modèle minimal (cellule racine et calque). */
-function ensureRoot(page: PageTree): Element {
+export function ensureRoot(page: PageTree): Element {
   if (!page.model) {
     if (!page.diagram) throw new Error(`Page ${page.id} sans modèle`);
     const template = childElements(parseXml(createEmptyDrawio()).documentElement!, 'diagram')[0]!;
@@ -257,7 +257,7 @@ function ensureRoot(page: PageTree): Element {
 }
 
 /** Premier calque (cellule enfant de la cellule racine) ; créé avec la racine s'il n'y en a pas. */
-function ensureLayer(page: PageTree, rootEl: Element): string {
+export function ensureLayer(page: PageTree, rootEl: Element): string {
   const parentOf = (id: string) => page.cells.get(id)?.cell?.getAttribute('parent') || undefined;
   const isStructural = (id: string) => {
     const cell = page.cells.get(id)?.cell;
@@ -286,7 +286,7 @@ function ensureLayer(page: PageTree, rootEl: Element): string {
 }
 
 /** Ajoute un enfant en reprenant l'indentation de ses frères (s'il y en a). */
-function appendIndented(parent: Element, child: Element): void {
+export function appendIndented(parent: Element, child: Element): void {
   const trailing = parent.lastChild && isWhitespace(parent.lastChild) ? parent.lastChild : undefined;
   const lastElement = childElements(parent).pop();
   const before = lastElement?.previousSibling;
