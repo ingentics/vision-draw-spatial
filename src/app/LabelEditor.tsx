@@ -118,8 +118,10 @@ export function LabelEditor({
     document.execCommand('styleWithCSS', false, 'false');
     // Sans faire défiler la page (la boîte peut toucher un bord de la vue).
     editor.focus({ preventScroll: true });
+    // Curseur en fin de texte : il clignote, la saisie s'ajoute au texte (Ctrl+A sélectionne tout).
     const range = document.createRange();
     range.selectNodeContents(editor);
+    range.collapse(false);
     select(range);
 
     const onSelectionChange = () => {
