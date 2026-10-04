@@ -123,7 +123,7 @@ export function edgeBadge(edge: EdgeModel, route: Point[], badge: EdgeBadge, ctx
     fontSize,
     color: EDGE_BADGE_BORDER,
     opacity: 1,
-    bold: true,
+    bold: false,
   });
   text.renderOrder = PART_ORDER.label + 1.5;
   group.add(disc, text);

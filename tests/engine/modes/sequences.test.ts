@@ -211,8 +211,8 @@ describe('mode Séquences : réglages déclarés et habillage', () => {
     const badge = (id: string) => object(id).getObjectByName('edge-badge');
     expect(badge('libre')).toBeUndefined();
     expect(badge('login')!.userData.billboard).toBe('screen');
-    const badgeTexts = texts.filter((spec) => spec.bold && /^\d+$/.test(spec.text));
-    expect(badgeTexts.every((spec) => spec.color.getHexString() === '000000')).toBe(true);
+    const badgeTexts = texts.filter((spec) => /^\d+$/.test(spec.text));
+    expect(badgeTexts.every((spec) => spec.color.getHexString() === '000000' && !spec.bold)).toBe(true);
     // login (texte « login ») : pastille normale ; lecture (sans texte) : plus petite.
     expect(badgeTexts.map((spec) => [spec.text, spec.fontSize])).toEqual(
       expect.arrayContaining([
