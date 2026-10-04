@@ -1320,6 +1320,39 @@ body {
   min-width: 28px;
 }
 
+/* Position du texte : grille 3 × 3 de petites cases. */
+.label-place-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 26px);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.label-place-grid .group-button {
+  min-width: 0;
+  height: 22px;
+  padding: 0;
+  border-left: none;
+}
+
+.label-place-grid .group-button:not(:nth-child(3n + 1)) {
+  border-left: 1px solid var(--border);
+}
+
+.label-place-grid .group-button:nth-child(n + 4) {
+  border-top: 1px solid var(--border);
+}
+
+.label-place-shape {
+  stroke-width: 1;
+  opacity: 0.6;
+}
+
+.label-place-text {
+  stroke-width: 2;
+}
+
 .format-button svg {
   width: 14px;
   height: 14px;

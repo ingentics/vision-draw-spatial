@@ -642,11 +642,11 @@ export function Viewer({
                       'Tracé',
                     )
                   }
-                  onShapeStyle={(patch) =>
+                  onShapeStyle={(patch, label) =>
                     engine?.setElementsStyle(
                       selected.shapes.map((shape) => shape.id),
                       patch,
-                      'Bordure',
+                      label ?? 'Bordure',
                     )
                   }
                   onTextAnchor={(cellId, anchor) =>

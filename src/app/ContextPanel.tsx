@@ -1,6 +1,8 @@
 import { anchorOf, edgeTexts, endLabelOf } from '../engine/edit/edgeLabels';
 import type { EdgeTextAnchor } from '../engine/Engine';
 import type { EdgeEnd } from '../engine/edit/edgeLabels';
+import { LABEL_PLACES, labelPlaceName, labelPlaceOf, labelPlacePatch } from '../engine/edit/labelPosition';
+import type { LabelPlace } from '../engine/edit/labelPosition';
 import { matchesPreset } from '../engine/edit/styles';
 import { routingKind } from '../engine/render/edges/route';
 import type { StylePreset } from '../engine/edit/styles';
@@ -27,8 +29,11 @@ export interface ContextPanelProps {
   /** Libellé de la touche de sélection multiple (ex. « Ctrl »), pour l'aide. */
   multiSelectKey: string;
   onApplyStyle: (preset: StylePreset) => void;
-  /** Clés de style des formes sélectionnées (bordure : couleur, épaisseur, trait, coins). */
-  onShapeStyle: (patch: Record<string, string | undefined>) => void;
+  /**
+   * Clés de style des formes sélectionnées (bordure : couleur, épaisseur, trait, coins ; position du texte),
+   * une étape d'annulation nommée `label` (« Bordure » par défaut).
+   */
+  onShapeStyle: (patch: Record<string, string | undefined>, label?: string) => void;
   /** Clés de style des flèches sélectionnées (tracé : droite, angles droits, arrondi, courbe), calculées par flèche. */
   onEdgeStyle: (patch: EdgeStylePatch) => void;
   /** Retour en auto de la flèche : points intermédiaires et points d'attache imposés retirés. */
@@ -126,6 +131,7 @@ function ShapeSections({ shape, ...props }: ContextPanelProps & { shape: ShapeMo
     <>
       <Section title="Texte">
         <LabelRow label={shape.label} onEdit={props.onEditLabel} />
+        <LabelPlaceGrid shape={shape} onChange={props.onShapeStyle} />
       </Section>
       <Section title="Style">
         <StyleGrid presets={props.styles.base} shape={shape} onApply={props.onApplyStyle} />
@@ -381,6 +387,11 @@ function MultiSections(props: ContextPanelProps) {
           {edges.length > 0 && <p className="panel-hint">Appliqué aux formes de la sélection.</p>}
         </Section>
       )}
+      {current && (
+        <Section title="Texte">
+          <LabelPlaceGrid shape={current} onChange={props.onShapeStyle} />
+        </Section>
+      )}
       {current && <BorderSection shape={current} onChange={props.onShapeStyle} />}
       <DeleteButton onDelete={props.onDelete} />
     </>
@@ -389,6 +400,56 @@ function MultiSections(props: ContextPanelProps) {
 
 // ---------------------------------------------------------------------------
 // Champs
+
+/** Petite forme au centre de chaque case, et trait du texte à sa place (dedans ou autour). */
+const PLACE_X = { left: [1, 4], center: [6, 10], right: [12, 15] } as const;
+const PLACE_Y = { top: 2, middle: 8, bottom: 14 } as const;
+
+/**
+ * Position du texte (grille 3 × 3, comme le menu « Position » de draw.io) : au milieu dans la forme, ou
+ * collé à l'un de ses côtés ou de ses coins. La forme de référence donne la position cochée.
+ */
+function LabelPlaceGrid({
+  shape,
+  onChange,
+}: {
+  shape: ShapeModel;
+  onChange: (patch: Record<string, string | undefined>, label?: string) => void;
+}) {
+  const current = labelPlaceOf(shape.style);
+  const same = (place: LabelPlace) => place.horizontal === current.horizontal && place.vertical === current.vertical;
+  return (
+    <div className="field-row">
+      Position
+      <span className="label-place-grid" role="radiogroup" aria-label="Position du texte">
+        {LABEL_PLACES.map((place) => {
+          const [x1, x2] = PLACE_X[place.horizontal];
+          const y = PLACE_Y[place.vertical];
+          const name = labelPlaceName(place);
+          return (
+            <button
+              key={`${place.vertical}-${place.horizontal}`}
+              type="button"
+              role="radio"
+              className="group-button format-button"
+              aria-checked={same(place)}
+              aria-label={name}
+              title={name}
+              onClick={() => {
+                if (!same(place)) onChange(labelPlacePatch(place), 'Position du texte');
+              }}
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <rect x="5" y="5" width="6" height="6" className="label-place-shape" />
+                <path d={`M${x1} ${y}H${x2}`} className="label-place-text" />
+              </svg>
+            </button>
+          );
+        })}
+      </span>
+    </div>
+  );
+}
 
 function LabelRow({ label, name = 'Texte', onEdit }: { label: string; name?: string; onEdit: () => void }) {
   return (
