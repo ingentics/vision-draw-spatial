@@ -1708,6 +1708,17 @@ export class Engine {
     return { ...editable, edge };
   }
 
+  /**
+   * Flèche dont les poignées sont affichées et saisissables : la flèche modifiable sélectionnée, sauf pendant
+   * l'édition de son texte du milieu (les poignées gêneraient la saisie).
+   */
+  private edgeHandlesSelection(): ReturnType<Engine['editableEdgeSelection']> {
+    const editable = this.editableEdgeSelection();
+    const editing = this.labelEditing;
+    const editingMiddle = editing?.elementId === editable?.edge.id && !editing?.end && !editing?.labelCellId;
+    return editingMiddle ? undefined : editable;
+  }
+
   /** Bouts du tracé d'une flèche, en coordonnées page (objet éventuellement décalé en cours de glisser). */
   private edgeEndPoints(edgeId: string): Record<TerminalEnd, Point> | undefined {
     const object = this.sceneObject(edgeId);
@@ -1719,7 +1730,7 @@ export class Engine {
 
   /** Bout de la flèche sélectionnée sous un point écran (tolérance des poignées). */
   private edgeEndAt(screen: Point): TerminalEnd | undefined {
-    const edge = this.editableEdgeSelection()?.edge;
+    const edge = this.edgeHandlesSelection()?.edge;
     const ends = edge && this.edgeEndPoints(edge.id);
     if (!edge || !ends) return undefined;
     const top = this.elementTop(edge.id);
@@ -1770,7 +1781,7 @@ export class Engine {
 
   /** Poignée entre les bouts de la flèche sélectionnée sous un point écran. */
   private pointHandleAt(screen: Point): PointHandle | undefined {
-    const editable = this.editableEdgeSelection();
+    const editable = this.edgeHandlesSelection();
     const context = editable && this.pointsContext(editable.page, editable.edge);
     if (!editable || !context) return undefined;
     const top = this.elementTop(editable.edge.id);
@@ -2701,6 +2712,7 @@ export class Engine {
     this.closeLabelEdit();
     this.labelEditing = this.withFlip(request);
     this.hideEditedLabel();
+    this.updateSelectionOutline();
     this.events.emit('labelEdit', this.labelEditing);
   }
 
@@ -2746,7 +2758,7 @@ export class Engine {
     if (!editing) return;
     this.labelEditing = undefined;
     this.labelObjects(editing.styleCellId).forEach((object) => (object.visible = true));
-    this.requestRender();
+    this.updateSelectionOutline();
   }
 
   private hideEditedLabel(): void {
@@ -3348,7 +3360,7 @@ export class Engine {
       disposeObject(this.handlesObject);
       this.handlesObject = undefined;
     }
-    const editableEdge = visible && root ? this.editableEdgeSelection() : undefined;
+    const editableEdge = visible && root ? this.edgeHandlesSelection() : undefined;
     const ends = editableEdge && this.edgeEndPoints(editableEdge.edge.id);
     if (editableEdge && ends && root) {
       const { edge } = editableEdge;
