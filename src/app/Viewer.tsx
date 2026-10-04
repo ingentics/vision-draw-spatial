@@ -444,6 +444,7 @@ export function Viewer({
           side="left"
           label="Formes"
           layout={settings.panels.left}
+          stripText={settings.panels.stripText}
           onChange={(left) => onSettingsChange({ panels: { left } })}
         >
           <Palette disabled={!canAddShapes} onAdd={(template) => engine?.addShape(template)} />
@@ -513,6 +514,7 @@ export function Viewer({
             side="right"
             label={rightTitle}
             layout={settings.panels.right}
+            stripText={settings.panels.stripText}
             onChange={(right) => onSettingsChange({ panels: { right } })}
           >
             {diagnosticsOpen ? (

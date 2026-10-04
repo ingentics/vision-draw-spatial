@@ -522,6 +522,21 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
           />
         </Section>
 
+        <Section title="Barres latérales">
+          <Choice
+            label="Nom sur la bande d'une barre repliée"
+            value={settings.panels.stripText}
+            options={[
+              ['up', 'De bas en haut'],
+              ['down', 'De haut en bas'],
+            ]}
+            onChange={(stripText) => onChange({ panels: { stripText } })}
+          />
+          <p className="hint muted">
+            Replier : double flèche en haut de la barre ; largeur : glisser son bord (double-clic = par défaut).
+          </p>
+        </Section>
+
         <Section title="Formes et flèches">
           <Subsection title="Nouvelles formes et flèches">
             <Slider

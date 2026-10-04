@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { DEFAULT_SETTINGS, SETTINGS_LIMITS } from '../engine/settings';
-import type { SidePanelSettings } from '../engine/settings';
+import type { PanelsSettings, SidePanelSettings } from '../engine/settings';
 
 /**
  * Barre latérale de l'appli (palette à gauche, panneaux à droite) : repliable en une bande verticale
@@ -43,11 +43,13 @@ interface SidebarProps {
   /** Nom affiché sur la bande quand la barre est repliée. */
   label: string;
   layout: SidePanelSettings;
+  /** Sens du nom sur la bande repliée. */
+  stripText: PanelsSettings['stripText'];
   onChange: (patch: Partial<SidePanelSettings>) => void;
   children: ReactNode;
 }
 
-export function Sidebar({ side, label, layout, onChange, children }: SidebarProps) {
+export function Sidebar({ side, label, layout, stripText, onChange, children }: SidebarProps) {
   const { min, max } = SETTINGS_LIMITS[`panels.${side}.width`];
   const defaultWidth = DEFAULT_SETTINGS.panels[side].width;
   // Largeur suivie en direct pendant un glisser ; enregistrée seulement au lâcher.
@@ -61,7 +63,7 @@ export function Sidebar({ side, label, layout, onChange, children }: SidebarProp
     return (
       <button
         type="button"
-        className={`sidebar-strip sidebar-strip-${side}`}
+        className={`sidebar-strip sidebar-strip-${side} sidebar-strip-${stripText}`}
         onClick={() => onChange({ collapsed: false })}
         title={`Afficher le panneau ${label}`}
         aria-label={`Afficher le panneau ${label}`}

@@ -115,16 +115,23 @@ describe('sauvegarde automatique', () => {
 });
 
 describe('barres latérales (étape 47)', () => {
-  it('ouvertes par défaut, 208 px à gauche et 380 px à droite', () => {
+  it('ouvertes par défaut, 208 px à gauche et 380 px à droite, nom des bandes de bas en haut', () => {
     expect(DEFAULT_SETTINGS.panels).toEqual({
       left: { collapsed: false, width: 208 },
       right: { collapsed: false, width: 380 },
+      stripText: 'up',
     });
+  });
+
+  it('sens du nom des bandes : « up » ou « down », sinon la valeur par défaut (étape 48)', () => {
+    expect(mergeSettings(DEFAULT_SETTINGS, { panels: { stripText: 'down' } }).panels.stripText).toBe('down');
+    const broken = { panels: { stripText: 'gauche' } } as unknown as SettingsPatch;
+    expect(mergeSettings(DEFAULT_SETTINGS, broken).panels.stripText).toBe('up');
   });
 
   it('fusion barre par barre : le reste est conservé', () => {
     const merged = mergeSettings(DEFAULT_SETTINGS, { panels: { right: { collapsed: true } } });
-    expect(merged.panels).toEqual({ left: { collapsed: false, width: 208 }, right: { collapsed: true, width: 380 } });
+    expect(merged.panels).toEqual({ ...DEFAULT_SETTINGS.panels, right: { collapsed: true, width: 380 } });
     expect(mergeSettings(merged, { panels: { left: { width: 300 } } }).panels.right.collapsed).toBe(true);
   });
 

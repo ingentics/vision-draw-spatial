@@ -306,6 +306,11 @@ body {
   letter-spacing: 0.02em;
 }
 
+/* De bas en haut (par défaut) : le texte vertical retourné. */
+.sidebar-strip-up .sidebar-strip-label {
+  transform: rotate(180deg);
+}
+
 /* Palette de formes (comme la barre latérale de draw.io) */
 .palette {
   display: flex;

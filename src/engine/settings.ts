@@ -200,6 +200,8 @@ export interface SidePanelSettings {
 export interface PanelsSettings {
   left: SidePanelSettings;
   right: SidePanelSettings;
+  /** Sens du nom écrit sur la bande d'une barre repliée : de bas en haut, ou de haut en bas. */
+  stripText: 'up' | 'down';
 }
 
 export interface Settings {
@@ -226,7 +228,11 @@ export type SettingsPatch = {
   [K in keyof Settings]?: K extends 'controls'
     ? Partial<Omit<ControlSettings, 'shortcuts'>> & { shortcuts?: Partial<Shortcuts> }
     : K extends 'panels'
-      ? { left?: Partial<SidePanelSettings>; right?: Partial<SidePanelSettings> }
+      ? {
+          left?: Partial<SidePanelSettings>;
+          right?: Partial<SidePanelSettings>;
+          stripText?: PanelsSettings['stripText'];
+        }
       : Partial<Settings[K]>;
 };
 
@@ -295,7 +301,7 @@ export const DEFAULT_SETTINGS: Settings = {
   save: { autosave: true, delayMs: 1000, viewStateDelayMs: 500 },
   debug: { showUnsupportedPanel: true },
   accessibility: { reducedMotion: 'system' },
-  panels: { left: { collapsed: false, width: 208 }, right: { collapsed: false, width: 380 } },
+  panels: { left: { collapsed: false, width: 208 }, right: { collapsed: false, width: 380 }, stripText: 'up' },
 };
 
 /** Bornes des réglages numériques (et pas des curseurs de l'UI). */
@@ -358,6 +364,7 @@ const REDUCED_MOTION = ['system', 'always', 'never'] as const;
 const SELECTION_STYLES = ['veil', 'outline'] as const;
 const LABEL_BACKDROPS = ['halo', 'solid', 'none'] as const;
 const EDGE_LINES = ['sharp', 'rounded', 'curved'] as const;
+const STRIP_TEXT = ['up', 'down'] as const;
 
 /**
  * Fusionne une modification dans des paramètres. Les valeurs invalides (mauvais type, hors liste)
@@ -555,6 +562,7 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
         collapsed: bool(p.panels?.right?.collapsed, base.panels.right.collapsed),
         width: Math.round(num('panels.right.width', p.panels?.right?.width, base.panels.right.width)),
       },
+      stripText: oneOf(STRIP_TEXT, p.panels?.stripText, base.panels.stripText),
     },
   };
 }
