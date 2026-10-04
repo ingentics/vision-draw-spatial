@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { CollapseButton } from './Sidebar';
 import { PALETTE_CATEGORIES, SHAPE_TEMPLATES, searchTemplates } from '../engine/edit/palette';
 import type { PaletteCategoryId, ShapeTemplate } from '../engine/edit/palette';
@@ -26,12 +26,30 @@ function saveCollapsed(collapsed: Set<PaletteCategoryId>): void {
   }
 }
 
-/** Infobulle du nom d'une forme, placée sous la forme survolée (coordonnées de la fenêtre). */
+/** Infobulle du nom d'une forme, placée sous la forme survolée (`anchor` : son cadre dans la fenêtre). */
 interface Tooltip {
   text: string;
-  x: number;
-  y: number;
+  anchor: DOMRect;
   visible: boolean;
+}
+
+/** Écart entre l'infobulle et la forme, et marge minimale aux bords de la fenêtre. */
+const TOOLTIP_GAP = 4;
+
+/**
+ * Position de l'infobulle : centrée sous la forme, décalée pour rester dans la fenêtre, et au-dessus de la forme
+ * s'il n'y a pas la place en dessous.
+ */
+function tooltipPosition(
+  anchor: Pick<DOMRect, 'left' | 'width' | 'top' | 'bottom'>,
+  size: { width: number; height: number },
+  viewport: { width: number; height: number },
+): { left: number; top: number } {
+  const centered = anchor.left + anchor.width / 2 - size.width / 2;
+  const left = Math.max(TOOLTIP_GAP, Math.min(centered, viewport.width - size.width - TOOLTIP_GAP));
+  const below = anchor.bottom + TOOLTIP_GAP;
+  const top = below + size.height + TOOLTIP_GAP <= viewport.height ? below : anchor.top - TOOLTIP_GAP - size.height;
+  return { left, top: Math.max(TOOLTIP_GAP, top) };
 }
 
 interface PaletteProps {
@@ -49,10 +67,22 @@ export function Palette({ onAdd, disabled }: PaletteProps) {
   const [query, setQuery] = useState('');
   const [collapsed, setCollapsed] = useState(loadCollapsed);
   const [tooltip, setTooltip] = useState<Tooltip | null>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
   const showTooltip = (template: ShapeTemplate, target: HTMLElement) => {
-    const rect = target.getBoundingClientRect();
-    setTooltip({ text: template.name, x: rect.left + rect.width / 2, y: rect.bottom + 4, visible: true });
+    setTooltip({ text: template.name, anchor: target.getBoundingClientRect(), visible: true });
   };
+  // Placée une fois sa taille connue, avant l'affichage.
+  useLayoutEffect(() => {
+    const element = tooltipRef.current;
+    if (!tooltip || !element) return;
+    const { left, top } = tooltipPosition(
+      tooltip.anchor,
+      { width: element.offsetWidth, height: element.offsetHeight },
+      { width: window.innerWidth, height: window.innerHeight },
+    );
+    element.style.left = `${left}px`;
+    element.style.top = `${top}px`;
+  }, [tooltip]);
   // Le texte reste en place pendant le fondu de sortie.
   const hideTooltip = () => setTooltip((current) => current && { ...current, visible: false });
   const searching = query.trim() !== '';
@@ -155,9 +185,9 @@ export function Palette({ onAdd, disabled }: PaletteProps) {
       {tooltip && (
         <div
           key={tooltip.text}
+          ref={tooltipRef}
           className={`palette-tooltip${tooltip.visible ? ' visible' : ''}`}
           role="tooltip"
-          style={{ left: tooltip.x, top: tooltip.y }}
         >
           {tooltip.text}
         </div>
