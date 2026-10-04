@@ -32,6 +32,8 @@ export interface RichEditorHandle {
   setMarks(marks: { fontSize?: number; color?: string | null; fontFamily?: string | null }): void;
   /** Retire du texte ces mises en forme partielles (le format de tout le texte vient d'en changer). */
   clear(keys: Array<keyof TextMarks>): void;
+  /** Valide la saisie (comme Ctrl+Entrée). */
+  commit(): void;
 }
 
 /** Contenu validé : texte brut, et HTML draw.io s'il a une mise en forme partielle. */
@@ -228,6 +230,7 @@ export function LabelEditor({
       }
     };
     handle.current = {
+      commit: () => finishRef.current(true),
       hasSelection: () => !!saved.current && !saved.current.collapsed,
       toggle(mark) {
         if (!restore()) return;

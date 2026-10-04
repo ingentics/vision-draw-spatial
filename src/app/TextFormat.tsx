@@ -32,6 +32,8 @@ export interface TextEdit {
   fittedSize?: number;
   presets: TextPreset[];
   onAction: (action: TextAction) => void;
+  /** Valide la saisie et revient au panneau de l'élément qui porte le texte (forme ou flèche). */
+  onOwner?: () => void;
 }
 
 const DEFAULT_SIZE = 11;
@@ -63,7 +65,7 @@ const BITS: Record<ToggleMark, number> = { bold: 1, italic: 2, underline: 4, str
  * sélection, à tout le texte. Les boutons ne prennent pas le focus : la saisie continue.
  */
 export function TextFormatSections({ edit }: { edit: TextEdit }) {
-  const { style, selection, canFormat, onEdge, fittedSize, presets, onAction } = edit;
+  const { style, selection, canFormat, onEdge, fittedSize, presets, onAction, onOwner } = edit;
   // « Ajuster » : texte d'une forme seulement ; la taille réglée devient la taille maximale.
   const canFit = canFormat && !onEdge;
   const fit = canFit && style.fitText === '1';
@@ -90,6 +92,17 @@ export function TextFormatSections({ edit }: { edit: TextEdit }) {
 
   return (
     <>
+      {onOwner && (
+        <button
+          type="button"
+          className="link-button format-owner"
+          title={`Valider le texte et revenir au panneau de la ${onEdge ? 'flèche' : 'forme'}`}
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={onOwner}
+        >
+          ← {onEdge ? 'Flèche' : 'Forme'}
+        </button>
+      )}
       <p className="panel-hint format-target">
         {selection
           ? 'Appliqué à la sélection.'

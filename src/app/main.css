@@ -1432,6 +1432,11 @@ body {
   margin: 0 2px 8px;
 }
 
+/* Retour au panneau de l'élément qui porte le texte. */
+.format-owner {
+  margin: 0 2px 6px;
+}
+
 /* Ancre d'un texte de flèche : le texte sur sa ligne, le choix début / milieu / fin dessous, à droite. */
 .anchor-row {
   flex-wrap: wrap;

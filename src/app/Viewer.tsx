@@ -666,6 +666,7 @@ export function Viewer({
                       fittedSize,
                       presets: settings.styles.text,
                       onAction: formatText,
+                      onOwner: () => editorHandle.current?.commit(),
                     }
                   }
                   onApplyStyle={(preset) =>
