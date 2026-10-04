@@ -250,6 +250,12 @@ describe('flux courant (sujet 79)', () => {
     expect(current.focus!(page(), 'f3')).toBeUndefined();
   });
 
+  it('renommer le courant renomme le flux (sujet 88)', () => {
+    const { run, page } = setup();
+    run((edit) => current.rename!(edit, 'f2', 'Achat'));
+    expect(readFlows(page()).find((flow) => flow.id === 'f2')!.title).toBe('Achat');
+  });
+
   it('une flèche créée va à la fin du flux courant', () => {
     const { run, page } = setup();
     // `libre` joue la flèche tout juste créée (sans flux).

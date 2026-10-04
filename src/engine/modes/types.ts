@@ -56,6 +56,8 @@ export interface ModeCurrent {
    * « Opacité hors du flux courant »). Undefined : rien n'est estompé.
    */
   focus?(page: PageModel, value: string): string[] | undefined;
+  /** Renomme le courant (ex. titre du flux), depuis la barre ; `label` n'est jamais vide. */
+  rename?(edit: ModeEdit, value: string, label: string): void;
 }
 
 /** Touche d'un mode sur l'élément sélectionné : opération (une étape d'annulation, libellée `label`). */

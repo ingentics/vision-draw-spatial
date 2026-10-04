@@ -1,10 +1,20 @@
 import type { ModeIndicator } from '../engine/Engine';
+import { InlineEdit } from './InlineEdit';
 
 /**
  * Barre du courant du mode de la page (ex. flux courant du mode Séquences), en haut de la zone de dessin : sa couleur,
- * son libellé centré, et des boutons précédent / suivant (en boucle) s'il y a au moins deux valeurs.
+ * son libellé centré, et des boutons précédent / suivant (en boucle) s'il y a au moins deux valeurs. Un libellé
+ * renommable se modifie sur place au clic (`InlineEdit` : Entrée ou quitter le champ, Échap ; vide refusé).
  */
-export function ModeBar({ indicator, onChoose }: { indicator: ModeIndicator; onChoose: (value: string) => void }) {
+export function ModeBar({
+  indicator,
+  onChoose,
+  onRename,
+}: {
+  indicator: ModeIndicator;
+  onChoose: (value: string) => void;
+  onRename: (label: string) => void;
+}) {
   const { values, value } = indicator;
   const index = values.indexOf(value);
   const step = (delta: number) => onChoose(values[(index + delta + values.length) % values.length]!);
@@ -16,9 +26,14 @@ export function ModeBar({ indicator, onChoose }: { indicator: ModeIndicator; onC
           ‹
         </button>
       )}
-      <span className="mode-bar-label" title={indicator.label}>
-        {indicator.label}
-      </span>
+      <InlineEdit
+        value={indicator.label}
+        label="Nouveau titre"
+        className={indicator.renamable ? 'mode-bar-label renamable' : 'mode-bar-label'}
+        inputClassName="mode-bar-input"
+        title={indicator.renamable ? `${indicator.label} — cliquer pour renommer` : indicator.label}
+        onCommit={indicator.renamable ? onRename : undefined}
+      />
       {navigable && (
         <button type="button" className="mode-bar-button" title="Suivant" onClick={() => step(1)}>
           ›

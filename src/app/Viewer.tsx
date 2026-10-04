@@ -554,7 +554,13 @@ export function Viewer({
             engine.focusCanvas();
           }}
         >
-          {modeIndicator && <ModeBar indicator={modeIndicator} onChoose={(value) => engine?.setModeCurrent(value)} />}
+          {modeIndicator && (
+            <ModeBar
+              indicator={modeIndicator}
+              onChoose={(value) => engine?.setModeCurrent(value)}
+              onRename={(label) => engine?.renameModeCurrent(label)}
+            />
+          )}
           {labelEdit && (
             <LabelEditor
               key={`${labelEdit.pageId}:${labelEdit.elementId}:${labelEdit.end ?? ''}`}

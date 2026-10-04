@@ -1,7 +1,7 @@
 import type { EdgeModel } from '../../model/types';
 import type { ModeKey, PageModeDefinition } from '../types';
 import { FLOW, STEP } from './flows';
-import { repairSequences, sequenceState, setEdgeFlow, setEdgeStep } from './steps';
+import { renameFlow, repairSequences, sequenceState, setEdgeFlow, setEdgeStep } from './steps';
 
 /**
  * Mode « Séquences » (sujet 70) : la page enregistre des flux (`spatial.flows`) et l'ordre des flèches dans
@@ -69,6 +69,7 @@ export const definition: PageModeDefinition = {
       return flow?.title || value;
     },
     values: (page) => sequenceState(page).flows.map((flow) => flow.id),
+    rename: (edit, value, label) => renameFlow(edit, value, label),
     // Flèches du flux et formes qu'elles relient ; flux sans flèche : rien d'estompé.
     focus: (page, value) => {
       const ids = sequenceState(page).members.get(value) ?? [];

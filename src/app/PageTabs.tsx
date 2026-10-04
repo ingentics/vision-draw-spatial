@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import type { PageModel } from '../engine/model/types';
+import { InlineEdit } from './InlineEdit';
 
 interface PageTabsProps {
   pages: PageModel[];
@@ -28,8 +28,6 @@ export function PageTabs({
   onRename,
   onRemove,
 }: PageTabsProps) {
-  const [editing, setEditing] = useState<string>();
-
   return (
     <nav className="tabs">
       {pages.length > 1 && (
@@ -46,36 +44,18 @@ export function PageTabs({
       )}
       {pages.map((page) => {
         const active = page.id === currentPageId;
-        if (editing === page.id && onRename) {
-          return (
-            <input
-              key={page.id}
-              className="tab tab-input"
-              defaultValue={page.name}
-              aria-label="Nom de la page"
-              autoFocus
-              onFocus={(event) => event.target.select()}
-              onBlur={(event) => {
-                onRename(page.id, event.target.value);
-                setEditing(undefined);
-              }}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') event.currentTarget.blur();
-                if (event.key === 'Escape') setEditing(undefined);
-              }}
-            />
-          );
-        }
         return (
           <span key={page.id} className={active ? 'tab-wrap active' : 'tab-wrap'}>
-            <button
+            <InlineEdit
+              value={page.name}
+              label="Nom de la page"
+              trigger="doubleClick"
               className={active ? 'tab active' : 'tab'}
+              inputClassName="tab tab-input"
               title={onRename ? 'Double-clic : renommer' : undefined}
               onClick={() => onSelect(page.id)}
-              onDoubleClick={() => onRename && setEditing(page.id)}
-            >
-              {page.name}
-            </button>
+              onCommit={onRename && ((name) => onRename(page.id, name))}
+            />
             {active && onRemove && pages.length > 1 && (
               <button
                 type="button"

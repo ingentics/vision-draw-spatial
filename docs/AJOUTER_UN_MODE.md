@@ -70,7 +70,8 @@ paramètres « Modes › Séquences » (clés `shapes.edgeBadge…`, communes à
 - `current` : un « courant » de session par page (ex. flux courant), gardé par le moteur et jamais écrit :
   `initial` (défaut), `valid` (choix encore valable), `pick` (élément sélectionné seul → nouveau courant), `color`,
   `label` et `values` (barre en haut de la zone de dessin : couleur, libellé centré, boutons précédent / suivant
-  dans l'ordre de `values`, choix par `engine.setModeCurrent`). `focus` : éléments gardés nets pour le courant, les autres estompés
+  dans l'ordre de `values`, choix par `engine.setModeCurrent`). `rename` : renommer le courant depuis son libellé dans la barre (`engine.renameModeCurrent`, nom vide
+  refusé). `focus` : éléments gardés nets pour le courant, les autres estompés
   (paramètre `shapes.modeDimOpacity`, opacité multipliée par `setElementsDim`, compatible avec les fondus). L'appli le lit par `engine.getModeCurrent()` et le
   reçoit dans ses
   sections (`current` des props) ; l'événement `modeCurrentChange` signale un changement.

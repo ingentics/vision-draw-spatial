@@ -820,7 +820,8 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
 - **Flux courant** (mode Séquences) : par défaut le premier flux, puis celui de la dernière flèche cliquée ou choisi
   dans la barre (un clic sur une flèche d'un autre flux ne fait que changer de flux ; un second clic la sélectionne) (état de session par page, non écrit). Barre en haut de la zone de dessin, de la couleur du flux, avec
   son titre centré (texte noir ou blanc selon le contraste) et, s'il y a au moins deux flux, des boutons précédent /
-  suivant en boucle ; pastille de couleur cerclée dans le panneau. Tout ce qui ne touche pas ses flèches (flèches hors du flux,
+  suivant en boucle ; un clic sur le titre le renomme sur place (composant commun `InlineEdit`, nom vide
+  refusé) ; pastille de couleur cerclée dans le panneau. Tout ce qui ne touche pas ses flèches (flèches hors du flux,
   formes qu'aucune ne relie) est estompé à 30 % (paramètre « Opacité hors du flux courant ») ; flux sans flèche :
   rien d'estompé. Une flèche tirée depuis une forme va à la fin du flux courant (même étape d'annulation). « + » / « - » sur
   une flèche d'un flux sélectionnée seule : rang suivant / précédent. Cadre générique : `current`, `edgeCreated` et

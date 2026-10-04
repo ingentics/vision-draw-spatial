@@ -282,6 +282,8 @@ export interface ModeIndicator {
   label: string;
   /** Valeurs possibles dans l'ordre : boutons précédent / suivant s'il y en a au moins deux. */
   values: string[];
+  /** Le libellé se renomme depuis la barre (`renameModeCurrent`). */
+  renamable: boolean;
 }
 
 /** Champ d'édition de label à afficher par l'UI, à l'emprise de l'élément (pixels du canvas). */
@@ -3200,7 +3202,26 @@ export class Engine {
     const value = this.getModeCurrent(pageId);
     const color = page && value !== undefined ? current?.color?.(page, value) : undefined;
     if (!page || !current || value === undefined || !color) return undefined;
-    return { value, color, label: current.label?.(page, value) ?? value, values: current.values?.(page) ?? [] };
+    return {
+      value,
+      color,
+      label: current.label?.(page, value) ?? value,
+      values: current.values?.(page) ?? [],
+      renamable: current.rename !== undefined && this.editablePage()?.page.id === page.id,
+    };
+  }
+
+  /**
+   * Renomme le courant du mode de la page courante (ex. titre du flux courant, depuis la barre) : une étape
+   * d'annulation. Un nom vide (ou fait d'espaces) est ignoré.
+   */
+  renameModeCurrent(label: string): void {
+    const page = this.editablePage()?.page;
+    const rename = page && this.modes.modeOf(page)?.current?.rename;
+    const value = page && this.getModeCurrent(page.id);
+    const name = label.trim();
+    if (!rename || value === undefined || !name) return;
+    this.editPageMode('Renommage', (edit) => rename(edit, value, name));
   }
 
   /** Choisit le courant du mode d'une page (ex. bouton « suivant » de la barre) ; ignoré s'il n'est pas valable. */
