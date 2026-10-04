@@ -740,7 +740,8 @@ body {
 .launcher {
   display: flex;
   justify-content: center;
-  min-height: 100%;
+  align-items: flex-start;
+  height: 100%;
   padding: 48px 16px;
   box-sizing: border-box;
   background: var(--panel);
