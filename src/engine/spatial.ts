@@ -15,6 +15,8 @@ export const LEGACY_DEFAULT_DEPTH = 16;
 
 /** Attributs connus du moteur. */
 export const SPATIAL = {
+  /** Forme dessinée par Drawio Spatial (`ShapeModel.kind`), à la place de celle devinée du style draw.io. */
+  kind: 'spatial.kind',
   /** Épaisseur du volume en iso, en pixels de page (défaut : réglage « Épaisseur »). */
   height: 'spatial.height',
   /** Hauteur du dessous du volume au-dessus de sa base (sol ou dessus du conteneur), en pixels de page. */

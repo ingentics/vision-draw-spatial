@@ -742,6 +742,7 @@ Réalisation retenue (`engine/spatial.ts`) :
 
 | Attribut | Où | Effet |
 |---|---|---|
+| `spatial.kind` | style ou objet | Forme dessinée par Drawio Spatial (nom d'une définition, ex. `cylinder3`), à la place de celle devinée du style ; le style draw.io reste intact. Absent ou vide : devinée (`resolveShapeKind`) |
 | `spatial.height` | style ou objet | Épaisseur du volume en iso, en pixels de page (défaut : réglage « Épaisseur ») |
 | `spatial.elevation` | style ou objet | La forme flotte à cette hauteur au-dessus de sa base (sol, ou dessus de son conteneur) |
 | `spatial.tag` | style ou objet | Étiquette des façades d'un bâtiment iso (BDD, file, cache) : remplace « DB », « QUEUE », « CACHE » ; vide = aucune |

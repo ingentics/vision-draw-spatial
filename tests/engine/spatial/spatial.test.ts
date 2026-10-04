@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { Object3D } from 'three';
 import { describe, expect, it } from 'vitest';
 import { setCellObjectAttribute, setCellStyleValue } from '../../../src/engine/format/edit';
-import { readDrawio } from '../../../src/engine/format/parse';
+import { parseDrawio, readDrawio } from '../../../src/engine/format/parse';
 import { VIEW_ATTRIBUTE } from '../../../src/engine/format/viewState';
 import { writeDrawio } from '../../../src/engine/format/write';
 import type { PageModel } from '../../../src/engine/model/types';
@@ -30,6 +30,25 @@ describe('lecture des attributs spatiaux (SPEC §14.3)', () => {
     expect(spatialValue(both, SPATIAL.height)).toBe('5');
     expect(spatialNumber({ style: { [SPATIAL.height]: '-3' }, attributes: {} }, SPATIAL.height)).toBeUndefined();
     expect(spatialNumber({ style: { [SPATIAL.height]: 'abc' }, attributes: {} }, SPATIAL.height)).toBeUndefined();
+  });
+
+  it('spatial.kind impose la forme (style ou objet), sinon elle est devinée du style (étape 66)', () => {
+    const xml = `<mxfile><diagram id="p" name="P"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+      <mxCell id="style" value="" style="shape=note;spatial.kind=cylinder3;" vertex="1" parent="1"><mxGeometry width="60" height="80" as="geometry"/></mxCell>
+      <object id="objet" label="" spatial.kind="datastore"><mxCell style="ellipse;" vertex="1" parent="1"><mxGeometry width="60" height="60" as="geometry"/></mxCell></object>
+      <mxCell id="vide" value="" style="ellipse;spatial.kind=;" vertex="1" parent="1"><mxGeometry width="60" height="60" as="geometry"/></mxCell>
+      <mxCell id="devinee" value="" style="shape=note;" vertex="1" parent="1"><mxGeometry width="60" height="60" as="geometry"/></mxCell>
+    </root></mxGraphModel></diagram></mxfile>`;
+    const shapes = parseDrawio(xml).pages[0]!.shapes;
+    const kind = (id: string) => shapes.find((s) => s.id === id)?.kind;
+    expect([kind('style'), kind('objet'), kind('vide'), kind('devinee')]).toEqual([
+      'cylinder3',
+      'datastore',
+      'ellipse',
+      'note',
+    ]);
+    const registry = createDefaultRegistry();
+    expect(registry.resolve(shapes.find((s) => s.id === 'style')!).supported).toBe(true);
   });
 
   it('liste tous les attributs préfixés, connus ou non', () => {

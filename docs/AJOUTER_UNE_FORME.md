@@ -34,7 +34,10 @@ changent : la palette, le panneau, le clic, les poignées et les flèches interr
 
 ### Le nom de la forme (`kind`)
 
-`resolveShapeKind` ([format/style.ts](../src/engine/format/style.ts)) choisit, dans cet ordre :
+Le parseur ([format/parse.ts](../src/engine/format/parse.ts)) prend d'abord l'attribut `spatial.kind` (style ou objet)
+s'il y en a un : il impose la forme dessinée par Drawio Spatial sans toucher au style draw.io (pratique pour essayer
+une définition sur une forme existante : `shape=note;spatial.kind=cylinder3;`). Sinon, `resolveShapeKind`
+([format/style.ts](../src/engine/format/style.ts)) choisit, dans cet ordre :
 
 1. `shape=…` explicite (`shape=cylinder3` ► `'cylinder3'`, `shape=mxgraph.aws4.lambda` ► tel quel) ;
 2. sinon le premier nom de style sans valeur (`ellipse;whiteSpace=wrap;` ► `'ellipse'`) ;

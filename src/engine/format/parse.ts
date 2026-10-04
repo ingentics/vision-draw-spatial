@@ -12,6 +12,7 @@ import type {
   ShapeModel,
 } from '../model/types';
 import { computeBounds } from '../model/bounds';
+import { SPATIAL, spatialValue } from '../spatial';
 import { htmlToText, resolvePlaceholders } from './label';
 import { isRich, parseRichHtml } from './richText';
 import { parseLink } from './link';
@@ -320,7 +321,9 @@ function parseGraphModel(page: PageTree, warnings: ParseWarning[]): PageModel {
       edges.push(stripUndefined(edge));
       edgeById.set(edge.id, edge);
     } else if (cell.vertex) {
-      shapes.push(stripUndefined({ ...base, kind: resolveShapeKind(parsed), bounds: absoluteBounds(cell) }));
+      // `spatial.kind` impose la forme dessinée ici (le style draw.io reste intact) ; sinon, devinée du style.
+      const kind = spatialValue(base, SPATIAL.kind)?.trim() || resolveShapeKind(parsed);
+      shapes.push(stripUndefined({ ...base, kind, bounds: absoluteBounds(cell) }));
     }
     // Ni vertex ni edge, hors calque : cellule technique sans rendu, ignorée.
   }
