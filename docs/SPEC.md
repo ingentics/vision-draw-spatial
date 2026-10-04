@@ -490,7 +490,7 @@ Formes et arêtes sont dessinées dans l'**ordre du document** (une arête décl
 | Vue globale ↔ 1:1 | **Entrée** (§9.3) |
 | Vue graphe ↔ dernière page | Onglet « Vue graphe », touche **G** (§12) |
 | Mini-carte | Bouton × / « Mini-carte », touche **M** (§10) |
-| Aplatir les volumes (iso, 3D) | Touche **V** : rendu à plat (épaisseur nulle), caméra inchangée ; un second appui, ou un clic sur l'icône apparue à gauche de la mini-carte, rétablit les volumes. État passager, non enregistré ; sans effet en 2D |
+| Aplatir les volumes (iso, 3D) | Touche **V** : rendu à plat (épaisseur nulle), caméra inchangée ; un second appui, ou un clic sur l'icône apparue en bas à gauche de la zone de dessin (infobulle au survol), rétablit les volumes. État passager, non enregistré ; sans effet en 2D |
 | Sélectionner | Clic gauche |
 | Déplacer une forme | Clic gauche + glisser sur la forme (vue de dessus comme iso), aimanté à la grille de la page ; **Alt** maintenu : sans grille (§14.1) |
 | Sauvegarder | Bouton « Sauvegarder », **Ctrl+S** / ⌘S (§14.1) |
