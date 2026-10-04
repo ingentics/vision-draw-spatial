@@ -114,6 +114,35 @@ describe('sauvegarde automatique', () => {
   });
 });
 
+describe('barres latérales (étape 47)', () => {
+  it('ouvertes par défaut, 208 px à gauche et 380 px à droite', () => {
+    expect(DEFAULT_SETTINGS.panels).toEqual({
+      left: { collapsed: false, width: 208 },
+      right: { collapsed: false, width: 380 },
+    });
+  });
+
+  it('fusion barre par barre : le reste est conservé', () => {
+    const merged = mergeSettings(DEFAULT_SETTINGS, { panels: { right: { collapsed: true } } });
+    expect(merged.panels).toEqual({ left: { collapsed: false, width: 208 }, right: { collapsed: true, width: 380 } });
+    expect(mergeSettings(merged, { panels: { left: { width: 300 } } }).panels.right.collapsed).toBe(true);
+  });
+
+  it('largeurs bornées (160–400 à gauche, 240–600 à droite) et arrondies', () => {
+    const merged = (left: number, right: number) =>
+      mergeSettings(DEFAULT_SETTINGS, { panels: { left: { width: left }, right: { width: right } } }).panels;
+    expect(merged(10, 10)).toMatchObject({ left: { width: 160 }, right: { width: 240 } });
+    expect(merged(9999, 9999)).toMatchObject({ left: { width: 400 }, right: { width: 600 } });
+    expect(merged(250.6, 333.2)).toMatchObject({ left: { width: 251 }, right: { width: 333 } });
+  });
+
+  it('valeurs invalides ou absentes (anciens paramètres) : valeurs par défaut', () => {
+    const broken = { panels: { left: { collapsed: 'oui', width: 'large' }, right: null } } as unknown as SettingsPatch;
+    expect(mergeSettings(DEFAULT_SETTINGS, broken).panels).toEqual(DEFAULT_SETTINGS.panels);
+    expect(mergeSettings(DEFAULT_SETTINGS, { view: { isoDepth: 20 } }).panels).toEqual(DEFAULT_SETTINGS.panels);
+  });
+});
+
 describe('réglages exposés (caméra, vue graphe, édition…)', () => {
   it('valeurs par défaut identiques aux anciennes constantes du moteur', () => {
     expect(DEFAULT_SETTINGS.camera).toEqual({

@@ -27,7 +27,8 @@ import { PageTabs } from './PageTabs';
 import { MULTI_SELECT_LABELS } from './SettingsPanel';
 import { Palette, PALETTE_MIME, templateById } from './Palette';
 import { SettingsPanel } from './SettingsPanel';
-import { ContextPanel } from './ContextPanel';
+import { ContextPanel, contextTitle } from './ContextPanel';
+import { Sidebar } from './Sidebar';
 import type { Settings, SettingsPatch } from '../engine/settings';
 import { GRAPH_PAGE_ID } from '../engine/graph/graphPage';
 
@@ -80,7 +81,13 @@ export function Viewer({
   /** Paramètres ou diagnostics ; sinon le panneau contextuel (page, forme, flèche) est affiché. */
   const [panel, setPanel] = useState<'diagnostics' | 'settings'>();
   const diagnosticsOpen = panel === 'diagnostics' && settings.debug.showUnsupportedPanel;
-  const togglePanel = (name: 'diagnostics' | 'settings') => setPanel((open) => (open === name ? undefined : name));
+  const togglePanel = (name: 'diagnostics' | 'settings') => {
+    // Barre de droite repliée : on a demandé ce panneau, elle se rouvre dessus.
+    if (settings.panels.right.collapsed) {
+      onSettingsChange({ panels: { right: { collapsed: false } } });
+      setPanel(name);
+    } else setPanel((open) => (open === name ? undefined : name));
+  };
   const [backTarget, setBackTarget] = useState<BackTarget>({ kind: 'none' });
   const [backChoices, setBackChoices] = useState<ParentLink[]>();
   const [modified, setModified] = useState(false);
@@ -313,6 +320,12 @@ export function Viewer({
   };
   // Page affichée (pas la vue graphe) : le panneau contextuel est toujours ouvert dessus.
   const currentPage = pageId !== GRAPH_PAGE_ID ? document?.pages.find((page) => page.id === pageId) : undefined;
+  // Titre de la barre de droite (et de sa bande quand elle est repliée) ; pas de panneau, pas de barre.
+  const rightTitle = diagnosticsOpen
+    ? 'Diagnostics'
+    : panel === 'settings'
+      ? 'Paramètres'
+      : currentPage && contextTitle(selected.shapes, selected.edges, labelEdit !== undefined);
 
   return (
     <div className="app">
@@ -427,7 +440,14 @@ export function Viewer({
       </header>
 
       <div className="viewport">
-        <Palette disabled={!canAddShapes} onAdd={(template) => engine?.addShape(template)} />
+        <Sidebar
+          side="left"
+          label="Formes"
+          layout={settings.panels.left}
+          onChange={(left) => onSettingsChange({ panels: { left } })}
+        >
+          <Palette disabled={!canAddShapes} onAdd={(template) => engine?.addShape(template)} />
+        </Sidebar>
         <div
           className="canvas-area"
           onDragOver={(event) => {
@@ -488,81 +508,92 @@ export function Viewer({
             onError={(e) => setError(e instanceof Error ? e.message : String(e))}
           />
         </div>
-        {diagnosticsOpen && (
-          <DiagnosticsPanel
-            report={report}
-            warnings={warnings}
-            pageNames={Object.fromEntries((document?.pages ?? []).map((p) => [p.id, p.name]))}
-            cumulative={cumulative}
-            onFocus={(page, element) => engine?.focusElement(page, element)}
-            onExport={() => exportJson(file.name, report, warnings)}
-            onClearCumulative={() => {
-              clearLog();
-              setCumulative(cumulativeEntries());
-            }}
-            onClose={() => setPanel(undefined)}
-          />
-        )}
-        {!diagnosticsOpen && panel !== 'settings' && currentPage && (
-          <ContextPanel
-            page={currentPage}
-            pages={document?.pages ?? []}
-            shapes={selected.shapes}
-            edges={selected.edges}
-            styles={settings.styles}
-            defaultDepth={settings.view.isoDepth}
-            multiSelectKey={MULTI_SELECT_LABELS[settings.controls.multiSelectKey]}
-            onLink={(link) => selection && engine?.setLink(selection.picked.element.id, link)}
-            onSpatial={(key, value) => selection && engine?.setSpatial(selection.picked.element.id, key, value)}
-            onEditLabel={() => selection && engine?.editLabel(selection.picked.element.id)}
-            onEndLabel={(end, text) => selection && engine?.setEdgeEndLabel(selection.picked.element.id, end, text)}
-            onDelete={() => engine?.deleteSelection()}
-            onResetRoute={() => selection && engine?.resetEdgeRoute(selection.picked.element.id)}
-            onEdgeStyle={(patch) =>
-              engine?.setElementsStyle(
-                selected.edges.map((edge) => edge.id),
-                patch,
-                'Tracé',
+        {rightTitle && (
+          <Sidebar
+            side="right"
+            label={rightTitle}
+            layout={settings.panels.right}
+            onChange={(right) => onSettingsChange({ panels: { right } })}
+          >
+            {diagnosticsOpen ? (
+              <DiagnosticsPanel
+                report={report}
+                warnings={warnings}
+                pageNames={Object.fromEntries((document?.pages ?? []).map((p) => [p.id, p.name]))}
+                cumulative={cumulative}
+                onFocus={(page, element) => engine?.focusElement(page, element)}
+                onExport={() => exportJson(file.name, report, warnings)}
+                onClearCumulative={() => {
+                  clearLog();
+                  setCumulative(cumulativeEntries());
+                }}
+                onClose={() => setPanel(undefined)}
+              />
+            ) : panel === 'settings' ? (
+              <SettingsPanel
+                settings={settings}
+                onChange={onSettingsChange}
+                onReset={onResetSettings}
+                onResetOrientation={() => engine?.resetRotation()}
+                onClose={() => setPanel(undefined)}
+              />
+            ) : (
+              currentPage && (
+                <ContextPanel
+                  page={currentPage}
+                  pages={document?.pages ?? []}
+                  shapes={selected.shapes}
+                  edges={selected.edges}
+                  styles={settings.styles}
+                  defaultDepth={settings.view.isoDepth}
+                  multiSelectKey={MULTI_SELECT_LABELS[settings.controls.multiSelectKey]}
+                  onLink={(link) => selection && engine?.setLink(selection.picked.element.id, link)}
+                  onSpatial={(key, value) => selection && engine?.setSpatial(selection.picked.element.id, key, value)}
+                  onEditLabel={() => selection && engine?.editLabel(selection.picked.element.id)}
+                  onEndLabel={(end, text) =>
+                    selection && engine?.setEdgeEndLabel(selection.picked.element.id, end, text)
+                  }
+                  onDelete={() => engine?.deleteSelection()}
+                  onResetRoute={() => selection && engine?.resetEdgeRoute(selection.picked.element.id)}
+                  onEdgeStyle={(patch) =>
+                    engine?.setElementsStyle(
+                      selected.edges.map((edge) => edge.id),
+                      patch,
+                      'Tracé',
+                    )
+                  }
+                  onShapeStyle={(patch) =>
+                    engine?.setElementsStyle(
+                      selected.shapes.map((shape) => shape.id),
+                      patch,
+                      'Bordure',
+                    )
+                  }
+                  onTextAnchor={(cellId, anchor) =>
+                    selection && engine?.setEdgeTextAnchor(selection.picked.element.id, cellId, anchor)
+                  }
+                  textEdit={
+                    labelEdit && {
+                      style: labelEdit.style,
+                      selection: selectionFormat,
+                      canFormat: labelEdit.styleCellId !== undefined,
+                      onEdge: labelEdit.onEdge,
+                      presets: settings.styles.text,
+                      onAction: formatText,
+                    }
+                  }
+                  onApplyStyle={(preset) =>
+                    engine?.applyStylePreset(
+                      selected.shapes.map((shape) => shape.id),
+                      preset,
+                      [...settings.styles.base, ...settings.styles.extended],
+                    )
+                  }
+                  onRenamePage={editablePages ? (name) => engine?.renamePage(currentPage.id, name) : undefined}
+                />
               )
-            }
-            onShapeStyle={(patch) =>
-              engine?.setElementsStyle(
-                selected.shapes.map((shape) => shape.id),
-                patch,
-                'Bordure',
-              )
-            }
-            onTextAnchor={(cellId, anchor) =>
-              selection && engine?.setEdgeTextAnchor(selection.picked.element.id, cellId, anchor)
-            }
-            textEdit={
-              labelEdit && {
-                style: labelEdit.style,
-                selection: selectionFormat,
-                canFormat: labelEdit.styleCellId !== undefined,
-                onEdge: labelEdit.onEdge,
-                presets: settings.styles.text,
-                onAction: formatText,
-              }
-            }
-            onApplyStyle={(preset) =>
-              engine?.applyStylePreset(
-                selected.shapes.map((shape) => shape.id),
-                preset,
-                [...settings.styles.base, ...settings.styles.extended],
-              )
-            }
-            onRenamePage={editablePages ? (name) => engine?.renamePage(currentPage.id, name) : undefined}
-          />
-        )}
-        {panel === 'settings' && (
-          <SettingsPanel
-            settings={settings}
-            onChange={onSettingsChange}
-            onReset={onResetSettings}
-            onResetOrientation={() => engine?.resetRotation()}
-            onClose={() => setPanel(undefined)}
-          />
+            )}
+          </Sidebar>
         )}
       </div>
 

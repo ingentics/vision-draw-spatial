@@ -8,6 +8,7 @@ import type { StyleSettings } from '../engine/settings';
 import { SPATIAL, spatialNumber } from '../engine/spatial';
 import { TEXT_FORMAT_ATTRIBUTE } from './LabelEditor';
 import { BorderSection } from './BorderSection';
+import { CollapseButton } from './Sidebar';
 import { Section } from './PanelSection';
 import { TextFormatSections } from './TextFormat';
 import type { TextEdit } from './TextFormat';
@@ -57,24 +58,13 @@ export interface ContextPanelProps {
 export function ContextPanel(props: ContextPanelProps) {
   const { shapes, edges } = props;
   const count = shapes.length + edges.length;
-  let title: string;
+  const title = contextTitle(shapes, edges, props.textEdit !== undefined);
   let body;
-  if (props.textEdit) {
-    title = 'Texte';
-    body = <TextFormatSections edit={props.textEdit} />;
-  } else if (count === 0) {
-    title = 'Page';
-    body = <PageSections page={props.page} onRename={props.onRenamePage} />;
-  } else if (count > 1) {
-    title = edges.length === 0 ? `${count} formes` : shapes.length === 0 ? `${count} flèches` : `${count} éléments`;
-    body = <MultiSections {...props} />;
-  } else if (shapes.length === 1) {
-    title = 'Forme';
-    body = <ShapeSections {...props} shape={shapes[0]!} />;
-  } else {
-    title = 'Flèche';
-    body = <EdgeSections {...props} edge={edges[0]!} />;
-  }
+  if (props.textEdit) body = <TextFormatSections edit={props.textEdit} />;
+  else if (count === 0) body = <PageSections page={props.page} onRename={props.onRenamePage} />;
+  else if (count > 1) body = <MultiSections {...props} />;
+  else if (shapes.length === 1) body = <ShapeSections {...props} shape={shapes[0]!} />;
+  else body = <EdgeSections {...props} edge={edges[0]!} />;
   return (
     <aside
       className="side-panel card-panel context-panel"
@@ -82,11 +72,22 @@ export function ContextPanel(props: ContextPanelProps) {
       {...(props.textEdit ? { [TEXT_FORMAT_ATTRIBUTE]: '' } : {})}
     >
       <header className="side-panel-header">
+        <CollapseButton />
         <h2>{title}</h2>
       </header>
       <div className="side-panel-body">{body}</div>
     </aside>
   );
+}
+
+/** Titre du panneau contextuel (aussi celui de la bande quand la barre de droite est repliée). */
+export function contextTitle(shapes: readonly ShapeModel[], edges: readonly EdgeModel[], editingText: boolean): string {
+  const count = shapes.length + edges.length;
+  if (editingText) return 'Texte';
+  if (count === 0) return 'Page';
+  if (count > 1)
+    return edges.length === 0 ? `${count} formes` : shapes.length === 0 ? `${count} flèches` : `${count} éléments`;
+  return shapes.length === 1 ? 'Forme' : 'Flèche';
 }
 
 // ---------------------------------------------------------------------------

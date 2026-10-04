@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { UnsupportedCategory, UnsupportedReport } from '../engine/diagnostics/unsupportedStyles';
 import type { ParseWarning } from '../engine/model/types';
 import type { CumulativeEntry } from './diagnosticsLog';
+import { CollapseButton } from './Sidebar';
 
 const CATEGORY_LABELS: Record<UnsupportedCategory, string> = {
   shape: 'Forme',
@@ -38,6 +39,7 @@ export function DiagnosticsPanel({
   return (
     <aside className="diagnostics" aria-label="Diagnostics">
       <header className="diagnostics-header">
+        <CollapseButton />
         <h2>Diagnostics</h2>
         <button type="button" className="button" onClick={onExport} title="Télécharger le rapport (fichier + cumul)">
           Exporter JSON

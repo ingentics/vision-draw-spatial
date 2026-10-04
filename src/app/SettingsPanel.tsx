@@ -7,6 +7,7 @@ import type { Settings, SettingsPatch } from '../engine/settings';
 import { desktop } from './desktop';
 import { IsoIcon, IsoSettings } from './IsoSettings';
 import { Section, Subsection } from './PanelSection';
+import { CollapseButton } from './Sidebar';
 
 interface SettingsPanelProps {
   settings: Settings;
@@ -67,6 +68,7 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
   return (
     <aside className="side-panel card-panel settings-panel" aria-label="Paramètres">
       <header className="side-panel-header">
+        <CollapseButton />
         <h2>Paramètres</h2>
         <button type="button" className="button" onClick={onReset} title="Revenir aux valeurs par défaut">
           Réinitialiser

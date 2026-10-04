@@ -190,6 +190,18 @@ export interface AccessibilitySettings {
   reducedMotion: 'system' | 'always' | 'never';
 }
 
+/** Une barre latérale de l'appli : repliée ou non, largeur en pixels. */
+export interface SidePanelSettings {
+  collapsed: boolean;
+  width: number;
+}
+
+/** Barres latérales de l'appli de démo (palette à gauche, panneaux à droite), réglées à la souris. */
+export interface PanelsSettings {
+  left: SidePanelSettings;
+  right: SidePanelSettings;
+}
+
 export interface Settings {
   transition: TransitionSettings;
   preload: PreloadSettings;
@@ -206,13 +218,16 @@ export interface Settings {
   save: SaveSettings;
   debug: DebugSettings;
   accessibility: AccessibilitySettings;
+  panels: PanelsSettings;
 }
 
 /** Modification partielle, section par section (raccourcis compris). */
 export type SettingsPatch = {
   [K in keyof Settings]?: K extends 'controls'
     ? Partial<Omit<ControlSettings, 'shortcuts'>> & { shortcuts?: Partial<Shortcuts> }
-    : Partial<Settings[K]>;
+    : K extends 'panels'
+      ? { left?: Partial<SidePanelSettings>; right?: Partial<SidePanelSettings> }
+      : Partial<Settings[K]>;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -280,6 +295,7 @@ export const DEFAULT_SETTINGS: Settings = {
   save: { autosave: true, delayMs: 1000, viewStateDelayMs: 500 },
   debug: { showUnsupportedPanel: true },
   accessibility: { reducedMotion: 'system' },
+  panels: { left: { collapsed: false, width: 208 }, right: { collapsed: false, width: 380 } },
 };
 
 /** Bornes des réglages numériques (et pas des curseurs de l'UI). */
@@ -331,6 +347,8 @@ export const SETTINGS_LIMITS = {
   'edit.minShapeSize': { min: 1, max: 100, step: 1 },
   'save.delayMs': { min: 300, max: 30000, step: 100 },
   'save.viewStateDelayMs': { min: 100, max: 5000, step: 100 },
+  'panels.left.width': { min: 160, max: 400, step: 16 },
+  'panels.right.width': { min: 240, max: 600, step: 16 },
 } as const;
 
 const EASINGS = ['linear', 'ease-in', 'ease-out', 'ease-in-out'] as const;
@@ -527,6 +545,16 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
     debug: { showUnsupportedPanel: bool(p.debug?.showUnsupportedPanel, base.debug.showUnsupportedPanel) },
     accessibility: {
       reducedMotion: oneOf(REDUCED_MOTION, p.accessibility?.reducedMotion, base.accessibility.reducedMotion),
+    },
+    panels: {
+      left: {
+        collapsed: bool(p.panels?.left?.collapsed, base.panels.left.collapsed),
+        width: Math.round(num('panels.left.width', p.panels?.left?.width, base.panels.left.width)),
+      },
+      right: {
+        collapsed: bool(p.panels?.right?.collapsed, base.panels.right.collapsed),
+        width: Math.round(num('panels.right.width', p.panels?.right?.width, base.panels.right.width)),
+      },
     },
   };
 }

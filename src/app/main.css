@@ -214,26 +214,125 @@ body {
   font-weight: 600;
 }
 
+/*
+ * Barres latérales (palette à gauche, panneaux à droite) : largeur fixe réglée à la souris, le panneau
+ * contenu la remplit (son contenu s'y adapte au lieu d'élargir la barre et de redimensionner le plan).
+ */
+.sidebar {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  min-height: 0;
+}
+
+.sidebar > * {
+  flex: 1;
+  min-width: 0;
+}
+
+.sidebar-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 5;
+  width: 6px;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.sidebar-left .sidebar-resizer {
+  right: -3px;
+}
+
+.sidebar-right .sidebar-resizer {
+  left: -3px;
+}
+
+.sidebar-resizer:hover,
+.sidebar-resizer:active,
+.sidebar-resizer:focus-visible {
+  background: var(--accent);
+  opacity: 0.5;
+  outline: none;
+}
+
+.sidebar-collapse {
+  flex: 0 0 auto;
+  font-size: 15px;
+}
+
+.sidebar-collapse:hover {
+  color: var(--fg);
+}
+
+/* Barre repliée : bande fine sur toute la hauteur, nom écrit à la verticale. */
+.sidebar-strip {
+  display: flex;
+  flex: 0 0 26px;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border: none;
+  background: var(--panel);
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.sidebar-strip-left {
+  border-right: 1px solid var(--border);
+}
+
+.sidebar-strip-right {
+  border-left: 1px solid var(--border);
+}
+
+.sidebar-strip:hover,
+.sidebar-strip:focus-visible {
+  background: #eef3fd;
+  color: var(--accent);
+}
+
+.sidebar-strip-arrow {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.sidebar-strip-label {
+  writing-mode: vertical-rl;
+  font-weight: 600;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
 /* Palette de formes (comme la barre latérale de draw.io) */
 .palette {
   display: flex;
   flex-direction: column;
-  width: 208px;
   border-right: 1px solid var(--border);
   background: var(--panel);
 }
 
 .palette-search {
-  position: relative;
   display: flex;
   align-items: center;
+  gap: 4px;
   padding: 8px;
   border-bottom: 1px solid var(--border);
 }
 
+.palette-search-field {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-width: 0;
+}
+
 .palette-search svg {
   position: absolute;
-  left: 15px;
+  left: 7px;
   width: 13px;
   height: 13px;
   fill: none;
@@ -261,7 +360,7 @@ body {
 
 .palette-search-clear {
   position: absolute;
-  right: 12px;
+  right: 4px;
   padding: 0 4px;
   border: none;
   background: none;
@@ -390,7 +489,6 @@ body {
 
 /* Panneau Diagnostics (tiroir à droite de la vue) */
 .diagnostics {
-  flex: 0 0 min(380px, 45%);
   display: flex;
   flex-direction: column;
   background: var(--bg);
@@ -802,8 +900,6 @@ body {
 
 /* Panneaux latéraux (paramètres) */
 .side-panel {
-  flex: 0 0 min(360px, 45%);
-  /* Largeur fixe : le contenu s'y adapte au lieu d'élargir le panneau (et de redimensionner le plan). */
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -1060,10 +1156,6 @@ body {
 }
 
 /* Panneau contextuel (page, forme, flèche) */
-.context-panel {
-  flex-basis: min(260px, 45%);
-}
-
 .context-panel .field-row {
   margin: 6px 0;
 }

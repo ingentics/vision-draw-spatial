@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { CollapseButton } from './Sidebar';
 import { PALETTE_CATEGORIES, SHAPE_TEMPLATES, searchTemplates } from '../engine/edit/palette';
 import type { PaletteCategoryId, ShapeTemplate } from '../engine/edit/palette';
 
@@ -58,34 +59,37 @@ export function Palette({ onAdd, disabled }: PaletteProps) {
   return (
     <aside className="palette" aria-label="Formes">
       <div className="palette-search">
-        <svg viewBox="0 0 16 16" aria-hidden="true">
-          <circle cx="6.5" cy="6.5" r="4.5" />
-          <path d="M10 10l4 4" />
-        </svg>
-        <input
-          type="search"
-          placeholder="Rechercher une forme"
-          aria-label="Rechercher une forme"
-          value={query}
-          disabled={disabled}
-          onChange={(event) => setQuery(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Escape') {
-              event.stopPropagation();
-              setQuery('');
-            }
-          }}
-        />
-        {query !== '' && (
-          <button
-            type="button"
-            className="palette-search-clear"
-            title="Vider la recherche"
-            onClick={() => setQuery('')}
-          >
-            ×
-          </button>
-        )}
+        <span className="palette-search-field">
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <circle cx="6.5" cy="6.5" r="4.5" />
+            <path d="M10 10l4 4" />
+          </svg>
+          <input
+            type="search"
+            placeholder="Rechercher une forme"
+            aria-label="Rechercher une forme"
+            value={query}
+            disabled={disabled}
+            onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                event.stopPropagation();
+                setQuery('');
+              }
+            }}
+          />
+          {query !== '' && (
+            <button
+              type="button"
+              className="palette-search-clear"
+              title="Vider la recherche"
+              onClick={() => setQuery('')}
+            >
+              ×
+            </button>
+          )}
+        </span>
+        <CollapseButton />
       </div>
       <div className="palette-sections">
         {sections.map(({ category, templates }) => {
