@@ -233,6 +233,41 @@ describe('mode Séquences : réglages déclarés et habillage', () => {
   });
 });
 
+describe('flux courant (sujet 79)', () => {
+  const current = sequences.current!;
+
+  it('par défaut le premier flux ; une flèche d’un flux le choisit ; un flux disparu ne vaut plus', () => {
+    const { page } = setup();
+    expect(current.initial(page())).toBe('f1');
+    expect(current.pick!(page(), edge(page(), 'paiement'))).toBe('f2');
+    expect(current.pick!(page(), edge(page(), 'libre'))).toBeUndefined();
+    expect(current.color!(page(), 'f2')).toBe('#f28e2b');
+    expect(current.valid(page(), 'f2')).toBe(true);
+    expect(current.valid(page(), 'f9')).toBe(false);
+  });
+
+  it('une flèche créée va à la fin du flux courant', () => {
+    const { run, page } = setup();
+    // `libre` joue la flèche tout juste créée (sans flux).
+    run((edit) => sequences.edgeCreated!(edit, 'libre', 'f2'));
+    expect(order(page()).f2).toEqual(['paiement', 'libre']);
+    expect(run((edit) => sequences.edgeCreated!(edit, 'login', undefined))).toBe(false);
+  });
+
+  it('« + » / « - » : rang suivant / précédent, sans effet aux bouts ; flèche hors flux non concernée', () => {
+    const { run, page } = setup();
+    const plus = sequences.keys!['+']!;
+    const minus = sequences.keys!['-']!;
+    expect(plus.applies(page(), edge(page(), 'libre'))).toBe(false);
+    run((edit) => plus.run(edit, edge(page(), 'login'), 'f1'));
+    expect(order(page()).f1).toEqual(['lecture', 'login']);
+    expect(run((edit) => plus.run(edit, edge(page(), 'login'), 'f1'))).toBe(false);
+    run((edit) => minus.run(edit, edge(page(), 'login'), 'f1'));
+    expect(order(page()).f1).toEqual(['login', 'lecture']);
+    expect(run((edit) => minus.run(edit, edge(page(), 'login'), 'f1'))).toBe(false);
+  });
+});
+
 describe('pastille : paramètres « Pastilles des flèches » (sujet 77)', () => {
   it('taille, couleurs, gras et assombrissement viennent du contexte de rendu', () => {
     const { page } = setup();

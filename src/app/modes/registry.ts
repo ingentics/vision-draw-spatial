@@ -7,6 +7,8 @@ export interface ModePanelProps {
   page: PageModel;
   /** Opération du mode sur la page (une étape d'annulation) ; absent si la page n'est pas modifiable. */
   onEdit?: (label: string, edit: (edit: ModeEdit) => void) => void;
+  /** « Courant » du mode sur la page (ex. flux courant), gardé par le moteur. */
+  current?: string;
 }
 
 /**

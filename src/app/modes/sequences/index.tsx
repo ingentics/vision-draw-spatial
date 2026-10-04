@@ -10,7 +10,7 @@ import type { ModePanel, ModePanelProps } from '../registry';
  */
 export const panel: ModePanel = { PageSection: FlowsSection };
 
-function FlowsSection({ page, onEdit }: ModePanelProps) {
+function FlowsSection({ page, onEdit, current }: ModePanelProps) {
   const { flows, members } = sequenceState(page);
   const [title, setTitle] = useState('');
   const add = () => {
@@ -27,6 +27,7 @@ function FlowsSection({ page, onEdit }: ModePanelProps) {
             key={`${flow.id}:${flow.title}`}
             flow={flow}
             count={members.get(flow.id)?.length ?? 0}
+            current={flow.id === current}
             first={index === 0}
             last={index === flows.length - 1}
             onRename={onEdit && ((next) => onEdit('Flux renommé', (edit) => renameFlow(edit, flow.id, next)))}
@@ -53,7 +54,10 @@ function FlowsSection({ page, onEdit }: ModePanelProps) {
         </div>
       )}
       {flows.length > 0 && (
-        <p className="panel-hint">Une flèche se range dans un flux depuis son panneau (Flux, Rang).</p>
+        <p className="panel-hint">
+          Flux courant (encadré) : les nouvelles flèches y vont ; cliquer une flèche d’un flux le choisit. Une flèche se
+          range aussi depuis son panneau (Flux, Rang), ou « + » / « - » pour changer son rang.
+        </p>
       )}
     </Section>
   );
@@ -62,6 +66,7 @@ function FlowsSection({ page, onEdit }: ModePanelProps) {
 function FlowRow({
   flow,
   count,
+  current,
   first,
   last,
   onRename,
@@ -70,6 +75,8 @@ function FlowRow({
 }: {
   flow: Flow;
   count: number;
+  /** Flux courant : les nouvelles flèches y vont (cliquer une flèche d'un flux le choisit). */
+  current: boolean;
   first: boolean;
   last: boolean;
   onRename?: (title: string) => void;
@@ -77,7 +84,11 @@ function FlowRow({
   onRemove?: () => void;
 }) {
   return (
-    <li className="flow-item">
+    <li
+      className={current ? 'flow-item current' : 'flow-item'}
+      aria-current={current ? 'true' : undefined}
+      title={current ? 'Flux courant : les nouvelles flèches y vont' : undefined}
+    >
       <span className="color-dot" style={{ background: flow.color }} aria-hidden="true" />
       <input
         type="text"

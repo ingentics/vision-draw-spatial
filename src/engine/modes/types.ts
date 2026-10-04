@@ -25,6 +25,32 @@ export interface PageModeDefinition {
   repair?(edit: ModeEdit): void;
   /** Attributs retirés des éléments collés ou dupliqués (sur toutes les pages : ils dorment hors du mode). */
   pasteKeys?: string[];
+  /** « Courant » du mode sur une page (ex. flux courant) : état de session, gardé par le moteur, jamais écrit. */
+  current?: ModeCurrent;
+  /** Flèche créée sur la page (tirée depuis une forme), dans la même étape d'annulation ; `current` : le courant. */
+  edgeCreated?(edit: ModeEdit, edgeId: string, current: string | undefined): void;
+  /** Touches sur l'élément sélectionné seul, par `KeyboardEvent.key` (ex. `+`). */
+  keys?: Record<string, ModeKey>;
+}
+
+/** « Courant » d'un mode (ex. flux courant du mode Séquences). */
+export interface ModeCurrent {
+  /** Valeur quand rien n'est choisi ou que le choix n'est plus valable (ex. premier flux) ; undefined = aucun. */
+  initial(page: PageModel): string | undefined;
+  /** Le choix est-il encore valable sur la page (ex. flux toujours là) ? */
+  valid(page: PageModel, value: string): boolean;
+  /** Nouveau courant quand un élément est sélectionné seul (ex. flux de la flèche) ; undefined = inchangé. */
+  pick?(page: PageModel, target: ModeTarget): string | undefined;
+  /** Couleur de l'indicateur au bas de la zone de dessin (#rrggbb) ; undefined = pas d'indicateur. */
+  color?(page: PageModel, value: string): string | undefined;
+}
+
+/** Touche d'un mode sur l'élément sélectionné : opération (une étape d'annulation, libellée `label`). */
+export interface ModeKey {
+  label: string;
+  /** L'élément est-il concerné (sinon la touche n'est pas prise) ? */
+  applies(page: PageModel, target: ModeTarget): boolean;
+  run(edit: ModeEdit, target: ModeTarget, current: string | undefined): void;
 }
 
 /** Élément d'une page qui peut porter les réglages d'un mode. */

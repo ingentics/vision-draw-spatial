@@ -49,6 +49,8 @@ export interface ContextPanelProps {
   onModeEdit?: (label: string, edit: (edit: ModeEdit) => void) => void;
   /** Réglage déclaré par le mode de la page (undefined = vide) ; absent si la page n'est pas modifiable. */
   onModeProperty?: (scope: ModeScope, targetId: string | undefined, key: string, value: string | undefined) => void;
+  /** « Courant » du mode de la page (ex. flux courant), montré par ses sections. */
+  modeCurrent?: string;
   /** Lien de l'élément sélectionné (vers une page ou une URL) ; undefined = retiré. */
   onLink: (link: LinkModel | undefined) => void;
   /** Attribut spatial de la forme sélectionnée (épaisseur, élévation…) ; undefined = valeur par défaut. */
@@ -134,6 +136,7 @@ function PageSections({ page, onRenamePage: onRename, ...props }: ContextPanelPr
         onPageMode={props.onPageMode}
         onModeEdit={props.onModeEdit}
         onModeProperty={props.onModeProperty}
+        modeCurrent={props.modeCurrent}
       />
     </>
   );
@@ -148,7 +151,8 @@ function PageModeSections({
   onPageMode,
   onModeEdit,
   onModeProperty,
-}: Pick<ContextPanelProps, 'page' | 'onPageMode' | 'onModeEdit' | 'onModeProperty'>) {
+  modeCurrent,
+}: Pick<ContextPanelProps, 'page' | 'onPageMode' | 'onModeEdit' | 'onModeProperty' | 'modeCurrent'>) {
   const modeId = defaultModeRegistry.modeId(page);
   const mode = defaultModeRegistry.modeOf(page);
   const options = [
@@ -172,7 +176,7 @@ function PageModeSections({
         />
         <ModeFields page={page} scope="page" target={page} onModeProperty={onModeProperty} />
       </Section>
-      {PageSection && <PageSection page={page} onEdit={onModeEdit} />}
+      {PageSection && <PageSection page={page} onEdit={onModeEdit} current={modeCurrent} />}
     </>
   );
 }

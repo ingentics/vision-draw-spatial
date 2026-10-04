@@ -1731,3 +1731,19 @@ body {
   font-size: 14px;
   padding: 2px 4px;
 }
+
+/* Courant du mode de la page (ex. flux courant du mode Séquences) : barre de sa couleur au bas de la zone de dessin. */
+.mode-indicator {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1;
+  height: 3px;
+  pointer-events: none;
+}
+
+.flow-item.current input[type='text'] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}

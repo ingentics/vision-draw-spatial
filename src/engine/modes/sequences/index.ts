@@ -1,5 +1,5 @@
 import type { EdgeModel } from '../../model/types';
-import type { PageModeDefinition } from '../types';
+import type { ModeKey, PageModeDefinition } from '../types';
 import { FLOW, STEP } from './flows';
 import { repairSequences, sequenceState, setEdgeFlow, setEdgeStep } from './steps';
 
@@ -58,7 +58,33 @@ export const definition: PageModeDefinition = {
       },
     };
   },
+  // Flux courant : le premier flux par défaut, celui d'une flèche cliquée ; les nouvelles flèches y vont.
+  current: {
+    initial: (page) => sequenceState(page).flows[0]?.id,
+    valid: (page, value) => sequenceState(page).members.has(value),
+    pick: (page, target) => sequenceState(page).placement.get(target.id)?.flowId,
+    color: (page, value) => sequenceState(page).flows.find((flow) => flow.id === value)?.color,
+  },
+  edgeCreated: (edit, edgeId, current) => {
+    if (current !== undefined) setEdgeFlow(edit, edgeId, current);
+  },
+  keys: {
+    '+': stepKey(+1),
+    '-': stepKey(-1),
+  },
   check: (page) => sequenceState(page).issues,
   repair: repairSequences,
   pasteKeys: [FLOW, STEP],
 };
+
+/** « + » / « - » : rang suivant / précédent de la flèche sélectionnée (échange avec la voisine). */
+function stepKey(delta: 1 | -1): ModeKey {
+  return {
+    label: 'Rang',
+    applies: (page, target) => sequenceState(page).placement.has(target.id),
+    run: (edit, target) => {
+      const placed = sequenceState(edit.page).placement.get(target.id);
+      if (placed) setEdgeStep(edit, target.id, placed.step + delta);
+    },
+  };
+}

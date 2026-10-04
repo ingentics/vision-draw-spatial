@@ -244,6 +244,8 @@ export type EngineEvents = {
   pageChange: [page: PageModel];
   cameraChange: [state: CameraState];
   selectionChange: [selection: Selection | undefined];
+  /** « Courant » du mode d'une page changé (ex. flux courant du mode Séquences). */
+  modeCurrentChange: [pageId: string, current: string | undefined];
   /** Transition vers une page par un lien : début et fin (entrées ignorées entre les deux). */
   transitionStart: [fromPageId: string, toPageId: string];
   transitionEnd: [pageId: string];
@@ -453,6 +455,8 @@ export class Engine {
   private lastFlatMode: 'top' | 'iso' = 'top';
   private readonly registry: ShapeRegistry;
   private readonly modes: PageModeRegistry;
+  /** « Courant » choisi du mode de chaque page (état de session, jamais écrit). */
+  private readonly modeCurrents = new Map<string, string>();
   private readonly text: ReturnType<typeof createTroikaTextFactory>;
   private readonly events = new Emitter<EngineEvents>();
   private readonly resizeObserver: ResizeObserver;
@@ -603,6 +607,7 @@ export class Engine {
           return !!editable && this.selection?.pageId === editable.page.id;
         },
         escape: () => this.clearSelection(),
+        modeKey: (key) => this.modeKey(key),
       },
       this.effectiveControls(),
     );
@@ -622,6 +627,7 @@ export class Engine {
     this.lastDocumentPageId = undefined;
     this.drag = undefined;
     this.undoStack.clear();
+    this.modeCurrents.clear();
     this.syncModified();
     this.history.replace(initialView?.history ?? []);
     this.linkUsage = { ...initialView?.linkUsage };
@@ -1494,6 +1500,7 @@ export class Engine {
     this.syncSelectionAnimation();
     this.events.emit('selectionChange', this.selection);
     this.emitModeHint();
+    if (page && items.length === 1) this.pickModeCurrent(page, items[0]!.element);
   }
 
   /**
@@ -2618,6 +2625,14 @@ export class Engine {
         for (const [key, value] of Object.entries(constraintStyle('target', drag.target.constraint)))
           if (value !== undefined) style = withStyleValue(style, key, value);
       const id = addEdgeCell(pageTree, { source: drag.sourceId, target: drag.target.shapeId, style });
+      // Le mode de la page reçoit la flèche (ex. ajoutée au flux courant), dans la même étape d'annulation.
+      const page = this.pageById(drag.pageId);
+      const created = page && this.modes.modeOf(page)?.edgeCreated;
+      const fresh = created && this.xmlTree && documentFromTree(this.xmlTree).pages.find((p) => p.id === drag.pageId);
+      if (created && fresh) {
+        const current = this.getModeCurrent(drag.pageId);
+        applyModeEdit(fresh, pageTree, (edit) => created(edit, id, current), modePalette(this.settings.styles));
+      }
       this.documentChanged([drag.pageId]);
       const edge = this.getCurrentPage()?.edges.find((e) => e.id === id);
       if (edge) this.select({ type: 'edge', element: edge });
@@ -3114,6 +3129,50 @@ export class Engine {
       else if (scope === 'page') edit.setPageAttribute(key, value);
       else edit.setElementAttribute(target.id, key, value);
     });
+  }
+
+  /**
+   * « Courant » du mode d'une page (ex. flux courant) : le dernier choisi s'il est encore valable, sinon la valeur
+   * initiale du mode ; undefined pour une page sans mode ou sans courant.
+   */
+  getModeCurrent(pageId = this.currentPageId): string | undefined {
+    const page = pageId ? this.pageById(pageId) : undefined;
+    const current = page && this.modes.modeOf(page)?.current;
+    if (!page || !current) return undefined;
+    const chosen = this.modeCurrents.get(page.id);
+    return chosen !== undefined && current.valid(page, chosen) ? chosen : current.initial(page);
+  }
+
+  /** Couleur de l'indicateur du courant, au bas de la zone de dessin ; undefined = pas d'indicateur. */
+  getModeIndicator(pageId = this.currentPageId): string | undefined {
+    const page = pageId ? this.pageById(pageId) : undefined;
+    const value = this.getModeCurrent(pageId);
+    return page && value !== undefined ? this.modes.modeOf(page)?.current?.color?.(page, value) : undefined;
+  }
+
+  /** Un élément sélectionné seul peut changer le courant du mode (ex. flèche d'un flux). */
+  private pickModeCurrent(page: PageModel, element: ModeTarget): void {
+    const value = this.modes.modeOf(page)?.current?.pick?.(page, element);
+    if (value === undefined || value === this.getModeCurrent(page.id)) return;
+    this.modeCurrents.set(page.id, value);
+    this.events.emit('modeCurrentChange', page.id, value);
+  }
+
+  /**
+   * Touche du mode de la page courante sur l'élément sélectionné seul (ex. « + » : rang suivant) : une étape
+   * d'annulation. Faux si la touche n'est pas prise (pas de mode, pas de touche, élément non concerné).
+   */
+  modeKey(key: string): boolean {
+    const editable = this.editablePage();
+    const selection = this.selection;
+    if (!editable || selection?.pageId !== editable.page.id || selection.items.length !== 1) return false;
+    const action = this.modes.modeOf(editable.page)?.keys?.[key];
+    const id = selection.picked.element.id;
+    const target = [...editable.page.edges, ...editable.page.shapes].find((element) => element.id === id);
+    if (!action || !target || !action.applies(editable.page, target)) return false;
+    const current = this.getModeCurrent(editable.page.id);
+    this.editPageMode(action.label, (edit) => action.run(edit, target, current));
+    return true;
   }
 
   /** Avertissements des modes de page (mode inconnu, données remises en ordre) ajoutés à ceux de la lecture. */

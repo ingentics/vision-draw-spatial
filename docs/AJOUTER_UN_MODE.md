@@ -35,6 +35,9 @@ interface PageModeDefinition {
   check?(page): ModeIssue[];                   // incohérences, remises en ordre au mieux et signalées
   repair?(edit: ModeEdit): void;               // remise en ordre écrite, après une suppression
   pasteKeys?: string[];                        // attributs retirés des éléments collés ou dupliqués
+  current?: ModeCurrent;                       // « courant » de session (section 5)
+  edgeCreated?(edit, edgeId, current): void;   // flèche tirée depuis une forme (même étape d'annulation)
+  keys?: Record<string, ModeKey>;              // touches sur l'élément sélectionné seul (ex. « + »)
 }
 ```
 
@@ -62,7 +65,17 @@ paramètre « Assombrissement du trait ») et une pastille
 fait face à la caméra en iso / 3D (`userData.billboard = 'screen'`). Son apparence (tailles, bordure, chiffre) vient des
 paramètres « Pastilles des flèches », communs à tous les modes.
 
-## 5. Vérifier
+## 5. Courant, flèche créée, touches
+
+- `current` : un « courant » de session par page (ex. flux courant), gardé par le moteur et jamais écrit :
+  `initial` (défaut), `valid` (choix encore valable), `pick` (élément sélectionné seul → nouveau courant), `color`
+  (barre de 3 px au bas de la zone de dessin). L'appli le lit par `engine.getModeCurrent()` et le reçoit dans ses
+  sections (`current` des props) ; l'événement `modeCurrentChange` signale un changement.
+- `edgeCreated(edit, edgeId, current)` : une flèche tirée depuis une forme, dans la même étape d'annulation.
+- `keys` : touches (`KeyboardEvent.key`) sur l'élément sélectionné seul ; `applies` dit si l'élément est concerné
+  (sinon la touche garde son effet habituel), `run` est une opération (une étape d'annulation, libellée `label`).
+
+## 6. Vérifier
 
 - Tests : `tests/engine/modes/` (contrat des dossiers, mode de test enregistré ; opérations sur une fixture).
 - Conservation par draw.io : une fixture avec le mode, puis `make drawio-check` (attributs de page et d'éléments

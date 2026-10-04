@@ -280,6 +280,8 @@ export interface CameraHost {
   canDeleteSelection?(): boolean;
   /** Échap : désélectionner. */
   escape?(): void;
+  /** Touche d'un mode de page sur la sélection (ex. « + » / « - ») ; vrai si elle a été prise. */
+  modeKey?(key: string): boolean;
 }
 
 /** Au-delà de ce déplacement (px), un appui-relâché n'est plus un clic. */
@@ -584,6 +586,11 @@ export class CameraController {
       if (event.key === 'F2') this.host.editSelection?.();
       else if (event.key === 'Delete') this.host.deleteSelection?.();
       else this.host.escape?.();
+      return;
+    }
+    // Touche propre au mode de la page, sur la sélection (ex. « + » / « - » : rang d'une flèche dans son flux).
+    if (this.host.modeKey?.(event.key)) {
+      event.preventDefault();
       return;
     }
     if (action === 'overview') {

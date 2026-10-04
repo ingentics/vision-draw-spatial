@@ -103,6 +103,8 @@ export function Viewer({
   const [autosavedAt, setAutosavedAt] = useState<number>();
   const [undoLabels, setUndoLabels] = useState<{ undo?: string; redo?: string }>({});
   const [selection, setSelection] = useState<Selection>();
+  /** « Courant » du mode de la page changé (ex. flux courant) : redessine l'indicateur et le panneau. */
+  const [, setModeCurrentTick] = useState(0);
   const [modeHint, setModeHint] = useState<ModeHint>();
   const [labelEdit, setLabelEdit] = useState<LabelEditRequest>();
   /** Éditeur de texte en place (commandes du panneau de format) et format de sa sélection. */
@@ -327,6 +329,7 @@ export function Viewer({
       instance.on('modifiedChange', setModified);
       instance.on('undoChange', (undo, redo) => setUndoLabels({ undo, redo }));
       instance.on('selectionChange', setSelection);
+      instance.on('modeCurrentChange', () => setModeCurrentTick((tick) => tick + 1));
       instance.on('modeHint', setModeHint);
       instance.on('labelEdit', setLabelEdit);
       instance.on('documentChange', (doc) => {
@@ -356,6 +359,8 @@ export function Viewer({
   );
 
   const warnings = document?.warnings ?? [];
+  /** Indicateur du courant du mode de la page (ex. couleur du flux courant), au bas de la zone de dessin. */
+  const modeIndicator = pageId !== undefined ? engine?.getModeIndicator(pageId) : undefined;
   const editablePages = document !== undefined && engine?.canEditPages() === true;
   const canAddShapes = pageId !== undefined && pageId !== GRAPH_PAGE_ID;
   // Formes de la page courante, pour la catégorie « Utilisées » de la palette.
@@ -547,6 +552,7 @@ export function Viewer({
             engine.focusCanvas();
           }}
         >
+          {modeIndicator && <div className="mode-indicator" style={{ background: modeIndicator }} aria-hidden="true" />}
           {labelEdit && (
             <LabelEditor
               key={`${labelEdit.pageId}:${labelEdit.elementId}:${labelEdit.end ?? ''}`}
@@ -671,6 +677,7 @@ export function Viewer({
                   onRenamePage={editablePages ? (name) => engine?.renamePage(currentPage.id, name) : undefined}
                   onPageMode={editablePages ? (modeId) => engine?.setPageMode(currentPage.id, modeId) : undefined}
                   onModeEdit={editablePages ? (label, edit) => engine?.editPageMode(label, edit) : undefined}
+                  modeCurrent={engine?.getModeCurrent(currentPage.id)}
                   onModeProperty={
                     editablePages
                       ? (scope, targetId, key, value) => engine?.setModeProperty(scope, targetId, key, value)
