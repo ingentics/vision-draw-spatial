@@ -817,7 +817,7 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   « Modes › Séquences » (§13). Couleur d'un nouveau flux : fonds des styles de forme des paramètres, à partir du
   troisième (`modePalette`, passée aux opérations par `ModeEdit.palette`).
 - **Flux courant** (mode Séquences) : par défaut le premier flux, puis celui de la dernière flèche cliquée ou choisi
-  dans la barre (état de session par page, non écrit). Barre en haut de la zone de dessin, de la couleur du flux, avec
+  dans la barre (un clic sur une flèche d'un autre flux ne fait que changer de flux ; un second clic la sélectionne) (état de session par page, non écrit). Barre en haut de la zone de dessin, de la couleur du flux, avec
   son titre centré (texte noir ou blanc selon le contraste) et, s'il y a au moins deux flux, des boutons précédent /
   suivant en boucle ; flux encadré dans le panneau. Tout ce qui ne touche pas ses flèches (flèches hors du flux,
   formes qu'aucune ne relie) est estompé à 30 % (paramètre « Opacité hors du flux courant ») ; flux sans flèche :

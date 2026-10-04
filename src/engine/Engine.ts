@@ -3230,13 +3230,17 @@ export class Engine {
     }
   }
 
-  /** Un élément sélectionné seul peut changer le courant du mode (ex. flèche d'un flux). */
-  private pickModeCurrent(page: PageModel, element: ModeTarget): void {
+  /**
+   * Un élément cliqué ou sélectionné seul peut changer le courant du mode (ex. flèche d'un flux) ; vrai s'il l'a
+   * changé.
+   */
+  private pickModeCurrent(page: PageModel, element: ModeTarget): boolean {
     const value = this.modes.modeOf(page)?.current?.pick?.(page, element);
-    if (value === undefined || value === this.getModeCurrent(page.id)) return;
+    if (value === undefined || value === this.getModeCurrent(page.id)) return false;
     this.modeCurrents.set(page.id, value);
     this.events.emit('modeCurrentChange', page.id, value);
     this.requestRender();
+    return true;
   }
 
   /**
@@ -3534,6 +3538,13 @@ export class Engine {
     }
     if (toggle) {
       if (picked) this.toggleSelect(picked);
+      return;
+    }
+    // Mode de la page : un clic sur un élément d'un autre courant (ex. flèche d'un autre flux) ne fait que changer
+    // de courant ; un second clic le sélectionne.
+    const page = this.getCurrentPage();
+    if (picked && page && this.pickModeCurrent(page, picked.element)) {
+      this.clearSelection();
       return;
     }
     this.select(picked);

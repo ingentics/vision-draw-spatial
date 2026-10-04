@@ -39,7 +39,11 @@ export interface ModeCurrent {
   initial(page: PageModel): string | undefined;
   /** Le choix est-il encore valable sur la page (ex. flux toujours là) ? */
   valid(page: PageModel, value: string): boolean;
-  /** Nouveau courant quand un élément est sélectionné seul (ex. flux de la flèche) ; undefined = inchangé. */
+  /**
+   * Nouveau courant pour un élément (ex. flux de la flèche) ; undefined = inchangé. Un clic sur un élément qui change
+   * le courant ne fait que le changer (un second clic le sélectionne) ; les autres sélections d'un seul élément le
+   * changent aussi.
+   */
   pick?(page: PageModel, target: ModeTarget): string | undefined;
   /** Couleur de la barre du courant, en haut de la zone de dessin (#rrggbb) ; undefined = pas de barre. */
   color?(page: PageModel, value: string): string | undefined;
