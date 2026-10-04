@@ -262,6 +262,7 @@ describe('perimeterKind', () => {
     expect(perimeterKind({ perimeter: 'hexagonPerimeter2' }, [])).toBe('hexagon');
     expect(perimeterKind({}, ['triangle'])).toBe('triangle');
     expect(perimeterKind({ perimeter: 'parallelogramPerimeter' }, [])).toBe('parallelogram');
+    expect(perimeterKind({ perimeter: 'stepPerimeter' }, [])).toBe('step');
     expect(perimeterKind({ perimeter: 'calloutPerimeter' }, ['ellipse'])).toBe('rectangle');
   });
 });

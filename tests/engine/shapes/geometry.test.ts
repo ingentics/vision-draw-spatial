@@ -227,3 +227,37 @@ describe('parallélogramme (37)', () => {
     expect(registry.contains(s, { x: 103, y: 103 })).toBe(false);
   });
 });
+
+describe('étape (38)', () => {
+  const STYLE = 'shape=step;perimeter=stepPerimeter;whiteSpace=wrap;html=1;fixedSize=1;';
+  const shape = (style = STYLE, width = 120, height = 80) => page([style], width, height).page.shapes[0]!;
+  const outline = (style?: string, width?: number, height?: number) => {
+    const s = shape(style, width, height);
+    return round(registry.resolve(s).definition.outline!(s));
+  };
+
+  it('dessinée par sa définition, absente des Diagnostics ; spatial.kind=step la dessine', () => {
+    const { document, page: p } = page([STYLE, 'shape=note;spatial.kind=step;'], 120, 80);
+    expect(p.shapes.map((s) => registry.resolve(s).definition.id)).toEqual(['step', 'step']);
+    expect(collectUnsupported(document, registry).entries).toEqual([]);
+  });
+
+  it('contour : encoche à gauche, pointe à droite, de size px (fixedSize=1), sinon fraction de la largeur', () => {
+    expect(outline()).toEqual([
+      [100, 100],
+      [200, 100],
+      [220, 140],
+      [200, 180],
+      [100, 180],
+      [120, 140],
+    ]);
+    expect(outline(STYLE.replace('fixedSize=1;', ''))[5]).toEqual([124, 140]);
+  });
+
+  it('volume : prisme du contour ; clic dans le contour, pas dans l’encoche', () => {
+    expect(volume(STYLE, 120, 80)).toEqual({ min: [100, 0, 100], max: [220, 20, 180] });
+    const s = shape();
+    expect(registry.contains(s, { x: 160, y: 140 })).toBe(true);
+    expect(registry.contains(s, { x: 105, y: 140 })).toBe(false);
+  });
+});

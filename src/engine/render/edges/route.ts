@@ -21,9 +21,9 @@ import type { Point, Rect } from '../../model/types';
 
 /**
  * Périmètres de draw.io gérés (`rectanglePerimeter`, `ellipsePerimeter`, `rhombusPerimeter`,
- * `trianglePerimeter`, `hexagonPerimeter2`, `parallelogramPerimeter`).
+ * `trianglePerimeter`, `hexagonPerimeter2`, `parallelogramPerimeter`, `stepPerimeter`).
  */
-export type PerimeterKind = 'rectangle' | 'ellipse' | 'rhombus' | 'triangle' | 'hexagon' | 'parallelogram';
+export type PerimeterKind = 'rectangle' | 'ellipse' | 'rhombus' | 'triangle' | 'hexagon' | 'parallelogram' | 'step';
 
 /** Périmètres nommés par `perimeter=…` (registre de styles de draw.io). */
 const NAMED_PERIMETERS: Record<string, PerimeterKind> = {
@@ -32,6 +32,7 @@ const NAMED_PERIMETERS: Record<string, PerimeterKind> = {
   trianglePerimeter: 'triangle',
   hexagonPerimeter2: 'hexagon',
   parallelogramPerimeter: 'parallelogram',
+  stepPerimeter: 'step',
 };
 
 /**
@@ -368,7 +369,63 @@ export function perimeterPolygon(
 ): Point[] | undefined {
   if (kind === 'hexagon') return hexagonPerimeter(bounds, style);
   if (kind === 'parallelogram') return parallelogramPerimeter(bounds, style);
+  if (kind === 'step') return stepPerimeter(bounds, style);
   return undefined;
+}
+
+/**
+ * `mxPerimeter.StepPerimeter` : chevron d'étape, encoche et pointe de profondeur `size` (px avec `fixedSize=1`,
+ * 20 par défaut ; sinon fraction, 0,2), pointe vers `direction` (à droite par défaut).
+ */
+function stepPerimeter(bounds: Rect, style: Record<string, string>): Point[] {
+  const offset = perimeterSize(style, 20, 0.2);
+  const { x, y, width: w, height: h } = bounds;
+  const cx = x + w / 2;
+  const cy = y + h / 2;
+  const direction = style.direction ?? 'east';
+  let points: Point[];
+  if (direction === 'east') {
+    const s = offset(w);
+    points = [
+      { x, y },
+      { x: x + w - s, y },
+      { x: x + w, y: cy },
+      { x: x + w - s, y: y + h },
+      { x, y: y + h },
+      { x: x + s, y: cy },
+    ];
+  } else if (direction === 'west') {
+    const s = offset(w);
+    points = [
+      { x: x + s, y },
+      { x: x + w, y },
+      { x: x + w - s, y: cy },
+      { x: x + w, y: y + h },
+      { x: x + s, y: y + h },
+      { x, y: cy },
+    ];
+  } else if (direction === 'north') {
+    const s = offset(h);
+    points = [
+      { x, y: y + s },
+      { x: cx, y },
+      { x: x + w, y: y + s },
+      { x: x + w, y: y + h },
+      { x: cx, y: y + h - s },
+      { x, y: y + h },
+    ];
+  } else {
+    const s = offset(h);
+    points = [
+      { x, y },
+      { x: cx, y: y + s },
+      { x: x + w, y },
+      { x: x + w, y: y + h - s },
+      { x: cx, y: y + h },
+      { x, y: y + h - s },
+    ];
+  }
+  return [...points, points[0]!];
 }
 
 /** Décalage d'un périmètre à pans (`size`) : px avec `fixedSize=1`, sinon fraction de `length`. */

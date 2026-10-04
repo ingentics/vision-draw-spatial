@@ -374,7 +374,8 @@ Ajouter une forme = **déposer son dossier** (au minimum `kind` et `flat`, idéa
   2 × `dx`, au plus la moitié du petit côté ; flèches sur les bornes), pentagone (`shape=mxgraph.basic.pentagon`,
   stencil de draw.io étiré dans les bornes ; flèches sur les bornes), triangles (`triangle`, vers la droite, et
   `triangle;direction=north`, vers le haut ; périmètre `trianglePerimeter`), parallélogramme (`shape=parallelogram`,
-  côtés obliques décalés de `size` ; périmètre `parallelogramPerimeter`),
+  côtés obliques décalés de `size` ; périmètre `parallelogramPerimeter`), étape (`shape=step`, chevron de profondeur
+  `size` ; périmètre `stepPerimeter`),
 - Texte seul,
 - **Stockage** (formes natives de draw.io, dessinées comme draw.io en 2D, en vrai volume en iso / 3D ; aussi dans la palette) :
 

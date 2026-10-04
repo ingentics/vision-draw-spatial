@@ -54,6 +54,7 @@ const HEXAGON = 'shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=
 const OCTAGON = 'whiteSpace=wrap;html=1;shape=mxgraph.basic.octagon2;align=center;verticalAlign=middle;dx=15;';
 const PENTAGON = 'whiteSpace=wrap;html=1;shape=mxgraph.basic.pentagon;';
 const TRIANGLE = 'triangle;whiteSpace=wrap;html=1;';
+const STEP = 'shape=step;perimeter=stepPerimeter;whiteSpace=wrap;html=1;fixedSize=1;';
 const PARALLELOGRAM = 'shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;';
 const ORIENTATIONS = [...VARIANTS, ...NORTH_FLIPS];
 /**
@@ -84,6 +85,14 @@ const SERIES = [
     h: 60,
     variants: [...ORIENTATIONS, 'size=50;', 'size=200;', 'fixedSize=0;', 'fixedSize=0;size=0.4;'],
   },
+  // Profondeur de l'étape : px (`fixedSize=1`, au plus la largeur), puis fraction de la largeur.
+  {
+    prefix: 'st',
+    style: STEP,
+    w: 120,
+    h: 80,
+    variants: [...ORIENTATIONS, 'size=50;', 'size=200;', 'fixedSize=0;', 'fixedSize=0;size=0.4;'],
+  },
 ];
 /**
  * Autres cibles des flèches (après le losange `d`), mêmes sources tout autour : préfixe des ids (`<p><k>` la
@@ -102,6 +111,12 @@ const EDGE_TARGETS = [
   { prefix: 'xg', style: PARALLELOGRAM, w: 120, h: 60 },
   { prefix: 'xgn', style: `${PARALLELOGRAM}direction=north;`, w: 120, h: 60 },
   { prefix: 'xgs', style: `${PARALLELOGRAM}size=50;flipH=1;`, w: 120, h: 60 },
+  ...['', 'direction=north;', 'direction=south;', 'direction=west;', 'flipV=1;'].map((variant, v) => ({
+    prefix: `y${v}_`,
+    style: `${STEP}${variant}`,
+    w: 120,
+    h: 80,
+  })),
 ];
 
 interface Vertex {
@@ -248,6 +263,12 @@ function samePolygon(oursIn: Point[], theirsIn: Point[]): boolean {
 }
 
 describe('fixture shapes.drawio', () => {
+  it('ids uniques', () => {
+    const { vertices, edges } = layout();
+    const ids = [...vertices, ...edges].map((cell) => cell.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
   it('est à jour', () => {
     const built = build();
     if (process.env.WRITE_FIXTURES === '1')

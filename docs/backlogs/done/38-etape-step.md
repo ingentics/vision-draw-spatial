@@ -27,3 +27,11 @@
 - **Fini quand :** la forme s'affiche comme dans draw.io en 2D (comparaison avec l'export), en volume en iso et en 3D,
   se clique et reçoit les flèches sur son contour, se crée depuis la palette (catégorie « Géométrie ») ; elle
   n'apparaît plus dans le panneau Diagnostics ; `spatial.kind=<id>` la dessine.
+
+Fait : forme `src/engine/shapes/impl/geometry/step/` (contour de `StepShape.redrawPath` : encoche et pointe de
+`size` px avec `fixedSize=1`, au plus la largeur, sinon fraction de la largeur, 0,2 ; orienté par `orientedPath` ;
+prisme en iso / 3D, encoche concave comprise ; « Étape » dans la palette). Périmètre `stepPerimeter` porté dans
+`render/edges/route.ts` (quatre directions). Fixture `shapes.drawio` : orientations, `size`, `fixedSize=0`, et
+flèches vers cinq étapes (quatre directions, retournée) identiques à l'export SVG de draw.io ; un test vérifie
+l'unicité des ids de la fixture. Tests dans `tests/engine/shapes/geometry.test.ts`. Vérifié dans l'appli :
+palette, iso.

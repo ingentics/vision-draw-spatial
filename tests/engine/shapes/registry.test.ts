@@ -36,6 +36,7 @@ describe('formes en plugins (étapes 65, 67) : contrat des définitions', () => 
         'geometry/triangle',
         'geometry/triangle-up',
         'geometry/parallelogram',
+        'geometry/step',
         'general/text',
         'architecture/database',
         'architecture/queue',
@@ -85,6 +86,7 @@ describe('formes en plugins (étapes 65, 67) : contrat des définitions', () => 
     expect(id('triangle')).toBe('triangle');
     expect(id('triangle', { direction: 'north' })).toBe('triangle-up');
     expect(id('parallelogram')).toBe('parallelogram');
+    expect(id('step')).toBe('step');
     expect(id('database', { direction: 'south' })).toBe('database');
     expect(id('queue')).toBe('queue');
     expect(registry.resolve(model('note')).supported).toBe(false);

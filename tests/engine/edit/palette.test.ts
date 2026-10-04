@@ -25,6 +25,7 @@ describe('palette', () => {
       'rectangle',
       'rhombus',
       'stencil:plug',
+      'step',
       'text',
       'triangle',
     ]);
@@ -69,6 +70,7 @@ describe('palette', () => {
       'triangle',
       'triangle-up',
       'parallelogram',
+      'step',
     ]);
     expect(byCategory('general')).toEqual(['text']);
     const known = new Set(PALETTE_CATEGORIES.map((c) => c.id));
