@@ -97,7 +97,7 @@ Quelques méthodes utiles du moteur : `goToPage`, `setViewMode('top' | 'iso' | '
 Navigation (toujours) : ZQSD / WASD et flèches, molette (zoom au curseur), clic droit (en 2D) ou
 Espace + glisser (déplacer), molette enfoncée (déplacer), Entrée (vue globale ↔ 1:1),
 I (2D ↔ iso), P (3D ↔ 2D / iso), clic droit + glisser en iso et en 3D (tourner la caméra ; en 3D, l'incliner aussi), G (vue graphe), M (mini-carte), Retour arrière / Alt+← (retour), clic (sélection),
-double-clic (suivre un lien). Les raccourcis sont réglables (`settings.controls.shortcuts`).
+⌘ + double-clic (suivre un lien, touche réglable : `settings.controls.followLinkKey`). Les raccourcis sont réglables (`settings.controls.shortcuts`).
 
 Édition (`editable`) : glisser une forme pour la déplacer, poignées pour la redimensionner ou la
 relier à une autre, double-clic ou F2 pour le texte (via l'événement moteur `labelEdit`, à afficher

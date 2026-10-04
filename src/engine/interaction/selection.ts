@@ -21,6 +21,30 @@ export function hasMultiSelectKey(
   return event.altKey;
 }
 
+/**
+ * Touche à maintenir pendant le double-clic pour suivre un lien (paramètre `controls.followLinkKey`,
+ * ⌘ par défaut) ; 'none' : un double-clic simple suffit. Sans elle, le double-clic édite le texte.
+ */
+export type FollowLinkKey = MultiSelectKey | 'none';
+
+export const FOLLOW_LINK_KEYS: readonly FollowLinkKey[] = [...MULTI_SELECT_KEYS, 'none'];
+
+/** Touches de modification, telles qu'affichées dans les infobulles. */
+export const MODIFIER_KEY_LABELS: Record<MultiSelectKey, string> = {
+  ctrl: 'Ctrl',
+  meta: '⌘',
+  shift: 'Maj',
+  alt: 'Alt',
+};
+
+/** La touche pour suivre un lien est-elle enfoncée (toujours vrai pour 'none') ? */
+export function hasFollowLinkKey(
+  event: Pick<MouseEvent, 'ctrlKey' | 'metaKey' | 'shiftKey' | 'altKey'>,
+  key: FollowLinkKey,
+): boolean {
+  return key === 'none' || hasMultiSelectKey(event, key);
+}
+
 /** Ajoute l'élément à la sélection, ou l'en retire s'il y est déjà (comparaison par id). */
 export function toggleSelected(items: readonly PickedElement[], picked: PickedElement): PickedElement[] {
   const id = picked.element.id;

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { PickedElement } from '../../../src/engine/interaction/pick';
-import { hasMultiSelectKey, independentRoots, toggleSelected } from '../../../src/engine/interaction/selection';
+import {
+  hasFollowLinkKey,
+  hasMultiSelectKey,
+  independentRoots,
+  toggleSelected,
+} from '../../../src/engine/interaction/selection';
 import type { ShapeModel } from '../../../src/engine/model/types';
 
 const shape = (id: string): PickedElement => ({ type: 'shape', element: { id } as ShapeModel });
@@ -20,6 +25,13 @@ describe('sélection multiple', () => {
     expect(hasMultiSelectKey(event, 'meta')).toBe(true);
     expect(hasMultiSelectKey(event, 'ctrl')).toBe(false);
     expect(hasMultiSelectKey({ ...event, metaKey: false, shiftKey: true }, 'shift')).toBe(true);
+  });
+
+  it('suivre un lien : ⌘ + double-clic par défaut, ou double-clic seul avec « aucune »', () => {
+    const plain = { ctrlKey: false, metaKey: false, shiftKey: false, altKey: false };
+    expect(hasFollowLinkKey(plain, 'meta')).toBe(false);
+    expect(hasFollowLinkKey({ ...plain, metaKey: true }, 'meta')).toBe(true);
+    expect(hasFollowLinkKey(plain, 'none')).toBe(true);
   });
 
   it('déplacement : une forme déjà emportée par un conteneur sélectionné ne bouge pas deux fois', () => {

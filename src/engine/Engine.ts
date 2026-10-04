@@ -116,7 +116,7 @@ import { buildGraphScene } from './graph/graphScene';
 import { Minimap } from './interaction/minimap';
 import { pickElement } from './interaction/pick';
 import type { PickedElement } from './interaction/pick';
-import { independentRoots, toggleSelected } from './interaction/selection';
+import { MODIFIER_KEY_LABELS, independentRoots, toggleSelected } from './interaction/selection';
 import { easing, embedIn, embeddedCamera, phase } from './interaction/transitions';
 import { computeBounds } from './model/bounds';
 import type {
@@ -529,7 +529,7 @@ export class Engine {
         getViewport: () => this.viewport,
         toggleOverview: (screen) => this.toggleOverview(screen),
         click: (screen, options) => this.handleClick(screen, options.toggle),
-        doubleClick: (screen) => this.handleDoubleClick(screen),
+        doubleClick: (screen, options) => this.handleDoubleClick(screen, options.followLink),
         hover: (screen) => this.handleHover(screen),
         back: () => this.back(),
         toggleViewMode: () => this.toggleViewMode(),
@@ -3017,14 +3017,16 @@ export class Engine {
   }
 
   /**
-   * Double-clic : suit un lien ; sinon, édite le label de l'élément (page modifiable). Sur une flèche,
-   * près d'un bout, édite son texte de début ou de fin.
+   * Double-clic : avec la touche pour suivre un lien (`controls.followLinkKey`, ⌘ par défaut), ou sur
+   * une carte de la vue graphe, suit le lien ; sinon, édite le label de l'élément (page modifiable).
+   * Sur une flèche, près d'un bout, édite son texte de début ou de fin.
    */
-  private handleDoubleClick(screen: Point): void {
+  private handleDoubleClick(screen: Point, followLink: boolean): void {
     if (this.doubleClickPointHandle(screen)) return;
     const picked = this.pickAt(screen);
     const text = picked?.type === 'edge' ? this.edgeTextAt(screen) : undefined;
-    if (picked && isNavigableLink(picked.element.link)) this.followLink(picked.element.id);
+    const follow = followLink || this.isGraphView();
+    if (picked && follow && isNavigableLink(picked.element.link)) this.followLink(picked.element.id);
     else if (text) this.editEdgeText(text.edge.id, text.cellId);
     else if (picked?.type === 'edge') {
       // Près d'un bout : texte de début ou de fin ; vers le milieu : label de la flèche.
@@ -3087,9 +3089,12 @@ export class Engine {
   }
 
   private describeLink(link: LinkModel): string {
-    if (link.type === 'url') return `${link.href} (double-clic : ouvrir dans un nouvel onglet)`;
+    const key = this.settings.controls.followLinkKey;
+    const gesture = key === 'none' || this.isGraphView() ? 'double-clic' : `${MODIFIER_KEY_LABELS[key]} + double-clic`;
+    if (link.type === 'url') return `${link.href} (${gesture} : ouvrir dans un nouvel onglet)`;
     const name = this.pageById(link.pageId)?.name;
-    return name ? `Double-clic : aller à « ${name} »` : `Lien vers une page absente (${link.pageId})`;
+    const action = `${gesture} : aller à « ${name} »`;
+    return name ? action.charAt(0).toUpperCase() + action.slice(1) : `Lien vers une page absente (${link.pageId})`;
   }
 
   /** Hauteur du dessus d'un élément (volume iso), mise à l'échelle de la bascule ; 0 à plat. */

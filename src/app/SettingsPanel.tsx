@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { RESERVED_CODES } from '../engine/interaction/controls';
 import type { Shortcuts } from '../engine/interaction/controls';
-import type { MultiSelectKey } from '../engine/interaction/selection';
+import type { FollowLinkKey, MultiSelectKey } from '../engine/interaction/selection';
 import { SETTINGS_LIMITS } from '../engine/settings';
 import type { Settings, SettingsPatch } from '../engine/settings';
 import { desktop } from './desktop';
@@ -24,6 +24,9 @@ export const MULTI_SELECT_LABELS: Record<MultiSelectKey, string> = {
   shift: 'Maj',
   alt: 'Alt / ⌥',
 };
+
+/** Touches pour suivre un lien au double-clic, telles qu'affichées. */
+const FOLLOW_LINK_LABELS: Record<FollowLinkKey, string> = { ...MULTI_SELECT_LABELS, none: 'Aucune (double-clic seul)' };
 
 const SHORTCUT_LABELS: Record<keyof Shortcuts, string> = {
   toggleViewMode: 'Basculer 2D ↔ iso',
@@ -737,6 +740,16 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
           <p className="hint muted">
             Maintenir la touche en cliquant ajoute l’élément à la sélection, ou l’en retire. Glisser une forme
             sélectionnée déplace toute la sélection.
+          </p>
+          <Choice
+            label="Suivre un lien : touche + double-clic"
+            value={controls.followLinkKey}
+            options={(Object.keys(FOLLOW_LINK_LABELS) as FollowLinkKey[]).map((key) => [key, FOLLOW_LINK_LABELS[key]])}
+            onChange={(followLinkKey) => onChange({ controls: { followLinkKey } })}
+          />
+          <p className="hint muted">
+            Sans la touche, le double-clic sur une forme liée modifie son texte. Dans la vue graphe, le double-clic seul
+            plonge dans la page.
           </p>
         </Section>
 

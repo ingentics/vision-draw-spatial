@@ -1,8 +1,8 @@
 import type { Point } from '../model/types';
 import { dragGround, orbit, panByScreen, zoomAt } from './camera';
 import type { CameraState, Viewport } from './camera';
-import { hasMultiSelectKey } from './selection';
-import type { MultiSelectKey } from './selection';
+import { hasFollowLinkKey, hasMultiSelectKey } from './selection';
+import type { FollowLinkKey, MultiSelectKey } from './selection';
 
 /**
  * Contrôles de navigation (SPEC §9.2). Les touches sont lues par position physique
@@ -122,6 +122,8 @@ export interface ControlSettings {
   orbitSpeed: number;
   /** Touche qui, maintenue pendant un clic, ajoute l'élément à la sélection ou l'en retire. */
   multiSelectKey: MultiSelectKey;
+  /** Touche à maintenir pendant le double-clic pour suivre un lien ('none' : double-clic simple). */
+  followLinkKey: FollowLinkKey;
   /** Rotation au clavier (A / E en AZERTY, Q / E en QWERTY), en iso et en 3D, en degrés par seconde. */
   rotateSpeed: number;
 }
@@ -133,6 +135,7 @@ export const DEFAULT_CONTROLS: ControlSettings = {
   decelerationMs: 80,
   orbitSpeed: 0.005,
   multiSelectKey: 'ctrl',
+  followLinkKey: 'meta',
   rotateSpeed: 90,
   shortcuts: DEFAULT_SHORTCUTS,
 };
@@ -222,8 +225,11 @@ export interface CameraHost {
    * enfoncée (ajouter l'élément à la sélection, ou l'en retirer).
    */
   click?(screen: Point, options: { toggle: boolean }): void;
-  /** Double-clic gauche : entrer dans un lien. */
-  doubleClick?(screen: Point): void;
+  /**
+   * Double-clic gauche. `followLink` : la touche pour suivre un lien est enfoncée (entrer dans le
+   * lien) ; sinon, édition du texte.
+   */
+  doubleClick?(screen: Point, options: { followLink: boolean }): void;
   /** Survol (undefined quand le pointeur quitte le canvas). */
   hover?(screen: Point | undefined): void;
   /** Retour (Retour arrière, Alt+←). */
@@ -452,7 +458,9 @@ export class CameraController {
   private readonly onDoubleClick = (event: MouseEvent): void => {
     if (!this.enabled || event.button !== 0 || this.spaceDown) return;
     event.preventDefault();
-    this.host.doubleClick?.(this.localPoint(event));
+    this.host.doubleClick?.(this.localPoint(event), {
+      followLink: hasFollowLinkKey(event, this.settings.followLinkKey),
+    });
   };
 
   /**

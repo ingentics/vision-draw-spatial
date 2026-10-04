@@ -4,7 +4,7 @@ import { DRAWIO_STYLES, PASTEL_STYLES, TEXT_STYLES } from './edit/styles';
 import type { StylePreset, TextPreset } from './edit/styles';
 import { DEFAULT_CONTROLS } from './interaction/controls';
 import type { ControlSettings, Shortcuts } from './interaction/controls';
-import { MULTI_SELECT_KEYS } from './interaction/selection';
+import { FOLLOW_LINK_KEYS, MULTI_SELECT_KEYS } from './interaction/selection';
 
 /**
  * Paramètres de l'expérience (SPEC §13) : tout ce qui touche au ressenti est réglable, avec des
@@ -455,6 +455,7 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
       decelerationMs: num('controls.decelerationMs', c.decelerationMs, base.controls.decelerationMs),
       orbitSpeed: num('controls.orbitSpeed', c.orbitSpeed, base.controls.orbitSpeed),
       multiSelectKey: oneOf(MULTI_SELECT_KEYS, c.multiSelectKey, base.controls.multiSelectKey),
+      followLinkKey: oneOf(FOLLOW_LINK_KEYS, c.followLinkKey, base.controls.followLinkKey),
       rotateSpeed: num('controls.rotateSpeed', c.rotateSpeed, base.controls.rotateSpeed),
       shortcuts: {
         toggleViewMode: code(shortcuts.toggleViewMode, base.controls.shortcuts.toggleViewMode),

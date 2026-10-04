@@ -180,6 +180,12 @@ describe('réglages exposés (caméra, vue graphe, édition…)', () => {
     );
     const broken = { controls: { multiSelectKey: 'f' } } as unknown as SettingsPatch;
     expect(mergeSettings(DEFAULT_SETTINGS, broken).controls.multiSelectKey).toBe('ctrl');
+    expect(DEFAULT_SETTINGS.controls.followLinkKey).toBe('meta');
+    expect(mergeSettings(DEFAULT_SETTINGS, { controls: { followLinkKey: 'none' } }).controls.followLinkKey).toBe(
+      'none',
+    );
+    const brokenFollow = { controls: { followLinkKey: 'f' } } as unknown as SettingsPatch;
+    expect(mergeSettings(DEFAULT_SETTINGS, brokenFollow).controls.followLinkKey).toBe('meta');
     expect(DEFAULT_SETTINGS.transition).toMatchObject({ fadeStart: 0.25, fadeEnd: 0.75 });
   });
 
