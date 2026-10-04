@@ -2779,12 +2779,17 @@ export class Engine {
   }
 
   /**
-   * Emprise à l'écran du texte édité : la forme (dessus du volume), le milieu d'une flèche, ou le point
-   * de son texte de début / fin.
+   * Emprise à l'écran du texte édité : la zone de texte d'une forme (dessus du volume), le milieu d'une
+   * flèche, ou le point de son texte de début / fin.
    */
   private labelEditScreen(elementId: string, end?: EdgeEnd, labelCellId?: string, flipped = false): Rect | undefined {
     const edge = this.getCurrentPage()?.edges.find((e) => e.id === elementId);
-    if (!edge) return this.screenRectOf(elementId);
+    if (!edge) {
+      // Forme : sa zone de texte, celle où le label est dessiné à ce niveau de rendu.
+      const shape = this.getCurrentPage()?.shapes.find((s) => s.id === elementId);
+      const level = this.scenes.current?.level ?? 'flat';
+      return shape ? this.screenRectOf(elementId, this.registry.textZone(shape, level)) : undefined;
+    }
     // Flèche : le point où le texte est dessiné (son label, un label enfant, ou un début / fin à créer).
     const route = this.sceneObject(elementId)?.userData.route as Point[] | undefined;
     if (!route?.length) return undefined;
@@ -3189,13 +3194,16 @@ export class Engine {
     this.events.emit('undoChange', this.undoStack.undoLabel(), this.undoStack.redoLabel());
   }
 
-  /** Emprise à l'écran d'un élément de la page courante (formes : dessus du volume). */
-  private screenRectOf(elementId: string): Rect | undefined {
+  /**
+   * Emprise à l'écran d'un élément de la page courante (formes : dessus du volume) ; `area` : une
+   * partie de la forme en coordonnées page (sa zone de texte), à la place de ses bornes.
+   */
+  private screenRectOf(elementId: string, area?: Rect): Rect | undefined {
     const page = this.getCurrentPage();
     const shape = page?.shapes.find((s) => s.id === elementId);
     let corners: Point[];
     if (shape) {
-      const { x, y, width, height } = shape.bounds;
+      const { x, y, width, height } = area ?? shape.bounds;
       const top = this.elementTop(shape.id);
       corners = [
         { x, y },

@@ -1,5 +1,5 @@
 import type { Object3D } from 'three';
-import type { Point, ShapeModel } from '../../model/types';
+import type { Point, Rect, ShapeModel } from '../../model/types';
 import type { RenderContext } from '../types';
 
 /**
@@ -47,6 +47,12 @@ export interface ShapeDefinition {
    * Sert à l'empilement, à la pastille de lien et à la sélection : le rendu iso doit l'utiliser aussi.
    */
   volumeHeight?(shape: ShapeModel, ctx: RenderContext): number;
+  /**
+   * Zone du texte, en coordonnées page, pour le rendu de ce niveau (`level` : un niveau que la forme
+   * dessine elle-même, sinon `flat`). Le label y est placé (marges `spacing*` comprises) et l'éditeur en
+   * place s'y ouvre : affichage et édition coïncident. Absent = les bornes de la forme.
+   */
+  textZone?(shape: ShapeModel, level: SceneLevel): Rect;
   /** Dessin en mini-carte ; `null` = rien (ex. texte, groupe) ; absent = contour rempli. */
   minimap?: MinimapPainter | null;
 }

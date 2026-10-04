@@ -6,7 +6,7 @@ import { isoCache, isoDatabase, isoQueue } from '../iso/buildings';
 import { strokeMesh } from '../meshes';
 import { styleColor, styleNumber, styleOpacity } from '../styleValues';
 import { PART_ORDER } from '../types';
-import type { SceneRenderer, ShapeDefinition } from './types';
+import type { SceneLevel, SceneRenderer, ShapeDefinition } from './types';
 
 /**
  * Formes de stockage (SPEC §8.3), natives de draw.io, dessinées comme draw.io en 2D, et en
@@ -114,6 +114,12 @@ export const CYLINDER_RING = 8;
 
 const ringHeight = (style: Record<string, string>) => CYLINDER_RING + styleNumber(style, 'strokeWidth', 1) - 1;
 
+/** Zone du label d'un cylindre debout : le corps (sans `top` en haut ni `bottom` en bas) si `boundedLbl=1`, sinon les bornes. */
+function boundedLabel(bounds: Rect, style: Record<string, string>, top: number, bottom: number): Rect {
+  if (style.boundedLbl !== '1') return bounds;
+  return { ...bounds, y: bounds.y + top, height: Math.max(0, bounds.height - top - bottom) };
+}
+
 /**
  * `shape=cylinder3` (BDD ; couché par `direction` : queue) : le tracé du cache avec une seule lèvre.
  * L'ellipse a toujours la taille de celle du cache (choix produit) : draw.io, lui, la dessine de
@@ -124,24 +130,29 @@ function cylinder3Drawing(shape: ShapeModel): CylinderDrawing {
   return oriented(shape.bounds, directionOf(style), (bounds) => {
     const dy = Math.max(0, Math.min(bounds.height / 2, ringHeight(style)));
     // `boundedLbl=1` : le label reste dans le corps, sous l'ellipse du haut (marges de draw.io).
-    const top = style.boundedLbl === '1' ? Math.min(bounds.height, 2 * dy) : 0;
-    const bottom = style.boundedLbl === '1' ? Math.max(0, 0.3 * dy) : 0;
     return {
       silhouette: cylinderSilhouette(bounds, dy),
       lips: [cylinderLip(bounds, dy)],
-      label: { ...bounds, y: bounds.y + top, height: Math.max(0, bounds.height - top - bottom) },
+      label: boundedLabel(bounds, style, Math.min(bounds.height, 2 * dy), 0.3 * dy),
     };
   });
 }
 
-/** `shape=datastore` : ellipse de taille fixe, trois lèvres (les anneaux). */
+/**
+ * `shape=datastore` : ellipse de taille fixe, trois lèvres (les anneaux). Le label est toujours dans le
+ * corps, sous les anneaux (2,5 × l'ellipse en haut), comme draw.io, qui ignore `boundedLbl` ici.
+ */
 function datastoreDrawing(shape: ShapeModel): CylinderDrawing {
   const { bounds, style } = shape;
   const dy = Math.max(0, Math.min(bounds.height / 2, ringHeight(style)));
   return {
     silhouette: cylinderSilhouette(bounds, dy),
     lips: [0, dy / 2, dy].map((offset) => cylinderLip(bounds, dy, offset)),
-    label: bounds,
+    label: {
+      ...bounds,
+      y: bounds.y + Math.min(bounds.height, 2.5 * dy),
+      height: Math.max(0, bounds.height - 2.5 * dy),
+    },
   };
 }
 
@@ -196,6 +207,12 @@ function cylinderFlat(drawing: (shape: ShapeModel) => CylinderDrawing): SceneRen
   };
 }
 
+/** Zone du texte : celle du tracé en 2D ; en iso, le toit du bâtiment (les bornes). */
+const flatTextZone =
+  (drawing: (shape: ShapeModel) => CylinderDrawing) =>
+  (shape: ShapeModel, level: SceneLevel): Rect =>
+    level === 'flat' ? drawing(shape).label : shape.bounds;
+
 // ---------------------------------------------------------------------------
 // Définitions
 
@@ -213,6 +230,7 @@ export const cylinderShape: ShapeDefinition = {
   kind: 'cylinder3',
   outline: cylinder3Outline,
   flat: cylinder3Flat,
+  textZone: flatTextZone(cylinder3Drawing),
   iso: { create: (shape, ctx) => (isLying(shape) ? queue : database).create(shape, ctx) },
 };
 
@@ -223,6 +241,7 @@ export const datastoreShape: ShapeDefinition = {
   kind: 'datastore',
   outline: (shape) => datastoreDrawing(shape).silhouette,
   flat: datastoreFlat,
+  textZone: flatTextZone(datastoreDrawing),
   iso: isoCache(datastoreFlat),
 };
 

@@ -77,6 +77,46 @@ describe('formes de stockage : BDD, queue, cache distribué', () => {
     });
   });
 
+  describe('zone de texte (étape 58) : celle du label dessiné et de l’éditeur en place', () => {
+    const shape = (id: string) => page.shapes.find((s) => s.id === id)!;
+    const zone = (target: ReturnType<typeof shape>, level: 'flat' | 'iso' = 'flat') =>
+      Object.values(registry.textZone(target, level)).map((n) => +n.toFixed(2));
+
+    it('BDD : le corps, sous l’ellipse du haut (2 × size en haut, 0,3 × size en bas)', () => {
+      expect(zone(shape('db'))).toEqual([40, 56, 60, 61.6]);
+    });
+
+    it('queue : le corps, à gauche du bout visible (la zone de la BDD, tournée)', () => {
+      expect(zone(shape('queue'))).toEqual([162.4, 50, 81.6, 60]);
+    });
+
+    it('cache : le corps, sous les trois anneaux (2,5 × size en haut, comme draw.io, même sans boundedLbl)', () => {
+      expect(zone(shape('cache'))).toEqual([320, 70, 60, 40]);
+      const texts: TextSpec[] = [];
+      registry.sceneRenderer(shape('cache'), 'flat').create(shape('cache'), {
+        text: {
+          create(spec) {
+            texts.push(spec);
+            return new Object3D();
+          },
+        },
+      });
+      // draw.io (export SVG) : texte centré à y = 50 + 40 pour ce cache de 60 px.
+      expect(texts[0]!.y).toBeCloseTo(90);
+    });
+
+    it('BDD sans boundedLbl : les bornes de la forme ; forme sans zone propre : ses bornes', () => {
+      const db = { ...shape('db'), style: { ...shape('db').style, boundedLbl: '0' } };
+      expect(zone(db)).toEqual([40, 40, 60, 80]);
+      expect(zone(shape('flow'))).toEqual([160, 160, 100, 60]);
+    });
+
+    it('iso : le toit du bâtiment (les bornes)', () => {
+      expect(zone(shape('db'), 'iso')).toEqual([40, 40, 60, 80]);
+      expect(zone(shape('cache'), 'iso')).toEqual([320, 50, 60, 60]);
+    });
+  });
+
   describe('redimensionnement : le corps s’étire, les ellipses gardent leur taille', () => {
     /** Étendue de la première lèvre, en coordonnées page (objet hors scène) : axe 0 = x, axe 1 = y. */
     const lipWidth = (id: string, patch: Partial<{ width: number; height: number }>, axis: 0 | 1) => {

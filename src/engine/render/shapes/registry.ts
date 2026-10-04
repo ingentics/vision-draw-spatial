@@ -1,4 +1,4 @@
-import type { ShapeModel } from '../../model/types';
+import type { Rect, ShapeModel } from '../../model/types';
 import { blockHeight } from '../iso/block';
 import type { RenderContext } from '../types';
 import { ellipseShape } from './ellipse';
@@ -51,6 +51,16 @@ export class ShapeRegistry {
   /** La forme a-t-elle un rendu propre à ce niveau (sinon elle se dessine à plat) ? */
   hasLevel(shape: ShapeModel, level: SceneLevel): boolean {
     return level === 'flat' || this.resolve(shape).definition[level] !== undefined;
+  }
+
+  /**
+   * Zone du texte d'une forme au niveau demandé (celle du rendu qui la dessine : repli sur `flat`) ;
+   * les bornes si la définition n'en donne pas. Source commune du label dessiné et de l'éditeur en place.
+   */
+  textZone(shape: ShapeModel, level: SceneLevel): Rect {
+    const { definition } = this.resolve(shape);
+    const drawn = level !== 'flat' && definition[level] ? level : 'flat';
+    return definition.textZone?.(shape, drawn) ?? shape.bounds;
   }
 
   /** Hauteur du volume d'une forme en iso / 3D : celle propre à sa définition, sinon `blockHeight`. */
