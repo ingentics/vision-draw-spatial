@@ -217,6 +217,21 @@ describe('perimeterToward', () => {
     // Debout : pointe en haut.
     expect(perimeterToward(hexagon({ direction: 'north' }), { x: 60, y: -100 })).toEqual({ x: 60, y: 0 });
   });
+
+  it('triangle (trianglePerimeter) : base, pointe, côtés, selon direction', () => {
+    const at = (terminal: Terminal, toward: { x: number; y: number }) => {
+      const p = perimeterToward(terminal, toward)!;
+      return [+p.x.toFixed(6), +p.y.toFixed(6)];
+    };
+    const triangle = (style: Record<string, string>) => ({ ...box(0, 0, 60, 80, 'triangle'), style });
+    expect(at(triangle({}), { x: -100, y: 40 })).toEqual([0, 40]);
+    expect(at(triangle({}), { x: 200, y: 40 })).toEqual([60, 40]);
+    // Côté haut : de (0, 0) à (60, 40), visé à la verticale du centre.
+    expect(at(triangle({}), { x: 30, y: -100 })).toEqual([30, 20]);
+    const up = (style: Record<string, string>) => ({ ...box(0, 0, 80, 60, 'triangle'), style });
+    expect(at(up({ direction: 'north' }), { x: 40, y: -100 })).toEqual([40, 0]);
+    expect(at(up({ direction: 'north' }), { x: 40, y: 200 })).toEqual([40, 60]);
+  });
 });
 
 describe('simplify', () => {
@@ -245,6 +260,7 @@ describe('perimeterKind', () => {
     expect(perimeterKind({ shape: 'ellipse' }, [])).toBe('rectangle');
     expect(perimeterKind({ perimeter: 'ellipsePerimeter' }, [])).toBe('ellipse');
     expect(perimeterKind({ perimeter: 'hexagonPerimeter2' }, [])).toBe('hexagon');
+    expect(perimeterKind({}, ['triangle'])).toBe('triangle');
     expect(perimeterKind({ perimeter: 'calloutPerimeter' }, ['ellipse'])).toBe('rectangle');
   });
 });

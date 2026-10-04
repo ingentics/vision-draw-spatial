@@ -21,20 +21,21 @@ import type { Point, Rect } from '../../model/types';
 
 /**
  * Périmètres de draw.io gérés (`rectanglePerimeter`, `ellipsePerimeter`, `rhombusPerimeter`,
- * `hexagonPerimeter2`).
+ * `trianglePerimeter`, `hexagonPerimeter2`).
  */
-export type PerimeterKind = 'rectangle' | 'ellipse' | 'rhombus' | 'hexagon';
+export type PerimeterKind = 'rectangle' | 'ellipse' | 'rhombus' | 'triangle' | 'hexagon';
 
 /** Périmètres nommés par `perimeter=…` (registre de styles de draw.io). */
 const NAMED_PERIMETERS: Record<string, PerimeterKind> = {
   ellipsePerimeter: 'ellipse',
   rhombusPerimeter: 'rhombus',
+  trianglePerimeter: 'triangle',
   hexagonPerimeter2: 'hexagon',
 };
 
 /**
  * Périmètre d'une forme, comme draw.io : `perimeter=…` du style, sinon celui du style nommé (`ellipse;`,
- * `rhombus;` dans la feuille de style par défaut de draw.io), sinon le rectangle (`defaultVertex`). Un
+ * `rhombus;`, `triangle;` dans la feuille de style par défaut de draw.io), sinon le rectangle (`defaultVertex`). Un
  * périmètre inconnu est approché par le rectangle.
  */
 export function perimeterKind(style: Record<string, string>, names: string[]): PerimeterKind {
@@ -43,6 +44,7 @@ export function perimeterKind(style: Record<string, string>, names: string[]): P
   for (const name of names) {
     if (name === 'ellipse') return 'ellipse';
     if (name === 'rhombus') return 'rhombus';
+    if (name === 'triangle') return 'triangle';
   }
   return 'rectangle';
 }
@@ -228,7 +230,9 @@ function perimeterPoint(terminal: Terminal, next: Point, orthogonal: boolean, bo
       ? ellipsePerimeter(bounds, aim, orthogonal)
       : terminal.perimeter === 'rhombus'
         ? rhombusPerimeter(bounds, aim, orthogonal)
-        : rectanglePerimeter(bounds, aim, orthogonal);
+        : terminal.perimeter === 'triangle'
+          ? trianglePerimeter(bounds, aim, orthogonal, terminal.style?.direction)
+          : rectanglePerimeter(bounds, aim, orthogonal);
   if (flipH) point.x = 2 * cx - point.x;
   if (flipV) point.y = 2 * cy - point.y;
   return point;
@@ -290,6 +294,65 @@ function rhombusPerimeter(bounds: Rect, next: Point, orthogonal: boolean): Point
         ? intersection(px, py, tx, ty, cx, y, x + w, cy)
         : intersection(px, py, tx, ty, cx, y + h, x + w, cy);
   // draw.io renvoie alors `null` (bout au centre de la forme, via getPoint) : même repli.
+  return hit ?? { x: cx, y: cy };
+}
+
+/** `mxPerimeter.TrianglePerimeter` : triangle pointe à droite, tourné selon `direction`. */
+function trianglePerimeter(bounds: Rect, next: Point, orthogonal: boolean, direction?: string): Point {
+  const vertical = direction === 'north' || direction === 'south';
+  const { x, y, width: w, height: h } = bounds;
+  let cx = x + w / 2;
+  let cy = y + h / 2;
+  // Base : de `start` à `end` ; pointe : `corner`.
+  let start = { x, y };
+  let corner = { x: x + w, y: cy };
+  let end = { x, y: y + h };
+  if (direction === 'north') {
+    start = end;
+    corner = { x: cx, y };
+    end = { x: x + w, y: y + h };
+  } else if (direction === 'south') {
+    corner = { x: cx, y: y + h };
+    end = { x: x + w, y };
+  } else if (direction === 'west') {
+    start = { x: x + w, y };
+    corner = { x, y: cy };
+    end = { x: x + w, y: y + h };
+  }
+  const dx = next.x - cx;
+  const dy = next.y - cy;
+  const alpha = vertical ? Math.atan2(dx, dy) : Math.atan2(dy, dx);
+  const t = vertical ? Math.atan2(w, h) : Math.atan2(h, w);
+  const towardBase =
+    direction === 'north' || direction === 'west'
+      ? alpha > -t && alpha < t
+      : alpha < -Math.PI + t || alpha > Math.PI - t;
+  let hit: Point | undefined;
+  if (towardBase) {
+    if (
+      orthogonal &&
+      ((vertical && next.x >= start.x && next.x <= end.x) || (!vertical && next.y >= start.y && next.y <= end.y))
+    )
+      hit = vertical ? { x: next.x, y: start.y } : { x: start.x, y: next.y };
+    else if (direction === 'north') hit = { x: x + w / 2 + (h * Math.tan(alpha)) / 2, y: y + h };
+    else if (direction === 'south') hit = { x: x + w / 2 - (h * Math.tan(alpha)) / 2, y };
+    else if (direction === 'west') hit = { x: x + w, y: y + h / 2 + (w * Math.tan(alpha)) / 2 };
+    else hit = { x, y: y + h / 2 - (w * Math.tan(alpha)) / 2 };
+  } else {
+    if (orthogonal) {
+      if (next.y >= y && next.y <= y + h) {
+        cx = vertical ? cx : direction === 'west' ? x + w : x;
+        cy = next.y;
+      } else if (next.x >= x && next.x <= x + w) {
+        cx = next.x;
+        cy = vertical ? (direction === 'north' ? y + h : y) : cy;
+      }
+    }
+    hit =
+      (vertical && next.x <= x + w / 2) || (!vertical && next.y <= y + h / 2)
+        ? intersection(next.x, next.y, cx, cy, start.x, start.y, corner.x, corner.y)
+        : intersection(next.x, next.y, cx, cy, corner.x, corner.y, end.x, end.y);
+  }
   return hit ?? { x: cx, y: cy };
 }
 

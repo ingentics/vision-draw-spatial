@@ -34,3 +34,12 @@
 - **Fini quand :** la forme s'affiche comme dans draw.io en 2D (comparaison avec l'export), en volume en iso et en 3D,
   se clique et reçoit les flèches sur son contour, se crée depuis la palette (catégorie « Géométrie ») ; elle
   n'apparaît plus dans le panneau Diagnostics ; `spatial.kind=<id>` la dessine.
+
+Fait : formes `src/engine/shapes/impl/geometry/triangle/` (contour de `mxTriangle` orienté par `orientedPath`,
+prisme en iso / 3D, « Triangle ») et `triangle-up/` (étend `triangle`, `kinds: ['triangle']`,
+`matches: direction=north`, « Triangle (vers le haut) »). Périmètre `trianglePerimeter` porté dans
+`render/edges/route.ts` (toutes les directions, accroche orthogonale) et surligné à l'accroche
+(`render/handles.ts`). Fixture `shapes.drawio` : les triangles passent par la définition du registre, plus 80
+flèches vers des triangles dans les quatre directions et retourné, identiques à l'export SVG de draw.io ; tests
+dans `tests/engine/shapes/geometry.test.ts` et `route.test.ts`. Vérifié dans l'appli : palette, iso, Diagnostics
+vide sur la fixture.

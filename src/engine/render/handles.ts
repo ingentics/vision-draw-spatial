@@ -4,6 +4,7 @@ import type { Point, Rect } from '../model/types';
 import { ellipsePath, rectPath } from './geometry/paths';
 import { DEFAULT_ACCENT } from './decorations';
 import { perimeterPolygon } from './edges/route';
+import { orientedPath } from './geometry/orient';
 import type { PerimeterKind } from './edges/route';
 import { fillMesh, strokeMesh } from './meshes';
 
@@ -183,6 +184,12 @@ function perimeterPath(bounds: Rect, perimeter: PerimeterKind, style: Record<str
   if (polygon) return polygon.slice(0, -1);
   if (perimeter === 'ellipse') return ellipsePath(bounds, 64);
   if (perimeter === 'rectangle') return rectPath(bounds);
+  if (perimeter === 'triangle')
+    return orientedPath(bounds, style, (w, h) => [
+      { x: 0, y: 0 },
+      { x: w, y: h / 2 },
+      { x: 0, y: h },
+    ]);
   const { x, y, width: w, height: h } = bounds;
   return [
     { x: x + w / 2, y },

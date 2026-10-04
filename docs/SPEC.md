@@ -372,7 +372,8 @@ Ajouter une forme = **déposer son dossier** (au minimum `kind` et `flat`, idéa
   « Géométrie ») : losange (`rhombus`), hexagone (`shape=hexagon`, pans de `size` px avec `fixedSize=1`, sinon
   fraction de la largeur ; périmètre `hexagonPerimeter2`), octogone (`shape=mxgraph.basic.octagon2`, coins coupés de
   2 × `dx`, au plus la moitié du petit côté ; flèches sur les bornes), pentagone (`shape=mxgraph.basic.pentagon`,
-  stencil de draw.io étiré dans les bornes ; flèches sur les bornes),
+  stencil de draw.io étiré dans les bornes ; flèches sur les bornes), triangles (`triangle`, vers la droite, et
+  `triangle;direction=north`, vers le haut ; périmètre `trianglePerimeter`),
 - Texte seul,
 - **Stockage** (formes natives de draw.io, dessinées comme draw.io en 2D, en vrai volume en iso / 3D ; aussi dans la palette) :
 

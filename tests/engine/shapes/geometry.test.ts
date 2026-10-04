@@ -159,3 +159,39 @@ describe('pentagone (35)', () => {
     expect(registry.contains(s, { x: 103, y: 103 })).toBe(false);
   });
 });
+
+describe('triangles (36)', () => {
+  const STYLE = 'triangle;whiteSpace=wrap;html=1;';
+  const UP = `${STYLE}direction=north;`;
+  const shape = (style = STYLE, width = 60, height = 80) => page([style], width, height).page.shapes[0]!;
+  const outline = (style?: string, width?: number, height?: number) => {
+    const s = shape(style, width, height);
+    return round(registry.resolve(s).definition.outline!(s));
+  };
+
+  it('dessinés par leur définition, absents des Diagnostics ; spatial.kind les dessine', () => {
+    const { document, page: p } = page([STYLE, UP, 'shape=note;spatial.kind=triangle;'], 60, 80);
+    expect(p.shapes.map((s) => registry.resolve(s).definition.id)).toEqual(['triangle', 'triangle-up', 'triangle']);
+    expect(collectUnsupported(document, registry).entries).toEqual([]);
+  });
+
+  it('contour : pointe au milieu du bord droit ; vers le haut avec direction=north', () => {
+    expect(outline()).toEqual([
+      [100, 100],
+      [160, 140],
+      [100, 180],
+    ]);
+    expect(outline(UP, 80, 60)).toEqual([
+      [100, 160],
+      [140, 100],
+      [180, 160],
+    ]);
+  });
+
+  it('volume : prisme du contour ; clic dans le contour, pas dans les coins vides', () => {
+    expect(volume(STYLE, 60, 80)).toEqual({ min: [100, 0, 100], max: [160, 20, 180] });
+    const s = shape();
+    expect(registry.contains(s, { x: 120, y: 140 })).toBe(true);
+    expect(registry.contains(s, { x: 155, y: 105 })).toBe(false);
+  });
+});

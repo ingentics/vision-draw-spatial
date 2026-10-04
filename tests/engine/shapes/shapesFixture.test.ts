@@ -5,7 +5,6 @@ import { readDrawio } from '../../../src/engine/format/parse';
 import type { PageModel, Point, ShapeModel } from '../../../src/engine/model/types';
 import { toTerminal } from '../../../src/engine/render/edges/edge';
 import { routeEdge, simplify } from '../../../src/engine/render/edges/route';
-import { orientedPath } from '../../../src/engine/render/geometry/orient';
 import { PLUG_SHAPE } from '../../../src/engine/shapes/impl/architecture/plug';
 import { createDefaultRegistry } from '../../../src/engine/shapes/registry';
 import { drawioSvgOutlines, drawioSvgRoutes, dropCollinear, fixture } from '../../helpers';
@@ -20,8 +19,8 @@ import { drawioSvgOutlines, drawioSvgRoutes, dropCollinear, fixture } from '../.
  * (`size`, `fixedSize`) et son périmètre (`hexagonPerimeter2`, couché et debout) ; l'octogone (`dx`) ; le
  * pentagone (stencil de draw.io).
  *
- * Les triangles ne sont pas encore dessinés par le moteur : ils servent à vérifier l'orientation commune
- * (`orientedPath`) sur une forme asymétrique, avec le contour local de `mxTriangle`.
+ * Les triangles vérifient l'orientation commune (`orientedPath`) sur une forme asymétrique, et leur périmètre
+ * (`trianglePerimeter`) dans toutes les directions.
  */
 
 const VARIANTS = [
@@ -54,6 +53,7 @@ const EDGE_STYLES = ['endArrow=none;html=1;', 'edgeStyle=orthogonalEdgeStyle;rou
 const HEXAGON = 'shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;';
 const OCTAGON = 'whiteSpace=wrap;html=1;shape=mxgraph.basic.octagon2;align=center;verticalAlign=middle;dx=15;';
 const PENTAGON = 'whiteSpace=wrap;html=1;shape=mxgraph.basic.pentagon;';
+const TRIANGLE = 'triangle;whiteSpace=wrap;html=1;';
 const ORIENTATIONS = [...VARIANTS, ...NORTH_FLIPS];
 /**
  * Formes de la palette « Géométrie », chacune dans ses variantes (id `<préfixe><n>`) : orientations, puis
@@ -74,6 +74,7 @@ const SERIES = [
   { prefix: 'od', style: OCTAGON.replace('dx=15;', ''), w: 100, h: 100, variants: [''] },
   { prefix: 'pe', style: PENTAGON, w: 100, h: 90, variants: ORIENTATIONS },
   { prefix: 'pw', style: PENTAGON, w: 160, h: 60, variants: [''] },
+  { prefix: 'tp', style: TRIANGLE, w: 60, h: 80, variants: ['', 'direction=north;'] },
 ];
 /**
  * Autres cibles des flèches (après le losange `d`), mêmes sources tout autour : préfixe des ids (`<p><k>` la
@@ -84,6 +85,11 @@ const EDGE_TARGETS = [
   { prefix: 'xn', style: `${HEXAGON}direction=north;`, w: 120, h: 80 },
   { prefix: 'xo', style: OCTAGON, w: 100, h: 100 },
   { prefix: 'xp', style: PENTAGON, w: 100, h: 90 },
+  { prefix: 'xt', style: TRIANGLE, w: 60, h: 80 },
+  { prefix: 'xtn', style: `${TRIANGLE}direction=north;`, w: 80, h: 60 },
+  { prefix: 'xts', style: `${TRIANGLE}direction=south;`, w: 80, h: 60 },
+  { prefix: 'xtw', style: `${TRIANGLE}direction=west;`, w: 60, h: 80 },
+  { prefix: 'xtf', style: `${TRIANGLE}flipH=1;`, w: 60, h: 80 },
 ];
 
 interface Vertex {
@@ -129,7 +135,7 @@ function layout(): { vertices: Vertex[]; edges: Edge[] } {
   );
   [...VARIANTS, ...NORTH_FLIPS].forEach((variant, v) => {
     const at = place();
-    const style = `triangle;whiteSpace=wrap;html=1;${variant}`;
+    const style = `${TRIANGLE}${variant}`;
     vertices.push({ id: `t${v}`, style, ...at, w: 80, h: 60, outline: true });
   });
   // Prise : stencil embarqué, orienté et étiré par draw.io lui-même.
@@ -213,13 +219,6 @@ ${cells.join('\n')}
 `;
 }
 
-/** Contour local de `mxTriangle` (pointe à droite). */
-const triangle = (w: number, h: number): Point[] => [
-  { x: 0, y: 0 },
-  { x: w, y: h / 2 },
-  { x: 0, y: h },
-];
-
 const near = (a: Point, b: Point) => Math.abs(a.x - b.x) <= 0.5 && Math.abs(a.y - b.y) <= 0.5;
 
 /** Sommets distincts d'un polygone fermé : points confondus avec le précédent retirés (le dernier compris). */
@@ -263,9 +262,7 @@ describe.runIf(existsSync(SVG))('shapes.drawio : mêmes contours et mêmes flèc
       const { shapes, svg } = load();
       const shape = shapes.get(vertex.id)!;
       const theirs = drawioSvgOutlines(svg, { id: 'ref', x: 0, y: 0 }, (id) => id === vertex.id).get(vertex.id)!;
-      const ours = vertex.id.startsWith('t')
-        ? orientedPath(shape.bounds, shape.style, triangle)
-        : registry.resolve(shape).definition.outline!(shape);
+      const ours = registry.resolve(shape).definition.outline!(shape);
       expect(samePolygon(ours, theirs), JSON.stringify({ ours, theirs })).toBe(true);
     });
   }
