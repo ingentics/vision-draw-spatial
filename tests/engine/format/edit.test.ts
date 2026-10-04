@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canMoveCell, formatNumber, gridSizeOf, moveCell } from '../../../src/engine/format/edit';
+import { canMoveCell, formatNumber, gridSizeOf, moveCell, moveEdgeCell } from '../../../src/engine/format/edit';
 import { readDrawio } from '../../../src/engine/format/parse';
 import { writeDrawio } from '../../../src/engine/format/write';
 import { parseXml } from '../../../src/engine/format/xmlTree';
@@ -87,5 +87,23 @@ describe('XML écrit', () => {
     const { tree } = readDrawio(fixture('three-rectangles.drawio'));
     moveCell(tree.pages[0]!, 'a', { x: 10, y: 10 });
     expect(() => parseXml(writeDrawio(tree))).not.toThrow();
+  });
+});
+
+describe('moveEdgeCell', () => {
+  it('décale points intermédiaires et extrémités libres, comme mxGeometry.translate', () => {
+    const { tree } = readDrawio(
+      '<mxfile><diagram id="p"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>' +
+        '<mxCell id="e" edge="1" parent="1"><mxGeometry relative="1" as="geometry">' +
+        '<mxPoint x="10" y="20" as="sourcePoint"/><mxPoint as="targetPoint"/>' +
+        '<Array as="points"><mxPoint x="50" y="60"/></Array><mxPoint x="3" y="4" as="offset"/>' +
+        '</mxGeometry></mxCell></root></mxGraphModel></diagram></mxfile>',
+    );
+    moveEdgeCell(tree.pages[0]!, 'e', { x: 5, y: -10 });
+    const edge = readDrawio(writeDrawio(tree)).document.pages[0]!.edges[0]!;
+    expect(edge.sourcePoint).toEqual({ x: 15, y: 10 });
+    expect(edge.targetPoint).toEqual({ x: 5, y: -10 });
+    expect(edge.points).toEqual([{ x: 55, y: 50 }]);
+    expect(writeDrawio(tree)).toContain('<mxPoint x="3" y="4" as="offset"/>');
   });
 });

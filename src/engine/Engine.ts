@@ -27,7 +27,9 @@ import {
   setCellObjectAttribute,
   setCellRichLabel,
   setCellStyleValue,
+  moveEdgeCell,
   setEdgePoints,
+  setEdgeTerminal,
 } from './format/edit';
 import {
   addEdgeCell,
@@ -297,6 +299,11 @@ interface MoveDrag {
   /** Formes dont la géométrie XML est réécrite (plusieurs en sélection multiple). */
   rootIds: string[];
   set: MoveSet;
+  /**
+   * Flèches sélectionnées avec les formes (hors groupe déplacé) : elles bougent aussi, et un bout dont la
+   * forme ne bouge pas est détaché, comme draw.io (`disconnectOnMove`) ; point libre au début du glisser.
+   */
+  edges: Array<{ id: string; detach: Array<{ end: TerminalEnd; point?: Point }> }>;
   start: Point;
   origin: Rect;
   applied: Point;
@@ -1971,11 +1978,31 @@ export class Engine {
       return sets.get(id)!;
     };
     const rootIds = independentRoots(candidates, (id) => setOf(id).shapeIds);
+    const set = unionMoveSets(rootIds.map(setOf));
+    // Flèches de la sélection qui bougent d'elles-mêmes (une flèche d'un groupe déplacé suit déjà).
+    const edges: MoveDrag['edges'] = [];
+    if (grabbedSelected) {
+      for (const item of selection!.items) {
+        if (item.type !== 'edge') continue;
+        const edge = page.edges.find((e) => e.id === item.element.id);
+        if (!edge || isLocked(edge) || !pageTree.cells.get(edge.id)?.cell || set.edgeIds.has(edge.id)) continue;
+        const detach = (['source', 'target'] as const)
+          .filter((end) => {
+            const terminal = end === 'source' ? edge.sourceId : edge.targetId;
+            return terminal !== undefined && !set.shapeIds.has(terminal);
+          })
+          .map((end) => ({ end }));
+        edges.push({ id: edge.id, detach });
+        set.edgeIds.add(edge.id);
+        set.connectedEdgeIds.delete(edge.id);
+      }
+    }
     this.drag = {
       kind: 'move',
       pageId: page.id,
       rootIds,
-      set: unionMoveSets(rootIds.map(setOf)),
+      set,
+      edges,
       start,
       origin: { ...shape.bounds },
       applied: { x: 0, y: 0 },
@@ -2231,7 +2258,26 @@ export class Engine {
       move.started = true;
       // Une forme seule devient la sélection ; une sélection multiple déplacée reste telle quelle.
       const shape = page.shapes.find((s) => s.id === move.set.rootId);
-      if (shape && move.rootIds.length === 1) this.select({ type: 'shape', element: shape });
+      if (shape && move.rootIds.length === 1 && move.edges.length === 0) this.select({ type: 'shape', element: shape });
+      // Bouts détachés : libres là où ils sont, avant le premier pas.
+      const detached = new Set<string>();
+      for (const moved of move.edges) {
+        const edge = page.edges.find((e) => e.id === moved.id);
+        const ends = this.edgeEndPoints(moved.id);
+        if (!edge || !ends) continue;
+        for (const item of moved.detach) {
+          item.point = { ...ends[item.end] };
+          if (item.end === 'source') {
+            edge.sourceId = undefined;
+            edge.sourcePoint = { ...item.point };
+          } else {
+            edge.targetId = undefined;
+            edge.targetPoint = { ...item.point };
+          }
+          detached.add(edge.id);
+        }
+      }
+      this.retraceEdges(page, detached);
     }
     const raw = { x: point.x - move.start.x, y: point.y - move.start.y };
     const target = snapDelta(move.origin, raw, snap ? move.grid : 0);
@@ -2419,6 +2465,23 @@ export class Engine {
       if (drag.applied.x === 0 && drag.applied.y === 0) return;
       this.recordEdit('Déplacement');
       for (const id of drag.rootIds) moveCell(pageTree, id, drag.applied);
+      const page = this.pageById(drag.pageId);
+      for (const moved of drag.edges) {
+        moveEdgeCell(pageTree, moved.id, drag.applied);
+        const edge = page?.edges.find((e) => e.id === moved.id);
+        const origin = page?.shapes.find((s) => s.id === edge?.parentId)?.bounds ?? { x: 0, y: 0 };
+        for (const { end, point } of moved.detach) {
+          if (!point) continue;
+          setEdgeTerminal(pageTree, moved.id, end, {
+            point: { x: point.x + drag.applied.x - origin.x, y: point.y + drag.applied.y - origin.y },
+          });
+        }
+      }
+      // Bouts détachés : le modèle est relu de l'arbre (attributs `source` / `target` retirés).
+      if (drag.edges.some((moved) => moved.detach.length > 0)) {
+        this.documentChanged([drag.pageId]);
+        return;
+      }
     } else {
       const shape = this.pageById(drag.pageId)?.shapes.find((s) => s.id === drag.shapeId);
       if (!shape) return;

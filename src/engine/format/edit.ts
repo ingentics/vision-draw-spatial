@@ -212,6 +212,29 @@ export function setEdgeTerminal(
 }
 
 /**
+ * Déplace une arête (mxGeometry.translate) : points intermédiaires et extrémités libres décalés ; les bouts
+ * attachés suivent leurs formes. Le décalage du label n'est pas touché.
+ */
+export function moveEdgeCell(page: PageTree, edgeId: string, delta: Point): void {
+  const geometry = page.cells.get(edgeId)?.geometry;
+  if (!geometry || (delta.x === 0 && delta.y === 0)) return;
+  const shift = (point: Element) => {
+    for (const [name, d] of [
+      ['x', delta.x],
+      ['y', delta.y],
+    ] as const) {
+      const current = parseFloat(point.getAttribute(name) ?? '');
+      point.setAttribute(name, formatNumber((Number.isFinite(current) ? current : 0) + d));
+    }
+  };
+  for (const point of childElements(geometry, 'mxPoint'))
+    if (['sourcePoint', 'targetPoint'].includes(point.getAttribute('as') ?? '')) shift(point);
+  for (const array of childElements(geometry, 'Array'))
+    if (array.getAttribute('as') === 'points') childElements(array, 'mxPoint').forEach(shift);
+  markPageDirty(page);
+}
+
+/**
  * Points intermédiaires d'une arête (relatifs à son parent), dans `<Array as="points">` comme draw.io ;
  * une liste vide retire le tableau.
  */
