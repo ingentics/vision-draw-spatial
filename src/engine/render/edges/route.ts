@@ -19,8 +19,18 @@ import type { Point, Rect } from '../../model/types';
  * géométries relatives (ports) dans `entityRelationEdgeStyle`.
  */
 
-/** Périmètres de draw.io gérés (`rectanglePerimeter`, `ellipsePerimeter`, `rhombusPerimeter`). */
-export type PerimeterKind = 'rectangle' | 'ellipse' | 'rhombus';
+/**
+ * Périmètres de draw.io gérés (`rectanglePerimeter`, `ellipsePerimeter`, `rhombusPerimeter`,
+ * `hexagonPerimeter2`).
+ */
+export type PerimeterKind = 'rectangle' | 'ellipse' | 'rhombus' | 'hexagon';
+
+/** Périmètres nommés par `perimeter=…` (registre de styles de draw.io). */
+const NAMED_PERIMETERS: Record<string, PerimeterKind> = {
+  ellipsePerimeter: 'ellipse',
+  rhombusPerimeter: 'rhombus',
+  hexagonPerimeter2: 'hexagon',
+};
 
 /**
  * Périmètre d'une forme, comme draw.io : `perimeter=…` du style, sinon celui du style nommé (`ellipse;`,
@@ -29,11 +39,7 @@ export type PerimeterKind = 'rectangle' | 'ellipse' | 'rhombus';
  */
 export function perimeterKind(style: Record<string, string>, names: string[]): PerimeterKind {
   const explicit = style.perimeter;
-  if (explicit !== undefined) {
-    if (explicit === 'ellipsePerimeter') return 'ellipse';
-    if (explicit === 'rhombusPerimeter') return 'rhombus';
-    return 'rectangle';
-  }
+  if (explicit !== undefined) return NAMED_PERIMETERS[explicit] ?? 'rectangle';
   for (const name of names) {
     if (name === 'ellipse') return 'ellipse';
     if (name === 'rhombus') return 'rhombus';
@@ -215,8 +221,10 @@ function perimeterPoint(terminal: Terminal, next: Point, orthogonal: boolean, bo
   const flipH = terminal.style?.flipH === '1';
   const flipV = terminal.style?.flipV === '1';
   const aim = { x: flipH ? 2 * cx - next.x : next.x, y: flipV ? 2 * cy - next.y : next.y };
-  const point =
-    terminal.perimeter === 'ellipse'
+  const polygon = perimeterPolygon(terminal.perimeter, bounds, terminal.style ?? {});
+  const point = polygon
+    ? polygonPerimeter(polygon, bounds, aim, orthogonal)
+    : terminal.perimeter === 'ellipse'
       ? ellipsePerimeter(bounds, aim, orthogonal)
       : terminal.perimeter === 'rhombus'
         ? rhombusPerimeter(bounds, aim, orthogonal)
@@ -283,6 +291,77 @@ function rhombusPerimeter(bounds: Rect, next: Point, orthogonal: boolean): Point
         : intersection(px, py, tx, ty, cx, y + h, x + w, cy);
   // draw.io renvoie alors `null` (bout au centre de la forme, via getPoint) : même repli.
   return hit ?? { x: cx, y: cy };
+}
+
+/**
+ * Contour d'un périmètre polygonal de draw.io (fermé : le premier point est répété à la fin), dans `bounds`, ou
+ * `undefined` pour les autres périmètres. Sert aussi à surligner le périmètre (`render/handles.ts`).
+ */
+export function perimeterPolygon(
+  kind: PerimeterKind,
+  bounds: Rect,
+  style: Record<string, string>,
+): Point[] | undefined {
+  if (kind === 'hexagon') return hexagonPerimeter(bounds, style);
+  return undefined;
+}
+
+/**
+ * `mxPerimeter.HexagonPerimeter2` : hexagone couché, pointes à gauche et à droite (debout avec
+ * `direction=north|south`), pans de `size` (px avec `fixedSize=1`, 20 par défaut ; sinon fraction, 0,25).
+ */
+function hexagonPerimeter(bounds: Rect, style: Record<string, string>): Point[] {
+  const fixed = (style.fixedSize ?? '0') !== '0';
+  const size = number(style.size, fixed ? 20 : 0.25);
+  const { x, y, width: w, height: h } = bounds;
+  const cx = x + w / 2;
+  const cy = y + h / 2;
+  if (style.direction === 'north' || style.direction === 'south') {
+    const s = fixed ? Math.max(0, Math.min(h, size)) : h * Math.max(0, Math.min(1, size));
+    return [
+      { x: cx, y },
+      { x: x + w, y: y + s },
+      { x: x + w, y: y + h - s },
+      { x: cx, y: y + h },
+      { x, y: y + h - s },
+      { x, y: y + s },
+      { x: cx, y },
+    ];
+  }
+  const s = fixed ? Math.max(0, Math.min(w, size)) : w * Math.max(0, Math.min(1, size));
+  return [
+    { x: x + s, y },
+    { x: x + w - s, y },
+    { x: x + w, y: cy },
+    { x: x + w - s, y: y + h },
+    { x: x + s, y: y + h },
+    { x, y: cy },
+    { x: x + s, y },
+  ];
+}
+
+/**
+ * Point d'un périmètre polygonal visé depuis `next` (fin des `mxPerimeter` polygonaux et
+ * `mxUtils.getPerimeterPoint`) : intersection la plus proche de `next` entre le contour et le segment qui part
+ * du centre, ramené dans l'axe de `next` si `orthogonal`.
+ */
+function polygonPerimeter(polygon: Point[], bounds: Rect, next: Point, orthogonal: boolean): Point {
+  const c = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+  if (orthogonal) {
+    if (next.x < bounds.x || next.x > bounds.x + bounds.width) c.y = next.y;
+    else c.x = next.x;
+  }
+  let best: { p: Point; distSq: number } | undefined;
+  for (let i = 0; i + 1 < polygon.length; i++) {
+    const a = polygon[i]!;
+    const b = polygon[i + 1]!;
+    const p = intersection(a.x, a.y, b.x, b.y, c.x, c.y, next.x, next.y);
+    if (!p) continue;
+    const distSq = (next.x - p.x) ** 2 + (next.y - p.y) ** 2;
+    if (!best || best.distSq > distSq) best = { p, distSq };
+  }
+  // draw.io renvoie alors `null` (bout au centre de la forme, via getPoint) : même repli que le losange.
+  return best?.p ?? { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
 }
 
 /** Intersection des segments [p0, p1] et [p2, p3] (mxUtils.intersection), ou `undefined`. */

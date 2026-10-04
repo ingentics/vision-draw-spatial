@@ -3,6 +3,7 @@ import { handlePoints } from '../edit/handles';
 import type { Point, Rect } from '../model/types';
 import { ellipsePath, rectPath } from './geometry/paths';
 import { DEFAULT_ACCENT } from './decorations';
+import { perimeterPolygon } from './edges/route';
 import type { PerimeterKind } from './edges/route';
 import { fillMesh, strokeMesh } from './meshes';
 
@@ -107,7 +108,7 @@ export function edgeEndHandles(
  * croix sur les points de connexion, celui retenu cerclé.
  */
 export function connectionHints(
-  shape: { bounds: Rect; perimeter: PerimeterKind },
+  shape: { bounds: Rect; perimeter: PerimeterKind; style?: Record<string, string> },
   points: Point[],
   zoom: number,
   options: { active?: number; outline: boolean; accent?: string },
@@ -116,7 +117,7 @@ export function connectionHints(
   group.name = 'connection-hints';
   const accent = new Color(options.accent ?? DEFAULT_ACCENT);
   if (options.outline) {
-    const path = perimeterPath(shape.bounds, shape.perimeter);
+    const path = perimeterPath(shape.bounds, shape.perimeter, shape.style ?? {});
     const outline = strokeMesh(path, accent, 0.8, { width: 3 / zoom, closed: true });
     if (outline) group.add(outline);
   }
@@ -177,7 +178,9 @@ export function edgePointHandles(
 }
 
 /** Périmètre d'accroche des flèches (celui de `route`), à surligner. */
-function perimeterPath(bounds: Rect, perimeter: PerimeterKind): Point[] {
+function perimeterPath(bounds: Rect, perimeter: PerimeterKind, style: Record<string, string>): Point[] {
+  const polygon = perimeterPolygon(perimeter, bounds, style);
+  if (polygon) return polygon.slice(0, -1);
   if (perimeter === 'ellipse') return ellipsePath(bounds, 64);
   if (perimeter === 'rectangle') return rectPath(bounds);
   const { x, y, width: w, height: h } = bounds;

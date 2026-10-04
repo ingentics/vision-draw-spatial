@@ -16,7 +16,8 @@ import { drawioSvgOutlines, drawioSvgRoutes, dropCollinear, fixture } from '../.
  * `make drawio-check` la fait réenregistrer et exporter en SVG par draw.io : chaque contour et chaque tracé
  * doit tomber au pixel près sur le nôtre.
  *
- * La prise (`stencil:plug`) vérifie aussi les stencils embarqués (`mxStencil.computeAspect`).
+ * La prise (`stencil:plug`) vérifie aussi les stencils embarqués (`mxStencil.computeAspect`) ; l'hexagone, ses pans
+ * (`size`, `fixedSize`) et son périmètre (`hexagonPerimeter2`, couché et debout).
  *
  * Les triangles ne sont pas encore dessinés par le moteur : ils servent à vérifier l'orientation commune
  * (`orientedPath`) sur une forme asymétrique, avec le contour local de `mxTriangle`.
@@ -49,6 +50,17 @@ const AROUND = [
   { x: 170, y: -150 },
 ];
 const EDGE_STYLES = ['endArrow=none;html=1;', 'edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;html=1;'];
+const HEXAGON = 'shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;';
+/** Pans de l'hexagone : px (`fixedSize=1`, bornés à la demi-largeur), puis fraction de la largeur. */
+const HEXAGON_SIZES = ['size=40;', 'size=80;', 'fixedSize=0;', 'fixedSize=0;size=0.1;'];
+/**
+ * Autres cibles des flèches (après le losange `d`), mêmes sources tout autour : préfixe des ids (`<p><k>` la
+ * cible, `<p>s<k>_<i>` les sources, `<p>e<k>_<i>` les flèches), style et taille.
+ */
+const EDGE_TARGETS = [
+  { prefix: 'x', style: HEXAGON, w: 120, h: 80 },
+  { prefix: 'xn', style: `${HEXAGON}direction=north;`, w: 120, h: 80 },
+];
 
 interface Vertex {
   id: string;
@@ -96,9 +108,15 @@ function layout(): { vertices: Vertex[]; edges: Edge[] } {
       vertices.push({ id: `p${s}_${v}`, style: `shape=${PLUG_SHAPE};whiteSpace=wrap;html=1;${variant}`, ...at, w, h });
     }),
   );
-  // Flèches : un losange par style de tracé, les sources tout autour.
+  // Hexagone : orientations, puis pans fixes ou relatifs.
+  [...VARIANTS, ...NORTH_FLIPS, ...HEXAGON_SIZES].forEach((variant, v) => {
+    const at = place();
+    vertices.push({ id: `h${v}`, style: `${HEXAGON}${variant}`, ...at, w: 120, h: 80 });
+  });
+  // Flèches : un losange par style de tracé, les sources tout autour, sous les formes.
+  const below = 100 + (row + 1) * 160 + 300;
   EDGE_STYLES.forEach((style, k) => {
-    const center = { x: 600 + k * 700, y: 1600 };
+    const center = { x: 600 + k * 700, y: below };
     vertices.push({ id: `d${k}`, style: 'rhombus;whiteSpace=wrap;html=1;', ...center, w: 80, h: 80 });
     AROUND.forEach((p, i) => {
       vertices.push({
@@ -112,6 +130,23 @@ function layout(): { vertices: Vertex[]; edges: Edge[] } {
       edges.push({ id: `e${k}_${i}`, style, source: `s${k}_${i}`, target: `d${k}` });
     });
   });
+  EDGE_TARGETS.forEach(({ prefix, style: shapeStyle, w, h }, t) =>
+    EDGE_STYLES.forEach((style, k) => {
+      const center = { x: 600 + k * 700, y: below + (t + 1) * 500 };
+      vertices.push({ id: `${prefix}${k}`, style: shapeStyle, ...center, w, h });
+      AROUND.forEach((p, i) => {
+        vertices.push({
+          id: `${prefix}s${k}_${i}`,
+          style: 'rounded=0;whiteSpace=wrap;html=1;',
+          x: center.x + p.x,
+          y: center.y + p.y,
+          w: 60,
+          h: 40,
+        });
+        edges.push({ id: `${prefix}e${k}_${i}`, style, source: `${prefix}s${k}_${i}`, target: `${prefix}${k}` });
+      });
+    }),
+  );
   return { vertices, edges };
 }
 
@@ -181,7 +216,7 @@ describe.runIf(existsSync(SVG))('shapes.drawio : mêmes contours et mêmes flèc
   const registry = createDefaultRegistry();
   const { vertices, edges } = layout();
 
-  for (const vertex of vertices.filter((v) => /^[rtdp]\d/.test(v.id))) {
+  for (const vertex of vertices.filter((v) => /^([rtdphx]|xn)\d/.test(v.id))) {
     it(`contour ${vertex.id} ${vertex.style}`, () => {
       const { shapes, svg } = load();
       const shape = shapes.get(vertex.id)!;

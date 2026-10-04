@@ -18,6 +18,7 @@ describe('palette', () => {
       'cylinder3',
       'datastore',
       'ellipse',
+      'hexagon',
       'rectangle',
       'rhombus',
       'stencil:plug',
@@ -52,7 +53,14 @@ describe('palette', () => {
   it('catégories : Géométrie, Général puis Architecture, chaque forme dans une catégorie connue (étape 68)', () => {
     expect(PALETTE_CATEGORIES.map((c) => c.name)).toEqual(['Géométrie', 'Général', 'Architecture']);
     const byCategory = (id: string) => SHAPE_TEMPLATES.filter((t) => t.category === id).map((t) => t.id);
-    expect(byCategory('geometry')).toEqual(['rectangle', 'rounded-rectangle', 'ellipse', 'circle', 'diamond']);
+    expect(byCategory('geometry')).toEqual([
+      'rectangle',
+      'rounded-rectangle',
+      'ellipse',
+      'circle',
+      'diamond',
+      'hexagon',
+    ]);
     expect(byCategory('general')).toEqual(['text']);
     const known = new Set(PALETTE_CATEGORIES.map((c) => c.id));
     for (const template of SHAPE_TEMPLATES) expect(known.has(template.category), template.id).toBe(true);

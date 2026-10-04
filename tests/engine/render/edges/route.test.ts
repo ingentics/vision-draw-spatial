@@ -203,6 +203,20 @@ describe('perimeterToward', () => {
     const p = perimeterToward(box(0, 0, 100, 100, 'ellipse'), { x: 100, y: 100 })!;
     expect(Math.hypot(p.x - 50, p.y - 50)).toBeCloseTo(50);
   });
+
+  it('hexagone (hexagonPerimeter2) : pointes, pans coupés de size px, debout avec direction=north', () => {
+    const hexagon = (style: Record<string, string>) => ({ ...box(0, 0, 120, 80, 'hexagon'), style });
+    const fixed = hexagon({ fixedSize: '1', size: '20' });
+    expect(perimeterToward(fixed, { x: 300, y: 40 })).toEqual({ x: 120, y: 40 });
+    expect(perimeterToward(fixed, { x: 60, y: -100 })).toEqual({ x: 60, y: 0 });
+    const cut = perimeterToward(fixed, { x: 0, y: 0 })!;
+    expect([cut.x, cut.y]).toEqual([15, 10]);
+    // Sans fixedSize : le quart de la largeur.
+    const relative = perimeterToward(hexagon({}), { x: 0, y: 0 })!;
+    expect(relative.x).toBeCloseTo(60 - 60 * (2 / 3));
+    // Debout : pointe en haut.
+    expect(perimeterToward(hexagon({ direction: 'north' }), { x: 60, y: -100 })).toEqual({ x: 60, y: 0 });
+  });
 });
 
 describe('simplify', () => {
@@ -230,6 +244,7 @@ describe('perimeterKind', () => {
     // shape=ellipse sans le style nommé : rectangle dans draw.io.
     expect(perimeterKind({ shape: 'ellipse' }, [])).toBe('rectangle');
     expect(perimeterKind({ perimeter: 'ellipsePerimeter' }, [])).toBe('ellipse');
+    expect(perimeterKind({ perimeter: 'hexagonPerimeter2' }, [])).toBe('hexagon');
     expect(perimeterKind({ perimeter: 'calloutPerimeter' }, ['ellipse'])).toBe('rectangle');
   });
 });

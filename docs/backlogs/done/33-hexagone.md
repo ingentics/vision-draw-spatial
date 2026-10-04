@@ -28,3 +28,12 @@
 - **Fini quand :** la forme s'affiche comme dans draw.io en 2D (comparaison avec l'export), en volume en iso et en 3D,
   se clique et reçoit les flèches sur son contour, se crée depuis la palette (catégorie « Géométrie ») ; elle
   n'apparaît plus dans le panneau Diagnostics ; `spatial.kind=<id>` la dessine.
+
+Fait : forme `src/engine/shapes/impl/geometry/hexagon/` (contour de `HexagonShape.redrawPath` orienté par
+`orientedPath`, pans bornés à la demi-largeur avec `fixedSize=1`, fraction de la largeur sinon ; boîte → prisme en
+iso / 3D ; « Hexagone » dans la palette « Géométrie »). Périmètre `hexagonPerimeter2` porté dans
+`render/edges/route.ts` (`perimeterPolygon`, `polygonPerimeter` = `mxUtils.getPerimeterPoint`), aussi surligné à
+l'accroche (`render/handles.ts`). Fixture `shapes.drawio` : 14 hexagones (orientations, retournements, `size`,
+`fixedSize=0`) et 32 flèches vers un hexagone couché et un debout, identiques au pixel près à l'export SVG de draw.io ;
+tests `tests/engine/shapes/geometry.test.ts` (contour, volume, clic, Diagnostics, `spatial.kind`). Vérifié dans
+l'appli : palette, 2D et prismes en iso.

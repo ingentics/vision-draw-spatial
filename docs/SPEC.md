@@ -368,6 +368,9 @@ Ajouter une forme = **déposer son dossier** (au minimum `kind` et `flat`, idéa
 
 - Rectangle (y compris arrondi),
 - Ellipse,
+- **Géométrie** (formes natives de draw.io, dessinées comme draw.io en 2D, prisme du contour en iso / 3D, palette
+  « Géométrie ») : losange (`rhombus`), hexagone (`shape=hexagon`, pans de `size` px avec `fixedSize=1`, sinon
+  fraction de la largeur ; périmètre `hexagonPerimeter2`),
 - Texte seul,
 - **Stockage** (formes natives de draw.io, dessinées comme draw.io en 2D, en vrai volume en iso / 3D ; aussi dans la palette) :
 

@@ -1977,7 +1977,11 @@ export class Engine {
           ? CONNECTION_POINTS.findIndex((c) => c.x === attachment.constraint.x && c.y === attachment.constraint.y)
           : undefined;
       const hints = connectionHints(
-        { bounds: shape.bounds, perimeter: perimeterKind(shape.style, parseStyle(shape.raw?.styleString).names) },
+        {
+          bounds: shape.bounds,
+          perimeter: perimeterKind(shape.style, parseStyle(shape.raw?.styleString).names),
+          style: shape.style,
+        },
         connectionPoints(shape.bounds),
         this.cameraState.zoom,
         { active, outline: attachment?.kind === 'floating', accent: this.settings.selection.accentColor },

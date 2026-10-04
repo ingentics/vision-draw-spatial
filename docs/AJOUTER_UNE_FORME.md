@@ -112,7 +112,7 @@ src/engine/shapes/
 │   ├── cylinder/               tracés draw.io des cylindres, rendu 2D à lèvres
 │   └── building/               bâtiment iso : toit, faces, gravures, étiquette
 ├── impl/                       les formes, une par élément de la palette
-│   ├── geometry/               catégorie « Géométrie » : rectangle, rounded-rectangle, ellipse, circle, diamond
+│   ├── geometry/               catégorie « Géométrie » : rectangle, rounded-rectangle, ellipse, circle, diamond, hexagon
 │   ├── general/                catégorie « Général » : text
 │   ├── architecture/           catégorie « Architecture » : database, queue, distributed-cache, plug
 │   │   └── database/
@@ -340,7 +340,7 @@ Restent hors de la définition, parce que ce sont des règles du format draw.io 
 
 | Aspect | Où | Comportement |
 | --- | --- | --- |
-| Accroche des flèches : périmètre | `perimeterKind` dans [render/edges/route.ts](../src/engine/render/edges/route.ts) | `perimeter=…`, sinon style nommé (`ellipse`, `rhombus`), sinon **rectangle** ; à porter de draw.io (mxPerimeter) si la forme en a un propre |
+| Accroche des flèches : périmètre | `perimeterKind` dans [render/edges/route.ts](../src/engine/render/edges/route.ts) | `perimeter=…`, sinon style nommé (`ellipse`, `rhombus`), sinon **rectangle** ; à porter de draw.io (mxPerimeter) si la forme en a un propre (un périmètre polygonal : son contour dans `perimeterPolygon`, ex. `hexagonPerimeter2`) |
 | Nom de la forme | `SHAPE_ALIASES` dans [format/style.ts](../src/engine/format/style.ts) | synonymes draw.io (`rect`, `label` ► `rectangle`) |
 | Position du label | `createLabel` | `labelPosition` / `verticalLabelPosition` gérés par le registre (`textZone`) |
 | Conteneurs en volume | `volumeLayout` | un conteneur en volume porte ses enfants (3.4) |

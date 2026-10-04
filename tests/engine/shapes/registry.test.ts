@@ -30,6 +30,7 @@ describe('formes en plugins (étapes 65, 67) : contrat des définitions', () => 
         'geometry/ellipse',
         'geometry/circle',
         'geometry/diamond',
+        'geometry/hexagon',
         'general/text',
         'architecture/database',
         'architecture/queue',
@@ -73,6 +74,7 @@ describe('formes en plugins (étapes 65, 67) : contrat des définitions', () => 
     expect(id('cylinder3', { direction: 'south' })).toBe('queue');
     expect(id('mxgraph.flowchart.direct_data')).toBe('queue');
     expect(id('rhombus')).toBe('diamond');
+    expect(id('hexagon')).toBe('hexagon');
     expect(id('database', { direction: 'south' })).toBe('database');
     expect(id('queue')).toBe('queue');
     expect(registry.resolve(model('note')).supported).toBe(false);

@@ -13,7 +13,7 @@ const xml = `<mxfile>
   </root></mxGraphModel></diagram>
   <diagram id="p2" name="Détail"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
     <mxCell id="db3" style="shape=cube;" vertex="1" parent="1"><mxGeometry width="60" height="80" as="geometry"/></mxCell>
-    <mxCell id="hex" style="shape=hexagon;" vertex="1" parent="1"><mxGeometry x="100" width="60" height="80" as="geometry"/></mxCell>
+    <mxCell id="hex" style="shape=hourglass;" vertex="1" parent="1"><mxGeometry x="100" width="60" height="80" as="geometry"/></mxCell>
   </root></mxGraphModel></diagram>
 </mxfile>`;
 
@@ -24,7 +24,7 @@ describe('collectUnsupported', () => {
     expect(report.entries.map((e) => [e.category, e.name, e.count])).toEqual([
       ['shape', 'cube', 3],
       ['endArrow', 'ERmandOne', 1],
-      ['shape', 'hexagon', 1],
+      ['shape', 'hourglass', 1],
       ['edgeStyle', 'isometricEdgeStyle', 1],
     ]);
     expect(report.elementCount).toBe(6);
