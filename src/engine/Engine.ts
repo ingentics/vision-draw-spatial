@@ -148,6 +148,7 @@ import { setPageOpacity } from './render/pageEffects';
 import { buildPageScene, createShapeObject, effectiveLevel, placeInDrawOrder } from './render/pageScene';
 import type { PageScene } from './render/pageScene';
 import { SceneManager } from './render/sceneManager';
+import { outsideLabelBox } from './render/labelPosition';
 import { createDefaultRegistry } from './render/shapes/registry';
 import type { ShapeRegistry } from './render/shapes/registry';
 import type { SceneLevel } from './render/shapes/types';
@@ -2802,7 +2803,9 @@ export class Engine {
       // Forme : sa zone de texte, celle où le label est dessiné à ce niveau de rendu.
       const shape = this.getCurrentPage()?.shapes.find((s) => s.id === elementId);
       const level = this.scenes.current?.level ?? 'flat';
-      return shape ? this.screenRectOf(elementId, this.registry.textZone(shape, level)) : undefined;
+      return shape
+        ? this.screenRectOf(elementId, this.registry.textZone(shape, level), this.labelTop(shape))
+        : undefined;
     }
     // Flèche : le point où le texte est dessiné (son label, un label enfant, ou un début / fin à créer).
     const route = this.sceneObject(elementId)?.userData.route as Point[] | undefined;
@@ -2825,7 +2828,7 @@ export class Engine {
     const shape = this.getCurrentPage()?.shapes.find((s) => s.id === elementId);
     if (!shape) return undefined;
     const { x, y, width, height } = this.registry.textZone(shape, this.scenes.current?.level ?? 'flat');
-    const top = this.elementTop(elementId);
+    const top = this.labelTop(shape);
     const at = (px: number, py: number) => this.screenOfPoint({ x: px, y: py }, top);
     return {
       width,
@@ -3231,15 +3234,16 @@ export class Engine {
 
   /**
    * Emprise à l'écran d'un élément de la page courante (formes : dessus du volume) ; `area` : une
-   * partie de la forme en coordonnées page (sa zone de texte), à la place de ses bornes.
+   * partie de la forme en coordonnées page (sa zone de texte), à la place de ses bornes ; `elevation` :
+   * hauteur de cette partie, à la place du dessus du volume.
    */
-  private screenRectOf(elementId: string, area?: Rect): Rect | undefined {
+  private screenRectOf(elementId: string, area?: Rect, elevation?: number): Rect | undefined {
     const page = this.getCurrentPage();
     const shape = page?.shapes.find((s) => s.id === elementId);
     let corners: Point[];
     if (shape) {
       const { x, y, width, height } = area ?? shape.bounds;
-      const top = this.elementTop(shape.id);
+      const top = elevation ?? this.elementTop(shape.id);
       corners = [
         { x, y },
         { x: x + width, y },
@@ -3362,6 +3366,16 @@ export class Engine {
   }
 
   /** Hauteur du dessus d'un élément (volume iso), mise à l'échelle de la bascule ; 0 à plat. */
+  /**
+   * Hauteur où le label d'une forme est dessiné : le dessus de son volume, ou sa base pour un label hors
+   * de la forme (posé au sol à côté du volume, `createShapeObject`).
+   */
+  private labelTop(shape: ShapeModel): number {
+    if (!outsideLabelBox(shape.bounds, shape.style)) return this.elementTop(shape.id);
+    const base = (this.sceneObject(shape.id)?.userData.base as number | undefined) ?? 0;
+    return this.scenes.current?.level === 'iso' ? base * this.heightScale : 0;
+  }
+
   private elementTop(elementId: string): number {
     const top = (this.sceneObject(elementId)?.userData.top as number | undefined) ?? 0;
     return this.scenes.current?.level === 'iso' ? top * this.heightScale : 0;

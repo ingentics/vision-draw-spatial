@@ -377,6 +377,14 @@ Ajouter une forme = **écrire sa définition et l'enregistrer** (au minimum `fla
   sous ce nom dans Diagnostics.
 - Connecteurs (arêtes) : segments, points intermédiaires, flèche de fin,
 - Couleurs de remplissage, de bordure, épaisseur de trait, pointillés, label centré.
+- **Position du label**, comme draw.io : dans la forme selon `align` / `verticalAlign` (marges `spacing*`, plus
+  les 5 px que draw.io ajoute au-dessus d'un texte aligné en haut et le 1 px sous un texte aligné en bas) ; **hors
+  de la forme** avec `labelPosition=left|right` (cadre du label décalé d'une largeur) et
+  `verticalLabelPosition=top|bottom` (d'une hauteur), la zone propre à la forme (`boundedLbl`, anneaux du cache)
+  étant alors ignorée (`render/labelPosition.ts`). En iso / 3D, un label hors de la forme est **posé au sol** à côté
+  du volume (sur la base de la forme), et l'éditeur en place s'y ouvre. Vérifié contre draw.io : la fixture
+  `labels.drawio` (toutes les combinaisons de position et d'alignement) est exportée en SVG par draw.io
+  (`make drawio-check`) et chaque texte doit y être ancré au même point que le nôtre.
 
 **Connecteurs.** draw.io n'enregistre que les points intermédiaires posés par l'utilisateur : le tracé (coudes, points d'attache) est **recalculé à l'affichage**, avec les **algorithmes de draw.io portés tels quels** (`render/edges/route.ts`, d'après mxGraph, Apache 2.0) : une flèche s'affiche comme dans draw.io, et un point posé ici y reste au même endroit :
 

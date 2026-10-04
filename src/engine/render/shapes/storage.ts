@@ -200,7 +200,7 @@ function cylinderFlat(drawing: (shape: ShapeModel) => CylinderDrawing): SceneRen
           box.add(mesh);
         }
       }
-      const text = createLabel({ ...shape, bounds: label }, ctx);
+      const text = createLabel(shape, ctx, shape.label, label);
       if (text) box.add(text);
       return box;
     },

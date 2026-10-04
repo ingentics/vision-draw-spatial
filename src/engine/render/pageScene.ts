@@ -4,6 +4,7 @@ import { isNavigableLink } from '../format/link';
 import type { EdgeModel, PageModel, ShapeModel } from '../model/types';
 import { linkBadge } from './decorations';
 import { SPATIAL, spatialNumber, spatialValue } from '../spatial';
+import { TOP_OFFSET } from './iso/block';
 import { disposeObject } from './meshes';
 import { createEdge } from './edges/edge';
 import type { ShapeRegistry } from './shapes/registry';
@@ -122,6 +123,7 @@ export function createShapeObject(
   elevation: { base: number; height: number },
 ): Object3D {
   const object = registry.sceneRenderer(shape, level).create(shape, ctx);
+  if (level === 'iso') groundOutsideLabels(object);
   // `spatial.noLinkBadge=1` : lien sans pastille (ex. cartes de la vue graphe, entièrement cliquables).
   if (isNavigableLink(shape.link) && spatialValue(shape, SPATIAL.noLinkBadge) !== '1') {
     const badge = linkBadge(shape, shape.link, ctx.accent);
@@ -129,8 +131,22 @@ export function createShapeObject(
     object.add(badge);
   }
   object.position.z = elevation.base;
+  object.userData.base = elevation.base;
   object.userData.top = elevation.base + elevation.height;
   return object;
+}
+
+/**
+ * Label hors de la forme (`labelPosition`, `verticalLabelPosition`) en iso / 3D : posé au sol à côté du
+ * volume (sur la base de la forme), et non sur son toit, quel que soit le rendu qui l'a créé.
+ */
+function groundOutsideLabels(object: Object3D): void {
+  object.traverse((child) => {
+    if (!child.userData.outsideLabel) return;
+    let above = 0;
+    for (let parent = child.parent; parent && parent !== object; parent = parent.parent) above += parent.position.z;
+    child.position.z = TOP_OFFSET - above;
+  });
 }
 
 function zOf(item: { shape: ShapeModel } | { edge: EdgeModel }): number {

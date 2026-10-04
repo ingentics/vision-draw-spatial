@@ -3,6 +3,7 @@ import type { CSSProperties, MutableRefObject, RefObject } from 'react';
 import type { LabelEditPlane, LabelEditRequest } from '../engine/Engine';
 import { isMonospace, isRich, parseColor, parseRichHtml, richToHtml, richToText } from '../engine/format/richText';
 import { homographyCss, rectToQuad } from '../engine/render/geometry/homography';
+import { BASE_SPACING } from '../engine/render/labelPosition';
 import { largestFitting, MIN_FIT_SIZE } from '../engine/render/richLayout';
 import type { TextMarks } from '../engine/model/types';
 
@@ -170,11 +171,15 @@ export function LabelEditor({
       return;
     }
     // Mesure en pixels de page, la boîte sans sa transformation (agrandissement, ou plan en perspective) ;
-    // boîte sans ses marges (2 pixels de page).
+    // boîte sans ses marges (celles du label dessiné, en pixels de page).
     const transform = frame.style.transform;
     frame.style.transform = 'none';
     const outer = frame.getBoundingClientRect();
-    const room = { width: outer.width - 4 + 0.5 / request.scale, height: outer.height - 4 + 0.5 / request.scale };
+    const padding = getComputedStyle(frame);
+    const room = {
+      width: outer.width - parseFloat(padding.paddingLeft) - parseFloat(padding.paddingRight) + 0.5 / request.scale,
+      height: outer.height - parseFloat(padding.paddingTop) - parseFloat(padding.paddingBottom) + 0.5 / request.scale,
+    };
     const fits = (size: number) => {
       editor.style.zoom = String(size / baseSize);
       const rect = editor.getBoundingClientRect();
@@ -323,7 +328,10 @@ export function LabelEditor({
           // page, plaquée sur ses coins à l'écran (homographie), dans le plan et le sens du label.
           width: plane ? plane.width : width / scale,
           height: plane ? plane.height : height / scale,
-          padding: 2,
+          // Marges du label dessiné : `spacing` (2), plus celles de draw.io en haut et en bas (`BASE_SPACING`).
+          padding: `${style.verticalAlign === 'top' ? 2 + BASE_SPACING.top : 2}px 2px ${
+            style.verticalAlign === 'bottom' ? 2 + BASE_SPACING.bottom : 2
+          }px`,
           transform: plane ? planeTransform(plane) : `scale(${scale})`,
           justifyContent:
             style.verticalAlign === 'top' ? 'flex-start' : style.verticalAlign === 'bottom' ? 'flex-end' : 'center',

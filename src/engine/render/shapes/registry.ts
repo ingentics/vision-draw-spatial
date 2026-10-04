@@ -1,5 +1,6 @@
 import type { Rect, ShapeModel } from '../../model/types';
 import { blockHeight } from '../iso/block';
+import { outsideLabelBox } from '../labelPosition';
 import type { RenderContext } from '../types';
 import { ellipseShape } from './ellipse';
 import { groupShape } from './group';
@@ -55,9 +56,13 @@ export class ShapeRegistry {
 
   /**
    * Zone du texte d'une forme au niveau demandé (celle du rendu qui la dessine : repli sur `flat`) ;
-   * les bornes si la définition n'en donne pas. Source commune du label dessiné et de l'éditeur en place.
+   * les bornes si la définition n'en donne pas ; à côté des bornes pour un label hors de la forme (comme
+   * draw.io, qui n'applique la zone propre à la forme qu'à un label centré). Source commune du label
+   * dessiné et de l'éditeur en place.
    */
   textZone(shape: ShapeModel, level: SceneLevel): Rect {
+    const outside = outsideLabelBox(shape.bounds, shape.style);
+    if (outside) return outside;
     const { definition } = this.resolve(shape);
     const drawn = level !== 'flat' && definition[level] ? level : 'flat';
     return definition.textZone?.(shape, drawn) ?? shape.bounds;

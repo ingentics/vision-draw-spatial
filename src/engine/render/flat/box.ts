@@ -1,6 +1,7 @@
 import { Group } from 'three';
-import type { Point, ShapeModel } from '../../model/types';
+import type { Point, Rect, ShapeModel } from '../../model/types';
 import { dashPattern } from '../geometry/stroke';
+import { BASE_SPACING, outsideLabelBox } from '../labelPosition';
 import { fillMesh, strokeMesh } from '../meshes';
 import { labelBackground, textFormat, styleColor, styleNumber, styleOpacity } from '../styleValues';
 import { PART_ORDER } from '../types';
@@ -52,19 +53,30 @@ export function createBox(shape: ShapeModel, path: Point[], ctx: RenderContext, 
   return group;
 }
 
-/** Label d'une forme, placé dans ses bornes selon `align` / `verticalAlign` (SPEC §8.3 : centré par défaut). */
-export function createLabel(shape: ShapeModel, ctx: RenderContext, text = shape.label) {
+/**
+ * Label d'une forme, placé dans sa zone de texte (`zone`, les bornes par défaut) selon `align` / `verticalAlign`
+ * (SPEC §8.3 : centré par défaut). Un label hors de la forme (`labelPosition`, `verticalLabelPosition`) se place
+ * à côté des bornes, comme dans draw.io, quelle que soit la zone propre à la forme.
+ */
+export function createLabel(shape: ShapeModel, ctx: RenderContext, text = shape.label, zone: Rect = shape.bounds) {
   if (!text.trim() || shape.style.noLabel === '1') return null;
-  const { style, bounds } = shape;
+  const { style } = shape;
+  const outside = outsideLabelBox(shape.bounds, style);
+  const bounds = outside ?? zone;
+
+  const align = (['left', 'right'].includes(style.align ?? '') ? style.align : 'center') as TextSpec['align'];
+  const vertical = style.verticalAlign === 'top' ? 'top' : style.verticalAlign === 'bottom' ? 'bottom' : 'middle';
 
   const spacing = styleNumber(style, 'spacing', 2);
   const left = bounds.x + spacing + styleNumber(style, 'spacingLeft', 0);
   const right = bounds.x + bounds.width - spacing - styleNumber(style, 'spacingRight', 0);
-  const top = bounds.y + spacing + styleNumber(style, 'spacingTop', 0);
-  const bottom = bounds.y + bounds.height - spacing - styleNumber(style, 'spacingBottom', 0);
-
-  const align = (['left', 'right'].includes(style.align ?? '') ? style.align : 'center') as TextSpec['align'];
-  const vertical = style.verticalAlign === 'top' ? 'top' : style.verticalAlign === 'bottom' ? 'bottom' : 'middle';
+  const top = bounds.y + spacing + styleNumber(style, 'spacingTop', 0) + (vertical === 'top' ? BASE_SPACING.top : 0);
+  const bottom =
+    bounds.y +
+    bounds.height -
+    spacing -
+    styleNumber(style, 'spacingBottom', 0) -
+    (vertical === 'bottom' ? BASE_SPACING.bottom : 0);
 
   const spec: TextSpec = {
     text,
@@ -85,6 +97,8 @@ export function createLabel(shape: ShapeModel, ctx: RenderContext, text = shape.
   object.name = 'label';
   // Cellule qui porte le texte : l'éditeur en place masque ce label pendant la saisie.
   object.userData.labelCellId = shape.id;
+  // Hors de la forme : posé au sol à côté du volume en iso (`createShapeObject`).
+  if (outside) object.userData.outsideLabel = true;
   object.renderOrder = PART_ORDER.label;
   return object;
 }
