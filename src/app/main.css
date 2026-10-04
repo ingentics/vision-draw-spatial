@@ -2,6 +2,7 @@
   --bg: #ffffff;
   --fg: #1f1f1f;
   --muted: #6b6b6b;
+  --hint: #3c4043;
   --border: #dadce0;
   --panel: #f8f9fa;
   --accent: #1a73e8;
@@ -152,13 +153,29 @@ body {
   overflow: hidden;
 }
 
-.tabs {
+/* Barre du bas : onglets des pages à gauche, aide (mode en cours) à droite. */
+.bottom-bar {
   display: flex;
-  gap: 2px;
-  padding: 0 10px;
+  align-items: center;
   border-top: 1px solid var(--border);
   background: var(--panel);
+}
+
+.tabs {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+  padding: 0 10px;
   overflow-x: auto;
+}
+
+.mode-hint {
+  flex-shrink: 0;
+  padding: 0 12px;
+  text-align: right;
+  color: var(--hint);
+  white-space: nowrap;
 }
 
 .tab {

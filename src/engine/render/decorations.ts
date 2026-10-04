@@ -91,3 +91,27 @@ export function selectionOutline(bounds: Rect, zoom: number, phase = 0, accent =
   });
   return group;
 }
+
+/**
+ * Zone liée, mise en évidence pendant que la touche pour suivre un lien est maintenue (SPEC §11.1) :
+ * voile d'accent léger et contour plein, d'épaisseur constante à l'écran, au-dessus de tout.
+ */
+export function linkZone(bounds: Rect, zoom: number, accent = DEFAULT_ACCENT): Group {
+  const group = new Group();
+  group.name = 'link-zone';
+  const gap = 2 / zoom;
+  const path = rectPath({
+    x: bounds.x - gap,
+    y: bounds.y - gap,
+    width: bounds.width + 2 * gap,
+    height: bounds.height + 2 * gap,
+  });
+  const color = new Color(accent);
+  group.add(fillMesh(path, color, 0.14));
+  const outline = strokeMesh(path, color, 1, { width: 2 / zoom, closed: true });
+  if (outline) group.add(outline);
+  group.traverse((o) => {
+    o.renderOrder = Number.MAX_SAFE_INTEGER;
+  });
+  return group;
+}

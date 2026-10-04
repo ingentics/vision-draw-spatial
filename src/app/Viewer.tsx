@@ -6,7 +6,7 @@ import robotoMonoBold from '@fontsource/roboto-mono/files/roboto-mono-latin-700-
 import robotoMono from '@fontsource/roboto-mono/files/roboto-mono-latin-400-normal.woff?url';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { UnsupportedReport } from '../engine/diagnostics/unsupportedStyles';
-import type { BackTarget, Engine, InitialView, LabelEditRequest, Selection } from '../engine/Engine';
+import type { BackTarget, Engine, InitialView, LabelEditRequest, ModeHint, Selection } from '../engine/Engine';
 import type { ViewMode } from '../engine/interaction/camera';
 import type { ParentLink } from '../engine/interaction/history';
 import type { DocumentModel, EdgeModel, ShapeModel } from '../engine/model/types';
@@ -40,6 +40,12 @@ const FONTS = {
   mono: robotoMono,
   monoBold: robotoMonoBold,
 };
+/** Aide de la barre du bas : mode en cours tant qu'une touche est maintenue. */
+const MODE_HINT_LABELS: Record<ModeHint, string> = {
+  navigation: 'Mode navigation',
+  multiSelect: 'Mode sélection multiple',
+};
+
 /** Réglages iso qu'une page peut imposer (état de vue enregistré dans le fichier). */
 const ISO_KEYS = ['isoAngleDeg', 'isoAzimuthDeg', 'isoVolume', 'isoDepth'] as const;
 interface ViewerProps {
@@ -94,6 +100,7 @@ export function Viewer({
   const [autosavedAt, setAutosavedAt] = useState<number>();
   const [undoLabels, setUndoLabels] = useState<{ undo?: string; redo?: string }>({});
   const [selection, setSelection] = useState<Selection>();
+  const [modeHint, setModeHint] = useState<ModeHint>();
   const [labelEdit, setLabelEdit] = useState<LabelEditRequest>();
   /** Éditeur de texte en place (commandes du panneau de format) et format de sa sélection. */
   const editorHandle = useRef<RichEditorHandle | undefined>(undefined);
@@ -258,6 +265,7 @@ export function Viewer({
       instance.on('modifiedChange', setModified);
       instance.on('undoChange', (undo, redo) => setUndoLabels({ undo, redo }));
       instance.on('selectionChange', setSelection);
+      instance.on('modeHint', setModeHint);
       instance.on('labelEdit', setLabelEdit);
       instance.on('documentChange', (doc) => {
         setDocument(doc);
@@ -600,16 +608,22 @@ export function Viewer({
       </div>
 
       {document && (
-        <PageTabs
-          pages={document.pages}
-          currentPageId={pageId}
-          graphActive={pageId === GRAPH_PAGE_ID}
-          onShowGraph={() => engine?.showGraph()}
-          onSelect={(id) => engine?.goToPage(id)}
-          onAdd={editablePages ? () => engine?.addPage() : undefined}
-          onRename={editablePages ? (id, name) => engine?.renamePage(id, name) : undefined}
-          onRemove={editablePages ? (id) => engine?.removePage(id) : undefined}
-        />
+        <footer className="bottom-bar">
+          <PageTabs
+            pages={document.pages}
+            currentPageId={pageId}
+            graphActive={pageId === GRAPH_PAGE_ID}
+            onShowGraph={() => engine?.showGraph()}
+            onSelect={(id) => engine?.goToPage(id)}
+            onAdd={editablePages ? () => engine?.addPage() : undefined}
+            onRename={editablePages ? (id, name) => engine?.renamePage(id, name) : undefined}
+            onRemove={editablePages ? (id) => engine?.removePage(id) : undefined}
+          />
+          {/* Aide : mode en cours tant qu'une touche de modification est maintenue (rien sinon). */}
+          <span className="mode-hint" role="status">
+            {modeHint && MODE_HINT_LABELS[modeHint]}
+          </span>
+        </footer>
       )}
     </div>
   );

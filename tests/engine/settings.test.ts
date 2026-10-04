@@ -186,6 +186,10 @@ describe('réglages exposés (caméra, vue graphe, édition…)', () => {
     );
     const brokenFollow = { controls: { followLinkKey: 'f' } } as unknown as SettingsPatch;
     expect(mergeSettings(DEFAULT_SETTINGS, brokenFollow).controls.followLinkKey).toBe('meta');
+    expect(DEFAULT_SETTINGS.controls.followLinkGesture).toBe('click');
+    expect(
+      mergeSettings(DEFAULT_SETTINGS, { controls: { followLinkGesture: 'doubleClick' } }).controls.followLinkGesture,
+    ).toBe('doubleClick');
     expect(DEFAULT_SETTINGS.transition).toMatchObject({ fadeStart: 0.25, fadeEnd: 0.75 });
   });
 

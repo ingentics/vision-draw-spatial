@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { PickedElement } from '../../../src/engine/interaction/pick';
 import {
+  followLinkGesture,
   hasFollowLinkKey,
+  isModifierKeyEvent,
   hasMultiSelectKey,
   independentRoots,
   toggleSelected,
@@ -32,6 +34,19 @@ describe('sélection multiple', () => {
     expect(hasFollowLinkKey(plain, 'meta')).toBe(false);
     expect(hasFollowLinkKey({ ...plain, metaKey: true }, 'meta')).toBe(true);
     expect(hasFollowLinkKey(plain, 'none')).toBe(true);
+  });
+
+  it('suivre un lien : sans touche, toujours au double-clic (un clic seul reste une sélection)', () => {
+    expect(followLinkGesture('meta', 'click')).toBe('click');
+    expect(followLinkGesture('ctrl', 'doubleClick')).toBe('doubleClick');
+    expect(followLinkGesture('none', 'click')).toBe('doubleClick');
+  });
+
+  it('touche maintenue reconnue à l’appui et au relâchement (zones liées, aide de la barre du bas)', () => {
+    expect(isModifierKeyEvent({ key: 'Meta' }, 'meta')).toBe(true);
+    expect(isModifierKeyEvent({ key: 'Control' }, 'ctrl')).toBe(true);
+    expect(isModifierKeyEvent({ key: 'Control' }, 'meta')).toBe(false);
+    expect(isModifierKeyEvent({ key: 'Meta' }, 'none')).toBe(false);
   });
 
   it('déplacement : une forme déjà emportée par un conteneur sélectionné ne bouge pas deux fois', () => {

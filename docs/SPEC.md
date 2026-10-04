@@ -454,7 +454,7 @@ Formes et arêtes sont dessinées dans l'**ordre du document** (une arête décl
 | Bordure d'une forme | Panneau contextuel, section « Bordure » (formes sélectionnées, une étape d'annulation) : couleur (ou aucune), épaisseur, trait plein / tirets / pointillés, coins arrondis (rectangles) — clés `strokeColor`, `strokeWidth`, `dashed`, `dashPattern`, `rounded` ; c'est aussi le trait des arêtes du volume en iso / 3D |
 | Volume d'une forme | Panneau contextuel, section « Volume » : « Épaisseur » (`spatial.height`), « Élévation » (`spatial.elevation`) (§14.3) |
 | Annuler / rétablir | Boutons de la barre d'outils, **Ctrl+Z**, **Ctrl+Maj+Z** / Ctrl+Y (§14.1) |
-| Entrer dans un lien | **⌘ + double-clic** (touche réglable, `controls.followLinkKey`) |
+| Entrer dans un lien | **⌘ + clic** (touche et geste réglables : `controls.followLinkKey`, `controls.followLinkGesture`) ; maintenir ⌘ fait ressortir les zones liées |
 | Retour | Bouton « Retour » + raccourci (ex. Backspace / Alt+←) |
 | Basculer 2D ↔ iso | Boutons « 2D \| Iso » de la barre d'outils, touche **I** |
 
@@ -516,11 +516,13 @@ Réalisation retenue :
 ### 11.1 Intention puis engagement
 
 - **Simple clic** sur une forme ayant un lien vers une page : sélection + **préchargement** de la page cible en arrière-plan (construction de sa scène), sans rien afficher.
-- **Double-clic avec la touche pour suivre un lien** (paramètre `controls.followLinkKey`, **⌘** par défaut ; Ctrl, Maj, Alt, ou aucune = double-clic seul) : déclenche la **transition**. Sans la touche, le double-clic édite le texte de la forme, comme draw.io. Dans la vue graphe, le double-clic seul suffit.
+- **Touche pour suivre un lien + clic** (paramètres `controls.followLinkKey`, **⌘** par défaut, ou Ctrl, Maj, Alt ; `controls.followLinkGesture`, **clic** par défaut, ou double-clic ; sans touche = double-clic seul) : déclenche la **transition**. Sans la touche, le clic sélectionne et le double-clic édite le texte de la forme, comme draw.io. Dans la vue graphe, le double-clic seul suffit aussi.
+- **Zones liées** : tant que la touche pour suivre un lien est maintenue seule, chaque forme ou flèche de la page qui porte un lien navigable est encadrée (voile d'accent léger et contour plein, au-dessus de tout, épaisseur constante à l'écran) ; relâchée (ou une autre touche pressée, ou la fenêtre quitte le premier plan), elles disparaissent. Masquées pendant une transition, elles reviennent sur la page d'arrivée si la touche est toujours maintenue.
+- **Aide de la barre du bas** (appli de démo) : à droite de la barre des onglets, texte gris foncé aligné à droite, vide par défaut ; « Mode navigation » tant que la touche pour suivre un lien est maintenue, « Mode sélection multiple » tant que la touche de sélection multiple l'est avec une sélection. API : événement `modeHint` (`'navigation' | 'multiSelect' | undefined`), `engine.getModeHint()`.
 - Option : préchargement au **survol prolongé** (≈ 300 ms, configurable), avec un **plafond** sur le nombre de scènes préchargées gardées en cache.
 - **Sélection** : clic gauche sur une forme ou une arête (tolérance ≈ 6 px écran autour du tracé) ; mise en valeur par un **voile d'ombre** sur le reste de la page (défaut) : l'élément sélectionné est redessiné intact par-dessus (en iso, un bloc devant lui continue de le cacher, assombri) ; dans la vue graphe, la miniature suit sa carte ; pour une **flèche ou liaison**, le voile est **percé** d'une bande d'≈ 10 px (écran) de chaque côté de son tracé, extrémités arrondies (masque stencil, testé en profondeur : un bloc devant reste voilé). Variante (paramètre `selection.style`) : **contour** bleu pointillé d'épaisseur constante à l'écran, dont les tirets défilent lentement (« fourmis », 12 px/s ; fixe si les animations sont réduites). Clic dans le vide = désélection. **Changer de vue (2D ↔ iso ↔ 3D) garde la sélection** : voile, contour et poignées passent sur le rendu du nouveau mode.
 - **Sélection multiple** : clic avec la touche de sélection multiple (paramètre `controls.multiSelectKey`, **Ctrl** par défaut ; ⌘ / Windows, Maj ou Alt au choix) = ajouter l'élément à la sélection, ou l'en retirer ; dans le vide, la sélection est gardée. Sur Mac, Ctrl+clic (qui ouvre normalement le menu contextuel) compte comme un clic avec Ctrl. Tous les éléments sélectionnés sont mis en valeur (voile percé autour de chaque flèche, ou un contour par élément) ; les poignées n'apparaissent que pour une forme ou une flèche seule. Glisser une forme sélectionnée déplace **toutes** les formes sélectionnées (une forme déjà emportée par un conteneur sélectionné ne bouge pas deux fois ; un seul « Déplacement » à annuler), et les **flèches sélectionnées** avec elles, comme draw.io : points intermédiaires et bouts libres décalés, un bout dont la forme ne bouge pas est **détaché** (`disconnectOnMove`, il devient libre là où il est) ; une flèche non sélectionnée garde ses points, ses points d'attache suivent les formes ; Suppr les supprime toutes. Le panneau contextuel affiche le nombre d'éléments, les styles (appliqués aux formes) et « Supprimer ». API : `Selection.items` (tous les éléments, dans l'ordre), `Selection.picked` (le dernier) ; `engine.toggleSelect(picked)`, `engine.selectItems(items)`. L'élément le plus haut dans l'ordre de dessin gagne (un enfant avant son conteneur) ; les groupes invisibles ne sont attrapés que s'ils portent un lien. Un appui suivi d'un glisser n'est pas un clic.
-- **Repérage des liens** : pastille bleue au coin haut-droit des formes liées (→ page, ↗ URL) ; au survol, curseur main et infobulle (« ⌘ + double-clic : aller à « Page-2 » », ou l'URL).
+- **Repérage des liens** : pastille bleue au coin haut-droit des formes liées (→ page, ↗ URL) ; au survol, curseur main et infobulle (« ⌘ + clic : aller à « Page-2 » », ou l'URL).
 
 ### 11.2 Transition « zoom + fondu »
 
@@ -561,7 +563,7 @@ Réalisation retenue :
 
 ### 11.4 Liens externes
 
-Les liens URL ouvrent un nouvel onglet du navigateur (avec indication visuelle sur la forme), au ⌘ + double-clic (§11.1), sans accès retour à l'application (`noopener`).
+Les liens URL ouvrent un nouvel onglet du navigateur (avec indication visuelle sur la forme), au ⌘ + clic (§11.1), sans accès retour à l'application (`noopener`).
 
 Seules les URL `http:`, `https:` et `mailto:` sont considérées comme navigables. Les autres (`javascript:`, `file:`…) restent dans le modèle, pour la fidélité au fichier, mais ne sont ni signalées ni suivies.
 
@@ -604,7 +606,8 @@ interface Settings {
     decelerationMs: number;                 // glissade à l'arrêt (§9.2), 0 = arrêt net (80)
     orbitSpeed: number;                     // rotation au clic droit, rad / px écran (0.005)
     multiSelectKey: 'ctrl' | 'meta' | 'shift' | 'alt'; // touche + clic = sélection multiple (§11.1) : 'ctrl'
-    followLinkKey: 'ctrl' | 'meta' | 'shift' | 'alt' | 'none'; // touche + double-clic = suivre un lien (§11.1) : 'meta'
+    followLinkKey: 'ctrl' | 'meta' | 'shift' | 'alt' | 'none'; // touche + geste = suivre un lien (§11.1) : 'meta'
+    followLinkGesture: 'click' | 'doubleClick'; // geste pour suivre un lien, avec la touche : 'click'
     shortcuts: { toggleViewMode: 'i'; toggle3d: 'p'; toggleGraph: 'g'; toggleMinimap: 'm'; overview: 'Enter'; back: 'Backspace'; deleteSelection: 'Backspace' };
   };
   view: {

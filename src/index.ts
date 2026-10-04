@@ -16,6 +16,7 @@ export type {
   EngineOptions,
   InitialView,
   LabelEditRequest,
+  ModeHint,
   Selection,
 } from './engine/Engine';
 export type { CameraState } from './engine/interaction/camera';

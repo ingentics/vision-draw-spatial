@@ -1,8 +1,8 @@
 import type { Point } from '../model/types';
 import { dragGround, orbit, panByScreen, zoomAt } from './camera';
 import type { CameraState, Viewport } from './camera';
-import { hasFollowLinkKey, hasMultiSelectKey } from './selection';
-import type { FollowLinkKey, MultiSelectKey } from './selection';
+import { followLinkGesture, hasFollowLinkKey, hasMultiSelectKey, isModifierKeyEvent } from './selection';
+import type { FollowLinkGesture, FollowLinkKey, MultiSelectKey } from './selection';
 
 /**
  * Contrôles de navigation (SPEC §9.2). Les touches sont lues par position physique
@@ -105,6 +105,12 @@ export function shortcutAction(key: string, shortcuts: Shortcuts): keyof Shortcu
   );
 }
 
+/** Touches de modification maintenues (voir `CameraHost.heldKeys`). */
+export interface HeldKeys {
+  followLink: boolean;
+  multiSelect: boolean;
+}
+
 export interface ControlSettings {
   /** Touches de déplacement : lettres (ZQSD / WASD selon le clavier), flèches, ou les deux. */
   moveKeys: 'letters' | 'arrows' | 'all';
@@ -122,8 +128,10 @@ export interface ControlSettings {
   orbitSpeed: number;
   /** Touche qui, maintenue pendant un clic, ajoute l'élément à la sélection ou l'en retire. */
   multiSelectKey: MultiSelectKey;
-  /** Touche à maintenir pendant le double-clic pour suivre un lien ('none' : double-clic simple). */
+  /** Touche à maintenir pour suivre un lien ('none' : double-clic seul). */
   followLinkKey: FollowLinkKey;
+  /** Geste pour suivre un lien, avec la touche : clic simple ou double-clic. */
+  followLinkGesture: FollowLinkGesture;
   /** Rotation au clavier (A / E en AZERTY, Q / E en QWERTY), en iso et en 3D, en degrés par seconde. */
   rotateSpeed: number;
 }
@@ -136,6 +144,7 @@ export const DEFAULT_CONTROLS: ControlSettings = {
   orbitSpeed: 0.005,
   multiSelectKey: 'ctrl',
   followLinkKey: 'meta',
+  followLinkGesture: 'click',
   rotateSpeed: 90,
   shortcuts: DEFAULT_SHORTCUTS,
 };
@@ -224,12 +233,17 @@ export interface CameraHost {
    * Clic gauche simple (sans glisser) : sélection. `toggle` : la touche de sélection multiple est
    * enfoncée (ajouter l'élément à la sélection, ou l'en retirer).
    */
-  click?(screen: Point, options: { toggle: boolean }): void;
+  click?(screen: Point, options: { toggle: boolean; followLink: boolean }): void;
   /**
-   * Double-clic gauche. `followLink` : la touche pour suivre un lien est enfoncée (entrer dans le
-   * lien) ; sinon, édition du texte.
+   * Double-clic gauche. `followLink` : le geste pour suivre un lien est le double-clic et sa touche
+   * est enfoncée (entrer dans le lien) ; sinon, édition du texte.
    */
   doubleClick?(screen: Point, options: { followLink: boolean }): void;
+  /**
+   * Touches de modification maintenues seules (sans autre touche) : celle pour suivre un lien (zones
+   * liées en évidence, « Mode navigation ») et celle de sélection multiple.
+   */
+  heldKeys?(held: HeldKeys): void;
   /** Survol (undefined quand le pointeur quitte le canvas). */
   hover?(screen: Point | undefined): void;
   /** Retour (Retour arrière, Alt+←). */
@@ -269,6 +283,8 @@ export class CameraController {
   private settings: ControlSettings;
   private readonly pressed = new Set<string>();
   private spaceDown = false;
+  /** Touches de modification maintenues. */
+  private held: HeldKeys = { followLink: false, multiSelect: false };
   /** `start` : point écran de départ du glisser. */
   private drag: { pointerId: number; mode: DragMode; last: Point; start: Point; moving?: boolean } | undefined;
   private frame = 0;
@@ -320,6 +336,10 @@ export class CameraController {
   }
 
   setSettings(patch: Partial<ControlSettings>): void {
+    const keyChanged = (name: 'followLinkKey' | 'multiSelectKey') =>
+      patch[name] !== undefined && patch[name] !== this.settings[name];
+    if (keyChanged('followLinkKey') || keyChanged('multiSelectKey'))
+      this.setHeld({ followLink: false, multiSelect: false });
     this.settings = { ...this.settings, ...patch, shortcuts: { ...this.settings.shortcuts, ...patch.shortcuts } };
   }
 
@@ -452,14 +472,23 @@ export class CameraController {
     // Déjà traité par le menu contextuel (Ctrl+clic sur Mac).
     if (event.timeStamp - this.ctrlClickAt < 500) return;
     if (!this.enabled || event.button !== 0 || suppressed) return;
-    this.host.click?.(this.localPoint(event), { toggle: hasMultiSelectKey(event, this.settings.multiSelectKey) });
+    this.host.click?.(this.localPoint(event), {
+      toggle: hasMultiSelectKey(event, this.settings.multiSelectKey),
+      followLink: this.followsLink(event, 'click'),
+    });
   };
+
+  /** Ce clic (ou double-clic) est-il le geste pour suivre un lien, avec sa touche ? */
+  private followsLink(event: MouseEvent, gesture: FollowLinkGesture): boolean {
+    const { followLinkKey: key, followLinkGesture: chosen } = this.settings;
+    return followLinkGesture(key, chosen) === gesture && hasFollowLinkKey(event, key);
+  }
 
   private readonly onDoubleClick = (event: MouseEvent): void => {
     if (!this.enabled || event.button !== 0 || this.spaceDown) return;
     event.preventDefault();
     this.host.doubleClick?.(this.localPoint(event), {
-      followLink: hasFollowLinkKey(event, this.settings.followLinkKey),
+      followLink: this.followsLink(event, 'doubleClick'),
     });
   };
 
@@ -475,7 +504,7 @@ export class CameraController {
     this.suppressClick = false;
     if (!this.enabled || suppressed) return;
     this.ctrlClickAt = event.timeStamp;
-    this.host.click?.(this.localPoint(event), { toggle: true });
+    this.host.click?.(this.localPoint(event), { toggle: true, followLink: this.followsLink(event, 'click') });
   };
 
   private readonly onMouseDown = (event: MouseEvent): void => {
@@ -486,6 +515,19 @@ export class CameraController {
   // Clavier
 
   private readonly onKeyDown = (event: KeyboardEvent): void => {
+    const followLink = isModifierKeyEvent(event, this.settings.followLinkKey);
+    const multiSelect = isModifierKeyEvent(event, this.settings.multiSelectKey);
+    if ((followLink || multiSelect) && !isEditable(event.target)) {
+      if (!event.repeat) {
+        this.setHeld({
+          followLink: this.held.followLink || followLink,
+          multiSelect: this.held.multiSelect || multiSelect,
+        });
+      }
+      return;
+    }
+    // Une autre touche avec ⌘ ou Ctrl (⌘+Tab, Ctrl+Z…) : un raccourci, pas un mode.
+    this.setHeld({ followLink: false, multiSelect: false });
     if (!this.enabled || isEditable(event.target)) return;
     // Une touche de déplacement reste une touche de déplacement, même si elle porte une lettre de raccourci.
     const action = isMoveKey(event.code, this.settings.moveKeys)
@@ -560,6 +602,10 @@ export class CameraController {
   };
 
   private readonly onKeyUp = (event: KeyboardEvent): void => {
+    this.setHeld({
+      followLink: this.held.followLink && !isModifierKeyEvent(event, this.settings.followLinkKey),
+      multiSelect: this.held.multiSelect && !isModifierKeyEvent(event, this.settings.multiSelectKey),
+    });
     if (event.code === 'Space') {
       this.spaceDown = false;
       if (!this.drag) this.element.style.cursor = '';
@@ -568,11 +614,18 @@ export class CameraController {
   };
 
   private readonly onBlur = (): void => {
+    this.setHeld({ followLink: false, multiSelect: false });
     this.pressed.clear();
     this.stopDrift();
     this.spaceDown = false;
     this.element.style.cursor = '';
   };
+
+  private setHeld(held: HeldKeys): void {
+    if (this.held.followLink === held.followLink && this.held.multiSelect === held.multiSelect) return;
+    this.held = held;
+    this.host.heldKeys?.({ ...held });
+  }
 
   private startLoop(): void {
     if (this.frame) return;

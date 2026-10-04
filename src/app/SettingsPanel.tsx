@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { RESERVED_CODES } from '../engine/interaction/controls';
 import type { Shortcuts } from '../engine/interaction/controls';
-import type { FollowLinkKey, MultiSelectKey } from '../engine/interaction/selection';
+import type { FollowLinkGesture, FollowLinkKey, MultiSelectKey } from '../engine/interaction/selection';
 import { SETTINGS_LIMITS } from '../engine/settings';
 import type { Settings, SettingsPatch } from '../engine/settings';
 import { desktop } from './desktop';
@@ -27,6 +27,8 @@ export const MULTI_SELECT_LABELS: Record<MultiSelectKey, string> = {
 
 /** Touches pour suivre un lien au double-clic, telles qu'affichées. */
 const FOLLOW_LINK_LABELS: Record<FollowLinkKey, string> = { ...MULTI_SELECT_LABELS, none: 'Aucune (double-clic seul)' };
+
+const FOLLOW_LINK_GESTURE_LABELS: Record<FollowLinkGesture, string> = { click: 'Clic', doubleClick: 'Double-clic' };
 
 const SHORTCUT_LABELS: Record<keyof Shortcuts, string> = {
   toggleViewMode: 'Basculer 2D ↔ iso',
@@ -742,14 +744,25 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
             sélectionnée déplace toute la sélection.
           </p>
           <Choice
-            label="Suivre un lien : touche + double-clic"
+            label="Suivre un lien : touche"
             value={controls.followLinkKey}
             options={(Object.keys(FOLLOW_LINK_LABELS) as FollowLinkKey[]).map((key) => [key, FOLLOW_LINK_LABELS[key]])}
             onChange={(followLinkKey) => onChange({ controls: { followLinkKey } })}
           />
+          <Choice
+            label="Suivre un lien : touche +"
+            value={controls.followLinkKey === 'none' ? 'doubleClick' : controls.followLinkGesture}
+            options={(Object.keys(FOLLOW_LINK_GESTURE_LABELS) as FollowLinkGesture[]).map((gesture) => [
+              gesture,
+              FOLLOW_LINK_GESTURE_LABELS[gesture],
+            ])}
+            disabled={controls.followLinkKey === 'none'}
+            onChange={(followLinkGesture) => onChange({ controls: { followLinkGesture } })}
+          />
           <p className="hint muted">
-            Sans la touche, le double-clic sur une forme liée modifie son texte. Dans la vue graphe, le double-clic seul
-            plonge dans la page.
+            Maintenir la touche fait ressortir les zones liées (« Mode navigation » en bas à droite). Sans elle, le
+            double-clic sur une forme liée modifie son texte. Dans la vue graphe, le double-clic seul plonge dans la
+            page.
           </p>
         </Section>
 

@@ -107,7 +107,7 @@ import type { CameraState, ViewMode, Viewport } from './interaction/camera';
 import { createGrid } from './render/grid';
 import type { Grid, GridOptions } from './render/grid';
 import { CameraController } from './interaction/controls';
-import type { ControlSettings } from './interaction/controls';
+import type { ControlSettings, HeldKeys } from './interaction/controls';
 import { NavigationHistory, findParents, usageKey } from './interaction/history';
 import type { HistoryEntry, LinkUsage, ParentLink } from './interaction/history';
 import { buildGraphPage, cardId, GRAPH_PAGE_ID } from './graph/graphPage';
@@ -116,7 +116,7 @@ import { buildGraphScene } from './graph/graphScene';
 import { Minimap } from './interaction/minimap';
 import { pickElement } from './interaction/pick';
 import type { PickedElement } from './interaction/pick';
-import { MODIFIER_KEY_LABELS, independentRoots, toggleSelected } from './interaction/selection';
+import { MODIFIER_KEY_LABELS, followLinkGesture, independentRoots, toggleSelected } from './interaction/selection';
 import { easing, embedIn, embeddedCamera, phase } from './interaction/transitions';
 import { computeBounds } from './model/bounds';
 import type {
@@ -129,7 +129,7 @@ import type {
   Rect,
   ShapeModel,
 } from './model/types';
-import { selectionOutline } from './render/decorations';
+import { linkZone, selectionOutline } from './render/decorations';
 import { createEdge, toTerminal } from './render/edges/edge';
 import { fixedAnchor, routeEdgePoints, routingCenter } from './render/edges/route';
 import {
@@ -217,6 +217,9 @@ export type BackTarget =
   | { kind: 'choose'; parents: ParentLink[] }
   | { kind: 'none' };
 
+/** Mode d'interaction signalé à l'UI : touche pour suivre un lien, ou de sélection multiple, maintenue. */
+export type ModeHint = 'navigation' | 'multiSelect';
+
 export type EngineEvents = {
   load: [document: DocumentModel, fileId: string];
   pageChange: [page: PageModel];
@@ -239,6 +242,8 @@ export type EngineEvents = {
   documentChange: [document: DocumentModel];
   /** Édition du label d'un élément demandée (double-clic, F2) : à l'UI d'afficher un champ. */
   labelEdit: [request: LabelEditRequest];
+  /** Mode d'interaction en cours (touche maintenue), pour l'aide de l'UI ; undefined : aucun. */
+  modeHint: [hint: ModeHint | undefined];
   /** Ce qu'annuleraient / rétabliraient `undo` et `redo` (undefined : rien). */
   undoChange: [undoLabel: string | undefined, redoLabel: string | undefined];
   /** Le document a été modifié (déplacement) ou vient d'être sérialisé pour la sauvegarde. */
@@ -442,6 +447,11 @@ export class Engine {
   private selection: Selection | undefined;
   /** Contours de la sélection (style « contour »), un par élément sélectionné. */
   private selectionObject: Group | undefined;
+  /** Touche pour suivre un lien maintenue : zones liées de la page en évidence (`linkZonesObject`). */
+  private linkZonesShown = false;
+  private heldKeys: HeldKeys = { followLink: false, multiSelect: false };
+  private modeHint: ModeHint | undefined;
+  private linkZonesObject: Group | undefined;
   /** Contour animé : décalage des tirets (pixels écran) et boucle d'animation. */
   private selectionPhase = 0;
   /** Voile de mise en valeur de la sélection, et de quoi l'annuler. */
@@ -528,8 +538,9 @@ export class Engine {
         setCameraState: (state) => this.setCameraState(state),
         getViewport: () => this.viewport,
         toggleOverview: (screen) => this.toggleOverview(screen),
-        click: (screen, options) => this.handleClick(screen, options.toggle),
+        click: (screen, options) => this.handleClick(screen, options.toggle, options.followLink),
         doubleClick: (screen, options) => this.handleDoubleClick(screen, options.followLink),
+        heldKeys: (held) => this.setHeldKeys(held),
         hover: (screen) => this.handleHover(screen),
         back: () => this.back(),
         toggleViewMode: () => this.toggleViewMode(),
@@ -855,6 +866,7 @@ export class Engine {
     if (camera) this.setCameraState(camera);
     else this.fitToBounds(isEmptyPage(page) ? EMPTY_PAGE_AREA : page.bounds);
     this.requestRender();
+    this.updateLinkZones();
     this.events.emit('pageChange', page);
   }
 
@@ -1072,6 +1084,7 @@ export class Engine {
     // Contour de sélection d'épaisseur constante à l'écran ; la sélection est transférée à la scène
     // du nouveau niveau quand on change de vue (2D ↔ iso / 3D).
     if (this.selection && (sceneChanged || this.cameraState.zoom !== previousZoom)) this.updateSelectionOutline();
+    if (this.linkZonesShown && (sceneChanged || this.cameraState.zoom !== previousZoom)) this.updateLinkZones();
     this.applyProjection();
     this.applyHeightScale();
     this.relocateLabelEdit();
@@ -1420,6 +1433,7 @@ export class Engine {
     this.updateSelectionOutline();
     this.syncSelectionAnimation();
     this.events.emit('selectionChange', this.selection);
+    this.emitModeHint();
   }
 
   /** La sélection compte-t-elle plusieurs éléments ? */
@@ -1612,6 +1626,8 @@ export class Engine {
       this.transition = undefined;
       this.animation = 0;
       this.controller.setEnabled(true);
+      // Touche toujours maintenue : les zones liées de la page d'arrivée.
+      this.updateLinkZones();
       this.events.emit('transitionEnd', this.currentPageId ?? to.id);
     };
     this.transition = {
@@ -1623,6 +1639,8 @@ export class Engine {
         finish();
       },
     };
+    // Pas de zones liées pendant le trajet.
+    this.updateLinkZones();
 
     const start = performance.now();
     const step = (now: number) => {
@@ -3005,9 +3023,17 @@ export class Engine {
     return { x: left, y: top, width: Math.max(...xs) - left, height: Math.max(...ys) - top };
   }
 
-  /** Clic : sélectionne l'élément ; avec la touche de sélection multiple, l'ajoute ou le retire (le vide ne désélectionne pas). */
-  private handleClick(screen: Point, toggle = false): void {
+  /**
+   * Clic : sélectionne l'élément ; avec la touche de sélection multiple, l'ajoute ou le retire (le vide
+   * ne désélectionne pas). `followLink` (touche + clic, `controls.followLinkGesture`) : suit le lien de
+   * l'élément, s'il en a un.
+   */
+  private handleClick(screen: Point, toggle = false, followLink = false): void {
     const picked = this.pickAt(screen);
+    if (followLink && picked && isNavigableLink(picked.element.link)) {
+      this.followLink(picked.element.id);
+      return;
+    }
     if (toggle) {
       if (picked) this.toggleSelect(picked);
       return;
@@ -3017,7 +3043,7 @@ export class Engine {
   }
 
   /**
-   * Double-clic : avec la touche pour suivre un lien (`controls.followLinkKey`, ⌘ par défaut), ou sur
+   * Double-clic : avec la touche pour suivre un lien (quand le geste choisi est le double-clic), ou sur
    * une carte de la vue graphe, suit le lien ; sinon, édite le label de l'élément (page modifiable).
    * Sur une flèche, près d'un bout, édite son texte de début ou de fin.
    */
@@ -3089,8 +3115,9 @@ export class Engine {
   }
 
   private describeLink(link: LinkModel): string {
-    const key = this.settings.controls.followLinkKey;
-    const gesture = key === 'none' || this.isGraphView() ? 'double-clic' : `${MODIFIER_KEY_LABELS[key]} + double-clic`;
+    const { followLinkKey: key, followLinkGesture: chosen } = this.settings.controls;
+    const click = followLinkGesture(key, chosen) === 'click' ? 'clic' : 'double-clic';
+    const gesture = key === 'none' ? click : `${MODIFIER_KEY_LABELS[key]} + ${click}`;
     if (link.type === 'url') return `${link.href} (${gesture} : ouvrir dans un nouvel onglet)`;
     const name = this.pageById(link.pageId)?.name;
     const action = `${gesture} : aller à « ${name} »`;
@@ -3142,6 +3169,72 @@ export class Engine {
       this.selectionAnimation = requestAnimationFrame(tick);
     };
     this.selectionAnimation = requestAnimationFrame(tick);
+  }
+
+  /**
+   * Touches de modification maintenues : zones liées en évidence (touche pour suivre un lien), et
+   * mode d'interaction signalé à l'UI (`modeHint`).
+   */
+  private setHeldKeys(held: HeldKeys): void {
+    this.heldKeys = held;
+    if (this.linkZonesShown !== held.followLink) {
+      this.linkZonesShown = held.followLink;
+      this.updateLinkZones();
+    }
+    this.emitModeHint();
+  }
+
+  /**
+   * Mode d'interaction en cours, pour l'aide de l'UI : « navigation » tant que la touche pour suivre
+   * un lien est maintenue ; « sélection multiple » quand la touche de sélection multiple l'est, avec
+   * une sélection.
+   */
+  getModeHint(): ModeHint | undefined {
+    if (this.heldKeys.followLink) return 'navigation';
+    if (this.heldKeys.multiSelect && this.selection) return 'multiSelect';
+    return undefined;
+  }
+
+  private emitModeHint(): void {
+    const hint = this.getModeHint();
+    if (hint === this.modeHint) return;
+    this.modeHint = hint;
+    this.events.emit('modeHint', hint);
+  }
+
+  /**
+   * Zones liées (SPEC §11.1) : chaque forme ou flèche de la page courante qui porte un lien navigable,
+   * encadrée tant que la touche pour suivre un lien est maintenue (pas pendant une transition).
+   */
+  private updateLinkZones(): void {
+    if (this.linkZonesObject) {
+      this.linkZonesObject.removeFromParent();
+      disposeObject(this.linkZonesObject);
+      this.linkZonesObject = undefined;
+    }
+    const root = this.scenes.current?.root;
+    const page = this.getCurrentPage();
+    if (this.linkZonesShown && root && page && !this.transition) {
+      const zones = new Group();
+      zones.name = 'link-zones';
+      for (const element of [...page.shapes, ...page.edges]) {
+        const link = element.link;
+        // Un lien vers une page absente ne mène nulle part : pas de zone.
+        if (!isNavigableLink(link) || (link.type === 'page' && !this.pageById(link.pageId))) continue;
+        const bounds = 'bounds' in element ? element.bounds : this.drawnBounds(element.id);
+        if (!bounds) continue;
+        const zone = linkZone(bounds, this.cameraState.zoom, this.settings.selection.accentColor);
+        // Posée sur le dessus d'un volume, et toujours visible (pas cachée par les blocs).
+        zone.position.z = ((this.sceneObject(element.id)?.userData.top as number) ?? 0) + 0.2;
+        zone.traverse((o) => {
+          if (o instanceof Mesh) (o.material as MeshBasicMaterial).depthTest = false;
+        });
+        zones.add(zone);
+      }
+      root.add(zones);
+      this.linkZonesObject = zones;
+    }
+    this.requestRender();
   }
 
   /**

@@ -22,12 +22,34 @@ export function hasMultiSelectKey(
 }
 
 /**
- * Touche à maintenir pendant le double-clic pour suivre un lien (paramètre `controls.followLinkKey`,
- * ⌘ par défaut) ; 'none' : un double-clic simple suffit. Sans elle, le double-clic édite le texte.
+ * Suivre un lien (SPEC §11.1) : touche (paramètre `controls.followLinkKey`, ⌘ par défaut) + geste
+ * (`controls.followLinkGesture`, clic simple par défaut, ou double-clic). 'none' : sans touche, ce
+ * qui n'a de sens qu'au double-clic (un clic seul doit rester une sélection). Maintenir la touche
+ * fait ressortir les zones liées.
  */
 export type FollowLinkKey = MultiSelectKey | 'none';
+export type FollowLinkGesture = 'click' | 'doubleClick';
 
 export const FOLLOW_LINK_KEYS: readonly FollowLinkKey[] = [...MULTI_SELECT_KEYS, 'none'];
+export const FOLLOW_LINK_GESTURES: readonly FollowLinkGesture[] = ['click', 'doubleClick'];
+
+/** Geste effectif : sans touche, toujours le double-clic. */
+export function followLinkGesture(key: FollowLinkKey, gesture: FollowLinkGesture): FollowLinkGesture {
+  return key === 'none' ? 'doubleClick' : gesture;
+}
+
+/** `KeyboardEvent.key` de chaque touche de modification. */
+const MODIFIER_EVENT_KEYS: Record<MultiSelectKey, string> = {
+  ctrl: 'Control',
+  meta: 'Meta',
+  shift: 'Shift',
+  alt: 'Alt',
+};
+
+/** Cet événement clavier est-il cette touche de modification (enfoncée ou relâchée) ? */
+export function isModifierKeyEvent(event: Pick<KeyboardEvent, 'key'>, key: FollowLinkKey): boolean {
+  return key !== 'none' && event.key === MODIFIER_EVENT_KEYS[key];
+}
 
 /** Touches de modification, telles qu'affichées dans les infobulles. */
 export const MODIFIER_KEY_LABELS: Record<MultiSelectKey, string> = {
