@@ -117,6 +117,8 @@ import { buildGraphScene } from './graph/graphScene';
 import { Minimap } from './interaction/minimap';
 import { pickElement } from './interaction/pick';
 import type { PickedElement } from './interaction/pick';
+import { marqueeTakes } from './interaction/marquee';
+import type { Footprint } from './interaction/marquee';
 import { MODIFIER_KEY_LABELS, followLinkGesture, independentRoots, toggleSelected } from './interaction/selection';
 import { easing, embedIn, embeddedCamera, phase } from './interaction/transitions';
 import { computeBounds } from './model/bounds';
@@ -561,6 +563,8 @@ export class Engine {
         beginMove: (screen) => this.beginMove(screen),
         moveTo: (screen, options) => this.moveTo(screen, options.snap),
         endMove: () => this.endMove(),
+        canMarquee: (screen) => !!this.editablePage() && !this.pickAt(screen),
+        selectInRect: (rect, options) => this.selectInRect(rect, options),
         editSelection: () => this.editLabel(),
         deleteSelection: () => this.deleteSelection(),
         canDeleteSelection: () => {
@@ -1445,6 +1449,57 @@ export class Engine {
     this.syncSelectionAnimation();
     this.events.emit('selectionChange', this.selection);
     this.emitModeHint();
+  }
+
+  /**
+   * Sélection par zone (ticket 60) : éléments visibles de la page courante dont l'emprise à l'écran
+   * (volume compris en iso) est dans le rectangle — ou le touche (`touch`). Un élément pris avec son
+   * conteneur n'est pas sélectionné à part. `add` : ajoute à la sélection au lieu de la remplacer.
+   */
+  selectInRect(rect: Rect, options: { add: boolean; touch: boolean }): void {
+    const page = this.getCurrentPage();
+    if (!page) return;
+    const hiddenLayers = new Set(page.layers.filter((l) => !l.visible).map((l) => l.id));
+    const candidates: PickedElement[] = [
+      ...page.shapes
+        // Les groupes sont invisibles : on prend leurs formes (sauf s'ils portent un lien, comme au clic).
+        .filter((s) => s.kind !== 'group' || s.link)
+        .map((element) => ({ type: 'shape' as const, element })),
+      ...page.edges.map((element) => ({ type: 'edge' as const, element })),
+    ].filter(({ element }) => element.visible && !hiddenLayers.has(element.layerId));
+    const taken = candidates.filter((item) => {
+      const footprint = this.screenFootprint(item);
+      return footprint !== undefined && marqueeTakes(footprint, rect, options.touch);
+    });
+    const ids = new Set(taken.map((item) => item.element.id));
+    const parentOf = new Map(page.shapes.map((s) => [s.id, s.parentId]));
+    const hasTakenAncestor = (id: string | undefined): boolean =>
+      id !== undefined && (ids.has(id) || hasTakenAncestor(parentOf.get(id)));
+    const roots = taken
+      .filter((item) => !hasTakenAncestor(item.element.parentId))
+      .sort((a, b) => a.element.z - b.element.z);
+    const current = options.add && this.selection?.pageId === page.id ? this.selection.items : [];
+    const kept = current.filter((item) => !roots.some((r) => r.element.id === item.element.id));
+    this.selectItems([...kept, ...roots]);
+  }
+
+  /** Emprise à l'écran d'un élément : base et dessus d'une forme, tracé d'une flèche. */
+  private screenFootprint(item: PickedElement): Footprint | undefined {
+    const top = this.elementTop(item.element.id);
+    if (item.type === 'shape') {
+      const { x, y, width, height } = item.element.bounds;
+      const corners = [
+        { x, y },
+        { x: x + width, y },
+        { x: x + width, y: y + height },
+        { x, y: y + height },
+      ];
+      const heights = top === 0 ? [0] : [0, top];
+      return { points: heights.flatMap((h) => corners.map((p) => this.screenOfPoint(p, h))), closed: true };
+    }
+    const route = this.sceneObject(item.element.id)?.userData.route as Point[] | undefined;
+    if (!route?.length) return undefined;
+    return { points: route.map((p) => this.screenOfPoint(p, top)), closed: false };
   }
 
   /** La sélection compte-t-elle plusieurs éléments ? */

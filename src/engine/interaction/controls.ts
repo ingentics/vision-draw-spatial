@@ -1,6 +1,7 @@
-import type { Point } from '../model/types';
+import type { Point, Rect } from '../model/types';
 import { dragGround, orbit, panByScreen, zoomAt } from './camera';
 import type { CameraState, Viewport } from './camera';
+import { rectBetween } from './marquee';
 import { followLinkGesture, hasFollowLinkKey, hasMultiSelectKey, isModifierKeyEvent } from './selection';
 import type { FollowLinkGesture, FollowLinkKey, MultiSelectKey } from './selection';
 
@@ -264,6 +265,13 @@ export interface CameraHost {
   /** `snap` : aimanter à la grille (désactivé en maintenant Alt, comme dans draw.io). */
   moveTo?(screen: Point, options: { snap: boolean }): void;
   endMove?(): void;
+  /**
+   * Appui gauche sur le vide (rien à déplacer) : vrai si l'on peut y tirer un rectangle de sélection
+   * (ticket 60) ; au relâchement, `selectInRect` reçoit le rectangle écran.
+   */
+  canMarquee?(screen: Point): boolean;
+  /** `add` : touche de sélection multiple (ajoute à la sélection) ; `touch` : Alt (il suffit de toucher). */
+  selectInRect?(rect: Rect, options: { add: boolean; touch: boolean }): void;
   /** F2 : éditer le label de la sélection. */
   editSelection?(): void;
   /** Suppr (ou le raccourci `deleteSelection`) : supprimer la sélection. */
@@ -277,7 +285,7 @@ export interface CameraHost {
 /** Au-delà de ce déplacement (px), un appui-relâché n'est plus un clic. */
 const CLICK_SLOP = 4;
 
-type DragMode = 'pan' | 'move' | 'orbit';
+type DragMode = 'pan' | 'move' | 'orbit' | 'marquee';
 
 export class CameraController {
   private settings: ControlSettings;
@@ -303,6 +311,8 @@ export class CameraController {
   /** Instant du dernier Ctrl+clic traité par le menu contextuel (pour ne pas le compter deux fois). */
   private ctrlClickAt = -Infinity;
   private enabled = true;
+  /** Rectangle de sélection affiché pendant le glisser (ticket 60). */
+  private marquee: HTMLDivElement | undefined;
 
   constructor(
     private readonly element: HTMLElement,
@@ -351,6 +361,7 @@ export class CameraController {
 
   dispose(): void {
     cancelAnimationFrame(this.frame);
+    this.showMarquee(undefined);
     const el = this.element;
     el.removeEventListener('wheel', this.onWheel);
     el.removeEventListener('pointerdown', this.onPointerDown);
@@ -393,6 +404,7 @@ export class CameraController {
     else if (event.button === 1 || event.button === 2) mode = 'pan';
     else if (event.button === 0 && this.spaceDown) mode = 'pan';
     else if (event.button === 0 && this.host.beginMove?.(this.localPoint(event))) mode = 'move';
+    else if (event.button === 0 && this.host.canMarquee?.(this.localPoint(event))) mode = 'marquee';
     if (!mode) return;
 
     event.preventDefault();
@@ -428,6 +440,12 @@ export class CameraController {
       this.host.moveTo?.(point, { snap: !event.altKey });
       return;
     }
+    if (drag.mode === 'marquee') {
+      if (!drag.moving && distance(drag.start, point) <= CLICK_SLOP) return;
+      drag.moving = true;
+      this.showMarquee(rectBetween(drag.start, point));
+      return;
+    }
     const delta = { x: point.x - drag.last.x, y: point.y - drag.last.y };
     const previous = drag.last;
     drag.last = point;
@@ -454,6 +472,15 @@ export class CameraController {
       this.startLoop();
     } else if (this.drag.mode === 'move') {
       this.host.endMove?.();
+    } else if (this.drag.mode === 'marquee') {
+      this.showMarquee(undefined);
+      // Sous le seuil, c'est un clic (il désélectionne) : rien à faire ici.
+      if (this.drag.moving && event.type !== 'pointercancel') {
+        this.host.selectInRect?.(rectBetween(this.drag.start, this.localPoint(event)), {
+          add: hasMultiSelectKey(event, this.settings.multiSelectKey),
+          touch: event.altKey,
+        });
+      }
     }
     this.samples = [];
     this.drag = undefined;
@@ -668,6 +695,34 @@ export class CameraController {
     this.host.setCameraState(next);
     this.frame = requestAnimationFrame(this.tick);
   };
+
+  /** Rectangle de sélection par-dessus le canvas (contour bleu, fond bleu translucide, comme draw.io). */
+  private showMarquee(rect: Rect | undefined): void {
+    if (!rect) {
+      this.marquee?.remove();
+      this.marquee = undefined;
+      return;
+    }
+    if (!this.marquee) {
+      this.marquee = document.createElement('div');
+      Object.assign(this.marquee.style, {
+        position: 'fixed',
+        pointerEvents: 'none',
+        boxSizing: 'border-box',
+        border: '1px solid rgba(0, 119, 255, 0.9)',
+        background: 'rgba(0, 119, 255, 0.15)',
+        zIndex: '10',
+      });
+      document.body.appendChild(this.marquee);
+    }
+    const origin = this.element.getBoundingClientRect();
+    Object.assign(this.marquee.style, {
+      left: `${origin.left + rect.x}px`,
+      top: `${origin.top + rect.y}px`,
+      width: `${rect.width}px`,
+      height: `${rect.height}px`,
+    });
+  }
 
   private localPoint(event: MouseEvent): Point {
     const rect = this.element.getBoundingClientRect();
