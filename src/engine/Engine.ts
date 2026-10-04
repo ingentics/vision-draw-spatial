@@ -2922,6 +2922,8 @@ export class Engine {
       for (const [key, value] of changes) if (value === undefined) delete next[key];
       this.labelEditing = { ...editing, style: next as Record<string, string> };
       this.events.emit('labelEdit', this.labelEditing);
+      // Position du texte changée : l'éditeur suit le texte à sa nouvelle place.
+      this.relocateLabelEdit();
     }
   }
 

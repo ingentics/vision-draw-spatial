@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
+import { LABEL_PLACES, labelPlaceName, labelPlaceOf } from '../engine/edit/labelPosition';
+import type { LabelPlace } from '../engine/edit/labelPosition';
 import { matchesTextPreset } from '../engine/edit/styles';
 import type { TextPreset } from '../engine/edit/styles';
 import { isMonospace } from '../engine/format/richText';
@@ -13,6 +15,7 @@ export type TextAction =
   | { type: 'color'; color: string | undefined }
   | { type: 'preset'; preset: TextPreset }
   | { type: 'align'; key: 'align' | 'verticalAlign'; value: string }
+  | { type: 'place'; place: LabelPlace }
   | { type: 'fit'; on: boolean };
 
 /** Texte en cours d'édition en place, vu par le panneau de format. */
@@ -242,6 +245,10 @@ export function TextFormatSections({ edit }: { edit: TextEdit }) {
               </span>
             </div>
           }
+          {/* Texte d'une forme : dans la forme ou autour (comme le menu « Position » de draw.io). */}
+          {canFit && (
+            <LabelPlaceGrid current={labelPlaceOf(style)} onPlace={(place) => onAction({ type: 'place', place })} />
+          )}
         </fieldset>
       </Section>
       <p className="panel-hint">
@@ -260,7 +267,7 @@ function formatSize(size: number): string {
 
 /** Clés de style de tout le texte pour une action, et mises en forme partielles qu'elle remplace. */
 export function wholeTextChange(
-  action: Exclude<TextAction, { type: 'align' } | { type: 'fit' }>,
+  action: Exclude<TextAction, { type: 'align' } | { type: 'place' } | { type: 'fit' }>,
   style: Record<string, string>,
 ): {
   patch: Record<string, string | undefined>;
@@ -291,6 +298,47 @@ export function wholeTextChange(
 }
 
 /** Bouton de format : ne prend pas le focus (la saisie et la sélection restent dans le texte). */
+/** Petite forme au centre de chaque case, et trait du texte à sa place (dedans ou autour). */
+const PLACE_X = { left: [1, 4], center: [6, 10], right: [12, 15] } as const;
+const PLACE_Y = { top: 2, middle: 8, bottom: 14 } as const;
+
+/** Position du texte : grille 3 × 3, au milieu dans la forme ou collé à un côté ou un coin. */
+function LabelPlaceGrid({ current, onPlace }: { current: LabelPlace; onPlace: (place: LabelPlace) => void }) {
+  return (
+    <div className="field-row">
+      Position
+      <span className="label-place-grid" role="radiogroup" aria-label="Position du texte">
+        {LABEL_PLACES.map((place) => {
+          const [x1, x2] = PLACE_X[place.horizontal];
+          const y = PLACE_Y[place.vertical];
+          const name = labelPlaceName(place);
+          const checked = place.horizontal === current.horizontal && place.vertical === current.vertical;
+          return (
+            <button
+              key={`${place.vertical}-${place.horizontal}`}
+              type="button"
+              role="radio"
+              className="group-button format-button"
+              aria-checked={checked}
+              aria-label={name}
+              title={name}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => {
+                if (!checked) onPlace(place);
+              }}
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <rect x="5" y="5" width="6" height="6" className="label-place-shape" />
+                <path d={`M${x1} ${y}H${x2}`} className="label-place-text" />
+              </svg>
+            </button>
+          );
+        })}
+      </span>
+    </div>
+  );
+}
+
 function FormatButton({
   label,
   pressed,

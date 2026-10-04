@@ -31,6 +31,7 @@ import { ContextPanel, contextTitle } from './ContextPanel';
 import { Sidebar } from './Sidebar';
 import type { Settings, SettingsPatch } from '../engine/settings';
 import { GRAPH_PAGE_ID } from '../engine/graph/graphPage';
+import { labelPlacePatch } from '../engine/edit/labelPosition';
 import { usedTemplates } from '../engine/edit/palette';
 
 const FONTS = {
@@ -374,6 +375,10 @@ export function Viewer({
       if (cellId) engine?.setTextFormat(cellId, { [action.key]: action.value });
       return;
     }
+    if (action.type === 'place') {
+      if (cellId) engine?.setTextFormat(cellId, labelPlacePatch(action.place));
+      return;
+    }
     if (action.type === 'fit') {
       if (cellId) engine?.setTextFormat(cellId, { fitText: action.on ? '1' : undefined });
       return;
@@ -642,11 +647,11 @@ export function Viewer({
                       'Tracé',
                     )
                   }
-                  onShapeStyle={(patch, label) =>
+                  onShapeStyle={(patch) =>
                     engine?.setElementsStyle(
                       selected.shapes.map((shape) => shape.id),
                       patch,
-                      label ?? 'Bordure',
+                      'Bordure',
                     )
                   }
                   onTextAnchor={(cellId, anchor) =>
