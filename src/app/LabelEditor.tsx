@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties, MutableRefObject, RefObject } from 'react';
-import type { LabelEditRequest } from '../engine/Engine';
+import type { LabelEditPlane, LabelEditRequest } from '../engine/Engine';
 import { isMonospace, isRich, parseColor, parseRichHtml, richToHtml, richToText } from '../engine/format/richText';
+import { homographyCss, rectToQuad } from '../engine/render/geometry/homography';
 import { largestFitting, MIN_FIT_SIZE } from '../engine/render/richLayout';
 import type { TextMarks } from '../engine/model/types';
 
@@ -168,10 +169,12 @@ export function LabelEditor({
       onFitSizeRef.current?.(undefined);
       return;
     }
-    // Boîte sans ses marges (2 pixels de page, agrandis au zoom de la vue).
+    // Mesure en pixels de page, la boîte sans sa transformation (agrandissement, ou plan en perspective) ;
+    // boîte sans ses marges (2 pixels de page).
+    const transform = frame.style.transform;
+    frame.style.transform = 'none';
     const outer = frame.getBoundingClientRect();
-    const padding = 2 * request.scale;
-    const room = { width: outer.width - 2 * padding + 0.5, height: outer.height - 2 * padding + 0.5 };
+    const room = { width: outer.width - 4 + 0.5 / request.scale, height: outer.height - 4 + 0.5 / request.scale };
     const fits = (size: number) => {
       editor.style.zoom = String(size / baseSize);
       const rect = editor.getBoundingClientRect();
@@ -179,6 +182,7 @@ export function LabelEditor({
     };
     const size = fits(baseSize) ? baseSize : largestFitting(Math.max(Math.ceil(baseSize) - 1, MIN_FIT_SIZE), fits);
     editor.style.zoom = String(size / baseSize);
+    frame.style.transform = transform;
     onFitSizeRef.current?.(size);
   };
   const { width: screenWidth, height: screenHeight } = request.screen;
@@ -269,8 +273,21 @@ export function LabelEditor({
   const [shift, setShift] = useState({ x: 0, y: 0 });
   const shiftRef = useRef(shift);
   shiftRef.current = shift;
-  const { x: left, y: top, width, height } = request.screen;
+  const { plane } = request;
+  // Forme vue de biais : la boîte part du coin haut-gauche de sa zone de texte à l'écran.
+  const {
+    x: left,
+    y: top,
+    width,
+    height,
+  } = plane ? { ...request.screen, x: plane.corners[0].x, y: plane.corners[0].y } : request.screen;
+  const onPlane = !!plane;
   useLayoutEffect(() => {
+    // Plaquée sur un plan en perspective : pas de décalage (le texte quitterait la forme).
+    if (onPlane) {
+      setShift({ x: 0, y: 0 });
+      return;
+    }
     const element = box.current;
     const area = element?.offsetParent as HTMLElement | null;
     if (!element || !area) return;
@@ -283,7 +300,7 @@ export function LabelEditor({
       x: clamp(rect.left - origin.left - shiftRef.current.x, rect.width, area.clientWidth),
       y: clamp(rect.top - origin.top - shiftRef.current.y, rect.height, area.clientHeight),
     });
-  }, [left, top]);
+  }, [left, top, onPlane]);
 
   const { style, scale, onEdge } = request;
   const bits = Number(style.fontStyle) || 0;
@@ -302,11 +319,12 @@ export function LabelEditor({
       ? { padding: 1, minWidth: 8, transform: `scale(${scale}) translate(${anchorShift}, ${anchorShiftY})` }
       : {
           // Exactement l'emprise de la forme (même étroite) : le texte qui dépasse déborde, centré
-          // selon son alignement, comme le label dessiné.
-          width: width / scale,
-          height: height / scale,
+          // selon son alignement, comme le label dessiné. Vue de biais : la zone de texte en pixels de
+          // page, plaquée sur ses coins à l'écran (homographie), dans le plan et le sens du label.
+          width: plane ? plane.width : width / scale,
+          height: plane ? plane.height : height / scale,
           padding: 2,
-          transform: `scale(${scale})`,
+          transform: plane ? planeTransform(plane) : `scale(${scale})`,
           justifyContent:
             style.verticalAlign === 'top' ? 'flex-start' : style.verticalAlign === 'bottom' ? 'flex-end' : 'center',
         }),
@@ -468,6 +486,13 @@ function TextTools({
       )}
     </div>
   );
+}
+
+/** Transformation CSS qui plaque la zone de texte (pixels de page) sur ses coins à l'écran. */
+function planeTransform(plane: LabelEditPlane): string {
+  const [origin] = plane.corners;
+  const corners = plane.corners.map((p) => ({ x: p.x - origin.x, y: p.y - origin.y }));
+  return homographyCss(rectToQuad(plane.width, plane.height, corners));
 }
 
 function select(range: Range): void {

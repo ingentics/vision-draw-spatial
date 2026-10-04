@@ -15,6 +15,7 @@ export type {
   EngineEvents,
   EngineOptions,
   InitialView,
+  LabelEditPlane,
   LabelEditRequest,
   ModeHint,
   Selection,

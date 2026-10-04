@@ -269,6 +269,12 @@ export interface LabelEditRequest {
   text: string;
   screen: Rect;
   /**
+   * Forme vue de biais ou tournée (iso, volume, vue inclinée ou pivotée) : sa zone de texte, en pixels de
+   * page, et ses quatre coins à l'écran (haut-gauche, haut-droit, bas-droit, bas-gauche), là où le label est
+   * dessiné. L'éditeur s'y plaque (même plan, même sens). Absent : vue de dessus, `screen` suffit.
+   */
+  plane?: LabelEditPlane;
+  /**
    * Cellule dont le style porte le format du texte (la forme, l'arête, ou le label enfant d'un début /
    * fin) ; absente quand le texte n'existe pas encore (début / fin à créer) : pas de format possible.
    */
@@ -298,6 +304,13 @@ export interface LabelEditRequest {
   /** Épaisseur et flou du halo, en pixels de page. */
   haloWidth?: number;
   haloBlur?: number;
+}
+
+/** Plan du texte d'une forme à l'écran (`LabelEditRequest.plane`). */
+export interface LabelEditPlane {
+  width: number;
+  height: number;
+  corners: [Point, Point, Point, Point];
 }
 
 /** Glisser d'édition en cours (SPEC §14.1). */
@@ -2701,6 +2714,7 @@ export class Engine {
       elementId: element.id,
       text: element.label,
       screen: rect,
+      plane: this.labelEditPlane(element.id),
       styleCellId: element.id,
       style: element.style,
       html: element.style.html === '1' ? cellLabelValue(editable.pageTree, element.id) : undefined,
@@ -2802,6 +2816,25 @@ export class Engine {
   }
 
   /**
+   * Plan du texte d'une forme vue de biais ou tournée : sa zone de texte et ses coins projetés à l'écran,
+   * à la hauteur où le label est dessiné. Vue de dessus non tournée : undefined (rectangle `screen`).
+   */
+  private labelEditPlane(elementId: string): LabelEditPlane | undefined {
+    const { tilt, rotation, fov } = this.cameraState;
+    if (tilt === 0 && rotation === 0 && fov === undefined) return undefined;
+    const shape = this.getCurrentPage()?.shapes.find((s) => s.id === elementId);
+    if (!shape) return undefined;
+    const { x, y, width, height } = this.registry.textZone(shape, this.scenes.current?.level ?? 'flat');
+    const top = this.elementTop(elementId);
+    const at = (px: number, py: number) => this.screenOfPoint({ x: px, y: py }, top);
+    return {
+      width,
+      height,
+      corners: [at(x, y), at(x + width, y), at(x + width, y + height), at(x, y + height)],
+    };
+  }
+
+  /**
    * La vue a bougé ou changé de taille (panneau latéral, fenêtre) pendant une édition en place :
    * l'éditeur suit l'élément (nouvelle emprise et taille du texte).
    */
@@ -2812,9 +2845,11 @@ export class Engine {
     if (!screen) return;
     const scale = this.textScale(editing.elementId);
     // La bascule disparaît dès que le texte est placé à la main (glisser de sa poignée).
-    const next = this.withFlip({ ...editing, screen, scale });
+    const plane = editing.onEdge ? undefined : this.labelEditPlane(editing.elementId);
+    const next = this.withFlip({ ...editing, screen, scale, plane });
     const same = (a: Rect, b: Rect) => a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
-    if (same(screen, editing.screen) && scale === editing.scale && next.flip === editing.flip) return;
+    const samePlane = JSON.stringify(plane) === JSON.stringify(editing.plane);
+    if (same(screen, editing.screen) && samePlane && scale === editing.scale && next.flip === editing.flip) return;
     this.labelEditing = next;
     this.events.emit('labelEdit', this.labelEditing);
   }
