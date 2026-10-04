@@ -207,10 +207,11 @@ describe('mode Séquences : réglages déclarés et habillage', () => {
     expect(badge('libre')).toBeUndefined();
     expect(badge('login')!.userData.billboard).toBe('screen');
     const badgeTexts = texts.filter((spec) => spec.bold && /^\d+$/.test(spec.text));
+    expect(badgeTexts.every((spec) => spec.color.getHexString() === 'ffffff')).toBe(true);
     // login (texte « login ») : pastille normale ; lecture (sans texte) : plus petite.
     expect(badgeTexts.map((spec) => [spec.text, spec.fontSize])).toEqual(
       expect.arrayContaining([
-        ['1', 10],
+        ['1', 20],
         ['2', 7],
       ]),
     );

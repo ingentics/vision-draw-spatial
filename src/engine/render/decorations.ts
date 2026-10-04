@@ -70,7 +70,7 @@ export function linkBadge(shape: ShapeModel, link: LinkModel, accent = DEFAULT_A
 }
 
 /** Pastille d'une flèche : rayon et taille du texte, au-dessus d'un texte ou seule au milieu de la flèche. */
-const EDGE_BADGE = { labelled: { radius: 8, fontSize: 10 }, alone: { radius: 5.5, fontSize: 7 } };
+const EDGE_BADGE = { labelled: { radius: 16, fontSize: 20 }, alone: { radius: 5.5, fontSize: 7 } };
 /** Écart entre la pastille et le texte du milieu, en pixels de page. */
 const EDGE_BADGE_GAP = 2;
 
@@ -111,21 +111,13 @@ export function edgeBadge(edge: EdgeModel, route: Point[], badge: EdgeBadge, ctx
     anchorY: 'middle',
     align: 'center',
     fontSize,
-    color: new Color(contrastText(badge.color)),
+    color: WHITE,
     opacity: 1,
     bold: true,
   });
   text.renderOrder = PART_ORDER.label + 1.5;
   group.add(disc, text);
   return group;
-}
-
-/** Texte lisible sur un fond : noir sur une couleur claire, blanc sinon (luminance relative, WCAG). */
-export function contrastText(background: string): string {
-  const { r, g, b } = new Color(background); // composantes linéaires
-  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-  // Contraste égal avec le blanc et le noir pour une luminance d'environ 0,18.
-  return luminance > 0.18 ? '#000000' : '#ffffff';
 }
 
 /**
