@@ -87,7 +87,7 @@ export interface PageDressing {
 /** Pastille ronde d'une flèche : au-dessus de son texte du milieu, plus petite au milieu de la flèche sans texte. */
 export interface EdgeBadge {
   text: string;
-  /** Fond (#rrggbb) ; le texte est blanc. */
+  /** Fond (#rrggbb) ; le texte est noir. */
   color: string;
 }
 

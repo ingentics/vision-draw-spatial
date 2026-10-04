@@ -74,7 +74,7 @@ const EDGE_BADGE = {
   labelled: { radius: 12, fontSize: 15 },
   alone: { radius: 5.5, fontSize: 7 },
 };
-/** Bordure de la pastille : noire, 1 px de page. */
+/** Bordure et chiffre de la pastille : noirs (lisibles sur les fonds pastel) ; bordure de 1 px de page. */
 const EDGE_BADGE_BORDER = new Color('#000000');
 const EDGE_BADGE_BORDER_WIDTH = 1;
 /**
@@ -121,7 +121,7 @@ export function edgeBadge(edge: EdgeModel, route: Point[], badge: EdgeBadge, ctx
     anchorY: 'bottom-baseline',
     align: 'center',
     fontSize,
-    color: WHITE,
+    color: EDGE_BADGE_BORDER,
     opacity: 1,
     bold: true,
   });
