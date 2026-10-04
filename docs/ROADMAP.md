@@ -286,10 +286,10 @@ clic, accroche des flèches), comparaison visuelle avec l'export draw.io.
   sur celui de draw.io (`DRAWIO_SVG` du Makefile, test `edgeEndsFixture`).
 
 ### Étape 25 — Découpage en morceaux
-- Préalable : interprétation des points des flèches orthogonales **alignée sur draw.io** (un point fixe la position
-  d'un segment, il ne force pas un passage exact), sinon un segment déplacé ici serait ailleurs dans draw.io. Le
-  routeur orthogonal lui-même diffère encore au milieu du tracé : `e8` de `edge-ends.drawio` (sortie à droite, entrée
-  par le bas) tourne à x = 180 / y = 340 chez nous, 240 / 330 dans draw.io (`KNOWN_ROUTE_DIFFERENCES`, à vider).
+- ✅ Préalable : tracé **aligné sur draw.io**. Les routeurs de draw.io sont portés tels quels (`route.ts`, mxGraph
+  Apache 2.0 : orthogonal, segments, coudes, côte à côte, haut en bas, relation d'entités, boucle ; bouts fixes puis
+  flottants) ; fixture `edge-routing.drawio` (144 tracés) exportée en SVG par draw.io (`make drawio-check`) : tous
+  tombent au pixel près sur les nôtres (test `routingFixture`).
 - **Orthogonale** : une poignée au milieu de chaque segment, glissée perpendiculairement ; le segment devient un point
   de passage, le reste reste automatique.
 - **Droite / courbe** : points de passage déplaçables et poignées « fantômes » au milieu de chaque morceau (tirer =

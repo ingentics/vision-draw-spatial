@@ -164,7 +164,12 @@ function edgeLabelBackdrop(style: Record<string, string>, ctx: RenderContext) {
   return kind === 'halo' ? { halo: { color: page, width: haloWidth, blur: haloBlur } } : {};
 }
 
-function toTerminal(shape: ShapeModel | undefined): Terminal | undefined {
+export function toTerminal(shape: ShapeModel | undefined): Terminal | undefined {
   if (!shape) return undefined;
-  return { bounds: shape.bounds, perimeter: shape.kind === 'ellipse' ? 'ellipse' : 'rectangle' };
+  return {
+    bounds: shape.bounds,
+    perimeter: shape.kind === 'ellipse' ? 'ellipse' : 'rectangle',
+    style: shape.style,
+    id: shape.id,
+  };
 }

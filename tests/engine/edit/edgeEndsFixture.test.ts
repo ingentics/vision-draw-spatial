@@ -7,7 +7,7 @@ import { readDrawio } from '../../../src/engine/format/parse';
 import { writeDrawio } from '../../../src/engine/format/write';
 import { routeEdge, simplify } from '../../../src/engine/render/edges/route';
 import type { Point } from '../../../src/engine/model/types';
-import { fixture } from '../../helpers';
+import { drawioSvgRoutes, dropCollinear, fixture } from '../../helpers';
 
 /**
  * Fixture `edge-ends.drawio` (étape 24) : chaque cas d'attache d'un bout de flèche, écrit par le moteur
@@ -108,33 +108,16 @@ describe('fixture edge-ends.drawio', () => {
   }
 });
 
-/**
- * Tracés de draw.io (export SVG de `make drawio-check`, `drawio-saved/edge-ends.svg`) : chemin de chaque
- * flèche (`data-cell-id`), ramené en coordonnées de page (l'export est décalé sur l'emprise du dessin,
- * mesurée sur la forme `a`).
- */
-function drawioRoutes(svg: string): Map<string, Point[]> {
-  const shift = /data-cell-id="a".*?<rect x="([-\d.]+)" y="([-\d.]+)"/s.exec(svg)!;
-  const dx = 40 - parseFloat(shift[1]!);
-  const dy = 40 - parseFloat(shift[2]!);
-  const routes = new Map<string, Point[]>();
-  for (const match of svg.matchAll(/data-cell-id="(e\d+)".*?<path d="([^"]*)"/gs)) {
-    const numbers = match[2]!.match(/-?[\d.]+/g)!.map(Number);
-    const points: Point[] = [];
-    for (let i = 0; i + 1 < numbers.length; i += 2) points.push({ x: numbers[i]! + dx, y: numbers[i + 1]! + dy });
-    routes.set(match[1]!, points);
-  }
-  return routes;
-}
-
 const SVG = fileURLToPath(new URL('../../fixtures/drawio-saved/edge-ends.svg', import.meta.url));
 
-/** Tracés dont le milieu diffère encore de draw.io (étape 25 : routeur orthogonal aligné sur draw.io). */
-const KNOWN_ROUTE_DIFFERENCES = new Set(['e8']);
+/** Tracés dont le milieu diffère encore de draw.io. */
+const KNOWN_ROUTE_DIFFERENCES = new Set<string>();
 
 describe.runIf(existsSync(SVG))('edge-ends.drawio : même tracé que draw.io (export SVG)', () => {
   const page = readDrawio(fixture('edge-ends.drawio')).document.pages[0]!;
-  const routes = drawioRoutes(fixture('drawio-saved/edge-ends.svg'));
+  const routes = drawioSvgRoutes(fixture('drawio-saved/edge-ends.svg'), { id: 'a', x: 40, y: 40 }, (id) =>
+    id.startsWith('e'),
+  );
   const terminal = (id: string | undefined) => {
     const shape = page.shapes.find((s) => s.id === id);
     return (
@@ -167,7 +150,7 @@ describe.runIf(existsSync(SVG))('edge-ends.drawio : même tracé que draw.io (ex
     });
     (KNOWN_ROUTE_DIFFERENCES.has(id) ? it.fails : it)(`${id} : même tracé`, () => {
       const ours = ourRoute(id);
-      const theirs = simplify(routes.get(id)!);
+      const theirs = dropCollinear(simplify(routes.get(id)!));
       expect(ours.length, JSON.stringify({ ours, theirs })).toBe(theirs.length);
       ours.forEach((p, i) => expect(near(p, theirs[i]!), JSON.stringify({ ours, theirs })).toBe(true));
     });

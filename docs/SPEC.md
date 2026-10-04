@@ -370,10 +370,11 @@ Ajouter une forme = **écrire sa définition et l'enregistrer** (au minimum `fla
 - Connecteurs (arêtes) : segments, points intermédiaires, flèche de fin,
 - Couleurs de remplissage, de bordure, épaisseur de trait, pointillés, label centré.
 
-**Connecteurs.** draw.io n'enregistre que les points intermédiaires posés par l'utilisateur : le tracé (coudes, points d'attache) est **recalculé à l'affichage**, de façon simplifiée mais déterministe :
+**Connecteurs.** draw.io n'enregistre que les points intermédiaires posés par l'utilisateur : le tracé (coudes, points d'attache) est **recalculé à l'affichage**, avec les **algorithmes de draw.io portés tels quels** (`render/edges/route.ts`, d'après mxGraph, Apache 2.0) : une flèche s'affiche comme dans draw.io, et un point posé ici y reste au même endroit :
 
-- styles : droit (de contour à contour), `orthogonalEdgeStyle` / `segmentEdgeStyle`, `elbowEdgeStyle` (horizontal / vertical) et ses variantes ; un style inconnu est approché par l'orthogonal et journalisé (§8.4) ;
-- points d'attache imposés (`exitX/exitY`, `entryX/entryY` et décalages), formes en vis-à-vis (segment droit), arrivée sur la cible **sans demi-tour** ;
+- styles : droit (de contour à contour, par les points intermédiaires), `orthogonalEdgeStyle` (routeur local de draw.io ; avec des points intermédiaires, `segmentEdgeStyle`), `segmentEdgeStyle`, `elbowEdgeStyle` (horizontal / vertical, bascule selon le point intermédiaire), `sideToSideEdgeStyle`, `topToBottomEdgeStyle`, `entityRelationEdgeStyle`, boucles (`loopEdgeStyle`) ; un style inconnu est approché par l'orthogonal et journalisé (§8.4) ;
+- bouts comme draw.io : points d'attache imposés (`exitX/exitY`, `entryX/entryY`, décalages, projection sur le contour sauf `exitPerimeter=0`), extrémités libres, puis bouts flottants sur le contour (rectangle ou ellipse) visés depuis le point voisin, projetés dans l'axe pour les styles orthogonaux ; `jettySize` (10 par défaut, `auto`), `portConstraint`, `perimeterSpacing`, `routingCenterX/Y`, `flipH/V` ; non repris : rotation des formes, ports (`sourcePort`) ;
+- **vérifié contre draw.io** : la fixture `edge-routing.drawio` (144 tracés de tous ces styles, dans des positions variées) est exportée en SVG par draw.io (`make drawio-check`) et chaque tracé doit tomber au pixel près sur le nôtre ;
 - pointes `startArrow` / `endArrow` aux proportions draw.io : classic, block, open, oval, diamond (et variantes `Thin`), pleines ou creuses ; une pointe inconnue devient classic et est journalisée ;
 - arêtes arrondies (`rounded=1`) ;
 - labels d'arête (principal et cellules enfants) positionnés comme draw.io, avec un **fond de la couleur de la page** par défaut, qui coupe la ligne.

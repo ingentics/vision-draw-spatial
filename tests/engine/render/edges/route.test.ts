@@ -22,10 +22,8 @@ describe('routingKind', () => {
   it('reconnaît les styles courants et signale les autres', () => {
     expect(routingKind({})).toEqual({ kind: 'straight', supported: true });
     expect(routingKind({ edgeStyle: 'orthogonalEdgeStyle' })).toEqual({ kind: 'orthogonal', supported: true });
-    expect(routingKind({ edgeStyle: 'elbowEdgeStyle', elbow: 'vertical' })).toEqual({
-      kind: 'elbow-vertical',
-      supported: true,
-    });
+    expect(routingKind({ edgeStyle: 'elbowEdgeStyle', elbow: 'vertical' })).toEqual({ kind: 'elbow', supported: true });
+    expect(routingKind({ edgeStyle: 'entityRelationEdgeStyle' })).toEqual({ kind: 'entityRelation', supported: true });
     expect(routingKind({ edgeStyle: 'isometricEdgeStyle' })).toEqual({ kind: 'orthogonal', supported: false });
   });
 });
@@ -59,15 +57,20 @@ describe('routeEdge — orthogonal', () => {
       const [a, b] = [route[i - 1]!, route[i]!];
       expect(a.x === b.x || a.y === b.y).toBe(true);
     }
-    expect(route[route.length - 1]).toEqual({ x: 500, y: 530 }); // côté gauche de la cible
+    // Comme draw.io : un seul coude, entrée par le haut de la cible.
+    expect(route).toEqual([
+      { x: 240, y: 240 },
+      { x: 550, y: 240 },
+      { x: 550, y: 500 },
+    ]);
   });
 
-  it('même côté (bas → bas) : contourne par un U', () => {
+  it('même côté (bas → bas) : contourne par un U, à 10 px (jettySize par défaut)', () => {
     const style = { edgeStyle: 'orthogonalEdgeStyle', exitX: '0.5', exitY: '1', entryX: '0.5', entryY: '1' };
     expect(routeEdge({ source: A, target: B, waypoints: [], style })).toEqual([
       { x: 180, y: 280 },
-      { x: 180, y: 300 },
-      { x: 500, y: 300 },
+      { x: 180, y: 290 },
+      { x: 500, y: 290 },
       { x: 500, y: 280 },
     ]);
   });
@@ -161,10 +164,19 @@ describe('routeEdge — coude', () => {
     const hinted = routeEdge({
       source: A,
       target: C,
-      waypoints: [{ x: 250, y: 0 }],
+      waypoints: [{ x: 250, y: 300 }],
       style: { edgeStyle: 'elbowEdgeStyle' },
     });
     expect(hinted[1]).toEqual({ x: 250, y: 240 });
+    // Point au-dessus des deux formes : draw.io bascule en coude vertical, qui passe par lui.
+    expect(
+      routeEdge({ source: A, target: C, waypoints: [{ x: 250, y: 0 }], style: { edgeStyle: 'elbowEdgeStyle' } }),
+    ).toEqual([
+      { x: 180, y: 200 },
+      { x: 180, y: 0 },
+      { x: 340, y: 0 },
+      { x: 340, y: 400 },
+    ]);
   });
 
   it('vertical', () => {
