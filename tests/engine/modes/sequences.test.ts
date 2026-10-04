@@ -244,6 +244,8 @@ describe('flux courant (sujet 79)', () => {
     expect(current.color!(page(), 'f2')).toBe('#f28e2b');
     expect(current.valid(page(), 'f2')).toBe(true);
     expect(current.valid(page(), 'f9')).toBe(false);
+    expect(current.values!(page())).toEqual(['f1', 'f2', 'f3']);
+    expect(current.label!(page(), 'f2')).toBe('Paiement « carte »');
   });
 
   it('une flèche créée va à la fin du flux courant', () => {

@@ -18,6 +18,7 @@ import { DiagnosticsPanel } from './DiagnosticsPanel';
 import { desktop } from './desktop';
 import { isFilePath } from '../engine/persistence/FsStore';
 import { saveAs, store } from './fileLibrary';
+import { ModeBar } from './ModeBar';
 import { NavigationToolbar } from './NavigationToolbar';
 import { LabelEditor } from './LabelEditor';
 import type { RichEditorHandle, SelectionFormat } from './LabelEditor';
@@ -359,7 +360,7 @@ export function Viewer({
   );
 
   const warnings = document?.warnings ?? [];
-  /** Indicateur du courant du mode de la page (ex. couleur du flux courant), au bas de la zone de dessin. */
+  /** Barre du courant du mode de la page (ex. flux courant), en haut de la zone de dessin. */
   const modeIndicator = pageId !== undefined ? engine?.getModeIndicator(pageId) : undefined;
   const editablePages = document !== undefined && engine?.canEditPages() === true;
   const canAddShapes = pageId !== undefined && pageId !== GRAPH_PAGE_ID;
@@ -552,7 +553,7 @@ export function Viewer({
             engine.focusCanvas();
           }}
         >
-          {modeIndicator && <div className="mode-indicator" style={{ background: modeIndicator }} aria-hidden="true" />}
+          {modeIndicator && <ModeBar indicator={modeIndicator} onChoose={(value) => engine?.setModeCurrent(value)} />}
           {labelEdit && (
             <LabelEditor
               key={`${labelEdit.pageId}:${labelEdit.elementId}:${labelEdit.end ?? ''}`}

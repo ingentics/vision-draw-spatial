@@ -272,6 +272,16 @@ export type EngineEvents = {
 };
 export type EngineEvent = keyof EngineEvents;
 
+/** Barre du courant du mode d'une page (ex. flux courant du mode Séquences). */
+export interface ModeIndicator {
+  value: string;
+  /** #rrggbb */
+  color: string;
+  label: string;
+  /** Valeurs possibles dans l'ordre : boutons précédent / suivant s'il y en a au moins deux. */
+  values: string[];
+}
+
 /** Champ d'édition de label à afficher par l'UI, à l'emprise de l'élément (pixels du canvas). */
 export interface LabelEditRequest {
   pageId: string;
@@ -3143,11 +3153,26 @@ export class Engine {
     return chosen !== undefined && current.valid(page, chosen) ? chosen : current.initial(page);
   }
 
-  /** Couleur de l'indicateur du courant, au bas de la zone de dessin ; undefined = pas d'indicateur. */
-  getModeIndicator(pageId = this.currentPageId): string | undefined {
+  /**
+   * Barre du courant du mode de la page, en haut de la zone de dessin : couleur, libellé, valeurs possibles dans
+   * l'ordre (boutons précédent / suivant). Undefined : pas de barre (pas de mode, pas de courant, pas de couleur).
+   */
+  getModeIndicator(pageId = this.currentPageId): ModeIndicator | undefined {
     const page = pageId ? this.pageById(pageId) : undefined;
+    const current = page && this.modes.modeOf(page)?.current;
     const value = this.getModeCurrent(pageId);
-    return page && value !== undefined ? this.modes.modeOf(page)?.current?.color?.(page, value) : undefined;
+    const color = page && value !== undefined ? current?.color?.(page, value) : undefined;
+    if (!page || !current || value === undefined || !color) return undefined;
+    return { value, color, label: current.label?.(page, value) ?? value, values: current.values?.(page) ?? [] };
+  }
+
+  /** Choisit le courant du mode d'une page (ex. bouton « suivant » de la barre) ; ignoré s'il n'est pas valable. */
+  setModeCurrent(value: string, pageId = this.currentPageId): void {
+    const page = pageId ? this.pageById(pageId) : undefined;
+    const current = page && this.modes.modeOf(page)?.current;
+    if (!page || !current?.valid(page, value) || value === this.getModeCurrent(page.id)) return;
+    this.modeCurrents.set(page.id, value);
+    this.events.emit('modeCurrentChange', page.id, value);
   }
 
   /** Un élément sélectionné seul peut changer le courant du mode (ex. flèche d'un flux). */

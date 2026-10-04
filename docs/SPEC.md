@@ -814,11 +814,12 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   texte du milieu (plus petite au milieu de la flèche sans texte). Taille, bordure, chiffre et assombrissement : paramètres
   « Pastilles des flèches » (§13). Couleur d'un nouveau flux : fonds des styles de forme des paramètres, à partir du
   troisième (`modePalette`, passée aux opérations par `ModeEdit.palette`).
-- **Flux courant** (mode Séquences) : par défaut le premier flux, puis celui de la dernière flèche cliquée (état de
-  session par page, non écrit) ; barre de 3 px de sa couleur au bas de la zone de dessin, flux encadré dans le
-  panneau. Une flèche tirée depuis une forme va à la fin du flux courant (même étape d'annulation). « + » / « - » sur
+- **Flux courant** (mode Séquences) : par défaut le premier flux, puis celui de la dernière flèche cliquée ou choisi
+  dans la barre (état de session par page, non écrit). Barre en haut de la zone de dessin, de la couleur du flux, avec
+  son titre centré (texte noir ou blanc selon le contraste) et, s'il y a au moins deux flux, des boutons précédent /
+  suivant en boucle ; flux encadré dans le panneau. Une flèche tirée depuis une forme va à la fin du flux courant (même étape d'annulation). « + » / « - » sur
   une flèche d'un flux sélectionnée seule : rang suivant / précédent. Cadre générique : `current`, `edgeCreated` et
-  `keys` de `PageModeDefinition`, courant gardé par le moteur (`getModeCurrent`, `getModeIndicator`, événement
+  `keys` de `PageModeDefinition`, courant gardé par le moteur (`getModeCurrent`, `getModeIndicator`, `setModeCurrent`, événement
   `modeCurrentChange`).
 
 ---

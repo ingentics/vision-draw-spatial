@@ -64,6 +64,11 @@ export const definition: PageModeDefinition = {
     valid: (page, value) => sequenceState(page).members.has(value),
     pick: (page, target) => sequenceState(page).placement.get(target.id)?.flowId,
     color: (page, value) => sequenceState(page).flows.find((flow) => flow.id === value)?.color,
+    label: (page, value) => {
+      const flow = sequenceState(page).flows.find((f) => f.id === value);
+      return flow?.title || value;
+    },
+    values: (page) => sequenceState(page).flows.map((flow) => flow.id),
   },
   edgeCreated: (edit, edgeId, current) => {
     if (current !== undefined) setEdgeFlow(edit, edgeId, current);

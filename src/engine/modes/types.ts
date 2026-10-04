@@ -41,8 +41,12 @@ export interface ModeCurrent {
   valid(page: PageModel, value: string): boolean;
   /** Nouveau courant quand un élément est sélectionné seul (ex. flux de la flèche) ; undefined = inchangé. */
   pick?(page: PageModel, target: ModeTarget): string | undefined;
-  /** Couleur de l'indicateur au bas de la zone de dessin (#rrggbb) ; undefined = pas d'indicateur. */
+  /** Couleur de la barre du courant, en haut de la zone de dessin (#rrggbb) ; undefined = pas de barre. */
   color?(page: PageModel, value: string): string | undefined;
+  /** Libellé du courant dans la barre (ex. titre du flux) ; défaut : la valeur. */
+  label?(page: PageModel, value: string): string;
+  /** Valeurs possibles, dans l'ordre (boutons précédent / suivant de la barre) ; défaut : aucune. */
+  values?(page: PageModel): string[];
 }
 
 /** Touche d'un mode sur l'élément sélectionné : opération (une étape d'annulation, libellée `label`). */
