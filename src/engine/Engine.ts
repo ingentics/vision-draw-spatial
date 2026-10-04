@@ -379,11 +379,15 @@ interface LabelDrag {
 /** Ancre d'un texte de flèche : début, milieu ou fin (position le long du tracé). */
 export type EdgeTextAnchor = 'start' | 'middle' | 'end';
 
-/** Style des connecteurs créés (celui de draw.io par défaut). */
-/** Style des connecteurs créés (orthogonal, comme draw.io) ; le tracé vient du paramètre `shapes.edgeLineStyle`. */
-const CONNECTOR_STYLE = 'edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;jettySize=auto;html=1;';
-/** Clés du tracé d'une flèche : angles droits, coudes arrondis, courbe. */
-const EDGE_LINE_KEYS = { sharp: 'rounded=0;', rounded: 'rounded=1;', curved: 'rounded=0;curved=1;' } as const;
+/** Style des connecteurs créés (celui de draw.io par défaut) ; le tracé vient du paramètre `shapes.edgeLineStyle`. */
+const CONNECTOR_STYLE = 'orthogonalLoop=1;jettySize=auto;html=1;';
+/** Clés du tracé d'une flèche : droite (sans routeur), angles droits, coudes arrondis, courbe (orthogonaux). */
+const EDGE_LINE_KEYS = {
+  straight: 'rounded=0;',
+  sharp: 'edgeStyle=orthogonalEdgeStyle;rounded=0;',
+  rounded: 'edgeStyle=orthogonalEdgeStyle;rounded=1;',
+  curved: 'edgeStyle=orthogonalEdgeStyle;rounded=0;curved=1;',
+} as const;
 /** Tolérance d'alignement des points d'une flèche (mxGraph.tolerance de draw.io), en pixels écran. */
 const EDGE_POINT_TOLERANCE = 4;
 
@@ -2912,13 +2916,18 @@ export class Engine {
    * Clés de style draw.io sur des formes ou des flèches de la page courante (ex. bordure : `strokeColor`, `strokeWidth`,
    * `dashed`…), en une étape d'annulation ; undefined retire la clé. Seules les clés qui changent.
    */
-  setElementsStyle(elementIds: string[], patch: Record<string, string | undefined>, label = 'Style'): void {
+  setElementsStyle(
+    elementIds: string[],
+    patch: Record<string, string | undefined> | ((style: Record<string, string>) => Record<string, string | undefined>),
+    label = 'Style',
+  ): void {
     const editable = this.editablePage();
     if (!editable) return;
     // Formes ou flèches (ex. tracé d'une flèche : `rounded`, `curved`).
     const shapes = [...editable.page.shapes, ...editable.page.edges].filter((s) => elementIds.includes(s.id));
+    // Patch calculé élément par élément (ex. routeur orthogonal remis aux seules flèches droites).
     const changes = shapes.flatMap((shape) =>
-      Object.entries(patch)
+      Object.entries(typeof patch === 'function' ? patch(shape.style) : patch)
         .filter(([key, value]) => shape.style[key] !== value)
         .map(([key, value]) => ({ id: shape.id, key, value })),
     );

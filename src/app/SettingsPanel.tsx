@@ -555,6 +555,7 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
               label="Tracé des flèches"
               value={shapes.edgeLineStyle}
               options={[
+                ['straight', 'Droite'],
                 ['sharp', 'Angles droits'],
                 ['rounded', 'Arrondi'],
                 ['curved', 'Courbe'],

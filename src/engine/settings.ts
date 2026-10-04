@@ -126,8 +126,8 @@ export interface ShapeSettings {
   /** Écarts du placement par défaut d'un texte de début / fin : le long de la flèche, et de côté. */
   edgeEndTextGapAlong: number;
   edgeEndTextGapAcross: number;
-  /** Tracé des flèches créées : angles droits, coudes arrondis, ou courbe. */
-  edgeLineStyle: 'sharp' | 'rounded' | 'curved';
+  /** Tracé des flèches créées : droite, angles droits, coudes arrondis, ou courbe. */
+  edgeLineStyle: 'straight' | 'sharp' | 'rounded' | 'curved';
   /**
    * Fond du texte des flèches sans `labelBackgroundColor` explicite : halo de la couleur de la page
    * autour de chaque lettre, fond uni de la couleur de la page, ou transparent.
@@ -363,7 +363,7 @@ const VIEW_MODES = ['top', 'iso', '3d'] as const;
 const REDUCED_MOTION = ['system', 'always', 'never'] as const;
 const SELECTION_STYLES = ['veil', 'outline'] as const;
 const LABEL_BACKDROPS = ['halo', 'solid', 'none'] as const;
-const EDGE_LINES = ['sharp', 'rounded', 'curved'] as const;
+const EDGE_LINES = ['straight', 'sharp', 'rounded', 'curved'] as const;
 const STRIP_TEXT = ['up', 'down'] as const;
 
 /**

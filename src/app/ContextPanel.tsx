@@ -2,6 +2,7 @@ import { anchorOf, edgeTexts, endLabelOf } from '../engine/edit/edgeLabels';
 import type { EdgeTextAnchor } from '../engine/Engine';
 import type { EdgeEnd } from '../engine/edit/edgeLabels';
 import { matchesPreset } from '../engine/edit/styles';
+import { routingKind } from '../engine/render/edges/route';
 import type { StylePreset } from '../engine/edit/styles';
 import type { EdgeModel, LinkModel, PageModel, ShapeModel } from '../engine/model/types';
 import type { StyleSettings } from '../engine/settings';
@@ -28,8 +29,8 @@ export interface ContextPanelProps {
   onApplyStyle: (preset: StylePreset) => void;
   /** Clés de style des formes sélectionnées (bordure : couleur, épaisseur, trait, coins). */
   onShapeStyle: (patch: Record<string, string | undefined>) => void;
-  /** Clés de style des flèches sélectionnées (tracé : angles droits, arrondi, courbe). */
-  onEdgeStyle: (patch: Record<string, string | undefined>) => void;
+  /** Clés de style des flèches sélectionnées (tracé : droite, angles droits, arrondi, courbe), calculées par flèche. */
+  onEdgeStyle: (patch: EdgeStylePatch) => void;
   /** Retour en auto de la flèche : points intermédiaires et points d'attache imposés retirés. */
   onResetRoute: () => void;
   /** Renommer la page ; absent si les pages ne sont pas modifiables. */
@@ -260,13 +261,33 @@ function TextAnchors({
   );
 }
 
-/** Tracé d'une flèche : angles droits, coudes arrondis (par défaut des flèches créées), ou courbe. */
-type EdgeLine = 'sharp' | 'rounded' | 'curved';
+/** Tracé d'une flèche : droite, angles droits, coudes arrondis (par défaut des flèches créées), ou courbe. */
+type EdgeLine = 'straight' | 'sharp' | 'rounded' | 'curved';
 
-const EDGE_LINES: Record<EdgeLine, { label: string; patch: Record<string, string | undefined>; icon: string }> = {
-  sharp: { label: 'Angles droits', patch: { rounded: '0', curved: undefined }, icon: 'M2 13V5h12' },
-  rounded: { label: 'Arrondi', patch: { rounded: '1', curved: undefined }, icon: 'M2 13V8a3 3 0 0 1 3-3h9' },
-  curved: { label: 'Courbe', patch: { rounded: '0', curved: '1' }, icon: 'M2 13C2 7 7 5 14 5' },
+/** Clés de style à écrire sur une flèche, d'après son style actuel. */
+type EdgeStylePatch = (style: Record<string, string>) => Record<string, string | undefined>;
+
+const isStraight = (style: Record<string, string>) => routingKind(style).kind === 'straight';
+
+/** Tracé avec coudes : une flèche droite reprend le routeur orthogonal, les autres gardent le leur. */
+const withRouter =
+  (keys: Record<string, string | undefined>): EdgeStylePatch =>
+  (style) =>
+    isStraight(style) ? { ...keys, edgeStyle: 'orthogonalEdgeStyle', noEdgeStyle: undefined } : keys;
+
+const EDGE_LINES: Record<EdgeLine, { label: string; patch: EdgeStylePatch; icon: string }> = {
+  straight: {
+    label: 'Droite',
+    patch: () => ({ edgeStyle: undefined, noEdgeStyle: undefined, rounded: '0', curved: undefined }),
+    icon: 'M2 13L14 5',
+  },
+  sharp: { label: 'Angles droits', patch: withRouter({ rounded: '0', curved: undefined }), icon: 'M2 13V5h12' },
+  rounded: {
+    label: 'Arrondi',
+    patch: withRouter({ rounded: '1', curved: undefined }),
+    icon: 'M2 13V8a3 3 0 0 1 3-3h9',
+  },
+  curved: { label: 'Courbe', patch: withRouter({ rounded: '0', curved: '1' }), icon: 'M2 13C2 7 7 5 14 5' },
 };
 
 /** Clés de style des points d'attache imposés (`exitX`…, `entryX`…). */
@@ -278,10 +299,17 @@ function EdgeLineSection({
   onResetRoute,
 }: {
   edge: EdgeModel;
-  onChange: (patch: Record<string, string | undefined>) => void;
+  onChange: (patch: EdgeStylePatch) => void;
   onResetRoute: () => void;
 }) {
-  const current: EdgeLine = edge.style.curved === '1' ? 'curved' : edge.style.rounded === '1' ? 'rounded' : 'sharp';
+  const current: EdgeLine =
+    edge.style.curved === '1'
+      ? 'curved'
+      : isStraight(edge.style)
+        ? 'straight'
+        : edge.style.rounded === '1'
+          ? 'rounded'
+          : 'sharp';
   const manual = edge.points.length > 0 || CONSTRAINT_KEYS.some((key) => edge.style[key] !== undefined);
   return (
     <Section title="Tracé">
