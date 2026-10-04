@@ -3,7 +3,7 @@ import { sequenceState } from '../steps';
 import type { SequenceExporter } from './index';
 
 /**
- * Flux en diagramme de séquence PlantUML (sujets 90 à 94). Participants déclarés en tête dans l'ordre de première
+ * Flux en diagramme de séquence PlantUML (sujets 90 à 94, 96 pour tous les flux). Participants déclarés en tête dans l'ordre de première
  * apparition (alias `P1`, `P2`… et `order`), seuls les alias servant ensuite ; une forme `umlActor` est un `actor`, un
  * cylindre une `database`. Une extrémité sans forme entre ou sort du diagramme (`[->`, `->]`).
  *
@@ -28,12 +28,11 @@ interface Call {
   callee: string;
 }
 
-export function sequencePlantUml(page: PageModel, flowId: string): string {
+/** Un flux (`flowId`), ou tous les flux de la page (undefined) : titre de la page, un `== Titre ==` par flux. */
+export function sequencePlantUml(page: PageModel, flowId?: string): string {
   const state = sequenceState(page);
-  const flow = state.flows.find((f) => f.id === flowId);
   const shapes = new Map(page.shapes.map((shape) => [shape.id, shape]));
   const edges = new Map(page.edges.map((edge) => [edge.id, edge]));
-  const order = (state.members.get(flowId) ?? []).map((id) => edges.get(id)!);
 
   const aliases = new Map<string, string>();
   const participants: string[] = [];
@@ -49,12 +48,45 @@ export function sequencePlantUml(page: PageModel, flowId: string): string {
     }
     return name;
   };
+  const flowMessages = (id: string) =>
+    messages(
+      (state.members.get(id) ?? []).map((edgeId) => edges.get(edgeId)!),
+      alias,
+    );
 
-  const messages: string[] = [];
+  let title: string | undefined;
+  let body: string[];
+  if (flowId === undefined) {
+    title = page.name;
+    // Un flux par section, séparées d'une ligne vide.
+    body = state.flows.flatMap((flow, i) => [
+      ...(i > 0 ? [''] : []),
+      `== ${oneLine(flow.title || flow.id)} ==`,
+      ...flowMessages(flow.id),
+    ]);
+  } else {
+    title = state.flows.find((f) => f.id === flowId)?.title;
+    body = flowMessages(flowId);
+  }
+
+  return [
+    '@startuml',
+    ...(title ? [`title ${oneLine(title)}`] : []),
+    ...participants,
+    ...(participants.length > 0 && body.length > 0 ? [''] : []),
+    ...body,
+    '@enduml',
+    '',
+  ].join('\n');
+}
+
+/** Messages d'un flux (flèches dans l'ordre des rangs), sur une pile d'appels refermée à la fin. */
+function messages(order: EdgeModel[], alias: (id: string | undefined) => string | undefined): string[] {
+  const lines: string[] = [];
   const stack: Call[] = [];
   const close = () => {
     const { caller, callee } = stack.pop()!;
-    messages.push(`${message(callee, '-->', caller, true)} --`);
+    lines.push(`${message(callee, '-->', caller, true)} --`);
   };
   for (const edge of order) {
     let from = alias(edge.sourceId);
@@ -66,8 +98,8 @@ export function sequencePlantUml(page: PageModel, flowId: string): string {
       if (opened >= 0) {
         while (stack.length > opened + 1) close();
         stack.pop();
-        messages.push(`${message(from, '-->', to, true)} --${label}`);
-      } else messages.push(`${message(from, '-->', to)}${label}`);
+        lines.push(`${message(from, '-->', to, true)} --${label}`);
+      } else lines.push(`${message(from, '-->', to)}${label}`);
       continue;
     }
     // On ne remonte que vers la cible d'un aller ouvert ; l'initiateur (source du premier) n'est rejoint qu'à la fin :
@@ -77,20 +109,11 @@ export function sequencePlantUml(page: PageModel, flowId: string): string {
     else if (stack.length > 0 && stack[0]!.caller === from && to !== from) from = stack.at(-1)!.callee;
     // Vers l'extérieur ou vers soi-même : message simple, sans nouveau niveau.
     const opens = to !== undefined && to !== from;
-    messages.push(`${message(from, '->', to)}${opens ? ' ++' : ''}${label}`);
+    lines.push(`${message(from, '->', to)}${opens ? ' ++' : ''}${label}`);
     if (opens) stack.push({ caller: from, callee: to });
   }
   while (stack.length > 0) close();
-
-  return [
-    '@startuml',
-    ...(flow?.title ? [`title ${oneLine(flow.title)}`] : []),
-    ...participants,
-    ...(participants.length > 0 && messages.length > 0 ? [''] : []),
-    ...messages,
-    '@enduml',
-    '',
-  ].join('\n');
+  return lines;
 }
 
 /**

@@ -4,6 +4,9 @@ import type { SequenceExporter } from '../../../engine/modes/sequences/export';
 import { sequenceState } from '../../../engine/modes/sequences/steps';
 import { plantUmlUrls } from './plantumlServer';
 
+/** Choix « Tout » de la liste des flux (un id de flux n'est jamais vide). */
+const ALL = '';
+
 /** Rendu d'un texte exporté : image et page où l'ouvrir. */
 type Preview = (source: string) => Promise<{ image: string; link: string; linkLabel: string }>;
 
@@ -16,7 +19,7 @@ const PREVIEWS: Record<string, Preview> = {
 };
 
 /**
- * Fenêtre d'export d'un flux (sujet 90) : choix du flux, texte fourni par l'exporteur du moteur (copiable) et, si le
+ * Fenêtre d'export d'un flux (sujet 90) : choix du flux (ou « Tout », sujet 96), texte fourni par l'exporteur du moteur (copiable) et, si le
  * format en a un, son rendu en ligne. Croix ou Échap : fermer.
  */
 export function ExportViewer({
@@ -33,8 +36,9 @@ export function ExportViewer({
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const { flows } = sequenceState(page);
+  /** Flux exporté ; `ALL` : tous les flux de la page. */
   const [flow, setFlow] = useState(flowId);
-  const source = useMemo(() => exporter.export(page, flow), [exporter, page, flow]);
+  const source = useMemo(() => exporter.export(page, flow === ALL ? undefined : flow), [exporter, page, flow]);
   const [preview, setPreview] = useState<Awaited<ReturnType<Preview>>>();
   const [failed, setFailed] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -85,6 +89,9 @@ export function ExportViewer({
       <header className="settings-dialog-header">
         <h2>Export {exporter.name}</h2>
         <select value={flow} aria-label="Flux exporté" onChange={(event) => setFlow(event.target.value)}>
+          <option value={ALL} title={`Tous les flux de la page « ${page.name} »`}>
+            Tout
+          </option>
           {flows.map((f) => (
             <option key={f.id} value={f.id}>
               {f.title || f.id}

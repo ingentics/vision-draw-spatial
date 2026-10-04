@@ -111,6 +111,43 @@ describe('export PlantUML des flux (sujets 90 à 94)', () => {
     ]);
   });
 
+  it('écrit tous les flux de la page, un « == Titre == » par flux (sujet 96)', () => {
+    expect(sequencePlantUml(flowsPage())).toBe(
+      [
+        '@startuml',
+        'title Page-1',
+        'actor "Actor" as P1 order 1',
+        'participant "User" as P2 order 2',
+        'participant "Notifications" as P3 order 3',
+        'database "BUS" as P4 order 4',
+        'participant "Mailjet" as P5 order 5',
+        '',
+        '== Inscription flow ==',
+        'P1 -> P2 ++ : send form',
+        'P2 -> P2 : Create',
+        'P2 -> P3 ++ : Notify',
+        'P3 -> P4 ++ : Enqueue the email',
+        'P4 --> P3 --',
+        'P3 --> P2 --',
+        'P2 --> P1 --',
+        '',
+        '== Sending flow ==',
+        'P3 -> P4 ++ : Read',
+        'P4 -> P5 ++ : Send',
+        'P5 --> P4 --',
+        'P4 --> P3 --',
+        '@enduml',
+        '',
+      ].join('\n'),
+    );
+  });
+
+  it('écrit tous les flux, flux vide compris, avec le titre de la page', () => {
+    const text = sequencePlantUml(page());
+    expect(text).toContain('title Séquences');
+    expect(text).toContain('== Vide ==\n@enduml');
+  });
+
   it('écrit un flux vide sans participant', () => {
     expect(sequencePlantUml(page(), 'f3')).toBe('@startuml\ntitle Vide\n@enduml\n');
   });
