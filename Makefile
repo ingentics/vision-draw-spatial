@@ -43,7 +43,7 @@ DRAWIO ?= /Applications/draw.io.app/Contents/MacOS/draw.io
 # Fixtures volontairement invalides pour draw.io (robustesse du parseur) : non réenregistrées.
 DRAWIO_SKIP := broken.drawio groups.drawio roundtrip.drawio
 # Fixtures dont on compare aussi le rendu de draw.io (export SVG) avec le nôtre.
-DRAWIO_SVG := edge-ends.drawio edge-routing.drawio edge-points.drawio shapes.drawio labels.drawio
+DRAWIO_SVG := anchor-routing.drawio edge-ends.drawio edge-routing.drawio edge-points.drawio shapes.drawio labels.drawio
 
 drawio-check: .image ## Réenregistre les fixtures avec draw.io, vérifie la conservation (spatial.*, bouts des flèches) et le tracé (SVG)
 	@test -x "$(DRAWIO)" || { echo "draw.io introuvable : make drawio-check DRAWIO=/chemin/vers/draw.io"; exit 1; }
