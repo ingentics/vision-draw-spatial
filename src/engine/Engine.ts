@@ -2049,6 +2049,23 @@ export class Engine {
     return { kind: 'free', point: { x: Math.round(point.x / step) * step, y: Math.round(point.y / step) * step } };
   }
 
+  /** Point d'ancrage libre d'une forme (sur un côté donné, ou tous) le plus proche d'un point de la page. */
+  private nearestFreeAnchor(
+    page: PageModel,
+    shape: ShapeModel,
+    toward: Point,
+    side?: ConnectSide,
+  ): { constraint: Point; point: Point } | undefined {
+    let best: { constraint: Point; point: Point; distance: number } | undefined;
+    for (const anchor of shapeAnchors(shape.id, page.edges)) {
+      if (anchor.used || !anchor.side || (side && anchor.side !== side)) continue;
+      const point = this.anchorPosition(shape, anchor.constraint);
+      const distance = Math.hypot(point.x - toward.x, point.y - toward.y);
+      if (!best || distance < best.distance) best = { constraint: anchor.constraint, point, distance };
+    }
+    return best && { constraint: best.constraint, point: best.point };
+  }
+
   /** Position d'un point d'ancrage sur la page, projeté sur le contour de la forme comme le tracé. */
   private anchorPosition(shape: ShapeModel, constraint: Point): Point {
     const terminal = toTerminal(shape);
@@ -2592,26 +2609,23 @@ export class Engine {
     const attachment = this.endAttachmentAt(page, screen, { exclude: source.id, height: top, snap: false, grid: 0 });
     connect.target = attachment.kind === 'free' ? undefined : attachment;
     const target = connect.target && page.shapes.find((s) => s.id === connect.target!.shapeId);
-    const end =
+    const aim =
       connect.target?.kind === 'fixed' && target
-        ? {
-            x: target.bounds.x + connect.target.constraint.x * target.bounds.width,
-            y: target.bounds.y + connect.target.constraint.y * target.bounds.height,
-          }
+        ? this.anchorPosition(target, connect.target.constraint)
         : target
           ? { x: target.bounds.x + target.bounds.width / 2, y: target.bounds.y + target.bounds.height / 2 }
           : this.groundPointAtHeight(screen, top);
     // Départ : point libre du côté de la poignée le plus proche de la cible visée.
-    const free = shapeAnchors(source.id, page.edges).filter((a) => !a.used && a.side === connect.side);
-    let exit = CONNECT_DIRECTIONS[connect.side].exit;
-    let from = this.anchorPosition(source, exit);
-    let nearest = Infinity;
-    for (const { constraint } of free) {
-      const point = this.anchorPosition(source, constraint);
-      const distance = Math.hypot(point.x - end.x, point.y - end.y);
-      if (distance < nearest) [nearest, exit, from] = [distance, constraint, point];
-    }
-    connect.exit = exit;
+    const exit = this.nearestFreeAnchor(page, source, aim, connect.side) ?? {
+      constraint: CONNECT_DIRECTIONS[connect.side].exit,
+      point: this.anchorPosition(source, CONNECT_DIRECTIONS[connect.side].exit),
+    };
+    connect.exit = exit.constraint;
+    // Arrivée lâchée dans la forme : point libre de la cible le plus proche du départ.
+    const entry = connect.target?.kind === 'floating' && target && this.nearestFreeAnchor(page, target, exit.point);
+    if (entry && target) connect.target = { kind: 'fixed', shapeId: target.id, constraint: entry.constraint };
+    const from = exit.point;
+    const end = entry ? entry.point : aim;
     const line = connectorPreview(from, end, this.cameraState.zoom, this.settings.selection.accentColor);
     line.position.z = top + 0.2;
     this.showConnectionHints(page, connect.target, line);
