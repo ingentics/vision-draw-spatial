@@ -4,7 +4,7 @@ import { forestMesh } from './trees';
 import type { Tree } from './trees';
 
 /** Pas de la grille des arbres, en pixels de page : au plus un arbre par case. */
-const CELL = 64;
+const CELL = 28;
 /** La forêt s'étend jusqu'à cette distance de l'emprise du schéma… */
 const REACH = 560;
 /** … en s'éclaircissant à partir de celle-ci. */
@@ -12,7 +12,7 @@ const THIN_FROM = 260;
 /** Part des cases boisées au cœur de la forêt. */
 const DENSITY = 0.6;
 /** Écart minimal entre le feuillage d'un arbre et le schéma (forme, tracé, texte). */
-const CLEARANCE = 14;
+const CLEARANCE = 8;
 /** Places essayées dans sa case pour un arbre gêné par le schéma, avant de renoncer. */
 const TRIES = 6;
 
@@ -58,7 +58,7 @@ export const definition: PageEffectDefinition = {
 /** Arbre d'une case (sans sa place) : essence, taille, teinte et orientation tirées de sa graine. */
 function treeOf(seed: number, random: () => number): Omit<Tree, 'at'> {
   const size = random();
-  const height = 40 + size * size * 80;
+  const height = 10 + size * size * 20;
   const kind = random() < 0.55 ? 'conifer' : 'round';
   return {
     seed,

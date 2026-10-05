@@ -45,11 +45,11 @@ interface Faces {
 function addTree(out: Faces, tree: Tree): void {
   const { at, height, crown, turn } = tree;
   const leaves = LEAVES.clone().offsetHSL((tree.hue - 0.5) * 0.06, (tree.hue - 0.5) * 0.1, (tree.hue - 0.5) * 0.06);
-  const trunkRadius = Math.max(2.5, crown * 0.16);
+  const trunkRadius = Math.max(0.6, crown * 0.16);
   if (tree.kind === 'conifer') {
     // Tronc court, puis trois cônes empilés qui se chevauchent, de plus en plus petits.
     const trunk = height * 0.2;
-    frustum(out, at, 0, trunk + 2, trunkRadius, trunkRadius * 0.8, turn, TRUNK);
+    frustum(out, at, 0, trunk + 0.5, trunkRadius, trunkRadius * 0.8, turn, TRUNK);
     const tiers = 3;
     const span = height - trunk;
     for (let i = 0; i < tiers; i++) {
@@ -60,7 +60,7 @@ function addTree(out: Faces, tree: Tree): void {
   } else {
     // Tronc, puis une boule à facettes : anneau large au milieu, rétrécie en bas et en haut.
     const trunk = height * 0.35;
-    frustum(out, at, 0, trunk + 4, trunkRadius, trunkRadius * 0.75, turn, TRUNK);
+    frustum(out, at, 0, trunk + 1, trunkRadius, trunkRadius * 0.75, turn, TRUNK);
     const middle = trunk + (height - trunk) * 0.45;
     frustum(out, at, trunk, middle, crown * 0.55, crown, turn, leaves);
     frustum(out, at, middle, height - (height - trunk) * 0.1, crown, crown * 0.45, turn, leaves);
