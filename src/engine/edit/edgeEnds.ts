@@ -1,6 +1,6 @@
 import { setCellStyleValue, setEdgeTerminal } from '../format/edit';
 import type { PageTree } from '../format/xmlTree';
-import type { EdgeModel, PageModel, Point, ShapeModel } from '../model/types';
+import type { EdgeModel, PageModel, Point, Rect, ShapeModel } from '../model/types';
 import type { ShapeRegistry } from '../shapes/registry';
 
 /**
@@ -60,24 +60,51 @@ export function freeAnchorPositions(used: number[]): number[] {
 }
 
 /**
- * Points d'ancrage d'une forme (mode manuel) : ancres prises par les bouts fixes des flèches, plus les points libres
- * de chaque côté (`freeAnchorPositions`). `skip` : bout de flèche en cours de déplacement, qui ne compte pas.
+ * Point touché sur une forme, relatif à son cadre et ramené sur le côté le plus proche (bout en attache auto, dont
+ * le tracé choisit le point) ; position le long du côté arrondie au millième.
  */
-export function shapeAnchors(
-  shapeId: string,
-  edges: readonly EdgeModel[],
-  skip?: { edgeId: string; end: TerminalEnd },
-): Anchor[] {
-  const used: Anchor[] = [];
+export function frameConstraint(bounds: Rect, point: Point): Point {
+  const clamp = (v: number) => Math.min(1, Math.max(0, v));
+  const x = clamp(bounds.width > 0 ? (point.x - bounds.x) / bounds.width : 0.5);
+  const y = clamp(bounds.height > 0 ? (point.y - bounds.y) / bounds.height : 0.5);
+  const round = (v: number) => Math.round(v * 1000) / 1000;
+  const nearest = Math.min(y, 1 - y, x, 1 - x);
+  if (nearest === y) return { x: round(x), y: 0 };
+  if (nearest === 1 - y) return { x: round(x), y: 1 };
+  if (nearest === 1 - x) return { x: 1, y: round(y) };
+  return { x: 0, y: round(y) };
+}
+
+export interface AnchorOptions {
+  /** Bout de flèche en cours de déplacement : sa position du moment ne compte pas. */
+  skip?: { edgeId: string; end: TerminalEnd };
+  /** Ancres prises en plus (ex. point d'origine du bout déplacé). */
+  extra?: readonly Point[];
+  /** Point touché par un bout en attache auto, relatif au cadre de la forme (`frameConstraint`). */
+  floatingAt?: (edge: EdgeModel, end: TerminalEnd) => Point | undefined;
+}
+
+/**
+ * Points d'ancrage d'une forme (mode manuel) : ancres prises par les bouts des flèches (point fixe, ou point touché
+ * par une attache auto), plus les points libres de chaque côté (`freeAnchorPositions`).
+ */
+export function shapeAnchors(shapeId: string, edges: readonly EdgeModel[], options: AnchorOptions = {}): Anchor[] {
+  const { skip } = options;
+  const taken: Point[] = [...(options.extra ?? [])];
   for (const edge of edges)
     for (const end of ['source', 'target'] as const) {
       if (skip && skip.edgeId === edge.id && skip.end === end) continue;
       const attachment = endAttachmentOf(edge, end);
-      if (attachment?.kind !== 'fixed' || attachment.shapeId !== shapeId) continue;
-      const { constraint } = attachment;
-      if (used.some((a) => a.constraint.x === constraint.x && a.constraint.y === constraint.y)) continue;
-      used.push({ constraint, side: sideOfConstraint(constraint), used: true });
+      if (attachment?.kind === 'fixed' && attachment.shapeId === shapeId) taken.push(attachment.constraint);
+      else if (attachment?.kind === 'floating' && attachment.shapeId === shapeId) {
+        const point = options.floatingAt?.(edge, end);
+        if (point) taken.push(point);
+      }
     }
+  const used: Anchor[] = [];
+  for (const constraint of taken)
+    if (!used.some((a) => a.constraint.x === constraint.x && a.constraint.y === constraint.y))
+      used.push({ constraint, side: sideOfConstraint(constraint), used: true });
   const anchors: Anchor[] = [];
   for (const side of ANCHOR_SIDES) {
     const taken = used.filter((a) => a.side === side);

@@ -56,11 +56,12 @@ import {
   endAttachmentOf,
   restoreEnds,
   sameAttachment,
+  frameConstraint,
   shapeAnchors,
   snapshotEnds,
   writeEndAttachment,
 } from './edit/edgeEnds';
-import type { EdgeEndsSnapshot, EndAttachment, TerminalEnd } from './edit/edgeEnds';
+import type { Anchor, EdgeEndsSnapshot, EndAttachment, TerminalEnd } from './edit/edgeEnds';
 import { dragPoints, pointHandles, pointsEditor, removePoint } from './edit/edgePoints';
 import type { PointHandle, PointsContext } from './edit/edgePoints';
 import { collectMoveSet, isLocked, moveTarget, snapDelta, translateMoveSet, unionMoveSets } from './edit/move';
@@ -377,7 +378,12 @@ interface ResizeDrag {
 }
 
 /** Bout de flèche en cours de déplacement : il ne prend pas de point d'ancrage. */
-type AnchorSkip = { edgeId: string; end: 'source' | 'target' };
+type AnchorSkip = {
+  edgeId: string;
+  end: 'source' | 'target';
+  /** Où ce bout était attaché au début du glisser : ce point reste pris. */
+  origin?: { shapeId: string; constraint: Point };
+};
 
 interface ConnectDrag {
   kind: 'connect';
@@ -400,6 +406,8 @@ interface EdgeEndDrag {
   end: TerminalEnd;
   /** Extrémités d'origine, remises en place si le bout revient où il était. */
   original: EdgeEndsSnapshot;
+  /** Point d'ancrage occupé par ce bout au début du glisser (reste pris pendant le glisser). */
+  origin?: { shapeId: string; constraint: Point };
   attachment?: EndAttachment;
   started: boolean;
 }
@@ -2034,7 +2042,7 @@ export class Engine {
     let best: { shapeId: string; constraint: Point; distance: number } | undefined;
     for (const shape of shapes) {
       const top = this.elementTop(shape.id);
-      for (const { constraint } of shapeAnchors(shape.id, page.edges, options.skip)) {
+      for (const { constraint } of this.anchorsOf(page, shape, options.skip)) {
         const at = this.screenOfPoint(this.anchorPosition(shape, constraint), top);
         const distance = Math.hypot(at.x - screen.x, at.y - screen.y);
         if (distance <= this.settings.edit.handlePickTolerance * 1.5 && (!best || distance < best.distance))
@@ -2049,6 +2057,34 @@ export class Engine {
     return { kind: 'free', point: { x: Math.round(point.x / step) * step, y: Math.round(point.y / step) * step } };
   }
 
+  /**
+   * Points d'ancrage d'une forme (mode manuel) : les bouts en attache auto comptent au point où leur tracé touche la
+   * forme ; le bout en cours de déplacement compte à sa place d'origine.
+   */
+  private anchorsOf(page: PageModel, shape: ShapeModel, skip?: AnchorSkip): Anchor[] {
+    return shapeAnchors(shape.id, page.edges, {
+      skip,
+      extra: skip?.origin?.shapeId === shape.id ? [skip.origin.constraint] : [],
+      floatingAt: (edge, end) => {
+        const point = this.edgeEndPoints(edge.id)?.[end];
+        return point && frameConstraint(shape.bounds, point);
+      },
+    });
+  }
+
+  /** Point d'ancrage occupé par un bout de flèche attaché à une forme (fixe, ou touché par l'attache auto). */
+  private endAnchor(
+    page: PageModel,
+    edge: EdgeModel,
+    end: TerminalEnd,
+  ): { shapeId: string; constraint: Point } | undefined {
+    const attachment = endAttachmentOf(edge, end);
+    if (attachment?.kind === 'fixed') return { shapeId: attachment.shapeId, constraint: attachment.constraint };
+    const shape = attachment?.kind === 'floating' && page.shapes.find((s) => s.id === attachment.shapeId);
+    const point = shape && this.edgeEndPoints(edge.id)?.[end];
+    return shape && point ? { shapeId: shape.id, constraint: frameConstraint(shape.bounds, point) } : undefined;
+  }
+
   /** Point d'ancrage libre d'une forme (sur un côté donné, ou tous) le plus proche d'un point de la page. */
   private nearestFreeAnchor(
     page: PageModel,
@@ -2057,7 +2093,7 @@ export class Engine {
     side?: ConnectSide,
   ): { constraint: Point; point: Point } | undefined {
     let best: { constraint: Point; point: Point; distance: number } | undefined;
-    for (const anchor of shapeAnchors(shape.id, page.edges)) {
+    for (const anchor of this.anchorsOf(page, shape)) {
       if (anchor.used || !anchor.side || (side && anchor.side !== side)) continue;
       const point = this.anchorPosition(shape, anchor.constraint);
       const distance = Math.hypot(point.x - toward.x, point.y - toward.y);
@@ -2114,7 +2150,7 @@ export class Engine {
     const shape =
       attachment && attachment.kind !== 'free' ? page.shapes.find((s) => s.id === attachment.shapeId) : undefined;
     if (shape && attachment?.kind !== 'free') {
-      const anchors = shapeAnchors(shape.id, page.edges, skip);
+      const anchors = this.anchorsOf(page, shape, skip);
       const active =
         attachment?.kind === 'fixed'
           ? anchors.findIndex(
@@ -2186,6 +2222,7 @@ export class Engine {
         edgeId: selectedEdge.id,
         end,
         original: snapshotEnds(selectedEdge),
+        origin: this.endAnchor(page, selectedEdge, end),
         started: false,
       };
       return true;
@@ -2655,7 +2692,7 @@ export class Engine {
     const pageTree = this.pageTreeOf(page.id);
     if (!edge || !pageTree) return;
     drag.started = true;
-    const skip = { edgeId: edge.id, end: drag.end };
+    const skip = { edgeId: edge.id, end: drag.end, origin: drag.origin };
     const attachment = this.endAttachmentAt(page, screen, {
       skip,
       height: this.elementTop(edge.id),

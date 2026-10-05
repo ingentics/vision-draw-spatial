@@ -3,6 +3,7 @@ import {
   applyEndAttachment,
   constraintStyle,
   endAttachmentOf,
+  frameConstraint,
   freeAnchorPositions,
   restoreEnds,
   sameAttachment,
@@ -47,6 +48,28 @@ describe('points d’ancrage (mode manuel)', () => {
     ]);
   });
 
+  it('bout en attache auto : compte au point où il touche la forme ; ancres prises en plus', () => {
+    const { page } = load();
+    // « e » part de « a » en attache auto : son tracé touche le milieu du côté droit.
+    const right = shapeAnchors('a', page.edges, {
+      floatingAt: (edge, end) => (edge.id === 'e' && end === 'source' ? { x: 1, y: 0.5 } : undefined),
+    }).filter((a) => a.side === 'e');
+    expect(right.map((a) => [a.constraint.y, a.used])).toEqual([
+      [0.25, false],
+      [0.5, true],
+      [0.75, false],
+    ]);
+    const left = shapeAnchors('a', page.edges, { extra: [{ x: 0, y: 0.5 }] }).filter((a) => a.side === 'w');
+    expect(left.map((a) => a.constraint.y)).toEqual([0.25, 0.5, 0.75]);
+  });
+
+  it('point touché ramené sur le côté le plus proche du cadre', () => {
+    const bounds = { x: 0, y: 0, width: 100, height: 60 };
+    expect(frameConstraint(bounds, { x: 100, y: 30.00001 })).toEqual({ x: 1, y: 0.5 });
+    expect(frameConstraint(bounds, { x: 25, y: 2 })).toEqual({ x: 0.25, y: 0 });
+    expect(frameConstraint(bounds, { x: -3, y: 45 })).toEqual({ x: 0, y: 0.75 });
+  });
+
   it('ancre prise au milieu du bas : points libres à 0,25 et 0,75 ; le bout déplacé ne compte pas', () => {
     const { page } = load();
     const edge = page.edges.find((e) => e.id === 'e')!;
@@ -57,7 +80,9 @@ describe('points d’ancrage (mode manuel)', () => {
       { constraint: { x: 0.5, y: 1 }, side: 's', used: true },
       { constraint: { x: 0.75, y: 1 }, side: 's', used: false },
     ]);
-    const skipped = shapeAnchors('a', page.edges, { edgeId: 'e', end: 'source' }).filter((a) => a.side === 's');
+    const skipped = shapeAnchors('a', page.edges, { skip: { edgeId: 'e', end: 'source' } }).filter(
+      (a) => a.side === 's',
+    );
     expect(skipped).toEqual([{ constraint: { x: 0.5, y: 1 }, side: 's', used: false }]);
   });
 });
