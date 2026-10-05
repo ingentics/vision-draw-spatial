@@ -424,7 +424,7 @@ function TextAnchors({
       {edge.label.trim() && (
         <label
           className="field toggle"
-          title={`Texte du milieu tourné dans le sens du segment où il est posé (${SPATIAL.labelFollow}) ; draw.io le garde horizontal`}
+          title={`Texte du milieu posé le long du trait de la flèche (${SPATIAL.labelFollow}) ; draw.io le garde horizontal`}
         >
           <input
             type="checkbox"

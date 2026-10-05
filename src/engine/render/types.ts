@@ -1,6 +1,7 @@
 import type { Color, Object3D } from 'three';
 import type { RichLine } from '../model/types';
 import type { JumpDefaults } from './edges/jumps';
+import type { TextAlong } from './textPath';
 
 /** Ordre de dessin des sous-parties d'un élément (ajouté à l'ordre de l'élément dans la page). */
 export const PART_ORDER = { fill: 0, stroke: 1, label: 2 } as const;
@@ -42,6 +43,11 @@ export interface TextSpec {
   halo?: { color: Color; width: number; blur?: number };
   /** Fond du label (`labelBackgroundColor`), ajusté à la taille du texte. */
   background?: Color;
+  /**
+   * Texte posé lettre par lettre le long d'un tracé (texte du milieu qui suit sa flèche) : `x` / `y` ne
+   * servent plus qu'à repérer le point d'ancrage. Fond, souligné et barré ne sont pas dessinés.
+   */
+  along?: TextAlong;
 }
 
 /**

@@ -6,6 +6,7 @@ import { isMonospace } from '../format/richText';
 import { approximateMeasure, decorationLines, fitFontSize, layoutRichText, scaleRichLines } from './richLayout';
 import type { FontSpec, MeasureText } from './richLayout';
 import { followRenderOrder } from './renderOrder';
+import { layoutOnPath } from './textPath';
 import type { TextFactory, TextSpec } from './types';
 
 const BACKGROUND_PADDING = 1;
@@ -98,6 +99,7 @@ export function createTroikaTextFactory(fonts: FontSet, onReady: () => void): Te
 
   return {
     create(spec) {
+      if (spec.along) return createOnPath(spec);
       if (spec.rich || spec.underline || spec.strike || spec.fit) return createRich(spec);
       const text = sdfText(
         spec.text,
@@ -128,6 +130,48 @@ export function createTroikaTextFactory(fonts: FontSet, onReady: () => void): Te
       baseMaterial.dispose();
     },
   };
+
+  /** Texte le long d'un tracé : groupe vide tout de suite, une lettre par texte SDF une fois les polices prêtes. */
+  function createOnPath(spec: TextSpec): Object3D {
+    const group = new Group();
+    const along = spec.along!;
+    const lines: RichLine[] = spec.rich ?? spec.text.split('\n').map((text) => [{ text }]);
+    void measure().then((measureText) => {
+      const base = {
+        size: spec.fontSize,
+        bold: spec.bold,
+        italic: spec.italic ?? false,
+        family: spec.fontFamily,
+        underline: false,
+        strike: false,
+      };
+      const layout = layoutRichText(lines, base, measureText, { align: spec.align });
+      const anchorY = spec.anchorY === 'top' ? 'top' : spec.anchorY === 'middle' ? 'middle' : 'bottom';
+      const glyphs = layoutOnPath(layout, along, { x: spec.anchorX, y: anchorY }, measureText);
+      let pending = glyphs.length;
+      for (const glyph of glyphs) {
+        const text = sdfText(
+          glyph.text,
+          glyph,
+          glyph.color ? new Color(glyph.color) : spec.color,
+          spec.opacity,
+          spec.halo,
+        );
+        text.anchorX = 'center';
+        text.anchorY = 'top-baseline';
+        text.whiteSpace = 'nowrap';
+        text.position.set(glyph.x, glyph.y, 0);
+        text.rotation.z = glyph.angle;
+        followRenderOrder(text, group, 0);
+        group.add(text);
+        text.sync(() => {
+          if (--pending === 0) onReady();
+        });
+      }
+      if (pending === 0) onReady();
+    });
+    return group;
+  }
 
   /** Texte riche : groupe vide tout de suite, rempli une fois les polices prêtes (mesure des mots). */
   function createRich(spec: TextSpec): Object3D {
