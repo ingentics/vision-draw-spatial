@@ -7,12 +7,16 @@ import { length } from './edges/polyline';
  * sur le tracé, tournée selon la tangente à cet endroit. Pure : mise en page et mesure injectées.
  */
 
-/** Où poser le texte : tracé dessiné, position (-1…1, comme `EdgeLabelPlacement`), écart de côté, décalage libre. */
+/**
+ * Où poser le texte : tracé dessiné, position (-1…1, comme `EdgeLabelPlacement`), écart de côté, décalage libre,
+ * et glissement le long du tracé (`shift`, en pixels, positif = vers la fin).
+ */
 export interface TextAlong {
   path: Point[];
   position: number;
   distance: number;
   offset: Point;
+  shift?: number;
 }
 
 /** Lettre placée : ligne de base au point (x, y), centrée, tournée de `angle` (radians, espace page). */
@@ -60,7 +64,7 @@ export function layoutOnPath(
   // Sens de lecture : de gauche à droite (ou de haut en bas), sinon tracé parcouru à l'envers.
   let path = along.path;
   const total = length(path);
-  let at = ((along.position + 1) / 2) * total;
+  let at = ((along.position + 1) / 2) * total + (along.shift ?? 0);
   let side = along.distance;
   const first = pointAt(path, at + shiftX).point;
   const last = pointAt(path, at + shiftX + layout.width).point;
@@ -90,9 +94,20 @@ export function layoutOnPath(
   });
 }
 
-/** Point et tangente du tracé à une position le long de lui (-1…1, comme `EdgeLabelPlacement.position`). */
-export function pathPointAt(path: Point[], position: number): { point: Point; tangent: Point } {
-  return pointAt(path, ((position + 1) / 2) * length(path));
+/**
+ * Point d'ancrage d'un texte posé le long d'un tracé (celui autour duquel ses lettres sont placées : écart de côté
+ * et décalage libre compris) et tangente du tracé à cet endroit.
+ */
+export function alongAnchor(along: TextAlong): { point: Point; tangent: Point } {
+  const { point, tangent } = pointAt(along.path, ((along.position + 1) / 2) * length(along.path) + (along.shift ?? 0));
+  const normal = { x: tangent.y, y: -tangent.x };
+  return {
+    point: {
+      x: point.x + normal.x * along.distance + along.offset.x,
+      y: point.y + normal.y * along.distance + along.offset.y,
+    },
+    tangent,
+  };
 }
 
 /** Point et tangente unitaire à l'abscisse curviligne `s`, prolongés en ligne droite avant et après le tracé. */

@@ -30,6 +30,11 @@ export const SPATIAL = {
    * draw.io l'ignore et garde le texte horizontal.
    */
   labelFollow: 'spatial.labelFollow',
+  /**
+   * Texte du milieu qui suit sa flèche : décalage le long du trait, en pixels de page (positif = vers la fin,
+   * négatif = vers le début) ; absent = aucun. Sans effet sans `labelFollow`.
+   */
+  labelFollowShift: 'spatial.labelFollowShift',
   /** Mode de la page (attribut de `<diagram>`) : id d'un mode de `modes/` (ex. `sequences`) ; absent = page normale. */
   mode: 'spatial.mode',
   /** Ancrage des flèches de la page (attribut de `<diagram>`) : `manual` ou `auto` ; absent = réglage de l'appli. */

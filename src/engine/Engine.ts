@@ -79,7 +79,7 @@ import {
   setEdgeTextPlacement,
 } from './edit/edgeLabels';
 import type { EdgeTextLayout, EndTextGap } from './edit/edgeLabels';
-import { labelPoint, placementAt, positionAlong } from './render/edges/polyline';
+import { labelPoint, length as polylineLength, placementAt, positionAlong } from './render/edges/polyline';
 import { setLineResolution } from './render/lines';
 import type { EdgeEnd } from './edit/edgeLabels';
 import { CONNECT_DIRECTIONS, connectSideOf, handlePoints, isConnectHandle, resizeBounds } from './edit/handles';
@@ -144,7 +144,7 @@ import type {
   ShapeModel,
 } from './model/types';
 import { linkZone, selectionOutline } from './render/decorations';
-import { toTerminal } from './render/edges/edge';
+import { middleTextAlong, toTerminal } from './render/edges/edge';
 import { orientBillboards } from './render/billboard';
 import { fixedAnchor, perimeterKind, routeEdgePoints, routingCenter } from './render/edges/route';
 import { parseStyle } from './format/style';
@@ -184,7 +184,8 @@ import { setPageTransform } from './render/space';
 import { createTroikaTextFactory } from './render/troikaText';
 import { DEFAULT_SETTINGS, mergeSettings, modePalette, resolveReducedMotion } from './settings';
 import { SPATIAL, SPATIAL_PREFIX, spatialValue } from './spatial';
-import { pathPointAt } from './render/textPath';
+import { alongAnchor } from './render/textPath';
+import type { TextAlong } from './render/textPath';
 import type { PreloadSettings, Settings, SettingsPatch, TransitionSettings, ViewSettings } from './settings';
 import type { FontSet } from './render/troikaText';
 
@@ -2767,7 +2768,13 @@ export class Engine {
     if (!edge || !route?.length) return;
     drag.started = true;
     const point = this.groundPointAtHeight(screen, this.elementTop(drag.edgeId));
-    const placement = placementAt(route, point, drag.offset);
+    let placement = placementAt(route, point, drag.offset);
+    // Texte du milieu qui suit la flèche, glissé le long du trait : le point visé est celui du texte glissé.
+    const shift = drag.cellId === edge.id ? this.followedText(edge.id)?.shift : undefined;
+    if (shift) {
+      const position = Math.min(1, Math.max(-1, placement.position - (2 * shift) / polylineLength(route)));
+      placement = { ...placement, position };
+    }
     drag.placement = placement;
     setEdgeTextPlacement(edge, drag.cellId, placement);
     this.retraceEdges(page, new Set([edge.id]));
@@ -2936,17 +2943,21 @@ export class Engine {
     return target ? { ...rest, flip: target.direction } : rest;
   }
 
+  /** Texte du milieu d'une flèche qui la suit : où ses lettres sont posées ; undefined s'il est horizontal. */
+  private followedText(edgeId: string): TextAlong | undefined {
+    const edge = this.getCurrentPage()?.edges.find((e) => e.id === edgeId);
+    return edge && middleTextAlong(edge, this.sceneObject(edgeId)?.userData.path as Point[] | undefined);
+  }
+
   /** Angle de l'éditeur d'un texte du milieu qui suit sa flèche : celui du trait dessiné au point du texte, à l'écran. */
   private withAngle(request: LabelEditRequest): LabelEditRequest {
     const rest = { ...request };
     delete rest.angle;
-    const edge = this.getCurrentPage()?.edges.find((e) => e.id === request.elementId);
-    const path = this.sceneObject(request.elementId)?.userData.path as Point[] | undefined;
-    if (!request.onEdge || request.end || request.labelCellId || !edge || edge.style[SPATIAL.labelFollow] !== '1')
-      return rest;
-    if (!path || path.length < 2) return rest;
-    const { point, tangent } = pathPointAt(path, edge.labelPlacement.position);
-    const top = this.elementTop(edge.id);
+    const along =
+      !request.onEdge || request.end || request.labelCellId ? undefined : this.followedText(request.elementId);
+    if (!along) return rest;
+    const { point, tangent } = alongAnchor(along);
+    const top = this.elementTop(request.elementId);
     const from = this.screenOfPoint(point, top);
     const to = this.screenOfPoint({ x: point.x + tangent.x * 10, y: point.y + tangent.y * 10 }, top);
     let angle = Math.atan2(to.y - from.y, to.x - from.x);
@@ -3550,7 +3561,10 @@ export class Engine {
     const placement =
       child?.placement ??
       (end ? edgeTextLayout(route, end, flipped, this.endTextGap()).placement : edge.labelPlacement);
-    const center = this.screenOfPoint(labelPoint(route, placement), this.elementTop(elementId));
+    // Texte du milieu qui suit la flèche : son point le long du trait dessiné (glissement compris).
+    const along = !child && !end ? this.followedText(elementId) : undefined;
+    const point = along ? alongAnchor(along).point : labelPoint(route, placement);
+    const center = this.screenOfPoint(point, this.elementTop(elementId));
     return { x: center.x, y: center.y, width: 0, height: 0 };
   }
 

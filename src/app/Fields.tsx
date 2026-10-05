@@ -39,31 +39,36 @@ export function TextField({
   );
 }
 
-/** Champ numérique d'un attribut spatial : validé à Entrée ou en quittant le champ ; vide = défaut. */
+/**
+ * Champ numérique d'un attribut spatial : validé à Entrée ou en quittant le champ ; vide = défaut. Positif ou
+ * nul, sauf `signed` (un décalage, par exemple).
+ */
 export function NumberField({
   label,
   title,
   value,
   placeholder,
+  signed = false,
   onCommit,
 }: {
   label: string;
   title: string;
   value: number | undefined;
   placeholder: string;
+  signed?: boolean;
   onCommit: (value: number | undefined) => void;
 }) {
   const commit = (text: string) => {
     const trimmed = text.trim();
     const next = trimmed === '' ? undefined : Number(trimmed.replace(',', '.'));
-    if (next === undefined || (Number.isFinite(next) && next >= 0)) onCommit(next);
+    if (next === undefined || (Number.isFinite(next) && (signed || next >= 0))) onCommit(next);
   };
   return (
     <label className="field-row" title={title}>
       {label}
       <input
         type="number"
-        min={0}
+        min={signed ? undefined : 0}
         step={1}
         defaultValue={value ?? ''}
         placeholder={placeholder}

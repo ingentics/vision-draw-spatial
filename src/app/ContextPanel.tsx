@@ -434,10 +434,30 @@ function TextAnchors({
           Texte du milieu : suit la flèche
         </label>
       )}
+      {edge.label.trim() && edge.style[SPATIAL.labelFollow] === '1' && (
+        <FollowShiftField edge={edge} onChange={onChange} />
+      )}
       <p className="panel-hint">
         Placement libre : en modifiant le texte (double-clic), tirer la poignée ◇ sous le texte.
       </p>
     </Section>
+  );
+}
+
+/** Ajustement fin du texte qui suit la flèche : glissement le long du trait (`spatial.labelFollowShift`). */
+function FollowShiftField({ edge, onChange }: { edge: EdgeModel; onChange: (patch: EdgeStylePatch) => void }) {
+  const parsed = parseFloat(edge.style[SPATIAL.labelFollowShift] ?? '');
+  const shift = Number.isFinite(parsed) && parsed !== 0 ? parsed : undefined;
+  return (
+    <NumberField
+      key={`${edge.id}:${shift ?? ''}`}
+      label="Décalage le long du trait (px)"
+      title={`Glisse le texte le long du trait : positif = vers la fin, négatif = vers le début (${SPATIAL.labelFollowShift})`}
+      value={shift}
+      placeholder="0"
+      signed
+      onCommit={(value) => onChange(() => ({ [SPATIAL.labelFollowShift]: value ? String(value) : undefined }))}
+    />
   );
 }
 

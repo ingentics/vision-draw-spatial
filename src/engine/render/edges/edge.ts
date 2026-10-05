@@ -21,6 +21,7 @@ import {
 } from '../styleValues';
 import { PART_ORDER } from '../types';
 import type { RenderContext } from '../types';
+import type { TextAlong } from '../textPath';
 
 /** Défauts draw.io pour les arêtes. */
 const DEFAULT_END_ARROW = 'classic';
@@ -122,7 +123,7 @@ export function createEdge(
   }
 
   // Texte du milieu qui suit la flèche : posé lettre par lettre le long du trait dessiné.
-  const along = style[SPATIAL.labelFollow] === '1' ? (group.userData.path as Point[]) : undefined;
+  const along = middleTextAlong(edge, group.userData.path as Point[]);
   const main = createEdgeLabel(edge.id, edge.label, edge.rich, route, edge.labelPlacement, style, ctx, along);
   if (main) group.add(main);
   for (const child of edge.labels) {
@@ -133,6 +134,16 @@ export function createEdge(
   return group;
 }
 
+/**
+ * Texte du milieu qui suit sa flèche (`spatial.labelFollow=1`) : posé le long du trait dessiné `path`, à son
+ * placement, glissé de `spatial.labelFollowShift` le long du trait. Undefined : texte horizontal.
+ */
+export function middleTextAlong(edge: EdgeModel, path: Point[] | undefined): TextAlong | undefined {
+  if (edge.style[SPATIAL.labelFollow] !== '1' || !path || path.length < 2) return undefined;
+  const shift = parseFloat(edge.style[SPATIAL.labelFollowShift] ?? '');
+  return { path, ...edge.labelPlacement, ...(Number.isFinite(shift) && shift !== 0 && { shift }) };
+}
+
 function createEdgeLabel(
   cellId: string,
   text: string,
@@ -141,7 +152,7 @@ function createEdgeLabel(
   placement: EdgeLabelPlacement,
   style: Record<string, string>,
   ctx: RenderContext,
-  along?: Point[],
+  along?: TextAlong,
 ): Object3D | null {
   if (!text.trim() || style.noLabel === '1') return null;
   const point = labelPoint(route, placement);
@@ -164,7 +175,7 @@ function createEdgeLabel(
     // Fond explicite (`labelBackgroundColor=#…`), sinon le paramètre : halo de la couleur de la page
     // autour de chaque lettre (lisible sur le trait, sans fond), fond uni, ou rien.
     ...edgeLabelBackdrop(style, ctx),
-    ...(along && { along: { path: along, ...placement } }),
+    ...(along && { along }),
   });
   object.name = 'label';
   // Cellule qui porte le texte (l'arête, ou le label enfant) : masqué pendant l'édition en place.

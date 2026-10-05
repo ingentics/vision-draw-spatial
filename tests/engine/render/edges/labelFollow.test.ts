@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { parseDrawio } from '../../../../src/engine/format/parse';
 import { createEdge } from '../../../../src/engine/render/edges/edge';
 import { approximateMeasure, layoutRichText } from '../../../../src/engine/render/richLayout';
-import { layoutOnPath } from '../../../../src/engine/render/textPath';
+import { alongAnchor, layoutOnPath } from '../../../../src/engine/render/textPath';
 import type { TextAlong } from '../../../../src/engine/render/textPath';
 import type { RenderContext, TextSpec } from '../../../../src/engine/render/types';
 
@@ -104,5 +104,25 @@ describe('texte du milieu dans le rendu', () => {
 
   it('décoché : texte horizontal', () => {
     expect(render('').along).toBeUndefined();
+  });
+});
+
+describe('décalage le long du trait (spatial.labelFollowShift)', () => {
+  const path = [
+    { x: 0, y: 0 },
+    { x: 200, y: 0 },
+  ];
+  const middle = (placed: ReturnType<typeof glyphs>) => (placed[0]!.x + placed[placed.length - 1]!.x) / 2;
+
+  it('positif vers la fin, négatif vers le début', () => {
+    expect(middle(glyphs('abcd', path, { shift: 20 }))).toBeCloseTo(120);
+    expect(middle(glyphs('abcd', path, { shift: -20 }))).toBeCloseTo(80);
+  });
+
+  it('point d’ancrage de l’éditeur décalé d’autant', () => {
+    expect(alongAnchor({ path, position: 0, distance: 0, offset: { x: 0, y: 0 }, shift: -30 }).point).toEqual({
+      x: 70,
+      y: 0,
+    });
   });
 });
