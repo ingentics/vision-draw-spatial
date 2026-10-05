@@ -25,8 +25,6 @@ export const SPATIAL = {
   tag: 'spatial.tag',
   /** Nombre de nœuds d'un cache distribué : disques empilés en iso (réglage déclaré par `shapes/datastore`). */
   nodes: 'spatial.nodes',
-  /** `1` : lien sans pastille (ex. cartes de la vue graphe). */
-  noLinkBadge: 'spatial.noLinkBadge',
   /** Mode de la page (attribut de `<diagram>`) : id d'un mode de `modes/` (ex. `sequences`) ; absent = page normale. */
   mode: 'spatial.mode',
   /** État de vue d'une page (attribut de `<diagram>`, voir `format/viewState`). */

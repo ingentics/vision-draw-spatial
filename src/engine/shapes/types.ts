@@ -121,7 +121,7 @@ export interface ShapeDefinition {
   /**
    * Hauteur du volume en iso / 3D, si la forme en a une par défaut qui lui est propre (ex. demi-cylindre
    * couché : hauteur = rayon). Absent = `blockHeight` (`spatial.height`, sinon le réglage).
-   * Sert à l'empilement, à la pastille de lien et à la sélection : le rendu iso doit l'utiliser aussi.
+   * Sert à l'empilement et à la sélection : le rendu iso doit l'utiliser aussi.
    */
   volumeHeight?(shape: ShapeModel, ctx: RenderContext): number;
   /**

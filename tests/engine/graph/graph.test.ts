@@ -72,7 +72,6 @@ describe('buildGraphPage', () => {
     expect(page.shapes.filter((s) => s.id.startsWith('graph-card:'))).toHaveLength(4);
     const card = page.shapes.find((s) => s.id === cardId('detail'))!;
     expect(card.link).toEqual({ type: 'page', pageId: 'detail' });
-    expect(card.style['spatial.noLinkBadge']).toBe('1');
     expect(page.shapes.find((s) => s.id === titleId('detail'))!.label).toBe('Détail');
   });
 

@@ -1,9 +1,8 @@
 import { Group } from 'three';
 import type { Material, Object3D } from 'three';
-import { isNavigableLink } from '../format/link';
 import type { EdgeModel, PageModel, Point, ShapeModel } from '../model/types';
-import { DEFAULT_EDGE_BADGE, darken, edgeBadge, linkBadge } from './decorations';
-import { SPATIAL, spatialNumber, spatialValue } from '../spatial';
+import { DEFAULT_EDGE_BADGE, darken, edgeBadge } from './decorations';
+import { SPATIAL, spatialNumber } from '../spatial';
 import { TOP_OFFSET } from './iso/block';
 import { disposeObject } from './meshes';
 import { createEdge } from './edges/edge';
@@ -163,7 +162,7 @@ export function placeInDrawOrder(object: Object3D, base: number): void {
 
 /**
  * Objet d'une forme, posé à sa hauteur (`base` : dessous du volume, `height` : épaisseur) :
- * rendu du niveau demandé (repli à plat), pastille de lien sur le dessus. Sert aussi à
+ * rendu du niveau demandé (repli à plat). Sert aussi à
  * reconstruire une seule forme (ex. pendant un redimensionnement).
  */
 export function createShapeObject(
@@ -175,12 +174,6 @@ export function createShapeObject(
 ): Object3D {
   const object = registry.sceneRenderer(shape, level).create(shape, ctx);
   if (level === 'iso') groundOutsideLabels(object);
-  // `spatial.noLinkBadge=1` : lien sans pastille (ex. cartes de la vue graphe, entièrement cliquables).
-  if (isNavigableLink(shape.link) && spatialValue(shape, SPATIAL.noLinkBadge) !== '1') {
-    const badge = linkBadge(shape, shape.link, ctx.accent);
-    badge.position.z = elevation.height + 0.1; // posée sur le dessus du bloc
-    object.add(badge);
-  }
   object.position.z = elevation.base;
   object.userData.base = elevation.base;
   object.userData.top = elevation.base + elevation.height;

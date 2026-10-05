@@ -1,7 +1,6 @@
 import { buildNavigationGraph } from '../model/graph';
 import type { GraphNode, NavigationGraph } from '../model/graph';
 import type { DocumentModel, EdgeModel, PageModel, Point, Rect, ShapeModel } from '../model/types';
-import { SPATIAL } from '../spatial';
 
 /**
  * Vue graphe de la documentation (SPEC §12), sous forme d'une **page générée** : chaque page du
@@ -145,7 +144,6 @@ export function buildGraphPage(
         strokeColor: stroke,
         strokeWidth: '2',
         ...(status && status.text !== 'départ' ? { dashed: '1' } : {}),
-        [SPATIAL.noLinkBadge]: '1',
       },
       link,
       z: z++,
@@ -163,7 +161,6 @@ export function buildGraphPage(
         fontStyle: '1',
         fontColor: status && status.text !== 'départ' ? status.color : GRAPH_COLORS.title,
         spacing: '0',
-        [SPATIAL.noLinkBadge]: '1',
       },
       link,
       z: z++,

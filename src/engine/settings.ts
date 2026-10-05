@@ -109,7 +109,7 @@ export interface SelectionSettings {
   veilColor: string;
   /** Marge autour de l'élément sélectionné, dans le voile, en pixels de page. */
   veilPadding: number;
-  /** Couleur d'accent : contour de sélection, poignées, pastilles de lien, cadre de la mini-carte. */
+  /** Couleur d'accent : contour de sélection, poignées, cadre de la mini-carte. */
   accentColor: string;
 }
 

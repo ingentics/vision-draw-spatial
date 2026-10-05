@@ -1,5 +1,5 @@
 import { Color, Group, SRGBColorSpace } from 'three';
-import type { EdgeModel, LinkModel, Point, Rect, ShapeModel } from '../model/types';
+import type { EdgeModel, Point, Rect } from '../model/types';
 import type { EdgeBadge } from '../modes/types';
 import { labelPoint } from './edges/polyline';
 import { styleNumber } from './styleValues';
@@ -10,65 +10,6 @@ import { PART_ORDER } from './types';
 
 /** Couleur d'accent par défaut (paramètre `selection.accentColor`). */
 export const DEFAULT_ACCENT = '#1a73e8';
-const WHITE = new Color('#ffffff');
-/** Rayon de la pastille de lien, en pixels de page. */
-const BADGE_RADIUS = 6;
-
-/**
- * Pastille de lien au coin haut-droit d'une forme (SPEC §11.4) : flèche droite pour un lien
- * vers une page, flèche oblique (sortante) pour une URL.
- */
-export function linkBadge(shape: ShapeModel, link: LinkModel, accent = DEFAULT_ACCENT): Group {
-  const group = new Group();
-  group.name = 'link-badge';
-  const c = { x: shape.bounds.x + shape.bounds.width, y: shape.bounds.y };
-  const disc = fillMesh(
-    ellipsePath(
-      { x: c.x - BADGE_RADIUS, y: c.y - BADGE_RADIUS, width: 2 * BADGE_RADIUS, height: 2 * BADGE_RADIUS },
-      24,
-    ),
-    new Color(accent),
-    1,
-  );
-  const r = BADGE_RADIUS * 0.45;
-  const glyph: Point[][] =
-    link.type === 'page'
-      ? [
-          // →
-          [
-            { x: c.x - r, y: c.y },
-            { x: c.x + r, y: c.y },
-          ],
-          [
-            { x: c.x + r * 0.2, y: c.y - r * 0.8 },
-            { x: c.x + r, y: c.y },
-            { x: c.x + r * 0.2, y: c.y + r * 0.8 },
-          ],
-        ]
-      : [
-          // ↗
-          [
-            { x: c.x - r, y: c.y + r },
-            { x: c.x + r, y: c.y - r },
-          ],
-          [
-            { x: c.x - r * 0.1, y: c.y - r },
-            { x: c.x + r, y: c.y - r },
-            { x: c.x + r, y: c.y + r * 0.1 },
-          ],
-        ];
-  group.add(disc);
-  for (const stroke of glyph) {
-    const mesh = strokeMesh(stroke, WHITE, 1, { width: 1.3, closed: false });
-    if (mesh) group.add(mesh);
-  }
-  // Au-dessus du label de la forme.
-  group.traverse((o) => {
-    o.renderOrder = PART_ORDER.label + 1;
-  });
-  return group;
-}
-
 /** Pastille d'une flèche par défaut (paramètres « Modes › Séquences »). */
 export const DEFAULT_EDGE_BADGE: EdgeBadgeStyle = {
   radius: 12,

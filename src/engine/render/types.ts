@@ -60,7 +60,7 @@ export interface RenderContext {
   volume?: { depth: number; shadeLight?: number; shadeDark?: number; tags?: boolean };
   /** Couleurs du placeholder des formes non supportées (#rrggbb). */
   placeholder?: { fill: string; stroke: string };
-  /** Couleur d'accent (pastilles de lien), #rrggbb. */
+  /** Couleur d'accent, #rrggbb. */
   accent?: string;
   /** Couleur du texte des flèches sans `fontColor` (#rrggbb, noir par défaut). */
   edgeFontColor?: string;

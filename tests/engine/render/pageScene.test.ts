@@ -233,11 +233,10 @@ describe('buildPageScene — arêtes', () => {
 });
 
 describe('buildPageScene — liens', () => {
-  it('pastille sur les formes liées (page ou URL), pas sur les autres', () => {
+  it('pas de pastille sur les formes liées (sujet 107)', () => {
     const { scene } = build('links.drawio');
-    expect(element(scene.root, 'to-detail').getObjectByName('link-badge')).toBeDefined();
-    expect(element(scene.root, 'ext').getObjectByName('link-badge')).toBeDefined();
-    expect(element(scene.root, 'action').getObjectByName('link-badge')).toBeUndefined();
+    expect(element(scene.root, 'to-detail').getObjectByName('link-badge')).toBeUndefined();
+    expect(element(scene.root, 'ext').getObjectByName('link-badge')).toBeUndefined();
   });
 
   it('les arêtes gardent leur tracé pour la sélection', () => {
