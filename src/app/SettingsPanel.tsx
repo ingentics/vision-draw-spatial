@@ -835,7 +835,17 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   flux courant n’a pas de flèche.
                 </p>
                 <h5 className="settings-group">Pastilles</h5>
-                <p className="hint muted">Rang d’une flèche dans son flux, face à la caméra.</p>
+                <p className="hint muted">Rang d’une flèche dans son flux.</p>
+                <Toggle
+                  label="Pastille face à la caméra"
+                  checked={shapes.edgeBadgeFaceCamera}
+                  onChange={(edgeBadgeFaceCamera) => onChange({ shapes: { edgeBadgeFaceCamera } })}
+                />
+                <Toggle
+                  label="Texte des flèches en séquence face à la caméra"
+                  checked={shapes.edgeBadgeLabelFaceCamera}
+                  onChange={(edgeBadgeLabelFaceCamera) => onChange({ shapes: { edgeBadgeLabelFaceCamera } })}
+                />
                 <ColorField
                   label="Couleur de la bordure"
                   value={shapes.edgeBadgeBorderColor}

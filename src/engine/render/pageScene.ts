@@ -2,7 +2,7 @@ import { Group } from 'three';
 import type { Material, Object3D } from 'three';
 import { isNavigableLink } from '../format/link';
 import type { EdgeModel, PageModel, Point, ShapeModel } from '../model/types';
-import { darken, edgeBadge, linkBadge } from './decorations';
+import { DEFAULT_EDGE_BADGE, darken, edgeBadge, linkBadge } from './decorations';
 import { SPATIAL, spatialNumber, spatialValue } from '../spatial';
 import { TOP_OFFSET } from './iso/block';
 import { disposeObject } from './meshes';
@@ -106,8 +106,33 @@ export function createEdgeObject(
   const object = createEdge(color ? { ...edge, style: { ...edge.style, strokeColor: color } } : edge, terminals, ctx);
   const badge = dressing?.edgeBadge?.(edge);
   const route = object.userData.route as Point[] | undefined;
-  if (badge && route && route.length >= 2) object.add(edgeBadge(edge, route, badge, ctx));
+  if (badge && route && route.length >= 2) {
+    object.add(edgeBadge(edge, route, badge, ctx));
+    if ((ctx.edgeBadge ?? DEFAULT_EDGE_BADGE).labelFaceCamera) standLabels(object);
+  }
   return object;
+}
+
+/**
+ * Redresse les textes d'une flèche face à la caméra (comme sa pastille) : chacun passe dans un groupe
+ * `billboard = 'screen'` posé sur son point d'ancrage, qui sert de pivot.
+ */
+function standLabels(object: Object3D): void {
+  const labels: Object3D[] = [];
+  object.traverse((child) => {
+    if (child.userData.labelCellId !== undefined && child.userData.labelAnchor) labels.push(child);
+  });
+  for (const label of labels) {
+    const anchor = label.userData.labelAnchor as Point;
+    const pivot = new Group();
+    pivot.name = 'label-pivot';
+    pivot.userData.billboard = 'screen';
+    pivot.position.set(anchor.x, anchor.y, 0);
+    label.parent!.add(pivot);
+    label.position.x -= anchor.x;
+    label.position.y -= anchor.y;
+    pivot.add(label);
+  }
 }
 
 /** Assombrissement par défaut du trait d'une flèche colorée par un mode (−25 % de luminosité). */

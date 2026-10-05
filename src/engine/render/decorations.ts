@@ -80,6 +80,8 @@ export const DEFAULT_EDGE_BADGE: EdgeBadgeStyle = {
   textColor: '#000000',
   bold: false,
   gap: 2,
+  faceCamera: true,
+  labelFaceCamera: true,
 };
 /**
  * Hauteur des chiffres en fraction de la taille du texte (Roboto : 1456 / 2048) : la ligne de base est posée à une
@@ -110,7 +112,7 @@ export function edgeBadge(edge: EdgeModel, route: Point[], badge: EdgeBadge, ctx
 
   const group = new Group();
   group.name = 'edge-badge';
-  group.userData.billboard = 'screen';
+  if (look.faceCamera) group.userData.billboard = 'screen';
   group.position.set(anchor.x, anchor.y, 0.2);
   const circle = ellipsePath({ x: -radius, y: -lift - radius, width: 2 * radius, height: 2 * radius }, 48);
   const disc = fillMesh(circle, new Color(badge.color), 1);

@@ -90,4 +90,8 @@ export interface EdgeBadgeStyle {
   bold: boolean;
   /** Écart entre la pastille et le texte du milieu. */
   gap: number;
+  /** Pastille face à la caméra (sinon à plat dans le plan de la page). */
+  faceCamera: boolean;
+  /** Texte de la flèche qui porte la pastille face à la caméra (sinon à plat). */
+  labelFaceCamera: boolean;
 }

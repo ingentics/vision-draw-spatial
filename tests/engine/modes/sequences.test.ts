@@ -18,7 +18,7 @@ import {
   setEdgeStep,
 } from '../../../src/engine/modes/sequences/steps';
 import type { ModeEdit } from '../../../src/engine/modes/types';
-import { darken } from '../../../src/engine/render/decorations';
+import { DEFAULT_EDGE_BADGE, darken } from '../../../src/engine/render/decorations';
 import { buildPageScene } from '../../../src/engine/render/pageScene';
 import type { RenderContext, TextSpec } from '../../../src/engine/render/types';
 import { createDefaultRegistry } from '../../../src/engine/shapes/registry';
@@ -299,6 +299,8 @@ describe('pastille : paramètres de la pastille (sujet 77)', () => {
         textColor: '#00ff00',
         bold: true,
         gap: 0,
+        faceCamera: true,
+        labelFaceCamera: false,
       },
       dressingDarken: 0,
     };
@@ -311,6 +313,36 @@ describe('pastille : paramètres de la pastille (sujet 77)', () => {
     expect(login.getObjectByName('edge-badge')!.children).toHaveLength(2);
     const stroke = login.children.find((c) => c instanceof Mesh) as Mesh;
     expect((stroke.material as MeshBasicMaterial).color.getHexString()).toBe('4e79a7');
+  });
+});
+
+describe('pastille et texte face à la caméra (sujet 105)', () => {
+  const build = (faceCamera: boolean, labelFaceCamera: boolean) => {
+    const { page } = setup();
+    const ctx: RenderContext = {
+      text: { create: (spec) => new Object3D().translateX(spec.x).translateY(spec.y) },
+      edgeBadge: { ...DEFAULT_EDGE_BADGE, faceCamera, labelFaceCamera },
+    };
+    const dressing = createDefaultModeRegistry().dressing(page());
+    const root = buildPageScene(page(), createDefaultRegistry(), ctx, 'flat', dressing).root;
+    return root.children.find((child) => child.userData.elementId === 'login')!;
+  };
+
+  it('par défaut, pastille et texte se redressent ; le texte pivote sur son ancrage', () => {
+    const login = build(true, true);
+    expect(login.getObjectByName('edge-badge')!.userData.billboard).toBe('screen');
+    const pivot = login.getObjectByName('label-pivot')!;
+    expect(pivot.userData.billboard).toBe('screen');
+    const label = pivot.getObjectByName('label')!;
+    expect([label.position.x, label.position.y]).toEqual([0, 0]);
+    expect(pivot.position.x).toBeCloseTo(label.userData.labelAnchor.x);
+  });
+
+  it('décochés : pastille et texte restent à plat', () => {
+    const login = build(false, false);
+    expect(login.getObjectByName('edge-badge')!.userData.billboard).toBeUndefined();
+    expect(login.getObjectByName('label-pivot')).toBeUndefined();
+    expect(login.getObjectByName('label')).toBeDefined();
   });
 });
 

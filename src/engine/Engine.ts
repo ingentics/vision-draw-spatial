@@ -1071,6 +1071,8 @@ export class Engine {
         textColor: this.settings.shapes.edgeBadgeTextColor,
         bold: this.settings.shapes.edgeBadgeBold,
         gap: this.settings.shapes.edgeBadgeGap,
+        faceCamera: this.settings.shapes.edgeBadgeFaceCamera,
+        labelFaceCamera: this.settings.shapes.edgeBadgeLabelFaceCamera,
       },
       dressingDarken: this.settings.shapes.edgeDressingDarken,
     };

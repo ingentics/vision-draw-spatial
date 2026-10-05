@@ -150,6 +150,10 @@ export interface ShapeSettings {
   edgeBadgeBold: boolean;
   /** Écart entre la pastille et le texte du milieu de la flèche, en pixels de page. */
   edgeBadgeGap: number;
+  /** Pastille face à la caméra (sinon couchée à plat dans le plan de la page, comme le texte). */
+  edgeBadgeFaceCamera: boolean;
+  /** Texte d'une flèche qui porte une pastille face à la caméra (sinon à plat). */
+  edgeBadgeLabelFaceCamera: boolean;
   /** Assombrissement du trait d'une flèche colorée par un mode (fraction de la luminosité, 0,25 = −25 %). */
   edgeDressingDarken: number;
   /** Opacité de ce qui est hors du courant d'un mode (ex. hors du flux courant du mode Séquences). */
@@ -336,6 +340,8 @@ export const DEFAULT_SETTINGS: Settings = {
     edgeBadgeTextColor: '#000000',
     edgeBadgeBold: false,
     edgeBadgeGap: 2,
+    edgeBadgeFaceCamera: true,
+    edgeBadgeLabelFaceCamera: true,
     edgeDressingDarken: 0.25,
     modeDimOpacity: 0.3,
     placeholderFill: '#eeeeee',
@@ -611,6 +617,8 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
       edgeBadgeTextColor: color(p.shapes?.edgeBadgeTextColor, base.shapes.edgeBadgeTextColor),
       edgeBadgeBold: bool(p.shapes?.edgeBadgeBold, base.shapes.edgeBadgeBold),
       edgeBadgeGap: num('shapes.edgeBadgeGap', p.shapes?.edgeBadgeGap, base.shapes.edgeBadgeGap),
+      edgeBadgeFaceCamera: bool(p.shapes?.edgeBadgeFaceCamera, base.shapes.edgeBadgeFaceCamera),
+      edgeBadgeLabelFaceCamera: bool(p.shapes?.edgeBadgeLabelFaceCamera, base.shapes.edgeBadgeLabelFaceCamera),
       edgeDressingDarken: num(
         'shapes.edgeDressingDarken',
         p.shapes?.edgeDressingDarken,

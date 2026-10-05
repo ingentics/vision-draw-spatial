@@ -153,6 +153,8 @@ function createEdgeLabel(
   object.name = 'label';
   // Cellule qui porte le texte (l'arête, ou le label enfant) : masqué pendant l'édition en place.
   object.userData.labelCellId = cellId;
+  // Point d'ancrage (espace page) : pivot du texte quand un mode le redresse face à la caméra.
+  object.userData.labelAnchor = point;
   object.renderOrder = PART_ORDER.label;
   return object;
 }
