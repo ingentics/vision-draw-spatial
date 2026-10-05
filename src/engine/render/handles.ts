@@ -104,12 +104,12 @@ export function edgeEndHandles(
 }
 
 /**
- * Repères d'accroche sur la forme visée par un bout de flèche : périmètre d'accroche surligné (attache auto) et
- * croix sur les points de connexion, celui retenu cerclé.
+ * Repères d'accroche sur la forme visée par un bout de flèche : périmètre d'accroche surligné (attache auto),
+ * croix sur les points d'ancrage libres, disque plein sur ceux pris par une flèche, celui retenu cerclé.
  */
 export function connectionHints(
   shape: { bounds: Rect; perimeter: PerimeterKind; style?: Record<string, string> },
-  points: Point[],
+  points: Array<{ point: Point; used?: boolean }>,
   zoom: number,
   options: { active?: number; outline: boolean; accent?: string },
 ): Group {
@@ -122,20 +122,24 @@ export function connectionHints(
     if (outline) group.add(outline);
   }
   const c = 3.5 / zoom;
-  points.forEach((p, index) => {
-    for (const stroke of [
-      [
-        { x: p.x - c, y: p.y - c },
-        { x: p.x + c, y: p.y + c },
-      ],
-      [
-        { x: p.x - c, y: p.y + c },
-        { x: p.x + c, y: p.y - c },
-      ],
-    ]) {
-      const mesh = strokeMesh(stroke, accent, 1, { width: 1.5 / zoom, closed: false });
-      if (mesh) group.add(mesh);
-    }
+  points.forEach(({ point: p, used }, index) => {
+    if (used) {
+      const d = 2.5 / zoom;
+      group.add(fillMesh(ellipsePath({ x: p.x - d, y: p.y - d, width: 2 * d, height: 2 * d }, 16), accent, 1));
+    } else
+      for (const stroke of [
+        [
+          { x: p.x - c, y: p.y - c },
+          { x: p.x + c, y: p.y + c },
+        ],
+        [
+          { x: p.x - c, y: p.y + c },
+          { x: p.x + c, y: p.y - c },
+        ],
+      ]) {
+        const mesh = strokeMesh(stroke, accent, 1, { width: 1.5 / zoom, closed: false });
+        if (mesh) group.add(mesh);
+      }
     if (index === options.active) {
       const r = 7 / zoom;
       const ring = strokeMesh(ellipsePath({ x: p.x - r, y: p.y - r, width: 2 * r, height: 2 * r }, 24), accent, 1, {

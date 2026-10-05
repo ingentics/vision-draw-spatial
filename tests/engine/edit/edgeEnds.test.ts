@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyEndAttachment,
-  connectionPoints,
   constraintStyle,
   endAttachmentOf,
+  freeAnchorPositions,
   restoreEnds,
   sameAttachment,
+  shapeAnchors,
   snapshotEnds,
 } from '../../../src/engine/edit/edgeEnds';
 import { setCellStyleValue, setEdgeTerminal } from '../../../src/engine/format/edit';
@@ -28,14 +29,36 @@ function load() {
   return { page: document.pages[0]!, pageTree: tree.pages[0]!, tree };
 }
 
-describe('points de connexion', () => {
-  it('milieux des quatre côtés', () => {
-    expect(connectionPoints({ x: 10, y: 20, width: 100, height: 60 })).toEqual([
-      { x: 60, y: 20 },
-      { x: 110, y: 50 },
-      { x: 60, y: 80 },
-      { x: 10, y: 50 },
+describe('points d’ancrage (mode manuel)', () => {
+  it('un point libre au milieu de chaque intervalle entre les coins et les ancres prises', () => {
+    expect(freeAnchorPositions([])).toEqual([0.5]);
+    expect(freeAnchorPositions([0.5])).toEqual([0.25, 0.75]);
+    expect(freeAnchorPositions([0.25, 0.5])).toEqual([0.125, 0.375, 0.75]);
+    expect(freeAnchorPositions([0.5, 0.5])).toEqual([0.25, 0.75]);
+  });
+
+  it('forme sans flèche fixe : un point libre au milieu de chaque côté', () => {
+    const { page } = load();
+    expect(shapeAnchors('a', page.edges)).toEqual([
+      { constraint: { x: 0.5, y: 0 }, side: 'n', used: false },
+      { constraint: { x: 1, y: 0.5 }, side: 'e', used: false },
+      { constraint: { x: 0.5, y: 1 }, side: 's', used: false },
+      { constraint: { x: 0, y: 0.5 }, side: 'w', used: false },
     ]);
+  });
+
+  it('ancre prise au milieu du bas : points libres à 0,25 et 0,75 ; le bout déplacé ne compte pas', () => {
+    const { page } = load();
+    const edge = page.edges.find((e) => e.id === 'e')!;
+    applyEndAttachment(edge, 'source', { kind: 'fixed', shapeId: 'a', constraint: { x: 0.5, y: 1 } });
+    const bottom = shapeAnchors('a', page.edges).filter((a) => a.side === 's');
+    expect(bottom).toEqual([
+      { constraint: { x: 0.25, y: 1 }, side: 's', used: false },
+      { constraint: { x: 0.5, y: 1 }, side: 's', used: true },
+      { constraint: { x: 0.75, y: 1 }, side: 's', used: false },
+    ]);
+    const skipped = shapeAnchors('a', page.edges, { edgeId: 'e', end: 'source' }).filter((a) => a.side === 's');
+    expect(skipped).toEqual([{ constraint: { x: 0.5, y: 1 }, side: 's', used: false }]);
   });
 });
 

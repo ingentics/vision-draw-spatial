@@ -52,12 +52,11 @@ import type { DrawioTree, PageTree } from './format/xmlTree';
 import {
   applyEndAttachment,
   connectableShapes,
-  connectionPoints,
   constraintStyle,
-  CONNECTION_POINTS,
   endAttachmentOf,
   restoreEnds,
   sameAttachment,
+  shapeAnchors,
   snapshotEnds,
   writeEndAttachment,
 } from './edit/edgeEnds';
@@ -377,12 +376,17 @@ interface ResizeDrag {
   started: boolean;
 }
 
+/** Bout de flèche en cours de déplacement : il ne prend pas de point d'ancrage. */
+type AnchorSkip = { edgeId: string; end: 'source' | 'target' };
+
 interface ConnectDrag {
   kind: 'connect';
   pageId: string;
   sourceId: string;
   /** Côté de la forme d'où part la flèche (poignée tirée). */
   side: ConnectSide;
+  /** Point de départ retenu : point libre de ce côté le plus proche de la cible visée. */
+  exit?: Point;
   /** Forme visée, en attache auto ou sur un point de connexion (entrée fixe). */
   target?: Exclude<EndAttachment, { kind: 'free' }>;
   started: boolean;
@@ -2024,25 +2028,37 @@ export class Engine {
   private endAttachmentAt(
     page: PageModel,
     screen: Point,
-    options: { exclude?: string; height: number; snap: boolean; grid: number },
+    options: { exclude?: string; skip?: AnchorSkip; height: number; snap: boolean; grid: number },
   ): EndAttachment {
     const shapes = connectableShapes(page, this.registry).filter((s) => s.id !== options.exclude);
-    let best: { shapeId: string; index: number; distance: number } | undefined;
+    let best: { shapeId: string; constraint: Point; distance: number } | undefined;
     for (const shape of shapes) {
       const top = this.elementTop(shape.id);
-      connectionPoints(shape.bounds).forEach((point, index) => {
-        const at = this.screenOfPoint(point, top);
+      for (const { constraint } of shapeAnchors(shape.id, page.edges, options.skip)) {
+        const at = this.screenOfPoint(this.anchorPosition(shape, constraint), top);
         const distance = Math.hypot(at.x - screen.x, at.y - screen.y);
         if (distance <= this.settings.edit.handlePickTolerance * 1.5 && (!best || distance < best.distance))
-          best = { shapeId: shape.id, index, distance };
-      });
+          best = { shapeId: shape.id, constraint, distance };
+      }
     }
-    if (best) return { kind: 'fixed', shapeId: best.shapeId, constraint: { ...CONNECTION_POINTS[best.index]! } };
+    if (best) return { kind: 'fixed', shapeId: best.shapeId, constraint: { ...best.constraint } };
     const shape = this.shapeAt(screen, options.exclude);
     if (shape) return { kind: 'floating', shapeId: shape.id };
     const point = this.groundPointAtHeight(screen, options.height);
     const step = options.snap && options.grid > 0 ? options.grid : 1;
     return { kind: 'free', point: { x: Math.round(point.x / step) * step, y: Math.round(point.y / step) * step } };
+  }
+
+  /** Position d'un point d'ancrage sur la page, projeté sur le contour de la forme comme le tracé. */
+  private anchorPosition(shape: ShapeModel, constraint: Point): Point {
+    const terminal = toTerminal(shape);
+    const style = { exitX: String(constraint.x), exitY: String(constraint.y) };
+    return (
+      (terminal && fixedAnchor(terminal, style, 'source')) ?? {
+        x: shape.bounds.x + constraint.x * shape.bounds.width,
+        y: shape.bounds.y + constraint.y * shape.bounds.height,
+      }
+    );
   }
 
   /** Forme sous un point écran à laquelle on peut attacher une flèche (les flèches sont ignorées). */
@@ -2066,7 +2082,12 @@ export class Engine {
   }
 
   /** Repères d'accroche (contour, points de connexion) sur la forme visée par un bout de flèche. */
-  private showConnectionHints(page: PageModel, attachment: EndAttachment | undefined, extra?: Object3D): void {
+  private showConnectionHints(
+    page: PageModel,
+    attachment: EndAttachment | undefined,
+    extra?: Object3D,
+    skip?: AnchorSkip,
+  ): void {
     this.clearConnectorPreview();
     const root = this.scenes.current?.root;
     if (!root) return;
@@ -2076,9 +2097,12 @@ export class Engine {
     const shape =
       attachment && attachment.kind !== 'free' ? page.shapes.find((s) => s.id === attachment.shapeId) : undefined;
     if (shape && attachment?.kind !== 'free') {
+      const anchors = shapeAnchors(shape.id, page.edges, skip);
       const active =
         attachment?.kind === 'fixed'
-          ? CONNECTION_POINTS.findIndex((c) => c.x === attachment.constraint.x && c.y === attachment.constraint.y)
+          ? anchors.findIndex(
+              (a) => a.constraint.x === attachment.constraint.x && a.constraint.y === attachment.constraint.y,
+            )
           : undefined;
       const hints = connectionHints(
         {
@@ -2086,7 +2110,7 @@ export class Engine {
           perimeter: perimeterKind(shape.style, parseStyle(shape.raw?.styleString).names),
           style: shape.style,
         },
-        connectionPoints(shape.bounds),
+        anchors.map((a) => ({ point: this.anchorPosition(shape, a.constraint), used: a.used })),
         this.cameraState.zoom,
         { active, outline: attachment?.kind === 'floating', accent: this.settings.selection.accentColor },
       );
@@ -2577,11 +2601,17 @@ export class Engine {
         : target
           ? { x: target.bounds.x + target.bounds.width / 2, y: target.bounds.y + target.bounds.height / 2 }
           : this.groundPointAtHeight(screen, top);
-    const { exit } = CONNECT_DIRECTIONS[connect.side];
-    const from = {
-      x: source.bounds.x + exit.x * source.bounds.width,
-      y: source.bounds.y + exit.y * source.bounds.height,
-    };
+    // Départ : point libre du côté de la poignée le plus proche de la cible visée.
+    const free = shapeAnchors(source.id, page.edges).filter((a) => !a.used && a.side === connect.side);
+    let exit = CONNECT_DIRECTIONS[connect.side].exit;
+    let from = this.anchorPosition(source, exit);
+    let nearest = Infinity;
+    for (const { constraint } of free) {
+      const point = this.anchorPosition(source, constraint);
+      const distance = Math.hypot(point.x - end.x, point.y - end.y);
+      if (distance < nearest) [nearest, exit, from] = [distance, constraint, point];
+    }
+    connect.exit = exit;
     const line = connectorPreview(from, end, this.cameraState.zoom, this.settings.selection.accentColor);
     line.position.z = top + 0.2;
     this.showConnectionHints(page, connect.target, line);
@@ -2611,12 +2641,14 @@ export class Engine {
     const pageTree = this.pageTreeOf(page.id);
     if (!edge || !pageTree) return;
     drag.started = true;
+    const skip = { edgeId: edge.id, end: drag.end };
     const attachment = this.endAttachmentAt(page, screen, {
+      skip,
       height: this.elementTop(edge.id),
       snap,
       grid: gridSizeOf(pageTree),
     });
-    this.showConnectionHints(page, attachment);
+    this.showConnectionHints(page, attachment, undefined, skip);
     if (sameAttachment(attachment, drag.attachment)) return;
     drag.attachment = attachment;
     restoreEnds(edge, drag.original);
@@ -2691,7 +2723,8 @@ export class Engine {
       this.recordEdit('Connecteur');
       const line = CONNECTOR_STYLE + EDGE_LINE_KEYS[this.settings.shapes.edgeLineStyle];
       let style = withStyleValue(line, 'fontSize', String(this.settings.shapes.textSize));
-      for (const [key, value] of Object.entries(constraintStyle('source', CONNECT_DIRECTIONS[drag.side].exit)))
+      const exit = drag.exit ?? CONNECT_DIRECTIONS[drag.side].exit;
+      for (const [key, value] of Object.entries(constraintStyle('source', exit)))
         if (value !== undefined) style = withStyleValue(style, key, value);
       if (drag.target.kind === 'fixed')
         for (const [key, value] of Object.entries(constraintStyle('target', drag.target.constraint)))

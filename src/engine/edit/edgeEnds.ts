@@ -1,6 +1,6 @@
 import { setCellStyleValue, setEdgeTerminal } from '../format/edit';
 import type { PageTree } from '../format/xmlTree';
-import type { EdgeModel, PageModel, Point, Rect, ShapeModel } from '../model/types';
+import type { EdgeModel, PageModel, Point, ShapeModel } from '../model/types';
 import type { ShapeRegistry } from '../shapes/registry';
 
 /**
@@ -17,16 +17,79 @@ export type EndAttachment =
   | { kind: 'fixed'; shapeId: string; constraint: Point }
   | { kind: 'free'; point: Point };
 
-/** Points de connexion d'une forme, relatifs à ses bornes : milieux des côtés (haut, droite, bas, gauche). */
-export const CONNECTION_POINTS: readonly Point[] = [
-  { x: 0.5, y: 0 },
-  { x: 1, y: 0.5 },
-  { x: 0.5, y: 1 },
-  { x: 0, y: 0.5 },
-];
+/** Côté du cadre d'une forme. */
+export type AnchorSide = 'n' | 'e' | 's' | 'w';
 
-export function connectionPoints(bounds: Rect): Point[] {
-  return CONNECTION_POINTS.map((c) => ({ x: bounds.x + c.x * bounds.width, y: bounds.y + c.y * bounds.height }));
+/** Point d'ancrage proposé sur une forme : relatif à ses bornes, pris par une flèche ou libre. */
+export interface Anchor {
+  constraint: Point;
+  side?: AnchorSide;
+  used: boolean;
+}
+
+const ANCHOR_SIDES: readonly AnchorSide[] = ['n', 'e', 's', 'w'];
+
+/** Côté du cadre sur lequel tombe un point relatif (un coin compte pour le haut ou le bas) ; undefined à l'intérieur. */
+export function sideOfConstraint(c: Point): AnchorSide | undefined {
+  if (c.y === 0) return 'n';
+  if (c.y === 1) return 's';
+  if (c.x === 1) return 'e';
+  if (c.x === 0) return 'w';
+  return undefined;
+}
+
+/** Position le long du côté (0 → 1, de gauche à droite ou de haut en bas). */
+function alongSide(side: AnchorSide, c: Point): number {
+  return side === 'n' || side === 's' ? c.x : c.y;
+}
+
+function onSide(side: AnchorSide, t: number): Point {
+  if (side === 'n') return { x: t, y: 0 };
+  if (side === 's') return { x: t, y: 1 };
+  if (side === 'e') return { x: 1, y: t };
+  return { x: 0, y: t };
+}
+
+/**
+ * Points libres d'un côté (mode manuel) : milieu de chaque intervalle entre les coins et les ancres prises, pour
+ * qu'il reste toujours un point libre entre deux ancres. Sans ancre prise : le milieu.
+ */
+export function freeAnchorPositions(used: number[]): number[] {
+  const cuts = [...new Set([0, ...used.filter((t) => t >= 0 && t <= 1), 1])].sort((a, b) => a - b);
+  return cuts.slice(1).map((t, i) => (cuts[i]! + t) / 2);
+}
+
+/**
+ * Points d'ancrage d'une forme (mode manuel) : ancres prises par les bouts fixes des flèches, plus les points libres
+ * de chaque côté (`freeAnchorPositions`). `skip` : bout de flèche en cours de déplacement, qui ne compte pas.
+ */
+export function shapeAnchors(
+  shapeId: string,
+  edges: readonly EdgeModel[],
+  skip?: { edgeId: string; end: TerminalEnd },
+): Anchor[] {
+  const used: Anchor[] = [];
+  for (const edge of edges)
+    for (const end of ['source', 'target'] as const) {
+      if (skip && skip.edgeId === edge.id && skip.end === end) continue;
+      const attachment = endAttachmentOf(edge, end);
+      if (attachment?.kind !== 'fixed' || attachment.shapeId !== shapeId) continue;
+      const { constraint } = attachment;
+      if (used.some((a) => a.constraint.x === constraint.x && a.constraint.y === constraint.y)) continue;
+      used.push({ constraint, side: sideOfConstraint(constraint), used: true });
+    }
+  const anchors: Anchor[] = [];
+  for (const side of ANCHOR_SIDES) {
+    const taken = used.filter((a) => a.side === side);
+    const free = freeAnchorPositions(taken.map((a) => alongSide(side, a.constraint)));
+    anchors.push(
+      ...[...taken, ...free.map((t) => ({ constraint: onSide(side, t), side, used: false }))].sort(
+        (a, b) => alongSide(side, a.constraint) - alongSide(side, b.constraint),
+      ),
+    );
+  }
+  // Ancres prises hors du cadre (point intérieur venu de draw.io) : gardées, accrochables.
+  return [...anchors, ...used.filter((a) => !a.side)];
 }
 
 /**
