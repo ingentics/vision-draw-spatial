@@ -1,7 +1,5 @@
-import { stencilShape } from '../../../../format/stencil';
-import type { Point, ShapeModel } from '../../../../model/types';
-import { orientedPath } from '../../../../render/geometry/orient';
-import { box } from '../../../generic/box';
+import type { Point } from '../../../../model/types';
+import { stencilBox } from '../../../generic/stencil';
 import type { ShapeDefinition } from '../../../types';
 
 /** Cadre du stencil (`w`, `h` de `<shape>`) : le contour s'étire dans les bornes de la forme. */
@@ -29,22 +27,10 @@ const PLUG_PATH: Point[] = [
   { x: 0, y: 77 },
 ];
 
-/** XML du stencil draw.io, tiré du même contour : draw.io dessine la prise à l'identique. */
-const PLUG_STENCIL =
-  `<shape name="plug" w="${STENCIL_W}" h="${STENCIL_H}" aspect="variable" strokewidth="inherit">` +
-  '<background><path>' +
-  PLUG_PATH.map((p, i) => `<${i === 0 ? 'move' : 'line'} x="${p.x}" y="${p.y}"/>`).join('') +
-  '<close/></path></background><foreground><fillstroke/></foreground></shape>';
+const PLUG = stencilBox({ name: 'plug', width: STENCIL_W, height: STENCIL_H, outline: PLUG_PATH });
 
 /** Valeur de `shape=` de la prise (stencil embarqué, compressé comme draw.io). */
-export const PLUG_SHAPE = stencilShape(PLUG_STENCIL);
-
-/** Contour étiré dans les bornes (`aspect="variable"`), orienté comme draw.io (`mxStencil.computeAspect`). */
-function outline(shape: ShapeModel) {
-  return orientedPath(shape.bounds, shape.style, (w, h) =>
-    PLUG_PATH.map((p) => ({ x: (p.x * w) / STENCIL_W, y: (p.y * h) / STENCIL_H })),
-  );
-}
+export const PLUG_SHAPE = PLUG.shape;
 
 /**
  * Prise (connecteur, module qui se branche) : pas de forme native dans draw.io, c'est un stencil embarqué dans le
@@ -53,7 +39,7 @@ function outline(shape: ShapeModel) {
 export const definition: ShapeDefinition = {
   id: 'plug',
   kinds: ['stencil:plug'],
-  ...box(outline),
+  ...PLUG.box,
   palette: {
     name: 'Prise',
     category: 'architecture',

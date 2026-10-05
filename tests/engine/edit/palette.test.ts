@@ -24,9 +24,13 @@ describe('palette', () => {
       'mxgraph.basic.octagon2',
       'mxgraph.basic.pentagon',
       'parallelogram',
+      'process',
       'rectangle',
       'rhombus',
+      'stencil:background-task',
+      'stencil:event-consumer',
       'stencil:plug',
+      'stencil:recurring-task',
       'step',
       'text',
       'triangle',
@@ -80,7 +84,16 @@ describe('palette', () => {
     expect(byCategory('general')).toEqual(['text', 'actor']);
     const known = new Set(PALETTE_CATEGORIES.map((c) => c.id));
     for (const template of SHAPE_TEMPLATES) expect(known.has(template.category), template.id).toBe(true);
-    expect(byCategory('architecture')).toEqual(['database', 'queue', 'distributed-cache', 'plug']);
+    expect(byCategory('architecture')).toEqual([
+      'database',
+      'queue',
+      'distributed-cache',
+      'plug',
+      'process',
+      'event-consumer',
+      'background-task',
+      'recurring-task',
+    ]);
   });
 
   describe('searchTemplates', () => {
@@ -101,8 +114,20 @@ describe('palette', () => {
     it('sur les mots-clés et le nom de la catégorie', () => {
       expect(ids('bdd')).toEqual(['database']);
       expect(ids('cyl')).toEqual(['database', 'queue']);
-      expect(ids('architecture')).toEqual(['database', 'queue', 'distributed-cache', 'plug']);
+      expect(ids('architecture')).toEqual([
+        'database',
+        'queue',
+        'distributed-cache',
+        'plug',
+        'process',
+        'event-consumer',
+        'background-task',
+        'recurring-task',
+      ]);
       expect(ids('plugin')).toEqual(['plug']);
+      expect(ids('cron')).toEqual(['recurring-task']);
+      expect(ids('worker')).toEqual(['background-task']);
+      expect(ids('subscriber')).toEqual(['event-consumer']);
     });
 
     it('plusieurs mots : chacun doit apparaître', () => {

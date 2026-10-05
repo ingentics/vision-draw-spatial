@@ -48,7 +48,10 @@ une définition sur une forme existante : `shape=note;spatial.kind=cylinder3;`).
 Un stencil embarqué (`shape=stencil(<XML compressé>)`) prend le nom `stencil:<nom>` de son `<shape name="…">` : c'est
 la façon d'ajouter une forme que draw.io n'a pas, tout en restant dessinée par draw.io (exemple :
 [impl/architecture/plug/](../src/engine/shapes/impl/architecture/plug/index.ts), XML tiré du même contour que le
-moteur).
+moteur). La base [generic/stencil/](../src/engine/shapes/generic/stencil/index.ts) (`stencilBox`) fait les deux d'un
+coup : à partir du contour et d'un dessin d'avant-plan (traits, parties remplies, au sol si hors du contour), elle
+donne la valeur de `shape=` et le rendu, tirés des mêmes points (exemples : `event-consumer`, `background-task`,
+`recurring-task`).
 
 `SHAPE_ALIASES` ramène des synonymes à un nom canonique (`rect`, `label` ► `rectangle`). Si draw.io écrit
 la même forme de plusieurs façons, ajoutez l'alias à cet endroit plutôt que de multiplier les définitions.
@@ -108,7 +111,9 @@ l'`id` (`text`, `ellipse`) et il n'y a pas de `kinds` à écrire.
 ```
 src/engine/shapes/
 ├── generic/                    bases à étendre (hors palette, hors registre)
-│   ├── box/                    contour → rendu 2D + bloc iso (`roundable` : coins arrondis de draw.io)
+│   ├── box/                    contour → rendu 2D + bloc iso (`roundable` : coins arrondis de draw.io ;
+│   │                           `details` : dessin intérieur, sur le dessus en iso ; `label` : zone du texte 2D)
+│   ├── stencil/                stencil embarqué : XML et rendu (box) tirés des mêmes points
 │   ├── cylinder/               tracés draw.io des cylindres, rendu 2D à lèvres
 │   └── building/               bâtiment iso : toit, faces, gravures, étiquette
 ├── impl/                       les formes, une par élément de la palette
@@ -116,7 +121,8 @@ src/engine/shapes/
 │   │                           hexagon, octagon, pentagon, triangle, triangle-up, parallelogram, step,
 │   │                           four-point-star, six-point-star
 │   ├── general/                catégorie « Général » : text, actor (debout face à la caméra en iso / 3D)
-│   ├── architecture/           catégorie « Architecture » : database, queue, distributed-cache, plug
+│   ├── architecture/           catégorie « Architecture » : database, queue, distributed-cache, plug, process,
+│   │                           event-consumer, background-task, recurring-task
 │   │   └── database/
 │   │       ├── index.ts        export const definition: ShapeDefinition = { … }
 │   │       └── facade.ts       sa façade iso (arcs gravés, étiquette « DB »)

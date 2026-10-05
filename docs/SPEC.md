@@ -121,11 +121,12 @@ src/
       registry.ts      # collecte des dossiers, résolution forme → définition, replis génériques
       placeholder.ts   # repli des formes non supportées
       minimap.ts       # repli mini-carte : contour de la forme
-      generic/         # bases à étendre : box/, cylinder/, building/
+      generic/         # bases à étendre : box/, stencil/, cylinder/, building/
       impl/            # une forme par élément de la palette, nommée comme l'interface
         geometry/      # rectangle/, rounded-rectangle/, ellipse/, circle/, diamond/
         general/       # text/
-        architecture/  # database/, queue/, distributed-cache/, plug/
+        architecture/  # database/, queue/, distributed-cache/, plug/, process/, event-consumer/, background-task/,
+                       # recurring-task/
         internal/      # hors palette : group/
     interaction/
       camera.ts        # ortho / iso, pan, zoom, état sérialisable
@@ -407,6 +408,18 @@ Ajouter une forme = **déposer son dossier** (au minimum `kind` et `flat`, idéa
   périmètre rectangle.
   Un `shape=stencil(…)` prend le nom de forme `stencil:<nom>` (`format/stencil.ts`) : les stencils inconnus apparaissent
   sous ce nom dans Diagnostics.
+- **Process** (palette « Architecture », 120 × 60) : forme native de draw.io
+  (`shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;`), rectangle (arrondi si `rounded=1`) et deux barres
+  sur toute la hauteur à `round(size × largeur)` des bords (`size` 0,1 ; en px avec `fixedSize=1` ; au moins le coin
+  avec `rounded=1`), orientées par `direction` ; texte entre les barres en 2D, comme `ProcessShape.getLabelBounds` ;
+  prisme du contour en iso / 3D, barres sur le dessus.
+- **Event consumer, Tâche de fond, Tâche récurrente** (palette « Architecture », 120 × 60) : stencils embarqués
+  (`event-consumer`, `background-task`, `recurring-task`, base `generic/stencil`) avec un **dessin d'avant-plan**
+  tracé de la couleur, de l'épaisseur et des pointillés de la bordure, étiré et orienté avec la forme : corps et, à
+  gauche, une enveloppe remplie avec sa flèche vers le corps (texte centré sur le corps, `spacingLeft=40`) ;
+  rectangle et engrenage dans le coin haut droit ; rectangle et flèche circulaire ↻ dans le coin haut droit. En iso /
+  3D, prisme du contour, avant-plan sur le dessus (l'enveloppe et sa flèche, hors du corps, restent au sol devant
+  lui). L'event consumer se clique sur toutes ses bornes ; flèches sur les bornes.
 - Connecteurs (arêtes) : segments, points intermédiaires, flèche de fin,
 - Couleurs de remplissage, de bordure, épaisseur de trait, pointillés, label centré.
 - **Position du label**, comme draw.io : dans la forme selon `align` / `verticalAlign` (marges `spacing*`, plus

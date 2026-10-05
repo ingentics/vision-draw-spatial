@@ -100,25 +100,54 @@ export function drawioSvgOutlines(
   for (const [id, part] of cells) {
     if (!ids(id)) continue;
     const tag = /<path [^>]*>/.exec(part)?.[0];
-    const d = tag && /\bd="([^"]*)"/.exec(tag)?.[1];
-    if (!tag || !d) continue;
-    const transform = /\btransform="([^"]*)"/.exec(tag)?.[1];
-    let points = pathPoints(d);
-    const steps = [...(transform ?? '').matchAll(/(translate|scale|rotate)\(([^)]*)\)/g)].reverse();
-    for (const [, op, args] of steps) {
-      const [a = 0, b = op === 'scale' ? a : 0, c = 0] = args!.split(',').map(Number);
-      points = points.map((p) => {
-        if (op === 'translate') return { x: p.x + a, y: p.y + b };
-        if (op === 'scale') return { x: p.x * a, y: p.y * b };
-        const rad = (a * Math.PI) / 180;
-        const [x, y] = [p.x - b, p.y - c];
-        return { x: b + x * Math.cos(rad) - y * Math.sin(rad), y: c + x * Math.sin(rad) + y * Math.cos(rad) };
-      });
-    }
-    outlines.set(
-      id,
-      points.map((p) => ({ x: p.x + dx, y: p.y + dy })),
-    );
+    const points = tag && tagPoints(tag);
+    if (points)
+      outlines.set(
+        id,
+        points.map((p) => ({ x: p.x + dx, y: p.y + dy })),
+      );
   }
   return outlines;
+}
+
+/**
+ * Tous les tracés (`<path>`) d'une cellule dans un export SVG de draw.io, chacun avec sa transformation, en
+ * coordonnées de page : fond et avant-plan d'un stencil, barres d'un process…
+ */
+export function drawioSvgPaths(
+  svg: string,
+  reference: { id: string; x: number; y: number },
+  id: string,
+): Array<Array<{ x: number; y: number }>> {
+  const parts = svg.split('data-cell-id="').slice(1);
+  const ref = parts.find((part) => part.startsWith(`${reference.id}"`)) ?? '';
+  const rect = /<rect x="([-\d.]+)" y="([-\d.]+)"/.exec(ref);
+  if (!rect) throw new Error(`Forme de référence ${reference.id} absente du SVG`);
+  const dx = reference.x - parseFloat(rect[1]!);
+  const dy = reference.y - parseFloat(rect[2]!);
+  const cell = parts.find((part) => part.startsWith(`${id}"`)) ?? '';
+  return [...cell.matchAll(/<path [^>]*>/g)].flatMap(([tag]) => {
+    const points = tagPoints(tag);
+    return points ? [points.map((p) => ({ x: p.x + dx, y: p.y + dy }))] : [];
+  });
+}
+
+/** Points d'une balise `<path>`, sa transformation appliquée (`translate`, `scale`, `rotate`, de droite à gauche). */
+function tagPoints(tag: string): Array<{ x: number; y: number }> | undefined {
+  const d = /\bd="([^"]*)"/.exec(tag)?.[1];
+  if (!d) return undefined;
+  const transform = /\btransform="([^"]*)"/.exec(tag)?.[1];
+  let points = pathPoints(d);
+  const steps = [...(transform ?? '').matchAll(/(translate|scale|rotate)\(([^)]*)\)/g)].reverse();
+  for (const [, op, args] of steps) {
+    const [a = 0, b = op === 'scale' ? a : 0, c = 0] = args!.split(',').map(Number);
+    points = points.map((p) => {
+      if (op === 'translate') return { x: p.x + a, y: p.y + b };
+      if (op === 'scale') return { x: p.x * a, y: p.y * b };
+      const rad = (a * Math.PI) / 180;
+      const [x, y] = [p.x - b, p.y - c];
+      return { x: b + x * Math.cos(rad) - y * Math.sin(rad), y: c + x * Math.sin(rad) + y * Math.cos(rad) };
+    });
+  }
+  return points;
 }

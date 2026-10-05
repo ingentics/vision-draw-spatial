@@ -17,6 +17,17 @@ export interface SceneRenderer {
   create(shape: ShapeModel, ctx: RenderContext): Object3D;
 }
 
+/**
+ * Tracé du dessin intérieur d'une forme : avec la couleur, l'épaisseur et les pointillés de la bordure, rempli du fond
+ * si `filled`. En volume, sur le dessus du bloc, ou au sol devant lui (`ground`, dessin hors du contour).
+ */
+export interface ShapeDetail {
+  path: Point[];
+  closed: boolean;
+  filled?: boolean;
+  ground?: boolean;
+}
+
 /** Passage des coordonnées page aux coordonnées de la mini-carte. */
 export interface MinimapMapping {
   toMinimap(point: Point): Point;
@@ -111,6 +122,11 @@ export interface ShapeDefinition {
    * utilisée par le rendu à plat et par les replis (mini-carte…). Absent = rectangle des bornes.
    */
   outline?(shape: ShapeModel): Point[];
+  /**
+   * Dessin intérieur, en coordonnées page (barres du process, avant-plan d'un stencil…), tracé par le rendu par-dessus
+   * le fond ; sert aussi à le comparer à draw.io. Absent = aucun.
+   */
+  details?(shape: ShapeModel): ShapeDetail[];
   /** Rendu à plat, obligatoire : repli de tous les autres niveaux. */
   /**
    * Le point (coordonnées page, déjà dans les bornes) est-il dans la forme ? Sert à la sélection au clic.

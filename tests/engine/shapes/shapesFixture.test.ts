@@ -5,9 +5,12 @@ import { readDrawio } from '../../../src/engine/format/parse';
 import type { PageModel, Point, ShapeModel } from '../../../src/engine/model/types';
 import { toTerminal } from '../../../src/engine/render/edges/edge';
 import { routeEdge, simplify } from '../../../src/engine/render/edges/route';
+import { BACKGROUND_TASK_SHAPE } from '../../../src/engine/shapes/impl/architecture/background-task';
+import { EVENT_CONSUMER_SHAPE } from '../../../src/engine/shapes/impl/architecture/event-consumer';
 import { PLUG_SHAPE } from '../../../src/engine/shapes/impl/architecture/plug';
+import { RECURRING_TASK_SHAPE } from '../../../src/engine/shapes/impl/architecture/recurring-task';
 import { createDefaultRegistry } from '../../../src/engine/shapes/registry';
-import { drawioSvgOutlines, drawioSvgRoutes, dropCollinear, fixture } from '../../helpers';
+import { drawioSvgOutlines, drawioSvgPaths, drawioSvgRoutes, dropCollinear, fixture } from '../../helpers';
 
 /**
  * Fixture `shapes.drawio` (Milestone 5) : formes géométriques de draw.io dans leurs variantes (tailles,
@@ -18,6 +21,10 @@ import { drawioSvgOutlines, drawioSvgRoutes, dropCollinear, fixture } from '../.
  * La prise (`stencil:plug`) vérifie aussi les stencils embarqués (`mxStencil.computeAspect`) ; l'hexagone, ses pans
  * (`size`, `fixedSize`) et son périmètre (`hexagonPerimeter2`, couché et debout) ; l'octogone (`dx`) ; le
  * pentagone (stencil de draw.io).
+ *
+ * Le process (barres : `size`, `fixedSize`, `rounded`, `direction`) et les stencils à dessin intérieur (event
+ * consumer, tâche de fond, tâche récurrente) vérifient aussi leur dessin intérieur (`details`) : chaque tracé de
+ * draw.io tombe sur notre contour ou notre dessin, et inversement.
  *
  * Les triangles vérifient l'orientation commune (`orientedPath`) sur une forme asymétrique, et leur périmètre
  * (`trianglePerimeter`) dans toutes les directions.
@@ -60,6 +67,19 @@ const SIX_POINT_STAR = 'verticalLabelPosition=bottom;verticalAlign=top;html=1;sh
 const STEP = 'shape=step;perimeter=stepPerimeter;whiteSpace=wrap;html=1;fixedSize=1;';
 const PARALLELOGRAM = 'shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;';
 const ORIENTATIONS = [...VARIANTS, ...NORTH_FLIPS];
+const PROCESS = 'shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;';
+const PROCESS_VARIANTS = [
+  '',
+  'size=0.2;',
+  'fixedSize=1;size=20;',
+  'rounded=1;',
+  'rounded=1;arcSize=40;',
+  'direction=south;',
+  'direction=north;rounded=1;',
+  'flipH=1;size=0.3;',
+];
+/** Stencils embarqués à dessin intérieur. */
+const DETAILED_STENCILS = [EVENT_CONSUMER_SHAPE, BACKGROUND_TASK_SHAPE, RECURRING_TASK_SHAPE];
 /**
  * Formes de la palette « Géométrie », chacune dans ses variantes (id `<préfixe><n>`) : orientations, puis
  * réglages propres à la forme.
@@ -155,6 +175,8 @@ interface Vertex {
   h: number;
   /** Contour comparé à celui de l'export de draw.io (pas écrit dans le fichier). */
   outline?: boolean;
+  /** Dessin intérieur (`details`) comparé aux tracés de l'export de draw.io. */
+  details?: boolean;
 }
 interface Edge {
   id: string;
@@ -206,6 +228,15 @@ function layout(): { vertices: Vertex[]; edges: Edge[] } {
   SERIES.forEach(({ prefix, style, w, h, variants }) =>
     variants.forEach((variant, v) => {
       vertices.push({ id: `${prefix}${v}`, style: `${style}${variant}`, ...place(), w, h, outline: true });
+    }),
+  );
+  PROCESS_VARIANTS.forEach((variant, v) => {
+    vertices.push({ id: `pr${v}`, style: `${PROCESS}${variant}`, ...place(), w: 120, h: 60, details: true });
+  });
+  DETAILED_STENCILS.forEach((shape, s) =>
+    ORIENTATIONS.forEach((variant, v) => {
+      const style = `shape=${shape};whiteSpace=wrap;html=1;${variant}`;
+      vertices.push({ id: `sd${s}_${v}`, style, ...place(), w: 120, h: 60, outline: true, details: true });
     }),
   );
   // Flèches : un losange par style de tracé, les sources tout autour, sous les formes.
@@ -324,6 +355,26 @@ describe.runIf(existsSync(SVG))('shapes.drawio : mêmes contours et mêmes flèc
       const theirs = drawioSvgOutlines(svg, { id: 'ref', x: 0, y: 0 }, (id) => id === vertex.id).get(vertex.id)!;
       const ours = registry.resolve(shape).definition.outline!(shape);
       expect(samePolygon(ours, theirs), JSON.stringify({ ours, theirs })).toBe(true);
+    });
+  }
+
+  for (const vertex of vertices.filter((v) => v.details)) {
+    it(`dessin intérieur ${vertex.id} ${vertex.style.slice(0, 60)}`, () => {
+      const { shapes, svg } = load();
+      const shape = shapes.get(vertex.id)!;
+      const definition = registry.resolve(shape).definition;
+      const details = definition.details!(shape).flatMap((detail) => detail.path);
+      const ours = [...definition.outline!(shape), ...details];
+      const theirs = drawioSvgPaths(svg, { id: 'ref', x: 0, y: 0 }, vertex.id).flat();
+      const message = JSON.stringify({ details, theirs });
+      expect(
+        details.every((p) => theirs.some((q) => near(p, q))),
+        message,
+      ).toBe(true);
+      expect(
+        theirs.every((p) => ours.some((q) => near(p, q))),
+        message,
+      ).toBe(true);
     });
   }
 

@@ -45,6 +45,10 @@ describe('formes en plugins (étapes 65, 67) : contrat des définitions', () => 
         'architecture/queue',
         'architecture/distributed-cache',
         'architecture/plug',
+        'architecture/process',
+        'architecture/event-consumer',
+        'architecture/background-task',
+        'architecture/recurring-task',
         'internal/group',
       ]),
     );
