@@ -143,6 +143,8 @@ export interface ShapeSettings {
   edgePortStub: number;
   /** Ancrage automatique : détour accepté pour éviter un croisement, en pixels. */
   edgeCrossingDetour: number;
+  /** Marge d'une boucle (flèche d'une forme vers elle-même) autour de la forme, en pixels de page. */
+  edgeLoopMargin: number;
   /**
    * Fond du texte des flèches sans `labelBackgroundColor` explicite : halo de la couleur de la page
    * autour de chaque lettre, fond uni de la couleur de la page, ou transparent.
@@ -209,6 +211,19 @@ export interface EditSettings {
   nudgeStep: number;
   /** Pas avec Maj, en pixels de page ; 0 = un pas de grille, calé sur la grille. */
   nudgeCoarseStep: number;
+  /** Nombre d'étapes d'annulation gardées. */
+  undoLimit: number;
+  /** Décalage d'un collage quand la page n'a pas de grille, en pixels de page. */
+  pasteOffset: number;
+  /**
+   * Point intermédiaire de flèche ramené à moins de cette distance de l'alignement de ses voisins : retiré, en
+   * pixels écran (draw.io : `mxGraph.tolerance`, 4).
+   */
+  edgePointAlignTolerance: number;
+  /** Écart des poignées de connexion au bord de la forme, en pixels écran. */
+  connectHandleOffset: number;
+  /** Taille à l'écran sous laquelle les poignées du milieu d'un côté sont masquées, en pixels. */
+  middleHandleMinSpan: number;
 }
 
 /** Sauvegarde automatique (édition) : peu après chaque modification, sans interrompre un geste en cours. */
@@ -353,6 +368,7 @@ export const DEFAULT_SETTINGS: Settings = {
     edgeSpacing: 10,
     edgePortStub: 20,
     edgeCrossingDetour: 500,
+    edgeLoopMargin: 20,
     edgeLabelBackdrop: 'halo',
     edgeLabelHaloWidth: 1.5,
     edgeLabelHaloBlur: 1,
@@ -381,6 +397,11 @@ export const DEFAULT_SETTINGS: Settings = {
     minShapeSize: 10,
     nudgeStep: 1,
     nudgeCoarseStep: 0,
+    undoLimit: 100,
+    pasteOffset: 10,
+    edgePointAlignTolerance: 4,
+    connectHandleOffset: 18,
+    middleHandleMinSpan: 32,
   },
   save: { autosave: true, delayMs: 1000, viewStateDelayMs: 500 },
   debug: { showUnsupportedPanel: true },
@@ -406,6 +427,10 @@ export const SETTINGS_LIMITS = {
   'controls.moveSpeed': { min: 50, max: 5000, step: 50 },
   'controls.zoomSpeed': { min: 0.0002, max: 0.01, step: 0.0001 },
   'controls.decelerationMs': { min: 0, max: 600, step: 10 },
+  'controls.clickSlop': { min: 1, max: 20, step: 1 },
+  'controls.maxReleaseSpeed': { min: 500, max: 10000, step: 100 },
+  'controls.releaseWindowMs': { min: 20, max: 300, step: 10 },
+  'controls.stopSpeed': { min: 1, max: 100, step: 1 },
   'view.isoAngleDeg': { min: 10, max: 80, step: 1 },
   'view.isoAzimuthDeg': { min: -180, max: 180, step: 1 },
   'view.switchDurationMs': { min: 0, max: 3000, step: 50 },
@@ -433,6 +458,7 @@ export const SETTINGS_LIMITS = {
   'shapes.edgeSpacing': { min: 2, max: 40, step: 1 },
   'shapes.edgePortStub': { min: 5, max: 60, step: 1 },
   'shapes.edgeCrossingDetour': { min: 0, max: 2000, step: 50 },
+  'shapes.edgeLoopMargin': { min: 5, max: 100, step: 1 },
   'shapes.edgeLabelHaloWidth': { min: 0.5, max: 6, step: 0.25 },
   'shapes.edgeLabelHaloBlur': { min: 0, max: 4, step: 0.25 },
   'shapes.edgeBadgeRadius': { min: 3, max: 40, step: 0.5 },
@@ -455,6 +481,11 @@ export const SETTINGS_LIMITS = {
   'edit.minShapeSize': { min: 1, max: 100, step: 1 },
   'edit.nudgeStep': { min: 1, max: 50, step: 1 },
   'edit.nudgeCoarseStep': { min: 0, max: 100, step: 1 },
+  'edit.undoLimit': { min: 10, max: 1000, step: 10 },
+  'edit.pasteOffset': { min: 0, max: 100, step: 1 },
+  'edit.edgePointAlignTolerance': { min: 0, max: 30, step: 1 },
+  'edit.connectHandleOffset': { min: 6, max: 60, step: 1 },
+  'edit.middleHandleMinSpan': { min: 0, max: 120, step: 1 },
   'save.delayMs': { min: 300, max: 30000, step: 100 },
   'save.viewStateDelayMs': { min: 100, max: 5000, step: 100 },
   'panels.left.width': { min: 160, max: 400, step: 16 },
@@ -565,6 +596,10 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
       followLinkKey: oneOf(FOLLOW_LINK_KEYS, c.followLinkKey, base.controls.followLinkKey),
       followLinkGesture: oneOf(FOLLOW_LINK_GESTURES, c.followLinkGesture, base.controls.followLinkGesture),
       rotateSpeed: num('controls.rotateSpeed', c.rotateSpeed, base.controls.rotateSpeed),
+      clickSlop: num('controls.clickSlop', c.clickSlop, base.controls.clickSlop),
+      maxReleaseSpeed: num('controls.maxReleaseSpeed', c.maxReleaseSpeed, base.controls.maxReleaseSpeed),
+      releaseWindowMs: num('controls.releaseWindowMs', c.releaseWindowMs, base.controls.releaseWindowMs),
+      stopSpeed: num('controls.stopSpeed', c.stopSpeed, base.controls.stopSpeed),
       shortcuts: {
         toggleViewMode: code(shortcuts.toggleViewMode, base.controls.shortcuts.toggleViewMode),
         toggle3d: code(shortcuts.toggle3d, base.controls.shortcuts.toggle3d),
@@ -640,6 +675,7 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
         p.shapes?.edgeCrossingDetour,
         base.shapes.edgeCrossingDetour,
       ),
+      edgeLoopMargin: num('shapes.edgeLoopMargin', p.shapes?.edgeLoopMargin, base.shapes.edgeLoopMargin),
       edgeEndTextSize: Math.round(
         num('shapes.edgeEndTextSize', p.shapes?.edgeEndTextSize, base.shapes.edgeEndTextSize),
       ),
@@ -699,6 +735,15 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
       minShapeSize: num('edit.minShapeSize', p.edit?.minShapeSize, base.edit.minShapeSize),
       nudgeStep: num('edit.nudgeStep', p.edit?.nudgeStep, base.edit.nudgeStep),
       nudgeCoarseStep: num('edit.nudgeCoarseStep', p.edit?.nudgeCoarseStep, base.edit.nudgeCoarseStep),
+      undoLimit: Math.round(num('edit.undoLimit', p.edit?.undoLimit, base.edit.undoLimit)),
+      pasteOffset: num('edit.pasteOffset', p.edit?.pasteOffset, base.edit.pasteOffset),
+      edgePointAlignTolerance: num(
+        'edit.edgePointAlignTolerance',
+        p.edit?.edgePointAlignTolerance,
+        base.edit.edgePointAlignTolerance,
+      ),
+      connectHandleOffset: num('edit.connectHandleOffset', p.edit?.connectHandleOffset, base.edit.connectHandleOffset),
+      middleHandleMinSpan: num('edit.middleHandleMinSpan', p.edit?.middleHandleMinSpan, base.edit.middleHandleMinSpan),
     },
     save: {
       autosave: bool(p.save?.autosave, base.save.autosave),

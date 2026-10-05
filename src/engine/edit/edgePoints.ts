@@ -60,7 +60,7 @@ export interface PointsContext {
   targetFixed?: boolean;
   /** Recalcule le tracé brut avec d'autres points intermédiaires. */
   reroute: (waypoints: Point[]) => Point[];
-  /** Tolérance d'alignement (mxGraph.tolerance, 4 px écran), en unités de page. */
+  /** Tolérance d'alignement (paramètre `edit.edgePointAlignTolerance`), en unités de page. */
   tolerance: number;
   /** Demi-côté d'une poignée, en unités de page (un point lâché sur une autre poignée est retiré). */
   handleRadius: number;

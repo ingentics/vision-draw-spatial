@@ -302,6 +302,40 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   onChange={(decelerationMs) => onChange({ controls: { decelerationMs } })}
                 />
               </Subsection>
+              <Subsection title="Glisser">
+                <Slider
+                  label="Déplacement au-delà duquel un clic devient un glisser"
+                  value={controls.clickSlop}
+                  limits={SETTINGS_LIMITS['controls.clickSlop']}
+                  format={(v) => `${v} px`}
+                  onChange={(clickSlop) => onChange({ controls: { clickSlop } })}
+                />
+                <Slider
+                  label="Vitesse maximale au lâcher"
+                  value={controls.maxReleaseSpeed}
+                  limits={SETTINGS_LIMITS['controls.maxReleaseSpeed']}
+                  format={(v) => `${v} px/s`}
+                  onChange={(maxReleaseSpeed) => onChange({ controls: { maxReleaseSpeed } })}
+                />
+                <Slider
+                  label="Mesure de la vitesse au lâcher, sur les dernières"
+                  value={controls.releaseWindowMs}
+                  limits={SETTINGS_LIMITS['controls.releaseWindowMs']}
+                  format={(v) => `${v} ms`}
+                  onChange={(releaseWindowMs) => onChange({ controls: { releaseWindowMs } })}
+                />
+                <Slider
+                  label="Arrêt de la glissade sous"
+                  value={controls.stopSpeed}
+                  limits={SETTINGS_LIMITS['controls.stopSpeed']}
+                  format={(v) => `${v} px/s`}
+                  onChange={(stopSpeed) => onChange({ controls: { stopSpeed } })}
+                />
+                <p className="hint muted">
+                  Un glisser rapide de la vue continue sur sa lancée (glissade à l’arrêt), à la vitesse mesurée juste
+                  avant de lâcher.
+                </p>
+              </Subsection>
               <Subsection title="Souris">
                 <Slider
                   label="Sensibilité de la molette (zoom)"
@@ -744,6 +778,13 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   ]}
                   onChange={(edgeAnchoring) => onChange({ shapes: { edgeAnchoring } })}
                 />
+                <Slider
+                  label="Marge d’une boucle (flèche vers la même forme)"
+                  value={shapes.edgeLoopMargin}
+                  limits={SETTINGS_LIMITS['shapes.edgeLoopMargin']}
+                  format={(v) => `${v} px`}
+                  onChange={(edgeLoopMargin) => onChange({ shapes: { edgeLoopMargin } })}
+                />
                 <p className="hint muted">
                   Écrits dans le style draw.io des formes de la palette et des flèches tirées depuis une forme ; à
                   changer ensuite forme par forme dans le panneau de droite.
@@ -1025,6 +1066,13 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   format={(v) => `${v} px`}
                   onChange={(handlePickTolerance) => onChange({ edit: { handlePickTolerance } })}
                 />
+                <Slider
+                  label="Retrait d’un point de flèche remis dans l’alignement"
+                  value={edit.edgePointAlignTolerance}
+                  limits={SETTINGS_LIMITS['edit.edgePointAlignTolerance']}
+                  format={(v) => (v === 0 ? 'jamais' : `à ${v} px`)}
+                  onChange={(edgePointAlignTolerance) => onChange({ edit: { edgePointAlignTolerance } })}
+                />
               </Subsection>
               <Subsection title="Poignées et redimensionnement">
                 <Slider
@@ -1041,6 +1089,39 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   format={(v) => `${v} px`}
                   onChange={(minShapeSize) => onChange({ edit: { minShapeSize } })}
                 />
+                <Slider
+                  label="Écart des poignées de connexion"
+                  value={edit.connectHandleOffset}
+                  limits={SETTINGS_LIMITS['edit.connectHandleOffset']}
+                  format={(v) => `${v} px`}
+                  onChange={(connectHandleOffset) => onChange({ edit: { connectHandleOffset } })}
+                />
+                <Slider
+                  label="Masquer les poignées du milieu sous"
+                  value={edit.middleHandleMinSpan}
+                  limits={SETTINGS_LIMITS['edit.middleHandleMinSpan']}
+                  format={(v) => (v === 0 ? 'jamais' : `${v} px`)}
+                  onChange={(middleHandleMinSpan) => onChange({ edit: { middleHandleMinSpan } })}
+                />
+              </Subsection>
+              <Subsection title="Annuler, coller">
+                <Slider
+                  label="Étapes d’annulation gardées"
+                  value={edit.undoLimit}
+                  limits={SETTINGS_LIMITS['edit.undoLimit']}
+                  format={(v) => `${v}`}
+                  onChange={(undoLimit) => onChange({ edit: { undoLimit } })}
+                />
+                <Slider
+                  label="Décalage d’un collage sans grille"
+                  value={edit.pasteOffset}
+                  limits={SETTINGS_LIMITS['edit.pasteOffset']}
+                  format={(v) => `${v} px`}
+                  onChange={(pasteOffset) => onChange({ edit: { pasteOffset } })}
+                />
+                <p className="hint muted">
+                  Coller et dupliquer décalent d’un pas de grille ; sur une page sans grille, de ce décalage.
+                </p>
               </Subsection>
               <Subsection title="Déplacement au clavier">
                 <Slider

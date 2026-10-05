@@ -1,5 +1,6 @@
 import { Color, Group } from 'three';
 import { CONNECT_DIRECTIONS, connectSideOf, handlePoints, isConnectHandle } from '../edit/handles';
+import type { HandleLayout } from '../edit/handles';
 import type { Point, Rect } from '../model/types';
 import { ellipsePath, rectPath } from './geometry/paths';
 import { DEFAULT_ACCENT } from './decorations';
@@ -17,6 +18,8 @@ export interface HandleStyle {
   size?: number;
   /** Couleur d'accent (#rrggbb). */
   accent?: string;
+  /** Disposition des poignées (écart des poignées de connexion, masquage de celles du milieu). */
+  layout?: HandleLayout;
 }
 
 /**
@@ -32,7 +35,7 @@ export function selectionHandles(
   group.name = 'handles';
   const r = (options.size ?? HANDLE_SIZE) / zoom;
   const ACCENT = new Color(options.accent ?? DEFAULT_ACCENT);
-  for (const { kind, point } of handlePoints(bounds, zoom)) {
+  for (const { kind, point } of handlePoints(bounds, zoom, options.layout)) {
     if (isConnectHandle(kind)) {
       if (!options.connect) continue;
       const square = { x: point.x - r * 1.5, y: point.y - r * 1.5, width: 3 * r, height: 3 * r };

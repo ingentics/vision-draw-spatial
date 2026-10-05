@@ -81,7 +81,7 @@ import { labelPoint, placementAt, positionAlong } from './render/edges/polyline'
 import { setLineResolution } from './render/lines';
 import type { EdgeEnd } from './edit/edgeLabels';
 import { CONNECT_DIRECTIONS, connectSideOf, handlePoints, isConnectHandle, resizeBounds } from './edit/handles';
-import type { ConnectSide, HandleKind, ResizeHandle } from './edit/handles';
+import type { ConnectSide, HandleKind, HandleLayout, ResizeHandle } from './edit/handles';
 import { arrangeAnchors, arrangementChanges, arrangementConflicts } from './edit/arrange';
 import type { Arrangement } from './edit/arrange';
 import type { AvoidOptions } from './edit/avoid';
@@ -474,8 +474,6 @@ const EDGE_LINE_KEYS = {
   rounded: 'edgeStyle=orthogonalEdgeStyle;rounded=1;',
   curved: 'edgeStyle=orthogonalEdgeStyle;rounded=0;curved=1;',
 } as const;
-/** Tolérance d'alignement des points d'une flèche (mxGraph.tolerance de draw.io), en pixels écran. */
-const EDGE_POINT_TOLERANCE = 4;
 
 function samePoints(a: Point[], b: Point[]): boolean {
   return a.length === b.length && a.every((p, i) => p.x === b[i]!.x && p.y === b[i]!.y);
@@ -607,6 +605,7 @@ export class Engine {
       ? mergeSettings(DEFAULT_SETTINGS, { background: { color: options.background } })
       : DEFAULT_SETTINGS;
     this.settings = mergeSettings(initial, options.settings);
+    this.undoStack.setLimit(this.settings.edit.undoLimit);
     this.applyCameraLimits();
     this.reducedMotionQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)');
     this.reducedMotionQuery?.addEventListener?.('change', this.onReducedMotionChange);
@@ -998,7 +997,7 @@ export class Engine {
     const editable = this.editableEdgeSelection();
     if (!editable || this.anchoringOf(editable.page) !== 'manual') return false;
     const { page, pageTree, edge } = editable;
-    const variant = nextPlacementVariant(page, edge.id);
+    const variant = nextPlacementVariant(page, edge.id, this.settings.shapes.edgeLoopMargin);
     if (!variant) return false;
     this.recordEdit('Variante de placement');
     for (const [key, value] of Object.entries({
@@ -1622,6 +1621,7 @@ export class Engine {
     this.settings = mergeSettings(previous, patch);
     this.controller.setSettings(this.effectiveControls());
     this.scenes.setMaxCached(this.settings.preload.maxCachedPages);
+    this.undoStack.setLimit(this.settings.edit.undoLimit);
     this.syncSelectionAnimation();
     this.updateSelectionOutline();
     const changed = <K extends keyof Settings>(section: K) =>
@@ -2162,7 +2162,7 @@ export class Engine {
           waypoints,
           style: edge.style,
         }),
-      tolerance: EDGE_POINT_TOLERANCE / zoom,
+      tolerance: this.settings.edit.edgePointAlignTolerance / zoom,
       handleRadius: (this.settings.edit.handleSize * 1.5) / zoom,
     };
   }
@@ -2336,7 +2336,7 @@ export class Engine {
     };
     const a = end(from);
     const b = end(to);
-    return a && b ? loopWaypoints(shape.bounds, a, b) : undefined;
+    return a && b ? loopWaypoints(shape.bounds, a, b, this.settings.shapes.edgeLoopMargin) : undefined;
   }
 
   /** Position d'un point d'ancrage sur la page, projeté sur le contour de la forme comme le tracé. */
@@ -2452,7 +2452,13 @@ export class Engine {
     return pageToScreen(this.cameraState, this.viewport, point, height);
   }
 
-  /** Poignée de la sélection sous un point écran (8 px de tolérance). */
+  /** Disposition des poignées de la sélection (paramètres d'édition). */
+  private handleLayout(): HandleLayout {
+    const { connectHandleOffset, middleHandleMinSpan } = this.settings.edit;
+    return { connectOffset: connectHandleOffset, middleMinSpan: middleHandleMinSpan };
+  }
+
+  /** Poignée de la sélection sous un point écran (tolérance : `edit.handlePickTolerance`). */
   private handleAt(screen: Point): HandleKind | undefined {
     const editable = this.editableSelection();
     if (!editable) return undefined;
@@ -2460,7 +2466,7 @@ export class Engine {
     const top = this.elementTop(shape.id);
     const resizable = this.registry.isResizable(shape);
     let best: { kind: HandleKind; distance: number } | undefined;
-    for (const { kind, point } of handlePoints(shape.bounds, this.cameraState.zoom)) {
+    for (const { kind, point } of handlePoints(shape.bounds, this.cameraState.zoom, this.handleLayout())) {
       if (!isConnectHandle(kind) && !resizable) continue;
       const at = this.screenOfPoint(point, top);
       const distance = Math.hypot(at.x - screen.x, at.y - screen.y);
@@ -3916,9 +3922,9 @@ export class Engine {
     );
   }
 
-  /** Pas de décalage d'un collage : la grille de la page (10 si elle est désactivée). */
+  /** Pas de décalage d'un collage : la grille de la page, sinon le paramètre `edit.pasteOffset`. */
   private gridStep(pageTree: PageTree): number {
-    return gridSizeOf(pageTree) || 10;
+    return gridSizeOf(pageTree) || this.settings.edit.pasteOffset;
   }
 
   /** Colle un contenu du presse-papier sur la page courante (une étape d'annulation) et le sélectionne. */
@@ -4408,6 +4414,7 @@ export class Engine {
         connect: true,
         size: this.settings.edit.handleSize,
         accent: this.settings.selection.accentColor,
+        layout: this.handleLayout(),
       });
       this.handlesObject.position.z = this.elementTop(shape.id) + 0.3;
       this.handlesObject.traverse((o) => {

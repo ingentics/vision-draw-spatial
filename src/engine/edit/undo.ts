@@ -12,7 +12,13 @@ export class UndoStack<T> {
   /** Position de la dernière sauvegarde ; -1 si elle n'est plus atteignable. */
   private savedPosition = 0;
 
-  constructor(private readonly limit = 100) {}
+  constructor(private limit = 100) {}
+
+  /** Change la taille de la pile (paramètre `edit.undoLimit`) ; les plus anciennes étapes en trop sont oubliées. */
+  setLimit(limit: number): void {
+    this.limit = limit;
+    if (this.undoStack.length > limit) this.undoStack.splice(0, this.undoStack.length - limit);
+  }
 
   /** À appeler juste avant une modification, avec l'état d'avant. */
   record(label: string, before: T): void {

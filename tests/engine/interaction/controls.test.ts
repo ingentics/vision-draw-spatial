@@ -86,6 +86,11 @@ describe('glissade', () => {
       { t: 10, p: { x: 1000, y: 0 } },
     ];
     expect(releaseVelocity(fast, 10).x).toBe(3000);
+    expect(releaseVelocity(fast, 10, { windowMs: 80, maxSpeed: 1000 }).x).toBe(1000);
+    // Fenêtre plus large : l'immobilité du début compte, la vitesse moyenne baisse.
+    expect(releaseVelocity(samples, 1000, { windowMs: 1000, maxSpeed: 3000 })).toEqual({ x: 50, y: 0 });
+    // Seuil d'arrêt de la glissade réglable.
+    expect(decelerate({ x: 10, y: 0 }, 0.001, 80, 20)).toEqual({ x: 0, y: 0 });
   });
 });
 

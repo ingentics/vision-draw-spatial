@@ -191,7 +191,20 @@ describe('réglages exposés (caméra, vue graphe, édition…)', () => {
       minShapeSize: 10,
       nudgeStep: 1,
       nudgeCoarseStep: 0,
+      undoLimit: 100,
+      pasteOffset: 10,
+      edgePointAlignTolerance: 4,
+      connectHandleOffset: 18,
+      middleHandleMinSpan: 32,
     });
+    expect(DEFAULT_SETTINGS.shapes.edgeLoopMargin).toBe(20);
+    expect(DEFAULT_SETTINGS.controls).toMatchObject({
+      clickSlop: 4,
+      maxReleaseSpeed: 3000,
+      releaseWindowMs: 80,
+      stopSpeed: 8,
+    });
+    expect(mergeSettings(DEFAULT_SETTINGS, { edit: { undoLimit: 5.4 } }).edit.undoLimit).toBe(10);
     expect(DEFAULT_SETTINGS.controls.orbitSpeed).toBe(0.005);
     expect(DEFAULT_SETTINGS.controls.multiSelectKey).toBe('ctrl');
     expect(DEFAULT_SETTINGS.controls.rotateSpeed).toBe(90);

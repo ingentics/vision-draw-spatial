@@ -29,28 +29,37 @@ export function connectSideOf(kind: ConnectHandle): ConnectSide {
   return kind.slice('connect-'.length) as ConnectSide;
 }
 
-/** Écart des poignées de connexion au bord de la forme, en pixels écran. */
-export const CONNECT_HANDLE_OFFSET = 18;
-/**
- * En dessous de cette taille à l'écran (pixels), les poignées du milieu d'un côté se chevaucheraient
- * avec celles des coins : elles sont masquées (haut / bas si la forme est étroite, gauche / droite si
- * elle est plate), comme draw.io.
- */
-export const MIDDLE_HANDLE_MIN_SPAN = 32;
+/** Disposition des poignées, en pixels écran (paramètres `edit.connectHandleOffset` et `edit.middleHandleMinSpan`). */
+export interface HandleLayout {
+  /** Écart des poignées de connexion au bord de la forme. */
+  connectOffset: number;
+  /**
+   * En dessous de cette taille à l'écran, les poignées du milieu d'un côté se chevaucheraient avec celles des
+   * coins : elles sont masquées (haut / bas si la forme est étroite, gauche / droite si elle est plate), comme
+   * draw.io.
+   */
+  middleMinSpan: number;
+}
 
-export function handlePoints(bounds: Rect, zoom: number): Array<{ kind: HandleKind; point: Point }> {
+export const DEFAULT_HANDLE_LAYOUT: HandleLayout = { connectOffset: 18, middleMinSpan: 32 };
+
+export function handlePoints(
+  bounds: Rect,
+  zoom: number,
+  layout: HandleLayout = DEFAULT_HANDLE_LAYOUT,
+): Array<{ kind: HandleKind; point: Point }> {
   const { width: w, height: h } = bounds;
-  const narrow = w * zoom < MIDDLE_HANDLE_MIN_SPAN;
-  const flat = h * zoom < MIDDLE_HANDLE_MIN_SPAN;
-  return allHandlePoints(bounds, zoom).filter(
+  const narrow = w * zoom < layout.middleMinSpan;
+  const flat = h * zoom < layout.middleMinSpan;
+  return allHandlePoints(bounds, zoom, layout.connectOffset).filter(
     ({ kind }) => !(narrow && (kind === 'n' || kind === 's')) && !(flat && (kind === 'e' || kind === 'w')),
   );
 }
 
-function allHandlePoints(bounds: Rect, zoom: number): Array<{ kind: HandleKind; point: Point }> {
+function allHandlePoints(bounds: Rect, zoom: number, connectOffset: number): Array<{ kind: HandleKind; point: Point }> {
   const { x, y, width: w, height: h } = bounds;
   const center = { x: x + w / 2, y: y + h / 2 };
-  const offset = CONNECT_HANDLE_OFFSET / zoom;
+  const offset = connectOffset / zoom;
   const connect = CONNECT_SIDES.map((side) => {
     const { direction } = CONNECT_DIRECTIONS[side];
     const kind: HandleKind = `connect-${side}`;

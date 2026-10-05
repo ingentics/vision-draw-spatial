@@ -141,6 +141,14 @@ export interface ControlSettings {
   followLinkGesture: FollowLinkGesture;
   /** Rotation au clavier (A / E en AZERTY, Q / E en QWERTY), en iso et en 3D, en degrés par seconde. */
   rotateSpeed: number;
+  /** Déplacement du pointeur au-delà duquel un clic devient un glisser, en pixels écran. */
+  clickSlop: number;
+  /** Vitesse maximale transmise par un glisser rapide, en pixels écran par seconde. */
+  maxReleaseSpeed: number;
+  /** Fenêtre de mesure de la vitesse au relâchement d'un glisser, en ms. */
+  releaseWindowMs: number;
+  /** Vitesse en dessous de laquelle la glissade s'arrête, en pixels écran par seconde. */
+  stopSpeed: number;
 }
 
 export const DEFAULT_CONTROLS: ControlSettings = {
@@ -153,37 +161,47 @@ export const DEFAULT_CONTROLS: ControlSettings = {
   followLinkKey: 'space',
   followLinkGesture: 'click',
   rotateSpeed: 90,
+  clickSlop: 4,
+  maxReleaseSpeed: 3000,
+  releaseWindowMs: 80,
+  stopSpeed: 8,
   shortcuts: DEFAULT_SHORTCUTS,
 };
 
-/** Vitesse en dessous de laquelle la glissade s'arrête (pixels écran par seconde). */
-const STOP_SPEED = 8;
-/** Fenêtre de mesure de la vitesse au relâchement d'un glisser. */
-const RELEASE_WINDOW_MS = 80;
-/** Vitesse maximale transmise par un glisser rapide. */
-const MAX_RELEASE_SPEED = 3000;
-
-/** Décélération exponentielle de la vitesse sur `dt` secondes. */
-export function decelerate(velocity: Point, dt: number, decelerationMs: number): Point {
+/** Décélération exponentielle de la vitesse sur `dt` secondes, arrêtée sous `stopSpeed` (px / s). */
+export function decelerate(
+  velocity: Point,
+  dt: number,
+  decelerationMs: number,
+  stopSpeed = DEFAULT_CONTROLS.stopSpeed,
+): Point {
   if (decelerationMs <= 0) return { x: 0, y: 0 };
   const k = Math.exp(-(dt * 1000) / decelerationMs);
   const next = { x: velocity.x * k, y: velocity.y * k };
-  return Math.hypot(next.x, next.y) < STOP_SPEED ? { x: 0, y: 0 } : next;
+  return Math.hypot(next.x, next.y) < stopSpeed ? { x: 0, y: 0 } : next;
 }
 
 /**
  * Vitesse du pointeur au relâchement (pixels écran / s), d'après ses dernières positions.
  * Nulle si le pointeur était immobile juste avant de relâcher.
  */
-export function releaseVelocity(samples: Array<{ t: number; p: Point }>, now: number): Point {
-  const recent = samples.filter((s) => now - s.t <= RELEASE_WINDOW_MS);
+export function releaseVelocity(
+  samples: Array<{ t: number; p: Point }>,
+  now: number,
+  options: { windowMs: number; maxSpeed: number } = {
+    windowMs: DEFAULT_CONTROLS.releaseWindowMs,
+    maxSpeed: DEFAULT_CONTROLS.maxReleaseSpeed,
+  },
+): Point {
+  const recent = samples.filter((s) => now - s.t <= options.windowMs);
   const first = recent[0];
   const last = recent[recent.length - 1];
   if (!first || !last || last.t - first.t < 1) return { x: 0, y: 0 };
   const dt = (last.t - first.t) / 1000;
   const v = { x: (last.p.x - first.p.x) / dt, y: (last.p.y - first.p.y) / dt };
   const speed = Math.hypot(v.x, v.y);
-  return speed > MAX_RELEASE_SPEED ? { x: (v.x / speed) * MAX_RELEASE_SPEED, y: (v.y / speed) * MAX_RELEASE_SPEED } : v;
+  const max = options.maxSpeed;
+  return speed > max ? { x: (v.x / speed) * max, y: (v.y / speed) * max } : v;
 }
 
 const LETTER_KEYS: Record<string, Point> = {
@@ -300,9 +318,6 @@ export interface CameraHost {
   /** Touche d'un mode de page sur la sélection (ex. « + » / « - ») ; vrai si elle a été prise. */
   modeKey?(key: string): boolean;
 }
-
-/** Au-delà de ce déplacement (px), un appui-relâché n'est plus un clic. */
-const CLICK_SLOP = 4;
 
 type DragMode = 'pan' | 'move' | 'orbit' | 'marquee';
 
@@ -444,7 +459,7 @@ export class CameraController {
 
   private readonly onPointerMove = (event: PointerEvent): void => {
     this.hover = this.localPoint(event);
-    if (this.pressPoint && distance(this.pressPoint, this.hover) > CLICK_SLOP) this.suppressClick = true;
+    if (this.pressPoint && distance(this.pressPoint, this.hover) > this.settings.clickSlop) this.suppressClick = true;
     const drag = this.drag;
     if (!drag || event.pointerId !== drag.pointerId) {
       if (this.enabled && !this.drag) this.host.hover?.(this.hover);
@@ -453,14 +468,14 @@ export class CameraController {
     const point = this.localPoint(event);
     if (drag.mode === 'move') {
       // Un appui-relâché sur place reste un clic (sélection) : on ne bouge qu'au-delà du seuil.
-      if (!drag.moving && distance(drag.start, point) <= CLICK_SLOP) return;
+      if (!drag.moving && distance(drag.start, point) <= this.settings.clickSlop) return;
       drag.moving = true;
       this.element.style.cursor = 'move';
       this.host.moveTo?.(point, { snap: !event.altKey });
       return;
     }
     if (drag.mode === 'marquee') {
-      if (!drag.moving && distance(drag.start, point) <= CLICK_SLOP) return;
+      if (!drag.moving && distance(drag.start, point) <= this.settings.clickSlop) return;
       drag.moving = true;
       this.showMarquee(rectBetween(drag.start, point));
       return;
@@ -487,7 +502,10 @@ export class CameraController {
     if (!this.drag || event.pointerId !== this.drag.pointerId) return;
     if (this.element.hasPointerCapture(event.pointerId)) this.element.releasePointerCapture(event.pointerId);
     if (this.drag.mode === 'pan') {
-      this.velocity = releaseVelocity(this.samples, event.timeStamp);
+      this.velocity = releaseVelocity(this.samples, event.timeStamp, {
+        windowMs: this.settings.releaseWindowMs,
+        maxSpeed: this.settings.maxReleaseSpeed,
+      });
       this.startLoop();
     } else if (this.drag.mode === 'move') {
       this.host.endMove?.();
@@ -729,7 +747,7 @@ export class CameraController {
       // Se déplacer vers le haut = le contenu descend.
       this.velocity = { x: -direction.x * this.settings.moveSpeed, y: -direction.y * this.settings.moveSpeed };
     } else {
-      this.velocity = decelerate(this.velocity, dt, this.settings.decelerationMs);
+      this.velocity = decelerate(this.velocity, dt, this.settings.decelerationMs, this.settings.stopSpeed);
     }
     // Rotation (jamais en 2D) autour du centre de l'écran : vitesse pleine tant que A / E est
     // enfoncée, puis la même courte glissade que le déplacement.

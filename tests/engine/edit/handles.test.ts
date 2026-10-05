@@ -52,4 +52,11 @@ describe('handlePoints', () => {
     const flat = { x: 0, y: 0, width: 200, height: 10 };
     expect(handlePoints(flat, 1).map((p) => p.kind)).toEqual(['nw', 'n', 'ne', 'se', 's', 'sw', ...CONNECT]);
   });
+
+  it('disposition réglable : écart des poignées de connexion, seuil de masquage de celles du milieu', () => {
+    const points = handlePoints(RECT, 2, { connectOffset: 40, middleMinSpan: 32 });
+    expect(points.find((p) => p.kind === 'connect-n')!.point).toEqual({ x: 100, y: 20 });
+    const tall = { x: 0, y: 0, width: 20, height: 200 };
+    expect(handlePoints(tall, 1, { connectOffset: 18, middleMinSpan: 0 })).toHaveLength(12);
+  });
 });

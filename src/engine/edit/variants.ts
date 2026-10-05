@@ -3,7 +3,7 @@ import { toTerminal } from '../render/edges/edge';
 import { fixedAnchor, routeEdge } from '../render/edges/route';
 import { constraintStyle, endAttachmentOf, frameConstraint, shapeAnchors } from './edgeEnds';
 import type { AnchorSide, TerminalEnd } from './edgeEnds';
-import { loopWaypoints } from './loops';
+import { LOOP_MARGIN, loopWaypoints } from './loops';
 
 /**
  * Variantes de placement d'une flèche en ancrage manuel (touche F, SPEC §14.1) : pour chaque couple côté de départ ×
@@ -52,7 +52,7 @@ function enters(a: Point, b: Point, r: Rect): boolean {
 }
 
 /** Variantes de placement d'une flèche reliée à deux formes, de la meilleure à la moins bonne. */
-export function placementVariants(page: PageModel, edgeId: string): PlacementVariant[] {
+export function placementVariants(page: PageModel, edgeId: string, loopMargin = LOOP_MARGIN): PlacementVariant[] {
   const edge = page.edges.find((e) => e.id === edgeId);
   const shapes = new Map(page.shapes.map((s) => [s.id, s]));
   const source = edge && shapes.get(edge.sourceId ?? '');
@@ -101,7 +101,7 @@ export function placementVariants(page: PageModel, edgeId: string): PlacementVar
       const entry = nearestFree(target, t, exit.point, loop ? [exit.constraint] : []);
       if (!entry || (loop && same(entry.constraint, exit.constraint))) continue;
       const points = loop
-        ? loopWaypoints(source.bounds, { point: exit.point, side: s }, { point: entry.point, side: t })
+        ? loopWaypoints(source.bounds, { point: exit.point, side: s }, { point: entry.point, side: t }, loopMargin)
         : [];
       const style = { ...edge.style };
       for (const [key, value] of Object.entries({
@@ -136,9 +136,13 @@ export function placementVariants(page: PageModel, edgeId: string): PlacementVar
  * Variante qui suit le placement actuel de la flèche (en boucle) : la suivante dans le classement si le placement
  * actuel y figure, sinon la meilleure. Undefined s'il n'y a pas d'autre placement.
  */
-export function nextPlacementVariant(page: PageModel, edgeId: string): PlacementVariant | undefined {
+export function nextPlacementVariant(
+  page: PageModel,
+  edgeId: string,
+  loopMargin = LOOP_MARGIN,
+): PlacementVariant | undefined {
   const edge = page.edges.find((e) => e.id === edgeId);
-  const variants = placementVariants(page, edgeId);
+  const variants = placementVariants(page, edgeId, loopMargin);
   if (!edge || variants.length === 0) return undefined;
   const exit = endAttachmentOf(edge, 'source');
   const entry = endAttachmentOf(edge, 'target');

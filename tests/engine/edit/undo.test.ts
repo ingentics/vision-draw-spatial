@@ -46,4 +46,13 @@ describe('UndoStack', () => {
     expect(stack.undo(4)).toBe(3);
     expect(stack.undo(3)).toBeUndefined();
   });
+
+  it('taille de pile réglable : les plus anciennes étapes en trop sont oubliées', () => {
+    const stack = new UndoStack<number>(10);
+    for (let i = 0; i < 5; i++) stack.record(`m${i}`, i);
+    stack.setLimit(2);
+    expect(stack.undo(5)).toBe(4);
+    expect(stack.undo(4)).toBe(3);
+    expect(stack.undo(3)).toBeUndefined();
+  });
 });
