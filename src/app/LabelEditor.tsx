@@ -3,7 +3,7 @@ import type { CSSProperties, MutableRefObject, RefObject } from 'react';
 import type { LabelEditPlane, LabelEditRequest } from '../engine/Engine';
 import { isMonospace, isRich, parseColor, parseRichHtml, richToHtml, richToText } from '../engine/format/richText';
 import { homographyCss, rectToQuad } from '../engine/render/geometry/homography';
-import { labelInsets } from '../engine/render/labelPosition';
+import { labelPadding } from '../engine/render/labelPosition';
 import { largestFitting, MIN_FIT_SIZE } from '../engine/render/richLayout';
 import type { TextMarks } from '../engine/model/types';
 
@@ -313,7 +313,7 @@ export function LabelEditor({
   const { style, scale, onEdge } = request;
   const bits = Number(style.fontStyle) || 0;
   const align = style.align === 'left' || style.align === 'right' ? style.align : 'center';
-  const insets = labelInsets(style);
+  const insets = labelPadding(style);
   // Boîte en pixels de page, agrandie au zoom : tailles du texte riche = tailles draw.io. Une forme : sur
   // son emprise. Une flèche : à la taille du texte, ancrée sur son point comme le label dessiné (aligné à
   // gauche : le texte part du point vers la droite ; à droite : l'inverse ; centré : de part et d'autre).
@@ -337,7 +337,8 @@ export function LabelEditor({
           // page, plaquée sur ses coins à l'écran (homographie), dans le plan et le sens du label.
           width: plane ? plane.width : width / scale,
           height: plane ? plane.height : height / scale,
-          // Marges du label dessiné (`spacing*` du style, et celles de draw.io en haut et en bas).
+          // Marges communes du label dessiné (`spacing`, et celles de draw.io en haut et en bas) ; celles propres au
+          // style (`spacingLeft`…) réduisent déjà le cadre (`Engine.labelEditZone`).
           padding: `${insets.top}px ${insets.right}px ${insets.bottom}px ${insets.left}px`,
           transform: plane ? planeTransform(plane) : `scale(${scale})`,
           justifyContent:

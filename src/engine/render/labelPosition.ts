@@ -21,23 +21,63 @@ export function outsideLabelBox(bounds: Rect, style: Record<string, string>): Re
  */
 export const BASE_SPACING = { top: 5, bottom: 1 } as const;
 
-/**
- * Marges du label d'une forme dans sa zone de texte, comme draw.io : `spacing` (2) sur chaque côté, plus
- * `spacingTop` / `spacingRight` / `spacingBottom` / `spacingLeft`, plus `BASE_SPACING` en haut ou en bas selon
- * `verticalAlign`. Partagées par le label dessiné et l'éditeur en place : le texte ne bouge pas entre les deux.
- */
-export function labelInsets(style: Record<string, string>): {
+/** Marges d'un label, côté par côté, en pixels de page. */
+export interface LabelInsets {
   top: number;
   right: number;
   bottom: number;
   left: number;
-} {
+}
+
+/**
+ * Marges propres au style (`spacingTop`, `spacingRight`, `spacingBottom`, `spacingLeft`) : elles réduisent la zone
+ * de texte de la forme, et le cadre de l'éditeur en place avec elle (ex. la tranche d'un process étiqueté).
+ */
+export function labelMargins(style: Record<string, string>): LabelInsets {
+  return {
+    top: styleNumber(style, 'spacingTop', 0),
+    right: styleNumber(style, 'spacingRight', 0),
+    bottom: styleNumber(style, 'spacingBottom', 0),
+    left: styleNumber(style, 'spacingLeft', 0),
+  };
+}
+
+/**
+ * Marges communes du label, dans la zone réduite par `labelMargins` : `spacing` (2) sur chaque côté, plus
+ * `BASE_SPACING` en haut ou en bas selon `verticalAlign`. Ce sont les marges intérieures de l'éditeur en place.
+ */
+export function labelPadding(style: Record<string, string>): LabelInsets {
   const spacing = styleNumber(style, 'spacing', 2);
   return {
-    top: spacing + styleNumber(style, 'spacingTop', 0) + (style.verticalAlign === 'top' ? BASE_SPACING.top : 0),
-    right: spacing + styleNumber(style, 'spacingRight', 0),
-    bottom:
-      spacing + styleNumber(style, 'spacingBottom', 0) + (style.verticalAlign === 'bottom' ? BASE_SPACING.bottom : 0),
-    left: spacing + styleNumber(style, 'spacingLeft', 0),
+    top: spacing + (style.verticalAlign === 'top' ? BASE_SPACING.top : 0),
+    right: spacing,
+    bottom: spacing + (style.verticalAlign === 'bottom' ? BASE_SPACING.bottom : 0),
+    left: spacing,
+  };
+}
+
+/** Zone réduite de marges (largeur et hauteur au moins 0). */
+export function insetRect(rect: Rect, insets: LabelInsets): Rect {
+  return {
+    x: rect.x + insets.left,
+    y: rect.y + insets.top,
+    width: Math.max(0, rect.width - insets.left - insets.right),
+    height: Math.max(0, rect.height - insets.top - insets.bottom),
+  };
+}
+
+/**
+ * Toutes les marges du label dans la zone de texte de sa forme, comme draw.io : celles du style
+ * (`labelMargins`) plus les communes (`labelPadding`). Le label dessiné les applique d'un coup ; l'éditeur en place
+ * réduit son cadre des premières et garde les secondes à l'intérieur : le texte ne bouge pas entre les deux.
+ */
+export function labelInsets(style: Record<string, string>): LabelInsets {
+  const margins = labelMargins(style);
+  const padding = labelPadding(style);
+  return {
+    top: margins.top + padding.top,
+    right: margins.right + padding.right,
+    bottom: margins.bottom + padding.bottom,
+    left: margins.left + padding.left,
   };
 }

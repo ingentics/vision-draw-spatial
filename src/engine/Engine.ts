@@ -180,7 +180,7 @@ import type { ModeScope, PageModeRegistry } from './modes/registry';
 import type { ModeEdit, ModeTarget } from './modes/types';
 import type { PageScene } from './render/pageScene';
 import { SceneManager } from './render/sceneManager';
-import { outsideLabelBox } from './render/labelPosition';
+import { insetRect, labelMargins, outsideLabelBox } from './render/labelPosition';
 import { defaultShapeRegistry } from './shapes/registry';
 import type { ShapeRegistry } from './shapes/registry';
 import type { SceneLevel } from './shapes/types';
@@ -3593,9 +3593,7 @@ export class Engine {
       // Forme : sa zone de texte, celle où le label est dessiné à ce niveau de rendu.
       const shape = this.getCurrentPage()?.shapes.find((s) => s.id === elementId);
       const level = this.scenes.current?.level ?? 'flat';
-      return shape
-        ? this.screenRectOf(elementId, this.registry.textZone(shape, level), this.labelTop(shape))
-        : undefined;
+      return shape ? this.screenRectOf(elementId, this.labelEditZone(shape, level), this.labelTop(shape)) : undefined;
     }
     // Flèche : le point où le texte est dessiné (son label, un label enfant, ou un début / fin à créer).
     const route = this.sceneObject(elementId)?.userData.route as Point[] | undefined;
@@ -3612,6 +3610,15 @@ export class Engine {
   }
 
   /**
+   * Cadre de l'éditeur en place d'une forme : sa zone de texte à ce niveau de rendu, réduite des marges propres au
+   * style (`spacingLeft`…), comme sur toutes les formes (la BDD sous son ellipse, le process étiqueté hors de sa
+   * tranche) ; les marges communes restent à l'intérieur du cadre.
+   */
+  private labelEditZone(shape: ShapeModel, level: SceneLevel): Rect {
+    return insetRect(this.registry.textZone(shape, level), labelMargins(shape.style));
+  }
+
+  /**
    * Plan du texte d'une forme vue de biais ou tournée : sa zone de texte et ses coins projetés à l'écran,
    * à la hauteur où le label est dessiné. Vue de dessus non tournée : undefined (rectangle `screen`).
    */
@@ -3620,7 +3627,7 @@ export class Engine {
     if (tilt === 0 && rotation === 0 && fov === undefined) return undefined;
     const shape = this.getCurrentPage()?.shapes.find((s) => s.id === elementId);
     if (!shape) return undefined;
-    const { x, y, width, height } = this.registry.textZone(shape, this.scenes.current?.level ?? 'flat');
+    const { x, y, width, height } = this.labelEditZone(shape, this.scenes.current?.level ?? 'flat');
     const top = this.labelTop(shape);
     const at = (px: number, py: number) => this.screenOfPoint({ x: px, y: py }, top);
     return {
