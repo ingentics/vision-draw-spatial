@@ -611,6 +611,10 @@ export class Engine {
   /** Poignées de la forme sélectionnée. */
   private handlesObject: Object3D | undefined;
   private readonly undoStack = new UndoStack<string>();
+  /** Étapes enregistrées (et annulations / rétablissements) : repère des réglages en direct fusionnés. */
+  private editCount = 0;
+  /** Dernier réglage en direct (`setElementsStyle` avec `merge`) et le compte d'étapes à ce moment. */
+  private lastMerge?: { key: string; edits: number };
   /**
    * Dernière copie faite dans l'appli (ticket 59) : son XML, sa page d'origine et le parent de ses
    * éléments (pour recoller dans le même conteneur), et le décalage du prochain collage, en pas de grille.
@@ -3966,6 +3970,7 @@ export class Engine {
     elementIds: string[],
     patch: Record<string, string | undefined> | ((style: Record<string, string>) => Record<string, string | undefined>),
     label = 'Style',
+    merge?: string,
   ): void {
     const editable = this.editablePage();
     if (!editable) return;
@@ -3978,8 +3983,28 @@ export class Engine {
         .map(([key, value]) => ({ id: shape.id, key, value })),
     );
     if (changes.length === 0) return;
-    this.recordEdit(label);
+    // Réglage en direct (ex. champ tapé au fil des frappes) : une seule étape d'annulation tant que rien
+    // d'autre n'a été enregistré entre-temps et que la clé `merge` est la même.
+    const merged = merge !== undefined && this.lastMerge?.key === merge && this.lastMerge.edits === this.editCount;
+    if (!merged) this.recordEdit(label);
+    this.lastMerge = merge === undefined ? undefined : { key: merge, edits: this.editCount };
     for (const { id, key, value } of changes) setCellStyleValue(editable.pageTree, id, key, value);
+    // Réglage en direct d'une clé qui ne touche que le texte d'une flèche : seule la flèche est redessinée (comme
+    // pendant un glisser), sans reconstruire la page (tous ses textes clignoteraient à chaque frappe).
+    const edges = new Map(editable.page.edges.map((edge) => [edge.id, edge]));
+    if (merge !== undefined && changes.every(({ id, key }) => edges.has(id) && LIVE_EDGE_TEXT_KEYS.has(key))) {
+      for (const { id, key, value } of changes) {
+        const style = edges.get(id)!.style;
+        if (value === undefined) delete style[key];
+        else style[key] = value;
+      }
+      this.retraceEdges(editable.page, new Set(changes.map(({ id }) => id)));
+      this.afterLiveEdit();
+      this.relocateLabelEdit();
+      this.syncModified();
+      if (this.document) this.events.emit('documentChange', this.document);
+      return;
+    }
     this.documentChanged([editable.page.id]);
   }
 
@@ -4160,11 +4185,14 @@ export class Engine {
 
   /** État avant une modification, pour pouvoir l'annuler. */
   private recordEdit(label: string): void {
+    this.editCount++;
     if (this.xmlTree) this.undoStack.record(label, writeDrawio(this.xmlTree));
   }
 
   /** Revient à un instantané : document relu, scènes reconstruites, même page si elle existe encore. */
   private restore(xml: string): void {
+    // Annuler / rétablir : un réglage en direct qui reprend ensuite ouvre une nouvelle étape.
+    this.editCount++;
     const { document, tree } = readDrawio(xml);
     this.document = this.withModeWarnings(document);
     this.geometry = new Map(document.pages.map((p) => [p.id, pageGeometry(p)]));
@@ -4766,6 +4794,9 @@ function drawnTextBox(object: Object3D, toPage: Matrix4): Box3 | undefined {
   });
   return box.isEmpty() ? undefined : box;
 }
+
+/** Clés de style d'une flèche qui ne changent que le dessin de son texte : réglables en direct sans reconstruire la page. */
+const LIVE_EDGE_TEXT_KEYS: ReadonlySet<string> = new Set([SPATIAL.labelFollowShift]);
 
 /** Style draw.io avec une clé ajoutée à la fin si elle n'y est pas déjà (`clé=valeur;`). */
 function withStyleValue(style: string, key: string, value: string): string {

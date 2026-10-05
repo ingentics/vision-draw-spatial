@@ -653,11 +653,12 @@ export function Viewer({
                   onOrder={(move) => engine?.orderSelection(move)}
                   onReverse={() => engine?.reverseEdges(selected.edges.map((edge) => edge.id))}
                   onResetRoute={() => selection && engine?.resetEdgeRoute(selection.picked.element.id)}
-                  onEdgeStyle={(patch) =>
+                  onEdgeStyle={(patch, merge) =>
                     engine?.setElementsStyle(
                       selected.edges.map((edge) => edge.id),
                       patch,
                       'Tracé',
+                      merge,
                     )
                   }
                   onShapeStyle={(patch) =>

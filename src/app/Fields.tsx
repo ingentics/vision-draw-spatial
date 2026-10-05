@@ -1,3 +1,5 @@
+import { useEffect, useRef } from 'react';
+
 /** Champs du panneau contextuel, validés à Entrée ou en quittant le champ. */
 
 /** Champ texte : validé à Entrée ou en quittant le champ, Échap annule. */
@@ -41,7 +43,8 @@ export function TextField({
 
 /**
  * Champ numérique d'un attribut spatial : validé à Entrée ou en quittant le champ ; vide = défaut. Positif ou
- * nul, sauf `signed` (un décalage, par exemple).
+ * nul, sauf `signed` (un décalage, par exemple). `onLive` : appelé à chaque saisie d'une valeur complète
+ * (frappe, flèches du champ), pour un réglage en direct. Hors saisie, le champ suit `value` (annulation).
  */
 export function NumberField({
   label,
@@ -49,6 +52,7 @@ export function NumberField({
   value,
   placeholder,
   signed = false,
+  onLive,
   onCommit,
 }: {
   label: string;
@@ -56,12 +60,21 @@ export function NumberField({
   value: number | undefined;
   placeholder: string;
   signed?: boolean;
+  onLive?: (value: number) => void;
   onCommit: (value: number | undefined) => void;
 }) {
-  const commit = (text: string) => {
+  const input = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (input.current && document.activeElement !== input.current) input.current.value = String(value ?? '');
+  }, [value]);
+  const parse = (text: string) => {
     const trimmed = text.trim();
     const next = trimmed === '' ? undefined : Number(trimmed.replace(',', '.'));
-    if (next === undefined || (Number.isFinite(next) && (signed || next >= 0))) onCommit(next);
+    return next === undefined || (Number.isFinite(next) && (signed || next >= 0)) ? { value: next } : undefined;
+  };
+  const commit = (text: string) => {
+    const parsed = parse(text);
+    if (parsed) onCommit(parsed.value);
   };
   return (
     <label className="field-row" title={title}>
@@ -70,8 +83,13 @@ export function NumberField({
         type="number"
         min={signed ? undefined : 0}
         step={1}
+        ref={input}
         defaultValue={value ?? ''}
         placeholder={placeholder}
+        onInput={(event) => {
+          const parsed = onLive && parse(event.currentTarget.value);
+          if (parsed?.value !== undefined) onLive!(parsed.value);
+        }}
         onBlur={(event) => commit(event.target.value)}
         onKeyDown={(event) => {
           if (event.key === 'Enter') event.currentTarget.blur();

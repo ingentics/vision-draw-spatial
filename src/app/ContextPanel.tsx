@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { anchorOf, edgeTexts, endLabelOf } from '../engine/edit/edgeLabels';
 import type { EdgeTextAnchor } from '../engine/Engine';
 import type { EdgeEnd } from '../engine/edit/edgeLabels';
@@ -43,7 +44,8 @@ export interface ContextPanelProps {
   /** Clés de style des formes sélectionnées (bordure : couleur, épaisseur, trait, coins). */
   onShapeStyle: (patch: Record<string, string | undefined>) => void;
   /** Clés de style des flèches sélectionnées (tracé : droite, angles droits, arrondi, courbe), calculées par flèche. */
-  onEdgeStyle: (patch: EdgeStylePatch) => void;
+  /** `merge` : réglage en direct, fusionné en une étape d'annulation avec les précédents de même clé. */
+  onEdgeStyle: (patch: EdgeStylePatch, merge?: string) => void;
   /** Retour en auto de la flèche : points intermédiaires et points d'attache imposés retirés. */
   onResetRoute: () => void;
   /** Renommer la page ; absent si les pages ne sont pas modifiables. */
@@ -445,18 +447,33 @@ function TextAnchors({
 }
 
 /** Ajustement fin du texte qui suit la flèche : glissement le long du trait (`spatial.labelFollowShift`). */
-function FollowShiftField({ edge, onChange }: { edge: EdgeModel; onChange: (patch: EdgeStylePatch) => void }) {
+function FollowShiftField({
+  edge,
+  onChange,
+}: {
+  edge: EdgeModel;
+  onChange: (patch: EdgeStylePatch, merge?: string) => void;
+}) {
   const parsed = parseFloat(edge.style[SPATIAL.labelFollowShift] ?? '');
   const shift = Number.isFinite(parsed) && parsed !== 0 ? parsed : undefined;
+  // Une étape d'annulation par passage dans le champ : les valeurs tapées à la suite sont fusionnées.
+  const session = useRef(0);
+  const write = (value: number | undefined) => () => ({
+    [SPATIAL.labelFollowShift]: value ? String(value) : undefined,
+  });
   return (
     <NumberField
-      key={`${edge.id}:${shift ?? ''}`}
+      key={edge.id}
       label="Décalage le long du trait (px)"
       title={`Glisse le texte le long du trait : positif = vers la fin, négatif = vers le début (${SPATIAL.labelFollowShift})`}
       value={shift}
       placeholder="0"
       signed
-      onCommit={(value) => onChange(() => ({ [SPATIAL.labelFollowShift]: value ? String(value) : undefined }))}
+      onLive={(value) => onChange(write(value), `followShift:${edge.id}:${session.current}`)}
+      onCommit={(value) => {
+        onChange(write(value), `followShift:${edge.id}:${session.current}`);
+        session.current++;
+      }}
     />
   );
 }
