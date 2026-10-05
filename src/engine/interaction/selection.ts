@@ -22,15 +22,16 @@ export function hasMultiSelectKey(
 }
 
 /**
- * Suivre un lien (SPEC §11.1) : touche (paramètre `controls.followLinkKey`, ⌘ par défaut) + geste
+ * Suivre un lien (SPEC §11.1) : touche (paramètre `controls.followLinkKey`, Espace par défaut) + geste
  * (`controls.followLinkGesture`, clic simple par défaut, ou double-clic). 'none' : sans touche, ce
  * qui n'a de sens qu'au double-clic (un clic seul doit rester une sélection). Maintenir la touche
- * fait ressortir les zones liées.
+ * fait ressortir les zones liées. Espace garde son glisser (déplacement de la vue) : seul un clic
+ * sans glisser suit le lien (ticket 121).
  */
-export type FollowLinkKey = MultiSelectKey | 'none';
+export type FollowLinkKey = MultiSelectKey | 'space' | 'none';
 export type FollowLinkGesture = 'click' | 'doubleClick';
 
-export const FOLLOW_LINK_KEYS: readonly FollowLinkKey[] = [...MULTI_SELECT_KEYS, 'none'];
+export const FOLLOW_LINK_KEYS: readonly FollowLinkKey[] = [...MULTI_SELECT_KEYS, 'space', 'none'];
 export const FOLLOW_LINK_GESTURES: readonly FollowLinkGesture[] = ['click', 'doubleClick'];
 
 /** Geste effectif : sans touche, toujours le double-clic. */
@@ -38,15 +39,16 @@ export function followLinkGesture(key: FollowLinkKey, gesture: FollowLinkGesture
   return key === 'none' ? 'doubleClick' : gesture;
 }
 
-/** `KeyboardEvent.key` de chaque touche de modification. */
-const MODIFIER_EVENT_KEYS: Record<MultiSelectKey, string> = {
+/** `KeyboardEvent.key` de chaque touche de modification (et d'Espace). */
+const MODIFIER_EVENT_KEYS: Record<Exclude<FollowLinkKey, 'none'>, string> = {
   ctrl: 'Control',
   meta: 'Meta',
   shift: 'Shift',
   alt: 'Alt',
+  space: ' ',
 };
 
-/** Cet événement clavier est-il cette touche de modification (enfoncée ou relâchée) ? */
+/** Cet événement clavier est-il cette touche (enfoncée ou relâchée) ? */
 export function isModifierKeyEvent(event: Pick<KeyboardEvent, 'key'>, key: FollowLinkKey): boolean {
   return key !== 'none' && event.key === MODIFIER_EVENT_KEYS[key];
 }
@@ -59,11 +61,22 @@ export const MODIFIER_KEY_LABELS: Record<MultiSelectKey, string> = {
   alt: 'Alt',
 };
 
-/** La touche pour suivre un lien est-elle enfoncée (toujours vrai pour 'none') ? */
+/** Touches pour suivre un lien, telles qu'affichées dans les infobulles. */
+export const FOLLOW_LINK_KEY_LABELS: Record<Exclude<FollowLinkKey, 'none'>, string> = {
+  ...MODIFIER_KEY_LABELS,
+  space: 'Espace',
+};
+
+/**
+ * La touche pour suivre un lien est-elle enfoncée (toujours vrai pour 'none') ? Espace n'est pas
+ * dans l'événement souris : `spaceDown` dit si elle est maintenue.
+ */
 export function hasFollowLinkKey(
   event: Pick<MouseEvent, 'ctrlKey' | 'metaKey' | 'shiftKey' | 'altKey'>,
   key: FollowLinkKey,
+  spaceDown = false,
 ): boolean {
+  if (key === 'space') return spaceDown;
   return key === 'none' || hasMultiSelectKey(event, key);
 }
 

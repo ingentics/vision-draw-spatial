@@ -150,7 +150,7 @@ export const DEFAULT_CONTROLS: ControlSettings = {
   decelerationMs: 80,
   orbitSpeed: 0.005,
   multiSelectKey: 'ctrl',
-  followLinkKey: 'meta',
+  followLinkKey: 'space',
   followLinkGesture: 'click',
   rotateSpeed: 90,
   shortcuts: DEFAULT_SHORTCUTS,
@@ -505,7 +505,9 @@ export class CameraController {
   };
 
   private readonly onClick = (event: MouseEvent): void => {
-    const suppressed = this.suppressClick || this.spaceDown;
+    const followLink = this.followsLink(event, 'click');
+    // Espace maintenu : un clic sans glisser ne compte que pour suivre un lien.
+    const suppressed = this.suppressClick || (this.spaceDown && !followLink);
     this.pressPoint = undefined;
     this.suppressClick = false;
     // Déjà traité par le menu contextuel (Ctrl+clic sur Mac).
@@ -513,22 +515,21 @@ export class CameraController {
     if (!this.enabled || event.button !== 0 || suppressed) return;
     this.host.click?.(this.localPoint(event), {
       toggle: hasMultiSelectKey(event, this.settings.multiSelectKey),
-      followLink: this.followsLink(event, 'click'),
+      followLink,
     });
   };
 
   /** Ce clic (ou double-clic) est-il le geste pour suivre un lien, avec sa touche ? */
   private followsLink(event: MouseEvent, gesture: FollowLinkGesture): boolean {
     const { followLinkKey: key, followLinkGesture: chosen } = this.settings;
-    return followLinkGesture(key, chosen) === gesture && hasFollowLinkKey(event, key);
+    return followLinkGesture(key, chosen) === gesture && hasFollowLinkKey(event, key, this.spaceDown);
   }
 
   private readonly onDoubleClick = (event: MouseEvent): void => {
-    if (!this.enabled || event.button !== 0 || this.spaceDown) return;
+    const followLink = this.followsLink(event, 'doubleClick');
+    if (!this.enabled || event.button !== 0 || (this.spaceDown && !followLink)) return;
     event.preventDefault();
-    this.host.doubleClick?.(this.localPoint(event), {
-      followLink: this.followsLink(event, 'doubleClick'),
-    });
+    this.host.doubleClick?.(this.localPoint(event), { followLink });
   };
 
   /**
@@ -538,12 +539,13 @@ export class CameraController {
   private readonly onContextMenu = (event: MouseEvent): void => {
     event.preventDefault();
     if (event.button !== 0 || !event.ctrlKey || this.settings.multiSelectKey !== 'ctrl') return;
-    const suppressed = this.suppressClick || this.spaceDown;
+    const followLink = this.followsLink(event, 'click');
+    const suppressed = this.suppressClick || (this.spaceDown && !followLink);
     this.pressPoint = undefined;
     this.suppressClick = false;
     if (!this.enabled || suppressed) return;
     this.ctrlClickAt = event.timeStamp;
-    this.host.click?.(this.localPoint(event), { toggle: true, followLink: this.followsLink(event, 'click') });
+    this.host.click?.(this.localPoint(event), { toggle: true, followLink });
   };
 
   private readonly onMouseDown = (event: MouseEvent): void => {
@@ -563,10 +565,13 @@ export class CameraController {
           multiSelect: this.held.multiSelect || multiSelect,
         });
       }
-      return;
+      // Espace garde aussi son rôle de déplacement de la vue (plus bas).
+      if (event.code !== 'Space') return;
+    } else {
+      // Une autre touche avec ⌘ ou Ctrl (⌘+Tab, Ctrl+Z…) : un raccourci, pas un mode. Espace, elle,
+      // reste maintenue (ex. déplacement au clavier pendant qu'elle l'est).
+      this.setHeld({ followLink: this.settings.followLinkKey === 'space' && this.spaceDown, multiSelect: false });
     }
-    // Une autre touche avec ⌘ ou Ctrl (⌘+Tab, Ctrl+Z…) : un raccourci, pas un mode.
-    this.setHeld({ followLink: false, multiSelect: false });
     if (!this.enabled || isEditable(event.target)) return;
     // Une touche de déplacement reste une touche de déplacement, même si elle porte une lettre de raccourci.
     const action = isMoveKey(event.code, this.settings.moveKeys)

@@ -14,7 +14,7 @@ const LEGACY = {
 };
 
 /** Version des paramètres enregistrés, pour les migrations. */
-const VERSION = 2;
+const VERSION = 3;
 
 export function loadSettings(): Settings {
   try {
@@ -38,11 +38,16 @@ export function saveSettings(settings: Settings): void {
 /**
  * Paramètres enregistrés par une version précédente. Version 2 : toutes les formes partagent la même
  * épaisseur par défaut (32) ; l'ancienne valeur par défaut (16) enregistrée telle quelle est migrée.
+ * Version 3 : la touche pour suivre un lien passe de ⌘ (ancien défaut) à Espace (ticket 121).
  */
-function migrate(stored: SettingsPatch & { version?: number }): SettingsPatch {
-  if ((stored.version ?? 1) >= VERSION) return stored;
-  if (stored.view?.isoDepth !== LEGACY_DEFAULT_DEPTH) return stored;
-  return { ...stored, view: { ...stored.view, isoDepth: DEFAULT_DEPTH } };
+export function migrate(stored: SettingsPatch & { version?: number }): SettingsPatch {
+  const version = stored.version ?? 1;
+  let next: SettingsPatch = stored;
+  if (version < 2 && stored.view?.isoDepth === LEGACY_DEFAULT_DEPTH)
+    next = { ...next, view: { ...next.view, isoDepth: DEFAULT_DEPTH } };
+  if (version < 3 && stored.controls?.followLinkKey === 'meta')
+    next = { ...next, controls: { ...next.controls, followLinkKey: 'space' } };
+  return next;
 }
 
 function legacySettings(): SettingsPatch {

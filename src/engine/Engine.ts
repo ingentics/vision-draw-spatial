@@ -128,7 +128,7 @@ import { pickElement } from './interaction/pick';
 import type { PickedElement } from './interaction/pick';
 import { marqueeTakes } from './interaction/marquee';
 import type { Footprint } from './interaction/marquee';
-import { MODIFIER_KEY_LABELS, followLinkGesture, independentRoots, toggleSelected } from './interaction/selection';
+import { FOLLOW_LINK_KEY_LABELS, followLinkGesture, independentRoots, toggleSelected } from './interaction/selection';
 import { easing, embedIn, embeddedCamera, phase } from './interaction/transitions';
 import { computeBounds } from './model/bounds';
 import type {
@@ -3980,6 +3980,8 @@ export class Engine {
       this.followLink(picked.element.id);
       return;
     }
+    // Espace + clic hors d'une forme liée : rien (Espace sert au déplacement de la vue, pas à la sélection).
+    if (followLink && this.settings.controls.followLinkKey === 'space') return;
     if (toggle) {
       if (picked) this.toggleSelect(picked);
       return;
@@ -4070,7 +4072,7 @@ export class Engine {
   private describeLink(link: LinkModel): string {
     const { followLinkKey: key, followLinkGesture: chosen } = this.settings.controls;
     const click = followLinkGesture(key, chosen) === 'click' ? 'clic' : 'double-clic';
-    const gesture = key === 'none' ? click : `${MODIFIER_KEY_LABELS[key]} + ${click}`;
+    const gesture = key === 'none' ? click : `${FOLLOW_LINK_KEY_LABELS[key]} + ${click}`;
     if (link.type === 'url') return `${link.href} (${gesture} : ouvrir dans un nouvel onglet)`;
     const name = this.pageById(link.pageId)?.name;
     const action = `${gesture} : aller à « ${name} »`;

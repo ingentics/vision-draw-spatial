@@ -25,7 +25,11 @@ export const MULTI_SELECT_LABELS: Record<MultiSelectKey, string> = {
 };
 
 /** Touches pour suivre un lien au double-clic, telles qu'affichées. */
-const FOLLOW_LINK_LABELS: Record<FollowLinkKey, string> = { ...MULTI_SELECT_LABELS, none: 'Aucune (double-clic seul)' };
+const FOLLOW_LINK_LABELS: Record<FollowLinkKey, string> = {
+  space: 'Espace',
+  ...MULTI_SELECT_LABELS,
+  none: 'Aucune (double-clic seul)',
+};
 
 const FOLLOW_LINK_GESTURE_LABELS: Record<FollowLinkGesture, string> = { click: 'Clic', doubleClick: 'Double-clic' };
 
@@ -1118,9 +1122,9 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                 onChange={(followLinkGesture) => onChange({ controls: { followLinkGesture } })}
               />
               <p className="hint muted">
-                Maintenir la touche fait ressortir les zones liées (« Mode navigation » en bas à droite). Sans elle, le
-                double-clic sur une forme liée modifie son texte. Dans la vue graphe, le double-clic seul plonge dans la
-                page.
+                Maintenir la touche fait ressortir les zones liées (« Mode navigation » en bas à droite). Avec Espace,
+                glisser déplace toujours la vue : seul un clic sans glisser suit le lien. Sans touche, le double-clic
+                sur une forme liée modifie son texte. Dans la vue graphe, le double-clic seul plonge dans la page.
               </p>
             </Section>
 

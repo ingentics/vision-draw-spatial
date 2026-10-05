@@ -36,6 +36,14 @@ describe('sélection multiple', () => {
     expect(hasFollowLinkKey(plain, 'none')).toBe(true);
   });
 
+  it('suivre un lien à Espace : maintenue d’après le clavier, pas d’après l’événement souris (ticket 121)', () => {
+    const plain = { ctrlKey: false, metaKey: true, shiftKey: false, altKey: false };
+    expect(hasFollowLinkKey(plain, 'space')).toBe(false);
+    expect(hasFollowLinkKey(plain, 'space', true)).toBe(true);
+    expect(isModifierKeyEvent({ key: ' ' }, 'space')).toBe(true);
+    expect(isModifierKeyEvent({ key: ' ' }, 'meta')).toBe(false);
+  });
+
   it('suivre un lien : sans touche, toujours au double-clic (un clic seul reste une sélection)', () => {
     expect(followLinkGesture('meta', 'click')).toBe('click');
     expect(followLinkGesture('ctrl', 'doubleClick')).toBe('doubleClick');
