@@ -26,8 +26,8 @@ export interface PageScene {
 
 /**
  * Niveau de scène effectif d'une page : le niveau demandé si au moins une forme visible de la
- * page a un rendu propre à ce niveau ou si `decorated` (décor en volume d'un effet de page), sinon `flat` (la scène à
- * plat sert telle quelle).
+ * page a un rendu propre à ce niveau ou si `decorated` (décor en volume d'un effet de page, sauts en relief des
+ * flèches), sinon `flat` (la scène à plat sert telle quelle).
  */
 export function effectiveLevel(
   page: PageModel,
@@ -80,7 +80,7 @@ export function buildPageScene(
         source: item.edge.sourceId ? shapesById.get(item.edge.sourceId) : undefined,
         target: item.edge.targetId ? shapesById.get(item.edge.targetId) : undefined,
       };
-      object = createEdgeObject(item.edge, terminals, ctx, dressing, below);
+      object = createEdgeObject(item.edge, terminals, { ...ctx, raisedJumps: level === 'iso' }, dressing, below);
       if (item.edge.style.noJump !== '1') below.push(edgeRoute(object));
       object.position.z = elevation.edgeBase(item.edge);
       object.userData.top = object.position.z;

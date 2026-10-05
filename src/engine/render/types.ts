@@ -73,6 +73,8 @@ export interface RenderContext {
   edgeFontColor?: string;
   /** Saut par défaut des flèches de la page (celui de la page, sinon le paramètre) ; absent = aucun. */
   edgeJumps?: JumpDefaults;
+  /** Scène en volume (iso, 3D) : les sauts Arc et Marche se lèvent hors du plan de la page (ticket 146). */
+  raisedJumps?: boolean;
   /** Fond du texte des flèches sans fond explicite : halo (épaisseur et flou en pixels de page), uni, ou aucun. */
   edgeLabelBackdrop?: { kind: 'halo' | 'solid' | 'none'; haloWidth: number; haloBlur: number };
   /** Couleur du fond de la vue : fond des labels `labelBackgroundColor=default` (blanc par défaut). */

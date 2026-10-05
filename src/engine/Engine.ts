@@ -686,7 +686,7 @@ export class Engine {
           page,
           this.registry,
           this.requestedLevel(),
-          this.effects.hasVolume(page, (id) => this.modes.allowsEffect(page, id)),
+          this.effects.hasVolume(page, (id) => this.modes.allowsEffect(page, id)) || this.hasRaisedJumps(page),
         ),
     );
 
@@ -1093,6 +1093,15 @@ export class Engine {
   jumpsOf(page: PageModel): JumpDefaults {
     const { edgeJumpStyle, edgeJumpSize } = this.settings.shapes;
     return { style: jumpValue(page.attributes[SPATIAL.jumps]) ?? edgeJumpStyle, size: edgeJumpSize };
+  }
+
+  /** Une flèche visible de la page saute en Arc ou en Marche : relief en volume (ticket 146). */
+  private hasRaisedJumps(page: PageModel): boolean {
+    const jumps = this.jumpsOf(page);
+    return page.edges.some((edge) => {
+      const style = edge.visible && jumpStyleOf(edge.style, jumps);
+      return style === 'arc' || style === 'sharp';
+    });
   }
 
   /** Saut propre à une page (undefined : celui de l'appli), suivi par ses flèches sans `jumpStyle`. */
@@ -3443,7 +3452,7 @@ export class Engine {
       const object = createEdgeObject(
         edge,
         { source: shapes.get(edge.sourceId ?? ''), target: shapes.get(edge.targetId ?? '') },
-        this.renderContext(page),
+        { ...this.renderContext(page), raisedJumps: this.scenes.current!.level === 'iso' },
         dressing,
         jumpStyleOf(edge.style, jumps) ? this.routesBelow(page, edge) : [],
       );

@@ -58,6 +58,22 @@ describe('withJumps', () => {
     expect(piece).toContainEqual({ x: 53, y: 3 });
   });
 
+  it('en volume (146) : l’arc et la marche montent en z au-dessus du croisement, sans quitter la ligne', () => {
+    const [arc, ...rest] = withJumps(horizontal, [vertical], 'arc', 3, true);
+    expect(rest).toEqual([]);
+    expect(arc!.every((p) => p.y === 0)).toBe(true);
+    expect(Math.max(...arc!.map((p) => p.z ?? 0))).toBeGreaterThan(2.5);
+    expect(arc!.filter((p) => p.z).every((p) => p.x > 47 && p.x < 53)).toBe(true);
+    const [sharp] = withJumps(vertical, [horizontal], 'sharp', 3, true);
+    expect(sharp).toContainEqual({ x: 50, y: -3, z: 3 });
+    expect(sharp).toContainEqual({ x: 50, y: 3, z: 3 });
+    // La coupure bordée reste dans le plan.
+    expect(withJumps(horizontal, [vertical], 'line', 3, true)[1]).toEqual([
+      { x: 47, y: 3 },
+      { x: 47, y: -3 },
+    ]);
+  });
+
   it('coupure : deux morceaux ; ligne : plus deux traits en travers', () => {
     const gap = withJumps(horizontal, [vertical], 'gap', 3);
     expect(gap).toEqual([
@@ -106,6 +122,13 @@ describe('buildPageScene — sauts', () => {
     buildPageScene(page(jumpStyle), createDefaultRegistry(), ctx)
       .root.children.find((c) => c.userData.elementId === id)!
       .children.filter((c) => c.name === 'stroke').length;
+
+  it('en volume, la bosse est un trait à part, levé (146)', () => {
+    const over = buildPageScene(page('arc'), createDefaultRegistry(), ctx, 'iso')
+      .root.children.find((c) => c.userData.elementId === 'over')!
+      .children.filter((c) => c.name === 'stroke');
+    expect(over).toHaveLength(3);
+  });
 
   it('seule la flèche du dessus saute', () => {
     expect(strokes('gap', 'over')).toBe(2);

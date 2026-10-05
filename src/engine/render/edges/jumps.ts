@@ -16,6 +16,9 @@ export const DEFAULT_JUMP_SIZE = 6;
 /** Distance minimale (px) d'un croisement aux bouts du segment, et tolérance d'alignement (draw.io : 0,5 et 1). */
 const END_TOLERANCE = 0.5;
 
+/** Point d'un tracé à sauts : `z` = hauteur au-dessus de la page d'un saut en relief (absent : dans le plan). */
+export type JumpPoint = Point & { z?: number };
+
 /** Saut par défaut des flèches d'une page (le sien, sinon celui de l'appli) : suivi par une flèche sans `jumpStyle`. */
 export interface JumpDefaults {
   style: JumpStyle | 'none';
@@ -51,11 +54,19 @@ export function jumpHalfLength(style: Record<string, string>, strokeWidth: numbe
  * @param line tracé dessiné (raccourci aux pointes, coudes arrondis)
  * @param below tracés des flèches dessinées avant (dessous)
  * @param half demi-longueur d'un saut (`jumpHalfLength`)
+ * @param raised vue en volume (iso, 3D) : l'arc et la marche se lèvent hors du plan (`z`, ticket 146) au lieu de se
+ *   déporter sur le côté
  */
-export function withJumps(line: Point[], below: readonly Point[][], style: JumpStyle, half: number): Point[][] {
+export function withJumps(
+  line: Point[],
+  below: readonly Point[][],
+  style: JumpStyle,
+  half: number,
+  raised = false,
+): JumpPoint[][] {
   if (line.length < 2 || below.length === 0 || half <= 0) return [line];
-  const pieces: Point[][] = [];
-  let piece: Point[] = [line[0]!];
+  const pieces: JumpPoint[][] = [];
+  let piece: JumpPoint[] = [line[0]!];
   let jumped = false;
   for (let i = 1; i < line.length; i++) {
     const a = line[i - 1]!;
@@ -73,7 +84,8 @@ export function withJumps(line: Point[], below: readonly Point[][], style: JumpS
       const at = { x: a.x + u.x * along, y: a.y + u.y * along };
       const p0 = { x: at.x - h.x, y: at.y - h.y };
       const p1 = { x: at.x + h.x, y: at.y + h.y };
-      const lift = (p: Point, k = 1) => ({ x: p.x + side.x * k, y: p.y + side.y * k });
+      const lift = (p: Point, k = 1): JumpPoint =>
+        raised && style !== 'line' ? { ...p, z: half * k } : { x: p.x + side.x * k, y: p.y + side.y * k };
       jumped = true;
       piece.push(p0);
       if (style === 'arc') {
@@ -89,6 +101,7 @@ export function withJumps(line: Point[], below: readonly Point[][], style: JumpS
           piece.push({
             x: k0 * p0.x + k1 * c0.x + k2 * c1.x + k3 * p1.x,
             y: k0 * p0.y + k1 * c0.y + k2 * c1.y + k3 * p1.y,
+            ...(raised && { z: (k1 + k2) * 1.3 * half }),
           });
         }
         piece.push(p1);

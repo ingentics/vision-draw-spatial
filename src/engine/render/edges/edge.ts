@@ -3,12 +3,14 @@ import type { Object3D } from 'three';
 import type { EdgeLabelPlacement, EdgeModel, Point, RichLine, ShapeModel } from '../../model/types';
 import { buildMarker } from '../edges/markers';
 import { jumpHalfLength, jumpStyleOf, withJumps } from '../edges/jumps';
+import type { JumpPoint } from '../edges/jumps';
 import { curveThrough, labelPoint, roundCorners, shorten, unit } from '../edges/polyline';
 import { parseStyle } from '../../format/style';
 import { SPATIAL } from '../../spatial';
 import { perimeterKind, routeEdgePoints, simplify } from '../edges/route';
 import type { Terminal } from '../edges/route';
 import { dashPattern } from '../geometry/stroke';
+import { edgeLines } from '../lines';
 import { fillMesh, strokeMesh } from '../meshes';
 import {
   DEFAULT_LABEL_BACKDROP,
@@ -100,14 +102,20 @@ export function createEdge(
     if (style.curved === '1') line = curveThrough(line);
     else if (style.rounded === '1') line = roundCorners(line, styleNumber(style, 'arcSize', DEFAULT_EDGE_ARC_SIZE) / 2);
     const jump = jumpStyleOf(style, ctx.edgeJumps);
-    const pieces = jump ? withJumps(line, below, jump, jumpHalfLength(style, strokeWidth, ctx.edgeJumps)) : [line];
-    for (const piece of pieces) {
-      const mesh = strokeMesh(piece, stroke, opacity, {
-        width: strokeWidth,
-        closed: false,
-        dash: dashPattern(style, strokeWidth),
-      });
+    const pieces = jump
+      ? withJumps(line, below, jump, jumpHalfLength(style, strokeWidth, ctx.edgeJumps), ctx.raisedJumps)
+      : [line];
+    const dash = dashPattern(style, strokeWidth);
+    const { flat, raised } = splitRaised(pieces);
+    for (const piece of flat) {
+      const mesh = strokeMesh(piece, stroke, opacity, { width: strokeWidth, closed: false, dash });
       if (mesh) group.add(mesh);
+    }
+    // Sauts en relief (iso, 3D) : rubans face à la caméra, visibles sous tous les angles.
+    if (raised.length > 0) {
+      const lines = edgeLines(raised, { color: stroke, opacity, width: strokeWidth, ...(dash && { dash }) });
+      lines.name = 'stroke';
+      group.add(lines);
     }
 
     for (const marker of [start, end]) {
@@ -132,6 +140,31 @@ export function createEdge(
   }
 
   return group;
+}
+
+/**
+ * Sépare un tracé à sauts en polylignes dans le plan de la page et en segments levés (`[x0, y0, z0, x1, …]`) : un
+ * segment est levé dès qu'un de ses bouts a une hauteur (saut en relief, ticket 146).
+ */
+function splitRaised(pieces: JumpPoint[][]): { flat: Point[][]; raised: number[] } {
+  const flat: Point[][] = [];
+  const raised: number[] = [];
+  for (const piece of pieces) {
+    let run: Point[] = [piece[0]!];
+    for (let i = 1; i < piece.length; i++) {
+      const a = piece[i - 1]!;
+      const b = piece[i]!;
+      if (!a.z && !b.z) {
+        run.push(b);
+        continue;
+      }
+      raised.push(a.x, a.y, a.z ?? 0, b.x, b.y, b.z ?? 0);
+      if (run.length >= 2) flat.push(run);
+      run = [b];
+    }
+    if (run.length >= 2) flat.push(run);
+  }
+  return { flat, raised };
 }
 
 /**
