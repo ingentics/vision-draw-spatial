@@ -280,6 +280,8 @@ export interface CameraHost {
   canMarquee?(screen: Point): boolean;
   /** `add` : touche de sélection multiple (ajoute à la sélection) ; `touch` : Alt (il suffit de toucher). */
   selectInRect?(rect: Rect, options: { add: boolean; touch: boolean }): void;
+  /** ⌘ + A / Ctrl + A, le focus sur la zone de dessin : sélectionne tous les éléments de la page (ticket 122). */
+  selectAll?(): void;
   /** F2 : éditer le label de la sélection. */
   editSelection?(): void;
   /** Suppr (ou le raccourci `deleteSelection`) : supprimer la sélection. */
@@ -573,6 +575,18 @@ export class CameraController {
       this.setHeld({ followLink: this.settings.followLinkKey === 'space' && this.spaceDown, multiSelect: false });
     }
     if (!this.enabled || isEditable(event.target)) return;
+    // Tout sélectionner : seulement si le focus est sur la zone de dessin (ailleurs, comportement natif).
+    if (
+      (event.ctrlKey || event.metaKey) &&
+      !event.altKey &&
+      !event.shiftKey &&
+      event.key.toLowerCase() === 'a' &&
+      event.target === this.element
+    ) {
+      event.preventDefault();
+      if (!event.repeat) this.host.selectAll?.();
+      return;
+    }
     // Une touche de déplacement reste une touche de déplacement, même si elle porte une lettre de raccourci.
     const action = isMoveKey(event.code, this.settings.moveKeys)
       ? undefined

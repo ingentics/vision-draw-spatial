@@ -205,6 +205,15 @@ function isEmptyPage(page: PageModel): boolean {
   return page.shapes.length === 0 && page.edges.length === 0;
 }
 
+/** Éléments pris sans leur conteneur (un élément pris avec lui n'est pas sélectionné à part), par ordre de z. */
+function takenRoots(page: PageModel, taken: PickedElement[]): PickedElement[] {
+  const ids = new Set(taken.map((item) => item.element.id));
+  const parentOf = new Map(page.shapes.map((s) => [s.id, s.parentId]));
+  const hasTakenAncestor = (id: string | undefined): boolean =>
+    id !== undefined && (ids.has(id) || hasTakenAncestor(parentOf.get(id)));
+  return taken.filter((item) => !hasTakenAncestor(item.element.parentId)).sort((a, b) => a.element.z - b.element.z);
+}
+
 export interface EngineOptions {
   canvas: HTMLCanvasElement;
   fonts?: FontSet;
@@ -662,6 +671,7 @@ export class Engine {
         endMove: () => this.endMove(),
         canMarquee: (screen) => !!this.editablePage() && !this.pickAt(screen),
         selectInRect: (rect, options) => this.selectInRect(rect, options),
+        selectAll: () => this.selectAll(),
         editSelection: () => this.editLabel(),
         deleteSelection: () => this.deleteSelection(),
         placementVariant: () => this.placementVariant(),
@@ -1770,28 +1780,32 @@ export class Engine {
   selectInRect(rect: Rect, options: { add: boolean; touch: boolean }): void {
     const page = this.getCurrentPage();
     if (!page) return;
+    const taken = this.selectableItems(page).filter((item) => {
+      const footprint = this.screenFootprint(item);
+      return footprint !== undefined && marqueeTakes(footprint, rect, options.touch);
+    });
+    const roots = takenRoots(page, taken);
+    const current = options.add && this.selection?.pageId === page.id ? this.selection.items : [];
+    const kept = current.filter((item) => !roots.some((r) => r.element.id === item.element.id));
+    this.selectItems([...kept, ...roots]);
+  }
+
+  /** Tout sélectionner (⌘ + A, ticket 122) : tous les éléments de la page courante, comme une zone qui les couvrirait. */
+  selectAll(): void {
+    const page = this.getCurrentPage();
+    if (page) this.selectItems(takenRoots(page, this.selectableItems(page)));
+  }
+
+  /** Éléments sélectionnables de la page : visibles, sur un calque visible. */
+  private selectableItems(page: PageModel): PickedElement[] {
     const hiddenLayers = new Set(page.layers.filter((l) => !l.visible).map((l) => l.id));
-    const candidates: PickedElement[] = [
+    return [
       ...page.shapes
         // Comme au clic : un groupe invisible n'est pris que s'il porte un lien (sinon on prend ses formes).
         .filter((s) => this.registry.isPickable(s))
         .map((element) => ({ type: 'shape' as const, element })),
       ...page.edges.map((element) => ({ type: 'edge' as const, element })),
     ].filter(({ element }) => element.visible && !hiddenLayers.has(element.layerId));
-    const taken = candidates.filter((item) => {
-      const footprint = this.screenFootprint(item);
-      return footprint !== undefined && marqueeTakes(footprint, rect, options.touch);
-    });
-    const ids = new Set(taken.map((item) => item.element.id));
-    const parentOf = new Map(page.shapes.map((s) => [s.id, s.parentId]));
-    const hasTakenAncestor = (id: string | undefined): boolean =>
-      id !== undefined && (ids.has(id) || hasTakenAncestor(parentOf.get(id)));
-    const roots = taken
-      .filter((item) => !hasTakenAncestor(item.element.parentId))
-      .sort((a, b) => a.element.z - b.element.z);
-    const current = options.add && this.selection?.pageId === page.id ? this.selection.items : [];
-    const kept = current.filter((item) => !roots.some((r) => r.element.id === item.element.id));
-    this.selectItems([...kept, ...roots]);
   }
 
   /** Emprise à l'écran d'un élément : base et dessus d'une forme, tracé d'une flèche. */
