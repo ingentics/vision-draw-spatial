@@ -26,10 +26,17 @@ export interface PageScene {
 
 /**
  * Niveau de scène effectif d'une page : le niveau demandé si au moins une forme visible de la
- * page a un rendu propre à ce niveau, sinon `flat` (la scène à plat sert telle quelle).
+ * page a un rendu propre à ce niveau ou si `decorated` (décor en volume d'un effet de page), sinon `flat` (la scène à
+ * plat sert telle quelle).
  */
-export function effectiveLevel(page: PageModel, registry: ShapeRegistry, level: SceneLevel): SceneLevel {
+export function effectiveLevel(
+  page: PageModel,
+  registry: ShapeRegistry,
+  level: SceneLevel,
+  decorated = false,
+): SceneLevel {
   if (level === 'flat') return 'flat';
+  if (decorated) return level;
   return page.shapes.some((shape) => shape.visible && registry.hasLevel(shape, level)) ? level : 'flat';
 }
 

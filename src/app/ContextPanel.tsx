@@ -14,6 +14,7 @@ import { BorderSection } from './BorderSection';
 import { NumberField, SelectField, TextField } from './Fields';
 import { JUMP_STYLES, jumpValue } from '../engine/render/edges/jumps';
 import type { JumpStyle } from '../engine/render/edges/jumps';
+import { defaultEffectRegistry, pageEffectIds } from '../engine/effects/registry';
 import { defaultModeRegistry } from '../engine/modes/registry';
 import type { ModeScope } from '../engine/modes/registry';
 import type { ModeEdit, ModeTarget } from '../engine/modes/types';
@@ -54,6 +55,8 @@ export interface ContextPanelProps {
   onRenamePage?: (name: string) => void;
   /** Mode de la page (undefined = page normale) ; absent si la page n'est pas modifiable. */
   onPageMode?: (modeId: string | undefined) => void;
+  /** Active ou retire un effet de la page ; absent si la page n'est pas modifiable. */
+  onPageEffect?: (effectId: string, enabled: boolean) => void;
   /** Ancrage des flèches propre à la page (undefined = réglage de l'appli) ; absent si la page n'est pas modifiable. */
   onPageAnchoring?: (anchoring: 'manual' | 'auto' | undefined) => void;
   /** Ancrage des flèches du réglage de l'appli (choix « par défaut » de la page). */
@@ -195,7 +198,40 @@ function PageSections({ page, onRenamePage: onRename, ...props }: ContextPanelPr
         modeCurrent={props.modeCurrent}
         exporters={props.exporters}
       />
+      <PageEffectsSection page={page} onPageEffect={props.onPageEffect} />
     </>
+  );
+}
+
+/**
+ * Effets de la page (sujet 143) : une case par effet, cumulables. Un effet refusé par le mode de la page reste
+ * cochable mais signalé inactif ; un effet inconnu (version plus récente) reste affiché tel quel.
+ */
+function PageEffectsSection({ page, onPageEffect }: Pick<ContextPanelProps, 'page' | 'onPageEffect'>) {
+  const written = pageEffectIds(page);
+  const unknown = written.filter((id) => !defaultEffectRegistry.get(id));
+  return (
+    <Section title="Effets">
+      {defaultEffectRegistry.list().map((effect) => {
+        const allowed = defaultModeRegistry.allowsEffect(page, effect.id);
+        return (
+          <label
+            key={effect.id}
+            className="field toggle"
+            title={allowed ? effect.description : `${effect.name} : sans effet dans le mode de cette page`}
+          >
+            <input
+              type="checkbox"
+              checked={written.includes(effect.id)}
+              disabled={!onPageEffect}
+              onChange={(event) => onPageEffect?.(effect.id, event.target.checked)}
+            />
+            {allowed ? effect.name : `${effect.name} (inactif)`}
+          </label>
+        );
+      })}
+      {unknown.length > 0 && <p className="panel-hint">Effets inconnus : {unknown.join(', ')}.</p>}
+    </Section>
   );
 }
 

@@ -37,6 +37,11 @@ export const SPATIAL = {
   labelFollowShift: 'spatial.labelFollowShift',
   /** Mode de la page (attribut de `<diagram>`) : id d'un mode de `modes/` (ex. `sequences`) ; absent = page normale. */
   mode: 'spatial.mode',
+  /**
+   * Effets de la page (attribut de `<diagram>`) : ids d'effets de `effects/` séparés par des virgules (ex. `forest`) ;
+   * absent = aucun. Ils se cumulent, sous l'autorité du mode de la page.
+   */
+  effects: 'spatial.effects',
   /** Ancrage des flèches de la page (attribut de `<diagram>`) : `manual` ou `auto` ; absent = réglage de l'appli. */
   anchoring: 'spatial.anchoring',
   /**

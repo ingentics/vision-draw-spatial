@@ -29,6 +29,8 @@ export interface PageModeDefinition {
   current?: ModeCurrent;
   /** Flèche créée sur la page (tirée depuis une forme), dans la même étape d'annulation ; `current` : le courant. */
   edgeCreated?(edit: ModeEdit, edgeId: string, current: string | undefined): void;
+  /** Effet de page permis sur une page de ce mode (le mode reste maître) ; absent = tous. */
+  allowsEffect?(effectId: string): boolean;
   /** Touches sur l'élément sélectionné seul, par `KeyboardEvent.key` (ex. `+`). */
   keys?: Record<string, ModeKey>;
 }

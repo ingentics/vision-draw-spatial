@@ -173,6 +173,8 @@ import type { JumpDefaults } from './render/edges/jumps';
 import { reorderCells } from './format/order';
 import type { OrderMove } from './format/order';
 import { applyModeEdit } from './modes/edit';
+import { defaultEffectRegistry, pageEffectIds, withPageEffect } from './effects/registry';
+import type { PageEffectRegistry } from './effects/registry';
 import { defaultModeRegistry } from './modes/registry';
 import type { ModeScope, PageModeRegistry } from './modes/registry';
 import type { ModeEdit, ModeTarget } from './modes/types';
@@ -240,6 +242,8 @@ export interface EngineOptions {
   registry?: ShapeRegistry;
   /** Pour ajouter ou surcharger des modes de page (sujet 69). */
   modes?: PageModeRegistry;
+  /** Pour ajouter ou surcharger des effets de page (sujet 143). */
+  effects?: PageEffectRegistry;
   /** Couleur de fond initiale (#rrggbb) ; le paramètre `background.color` la remplace s'il est fourni. */
   background?: string;
   /** Paramètres (SPEC §13) ; ensuite modifiables par `updateSettings`. */
@@ -529,6 +533,7 @@ export class Engine {
   private lastFlatMode: 'top' | 'iso' = 'top';
   private readonly registry: ShapeRegistry;
   private readonly modes: PageModeRegistry;
+  private readonly effects: PageEffectRegistry;
   /** « Courant » choisi du mode de chaque page (état de session, jamais écrit). */
   private readonly modeCurrents = new Map<string, string>();
   private readonly text: ReturnType<typeof createTroikaTextFactory>;
@@ -629,6 +634,7 @@ export class Engine {
     this.canvas = options.canvas;
     this.registry = options.registry ?? defaultShapeRegistry;
     this.modes = options.modes ?? defaultModeRegistry;
+    this.effects = options.effects ?? defaultEffectRegistry;
     const initial = options.background
       ? mergeSettings(DEFAULT_SETTINGS, { background: { color: options.background } })
       : DEFAULT_SETTINGS;
@@ -655,12 +661,29 @@ export class Engine {
     this.text = createTroikaTextFactory(options.fonts ?? {}, this.requestRender);
     this.scenes = new SceneManager(
       this.scene,
-      (page, level) =>
-        page.id === GRAPH_PAGE_ID && this.graph && this.document
-          ? buildGraphScene(page, this.graph.layout, this.document, this.registry, this.renderContext(page), level)
-          : buildPageScene(page, this.registry, this.renderContext(page), level, this.modes.dressing(page)),
+      (page, level) => {
+        if (page.id === GRAPH_PAGE_ID && this.graph && this.document)
+          return buildGraphScene(
+            page,
+            this.graph.layout,
+            this.document,
+            this.registry,
+            this.renderContext(page),
+            level,
+          );
+        const scene = buildPageScene(page, this.registry, this.renderContext(page), level, this.modes.dressing(page));
+        // Décors des effets de la page : en volume seulement (iso / 3D).
+        if (level === 'iso') this.effects.decorate(page, scene.root, (id) => this.modes.allowsEffect(page, id));
+        return scene;
+      },
       this.settings.preload.maxCachedPages,
-      (page) => effectiveLevel(page, this.registry, this.requestedLevel()),
+      (page) =>
+        effectiveLevel(
+          page,
+          this.registry,
+          this.requestedLevel(),
+          this.effects.hasVolume(page, (id) => this.modes.allowsEffect(page, id)),
+        ),
     );
 
     this.resizeObserver = new ResizeObserver((entries) => {
@@ -3805,6 +3828,18 @@ export class Engine {
     this.documentChanged([pageId]);
   }
 
+  /** Active ou retire un effet d'une page (`spatial.effects`), en une étape d'annulation. */
+  setPageEffect(pageId: string, effectId: string, enabled: boolean): void {
+    const page = this.pageById(pageId);
+    const pageTree = this.pageTreeOf(pageId);
+    if (!this.xmlTree || !page || !pageTree?.diagram || !this.editable || this.transition) return;
+    if (pageEffectIds(page).includes(effectId) === enabled) return;
+    const name = this.effects.get(effectId)?.name ?? effectId;
+    this.recordEdit(enabled ? `Effet ${name}` : `Sans effet ${name}`);
+    setPageAttribute(pageTree, SPATIAL.effects, withPageEffect(page, effectId, enabled));
+    this.documentChanged([pageId], { distribute: false });
+  }
+
   /**
    * Opération d'un mode sur la page courante (ex. ajouter un flux) : ses écritures forment une étape d'annulation ;
    * rien n'est enregistré si elle ne change rien.
@@ -3942,7 +3977,7 @@ export class Engine {
 
   /** Avertissements des modes de page (mode inconnu, données remises en ordre) ajoutés à ceux de la lecture. */
   private withModeWarnings(document: DocumentModel): DocumentModel {
-    document.warnings.push(...this.modes.warnings(document));
+    document.warnings.push(...this.modes.warnings(document), ...this.effects.warnings(document));
     return document;
   }
 

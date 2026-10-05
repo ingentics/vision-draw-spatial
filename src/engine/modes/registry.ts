@@ -43,6 +43,11 @@ export class PageModeRegistry {
     return this.modeOf(page)?.dressing?.(page);
   }
 
+  /** Le mode de la page permet-il cet effet (sujet 143) ? Oui pour une page normale ou un mode qui ne dit rien. */
+  allowsEffect(page: PageModel, effectId: string): boolean {
+    return this.modeOf(page)?.allowsEffect?.(effectId) ?? true;
+  }
+
   /** Réglages déclarés par le mode de la page pour une portée. */
   properties(page: PageModel, scope: ModeScope): ModeProperty[] {
     const mode = this.modeOf(page);
