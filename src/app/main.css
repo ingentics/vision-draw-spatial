@@ -1759,9 +1759,12 @@ body {
 }
 
 .flow-exports {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
   gap: 6px;
+}
+
+.flow-exports .button {
+  justify-content: center;
 }
 
 /* Export d'un flux (sujet 90) : fenêtre modale, texte exporté à gauche, rendu en ligne à droite. */
