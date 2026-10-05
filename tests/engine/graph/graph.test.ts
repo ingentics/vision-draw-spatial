@@ -1,7 +1,15 @@
 import { Object3D, Vector3 } from 'three';
 import { describe, expect, it } from 'vitest';
 import { parseDrawio } from '../../../src/engine/format/parse';
-import { GRAPH_PAGE_ID, buildGraphPage, cardId, layoutGraph, titleId } from '../../../src/engine/graph/graphPage';
+import {
+  DEFAULT_GRAPH_LAYOUT,
+  GRAPH_COLORS,
+  GRAPH_PAGE_ID,
+  buildGraphPage,
+  cardId,
+  layoutGraph,
+  titleId,
+} from '../../../src/engine/graph/graphPage';
 import { buildGraphScene } from '../../../src/engine/graph/graphScene';
 import { embedIn } from '../../../src/engine/interaction/transitions';
 import { buildNavigationGraph } from '../../../src/engine/model/graph';
@@ -81,6 +89,14 @@ describe('buildGraphPage', () => {
     expect(title('archi')).toBe('Architecture  ·  inaccessible');
     expect(title('orphan')).toBe('Orpheline  ·  orpheline');
     expect(page.shapes.find((s) => s.id === cardId('orphan'))!.style.dashed).toBe('1');
+  });
+
+  it('couleurs fournies : départ, orpheline, arcs', () => {
+    const colors = { ...GRAPH_COLORS, start: '#00aa00', orphan: '#123456', arc: '#abcdef' };
+    const { page: colored } = buildGraphPage(parents, DEFAULT_GRAPH_LAYOUT, colors);
+    expect(colored.shapes.find((s) => s.id === cardId('home'))!.style.strokeColor).toBe('#00aa00');
+    expect(colored.shapes.find((s) => s.id === titleId('orphan'))!.style.fontColor).toBe('#123456');
+    expect(colored.edges[0]!.style.strokeColor).toBe('#abcdef');
   });
 
   it('flèches entre cartes, nombre de liens si plusieurs', () => {

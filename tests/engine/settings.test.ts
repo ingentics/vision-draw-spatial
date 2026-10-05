@@ -13,7 +13,7 @@ describe('mergeSettings', () => {
   it('fusion section par section, le reste est conservé', () => {
     const merged = mergeSettings(DEFAULT_SETTINGS, { transition: { durationMs: 600 }, minimap: { visible: false } });
     expect(merged.transition).toEqual({ ...DEFAULT_SETTINGS.transition, durationMs: 600 });
-    expect(merged.minimap).toEqual({ visible: false, size: 200 });
+    expect(merged.minimap).toMatchObject({ visible: false, size: 200 });
     expect(merged.controls).toEqual(DEFAULT_SETTINGS.controls);
   });
 
@@ -183,7 +183,18 @@ describe('réglages exposés (caméra, vue graphe, édition…)', () => {
       focusMaxZoom: 2,
       focusPadding: 80,
     });
-    expect(DEFAULT_SETTINGS.graph).toEqual({ cardWidth: 260, columnGap: 200, rowGap: 90 });
+    expect(DEFAULT_SETTINGS.graph).toEqual({
+      cardWidth: 260,
+      columnGap: 200,
+      rowGap: 90,
+      cardColor: '#9aa0a6',
+      orphanColor: '#d93025',
+      unreachableColor: '#e37400',
+      arcColor: '#5f6368',
+      titleColor: '#202124',
+    });
+    expect(DEFAULT_SETTINGS.minimap).toMatchObject({ edgeColor: '#80868b', outlineColor: '#9aa0a6' });
+    expect(mergeSettings(DEFAULT_SETTINGS, { graph: { arcColor: 'rouge' } }).graph.arcColor).toBe('#5f6368');
     expect(DEFAULT_SETTINGS.edit).toEqual({
       edgePickTolerance: 6,
       handlePickTolerance: 8,

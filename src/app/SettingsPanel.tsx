@@ -708,6 +708,32 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   format={(v) => `${v} px`}
                   onChange={(rowGap) => onChange({ graph: { rowGap } })}
                 />
+                <ColorField
+                  label="Cadre des cartes"
+                  value={graph.cardColor}
+                  onChange={(cardColor) => onChange({ graph: { cardColor } })}
+                />
+                <ColorField
+                  label="Page orpheline"
+                  value={graph.orphanColor}
+                  onChange={(orphanColor) => onChange({ graph: { orphanColor } })}
+                />
+                <ColorField
+                  label="Page inaccessible"
+                  value={graph.unreachableColor}
+                  onChange={(unreachableColor) => onChange({ graph: { unreachableColor } })}
+                />
+                <ColorField
+                  label="Liens entre pages"
+                  value={graph.arcColor}
+                  onChange={(arcColor) => onChange({ graph: { arcColor } })}
+                />
+                <ColorField
+                  label="Titres des cartes"
+                  value={graph.titleColor}
+                  onChange={(titleColor) => onChange({ graph: { titleColor } })}
+                />
+                <p className="hint muted">La page de départ prend la couleur d’accent (Sélection).</p>
               </Subsection>
             </Section>
 
@@ -724,6 +750,18 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                 format={(v) => `${v} px`}
                 disabled={!minimap.visible}
                 onChange={(size) => onChange({ minimap: { size } })}
+              />
+              <ColorField
+                label="Flèches"
+                value={minimap.edgeColor}
+                disabled={!minimap.visible}
+                onChange={(edgeColor) => onChange({ minimap: { edgeColor } })}
+              />
+              <ColorField
+                label="Contour des formes"
+                value={minimap.outlineColor}
+                disabled={!minimap.visible}
+                onChange={(outlineColor) => onChange({ minimap: { outlineColor } })}
               />
             </Section>
 

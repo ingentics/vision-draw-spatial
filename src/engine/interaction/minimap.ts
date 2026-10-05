@@ -72,6 +72,8 @@ export interface MinimapSource {
   getBackground?(): string;
   /** Couleur d'accent (cadre de la vue), #rrggbb. */
   getAccent?(): string;
+  /** Couleurs du fond de carte (#rrggbb) : flèches, contour des formes, formes non supportées. */
+  getColors?(): { edge: string; outline: string; placeholder: string };
   /** Tracé dessiné d'une arête (coordonnées page). */
   getEdgeRoute(edgeId: string): Point[] | undefined;
   /** Dessin d'une forme : niveau `minimap` de sa définition, repli sur son contour. */
@@ -83,6 +85,7 @@ export interface MinimapSource {
 /** Couleur du cadre de la vue par défaut ; son remplissage en est une version transparente. */
 const FOOTPRINT_STROKE = '#1a73e8';
 const BACKGROUND = '#ffffff';
+/** Trait des flèches par défaut (paramètre `minimap.edgeColor`). */
 const EDGE_STROKE = '#80868b';
 
 export class Minimap {
@@ -188,10 +191,12 @@ export class Minimap {
     context.fillRect(0, 0, layout.width, layout.height);
 
     const hidden = new Set(page.layers.filter((l) => !l.visible).map((l) => l.id));
-    const map: MinimapMapping = { toMinimap: (p) => pageToMinimap(layout, p), scale: layout.scale };
+    const colors = this.source.getColors?.();
+    const map: MinimapMapping = { toMinimap: (p) => pageToMinimap(layout, p), scale: layout.scale, colors };
+    const edgeColor = colors?.edge ?? EDGE_STROKE;
     const elements = [
       ...page.shapes.map((shape) => ({ element: shape, draw: () => this.source.paintShape(context, shape, map) })),
-      ...page.edges.map((edge) => ({ element: edge, draw: () => this.drawEdge(context, layout, edge.id) })),
+      ...page.edges.map((edge) => ({ element: edge, draw: () => this.drawEdge(context, layout, edge.id, edgeColor) })),
     ];
     elements
       .filter(({ element }) => element.visible && !hidden.has(element.layerId))
@@ -200,7 +205,7 @@ export class Minimap {
     return base;
   }
 
-  private drawEdge(context: CanvasRenderingContext2D, layout: MinimapLayout, edgeId: string): void {
+  private drawEdge(context: CanvasRenderingContext2D, layout: MinimapLayout, edgeId: string, color: string): void {
     const route = this.source.getEdgeRoute(edgeId);
     if (!route || route.length < 2) return;
     context.beginPath();
@@ -210,7 +215,7 @@ export class Minimap {
       else context.lineTo(m.x, m.y);
     });
     context.lineWidth = 0.75;
-    context.strokeStyle = EDGE_STROKE;
+    context.strokeStyle = color;
     context.stroke();
   }
 

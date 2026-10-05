@@ -3,6 +3,7 @@ import { rectPath } from '../render/geometry/paths';
 import type { MinimapMapping, MinimapPainter, ShapeDefinition } from './types';
 
 const DEFAULT_FILL = '#ffffff';
+/** Contour par défaut (paramètre `minimap.outlineColor`). */
 const OUTLINE_STROKE = '#9aa0a6';
 
 /**
@@ -38,6 +39,6 @@ function paintPolygon(
     context.fill();
   }
   context.lineWidth = 0.75;
-  context.strokeStyle = OUTLINE_STROKE;
+  context.strokeStyle = map.colors?.outline ?? OUTLINE_STROKE;
   context.stroke();
 }

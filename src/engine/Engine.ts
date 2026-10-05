@@ -1515,7 +1515,15 @@ export class Engine {
   /** Page générée de la vue graphe (cartes des pages, flèches des liens). */
   getGraphPage(): PageModel | undefined {
     if (!this.document) return undefined;
-    this.graph ??= buildGraphPage(this.document, this.settings.graph);
+    const graph = this.settings.graph;
+    this.graph ??= buildGraphPage(this.document, graph, {
+      card: graph.cardColor,
+      start: this.settings.selection.accentColor,
+      orphan: graph.orphanColor,
+      unreachable: graph.unreachableColor,
+      arc: graph.arcColor,
+      title: graph.titleColor,
+    });
     return this.graph.page;
   }
 
@@ -1565,6 +1573,11 @@ export class Engine {
         getViewport: () => this.viewport,
         getBackground: () => this.settings.background.color,
         getAccent: () => this.settings.selection.accentColor,
+        getColors: () => ({
+          edge: this.settings.minimap.edgeColor,
+          outline: this.settings.minimap.outlineColor,
+          placeholder: this.settings.shapes.placeholderFill,
+        }),
         getEdgeRoute: (id) => this.sceneObject(id)?.userData.route as Point[] | undefined,
         paintShape: (context, shape, map) => this.registry.minimapPainter(shape)?.(context, shape, map),
         centerOn: (point) => {
@@ -1627,7 +1640,8 @@ export class Engine {
     const changed = <K extends keyof Settings>(section: K) =>
       JSON.stringify(this.settings[section]) !== JSON.stringify(previous[section]);
     if (changed('camera')) this.applyCameraLimits();
-    if (changed('graph')) this.graph = undefined;
+    if (changed('graph') || this.settings.selection.accentColor !== previous.selection.accentColor)
+      this.graph = undefined;
     if (
       this.settings.view.isoVolume !== previous.view.isoVolume ||
       this.settings.view.isoDepth !== previous.view.isoDepth ||
@@ -1643,7 +1657,12 @@ export class Engine {
       this.rebuildScenes();
     }
     if (changed('camera') && !this.transition && !this.animation) this.setCameraState(this.cameraState);
-    if (this.settings.selection.accentColor !== previous.selection.accentColor) this.minimap?.requestDraw();
+    if (
+      this.settings.minimap.edgeColor !== previous.minimap.edgeColor ||
+      this.settings.minimap.outlineColor !== previous.minimap.outlineColor
+    )
+      this.minimap?.invalidate();
+    else if (this.settings.selection.accentColor !== previous.selection.accentColor) this.minimap?.requestDraw();
     this.syncBackground();
 
     const view = this.settings.view;

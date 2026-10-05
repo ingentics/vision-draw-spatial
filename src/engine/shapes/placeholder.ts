@@ -45,7 +45,7 @@ export const placeholderShape: ShapeDefinition = {
   iso: { create: (shape, ctx) => block.create(asPlaceholder(shape, ctx), ctx) },
   minimap: (context, shape, map) => {
     const { x, y } = map.toMinimap(shape.bounds);
-    context.fillStyle = PLACEHOLDER_FILL;
+    context.fillStyle = map.colors?.placeholder ?? PLACEHOLDER_FILL;
     context.fillRect(x, y, Math.max(shape.bounds.width * map.scale, 1), Math.max(shape.bounds.height * map.scale, 1));
   },
 };

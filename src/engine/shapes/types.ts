@@ -22,6 +22,8 @@ export interface MinimapMapping {
   toMinimap(point: Point): Point;
   /** Pixels mini-carte par pixel de page. */
   scale: number;
+  /** Couleurs réglables (#rrggbb) : contour des formes, formes non supportées ; à défaut, celles du moteur. */
+  colors?: { outline?: string; placeholder?: string };
 }
 
 /** Dessin d'une forme dans la mini-carte (contexte déjà mis à l'échelle des pixels CSS). */

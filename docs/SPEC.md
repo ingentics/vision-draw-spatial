@@ -680,7 +680,8 @@ interface Settings {
     gridSize: number; majorEvery: number; gridColor: string;      // 10 (2–200), 4 (1 = aucune), '#d4d9e0'
     minorStrength: number;                                        // intensité des lignes secondaires : 0.55
   };
-  minimap: { visible: boolean; size: number };                    // true, 200
+  minimap: { visible: boolean; size: number;                      // true, 200
+    edgeColor: string; outlineColor: string };                    // flèches, contour des formes : '#80868b', '#9aa0a6'
   selection: {
     style: 'veil' | 'outline'; veilOpacity: number; animated: boolean; speed: number; // 'veil', 0.35, true, 12
     veilColor: string; veilPadding: number;                       // '#202124', 10 (px écran autour d'une flèche)
@@ -698,7 +699,11 @@ interface Settings {
     modeDimOpacity: number;                                       // hors du courant d'un mode (flux courant) : 0.3
     placeholderFill: string; placeholderStroke: string;           // formes non supportées (§8.4) : '#eeeeee', '#9e9e9e'
   };
-  graph: { cardWidth: number; columnGap: number; rowGap: number }; // vue graphe (§12) : 260, 200, 90
+  graph: {                                                        // vue graphe (§12)
+    cardWidth: number; columnGap: number; rowGap: number;         // 260, 200, 90
+    cardColor: string; orphanColor: string; unreachableColor: string; // '#9aa0a6', '#d93025', '#e37400' (départ : accentColor)
+    arcColor: string; titleColor: string;                         // '#5f6368', '#202124'
+  };
   edit: {                                                         // édition (§14)
     edgePickTolerance: number; handlePickTolerance: number;       // px écran : 6, 8
     handleSize: number; minShapeSize: number;                     // demi-côté des poignées (px écran) : 4 ; px de page : 10

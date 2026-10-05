@@ -29,7 +29,17 @@ const TITLE_HEIGHT = 26;
 /** Décalage des deux flèches d'un aller-retour, pour qu'elles ne se superposent pas. */
 const PAIR_OFFSET = 16;
 
-export const GRAPH_COLORS = {
+/** Couleurs de la vue graphe (#rrggbb) : `start` = couleur d'accent, les autres = paramètres `graph.*Color`. */
+export interface GraphColors {
+  card: string;
+  start: string;
+  orphan: string;
+  unreachable: string;
+  arc: string;
+  title: string;
+}
+
+export const GRAPH_COLORS: GraphColors = {
   card: '#9aa0a6',
   start: '#1a73e8',
   orphan: '#d93025',
@@ -102,6 +112,7 @@ export function layoutGraph(document: DocumentModel, options = DEFAULT_GRAPH_LAY
 export function buildGraphPage(
   document: DocumentModel,
   options = DEFAULT_GRAPH_LAYOUT,
+  colors = GRAPH_COLORS,
 ): { page: PageModel; layout: GraphLayout } {
   const layout = layoutGraph(document, options);
   const { graph, cards } = layout;
@@ -116,17 +127,17 @@ export function buildGraphPage(
     const { node } = card;
     const status = !node.reachable
       ? node.orphan
-        ? { text: 'orpheline', color: GRAPH_COLORS.orphan }
-        : { text: 'inaccessible', color: GRAPH_COLORS.unreachable }
+        ? { text: 'orpheline', color: colors.orphan }
+        : { text: 'inaccessible', color: colors.unreachable }
       : node.pageId === graph.startPageId
-        ? { text: 'départ', color: GRAPH_COLORS.start }
+        ? { text: 'départ', color: colors.start }
         : undefined;
     const stroke =
       status && status.text !== 'départ'
         ? status.color
         : node.pageId === graph.startPageId
-          ? GRAPH_COLORS.start
-          : GRAPH_COLORS.card;
+          ? colors.start
+          : colors.card;
     const link = { type: 'page' as const, pageId: node.pageId };
 
     shapes.push({
@@ -159,7 +170,7 @@ export function buildGraphPage(
         verticalAlign: 'bottom',
         fontSize: '15',
         fontStyle: '1',
-        fontColor: status && status.text !== 'départ' ? status.color : GRAPH_COLORS.title,
+        fontColor: status && status.text !== 'départ' ? status.color : colors.title,
         spacing: '0',
       },
       link,
@@ -180,9 +191,9 @@ export function buildGraphPage(
       style: {
         endArrow: 'block',
         endSize: '8',
-        strokeColor: GRAPH_COLORS.arc,
+        strokeColor: colors.arc,
         strokeWidth: '2',
-        fontColor: GRAPH_COLORS.arc,
+        fontColor: colors.arc,
       },
       sourceId: cardId(link.from),
       targetId: cardId(link.to),

@@ -93,6 +93,10 @@ export interface MinimapSettings {
   visible: boolean;
   /** Largeur en pixels CSS (la hauteur suit les proportions de la page). */
   size: number;
+  /** Trait des flèches (#rrggbb). */
+  edgeColor: string;
+  /** Contour des formes (#rrggbb). */
+  outlineColor: string;
 }
 
 /** Contour de sélection (SPEC §11.1). */
@@ -195,6 +199,13 @@ export interface GraphSettings {
   cardWidth: number;
   columnGap: number;
   rowGap: number;
+  /** Couleurs (#rrggbb) : cadre d'une carte, page orpheline, page inaccessible, arcs, titres. La page de départ prend
+   * la couleur d'accent (`selection.accentColor`). */
+  cardColor: string;
+  orphanColor: string;
+  unreachableColor: string;
+  arcColor: string;
+  titleColor: string;
 }
 
 /** Édition (SPEC §16) : tolérances et tailles. */
@@ -344,7 +355,7 @@ export const DEFAULT_SETTINGS: Settings = {
     gridColor: '#d4d9e0',
     minorStrength: 0.55,
   },
-  minimap: { visible: true, size: 200 },
+  minimap: { visible: true, size: 200, edgeColor: '#80868b', outlineColor: '#9aa0a6' },
   selection: {
     style: 'veil',
     veilOpacity: 0.35,
@@ -389,7 +400,16 @@ export const DEFAULT_SETTINGS: Settings = {
     placeholderStroke: '#9e9e9e',
   },
   styles: { base: DRAWIO_STYLES, extended: PASTEL_STYLES, text: TEXT_STYLES },
-  graph: { cardWidth: 260, columnGap: 200, rowGap: 90 },
+  graph: {
+    cardWidth: 260,
+    columnGap: 200,
+    rowGap: 90,
+    cardColor: '#9aa0a6',
+    orphanColor: '#d93025',
+    unreachableColor: '#e37400',
+    arcColor: '#5f6368',
+    titleColor: '#202124',
+  },
   edit: {
     edgePickTolerance: 6,
     handlePickTolerance: 8,
@@ -636,6 +656,8 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
     minimap: {
       visible: bool(m.visible, base.minimap.visible),
       size: num('minimap.size', m.size, base.minimap.size),
+      edgeColor: color(m.edgeColor, base.minimap.edgeColor),
+      outlineColor: color(m.outlineColor, base.minimap.outlineColor),
     },
     selection: {
       style: oneOf(SELECTION_STYLES, p.selection?.style, base.selection.style),
@@ -727,6 +749,11 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
       cardWidth: num('graph.cardWidth', p.graph?.cardWidth, base.graph.cardWidth),
       columnGap: num('graph.columnGap', p.graph?.columnGap, base.graph.columnGap),
       rowGap: num('graph.rowGap', p.graph?.rowGap, base.graph.rowGap),
+      cardColor: color(p.graph?.cardColor, base.graph.cardColor),
+      orphanColor: color(p.graph?.orphanColor, base.graph.orphanColor),
+      unreachableColor: color(p.graph?.unreachableColor, base.graph.unreachableColor),
+      arcColor: color(p.graph?.arcColor, base.graph.arcColor),
+      titleColor: color(p.graph?.titleColor, base.graph.titleColor),
     },
     edit: {
       edgePickTolerance: num('edit.edgePickTolerance', p.edit?.edgePickTolerance, base.edit.edgePickTolerance),
