@@ -65,6 +65,7 @@ import {
 import type { Anchor, EdgeEndsSnapshot, EndAttachment, TerminalEnd } from './edit/edgeEnds';
 import { dragPoints, pointHandles, pointsEditor, removePoint } from './edit/edgePoints';
 import type { PointHandle, PointsContext } from './edit/edgePoints';
+import { squareEnd } from './edit/squareEnd';
 import { collectMoveSet, isLocked, moveTarget, snapDelta, translateMoveSet, unionMoveSets } from './edit/move';
 import type { MoveSet } from './edit/move';
 import {
@@ -2347,6 +2348,36 @@ export class Engine {
     return this.loopBetween(shape, from.constraint, to.constraint);
   }
 
+  /**
+   * Ancrage manuel : bout d'une flèche orthogonale à coudes posé sur un point d'ancrage ; si le tracé longe le côté,
+   * coudes qui le font arriver à angle droit (`squareEnd`), sinon undefined.
+   */
+  private squaredEndPoints(
+    page: PageModel,
+    edge: EdgeModel,
+    end: TerminalEnd,
+    attachment: EndAttachment,
+  ): Point[] | undefined {
+    if (this.anchoringOf(page) !== 'manual' || attachment.kind !== 'fixed') return undefined;
+    if (edge.points.length === 0 || edge.sourceId === edge.targetId || pointsEditor(edge.style) !== 'segments')
+      return undefined;
+    const side = sideOfConstraint(attachment.constraint);
+    if (!side) return undefined;
+    const shapes = new Map(page.shapes.map((s) => [s.id, s]));
+    const source = toTerminal(shapes.get(edge.sourceId ?? ''));
+    const target = toTerminal(shapes.get(edge.targetId ?? ''));
+    const reroute = (waypoints: Point[]) =>
+      routeEdgePoints({
+        source,
+        target,
+        sourcePoint: edge.sourcePoint,
+        targetPoint: edge.targetPoint,
+        waypoints,
+        style: edge.style,
+      });
+    return squareEnd(reroute(edge.points), end, side, reroute);
+  }
+
   /** Coudes d'une boucle entre deux points d'ancrage d'une forme (hors de la forme, `loopWaypoints`). */
   private loopBetween(shape: ShapeModel, from: Point, to: Point): Point[] | undefined {
     const end = (c: Point) => {
@@ -3097,6 +3128,8 @@ export class Engine {
     applyEndAttachment(edge, drag.end, attachment);
     // Bout qui referme une boucle sur la forme : coudes recalculés hors de la forme.
     edge.points = this.loopPoints(page, edge) ?? drag.originalPoints.map((p) => ({ ...p }));
+    const squared = this.squaredEndPoints(page, edge, drag.end, attachment);
+    if (squared) edge.points = squared;
     this.retraceEdges(page, new Set([edge.id]));
     this.afterLiveEdit();
   }
@@ -3158,6 +3191,7 @@ export class Engine {
       writeEndAttachment(pageTree, page, edge, drag.end, after);
       const loop = this.loopPoints(page, edge);
       if (loop) this.writeEdgePoints(page, pageTree, edge, loop);
+      else if (!samePoints(edge.points, drag.originalPoints)) this.writeEdgePoints(page, pageTree, edge, edge.points);
       this.documentChanged([drag.pageId]);
       return;
     }
