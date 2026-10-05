@@ -204,6 +204,7 @@ describe('réglages exposés (caméra, vue graphe, édition…)', () => {
       minShapeSize: 10,
       nudgeStep: 1,
       nudgeCoarseStep: 0,
+      alignReference: 'last',
       undoLimit: 100,
       pasteOffset: 10,
       edgePointAlignTolerance: 4,

@@ -656,6 +656,10 @@ export function Viewer({
                   }
                   onDelete={() => engine?.deleteSelection()}
                   onOrder={(move) => engine?.orderSelection(move)}
+                  alignReference={settings.edit.alignReference}
+                  onAlignReference={(alignReference) => onSettingsChange({ edit: { alignReference } })}
+                  onAlign={(move) => engine?.alignSelection(move, settings.edit.alignReference)}
+                  onDistribute={(move) => engine?.distributeSelection(move)}
                   onReverse={() => engine?.reverseEdges(selected.edges.map((edge) => edge.id))}
                   onResetRoute={() => selection && engine?.resetEdgeRoute(selection.picked.element.id)}
                   onEdgeStyle={(patch, merge) =>

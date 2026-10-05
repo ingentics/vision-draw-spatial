@@ -1,4 +1,6 @@
 import { ISOMETRIC_ELEVATION_DEG } from './interaction/camera';
+import { ALIGN_REFERENCES } from './edit/align';
+import type { AlignReference } from './edit/align';
 import { DEFAULT_DEPTH } from './spatial';
 import { DRAWIO_STYLES, PASTEL_STYLES, TEXT_STYLES } from './edit/styles';
 import type { StylePreset, TextPreset } from './edit/styles';
@@ -230,6 +232,8 @@ export interface EditSettings {
   nudgeStep: number;
   /** Pas avec Maj, en pixels de page ; 0 = un pas de grille, calé sur la grille. */
   nudgeCoarseStep: number;
+  /** Référence d'« Aligner » (ticket 136) : cadre de la sélection, premier ou dernier élément sélectionné. */
+  alignReference: AlignReference;
   /** Nombre d'étapes d'annulation gardées. */
   undoLimit: number;
   /** Décalage d'un collage quand la page n'a pas de grille, en pixels de page. */
@@ -434,6 +438,7 @@ export const DEFAULT_SETTINGS: Settings = {
     minShapeSize: 10,
     nudgeStep: 1,
     nudgeCoarseStep: 0,
+    alignReference: 'last',
     undoLimit: 100,
     pasteOffset: 10,
     edgePointAlignTolerance: 4,
@@ -794,6 +799,7 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
       minShapeSize: num('edit.minShapeSize', p.edit?.minShapeSize, base.edit.minShapeSize),
       nudgeStep: num('edit.nudgeStep', p.edit?.nudgeStep, base.edit.nudgeStep),
       nudgeCoarseStep: num('edit.nudgeCoarseStep', p.edit?.nudgeCoarseStep, base.edit.nudgeCoarseStep),
+      alignReference: oneOf(ALIGN_REFERENCES, p.edit?.alignReference, base.edit.alignReference),
       undoLimit: Math.round(num('edit.undoLimit', p.edit?.undoLimit, base.edit.undoLimit)),
       pasteOffset: num('edit.pasteOffset', p.edit?.pasteOffset, base.edit.pasteOffset),
       edgePointAlignTolerance: num(

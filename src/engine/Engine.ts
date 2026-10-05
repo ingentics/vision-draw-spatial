@@ -69,6 +69,8 @@ import type { PointHandle, PointsContext } from './edit/edgePoints';
 import { squareEnd } from './edit/squareEnd';
 import { collectMoveSet, isLocked, moveTarget, snapDelta, translateMoveSet, unionMoveSets } from './edit/move';
 import type { MoveSet } from './edit/move';
+import { alignDeltas, distributeDeltas } from './edit/align';
+import type { AlignItem, AlignMove, AlignReference, DistributeMove } from './edit/align';
 import {
   anchorOf,
   edgeTextLayout,
@@ -4028,6 +4030,50 @@ export class Engine {
     if (!reorderCells(editable.pageTree, ids, move)) return;
     this.undoStack.record(ORDER_LABELS[move], before);
     this.documentChanged([editable.page.id], { distribute: false });
+  }
+
+  /**
+   * Aligne les formes de la sélection (ticket 136) sur la référence : cadre de la sélection, premier ou dernier
+   * élément sélectionné ; une étape d'annulation, flèches réparties à nouveau en ancrage automatique.
+   */
+  alignSelection(move: AlignMove, reference: AlignReference): void {
+    this.arrangeSelection('Aligner', (items) => alignDeltas(items, move, reference));
+  }
+
+  /** Répartit les formes de la sélection (ticket 136) à intervalles égaux, les deux extrêmes restant en place. */
+  distributeSelection(move: DistributeMove): void {
+    this.arrangeSelection('Répartir', (items) => distributeDeltas(items, move));
+  }
+
+  /**
+   * Déplace chaque forme de la sélection (celle qui bouge vraiment : son groupe, cf. `moveTarget`) du décalage calculé
+   * sur leurs cadres, dans l'ordre de sélection. Une forme contenue dans une autre de la sélection suit celle-ci ; une
+   * forme verrouillée compte (référence, extrême) mais ne bouge pas.
+   */
+  private arrangeSelection(label: string, deltasOf: (items: AlignItem[]) => Map<string, Point>): void {
+    const editable = this.editablePage();
+    const selection = this.selection;
+    if (!editable || !selection || selection.pageId !== editable.page.id) return;
+    const { page, pageTree } = editable;
+    const targets = selection.items
+      .filter((item) => item.type === 'shape')
+      .map((item) => moveTarget(page, item.element, this.registry));
+    const roots = independentRoots(
+      targets.map((shape) => shape.id),
+      (id) => collectMoveSet(page, id).shapeIds,
+    );
+    const items = roots.flatMap((id) => {
+      const shape = page.shapes.find((s) => s.id === id);
+      return shape ? [{ id, bounds: shape.bounds }] : [];
+    });
+    const moves = [...deltasOf(items)].filter(([id]) => {
+      const shape = page.shapes.find((s) => s.id === id);
+      return shape !== undefined && !isLocked(shape) && canMoveCell(pageTree, id);
+    });
+    if (moves.length === 0) return;
+    this.recordEdit(label);
+    for (const [id, delta] of moves) moveCell(pageTree, id, delta);
+    this.documentChanged([page.id]);
   }
 
   /** Supprime la sélection : avec son contenu, ses labels et les arêtes qui y sont reliées (comme draw.io). */

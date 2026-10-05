@@ -25,6 +25,8 @@ import { Section } from './PanelSection';
 import { TextFormatSections } from './TextFormat';
 import type { TextEdit } from './TextFormat';
 import type { OrderMove } from '../engine/format/order';
+import type { AlignMove, AlignReference, DistributeMove } from '../engine/edit/align';
+import { ArrangeSection } from './ArrangeSection';
 
 export interface ContextPanelProps {
   page: PageModel;
@@ -83,6 +85,12 @@ export interface ContextPanelProps {
   onReverse: () => void;
   /** Ordre de dessin de la sélection (premier plan, arrière-plan, avancer, reculer). */
   onOrder: (move: OrderMove) => void;
+  /** Référence de l'alignement (réglage de l'appli) et son changement. */
+  alignReference: AlignReference;
+  onAlignReference: (reference: AlignReference) => void;
+  /** Aligner ou répartir les formes de la sélection. */
+  onAlign: (move: AlignMove) => void;
+  onDistribute: (move: DistributeMove) => void;
   /** Ancre d'un texte de la flèche (début, milieu, fin). */
   onTextAnchor: (cellId: string, anchor: EdgeTextAnchor) => void;
   /** Texte en cours d'édition en place : le panneau montre son format. */
@@ -720,6 +728,13 @@ function MultiSections(props: ContextPanelProps) {
         </div>
         <p className="panel-hint">{props.multiSelectKey} + clic : ajouter ou retirer un élément.</p>
       </Section>
+      <ArrangeSection
+        shapeCount={shapes.length}
+        reference={props.alignReference}
+        onReference={props.onAlignReference}
+        onAlign={props.onAlign}
+        onDistribute={props.onDistribute}
+      />
       {current && (
         <Section title="Style">
           <StyleGrid presets={props.styles.base} shape={current} onApply={props.onApplyStyle} />
