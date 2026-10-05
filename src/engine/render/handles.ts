@@ -1,5 +1,5 @@
 import { Color, Group } from 'three';
-import { handlePoints } from '../edit/handles';
+import { CONNECT_DIRECTIONS, connectSideOf, handlePoints, isConnectHandle } from '../edit/handles';
 import type { Point, Rect } from '../model/types';
 import { ellipsePath, rectPath } from './geometry/paths';
 import { DEFAULT_ACCENT } from './decorations';
@@ -21,7 +21,7 @@ export interface HandleStyle {
 
 /**
  * Poignées de la sélection, de taille constante à l'écran (reconstruites quand le zoom change) :
- * carrés blancs bordés de bleu pour redimensionner, disque bleu pour connecter.
+ * carrés blancs bordés de bleu pour redimensionner, disques bleus (flèche vers l'extérieur) pour connecter.
  */
 export function selectionHandles(
   bounds: Rect,
@@ -33,19 +33,18 @@ export function selectionHandles(
   const r = (options.size ?? HANDLE_SIZE) / zoom;
   const ACCENT = new Color(options.accent ?? DEFAULT_ACCENT);
   for (const { kind, point } of handlePoints(bounds, zoom)) {
-    if (kind === 'connect') {
+    if (isConnectHandle(kind)) {
       if (!options.connect) continue;
       const square = { x: point.x - r * 1.5, y: point.y - r * 1.5, width: 3 * r, height: 3 * r };
       group.add(fillMesh(ellipsePath(square, 24), ACCENT, 1));
-      const arrow: Point[] = [
-        { x: point.x - r * 0.7, y: point.y },
-        { x: point.x + r * 0.7, y: point.y },
-      ];
-      const head: Point[] = [
-        { x: point.x + r * 0.1, y: point.y - r * 0.6 },
-        { x: point.x + r * 0.7, y: point.y },
-        { x: point.x + r * 0.1, y: point.y + r * 0.6 },
-      ];
+      // Flèche dessinée vers la droite puis tournée vers l'extérieur du côté de la poignée.
+      const { direction: d } = CONNECT_DIRECTIONS[connectSideOf(kind)];
+      const at = (along: number, across: number): Point => ({
+        x: point.x + r * (along * d.x - across * d.y),
+        y: point.y + r * (along * d.y + across * d.x),
+      });
+      const arrow: Point[] = [at(-0.7, 0), at(0.7, 0)];
+      const head: Point[] = [at(0.1, -0.6), at(0.7, 0), at(0.1, 0.6)];
       for (const stroke of [arrow, head]) {
         const mesh = strokeMesh(stroke, WHITE, 1, { width: 1.3 / zoom, closed: false });
         if (mesh) group.add(mesh);

@@ -2,12 +2,34 @@ import type { Point, Rect } from '../model/types';
 
 /**
  * Poignées de la forme sélectionnée (SPEC §14.1) : huit poignées de redimensionnement (coins et
- * milieux des côtés) et une poignée de connexion, à droite, qu'on tire vers une autre forme.
+ * milieux des côtés) et quatre poignées de connexion, une par côté, qu'on tire vers une autre forme :
+ * la flèche part du côté de la poignée.
  */
 export type ResizeHandle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
-export type HandleKind = ResizeHandle | 'connect';
+export type ConnectSide = 'n' | 'e' | 's' | 'w';
+export type ConnectHandle = `connect-${ConnectSide}`;
+export type HandleKind = ResizeHandle | ConnectHandle;
 
-/** Écart de la poignée de connexion au bord droit, en pixels écran. */
+/** Côtés des poignées de connexion, dans l'ordre d'affichage. */
+export const CONNECT_SIDES: readonly ConnectSide[] = ['n', 'e', 's', 'w'];
+
+/** Direction (vecteur unité, y vers le bas) et point de sortie relatif (`exitX/exitY`) de chaque côté. */
+export const CONNECT_DIRECTIONS: Record<ConnectSide, { direction: Point; exit: Point }> = {
+  n: { direction: { x: 0, y: -1 }, exit: { x: 0.5, y: 0 } },
+  e: { direction: { x: 1, y: 0 }, exit: { x: 1, y: 0.5 } },
+  s: { direction: { x: 0, y: 1 }, exit: { x: 0.5, y: 1 } },
+  w: { direction: { x: -1, y: 0 }, exit: { x: 0, y: 0.5 } },
+};
+
+export function isConnectHandle(kind: HandleKind): kind is ConnectHandle {
+  return kind.startsWith('connect-');
+}
+
+export function connectSideOf(kind: ConnectHandle): ConnectSide {
+  return kind.slice('connect-'.length) as ConnectSide;
+}
+
+/** Écart des poignées de connexion au bord de la forme, en pixels écran. */
 export const CONNECT_HANDLE_OFFSET = 18;
 /**
  * En dessous de cette taille à l'écran (pixels), les poignées du milieu d'un côté se chevaucheraient
@@ -27,6 +49,19 @@ export function handlePoints(bounds: Rect, zoom: number): Array<{ kind: HandleKi
 
 function allHandlePoints(bounds: Rect, zoom: number): Array<{ kind: HandleKind; point: Point }> {
   const { x, y, width: w, height: h } = bounds;
+  const center = { x: x + w / 2, y: y + h / 2 };
+  const offset = CONNECT_HANDLE_OFFSET / zoom;
+  const connect = CONNECT_SIDES.map((side) => {
+    const { direction } = CONNECT_DIRECTIONS[side];
+    const kind: HandleKind = `connect-${side}`;
+    return {
+      kind,
+      point: {
+        x: center.x + direction.x * (w / 2 + offset),
+        y: center.y + direction.y * (h / 2 + offset),
+      },
+    };
+  });
   return [
     { kind: 'nw', point: { x, y } },
     { kind: 'n', point: { x: x + w / 2, y } },
@@ -36,7 +71,7 @@ function allHandlePoints(bounds: Rect, zoom: number): Array<{ kind: HandleKind; 
     { kind: 's', point: { x: x + w / 2, y: y + h } },
     { kind: 'sw', point: { x, y: y + h } },
     { kind: 'w', point: { x, y: y + h / 2 } },
-    { kind: 'connect', point: { x: x + w + CONNECT_HANDLE_OFFSET / zoom, y: y + h / 2 } },
+    ...connect,
   ];
 }
 

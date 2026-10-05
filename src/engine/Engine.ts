@@ -79,8 +79,8 @@ import type { EdgeTextLayout, EndTextGap } from './edit/edgeLabels';
 import { labelPoint, placementAt, positionAlong } from './render/edges/polyline';
 import { setLineResolution } from './render/lines';
 import type { EdgeEnd } from './edit/edgeLabels';
-import { handlePoints, resizeBounds } from './edit/handles';
-import type { HandleKind, ResizeHandle } from './edit/handles';
+import { CONNECT_DIRECTIONS, connectSideOf, handlePoints, isConnectHandle, resizeBounds } from './edit/handles';
+import type { ConnectSide, HandleKind, ResizeHandle } from './edit/handles';
 import { dropBounds } from './edit/palette';
 import { applyStylePreset } from './edit/styles';
 import type { StylePreset } from './edit/styles';
@@ -381,6 +381,8 @@ interface ConnectDrag {
   kind: 'connect';
   pageId: string;
   sourceId: string;
+  /** Côté de la forme d'où part la flèche (poignée tirée). */
+  side: ConnectSide;
   /** Forme visée, en attache auto ou sur un point de connexion (entrée fixe). */
   target?: Exclude<EndAttachment, { kind: 'free' }>;
   started: boolean;
@@ -2114,7 +2116,7 @@ export class Engine {
     const resizable = this.registry.isResizable(shape);
     let best: { kind: HandleKind; distance: number } | undefined;
     for (const { kind, point } of handlePoints(shape.bounds, this.cameraState.zoom)) {
-      if (kind !== 'connect' && !resizable) continue;
+      if (!isConnectHandle(kind) && !resizable) continue;
       const at = this.screenOfPoint(point, top);
       const distance = Math.hypot(at.x - screen.x, at.y - screen.y);
       if (distance <= this.settings.edit.handlePickTolerance && (!best || distance < best.distance))
@@ -2167,20 +2169,19 @@ export class Engine {
     const handle = this.handleAt(screen);
     const selected = handle ? this.editableSelection()?.shape : undefined;
     if (handle && selected) {
-      this.drag =
-        handle === 'connect'
-          ? { kind: 'connect', pageId: page.id, sourceId: selected.id, started: false }
-          : {
-              kind: 'resize',
-              pageId: page.id,
-              shapeId: selected.id,
-              handle,
-              start,
-              origin: { ...selected.bounds },
-              grid,
-              children: collectMoveSet(page, selected.id),
-              started: false,
-            };
+      this.drag = isConnectHandle(handle)
+        ? { kind: 'connect', pageId: page.id, sourceId: selected.id, side: connectSideOf(handle), started: false }
+        : {
+            kind: 'resize',
+            pageId: page.id,
+            shapeId: selected.id,
+            handle,
+            start,
+            origin: { ...selected.bounds },
+            grid,
+            children: collectMoveSet(page, selected.id),
+            started: false,
+          };
       return true;
     }
 
@@ -2576,7 +2577,11 @@ export class Engine {
         : target
           ? { x: target.bounds.x + target.bounds.width / 2, y: target.bounds.y + target.bounds.height / 2 }
           : this.groundPointAtHeight(screen, top);
-    const from = { x: source.bounds.x + source.bounds.width / 2, y: source.bounds.y + source.bounds.height / 2 };
+    const { exit } = CONNECT_DIRECTIONS[connect.side];
+    const from = {
+      x: source.bounds.x + exit.x * source.bounds.width,
+      y: source.bounds.y + exit.y * source.bounds.height,
+    };
     const line = connectorPreview(from, end, this.cameraState.zoom, this.settings.selection.accentColor);
     line.position.z = top + 0.2;
     this.showConnectionHints(page, connect.target, line);
@@ -2686,6 +2691,8 @@ export class Engine {
       this.recordEdit('Connecteur');
       const line = CONNECTOR_STYLE + EDGE_LINE_KEYS[this.settings.shapes.edgeLineStyle];
       let style = withStyleValue(line, 'fontSize', String(this.settings.shapes.textSize));
+      for (const [key, value] of Object.entries(constraintStyle('source', CONNECT_DIRECTIONS[drag.side].exit)))
+        if (value !== undefined) style = withStyleValue(style, key, value);
       if (drag.target.kind === 'fixed')
         for (const [key, value] of Object.entries(constraintStyle('target', drag.target.constraint)))
           if (value !== undefined) style = withStyleValue(style, key, value);
@@ -3643,7 +3650,7 @@ export class Engine {
     const pointHandle = screen && !handle && !edgeEnd ? this.pointHandleAt(screen) : undefined;
     const bent = pointHandle && this.editableEdgeSelection()?.edge;
     const cursor =
-      handle === 'connect' || edgeEnd
+      (handle && isConnectHandle(handle)) || edgeEnd
         ? 'crosshair'
         : handle
           ? HANDLE_CURSORS[handle]
