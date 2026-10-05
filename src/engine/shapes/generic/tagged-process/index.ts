@@ -118,7 +118,7 @@ export function taggedProcess(
         type: 'text',
         key: SPATIAL.tag,
         label: 'Étiquette',
-        section: 'border',
+        section: 'shape',
         title: `Mot de la tranche (spatial.tag) ; vide = « ${tag} »`,
         placeholder: tag,
       },

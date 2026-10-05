@@ -125,7 +125,7 @@ src/engine/shapes/
 │   │                           four-point-star, six-point-star
 │   ├── general/                catégorie « Général » : text, actor (debout face à la caméra en iso / 3D)
 │   ├── architecture/           catégorie « Architecture » : database, queue, distributed-cache, plug, process,
-│   │                           event-consumer, background-task, recurring-task
+│   │                           event-consumer, background-task, recurring-task, labeled-process
 │   │   └── database/
 │   │       ├── index.ts        export const definition: ShapeDefinition = { … }
 │   │       └── facade.ts       sa façade iso (arcs gravés, étiquette « DB »)
@@ -342,12 +342,18 @@ forme.
 | Déplacement | `movesAsBlock` | non | groupe : saisir un enfant déplace le groupe |
 | Création | `palette` (une variante = une forme qui en étend une autre) | absente de la palette | rectangle / rectangle arrondi, BDD / queue |
 | Aperçu des styles du panneau | `swatch(style)` | rectangle (arrondi si `rounded=1`) | ellipse, cylindre |
-| Réglages du panneau | `properties` | aucun | « Coins arrondis » (`rounded`), nœuds du cache (`spatial.nodes`), étiquette de façade (`spatial.tag`) |
+| Réglages du panneau | `properties` | aucun | « Coins arrondis » (`rounded`), nœuds du cache (`spatial.nodes`), étiquette de façade (`spatial.tag`), mot de la tranche d'un process étiqueté (section `shape`) |
 
 Un élément de palette (`PaletteEntry`, exposé comme `ShapeTemplate` avec l'`id` de la forme) porte le style **et** la taille par défaut de draw.io, une catégorie, un rang
 `order` (ordre d'affichage, toutes formes confondues), des mots-clés de recherche et une icône (contenu SVG d'un cadre
 `0 0 40 28`, sans couleurs). Un réglage (`ShapeProperty`) est une case (`toggle`, écrit `1` / `0`), un nombre ou un
-texte, rangé dans la section `border` ou `volume` du panneau ; une clé `spatial.…` est écrite comme attribut spatial.
+texte ; une clé `spatial.…` est écrite comme attribut spatial. Sa `section` le range dans le panneau :
+
+- `shape` : **paramètre de l'instance**, dans la section de la forme elle-même, titrée de son nom de palette et placée
+  sous « Texte » (absente si la forme n'en déclare pas). C'est la place des valeurs propres à chaque forme posée, ex.
+  le mot de la tranche d'un process étiqueté (`spatial.tag`, vide = le mot par défaut de la forme) ;
+- `border` ou `volume` : réglage qui précise ces sections communes (« Coins arrondis », nœuds du cache, étiquette
+  de façade).
 
 Restent hors de la définition, parce que ce sont des règles du format draw.io et non d'une forme :
 

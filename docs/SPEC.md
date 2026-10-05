@@ -126,7 +126,7 @@ src/
         geometry/      # rectangle/, rounded-rectangle/, ellipse/, circle/, diamond/
         general/       # text/
         architecture/  # database/, queue/, distributed-cache/, plug/, process/, event-consumer/, background-task/,
-                       # recurring-task/
+                       # recurring-task/, labeled-process/
         internal/      # hors palette : group/
     interaction/
       camera.ts        # ortho / iso, pan, zoom, état sérialisable
@@ -418,8 +418,10 @@ Ajouter une forme = **déposer son dossier** (au minimum `kind` et `flat`, idéa
   (`dx=16;dy=0;flipH=1;spacingRight=16`), une seule ligne à `dx` px du bord droit, désignée par `spatial.kind`
   (`event-consumer`, `background-task`, `recurring-task`). La tranche garde sa largeur au redimensionnement ; elle
   porte un mot en capitales grises (teinte des étiquettes de façade), écrit de bas en haut : « CONSUMER », « TASK »,
-  « CRON » (`spatial.tag` le remplace). **Écart assumé** : seul Drawio Spatial dessine le mot, draw.io montre la
-  tranche vide. Prisme du contour en iso / 3D, ligne et mot sur le dessus ; se cliquent sur toutes leurs bornes.
+  « CRON » ; le **Process étiqueté** (`labeled-process`) est la forme générique, « PROCESS » par défaut. Le mot est
+  un paramètre de l'instance : champ « Étiquette » de la section de la forme dans le panneau (`spatial.tag`, vide =
+  le mot par défaut). **Écart assumé** : seul Drawio Spatial dessine le mot, draw.io montre la tranche vide. Prisme
+  du contour en iso / 3D, ligne et mot sur le dessus ; se cliquent sur toutes leurs bornes.
 - Connecteurs (arêtes) : segments, points intermédiaires, flèche de fin,
 - Couleurs de remplissage, de bordure, épaisseur de trait, pointillés, label centré.
 - **Position du label**, comme draw.io : dans la forme selon `align` / `verticalAlign` (marges `spacing*`, plus
@@ -809,7 +811,7 @@ Réalisation retenue (`engine/spatial.ts`) :
 | `spatial.kind` | style ou objet | Forme dessinée par Drawio Spatial : nom de l'interface (`database`, `queue`…) ou nom draw.io (`cylinder3`), à la place de celle devinée du style ; le style draw.io reste intact. Absent ou vide : devinée (`resolveShapeKind`) |
 | `spatial.height` | style ou objet | Épaisseur du volume en iso, en pixels de page (défaut : réglage « Épaisseur ») |
 | `spatial.elevation` | style ou objet | La forme flotte à cette hauteur au-dessus de sa base (sol, ou dessus de son conteneur) |
-| `spatial.tag` | style ou objet | Étiquette des façades d'un bâtiment iso (BDD, file, cache) : remplace « DB », « QUEUE », « CACHE » ; vide = aucune |
+| `spatial.tag` | style ou objet | Étiquette des façades d'un bâtiment iso (BDD, file, cache) : remplace « DB », « QUEUE », « CACHE » ; vide = aucune. Mot de la tranche d'un process étiqueté (event consumer, tâches, process étiqueté) : remplace « CONSUMER », « TASK », « CRON », « PROCESS » ; vide = le mot par défaut |
 | `spatial.nodes` | style ou objet | Cache distribué (`shape=datastore`) : nombre de disques empilés en iso / 3D (3 par défaut, 1–12) |
 | `spatial.labelFollow` | style de la flèche | `1` : texte du milieu posé le long du trait de la flèche, lettre par lettre (jamais à l'envers) ; absent = horizontal, comme dans draw.io |
 | `spatial.labelFollowShift` | style de la flèche | Texte du milieu qui suit la flèche : glissement le long du trait, en px (positif = vers la fin, négatif = vers le début) ; sans effet sans `spatial.labelFollow` |

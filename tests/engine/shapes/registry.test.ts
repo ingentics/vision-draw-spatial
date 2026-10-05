@@ -49,6 +49,7 @@ describe('formes en plugins (étapes 65, 67) : contrat des définitions', () => 
         'architecture/event-consumer',
         'architecture/background-task',
         'architecture/recurring-task',
+        'architecture/labeled-process',
         'internal/group',
       ]),
     );

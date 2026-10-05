@@ -27,6 +27,7 @@ describe('palette', () => {
       'ellipse',
       'event-consumer',
       'hexagon',
+      'labeled-process',
       'mxgraph.basic.4_point_star_2',
       'mxgraph.basic.6_point_star',
       'mxgraph.basic.octagon2',
@@ -100,6 +101,7 @@ describe('palette', () => {
       'event-consumer',
       'background-task',
       'recurring-task',
+      'labeled-process',
     ]);
   });
 
@@ -130,8 +132,10 @@ describe('palette', () => {
         'event-consumer',
         'background-task',
         'recurring-task',
+        'labeled-process',
       ]);
       expect(ids('plugin')).toEqual(['plug']);
+      expect(ids('tranche')).toEqual(['labeled-process']);
       expect(ids('cron')).toEqual(['recurring-task']);
       expect(ids('worker')).toEqual(['background-task']);
       expect(ids('subscriber')).toEqual(['event-consumer']);

@@ -324,6 +324,7 @@ function ShapeSections({ shape, ...props }: ContextPanelProps & { shape: ShapeMo
       <Section title="Texte">
         <LabelRow label={shape.label} onEdit={props.onEditLabel} />
       </Section>
+      <ShapeOwnSection shape={shape} onShapeStyle={props.onShapeStyle} onSpatial={props.onSpatial} />
       <ElementModeSection {...props} element={shape} scope="shape" />
       <Section title="Style">
         <StyleGrid presets={props.styles.base} shape={shape} onApply={props.onApplyStyle} />
@@ -360,6 +361,28 @@ function ShapeSections({ shape, ...props }: ContextPanelProps & { shape: ShapeMo
       <OrderSection onOrder={props.onOrder} />
       <DeleteButton onDelete={props.onDelete} />
     </>
+  );
+}
+
+/**
+ * Section de la forme elle-même : ses paramètres d'instance (`properties` de section `shape`), titrée du nom de la
+ * forme dans la palette. Absente si la forme n'en déclare pas.
+ */
+function ShapeOwnSection({
+  shape,
+  onShapeStyle,
+  onSpatial,
+}: {
+  shape: ShapeModel;
+  onShapeStyle: ContextPanelProps['onShapeStyle'];
+  onSpatial: ContextPanelProps['onSpatial'];
+}) {
+  if (!defaultShapeRegistry.properties(shape).some((property) => property.section === 'shape')) return null;
+  const { definition } = defaultShapeRegistry.resolve(shape);
+  return (
+    <Section title={definition.palette?.name ?? 'Forme'}>
+      <ShapePropertyFields shape={shape} section="shape" onStyle={onShapeStyle} onSpatial={onSpatial} />
+    </Section>
   );
 }
 

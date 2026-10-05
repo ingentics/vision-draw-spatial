@@ -87,8 +87,12 @@ export interface ShapeTemplate extends PaletteEntry {
   id: string;
 }
 
-/** Section du panneau de la forme où se range un réglage propre à la forme. */
-export type PropertySection = 'border' | 'volume';
+/**
+ * Section du panneau de la forme où se range un réglage propre à la forme : `shape`, la section de la forme
+ * elle-même (titrée de son nom, sous « Texte » : paramètres de l'instance, ex. le mot de la tranche d'un process
+ * étiqueté) ; `border` ou `volume` pour un réglage qui précise ces sections communes (coins arrondis, nœuds du cache).
+ */
+export type PropertySection = 'shape' | 'border' | 'volume';
 
 /**
  * Réglage propre à une forme (ex. coins arrondis, nombre de nœuds), affiché par un champ générique du panneau et
