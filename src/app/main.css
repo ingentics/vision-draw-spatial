@@ -508,8 +508,9 @@ body {
 }
 
 /*
- * Infobulle du nom d'une forme : fixée à la fenêtre pour ne pas être coupée par le défilement de la palette
- * (position calculée dans Palette.tsx pour rester dans l'écran).
+ * Infobulle du nom d'une forme : rendue à la racine du document et fixée à la fenêtre, pour n'être ni coupée par le
+ * défilement de la palette ni recouverte par la barre des onglets
+ * (position calculée dans Palette.tsx pour rester dans la zone visible de la palette).
  * Fondu et léger glissement, plus rapides en sortie qu'en entrée.
  */
 .palette-tooltip {
