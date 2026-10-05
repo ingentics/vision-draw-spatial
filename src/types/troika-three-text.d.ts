@@ -21,6 +21,8 @@ declare module 'troika-three-text' {
     outlineColor: Color | string | number;
     outlineOpacity: number;
     outlineBlur: number | string;
+    /** Taille d'un glyphe dans l'atlas SDF, en pixels (puissance de 2, 64 par défaut). */
+    sdfGlyphSize: number | null;
     sync(callback?: () => void): void;
     dispose(): void;
   }

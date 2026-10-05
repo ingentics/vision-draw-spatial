@@ -474,6 +474,12 @@ export class Engine {
   private readonly text: ReturnType<typeof createTroikaTextFactory>;
   private readonly events = new Emitter<EngineEvents>();
   private readonly resizeObserver: ResizeObserver;
+  /** Taille de la boîte du canvas en pixels physiques, quand le navigateur la donne (pas Safari). */
+  private devicePixelBox: { width: number; height: number } | undefined;
+  /** Taille courante du tampon de rendu, en pixels physiques. */
+  private bufferSize = { width: 0, height: 0 };
+  /** Requête qui change quand `devicePixelRatio` change (autre écran, zoom du navigateur). */
+  private pixelRatioQuery: MediaQueryList | undefined;
   private readonly controller: CameraController;
 
   private document: DocumentModel | undefined;
@@ -576,7 +582,6 @@ export class Engine {
     this.editable = options.editable ?? false;
     // Stencil : trous du voile de sélection autour des flèches (render/highlight).
     this.renderer = new WebGLRenderer({ canvas: this.canvas, antialias: true, stencil: true });
-    this.renderer.setPixelRatio(window.devicePixelRatio);
     this.scene.background = new Color(this.settings.background.color);
     this.grid = createGrid(this.gridOptions());
     this.scene.add(this.grid.mesh);
@@ -591,8 +596,17 @@ export class Engine {
       (page) => effectiveLevel(page, this.registry, this.requestedLevel()),
     );
 
-    this.resizeObserver = new ResizeObserver(() => this.resize());
-    this.resizeObserver.observe(this.canvas);
+    this.resizeObserver = new ResizeObserver((entries) => {
+      const box = entries[entries.length - 1]?.devicePixelContentBoxSize?.[0];
+      this.devicePixelBox = box ? { width: box.inlineSize, height: box.blockSize } : undefined;
+      this.resize();
+    });
+    try {
+      this.resizeObserver.observe(this.canvas, { box: 'device-pixel-content-box' });
+    } catch {
+      this.resizeObserver.observe(this.canvas);
+    }
+    this.watchPixelRatio();
     this.resize();
 
     this.controller = new CameraController(
@@ -3949,6 +3963,7 @@ export class Engine {
     clearTimeout(this.hoverTimer);
     this.transition?.abort();
     this.resizeObserver.disconnect();
+    this.pixelRatioQuery?.removeEventListener?.('change', this.onPixelRatioChange);
     this.controller.dispose();
     this.reducedMotionQuery?.removeEventListener?.('change', this.onReducedMotionChange);
     this.minimap?.dispose();
@@ -3968,9 +3983,17 @@ export class Engine {
     const rect = this.canvas.getBoundingClientRect();
     const width = Math.max(rect.width, 1);
     const height = Math.max(rect.height, 1);
-    if (width === this.viewport.width && height === this.viewport.height) return;
+    // Tampon aux pixels physiques exacts de la boîte : sinon le navigateur ré-échantillonne l'image (flou).
+    const pixelRatio = window.devicePixelRatio || 1;
+    const bufferWidth = Math.max(this.devicePixelBox?.width ?? Math.round(width * pixelRatio), 1);
+    const bufferHeight = Math.max(this.devicePixelBox?.height ?? Math.round(height * pixelRatio), 1);
+    const sameBuffer = bufferWidth === this.bufferSize.width && bufferHeight === this.bufferSize.height;
+    if (width === this.viewport.width && height === this.viewport.height && sameBuffer) return;
     this.viewport = { width, height };
-    this.renderer.setSize(width, height, false);
+    if (!sameBuffer) {
+      this.bufferSize = { width: bufferWidth, height: bufferHeight };
+      this.renderer.setDrawingBufferSize(bufferWidth, bufferHeight, 1);
+    }
     setLineResolution(width, height);
     if (this.pendingFit && this.isMeasured()) {
       this.setCameraState(fitBounds(this.pendingFit, this.viewport, this.orientation()));
@@ -4018,6 +4041,18 @@ export class Engine {
     // Le plan du fond couvre tout ce que la caméra peut voir.
     this.grid.follow(this.cameraState.center, 2 * this.activeCamera().far);
   }
+
+  /** Suit `devicePixelRatio` (le ResizeObserver ne le signale pas partout) pour garder un tampon net. */
+  private watchPixelRatio(): void {
+    this.pixelRatioQuery?.removeEventListener?.('change', this.onPixelRatioChange);
+    this.pixelRatioQuery = window.matchMedia?.(`(resolution: ${window.devicePixelRatio || 1}dppx)`);
+    this.pixelRatioQuery?.addEventListener?.('change', this.onPixelRatioChange);
+  }
+
+  private readonly onPixelRatioChange = (): void => {
+    this.watchPixelRatio();
+    this.resize();
+  };
 
   /** Un canvas masqué ou pas encore mis en page mesure 0 (ramené à 1). */
   private isMeasured(): boolean {

@@ -58,6 +58,8 @@ body {
   padding: 6px 10px;
   border-bottom: 1px solid var(--border);
   background: var(--panel);
+  /* Interligne entier (18,2 px sinon) : le canevas en dessous commence sur un pixel physique entier (net). */
+  line-height: 18px;
   /*
    * Ombre sur la zone de dessin, comme la palette et les panneaux : la barre passe au-dessus du canevas et de ses
    * outils flottants (`.text-tools`, z-index 7), pour que l'ombre se voie et que ses menus restent devant.
@@ -168,6 +170,8 @@ body {
   align-items: center;
   border-top: 1px solid var(--border);
   background: var(--panel);
+  /* Interligne entier, comme la barre d'outils : le canevas garde une hauteur en pixels entiers. */
+  line-height: 18px;
   /* Ombre sur la zone de dessin, comme la barre d'outils. */
   position: relative;
   z-index: 8;

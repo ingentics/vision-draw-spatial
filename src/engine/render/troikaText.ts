@@ -10,6 +10,8 @@ import type { TextFactory, TextSpec } from './types';
 
 const BACKGROUND_PADDING = 1;
 const LINE_HEIGHT = 1.2;
+/** Glyphes SDF à 128 px (64 par défaut) : bords nets en petite taille comme en zoom, atlas 4× plus lourd. */
+const SDF_GLYPH_SIZE = 128;
 
 /** Rectangle de fond aux dimensions du texte mis en page (connues seulement après la synchro troika). */
 function updateBackground(text: Text, color: Color, opacity: number): void {
@@ -85,6 +87,7 @@ export function createTroikaTextFactory(fonts: FontSet, onReady: () => void): Te
     text.text = content;
     text.font = pickFont(fonts, font.bold, font.italic, font.family);
     text.fontSize = font.size;
+    text.sdfGlyphSize = SDF_GLYPH_SIZE;
     text.color = color;
     text.fillOpacity = opacity;
     text.lineHeight = LINE_HEIGHT;
