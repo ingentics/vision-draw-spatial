@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { distributeAnchors, sideMiddle } from '../../../../src/engine/edit/distribute';
 import type { AnchorSide } from '../../../../src/engine/edit/edgeEnds';
+import { avoidRoutes, segmentsOf } from '../../../../src/engine/edit/avoid';
 import { loopWaypoints } from '../../../../src/engine/edit/loops';
 import { readDrawio } from '../../../../src/engine/format/parse';
 import type { PageModel, Point, ShapeModel } from '../../../../src/engine/model/types';
@@ -166,6 +167,55 @@ function cases(): Case[] {
     ],
     links: [link('h', 'e', 'h', 'e'), link('h', 'e', 'r', 'w'), link('h', 'n', 'h', 'e')],
   });
+  // Obstacles : le tracé contourne les formes, les flèches d'un même couloir passent côte à côte.
+  list.push({
+    name: 'obstacle entre deux formes',
+    boxes: [
+      { id: 'a', x: -220, y: 0 },
+      { id: 'b', x: 140, y: 0 },
+      { id: 'w', x: -20, y: -40, w: 40, h: 120 },
+    ],
+    links: [link('a', 'e', 'b', 'w')],
+  });
+  list.push({
+    name: 'mur percé',
+    boxes: [
+      { id: 'a', x: -220, y: 0 },
+      { id: 'b', x: 140, y: 0 },
+      { id: 'w0', x: -20, y: -130, w: 40, h: 80 },
+      { id: 'w1', x: -20, y: 10, w: 40, h: 20 },
+      { id: 'w2', x: -20, y: 90, w: 40, h: 80 },
+    ],
+    links: [link('a', 'e', 'b', 'w'), link('a', 'e', 'b', 'w')],
+  });
+  list.push({
+    name: 'B à gauche de A',
+    boxes: [
+      { id: 'a', x: 0, y: 0, w: 100, h: 50 },
+      { id: 'b', x: -170, y: -120, w: 100, h: 50 },
+      { id: 'c', x: 80, y: 130, w: 100, h: 50 },
+    ],
+    links: [link('a', 'e', 'b', 'w'), link('a', 's', 'c', 'n'), link('b', 's', 'c', 'n')],
+  });
+  list.push({
+    name: 'couloir partagé',
+    boxes: [
+      { id: 'a0', x: -240, y: -60 },
+      { id: 'a1', x: -240, y: 40 },
+      { id: 'b0', x: 180, y: -60 },
+      { id: 'b1', x: 180, y: 40 },
+      { id: 'w', x: -60, y: -120, w: 120, h: 240 },
+    ],
+    links: [link('a0', 'e', 'b0', 'w'), link('a1', 'e', 'b1', 'w'), link('a0', 'n', 'b1', 'n')],
+  });
+  list.push({
+    name: 'cible au-dessus du départ',
+    boxes: [
+      { id: 'a', x: 0, y: 80, w: 120, h: 50 },
+      { id: 'b', x: 20, y: -100, w: 120, h: 50 },
+    ],
+    links: [link('a', 's', 'b', 'n'), link('a', 'e', 'b', 'e')],
+  });
   return list;
 }
 
@@ -236,17 +286,25 @@ function build(): string {
       const current = {
         exit: { x: Number(edge.style.exitX), y: Number(edge.style.exitY) },
         entry: { x: Number(edge.style.entryX), y: Number(edge.style.entryY) },
-        points: edge.points,
+        points: [] as Point[],
       };
       for (const change of changes.filter((ch) => ch.edgeId === edge.id))
         current[change.end === 'source' ? 'exit' : 'entry'] = change.constraint;
-      const shape = edge.sourceId === edge.targetId && page.shapes.find((s) => s.id === edge.sourceId);
-      if (shape) {
-        const b = shape.bounds;
-        const at = (c: Point) => ({ point: { x: b.x + c.x * b.width, y: b.y + c.y * b.height }, side: sideOf(c) });
-        current.points = loopWaypoints(b, at(current.exit), at(current.entry));
-      }
       ends.set(edge.id, current);
+    }
+  }
+  // Tracés qui contournent les formes et les autres flèches (une boucle sans tracé garde ses coudes par défaut).
+  const page = readDrawio(xml(ends)).document.pages[0]!;
+  const routes = avoidRoutes(page, new Set(page.edges.map((e) => e.id)));
+  for (const edge of page.edges) {
+    const current = ends.get(edge.id)!;
+    const loop = edge.sourceId === edge.targetId ? page.shapes.find((s) => s.id === edge.sourceId) : undefined;
+    const routed = routes.get(edge.id);
+    if (routed) current.points = routed;
+    else if (loop) {
+      const b = loop.bounds;
+      const at = (c: Point) => ({ point: { x: b.x + c.x * b.width, y: b.y + c.y * b.height }, side: sideOf(c) });
+      current.points = loopWaypoints(b, at(current.exit), at(current.entry));
     }
   }
   return xml(ends);
@@ -276,6 +334,43 @@ describe('fixture anchor-auto-routing.drawio', () => {
     const page = readDrawio(fixture('anchor-auto-routing.drawio')).document.pages[0]!;
     expect(page.attributes['spatial.anchoring']).toBe('auto');
     expect(distributeAnchors(page, new Set(page.shapes.map((s) => s.id)))).toEqual([]);
+  });
+
+  it('aucun tracé ne traverse une forme ni ne se superpose à un autre', () => {
+    const page = readDrawio(fixture('anchor-auto-routing.drawio')).document.pages[0]!;
+    const shapes = new Map(page.shapes.map((s) => [s.id, s]));
+    const routes = new Map(page.edges.map((e) => [e.id, routeOf(page, shapes, e.id)]));
+    const enters = (a: Point, b: Point, r: { x: number; y: number; width: number; height: number }) =>
+      Math.max(a.x, b.x) > r.x &&
+      Math.min(a.x, b.x) < r.x + r.width &&
+      Math.max(a.y, b.y) > r.y &&
+      Math.min(a.y, b.y) < r.y + r.height;
+    for (const [id, route] of routes) {
+      expect(routes.get(id)!.length, id).toBeGreaterThan(1);
+      // Les bouts partent de leurs formes : le premier et le dernier segment n'en traversent pas d'autre.
+      for (let n = 0; n + 1 < route.length; n++)
+        for (const shape of page.shapes) {
+          if (n === 0 && shape.id === page.edges.find((e) => e.id === id)!.sourceId) continue;
+          if (n === route.length - 2 && shape.id === page.edges.find((e) => e.id === id)!.targetId) continue;
+          expect(
+            enters(route[n]!, route[n + 1]!, shape.bounds),
+            `${id} traverse ${shape.id} : ${JSON.stringify(route)}`,
+          ).toBe(false);
+        }
+    }
+    const segments = [...routes].flatMap(([id, route]) => segmentsOf(route).map((s) => ({ id, s })));
+    for (const { id, s } of segments)
+      for (const other of segments) {
+        if (other.id <= id) continue;
+        const vertical = s.a.x === s.b.x;
+        if (vertical !== (other.s.a.x === other.s.b.x)) continue;
+        if (vertical ? s.a.x !== other.s.a.x : s.a.y !== other.s.a.y) continue;
+        const [a0, a1] = vertical ? [s.a.y, s.b.y].sort((x, y) => x - y) : [s.a.x, s.b.x].sort((x, y) => x - y);
+        const [b0, b1] = vertical
+          ? [other.s.a.y, other.s.b.y].sort((x, y) => x - y)
+          : [other.s.a.x, other.s.b.x].sort((x, y) => x - y);
+        expect(Math.min(a1!, b1!) - Math.max(a0!, b0!), `${id} et ${other.id} se superposent`).toBeLessThanOrEqual(0);
+      }
   });
 
   it('n flèches sur un côté : à 1/(n+1), 2/(n+1)…', () => {

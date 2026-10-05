@@ -82,6 +82,7 @@ import { setLineResolution } from './render/lines';
 import type { EdgeEnd } from './edit/edgeLabels';
 import { CONNECT_DIRECTIONS, connectSideOf, handlePoints, isConnectHandle, resizeBounds } from './edit/handles';
 import type { ConnectSide, HandleKind, ResizeHandle } from './edit/handles';
+import { avoidRoutes, edgesThrough } from './edit/avoid';
 import { affectedShapes, distributeAnchors, pageGeometry, sideMiddle } from './edit/distribute';
 import type { Anchoring, PageGeometry } from './edit/distribute';
 import { loopWaypoints } from './edit/loops';
@@ -880,10 +881,10 @@ export class Engine {
   /** Écrit la répartition des flèches des formes `shapeIds` (et les coudes des boucles concernées). */
   private writeDistribution(page: PageModel, shapeIds: ReadonlySet<string>): boolean {
     const pageTree = this.pageTreeOf(page.id);
-    const changes = pageTree ? distributeAnchors(page, shapeIds) : [];
-    if (!pageTree || changes.length === 0) return false;
+    if (!pageTree) return false;
+    let wrote = false;
     const loops = new Set<EdgeModel>();
-    for (const { edgeId, end, constraint } of changes) {
+    for (const { edgeId, end, constraint } of distributeAnchors(page, shapeIds)) {
       const edge = page.edges.find((e) => e.id === edgeId);
       if (!edge) continue;
       for (const [key, value] of Object.entries(constraintStyle(end, constraint))) {
@@ -892,12 +893,23 @@ export class Engine {
         else edge.style[key] = value;
       }
       if (edge.sourceId && edge.sourceId === edge.targetId) loops.add(edge);
+      wrote = true;
     }
-    for (const edge of loops) {
-      const points = this.loopPoints(page, edge);
-      if (points) this.writeEdgePoints(page, pageTree, edge, points);
+    // Tracés qui contournent les formes et les autres flèches : flèches des formes concernées, et celles qui en
+    // traversent une ; une boucle sans tracé trouvé garde ses coudes par défaut.
+    const edgeIds = edgesThrough(page, shapeIds);
+    for (const edge of page.edges)
+      if ((edge.sourceId && shapeIds.has(edge.sourceId)) || (edge.targetId && shapeIds.has(edge.targetId)))
+        edgeIds.add(edge.id);
+    const routes = avoidRoutes(page, edgeIds);
+    for (const edge of page.edges) {
+      const points = routes.get(edge.id) ?? (loops.has(edge) ? this.loopPoints(page, edge) : undefined);
+      if (!points || samePoints(points, edge.points)) continue;
+      this.writeEdgePoints(page, pageTree, edge, points);
+      edge.points = points;
+      wrote = true;
     }
-    return true;
+    return wrote;
   }
 
   /** Ancrage des flèches d'une page : le sien (`spatial.anchoring`), sinon le réglage de l'appli. */

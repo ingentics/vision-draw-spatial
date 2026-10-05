@@ -44,12 +44,13 @@ export function sideMiddle(side: AnchorSide): Point {
 }
 
 /**
- * Point vers lequel part un bout de flèche : son point intermédiaire le plus proche s'il y en a, sinon l'autre bout
- * (point d'attache fixe, centre de la forme, ou point libre).
+ * Point vers lequel part un bout de flèche : l'autre bout (point d'attache fixe, centre de la forme, ou point libre).
+ * Les points intermédiaires sont ignorés : en ancrage automatique, c'est l'appli qui les trace. Le bout d'une boucle
+ * se réfère à sa propre place, pour garder l'ordre de ses deux bouts.
  */
 function reference(page: PageModel, edge: EdgeModel, end: TerminalEnd): Point | undefined {
-  if (edge.points.length > 0) return end === 'source' ? edge.points[0] : edge.points[edge.points.length - 1];
-  const other: TerminalEnd = end === 'source' ? 'target' : 'source';
+  const loop = !!edge.sourceId && edge.sourceId === edge.targetId;
+  const other: TerminalEnd = loop ? end : end === 'source' ? 'target' : 'source';
   const attachment = endAttachmentOf(edge, other);
   if (!attachment) return undefined;
   if (attachment.kind === 'free') return attachment.point;
