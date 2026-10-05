@@ -749,6 +749,50 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   avoir son propre réglage (panneau Page).
                 </p>
               </Subsection>
+              <Subsection title="Ancrage automatique">
+                <Toggle
+                  label="Contourner les formes et les flèches"
+                  checked={shapes.edgeAutoRoute}
+                  onChange={(edgeAutoRoute) => onChange({ shapes: { edgeAutoRoute } })}
+                />
+                <Slider
+                  label="Écart aux formes"
+                  value={shapes.edgeShapeClearance}
+                  limits={SETTINGS_LIMITS['shapes.edgeShapeClearance']}
+                  format={(v) => `${v} px`}
+                  disabled={!shapes.edgeAutoRoute}
+                  onChange={(edgeShapeClearance) => onChange({ shapes: { edgeShapeClearance } })}
+                />
+                <Slider
+                  label="Écart entre flèches"
+                  value={shapes.edgeSpacing}
+                  limits={SETTINGS_LIMITS['shapes.edgeSpacing']}
+                  format={(v) => `${v} px`}
+                  disabled={!shapes.edgeAutoRoute}
+                  onChange={(edgeSpacing) => onChange({ shapes: { edgeSpacing } })}
+                />
+                <Slider
+                  label="Premier et dernier segments"
+                  value={shapes.edgePortStub}
+                  limits={SETTINGS_LIMITS['shapes.edgePortStub']}
+                  format={(v) => `${v} px`}
+                  disabled={!shapes.edgeAutoRoute}
+                  onChange={(edgePortStub) => onChange({ shapes: { edgePortStub } })}
+                />
+                <Slider
+                  label="Détour pour éviter un croisement"
+                  value={shapes.edgeCrossingDetour}
+                  limits={SETTINGS_LIMITS['shapes.edgeCrossingDetour']}
+                  format={(v) => `${v} px`}
+                  disabled={!shapes.edgeAutoRoute}
+                  onChange={(edgeCrossingDetour) => onChange({ shapes: { edgeCrossingDetour } })}
+                />
+                <p className="hint muted">
+                  Pages en ancrage automatique : le tracé à angles droits contourne les formes et ne se superpose pas
+                  aux autres flèches ; il est écrit en points intermédiaires, que draw.io suit tels quels. Appliqué à la
+                  prochaine modification de la page. Sans contournement : la répartition seule, tracé de draw.io.
+                </p>
+              </Subsection>
               <Subsection title="Textes de début et de fin">
                 <Slider
                   label="Taille"

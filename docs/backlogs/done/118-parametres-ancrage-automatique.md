@@ -16,3 +16,12 @@
 - **Fini quand :** changer un réglage puis modifier une page en Automatique applique la nouvelle valeur (ex. écart
   entre flèches à 20 : deux flèches d'un même couloir à 20 px) ; décocher « Contourner » ne pose plus de points
   intermédiaires ; `make check` vert.
+- Fait : `src/engine/settings.ts` (`shapes.edgeAutoRoute`, `edgeShapeClearance`, `edgeSpacing`, `edgePortStub`,
+  `edgeCrossingDetour`, avec bornes), `src/engine/edit/avoid.ts` (`AvoidOptions`, `DEFAULT_AVOID_OPTIONS` : les
+  constantes deviennent des options de `routeAround` / `avoidRoutes`), `src/engine/Engine.ts` (réglages passés au
+  tracé ; sans contournement, une flèche recalculée perd ses points intermédiaires, une boucle garde ses coudes),
+  `src/app/SettingsPanel.tsx` (sous-section « Ancrage automatique », réglages grisés sans contournement),
+  `docs/SPEC.md`, `tests/engine/edit/avoid.test.ts` (écart aux formes, premier segment, écart entre flèches). Fixtures
+  inchangées (valeurs par défaut). Vérifié dans l'appli (`simple.drawio` en Automatique) : sous-section affichée ;
+  « Contourner » décoché puis Ligne 1 déplacée = flèches droites à travers Service B (tracé de draw.io) ; recoché =
+  elles le contournent de nouveau ; `make check` vert.

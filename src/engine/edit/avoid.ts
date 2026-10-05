@@ -11,19 +11,24 @@ import type { AnchorSide } from './edgeEnds';
  * intermédiaires, que draw.io suit tels quels.
  */
 
-/** Écart minimal entre un tracé et une forme, en pixels de page. */
-export const SHAPE_CLEARANCE = 10;
-/** Longueur du premier et du dernier segment, perpendiculaires au côté. */
-export const PORT_STUB = 20;
-/** Écart entre deux flèches qui partagent un couloir. */
-export const EDGE_SPACING = 10;
+/** Réglages du tracé (paramètres `shapes.edgeShapeClearance`…), en pixels de page. */
+export interface AvoidOptions {
+  /** Écart minimal entre un tracé et une forme. */
+  clearance: number;
+  /** Écart entre deux flèches qui partagent un couloir. */
+  spacing: number;
+  /** Longueur du premier et du dernier segment, perpendiculaires au côté. */
+  stub: number;
+  /** Détour accepté pour éviter un croisement : coût d'un croisement, en pixels de longueur équivalente. */
+  crossingDetour: number;
+}
+
+export const DEFAULT_AVOID_OPTIONS: AvoidOptions = { clearance: 10, spacing: 10, stub: 20, crossingDetour: 500 };
 
 /** Coût d'un coude, en pixels de longueur équivalente. */
 const BEND_COST = 30;
 /** Coût par pixel de tracé superposé à une autre flèche. */
 const OVERLAP_COST = 40;
-/** Coût d'un croisement avec une autre flèche : plus qu'un détour de quelques coudes. */
-const CROSSING_COST = 500;
 /** Attirance (par pixel de tracé et de distance) vers le bout où converge un faisceau : départage les égalités. */
 const ATTRACT_COST = 1e-4;
 /** Passes de reprise des tracés en conflit (croisement ou superposition), une fois toutes les flèches tracées. */
@@ -170,7 +175,7 @@ class Heap {
 }
 
 /**
- * Tracé orthogonal de `from` à `to` qui contourne `obstacles` (écartés de `SHAPE_CLEARANCE`) et évite de longer
+ * Tracé orthogonal de `from` à `to` qui contourne `obstacles` (écartés de `options.clearance`) et évite de longer
  * `occupied` : premier et dernier segments perpendiculaires aux côtés, puis plus court chemin (coudes, superpositions
  * et croisements pénalisés). Renvoie les points intermédiaires (bouts exclus), ou undefined sans chemin.
  */
@@ -180,10 +185,13 @@ export function routeAround(
   obstacles: readonly Rect[],
   occupied: readonly Segment[],
   attract?: Point,
+  options: AvoidOptions = DEFAULT_AVOID_OPTIONS,
 ): Point[] | undefined {
-  const start = out(from, PORT_STUB);
-  const goal = out(to, PORT_STUB);
-  const blocks = obstacles.map((r) => inflate(r, SHAPE_CLEARANCE));
+  // Le premier segment doit sortir de la zone d'écart de sa forme.
+  const stub = Math.max(options.stub, options.clearance + 1);
+  const start = out(from, stub);
+  const goal = out(to, stub);
+  const blocks = obstacles.map((r) => inflate(r, options.clearance));
   if (blocks.some((b) => inside(b, start) || inside(b, goal))) return undefined;
 
   const box = {
@@ -208,8 +216,8 @@ export function routeAround(
   }
   // Voies parallèles aux flèches déjà tracées, pour pouvoir passer à côté.
   for (const s of near2) {
-    if (s.a.x === s.b.x) xs.add(s.a.x - EDGE_SPACING).add(s.a.x + EDGE_SPACING);
-    else ys.add(s.a.y - EDGE_SPACING).add(s.a.y + EDGE_SPACING);
+    if (s.a.x === s.b.x) xs.add(s.a.x - options.spacing).add(s.a.x + options.spacing);
+    else ys.add(s.a.y - options.spacing).add(s.a.y + options.spacing);
   }
   const X = [...xs].filter((x) => x >= box.x0 && x <= box.x1).sort((a, b) => a - b);
   const Y = [...ys].filter((y) => y >= box.y0 && y <= box.y1).sort((a, b) => a - b);
@@ -263,7 +271,7 @@ export function routeAround(
         step += ATTRACT_COST * length * (Math.abs((a.x + b.x) / 2 - attract.x) + Math.abs((a.y + b.y) / 2 - attract.y));
       for (const s of near2) {
         step += overlap(segment, s) * OVERLAP_COST;
-        if (stepCrosses(segment, s)) step += CROSSING_COST;
+        if (stepCrosses(segment, s)) step += options.crossingDetour;
       }
       const next = node(ni, nj) * 4 + nd;
       if (c + step < cost[next]!) {
@@ -306,7 +314,11 @@ function contains(outer: Rect, inner: Rect): boolean {
  * contiennent ses bouts, comme un conteneur) et évite les flèches déjà tracées, dans l'ordre des ids. Renvoie les
  * points intermédiaires de chaque flèche tracée.
  */
-export function avoidRoutes(page: PageModel, edgeIds: ReadonlySet<string>): Map<string, Point[]> {
+export function avoidRoutes(
+  page: PageModel,
+  edgeIds: ReadonlySet<string>,
+  options: AvoidOptions = DEFAULT_AVOID_OPTIONS,
+): Map<string, Point[]> {
   const shapes = new Map(page.shapes.map((s) => [s.id, s]));
   const routeOf = (edge: EdgeModel) =>
     routeEdge({
@@ -349,7 +361,7 @@ export function avoidRoutes(page: PageModel, edgeIds: ReadonlySet<string>): Map<
       .map((s) => s.bounds);
     const hub = (load.get(sideKey(edge, 'source')) ?? 0) > (load.get(sideKey(edge, 'target')) ?? 0) ? from : to;
     const span = Math.abs(from.point.x - to.point.x) + Math.abs(from.point.y - to.point.y);
-    jobs.push({ edge, from, to, obstacles, attract: out(hub, PORT_STUB), span });
+    jobs.push({ edge, from, to, obstacles, attract: out(hub, options.stub), span });
   }
   // Les plus longues d'abord : elles prennent les couloirs proches du bout chargé, les plus courtes s'emboîtent.
   jobs.sort((a, b) => b.span - a.span || a.edge.id.localeCompare(b.edge.id));
@@ -379,7 +391,7 @@ export function avoidRoutes(page: PageModel, edgeIds: ReadonlySet<string>): Map<
     for (const job of order) next.delete(job.edge.id);
     for (const job of order) {
       const occupied = [...fixed, ...jobs.filter((other) => other !== job).flatMap((other) => pathIn(next, other))];
-      const points = routeAround(job.from, job.to, job.obstacles, occupied, job.attract);
+      const points = routeAround(job.from, job.to, job.obstacles, occupied, job.attract, options);
       if (points) next.set(job.edge.id, points);
     }
     return next;

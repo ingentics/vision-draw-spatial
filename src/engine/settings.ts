@@ -133,6 +133,16 @@ export interface ShapeSettings {
    * le côté, les flèches y sont réparties) ; une page peut le surcharger (`spatial.anchoring`).
    */
   edgeAnchoring: 'manual' | 'auto';
+  /** Ancrage automatique : le tracé contourne les formes et les autres flèches (points intermédiaires écrits). */
+  edgeAutoRoute: boolean;
+  /** Ancrage automatique : écart minimal entre un tracé et une forme, en pixels de page. */
+  edgeShapeClearance: number;
+  /** Ancrage automatique : écart entre deux flèches qui partagent un couloir. */
+  edgeSpacing: number;
+  /** Ancrage automatique : longueur du premier et du dernier segment, perpendiculaires au côté. */
+  edgePortStub: number;
+  /** Ancrage automatique : détour accepté pour éviter un croisement, en pixels. */
+  edgeCrossingDetour: number;
   /**
    * Fond du texte des flèches sans `labelBackgroundColor` explicite : halo de la couleur de la page
    * autour de chaque lettre, fond uni de la couleur de la page, ou transparent.
@@ -334,6 +344,11 @@ export const DEFAULT_SETTINGS: Settings = {
     edgeEndTextGapAcross: 4,
     edgeLineStyle: 'rounded',
     edgeAnchoring: 'manual',
+    edgeAutoRoute: true,
+    edgeShapeClearance: 10,
+    edgeSpacing: 10,
+    edgePortStub: 20,
+    edgeCrossingDetour: 500,
     edgeLabelBackdrop: 'halo',
     edgeLabelHaloWidth: 1.5,
     edgeLabelHaloBlur: 1,
@@ -403,6 +418,10 @@ export const SETTINGS_LIMITS = {
   'shapes.edgeEndTextSize': { min: 4, max: 72, step: 1 },
   'shapes.edgeEndTextGapAlong': { min: 0, max: 40, step: 1 },
   'shapes.edgeEndTextGapAcross': { min: 0, max: 40, step: 1 },
+  'shapes.edgeShapeClearance': { min: 0, max: 40, step: 1 },
+  'shapes.edgeSpacing': { min: 2, max: 40, step: 1 },
+  'shapes.edgePortStub': { min: 5, max: 60, step: 1 },
+  'shapes.edgeCrossingDetour': { min: 0, max: 2000, step: 50 },
   'shapes.edgeLabelHaloWidth': { min: 0.5, max: 6, step: 0.25 },
   'shapes.edgeLabelHaloBlur': { min: 0, max: 4, step: 0.25 },
   'shapes.edgeBadgeRadius': { min: 3, max: 40, step: 0.5 },
@@ -594,6 +613,19 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
       ),
       edgeLineStyle: oneOf(EDGE_LINES, p.shapes?.edgeLineStyle, base.shapes.edgeLineStyle),
       edgeAnchoring: oneOf(EDGE_ANCHORINGS, p.shapes?.edgeAnchoring, base.shapes.edgeAnchoring),
+      edgeAutoRoute: bool(p.shapes?.edgeAutoRoute, base.shapes.edgeAutoRoute),
+      edgeShapeClearance: num(
+        'shapes.edgeShapeClearance',
+        p.shapes?.edgeShapeClearance,
+        base.shapes.edgeShapeClearance,
+      ),
+      edgeSpacing: num('shapes.edgeSpacing', p.shapes?.edgeSpacing, base.shapes.edgeSpacing),
+      edgePortStub: num('shapes.edgePortStub', p.shapes?.edgePortStub, base.shapes.edgePortStub),
+      edgeCrossingDetour: num(
+        'shapes.edgeCrossingDetour',
+        p.shapes?.edgeCrossingDetour,
+        base.shapes.edgeCrossingDetour,
+      ),
       edgeEndTextSize: Math.round(
         num('shapes.edgeEndTextSize', p.shapes?.edgeEndTextSize, base.shapes.edgeEndTextSize),
       ),

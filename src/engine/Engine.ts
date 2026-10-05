@@ -895,15 +895,32 @@ export class Engine {
       if (edge.sourceId && edge.sourceId === edge.targetId) loops.add(edge);
       wrote = true;
     }
-    // Tracés qui contournent les formes et les autres flèches : flèches des formes concernées, et celles qui en
-    // traversent une ; une boucle sans tracé trouvé garde ses coudes par défaut.
+    // Tracés qui contournent les formes et les autres flèches (si le réglage `shapes.edgeAutoRoute` le veut) :
+    // flèches des formes concernées, et celles qui en traversent une ; une boucle sans tracé garde ses coudes par
+    // défaut.
     const edgeIds = edgesThrough(page, shapeIds);
     for (const edge of page.edges)
       if ((edge.sourceId && shapeIds.has(edge.sourceId)) || (edge.targetId && shapeIds.has(edge.targetId)))
         edgeIds.add(edge.id);
-    const routes = avoidRoutes(page, edgeIds);
+    const { shapes } = this.settings;
+    const routes = shapes.edgeAutoRoute
+      ? avoidRoutes(page, edgeIds, {
+          clearance: shapes.edgeShapeClearance,
+          spacing: shapes.edgeSpacing,
+          stub: shapes.edgePortStub,
+          crossingDetour: shapes.edgeCrossingDetour,
+        })
+      : new Map<string, Point[]>();
     for (const edge of page.edges) {
-      const points = routes.get(edge.id) ?? (loops.has(edge) ? this.loopPoints(page, edge) : undefined);
+      const loop = edge.sourceId !== undefined && edge.sourceId === edge.targetId;
+      // Sans contournement, une flèche recalculée perd ses points intermédiaires (tracé de draw.io), sauf une boucle.
+      const points =
+        routes.get(edge.id) ??
+        (loops.has(edge) || (!shapes.edgeAutoRoute && loop && edgeIds.has(edge.id))
+          ? this.loopPoints(page, edge)
+          : !shapes.edgeAutoRoute && edgeIds.has(edge.id)
+            ? []
+            : undefined);
       if (!points || samePoints(points, edge.points)) continue;
       this.writeEdgePoints(page, pageTree, edge, points);
       edge.points = points;
