@@ -561,6 +561,7 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
         overview: code(shortcuts.overview, base.controls.shortcuts.overview),
         back: code(shortcuts.back, base.controls.shortcuts.back),
         deleteSelection: code(shortcuts.deleteSelection, base.controls.shortcuts.deleteSelection),
+        placementVariant: code(shortcuts.placementVariant, base.controls.shortcuts.placementVariant),
       },
     },
     view: {

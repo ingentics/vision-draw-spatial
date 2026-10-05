@@ -38,6 +38,7 @@ const SHORTCUT_LABELS: Record<keyof Shortcuts, string> = {
   overview: 'Vue globale ↔ 1:1',
   back: 'Retour (Alt+← aussi)',
   deleteSelection: 'Supprimer la sélection (Suppr aussi)',
+  placementVariant: 'Variante de placement d’une flèche (ancrage manuel)',
 };
 
 /**

@@ -14,3 +14,11 @@
   automatique (voir 120), ni pendant l'édition d'un texte.
 - **Fini quand :** sur une flèche sélectionnée, appuis successifs sur F = placements différents, le premier étant
   le meilleur autre placement ; Ctrl+Z revient au placement d'avant ; `make check` vert.
+- Fait : `src/engine/edit/variants.ts` (`placementVariants` : 16 couples de côtés sur les points libres les plus
+  proches, la flèche elle-même ignorée, notés par le tracé — forme traversée, longueur, coudes ;
+  `nextPlacementVariant` : la suivante du placement actuel, en boucle), `src/engine/Engine.ts` (`placementVariant` :
+  page en ancrage manuel, une étape d'annulation), `src/engine/interaction/controls.ts` et `src/engine/settings.ts`
+  (raccourci `placementVariant`, F par défaut), `src/app/SettingsPanel.tsx` (libellé du raccourci), `docs/SPEC.md`,
+  `tests/engine/edit/variants.test.ts`. Vérifié dans l'appli (`sequences.drawio`) : sur « login », F fixe d'abord le
+  meilleur placement (droite → gauche), puis bas de Client → gauche d'API, puis droite de Client → bas d'API ; trois
+  Ctrl+Z reviennent pas à pas à l'état d'origine ; `make check` vert.

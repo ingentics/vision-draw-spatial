@@ -83,6 +83,7 @@ import type { EdgeEnd } from './edit/edgeLabels';
 import { CONNECT_DIRECTIONS, connectSideOf, handlePoints, isConnectHandle, resizeBounds } from './edit/handles';
 import type { ConnectSide, HandleKind, ResizeHandle } from './edit/handles';
 import { avoidRoutes, edgesThrough } from './edit/avoid';
+import { nextPlacementVariant } from './edit/variants';
 import { affectedShapes, distributeAnchors, pageGeometry, sideMiddle } from './edit/distribute';
 import type { Anchoring, PageGeometry } from './edit/distribute';
 import { loopWaypoints } from './edit/loops';
@@ -661,6 +662,7 @@ export class Engine {
         selectInRect: (rect, options) => this.selectInRect(rect, options),
         editSelection: () => this.editLabel(),
         deleteSelection: () => this.deleteSelection(),
+        placementVariant: () => this.placementVariant(),
         canDeleteSelection: () => {
           const editable = this.editablePage();
           return !!editable && this.selection?.pageId === editable.page.id;
@@ -927,6 +929,28 @@ export class Engine {
       wrote = true;
     }
     return wrote;
+  }
+
+  /**
+   * Variante de placement de la flèche sélectionnée seule, sur une page en ancrage manuel (touche F) : la variante
+   * qui suit le placement actuel (`edit/variants.ts`) est appliquée tout de suite, points intermédiaires retirés (sauf
+   * les coudes d'une boucle), en une étape d'annulation. Faux si elle ne s'applique pas.
+   */
+  placementVariant(): boolean {
+    const editable = this.editableEdgeSelection();
+    if (!editable || this.anchoringOf(editable.page) !== 'manual') return false;
+    const { page, pageTree, edge } = editable;
+    const variant = nextPlacementVariant(page, edge.id);
+    if (!variant) return false;
+    this.recordEdit('Variante de placement');
+    for (const [key, value] of Object.entries({
+      ...constraintStyle('source', variant.exit),
+      ...constraintStyle('target', variant.entry),
+    }))
+      setCellStyleValue(pageTree, edge.id, key, value);
+    this.writeEdgePoints(page, pageTree, edge, variant.points);
+    this.documentChanged([page.id]);
+    return true;
   }
 
   /** Ancrage des flèches d'une page : le sien (`spatial.anchoring`), sinon le réglage de l'appli. */

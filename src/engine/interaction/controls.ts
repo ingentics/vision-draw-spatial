@@ -36,6 +36,8 @@ export interface Shortcuts {
    * sélection, sinon revient en arrière.
    */
   deleteSelection: string;
+  /** Variante de placement de la flèche sélectionnée (ancrage manuel), une étape d'annulation par appui. */
+  placementVariant: string;
 }
 
 export const DEFAULT_SHORTCUTS: Shortcuts = {
@@ -47,6 +49,7 @@ export const DEFAULT_SHORTCUTS: Shortcuts = {
   overview: 'Enter',
   back: 'Backspace',
   deleteSelection: 'Backspace',
+  placementVariant: 'f',
 };
 
 /** Positions physiques réservées au déplacement et au pan : non attribuables à un raccourci. */
@@ -281,6 +284,8 @@ export interface CameraHost {
   editSelection?(): void;
   /** Suppr (ou le raccourci `deleteSelection`) : supprimer la sélection. */
   deleteSelection?(): void;
+  /** Variante de placement de la flèche sélectionnée ; faux si elle ne s'applique pas (rien n'est fait). */
+  placementVariant?(): boolean;
   /** Y a-t-il une sélection supprimable (page modifiable) ? Décide entre supprimer et Retour. */
   canDeleteSelection?(): boolean;
   /** Échap : désélectionner. */
@@ -596,6 +601,10 @@ export class CameraController {
     // Touche propre au mode de la page, sur la sélection (ex. « + » / « - » : rang d'une flèche dans son flux).
     if (this.host.modeKey?.(event.key)) {
       event.preventDefault();
+      return;
+    }
+    if (action === 'placementVariant') {
+      if (!event.repeat && this.host.placementVariant?.()) event.preventDefault();
       return;
     }
     if (action === 'overview') {
