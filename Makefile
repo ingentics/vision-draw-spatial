@@ -6,7 +6,7 @@ COMPOSE := PORT=$(PORT) COMPOSE_BAKE=false docker compose
 RUN     := $(COMPOSE) run --rm --no-deps app
 
 .DEFAULT_GOAL := help
-.PHONY: help image .image dev test lint check drawio-check build lib desktop desktop-dev desktop-package desktop-install desktop-web desktop-lock preview shell lock down clean
+.PHONY: help image .image dev plantuml plantuml-down test lint check drawio-check build lib desktop desktop-dev desktop-package desktop-install desktop-web desktop-lock preview shell lock down clean
 
 help: ## Affiche les commandes disponibles
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  \033[36mmake %-16s\033[0m %s\n", $$1, $$2}'
@@ -21,6 +21,14 @@ image: ## Construit l'image (Node + dépendances)
 dev: .image ## Lance l'appli en dev (PORT=5173 par défaut)
 	@printf '\n  Drawio Spatial → \033]8;;$(URL)\033\\\033[1;36m$(URL)\033[0m\033]8;;\033\\\n\n'
 	@$(COMPOSE) up --renew-anon-volumes --remove-orphans
+
+PLANTUML_PORT ?= 8080
+plantuml: ## Lance en arrière-plan un serveur PlantUML local (PLANTUML_PORT=8080 par défaut)
+	@PLANTUML_PORT=$(PLANTUML_PORT) $(COMPOSE) --profile plantuml up -d plantuml
+	@printf '\n  Serveur PlantUML → http://localhost:$(PLANTUML_PORT)/\n\n'
+
+plantuml-down: ## Arrête le serveur PlantUML local
+	@$(COMPOSE) --profile plantuml stop plantuml
 
 test: .image ## Lance les tests
 	$(RUN) npm test

@@ -6,7 +6,7 @@ import { defaultShapeRegistry } from '../engine/shapes/registry';
 import { routingKind } from '../engine/render/edges/route';
 import type { StylePreset } from '../engine/edit/styles';
 import type { EdgeModel, LinkModel, PageModel, ShapeModel } from '../engine/model/types';
-import type { StyleSettings } from '../engine/settings';
+import type { ExporterSettings, StyleSettings } from '../engine/settings';
 import { SPATIAL, spatialNumber } from '../engine/spatial';
 import { TEXT_FORMAT_ATTRIBUTE } from './LabelEditor';
 import { BorderSection } from './BorderSection';
@@ -30,6 +30,8 @@ export interface ContextPanelProps {
   shapes: ShapeModel[];
   edges: EdgeModel[];
   styles: StyleSettings;
+  /** Réglages des exporteurs (moteur de rendu de la fenêtre d'export d'un mode). */
+  exporters: ExporterSettings;
   /** Épaisseur par défaut des volumes (réglage), affichée quand la forme n'a pas la sienne. */
   defaultDepth: number;
   /** Libellé de la touche de sélection multiple (ex. « Ctrl »), pour l'aide. */
@@ -137,6 +139,7 @@ function PageSections({ page, onRenamePage: onRename, ...props }: ContextPanelPr
         onModeEdit={props.onModeEdit}
         onModeProperty={props.onModeProperty}
         modeCurrent={props.modeCurrent}
+        exporters={props.exporters}
       />
     </>
   );
@@ -152,7 +155,8 @@ function PageModeSections({
   onModeEdit,
   onModeProperty,
   modeCurrent,
-}: Pick<ContextPanelProps, 'page' | 'onPageMode' | 'onModeEdit' | 'onModeProperty' | 'modeCurrent'>) {
+  exporters,
+}: Pick<ContextPanelProps, 'page' | 'onPageMode' | 'onModeEdit' | 'onModeProperty' | 'modeCurrent' | 'exporters'>) {
   const modeId = defaultModeRegistry.modeId(page);
   const mode = defaultModeRegistry.modeOf(page);
   const options = [
@@ -176,7 +180,7 @@ function PageModeSections({
         />
         <ModeFields page={page} scope="page" target={page} onModeProperty={onModeProperty} />
       </Section>
-      {PageSection && <PageSection page={page} onEdit={onModeEdit} current={modeCurrent} />}
+      {PageSection && <PageSection page={page} onEdit={onModeEdit} current={modeCurrent} exporters={exporters} />}
     </>
   );
 }

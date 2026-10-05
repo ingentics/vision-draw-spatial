@@ -74,7 +74,7 @@ let lastNode: SettingsNode = { section: 0 };
 export function SettingsPanel({ settings, onChange, onReset, onResetOrientation, onClose }: SettingsPanelProps) {
   const { controls, view, camera, background, transition, preload, minimap, selection, accessibility, debug, save } =
     settings;
-  const { shapes, graph, edit } = settings;
+  const { shapes, graph, edit, exporters } = settings;
   const systemReduced = useSystemReducedMotion();
   const [query, setQuery] = useState('');
   const [node, setNode] = useState(lastNode);
@@ -910,6 +910,32 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
               </Subsection>
             </Section>
 
+            <Section title="Exporteurs">
+              <Subsection title="PlantUML">
+                <Choice
+                  label="Moteur de rendu"
+                  value={exporters.plantuml.renderer}
+                  options={[
+                    ['kroki', 'kroki.io'],
+                    ['plantuml', 'plantuml.com'],
+                    ['local', 'Serveur local'],
+                  ]}
+                  onChange={(renderer) => onChange({ exporters: { plantuml: { renderer } } })}
+                />
+                <UrlField
+                  label="URL du serveur local"
+                  value={exporters.plantuml.localUrl}
+                  disabled={exporters.plantuml.renderer !== 'local'}
+                  onChange={(localUrl) => onChange({ exporters: { plantuml: { localUrl } } })}
+                />
+                <p className="hint muted">
+                  Rendu de la fenêtre d’export des flux. Le texte du diagramme part dans l’adresse de l’image : avec un
+                  serveur local, rien ne sort de la machine. Un serveur PlantUML se lance avec «&nbsp;make
+                  plantuml&nbsp;» (http://localhost:8080).
+                </p>
+              </Subsection>
+            </Section>
+
             <Section title="Édition">
               <Subsection title="Clic">
                 <Slider
@@ -1220,6 +1246,49 @@ function Toggle({
         onChange={(event) => onChange(event.target.checked)}
       />
       <span>{label}</span>
+    </label>
+  );
+}
+
+/** Adresse saisie librement : validée à Entrée ou en quittant le champ, Échap annule (refusée si pas http(s)). */
+function UrlField({
+  label,
+  value,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  disabled?: boolean;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className={disabled ? 'field disabled' : 'field'}>
+      <span>{label}</span>
+      <input
+        key={value}
+        type="url"
+        className="url-input"
+        defaultValue={value}
+        placeholder="http://localhost:8080"
+        disabled={disabled}
+        spellCheck={false}
+        onBlur={(event) => {
+          const next = event.target.value.trim();
+          if (next !== value) onChange(next);
+          // Adresse refusée : le champ reprend la valeur gardée.
+          event.target.value = value;
+        }}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') event.currentTarget.blur();
+          else if (event.key === 'Escape') {
+            event.preventDefault();
+            event.stopPropagation();
+            event.currentTarget.value = value;
+            event.currentTarget.blur();
+          }
+        }}
+      />
     </label>
   );
 }

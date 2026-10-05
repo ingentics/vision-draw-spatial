@@ -2,18 +2,22 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { PageModel } from '../../../engine/model/types';
 import type { SequenceExporter } from '../../../engine/modes/sequences/export';
 import { sequenceState } from '../../../engine/modes/sequences/steps';
+import type { ExporterSettings } from '../../../engine/settings';
 import { plantUmlUrls } from './plantumlServer';
 
 /** Choix de toute la page dans la liste des flux (un id de flux n'est jamais vide). */
 const ALL = '';
 
 /** Rendu d'un texte exporté : image et page où l'ouvrir. */
-type Preview = (source: string) => Promise<{ image: string; link: string; linkLabel: string }>;
+type Preview = (
+  source: string,
+  settings: ExporterSettings,
+) => Promise<{ image: string; link: string; linkLabel: string }>;
 
 /** Rendus connus, par id d'exporteur ; un exporteur sans rendu n'affiche que son texte. */
 const PREVIEWS: Record<string, Preview> = {
-  plantuml: async (source) => {
-    const { svg, editor } = await plantUmlUrls(source);
+  plantuml: async (source, settings) => {
+    const { svg, editor } = await plantUmlUrls(source, settings.plantuml);
     return { image: svg, link: editor, linkLabel: 'Ouvrir sur plantuml.com' };
   },
 };
@@ -25,10 +29,13 @@ const PREVIEWS: Record<string, Preview> = {
 export function ExportViewer({
   page,
   exporter,
+  settings,
   onClose,
 }: {
   page: PageModel;
   exporter: SequenceExporter;
+  /** Réglages des exporteurs (moteur de rendu). */
+  settings: ExporterSettings;
   onClose: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -53,14 +60,14 @@ export function ExportViewer({
     setCopied(false);
     if (!render) return;
     let live = true;
-    render(source).then(
+    render(source, settings).then(
       (next) => live && setPreview(next),
       () => live && setFailed(true),
     );
     return () => {
       live = false;
     };
-  }, [exporter, source]);
+  }, [exporter, source, settings]);
 
   const copy = () =>
     void navigator.clipboard.writeText(source).then(
@@ -107,7 +114,10 @@ export function ExportViewer({
         {PREVIEWS[exporter.id] && (
           <div className="export-preview">
             {failed ? (
-              <p className="panel-hint">Rendu impossible.</p>
+              <p className="panel-hint">
+                Rendu impossible{preview ? ` : ${new URL(preview.image).origin} ne répond pas` : ''}. Le moteur de rendu
+                se règle dans les paramètres (Exporteurs).
+              </p>
             ) : preview ? (
               <>
                 <div className="export-preview-bar">

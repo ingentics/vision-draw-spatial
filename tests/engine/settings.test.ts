@@ -17,6 +17,18 @@ describe('mergeSettings', () => {
     expect(merged.controls).toEqual(DEFAULT_SETTINGS.controls);
   });
 
+  it('exporteurs : moteur PlantUML parmi les choix, URL locale http(s) sans barre finale (sujet 100)', () => {
+    expect(DEFAULT_SETTINGS.exporters.plantuml).toEqual({ renderer: 'kroki', localUrl: 'http://localhost:8080' });
+    const merged = mergeSettings(DEFAULT_SETTINGS, {
+      exporters: { plantuml: { renderer: 'local', localUrl: ' http://plantuml.lan:9000/ ' } },
+    });
+    expect(merged.exporters.plantuml).toEqual({ renderer: 'local', localUrl: 'http://plantuml.lan:9000' });
+    const refused = mergeSettings(merged, {
+      exporters: { plantuml: { renderer: 'autre' as never, localUrl: 'ftp://serveur' } },
+    });
+    expect(refused.exporters.plantuml).toEqual(merged.exporters.plantuml);
+  });
+
   it('fond et grille : grille draw.io par défaut, couleurs #rrggbb, pas bornés', () => {
     expect(DEFAULT_SETTINGS.background).toEqual({
       color: '#ffffff',

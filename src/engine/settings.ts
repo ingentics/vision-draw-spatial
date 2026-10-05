@@ -223,6 +223,18 @@ export interface PanelsSettings {
   shadow: number;
 }
 
+/** Moteur de rendu des exports PlantUML (sujet 100). */
+export type PlantUmlRenderer = 'kroki' | 'plantuml' | 'local';
+
+/** Exporteurs de l'appli (sujet 100) : rendu en ligne des textes exportés. */
+export interface ExporterSettings {
+  plantuml: {
+    renderer: PlantUmlRenderer;
+    /** Serveur PlantUML local (`renderer: 'local'`), http(s), sans barre finale. */
+    localUrl: string;
+  };
+}
+
 export interface Settings {
   transition: TransitionSettings;
   preload: PreloadSettings;
@@ -240,6 +252,7 @@ export interface Settings {
   debug: DebugSettings;
   accessibility: AccessibilitySettings;
   panels: PanelsSettings;
+  exporters: ExporterSettings;
 }
 
 /** Modification partielle, section par section (raccourcis compris). */
@@ -253,7 +266,9 @@ export type SettingsPatch = {
           stripText?: PanelsSettings['stripText'];
           shadow?: number;
         }
-      : Partial<Settings[K]>;
+      : K extends 'exporters'
+        ? { plantuml?: Partial<ExporterSettings['plantuml']> }
+        : Partial<Settings[K]>;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -338,6 +353,7 @@ export const DEFAULT_SETTINGS: Settings = {
     stripText: 'up',
     shadow: 0.06,
   },
+  exporters: { plantuml: { renderer: 'kroki', localUrl: 'http://localhost:8080' } },
 };
 
 /** Bornes des réglages numériques (et pas des curseurs de l'UI). */
@@ -410,6 +426,7 @@ const SELECTION_STYLES = ['veil', 'outline'] as const;
 const LABEL_BACKDROPS = ['halo', 'solid', 'none'] as const;
 const EDGE_LINES = ['straight', 'sharp', 'rounded', 'curved'] as const;
 const STRIP_TEXT = ['up', 'down'] as const;
+const PLANTUML_RENDERERS = ['kroki', 'plantuml', 'local'] as const;
 
 /**
  * Fusionne une modification dans des paramètres. Les valeurs invalides (mauvais type, hors liste)
@@ -640,7 +657,20 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
       stripText: oneOf(STRIP_TEXT, p.panels?.stripText, base.panels.stripText),
       shadow: num('panels.shadow', p.panels?.shadow, base.panels.shadow),
     },
+    exporters: {
+      plantuml: {
+        renderer: oneOf(PLANTUML_RENDERERS, p.exporters?.plantuml?.renderer, base.exporters.plantuml.renderer),
+        localUrl: serverUrl(p.exporters?.plantuml?.localUrl, base.exporters.plantuml.localUrl),
+      },
+    },
   };
+}
+
+/** URL de serveur : http(s) seulement, espaces et barres finales retirés ; sinon la valeur précédente. */
+function serverUrl(value: unknown, fallback: string): string {
+  if (typeof value !== 'string') return fallback;
+  const url = value.trim().replace(/\/+$/, '');
+  return /^https?:\/\/\S+$/i.test(url) ? url : fallback;
 }
 
 /**

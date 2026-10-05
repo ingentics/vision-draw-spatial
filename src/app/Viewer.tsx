@@ -636,6 +636,7 @@ export function Viewer({
                   shapes={selected.shapes}
                   edges={selected.edges}
                   styles={settings.styles}
+                  exporters={settings.exporters}
                   defaultDepth={settings.view.isoDepth}
                   multiSelectKey={MULTI_SELECT_LABELS[settings.controls.multiSelectKey]}
                   onLink={(link) => selection && engine?.setLink(selection.picked.element.id, link)}

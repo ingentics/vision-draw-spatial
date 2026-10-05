@@ -13,7 +13,7 @@ import type { ModePanel, ModePanelProps } from '../registry';
  */
 export const panel: ModePanel = { PageSection: FlowsSection };
 
-function FlowsSection({ page, onEdit, current }: ModePanelProps) {
+function FlowsSection({ page, onEdit, current, exporters }: ModePanelProps) {
   const { flows, members } = sequenceState(page);
   const [title, setTitle] = useState('');
   const [exporting, setExporting] = useState<SequenceExporter>();
@@ -71,7 +71,7 @@ function FlowsSection({ page, onEdit, current }: ModePanelProps) {
         </div>
       )}
       {exporting && flows.length > 0 && (
-        <ExportViewer page={page} exporter={exporting} onClose={() => setExporting(undefined)} />
+        <ExportViewer page={page} exporter={exporting} settings={exporters} onClose={() => setExporting(undefined)} />
       )}
     </Section>
   );

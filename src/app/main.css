@@ -1288,6 +1288,15 @@ body {
   opacity: 0.5;
 }
 
+.field .url-input {
+  font: inherit;
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--fg);
+}
+
 .field-row {
   display: flex;
   align-items: center;

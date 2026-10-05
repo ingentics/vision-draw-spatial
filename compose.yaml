@@ -12,6 +12,13 @@ services:
       # …mais node_modules reste celui de l'image (binaires Linux, versions du lockfile).
       - /app/node_modules
 
+  # Serveur PlantUML local (make plantuml) : rendu des exports sans service en ligne (paramètres > Exporteurs).
+  plantuml:
+    image: plantuml/plantuml-server:jetty
+    profiles: ['plantuml']
+    ports:
+      - '${PLANTUML_PORT:-8080}:8080'
+
   # Appli native (make desktop*) : runtime Electron de la plateforme cible, empaquetage, signature.
   desktop:
     build:
