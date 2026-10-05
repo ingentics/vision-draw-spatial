@@ -7,6 +7,7 @@ import type { CameraState } from '../engine/interaction/camera';
 import type { DocumentModel, PageModel } from '../engine/model/types';
 import type { FileStore } from '../engine/persistence/FileStore';
 import type { FontSet } from '../engine/render/troikaText';
+import { DEFAULT_SETTINGS } from '../engine/settings';
 import './drawio-spatial.css';
 
 /** Actions disponibles par la `ref` du composant. */
@@ -71,9 +72,6 @@ export interface DrawioSpatialProps {
   /** Délai de la sauvegarde automatique après la dernière modification. Défaut : 1 s. */
   autosaveDelayMs?: number;
 }
-
-/** Vue mémorisée du fichier (SPEC §5.3) : enregistrée 500 ms après le dernier changement. */
-const STORE_DELAY_MS = 500;
 
 /**
  * Visionneuse / éditeur draw.io spatial (SPEC §3.2) : coquille React fine autour du moteur.
@@ -188,7 +186,11 @@ export function DrawioSpatial(props: DrawioSpatialProps) {
     };
     const schedule = () => {
       clearTimeout(timer);
-      timer = setTimeout(persist, STORE_DELAY_MS);
+      // Vue mémorisée du fichier (SPEC §5.3), après le délai du paramètre `save.viewStateDelayMs`.
+      timer = setTimeout(
+        persist,
+        settingsRef.current?.save?.viewStateDelayMs ?? DEFAULT_SETTINGS.save.viewStateDelayMs,
+      );
     };
     const flush = () => {
       if (timer) persist();

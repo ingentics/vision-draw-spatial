@@ -33,8 +33,11 @@ export function App() {
     setSettings(DEFAULT_SETTINGS);
   }, []);
 
+  // Lu à chaque rafraîchissement (pas de dépendance : les rappels qui l'utilisent restent stables).
+  const recentLimit = useRef(settings.save.recentLimit);
+  recentLimit.current = settings.save.recentLimit;
   const refreshRecents = useCallback(() => {
-    store.listRecent().then(setRecents, () => setRecents([]));
+    store.listRecent(recentLimit.current).then(setRecents, () => setRecents([]));
   }, []);
 
   const show = useCallback((file: StoredFile) => {

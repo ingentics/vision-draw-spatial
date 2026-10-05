@@ -19,15 +19,15 @@ export interface GraphLayoutOptions {
   columnGap: number;
   /** Espace vertical entre cartes (le titre se place au-dessus de chaque carte). */
   rowGap: number;
+  /** Décalage des deux flèches d'un aller-retour, pour qu'elles ne se superposent pas. */
+  pairOffset: number;
 }
 
-export const DEFAULT_GRAPH_LAYOUT: GraphLayoutOptions = { cardWidth: 260, columnGap: 200, rowGap: 90 };
+export const DEFAULT_GRAPH_LAYOUT: GraphLayoutOptions = { cardWidth: 260, columnGap: 200, rowGap: 90, pairOffset: 16 };
 /** Hauteur d'une carte bornée, en fraction de sa largeur. */
 const CARD_MIN_RATIO = 110 / 260;
 const CARD_MAX_RATIO = 1;
 const TITLE_HEIGHT = 26;
-/** Décalage des deux flèches d'un aller-retour, pour qu'elles ne se superposent pas. */
-const PAIR_OFFSET = 16;
 
 /** Couleurs de la vue graphe (#rrggbb) : `start` = couleur d'accent, les autres = paramètres `graph.*Color`. */
 export interface GraphColors {
@@ -183,7 +183,9 @@ export function buildGraphPage(
     const from = byPage.get(link.from)!;
     const to = byPage.get(link.to)!;
     // Aller-retour : chaque flèche passe par un point décalé de son côté, pour rester distinctes.
-    const points = pairs.has(`${link.to}>${link.from}`) ? [offsetMidpoint(from.bounds, to.bounds, PAIR_OFFSET)] : [];
+    const points = pairs.has(`${link.to}>${link.from}`)
+      ? [offsetMidpoint(from.bounds, to.bounds, options.pairOffset)]
+      : [];
     edges.push({
       ...base,
       id: `graph-link:${link.from}>${link.to}`,

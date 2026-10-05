@@ -11,8 +11,6 @@ import type { PanelsSettings, SidePanelSettings } from '../engine/settings';
 
 type Side = 'left' | 'right';
 
-/** Le plan garde toujours au moins cette largeur quand on élargit une barre. */
-const MIN_CANVAS = 320;
 /** Pas des flèches du clavier sur la poignée. */
 const KEY_STEP = 16;
 
@@ -45,11 +43,13 @@ interface SidebarProps {
   layout: SidePanelSettings;
   /** Sens du nom sur la bande repliée. */
   stripText: PanelsSettings['stripText'];
+  /** Largeur que le plan garde toujours quand on élargit la barre (paramètre `panels.minCanvas`). */
+  minCanvas: number;
   onChange: (patch: Partial<SidePanelSettings>) => void;
   children: ReactNode;
 }
 
-export function Sidebar({ side, label, layout, stripText, onChange, children }: SidebarProps) {
+export function Sidebar({ side, label, layout, stripText, minCanvas, onChange, children }: SidebarProps) {
   const { min, max } = SETTINGS_LIMITS[`panels.${side}.width`];
   const defaultWidth = DEFAULT_SETTINGS.panels[side].width;
   // Largeur suivie en direct pendant un glisser ; enregistrée seulement au lâcher.
@@ -77,10 +77,10 @@ export function Sidebar({ side, label, layout, stripText, onChange, children }: 
     );
   }
 
-  /** Largeur maximale permise : bornes du réglage, et le plan garde `MIN_CANVAS`. */
+  /** Largeur maximale permise : bornes du réglage, et le plan garde `minCanvas`. */
   const limitFor = (current: number) => {
     const canvas = handle.current?.closest('.viewport')?.querySelector('.canvas-area');
-    const room = canvas ? canvas.getBoundingClientRect().width - MIN_CANVAS : Infinity;
+    const room = canvas ? canvas.getBoundingClientRect().width - minCanvas : Infinity;
     return Math.min(max, Math.max(current, current + room));
   };
   const clamp = (value: number, limit: number) => Math.round(Math.min(limit, Math.max(min, value)));

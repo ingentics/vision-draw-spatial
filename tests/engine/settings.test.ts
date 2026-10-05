@@ -118,7 +118,7 @@ describe('shortcutAction', () => {
 
 describe('sauvegarde automatique', () => {
   it('activée par défaut (1 s) ; délai borné, valeurs invalides ignorées', () => {
-    expect(DEFAULT_SETTINGS.save).toEqual({ autosave: true, delayMs: 1000, viewStateDelayMs: 500 });
+    expect(DEFAULT_SETTINGS.save).toEqual({ autosave: true, delayMs: 1000, viewStateDelayMs: 500, recentLimit: 20 });
     expect(mergeSettings(DEFAULT_SETTINGS, { save: { delayMs: 10 } }).save.delayMs).toBe(300);
     expect(mergeSettings(DEFAULT_SETTINGS, { save: { delayMs: 999_999 } }).save.delayMs).toBe(30_000);
     const broken = { save: { autosave: 'oui', delayMs: 'vite' } } as unknown as SettingsPatch;
@@ -133,6 +133,7 @@ describe('barres latérales (étape 47)', () => {
       right: { collapsed: false, width: 380 },
       stripText: 'up',
       shadow: 0.06,
+      minCanvas: 320,
     });
   });
 
@@ -187,6 +188,7 @@ describe('réglages exposés (caméra, vue graphe, édition…)', () => {
       cardWidth: 260,
       columnGap: 200,
       rowGap: 90,
+      pairOffset: 16,
       cardColor: '#9aa0a6',
       orphanColor: '#d93025',
       unreachableColor: '#e37400',

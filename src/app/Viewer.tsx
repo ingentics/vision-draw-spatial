@@ -534,6 +534,7 @@ export function Viewer({
           label="Formes"
           layout={settings.panels.left}
           stripText={settings.panels.stripText}
+          minCanvas={settings.panels.minCanvas}
           onChange={(left) => onSettingsChange({ panels: { left } })}
         >
           <Palette disabled={!canAddShapes} used={usedShapes} onAdd={(template) => engine?.addShape(template)} />
@@ -612,6 +613,7 @@ export function Viewer({
             label={rightTitle}
             layout={settings.panels.right}
             stripText={settings.panels.stripText}
+            minCanvas={settings.panels.minCanvas}
             onChange={(right) => onSettingsChange({ panels: { right } })}
           >
             {diagnosticsOpen ? (

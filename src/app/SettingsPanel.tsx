@@ -708,6 +708,13 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   format={(v) => `${v} px`}
                   onChange={(rowGap) => onChange({ graph: { rowGap } })}
                 />
+                <Slider
+                  label="Écart entre l’aller et le retour d’un lien"
+                  value={graph.pairOffset}
+                  limits={SETTINGS_LIMITS['graph.pairOffset']}
+                  format={(v) => `${v} px`}
+                  onChange={(pairOffset) => onChange({ graph: { pairOffset } })}
+                />
                 <ColorField
                   label="Cadre des cartes"
                   value={graph.cardColor}
@@ -781,6 +788,13 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                 limits={SETTINGS_LIMITS['panels.shadow']}
                 format={(v) => (v === 0 ? 'Aucune' : percent(v))}
                 onChange={(shadow) => onChange({ panels: { shadow } })}
+              />
+              <Slider
+                label="Largeur gardée à la zone de dessin"
+                value={settings.panels.minCanvas}
+                limits={SETTINGS_LIMITS['panels.minCanvas']}
+                format={(v) => `${v} px`}
+                onChange={(minCanvas) => onChange({ panels: { minCanvas } })}
               />
               <p className="hint muted">
                 Replier : double flèche en haut de la barre ; largeur : glisser son bord (double-clic = par défaut).
@@ -1208,6 +1222,13 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                 limits={SETTINGS_LIMITS['save.viewStateDelayMs']}
                 format={ms}
                 onChange={(viewStateDelayMs) => onChange({ save: { viewStateDelayMs } })}
+              />
+              <Slider
+                label="Fichiers récents listés à l’accueil"
+                value={save.recentLimit}
+                limits={SETTINGS_LIMITS['save.recentLimit']}
+                format={(v) => `${v}`}
+                onChange={(recentLimit) => onChange({ save: { recentLimit } })}
               />
             </Section>
 

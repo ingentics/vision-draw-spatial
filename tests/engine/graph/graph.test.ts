@@ -111,6 +111,10 @@ describe('buildGraphPage', () => {
     expect(go.points).toHaveLength(1);
     expect(back.points).toHaveLength(1);
     expect(go.points[0]).not.toEqual(back.points[0]);
+    // Écart réglable : à 0, les deux flèches passent par le même milieu.
+    const { page: merged } = buildGraphPage(links, { ...DEFAULT_GRAPH_LAYOUT, pairOffset: 0 });
+    const points = merged.edges.map((e) => e.points[0]);
+    expect(points[0]).toEqual(points[1]);
   });
 });
 

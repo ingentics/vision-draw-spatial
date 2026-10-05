@@ -199,6 +199,8 @@ export interface GraphSettings {
   cardWidth: number;
   columnGap: number;
   rowGap: number;
+  /** Écart entre les deux arcs d'un aller-retour, pour qu'ils ne se superposent pas. */
+  pairOffset: number;
   /** Couleurs (#rrggbb) : cadre d'une carte, page orpheline, page inaccessible, arcs, titres. La page de départ prend
    * la couleur d'accent (`selection.accentColor`). */
   cardColor: string;
@@ -244,6 +246,8 @@ export interface SaveSettings {
   delayMs: number;
   /** Délai avant de mémoriser la position de consultation (page, caméra) après le dernier changement. */
   viewStateDelayMs: number;
+  /** Nombre de fichiers récents listés par le lanceur. */
+  recentLimit: number;
 }
 
 export interface DebugSettings {
@@ -270,6 +274,8 @@ export interface PanelsSettings {
   stripText: 'up' | 'down';
   /** Ombre que les barres projettent sur la zone de dessin : opacité, 0 = pas d'ombre. */
   shadow: number;
+  /** Largeur que la zone de dessin garde toujours quand on élargit une barre, en pixels CSS. */
+  minCanvas: number;
 }
 
 /** Moteur de rendu des exports PlantUML (sujet 100). */
@@ -314,6 +320,7 @@ export type SettingsPatch = {
           right?: Partial<SidePanelSettings>;
           stripText?: PanelsSettings['stripText'];
           shadow?: number;
+          minCanvas?: number;
         }
       : K extends 'exporters'
         ? { plantuml?: Partial<ExporterSettings['plantuml']> }
@@ -404,6 +411,7 @@ export const DEFAULT_SETTINGS: Settings = {
     cardWidth: 260,
     columnGap: 200,
     rowGap: 90,
+    pairOffset: 16,
     cardColor: '#9aa0a6',
     orphanColor: '#d93025',
     unreachableColor: '#e37400',
@@ -423,7 +431,7 @@ export const DEFAULT_SETTINGS: Settings = {
     connectHandleOffset: 18,
     middleHandleMinSpan: 32,
   },
-  save: { autosave: true, delayMs: 1000, viewStateDelayMs: 500 },
+  save: { autosave: true, delayMs: 1000, viewStateDelayMs: 500, recentLimit: 20 },
   debug: { showUnsupportedPanel: true },
   accessibility: { reducedMotion: 'system' },
   panels: {
@@ -431,6 +439,7 @@ export const DEFAULT_SETTINGS: Settings = {
     right: { collapsed: false, width: 380 },
     stripText: 'up',
     shadow: 0.06,
+    minCanvas: 320,
   },
   exporters: { plantuml: { renderer: 'kroki', localUrl: 'http://localhost:8080' } },
 };
@@ -495,6 +504,7 @@ export const SETTINGS_LIMITS = {
   'graph.cardWidth': { min: 120, max: 600, step: 10 },
   'graph.columnGap': { min: 40, max: 600, step: 10 },
   'graph.rowGap': { min: 20, max: 400, step: 10 },
+  'graph.pairOffset': { min: 0, max: 60, step: 1 },
   'edit.edgePickTolerance': { min: 1, max: 30, step: 1 },
   'edit.handlePickTolerance': { min: 2, max: 30, step: 1 },
   'edit.handleSize': { min: 2, max: 12, step: 0.5 },
@@ -508,9 +518,11 @@ export const SETTINGS_LIMITS = {
   'edit.middleHandleMinSpan': { min: 0, max: 120, step: 1 },
   'save.delayMs': { min: 300, max: 30000, step: 100 },
   'save.viewStateDelayMs': { min: 100, max: 5000, step: 100 },
+  'save.recentLimit': { min: 5, max: 100, step: 1 },
   'panels.left.width': { min: 160, max: 400, step: 16 },
   'panels.right.width': { min: 240, max: 600, step: 16 },
   'panels.shadow': { min: 0, max: 0.3, step: 0.01 },
+  'panels.minCanvas': { min: 200, max: 800, step: 10 },
 } as const;
 
 const EASINGS = ['linear', 'ease-in', 'ease-out', 'ease-in-out'] as const;
@@ -749,6 +761,7 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
       cardWidth: num('graph.cardWidth', p.graph?.cardWidth, base.graph.cardWidth),
       columnGap: num('graph.columnGap', p.graph?.columnGap, base.graph.columnGap),
       rowGap: num('graph.rowGap', p.graph?.rowGap, base.graph.rowGap),
+      pairOffset: num('graph.pairOffset', p.graph?.pairOffset, base.graph.pairOffset),
       cardColor: color(p.graph?.cardColor, base.graph.cardColor),
       orphanColor: color(p.graph?.orphanColor, base.graph.orphanColor),
       unreachableColor: color(p.graph?.unreachableColor, base.graph.unreachableColor),
@@ -776,6 +789,7 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
       autosave: bool(p.save?.autosave, base.save.autosave),
       delayMs: num('save.delayMs', p.save?.delayMs, base.save.delayMs),
       viewStateDelayMs: num('save.viewStateDelayMs', p.save?.viewStateDelayMs, base.save.viewStateDelayMs),
+      recentLimit: Math.round(num('save.recentLimit', p.save?.recentLimit, base.save.recentLimit)),
     },
     debug: { showUnsupportedPanel: bool(p.debug?.showUnsupportedPanel, base.debug.showUnsupportedPanel) },
     accessibility: {
@@ -792,6 +806,7 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
       },
       stripText: oneOf(STRIP_TEXT, p.panels?.stripText, base.panels.stripText),
       shadow: num('panels.shadow', p.panels?.shadow, base.panels.shadow),
+      minCanvas: Math.round(num('panels.minCanvas', p.panels?.minCanvas, base.panels.minCanvas)),
     },
     exporters: {
       plantuml: {

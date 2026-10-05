@@ -701,6 +701,7 @@ interface Settings {
   };
   graph: {                                                        // vue graphe (§12)
     cardWidth: number; columnGap: number; rowGap: number;         // 260, 200, 90
+    pairOffset: number;                                           // écart entre l'aller et le retour d'un lien : 16
     cardColor: string; orphanColor: string; unreachableColor: string; // '#9aa0a6', '#d93025', '#e37400' (départ : accentColor)
     arcColor: string; titleColor: string;                         // '#5f6368', '#202124'
   };
@@ -712,7 +713,8 @@ interface Settings {
     edgePointAlignTolerance: number;                              // point de flèche remis dans l'alignement, retiré sous (px écran) : 4
     connectHandleOffset: number; middleHandleMinSpan: number;     // poignées de connexion, écart (px écran) : 18 ; milieux masqués sous : 32
   };
-  save: { autosave: boolean; delayMs: number; viewStateDelayMs: number }; // true, 1000, 500 (position de consultation, §5.3)
+  save: { autosave: boolean; delayMs: number; viewStateDelayMs: number; // true, 1000, 500 (position de consultation, §5.3)
+    recentLimit: number };                                        // fichiers récents du lanceur : 20
   debug: { showUnsupportedPanel: boolean };                       // true
   accessibility: { reducedMotion: 'system' | 'always' | 'never' }; // 'system'
   panels: {                                                       // barres latérales de l'appli de démo (§14.1)
@@ -720,6 +722,7 @@ interface Settings {
     right: { collapsed: boolean; width: number };                 // false, 380 (240–600)
     stripText: 'up' | 'down';                                     // nom sur la bande repliée : 'up' (de bas en haut)
     shadow: number;                                               // ombre des barres sur la zone de dessin : 0.06 (0–0.3, 0 = aucune)
+    minCanvas: number;                                            // largeur gardée à la zone de dessin : 320 (200–800)
   };
 }
 ```
