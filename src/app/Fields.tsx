@@ -2,13 +2,17 @@ import { useEffect, useRef } from 'react';
 
 /** Champs du panneau contextuel, validés à Entrée ou en quittant le champ. */
 
-/** Champ texte : validé à Entrée ou en quittant le champ, Échap annule. */
+/**
+ * Champ texte : validé à Entrée ou en quittant le champ (ou à chaque frappe avec `onLive`), Échap annule. Hors
+ * saisie, le champ suit `value` (annulation).
+ */
 export function TextField({
   label,
   title,
   value,
   placeholder,
   readOnly,
+  onLive,
   onCommit,
 }: {
   label: string;
@@ -16,23 +20,41 @@ export function TextField({
   value: string;
   placeholder?: string;
   readOnly?: boolean;
+  /** Appelé à chaque frappe, pour un réglage en direct ; Échap y renvoie la valeur d'avant le passage. */
+  onLive?: (text: string) => void;
   onCommit: (text: string) => void;
 }) {
+  const input = useRef<HTMLInputElement>(null);
+  // Valeur à l'entrée dans le champ : Échap y revient, la validation compare avec elle.
+  const initial = useRef(value);
+  useEffect(() => {
+    if (input.current && document.activeElement !== input.current) {
+      input.current.value = value;
+      initial.current = value;
+    }
+  }, [value]);
   return (
     <label className="field-row" title={title}>
       {label}
       <input
         type="text"
+        ref={input}
         defaultValue={value}
         placeholder={placeholder}
         readOnly={readOnly}
+        onFocus={() => {
+          initial.current = value;
+        }}
+        onInput={(event) => onLive?.(event.currentTarget.value)}
         onBlur={(event) => {
-          if (event.target.value !== value) onCommit(event.target.value);
+          if (event.target.value !== initial.current) onCommit(event.target.value);
+          initial.current = event.target.value;
         }}
         onKeyDown={(event) => {
           if (event.key === 'Enter') event.currentTarget.blur();
           else if (event.key === 'Escape') {
-            event.currentTarget.value = value;
+            event.currentTarget.value = initial.current;
+            onLive?.(initial.current);
             event.currentTarget.blur();
           }
         }}

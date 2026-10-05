@@ -649,7 +649,9 @@ export function Viewer({
                   defaultDepth={settings.view.isoDepth}
                   multiSelectKey={MULTI_SELECT_LABELS[settings.controls.multiSelectKey]}
                   onLink={(link) => selection && engine?.setLink(selection.picked.element.id, link)}
-                  onSpatial={(key, value) => selection && engine?.setSpatial(selection.picked.element.id, key, value)}
+                  onSpatial={(key, value, merge) =>
+                    selection && engine?.setSpatial(selection.picked.element.id, key, value, merge)
+                  }
                   onEditLabel={() => selection && engine?.editLabel(selection.picked.element.id)}
                   onEndLabel={(end, text) =>
                     selection && engine?.setEdgeEndLabel(selection.picked.element.id, end, text)

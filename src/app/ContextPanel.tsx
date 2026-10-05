@@ -78,7 +78,8 @@ export interface ContextPanelProps {
   /** Lien de l'élément sélectionné (vers une page ou une URL) ; undefined = retiré. */
   onLink: (link: LinkModel | undefined) => void;
   /** Attribut spatial de la forme sélectionnée (épaisseur, élévation…) ; undefined = valeur par défaut. */
-  onSpatial: (key: string, value: number | string | undefined) => void;
+  /** `merge` : réglage en direct, fusionné en une étape d'annulation avec les précédents de même clé. */
+  onSpatial: (key: string, value: number | string | undefined, merge?: string) => void;
   /** Édition du texte (du milieu, pour une flèche) dans le plan. */
   onEditLabel: () => void;
   /** Texte de début ou de fin d'une flèche (vide = retiré). */

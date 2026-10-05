@@ -3805,9 +3805,11 @@ export class Engine {
   /**
    * Attribut spatial d'une forme (SPEC §14.3), ex. `spatial.height`, `spatial.tag` : nombre (positif) ou texte
    * (sans `;`, séparateur du style) ; undefined le retire (valeur par défaut). Écrit là où il est déjà (attribut
-   * de l'objet), sinon dans le style.
+   * de l'objet), sinon dans le style. `merge` : réglage en direct (champ tapé au fil des frappes), fusionné en une
+   * étape d'annulation avec les précédents de même clé ; pour un attribut qui ne touche que le dessin de la forme
+   * (`LIVE_SHAPE_KEYS`), seule la forme est redessinée.
    */
-  setSpatial(elementId: string, key: string, value: number | string | undefined): void {
+  setSpatial(elementId: string, key: string, value: number | string | undefined, merge?: string): void {
     const editable = this.editablePage();
     const shape = editable?.page.shapes.find((s) => s.id === elementId);
     if (!editable || !shape || !key.startsWith(SPATIAL_PREFIX)) return;
@@ -3818,10 +3820,26 @@ export class Engine {
           ? undefined
           : formatNumber(Math.max(0, value));
     if (spatialValue(shape, key) === text) return;
-    this.recordEdit('Attribut spatial');
+    const merged = merge !== undefined && this.lastMerge?.key === merge && this.lastMerge.edits === this.editCount;
+    if (!merged) this.recordEdit('Attribut spatial');
+    this.lastMerge = merge === undefined ? undefined : { key: merge, edits: this.editCount };
     const inObject = shape.attributes[key] !== undefined && shape.style[key] === undefined;
-    if (!inObject || !setCellObjectAttribute(editable.pageTree, elementId, key, text)) {
-      setCellStyleValue(editable.pageTree, elementId, key, text);
+    const written = inObject && setCellObjectAttribute(editable.pageTree, elementId, key, text);
+    if (!written) setCellStyleValue(editable.pageTree, elementId, key, text);
+    if (merge !== undefined && LIVE_SHAPE_KEYS.has(key)) {
+      // Le modèle suit le fichier, la forme seule est redessinée ; les autres rendus de la page (autres niveaux,
+      // graphe) seront reconstruits à la demande.
+      const values = written ? shape.attributes : shape.style;
+      if (text === undefined) delete values[key];
+      else values[key] = text;
+      this.rebuildShapeObject(shape);
+      this.scenes.invalidate(editable.page.id);
+      this.graph = undefined;
+      this.scenes.invalidate(GRAPH_PAGE_ID, true);
+      this.afterLiveEdit();
+      this.syncModified();
+      if (this.document) this.events.emit('documentChange', this.document);
+      return;
     }
     this.documentChanged([editable.page.id]);
   }
@@ -4899,6 +4917,8 @@ function drawnTextBox(object: Object3D, toPage: Matrix4): Box3 | undefined {
 
 /** Clés de style d'une flèche qui ne changent que le dessin de son texte : réglables en direct sans reconstruire la page. */
 const LIVE_EDGE_TEXT_KEYS: ReadonlySet<string> = new Set([SPATIAL.labelFollowShift]);
+/** Attributs spatiaux qui ne touchent que le dessin de leur forme : réglés en direct, seule la forme est redessinée. */
+const LIVE_SHAPE_KEYS: ReadonlySet<string> = new Set([SPATIAL.tag]);
 
 /** Style draw.io avec une clé ajoutée à la fin si elle n'y est pas déjà (`clé=valeur;`). */
 function withStyleValue(style: string, key: string, value: string): string {
