@@ -295,4 +295,11 @@ describe('réglages exposés (caméra, vue graphe, édition…)', () => {
     });
     expect(merged.shapes).toMatchObject({ edgeLineStyle: 'rounded', edgeEndTextGapAcross: 40 });
   });
+  it('croisements des nouvelles flèches (étape 132) : aucun saut par défaut, taille 6 pt bornée et entière', () => {
+    expect(DEFAULT_SETTINGS.shapes).toMatchObject({ edgeJumpStyle: 'none', edgeJumpSize: 6 });
+    const merged = mergeSettings(DEFAULT_SETTINGS, { shapes: { edgeJumpStyle: 'arc', edgeJumpSize: 99.4 } });
+    expect(merged.shapes).toMatchObject({ edgeJumpStyle: 'arc', edgeJumpSize: 40 });
+    const invalid = mergeSettings(DEFAULT_SETTINGS, { shapes: { edgeJumpStyle: 'bridge' as never } });
+    expect(invalid.shapes.edgeJumpStyle).toBe('none');
+  });
 });

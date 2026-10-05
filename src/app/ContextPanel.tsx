@@ -11,6 +11,8 @@ import { SPATIAL, spatialNumber } from '../engine/spatial';
 import { TEXT_FORMAT_ATTRIBUTE } from './LabelEditor';
 import { BorderSection } from './BorderSection';
 import { NumberField, SelectField, TextField } from './Fields';
+import { JUMP_STYLES, jumpValue } from '../engine/render/edges/jumps';
+import type { JumpStyle } from '../engine/render/edges/jumps';
 import { defaultModeRegistry } from '../engine/modes/registry';
 import type { ModeScope } from '../engine/modes/registry';
 import type { ModeEdit, ModeTarget } from '../engine/modes/types';
@@ -21,6 +23,7 @@ import { CollapseButton } from './Sidebar';
 import { Section } from './PanelSection';
 import { TextFormatSections } from './TextFormat';
 import type { TextEdit } from './TextFormat';
+import type { OrderMove } from '../engine/format/order';
 
 export interface ContextPanelProps {
   page: PageModel;
@@ -51,6 +54,14 @@ export interface ContextPanelProps {
   onPageAnchoring?: (anchoring: 'manual' | 'auto' | undefined) => void;
   /** Ancrage des flèches du réglage de l'appli (choix « par défaut » de la page). */
   defaultAnchoring?: 'manual' | 'auto';
+  /** Saut des flèches aux croisements propre à la page (undefined = réglage de l'appli) ; absent si non modifiable. */
+  onPageJumps?: (jumps: JumpStyle | 'none' | undefined) => void;
+  /** Saut du réglage de l'appli (choix « par défaut » de la page). */
+  defaultJumps: JumpStyle | 'none';
+  /** Saut suivi par les flèches de la page sans le leur (celui de la page, sinon celui de l'appli). */
+  pageJumps: JumpStyle | 'none';
+  /** Taille du saut d'une flèche sans `jumpSize` (réglage de l'appli). */
+  defaultJumpSize: number;
   /** Opération du mode de la page (sections propres au mode) ; absent si la page n'est pas modifiable. */
   onModeEdit?: (label: string, edit: (edit: ModeEdit) => void) => void;
   /** Réglage déclaré par le mode de la page (undefined = vide) ; absent si la page n'est pas modifiable. */
@@ -66,6 +77,10 @@ export interface ContextPanelProps {
   /** Texte de début ou de fin d'une flèche (vide = retiré). */
   onEndLabel: (end: EdgeEnd, text: string) => void;
   onDelete: () => void;
+  /** Inverse les flèches sélectionnées (source et cible échangées). */
+  onReverse: () => void;
+  /** Ordre de dessin de la sélection (premier plan, arrière-plan, avancer, reculer). */
+  onOrder: (move: OrderMove) => void;
   /** Ancre d'un texte de la flèche (début, milieu, fin). */
   onTextAnchor: (cellId: string, anchor: EdgeTextAnchor) => void;
   /** Texte en cours d'édition en place : le panneau montre son format. */
@@ -152,6 +167,14 @@ function PageSections({ page, onRenamePage: onRename, ...props }: ContextPanelPr
           ]}
           disabled={!props.onPageAnchoring}
           onChange={(value) => props.onPageAnchoring?.(value === 'manual' || value === 'auto' ? value : undefined)}
+        />
+        <SelectField
+          label="Croisements des flèches"
+          title="Rendu des flèches sans le leur là où elles passent au-dessus d'une autre (spatial.jumps)"
+          value={jumpValue(page.attributes[SPATIAL.jumps]) ?? ''}
+          options={[{ value: '', label: `Par défaut (${jumpLabel(props.defaultJumps)})` }, ...JUMP_OPTIONS]}
+          disabled={!props.onPageJumps}
+          onChange={(value) => props.onPageJumps?.(jumpValue(value))}
         />
       </Section>
       <PageModeSections
@@ -288,6 +311,7 @@ function ShapeSections({ shape, ...props }: ContextPanelProps & { shape: ShapeMo
       <Section title="Lien">
         <LinkField link={shape.link} pageId={props.page.id} pages={props.pages} onLink={props.onLink} />
       </Section>
+      <OrderSection onOrder={props.onOrder} />
       <DeleteButton onDelete={props.onDelete} />
     </>
   );
@@ -326,7 +350,14 @@ function EdgeSections({ edge, ...props }: ContextPanelProps & { edge: EdgeModel 
       </Section>
       <ElementModeSection {...props} element={edge} scope="edge" />
       <TextAnchors edge={edge} onAnchor={props.onTextAnchor} />
-      <EdgeLineSection edge={edge} onChange={props.onEdgeStyle} onResetRoute={props.onResetRoute} />
+      <EdgeLineSection
+        edge={edge}
+        pageJumps={props.pageJumps}
+        defaultJumpSize={props.defaultJumpSize}
+        onChange={props.onEdgeStyle}
+        onResetRoute={props.onResetRoute}
+      />
+      <EdgeEndsSection edge={edge} onChange={props.onEdgeStyle} onReverse={props.onReverse} />
       <Section title="Liaison">
         <div className="field-row">
           De
@@ -340,6 +371,7 @@ function EdgeSections({ edge, ...props }: ContextPanelProps & { edge: EdgeModel 
       <Section title="Lien">
         <LinkField link={edge.link} pageId={props.page.id} pages={props.pages} onLink={props.onLink} />
       </Section>
+      <OrderSection onOrder={props.onOrder} />
       <DeleteButton onDelete={props.onDelete} />
     </>
   );
@@ -423,15 +455,33 @@ const EDGE_LINES: Record<EdgeLine, { label: string; patch: EdgeStylePatch; icon:
   curved: { label: 'Courbe', patch: withRouter({ rounded: '0', curved: '1' }), icon: 'M2 13C2 7 7 5 14 5' },
 };
 
+/** Sauts aux croisements (`jumpStyle`), libellés du panneau. */
+const JUMP_LABELS: Record<JumpStyle | 'none', string> = {
+  none: 'Aucun',
+  arc: 'Arc',
+  gap: 'Coupure',
+  sharp: 'Marche',
+  line: 'Ligne',
+};
+
+const jumpLabel = (jumps: JumpStyle | 'none') => JUMP_LABELS[jumps];
+
+/** Choix explicites d'un saut (le choix « par défaut » est ajouté par chaque liste). */
+const JUMP_OPTIONS = (['none', ...JUMP_STYLES] as const).map((value) => ({ value, label: JUMP_LABELS[value] }));
+
 /** Clés de style des points d'attache imposés (`exitX`…, `entryX`…). */
 const CONSTRAINT_KEYS = ['exit', 'entry'].flatMap((prefix) => ['X', 'Y'].map((axis) => `${prefix}${axis}`));
 
 function EdgeLineSection({
   edge,
+  pageJumps,
+  defaultJumpSize,
   onChange,
   onResetRoute,
 }: {
   edge: EdgeModel;
+  pageJumps: JumpStyle | 'none';
+  defaultJumpSize: number;
   onChange: (patch: EdgeStylePatch) => void;
   onResetRoute: () => void;
 }) {
@@ -444,6 +494,10 @@ function EdgeLineSection({
           ? 'rounded'
           : 'sharp';
   const manual = edge.points.length > 0 || CONSTRAINT_KEYS.some((key) => edge.style[key] !== undefined);
+  const ownJump = jumpValue(edge.style.jumpStyle);
+  const jump = ownJump ?? pageJumps;
+  const jumpSize = parseInt(edge.style.jumpSize ?? '', 10);
+  const curved = current === 'curved';
   return (
     <Section title="Tracé">
       <div className="field-row">
@@ -467,6 +521,30 @@ function EdgeLineSection({
           ))}
         </span>
       </div>
+      <SelectField
+        label="Croisements"
+        title={
+          curved
+            ? 'Une flèche courbe ne fait pas de saut (comme draw.io)'
+            : 'Rendu de la flèche là où elle passe au-dessus d’une autre (jumpStyle) ; par défaut : celui de la page'
+        }
+        value={ownJump ?? ''}
+        disabled={curved}
+        options={[{ value: '', label: `Par défaut (${jumpLabel(pageJumps)})` }, ...JUMP_OPTIONS]}
+        onChange={(value) => onChange(() => ({ jumpStyle: jumpValue(value) }))}
+      />
+      {jump !== 'none' && !curved && (
+        <NumberField
+          key={`${edge.id}:${edge.style.jumpSize ?? ''}`}
+          label="Taille du saut (pt)"
+          title={`Taille du saut au croisement (jumpSize) ; vide = ${defaultJumpSize} pt (paramètres)`}
+          value={Number.isFinite(jumpSize) ? jumpSize : undefined}
+          placeholder={String(defaultJumpSize)}
+          onCommit={(value) =>
+            onChange(() => ({ jumpSize: value === undefined ? undefined : String(Math.round(value)) }))
+          }
+        />
+      )}
       <div className="field-row">
         Chemin
         <button
@@ -481,6 +559,89 @@ function EdgeLineSection({
           onClick={onResetRoute}
         >
           Retour en auto
+        </button>
+      </div>
+    </Section>
+  );
+}
+
+/** Bouts de flèche (`startArrow`, `endArrow`) que l'appli dessine, et s'ils peuvent être vides. */
+const MARKERS: Array<{ value: string; label: string; fillable: boolean }> = [
+  { value: 'none', label: 'Aucun', fillable: false },
+  { value: 'classic', label: 'Classique', fillable: true },
+  { value: 'classicThin', label: 'Classique fine', fillable: true },
+  { value: 'block', label: 'Triangle', fillable: true },
+  { value: 'blockThin', label: 'Triangle fin', fillable: true },
+  { value: 'open', label: 'Ouverte', fillable: false },
+  { value: 'openThin', label: 'Ouverte fine', fillable: false },
+  { value: 'oval', label: 'Rond', fillable: true },
+  { value: 'diamond', label: 'Losange', fillable: true },
+  { value: 'diamondThin', label: 'Losange fin', fillable: true },
+];
+
+/**
+ * Bouts de la flèche : forme du début et de la fin, pleine ou vide (défauts draw.io : rien au début, classique pleine
+ * à la fin), et inversion du sens.
+ */
+function EdgeEndsSection({
+  edge,
+  onChange,
+  onReverse,
+}: {
+  edge: EdgeModel;
+  onChange: (patch: EdgeStylePatch) => void;
+  onReverse: () => void;
+}) {
+  return (
+    <Section title="Bouts">
+      {(['start', 'end'] as const).map((end) => {
+        const current = edge.style[`${end}Arrow`] ?? (end === 'end' ? 'classic' : 'none');
+        const known = MARKERS.find((marker) => marker.value === current);
+        const filled = edge.style[`${end}Fill`] !== '0';
+        const name = end === 'start' ? 'Début' : 'Fin';
+        return (
+          <div key={end} className="field-row">
+            {name}
+            <span className="end-fields">
+              {known?.fillable && (
+                <label title={`Pointe pleine ou vide (${end}Fill)`}>
+                  <input
+                    type="checkbox"
+                    checked={filled}
+                    onChange={(event) => onChange(() => ({ [`${end}Fill`]: event.target.checked ? undefined : '0' }))}
+                  />
+                  pleine
+                </label>
+              )}
+              <select
+                aria-label={`Bout du ${name.toLowerCase()} de la flèche`}
+                title={`Forme du bout (${end}Arrow)`}
+                value={current}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  onChange(() => ({ [`${end}Arrow`]: end === 'start' && value === 'none' ? undefined : value }));
+                }}
+              >
+                {!known && <option value={current}>{current} (non dessiné)</option>}
+                {MARKERS.map((marker) => (
+                  <option key={marker.value} value={marker.value}>
+                    {marker.label}
+                  </option>
+                ))}
+              </select>
+            </span>
+          </div>
+        );
+      })}
+      <div className="field-row">
+        Sens
+        <button
+          type="button"
+          className="button"
+          title="Inverser la flèche : elle part de sa cible et va vers sa source, les bouts restent en place"
+          onClick={onReverse}
+        >
+          Inverser
         </button>
       </div>
     </Section>
@@ -524,6 +685,10 @@ function MultiSections(props: ContextPanelProps) {
           />
         </BorderSection>
       )}
+      {edges.length > 0 && (
+        <EdgeEndsSection edge={edges[edges.length - 1]!} onChange={props.onEdgeStyle} onReverse={props.onReverse} />
+      )}
+      <OrderSection onOrder={props.onOrder} />
       <DeleteButton onDelete={props.onDelete} />
     </>
   );
@@ -592,6 +757,34 @@ function LinkField({
         <option value={URL_OPTION}>{link?.type === 'url' ? `URL : ${link.href}` : 'URL…'}</option>
       </select>
     </label>
+  );
+}
+
+/** Actions d'ordre de dessin, avec leur raccourci de draw.io (infobulle). */
+const ORDER_ACTIONS: Array<{ move: OrderMove; label: string; title: string }> = [
+  { move: 'front', label: 'Premier plan', title: 'Passer au-dessus de tout (Ctrl / ⌘ + Maj + F)' },
+  { move: 'back', label: 'Arrière-plan', title: 'Passer sous tout (Ctrl / ⌘ + Maj + B)' },
+  { move: 'forward', label: 'Avancer', title: 'Monter d’un cran (Alt + Maj + F)' },
+  { move: 'backward', label: 'Reculer', title: 'Descendre d’un cran (Alt + Maj + B)' },
+];
+
+/** Ordre de dessin, comme « Disposition » de draw.io : parmi les éléments de même parent (calque, conteneur). */
+function OrderSection({ onOrder }: { onOrder: (move: OrderMove) => void }) {
+  return (
+    <Section title="Disposition">
+      {[ORDER_ACTIONS.slice(0, 2), ORDER_ACTIONS.slice(2)].map((actions, row) => (
+        <div key={row} className="field-row order-row">
+          {row === 0 ? 'Plan' : 'D’un cran'}
+          <span className="order-buttons">
+            {actions.map(({ move, label, title }) => (
+              <button key={move} type="button" className="button" title={title} onClick={() => onOrder(move)}>
+                {label}
+              </button>
+            ))}
+          </span>
+        </div>
+      ))}
+    </Section>
   );
 }
 

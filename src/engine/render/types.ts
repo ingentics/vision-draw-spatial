@@ -1,5 +1,6 @@
 import type { Color, Object3D } from 'three';
 import type { RichLine } from '../model/types';
+import type { JumpDefaults } from './edges/jumps';
 
 /** Ordre de dessin des sous-parties d'un élément (ajouté à l'ordre de l'élément dans la page). */
 export const PART_ORDER = { fill: 0, stroke: 1, label: 2 } as const;
@@ -64,6 +65,8 @@ export interface RenderContext {
   accent?: string;
   /** Couleur du texte des flèches sans `fontColor` (#rrggbb, noir par défaut). */
   edgeFontColor?: string;
+  /** Saut par défaut des flèches de la page (celui de la page, sinon le paramètre) ; absent = aucun. */
+  edgeJumps?: JumpDefaults;
   /** Fond du texte des flèches sans fond explicite : halo (épaisseur et flou en pixels de page), uni, ou aucun. */
   edgeLabelBackdrop?: { kind: 'halo' | 'solid' | 'none'; haloWidth: number; haloBlur: number };
   /** Couleur du fond de la vue : fond des labels `labelBackgroundColor=default` (blanc par défaut). */

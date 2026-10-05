@@ -931,6 +931,31 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                 />
                 <p className="hint muted">Quand le style draw.io de la flèche ne précise pas de couleur de texte.</p>
                 <Choice
+                  label="Croisements des flèches"
+                  value={shapes.edgeJumpStyle}
+                  options={[
+                    ['none', 'Aucun'],
+                    ['arc', 'Arc'],
+                    ['gap', 'Coupure'],
+                    ['sharp', 'Marche'],
+                    ['line', 'Ligne'],
+                  ]}
+                  onChange={(edgeJumpStyle) => onChange({ shapes: { edgeJumpStyle } })}
+                />
+                {shapes.edgeJumpStyle !== 'none' && (
+                  <Slider
+                    label="Taille du saut"
+                    value={shapes.edgeJumpSize}
+                    limits={SETTINGS_LIMITS['shapes.edgeJumpSize']}
+                    format={(v) => `${v} pt`}
+                    onChange={(edgeJumpSize) => onChange({ shapes: { edgeJumpSize } })}
+                  />
+                )}
+                <p className="hint muted">
+                  Quand ni la flèche (panneau de la flèche) ni sa page (panneau de la page) n’ont le leur. draw.io ne
+                  connaît que celui de la flèche : une flèche par défaut n’y saute pas.
+                </p>
+                <Choice
                   label="Fond du texte des flèches"
                   value={shapes.edgeLabelBackdrop}
                   options={[

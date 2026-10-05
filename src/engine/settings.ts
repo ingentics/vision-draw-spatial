@@ -132,6 +132,10 @@ export interface ShapeSettings {
   edgeEndTextGapAcross: number;
   /** Tracé des flèches créées : droite, angles droits, coudes arrondis, ou courbe. */
   edgeLineStyle: 'straight' | 'sharp' | 'rounded' | 'curved';
+  /** Saut des flèches créées là où elles passent au-dessus d'une autre (`jumpStyle`, ticket 132). */
+  edgeJumpStyle: 'none' | 'arc' | 'gap' | 'sharp' | 'line';
+  /** Taille de ce saut (`jumpSize`, pt ; 6 comme draw.io). */
+  edgeJumpSize: number;
   /**
    * Ancrage des flèches sur les formes : manuel (points d'ancrage subdivisés, au choix) ou automatique (on choisit
    * le côté, les flèches y sont réparties) ; une page peut le surcharger (`spatial.anchoring`).
@@ -380,6 +384,8 @@ export const DEFAULT_SETTINGS: Settings = {
     edgeEndTextGapAlong: 6,
     edgeEndTextGapAcross: 4,
     edgeLineStyle: 'rounded',
+    edgeJumpStyle: 'none',
+    edgeJumpSize: 6,
     edgeAnchoring: 'manual',
     edgeAutoRoute: true,
     edgeShapeClearance: 10,
@@ -488,6 +494,7 @@ export const SETTINGS_LIMITS = {
   'shapes.edgePortStub': { min: 5, max: 60, step: 1 },
   'shapes.edgeCrossingDetour': { min: 0, max: 2000, step: 50 },
   'shapes.edgeLoopMargin': { min: 5, max: 100, step: 1 },
+  'shapes.edgeJumpSize': { min: 2, max: 40, step: 1 },
   'shapes.edgeLabelHaloWidth': { min: 0.5, max: 6, step: 0.25 },
   'shapes.edgeLabelHaloBlur': { min: 0, max: 4, step: 0.25 },
   'shapes.edgeBadgeRadius': { min: 3, max: 40, step: 0.5 },
@@ -533,6 +540,7 @@ const SELECTION_STYLES = ['veil', 'outline'] as const;
 const LABEL_BACKDROPS = ['halo', 'solid', 'none'] as const;
 const EDGE_LINES = ['straight', 'sharp', 'rounded', 'curved'] as const;
 const EDGE_ANCHORINGS = ['manual', 'auto'] as const;
+const EDGE_JUMPS = ['none', 'arc', 'gap', 'sharp', 'line'] as const;
 const STRIP_TEXT = ['up', 'down'] as const;
 const PLANTUML_RENDERERS = ['kroki', 'plantuml', 'local'] as const;
 
@@ -695,6 +703,8 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
         base.shapes.edgeEndTextGapAcross,
       ),
       edgeLineStyle: oneOf(EDGE_LINES, p.shapes?.edgeLineStyle, base.shapes.edgeLineStyle),
+      edgeJumpStyle: oneOf(EDGE_JUMPS, p.shapes?.edgeJumpStyle, base.shapes.edgeJumpStyle),
+      edgeJumpSize: Math.round(num('shapes.edgeJumpSize', p.shapes?.edgeJumpSize, base.shapes.edgeJumpSize)),
       edgeAnchoring: oneOf(EDGE_ANCHORINGS, p.shapes?.edgeAnchoring, base.shapes.edgeAnchoring),
       edgeAutoRoute: bool(p.shapes?.edgeAutoRoute, base.shapes.edgeAutoRoute),
       edgeShapeClearance: num(

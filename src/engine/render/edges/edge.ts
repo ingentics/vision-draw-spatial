@@ -2,6 +2,7 @@ import { Color, Group } from 'three';
 import type { Object3D } from 'three';
 import type { EdgeLabelPlacement, EdgeModel, Point, RichLine, ShapeModel } from '../../model/types';
 import { buildMarker } from '../edges/markers';
+import { jumpHalfLength, jumpStyleOf, withJumps } from '../edges/jumps';
 import { curveThrough, labelPoint, roundCorners, shorten, unit } from '../edges/polyline';
 import { parseStyle } from '../../format/style';
 import { perimeterKind, routeEdgePoints, simplify } from '../edges/route';
@@ -34,9 +35,15 @@ export interface EdgeTerminals {
 
 /**
  * Connecteur : tracé, pointes de flèches et labels (SPEC §8.3). Les styles inconnus sont approchés ;
- * ils sont recensés par `diagnostics/unsupportedStyles`.
+ * ils sont recensés par `diagnostics/unsupportedStyles`. `below` : tracés des flèches dessinées avant celle-ci,
+ * pour ses sauts aux croisements (`jumpStyle`, ticket 129).
  */
-export function createEdge(edge: EdgeModel, terminals: EdgeTerminals, ctx: RenderContext): Object3D {
+export function createEdge(
+  edge: EdgeModel,
+  terminals: EdgeTerminals,
+  ctx: RenderContext,
+  below: readonly Point[][] = [],
+): Object3D {
   const group = new Group();
   group.name = `edge:${edge.id}`;
   const { style } = edge;
@@ -90,12 +97,16 @@ export function createEdge(edge: EdgeModel, terminals: EdgeTerminals, ctx: Rende
     let line = shorten(route, start?.inset ?? 0, end?.inset ?? 0);
     if (style.curved === '1') line = curveThrough(line);
     else if (style.rounded === '1') line = roundCorners(line, styleNumber(style, 'arcSize', DEFAULT_EDGE_ARC_SIZE) / 2);
-    const mesh = strokeMesh(line, stroke, opacity, {
-      width: strokeWidth,
-      closed: false,
-      dash: dashPattern(style, strokeWidth),
-    });
-    if (mesh) group.add(mesh);
+    const jump = jumpStyleOf(style, ctx.edgeJumps);
+    const pieces = jump ? withJumps(line, below, jump, jumpHalfLength(style, strokeWidth, ctx.edgeJumps)) : [line];
+    for (const piece of pieces) {
+      const mesh = strokeMesh(piece, stroke, opacity, {
+        width: strokeWidth,
+        closed: false,
+        dash: dashPattern(style, strokeWidth),
+      });
+      if (mesh) group.add(mesh);
+    }
 
     for (const marker of [start, end]) {
       if (marker?.fill) group.add(fillMesh(marker.fill, stroke, opacity));

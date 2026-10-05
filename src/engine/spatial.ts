@@ -29,6 +29,11 @@ export const SPATIAL = {
   mode: 'spatial.mode',
   /** Ancrage des flèches de la page (attribut de `<diagram>`) : `manual` ou `auto` ; absent = réglage de l'appli. */
   anchoring: 'spatial.anchoring',
+  /**
+   * Saut des flèches de la page aux croisements (attribut de `<diagram>`) : `none`, `arc`, `gap`, `sharp` ou `line` ;
+   * absent = réglage de l'appli. Une flèche sans `jumpStyle` le suit.
+   */
+  jumps: 'spatial.jumps',
   /** Graine d'agencement de la page en ancrage automatique (attribut de `<diagram>`, touche F) ; absente = 0. */
   anchorSeed: 'spatial.anchorSeed',
   /** État de vue d'une page (attribut de `<diagram>`, voir `format/viewState`). */

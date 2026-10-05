@@ -1,5 +1,6 @@
 import type { Point } from '../model/types';
 import type { Element } from '@xmldom/xmldom';
+import { parseStyle } from './style';
 import { childElements, markPageDirty } from './xmlTree';
 import type { PageTree } from './xmlTree';
 
@@ -289,6 +290,59 @@ export function setEdgePoints(page: PageTree, edgeId: string, points: Point[]): 
     );
     const after = terminals[terminals.length - 1];
     geometry.insertBefore(array, after ? after.nextSibling : geometry.firstChild);
+  }
+  markPageDirty(page);
+}
+
+/** Clés de style échangées entre les deux bouts quand on inverse une flèche (comme « Inverser » de draw.io). */
+const REVERSED_STYLE_KEYS: Array<[string, string]> = [
+  ...['X', 'Y', 'Dx', 'Dy', 'Perimeter'].map((suffix): [string, string] => [`exit${suffix}`, `entry${suffix}`]),
+  ['sourcePerimeterSpacing', 'targetPerimeterSpacing'],
+];
+
+/**
+ * Inverse une arête comme draw.io (`Graph.turnShapes`) : source et cible échangées, extrémités libres échangées,
+ * points intermédiaires dans l'ordre inverse, points d'attache (`exit…` ↔ `entry…`) et espacements échangés. Les
+ * pointes (`startArrow`, `endArrow`) et les labels restent en place. Seules les valeurs des nœuds changent :
+ * l'indentation du fichier est intacte.
+ */
+export function reverseEdgeCell(page: PageTree, edgeId: string): void {
+  const nodes = page.cells.get(edgeId);
+  const cell = nodes?.cell;
+  if (!cell) throw new Error(`Arête ${edgeId} introuvable`);
+  const swapAttributes = (element: Element, a: string, b: string) => {
+    const [first, second] = [element.getAttribute(a), element.getAttribute(b)];
+    if (second === null) element.removeAttribute(a);
+    else element.setAttribute(a, second);
+    if (first === null) element.removeAttribute(b);
+    else element.setAttribute(b, first);
+  };
+  swapAttributes(cell, 'source', 'target');
+  const geometry = nodes.geometry;
+  if (geometry) {
+    // Coordonnées échangées entre nœuds (sans les déplacer) : extrémités libres, puis points intermédiaires.
+    const reverseCoordinates = (points: Element[]) => {
+      const values = points.map((point) => [point.getAttribute('x'), point.getAttribute('y')] as const).reverse();
+      points.forEach((point, i) => {
+        for (const [index, name] of (['x', 'y'] as const).entries()) {
+          const value = values[i]![index];
+          if (value === null || value === undefined) point.removeAttribute(name);
+          else point.setAttribute(name, value);
+        }
+      });
+    };
+    const terminals = childElements(geometry, 'mxPoint');
+    const source = terminals.find((point) => point.getAttribute('as') === 'sourcePoint');
+    const target = terminals.find((point) => point.getAttribute('as') === 'targetPoint');
+    if (source && target) reverseCoordinates([source, target]);
+    else (source ?? target)?.setAttribute('as', source ? 'targetPoint' : 'sourcePoint');
+    for (const array of childElements(geometry, 'Array'))
+      if (array.getAttribute('as') === 'points') reverseCoordinates(childElements(array, 'mxPoint'));
+  }
+  const style = parseStyle(cell.getAttribute('style')).values;
+  for (const [a, b] of REVERSED_STYLE_KEYS) {
+    setCellStyleValue(page, edgeId, a, style[b]);
+    setCellStyleValue(page, edgeId, b, style[a]);
   }
   markPageDirty(page);
 }

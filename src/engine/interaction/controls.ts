@@ -301,6 +301,11 @@ export interface CameraHost {
   /** ⌘ + A / Ctrl + A, le focus sur la zone de dessin : sélectionne tous les éléments de la page (ticket 122). */
   selectAll?(): void;
   /**
+   * Raccourcis d'ordre de dessin de draw.io, le focus sur la zone de dessin (ticket 130) : ⌘ / Ctrl + Maj + F / B
+   * (premier plan, arrière-plan), Alt + Maj + F / B (avancer, reculer).
+   */
+  orderSelection?(move: 'front' | 'back' | 'forward' | 'backward'): void;
+  /**
    * Flèche du clavier : déplace la sélection (1 px, un pas de grille avec Maj, ticket 123) ; faux si rien
    * n'est déplaçable (la flèche déplace alors la vue).
    */
@@ -610,6 +615,13 @@ export class CameraController {
       if (!event.repeat) this.host.selectAll?.();
       return;
     }
+    // Ordre de dessin : touches physiques (Alt change le caractère produit sur macOS).
+    const order = orderShortcut(event);
+    if (order && event.target === this.element) {
+      event.preventDefault();
+      if (!event.repeat) this.host.orderSelection?.(order);
+      return;
+    }
     // Une touche de déplacement reste une touche de déplacement, même si elle porte une lettre de raccourci.
     const action = isMoveKey(event.code, this.settings.moveKeys)
       ? undefined
@@ -813,4 +825,14 @@ function isEditable(target: EventTarget | null): boolean {
 
 function distance(a: Point, b: Point): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+/** Raccourci d'ordre de dessin de draw.io (⌘ / Ctrl + Maj + F / B, Alt + Maj + F / B), sinon undefined. */
+function orderShortcut(event: KeyboardEvent): 'front' | 'back' | 'forward' | 'backward' | undefined {
+  if (!event.shiftKey || (event.code !== 'KeyF' && event.code !== 'KeyB')) return undefined;
+  const front = event.code === 'KeyF';
+  const command = event.ctrlKey || event.metaKey;
+  if (command && !event.altKey) return front ? 'front' : 'back';
+  if (event.altKey && !command) return front ? 'forward' : 'backward';
+  return undefined;
 }

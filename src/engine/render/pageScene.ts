@@ -55,6 +55,8 @@ export function buildPageScene(
 
   // Volumes (niveau iso) : une forme est posée sur le dessus de son conteneur s'il est en volume.
   const elevation = volumeLayout(registry, ctx, level, shapesById);
+  // Tracés des flèches déjà dessinées : celles du dessus sautent par-dessus (ticket 129).
+  const below: Point[][] = [];
 
   ordered.forEach((item, rank) => {
     const element = 'shape' in item ? item.shape : item.edge;
@@ -71,7 +73,8 @@ export function buildPageScene(
         source: item.edge.sourceId ? shapesById.get(item.edge.sourceId) : undefined,
         target: item.edge.targetId ? shapesById.get(item.edge.targetId) : undefined,
       };
-      object = createEdgeObject(item.edge, terminals, ctx, dressing);
+      object = createEdgeObject(item.edge, terminals, ctx, dressing, below);
+      if (item.edge.style.noJump !== '1') below.push(edgeRoute(object));
       object.position.z = elevation.edgeBase(item.edge);
       object.userData.top = object.position.z;
     }
@@ -98,11 +101,17 @@ export function createEdgeObject(
   terminals: EdgeTerminals,
   ctx: RenderContext,
   dressing?: PageDressing,
+  below: readonly Point[][] = [],
 ): Object3D {
   // Couleur du mode, assombrie pour le trait (paramètre « Assombrissement du trait »).
   const base = dressing?.edgeColor?.(edge);
   const color = base && darken(base, ctx.dressingDarken ?? DEFAULT_DRESSING_DARKEN);
-  const object = createEdge(color ? { ...edge, style: { ...edge.style, strokeColor: color } } : edge, terminals, ctx);
+  const object = createEdge(
+    color ? { ...edge, style: { ...edge.style, strokeColor: color } } : edge,
+    terminals,
+    ctx,
+    below,
+  );
   const badge = dressing?.edgeBadge?.(edge);
   const route = object.userData.route as Point[] | undefined;
   if (badge && route && route.length >= 2) {
@@ -110,6 +119,12 @@ export function createEdgeObject(
     if ((ctx.edgeBadge ?? DEFAULT_EDGE_BADGE).labelFaceCamera) standLabels(object);
   }
   return object;
+}
+
+/** Tracé brut d'un objet de flèche, en coordonnées page (l'objet a pu être décalé pendant un déplacement). */
+export function edgeRoute(object: Object3D): Point[] {
+  const route = (object.userData.route as Point[] | undefined) ?? [];
+  return route.map((p) => ({ x: p.x + object.position.x, y: p.y + object.position.y }));
 }
 
 /**

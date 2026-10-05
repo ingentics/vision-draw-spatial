@@ -26,6 +26,7 @@ import {
   setCellLabel,
   setCellObjectAttribute,
   setCellRichLabel,
+  reverseEdgeCell,
   setCellStyleValue,
   setPageAttribute,
   moveEdgeCell,
@@ -161,9 +162,14 @@ import {
   buildPageScene,
   createEdgeObject,
   createShapeObject,
+  edgeRoute,
   effectiveLevel,
   placeInDrawOrder,
 } from './render/pageScene';
+import { jumpStyleOf, jumpValue } from './render/edges/jumps';
+import type { JumpDefaults } from './render/edges/jumps';
+import { reorderCells } from './format/order';
+import type { OrderMove } from './format/order';
 import { applyModeEdit } from './modes/edit';
 import { defaultModeRegistry } from './modes/registry';
 import type { ModeScope, PageModeRegistry } from './modes/registry';
@@ -200,6 +206,14 @@ function defaultOpenUrl(href: string): void {
  * Cadrage d'une page vide : le haut de la feuille draw.io, pour que les formes ajoutées
  * tombent en coordonnées positives (sur la page, à l'ouverture dans draw.io).
  */
+/** Étape d'annulation de chaque changement d'ordre de dessin (ticket 130). */
+const ORDER_LABELS: Record<OrderMove, string> = {
+  front: 'Premier plan',
+  back: 'Arrière-plan',
+  forward: 'Avancer',
+  backward: 'Reculer',
+};
+
 const EMPTY_PAGE_AREA: Rect = { x: 0, y: 0, width: 800, height: 600 };
 
 function isEmptyPage(page: PageModel): boolean {
@@ -630,8 +644,8 @@ export class Engine {
       this.scene,
       (page, level) =>
         page.id === GRAPH_PAGE_ID && this.graph && this.document
-          ? buildGraphScene(page, this.graph.layout, this.document, this.registry, this.renderContext(), level)
-          : buildPageScene(page, this.registry, this.renderContext(), level, this.modes.dressing(page)),
+          ? buildGraphScene(page, this.graph.layout, this.document, this.registry, this.renderContext(page), level)
+          : buildPageScene(page, this.registry, this.renderContext(page), level, this.modes.dressing(page)),
       this.settings.preload.maxCachedPages,
       (page) => effectiveLevel(page, this.registry, this.requestedLevel()),
     );
@@ -672,6 +686,7 @@ export class Engine {
         canMarquee: (screen) => !!this.editablePage() && !this.pickAt(screen),
         selectInRect: (rect, options) => this.selectInRect(rect, options),
         selectAll: () => this.selectAll(),
+        orderSelection: (move) => this.orderSelection(move),
         nudgeSelection: (direction, coarse) => this.nudgeSelection(direction, coarse),
         editSelection: () => this.editLabel(),
         deleteSelection: () => this.deleteSelection(),
@@ -1034,6 +1049,23 @@ export class Engine {
     this.documentChanged([pageId]);
   }
 
+  /** Saut des flèches d'une page aux croisements : le sien (`spatial.jumps`), sinon le réglage de l'appli. */
+  jumpsOf(page: PageModel): JumpDefaults {
+    const { edgeJumpStyle, edgeJumpSize } = this.settings.shapes;
+    return { style: jumpValue(page.attributes[SPATIAL.jumps]) ?? edgeJumpStyle, size: edgeJumpSize };
+  }
+
+  /** Saut propre à une page (undefined : celui de l'appli), suivi par ses flèches sans `jumpStyle`. */
+  setPageJumps(pageId: string, jumps: JumpDefaults['style'] | undefined): void {
+    const page = this.pageById(pageId);
+    const pageTree = this.pageTreeOf(pageId);
+    if (!this.xmlTree || !page || !pageTree?.diagram || !this.editable || this.transition) return;
+    if ((page.attributes[SPATIAL.jumps] ?? '') === (jumps ?? '')) return;
+    this.recordEdit('Croisements des flèches');
+    setPageAttribute(pageTree, SPATIAL.jumps, jumps);
+    this.documentChanged([pageId], { distribute: false });
+  }
+
   private documentChanged(changedPageIds: string[], options: { distribute?: boolean } = {}): void {
     if (!this.xmlTree) return;
     const selected = this.selection;
@@ -1248,9 +1280,10 @@ export class Engine {
     return volume && this.settings.view.isoVolume && !this.flattened ? 'iso' : 'flat';
   }
 
-  private renderContext() {
+  private renderContext(page?: PageModel) {
     return {
       text: this.text,
+      edgeJumps: page && this.jumpsOf(page),
       volume: {
         depth: this.settings.view.isoDepth,
         shadeLight: this.settings.view.shadeLight,
@@ -2978,7 +3011,7 @@ export class Engine {
     move.applied = target;
     translateMoveSet(page, move.set, step);
     this.translateObjects(move.set, step);
-    this.retraceEdges(page, move.set.connectedEdgeIds);
+    this.retraceEdges(page, move.set.connectedEdgeIds, move.set.edgeIds);
     this.afterLiveEdit();
   }
 
@@ -3012,7 +3045,7 @@ export class Engine {
     shape.bounds = bounds;
     page.bounds = computeBounds(page.shapes, page.edges);
     this.rebuildShapeObject(shape);
-    this.retraceEdges(page, resize.children.connectedEdgeIds);
+    this.retraceEdges(page, resize.children.connectedEdgeIds, content.edgeIds);
     this.afterLiveEdit();
   }
 
@@ -3314,27 +3347,51 @@ export class Engine {
     this.replaceObject(old, object, root);
   }
 
-  /** Reconstruit les arêtes reliées à des formes modifiées (même ordre de dessin, même hauteur). */
-  private retraceEdges(page: PageModel, edgeIds: Set<string>): void {
+  /**
+   * Reconstruit les arêtes reliées à des formes modifiées (même ordre de dessin, même hauteur), et les flèches à
+   * sauts dessinées au-dessus d'elles ou des flèches `moved` (décalées en bloc, pas retracées) : leurs croisements
+   * ont pu changer (ticket 129).
+   */
+  private retraceEdges(page: PageModel, edgeIds: ReadonlySet<string>, moved: ReadonlySet<string> = new Set()): void {
     const root = this.scenes.current?.root;
-    if (!root || edgeIds.size === 0) return;
+    if (!root || edgeIds.size + moved.size === 0) return;
+    const changed = page.edges.filter((edge) => edgeIds.has(edge.id) || moved.has(edge.id));
+    const jumps = this.jumpsOf(page);
+    const lowest = Math.min(...changed.map((edge) => edge.z));
+    const retraced = page.edges
+      .filter(
+        (edge) => !moved.has(edge.id) && (edgeIds.has(edge.id) || (edge.z > lowest && jumpStyleOf(edge.style, jumps))),
+      )
+      .sort((a, b) => a.z - b.z);
+    if (retraced.length === 0) return;
     const shapes = new Map(page.shapes.map((shape) => [shape.id, shape]));
     const dressing = this.modes.dressing(page);
-    for (const edge of page.edges) {
-      if (!edgeIds.has(edge.id)) continue;
+    for (const edge of retraced) {
       const old = this.sceneObject(edge.id);
       if (!old) continue;
       const object = createEdgeObject(
         edge,
         { source: shapes.get(edge.sourceId ?? ''), target: shapes.get(edge.targetId ?? '') },
-        this.renderContext(),
+        this.renderContext(page),
         dressing,
+        jumpStyleOf(edge.style, jumps) ? this.routesBelow(page, edge) : [],
       );
       object.position.z = old.position.z;
       object.userData.elementId = edge.id;
       object.userData.top = old.userData.top;
       this.replaceObject(old, object, root);
     }
+  }
+
+  /** Tracés affichés des flèches dessinées sous `edge` (pour ses sauts), hors `noJump=1`. */
+  private routesBelow(page: PageModel, edge: EdgeModel): Point[][] {
+    const routes: Point[][] = [];
+    for (const other of page.edges) {
+      if (other.z >= edge.z || other.style.noJump === '1') continue;
+      const object = this.sceneObject(other.id);
+      if (object) routes.push(edgeRoute(object));
+    }
+    return routes;
   }
 
   private replaceObject(old: Object3D, object: Object3D, root: Object3D): void {
@@ -3879,6 +3936,28 @@ export class Engine {
     this.documentChanged([editable.page.id]);
   }
 
+  /** Inverse des flèches de la page courante (ticket 131) : elles vont de leur ancienne cible à leur ancienne source. */
+  reverseEdges(edgeIds: string[]): void {
+    const editable = this.editablePage();
+    const ids = editable?.page.edges.filter((edge) => edgeIds.includes(edge.id)).map((edge) => edge.id) ?? [];
+    if (!editable || ids.length === 0) return;
+    this.recordEdit('Inverser');
+    for (const id of ids) reverseEdgeCell(editable.pageTree, id);
+    this.documentChanged([editable.page.id], { distribute: false });
+  }
+
+  /** Ordre de dessin de la sélection (ticket 130) : premier plan, arrière-plan, avancer, reculer. */
+  orderSelection(move: OrderMove): void {
+    const editable = this.editablePage();
+    const selection = this.selection;
+    if (!editable || !selection || selection.pageId !== editable.page.id || !this.xmlTree) return;
+    const before = writeDrawio(this.xmlTree);
+    const ids = selection.items.map((item) => item.element.id);
+    if (!reorderCells(editable.pageTree, ids, move)) return;
+    this.undoStack.record(ORDER_LABELS[move], before);
+    this.documentChanged([editable.page.id], { distribute: false });
+  }
+
   /** Supprime la sélection : avec son contenu, ses labels et les arêtes qui y sont reliées (comme draw.io). */
   deleteSelection(label = 'Suppression'): void {
     const editable = this.editablePage();
@@ -4401,7 +4480,11 @@ export class Engine {
           if (!object || !route || route.length < 2) continue;
           const strokeWidth = parseFloat((element.style.strokeWidth as string | undefined) ?? '1') || 1;
           const width = strokeWidth + (2 * this.settings.selection.veilPadding) / this.cameraState.zoom;
-          holes.add(createVeilHole(route, object.position.z, width));
+          const hole = createVeilHole(route, object.position.z, width);
+          // Flèche déplacée en bloc (au clavier, avec sa forme) : son objet est décalé, pas son tracé.
+          hole.position.x = object.position.x;
+          hole.position.y = object.position.y;
+          holes.add(hole);
         }
         root.add(holes);
         this.veilHole = { key: holeKey, object: holes };

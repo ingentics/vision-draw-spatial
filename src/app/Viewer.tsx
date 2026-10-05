@@ -35,6 +35,8 @@ import type { Settings, SettingsPatch } from '../engine/settings';
 import { GRAPH_PAGE_ID } from '../engine/graph/graphPage';
 import { labelPlacePatch } from '../engine/edit/labelPosition';
 import { usedTemplates } from '../engine/edit/palette';
+import { jumpValue } from '../engine/render/edges/jumps';
+import { SPATIAL } from '../engine/spatial';
 
 const FONTS = {
   regular: robotoRegular,
@@ -648,6 +650,8 @@ export function Viewer({
                     selection && engine?.setEdgeEndLabel(selection.picked.element.id, end, text)
                   }
                   onDelete={() => engine?.deleteSelection()}
+                  onOrder={(move) => engine?.orderSelection(move)}
+                  onReverse={() => engine?.reverseEdges(selected.edges.map((edge) => edge.id))}
                   onResetRoute={() => selection && engine?.resetEdgeRoute(selection.picked.element.id)}
                   onEdgeStyle={(patch) =>
                     engine?.setElementsStyle(
@@ -691,6 +695,10 @@ export function Viewer({
                     editablePages ? (anchoring) => engine?.setPageAnchoring(currentPage.id, anchoring) : undefined
                   }
                   defaultAnchoring={settings.shapes.edgeAnchoring}
+                  onPageJumps={editablePages ? (jumps) => engine?.setPageJumps(currentPage.id, jumps) : undefined}
+                  defaultJumps={settings.shapes.edgeJumpStyle}
+                  pageJumps={jumpValue(currentPage.attributes[SPATIAL.jumps]) ?? settings.shapes.edgeJumpStyle}
+                  defaultJumpSize={settings.shapes.edgeJumpSize}
                   onModeEdit={editablePages ? (label, edit) => engine?.editPageMode(label, edit) : undefined}
                   modeCurrent={engine?.getModeCurrent(currentPage.id)}
                   onModeProperty={
