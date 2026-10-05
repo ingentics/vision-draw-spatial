@@ -18,13 +18,32 @@ export interface SceneRenderer {
 }
 
 /**
- * Tracé du dessin intérieur d'une forme : avec la couleur, l'épaisseur et les pointillés de la bordure, rempli du fond
- * si `filled`. En volume, sur le dessus du bloc, ou au sol devant lui (`ground`, dessin hors du contour).
+ * Dessin intérieur d'une forme : un tracé (`ShapeDetailPath`) ou un texte (`ShapeDetailText`). En volume, sur le
+ * dessus du bloc, ou au sol devant lui (`ground`, dessin hors du contour).
  */
-export interface ShapeDetail {
+export type ShapeDetail = ShapeDetailPath | ShapeDetailText;
+
+/** Tracé avec la couleur, l'épaisseur et les pointillés de la bordure, rempli du fond si `filled`. */
+export interface ShapeDetailPath {
   path: Point[];
   closed: boolean;
   filled?: boolean;
+  ground?: boolean;
+}
+
+/**
+ * Texte sur une ligne, centré sur `at`, écrit dans la direction `angle` (radians, repère page : 0 vers la droite,
+ * −π/2 de bas en haut), de couleur fixe (#rrggbb). `fit` : place disponible (longueur, épaisseur), où la taille est
+ * réduite si besoin.
+ */
+export interface ShapeDetailText {
+  text: string;
+  at: Point;
+  angle: number;
+  fontSize: number;
+  color: string;
+  bold?: boolean;
+  fit?: { width: number; height: number };
   ground?: boolean;
 }
 

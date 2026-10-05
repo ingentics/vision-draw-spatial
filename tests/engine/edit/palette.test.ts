@@ -11,13 +11,21 @@ import { resolveShapeKind, parseStyle } from '../../../src/engine/format/style';
 import type { ShapeModel } from '../../../src/engine/model/types';
 import { createDefaultRegistry } from '../../../src/engine/shapes/registry';
 
+/** Nom de forme d'un style, comme à la lecture : `spatial.kind`, sinon deviné du style draw.io. */
+function kindOf(style: string): string {
+  const parsed = parseStyle(style);
+  return parsed.values['spatial.kind'] ?? resolveShapeKind(parsed);
+}
+
 describe('palette', () => {
   it('ne propose que des formes dessinées par le moteur', () => {
-    const kinds = new Set(SHAPE_TEMPLATES.map((t) => resolveShapeKind(parseStyle(t.style))));
+    const kinds = new Set(SHAPE_TEMPLATES.map((t) => kindOf(t.style)));
     expect([...kinds].sort()).toEqual([
+      'background-task',
       'cylinder3',
       'datastore',
       'ellipse',
+      'event-consumer',
       'hexagon',
       'mxgraph.basic.4_point_star_2',
       'mxgraph.basic.6_point_star',
@@ -26,11 +34,9 @@ describe('palette', () => {
       'parallelogram',
       'process',
       'rectangle',
+      'recurring-task',
       'rhombus',
-      'stencil:background-task',
-      'stencil:event-consumer',
       'stencil:plug',
-      'stencil:recurring-task',
       'step',
       'text',
       'triangle',
@@ -42,8 +48,9 @@ describe('palette', () => {
     const registry = createDefaultRegistry();
     for (const template of SHAPE_TEMPLATES) {
       const style = parseStyle(template.style);
-      const shape = { kind: resolveShapeKind(style), style: style.values } as Parameters<typeof registry.resolve>[0];
+      const shape = { kind: kindOf(template.style), style: style.values } as Parameters<typeof registry.resolve>[0];
       expect(registry.resolve(shape).supported, template.id).toBe(true);
+      expect(registry.resolve(shape).definition.id, template.id).toBe(template.id);
     }
   });
 
@@ -143,7 +150,7 @@ describe('palette', () => {
 describe('formes utilisées (étape 56)', () => {
   const shape = (style: string) => {
     const parsed = parseStyle(style);
-    return { kind: resolveShapeKind(parsed), style: parsed.values } as unknown as ShapeModel;
+    return { kind: kindOf(style), style: parsed.values } as unknown as ShapeModel;
   };
 
   it('reconnaît chaque modèle depuis son propre style', () => {

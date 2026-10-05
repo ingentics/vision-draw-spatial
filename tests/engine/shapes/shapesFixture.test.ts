@@ -5,10 +5,7 @@ import { readDrawio } from '../../../src/engine/format/parse';
 import type { PageModel, Point, ShapeModel } from '../../../src/engine/model/types';
 import { toTerminal } from '../../../src/engine/render/edges/edge';
 import { routeEdge, simplify } from '../../../src/engine/render/edges/route';
-import { BACKGROUND_TASK_SHAPE } from '../../../src/engine/shapes/impl/architecture/background-task';
-import { EVENT_CONSUMER_SHAPE } from '../../../src/engine/shapes/impl/architecture/event-consumer';
 import { PLUG_SHAPE } from '../../../src/engine/shapes/impl/architecture/plug';
-import { RECURRING_TASK_SHAPE } from '../../../src/engine/shapes/impl/architecture/recurring-task';
 import { createDefaultRegistry } from '../../../src/engine/shapes/registry';
 import { drawioSvgOutlines, drawioSvgPaths, drawioSvgRoutes, dropCollinear, fixture } from '../../helpers';
 
@@ -22,9 +19,9 @@ import { drawioSvgOutlines, drawioSvgPaths, drawioSvgRoutes, dropCollinear, fixt
  * (`size`, `fixedSize`) et son périmètre (`hexagonPerimeter2`, couché et debout) ; l'octogone (`dx`) ; le
  * pentagone (stencil de draw.io).
  *
- * Le process (barres : `size`, `fixedSize`, `rounded`, `direction`) et les stencils à dessin intérieur (event
- * consumer, tâche de fond, tâche récurrente) vérifient aussi leur dessin intérieur (`details`) : chaque tracé de
- * draw.io tombe sur notre contour ou notre dessin, et inversement.
+ * Le process (barres : `size`, `fixedSize`, `rounded`, `direction`) et le process à tranche étiquetée
+ * (`internalStorage` : `dx`, `dy`, `rounded`, orientations) vérifient aussi leur dessin intérieur (`details`) :
+ * chaque tracé de draw.io tombe sur notre contour ou notre dessin, et inversement.
  *
  * Les triangles vérifient l'orientation commune (`orientedPath`) sur une forme asymétrique, et leur périmètre
  * (`trianglePerimeter`) dans toutes les directions.
@@ -78,9 +75,20 @@ const PROCESS_VARIANTS = [
   'direction=north;rounded=1;',
   'flipH=1;size=0.3;',
 ];
-/** Stencils embarqués à dessin intérieur. */
-const DETAILED_STENCILS = [EVENT_CONSUMER_SHAPE, BACKGROUND_TASK_SHAPE, RECURRING_TASK_SHAPE];
-/**
+/** Process à tranche étiquetée (tâche récurrente), tel que la palette le crée, puis ses variantes. */
+const TAGGED =
+  'shape=internalStorage;whiteSpace=wrap;html=1;backgroundOutline=1;dx=16;dy=0;flipH=1;spacingRight=16;' +
+  'spatial.kind=recurring-task;';
+const TAGGED_VARIANTS = [
+  '',
+  'rounded=1;',
+  'dx=40;',
+  'dy=20;',
+  'flipH=0;',
+  'direction=south;',
+  'direction=north;flipH=0;',
+  'flipV=1;',
+]; /**
  * Formes de la palette « Géométrie », chacune dans ses variantes (id `<préfixe><n>`) : orientations, puis
  * réglages propres à la forme.
  */
@@ -233,10 +241,12 @@ function layout(): { vertices: Vertex[]; edges: Edge[] } {
   PROCESS_VARIANTS.forEach((variant, v) => {
     vertices.push({ id: `pr${v}`, style: `${PROCESS}${variant}`, ...place(), w: 120, h: 60, details: true });
   });
-  DETAILED_STENCILS.forEach((shape, s) =>
-    ORIENTATIONS.forEach((variant, v) => {
-      const style = `shape=${shape};whiteSpace=wrap;html=1;${variant}`;
-      vertices.push({ id: `sd${s}_${v}`, style, ...place(), w: 120, h: 60, outline: true, details: true });
+  [
+    { w: 120, h: 60 },
+    { w: 240, h: 40 },
+  ].forEach(({ w, h }, s) =>
+    TAGGED_VARIANTS.forEach((variant, v) => {
+      vertices.push({ id: `tg${s}_${v}`, style: `${TAGGED}${variant}`, ...place(), w, h, details: true });
     }),
   );
   // Flèches : un losange par style de tracé, les sources tout autour, sous les formes.
@@ -363,7 +373,7 @@ describe.runIf(existsSync(SVG))('shapes.drawio : mêmes contours et mêmes flèc
       const { shapes, svg } = load();
       const shape = shapes.get(vertex.id)!;
       const definition = registry.resolve(shape).definition;
-      const details = definition.details!(shape).flatMap((detail) => detail.path);
+      const details = definition.details!(shape).flatMap((detail) => ('path' in detail ? detail.path : []));
       const ours = [...definition.outline!(shape), ...details];
       const theirs = drawioSvgPaths(svg, { id: 'ref', x: 0, y: 0 }, vertex.id).flat();
       const message = JSON.stringify({ details, theirs });

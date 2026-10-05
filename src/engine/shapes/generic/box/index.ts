@@ -1,4 +1,4 @@
-import type { Group } from 'three';
+import { Color, Group } from 'three';
 import type { Point, Rect, ShapeModel } from '../../../model/types';
 import { createBox, createLabel, flatBox, VERTEX_DEFAULTS } from '../../../render/flat/box';
 import type { BoxDefaults } from '../../../render/flat/box';
@@ -9,7 +9,7 @@ import { fillMesh, strokeMesh } from '../../../render/meshes';
 import { styleColor, styleNumber, styleOpacity } from '../../../render/styleValues';
 import { PART_ORDER } from '../../../render/types';
 import type { RenderContext } from '../../../render/types';
-import type { SceneRenderer, ShapeDefinition, ShapeDetail } from '../../types';
+import type { SceneRenderer, ShapeDefinition, ShapeDetail, ShapeDetailPath, ShapeDetailText } from '../../types';
 
 export interface BoxOptions {
   defaults?: BoxDefaults;
@@ -63,7 +63,7 @@ function detailedFlat(
   return {
     create(shape: ShapeModel, ctx: RenderContext) {
       const group = createBox(label ? { ...shape, label: '' } : shape, outline(shape), ctx, defaults);
-      if (details) addDetails(group, shape, details(shape), 0, 0, defaults);
+      if (details) addDetails(group, shape, details(shape), 0, 0, defaults, ctx);
       if (label) {
         const text = createLabel(shape, ctx, shape.label, label(shape));
         if (text) group.add(text);
@@ -84,8 +84,8 @@ function detailedIso(
     create(shape, ctx) {
       const group = block.create(shape, ctx) as Group;
       const height = group.userData.height as number | undefined;
-      if (height === undefined) addDetails(group, shape, details(shape), 0, 0, defaults);
-      else addDetails(group, shape, details(shape), height + TOP_OFFSET, TOP_OFFSET, defaults);
+      if (height === undefined) addDetails(group, shape, details(shape), 0, 0, defaults, ctx);
+      else addDetails(group, shape, details(shape), height + TOP_OFFSET, TOP_OFFSET, defaults, ctx);
       return group;
     },
   };
@@ -98,29 +98,59 @@ function addDetails(
   top: number,
   ground: number,
   defaults: BoxDefaults,
+  ctx: RenderContext,
 ): void {
-  const { style } = shape;
-  const fill = styleColor(style, 'fillColor', defaults.fill);
-  const stroke = styleColor(style, 'strokeColor', defaults.stroke);
-  const width = styleNumber(style, 'strokeWidth', 1);
   for (const detail of details) {
     const z = detail.ground ? ground : top;
-    if (detail.filled && fill) {
-      const mesh = fillMesh(detail.path, fill, styleOpacity(style, 'fillOpacity'));
-      mesh.name = 'fill-detail';
-      mesh.position.z = z;
-      group.add(mesh);
-    }
-    if (!stroke || width <= 0) continue;
-    const mesh = strokeMesh(detail.path, stroke, styleOpacity(style, 'strokeOpacity'), {
-      width,
-      closed: detail.closed,
-      dash: dashPattern(style, width),
-    });
-    if (!mesh) continue;
-    mesh.name = 'stroke-detail';
-    mesh.renderOrder = PART_ORDER.stroke;
+    if ('text' in detail) addText(group, detail, z, ctx);
+    else addPath(group, shape, detail, z, defaults);
+  }
+}
+
+function addPath(group: Group, shape: ShapeModel, detail: ShapeDetailPath, z: number, defaults: BoxDefaults): void {
+  const { style } = shape;
+  const fill = styleColor(style, 'fillColor', defaults.fill);
+  if (detail.filled && fill) {
+    const mesh = fillMesh(detail.path, fill, styleOpacity(style, 'fillOpacity'));
+    mesh.name = 'fill-detail';
     mesh.position.z = z;
     group.add(mesh);
   }
+  const stroke = styleColor(style, 'strokeColor', defaults.stroke);
+  const width = styleNumber(style, 'strokeWidth', 1);
+  if (!stroke || width <= 0) return;
+  const mesh = strokeMesh(detail.path, stroke, styleOpacity(style, 'strokeOpacity'), {
+    width,
+    closed: detail.closed,
+    dash: dashPattern(style, width),
+  });
+  if (!mesh) return;
+  mesh.name = 'stroke-detail';
+  mesh.renderOrder = PART_ORDER.stroke;
+  mesh.position.z = z;
+  group.add(mesh);
+}
+
+/** Texte posé à plat, tourné autour de son centre dans la direction d'écriture. */
+function addText(group: Group, detail: ShapeDetailText, z: number, ctx: RenderContext): void {
+  const text = ctx.text.create({
+    text: detail.text,
+    x: 0,
+    y: 0,
+    anchorX: 'center',
+    anchorY: 'middle',
+    align: 'center',
+    fontSize: detail.fontSize,
+    color: new Color(detail.color),
+    opacity: 1,
+    bold: detail.bold ?? false,
+    fit: detail.fit,
+  });
+  text.renderOrder = PART_ORDER.label;
+  const frame = new Group();
+  frame.name = 'text-detail';
+  frame.position.set(detail.at.x, detail.at.y, z);
+  frame.rotation.z = detail.angle;
+  frame.add(text);
+  group.add(frame);
 }

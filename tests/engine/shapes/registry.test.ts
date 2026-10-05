@@ -70,7 +70,8 @@ describe('formes en plugins (étapes 65, 67) : contrat des définitions', () => 
     for (const definition of SHAPE_DEFINITIONS) {
       if (!definition.palette) continue;
       const parsed = parseStyle(definition.palette.style);
-      const shape = model(resolveShapeKind(parsed), parsed.values);
+      // Nom de la forme comme à la lecture : `spatial.kind`, sinon deviné du style.
+      const shape = model(parsed.values['spatial.kind'] ?? resolveShapeKind(parsed), parsed.values);
       expect(registry.resolve(shape).definition.id, definition.id).toBe(definition.id);
       expect(registry.templateOf(shape)?.id, definition.id).toBe(definition.id);
       expect(definition.palette.icon.trim().startsWith('<'), definition.id).toBe(true);

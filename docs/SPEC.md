@@ -121,7 +121,7 @@ src/
       registry.ts      # collecte des dossiers, résolution forme → définition, replis génériques
       placeholder.ts   # repli des formes non supportées
       minimap.ts       # repli mini-carte : contour de la forme
-      generic/         # bases à étendre : box/, stencil/, cylinder/, building/
+      generic/         # bases à étendre : box/, stencil/, tagged-process/, cylinder/, building/
       impl/            # une forme par élément de la palette, nommée comme l'interface
         geometry/      # rectangle/, rounded-rectangle/, ellipse/, circle/, diamond/
         general/       # text/
@@ -413,13 +413,13 @@ Ajouter une forme = **déposer son dossier** (au minimum `kind` et `flat`, idéa
   sur toute la hauteur à `round(size × largeur)` des bords (`size` 0,1 ; en px avec `fixedSize=1` ; au moins le coin
   avec `rounded=1`), orientées par `direction` ; texte entre les barres en 2D, comme `ProcessShape.getLabelBounds` ;
   prisme du contour en iso / 3D, barres sur le dessus.
-- **Event consumer, Tâche de fond, Tâche récurrente** (palette « Architecture », 120 × 60) : stencils embarqués
-  (`event-consumer`, `background-task`, `recurring-task`, base `generic/stencil`) avec un **dessin d'avant-plan**
-  tracé de la couleur, de l'épaisseur et des pointillés de la bordure, étiré et orienté avec la forme : corps et, à
-  gauche, une enveloppe remplie avec sa flèche vers le corps (texte centré sur le corps, `spacingLeft=40`) ;
-  rectangle et engrenage dans le coin haut droit ; rectangle et flèche circulaire ↻ dans le coin haut droit. En iso /
-  3D, prisme du contour, avant-plan sur le dessus (l'enveloppe et sa flèche, hors du corps, restent au sol devant
-  lui). L'event consumer se clique sur toutes ses bornes ; flèches sur les bornes.
+- **Event consumer, Tâche de fond, Tâche récurrente** (palette « Architecture », 120 × 60) : process à **tranche
+  étiquetée** (base `generic/tagged-process`) : forme native `internalStorage` de draw.io
+  (`dx=16;dy=0;flipH=1;spacingRight=16`), une seule ligne à `dx` px du bord droit, désignée par `spatial.kind`
+  (`event-consumer`, `background-task`, `recurring-task`). La tranche garde sa largeur au redimensionnement ; elle
+  porte un mot en capitales grises (teinte des étiquettes de façade), écrit de bas en haut : « CONSUMER », « TASK »,
+  « CRON » (`spatial.tag` le remplace). **Écart assumé** : seul Drawio Spatial dessine le mot, draw.io montre la
+  tranche vide. Prisme du contour en iso / 3D, ligne et mot sur le dessus ; se cliquent sur toutes leurs bornes.
 - Connecteurs (arêtes) : segments, points intermédiaires, flèche de fin,
 - Couleurs de remplissage, de bordure, épaisseur de trait, pointillés, label centré.
 - **Position du label**, comme draw.io : dans la forme selon `align` / `verticalAlign` (marges `spacing*`, plus
