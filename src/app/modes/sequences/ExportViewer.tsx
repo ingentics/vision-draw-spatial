@@ -4,7 +4,7 @@ import type { SequenceExporter } from '../../../engine/modes/sequences/export';
 import { sequenceState } from '../../../engine/modes/sequences/steps';
 import { plantUmlUrls } from './plantumlServer';
 
-/** Choix « Tout » de la liste des flux (un id de flux n'est jamais vide). */
+/** Choix de toute la page dans la liste des flux (un id de flux n'est jamais vide). */
 const ALL = '';
 
 /** Rendu d'un texte exporté : image et page où l'ouvrir. */
@@ -19,31 +19,26 @@ const PREVIEWS: Record<string, Preview> = {
 };
 
 /**
- * Fenêtre d'export d'un flux (sujet 90) : choix du flux (ou « Tout », sujet 96), texte fourni par l'exporteur du moteur (copiable) et, si le
+ * Fenêtre d'export d'un flux (sujet 90) : choix du flux, ou de toute la page (sujet 96, choix à l'ouverture), texte fourni par l'exporteur du moteur (copiable) et, si le
  * format en a un, son rendu en ligne. Croix ou Échap : fermer.
  */
 export function ExportViewer({
   page,
   exporter,
-  flowId,
   onClose,
 }: {
   page: PageModel;
   exporter: SequenceExporter;
-  /** Flux affiché à l'ouverture. */
-  flowId: string;
   onClose: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const { flows } = sequenceState(page);
   /** Flux exporté ; `ALL` : tous les flux de la page. */
-  const [flow, setFlow] = useState(flowId);
+  const [flow, setFlow] = useState(ALL);
   const source = useMemo(() => exporter.export(page, flow === ALL ? undefined : flow), [exporter, page, flow]);
   const [preview, setPreview] = useState<Awaited<ReturnType<Preview>>>();
   const [failed, setFailed] = useState(false);
   const [copied, setCopied] = useState(false);
-  /** Rendu ajusté à la zone (réduit si besoin) ; sinon à sa taille réelle, la zone défile. */
-  const [fit, setFit] = useState(false);
 
   useEffect(() => {
     const element = dialog.current;
@@ -90,7 +85,7 @@ export function ExportViewer({
         <h2>Export {exporter.name}</h2>
         <select value={flow} aria-label="Flux exporté" onChange={(event) => setFlow(event.target.value)}>
           <option value={ALL} title={`Tous les flux de la page « ${page.name} »`}>
-            Tout
+            {page.name}
           </option>
           {flows.map((f) => (
             <option key={f.id} value={f.id}>
@@ -116,20 +111,11 @@ export function ExportViewer({
             ) : preview ? (
               <>
                 <div className="export-preview-bar">
-                  <button
-                    type="button"
-                    className="button"
-                    aria-pressed={fit}
-                    title={fit ? 'Afficher le rendu à sa taille réelle' : 'Faire tenir tout le rendu dans la zone'}
-                    onClick={() => setFit(!fit)}
-                  >
-                    {fit ? '100 %' : 'Ajuster'}
-                  </button>
                   <a href={preview.link} target="_blank" rel="noreferrer">
                     {preview.linkLabel}
                   </a>
                 </div>
-                <div className={fit ? 'export-canvas fit' : 'export-canvas'}>
+                <div className="export-canvas">
                   <img src={preview.image} alt={`Rendu ${exporter.name}`} onError={() => setFailed(true)} />
                 </div>
               </>

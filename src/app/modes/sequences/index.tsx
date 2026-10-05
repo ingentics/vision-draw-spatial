@@ -71,12 +71,7 @@ function FlowsSection({ page, onEdit, current }: ModePanelProps) {
         </div>
       )}
       {exporting && flows.length > 0 && (
-        <ExportViewer
-          page={page}
-          exporter={exporting}
-          flowId={current !== undefined && members.has(current) ? current : flows[0]!.id}
-          onClose={() => setExporting(undefined)}
-        />
+        <ExportViewer page={page} exporter={exporting} onClose={() => setExporting(undefined)} />
       )}
     </Section>
   );

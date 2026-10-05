@@ -1844,7 +1844,7 @@ body {
   background: var(--bg);
 }
 
-/* Zone du rendu : taille réelle et défilement dans les deux sens, ou rendu ajusté (réduit, jamais agrandi). */
+/* Zone du rendu : taille réelle, défilement dans les deux sens. */
 .export-canvas {
   flex: 1;
   min-height: 0;
@@ -1855,11 +1855,6 @@ body {
 .export-canvas img {
   display: block;
   margin: 0 auto;
-}
-
-.export-canvas.fit img {
-  max-width: 100%;
-  max-height: 100%;
 }
 
 /* Courant du mode de la page (ex. flux courant du mode Séquences) : barre de sa couleur en haut de la zone de dessin. */
