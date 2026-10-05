@@ -184,6 +184,7 @@ import { setPageTransform } from './render/space';
 import { createTroikaTextFactory } from './render/troikaText';
 import { DEFAULT_SETTINGS, mergeSettings, modePalette, resolveReducedMotion } from './settings';
 import { SPATIAL, SPATIAL_PREFIX, spatialValue } from './spatial';
+import { pathPointAt } from './render/textPath';
 import type { PreloadSettings, Settings, SettingsPatch, TransitionSettings, ViewSettings } from './settings';
 import type { FontSet } from './render/troikaText';
 
@@ -358,6 +359,11 @@ export interface LabelEditRequest {
   background?: string;
   /** Texte de début / fin encore à créer, de l'autre côté du trait (bascule avant la création). */
   flipped?: boolean;
+  /**
+   * Texte du milieu qui suit sa flèche (`spatial.labelFollow`) : angle à l'écran (radians, sens horaire, jamais
+   * à l'envers) du trait au point du texte ; l'éditeur et sa poignée tournent d'autant. Absent : horizontal.
+   */
+  angle?: number;
   /**
    * Bascule possible de l'autre côté du trait (texte de début / fin dans sa configuration par défaut) :
    * direction du saut à l'écran de la page. Absente si le texte a été placé à la main.
@@ -2930,6 +2936,26 @@ export class Engine {
     return target ? { ...rest, flip: target.direction } : rest;
   }
 
+  /** Angle de l'éditeur d'un texte du milieu qui suit sa flèche : celui du trait dessiné au point du texte, à l'écran. */
+  private withAngle(request: LabelEditRequest): LabelEditRequest {
+    const rest = { ...request };
+    delete rest.angle;
+    const edge = this.getCurrentPage()?.edges.find((e) => e.id === request.elementId);
+    const path = this.sceneObject(request.elementId)?.userData.path as Point[] | undefined;
+    if (!request.onEdge || request.end || request.labelCellId || !edge || edge.style[SPATIAL.labelFollow] !== '1')
+      return rest;
+    if (!path || path.length < 2) return rest;
+    const { point, tangent } = pathPointAt(path, edge.labelPlacement.position);
+    const top = this.elementTop(edge.id);
+    const from = this.screenOfPoint(point, top);
+    const to = this.screenOfPoint({ x: point.x + tangent.x * 10, y: point.y + tangent.y * 10 }, top);
+    let angle = Math.atan2(to.y - from.y, to.x - from.x);
+    // Jamais à l'envers, comme le texte dessiné.
+    if (angle > Math.PI / 2 + 1e-9) angle -= Math.PI;
+    else if (angle <= -Math.PI / 2 + 1e-9) angle += Math.PI;
+    return Math.abs(angle) < 1e-9 ? rest : { ...rest, angle };
+  }
+
   /**
    * Fait sauter le texte de début / fin en cours d'édition de l'autre côté du trait (règle inversée), s'il
    * est dans une configuration par défaut ; un texte encore à créer sera créé de ce côté.
@@ -2964,7 +2990,7 @@ export class Engine {
       };
     }
     const screen = this.labelEditScreen(next.elementId, next.end, next.labelCellId, next.flipped);
-    this.labelEditing = this.withFlip({ ...next, screen: screen ?? next.screen });
+    this.labelEditing = this.withAngle(this.withFlip({ ...next, screen: screen ?? next.screen }));
     this.events.emit('labelEdit', this.labelEditing);
   }
 
@@ -3497,7 +3523,7 @@ export class Engine {
    */
   private startLabelEdit(request: LabelEditRequest): void {
     this.closeLabelEdit();
-    this.labelEditing = this.withFlip(request);
+    this.labelEditing = this.withAngle(this.withFlip(request));
     this.hideEditedLabel();
     this.updateSelectionOutline();
     this.events.emit('labelEdit', this.labelEditing);
@@ -3559,10 +3585,17 @@ export class Engine {
     const scale = this.textScale(editing.elementId);
     // La bascule disparaît dès que le texte est placé à la main (glisser de sa poignée).
     const plane = editing.onEdge ? undefined : this.labelEditPlane(editing.elementId);
-    const next = this.withFlip({ ...editing, screen, scale, plane });
+    const next = this.withAngle(this.withFlip({ ...editing, screen, scale, plane }));
     const same = (a: Rect, b: Rect) => a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
     const samePlane = JSON.stringify(plane) === JSON.stringify(editing.plane);
-    if (same(screen, editing.screen) && samePlane && scale === editing.scale && next.flip === editing.flip) return;
+    if (
+      same(screen, editing.screen) &&
+      samePlane &&
+      scale === editing.scale &&
+      next.flip === editing.flip &&
+      next.angle === editing.angle
+    )
+      return;
     this.labelEditing = next;
     this.events.emit('labelEdit', this.labelEditing);
   }

@@ -324,7 +324,12 @@ export function LabelEditor({
     outlineWidth: 1 / scale,
     background: request.background ?? 'transparent',
     ...(onEdge
-      ? { padding: 1, minWidth: 8, transform: `scale(${scale}) translate(${anchorShift}, ${anchorShiftY})` }
+      ? {
+          padding: 1,
+          minWidth: 8,
+          // Texte qui suit sa flèche : tourné comme le trait, autour de son point.
+          transform: `${request.angle ? `rotate(${request.angle}rad) ` : ''}scale(${scale}) translate(${anchorShift}, ${anchorShiftY})`,
+        }
       : {
           // Exactement l'emprise de la forme (même étroite) : le texte qui dépasse déborde, centré
           // selon son alignement, comme le label dessiné. Vue de biais : la zone de texte en pixels de
@@ -400,6 +405,8 @@ export function LabelEditor({
         <TextTools
           box={box}
           anchor={{ x: left, y: top }}
+          angle={request.angle}
+          scale={scale}
           onMove={onMoveText}
           onEnd={onMoveTextEnd}
           flip={request.flip}
@@ -410,6 +417,9 @@ export function LabelEditor({
   );
 }
 
+/** Écart entre le texte et ses outils (`margin-top` de `.text-tools`), appliqué dans le sens d'un texte tourné. */
+const TOOLS_GAP = 4;
+
 /**
  * Outils sous le texte d'une flèche en cours d'édition : la poignée ◇ (la tirer déplace le texte, son
  * ancre suit le pointeur au même écart qu'au moment de la saisie) et, pour un texte de début / fin dans
@@ -419,6 +429,8 @@ export function LabelEditor({
 function TextTools({
   box,
   anchor,
+  angle = 0,
+  scale,
   onMove,
   onEnd,
   flip,
@@ -426,6 +438,9 @@ function TextTools({
 }: {
   box: RefObject<HTMLDivElement | null>;
   anchor: { x: number; y: number };
+  /** Texte tourné (qui suit sa flèche) : les outils sont sous lui, dans son sens. */
+  angle?: number;
+  scale: number;
   onMove?: (screen: { x: number; y: number }) => void;
   onEnd?: () => void;
   flip?: 'up' | 'down' | 'left' | 'right';
@@ -433,7 +448,8 @@ function TextTools({
 }) {
   const [position, setPosition] = useState<{ x: number; y: number }>();
   const grab = useRef<{ dx: number; dy: number } | undefined>(undefined);
-  // Sous la boîte du texte (qui change de taille pendant la saisie), centrés.
+  // Sous la boîte du texte (qui change de taille pendant la saisie), centrés ; texte tourné : sous lui dans
+  // son sens (le centre de l'emprise à l'écran est celui de la boîte, quelle que soit la rotation).
   useLayoutEffect(() => {
     const element = box.current;
     const area = element?.offsetParent as HTMLElement | null;
@@ -441,19 +457,31 @@ function TextTools({
     const place = () => {
       const rect = element.getBoundingClientRect();
       const origin = area.getBoundingClientRect();
-      setPosition({ x: rect.left - origin.left + rect.width / 2, y: rect.bottom - origin.top });
+      const below = (element.offsetHeight * scale) / 2 + (angle ? TOOLS_GAP : 0);
+      setPosition({
+        x: rect.left - origin.left + rect.width / 2 - Math.sin(angle) * below,
+        y: rect.top - origin.top + rect.height / 2 + Math.cos(angle) * below,
+      });
     };
     place();
     const observer = new ResizeObserver(place);
     observer.observe(element);
     return () => observer.disconnect();
-  }, [box, anchor.x, anchor.y]);
+  }, [box, anchor.x, anchor.y, angle, scale]);
   if (!position || (!onMove && !(flip && onFlip))) return null;
   const areaOf = (target: Element) =>
     (target.closest('.text-tools')!.parentElement as HTMLElement).getBoundingClientRect();
   const FLIP_LABELS = { up: 'au-dessus', down: 'en dessous', left: 'à gauche', right: 'à droite' };
   return (
-    <div className="text-tools" {...{ [TEXT_FORMAT_ATTRIBUTE]: '' }} style={{ left: position.x, top: position.y }}>
+    <div
+      className="text-tools"
+      {...{ [TEXT_FORMAT_ATTRIBUTE]: '' }}
+      style={{
+        left: position.x,
+        top: position.y,
+        ...(angle && { marginTop: 0, transformOrigin: '0 0', transform: `rotate(${angle}rad) translateX(-50%)` }),
+      }}
+    >
       {onMove && (
         <div
           className="text-move-handle"

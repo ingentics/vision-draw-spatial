@@ -90,6 +90,11 @@ export function layoutOnPath(
   });
 }
 
+/** Point et tangente du tracé à une position le long de lui (-1…1, comme `EdgeLabelPlacement.position`). */
+export function pathPointAt(path: Point[], position: number): { point: Point; tangent: Point } {
+  return pointAt(path, ((position + 1) / 2) * length(path));
+}
+
 /** Point et tangente unitaire à l'abscisse curviligne `s`, prolongés en ligne droite avant et après le tracé. */
 function pointAt(path: Point[], s: number): { point: Point; tangent: Point } {
   const segments: Array<{ a: Point; b: Point; length: number }> = [];
