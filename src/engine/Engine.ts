@@ -672,6 +672,7 @@ export class Engine {
         canMarquee: (screen) => !!this.editablePage() && !this.pickAt(screen),
         selectInRect: (rect, options) => this.selectInRect(rect, options),
         selectAll: () => this.selectAll(),
+        nudgeSelection: (direction, coarse) => this.nudgeSelection(direction, coarse),
         editSelection: () => this.editLabel(),
         deleteSelection: () => this.deleteSelection(),
         placementVariant: () => this.placementVariant(),
@@ -2554,43 +2555,94 @@ export class Engine {
             .map((target) => target.id),
         ]
       : [shape.id];
+    const edgeIds = grabbedSelected
+      ? selection!.items.filter((item) => item.type === 'edge').map((item) => item.element.id)
+      : [];
+    this.drag = this.moveDrag(page, pageTree, candidates, edgeIds, start, shape.bounds, grid);
+    return true;
+  }
+
+  /**
+   * Déplacement de formes (`shapeIds`, déjà déplaçables) et de flèches ensemble : une forme prise avec son
+   * conteneur bouge avec lui ; une flèche dont une forme reste en place en est détachée.
+   */
+  private moveDrag(
+    page: PageModel,
+    pageTree: PageTree,
+    shapeIds: string[],
+    edgeIds: string[],
+    start: Point,
+    origin: Rect,
+    grid: number,
+  ): MoveDrag {
     const sets = new Map<string, MoveSet>();
     const setOf = (id: string) => {
       if (!sets.has(id)) sets.set(id, collectMoveSet(page, id));
       return sets.get(id)!;
     };
-    const rootIds = independentRoots(candidates, (id) => setOf(id).shapeIds);
+    const rootIds = independentRoots(shapeIds, (id) => setOf(id).shapeIds);
     const set = unionMoveSets(rootIds.map(setOf));
     // Flèches de la sélection qui bougent d'elles-mêmes (une flèche d'un groupe déplacé suit déjà).
     const edges: MoveDrag['edges'] = [];
-    if (grabbedSelected) {
-      for (const item of selection!.items) {
-        if (item.type !== 'edge') continue;
-        const edge = page.edges.find((e) => e.id === item.element.id);
-        if (!edge || isLocked(edge) || !pageTree.cells.get(edge.id)?.cell || set.edgeIds.has(edge.id)) continue;
-        const detach = (['source', 'target'] as const)
-          .filter((end) => {
-            const terminal = end === 'source' ? edge.sourceId : edge.targetId;
-            return terminal !== undefined && !set.shapeIds.has(terminal);
-          })
-          .map((end) => ({ end }));
-        edges.push({ id: edge.id, detach });
-        set.edgeIds.add(edge.id);
-        set.connectedEdgeIds.delete(edge.id);
-      }
+    for (const id of edgeIds) {
+      const edge = page.edges.find((e) => e.id === id);
+      if (!edge || isLocked(edge) || !pageTree.cells.get(edge.id)?.cell || set.edgeIds.has(edge.id)) continue;
+      const detach = (['source', 'target'] as const)
+        .filter((end) => {
+          const terminal = end === 'source' ? edge.sourceId : edge.targetId;
+          return terminal !== undefined && !set.shapeIds.has(terminal);
+        })
+        .map((end) => ({ end }));
+      edges.push({ id: edge.id, detach });
+      set.edgeIds.add(edge.id);
+      set.connectedEdgeIds.delete(edge.id);
     }
-    this.drag = {
+    return {
       kind: 'move',
       pageId: page.id,
       rootIds,
       set,
       edges,
       start,
-      origin: { ...shape.bounds },
+      origin: { ...origin },
       applied: { x: 0, y: 0 },
       grid,
       started: false,
     };
+  }
+
+  /**
+   * Flèches du clavier sur la sélection (ticket 123) : la déplace de 1 px, ou d'un pas de grille calé sur la
+   * grille (`coarse`, Maj), selon les axes de la page ; un appui = une étape d'annulation. Faux si rien ne
+   * bouge (pas de sélection déplaçable : les flèches gardent alors leur rôle de déplacement de la vue).
+   */
+  nudgeSelection(direction: Point, coarse: boolean): boolean {
+    const editable = this.editablePage();
+    const selection = this.selection;
+    if (!editable || this.drag || selection?.pageId !== editable.page.id) return false;
+    const { page, pageTree } = editable;
+    const shapes = selection.items
+      .filter((item) => item.type === 'shape')
+      .map((item) => moveTarget(page, item.element, this.registry))
+      .filter((shape) => !isLocked(shape) && canMoveCell(pageTree, shape.id));
+    const edgeIds = selection.items.filter((item) => item.type === 'edge').map((item) => item.element.id);
+    const grid = gridSizeOf(pageTree);
+    const origin = shapes[0]?.bounds ?? { x: 0, y: 0, width: 0, height: 0 };
+    const start = { x: 0, y: 0 };
+    const drag = this.moveDrag(
+      page,
+      pageTree,
+      shapes.map((shape) => shape.id),
+      edgeIds,
+      start,
+      origin,
+      grid,
+    );
+    if (drag.rootIds.length === 0 && drag.edges.length === 0) return false;
+    const step = coarse ? grid : 1;
+    this.drag = drag;
+    this.dragMove(page, drag, { x: direction.x * step, y: direction.y * step }, coarse);
+    this.endMove();
     return true;
   }
 

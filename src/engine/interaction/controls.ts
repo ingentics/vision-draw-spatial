@@ -282,6 +282,11 @@ export interface CameraHost {
   selectInRect?(rect: Rect, options: { add: boolean; touch: boolean }): void;
   /** ⌘ + A / Ctrl + A, le focus sur la zone de dessin : sélectionne tous les éléments de la page (ticket 122). */
   selectAll?(): void;
+  /**
+   * Flèche du clavier : déplace la sélection (1 px, un pas de grille avec Maj, ticket 123) ; faux si rien
+   * n'est déplaçable (la flèche déplace alors la vue).
+   */
+  nudgeSelection?(direction: Point, coarse: boolean): boolean;
   /** F2 : éditer le label de la sélection. */
   editSelection?(): void;
   /** Suppr (ou le raccourci `deleteSelection`) : supprimer la sélection. */
@@ -608,6 +613,11 @@ export class CameraController {
       return;
     }
     if (event.ctrlKey || event.metaKey || event.altKey) return;
+    const nudge = ARROW_KEYS[event.code];
+    if (nudge && this.host.nudgeSelection?.(nudge, event.shiftKey)) {
+      event.preventDefault();
+      return;
+    }
     // Édition (touches fixes) : F2 = texte, Suppr = supprimer, Échap = désélectionner.
     if (event.key === 'F2' || event.key === 'Delete' || event.key === 'Escape') {
       if (event.repeat) return;
