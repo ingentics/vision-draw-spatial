@@ -183,6 +183,8 @@ export interface ShapeSettings {
   edgeDressingDarken: number;
   /** Opacité de ce qui est hors du courant d'un mode (ex. hors du flux courant du mode Séquences). */
   modeDimOpacity: number;
+  /** Glissement de la barre du courant d'un mode quand elle part ou arrive avec une transition (ms, 0 = sans). */
+  modeBarSlideDuration: number;
   /** Formes non supportées (SPEC §8.4). */
   placeholderFill: string;
   placeholderStroke: string;
@@ -409,6 +411,7 @@ export const DEFAULT_SETTINGS: Settings = {
     edgeBadgeLabelFaceCamera: true,
     edgeDressingDarken: 0.25,
     modeDimOpacity: 0.3,
+    modeBarSlideDuration: 200,
     placeholderFill: '#eeeeee',
     placeholderStroke: '#9e9e9e',
   },
@@ -505,6 +508,7 @@ export const SETTINGS_LIMITS = {
   'shapes.edgeBadgeGap': { min: 0, max: 30, step: 1 },
   'shapes.edgeDressingDarken': { min: 0, max: 0.9, step: 0.05 },
   'shapes.modeDimOpacity': { min: 0.05, max: 1, step: 0.05 },
+  'shapes.modeBarSlideDuration': { min: 0, max: 1000, step: 10 },
   'selection.speed': { min: 2, max: 80, step: 1 },
   'selection.veilOpacity': { min: 0.05, max: 0.85, step: 0.05 },
   'selection.veilPadding': { min: 0, max: 60, step: 1 },
@@ -759,6 +763,11 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
         base.shapes.edgeDressingDarken,
       ),
       modeDimOpacity: num('shapes.modeDimOpacity', p.shapes?.modeDimOpacity, base.shapes.modeDimOpacity),
+      modeBarSlideDuration: num(
+        'shapes.modeBarSlideDuration',
+        p.shapes?.modeBarSlideDuration,
+        base.shapes.modeBarSlideDuration,
+      ),
       placeholderFill: color(p.shapes?.placeholderFill, base.shapes.placeholderFill),
       placeholderStroke: color(p.shapes?.placeholderStroke, base.shapes.placeholderStroke),
     },

@@ -698,6 +698,7 @@ interface Settings {
     edgeBadgeGap: number;                                         // écart avec le texte de la flèche : 2
     edgeDressingDarken: number;                                   // trait d'une flèche colorée par un mode : 0.25 (−25 %)
     modeDimOpacity: number;                                       // hors du courant d'un mode (flux courant) : 0.3
+    modeBarSlideDuration: number;                                 // glissement de la barre du courant (ms, 0 = sans) : 200
     placeholderFill: string; placeholderStroke: string;           // formes non supportées (§8.4) : '#eeeeee', '#9e9e9e'
   };
   graph: {                                                        // vue graphe (§12)
@@ -838,7 +839,9 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   dans la barre (un clic sur une flèche d'un autre flux ne fait que changer de flux ; un second clic la sélectionne) (état de session par page, non écrit). Barre en haut de la zone de dessin, de la couleur du flux, avec
   son titre centré (texte noir ou blanc selon le contraste) et, s'il y a au moins deux flux, des boutons précédent /
   suivant en boucle ; un clic sur le titre le renomme sur place (composant commun `InlineEdit`, nom vide
-  refusé) ; pastille de couleur cerclée dans le panneau. Tout ce qui ne touche pas ses flèches (flèches hors du flux,
+  refusé) ; pastille de couleur cerclée dans le panneau. La barre part au début d'une transition entre pages (elle
+  remonte hors de la vue) et n'arrive qu'à sa fin (elle descend à sa place), glissement réglable (« Glissement de la
+  barre du flux », `shapes.modeBarSlideDuration`, 200 ms, 0 = sans). Tout ce qui ne touche pas ses flèches (flèches hors du flux,
   formes qu'aucune ne relie) est estompé à 30 % (paramètre « Opacité hors du flux courant ») ; flux sans flèche :
   rien d'estompé. Une flèche tirée depuis une forme va à la fin du flux courant (même étape d'annulation). « + » / « - » sur
   une flèche d'un flux sélectionnée seule : rang suivant / précédent. Cadre générique : `current`, `edgeCreated` et

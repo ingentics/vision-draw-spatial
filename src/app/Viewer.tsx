@@ -19,7 +19,7 @@ import { DiagnosticsPanel } from './DiagnosticsPanel';
 import { desktop } from './desktop';
 import { isFilePath } from '../engine/persistence/FsStore';
 import { saveAs, store } from './fileLibrary';
-import { ModeBar } from './ModeBar';
+import { SlidingModeBar } from './ModeBar';
 import { NavigationToolbar } from './NavigationToolbar';
 import { LabelEditor } from './LabelEditor';
 import type { RichEditorHandle, SelectionFormat } from './LabelEditor';
@@ -110,6 +110,7 @@ export function Viewer({
   /** « Courant » du mode de la page changé (ex. flux courant) : redessine l'indicateur et le panneau. */
   const [, setModeCurrentTick] = useState(0);
   const [modeHint, setModeHint] = useState<ModeHint>();
+  const [transitioning, setTransitioning] = useState(false);
   const [labelEdit, setLabelEdit] = useState<LabelEditRequest>();
   /** Éditeur de texte en place (commandes du panneau de format) et format de sa sélection. */
   const editorHandle = useRef<RichEditorHandle | undefined>(undefined);
@@ -323,7 +324,12 @@ export function Viewer({
         }
       });
       const refreshBack = () => setBackTarget(instance.getBackTarget());
-      instance.on('transitionEnd', refreshBack);
+      // La barre du courant du mode part au début d'une transition et n'arrive qu'à sa fin.
+      instance.on('transitionStart', () => setTransitioning(true));
+      instance.on('transitionEnd', () => {
+        setTransitioning(false);
+        refreshBack();
+      });
       instance.on('historyChange', () => {
         refreshBack();
         scheduleSave();
@@ -557,13 +563,12 @@ export function Viewer({
             engine.focusCanvas();
           }}
         >
-          {modeIndicator && (
-            <ModeBar
-              indicator={modeIndicator}
-              onChoose={(value) => engine?.setModeCurrent(value)}
-              onRename={(label) => engine?.renameModeCurrent(label)}
-            />
-          )}
+          <SlidingModeBar
+            indicator={transitioning ? undefined : modeIndicator}
+            duration={settings.shapes.modeBarSlideDuration}
+            onChoose={(value) => engine?.setModeCurrent(value)}
+            onRename={(label) => engine?.renameModeCurrent(label)}
+          />
           {labelEdit && (
             <LabelEditor
               key={`${labelEdit.pageId}:${labelEdit.elementId}:${labelEdit.end ?? ''}`}

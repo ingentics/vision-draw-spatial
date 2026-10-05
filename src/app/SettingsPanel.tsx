@@ -1015,6 +1015,17 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   Flèches hors du flux courant et formes qu’aucune de ses flèches ne relie ; rien n’est estompé si le
                   flux courant n’a pas de flèche.
                 </p>
+                <Slider
+                  label="Glissement de la barre du flux"
+                  value={shapes.modeBarSlideDuration}
+                  limits={SETTINGS_LIMITS['shapes.modeBarSlideDuration']}
+                  format={(v) => (v === 0 ? 'sans' : `${v} ms`)}
+                  onChange={(modeBarSlideDuration) => onChange({ shapes: { modeBarSlideDuration } })}
+                />
+                <p className="hint muted">
+                  Pendant une transition entre pages, la barre remonte hors de la vue au départ et redescend à
+                  l’arrivée.
+                </p>
                 <h5 className="settings-group">Pastilles</h5>
                 <p className="hint muted">Rang d’une flèche dans son flux.</p>
                 <Toggle

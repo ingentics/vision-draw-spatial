@@ -1920,6 +1920,35 @@ body {
 }
 
 /* Courant du mode de la page (ex. flux courant du mode Séquences) : barre de sa couleur en haut de la zone de dessin. */
+/* Glissement de la barre (`SlidingModeBar`, durée `--mode-bar-slide`) : descend depuis le haut en entrant, remonte
+   hors de la vue en sortant. La zone de dessin coupe ce qui dépasse en haut ; 2 px de plus cachent aussi l'ombre. */
+.mode-bar-slide {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.mode-bar-slide > .mode-bar {
+  position: relative;
+  transform: translateY(calc(-100% - 2px));
+  transition: transform var(--mode-bar-slide) ease-in;
+  pointer-events: auto;
+}
+
+.mode-bar-slide.open > .mode-bar {
+  transform: none;
+  animation: mode-bar-slide-in var(--mode-bar-slide) ease-out;
+}
+
+@keyframes mode-bar-slide-in {
+  from {
+    transform: translateY(calc(-100% - 2px));
+  }
+}
+
 .mode-bar {
   position: absolute;
   top: 0;

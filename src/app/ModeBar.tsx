@@ -1,5 +1,49 @@
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { ModeIndicator } from '../engine/Engine';
 import { InlineEdit } from './InlineEdit';
+
+/**
+ * `ModeBar` qui glisse : elle remonte hors de la vue quand `indicator` disparaît (ex. au début d'une transition entre
+ * pages) et descend depuis le haut quand il apparaît, en `duration` ms (0 = sans animation). Pendant la sortie, la
+ * barre garde le dernier indicateur affiché.
+ */
+export function SlidingModeBar({
+  indicator,
+  duration,
+  onChoose,
+  onRename,
+}: {
+  indicator: ModeIndicator | undefined;
+  duration: number;
+  onChoose: (value: string) => void;
+  onRename: (label: string) => void;
+}) {
+  // Dernier indicateur affiché : la barre le garde pendant sa sortie.
+  const last = useRef(indicator);
+  if (indicator) last.current = indicator;
+  const visible = indicator !== undefined;
+  const [present, setPresent] = useState(visible);
+
+  // La sortie animée finie, la barre est retirée.
+  useEffect(() => {
+    if (visible) return;
+    const timer = setTimeout(() => setPresent(false), duration);
+    return () => clearTimeout(timer);
+  }, [visible, duration]);
+  if (visible && !present) setPresent(true);
+
+  const shown = indicator ?? last.current;
+  if (!(present || visible) || !shown) return null;
+  return (
+    <div
+      className={visible ? 'mode-bar-slide open' : 'mode-bar-slide'}
+      style={{ '--mode-bar-slide': `${duration}ms` } as CSSProperties}
+      inert={!visible}
+    >
+      <ModeBar indicator={shown} onChoose={onChoose} onRename={onRename} />
+    </div>
+  );
+}
 
 /**
  * Barre du courant du mode de la page (ex. flux courant du mode Séquences), en haut de la zone de dessin : sa couleur,
