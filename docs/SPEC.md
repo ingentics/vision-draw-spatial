@@ -421,7 +421,8 @@ Ajouter une forme = **déposer son dossier** (au minimum `kind` et `flat`, idéa
   « CRON » ; le **Process étiqueté** (`labeled-process`) est la forme générique, « PROCESS » par défaut. Le mot est
   un paramètre de l'instance : champ « Étiquette » de la section de la forme dans le panneau (`spatial.tag`, vide =
   le mot par défaut). **Écart assumé** : seul Drawio Spatial dessine le mot, draw.io montre la tranche vide. Prisme
-  du contour en iso / 3D, ligne et mot sur le dessus ; se cliquent sur toutes leurs bornes.
+  du contour en iso / 3D, ligne sur le dessus, mot **en façade**, en bas à droite de chaque face, comme l'étiquette
+  des bâtiments (coupé avec elles par `view.facadeTags`) ; se cliquent sur toutes leurs bornes.
 - Connecteurs (arêtes) : segments, points intermédiaires, flèche de fin,
 - Couleurs de remplissage, de bordure, épaisseur de trait, pointillés, label centré.
 - **Position du label**, comme draw.io : dans la forme selon `align` / `verticalAlign` (marges `spacing*`, plus

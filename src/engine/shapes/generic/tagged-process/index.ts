@@ -3,9 +3,10 @@ import { orientedPath } from '../../../render/geometry/orient';
 import { cornerRadius, rectPath, roundedRectPath } from '../../../render/geometry/paths';
 import { styleNumber } from '../../../render/styleValues';
 import { SPATIAL, spatialValue } from '../../../spatial';
-import type { PaletteEntry, ShapeDefinition, ShapeDetail } from '../../types';
+import type { Group } from 'three';
+import type { PaletteEntry, SceneRenderer, ShapeDefinition, ShapeDetail } from '../../types';
 import { box } from '../box';
-import { darker } from '../building';
+import { darker, facadeTag, tagOf, tagSize } from '../building';
 
 /** Écarts des lignes par défaut de `internalStorage` (`dx`, `dy`), en px. */
 const DEFAULT_DX = 20;
@@ -40,8 +41,14 @@ function outline(shape: ShapeModel): Point[] {
     : rectPath(shape.bounds);
 }
 
-/** Les deux lignes de draw.io, puis le mot de la tranche (entre le bord et la verticale), écrit de bas en haut. */
-function details(shape: ShapeModel, tag: string): ShapeDetail[] {
+/** Mot de la tranche : `spatial.tag`, sinon celui de la forme ; vide = aucun. */
+const wordOf = (shape: ShapeModel, tag: string) => (spatialValue(shape, SPATIAL.tag) ?? tag).trim();
+
+/**
+ * Les deux lignes de draw.io, puis (`withWord`) le mot de la tranche (entre le bord et la verticale), écrit de bas
+ * en haut.
+ */
+function details(shape: ShapeModel, tag: string, withWord = true): ShapeDetail[] {
   const { bounds, style } = shape;
   const oriented = (draw: (w: number, h: number) => Point[]) => orientedPath(bounds, style, draw);
   const vertical = oriented((w, h) => {
@@ -62,8 +69,8 @@ function details(shape: ShapeModel, tag: string): ShapeDetail[] {
     { path: vertical, closed: false },
     { path: horizontal, closed: false },
   ];
-  const text = (spatialValue(shape, SPATIAL.tag) ?? tag).trim();
-  if (!text) return result;
+  const text = wordOf(shape, tag);
+  if (!withWord || !text) return result;
   let band = { width: 0, length: 0 };
   // Centre de la tranche et un point au-dessus : la direction d'écriture, orientée avec la forme.
   const [center, above] = oriented((w, h) => {
@@ -89,6 +96,26 @@ function details(shape: ShapeModel, tag: string): ShapeDetail[] {
   return result;
 }
 
+/**
+ * Rendu iso / 3D : prisme du contour, lignes sur le dessus, et le mot en façade, en bas à droite de chaque face
+ * (comme l'étiquette des bâtiments ; coupé par le réglage des étiquettes de façade). Sans volume (pas de fond),
+ * le rendu à plat, mot dans la tranche.
+ */
+function isoTagged(tag: string): SceneRenderer {
+  const withWord = box(outline, { details: (shape) => details(shape, tag) }).iso!;
+  const linesOnly = box(outline, { details: (shape) => details(shape, tag, false) }).iso!;
+  return {
+    create(shape, ctx) {
+      const group = linesOnly.create(shape, ctx) as Group;
+      const height = group.userData.height as number | undefined;
+      if (height === undefined) return withWord.create(shape, ctx);
+      const text = wordOf(shape, tag) && tagOf(shape, ctx, tag);
+      if (text) facadeTag(group, shape, ctx, text, tagSize(height));
+      return group;
+    },
+  };
+}
+
 /** Icône de palette : la forme et son mot dans la tranche, de bas en haut. */
 const icon = (tag: string) =>
   '<path d="M4 4h32v20H4zM30 4v20"/>' +
@@ -101,7 +128,7 @@ const icon = (tag: string) =>
  * retournée à droite (`flipH=1`) : la tranche garde sa largeur quand on redimensionne. Le mot de la tranche (`tag`,
  * `spatial.tag` le remplace) est en capitales grises, écrit de bas en haut ; seul Drawio Spatial le dessine (draw.io
  * montre la tranche vide). La forme est désignée par `spatial.kind` (son `id`). Prisme du contour en iso / 3D, lignes
- * et mot sur le dessus.
+ * sur le dessus, mot en façade.
  */
 export function taggedProcess(
   id: string,
@@ -111,6 +138,7 @@ export function taggedProcess(
   return {
     id,
     ...box(outline, { details: (shape) => details(shape, tag) }),
+    iso: isoTagged(tag),
     contains: () => true,
     properties: [
       { type: 'toggle', key: 'rounded', label: 'Coins arrondis', section: 'border' },
