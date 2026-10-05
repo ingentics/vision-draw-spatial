@@ -10,6 +10,8 @@ import { layoutOnPath } from './textPath';
 import type { TextFactory, TextSpec } from './types';
 
 const BACKGROUND_PADDING = 1;
+/** Couche des halos d'un texte en morceaux : sous les lettres (0), au-dessus du fond (−0,5). */
+const HALO_ORDER_OFFSET = -0.25;
 const LINE_HEIGHT = 1.2;
 /** Glyphes SDF à 128 px (64 par défaut) : bords nets en petite taille comme en zoom, atlas 4× plus lourd. */
 const SDF_GLYPH_SIZE = 128;
@@ -97,6 +99,31 @@ export function createTroikaTextFactory(fonts: FontSet, onReady: () => void): Te
     return text;
   };
 
+  /**
+   * Morceau d'un texte dessiné en plusieurs textes SDF (lettre, mot) : avec un halo, deux couches, le halo seul
+   * (remplissage transparent) sous toutes les lettres, puis la lettre seule, pour que le halo d'un morceau ne
+   * passe jamais sur ses voisins. `place` pose chaque texte ; `offset` : rang dans l'ordre de dessin du groupe.
+   */
+  const layeredText = (
+    content: string,
+    font: FontSpec,
+    color: Color,
+    opacity: number,
+    halo: TextSpec['halo'],
+    place: (text: Text) => void,
+  ): Array<{ text: Text; offset: number }> => {
+    const fill = sdfText(content, font, color, opacity);
+    place(fill);
+    if (!halo) return [{ text: fill, offset: 0 }];
+    const outline = sdfText(content, font, color, opacity, halo);
+    outline.fillOpacity = 0;
+    place(outline);
+    return [
+      { text: outline, offset: HALO_ORDER_OFFSET },
+      { text: fill, offset: 0 },
+    ];
+  };
+
   return {
     create(spec) {
       if (spec.along) return createOnPath(spec);
@@ -148,25 +175,24 @@ export function createTroikaTextFactory(fonts: FontSet, onReady: () => void): Te
       const layout = layoutRichText(lines, base, measureText, { align: spec.align });
       const anchorY = spec.anchorY === 'top' ? 'top' : spec.anchorY === 'middle' ? 'middle' : 'bottom';
       const glyphs = layoutOnPath(layout, along, { x: spec.anchorX, y: anchorY }, measureText);
-      let pending = glyphs.length;
+      let pending = 0;
       for (const glyph of glyphs) {
-        const text = sdfText(
-          glyph.text,
-          glyph,
-          glyph.color ? new Color(glyph.color) : spec.color,
-          spec.opacity,
-          spec.halo,
-        );
-        text.anchorX = 'center';
-        text.anchorY = 'top-baseline';
-        text.whiteSpace = 'nowrap';
-        text.position.set(glyph.x, glyph.y, 0);
-        text.rotation.z = glyph.angle;
-        followRenderOrder(text, group, 0);
-        group.add(text);
-        text.sync(() => {
-          if (--pending === 0) onReady();
+        const color = glyph.color ? new Color(glyph.color) : spec.color;
+        const layers = layeredText(glyph.text, glyph, color, spec.opacity, spec.halo, (text) => {
+          text.anchorX = 'center';
+          text.anchorY = 'top-baseline';
+          text.whiteSpace = 'nowrap';
+          text.position.set(glyph.x, glyph.y, 0);
+          text.rotation.z = glyph.angle;
         });
+        for (const { text, offset } of layers) {
+          followRenderOrder(text, group, offset);
+          group.add(text);
+          pending++;
+          text.sync(() => {
+            if (--pending === 0) onReady();
+          });
+        }
       }
       if (pending === 0) onReady();
     });
@@ -227,17 +253,20 @@ export function createTroikaTextFactory(fonts: FontSet, onReady: () => void): Te
           add(line);
         }
         if (run.text.trim() === '') continue;
-        const text = sdfText(run.text, run, color, spec.opacity, spec.halo);
-        text.anchorX = 'left';
-        // Ligne de base au point donné : tous les segments d'une ligne s'alignent.
-        text.anchorY = 'top-baseline';
-        text.whiteSpace = 'nowrap';
-        text.position.set(left + run.x, top + run.baseline, 0);
-        add(text);
-        pending++;
-        text.sync(() => {
-          if (--pending === 0) onReady();
+        const layers = layeredText(run.text, run, color, spec.opacity, spec.halo, (text) => {
+          text.anchorX = 'left';
+          // Ligne de base au point donné : tous les segments d'une ligne s'alignent.
+          text.anchorY = 'top-baseline';
+          text.whiteSpace = 'nowrap';
+          text.position.set(left + run.x, top + run.baseline, 0);
         });
+        for (const { text, offset } of layers) {
+          add(text, offset);
+          pending++;
+          text.sync(() => {
+            if (--pending === 0) onReady();
+          });
+        }
       }
       if (pending === 0) onReady();
     });
