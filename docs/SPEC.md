@@ -699,6 +699,7 @@ interface Settings {
   edit: {                                                         // édition (§14)
     edgePickTolerance: number; handlePickTolerance: number;       // px écran : 6, 8
     handleSize: number; minShapeSize: number;                     // demi-côté des poignées (px écran) : 4 ; px de page : 10
+    nudgeStep: number; nudgeCoarseStep: number;                   // flèches du clavier, px de page : 1 ; Maj : 0 = pas de grille
   };
   save: { autosave: boolean; delayMs: number; viewStateDelayMs: number }; // true, 1000, 500 (position de consultation, §5.3)
   debug: { showUnsupportedPanel: boolean };                       // true

@@ -1042,6 +1042,26 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   onChange={(minShapeSize) => onChange({ edit: { minShapeSize } })}
                 />
               </Subsection>
+              <Subsection title="Déplacement au clavier">
+                <Slider
+                  label="Pas d’une flèche"
+                  value={edit.nudgeStep}
+                  limits={SETTINGS_LIMITS['edit.nudgeStep']}
+                  format={(v) => `${v} px`}
+                  onChange={(nudgeStep) => onChange({ edit: { nudgeStep } })}
+                />
+                <Slider
+                  label="Pas avec Maj"
+                  value={edit.nudgeCoarseStep}
+                  limits={SETTINGS_LIMITS['edit.nudgeCoarseStep']}
+                  format={(v) => (v === 0 ? 'grille' : `${v} px`)}
+                  onChange={(nudgeCoarseStep) => onChange({ edit: { nudgeCoarseStep } })}
+                />
+                <p className="hint muted">
+                  Les flèches du clavier déplacent la sélection ; avec Maj, d’un pas plus grand (à 0, un pas de grille,
+                  calé sur la grille).
+                </p>
+              </Subsection>
             </Section>
 
             <Section title="Sauvegarde">

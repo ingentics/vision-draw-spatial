@@ -189,6 +189,8 @@ describe('réglages exposés (caméra, vue graphe, édition…)', () => {
       handlePickTolerance: 8,
       handleSize: 4,
       minShapeSize: 10,
+      nudgeStep: 1,
+      nudgeCoarseStep: 0,
     });
     expect(DEFAULT_SETTINGS.controls.orbitSpeed).toBe(0.005);
     expect(DEFAULT_SETTINGS.controls.multiSelectKey).toBe('ctrl');

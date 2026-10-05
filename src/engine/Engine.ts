@@ -2612,8 +2612,8 @@ export class Engine {
   }
 
   /**
-   * Flèches du clavier sur la sélection (ticket 123) : la déplace de 1 px, ou d'un pas de grille calé sur la
-   * grille (`coarse`, Maj), selon les axes de la page ; un appui = une étape d'annulation. Faux si rien ne
+   * Flèches du clavier sur la sélection (ticket 123) : la déplace de `edit.nudgeStep`, ou avec Maj (`coarse`)
+   * de `edit.nudgeCoarseStep` — par défaut un pas de grille calé sur la grille —, selon les axes de la page ; un appui = une étape d'annulation. Faux si rien ne
    * bouge (pas de sélection déplaçable : les flèches gardent alors leur rôle de déplacement de la vue).
    */
   nudgeSelection(direction: Point, coarse: boolean): boolean {
@@ -2639,9 +2639,11 @@ export class Engine {
       grid,
     );
     if (drag.rootIds.length === 0 && drag.edges.length === 0) return false;
-    const step = coarse ? grid : 1;
+    const { nudgeStep, nudgeCoarseStep } = this.settings.edit;
+    const onGrid = coarse && nudgeCoarseStep === 0;
+    const step = onGrid ? grid : coarse ? nudgeCoarseStep : nudgeStep;
     this.drag = drag;
-    this.dragMove(page, drag, { x: direction.x * step, y: direction.y * step }, coarse);
+    this.dragMove(page, drag, { x: direction.x * step, y: direction.y * step }, onGrid);
     this.endMove();
     return true;
   }

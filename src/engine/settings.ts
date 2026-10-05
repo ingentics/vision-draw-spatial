@@ -205,6 +205,10 @@ export interface EditSettings {
   handleSize: number;
   /** Taille minimale d'une forme redimensionnée, en pixels de page. */
   minShapeSize: number;
+  /** Pas d'une flèche du clavier sur la sélection, en pixels de page. */
+  nudgeStep: number;
+  /** Pas avec Maj, en pixels de page ; 0 = un pas de grille, calé sur la grille. */
+  nudgeCoarseStep: number;
 }
 
 /** Sauvegarde automatique (édition) : peu après chaque modification, sans interrompre un geste en cours. */
@@ -370,7 +374,14 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   styles: { base: DRAWIO_STYLES, extended: PASTEL_STYLES, text: TEXT_STYLES },
   graph: { cardWidth: 260, columnGap: 200, rowGap: 90 },
-  edit: { edgePickTolerance: 6, handlePickTolerance: 8, handleSize: 4, minShapeSize: 10 },
+  edit: {
+    edgePickTolerance: 6,
+    handlePickTolerance: 8,
+    handleSize: 4,
+    minShapeSize: 10,
+    nudgeStep: 1,
+    nudgeCoarseStep: 0,
+  },
   save: { autosave: true, delayMs: 1000, viewStateDelayMs: 500 },
   debug: { showUnsupportedPanel: true },
   accessibility: { reducedMotion: 'system' },
@@ -442,6 +453,8 @@ export const SETTINGS_LIMITS = {
   'edit.handlePickTolerance': { min: 2, max: 30, step: 1 },
   'edit.handleSize': { min: 2, max: 12, step: 0.5 },
   'edit.minShapeSize': { min: 1, max: 100, step: 1 },
+  'edit.nudgeStep': { min: 1, max: 50, step: 1 },
+  'edit.nudgeCoarseStep': { min: 0, max: 100, step: 1 },
   'save.delayMs': { min: 300, max: 30000, step: 100 },
   'save.viewStateDelayMs': { min: 100, max: 5000, step: 100 },
   'panels.left.width': { min: 160, max: 400, step: 16 },
@@ -684,6 +697,8 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
       handlePickTolerance: num('edit.handlePickTolerance', p.edit?.handlePickTolerance, base.edit.handlePickTolerance),
       handleSize: num('edit.handleSize', p.edit?.handleSize, base.edit.handleSize),
       minShapeSize: num('edit.minShapeSize', p.edit?.minShapeSize, base.edit.minShapeSize),
+      nudgeStep: num('edit.nudgeStep', p.edit?.nudgeStep, base.edit.nudgeStep),
+      nudgeCoarseStep: num('edit.nudgeCoarseStep', p.edit?.nudgeCoarseStep, base.edit.nudgeCoarseStep),
     },
     save: {
       autosave: bool(p.save?.autosave, base.save.autosave),
