@@ -62,11 +62,11 @@ export function selectionHandles(
   return group;
 }
 
-/** Trait d'aperçu d'un connecteur en cours de création. */
-export function connectorPreview(from: Point, to: Point, zoom: number, accent = DEFAULT_ACCENT): Group {
+/** Trait d'aperçu d'un connecteur en cours de création (ligne brisée : départ, coudes éventuels, arrivée). */
+export function connectorPreview(path: Point[], zoom: number, accent = DEFAULT_ACCENT): Group {
   const group = new Group();
   group.name = 'connector-preview';
-  const line = strokeMesh([from, to], new Color(accent), 1, {
+  const line = strokeMesh(path, new Color(accent), 1, {
     width: 1.5 / zoom,
     closed: false,
     dash: [6 / zoom, 4 / zoom],

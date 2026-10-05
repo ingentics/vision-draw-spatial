@@ -58,6 +58,7 @@ import {
   sameAttachment,
   frameConstraint,
   shapeAnchors,
+  sideOfConstraint,
   snapshotEnds,
   writeEndAttachment,
 } from './edit/edgeEnds';
@@ -81,6 +82,7 @@ import { setLineResolution } from './render/lines';
 import type { EdgeEnd } from './edit/edgeLabels';
 import { CONNECT_DIRECTIONS, connectSideOf, handlePoints, isConnectHandle, resizeBounds } from './edit/handles';
 import type { ConnectSide, HandleKind, ResizeHandle } from './edit/handles';
+import { loopWaypoints } from './edit/loops';
 import { dropBounds } from './edit/palette';
 import { applyStylePreset } from './edit/styles';
 import type { StylePreset } from './edit/styles';
@@ -377,6 +379,9 @@ interface ResizeDrag {
   started: boolean;
 }
 
+/** Point d'ancrage compté comme pris en plus des flèches existantes (ex. départ d'une boucle en cours). */
+type TakenAnchor = { shapeId: string; constraint: Point };
+
 /** Bout de flèche en cours de déplacement : il ne prend pas de point d'ancrage. */
 type AnchorSkip = {
   edgeId: string;
@@ -393,6 +398,8 @@ interface ConnectDrag {
   side: ConnectSide;
   /** Point de départ retenu : point libre de ce côté le plus proche de la cible visée. */
   exit?: Point;
+  /** Coudes d'une boucle sur la forme de départ, écrits en points intermédiaires. */
+  loop?: Point[];
   /** Forme visée, en attache auto ou sur un point de connexion (entrée fixe). */
   target?: Exclude<EndAttachment, { kind: 'free' }>;
   started: boolean;
@@ -408,6 +415,8 @@ interface EdgeEndDrag {
   original: EdgeEndsSnapshot;
   /** Point d'ancrage occupé par ce bout au début du glisser (reste pris pendant le glisser). */
   origin?: { shapeId: string; constraint: Point };
+  /** Points intermédiaires d'origine (remplacés par les coudes si le bout referme une boucle). */
+  originalPoints: Point[];
   attachment?: EndAttachment;
   started: boolean;
 }
@@ -2036,13 +2045,20 @@ export class Engine {
   private endAttachmentAt(
     page: PageModel,
     screen: Point,
-    options: { exclude?: string; skip?: AnchorSkip; height: number; snap: boolean; grid: number },
+    options: {
+      exclude?: string;
+      skip?: AnchorSkip;
+      taken?: TakenAnchor[];
+      height: number;
+      snap: boolean;
+      grid: number;
+    },
   ): EndAttachment {
     const shapes = connectableShapes(page, this.registry).filter((s) => s.id !== options.exclude);
     let best: { shapeId: string; constraint: Point; distance: number } | undefined;
     for (const shape of shapes) {
       const top = this.elementTop(shape.id);
-      for (const { constraint } of this.anchorsOf(page, shape, options.skip)) {
+      for (const { constraint } of this.anchorsOf(page, shape, options.skip, options.taken)) {
         const at = this.screenOfPoint(this.anchorPosition(shape, constraint), top);
         const distance = Math.hypot(at.x - screen.x, at.y - screen.y);
         if (distance <= this.settings.edit.handlePickTolerance * 1.5 && (!best || distance < best.distance))
@@ -2061,10 +2077,12 @@ export class Engine {
    * Points d'ancrage d'une forme (mode manuel) : les bouts en attache auto comptent au point où leur tracé touche la
    * forme ; le bout en cours de déplacement compte à sa place d'origine.
    */
-  private anchorsOf(page: PageModel, shape: ShapeModel, skip?: AnchorSkip): Anchor[] {
+  private anchorsOf(page: PageModel, shape: ShapeModel, skip?: AnchorSkip, taken: TakenAnchor[] = []): Anchor[] {
     return shapeAnchors(shape.id, page.edges, {
       skip,
-      extra: skip?.origin?.shapeId === shape.id ? [skip.origin.constraint] : [],
+      extra: [...(skip?.origin ? [skip.origin] : []), ...taken]
+        .filter((a) => a.shapeId === shape.id)
+        .map((a) => a.constraint),
       floatingAt: (edge, end) => {
         const point = this.edgeEndPoints(edge.id)?.[end];
         return point && frameConstraint(shape.bounds, point);
@@ -2091,15 +2109,36 @@ export class Engine {
     shape: ShapeModel,
     toward: Point,
     side?: ConnectSide,
+    taken: TakenAnchor[] = [],
   ): { constraint: Point; point: Point } | undefined {
     let best: { constraint: Point; point: Point; distance: number } | undefined;
-    for (const anchor of this.anchorsOf(page, shape)) {
+    for (const anchor of this.anchorsOf(page, shape, undefined, taken)) {
       if (anchor.used || !anchor.side || (side && anchor.side !== side)) continue;
       const point = this.anchorPosition(shape, anchor.constraint);
       const distance = Math.hypot(point.x - toward.x, point.y - toward.y);
       if (!best || distance < best.distance) best = { constraint: anchor.constraint, point, distance };
     }
     return best && { constraint: best.constraint, point: best.point };
+  }
+
+  /** Coudes d'une flèche qui boucle sur sa forme par deux points fixes ; undefined si ce n'en est pas une. */
+  private loopPoints(page: PageModel, edge: EdgeModel): Point[] | undefined {
+    const shape = edge.sourceId === edge.targetId && page.shapes.find((s) => s.id === edge.sourceId);
+    const from = endAttachmentOf(edge, 'source');
+    const to = endAttachmentOf(edge, 'target');
+    if (!shape || from?.kind !== 'fixed' || to?.kind !== 'fixed') return undefined;
+    return this.loopBetween(shape, from.constraint, to.constraint);
+  }
+
+  /** Coudes d'une boucle entre deux points d'ancrage d'une forme (hors de la forme, `loopWaypoints`). */
+  private loopBetween(shape: ShapeModel, from: Point, to: Point): Point[] | undefined {
+    const end = (c: Point) => {
+      const side = sideOfConstraint(c);
+      return side && { point: this.anchorPosition(shape, c), side };
+    };
+    const a = end(from);
+    const b = end(to);
+    return a && b ? loopWaypoints(shape.bounds, a, b) : undefined;
   }
 
   /** Position d'un point d'ancrage sur la page, projeté sur le contour de la forme comme le tracé. */
@@ -2140,6 +2179,7 @@ export class Engine {
     attachment: EndAttachment | undefined,
     extra?: Object3D,
     skip?: AnchorSkip,
+    taken: TakenAnchor[] = [],
   ): void {
     this.clearConnectorPreview();
     const root = this.scenes.current?.root;
@@ -2150,7 +2190,7 @@ export class Engine {
     const shape =
       attachment && attachment.kind !== 'free' ? page.shapes.find((s) => s.id === attachment.shapeId) : undefined;
     if (shape && attachment?.kind !== 'free') {
-      const anchors = this.anchorsOf(page, shape, skip);
+      const anchors = this.anchorsOf(page, shape, skip, taken);
       const active =
         attachment?.kind === 'fixed'
           ? anchors.findIndex(
@@ -2223,6 +2263,7 @@ export class Engine {
         end,
         original: snapshotEnds(selectedEdge),
         origin: this.endAnchor(page, selectedEdge, end),
+        originalPoints: selectedEdge.points.map((p) => ({ ...p })),
         started: false,
       };
       return true;
@@ -2643,9 +2684,20 @@ export class Engine {
     if (!source) return;
     connect.started = true;
     const top = this.elementTop(source.id);
-    const attachment = this.endAttachmentAt(page, screen, { exclude: source.id, height: top, snap: false, grid: 0 });
+    const sideExit = CONNECT_DIRECTIONS[connect.side].exit;
+    // Boucle sur la forme elle-même : départ stable (point libre du côté le plus proche de son milieu), compté
+    // comme pris pour que l'arrivée soit ailleurs.
+    const loopExit = this.nearestFreeAnchor(page, source, this.anchorPosition(source, sideExit), connect.side) ?? {
+      constraint: sideExit,
+      point: this.anchorPosition(source, sideExit),
+    };
+    const taken = [{ shapeId: source.id, constraint: loopExit.constraint }];
+    const attachment = this.endAttachmentAt(page, screen, { taken, height: top, snap: false, grid: 0 });
     connect.target = attachment.kind === 'free' ? undefined : attachment;
     const target = connect.target && page.shapes.find((s) => s.id === connect.target!.shapeId);
+    const loop = target?.id === source.id;
+    if (loop && connect.target?.kind === 'fixed' && samePoints([connect.target.constraint], [loopExit.constraint]))
+      connect.target = { kind: 'floating', shapeId: source.id };
     const aim =
       connect.target?.kind === 'fixed' && target
         ? this.anchorPosition(target, connect.target.constraint)
@@ -2653,19 +2705,28 @@ export class Engine {
           ? { x: target.bounds.x + target.bounds.width / 2, y: target.bounds.y + target.bounds.height / 2 }
           : this.groundPointAtHeight(screen, top);
     // Départ : point libre du côté de la poignée le plus proche de la cible visée.
-    const exit = this.nearestFreeAnchor(page, source, aim, connect.side) ?? {
-      constraint: CONNECT_DIRECTIONS[connect.side].exit,
-      point: this.anchorPosition(source, CONNECT_DIRECTIONS[connect.side].exit),
-    };
+    const exit = loop
+      ? loopExit
+      : (this.nearestFreeAnchor(page, source, aim, connect.side) ?? {
+          constraint: sideExit,
+          point: this.anchorPosition(source, sideExit),
+        });
     connect.exit = exit.constraint;
     // Arrivée lâchée dans la forme : point libre de la cible le plus proche du départ.
-    const entry = connect.target?.kind === 'floating' && target && this.nearestFreeAnchor(page, target, exit.point);
+    const entry =
+      connect.target?.kind === 'floating' &&
+      target &&
+      this.nearestFreeAnchor(page, target, exit.point, undefined, loop ? taken : []);
     if (entry && target) connect.target = { kind: 'fixed', shapeId: target.id, constraint: entry.constraint };
-    const from = exit.point;
     const end = entry ? entry.point : aim;
-    const line = connectorPreview(from, end, this.cameraState.zoom, this.settings.selection.accentColor);
+    connect.loop =
+      loop && connect.target?.kind === 'fixed'
+        ? this.loopBetween(source, exit.constraint, connect.target.constraint)
+        : undefined;
+    const path = [exit.point, ...(connect.loop ?? []), end];
+    const line = connectorPreview(path, this.cameraState.zoom, this.settings.selection.accentColor);
     line.position.z = top + 0.2;
-    this.showConnectionHints(page, connect.target, line);
+    this.showConnectionHints(page, connect.target, line, undefined, taken);
   }
 
   /** Bout de flèche suivant le pointeur : tracé recalculé en direct, repères sur la forme visée. */
@@ -2704,6 +2765,8 @@ export class Engine {
     drag.attachment = attachment;
     restoreEnds(edge, drag.original);
     applyEndAttachment(edge, drag.end, attachment);
+    // Bout qui referme une boucle sur la forme : coudes recalculés hors de la forme.
+    edge.points = this.loopPoints(page, edge) ?? drag.originalPoints.map((p) => ({ ...p }));
     this.retraceEdges(page, new Set([edge.id]));
     this.afterLiveEdit();
   }
@@ -2756,12 +2819,15 @@ export class Engine {
       const after = drag.attachment;
       if (!after || sameAttachment(after, before)) {
         restoreEnds(edge, drag.original);
+        edge.points = drag.originalPoints;
         if (this.getCurrentPage()?.id === drag.pageId) this.retraceEdges(page, new Set([edge.id]));
         this.afterLiveEdit();
         return;
       }
       this.recordEdit('Extrémité de flèche');
       writeEndAttachment(pageTree, page, edge, drag.end, after);
+      const loop = this.loopPoints(page, edge);
+      if (loop) this.writeEdgePoints(page, pageTree, edge, loop);
       this.documentChanged([drag.pageId]);
       return;
     }
@@ -2781,6 +2847,8 @@ export class Engine {
         for (const [key, value] of Object.entries(constraintStyle('target', drag.target.constraint)))
           if (value !== undefined) style = withStyleValue(style, key, value);
       const id = addEdgeCell(pageTree, { source: drag.sourceId, target: drag.target.shapeId, style });
+      // Flèche créée dans un calque : ses points sont en coordonnées de page.
+      if (drag.loop) setEdgePoints(pageTree, id, drag.loop);
       // Le mode de la page reçoit la flèche (ex. ajoutée au flux courant), dans la même étape d'annulation.
       const page = this.pageById(drag.pageId);
       const created = page && this.modes.modeOf(page)?.edgeCreated;
