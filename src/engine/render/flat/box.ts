@@ -1,7 +1,7 @@
 import { Group } from 'three';
 import type { Point, Rect, ShapeModel } from '../../model/types';
 import { dashPattern } from '../geometry/stroke';
-import { BASE_SPACING, outsideLabelBox } from '../labelPosition';
+import { labelInsets, outsideLabelBox } from '../labelPosition';
 import { fillMesh, strokeMesh } from '../meshes';
 import { labelBackground, textFormat, styleColor, styleNumber, styleOpacity } from '../styleValues';
 import { PART_ORDER } from '../types';
@@ -67,16 +67,11 @@ export function createLabel(shape: ShapeModel, ctx: RenderContext, text = shape.
   const align = (['left', 'right'].includes(style.align ?? '') ? style.align : 'center') as TextSpec['align'];
   const vertical = style.verticalAlign === 'top' ? 'top' : style.verticalAlign === 'bottom' ? 'bottom' : 'middle';
 
-  const spacing = styleNumber(style, 'spacing', 2);
-  const left = bounds.x + spacing + styleNumber(style, 'spacingLeft', 0);
-  const right = bounds.x + bounds.width - spacing - styleNumber(style, 'spacingRight', 0);
-  const top = bounds.y + spacing + styleNumber(style, 'spacingTop', 0) + (vertical === 'top' ? BASE_SPACING.top : 0);
-  const bottom =
-    bounds.y +
-    bounds.height -
-    spacing -
-    styleNumber(style, 'spacingBottom', 0) -
-    (vertical === 'bottom' ? BASE_SPACING.bottom : 0);
+  const insets = labelInsets(style);
+  const left = bounds.x + insets.left;
+  const right = bounds.x + bounds.width - insets.right;
+  const top = bounds.y + insets.top;
+  const bottom = bounds.y + bounds.height - insets.bottom;
 
   const spec: TextSpec = {
     text,
