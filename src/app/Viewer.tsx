@@ -685,6 +685,10 @@ export function Viewer({
                   }
                   onRenamePage={editablePages ? (name) => engine?.renamePage(currentPage.id, name) : undefined}
                   onPageMode={editablePages ? (modeId) => engine?.setPageMode(currentPage.id, modeId) : undefined}
+                  onPageAnchoring={
+                    editablePages ? (anchoring) => engine?.setPageAnchoring(currentPage.id, anchoring) : undefined
+                  }
+                  defaultAnchoring={settings.shapes.edgeAnchoring}
                   onModeEdit={editablePages ? (label, edit) => engine?.editPageMode(label, edit) : undefined}
                   modeCurrent={engine?.getModeCurrent(currentPage.id)}
                   onModeProperty={

@@ -129,6 +129,11 @@ export interface ShapeSettings {
   /** Tracé des flèches créées : droite, angles droits, coudes arrondis, ou courbe. */
   edgeLineStyle: 'straight' | 'sharp' | 'rounded' | 'curved';
   /**
+   * Ancrage des flèches sur les formes : manuel (points d'ancrage subdivisés, au choix) ou automatique (on choisit
+   * le côté, les flèches y sont réparties) ; une page peut le surcharger (`spatial.anchoring`).
+   */
+  edgeAnchoring: 'manual' | 'auto';
+  /**
    * Fond du texte des flèches sans `labelBackgroundColor` explicite : halo de la couleur de la page
    * autour de chaque lettre, fond uni de la couleur de la page, ou transparent.
    */
@@ -328,6 +333,7 @@ export const DEFAULT_SETTINGS: Settings = {
     edgeEndTextGapAlong: 6,
     edgeEndTextGapAcross: 4,
     edgeLineStyle: 'rounded',
+    edgeAnchoring: 'manual',
     edgeLabelBackdrop: 'halo',
     edgeLabelHaloWidth: 1.5,
     edgeLabelHaloBlur: 1,
@@ -431,6 +437,7 @@ const REDUCED_MOTION = ['system', 'always', 'never'] as const;
 const SELECTION_STYLES = ['veil', 'outline'] as const;
 const LABEL_BACKDROPS = ['halo', 'solid', 'none'] as const;
 const EDGE_LINES = ['straight', 'sharp', 'rounded', 'curved'] as const;
+const EDGE_ANCHORINGS = ['manual', 'auto'] as const;
 const STRIP_TEXT = ['up', 'down'] as const;
 const PLANTUML_RENDERERS = ['kroki', 'plantuml', 'local'] as const;
 
@@ -586,6 +593,7 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
         base.shapes.edgeEndTextGapAcross,
       ),
       edgeLineStyle: oneOf(EDGE_LINES, p.shapes?.edgeLineStyle, base.shapes.edgeLineStyle),
+      edgeAnchoring: oneOf(EDGE_ANCHORINGS, p.shapes?.edgeAnchoring, base.shapes.edgeAnchoring),
       edgeEndTextSize: Math.round(
         num('shapes.edgeEndTextSize', p.shapes?.edgeEndTextSize, base.shapes.edgeEndTextSize),
       ),

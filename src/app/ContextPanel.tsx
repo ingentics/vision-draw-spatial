@@ -47,6 +47,10 @@ export interface ContextPanelProps {
   onRenamePage?: (name: string) => void;
   /** Mode de la page (undefined = page normale) ; absent si la page n'est pas modifiable. */
   onPageMode?: (modeId: string | undefined) => void;
+  /** Ancrage des flèches propre à la page (undefined = réglage de l'appli) ; absent si la page n'est pas modifiable. */
+  onPageAnchoring?: (anchoring: 'manual' | 'auto' | undefined) => void;
+  /** Ancrage des flèches du réglage de l'appli (choix « par défaut » de la page). */
+  defaultAnchoring?: 'manual' | 'auto';
   /** Opération du mode de la page (sections propres au mode) ; absent si la page n'est pas modifiable. */
   onModeEdit?: (label: string, edit: (edit: ModeEdit) => void) => void;
   /** Réglage déclaré par le mode de la page (undefined = vide) ; absent si la page n'est pas modifiable. */
@@ -112,6 +116,9 @@ export function contextTitle(shapes: readonly ShapeModel[], edges: readonly Edge
 // ---------------------------------------------------------------------------
 // Page
 
+const ANCHORINGS = ['manual', 'auto'];
+const ANCHORING_LABELS = { manual: 'Manuel', auto: 'Automatique' } as const;
+
 function PageSections({ page, onRenamePage: onRename, ...props }: ContextPanelProps) {
   return (
     <>
@@ -132,6 +139,20 @@ function PageSections({ page, onRenamePage: onRename, ...props }: ContextPanelPr
             {plural(page.shapes.length, 'forme')}, {plural(page.edges.length, 'flèche')}
           </span>
         </div>
+        <SelectField
+          label="Ancrage des flèches"
+          title="Manuel : on choisit le point d'attache. Automatique : on choisit le côté, les flèches y sont réparties (spatial.anchoring)"
+          value={
+            ANCHORINGS.includes(page.attributes[SPATIAL.anchoring] ?? '') ? page.attributes[SPATIAL.anchoring]! : ''
+          }
+          options={[
+            { value: '', label: `Par défaut (${ANCHORING_LABELS[props.defaultAnchoring ?? 'manual']})` },
+            { value: 'manual', label: ANCHORING_LABELS.manual },
+            { value: 'auto', label: ANCHORING_LABELS.auto },
+          ]}
+          disabled={!props.onPageAnchoring}
+          onChange={(value) => props.onPageAnchoring?.(value === 'manual' || value === 'auto' ? value : undefined)}
+        />
       </Section>
       <PageModeSections
         page={page}

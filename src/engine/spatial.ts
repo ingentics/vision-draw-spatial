@@ -27,6 +27,8 @@ export const SPATIAL = {
   nodes: 'spatial.nodes',
   /** Mode de la page (attribut de `<diagram>`) : id d'un mode de `modes/` (ex. `sequences`) ; absent = page normale. */
   mode: 'spatial.mode',
+  /** Ancrage des flèches de la page (attribut de `<diagram>`) : `manual` ou `auto` ; absent = réglage de l'appli. */
+  anchoring: 'spatial.anchoring',
   /** État de vue d'une page (attribut de `<diagram>`, voir `format/viewState`). */
   view: 'spatial.view',
 } as const;

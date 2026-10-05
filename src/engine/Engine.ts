@@ -82,6 +82,8 @@ import { setLineResolution } from './render/lines';
 import type { EdgeEnd } from './edit/edgeLabels';
 import { CONNECT_DIRECTIONS, connectSideOf, handlePoints, isConnectHandle, resizeBounds } from './edit/handles';
 import type { ConnectSide, HandleKind, ResizeHandle } from './edit/handles';
+import { affectedShapes, distributeAnchors, pageGeometry, sideMiddle } from './edit/distribute';
+import type { Anchoring, PageGeometry } from './edit/distribute';
 import { loopWaypoints } from './edit/loops';
 import { dropBounds } from './edit/palette';
 import { applyStylePreset } from './edit/styles';
@@ -506,6 +508,8 @@ export class Engine {
   private readonly controller: CameraController;
 
   private document: DocumentModel | undefined;
+  /** Géométrie des pages au dernier état enregistré (avant les modifications en direct d'un glisser). */
+  private geometry = new Map<string, PageGeometry>();
   /** Arbre XML d'origine du document chargé, base de l'écriture in situ (SPEC §14.2). */
   private xmlTree: DrawioTree | undefined;
   private unsupportedReport: UnsupportedReport | undefined;
@@ -670,6 +674,7 @@ export class Engine {
   async load(xml: string, fileId: string, initialView?: InitialView): Promise<void> {
     const { document, tree } = readDrawio(xml);
     this.document = this.withModeWarnings(document);
+    this.geometry = new Map(document.pages.map((p) => [p.id, pageGeometry(p)]));
     this.xmlTree = tree;
     this.fileId = fileId;
     this.unsupportedReport = collectUnsupported(document, this.registry);
@@ -856,11 +861,76 @@ export class Engine {
    * L'arbre a changé de structure : le modèle est relu de l'arbre, les scènes des pages touchées et
    * de la vue graphe sont reconstruites, la sélection est reprise par id.
    */
+  /**
+   * Ancrage automatique : après une édition, les flèches des formes touchées (et de leurs voisines) sont réparties
+   * sur leurs côtés, écrit dans l'arbre XML (même étape d'annulation). Vrai si quelque chose a été écrit.
+   */
+  private distributeAfterEdit(after: DocumentModel, changedPageIds: string[]): boolean {
+    if (!this.editable) return false;
+    let wrote = false;
+    for (const pageId of changedPageIds) {
+      const page = after.pages.find((p) => p.id === pageId);
+      if (!page || this.anchoringOf(page) !== 'auto') continue;
+      const shapeIds = affectedShapes(this.geometry.get(pageId), page);
+      if (shapeIds.size > 0) wrote = this.writeDistribution(page, shapeIds) || wrote;
+    }
+    return wrote;
+  }
+
+  /** Écrit la répartition des flèches des formes `shapeIds` (et les coudes des boucles concernées). */
+  private writeDistribution(page: PageModel, shapeIds: ReadonlySet<string>): boolean {
+    const pageTree = this.pageTreeOf(page.id);
+    const changes = pageTree ? distributeAnchors(page, shapeIds) : [];
+    if (!pageTree || changes.length === 0) return false;
+    const loops = new Set<EdgeModel>();
+    for (const { edgeId, end, constraint } of changes) {
+      const edge = page.edges.find((e) => e.id === edgeId);
+      if (!edge) continue;
+      for (const [key, value] of Object.entries(constraintStyle(end, constraint))) {
+        setCellStyleValue(pageTree, edgeId, key, value);
+        if (value === undefined) delete edge.style[key];
+        else edge.style[key] = value;
+      }
+      if (edge.sourceId && edge.sourceId === edge.targetId) loops.add(edge);
+    }
+    for (const edge of loops) {
+      const points = this.loopPoints(page, edge);
+      if (points) this.writeEdgePoints(page, pageTree, edge, points);
+    }
+    return true;
+  }
+
+  /** Ancrage des flèches d'une page : le sien (`spatial.anchoring`), sinon le réglage de l'appli. */
+  anchoringOf(page: PageModel): Anchoring {
+    const own = page.attributes[SPATIAL.anchoring];
+    return own === 'manual' || own === 'auto' ? own : this.settings.shapes.edgeAnchoring;
+  }
+
+  /**
+   * Ancrage propre à une page (undefined : celui de l'appli). Passer une page en automatique y répartit toutes les
+   * flèches, dans la même étape d'annulation.
+   */
+  setPageAnchoring(pageId: string, anchoring: Anchoring | undefined): void {
+    const page = this.pageById(pageId);
+    const pageTree = this.pageTreeOf(pageId);
+    if (!this.xmlTree || !page || !pageTree?.diagram || !this.editable || this.transition) return;
+    if ((page.attributes[SPATIAL.anchoring] ?? '') === (anchoring ?? '')) return;
+    this.recordEdit('Ancrage des flèches');
+    setPageAttribute(pageTree, SPATIAL.anchoring, anchoring);
+    const fresh = documentFromTree(this.xmlTree).pages.find((p) => p.id === pageId);
+    if (fresh && this.anchoringOf(fresh) === 'auto')
+      this.writeDistribution(fresh, new Set(fresh.shapes.map((s) => s.id)));
+    this.documentChanged([pageId]);
+  }
+
   private documentChanged(changedPageIds: string[]): void {
     if (!this.xmlTree) return;
     const selected = this.selection;
     this.clearSelection();
-    this.document = this.withModeWarnings(documentFromTree(this.xmlTree));
+    let document = documentFromTree(this.xmlTree);
+    if (this.distributeAfterEdit(document, changedPageIds)) document = documentFromTree(this.xmlTree);
+    this.document = this.withModeWarnings(document);
+    this.geometry = new Map(document.pages.map((p) => [p.id, pageGeometry(p)]));
     this.unsupportedReport = collectUnsupported(this.document, this.registry);
     this.graph = undefined;
     for (const id of [...changedPageIds, GRAPH_PAGE_ID]) this.scenes.invalidate(id, true);
@@ -2054,7 +2124,19 @@ export class Engine {
       grid: number;
     },
   ): EndAttachment {
-    const shapes = connectableShapes(page, this.registry).filter((s) => s.id !== options.exclude);
+    if (this.anchoringOf(page) === 'auto') {
+      // Ancrage automatique : on ne vise que le côté de la forme (le plus proche du pointeur) ; la répartition suit.
+      const shape = this.shapeAt(screen, options.exclude);
+      if (shape) {
+        const pointer = this.groundPointAtHeight(screen, this.elementTop(shape.id));
+        const side = sideOfConstraint(frameConstraint(shape.bounds, pointer)) ?? 'n';
+        return { kind: 'fixed', shapeId: shape.id, constraint: sideMiddle(side) };
+      }
+    }
+    const shapes =
+      this.anchoringOf(page) === 'auto'
+        ? []
+        : connectableShapes(page, this.registry).filter((s) => s.id !== options.exclude);
     let best: { shapeId: string; constraint: Point; distance: number } | undefined;
     for (const shape of shapes) {
       const top = this.elementTop(shape.id);
@@ -2189,7 +2271,37 @@ export class Engine {
     if (extra) group.add(extra);
     const shape =
       attachment && attachment.kind !== 'free' ? page.shapes.find((s) => s.id === attachment.shapeId) : undefined;
-    if (shape && attachment?.kind !== 'free') {
+    if (shape && attachment?.kind === 'fixed' && this.anchoringOf(page) === 'auto') {
+      // Ancrage automatique : le côté visé est surligné.
+      const side = sideOfConstraint(attachment.constraint);
+      const b = shape.bounds;
+      const corners: Record<string, [Point, Point]> = {
+        n: [
+          { x: b.x, y: b.y },
+          { x: b.x + b.width, y: b.y },
+        ],
+        e: [
+          { x: b.x + b.width, y: b.y },
+          { x: b.x + b.width, y: b.y + b.height },
+        ],
+        s: [
+          { x: b.x, y: b.y + b.height },
+          { x: b.x + b.width, y: b.y + b.height },
+        ],
+        w: [
+          { x: b.x, y: b.y },
+          { x: b.x, y: b.y + b.height },
+        ],
+      };
+      const hints = connectionHints(
+        { bounds: b, perimeter: 'rectangle', style: shape.style },
+        [],
+        this.cameraState.zoom,
+        { outline: false, side: side && corners[side], accent: this.settings.selection.accentColor },
+      );
+      hints.position.z = this.elementTop(shape.id) + 0.3;
+      group.add(hints);
+    } else if (shape && attachment?.kind !== 'free') {
       const anchors = this.anchorsOf(page, shape, skip, taken);
       const active =
         attachment?.kind === 'fixed'
@@ -2685,6 +2797,30 @@ export class Engine {
     connect.started = true;
     const top = this.elementTop(source.id);
     const sideExit = CONNECT_DIRECTIONS[connect.side].exit;
+    if (this.anchoringOf(page) === 'auto') {
+      // Ancrage automatique : départ et arrivée au milieu des côtés choisis, répartis à l'écriture.
+      const attachment = this.endAttachmentAt(page, screen, { height: top, snap: false, grid: 0 });
+      connect.target = attachment.kind === 'free' ? undefined : attachment;
+      connect.exit = sideExit;
+      const target = connect.target && page.shapes.find((s) => s.id === connect.target!.shapeId);
+      const from = this.anchorPosition(source, sideExit);
+      const end =
+        connect.target?.kind === 'fixed' && target
+          ? this.anchorPosition(target, connect.target.constraint)
+          : this.groundPointAtHeight(screen, top);
+      connect.loop =
+        target?.id === source.id && connect.target?.kind === 'fixed'
+          ? this.loopBetween(source, sideExit, connect.target.constraint)
+          : undefined;
+      const line = connectorPreview(
+        [from, ...(connect.loop ?? []), end],
+        this.cameraState.zoom,
+        this.settings.selection.accentColor,
+      );
+      line.position.z = top + 0.2;
+      this.showConnectionHints(page, connect.target, line);
+      return;
+    }
     // Boucle sur la forme elle-même : départ stable (point libre du côté le plus proche de son milieu), compté
     // comme pris pour que l'arrivée soit ailleurs.
     const loopExit = this.nearestFreeAnchor(page, source, this.anchorPosition(source, sideExit), connect.side) ?? {
@@ -2898,6 +3034,16 @@ export class Engine {
       this.recordEdit('Redimensionnement');
       resizeCell(pageTree, drag.shapeId, delta);
     }
+    // Ancrage automatique : la forme a bougé, ses flèches et celles de ses voisines sont réparties à nouveau
+    // (même étape d'annulation) ; le modèle est alors relu de l'arbre.
+    const moved = this.pageById(drag.pageId);
+    const fresh = moved && this.anchoringOf(moved) === 'auto' && this.xmlTree && documentFromTree(this.xmlTree);
+    const freshPage = fresh && fresh.pages.find((p) => p.id === drag.pageId);
+    if (freshPage && this.writeDistribution(freshPage, affectedShapes(this.geometry.get(drag.pageId), freshPage))) {
+      this.documentChanged([drag.pageId]);
+      return;
+    }
+    if (freshPage) this.geometry.set(drag.pageId, pageGeometry(freshPage));
     // Scènes de cette page à d'autres niveaux, et vue graphe (miniatures) : à reconstruire.
     this.scenes.invalidate(drag.pageId);
     this.scenes.invalidate(GRAPH_PAGE_ID);
@@ -3667,6 +3813,7 @@ export class Engine {
   private restore(xml: string): void {
     const { document, tree } = readDrawio(xml);
     this.document = this.withModeWarnings(document);
+    this.geometry = new Map(document.pages.map((p) => [p.id, pageGeometry(p)]));
     this.xmlTree = tree;
     this.unsupportedReport = collectUnsupported(document, this.registry);
     this.clearSelection();

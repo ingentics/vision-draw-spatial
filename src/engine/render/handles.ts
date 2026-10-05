@@ -104,18 +104,22 @@ export function edgeEndHandles(
 }
 
 /**
- * Repères d'accroche sur la forme visée par un bout de flèche : périmètre d'accroche surligné (attache auto),
- * croix sur les points d'ancrage libres, disque plein sur ceux pris par une flèche, celui retenu cerclé.
+ * Repères d'accroche sur la forme visée par un bout de flèche : périmètre d'accroche surligné (attache auto), côté
+ * surligné (ancrage automatique), croix sur les points d'ancrage libres, disque plein sur ceux pris par une flèche, celui retenu cerclé.
  */
 export function connectionHints(
   shape: { bounds: Rect; perimeter: PerimeterKind; style?: Record<string, string> },
   points: Array<{ point: Point; used?: boolean }>,
   zoom: number,
-  options: { active?: number; outline: boolean; accent?: string },
+  options: { active?: number; outline: boolean; side?: [Point, Point]; accent?: string },
 ): Group {
   const group = new Group();
   group.name = 'connection-hints';
   const accent = new Color(options.accent ?? DEFAULT_ACCENT);
+  if (options.side) {
+    const line = strokeMesh(options.side, accent, 0.9, { width: 4 / zoom, closed: false });
+    if (line) group.add(line);
+  }
   if (options.outline) {
     const path = perimeterPath(shape.bounds, shape.perimeter, shape.style ?? {});
     const outline = strokeMesh(path, accent, 0.8, { width: 3 / zoom, closed: true });

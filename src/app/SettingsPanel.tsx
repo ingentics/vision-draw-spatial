@@ -730,9 +730,23 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   ]}
                   onChange={(edgeLineStyle) => onChange({ shapes: { edgeLineStyle } })}
                 />
+                <Choice
+                  label="Ancrage des flèches"
+                  value={shapes.edgeAnchoring}
+                  options={[
+                    ['manual', 'Manuel'],
+                    ['auto', 'Automatique'],
+                  ]}
+                  onChange={(edgeAnchoring) => onChange({ shapes: { edgeAnchoring } })}
+                />
                 <p className="hint muted">
                   Écrits dans le style draw.io des formes de la palette et des flèches tirées depuis une forme ; à
                   changer ensuite forme par forme dans le panneau de droite.
+                </p>
+                <p className="hint muted">
+                  Ancrage manuel : on choisit le point d'attache, un point libre est toujours proposé entre deux
+                  flèches. Automatique : on choisit le côté, les flèches y sont réparties sans se croiser. Une page peut
+                  avoir son propre réglage (panneau Page).
                 </p>
               </Subsection>
               <Subsection title="Textes de début et de fin">
