@@ -25,6 +25,11 @@ export const SPATIAL = {
   tag: 'spatial.tag',
   /** Nombre de nœuds d'un cache distribué : disques empilés en iso (réglage déclaré par `shapes/datastore`). */
   nodes: 'spatial.nodes',
+  /**
+   * Texte du milieu d'une flèche tourné dans le sens du segment où il est posé (`1`) ; absent = horizontal.
+   * draw.io l'ignore et garde le texte horizontal.
+   */
+  labelFollow: 'spatial.labelFollow',
   /** Mode de la page (attribut de `<diagram>`) : id d'un mode de `modes/` (ex. `sequences`) ; absent = page normale. */
   mode: 'spatial.mode',
   /** Ancrage des flèches de la page (attribut de `<diagram>`) : `manual` ou `auto` ; absent = réglage de l'appli. */

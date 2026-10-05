@@ -3,8 +3,9 @@ import type { Object3D } from 'three';
 import type { EdgeLabelPlacement, EdgeModel, Point, RichLine, ShapeModel } from '../../model/types';
 import { buildMarker } from '../edges/markers';
 import { jumpHalfLength, jumpStyleOf, withJumps } from '../edges/jumps';
-import { curveThrough, labelPoint, roundCorners, shorten, unit } from '../edges/polyline';
+import { curveThrough, labelAngle, labelPoint, roundCorners, shorten, unit } from '../edges/polyline';
 import { parseStyle } from '../../format/style';
+import { SPATIAL } from '../../spatial';
 import { perimeterKind, routeEdgePoints, simplify } from '../edges/route';
 import type { Terminal } from '../edges/route';
 import { dashPattern } from '../geometry/stroke';
@@ -120,7 +121,8 @@ export function createEdge(
     }
   }
 
-  const main = createEdgeLabel(edge.id, edge.label, edge.rich, route, edge.labelPlacement, style, ctx);
+  const follow = style[SPATIAL.labelFollow] === '1';
+  const main = createEdgeLabel(edge.id, edge.label, edge.rich, route, edge.labelPlacement, style, ctx, follow);
   if (main) group.add(main);
   for (const child of edge.labels) {
     const label = createEdgeLabel(child.id, child.label, child.rich, route, child.placement, child.style, ctx);
@@ -138,16 +140,19 @@ function createEdgeLabel(
   placement: EdgeLabelPlacement,
   style: Record<string, string>,
   ctx: RenderContext,
+  follow = false,
 ): Object3D | null {
   if (!text.trim() || style.noLabel === '1') return null;
   const point = labelPoint(route, placement);
+  // Texte qui suit la flèche : dessiné à l'origine d'un groupe posé au point et tourné comme le segment.
+  const at = follow ? { x: 0, y: 0 } : point;
   // Comme draw.io : aligné à gauche, le texte part du point vers la droite (le côté gauche est fixe) ;
   // à droite, l'inverse ; centré, de part et d'autre.
   const align = style.align === 'left' || style.align === 'right' ? style.align : 'center';
   const object = ctx.text.create({
     text,
-    x: point.x,
-    y: point.y,
+    x: at.x,
+    y: at.y,
     anchorX: align,
     // Même logique en hauteur : aligné en haut, le texte part du point vers le bas ; en bas, vers le haut.
     anchorY: style.verticalAlign === 'top' ? 'top' : style.verticalAlign === 'bottom' ? 'bottom' : 'middle',
@@ -161,13 +166,24 @@ function createEdgeLabel(
     // autour de chaque lettre (lisible sur le trait, sans fond), fond uni, ou rien.
     ...edgeLabelBackdrop(style, ctx),
   });
-  object.name = 'label';
+  const label = follow ? turned(object, point, labelAngle(route, placement.position)) : object;
+  label.name = 'label';
   // Cellule qui porte le texte (l'arête, ou le label enfant) : masqué pendant l'édition en place.
-  object.userData.labelCellId = cellId;
+  label.userData.labelCellId = cellId;
   // Point d'ancrage (espace page) : pivot du texte quand un mode le redresse face à la caméra.
-  object.userData.labelAnchor = point;
+  label.userData.labelAnchor = point;
   object.renderOrder = PART_ORDER.label;
-  return object;
+  return label;
+}
+
+/** Texte dessiné à l'origine, posé en `point` et tourné de `angle` (espace page, y vers le bas). */
+function turned(text: Object3D, point: Point, angle: number): Object3D {
+  const group = new Group();
+  group.position.set(point.x, point.y, 0);
+  group.rotation.z = angle;
+  group.renderOrder = PART_ORDER.label;
+  group.add(text);
+  return group;
 }
 
 /** Fond explicite d'un texte de flèche, sinon celui du paramètre (halo par défaut). */

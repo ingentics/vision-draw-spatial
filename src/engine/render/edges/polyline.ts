@@ -113,6 +113,28 @@ export function labelPoint(points: Point[], placement: EdgeLabelPlacement): Poin
 }
 
 /**
+ * Angle (radians, espace page) d'un texte qui suit la flèche : celui du segment où tombe `position`
+ * (même parcours que `labelPoint`), ramené dans ]-π/2, π/2] pour que le texte ne soit jamais à l'envers.
+ */
+export function labelAngle(points: Point[], position: number): number {
+  if (points.length < 2) return 0;
+  const total = length(points);
+  let remaining = ((position + 1) / 2) * total;
+  let angle = 0;
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1]!;
+    const b = points[i]!;
+    const segment = distance(a, b);
+    if (segment > 0) angle = Math.atan2(b.y - a.y, b.x - a.x);
+    if (remaining <= segment && segment > 0) break;
+    remaining -= segment;
+  }
+  if (angle > Math.PI / 2 + 1e-9) angle -= Math.PI;
+  else if (angle <= -Math.PI / 2 + 1e-9) angle += Math.PI;
+  return angle;
+}
+
+/**
  * Position le long d'un tracé du point du tracé le plus proche de `point`, comme `placement.position` :
  * -1 = début, 0 = milieu, 1 = fin.
  */

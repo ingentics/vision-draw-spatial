@@ -349,7 +349,7 @@ function EdgeSections({ edge, ...props }: ContextPanelProps & { edge: EdgeModel 
         })}
       </Section>
       <ElementModeSection {...props} element={edge} scope="edge" />
-      <TextAnchors edge={edge} onAnchor={props.onTextAnchor} />
+      <TextAnchors edge={edge} onAnchor={props.onTextAnchor} onChange={props.onEdgeStyle} />
       <EdgeLineSection
         edge={edge}
         pageJumps={props.pageJumps}
@@ -384,9 +384,11 @@ function EdgeSections({ edge, ...props }: ContextPanelProps & { edge: EdgeModel 
 function TextAnchors({
   edge,
   onAnchor,
+  onChange,
 }: {
   edge: EdgeModel;
   onAnchor: (cellId: string, anchor: EdgeTextAnchor) => void;
+  onChange: (patch: EdgeStylePatch) => void;
 }) {
   const texts = edgeTexts(edge);
   if (texts.length === 0) return null;
@@ -419,6 +421,19 @@ function TextAnchors({
           </div>
         );
       })}
+      {edge.label.trim() && (
+        <label
+          className="field toggle"
+          title={`Texte du milieu tourné dans le sens du segment où il est posé (${SPATIAL.labelFollow}) ; draw.io le garde horizontal`}
+        >
+          <input
+            type="checkbox"
+            checked={edge.style[SPATIAL.labelFollow] === '1'}
+            onChange={(event) => onChange(() => ({ [SPATIAL.labelFollow]: event.target.checked ? '1' : undefined }))}
+          />
+          Texte du milieu : suit la flèche
+        </label>
+      )}
       <p className="panel-hint">
         Placement libre : en modifiant le texte (double-clic), tirer la poignée ◇ sous le texte.
       </p>
