@@ -29,6 +29,8 @@ export const SPATIAL = {
   mode: 'spatial.mode',
   /** Ancrage des flèches de la page (attribut de `<diagram>`) : `manual` ou `auto` ; absent = réglage de l'appli. */
   anchoring: 'spatial.anchoring',
+  /** Graine d'agencement de la page en ancrage automatique (attribut de `<diagram>`, touche F) ; absente = 0. */
+  anchorSeed: 'spatial.anchorSeed',
   /** État de vue d'une page (attribut de `<diagram>`, voir `format/viewState`). */
   view: 'spatial.view',
 } as const;

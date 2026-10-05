@@ -1,5 +1,6 @@
 import type { EdgeModel, PageModel, Point, Rect } from '../model/types';
 import { endAttachmentOf, sideOfConstraint } from './edgeEnds';
+import { seededUnit } from './seed';
 import type { AnchorSide, TerminalEnd } from './edgeEnds';
 
 /**
@@ -83,7 +84,10 @@ interface Slot {
  * Les deux bouts d'une boucle sur un même côté y sont rangés ensemble, en fin de côté. Ne renvoie que les bouts qui
  * changent.
  */
-export function distributeAnchors(page: PageModel, shapeIds: ReadonlySet<string>): AnchorChange[] {
+export function distributeAnchors(page: PageModel, shapeIds: ReadonlySet<string>, seed = 0): AnchorChange[] {
+  // Égalités (faisceaux, flèches vers une même forme) : ordre des ids, ou celui que donne la graine.
+  const tie = (a: string, b: string) =>
+    (seed === 0 ? 0 : seededUnit(seed, a) - seededUnit(seed, b)) || a.localeCompare(b);
   const shapes = new Map(page.shapes.map((s) => [s.id, s]));
   const groups = new Map<string, Slot[]>();
   for (const edge of page.edges)
@@ -135,8 +139,8 @@ export function distributeAnchors(page: PageModel, shapeIds: ReadonlySet<string>
     group.sort(
       (a, b) =>
         (a.along === b.along ? 0 : a.along - b.along) ||
-        (a.other !== undefined && a.other === b.other ? a.bundle * a.edgeId.localeCompare(b.edgeId) : 0) ||
-        a.edgeId.localeCompare(b.edgeId) ||
+        (a.other !== undefined && a.other === b.other ? a.bundle * tie(a.edgeId, b.edgeId) : 0) ||
+        tie(a.edgeId, b.edgeId) ||
         a.end.localeCompare(b.end),
     );
     group.forEach(({ edgeId, end, current, side }, k) => {
@@ -202,4 +206,22 @@ export function affectedShapes(before: PageGeometry | undefined, after: PageMode
     if (a && b && touched.has(b)) affected.add(a);
   }
   return new Set([...affected].filter((id) => now.shapes.has(id)));
+}
+
+/** Formes `ids` et celles à l'autre bout de leurs flèches (l'ordre sur leurs côtés dépend des premières). */
+export function withNeighbours(page: PageModel, ids: Iterable<string>): Set<string> {
+  const result = new Set(ids);
+  const touched = new Set(result);
+  for (const edge of page.edges) {
+    const [a, b] = [edge.sourceId, edge.targetId];
+    if (a && b && touched.has(a)) result.add(b);
+    if (a && b && touched.has(b)) result.add(a);
+  }
+  return result;
+}
+
+/** Graine d'agencement d'une page (`spatial.anchorSeed`, entier ≥ 0) ; 0 si absente ou invalide. */
+export function anchorSeedOf(page: PageModel): number {
+  const seed = Number.parseInt(page.attributes['spatial.anchorSeed'] ?? '', 10);
+  return Number.isFinite(seed) && seed > 0 ? seed : 0;
 }

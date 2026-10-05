@@ -82,9 +82,11 @@ import { setLineResolution } from './render/lines';
 import type { EdgeEnd } from './edit/edgeLabels';
 import { CONNECT_DIRECTIONS, connectSideOf, handlePoints, isConnectHandle, resizeBounds } from './edit/handles';
 import type { ConnectSide, HandleKind, ResizeHandle } from './edit/handles';
-import { avoidRoutes, edgesThrough } from './edit/avoid';
+import { arrangeAnchors, arrangementChanges, arrangementConflicts } from './edit/arrange';
+import type { Arrangement } from './edit/arrange';
+import type { AvoidOptions } from './edit/avoid';
 import { nextPlacementVariant } from './edit/variants';
-import { affectedShapes, distributeAnchors, pageGeometry, sideMiddle } from './edit/distribute';
+import { affectedShapes, anchorSeedOf, pageGeometry, sideMiddle, withNeighbours } from './edit/distribute';
 import type { Anchoring, PageGeometry } from './edit/distribute';
 import { loopWaypoints } from './edit/loops';
 import { dropBounds } from './edit/palette';
@@ -884,9 +886,31 @@ export class Engine {
   private writeDistribution(page: PageModel, shapeIds: ReadonlySet<string>): boolean {
     const pageTree = this.pageTreeOf(page.id);
     if (!pageTree) return false;
+    const arrangement = arrangeAnchors(page, shapeIds, { seed: anchorSeedOf(page), route: this.avoidOptions() });
+    return this.writeArrangement(page, pageTree, arrangement);
+  }
+
+  /** Réglages du tracé automatique ; undefined si le contournement est coupé (`shapes.edgeAutoRoute`). */
+  private avoidOptions(): AvoidOptions | undefined {
+    const { shapes } = this.settings;
+    if (!shapes.edgeAutoRoute) return undefined;
+    return {
+      clearance: shapes.edgeShapeClearance,
+      spacing: shapes.edgeSpacing,
+      stub: shapes.edgePortStub,
+      crossingDetour: shapes.edgeCrossingDetour,
+    };
+  }
+
+  /**
+   * Écrit un agencement (points d'attache, puis tracés) dans l'arbre XML et le modèle de la page. Sans tracé
+   * automatique, une flèche recalculée perd ses points intermédiaires (tracé de draw.io) ; une boucle sans tracé garde
+   * ses coudes par défaut. Vrai si quelque chose a été écrit.
+   */
+  private writeArrangement(page: PageModel, pageTree: PageTree, arrangement: Arrangement): boolean {
     let wrote = false;
     const loops = new Set<EdgeModel>();
-    for (const { edgeId, end, constraint } of distributeAnchors(page, shapeIds)) {
+    for (const { edgeId, end, constraint } of arrangement.constraints) {
       const edge = page.edges.find((e) => e.id === edgeId);
       if (!edge) continue;
       for (const [key, value] of Object.entries(constraintStyle(end, constraint))) {
@@ -897,30 +921,14 @@ export class Engine {
       if (edge.sourceId && edge.sourceId === edge.targetId) loops.add(edge);
       wrote = true;
     }
-    // Tracés qui contournent les formes et les autres flèches (si le réglage `shapes.edgeAutoRoute` le veut) :
-    // flèches des formes concernées, et celles qui en traversent une ; une boucle sans tracé garde ses coudes par
-    // défaut.
-    const edgeIds = edgesThrough(page, shapeIds);
-    for (const edge of page.edges)
-      if ((edge.sourceId && shapeIds.has(edge.sourceId)) || (edge.targetId && shapeIds.has(edge.targetId)))
-        edgeIds.add(edge.id);
-    const { shapes } = this.settings;
-    const routes = shapes.edgeAutoRoute
-      ? avoidRoutes(page, edgeIds, {
-          clearance: shapes.edgeShapeClearance,
-          spacing: shapes.edgeSpacing,
-          stub: shapes.edgePortStub,
-          crossingDetour: shapes.edgeCrossingDetour,
-        })
-      : new Map<string, Point[]>();
+    const { edgeIds, routes, routed } = arrangement;
     for (const edge of page.edges) {
       const loop = edge.sourceId !== undefined && edge.sourceId === edge.targetId;
-      // Sans contournement, une flèche recalculée perd ses points intermédiaires (tracé de draw.io), sauf une boucle.
       const points =
         routes.get(edge.id) ??
-        (loops.has(edge) || (!shapes.edgeAutoRoute && loop && edgeIds.has(edge.id))
+        (loops.has(edge) || (!routed && loop && edgeIds.has(edge.id))
           ? this.loopPoints(page, edge)
-          : !shapes.edgeAutoRoute && edgeIds.has(edge.id)
+          : !routed && edgeIds.has(edge.id)
             ? []
             : undefined);
       if (!points || samePoints(points, edge.points)) continue;
@@ -932,11 +940,50 @@ export class Engine {
   }
 
   /**
+   * Autre agencement en ancrage automatique (touche F) : la graine de la page (`spatial.anchorSeed`) est augmentée
+   * et les flèches réparties et retracées avec elle — autour de la flèche (ou de la forme) sélectionnée, sinon sur
+   * toute la page. Les graines suivantes sont essayées (8 au plus) jusqu'à un agencement différent qui n'a pas plus
+   * de croisements ni de superpositions que celui de la graine 0. Graine et modifications forment une seule étape
+   * d'annulation. Faux si rien n'a changé.
+   */
+  private otherArrangement(): boolean {
+    const editable = this.editablePage();
+    if (!editable || this.anchoringOf(editable.page) !== 'auto' || !this.xmlTree) return false;
+    const { page, pageTree } = editable;
+    const picked = this.selection?.pageId === page.id && !this.isMultiSelection() ? this.selection.picked : undefined;
+    const around =
+      picked?.type === 'edge'
+        ? [picked.element.sourceId, picked.element.targetId].filter((id): id is string => !!id)
+        : picked?.type === 'shape'
+          ? [picked.element.id]
+          : undefined;
+    const shapeIds = around ? withNeighbours(page, around) : new Set(page.shapes.map((s) => s.id));
+    const route = this.avoidOptions();
+    const base = arrangementConflicts(page, arrangeAnchors(page, shapeIds, { seed: 0, route }));
+    const current = anchorSeedOf(page);
+    for (let k = 1; k <= 8; k++) {
+      const seed = current + k;
+      const arrangement = arrangeAnchors(page, shapeIds, { seed, route });
+      if (!arrangementChanges(page, arrangement) || arrangementConflicts(page, arrangement) > base) continue;
+      this.recordEdit('Autre agencement');
+      setPageAttribute(pageTree, SPATIAL.anchorSeed, String(seed));
+      this.writeArrangement(page, pageTree, arrangement);
+      // Pas de répartition derrière : elle déborderait de la zone choisie.
+      this.documentChanged([page.id], { distribute: false });
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * Variante de placement de la flèche sélectionnée seule, sur une page en ancrage manuel (touche F) : la variante
    * qui suit le placement actuel (`edit/variants.ts`) est appliquée tout de suite, points intermédiaires retirés (sauf
-   * les coudes d'une boucle), en une étape d'annulation. Faux si elle ne s'applique pas.
+   * les coudes d'une boucle), en une étape d'annulation. En ancrage automatique : un autre agencement
+   * (`otherArrangement`). Faux si elle ne s'applique pas.
    */
   placementVariant(): boolean {
+    const current = this.editablePage()?.page;
+    if (current && this.anchoringOf(current) === 'auto') return this.otherArrangement();
     const editable = this.editableEdgeSelection();
     if (!editable || this.anchoringOf(editable.page) !== 'manual') return false;
     const { page, pageTree, edge } = editable;
@@ -976,12 +1023,13 @@ export class Engine {
     this.documentChanged([pageId]);
   }
 
-  private documentChanged(changedPageIds: string[]): void {
+  private documentChanged(changedPageIds: string[], options: { distribute?: boolean } = {}): void {
     if (!this.xmlTree) return;
     const selected = this.selection;
     this.clearSelection();
     let document = documentFromTree(this.xmlTree);
-    if (this.distributeAfterEdit(document, changedPageIds)) document = documentFromTree(this.xmlTree);
+    if (options.distribute !== false && this.distributeAfterEdit(document, changedPageIds))
+      document = documentFromTree(this.xmlTree);
     this.document = this.withModeWarnings(document);
     this.geometry = new Map(document.pages.map((p) => [p.id, pageGeometry(p)]));
     this.unsupportedReport = collectUnsupported(this.document, this.registry);

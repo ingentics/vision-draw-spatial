@@ -2,6 +2,7 @@ import type { EdgeModel, PageModel, Point, Rect } from '../model/types';
 import { toTerminal } from '../render/edges/edge';
 import { fixedAnchor, routeEdge } from '../render/edges/route';
 import { endAttachmentOf, sideOfConstraint } from './edgeEnds';
+import { seededUnit } from './seed';
 import type { AnchorSide } from './edgeEnds';
 
 /**
@@ -33,6 +34,8 @@ const OVERLAP_COST = 40;
 const ATTRACT_COST = 1e-4;
 /** Passes de reprise des tracés en conflit (croisement ou superposition), une fois toutes les flèches tracées. */
 const REROUTE_PASSES = 3;
+/** Biais maximal d'un couloir selon la graine, en part de la longueur. */
+const SEED_JITTER = 0.15;
 /** Marge de la zone de recherche autour des deux bouts. */
 const WINDOW = 300;
 
@@ -77,7 +80,7 @@ function inside(r: Rect, p: Point): boolean {
 }
 
 /** Longueur commune de deux segments colinéaires (0 s'ils ne le sont pas). */
-function overlap(s: Segment, t: Segment): number {
+export function overlap(s: Segment, t: Segment): number {
   const vertical = s.a.x === s.b.x;
   if (vertical !== (t.a.x === t.b.x)) return 0;
   if (vertical ? Math.abs(s.a.x - t.a.x) > 0.5 : Math.abs(s.a.y - t.a.y) > 0.5) return 0;
@@ -87,7 +90,7 @@ function overlap(s: Segment, t: Segment): number {
 }
 
 /** Vrai si deux segments perpendiculaires se croisent. */
-function crosses(s: Segment, t: Segment): boolean {
+export function crosses(s: Segment, t: Segment): boolean {
   const sv = s.a.x === s.b.x;
   if (sv === (t.a.x === t.b.x)) return false;
   const [v, h] = sv ? [s, t] : [t, s];
@@ -186,6 +189,7 @@ export function routeAround(
   occupied: readonly Segment[],
   attract?: Point,
   options: AvoidOptions = DEFAULT_AVOID_OPTIONS,
+  seed = 0,
 ): Point[] | undefined {
   // Le premier segment doit sortir de la zone d'écart de sa forme.
   const stub = Math.max(options.stub, options.clearance + 1);
@@ -267,6 +271,8 @@ export function routeAround(
       const length = Math.abs(b.x - a.x) + Math.abs(b.y - a.y);
       let step = length + (nd === d ? 0 : BEND_COST);
       // À coût égal, tourner près du bout `attract` (là où le faisceau converge) : les faisceaux s'emboîtent.
+      // Graine : léger biais par couloir, qui fait choisir un autre détour parmi ceux de coût voisin.
+      if (seed !== 0) step += SEED_JITTER * length * seededUnit(seed, a.x === b.x ? `x${a.x}` : `y${a.y}`);
       if (attract)
         step += ATTRACT_COST * length * (Math.abs((a.x + b.x) / 2 - attract.x) + Math.abs((a.y + b.y) / 2 - attract.y));
       for (const s of near2) {
@@ -318,6 +324,7 @@ export function avoidRoutes(
   page: PageModel,
   edgeIds: ReadonlySet<string>,
   options: AvoidOptions = DEFAULT_AVOID_OPTIONS,
+  seed = 0,
 ): Map<string, Point[]> {
   const shapes = new Map(page.shapes.map((s) => [s.id, s]));
   const routeOf = (edge: EdgeModel) =>
@@ -364,7 +371,9 @@ export function avoidRoutes(
     jobs.push({ edge, from, to, obstacles, attract: out(hub, options.stub), span });
   }
   // Les plus longues d'abord : elles prennent les couloirs proches du bout chargé, les plus courtes s'emboîtent.
-  jobs.sort((a, b) => b.span - a.span || a.edge.id.localeCompare(b.edge.id));
+  // Graine : l'ordre de tracé est un peu perturbé (les longueurs restent le critère principal).
+  const weight = (job: Job) => job.span * (seed === 0 ? 1 : 1 + 0.5 * seededUnit(seed, job.edge.id));
+  jobs.sort((a, b) => weight(b) - weight(a) || a.edge.id.localeCompare(b.edge.id));
 
   const pathIn = (routes: Map<string, Point[]>, job: Job) => {
     const points = routes.get(job.edge.id);
@@ -391,7 +400,7 @@ export function avoidRoutes(
     for (const job of order) next.delete(job.edge.id);
     for (const job of order) {
       const occupied = [...fixed, ...jobs.filter((other) => other !== job).flatMap((other) => pathIn(next, other))];
-      const points = routeAround(job.from, job.to, job.obstacles, occupied, job.attract, options);
+      const points = routeAround(job.from, job.to, job.obstacles, occupied, job.attract, options, seed);
       if (points) next.set(job.edge.id, points);
     }
     return next;

@@ -23,3 +23,12 @@
   d'elle, F sans sélection réagence toute la page ; appuis successifs = agencements différents quand il en existe,
   sans croisement ajouté ; chaque appui est une seule entrée d'historique (Ctrl+Z / Ctrl+Maj+Z) ; la graine est
   conservée par draw.io ; `make check` vert.
+- Fait : `src/engine/edit/seed.ts` (`seededUnit`), `src/engine/edit/arrange.ts` (`arrangeAnchors` : répartition
+  puis tracés pour une graine ; `arrangementChanges`, `arrangementConflicts`), `src/engine/edit/distribute.ts`
+  (graine dans les égalités, `withNeighbours`, `anchorSeedOf`), `src/engine/edit/avoid.ts` (graine : ordre de tracé
+  perturbé, léger biais par couloir), `src/engine/spatial.ts` (`spatial.anchorSeed`), `src/engine/Engine.ts`
+  (`writeDistribution` passe par `arrangeAnchors` / `writeArrangement` ; `otherArrangement` : zone autour de la
+  sélection ou page entière, graines essayées, une étape d'annulation, pas de répartition derrière), `docs/SPEC.md`,
+  `tests/engine/edit/arrange.test.ts`. La graine 0 garde l'agencement d'avant (fixtures inchangées). Vérifié dans
+  l'appli (`simple.drawio` en Automatique, sans sélection) : deux appuis sur F = deux agencements différents des
+  flèches qui contournent Service B ; Ctrl+Z revient au précédent, Rétablir s'active ; `make check` vert.
