@@ -18,8 +18,8 @@ export interface Tree {
   turn: number;
 }
 
-const TRUNK = new Color('#6b4426');
-const LEAVES = new Color('#24502a');
+const TRUNK = new Color('#8c5e36');
+const LEAVES = new Color('#3d7a3c');
 /** Lumière (espace page, z vers le haut) : éclaire le dessus et un côté, comme les volumes. */
 const LIGHT = normalize([-0.45, -0.35, 0.82]);
 /** Facettes d'un tronc, d'un cône, d'un anneau de feuillu. */

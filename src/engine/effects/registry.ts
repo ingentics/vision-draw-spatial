@@ -3,7 +3,7 @@ import type { DocumentModel, PageModel, ParseWarning } from '../model/types';
 import { SPATIAL } from '../spatial';
 import { definition as forest } from './forest';
 import { pageRoom } from './room';
-import type { EffectRoom, PageEffectDefinition } from './types';
+import type { EffectRoom, EffectValues, PageEffectDefinition } from './types';
 
 /** Effets de page connus : un par dossier `effects/<id>/` ; retirer un effet = retirer sa ligne et son dossier. */
 export const PAGE_EFFECT_DEFINITIONS: PageEffectDefinition[] = [forest];
@@ -56,13 +56,36 @@ export class PageEffectRegistry {
     return this.active(page, allows).some((effect) => effect.volume);
   }
 
-  /** Ajoute les décors en volume des effets actifs à la scène d'une page (racine en espace page). */
-  decorate(page: PageModel, root: Object3D, allows?: (effectId: string) => boolean): void {
+  /**
+   * Valeurs des réglages d'un effet : celles des paramètres (`settings.effects[id]`) bornées, le défaut pour les
+   * autres ; les clés inconnues sont ignorées.
+   */
+  values(effectId: string, stored: Record<string, number> | undefined): EffectValues {
+    const values: EffectValues = {};
+    for (const setting of this.definitions.get(effectId)?.settings ?? []) {
+      const value = stored?.[setting.key];
+      values[setting.key] =
+        typeof value === 'number' && Number.isFinite(value)
+          ? Math.min(setting.max, Math.max(setting.min, value))
+          : setting.default;
+    }
+    return values;
+  }
+
+  /**
+   * Ajoute les décors en volume des effets actifs à la scène d'une page (racine en espace page). `settings` : réglages
+   * globaux des effets (`settings.effects`).
+   */
+  decorate(
+    page: PageModel,
+    root: Object3D,
+    options: { allows?: (effectId: string) => boolean; settings?: Record<string, Record<string, number>> } = {},
+  ): void {
     let room: EffectRoom | undefined;
-    for (const effect of this.active(page, allows)) {
+    for (const effect of this.active(page, options.allows)) {
       if (!effect.volume) continue;
       room ??= pageRoom(page, root);
-      const object = effect.volume(page, room);
+      const object = effect.volume(page, room, this.values(effect.id, options.settings?.[effect.id]));
       if (!object) continue;
       object.name = `effect:${effect.id}`;
       object.userData.effectId = effect.id;

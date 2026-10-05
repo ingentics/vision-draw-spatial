@@ -49,6 +49,9 @@ describe('effets de page (sujet 143)', () => {
     expect(registry.active(page).map((effect) => effect.id)).toEqual(['forest']);
     expect(registry.active(page, () => false)).toEqual([]);
     expect(registry.hasVolume(page)).toBe(true);
+    expect(registry.values('forest', undefined).spacing).toBe(28);
+    expect(registry.values('forest', { spacing: 1, size: 50, autre: 3 })).toMatchObject({ spacing: 12, size: 50 });
+    expect(registry.values('forest', undefined)).not.toHaveProperty('autre');
     expect(registry.hasVolume(pageOf(undefined))).toBe(false);
     const { document } = readDrawio(
       `<mxfile><diagram id="p" name="P" spatial.effects="inconnu"><mxGraphModel><root><mxCell id="0"/></root></mxGraphModel></diagram></mxfile>`,

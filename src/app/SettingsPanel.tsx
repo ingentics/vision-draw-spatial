@@ -1,3 +1,4 @@
+import { defaultEffectRegistry } from '../engine/effects/registry';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { RESERVED_CODES } from '../engine/interaction/controls';
 import type { Shortcuts } from '../engine/interaction/controls';
@@ -1136,6 +1137,32 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   plantuml&nbsp;» (http://localhost:8080).
                 </p>
               </Subsection>
+            </Section>
+
+            <Section title="Effets">
+              {defaultEffectRegistry
+                .list()
+                .filter((effect) => (effect.settings ?? []).length > 0)
+                .map((effect) => {
+                  const values = defaultEffectRegistry.values(effect.id, settings.effects[effect.id]);
+                  return (
+                    <Subsection key={effect.id} title={effect.name}>
+                      {effect.settings!.map((setting) => (
+                        <Slider
+                          key={setting.key}
+                          label={setting.label}
+                          value={values[setting.key]!}
+                          limits={setting}
+                          format={(v) =>
+                            setting.unit === '%' ? `${Math.round(v * 100)} %` : `${v} ${setting.unit ?? ''}`.trim()
+                          }
+                          onChange={(value) => onChange({ effects: { [effect.id]: { [setting.key]: value } } })}
+                        />
+                      ))}
+                      <p className="hint muted">{effect.description}</p>
+                    </Subsection>
+                  );
+                })}
             </Section>
 
             <Section title="Édition">

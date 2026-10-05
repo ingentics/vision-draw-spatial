@@ -673,7 +673,11 @@ export class Engine {
           );
         const scene = buildPageScene(page, this.registry, this.renderContext(page), level, this.modes.dressing(page));
         // Décors des effets de la page : en volume seulement (iso / 3D).
-        if (level === 'iso') this.effects.decorate(page, scene.root, (id) => this.modes.allowsEffect(page, id));
+        if (level === 'iso')
+          this.effects.decorate(page, scene.root, {
+            allows: (id) => this.modes.allowsEffect(page, id),
+            settings: this.settings.effects,
+          });
         return scene;
       },
       this.settings.preload.maxCachedPages,
@@ -1722,7 +1726,8 @@ export class Engine {
       this.settings.background.color !== previous.background.color ||
       this.settings.selection.accentColor !== previous.selection.accentColor ||
       changed('shapes') ||
-      changed('graph')
+      changed('graph') ||
+      changed('effects')
     ) {
       this.rebuildScenes();
     }

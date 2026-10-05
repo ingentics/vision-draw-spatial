@@ -300,6 +300,12 @@ export interface ExporterSettings {
   };
 }
 
+/**
+ * Réglages globaux des effets de page (sujet 145) : `effets[id][clé]`, seulement les valeurs changées. Chaque effet
+ * déclare ses réglages, leurs bornes et leurs défauts (`effects/<id>/`) : le registre des effets les résout.
+ */
+export type EffectSettings = Record<string, Record<string, number>>;
+
 export interface Settings {
   transition: TransitionSettings;
   preload: PreloadSettings;
@@ -318,6 +324,7 @@ export interface Settings {
   accessibility: AccessibilitySettings;
   panels: PanelsSettings;
   exporters: ExporterSettings;
+  effects: EffectSettings;
 }
 
 /** Modification partielle, section par section (raccourcis compris). */
@@ -334,7 +341,9 @@ export type SettingsPatch = {
         }
       : K extends 'exporters'
         ? { plantuml?: Partial<ExporterSettings['plantuml']> }
-        : Partial<Settings[K]>;
+        : K extends 'effects'
+          ? Record<string, Record<string, number | undefined>>
+          : Partial<Settings[K]>;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -456,6 +465,7 @@ export const DEFAULT_SETTINGS: Settings = {
     minCanvas: 320,
   },
   exporters: { plantuml: { renderer: 'kroki', localUrl: 'http://localhost:8080' } },
+  effects: {},
 };
 
 /** Bornes des réglages numériques (et pas des curseurs de l'UI). */
@@ -839,7 +849,25 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
         localUrl: serverUrl(p.exporters?.plantuml?.localUrl, base.exporters.plantuml.localUrl),
       },
     },
+    effects: mergeEffects(base.effects, p.effects),
   };
+}
+
+/** Réglages des effets fusionnés, effet par effet : un nombre fini remplace, undefined retire (retour au défaut). */
+function mergeEffects(base: EffectSettings, patch: SettingsPatch['effects']): EffectSettings {
+  const result: EffectSettings = {};
+  for (const id of new Set([...Object.keys(base), ...Object.keys(patch ?? {})])) {
+    const values = { ...base[id] };
+    const changes = patch?.[id];
+    if (changes && typeof changes === 'object') {
+      for (const [key, value] of Object.entries(changes)) {
+        if (value === undefined) delete values[key];
+        else if (typeof value === 'number' && Number.isFinite(value)) values[key] = value;
+      }
+    }
+    if (Object.keys(values).length > 0) result[id] = values;
+  }
+  return result;
 }
 
 /** URL de serveur : http(s) seulement, espaces et barres finales retirés ; sinon la valeur précédente. */

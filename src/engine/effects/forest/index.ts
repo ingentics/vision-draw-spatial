@@ -3,16 +3,8 @@ import type { PageEffectDefinition } from '../types';
 import { forestMesh } from './trees';
 import type { Tree } from './trees';
 
-/** Pas de la grille des arbres, en pixels de page : au plus un arbre par case. */
-const CELL = 28;
-/** La forêt s'étend jusqu'à cette distance de l'emprise du schéma… */
-const REACH = 560;
-/** … en s'éclaircissant à partir de celle-ci. */
-const THIN_FROM = 260;
-/** Part des cases boisées au cœur de la forêt. */
-const DENSITY = 0.6;
-/** Écart minimal entre le feuillage d'un arbre et le schéma (forme, tracé, texte). */
-const CLEARANCE = 8;
+/** Part de l'étendue où la forêt est pleine ; elle s'éclaircit au-delà. */
+const THIN_FROM = 0.45;
 /** Places essayées dans sa case pour un arbre gêné par le schéma, avant de renoncer. */
 const TRIES = 6;
 
@@ -25,7 +17,66 @@ export const definition: PageEffectDefinition = {
   id: 'forest',
   name: 'Forêt',
   description: 'Des arbres poussent autour du schéma en iso / 3D (spatial.effects)',
-  volume(_page, room) {
+  settings: [
+    {
+      key: 'size',
+      label: 'Taille des arbres',
+      title: 'Hauteur des plus grands arbres',
+      min: 5,
+      max: 150,
+      step: 1,
+      default: 30,
+      unit: 'px',
+    },
+    {
+      key: 'spacing',
+      label: 'Espacement',
+      title: 'Pas de la grille : au plus un arbre par case',
+      min: 12,
+      max: 200,
+      step: 1,
+      default: 28,
+      unit: 'px',
+    },
+    {
+      key: 'density',
+      label: 'Densité',
+      title: 'Part des cases boisées au cœur de la forêt',
+      min: 0,
+      max: 1,
+      step: 0.05,
+      default: 0.6,
+      unit: '%',
+    },
+    {
+      key: 'reach',
+      label: 'Étendue',
+      title: 'Distance jusqu’où la forêt s’étend autour du schéma',
+      min: 100,
+      max: 3000,
+      step: 50,
+      default: 1200,
+      unit: 'px',
+    },
+    {
+      key: 'clearance',
+      label: 'Écart au schéma',
+      title: 'Écart minimal entre un arbre et une forme, un tracé ou un texte',
+      min: 0,
+      max: 100,
+      step: 1,
+      default: 8,
+      unit: 'px',
+    },
+  ],
+  volume(_page, room, values) {
+    const {
+      size,
+      spacing: CELL,
+      density,
+      reach,
+      clearance,
+    } = values as Record<'size' | 'spacing' | 'density' | 'reach' | 'clearance', number>;
     const area = room.bounds ?? { x: 0, y: 0, width: 0, height: 0 };
     const outside = (p: Point) =>
       Math.hypot(
@@ -33,19 +84,19 @@ export const definition: PageEffectDefinition = {
         Math.max(area.y - p.y, 0, p.y - area.y - area.height),
       );
     const trees: Tree[] = [];
-    const [x0, x1] = [Math.floor((area.x - REACH) / CELL), Math.ceil((area.x + area.width + REACH) / CELL)];
-    const [y0, y1] = [Math.floor((area.y - REACH) / CELL), Math.ceil((area.y + area.height + REACH) / CELL)];
+    const [x0, x1] = [Math.floor((area.x - reach) / CELL), Math.ceil((area.x + area.width + reach) / CELL)];
+    const [y0, y1] = [Math.floor((area.y - reach) / CELL), Math.ceil((area.y + area.height + reach) / CELL)];
     for (let cx = x0; cx < x1; cx++) {
       for (let cy = y0; cy < y1; cy++) {
         const seed = cellSeed(cx, cy);
         const random = mulberry32(seed);
         const chance = random();
-        const tree = treeOf(seed, random);
+        const tree = treeOf(seed, random, size);
         for (let i = 0; i < TRIES; i++) {
           const at = { x: (cx + 0.15 + 0.7 * random()) * CELL, y: (cy + 0.15 + 0.7 * random()) * CELL };
-          const thin = 1 - smoothstep(THIN_FROM, REACH, outside(at));
-          if (chance >= DENSITY * thin) break;
-          if (room.distance(at) < tree.crown + CLEARANCE) continue;
+          const thin = 1 - smoothstep(reach * THIN_FROM, reach, outside(at));
+          if (chance >= density * thin) break;
+          if (room.distance(at) < tree.crown + clearance) continue;
           trees.push({ ...tree, at });
           break;
         }
@@ -56,9 +107,10 @@ export const definition: PageEffectDefinition = {
 };
 
 /** Arbre d'une case (sans sa place) : essence, taille, teinte et orientation tirées de sa graine. */
-function treeOf(seed: number, random: () => number): Omit<Tree, 'at'> {
-  const size = random();
-  const height = 10 + size * size * 20;
+function treeOf(seed: number, random: () => number, size: number): Omit<Tree, 'at'> {
+  const t = random();
+  // Du tiers de la taille à la taille entière ; les petits arbres sont plus nombreux.
+  const height = (size / 3) * (1 + 2 * t * t);
   const kind = random() < 0.55 ? 'conifer' : 'round';
   return {
     seed,
