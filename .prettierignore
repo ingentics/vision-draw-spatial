@@ -7,3 +7,4 @@ desktop/package-lock.json
 node_modules
 tests/fixtures
 docs
+CHANGELOG.md
