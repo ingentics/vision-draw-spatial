@@ -44,56 +44,101 @@ export function sideMiddle(side: AnchorSide): Point {
 }
 
 /**
- * Point vers lequel part un bout de flèche : l'autre bout (point d'attache fixe, centre de la forme, ou point libre).
- * Les points intermédiaires sont ignorés : en ancrage automatique, c'est l'appli qui les trace. Le bout d'une boucle
- * se réfère à sa propre place, pour garder l'ordre de ses deux bouts.
+ * Sens du côté pour un faisceau parcouru de la forme de départ vers celle d'arrivée : signe de la position le long
+ * du côté (x pour haut / bas, y pour gauche / droite) dans la « gauche » du sens de parcours. Un faisceau ne se croise
+ * pas si la gauche reste à gauche : même ordre aux deux bouts si les signes sont égaux, ordre inversé sinon.
  */
-function reference(page: PageModel, edge: EdgeModel, end: TerminalEnd): Point | undefined {
-  const loop = !!edge.sourceId && edge.sourceId === edge.targetId;
-  const other: TerminalEnd = loop ? end : end === 'source' ? 'target' : 'source';
-  const attachment = endAttachmentOf(edge, other);
-  if (!attachment) return undefined;
-  if (attachment.kind === 'free') return attachment.point;
+const LEFT_OUT: Record<AnchorSide, number> = { n: -1, e: -1, s: 1, w: 1 };
+const LEFT_IN: Record<AnchorSide, number> = { n: 1, e: 1, s: -1, w: -1 };
+
+/** Côté où se trouve un bout attaché à une forme (point fixe sur le cadre, ou côté qui fait face à `toward`). */
+function endSide(page: PageModel, edge: EdgeModel, end: TerminalEnd, toward: Point): AnchorSide | undefined {
+  const attachment = endAttachmentOf(edge, end);
+  if (!attachment || attachment.kind === 'free') return undefined;
+  if (attachment.kind === 'fixed') return sideOfConstraint(attachment.constraint);
   const shape = page.shapes.find((s) => s.id === attachment.shapeId);
-  if (!shape) return undefined;
-  const b = shape.bounds;
-  if (attachment.kind === 'fixed')
-    return { x: b.x + attachment.constraint.x * b.width, y: b.y + attachment.constraint.y * b.height };
-  return center(b);
+  return shape && facingSide(shape.bounds, toward);
 }
 
 const round = (v: number) => Math.round(v * 10000) / 10000;
 
+interface Slot {
+  edgeId: string;
+  end: TerminalEnd;
+  /** Position de référence le long du côté (centre de la forme à l'autre bout, point libre, ou sa propre place). */
+  along: number;
+  /** Côté de l'autre bout (forme + côté), pour ordonner un faisceau. */
+  other?: string;
+  /** Sens d'un faisceau dans ce groupe : +1 = ids croissants, -1 = décroissants. */
+  bundle: number;
+  current?: Point;
+  side: AnchorSide;
+}
+
 /**
  * Répartition des bouts de flèches attachés aux formes `shapeIds` : regroupés par côté (point fixe sur le cadre, ou
- * attache auto rangée sur le côté qui fait face à son autre bout), ordonnés le long du côté par leur point de
- * référence, placés à (k + 1) / (n + 1). Ne renvoie que les bouts qui changent.
+ * attache auto rangée sur le côté qui fait face à son autre bout), ordonnés le long du côté par la position de la
+ * forme à l'autre bout (pas son point d'attache, qui dépend lui-même de la répartition), placés à (k + 1) / (n + 1).
+ * Les flèches qui relient les deux mêmes côtés (faisceau) gardent un ordre cohérent aux deux bouts, sans croisement.
+ * Les deux bouts d'une boucle sur un même côté y sont rangés ensemble, en fin de côté. Ne renvoie que les bouts qui
+ * changent.
  */
 export function distributeAnchors(page: PageModel, shapeIds: ReadonlySet<string>): AnchorChange[] {
   const shapes = new Map(page.shapes.map((s) => [s.id, s]));
-  const groups = new Map<
-    string,
-    Array<{ edgeId: string; end: TerminalEnd; along: number; current?: Point; side: AnchorSide }>
-  >();
+  const groups = new Map<string, Slot[]>();
   for (const edge of page.edges)
     for (const end of ['source', 'target'] as const) {
       const attachment = endAttachmentOf(edge, end);
       if (!attachment || attachment.kind === 'free' || !shapeIds.has(attachment.shapeId)) continue;
       const shape = shapes.get(attachment.shapeId);
       if (!shape) continue;
-      const toward = reference(page, edge, end) ?? center(shape.bounds);
-      const side =
-        attachment.kind === 'fixed' ? sideOfConstraint(attachment.constraint) : facingSide(shape.bounds, toward);
+      const otherEnd: TerminalEnd = end === 'source' ? 'target' : 'source';
+      const otherAttachment = endAttachmentOf(edge, otherEnd);
+      const otherShape =
+        otherAttachment && otherAttachment.kind !== 'free' ? shapes.get(otherAttachment.shapeId) : undefined;
+      const loop = otherShape?.id === shape.id;
+      const current = attachment.kind === 'fixed' ? attachment.constraint : undefined;
+      // Boucle : son autre bout s'il est sur un autre côté (la boucle passe par ce coin).
+      const otherConstraint = otherAttachment?.kind === 'fixed' ? otherAttachment.constraint : undefined;
+      const sameSide = !current || !otherConstraint || sideOfConstraint(current) === sideOfConstraint(otherConstraint);
+      const placeOf = (c: Point) => ({
+        x: shape.bounds.x + c.x * shape.bounds.width,
+        y: shape.bounds.y + c.y * shape.bounds.height,
+      });
+      const toward = loop
+        ? sameSide
+          ? current
+            ? placeOf(current)
+            : center(shape.bounds)
+          : placeOf(otherConstraint)
+        : otherShape
+          ? center(otherShape.bounds)
+          : otherAttachment?.kind === 'free'
+            ? otherAttachment.point
+            : center(shape.bounds);
+      const side = endSide(page, edge, end, toward);
       // Point fixe à l'intérieur de la forme (venu de draw.io) : laissé tel quel.
       if (!side) continue;
       const key = `${shape.id}\u0000${side}`;
-      const along = side === 'n' || side === 's' ? toward.x : toward.y;
-      const current = attachment.kind === 'fixed' ? attachment.constraint : undefined;
-      groups.set(key, [...(groups.get(key) ?? []), { edgeId: edge.id, end, along, current, side }]);
+      const otherSide = otherShape && !loop ? endSide(page, edge, otherEnd, center(shape.bounds)) : undefined;
+      const other = otherShape && otherSide ? `${otherShape.id}\u0000${otherSide}` : undefined;
+      // Faisceau parcouru du groupe de plus petite clé vers l'autre : ids croissants au départ, et à l'arrivée selon
+      // que la gauche du parcours tombe du même côté de l'axe ou non.
+      const first = other !== undefined && key < other;
+      const bundle = other === undefined || first ? 1 : LEFT_OUT[otherSide!] * LEFT_IN[side] > 0 ? 1 : -1;
+      // Boucle sur un seul côté : ses deux bouts côte à côte, en fin de côté (aucune flèche ne passe dans son U).
+      const along = loop && sameSide ? Infinity : side === 'n' || side === 's' ? toward.x : toward.y;
+      groups.set(key, [...(groups.get(key) ?? []), { edgeId: edge.id, end, along, other, bundle, current, side }]);
     }
   const changes: AnchorChange[] = [];
   for (const group of groups.values()) {
-    group.sort((a, b) => a.along - b.along || a.edgeId.localeCompare(b.edgeId) || a.end.localeCompare(b.end));
+    group.sort(
+      (a, b) =>
+        (a.along === b.along ? 0 : a.along - b.along) ||
+        (a.other !== undefined && a.other === b.other ? a.bundle * a.edgeId.localeCompare(b.edgeId) : 0) ||
+        a.edgeId.localeCompare(b.edgeId) ||
+        a.end.localeCompare(b.end),
+    );
     group.forEach(({ edgeId, end, current, side }, k) => {
       const constraint = pointOnSide(side, round((k + 1) / (group.length + 1)));
       if (!current || current.x !== constraint.x || current.y !== constraint.y)

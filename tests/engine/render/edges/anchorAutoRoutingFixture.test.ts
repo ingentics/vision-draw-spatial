@@ -373,6 +373,29 @@ describe('fixture anchor-auto-routing.drawio', () => {
       }
   });
 
+  it('aucun croisement entre deux tracés', () => {
+    const page = readDrawio(fixture('anchor-auto-routing.drawio')).document.pages[0]!;
+    const shapes = new Map(page.shapes.map((s) => [s.id, s]));
+    const segments = page.edges.flatMap((e) => segmentsOf(routeOf(page, shapes, e.id)).map((s) => ({ id: e.id, s })));
+    const crossings: string[] = [];
+    for (const { id, s } of segments)
+      for (const other of segments) {
+        if (other.id <= id) continue;
+        const [v, h] = s.a.x === s.b.x ? [s, other.s] : [other.s, s];
+        if (v.a.x !== v.b.x || h.a.y !== h.b.y) continue;
+        const x = v.a.x;
+        const y = h.a.y;
+        if (
+          x > Math.min(h.a.x, h.b.x) &&
+          x < Math.max(h.a.x, h.b.x) &&
+          y > Math.min(v.a.y, v.b.y) &&
+          y < Math.max(v.a.y, v.b.y)
+        )
+          crossings.push(`${id} × ${other.id}`);
+      }
+    expect(crossings).toEqual([]);
+  });
+
   it('n flèches sur un côté : à 1/(n+1), 2/(n+1)…', () => {
     const page = readDrawio(fixture('anchor-auto-routing.drawio')).document.pages[0]!;
     // Éventail de 5 sur le haut (cas 4) : arrivées à 1/6 … 5/6, rangées de gauche à droite.

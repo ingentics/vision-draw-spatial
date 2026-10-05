@@ -50,6 +50,48 @@ describe('distributeAnchors', () => {
     ]);
   });
 
+  it('deux flèches de la droite d’une forme vers la gauche d’une autre, croisées : remises parallèles', () => {
+    const ex = (y: number) => `exitX=1;exitY=${y};exitDx=0;exitDy=0;`;
+    const en = (y: number) => `entryX=0;entryY=${y};entryDx=0;entryDy=0;`;
+    const p = page([
+      shape('a', 0, 0, 100, 120),
+      shape('b', 400, 60, 100, 120),
+      edge('e1', 'a', 'b', ex(0.3333) + en(0.6667)),
+      edge('e2', 'a', 'b', ex(0.6667) + en(0.3333)),
+    ]);
+    const changes = distributeAnchors(p, new Set(['a', 'b']));
+    const at = (id: string, end: 'source' | 'target', initial: number) =>
+      changes.find((c) => c.edgeId === id && c.end === end)?.constraint.y ?? initial;
+    // Même ordre aux deux bouts : e1 en haut à gauche comme à droite.
+    expect(Math.sign(at('e1', 'source', 0.3333) - at('e2', 'source', 0.6667))).toBe(
+      Math.sign(at('e1', 'target', 0.6667) - at('e2', 'target', 0.3333)),
+    );
+    // Stable : une seconde passe ne change rien.
+    for (const c of changes) {
+      const e = p.edges.find((x) => x.id === c.edgeId)!;
+      const prefix = c.end === 'source' ? 'exit' : 'entry';
+      e.style[`${prefix}X`] = String(c.constraint.x);
+      e.style[`${prefix}Y`] = String(c.constraint.y);
+    }
+    expect(distributeAnchors(p, new Set(['a', 'b']))).toEqual([]);
+  });
+
+  it('faisceau en L (bas → gauche) : emboîté, le départ le plus à droite arrive le plus haut', () => {
+    const BOTTOM_TO_LEFT = 'exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;';
+    const p = page([
+      shape('a', 0, 0, 120, 60),
+      shape('b', 300, 200, 100, 120),
+      edge('e1', 'a', 'b', BOTTOM_TO_LEFT),
+      edge('e2', 'a', 'b', BOTTOM_TO_LEFT),
+    ]);
+    const changes = distributeAnchors(p, new Set(['a', 'b']));
+    const get = (id: string, end: 'source' | 'target') =>
+      changes.find((c) => c.edgeId === id && c.end === end)!.constraint;
+    const rightmost = get('e1', 'source').x > get('e2', 'source').x ? 'e1' : 'e2';
+    const other = rightmost === 'e1' ? 'e2' : 'e1';
+    expect(get(rightmost, 'target').y).toBeLessThan(get(other, 'target').y);
+  });
+
   it('facingSide : côté rapporté aux dimensions', () => {
     const b = { x: 0, y: 0, width: 200, height: 40 };
     expect(facingSide(b, { x: 180, y: 100 })).toBe('s');
