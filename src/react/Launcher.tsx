@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import type { StoredFileMeta } from '../engine/persistence/FileStore';
 
 export interface LauncherExample {
@@ -39,6 +39,11 @@ export function Launcher({
   now = Date.now(),
 }: LauncherProps) {
   const input = useRef<HTMLInputElement>(null);
+  const [query, setQuery] = useState('');
+  const needle = normalizeSearch(query);
+  const matches = (name: string) => normalizeSearch(name).includes(needle);
+  const shownRecents = recents.filter((file) => matches(file.name));
+  const shownExamples = examples.filter((example) => matches(example.name));
 
   return (
     <main className="launcher">
@@ -76,13 +81,30 @@ export function Launcher({
           </p>
         )}
 
+        {(recents.length > 0 || examples.length > 0) && (
+          <div className="launcher-search">
+            <input
+              type="search"
+              placeholder="Rechercher un fichier…"
+              aria-label="Rechercher un fichier"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') setQuery('');
+              }}
+            />
+          </div>
+        )}
+
         <section>
           <h2>Récents</h2>
           {recents.length === 0 ? (
             <p className="muted">Aucun fichier ouvert pour l’instant.</p>
+          ) : shownRecents.length === 0 ? (
+            <p className="muted">Aucun fichier récent ne correspond.</p>
           ) : (
             <ul className="file-list">
-              {recents.map((file) => (
+              {shownRecents.map((file) => (
                 <li key={file.id}>
                   <button type="button" className="file-open" onClick={() => onOpenRecent(file.id)}>
                     <span className="file-name">{file.name}</span>
@@ -103,11 +125,11 @@ export function Launcher({
           )}
         </section>
 
-        {examples.length > 0 && onOpenExample && (
+        {shownExamples.length > 0 && onOpenExample && (
           <section>
             <h2>Exemples</h2>
             <ul className="file-list compact">
-              {examples.map((example) => (
+              {shownExamples.map((example) => (
                 <li key={example.id}>
                   <button type="button" className="file-open" onClick={() => onOpenExample(example.id)}>
                     <span className="file-name">{example.name}</span>
@@ -120,6 +142,16 @@ export function Launcher({
       </div>
     </main>
   );
+}
+
+/** Texte comparable : minuscules, sans accents ni apostrophes typographiques. */
+function normalizeSearch(text: string): string {
+  return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[’‘]/g, "'")
+    .toLowerCase()
+    .trim();
 }
 
 function relativeDate(at: number, now: number): string {
