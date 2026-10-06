@@ -144,6 +144,15 @@ export interface ShapeSettings {
   edgePortStub: number;
   /** Ancrage automatique : détour accepté pour éviter un croisement, en pixels. */
   edgeCrossingDetour: number;
+  /** Ancrage Typon : réglages propres, comme ceux de l'automatique (pas de la grille = écart entre flèches). */
+  edgePcbAutoRoute: boolean;
+  edgePcbShapeClearance: number;
+  edgePcbSpacing: number;
+  edgePcbPortStub: number;
+  edgePcbCrossingDetour: number;
+  /** Ancrage Typon : coût d'un coude à 45° et à 90°, en pixels de longueur équivalente. */
+  edgePcbBend45: number;
+  edgePcbBend90: number;
   /** Marge d'une boucle (flèche d'une forme vers elle-même) autour de la forme, en pixels de page. */
   edgeLoopMargin: number;
   /**

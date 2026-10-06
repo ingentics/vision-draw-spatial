@@ -1207,6 +1207,10 @@ body {
   padding-left: 18px;
 }
 
+.settings-tree ul ul .settings-tree-row {
+  padding-left: 36px;
+}
+
 .settings-tree-row:hover {
   background: color-mix(in srgb, var(--fg) 6%, transparent);
 }
@@ -1290,6 +1294,10 @@ body {
 
 .settings-body:not(.searching) .settings-section > h3,
 .settings-body.single .settings-subsection > h4 {
+  display: none;
+}
+
+.settings-body.single-group .settings-subsubsection > h5 {
   display: none;
 }
 

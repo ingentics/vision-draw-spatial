@@ -19,3 +19,13 @@ export function Subsection({ title, children }: { title: ReactNode; children: Re
     </div>
   );
 }
+
+/** Sous-sous-section : dans l'arbre des paramètres, sous sa sous-section ; titre comme un groupe de réglages. */
+export function Subsubsection({ title, children }: { title: ReactNode; children: ReactNode }) {
+  return (
+    <div className="settings-subsubsection">
+      <h5 className="settings-group">{title}</h5>
+      {children}
+    </div>
+  );
+}

@@ -73,17 +73,27 @@ export class EdgeArrangement {
 
   /**
    * Tracé d'une page selon son ancrage : en automatique, orthogonal, sans tracé si le contournement est coupé
-   * (`shapes.edgeAutoRoute`) ; en Typon, toujours octilinéaire, direct si le contournement est coupé.
+   * (`shapes.edgeAutoRoute`) ; en Typon, avec ses propres réglages (`shapes.edgePcb…`), toujours octilinéaire,
+   * direct si le contournement est coupé.
    */
   private tracing(page: PageModel): { route?: AvoidOptions; router?: Router } {
     const { shapes } = this.core.settings;
+    if (this.anchoringOf(page) === 'pcb') {
+      const options: AvoidOptions = {
+        clearance: shapes.edgePcbShapeClearance,
+        spacing: shapes.edgePcbSpacing,
+        stub: shapes.edgePcbPortStub,
+        crossingDetour: shapes.edgePcbCrossingDetour,
+      };
+      const bends = { diagonal: shapes.edgePcbBend45, right: shapes.edgePcbBend90 };
+      return { route: options, router: octilinearRouter(shapes.edgePcbAutoRoute, bends) };
+    }
     const options: AvoidOptions = {
       clearance: shapes.edgeShapeClearance,
       spacing: shapes.edgeSpacing,
       stub: shapes.edgePortStub,
       crossingDetour: shapes.edgeCrossingDetour,
     };
-    if (this.anchoringOf(page) === 'pcb') return { route: options, router: octilinearRouter(shapes.edgeAutoRoute) };
     return shapes.edgeAutoRoute ? { route: options } : {};
   }
 

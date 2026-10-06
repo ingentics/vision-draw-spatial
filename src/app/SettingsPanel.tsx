@@ -7,7 +7,7 @@ import { SETTINGS_LIMITS } from '../engine/settings';
 import type { Settings, SettingsPatch } from '../engine/settings';
 import { desktop } from './desktop';
 import { IsoIcon, IsoSettings } from './IsoSettings';
-import { Section, Subsection } from './PanelSection';
+import { Section, Subsection, Subsubsection } from './PanelSection';
 
 interface SettingsPanelProps {
   settings: Settings;
@@ -54,18 +54,32 @@ const SHARED_KEYS: Array<[keyof Shortcuts, keyof Shortcuts]> = [['deleteSelectio
 const canShare = (a: keyof Shortcuts, b: keyof Shortcuts) =>
   SHARED_KEYS.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
 
-/** Nœud de l'arbre des catégories : une section, ou l'une de ses sous-sections (rangs dans le panneau). */
+/**
+ * Nœud de l'arbre des catégories : une section, l'une de ses sous-sections, ou l'un des groupes d'une sous-section
+ * (rangs dans le panneau).
+ */
 interface SettingsNode {
   section: number;
   subsection?: number;
+  group?: number;
 }
 
 /** Arbre des catégories, lu sur les titres affichés ; `shown` : nœud gardé par la recherche. */
-interface TreeSection {
+interface TreeNode {
   title: string;
   shown: boolean;
-  subsections: Array<{ title: string; shown: boolean }>;
 }
+interface TreeSection extends TreeNode {
+  subsections: Array<TreeNode & { groups: TreeNode[] }>;
+}
+
+/** Clé d'un nœud dépliable : la section, ou la sous-section (« 3.1 »). */
+const keyOf = (section: number, subsection?: number) =>
+  subsection === undefined ? `${section}` : `${section}.${subsection}`;
+
+/** Clés des nœuds à déplier pour montrer `node` dans l'arbre, et ses enfants. */
+const keysOf = ({ section, subsection }: SettingsNode) =>
+  subsection === undefined ? [keyOf(section)] : [keyOf(section), keyOf(section, subsection)];
 
 /** Dernier nœud choisi, repris à la réouverture des paramètres. */
 let lastNode: SettingsNode = { section: 0 };
@@ -84,7 +98,7 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
   const systemReduced = useSystemReducedMotion();
   const [query, setQuery] = useState('');
   const [node, setNode] = useState(lastNode);
-  const [expanded, setExpanded] = useState(() => new Set([lastNode.section]));
+  const [expanded, setExpanded] = useState(() => new Set(keysOf(lastNode)));
   const [tree, setTree] = useState<TreeSection[]>([]);
   const dialog = useRef<HTMLDialogElement>(null);
   const body = useRef<HTMLDivElement>(null);
@@ -113,25 +127,29 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
     if (searching) {
       // Recherche : tous les résultats restent affichés, on va jusqu'au nœud.
       const section = sectionsOf(body.current)[next.section];
-      const target = next.subsection === undefined ? section : subsectionsOf(section)[next.subsection];
+      const subsection = next.subsection === undefined ? undefined : subsectionsOf(section)[next.subsection];
+      const target = next.group === undefined ? (subsection ?? section) : groupsOf(subsection)[next.group];
       target?.scrollIntoView({ block: 'start' });
       return;
     }
     lastNode = next;
     setNode(next);
-    setExpanded((open) => new Set(open).add(next.section));
+    setExpanded((open) => new Set([...open, ...keysOf(next)]));
   };
-  const toggle = (section: number) =>
+  const toggle = (key: string) =>
     setExpanded((open) => {
       const next = new Set(open);
-      if (!next.delete(section)) next.add(section);
+      if (!next.delete(key)) next.add(key);
       return next;
     });
+  const isNode = (section: number, subsection?: number, group?: number) =>
+    !searching && node.section === section && node.subsection === subsection && node.group === group;
 
   const percent = (v: number) => `${Math.round(v * 100)} %`;
   const ms = (v: number) => (v === 0 ? 'instantané' : v < 1000 ? `${v} ms` : `${(v / 1000).toLocaleString('fr-FR')} s`);
   const current = tree[node.section];
   const currentSub = node.subsection === undefined ? undefined : current?.subsections[node.subsection];
+  const currentGroup = node.group === undefined ? undefined : currentSub?.groups[node.group];
 
   return (
     <dialog
@@ -180,60 +198,47 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
               (section, i) =>
                 section.shown && (
                   <li key={i}>
-                    <div
-                      className={
-                        !searching && node.section === i && node.subsection === undefined
-                          ? 'settings-tree-row selected'
-                          : 'settings-tree-row'
-                      }
-                    >
-                      {section.subsections.length > 0 ? (
-                        <button
-                          type="button"
-                          className="settings-tree-toggle"
-                          aria-expanded={searching || expanded.has(i)}
-                          aria-label={expanded.has(i) ? 'Replier' : 'Déplier'}
-                          disabled={searching}
-                          onClick={() => toggle(i)}
-                        >
-                          <svg viewBox="0 0 16 16" aria-hidden="true">
-                            <path d="M6 4l4 4-4 4" />
-                          </svg>
-                        </button>
-                      ) : (
-                        <span className="settings-tree-toggle" />
-                      )}
-                      <button
-                        type="button"
-                        className="settings-tree-label"
-                        aria-current={!searching && node.section === i && node.subsection === undefined}
-                        onClick={() => choose({ section: i })}
-                      >
-                        {section.title}
-                      </button>
-                    </div>
-                    {(searching || expanded.has(i)) && section.subsections.length > 0 && (
+                    <TreeRow
+                      title={section.title}
+                      selected={isNode(i)}
+                      expandable={section.subsections.length > 0}
+                      expanded={searching || expanded.has(keyOf(i))}
+                      searching={searching}
+                      onToggle={() => toggle(keyOf(i))}
+                      onChoose={() => choose({ section: i })}
+                    />
+                    {(searching || expanded.has(keyOf(i))) && section.subsections.length > 0 && (
                       <ul>
                         {section.subsections.map(
                           (subsection, j) =>
                             subsection.shown && (
-                              <li
-                                key={j}
-                                className={
-                                  !searching && node.section === i && node.subsection === j
-                                    ? 'settings-tree-row selected'
-                                    : 'settings-tree-row'
-                                }
-                              >
-                                <span className="settings-tree-toggle" />
-                                <button
-                                  type="button"
-                                  className="settings-tree-label"
-                                  aria-current={!searching && node.section === i && node.subsection === j}
-                                  onClick={() => choose({ section: i, subsection: j })}
-                                >
-                                  {subsection.title}
-                                </button>
+                              <li key={j}>
+                                <TreeRow
+                                  title={subsection.title}
+                                  selected={isNode(i, j)}
+                                  expandable={subsection.groups.length > 0}
+                                  expanded={searching || expanded.has(keyOf(i, j))}
+                                  searching={searching}
+                                  onToggle={() => toggle(keyOf(i, j))}
+                                  onChoose={() => choose({ section: i, subsection: j })}
+                                />
+                                {(searching || expanded.has(keyOf(i, j))) && subsection.groups.length > 0 && (
+                                  <ul>
+                                    {subsection.groups.map(
+                                      (group, k) =>
+                                        group.shown && (
+                                          <li key={k}>
+                                            <TreeRow
+                                              title={group.title}
+                                              selected={isNode(i, j, k)}
+                                              searching={searching}
+                                              onChoose={() => choose({ section: i, subsection: j, group: k })}
+                                            />
+                                          </li>
+                                        ),
+                                    )}
+                                  </ul>
+                                )}
                               </li>
                             ),
                         )}
@@ -255,14 +260,33 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   {current?.title}
                 </button>
                 <span aria-hidden="true"> › </span>
-                {currentSub.title}
+                {currentGroup ? (
+                  <>
+                    <button
+                      type="button"
+                      className="link-button"
+                      onClick={() => choose({ section: node.section, subsection: node.subsection })}
+                    >
+                      {currentSub.title}
+                    </button>
+                    <span aria-hidden="true"> › </span>
+                    {currentGroup.title}
+                  </>
+                ) : (
+                  currentSub.title
+                )}
               </>
             ) : (
               current?.title
             )}
           </p>
           <div
-            className={['settings-body', searching && 'searching', !searching && currentSub && 'single']
+            className={[
+              'settings-body',
+              searching && 'searching',
+              !searching && currentSub && 'single',
+              !searching && currentGroup && 'single-group',
+            ]
               .filter(Boolean)
               .join(' ')}
             ref={body}
@@ -683,7 +707,7 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   label="Pages gardées en mémoire"
                   value={preload.maxCachedPages}
                   limits={SETTINGS_LIMITS['preload.maxCachedPages']}
-                  format={(v) => `${v}`}
+                  format={(v) => `${v} px`}
                   onChange={(maxCachedPages) => onChange({ preload: { maxCachedPages } })}
                 />
               </Subsection>
@@ -822,16 +846,6 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   ]}
                   onChange={(edgeLineStyle) => onChange({ shapes: { edgeLineStyle } })}
                 />
-                <Choice
-                  label="Ancrage des flèches"
-                  value={shapes.edgeAnchoring}
-                  options={[
-                    ['manual', 'Manuel'],
-                    ['auto', 'Automatique'],
-                    ['pcb', 'Typon'],
-                  ]}
-                  onChange={(edgeAnchoring) => onChange({ shapes: { edgeAnchoring } })}
-                />
                 <Slider
                   label="Marge d’une boucle (flèche vers la même forme)"
                   value={shapes.edgeLoopMargin}
@@ -843,56 +857,128 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   Écrits dans le style draw.io des formes de la palette et des flèches tirées depuis une forme ; à
                   changer ensuite forme par forme dans le panneau de droite.
                 </p>
+              </Subsection>
+              <Subsection title="Ancrage">
+                <Choice
+                  label="Ancrage des flèches"
+                  value={shapes.edgeAnchoring}
+                  options={[
+                    ['manual', 'Manuel'],
+                    ['auto', 'Automatique'],
+                    ['pcb', 'Typon'],
+                  ]}
+                  onChange={(edgeAnchoring) => onChange({ shapes: { edgeAnchoring } })}
+                />
                 <p className="hint muted">
                   Ancrage manuel : on choisit le point d'attache, un point libre est toujours proposé entre deux
                   flèches. Automatique : on choisit le côté, les flèches y sont réparties sans se croiser. Typon : comme
                   l'automatique, tracé à 45° comme les pistes d'un circuit imprimé. Une page peut avoir son propre
                   réglage (panneau Page).
                 </p>
-              </Subsection>
-              <Subsection title="Ancrage automatique">
-                <Toggle
-                  label="Contourner les formes et les flèches"
-                  checked={shapes.edgeAutoRoute}
-                  onChange={(edgeAutoRoute) => onChange({ shapes: { edgeAutoRoute } })}
-                />
-                <Slider
-                  label="Écart aux formes"
-                  value={shapes.edgeShapeClearance}
-                  limits={SETTINGS_LIMITS['shapes.edgeShapeClearance']}
-                  format={(v) => `${v} px`}
-                  disabled={!shapes.edgeAutoRoute}
-                  onChange={(edgeShapeClearance) => onChange({ shapes: { edgeShapeClearance } })}
-                />
-                <Slider
-                  label="Écart entre flèches"
-                  value={shapes.edgeSpacing}
-                  limits={SETTINGS_LIMITS['shapes.edgeSpacing']}
-                  format={(v) => `${v} px`}
-                  disabled={!shapes.edgeAutoRoute}
-                  onChange={(edgeSpacing) => onChange({ shapes: { edgeSpacing } })}
-                />
-                <Slider
-                  label="Premier et dernier segments"
-                  value={shapes.edgePortStub}
-                  limits={SETTINGS_LIMITS['shapes.edgePortStub']}
-                  format={(v) => `${v} px`}
-                  disabled={!shapes.edgeAutoRoute}
-                  onChange={(edgePortStub) => onChange({ shapes: { edgePortStub } })}
-                />
-                <Slider
-                  label="Détour pour éviter un croisement"
-                  value={shapes.edgeCrossingDetour}
-                  limits={SETTINGS_LIMITS['shapes.edgeCrossingDetour']}
-                  format={(v) => `${v} px`}
-                  disabled={!shapes.edgeAutoRoute}
-                  onChange={(edgeCrossingDetour) => onChange({ shapes: { edgeCrossingDetour } })}
-                />
-                <p className="hint muted">
-                  Pages en ancrage automatique : le tracé à angles droits contourne les formes et ne se superpose pas
-                  aux autres flèches ; il est écrit en points intermédiaires, que draw.io suit tels quels. Appliqué à la
-                  prochaine modification de la page. Sans contournement : la répartition seule, tracé de draw.io.
-                </p>
+                <Subsubsection title="Automatique">
+                  <Toggle
+                    label="Contourner les formes et les flèches"
+                    checked={shapes.edgeAutoRoute}
+                    onChange={(edgeAutoRoute) => onChange({ shapes: { edgeAutoRoute } })}
+                  />
+                  <Slider
+                    label="Écart aux formes"
+                    value={shapes.edgeShapeClearance}
+                    limits={SETTINGS_LIMITS['shapes.edgeShapeClearance']}
+                    format={(v) => `${v} px`}
+                    disabled={!shapes.edgeAutoRoute}
+                    onChange={(edgeShapeClearance) => onChange({ shapes: { edgeShapeClearance } })}
+                  />
+                  <Slider
+                    label="Écart entre flèches"
+                    value={shapes.edgeSpacing}
+                    limits={SETTINGS_LIMITS['shapes.edgeSpacing']}
+                    format={(v) => `${v} px`}
+                    disabled={!shapes.edgeAutoRoute}
+                    onChange={(edgeSpacing) => onChange({ shapes: { edgeSpacing } })}
+                  />
+                  <Slider
+                    label="Premier et dernier segments"
+                    value={shapes.edgePortStub}
+                    limits={SETTINGS_LIMITS['shapes.edgePortStub']}
+                    format={(v) => `${v} px`}
+                    disabled={!shapes.edgeAutoRoute}
+                    onChange={(edgePortStub) => onChange({ shapes: { edgePortStub } })}
+                  />
+                  <Slider
+                    label="Détour pour éviter un croisement"
+                    value={shapes.edgeCrossingDetour}
+                    limits={SETTINGS_LIMITS['shapes.edgeCrossingDetour']}
+                    format={(v) => `${v} px`}
+                    disabled={!shapes.edgeAutoRoute}
+                    onChange={(edgeCrossingDetour) => onChange({ shapes: { edgeCrossingDetour } })}
+                  />
+                  <p className="hint muted">
+                    Le tracé à angles droits contourne les formes et ne se superpose pas aux autres flèches ; il est
+                    écrit en points intermédiaires, que draw.io suit tels quels. Appliqué à la prochaine modification de
+                    la page. Sans contournement : la répartition seule, tracé de draw.io.
+                  </p>
+                </Subsubsection>
+                <Subsubsection title="Typon">
+                  <Toggle
+                    label="Contourner les formes et les flèches"
+                    checked={shapes.edgePcbAutoRoute}
+                    onChange={(edgePcbAutoRoute) => onChange({ shapes: { edgePcbAutoRoute } })}
+                  />
+                  <Slider
+                    label="Écart aux formes"
+                    value={shapes.edgePcbShapeClearance}
+                    limits={SETTINGS_LIMITS['shapes.edgePcbShapeClearance']}
+                    format={(v) => `${v} px`}
+                    disabled={!shapes.edgePcbAutoRoute}
+                    onChange={(edgePcbShapeClearance) => onChange({ shapes: { edgePcbShapeClearance } })}
+                  />
+                  <Slider
+                    label="Écart entre flèches (pas de la grille)"
+                    value={shapes.edgePcbSpacing}
+                    limits={SETTINGS_LIMITS['shapes.edgePcbSpacing']}
+                    format={(v) => `${v} px`}
+                    disabled={!shapes.edgePcbAutoRoute}
+                    onChange={(edgePcbSpacing) => onChange({ shapes: { edgePcbSpacing } })}
+                  />
+                  <Slider
+                    label="Premier et dernier segments"
+                    value={shapes.edgePcbPortStub}
+                    limits={SETTINGS_LIMITS['shapes.edgePcbPortStub']}
+                    format={(v) => `${v} px`}
+                    disabled={!shapes.edgePcbAutoRoute}
+                    onChange={(edgePcbPortStub) => onChange({ shapes: { edgePcbPortStub } })}
+                  />
+                  <Slider
+                    label="Détour pour éviter un croisement"
+                    value={shapes.edgePcbCrossingDetour}
+                    limits={SETTINGS_LIMITS['shapes.edgePcbCrossingDetour']}
+                    format={(v) => `${v} px`}
+                    disabled={!shapes.edgePcbAutoRoute}
+                    onChange={(edgePcbCrossingDetour) => onChange({ shapes: { edgePcbCrossingDetour } })}
+                  />
+                  <Slider
+                    label="Coût d’un coude à 45°"
+                    value={shapes.edgePcbBend45}
+                    limits={SETTINGS_LIMITS['shapes.edgePcbBend45']}
+                    format={(v) => `${v} px`}
+                    disabled={!shapes.edgePcbAutoRoute}
+                    onChange={(edgePcbBend45) => onChange({ shapes: { edgePcbBend45 } })}
+                  />
+                  <Slider
+                    label="Coût d’un coude à 90°"
+                    value={shapes.edgePcbBend90}
+                    limits={SETTINGS_LIMITS['shapes.edgePcbBend90']}
+                    format={(v) => `${v} px`}
+                    disabled={!shapes.edgePcbAutoRoute}
+                    onChange={(edgePcbBend90) => onChange({ shapes: { edgePcbBend90 } })}
+                  />
+                  <p className="hint muted">
+                    Tracé à 0°, 45° et 90° sur une grille au pas de l'écart entre flèches ; un coude coûte autant qu'un
+                    allongement de cette longueur. Appliqué à la prochaine modification de la page. Sans contournement :
+                    tracé octilinéaire direct.
+                  </p>
+                </Subsubsection>
               </Subsection>
               <Subsection title="Textes de début et de fin">
                 <Slider
@@ -1226,7 +1312,7 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   label="Étapes d’annulation gardées"
                   value={edit.undoLimit}
                   limits={SETTINGS_LIMITS['edit.undoLimit']}
-                  format={(v) => `${v}`}
+                  format={(v) => `${v} px`}
                   onChange={(undoLimit) => onChange({ edit: { undoLimit } })}
                 />
                 <Slider
@@ -1292,7 +1378,7 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                 label="Fichiers récents listés à l’accueil"
                 value={save.recentLimit}
                 limits={SETTINGS_LIMITS['save.recentLimit']}
-                format={(v) => `${v}`}
+                format={(v) => `${v} px`}
                 onChange={(recentLimit) => onChange({ save: { recentLimit } })}
               />
             </Section>
@@ -1416,6 +1502,12 @@ function filterSections(root: HTMLElement, query: string): boolean {
       const visible = whole || matches(subsection);
       subsection.hidden = !visible;
       shown ||= visible;
+      // Groupes : tous si la section ou le titre de la sous-section correspond, sinon ceux qui correspondent.
+      const all = whole || matches(subsection.querySelector(':scope > h4'));
+      const inner = looseOf(subsection);
+      const innerMatch = inner.some((child) => matches(child));
+      for (const group of groupsOf(subsection)) group.hidden = !(all || matches(group));
+      if (groupsOf(subsection).length > 0) for (const child of inner) child.hidden = !(all || innerMatch);
     }
     for (const child of loose) child.hidden = !(whole || looseMatch);
     section.hidden = !shown;
@@ -1430,10 +1522,20 @@ const sectionsOf = (root: HTMLElement | null) => [
 const subsectionsOf = (section: HTMLElement | undefined) => [
   ...(section?.querySelectorAll<HTMLElement>(':scope > .settings-subsection') ?? []),
 ];
-/** Contenu d'une section hors sous-sections et titre (réglages posés directement dans la section). */
-const looseOf = (section: HTMLElement) =>
-  [...section.children].filter(
-    (child) => !child.classList.contains('settings-subsection') && child.tagName !== 'H3',
+const groupsOf = (subsection: HTMLElement | undefined) => [
+  ...(subsection?.querySelectorAll<HTMLElement>(':scope > .settings-subsubsection') ?? []),
+];
+/**
+ * Contenu d'une section (ou d'une sous-section) hors sous-sections (ou groupes) et titre : réglages posés directement
+ * dedans.
+ */
+const looseOf = (parent: HTMLElement) =>
+  [...parent.children].filter(
+    (child) =>
+      !child.classList.contains('settings-subsection') &&
+      !child.classList.contains('settings-subsubsection') &&
+      child.tagName !== 'H3' &&
+      child.tagName !== 'H4',
   ) as HTMLElement[];
 
 /** N'affiche que le nœud choisi : la section entière, ou une seule de ses sous-sections. Vrai s'il existe. */
@@ -1441,11 +1543,21 @@ function showNode(root: HTMLElement, node: SettingsNode): boolean {
   let found = false;
   sectionsOf(root).forEach((section, i) => {
     const subsections = subsectionsOf(section);
-    const visible = i === node.section && (node.subsection === undefined || node.subsection < subsections.length);
+    const visible =
+      i === node.section &&
+      (node.subsection === undefined ||
+        (node.subsection < subsections.length &&
+          (node.group === undefined || node.group < groupsOf(subsections[node.subsection]).length)));
     section.hidden = !visible;
     found ||= visible;
     subsections.forEach((subsection, j) => {
       subsection.hidden = node.subsection !== undefined && j !== node.subsection;
+      // Sous-sous-sections : chacune sur sa page seulement ; la page de leur sous-section n'a que ses propres réglages.
+      const chosen = j === node.subsection && node.group !== undefined;
+      groupsOf(subsection).forEach((group, k) => {
+        group.hidden = !chosen || k !== node.group;
+      });
+      if (groupsOf(subsection).length > 0) for (const child of looseOf(subsection)) child.hidden = chosen;
     });
     for (const child of looseOf(section)) child.hidden = node.subsection !== undefined;
   });
@@ -1461,8 +1573,55 @@ function readTree(root: HTMLElement, searching: boolean): TreeSection[] {
     subsections: subsectionsOf(section).map((subsection) => ({
       title: title(subsection.querySelector(':scope > h4')),
       shown: !searching || !subsection.hidden,
+      groups: groupsOf(subsection).map((group) => ({
+        title: title(group.querySelector(':scope > h5')),
+        shown: !searching || !group.hidden,
+      })),
     })),
   }));
+}
+
+/** Ligne de l'arbre des catégories : flèche pour déplier (si le nœud a des enfants) et titre à choisir. */
+function TreeRow({
+  title,
+  selected,
+  expandable = false,
+  expanded = false,
+  searching,
+  onToggle,
+  onChoose,
+}: {
+  title: string;
+  selected: boolean;
+  expandable?: boolean;
+  expanded?: boolean;
+  searching: boolean;
+  onToggle?: () => void;
+  onChoose: () => void;
+}) {
+  return (
+    <div className={selected ? 'settings-tree-row selected' : 'settings-tree-row'}>
+      {expandable ? (
+        <button
+          type="button"
+          className="settings-tree-toggle"
+          aria-expanded={expanded}
+          aria-label={expanded ? 'Replier' : 'Déplier'}
+          disabled={searching}
+          onClick={onToggle}
+        >
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M6 4l4 4-4 4" />
+          </svg>
+        </button>
+      ) : (
+        <span className="settings-tree-toggle" />
+      )}
+      <button type="button" className="settings-tree-label" aria-current={selected} onClick={onChoose}>
+        {title}
+      </button>
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------

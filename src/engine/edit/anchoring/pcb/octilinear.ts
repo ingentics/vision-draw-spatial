@@ -29,8 +29,13 @@ const MIN_STEP = 5;
 const dirOf = (d: Point): number => DIRS.findIndex((v) => v.x === Math.sign(d.x) && v.y === Math.sign(d.y));
 /** Écart entre deux directions, en huitièmes de tour (0 à 4). */
 const turnOf = (a: number, b: number): number => Math.min((a - b + 8) % 8, (b - a + 8) % 8);
-/** Coût d'un changement de direction ; Infinity au-delà de 90° (angle aigu). */
-const turnCost = (a: number, b: number): number => [0, BEND_COST / 2, BEND_COST, Infinity, Infinity][turnOf(a, b)]!;
+/** Coût des coudes, en pixels de longueur équivalente (`shapes.edgePcbBend45`, `shapes.edgePcbBend90`). */
+export interface BendCosts {
+  diagonal: number;
+  right: number;
+}
+
+export const DEFAULT_BEND_COSTS: BendCosts = { diagonal: BEND_COST / 2, right: BEND_COST };
 /** Axe d'une direction : 0 horizontal, 1 diagonal descendant, 2 vertical, 3 diagonal montant. */
 const axisOf = (d: number): number => d % 4;
 
@@ -107,7 +112,11 @@ export function routeOctilinear(
   options: AvoidOptions,
   seed = 0,
   avoid = true,
+  bends: BendCosts = DEFAULT_BEND_COSTS,
 ): Point[] | undefined {
+  /** Coût d'un changement de direction ; Infinity au-delà de 90° (angle aigu). */
+  const turnCost = (a: number, b: number): number =>
+    [0, bends.diagonal, bends.right, Infinity, Infinity][turnOf(a, b)]!;
   const g = Math.max(MIN_STEP, options.spacing);
   const stub = Math.max(options.stub, options.clearance + 1);
   const start = out(from, stub);
@@ -299,13 +308,13 @@ export function routeOctilinear(
  * Tracé Typon pour `avoidRoutes`. Avec `avoid`, contournement des formes et des flèches ; sans chemin (ou sans
  * `avoid`), le tracé octilinéaire direct : collisions acceptées, la flèche garde son style.
  */
-export function octilinearRouter(avoid: boolean): Router {
+export function octilinearRouter(avoid: boolean, bends: BendCosts = DEFAULT_BEND_COSTS): Router {
   return {
     straight: true,
     segments: pathSegments,
     conflict: (s, t) => segmentsCross(s, t) || segmentsOverlap(s, t) > 0.5,
     route: (from, to, obstacles, occupied, attract, options, seed) =>
-      (avoid ? routeOctilinear(from, to, obstacles, occupied, attract, options, seed) : undefined) ??
-      routeOctilinear(from, to, [], [], attract, options, seed, false),
+      (avoid ? routeOctilinear(from, to, obstacles, occupied, attract, options, seed, true, bends) : undefined) ??
+      routeOctilinear(from, to, [], [], attract, options, seed, false, bends),
   };
 }
