@@ -18,29 +18,30 @@ import {
   headerHeight,
   isSecondary,
   missingName,
+  shownMark,
   tableFields,
   tableHeight,
 } from '../../tables';
-import type { TableKind } from '../../tables';
+import type { HeaderMark, TableKind } from '../../tables';
 
 /** Rendu et fabrique des tables du mode RDD (sujet 179), communs à ses formes (`shapes/<forme>/`). */
 
 const BORDER = '#666666';
 const FIELDS_FILL = '#ffffff';
 
-/** Air entre le titre d'une vue et ses jumelles. */
-const BINOCULARS_GAP = 4;
+/** Air entre le titre et l'icône d'entête. */
+const MARK_GAP = 4;
 
 const scaleOf = (shape: ShapeModel) => (isSecondary(shape) ? SECONDARY_SCALE : 1);
 
 /**
- * Zone du nom : l'entête (label dessiné et éditeur en place), réduite des deux côtés de la place des jumelles d'une vue
- * pour que le nom, centré, ne les recouvre pas (sujet 221).
+ * Zone du nom : l'entête (label dessiné et éditeur en place), réduite des deux côtés de la place de l'icône d'entête
+ * pour que le nom, centré, ne la recouvre pas (sujet 221).
  */
-function nameZone(shape: ShapeModel, kind: TableKind): Rect {
+function nameZone(shape: ShapeModel): Rect {
   const { x, y, width } = shape.bounds;
-  const { width: mark, margin } = TABLE.binoculars;
-  const inset = kind.binoculars ? Math.min((margin + mark + BINOCULARS_GAP) * scaleOf(shape), width / 2) : 0;
+  const { width: mark, zoom, margin } = TABLE.mark;
+  const inset = shownMark(shape) ? Math.min((margin + mark * zoom + MARK_GAP) * scaleOf(shape), width / 2) : 0;
   return { x: x + inset, y, width: width - 2 * inset, height: headerHeight(isSecondary(shape)) };
 }
 
@@ -155,7 +156,8 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
     }
     if (kind.folded) line(flapOf(shape), true);
   }
-  if (kind.binoculars) group.add(binoculars(shape, header, styleColor(style, 'strokeColor', BORDER)));
+  const mark = shownMark(shape);
+  if (mark) group.add(headerMark(shape, mark, header, styleColor(style, 'strokeColor', BORDER)));
 
   const label = createLabel(
     {
@@ -171,7 +173,7 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
     },
     ctx,
     missingName(shape) ? kind.requiredName : shape.label,
-    nameZone(shape, kind),
+    nameZone(shape),
   );
   if (label) group.add(label);
 
@@ -192,60 +194,133 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
   return group;
 }
 
-/** Cercle en polygone (tracé des jumelles). */
-function circle(cx: number, cy: number, r: number, segments = 16): Point[] {
-  return Array.from({ length: segments }, (_, i) => {
-    const angle = (2 * Math.PI * i) / segments;
+/** Arc de cercle de `from` à `to` (radians, repère page : −π/2 vers le haut), en polygone. */
+function arc(cx: number, cy: number, r: number, from: number, to: number, segments = 8): Point[] {
+  return Array.from({ length: segments + 1 }, (_, i) => {
+    const angle = from + ((to - from) * i) / segments;
     return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
   });
 }
 
+/** Cercle en polygone. */
+const circle = (cx: number, cy: number, r: number) => arc(cx, cy, r, 0, 2 * Math.PI, 16).slice(0, -1);
+
 /**
- * Jumelles d'une vue (sujet 220), en haut à droite de l'entête : deux oculaires ronds, leurs corps et le pont, au
- * trait fin de la couleur de la bordure (sujet 221). Dessinées dans un cadre de 14 × 9 (à l'échelle) ; rien sans
- * bordure (`strokeColor=none`).
+ * Pièce de puzzle (sujet 222) dans le cadre de 14 × 9 : un carré de côté `2h` aux coins arrondis (rayon `round`) ;
+ * en haut et à droite un tenon, en bas une encoche, à gauche rien. Tenon et encoche : un cercle de rayon `r` sur un
+ * col étroit (le cercle coupe le côté à ±`neck` rad de l'axe). Le tout centré dans le cadre.
  */
-function binoculars(shape: ShapeModel, header: number, color: Color | null): Group {
-  const group = new Group();
-  if (!color) return group;
-  group.name = 'binoculars';
-  const scale = scaleOf(shape);
-  const { width, height, margin } = TABLE.binoculars;
-  const left = shape.bounds.x + shape.bounds.width - (margin + width) * scale;
-  const top = shape.bounds.y + (header - height * scale) / 2;
-  const at = (points: Point[]) => points.map((p) => ({ x: left + p.x * scale, y: top + p.y * scale }));
-  const paths: Array<[Point[], boolean]> = [
-    [at(circle(3.5, 6.2, 2.6)), true],
-    [at(circle(10.5, 6.2, 2.6)), true],
-    // Corps, du bas des oculaires vers le haut, resserrés.
+function puzzlePiece(h = 3.2, r = 1.3, neck = 0.65, round = 0.7, segments = 14): Point[] {
+  const corners = [
+    { x: -h, y: -h },
+    { x: h, y: -h },
+    { x: h, y: h },
+    { x: -h, y: h },
+  ];
+  // 1 : tenon vers l'extérieur ; −1 : encoche ; 0 : côté droit.
+  const bumps = [1, 1, -1, 0];
+  const sides = corners.map((from, i) => {
+    const to = corners[(i + 1) % 4]!;
+    return { x: (to.x - from.x) / (2 * h), y: (to.y - from.y) / (2 * h) };
+  });
+  const depth = r * Math.cos(neck);
+  const points = corners.flatMap((corner, i) => {
+    const u = sides[i]!;
+    const before = sides[(i + 3) % 4]!;
+    // Coin arrondi, du côté précédent à celui-ci.
+    const c = { x: corner.x + (u.x - before.x) * round, y: corner.y + (u.y - before.y) * round };
+    const rounded = Array.from({ length: 7 }, (_, k) => {
+      const t = (Math.PI / 2) * (k / 6);
+      return {
+        x: c.x + round * (-Math.cos(t) * u.x + Math.sin(t) * before.x),
+        y: c.y + round * (-Math.cos(t) * u.y + Math.sin(t) * before.y),
+      };
+    });
+    const bump = bumps[i]!;
+    if (bump === 0) return rounded;
+    // Sens de la bosse : normale extérieure (contour en sens horaire, y vers le bas) pour un tenon, intérieure sinon.
+    const m = { x: bump * u.y, y: -bump * u.x };
+    const to = corners[(i + 1) % 4]!;
+    const center = { x: (corner.x + to.x) / 2 + m.x * depth, y: (corner.y + to.y) / 2 + m.y * depth };
+    const knob = Array.from({ length: segments + 1 }, (_, k) => {
+      const t = -neck - ((2 * Math.PI - 2 * neck) * k) / segments;
+      return {
+        x: center.x + r * (-Math.cos(t) * m.x + Math.sin(t) * u.x),
+        y: center.y + r * (-Math.cos(t) * m.y + Math.sin(t) * u.y),
+      };
+    });
+    return [...rounded, ...knob];
+  });
+  const xs = points.map((p) => p.x);
+  const ys = points.map((p) => p.y);
+  const dx = 7 - (Math.min(...xs) + Math.max(...xs)) / 2;
+  const dy = 4.5 - (Math.min(...ys) + Math.max(...ys)) / 2;
+  return points.map((p) => ({ x: p.x + dx, y: p.y + dy }));
+}
+
+/** Tracés d'une icône d'entête dans son cadre de 14 × 9 : [points, fermé]. */
+const MARK_PATHS: Record<HeaderMark, Array<[Point[], boolean]>> = {
+  // Deux oculaires ronds, leurs corps resserrés vers le haut, le pont.
+  binoculars: [
+    [circle(3.5, 6.2, 2.6), true],
+    [circle(10.5, 6.2, 2.6), true],
     [
-      at([
+      [
         { x: 1, y: 5.5 },
         { x: 2.3, y: 0.8 },
         { x: 5, y: 0.8 },
         { x: 6, y: 5.5 },
-      ]),
+      ],
       false,
     ],
     [
-      at([
+      [
         { x: 8, y: 5.5 },
         { x: 9, y: 0.8 },
         { x: 11.7, y: 0.8 },
         { x: 13, y: 5.5 },
-      ]),
+      ],
       false,
     ],
-    // Pont.
     [
-      at([
+      [
         { x: 5.6, y: 3 },
         { x: 8.4, y: 3 },
-      ]),
+      ],
       false,
     ],
-  ];
-  for (const [path, closed] of paths) {
+  ],
+  // Trois puces rondes et leurs lignes.
+  list: [1.2, 4.5, 7.8].flatMap((y): Array<[Point[], boolean]> => [
+    [circle(2.2, y, 0.9), true],
+    [
+      [
+        { x: 4.6, y },
+        { x: 13, y },
+      ],
+      false,
+    ],
+  ]),
+  // Pièce de puzzle droite : tenons en haut et à droite, encoche en bas, coins arrondis.
+  puzzle: [[puzzlePiece(), true]],
+};
+
+/**
+ * Icône d'entête (sujets 220 à 222 : jumelles de la vue, liste de l'énumération, puzzle de l'embedded), en haut à
+ * droite de l'entête, dans un cadre de 14 × 9 agrandi 1,5 fois (à l'échelle), au trait fin de la couleur de la bordure ; rien sans
+ * bordure (`strokeColor=none`).
+ */
+function headerMark(shape: ShapeModel, mark: HeaderMark, header: number, color: Color | null): Group {
+  const group = new Group();
+  group.name = 'header-mark';
+  group.userData.mark = mark;
+  if (!color) return group;
+  const scale = scaleOf(shape);
+  const { width, height, zoom, margin } = TABLE.mark;
+  const left = shape.bounds.x + shape.bounds.width - (margin + width * zoom) * scale;
+  const top = shape.bounds.y + (header - height * zoom * scale) / 2;
+  for (const [points, closed] of MARK_PATHS[mark]) {
+    const path = points.map((p) => ({ x: left + p.x * zoom * scale, y: top + p.y * zoom * scale }));
     const mesh = strokeMesh(path, color, 1, { width: scale, closed });
     if (!mesh) continue;
     mesh.renderOrder = PART_ORDER.stroke;
@@ -313,7 +388,7 @@ export function table(
     id,
     outline: (shape) => outline(shape, kind),
     flat: { create: (shape, ctx) => createTable(shape, ctx, kind) },
-    textZone: (shape) => nameZone(shape, kind),
+    textZone: (shape) => nameZone(shape),
     swatch: () => '<path d="M5 5h30v18H5zM5 11h30"/>',
     ...(palette && {
       palette: {

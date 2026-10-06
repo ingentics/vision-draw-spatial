@@ -5,7 +5,7 @@ import { documentFromTree, readDrawio } from '../../../src/engine/format/parse';
 import { applyModeEdit } from '../../../src/engine/modes/edit';
 import { createDefaultModeRegistry } from '../../../src/engine/modes/registry';
 import { definition as rdd } from '../../../src/engine/modes/rdd';
-import { FIELDS, SECONDARY, fieldsOf, tableFields } from '../../../src/engine/modes/rdd/tables';
+import { FIELDS, ICON, SECONDARY, fieldsOf, tableFields } from '../../../src/engine/modes/rdd/tables';
 import { fieldsText, setFields, setHeaderColor, setSecondary } from '../../../src/engine/modes/rdd/operations';
 import type { ModeEdit } from '../../../src/engine/modes/types';
 import { buildPageScene } from '../../../src/engine/render/pageScene';
@@ -102,10 +102,12 @@ describe('mode RDD (sujet 179) : page et palette', () => {
     expect(properties.map((p) => [p.label, p.hidden!(page(), model)])).toEqual([
       ['Couleur', false],
       ['Table secondaire', false],
+      ['Icône', true],
       ['Clé primaire', true],
       ['Champs', false],
     ]);
-    expect(properties.map((p) => p.hidden!(page(), entity))).toEqual([false, false, false, false]);
+    // Entité : sans icône d'entête ; « Icône » n'est proposée qu'aux tables qui en ont une.
+    expect(properties.map((p) => p.hidden!(page(), entity))).toEqual([false, false, true, false, false]);
     const key = properties.find((p) => p.label === 'Clé primaire')!;
     expect([key.readOnly, key.value!(page(), entity)]).toEqual([true, 'id']);
     expect(properties.every((p) => p.hidden!(page(), page()))).toBe(true);
@@ -268,30 +270,66 @@ describe('mode RDD : embedded, document et vue (sujets 181, 218)', () => {
     expect(shape('address').bounds.height).toBeCloseTo((26 + 20 + 4) * 0.8, 5);
   });
 
-  it('vue : jumelles discrètes en haut à droite de l’entête, les autres tables sans (sujet 220)', () => {
-    const { object } = render();
-    const binoculars = object('active').getObjectByName('binoculars')!;
-    expect(binoculars.children).toHaveLength(5);
-    const box = new Box3().setFromObject(binoculars);
-    // Cadre 14 × 9 à 7 px du bord droit (800), centré dans l'entête (300 → 326) ; trait de 1 px.
-    expect(box.min.x).toBeCloseTo(800 - 7 - 14 + 0.5, 0);
-    expect(box.max.x).toBeLessThanOrEqual(800 - 7 + 0.5);
-    expect(box.min.y).toBeGreaterThanOrEqual(300 + (26 - 9) / 2 - 0.5);
-    expect(box.max.y).toBeLessThanOrEqual(300 + (26 + 9) / 2 + 0.5);
+  it('icônes d’entête : jumelles (vue), liste (énumération), puzzle (embedded), en haut à droite (sujets 220, 222)', () => {
+    const { object, page } = render();
+    const markOf = (id: string) => object(id).getObjectByName('header-mark');
+    expect(['active', 'role', 'address'].map((id) => markOf(id)!.userData.mark)).toEqual([
+      'binoculars',
+      'list',
+      'puzzle',
+    ]);
+    expect(['active', 'role', 'address'].map((id) => markOf(id)!.children.length)).toEqual([5, 6, 1]);
+    for (const id of ['active', 'role', 'address']) {
+      const shape = page().shapes.find((s) => s.id === id)!;
+      const { x, y, width } = shape.bounds;
+      const box = new Box3().setFromObject(markOf(id)!);
+      // Cadre de 21 × 13,5 (14 × 9 agrandi 1,5 fois) à 7 px du bord droit, centré dans l'entête (26 px) ; trait de 1 px.
+      expect(box.min.x, id).toBeGreaterThanOrEqual(x + width - 7 - 21 - 0.5);
+      expect(box.max.x, id).toBeLessThanOrEqual(x + width - 7 + 0.5);
+      expect(box.min.y, id).toBeGreaterThanOrEqual(y + (26 - 13.5) / 2 - 0.5);
+      expect(box.max.y, id).toBeLessThanOrEqual(y + (26 + 13.5) / 2 + 0.5);
+      // Assez grande pour se lire : au moins 12 px de large.
+      expect(box.max.x - box.min.x, id).toBeGreaterThan(12);
+    }
     // Couleur de la bordure, pleinement opaque (sujet 221).
-    const material = (binoculars.children[0] as Mesh).material as MeshBasicMaterial;
+    const material = (markOf('active')!.children[0] as Mesh).material as MeshBasicMaterial;
     expect([material.color.getHexString(), material.opacity]).toEqual(['666666', 1]);
-    for (const id of ['address', 'settings', 'user', 'role', 'model'])
-      expect(object(id).getObjectByName('binoculars')).toBeUndefined();
+    for (const id of ['settings', 'user', 'model']) expect(markOf(id), id).toBeUndefined();
   });
 
-  it('vue : zone du titre réduite des deux côtés de la place des jumelles (sujet 221)', () => {
+  it('« Icône » décochée : spatial.icon=0, icône masquée, titre sur toute la largeur ; recochée : retirée (222)', () => {
+    const { run, page } = setup();
+    const icon = rdd.shapeProperties!.find((p) => p.label === 'Icône')!;
+    const role = () => page().shapes.find((s) => s.id === 'role')!;
+    expect([icon.hidden!(page(), role()), icon.value!(page(), role())]).toEqual([false, '1']);
+    run((edit) => icon.write!(edit, role(), undefined));
+    expect(spatialValue(role(), ICON)).toBe('0');
+    expect(icon.value!(page(), role())).toBeUndefined();
+    expect(createDefaultRegistry().textZone(role(), 'flat')).toEqual({ x: 240, y: 160, width: 160, height: 26 });
+    const root = buildPageScene(
+      page(),
+      createDefaultRegistry(),
+      { text: { create: () => new Object3D() } },
+      'flat',
+    ).root;
+    const object = root.children.find((child) => child.userData.elementId === 'role')!;
+    expect(object.getObjectByName('header-mark')).toBeUndefined();
+    run((edit) => icon.write!(edit, role(), '1'));
+    expect(spatialValue(role(), ICON)).toBeUndefined();
+  });
+
+  it('zone du titre réduite des deux côtés de la place de l’icône d’entête (sujets 221, 222)', () => {
     const { page } = render();
-    const view = page().shapes.find((s) => s.id === 'active')!;
-    // 7 (bord) + 14 (jumelles) + 4 (air) = 25 px de chaque côté.
-    expect(createDefaultRegistry().textZone(view, 'flat')).toEqual({ x: 665, y: 300, width: 110, height: 26 });
-    const entity = page().shapes.find((s) => s.id === 'user')!;
-    expect(createDefaultRegistry().textZone(entity, 'flat')).toEqual({ x: 40, y: 160, width: 160, height: 26 });
+    const zone = (id: string) =>
+      createDefaultRegistry().textZone(
+        page().shapes.find((s) => s.id === id)!,
+        'flat',
+      );
+    // 7 (bord) + 21 (icône) + 4 (air) = 32 px de chaque côté.
+    expect(zone('active')).toEqual({ x: 672, y: 300, width: 96, height: 26 });
+    expect(zone('role')).toEqual({ x: 272, y: 160, width: 96, height: 26 });
+    expect(zone('address')).toEqual({ x: 72, y: 300, width: 96, height: 26 });
+    expect(zone('user')).toEqual({ x: 40, y: 160, width: 160, height: 26 });
   });
 
   it('vue : contour arrondi, entête coupé dans ce contour', () => {

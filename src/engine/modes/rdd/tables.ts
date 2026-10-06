@@ -10,6 +10,8 @@ import { spatialValue } from '../../spatial';
 export const FIELDS = 'spatial.fields';
 /** Table secondaire (`1`) : rendu 20 % plus petit. */
 export const SECONDARY = 'spatial.secondary';
+/** Icône d'entête masquée (`0`) ; absent = affichée, pour une table qui en a une (sujet 222). */
+export const ICON = 'spatial.icon';
 /** Échelle d'une table secondaire. */
 export const SECONDARY_SCALE = 0.8;
 
@@ -26,8 +28,11 @@ export const TABLE = {
   doubleGap: 3,
   /** Côté du coin plié d'un document. */
   fold: 10,
-  /** Jumelles d'une vue : largeur, hauteur, écart au bord droit de l'entête. */
-  binoculars: { width: 14, height: 9, margin: 7 },
+  /**
+   * Icône d'entête : cadre de dessin (14 × 9), agrandi `zoom` fois à l'affichage (21 × 13,5 px), écart au bord droit
+   * de l'entête.
+   */
+  mark: { width: 14, height: 9, zoom: 1.5, margin: 7 },
   /** Amplitude du bas ondulé d'un embedded ; la table a deux amplitudes de plus en bas. */
   wave: 2,
   width: 160,
@@ -35,6 +40,9 @@ export const TABLE = {
 
 /** Couleur d'entête par défaut (premier fond de `modePalette`). */
 export const DEFAULT_HEADER_COLOR = '#dae8fc';
+
+/** Icône d'entête : jumelles (vue), liste (énumération), pièce de puzzle (embedded). */
+export type HeaderMark = 'binoculars' | 'list' | 'puzzle';
 
 /**
  * Forme de table, reconnue à sa marque propre (sans mention au-dessus du nom, sujet 218) : nom en italique, clé
@@ -53,8 +61,8 @@ export interface TableKind {
   folded?: boolean;
   /** Bas ondulé (embedded, sujet 219). */
   wavy?: boolean;
-  /** Jumelles en haut à droite de l'entête (vue, sujet 220). */
-  binoculars?: boolean;
+  /** Icône en haut à droite de l'entête (sujets 220, 222). */
+  mark?: HeaderMark;
   /** Clés du style draw.io d'une table neuve (ex. `rounded=1;`) : le rendu les suit, draw.io aussi. */
   style?: string;
 }
@@ -70,11 +78,11 @@ export const PRIMARY_KEY = 'id';
 export const TABLE_KINDS: Record<string, TableKind> = {
   'rdd-model': { italic: true },
   'rdd-entity': { primaryKey: true },
-  'rdd-enum': { primaryKey: true, doubleHeader: true },
+  'rdd-enum': { primaryKey: true, doubleHeader: true, mark: 'list' },
   // Sujet 181 : objet incorporé (bas ondulé, sujet 219), document JSONB (clés indicatives), vue (coins arrondis).
-  'rdd-embedded': { wavy: true },
+  'rdd-embedded': { wavy: true, mark: 'puzzle' },
   'rdd-document': { italicFields: true, requiredName: 'Document', folded: true },
-  'rdd-view': { style: 'rounded=1;absoluteArcSize=1;arcSize=16;', binoculars: true },
+  'rdd-view': { style: 'rounded=1;absoluteArcSize=1;arcSize=16;', mark: 'binoculars' },
 };
 
 /** Forme de table d'une forme du mode ; undefined pour une autre forme. */
@@ -106,6 +114,12 @@ export const misplacedPrimaryKey = (shape: ShapeModel) =>
 /** Nom vide d'une table au nom obligatoire (document JSONB) ? */
 export const missingName = (shape: ShapeModel) =>
   tableKindOf(shape)?.requiredName !== undefined && shape.label.trim() === '';
+
+/** Icône d'entête affichée : celle de la forme de table, sauf si la table la masque (`spatial.icon=0`). */
+export function shownMark(shape: ShapeModel): HeaderMark | undefined {
+  const mark = tableKindOf(shape)?.mark;
+  return mark && spatialValue(shape, ICON) !== '0' ? mark : undefined;
+}
 
 export const isSecondary = (shape: ShapeModel) => spatialValue(shape, SECONDARY) === '1';
 

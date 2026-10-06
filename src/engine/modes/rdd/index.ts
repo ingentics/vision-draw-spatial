@@ -3,12 +3,14 @@ import type { ModeTarget, PageModeDefinition } from '../types';
 import {
   DEFAULT_HEADER_COLOR,
   FIELDS,
+  ICON,
   PRIMARY_KEY,
   SECONDARY,
   TABLE_KINDS,
   isSecondary,
   misplacedPrimaryKey,
   missingName,
+  shownMark,
   tableKindOf,
 } from './tables';
 import { fieldsText, setFields, setHeaderColor, setSecondary } from './operations';
@@ -66,6 +68,21 @@ export const definition: PageModeDefinition = {
         if (shape) setSecondary(edit, shape, value === '1');
       },
       hidden: notTable,
+    },
+    {
+      type: 'toggle',
+      key: ICON,
+      label: 'Icône',
+      title: 'Icône de la table en haut à droite de l’entête (spatial.icon=0 la masque)',
+      value: (_page, target) => {
+        const shape = tableOf(target);
+        return shape && shownMark(shape) ? '1' : undefined;
+      },
+      write: (edit, target, value) => edit.setElementAttribute(target.id, ICON, value === '1' ? undefined : '0'),
+      hidden: (_page, target) => {
+        const shape = tableOf(target);
+        return !shape || !tableKindOf(shape)?.mark;
+      },
     },
     {
       type: 'text',
