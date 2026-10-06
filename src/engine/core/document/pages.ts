@@ -66,7 +66,7 @@ export class Pages {
       return;
     const index = document.pages.findIndex((p) => p.id === pageId);
     if (index < 0) return;
-    const wasCurrent = this.currentPageId === pageId || this.core.isGraphView();
+    const wasCurrent = this.currentPageId === pageId || this.core.graph.isGraphView();
     this.core.endMove();
     this.core.edits.recordEdit('Page supprimée');
     removePage(this.core.file.xmlTree, pageId);
@@ -82,7 +82,7 @@ export class Pages {
     }
     if (this.currentPageId === pageId) this.currentPageId = undefined;
     this.core.file.documentChanged([]);
-    if (wasCurrent && !this.core.isGraphView()) {
+    if (wasCurrent && !this.core.graph.isGraphView()) {
       const next = this.core.file.document!.pages[Math.min(index, this.core.file.document!.pages.length - 1)];
       if (next) this.goToPage(next.id);
     }
@@ -100,20 +100,20 @@ export class Pages {
     const page = this.pageById(pageId);
     if (!page) throw new Error(`Page inconnue : ${pageId}`);
     this.core.transition?.abort();
-    cancelAnimationFrame(this.core.animation);
-    this.core.animation = 0;
+    cancelAnimationFrame(this.core.camera.animation);
+    this.core.camera.animation = 0;
     this.core.endMove();
     if (this.currentPageId !== page.id) this.core.clearSelection();
-    this.core.applyPageIso(page.id);
+    this.core.viewModes.applyPageIso(page.id);
     this.currentPageId = page.id;
     if (page.id !== GRAPH_PAGE_ID) this.lastDocumentPageId = page.id;
     this.core.scenes.show(page);
-    this.core.applyHeightScale();
+    this.core.levels.applyHeightScale();
     this.core.rendering.syncBackground();
-    this.core.minimap?.invalidate();
+    this.core.minimap.invalidate();
     const camera = this.pageCameras.get(page.id);
-    if (camera) this.core.setCameraState(camera);
-    else this.core.fitToBounds(isEmptyPage(page) ? EMPTY_PAGE_AREA : page.bounds);
+    if (camera) this.core.camera.setCameraState(camera);
+    else this.core.camera.fitToBounds(isEmptyPage(page) ? EMPTY_PAGE_AREA : page.bounds);
     this.core.rendering.requestRender();
     this.core.updateLinkZones();
     this.core.events.emit('pageChange', page);
@@ -121,7 +121,7 @@ export class Pages {
 
   /** Page du document, ou la page générée de la vue graphe. */
   pageById(id: string): PageModel | undefined {
-    if (id === GRAPH_PAGE_ID) return this.core.getGraphPage();
+    if (id === GRAPH_PAGE_ID) return this.core.graph.getGraphPage();
     return this.core.file.document?.pages.find((p) => p.id === id);
   }
 }

@@ -59,12 +59,12 @@ export class Display {
     }
     setLineResolution(width, height);
     if (this.pendingFit && this.isMeasured()) {
-      this.core.setCameraState(fitBounds(this.pendingFit, this.viewport, this.core.orientation()));
+      this.core.camera.setCameraState(fitBounds(this.pendingFit, this.viewport, this.core.camera.orientation()));
       return;
     }
     this.core.rendering.applyProjection();
     this.core.relocateLabelEdit();
-    this.core.minimap?.requestDraw();
+    this.core.minimap.requestDraw();
     this.core.rendering.requestRender();
   }
 

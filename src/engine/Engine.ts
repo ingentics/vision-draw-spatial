@@ -172,7 +172,7 @@ export class Engine {
    * sur leurs bornes, les arêtes sur leur tracé dessiné.
    */
   focusElement(pageId: string, elementId: string): void {
-    this.core.focusElement(pageId, elementId);
+    this.core.camera.focusElement(pageId, elementId);
   }
 
   getFileId(): string | undefined {
@@ -185,12 +185,12 @@ export class Engine {
 
   /** Scène de la page courante (lecture seule : diagnostics, tests). */
   getPageScene(): PageScene | undefined {
-    return this.core.getPageScene();
+    return this.core.sceneView.getPageScene();
   }
 
   /** Pages dont la scène est construite, de la moins à la plus récemment affichée. */
   getCachedPageIds(): string[] {
-    return this.core.getCachedPageIds();
+    return this.core.sceneView.getCachedPageIds();
   }
 
   /** Dernière caméra de chaque page visitée (à persister, SPEC §5.1 `cameraByPage`). */
@@ -207,16 +207,16 @@ export class Engine {
   }
 
   getCameraState(): CameraState {
-    return this.core.getCameraState();
+    return this.core.camera.getCameraState();
   }
 
   /** Cadre une emprise de la page courante (sans dépasser 100 %), dans l'orientation courante. */
   fitToBounds(bounds: Rect): void {
-    this.core.fitToBounds(bounds);
+    this.core.camera.fitToBounds(bounds);
   }
 
   setCameraState(state: CameraState): void {
-    this.core.setCameraState(state);
+    this.core.camera.setCameraState(state);
   }
 
   /**
@@ -224,7 +224,7 @@ export class Engine {
    * l'interrompt. `blendLevels` : bascule 2D ↔ volume, en fondu enchaîné des deux rendus.
    */
   animateCameraTo(target: CameraState, durationMs?: number, blendLevels?: boolean): void {
-    this.core.animateCameraTo(target, durationMs, blendLevels);
+    this.core.camera.animateCameraTo(target, durationMs, blendLevels);
   }
 
   /**
@@ -233,7 +233,7 @@ export class Engine {
    * sinon la bascule globale ↔ 1:1 n'aurait aucun effet.
    */
   getOverviewState(): CameraState | undefined {
-    return this.core.getOverviewState();
+    return this.core.camera.getOverviewState();
   }
 
   /**
@@ -241,24 +241,24 @@ export class Engine {
    * du point écran donné (ou du centre) ; depuis toute autre vue, revient à la vue globale.
    */
   toggleOverview(screen?: Point): void {
-    this.core.toggleOverview(screen);
+    this.core.camera.toggleOverview(screen);
   }
 
   getViewMode(): ViewMode {
-    return this.core.getViewMode();
+    return this.core.viewModes.getViewMode();
   }
 
   /** Bascule animée vers la vue de dessus, isométrique ou 3D ; le centre de l'écran ne bouge pas. */
   setViewMode(mode: ViewMode): void {
-    this.core.setViewMode(mode);
+    this.core.viewModes.setViewMode(mode);
   }
 
   toggleViewMode(): void {
-    this.core.toggleViewMode();
+    this.core.viewModes.toggleViewMode();
   }
 
   isFlattened(): boolean {
-    return this.core.isFlattened();
+    return this.core.viewModes.isFlattened();
   }
 
   /**
@@ -266,12 +266,12 @@ export class Engine {
    * caméra ni aux réglages. Rien en 2D, où tout est déjà à plat (l'état y est seulement levé).
    */
   setFlattened(flattened: boolean): void {
-    this.core.setFlattened(flattened);
+    this.core.viewModes.setFlattened(flattened);
   }
 
   /** Touche V : sans effet en 2D. */
   toggleFlatten(): void {
-    this.core.toggleFlatten();
+    this.core.viewModes.toggleFlatten();
   }
 
   getViewSettings(): ViewSettings {
@@ -284,16 +284,16 @@ export class Engine {
 
   /** Orientation de référence du mode courant : 0 en vue de dessus, l'azimut iso en isométrie et en 3D. */
   getReferenceRotation(): number {
-    return this.core.getReferenceRotation();
+    return this.core.camera.getReferenceRotation();
   }
 
   /** Page générée de la vue graphe (cartes des pages, flèches des liens). */
   getGraphPage(): PageModel | undefined {
-    return this.core.getGraphPage();
+    return this.core.graph.getGraphPage();
   }
 
   isGraphView(): boolean {
-    return this.core.isGraphView();
+    return this.core.graph.isGraphView();
   }
 
   /**
@@ -301,12 +301,12 @@ export class Engine {
    * d'un lien), puis on recule jusqu'à la vue d'ensemble du graphe (ou sa dernière vue).
    */
   showGraph(): void {
-    this.core.showGraph();
+    this.core.graph.showGraph();
   }
 
   /** Touche G : graphe ↔ dernière page affichée (en plongeant dans sa carte). */
   toggleGraph(): void {
-    this.core.toggleGraph();
+    this.core.graph.toggleGraph();
   }
 
   /**
@@ -314,17 +314,17 @@ export class Engine {
    * `size` : largeur en pixels CSS (la hauteur suit les proportions de la page).
    */
   attachMinimap(canvas: HTMLCanvasElement, size?: number): () => void {
-    return this.core.attachMinimap(canvas, size);
+    return this.core.minimap.attachMinimap(canvas, size);
   }
 
   /** Vue par défaut du mode courant (orientation de référence, page entière), en animation. */
   resetView(): void {
-    this.core.resetView();
+    this.core.camera.resetView();
   }
 
   /** Revient à l'orientation de référence du mode (nord en haut, ou l'orientation iso), autour du centre de l'écran. */
   resetRotation(): void {
-    this.core.resetRotation();
+    this.core.camera.resetRotation();
   }
 
   getControls(): ControlSettings {

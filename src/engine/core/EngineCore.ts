@@ -30,7 +30,6 @@ import {
 } from '../format/create';
 import { copyCells, pasteCells, readClipboardModel, stripCellKeys } from '../format/clipboard';
 import { documentFromTree } from '../format/parse';
-import type { IsoViewParams } from '../format/viewState';
 import { writeDrawio } from '../format/write';
 import type { PageTree } from '../format/xmlTree';
 import {
@@ -78,31 +77,13 @@ import { dropBounds } from '../edit/palette';
 import { applyStylePreset } from '../edit/styles';
 import type { StylePreset } from '../edit/styles';
 import type { ShapeTemplate } from '../edit/palette';
-import {
-  defaultView,
-  fitBounds,
-  interpolateCamera,
-  normalizeAngle,
-  normalizeCameraState,
-  pageToScreen,
-  perspectiveAmount,
-  rotateAround,
-  sameView,
-  screenToPage,
-  settleProjection,
-  tiltFromElevation,
-  withViewMode,
-  zoomAt,
-} from '../interaction/camera';
-import type { CameraState, ViewMode } from '../interaction/camera';
+import { fitBounds, interpolateCamera, pageToScreen, screenToPage, withViewMode } from '../interaction/camera';
+import type { CameraState } from '../interaction/camera';
 import { CameraController } from '../interaction/controls';
 import type { HeldKeys } from '../interaction/controls';
 import { NavigationHistory, findParents, usageKey } from '../interaction/history';
 import type { HistoryEntry, LinkUsage } from '../interaction/history';
-import { buildGraphPage, cardId, GRAPH_PAGE_ID } from '../graph/graphPage';
-import type { GraphLayout } from '../graph/graphPage';
-import { buildGraphScene } from '../graph/graphScene';
-import { Minimap } from '../interaction/minimap';
+import { GRAPH_PAGE_ID } from '../graph/graphPage';
 import { distanceToPolyline, insidePolygon, pickElement } from '../interaction/pick';
 import type { PickedElement } from '../interaction/pick';
 import { marqueeTakes } from '../interaction/marquee';
@@ -134,14 +115,7 @@ import {
 import { createVeil, createVeilHole, liftAboveVeil } from '../render/highlight';
 import { disposeObject } from '../render/meshes';
 import { setElementsDim, setPageOpacity } from '../render/pageEffects';
-import {
-  buildPageScene,
-  createEdgeObject,
-  createShapeObject,
-  edgeRoute,
-  effectiveLevel,
-  placeInDrawOrder,
-} from '../render/pageScene';
+import { createEdgeObject, createShapeObject, edgeRoute, placeInDrawOrder } from '../render/pageScene';
 import { jumpStyleOf, jumpValue } from '../render/edges/jumps';
 import type { JumpDefaults } from '../render/edges/jumps';
 import { reorderCells } from '../format/order';
@@ -152,15 +126,14 @@ import type { PageEffectRegistry } from '../effects/registry';
 import { defaultModeRegistry } from '../modes/registry';
 import type { ModeScope, PageModeRegistry } from '../modes/registry';
 import type { ModeEdit, ModeTarget } from '../modes/types';
-import type { PageScene } from '../render/pageScene';
 import { SceneManager } from '../render/sceneManager';
-import { insetRect, labelMargins, outsideLabelBox } from '../render/labelPosition';
+import { insetRect, labelMargins } from '../render/labelPosition';
 import { defaultShapeRegistry } from '../shapes/registry';
 import type { ShapeRegistry } from '../shapes/registry';
 import type { SceneLevel } from '../shapes/types';
 import { setPageTransform } from '../render/space';
 import { createTroikaTextFactory } from '../render/troikaText';
-import { mergeSettings, modePalette } from '../settings';
+import { modePalette } from '../settings';
 import { SPATIAL, SPATIAL_PREFIX, spatialValue } from '../spatial';
 import { alongAnchor } from '../render/textPath';
 import type { TextAlong } from '../render/textPath';
@@ -183,6 +156,12 @@ import { Display } from './runtime/display';
 import { DocumentFile } from './document/file';
 import { EditHistory } from './document/undo';
 import { Pages } from './document/pages';
+import { ViewCamera } from './view/camera';
+import { ViewModes } from './view/viewModes';
+import { Levels } from './view/levels';
+import { SceneView } from './view/scene';
+import { GraphView } from './view/graph';
+import { MinimapView } from './view/minimap';
 
 /** Ouvre une URL externe (SPEC §11.4) : nouvel onglet, sans accès retour à cette page. */
 function defaultOpenUrl(href: string): void {
@@ -335,6 +314,12 @@ const HANDLE_CURSORS: Record<ResizeHandle, string> = {
 /** Cœur du moteur : état et comportement, derrière la façade `Engine` (SPEC §4.3). */
 export class EngineCore {
   // Domaines
+  readonly minimap = new MinimapView(this);
+  readonly graph = new GraphView(this);
+  readonly sceneView = new SceneView(this);
+  readonly levels = new Levels(this);
+  readonly viewModes = new ViewModes(this);
+  readonly camera = new ViewCamera(this);
   readonly pages = new Pages(this);
   readonly edits = new EditHistory(this);
   readonly file = new DocumentFile(this);
@@ -348,8 +333,6 @@ export class EngineCore {
   }
 
   readonly canvas: HTMLCanvasElement;
-  /** Dernier mode hors 3D, où revient la touche P. */
-  lastFlatMode: 'top' | 'iso' = 'top';
   readonly registry: ShapeRegistry;
   readonly modes: PageModeRegistry;
   readonly effects: PageEffectRegistry;
@@ -362,8 +345,6 @@ export class EngineCore {
   readonly scenes: SceneManager;
   /** Texte en cours d'édition en place (son label dessiné est masqué). */
   labelEditing?: LabelEditRequest;
-  cameraState: CameraState = { mode: 'top', center: { x: 0, y: 0 }, zoom: 1, rotation: 0, tilt: 0 };
-  animation = 0;
   disposed = false;
 
   readonly openUrl: (href: string) => void;
@@ -386,15 +367,6 @@ export class EngineCore {
   /** Transition en cours : de quoi l'interrompre proprement. */
   transition: { abort: () => void } | undefined;
   readonly history = new NavigationHistory();
-  /** Bascule 2D ↔ volume en cours : scènes en fondu enchaîné (renseignées à la première image). */
-  levelBlend: { volume?: PageScene; flat?: PageScene } | undefined;
-  /** Hauteur courante des volumes iso (0 à 1, suit l'inclinaison). */
-  heightScale = 1;
-  /** Volumes aplatis à la demande (touche V, iso et 3D) : état passager, non enregistré. */
-  flattened = false;
-  /** Vue graphe du document (SPEC §12), construite à la première demande. */
-  graph: { page: PageModel; layout: GraphLayout } | undefined;
-  minimap: Minimap | undefined;
   linkUsage: LinkUsage = {};
   /** Glisser d'édition en cours (déplacement, redimensionnement, connecteur). */
   drag: MoveDrag | ResizeDrag | ConnectDrag | EdgeEndDrag | EdgePointsDrag | LabelDrag | undefined;
@@ -421,11 +393,11 @@ export class EngineCore {
     this.config = new Config(this, options);
     this.edits.undoStack.setLimit(this.settings.edit.undoLimit);
     if (this.settings.view.defaultMode !== 'top') {
-      this.cameraState = withViewMode(
-        this.cameraState,
+      this.camera.state = withViewMode(
+        this.camera.state,
         this.settings.view.defaultMode,
-        this.isoTilt(),
-        this.isoAzimuth(),
+        this.camera.isoTilt(),
+        this.camera.isoAzimuth(),
       );
     }
     this.openUrl = options.openUrl ?? defaultOpenUrl;
@@ -434,33 +406,9 @@ export class EngineCore {
     this.text = createTroikaTextFactory(options.fonts ?? {}, this.rendering.requestRender);
     this.scenes = new SceneManager(
       this.rendering.scene,
-      (page, level) => {
-        if (page.id === GRAPH_PAGE_ID && this.graph && this.file.document)
-          return buildGraphScene(
-            page,
-            this.graph.layout,
-            this.file.document,
-            this.registry,
-            this.renderContext(page),
-            level,
-          );
-        const scene = buildPageScene(page, this.registry, this.renderContext(page), level, this.modes.dressing(page));
-        // Décors des effets de la page : en volume seulement (iso / 3D).
-        if (level === 'iso')
-          this.effects.decorate(page, scene.root, {
-            allows: (id) => this.modes.allowsEffect(page, id),
-            settings: this.settings.effects,
-          });
-        return scene;
-      },
+      (page, level) => this.sceneView.buildScene(page, level),
       this.settings.preload.maxCachedPages,
-      (page) =>
-        effectiveLevel(
-          page,
-          this.registry,
-          this.requestedLevel(),
-          this.effects.hasVolume(page, (id) => this.modes.allowsEffect(page, id)) || this.hasRaisedJumps(page),
-        ),
+      (page) => this.sceneView.levelOf(page),
     );
 
     this.display.observe();
@@ -468,20 +416,20 @@ export class EngineCore {
     this.controller = new CameraController(
       this.canvas,
       {
-        getCameraState: () => this.cameraState,
-        setCameraState: (state) => this.setCameraState(state),
+        getCameraState: () => this.camera.state,
+        setCameraState: (state) => this.camera.setCameraState(state),
         getViewport: () => this.display.viewport,
-        toggleOverview: (screen) => this.toggleOverview(screen),
+        toggleOverview: (screen) => this.camera.toggleOverview(screen),
         click: (screen, options) => this.handleClick(screen, options.toggle, options.followLink),
         doubleClick: (screen, options) => this.handleDoubleClick(screen, options.followLink),
         heldKeys: (held) => this.setHeldKeys(held),
         hover: (screen) => this.handleHover(screen),
         back: () => this.back(),
-        toggleViewMode: () => this.toggleViewMode(),
-        toggle3d: () => this.toggle3d(),
+        toggleViewMode: () => this.viewModes.toggleViewMode(),
+        toggle3d: () => this.viewModes.toggle3d(),
         toggleMinimap: () => this.events.emit('minimapToggle'),
-        toggleFlatten: () => this.toggleFlatten(),
-        toggleGraph: () => this.toggleGraph(),
+        toggleFlatten: () => this.viewModes.toggleFlatten(),
+        toggleGraph: () => this.graph.toggleGraph(),
         beginMove: (screen) => this.beginMove(screen),
         moveTo: (screen, options) => this.moveTo(screen, options.snap),
         endMove: () => this.endMove(),
@@ -532,7 +480,7 @@ export class EngineCore {
     const { page, pageTree } = editable;
     this.endMove();
     const at = screenToPage(
-      this.cameraState,
+      this.camera.state,
       this.display.viewport,
       screen ?? { x: this.display.viewport.width / 2, y: this.display.viewport.height / 2 },
     );
@@ -720,426 +668,11 @@ export class EngineCore {
     this.file.documentChanged([pageId], { distribute: false });
   }
 
-  focusElement(pageId: string, elementId: string): void {
-    if (this.pages.currentPageId !== pageId) this.pages.goToPage(pageId);
-    const page = this.pages.getCurrentPage();
-    if (!page) return;
-    const bounds = page.shapes.find((s) => s.id === elementId)?.bounds ?? this.drawnBounds(elementId) ?? page.bounds;
-    this.animateCameraTo(
-      fitBounds(bounds, this.display.viewport, {
-        ...this.orientation(),
-        padding: this.settings.camera.focusPadding,
-        maxZoom: this.settings.camera.focusMaxZoom,
-      }),
-    );
-  }
-
-  /** Emprise dessinée d'un élément de la page courante, en coordonnées page. */
-  drawnBounds(elementId: string): Rect | undefined {
-    const object = this.sceneObject(elementId);
-    if (!object) return undefined;
-    const box = new Box3().setFromObject(object);
-    if (box.isEmpty()) return undefined;
-    // Monde → page : X = x, Z = y.
-    return { x: box.min.x, y: box.min.z, width: box.max.x - box.min.x, height: box.max.z - box.min.z };
-  }
-
-  getPageScene(): PageScene | undefined {
-    return this.scenes.current;
-  }
-
-  getCachedPageIds(): string[] {
-    return this.scenes.cachedIds();
-  }
-
-  getCameraState(): CameraState {
-    return structuredClone(this.cameraState);
-  }
-
-  fitToBounds(bounds: Rect): void {
-    if (!this.display.isMeasured()) {
-      this.display.pendingFit = bounds;
-      return;
-    }
-    this.setCameraState(fitBounds(bounds, this.display.viewport, this.orientation()));
-  }
-
-  setCameraState(state: CameraState): void {
-    cancelAnimationFrame(this.animation);
-    this.animation = 0;
-    this.endLevelBlend();
-    this.applyCamera(settleProjection(normalizeCameraState(state)));
-  }
-
-  animateCameraTo(target: CameraState, durationMs = this.settings.camera.animationMs, blendLevels = false): void {
-    this.endLevelBlend();
-    if (this.config.reducedMotion() || durationMs <= 0) {
-      this.setCameraState(target);
-      return;
-    }
-    cancelAnimationFrame(this.animation);
-    if (blendLevels && this.settings.view.isoVolume && !this.flattened) this.levelBlend = {};
-    const from = this.cameraState;
-    const to = normalizeCameraState(target);
-    const start = performance.now();
-    const step = (now: number) => {
-      const t = Math.min((now - start) / durationMs, 1);
-      // Ease-in-out cubique.
-      const eased = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-      this.applyCamera(interpolateCamera(from, to, eased));
-      this.animation = t < 1 ? requestAnimationFrame(step) : 0;
-      if (t >= 1) this.endLevelBlend();
-    };
-    this.animation = requestAnimationFrame(step);
-  }
-
-  getOverviewState(): CameraState | undefined {
-    const page = this.pages.getCurrentPage();
-    if (!page) return undefined;
-    return fitBounds(page.bounds, this.display.viewport, {
-      ...this.orientation(),
-      maxZoom: this.settings.camera.maxZoom,
-    });
-  }
-
-  toggleOverview(screen?: Point): void {
-    const overview = this.getOverviewState();
-    if (!overview) return;
-    const current = this.cameraState;
-    if (sameView(current, overview, this.display.viewport)) {
-      const anchor = screen ?? { x: this.display.viewport.width / 2, y: this.display.viewport.height / 2 };
-      this.animateCameraTo(zoomAt(current, this.display.viewport, anchor, 1 / current.zoom));
-    } else {
-      this.animateCameraTo(overview);
-    }
-  }
-
-  /**
-   * Niveau de rendu demandé par le mode de vue (repli à plat si les formes n'en ont pas). En
-   * revenant à la 2D, les volumes restent tant que la caméra est inclinée ou en perspective :
-   * ils s'aplatissent pendant l'animation (`applyHeightScale`), la page passe à plat à l'arrivée.
-   */
-  requestedLevel(): SceneLevel {
-    const { mode, tilt, fov } = this.cameraState;
-    const volume = mode !== 'top' || tilt > 0 || fov !== undefined;
-    return volume && this.settings.view.isoVolume && !this.flattened ? 'iso' : 'flat';
-  }
-
-  renderContext(page?: PageModel) {
-    return {
-      text: this.text,
-      edgeJumps: page && this.jumpsOf(page),
-      volume: {
-        depth: this.settings.view.isoDepth,
-        shadeLight: this.settings.view.shadeLight,
-        shadeDark: this.settings.view.shadeDark,
-        tags: this.settings.view.facadeTags,
-      },
-      background: this.settings.background.color,
-      placeholder: { fill: this.settings.shapes.placeholderFill, stroke: this.settings.shapes.placeholderStroke },
-      accent: this.settings.selection.accentColor,
-      edgeFontColor: this.settings.shapes.edgeFontColor,
-      edgeLabelBackdrop: {
-        kind: this.settings.shapes.edgeLabelBackdrop,
-        haloWidth: this.settings.shapes.edgeLabelHaloWidth,
-        haloBlur: this.settings.shapes.edgeLabelHaloBlur,
-      },
-      edgeBadge: {
-        radius: this.settings.shapes.edgeBadgeRadius,
-        textSize: this.settings.shapes.edgeBadgeTextSize,
-        smallRadius: this.settings.shapes.edgeBadgeSmallRadius,
-        smallTextSize: this.settings.shapes.edgeBadgeSmallTextSize,
-        borderColor: this.settings.shapes.edgeBadgeBorderColor,
-        borderWidth: this.settings.shapes.edgeBadgeBorderWidth,
-        textColor: this.settings.shapes.edgeBadgeTextColor,
-        bold: this.settings.shapes.edgeBadgeBold,
-        gap: this.settings.shapes.edgeBadgeGap,
-        faceCamera: this.settings.shapes.edgeBadgeFaceCamera,
-        labelFaceCamera: this.settings.shapes.edgeBadgeLabelFaceCamera,
-      },
-      dressingDarken: this.settings.shapes.edgeDressingDarken,
-    };
-  }
-
-  /**
-   * Volumes iso : la hauteur des blocs suit l'inclinaison (ils « poussent » pendant la bascule
-   * 2D → iso, et s'aplatissent si l'on remonte vers la vue de dessus), ou la perspective : pleine
-   * hauteur en 3D, même vue d'aplomb.
-   */
-  applyHeightScale(): void {
-    const scene = this.scenes.current;
-    if (!scene || scene.level !== 'iso' || this.transition) return;
-    const tilted = this.cameraState.tilt / Math.max(this.isoTilt(), 1e-6);
-    const scale = Math.min(1, Math.max(0, tilted, perspectiveAmount(this.cameraState)));
-    this.heightScale = scale;
-    setPageTransform(scene.root, undefined, scale);
-    this.blendLevels(scene, scale);
-  }
-
-  /**
-   * Fondu enchaîné d'une bascule 2D ↔ volume : la scène en volume (qui s'aplatit ou pousse)
-   * apparaît avec la hauteur des blocs, la scène à plat de la même page disparaît d'autant.
-   */
-  blendLevels(volume: PageScene, weight: number): void {
-    const blend = this.levelBlend;
-    const page = this.pages.getCurrentPage();
-    if (!blend || !page) return;
-    const flat = blend.flat ?? this.scenes.overlay(page, 'flat');
-    if (flat === volume) return;
-    blend.flat = flat;
-    blend.volume = volume;
-    setPageOpacity(volume.root, weight);
-    setPageOpacity(flat.root, 1 - weight);
-  }
-
-  /** Fin (ou interruption) du fondu enchaîné : chaque scène retrouve son opacité, seule la courante reste visible. */
-  endLevelBlend(): void {
-    const blend = this.levelBlend;
-    if (!blend) return;
-    this.levelBlend = undefined;
-    for (const scene of [blend.volume, blend.flat]) if (scene) setPageOpacity(scene.root, 1);
-    const page = this.pages.getCurrentPage();
-    if (page && !this.transition && (blend.volume || blend.flat)) {
-      this.scenes.show(page);
-      this.applyHeightScale();
-      // La sélection suit la scène affichée (voile, contour, poignées).
-      this.updateSelectionOutline();
-      this.rendering.requestRender();
-    }
-  }
-
-  /** Les volumes ont changé (activés, épaisseur) : on reconstruit les scènes. */
-  rebuildScenes(): void {
-    this.scenes.clear();
-    const page = this.pages.getCurrentPage();
-    if (page) this.scenes.show(page);
-    this.applyHeightScale();
-    this.updateSelectionOutline();
-    this.minimap?.invalidate();
-    this.rendering.requestRender();
-  }
-
-  applyCamera(state: CameraState): void {
-    this.display.pendingFit = undefined;
-    const previousZoom = this.cameraState.zoom;
-    const previousLevel = this.requestedLevel();
-    this.cameraState = normalizeCameraState(state);
-    // Changement de niveau (mode, ou fin d'une bascule vers la 2D) : la page passe au rendu de ce
-    // niveau (même scène si tout est à plat).
-    let sceneChanged = false;
-    if (this.requestedLevel() !== previousLevel && !this.transition) {
-      const page = this.pages.getCurrentPage();
-      if (page) {
-        this.scenes.show(page);
-        this.minimap?.invalidate();
-        sceneChanged = true;
-      }
-    }
-    if (this.pages.currentPageId) {
-      this.pages.pageCameras.set(this.pages.currentPageId, this.cameraState);
-      if (!this.transition) this.pages.pageIso.set(this.pages.currentPageId, this.isoParams());
-    }
-    this.minimap?.requestDraw();
-    // Contour de sélection d'épaisseur constante à l'écran ; la sélection est transférée à la scène
-    // du nouveau niveau quand on change de vue (2D ↔ iso / 3D).
-    if (this.selection && (sceneChanged || this.cameraState.zoom !== previousZoom)) this.updateSelectionOutline();
-    if (this.linkZonesShown && (sceneChanged || this.cameraState.zoom !== previousZoom)) this.updateLinkZones();
-    this.rendering.applyProjection();
-    this.applyHeightScale();
-    this.relocateLabelEdit();
-    this.events.emit('cameraChange', this.getCameraState());
-    this.rendering.requestRender();
-  }
-
   // -------------------------------------------------------------------------
   // Modes de vue (SPEC §9.1)
 
-  getViewMode(): ViewMode {
-    return this.cameraState.mode;
-  }
-
-  setViewMode(mode: ViewMode): void {
-    if (this.transition) return;
-    if (this.cameraState.mode !== '3d') this.lastFlatMode = this.cameraState.mode;
-    // Entre la 2D (à plat) et l'iso / la 3D (volumes) : fondu enchaîné des deux rendus.
-    const crossesFlat = (this.cameraState.mode === 'top') !== (mode === 'top');
-    this.animateCameraTo(
-      withViewMode(this.cameraState, mode, this.isoTilt(), this.isoAzimuth()),
-      this.settings.view.switchDurationMs,
-      crossesFlat,
-    );
-  }
-
-  toggleViewMode(): void {
-    this.setViewMode(this.cameraState.mode === 'iso' ? 'top' : 'iso');
-  }
-
-  /** Touche P : vers la 3D, ou retour au dernier mode 2D / iso. */
-  toggle3d(): void {
-    this.setViewMode(this.cameraState.mode === '3d' ? this.lastFlatMode : '3d');
-  }
-
-  isFlattened(): boolean {
-    return this.flattened;
-  }
-
-  setFlattened(flattened: boolean): void {
-    if (flattened === this.flattened || this.transition) return;
-    if (flattened && this.cameraState.mode === 'top') return;
-    this.endLevelBlend();
-    const previousLevel = this.requestedLevel();
-    this.flattened = flattened;
-    const page = this.pages.getCurrentPage();
-    if (page && this.requestedLevel() !== previousLevel) {
-      this.scenes.show(page);
-      this.applyHeightScale();
-      this.updateSelectionOutline();
-      if (this.linkZonesShown) this.updateLinkZones();
-      this.minimap?.invalidate();
-      this.rendering.requestRender();
-    }
-    this.events.emit('flattenChange', flattened);
-  }
-
-  toggleFlatten(): void {
-    if (this.cameraState.mode === 'top') return;
-    this.setFlattened(!this.flattened);
-  }
-
-  /** Réglages iso en vigueur (enregistrés par page). */
-  isoParams(): IsoViewParams {
-    const { isoAngleDeg, isoAzimuthDeg, isoVolume, isoDepth } = this.settings.view;
-    return { isoAngleDeg, isoAzimuthDeg, isoVolume, isoDepth };
-  }
-
-  /**
-   * Reprend les réglages iso enregistrés pour une page (fichier ou dernière visite), sans animer :
-   * la caméra de la page est appliquée juste après. L'UI les reçoit par `settingsChange`.
-   */
-  applyPageIso(pageId: string): void {
-    const iso = this.pages.pageIso.get(pageId);
-    const view = this.settings.view;
-    if (
-      !iso ||
-      (view.isoAngleDeg === iso.isoAngleDeg &&
-        view.isoAzimuthDeg === iso.isoAzimuthDeg &&
-        view.isoVolume === iso.isoVolume &&
-        view.isoDepth === iso.isoDepth)
-    ) {
-      return;
-    }
-    this.config.settings = mergeSettings(this.settings, { view: iso });
-    if (view.isoVolume !== this.settings.view.isoVolume || view.isoDepth !== this.settings.view.isoDepth) {
-      this.scenes.clear();
-    }
-    this.events.emit('settingsChange', this.config.getSettings());
-  }
-
-  isoTilt(): number {
-    return tiltFromElevation(this.settings.view.isoAngleDeg);
-  }
-
-  isoAzimuth(): number {
-    return (this.settings.view.isoAzimuthDeg * Math.PI) / 180;
-  }
-
-  getReferenceRotation(): number {
-    return this.cameraState.mode === 'top' ? 0 : normalizeAngle(this.isoAzimuth());
-  }
-
-  /** Orientation courante (mode, rotation, inclinaison), conservée par les cadrages. */
-  orientation(): { rotation: number; tilt: number; mode: ViewMode } {
-    return { rotation: this.cameraState.rotation, tilt: this.cameraState.tilt, mode: this.cameraState.mode };
-  }
-
   // -------------------------------------------------------------------------
   // Vue graphe (SPEC §12)
-
-  getGraphPage(): PageModel | undefined {
-    if (!this.file.document) return undefined;
-    const graph = this.settings.graph;
-    this.graph ??= buildGraphPage(this.file.document, graph, {
-      card: graph.cardColor,
-      start: this.settings.selection.accentColor,
-      orphan: graph.orphanColor,
-      unreachable: graph.unreachableColor,
-      arc: graph.arcColor,
-      title: graph.titleColor,
-    });
-    return this.graph.page;
-  }
-
-  isGraphView(): boolean {
-    return this.pages.currentPageId === GRAPH_PAGE_ID;
-  }
-
-  showGraph(): void {
-    const graph = this.getGraphPage();
-    const page = this.pages.getCurrentPage();
-    if (!graph || !page || page.id === GRAPH_PAGE_ID || this.transition) return;
-    const card = graph.shapes.find((s) => s.id === cardId(page.id));
-    this.runTransition({
-      direction: 'out',
-      outer: graph,
-      inner: page,
-      frame: card?.bounds,
-      destination:
-        this.pages.pageCameras.get(GRAPH_PAGE_ID) ?? fitBounds(graph.bounds, this.display.viewport, this.orientation()),
-    });
-  }
-
-  toggleGraph(): void {
-    if (!this.isGraphView()) {
-      this.showGraph();
-      return;
-    }
-    const target = this.pages.lastDocumentPageId ?? this.file.document?.pages[0]?.id;
-    if (target) this.followLink(cardId(target));
-  }
-
-  attachMinimap(canvas: HTMLCanvasElement, size = 200): () => void {
-    this.minimap?.dispose();
-    const minimap = new Minimap(
-      canvas,
-      {
-        getPage: () => this.pages.getCurrentPage(),
-        getCamera: () => this.cameraState,
-        getViewport: () => this.display.viewport,
-        getBackground: () => this.settings.background.color,
-        getAccent: () => this.settings.selection.accentColor,
-        getColors: () => ({
-          edge: this.settings.minimap.edgeColor,
-          outline: this.settings.minimap.outlineColor,
-          placeholder: this.settings.shapes.placeholderFill,
-        }),
-        getEdgeRoute: (id) => this.sceneObject(id)?.userData.route as Point[] | undefined,
-        paintShape: (context, shape, map) => this.registry.minimapPainter(shape)?.(context, shape, map),
-        centerOn: (point) => {
-          if (!this.transition) this.setCameraState({ ...this.cameraState, center: point });
-        },
-      },
-      size,
-    );
-    this.minimap = minimap;
-    minimap.invalidate();
-    return () => {
-      minimap.dispose();
-      if (this.minimap === minimap) this.minimap = undefined;
-    };
-  }
-
-  resetView(): void {
-    const page = this.pages.getCurrentPage();
-    if (!page || this.transition) return;
-    const { mode } = this.cameraState;
-    this.animateCameraTo(defaultView(page.bounds, this.display.viewport, mode, this.isoTilt(), this.isoAzimuth()));
-  }
-
-  resetRotation(): void {
-    const center = { x: this.display.viewport.width / 2, y: this.display.viewport.height / 2 };
-    const delta = normalizeAngle(this.getReferenceRotation() - this.cameraState.rotation);
-    this.animateCameraTo(rotateAround(this.cameraState, this.display.viewport, center, delta));
-  }
 
   // -------------------------------------------------------------------------
   // Paramètres (SPEC §13)
@@ -1161,15 +694,15 @@ export class EngineCore {
     // Texte d'une flèche, même placé loin d'elle : la flèche.
     const text = this.edgeTextAt(screen);
     if (text) return { type: 'edge', element: text.edge };
-    const point = screenToPage(this.cameraState, this.display.viewport, screen);
+    const point = screenToPage(this.camera.state, this.display.viewport, screen);
     return pickElement(page, point, {
-      edgeTolerance: this.settings.edit.edgePickTolerance / this.cameraState.zoom,
+      edgeTolerance: this.settings.edit.edgePickTolerance / this.camera.state.zoom,
       edgeRoute: (id) => {
-        const data = this.sceneObject(id)?.userData;
+        const data = this.sceneView.sceneObject(id)?.userData;
         return (data?.path ?? data?.route) as Point[] | undefined;
       },
-      heightOf: (id) => this.elementTop(id),
-      baseOf: (id) => this.volumeBase(id),
+      heightOf: (id) => this.sceneView.elementTop(id),
+      baseOf: (id) => this.sceneView.volumeBase(id),
       pointAtHeight: (height) => this.groundPointAtHeight(screen, height),
       contains: (shape, p) => this.registry.contains(shape, p, () => this.shapeOutline(shape)),
       pickable: (shape) => this.registry.isPickable(shape),
@@ -1237,7 +770,7 @@ export class EngineCore {
 
   /** Emprise à l'écran d'un élément : base et dessus d'une forme, tracé d'une flèche. */
   screenFootprint(item: PickedElement): Footprint | undefined {
-    const top = this.elementTop(item.element.id);
+    const top = this.sceneView.elementTop(item.element.id);
     if (item.type === 'shape') {
       const { x, y, width, height } = item.element.bounds;
       const corners = [
@@ -1249,7 +782,7 @@ export class EngineCore {
       const heights = top === 0 ? [0] : [0, top];
       return { points: heights.flatMap((h) => corners.map((p) => this.screenOfPoint(p, h))), closed: true };
     }
-    const route = this.sceneObject(item.element.id)?.userData.route as Point[] | undefined;
+    const route = this.sceneView.sceneObject(item.element.id)?.userData.route as Point[] | undefined;
     if (!route?.length) return undefined;
     return { points: route.map((p) => this.screenOfPoint(p, top)), closed: false };
   }
@@ -1282,8 +815,8 @@ export class EngineCore {
     const target = this.pages.pageById(link.pageId);
     if (!target || target.id === page.id) return;
 
-    const frame = page.shapes.find((s) => s.id === elementId)?.bounds ?? this.drawnBounds(elementId);
-    this.history.push({ pageId: page.id, elementId, frame, camera: this.cameraState, targetPageId: target.id });
+    const frame = page.shapes.find((s) => s.id === elementId)?.bounds ?? this.sceneView.drawnBounds(elementId);
+    this.history.push({ pageId: page.id, elementId, frame, camera: this.camera.state, targetPageId: target.id });
     this.events.emit('historyChange', this.history.entries());
     // L'usage ne compte que pour les vrais liens du document (pas les cartes de la vue graphe).
     if (page.id !== GRAPH_PAGE_ID) {
@@ -1298,7 +831,8 @@ export class EngineCore {
       inner: target,
       frame,
       destination:
-        this.pages.pageCameras.get(target.id) ?? fitBounds(target.bounds, this.display.viewport, this.orientation()),
+        this.pages.pageCameras.get(target.id) ??
+        fitBounds(target.bounds, this.display.viewport, this.camera.orientation()),
     });
   }
 
@@ -1353,7 +887,7 @@ export class EngineCore {
     const inner = this.pages.getCurrentPage();
     const outer = this.pages.pageById(pageId);
     if (!inner || !outer) return;
-    const destination = camera ?? fitBounds(outer.bounds, this.display.viewport, this.orientation());
+    const destination = camera ?? fitBounds(outer.bounds, this.display.viewport, this.camera.orientation());
     this.runTransition({ direction: 'out', outer, inner, frame, destination });
   }
 
@@ -1383,34 +917,34 @@ export class EngineCore {
       this.config.reducedMotion() ||
       this.settings.transition.durationMs <= 0
     ) {
-      if (direction === 'in') this.pages.pageCameras.set(outer.id, this.cameraState);
+      if (direction === 'in') this.pages.pageCameras.set(outer.id, this.camera.state);
       this.pages.pageCameras.set(to.id, destination);
       this.pages.goToPage(to.id);
       return;
     }
 
-    cancelAnimationFrame(this.animation);
-    this.animation = 0;
+    cancelAnimationFrame(this.camera.animation);
+    this.camera.animation = 0;
     this.clearSelection();
     const embedding = embedIn(inner.bounds, frame);
     const outerScene = this.scenes.prebuild(outer);
     const innerScene = this.scenes.prebuild(inner);
 
     // Caméras de départ et d'arrivée, exprimées dans le repère de la page extérieure.
-    const startCamera = direction === 'in' ? this.cameraState : embeddedCamera(this.cameraState, embedding);
+    const startCamera = direction === 'in' ? this.camera.state : embeddedCamera(this.camera.state, embedding);
     const endCamera = direction === 'in' ? embeddedCamera(destination, embedding) : destination;
-    const outerCameraBefore = direction === 'in' ? this.cameraState : undefined;
+    const outerCameraBefore = direction === 'in' ? this.camera.state : undefined;
 
     // Pendant la transition, la page courante est l'extérieure ; l'intérieure est posée dans la forme.
     this.pages.currentPageId = outer.id;
     this.scenes.show(outer);
-    this.minimap?.invalidate();
+    this.minimap.invalidate();
     innerScene.root.visible = true;
     setPageTransform(innerScene.root, embedding);
     const innerAlpha = (fade: number) => (direction === 'in' ? fade : 1 - fade);
     setPageOpacity(innerScene.root, innerAlpha(0));
     setPageOpacity(outerScene.root, 1 - innerAlpha(0));
-    this.applyCamera(startCamera);
+    this.camera.applyCamera(startCamera);
 
     const ease = easing(this.settings.transition.easing);
     const duration = this.settings.transition.durationMs;
@@ -1426,7 +960,7 @@ export class EngineCore {
     };
     const finish = () => {
       this.transition = undefined;
-      this.animation = 0;
+      this.camera.animation = 0;
       this.controller.setEnabled(true);
       // Touche toujours maintenue : les zones liées de la page d'arrivée.
       this.updateLinkZones();
@@ -1435,7 +969,7 @@ export class EngineCore {
     this.transition = {
       abort: () => {
         // On reste sur la page extérieure, à la vue courante.
-        cancelAnimationFrame(this.animation);
+        cancelAnimationFrame(this.camera.animation);
         restore();
         this.scenes.show(outer);
         finish();
@@ -1448,26 +982,26 @@ export class EngineCore {
     const step = (now: number) => {
       const t = Math.min((now - start) / duration, 1);
       if (t < 1) {
-        this.applyCamera(interpolateCamera(startCamera, endCamera, ease(t)));
+        this.camera.applyCamera(interpolateCamera(startCamera, endCamera, ease(t)));
         const fade = phase(t, fadeStart, fadeEnd);
         setPageOpacity(innerScene.root, innerAlpha(fade));
         setPageOpacity(outerScene.root, 1 - innerAlpha(fade));
-        this.animation = requestAnimationFrame(step);
+        this.camera.animation = requestAnimationFrame(step);
         return;
       }
       // Arrivée : même image à l'écran, sur la page de destination sans transformation.
       restore();
       if (outerCameraBefore) this.pages.pageCameras.set(outer.id, outerCameraBefore);
-      this.applyPageIso(to.id);
+      this.viewModes.applyPageIso(to.id);
       this.pages.currentPageId = to.id;
       if (to.id !== GRAPH_PAGE_ID) this.pages.lastDocumentPageId = to.id;
       this.scenes.show(to);
-      this.minimap?.invalidate();
-      this.applyCamera(destination);
+      this.minimap.invalidate();
+      this.camera.applyCamera(destination);
       this.events.emit('pageChange', to);
       finish();
     };
-    this.animation = requestAnimationFrame(step);
+    this.camera.animation = requestAnimationFrame(step);
   }
 
   // -------------------------------------------------------------------------
@@ -1519,7 +1053,7 @@ export class EngineCore {
 
   /** Bouts du tracé d'une flèche, en coordonnées page (objet éventuellement décalé en cours de glisser). */
   edgeEndPoints(edgeId: string): Record<TerminalEnd, Point> | undefined {
-    const object = this.sceneObject(edgeId);
+    const object = this.sceneView.sceneObject(edgeId);
     const route = object?.userData.route as Point[] | undefined;
     if (!object || !route || route.length < 2) return undefined;
     const at = (p: Point) => ({ x: p.x + object.position.x, y: p.y + object.position.y });
@@ -1531,7 +1065,7 @@ export class EngineCore {
     const edge = this.edgeHandlesSelection()?.edge;
     const ends = edge && this.edgeEndPoints(edge.id);
     if (!edge || !ends) return undefined;
-    const top = this.elementTop(edge.id);
+    const top = this.sceneView.elementTop(edge.id);
     let best: { end: TerminalEnd; distance: number } | undefined;
     for (const end of ['target', 'source'] as const) {
       const at = this.screenOfPoint(ends[end], top);
@@ -1544,7 +1078,7 @@ export class EngineCore {
 
   /** Ce que les poignées entre les bouts savent de la flèche (tracé brut affiché, formes, points d'appui). */
   pointsContext(page: PageModel, edge: EdgeModel): PointsContext | undefined {
-    const object = this.sceneObject(edge.id);
+    const object = this.sceneView.sceneObject(edge.id);
     const raw = object?.userData.points as Point[] | undefined;
     if (!object || !raw || raw.length < 2) return undefined;
     const shapes = new Map(page.shapes.map((s) => [s.id, s]));
@@ -1552,7 +1086,7 @@ export class EngineCore {
     const target = toTerminal(shapes.get(edge.targetId ?? ''));
     const sourceFixed = source && fixedAnchor(source, edge.style, 'source');
     const targetFixed = target && fixedAnchor(target, edge.style, 'target');
-    const { zoom } = this.cameraState;
+    const { zoom } = this.camera.state;
     return {
       editor: pointsEditor(edge.style),
       route: raw.map((p) => ({ x: p.x + object.position.x, y: p.y + object.position.y })),
@@ -1582,7 +1116,7 @@ export class EngineCore {
     const editable = this.edgeHandlesSelection();
     const context = editable && this.pointsContext(editable.page, editable.edge);
     if (!editable || !context) return undefined;
-    const top = this.elementTop(editable.edge.id);
+    const top = this.sceneView.elementTop(editable.edge.id);
     let best: { handle: PointHandle; distance: number } | undefined;
     for (const handle of pointHandles(context)) {
       const at = this.screenOfPoint(handle.point, top);
@@ -1650,7 +1184,7 @@ export class EngineCore {
       // Ancrage automatique : on ne vise que le côté de la forme (le plus proche du pointeur) ; la répartition suit.
       const shape = this.shapeAt(screen, options.exclude);
       if (shape) {
-        const pointer = this.groundPointAtHeight(screen, this.elementTop(shape.id));
+        const pointer = this.groundPointAtHeight(screen, this.sceneView.elementTop(shape.id));
         const side = sideOfConstraint(frameConstraint(shape.bounds, pointer)) ?? 'n';
         return { kind: 'fixed', shapeId: shape.id, constraint: sideMiddle(side) };
       }
@@ -1661,7 +1195,7 @@ export class EngineCore {
         : connectableShapes(page, this.registry).filter((s) => s.id !== options.exclude);
     let best: { shapeId: string; constraint: Point; distance: number } | undefined;
     for (const shape of shapes) {
-      const top = this.elementTop(shape.id);
+      const top = this.sceneView.elementTop(shape.id);
       for (const { constraint } of this.anchorsOf(page, shape, options.skip, options.taken)) {
         const at = this.screenOfPoint(this.anchorPosition(shape, constraint), top);
         const distance = Math.hypot(at.x - screen.x, at.y - screen.y);
@@ -1785,12 +1319,12 @@ export class EngineCore {
     const connectable = new Set(connectableShapes(page, this.registry).map((s) => s.id));
     const picked = pickElement(
       { ...page, shapes: page.shapes.filter((s) => connectable.has(s.id) && s.id !== exclude), edges: [] },
-      screenToPage(this.cameraState, this.display.viewport, screen),
+      screenToPage(this.camera.state, this.display.viewport, screen),
       {
         edgeTolerance: 0,
         edgeRoute: () => undefined,
-        heightOf: (id) => this.elementTop(id),
-        baseOf: (id) => this.volumeBase(id),
+        heightOf: (id) => this.sceneView.elementTop(id),
+        baseOf: (id) => this.sceneView.volumeBase(id),
         pointAtHeight: (height) => this.groundPointAtHeight(screen, height),
         contains: (shape, p) => this.registry.contains(shape, p, () => this.shapeOutline(shape)),
       },
@@ -1839,10 +1373,10 @@ export class EngineCore {
       const hints = connectionHints(
         { bounds: b, perimeter: 'rectangle', style: shape.style },
         [],
-        this.cameraState.zoom,
+        this.camera.state.zoom,
         { outline: false, side: side && corners[side], accent: this.settings.selection.accentColor },
       );
-      hints.position.z = this.elementTop(shape.id) + 0.3;
+      hints.position.z = this.sceneView.elementTop(shape.id) + 0.3;
       group.add(hints);
     } else if (shape && attachment?.kind !== 'free') {
       const anchors = this.anchorsOf(page, shape, skip, taken);
@@ -1859,10 +1393,10 @@ export class EngineCore {
           style: shape.style,
         },
         anchors.map((a) => ({ point: this.anchorPosition(shape, a.constraint), used: a.used })),
-        this.cameraState.zoom,
+        this.camera.state.zoom,
         { active, outline: attachment?.kind === 'floating', accent: this.settings.selection.accentColor },
       );
-      hints.position.z = this.elementTop(shape.id) + 0.3;
+      hints.position.z = this.sceneView.elementTop(shape.id) + 0.3;
       group.add(hints);
     }
     group.traverse((o) => {
@@ -1876,7 +1410,7 @@ export class EngineCore {
 
   /** Point écran d'un point de la page posé à `height` au-dessus du sol (inverse de `groundPointAtHeight`). */
   screenOfPoint(point: Point, height: number): Point {
-    return pageToScreen(this.cameraState, this.display.viewport, point, height);
+    return pageToScreen(this.camera.state, this.display.viewport, point, height);
   }
 
   /** Disposition des poignées de la sélection (paramètres d'édition). */
@@ -1890,10 +1424,10 @@ export class EngineCore {
     const editable = this.editableSelection();
     if (!editable) return undefined;
     const { shape } = editable;
-    const top = this.elementTop(shape.id);
+    const top = this.sceneView.elementTop(shape.id);
     const resizable = this.registry.isResizable(shape);
     let best: { kind: HandleKind; distance: number } | undefined;
-    for (const { kind, point } of handlePoints(shape.bounds, this.cameraState.zoom, this.handleLayout())) {
+    for (const { kind, point } of handlePoints(shape.bounds, this.camera.state.zoom, this.handleLayout())) {
       if (!isConnectHandle(kind) && !resizable) continue;
       const at = this.screenOfPoint(point, top);
       const distance = Math.hypot(at.x - screen.x, at.y - screen.y);
@@ -1911,7 +1445,7 @@ export class EngineCore {
     const editable = this.editablePage();
     if (!editable) return false;
     const { page, pageTree } = editable;
-    const start = screenToPage(this.cameraState, this.display.viewport, screen);
+    const start = screenToPage(this.camera.state, this.display.viewport, screen);
     const grid = gridSizeOf(pageTree);
 
     const end = this.edgeEndAt(screen);
@@ -2084,7 +1618,7 @@ export class EngineCore {
     const drag = this.drag;
     const page = this.pages.getCurrentPage();
     if (!drag || page?.id !== drag.pageId) return;
-    const point = screenToPage(this.cameraState, this.display.viewport, screen);
+    const point = screenToPage(this.camera.state, this.display.viewport, screen);
     if (drag.kind === 'move') this.dragMove(page, drag, point, snap);
     else if (drag.kind === 'resize') this.dragResize(page, drag, point, snap);
     else if (drag.kind === 'label') this.dragLabel(page, drag, screen);
@@ -2096,10 +1630,10 @@ export class EngineCore {
   /** Texte de flèche suivant le pointeur : le point du tracé le plus proche, et l'écart de côté. */
   dragLabel(page: PageModel, drag: LabelDrag, screen: Point): void {
     const edge = page.edges.find((e) => e.id === drag.edgeId);
-    const route = this.sceneObject(drag.edgeId)?.userData.route as Point[] | undefined;
+    const route = this.sceneView.sceneObject(drag.edgeId)?.userData.route as Point[] | undefined;
     if (!edge || !route?.length) return;
     drag.started = true;
-    const point = this.groundPointAtHeight(screen, this.elementTop(drag.edgeId));
+    const point = this.groundPointAtHeight(screen, this.sceneView.elementTop(drag.edgeId));
     let placement = placementAt(route, point, drag.offset);
     // Texte du milieu qui suit la flèche, glissé le long du trait : le point visé est celui du texte glissé.
     const shift = drag.cellId === edge.id ? this.followedText(edge.id)?.shift : undefined;
@@ -2193,11 +1727,11 @@ export class EngineCore {
     if (!page || !root) return undefined;
     root.updateMatrixWorld();
     const toPage = new Matrix4().copy(root.matrixWorld).invert();
-    const padding = 2 / this.cameraState.zoom;
+    const padding = 2 / this.camera.state.zoom;
     for (const edge of [...page.edges].reverse()) {
-      const object = this.sceneObject(edge.id);
+      const object = this.sceneView.sceneObject(edge.id);
       if (!object?.visible) continue;
-      const point = this.groundPointAtHeight(screen, this.elementTop(edge.id));
+      const point = this.groundPointAtHeight(screen, this.sceneView.elementTop(edge.id));
       let hit: string | undefined;
       object.traverse((child) => {
         const cellId = child.userData.labelCellId as string | undefined;
@@ -2226,7 +1760,7 @@ export class EngineCore {
     const editable = this.editablePage();
     const edge = editable?.page.edges.find((e) => e.id === edgeId);
     if (!editable || !edge || !edgeTexts(edge).some((text) => text.cellId === cellId)) return;
-    const route = this.sceneObject(edgeId)?.userData.route as Point[] | undefined;
+    const route = this.sceneView.sceneObject(edgeId)?.userData.route as Point[] | undefined;
     if (!route?.length) return;
     // Même configuration qu'un texte créé à cet endroit : placement et alignement.
     const layout = edgeTextLayout(route, anchor, false, this.endTextGap());
@@ -2245,14 +1779,14 @@ export class EngineCore {
 
   /** Configuration par défaut d'un texte de début / fin d'une flèche de la page courante. */
   endTextLayout(edgeId: string, end: EdgeEnd, flipped = false): EdgeTextLayout {
-    const route = (this.sceneObject(edgeId)?.userData.route as Point[] | undefined) ?? [];
+    const route = (this.sceneView.sceneObject(edgeId)?.userData.route as Point[] | undefined) ?? [];
     return edgeTextLayout(route, end, flipped, this.endTextGap());
   }
 
   /** Demande d'édition complétée de la bascule possible (texte de début / fin en configuration par défaut). */
   withFlip(request: LabelEditRequest): LabelEditRequest {
     const edge = this.pages.getCurrentPage()?.edges.find((e) => e.id === request.elementId);
-    const route = this.sceneObject(request.elementId)?.userData.route as Point[] | undefined;
+    const route = this.sceneView.sceneObject(request.elementId)?.userData.route as Point[] | undefined;
     const rest = { ...request };
     delete rest.flip;
     if (!request.onEdge || !request.end || !edge || !route?.length) return rest;
@@ -2266,7 +1800,7 @@ export class EngineCore {
   /** Texte du milieu d'une flèche qui la suit : où ses lettres sont posées ; undefined s'il est horizontal. */
   followedText(edgeId: string): TextAlong | undefined {
     const edge = this.pages.getCurrentPage()?.edges.find((e) => e.id === edgeId);
-    return edge && middleTextAlong(edge, this.sceneObject(edgeId)?.userData.path as Point[] | undefined);
+    return edge && middleTextAlong(edge, this.sceneView.sceneObject(edgeId)?.userData.path as Point[] | undefined);
   }
 
   /** Angle de l'éditeur d'un texte du milieu qui suit sa flèche : celui du trait dessiné au point du texte, à l'écran. */
@@ -2277,7 +1811,7 @@ export class EngineCore {
       !request.onEdge || request.end || request.labelCellId ? undefined : this.followedText(request.elementId);
     if (!along) return rest;
     const { point, tangent } = alongAnchor(along);
-    const top = this.elementTop(request.elementId);
+    const top = this.sceneView.elementTop(request.elementId);
     const from = this.screenOfPoint(point, top);
     const to = this.screenOfPoint({ x: point.x + tangent.x * 10, y: point.y + tangent.y * 10 }, top);
     let angle = Math.atan2(to.y - from.y, to.x - from.x);
@@ -2291,7 +1825,7 @@ export class EngineCore {
     const editing = this.labelEditing;
     const editable = this.editablePage();
     const edge = editable?.page.edges.find((e) => e.id === editing?.elementId);
-    const route = edge && (this.sceneObject(edge.id)?.userData.route as Point[] | undefined);
+    const route = edge && (this.sceneView.sceneObject(edge.id)?.userData.route as Point[] | undefined);
     if (!editing?.onEdge || !editing.end || !editable || !edge || !route?.length) return;
     const child = editing.labelCellId ? edge.labels.find((l) => l.id === editing.labelCellId) : undefined;
     let next: LabelEditRequest;
@@ -2407,7 +1941,7 @@ export class EngineCore {
     const source = page.shapes.find((s) => s.id === connect.sourceId);
     if (!source) return;
     connect.started = true;
-    const top = this.elementTop(source.id);
+    const top = this.sceneView.elementTop(source.id);
     const sideExit = CONNECT_DIRECTIONS[connect.side].exit;
     if (this.anchoringOf(page) === 'auto') {
       // Ancrage automatique : départ et arrivée au milieu des côtés choisis, répartis à l'écriture.
@@ -2426,7 +1960,7 @@ export class EngineCore {
           : undefined;
       const line = connectorPreview(
         [from, ...(connect.loop ?? []), end],
-        this.cameraState.zoom,
+        this.camera.state.zoom,
         this.settings.selection.accentColor,
       );
       line.position.z = top + 0.2;
@@ -2472,7 +2006,7 @@ export class EngineCore {
         ? this.loopBetween(source, exit.constraint, connect.target.constraint)
         : undefined;
     const path = [exit.point, ...(connect.loop ?? []), end];
-    const line = connectorPreview(path, this.cameraState.zoom, this.settings.selection.accentColor);
+    const line = connectorPreview(path, this.camera.state.zoom, this.settings.selection.accentColor);
     line.position.z = top + 0.2;
     this.showConnectionHints(page, connect.target, line, undefined, taken);
   }
@@ -2484,7 +2018,7 @@ export class EngineCore {
     const pageTree = this.file.pageTreeOf(page.id);
     if (!edge || !pageTree) return;
     drag.started = true;
-    const raw = this.groundPointAtHeight(screen, this.elementTop(edge.id));
+    const raw = this.groundPointAtHeight(screen, this.sceneView.elementTop(edge.id));
     const grid = gridSizeOf(pageTree);
     const step = snap && grid > 0 ? grid : 1;
     const pointer = { x: Math.round(raw.x / step) * step, y: Math.round(raw.y / step) * step };
@@ -2504,7 +2038,7 @@ export class EngineCore {
     const skip = { edgeId: edge.id, end: drag.end, origin: drag.origin };
     const attachment = this.endAttachmentAt(page, screen, {
       skip,
-      height: this.elementTop(edge.id),
+      height: this.sceneView.elementTop(edge.id),
       snap,
       grid: gridSizeOf(pageTree),
     });
@@ -2667,8 +2201,8 @@ export class EngineCore {
     // Scènes de cette page à d'autres niveaux, et vue graphe (miniatures) : à reconstruire.
     this.scenes.invalidate(drag.pageId);
     this.scenes.invalidate(GRAPH_PAGE_ID);
-    this.graph = undefined;
-    this.minimap?.invalidate();
+    this.graph.invalidate();
+    this.minimap.invalidate();
     this.edits.syncModified();
   }
 
@@ -2687,18 +2221,18 @@ export class EngineCore {
     // Le voile met en valeur des objets précis : il est reconstruit (objets remplacés).
     this.clearVeil();
     this.updateSelectionOutline();
-    this.minimap?.invalidate();
+    this.minimap.invalidate();
     this.rendering.requestRender();
   }
 
   /** Remplace l'objet d'une forme (taille changée), à la même hauteur et dans le même ordre de dessin. */
   rebuildShapeObject(shape: ShapeModel): void {
     const root = this.scenes.current?.root;
-    const old = this.sceneObject(shape.id);
+    const old = this.sceneView.sceneObject(shape.id);
     if (!root || !old) return;
     const base = old.position.z;
     const height = ((old.userData.top as number | undefined) ?? base) - base;
-    const object = createShapeObject(shape, this.registry, this.renderContext(), this.scenes.current!.level, {
+    const object = createShapeObject(shape, this.registry, this.sceneView.renderContext(), this.scenes.current!.level, {
       base,
       height,
     });
@@ -2726,12 +2260,12 @@ export class EngineCore {
     const shapes = new Map(page.shapes.map((shape) => [shape.id, shape]));
     const dressing = this.modes.dressing(page);
     for (const edge of retraced) {
-      const old = this.sceneObject(edge.id);
+      const old = this.sceneView.sceneObject(edge.id);
       if (!old) continue;
       const object = createEdgeObject(
         edge,
         { source: shapes.get(edge.sourceId ?? ''), target: shapes.get(edge.targetId ?? '') },
-        { ...this.renderContext(page), raisedJumps: this.scenes.current!.level === 'iso' },
+        { ...this.sceneView.renderContext(page), raisedJumps: this.scenes.current!.level === 'iso' },
         dressing,
         jumpStyleOf(edge.style, jumps) ? this.routesBelow(page, edge) : [],
       );
@@ -2747,7 +2281,7 @@ export class EngineCore {
     const routes: Point[][] = [];
     for (const other of page.edges) {
       if (other.z >= edge.z || other.style.noJump === '1') continue;
-      const object = this.sceneObject(other.id);
+      const object = this.sceneView.sceneObject(other.id);
       if (object) routes.push(edgeRoute(object));
     }
     return routes;
@@ -2864,10 +2398,12 @@ export class EngineCore {
       // Forme : sa zone de texte, celle où le label est dessiné à ce niveau de rendu.
       const shape = this.pages.getCurrentPage()?.shapes.find((s) => s.id === elementId);
       const level = this.scenes.current?.level ?? 'flat';
-      return shape ? this.screenRectOf(elementId, this.labelEditZone(shape, level), this.labelTop(shape)) : undefined;
+      return shape
+        ? this.screenRectOf(elementId, this.labelEditZone(shape, level), this.sceneView.labelTop(shape))
+        : undefined;
     }
     // Flèche : le point où le texte est dessiné (son label, un label enfant, ou un début / fin à créer).
-    const route = this.sceneObject(elementId)?.userData.route as Point[] | undefined;
+    const route = this.sceneView.sceneObject(elementId)?.userData.route as Point[] | undefined;
     if (!route?.length) return undefined;
     const child = labelCellId ? edge.labels.find((l) => l.id === labelCellId) : undefined;
     const placement =
@@ -2876,7 +2412,7 @@ export class EngineCore {
     // Texte du milieu qui suit la flèche : son point le long du trait dessiné (glissement compris).
     const along = !child && !end ? this.followedText(elementId) : undefined;
     const point = along ? alongAnchor(along).point : labelPoint(route, placement);
-    const center = this.screenOfPoint(point, this.elementTop(elementId));
+    const center = this.screenOfPoint(point, this.sceneView.elementTop(elementId));
     return { x: center.x, y: center.y, width: 0, height: 0 };
   }
 
@@ -2894,12 +2430,12 @@ export class EngineCore {
    * à la hauteur où le label est dessiné. Vue de dessus non tournée : undefined (rectangle `screen`).
    */
   labelEditPlane(elementId: string): LabelEditPlane | undefined {
-    const { tilt, rotation, fov } = this.cameraState;
+    const { tilt, rotation, fov } = this.camera.state;
     if (tilt === 0 && rotation === 0 && fov === undefined) return undefined;
     const shape = this.pages.getCurrentPage()?.shapes.find((s) => s.id === elementId);
     if (!shape) return undefined;
     const { x, y, width, height } = this.labelEditZone(shape, this.scenes.current?.level ?? 'flat');
-    const top = this.labelTop(shape);
+    const top = this.sceneView.labelTop(shape);
     const at = (px: number, py: number) => this.screenOfPoint({ x: px, y: py }, top);
     return {
       width,
@@ -2939,35 +2475,24 @@ export class EngineCore {
     const editing = this.labelEditing;
     if (!editing) return;
     this.labelEditing = undefined;
-    this.labelObjects(editing.styleCellId).forEach((object) => (object.visible = true));
+    this.sceneView.labelObjects(editing.styleCellId).forEach((object) => (object.visible = true));
     this.updateSelectionOutline();
   }
 
   hideEditedLabel(): void {
     const editing = this.labelEditing;
     if (!editing || editing.pageId !== this.pages.currentPageId) return;
-    this.labelObjects(editing.styleCellId).forEach((object) => (object.visible = false));
+    this.sceneView.labelObjects(editing.styleCellId).forEach((object) => (object.visible = false));
     this.rendering.requestRender();
-  }
-
-  /** Objets de label (texte dessiné) d'une cellule dans la scène courante. */
-  labelObjects(cellId: string | undefined): Object3D[] {
-    const found: Object3D[] = [];
-    if (cellId) {
-      this.scenes.current?.root.traverse((object) => {
-        if (object.userData.labelCellId === cellId) found.push(object);
-      });
-    }
-    return found;
   }
 
   /** Pixels écran par pixel de page au niveau d'un élément (taille du texte de l'éditeur en place). */
   textScale(elementId: string): number {
-    if (this.cameraState.mode !== '3d') return this.cameraState.zoom;
+    if (this.camera.state.mode !== '3d') return this.camera.state.zoom;
     const rect = this.screenRectOf(elementId);
-    const top = this.elementTop(elementId);
+    const top = this.sceneView.elementTop(elementId);
     const center = rect
-      ? screenToPage(this.cameraState, this.display.viewport, {
+      ? screenToPage(this.camera.state, this.display.viewport, {
           x: rect.x + rect.width / 2,
           y: rect.y + rect.height / 2,
         })
@@ -3086,7 +2611,7 @@ export class EngineCore {
       else values[key] = text;
       this.rebuildShapeObject(shape);
       this.scenes.invalidate(editable.page.id);
-      this.graph = undefined;
+      this.graph.invalidate();
       this.scenes.invalidate(GRAPH_PAGE_ID, true);
       this.afterLiveEdit();
       this.edits.syncModified();
@@ -3203,7 +2728,7 @@ export class EngineCore {
     const focus = page && value !== undefined ? this.modes.modeOf(page)?.current?.focus?.(page, value) : undefined;
     const kept = focus && new Set(focus);
     const opacity = this.settings.shapes.modeDimOpacity;
-    const scenes = new Set([this.scenes.current, this.levelBlend?.flat, this.levelBlend?.volume]);
+    const scenes = new Set([this.scenes.current, this.levels.levelBlend?.flat, this.levels.levelBlend?.volume]);
     for (const scene of scenes) {
       if (scene && scene.pageId === page?.id) setElementsDim(scene.root, (id) => (kept && !kept.has(id) ? opacity : 1));
     }
@@ -3435,7 +2960,7 @@ export class EngineCore {
       {
         origin: (id) => page.shapes.find((s) => s.id === id)?.bounds,
         edgeEnd: (id, end) => {
-          const route = this.sceneObject(id)?.userData.route as Point[] | undefined;
+          const route = this.sceneView.sceneObject(id)?.userData.route as Point[] | undefined;
           return end === 'source' ? route?.[0] : route?.at(-1);
         },
       },
@@ -3488,7 +3013,7 @@ export class EngineCore {
     let corners: Point[];
     if (shape) {
       const { x, y, width, height } = area ?? shape.bounds;
-      const top = elevation ?? this.elementTop(shape.id);
+      const top = elevation ?? this.sceneView.elementTop(shape.id);
       corners = [
         { x, y },
         { x: x + width, y },
@@ -3496,10 +3021,10 @@ export class EngineCore {
         { x, y: y + height },
       ].map((p) => this.screenOfPoint(p, top));
     } else {
-      const route = this.sceneObject(elementId)?.userData.route as Point[] | undefined;
+      const route = this.sceneView.sceneObject(elementId)?.userData.route as Point[] | undefined;
       if (!route?.length) return undefined;
       const middle = route[Math.floor(route.length / 2)]!;
-      const center = this.screenOfPoint(middle, this.elementTop(elementId));
+      const center = this.screenOfPoint(middle, this.sceneView.elementTop(elementId));
       return { x: center.x - 60, y: center.y - 16, width: 120, height: 32 };
     }
     const xs = corners.map((p) => p.x);
@@ -3546,13 +3071,13 @@ export class EngineCore {
     if (this.doubleClickPointHandle(screen)) return;
     const picked = this.pickAt(screen);
     const text = picked?.type === 'edge' ? this.edgeTextAt(screen) : undefined;
-    const follow = followLink || this.isGraphView();
+    const follow = followLink || this.graph.isGraphView();
     if (picked && follow && isNavigableLink(picked.element.link)) this.followLink(picked.element.id);
     else if (text) this.editEdgeText(text.edge.id, text.cellId);
     else if (picked?.type === 'edge') {
       // Près d'un bout : texte de début ou de fin ; vers le milieu : label de la flèche.
-      const route = this.sceneObject(picked.element.id)?.userData.route as Point[] | undefined;
-      const point = this.groundPointAtHeight(screen, this.elementTop(picked.element.id));
+      const route = this.sceneView.sceneObject(picked.element.id)?.userData.route as Point[] | undefined;
+      const point = this.groundPointAtHeight(screen, this.sceneView.elementTop(picked.element.id));
       const end = route ? endAt(positionAlong(route, point)) : undefined;
       if (end) this.editEdgeEndLabel(picked.element.id, end);
       else this.editLabel(picked.element.id);
@@ -3619,36 +3144,9 @@ export class EngineCore {
     return name ? action.charAt(0).toUpperCase() + action.slice(1) : `Lien vers une page absente (${link.pageId})`;
   }
 
-  /** Hauteur du dessus d'un élément (volume iso), mise à l'échelle de la bascule ; 0 à plat. */
-  /**
-   * Hauteur où le label d'une forme est dessiné : le dessus de son volume, ou sa base pour un label hors
-   * de la forme (posé au sol à côté du volume, `createShapeObject`).
-   */
-  labelTop(shape: ShapeModel): number {
-    if (!outsideLabelBox(shape.bounds, shape.style)) return this.elementTop(shape.id);
-    const base = (this.sceneObject(shape.id)?.userData.base as number | undefined) ?? 0;
-    return this.scenes.current?.level === 'iso' ? base * this.heightScale : 0;
-  }
-
-  elementTop(elementId: string): number {
-    const top = (this.sceneObject(elementId)?.userData.top as number | undefined) ?? 0;
-    return this.scenes.current?.level === 'iso' ? top * this.heightScale : 0;
-  }
-
-  /** Base du volume d'un élément en iso / 3D (le clic le prend du dessus à la base), sinon `undefined`. */
-  volumeBase(elementId: string): number | undefined {
-    const object = this.sceneObject(elementId);
-    if (this.scenes.current?.level !== 'iso' || !object) return undefined;
-    return ((object.userData.base as number | undefined) ?? 0) * this.heightScale;
-  }
-
   /** Point de la page visé par un point écran, sur le plan horizontal à `height` au-dessus du sol. */
   groundPointAtHeight(screen: Point, height: number): Point {
-    return screenToPage(this.cameraState, this.display.viewport, screen, height);
-  }
-
-  sceneObject(elementId: string) {
-    return this.scenes.current?.root.children.find((c) => c.userData.elementId === elementId);
+    return screenToPage(this.camera.state, this.display.viewport, screen, height);
   }
 
   /**
@@ -3728,11 +3226,11 @@ export class EngineCore {
         const link = element.link;
         // Un lien vers une page absente ne mène nulle part : pas de zone.
         if (!isNavigableLink(link) || (link.type === 'page' && !this.pages.pageById(link.pageId))) continue;
-        const bounds = 'bounds' in element ? element.bounds : this.drawnBounds(element.id);
+        const bounds = 'bounds' in element ? element.bounds : this.sceneView.drawnBounds(element.id);
         if (!bounds) continue;
-        const zone = linkZone(bounds, this.cameraState.zoom, this.settings.selection.accentColor);
+        const zone = linkZone(bounds, this.camera.state.zoom, this.settings.selection.accentColor);
         // Posée sur le dessus d'un volume, et toujours visible (pas cachée par les blocs).
-        zone.position.z = ((this.sceneObject(element.id)?.userData.top as number) ?? 0) + 0.2;
+        zone.position.z = ((this.sceneView.sceneObject(element.id)?.userData.top as number) ?? 0) + 0.2;
         zone.traverse((o) => {
           if (o instanceof Mesh) (o.material as MeshBasicMaterial).depthTest = false;
         });
@@ -3795,7 +3293,7 @@ export class EngineCore {
     // Flèches et liaisons : le voile est percé autour de leur tracé (≈ 10 px de chaque côté à l'écran).
     const edges = veilKey ? items.filter((item) => item.type === 'edge') : [];
     const holeKey =
-      edges.length > 0 ? `${veilKey}:${this.cameraState.zoom}:${this.settings.selection.veilPadding}` : undefined;
+      edges.length > 0 ? `${veilKey}:${this.camera.state.zoom}:${this.settings.selection.veilPadding}` : undefined;
     if (this.veilHole?.key !== holeKey) {
       this.veilHole?.object.removeFromParent();
       if (this.veilHole) disposeObject(this.veilHole.object);
@@ -3804,11 +3302,11 @@ export class EngineCore {
         const holes = new Group();
         holes.name = 'selection-veil-holes';
         for (const { element } of edges) {
-          const object = this.sceneObject(element.id);
+          const object = this.sceneView.sceneObject(element.id);
           const route = (object?.userData.path ?? object?.userData.route) as Point[] | undefined;
           if (!object || !route || route.length < 2) continue;
           const strokeWidth = parseFloat((element.style.strokeWidth as string | undefined) ?? '1') || 1;
-          const width = strokeWidth + (2 * this.settings.selection.veilPadding) / this.cameraState.zoom;
+          const width = strokeWidth + (2 * this.settings.selection.veilPadding) / this.camera.state.zoom;
           const hole = createVeilHole(route, object.position.z, width);
           // Flèche déplacée en bloc (au clavier, avec sa forme) : son objet est décalé, pas son tracé.
           hole.position.x = object.position.x;
@@ -3824,16 +3322,16 @@ export class EngineCore {
       const outlines = new Group();
       outlines.name = 'selection';
       for (const { type, element } of items) {
-        const bounds = type === 'shape' ? element.bounds : this.drawnBounds(element.id);
+        const bounds = type === 'shape' ? element.bounds : this.sceneView.drawnBounds(element.id);
         if (!bounds) continue;
         const outline = selectionOutline(
           bounds,
-          this.cameraState.zoom,
+          this.camera.state.zoom,
           this.selectionPhase,
           this.settings.selection.accentColor,
         );
         // Posé sur le dessus d'un volume, et toujours visible (pas caché par les blocs).
-        outline.position.z = ((this.sceneObject(element.id)?.userData.top as number) ?? 0) + 0.2;
+        outline.position.z = ((this.sceneView.sceneObject(element.id)?.userData.top as number) ?? 0) + 0.2;
         outline.traverse((o) => {
           if (o instanceof Mesh) (o.material as MeshBasicMaterial).depthTest = false;
         });
@@ -3860,12 +3358,12 @@ export class EngineCore {
           { point: ends.source, attached: !!edge.sourceId },
           { point: ends.target, attached: !!edge.targetId },
         ],
-        this.cameraState.zoom,
+        this.camera.state.zoom,
         handleStyle,
       );
       const context = this.pointsContext(editableEdge.page, edge);
-      if (context) this.handlesObject.add(edgePointHandles(pointHandles(context), this.cameraState.zoom, handleStyle));
-      this.handlesObject.position.z = this.elementTop(edge.id) + 0.3;
+      if (context) this.handlesObject.add(edgePointHandles(pointHandles(context), this.camera.state.zoom, handleStyle));
+      this.handlesObject.position.z = this.sceneView.elementTop(edge.id) + 0.3;
       this.handlesObject.traverse((o) => {
         if (o instanceof Mesh) (o.material as MeshBasicMaterial).depthTest = false;
       });
@@ -3874,14 +3372,14 @@ export class EngineCore {
     const editable = visible && root ? this.editableSelection() : undefined;
     if (editable && root) {
       const { shape } = editable;
-      this.handlesObject = selectionHandles(shape.bounds, this.cameraState.zoom, {
+      this.handlesObject = selectionHandles(shape.bounds, this.camera.state.zoom, {
         resize: this.registry.isResizable(shape),
         connect: true,
         size: this.settings.edit.handleSize,
         accent: this.settings.selection.accentColor,
         layout: this.handleLayout(),
       });
-      this.handlesObject.position.z = this.elementTop(shape.id) + 0.3;
+      this.handlesObject.position.z = this.sceneView.elementTop(shape.id) + 0.3;
       this.handlesObject.traverse((o) => {
         if (o instanceof Mesh) (o.material as MeshBasicMaterial).depthTest = false;
       });
@@ -3908,14 +3406,14 @@ export class EngineCore {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
-    cancelAnimationFrame(this.animation);
+    cancelAnimationFrame(this.camera.animation);
     cancelAnimationFrame(this.selectionAnimation);
     clearTimeout(this.hoverTimer);
     this.transition?.abort();
     this.display.dispose();
     this.controller.dispose();
     this.config.dispose();
-    this.minimap?.dispose();
+    this.minimap.dispose();
     this.scenes.clear();
     this.text.dispose();
     this.rendering.dispose();

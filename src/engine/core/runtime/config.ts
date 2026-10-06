@@ -60,7 +60,7 @@ export class Config {
       JSON.stringify(this.settings[section]) !== JSON.stringify(previous[section]);
     if (changed('camera')) this.applyCameraLimits();
     if (changed('graph') || this.settings.selection.accentColor !== previous.selection.accentColor)
-      this.core.graph = undefined;
+      this.core.graph.invalidate();
     if (
       this.settings.view.isoVolume !== previous.view.isoVolume ||
       this.settings.view.isoDepth !== previous.view.isoDepth ||
@@ -74,30 +74,30 @@ export class Config {
       changed('graph') ||
       changed('effects')
     ) {
-      this.core.rebuildScenes();
+      this.core.levels.rebuildScenes();
     }
-    if (changed('camera') && !this.core.transition && !this.core.animation)
-      this.core.setCameraState(this.core.cameraState);
+    if (changed('camera') && !this.core.transition && !this.core.camera.animation)
+      this.core.camera.setCameraState(this.core.camera.state);
     if (
       this.settings.minimap.edgeColor !== previous.minimap.edgeColor ||
       this.settings.minimap.outlineColor !== previous.minimap.outlineColor
     )
-      this.core.minimap?.invalidate();
-    else if (this.settings.selection.accentColor !== previous.selection.accentColor) this.core.minimap?.requestDraw();
+      this.core.minimap.invalidate();
+    else if (this.settings.selection.accentColor !== previous.selection.accentColor) this.core.minimap.requestDraw();
     this.core.rendering.syncBackground();
 
     const view = this.settings.view;
     if (this.core.pages.currentPageId && !this.core.transition)
-      this.core.pages.pageIso.set(this.core.pages.currentPageId, this.core.isoParams());
+      this.core.pages.pageIso.set(this.core.pages.currentPageId, this.core.viewModes.isoParams());
     const isoChanged =
       view.isoAngleDeg !== previous.view.isoAngleDeg || view.isoAzimuthDeg !== previous.view.isoAzimuthDeg;
-    if (isoChanged && this.core.cameraState.mode === 'iso' && !this.core.transition) {
+    if (isoChanged && this.core.camera.state.mode === 'iso' && !this.core.transition) {
       // Orientation absolue quand l'azimut change ; sinon la rotation faite à la souris est gardée.
       const azimuthChanged = view.isoAzimuthDeg !== previous.view.isoAzimuthDeg;
-      const rotation = azimuthChanged ? normalizeAngle(this.core.isoAzimuth()) : this.core.cameraState.rotation;
-      const target = { ...this.core.cameraState, tilt: this.core.isoTilt(), rotation };
-      if (!sameView(target, this.core.cameraState, this.core.display.viewport))
-        this.core.animateCameraTo(target, view.switchDurationMs);
+      const rotation = azimuthChanged ? normalizeAngle(this.core.camera.isoAzimuth()) : this.core.camera.state.rotation;
+      const target = { ...this.core.camera.state, tilt: this.core.camera.isoTilt(), rotation };
+      if (!sameView(target, this.core.camera.state, this.core.display.viewport))
+        this.core.camera.animateCameraTo(target, view.switchDurationMs);
     }
     this.core.events.emit('settingsChange', this.getSettings());
   }

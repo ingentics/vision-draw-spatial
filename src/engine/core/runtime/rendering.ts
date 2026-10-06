@@ -86,15 +86,15 @@ export class Rendering {
 
   /** Caméra du rendu : en perspective quand l'état a un champ de vision (3D, bascules). */
   private activeCamera(): OrthographicCamera | PerspectiveCamera {
-    return this.core.cameraState.fov === undefined ? this.camera : this.perspectiveCamera;
+    return this.core.camera.state.fov === undefined ? this.camera : this.perspectiveCamera;
   }
 
   applyProjection(): void {
-    if (this.core.cameraState.fov === undefined)
-      applyCameraState(this.camera, this.core.cameraState, this.core.display.viewport);
-    else applyPerspectiveState(this.perspectiveCamera, this.core.cameraState, this.core.display.viewport);
+    if (this.core.camera.state.fov === undefined)
+      applyCameraState(this.camera, this.core.camera.state, this.core.display.viewport);
+    else applyPerspectiveState(this.perspectiveCamera, this.core.camera.state, this.core.display.viewport);
     // Le plan du fond couvre tout ce que la caméra peut voir.
-    this.grid.follow(this.core.cameraState.center, 2 * this.activeCamera().far);
+    this.grid.follow(this.core.camera.state.center, 2 * this.activeCamera().far);
   }
 
   /** Rendu à la demande : une image par frame au plus, seulement quand quelque chose a changé. */
@@ -106,7 +106,7 @@ export class Rendering {
       orientBillboards(this.scene, this.activeCamera());
       // Estompage de ce qui est hors du courant du mode de la page (ex. hors du flux courant).
       this.core.applyModeFocus();
-      const blend = this.core.levelBlend;
+      const blend = this.core.levels.levelBlend;
       if (blend?.flat && blend.volume) this.renderBlend(blend.flat, blend.volume);
       else this.renderer.render(this.scene, this.activeCamera());
     });

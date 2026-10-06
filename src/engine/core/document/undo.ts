@@ -66,7 +66,7 @@ export class EditHistory {
     this.core.file.xmlTree = tree;
     this.core.file.unsupportedReport = collectUnsupported(document, this.core.registry);
     this.core.clearSelection();
-    this.core.graph = undefined;
+    this.core.graph.invalidate();
     this.core.scenes.clear();
     const current = this.core.pages.currentPageId;
     const pageId =

@@ -37,7 +37,7 @@ export class DocumentFile {
     this.core.clearSelection();
     this.core.scenes.clear();
     this.core.pages.currentPageId = undefined;
-    this.core.graph = undefined;
+    this.core.graph.invalidate();
     this.core.pages.lastDocumentPageId = undefined;
     this.core.drag = undefined;
     this.core.edits.undoStack.clear();
@@ -79,7 +79,7 @@ export class DocumentFile {
     if (!this.xmlTree) return undefined;
     this.core.endMove();
     if (this.core.pages.currentPageId)
-      this.core.pages.pageIso.set(this.core.pages.currentPageId, this.core.isoParams());
+      this.core.pages.pageIso.set(this.core.pages.currentPageId, this.core.viewModes.isoParams());
     const views = new Map<string, PageViewState>();
     for (const [id, camera] of this.core.pages.pageCameras) {
       if (id === GRAPH_PAGE_ID) continue;
@@ -109,12 +109,12 @@ export class DocumentFile {
     this.document = this.core.withModeWarnings(document);
     this.geometry = new Map(document.pages.map((p) => [p.id, pageGeometry(p)]));
     this.unsupportedReport = collectUnsupported(this.document, this.core.registry);
-    this.core.graph = undefined;
+    this.core.graph.invalidate();
     for (const id of [...changedPageIds, GRAPH_PAGE_ID]) this.core.scenes.invalidate(id, true);
     const current = this.core.pages.getCurrentPage();
     if (current) {
       this.core.scenes.show(current);
-      this.core.applyHeightScale();
+      this.core.levels.applyHeightScale();
       this.core.hideEditedLabel();
     }
     if (selected && selected.pageId === current?.id) {
@@ -128,7 +128,7 @@ export class DocumentFile {
       if (items.length > 0) this.core.selectItems(items);
     }
     this.core.rendering.syncBackground();
-    this.core.minimap?.invalidate();
+    this.core.minimap.invalidate();
     this.core.edits.syncModified();
     this.core.events.emit('documentChange', this.document);
     this.core.rendering.requestRender();
