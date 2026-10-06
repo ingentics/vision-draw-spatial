@@ -882,7 +882,7 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   Registre : `paletteFor(page)`, `allowsViewMode(page, mode)`.
 - **Écritures** : une opération de mode est une étape d'annulation (`Engine.editPageMode`) ; attribut de page sur
   `<diagram>`, attribut d'élément là où il est déjà (objet), sinon dans le style.
-- **Mode Séquences** (`sequences`) : flux ordonnés (`spatial.flows`), une flèche dans un flux au plus
+- **Mode Séquences** (`sequences`) : en 2D seulement (`viewModes`) ; flux ordonnés (`spatial.flows`), une flèche dans un flux au plus
   (`spatial.flow`, `spatial.step`), rangs toujours consécutifs (ajout en n + 1, échange, resserrement). Flèche d'un
   flux : trait et pointes dans la couleur du flux assombrie (−25 % de luminosité), pastille du rang au-dessus du
   texte du milieu (plus petite au milieu de la flèche sans texte). Taille, bordure, chiffre et assombrissement : paramètres

@@ -12,6 +12,8 @@ export const definition: PageModeDefinition = {
   id: 'sequences',
   name: 'Séquences',
   description: 'Flux ordonnés de flèches : couleur par flux et rang de chaque flèche',
+  // Diagramme de séquence : lu à plat, en 2D seulement (sujet 193).
+  viewModes: ['top'],
   edgeProperties: [
     {
       type: 'select',

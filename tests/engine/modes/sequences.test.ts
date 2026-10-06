@@ -358,3 +358,15 @@ describe('modes de page (sujet 69) : avertissements', () => {
     expect(warnings.at(-1)!.message).toContain('plus-tard');
   });
 });
+
+describe('mode Séquences : vues (sujet 193)', () => {
+  it('2D seulement sur une page Séquences, toutes les vues ailleurs', () => {
+    const registry = createDefaultModeRegistry();
+    const page = (attributes: Record<string, string>) =>
+      ({ id: 'p', name: 'P', layers: [], shapes: [], edges: [], attributes }) as unknown as PageModel;
+    const modePage = page({ 'spatial.mode': 'sequences' });
+    expect(['top', 'iso', '3d'].filter((m) => registry.allowsViewMode(modePage, m as 'top'))).toEqual(['top']);
+    expect(registry.viewModeFor(modePage, 'iso')).toBe('top');
+    expect(registry.allowsViewMode(page({}), 'iso')).toBe(true);
+  });
+});
