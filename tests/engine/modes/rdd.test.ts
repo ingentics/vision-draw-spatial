@@ -7,7 +7,7 @@ import { createDefaultModeRegistry } from '../../../src/engine/modes/registry';
 import { definition as rdd } from '../../../src/engine/modes/rdd';
 import { FIELDS, ICON, SECONDARY, fieldsOf, tableFields } from '../../../src/engine/modes/rdd/tables';
 import { fieldsText, setFields, setHeaderColor, setSecondary } from '../../../src/engine/modes/rdd/operations';
-import { REGION, regionContent, regionOf, regionStroke, regionTextColor } from '../../../src/engine/modes/rdd/regions';
+import { REGION, REGION_COLORS, regionContent, regionOf, regionTextColor } from '../../../src/engine/modes/rdd/regions';
 import { regionOutline, tabPath, tabRect } from '../../../src/engine/modes/rdd/shapes/region';
 import { pickElement } from '../../../src/engine/interaction/pick';
 import { approximateMeasure } from '../../../src/engine/render/richLayout';
@@ -108,13 +108,14 @@ describe('mode RDD (sujet 179) : page et palette', () => {
     const entity = page().shapes.find((s) => s.id === 'user')!;
     expect(properties.map((p) => [p.label, p.hidden!(page(), model)])).toEqual([
       ['Couleur', false],
+      ['Couleur', true],
       ['Table secondaire', false],
       ['Icône', true],
       ['Clé primaire', true],
       ['Champs', false],
     ]);
     // Entité : sans icône d'entête ; « Icône » n'est proposée qu'aux tables qui en ont une.
-    expect(properties.map((p) => p.hidden!(page(), entity))).toEqual([false, false, true, false, false]);
+    expect(properties.map((p) => p.hidden!(page(), entity))).toEqual([false, true, false, true, false, false]);
     const key = properties.find((p) => p.label === 'Clé primaire')!;
     expect([key.readOnly, key.value!(page(), entity)]).toEqual([true, 'id']);
     expect(properties.every((p) => p.hidden!(page(), page()))).toBe(true);
@@ -437,18 +438,19 @@ describe('mode RDD : région (sujet 182)', () => {
   it('palette : rectangle léger, label gras en haut à gauche, posé au fond de la pile', () => {
     const region = templates.find((t) => t.id === 'rdd-region')!;
     expect(region.style).toContain('rounded=0;');
-    expect(region.style).toContain('fillColor=#dae8fc;strokeColor=#828b97;');
+    expect(region.style).toContain('fillColor=#fdebef;strokeColor=#969696;');
     // Fond opaque (sujet 232).
     expect(region.style).not.toContain('fillOpacity');
     // Label en 9 px, sans marge ajoutée (sujet 226) ; dans draw.io, posé au-dessus de la région à gauche dans un cadre
     // de la couleur de la bordure, comme l'onglet (sujet 227).
-    expect(region.style).toContain('labelBorderColor=#828b97;fontColor=#000000;');
+    expect(region.style).toContain('labelBorderColor=#969696;fontColor=#000000;');
     expect(region.style).not.toContain('labelBackgroundColor');
     expect(region.style).toContain('align=left;verticalAlign=bottom;verticalLabelPosition=top;fontStyle=1;fontSize=9;');
     expect(region.style).not.toContain('spacing');
     expect(region.style).toContain('spatial.kind=rdd-region;');
     expect(region.atBack).toBe(true);
-    expect(regionStroke('#dae8fc')).toBe('#828b97');
+    // Taille d'une région neuve (sujet 233).
+    expect([region.width, region.height]).toEqual([200, 80]);
   });
 
   it('contenu : les formes du mode dont le coin haut-gauche est dans la région', () => {
@@ -536,22 +538,32 @@ describe('mode RDD : région (sujet 182)', () => {
     expect(pickElement(page(), { x: 300, y: 130 - height / 2 }, options)).toBeUndefined();
   });
 
-  it('couleur de la région : fond et bordure assortie ; réglages de table masqués', () => {
+  it('couleur de la région : sa palette (sujet 233), bordure grise ; réglages de table masqués', () => {
     const { run, page, shape } = setup();
-    const color = rdd.shapeProperties!.find((p) => p.label === 'Couleur')!;
+    const color = rdd.shapeProperties!.find((p) => p.key === 'rdd.regionColor')!;
     expect(rdd.shapeProperties!.map((p) => p.hidden!(page(), shape('accounts')))).toEqual([
+      true,
       false,
       true,
       true,
       true,
       true,
     ]);
-    run((edit) => color.write!(edit, shape('accounts'), '#d5e8d4'));
-    const stroke = regionStroke('#d5e8d4');
+    expect(color.type === 'select' && color.options(page(), ['#123456']).map((o) => o.value)).toEqual([
+      '#fdebef',
+      '#eae4f1',
+      '#e7f5fd',
+      '#e7f3e7',
+      '#fefce8',
+      '#feefe3',
+    ]);
+    expect(REGION_COLORS[0]).toBe('#fdebef');
+    run((edit) => color.write!(edit, shape('accounts'), '#e7f3e7'));
+    expect(color.value!(page(), shape('accounts'))).toBe('#e7f3e7');
     expect(shape('accounts').style).toMatchObject({
-      fillColor: '#d5e8d4',
-      strokeColor: stroke,
-      labelBorderColor: stroke,
+      fillColor: '#e7f3e7',
+      strokeColor: '#969696',
+      labelBorderColor: '#969696',
     });
     expect(shape('accounts').style.labelBackgroundColor).toBeUndefined();
     // Fond opaque (sujet 232) : texte noir sur une couleur claire, blanc sur une sombre ; un ancien fillOpacity est

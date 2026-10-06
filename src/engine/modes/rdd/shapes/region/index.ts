@@ -8,8 +8,7 @@ import { styleColor, styleNumber, styleOpacity } from '../../../../render/styleV
 import { PART_ORDER } from '../../../../render/types';
 import type { RenderContext } from '../../../../render/types';
 import type { ShapeDefinition } from '../../../../shapes/types';
-import { DEFAULT_HEADER_COLOR } from '../../tables';
-import { REGION, REGION_KIND, regionLabelStyle, regionStroke, regionTextColor } from '../../regions';
+import { DEFAULT_REGION_COLOR, REGION, REGION_KIND, regionLabelStyle, regionTextColor } from '../../regions';
 
 /**
  * Région (sujets 182, 227, 232) : rectangle à fond opaque et bordure fine, posé au fond de la pile ; son nom est sur un
@@ -92,10 +91,10 @@ function createRegion(shape: ShapeModel, ctx: RenderContext): Group {
   group.name = `shape:${shape.id}`;
   const { style } = shape;
   const path = regionOutline(shape);
-  const fill = styleColor(style, 'fillColor', DEFAULT_HEADER_COLOR);
+  const fill = styleColor(style, 'fillColor', DEFAULT_REGION_COLOR);
   const fillOpacity = styleOpacity(style, 'fillOpacity');
   if (fill) group.add(fillMesh(path, fill, fillOpacity));
-  const stroke = styleColor(style, 'strokeColor', regionStroke(DEFAULT_HEADER_COLOR));
+  const stroke = styleColor(style, 'strokeColor', REGION.stroke);
   const border =
     stroke &&
     strokeMesh(path, stroke, styleOpacity(style, 'strokeOpacity'), {
@@ -115,7 +114,7 @@ function createRegion(shape: ShapeModel, ctx: RenderContext): Group {
     align: 'left',
     fontSize: fontSizeOf(shape),
     color: new Color(
-      regionTextColor(`#${(fill ?? new Color(DEFAULT_HEADER_COLOR)).getHexString()}`, fill ? fillOpacity : 0),
+      regionTextColor(`#${(fill ?? new Color(DEFAULT_REGION_COLOR)).getHexString()}`, fill ? fillOpacity : 0),
     ),
     opacity: 1,
     bold: true,
@@ -163,8 +162,8 @@ export const definition: ShapeDefinition = {
     order: 6,
     keywords: ['région', 'region', 'zone', 'domaine', 'groupe', 'cadre'],
     style:
-      `rounded=0;whiteSpace=wrap;html=1;fillColor=${DEFAULT_HEADER_COLOR};` +
-      `strokeColor=${regionStroke(DEFAULT_HEADER_COLOR)};${regionLabelStyle(DEFAULT_HEADER_COLOR)}` +
+      `rounded=0;whiteSpace=wrap;html=1;fillColor=${DEFAULT_REGION_COLOR};` +
+      `strokeColor=${REGION.stroke};${regionLabelStyle(DEFAULT_REGION_COLOR)}` +
       `align=left;verticalAlign=bottom;verticalLabelPosition=top;fontStyle=1;fontSize=${REGION.fontSize};` +
       `spatial.kind=${REGION_KIND};`,
     value: 'Région',

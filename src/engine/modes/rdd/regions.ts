@@ -10,21 +10,22 @@ import type { ModeEdit } from '../types';
 export const REGION_KIND = 'rdd-region';
 
 /**
- * Fond d'une région : opaque (sujet 232) ; bordure : la couleur du fond assombrie ; label : taille du texte,
+ * Fond d'une région : opaque (sujet 232) ; bordure grise (sujet 233) ; label : taille du texte,
  * sur un onglet au fond et à la bordure de la région (sujets 226, 227).
  */
 export const REGION = {
   /** Marge de sécurité autour d'une forme qui dépasse de sa région, qui s'agrandit (sujet 183). */
   margin: 20,
-  strokeDarken: 0.6,
+  /** Bordure des régions, quelle que soit leur couleur (sujet 233). */
+  stroke: '#969696',
   fontSize: 9,
   /**
    * Onglet du nom (sujets 227, 228) : hauteur, marge du texte (à gauche jusqu'au bord, à droite jusqu'au milieu du S),
    * largeur du S qui le termine.
    */
   tab: { height: 16, padding: 6, curve: 10 },
-  width: 400,
-  height: 260,
+  width: 200,
+  height: 80,
 } as const;
 
 export const isRegion = (shape: ShapeModel) => shape.kind === REGION_KIND;
@@ -85,14 +86,11 @@ export function regionContent(page: PageModel, region: ShapeModel): string[] {
   return content;
 }
 
-/** Bordure d'une région : sa couleur de fond (#rrggbb) assombrie, canal par canal. */
-export function regionStroke(color: string): string {
-  const channel = (offset: number) =>
-    Math.floor(parseInt(color.slice(offset, offset + 2), 16) * REGION.strokeDarken)
-      .toString(16)
-      .padStart(2, '0');
-  return `#${channel(1)}${channel(3)}${channel(5)}`;
-}
+/** Couleurs proposées pour une région, dans l'ordre (sujet 233) : rose, lavande, bleu, vert, jaune, pêche. */
+export const REGION_COLORS = ['#fdebef', '#eae4f1', '#e7f5fd', '#e7f3e7', '#fefce8', '#feefe3'] as const;
+
+/** Couleur d'une région neuve. */
+export const DEFAULT_REGION_COLOR = REGION_COLORS[0];
 
 /**
  * Couleur du texte du nom d'une région de fond `color` : noir ou blanc, lisible sur ce fond posé à `opacity` (0–1) sur
@@ -112,16 +110,16 @@ export function regionTextColor(color: string, opacity = 1): string {
  * pas dessiné), texte lisible sur le fond.
  */
 export function regionLabelStyle(color: string): string {
-  return `labelBorderColor=${regionStroke(color)};fontColor=${regionTextColor(color)};`;
+  return `labelBorderColor=${REGION.stroke};fontColor=${regionTextColor(color)};`;
 }
 
 /**
- * Couleur d'une région : fond opaque (`fillColor`), bordure assortie (`strokeColor`) et cadre du nom (`labelBorderColor`,
+ * Couleur d'une région : fond opaque (`fillColor`), bordure grise (`strokeColor`) et cadre du nom (`labelBorderColor`,
  * `fontColor`), pour draw.io aussi.
  */
 export function setRegionColor(edit: ModeEdit, shape: ShapeModel, color: string | undefined): void {
   if (!isRegion(shape) || !color) return;
-  const stroke = regionStroke(color);
+  const stroke = REGION.stroke;
   edit.setElementStyle(shape.id, 'fillColor', color);
   // Fond opaque (sujet 232) : l'opacité des régions posées avant est retirée.
   edit.setElementStyle(shape.id, 'fillOpacity', undefined);

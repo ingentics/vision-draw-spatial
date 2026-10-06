@@ -14,15 +14,23 @@ import {
   tableKindOf,
 } from './tables';
 import { fieldsText, setFields, setHeaderColor, setSecondary } from './operations';
-import { REGION_KIND, fitRegion, isRegion, placeInRegions, regionContent, setRegionColor } from './regions';
+import {
+  REGION_COLORS,
+  REGION_KIND,
+  fitRegion,
+  isRegion,
+  placeInRegions,
+  regionContent,
+  setRegionColor,
+} from './regions';
 
 /** Table du mode sélectionnée ; undefined pour une flèche, la page ou une autre forme. */
 const tableOf = (target: ModeTarget): ShapeModel | undefined =>
   'kind' in target && tableKindOf(target) ? target : undefined;
 const notTable = (_page: unknown, target: ModeTarget) => !tableOf(target);
-/** Table ou région du mode sélectionnée (sujet 182). */
-const colored = (target: ModeTarget): ShapeModel | undefined =>
-  tableOf(target) ?? ('kind' in target && isRegion(target) ? target : undefined);
+/** Région du mode sélectionnée (sujet 182). */
+const regionTarget = (target: ModeTarget): ShapeModel | undefined =>
+  'kind' in target && isRegion(target) ? target : undefined;
 
 /**
  * Mode « RDD — Relational Database Designer » (sujet 179) : une page de tables (modèles, entités…), lue à plat. Ses
@@ -48,17 +56,29 @@ export const definition: PageModeDefinition = {
       type: 'select',
       key: 'fillColor',
       label: 'Couleur',
-      title:
-        'Couleur de l’entête d’une table (texte noir ou blanc selon le contraste) ou du fond d’une région (fillColor)',
+      title: 'Couleur de l’entête (fillColor) ; texte noir ou blanc selon le contraste',
       options: (_page, palette) =>
         [...new Set([DEFAULT_HEADER_COLOR, ...palette])].map((color) => ({ value: color, label: color, color })),
-      value: (_page, target) => colored(target)?.style.fillColor,
+      value: (_page, target) => tableOf(target)?.style.fillColor,
       write: (edit, target, value) => {
-        const shape = colored(target);
-        if (shape && isRegion(shape)) setRegionColor(edit, shape, value);
-        else if (shape) setHeaderColor(edit, shape, value);
+        const shape = tableOf(target);
+        if (shape) setHeaderColor(edit, shape, value);
       },
-      hidden: (_page, target) => !colored(target),
+      hidden: notTable,
+    },
+    {
+      // Région (sujets 182, 233) : sa propre palette, bordure grise.
+      type: 'select',
+      key: 'rdd.regionColor',
+      label: 'Couleur',
+      title: 'Couleur du fond de la région (fillColor)',
+      options: () => REGION_COLORS.map((color) => ({ value: color, label: color, color })),
+      value: (_page, target) => regionTarget(target)?.style.fillColor,
+      write: (edit, target, value) => {
+        const shape = regionTarget(target);
+        if (shape) setRegionColor(edit, shape, value);
+      },
+      hidden: (_page, target) => !regionTarget(target),
     },
     {
       type: 'toggle',
