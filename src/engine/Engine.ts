@@ -56,21 +56,21 @@ export class Engine {
   }
 
   load(xml: string, fileId: string, initialView?: InitialView): Promise<void> {
-    return this.core.load(xml, fileId, initialView);
+    return this.core.file.load(xml, fileId, initialView);
   }
 
   getDocument(): DocumentModel | undefined {
-    return this.core.getDocument();
+    return this.core.file.getDocument();
   }
 
   /** Arbre XML d'origine du document chargé : ses `cells` ont les mêmes ids que le modèle. */
   getXmlTree(): DrawioTree | undefined {
-    return this.core.getXmlTree();
+    return this.core.file.getXmlTree();
   }
 
   /** Modifications non sauvegardées depuis le chargement ou la dernière sérialisation. */
   isModified(): boolean {
-    return this.core.isModified();
+    return this.core.edits.isModified();
   }
 
   /**
@@ -79,7 +79,7 @@ export class Engine {
    * considéré comme sauvegardé.
    */
   serialize(): string | undefined {
-    return this.core.serialize();
+    return this.core.file.serialize();
   }
 
   /** Rend le focus clavier au canvas (ex. après un dépôt depuis la palette). */
@@ -103,7 +103,7 @@ export class Engine {
 
   /** Pages modifiables : fichier `<mxfile>` (l'ancien format n'a qu'une page sans nom). */
   canEditPages(): boolean {
-    return this.core.canEditPages();
+    return this.core.pages.canEditPages();
   }
 
   /**
@@ -117,16 +117,16 @@ export class Engine {
 
   /** Ajoute une page vide (« Page-n ») et l'affiche. */
   addPage(name?: string): string | undefined {
-    return this.core.addPage(name);
+    return this.core.pages.addPage(name);
   }
 
   renamePage(pageId: string, name: string): void {
-    this.core.renamePage(pageId, name);
+    this.core.pages.renamePage(pageId, name);
   }
 
   /** Retire une page (pas la dernière) ; si c'était la page affichée, on passe à sa voisine. */
   removePage(pageId: string): void {
-    this.core.removePage(pageId);
+    this.core.pages.removePage(pageId);
   }
 
   /**
@@ -164,7 +164,7 @@ export class Engine {
 
   /** Éléments non supportés du document chargé, triés par fréquence (SPEC §8.4). */
   getUnsupportedReport(): UnsupportedReport | undefined {
-    return this.core.getUnsupportedReport();
+    return this.core.file.getUnsupportedReport();
   }
 
   /**
@@ -176,11 +176,11 @@ export class Engine {
   }
 
   getFileId(): string | undefined {
-    return this.core.getFileId();
+    return this.core.file.getFileId();
   }
 
   getCurrentPage(): PageModel | undefined {
-    return this.core.getCurrentPage();
+    return this.core.pages.getCurrentPage();
   }
 
   /** Scène de la page courante (lecture seule : diagnostics, tests). */
@@ -195,7 +195,7 @@ export class Engine {
 
   /** Dernière caméra de chaque page visitée (à persister, SPEC §5.1 `cameraByPage`). */
   getPageCameras(): Record<string, CameraState> {
-    return this.core.getPageCameras();
+    return this.core.pages.getPageCameras();
   }
 
   /**
@@ -203,7 +203,7 @@ export class Engine {
    * et sa caméra est celle de la dernière visite (sinon la page entière est cadrée).
    */
   goToPage(pageId: string): void {
-    this.core.goToPage(pageId);
+    this.core.pages.goToPage(pageId);
   }
 
   getCameraState(): CameraState {
@@ -734,19 +734,19 @@ export class Engine {
   }
 
   canUndo(): boolean {
-    return this.core.canUndo();
+    return this.core.edits.canUndo();
   }
 
   canRedo(): boolean {
-    return this.core.canRedo();
+    return this.core.edits.canRedo();
   }
 
   undo(): void {
-    this.core.undo();
+    this.core.edits.undo();
   }
 
   redo(): void {
-    this.core.redo();
+    this.core.edits.redo();
   }
 
   /**

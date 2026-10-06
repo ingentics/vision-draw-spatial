@@ -1,7 +1,5 @@
 import { Box3, Group, Matrix4, Mesh, Vector3 } from 'three';
 import type { MeshBasicMaterial, Object3D } from 'three';
-import { collectUnsupported } from '../diagnostics/unsupportedStyles';
-import type { UnsupportedReport } from '../diagnostics/unsupportedStyles';
 import { Emitter } from '../events';
 import { formatLink, isNavigableLink } from '../format/link';
 import {
@@ -25,20 +23,16 @@ import {
 import {
   addEdgeCell,
   addEdgeLabelCell,
-  addPage,
   addShapeCell,
   removeCells,
   removeCellsDeep,
-  removePage,
-  renamePage,
   setCellLink,
 } from '../format/create';
 import { copyCells, pasteCells, readClipboardModel, stripCellKeys } from '../format/clipboard';
-import { documentFromTree, readDrawio } from '../format/parse';
-import { readPageViews, writePageViews } from '../format/viewState';
-import type { IsoViewParams, PageViewState } from '../format/viewState';
+import { documentFromTree } from '../format/parse';
+import type { IsoViewParams } from '../format/viewState';
 import { writeDrawio } from '../format/write';
-import type { DrawioTree, PageTree } from '../format/xmlTree';
+import type { PageTree } from '../format/xmlTree';
 import {
   applyEndAttachment,
   connectableShapes,
@@ -78,12 +72,11 @@ import type { Arrangement } from '../edit/arrange';
 import type { AvoidOptions } from '../edit/avoid';
 import { nextPlacementVariant } from '../edit/variants';
 import { affectedShapes, anchorSeedOf, pageGeometry, sideMiddle, withNeighbours } from '../edit/distribute';
-import type { Anchoring, PageGeometry } from '../edit/distribute';
+import type { Anchoring } from '../edit/distribute';
 import { loopWaypoints } from '../edit/loops';
 import { dropBounds } from '../edit/palette';
 import { applyStylePreset } from '../edit/styles';
 import type { StylePreset } from '../edit/styles';
-import { UndoStack } from '../edit/undo';
 import type { ShapeTemplate } from '../edit/palette';
 import {
   defaultView,
@@ -177,7 +170,6 @@ import type {
   EngineEvent,
   EngineEvents,
   EngineOptions,
-  InitialView,
   LabelEditPlane,
   LabelEditRequest,
   ModeHint,
@@ -188,16 +180,15 @@ import { Config } from './runtime/config';
 import type { Settings } from '../settings';
 import { Rendering } from './runtime/rendering';
 import { Display } from './runtime/display';
+import { DocumentFile } from './document/file';
+import { EditHistory } from './document/undo';
+import { Pages } from './document/pages';
 
 /** Ouvre une URL externe (SPEC §11.4) : nouvel onglet, sans accès retour à cette page. */
 function defaultOpenUrl(href: string): void {
   window.open(href, '_blank', 'noopener,noreferrer');
 }
 
-/**
- * Cadrage d'une page vide : le haut de la feuille draw.io, pour que les formes ajoutées
- * tombent en coordonnées positives (sur la page, à l'ouverture dans draw.io).
- */
 /** Étape d'annulation de chaque changement d'ordre de dessin (ticket 130). */
 const ORDER_LABELS: Record<OrderMove, string> = {
   front: 'Premier plan',
@@ -205,12 +196,6 @@ const ORDER_LABELS: Record<OrderMove, string> = {
   forward: 'Avancer',
   backward: 'Reculer',
 };
-
-const EMPTY_PAGE_AREA: Rect = { x: 0, y: 0, width: 800, height: 600 };
-
-function isEmptyPage(page: PageModel): boolean {
-  return page.shapes.length === 0 && page.edges.length === 0;
-}
 
 /** Éléments pris sans leur conteneur (un élément pris avec lui n'est pas sélectionné à part), par ordre de z. */
 function takenRoots(page: PageModel, taken: PickedElement[]): PickedElement[] {
@@ -350,6 +335,9 @@ const HANDLE_CURSORS: Record<ResizeHandle, string> = {
 /** Cœur du moteur : état et comportement, derrière la façade `Engine` (SPEC §4.3). */
 export class EngineCore {
   // Domaines
+  readonly pages = new Pages(this);
+  readonly edits = new EditHistory(this);
+  readonly file = new DocumentFile(this);
   readonly display = new Display(this);
   readonly rendering: Rendering;
   readonly config: Config;
@@ -371,17 +359,7 @@ export class EngineCore {
   readonly events = new Emitter<EngineEvents>();
   readonly controller: CameraController;
 
-  document: DocumentModel | undefined;
-  /** Géométrie des pages au dernier état enregistré (avant les modifications en direct d'un glisser). */
-  geometry = new Map<string, PageGeometry>();
-  /** Arbre XML d'origine du document chargé, base de l'écriture in situ (SPEC §14.2). */
-  xmlTree: DrawioTree | undefined;
-  unsupportedReport: UnsupportedReport | undefined;
-  fileId: string | undefined;
   readonly scenes: SceneManager;
-  currentPageId: string | undefined;
-  /** Dernière caméra de chaque page visitée (SPEC §9.4). */
-  pageCameras = new Map<string, CameraState>();
   /** Texte en cours d'édition en place (son label dessiné est masqué). */
   labelEditing?: LabelEditRequest;
   cameraState: CameraState = { mode: 'top', center: { x: 0, y: 0 }, zoom: 1, rotation: 0, tilt: 0 };
@@ -416,14 +394,8 @@ export class EngineCore {
   flattened = false;
   /** Vue graphe du document (SPEC §12), construite à la première demande. */
   graph: { page: PageModel; layout: GraphLayout } | undefined;
-  /** Dernière page du document affichée (pour revenir du graphe). */
-  lastDocumentPageId: string | undefined;
   minimap: Minimap | undefined;
   linkUsage: LinkUsage = {};
-  /** Réglages iso de chaque page (lus du fichier, puis ceux en vigueur à la dernière visite). */
-  pageIso = new Map<string, IsoViewParams>();
-  /** Modifications non sauvegardées. */
-  modified = false;
   /** Glisser d'édition en cours (déplacement, redimensionnement, connecteur). */
   drag: MoveDrag | ResizeDrag | ConnectDrag | EdgeEndDrag | EdgePointsDrag | LabelDrag | undefined;
   connectorPreview: Object3D | undefined;
@@ -434,11 +406,6 @@ export class EngineCore {
   >();
   /** Poignées de la forme sélectionnée. */
   handlesObject: Object3D | undefined;
-  readonly undoStack = new UndoStack<string>();
-  /** Étapes enregistrées (et annulations / rétablissements) : repère des réglages en direct fusionnés. */
-  editCount = 0;
-  /** Dernier réglage en direct (`setElementsStyle` avec `merge`) et le compte d'étapes à ce moment. */
-  lastMerge?: { key: string; edits: number };
   /**
    * Dernière copie faite dans l'appli (ticket 59) : son XML, sa page d'origine et le parent de ses
    * éléments (pour recoller dans le même conteneur), et le décalage du prochain collage, en pas de grille.
@@ -452,7 +419,7 @@ export class EngineCore {
     this.modes = options.modes ?? defaultModeRegistry;
     this.effects = options.effects ?? defaultEffectRegistry;
     this.config = new Config(this, options);
-    this.undoStack.setLimit(this.settings.edit.undoLimit);
+    this.edits.undoStack.setLimit(this.settings.edit.undoLimit);
     if (this.settings.view.defaultMode !== 'top') {
       this.cameraState = withViewMode(
         this.cameraState,
@@ -468,11 +435,11 @@ export class EngineCore {
     this.scenes = new SceneManager(
       this.rendering.scene,
       (page, level) => {
-        if (page.id === GRAPH_PAGE_ID && this.graph && this.document)
+        if (page.id === GRAPH_PAGE_ID && this.graph && this.file.document)
           return buildGraphScene(
             page,
             this.graph.layout,
-            this.document,
+            this.file.document,
             this.registry,
             this.renderContext(page),
             level,
@@ -537,74 +504,6 @@ export class EngineCore {
     );
   }
 
-  async load(xml: string, fileId: string, initialView?: InitialView): Promise<void> {
-    const { document, tree } = readDrawio(xml);
-    this.document = this.withModeWarnings(document);
-    this.geometry = new Map(document.pages.map((p) => [p.id, pageGeometry(p)]));
-    this.xmlTree = tree;
-    this.fileId = fileId;
-    this.unsupportedReport = collectUnsupported(document, this.registry);
-    this.transition?.abort();
-    this.clearSelection();
-    this.scenes.clear();
-    this.currentPageId = undefined;
-    this.graph = undefined;
-    this.lastDocumentPageId = undefined;
-    this.drag = undefined;
-    this.undoStack.clear();
-    this.modeCurrents.clear();
-    this.syncModified();
-    this.history.replace(initialView?.history ?? []);
-    this.linkUsage = { ...initialView?.linkUsage };
-    // Vues enregistrées dans le fichier, remplacées par celles mémorisées localement (plus récentes).
-    const fileViews = readPageViews(tree);
-    this.pageIso = new Map([...fileViews].flatMap(([id, view]) => (view.iso ? [[id, view.iso] as const] : [])));
-    this.pageCameras = new Map([...fileViews].map(([id, view]) => [id, normalizeCameraState(view.camera)]));
-    for (const [id, camera] of Object.entries(initialView?.cameraByPage ?? {})) {
-      this.pageCameras.set(id, normalizeCameraState(camera));
-    }
-    if (initialView?.pageId && initialView.camera) {
-      this.pageCameras.set(initialView.pageId, normalizeCameraState(initialView.camera));
-    }
-    this.events.emit('load', document, fileId);
-    const page = (initialView?.pageId && this.pageById(initialView.pageId)) || document.pages[0];
-    if (!page) {
-      this.scenes.hideAll();
-      this.rendering.requestRender();
-      return;
-    }
-    this.goToPage(page.id);
-  }
-
-  getDocument(): DocumentModel | undefined {
-    return this.document;
-  }
-
-  getXmlTree(): DrawioTree | undefined {
-    return this.xmlTree;
-  }
-
-  isModified(): boolean {
-    return this.modified;
-  }
-
-  serialize(): string | undefined {
-    if (!this.xmlTree) return undefined;
-    this.endMove();
-    if (this.currentPageId) this.pageIso.set(this.currentPageId, this.isoParams());
-    const views = new Map<string, PageViewState>();
-    for (const [id, camera] of this.pageCameras) {
-      if (id === GRAPH_PAGE_ID) continue;
-      const iso = this.pageIso.get(id);
-      views.set(id, iso ? { camera, iso } : { camera });
-    }
-    writePageViews(this.xmlTree, views);
-    const xml = writeDrawio(this.xmlTree);
-    this.undoStack.markSaved();
-    this.syncModified();
-    return xml;
-  }
-
   // -------------------------------------------------------------------------
   // Création (SPEC §14.1)
 
@@ -627,10 +526,6 @@ export class EngineCore {
     this.updateSelectionOutline();
   }
 
-  canEditPages(): boolean {
-    return this.editable && this.xmlTree?.xml.documentElement?.tagName === 'mxfile';
-  }
-
   addShape(template: ShapeTemplate, screen?: Point): string | undefined {
     const editable = this.editablePage();
     if (!editable) return undefined;
@@ -642,67 +537,13 @@ export class EngineCore {
       screen ?? { x: this.display.viewport.width / 2, y: this.display.viewport.height / 2 },
     );
     const bounds = dropBounds(template, at, gridSizeOf(pageTree));
-    this.recordEdit('Nouvelle forme');
+    this.edits.recordEdit('Nouvelle forme');
     const style = withStyleValue(template.style, 'fontSize', String(this.settings.shapes.textSize));
     const id = addShapeCell(pageTree, { style, value: template.value, ...bounds });
-    this.documentChanged([page.id]);
-    const shape = this.getCurrentPage()?.shapes.find((s) => s.id === id);
+    this.file.documentChanged([page.id]);
+    const shape = this.pages.getCurrentPage()?.shapes.find((s) => s.id === id);
     if (shape) this.select({ type: 'shape', element: shape });
     return id;
-  }
-
-  addPage(name?: string): string | undefined {
-    if (!this.xmlTree || !this.document || !this.canEditPages() || this.transition) return undefined;
-    const names = new Set(this.document.pages.map((p) => p.name));
-    let pageName = name?.trim();
-    for (let n = this.document.pages.length + 1; !pageName || names.has(pageName); n++) pageName = `Page-${n}`;
-    this.recordEdit('Nouvelle page');
-    const page = addPage(this.xmlTree, pageName);
-    this.documentChanged([]);
-    this.goToPage(page.id);
-    return page.id;
-  }
-
-  renamePage(pageId: string, name: string): void {
-    const trimmed = name.trim();
-    const page = this.pageById(pageId);
-    if (!this.xmlTree || !page || !trimmed || trimmed === page.name || !this.canEditPages()) return;
-    this.recordEdit('Page renommée');
-    renamePage(this.xmlTree, pageId, trimmed);
-    this.documentChanged([]);
-  }
-
-  removePage(pageId: string): void {
-    const document = this.document;
-    if (!this.xmlTree || !document || !this.canEditPages() || document.pages.length <= 1 || this.transition) return;
-    const index = document.pages.findIndex((p) => p.id === pageId);
-    if (index < 0) return;
-    const wasCurrent = this.currentPageId === pageId || this.isGraphView();
-    this.endMove();
-    this.recordEdit('Page supprimée');
-    removePage(this.xmlTree, pageId);
-    this.scenes.invalidate(pageId, true);
-    this.pageCameras.delete(pageId);
-    this.pageIso.delete(pageId);
-    if (this.lastDocumentPageId === pageId) this.lastDocumentPageId = undefined;
-    const entries = this.history.entries();
-    const kept = entries.filter((e) => e.pageId !== pageId && e.targetPageId !== pageId);
-    if (kept.length !== entries.length) {
-      this.history.replace(kept);
-      this.events.emit('historyChange', kept);
-    }
-    if (this.currentPageId === pageId) this.currentPageId = undefined;
-    this.documentChanged([]);
-    if (wasCurrent && !this.isGraphView()) {
-      const next = this.document!.pages[Math.min(index, this.document!.pages.length - 1)];
-      if (next) this.goToPage(next.id);
-    }
-  }
-
-  /** Arbre XML d'une page du document (même rang que dans le modèle). */
-  pageTreeOf(pageId: string) {
-    const index = this.document?.pages.findIndex((p) => p.id === pageId) ?? -1;
-    return index >= 0 ? this.xmlTree?.pages[index] : undefined;
   }
 
   /**
@@ -719,7 +560,7 @@ export class EngineCore {
     for (const pageId of changedPageIds) {
       const page = after.pages.find((p) => p.id === pageId);
       if (!page || this.anchoringOf(page) !== 'auto') continue;
-      const shapeIds = affectedShapes(this.geometry.get(pageId), page);
+      const shapeIds = affectedShapes(this.file.geometry.get(pageId), page);
       if (shapeIds.size > 0) wrote = this.writeDistribution(page, shapeIds) || wrote;
     }
     return wrote;
@@ -727,7 +568,7 @@ export class EngineCore {
 
   /** Écrit la répartition des flèches des formes `shapeIds` (et les coudes des boucles concernées). */
   writeDistribution(page: PageModel, shapeIds: ReadonlySet<string>): boolean {
-    const pageTree = this.pageTreeOf(page.id);
+    const pageTree = this.file.pageTreeOf(page.id);
     if (!pageTree) return false;
     const arrangement = arrangeAnchors(page, shapeIds, { seed: anchorSeedOf(page), route: this.avoidOptions() });
     return this.writeArrangement(page, pageTree, arrangement);
@@ -791,7 +632,7 @@ export class EngineCore {
    */
   otherArrangement(): boolean {
     const editable = this.editablePage();
-    if (!editable || this.anchoringOf(editable.page) !== 'auto' || !this.xmlTree) return false;
+    if (!editable || this.anchoringOf(editable.page) !== 'auto' || !this.file.xmlTree) return false;
     const { page, pageTree } = editable;
     const picked = this.selection?.pageId === page.id && !this.isMultiSelection() ? this.selection.picked : undefined;
     const around =
@@ -808,11 +649,11 @@ export class EngineCore {
       const seed = current + k;
       const arrangement = arrangeAnchors(page, shapeIds, { seed, route });
       if (!arrangementChanges(page, arrangement) || arrangementConflicts(page, arrangement) > base) continue;
-      this.recordEdit('Autre agencement');
+      this.edits.recordEdit('Autre agencement');
       setPageAttribute(pageTree, SPATIAL.anchorSeed, String(seed));
       this.writeArrangement(page, pageTree, arrangement);
       // Pas de répartition derrière : elle déborderait de la zone choisie.
-      this.documentChanged([page.id], { distribute: false });
+      this.file.documentChanged([page.id], { distribute: false });
       return true;
     }
     return false;
@@ -826,14 +667,14 @@ export class EngineCore {
     const { page, pageTree, edge } = editable;
     const variant = nextPlacementVariant(page, edge.id, this.settings.shapes.edgeLoopMargin);
     if (!variant) return false;
-    this.recordEdit('Variante de placement');
+    this.edits.recordEdit('Variante de placement');
     for (const [key, value] of Object.entries({
       ...constraintStyle('source', variant.exit),
       ...constraintStyle('target', variant.entry),
     }))
       setCellStyleValue(pageTree, edge.id, key, value);
     this.writeEdgePoints(page, pageTree, edge, variant.points);
-    this.documentChanged([page.id]);
+    this.file.documentChanged([page.id]);
     return true;
   }
 
@@ -843,16 +684,16 @@ export class EngineCore {
   }
 
   setPageAnchoring(pageId: string, anchoring: Anchoring | undefined): void {
-    const page = this.pageById(pageId);
-    const pageTree = this.pageTreeOf(pageId);
-    if (!this.xmlTree || !page || !pageTree?.diagram || !this.editable || this.transition) return;
+    const page = this.pages.pageById(pageId);
+    const pageTree = this.file.pageTreeOf(pageId);
+    if (!this.file.xmlTree || !page || !pageTree?.diagram || !this.editable || this.transition) return;
     if ((page.attributes[SPATIAL.anchoring] ?? '') === (anchoring ?? '')) return;
-    this.recordEdit('Ancrage des flèches');
+    this.edits.recordEdit('Ancrage des flèches');
     setPageAttribute(pageTree, SPATIAL.anchoring, anchoring);
-    const fresh = documentFromTree(this.xmlTree).pages.find((p) => p.id === pageId);
+    const fresh = documentFromTree(this.file.xmlTree).pages.find((p) => p.id === pageId);
     if (fresh && this.anchoringOf(fresh) === 'auto')
       this.writeDistribution(fresh, new Set(fresh.shapes.map((s) => s.id)));
-    this.documentChanged([pageId]);
+    this.file.documentChanged([pageId]);
   }
 
   jumpsOf(page: PageModel): JumpDefaults {
@@ -870,63 +711,18 @@ export class EngineCore {
   }
 
   setPageJumps(pageId: string, jumps: JumpDefaults['style'] | undefined): void {
-    const page = this.pageById(pageId);
-    const pageTree = this.pageTreeOf(pageId);
-    if (!this.xmlTree || !page || !pageTree?.diagram || !this.editable || this.transition) return;
+    const page = this.pages.pageById(pageId);
+    const pageTree = this.file.pageTreeOf(pageId);
+    if (!this.file.xmlTree || !page || !pageTree?.diagram || !this.editable || this.transition) return;
     if ((page.attributes[SPATIAL.jumps] ?? '') === (jumps ?? '')) return;
-    this.recordEdit('Croisements des flèches');
+    this.edits.recordEdit('Croisements des flèches');
     setPageAttribute(pageTree, SPATIAL.jumps, jumps);
-    this.documentChanged([pageId], { distribute: false });
-  }
-
-  documentChanged(changedPageIds: string[], options: { distribute?: boolean } = {}): void {
-    if (!this.xmlTree) return;
-    const selected = this.selection;
-    this.clearSelection();
-    let document = documentFromTree(this.xmlTree);
-    if (options.distribute !== false && this.distributeAfterEdit(document, changedPageIds))
-      document = documentFromTree(this.xmlTree);
-    this.document = this.withModeWarnings(document);
-    this.geometry = new Map(document.pages.map((p) => [p.id, pageGeometry(p)]));
-    this.unsupportedReport = collectUnsupported(this.document, this.registry);
-    this.graph = undefined;
-    for (const id of [...changedPageIds, GRAPH_PAGE_ID]) this.scenes.invalidate(id, true);
-    const current = this.getCurrentPage();
-    if (current) {
-      this.scenes.show(current);
-      this.applyHeightScale();
-      this.hideEditedLabel();
-    }
-    if (selected && selected.pageId === current?.id) {
-      const items: PickedElement[] = [];
-      for (const { element } of selected.items) {
-        const shape = current.shapes.find((s) => s.id === element.id);
-        const edge = current.edges.find((e) => e.id === element.id);
-        if (shape) items.push({ type: 'shape', element: shape });
-        else if (edge) items.push({ type: 'edge', element: edge });
-      }
-      if (items.length > 0) this.selectItems(items);
-    }
-    this.rendering.syncBackground();
-    this.minimap?.invalidate();
-    this.syncModified();
-    this.events.emit('documentChange', this.document);
-    this.rendering.requestRender();
-  }
-
-  setModified(modified: boolean): void {
-    if (this.modified === modified) return;
-    this.modified = modified;
-    this.events.emit('modifiedChange', modified);
-  }
-
-  getUnsupportedReport(): UnsupportedReport | undefined {
-    return this.unsupportedReport;
+    this.file.documentChanged([pageId], { distribute: false });
   }
 
   focusElement(pageId: string, elementId: string): void {
-    if (this.currentPageId !== pageId) this.goToPage(pageId);
-    const page = this.getCurrentPage();
+    if (this.pages.currentPageId !== pageId) this.pages.goToPage(pageId);
+    const page = this.pages.getCurrentPage();
     if (!page) return;
     const bounds = page.shapes.find((s) => s.id === elementId)?.bounds ?? this.drawnBounds(elementId) ?? page.bounds;
     this.animateCameraTo(
@@ -948,47 +744,12 @@ export class EngineCore {
     return { x: box.min.x, y: box.min.z, width: box.max.x - box.min.x, height: box.max.z - box.min.z };
   }
 
-  getFileId(): string | undefined {
-    return this.fileId;
-  }
-
-  getCurrentPage(): PageModel | undefined {
-    return this.currentPageId ? this.pageById(this.currentPageId) : undefined;
-  }
-
   getPageScene(): PageScene | undefined {
     return this.scenes.current;
   }
 
   getCachedPageIds(): string[] {
     return this.scenes.cachedIds();
-  }
-
-  getPageCameras(): Record<string, CameraState> {
-    return structuredClone(Object.fromEntries(this.pageCameras));
-  }
-
-  goToPage(pageId: string): void {
-    const page = this.pageById(pageId);
-    if (!page) throw new Error(`Page inconnue : ${pageId}`);
-    this.transition?.abort();
-    cancelAnimationFrame(this.animation);
-    this.animation = 0;
-    this.endMove();
-    if (this.currentPageId !== page.id) this.clearSelection();
-    this.applyPageIso(page.id);
-    this.currentPageId = page.id;
-    if (page.id !== GRAPH_PAGE_ID) this.lastDocumentPageId = page.id;
-    this.scenes.show(page);
-    this.applyHeightScale();
-    this.rendering.syncBackground();
-    this.minimap?.invalidate();
-    const camera = this.pageCameras.get(page.id);
-    if (camera) this.setCameraState(camera);
-    else this.fitToBounds(isEmptyPage(page) ? EMPTY_PAGE_AREA : page.bounds);
-    this.rendering.requestRender();
-    this.updateLinkZones();
-    this.events.emit('pageChange', page);
   }
 
   getCameraState(): CameraState {
@@ -1033,7 +794,7 @@ export class EngineCore {
   }
 
   getOverviewState(): CameraState | undefined {
-    const page = this.getCurrentPage();
+    const page = this.pages.getCurrentPage();
     if (!page) return undefined;
     return fitBounds(page.bounds, this.display.viewport, {
       ...this.orientation(),
@@ -1051,12 +812,6 @@ export class EngineCore {
     } else {
       this.animateCameraTo(overview);
     }
-  }
-
-  /** Page du document, ou la page générée de la vue graphe. */
-  pageById(id: string): PageModel | undefined {
-    if (id === GRAPH_PAGE_ID) return this.getGraphPage();
-    return this.document?.pages.find((p) => p.id === id);
   }
 
   /**
@@ -1127,7 +882,7 @@ export class EngineCore {
    */
   blendLevels(volume: PageScene, weight: number): void {
     const blend = this.levelBlend;
-    const page = this.getCurrentPage();
+    const page = this.pages.getCurrentPage();
     if (!blend || !page) return;
     const flat = blend.flat ?? this.scenes.overlay(page, 'flat');
     if (flat === volume) return;
@@ -1143,7 +898,7 @@ export class EngineCore {
     if (!blend) return;
     this.levelBlend = undefined;
     for (const scene of [blend.volume, blend.flat]) if (scene) setPageOpacity(scene.root, 1);
-    const page = this.getCurrentPage();
+    const page = this.pages.getCurrentPage();
     if (page && !this.transition && (blend.volume || blend.flat)) {
       this.scenes.show(page);
       this.applyHeightScale();
@@ -1156,7 +911,7 @@ export class EngineCore {
   /** Les volumes ont changé (activés, épaisseur) : on reconstruit les scènes. */
   rebuildScenes(): void {
     this.scenes.clear();
-    const page = this.getCurrentPage();
+    const page = this.pages.getCurrentPage();
     if (page) this.scenes.show(page);
     this.applyHeightScale();
     this.updateSelectionOutline();
@@ -1173,16 +928,16 @@ export class EngineCore {
     // niveau (même scène si tout est à plat).
     let sceneChanged = false;
     if (this.requestedLevel() !== previousLevel && !this.transition) {
-      const page = this.getCurrentPage();
+      const page = this.pages.getCurrentPage();
       if (page) {
         this.scenes.show(page);
         this.minimap?.invalidate();
         sceneChanged = true;
       }
     }
-    if (this.currentPageId) {
-      this.pageCameras.set(this.currentPageId, this.cameraState);
-      if (!this.transition) this.pageIso.set(this.currentPageId, this.isoParams());
+    if (this.pages.currentPageId) {
+      this.pages.pageCameras.set(this.pages.currentPageId, this.cameraState);
+      if (!this.transition) this.pages.pageIso.set(this.pages.currentPageId, this.isoParams());
     }
     this.minimap?.requestDraw();
     // Contour de sélection d'épaisseur constante à l'écran ; la sélection est transférée à la scène
@@ -1234,7 +989,7 @@ export class EngineCore {
     this.endLevelBlend();
     const previousLevel = this.requestedLevel();
     this.flattened = flattened;
-    const page = this.getCurrentPage();
+    const page = this.pages.getCurrentPage();
     if (page && this.requestedLevel() !== previousLevel) {
       this.scenes.show(page);
       this.applyHeightScale();
@@ -1262,7 +1017,7 @@ export class EngineCore {
    * la caméra de la page est appliquée juste après. L'UI les reçoit par `settingsChange`.
    */
   applyPageIso(pageId: string): void {
-    const iso = this.pageIso.get(pageId);
+    const iso = this.pages.pageIso.get(pageId);
     const view = this.settings.view;
     if (
       !iso ||
@@ -1301,9 +1056,9 @@ export class EngineCore {
   // Vue graphe (SPEC §12)
 
   getGraphPage(): PageModel | undefined {
-    if (!this.document) return undefined;
+    if (!this.file.document) return undefined;
     const graph = this.settings.graph;
-    this.graph ??= buildGraphPage(this.document, graph, {
+    this.graph ??= buildGraphPage(this.file.document, graph, {
       card: graph.cardColor,
       start: this.settings.selection.accentColor,
       orphan: graph.orphanColor,
@@ -1315,12 +1070,12 @@ export class EngineCore {
   }
 
   isGraphView(): boolean {
-    return this.currentPageId === GRAPH_PAGE_ID;
+    return this.pages.currentPageId === GRAPH_PAGE_ID;
   }
 
   showGraph(): void {
     const graph = this.getGraphPage();
-    const page = this.getCurrentPage();
+    const page = this.pages.getCurrentPage();
     if (!graph || !page || page.id === GRAPH_PAGE_ID || this.transition) return;
     const card = graph.shapes.find((s) => s.id === cardId(page.id));
     this.runTransition({
@@ -1329,7 +1084,7 @@ export class EngineCore {
       inner: page,
       frame: card?.bounds,
       destination:
-        this.pageCameras.get(GRAPH_PAGE_ID) ?? fitBounds(graph.bounds, this.display.viewport, this.orientation()),
+        this.pages.pageCameras.get(GRAPH_PAGE_ID) ?? fitBounds(graph.bounds, this.display.viewport, this.orientation()),
     });
   }
 
@@ -1338,7 +1093,7 @@ export class EngineCore {
       this.showGraph();
       return;
     }
-    const target = this.lastDocumentPageId ?? this.document?.pages[0]?.id;
+    const target = this.pages.lastDocumentPageId ?? this.file.document?.pages[0]?.id;
     if (target) this.followLink(cardId(target));
   }
 
@@ -1347,7 +1102,7 @@ export class EngineCore {
     const minimap = new Minimap(
       canvas,
       {
-        getPage: () => this.getCurrentPage(),
+        getPage: () => this.pages.getCurrentPage(),
         getCamera: () => this.cameraState,
         getViewport: () => this.display.viewport,
         getBackground: () => this.settings.background.color,
@@ -1374,7 +1129,7 @@ export class EngineCore {
   }
 
   resetView(): void {
-    const page = this.getCurrentPage();
+    const page = this.pages.getCurrentPage();
     if (!page || this.transition) return;
     const { mode } = this.cameraState;
     this.animateCameraTo(defaultView(page.bounds, this.display.viewport, mode, this.isoTilt(), this.isoAzimuth()));
@@ -1401,7 +1156,7 @@ export class EngineCore {
   }
 
   pickAt(screen: Point): PickedElement | undefined {
-    const page = this.getCurrentPage();
+    const page = this.pages.getCurrentPage();
     if (!page) return undefined;
     // Texte d'une flèche, même placé loin d'elle : la flèche.
     const text = this.edgeTextAt(screen);
@@ -1435,12 +1190,12 @@ export class EngineCore {
   }
 
   toggleSelect(picked: PickedElement): void {
-    const current = this.selection?.pageId === this.currentPageId ? (this.selection?.items ?? []) : [];
+    const current = this.selection?.pageId === this.pages.currentPageId ? (this.selection?.items ?? []) : [];
     this.selectItems(toggleSelected(current, picked));
   }
 
   selectItems(items: PickedElement[]): void {
-    const page = this.getCurrentPage();
+    const page = this.pages.getCurrentPage();
     const picked = items[items.length - 1];
     this.selection = picked && page ? { pageId: page.id, picked, items: [...items] } : undefined;
     this.updateSelectionOutline();
@@ -1451,7 +1206,7 @@ export class EngineCore {
   }
 
   selectInRect(rect: Rect, options: { add: boolean; touch: boolean }): void {
-    const page = this.getCurrentPage();
+    const page = this.pages.getCurrentPage();
     if (!page) return;
     const taken = this.selectableItems(page).filter((item) => {
       const footprint = this.screenFootprint(item);
@@ -1464,7 +1219,7 @@ export class EngineCore {
   }
 
   selectAll(): void {
-    const page = this.getCurrentPage();
+    const page = this.pages.getCurrentPage();
     if (page) this.selectItems(takenRoots(page, this.selectableItems(page)));
   }
 
@@ -1510,13 +1265,13 @@ export class EngineCore {
   }
 
   preloadLink(link: LinkModel | undefined): void {
-    if (link?.type !== 'page' || link.pageId === this.currentPageId) return;
-    const page = this.pageById(link.pageId);
+    if (link?.type !== 'page' || link.pageId === this.pages.currentPageId) return;
+    const page = this.pages.pageById(link.pageId);
     if (page) this.scenes.prebuild(page);
   }
 
   followLink(elementId: string): void {
-    const page = this.getCurrentPage();
+    const page = this.pages.getCurrentPage();
     const element = page && [...page.shapes, ...page.edges].find((e) => e.id === elementId);
     const link = element?.link;
     if (!page || !element || !isNavigableLink(link) || this.transition) return;
@@ -1524,7 +1279,7 @@ export class EngineCore {
       this.openUrl(link.href);
       return;
     }
-    const target = this.pageById(link.pageId);
+    const target = this.pages.pageById(link.pageId);
     if (!target || target.id === page.id) return;
 
     const frame = page.shapes.find((s) => s.id === elementId)?.bounds ?? this.drawnBounds(elementId);
@@ -1543,7 +1298,7 @@ export class EngineCore {
       inner: target,
       frame,
       destination:
-        this.pageCameras.get(target.id) ?? fitBounds(target.bounds, this.display.viewport, this.orientation()),
+        this.pages.pageCameras.get(target.id) ?? fitBounds(target.bounds, this.display.viewport, this.orientation()),
     });
   }
 
@@ -1556,14 +1311,14 @@ export class EngineCore {
   }
 
   getBackTarget(): BackTarget {
-    const page = this.getCurrentPage();
-    if (!page || !this.document) return { kind: 'none' };
+    const page = this.pages.getCurrentPage();
+    if (!page || !this.file.document) return { kind: 'none' };
     const entry = this.history.peek();
     if (entry && entry.targetPageId === page.id) {
-      const pageName = this.pageById(entry.pageId)?.name ?? entry.pageId;
+      const pageName = this.pages.pageById(entry.pageId)?.name ?? entry.pageId;
       return { kind: 'history', entry, pageName };
     }
-    const parents = findParents(this.document, page.id, this.linkUsage);
+    const parents = findParents(this.file.document, page.id, this.linkUsage);
     if (parents.length === 1) return { kind: 'parent', parent: parents[0]! };
     if (parents.length > 1) return { kind: 'choose', parents };
     return { kind: 'none' };
@@ -1584,19 +1339,19 @@ export class EngineCore {
   }
 
   backTo(parentPageId: string): void {
-    const page = this.getCurrentPage();
-    if (!page || !this.document || this.transition) return;
-    const parent = findParents(this.document, page.id, this.linkUsage).find((p) => p.pageId === parentPageId);
+    const page = this.pages.getCurrentPage();
+    if (!page || !this.file.document || this.transition) return;
+    const parent = findParents(this.file.document, page.id, this.linkUsage).find((p) => p.pageId === parentPageId);
     if (!parent) return;
     // La pile ne mène plus à la page courante : on repart d'une pile vide.
     this.history.clear();
     this.events.emit('historyChange', []);
-    this.returnTo(parent.pageId, parent.frame, this.pageCameras.get(parent.pageId));
+    this.returnTo(parent.pageId, parent.frame, this.pages.pageCameras.get(parent.pageId));
   }
 
   returnTo(pageId: string, frame: Rect | undefined, camera: CameraState | undefined): void {
-    const inner = this.getCurrentPage();
-    const outer = this.pageById(pageId);
+    const inner = this.pages.getCurrentPage();
+    const outer = this.pages.pageById(pageId);
     if (!inner || !outer) return;
     const destination = camera ?? fitBounds(outer.bounds, this.display.viewport, this.orientation());
     this.runTransition({ direction: 'out', outer, inner, frame, destination });
@@ -1618,7 +1373,7 @@ export class EngineCore {
     destination: CameraState;
   }): void {
     const { direction, outer, inner, frame, destination } = options;
-    const from = this.getCurrentPage();
+    const from = this.pages.getCurrentPage();
     const to = direction === 'in' ? inner : outer;
     if (!from || this.transition) return;
 
@@ -1628,9 +1383,9 @@ export class EngineCore {
       this.config.reducedMotion() ||
       this.settings.transition.durationMs <= 0
     ) {
-      if (direction === 'in') this.pageCameras.set(outer.id, this.cameraState);
-      this.pageCameras.set(to.id, destination);
-      this.goToPage(to.id);
+      if (direction === 'in') this.pages.pageCameras.set(outer.id, this.cameraState);
+      this.pages.pageCameras.set(to.id, destination);
+      this.pages.goToPage(to.id);
       return;
     }
 
@@ -1647,7 +1402,7 @@ export class EngineCore {
     const outerCameraBefore = direction === 'in' ? this.cameraState : undefined;
 
     // Pendant la transition, la page courante est l'extérieure ; l'intérieure est posée dans la forme.
-    this.currentPageId = outer.id;
+    this.pages.currentPageId = outer.id;
     this.scenes.show(outer);
     this.minimap?.invalidate();
     innerScene.root.visible = true;
@@ -1675,7 +1430,7 @@ export class EngineCore {
       this.controller.setEnabled(true);
       // Touche toujours maintenue : les zones liées de la page d'arrivée.
       this.updateLinkZones();
-      this.events.emit('transitionEnd', this.currentPageId ?? to.id);
+      this.events.emit('transitionEnd', this.pages.currentPageId ?? to.id);
     };
     this.transition = {
       abort: () => {
@@ -1702,10 +1457,10 @@ export class EngineCore {
       }
       // Arrivée : même image à l'écran, sur la page de destination sans transformation.
       restore();
-      if (outerCameraBefore) this.pageCameras.set(outer.id, outerCameraBefore);
+      if (outerCameraBefore) this.pages.pageCameras.set(outer.id, outerCameraBefore);
       this.applyPageIso(to.id);
-      this.currentPageId = to.id;
-      if (to.id !== GRAPH_PAGE_ID) this.lastDocumentPageId = to.id;
+      this.pages.currentPageId = to.id;
+      if (to.id !== GRAPH_PAGE_ID) this.pages.lastDocumentPageId = to.id;
       this.scenes.show(to);
       this.minimap?.invalidate();
       this.applyCamera(destination);
@@ -1721,9 +1476,9 @@ export class EngineCore {
   /** Page courante modifiable (pas la vue graphe, ni une page illisible) et son arbre XML. */
   editablePage(): { page: PageModel; pageTree: PageTree } | undefined {
     if (!this.editable) return undefined;
-    const page = this.getCurrentPage();
+    const page = this.pages.getCurrentPage();
     if (!page || page.id === GRAPH_PAGE_ID || this.transition) return undefined;
-    const pageTree = this.pageTreeOf(page.id);
+    const pageTree = this.file.pageTreeOf(page.id);
     if (!pageTree || pageTree.encoding === 'unreadable') return undefined;
     return { page, pageTree };
   }
@@ -1869,10 +1624,10 @@ export class EngineCore {
     );
     const constrained = keys.some((key) => edge.style[key] !== undefined);
     if (edge.points.length === 0 && !constrained) return;
-    this.recordEdit('Tracé automatique');
+    this.edits.recordEdit('Tracé automatique');
     setEdgePoints(editable.pageTree, edge.id, []);
     for (const key of keys) setCellStyleValue(editable.pageTree, edge.id, key, undefined);
-    this.documentChanged([editable.page.id]);
+    this.file.documentChanged([editable.page.id]);
   }
 
   /**
@@ -2025,7 +1780,7 @@ export class EngineCore {
 
   /** Forme sous un point écran à laquelle on peut attacher une flèche (les flèches sont ignorées). */
   shapeAt(screen: Point, exclude?: string): ShapeModel | undefined {
-    const page = this.getCurrentPage();
+    const page = this.pages.getCurrentPage();
     if (!page) return undefined;
     const connectable = new Set(connectableShapes(page, this.registry).map((s) => s.id));
     const picked = pickElement(
@@ -2327,7 +2082,7 @@ export class EngineCore {
    */
   moveTo(screen: Point, snap: boolean): void {
     const drag = this.drag;
-    const page = this.getCurrentPage();
+    const page = this.pages.getCurrentPage();
     if (!drag || page?.id !== drag.pageId) return;
     const point = screenToPage(this.cameraState, this.display.viewport, screen);
     if (drag.kind === 'move') this.dragMove(page, drag, point, snap);
@@ -2398,16 +2153,16 @@ export class EngineCore {
     const unchanged =
       rich === undefined ? label.label === value && !label.rich : cellLabelValue(editable.pageTree, cellId) === rich;
     if (unchanged) return;
-    this.recordEdit('Texte');
+    this.edits.recordEdit('Texte');
     if (!value) removeCells(editable.pageTree, [cellId]);
     else if (rich === undefined) setCellLabel(editable.pageTree, cellId, value);
     else setCellRichLabel(editable.pageTree, cellId, rich);
-    this.documentChanged([editable.page.id]);
+    this.file.documentChanged([editable.page.id]);
   }
 
   moveEditedText(screen: Point): void {
     const editing = this.labelEditing;
-    const page = this.getCurrentPage();
+    const page = this.pages.getCurrentPage();
     const cellId = editing?.styleCellId;
     if (!editing?.onEdge || !cellId || !page || editing.pageId !== page.id) return;
     const edge = page.edges.find((e) => e.id === editing.elementId);
@@ -2433,7 +2188,7 @@ export class EngineCore {
    * haut dans l'ordre de dessin. Cliquer un texte éloigné de sa flèche la sélectionne.
    */
   edgeTextAt(screen: Point): { edge: EdgeModel; cellId: string } | undefined {
-    const page = this.getCurrentPage();
+    const page = this.pages.getCurrentPage();
     const root = this.scenes.current?.root;
     if (!page || !root) return undefined;
     root.updateMatrixWorld();
@@ -2475,12 +2230,12 @@ export class EngineCore {
     if (!route?.length) return;
     // Même configuration qu'un texte créé à cet endroit : placement et alignement.
     const layout = edgeTextLayout(route, anchor, false, this.endTextGap());
-    this.recordEdit('Position du texte');
+    this.edits.recordEdit('Position du texte');
     setLabelPlacement(editable.pageTree, cellId, layout.placement);
     const centered = anchor === 'middle';
     setCellStyleValue(editable.pageTree, cellId, 'align', centered ? undefined : layout.align);
     setCellStyleValue(editable.pageTree, cellId, 'verticalAlign', centered ? undefined : layout.verticalAlign);
-    this.documentChanged([editable.page.id]);
+    this.file.documentChanged([editable.page.id]);
   }
 
   /** Écarts du placement par défaut des textes de début / fin (paramètres). */
@@ -2496,7 +2251,7 @@ export class EngineCore {
 
   /** Demande d'édition complétée de la bascule possible (texte de début / fin en configuration par défaut). */
   withFlip(request: LabelEditRequest): LabelEditRequest {
-    const edge = this.getCurrentPage()?.edges.find((e) => e.id === request.elementId);
+    const edge = this.pages.getCurrentPage()?.edges.find((e) => e.id === request.elementId);
     const route = this.sceneObject(request.elementId)?.userData.route as Point[] | undefined;
     const rest = { ...request };
     delete rest.flip;
@@ -2510,7 +2265,7 @@ export class EngineCore {
 
   /** Texte du milieu d'une flèche qui la suit : où ses lettres sont posées ; undefined s'il est horizontal. */
   followedText(edgeId: string): TextAlong | undefined {
-    const edge = this.getCurrentPage()?.edges.find((e) => e.id === edgeId);
+    const edge = this.pages.getCurrentPage()?.edges.find((e) => e.id === edgeId);
     return edge && middleTextAlong(edge, this.sceneObject(edgeId)?.userData.path as Point[] | undefined);
   }
 
@@ -2543,12 +2298,13 @@ export class EngineCore {
     if (child) {
       const target = flipTarget(route, editing.end, child.placement, child.style, this.endTextGap());
       if (!target) return;
-      this.recordEdit('Côté du texte');
+      this.edits.recordEdit('Côté du texte');
       setLabelPlacement(editable.pageTree, child.id, target.layout.placement);
       setCellStyleValue(editable.pageTree, child.id, 'align', target.layout.align);
       setCellStyleValue(editable.pageTree, child.id, 'verticalAlign', target.layout.verticalAlign);
-      this.documentChanged([editable.page.id]);
-      const style = this.getCurrentPage()
+      this.file.documentChanged([editable.page.id]);
+      const style = this.pages
+        .getCurrentPage()
         ?.edges.find((e) => e.id === edge.id)
         ?.labels.find((l) => l.id === child.id)?.style;
       next = { ...editing, style: style ?? editing.style };
@@ -2725,7 +2481,7 @@ export class EngineCore {
   /** Poignée entre les bouts suivant le pointeur (aimanté à la grille) : points recalculés, tracé en direct. */
   dragEdgePoints(page: PageModel, drag: EdgePointsDrag, screen: Point, snap: boolean): void {
     const edge = page.edges.find((e) => e.id === drag.edgeId);
-    const pageTree = this.pageTreeOf(page.id);
+    const pageTree = this.file.pageTreeOf(page.id);
     if (!edge || !pageTree) return;
     drag.started = true;
     const raw = this.groundPointAtHeight(screen, this.elementTop(edge.id));
@@ -2742,7 +2498,7 @@ export class EngineCore {
 
   dragEdgeEnd(page: PageModel, drag: EdgeEndDrag, screen: Point, snap: boolean): void {
     const edge = page.edges.find((e) => e.id === drag.edgeId);
-    const pageTree = this.pageTreeOf(page.id);
+    const pageTree = this.file.pageTreeOf(page.id);
     if (!edge || !pageTree) return;
     drag.started = true;
     const skip = { edgeId: edge.id, end: drag.end, origin: drag.origin };
@@ -2777,36 +2533,36 @@ export class EngineCore {
     const drag = this.drag;
     this.drag = undefined;
     this.clearConnectorPreview();
-    if (!drag?.started || !this.document || !this.xmlTree) return;
-    const pageTree = this.pageTreeOf(drag.pageId);
+    if (!drag?.started || !this.file.document || !this.file.xmlTree) return;
+    const pageTree = this.file.pageTreeOf(drag.pageId);
     if (!pageTree) return;
 
     if (drag.kind === 'label') {
       if (!drag.placement) return;
-      this.recordEdit('Position du texte');
+      this.edits.recordEdit('Position du texte');
       setLabelPlacement(pageTree, drag.cellId, drag.placement);
-      this.documentChanged([drag.pageId]);
+      this.file.documentChanged([drag.pageId]);
       return;
     }
 
     if (drag.kind === 'edgePoints') {
-      const page = this.pageById(drag.pageId);
+      const page = this.pages.pageById(drag.pageId);
       const edge = page?.edges.find((e) => e.id === drag.edgeId);
       if (!page || !edge) return;
       if (!drag.points || samePoints(drag.points, drag.original)) {
         edge.points = drag.original;
-        if (this.getCurrentPage()?.id === drag.pageId) this.retraceEdges(page, new Set([edge.id]));
+        if (this.pages.getCurrentPage()?.id === drag.pageId) this.retraceEdges(page, new Set([edge.id]));
         this.afterLiveEdit();
         return;
       }
-      this.recordEdit('Points de la flèche');
+      this.edits.recordEdit('Points de la flèche');
       this.writeEdgePoints(page, pageTree, edge, drag.points);
-      this.documentChanged([drag.pageId]);
+      this.file.documentChanged([drag.pageId]);
       return;
     }
 
     if (drag.kind === 'edgeEnd') {
-      const page = this.pageById(drag.pageId);
+      const page = this.pages.pageById(drag.pageId);
       const edge = page?.edges.find((e) => e.id === drag.edgeId);
       if (!page || !edge) return;
       const before = endAttachmentOf({ ...edge, ...drag.original }, drag.end);
@@ -2814,16 +2570,16 @@ export class EngineCore {
       if (!after || sameAttachment(after, before)) {
         restoreEnds(edge, drag.original);
         edge.points = drag.originalPoints;
-        if (this.getCurrentPage()?.id === drag.pageId) this.retraceEdges(page, new Set([edge.id]));
+        if (this.pages.getCurrentPage()?.id === drag.pageId) this.retraceEdges(page, new Set([edge.id]));
         this.afterLiveEdit();
         return;
       }
-      this.recordEdit('Extrémité de flèche');
+      this.edits.recordEdit('Extrémité de flèche');
       writeEndAttachment(pageTree, page, edge, drag.end, after);
       const loop = this.loopPoints(page, edge);
       if (loop) this.writeEdgePoints(page, pageTree, edge, loop);
       else if (!samePoints(edge.points, drag.originalPoints)) this.writeEdgePoints(page, pageTree, edge, edge.points);
-      this.documentChanged([drag.pageId]);
+      this.file.documentChanged([drag.pageId]);
       return;
     }
 
@@ -2832,7 +2588,7 @@ export class EngineCore {
         this.rendering.requestRender();
         return;
       }
-      this.recordEdit('Connecteur');
+      this.edits.recordEdit('Connecteur');
       const line = CONNECTOR_STYLE + EDGE_LINE_KEYS[this.settings.shapes.edgeLineStyle];
       let style = withStyleValue(line, 'fontSize', String(this.settings.shapes.textSize));
       const exit = drag.exit ?? CONNECT_DIRECTIONS[drag.side].exit;
@@ -2845,24 +2601,25 @@ export class EngineCore {
       // Flèche créée dans un calque : ses points sont en coordonnées de page.
       if (drag.loop) setEdgePoints(pageTree, id, drag.loop);
       // Le mode de la page reçoit la flèche (ex. ajoutée au flux courant), dans la même étape d'annulation.
-      const page = this.pageById(drag.pageId);
+      const page = this.pages.pageById(drag.pageId);
       const created = page && this.modes.modeOf(page)?.edgeCreated;
-      const fresh = created && this.xmlTree && documentFromTree(this.xmlTree).pages.find((p) => p.id === drag.pageId);
+      const fresh =
+        created && this.file.xmlTree && documentFromTree(this.file.xmlTree).pages.find((p) => p.id === drag.pageId);
       if (created && fresh) {
         const current = this.getModeCurrent(drag.pageId);
         applyModeEdit(fresh, pageTree, (edit) => created(edit, id, current), modePalette(this.settings.styles));
       }
-      this.documentChanged([drag.pageId]);
-      const edge = this.getCurrentPage()?.edges.find((e) => e.id === id);
+      this.file.documentChanged([drag.pageId]);
+      const edge = this.pages.getCurrentPage()?.edges.find((e) => e.id === id);
       if (edge) this.select({ type: 'edge', element: edge });
       return;
     }
 
     if (drag.kind === 'move') {
       if (drag.applied.x === 0 && drag.applied.y === 0) return;
-      this.recordEdit('Déplacement');
+      this.edits.recordEdit('Déplacement');
       for (const id of drag.rootIds) moveCell(pageTree, id, drag.applied);
-      const page = this.pageById(drag.pageId);
+      const page = this.pages.pageById(drag.pageId);
       for (const moved of drag.edges) {
         moveEdgeCell(pageTree, moved.id, drag.applied);
         const edge = page?.edges.find((e) => e.id === moved.id);
@@ -2876,11 +2633,11 @@ export class EngineCore {
       }
       // Bouts détachés : le modèle est relu de l'arbre (attributs `source` / `target` retirés).
       if (drag.edges.some((moved) => moved.detach.length > 0)) {
-        this.documentChanged([drag.pageId]);
+        this.file.documentChanged([drag.pageId]);
         return;
       }
     } else {
-      const shape = this.pageById(drag.pageId)?.shapes.find((s) => s.id === drag.shapeId);
+      const shape = this.pages.pageById(drag.pageId)?.shapes.find((s) => s.id === drag.shapeId);
       if (!shape) return;
       const { origin } = drag;
       const delta = {
@@ -2890,25 +2647,29 @@ export class EngineCore {
         height: shape.bounds.height - origin.height,
       };
       if (Object.values(delta).every((d) => d === 0)) return;
-      this.recordEdit('Redimensionnement');
+      this.edits.recordEdit('Redimensionnement');
       resizeCell(pageTree, drag.shapeId, delta);
     }
     // Ancrage automatique : la forme a bougé, ses flèches et celles de ses voisines sont réparties à nouveau
     // (même étape d'annulation) ; le modèle est alors relu de l'arbre.
-    const moved = this.pageById(drag.pageId);
-    const fresh = moved && this.anchoringOf(moved) === 'auto' && this.xmlTree && documentFromTree(this.xmlTree);
+    const moved = this.pages.pageById(drag.pageId);
+    const fresh =
+      moved && this.anchoringOf(moved) === 'auto' && this.file.xmlTree && documentFromTree(this.file.xmlTree);
     const freshPage = fresh && fresh.pages.find((p) => p.id === drag.pageId);
-    if (freshPage && this.writeDistribution(freshPage, affectedShapes(this.geometry.get(drag.pageId), freshPage))) {
-      this.documentChanged([drag.pageId]);
+    if (
+      freshPage &&
+      this.writeDistribution(freshPage, affectedShapes(this.file.geometry.get(drag.pageId), freshPage))
+    ) {
+      this.file.documentChanged([drag.pageId]);
       return;
     }
-    if (freshPage) this.geometry.set(drag.pageId, pageGeometry(freshPage));
+    if (freshPage) this.file.geometry.set(drag.pageId, pageGeometry(freshPage));
     // Scènes de cette page à d'autres niveaux, et vue graphe (miniatures) : à reconstruire.
     this.scenes.invalidate(drag.pageId);
     this.scenes.invalidate(GRAPH_PAGE_ID);
     this.graph = undefined;
     this.minimap?.invalidate();
-    this.syncModified();
+    this.edits.syncModified();
   }
 
   translateObjects(set: MoveSet, step: Point): void {
@@ -3098,10 +2859,10 @@ export class EngineCore {
    * flèche, ou le point de son texte de début / fin.
    */
   labelEditScreen(elementId: string, end?: EdgeEnd, labelCellId?: string, flipped = false): Rect | undefined {
-    const edge = this.getCurrentPage()?.edges.find((e) => e.id === elementId);
+    const edge = this.pages.getCurrentPage()?.edges.find((e) => e.id === elementId);
     if (!edge) {
       // Forme : sa zone de texte, celle où le label est dessiné à ce niveau de rendu.
-      const shape = this.getCurrentPage()?.shapes.find((s) => s.id === elementId);
+      const shape = this.pages.getCurrentPage()?.shapes.find((s) => s.id === elementId);
       const level = this.scenes.current?.level ?? 'flat';
       return shape ? this.screenRectOf(elementId, this.labelEditZone(shape, level), this.labelTop(shape)) : undefined;
     }
@@ -3135,7 +2896,7 @@ export class EngineCore {
   labelEditPlane(elementId: string): LabelEditPlane | undefined {
     const { tilt, rotation, fov } = this.cameraState;
     if (tilt === 0 && rotation === 0 && fov === undefined) return undefined;
-    const shape = this.getCurrentPage()?.shapes.find((s) => s.id === elementId);
+    const shape = this.pages.getCurrentPage()?.shapes.find((s) => s.id === elementId);
     if (!shape) return undefined;
     const { x, y, width, height } = this.labelEditZone(shape, this.scenes.current?.level ?? 'flat');
     const top = this.labelTop(shape);
@@ -3153,7 +2914,7 @@ export class EngineCore {
    */
   relocateLabelEdit(): void {
     const editing = this.labelEditing;
-    if (!editing || editing.pageId !== this.currentPageId) return;
+    if (!editing || editing.pageId !== this.pages.currentPageId) return;
     const screen = this.labelEditScreen(editing.elementId, editing.end, editing.labelCellId, editing.flipped);
     if (!screen) return;
     const scale = this.textScale(editing.elementId);
@@ -3184,7 +2945,7 @@ export class EngineCore {
 
   hideEditedLabel(): void {
     const editing = this.labelEditing;
-    if (!editing || editing.pageId !== this.currentPageId) return;
+    if (!editing || editing.pageId !== this.pages.currentPageId) return;
     this.labelObjects(editing.styleCellId).forEach((object) => (object.visible = false));
     this.rendering.requestRender();
   }
@@ -3227,9 +2988,9 @@ export class EngineCore {
     if (!style) return;
     const changes = Object.entries(patch).filter(([key, value]) => style[key] !== value);
     if (changes.length === 0) return;
-    this.recordEdit('Format du texte');
+    this.edits.recordEdit('Format du texte');
     for (const [key, value] of changes) setCellStyleValue(editable.pageTree, cellId, key, value);
-    this.documentChanged([page.id]);
+    this.file.documentChanged([page.id]);
     const editing = this.labelEditing;
     if (editing?.styleCellId === cellId) {
       const next = { ...style, ...Object.fromEntries(changes) };
@@ -3251,10 +3012,10 @@ export class EngineCore {
         : cellLabelValue(editable.pageTree, elementId) === html
     )
       return;
-    this.recordEdit('Texte');
+    this.edits.recordEdit('Texte');
     if (html === undefined) setCellLabel(editable.pageTree, elementId, text);
     else setCellRichLabel(editable.pageTree, elementId, html);
-    this.documentChanged([editable.page.id]);
+    this.file.documentChanged([editable.page.id]);
   }
 
   setEdgeEndLabel(edgeId: string, end: EdgeEnd, text: string, html?: string, flipped = false): void {
@@ -3269,7 +3030,7 @@ export class EngineCore {
         ? (current?.label ?? '') === value && !current?.rich
         : current !== undefined && cellLabelValue(editable.pageTree, current.id) === rich;
     if (unchanged) return;
-    this.recordEdit(end === 'start' ? 'Texte de début' : 'Texte de fin');
+    this.edits.recordEdit(end === 'start' ? 'Texte de début' : 'Texte de fin');
     const write = (id: string) =>
       rich === undefined ? setCellLabel(editable.pageTree, id, value) : setCellRichLabel(editable.pageTree, id, rich);
     if (!value && current) removeCells(editable.pageTree, [current.id]);
@@ -3285,7 +3046,7 @@ export class EngineCore {
       }
       write(id);
     }
-    this.documentChanged([editable.page.id]);
+    this.file.documentChanged([editable.page.id]);
   }
 
   setLink(elementId: string, link: LinkModel | undefined): void {
@@ -3294,9 +3055,9 @@ export class EngineCore {
     if (!editable || !element) return;
     const href = link ? formatLink(link) : undefined;
     if (href === (element.link ? formatLink(element.link) : undefined)) return;
-    this.recordEdit(link ? 'Lien' : 'Lien retiré');
+    this.edits.recordEdit(link ? 'Lien' : 'Lien retiré');
     setCellLink(editable.pageTree, elementId, href);
-    this.documentChanged([editable.page.id]);
+    this.file.documentChanged([editable.page.id]);
   }
 
   setSpatial(elementId: string, key: string, value: number | string | undefined, merge?: string): void {
@@ -3310,9 +3071,10 @@ export class EngineCore {
           ? undefined
           : formatNumber(Math.max(0, value));
     if (spatialValue(shape, key) === text) return;
-    const merged = merge !== undefined && this.lastMerge?.key === merge && this.lastMerge.edits === this.editCount;
-    if (!merged) this.recordEdit('Attribut spatial');
-    this.lastMerge = merge === undefined ? undefined : { key: merge, edits: this.editCount };
+    const merged =
+      merge !== undefined && this.edits.lastMerge?.key === merge && this.edits.lastMerge.edits === this.edits.editCount;
+    if (!merged) this.edits.recordEdit('Attribut spatial');
+    this.edits.lastMerge = merge === undefined ? undefined : { key: merge, edits: this.edits.editCount };
     const inObject = shape.attributes[key] !== undefined && shape.style[key] === undefined;
     const written = inObject && setCellObjectAttribute(editable.pageTree, elementId, key, text);
     if (!written) setCellStyleValue(editable.pageTree, elementId, key, text);
@@ -3327,11 +3089,11 @@ export class EngineCore {
       this.graph = undefined;
       this.scenes.invalidate(GRAPH_PAGE_ID, true);
       this.afterLiveEdit();
-      this.syncModified();
-      if (this.document) this.events.emit('documentChange', this.document);
+      this.edits.syncModified();
+      if (this.file.document) this.events.emit('documentChange', this.file.document);
       return;
     }
-    this.documentChanged([editable.page.id]);
+    this.file.documentChanged([editable.page.id]);
   }
 
   // -------------------------------------------------------------------------
@@ -3342,34 +3104,34 @@ export class EngineCore {
   }
 
   setPageMode(pageId: string, modeId: string | undefined): void {
-    const page = this.pageById(pageId);
-    const pageTree = this.pageTreeOf(pageId);
-    if (!this.xmlTree || !page || !pageTree?.diagram || !this.editable || this.transition) return;
+    const page = this.pages.pageById(pageId);
+    const pageTree = this.file.pageTreeOf(pageId);
+    if (!this.file.xmlTree || !page || !pageTree?.diagram || !this.editable || this.transition) return;
     if ((this.modes.modeId(page) ?? '') === (modeId ?? '')) return;
     const name = modeId && this.modes.get(modeId)?.name;
-    this.recordEdit(name ? `Mode ${name}` : 'Page normale');
+    this.edits.recordEdit(name ? `Mode ${name}` : 'Page normale');
     setPageAttribute(pageTree, SPATIAL.mode, modeId);
-    this.documentChanged([pageId]);
+    this.file.documentChanged([pageId]);
   }
 
   setPageEffect(pageId: string, effectId: string, enabled: boolean): void {
-    const page = this.pageById(pageId);
-    const pageTree = this.pageTreeOf(pageId);
-    if (!this.xmlTree || !page || !pageTree?.diagram || !this.editable || this.transition) return;
+    const page = this.pages.pageById(pageId);
+    const pageTree = this.file.pageTreeOf(pageId);
+    if (!this.file.xmlTree || !page || !pageTree?.diagram || !this.editable || this.transition) return;
     if (pageEffectIds(page).includes(effectId) === enabled) return;
     const name = this.effects.get(effectId)?.name ?? effectId;
-    this.recordEdit(enabled ? `Effet ${name}` : `Sans effet ${name}`);
+    this.edits.recordEdit(enabled ? `Effet ${name}` : `Sans effet ${name}`);
     setPageAttribute(pageTree, SPATIAL.effects, withPageEffect(page, effectId, enabled));
-    this.documentChanged([pageId], { distribute: false });
+    this.file.documentChanged([pageId], { distribute: false });
   }
 
   editPageMode(label: string, edit: (edit: ModeEdit) => void): void {
     const editable = this.editablePage();
-    if (!editable || !this.xmlTree) return;
-    const before = writeDrawio(this.xmlTree);
+    if (!editable || !this.file.xmlTree) return;
+    const before = writeDrawio(this.file.xmlTree);
     if (!applyModeEdit(editable.page, editable.pageTree, edit, modePalette(this.settings.styles))) return;
-    this.undoStack.record(label, before);
-    this.documentChanged([editable.page.id]);
+    this.edits.undoStack.record(label, before);
+    this.file.documentChanged([editable.page.id]);
   }
 
   setModeProperty(scope: ModeScope, targetId: string | undefined, key: string, value: string | undefined): void {
@@ -3389,16 +3151,16 @@ export class EngineCore {
     });
   }
 
-  getModeCurrent(pageId = this.currentPageId): string | undefined {
-    const page = pageId ? this.pageById(pageId) : undefined;
+  getModeCurrent(pageId = this.pages.currentPageId): string | undefined {
+    const page = pageId ? this.pages.pageById(pageId) : undefined;
     const current = page && this.modes.modeOf(page)?.current;
     if (!page || !current) return undefined;
     const chosen = this.modeCurrents.get(page.id);
     return chosen !== undefined && current.valid(page, chosen) ? chosen : current.initial(page);
   }
 
-  getModeIndicator(pageId = this.currentPageId): ModeIndicator | undefined {
-    const page = pageId ? this.pageById(pageId) : undefined;
+  getModeIndicator(pageId = this.pages.currentPageId): ModeIndicator | undefined {
+    const page = pageId ? this.pages.pageById(pageId) : undefined;
     const current = page && this.modes.modeOf(page)?.current;
     const value = this.getModeCurrent(pageId);
     const color = page && value !== undefined ? current?.color?.(page, value) : undefined;
@@ -3421,8 +3183,8 @@ export class EngineCore {
     this.editPageMode('Renommage', (edit) => rename(edit, value, name));
   }
 
-  setModeCurrent(value: string, pageId = this.currentPageId): void {
-    const page = pageId ? this.pageById(pageId) : undefined;
+  setModeCurrent(value: string, pageId = this.pages.currentPageId): void {
+    const page = pageId ? this.pages.pageById(pageId) : undefined;
     const current = page && this.modes.modeOf(page)?.current;
     if (!page || !current?.valid(page, value) || value === this.getModeCurrent(page.id)) return;
     this.modeCurrents.set(page.id, value);
@@ -3436,7 +3198,7 @@ export class EngineCore {
    * le courant, les modifications du schéma et les scènes reconstruites.
    */
   applyModeFocus(): void {
-    const page = this.getCurrentPage();
+    const page = this.pages.getCurrentPage();
     const value = page && this.getModeCurrent(page.id);
     const focus = page && value !== undefined ? this.modes.modeOf(page)?.current?.focus?.(page, value) : undefined;
     const kept = focus && new Set(focus);
@@ -3481,16 +3243,16 @@ export class EngineCore {
 
   applyStylePreset(elementIds: string[], preset: StylePreset, known: StylePreset[] = []): void {
     const editable = this.editablePage();
-    if (!editable || !this.xmlTree) return;
+    if (!editable || !this.file.xmlTree) return;
     const shapes = editable.page.shapes.filter((s) => elementIds.includes(s.id));
-    const before = writeDrawio(this.xmlTree);
+    const before = writeDrawio(this.file.xmlTree);
     let changed = false;
     for (const shape of shapes) {
       changed = applyStylePreset(editable.pageTree, shape.id, shape.style, preset, known) || changed;
     }
     if (!changed) return;
-    this.undoStack.record(shapes.length > 1 ? 'Style des formes' : 'Style', before);
-    this.documentChanged([editable.page.id]);
+    this.edits.undoStack.record(shapes.length > 1 ? 'Style des formes' : 'Style', before);
+    this.file.documentChanged([editable.page.id]);
   }
 
   setElementsStyle(
@@ -3512,9 +3274,10 @@ export class EngineCore {
     if (changes.length === 0) return;
     // Réglage en direct (ex. champ tapé au fil des frappes) : une seule étape d'annulation tant que rien
     // d'autre n'a été enregistré entre-temps et que la clé `merge` est la même.
-    const merged = merge !== undefined && this.lastMerge?.key === merge && this.lastMerge.edits === this.editCount;
-    if (!merged) this.recordEdit(label);
-    this.lastMerge = merge === undefined ? undefined : { key: merge, edits: this.editCount };
+    const merged =
+      merge !== undefined && this.edits.lastMerge?.key === merge && this.edits.lastMerge.edits === this.edits.editCount;
+    if (!merged) this.edits.recordEdit(label);
+    this.edits.lastMerge = merge === undefined ? undefined : { key: merge, edits: this.edits.editCount };
     for (const { id, key, value } of changes) setCellStyleValue(editable.pageTree, id, key, value);
     // Réglage en direct d'une clé qui ne touche que le texte d'une flèche : seule la flèche est redessinée (comme
     // pendant un glisser), sans reconstruire la page (tous ses textes clignoteraient à chaque frappe).
@@ -3528,31 +3291,31 @@ export class EngineCore {
       this.retraceEdges(editable.page, new Set(changes.map(({ id }) => id)));
       this.afterLiveEdit();
       this.relocateLabelEdit();
-      this.syncModified();
-      if (this.document) this.events.emit('documentChange', this.document);
+      this.edits.syncModified();
+      if (this.file.document) this.events.emit('documentChange', this.file.document);
       return;
     }
-    this.documentChanged([editable.page.id]);
+    this.file.documentChanged([editable.page.id]);
   }
 
   reverseEdges(edgeIds: string[]): void {
     const editable = this.editablePage();
     const ids = editable?.page.edges.filter((edge) => edgeIds.includes(edge.id)).map((edge) => edge.id) ?? [];
     if (!editable || ids.length === 0) return;
-    this.recordEdit('Inverser');
+    this.edits.recordEdit('Inverser');
     for (const id of ids) reverseEdgeCell(editable.pageTree, id);
-    this.documentChanged([editable.page.id], { distribute: false });
+    this.file.documentChanged([editable.page.id], { distribute: false });
   }
 
   orderSelection(move: OrderMove): void {
     const editable = this.editablePage();
     const selection = this.selection;
-    if (!editable || !selection || selection.pageId !== editable.page.id || !this.xmlTree) return;
-    const before = writeDrawio(this.xmlTree);
+    if (!editable || !selection || selection.pageId !== editable.page.id || !this.file.xmlTree) return;
+    const before = writeDrawio(this.file.xmlTree);
     const ids = selection.items.map((item) => item.element.id);
     if (!reorderCells(editable.pageTree, ids, move)) return;
-    this.undoStack.record(ORDER_LABELS[move], before);
-    this.documentChanged([editable.page.id], { distribute: false });
+    this.edits.undoStack.record(ORDER_LABELS[move], before);
+    this.file.documentChanged([editable.page.id], { distribute: false });
   }
 
   alignSelection(move: AlignMove, reference: AlignReference): void {
@@ -3589,26 +3352,27 @@ export class EngineCore {
       return shape !== undefined && !isLocked(shape) && canMoveCell(pageTree, id);
     });
     if (moves.length === 0) return;
-    this.recordEdit(label);
+    this.edits.recordEdit(label);
     for (const [id, delta] of moves) moveCell(pageTree, id, delta);
-    this.documentChanged([page.id]);
+    this.file.documentChanged([page.id]);
   }
 
   deleteSelection(label = 'Suppression'): void {
     const editable = this.editablePage();
     const selection = this.selection;
     if (!editable || !selection || selection.pageId !== editable.page.id) return;
-    this.recordEdit(label);
+    this.edits.recordEdit(label);
     removeCellsDeep(
       editable.pageTree,
       selection.items.map((item) => item.element.id),
     );
     // Le mode de la page remet ses données en ordre (ex. rangs resserrés), dans la même étape d'annulation.
     const repair = this.modes.modeOf(editable.page)?.repair;
-    const page = repair && this.xmlTree && documentFromTree(this.xmlTree).pages.find((p) => p.id === editable.page.id);
+    const page =
+      repair && this.file.xmlTree && documentFromTree(this.file.xmlTree).pages.find((p) => p.id === editable.page.id);
     if (repair && page) applyModeEdit(page, editable.pageTree, repair, modePalette(this.settings.styles));
     this.clearSelection();
-    this.documentChanged([editable.page.id]);
+    this.file.documentChanged([editable.page.id]);
   }
 
   copySelection(): string | undefined {
@@ -3616,7 +3380,7 @@ export class EngineCore {
     if (!xml || !this.selection) return undefined;
     const parents = new Map<string, string>();
     for (const { element } of this.selection.items) if (element.parentId) parents.set(element.id, element.parentId);
-    this.clipboard = { xml, fileId: this.fileId, pageId: this.selection.pageId, parents, steps: 1 };
+    this.clipboard = { xml, fileId: this.file.fileId, pageId: this.selection.pageId, parents, steps: 1 };
     return xml;
   }
 
@@ -3640,7 +3404,7 @@ export class EngineCore {
     if (!clipboard) return false;
     const step = this.gridStep(editable.pageTree);
     const delta = { x: clipboard.steps * step, y: clipboard.steps * step };
-    const samePage = clipboard.fileId === this.fileId && clipboard.pageId === editable.page.id;
+    const samePage = clipboard.fileId === this.file.fileId && clipboard.pageId === editable.page.id;
     if (!this.pasteXml(clipboard.xml, delta, 'Coller', samePage ? clipboard.parents : undefined)) return false;
     clipboard.steps++;
     return true;
@@ -3660,10 +3424,10 @@ export class EngineCore {
 
   /** XML du presse-papier pour la sélection de la page courante. */
   selectionClipboard(): string | undefined {
-    const page = this.getCurrentPage();
+    const page = this.pages.getCurrentPage();
     const selection = this.selection;
     if (!page || !selection || selection.pageId !== page.id) return undefined;
-    const pageTree = this.pageTreeOf(page.id);
+    const pageTree = this.file.pageTreeOf(page.id);
     if (!pageTree || pageTree.encoding === 'unreadable') return undefined;
     return copyCells(
       pageTree,
@@ -3690,7 +3454,7 @@ export class EngineCore {
     if (!editable || !model) return false;
     this.endMove();
     const { page, pageTree } = editable;
-    this.recordEdit(label);
+    this.edits.recordEdit(label);
     // Données des modes de page (ex. flux et rang d'une flèche) : la copie ne les reprend pas.
     stripCellKeys(model, this.modes.pasteKeys());
     const ids = pasteCells(pageTree, model, {
@@ -3701,8 +3465,8 @@ export class EngineCore {
         return parent && pageTree.cells.has(parent.id) ? { id: parent.id, origin: parent.bounds } : undefined;
       },
     });
-    this.documentChanged([page.id]);
-    const current = this.getCurrentPage();
+    this.file.documentChanged([page.id]);
+    const current = this.pages.getCurrentPage();
     const items = ids.flatMap((id): PickedElement[] => {
       const shape = current?.shapes.find((s) => s.id === id);
       if (shape) return [{ type: 'shape', element: shape }];
@@ -3713,70 +3477,13 @@ export class EngineCore {
     return true;
   }
 
-  canUndo(): boolean {
-    return this.editable && this.undoStack.undoLabel() !== undefined;
-  }
-
-  canRedo(): boolean {
-    return this.editable && this.undoStack.redoLabel() !== undefined;
-  }
-
-  undo(): void {
-    if (!this.editable || !this.xmlTree || this.transition) return;
-    this.endMove();
-    const previous = this.undoStack.undo(writeDrawio(this.xmlTree));
-    if (previous !== undefined) this.restore(previous);
-  }
-
-  redo(): void {
-    if (!this.editable || !this.xmlTree || this.transition) return;
-    this.endMove();
-    const next = this.undoStack.redo(writeDrawio(this.xmlTree));
-    if (next !== undefined) this.restore(next);
-  }
-
-  /** État avant une modification, pour pouvoir l'annuler. */
-  recordEdit(label: string): void {
-    this.editCount++;
-    if (this.xmlTree) this.undoStack.record(label, writeDrawio(this.xmlTree));
-  }
-
-  /** Revient à un instantané : document relu, scènes reconstruites, même page si elle existe encore. */
-  restore(xml: string): void {
-    // Annuler / rétablir : un réglage en direct qui reprend ensuite ouvre une nouvelle étape.
-    this.editCount++;
-    const { document, tree } = readDrawio(xml);
-    this.document = this.withModeWarnings(document);
-    this.geometry = new Map(document.pages.map((p) => [p.id, pageGeometry(p)]));
-    this.xmlTree = tree;
-    this.unsupportedReport = collectUnsupported(document, this.registry);
-    this.clearSelection();
-    this.graph = undefined;
-    this.scenes.clear();
-    const current = this.currentPageId;
-    const pageId =
-      current && (current === GRAPH_PAGE_ID || document.pages.some((p) => p.id === current))
-        ? current
-        : document.pages[0]?.id;
-    this.currentPageId = undefined;
-    this.syncModified();
-    this.events.emit('documentChange', document);
-    if (pageId) this.goToPage(pageId);
-  }
-
-  /** État « modifié » et libellés annuler / rétablir, d'après la pile d'annulation. */
-  syncModified(): void {
-    this.setModified(this.undoStack.isModified());
-    this.events.emit('undoChange', this.undoStack.undoLabel(), this.undoStack.redoLabel());
-  }
-
   /**
    * Emprise à l'écran d'un élément de la page courante (formes : dessus du volume) ; `area` : une
    * partie de la forme en coordonnées page (sa zone de texte), à la place de ses bornes ; `elevation` :
    * hauteur de cette partie, à la place du dessus du volume.
    */
   screenRectOf(elementId: string, area?: Rect, elevation?: number): Rect | undefined {
-    const page = this.getCurrentPage();
+    const page = this.pages.getCurrentPage();
     const shape = page?.shapes.find((s) => s.id === elementId);
     let corners: Point[];
     if (shape) {
@@ -3821,7 +3528,7 @@ export class EngineCore {
     }
     // Mode de la page : un clic sur un élément d'un autre courant (ex. flèche d'un autre flux) ne fait que changer
     // de courant ; un second clic le sélectionne.
-    const page = this.getCurrentPage();
+    const page = this.pages.getCurrentPage();
     if (picked && page && this.pickModeCurrent(page, picked.element)) {
       this.clearSelection();
       return;
@@ -3862,15 +3569,15 @@ export class EngineCore {
     if (!handle || !editable) return false;
     const { page, pageTree, edge } = editable;
     if (handle.kind === 'point') {
-      this.recordEdit('Point retiré');
+      this.edits.recordEdit('Point retiré');
       this.writeEdgePoints(page, pageTree, edge, removePoint(edge.points, handle.index));
-      this.documentChanged([page.id]);
+      this.file.documentChanged([page.id]);
       return true;
     }
     if (handle.kind === 'elbow') {
-      this.recordEdit('Coude basculé');
+      this.edits.recordEdit('Coude basculé');
       setCellStyleValue(pageTree, edge.id, 'elbow', edge.style.elbow === 'vertical' ? 'horizontal' : 'vertical');
-      this.documentChanged([page.id]);
+      this.file.documentChanged([page.id]);
       return true;
     }
     return false;
@@ -3907,7 +3614,7 @@ export class EngineCore {
     const click = followLinkGesture(key, chosen) === 'click' ? 'clic' : 'double-clic';
     const gesture = key === 'none' ? click : `${FOLLOW_LINK_KEY_LABELS[key]} + ${click}`;
     if (link.type === 'url') return `${link.href} (${gesture} : ouvrir dans un nouvel onglet)`;
-    const name = this.pageById(link.pageId)?.name;
+    const name = this.pages.pageById(link.pageId)?.name;
     const action = `${gesture} : aller à « ${name} »`;
     return name ? action.charAt(0).toUpperCase() + action.slice(1) : `Lien vers une page absente (${link.pageId})`;
   }
@@ -4013,14 +3720,14 @@ export class EngineCore {
       this.linkZonesObject = undefined;
     }
     const root = this.scenes.current?.root;
-    const page = this.getCurrentPage();
+    const page = this.pages.getCurrentPage();
     if (this.linkZonesShown && root && page && !this.transition) {
       const zones = new Group();
       zones.name = 'link-zones';
       for (const element of [...page.shapes, ...page.edges]) {
         const link = element.link;
         // Un lien vers une page absente ne mène nulle part : pas de zone.
-        if (!isNavigableLink(link) || (link.type === 'page' && !this.pageById(link.pageId))) continue;
+        if (!isNavigableLink(link) || (link.type === 'page' && !this.pages.pageById(link.pageId))) continue;
         const bounds = 'bounds' in element ? element.bounds : this.drawnBounds(element.id);
         if (!bounds) continue;
         const zone = linkZone(bounds, this.cameraState.zoom, this.settings.selection.accentColor);
@@ -4049,20 +3756,20 @@ export class EngineCore {
     }
     const selection = this.selection;
     const root = this.scenes.current?.root;
-    const visible = selection && root && selection.pageId === this.currentPageId ? selection : undefined;
+    const visible = selection && root && selection.pageId === this.pages.currentPageId ? selection : undefined;
     const items = visible?.items ?? [];
     const ids = items.map((item) => item.element.id);
 
     // Voile : gardé tant que la même sélection est affichée dans la même scène.
     // L'emprise de la page en fait partie : le voile la couvre, et un déplacement peut l'agrandir.
-    const pageBounds = this.getCurrentPage()?.bounds;
+    const pageBounds = this.pages.getCurrentPage()?.bounds;
     const veilKey =
       visible && root && pageBounds && this.settings.selection.style === 'veil'
         ? `${root.uuid}:${ids.join('|')}:${this.settings.selection.veilOpacity}:${this.settings.selection.veilColor}:${Object.values(pageBounds).join(',')}`
         : undefined;
     if (this.veil?.key !== veilKey) {
       this.clearVeil();
-      const page = this.getCurrentPage();
+      const page = this.pages.getCurrentPage();
       if (veilKey && root && page) {
         const object = createVeil(page.bounds, this.settings.selection.veilOpacity, this.settings.selection.veilColor);
         root.add(object);

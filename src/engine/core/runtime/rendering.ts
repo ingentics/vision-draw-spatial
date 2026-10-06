@@ -39,7 +39,9 @@ export class Rendering {
   private gridOptions(): GridOptions {
     const background = this.core.settings.background;
     const tree =
-      background.gridFromPage && this.core.currentPageId ? this.core.pageTreeOf(this.core.currentPageId) : undefined;
+      background.gridFromPage && this.core.pages.currentPageId
+        ? this.core.file.pageTreeOf(this.core.pages.currentPageId)
+        : undefined;
     const pageCell = tree && tree.encoding !== 'unreadable' ? gridSizeOf(tree) : 0;
     return {
       visible: background.grid,

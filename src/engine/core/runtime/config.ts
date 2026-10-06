@@ -53,7 +53,7 @@ export class Config {
     this.settings = mergeSettings(previous, patch);
     this.core.controller.setSettings(this.effectiveControls());
     this.core.scenes.setMaxCached(this.settings.preload.maxCachedPages);
-    this.core.undoStack.setLimit(this.settings.edit.undoLimit);
+    this.core.edits.undoStack.setLimit(this.settings.edit.undoLimit);
     this.core.syncSelectionAnimation();
     this.core.updateSelectionOutline();
     const changed = <K extends keyof Settings>(section: K) =>
@@ -87,8 +87,8 @@ export class Config {
     this.core.rendering.syncBackground();
 
     const view = this.settings.view;
-    if (this.core.currentPageId && !this.core.transition)
-      this.core.pageIso.set(this.core.currentPageId, this.core.isoParams());
+    if (this.core.pages.currentPageId && !this.core.transition)
+      this.core.pages.pageIso.set(this.core.pages.currentPageId, this.core.isoParams());
     const isoChanged =
       view.isoAngleDeg !== previous.view.isoAngleDeg || view.isoAzimuthDeg !== previous.view.isoAzimuthDeg;
     if (isoChanged && this.core.cameraState.mode === 'iso' && !this.core.transition) {
