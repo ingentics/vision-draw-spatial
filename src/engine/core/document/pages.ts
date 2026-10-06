@@ -32,7 +32,7 @@ export class Pages {
   }
 
   addPage(name?: string): string | undefined {
-    if (!this.core.file.xmlTree || !this.core.file.document || !this.canEditPages() || this.core.transition)
+    if (!this.core.file.xmlTree || !this.core.file.document || !this.canEditPages() || this.core.transitions.active)
       return undefined;
     const names = new Set(this.core.file.document.pages.map((p) => p.name));
     let pageName = name?.trim();
@@ -61,7 +61,7 @@ export class Pages {
       !document ||
       !this.canEditPages() ||
       document.pages.length <= 1 ||
-      this.core.transition
+      this.core.transitions.active
     )
       return;
     const index = document.pages.findIndex((p) => p.id === pageId);
@@ -74,10 +74,10 @@ export class Pages {
     this.pageCameras.delete(pageId);
     this.pageIso.delete(pageId);
     if (this.lastDocumentPageId === pageId) this.lastDocumentPageId = undefined;
-    const entries = this.core.history.entries();
+    const entries = this.core.history.stack.entries();
     const kept = entries.filter((e) => e.pageId !== pageId && e.targetPageId !== pageId);
     if (kept.length !== entries.length) {
-      this.core.history.replace(kept);
+      this.core.history.stack.replace(kept);
       this.core.events.emit('historyChange', kept);
     }
     if (this.currentPageId === pageId) this.currentPageId = undefined;
@@ -99,7 +99,7 @@ export class Pages {
   goToPage(pageId: string): void {
     const page = this.pageById(pageId);
     if (!page) throw new Error(`Page inconnue : ${pageId}`);
-    this.core.transition?.abort();
+    this.core.transitions.active?.abort();
     cancelAnimationFrame(this.core.camera.animation);
     this.core.camera.animation = 0;
     this.core.endMove();
@@ -115,7 +115,7 @@ export class Pages {
     if (camera) this.core.camera.setCameraState(camera);
     else this.core.camera.fitToBounds(isEmptyPage(page) ? EMPTY_PAGE_AREA : page.bounds);
     this.core.rendering.requestRender();
-    this.core.updateLinkZones();
+    this.core.links.updateLinkZones();
     this.core.events.emit('pageChange', page);
   }
 

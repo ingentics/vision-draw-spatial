@@ -18,7 +18,7 @@ export class ViewModes {
   }
 
   setViewMode(mode: ViewMode): void {
-    if (this.core.transition) return;
+    if (this.core.transitions.active) return;
     if (this.core.camera.state.mode !== '3d') this.lastFlatMode = this.core.camera.state.mode;
     // Entre la 2D (à plat) et l'iso / la 3D (volumes) : fondu enchaîné des deux rendus.
     const crossesFlat = (this.core.camera.state.mode === 'top') !== (mode === 'top');
@@ -43,7 +43,7 @@ export class ViewModes {
   }
 
   setFlattened(flattened: boolean): void {
-    if (flattened === this.flattened || this.core.transition) return;
+    if (flattened === this.flattened || this.core.transitions.active) return;
     if (flattened && this.core.camera.state.mode === 'top') return;
     this.core.levels.endLevelBlend();
     const previousLevel = this.core.levels.requestedLevel();
@@ -53,7 +53,7 @@ export class ViewModes {
       this.core.scenes.show(page);
       this.core.levels.applyHeightScale();
       this.core.highlight.update();
-      if (this.core.linkZonesShown) this.core.updateLinkZones();
+      if (this.core.links.linkZonesShown) this.core.links.updateLinkZones();
       this.core.minimap.invalidate();
       this.core.rendering.requestRender();
     }

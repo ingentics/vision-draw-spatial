@@ -107,7 +107,7 @@ export class ViewCamera {
     // Changement de niveau (mode, ou fin d'une bascule vers la 2D) : la page passe au rendu de ce
     // niveau (même scène si tout est à plat).
     let sceneChanged = false;
-    if (this.core.levels.requestedLevel() !== previousLevel && !this.core.transition) {
+    if (this.core.levels.requestedLevel() !== previousLevel && !this.core.transitions.active) {
       const page = this.core.pages.getCurrentPage();
       if (page) {
         this.core.scenes.show(page);
@@ -117,14 +117,15 @@ export class ViewCamera {
     }
     if (this.core.pages.currentPageId) {
       this.core.pages.pageCameras.set(this.core.pages.currentPageId, this.state);
-      if (!this.core.transition)
+      if (!this.core.transitions.active)
         this.core.pages.pageIso.set(this.core.pages.currentPageId, this.core.viewModes.isoParams());
     }
     this.core.minimap.requestDraw();
     // Contour de sélection d'épaisseur constante à l'écran ; la sélection est transférée à la scène
     // du nouveau niveau quand on change de vue (2D ↔ iso / 3D).
     if (this.core.selection.current && (sceneChanged || this.state.zoom !== previousZoom)) this.core.highlight.update();
-    if (this.core.linkZonesShown && (sceneChanged || this.state.zoom !== previousZoom)) this.core.updateLinkZones();
+    if (this.core.links.linkZonesShown && (sceneChanged || this.state.zoom !== previousZoom))
+      this.core.links.updateLinkZones();
     this.core.rendering.applyProjection();
     this.core.levels.applyHeightScale();
     this.core.relocateLabelEdit();
@@ -151,7 +152,7 @@ export class ViewCamera {
 
   resetView(): void {
     const page = this.core.pages.getCurrentPage();
-    if (!page || this.core.transition) return;
+    if (!page || this.core.transitions.active) return;
     const { mode } = this.state;
     this.animateCameraTo(defaultView(page.bounds, this.core.display.viewport, mode, this.isoTilt(), this.isoAzimuth()));
   }

@@ -374,7 +374,7 @@ export class Engine {
   }
 
   isTransitioning(): boolean {
-    return this.core.isTransitioning();
+    return this.core.transitions.isTransitioning();
   }
 
   /** Élément de la page courante sous un point écran. */
@@ -419,7 +419,7 @@ export class Engine {
 
   /** Construit en arrière-plan la page cible d'un lien, sans l'afficher (SPEC §11.1). */
   preloadLink(link: LinkModel | undefined): void {
-    this.core.preloadLink(link);
+    this.core.links.preloadLink(link);
   }
 
   /**
@@ -427,17 +427,17 @@ export class Engine {
    * de l'URL dans un nouvel onglet. Sans effet si l'élément n'a pas de lien exploitable.
    */
   followLink(elementId: string): void {
-    this.core.followLink(elementId);
+    this.core.links.followLink(elementId);
   }
 
   /** Dernière utilisation des liens entre pages du fichier (à persister). */
   getLinkUsage(): LinkUsage {
-    return this.core.getLinkUsage();
+    return this.core.links.getLinkUsage();
   }
 
   /** Pile de navigation (de la plus ancienne à la plus récente entrée). */
   getHistory(): HistoryEntry[] {
-    return this.core.getHistory();
+    return this.core.history.getHistory();
   }
 
   /**
@@ -445,7 +445,7 @@ export class Engine {
    * sinon les pages parentes (liens vers la page courante), la plus récemment utilisée d'abord.
    */
   getBackTarget(): BackTarget {
-    return this.core.getBackTarget();
+    return this.core.history.getBackTarget();
   }
 
   /**
@@ -454,12 +454,12 @@ export class Engine {
    * → on y va ; plusieurs → événement `backChoice` (l'UI propose la liste, puis `backTo`).
    */
   back(): void {
-    this.core.back();
+    this.core.history.back();
   }
 
   /** Remonte vers une page parente choisie (sortie par la forme qui porte le lien). */
   backTo(parentPageId: string): void {
-    this.core.backTo(parentPageId);
+    this.core.history.backTo(parentPageId);
   }
 
   /**

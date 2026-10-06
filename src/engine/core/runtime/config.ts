@@ -76,7 +76,7 @@ export class Config {
     ) {
       this.core.levels.rebuildScenes();
     }
-    if (changed('camera') && !this.core.transition && !this.core.camera.animation)
+    if (changed('camera') && !this.core.transitions.active && !this.core.camera.animation)
       this.core.camera.setCameraState(this.core.camera.state);
     if (
       this.settings.minimap.edgeColor !== previous.minimap.edgeColor ||
@@ -87,11 +87,11 @@ export class Config {
     this.core.rendering.syncBackground();
 
     const view = this.settings.view;
-    if (this.core.pages.currentPageId && !this.core.transition)
+    if (this.core.pages.currentPageId && !this.core.transitions.active)
       this.core.pages.pageIso.set(this.core.pages.currentPageId, this.core.viewModes.isoParams());
     const isoChanged =
       view.isoAngleDeg !== previous.view.isoAngleDeg || view.isoAzimuthDeg !== previous.view.isoAzimuthDeg;
-    if (isoChanged && this.core.camera.state.mode === 'iso' && !this.core.transition) {
+    if (isoChanged && this.core.camera.state.mode === 'iso' && !this.core.transitions.active) {
       // Orientation absolue quand l'azimut change ; sinon la rotation faite à la souris est gardée.
       const azimuthChanged = view.isoAzimuthDeg !== previous.view.isoAzimuthDeg;
       const rotation = azimuthChanged ? normalizeAngle(this.core.camera.isoAzimuth()) : this.core.camera.state.rotation;

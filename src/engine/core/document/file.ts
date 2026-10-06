@@ -33,7 +33,7 @@ export class DocumentFile {
     this.xmlTree = tree;
     this.fileId = fileId;
     this.unsupportedReport = collectUnsupported(document, this.core.registry);
-    this.core.transition?.abort();
+    this.core.transitions.active?.abort();
     this.core.selection.clearSelection();
     this.core.scenes.clear();
     this.core.pages.currentPageId = undefined;
@@ -43,8 +43,8 @@ export class DocumentFile {
     this.core.edits.undoStack.clear();
     this.core.modeCurrents.clear();
     this.core.edits.syncModified();
-    this.core.history.replace(initialView?.history ?? []);
-    this.core.linkUsage = { ...initialView?.linkUsage };
+    this.core.history.stack.replace(initialView?.history ?? []);
+    this.core.links.linkUsage = { ...initialView?.linkUsage };
     // Vues enregistrées dans le fichier, remplacées par celles mémorisées localement (plus récentes).
     const fileViews = readPageViews(tree);
     this.core.pages.pageIso = new Map(

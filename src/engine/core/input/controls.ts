@@ -14,7 +14,7 @@ export function createCameraController(core: EngineCore): CameraController {
       doubleClick: (screen, options) => core.pointer.handleDoubleClick(screen, options.followLink),
       heldKeys: (held) => core.keys.setHeldKeys(held),
       hover: (screen) => core.pointer.handleHover(screen),
-      back: () => core.back(),
+      back: () => core.history.back(),
       toggleViewMode: () => core.viewModes.toggleViewMode(),
       toggle3d: () => core.viewModes.toggle3d(),
       toggleMinimap: () => core.events.emit('minimapToggle'),

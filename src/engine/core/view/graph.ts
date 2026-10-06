@@ -42,9 +42,9 @@ export class GraphView {
   showGraph(): void {
     const graph = this.getGraphPage();
     const page = this.core.pages.getCurrentPage();
-    if (!graph || !page || page.id === GRAPH_PAGE_ID || this.core.transition) return;
+    if (!graph || !page || page.id === GRAPH_PAGE_ID || this.core.transitions.active) return;
     const card = graph.shapes.find((s) => s.id === cardId(page.id));
-    this.core.runTransition({
+    this.core.transitions.runTransition({
       direction: 'out',
       outer: graph,
       inner: page,
@@ -61,6 +61,6 @@ export class GraphView {
       return;
     }
     const target = this.core.pages.lastDocumentPageId ?? this.core.file.document?.pages[0]?.id;
-    if (target) this.core.followLink(cardId(target));
+    if (target) this.core.links.followLink(cardId(target));
   }
 }

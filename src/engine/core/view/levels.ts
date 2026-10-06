@@ -32,7 +32,7 @@ export class Levels {
    */
   applyHeightScale(): void {
     const scene = this.core.scenes.current;
-    if (!scene || scene.level !== 'iso' || this.core.transition) return;
+    if (!scene || scene.level !== 'iso' || this.core.transitions.active) return;
     const tilted = this.core.camera.state.tilt / Math.max(this.core.camera.isoTilt(), 1e-6);
     const scale = Math.min(1, Math.max(0, tilted, perspectiveAmount(this.core.camera.state)));
     this.heightScale = scale;
@@ -63,7 +63,7 @@ export class Levels {
     this.levelBlend = undefined;
     for (const scene of [blend.volume, blend.flat]) if (scene) setPageOpacity(scene.root, 1);
     const page = this.core.pages.getCurrentPage();
-    if (page && !this.core.transition && (blend.volume || blend.flat)) {
+    if (page && !this.core.transitions.active && (blend.volume || blend.flat)) {
       this.core.scenes.show(page);
       this.applyHeightScale();
       // La sélection suit la scène affichée (voile, contour, poignées).

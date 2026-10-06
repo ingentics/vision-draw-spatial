@@ -44,7 +44,7 @@ export class PointerInput {
   handleClick(screen: Point, toggle = false, followLink = false): void {
     const picked = this.core.picking.pickAt(screen);
     if (followLink && picked && isNavigableLink(picked.element.link)) {
-      this.core.followLink(picked.element.id);
+      this.core.links.followLink(picked.element.id);
       return;
     }
     // Espace + clic hors d'une forme liée : rien (Espace sert au déplacement de la vue, pas à la sélection).
@@ -61,7 +61,7 @@ export class PointerInput {
       return;
     }
     this.core.selection.select(picked);
-    if (this.core.settings.preload.onClick) this.core.preloadLink(picked?.element.link);
+    if (this.core.settings.preload.onClick) this.core.links.preloadLink(picked?.element.link);
   }
 
   /**
@@ -74,7 +74,7 @@ export class PointerInput {
     const picked = this.core.picking.pickAt(screen);
     const text = picked?.type === 'edge' ? this.core.picking.edgeTextAt(screen) : undefined;
     const follow = followLink || this.core.graph.isGraphView();
-    if (picked && follow && isNavigableLink(picked.element.link)) this.core.followLink(picked.element.id);
+    if (picked && follow && isNavigableLink(picked.element.link)) this.core.links.followLink(picked.element.id);
     else if (text) this.core.editEdgeText(text.edge.id, text.cellId);
     else if (picked?.type === 'edge') {
       // Près d'un bout : texte de début ou de fin ; vers le milieu : label de la flèche.
@@ -105,10 +105,10 @@ export class PointerInput {
               ? 'pointer'
               : '';
     if (!this.core.canvas.style.cursor.startsWith('grab')) this.core.canvas.style.cursor = cursor;
-    this.core.canvas.title = link ? this.core.describeLink(link) : '';
+    this.core.canvas.title = link ? this.core.links.describeLink(link) : '';
     clearTimeout(this.hoverTimer);
     if (link && this.core.settings.preload.onHover) {
-      this.hoverTimer = setTimeout(() => this.core.preloadLink(link), this.core.settings.preload.hoverDelayMs);
+      this.hoverTimer = setTimeout(() => this.core.links.preloadLink(link), this.core.settings.preload.hoverDelayMs);
     }
   }
 }

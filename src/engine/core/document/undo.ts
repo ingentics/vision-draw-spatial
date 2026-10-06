@@ -37,14 +37,14 @@ export class EditHistory {
   }
 
   undo(): void {
-    if (!this.core.editable || !this.core.file.xmlTree || this.core.transition) return;
+    if (!this.core.editable || !this.core.file.xmlTree || this.core.transitions.active) return;
     this.core.endMove();
     const previous = this.undoStack.undo(writeDrawio(this.core.file.xmlTree));
     if (previous !== undefined) this.restore(previous);
   }
 
   redo(): void {
-    if (!this.core.editable || !this.core.file.xmlTree || this.core.transition) return;
+    if (!this.core.editable || !this.core.file.xmlTree || this.core.transitions.active) return;
     this.core.endMove();
     const next = this.undoStack.redo(writeDrawio(this.core.file.xmlTree));
     if (next !== undefined) this.restore(next);

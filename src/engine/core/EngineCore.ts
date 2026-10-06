@@ -1,7 +1,7 @@
 import { Group, Mesh } from 'three';
 import type { MeshBasicMaterial, Object3D } from 'three';
 import { Emitter } from '../events';
-import { formatLink, isNavigableLink } from '../format/link';
+import { formatLink } from '../format/link';
 import {
   canMoveCell,
   cellLabelValue,
@@ -69,15 +69,11 @@ import { dropBounds } from '../edit/palette';
 import { applyStylePreset } from '../edit/styles';
 import type { StylePreset } from '../edit/styles';
 import type { ShapeTemplate } from '../edit/palette';
-import { fitBounds, interpolateCamera, screenToPage, withViewMode } from '../interaction/camera';
-import type { CameraState } from '../interaction/camera';
+import { screenToPage, withViewMode } from '../interaction/camera';
 import type { CameraController } from '../interaction/controls';
-import { NavigationHistory, findParents, usageKey } from '../interaction/history';
-import type { HistoryEntry, LinkUsage } from '../interaction/history';
 import { GRAPH_PAGE_ID } from '../graph/graphPage';
 import type { PickedElement } from '../interaction/pick';
-import { FOLLOW_LINK_KEY_LABELS, followLinkGesture, independentRoots } from '../interaction/selection';
-import { easing, embedIn, embeddedCamera, phase } from '../interaction/transitions';
+import { independentRoots } from '../interaction/selection';
 import { computeBounds } from '../model/bounds';
 import type {
   DocumentModel,
@@ -89,13 +85,12 @@ import type {
   Rect,
   ShapeModel,
 } from '../model/types';
-import { linkZone } from '../render/decorations';
 import { middleTextAlong, toTerminal } from '../render/edges/edge';
 import { fixedAnchor, perimeterKind, routeEdgePoints, routingCenter } from '../render/edges/route';
 import { parseStyle } from '../format/style';
 import { connectionHints, connectorPreview } from '../render/handles';
 import { disposeObject } from '../render/meshes';
-import { setElementsDim, setPageOpacity } from '../render/pageEffects';
+import { setElementsDim } from '../render/pageEffects';
 import { createEdgeObject, createShapeObject, edgeRoute, placeInDrawOrder } from '../render/pageScene';
 import { jumpStyleOf, jumpValue } from '../render/edges/jumps';
 import type { JumpDefaults } from '../render/edges/jumps';
@@ -112,14 +107,12 @@ import { insetRect, labelMargins } from '../render/labelPosition';
 import { defaultShapeRegistry } from '../shapes/registry';
 import type { ShapeRegistry } from '../shapes/registry';
 import type { SceneLevel } from '../shapes/types';
-import { setPageTransform } from '../render/space';
 import { createTroikaTextFactory } from '../render/troikaText';
 import { modePalette } from '../settings';
 import { SPATIAL, SPATIAL_PREFIX, spatialValue } from '../spatial';
 import { alongAnchor } from '../render/textPath';
 import type { TextAlong } from '../render/textPath';
 import type {
-  BackTarget,
   EdgeTextAnchor,
   EngineEvent,
   EngineEvents,
@@ -147,11 +140,9 @@ import { Picking } from './selection/picking';
 import { SelectionHighlight } from './selection/highlight';
 import { PointerInput } from './input/pointer';
 import { ModifierKeys } from './input/keys';
-
-/** Ouvre une URL externe (SPEC §11.4) : nouvel onglet, sans accès retour à cette page. */
-function defaultOpenUrl(href: string): void {
-  window.open(href, '_blank', 'noopener,noreferrer');
-}
+import { Links } from './navigation/links';
+import { BackHistory } from './navigation/history';
+import { Transitions } from './navigation/transition';
 
 /** Étape d'annulation de chaque changement d'ordre de dessin (ticket 130). */
 const ORDER_LABELS: Record<OrderMove, string> = {
@@ -278,6 +269,9 @@ function samePoints(a: Point[], b: Point[]): boolean {
 /** Cœur du moteur : état et comportement, derrière la façade `Engine` (SPEC §4.3). */
 export class EngineCore {
   // Domaines
+  readonly transitions = new Transitions(this);
+  readonly history = new BackHistory(this);
+  readonly links: Links;
   readonly keys = new ModifierKeys(this);
   readonly pointer = new PointerInput(this);
   readonly highlight = new SelectionHighlight(this);
@@ -316,14 +310,6 @@ export class EngineCore {
   labelEditing?: LabelEditRequest;
   disposed = false;
 
-  readonly openUrl: (href: string) => void;
-  /** Touche pour suivre un lien maintenue : zones liées de la page en évidence (`linkZonesObject`). */
-  linkZonesShown = false;
-  linkZonesObject: Group | undefined;
-  /** Transition en cours : de quoi l'interrompre proprement. */
-  transition: { abort: () => void } | undefined;
-  readonly history = new NavigationHistory();
-  linkUsage: LinkUsage = {};
   /** Glisser d'édition en cours (déplacement, redimensionnement, connecteur). */
   drag: MoveDrag | ResizeDrag | ConnectDrag | EdgeEndDrag | EdgePointsDrag | LabelDrag | undefined;
   connectorPreview: Object3D | undefined;
@@ -349,7 +335,7 @@ export class EngineCore {
         this.camera.isoAzimuth(),
       );
     }
-    this.openUrl = options.openUrl ?? defaultOpenUrl;
+    this.links = new Links(this, options.openUrl);
     this.editable = options.editable ?? false;
     this.rendering = new Rendering(this);
     this.text = createTroikaTextFactory(options.fonts ?? {}, this.rendering.requestRender);
@@ -550,7 +536,7 @@ export class EngineCore {
   setPageAnchoring(pageId: string, anchoring: Anchoring | undefined): void {
     const page = this.pages.pageById(pageId);
     const pageTree = this.file.pageTreeOf(pageId);
-    if (!this.file.xmlTree || !page || !pageTree?.diagram || !this.editable || this.transition) return;
+    if (!this.file.xmlTree || !page || !pageTree?.diagram || !this.editable || this.transitions.active) return;
     if ((page.attributes[SPATIAL.anchoring] ?? '') === (anchoring ?? '')) return;
     this.edits.recordEdit('Ancrage des flèches');
     setPageAttribute(pageTree, SPATIAL.anchoring, anchoring);
@@ -577,7 +563,7 @@ export class EngineCore {
   setPageJumps(pageId: string, jumps: JumpDefaults['style'] | undefined): void {
     const page = this.pages.pageById(pageId);
     const pageTree = this.file.pageTreeOf(pageId);
-    if (!this.file.xmlTree || !page || !pageTree?.diagram || !this.editable || this.transition) return;
+    if (!this.file.xmlTree || !page || !pageTree?.diagram || !this.editable || this.transitions.active) return;
     if ((page.attributes[SPATIAL.jumps] ?? '') === (jumps ?? '')) return;
     this.edits.recordEdit('Croisements des flèches');
     setPageAttribute(pageTree, SPATIAL.jumps, jumps);
@@ -596,217 +582,6 @@ export class EngineCore {
   // -------------------------------------------------------------------------
   // Sélection et liens (SPEC §11)
 
-  isTransitioning(): boolean {
-    return this.transition !== undefined;
-  }
-
-  preloadLink(link: LinkModel | undefined): void {
-    if (link?.type !== 'page' || link.pageId === this.pages.currentPageId) return;
-    const page = this.pages.pageById(link.pageId);
-    if (page) this.scenes.prebuild(page);
-  }
-
-  followLink(elementId: string): void {
-    const page = this.pages.getCurrentPage();
-    const element = page && [...page.shapes, ...page.edges].find((e) => e.id === elementId);
-    const link = element?.link;
-    if (!page || !element || !isNavigableLink(link) || this.transition) return;
-    if (link.type === 'url') {
-      this.openUrl(link.href);
-      return;
-    }
-    const target = this.pages.pageById(link.pageId);
-    if (!target || target.id === page.id) return;
-
-    const frame = page.shapes.find((s) => s.id === elementId)?.bounds ?? this.sceneView.drawnBounds(elementId);
-    this.history.push({ pageId: page.id, elementId, frame, camera: this.camera.state, targetPageId: target.id });
-    this.events.emit('historyChange', this.history.entries());
-    // L'usage ne compte que pour les vrais liens du document (pas les cartes de la vue graphe).
-    if (page.id !== GRAPH_PAGE_ID) {
-      const at = Date.now();
-      this.linkUsage[usageKey(page.id, target.id)] = at;
-      this.events.emit('linkUsed', page.id, target.id, at);
-    }
-
-    this.runTransition({
-      direction: 'in',
-      outer: page,
-      inner: target,
-      frame,
-      destination:
-        this.pages.pageCameras.get(target.id) ??
-        fitBounds(target.bounds, this.display.viewport, this.camera.orientation()),
-    });
-  }
-
-  getLinkUsage(): LinkUsage {
-    return { ...this.linkUsage };
-  }
-
-  getHistory(): HistoryEntry[] {
-    return this.history.entries();
-  }
-
-  getBackTarget(): BackTarget {
-    const page = this.pages.getCurrentPage();
-    if (!page || !this.file.document) return { kind: 'none' };
-    const entry = this.history.peek();
-    if (entry && entry.targetPageId === page.id) {
-      const pageName = this.pages.pageById(entry.pageId)?.name ?? entry.pageId;
-      return { kind: 'history', entry, pageName };
-    }
-    const parents = findParents(this.file.document, page.id, this.linkUsage);
-    if (parents.length === 1) return { kind: 'parent', parent: parents[0]! };
-    if (parents.length > 1) return { kind: 'choose', parents };
-    return { kind: 'none' };
-  }
-
-  back(): void {
-    if (this.transition) return;
-    const target = this.getBackTarget();
-    if (target.kind === 'history') {
-      this.history.pop();
-      this.events.emit('historyChange', this.history.entries());
-      this.returnTo(target.entry.pageId, target.entry.frame, target.entry.camera);
-    } else if (target.kind === 'parent') {
-      this.backTo(target.parent.pageId);
-    } else if (target.kind === 'choose') {
-      this.events.emit('backChoice', target.parents);
-    }
-  }
-
-  backTo(parentPageId: string): void {
-    const page = this.pages.getCurrentPage();
-    if (!page || !this.file.document || this.transition) return;
-    const parent = findParents(this.file.document, page.id, this.linkUsage).find((p) => p.pageId === parentPageId);
-    if (!parent) return;
-    // La pile ne mène plus à la page courante : on repart d'une pile vide.
-    this.history.clear();
-    this.events.emit('historyChange', []);
-    this.returnTo(parent.pageId, parent.frame, this.pages.pageCameras.get(parent.pageId));
-  }
-
-  returnTo(pageId: string, frame: Rect | undefined, camera: CameraState | undefined): void {
-    const inner = this.pages.getCurrentPage();
-    const outer = this.pages.pageById(pageId);
-    if (!inner || !outer) return;
-    const destination = camera ?? fitBounds(outer.bounds, this.display.viewport, this.camera.orientation());
-    this.runTransition({ direction: 'out', outer, inner, frame, destination });
-  }
-
-  /**
-   * Transition « zoom + fondu » (SPEC §11.2), dans les deux sens, en un seul trajet de caméra.
-   * La page intérieure (`inner`) est posée dans la forme (`frame`) de la page extérieure (`outer`).
-   * - `in` : on part de la page extérieure et on plonge jusqu'à la vue `destination` de l'intérieure ;
-   * - `out` : on part de la page intérieure (même image, exprimée dans le repère extérieur) et on
-   *   recule jusqu'à la vue `destination` de l'extérieure, la page intérieure rétrécissant dans la forme.
-   * Fondu croisé entre 25 % et 75 %. Entrées ignorées pendant la transition.
-   */
-  runTransition(options: {
-    direction: 'in' | 'out';
-    outer: PageModel;
-    inner: PageModel;
-    frame: Rect | undefined;
-    destination: CameraState;
-  }): void {
-    const { direction, outer, inner, frame, destination } = options;
-    const from = this.pages.getCurrentPage();
-    const to = direction === 'in' ? inner : outer;
-    if (!from || this.transition) return;
-
-    if (
-      !frame ||
-      !this.settings.transition.enabled ||
-      this.config.reducedMotion() ||
-      this.settings.transition.durationMs <= 0
-    ) {
-      if (direction === 'in') this.pages.pageCameras.set(outer.id, this.camera.state);
-      this.pages.pageCameras.set(to.id, destination);
-      this.pages.goToPage(to.id);
-      return;
-    }
-
-    cancelAnimationFrame(this.camera.animation);
-    this.camera.animation = 0;
-    this.selection.clearSelection();
-    const embedding = embedIn(inner.bounds, frame);
-    const outerScene = this.scenes.prebuild(outer);
-    const innerScene = this.scenes.prebuild(inner);
-
-    // Caméras de départ et d'arrivée, exprimées dans le repère de la page extérieure.
-    const startCamera = direction === 'in' ? this.camera.state : embeddedCamera(this.camera.state, embedding);
-    const endCamera = direction === 'in' ? embeddedCamera(destination, embedding) : destination;
-    const outerCameraBefore = direction === 'in' ? this.camera.state : undefined;
-
-    // Pendant la transition, la page courante est l'extérieure ; l'intérieure est posée dans la forme.
-    this.pages.currentPageId = outer.id;
-    this.scenes.show(outer);
-    this.minimap.invalidate();
-    innerScene.root.visible = true;
-    setPageTransform(innerScene.root, embedding);
-    const innerAlpha = (fade: number) => (direction === 'in' ? fade : 1 - fade);
-    setPageOpacity(innerScene.root, innerAlpha(0));
-    setPageOpacity(outerScene.root, 1 - innerAlpha(0));
-    this.camera.applyCamera(startCamera);
-
-    const ease = easing(this.settings.transition.easing);
-    const duration = this.settings.transition.durationMs;
-    const { fadeStart, fadeEnd } = this.settings.transition;
-
-    this.controller.setEnabled(false);
-    this.events.emit('transitionStart', from.id, to.id);
-
-    const restore = () => {
-      setPageOpacity(outerScene.root, 1);
-      setPageOpacity(innerScene.root, 1);
-      setPageTransform(innerScene.root, undefined);
-    };
-    const finish = () => {
-      this.transition = undefined;
-      this.camera.animation = 0;
-      this.controller.setEnabled(true);
-      // Touche toujours maintenue : les zones liées de la page d'arrivée.
-      this.updateLinkZones();
-      this.events.emit('transitionEnd', this.pages.currentPageId ?? to.id);
-    };
-    this.transition = {
-      abort: () => {
-        // On reste sur la page extérieure, à la vue courante.
-        cancelAnimationFrame(this.camera.animation);
-        restore();
-        this.scenes.show(outer);
-        finish();
-      },
-    };
-    // Pas de zones liées pendant le trajet.
-    this.updateLinkZones();
-
-    const start = performance.now();
-    const step = (now: number) => {
-      const t = Math.min((now - start) / duration, 1);
-      if (t < 1) {
-        this.camera.applyCamera(interpolateCamera(startCamera, endCamera, ease(t)));
-        const fade = phase(t, fadeStart, fadeEnd);
-        setPageOpacity(innerScene.root, innerAlpha(fade));
-        setPageOpacity(outerScene.root, 1 - innerAlpha(fade));
-        this.camera.animation = requestAnimationFrame(step);
-        return;
-      }
-      // Arrivée : même image à l'écran, sur la page de destination sans transformation.
-      restore();
-      if (outerCameraBefore) this.pages.pageCameras.set(outer.id, outerCameraBefore);
-      this.viewModes.applyPageIso(to.id);
-      this.pages.currentPageId = to.id;
-      if (to.id !== GRAPH_PAGE_ID) this.pages.lastDocumentPageId = to.id;
-      this.scenes.show(to);
-      this.minimap.invalidate();
-      this.camera.applyCamera(destination);
-      this.events.emit('pageChange', to);
-      finish();
-    };
-    this.camera.animation = requestAnimationFrame(step);
-  }
-
   // -------------------------------------------------------------------------
   // Édition à la souris (SPEC §14.1) : déplacer, redimensionner, connecter
 
@@ -814,7 +589,7 @@ export class EngineCore {
   editablePage(): { page: PageModel; pageTree: PageTree } | undefined {
     if (!this.editable) return undefined;
     const page = this.pages.getCurrentPage();
-    if (!page || page.id === GRAPH_PAGE_ID || this.transition) return undefined;
+    if (!page || page.id === GRAPH_PAGE_ID || this.transitions.active) return undefined;
     const pageTree = this.file.pageTreeOf(page.id);
     if (!pageTree || pageTree.encoding === 'unreadable') return undefined;
     return { page, pageTree };
@@ -2360,7 +2135,7 @@ export class EngineCore {
   setPageMode(pageId: string, modeId: string | undefined): void {
     const page = this.pages.pageById(pageId);
     const pageTree = this.file.pageTreeOf(pageId);
-    if (!this.file.xmlTree || !page || !pageTree?.diagram || !this.editable || this.transition) return;
+    if (!this.file.xmlTree || !page || !pageTree?.diagram || !this.editable || this.transitions.active) return;
     if ((this.modes.modeId(page) ?? '') === (modeId ?? '')) return;
     const name = modeId && this.modes.get(modeId)?.name;
     this.edits.recordEdit(name ? `Mode ${name}` : 'Page normale');
@@ -2371,7 +2146,7 @@ export class EngineCore {
   setPageEffect(pageId: string, effectId: string, enabled: boolean): void {
     const page = this.pages.pageById(pageId);
     const pageTree = this.file.pageTreeOf(pageId);
-    if (!this.file.xmlTree || !page || !pageTree?.diagram || !this.editable || this.transition) return;
+    if (!this.file.xmlTree || !page || !pageTree?.diagram || !this.editable || this.transitions.active) return;
     if (pageEffectIds(page).includes(effectId) === enabled) return;
     const name = this.effects.get(effectId)?.name ?? effectId;
     this.edits.recordEdit(enabled ? `Effet ${name}` : `Sans effet ${name}`);
@@ -2756,51 +2531,6 @@ export class EngineCore {
     return false;
   }
 
-  describeLink(link: LinkModel): string {
-    const { followLinkKey: key, followLinkGesture: chosen } = this.settings.controls;
-    const click = followLinkGesture(key, chosen) === 'click' ? 'clic' : 'double-clic';
-    const gesture = key === 'none' ? click : `${FOLLOW_LINK_KEY_LABELS[key]} + ${click}`;
-    if (link.type === 'url') return `${link.href} (${gesture} : ouvrir dans un nouvel onglet)`;
-    const name = this.pages.pageById(link.pageId)?.name;
-    const action = `${gesture} : aller à « ${name} »`;
-    return name ? action.charAt(0).toUpperCase() + action.slice(1) : `Lien vers une page absente (${link.pageId})`;
-  }
-
-  /**
-   * Zones liées (SPEC §11.1) : chaque forme ou flèche de la page courante qui porte un lien navigable,
-   * encadrée tant que la touche pour suivre un lien est maintenue (pas pendant une transition).
-   */
-  updateLinkZones(): void {
-    if (this.linkZonesObject) {
-      this.linkZonesObject.removeFromParent();
-      disposeObject(this.linkZonesObject);
-      this.linkZonesObject = undefined;
-    }
-    const root = this.scenes.current?.root;
-    const page = this.pages.getCurrentPage();
-    if (this.linkZonesShown && root && page && !this.transition) {
-      const zones = new Group();
-      zones.name = 'link-zones';
-      for (const element of [...page.shapes, ...page.edges]) {
-        const link = element.link;
-        // Un lien vers une page absente ne mène nulle part : pas de zone.
-        if (!isNavigableLink(link) || (link.type === 'page' && !this.pages.pageById(link.pageId))) continue;
-        const bounds = 'bounds' in element ? element.bounds : this.sceneView.drawnBounds(element.id);
-        if (!bounds) continue;
-        const zone = linkZone(bounds, this.camera.state.zoom, this.settings.selection.accentColor);
-        // Posée sur le dessus d'un volume, et toujours visible (pas cachée par les blocs).
-        zone.position.z = ((this.sceneView.sceneObject(element.id)?.userData.top as number) ?? 0) + 0.2;
-        zone.traverse((o) => {
-          if (o instanceof Mesh) (o.material as MeshBasicMaterial).depthTest = false;
-        });
-        zones.add(zone);
-      }
-      root.add(zones);
-      this.linkZonesObject = zones;
-    }
-    this.rendering.requestRender();
-  }
-
   on<K extends EngineEvent>(event: K, handler: (...args: EngineEvents[K]) => void): () => void {
     return this.events.on(event, handler);
   }
@@ -2811,7 +2541,7 @@ export class EngineCore {
     cancelAnimationFrame(this.camera.animation);
     this.highlight.dispose();
     clearTimeout(this.pointer.hoverTimer);
-    this.transition?.abort();
+    this.transitions.active?.abort();
     this.display.dispose();
     this.controller.dispose();
     this.config.dispose();
