@@ -51,13 +51,15 @@ export const standingActor: SceneRenderer = {
     const figure = actorFigure(width, height);
     const upright = (p: Point): Point => ({ x: p.x - width / 2, y: height - p.y });
     const head = ellipsePath(figure.head, HEAD_SEGMENTS).map(upright);
-    // Cadre de la tête dans le plan de la silhouette (x, z) : la sélection l'entoure (`core/selection/highlight.ts`).
+    // Cadre de la tête et traits dans le plan de la silhouette (x, z) : la sélection entoure la tête
+    // (`core/selection/highlight.ts`) et le clic ne prend que la silhouette (`core/selection/picking.ts`).
     silhouette.userData.head = {
       x: figure.head.x - width / 2,
       y: height - figure.head.y - figure.head.height,
       width: figure.head.width,
       height: figure.head.height,
     };
+    silhouette.userData.strokes = figure.strokes.map((line) => line.map(upright));
 
     const fill = styleColor(style, 'fillColor', '#ffffff');
     if (fill) {

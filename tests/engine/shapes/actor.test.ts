@@ -133,6 +133,38 @@ describe('Actor (41)', () => {
     expect(ringBox.max.x).toBeGreaterThan(headBox.max.x);
   });
 
+  // Étape 169 : en iso / 3D, seule la silhouette se clique ; à côté de la tête, la forme derrière est prise.
+  it('clic sur une silhouette debout : sa zone remplace les bornes et le volume', () => {
+    const document = page([{ x: 100, y: 100 }]);
+    document.pages[0]!.shapes.unshift({ ...document.pages[0]!.shapes[0]!, id: 'behind', z: -1, style: {} });
+    const options = {
+      edgeTolerance: 4,
+      edgeRoute: () => undefined,
+      heightOf: (id: string) => (id === 'a0' ? 60 : 20),
+      baseOf: () => 0,
+      pointAtHeight: () => ({ x: 115, y: 130 }),
+    };
+    const missed = pickElement(
+      document.pages[0]!,
+      { x: 115, y: 130 },
+      {
+        ...options,
+        standingHit: (shape) => (shape.id === 'a0' ? { at: undefined } : undefined),
+      },
+    );
+    expect(missed?.element.id).toBe('behind');
+    const hit = pickElement(
+      document.pages[0]!,
+      { x: 115, y: 130 },
+      {
+        ...options,
+        standingHit: (shape) => (shape.id === 'a0' ? { at: 52 } : undefined),
+      },
+    );
+    expect(hit?.element.id).toBe('a0');
+    expect(element(isoScene(document).root, 'a0').getObjectByName('silhouette')!.userData.strokes).toHaveLength(3);
+  });
+
   it('spatial.height : hauteur debout, proportions gardées', () => {
     const scene = isoScene(page([{ style: `${STYLE}spatial.height=120;`, x: 100, y: 100 }]));
     const head = new Box3().setFromObject(element(scene.root, 'a0').getObjectByName('head')!);

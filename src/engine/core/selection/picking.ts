@@ -2,6 +2,7 @@ import { Matrix4, Box3, Vector3 } from 'three';
 import { connectableShapes } from '../../edit/edgeEnds';
 import { pageToScreen, screenToPage } from '../../interaction/camera';
 import { pickElement, distanceToPolyline, insidePolygon } from '../../interaction/pick';
+import { ellipsePath } from '../../render/geometry/paths';
 import type { PickedElement } from '../../interaction/pick';
 import type { Footprint } from '../../interaction/marquee';
 import type { EdgeModel, Point, Rect, ShapeModel } from '../../model/types';
@@ -38,7 +39,56 @@ export class Picking {
       pointAtHeight: (height) => this.groundPointAtHeight(screen, height),
       contains: (shape, p) => this.core.registry.contains(shape, p, () => this.shapeOutline(shape)),
       pickable: (shape) => this.core.registry.isPickable(shape),
+      standingHit: (shape) => this.standingHit(shape, screen),
     });
+  }
+
+  /**
+   * Silhouette debout (Actor en iso / 3D) sous un point écran : le disque de la tête, ou un trait du corps à la
+   * tolérance de clic des flèches, tels qu'ils font face à la caméra. Renvoie la hauteur touchée ; `undefined` si la
+   * forme n'est pas une silhouette debout.
+   */
+  private standingHit(shape: ShapeModel, screen: Point): { at: number | undefined } | undefined {
+    const object = this.core.sceneView.sceneObject(shape.id);
+    if (this.core.scenes.current?.level !== 'iso' || !object?.userData.standing) return undefined;
+    const silhouette = object.getObjectByName('silhouette');
+    const head = silhouette?.userData.head as Rect | undefined;
+    const strokes = silhouette?.userData.strokes as Point[][] | undefined;
+    if (!silhouette || !head || !strokes) return undefined;
+    // Plan de la silhouette (x horizontal, y vers le haut), tourné face à la caméra autour de la verticale.
+    const scale = this.core.levels.heightScale;
+    const angle = silhouette.rotation.z;
+    const toScreen = (p: Point) => ({
+      ...this.screenOfPoint(
+        {
+          x: object.position.x + silhouette.position.x + p.x * Math.cos(angle),
+          y: object.position.y + silhouette.position.y + p.x * Math.sin(angle),
+        },
+        (object.position.z + p.y) * scale,
+      ),
+      height: (object.position.z + p.y) * scale,
+    });
+    const outline = ellipsePath(head, 24);
+    if (insidePolygon(outline.map(toScreen), screen))
+      return { at: toScreen({ x: 0, y: head.y + head.height / 2 }).height };
+    const tolerance = this.core.settings.edit.edgePickTolerance;
+    let best: { distance: number; height: number } | undefined;
+    for (const line of [...strokes, [...outline, outline[0]!]]) {
+      const points = line.map(toScreen);
+      for (let i = 1; i < points.length; i++) {
+        const a = points[i - 1]!;
+        const b = points[i]!;
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const lengthSq = dx * dx + dy * dy;
+        const t =
+          lengthSq === 0 ? 0 : Math.max(0, Math.min(1, ((screen.x - a.x) * dx + (screen.y - a.y) * dy) / lengthSq));
+        const distance = Math.hypot(screen.x - (a.x + t * dx), screen.y - (a.y + t * dy));
+        if (distance <= tolerance && (!best || distance < best.distance))
+          best = { distance, height: a.height + (b.height - a.height) * t };
+      }
+    }
+    return { at: best?.height };
   }
 
   /** Contour d'une forme (sa définition), mémorisé tant que ses bornes et son style ne changent pas. */

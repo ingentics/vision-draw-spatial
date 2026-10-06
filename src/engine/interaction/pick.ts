@@ -30,6 +30,11 @@ export interface PickOptions {
    * ses coins vides). Absent = les bornes.
    */
   contains?: (shape: ShapeModel, point: Point) => boolean;
+  /**
+   * Silhouette debout (Actor en iso / 3D) : hauteur où le rayon visé la touche (`at`, `undefined` s'il la manque), à
+   * la place du test des bornes et du volume. `undefined` = pas une silhouette (test habituel).
+   */
+  standingHit?: (shape: ShapeModel) => { at: number | undefined } | undefined;
   /** La forme se prend-elle au clic (un groupe invisible seulement s'il porte un lien) ? Absent = toutes. */
   pickable?: (shape: ShapeModel) => boolean;
 }
@@ -67,6 +72,8 @@ function hitHeight(candidate: PickedElement, height: number, target: Point, opti
   }
   const shape = candidate.element;
   if (options.pickable && !options.pickable(shape)) return undefined;
+  const standing = options.standingHit?.(shape);
+  if (standing) return standing.at;
   if (shapeContains(shape, target, options.contains)) return height;
   const base = options.baseOf?.(shape.id);
   if (base === undefined || base >= height || !options.pointAtHeight) return undefined;
