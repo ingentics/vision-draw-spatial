@@ -115,6 +115,8 @@ export function Viewer({
   const [backChoices, setBackChoices] = useState<ParentLink[]>();
   const [modified, setModified] = useState(false);
   const [autosavedAt, setAutosavedAt] = useState<number>();
+  /** Sauvegarde automatique en cours d'écriture (texte d'état de la barre d'outils). */
+  const [autosaving, setAutosaving] = useState(false);
   const [undoLabels, setUndoLabels] = useState<{ undo?: string; redo?: string }>({});
   const [selection, setSelection] = useState<Selection>();
   /** « Courant » du mode de la page changé (ex. flux courant) : redessine l'indicateur et le panneau. */
@@ -215,10 +217,14 @@ export function Viewer({
         return;
       }
       if (!desktop && !auto) download(file.name.split('/').pop() || 'diagram.drawio', xml);
-      store.updateMeta(file.id, { content: xml, size: xml.length }).then(() => {
-        setError(undefined);
-        if (auto) setAutosavedAt(Date.now());
-      }, report);
+      if (auto) setAutosaving(true);
+      store
+        .updateMeta(file.id, { content: xml, size: xml.length })
+        .then(() => {
+          setError(undefined);
+          if (auto) setAutosavedAt(Date.now());
+        }, report)
+        .finally(() => auto && setAutosaving(false));
     },
     [file.id, file.name, save, onFileReplaced],
   );
@@ -474,9 +480,11 @@ export function Viewer({
         </button>
         <button
           type="button"
-          className={modified ? 'button save-button modified' : 'button save-button'}
+          className="button save-button"
           title={[
-            desktop ? 'Sauvegarder le fichier (Ctrl+S)' : 'Sauvegarder (Ctrl+S) : téléchargement et bibliothèque',
+            desktop
+              ? 'Enregistrer le fichier sous (Ctrl+S)'
+              : 'Enregistrer sous (Ctrl+S) : téléchargement et bibliothèque',
             modified ? 'modifications non sauvegardées' : undefined,
             autosavedAt
               ? `enregistré automatiquement à ${new Date(autosavedAt).toLocaleTimeString('fr-FR')}`
@@ -491,8 +499,7 @@ export function Viewer({
           <svg viewBox="0 0 16 16" aria-hidden="true">
             <path d="M8 2.5v7M5 6.5l3 3 3-3M3 11v2.5h10V11" />
           </svg>
-          Sauvegarder
-          {modified && <span className="modified-dot" aria-label="modifications non sauvegardées" />}
+          Enregistrer sous
         </button>
         <span className="button-group">
           <button
@@ -526,6 +533,11 @@ export function Viewer({
           onViewModeChange={(mode) => engine?.setViewMode(mode)}
           onResetView={() => engine?.resetView()}
         />
+        {settings.save.autosave && (autosaving || modified || autosavedAt) && (
+          <span className="save-status" role="status">
+            {autosaving || modified ? 'Saving...' : 'All changes saved'}
+          </span>
+        )}
         <div className="toolbar-end">
           {settings.debug.showUnsupportedPanel && (
             <button

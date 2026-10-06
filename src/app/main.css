@@ -913,16 +913,16 @@ body {
 }
 
 /* Sauvegarde : pastille quand il y a des modifications non sauvegardées */
-.save-button.modified {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.modified-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--accent);
+.save-status {
+  /* Prend la place libre sans faire passer la barre à la ligne (coupé s'il n'y en a pas assez). */
+  flex: 1 1 0;
+  min-width: 0;
+  margin-left: 8px;
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Glisser-déposer */
