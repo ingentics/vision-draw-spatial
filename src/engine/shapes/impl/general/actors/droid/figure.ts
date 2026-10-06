@@ -1,5 +1,5 @@
 import type { Point } from '../../../../../model/types';
-import { ellipsePath, roundedRectPath } from '../../../../../render/geometry/paths';
+import { ellipsePath, roundedPolygon } from '../../../../../render/geometry/paths';
 import { actorBody } from '../common/figure';
 import type { ActorFigure } from '../common/figure';
 
@@ -7,27 +7,41 @@ import type { ActorFigure } from '../common/figure';
 export const DROID_W = 30;
 export const DROID_H = 60;
 
-/** Tête : rectangle arrondi plus large que haut, posé sur le cou (quart du haut, comme l'Actor). */
-const HEAD = { x: 7.5, y: 5, width: 15, height: 10 };
-const HEAD_RADIUS = 3;
-/** Antenne : boule en haut du cadre, tige jusqu'à la tête. */
-const BALL = { x: 13.75, y: 0, width: 2.5, height: 2.5 };
-const BALL_SEGMENTS = 24;
+/**
+ * Tête de droid de combat, simplifiée : allongée, dessus arrondi, plus large aux yeux, museau qui se rétrécit
+ * jusqu'au cou (quart du haut, comme l'Actor). Coins arrondis de `HEAD_ARC`.
+ */
+const HEAD_OUTLINE: Point[] = [
+  { x: 11.5, y: 1.5 },
+  { x: 18.5, y: 1.5 },
+  { x: 20, y: 6 },
+  { x: 19, y: 10 },
+  { x: 17, y: 15 },
+  { x: 13, y: 15 },
+  { x: 11, y: 10 },
+  { x: 10, y: 6 },
+];
+const HEAD_ARC = 1.5;
+/**
+ * Antenne : part du côté droit du visage, à hauteur des yeux, s'en écarte un peu puis monte au-dessus de la tête,
+ * jusqu'à un embout allongé en haut du cadre.
+ */
+const ANTENNA_BASE = { x: 19.8, y: 7 };
+const TIP = { x: 21, y: 0, width: 1.6, height: 3.5 };
+const TIP_SEGMENTS = 24;
+const ANTENNA_X = TIP.x + TIP.width / 2;
 
 /** Droid dans le cadre du stencil, avant étirement : la source du stencil draw.io (`./index.ts`). */
 export const DROID_FRAME: ActorFigure = {
-  head: HEAD,
-  parts: [roundedRectPath(HEAD, HEAD_RADIUS), ellipsePath(BALL, BALL_SEGMENTS)],
+  head: { x: 10, y: 1.5, width: 10, height: 13.5 },
+  parts: [roundedPolygon(HEAD_OUTLINE, HEAD_ARC), ellipsePath(TIP, TIP_SEGMENTS)],
   strokes: [
     ...actorBody(DROID_W, DROID_H),
-    [
-      { x: DROID_W / 2, y: BALL.y + BALL.height },
-      { x: DROID_W / 2, y: HEAD.y },
-    ],
+    [ANTENNA_BASE, { x: ANTENNA_X, y: ANTENNA_BASE.y }, { x: ANTENNA_X, y: TIP.y + TIP.height }],
   ],
 };
 
-/** Droid : le corps de l'Actor, une tête de robot surmontée d'une petite antenne, étiré dans `w` × `h`. */
+/** Droid : le corps de l'Actor, une tête de droid de combat et une antenne à droite, étiré dans `w` × `h`. */
 export function droidFigure(w: number, h: number): ActorFigure {
   const sx = w / DROID_W;
   const sy = h / DROID_H;

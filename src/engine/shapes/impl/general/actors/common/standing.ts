@@ -44,7 +44,8 @@ export function actorHeight(shape: ShapeModel, ctx: RenderContext): number {
  * `render/billboard.ts`). Il tient son texte sur une pancarte, entre ses mains (`createSign`) ; sans pancarte
  * (`spatial.sign=0`), le label hors de la forme est posé au sol devant lui (`createShapeObject`).
  *
- * Repère de la silhouette : x horizontal (vers la droite vu de la caméra), z vers le haut, face vers −y.
+ * Repère de la silhouette : x horizontal (vers la gauche vu de la caméra : l'espace page est un repère indirect), z
+ * vers le haut, face vers −y. Le dessin 2D y est retourné (`upright`) : il se voit à l'endroit, comme en 2D.
  */
 export function standingActor(figureOf: FigureOf): SceneRenderer {
   return {
@@ -64,9 +65,10 @@ export function standingActor(figureOf: FigureOf): SceneRenderer {
       silhouette.position.set(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2, 0);
       group.add(silhouette);
 
-      // Du cadre 2D du bonhomme (y vers le bas) au plan de la silhouette (z vers le haut).
+      // Du cadre 2D du bonhomme (y vers le bas) au plan de la silhouette (z vers le haut), x retourné : vu de la
+      // caméra, la droite du dessin reste à droite (antenne du droid).
       const figure = figureOf(width, height);
-      const upright = (p: Point): Point => ({ x: p.x - width / 2, y: height - p.y });
+      const upright = (p: Point): Point => ({ x: width / 2 - p.x, y: height - p.y });
       const sign = signFrame(shape, width, height);
       if (sign) {
         // Bras tendus jusqu'aux bords de la pancarte : les mains la tiennent.
@@ -80,7 +82,7 @@ export function standingActor(figureOf: FigureOf): SceneRenderer {
       // Cadre de la tête, pièces et traits dans le plan de la silhouette (x, z) : la sélection entoure la tête
       // (`core/selection/highlight.ts`) et le clic ne prend que la silhouette (`core/selection/picking.ts`).
       silhouette.userData.head = {
-        x: figure.head.x - width / 2,
+        x: width / 2 - figure.head.x - figure.head.width,
         y: height - figure.head.y - figure.head.height,
         width: figure.head.width,
         height: figure.head.height,

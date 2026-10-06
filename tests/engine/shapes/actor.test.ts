@@ -201,7 +201,7 @@ describe('Actor (41)', () => {
     }
     // Bras tendus jusqu'aux bords.
     const arms = silhouette.userData.strokes[1];
-    expect(arms.map((p: { x: number }) => p.x)).toEqual([-21, 21]);
+    expect(arms.map((p: { x: number }) => p.x)).toEqual([21, -21]);
   });
 
   it('pas de pancarte sans texte, ni avec spatial.sign=0', () => {
@@ -297,7 +297,7 @@ describe('orientBillboards : silhouettes face à la caméra', () => {
   });
 });
 
-/** Droid (173) : l'Actor avec une tête de robot à antenne, stencil embarqué pour draw.io. */
+/** Droid (173, 174) : l'Actor avec une tête de droid de combat et une antenne à droite, stencil embarqué pour draw.io. */
 describe('Droid (173)', () => {
   const DROID = `shape=${DROID_SHAPE};verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;`;
 
@@ -315,12 +315,12 @@ describe('Droid (173)', () => {
   it('stencil draw.io : cadre 30 × 60 étiré, tête en fond, antenne et corps devant', () => {
     const xml = decodeDiagram(DROID_SHAPE.slice('stencil('.length, -1));
     expect(xml).toMatch(/^<shape name="actor-droid" w="30" h="60" aspect="variable" strokewidth="inherit">/);
-    // Tête, puis boule de l'antenne (remplies), puis corps, bras, jambes et tige (traits).
+    // Tête, puis embout de l'antenne (remplis), puis corps, bras, jambes et tige (traits).
     expect(xml.match(/<fillstroke\/>/g)).toHaveLength(2);
     expect(xml.match(/<stroke\/>/g)).toHaveLength(4);
   });
 
-  it('2D : tête en rectangle arrondi sous l’antenne, corps de l’Actor, étirés dans les bornes', () => {
+  it('2D : tête allongée de droid de combat, antenne à sa droite, corps de l’Actor, étirés dans les bornes', () => {
     const scene = buildPageScene(page([{ style: DROID, x: 100, y: 100 }]).pages[0]!, registry, ctx, 'flat');
     const droid = element(scene.root, 'a0');
     const [head, ball] = droid.children.filter((c) => c.name === 'fill');
@@ -328,22 +328,32 @@ describe('Droid (173)', () => {
       const b = new Box3().setFromObject(o);
       return [b.min.x, b.min.y, b.max.x, b.max.y].map((v) => +v.toFixed(3));
     };
-    expect(box(head!)).toEqual([107.5, 105, 122.5, 115]);
-    expect(box(ball!)).toEqual([113.75, 100, 116.25, 102.5]);
-    // Tête, boule, corps, bras, jambes, tige.
+    // Tête : 10 de large au plus (aux yeux), du haut du cadre (1,5) au cou (15) ; coins arrondis.
+    const [left = 0, top, right = 0, bottom] = box(head!);
+    expect(left).toBeGreaterThanOrEqual(110);
+    expect(right).toBeLessThanOrEqual(120);
+    expect(right - left).toBeGreaterThan(9);
+    expect([top, bottom]).toEqual([101.5, 115]);
+    // Embout de l'antenne, à droite de la tête, en haut du cadre.
+    expect(box(ball!)).toEqual([121, 100, 122.6, 103.5]);
+    // Tête, embout, corps, bras, jambes, tige.
     expect(droid.children.filter((c) => c.name === 'stroke')).toHaveLength(6);
   });
 
-  it('iso : debout avec sa pancarte, sélection autour de la tête, tête et antenne cliquables', () => {
+  it('iso : debout avec sa pancarte, sélection autour de la tête, tête et embout cliquables', () => {
     const scene = isoScene(page([{ style: DROID, x: 100, y: 100, value: 'Bot' }]));
     const droid = element(scene.root, 'a0');
     expect(droid.userData.standing).toBe(true);
     const silhouette = droid.getObjectByName('silhouette')!;
-    expect(silhouette.userData.head).toEqual({ x: -7.5, y: 45, width: 15, height: 10 });
+    expect(silhouette.userData.head).toEqual({ x: -5, y: 45, width: 10, height: 13.5 });
     expect(silhouette.userData.parts).toHaveLength(2);
     const head = new Box3().setFromObject(silhouette.getObjectByName('head')!);
-    expect([+head.min.y.toFixed(3), +head.max.y.toFixed(3)]).toEqual([45, 55]);
+    expect([+head.min.y.toFixed(3), +head.max.y.toFixed(3)]).toEqual([45, 58.5]);
     expect(silhouette.getObjectByName('sign')).toBeDefined();
-    expect(silhouette.userData.strokes[1].map((p: { x: number }) => p.x)).toEqual([-21, 21]);
+    expect(silhouette.userData.strokes[1].map((p: { x: number }) => p.x)).toEqual([21, -21]);
+    // Étape 174 : antenne partant de la droite du visage vue de la caméra, comme en 2D. Le x de la silhouette va vers
+    // la gauche vu de la caméra (espace page indirect) : le dessin est retourné, l'antenne est à x < 0.
+    const antenna = silhouette.userData.strokes.at(-1);
+    expect(antenna.map((p: { x: number }) => +p.x.toFixed(3))).toEqual([-4.8, -6.8, -6.8]);
   });
 });

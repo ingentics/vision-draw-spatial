@@ -16,7 +16,7 @@ function stencilPath(points: Point[], closed: boolean): string {
 }
 
 /**
- * XML du stencil draw.io, tiré des mêmes points que le rendu : la tête en fond, puis l'antenne et le corps ; les
+ * XML du stencil draw.io, tiré des mêmes points que le rendu : la tête en fond, puis l'embout de l'antenne, le corps et la tige ; les
  * pièces prennent le fond et la bordure de la forme, les traits la bordure.
  */
 function droidStencilXml(): string {
@@ -35,7 +35,7 @@ function droidStencilXml(): string {
 export const DROID_SHAPE = stencilShape(droidStencilXml());
 
 /**
- * Droid : l'Actor (`../common/definition.ts`) avec une tête de robot et une petite antenne. Pas de droid natif dans
+ * Droid : l'Actor (`../common/definition.ts`) avec une tête de droid de combat et une antenne à droite. Pas de droid natif dans
  * draw.io : stencil embarqué dans le style (`shape=stencil(…)`, nom `actor-droid`), dessiné à l'identique par draw.io.
  */
 export const definition: ShapeDefinition = {
@@ -43,8 +43,8 @@ export const definition: ShapeDefinition = {
   kinds: ['stencil:actor-droid'],
   ...actorDefinition(droidFigure),
   swatch: () =>
-    '<rect x="16" y="5.5" width="8" height="5" rx="1.5"/><circle cx="20" cy="2.6" r="1"/>' +
-    '<path d="M20 3.6v1.9M20 10.5v7M14 13h12M15 25l5-7.5l5 7.5"/>',
+    '<path d="M17.8 2.5h4.4l1 2.7l-.6 2.4l-1.2 2.9h-2.8l-1.2-2.9l-.6-2.4z"/>' +
+    '<ellipse cx="24" cy="2" rx=".5" ry="1"/><path d="M23 5.8h1V3M20 10.5v7M14 13h12M15 25l5-7.5l5 7.5"/>',
   palette: {
     name: 'Droid',
     category: 'general',
@@ -55,7 +55,7 @@ export const definition: ShapeDefinition = {
     width: 30,
     height: 60,
     icon:
-      '<rect x="16" y="3.5" width="8" height="5" rx="1.5"/><circle cx="20" cy="1.3" r="0.9"/>' +
-      '<path d="M20 2.2v1.3M20 8.5v9M13 12h14M14 26l6-8.5l6 8.5"/>',
+      '<path d="M17.8 0.6h4.4l1 2.7l-.6 2.4l-1.2 2.8h-2.8l-1.2-2.8l-.6-2.4z"/>' +
+      '<ellipse cx="24" cy="0.2" rx=".5" ry="1"/><path d="M23 3.9h1V1.2M20 8.5v9M13 12h14M14 26l6-8.5l6 8.5"/>',
   },
 };
