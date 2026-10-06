@@ -846,6 +846,8 @@ Réalisation retenue (`engine/spatial.ts`) :
 | `spatial.mode` | `<diagram>` | Mode de la page (§14.5) : id d'un mode (`sequences`) ; absent = page normale |
 | `spatial.flows` | `<diagram>` | Mode Séquences : flux de la page, liste ordonnée en JSON `[{"id","title","color"}, …]` |
 | `spatial.flow`, `spatial.step` | style ou objet | Mode Séquences : flux d'une flèche (`id`) et son rang dans le flux (1…n) |
+| `spatial.fields` | style ou objet | Mode RDD : champs d'une table, liste JSON de noms (`["name","created_at"]`) ; absent = aucun |
+| `spatial.secondary` | style ou objet | Mode RDD : `1` = table secondaire, rendue 20 % plus petite |
 
 - Lecture : style de la cellule, sinon attribut de son `<object>` / `<UserObject>` (« Modifier les données » dans draw.io) ; le style l'emporte. Valeurs négatives ou invalides ignorées.
 - Écriture (panneau contextuel, section « Volume » : « Épaisseur », « Élévation » ; vide = valeur par défaut) : là où l'attribut est déjà (objet), sinon dans le style, clé modifiée en place ou ajoutée à la fin.
@@ -881,7 +883,17 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   (« non disponible dans ce mode ») ; en quittant la page, on retrouve la vue choisie par l'utilisateur.
   Registre : `paletteFor(page)`, `allowsViewMode(page, mode)`.
 - **Écritures** : une opération de mode est une étape d'annulation (`Engine.editPageMode`) ; attribut de page sur
-  `<diagram>`, attribut d'élément là où il est déjà (objet), sinon dans le style.
+  `<diagram>`, attribut d'élément là où il est déjà (objet), sinon dans le style ; clé du style draw.io d'un élément
+  (`setElementStyle`) et bornes d'une forme (`setShapeBounds`, sujet 179).
+- **Mode RDD** (`rdd`, sujet 179) : en 2D seulement ; la palette (catégorie « RDD ») ne propose que ses tables. Une
+  table est un rectangle en deux zones : entête de la couleur `fillColor` (nom centré, gras ; texte noir ou blanc
+  selon le contraste), trait, puis zone blanche des champs (`spatial.fields`, un par ligne de 20 px, alignés à
+  gauche). Modèle abstrait (`rdd-model`) : mention `«abstract»` en petit au-dessus du nom, en italique (entête de
+  38 px, 26 sans mention). Réglages du mode sur une table : « Couleur » (couleurs `modePalette`, écrit aussi
+  `fontColor` pour draw.io), « Table secondaire » (`spatial.secondary` : tailles × 0,8, forme mise à l'échelle depuis
+  son coin haut-gauche), « Champs » (zone de texte, un par ligne ; la hauteur suit : entête + une ligne par champ, au
+  moins une). Fichier : `swimlane;startSize=<entête>;fillColor=…;swimlaneFillColor=#ffffff;spatial.kind=rdd-model;…` :
+  draw.io montre l'entête et sa couleur, pas les champs.
 - **Mode Séquences** (`sequences`) : en 2D seulement (`viewModes`) ; flux ordonnés (`spatial.flows`), une flèche dans un flux au plus
   (`spatial.flow`, `spatial.step`), rangs toujours consécutifs (ajout en n + 1, échange, resserrement). Flèche d'un
   flux : trait et pointes dans la couleur du flux assombrie (−25 % de luminosité), pastille du rang au-dessus du

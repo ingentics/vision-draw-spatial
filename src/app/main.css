@@ -1498,6 +1498,7 @@ body {
 }
 
 .context-panel .field-row input,
+.context-panel .field-row textarea,
 .context-panel .field-row select {
   flex: 1;
   min-width: 0;
@@ -1508,6 +1509,18 @@ body {
   border-radius: 4px;
   background: var(--bg);
   color: var(--fg);
+}
+
+/* Zone de texte d'un réglage (un élément par ligne) : sous son libellé, sur toute la largeur. */
+.context-panel .field-row.multiline {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.context-panel .field-row textarea {
+  max-width: none;
+  resize: vertical;
 }
 
 .style-grid {

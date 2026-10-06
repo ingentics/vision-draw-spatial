@@ -75,3 +75,14 @@ export function labelBackground(
   if (raw === 'default') return new Color(page);
   return styleColor(style, 'labelBackgroundColor', fallback) ?? undefined;
 }
+
+/** Texte lisible sur un fond #rrggbb : noir sur une couleur claire, blanc sinon (luminance relative, WCAG). */
+export function readableOn(background: string): string {
+  const channel = (offset: number) => {
+    const c = parseInt(background.slice(offset, offset + 2), 16) / 255;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  const luminance = 0.2126 * channel(1) + 0.7152 * channel(3) + 0.0722 * channel(5);
+  // Contraste égal avec le blanc et le noir pour une luminance d'environ 0,18.
+  return luminance > 0.18 ? '#000000' : '#ffffff';
+}

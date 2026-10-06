@@ -35,6 +35,7 @@ describe('palette', () => {
       'mxgraph.basic.pentagon',
       'parallelogram',
       'process',
+      'rdd-model',
       'rectangle',
       'recurring-task',
       'rhombus',

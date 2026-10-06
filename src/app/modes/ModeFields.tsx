@@ -13,11 +13,14 @@ export function ModePropertyFields({
   page,
   scope,
   target,
+  palette,
   onChange,
 }: {
   page: PageModel;
   scope: ModeScope;
   target: ModeTarget;
+  /** Couleurs proposées par l'appli (`modePalette`), pour les choix d'un réglage. */
+  palette: readonly string[];
   /** Écriture d'un réglage (undefined = vide) ; absent : lecture seule. */
   onChange?: (key: string, value: string | undefined) => void;
 }) {
@@ -25,7 +28,14 @@ export function ModePropertyFields({
   return (
     <>
       {properties.map((property) => (
-        <ModePropertyField key={property.key} page={page} target={target} property={property} onChange={onChange} />
+        <ModePropertyField
+          key={property.key}
+          page={page}
+          target={target}
+          property={property}
+          palette={palette}
+          onChange={onChange}
+        />
       ))}
     </>
   );
@@ -35,11 +45,13 @@ function ModePropertyField({
   page,
   target,
   property,
+  palette,
   onChange,
 }: {
   page: PageModel;
   target: ModeTarget;
   property: ModeProperty;
+  palette: readonly string[];
   onChange?: (key: string, value: string | undefined) => void;
 }) {
   const { key, label } = property;
@@ -80,6 +92,7 @@ function ModePropertyField({
           title={title}
           value={value ?? ''}
           placeholder={property.placeholder}
+          multiline={property.multiline}
           readOnly={!onChange}
           onCommit={(text) => write(text.trim() || undefined)}
         />
@@ -90,7 +103,7 @@ function ModePropertyField({
           label={label}
           title={title}
           value={value ?? ''}
-          options={property.options(page)}
+          options={property.options(page, palette)}
           disabled={!onChange}
           onChange={(next) => write(next || undefined)}
         />

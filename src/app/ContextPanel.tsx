@@ -8,6 +8,7 @@ import { defaultShapeRegistry } from '../engine/shapes/registry';
 import { routingKind } from '../engine/render/edges/route';
 import type { StylePreset } from '../engine/edit/styles';
 import type { EdgeModel, LinkModel, PageModel, ShapeModel } from '../engine/model/types';
+import { modePalette } from '../engine/settings';
 import type { ExporterSettings, StyleSettings } from '../engine/settings';
 import { SPATIAL, spatialNumber } from '../engine/spatial';
 import { TEXT_FORMAT_ATTRIBUTE } from './LabelEditor';
@@ -206,6 +207,7 @@ function PageSections({ page, onRenamePage: onRename, ...props }: ContextPanelPr
         onModeProperty={props.onModeProperty}
         modeCurrent={props.modeCurrent}
         exporters={props.exporters}
+        styles={props.styles}
       />
       <PageEffectsSection page={page} onPageEffect={props.onPageEffect} />
     </>
@@ -251,7 +253,11 @@ function PageModeSections({
   onModeProperty,
   modeCurrent,
   exporters,
-}: Pick<ContextPanelProps, 'page' | 'onPageMode' | 'onModeEdit' | 'onModeProperty' | 'modeCurrent' | 'exporters'>) {
+  styles,
+}: Pick<
+  ContextPanelProps,
+  'page' | 'onPageMode' | 'onModeEdit' | 'onModeProperty' | 'modeCurrent' | 'exporters' | 'styles'
+>) {
   const modeId = defaultModeRegistry.modeId(page);
   const mode = defaultModeRegistry.modeOf(page);
   const options = [
@@ -273,7 +279,7 @@ function PageModeSections({
           disabled={!onPageMode}
           onChange={(value) => onPageMode?.(value || undefined)}
         />
-        <ModeFields page={page} scope="page" target={page} onModeProperty={onModeProperty} />
+        <ModeFields page={page} scope="page" target={page} styles={styles} onModeProperty={onModeProperty} />
       </Section>
       {PageSection && <PageSection page={page} onEdit={onModeEdit} current={modeCurrent} exporters={exporters} />}
     </>
@@ -285,11 +291,13 @@ function ModeFields({
   page,
   scope,
   target,
+  styles,
   onModeProperty,
 }: {
   page: PageModel;
   scope: ModeScope;
   target: ModeTarget;
+  styles: StyleSettings;
   onModeProperty?: ContextPanelProps['onModeProperty'];
 }) {
   return (
@@ -297,6 +305,7 @@ function ModeFields({
       page={page}
       scope={scope}
       target={target}
+      palette={modePalette(styles)}
       onChange={
         onModeProperty && ((key, value) => onModeProperty(scope, scope === 'page' ? undefined : target.id, key, value))
       }
@@ -311,10 +320,17 @@ function ElementModeSection({
   ...props
 }: ContextPanelProps & { element: ModeTarget; scope: ModeScope }) {
   const mode = defaultModeRegistry.modeOf(props.page);
-  if (!mode || defaultModeRegistry.properties(props.page, scope).length === 0) return null;
+  const shown = defaultModeRegistry.properties(props.page, scope).filter((p) => !p.hidden?.(props.page, element));
+  if (!mode || shown.length === 0) return null;
   return (
     <Section title={mode.name}>
-      <ModeFields page={props.page} scope={scope} target={element} onModeProperty={props.onModeProperty} />
+      <ModeFields
+        page={props.page}
+        scope={scope}
+        target={element}
+        styles={props.styles}
+        onModeProperty={props.onModeProperty}
+      />
     </Section>
   );
 }

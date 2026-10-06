@@ -5,7 +5,8 @@ habillage du rendu. Tout est stocké en attributs `spatial.*` (SPEC §14.3, §14
 page normale. Le moteur ne connaît aucun mode en particulier : déposer les dossiers suffit.
 
 Exemple complet : le mode « Séquences » ([engine](../src/engine/modes/sequences/index.ts),
-[appli](../src/app/modes/sequences/index.tsx)).
+[appli](../src/app/modes/sequences/index.tsx)). Mode avec ses propres formes : « RDD »
+([engine](../src/engine/modes/rdd/index.ts), tables dans `rdd/shapes/`).
 
 ## 1. Deux dossiers en miroir
 
@@ -48,13 +49,16 @@ interface PageModeDefinition {
 
 ## 3. Réglages et opérations
 
-Un réglage déclaré (`toggle`, `number`, `text`, `select`) est rendu par un champ générique : section « Mode » de la
+Un réglage déclaré (`toggle`, `number`, `text` — `multiline` pour une zone de texte —, `select`, dont les choix
+reçoivent les couleurs de l'appli) est rendu par un champ générique : section « Mode » de la
 page, section au nom du mode dans le panneau d'une flèche ou d'une forme. Par défaut, il lit et écrit l'attribut
 `key` de sa cible ; `value`, `write` et `hidden` le font passer par les règles du mode (ex. le rang d'une flèche, qui
 s'échange avec une autre).
 
 Une **opération** reçoit un `ModeEdit` : la page avant l'opération (`page`), les couleurs proposées par l'appli
-(`palette` : fonds des styles de forme des paramètres), `setPageAttribute` et `setElementAttribute`. Toutes ses écritures forment une étape d'annulation, et rien n'est enregistré si elle ne
+(`palette` : fonds des styles de forme des paramètres), `setPageAttribute`, `setElementAttribute` (attributs
+`spatial.*`), `setElementStyle` (autre clé du style draw.io, ex. `fillColor`) et `setShapeBounds` (bornes d'une forme,
+ex. une table qui grandit avec ses champs). Toutes ses écritures forment une étape d'annulation, et rien n'est enregistré si elle ne
 change rien. Depuis l'appli : `onEdit(label, (edit) => monOperation(edit, …))` (prop des sections React), ou
 `engine.editPageMode(label, …)`.
 

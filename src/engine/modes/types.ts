@@ -1,5 +1,5 @@
 import type { ViewMode } from '../interaction/camera';
-import type { EdgeModel, PageModel, ShapeModel } from '../model/types';
+import type { EdgeModel, PageModel, Rect, ShapeModel } from '../model/types';
 import type { PaletteCategory } from '../shapes/types';
 
 /**
@@ -109,6 +109,10 @@ export interface ModeEdit {
   setPageAttribute(key: string, value: string | undefined): void;
   /** Attribut spatial d'une forme ou d'une flèche (là où il est déjà, sinon dans le style) ; undefined le retire. */
   setElementAttribute(elementId: string, key: string, value: string | undefined): void;
+  /** Clé du style draw.io d'un élément (ex. `fillColor`, sujet 179) ; undefined la retire. */
+  setElementStyle(elementId: string, key: string, value: string | undefined): void;
+  /** Nouvelles bornes d'une forme, en coordonnées page (sujet 179) ; ses enfants suivent son coin haut-gauche. */
+  setShapeBounds(shapeId: string, bounds: Rect): void;
 }
 
 export interface ModeOption {
@@ -137,11 +141,15 @@ export type ModeProperty = {
 } & (
   | { type: 'toggle' }
   | { type: 'number' }
-  | { type: 'text' }
+  | {
+      type: 'text';
+      /** Plusieurs lignes (zone de texte, ⌘ + Entrée ou sortie du champ pour valider). */
+      multiline?: boolean;
+    }
   | {
       type: 'select';
-      /** Choix offerts (valeur vide = aucun). */
-      options(page: PageModel): ModeOption[];
+      /** Choix offerts (valeur vide = aucun) ; `palette` : couleurs proposées par l'appli (`ModeEdit.palette`). */
+      options(page: PageModel, palette: readonly string[]): ModeOption[];
     }
 );
 

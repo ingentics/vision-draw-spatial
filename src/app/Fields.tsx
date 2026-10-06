@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type KeyboardEvent } from 'react';
 
 /** Champs du panneau contextuel, validés à Entrée ou en quittant le champ. */
 
@@ -11,6 +11,7 @@ export function TextField({
   title,
   value,
   placeholder,
+  multiline,
   readOnly,
   onLive,
   onCommit,
@@ -19,12 +20,14 @@ export function TextField({
   title: string;
   value: string;
   placeholder?: string;
+  /** Zone de texte sur plusieurs lignes : Entrée va à la ligne, ⌘ / Ctrl + Entrée valide. */
+  multiline?: boolean;
   readOnly?: boolean;
   /** Appelé à chaque frappe, pour un réglage en direct ; Échap y renvoie la valeur d'avant le passage. */
   onLive?: (text: string) => void;
   onCommit: (text: string) => void;
 }) {
-  const input = useRef<HTMLInputElement>(null);
+  const input = useRef<HTMLInputElement & HTMLTextAreaElement>(null);
   // Valeur à l'entrée dans le champ : Échap y revient, la validation compare avec elle.
   const initial = useRef(value);
   useEffect(() => {
@@ -33,32 +36,36 @@ export function TextField({
       initial.current = value;
     }
   }, [value]);
+  const props = {
+    ref: input,
+    defaultValue: value,
+    placeholder,
+    readOnly,
+    onFocus: () => {
+      initial.current = value;
+    },
+    onInput: (event: { currentTarget: { value: string } }) => onLive?.(event.currentTarget.value),
+    onBlur: (event: { target: { value: string } }) => {
+      if (event.target.value !== initial.current) onCommit(event.target.value);
+      initial.current = event.target.value;
+    },
+    onKeyDown: (event: KeyboardEvent<HTMLInputElement & HTMLTextAreaElement>) => {
+      if (event.key === 'Enter' && (!multiline || event.metaKey || event.ctrlKey)) event.currentTarget.blur();
+      else if (event.key === 'Escape') {
+        event.currentTarget.value = initial.current;
+        onLive?.(initial.current);
+        event.currentTarget.blur();
+      }
+    },
+  };
   return (
-    <label className="field-row" title={title}>
+    <label className={multiline ? 'field-row multiline' : 'field-row'} title={title}>
       {label}
-      <input
-        type="text"
-        ref={input}
-        defaultValue={value}
-        placeholder={placeholder}
-        readOnly={readOnly}
-        onFocus={() => {
-          initial.current = value;
-        }}
-        onInput={(event) => onLive?.(event.currentTarget.value)}
-        onBlur={(event) => {
-          if (event.target.value !== initial.current) onCommit(event.target.value);
-          initial.current = event.target.value;
-        }}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') event.currentTarget.blur();
-          else if (event.key === 'Escape') {
-            event.currentTarget.value = initial.current;
-            onLive?.(initial.current);
-            event.currentTarget.blur();
-          }
-        }}
-      />
+      {multiline ? (
+        <textarea rows={Math.max(3, value.split('\n').length + 1)} {...props} />
+      ) : (
+        <input type="text" {...props} />
+      )}
     </label>
   );
 }

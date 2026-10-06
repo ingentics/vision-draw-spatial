@@ -151,7 +151,7 @@ describe('export PlantUML des flux (sujets 90 à 97)', () => {
     const property = sequences.shapeProperties?.find((p) => p.key === PARTICIPANT);
     expect(property?.type).toBe('select');
     if (property?.type === 'select') {
-      expect(property.options(flowsPage()).map((option) => option.value)).toEqual(['', 'bus', 'queue']);
+      expect(property.options(flowsPage(), []).map((option) => option.value)).toEqual(['', 'bus', 'queue']);
     }
   });
 
