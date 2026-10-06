@@ -136,6 +136,11 @@ export interface LabelEditRequest {
   styleCellId?: string;
   /** Style draw.io de cette cellule (police, taille, couleur, alignement), pour un éditeur fidèle. */
   style: Record<string, string>;
+  /**
+   * Style de l'éditeur quand le texte est dessiné autrement que ne le dit `style` (ex. centré et ajusté sur la
+   * pancarte d'un Actor) ; absent : `style`. Le panneau de format garde `style`, celui de la cellule.
+   */
+  displayStyle?: Record<string, string>;
   /** Label HTML de la cellule (`html=1`), avec sa mise en forme partielle ; absent : texte brut. */
   html?: string;
   /** Pixels écran par pixel de page à cet endroit : taille du texte dans l'éditeur. */

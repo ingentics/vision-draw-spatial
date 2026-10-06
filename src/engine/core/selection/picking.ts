@@ -44,30 +44,44 @@ export class Picking {
   }
 
   /**
+   * Plan d'une silhouette debout (Actor en iso / 3D), tel qu'il fait face à la caméra : `toScreen` projette un point
+   * de ce plan (x horizontal, y vers le haut) à l'écran, avec sa hauteur. `undefined` à plat ou pour une autre forme.
+   */
+  standingPlane(
+    elementId: string,
+  ): { silhouette: Object3D; toScreen: (p: Point) => Point & { height: number } } | undefined {
+    const object = this.core.sceneView.sceneObject(elementId);
+    if (this.core.scenes.current?.level !== 'iso' || !object?.userData.standing) return undefined;
+    const silhouette = object.getObjectByName('silhouette');
+    if (!silhouette) return undefined;
+    // Tourné face à la caméra autour de la verticale (`render/billboard.ts`).
+    const scale = this.core.levels.heightScale;
+    const angle = silhouette.rotation.z;
+    const toScreen = (p: Point) => {
+      const height = (object.position.z + p.y) * scale;
+      const at = this.screenOfPoint(
+        {
+          x: object.position.x + silhouette.position.x + p.x * Math.cos(angle),
+          y: object.position.y + silhouette.position.y + p.x * Math.sin(angle),
+        },
+        height,
+      );
+      return { ...at, height };
+    };
+    return { silhouette, toScreen };
+  }
+
+  /**
    * Silhouette debout (Actor en iso / 3D) sous un point écran : le disque de la tête, ou un trait du corps à la
    * tolérance de clic des flèches, tels qu'ils font face à la caméra. Renvoie la hauteur touchée ; `undefined` si la
    * forme n'est pas une silhouette debout.
    */
   private standingHit(shape: ShapeModel, screen: Point): { at: number | undefined } | undefined {
-    const object = this.core.sceneView.sceneObject(shape.id);
-    if (this.core.scenes.current?.level !== 'iso' || !object?.userData.standing) return undefined;
-    const silhouette = object.getObjectByName('silhouette');
-    const head = silhouette?.userData.head as Rect | undefined;
-    const strokes = silhouette?.userData.strokes as Point[][] | undefined;
-    if (!silhouette || !head || !strokes) return undefined;
-    // Plan de la silhouette (x horizontal, y vers le haut), tourné face à la caméra autour de la verticale.
-    const scale = this.core.levels.heightScale;
-    const angle = silhouette.rotation.z;
-    const toScreen = (p: Point) => ({
-      ...this.screenOfPoint(
-        {
-          x: object.position.x + silhouette.position.x + p.x * Math.cos(angle),
-          y: object.position.y + silhouette.position.y + p.x * Math.sin(angle),
-        },
-        (object.position.z + p.y) * scale,
-      ),
-      height: (object.position.z + p.y) * scale,
-    });
+    const standing = this.standingPlane(shape.id);
+    const head = standing?.silhouette.userData.head as Rect | undefined;
+    const strokes = standing?.silhouette.userData.strokes as Point[][] | undefined;
+    if (!standing || !head || !strokes) return undefined;
+    const { silhouette, toScreen } = standing;
     // Pancarte tenue devant le corps : prise sur toute sa surface, plus près de la caméra que le corps.
     const sign = silhouette.userData.sign as Rect | undefined;
     if (sign) {

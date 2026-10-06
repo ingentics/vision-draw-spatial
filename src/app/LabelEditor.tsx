@@ -158,8 +158,9 @@ export function LabelEditor({
   // « Ajuster » (`fitText=1`, texte d'une forme) : le texte est réduit (CSS `zoom`, tailles partielles à
   // proportion, retour à la ligne à la largeur de la forme) jusqu'à tenir dans la boîte, comme le label
   // dessiné (`fitFontSize`) : même recherche des tailles entières, mesurée ici dans le DOM.
-  const fitOn = !request.onEdge && request.style.fitText === '1';
-  const baseSize = Number(request.style.fontSize) || 11;
+  const shownStyle = request.displayStyle ?? request.style;
+  const fitOn = !request.onEdge && shownStyle.fitText === '1';
+  const baseSize = Number(shownStyle.fontSize) || 11;
   const onFitSizeRef = useRef(onFitSize);
   onFitSizeRef.current = onFitSize;
   const fitRef = useRef<() => void>(() => undefined);
@@ -193,7 +194,7 @@ export function LabelEditor({
     onFitSizeRef.current?.(size);
   };
   const { width: screenWidth, height: screenHeight } = request.screen;
-  useLayoutEffect(() => fitRef.current(), [fitOn, baseSize, screenWidth, screenHeight, request.scale, request.style]);
+  useLayoutEffect(() => fitRef.current(), [fitOn, baseSize, screenWidth, screenHeight, request.scale, shownStyle]);
   // Recalcul à chaque changement du contenu (saisie, mise en forme partielle).
   useEffect(() => {
     const editor = ref.current;
@@ -310,7 +311,8 @@ export function LabelEditor({
     });
   }, [left, top, onPlane]);
 
-  const { style, scale, onEdge } = request;
+  const { scale, onEdge } = request;
+  const style = request.displayStyle ?? request.style;
   const bits = Number(style.fontStyle) || 0;
   const align = style.align === 'left' || style.align === 'right' ? style.align : 'center';
   const insets = labelPadding(style);

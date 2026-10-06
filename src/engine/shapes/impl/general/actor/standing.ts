@@ -86,7 +86,11 @@ export const standingActor: SceneRenderer = {
       height: figure.head.height,
     };
     silhouette.userData.strokes = figure.strokes.map((line) => line.map(upright));
-    if (sign) silhouette.userData.sign = sign;
+    if (sign) {
+      silhouette.userData.sign = sign;
+      // L'éditeur en place reprend le format du texte dessiné (`core/edit/text/labelEditor.ts`).
+      silhouette.userData.signLabelStyle = signLabelStyle;
+    }
 
     const fill = styleColor(style, 'fillColor', '#ffffff');
     if (fill) {
@@ -133,6 +137,27 @@ export const standingActor: SceneRenderer = {
     return group;
   },
 };
+
+/** Style du texte sur la pancarte : centré et ajusté au panneau (`fitText`), quelle que soit sa position en 2D. */
+export function signLabelStyle(style: Record<string, string>): Record<string, string> {
+  const result: Record<string, string> = {
+    ...style,
+    align: 'center',
+    verticalAlign: 'middle',
+    fitText: '1',
+    whiteSpace: 'wrap',
+  };
+  for (const key of [
+    'labelPosition',
+    'verticalLabelPosition',
+    'spacingTop',
+    'spacingBottom',
+    'spacingLeft',
+    'spacingRight',
+  ])
+    delete result[key];
+  return result;
+}
 
 /**
  * Cadre de la pancarte dans le plan de la silhouette (x horizontal, y vers le haut), centrée, son bord haut un peu
@@ -206,20 +231,8 @@ function createSign(shape: ShapeModel, ctx: RenderContext, frame: Rect): Group {
     }
   }
 
-  // Texte de la forme centré dans le panneau, ajusté (`fitText`), quelle que soit sa position en 2D.
-  const signStyle: Record<string, string> = { ...style, align: 'center', verticalAlign: 'middle' };
-  signStyle.fitText = '1';
-  signStyle.whiteSpace = 'wrap';
-  for (const key of [
-    'labelPosition',
-    'verticalLabelPosition',
-    'spacingTop',
-    'spacingBottom',
-    'spacingLeft',
-    'spacingRight',
-  ])
-    delete signStyle[key];
-  const label = createLabel({ ...shape, style: signStyle }, ctx, shape.label, panel);
+  // Texte de la forme sur le panneau, centré et ajusté.
+  const label = createLabel({ ...shape, style: signLabelStyle(style) }, ctx, shape.label, panel);
   if (label) {
     label.position.z += 2 * SIGN_LAYER;
     sign.add(label);

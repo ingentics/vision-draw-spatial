@@ -79,6 +79,7 @@ export class LabelEditor {
       plane: this.labelEditPlane(element.id),
       styleCellId: element.id,
       style: element.style,
+      displayStyle: this.signLabelStyle(element.id)?.(element.style),
       html: element.style.html === '1' ? cellLabelValue(editable.pageTree, element.id) : undefined,
       scale: this.textScale(element.id),
       onEdge: editable.page.edges.some((e) => e.id === element.id),
@@ -163,6 +164,15 @@ export class LabelEditor {
       // Forme : sa zone de texte, celle où le label est dessiné à ce niveau de rendu.
       const shape = this.core.pages.getCurrentPage()?.shapes.find((s) => s.id === elementId);
       const level = this.core.scenes.current?.level ?? 'flat';
+      // Texte sur la pancarte d'une silhouette debout : le cadre du panneau à l'écran.
+      const sign = this.signPlane(elementId);
+      if (sign) {
+        const xs = sign.corners.map((p) => p.x);
+        const ys = sign.corners.map((p) => p.y);
+        const left = Math.min(...xs);
+        const top = Math.min(...ys);
+        return { x: left, y: top, width: Math.max(...xs) - left, height: Math.max(...ys) - top };
+      }
       return shape
         ? this.core.picking.screenRectOf(
             elementId,
@@ -199,6 +209,8 @@ export class LabelEditor {
    * à la hauteur où le label est dessiné. Vue de dessus non tournée : undefined (rectangle `screen`).
    */
   private labelEditPlane(elementId: string): LabelEditPlane | undefined {
+    const sign = this.signPlane(elementId);
+    if (sign) return sign;
     const { tilt, rotation, fov } = this.core.camera.state;
     if (tilt === 0 && rotation === 0 && fov === undefined) return undefined;
     const shape = this.core.pages.getCurrentPage()?.shapes.find((s) => s.id === elementId);
@@ -225,12 +237,15 @@ export class LabelEditor {
     const scale = this.textScale(editing.elementId);
     // La bascule disparaît dès que le texte est placé à la main (glisser de sa poignée).
     const plane = editing.onEdge ? undefined : this.labelEditPlane(editing.elementId);
-    const next = this.withAngle(this.withFlip({ ...editing, screen, scale, plane }));
+    // Texte sur une pancarte : l'éditeur suit le format de la cellule (changé pendant l'édition), centré et ajusté.
+    const displayStyle = editing.onEdge ? undefined : this.signLabelStyle(editing.elementId)?.(editing.style);
+    const next = this.withAngle(this.withFlip({ ...editing, screen, scale, plane, displayStyle }));
     const same = (a: Rect, b: Rect) => a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
     const samePlane = JSON.stringify(plane) === JSON.stringify(editing.plane);
     if (
       same(screen, editing.screen) &&
       samePlane &&
+      JSON.stringify(displayStyle) === JSON.stringify(editing.displayStyle) &&
       scale === editing.scale &&
       next.flip === editing.flip &&
       next.angle === editing.angle
@@ -253,6 +268,38 @@ export class LabelEditor {
     if (!editing || editing.pageId !== this.core.pages.currentPageId) return;
     this.core.sceneView.labelObjects(editing.styleCellId).forEach((object) => (object.visible = false));
     this.core.rendering.requestRender();
+  }
+
+  /**
+   * Pancarte d'une silhouette debout (Actor en iso / 3D) : cadre du panneau et ses coins à l'écran, dans le sens de
+   * lecture du texte (haut gauche, haut droit, bas droit, bas gauche). `undefined` sans pancarte.
+   */
+  private signPlane(elementId: string): LabelEditPlane | undefined {
+    const standing = this.core.picking.standingPlane(elementId);
+    const sign = standing?.silhouette.userData.sign as Rect | undefined;
+    if (!standing || !sign) return undefined;
+    // L'axe x de la silhouette va vers la gauche de l'écran (texte du panneau en repère retourné).
+    const right = sign.x;
+    const left = sign.x + sign.width;
+    const top = sign.y + sign.height;
+    const bottom = sign.y;
+    const at = (x: number, y: number) => {
+      const { x: sx, y: sy } = standing.toScreen({ x, y });
+      return { x: sx, y: sy };
+    };
+    return {
+      width: sign.width,
+      height: sign.height,
+      corners: [at(left, top), at(right, top), at(right, bottom), at(left, bottom)],
+    };
+  }
+
+  /** Style du texte sur la pancarte d'une silhouette debout (centré, ajusté), s'il y en a une. */
+  private signLabelStyle(elementId: string): ((style: Record<string, string>) => Record<string, string>) | undefined {
+    const silhouette = this.core.picking.standingPlane(elementId)?.silhouette;
+    return silhouette?.userData.sign
+      ? (silhouette.userData.signLabelStyle as (style: Record<string, string>) => Record<string, string>)
+      : undefined;
   }
 
   /** Pixels écran par pixel de page au niveau d'un élément (taille du texte de l'éditeur en place). */
