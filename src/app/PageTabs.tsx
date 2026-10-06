@@ -1,4 +1,5 @@
 import type { PageModel } from '../engine/model/types';
+import type { PageModeDefinition } from '../engine/modes/types';
 import { InlineEdit } from './InlineEdit';
 
 interface PageTabsProps {
@@ -8,6 +9,8 @@ interface PageTabsProps {
   graphActive: boolean;
   onShowGraph: () => void;
   onSelect: (pageId: string) => void;
+  /** Mode de la page (nom et icône), pour l'icône de son onglet. */
+  modeOf?: (page: PageModel) => Pick<PageModeDefinition, 'name' | 'icon'> | undefined;
   /** Absents : pages non modifiables (ancien format). */
   onAdd?: () => void;
   onRename?: (pageId: string, name: string) => void;
@@ -16,7 +19,7 @@ interface PageTabsProps {
 
 /**
  * Onglets des pages (SPEC §14.1) : double-clic pour renommer, × pour retirer la page affichée
- * (avec confirmation), + pour ajouter une page.
+ * (avec confirmation), + pour ajouter une page. Une page en mode montre l'icône du mode devant son nom (sujet 197).
  */
 export function PageTabs({
   pages,
@@ -24,6 +27,7 @@ export function PageTabs({
   graphActive,
   onShowGraph,
   onSelect,
+  modeOf,
   onAdd,
   onRename,
   onRemove,
@@ -44,6 +48,7 @@ export function PageTabs({
       )}
       {pages.map((page) => {
         const active = page.id === currentPageId;
+        const mode = modeOf?.(page);
         return (
           <span key={page.id} className={active ? 'tab-wrap active' : 'tab-wrap'}>
             <InlineEdit
@@ -55,7 +60,15 @@ export function PageTabs({
               title={onRename ? 'Double-clic : renommer' : undefined}
               onClick={() => onSelect(page.id)}
               onCommit={onRename && ((name) => onRename(page.id, name))}
-            />
+            >
+              {mode?.icon && (
+                <svg className="tab-mode-icon" viewBox="0 0 16 16" role="img" aria-label={`Mode ${mode.name}`}>
+                  <title>{`Mode ${mode.name}`}</title>
+                  <path d={mode.icon} />
+                </svg>
+              )}
+              {page.name}
+            </InlineEdit>
             {active && onRemove && pages.length > 1 && (
               <button
                 type="button"

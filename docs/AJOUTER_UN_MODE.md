@@ -29,6 +29,7 @@ interface PageModeDefinition {
   id: string;                                  // nom des dossiers, valeur de spatial.mode
   name: string;                                // choix du mode dans le panneau de la page
   description?: string;                        // aide au survol
+  icon?: string;                               // tracé SVG 16 × 16 au trait, devant le nom de l'onglet
   pageProperties?: ModeProperty[];             // réglages déclarés (section 3)
   edgeProperties?: ModeProperty[];
   shapeProperties?: ModeProperty[];

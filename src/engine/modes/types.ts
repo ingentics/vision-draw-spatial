@@ -16,6 +16,8 @@ export interface PageModeDefinition {
   name: string;
   /** Aide au survol du choix du mode. */
   description?: string;
+  /** Icône de l'onglet d'une page du mode (sujet 197) : tracé SVG (`d`) dans un carré de 16, dessiné au trait. */
+  icon?: string;
   /** Réglages déclarés de la page, d'une flèche, d'une forme : affichés par des champs génériques du panneau. */
   pageProperties?: ModeProperty[];
   edgeProperties?: ModeProperty[];

@@ -800,6 +800,7 @@ export function Viewer({
             graphActive={pageId === GRAPH_PAGE_ID}
             onShowGraph={() => engine?.showGraph()}
             onSelect={(id) => engine?.goToPage(id)}
+            modeOf={modes && ((page) => modes.modeOf(page))}
             onAdd={editablePages ? () => engine?.addPage() : undefined}
             onRename={editablePages ? (id, name) => engine?.renamePage(id, name) : undefined}
             onRemove={editablePages ? (id) => engine?.removePage(id) : undefined}
