@@ -57,17 +57,19 @@ function PropertyField({
   const write = (next: number | string | undefined, merge?: string) =>
     spatial ? onSpatial(key, next, merge) : onStyle({ [key]: next === undefined ? undefined : String(next) });
   switch (property.type) {
-    case 'toggle':
+    case 'toggle': {
+      const byDefault = property.checkedByDefault ?? false;
       return (
         <label className="field toggle">
           <input
             type="checkbox"
-            checked={value === '1'}
-            onChange={(event) => write(event.target.checked ? '1' : '0')}
+            checked={value === undefined ? byDefault : value === '1'}
+            onChange={(event) => write(event.target.checked ? (byDefault ? undefined : '1') : '0')}
           />
           {property.label}
         </label>
       );
+    }
     case 'number': {
       const number = spatial ? spatialNumber(shape, key) : Number(value) || undefined;
       return (

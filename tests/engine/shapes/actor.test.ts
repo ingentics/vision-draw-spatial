@@ -73,9 +73,9 @@ describe('Actor (41)', () => {
     expect(all.max.y).toBeLessThan(161);
   });
 
-  it('label sous la forme (verticalLabelPosition=bottom), posé au sol en iso', () => {
+  it('sans pancarte (spatial.sign=0) : label sous la forme (verticalLabelPosition=bottom), posé au sol en iso', () => {
     texts.length = 0;
-    const scene = isoScene(page([{ x: 100, y: 100, value: 'Client' }]));
+    const scene = isoScene(page([{ style: `${STYLE}spatial.sign=0;`, x: 100, y: 100, value: 'Client' }]));
     const spec = texts.find((t) => t.text === 'Client')!;
     expect(spec.y).toBeGreaterThan(160);
     const label = element(scene.root, 'a0').getObjectByName('label')!;
@@ -163,6 +163,43 @@ describe('Actor (41)', () => {
     );
     expect(hit?.element.id).toBe('a0');
     expect(element(isoScene(document).root, 'a0').getObjectByName('silhouette')!.userData.strokes).toHaveLength(3);
+  });
+
+  // Étape 170 : en iso / 3D, l'Actor tient son texte sur une pancarte, entre ses mains.
+  it('pancarte par défaut : texte ajusté au panneau, tenu devant le corps, bras jusqu’à ses bords', () => {
+    texts.length = 0;
+    const scene = isoScene(page([{ x: 100, y: 100, value: 'Client' }]));
+    const actor = element(scene.root, 'a0');
+    const silhouette = actor.getObjectByName('silhouette')!;
+    const sign = silhouette.getObjectByName('sign')!;
+    expect(sign).toBeDefined();
+    // Le texte est sur la pancarte (pas au sol), ajusté et centré.
+    const label = sign.getObjectByName('label')!;
+    expect(label.userData.outsideLabel).toBeUndefined();
+    const spec = texts.find((t) => t.text === 'Client')!;
+    expect(spec.fit).toBeDefined();
+    expect(spec.anchorX).toBe('center');
+    expect(actor.children.some((c) => c.name === 'label')).toBe(false);
+    // Panneau : 42 × 21 (1,4 × la largeur, 0,35 × la hauteur), bord haut juste au-dessus des mains (épaules, 40).
+    expect(silhouette.userData.sign).toEqual({ x: -21, y: 22.15, width: 42, height: 21 });
+    const board = new Box3().setFromObject(sign.getObjectByName('sign-board')!);
+    // Monde : y vers le haut, et le panneau plus près de la caméra (−z monde, face vers −y page) que le corps.
+    expect(+board.max.y.toFixed(2)).toBe(43.15);
+    expect(+board.min.y.toFixed(2)).toBe(22.15);
+    expect(+(board.max.x - board.min.x).toFixed(2)).toBe(42);
+    // Bras tendus jusqu'aux bords.
+    const arms = silhouette.userData.strokes[1];
+    expect(arms.map((p: { x: number }) => p.x)).toEqual([-21, 21]);
+  });
+
+  it('pas de pancarte sans texte, ni avec spatial.sign=0', () => {
+    const scene = isoScene(
+      page([
+        { x: 0, y: 0 },
+        { style: `${STYLE}spatial.sign=0;`, x: 100, y: 0, value: 'Client' },
+      ]),
+    );
+    for (const id of ['a0', 'a1']) expect(element(scene.root, id).getObjectByName('sign')).toBeUndefined();
   });
 
   it('spatial.height : hauteur debout, proportions gardées', () => {

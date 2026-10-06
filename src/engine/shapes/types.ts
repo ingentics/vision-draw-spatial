@@ -104,6 +104,8 @@ export type ShapeProperty =
       key: string;
       label: string;
       section: PropertySection;
+      /** Cochée quand la clé est absente (décocher écrit `0`, recocher retire la clé). Défaut : décochée. */
+      checkedByDefault?: boolean;
     }
   | {
       type: 'number';

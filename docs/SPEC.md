@@ -389,8 +389,10 @@ Ajouter une forme = **déposer son dossier** (au minimum `kind` et `flat`, idéa
 - **Actor** (`shape=umlActor`, palette « Général », 30 × 60) : le bonhomme de draw.io en 2D (tête remplie, traits),
   label sous la forme ; en iso / 3D, pas d'extrusion : il se tient **debout face à la caméra** (silhouette dans un
   plan vertical, pieds au centre de l'emprise, hauteur de la forme ou `spatial.height`), tourné à chaque image vers
-  la caméra, exactement en perspective (`userData.billboard`, `render/billboard.ts`) ; label au sol ; se clique sur
-  toute sa hauteur et reçoit les flèches sur ses bornes (`outlineConnect=0`).
+  la caméra, exactement en perspective (`userData.billboard`, `render/billboard.ts`) ; il tient son texte sur une
+  **pancarte** entre ses mains (texte ajusté au panneau ; case « Pancarte en iso / 3D » du panneau, `spatial.sign=0` :
+  label au sol) ; seule sa silhouette se clique (tête, traits, pancarte), sélection = cercle autour de la tête ; il
+  reçoit les flèches sur ses bornes (`outlineConnect=0`).
 - **Géométrie** (formes natives de draw.io, dessinées comme draw.io en 2D, prisme du contour en iso / 3D, palette
   « Géométrie ») : losange (`rhombus`), hexagone (`shape=hexagon`, pans de `size` px avec `fixedSize=1`, sinon
   fraction de la largeur ; périmètre `hexagonPerimeter2`), octogone (`shape=mxgraph.basic.octagon2`, coins coupés de
@@ -830,6 +832,7 @@ Réalisation retenue (`engine/spatial.ts`) :
 | `spatial.height` | style ou objet | Épaisseur du volume en iso, en pixels de page (défaut : réglage « Épaisseur ») |
 | `spatial.elevation` | style ou objet | La forme flotte à cette hauteur au-dessus de sa base (sol, ou dessus de son conteneur) |
 | `spatial.tag` | style ou objet | Étiquette des façades d'un bâtiment iso (BDD, file, cache) : remplace « DB », « QUEUE », « CACHE » ; vide = aucune. Mot de la tranche d'un process étiqueté (event consumer, tâches, process étiqueté) : remplace « CONSUMER », « TASK », « CRON », « PROCESS » ; vide = le mot par défaut |
+| `spatial.sign` | style ou objet | Actor en iso / 3D : `0` = pas de pancarte, texte posé au sol ; absent = il tient son texte sur une pancarte |
 | `spatial.nodes` | style ou objet | Cache distribué (`shape=datastore`) : nombre de disques empilés en iso / 3D (3 par défaut, 1–12) |
 | `spatial.labelFollow` | style de la flèche | `1` : texte du milieu posé le long du trait de la flèche, lettre par lettre (jamais à l'envers) ; absent = horizontal, comme dans draw.io |
 | `spatial.labelFollowShift` | style de la flèche | Texte du milieu qui suit la flèche : glissement le long du trait, en px (positif = vers la fin, négatif = vers le début) ; sans effet sans `spatial.labelFollow` |

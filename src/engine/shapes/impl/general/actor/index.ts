@@ -8,6 +8,7 @@ import { fillMesh, strokeMesh } from '../../../../render/meshes';
 import { styleColor, styleNumber, styleOpacity } from '../../../../render/styleValues';
 import { PART_ORDER } from '../../../../render/types';
 import type { RenderContext } from '../../../../render/types';
+import { SPATIAL } from '../../../../spatial';
 import type { ShapeDefinition } from '../../../types';
 import { actorFigure } from './figure';
 import { actorHeight, standingActor } from './standing';
@@ -55,7 +56,8 @@ function flatActor(shape: ShapeModel, ctx: RenderContext): Group {
 
 /**
  * Actor (`shape=umlActor`) : le bonhomme de draw.io en 2D ; en iso / 3D, debout face à la caméra (pas
- * d'extrusion), pieds au centre de son emprise. Bonhomme fin : il se clique et reçoit les flèches sur ses bornes
+ * d'extrusion), pieds au centre de son emprise, son texte sur une pancarte entre ses mains (`spatial.sign=0` : au sol).
+ * Bonhomme fin : il se clique et reçoit les flèches sur ses bornes
  * (`outlineConnect=0` dans draw.io).
  */
 export const definition: ShapeDefinition = {
@@ -65,6 +67,9 @@ export const definition: ShapeDefinition = {
   iso: standingActor,
   volumeHeight: actorHeight,
   contains: () => true,
+  properties: [
+    { type: 'toggle', key: SPATIAL.sign, label: 'Pancarte en iso / 3D', section: 'shape', checkedByDefault: true },
+  ],
   minimap(context, shape, map) {
     const { x, y, width, height } = shape.bounds;
     const figure = actorFigure(width, height);

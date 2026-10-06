@@ -68,6 +68,18 @@ export class Picking {
       ),
       height: (object.position.z + p.y) * scale,
     });
+    // Pancarte tenue devant le corps : prise sur toute sa surface, plus près de la caméra que le corps.
+    const sign = silhouette.userData.sign as Rect | undefined;
+    if (sign) {
+      const { x, y, width, height } = sign;
+      const corners = [
+        { x, y },
+        { x: x + width, y },
+        { x: x + width, y: y + height },
+        { x, y: y + height },
+      ];
+      if (insidePolygon(corners.map(toScreen), screen)) return { at: toScreen({ x: 0, y: y + height }).height };
+    }
     const outline = ellipsePath(head, 24);
     if (insidePolygon(outline.map(toScreen), screen))
       return { at: toScreen({ x: 0, y: head.y + head.height / 2 }).height };

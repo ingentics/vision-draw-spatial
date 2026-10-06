@@ -23,6 +23,8 @@ export const SPATIAL = {
   elevation: 'spatial.elevation',
   /** Étiquette des façades d'un bâtiment iso (BDD, queue, cache) : remplace « DB »… ; vide = aucune. */
   tag: 'spatial.tag',
+  /** Actor en iso / 3D : `0` = pas de pancarte (texte au sol) ; absent = il tient son texte sur une pancarte. */
+  sign: 'spatial.sign',
   /** Nombre de nœuds d'un cache distribué : disques empilés en iso (réglage déclaré par `shapes/datastore`). */
   nodes: 'spatial.nodes',
   /**
