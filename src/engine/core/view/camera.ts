@@ -10,16 +10,37 @@ import {
   tiltFromElevation,
   zoomAt,
 } from '../../interaction/camera';
-import type { CameraState, ViewMode } from '../../interaction/camera';
+import type { CameraLimits, CameraState, ViewMode } from '../../interaction/camera';
 import type { Point, Rect } from '../../model/types';
+import type { Settings } from '../../settings';
 import type { EngineCore } from '../EngineCore';
 
 /** Caméra de la page affichée (SPEC §9) : état, animations, cadrages, vue globale, orientation de référence. */
 export class ViewCamera {
   state: CameraState = { mode: 'top', center: { x: 0, y: 0 }, zoom: 1, rotation: 0, tilt: 0 };
   animation = 0;
+  private limitsCache: { camera: Settings['camera']; limits: CameraLimits } | undefined;
 
   constructor(private readonly core: EngineCore) {}
+
+  /** Bornes de la caméra de ce moteur (paramètres « Caméra »). */
+  get limits(): CameraLimits {
+    const camera = this.core.settings.camera;
+    if (this.limitsCache?.camera !== camera) {
+      this.limitsCache = {
+        camera,
+        limits: {
+          minZoom: camera.minZoom,
+          maxZoom: camera.maxZoom,
+          minZoom3d: camera.minZoom3d,
+          maxZoom3d: camera.maxZoom3d,
+          maxTilt3d: (camera.maxTilt3dDeg * Math.PI) / 180,
+          fov: (camera.fovDeg * Math.PI) / 180,
+        },
+      };
+    }
+    return this.limitsCache.limits;
+  }
 
   focusElement(pageId: string, elementId: string): void {
     if (this.core.pages.currentPageId !== pageId) this.core.pages.goToPage(pageId);
@@ -32,6 +53,7 @@ export class ViewCamera {
         ...this.orientation(),
         padding: this.core.settings.camera.focusPadding,
         maxZoom: this.core.settings.camera.focusMaxZoom,
+        limits: this.limits,
       }),
     );
   }
@@ -46,14 +68,14 @@ export class ViewCamera {
       this.core.display.pendingFit = bounds;
       return;
     }
-    this.setCameraState(fitBounds(bounds, this.core.display.viewport, orientation));
+    this.setCameraState(fitBounds(bounds, this.core.display.viewport, { ...orientation, limits: this.limits }));
   }
 
   setCameraState(state: CameraState): void {
     cancelAnimationFrame(this.animation);
     this.animation = 0;
     this.core.levels.endLevelBlend();
-    this.applyCamera(settleProjection(normalizeCameraState(state)));
+    this.applyCamera(settleProjection(normalizeCameraState(state, this.limits), this.limits));
   }
 
   animateCameraTo(target: CameraState, durationMs = this.core.settings.camera.animationMs, blendLevels = false): void {
@@ -66,7 +88,7 @@ export class ViewCamera {
     if (blendLevels && this.core.settings.view.isoVolume && !this.core.viewModes.flattened)
       this.core.levels.levelBlend = {};
     const from = this.state;
-    const to = normalizeCameraState(target);
+    const to = normalizeCameraState(target, this.limits);
     const start = performance.now();
     const step = (now: number) => {
       const t = Math.min((now - start) / durationMs, 1);
@@ -85,6 +107,7 @@ export class ViewCamera {
     return fitBounds(page.bounds, this.core.display.viewport, {
       ...this.orientation(),
       maxZoom: this.core.settings.camera.maxZoom,
+      limits: this.limits,
     });
   }
 
@@ -94,7 +117,7 @@ export class ViewCamera {
     const current = this.state;
     if (sameView(current, overview, this.core.display.viewport)) {
       const anchor = screen ?? { x: this.core.display.viewport.width / 2, y: this.core.display.viewport.height / 2 };
-      this.animateCameraTo(zoomAt(current, this.core.display.viewport, anchor, 1 / current.zoom));
+      this.animateCameraTo(zoomAt(current, this.core.display.viewport, anchor, 1 / current.zoom, this.limits));
     } else {
       this.animateCameraTo(overview);
     }
@@ -105,7 +128,10 @@ export class ViewCamera {
     const previousZoom = this.state.zoom;
     const previousLevel = this.core.levels.requestedLevel();
     // Pendant une transition, la page courante est l'extérieure : la destination est déjà ramenée à ses modes permis.
-    this.state = normalizeCameraState(this.core.transitions.active ? state : this.core.viewModes.constrain(state));
+    this.state = normalizeCameraState(
+      this.core.transitions.active ? state : this.core.viewModes.constrain(state),
+      this.limits,
+    );
     // Changement de niveau (mode, ou fin d'une bascule vers la 2D) : la page passe au rendu de ce
     // niveau (même scène si tout est à plat).
     let sceneChanged = false;
@@ -156,7 +182,9 @@ export class ViewCamera {
     const page = this.core.pages.getCurrentPage();
     if (!page || this.core.transitions.active) return;
     const { mode } = this.state;
-    this.animateCameraTo(defaultView(page.bounds, this.core.display.viewport, mode, this.isoTilt(), this.isoAzimuth()));
+    this.animateCameraTo(
+      defaultView(page.bounds, this.core.display.viewport, mode, this.isoTilt(), this.isoAzimuth(), this.limits),
+    );
   }
 
   resetRotation(): void {

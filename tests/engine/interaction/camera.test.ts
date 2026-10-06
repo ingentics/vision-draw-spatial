@@ -4,6 +4,7 @@ import {
   defaultView,
   applyCameraState,
   applyPerspectiveState,
+  DEFAULT_CAMERA_LIMITS,
   dragGround,
   FLAT_FOV,
   fitBounds,
@@ -26,7 +27,7 @@ import {
   withViewMode,
   zoomAt,
 } from '../../../src/engine/interaction/camera';
-import type { CameraState } from '../../../src/engine/interaction/camera';
+import type { CameraLimits, CameraState } from '../../../src/engine/interaction/camera';
 
 const viewport = { width: 800, height: 600 };
 const state = (patch: Partial<CameraState> = {}): CameraState => ({
@@ -446,5 +447,30 @@ describe('vue par défaut (bouton Réinitialiser la vue)', () => {
     expect(view.fov).toBeDefined();
     expect(view.rotation).toBeCloseTo(azimuth);
     expect(view.zoom).toBeLessThanOrEqual(1);
+  });
+});
+
+describe('bornes de caméra propres à chaque moteur (sujet 204)', () => {
+  const custom: CameraLimits = {
+    ...DEFAULT_CAMERA_LIMITS,
+    maxZoom: 3,
+    maxZoom3d: 2,
+    maxTilt3d: (30 * Math.PI) / 180,
+    fov: (60 * Math.PI) / 180,
+  };
+
+  it('les bornes passées en paramètre s’appliquent, sans toucher aux bornes par défaut', () => {
+    const center = { x: 400, y: 300 };
+    expect(zoomAt(state({ zoom: 2 }), viewport, center, 10, custom).zoom).toBe(3);
+    expect(zoomAt(state({ zoom: 2 }), viewport, center, 10).zoom).toBe(DEFAULT_CAMERA_LIMITS.maxZoom);
+    const view3d = withViewMode(state({ zoom: 8 }), '3d', 0.5, 0, custom);
+    expect(view3d.zoom).toBe(2);
+    expect(view3d.fov).toBe(custom.fov);
+    expect(withViewMode(state({ zoom: 8 }), '3d', 0.5).fov).toBe(PERSPECTIVE_FOV);
+    expect(orbit(view3d, 0, 1, custom).tilt).toBeCloseTo(custom.maxTilt3d);
+    expect(orbit(view3d, 0, 1).tilt).toBeCloseTo(MAX_TILT_3D);
+    expect(settleProjection(state({ mode: '3d' }), custom).fov).toBe(custom.fov);
+    expect(normalizeCameraState(state({ zoom: 50 }), custom).zoom).toBe(3);
+    expect(normalizeCameraState(state({ zoom: 50 })).zoom).toBe(DEFAULT_CAMERA_LIMITS.maxZoom);
   });
 });

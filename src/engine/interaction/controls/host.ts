@@ -1,5 +1,5 @@
 import type { Point, Rect } from '../../model/types';
-import type { CameraState, Viewport } from '../camera';
+import type { CameraLimits, CameraState, Viewport } from '../camera';
 
 /** Touches de modification maintenues (voir `CameraHost.heldKeys`). */
 export interface HeldKeys {
@@ -12,6 +12,8 @@ export interface CameraHost {
   getCameraState(): CameraState;
   setCameraState(state: CameraState): void;
   getViewport(): Viewport;
+  /** Bornes de la caméra (zoom, inclinaison) ; absent : bornes par défaut. */
+  getCameraLimits?(): CameraLimits;
   /** Bascule vue globale ↔ 1:1, autour du point écran donné. */
   toggleOverview(screen?: Point): void;
   /**

@@ -53,8 +53,8 @@ export const MAX_ZOOM_3D = 4;
 export const MAX_TILT_3D = (65 * Math.PI) / 180;
 
 /**
- * Bornes en vigueur (paramètres « Caméra », SPEC §13), les constantes ci-dessus par défaut. Réglage
- * du module, commun à toutes les vues de la page : `setCameraLimits` les remplace.
+ * Bornes de la caméra (paramètres « Caméra », SPEC §13). Propres à chaque moteur (`ViewCamera.limits`) : les
+ * fonctions qui en dépendent les reçoivent en dernier paramètre, les constantes ci-dessus par défaut.
  */
 export interface CameraLimits {
   minZoom: number;
@@ -67,7 +67,7 @@ export interface CameraLimits {
   fov: number;
 }
 
-const limits: CameraLimits = {
+export const DEFAULT_CAMERA_LIMITS: Readonly<CameraLimits> = {
   minZoom: MIN_ZOOM,
   maxZoom: MAX_ZOOM,
   minZoom3d: MIN_ZOOM_3D,
@@ -76,39 +76,34 @@ const limits: CameraLimits = {
   fov: PERSPECTIVE_FOV,
 };
 
-export function setCameraLimits(next: CameraLimits): void {
-  Object.assign(limits, next);
-}
-
-export function getCameraLimits(): CameraLimits {
-  return { ...limits };
-}
-
 /** Inclinaison correspondant à une élévation de la caméra au-dessus du sol (SPEC §13 `isoAngleDeg`). */
 export function tiltFromElevation(elevationDeg: number): number {
   return clampTilt(((90 - elevationDeg) * Math.PI) / 180);
 }
 
-/** Zoom borné ; plus resserré en vue 3D (bornes en vigueur, `setCameraLimits`). */
-export function clampZoom(zoom: number, mode?: ViewMode): number {
+/** Zoom borné ; plus resserré en vue 3D. */
+export function clampZoom(zoom: number, mode?: ViewMode, limits: CameraLimits = DEFAULT_CAMERA_LIMITS): number {
   return mode === '3d'
     ? Math.min(limits.maxZoom3d, Math.max(limits.minZoom3d, zoom))
     : Math.min(limits.maxZoom, Math.max(limits.minZoom, zoom));
 }
 
-export function clampTilt(tilt: number, mode?: ViewMode): number {
+export function clampTilt(tilt: number, mode?: ViewMode, limits: CameraLimits = DEFAULT_CAMERA_LIMITS): number {
   return Math.min(mode === '3d' ? limits.maxTilt3d : MAX_TILT, Math.max(0, tilt));
 }
 
 /** Complète un état partiel ou ancien (ex. restauré depuis le stockage, sans `rotation` ni `tilt`). */
-export function normalizeCameraState(state: Partial<CameraState> & Pick<CameraState, 'center' | 'zoom'>): CameraState {
-  const tilt = clampTilt(state.tilt ?? 0);
+export function normalizeCameraState(
+  state: Partial<CameraState> & Pick<CameraState, 'center' | 'zoom'>,
+  limits: CameraLimits = DEFAULT_CAMERA_LIMITS,
+): CameraState {
+  const tilt = clampTilt(state.tilt ?? 0, undefined, limits);
   const mode = state.mode ?? (tilt > 0 ? 'iso' : 'top');
   const fov = state.fov ?? (mode === '3d' ? limits.fov : undefined);
   return {
     mode,
     center: { x: state.center.x, y: state.center.y },
-    zoom: clampZoom(state.zoom),
+    zoom: clampZoom(state.zoom, undefined, limits),
     rotation: normalizeAngle(state.rotation ?? 0),
     tilt,
     ...(fov === undefined ? {} : { fov: Math.min(limits.fov, Math.max(FLAT_FOV, fov)) }),
@@ -120,14 +115,17 @@ export function normalizeCameraState(state: Partial<CameraState> & Pick<CameraSt
  * (une bascule interrompue ne laisse pas une perspective intermédiaire), et en 2D ni rotation
  * ni inclinaison (nord en haut, à la verticale, comme draw.io).
  */
-export function settleProjection(state: CameraState): CameraState {
+export function settleProjection(state: CameraState, limits: CameraLimits = DEFAULT_CAMERA_LIMITS): CameraState {
   const { fov: _fov, ...rest } = state;
   if (state.mode === '3d') return { ...rest, fov: limits.fov };
   return state.mode === 'top' ? { ...rest, rotation: 0, tilt: 0 } : rest;
 }
 
 /** Avancement de la perspective : 0 en orthographique (ou `FLAT_FOV`), 1 en vue 3D. */
-export function perspectiveAmount(state: Pick<CameraState, 'fov'>): number {
+export function perspectiveAmount(
+  state: Pick<CameraState, 'fov'>,
+  limits: CameraLimits = DEFAULT_CAMERA_LIMITS,
+): number {
   return state.fov === undefined ? 0 : (state.fov - FLAT_FOV) / (limits.fov - FLAT_FOV);
 }
 
@@ -166,12 +164,20 @@ export function verticalScale(state: Pick<CameraState, 'tilt'>): number {
 export function fitBounds(
   bounds: Rect,
   viewport: Viewport,
-  options: { padding?: number; maxZoom?: number; rotation?: number; tilt?: number; mode?: ViewMode } = {},
+  options: {
+    padding?: number;
+    maxZoom?: number;
+    rotation?: number;
+    tilt?: number;
+    mode?: ViewMode;
+    limits?: CameraLimits;
+  } = {},
 ): CameraState {
+  const limits = options.limits ?? DEFAULT_CAMERA_LIMITS;
   const padding = options.padding ?? 40;
   const maxZoom = options.maxZoom ?? 1;
   const rotation = normalizeAngle(options.rotation ?? 0);
-  const tilt = clampTilt(options.tilt ?? 0, options.mode);
+  const tilt = clampTilt(options.tilt ?? 0, options.mode, limits);
   const center = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
 
   // Dimensions de l'emprise vue à l'écran : projection des demi-diagonales sur les axes écran.
@@ -188,8 +194,14 @@ export function fitBounds(
       ? Math.min(availableWidth / Math.max(screenWidth, 1e-6), availableHeight / Math.max(screenHeight, 1e-6), maxZoom)
       : maxZoom;
   if (options.mode === '3d')
-    return fitPerspective(bounds, viewport, { center, zoom, rotation, tilt, padding, maxZoom });
-  return { mode: options.mode ?? (tilt > 0 ? 'iso' : 'top'), center, zoom: clampZoom(zoom), rotation, tilt };
+    return fitPerspective(bounds, viewport, { center, zoom, rotation, tilt, padding, maxZoom }, limits);
+  return {
+    mode: options.mode ?? (tilt > 0 ? 'iso' : 'top'),
+    center,
+    zoom: clampZoom(zoom, undefined, limits),
+    rotation,
+    tilt,
+  };
 }
 
 /**
@@ -200,6 +212,7 @@ function fitPerspective(
   bounds: Rect,
   viewport: Viewport,
   fit: { center: Point; zoom: number; rotation: number; tilt: number; padding: number; maxZoom: number },
+  limits: CameraLimits,
 ): CameraState {
   const availableWidth = Math.max(viewport.width - 2 * fit.padding, 1);
   const availableHeight = Math.max(viewport.height - 2 * fit.padding, 1);
@@ -212,7 +225,7 @@ function fitPerspective(
   let state: CameraState = {
     mode: '3d',
     center: fit.center,
-    zoom: clampZoom(fit.zoom, '3d'),
+    zoom: clampZoom(fit.zoom, '3d', limits),
     rotation: fit.rotation,
     tilt: fit.tilt,
     fov: limits.fov,
@@ -230,7 +243,7 @@ function fitPerspective(
       availableWidth / Math.max(2 * halfWidth, 1e-6),
       availableHeight / Math.max(2 * halfHeight, 1e-6),
     );
-    const zoom = clampZoom(Math.min(state.zoom * factor, fit.maxZoom), '3d');
+    const zoom = clampZoom(Math.min(state.zoom * factor, fit.maxZoom), '3d', limits);
     if (Math.abs(zoom - state.zoom) / state.zoom < 1e-3) break;
     state = { ...state, zoom };
   }
@@ -247,14 +260,16 @@ export function defaultView(
   mode: ViewMode,
   isoTilt: number,
   isoAzimuth = 0,
+  limits: CameraLimits = DEFAULT_CAMERA_LIMITS,
 ): CameraState {
   const reference = withViewMode(
     { mode: 'top', center: { x: 0, y: 0 }, zoom: 1, rotation: 0, tilt: 0 },
     mode,
     isoTilt,
     isoAzimuth,
+    limits,
   );
-  return fitBounds(bounds, viewport, { rotation: reference.rotation, tilt: reference.tilt, mode });
+  return fitBounds(bounds, viewport, { rotation: reference.rotation, tilt: reference.tilt, mode, limits });
 }
 
 /** Deux états sont-ils (quasiment) la même vue ? */
@@ -325,7 +340,12 @@ export function applyCameraState(camera: OrthographicCamera, state: CameraState,
 }
 
 /** Applique l'état (avec `fov`) à une caméra en perspective, placée à la distance qui donne le zoom au centre. */
-export function applyPerspectiveState(camera: PerspectiveCamera, state: CameraState, viewport: Viewport): void {
+export function applyPerspectiveState(
+  camera: PerspectiveCamera,
+  state: CameraState,
+  viewport: Viewport,
+  limits: CameraLimits = DEFAULT_CAMERA_LIMITS,
+): void {
   const fov = state.fov ?? limits.fov;
   const distance = focalLength(fov, viewport) / state.zoom;
   camera.fov = (fov * 180) / Math.PI;
@@ -387,7 +407,7 @@ function cameraFrame(state: CameraState, distance: number): { position: Vec3; fo
  * plan horizontal à `height` au-dessus du sol (0 = le sol).
  */
 export function screenToPage(state: CameraState, viewport: Viewport, screen: Point, height = 0): Point {
-  if (state.fov !== undefined) return perspectiveScreenToPage(state, viewport, screen, height);
+  if (state.fov !== undefined) return perspectiveScreenToPage(state, state.fov, viewport, screen, height);
   const { right, down } = screenAxes(state.rotation);
   const sx = (screen.x - viewport.width / 2) / state.zoom;
   const sy = (screen.y - viewport.height / 2) / (state.zoom * verticalScale(state));
@@ -401,7 +421,7 @@ export function screenToPage(state: CameraState, viewport: Viewport, screen: Poi
 
 /** Point écran d'un point de la page posé à `height` au-dessus du sol (inverse de `screenToPage`). */
 export function pageToScreen(state: CameraState, viewport: Viewport, page: Point, height = 0): Point {
-  if (state.fov !== undefined) return perspectivePageToScreen(state, viewport, page, height);
+  if (state.fov !== undefined) return perspectivePageToScreen(state, state.fov, viewport, page, height);
   const { right, down } = screenAxes(state.rotation);
   const shift = height * Math.tan(state.tilt);
   const dx = page.x - shift * down.x - state.center.x;
@@ -413,8 +433,14 @@ export function pageToScreen(state: CameraState, viewport: Viewport, page: Point
 }
 
 /** Rayon de vue du pixel, coupé par le plan horizontal `height` (au-dessus de l'horizon : point lointain). */
-function perspectiveScreenToPage(state: CameraState, viewport: Viewport, screen: Point, height: number): Point {
-  const focal = focalLength(state.fov ?? limits.fov, viewport);
+function perspectiveScreenToPage(
+  state: CameraState,
+  fov: number,
+  viewport: Viewport,
+  screen: Point,
+  height: number,
+): Point {
+  const focal = focalLength(fov, viewport);
   const frame = cameraFrame(state, focal / state.zoom);
   const u = screen.x - viewport.width / 2;
   const v = screen.y - viewport.height / 2;
@@ -429,8 +455,14 @@ function perspectiveScreenToPage(state: CameraState, viewport: Viewport, screen:
   return { x: frame.position.x + t * dir.x, y: frame.position.z + t * dir.z };
 }
 
-function perspectivePageToScreen(state: CameraState, viewport: Viewport, page: Point, height: number): Point {
-  const focal = focalLength(state.fov ?? limits.fov, viewport);
+function perspectivePageToScreen(
+  state: CameraState,
+  fov: number,
+  viewport: Viewport,
+  page: Point,
+  height: number,
+): Point {
+  const focal = focalLength(fov, viewport);
   const distance = focal / state.zoom;
   const frame = cameraFrame(state, distance);
   const rel = { x: page.x - frame.position.x, y: height - frame.position.y, z: page.y - frame.position.z };
@@ -478,9 +510,15 @@ export function dragGround(state: CameraState, viewport: Viewport, from: Point, 
 }
 
 /** Zoom multiplicatif en gardant fixe le point de la page sous `screen` (molette centrée sur le curseur). */
-export function zoomAt(state: CameraState, viewport: Viewport, screen: Point, factor: number): CameraState {
+export function zoomAt(
+  state: CameraState,
+  viewport: Viewport,
+  screen: Point,
+  factor: number,
+  limits: CameraLimits = DEFAULT_CAMERA_LIMITS,
+): CameraState {
   const anchor = screenToPage(state, viewport, screen);
-  const zoomed = { ...state, zoom: clampZoom(state.zoom * factor, state.mode) };
+  const zoomed = { ...state, zoom: clampZoom(state.zoom * factor, state.mode, limits) };
   return { ...zoomed, center: centerKeeping(zoomed, viewport, anchor, screen) };
 }
 
@@ -492,9 +530,15 @@ export function rotateAround(state: CameraState, viewport: Viewport, screen: Poi
 }
 
 /** Incline la vue (mode iso) en gardant fixe le point du sol sous `screen`. */
-export function tiltAround(state: CameraState, viewport: Viewport, screen: Point, delta: number): CameraState {
+export function tiltAround(
+  state: CameraState,
+  viewport: Viewport,
+  screen: Point,
+  delta: number,
+  limits: CameraLimits = DEFAULT_CAMERA_LIMITS,
+): CameraState {
   const anchor = screenToPage(state, viewport, screen);
-  const tilted = { ...state, tilt: clampTilt(state.tilt + delta, state.mode) };
+  const tilted = { ...state, tilt: clampTilt(state.tilt + delta, state.mode, limits) };
   return { ...tilted, center: centerKeeping(tilted, viewport, anchor, screen) };
 }
 
@@ -502,11 +546,16 @@ export function tiltAround(state: CameraState, viewport: Viewport, screen: Point
  * Orbite autour du centre de l'écran (glisser clic droit, iso et 3D), comme dans un jeu de
  * construction. `rotate` tourne autour de la verticale, `tilt` incline (borné selon le mode).
  */
-export function orbit(state: CameraState, rotate: number, tilt: number): CameraState {
+export function orbit(
+  state: CameraState,
+  rotate: number,
+  tilt: number,
+  limits: CameraLimits = DEFAULT_CAMERA_LIMITS,
+): CameraState {
   return {
     ...state,
     rotation: normalizeAngle(state.rotation + rotate),
-    tilt: clampTilt(state.tilt + tilt, state.mode),
+    tilt: clampTilt(state.tilt + tilt, state.mode, limits),
   };
 }
 
@@ -516,14 +565,20 @@ export function orbit(state: CameraState, rotate: number, tilt: number): CameraS
  * l'isométrie vraie) en venant de la 2D ou de la 3D ; la 3D garde l'orientation de l'iso, et part
  * de l'azimut iso en venant de la 2D. Rester dans le même mode garde la rotation choisie.
  */
-export function withViewMode(state: CameraState, mode: ViewMode, isoTilt: number, isoAzimuth = 0): CameraState {
+export function withViewMode(
+  state: CameraState,
+  mode: ViewMode,
+  isoTilt: number,
+  isoAzimuth = 0,
+  limits: CameraLimits = DEFAULT_CAMERA_LIMITS,
+): CameraState {
   const { fov: _fov, ...base } = state;
   if (mode === 'top') return { ...base, mode, rotation: 0, tilt: 0 };
   const rotation =
     state.mode === 'top' || (mode === 'iso' && state.mode === '3d') ? normalizeAngle(isoAzimuth) : state.rotation;
   if (mode === '3d') {
-    const tilt = clampTilt(state.mode === '3d' ? state.tilt : isoTilt, '3d');
-    return { ...base, mode, rotation, tilt, zoom: clampZoom(state.zoom, '3d'), fov: limits.fov };
+    const tilt = clampTilt(state.mode === '3d' ? state.tilt : isoTilt, '3d', limits);
+    return { ...base, mode, rotation, tilt, zoom: clampZoom(state.zoom, '3d', limits), fov: limits.fov };
   }
-  return { ...base, mode, rotation, tilt: clampTilt(isoTilt, mode) };
+  return { ...base, mode, rotation, tilt: clampTilt(isoTilt, mode, limits) };
 }

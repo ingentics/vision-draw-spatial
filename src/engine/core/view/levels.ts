@@ -37,7 +37,7 @@ export class Levels {
     const scene = this.core.scenes.current;
     if (!scene || scene.level !== 'iso' || this.core.transitions.active) return;
     const tilted = this.core.camera.state.tilt / Math.max(this.core.camera.isoTilt(), 1e-6);
-    const scale = Math.min(1, Math.max(0, tilted, perspectiveAmount(this.core.camera.state)));
+    const scale = Math.min(1, Math.max(0, tilted, perspectiveAmount(this.core.camera.state, this.core.camera.limits)));
     this.heightScale = scale;
     setPageTransform(scene.root, undefined, scale);
     this.blendLevels(scene, scale);

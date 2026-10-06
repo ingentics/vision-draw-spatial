@@ -50,15 +50,18 @@ export class DocumentFile {
     this.core.links.linkUsage = { ...initialView?.linkUsage };
     // Vues enregistrées dans le fichier, remplacées par celles mémorisées localement (plus récentes).
     const fileViews = readPageViews(tree);
+    const { limits } = this.core.camera;
     this.core.pages.pageIso = new Map(
       [...fileViews].flatMap(([id, view]) => (view.iso ? [[id, view.iso] as const] : [])),
     );
-    this.core.pages.pageCameras = new Map([...fileViews].map(([id, view]) => [id, normalizeCameraState(view.camera)]));
+    this.core.pages.pageCameras = new Map(
+      [...fileViews].map(([id, view]) => [id, normalizeCameraState(view.camera, limits)]),
+    );
     for (const [id, camera] of Object.entries(initialView?.cameraByPage ?? {})) {
-      this.core.pages.pageCameras.set(id, normalizeCameraState(camera));
+      this.core.pages.pageCameras.set(id, normalizeCameraState(camera, limits));
     }
     if (initialView?.pageId && initialView.camera) {
-      this.core.pages.pageCameras.set(initialView.pageId, normalizeCameraState(initialView.camera));
+      this.core.pages.pageCameras.set(initialView.pageId, normalizeCameraState(initialView.camera, limits));
     }
     this.core.events.emit('load', document, fileId);
     const page = (initialView?.pageId && this.core.pages.pageById(initialView.pageId)) || document.pages[0];

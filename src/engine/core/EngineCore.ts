@@ -157,6 +157,7 @@ export class EngineCore {
         this.settings.view.defaultMode,
         this.camera.isoTilt(),
         this.camera.isoAzimuth(),
+        this.camera.limits,
       );
     }
     this.links = new Links(this, options.openUrl);

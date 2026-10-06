@@ -58,7 +58,7 @@ export class Drift {
       return;
     }
     let next = panByScreen(state, { x: this.velocity.x * dt, y: this.velocity.y * dt });
-    if (this.spin !== 0) next = orbit(next, (this.spin * Math.PI * dt) / 180, 0);
+    if (this.spin !== 0) next = orbit(next, (this.spin * Math.PI * dt) / 180, 0, host.getCameraLimits?.());
     host.setCameraState(next);
     this.frame = requestAnimationFrame(this.tick);
   };

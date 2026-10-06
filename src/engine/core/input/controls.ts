@@ -9,6 +9,7 @@ export function createCameraController(core: EngineCore): CameraController {
       getCameraState: () => core.camera.state,
       setCameraState: (state) => core.camera.setCameraState(state),
       getViewport: () => core.display.viewport,
+      getCameraLimits: () => core.camera.limits,
       toggleOverview: (screen) => core.camera.toggleOverview(screen),
       click: (screen, options) => core.pointer.handleClick(screen, options.toggle, options.followLink),
       doubleClick: (screen, options) => core.pointer.handleDoubleClick(screen, options.followLink),

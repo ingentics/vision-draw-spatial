@@ -40,7 +40,13 @@ export class ViewModes {
       if (!this.core.modes.modeOf(page)?.viewModes) this.chosenMode = mode;
       return state;
     }
-    return withViewMode(state, mode, this.core.camera.isoTilt(), this.core.camera.isoAzimuth());
+    return withViewMode(
+      state,
+      mode,
+      this.core.camera.isoTilt(),
+      this.core.camera.isoAzimuth(),
+      this.core.camera.limits,
+    );
   }
 
   /**
@@ -53,6 +59,7 @@ export class ViewModes {
       this.chosenMode ?? this.core.camera.state.mode,
       this.core.camera.isoTilt(),
       this.core.camera.isoAzimuth(),
+      this.core.camera.limits,
     );
     return { mode, rotation, tilt };
   }
@@ -75,7 +82,13 @@ export class ViewModes {
     // Entre la 2D (à plat) et l'iso / la 3D (volumes) : fondu enchaîné des deux rendus.
     const crossesFlat = (this.core.camera.state.mode === 'top') !== (mode === 'top');
     this.core.camera.animateCameraTo(
-      withViewMode(this.core.camera.state, mode, this.core.camera.isoTilt(), this.core.camera.isoAzimuth()),
+      withViewMode(
+        this.core.camera.state,
+        mode,
+        this.core.camera.isoTilt(),
+        this.core.camera.isoAzimuth(),
+        this.core.camera.limits,
+      ),
       this.core.settings.view.switchDurationMs,
       crossesFlat,
     );

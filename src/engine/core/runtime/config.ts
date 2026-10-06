@@ -1,4 +1,4 @@
-import { setCameraLimits, normalizeAngle, sameView } from '../../interaction/camera';
+import { normalizeAngle, sameView } from '../../interaction/camera';
 import type { ControlSettings } from '../../interaction/controls';
 import { DEFAULT_SETTINGS, mergeSettings, resolveReducedMotion } from '../../settings';
 import type { PreloadSettings, Settings, SettingsPatch, TransitionSettings, ViewSettings } from '../../settings';
@@ -22,7 +22,6 @@ export class Config {
       ? mergeSettings(DEFAULT_SETTINGS, { background: { color: options.background } })
       : DEFAULT_SETTINGS;
     this.settings = mergeSettings(initial, options.settings);
-    this.applyCameraLimits();
     this.reducedMotionQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)');
     this.reducedMotionQuery?.addEventListener?.('change', this.onReducedMotionChange);
   }
@@ -61,7 +60,6 @@ export class Config {
     this.core.highlight.update();
     const changed = <K extends keyof Settings>(section: K) =>
       JSON.stringify(this.settings[section]) !== JSON.stringify(previous[section]);
-    if (changed('camera')) this.applyCameraLimits();
     if (changed('graph') || this.settings.selection.accentColor !== previous.selection.accentColor)
       this.core.graph.invalidate();
     if (
@@ -103,19 +101,6 @@ export class Config {
         this.core.camera.animateCameraTo(target, view.switchDurationMs);
     }
     this.core.events.emit('settingsChange', this.getSettings());
-  }
-
-  /** Bornes de la caméra (zoom, inclinaison et champ de vision de la 3D) : paramètres « Caméra ». */
-  private applyCameraLimits(): void {
-    const camera = this.settings.camera;
-    setCameraLimits({
-      minZoom: camera.minZoom,
-      maxZoom: camera.maxZoom,
-      minZoom3d: camera.minZoom3d,
-      maxZoom3d: camera.maxZoom3d,
-      maxTilt3d: (camera.maxTilt3dDeg * Math.PI) / 180,
-      fov: (camera.fovDeg * Math.PI) / 180,
-    });
   }
 
   reducedMotion(): boolean {

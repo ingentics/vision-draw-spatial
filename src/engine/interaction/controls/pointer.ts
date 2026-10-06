@@ -61,7 +61,9 @@ export class PointerControls {
     this.drift.stop();
     const viewport = host.getViewport();
     const factor = wheelZoomFactor(event, this.ctx.settings.zoomSpeed, viewport.height);
-    host.setCameraState(zoomAt(host.getCameraState(), viewport, this.ctx.localPoint(event), factor));
+    host.setCameraState(
+      zoomAt(host.getCameraState(), viewport, this.ctx.localPoint(event), factor, host.getCameraLimits?.()),
+    );
   };
 
   private readonly onPointerDown = (event: PointerEvent): void => {
@@ -133,7 +135,7 @@ export class PointerControls {
       // bas, elle descend vers l'horizon. L'iso garde l'élévation de ses réglages.
       const speed = settings.orbitSpeed;
       const tilt = state.mode === '3d' ? delta.y * speed : 0;
-      host.setCameraState(orbit(state, delta.x * speed, tilt));
+      host.setCameraState(orbit(state, delta.x * speed, tilt, host.getCameraLimits?.()));
       return;
     }
     this.samples.push({ t: event.timeStamp, p: point });

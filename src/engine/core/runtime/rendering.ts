@@ -94,7 +94,13 @@ export class Rendering {
   applyProjection(): void {
     if (this.core.camera.state.fov === undefined)
       applyCameraState(this.camera, this.core.camera.state, this.core.display.viewport);
-    else applyPerspectiveState(this.perspectiveCamera, this.core.camera.state, this.core.display.viewport);
+    else
+      applyPerspectiveState(
+        this.perspectiveCamera,
+        this.core.camera.state,
+        this.core.display.viewport,
+        this.core.camera.limits,
+      );
     // Le plan du fond couvre tout ce que la caméra peut voir.
     this.grid.follow(this.core.camera.state.center, 2 * this.activeCamera().far);
   }
