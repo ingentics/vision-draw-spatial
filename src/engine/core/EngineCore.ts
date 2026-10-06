@@ -58,70 +58,91 @@ import { StyleCommands } from './edit/commands/styles';
 import { ArrangeCommands } from './edit/commands/arrange';
 import { Clipboard } from './edit/commands/clipboard';
 
-/** Cœur du moteur : état et comportement, derrière la façade `Engine` (SPEC §4.3). */
+/**
+ * Cœur du moteur, derrière la façade `Engine` (SPEC §4.3) : l'infrastructure partagée (canvas, registres,
+ * événements, scènes) et un objet par domaine (un dossier de `core/` chacun). Chaque domaine garde son état et
+ * passe par le cœur pour joindre les autres.
+ */
 export class EngineCore {
-  // Domaines
-  readonly clipboard = new Clipboard(this);
-  readonly arrange = new ArrangeCommands(this);
-  readonly styles = new StyleCommands(this);
-  readonly elements = new ElementCommands(this);
-  readonly properties = new PropertyEdits(this);
-  readonly textEdits = new TextEdits(this);
-  readonly edgeTexts = new EdgeTexts(this);
-  readonly labelEditor = new LabelEditor(this);
-  readonly live = new LiveEdit(this);
-  readonly preview = new ConnectorPreview(this);
-  readonly labelDrags = new LabelDrags(this);
-  readonly edgePointsDrags = new EdgePointsDrags(this);
-  readonly edgeEndDrags = new EdgeEndDrags(this);
-  readonly connectDrags = new ConnectDrags(this);
-  readonly resizeDrags = new ResizeDrags(this);
-  readonly moveDrags = new MoveDrags(this);
-  readonly gesture = new DragGesture(this);
-  readonly jumps = new EdgeJumps(this);
-  readonly arrangement = new EdgeArrangement(this);
-  readonly edgePoints = new EdgePoints(this);
-  readonly anchors = new Anchors(this);
-  readonly edgeHandles = new EdgeHandles(this);
-  readonly shapeHandles = new ShapeHandles(this);
-  readonly targets: EditTargets;
-  readonly pageModes = new PageModes(this);
-  readonly transitions = new Transitions(this);
-  readonly history = new BackHistory(this);
-  readonly links: Links;
-  readonly keys = new ModifierKeys(this);
-  readonly pointer = new PointerInput(this);
-  readonly highlight = new SelectionHighlight(this);
-  readonly picking = new Picking(this);
-  readonly selection = new Selections(this);
-  readonly minimap = new MinimapView(this);
-  readonly graph = new GraphView(this);
-  readonly sceneView = new SceneView(this);
-  readonly levels = new Levels(this);
-  readonly viewModes = new ViewModes(this);
-  readonly camera = new ViewCamera(this);
-  readonly pages = new Pages(this);
-  readonly edits = new EditHistory(this);
-  readonly file = new DocumentFile(this);
-  readonly display = new Display(this);
-  readonly rendering: Rendering;
+  readonly canvas: HTMLCanvasElement;
+  readonly registry: ShapeRegistry;
+  readonly modes: PageModeRegistry;
+  readonly effects: PageEffectRegistry;
+  readonly events = new Emitter<EngineEvents>();
+  readonly text: ReturnType<typeof createTroikaTextFactory>;
+  readonly scenes: SceneManager;
+  readonly controller: CameraController;
+  disposed = false;
+
+  // runtime : paramètres, rendu, taille du canvas
   readonly config: Config;
+  readonly rendering: Rendering;
+  readonly display = new Display(this);
+
+  // document : fichier chargé, annuler / rétablir, pages
+  readonly file = new DocumentFile(this);
+  readonly edits = new EditHistory(this);
+  readonly pages = new Pages(this);
+
+  // view : caméra, modes de vue, niveaux de rendu, scènes, vue graphe, mini-carte
+  readonly camera = new ViewCamera(this);
+  readonly viewModes = new ViewModes(this);
+  readonly levels = new Levels(this);
+  readonly sceneView = new SceneView(this);
+  readonly graph = new GraphView(this);
+  readonly minimap = new MinimapView(this);
+
+  // selection : sélection, ce qui est sous le pointeur, mise en valeur
+  readonly selection = new Selections(this);
+  readonly picking = new Picking(this);
+  readonly highlight = new SelectionHighlight(this);
+
+  // input : gestes du pointeur, touches maintenues
+  readonly pointer = new PointerInput(this);
+  readonly keys = new ModifierKeys(this);
+
+  // navigation : liens, retour, transitions entre pages
+  readonly links: Links;
+  readonly history = new BackHistory(this);
+  readonly transitions = new Transitions(this);
+
+  // modes : modes et effets de page
+  readonly pageModes = new PageModes(this);
+
+  // edit : cibles et poignées
+  readonly targets: EditTargets;
+  readonly shapeHandles = new ShapeHandles(this);
+  // edit/edges : flèches
+  readonly edgeHandles = new EdgeHandles(this);
+  readonly anchors = new Anchors(this);
+  readonly edgePoints = new EdgePoints(this);
+  readonly arrangement = new EdgeArrangement(this);
+  readonly jumps = new EdgeJumps(this);
+  // edit/drag : glisser à la souris
+  readonly gesture = new DragGesture(this);
+  readonly moveDrags = new MoveDrags(this);
+  readonly resizeDrags = new ResizeDrags(this);
+  readonly connectDrags = new ConnectDrags(this);
+  readonly edgeEndDrags = new EdgeEndDrags(this);
+  readonly edgePointsDrags = new EdgePointsDrags(this);
+  readonly labelDrags = new LabelDrags(this);
+  readonly preview = new ConnectorPreview(this);
+  readonly live = new LiveEdit(this);
+  // edit/text : textes
+  readonly labelEditor = new LabelEditor(this);
+  readonly edgeTexts = new EdgeTexts(this);
+  readonly textEdits = new TextEdits(this);
+  // edit/commands : commandes
+  readonly elements = new ElementCommands(this);
+  readonly styles = new StyleCommands(this);
+  readonly arrange = new ArrangeCommands(this);
+  readonly clipboard = new Clipboard(this);
+  readonly properties = new PropertyEdits(this);
 
   /** Paramètres en vigueur (`config`). */
   get settings(): Settings {
     return this.config.settings;
   }
-
-  readonly canvas: HTMLCanvasElement;
-  readonly registry: ShapeRegistry;
-  readonly modes: PageModeRegistry;
-  readonly effects: PageEffectRegistry;
-  readonly text: ReturnType<typeof createTroikaTextFactory>;
-  readonly events = new Emitter<EngineEvents>();
-  readonly controller: CameraController;
-
-  readonly scenes: SceneManager;
-  disposed = false;
 
   constructor(options: EngineOptions) {
     this.canvas = options.canvas;
@@ -154,33 +175,9 @@ export class EngineCore {
     this.controller = createCameraController(this);
   }
 
-  // -------------------------------------------------------------------------
-  // Création (SPEC §14.1)
-
   focusCanvas(): void {
     this.canvas.focus({ preventScroll: true });
   }
-
-  // -------------------------------------------------------------------------
-  // Modes de vue (SPEC §9.1)
-
-  // -------------------------------------------------------------------------
-  // Vue graphe (SPEC §12)
-
-  // -------------------------------------------------------------------------
-  // Paramètres (SPEC §13)
-
-  // -------------------------------------------------------------------------
-  // Sélection et liens (SPEC §11)
-
-  // -------------------------------------------------------------------------
-  // Édition à la souris (SPEC §14.1) : déplacer, redimensionner, connecter
-
-  // -------------------------------------------------------------------------
-  // Édition par commandes (SPEC §14.1) : label, lien, suppression, annuler / rétablir
-
-  // -------------------------------------------------------------------------
-  // Modes de page (sujet 69)
 
   on<K extends EngineEvent>(event: K, handler: (...args: EngineEvents[K]) => void): () => void {
     return this.events.on(event, handler);
@@ -191,7 +188,7 @@ export class EngineCore {
     this.disposed = true;
     cancelAnimationFrame(this.camera.animation);
     this.highlight.dispose();
-    clearTimeout(this.pointer.hoverTimer);
+    this.pointer.dispose();
     this.transitions.active?.abort();
     this.display.dispose();
     this.controller.dispose();
@@ -202,6 +199,4 @@ export class EngineCore {
     this.rendering.dispose();
     this.events.clear();
   }
-
-  // -------------------------------------------------------------------------
 }

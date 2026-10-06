@@ -4,7 +4,10 @@ import type { GraphLayout } from '../../graph/graphPage';
 import type { PageModel } from '../../model/types';
 import type { EngineCore } from '../EngineCore';
 
-/** Vue graphe du document (SPEC §12) : page générée (cartes des pages, flèches des liens), aller-retour avec la dernière page. */
+/**
+ * Vue graphe du document (SPEC §12) : page générée (cartes des pages, flèches des liens), aller-retour avec la dernière
+ * page.
+ */
 export class GraphView {
   /** Vue graphe du document (SPEC §12), construite à la première demande. */
   private cache: { page: PageModel; layout: GraphLayout } | undefined;

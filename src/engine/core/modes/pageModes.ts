@@ -11,7 +11,10 @@ import { SPATIAL } from '../../spatial';
 import type { ModeIndicator } from '../types';
 import type { EngineCore } from '../EngineCore';
 
-/** Modes et effets de page (sujets 69, 143) : choix du mode, réglages déclarés, « courant » du mode et ce qu'il estompe, touches du mode. */
+/**
+ * Modes et effets de page (sujets 69, 143) : choix du mode, réglages déclarés, « courant » du mode et ce qu'il estompe,
+ * touches du mode.
+ */
 export class PageModes {
   /** « Courant » choisi du mode de chaque page (état de session, jamais écrit). */
   readonly modeCurrents = new Map<string, string>();

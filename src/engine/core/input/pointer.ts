@@ -19,11 +19,18 @@ const HANDLE_CURSORS: Record<ResizeHandle, string> = {
   w: 'ew-resize',
 };
 
-/** Gestes du pointeur sur le canvas : clic (sélection, lien), double-clic (lien, édition du texte), survol (curseur, infobulle, préchargement). */
+/**
+ * Gestes du pointeur sur le canvas : clic (sélection, lien), double-clic (lien, édition du texte), survol (curseur,
+ * infobulle, préchargement).
+ */
 export class PointerInput {
-  hoverTimer: ReturnType<typeof setTimeout> | undefined;
+  private hoverTimer: ReturnType<typeof setTimeout> | undefined;
 
   constructor(private readonly core: EngineCore) {}
+
+  dispose(): void {
+    clearTimeout(this.hoverTimer);
+  }
 
   /** Curseur d'une poignée entre les bouts (segment : perpendiculaire à lui). */
   pointHandleCursor(handle: PointHandle, style: Record<string, string>): string {

@@ -13,14 +13,13 @@ import { SPATIAL } from '../../../spatial';
 import type { EngineCore } from '../../EngineCore';
 import { samePoints } from '../helpers';
 
-/** Ancrage des flèches d'une page (manuel ou automatique) : répartition sur les côtés des formes, autre agencement, variantes de placement. */
+/**
+ * Ancrage des flèches d'une page (manuel ou automatique) : répartition sur les côtés des formes, autre agencement,
+ * variantes de placement.
+ */
 export class EdgeArrangement {
   constructor(private readonly core: EngineCore) {}
 
-  /**
-   * L'arbre a changé de structure : le modèle est relu de l'arbre, les scènes des pages touchées et
-   * de la vue graphe sont reconstruites, la sélection est reprise par id.
-   */
   /**
    * Ancrage automatique : après une édition, les flèches des formes touchées (et de leurs voisines) sont réparties
    * sur leurs côtés, écrit dans l'arbre XML (même étape d'annulation). Vrai si quelque chose a été écrit.

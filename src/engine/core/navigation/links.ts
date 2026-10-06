@@ -11,7 +11,10 @@ import { linkZone } from '../../render/decorations';
 import { disposeObject } from '../../render/meshes';
 import type { EngineCore } from '../EngineCore';
 
-/** Liens des éléments (SPEC §11) : suivre un lien (page ou URL), préchargement, zones liées en évidence, usage des liens. */
+/**
+ * Liens des éléments (SPEC §11) : suivre un lien (page ou URL), préchargement, zones liées en évidence, usage des
+ * liens.
+ */
 export class Links {
   /** Touche pour suivre un lien maintenue : zones liées de la page en évidence (`linkZonesObject`). */
   linkZonesShown = false;

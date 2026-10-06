@@ -14,7 +14,10 @@ import type { DocumentModel } from '../../model/types';
 import type { InitialView } from '../types';
 import type { EngineCore } from '../EngineCore';
 
-/** Document chargé : arbre XML d'origine (écrit en place, SPEC §14.2), modèle relu de l'arbre, chargement et sérialisation. */
+/**
+ * Document chargé : arbre XML d'origine (écrit en place, SPEC §14.2), modèle relu de l'arbre, chargement et
+ * sérialisation.
+ */
 export class DocumentFile {
   document: DocumentModel | undefined;
   /** Géométrie des pages au dernier état enregistré (avant les modifications en direct d'un glisser). */
@@ -99,6 +102,10 @@ export class DocumentFile {
     return index >= 0 ? this.xmlTree?.pages[index] : undefined;
   }
 
+  /**
+   * L'arbre a changé de structure : le modèle est relu de l'arbre, les scènes des pages touchées et
+   * de la vue graphe sont reconstruites, la sélection est reprise par id.
+   */
   documentChanged(changedPageIds: string[], options: { distribute?: boolean } = {}): void {
     if (!this.xmlTree) return;
     const selected = this.core.selection.current;

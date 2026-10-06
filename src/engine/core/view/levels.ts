@@ -5,7 +5,10 @@ import type { SceneLevel } from '../../shapes/types';
 import { setPageTransform } from '../../render/space';
 import type { EngineCore } from '../EngineCore';
 
-/** Niveau de rendu de la page (à plat ou en volume) : hauteur des volumes qui suit l'inclinaison, fondu enchaîné des bascules 2D ↔ volume. */
+/**
+ * Niveau de rendu de la page (à plat ou en volume) : hauteur des volumes qui suit l'inclinaison, fondu enchaîné des
+ * bascules 2D ↔ volume.
+ */
 export class Levels {
   /** Bascule 2D ↔ volume en cours : scènes en fondu enchaîné (renseignées à la première image). */
   levelBlend: { volume?: PageScene; flat?: PageScene } | undefined;

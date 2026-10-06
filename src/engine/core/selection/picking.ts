@@ -8,7 +8,9 @@ import type { EdgeModel, Point, Rect, ShapeModel } from '../../model/types';
 import type { EngineCore } from '../EngineCore';
 import type { Object3D } from 'three';
 
-/** Ce qui est sous un point de l'écran (formes, flèches, textes de flèche) et passage écran ↔ page à une hauteur donnée. */
+/**
+ * Ce qui est sous un point de l'écran (formes, flèches, textes de flèche) et passage écran ↔ page à une hauteur donnée.
+ */
 export class Picking {
   /** Contours des formes pour le clic (`shapeOutline`). */
   private readonly outlines = new WeakMap<

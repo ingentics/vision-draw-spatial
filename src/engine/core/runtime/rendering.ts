@@ -35,7 +35,9 @@ export class Rendering {
     this.renderer.dispose();
   }
 
-  /** Grille de la page courante : pas de la page draw.io (`gridSize`) si demandé et défini, sinon celui des paramètres. */
+  /**
+   * Grille de la page courante : pas de la page draw.io (`gridSize`) si demandé et défini, sinon celui des paramètres.
+   */
   private gridOptions(): GridOptions {
     const background = this.core.settings.background;
     const tree =

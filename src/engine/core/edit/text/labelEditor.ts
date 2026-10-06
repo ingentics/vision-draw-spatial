@@ -10,7 +10,10 @@ import { alongAnchor } from '../../../render/textPath';
 import type { LabelEditPlane, LabelEditRequest } from '../../types';
 import type { EngineCore } from '../../EngineCore';
 
-/** Édition en place d'un texte (double-clic, F2) : demande à l'UI, emprise et plan à l'écran, suivi de la vue, label dessiné masqué. */
+/**
+ * Édition en place d'un texte (double-clic, F2) : demande à l'UI, emprise et plan à l'écran, suivi de la vue, label
+ * dessiné masqué.
+ */
 export class LabelEditor {
   /** Texte en cours d'édition en place (son label dessiné est masqué). */
   editing?: LabelEditRequest;
@@ -38,7 +41,9 @@ export class LabelEditor {
     return target ? { ...rest, flip: target.direction } : rest;
   }
 
-  /** Angle de l'éditeur d'un texte du milieu qui suit sa flèche : celui du trait dessiné au point du texte, à l'écran. */
+  /**
+   * Angle de l'éditeur d'un texte du milieu qui suit sa flèche : celui du trait dessiné au point du texte, à l'écran.
+   */
   withAngle(request: LabelEditRequest): LabelEditRequest {
     const rest = { ...request };
     delete rest.angle;

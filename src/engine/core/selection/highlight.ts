@@ -10,7 +10,10 @@ import { disposeObject } from '../../render/meshes';
 import type { EngineCore } from '../EngineCore';
 import type { PickedElement } from '../../interaction/pick';
 
-/** Mise en valeur de la sélection (paramètre `selection.style`) : voile, contour animé, poignées de l'élément modifiable. */
+/**
+ * Mise en valeur de la sélection (paramètre `selection.style`) : voile, contour animé, poignées de l'élément
+ * modifiable.
+ */
 export class SelectionHighlight {
   /** Voile de mise en valeur de la sélection, et de quoi l'annuler. */
   private veil: { key: string; object: Object3D; restore: () => void } | undefined;

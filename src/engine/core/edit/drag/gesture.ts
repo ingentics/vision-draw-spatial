@@ -13,7 +13,10 @@ import type { PageModel, Point, Rect } from '../../../model/types';
 import type { Drag, MoveDrag } from './types';
 import type { EngineCore } from '../../EngineCore';
 
-/** Glisser d'édition à la souris (SPEC §14.1) : ce que l'appui saisit, le suivi du pointeur et l'écriture au lâcher ; déplacement au clavier. */
+/**
+ * Glisser d'édition à la souris (SPEC §14.1) : ce que l'appui saisit, le suivi du pointeur et l'écriture au lâcher ;
+ * déplacement au clavier.
+ */
 export class DragGesture {
   /** Glisser d'édition en cours (déplacement, redimensionnement, connecteur). */
   drag: Drag | undefined;

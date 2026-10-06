@@ -5,7 +5,10 @@ import type { PreloadSettings, Settings, SettingsPatch, TransitionSettings, View
 import type { EngineCore } from '../EngineCore';
 import type { EngineOptions } from '../types';
 
-/** Paramètres du moteur (SPEC §13) : valeurs en vigueur, modifications et ce qu'elles entraînent, préférence « réduire les animations ». */
+/**
+ * Paramètres du moteur (SPEC §13) : valeurs en vigueur, modifications et ce qu'elles entraînent, préférence « réduire
+ * les animations ».
+ */
 export class Config {
   settings: Settings;
   /** Préférence système « réduire les animations » (suivie en direct). */

@@ -33,7 +33,6 @@ export class ViewModes {
     this.setViewMode(this.core.camera.state.mode === 'iso' ? 'top' : 'iso');
   }
 
-  /** Touche P : vers la 3D, ou retour au dernier mode 2D / iso. */
   toggle3d(): void {
     this.setViewMode(this.core.camera.state.mode === '3d' ? this.lastFlatMode : '3d');
   }

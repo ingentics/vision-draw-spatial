@@ -16,6 +16,7 @@ import type { EngineCore } from '../../EngineCore';
 export class EdgeEndDrags {
   constructor(private readonly core: EngineCore) {}
 
+  /** Bout de flèche suivant le pointeur : tracé recalculé en direct, repères sur la forme visée. */
   follow(page: PageModel, drag: EdgeEndDrag, screen: Point, snap: boolean): void {
     const edge = page.edges.find((e) => e.id === drag.edgeId);
     const pageTree = this.core.file.pageTreeOf(page.id);

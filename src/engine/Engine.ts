@@ -55,6 +55,25 @@ export class Engine {
     this.core = new EngineCore(options);
   }
 
+  // -------------------------------------------------------------------------
+  // Cycle de vie
+
+  /** Rend le focus clavier au canvas (ex. après un dépôt depuis la palette). */
+  focusCanvas(): void {
+    this.core.focusCanvas();
+  }
+
+  on<K extends EngineEvent>(event: K, handler: (...args: EngineEvents[K]) => void): () => void {
+    return this.core.on(event, handler);
+  }
+
+  dispose(): void {
+    this.core.dispose();
+  }
+
+  // -------------------------------------------------------------------------
+  // Document (SPEC §5, §14.2)
+
   load(xml: string, fileId: string, initialView?: InitialView): Promise<void> {
     return this.core.file.load(xml, fileId, initialView);
   }
@@ -68,11 +87,6 @@ export class Engine {
     return this.core.file.getXmlTree();
   }
 
-  /** Modifications non sauvegardées depuis le chargement ou la dernière sérialisation. */
-  isModified(): boolean {
-    return this.core.edits.isModified();
-  }
-
   /**
    * XML du document à sauvegarder (SPEC §14.2) : l'arbre d'origine, modifié en place, avec l'état
    * de vue de chaque page visitée (caméra, mode et réglages de rendu). Le document est ensuite
@@ -82,37 +96,21 @@ export class Engine {
     return this.core.file.serialize();
   }
 
-  /** Rend le focus clavier au canvas (ex. après un dépôt depuis la palette). */
-  focusCanvas(): void {
-    this.core.focusCanvas();
+  /** Éléments non supportés du document chargé, triés par fréquence (SPEC §8.4). */
+  getUnsupportedReport(): UnsupportedReport | undefined {
+    return this.core.file.getUnsupportedReport();
   }
 
-  /** Geste d'édition en cours (déplacement, redimensionnement, connecteur) : ne pas l'interrompre. */
-  isDragging(): boolean {
-    return this.core.gesture.isDragging();
+  getFileId(): string | undefined {
+    return this.core.file.getFileId();
   }
 
-  isEditable(): boolean {
-    return this.core.targets.isEditable();
-  }
-
-  /** Active ou désactive l'édition (poignées, glisser, commandes d'édition). */
-  setEditable(editable: boolean): void {
-    this.core.targets.setEditable(editable);
-  }
+  // -------------------------------------------------------------------------
+  // Pages
 
   /** Pages modifiables : fichier `<mxfile>` (l'ancien format n'a qu'une page sans nom). */
   canEditPages(): boolean {
     return this.core.pages.canEditPages();
-  }
-
-  /**
-   * Ajoute une forme de la palette sur la page courante, centrée sur un point écran (dépôt) ou au
-   * centre de la vue : point projeté au sol (vue de dessus comme iso), aimanté à la grille.
-   * Renvoie l'id de la nouvelle cellule, sélectionnée.
-   */
-  addShape(template: ShapeTemplate, screen?: Point): string | undefined {
-    return this.core.elements.addShape(template, screen);
   }
 
   /** Ajoute une page vide (« Page-n ») et l'affiche. */
@@ -129,68 +127,8 @@ export class Engine {
     this.core.pages.removePage(pageId);
   }
 
-  /**
-   * Variante de placement de la flèche sélectionnée seule, sur une page en ancrage manuel (touche F) : la variante
-   * qui suit le placement actuel (`edit/variants.ts`) est appliquée tout de suite, points intermédiaires retirés (sauf
-   * les coudes d'une boucle), en une étape d'annulation. En ancrage automatique : un autre agencement
-   * (`otherArrangement`). Faux si elle ne s'applique pas.
-   */
-  placementVariant(): boolean {
-    return this.core.arrangement.placementVariant();
-  }
-
-  /** Ancrage des flèches d'une page : le sien (`spatial.anchoring`), sinon le réglage de l'appli. */
-  anchoringOf(page: PageModel): Anchoring {
-    return this.core.arrangement.anchoringOf(page);
-  }
-
-  /**
-   * Ancrage propre à une page (undefined : celui de l'appli). Passer une page en automatique y répartit toutes les
-   * flèches, dans la même étape d'annulation.
-   */
-  setPageAnchoring(pageId: string, anchoring: Anchoring | undefined): void {
-    this.core.arrangement.setPageAnchoring(pageId, anchoring);
-  }
-
-  /** Saut des flèches d'une page aux croisements : le sien (`spatial.jumps`), sinon le réglage de l'appli. */
-  jumpsOf(page: PageModel): JumpDefaults {
-    return this.core.jumps.jumpsOf(page);
-  }
-
-  /** Saut propre à une page (undefined : celui de l'appli), suivi par ses flèches sans `jumpStyle`. */
-  setPageJumps(pageId: string, jumps: JumpDefaults['style'] | undefined): void {
-    this.core.jumps.setPageJumps(pageId, jumps);
-  }
-
-  /** Éléments non supportés du document chargé, triés par fréquence (SPEC §8.4). */
-  getUnsupportedReport(): UnsupportedReport | undefined {
-    return this.core.file.getUnsupportedReport();
-  }
-
-  /**
-   * Va à la page d'un élément et cadre dessus (diagnostics, liens). Les formes sont cadrées
-   * sur leurs bornes, les arêtes sur leur tracé dessiné.
-   */
-  focusElement(pageId: string, elementId: string): void {
-    this.core.camera.focusElement(pageId, elementId);
-  }
-
-  getFileId(): string | undefined {
-    return this.core.file.getFileId();
-  }
-
   getCurrentPage(): PageModel | undefined {
     return this.core.pages.getCurrentPage();
-  }
-
-  /** Scène de la page courante (lecture seule : diagnostics, tests). */
-  getPageScene(): PageScene | undefined {
-    return this.core.sceneView.getPageScene();
-  }
-
-  /** Pages dont la scène est construite, de la moins à la plus récemment affichée. */
-  getCachedPageIds(): string[] {
-    return this.core.sceneView.getCachedPageIds();
   }
 
   /** Dernière caméra de chaque page visitée (à persister, SPEC §5.1 `cameraByPage`). */
@@ -204,6 +142,51 @@ export class Engine {
    */
   goToPage(pageId: string): void {
     this.core.pages.goToPage(pageId);
+  }
+
+  // -------------------------------------------------------------------------
+  // Annuler / rétablir
+
+  /** Modifications non sauvegardées depuis le chargement ou la dernière sérialisation. */
+  isModified(): boolean {
+    return this.core.edits.isModified();
+  }
+
+  canUndo(): boolean {
+    return this.core.edits.canUndo();
+  }
+
+  canRedo(): boolean {
+    return this.core.edits.canRedo();
+  }
+
+  undo(): void {
+    this.core.edits.undo();
+  }
+
+  redo(): void {
+    this.core.edits.redo();
+  }
+
+  // -------------------------------------------------------------------------
+  // Caméra et vues (SPEC §9)
+
+  /**
+   * Va à la page d'un élément et cadre dessus (diagnostics, liens). Les formes sont cadrées
+   * sur leurs bornes, les arêtes sur leur tracé dessiné.
+   */
+  focusElement(pageId: string, elementId: string): void {
+    this.core.camera.focusElement(pageId, elementId);
+  }
+
+  /** Scène de la page courante (lecture seule : diagnostics, tests). */
+  getPageScene(): PageScene | undefined {
+    return this.core.sceneView.getPageScene();
+  }
+
+  /** Pages dont la scène est construite, de la moins à la plus récemment affichée. */
+  getCachedPageIds(): string[] {
+    return this.core.sceneView.getCachedPageIds();
   }
 
   getCameraState(): CameraState {
@@ -257,6 +240,11 @@ export class Engine {
     this.core.viewModes.toggleViewMode();
   }
 
+  /** Touche P : vers la 3D, ou retour au dernier mode 2D / iso. */
+  toggle3d(): void {
+    this.core.viewModes.toggle3d();
+  }
+
   isFlattened(): boolean {
     return this.core.viewModes.isFlattened();
   }
@@ -274,18 +262,23 @@ export class Engine {
     this.core.viewModes.toggleFlatten();
   }
 
-  getViewSettings(): ViewSettings {
-    return this.core.config.getViewSettings();
-  }
-
-  setViewSettings(patch: Partial<ViewSettings>): void {
-    this.core.config.setViewSettings(patch);
-  }
-
   /** Orientation de référence du mode courant : 0 en vue de dessus, l'azimut iso en isométrie et en 3D. */
   getReferenceRotation(): number {
     return this.core.camera.getReferenceRotation();
   }
+
+  /** Vue par défaut du mode courant (orientation de référence, page entière), en animation. */
+  resetView(): void {
+    this.core.camera.resetView();
+  }
+
+  /** Revient à l'orientation de référence du mode (nord en haut, ou l'orientation iso), autour du centre de l'écran. */
+  resetRotation(): void {
+    this.core.camera.resetRotation();
+  }
+
+  // -------------------------------------------------------------------------
+  // Vue graphe et mini-carte (SPEC §10, §12)
 
   /** Page générée de la vue graphe (cartes des pages, flèches des liens). */
   getGraphPage(): PageModel | undefined {
@@ -317,14 +310,15 @@ export class Engine {
     return this.core.minimap.attachMinimap(canvas, size);
   }
 
-  /** Vue par défaut du mode courant (orientation de référence, page entière), en animation. */
-  resetView(): void {
-    this.core.camera.resetView();
+  // -------------------------------------------------------------------------
+  // Paramètres (SPEC §13)
+
+  getViewSettings(): ViewSettings {
+    return this.core.config.getViewSettings();
   }
 
-  /** Revient à l'orientation de référence du mode (nord en haut, ou l'orientation iso), autour du centre de l'écran. */
-  resetRotation(): void {
-    this.core.camera.resetRotation();
+  setViewSettings(patch: Partial<ViewSettings>): void {
+    this.core.config.setViewSettings(patch);
   }
 
   getControls(): ControlSettings {
@@ -353,10 +347,6 @@ export class Engine {
     return this.core.config.reducedMotion();
   }
 
-  getSelection(): Selection | undefined {
-    return this.core.selection.getSelection();
-  }
-
   getTransitionSettings(): TransitionSettings {
     return this.core.config.getTransitionSettings();
   }
@@ -373,8 +363,11 @@ export class Engine {
     this.core.config.setPreloadSettings(patch);
   }
 
-  isTransitioning(): boolean {
-    return this.core.transitions.isTransitioning();
+  // -------------------------------------------------------------------------
+  // Sélection (SPEC §11)
+
+  getSelection(): Selection | undefined {
+    return this.core.selection.getSelection();
   }
 
   /** Élément de la page courante sous un point écran. */
@@ -415,6 +408,22 @@ export class Engine {
 
   clearSelection(): void {
     this.core.selection.clearSelection();
+  }
+
+  /**
+   * Mode d'interaction en cours, pour l'aide de l'UI : « navigation » tant que la touche pour suivre
+   * un lien est maintenue ; « sélection multiple » quand la touche de sélection multiple l'est, avec
+   * une sélection.
+   */
+  getModeHint(): ModeHint | undefined {
+    return this.core.keys.getModeHint();
+  }
+
+  // -------------------------------------------------------------------------
+  // Liens et navigation (SPEC §11)
+
+  isTransitioning(): boolean {
+    return this.core.transitions.isTransitioning();
   }
 
   /** Construit en arrière-plan la page cible d'un lien, sans l'afficher (SPEC §11.1). */
@@ -462,6 +471,130 @@ export class Engine {
     this.core.history.backTo(parentPageId);
   }
 
+  // -------------------------------------------------------------------------
+  // Modes et effets de page (sujets 69, 143)
+
+  /** Registre des modes de page du moteur (choix du mode, réglages déclarés). */
+  getModeRegistry(): PageModeRegistry {
+    return this.core.pageModes.getModeRegistry();
+  }
+
+  /**
+   * Mode d'une page (`spatial.mode`) ; undefined : page normale. Les données du mode restent en sommeil sur la page
+   * et ses éléments : revenir au mode les retrouve.
+   */
+  setPageMode(pageId: string, modeId: string | undefined): void {
+    this.core.pageModes.setPageMode(pageId, modeId);
+  }
+
+  /** Active ou retire un effet d'une page (`spatial.effects`), en une étape d'annulation. */
+  setPageEffect(pageId: string, effectId: string, enabled: boolean): void {
+    this.core.pageModes.setPageEffect(pageId, effectId, enabled);
+  }
+
+  /**
+   * Opération d'un mode sur la page courante (ex. ajouter un flux) : ses écritures forment une étape d'annulation ;
+   * rien n'est enregistré si elle ne change rien.
+   */
+  editPageMode(label: string, edit: (edit: ModeEdit) => void): void {
+    this.core.pageModes.editPageMode(label, edit);
+  }
+
+  /**
+   * Réglage déclaré par le mode de la page courante (`scope` : la page, ou la flèche / forme `targetId`), écrit par
+   * sa règle s'il en a une, sinon dans son attribut. undefined = vide.
+   */
+  setModeProperty(scope: ModeScope, targetId: string | undefined, key: string, value: string | undefined): void {
+    this.core.pageModes.setModeProperty(scope, targetId, key, value);
+  }
+
+  /**
+   * « Courant » du mode d'une page (ex. flux courant) : le dernier choisi s'il est encore valable, sinon la valeur
+   * initiale du mode ; undefined pour une page sans mode ou sans courant.
+   */
+  getModeCurrent(pageId?: string): string | undefined {
+    return this.core.pageModes.getModeCurrent(pageId);
+  }
+
+  /**
+   * Barre du courant du mode de la page, en haut de la zone de dessin : couleur, libellé, valeurs possibles dans
+   * l'ordre (boutons précédent / suivant). Undefined : pas de barre (pas de mode, pas de courant, pas de couleur).
+   */
+  getModeIndicator(pageId?: string): ModeIndicator | undefined {
+    return this.core.pageModes.getModeIndicator(pageId);
+  }
+
+  /**
+   * Renomme le courant du mode de la page courante (ex. titre du flux courant, depuis la barre) : une étape
+   * d'annulation. Un nom vide (ou fait d'espaces) est ignoré.
+   */
+  renameModeCurrent(label: string): void {
+    this.core.pageModes.renameModeCurrent(label);
+  }
+
+  /** Choisit le courant du mode d'une page (ex. bouton « suivant » de la barre) ; ignoré s'il n'est pas valable. */
+  setModeCurrent(value: string, pageId?: string): void {
+    this.core.pageModes.setModeCurrent(value, pageId);
+  }
+
+  /**
+   * Touche du mode de la page courante sur l'élément sélectionné seul (ex. « + » : rang suivant) : une étape
+   * d'annulation. Faux si la touche n'est pas prise (pas de mode, pas de touche, élément non concerné).
+   */
+  modeKey(key: string): boolean {
+    return this.core.pageModes.modeKey(key);
+  }
+
+  // -------------------------------------------------------------------------
+  // Édition (SPEC §14) : cibles, flèches, glisser
+
+  /** Geste d'édition en cours (déplacement, redimensionnement, connecteur) : ne pas l'interrompre. */
+  isDragging(): boolean {
+    return this.core.gesture.isDragging();
+  }
+
+  isEditable(): boolean {
+    return this.core.targets.isEditable();
+  }
+
+  /** Active ou désactive l'édition (poignées, glisser, commandes d'édition). */
+  setEditable(editable: boolean): void {
+    this.core.targets.setEditable(editable);
+  }
+
+  /**
+   * Variante de placement de la flèche sélectionnée seule, sur une page en ancrage manuel (touche F) : la variante
+   * qui suit le placement actuel (`edit/variants.ts`) est appliquée tout de suite, points intermédiaires retirés (sauf
+   * les coudes d'une boucle), en une étape d'annulation. En ancrage automatique : un autre agencement
+   * (`otherArrangement`). Faux si elle ne s'applique pas.
+   */
+  placementVariant(): boolean {
+    return this.core.arrangement.placementVariant();
+  }
+
+  /** Ancrage des flèches d'une page : le sien (`spatial.anchoring`), sinon le réglage de l'appli. */
+  anchoringOf(page: PageModel): Anchoring {
+    return this.core.arrangement.anchoringOf(page);
+  }
+
+  /**
+   * Ancrage propre à une page (undefined : celui de l'appli). Passer une page en automatique y répartit toutes les
+   * flèches, dans la même étape d'annulation.
+   */
+  setPageAnchoring(pageId: string, anchoring: Anchoring | undefined): void {
+    this.core.arrangement.setPageAnchoring(pageId, anchoring);
+  }
+
+  /** Saut des flèches d'une page aux croisements : le sien (`spatial.jumps`), sinon le réglage de l'appli. */
+  jumpsOf(page: PageModel): JumpDefaults {
+    return this.core.jumps.jumpsOf(page);
+  }
+
+  /** Saut propre à une page (undefined : celui de l'appli), suivi par ses flèches sans `jumpStyle`. */
+  setPageJumps(pageId: string, jumps: JumpDefaults['style'] | undefined): void {
+    this.core.jumps.setPageJumps(pageId, jumps);
+  }
+
   /**
    * Retour en auto : points intermédiaires et points d'attache imposés retirés, la flèche reste reliée
    * aux mêmes formes (le tracé redevient entièrement calculé).
@@ -478,6 +611,9 @@ export class Engine {
   nudgeSelection(direction: Point, coarse: boolean): boolean {
     return this.core.gesture.nudgeSelection(direction, coarse);
   }
+
+  // -------------------------------------------------------------------------
+  // Édition : textes
 
   /**
    * Édition en place d'un texte existant d'une flèche (son label ou un label enfant), où qu'il soit
@@ -570,6 +706,18 @@ export class Engine {
     this.core.edgeTexts.setEdgeEndLabel(edgeId, end, text, html, flipped);
   }
 
+  // -------------------------------------------------------------------------
+  // Édition : commandes
+
+  /**
+   * Ajoute une forme de la palette sur la page courante, centrée sur un point écran (dépôt) ou au
+   * centre de la vue : point projeté au sol (vue de dessus comme iso), aimanté à la grille.
+   * Renvoie l'id de la nouvelle cellule, sélectionnée.
+   */
+  addShape(template: ShapeTemplate, screen?: Point): string | undefined {
+    return this.core.elements.addShape(template, screen);
+  }
+
   /** Lien d'un élément de la page courante (vers une page ou une URL) ; undefined = retiré. */
   setLink(elementId: string, link: LinkModel | undefined): void {
     this.core.properties.setLink(elementId, link);
@@ -584,77 +732,6 @@ export class Engine {
    */
   setSpatial(elementId: string, key: string, value: number | string | undefined, merge?: string): void {
     this.core.properties.setSpatial(elementId, key, value, merge);
-  }
-
-  /** Registre des modes de page du moteur (choix du mode, réglages déclarés). */
-  getModeRegistry(): PageModeRegistry {
-    return this.core.pageModes.getModeRegistry();
-  }
-
-  /**
-   * Mode d'une page (`spatial.mode`) ; undefined : page normale. Les données du mode restent en sommeil sur la page
-   * et ses éléments : revenir au mode les retrouve.
-   */
-  setPageMode(pageId: string, modeId: string | undefined): void {
-    this.core.pageModes.setPageMode(pageId, modeId);
-  }
-
-  /** Active ou retire un effet d'une page (`spatial.effects`), en une étape d'annulation. */
-  setPageEffect(pageId: string, effectId: string, enabled: boolean): void {
-    this.core.pageModes.setPageEffect(pageId, effectId, enabled);
-  }
-
-  /**
-   * Opération d'un mode sur la page courante (ex. ajouter un flux) : ses écritures forment une étape d'annulation ;
-   * rien n'est enregistré si elle ne change rien.
-   */
-  editPageMode(label: string, edit: (edit: ModeEdit) => void): void {
-    this.core.pageModes.editPageMode(label, edit);
-  }
-
-  /**
-   * Réglage déclaré par le mode de la page courante (`scope` : la page, ou la flèche / forme `targetId`), écrit par
-   * sa règle s'il en a une, sinon dans son attribut. undefined = vide.
-   */
-  setModeProperty(scope: ModeScope, targetId: string | undefined, key: string, value: string | undefined): void {
-    this.core.pageModes.setModeProperty(scope, targetId, key, value);
-  }
-
-  /**
-   * « Courant » du mode d'une page (ex. flux courant) : le dernier choisi s'il est encore valable, sinon la valeur
-   * initiale du mode ; undefined pour une page sans mode ou sans courant.
-   */
-  getModeCurrent(pageId?: string): string | undefined {
-    return this.core.pageModes.getModeCurrent(pageId);
-  }
-
-  /**
-   * Barre du courant du mode de la page, en haut de la zone de dessin : couleur, libellé, valeurs possibles dans
-   * l'ordre (boutons précédent / suivant). Undefined : pas de barre (pas de mode, pas de courant, pas de couleur).
-   */
-  getModeIndicator(pageId?: string): ModeIndicator | undefined {
-    return this.core.pageModes.getModeIndicator(pageId);
-  }
-
-  /**
-   * Renomme le courant du mode de la page courante (ex. titre du flux courant, depuis la barre) : une étape
-   * d'annulation. Un nom vide (ou fait d'espaces) est ignoré.
-   */
-  renameModeCurrent(label: string): void {
-    this.core.pageModes.renameModeCurrent(label);
-  }
-
-  /** Choisit le courant du mode d'une page (ex. bouton « suivant » de la barre) ; ignoré s'il n'est pas valable. */
-  setModeCurrent(value: string, pageId?: string): void {
-    this.core.pageModes.setModeCurrent(value, pageId);
-  }
-
-  /**
-   * Touche du mode de la page courante sur l'élément sélectionné seul (ex. « + » : rang suivant) : une étape
-   * d'annulation. Faux si la touche n'est pas prise (pas de mode, pas de touche, élément non concerné).
-   */
-  modeKey(key: string): boolean {
-    return this.core.pageModes.modeKey(key);
   }
 
   /**
@@ -731,38 +808,5 @@ export class Engine {
   /** Duplique la sélection (copier + coller sans toucher au presse-papier), décalée d'un pas de grille. */
   duplicateSelection(): void {
     this.core.clipboard.duplicateSelection();
-  }
-
-  canUndo(): boolean {
-    return this.core.edits.canUndo();
-  }
-
-  canRedo(): boolean {
-    return this.core.edits.canRedo();
-  }
-
-  undo(): void {
-    this.core.edits.undo();
-  }
-
-  redo(): void {
-    this.core.edits.redo();
-  }
-
-  /**
-   * Mode d'interaction en cours, pour l'aide de l'UI : « navigation » tant que la touche pour suivre
-   * un lien est maintenue ; « sélection multiple » quand la touche de sélection multiple l'est, avec
-   * une sélection.
-   */
-  getModeHint(): ModeHint | undefined {
-    return this.core.keys.getModeHint();
-  }
-
-  on<K extends EngineEvent>(event: K, handler: (...args: EngineEvents[K]) => void): () => void {
-    return this.core.on(event, handler);
-  }
-
-  dispose(): void {
-    this.core.dispose();
   }
 }

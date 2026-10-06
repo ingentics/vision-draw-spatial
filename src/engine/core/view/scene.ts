@@ -9,7 +9,10 @@ import { GRAPH_PAGE_ID } from '../../graph/graphPage';
 import { buildGraphScene } from '../../graph/graphScene';
 import type { SceneLevel } from '../../shapes/types';
 
-/** Scènes des pages : construction (contexte de rendu, niveau, décors des effets) et lecture de la scène affichée (objets, hauteurs, emprises). */
+/**
+ * Scènes des pages : construction (contexte de rendu, niveau, décors des effets) et lecture de la scène affichée
+ * (objets, hauteurs, emprises).
+ */
 export class SceneView {
   constructor(private readonly core: EngineCore) {}
 
@@ -108,7 +111,6 @@ export class SceneView {
     return found;
   }
 
-  /** Hauteur du dessus d'un élément (volume iso), mise à l'échelle de la bascule ; 0 à plat. */
   /**
    * Hauteur où le label d'une forme est dessiné : le dessus de son volume, ou sa base pour un label hors
    * de la forme (posé au sol à côté du volume, `createShapeObject`).
@@ -119,6 +121,7 @@ export class SceneView {
     return this.core.scenes.current?.level === 'iso' ? base * this.core.levels.heightScale : 0;
   }
 
+  /** Hauteur du dessus d'un élément (volume iso), mise à l'échelle de la bascule ; 0 à plat. */
   elementTop(elementId: string): number {
     const top = (this.sceneObject(elementId)?.userData.top as number | undefined) ?? 0;
     return this.core.scenes.current?.level === 'iso' ? top * this.core.levels.heightScale : 0;

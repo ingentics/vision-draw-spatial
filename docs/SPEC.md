@@ -141,7 +141,22 @@ src/
     diagnostics/
       unsupportedStyles.ts
     settings.ts
-    Engine.ts          # façade publique du moteur
+    Engine.ts          # façade publique du moteur : délègue à core/
+    core/              # comportement du moteur, un dossier par domaine
+      EngineCore.ts    # infrastructure partagée et câblage des domaines
+      types.ts         # types publics (réexportés par Engine.ts)
+      runtime/         # paramètres, rendu WebGL, taille du canvas
+      document/        # fichier chargé, annuler / rétablir, pages
+      view/            # caméra, modes de vue, niveaux 2D / volume, scènes, vue graphe, mini-carte
+      selection/       # sélection, ce qui est sous le pointeur, mise en valeur
+      input/           # gestes du pointeur, touches maintenues, branchement des contrôles
+      navigation/      # liens, retour, transitions entre pages
+      modes/           # modes et effets de page
+      edit/            # cibles modifiables, poignées
+        edges/         # flèches : poignées, ancrages, points, agencement, sauts
+        drag/          # glisser : geste, un fichier par type de glisser, aperçu, modifications en direct
+        text/          # éditeur en place, textes de flèche, texte et format
+        commands/      # éléments, styles, ordre et alignement, presse-papier, lien et attributs
   react/
     DrawioSpatial.tsx  # composant principal
     Launcher.tsx

@@ -6,7 +6,10 @@ import { createEdgeObject, createShapeObject, edgeRoute, placeInDrawOrder } from
 import { jumpStyleOf } from '../../../render/edges/jumps';
 import type { EngineCore } from '../../EngineCore';
 
-/** Modifications en direct de la scène pendant un glisser (objets décalés, forme ou flèches redessinées), sans reconstruire la page. */
+/**
+ * Modifications en direct de la scène pendant un glisser (objets décalés, forme ou flèches redessinées), sans
+ * reconstruire la page.
+ */
 export class LiveEdit {
   constructor(private readonly core: EngineCore) {}
 

@@ -5,10 +5,16 @@ import type { StylePreset } from '../../../edit/styles';
 import type { EngineCore } from '../../EngineCore';
 import { SPATIAL } from '../../../spatial';
 
-/** Clés de style d'une flèche qui ne changent que le dessin de son texte : réglables en direct sans reconstruire la page. */
+/**
+ * Clés de style d'une flèche qui ne changent que le dessin de son texte : réglables en direct sans reconstruire la
+ * page.
+ */
 const LIVE_EDGE_TEXT_KEYS: ReadonlySet<string> = new Set([SPATIAL.labelFollowShift]);
 
-/** Style des formes et des flèches : styles de la palette, clés de style draw.io (réglages en direct compris), sens des flèches. */
+/**
+ * Style des formes et des flèches : styles de la palette, clés de style draw.io (réglages en direct compris), sens des
+ * flèches.
+ */
 export class StyleCommands {
   constructor(private readonly core: EngineCore) {}
 
