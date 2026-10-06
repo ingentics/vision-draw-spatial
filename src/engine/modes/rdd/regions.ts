@@ -1,4 +1,5 @@
 import type { PageModel, ShapeModel } from '../../model/types';
+import { readableOn } from '../../render/styleValues';
 import type { ModeEdit } from '../types';
 
 /**
@@ -8,8 +9,11 @@ import type { ModeEdit } from '../types';
 
 export const REGION_KIND = 'rdd-region';
 
-/** Fond d'une région : opacité (`fillOpacity`, en %) ; bordure : la couleur du fond assombrie. */
-export const REGION = { fillOpacity: 10, strokeDarken: 0.6, width: 400, height: 260 } as const;
+/**
+ * Fond d'une région : opacité (`fillOpacity`, en %) ; bordure : la couleur du fond assombrie ; label : taille du texte,
+ * sur une étiquette de la couleur de la bordure (sujet 226).
+ */
+export const REGION = { fillOpacity: 10, strokeDarken: 0.6, fontSize: 9, width: 400, height: 260 } as const;
 
 export const isRegion = (shape: ShapeModel) => shape.kind === REGION_KIND;
 
@@ -68,9 +72,21 @@ export function regionStroke(color: string): string {
   return `#${channel(1)}${channel(3)}${channel(5)}`;
 }
 
-/** Couleur d'une région : fond (`fillColor`) et bordure assortie (`strokeColor`), pour draw.io aussi. */
+/** Étiquette du label d'une région de fond `color` : fond de la couleur de la bordure, texte lisible dessus. */
+export function regionLabelStyle(color: string): string {
+  const stroke = regionStroke(color);
+  return `labelBackgroundColor=${stroke};fontColor=${readableOn(stroke)};`;
+}
+
+/**
+ * Couleur d'une région : fond (`fillColor`), bordure assortie (`strokeColor`) et étiquette du label
+ * (`labelBackgroundColor`, `fontColor`), pour draw.io aussi.
+ */
 export function setRegionColor(edit: ModeEdit, shape: ShapeModel, color: string | undefined): void {
   if (!isRegion(shape) || !color) return;
+  const stroke = regionStroke(color);
   edit.setElementStyle(shape.id, 'fillColor', color);
-  edit.setElementStyle(shape.id, 'strokeColor', regionStroke(color));
+  edit.setElementStyle(shape.id, 'strokeColor', stroke);
+  edit.setElementStyle(shape.id, 'labelBackgroundColor', stroke);
+  edit.setElementStyle(shape.id, 'fontColor', readableOn(stroke));
 }

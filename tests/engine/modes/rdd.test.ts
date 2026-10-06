@@ -434,7 +434,10 @@ describe('mode RDD : région (sujet 182)', () => {
     const region = templates.find((t) => t.id === 'rdd-region')!;
     expect(region.style).toContain('rounded=0;');
     expect(region.style).toContain('fillColor=#dae8fc;fillOpacity=10;strokeColor=#828b97;');
-    expect(region.style).toContain('align=left;verticalAlign=top;fontStyle=1;');
+    // Label en 9 px sur une étiquette de la couleur de la bordure, sans marge ajoutée (sujet 226).
+    expect(region.style).toContain('labelBackgroundColor=#828b97;fontColor=#000000;');
+    expect(region.style).toContain('align=left;verticalAlign=top;fontStyle=1;fontSize=9;');
+    expect(region.style).not.toContain('spacing');
     expect(region.style).toContain('spatial.kind=rdd-region;');
     expect(region.atBack).toBe(true);
     expect(regionStroke('#dae8fc')).toBe('#828b97');
@@ -482,7 +485,14 @@ describe('mode RDD : région (sujet 182)', () => {
       true,
     ]);
     run((edit) => color.write!(edit, shape('accounts'), '#d5e8d4'));
-    expect(shape('accounts').style).toMatchObject({ fillColor: '#d5e8d4', strokeColor: regionStroke('#d5e8d4') });
-    expect(shape('accounts').style.fontColor).toBeUndefined();
+    const stroke = regionStroke('#d5e8d4');
+    expect(shape('accounts').style).toMatchObject({
+      fillColor: '#d5e8d4',
+      strokeColor: stroke,
+      labelBackgroundColor: stroke,
+    });
+    expect(shape('accounts').style.fontColor).toBe('#000000');
+    run((edit) => color.write!(edit, shape('accounts'), '#1f3a5f'));
+    expect(shape('accounts').style.fontColor).toBe('#ffffff');
   });
 });
