@@ -44,11 +44,8 @@ function outline(shape: ShapeModel): Point[] {
 /** Mot de la tranche : `spatial.tag`, sinon celui de la forme ; vide = aucun. */
 const wordOf = (shape: ShapeModel, tag: string) => (spatialValue(shape, SPATIAL.tag) ?? tag).trim();
 
-/**
- * Les deux lignes de draw.io, puis (`withWord`) le mot de la tranche (entre le bord et la verticale), écrit de bas
- * en haut.
- */
-function details(shape: ShapeModel, tag: string, withWord = true): ShapeDetail[] {
+/** Les deux lignes de draw.io, puis le mot de la tranche (entre le bord et la verticale), écrit de bas en haut. */
+function details(shape: ShapeModel, tag: string): ShapeDetail[] {
   const { bounds, style } = shape;
   const oriented = (draw: (w: number, h: number) => Point[]) => orientedPath(bounds, style, draw);
   const vertical = oriented((w, h) => {
@@ -70,7 +67,7 @@ function details(shape: ShapeModel, tag: string, withWord = true): ShapeDetail[]
     { path: horizontal, closed: false },
   ];
   const text = wordOf(shape, tag);
-  if (!withWord || !text) return result;
+  if (!text) return result;
   let band = { width: 0, length: 0 };
   // Centre de la tranche et un point au-dessus : la direction d'écriture, orientée avec la forme.
   const [center, above] = oriented((w, h) => {
@@ -97,19 +94,17 @@ function details(shape: ShapeModel, tag: string, withWord = true): ShapeDetail[]
 }
 
 /**
- * Rendu iso / 3D : prisme du contour, lignes sur le dessus, et le mot en façade, en bas à droite de chaque face
- * (comme l'étiquette des bâtiments ; coupé par le réglage des étiquettes de façade). Sans volume (pas de fond),
- * le rendu à plat, mot dans la tranche.
+ * Rendu iso / 3D : prisme du contour, lignes et mot de la tranche sur le dessus (comme en 2D), et le mot aussi en
+ * façade, en bas à droite de chaque face (comme l'étiquette des bâtiments ; coupé par le réglage des étiquettes de
+ * façade). Sans volume (pas de fond), le rendu à plat.
  */
 function isoTagged(tag: string): SceneRenderer {
-  const withWord = box(outline, { details: (shape) => details(shape, tag) }).iso!;
-  const linesOnly = box(outline, { details: (shape) => details(shape, tag, false) }).iso!;
+  const block = box(outline, { details: (shape) => details(shape, tag) }).iso!;
   return {
     create(shape, ctx) {
-      const group = linesOnly.create(shape, ctx) as Group;
+      const group = block.create(shape, ctx) as Group;
       const height = group.userData.height as number | undefined;
-      if (height === undefined) return withWord.create(shape, ctx);
-      const text = wordOf(shape, tag) && tagOf(shape, ctx, tag);
+      const text = height !== undefined && wordOf(shape, tag) && tagOf(shape, ctx, tag);
       if (text) facadeTag(group, shape, ctx, text, tagSize(height));
       return group;
     },
@@ -128,7 +123,7 @@ const icon = (tag: string) =>
  * retournée à droite (`flipH=1`) : la tranche garde sa largeur quand on redimensionne. Le mot de la tranche (`tag`,
  * `spatial.tag` le remplace) est en capitales grises, écrit de bas en haut ; seul Drawio Spatial le dessine (draw.io
  * montre la tranche vide). La forme est désignée par `spatial.kind` (son `id`). Prisme du contour en iso / 3D, lignes
- * sur le dessus, mot en façade.
+ * et mot sur le dessus, mot aussi en façade.
  */
 export function taggedProcess(
   id: string,
