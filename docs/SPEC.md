@@ -898,14 +898,15 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   - « Document » (`rdd-document`) : document JSONB, coin plié en haut à droite (coin coupé, rabat plus sombre que
     l'entête, 10 px), clés connues en italique ; nom obligatoire : vide, il affiche « Document » et Diagnostics le
     signale.
-  - « Vue » (`rdd-view`) : coins arrondis (`rounded=1;absoluteArcSize=1;arcSize=16`), entête coupé dans le contour.
+  - « Vue » (`rdd-view`) : coins arrondis (`rounded=1;absoluteArcSize=1;arcSize=16`), entête coupé dans le contour ;
+    petites jumelles en haut à droite de l'entête (14 × 9 px, trait fin de la couleur du texte à 50 %).
   - Modèle abstrait (`rdd-model`) : nom en italique ; base technique des autres tables, jamais dans la palette,
     dessiné s'il est dans un fichier.
   - Réglages du mode sur une table : « Couleur » (couleurs `modePalette`, écrit aussi `fontColor` pour draw.io),
     « Table secondaire » (`spatial.secondary` : tailles × 0,8, forme mise à l'échelle depuis son coin haut-gauche),
     « Champs » (zone de texte, un par ligne ; la hauteur suit : entête + une ligne par champ, au moins une).
   - Fichier : `swimlane;startSize=26;fillColor=…;swimlaneFillColor=#ffffff;spatial.kind=rdd-…;…` : draw.io montre
-    l'entête et sa couleur et les coins arrondis, pas les champs, le cadre double, le coin plié ni la vague.
+    l'entête et sa couleur et les coins arrondis, pas les champs, le cadre double, le coin plié, la vague ni les jumelles.
 - **Mode Séquences** (`sequences`) : en 2D seulement (`viewModes`) ; flux ordonnés (`spatial.flows`), une flèche dans un flux au plus
   (`spatial.flow`, `spatial.step`), rangs toujours consécutifs (ajout en n + 1, échange, resserrement). Flèche d'un
   flux : trait et pointes dans la couleur du flux assombrie (−25 % de luminosité), pastille du rang au-dessus du

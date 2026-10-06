@@ -1,4 +1,4 @@
-import { Mesh, Object3D } from 'three';
+import { Box3, Mesh, Object3D } from 'three';
 import type { MeshBasicMaterial } from 'three';
 import { describe, expect, it } from 'vitest';
 import { documentFromTree, readDrawio } from '../../../src/engine/format/parse';
@@ -266,6 +266,22 @@ describe('mode RDD : embedded, document et vue (sujets 181, 218)', () => {
     run((edit) => setSecondary(edit, shape('address'), true));
     run((edit) => setFields(edit, shape('address'), 'street'));
     expect(shape('address').bounds.height).toBeCloseTo((26 + 20 + 4) * 0.8, 5);
+  });
+
+  it('vue : jumelles discrètes en haut à droite de l’entête, les autres tables sans (sujet 220)', () => {
+    const { object } = render();
+    const binoculars = object('active').getObjectByName('binoculars')!;
+    expect(binoculars.children).toHaveLength(5);
+    const box = new Box3().setFromObject(binoculars);
+    // Cadre 14 × 9 à 7 px du bord droit (800), centré dans l'entête (300 → 326) ; trait de 1 px.
+    expect(box.min.x).toBeCloseTo(800 - 7 - 14 + 0.5, 0);
+    expect(box.max.x).toBeLessThanOrEqual(800 - 7 + 0.5);
+    expect(box.min.y).toBeGreaterThanOrEqual(300 + (26 - 9) / 2 - 0.5);
+    expect(box.max.y).toBeLessThanOrEqual(300 + (26 + 9) / 2 + 0.5);
+    const material = (binoculars.children[0] as Mesh).material as MeshBasicMaterial;
+    expect(material.opacity).toBe(0.5);
+    for (const id of ['address', 'settings', 'user', 'role', 'model'])
+      expect(object(id).getObjectByName('binoculars')).toBeUndefined();
   });
 
   it('vue : contour arrondi, entête coupé dans ce contour', () => {

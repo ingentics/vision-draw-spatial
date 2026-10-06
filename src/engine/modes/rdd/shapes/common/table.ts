@@ -147,6 +147,7 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
     }
     if (kind.folded) line(flapOf(shape), true);
   }
+  if (kind.binoculars) group.add(binoculars(shape, header, new Color(textColor)));
 
   const label = createLabel(
     {
@@ -180,6 +181,66 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
       italic: kind.italicFields,
     });
   });
+  return group;
+}
+
+/** Cercle en polygone (tracé des jumelles). */
+function circle(cx: number, cy: number, r: number, segments = 16): Point[] {
+  return Array.from({ length: segments }, (_, i) => {
+    const angle = (2 * Math.PI * i) / segments;
+    return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
+  });
+}
+
+/**
+ * Jumelles d'une vue (sujet 220), en haut à droite de l'entête : deux oculaires ronds, leurs corps et le pont, au
+ * trait fin de la couleur du texte de l'entête, à demi transparent. Dessinées dans un cadre de 14 × 9 (à l'échelle).
+ */
+function binoculars(shape: ShapeModel, header: number, color: Color): Group {
+  const group = new Group();
+  group.name = 'binoculars';
+  const scale = scaleOf(shape);
+  const { width, height, margin } = TABLE.binoculars;
+  const left = shape.bounds.x + shape.bounds.width - (margin + width) * scale;
+  const top = shape.bounds.y + (header - height * scale) / 2;
+  const at = (points: Point[]) => points.map((p) => ({ x: left + p.x * scale, y: top + p.y * scale }));
+  const paths: Array<[Point[], boolean]> = [
+    [at(circle(3.5, 6.2, 2.6)), true],
+    [at(circle(10.5, 6.2, 2.6)), true],
+    // Corps, du bas des oculaires vers le haut, resserrés.
+    [
+      at([
+        { x: 1, y: 5.5 },
+        { x: 2.3, y: 0.8 },
+        { x: 5, y: 0.8 },
+        { x: 6, y: 5.5 },
+      ]),
+      false,
+    ],
+    [
+      at([
+        { x: 8, y: 5.5 },
+        { x: 9, y: 0.8 },
+        { x: 11.7, y: 0.8 },
+        { x: 13, y: 5.5 },
+      ]),
+      false,
+    ],
+    // Pont.
+    [
+      at([
+        { x: 5.6, y: 3 },
+        { x: 8.4, y: 3 },
+      ]),
+      false,
+    ],
+  ];
+  for (const [path, closed] of paths) {
+    const mesh = strokeMesh(path, color, 0.5, { width: scale, closed });
+    if (!mesh) continue;
+    mesh.renderOrder = PART_ORDER.stroke;
+    group.add(mesh);
+  }
   return group;
 }
 

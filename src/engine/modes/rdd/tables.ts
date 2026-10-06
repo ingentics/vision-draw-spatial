@@ -26,6 +26,8 @@ export const TABLE = {
   doubleGap: 3,
   /** Côté du coin plié d'un document. */
   fold: 10,
+  /** Jumelles d'une vue : largeur, hauteur, écart au bord droit de l'entête. */
+  binoculars: { width: 14, height: 9, margin: 7 },
   /** Amplitude du bas ondulé d'un embedded ; la table a deux amplitudes de plus en bas. */
   wave: 2,
   width: 160,
@@ -51,6 +53,8 @@ export interface TableKind {
   folded?: boolean;
   /** Bas ondulé (embedded, sujet 219). */
   wavy?: boolean;
+  /** Jumelles en haut à droite de l'entête (vue, sujet 220). */
+  binoculars?: boolean;
   /** Clés du style draw.io d'une table neuve (ex. `rounded=1;`) : le rendu les suit, draw.io aussi. */
   style?: string;
 }
@@ -70,7 +74,7 @@ export const TABLE_KINDS: Record<string, TableKind> = {
   // Sujet 181 : objet incorporé (bas ondulé, sujet 219), document JSONB (clés indicatives), vue (coins arrondis).
   'rdd-embedded': { wavy: true },
   'rdd-document': { italicFields: true, requiredName: 'Document', folded: true },
-  'rdd-view': { style: 'rounded=1;absoluteArcSize=1;arcSize=16;' },
+  'rdd-view': { style: 'rounded=1;absoluteArcSize=1;arcSize=16;', binoculars: true },
 };
 
 /** Forme de table d'une forme du mode ; undefined pour une autre forme. */
