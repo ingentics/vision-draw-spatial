@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.4.0](https://github.com/ingentics/vision-draw-spatial/compare/drawio-spatial-v0.3.0...drawio-spatial-v0.4.0) (2026-10-06)
+
+
+### Fonctionnalités
+
+* **app:** bouton « Enregistrer sous » et état de la sauvegarde automatique ([a758082](https://github.com/ingentics/vision-draw-spatial/commit/a75808291c88a6c6c265e477e2f85ad493cc9773))
+* **app:** icône du mode dans l'onglet de page ([0a05ec7](https://github.com/ingentics/vision-draw-spatial/commit/0a05ec79c6de4c69385b4e8297712245a87e62ac))
+* **engine:** mode Séquences en 2D seulement ([8e23fc9](https://github.com/ingentics/vision-draw-spatial/commit/8e23fc9e961d754c4f1a7c56aa695dea3e56cc77))
+* **engine:** sortie du commentaire vers le mode d'origine ([68c5641](https://github.com/ingentics/vision-draw-spatial/commit/68c56411318e05b9d729f579019668bac6da8f60))
+* **engine:** touche C sur l'élément sélectionné, même sans commentaire ([175750c](https://github.com/ingentics/vision-draw-spatial/commit/175750cd6019363824cf4e8e52a403af1b2d590c))
+* **engine:** touche C sur la sélection, sinon sur l'élément survolé ([1bd9a8f](https://github.com/ingentics/vision-draw-spatial/commit/1bd9a8f5183d31996d6c30915ef1d88d9e1fcc51))
+* **engine:** un effet déclare ses modes d'affichage ([e7eaa3b](https://github.com/ingentics/vision-draw-spatial/commit/e7eaa3b282e0e4bb639259c4e71679603070c649))
+* **engine:** un mode choisit ses formes, sa palette et ses modes d'affichage ([884b52b](https://github.com/ingentics/vision-draw-spatial/commit/884b52bed3f8cf0dcef4844cfb6e601c95542b5c))
+
+
+### Corrections
+
+* **engine:** plan proche serré en perspective quasi orthographique ([f885cc8](https://github.com/ingentics/vision-draw-spatial/commit/f885cc8e4fb60fefcfc8c65777e8e224cd07189c))
+
 ## [0.3.0](https://github.com/ingentics/vision-draw-spatial/compare/drawio-spatial-v0.2.0...drawio-spatial-v0.3.0) (2026-10-06)
 
 
