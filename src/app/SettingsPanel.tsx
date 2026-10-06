@@ -869,12 +869,19 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   ]}
                   onChange={(edgeAnchoring) => onChange({ shapes: { edgeAnchoring } })}
                 />
-                <p className="hint muted">
-                  Ancrage manuel : on choisit le point d'attache, un point libre est toujours proposé entre deux
-                  flèches. Automatique : on choisit le côté, les flèches y sont réparties sans se croiser. Typon : comme
-                  l'automatique, tracé à 45° comme les pistes d'un circuit imprimé. Une page peut avoir son propre
-                  réglage (panneau Page).
-                </p>
+                <ul className="hint muted hint-list">
+                  <li>
+                    <strong>Manuel</strong> : on choisit le point d'attache, un point libre est toujours proposé entre
+                    deux flèches.
+                  </li>
+                  <li>
+                    <strong>Automatique</strong> : on choisit le côté, les flèches y sont réparties sans se croiser.
+                  </li>
+                  <li>
+                    <strong>Typon</strong> : comme l'automatique, tracé à 45° comme les pistes d'un circuit imprimé.
+                  </li>
+                </ul>
+                <p className="hint muted">Une page peut avoir son propre réglage (panneau Page).</p>
                 <Subsubsection title="Automatique">
                   <Toggle
                     label="Contourner les formes et les flèches"

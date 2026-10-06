@@ -1406,6 +1406,15 @@ body {
   font-size: 12px;
 }
 
+/* Aide en énumération : une ligne par cas. */
+.hint-list {
+  padding-left: 18px;
+}
+
+.hint-list li + li {
+  margin-top: 2px;
+}
+
 .error-text {
   color: var(--error-fg);
 }
