@@ -1,5 +1,6 @@
 # Seule pipeline du projet : à chaque push sur main, release-please lit les Conventional Commits et tient à jour
-# une PR de release (version semver, CHANGELOG). La fusionner crée le tag et la release GitHub.
+# une PR de release (version semver, CHANGELOG). Cette PR est fusionnée aussitôt, puis release-please est rappelé
+# pour créer le tag et la release GitHub (une fusion faite avec le GITHUB_TOKEN ne relance aucun workflow).
 name: release-please
 
 on:
@@ -14,7 +15,23 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     steps:
-      - uses: googleapis/release-please-action@v4
+      - id: release
+        uses: googleapis/release-please-action@v4
         with:
           config-file: .github/release-please-config.json
           manifest-file: .github/release-please-manifest.json
+
+      - name: Fusion de la PR de release
+        if: steps.release.outputs.pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ fromJSON(steps.release.outputs.pr).number }}
+        run: gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --squash --delete-branch
+
+      - name: Tag et release
+        if: steps.release.outputs.pr
+        uses: googleapis/release-please-action@v4
+        with:
+          config-file: .github/release-please-config.json
+          manifest-file: .github/release-please-manifest.json
+          skip-github-pull-request: true
