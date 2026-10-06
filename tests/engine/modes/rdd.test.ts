@@ -631,3 +631,25 @@ describe('mode RDD : le contenu d’une région est devant elle (sujet 230)', ()
     expect(order()).toEqual(['big', 'other', 'small', 't']);
   });
 });
+
+describe('mode RDD : ajuster une région à son contenu, touche « f » (sujet 184)', () => {
+  it('trop grande puis trop petite : ramenée autour de ses tables avec 20 px de marge ; vide : inchangée', () => {
+    const { run, page, shape } = setup();
+    const key = rdd.keys!.f!;
+    expect(key.label).toBe('Ajuster la région');
+    expect(key.applies(page(), shape('accounts'))).toBe(true);
+    expect(key.applies(page(), shape('user'))).toBe(false);
+    // Comptes contient User (40, 160, 160 × 86) et Role (240, 160, 160 × 86).
+    const fitted = { x: 20, y: 140, width: 400, height: 126 };
+    run((edit) => edit.setShapeBounds('accounts', { x: 10, y: 120, width: 425, height: 170 }));
+    run((edit) => key.run(edit, shape('accounts'), undefined));
+    expect(shape('accounts').bounds).toEqual(fitted);
+    run((edit) => edit.setShapeBounds('accounts', { x: 20, y: 140, width: 250, height: 110 }));
+    run((edit) => key.run(edit, shape('accounts'), undefined));
+    expect(shape('accounts').bounds).toEqual(fitted);
+    // Région vide : rien ne change.
+    run((edit) => edit.setShapeBounds('accounts', { x: 900, y: 900, width: 100, height: 100 }));
+    expect(run((edit) => key.run(edit, shape('accounts'), undefined))).toBe(false);
+    expect(shape('accounts').bounds).toEqual({ x: 900, y: 900, width: 100, height: 100 });
+  });
+});

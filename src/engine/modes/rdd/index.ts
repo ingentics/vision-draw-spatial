@@ -14,7 +14,7 @@ import {
   tableKindOf,
 } from './tables';
 import { fieldsText, setFields, setHeaderColor, setSecondary } from './operations';
-import { REGION_KIND, isRegion, placeInRegions, regionContent, setRegionColor } from './regions';
+import { REGION_KIND, fitRegion, isRegion, placeInRegions, regionContent, setRegionColor } from './regions';
 
 /** Table du mode sélectionnée ; undefined pour une flèche, la page ou une autre forme. */
 const tableOf = (target: ModeTarget): ShapeModel | undefined =>
@@ -126,6 +126,16 @@ export const definition: PageModeDefinition = {
   // Une forme posée qui dépasse de sa région l'agrandit, marge comprise (sujet 183) ; les régions restent derrière
   // leur contenu (sujet 230).
   placed: placeInRegions,
+  keys: {
+    // « f » : région ajustée à son contenu (sujet 184) ; sur un autre élément, la touche garde son effet.
+    f: {
+      label: 'Ajuster la région',
+      applies: (_page, target) => 'kind' in target && isRegion(target),
+      run: (edit, target) => {
+        if ('kind' in target) fitRegion(edit, target);
+      },
+    },
+  },
   // Clé primaire absente ou déplacée (fichier modifié) : remise en tête à l'affichage.
   check: (page) => [
     ...page.shapes.filter(misplacedPrimaryKey).map((shape) => ({

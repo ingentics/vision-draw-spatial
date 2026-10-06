@@ -182,3 +182,22 @@ export function placeInRegions(edit: ModeEdit, shapeIds: string[]): void {
   growRegions(edit, shapeIds);
   orderRegions(edit);
 }
+
+/**
+ * Ajuste une région à son contenu (touche « f », sujet 184) : rectangle englobant des formes qu'elle contient, plus
+ * la marge de sécurité de chaque côté (le nom est sur l'onglet, au-dessus) ; elle grandit ou rétrécit. Région vide :
+ * rien ne change. L'ordre de dessin des régions est ensuite remis en place (sujet 230).
+ */
+export function fitRegion(edit: ModeEdit, region: ShapeModel): void {
+  const { page } = edit;
+  const content = regionContent(page, region)
+    .map((id) => page.shapes.find((s) => s.id === id))
+    .filter((shape): shape is ShapeModel => shape !== undefined);
+  if (!isRegion(region) || content.length === 0) return;
+  const left = Math.min(...content.map((s) => s.bounds.x)) - REGION.margin;
+  const top = Math.min(...content.map((s) => s.bounds.y)) - REGION.margin;
+  const right = Math.max(...content.map((s) => s.bounds.x + s.bounds.width)) + REGION.margin;
+  const bottom = Math.max(...content.map((s) => s.bounds.y + s.bounds.height)) + REGION.margin;
+  edit.setShapeBounds(region.id, { x: left, y: top, width: right - left, height: bottom - top });
+  orderRegions(edit);
+}
