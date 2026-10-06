@@ -27,6 +27,11 @@ const SIGN_ABOVE_HANDS = 0.15;
 const SIGN_FRONT = 1;
 /** Bordure puis texte de la pancarte, devant son fond. */
 const SIGN_LAYER = 0.05;
+/** Mains sur la pancarte : longueur posée sur le panneau et dépassement au-delà de son bord (fractions de sa largeur),
+ * épaisseur (multiple de celle du trait). */
+const HAND_GRIP = 0.12;
+const HAND_REACH = 0.04;
+const HAND_WIDTH = 1.5;
 
 /** Hauteur debout en iso / 3D : celle de la forme, `spatial.height` prioritaire. */
 export function actorHeight(shape: ShapeModel, ctx: RenderContext): number {
@@ -178,6 +183,26 @@ function createSign(shape: ShapeModel, ctx: RenderContext, frame: Rect): Group {
       border.position.z = SIGN_LAYER;
       border.renderOrder = PART_ORDER.stroke;
       sign.add(border);
+    }
+    // Mains : un petit trait de chaque côté, devant le panneau et à cheval sur son bord, à la hauteur des bras.
+    const hands = -(frame.y + frame.height - frame.height * SIGN_ABOVE_HANDS);
+    for (const side of [-1, 1]) {
+      const edge = (side * frame.width) / 2;
+      const hand = strokeMesh(
+        [
+          { x: edge + side * frame.width * HAND_REACH, y: hands },
+          { x: edge - side * frame.width * HAND_GRIP, y: hands },
+        ],
+        stroke,
+        styleOpacity(style, 'strokeOpacity'),
+        { width: strokeWidth * HAND_WIDTH, closed: false },
+      );
+      if (hand) {
+        hand.name = 'hand';
+        hand.position.z = 3 * SIGN_LAYER;
+        hand.renderOrder = PART_ORDER.stroke;
+        sign.add(hand);
+      }
     }
   }
 

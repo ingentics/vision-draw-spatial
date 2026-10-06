@@ -187,6 +187,16 @@ describe('Actor (41)', () => {
     expect(+board.max.y.toFixed(2)).toBe(43.15);
     expect(+board.min.y.toFixed(2)).toBe(22.15);
     expect(+(board.max.x - board.min.x).toFixed(2)).toBe(42);
+    // Étape 171 : deux mains devant le panneau, à cheval sur ses bords.
+    const hands = sign.children.filter((c) => c.name === 'hand');
+    expect(hands).toHaveLength(2);
+    for (const hand of hands) {
+      const box = new Box3().setFromObject(hand);
+      const outer = Math.max(Math.abs(box.min.x - 115), Math.abs(box.max.x - 115));
+      const inner = Math.min(Math.abs(box.min.x - 115), Math.abs(box.max.x - 115));
+      expect(outer).toBeGreaterThan(21);
+      expect(inner).toBeLessThan(21);
+    }
     // Bras tendus jusqu'aux bords.
     const arms = silhouette.userData.strokes[1];
     expect(arms.map((p: { x: number }) => p.x)).toEqual([-21, 21]);
