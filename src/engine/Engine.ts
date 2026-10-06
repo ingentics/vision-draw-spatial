@@ -275,11 +275,11 @@ export class Engine {
   }
 
   getViewSettings(): ViewSettings {
-    return this.core.getViewSettings();
+    return this.core.config.getViewSettings();
   }
 
   setViewSettings(patch: Partial<ViewSettings>): void {
-    this.core.setViewSettings(patch);
+    this.core.config.setViewSettings(patch);
   }
 
   /** Orientation de référence du mode courant : 0 en vue de dessus, l'azimut iso en isométrie et en 3D. */
@@ -328,15 +328,15 @@ export class Engine {
   }
 
   getControls(): ControlSettings {
-    return this.core.getControls();
+    return this.core.config.getControls();
   }
 
   setControls(patch: Partial<ControlSettings>): void {
-    this.core.setControls(patch);
+    this.core.config.setControls(patch);
   }
 
   getSettings(): Settings {
-    return this.core.getSettings();
+    return this.core.config.getSettings();
   }
 
   /**
@@ -345,12 +345,12 @@ export class Engine {
    * l'orientation est absolue : la vue prend exactement l'angle choisi).
    */
   updateSettings(patch: SettingsPatch): void {
-    this.core.updateSettings(patch);
+    this.core.config.updateSettings(patch);
   }
 
   /** Animations réduites : réglage d'accessibilité, ou préférence système si « système ». */
   reducedMotion(): boolean {
-    return this.core.reducedMotion();
+    return this.core.config.reducedMotion();
   }
 
   getSelection(): Selection | undefined {
@@ -358,19 +358,19 @@ export class Engine {
   }
 
   getTransitionSettings(): TransitionSettings {
-    return this.core.getTransitionSettings();
+    return this.core.config.getTransitionSettings();
   }
 
   setTransitionSettings(patch: Partial<TransitionSettings>): void {
-    this.core.setTransitionSettings(patch);
+    this.core.config.setTransitionSettings(patch);
   }
 
   getPreloadSettings(): PreloadSettings {
-    return this.core.getPreloadSettings();
+    return this.core.config.getPreloadSettings();
   }
 
   setPreloadSettings(patch: Partial<PreloadSettings>): void {
-    this.core.setPreloadSettings(patch);
+    this.core.config.setPreloadSettings(patch);
   }
 
   isTransitioning(): boolean {

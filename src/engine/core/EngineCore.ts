@@ -1,15 +1,4 @@
-import {
-  Box3,
-  Color,
-  Group,
-  Matrix4,
-  Mesh,
-  OrthographicCamera,
-  PerspectiveCamera,
-  Scene,
-  Vector3,
-  WebGLRenderer,
-} from 'three';
+import { Box3, Group, Matrix4, Mesh, Vector3 } from 'three';
 import type { MeshBasicMaterial, Object3D } from 'three';
 import { collectUnsupported } from '../diagnostics/unsupportedStyles';
 import type { UnsupportedReport } from '../diagnostics/unsupportedStyles';
@@ -80,10 +69,8 @@ import {
   flipTarget,
   setEdgeTextPlacement,
 } from '../edit/edgeLabels';
-import type { EdgeTextLayout, EndTextGap } from '../edit/edgeLabels';
+import type { EdgeTextLayout, EndTextGap, EdgeEnd } from '../edit/edgeLabels';
 import { labelPoint, length as polylineLength, placementAt, positionAlong } from '../render/edges/polyline';
-import { setLineResolution } from '../render/lines';
-import type { EdgeEnd } from '../edit/edgeLabels';
 import { CONNECT_DIRECTIONS, connectSideOf, handlePoints, isConnectHandle, resizeBounds } from '../edit/handles';
 import type { ConnectSide, HandleKind, HandleLayout, ResizeHandle } from '../edit/handles';
 import { arrangeAnchors, arrangementChanges, arrangementConflicts } from '../edit/arrange';
@@ -99,10 +86,7 @@ import type { StylePreset } from '../edit/styles';
 import { UndoStack } from '../edit/undo';
 import type { ShapeTemplate } from '../edit/palette';
 import {
-  applyCameraState,
-  applyPerspectiveState,
   defaultView,
-  setCameraLimits,
   fitBounds,
   interpolateCamera,
   normalizeAngle,
@@ -117,11 +101,9 @@ import {
   withViewMode,
   zoomAt,
 } from '../interaction/camera';
-import type { CameraState, ViewMode, Viewport } from '../interaction/camera';
-import { createGrid } from '../render/grid';
-import type { Grid, GridOptions } from '../render/grid';
+import type { CameraState, ViewMode } from '../interaction/camera';
 import { CameraController } from '../interaction/controls';
-import type { ControlSettings, HeldKeys } from '../interaction/controls';
+import type { HeldKeys } from '../interaction/controls';
 import { NavigationHistory, findParents, usageKey } from '../interaction/history';
 import type { HistoryEntry, LinkUsage } from '../interaction/history';
 import { buildGraphPage, cardId, GRAPH_PAGE_ID } from '../graph/graphPage';
@@ -147,7 +129,6 @@ import type {
 } from '../model/types';
 import { linkZone, selectionOutline } from '../render/decorations';
 import { middleTextAlong, toTerminal } from '../render/edges/edge';
-import { orientBillboards } from '../render/billboard';
 import { fixedAnchor, perimeterKind, routeEdgePoints, routingCenter } from '../render/edges/route';
 import { parseStyle } from '../format/style';
 import {
@@ -186,11 +167,10 @@ import type { ShapeRegistry } from '../shapes/registry';
 import type { SceneLevel } from '../shapes/types';
 import { setPageTransform } from '../render/space';
 import { createTroikaTextFactory } from '../render/troikaText';
-import { DEFAULT_SETTINGS, mergeSettings, modePalette, resolveReducedMotion } from '../settings';
+import { mergeSettings, modePalette } from '../settings';
 import { SPATIAL, SPATIAL_PREFIX, spatialValue } from '../spatial';
 import { alongAnchor } from '../render/textPath';
 import type { TextAlong } from '../render/textPath';
-import type { PreloadSettings, Settings, SettingsPatch, TransitionSettings, ViewSettings } from '../settings';
 import type {
   BackTarget,
   EdgeTextAnchor,
@@ -204,6 +184,10 @@ import type {
   ModeIndicator,
   Selection,
 } from './types';
+import { Config } from './runtime/config';
+import type { Settings } from '../settings';
+import { Rendering } from './runtime/rendering';
+import { Display } from './runtime/display';
 
 /** Ouvre une URL externe (SPEC §11.4) : nouvel onglet, sans accès retour à cette page. */
 function defaultOpenUrl(href: string): void {
@@ -365,14 +349,17 @@ const HANDLE_CURSORS: Record<ResizeHandle, string> = {
 
 /** Cœur du moteur : état et comportement, derrière la façade `Engine` (SPEC §4.3). */
 export class EngineCore {
+  // Domaines
+  readonly display = new Display(this);
+  readonly rendering: Rendering;
+  readonly config: Config;
+
+  /** Paramètres en vigueur (`config`). */
+  get settings(): Settings {
+    return this.config.settings;
+  }
+
   readonly canvas: HTMLCanvasElement;
-  readonly renderer: WebGLRenderer;
-  readonly scene = new Scene();
-  readonly camera = new OrthographicCamera();
-  /** Caméra de la vue 3D (et des bascules vers / depuis la 3D). */
-  readonly perspectiveCamera = new PerspectiveCamera();
-  /** Fond de la vue et grille (SPEC §9.5). */
-  readonly grid: Grid;
   /** Dernier mode hors 3D, où revient la touche P. */
   lastFlatMode: 'top' | 'iso' = 'top';
   readonly registry: ShapeRegistry;
@@ -382,13 +369,6 @@ export class EngineCore {
   readonly modeCurrents = new Map<string, string>();
   readonly text: ReturnType<typeof createTroikaTextFactory>;
   readonly events = new Emitter<EngineEvents>();
-  readonly resizeObserver: ResizeObserver;
-  /** Taille de la boîte du canvas en pixels physiques, quand le navigateur la donne (pas Safari). */
-  devicePixelBox: { width: number; height: number } | undefined;
-  /** Taille courante du tampon de rendu, en pixels physiques. */
-  bufferSize = { width: 0, height: 0 };
-  /** Requête qui change quand `devicePixelRatio` change (autre écran, zoom du navigateur). */
-  pixelRatioQuery: MediaQueryList | undefined;
   readonly controller: CameraController;
 
   document: DocumentModel | undefined;
@@ -405,13 +385,6 @@ export class EngineCore {
   /** Texte en cours d'édition en place (son label dessiné est masqué). */
   labelEditing?: LabelEditRequest;
   cameraState: CameraState = { mode: 'top', center: { x: 0, y: 0 }, zoom: 1, rotation: 0, tilt: 0 };
-  settings: Settings;
-  /** Préférence système « réduire les animations » (suivie en direct). */
-  readonly reducedMotionQuery: MediaQueryList | undefined;
-  viewport: Viewport = { width: 1, height: 1 };
-  /** Cadrage demandé avant que le canvas ait une taille réelle : appliqué à la première mesure. */
-  pendingFit: Rect | undefined;
-  frame = 0;
   animation = 0;
   disposed = false;
 
@@ -478,14 +451,8 @@ export class EngineCore {
     this.registry = options.registry ?? defaultShapeRegistry;
     this.modes = options.modes ?? defaultModeRegistry;
     this.effects = options.effects ?? defaultEffectRegistry;
-    const initial = options.background
-      ? mergeSettings(DEFAULT_SETTINGS, { background: { color: options.background } })
-      : DEFAULT_SETTINGS;
-    this.settings = mergeSettings(initial, options.settings);
+    this.config = new Config(this, options);
     this.undoStack.setLimit(this.settings.edit.undoLimit);
-    this.applyCameraLimits();
-    this.reducedMotionQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)');
-    this.reducedMotionQuery?.addEventListener?.('change', this.onReducedMotionChange);
     if (this.settings.view.defaultMode !== 'top') {
       this.cameraState = withViewMode(
         this.cameraState,
@@ -496,14 +463,10 @@ export class EngineCore {
     }
     this.openUrl = options.openUrl ?? defaultOpenUrl;
     this.editable = options.editable ?? false;
-    // Stencil : trous du voile de sélection autour des flèches (render/highlight).
-    this.renderer = new WebGLRenderer({ canvas: this.canvas, antialias: true, stencil: true });
-    this.scene.background = new Color(this.settings.background.color);
-    this.grid = createGrid(this.gridOptions());
-    this.scene.add(this.grid.mesh);
-    this.text = createTroikaTextFactory(options.fonts ?? {}, this.requestRender);
+    this.rendering = new Rendering(this);
+    this.text = createTroikaTextFactory(options.fonts ?? {}, this.rendering.requestRender);
     this.scenes = new SceneManager(
-      this.scene,
+      this.rendering.scene,
       (page, level) => {
         if (page.id === GRAPH_PAGE_ID && this.graph && this.document)
           return buildGraphScene(
@@ -533,25 +496,14 @@ export class EngineCore {
         ),
     );
 
-    this.resizeObserver = new ResizeObserver((entries) => {
-      const box = entries[entries.length - 1]?.devicePixelContentBoxSize?.[0];
-      this.devicePixelBox = box ? { width: box.inlineSize, height: box.blockSize } : undefined;
-      this.resize();
-    });
-    try {
-      this.resizeObserver.observe(this.canvas, { box: 'device-pixel-content-box' });
-    } catch {
-      this.resizeObserver.observe(this.canvas);
-    }
-    this.watchPixelRatio();
-    this.resize();
+    this.display.observe();
 
     this.controller = new CameraController(
       this.canvas,
       {
         getCameraState: () => this.cameraState,
         setCameraState: (state) => this.setCameraState(state),
-        getViewport: () => this.viewport,
+        getViewport: () => this.display.viewport,
         toggleOverview: (screen) => this.toggleOverview(screen),
         click: (screen, options) => this.handleClick(screen, options.toggle, options.followLink),
         doubleClick: (screen, options) => this.handleDoubleClick(screen, options.followLink),
@@ -581,7 +533,7 @@ export class EngineCore {
         escape: () => this.clearSelection(),
         modeKey: (key) => this.modeKey(key),
       },
-      this.effectiveControls(),
+      this.config.effectiveControls(),
     );
   }
 
@@ -618,7 +570,7 @@ export class EngineCore {
     const page = (initialView?.pageId && this.pageById(initialView.pageId)) || document.pages[0];
     if (!page) {
       this.scenes.hideAll();
-      this.requestRender();
+      this.rendering.requestRender();
       return;
     }
     this.goToPage(page.id);
@@ -686,8 +638,8 @@ export class EngineCore {
     this.endMove();
     const at = screenToPage(
       this.cameraState,
-      this.viewport,
-      screen ?? { x: this.viewport.width / 2, y: this.viewport.height / 2 },
+      this.display.viewport,
+      screen ?? { x: this.display.viewport.width / 2, y: this.display.viewport.height / 2 },
     );
     const bounds = dropBounds(template, at, gridSizeOf(pageTree));
     this.recordEdit('Nouvelle forme');
@@ -955,11 +907,11 @@ export class EngineCore {
       }
       if (items.length > 0) this.selectItems(items);
     }
-    this.syncBackground();
+    this.rendering.syncBackground();
     this.minimap?.invalidate();
     this.syncModified();
     this.events.emit('documentChange', this.document);
-    this.requestRender();
+    this.rendering.requestRender();
   }
 
   setModified(modified: boolean): void {
@@ -978,7 +930,7 @@ export class EngineCore {
     if (!page) return;
     const bounds = page.shapes.find((s) => s.id === elementId)?.bounds ?? this.drawnBounds(elementId) ?? page.bounds;
     this.animateCameraTo(
-      fitBounds(bounds, this.viewport, {
+      fitBounds(bounds, this.display.viewport, {
         ...this.orientation(),
         padding: this.settings.camera.focusPadding,
         maxZoom: this.settings.camera.focusMaxZoom,
@@ -1029,12 +981,12 @@ export class EngineCore {
     if (page.id !== GRAPH_PAGE_ID) this.lastDocumentPageId = page.id;
     this.scenes.show(page);
     this.applyHeightScale();
-    this.syncBackground();
+    this.rendering.syncBackground();
     this.minimap?.invalidate();
     const camera = this.pageCameras.get(page.id);
     if (camera) this.setCameraState(camera);
     else this.fitToBounds(isEmptyPage(page) ? EMPTY_PAGE_AREA : page.bounds);
-    this.requestRender();
+    this.rendering.requestRender();
     this.updateLinkZones();
     this.events.emit('pageChange', page);
   }
@@ -1044,11 +996,11 @@ export class EngineCore {
   }
 
   fitToBounds(bounds: Rect): void {
-    if (!this.isMeasured()) {
-      this.pendingFit = bounds;
+    if (!this.display.isMeasured()) {
+      this.display.pendingFit = bounds;
       return;
     }
-    this.setCameraState(fitBounds(bounds, this.viewport, this.orientation()));
+    this.setCameraState(fitBounds(bounds, this.display.viewport, this.orientation()));
   }
 
   setCameraState(state: CameraState): void {
@@ -1060,7 +1012,7 @@ export class EngineCore {
 
   animateCameraTo(target: CameraState, durationMs = this.settings.camera.animationMs, blendLevels = false): void {
     this.endLevelBlend();
-    if (this.reducedMotion() || durationMs <= 0) {
+    if (this.config.reducedMotion() || durationMs <= 0) {
       this.setCameraState(target);
       return;
     }
@@ -1083,16 +1035,19 @@ export class EngineCore {
   getOverviewState(): CameraState | undefined {
     const page = this.getCurrentPage();
     if (!page) return undefined;
-    return fitBounds(page.bounds, this.viewport, { ...this.orientation(), maxZoom: this.settings.camera.maxZoom });
+    return fitBounds(page.bounds, this.display.viewport, {
+      ...this.orientation(),
+      maxZoom: this.settings.camera.maxZoom,
+    });
   }
 
   toggleOverview(screen?: Point): void {
     const overview = this.getOverviewState();
     if (!overview) return;
     const current = this.cameraState;
-    if (sameView(current, overview, this.viewport)) {
-      const anchor = screen ?? { x: this.viewport.width / 2, y: this.viewport.height / 2 };
-      this.animateCameraTo(zoomAt(current, this.viewport, anchor, 1 / current.zoom));
+    if (sameView(current, overview, this.display.viewport)) {
+      const anchor = screen ?? { x: this.display.viewport.width / 2, y: this.display.viewport.height / 2 };
+      this.animateCameraTo(zoomAt(current, this.display.viewport, anchor, 1 / current.zoom));
     } else {
       this.animateCameraTo(overview);
     }
@@ -1151,27 +1106,6 @@ export class EngineCore {
     };
   }
 
-  /** Grille de la page courante : pas de la page draw.io (`gridSize`) si demandé et défini, sinon celui des paramètres. */
-  gridOptions(): GridOptions {
-    const background = this.settings.background;
-    const tree = background.gridFromPage && this.currentPageId ? this.pageTreeOf(this.currentPageId) : undefined;
-    const pageCell = tree && tree.encoding !== 'unreadable' ? gridSizeOf(tree) : 0;
-    return {
-      visible: background.grid,
-      background: background.color,
-      color: background.gridColor,
-      cell: pageCell > 0 ? pageCell : background.gridSize,
-      majorEvery: background.majorEvery,
-      minorStrength: background.minorStrength,
-    };
-  }
-
-  syncBackground(): void {
-    (this.scene.background as Color).set(this.settings.background.color);
-    this.grid.setOptions(this.gridOptions());
-    this.requestRender();
-  }
-
   /**
    * Volumes iso : la hauteur des blocs suit l'inclinaison (ils « poussent » pendant la bascule
    * 2D → iso, et s'aplatissent si l'on remonte vers la vue de dessus), ou la perspective : pleine
@@ -1215,7 +1149,7 @@ export class EngineCore {
       this.applyHeightScale();
       // La sélection suit la scène affichée (voile, contour, poignées).
       this.updateSelectionOutline();
-      this.requestRender();
+      this.rendering.requestRender();
     }
   }
 
@@ -1227,11 +1161,11 @@ export class EngineCore {
     this.applyHeightScale();
     this.updateSelectionOutline();
     this.minimap?.invalidate();
-    this.requestRender();
+    this.rendering.requestRender();
   }
 
   applyCamera(state: CameraState): void {
-    this.pendingFit = undefined;
+    this.display.pendingFit = undefined;
     const previousZoom = this.cameraState.zoom;
     const previousLevel = this.requestedLevel();
     this.cameraState = normalizeCameraState(state);
@@ -1255,11 +1189,11 @@ export class EngineCore {
     // du nouveau niveau quand on change de vue (2D ↔ iso / 3D).
     if (this.selection && (sceneChanged || this.cameraState.zoom !== previousZoom)) this.updateSelectionOutline();
     if (this.linkZonesShown && (sceneChanged || this.cameraState.zoom !== previousZoom)) this.updateLinkZones();
-    this.applyProjection();
+    this.rendering.applyProjection();
     this.applyHeightScale();
     this.relocateLabelEdit();
     this.events.emit('cameraChange', this.getCameraState());
-    this.requestRender();
+    this.rendering.requestRender();
   }
 
   // -------------------------------------------------------------------------
@@ -1307,7 +1241,7 @@ export class EngineCore {
       this.updateSelectionOutline();
       if (this.linkZonesShown) this.updateLinkZones();
       this.minimap?.invalidate();
-      this.requestRender();
+      this.rendering.requestRender();
     }
     this.events.emit('flattenChange', flattened);
   }
@@ -1315,14 +1249,6 @@ export class EngineCore {
   toggleFlatten(): void {
     if (this.cameraState.mode === 'top') return;
     this.setFlattened(!this.flattened);
-  }
-
-  getViewSettings(): ViewSettings {
-    return { ...this.settings.view };
-  }
-
-  setViewSettings(patch: Partial<ViewSettings>): void {
-    this.updateSettings({ view: patch });
   }
 
   /** Réglages iso en vigueur (enregistrés par page). */
@@ -1347,11 +1273,11 @@ export class EngineCore {
     ) {
       return;
     }
-    this.settings = mergeSettings(this.settings, { view: iso });
+    this.config.settings = mergeSettings(this.settings, { view: iso });
     if (view.isoVolume !== this.settings.view.isoVolume || view.isoDepth !== this.settings.view.isoDepth) {
       this.scenes.clear();
     }
-    this.events.emit('settingsChange', this.getSettings());
+    this.events.emit('settingsChange', this.config.getSettings());
   }
 
   isoTilt(): number {
@@ -1402,7 +1328,8 @@ export class EngineCore {
       outer: graph,
       inner: page,
       frame: card?.bounds,
-      destination: this.pageCameras.get(GRAPH_PAGE_ID) ?? fitBounds(graph.bounds, this.viewport, this.orientation()),
+      destination:
+        this.pageCameras.get(GRAPH_PAGE_ID) ?? fitBounds(graph.bounds, this.display.viewport, this.orientation()),
     });
   }
 
@@ -1422,7 +1349,7 @@ export class EngineCore {
       {
         getPage: () => this.getCurrentPage(),
         getCamera: () => this.cameraState,
-        getViewport: () => this.viewport,
+        getViewport: () => this.display.viewport,
         getBackground: () => this.settings.background.color,
         getAccent: () => this.settings.selection.accentColor,
         getColors: () => ({
@@ -1450,131 +1377,23 @@ export class EngineCore {
     const page = this.getCurrentPage();
     if (!page || this.transition) return;
     const { mode } = this.cameraState;
-    this.animateCameraTo(defaultView(page.bounds, this.viewport, mode, this.isoTilt(), this.isoAzimuth()));
+    this.animateCameraTo(defaultView(page.bounds, this.display.viewport, mode, this.isoTilt(), this.isoAzimuth()));
   }
 
   resetRotation(): void {
-    const center = { x: this.viewport.width / 2, y: this.viewport.height / 2 };
+    const center = { x: this.display.viewport.width / 2, y: this.display.viewport.height / 2 };
     const delta = normalizeAngle(this.getReferenceRotation() - this.cameraState.rotation);
-    this.animateCameraTo(rotateAround(this.cameraState, this.viewport, center, delta));
-  }
-
-  getControls(): ControlSettings {
-    return structuredClone(this.settings.controls);
-  }
-
-  setControls(patch: Partial<ControlSettings>): void {
-    this.updateSettings({ controls: patch });
+    this.animateCameraTo(rotateAround(this.cameraState, this.display.viewport, center, delta));
   }
 
   // -------------------------------------------------------------------------
   // Paramètres (SPEC §13)
-
-  getSettings(): Settings {
-    return structuredClone(this.settings);
-  }
-
-  updateSettings(patch: SettingsPatch): void {
-    const previous = this.settings;
-    this.settings = mergeSettings(previous, patch);
-    this.controller.setSettings(this.effectiveControls());
-    this.scenes.setMaxCached(this.settings.preload.maxCachedPages);
-    this.undoStack.setLimit(this.settings.edit.undoLimit);
-    this.syncSelectionAnimation();
-    this.updateSelectionOutline();
-    const changed = <K extends keyof Settings>(section: K) =>
-      JSON.stringify(this.settings[section]) !== JSON.stringify(previous[section]);
-    if (changed('camera')) this.applyCameraLimits();
-    if (changed('graph') || this.settings.selection.accentColor !== previous.selection.accentColor)
-      this.graph = undefined;
-    if (
-      this.settings.view.isoVolume !== previous.view.isoVolume ||
-      this.settings.view.isoDepth !== previous.view.isoDepth ||
-      this.settings.view.shadeLight !== previous.view.shadeLight ||
-      this.settings.view.shadeDark !== previous.view.shadeDark ||
-      this.settings.view.facadeTags !== previous.view.facadeTags ||
-      // Fonds de labels « default » = couleur du fond.
-      this.settings.background.color !== previous.background.color ||
-      this.settings.selection.accentColor !== previous.selection.accentColor ||
-      changed('shapes') ||
-      changed('graph') ||
-      changed('effects')
-    ) {
-      this.rebuildScenes();
-    }
-    if (changed('camera') && !this.transition && !this.animation) this.setCameraState(this.cameraState);
-    if (
-      this.settings.minimap.edgeColor !== previous.minimap.edgeColor ||
-      this.settings.minimap.outlineColor !== previous.minimap.outlineColor
-    )
-      this.minimap?.invalidate();
-    else if (this.settings.selection.accentColor !== previous.selection.accentColor) this.minimap?.requestDraw();
-    this.syncBackground();
-
-    const view = this.settings.view;
-    if (this.currentPageId && !this.transition) this.pageIso.set(this.currentPageId, this.isoParams());
-    const isoChanged =
-      view.isoAngleDeg !== previous.view.isoAngleDeg || view.isoAzimuthDeg !== previous.view.isoAzimuthDeg;
-    if (isoChanged && this.cameraState.mode === 'iso' && !this.transition) {
-      // Orientation absolue quand l'azimut change ; sinon la rotation faite à la souris est gardée.
-      const azimuthChanged = view.isoAzimuthDeg !== previous.view.isoAzimuthDeg;
-      const rotation = azimuthChanged ? normalizeAngle(this.isoAzimuth()) : this.cameraState.rotation;
-      const target = { ...this.cameraState, tilt: this.isoTilt(), rotation };
-      if (!sameView(target, this.cameraState, this.viewport)) this.animateCameraTo(target, view.switchDurationMs);
-    }
-    this.events.emit('settingsChange', this.getSettings());
-  }
-
-  /** Bornes de la caméra (zoom, inclinaison et champ de vision de la 3D) : paramètres « Caméra ». */
-  applyCameraLimits(): void {
-    const camera = this.settings.camera;
-    setCameraLimits({
-      minZoom: camera.minZoom,
-      maxZoom: camera.maxZoom,
-      minZoom3d: camera.minZoom3d,
-      maxZoom3d: camera.maxZoom3d,
-      maxTilt3d: (camera.maxTilt3dDeg * Math.PI) / 180,
-      fov: (camera.fovDeg * Math.PI) / 180,
-    });
-  }
-
-  reducedMotion(): boolean {
-    return resolveReducedMotion(this.settings.accessibility.reducedMotion, this.reducedMotionQuery?.matches ?? false);
-  }
-
-  /** Contrôles effectifs : pas de glissade quand les animations sont réduites. */
-  effectiveControls(): ControlSettings {
-    const controls = this.settings.controls;
-    return this.reducedMotion() ? { ...controls, decelerationMs: 0 } : controls;
-  }
-
-  readonly onReducedMotionChange = (): void => {
-    this.controller.setSettings(this.effectiveControls());
-    this.syncSelectionAnimation();
-    this.events.emit('settingsChange', this.getSettings());
-  };
 
   // -------------------------------------------------------------------------
   // Sélection et liens (SPEC §11)
 
   getSelection(): Selection | undefined {
     return this.selection;
-  }
-
-  getTransitionSettings(): TransitionSettings {
-    return { ...this.settings.transition };
-  }
-
-  setTransitionSettings(patch: Partial<TransitionSettings>): void {
-    this.updateSettings({ transition: patch });
-  }
-
-  getPreloadSettings(): PreloadSettings {
-    return { ...this.settings.preload };
-  }
-
-  setPreloadSettings(patch: Partial<PreloadSettings>): void {
-    this.updateSettings({ preload: patch });
   }
 
   isTransitioning(): boolean {
@@ -1587,7 +1406,7 @@ export class EngineCore {
     // Texte d'une flèche, même placé loin d'elle : la flèche.
     const text = this.edgeTextAt(screen);
     if (text) return { type: 'edge', element: text.edge };
-    const point = screenToPage(this.cameraState, this.viewport, screen);
+    const point = screenToPage(this.cameraState, this.display.viewport, screen);
     return pickElement(page, point, {
       edgeTolerance: this.settings.edit.edgePickTolerance / this.cameraState.zoom,
       edgeRoute: (id) => {
@@ -1723,7 +1542,8 @@ export class EngineCore {
       outer: page,
       inner: target,
       frame,
-      destination: this.pageCameras.get(target.id) ?? fitBounds(target.bounds, this.viewport, this.orientation()),
+      destination:
+        this.pageCameras.get(target.id) ?? fitBounds(target.bounds, this.display.viewport, this.orientation()),
     });
   }
 
@@ -1778,7 +1598,7 @@ export class EngineCore {
     const inner = this.getCurrentPage();
     const outer = this.pageById(pageId);
     if (!inner || !outer) return;
-    const destination = camera ?? fitBounds(outer.bounds, this.viewport, this.orientation());
+    const destination = camera ?? fitBounds(outer.bounds, this.display.viewport, this.orientation());
     this.runTransition({ direction: 'out', outer, inner, frame, destination });
   }
 
@@ -1805,7 +1625,7 @@ export class EngineCore {
     if (
       !frame ||
       !this.settings.transition.enabled ||
-      this.reducedMotion() ||
+      this.config.reducedMotion() ||
       this.settings.transition.durationMs <= 0
     ) {
       if (direction === 'in') this.pageCameras.set(outer.id, this.cameraState);
@@ -2210,7 +2030,7 @@ export class EngineCore {
     const connectable = new Set(connectableShapes(page, this.registry).map((s) => s.id));
     const picked = pickElement(
       { ...page, shapes: page.shapes.filter((s) => connectable.has(s.id) && s.id !== exclude), edges: [] },
-      screenToPage(this.cameraState, this.viewport, screen),
+      screenToPage(this.cameraState, this.display.viewport, screen),
       {
         edgeTolerance: 0,
         edgeRoute: () => undefined,
@@ -2296,12 +2116,12 @@ export class EngineCore {
     });
     this.connectorPreview = group;
     root.add(group);
-    this.requestRender();
+    this.rendering.requestRender();
   }
 
   /** Point écran d'un point de la page posé à `height` au-dessus du sol (inverse de `groundPointAtHeight`). */
   screenOfPoint(point: Point, height: number): Point {
-    return pageToScreen(this.cameraState, this.viewport, point, height);
+    return pageToScreen(this.cameraState, this.display.viewport, point, height);
   }
 
   /** Disposition des poignées de la sélection (paramètres d'édition). */
@@ -2336,7 +2156,7 @@ export class EngineCore {
     const editable = this.editablePage();
     if (!editable) return false;
     const { page, pageTree } = editable;
-    const start = screenToPage(this.cameraState, this.viewport, screen);
+    const start = screenToPage(this.cameraState, this.display.viewport, screen);
     const grid = gridSizeOf(pageTree);
 
     const end = this.edgeEndAt(screen);
@@ -2509,7 +2329,7 @@ export class EngineCore {
     const drag = this.drag;
     const page = this.getCurrentPage();
     if (!drag || page?.id !== drag.pageId) return;
-    const point = screenToPage(this.cameraState, this.viewport, screen);
+    const point = screenToPage(this.cameraState, this.display.viewport, screen);
     if (drag.kind === 'move') this.dragMove(page, drag, point, snap);
     else if (drag.kind === 'resize') this.dragResize(page, drag, point, snap);
     else if (drag.kind === 'label') this.dragLabel(page, drag, screen);
@@ -3009,7 +2829,7 @@ export class EngineCore {
 
     if (drag.kind === 'connect') {
       if (!drag.target) {
-        this.requestRender();
+        this.rendering.requestRender();
         return;
       }
       this.recordEdit('Connecteur');
@@ -3107,7 +2927,7 @@ export class EngineCore {
     this.clearVeil();
     this.updateSelectionOutline();
     this.minimap?.invalidate();
-    this.requestRender();
+    this.rendering.requestRender();
   }
 
   /** Remplace l'objet d'une forme (taille changée), à la même hauteur et dans le même ordre de dessin. */
@@ -3366,7 +3186,7 @@ export class EngineCore {
     const editing = this.labelEditing;
     if (!editing || editing.pageId !== this.currentPageId) return;
     this.labelObjects(editing.styleCellId).forEach((object) => (object.visible = false));
-    this.requestRender();
+    this.rendering.requestRender();
   }
 
   /** Objets de label (texte dessiné) d'une cellule dans la scène courante. */
@@ -3386,7 +3206,10 @@ export class EngineCore {
     const rect = this.screenRectOf(elementId);
     const top = this.elementTop(elementId);
     const center = rect
-      ? screenToPage(this.cameraState, this.viewport, { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 })
+      ? screenToPage(this.cameraState, this.display.viewport, {
+          x: rect.x + rect.width / 2,
+          y: rect.y + rect.height / 2,
+        })
       : { x: 0, y: 0 };
     const at = this.screenOfPoint(center, top);
     const dx = this.screenOfPoint({ x: center.x + 10, y: center.y }, top);
@@ -3604,7 +3427,7 @@ export class EngineCore {
     if (!page || !current?.valid(page, value) || value === this.getModeCurrent(page.id)) return;
     this.modeCurrents.set(page.id, value);
     this.events.emit('modeCurrentChange', page.id, value);
-    this.requestRender();
+    this.rendering.requestRender();
   }
 
   /**
@@ -3633,7 +3456,7 @@ export class EngineCore {
     if (value === undefined || value === this.getModeCurrent(page.id)) return false;
     this.modeCurrents.set(page.id, value);
     this.events.emit('modeCurrentChange', page.id, value);
-    this.requestRender();
+    this.rendering.requestRender();
     return true;
   }
 
@@ -4114,7 +3937,7 @@ export class EngineCore {
 
   /** Point de la page visé par un point écran, sur le plan horizontal à `height` au-dessus du sol. */
   groundPointAtHeight(screen: Point, height: number): Point {
-    return screenToPage(this.cameraState, this.viewport, screen, height);
+    return screenToPage(this.cameraState, this.display.viewport, screen, height);
   }
 
   sceneObject(elementId: string) {
@@ -4130,7 +3953,7 @@ export class EngineCore {
       this.selection !== undefined &&
       this.settings.selection.style === 'outline' &&
       this.settings.selection.animated &&
-      !this.reducedMotion();
+      !this.config.reducedMotion();
     if (!run) {
       cancelAnimationFrame(this.selectionAnimation);
       this.selectionAnimation = 0;
@@ -4211,7 +4034,7 @@ export class EngineCore {
       root.add(zones);
       this.linkZonesObject = zones;
     }
-    this.requestRender();
+    this.rendering.requestRender();
   }
 
   /**
@@ -4357,7 +4180,7 @@ export class EngineCore {
       });
       root.add(this.handlesObject);
     }
-    this.requestRender();
+    this.rendering.requestRender();
   }
 
   clearVeil(): void {
@@ -4378,122 +4201,21 @@ export class EngineCore {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
-    cancelAnimationFrame(this.frame);
     cancelAnimationFrame(this.animation);
     cancelAnimationFrame(this.selectionAnimation);
     clearTimeout(this.hoverTimer);
     this.transition?.abort();
-    this.resizeObserver.disconnect();
-    this.pixelRatioQuery?.removeEventListener?.('change', this.onPixelRatioChange);
+    this.display.dispose();
     this.controller.dispose();
-    this.reducedMotionQuery?.removeEventListener?.('change', this.onReducedMotionChange);
+    this.config.dispose();
     this.minimap?.dispose();
     this.scenes.clear();
-    this.grid.dispose();
     this.text.dispose();
-    // Pas de forceContextLoss : le même canvas peut être repris par un nouveau moteur
-    // (double montage de React en dev). Le contexte est libéré avec le canvas.
-    this.renderer.dispose();
+    this.rendering.dispose();
     this.events.clear();
   }
 
   // -------------------------------------------------------------------------
-
-  resize(): void {
-    // Taille exacte (clientWidth/clientHeight arrondissent, ce qui décale le zoom au curseur).
-    const rect = this.canvas.getBoundingClientRect();
-    const width = Math.max(rect.width, 1);
-    const height = Math.max(rect.height, 1);
-    // Tampon aux pixels physiques exacts de la boîte : sinon le navigateur ré-échantillonne l'image (flou).
-    const pixelRatio = window.devicePixelRatio || 1;
-    const bufferWidth = Math.max(this.devicePixelBox?.width ?? Math.round(width * pixelRatio), 1);
-    const bufferHeight = Math.max(this.devicePixelBox?.height ?? Math.round(height * pixelRatio), 1);
-    const sameBuffer = bufferWidth === this.bufferSize.width && bufferHeight === this.bufferSize.height;
-    if (width === this.viewport.width && height === this.viewport.height && sameBuffer) return;
-    this.viewport = { width, height };
-    if (!sameBuffer) {
-      this.bufferSize = { width: bufferWidth, height: bufferHeight };
-      this.renderer.setDrawingBufferSize(bufferWidth, bufferHeight, 1);
-    }
-    setLineResolution(width, height);
-    if (this.pendingFit && this.isMeasured()) {
-      this.setCameraState(fitBounds(this.pendingFit, this.viewport, this.orientation()));
-      return;
-    }
-    this.applyProjection();
-    this.relocateLabelEdit();
-    this.minimap?.requestDraw();
-    this.requestRender();
-  }
-
-  /**
-   * Fondu enchaîné 2D ↔ volume en deux passes : la page à plat (avec le fond), puis les volumes
-   * par-dessus, profondeur remise à zéro. Les blocs s'occultent entre eux, mais des blocs presque
-   * aplatis ne masquent pas les traits et labels de la page à plat.
-   */
-  renderBlend(flat: PageScene, volume: PageScene): void {
-    const camera = this.activeCamera();
-    const background = this.scene.background;
-    const gridVisible = this.grid.mesh.visible;
-    volume.root.visible = false;
-    flat.root.visible = true;
-    this.renderer.render(this.scene, camera);
-    flat.root.visible = false;
-    volume.root.visible = true;
-    this.grid.mesh.visible = false;
-    this.scene.background = null;
-    this.renderer.autoClear = false;
-    this.renderer.clearDepth();
-    this.renderer.render(this.scene, camera);
-    this.renderer.autoClear = true;
-    this.scene.background = background;
-    this.grid.mesh.visible = gridVisible;
-    flat.root.visible = true;
-  }
-
-  /** Caméra du rendu : en perspective quand l'état a un champ de vision (3D, bascules). */
-  activeCamera(): OrthographicCamera | PerspectiveCamera {
-    return this.cameraState.fov === undefined ? this.camera : this.perspectiveCamera;
-  }
-
-  applyProjection(): void {
-    if (this.cameraState.fov === undefined) applyCameraState(this.camera, this.cameraState, this.viewport);
-    else applyPerspectiveState(this.perspectiveCamera, this.cameraState, this.viewport);
-    // Le plan du fond couvre tout ce que la caméra peut voir.
-    this.grid.follow(this.cameraState.center, 2 * this.activeCamera().far);
-  }
-
-  /** Suit `devicePixelRatio` (le ResizeObserver ne le signale pas partout) pour garder un tampon net. */
-  watchPixelRatio(): void {
-    this.pixelRatioQuery?.removeEventListener?.('change', this.onPixelRatioChange);
-    this.pixelRatioQuery = window.matchMedia?.(`(resolution: ${window.devicePixelRatio || 1}dppx)`);
-    this.pixelRatioQuery?.addEventListener?.('change', this.onPixelRatioChange);
-  }
-
-  readonly onPixelRatioChange = (): void => {
-    this.watchPixelRatio();
-    this.resize();
-  };
-
-  /** Un canvas masqué ou pas encore mis en page mesure 0 (ramené à 1). */
-  isMeasured(): boolean {
-    return this.viewport.width > 1 && this.viewport.height > 1;
-  }
-
-  /** Rendu à la demande : une image par frame au plus, seulement quand quelque chose a changé. */
-  readonly requestRender = (): void => {
-    if (this.frame || this.disposed) return;
-    this.frame = requestAnimationFrame(() => {
-      this.frame = 0;
-      // Silhouettes debout (Actor) face à la caméra de cette image.
-      orientBillboards(this.scene, this.activeCamera());
-      // Estompage de ce qui est hors du courant du mode de la page (ex. hors du flux courant).
-      this.applyModeFocus();
-      const blend = this.levelBlend;
-      if (blend?.flat && blend.volume) this.renderBlend(blend.flat, blend.volume);
-      else this.renderer.render(this.scene, this.activeCamera());
-    });
-  };
 }
 
 /**
