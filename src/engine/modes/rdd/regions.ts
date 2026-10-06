@@ -17,8 +17,11 @@ export const REGION = {
   fillOpacity: 10,
   strokeDarken: 0.6,
   fontSize: 9,
-  /** Onglet du nom (sujet 227) : hauteur, marge du texte de chaque côté, largeur du S qui le termine. */
-  tab: { height: 16, padding: 6, curve: 12 },
+  /**
+   * Onglet du nom (sujets 227, 228) : hauteur, marge du texte (à gauche jusqu'au bord, à droite jusqu'au milieu du S),
+   * largeur du S qui le termine.
+   */
+  tab: { height: 16, padding: 6, curve: 10 },
   width: 400,
   height: 260,
 } as const;

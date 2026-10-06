@@ -71,7 +71,10 @@ export function pickFont(fonts: FontSet, bold: boolean, italic: boolean, family?
  * Un texte riche (mise en forme partielle), souligné, barré ou ajusté (`fit`) est mis en page ici
  * (`richLayout`) : un texte SDF par mot, des traits pour les soulignés et barrés.
  */
-export function createTroikaTextFactory(fonts: FontSet, onReady: () => void): TextFactory & { dispose(): void } {
+export function createTroikaTextFactory(
+  fonts: FontSet,
+  onReady: () => void,
+): TextFactory & { dispose(): void; measured(): Promise<MeasureText> } {
   const baseMaterial = new MeshBasicMaterial({ transparent: true, depthWrite: false, side: DoubleSide });
   let measuring: Promise<MeasureText> | undefined;
   const measure = () => (measuring ??= createMeasure(fonts));
@@ -156,6 +159,8 @@ export function createTroikaTextFactory(fonts: FontSet, onReady: () => void): Te
     dispose() {
       baseMaterial.dispose();
     },
+    /** Mesure des textes avec les polices du texte SDF, une fois chargées. */
+    measured: () => measure(),
   };
 
   /** Texte le long d'un tracé : groupe vide tout de suite, une lettre par texte SDF une fois les polices prêtes. */

@@ -80,7 +80,7 @@ export class LabelEditor {
       plane: this.labelEditPlane(element.id),
       styleCellId: element.id,
       style: element.style,
-      displayStyle: this.signLabelStyle(element.id)?.(element.style),
+      displayStyle: this.displayStyle(element.id, element.style),
       html: element.style.html === '1' ? cellLabelValue(editable.pageTree, element.id) : undefined,
       scale: this.textScale(element.id),
       onEdge: editable.page.edges.some((e) => e.id === element.id),
@@ -239,7 +239,7 @@ export class LabelEditor {
     // La bascule disparaît dès que le texte est placé à la main (glisser de sa poignée).
     const plane = editing.onEdge ? undefined : this.labelEditPlane(editing.elementId);
     // Texte sur une pancarte : l'éditeur suit le format de la cellule (changé pendant l'édition), centré et ajusté.
-    const displayStyle = editing.onEdge ? undefined : this.signLabelStyle(editing.elementId)?.(editing.style);
+    const displayStyle = editing.onEdge ? undefined : this.displayStyle(editing.elementId, editing.style);
     const next = this.withAngle(this.withFlip({ ...editing, screen, scale, plane, displayStyle }));
     const same = (a: Rect, b: Rect) => a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
     const samePlane = JSON.stringify(plane) === JSON.stringify(editing.plane);
@@ -293,6 +293,17 @@ export class LabelEditor {
       height: sign.height,
       corners: [at(left, top), at(right, top), at(right, bottom), at(left, bottom)],
     };
+  }
+
+  /**
+   * Style d'affichage de l'éditeur : celui du texte sur la pancarte d'une silhouette debout, sinon celui que la forme
+   * donne à son éditeur (`editStyle`, ex. nom d'une région RDD) ; undefined = le style de l'élément.
+   */
+  private displayStyle(elementId: string, style: Record<string, string>): Record<string, string> | undefined {
+    const sign = this.signLabelStyle(elementId);
+    if (sign) return sign(style);
+    const shape = this.core.pages.getCurrentPage()?.shapes.find((s) => s.id === elementId);
+    return shape && this.core.registry.editStyle({ ...shape, style });
   }
 
   /** Style du texte sur la pancarte d'une silhouette debout (centré, ajusté), s'il y en a une. */

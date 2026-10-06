@@ -3,7 +3,7 @@ import { insidePolygon } from '../../../../model/geometry';
 import type { Point, Rect, ShapeModel } from '../../../../model/types';
 import { rectPath } from '../../../../render/geometry/paths';
 import { fillMesh, strokeMesh } from '../../../../render/meshes';
-import { approximateMeasure } from '../../../../render/richLayout';
+import { measureText } from '../../../../render/textMeasure';
 import { styleColor, styleNumber, styleOpacity } from '../../../../render/styleValues';
 import { PART_ORDER } from '../../../../render/types';
 import type { RenderContext } from '../../../../render/types';
@@ -21,16 +21,25 @@ import { REGION, REGION_KIND, regionLabelStyle, regionStroke, regionTextColor } 
 
 const fontSizeOf = (shape: ShapeModel) => styleNumber(shape.style, 'fontSize', REGION.fontSize);
 
-/**
- * Partie droite de l'onglet, texte et marges compris, avant le S ; undefined sans nom. Le texte est mesuré sans la
- * police chargée (largeur approchée du gras) : la géométrie ne dépend pas du chargement des polices.
- */
-export function tabRect(shape: ShapeModel): Rect | undefined {
+/** Nom de la région sur son onglet (texte et place), undefined sans nom. */
+function tabText(shape: ShapeModel): Rect | undefined {
   const text = shape.label.trim();
   if (!text) return undefined;
   const { height, padding } = REGION.tab;
-  const width = approximateMeasure(text, { size: fontSizeOf(shape), bold: true, italic: false }) + 2 * padding;
-  return { x: shape.bounds.x, y: shape.bounds.y - height, width, height };
+  const width = measureText(text, { size: fontSizeOf(shape), bold: true, italic: false });
+  return { x: shape.bounds.x + padding, y: shape.bounds.y - height, width, height };
+}
+
+/**
+ * Partie droite de l'onglet, avant le S ; undefined sans nom. Le nom a la même marge des deux côtés : du bord gauche,
+ * et jusqu'au milieu du S (sujet 228).
+ */
+export function tabRect(shape: ShapeModel): Rect | undefined {
+  const text = tabText(shape);
+  if (!text) return undefined;
+  const { padding, curve } = REGION.tab;
+  const width = 2 * padding + text.width - curve / 2;
+  return { x: shape.bounds.x, y: text.y, width, height: text.height };
 }
 
 /**
@@ -94,12 +103,12 @@ function createRegion(shape: ShapeModel, ctx: RenderContext): Group {
     });
   if (border) group.add(border);
 
-  const rect = tabRect(shape);
-  if (!rect) return group;
+  const text = tabText(shape);
+  if (!text) return group;
   const label = ctx.text.create({
     text: shape.label.trim(),
-    x: rect.x + REGION.tab.padding,
-    y: rect.y + rect.height / 2,
+    x: text.x,
+    y: text.y + text.height / 2,
     anchorX: 'left',
     anchorY: 'middle',
     align: 'left',
@@ -109,6 +118,8 @@ function createRegion(shape: ShapeModel, ctx: RenderContext): Group {
     bold: true,
   });
   label.name = 'region-label';
+  // L'éditeur en place masque le nom pendant la saisie.
+  label.userData.labelCellId = shape.id;
   label.renderOrder = PART_ORDER.label;
   group.add(label);
   return group;
@@ -121,11 +132,26 @@ export const definition: ShapeDefinition = {
   // Toute la région et son onglet (pas la bande vide à droite de l'onglet).
   contains: (shape, point) => insidePolygon(regionOutline(shape), point),
   hitBounds,
-  // Éditeur en place sur l'onglet ; sans nom, sur le haut de la région.
-  textZone: (shape) => {
-    const rect = tabRect(shape);
-    return rect ? { ...rect, width: rect.width + REGION.tab.curve } : { ...shape.bounds, height: REGION.tab.height };
-  },
+  // Éditeur en place exactement sur le nom dessiné (sans nom : à sa place, sur l'onglet à venir).
+  textZone: (shape) =>
+    tabText(shape) ?? {
+      x: shape.bounds.x + REGION.tab.padding,
+      y: shape.bounds.y - REGION.tab.height,
+      width: REGION.tab.padding,
+      height: REGION.tab.height,
+    },
+  // Le nom dessiné : aligné à gauche, centré en hauteur, sans marge dans sa zone.
+  editStyle: (style) => ({
+    ...style,
+    align: 'left',
+    verticalAlign: 'middle',
+    spacing: '0',
+    spacingTop: '0',
+    spacingLeft: '0',
+    spacingRight: '0',
+    spacingBottom: '0',
+    whiteSpace: 'nowrap',
+  }),
   palette: {
     name: 'Région',
     category: 'rdd',

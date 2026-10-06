@@ -188,6 +188,12 @@ export interface ShapeDefinition {
    * place s'y ouvre : affichage et édition coïncident. Absent = les bornes de la forme.
    */
   textZone?(shape: ShapeModel, level: SceneLevel): Rect;
+  /**
+   * Style de l'éditeur en place, quand le label dessiné ne suit pas le style draw.io (ex. nom d'une région RDD sur son
+   * onglet, sujet 228) : alignements et marges du texte dessiné dans `textZone`, qui s'applique alors même à un label
+   * hors de la forme pour draw.io (`verticalLabelPosition`…). Absent = le style de la forme.
+   */
+  editStyle?(style: Record<string, string>): Record<string, string>;
   /** Dessin en mini-carte ; `null` = rien (ex. texte, groupe) ; absent = contour rempli. */
   minimap?: MinimapPainter | null;
   /** Poignées de redimensionnement (défaut : oui). */

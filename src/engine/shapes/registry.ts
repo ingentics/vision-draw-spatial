@@ -64,13 +64,14 @@ export class ShapeRegistry {
   /**
    * Zone du texte d'une forme au niveau demandé (celle du rendu qui la dessine : repli sur `flat`) ;
    * les bornes si la définition n'en donne pas ; à côté des bornes pour un label hors de la forme (comme
-   * draw.io, qui n'applique la zone propre à la forme qu'à un label centré). Source commune du label
-   * dessiné et de l'éditeur en place.
+   * draw.io, qui n'applique la zone propre à la forme qu'à un label centré), sauf pour une forme qui place elle-même
+   * son label (`editStyle`, ex. nom d'une région RDD sur son onglet). Source commune du label dessiné et de l'éditeur
+   * en place.
    */
   textZone(shape: ShapeModel, level: SceneLevel): Rect {
-    const outside = outsideLabelBox(shape.bounds, shape.style);
-    if (outside) return outside;
     const { definition } = this.resolve(shape);
+    const outside = !definition.editStyle && outsideLabelBox(shape.bounds, shape.style);
+    if (outside) return outside;
     const drawn = level !== 'flat' && definition[level] ? level : 'flat';
     return definition.textZone?.(shape, drawn) ?? shape.bounds;
   }
@@ -96,6 +97,11 @@ export class ShapeRegistry {
     if (definition.contains) return definition.contains(shape, point);
     const path = outline ? outline() : definition.outline?.(shape);
     return !path || path.length < 3 || insidePolygon(path, point);
+  }
+
+  /** Style de l'éditeur en place de la forme, s'il diffère du sien (`editStyle`). */
+  editStyle(shape: ShapeModel): Record<string, string> | undefined {
+    return this.resolve(shape).definition.editStyle?.(shape.style);
   }
 
   /** Emprise prise au clic : celle de la définition, sinon les bornes. */

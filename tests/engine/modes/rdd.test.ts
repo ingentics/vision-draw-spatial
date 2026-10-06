@@ -10,6 +10,7 @@ import { fieldsText, setFields, setHeaderColor, setSecondary } from '../../../sr
 import { REGION, regionContent, regionOf, regionStroke } from '../../../src/engine/modes/rdd/regions';
 import { regionOutline, tabPath, tabRect } from '../../../src/engine/modes/rdd/shapes/region';
 import { pickElement } from '../../../src/engine/interaction/pick';
+import { approximateMeasure } from '../../../src/engine/render/richLayout';
 import type { ModeEdit } from '../../../src/engine/modes/types';
 import type { Point, ShapeModel } from '../../../src/engine/model/types';
 import { buildPageScene } from '../../../src/engine/render/pageScene';
@@ -497,6 +498,14 @@ describe('mode RDD : région (sujet 182)', () => {
     expect(s.at(-1)).toEqual({ x: 20 + rect.width + curve, y: 130 });
     expect(s.every((p, i) => i === 0 || (p.y >= s[i - 1]!.y && p.x > s[i - 1]!.x))).toBe(true);
     expect(s[1]!.y - s[0]!.y).toBeLessThan(s[6]!.y - s[5]!.y);
+    // Même marge des deux côtés du nom : du bord gauche, et jusqu'au milieu du S (sujet 228).
+    const nameWidth = approximateMeasure('Comptes', { size: 9, bold: true, italic: false });
+    const { padding } = REGION.tab;
+    expect(rect.x + rect.width + curve / 2 - (20 + padding + nameWidth)).toBeCloseTo(padding, 6);
+    // Éditeur en place exactement sur le nom : sa zone, aligné à gauche, centré en hauteur, sans marge.
+    const registry = createDefaultRegistry();
+    expect(registry.textZone(region, 'flat')).toEqual({ x: 20 + padding, y: 130 - height, width: nameWidth, height });
+    expect(registry.editStyle(region)).toMatchObject({ align: 'left', verticalAlign: 'middle', spacing: '0' });
     // Sans nom : pas d'onglet.
     expect(tabPath({ ...region, label: ' ' })).toBeUndefined();
     // Un seul contour, région et onglet : le haut de l'onglet, le S, puis le reste du rectangle.

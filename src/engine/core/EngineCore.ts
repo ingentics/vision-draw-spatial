@@ -8,6 +8,7 @@ import type { PageModeRegistry } from '../modes/registry';
 import { SceneManager } from '../render/sceneManager';
 import { defaultShapeRegistry } from '../shapes/registry';
 import type { ShapeRegistry } from '../shapes/registry';
+import { setTextMeasure } from '../render/textMeasure';
 import { createTroikaTextFactory } from '../render/troikaText';
 import type { EngineEvent, EngineEvents, EngineOptions } from './types';
 import { Config } from './runtime/config';
@@ -166,6 +167,11 @@ export class EngineCore {
     this.targets = new EditTargets(this, options.editable ?? false);
     this.rendering = new Rendering(this);
     this.text = createTroikaTextFactory(options.fonts ?? {}, this.rendering.requestRender);
+    // Polices chargées : les géométries qui suivent la largeur d'un texte (onglet d'une région RDD) la prennent exacte.
+    void this.text.measured().then((measure) => {
+      setTextMeasure(measure);
+      if (!this.disposed && this.scenes.current) this.levels.rebuildScenes();
+    });
     this.scenes = new SceneManager(
       this.rendering.scene,
       (page, level) => this.sceneView.buildScene(page, level),
