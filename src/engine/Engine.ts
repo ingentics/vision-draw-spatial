@@ -723,6 +723,11 @@ export class Engine {
     this.core.properties.setLink(elementId, link);
   }
 
+  /** Commentaire d'un élément de la page courante (attribut `tooltip`, montré au survol) ; vide = retiré. */
+  setComment(elementId: string, comment: string): void {
+    this.core.properties.setComment(elementId, comment);
+  }
+
   /**
    * Attribut spatial d'une forme (SPEC §14.3), ex. `spatial.height`, `spatial.tag` : nombre (positif) ou texte
    * (sans `;`, séparateur du style) ; undefined le retire (valeur par défaut). Écrit là où il est déjà (attribut

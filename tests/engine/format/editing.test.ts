@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { addEdgeCell, removeCellsDeep, setCellLink } from '../../../src/engine/format/create';
+import { addEdgeCell, removeCellsDeep, setCellLink, setCellWrapperAttribute } from '../../../src/engine/format/create';
+import { commentOf } from '../../../src/engine/edit/comment';
 import { resizeCell, setCellLabel, textToHtml } from '../../../src/engine/format/edit';
 import { readDrawio } from '../../../src/engine/format/parse';
 import { writeDrawio } from '../../../src/engine/format/write';
@@ -60,6 +61,20 @@ describe('setCellLink', () => {
     setCellLink(page, 'a', 'https://example.com');
     setCellLink(page, 'a', undefined);
     expect(page.cells.get('a')!.wrapper!.hasAttribute('link')).toBe(false);
+  });
+});
+
+describe('commentaire (étape 188)', () => {
+  it('attribut tooltip de l’enveloppe, sur plusieurs lignes ; vide = retiré', () => {
+    const tree = load('three-rectangles.drawio');
+    const page = tree.pages[0]!;
+    setCellWrapperAttribute(page, 'ab', 'tooltip', 'Appel HTTP\nsynchrone');
+    expect(writeDrawio(tree)).toMatch(/<UserObject label="[^"]*" id="ab" tooltip="Appel HTTP&#10;synchrone">/);
+    const edge = reread(tree).edges.find((e) => e.id === 'ab')!;
+    expect(commentOf(edge)).toBe('Appel HTTP\nsynchrone');
+    expect(edge).toMatchObject({ sourceId: 'a', targetId: 'b' });
+    setCellWrapperAttribute(page, 'ab', 'tooltip', undefined);
+    expect(commentOf(reread(tree).edges.find((e) => e.id === 'ab')!)).toBeUndefined();
   });
 });
 

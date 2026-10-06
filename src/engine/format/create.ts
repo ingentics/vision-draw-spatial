@@ -122,11 +122,19 @@ export function addEdgeLabelCell(page: PageTree, edgeId: string, label: { value:
  * son label (`value` → `label`).
  */
 export function setCellLink(page: PageTree, cellId: string, href: string | undefined): void {
+  setCellWrapperAttribute(page, cellId, 'link', href);
+}
+
+/**
+ * Attribut de l'enveloppe d'une cellule (ex. `link`, `tooltip`), absent ou vide = retiré. Une cellule sans
+ * enveloppe est d'abord enveloppée dans un `<UserObject>`, comme pour un lien.
+ */
+export function setCellWrapperAttribute(page: PageTree, cellId: string, name: string, value: string | undefined): void {
   const nodes = page.cells.get(cellId);
   if (!nodes?.cell) throw new Error(`Cellule ${cellId} introuvable`);
   let wrapper = nodes.wrapper;
   if (!wrapper) {
-    if (!href) return;
+    if (!value) return;
     const cell = nodes.cell;
     wrapper = ownerOf(cell).createElement('UserObject');
     wrapper.setAttribute('label', cell.getAttribute('value') ?? '');
@@ -136,8 +144,8 @@ export function setCellLink(page: PageTree, cellId: string, href: string | undef
     cell.parentNode!.replaceChild(wrapper, cell);
     wrapper.appendChild(cell);
   }
-  if (href) wrapper.setAttribute('link', href);
-  else wrapper.removeAttribute('link');
+  if (value) wrapper.setAttribute(name, value);
+  else wrapper.removeAttribute(name);
   reindexPage(page);
   markPageDirty(page);
 }

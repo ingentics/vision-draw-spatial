@@ -1,4 +1,5 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
+import { commentOf } from '../engine/edit/comment';
 import { anchorOf, edgeTexts, endLabelOf } from '../engine/edit/edgeLabels';
 import type { EdgeTextAnchor } from '../engine/Engine';
 import type { EdgeEnd } from '../engine/edit/edgeLabels';
@@ -84,6 +85,8 @@ export interface ContextPanelProps {
   onSpatial: (key: string, value: number | string | undefined, merge?: string) => void;
   /** Édition du texte (du milieu, pour une flèche) dans le plan. */
   onEditLabel: () => void;
+  /** Commentaire de l'élément sélectionné (montré au survol de la flèche ; vide = retiré). */
+  onComment: (comment: string) => void;
   /** Texte de début ou de fin d'une flèche (vide = retiré). */
   onEndLabel: (end: EdgeEnd, text: string) => void;
   onDelete: () => void;
@@ -417,6 +420,7 @@ function EdgeSections({ edge, ...props }: ContextPanelProps & { edge: EdgeModel 
             />
           );
         })}
+        <CommentRow key={edge.id} comment={commentOf(edge) ?? ''} onCommit={props.onComment} />
       </Section>
       <ElementModeSection {...props} element={edge} scope="edge" />
       <TextAnchors edge={edge} onAnchor={props.onTextAnchor} onChange={props.onEdgeStyle} />
@@ -840,6 +844,60 @@ function LabelRow({ label, name = 'Texte', onEdit }: { label: string; name?: str
         Modifier
       </button>
     </div>
+  );
+}
+
+/**
+ * Commentaire d'une flèche (montré en bas à gauche du rendu au survol) : aperçu et bouton Modifier, qui ouvre une zone
+ * de texte multiligne. Quitter la zone ou ⌘/Ctrl + Entrée : valider ; Échap : annuler.
+ */
+function CommentRow({ comment, onCommit }: { comment: string; onCommit: (comment: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const cancelled = useRef(false);
+  return (
+    <>
+      <div className="field-row">
+        Commentaire
+        <span className="field-value label-value" title={comment}>
+          {comment.replace(/\n/g, ' ') || 'aucun'}
+        </span>
+        <button
+          type="button"
+          className="button"
+          title="Modifier le commentaire, montré au survol de la flèche"
+          aria-pressed={editing}
+          onClick={() => {
+            cancelled.current = false;
+            setEditing(true);
+          }}
+        >
+          Modifier
+        </button>
+      </div>
+      {editing && (
+        <textarea
+          className="comment-input"
+          aria-label="Commentaire de la flèche"
+          title="Quitter la zone ou ⌘/Ctrl + Entrée : valider ; Échap : annuler"
+          defaultValue={comment}
+          rows={4}
+          autoFocus
+          onBlur={(event) => {
+            setEditing(false);
+            if (!cancelled.current && event.currentTarget.value !== comment) onCommit(event.currentTarget.value);
+          }}
+          onKeyDown={(event) => {
+            // Les touches restent à la zone (pas de raccourci de la vue pendant la saisie).
+            event.stopPropagation();
+            if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) event.currentTarget.blur();
+            else if (event.key === 'Escape') {
+              cancelled.current = true;
+              event.currentTarget.blur();
+            }
+          }}
+        />
+      )}
+    </>
   );
 }
 

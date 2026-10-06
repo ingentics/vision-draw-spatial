@@ -1,6 +1,7 @@
 import { formatLink } from '../../../format/link';
 import { formatNumber, setCellObjectAttribute, setCellStyleValue } from '../../../format/edit';
-import { setCellLink } from '../../../format/create';
+import { setCellLink, setCellWrapperAttribute } from '../../../format/create';
+import { COMMENT_ATTRIBUTE, commentOf } from '../../../edit/comment';
 import { GRAPH_PAGE_ID } from '../../../graph/graphPage';
 import type { LinkModel } from '../../../model/types';
 import { SPATIAL_PREFIX, spatialValue, SPATIAL } from '../../../spatial';
@@ -9,7 +10,7 @@ import type { EngineCore } from '../../EngineCore';
 /** Attributs spatiaux qui ne touchent que le dessin de leur forme : réglés en direct, seule la forme est redessinée. */
 const LIVE_SHAPE_KEYS: ReadonlySet<string> = new Set([SPATIAL.tag]);
 
-/** Lien et attributs spatiaux d'un élément (SPEC §14.3). */
+/** Lien, commentaire et attributs spatiaux d'un élément (SPEC §14.3). */
 export class PropertyEdits {
   constructor(private readonly core: EngineCore) {}
 
@@ -21,6 +22,18 @@ export class PropertyEdits {
     if (href === (element.link ? formatLink(element.link) : undefined)) return;
     this.core.edits.recordEdit(link ? 'Lien' : 'Lien retiré');
     setCellLink(editable.pageTree, elementId, href);
+    this.core.file.documentChanged([editable.page.id]);
+  }
+
+  /** Commentaire d'un élément (attribut `tooltip`) ; vide = retiré. */
+  setComment(elementId: string, comment: string): void {
+    const editable = this.core.targets.editablePage();
+    const element = editable && [...editable.page.shapes, ...editable.page.edges].find((e) => e.id === elementId);
+    if (!editable || !element) return;
+    const text = comment.trim() ? comment.replace(/\s+$/, '') : undefined;
+    if (text === commentOf(element)) return;
+    this.core.edits.recordEdit(text ? 'Commentaire' : 'Commentaire retiré');
+    setCellWrapperAttribute(editable.pageTree, elementId, COMMENT_ATTRIBUTE, text);
     this.core.file.documentChanged([editable.page.id]);
   }
 

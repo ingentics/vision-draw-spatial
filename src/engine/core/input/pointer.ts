@@ -1,4 +1,5 @@
 import { isNavigableLink } from '../../format/link';
+import { commentOf } from '../../edit/comment';
 import type { PointHandle } from '../../edit/edgePoints';
 import { endAt } from '../../edit/edgeLabels';
 import { positionAlong } from '../../render/edges/polyline';
@@ -25,6 +26,8 @@ const HANDLE_CURSORS: Record<ResizeHandle, string> = {
  */
 export class PointerInput {
   private hoverTimer: ReturnType<typeof setTimeout> | undefined;
+  /** Commentaire signalé à l'UI (`commentHover`), pour ne l'émettre qu'à un changement. */
+  private hoverComment: string | undefined;
 
   constructor(private readonly core: EngineCore) {}
 
@@ -93,7 +96,7 @@ export class PointerInput {
     } else if (picked) this.core.labelEditor.editLabel(picked.element.id);
   }
 
-  /** Survol : curseur main et infobulle sur les éléments liés ; préchargement optionnel. */
+  /** Survol : curseur main et infobulle sur les éléments liés, commentaire de la flèche ; préchargement optionnel. */
   handleHover(screen: Point | undefined): void {
     const picked = screen ? this.core.picking.pickAt(screen) : undefined;
     const link = isNavigableLink(picked?.element.link) ? picked?.element.link : undefined;
@@ -113,6 +116,11 @@ export class PointerInput {
               : '';
     if (!this.core.canvas.style.cursor.startsWith('grab')) this.core.canvas.style.cursor = cursor;
     this.core.canvas.title = link ? this.core.links.describeLink(link) : '';
+    const comment = picked?.type === 'edge' ? commentOf(picked.element) : undefined;
+    if (comment !== this.hoverComment) {
+      this.hoverComment = comment;
+      this.core.events.emit('commentHover', comment);
+    }
     clearTimeout(this.hoverTimer);
     if (link && this.core.settings.preload.onHover) {
       this.hoverTimer = setTimeout(() => this.core.links.preloadLink(link), this.core.settings.preload.hoverDelayMs);

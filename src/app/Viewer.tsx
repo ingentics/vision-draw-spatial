@@ -110,6 +110,8 @@ export function Viewer({
   /** « Courant » du mode de la page changé (ex. flux courant) : redessine l'indicateur et le panneau. */
   const [, setModeCurrentTick] = useState(0);
   const [modeHint, setModeHint] = useState<ModeHint>();
+  /** Commentaire de la flèche survolée (encart en bas à gauche du rendu). */
+  const [hoverComment, setHoverComment] = useState<string>();
   const [transitioning, setTransitioning] = useState(false);
   const [labelEdit, setLabelEdit] = useState<LabelEditRequest>();
   /** Éditeur de texte en place (commandes du panneau de format) et format de sa sélection. */
@@ -341,6 +343,7 @@ export function Viewer({
       instance.on('selectionChange', setSelection);
       instance.on('modeCurrentChange', () => setModeCurrentTick((tick) => tick + 1));
       instance.on('modeHint', setModeHint);
+      instance.on('commentHover', setHoverComment);
       instance.on('labelEdit', setLabelEdit);
       instance.on('documentChange', (doc) => {
         setDocument(doc);
@@ -613,6 +616,7 @@ export function Viewer({
             onEngine={handleEngine}
             onError={(e) => setError(e instanceof Error ? e.message : String(e))}
           />
+          <CommentCard comment={hoverComment} />
         </div>
         {rightTitle && (
           <Sidebar
@@ -649,6 +653,7 @@ export function Viewer({
                   defaultDepth={settings.view.isoDepth}
                   multiSelectKey={MULTI_SELECT_LABELS[settings.controls.multiSelectKey]}
                   onLink={(link) => selection && engine?.setLink(selection.picked.element.id, link)}
+                  onComment={(comment) => selection && engine?.setComment(selection.picked.element.id, comment)}
                   onSpatial={(key, value, merge) =>
                     selection && engine?.setSpatial(selection.picked.element.id, key, value, merge)
                   }
@@ -757,6 +762,25 @@ export function Viewer({
           onClose={() => setSettingsOpen(false)}
         />
       )}
+    </div>
+  );
+}
+
+/**
+ * Encart du commentaire de la flèche survolée, en bas à gauche du rendu : apparaît en fondu, et disparaît en fondu à
+ * la sortie de la flèche en gardant son texte le temps du fondu.
+ */
+function CommentCard({ comment }: { comment: string | undefined }) {
+  const [shown, setShown] = useState(comment);
+  if (comment !== undefined && comment !== shown) setShown(comment);
+  if (shown === undefined) return null;
+  return (
+    <div
+      className={`comment-card${comment !== undefined ? ' visible' : ''}`}
+      role="status"
+      onTransitionEnd={() => comment === undefined && setShown(undefined)}
+    >
+      {shown}
     </div>
   );
 }

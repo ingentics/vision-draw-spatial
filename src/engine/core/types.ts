@@ -90,6 +90,8 @@ export type EngineEvents = {
   labelEdit: [request: LabelEditRequest];
   /** Mode d'interaction en cours (touche maintenue), pour l'aide de l'UI ; undefined : aucun. */
   modeHint: [hint: ModeHint | undefined];
+  /** Commentaire de la flèche survolée, pour l'encart de l'UI ; undefined : aucune flèche commentée sous la souris. */
+  commentHover: [comment: string | undefined];
   /** Ce qu'annuleraient / rétabliraient `undo` et `redo` (undefined : rien). */
   undoChange: [undoLabel: string | undefined, redoLabel: string | undefined];
   /** Le document a été modifié (déplacement) ou vient d'être sérialisé pour la sauvegarde. */
