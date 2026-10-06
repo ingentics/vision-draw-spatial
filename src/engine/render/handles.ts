@@ -59,9 +59,10 @@ export function selectionHandles(
       if (outline) group.add(outline);
     }
   }
-  group.traverse((o) => {
-    o.renderOrder = Number.MAX_SAFE_INTEGER;
-  });
+  // Ordre de groupe : par-dessus le reste, et dedans fonds puis traits (`PART_ORDER`). À `renderOrder` égal, Three.js
+  // trie par profondeur du centre des géométries : en iso, la pointe d'une flèche tournée vers le fond passerait
+  // sous son disque.
+  group.renderOrder = Number.MAX_SAFE_INTEGER;
   return group;
 }
 
