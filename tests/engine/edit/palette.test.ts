@@ -90,7 +90,7 @@ describe('palette', () => {
       'four-point-star',
       'six-point-star',
     ]);
-    expect(byCategory('general')).toEqual(['text', 'actor', 'actor-droid']);
+    expect(byCategory('general')).toEqual(['text', 'title', 'actor', 'actor-droid']);
     const known = new Set(PALETTE_CATEGORIES.map((c) => c.id));
     for (const template of SHAPE_TEMPLATES) expect(known.has(template.category), template.id).toBe(true);
     expect(byCategory('architecture')).toEqual([
@@ -138,6 +138,7 @@ describe('palette', () => {
       expect(ids('plugin')).toEqual(['plug']);
       expect(ids('tranche')).toEqual(['labeled-process']);
       expect(ids('cron')).toEqual(['recurring-task']);
+      expect(ids('heading')).toEqual(['title']);
       expect(ids('worker')).toEqual(['background-task']);
       expect(ids('subscriber')).toEqual(['event-consumer']);
     });
@@ -169,6 +170,8 @@ describe('formes utilisées (étape 56)', () => {
     expect(templateOfShape(shape('shape=cylinder3;direction=north;'))?.id).toBe('queue');
     expect(templateOfShape(shape('shape=cylinder3;'))?.id).toBe('database');
     expect(templateOfShape(shape('shape=mxgraph.aws4.lambda;'))).toBeUndefined();
+    expect(templateOfShape(shape('text;html=1;fontSize=64;fontColor=#dedede;'))?.id).toBe('title');
+    expect(templateOfShape(shape('text;html=1;fontSize=64;fontColor=#FF0000;'))?.id).toBe('text');
   });
 
   it('liste chaque type une fois, dans l’ordre de la palette', () => {

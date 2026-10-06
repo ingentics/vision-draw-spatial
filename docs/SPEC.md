@@ -386,6 +386,9 @@ Ajouter une forme = **déposer son dossier** (au minimum `kind` et `flat`, idéa
 
 - Rectangle (y compris arrondi),
 - Ellipse,
+- **Titre** (`general/title`, palette « Général », après Texte, 240 × 80 ; ticket 176) : la forme Texte en 64 pt gris
+  clair (`fontSize=64;fontColor=#DEDEDE`, valeur « Titre »), même rendu et même style `text` dans le fichier ; un texte
+  qui porte cette taille et cette couleur est reconnu comme un titre (palette « Utilisées »).
 - **Actor** (`shape=umlActor`, palette « Général », 30 × 60) : le bonhomme de draw.io en 2D (tête remplie, traits),
   label sous la forme ; en iso / 3D, pas d'extrusion : il se tient **debout face à la caméra** (silhouette dans un
   plan vertical, pieds au centre de l'emprise, hauteur de la forme ou `spatial.height`), tourné à chaque image vers
