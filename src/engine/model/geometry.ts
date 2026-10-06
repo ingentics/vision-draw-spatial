@@ -15,6 +15,16 @@ export function rectContains(r: Rect, p: Point): boolean {
   return p.x >= r.x && p.x <= r.x + r.width && p.y >= r.y && p.y <= r.y + r.height;
 }
 
+/** Le rectangle `inner` est-il entièrement dans `outer`, bords compris ? */
+export function rectContainsRect(outer: Rect, inner: Rect): boolean {
+  return (
+    outer.x <= inner.x &&
+    outer.y <= inner.y &&
+    outer.x + outer.width >= inner.x + inner.width &&
+    outer.y + outer.height >= inner.y + inner.height
+  );
+}
+
 /** Plus petit rectangle contenant tous les points ; undefined sans point. */
 export function boundsOfPoints(points: readonly Point[]): Rect | undefined {
   if (points.length === 0) return undefined;

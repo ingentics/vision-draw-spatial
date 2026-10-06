@@ -4,7 +4,8 @@ import {
   arrangementChanges,
   arrangementConflicts,
 } from '../../../../../src/engine/edit/anchoring/auto/arrange';
-import { DEFAULT_AVOID_OPTIONS, avoidRoutes } from '../../../../../src/engine/edit/anchoring/auto/avoid';
+import { avoidRoutes } from '../../../../../src/engine/edit/anchoring/auto/avoid';
+import { DEFAULT_AVOID_OPTIONS } from '../../../../../src/engine/edit/anchoring/routing';
 import {
   anchorSeedOf,
   distributeAnchors,

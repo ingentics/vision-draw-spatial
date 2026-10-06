@@ -1,6 +1,6 @@
 import type { EdgeModel, PageModel, Point, Rect } from '../../../model/types';
 import { endAttachmentOf, sideOfConstraint } from '../../edgeEnds';
-import { seededUnit } from './seed';
+import { seededUnit } from '../seed';
 import type { AnchorSide, TerminalEnd } from '../../edgeEnds';
 import { center } from '../../../model/geometry';
 

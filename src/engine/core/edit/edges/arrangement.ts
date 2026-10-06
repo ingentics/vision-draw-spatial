@@ -9,8 +9,8 @@ import {
   straightStyle,
 } from '../../../edit/anchoring/auto/arrange';
 import type { Arrangement } from '../../../edit/anchoring/auto/arrange';
-import type { AvoidOptions, Router } from '../../../edit/anchoring/auto/avoid';
-import { octilinearRouter } from '../../../edit/anchoring/pcb/octilinear';
+import type { AvoidOptions, Router } from '../../../edit/anchoring/routing';
+import { tracingOf } from '../../../edit/anchoring/tracing';
 import { nextPlacementVariant } from '../../../edit/anchoring/manual/variants';
 import { affectedShapes, anchorSeedOf, resitedEnds, withNeighbours } from '../../../edit/anchoring/auto/distribute';
 import { distributes, isAnchoring } from '../../../edit/anchoring/mode';
@@ -71,30 +71,9 @@ export class EdgeArrangement {
     return arrangeAnchors(page, shapeIds, { seed: anchorSeedOf(page), resite, ...this.tracing(page) });
   }
 
-  /**
-   * Tracé d'une page selon son ancrage : en automatique, orthogonal, sans tracé si le contournement est coupé
-   * (`shapes.edgeAutoRoute`) ; en Typon, avec ses propres réglages (`shapes.edgePcb…`), toujours octilinéaire,
-   * direct si le contournement est coupé.
-   */
+  /** Tracé d'une page selon son ancrage (réglages de l'automatique ou du Typon). */
   private tracing(page: PageModel): { route?: AvoidOptions; router?: Router } {
-    const { shapes } = this.core.settings;
-    if (this.anchoringOf(page) === 'pcb') {
-      const options: AvoidOptions = {
-        clearance: shapes.edgePcbShapeClearance,
-        spacing: shapes.edgePcbSpacing,
-        stub: shapes.edgePcbPortStub,
-        crossingDetour: shapes.edgePcbCrossingDetour,
-      };
-      const bends = { diagonal: shapes.edgePcbBend45, right: shapes.edgePcbBend90 };
-      return { route: options, router: octilinearRouter(shapes.edgePcbAutoRoute, bends) };
-    }
-    const options: AvoidOptions = {
-      clearance: shapes.edgeShapeClearance,
-      spacing: shapes.edgeSpacing,
-      stub: shapes.edgePortStub,
-      crossingDetour: shapes.edgeCrossingDetour,
-    };
-    return shapes.edgeAutoRoute ? { route: options } : {};
+    return tracingOf(this.core.settings.shapes, this.anchoringOf(page));
   }
 
   /**

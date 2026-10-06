@@ -1,7 +1,8 @@
 import type { Point, Rect } from '../../../model/types';
-import { ATTRACT_COST, BEND_COST, Heap, NORMALS, OVERLAP_COST, SEED_JITTER, inflate, inside, out } from '../auto/avoid';
-import type { AvoidOptions, Port, Router, Segment } from '../auto/avoid';
-import { seededUnit } from '../auto/seed';
+import { SIDE_NORMALS } from '../../edgeEnds';
+import { ATTRACT_COST, BEND_COST, Heap, OVERLAP_COST, SEED_JITTER, inflate, inside, out } from '../routing';
+import type { AvoidOptions, Port, Router, Segment } from '../routing';
+import { seededUnit } from '../seed';
 import { cross, distance, segmentsCross as crossing, simplifyPath } from '../../../model/geometry';
 
 /**
@@ -178,7 +179,7 @@ export function routeOctilinear(
   };
 
   // Arrivée : repère du côté visé (n = vers l'extérieur, u = le long du côté).
-  const normal = NORMALS[to.side];
+  const normal = SIDE_NORMALS[to.side];
   const lateral = { x: -normal.y, y: normal.x };
   /**
    * Meilleure fin de tracé depuis le nœud `a` (direction d'arrivée `d`), si elle coûte moins que `limit` : coût et
@@ -241,7 +242,8 @@ export function routeOctilinear(
   const cost = new Float64Array(states).fill(Infinity);
   const previous = new Int32Array(states).fill(-1);
   const heap = new Heap();
-  const s0 = nodeAt(Math.round((start.x - x0) / g), Math.round((start.y - y0) / g)) * 8 + dirOf(NORMALS[from.side]);
+  const s0 =
+    nodeAt(Math.round((start.x - x0) / g), Math.round((start.y - y0) / g)) * 8 + dirOf(SIDE_NORMALS[from.side]);
   cost[s0] = 0;
   heap.push(remaining(s0 >> 3), s0);
   let best = -1;

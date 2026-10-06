@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_AVOID_OPTIONS, routeAround } from '../../../../../src/engine/edit/anchoring/auto/avoid';
+import { routeAround } from '../../../../../src/engine/edit/anchoring/auto/orthogonal';
+import { DEFAULT_AVOID_OPTIONS } from '../../../../../src/engine/edit/anchoring/routing';
 
 describe('routeAround', () => {
   // Départ sur la droite d'une forme en (0, 0, 100 × 60), arrivée sur la gauche d'une forme en (400, 0) ;

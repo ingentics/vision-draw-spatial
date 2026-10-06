@@ -1,8 +1,9 @@
 import type { EdgeModel, PageModel, Point } from '../../../model/types';
 import { toTerminal } from '../../../render/edges/edge';
 import { routeEdge } from '../../../render/edges/route';
-import { ORTHOGONAL_ROUTER, avoidRoutes, edgesThrough } from './avoid';
-import type { AvoidOptions, Router } from './avoid';
+import type { AvoidOptions, Router } from '../routing';
+import { avoidRoutes, edgesThrough } from './avoid';
+import { ORTHOGONAL_ROUTER } from './orthogonal';
 import { distributeAnchors } from './distribute';
 import type { AnchorChange } from './distribute';
 import { constraintStyle } from '../../edgeEnds';

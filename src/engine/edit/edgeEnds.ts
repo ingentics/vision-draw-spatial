@@ -20,6 +20,14 @@ export type EndAttachment =
 /** Côté du cadre d'une forme. */
 export type AnchorSide = 'n' | 'e' | 's' | 'w';
 
+/** Normale sortante de chaque côté, vers l'extérieur de la forme. */
+export const SIDE_NORMALS: Readonly<Record<AnchorSide, Point>> = {
+  n: { x: 0, y: -1 },
+  e: { x: 1, y: 0 },
+  s: { x: 0, y: 1 },
+  w: { x: -1, y: 0 },
+};
+
 /** Point d'ancrage proposé sur une forme : relatif à ses bornes, pris par une flèche ou libre. */
 export interface Anchor {
   constraint: Point;

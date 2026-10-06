@@ -1,4 +1,5 @@
 import type { Point } from '../model/types';
+import { SIDE_NORMALS } from './edgeEnds';
 import type { AnchorSide } from './edgeEnds';
 
 /**
@@ -9,13 +10,6 @@ import type { AnchorSide } from './edgeEnds';
 
 /** Garde hors de la forme, en pixels de page (`jettySize` auto de draw.io pour une pointe classique). */
 export const SQUARE_END_STUB = 20;
-
-const NORMALS: Record<AnchorSide, Point> = {
-  n: { x: 0, y: -1 },
-  s: { x: 0, y: 1 },
-  e: { x: 1, y: 0 },
-  w: { x: -1, y: 0 },
-};
 
 const round = (v: number) => Math.round(v);
 
@@ -44,7 +38,7 @@ function arrivesSquare(route: Point[], side: AnchorSide): boolean {
   const a = pts[pts.length - 1];
   const c = pts[pts.length - 2];
   if (!a || !c) return false;
-  const n = NORMALS[side];
+  const n = SIDE_NORMALS[side];
   const out = (c.x - a.x) * n.x + (c.y - a.y) * n.y;
   const across = (c.x - a.x) * n.y - (c.y - a.y) * n.x;
   return out > 0 && round(across) === 0;
@@ -66,7 +60,7 @@ export function squareEnd(
   if (pts.length < 3) return undefined;
   const a = pts[pts.length - 1]!;
   const c = pts[pts.length - 2]!;
-  const n = NORMALS[side];
+  const n = SIDE_NORMALS[side];
   // Seul cas traité : le dernier segment longe le côté ; le coude passe à la garde, un segment rejoint le bout.
   if (round((c.x - a.x) * n.x + (c.y - a.y) * n.y) !== 0) return undefined;
   const shift = (p: Point): Point => ({ x: round(p.x + n.x * SQUARE_END_STUB), y: round(p.y + n.y * SQUARE_END_STUB) });

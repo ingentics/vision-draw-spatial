@@ -1,3 +1,4 @@
+import { ANCHORINGS } from '../../edit/anchoring/mode';
 import type { SettingsPatch, ShapeSettings, StyleSettings } from '../types';
 import { bool, color, num, oneOf, presets, textPresets } from '../validate';
 
@@ -5,7 +6,6 @@ import { bool, color, num, oneOf, presets, textPresets } from '../validate';
 
 const LABEL_BACKDROPS = ['halo', 'solid', 'none'] as const;
 const EDGE_LINES = ['straight', 'sharp', 'rounded', 'curved'] as const;
-const EDGE_ANCHORINGS = ['manual', 'auto', 'pcb'] as const;
 const EDGE_JUMPS = ['none', 'arc', 'gap', 'sharp', 'line'] as const;
 
 export function mergeShapes(base: ShapeSettings, patch: SettingsPatch['shapes']): ShapeSettings {
@@ -19,7 +19,7 @@ export function mergeShapes(base: ShapeSettings, patch: SettingsPatch['shapes'])
     edgeLineStyle: oneOf(EDGE_LINES, p.edgeLineStyle, base.edgeLineStyle),
     edgeJumpStyle: oneOf(EDGE_JUMPS, p.edgeJumpStyle, base.edgeJumpStyle),
     edgeJumpSize: Math.round(num('shapes.edgeJumpSize', p.edgeJumpSize, base.edgeJumpSize)),
-    edgeAnchoring: oneOf(EDGE_ANCHORINGS, p.edgeAnchoring, base.edgeAnchoring),
+    edgeAnchoring: oneOf(ANCHORINGS, p.edgeAnchoring, base.edgeAnchoring),
     edgeAutoRoute: bool(p.edgeAutoRoute, base.edgeAutoRoute),
     edgeShapeClearance: num('shapes.edgeShapeClearance', p.edgeShapeClearance, base.edgeShapeClearance),
     edgeSpacing: num('shapes.edgeSpacing', p.edgeSpacing, base.edgeSpacing),

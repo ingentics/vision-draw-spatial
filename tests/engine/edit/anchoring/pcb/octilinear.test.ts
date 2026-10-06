@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { arrangeAnchors, arrangementConflicts } from '../../../../../src/engine/edit/anchoring/auto/arrange';
-import { DEFAULT_AVOID_OPTIONS } from '../../../../../src/engine/edit/anchoring/auto/avoid';
+import { DEFAULT_AVOID_OPTIONS } from '../../../../../src/engine/edit/anchoring/routing';
 import {
   octilinearRouter,
   pathSegments,
