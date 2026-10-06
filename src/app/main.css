@@ -1381,7 +1381,9 @@ body {
 }
 
 .group-button:disabled {
+  color: var(--muted);
   cursor: default;
+  opacity: 0.6;
 }
 
 .key-button {
