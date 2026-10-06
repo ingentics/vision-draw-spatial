@@ -10,11 +10,10 @@ import type { ModeEdit } from '../types';
 export const REGION_KIND = 'rdd-region';
 
 /**
- * Fond d'une région : opacité (`fillOpacity`, en %) ; bordure : la couleur du fond assombrie ; label : taille du texte,
+ * Fond d'une région : opaque (sujet 232) ; bordure : la couleur du fond assombrie ; label : taille du texte,
  * sur un onglet au fond et à la bordure de la région (sujets 226, 227).
  */
 export const REGION = {
-  fillOpacity: 10,
   /** Marge de sécurité autour d'une forme qui dépasse de sa région, qui s'agrandit (sujet 183). */
   margin: 20,
   strokeDarken: 0.6,
@@ -96,13 +95,13 @@ export function regionStroke(color: string): string {
 }
 
 /**
- * Couleur du texte du nom d'une région de fond `color` : noir ou blanc, lisible sur ce fond posé à `fillOpacity` sur
- * du blanc (l'onglet a le fond de la région, sujet 227).
+ * Couleur du texte du nom d'une région de fond `color` : noir ou blanc, lisible sur ce fond posé à `opacity` (0–1) sur
+ * du blanc (l'onglet a le fond de la région, sujet 227 ; opaque depuis le sujet 232, plus léger dans un fichier qui
+ * porte un `fillOpacity`).
  */
-export function regionTextColor(color: string): string {
-  const alpha = REGION.fillOpacity / 100;
+export function regionTextColor(color: string, opacity = 1): string {
   const channel = (offset: number) =>
-    Math.round(255 * (1 - alpha) + parseInt(color.slice(offset, offset + 2), 16) * alpha)
+    Math.round(255 * (1 - opacity) + parseInt(color.slice(offset, offset + 2), 16) * opacity)
       .toString(16)
       .padStart(2, '0');
   return readableOn(`#${channel(1)}${channel(3)}${channel(5)}`);
@@ -117,13 +116,15 @@ export function regionLabelStyle(color: string): string {
 }
 
 /**
- * Couleur d'une région : fond (`fillColor`), bordure assortie (`strokeColor`) et cadre du nom (`labelBorderColor`,
+ * Couleur d'une région : fond opaque (`fillColor`), bordure assortie (`strokeColor`) et cadre du nom (`labelBorderColor`,
  * `fontColor`), pour draw.io aussi.
  */
 export function setRegionColor(edit: ModeEdit, shape: ShapeModel, color: string | undefined): void {
   if (!isRegion(shape) || !color) return;
   const stroke = regionStroke(color);
   edit.setElementStyle(shape.id, 'fillColor', color);
+  // Fond opaque (sujet 232) : l'opacité des régions posées avant est retirée.
+  edit.setElementStyle(shape.id, 'fillOpacity', undefined);
   edit.setElementStyle(shape.id, 'strokeColor', stroke);
   edit.setElementStyle(shape.id, 'labelBackgroundColor', undefined);
   edit.setElementStyle(shape.id, 'labelBorderColor', stroke);

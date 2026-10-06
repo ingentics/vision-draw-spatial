@@ -12,7 +12,7 @@ import { DEFAULT_HEADER_COLOR } from '../../tables';
 import { REGION, REGION_KIND, regionLabelStyle, regionStroke, regionTextColor } from '../../regions';
 
 /**
- * Région (sujets 182, 227) : rectangle à fond très léger et bordure fine, posé au fond de la pile ; son nom est sur un
+ * Région (sujets 182, 227, 232) : rectangle à fond opaque et bordure fine, posé au fond de la pile ; son nom est sur un
  * onglet au-dessus de son coin haut-gauche, d'un seul contour avec elle (même fond, même bordure). Déplacée, elle
  * emporte les formes du mode dont le coin haut-gauche est dedans (`regions.ts`). Dans draw.io, un rectangle de la même
  * couleur, le nom posé au-dessus à gauche dans un cadre de la couleur de la bordure (son contenu n'y suit pas ses
@@ -93,7 +93,8 @@ function createRegion(shape: ShapeModel, ctx: RenderContext): Group {
   const { style } = shape;
   const path = regionOutline(shape);
   const fill = styleColor(style, 'fillColor', DEFAULT_HEADER_COLOR);
-  if (fill) group.add(fillMesh(path, fill, styleOpacity(style, 'fillOpacity')));
+  const fillOpacity = styleOpacity(style, 'fillOpacity');
+  if (fill) group.add(fillMesh(path, fill, fillOpacity));
   const stroke = styleColor(style, 'strokeColor', regionStroke(DEFAULT_HEADER_COLOR));
   const border =
     stroke &&
@@ -113,7 +114,9 @@ function createRegion(shape: ShapeModel, ctx: RenderContext): Group {
     anchorY: 'middle',
     align: 'left',
     fontSize: fontSizeOf(shape),
-    color: new Color(regionTextColor(`#${(fill ?? new Color(DEFAULT_HEADER_COLOR)).getHexString()}`)),
+    color: new Color(
+      regionTextColor(`#${(fill ?? new Color(DEFAULT_HEADER_COLOR)).getHexString()}`, fill ? fillOpacity : 0),
+    ),
     opacity: 1,
     bold: true,
   });
@@ -160,7 +163,7 @@ export const definition: ShapeDefinition = {
     order: 6,
     keywords: ['région', 'region', 'zone', 'domaine', 'groupe', 'cadre'],
     style:
-      `rounded=0;whiteSpace=wrap;html=1;fillColor=${DEFAULT_HEADER_COLOR};fillOpacity=${REGION.fillOpacity};` +
+      `rounded=0;whiteSpace=wrap;html=1;fillColor=${DEFAULT_HEADER_COLOR};` +
       `strokeColor=${regionStroke(DEFAULT_HEADER_COLOR)};${regionLabelStyle(DEFAULT_HEADER_COLOR)}` +
       `align=left;verticalAlign=bottom;verticalLabelPosition=top;fontStyle=1;fontSize=${REGION.fontSize};` +
       `spatial.kind=${REGION_KIND};`,

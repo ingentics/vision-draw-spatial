@@ -7,7 +7,7 @@ import { createDefaultModeRegistry } from '../../../src/engine/modes/registry';
 import { definition as rdd } from '../../../src/engine/modes/rdd';
 import { FIELDS, ICON, SECONDARY, fieldsOf, tableFields } from '../../../src/engine/modes/rdd/tables';
 import { fieldsText, setFields, setHeaderColor, setSecondary } from '../../../src/engine/modes/rdd/operations';
-import { REGION, regionContent, regionOf, regionStroke } from '../../../src/engine/modes/rdd/regions';
+import { REGION, regionContent, regionOf, regionStroke, regionTextColor } from '../../../src/engine/modes/rdd/regions';
 import { regionOutline, tabPath, tabRect } from '../../../src/engine/modes/rdd/shapes/region';
 import { pickElement } from '../../../src/engine/interaction/pick';
 import { approximateMeasure } from '../../../src/engine/render/richLayout';
@@ -437,7 +437,9 @@ describe('mode RDD : région (sujet 182)', () => {
   it('palette : rectangle léger, label gras en haut à gauche, posé au fond de la pile', () => {
     const region = templates.find((t) => t.id === 'rdd-region')!;
     expect(region.style).toContain('rounded=0;');
-    expect(region.style).toContain('fillColor=#dae8fc;fillOpacity=10;strokeColor=#828b97;');
+    expect(region.style).toContain('fillColor=#dae8fc;strokeColor=#828b97;');
+    // Fond opaque (sujet 232).
+    expect(region.style).not.toContain('fillOpacity');
     // Label en 9 px, sans marge ajoutée (sujet 226) ; dans draw.io, posé au-dessus de la région à gauche dans un cadre
     // de la couleur de la bordure, comme l'onglet (sujet 227).
     expect(region.style).toContain('labelBorderColor=#828b97;fontColor=#000000;');
@@ -552,10 +554,15 @@ describe('mode RDD : région (sujet 182)', () => {
       labelBorderColor: stroke,
     });
     expect(shape('accounts').style.labelBackgroundColor).toBeUndefined();
-    // Texte lisible sur le fond posé à 10 % : noir, même sur une couleur sombre.
+    // Fond opaque (sujet 232) : texte noir sur une couleur claire, blanc sur une sombre ; un ancien fillOpacity est
+    // retiré.
     expect(shape('accounts').style.fontColor).toBe('#000000');
+    run((edit) => edit.setElementStyle('accounts', 'fillOpacity', '10'));
     run((edit) => color.write!(edit, shape('accounts'), '#1f3a5f'));
-    expect(shape('accounts').style.fontColor).toBe('#000000');
+    expect(shape('accounts').style.fontColor).toBe('#ffffff');
+    expect(shape('accounts').style.fillOpacity).toBeUndefined();
+    // Sur un fond léger (fichier d'avant), le texte se lit sur le fond posé sur du blanc.
+    expect(regionTextColor('#1f3a5f', 0.1)).toBe('#000000');
   });
 });
 
