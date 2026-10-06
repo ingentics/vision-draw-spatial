@@ -206,56 +206,18 @@ function arc(cx: number, cy: number, r: number, from: number, to: number, segmen
 const circle = (cx: number, cy: number, r: number) => arc(cx, cy, r, 0, 2 * Math.PI, 16).slice(0, -1);
 
 /**
- * Pièce de puzzle (sujet 222) dans le cadre de 14 × 9 : un carré de côté `2h` aux coins arrondis (rayon `round`) ;
- * en haut et à droite un tenon, en bas une encoche, à gauche rien. Tenon et encoche : un cercle de rayon `r` sur un
- * col étroit (le cercle coupe le côté à ±`neck` rad de l'axe). Le tout centré dans le cadre.
+ * Câble de la prise (sujet 223) dans le cadre de 14 × 9 : part du haut à gauche, fait un S (boucle à droite puis à
+ * gauche) et file vers la prise, en bas à droite.
  */
-function puzzlePiece(h = 3.2, r = 1.3, neck = 0.65, round = 0.7, segments = 14): Point[] {
-  const corners = [
-    { x: -h, y: -h },
-    { x: h, y: -h },
-    { x: h, y: h },
-    { x: -h, y: h },
+function plugCable(): Point[] {
+  return [
+    { x: 1.8, y: 1.2 },
+    { x: 3.4, y: 1.2 },
+    ...arc(3.4, 2.6, 1.4, -Math.PI / 2, Math.PI / 2).slice(1),
+    { x: 2.6, y: 4 },
+    ...arc(2.6, 5.4, 1.4, -Math.PI / 2, -(3 * Math.PI) / 2).slice(1),
+    { x: 6.6, y: 6.8 },
   ];
-  // 1 : tenon vers l'extérieur ; −1 : encoche ; 0 : côté droit.
-  const bumps = [1, 1, -1, 0];
-  const sides = corners.map((from, i) => {
-    const to = corners[(i + 1) % 4]!;
-    return { x: (to.x - from.x) / (2 * h), y: (to.y - from.y) / (2 * h) };
-  });
-  const depth = r * Math.cos(neck);
-  const points = corners.flatMap((corner, i) => {
-    const u = sides[i]!;
-    const before = sides[(i + 3) % 4]!;
-    // Coin arrondi, du côté précédent à celui-ci.
-    const c = { x: corner.x + (u.x - before.x) * round, y: corner.y + (u.y - before.y) * round };
-    const rounded = Array.from({ length: 7 }, (_, k) => {
-      const t = (Math.PI / 2) * (k / 6);
-      return {
-        x: c.x + round * (-Math.cos(t) * u.x + Math.sin(t) * before.x),
-        y: c.y + round * (-Math.cos(t) * u.y + Math.sin(t) * before.y),
-      };
-    });
-    const bump = bumps[i]!;
-    if (bump === 0) return rounded;
-    // Sens de la bosse : normale extérieure (contour en sens horaire, y vers le bas) pour un tenon, intérieure sinon.
-    const m = { x: bump * u.y, y: -bump * u.x };
-    const to = corners[(i + 1) % 4]!;
-    const center = { x: (corner.x + to.x) / 2 + m.x * depth, y: (corner.y + to.y) / 2 + m.y * depth };
-    const knob = Array.from({ length: segments + 1 }, (_, k) => {
-      const t = -neck - ((2 * Math.PI - 2 * neck) * k) / segments;
-      return {
-        x: center.x + r * (-Math.cos(t) * m.x + Math.sin(t) * u.x),
-        y: center.y + r * (-Math.cos(t) * m.y + Math.sin(t) * u.y),
-      };
-    });
-    return [...rounded, ...knob];
-  });
-  const xs = points.map((p) => p.x);
-  const ys = points.map((p) => p.y);
-  const dx = 7 - (Math.min(...xs) + Math.max(...xs)) / 2;
-  const dy = 4.5 - (Math.min(...ys) + Math.max(...ys)) / 2;
-  return points.map((p) => ({ x: p.x + dx, y: p.y + dy }));
 }
 
 /** Tracés d'une icône d'entête dans son cadre de 14 × 9 : [points, fermé]. */
@@ -301,12 +263,39 @@ const MARK_PATHS: Record<HeaderMark, Array<[Point[], boolean]>> = {
       false,
     ],
   ]),
-  // Pièce de puzzle droite : tenons en haut et à droite, encoche en bas, coins arrondis.
-  puzzle: [[puzzlePiece(), true]],
+  // Prise électrique : câble en S, corps rétréci côté câble, deux broches vers la droite.
+  plug: [
+    [plugCable(), false],
+    [
+      [
+        { x: 6.6, y: 6 },
+        { x: 7.6, y: 5.1 },
+        { x: 9.6, y: 5.1 },
+        { x: 9.6, y: 8.5 },
+        { x: 7.6, y: 8.5 },
+        { x: 6.6, y: 7.6 },
+      ],
+      true,
+    ],
+    [
+      [
+        { x: 9.6, y: 6 },
+        { x: 11.6, y: 6 },
+      ],
+      false,
+    ],
+    [
+      [
+        { x: 9.6, y: 7.6 },
+        { x: 11.6, y: 7.6 },
+      ],
+      false,
+    ],
+  ],
 };
 
 /**
- * Icône d'entête (sujets 220 à 222 : jumelles de la vue, liste de l'énumération, puzzle de l'embedded), en haut à
+ * Icône d'entête (sujets 220 à 222 : jumelles de la vue, liste de l'énumération, prise de l'embedded), en haut à
  * droite de l'entête, dans un cadre de 14 × 9 agrandi 1,5 fois (à l'échelle), au trait fin de la couleur de la bordure ; rien sans
  * bordure (`strokeColor=none`).
  */

@@ -885,7 +885,7 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
 - **Écritures** : une opération de mode est une étape d'annulation (`Engine.editPageMode`) ; attribut de page sur
   `<diagram>`, attribut d'élément là où il est déjà (objet), sinon dans le style ; clé du style draw.io d'un élément
   (`setElementStyle`) et bornes d'une forme (`setShapeBounds`, sujet 179).
-- **Mode RDD** (`rdd`, sujets 179 à 181, 215 à 222) : en 2D seulement ; la palette (catégorie « RDD ») ne
+- **Mode RDD** (`rdd`, sujets 179 à 181, 215 à 223) : en 2D seulement ; la palette (catégorie « RDD ») ne
   propose que ses tables. Une table est un rectangle en deux zones : entête de 26 px de la couleur `fillColor` (nom
   centré, gras ; texte noir ou blanc selon le contraste), trait, puis zone blanche des champs (`spatial.fields`, un
   par ligne de 20 px, alignés à gauche). Aucune mention au-dessus du nom : chaque table a sa marque.
@@ -898,7 +898,7 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     lecture seule dans le panneau (« Clé primaire ») et absente de « Champs » ; absente ou déplacée dans le fichier,
     elle est remise en tête à l'affichage et signalée dans Diagnostics.
   - « Embedded » (`rdd-embedded`) : objet incorporé, bas ondulé (une période sur la largeur, amplitude 2 px ; la
-    table a 4 px de plus en bas) ; icône pièce de puzzle.
+    table a 4 px de plus en bas) ; icône prise électrique (câble en S, deux broches).
   - « Document » (`rdd-document`) : document JSONB, coin plié en haut à droite (coin coupé, rabat plus sombre que
     l'entête, 10 px), clés connues en italique ; nom obligatoire : vide, il affiche « Document » et Diagnostics le
     signale.

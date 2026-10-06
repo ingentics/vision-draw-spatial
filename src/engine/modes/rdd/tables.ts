@@ -41,8 +41,8 @@ export const TABLE = {
 /** Couleur d'entête par défaut (premier fond de `modePalette`). */
 export const DEFAULT_HEADER_COLOR = '#dae8fc';
 
-/** Icône d'entête : jumelles (vue), liste (énumération), pièce de puzzle (embedded). */
-export type HeaderMark = 'binoculars' | 'list' | 'puzzle';
+/** Icône d'entête : jumelles (vue), liste (énumération), prise électrique (embedded, sujet 223). */
+export type HeaderMark = 'binoculars' | 'list' | 'plug';
 
 /**
  * Forme de table, reconnue à sa marque propre (sans mention au-dessus du nom, sujet 218) : nom en italique, clé
@@ -80,7 +80,7 @@ export const TABLE_KINDS: Record<string, TableKind> = {
   'rdd-entity': { primaryKey: true },
   'rdd-enum': { primaryKey: true, doubleHeader: true, mark: 'list' },
   // Sujet 181 : objet incorporé (bas ondulé, sujet 219), document JSONB (clés indicatives), vue (coins arrondis).
-  'rdd-embedded': { wavy: true, mark: 'puzzle' },
+  'rdd-embedded': { wavy: true, mark: 'plug' },
   'rdd-document': { italicFields: true, requiredName: 'Document', folded: true },
   'rdd-view': { style: 'rounded=1;absoluteArcSize=1;arcSize=16;', mark: 'binoculars' },
 };

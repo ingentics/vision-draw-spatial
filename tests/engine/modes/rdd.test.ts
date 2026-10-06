@@ -270,15 +270,15 @@ describe('mode RDD : embedded, document et vue (sujets 181, 218)', () => {
     expect(shape('address').bounds.height).toBeCloseTo((26 + 20 + 4) * 0.8, 5);
   });
 
-  it('icônes d’entête : jumelles (vue), liste (énumération), puzzle (embedded), en haut à droite (sujets 220, 222)', () => {
+  it('icônes d’entête : jumelles (vue), liste (énumération), prise (embedded, 223), en haut à droite (sujets 220, 222)', () => {
     const { object, page } = render();
     const markOf = (id: string) => object(id).getObjectByName('header-mark');
     expect(['active', 'role', 'address'].map((id) => markOf(id)!.userData.mark)).toEqual([
       'binoculars',
       'list',
-      'puzzle',
+      'plug',
     ]);
-    expect(['active', 'role', 'address'].map((id) => markOf(id)!.children.length)).toEqual([5, 6, 1]);
+    expect(['active', 'role', 'address'].map((id) => markOf(id)!.children.length)).toEqual([5, 6, 4]);
     for (const id of ['active', 'role', 'address']) {
       const shape = page().shapes.find((s) => s.id === id)!;
       const { x, y, width } = shape.bounds;
