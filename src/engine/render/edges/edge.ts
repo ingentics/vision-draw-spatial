@@ -215,6 +215,8 @@ function createEdgeLabel(
   object.userData.labelCellId = cellId;
   // Point d'ancrage (espace page) : pivot du texte quand un mode le redresse face à la caméra.
   object.userData.labelAnchor = point;
+  // Posé lettre par lettre le long du trait : attrapé lettre par lettre (pas dans sa boîte englobante).
+  if (along) object.userData.alongPath = true;
   object.renderOrder = PART_ORDER.label;
   return object;
 }

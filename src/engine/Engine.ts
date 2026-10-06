@@ -128,7 +128,7 @@ import { buildGraphPage, cardId, GRAPH_PAGE_ID } from './graph/graphPage';
 import type { GraphLayout } from './graph/graphPage';
 import { buildGraphScene } from './graph/graphScene';
 import { Minimap } from './interaction/minimap';
-import { pickElement } from './interaction/pick';
+import { distanceToPolyline, insidePolygon, pickElement } from './interaction/pick';
 import type { PickedElement } from './interaction/pick';
 import { marqueeTakes } from './interaction/marquee';
 import type { Footprint } from './interaction/marquee';
@@ -2930,6 +2930,11 @@ export class Engine {
       object.traverse((child) => {
         const cellId = child.userData.labelCellId as string | undefined;
         if (hit || !cellId || !child.visible) return;
+        // Texte le long du trait : la boîte tournée de chaque lettre (un coude ne fait pas une grande zone).
+        if (child.userData.alongPath) {
+          if (drawnGlyphQuads(child, toPage).some((quad) => nearPolygon(quad, point, padding))) hit = cellId;
+          return;
+        }
         const box = drawnTextBox(child, toPage);
         if (
           box &&
@@ -4913,6 +4918,36 @@ function drawnTextBox(object: Object3D, toPage: Matrix4): Box3 | undefined {
     }
   });
   return box.isEmpty() ? undefined : box;
+}
+
+/** Coins (espace page) de chaque texte SDF dessiné sous `object` : une lettre tournée par quadrilatère. */
+function drawnGlyphQuads(object: Object3D, toPage: Matrix4): Point[][] {
+  const quads: Point[][] = [];
+  object.traverse((child) => {
+    const info = (child as Object3D & { textRenderInfo?: { blockBounds: [number, number, number, number] } })
+      .textRenderInfo;
+    if (!info) return;
+    const [minX, minY, maxX, maxY] = info.blockBounds;
+    quads.push(
+      (
+        [
+          [minX, minY],
+          [maxX, minY],
+          [maxX, maxY],
+          [minX, maxY],
+        ] as const
+      ).map(([x, y]) => {
+        const v = new Vector3(x, y, 0).applyMatrix4(child.matrixWorld).applyMatrix4(toPage);
+        return { x: v.x, y: v.y };
+      }),
+    );
+  });
+  return quads;
+}
+
+/** Point dans un polygone ou à moins de `margin` de son bord. */
+function nearPolygon(polygon: Point[], p: Point, margin: number): boolean {
+  return insidePolygon(polygon, p) || distanceToPolyline(p, [...polygon, polygon[0]!]) <= margin;
 }
 
 /** Clés de style d'une flèche qui ne changent que le dessin de son texte : réglables en direct sans reconstruire la page. */
