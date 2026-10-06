@@ -1,0 +1,338 @@
+import type { AlignReference } from '../edit/align';
+import type { StylePreset, TextPreset } from '../edit/styles';
+import type { ControlSettings, Shortcuts } from '../interaction/controls';
+
+/** Types des paramètres (SPEC §13), section par section. */
+
+/** Transition entre pages par un lien (SPEC §11.2). */
+export interface TransitionSettings {
+  enabled: boolean;
+  durationMs: number;
+  easing: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out';
+  /** Fondu croisé des deux pages, en fraction de la durée (début et fin, SPEC §11.2). */
+  fadeStart: number;
+  fadeEnd: number;
+}
+
+/** Préchargement de la page cible d'un lien (SPEC §11.1) et cache des scènes. */
+export interface PreloadSettings {
+  onClick: boolean;
+  onHover: boolean;
+  hoverDelayMs: number;
+  maxCachedPages: number;
+}
+
+/** Modes de vue (SPEC §9.1). */
+export interface ViewSettings {
+  defaultMode: 'top' | 'iso' | '3d';
+  /** Élévation de la caméra au-dessus du sol en mode iso, en degrés (35,26 = isométrie vraie). */
+  isoAngleDeg: number;
+  /**
+   * Rotation ajoutée en passant en iso, en degrés : ±45 = isométrie vraie (vers la droite ou la
+   * gauche), 0 = simple inclinaison.
+   */
+  isoAzimuthDeg: number;
+  /** Durée de la bascule 2D ↔ iso. */
+  switchDurationMs: number;
+  /** Formes en volume en vue iso (blocs) ; sinon tout reste à plat. */
+  isoVolume: boolean;
+  /** Épaisseur par défaut des volumes, en pixels de page (`spatial.height` par forme). */
+  isoDepth: number;
+  /** Luminosité des côtés des volumes (fraction de la couleur de fond) : face éclairée, face à l'ombre. */
+  shadeLight: number;
+  shadeDark: number;
+  /** Étiquettes sur les façades des bâtiments iso (DB, QUEUE, CACHE ; `spatial.tag` par forme). */
+  facadeTags: boolean;
+}
+
+/** Caméra (SPEC §9) : bornes de zoom et d'inclinaison, perspective, animations. */
+export interface CameraSettings {
+  /** Zoom minimal et maximal en 2D et en iso (1 = 100 %). */
+  minZoom: number;
+  maxZoom: number;
+  /** Zoom minimal et maximal en 3D. */
+  minZoom3d: number;
+  maxZoom3d: number;
+  /** Inclinaison maximale de la caméra en 3D, en degrés depuis la verticale. */
+  maxTilt3dDeg: number;
+  /** Champ de vision vertical de la perspective 3D, en degrés. */
+  fovDeg: number;
+  /** Durée des déplacements animés (vue globale, réinitialiser la vue, aller à un élément). */
+  animationMs: number;
+  /** Aller à un élément : zoom maximal et marge autour, en pixels écran. */
+  focusMaxZoom: number;
+  focusPadding: number;
+}
+
+/** Fond de la vue et grille (SPEC §9.5), dans les trois modes. */
+export interface BackgroundSettings {
+  /** Couleur du fond (#rrggbb). */
+  color: string;
+  /** Grille affichée. */
+  grid: boolean;
+  /** Pas de la grille : celui de la page draw.io (`gridSize`) quand elle en a un, sinon `gridSize` ci-dessous. */
+  gridFromPage: boolean;
+  /** Pas de la grille en pixels de page (draw.io : 10). */
+  gridSize: number;
+  /** Une ligne principale toutes les N cases (draw.io : 4) ; 1 = pas de lignes principales. */
+  majorEvery: number;
+  /** Couleur des lignes (#rrggbb) ; les lignes secondaires en sont une version plus légère. */
+  gridColor: string;
+  /** Intensité des lignes secondaires par rapport aux principales (0–1). */
+  minorStrength: number;
+}
+
+export interface MinimapSettings {
+  visible: boolean;
+  /** Largeur en pixels CSS (la hauteur suit les proportions de la page). */
+  size: number;
+  /** Trait des flèches (#rrggbb). */
+  edgeColor: string;
+  /** Contour des formes (#rrggbb). */
+  outlineColor: string;
+}
+
+/** Contour de sélection (SPEC §11.1). */
+export interface SelectionSettings {
+  /** Mise en valeur : voile d'ombre sur le reste de la page, ou contour bleu pointillé. */
+  style: 'veil' | 'outline';
+  /** Opacité du voile (0 = invisible, 1 = noir). */
+  veilOpacity: number;
+  /** Contour : tirets qui défilent lentement le long du contour (« fourmis »). */
+  animated: boolean;
+  /** Vitesse de défilement, en pixels écran par seconde. */
+  speed: number;
+  /** Couleur du voile (#rrggbb). */
+  veilColor: string;
+  /** Marge autour de l'élément sélectionné, dans le voile, en pixels de page. */
+  veilPadding: number;
+  /** Couleur d'accent : contour de sélection, poignées, cadre de la mini-carte. */
+  accentColor: string;
+}
+
+/** Rendu des formes et des flèches : valeurs par défaut quand le style draw.io ne précise rien. */
+export interface ShapeSettings {
+  /** Couleur du texte des flèches sans `fontColor` (#rrggbb). */
+  edgeFontColor: string;
+  /** Taille du texte des formes et des flèches créées (`fontSize`, pixels de page). */
+  textSize: number;
+  /** Taille des textes de début et de fin de flèche créés. */
+  edgeEndTextSize: number;
+  /** Couleur des textes de début et de fin de flèche créés (#rrggbb). */
+  edgeEndTextColor: string;
+  /** Écarts du placement par défaut d'un texte de début / fin : le long de la flèche, et de côté. */
+  edgeEndTextGapAlong: number;
+  edgeEndTextGapAcross: number;
+  /** Tracé des flèches créées : droite, angles droits, coudes arrondis, ou courbe. */
+  edgeLineStyle: 'straight' | 'sharp' | 'rounded' | 'curved';
+  /** Saut des flèches créées là où elles passent au-dessus d'une autre (`jumpStyle`, ticket 132). */
+  edgeJumpStyle: 'none' | 'arc' | 'gap' | 'sharp' | 'line';
+  /** Taille de ce saut (`jumpSize`, pt ; 6 comme draw.io). */
+  edgeJumpSize: number;
+  /**
+   * Ancrage des flèches sur les formes : manuel (points d'ancrage subdivisés, au choix) ou automatique (on choisit
+   * le côté, les flèches y sont réparties) ; une page peut le surcharger (`spatial.anchoring`).
+   */
+  edgeAnchoring: 'manual' | 'auto';
+  /** Ancrage automatique : le tracé contourne les formes et les autres flèches (points intermédiaires écrits). */
+  edgeAutoRoute: boolean;
+  /** Ancrage automatique : écart minimal entre un tracé et une forme, en pixels de page. */
+  edgeShapeClearance: number;
+  /** Ancrage automatique : écart entre deux flèches qui partagent un couloir. */
+  edgeSpacing: number;
+  /** Ancrage automatique : longueur du premier et du dernier segment, perpendiculaires au côté. */
+  edgePortStub: number;
+  /** Ancrage automatique : détour accepté pour éviter un croisement, en pixels. */
+  edgeCrossingDetour: number;
+  /** Marge d'une boucle (flèche d'une forme vers elle-même) autour de la forme, en pixels de page. */
+  edgeLoopMargin: number;
+  /**
+   * Fond du texte des flèches sans `labelBackgroundColor` explicite : halo de la couleur de la page
+   * autour de chaque lettre, fond uni de la couleur de la page, ou transparent.
+   */
+  edgeLabelBackdrop: 'halo' | 'solid' | 'none';
+  /** Épaisseur du halo, en pixels de page. */
+  edgeLabelHaloWidth: number;
+  /** Flou du bord du halo, en pixels de page (0 = net). */
+  edgeLabelHaloBlur: number;
+  /** Pastille d'une flèche posée par un mode de page (ex. rang dans un flux) : flèche avec texte, puis sans. */
+  edgeBadgeRadius: number;
+  edgeBadgeTextSize: number;
+  edgeBadgeSmallRadius: number;
+  edgeBadgeSmallTextSize: number;
+  /** Bordure de la pastille (#rrggbb, pixels de page). */
+  edgeBadgeBorderColor: string;
+  edgeBadgeBorderWidth: number;
+  /** Chiffre de la pastille (#rrggbb). */
+  edgeBadgeTextColor: string;
+  edgeBadgeBold: boolean;
+  /** Écart entre la pastille et le texte du milieu de la flèche, en pixels de page. */
+  edgeBadgeGap: number;
+  /** Pastille face à la caméra (sinon couchée à plat dans le plan de la page, comme le texte). */
+  edgeBadgeFaceCamera: boolean;
+  /** Texte d'une flèche qui porte une pastille face à la caméra (sinon à plat). */
+  edgeBadgeLabelFaceCamera: boolean;
+  /** Assombrissement du trait d'une flèche colorée par un mode (fraction de la luminosité, 0,25 = −25 %). */
+  edgeDressingDarken: number;
+  /** Opacité de ce qui est hors du courant d'un mode (ex. hors du flux courant du mode Séquences). */
+  modeDimOpacity: number;
+  /** Glissement de la barre du courant d'un mode quand elle part ou arrive avec une transition (ms, 0 = sans). */
+  modeBarSlideDuration: number;
+  /** Formes non supportées (SPEC §8.4). */
+  placeholderFill: string;
+  placeholderStroke: string;
+}
+
+/** Palettes de styles du panneau « Forme » (fond, contour, texte). */
+export interface StyleSettings {
+  /** Styles de base de draw.io. */
+  base: StylePreset[];
+  /** Palette étendue (pastels). */
+  extended: StylePreset[];
+  /** Styles de texte (taille, couleur, police). */
+  text: TextPreset[];
+}
+
+/** Vue graphe (SPEC §12) : disposition des cartes de pages. */
+export interface GraphSettings {
+  cardWidth: number;
+  columnGap: number;
+  rowGap: number;
+  /** Écart entre les deux arcs d'un aller-retour, pour qu'ils ne se superposent pas. */
+  pairOffset: number;
+  /** Couleurs (#rrggbb) : cadre d'une carte, page orpheline, page inaccessible, arcs, titres. La page de départ prend
+   * la couleur d'accent (`selection.accentColor`). */
+  cardColor: string;
+  orphanColor: string;
+  unreachableColor: string;
+  arcColor: string;
+  titleColor: string;
+}
+
+/** Édition (SPEC §16) : tolérances et tailles. */
+export interface EditSettings {
+  /** Distance de clic sur une flèche, en pixels écran. */
+  edgePickTolerance: number;
+  /** Distance de clic sur une poignée, en pixels écran. */
+  handlePickTolerance: number;
+  /** Demi-taille des poignées, en pixels écran. */
+  handleSize: number;
+  /** Taille minimale d'une forme redimensionnée, en pixels de page. */
+  minShapeSize: number;
+  /** Pas d'une flèche du clavier sur la sélection, en pixels de page. */
+  nudgeStep: number;
+  /** Pas avec Maj, en pixels de page ; 0 = un pas de grille, calé sur la grille. */
+  nudgeCoarseStep: number;
+  /** Référence d'« Aligner » (ticket 136) : cadre de la sélection, premier ou dernier élément sélectionné. */
+  alignReference: AlignReference;
+  /** Nombre d'étapes d'annulation gardées. */
+  undoLimit: number;
+  /** Décalage d'un collage quand la page n'a pas de grille, en pixels de page. */
+  pasteOffset: number;
+  /**
+   * Point intermédiaire de flèche ramené à moins de cette distance de l'alignement de ses voisins : retiré, en
+   * pixels écran (draw.io : `mxGraph.tolerance`, 4).
+   */
+  edgePointAlignTolerance: number;
+  /** Écart des poignées de connexion au bord de la forme, en pixels écran. */
+  connectHandleOffset: number;
+  /** Taille à l'écran sous laquelle les poignées du milieu d'un côté sont masquées, en pixels. */
+  middleHandleMinSpan: number;
+}
+
+/** Sauvegarde automatique (édition) : peu après chaque modification, sans interrompre un geste en cours. */
+export interface SaveSettings {
+  autosave: boolean;
+  /** Délai après la dernière modification. */
+  delayMs: number;
+  /** Délai avant de mémoriser la position de consultation (page, caméra) après le dernier changement. */
+  viewStateDelayMs: number;
+  /** Nombre de fichiers récents listés par le lanceur. */
+  recentLimit: number;
+}
+
+export interface DebugSettings {
+  /** Bouton et panneau « Diagnostics » (styles non supportés, SPEC §8.4). */
+  showUnsupportedPanel: boolean;
+}
+
+export interface AccessibilitySettings {
+  /** Réduire les animations : selon le système (`prefers-reduced-motion`), toujours, ou jamais. */
+  reducedMotion: 'system' | 'always' | 'never';
+}
+
+/** Une barre latérale de l'appli : repliée ou non, largeur en pixels. */
+export interface SidePanelSettings {
+  collapsed: boolean;
+  width: number;
+}
+
+/** Barres latérales de l'appli de démo (palette à gauche, panneaux à droite), réglées à la souris. */
+export interface PanelsSettings {
+  left: SidePanelSettings;
+  right: SidePanelSettings;
+  /** Sens du nom écrit sur la bande d'une barre repliée : de bas en haut, ou de haut en bas. */
+  stripText: 'up' | 'down';
+  /** Ombre que les barres projettent sur la zone de dessin : opacité, 0 = pas d'ombre. */
+  shadow: number;
+  /** Largeur que la zone de dessin garde toujours quand on élargit une barre, en pixels CSS. */
+  minCanvas: number;
+}
+
+/** Moteur de rendu des exports PlantUML (sujet 100). */
+export type PlantUmlRenderer = 'kroki' | 'plantuml' | 'local';
+
+/** Exporteurs de l'appli (sujet 100) : rendu en ligne des textes exportés. */
+export interface ExporterSettings {
+  plantuml: {
+    renderer: PlantUmlRenderer;
+    /** Serveur PlantUML local (`renderer: 'local'`), http(s), sans barre finale. */
+    localUrl: string;
+  };
+}
+
+/**
+ * Réglages globaux des effets de page (sujet 145) : `effets[id][clé]`, seulement les valeurs changées. Chaque effet
+ * déclare ses réglages, leurs bornes et leurs défauts (`effects/<id>/`) : le registre des effets les résout.
+ */
+export type EffectSettings = Record<string, Record<string, number>>;
+
+export interface Settings {
+  transition: TransitionSettings;
+  preload: PreloadSettings;
+  controls: ControlSettings;
+  view: ViewSettings;
+  camera: CameraSettings;
+  background: BackgroundSettings;
+  minimap: MinimapSettings;
+  selection: SelectionSettings;
+  shapes: ShapeSettings;
+  styles: StyleSettings;
+  graph: GraphSettings;
+  edit: EditSettings;
+  save: SaveSettings;
+  debug: DebugSettings;
+  accessibility: AccessibilitySettings;
+  panels: PanelsSettings;
+  exporters: ExporterSettings;
+  effects: EffectSettings;
+}
+
+/** Modification partielle, section par section (raccourcis compris). */
+export type SettingsPatch = {
+  [K in keyof Settings]?: K extends 'controls'
+    ? Partial<Omit<ControlSettings, 'shortcuts'>> & { shortcuts?: Partial<Shortcuts> }
+    : K extends 'panels'
+      ? {
+          left?: Partial<SidePanelSettings>;
+          right?: Partial<SidePanelSettings>;
+          stripText?: PanelsSettings['stripText'];
+          shadow?: number;
+          minCanvas?: number;
+        }
+      : K extends 'exporters'
+        ? { plantuml?: Partial<ExporterSettings['plantuml']> }
+        : K extends 'effects'
+          ? Record<string, Record<string, number | undefined>>
+          : Partial<Settings[K]>;
+};

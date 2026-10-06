@@ -142,7 +142,7 @@ src/
       IndexedDbStore.ts
     diagnostics/
       unsupportedStyles.ts
-    settings.ts
+    settings.ts        # façade des paramètres (settings/ : types, défauts, bornes, validateurs, fusion par section)
     Engine.ts          # façade publique du moteur : délègue à core/
     core/              # comportement du moteur, un dossier par domaine
       EngineCore.ts    # infrastructure partagée et câblage des domaines
@@ -675,7 +675,7 @@ Réalisation retenue :
 
 ## 13. Paramètres
 
-Tout ce qui touche à l'expérience utilisateur est paramétrable, avec des valeurs par défaut agréables (`engine/settings.ts`) :
+Tout ce qui touche à l'expérience utilisateur est paramétrable, avec des valeurs par défaut agréables (`engine/settings/defaults.ts`) :
 
 ```ts
 interface Settings {
