@@ -125,6 +125,10 @@ export class KeyboardControls {
       event.preventDefault();
       return;
     }
+    if (action === 'editComment') {
+      if (!event.repeat && host.editComment?.()) event.preventDefault();
+      return;
+    }
     if (action === 'placementVariant') {
       if (!event.repeat && host.placementVariant?.()) event.preventDefault();
       return;

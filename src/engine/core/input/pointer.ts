@@ -1,5 +1,6 @@
 import { isNavigableLink } from '../../format/link';
-import { commentOf } from '../../edit/comment';
+import { commentOf, sameComment } from '../../edit/comment';
+import type { ElementComment } from '../../edit/comment';
 import type { PointHandle } from '../../edit/edgePoints';
 import { endAt } from '../../edit/edgeLabels';
 import { positionAlong } from '../../render/edges/polyline';
@@ -7,6 +8,7 @@ import { isConnectHandle } from '../../edit/handles';
 import type { Point } from '../../model/types';
 import type { EngineCore } from '../EngineCore';
 import type { ResizeHandle } from '../../edit/handles';
+import type { PickedElement } from '../../interaction/pick';
 
 /** Curseur de chaque poignée de redimensionnement. */
 const HANDLE_CURSORS: Record<ResizeHandle, string> = {
@@ -27,7 +29,9 @@ const HANDLE_CURSORS: Record<ResizeHandle, string> = {
 export class PointerInput {
   private hoverTimer: ReturnType<typeof setTimeout> | undefined;
   /** Commentaire signalé à l'UI (`commentHover`), pour ne l'émettre qu'à un changement. */
-  private hoverComment: string | undefined;
+  private hoverComment: ElementComment | undefined;
+  /** Élément dont le commentaire est affiché (touche C : l'éditer). */
+  private hoverCommented: PickedElement | undefined;
 
   constructor(private readonly core: EngineCore) {}
 
@@ -96,7 +100,7 @@ export class PointerInput {
     } else if (picked) this.core.labelEditor.editLabel(picked.element.id);
   }
 
-  /** Survol : curseur main et infobulle sur les éléments liés, commentaire de la flèche ; préchargement optionnel. */
+  /** Survol : curseur main et infobulle sur les éléments liés, commentaire de l'élément ; préchargement optionnel. */
   handleHover(screen: Point | undefined): void {
     const picked = screen ? this.core.picking.pickAt(screen) : undefined;
     const link = isNavigableLink(picked?.element.link) ? picked?.element.link : undefined;
@@ -116,8 +120,9 @@ export class PointerInput {
               : '';
     if (!this.core.canvas.style.cursor.startsWith('grab')) this.core.canvas.style.cursor = cursor;
     this.core.canvas.title = link ? this.core.links.describeLink(link) : '';
-    const comment = picked?.type === 'edge' ? commentOf(picked.element) : undefined;
-    if (comment !== this.hoverComment) {
+    const comment = picked ? commentOf(picked.element) : undefined;
+    this.hoverCommented = comment ? picked : undefined;
+    if (!sameComment(comment, this.hoverComment)) {
       this.hoverComment = comment;
       this.core.events.emit('commentHover', comment);
     }
@@ -125,5 +130,16 @@ export class PointerInput {
     if (link && this.core.settings.preload.onHover) {
       this.hoverTimer = setTimeout(() => this.core.links.preloadLink(link), this.core.settings.preload.hoverDelayMs);
     }
+  }
+
+  /**
+   * Touche C : sélectionne l'élément dont le commentaire est affiché au survol et passe ce commentaire en édition en
+   * place ; faux sans commentaire affiché ou sur une page non modifiable.
+   */
+  editHoveredComment(): boolean {
+    const picked = this.hoverCommented;
+    if (!picked || !this.core.targets.editablePage()) return false;
+    this.core.selection.select(picked);
+    return this.core.properties.editComment(picked.element.id);
   }
 }

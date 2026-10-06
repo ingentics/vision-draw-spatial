@@ -11,6 +11,7 @@ export type {
   AccessibilitySettings,
   BackgroundSettings,
   CameraSettings,
+  CommentSettings,
   DebugSettings,
   EditSettings,
   EffectSettings,

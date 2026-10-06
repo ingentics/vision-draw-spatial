@@ -1,7 +1,15 @@
 import type { Settings, SettingsPatch } from '../types';
 import { mergeAccessibility, mergeControls, mergePreload, mergeTransition } from './navigation';
 import { mergeShapes, mergeStyles } from './shapes';
-import { mergeBackground, mergeCamera, mergeGraph, mergeMinimap, mergeSelection, mergeView } from './view';
+import {
+  mergeBackground,
+  mergeCamera,
+  mergeComment,
+  mergeGraph,
+  mergeMinimap,
+  mergeSelection,
+  mergeView,
+} from './view';
 import { mergeDebug, mergeEdit, mergeEffects, mergeExporters, mergePanels, mergeSave } from './workspace';
 
 /**
@@ -19,6 +27,7 @@ export function mergeSettings(base: Settings, patch: SettingsPatch | undefined):
     camera: mergeCamera(base.camera, p.camera),
     background: mergeBackground(base.background, p.background),
     minimap: mergeMinimap(base.minimap, p.minimap),
+    comment: mergeComment(base.comment, p.comment),
     selection: mergeSelection(base.selection, p.selection),
     shapes: mergeShapes(base.shapes, p.shapes),
     styles: mergeStyles(base.styles, p.styles),

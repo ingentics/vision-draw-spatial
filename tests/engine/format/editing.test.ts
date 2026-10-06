@@ -71,10 +71,23 @@ describe('commentaire (étape 188)', () => {
     setCellWrapperAttribute(page, 'ab', 'tooltip', 'Appel HTTP\nsynchrone');
     expect(writeDrawio(tree)).toMatch(/<UserObject label="[^"]*" id="ab" tooltip="Appel HTTP&#10;synchrone">/);
     const edge = reread(tree).edges.find((e) => e.id === 'ab')!;
-    expect(commentOf(edge)).toBe('Appel HTTP\nsynchrone');
+    expect(commentOf(edge)).toEqual({ text: 'Appel HTTP\nsynchrone' });
     expect(edge).toMatchObject({ sourceId: 'a', targetId: 'b' });
     setCellWrapperAttribute(page, 'ab', 'tooltip', undefined);
     expect(commentOf(reread(tree).edges.find((e) => e.id === 'ab')!)).toBeUndefined();
+  });
+});
+
+describe('commentaire mis en forme (étape 191)', () => {
+  it('HTML marqué par spatial.commentHtml ; sans la marque, un « < » reste du texte', () => {
+    const tree = load('three-rectangles.drawio');
+    const page = tree.pages[0]!;
+    setCellWrapperAttribute(page, 'a', 'tooltip', 'Délai <b>2 s</b>');
+    setCellWrapperAttribute(page, 'a', 'spatial.commentHtml', '1');
+    setCellWrapperAttribute(page, 'b', 'tooltip', 'a <b> c');
+    const shapes = reread(tree).shapes;
+    expect(commentOf(shapes.find((s) => s.id === 'a')!)).toEqual({ text: 'Délai 2 s', html: 'Délai <b>2 s</b>' });
+    expect(commentOf(shapes.find((s) => s.id === 'b')!)).toEqual({ text: 'a <b> c' });
   });
 });
 

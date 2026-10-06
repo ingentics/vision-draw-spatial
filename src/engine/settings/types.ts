@@ -92,6 +92,34 @@ export interface MinimapSettings {
   outlineColor: string;
 }
 
+/**
+ * Commentaire de l'élément survolé, flèche ou forme (étapes 188 à 190) : texte en bas à gauche du rendu, sur un voile
+ * dégradé dont la courbe finit au-dessus et à droite du texte.
+ */
+export interface CommentSettings {
+  /** Couleur du voile (#rrggbb). */
+  veilColor: string;
+  /** Opacité du voile dans le coin et vers la courbe (0–1). */
+  opacityCorner: number;
+  opacityEdge: number;
+  /** Distance de la courbe au texte, au-dessus et à droite, en pixels. */
+  marginTop: number;
+  marginRight: number;
+  /** Rayon de l'arrondi de la courbe (pixels) : 0 = coin droit. */
+  curveRadius: number;
+  /** Longueur du dégradé du bord, de part et d'autre de la courbe, en pixels. */
+  fadeLength: number;
+  /** Distance du texte aux bords gauche et bas du rendu, en pixels. */
+  padding: number;
+  /** Texte : couleur (#rrggbb), taille et largeur maximale en pixels. */
+  textColor: string;
+  textSize: number;
+  textMaxWidth: number;
+  /** Durée du fondu à l'apparition et à la disparition, en millisecondes. */
+  fadeInMs: number;
+  fadeOutMs: number;
+}
+
 /** Contour de sélection (SPEC §11.1). */
 export interface SelectionSettings {
   /** Mise en valeur : voile d'ombre sur le reste de la page, ou contour bleu pointillé. */
@@ -314,6 +342,7 @@ export interface Settings {
   camera: CameraSettings;
   background: BackgroundSettings;
   minimap: MinimapSettings;
+  comment: CommentSettings;
   selection: SelectionSettings;
   shapes: ShapeSettings;
   styles: StyleSettings;

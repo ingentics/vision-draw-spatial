@@ -7,7 +7,16 @@ import robotoMono from '@fontsource/roboto-mono/files/roboto-mono-latin-400-norm
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { UnsupportedReport } from '../engine/diagnostics/unsupportedStyles';
-import type { BackTarget, Engine, InitialView, LabelEditRequest, ModeHint, Selection } from '../engine/Engine';
+import type {
+  BackTarget,
+  CommentEditRequest,
+  Engine,
+  InitialView,
+  LabelEditRequest,
+  ModeHint,
+  Selection,
+} from '../engine/Engine';
+import type { ElementComment } from '../engine/edit/comment';
 import type { ViewMode } from '../engine/interaction/camera';
 import type { ParentLink } from '../engine/interaction/history';
 import type { DocumentModel, EdgeModel, ShapeModel } from '../engine/model/types';
@@ -32,6 +41,7 @@ import { SettingsPanel } from './SettingsPanel';
 import { ContextPanel, contextTitle } from './ContextPanel';
 import { Sidebar } from './Sidebar';
 import type { Settings, SettingsPatch } from '../engine/settings';
+import { CommentCard, CommentEditor, commentTextStyle } from './comment';
 import { GRAPH_PAGE_ID } from '../engine/graph/graphPage';
 import { labelPlacePatch } from '../engine/edit/labelPosition';
 import { usedTemplates } from '../engine/edit/palette';
@@ -110,8 +120,10 @@ export function Viewer({
   /** « Courant » du mode de la page changé (ex. flux courant) : redessine l'indicateur et le panneau. */
   const [, setModeCurrentTick] = useState(0);
   const [modeHint, setModeHint] = useState<ModeHint>();
-  /** Commentaire de la flèche survolée (encart en bas à gauche du rendu). */
-  const [hoverComment, setHoverComment] = useState<string>();
+  /** Commentaire de l'élément survolé (encart en bas à gauche du rendu). */
+  const [hoverComment, setHoverComment] = useState<ElementComment>();
+  /** Commentaire en cours d'édition en place (dans l'encart du rendu) : élément, flèche ou non, commentaire actuel. */
+  const [commentEdit, setCommentEdit] = useState<CommentEditRequest>();
   const [transitioning, setTransitioning] = useState(false);
   const [labelEdit, setLabelEdit] = useState<LabelEditRequest>();
   /** Éditeur de texte en place (commandes du panneau de format) et format de sa sélection. */
@@ -344,6 +356,7 @@ export function Viewer({
       instance.on('modeCurrentChange', () => setModeCurrentTick((tick) => tick + 1));
       instance.on('modeHint', setModeHint);
       instance.on('commentHover', setHoverComment);
+      instance.on('commentEdit', setCommentEdit);
       instance.on('labelEdit', setLabelEdit);
       instance.on('documentChange', (doc) => {
         setDocument(doc);
@@ -424,7 +437,8 @@ export function Viewer({
   // Titre de la barre de droite (et de sa bande quand elle est repliée) ; pas de panneau, pas de barre.
   const rightTitle = diagnosticsOpen
     ? 'Diagnostics'
-    : currentPage && contextTitle(selected.shapes, selected.edges, labelEdit !== undefined);
+    : currentPage &&
+      contextTitle(selected.shapes, selected.edges, labelEdit ? 'text' : commentEdit ? 'comment' : undefined);
 
   return (
     <div className="app" style={{ '--bar-shadow-opacity': settings.panels.shadow } as CSSProperties}>
@@ -616,7 +630,27 @@ export function Viewer({
             onEngine={handleEngine}
             onError={(e) => setError(e instanceof Error ? e.message : String(e))}
           />
-          <CommentCard comment={hoverComment} />
+          {commentEdit ? (
+            <CommentEditor
+              key={commentEdit.elementId}
+              comment={commentEdit.comment}
+              settings={settings.comment}
+              handle={editorHandle}
+              onToggle={(mark) => formatText({ type: 'toggle', mark })}
+              onSelectionFormat={setSelectionFormat}
+              onCommit={(content) => {
+                setCommentEdit(undefined);
+                engine?.setComment(commentEdit.elementId, content);
+                engine?.focusCanvas();
+              }}
+              onCancel={() => {
+                setCommentEdit(undefined);
+                engine?.focusCanvas();
+              }}
+            />
+          ) : (
+            <CommentCard comment={hoverComment} settings={settings.comment} />
+          )}
         </div>
         {rightTitle && (
           <Sidebar
@@ -653,7 +687,7 @@ export function Viewer({
                   defaultDepth={settings.view.isoDepth}
                   multiSelectKey={MULTI_SELECT_LABELS[settings.controls.multiSelectKey]}
                   onLink={(link) => selection && engine?.setLink(selection.picked.element.id, link)}
-                  onComment={(comment) => selection && engine?.setComment(selection.picked.element.id, comment)}
+                  onEditComment={() => selection && engine?.editComment(selection.picked.element.id)}
                   onSpatial={(key, value, merge) =>
                     selection && engine?.setSpatial(selection.picked.element.id, key, value, merge)
                   }
@@ -688,16 +722,29 @@ export function Viewer({
                     selection && engine?.setEdgeTextAnchor(selection.picked.element.id, cellId, anchor)
                   }
                   textEdit={
-                    labelEdit && {
-                      style: labelEdit.style,
-                      selection: selectionFormat,
-                      canFormat: labelEdit.styleCellId !== undefined,
-                      onEdge: labelEdit.onEdge,
-                      fittedSize,
-                      presets: settings.styles.text,
-                      onAction: formatText,
-                      onOwner: () => editorHandle.current?.commit(),
-                    }
+                    labelEdit
+                      ? {
+                          style: labelEdit.style,
+                          selection: selectionFormat,
+                          canFormat: labelEdit.styleCellId !== undefined,
+                          onEdge: labelEdit.onEdge,
+                          fittedSize,
+                          presets: settings.styles.text,
+                          onAction: formatText,
+                          onOwner: () => editorHandle.current?.commit(),
+                        }
+                      : commentEdit && {
+                          // Commentaire : le format de tout le texte est celui des réglages, les commandes du panneau
+                          // portent sur la sélection ou sur tout le commentaire (`CommentEditor`).
+                          style: commentTextStyle(settings.comment),
+                          selection: selectionFormat,
+                          canFormat: true,
+                          onEdge: commentEdit.onEdge,
+                          comment: true,
+                          presets: settings.styles.text,
+                          onAction: formatText,
+                          onOwner: () => editorHandle.current?.commit(),
+                        }
                   }
                   onApplyStyle={(preset) =>
                     engine?.applyStylePreset(
@@ -762,25 +809,6 @@ export function Viewer({
           onClose={() => setSettingsOpen(false)}
         />
       )}
-    </div>
-  );
-}
-
-/**
- * Encart du commentaire de la flèche survolée, en bas à gauche du rendu : apparaît en fondu, et disparaît en fondu à
- * la sortie de la flèche en gardant son texte le temps du fondu.
- */
-function CommentCard({ comment }: { comment: string | undefined }) {
-  const [shown, setShown] = useState(comment);
-  if (comment !== undefined && comment !== shown) setShown(comment);
-  if (shown === undefined) return null;
-  return (
-    <div
-      className={`comment-card${comment !== undefined ? ' visible' : ''}`}
-      role="status"
-      onTransitionEnd={() => comment === undefined && setShown(undefined)}
-    >
-      {shown}
     </div>
   );
 }

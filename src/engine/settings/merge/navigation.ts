@@ -57,6 +57,7 @@ export function mergeControls(base: ControlSettings, patch: SettingsPatch['contr
       back: code(s.back, base.shortcuts.back),
       deleteSelection: code(s.deleteSelection, base.shortcuts.deleteSelection),
       placementVariant: code(s.placementVariant, base.shortcuts.placementVariant),
+      editComment: code(s.editComment, base.shortcuts.editComment),
     },
   };
 }

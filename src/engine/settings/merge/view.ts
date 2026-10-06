@@ -1,6 +1,7 @@
 import type {
   BackgroundSettings,
   CameraSettings,
+  CommentSettings,
   GraphSettings,
   MinimapSettings,
   SelectionSettings,
@@ -9,7 +10,7 @@ import type {
 } from '../types';
 import { bool, color, num, oneOf } from '../validate';
 
-/** Fusion des réglages d'affichage : vues, caméra, fond, mini-carte, sélection, vue graphe. */
+/** Fusion des réglages d'affichage : vues, caméra, fond, mini-carte, commentaire, sélection, vue graphe. */
 
 const VIEW_MODES = ['top', 'iso', '3d'] as const;
 const SELECTION_STYLES = ['veil', 'outline'] as const;
@@ -71,6 +72,25 @@ export function mergeMinimap(base: MinimapSettings, patch: SettingsPatch['minima
     size: num('minimap.size', p.size, base.size),
     edgeColor: color(p.edgeColor, base.edgeColor),
     outlineColor: color(p.outlineColor, base.outlineColor),
+  };
+}
+
+export function mergeComment(base: CommentSettings, patch: SettingsPatch['comment']): CommentSettings {
+  const p = patch ?? {};
+  return {
+    veilColor: color(p.veilColor, base.veilColor),
+    opacityCorner: num('comment.opacityCorner', p.opacityCorner, base.opacityCorner),
+    opacityEdge: num('comment.opacityEdge', p.opacityEdge, base.opacityEdge),
+    marginTop: num('comment.marginTop', p.marginTop, base.marginTop),
+    marginRight: num('comment.marginRight', p.marginRight, base.marginRight),
+    curveRadius: num('comment.curveRadius', p.curveRadius, base.curveRadius),
+    fadeLength: num('comment.fadeLength', p.fadeLength, base.fadeLength),
+    padding: num('comment.padding', p.padding, base.padding),
+    textColor: color(p.textColor, base.textColor),
+    textSize: num('comment.textSize', p.textSize, base.textSize),
+    textMaxWidth: num('comment.textMaxWidth', p.textMaxWidth, base.textMaxWidth),
+    fadeInMs: num('comment.fadeInMs', p.fadeInMs, base.fadeInMs),
+    fadeOutMs: num('comment.fadeOutMs', p.fadeOutMs, base.fadeOutMs),
   };
 }
 

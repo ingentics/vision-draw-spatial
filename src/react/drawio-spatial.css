@@ -16,6 +16,12 @@
   outline: none;
 }
 
+/* Commandes posées sur la vue : au-dessus de ce que l'appli superpose au rendu (ex. commentaire survolé, z-index 1). */
+.drawio-minimap,
+.drawio-flatten {
+  z-index: 2;
+}
+
 .drawio-minimap canvas {
   display: block;
   border: 1px solid var(--drawio-spatial-border);

@@ -26,6 +26,8 @@ export interface Shortcuts {
   deleteSelection: string;
   /** Variante de placement de la flèche sélectionnée (ancrage manuel), une étape d'annulation par appui. */
   placementVariant: string;
+  /** Éditer en place le commentaire affiché au survol (l'élément survolé est sélectionné). */
+  editComment: string;
 }
 
 export const DEFAULT_SHORTCUTS: Shortcuts = {
@@ -38,6 +40,7 @@ export const DEFAULT_SHORTCUTS: Shortcuts = {
   back: 'Backspace',
   deleteSelection: 'Backspace',
   placementVariant: 'f',
+  editComment: 'c',
 };
 
 /** Positions physiques réservées au déplacement et au pan : non attribuables à un raccourci. */

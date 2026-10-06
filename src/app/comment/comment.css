@@ -1,0 +1,112 @@
+/* Commentaire d'un élément (flèche ou forme) : encart au survol, édition en place, aperçu des paramètres. */
+
+/*
+ * Commentaire de l'élément survolé : texte libre en bas à gauche du rendu, sur un voile gris dégradé dont la courbe
+ * (coin arrondi) finit au-dessus et à droite du texte ; dense dans le coin, il s'efface le long de la courbe. Fondu à
+ * l'apparition et à la disparition. Géométrie, couleurs et durées : réglages `comment` (variables posées par
+ * `CommentCard`).
+ */
+.comment-card {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  /* Juste au-dessus du rendu, sous les commandes posées sur la vue (mini-carte, barre du mode, édition du texte). */
+  z-index: 1;
+  box-sizing: border-box;
+  max-width: 100%;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--comment-fade-out) ease-in;
+}
+
+/* Voile : forme à coin arrondi, bord dégradé par un flou de la forme elle-même (pas du rendu derrière). */
+.comment-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: calc(-1 * var(--comment-overflow));
+  bottom: calc(-1 * var(--comment-overflow));
+  border-top-right-radius: var(--comment-radius);
+  background: radial-gradient(
+    farthest-corner at var(--comment-overflow) calc(100% - var(--comment-overflow)),
+    var(--comment-veil-corner),
+    var(--comment-veil-edge)
+  );
+  filter: blur(var(--comment-fade));
+}
+
+.comment-text {
+  position: relative;
+  z-index: 1;
+  max-width: var(--comment-text-width);
+  color: var(--comment-text-color);
+  font-size: var(--comment-text-size);
+  line-height: 1.45;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  transform: translateY(6px);
+  transition: transform var(--comment-fade-out) ease-in;
+}
+
+.comment-card.visible {
+  opacity: 1;
+  transition: opacity var(--comment-fade-in) ease-out;
+  animation: comment-card-in var(--comment-fade-in) ease-out;
+}
+
+.comment-card.visible .comment-text {
+  transform: none;
+  transition: transform var(--comment-fade-in) ease-out;
+  animation: comment-text-in var(--comment-fade-in) ease-out;
+}
+
+/* Aperçu du commentaire dans les paramètres : rendu factice de 400 px de haut, toute la largeur. */
+.comment-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.comment-preview-canvas {
+  position: relative;
+  width: 100%;
+  height: 400px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.comment-preview-shape {
+  position: absolute;
+  width: 120px;
+  height: 60px;
+  border: 1px solid #1f1f1f;
+  background: #ffffff;
+}
+
+@keyframes comment-card-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes comment-text-in {
+  from {
+    transform: translateY(6px);
+  }
+}
+
+/* Édition en place (`CommentEditor`) : l'encart reste affiché, seul le texte reçoit la souris (le reste du voile laisse
+   passer les clics au rendu, qui valident). */
+.comment-card.editing .comment-text {
+  min-width: 60px;
+  min-height: 1.45em;
+  outline: 1px dashed color-mix(in srgb, var(--comment-text-color) 60%, transparent);
+  outline-offset: 6px;
+  caret-color: var(--comment-text-color);
+  cursor: text;
+  pointer-events: auto;
+}

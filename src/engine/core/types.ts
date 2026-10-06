@@ -1,4 +1,5 @@
 /** Types publics du moteur, réexportés par la façade `Engine`. */
+import type { ElementComment } from '../edit/comment';
 import type { PageEffectRegistry } from '../effects/registry';
 import type { EdgeEnd } from '../edit/edgeLabels';
 import type { CameraState } from '../interaction/camera';
@@ -90,8 +91,10 @@ export type EngineEvents = {
   labelEdit: [request: LabelEditRequest];
   /** Mode d'interaction en cours (touche maintenue), pour l'aide de l'UI ; undefined : aucun. */
   modeHint: [hint: ModeHint | undefined];
-  /** Commentaire de la flèche survolée, pour l'encart de l'UI ; undefined : aucune flèche commentée sous la souris. */
-  commentHover: [comment: string | undefined];
+  /** Commentaire de l'élément survolé (flèche ou forme), pour l'encart de l'UI ; undefined : aucun élément commenté. */
+  commentHover: [comment: ElementComment | undefined];
+  /** Édition en place du commentaire d'un élément demandée (bouton Modifier, touche C) : à l'UI d'afficher l'éditeur. */
+  commentEdit: [request: CommentEditRequest];
   /** Ce qu'annuleraient / rétabliraient `undo` et `redo` (undefined : rien). */
   undoChange: [undoLabel: string | undefined, redoLabel: string | undefined];
   /** Le document a été modifié (déplacement) ou vient d'être sérialisé pour la sauvegarde. */
@@ -112,6 +115,14 @@ export interface ModeIndicator {
 }
 
 /** Champ d'édition de label à afficher par l'UI, à l'emprise de l'élément (pixels du canvas). */
+/** Commentaire à éditer en place (`commentEdit`) : l'élément, flèche ou forme, et son commentaire actuel. */
+export interface CommentEditRequest {
+  pageId: string;
+  elementId: string;
+  onEdge: boolean;
+  comment?: ElementComment;
+}
+
 export interface LabelEditRequest {
   pageId: string;
   elementId: string;

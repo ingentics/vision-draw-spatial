@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { commentOf } from '../engine/edit/comment';
 import { anchorOf, edgeTexts, endLabelOf } from '../engine/edit/edgeLabels';
 import type { EdgeTextAnchor } from '../engine/Engine';
@@ -22,6 +22,7 @@ import type { ModeEdit, ModeTarget } from '../engine/modes/types';
 import { ModePropertyFields } from './modes/ModeFields';
 import { modePanel } from './modes/registry';
 import { ShapePropertyFields } from './ShapeProperties';
+import { CommentField } from './comment';
 import { CollapseButton } from './Sidebar';
 import { Section } from './PanelSection';
 import { TextFormatSections } from './TextFormat';
@@ -85,8 +86,8 @@ export interface ContextPanelProps {
   onSpatial: (key: string, value: number | string | undefined, merge?: string) => void;
   /** Édition du texte (du milieu, pour une flèche) dans le plan. */
   onEditLabel: () => void;
-  /** Commentaire de l'élément sélectionné (montré au survol de la flèche ; vide = retiré). */
-  onComment: (comment: string) => void;
+  /** Édition en place du commentaire de l'élément sélectionné (montré au survol), dans l'encart du rendu. */
+  onEditComment: () => void;
   /** Texte de début ou de fin d'une flèche (vide = retiré). */
   onEndLabel: (end: EdgeEnd, text: string) => void;
   onDelete: () => void;
@@ -115,7 +116,7 @@ export interface ContextPanelProps {
 export function ContextPanel(props: ContextPanelProps) {
   const { shapes, edges } = props;
   const count = shapes.length + edges.length;
-  const title = contextTitle(shapes, edges, props.textEdit !== undefined);
+  const title = contextTitle(shapes, edges, props.textEdit && (props.textEdit.comment ? 'comment' : 'text'));
   let body;
   if (props.textEdit) body = <TextFormatSections edit={props.textEdit} />;
   else if (count === 0) body = <PageSections {...props} />;
@@ -138,9 +139,13 @@ export function ContextPanel(props: ContextPanelProps) {
 }
 
 /** Titre du panneau contextuel (aussi celui de la bande quand la barre de droite est repliée). */
-export function contextTitle(shapes: readonly ShapeModel[], edges: readonly EdgeModel[], editingText: boolean): string {
+export function contextTitle(
+  shapes: readonly ShapeModel[],
+  edges: readonly EdgeModel[],
+  editing: 'text' | 'comment' | undefined,
+): string {
   const count = shapes.length + edges.length;
-  if (editingText) return 'Texte';
+  if (editing) return editing === 'comment' ? 'Commentaire' : 'Texte';
   if (count === 0) return 'Page';
   if (count > 1)
     return edges.length === 0 ? `${count} formes` : shapes.length === 0 ? `${count} flèches` : `${count} éléments`;
@@ -327,6 +332,7 @@ function ShapeSections({ shape, ...props }: ContextPanelProps & { shape: ShapeMo
     <>
       <Section title="Texte">
         <LabelRow label={shape.label} onEdit={props.onEditLabel} />
+        <CommentField comment={commentOf(shape)} onEdit={props.onEditComment} />
       </Section>
       <ShapeOwnSection shape={shape} onShapeStyle={props.onShapeStyle} onSpatial={props.onSpatial} />
       <ElementModeSection {...props} element={shape} scope="shape" />
@@ -420,7 +426,7 @@ function EdgeSections({ edge, ...props }: ContextPanelProps & { edge: EdgeModel 
             />
           );
         })}
-        <CommentRow key={edge.id} comment={commentOf(edge) ?? ''} onCommit={props.onComment} />
+        <CommentField comment={commentOf(edge)} onEdit={props.onEditComment} />
       </Section>
       <ElementModeSection {...props} element={edge} scope="edge" />
       <TextAnchors edge={edge} onAnchor={props.onTextAnchor} onChange={props.onEdgeStyle} />
@@ -844,60 +850,6 @@ function LabelRow({ label, name = 'Texte', onEdit }: { label: string; name?: str
         Modifier
       </button>
     </div>
-  );
-}
-
-/**
- * Commentaire d'une flèche (montré en bas à gauche du rendu au survol) : aperçu et bouton Modifier, qui ouvre une zone
- * de texte multiligne. Quitter la zone ou ⌘/Ctrl + Entrée : valider ; Échap : annuler.
- */
-function CommentRow({ comment, onCommit }: { comment: string; onCommit: (comment: string) => void }) {
-  const [editing, setEditing] = useState(false);
-  const cancelled = useRef(false);
-  return (
-    <>
-      <div className="field-row">
-        Commentaire
-        <span className="field-value label-value" title={comment}>
-          {comment.replace(/\n/g, ' ') || 'aucun'}
-        </span>
-        <button
-          type="button"
-          className="button"
-          title="Modifier le commentaire, montré au survol de la flèche"
-          aria-pressed={editing}
-          onClick={() => {
-            cancelled.current = false;
-            setEditing(true);
-          }}
-        >
-          Modifier
-        </button>
-      </div>
-      {editing && (
-        <textarea
-          className="comment-input"
-          aria-label="Commentaire de la flèche"
-          title="Quitter la zone ou ⌘/Ctrl + Entrée : valider ; Échap : annuler"
-          defaultValue={comment}
-          rows={4}
-          autoFocus
-          onBlur={(event) => {
-            setEditing(false);
-            if (!cancelled.current && event.currentTarget.value !== comment) onCommit(event.currentTarget.value);
-          }}
-          onKeyDown={(event) => {
-            // Les touches restent à la zone (pas de raccourci de la vue pendant la saisie).
-            event.stopPropagation();
-            if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) event.currentTarget.blur();
-            else if (event.key === 'Escape') {
-              cancelled.current = true;
-              event.currentTarget.blur();
-            }
-          }}
-        />
-      )}
-    </>
   );
 }
 

@@ -1,7 +1,8 @@
 import { formatLink } from '../../../format/link';
 import { formatNumber, setCellObjectAttribute, setCellStyleValue } from '../../../format/edit';
 import { setCellLink, setCellWrapperAttribute } from '../../../format/create';
-import { COMMENT_ATTRIBUTE, commentOf } from '../../../edit/comment';
+import { COMMENT_ATTRIBUTE, COMMENT_HTML_ATTRIBUTE, commentOf, sameComment } from '../../../edit/comment';
+import type { ElementComment } from '../../../edit/comment';
 import { GRAPH_PAGE_ID } from '../../../graph/graphPage';
 import type { LinkModel } from '../../../model/types';
 import { SPATIAL_PREFIX, spatialValue, SPATIAL } from '../../../spatial';
@@ -25,16 +26,45 @@ export class PropertyEdits {
     this.core.file.documentChanged([editable.page.id]);
   }
 
-  /** Commentaire d'un élément (attribut `tooltip`) ; vide = retiré. */
-  setComment(elementId: string, comment: string): void {
+  /**
+   * Commentaire d'un élément (attribut `tooltip`) : texte brut, ou HTML s'il a une mise en forme partielle (marqué par
+   * `spatial.commentHtml`) ; texte vide = retiré.
+   */
+  setComment(elementId: string, comment: ElementComment): void {
     const editable = this.core.targets.editablePage();
     const element = editable && [...editable.page.shapes, ...editable.page.edges].find((e) => e.id === elementId);
     if (!editable || !element) return;
-    const text = comment.trim() ? comment.replace(/\s+$/, '') : undefined;
-    if (text === commentOf(element)) return;
-    this.core.edits.recordEdit(text ? 'Commentaire' : 'Commentaire retiré');
-    setCellWrapperAttribute(editable.pageTree, elementId, COMMENT_ATTRIBUTE, text);
+    const next = comment.text.trim()
+      ? comment.html !== undefined
+        ? { text: comment.text, html: comment.html }
+        : { text: comment.text.replace(/\s+$/, '') }
+      : undefined;
+    if (sameComment(next, commentOf(element))) return;
+    this.core.edits.recordEdit(next ? 'Commentaire' : 'Commentaire retiré');
+    setCellWrapperAttribute(editable.pageTree, elementId, COMMENT_ATTRIBUTE, next?.html ?? next?.text);
+    setCellWrapperAttribute(
+      editable.pageTree,
+      elementId,
+      COMMENT_HTML_ATTRIBUTE,
+      next?.html !== undefined ? '1' : undefined,
+    );
     this.core.file.documentChanged([editable.page.id]);
+  }
+
+  /** Demande l'édition en place du commentaire d'un élément de la page modifiable ; faux si l'élément n'y est pas. */
+  editComment(elementId: string): boolean {
+    const editable = this.core.targets.editablePage();
+    if (!editable) return false;
+    const shape = editable.page.shapes.find((s) => s.id === elementId);
+    const element = shape ?? editable.page.edges.find((e) => e.id === elementId);
+    if (!element) return false;
+    this.core.events.emit('commentEdit', {
+      pageId: editable.page.id,
+      elementId,
+      onEdge: !shape,
+      comment: commentOf(element),
+    });
+    return true;
   }
 
   setSpatial(elementId: string, key: string, value: number | string | undefined, merge?: string): void {

@@ -31,6 +31,7 @@ export function createCameraController(core: EngineCore): CameraController {
       editSelection: () => core.labelEditor.editLabel(),
       deleteSelection: () => core.elements.deleteSelection(),
       placementVariant: () => core.arrangement.placementVariant(),
+      editComment: () => core.pointer.editHoveredComment(),
       canDeleteSelection: () => {
         const editable = core.targets.editablePage();
         return !!editable && core.selection.current?.pageId === editable.page.id;

@@ -108,6 +108,13 @@ describe('raccourci « supprimer la sélection »', () => {
   });
 });
 
+describe('raccourci « éditer le commentaire » (étape 192)', () => {
+  it('C par défaut, majuscule comprise', () => {
+    expect(resolveShortcut('c', DEFAULT_SHORTCUTS, { canDelete: false })).toBe('editComment');
+    expect(resolveShortcut('C', DEFAULT_SHORTCUTS, { canDelete: true })).toBe('editComment');
+  });
+});
+
 describe('rotation au clavier (A / E, iso et 3D)', () => {
   it('par position physique : A (AZERTY) = Q (QWERTY) à gauche, E à droite, les deux s’annulent', () => {
     expect(keyRotation(['KeyQ'])).toBe(1);

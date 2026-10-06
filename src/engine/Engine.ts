@@ -1,3 +1,4 @@
+import type { ElementComment } from './edit/comment';
 import type { UnsupportedReport } from './diagnostics/unsupportedStyles';
 import type { AlignMove, AlignReference, DistributeMove } from './edit/align';
 import type { Anchoring } from './edit/anchoring/mode';
@@ -38,6 +39,7 @@ export type {
   EngineOptions,
   InitialView,
   LabelEditPlane,
+  CommentEditRequest,
   LabelEditRequest,
   ModeHint,
   ModeIndicator,
@@ -723,9 +725,17 @@ export class Engine {
     this.core.properties.setLink(elementId, link);
   }
 
-  /** Commentaire d'un élément de la page courante (attribut `tooltip`, montré au survol) ; vide = retiré. */
-  setComment(elementId: string, comment: string): void {
+  /**
+   * Commentaire d'un élément de la page courante (attribut `tooltip`, montré au survol) : texte brut, et HTML s'il a
+   * une mise en forme partielle ; texte vide = retiré.
+   */
+  setComment(elementId: string, comment: ElementComment): void {
     this.core.properties.setComment(elementId, comment);
+  }
+
+  /** Édition en place du commentaire d'un élément de la page courante (événement `commentEdit` pour l'UI). */
+  editComment(elementId: string): void {
+    this.core.properties.editComment(elementId);
   }
 
   /**

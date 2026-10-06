@@ -5,7 +5,9 @@ import type { Shortcuts } from '../engine/interaction/controls';
 import type { FollowLinkGesture, FollowLinkKey, MultiSelectKey } from '../engine/interaction/selection';
 import { SETTINGS_LIMITS } from '../engine/settings';
 import type { Settings, SettingsPatch } from '../engine/settings';
+import { CommentSettingsSection } from './comment';
 import { desktop } from './desktop';
+import { ColorField, Slider } from './SettingsFields';
 import { IsoIcon, IsoSettings } from './IsoSettings';
 import { Section, Subsection, Subsubsection } from './PanelSection';
 
@@ -44,6 +46,7 @@ const SHORTCUT_LABELS: Record<keyof Shortcuts, string> = {
   back: 'Retour (Alt+← aussi)',
   deleteSelection: 'Supprimer la sélection (Suppr aussi)',
   placementVariant: 'Variante de placement d’une flèche (ancrage manuel)',
+  editComment: 'Éditer le commentaire affiché au survol',
 };
 
 /**
@@ -796,6 +799,8 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                 onChange={(outlineColor) => onChange({ minimap: { outlineColor } })}
               />
             </Section>
+
+            <CommentSettingsSection settings={settings} onChange={onChange} />
 
             <Section title="Barres latérales">
               <Choice
@@ -1633,62 +1638,6 @@ function TreeRow({
 
 // ---------------------------------------------------------------------------
 // Champs
-
-function Slider({
-  label,
-  value,
-  limits,
-  format,
-  disabled,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  limits: { min: number; max: number; step: number };
-  format: (value: number) => string;
-  disabled?: boolean;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <label className={disabled ? 'field disabled' : 'field'}>
-      <span className="field-row">
-        <span>{label}</span>
-        <span className="field-value">{format(value)}</span>
-      </span>
-      <input
-        type="range"
-        min={limits.min}
-        max={limits.max}
-        step={limits.step}
-        value={value}
-        disabled={disabled}
-        onChange={(event) => onChange(Number(event.target.value))}
-      />
-    </label>
-  );
-}
-
-function ColorField({
-  label,
-  value,
-  disabled,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  disabled?: boolean;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className={disabled ? 'field color-field disabled' : 'field color-field'}>
-      <span>{label}</span>
-      <span className="field-row">
-        <span className="field-value">{value}</span>
-        <input type="color" value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)} />
-      </span>
-    </label>
-  );
-}
 
 function Toggle({
   label,
