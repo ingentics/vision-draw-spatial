@@ -4,14 +4,14 @@
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="model" value="Model" style="swimlane;fontStyle=3;startSize=38;fillColor=#dae8fc;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;spatial.kind=rdd-model;" vertex="1" parent="1">
-          <mxGeometry x="40" y="40" width="160" height="58" as="geometry" />
+        <mxCell id="model" value="Model" style="swimlane;fontStyle=3;startSize=26;fillColor=#dae8fc;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;spatial.kind=rdd-model;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="160" height="46" as="geometry" />
         </mxCell>
-        <mxCell id="timestamped" value="Timestamped" style="swimlane;fontStyle=3;startSize=38;fillColor=#d5e8d4;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;spatial.kind=rdd-model;spatial.fields=[&quot;created_at&quot;,&quot;updated_at&quot;];" vertex="1" parent="1">
-          <mxGeometry x="240" y="40" width="160" height="78" as="geometry" />
+        <mxCell id="timestamped" value="Timestamped" style="swimlane;fontStyle=3;startSize=26;fillColor=#d5e8d4;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;spatial.kind=rdd-model;spatial.fields=[&quot;created_at&quot;,&quot;updated_at&quot;];" vertex="1" parent="1">
+          <mxGeometry x="240" y="40" width="160" height="66" as="geometry" />
         </mxCell>
-        <mxCell id="secondary" value="Auditable" style="swimlane;fontStyle=3;startSize=30.4;fillColor=#f8cecc;fontColor=#000000;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=9.6;html=1;whiteSpace=wrap;spatial.kind=rdd-model;spatial.secondary=1;spatial.fields=[&quot;author&quot;];" vertex="1" parent="1">
-          <mxGeometry x="440" y="40" width="128" height="46.4" as="geometry" />
+        <mxCell id="secondary" value="Auditable" style="swimlane;fontStyle=3;startSize=20.8;fillColor=#f8cecc;fontColor=#000000;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=9.6;html=1;whiteSpace=wrap;spatial.kind=rdd-model;spatial.secondary=1;spatial.fields=[&quot;author&quot;];" vertex="1" parent="1">
+          <mxGeometry x="440" y="40" width="128" height="36.8" as="geometry" />
         </mxCell>
         <mxCell id="user" value="User" style="swimlane;fontStyle=1;startSize=26;fillColor=#dae8fc;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;spatial.kind=rdd-entity;spatial.fields=[&quot;id&quot;,&quot;email&quot;,&quot;role&quot;];" vertex="1" parent="1">
           <mxGeometry x="40" y="160" width="160" height="86" as="geometry" />
@@ -22,17 +22,17 @@
         <mxCell id="orphan" value="Orphan" style="swimlane;fontStyle=1;startSize=26;fillColor=#ffe6cc;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;spatial.kind=rdd-entity;spatial.fields=[&quot;name&quot;];" vertex="1" parent="1">
           <mxGeometry x="440" y="160" width="160" height="66" as="geometry" />
         </mxCell>
-        <mxCell id="address" value="Address" style="swimlane;fontStyle=1;startSize=38;fillColor=#e1d5e7;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;dashed=1;spatial.kind=rdd-embedded;spatial.fields=[&quot;street&quot;,&quot;city&quot;];" vertex="1" parent="1">
-          <mxGeometry x="40" y="300" width="160" height="78" as="geometry" />
+        <mxCell id="address" value="Address" style="swimlane;fontStyle=1;startSize=26;fillColor=#e1d5e7;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;dashed=1;spatial.kind=rdd-embedded;spatial.fields=[&quot;street&quot;,&quot;city&quot;];" vertex="1" parent="1">
+          <mxGeometry x="40" y="300" width="160" height="66" as="geometry" />
         </mxCell>
-        <mxCell id="settings" value="Settings" style="swimlane;fontStyle=1;startSize=38;fillColor=#ffe6cc;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;spatial.kind=rdd-document;spatial.fields=[&quot;theme&quot;,&quot;locale&quot;];" vertex="1" parent="1">
-          <mxGeometry x="240" y="300" width="160" height="78" as="geometry" />
+        <mxCell id="settings" value="Settings" style="swimlane;fontStyle=1;startSize=26;fillColor=#ffe6cc;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;spatial.kind=rdd-document;spatial.fields=[&quot;theme&quot;,&quot;locale&quot;];" vertex="1" parent="1">
+          <mxGeometry x="240" y="300" width="160" height="66" as="geometry" />
         </mxCell>
-        <mxCell id="unnamed" value="" style="swimlane;fontStyle=1;startSize=38;fillColor=#ffe6cc;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;spatial.kind=rdd-document;" vertex="1" parent="1">
-          <mxGeometry x="440" y="300" width="160" height="58" as="geometry" />
+        <mxCell id="unnamed" value="" style="swimlane;fontStyle=1;startSize=26;fillColor=#ffe6cc;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;spatial.kind=rdd-document;" vertex="1" parent="1">
+          <mxGeometry x="440" y="300" width="160" height="46" as="geometry" />
         </mxCell>
-        <mxCell id="active" value="ActiveUsers" style="swimlane;fontStyle=1;startSize=38;fillColor=#d5e8d4;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;rounded=1;absoluteArcSize=1;arcSize=16;spatial.kind=rdd-view;spatial.fields=[&quot;id&quot;,&quot;email&quot;];" vertex="1" parent="1">
-          <mxGeometry x="640" y="300" width="160" height="78" as="geometry" />
+        <mxCell id="active" value="ActiveUsers" style="swimlane;fontStyle=1;startSize=26;fillColor=#d5e8d4;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;rounded=1;absoluteArcSize=1;arcSize=16;spatial.kind=rdd-view;spatial.fields=[&quot;id&quot;,&quot;email&quot;];" vertex="1" parent="1">
+          <mxGeometry x="640" y="300" width="160" height="66" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>

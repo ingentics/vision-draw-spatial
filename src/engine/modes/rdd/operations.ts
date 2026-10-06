@@ -37,7 +37,7 @@ export function setFields(edit: ModeEdit, shape: ShapeModel, text: string | unde
   edit.setElementAttribute(shape.id, FIELDS, fields.length > 0 ? JSON.stringify(fields) : undefined);
   edit.setShapeBounds(shape.id, {
     ...shape.bounds,
-    height: round(tableHeight(kind, isSecondary(shape), fields.length)),
+    height: round(tableHeight(isSecondary(shape), fields.length)),
   });
 }
 
@@ -69,6 +69,6 @@ export function setSecondary(edit: ModeEdit, shape: ShapeModel, secondary: boole
     width: round(bounds.width * factor),
     height: round(bounds.height * factor),
   });
-  edit.setElementStyle(shape.id, 'startSize', String(round(headerHeight(kind, secondary))));
+  edit.setElementStyle(shape.id, 'startSize', String(round(headerHeight(secondary))));
   edit.setElementStyle(shape.id, 'fontSize', String(round(TABLE.nameSize * (secondary ? SECONDARY_SCALE : 1))));
 }

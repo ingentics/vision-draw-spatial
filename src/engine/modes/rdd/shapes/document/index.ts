@@ -1,13 +1,13 @@
 import { table } from '../common/table';
 
 /**
- * Document JSONB (sujet 181) : document déstructuré mais nommé (colonne JSONB) ; mention `«jsonb»`, clés connues en
+ * Document (sujets 181, 218) : document JSONB, déstructuré mais nommé ; coin plié en haut à droite, clés connues en
  * italique (indicatives). Le nom est obligatoire : vide, la forme affiche « Document » et Diagnostics le signale.
  */
 export const definition = table('rdd-document', {
-  name: 'Document JSONB',
+  name: 'Document',
   order: 4,
   keywords: ['document', 'jsonb', 'json', 'clés'],
   value: 'Document',
-  icon: '<path d="M6 3h28v22H6zM6 12h28M15 7.5h10"/><path d="M10 17h12M10 22h9" stroke-dasharray="2 1.5"/>',
+  icon: '<path d="M6 3h22l6 6v16H6zM6 10h28M28 3v6h6"/><path d="M10 15h12M10 20h9" stroke-dasharray="2 1.5"/>',
 });

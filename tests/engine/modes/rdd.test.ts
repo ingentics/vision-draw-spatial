@@ -42,7 +42,7 @@ describe('mode RDD (sujet 179) : page et palette', () => {
       ['rdd-entity', 'Entité'],
       ['rdd-enum', 'Entité énumérative'],
       ['rdd-embedded', 'Embedded'],
-      ['rdd-document', 'Document JSONB'],
+      ['rdd-document', 'Document'],
       ['rdd-view', 'Vue'],
     ]);
   });
@@ -117,10 +117,10 @@ describe('mode RDD : opérations sur une table', () => {
     const { run, shape } = setup();
     expect(run((edit) => setFields(edit, shape('model'), 'id\n\n  name  \ncreated_at'))).toBe(true);
     expect(fieldsOf(shape('model'))).toEqual(['id', 'name', 'created_at']);
-    expect(shape('model').bounds).toEqual({ x: 40, y: 40, width: 160, height: 38 + 3 * 20 });
+    expect(shape('model').bounds).toEqual({ x: 40, y: 40, width: 160, height: 26 + 3 * 20 });
     run((edit) => setFields(edit, shape('model'), ''));
     expect(spatialValue(shape('model'), FIELDS)).toBeUndefined();
-    expect(shape('model').bounds.height).toBe(58);
+    expect(shape('model').bounds.height).toBe(46);
   });
 
   it('table secondaire : × 0,8 depuis le coin haut-gauche, puis ÷ 0,8 ; entête et texte suivent', () => {
@@ -128,16 +128,16 @@ describe('mode RDD : opérations sur une table', () => {
     run((edit) => setSecondary(edit, shape('timestamped'), true));
     const small = shape('timestamped');
     expect(spatialValue(small, SECONDARY)).toBe('1');
-    expect(small.bounds).toEqual({ x: 240, y: 40, width: 128, height: 62.4 });
-    expect([small.style.startSize, small.style.fontSize]).toEqual(['30.4', '9.6']);
+    expect(small.bounds).toEqual({ x: 240, y: 40, width: 128, height: 52.8 });
+    expect([small.style.startSize, small.style.fontSize]).toEqual(['20.8', '9.6']);
     // Un champ de plus : lignes à l'échelle de la table secondaire.
     run((edit) => setFields(edit, shape('timestamped'), 'created_at\nupdated_at\ndeleted_at'));
-    expect(shape('timestamped').bounds.height).toBe(78.4);
+    expect(shape('timestamped').bounds.height).toBe(68.8);
     run((edit) => setSecondary(edit, shape('timestamped'), false));
     const back = shape('timestamped');
     expect(spatialValue(back, SECONDARY)).toBeUndefined();
-    expect(back.bounds).toEqual({ x: 240, y: 40, width: 160, height: 98 });
-    expect([back.style.startSize, back.style.fontSize]).toEqual(['38', '12']);
+    expect(back.bounds).toEqual({ x: 240, y: 40, width: 160, height: 86 });
+    expect([back.style.startSize, back.style.fontSize]).toEqual(['26', '12']);
     expect(run((edit) => setSecondary(edit, shape('timestamped'), false))).toBe(false);
   });
 
@@ -183,13 +183,13 @@ describe('mode RDD : entités (sujet 180)', () => {
   });
 });
 
-describe('mode RDD : embedded, document JSONB et vue (sujet 181)', () => {
+describe('mode RDD : embedded, document et vue (sujets 181, 218)', () => {
   const templates = createDefaultRegistry().templates();
   const style = (id: string) => templates.find((t) => t.id === id)!.style;
 
-  it('palette : mention dans l’entête, sans clé primaire ; tirets pour l’embedded, coins arrondis pour la vue', () => {
+  it('palette : entête de 26 px, sans clé primaire ; tirets pour l’embedded, coins arrondis pour la vue', () => {
     for (const id of ['rdd-embedded', 'rdd-document', 'rdd-view']) {
-      expect(style(id)).toContain('startSize=38;');
+      expect(style(id)).toContain('startSize=26;');
       expect(style(id)).not.toContain('spatial.fields');
     }
     expect(style('rdd-embedded')).toContain('dashed=1;');
@@ -210,16 +210,39 @@ describe('mode RDD : embedded, document JSONB et vue (sujet 181)', () => {
     };
     const root = buildPageScene(page(), createDefaultRegistry(), ctx, 'flat').root;
     const object = (id: string) => root.children.find((child) => child.userData.elementId === id)!;
-    return { texts, object };
+    return { texts, object, page };
   }
 
-  it('mentions «embedded», «jsonb», «view» ; clés du document en italique ; document sans nom : « Document »', () => {
+  it('sans mention (sujet 218) ; clés du document en italique ; document sans nom : « Document »', () => {
     const { texts } = render();
-    const before = (name: string) => texts[texts.findIndex((t) => t.text === name) - 1]!.text;
-    expect([before('Address'), before('Settings'), before('ActiveUsers')]).toEqual(['«embedded»', '«jsonb»', '«view»']);
+    expect(texts.filter((t) => t.text.includes('«'))).toEqual([]);
     expect(['theme', 'locale'].map((key) => texts.find((t) => t.text === key)!.italic)).toEqual([true, true]);
     expect(texts.find((t) => t.text === 'street')!.italic).toBeFalsy();
     expect(texts.filter((t) => t.text === 'Document')).toHaveLength(1);
+  });
+
+  it('document : coin plié en haut à droite (coin coupé, rabat plus sombre), 10 px', () => {
+    const { object, page } = render();
+    const settings = object('settings');
+    const flap = settings.getObjectByName('fill-fold') as Mesh;
+    flap.geometry.computeBoundingBox();
+    const box = flap.geometry.boundingBox!;
+    expect([box.min.x, box.min.y, box.max.x, box.max.y]).toEqual([390, 300, 400, 310]);
+    const color = (mesh: Object3D) => ((mesh as Mesh).material as MeshBasicMaterial).color;
+    const header = color(settings.getObjectByName('fill-header')!);
+    expect(color(flap).r).toBeLessThan(header.r);
+    expect(
+      createDefaultRegistry().resolve(page().shapes.find((s) => s.id === 'settings')!).definition.outline!(
+        page().shapes.find((s) => s.id === 'settings')!,
+      ),
+    ).toEqual([
+      { x: 240, y: 300 },
+      { x: 390, y: 300 },
+      { x: 400, y: 310 },
+      { x: 400, y: 366 },
+      { x: 240, y: 366 },
+    ]);
+    expect(object('address').getObjectByName('fill-fold')).toBeUndefined();
   });
 
   it('vue : contour arrondi, entête coupé dans ce contour', () => {
@@ -228,7 +251,7 @@ describe('mode RDD : embedded, document JSONB et vue (sujet 181)', () => {
     const header = view.getObjectByName('fill-header') as Mesh;
     header.geometry.computeBoundingBox();
     const box = header.geometry.boundingBox!;
-    expect([box.min.x, box.min.y, box.max.x, box.max.y]).toEqual([640, 300, 800, 338]);
+    expect([box.min.x, box.min.y, box.max.x, box.max.y]).toEqual([640, 300, 800, 326]);
     // Coin haut-gauche arrondi : pas de sommet au coin exact.
     const corner = [...(header.geometry.getAttribute('position').array as Float32Array)].some(
       (_, i, a) => i % 3 === 0 && a[i] === 640 && a[i + 1] === 300,
@@ -255,14 +278,13 @@ describe('mode RDD : rendu d’une table', () => {
     return { texts, object };
   }
 
-  it('mention, nom gras italique centré dans l’entête, champs alignés à gauche ligne par ligne', () => {
+  it('nom gras italique centré dans l’entête, champs alignés à gauche ligne par ligne', () => {
     const { texts } = render();
     const at = texts.findIndex((t) => t.text === 'Timestamped');
-    const [stereotype, name, first, second] = texts.slice(at - 1, at + 3);
-    expect(stereotype!.text).toBe('«abstract»');
+    const [name, first, second] = texts.slice(at, at + 3);
     expect([name!.text, name!.bold, name!.italic, name!.align]).toEqual(['Timestamped', true, true, 'center']);
-    expect([first!.text, first!.anchorX, first!.x, first!.y]).toEqual(['created_at', 'left', 246, 40 + 38 + 10]);
-    expect([second!.text, second!.y]).toEqual(['updated_at', 40 + 38 + 30]);
+    expect([first!.text, first!.anchorX, first!.x, first!.y]).toEqual(['created_at', 'left', 246, 40 + 26 + 10]);
+    expect([second!.text, second!.y]).toEqual(['updated_at', 40 + 26 + 30]);
   });
 
   it('entité : id souligné en tête ; énumération : sans mention (sujet 216), nom droit', () => {

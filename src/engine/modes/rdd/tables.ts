@@ -15,18 +15,17 @@ export const SECONDARY_SCALE = 0.8;
 
 /** Tailles d'une table principale, en pixels de page (× `SECONDARY_SCALE` pour une table secondaire). */
 export const TABLE = {
-  /** Entête : nom seul. */
+  /** Entête : le nom. */
   header: 26,
-  /** Bande de la mention (`«abstract»`) au-dessus du nom. */
-  stereotype: 12,
   row: 20,
   nameSize: 12,
-  stereotypeSize: 9,
   fieldSize: 11,
   /** Marge des champs à gauche. */
   padding: 6,
   /** Écart du second trait d'un entête à cadre double. */
   doubleGap: 3,
+  /** Côté du coin plié d'un document. */
+  fold: 10,
   width: 160,
 } as const;
 
@@ -34,11 +33,10 @@ export const TABLE = {
 export const DEFAULT_HEADER_COLOR = '#dae8fc';
 
 /**
- * Forme de table : mention au-dessus du nom (ex. `abstract`), nom en italique, clé primaire `id` toujours en tête des
- * champs (sujet 180).
+ * Forme de table, reconnue à sa marque propre (sans mention au-dessus du nom, sujet 218) : nom en italique, clé
+ * primaire `id` toujours en tête des champs (sujet 180)…
  */
 export interface TableKind {
-  stereotype?: string;
   italic?: boolean;
   primaryKey?: boolean;
   /** Cadre double autour de l'entête (sujet 215). */
@@ -47,6 +45,8 @@ export interface TableKind {
   italicFields?: boolean;
   /** Nom obligatoire : affiché à la place d'un nom vide, qui est signalé (document JSONB, sujet 181). */
   requiredName?: string;
+  /** Coin plié en haut à droite (document, sujet 218). */
+  folded?: boolean;
   /** Clés du style draw.io d'une table neuve (ex. `dashed=1;`) : le rendu les suit, draw.io aussi. */
   style?: string;
 }
@@ -60,13 +60,13 @@ export const PRIMARY_KEY = 'id';
  * fichier.
  */
 export const TABLE_KINDS: Record<string, TableKind> = {
-  'rdd-model': { stereotype: 'abstract', italic: true },
+  'rdd-model': { italic: true },
   'rdd-entity': { primaryKey: true },
   'rdd-enum': { primaryKey: true, doubleHeader: true },
   // Sujet 181 : objet incorporé (bordure en tirets), document JSONB (clés indicatives), vue (coins arrondis).
-  'rdd-embedded': { stereotype: 'embedded', style: 'dashed=1;' },
-  'rdd-document': { stereotype: 'jsonb', italicFields: true, requiredName: 'Document' },
-  'rdd-view': { stereotype: 'view', style: 'rounded=1;absoluteArcSize=1;arcSize=16;' },
+  'rdd-embedded': { style: 'dashed=1;' },
+  'rdd-document': { italicFields: true, requiredName: 'Document', folded: true },
+  'rdd-view': { style: 'rounded=1;absoluteArcSize=1;arcSize=16;' },
 };
 
 /** Forme de table d'une forme du mode ; undefined pour une autre forme. */
@@ -101,12 +101,12 @@ export const missingName = (shape: ShapeModel) =>
 
 export const isSecondary = (shape: ShapeModel) => spatialValue(shape, SECONDARY) === '1';
 
-/** Hauteur de l'entête (nom et mention), à l'échelle de la table. */
-export function headerHeight(kind: TableKind, secondary: boolean): number {
-  return (TABLE.header + (kind.stereotype ? TABLE.stereotype : 0)) * (secondary ? SECONDARY_SCALE : 1);
+/** Hauteur de l'entête, à l'échelle de la table. */
+export function headerHeight(secondary: boolean): number {
+  return TABLE.header * (secondary ? SECONDARY_SCALE : 1);
 }
 
 /** Hauteur de la table pour `count` champs : entête et une ligne par champ (au moins une ligne vide). */
-export function tableHeight(kind: TableKind, secondary: boolean, count: number): number {
-  return headerHeight(kind, secondary) + Math.max(1, count) * TABLE.row * (secondary ? SECONDARY_SCALE : 1);
+export function tableHeight(secondary: boolean, count: number): number {
+  return headerHeight(secondary) + Math.max(1, count) * TABLE.row * (secondary ? SECONDARY_SCALE : 1);
 }

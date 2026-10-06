@@ -30,33 +30,60 @@ const FIELDS_FILL = '#ffffff';
 
 const scaleOf = (shape: ShapeModel) => (isSecondary(shape) ? SECONDARY_SCALE : 1);
 
-/** Zone du nom : l'entête sous la mention (label dessiné et éditeur en place). */
-function nameZone(shape: ShapeModel, kind: TableKind): Rect {
+/** Zone du nom : l'entête (label dessiné et éditeur en place). */
+function nameZone(shape: ShapeModel): Rect {
   const { x, y, width } = shape.bounds;
-  const band = kind.stereotype ? TABLE.stereotype * scaleOf(shape) : 0;
-  return { x, y: y + band, width, height: headerHeight(kind, isSecondary(shape)) - band };
+  return { x, y, width, height: headerHeight(isSecondary(shape)) };
 }
 
-/** Contour d'une table : rectangle, arrondi avec `rounded=1` (vue). */
-function outline(shape: ShapeModel): Point[] {
+/** Côté du coin plié d'un document, à l'échelle de la table (au plus la moitié de l'entête). */
+const foldOf = (shape: ShapeModel) => Math.min(TABLE.fold * scaleOf(shape), headerHeight(isSecondary(shape)) / 2);
+
+/**
+ * Contour d'une table : rectangle, arrondi avec `rounded=1` (vue), coin haut-droit coupé en biais pour un document
+ * (coin plié). Toujours convexe : l'entête s'y découpe en bornant les ordonnées.
+ */
+function outline(shape: ShapeModel, kind: TableKind): Point[] {
   const { bounds, style } = shape;
+  const { x, y, width: w, height: h } = bounds;
+  if (kind.folded) {
+    const f = foldOf(shape);
+    return [
+      { x, y },
+      { x: x + w - f, y },
+      { x: x + w, y: y + f },
+      { x: x + w, y: y + h },
+      { x, y: y + h },
+    ];
+  }
   return style.rounded === '1' ? roundedRectPath(bounds, cornerRadius(style, bounds)) : rectPath(bounds);
+}
+
+/** Rabat du coin plié : triangle replié sous le coin coupé. */
+function flapOf(shape: ShapeModel): Point[] {
+  const { x, y, width: w } = shape.bounds;
+  const f = foldOf(shape);
+  return [
+    { x: x + w - f, y },
+    { x: x + w - f, y: y + f },
+    { x: x + w, y: y + f },
+  ];
 }
 
 /**
  * Rendu à plat d'une table : zone des champs blanche, entête de la couleur `fillColor` (texte noir ou blanc selon le
- * contraste), séparés d'un trait ; mention en petit au-dessus du nom ; un champ par ligne, aligné à gauche.
+ * contraste), séparés d'un trait ; un champ par ligne, aligné à gauche ; coin plié d'un document.
  */
 function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Group {
   const group = new Group();
   group.name = `shape:${shape.id}`;
   const { bounds, style } = shape;
   const scale = scaleOf(shape);
-  const header = Math.min(bounds.height, headerHeight(kind, isSecondary(shape)));
+  const header = Math.min(bounds.height, headerHeight(isSecondary(shape)));
   const headerColor = styleColor(style, 'fillColor', DEFAULT_HEADER_COLOR) ?? new Color(DEFAULT_HEADER_COLOR);
   const textColor = readableOn(`#${headerColor.getHexString()}`);
 
-  const path = outline(shape);
+  const path = outline(shape, kind);
   group.add(fillMesh(path, new Color(FIELDS_FILL), styleOpacity(style, 'fillOpacity')));
   // Haut du contour (convexe), coupé sous l'entête : coins arrondis du haut compris.
   const headerPath = path.map((p) => ({ x: p.x, y: Math.min(p.y, bounds.y + header) }));
@@ -64,6 +91,13 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
   headerFill.name = 'fill-header';
   headerFill.renderOrder = PART_ORDER.fill + 0.5;
   group.add(headerFill);
+  if (kind.folded) {
+    // Rabat un peu plus sombre que l'entête : le revers de la page.
+    const flap = fillMesh(flapOf(shape), headerColor.clone().multiplyScalar(0.85), styleOpacity(style, 'fillOpacity'));
+    flap.name = 'fill-fold';
+    flap.renderOrder = PART_ORDER.fill + 0.75;
+    group.add(flap);
+  }
 
   const stroke = styleColor(style, 'strokeColor', BORDER);
   const width = styleNumber(style, 'strokeWidth', 1);
@@ -99,17 +133,9 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
         true,
       );
     }
+    if (kind.folded) line(flapOf(shape), true);
   }
 
-  if (kind.stereotype) {
-    addText(group, ctx, {
-      text: `«${kind.stereotype}»`,
-      at: { x: bounds.x + bounds.width / 2, y: bounds.y + (TABLE.stereotype * scale) / 2 + 2 * scale },
-      size: TABLE.stereotypeSize * scale,
-      color: textColor,
-      align: 'center',
-    });
-  }
   const label = createLabel(
     {
       ...shape,
@@ -124,7 +150,7 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
     },
     ctx,
     missingName(shape) ? kind.requiredName : shape.label,
-    nameZone(shape, kind),
+    nameZone(shape),
   );
   if (label) group.add(label);
 
@@ -184,7 +210,7 @@ function addText(
 export function tableStyle(id: string, kind: TableKind): string {
   const fields = kind.primaryKey ? `${FIELDS}=${JSON.stringify([PRIMARY_KEY])};` : '';
   return (
-    `swimlane;fontStyle=${1 | (kind.italic ? 2 : 0)};startSize=${headerHeight(kind, false)};` +
+    `swimlane;fontStyle=${1 | (kind.italic ? 2 : 0)};startSize=${headerHeight(false)};` +
     `fillColor=${DEFAULT_HEADER_COLOR};swimlaneFillColor=${FIELDS_FILL};strokeColor=${BORDER};` +
     `fontSize=${TABLE.nameSize};html=1;whiteSpace=wrap;${kind.style ?? ''}spatial.kind=${id};${fields}`
   );
@@ -202,9 +228,9 @@ export function table(
   const kind = TABLE_KINDS[id]!;
   return {
     id,
-    outline,
+    outline: (shape) => outline(shape, kind),
     flat: { create: (shape, ctx) => createTable(shape, ctx, kind) },
-    textZone: (shape) => nameZone(shape, kind),
+    textZone: (shape) => nameZone(shape),
     swatch: () => '<path d="M5 5h30v18H5zM5 11h30"/>',
     ...(palette && {
       palette: {
@@ -212,13 +238,10 @@ export function table(
         category: 'rdd',
         style: tableStyle(id, kind),
         width: TABLE.width,
-        height: tableHeight(kind, false, kind.primaryKey ? 1 : 0),
+        height: tableHeight(false, kind.primaryKey ? 1 : 0),
         icon:
           palette.icon ??
-          (kind.stereotype
-            ? '<path d="M6 3h28v22H6zM6 12h28M10 17h12M10 22h9M15 7.5h10"/>'
-            : '<path d="M6 3h28v22H6zM6 10h28M10 15h12M10 20h9"/>') +
-            (kind.doubleHeader ? '<path d="M8 5h24v3H8z"/>' : ''),
+          '<path d="M6 3h28v22H6zM6 10h28M10 15h12M10 20h9"/>' + (kind.doubleHeader ? '<path d="M8 5h24v3H8z"/>' : ''),
       },
     }),
   };
