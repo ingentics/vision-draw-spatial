@@ -1,6 +1,6 @@
 import { table } from '../../table';
 
-/** Entité énumérative (sujet 180) : l'entité avec la mention `«enum»` ; ses champs après `id` sont ses valeurs. */
+/** Entité énumérative (sujet 180) : l'entité, entête à cadre double (sujets 215, 216) ; ses champs après `id` sont ses valeurs. */
 export const definition = table('rdd-enum', {
   name: 'Entité énumérative',
   order: 2,

@@ -62,7 +62,7 @@ export const PRIMARY_KEY = 'id';
 export const TABLE_KINDS: Record<string, TableKind> = {
   'rdd-model': { stereotype: 'abstract', italic: true },
   'rdd-entity': { primaryKey: true },
-  'rdd-enum': { stereotype: 'enum', primaryKey: true, doubleHeader: true },
+  'rdd-enum': { primaryKey: true, doubleHeader: true },
 };
 
 /** Forme de table d'une forme du mode ; undefined pour une autre forme. */
@@ -269,9 +269,11 @@ export function table(
         style: tableStyle(id, kind),
         width: TABLE.width,
         height: tableHeight(kind, false, kind.primaryKey ? 1 : 0),
-        icon: kind.stereotype
-          ? '<path d="M6 3h28v22H6zM6 12h28M10 17h12M10 22h9M15 7.5h10"/>'
-          : '<path d="M6 3h28v22H6zM6 10h28M10 15h12M10 20h9"/>',
+        icon:
+          (kind.stereotype
+            ? '<path d="M6 3h28v22H6zM6 12h28M10 17h12M10 22h9M15 7.5h10"/>'
+            : '<path d="M6 3h28v22H6zM6 10h28M10 15h12M10 20h9"/>') +
+          (kind.doubleHeader ? '<path d="M8 5h24v3H8z"/>' : ''),
       },
     }),
   };

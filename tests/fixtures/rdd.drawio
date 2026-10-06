@@ -16,8 +16,8 @@
         <mxCell id="user" value="User" style="swimlane;fontStyle=1;startSize=26;fillColor=#dae8fc;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;spatial.kind=rdd-entity;spatial.fields=[&quot;id&quot;,&quot;email&quot;,&quot;role&quot;];" vertex="1" parent="1">
           <mxGeometry x="40" y="160" width="160" height="86" as="geometry" />
         </mxCell>
-        <mxCell id="role" value="Role" style="swimlane;fontStyle=1;startSize=38;fillColor=#fff2cc;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;spatial.kind=rdd-enum;spatial.fields=[&quot;id&quot;,&quot;admin&quot;,&quot;member&quot;];" vertex="1" parent="1">
-          <mxGeometry x="240" y="160" width="160" height="98" as="geometry" />
+        <mxCell id="role" value="Role" style="swimlane;fontStyle=1;startSize=26;fillColor=#fff2cc;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;spatial.kind=rdd-enum;spatial.fields=[&quot;id&quot;,&quot;admin&quot;,&quot;member&quot;];" vertex="1" parent="1">
+          <mxGeometry x="240" y="160" width="160" height="86" as="geometry" />
         </mxCell>
         <mxCell id="orphan" value="Orphan" style="swimlane;fontStyle=1;startSize=26;fillColor=#ffe6cc;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;spatial.kind=rdd-entity;spatial.fields=[&quot;name&quot;];" vertex="1" parent="1">
           <mxGeometry x="440" y="160" width="160" height="66" as="geometry" />

@@ -53,8 +53,9 @@ describe('mode RDD (sujet 179) : page et palette', () => {
     expect(entity.style).toContain('startSize=26;');
     expect([entity.width, entity.height]).toEqual([160, 46]);
     const enumeration = templates.find((t) => t.id === 'rdd-enum')!;
-    expect(enumeration.style).toContain('startSize=38;');
-    expect(enumeration.height).toBe(58);
+    // Sans mention (sujet 216) : même entête que l'entité.
+    expect(enumeration.style).toContain('startSize=26;');
+    expect(enumeration.height).toBe(46);
     // Le modèle abstrait : base technique, jamais dans la palette (sujet 180).
     expect(templates.find((t) => t.id === 'rdd-model')).toBeUndefined();
   });
@@ -168,7 +169,7 @@ describe('mode RDD : entités (sujet 180)', () => {
   it('table secondaire et couleur, comme sur le modèle', () => {
     const { run, shape } = setup();
     run((edit) => setSecondary(edit, shape('role'), true));
-    expect(shape('role').bounds).toEqual({ x: 240, y: 160, width: 128, height: 78.4 });
+    expect(shape('role').bounds).toEqual({ x: 240, y: 160, width: 128, height: 68.8 });
     run((edit) => setHeaderColor(edit, shape('role'), '#d5e8d4'));
     expect(shape('role').style.fillColor).toBe('#d5e8d4');
   });
@@ -202,13 +203,14 @@ describe('mode RDD : rendu d’une table', () => {
     expect([second!.text, second!.y]).toEqual(['updated_at', 40 + 38 + 30]);
   });
 
-  it('entité : id souligné en tête ; énumération : mention «enum», nom droit', () => {
+  it('entité : id souligné en tête ; énumération : sans mention (sujet 216), nom droit', () => {
     const { texts } = render();
     const id = texts.filter((t) => t.text === 'id');
     expect(id.map((t) => t.underline)).toEqual([true, true, true]);
     expect(texts.find((t) => t.text === 'email')!.underline).toBe(false);
     const at = texts.findIndex((t) => t.text === 'Role');
-    expect(texts[at - 1]!.text).toBe('«enum»');
+    expect(texts.some((t) => t.text.startsWith('«enum'))).toBe(false);
+    expect(texts[at + 1]!.text).toBe('id');
     expect(texts[at]!.italic).toBe(false);
     expect(texts.find((t) => t.text === 'User')!.italic).toBe(false);
   });
@@ -231,7 +233,7 @@ describe('mode RDD : rendu d’une table', () => {
     inner.geometry.computeBoundingBox();
     const box = inner.geometry.boundingBox!;
     // Trait de 1 px centré sur le rectangle intérieur : bornes ± 0,5.
-    expect([box.min.x, box.min.y, box.max.x, box.max.y]).toEqual([242.5, 162.5, 397.5, 195.5]);
+    expect([box.min.x, box.min.y, box.max.x, box.max.y]).toEqual([242.5, 162.5, 397.5, 183.5]);
     // Table secondaire : écart à l'échelle (2,4 px).
     run((edit) => setSecondary(edit, shape('role'), true));
     const small = strokes('role')[2]!;
