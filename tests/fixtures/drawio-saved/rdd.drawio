@@ -1,6 +1,6 @@
 <mxfile host="Electron" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/24.7.5 Chrome/126.0.6478.183 Electron/31.3.0 Safari/537.36" version="24.7.5">
   <diagram id="rdd" name="RDD" spatial.mode="rdd">
-    <mxGraphModel dx="-328" dy="-71" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="0" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="-344" dy="-106" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="0" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -12,6 +12,15 @@
         </mxCell>
         <mxCell id="secondary" value="Auditable" style="swimlane;fontStyle=3;startSize=30.4;fillColor=#f8cecc;fontColor=#000000;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=9.6;html=1;whiteSpace=wrap;spatial.kind=rdd-model;spatial.secondary=1;spatial.fields=[&quot;author&quot;];" parent="1" vertex="1">
           <mxGeometry x="440" y="40" width="128" height="46.4" as="geometry" />
+        </mxCell>
+        <mxCell id="user" value="User" style="swimlane;fontStyle=1;startSize=26;fillColor=#dae8fc;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;spatial.kind=rdd-entity;spatial.fields=[&quot;id&quot;,&quot;email&quot;,&quot;role&quot;];" parent="1" vertex="1">
+          <mxGeometry x="40" y="160" width="160" height="86" as="geometry" />
+        </mxCell>
+        <mxCell id="role" value="Role" style="swimlane;fontStyle=1;startSize=38;fillColor=#fff2cc;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;spatial.kind=rdd-enum;spatial.fields=[&quot;id&quot;,&quot;admin&quot;,&quot;member&quot;];" parent="1" vertex="1">
+          <mxGeometry x="240" y="160" width="160" height="98" as="geometry" />
+        </mxCell>
+        <mxCell id="orphan" value="Orphan" style="swimlane;fontStyle=1;startSize=26;fillColor=#ffe6cc;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;spatial.kind=rdd-entity;spatial.fields=[&quot;name&quot;];" parent="1" vertex="1">
+          <mxGeometry x="440" y="160" width="160" height="66" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>

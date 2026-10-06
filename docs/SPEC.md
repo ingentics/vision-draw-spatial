@@ -885,14 +885,19 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
 - **Écritures** : une opération de mode est une étape d'annulation (`Engine.editPageMode`) ; attribut de page sur
   `<diagram>`, attribut d'élément là où il est déjà (objet), sinon dans le style ; clé du style draw.io d'un élément
   (`setElementStyle`) et bornes d'une forme (`setShapeBounds`, sujet 179).
-- **Mode RDD** (`rdd`, sujet 179) : en 2D seulement ; la palette (catégorie « RDD ») ne propose que ses tables. Une
-  table est un rectangle en deux zones : entête de la couleur `fillColor` (nom centré, gras ; texte noir ou blanc
+- **Mode RDD** (`rdd`, sujets 179, 180) : en 2D seulement ; la palette (catégorie « RDD ») ne propose que ses
+  tables : « Entité » (`rdd-entity`) et « Entité énumérative » (`rdd-enum`, mention `«enum»`). Le modèle abstrait
+  (`rdd-model`) est leur base technique : jamais dans la palette, dessiné s'il est dans un fichier. Entité et
+  énumération ont toujours la clé primaire `id` en tête de leurs champs (créées avec `spatial.fields=["id"]`),
+  soulignée, montrée en lecture seule dans le panneau (« Clé primaire ») et absente de « Champs » ; absente ou
+  déplacée dans le fichier, elle est remise en tête à l'affichage et signalée dans Diagnostics.
+  Une table est un rectangle en deux zones : entête de la couleur `fillColor` (nom centré, gras ; texte noir ou blanc
   selon le contraste), trait, puis zone blanche des champs (`spatial.fields`, un par ligne de 20 px, alignés à
   gauche). Modèle abstrait (`rdd-model`) : mention `«abstract»` en petit au-dessus du nom, en italique (entête de
   38 px, 26 sans mention). Réglages du mode sur une table : « Couleur » (couleurs `modePalette`, écrit aussi
   `fontColor` pour draw.io), « Table secondaire » (`spatial.secondary` : tailles × 0,8, forme mise à l'échelle depuis
   son coin haut-gauche), « Champs » (zone de texte, un par ligne ; la hauteur suit : entête + une ligne par champ, au
-  moins une). Fichier : `swimlane;startSize=<entête>;fillColor=…;swimlaneFillColor=#ffffff;spatial.kind=rdd-model;…` :
+  moins une). Fichier : `swimlane;startSize=<entête>;fillColor=…;swimlaneFillColor=#ffffff;spatial.kind=rdd-…;…` :
   draw.io montre l'entête et sa couleur, pas les champs.
 - **Mode Séquences** (`sequences`) : en 2D seulement (`viewModes`) ; flux ordonnés (`spatial.flows`), une flèche dans un flux au plus
   (`spatial.flow`, `spatial.step`), rangs toujours consécutifs (ajout en n + 1, échange, resserrement). Flèche d'un

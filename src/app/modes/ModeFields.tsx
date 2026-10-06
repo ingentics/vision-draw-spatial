@@ -57,7 +57,10 @@ function ModePropertyField({
   const { key, label } = property;
   const value = property.value ? property.value(page, target) : rawValue(target, key);
   const title = property.title ?? label;
-  const write = (next: string | undefined) => onChange?.(key, next);
+  const editable = onChange !== undefined && !property.readOnly;
+  const write = (next: string | undefined) => {
+    if (editable) onChange(key, next);
+  };
   switch (property.type) {
     case 'toggle':
       return (
@@ -65,7 +68,7 @@ function ModePropertyField({
           <input
             type="checkbox"
             checked={value === '1'}
-            disabled={!onChange}
+            disabled={!editable}
             onChange={(event) => write(event.target.checked ? '1' : undefined)}
           />
           {label}
@@ -93,7 +96,7 @@ function ModePropertyField({
           value={value ?? ''}
           placeholder={property.placeholder}
           multiline={property.multiline}
-          readOnly={!onChange}
+          readOnly={!editable}
           onCommit={(text) => write(text.trim() || undefined)}
         />
       );
@@ -104,7 +107,7 @@ function ModePropertyField({
           title={title}
           value={value ?? ''}
           options={property.options(page, palette)}
-          disabled={!onChange}
+          disabled={!editable}
           onChange={(next) => write(next || undefined)}
         />
       );

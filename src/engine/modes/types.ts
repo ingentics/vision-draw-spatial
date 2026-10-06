@@ -138,6 +138,8 @@ export type ModeProperty = {
   write?(edit: ModeEdit, target: ModeTarget, value: string | undefined): void;
   /** Champ masqué pour cette cible (ex. rang d'une flèche sans flux). */
   hidden?(page: PageModel, target: ModeTarget): boolean;
+  /** Affiché sans être modifiable (ex. clé primaire d'une entité). */
+  readOnly?: boolean;
 } & (
   | { type: 'toggle' }
   | { type: 'number' }

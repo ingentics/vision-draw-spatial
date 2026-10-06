@@ -37,15 +37,28 @@ export const DEFAULT_HEADER_COLOR = '#dae8fc';
 const BORDER = '#666666';
 const FIELDS_FILL = '#ffffff';
 
-/** Forme de table : mention au-dessus du nom (ex. `abstract`) et nom en italique. */
+/**
+ * Forme de table : mention au-dessus du nom (ex. `abstract`), nom en italique, clé primaire `id` toujours en tête des
+ * champs (sujet 180).
+ */
 export interface TableKind {
   stereotype?: string;
   italic?: boolean;
+  primaryKey?: boolean;
 }
 
-/** Tables du mode, par id de forme : le rendu et les opérations du mode (hauteur, échelle) en dépendent. */
+/** Clé primaire des tables qui en ont une : premier champ, souligné, ni retiré ni déplacé. */
+export const PRIMARY_KEY = 'id';
+
+/**
+ * Tables du mode, par id de forme : le rendu et les opérations du mode (hauteur, échelle) en dépendent. Le modèle
+ * abstrait est la base des autres : jamais posé depuis la palette (sujet 180), il reste dessiné s'il est dans un
+ * fichier.
+ */
 export const TABLE_KINDS: Record<string, TableKind> = {
   'rdd-model': { stereotype: 'abstract', italic: true },
+  'rdd-entity': { primaryKey: true },
+  'rdd-enum': { stereotype: 'enum', primaryKey: true },
 };
 
 /** Forme de table d'une forme du mode ; undefined pour une autre forme. */
@@ -60,6 +73,19 @@ export function fieldsOf(shape: ShapeModel): string[] {
     return [];
   }
 }
+
+/**
+ * Champs affichés : ceux du fichier, la clé primaire ramenée en tête (ajoutée si elle manque) pour une table qui en a
+ * une.
+ */
+export function tableFields(shape: ShapeModel): string[] {
+  const fields = fieldsOf(shape);
+  return tableKindOf(shape)?.primaryKey ? [PRIMARY_KEY, ...fields.filter((f) => f !== PRIMARY_KEY)] : fields;
+}
+
+/** La clé primaire manque ou n'est pas en tête dans le fichier (fichier modifié à la main ou dans draw.io) ? */
+export const misplacedPrimaryKey = (shape: ShapeModel) =>
+  tableKindOf(shape)?.primaryKey === true && fieldsOf(shape)[0] !== PRIMARY_KEY;
 
 export const isSecondary = (shape: ShapeModel) => spatialValue(shape, SECONDARY) === '1';
 
@@ -152,7 +178,7 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
   if (label) group.add(label);
 
   const row = TABLE.row * scale;
-  fieldsOf(shape).forEach((field, index) => {
+  tableFields(shape).forEach((field, index) => {
     const y = bounds.y + header + row * (index + 0.5);
     if (y > bounds.y + bounds.height) return;
     addText(group, ctx, {
@@ -161,6 +187,7 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
       size: TABLE.fieldSize * scale,
       color: '#000000',
       align: 'left',
+      underline: kind.primaryKey && index === 0,
     });
   });
   return group;
@@ -169,7 +196,7 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
 function addText(
   group: Group,
   ctx: RenderContext,
-  text: { text: string; at: Point; size: number; color: string; align: 'left' | 'center' },
+  text: { text: string; at: Point; size: number; color: string; align: 'left' | 'center'; underline?: boolean },
 ): void {
   const object = ctx.text.create({
     text: text.text,
@@ -182,28 +209,34 @@ function addText(
     color: new Color(text.color),
     opacity: 1,
     bold: false,
+    underline: text.underline,
   });
   object.name = 'table-text';
   object.renderOrder = PART_ORDER.label;
   group.add(object);
 }
 
-/** Style draw.io d'une table : un swimlane (entête de la couleur, corps blanc), désigné par `spatial.kind`. */
-export function tableStyle(id: string, kind: TableKind, extra = ''): string {
+/**
+ * Style draw.io d'une table neuve : un swimlane (entête de la couleur, corps blanc), désigné par `spatial.kind` ; la
+ * clé primaire dans ses champs s'il en a une.
+ */
+export function tableStyle(id: string, kind: TableKind): string {
+  const fields = kind.primaryKey ? `${FIELDS}=${JSON.stringify([PRIMARY_KEY])};` : '';
   return (
     `swimlane;fontStyle=${1 | (kind.italic ? 2 : 0)};startSize=${headerHeight(kind, false)};` +
     `fillColor=${DEFAULT_HEADER_COLOR};swimlaneFillColor=${FIELDS_FILL};strokeColor=${BORDER};` +
-    `fontSize=${TABLE.nameSize};html=1;whiteSpace=wrap;${extra}spatial.kind=${id};`
+    `fontSize=${TABLE.nameSize};html=1;whiteSpace=wrap;spatial.kind=${id};${fields}`
   );
 }
 
 /**
  * Forme de table du mode RDD (sujet 179) : base de toutes les tables (modèle abstrait, entité…). Rendu 2D seulement
- * (le mode n'a pas d'autre vue) ; le label est le nom, dans l'entête.
+ * (le mode n'a pas d'autre vue) ; le label est le nom, dans l'entête. Sans `palette`, la forme n'est pas proposée
+ * (modèle abstrait).
  */
 export function table(
   id: string,
-  palette: Pick<PaletteEntry, 'name' | 'order' | 'keywords' | 'value'>,
+  palette?: Pick<PaletteEntry, 'name' | 'order' | 'keywords' | 'value'>,
 ): ShapeDefinition {
   const kind = TABLE_KINDS[id]!;
   return {
@@ -212,13 +245,17 @@ export function table(
     flat: { create: (shape, ctx) => createTable(shape, ctx, kind) },
     textZone: (shape) => nameZone(shape, kind),
     swatch: () => '<path d="M5 5h30v18H5zM5 11h30"/>',
-    palette: {
-      ...palette,
-      category: 'rdd',
-      style: tableStyle(id, kind),
-      width: TABLE.width,
-      height: tableHeight(kind, false, 0),
-      icon: '<path d="M6 3h28v22H6zM6 10h28M10 15h12M10 20h9"/>',
-    },
+    ...(palette && {
+      palette: {
+        ...palette,
+        category: 'rdd',
+        style: tableStyle(id, kind),
+        width: TABLE.width,
+        height: tableHeight(kind, false, kind.primaryKey ? 1 : 0),
+        icon: kind.stereotype
+          ? '<path d="M6 3h28v22H6zM6 12h28M10 17h12M10 22h9M15 7.5h10"/>'
+          : '<path d="M6 3h28v22H6zM6 10h28M10 15h12M10 20h9"/>',
+      },
+    }),
   };
 }

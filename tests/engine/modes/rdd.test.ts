@@ -5,8 +5,8 @@ import { documentFromTree, readDrawio } from '../../../src/engine/format/parse';
 import { applyModeEdit } from '../../../src/engine/modes/edit';
 import { createDefaultModeRegistry } from '../../../src/engine/modes/registry';
 import { definition as rdd } from '../../../src/engine/modes/rdd';
-import { FIELDS, SECONDARY, fieldsOf } from '../../../src/engine/modes/rdd/table';
-import { setFields, setHeaderColor, setSecondary } from '../../../src/engine/modes/rdd/tables';
+import { FIELDS, SECONDARY, fieldsOf, tableFields } from '../../../src/engine/modes/rdd/table';
+import { fieldsText, setFields, setHeaderColor, setSecondary } from '../../../src/engine/modes/rdd/tables';
 import type { ModeEdit } from '../../../src/engine/modes/types';
 import { buildPageScene } from '../../../src/engine/render/pageScene';
 import type { RenderContext, TextSpec } from '../../../src/engine/render/types';
@@ -38,29 +38,67 @@ describe('mode RDD (sujet 179) : page et palette', () => {
     expect(modes.allowsViewMode(page(), '3d')).toBe(false);
     const palette = modes.paletteFor(page(), createDefaultRegistry().templates());
     expect(palette.categories.map((c) => c.id)).toEqual(['rdd']);
-    expect(palette.templates.map((t) => [t.id, t.name])).toEqual([['rdd-model', 'Modèle abstrait']]);
+    expect(palette.templates.map((t) => [t.id, t.name])).toEqual([
+      ['rdd-entity', 'Entité'],
+      ['rdd-enum', 'Entité énumérative'],
+    ]);
   });
 
-  it('le modèle abstrait de la palette : un swimlane désigné par spatial.kind, entête et une ligne vide', () => {
-    const template = createDefaultRegistry()
-      .templates()
-      .find((t) => t.id === 'rdd-model')!;
-    expect(template.style).toContain('swimlane;');
-    expect(template.style).toContain('spatial.kind=rdd-model;');
-    expect(template.style).toContain('startSize=38;');
-    expect([template.width, template.height]).toEqual([160, 58]);
+  it('entité et énumération de la palette : swimlanes désignés par spatial.kind, nés avec la clé primaire', () => {
+    const templates = createDefaultRegistry().templates();
+    const entity = templates.find((t) => t.id === 'rdd-entity')!;
+    expect(entity.style).toContain('swimlane;');
+    expect(entity.style).toContain('spatial.kind=rdd-entity;');
+    expect(entity.style).toContain('spatial.fields=["id"];');
+    expect(entity.style).toContain('startSize=26;');
+    expect([entity.width, entity.height]).toEqual([160, 46]);
+    const enumeration = templates.find((t) => t.id === 'rdd-enum')!;
+    expect(enumeration.style).toContain('startSize=38;');
+    expect(enumeration.height).toBe(58);
+    // Le modèle abstrait : base technique, jamais dans la palette (sujet 180).
+    expect(templates.find((t) => t.id === 'rdd-model')).toBeUndefined();
   });
 
   it('les tables du fichier sont reconnues ; champs lus de spatial.fields', () => {
     const shapes = createDefaultRegistry();
-    for (const shape of page().shapes) expect(shapes.resolve(shape).definition.id).toBe('rdd-model');
-    expect(page().shapes.map(fieldsOf)).toEqual([[], ['created_at', 'updated_at'], ['author']]);
+    expect(page().shapes.map((shape) => shapes.resolve(shape).definition.id)).toEqual([
+      'rdd-model',
+      'rdd-model',
+      'rdd-model',
+      'rdd-entity',
+      'rdd-enum',
+      'rdd-entity',
+    ]);
+    expect(page().shapes.slice(0, 3).map(fieldsOf)).toEqual([[], ['created_at', 'updated_at'], ['author']]);
   });
 
-  it('réglages du mode masqués hors des tables', () => {
+  it('clé primaire : toujours en tête à l’affichage ; absente du fichier, signalée dans Diagnostics', () => {
+    const shape = (id: string) => page().shapes.find((s) => s.id === id)!;
+    expect(tableFields(shape('user'))).toEqual(['id', 'email', 'role']);
+    expect(tableFields(shape('role'))).toEqual(['id', 'admin', 'member']);
+    expect(tableFields(shape('orphan'))).toEqual(['id', 'name']);
+    expect(modes.warnings({ pages: [page()] } as never)).toEqual([
+      {
+        pageId: 'rdd',
+        cellId: 'orphan',
+        message: 'Table « Orphan » : clé primaire id absente ou déplacée, remise en tête',
+      },
+    ]);
+  });
+
+  it('réglages du mode masqués hors des tables ; clé primaire en lecture seule, sur les entités seulement', () => {
     const properties = rdd.shapeProperties!;
-    const table = page().shapes[0]!;
-    expect(properties.map((p) => p.hidden!(page(), table))).toEqual([false, false, false]);
+    const model = page().shapes[0]!;
+    const entity = page().shapes.find((s) => s.id === 'user')!;
+    expect(properties.map((p) => [p.label, p.hidden!(page(), model)])).toEqual([
+      ['Couleur', false],
+      ['Table secondaire', false],
+      ['Clé primaire', true],
+      ['Champs', false],
+    ]);
+    expect(properties.map((p) => p.hidden!(page(), entity))).toEqual([false, false, false, false]);
+    const key = properties.find((p) => p.label === 'Clé primaire')!;
+    expect([key.readOnly, key.value!(page(), entity)]).toEqual([true, 'id']);
     expect(properties.every((p) => p.hidden!(page(), page()))).toBe(true);
   });
 });
@@ -112,6 +150,30 @@ describe('mode RDD : opérations sur une table', () => {
   });
 });
 
+describe('mode RDD : entités (sujet 180)', () => {
+  it('le panneau ne montre que les champs après la clé primaire ; elle reste en tête, jamais retirée', () => {
+    const { run, shape } = setup();
+    expect(fieldsText(shape('user'))).toBe('email\nrole');
+    run((edit) => setFields(edit, shape('user'), 'role\nid\nname'));
+    expect(fieldsOf(shape('user'))).toEqual(['id', 'role', 'name']);
+    expect(shape('user').bounds.height).toBe(26 + 3 * 20);
+    run((edit) => setFields(edit, shape('user'), ''));
+    expect(fieldsOf(shape('user'))).toEqual(['id']);
+    expect(shape('user').bounds.height).toBe(46);
+    // Fichier sans clé primaire : la première écriture la remet en tête.
+    run((edit) => setFields(edit, shape('orphan'), fieldsText(shape('orphan'))));
+    expect(fieldsOf(shape('orphan'))).toEqual(['id', 'name']);
+  });
+
+  it('table secondaire et couleur, comme sur le modèle', () => {
+    const { run, shape } = setup();
+    run((edit) => setSecondary(edit, shape('role'), true));
+    expect(shape('role').bounds).toEqual({ x: 240, y: 160, width: 128, height: 78.4 });
+    run((edit) => setHeaderColor(edit, shape('role'), '#d5e8d4'));
+    expect(shape('role').style.fillColor).toBe('#d5e8d4');
+  });
+});
+
 describe('mode RDD : rendu d’une table', () => {
   function render(color?: string) {
     const { run, page, shape } = setup();
@@ -138,6 +200,17 @@ describe('mode RDD : rendu d’une table', () => {
     expect([name!.text, name!.bold, name!.italic, name!.align]).toEqual(['Timestamped', true, true, 'center']);
     expect([first!.text, first!.anchorX, first!.x, first!.y]).toEqual(['created_at', 'left', 246, 40 + 38 + 10]);
     expect([second!.text, second!.y]).toEqual(['updated_at', 40 + 38 + 30]);
+  });
+
+  it('entité : id souligné en tête ; énumération : mention «enum», nom droit', () => {
+    const { texts } = render();
+    const id = texts.filter((t) => t.text === 'id');
+    expect(id.map((t) => t.underline)).toEqual([true, true, true]);
+    expect(texts.find((t) => t.text === 'email')!.underline).toBe(false);
+    const at = texts.findIndex((t) => t.text === 'Role');
+    expect(texts[at - 1]!.text).toBe('«enum»');
+    expect(texts[at]!.italic).toBe(false);
+    expect(texts.find((t) => t.text === 'User')!.italic).toBe(false);
   });
 
   it("entête de la couleur fillColor, corps blanc ; texte de l'entête blanc sur une couleur sombre", () => {

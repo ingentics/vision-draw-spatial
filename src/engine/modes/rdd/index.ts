@@ -1,6 +1,15 @@
 import type { ShapeModel } from '../../model/types';
 import type { ModeTarget, PageModeDefinition } from '../types';
-import { DEFAULT_HEADER_COLOR, FIELDS, SECONDARY, TABLE_KINDS, isSecondary, tableKindOf } from './table';
+import {
+  DEFAULT_HEADER_COLOR,
+  FIELDS,
+  PRIMARY_KEY,
+  SECONDARY,
+  TABLE_KINDS,
+  isSecondary,
+  misplacedPrimaryKey,
+  tableKindOf,
+} from './table';
 import { fieldsText, setFields, setHeaderColor, setSecondary } from './tables';
 
 /** Table du mode sélectionnée ; undefined pour une flèche, la page ou une autre forme. */
@@ -24,6 +33,7 @@ export const definition: PageModeDefinition = {
     accent: 'M4 9h6M4 12h4.5',
   },
   viewModes: ['top'],
+  // Toutes les tables ; le modèle abstrait, sans élément de palette, n'y apparaît pas.
   shapes: Object.keys(TABLE_KINDS),
   paletteCategories: [{ id: 'rdd', name: 'RDD', order: 5 }],
   shapeProperties: [
@@ -58,10 +68,23 @@ export const definition: PageModeDefinition = {
     },
     {
       type: 'text',
+      key: 'rdd.primaryKey',
+      label: 'Clé primaire',
+      title: 'Clé primaire de la table : toujours le premier champ, ni retirée ni déplacée',
+      readOnly: true,
+      value: () => PRIMARY_KEY,
+      hidden: (_page, target) => {
+        const shape = tableOf(target);
+        return !shape || !tableKindOf(shape)?.primaryKey;
+      },
+    },
+    {
+      type: 'text',
       multiline: true,
       key: FIELDS,
       label: 'Champs',
-      title: 'Champs de la table (spatial.fields), un par ligne ; la table grandit avec eux',
+      title:
+        'Champs de la table (spatial.fields), un par ligne, après la clé primaire s’il y en a une ; la table grandit avec eux',
       placeholder: 'un champ par ligne',
       value: (_page, target) => {
         const shape = tableOf(target);
@@ -74,4 +97,10 @@ export const definition: PageModeDefinition = {
       hidden: notTable,
     },
   ],
+  // Clé primaire absente ou déplacée (fichier modifié) : remise en tête à l'affichage.
+  check: (page) =>
+    page.shapes.filter(misplacedPrimaryKey).map((shape) => ({
+      cellId: shape.id,
+      message: `Table « ${shape.label || shape.id} » : clé primaire ${PRIMARY_KEY} absente ou déplacée, remise en tête`,
+    })),
 };

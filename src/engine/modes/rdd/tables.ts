@@ -3,12 +3,13 @@ import { readableOn } from '../../render/styleValues';
 import type { ModeEdit } from '../types';
 import {
   FIELDS,
+  PRIMARY_KEY,
   SECONDARY,
   SECONDARY_SCALE,
   TABLE,
-  fieldsOf,
   headerHeight,
   isSecondary,
+  tableFields,
   tableHeight,
   tableKindOf,
 } from './table';
@@ -21,14 +22,18 @@ import {
 /** Arrondi des tailles écrites (échelle 0,8 : pas de traîne de flottants). */
 const round = (value: number) => Math.round(value * 100) / 100;
 
-/** Champs de la table, depuis le texte du panneau (un par ligne, lignes vides ignorées) ; la hauteur suit. */
+/**
+ * Champs de la table, depuis le texte du panneau (un par ligne, lignes vides ignorées) ; la hauteur suit. Une table à
+ * clé primaire la garde en tête : le texte ne donne que les champs suivants.
+ */
 export function setFields(edit: ModeEdit, shape: ShapeModel, text: string | undefined): void {
   const kind = tableKindOf(shape);
   if (!kind) return;
-  const fields = (text ?? '')
+  const lines = (text ?? '')
     .split('\n')
     .map((field) => field.trim())
     .filter(Boolean);
+  const fields = kind.primaryKey ? [PRIMARY_KEY, ...lines.filter((f) => f !== PRIMARY_KEY)] : lines;
   edit.setElementAttribute(shape.id, FIELDS, fields.length > 0 ? JSON.stringify(fields) : undefined);
   edit.setShapeBounds(shape.id, {
     ...shape.bounds,
@@ -36,8 +41,11 @@ export function setFields(edit: ModeEdit, shape: ShapeModel, text: string | unde
   });
 }
 
-/** Champs en texte pour le panneau (un par ligne). */
-export const fieldsText = (shape: ShapeModel) => fieldsOf(shape).join('\n');
+/** Champs en texte pour le panneau (un par ligne), sans la clé primaire (elle n'y est pas modifiable). */
+export function fieldsText(shape: ShapeModel): string {
+  const fields = tableFields(shape);
+  return (tableKindOf(shape)?.primaryKey ? fields.slice(1) : fields).join('\n');
+}
 
 /** Couleur de l'entête (`fillColor`) ; le texte du fichier suit le contraste pour draw.io (`fontColor`). */
 export function setHeaderColor(edit: ModeEdit, shape: ShapeModel, color: string | undefined): void {

@@ -50,7 +50,8 @@ interface PageModeDefinition {
 ## 3. Réglages et opérations
 
 Un réglage déclaré (`toggle`, `number`, `text` — `multiline` pour une zone de texte —, `select`, dont les choix
-reçoivent les couleurs de l'appli) est rendu par un champ générique : section « Mode » de la
+reçoivent les couleurs de l'appli ; `readOnly` pour l'afficher sans le rendre modifiable) est rendu par un champ
+générique : section « Mode » de la
 page, section au nom du mode dans le panneau d'une flèche ou d'une forme. Par défaut, il lit et écrit l'attribut
 `key` de sa cible ; `value`, `write` et `hidden` le font passer par les règles du mode (ex. le rang d'une flèche, qui
 s'échange avec une autre).
