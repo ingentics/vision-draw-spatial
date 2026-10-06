@@ -49,6 +49,29 @@ describe('pickElement', () => {
     expect(pickElement(page, { x: 0, y: 0 }, iso(y + height + 5))).toBeUndefined();
   });
 
+  it('volumes qui se chevauchent : le plus proche de la caméra gagne, l’ordre de dessin à hauteur égale (étape 161)', () => {
+    const simple = parseDrawio(fixture('simple.drawio')).pages[0]!;
+    const r1 = simple.shapes.find((s) => s.id === 'r1')!;
+    // « front » dessiné avant « back », mais plus haut et devant lui sur le rayon.
+    const front = { ...r1, id: 'front', z: 1, bounds: { x: 0, y: 120, width: 100, height: 100 } };
+    const back = { ...r1, id: 'back', z: 2, bounds: { x: 0, y: 0, width: 100, height: 100 } };
+    const page = { ...simple, shapes: [front, back], edges: [] };
+    const iso = (tops: Record<string, number>) => ({
+      ...options(),
+      heightOf: (id: string) => tops[id] ?? 0,
+      baseOf: () => 0,
+      pointAtHeight: (h: number) => ({ x: 50, y: 85 + h }),
+    });
+    // Rayon : dessus de « front » visé en y = 125, dessus de « back » en y = 95 : les deux sont touchés.
+    expect(pickElement(page, { x: 0, y: 0 }, iso({ front: 40, back: 10 }))?.element.id).toBe('front');
+    expect(pickElement(page, { x: 0, y: 0 }, iso({ front: 10, back: 40 }))?.element.id).toBe('back');
+    // Même hauteur (à plat) : l’ordre de dessin.
+    expect(
+      pickElement({ ...page, shapes: [{ ...front, bounds: back.bounds }, back] }, { x: 50, y: 50 }, options())?.element
+        .id,
+    ).toBe('back');
+  });
+
   it('arêtes : à distance de tolérance de leur tracé, au-dessus des formes dessinées avant', () => {
     const page = parseDrawio(fixture('drawio-desktop.drawio')).pages[0]!;
     const edgeId = 'Fs-0jHc4KjceeW8xsn6R-4';

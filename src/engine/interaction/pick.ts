@@ -1,8 +1,10 @@
 import type { EdgeModel, PageModel, Point, ShapeModel } from '../model/types';
 
 /**
- * Élément sous un point de la page (clic, survol). Le plus haut dans l'ordre de dessin gagne :
- * un enfant de conteneur passe avant son conteneur, une arête dessinée après une forme avant elle.
+ * Élément sous un point de la page (clic, survol). En volume (iso), le plus proche de la caméra gagne : celui que
+ * le rayon visé touche le plus haut (la caméra est au-dessus de la scène, le rayon descend). À hauteur égale (et à
+ * plat, où tout est au sol), le plus haut dans l'ordre de dessin : un enfant de conteneur passe avant son
+ * conteneur, une arête dessinée après une forme avant elle.
  */
 
 export type PickedElement = { type: 'shape'; element: ShapeModel } | { type: 'edge'; element: EdgeModel };
@@ -43,49 +45,59 @@ export function pickElement(page: PageModel, point: Point, options: PickOptions)
     ...page.edges.map((element) => ({ type: 'edge' as const, element })),
   ].sort((a, b) => b.element.z - a.element.z);
 
+  let best: { candidate: PickedElement; at: number } | undefined;
   for (const candidate of candidates) {
     const { element } = candidate;
     if (!element.visible || hiddenLayers.has(element.layerId)) continue;
     const height = options.heightOf?.(element.id) ?? 0;
+    // Rien de ce qui reste ne peut être touché plus haut que le meilleur (les éléments ne dépassent pas leur dessus).
+    if (best && height <= best.at) continue;
     const target = height !== 0 && options.pointAtHeight ? options.pointAtHeight(height) : point;
-    if (candidate.type === 'shape') {
-      if (options.pickable && !options.pickable(candidate.element)) continue;
-      if (shapeContains(candidate.element, target, options.contains)) return candidate;
-      const base = options.baseOf?.(element.id);
-      if (base !== undefined && base < height && options.pointAtHeight) {
-        if (volumeContains(candidate.element, height, base, options.pointAtHeight, options.contains)) return candidate;
-      }
-    } else {
-      const route = options.edgeRoute(element.id);
-      if (route && distanceToPolyline(target, route) <= options.edgeTolerance) return candidate;
-    }
+    const at = hitHeight(candidate, height, target, options);
+    if (at !== undefined && (!best || at > best.at)) best = { candidate, at };
   }
-  return undefined;
+  return best?.candidate;
+}
+
+/** Hauteur où le rayon visé touche l'élément (son dessus, ou plus bas sur ses côtés), `undefined` s'il le manque. */
+function hitHeight(candidate: PickedElement, height: number, target: Point, options: PickOptions): number | undefined {
+  if (candidate.type === 'edge') {
+    const route = options.edgeRoute(candidate.element.id);
+    return route && distanceToPolyline(target, route) <= options.edgeTolerance ? height : undefined;
+  }
+  const shape = candidate.element;
+  if (options.pickable && !options.pickable(shape)) return undefined;
+  if (shapeContains(shape, target, options.contains)) return height;
+  const base = options.baseOf?.(shape.id);
+  if (base === undefined || base >= height || !options.pointAtHeight) return undefined;
+  return volumeHit(shape, height, base, options.pointAtHeight, options.contains);
 }
 
 /**
- * Le rayon visé traverse-t-il le volume (contour extrudé de `base` à `top`) ? Le point visé glisse en ligne droite
- * sur la page quand la hauteur varie : on teste les hauteurs au pas `VOLUME_STEP` le long de ce segment, après un
- * rejet par les bornes.
+ * Hauteur où le rayon visé entre dans le volume (contour extrudé de `base` à `top`), `undefined` s'il le manque.
+ * Le point visé glisse en ligne droite sur la page quand la hauteur varie : on teste les hauteurs du dessus vers
+ * la base au pas `VOLUME_STEP` le long de ce segment, après un rejet par les bornes.
  */
-function volumeContains(
+function volumeHit(
   shape: ShapeModel,
   top: number,
   base: number,
   at: (height: number) => Point,
   contains?: (shape: ShapeModel, point: Point) => boolean,
-): boolean {
+): number | undefined {
   const a = at(top);
   const b = at(base);
   const { x, y, width, height } = shape.bounds;
-  if (Math.max(a.x, b.x) < x || Math.min(a.x, b.x) > x + width) return false;
-  if (Math.max(a.y, b.y) < y || Math.min(a.y, b.y) > y + height) return false;
+  if (Math.max(a.x, b.x) < x || Math.min(a.x, b.x) > x + width) return undefined;
+  if (Math.max(a.y, b.y) < y || Math.min(a.y, b.y) > y + height) return undefined;
   const steps = Math.min(VOLUME_MAX_STEPS, Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / VOLUME_STEP)));
   for (let step = 1; step <= steps; step++) {
     const t = step / steps;
-    if (shapeContains(shape, { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }, contains)) return true;
+    if (shapeContains(shape, { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }, contains)) {
+      return top - (top - base) * t;
+    }
   }
-  return false;
+  return undefined;
 }
 
 /** Point dans la forme : dans ses bornes, puis selon `contains` (sa définition) s'il est donné. */
