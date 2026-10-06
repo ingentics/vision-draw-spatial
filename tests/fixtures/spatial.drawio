@@ -21,6 +21,9 @@
         <mxCell id="lien" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;spatial.custom=1;" edge="1" parent="1" source="socle" target="objet">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
+        <mxCell id="coupee" style="endArrow=classic;html=1;split=1;splitLabelLeft=vers B;splitLabelRight=depuis A;" edge="1" parent="1" source="objet" target="flotte">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>

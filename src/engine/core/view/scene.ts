@@ -97,6 +97,12 @@ export class SceneView {
         faceCamera: this.core.settings.shapes.edgeBadgeFaceCamera,
         labelFaceCamera: this.core.settings.shapes.edgeBadgeLabelFaceCamera,
       },
+      edgeSplit: {
+        length: this.core.settings.shapes.edgeSplitLength,
+        fade: this.core.settings.shapes.edgeSplitFade,
+        labelPadding: this.core.settings.shapes.edgeSplitLabelPadding,
+        labelSize: this.core.settings.shapes.edgeSplitLabelSize,
+      },
       dressingDarken: this.core.settings.shapes.edgeDressingDarken,
     };
   }

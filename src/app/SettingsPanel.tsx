@@ -1088,6 +1088,41 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   draw.io l'emporte.
                 </p>
               </Subsection>
+              <Subsection title="Flèches coupées">
+                <Slider
+                  label="Longueur visible d’un tronçon"
+                  value={shapes.edgeSplitLength}
+                  limits={SETTINGS_LIMITS['shapes.edgeSplitLength']}
+                  format={(v) => `${v} px`}
+                  onChange={(edgeSplitLength) => onChange({ shapes: { edgeSplitLength } })}
+                />
+                <Slider
+                  label="Longueur du fondu"
+                  value={shapes.edgeSplitFade}
+                  limits={SETTINGS_LIMITS['shapes.edgeSplitFade']}
+                  format={(v) => (v === 0 ? 'sans' : `${v} px`)}
+                  onChange={(edgeSplitFade) => onChange({ shapes: { edgeSplitFade } })}
+                />
+                <Slider
+                  label="Taille du texte de renvoi"
+                  value={shapes.edgeSplitLabelSize}
+                  limits={SETTINGS_LIMITS['shapes.edgeSplitLabelSize']}
+                  format={(v) => `${v} pt`}
+                  onChange={(edgeSplitLabelSize) => onChange({ shapes: { edgeSplitLabelSize } })}
+                />
+                <Slider
+                  label="Marge du cadre de renvoi"
+                  value={shapes.edgeSplitLabelPadding}
+                  limits={SETTINGS_LIMITS['shapes.edgeSplitLabelPadding']}
+                  format={(v) => `${v} px`}
+                  onChange={(edgeSplitLabelPadding) => onChange({ shapes: { edgeSplitLabelPadding } })}
+                />
+                <p className="hint muted">
+                  Une flèche coupée (case « Couper la flèche » de son panneau) ne montre qu’un tronçon au départ et un à
+                  l’arrivée. Le fondu est compris dans la longueur visible ; un tronçon qui porte un texte de renvoi
+                  s’arrête net sur son cadre.
+                </p>
+              </Subsection>
               <Subsection title="Formes non supportées">
                 <ColorField
                   label="Fond du placeholder"

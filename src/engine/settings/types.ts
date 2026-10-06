@@ -193,6 +193,14 @@ export interface ShapeSettings {
   edgeLabelHaloWidth: number;
   /** Flou du bord du halo, en pixels de page (0 = net). */
   edgeLabelHaloBlur: number;
+  /** Flèche coupée (`split=1`, ticket 219) : longueur visible d'un tronçon, en pixels de page. */
+  edgeSplitLength: number;
+  /** Longueur du fondu au bout d'un tronçon, comprise dans la longueur visible (0 = sans fondu). */
+  edgeSplitFade: number;
+  /** Marge entre le texte de renvoi et le bord de son cadre. */
+  edgeSplitLabelPadding: number;
+  /** Taille du texte de renvoi (pt). */
+  edgeSplitLabelSize: number;
   /** Pastille d'une flèche posée par un mode de page (ex. rang dans un flux) : flèche avec texte, puis sans. */
   edgeBadgeRadius: number;
   edgeBadgeTextSize: number;

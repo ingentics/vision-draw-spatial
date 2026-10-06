@@ -687,6 +687,30 @@ function EdgeLineSection({
           }
         />
       )}
+      <label className="field toggle" title="Ne dessiner qu’un tronçon au départ et un à l’arrivée (split)">
+        <input
+          type="checkbox"
+          checked={edge.style.split === '1'}
+          onChange={(event) => onChange(() => ({ split: event.target.checked ? '1' : undefined }))}
+        />
+        Couper la flèche
+      </label>
+      {edge.style.split === '1' &&
+        (['Left', 'Right'] as const).map((side) => {
+          const key = `splitLabel${side}`;
+          const current = edge.style[key] ?? '';
+          return (
+            <TextField
+              key={`${key}:${edge.id}:${current}`}
+              label={side === 'Left' ? 'Renvoi départ' : 'Renvoi arrivée'}
+              title={`Texte dans un cadre au bout du tronçon ${side === 'Left' ? 'de départ (côté source)' : 'd’arrivée (côté cible)'} (${key}) ; vide = fondu`}
+              value={current}
+              placeholder="fondu"
+              // Le point-virgule sépare les clés du style draw.io : retiré du texte.
+              onCommit={(text) => onChange(() => ({ [key]: text.replace(/;/g, '').trim() || undefined }))}
+            />
+          );
+        })}
       <div className="field-row">
         Chemin
         <button

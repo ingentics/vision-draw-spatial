@@ -131,6 +131,10 @@ describe('conservation par draw.io', () => {
         expect(spatialAttributes(kept), `${page.id}/${before.id}`).toEqual(spatialAttributes(before));
         // Clés propres à l'appli dans le style (ex. `fitText`, étape 57), inconnues de draw.io.
         expect(kept.style.fitText, `${page.id}/${before.id}`).toBe(before.style.fitText);
+        // Flèche coupée (ticket 219) : draw.io garde ses clés et dessine la flèche entière.
+        for (const key of ['split', 'splitLabelLeft', 'splitLabelRight']) {
+          expect(kept.style[key], `${page.id}/${before.id} ${key}`).toBe(before.style[key]);
+        }
         if ('bounds' in before) expect((kept as typeof before).bounds).toEqual(before.bounds);
       }
     });

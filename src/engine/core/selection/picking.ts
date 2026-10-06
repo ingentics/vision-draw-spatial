@@ -34,6 +34,11 @@ export class Picking {
         const data = this.core.sceneView.sceneObject(id)?.userData;
         return (data?.path ?? data?.route) as Point[] | undefined;
       },
+      // Flèche coupée : seuls ses tronçons se cliquent, sauf sélectionnée (son tracé complet).
+      edgePieces: (id) =>
+        this.core.selection.current?.items.some((item) => item.element.id === id)
+          ? undefined
+          : (this.core.sceneView.sceneObject(id)?.userData.splitPaths as Point[][] | undefined),
       heightOf: (id) => this.core.sceneView.elementTop(id),
       baseOf: (id) => this.core.sceneView.volumeBase(id),
       pointAtHeight: (height) => this.groundPointAtHeight(screen, height),

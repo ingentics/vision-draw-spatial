@@ -1,6 +1,7 @@
 import type { Color, Object3D } from 'three';
 import type { RichLine } from '../model/types';
 import type { JumpDefaults } from './edges/jumps';
+import type { EdgeSplitSettings } from './edges/split';
 import type { TextAlong } from './textPath';
 
 /** Ordre de dessin des sous-parties d'un élément (ajouté à l'ordre de l'élément dans la page). */
@@ -81,6 +82,8 @@ export interface RenderContext {
   background?: string;
   /** Pastille d'une flèche posée par un mode de page (défaut : `DEFAULT_EDGE_BADGE`). */
   edgeBadge?: EdgeBadgeStyle;
+  /** Flèches coupées (`split=1`, ticket 219) : longueur des tronçons, fondu, marge du cadre de renvoi. */
+  edgeSplit?: EdgeSplitSettings;
   /** Assombrissement du trait d'une flèche colorée par un mode (fraction de la luminosité, défaut 0,25). */
   dressingDarken?: number;
 }

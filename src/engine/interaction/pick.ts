@@ -16,6 +16,11 @@ export interface PickOptions {
   /** Tracé dessiné d'une arête (calculé au rendu), en coordonnées page. */
   edgeRoute: (edgeId: string) => Point[] | undefined;
   /**
+   * Morceaux dessinés d'une arête qui ne montre pas tout son tracé (flèche coupée non sélectionnée, ticket 219) : ils
+   * remplacent le tracé pour le clic. Absent ou `undefined` = le tracé.
+   */
+  edgePieces?: (edgeId: string) => Point[][] | undefined;
+  /**
    * Volumes (vue iso) : hauteur à laquelle tester un élément (dessus d'un bloc), et point de la
    * page visé à cette hauteur. Absents = tout est au sol.
    */
@@ -68,8 +73,10 @@ export function pickElement(page: PageModel, point: Point, options: PickOptions)
 /** Hauteur où le rayon visé touche l'élément (son dessus, ou plus bas sur ses côtés), `undefined` s'il le manque. */
 function hitHeight(candidate: PickedElement, height: number, target: Point, options: PickOptions): number | undefined {
   if (candidate.type === 'edge') {
+    const pieces = options.edgePieces?.(candidate.element.id);
     const route = options.edgeRoute(candidate.element.id);
-    return route && distanceToPolyline(target, route) <= options.edgeTolerance ? height : undefined;
+    const lines = pieces ?? (route ? [route] : []);
+    return lines.some((line) => distanceToPolyline(target, line) <= options.edgeTolerance) ? height : undefined;
   }
   const shape = candidate.element;
   if (options.pickable && !options.pickable(shape)) return undefined;

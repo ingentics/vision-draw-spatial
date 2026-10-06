@@ -9,9 +9,12 @@ import { parseStyle } from '../../format/style';
 import { SPATIAL } from '../../spatial';
 import { perimeterKind, routeEdgePoints, simplify } from '../edges/route';
 import type { Terminal } from '../edges/route';
-import { dashPattern } from '../geometry/stroke';
+import { dashPattern, dashPolyline } from '../geometry/stroke';
 import { edgeLines } from '../lines';
-import { fillMesh, strokeMesh } from '../meshes';
+import { fadedStrokeMesh, fillMesh, strokeMesh } from '../meshes';
+import { LINE_HEIGHT, approximateMeasure } from '../richLayout';
+import { DEFAULT_EDGE_SPLIT, isSplit, splitLabelFrame, splitPieces } from './split';
+import type { EdgeSplitSettings, SplitPiece } from './split';
 import {
   DEFAULT_LABEL_BACKDROP,
   PAGE_BACKGROUND,
@@ -101,10 +104,13 @@ export function createEdge(
     let line = shorten(route, start?.inset ?? 0, end?.inset ?? 0);
     if (style.curved === '1') line = curveThrough(line);
     else if (style.rounded === '1') line = roundCorners(line, styleNumber(style, 'arcSize', DEFAULT_EDGE_ARC_SIZE) / 2);
-    const jump = jumpStyleOf(style, ctx.edgeJumps);
-    const pieces = jump
-      ? withJumps(line, below, jump, jumpHalfLength(style, strokeWidth, ctx.edgeJumps), ctx.raisedJumps)
-      : [line];
+    const split = isSplit(style);
+    const jump = !split && jumpStyleOf(style, ctx.edgeJumps);
+    const pieces = split
+      ? []
+      : jump
+        ? withJumps(line, below, jump, jumpHalfLength(style, strokeWidth, ctx.edgeJumps), ctx.raisedJumps)
+        : [line];
     const dash = dashPattern(style, strokeWidth);
     const { flat, raised } = splitRaised(pieces);
     for (const piece of flat) {
@@ -117,6 +123,8 @@ export function createEdge(
       lines.name = 'stroke';
       group.add(lines);
     }
+
+    if (split) addSplitPieces(group, line, style, ctx, { stroke, opacity, strokeWidth, dash });
 
     for (const marker of [start, end]) {
       if (marker?.fill) group.add(fillMesh(marker.fill, stroke, opacity));
@@ -140,6 +148,70 @@ export function createEdge(
   }
 
   return group;
+}
+
+/**
+ * Tronçons d'une flèche coupée (`split=1`, ticket 219) : fondu vers le milieu, ou cadre de renvoi au bout. Leurs
+ * tracés (`userData.splitPaths`) sont la zone de clic de la flèche quand elle n'est pas sélectionnée.
+ */
+function addSplitPieces(
+  group: Group,
+  line: Point[],
+  style: Record<string, string>,
+  ctx: RenderContext,
+  trait: { stroke: Color; opacity: number; strokeWidth: number; dash: number[] | undefined },
+): void {
+  const settings = ctx.edgeSplit ?? DEFAULT_EDGE_SPLIT;
+  const pieces = splitPieces(line, style, settings);
+  group.userData.splitPaths = pieces.map((piece) => piece.points);
+  for (const piece of pieces) {
+    const paths = trait.dash ? dashPolyline(piece.points, trait.dash, false) : [piece.points];
+    const mesh = fadedStrokeMesh(paths, piece.alphaAt, trait.stroke, trait.opacity, trait.strokeWidth);
+    if (mesh) group.add(mesh);
+    if (piece.label) group.add(splitLabel(piece, style, ctx, trait, settings));
+  }
+}
+
+/** Cadre de renvoi d'un tronçon : rectangle au fond de la page, bordé de la couleur du trait, texte au centre. */
+function splitLabel(
+  piece: SplitPiece,
+  style: Record<string, string>,
+  ctx: RenderContext,
+  trait: { stroke: Color; opacity: number; strokeWidth: number },
+  { labelPadding: padding, labelSize: fontSize }: EdgeSplitSettings,
+): Object3D {
+  const text = piece.label!;
+  const width = approximateMeasure(text, { size: fontSize, bold: false, italic: false }) + 2 * padding;
+  const height = fontSize * LINE_HEIGHT + 2 * padding;
+  const points = piece.points;
+  const end = points[points.length - 1]!;
+  const center = splitLabelFrame(end, unit(points[points.length - 2] ?? points[0]!, end), width, height);
+  const corners: Point[] = [
+    { x: center.x - width / 2, y: center.y - height / 2 },
+    { x: center.x + width / 2, y: center.y - height / 2 },
+    { x: center.x + width / 2, y: center.y + height / 2 },
+    { x: center.x - width / 2, y: center.y + height / 2 },
+  ];
+  const frame = new Group();
+  frame.name = 'split-label';
+  frame.add(fillMesh(corners, new Color(ctx.background ?? PAGE_BACKGROUND), trait.opacity));
+  const border = strokeMesh(corners, trait.stroke, trait.opacity, { width: trait.strokeWidth, closed: true });
+  if (border) frame.add(border);
+  const label = ctx.text.create({
+    text,
+    x: center.x,
+    y: center.y,
+    anchorX: 'center',
+    anchorY: 'middle',
+    align: 'center',
+    fontSize,
+    color: styleColor(style, 'fontColor', ctx.edgeFontColor ?? DEFAULT_EDGE_FONT_COLOR)!,
+    opacity: styleOpacity(style, 'textOpacity'),
+    bold: false,
+  });
+  label.renderOrder = PART_ORDER.label;
+  frame.add(label);
+  return frame;
 }
 
 /**

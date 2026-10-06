@@ -10,6 +10,7 @@ import {
 } from 'three';
 import type { Color, Object3D } from 'three';
 import type { Point } from '../model/types';
+import { distance } from '../model/geometry';
 import { dashPolyline, strokeTriangles } from './geometry/stroke';
 import { PART_ORDER } from './types';
 
@@ -60,6 +61,44 @@ export function strokeMesh(path: Point[], color: Color, opacity: number, options
   const geometry = new BufferGeometry();
   geometry.setAttribute('position', new Float32BufferAttribute(positions, 3));
   const mesh = new Mesh(geometry, flatMaterial(color, opacity));
+  mesh.name = 'stroke';
+  mesh.renderOrder = PART_ORDER.stroke;
+  return mesh;
+}
+
+/**
+ * Trait ouvert à opacité variable (fondu d'une flèche coupée, ticket 219) : `alphaAt` donne l'opacité, de 0 à 1,
+ * en chaque point des polylignes `paths` (multipliée par `opacity`) ; elle varie linéairement le long d'un segment.
+ */
+export function fadedStrokeMesh(
+  paths: Point[][],
+  alphaAt: (p: Point) => number,
+  color: Color,
+  opacity: number,
+  width: number,
+): Mesh | null {
+  const positions: number[] = [];
+  const colors: number[] = [];
+  for (const path of paths) {
+    // Points confondus retirés d'abord : les triangles suivent alors les segments du tracé un à un.
+    const points = path.filter((p, i) => i === 0 || distance(p, path[i - 1]!) > 1e-6);
+    const triangles = strokeTriangles(points, width, false);
+    const alphas = points.map(alphaAt);
+    // Six sommets par segment : gauche et droite au début, puis à la fin (ordre de `strokeTriangles`).
+    for (let i = 0; i < triangles.length / 2; i++) {
+      const segment = Math.floor(i / 6);
+      const atEnd = [false, false, true, true, false, true][i % 6]!;
+      positions.push(triangles[2 * i]!, triangles[2 * i + 1]!, 0);
+      colors.push(1, 1, 1, alphas[segment + (atEnd ? 1 : 0)]!);
+    }
+  }
+  if (positions.length === 0) return null;
+  const geometry = new BufferGeometry();
+  geometry.setAttribute('position', new Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('color', new Float32BufferAttribute(colors, 4));
+  const material = flatMaterial(color, opacity);
+  material.vertexColors = true;
+  const mesh = new Mesh(geometry, material);
   mesh.name = 'stroke';
   mesh.renderOrder = PART_ORDER.stroke;
   return mesh;
