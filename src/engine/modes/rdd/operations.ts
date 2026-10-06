@@ -37,7 +37,7 @@ export function setFields(edit: ModeEdit, shape: ShapeModel, text: string | unde
   edit.setElementAttribute(shape.id, FIELDS, fields.length > 0 ? JSON.stringify(fields) : undefined);
   edit.setShapeBounds(shape.id, {
     ...shape.bounds,
-    height: round(tableHeight(isSecondary(shape), fields.length)),
+    height: round(tableHeight(kind, isSecondary(shape), fields.length)),
   });
 }
 

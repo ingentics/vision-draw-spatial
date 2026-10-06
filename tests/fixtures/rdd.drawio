@@ -22,8 +22,8 @@
         <mxCell id="orphan" value="Orphan" style="swimlane;fontStyle=1;startSize=26;fillColor=#ffe6cc;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;spatial.kind=rdd-entity;spatial.fields=[&quot;name&quot;];" vertex="1" parent="1">
           <mxGeometry x="440" y="160" width="160" height="66" as="geometry" />
         </mxCell>
-        <mxCell id="address" value="Address" style="swimlane;fontStyle=1;startSize=26;fillColor=#e1d5e7;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;dashed=1;spatial.kind=rdd-embedded;spatial.fields=[&quot;street&quot;,&quot;city&quot;];" vertex="1" parent="1">
-          <mxGeometry x="40" y="300" width="160" height="66" as="geometry" />
+        <mxCell id="address" value="Address" style="swimlane;fontStyle=1;startSize=26;fillColor=#e1d5e7;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;spatial.kind=rdd-embedded;spatial.fields=[&quot;street&quot;,&quot;city&quot;];" vertex="1" parent="1">
+          <mxGeometry x="40" y="300" width="160" height="70" as="geometry" />
         </mxCell>
         <mxCell id="settings" value="Settings" style="swimlane;fontStyle=1;startSize=26;fillColor=#ffe6cc;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;spatial.kind=rdd-document;spatial.fields=[&quot;theme&quot;,&quot;locale&quot;];" vertex="1" parent="1">
           <mxGeometry x="240" y="300" width="160" height="66" as="geometry" />

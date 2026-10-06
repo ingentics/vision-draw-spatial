@@ -41,11 +41,23 @@ const foldOf = (shape: ShapeModel) => Math.min(TABLE.fold * scaleOf(shape), head
 
 /**
  * Contour d'une table : rectangle, arrondi avec `rounded=1` (vue), coin haut-droit coupé en biais pour un document
- * (coin plié). Toujours convexe : l'entête s'y découpe en bornant les ordonnées.
+ * (coin plié), bas ondulé pour un embedded. Le haut est toujours convexe, la vague loin sous l'entête : l'entête s'y
+ * découpe en bornant les ordonnées.
  */
 function outline(shape: ShapeModel, kind: TableKind): Point[] {
   const { bounds, style } = shape;
   const { x, y, width: w, height: h } = bounds;
+  if (kind.wavy) {
+    // Bas ondulé, une période sur la largeur, de droite à gauche : remonte puis descend (vu de gauche : descend puis
+    // remonte), entre le bas des bornes et deux amplitudes au-dessus.
+    const a = TABLE.wave * scaleOf(shape);
+    const steps = 24;
+    const wave = Array.from({ length: steps + 1 }, (_, i) => {
+      const t = 1 - i / steps;
+      return { x: x + w * t, y: y + h - a + a * Math.sin(2 * Math.PI * t) };
+    });
+    return [{ x, y }, { x: x + w, y }, ...wave];
+  }
   if (kind.folded) {
     const f = foldOf(shape);
     return [
@@ -238,7 +250,7 @@ export function table(
         category: 'rdd',
         style: tableStyle(id, kind),
         width: TABLE.width,
-        height: tableHeight(false, kind.primaryKey ? 1 : 0),
+        height: tableHeight(kind, false, kind.primaryKey ? 1 : 0),
         icon:
           palette.icon ??
           '<path d="M6 3h28v22H6zM6 10h28M10 15h12M10 20h9"/>' + (kind.doubleHeader ? '<path d="M8 5h24v3H8z"/>' : ''),

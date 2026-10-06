@@ -26,6 +26,8 @@ export const TABLE = {
   doubleGap: 3,
   /** Côté du coin plié d'un document. */
   fold: 10,
+  /** Amplitude du bas ondulé d'un embedded ; la table a deux amplitudes de plus en bas. */
+  wave: 2,
   width: 160,
 } as const;
 
@@ -47,7 +49,9 @@ export interface TableKind {
   requiredName?: string;
   /** Coin plié en haut à droite (document, sujet 218). */
   folded?: boolean;
-  /** Clés du style draw.io d'une table neuve (ex. `dashed=1;`) : le rendu les suit, draw.io aussi. */
+  /** Bas ondulé (embedded, sujet 219). */
+  wavy?: boolean;
+  /** Clés du style draw.io d'une table neuve (ex. `rounded=1;`) : le rendu les suit, draw.io aussi. */
   style?: string;
 }
 
@@ -63,8 +67,8 @@ export const TABLE_KINDS: Record<string, TableKind> = {
   'rdd-model': { italic: true },
   'rdd-entity': { primaryKey: true },
   'rdd-enum': { primaryKey: true, doubleHeader: true },
-  // Sujet 181 : objet incorporé (bordure en tirets), document JSONB (clés indicatives), vue (coins arrondis).
-  'rdd-embedded': { style: 'dashed=1;' },
+  // Sujet 181 : objet incorporé (bas ondulé, sujet 219), document JSONB (clés indicatives), vue (coins arrondis).
+  'rdd-embedded': { wavy: true },
   'rdd-document': { italicFields: true, requiredName: 'Document', folded: true },
   'rdd-view': { style: 'rounded=1;absoluteArcSize=1;arcSize=16;' },
 };
@@ -106,7 +110,11 @@ export function headerHeight(secondary: boolean): number {
   return TABLE.header * (secondary ? SECONDARY_SCALE : 1);
 }
 
-/** Hauteur de la table pour `count` champs : entête et une ligne par champ (au moins une ligne vide). */
-export function tableHeight(secondary: boolean, count: number): number {
-  return headerHeight(secondary) + Math.max(1, count) * TABLE.row * (secondary ? SECONDARY_SCALE : 1);
+/**
+ * Hauteur de la table pour `count` champs : entête et une ligne par champ (au moins une ligne vide), plus la place de
+ * la vague d'un bas ondulé.
+ */
+export function tableHeight(kind: TableKind, secondary: boolean, count: number): number {
+  const rows = Math.max(1, count) * TABLE.row + (kind.wavy ? 2 * TABLE.wave : 0);
+  return headerHeight(secondary) + rows * (secondary ? SECONDARY_SCALE : 1);
 }

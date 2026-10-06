@@ -187,12 +187,12 @@ describe('mode RDD : embedded, document et vue (sujets 181, 218)', () => {
   const templates = createDefaultRegistry().templates();
   const style = (id: string) => templates.find((t) => t.id === id)!.style;
 
-  it('palette : entête de 26 px, sans clé primaire ; tirets pour l’embedded, coins arrondis pour la vue', () => {
+  it('palette : entête de 26 px, sans clé primaire ; embedded en trait plein, coins arrondis pour la vue', () => {
     for (const id of ['rdd-embedded', 'rdd-document', 'rdd-view']) {
       expect(style(id)).toContain('startSize=26;');
       expect(style(id)).not.toContain('spatial.fields');
     }
-    expect(style('rdd-embedded')).toContain('dashed=1;');
+    expect(style('rdd-embedded')).not.toMatch(/dashed|rounded/);
     expect(style('rdd-view')).toContain('rounded=1;');
     expect(style('rdd-document')).not.toMatch(/dashed|rounded/);
   });
@@ -243,6 +243,29 @@ describe('mode RDD : embedded, document et vue (sujets 181, 218)', () => {
       { x: 240, y: 366 },
     ]);
     expect(object('address').getObjectByName('fill-fold')).toBeUndefined();
+  });
+
+  it('embedded : bas ondulé dans les bornes, sous le dernier champ ; 4 px de plus pour la vague (sujet 219)', () => {
+    const { page } = render();
+    const address = page().shapes.find((s) => s.id === 'address')!;
+    const path = createDefaultRegistry().resolve(address).definition.outline!(address);
+    const bottom = path.filter((p) => p.y > 300 + 26);
+    const ys = bottom.map((p) => p.y);
+    // Vague entre 366 (sous les deux champs) et 370 (bas des bornes), qui descend d'abord en partant de la gauche.
+    expect(Math.min(...ys)).toBeCloseTo(366, 5);
+    expect(Math.max(...ys)).toBeCloseTo(370, 5);
+    const left = [...bottom].sort((a, b) => a.x - b.x);
+    expect(left[1]!.y).toBeGreaterThan(left[0]!.y);
+    expect(templates.find((t) => t.id === 'rdd-embedded')!.height).toBe(26 + 20 + 4);
+  });
+
+  it('embedded : la hauteur suit les champs, vague comprise', () => {
+    const { run, shape } = setup();
+    run((edit) => setFields(edit, shape('address'), 'street\ncity\nzip'));
+    expect(shape('address').bounds.height).toBe(26 + 3 * 20 + 4);
+    run((edit) => setSecondary(edit, shape('address'), true));
+    run((edit) => setFields(edit, shape('address'), 'street'));
+    expect(shape('address').bounds.height).toBeCloseTo((26 + 20 + 4) * 0.8, 5);
   });
 
   it('vue : contour arrondi, entête coupé dans ce contour', () => {

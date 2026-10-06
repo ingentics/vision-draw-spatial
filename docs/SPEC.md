@@ -893,7 +893,8 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     l'intérieur) : clé primaire `id` toujours en tête (créées avec `spatial.fields=["id"]`), soulignée, montrée en
     lecture seule dans le panneau (« Clé primaire ») et absente de « Champs » ; absente ou déplacée dans le fichier,
     elle est remise en tête à l'affichage et signalée dans Diagnostics.
-  - « Embedded » (`rdd-embedded`) : objet incorporé, bordure en tirets (`dashed=1`).
+  - « Embedded » (`rdd-embedded`) : objet incorporé, bas ondulé (une période sur la largeur, amplitude 2 px ; la
+    table a 4 px de plus en bas).
   - « Document » (`rdd-document`) : document JSONB, coin plié en haut à droite (coin coupé, rabat plus sombre que
     l'entête, 10 px), clés connues en italique ; nom obligatoire : vide, il affiche « Document » et Diagnostics le
     signale.
@@ -904,7 +905,7 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     « Table secondaire » (`spatial.secondary` : tailles × 0,8, forme mise à l'échelle depuis son coin haut-gauche),
     « Champs » (zone de texte, un par ligne ; la hauteur suit : entête + une ligne par champ, au moins une).
   - Fichier : `swimlane;startSize=26;fillColor=…;swimlaneFillColor=#ffffff;spatial.kind=rdd-…;…` : draw.io montre
-    l'entête et sa couleur, les tirets et les coins arrondis, pas les champs, le cadre double ni le coin plié.
+    l'entête et sa couleur et les coins arrondis, pas les champs, le cadre double, le coin plié ni la vague.
 - **Mode Séquences** (`sequences`) : en 2D seulement (`viewModes`) ; flux ordonnés (`spatial.flows`), une flèche dans un flux au plus
   (`spatial.flow`, `spatial.step`), rangs toujours consécutifs (ajout en n + 1, échange, resserrement). Flèche d'un
   flux : trait et pointes dans la couleur du flux assombrie (−25 % de luminosité), pastille du rang au-dessus du
