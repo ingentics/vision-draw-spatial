@@ -913,13 +913,15 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   - Fichier : `swimlane;startSize=26;fillColor=…;swimlaneFillColor=#ffffff;spatial.kind=rdd-…;…` : draw.io montre
     l'entête et sa couleur et les coins arrondis, pas les champs, le cadre double, le coin plié, la vague ni les icônes.
   - « Région » (`rdd-region`) : rectangle à fond très léger (couleur de la palette, `fillOpacity=10`) et bordure fine
-    (la couleur assombrie, × 0,6), label gras de 9 px en haut à gauche, sur une étiquette de la couleur de la bordure
-    (`labelBackgroundColor`, texte noir ou blanc selon le contraste) ; posée au fond de la pile. Son **contenu** est
+    (la couleur assombrie, × 0,6) ; son nom (gras, 9 px, noir ou blanc selon le contraste) est sur un **onglet**
+    au-dessus de son coin haut-gauche, coin carré, terminé par un S qui rejoint le bord haut, d'un seul contour avec la
+    région (même fond, même bordure) ; l'onglet se clique comme la région ; posée au fond de la pile. Son **contenu** est
     calculé, rien n'en est écrit : les formes du mode dont le coin haut-gauche est dans la région (une région ne
     contient qu'une région plus grande qu'elle ; dans deux régions imbriquées, une forme appartient à la plus
     petite). Déplacer la région déplace son contenu (régions incluses, flèches entre ces formes), en une étape
-    d'annulation ; redimensionner ne déplace rien. Réglage « Couleur » (fond, bordure et étiquette). Dans draw.io : un rectangle
-    de la même couleur, son contenu n'y suit pas ses déplacements.
+    d'annulation ; redimensionner ne déplace rien. Réglage « Couleur » (fond, bordure et nom). Dans draw.io : un rectangle
+    de la même couleur, le nom au-dessus à gauche dans un cadre de la couleur de la bordure (`labelBorderColor`) ; son
+    contenu n'y suit pas ses déplacements.
 - **Mode Séquences** (`sequences`) : en 2D seulement (`viewModes`) ; flux ordonnés (`spatial.flows`), une flèche dans un flux au plus
   (`spatial.flow`, `spatial.step`), rangs toujours consécutifs (ajout en n + 1, échange, resserrement). Flèche d'un
   flux : trait et pointes dans la couleur du flux assombrie (−25 % de luminosité), pastille du rang au-dessus du

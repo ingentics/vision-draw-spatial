@@ -1,4 +1,4 @@
-import type { EdgeModel, PageModel, Point, ShapeModel } from '../model/types';
+import type { EdgeModel, PageModel, Point, Rect, ShapeModel } from '../model/types';
 import { distance, segmentDistance } from '../model/geometry';
 
 /**
@@ -41,6 +41,8 @@ export interface PickOptions {
    * la place du test des bornes et du volume. `undefined` = pas une silhouette (test habituel).
    */
   standingHit?: (shape: ShapeModel) => { at: number | undefined } | undefined;
+  /** Emprise prise au clic d'une forme qui dessine hors de ses bornes (ex. onglet d'une région RDD). Absent = bornes. */
+  hitBounds?: (shape: ShapeModel) => Rect;
   /** La forme se prend-elle au clic (un groupe invisible seulement s'il porte un lien) ? Absent = toutes. */
   pickable?: (shape: ShapeModel) => boolean;
 }
@@ -82,7 +84,7 @@ function hitHeight(candidate: PickedElement, height: number, target: Point, opti
   if (options.pickable && !options.pickable(shape)) return undefined;
   const standing = options.standingHit?.(shape);
   if (standing) return standing.at;
-  if (shapeContains(shape, target, options.contains)) return height;
+  if (shapeContains(shape, target, options.contains, options.hitBounds?.(shape))) return height;
   const base = options.baseOf?.(shape.id);
   if (base === undefined || base >= height || !options.pointAtHeight) return undefined;
   return volumeHit(shape, height, base, options.pointAtHeight, options.contains);
@@ -115,13 +117,17 @@ function volumeHit(
   return undefined;
 }
 
-/** Point dans la forme : dans ses bornes, puis selon `contains` (sa définition) s'il est donné. */
+/**
+ * Point dans la forme : dans ses bornes (ou l'emprise `area` prise au clic), puis selon `contains` (sa définition)
+ * s'il est donné.
+ */
 export function shapeContains(
   shape: ShapeModel,
   p: Point,
   contains?: (shape: ShapeModel, point: Point) => boolean,
+  area: Rect = shape.bounds,
 ): boolean {
-  const { x, y, width, height } = shape.bounds;
+  const { x, y, width, height } = area;
   if (p.x < x || p.x > x + width || p.y < y || p.y > y + height) return false;
   return contains ? contains(shape, p) : true;
 }

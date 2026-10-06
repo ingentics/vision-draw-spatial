@@ -44,6 +44,7 @@ export class Picking {
       pointAtHeight: (height) => this.groundPointAtHeight(screen, height),
       contains: (shape, p) => this.core.registry.contains(shape, p, () => this.shapeOutline(shape)),
       pickable: (shape) => this.core.registry.isPickable(shape),
+      hitBounds: (shape) => this.core.registry.hitBounds(shape),
       standingHit: (shape) => this.standingHit(shape, screen),
     });
   }

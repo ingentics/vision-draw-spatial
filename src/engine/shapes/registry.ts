@@ -98,6 +98,11 @@ export class ShapeRegistry {
     return !path || path.length < 3 || insidePolygon(path, point);
   }
 
+  /** Emprise prise au clic : celle de la définition, sinon les bornes. */
+  hitBounds(shape: ShapeModel): Rect {
+    return this.resolve(shape).definition.hitBounds?.(shape) ?? shape.bounds;
+  }
+
   /** Poignées de redimensionnement ? */
   isResizable(shape: ShapeModel): boolean {
     return this.resolve(shape).definition.resizable !== false;

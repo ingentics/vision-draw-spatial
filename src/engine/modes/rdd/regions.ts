@@ -11,9 +11,17 @@ export const REGION_KIND = 'rdd-region';
 
 /**
  * Fond d'une région : opacité (`fillOpacity`, en %) ; bordure : la couleur du fond assombrie ; label : taille du texte,
- * sur une étiquette de la couleur de la bordure (sujet 226).
+ * sur un onglet au fond et à la bordure de la région (sujets 226, 227).
  */
-export const REGION = { fillOpacity: 10, strokeDarken: 0.6, fontSize: 9, width: 400, height: 260 } as const;
+export const REGION = {
+  fillOpacity: 10,
+  strokeDarken: 0.6,
+  fontSize: 9,
+  /** Onglet du nom (sujet 227) : hauteur, marge du texte de chaque côté, largeur du S qui le termine. */
+  tab: { height: 16, padding: 6, curve: 12 },
+  width: 400,
+  height: 260,
+} as const;
 
 export const isRegion = (shape: ShapeModel) => shape.kind === REGION_KIND;
 
@@ -72,21 +80,37 @@ export function regionStroke(color: string): string {
   return `#${channel(1)}${channel(3)}${channel(5)}`;
 }
 
-/** Étiquette du label d'une région de fond `color` : fond de la couleur de la bordure, texte lisible dessus. */
-export function regionLabelStyle(color: string): string {
-  const stroke = regionStroke(color);
-  return `labelBackgroundColor=${stroke};fontColor=${readableOn(stroke)};`;
+/**
+ * Couleur du texte du nom d'une région de fond `color` : noir ou blanc, lisible sur ce fond posé à `fillOpacity` sur
+ * du blanc (l'onglet a le fond de la région, sujet 227).
+ */
+export function regionTextColor(color: string): string {
+  const alpha = REGION.fillOpacity / 100;
+  const channel = (offset: number) =>
+    Math.round(255 * (1 - alpha) + parseInt(color.slice(offset, offset + 2), 16) * alpha)
+      .toString(16)
+      .padStart(2, '0');
+  return readableOn(`#${channel(1)}${channel(3)}${channel(5)}`);
 }
 
 /**
- * Couleur d'une région : fond (`fillColor`), bordure assortie (`strokeColor`) et étiquette du label
- * (`labelBackgroundColor`, `fontColor`), pour draw.io aussi.
+ * Label d'une région de fond `color` pour draw.io : cadre de la couleur de la bordure autour du nom (l'onglet n'y est
+ * pas dessiné), texte lisible sur le fond.
+ */
+export function regionLabelStyle(color: string): string {
+  return `labelBorderColor=${regionStroke(color)};fontColor=${regionTextColor(color)};`;
+}
+
+/**
+ * Couleur d'une région : fond (`fillColor`), bordure assortie (`strokeColor`) et cadre du nom (`labelBorderColor`,
+ * `fontColor`), pour draw.io aussi.
  */
 export function setRegionColor(edit: ModeEdit, shape: ShapeModel, color: string | undefined): void {
   if (!isRegion(shape) || !color) return;
   const stroke = regionStroke(color);
   edit.setElementStyle(shape.id, 'fillColor', color);
   edit.setElementStyle(shape.id, 'strokeColor', stroke);
-  edit.setElementStyle(shape.id, 'labelBackgroundColor', stroke);
-  edit.setElementStyle(shape.id, 'fontColor', readableOn(stroke));
+  edit.setElementStyle(shape.id, 'labelBackgroundColor', undefined);
+  edit.setElementStyle(shape.id, 'labelBorderColor', stroke);
+  edit.setElementStyle(shape.id, 'fontColor', regionTextColor(color));
 }
