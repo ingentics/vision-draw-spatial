@@ -1,5 +1,55 @@
 # Changelog
 
+## [0.3.0](https://github.com/ingentics/vision-draw-spatial/compare/drawio-spatial-v0.2.0...drawio-spatial-v0.3.0) (2026-10-06)
+
+
+### Fonctionnalités
+
+* **app:** aide de l'ancrage des flèches en liste, une ligne par ancrage ([150c397](https://github.com/ingentics/vision-draw-spatial/commit/150c39752eb71e30b5e98662cec579c41641216e))
+* **app:** aligner et répartir la sélection ([759cd65](https://github.com/ingentics/vision-draw-spatial/commit/759cd65e3b99af53cd5867ee2eb5602d47d570eb))
+* **app:** barre du flux qui glisse hors de la vue pendant une transition ([408d214](https://github.com/ingentics/vision-draw-spatial/commit/408d214b60ceebc0f301c9179f48aee75a8add46))
+* **app:** commentaire d'une flèche, affiché au survol en bas à gauche du rendu ([a316ee2](https://github.com/ingentics/vision-draw-spatial/commit/a316ee2887033738d14a7781fb55d70a9e942edb))
+* **app:** commentaire en voile dégradé, sur les formes, édité en place en texte riche ([979bb71](https://github.com/ingentics/vision-draw-spatial/commit/979bb71e6a4384b104115ab3126313b1399fc426))
+* **app:** décalage du texte qui suit la flèche appliqué en direct ([4b98a77](https://github.com/ingentics/vision-draw-spatial/commit/4b98a77fe683c96b8a45da510cad822b0afe392e))
+* **app:** décalage le long du trait du texte qui suit la flèche ([aa833a2](https://github.com/ingentics/vision-draw-spatial/commit/aa833a23235deddf72fa355ceeef88d8f1928044))
+* **app:** étiquette de la tranche appliquée en direct ([08e884a](https://github.com/ingentics/vision-draw-spatial/commit/08e884ad97e2508d1db3351c335d22fa9f19d9d1))
+* **app:** réglages propres à l'ancrage Typon et page Ancrage dans les paramètres ([0ccea5e](https://github.com/ingentics/vision-draw-spatial/commit/0ccea5e93beadb7959c6a4208a2aa522de5c48fa))
+* croisements des flèches, disposition, bouts et inversion ([cfbce41](https://github.com/ingentics/vision-draw-spatial/commit/cfbce41234b4f1a0e1ba7dcfbc9444704d2ef637))
+* **engine:** ancrage Typon et flèches recalculées au déplacement d'une forme ([0f706a5](https://github.com/ingentics/vision-draw-spatial/commit/0f706a5c225cabcaa277ba55dccb49777240ea8b))
+* **engine:** arbres de la forêt plus petits et plus nombreux ([35650e5](https://github.com/ingentics/vision-draw-spatial/commit/35650e5807cf7cc6dbfc6d98a8aa10f185c3c912))
+* **engine:** édition du texte de l'Actor sur sa pancarte en iso et en 3D ([a00add4](https://github.com/ingentics/vision-draw-spatial/commit/a00add4588c56c5bc96d419bc2eb852a1cbe47d4))
+* **engine:** effets de page cumulables, premier effet Forêt ([d162edb](https://github.com/ingentics/vision-draw-spatial/commit/d162edb091ea5cfbe59583c8f0fbd9d93750bcba))
+* **engine:** event consumer, tâche de fond et tâche récurrente en process à tranche étiquetée ([a3a6537](https://github.com/ingentics/vision-draw-spatial/commit/a3a653783349254d47be9d9324cff6e74bfe571c))
+* **engine:** forme Droid, acteur à tête de robot avec antenne ([03f0491](https://github.com/ingentics/vision-draw-spatial/commit/03f049152584a34c5f9a43c68a289b9a7931a8a9))
+* **engine:** formes Process, Event consumer, Tâche de fond et Tâche récurrente ([569f25b](https://github.com/ingentics/vision-draw-spatial/commit/569f25b177fe8c70aaa47f610a69196b237e4509))
+* **engine:** l'Actor tient son texte sur une pancarte en iso et en 3D ([b3beb42](https://github.com/ingentics/vision-draw-spatial/commit/b3beb42386e533d9018e053a9161972841a0d691))
+* **engine:** mains de l'Actor visibles sur sa pancarte ([374c8ca](https://github.com/ingentics/vision-draw-spatial/commit/374c8ca807857b1e820590f1da8030afe3d66418))
+* **engine:** mot de la tranche aussi sur le dessus en iso et en 3D ([2e6f981](https://github.com/ingentics/vision-draw-spatial/commit/2e6f981f41f78892aac54b9e6f5b896027ab2c4d))
+* **engine:** mot de la tranche en façade en iso et en 3D ([688f6b3](https://github.com/ingentics/vision-draw-spatial/commit/688f6b3f3c8321b27bc3b8ae949343fec8ba3a52))
+* **engine:** process étiqueté générique et paramètres d'instance dans le panneau ([f20c185](https://github.com/ingentics/vision-draw-spatial/commit/f20c185b70688aadf9780face7be4245ebf72d74))
+* **engine:** profondeur des volumes qui se chevauchent au clic ([b3f537f](https://github.com/ingentics/vision-draw-spatial/commit/b3f537f6f048552c4bc2bbfd296413b80980af23))
+* **engine:** réglages des effets dans les paramètres, forêt plus étendue et plus claire ([0cda9bf](https://github.com/ingentics/vision-draw-spatial/commit/0cda9bfa2da2baf54f556c80d36de3620e1b0244))
+* **engine:** sauts Arc et Marche en relief en iso et en 3D ([fe64bd8](https://github.com/ingentics/vision-draw-spatial/commit/fe64bd8c243e989ed5bdf413b702edd09e1b67aa))
+* **engine:** sélection de l'Actor en iso et en 3D par un cercle autour de la tête ([621323a](https://github.com/ingentics/vision-draw-spatial/commit/621323a56592ba6f417cff43df645cf69bc322a3))
+* **engine:** sélection sur tout le volume en iso et en 3D ([15cae7a](https://github.com/ingentics/vision-draw-spatial/commit/15cae7aac67b4000b6b9fee769b5cd74b94d6e22))
+* **engine:** tête de droid de combat et antenne à droite du visage ([51a27c6](https://github.com/ingentics/vision-draw-spatial/commit/51a27c65d9822e34e583b36624a72a70c76a2fb4))
+* **engine:** texte du milieu posé le long du tracé de la flèche ([dc671db](https://github.com/ingentics/vision-draw-spatial/commit/dc671dbc4ccde17439e33b2fe513e2708e7e9c46))
+* **engine:** texte du milieu qui suit la flèche ([66e2f27](https://github.com/ingentics/vision-draw-spatial/commit/66e2f270741eeecf899e9ef5f8106ae0d4b13b9d))
+* **palette:** forme Titre dans la catégorie Général ([5dcd975](https://github.com/ingentics/vision-draw-spatial/commit/5dcd975f427149b983b899ab7b01521406a42c50))
+
+
+### Corrections
+
+* **app:** cadre d'édition sur la zone de texte, marges du style déduites ([4944305](https://github.com/ingentics/vision-draw-spatial/commit/4944305302a31f84e2918c3a547f7abf19414aa1))
+* **app:** éditeur et poignée tournés pour le texte qui suit la flèche ([830d380](https://github.com/ingentics/vision-draw-spatial/commit/830d38093e8872c61157a47faa509af9fbb21d47))
+* **app:** marges du texte en édition identiques à l'affichage ([dcc28fb](https://github.com/ingentics/vision-draw-spatial/commit/dcc28fbef6213947337ade5b89b517c81d60a6cd))
+* cleanup ([271060c](https://github.com/ingentics/vision-draw-spatial/commit/271060c914e560f37586ce6a82814127520eff52))
+* **engine:** flèches des poignées de connexion complètes en iso et en 3D ([2a58192](https://github.com/ingentics/vision-draw-spatial/commit/2a58192b4c5fa5634b4dcbf278bae7a4e25823dd))
+* **engine:** halo des textes en morceaux sous toutes les lettres ([3cf8187](https://github.com/ingentics/vision-draw-spatial/commit/3cf81877f3551f38cc331b665fdf54a4ffac6447))
+* **engine:** texte qui suit la flèche attrapé lettre par lettre ([ae40f7a](https://github.com/ingentics/vision-draw-spatial/commit/ae40f7ae3e3cd3eca3f21bd376777dc4009b4670))
+* **engine:** zone de clic de l'Actor en iso et en 3D limitée à sa silhouette ([161d218](https://github.com/ingentics/vision-draw-spatial/commit/161d218ada2798effbd7cf66cb714ed76b6e9df7))
+* **palette:** infobulle jamais cachée par la barre des onglets ([8ad8e46](https://github.com/ingentics/vision-draw-spatial/commit/8ad8e460745699cc78db1f1d8272fd605cccdbe9))
+
 ## [0.2.0](https://github.com/ingentics/vision-draw-spatial/compare/drawio-spatial-v0.1.0...drawio-spatial-v0.2.0) (2026-10-05)
 
 
