@@ -5,7 +5,7 @@ import { snapshotEnds } from '../../../edit/edgeEnds';
 import { collectMoveSet, isLocked, moveTarget, unionMoveSets } from '../../../edit/move';
 import type { MoveSet } from '../../../edit/move';
 import { connectSideOf, isConnectHandle } from '../../../edit/handles';
-import { affectedShapes, pageGeometry } from '../../../edit/distribute';
+import { affectedShapes, pageGeometry } from '../../../edit/anchoring/auto/distribute';
 import { screenToPage } from '../../../interaction/camera';
 import { GRAPH_PAGE_ID } from '../../../graph/graphPage';
 import { independentRoots } from '../../../interaction/selection';

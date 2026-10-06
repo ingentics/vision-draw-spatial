@@ -1,8 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { arrangeAnchors, arrangementChanges, arrangementConflicts } from '../../../src/engine/edit/arrange';
-import { DEFAULT_AVOID_OPTIONS, avoidRoutes } from '../../../src/engine/edit/avoid';
-import { anchorSeedOf, distributeAnchors, withNeighbours } from '../../../src/engine/edit/distribute';
-import { readDrawio } from '../../../src/engine/format/parse';
+import {
+  arrangeAnchors,
+  arrangementChanges,
+  arrangementConflicts,
+} from '../../../../../src/engine/edit/anchoring/auto/arrange';
+import { DEFAULT_AVOID_OPTIONS, avoidRoutes } from '../../../../../src/engine/edit/anchoring/auto/avoid';
+import {
+  anchorSeedOf,
+  distributeAnchors,
+  withNeighbours,
+} from '../../../../../src/engine/edit/anchoring/auto/distribute';
+import { readDrawio } from '../../../../../src/engine/format/parse';
 
 const shape = (id: string, x: number, y: number, w = 100, h = 60) =>
   `<mxCell id="${id}" vertex="1" parent="1"><mxGeometry x="${x}" y="${y}" width="${w}" height="${h}" as="geometry"/></mxCell>`;

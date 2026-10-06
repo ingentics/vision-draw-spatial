@@ -1,15 +1,13 @@
-import type { EdgeModel, PageModel, Point, Rect } from '../model/types';
-import { endAttachmentOf, sideOfConstraint } from './edgeEnds';
+import type { EdgeModel, PageModel, Point, Rect } from '../../../model/types';
+import { endAttachmentOf, sideOfConstraint } from '../../edgeEnds';
 import { seededUnit } from './seed';
-import type { AnchorSide, TerminalEnd } from './edgeEnds';
+import type { AnchorSide, TerminalEnd } from '../../edgeEnds';
 
 /**
  * Ancrage automatique des flèches (SPEC §14.1) : l'utilisateur ne choisit que le côté d'une forme, et les flèches
  * d'un côté y sont réparties à 1/(n+1), 2/(n+1)…, ordonnées par la position de leur autre bout le long du côté pour
  * ne pas se croiser.
  */
-
-export type Anchoring = 'manual' | 'auto';
 
 /** Nouveau point d'attache d'un bout de flèche, relatif au cadre de sa forme. */
 export interface AnchorChange {

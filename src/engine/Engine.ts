@@ -1,6 +1,6 @@
 import type { UnsupportedReport } from './diagnostics/unsupportedStyles';
 import type { AlignMove, AlignReference, DistributeMove } from './edit/align';
-import type { Anchoring } from './edit/distribute';
+import type { Anchoring } from './edit/anchoring/mode';
 import type { EdgeEnd } from './edit/edgeLabels';
 import type { ShapeTemplate } from './edit/palette';
 import type { StylePreset } from './edit/styles';
@@ -564,7 +564,7 @@ export class Engine {
 
   /**
    * Variante de placement de la flèche sélectionnée seule, sur une page en ancrage manuel (touche F) : la variante
-   * qui suit le placement actuel (`edit/variants.ts`) est appliquée tout de suite, points intermédiaires retirés (sauf
+   * qui suit le placement actuel (`edit/anchoring/manual/variants.ts`) est appliquée tout de suite, points intermédiaires retirés (sauf
    * les coudes d'une boucle), en une étape d'annulation. En ancrage automatique : un autre agencement
    * (`otherArrangement`). Faux si elle ne s'applique pas.
    */

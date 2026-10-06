@@ -1,7 +1,7 @@
 import { collectUnsupported } from '../../diagnostics/unsupportedStyles';
 import { readDrawio } from '../../format/parse';
 import { writeDrawio } from '../../format/write';
-import { pageGeometry } from '../../edit/distribute';
+import { pageGeometry } from '../../edit/anchoring/auto/distribute';
 import { UndoStack } from '../../edit/undo';
 import { GRAPH_PAGE_ID } from '../../graph/graphPage';
 import type { EngineCore } from '../EngineCore';

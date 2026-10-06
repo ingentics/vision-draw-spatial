@@ -1,9 +1,9 @@
-import type { EdgeModel, PageModel, Point, Rect, ShapeModel } from '../model/types';
-import { toTerminal } from '../render/edges/edge';
-import { fixedAnchor, routeEdge } from '../render/edges/route';
-import { constraintStyle, endAttachmentOf, frameConstraint, shapeAnchors } from './edgeEnds';
-import type { AnchorSide, TerminalEnd } from './edgeEnds';
-import { LOOP_MARGIN, loopWaypoints } from './loops';
+import type { EdgeModel, PageModel, Point, Rect, ShapeModel } from '../../../model/types';
+import { toTerminal } from '../../../render/edges/edge';
+import { fixedAnchor, routeEdge } from '../../../render/edges/route';
+import { constraintStyle, endAttachmentOf, frameConstraint, shapeAnchors } from '../../edgeEnds';
+import type { AnchorSide, TerminalEnd } from '../../edgeEnds';
+import { LOOP_MARGIN, loopWaypoints } from '../../loops';
 
 /**
  * Variantes de placement d'une flèche en ancrage manuel (touche F, SPEC §14.1) : pour chaque couple côté de départ ×

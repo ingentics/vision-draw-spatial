@@ -1,11 +1,11 @@
-import type { EdgeModel, PageModel, Point } from '../model/types';
-import { toTerminal } from '../render/edges/edge';
-import { routeEdge } from '../render/edges/route';
+import type { EdgeModel, PageModel, Point } from '../../../model/types';
+import { toTerminal } from '../../../render/edges/edge';
+import { routeEdge } from '../../../render/edges/route';
 import { avoidRoutes, crosses, edgesThrough, overlap, segmentsOf } from './avoid';
 import type { AvoidOptions } from './avoid';
 import { distributeAnchors } from './distribute';
 import type { AnchorChange } from './distribute';
-import { constraintStyle } from './edgeEnds';
+import { constraintStyle } from '../../edgeEnds';
 
 /**
  * Agencement en ancrage automatique (SPEC §14.1) : répartition des flèches sur les côtés des formes `shapeIds`, puis

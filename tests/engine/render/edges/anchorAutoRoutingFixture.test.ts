@@ -1,9 +1,9 @@
 import { existsSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { distributeAnchors, sideMiddle } from '../../../../src/engine/edit/distribute';
+import { distributeAnchors, sideMiddle } from '../../../../src/engine/edit/anchoring/auto/distribute';
 import type { AnchorSide } from '../../../../src/engine/edit/edgeEnds';
-import { avoidRoutes, segmentsOf } from '../../../../src/engine/edit/avoid';
+import { avoidRoutes, segmentsOf } from '../../../../src/engine/edit/anchoring/auto/avoid';
 import { loopWaypoints } from '../../../../src/engine/edit/loops';
 import { readDrawio } from '../../../../src/engine/format/parse';
 import type { PageModel, Point, ShapeModel } from '../../../../src/engine/model/types';

@@ -1,9 +1,9 @@
-import type { EdgeModel, PageModel, Point, Rect } from '../model/types';
-import { toTerminal } from '../render/edges/edge';
-import { fixedAnchor, routeEdge } from '../render/edges/route';
-import { endAttachmentOf, sideOfConstraint } from './edgeEnds';
+import type { EdgeModel, PageModel, Point, Rect } from '../../../model/types';
+import { toTerminal } from '../../../render/edges/edge';
+import { fixedAnchor, routeEdge } from '../../../render/edges/route';
+import { endAttachmentOf, sideOfConstraint } from '../../edgeEnds';
 import { seededUnit } from './seed';
-import type { AnchorSide } from './edgeEnds';
+import type { AnchorSide } from '../../edgeEnds';
 
 /**
  * Tracé automatique des flèches en ancrage automatique (SPEC §14.1) : si possible, le tracé orthogonal contourne les

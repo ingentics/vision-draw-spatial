@@ -9,7 +9,7 @@ import type { Anchor, EndAttachment, TerminalEnd } from '../../../edit/edgeEnds'
 import { pointsEditor } from '../../../edit/edgePoints';
 import { squareEnd } from '../../../edit/squareEnd';
 import type { ConnectSide } from '../../../edit/handles';
-import { sideMiddle } from '../../../edit/distribute';
+import { sideMiddle } from '../../../edit/anchoring/auto/distribute';
 import { loopWaypoints } from '../../../edit/loops';
 import type { EdgeModel, PageModel, Point, ShapeModel } from '../../../model/types';
 import { toTerminal } from '../../../render/edges/edge';
