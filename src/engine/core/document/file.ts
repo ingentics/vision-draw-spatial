@@ -28,7 +28,7 @@ export class DocumentFile {
 
   async load(xml: string, fileId: string, initialView?: InitialView): Promise<void> {
     const { document, tree } = readDrawio(xml);
-    this.document = this.core.withModeWarnings(document);
+    this.document = this.core.pageModes.withModeWarnings(document);
     this.geometry = new Map(document.pages.map((p) => [p.id, pageGeometry(p)]));
     this.xmlTree = tree;
     this.fileId = fileId;
@@ -41,7 +41,7 @@ export class DocumentFile {
     this.core.pages.lastDocumentPageId = undefined;
     this.core.drag = undefined;
     this.core.edits.undoStack.clear();
-    this.core.modeCurrents.clear();
+    this.core.pageModes.modeCurrents.clear();
     this.core.edits.syncModified();
     this.core.history.stack.replace(initialView?.history ?? []);
     this.core.links.linkUsage = { ...initialView?.linkUsage };
@@ -106,7 +106,7 @@ export class DocumentFile {
     let document = documentFromTree(this.xmlTree);
     if (options.distribute !== false && this.core.distributeAfterEdit(document, changedPageIds))
       document = documentFromTree(this.xmlTree);
-    this.document = this.core.withModeWarnings(document);
+    this.document = this.core.pageModes.withModeWarnings(document);
     this.geometry = new Map(document.pages.map((p) => [p.id, pageGeometry(p)]));
     this.unsupportedReport = collectUnsupported(this.document, this.core.registry);
     this.core.graph.invalidate();

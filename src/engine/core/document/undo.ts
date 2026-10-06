@@ -61,7 +61,7 @@ export class EditHistory {
     // Annuler / rétablir : un réglage en direct qui reprend ensuite ouvre une nouvelle étape.
     this.editCount++;
     const { document, tree } = readDrawio(xml);
-    this.core.file.document = this.core.withModeWarnings(document);
+    this.core.file.document = this.core.pageModes.withModeWarnings(document);
     this.core.file.geometry = new Map(document.pages.map((p) => [p.id, pageGeometry(p)]));
     this.core.file.xmlTree = tree;
     this.core.file.unsupportedReport = collectUnsupported(document, this.core.registry);

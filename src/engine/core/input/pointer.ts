@@ -56,7 +56,7 @@ export class PointerInput {
     // Mode de la page : un clic sur un élément d'un autre courant (ex. flèche d'un autre flux) ne fait que changer
     // de courant ; un second clic le sélectionne.
     const page = this.core.pages.getCurrentPage();
-    if (picked && page && this.core.pickModeCurrent(page, picked.element)) {
+    if (picked && page && this.core.pageModes.pickModeCurrent(page, picked.element)) {
       this.core.selection.clearSelection();
       return;
     }

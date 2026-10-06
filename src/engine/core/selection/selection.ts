@@ -32,7 +32,7 @@ export class Selections {
     this.core.highlight.syncAnimation();
     this.core.events.emit('selectionChange', this.current);
     this.core.keys.emitModeHint();
-    if (page && items.length === 1) this.core.pickModeCurrent(page, items[0]!.element);
+    if (page && items.length === 1) this.core.pageModes.pickModeCurrent(page, items[0]!.element);
   }
 
   selectInRect(rect: Rect, options: { add: boolean; touch: boolean }): void {

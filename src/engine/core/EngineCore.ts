@@ -90,18 +90,16 @@ import { fixedAnchor, perimeterKind, routeEdgePoints, routingCenter } from '../r
 import { parseStyle } from '../format/style';
 import { connectionHints, connectorPreview } from '../render/handles';
 import { disposeObject } from '../render/meshes';
-import { setElementsDim } from '../render/pageEffects';
 import { createEdgeObject, createShapeObject, edgeRoute, placeInDrawOrder } from '../render/pageScene';
 import { jumpStyleOf, jumpValue } from '../render/edges/jumps';
 import type { JumpDefaults } from '../render/edges/jumps';
 import { reorderCells } from '../format/order';
 import type { OrderMove } from '../format/order';
 import { applyModeEdit } from '../modes/edit';
-import { defaultEffectRegistry, pageEffectIds, withPageEffect } from '../effects/registry';
+import { defaultEffectRegistry } from '../effects/registry';
 import type { PageEffectRegistry } from '../effects/registry';
 import { defaultModeRegistry } from '../modes/registry';
-import type { ModeScope, PageModeRegistry } from '../modes/registry';
-import type { ModeEdit, ModeTarget } from '../modes/types';
+import type { PageModeRegistry } from '../modes/registry';
 import { SceneManager } from '../render/sceneManager';
 import { insetRect, labelMargins } from '../render/labelPosition';
 import { defaultShapeRegistry } from '../shapes/registry';
@@ -119,7 +117,6 @@ import type {
   EngineOptions,
   LabelEditPlane,
   LabelEditRequest,
-  ModeIndicator,
 } from './types';
 import { Config } from './runtime/config';
 import type { Settings } from '../settings';
@@ -143,6 +140,7 @@ import { ModifierKeys } from './input/keys';
 import { Links } from './navigation/links';
 import { BackHistory } from './navigation/history';
 import { Transitions } from './navigation/transition';
+import { PageModes } from './modes/pageModes';
 
 /** Étape d'annulation de chaque changement d'ordre de dessin (ticket 130). */
 const ORDER_LABELS: Record<OrderMove, string> = {
@@ -269,6 +267,7 @@ function samePoints(a: Point[], b: Point[]): boolean {
 /** Cœur du moteur : état et comportement, derrière la façade `Engine` (SPEC §4.3). */
 export class EngineCore {
   // Domaines
+  readonly pageModes = new PageModes(this);
   readonly transitions = new Transitions(this);
   readonly history = new BackHistory(this);
   readonly links: Links;
@@ -299,8 +298,6 @@ export class EngineCore {
   readonly registry: ShapeRegistry;
   readonly modes: PageModeRegistry;
   readonly effects: PageEffectRegistry;
-  /** « Courant » choisi du mode de chaque page (état de session, jamais écrit). */
-  readonly modeCurrents = new Map<string, string>();
   readonly text: ReturnType<typeof createTroikaTextFactory>;
   readonly events = new Emitter<EngineEvents>();
   readonly controller: CameraController;
@@ -1644,7 +1641,7 @@ export class EngineCore {
       const fresh =
         created && this.file.xmlTree && documentFromTree(this.file.xmlTree).pages.find((p) => p.id === drag.pageId);
       if (created && fresh) {
-        const current = this.getModeCurrent(drag.pageId);
+        const current = this.pageModes.getModeCurrent(drag.pageId);
         applyModeEdit(fresh, pageTree, (edit) => created(edit, id, current), modePalette(this.settings.styles));
       }
       this.file.documentChanged([drag.pageId]);
@@ -2127,148 +2124,6 @@ export class EngineCore {
 
   // -------------------------------------------------------------------------
   // Modes de page (sujet 69)
-
-  getModeRegistry(): PageModeRegistry {
-    return this.modes;
-  }
-
-  setPageMode(pageId: string, modeId: string | undefined): void {
-    const page = this.pages.pageById(pageId);
-    const pageTree = this.file.pageTreeOf(pageId);
-    if (!this.file.xmlTree || !page || !pageTree?.diagram || !this.editable || this.transitions.active) return;
-    if ((this.modes.modeId(page) ?? '') === (modeId ?? '')) return;
-    const name = modeId && this.modes.get(modeId)?.name;
-    this.edits.recordEdit(name ? `Mode ${name}` : 'Page normale');
-    setPageAttribute(pageTree, SPATIAL.mode, modeId);
-    this.file.documentChanged([pageId]);
-  }
-
-  setPageEffect(pageId: string, effectId: string, enabled: boolean): void {
-    const page = this.pages.pageById(pageId);
-    const pageTree = this.file.pageTreeOf(pageId);
-    if (!this.file.xmlTree || !page || !pageTree?.diagram || !this.editable || this.transitions.active) return;
-    if (pageEffectIds(page).includes(effectId) === enabled) return;
-    const name = this.effects.get(effectId)?.name ?? effectId;
-    this.edits.recordEdit(enabled ? `Effet ${name}` : `Sans effet ${name}`);
-    setPageAttribute(pageTree, SPATIAL.effects, withPageEffect(page, effectId, enabled));
-    this.file.documentChanged([pageId], { distribute: false });
-  }
-
-  editPageMode(label: string, edit: (edit: ModeEdit) => void): void {
-    const editable = this.editablePage();
-    if (!editable || !this.file.xmlTree) return;
-    const before = writeDrawio(this.file.xmlTree);
-    if (!applyModeEdit(editable.page, editable.pageTree, edit, modePalette(this.settings.styles))) return;
-    this.edits.undoStack.record(label, before);
-    this.file.documentChanged([editable.page.id]);
-  }
-
-  setModeProperty(scope: ModeScope, targetId: string | undefined, key: string, value: string | undefined): void {
-    const page = this.editablePage()?.page;
-    const property = page && this.modes.properties(page, scope).find((p) => p.key === key);
-    const target: ModeTarget | undefined =
-      scope === 'page'
-        ? page
-        : scope === 'edge'
-          ? page?.edges.find((e) => e.id === targetId)
-          : page?.shapes.find((s) => s.id === targetId);
-    if (!property || !target) return;
-    this.editPageMode(property.label, (edit) => {
-      if (property.write) property.write(edit, target, value);
-      else if (scope === 'page') edit.setPageAttribute(key, value);
-      else edit.setElementAttribute(target.id, key, value);
-    });
-  }
-
-  getModeCurrent(pageId = this.pages.currentPageId): string | undefined {
-    const page = pageId ? this.pages.pageById(pageId) : undefined;
-    const current = page && this.modes.modeOf(page)?.current;
-    if (!page || !current) return undefined;
-    const chosen = this.modeCurrents.get(page.id);
-    return chosen !== undefined && current.valid(page, chosen) ? chosen : current.initial(page);
-  }
-
-  getModeIndicator(pageId = this.pages.currentPageId): ModeIndicator | undefined {
-    const page = pageId ? this.pages.pageById(pageId) : undefined;
-    const current = page && this.modes.modeOf(page)?.current;
-    const value = this.getModeCurrent(pageId);
-    const color = page && value !== undefined ? current?.color?.(page, value) : undefined;
-    if (!page || !current || value === undefined || !color) return undefined;
-    return {
-      value,
-      color,
-      label: current.label?.(page, value) ?? value,
-      values: current.values?.(page) ?? [],
-      renamable: current.rename !== undefined && this.editablePage()?.page.id === page.id,
-    };
-  }
-
-  renameModeCurrent(label: string): void {
-    const page = this.editablePage()?.page;
-    const rename = page && this.modes.modeOf(page)?.current?.rename;
-    const value = page && this.getModeCurrent(page.id);
-    const name = label.trim();
-    if (!rename || value === undefined || !name) return;
-    this.editPageMode('Renommage', (edit) => rename(edit, value, name));
-  }
-
-  setModeCurrent(value: string, pageId = this.pages.currentPageId): void {
-    const page = pageId ? this.pages.pageById(pageId) : undefined;
-    const current = page && this.modes.modeOf(page)?.current;
-    if (!page || !current?.valid(page, value) || value === this.getModeCurrent(page.id)) return;
-    this.modeCurrents.set(page.id, value);
-    this.events.emit('modeCurrentChange', page.id, value);
-    this.rendering.requestRender();
-  }
-
-  /**
-   * Estompe ce qui n'est pas gardé net par le courant du mode de la page courante (`ModeCurrent.focus`, paramètre
-   * `shapes.modeDimOpacity`) ; seuls les éléments dont l'état change sont repris. Appelé avant chaque image : suit
-   * le courant, les modifications du schéma et les scènes reconstruites.
-   */
-  applyModeFocus(): void {
-    const page = this.pages.getCurrentPage();
-    const value = page && this.getModeCurrent(page.id);
-    const focus = page && value !== undefined ? this.modes.modeOf(page)?.current?.focus?.(page, value) : undefined;
-    const kept = focus && new Set(focus);
-    const opacity = this.settings.shapes.modeDimOpacity;
-    const scenes = new Set([this.scenes.current, this.levels.levelBlend?.flat, this.levels.levelBlend?.volume]);
-    for (const scene of scenes) {
-      if (scene && scene.pageId === page?.id) setElementsDim(scene.root, (id) => (kept && !kept.has(id) ? opacity : 1));
-    }
-  }
-
-  /**
-   * Un élément cliqué ou sélectionné seul peut changer le courant du mode (ex. flèche d'un flux) ; vrai s'il l'a
-   * changé.
-   */
-  pickModeCurrent(page: PageModel, element: ModeTarget): boolean {
-    const value = this.modes.modeOf(page)?.current?.pick?.(page, element);
-    if (value === undefined || value === this.getModeCurrent(page.id)) return false;
-    this.modeCurrents.set(page.id, value);
-    this.events.emit('modeCurrentChange', page.id, value);
-    this.rendering.requestRender();
-    return true;
-  }
-
-  modeKey(key: string): boolean {
-    const editable = this.editablePage();
-    const selection = this.selection.current;
-    if (!editable || selection?.pageId !== editable.page.id || selection.items.length !== 1) return false;
-    const action = this.modes.modeOf(editable.page)?.keys?.[key];
-    const id = selection.picked.element.id;
-    const target = [...editable.page.edges, ...editable.page.shapes].find((element) => element.id === id);
-    if (!action || !target || !action.applies(editable.page, target)) return false;
-    const current = this.getModeCurrent(editable.page.id);
-    this.editPageMode(action.label, (edit) => action.run(edit, target, current));
-    return true;
-  }
-
-  /** Avertissements des modes de page (mode inconnu, données remises en ordre) ajoutés à ceux de la lecture. */
-  withModeWarnings(document: DocumentModel): DocumentModel {
-    document.warnings.push(...this.modes.warnings(document), ...this.effects.warnings(document));
-    return document;
-  }
 
   applyStylePreset(elementIds: string[], preset: StylePreset, known: StylePreset[] = []): void {
     const editable = this.editablePage();

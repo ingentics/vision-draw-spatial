@@ -588,7 +588,7 @@ export class Engine {
 
   /** Registre des modes de page du moteur (choix du mode, réglages déclarés). */
   getModeRegistry(): PageModeRegistry {
-    return this.core.getModeRegistry();
+    return this.core.pageModes.getModeRegistry();
   }
 
   /**
@@ -596,12 +596,12 @@ export class Engine {
    * et ses éléments : revenir au mode les retrouve.
    */
   setPageMode(pageId: string, modeId: string | undefined): void {
-    this.core.setPageMode(pageId, modeId);
+    this.core.pageModes.setPageMode(pageId, modeId);
   }
 
   /** Active ou retire un effet d'une page (`spatial.effects`), en une étape d'annulation. */
   setPageEffect(pageId: string, effectId: string, enabled: boolean): void {
-    this.core.setPageEffect(pageId, effectId, enabled);
+    this.core.pageModes.setPageEffect(pageId, effectId, enabled);
   }
 
   /**
@@ -609,7 +609,7 @@ export class Engine {
    * rien n'est enregistré si elle ne change rien.
    */
   editPageMode(label: string, edit: (edit: ModeEdit) => void): void {
-    this.core.editPageMode(label, edit);
+    this.core.pageModes.editPageMode(label, edit);
   }
 
   /**
@@ -617,7 +617,7 @@ export class Engine {
    * sa règle s'il en a une, sinon dans son attribut. undefined = vide.
    */
   setModeProperty(scope: ModeScope, targetId: string | undefined, key: string, value: string | undefined): void {
-    this.core.setModeProperty(scope, targetId, key, value);
+    this.core.pageModes.setModeProperty(scope, targetId, key, value);
   }
 
   /**
@@ -625,7 +625,7 @@ export class Engine {
    * initiale du mode ; undefined pour une page sans mode ou sans courant.
    */
   getModeCurrent(pageId?: string): string | undefined {
-    return this.core.getModeCurrent(pageId);
+    return this.core.pageModes.getModeCurrent(pageId);
   }
 
   /**
@@ -633,7 +633,7 @@ export class Engine {
    * l'ordre (boutons précédent / suivant). Undefined : pas de barre (pas de mode, pas de courant, pas de couleur).
    */
   getModeIndicator(pageId?: string): ModeIndicator | undefined {
-    return this.core.getModeIndicator(pageId);
+    return this.core.pageModes.getModeIndicator(pageId);
   }
 
   /**
@@ -641,12 +641,12 @@ export class Engine {
    * d'annulation. Un nom vide (ou fait d'espaces) est ignoré.
    */
   renameModeCurrent(label: string): void {
-    this.core.renameModeCurrent(label);
+    this.core.pageModes.renameModeCurrent(label);
   }
 
   /** Choisit le courant du mode d'une page (ex. bouton « suivant » de la barre) ; ignoré s'il n'est pas valable. */
   setModeCurrent(value: string, pageId?: string): void {
-    this.core.setModeCurrent(value, pageId);
+    this.core.pageModes.setModeCurrent(value, pageId);
   }
 
   /**
@@ -654,7 +654,7 @@ export class Engine {
    * d'annulation. Faux si la touche n'est pas prise (pas de mode, pas de touche, élément non concerné).
    */
   modeKey(key: string): boolean {
-    return this.core.modeKey(key);
+    return this.core.pageModes.modeKey(key);
   }
 
   /**

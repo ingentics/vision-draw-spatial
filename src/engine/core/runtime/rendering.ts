@@ -105,7 +105,7 @@ export class Rendering {
       // Silhouettes debout (Actor) face à la caméra de cette image.
       orientBillboards(this.scene, this.activeCamera());
       // Estompage de ce qui est hors du courant du mode de la page (ex. hors du flux courant).
-      this.core.applyModeFocus();
+      this.core.pageModes.applyModeFocus();
       const blend = this.core.levels.levelBlend;
       if (blend?.flat && blend.volume) this.renderBlend(blend.flat, blend.volume);
       else this.renderer.render(this.scene, this.activeCamera());
