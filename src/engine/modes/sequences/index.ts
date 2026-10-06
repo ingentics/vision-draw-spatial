@@ -12,10 +12,14 @@ export const definition: PageModeDefinition = {
   id: 'sequences',
   name: 'Séquences',
   description: 'Flux ordonnés de flèches : couleur par flux et rang de chaque flèche',
-  // Acteur et participant, leurs lignes de vie, un message et sa réponse en pointillé (sujet 197).
-  icon:
-    'M3 1a1.1 1.1 0 1 0 0 2.2 1.1 1.1 0 0 0 0-2.2zM3 3.2v2M1.6 4h2.8M3 5.2 1.9 6.6M3 5.2l1.1 1.4M10.5 1.5h5v3h-5z' +
-    'M3 8.2V15M13 6.2V15M3 9.6h10M11.3 8l1.7 1.6-1.7 1.6M13 13h-1.4M10.2 13H8.8M7.4 13H3M4.7 11.4 3 13l1.7 1.6',
+  // Acteur et participant pleins, lignes de vie en pointillé, message et réponse en accent (sujets 197, 198).
+  icon: {
+    fill:
+      'M3.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM1.2 6.8a2.3 2.1 0 0 1 4.6 0z' +
+      'M10.5 2.2h4a1 1 0 0 1 1 1v2.6a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1V3.2a1 1 0 0 1 1-1z',
+    line: 'M3.5 8.3V15.5M12.5 8.3V15.5',
+    accent: 'M3.5 10h9M11.2 8.7l1.3 1.3-1.3 1.3M12.5 13.5h-1M10 13.5H9M8 13.5H3.5M4.8 12.2l-1.3 1.3 1.3 1.3',
+  },
   // Diagramme de séquence : lu à plat, en 2D seulement (sujet 193).
   viewModes: ['top'],
   edgeProperties: [

@@ -64,7 +64,9 @@ export function PageTabs({
               {mode?.icon && (
                 <svg className="tab-mode-icon" viewBox="0 0 16 16" role="img" aria-label={`Mode ${mode.name}`}>
                   <title>{`Mode ${mode.name}`}</title>
-                  <path d={mode.icon} />
+                  {mode.icon.fill && <path className="mode-icon-fill" d={mode.icon.fill} />}
+                  {mode.icon.line && <path className="mode-icon-line" d={mode.icon.line} />}
+                  {mode.icon.accent && <path className="mode-icon-accent" d={mode.icon.accent} />}
                 </svg>
               )}
               {page.name}

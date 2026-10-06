@@ -16,8 +16,8 @@ export interface PageModeDefinition {
   name: string;
   /** Aide au survol du choix du mode. */
   description?: string;
-  /** Icône de l'onglet d'une page du mode (sujet 197) : tracé SVG (`d`) dans un carré de 16, dessiné au trait. */
-  icon?: string;
+  /** Icône de l'onglet d'une page du mode (sujets 197, 198). */
+  icon?: ModeIcon;
   /** Réglages déclarés de la page, d'une flèche, d'une forme : affichés par des champs génériques du panneau. */
   pageProperties?: ModeProperty[];
   edgeProperties?: ModeProperty[];
@@ -47,6 +47,16 @@ export interface PageModeDefinition {
   allowsEffect?(effectId: string): boolean;
   /** Touches sur l'élément sélectionné seul, par `KeyboardEvent.key` (ex. `+`). */
   keys?: Record<string, ModeKey>;
+}
+
+/**
+ * Icône d'un mode (sujet 198), au style des icônes d'arrangement : tracés SVG (`d`) dans un carré de 16. `fill` :
+ * formes pleines grises ; `line` : repères fins gris en pointillé ; `accent` : traits de couleur d'accent.
+ */
+export interface ModeIcon {
+  fill?: string;
+  line?: string;
+  accent?: string;
 }
 
 /** « Courant » d'un mode (ex. flux courant du mode Séquences). */
