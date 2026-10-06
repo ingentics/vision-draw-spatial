@@ -103,7 +103,7 @@ export class Pages {
     cancelAnimationFrame(this.core.camera.animation);
     this.core.camera.animation = 0;
     this.core.endMove();
-    if (this.currentPageId !== page.id) this.core.clearSelection();
+    if (this.currentPageId !== page.id) this.core.selection.clearSelection();
     this.core.viewModes.applyPageIso(page.id);
     this.currentPageId = page.id;
     if (page.id !== GRAPH_PAGE_ID) this.lastDocumentPageId = page.id;

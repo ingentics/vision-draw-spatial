@@ -54,8 +54,8 @@ export class Config {
     this.core.controller.setSettings(this.effectiveControls());
     this.core.scenes.setMaxCached(this.settings.preload.maxCachedPages);
     this.core.edits.undoStack.setLimit(this.settings.edit.undoLimit);
-    this.core.syncSelectionAnimation();
-    this.core.updateSelectionOutline();
+    this.core.highlight.syncAnimation();
+    this.core.highlight.update();
     const changed = <K extends keyof Settings>(section: K) =>
       JSON.stringify(this.settings[section]) !== JSON.stringify(previous[section]);
     if (changed('camera')) this.applyCameraLimits();
@@ -127,7 +127,7 @@ export class Config {
 
   private readonly onReducedMotionChange = (): void => {
     this.core.controller.setSettings(this.effectiveControls());
-    this.core.syncSelectionAnimation();
+    this.core.highlight.syncAnimation();
     this.core.events.emit('settingsChange', this.getSettings());
   };
 

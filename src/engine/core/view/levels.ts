@@ -67,7 +67,7 @@ export class Levels {
       this.core.scenes.show(page);
       this.applyHeightScale();
       // La sélection suit la scène affichée (voile, contour, poignées).
-      this.core.updateSelectionOutline();
+      this.core.highlight.update();
       this.core.rendering.requestRender();
     }
   }
@@ -78,7 +78,7 @@ export class Levels {
     const page = this.core.pages.getCurrentPage();
     if (page) this.core.scenes.show(page);
     this.applyHeightScale();
-    this.core.updateSelectionOutline();
+    this.core.highlight.update();
     this.core.minimap.invalidate();
     this.core.rendering.requestRender();
   }

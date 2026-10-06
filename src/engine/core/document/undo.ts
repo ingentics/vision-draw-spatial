@@ -65,7 +65,7 @@ export class EditHistory {
     this.core.file.geometry = new Map(document.pages.map((p) => [p.id, pageGeometry(p)]));
     this.core.file.xmlTree = tree;
     this.core.file.unsupportedReport = collectUnsupported(document, this.core.registry);
-    this.core.clearSelection();
+    this.core.selection.clearSelection();
     this.core.graph.invalidate();
     this.core.scenes.clear();
     const current = this.core.pages.currentPageId;

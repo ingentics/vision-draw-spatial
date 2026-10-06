@@ -123,7 +123,7 @@ export class ViewCamera {
     this.core.minimap.requestDraw();
     // Contour de sélection d'épaisseur constante à l'écran ; la sélection est transférée à la scène
     // du nouveau niveau quand on change de vue (2D ↔ iso / 3D).
-    if (this.core.selection && (sceneChanged || this.state.zoom !== previousZoom)) this.core.updateSelectionOutline();
+    if (this.core.selection.current && (sceneChanged || this.state.zoom !== previousZoom)) this.core.highlight.update();
     if (this.core.linkZonesShown && (sceneChanged || this.state.zoom !== previousZoom)) this.core.updateLinkZones();
     this.core.rendering.applyProjection();
     this.core.levels.applyHeightScale();

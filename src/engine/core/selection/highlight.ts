@@ -1,0 +1,239 @@
+import { Group, Mesh } from 'three';
+import type { MeshBasicMaterial, Object3D } from 'three';
+import { pointHandles } from '../../edit/edgePoints';
+import { collectMoveSet } from '../../edit/move';
+import type { Point } from '../../model/types';
+import { selectionOutline } from '../../render/decorations';
+import { edgeEndHandles, edgePointHandles, selectionHandles } from '../../render/handles';
+import { createVeil, createVeilHole, liftAboveVeil } from '../../render/highlight';
+import { disposeObject } from '../../render/meshes';
+import type { EngineCore } from '../EngineCore';
+import type { PickedElement } from '../../interaction/pick';
+
+/** Mise en valeur de la sélection (paramètre `selection.style`) : voile, contour animé, poignées de l'élément modifiable. */
+export class SelectionHighlight {
+  /** Voile de mise en valeur de la sélection, et de quoi l'annuler. */
+  private veil: { key: string; object: Object3D; restore: () => void } | undefined;
+  /** Trou du voile autour d'une flèche sélectionnée (dépend du zoom : largeur fixe à l'écran). */
+  private veilHole: { key: string; object: Object3D } | undefined;
+  /** Contours de la sélection (style « contour »), un par élément sélectionné. */
+  private selectionObject: Group | undefined;
+  /** Contour animé : décalage des tirets (pixels écran) et boucle d'animation. */
+  private selectionPhase = 0;
+  private selectionAnimation = 0;
+  /** Poignées de la forme sélectionnée. */
+  private handlesObject: Object3D | undefined;
+
+  constructor(private readonly core: EngineCore) {}
+
+  /**
+   * Contour de sélection animé (paramètre `selection`) : les tirets défilent lentement tant qu'il y a
+   * une sélection ; arrêté sans sélection, si désactivé, ou si les animations sont réduites.
+   */
+  syncAnimation(): void {
+    const run =
+      this.core.selection.current !== undefined &&
+      this.core.settings.selection.style === 'outline' &&
+      this.core.settings.selection.animated &&
+      !this.core.config.reducedMotion();
+    if (!run) {
+      cancelAnimationFrame(this.selectionAnimation);
+      this.selectionAnimation = 0;
+      if (this.selectionPhase !== 0) {
+        this.selectionPhase = 0;
+        this.update();
+      }
+      return;
+    }
+    if (this.selectionAnimation) return;
+    let last = performance.now();
+    const tick = (now: number) => {
+      const dt = Math.min((now - last) / 1000, 0.1);
+      last = now;
+      // Phase décroissante : les tirets avancent dans le sens du contour.
+      this.selectionPhase -= this.core.settings.selection.speed * dt;
+      this.update();
+      this.selectionAnimation = requestAnimationFrame(tick);
+    };
+    this.selectionAnimation = requestAnimationFrame(tick);
+  }
+
+  /**
+   * Mise en valeur de la sélection (paramètre `selection.style`) : voile d'ombre sur le reste de la
+   * page (défaut), ou contour bleu pointillé (éventuellement animé), et poignées de l'élément modifiable.
+   */
+  update(): void {
+    if (this.selectionObject) {
+      this.selectionObject.parent?.remove(this.selectionObject);
+      disposeObject(this.selectionObject);
+      this.selectionObject = undefined;
+    }
+    const selection = this.core.selection.current;
+    const root = this.core.scenes.current?.root;
+    const visible = selection && root && selection.pageId === this.core.pages.currentPageId ? selection : undefined;
+    const items = visible?.items ?? [];
+    const veilKey = this.updateVeil(root, items);
+    this.updateVeilHoles(root, items, veilKey);
+    if (root && items.length > 0 && this.core.settings.selection.style === 'outline') this.addOutlines(root, items);
+    this.updateHandles(visible && root);
+    this.core.rendering.requestRender();
+  }
+
+  /** Arrêt du moteur : plus d'animation du contour. */
+  dispose(): void {
+    cancelAnimationFrame(this.selectionAnimation);
+  }
+
+  /**
+   * Voile : gardé tant que la même sélection est affichée dans la même scène. L'emprise de la page en fait
+   * partie : le voile la couvre, et un déplacement peut l'agrandir. Renvoie la clé du voile affiché.
+   */
+  private updateVeil(root: Object3D | undefined, items: PickedElement[]): string | undefined {
+    const ids = items.map((item) => item.element.id);
+    const pageBounds = this.core.pages.getCurrentPage()?.bounds;
+    const { veilOpacity, veilColor } = this.core.settings.selection;
+    const veilKey =
+      items.length > 0 && root && pageBounds && this.core.settings.selection.style === 'veil'
+        ? `${root.uuid}:${ids.join('|')}:${veilOpacity}:${veilColor}:${Object.values(pageBounds).join(',')}`
+        : undefined;
+    if (this.veil?.key === veilKey) return veilKey;
+    this.clearVeil();
+    const page = this.core.pages.getCurrentPage();
+    if (!veilKey || !root || !page) return veilKey;
+    const object = createVeil(page.bounds, veilOpacity, veilColor);
+    root.add(object);
+    // Une forme sélectionnée est mise en valeur avec son contenu (enfants d'un groupe, d'un conteneur).
+    const highlighted = new Set(ids);
+    for (const item of items) {
+      if (item.type !== 'shape') continue;
+      const content = collectMoveSet(page, item.element.id);
+      for (const id of [...content.shapeIds, ...content.edgeIds]) highlighted.add(id);
+    }
+    const lifted = root.children.filter((c) => {
+      const elementId = c.userData.elementId as string | undefined;
+      const partner = c.userData.highlightWith as string | undefined;
+      return (
+        (elementId !== undefined && highlighted.has(elementId)) || (partner !== undefined && highlighted.has(partner))
+      );
+    });
+    this.veil = { key: veilKey, object, restore: liftAboveVeil(lifted) };
+    return veilKey;
+  }
+
+  /** Flèches et liaisons : le voile est percé autour de leur tracé (≈ 10 px de chaque côté à l'écran). */
+  private updateVeilHoles(root: Object3D | undefined, items: PickedElement[], veilKey: string | undefined): void {
+    const edges = veilKey ? items.filter((item) => item.type === 'edge') : [];
+    const { zoom } = this.core.camera.state;
+    const { veilPadding } = this.core.settings.selection;
+    const holeKey = edges.length > 0 ? `${veilKey}:${zoom}:${veilPadding}` : undefined;
+    if (this.veilHole?.key === holeKey) return;
+    this.veilHole?.object.removeFromParent();
+    if (this.veilHole) disposeObject(this.veilHole.object);
+    this.veilHole = undefined;
+    if (!holeKey || !root) return;
+    const holes = new Group();
+    holes.name = 'selection-veil-holes';
+    for (const { element } of edges) {
+      const object = this.core.sceneView.sceneObject(element.id);
+      const route = (object?.userData.path ?? object?.userData.route) as Point[] | undefined;
+      if (!object || !route || route.length < 2) continue;
+      const strokeWidth = parseFloat((element.style.strokeWidth as string | undefined) ?? '1') || 1;
+      const width = strokeWidth + (2 * veilPadding) / zoom;
+      const hole = createVeilHole(route, object.position.z, width);
+      // Flèche déplacée en bloc (au clavier, avec sa forme) : son objet est décalé, pas son tracé.
+      hole.position.x = object.position.x;
+      hole.position.y = object.position.y;
+      holes.add(hole);
+    }
+    root.add(holes);
+    this.veilHole = { key: holeKey, object: holes };
+  }
+
+  /** Style « contour » : un contour pointillé (éventuellement animé) par élément sélectionné. */
+  private addOutlines(root: Object3D, items: PickedElement[]): void {
+    const outlines = new Group();
+    outlines.name = 'selection';
+    for (const { type, element } of items) {
+      const bounds = type === 'shape' ? element.bounds : this.core.sceneView.drawnBounds(element.id);
+      if (!bounds) continue;
+      const outline = selectionOutline(
+        bounds,
+        this.core.camera.state.zoom,
+        this.selectionPhase,
+        this.core.settings.selection.accentColor,
+      );
+      // Posé sur le dessus d'un volume, et toujours visible (pas caché par les blocs).
+      outline.position.z = ((this.core.sceneView.sceneObject(element.id)?.userData.top as number) ?? 0) + 0.2;
+      alwaysOnTop(outline);
+      outlines.add(outline);
+    }
+    outlines.renderOrder = Number.MAX_SAFE_INTEGER;
+    this.selectionObject = outlines;
+    root.add(outlines);
+  }
+
+  /** Poignées de l'élément sélectionné, si on peut le modifier : bouts et points d'une flèche, ou cadre d'une forme. */
+  private updateHandles(root: Object3D | undefined): void {
+    if (this.handlesObject) {
+      this.handlesObject.removeFromParent();
+      disposeObject(this.handlesObject);
+      this.handlesObject = undefined;
+    }
+    if (!root) return;
+    const { zoom } = this.core.camera.state;
+    const editableEdge = this.core.edgeHandlesSelection();
+    const ends = editableEdge && this.core.edgeEndPoints(editableEdge.edge.id);
+    if (editableEdge && ends) {
+      const { edge } = editableEdge;
+      const handleStyle = {
+        size: this.core.settings.edit.handleSize,
+        accent: this.core.settings.selection.accentColor,
+      };
+      this.handlesObject = edgeEndHandles(
+        [
+          { point: ends.source, attached: !!edge.sourceId },
+          { point: ends.target, attached: !!edge.targetId },
+        ],
+        zoom,
+        handleStyle,
+      );
+      const context = this.core.pointsContext(editableEdge.page, edge);
+      if (context) this.handlesObject.add(edgePointHandles(pointHandles(context), zoom, handleStyle));
+      this.handlesObject.position.z = this.core.sceneView.elementTop(edge.id) + 0.3;
+      alwaysOnTop(this.handlesObject);
+      root.add(this.handlesObject);
+    }
+    const editable = this.core.editableSelection();
+    if (editable) {
+      const { shape } = editable;
+      this.handlesObject = selectionHandles(shape.bounds, zoom, {
+        resize: this.core.registry.isResizable(shape),
+        connect: true,
+        size: this.core.settings.edit.handleSize,
+        accent: this.core.settings.selection.accentColor,
+        layout: this.core.handleLayout(),
+      });
+      this.handlesObject.position.z = this.core.sceneView.elementTop(shape.id) + 0.3;
+      alwaysOnTop(this.handlesObject);
+      root.add(this.handlesObject);
+    }
+  }
+
+  clearVeil(): void {
+    this.veilHole?.object.removeFromParent();
+    if (this.veilHole) disposeObject(this.veilHole.object);
+    this.veilHole = undefined;
+    if (!this.veil) return;
+    this.veil.restore();
+    this.veil.object.removeFromParent();
+    disposeObject(this.veil.object);
+    this.veil = undefined;
+  }
+}
+
+/** Toujours visible : pas caché par les blocs (test de profondeur coupé). */
+function alwaysOnTop(object: Object3D): void {
+  object.traverse((o) => {
+    if (o instanceof Mesh) (o.material as MeshBasicMaterial).depthTest = false;
+  });
+}

@@ -52,7 +52,7 @@ export class ViewModes {
     if (page && this.core.levels.requestedLevel() !== previousLevel) {
       this.core.scenes.show(page);
       this.core.levels.applyHeightScale();
-      this.core.updateSelectionOutline();
+      this.core.highlight.update();
       if (this.core.linkZonesShown) this.core.updateLinkZones();
       this.core.minimap.invalidate();
       this.core.rendering.requestRender();

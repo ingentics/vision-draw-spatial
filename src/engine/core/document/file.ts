@@ -34,7 +34,7 @@ export class DocumentFile {
     this.fileId = fileId;
     this.unsupportedReport = collectUnsupported(document, this.core.registry);
     this.core.transition?.abort();
-    this.core.clearSelection();
+    this.core.selection.clearSelection();
     this.core.scenes.clear();
     this.core.pages.currentPageId = undefined;
     this.core.graph.invalidate();
@@ -101,8 +101,8 @@ export class DocumentFile {
 
   documentChanged(changedPageIds: string[], options: { distribute?: boolean } = {}): void {
     if (!this.xmlTree) return;
-    const selected = this.core.selection;
-    this.core.clearSelection();
+    const selected = this.core.selection.current;
+    this.core.selection.clearSelection();
     let document = documentFromTree(this.xmlTree);
     if (options.distribute !== false && this.core.distributeAfterEdit(document, changedPageIds))
       document = documentFromTree(this.xmlTree);
@@ -125,7 +125,7 @@ export class DocumentFile {
         if (shape) items.push({ type: 'shape', element: shape });
         else if (edge) items.push({ type: 'edge', element: edge });
       }
-      if (items.length > 0) this.core.selectItems(items);
+      if (items.length > 0) this.core.selection.selectItems(items);
     }
     this.core.rendering.syncBackground();
     this.core.minimap.invalidate();

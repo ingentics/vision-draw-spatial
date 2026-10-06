@@ -354,7 +354,7 @@ export class Engine {
   }
 
   getSelection(): Selection | undefined {
-    return this.core.getSelection();
+    return this.core.selection.getSelection();
   }
 
   getTransitionSettings(): TransitionSettings {
@@ -379,11 +379,11 @@ export class Engine {
 
   /** Élément de la page courante sous un point écran. */
   pickAt(screen: Point): PickedElement | undefined {
-    return this.core.pickAt(screen);
+    return this.core.picking.pickAt(screen);
   }
 
   select(picked: PickedElement | undefined): void {
-    this.core.select(picked);
+    this.core.selection.select(picked);
   }
 
   /**
@@ -391,12 +391,12 @@ export class Engine {
    * de la page courante, ou l'en retire s'il y est déjà.
    */
   toggleSelect(picked: PickedElement): void {
-    this.core.toggleSelect(picked);
+    this.core.selection.toggleSelect(picked);
   }
 
   /** Sélectionne ces éléments de la page courante (aucun = désélection). */
   selectItems(items: PickedElement[]): void {
-    this.core.selectItems(items);
+    this.core.selection.selectItems(items);
   }
 
   /**
@@ -405,16 +405,16 @@ export class Engine {
    * conteneur n'est pas sélectionné à part. `add` : ajoute à la sélection au lieu de la remplacer.
    */
   selectInRect(rect: Rect, options: { add: boolean; touch: boolean }): void {
-    this.core.selectInRect(rect, options);
+    this.core.selection.selectInRect(rect, options);
   }
 
   /** Tout sélectionner (⌘ + A, ticket 122) : tous les éléments de la page courante, comme une zone qui les couvrirait. */
   selectAll(): void {
-    this.core.selectAll();
+    this.core.selection.selectAll();
   }
 
   clearSelection(): void {
-    this.core.clearSelection();
+    this.core.selection.clearSelection();
   }
 
   /** Construit en arrière-plan la page cible d'un lien, sans l'afficher (SPEC §11.1). */
@@ -755,7 +755,7 @@ export class Engine {
    * une sélection.
    */
   getModeHint(): ModeHint | undefined {
-    return this.core.getModeHint();
+    return this.core.keys.getModeHint();
   }
 
   on<K extends EngineEvent>(event: K, handler: (...args: EngineEvents[K]) => void): () => void {

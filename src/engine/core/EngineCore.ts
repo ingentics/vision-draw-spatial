@@ -1,4 +1,4 @@
-import { Box3, Group, Matrix4, Mesh, Vector3 } from 'three';
+import { Group, Mesh } from 'three';
 import type { MeshBasicMaterial, Object3D } from 'three';
 import { Emitter } from '../events';
 import { formatLink, isNavigableLink } from '../format/link';
@@ -53,17 +53,9 @@ import { collectMoveSet, isLocked, moveTarget, snapDelta, translateMoveSet, unio
 import type { MoveSet } from '../edit/move';
 import { alignDeltas, distributeDeltas } from '../edit/align';
 import type { AlignItem, AlignMove, AlignReference, DistributeMove } from '../edit/align';
-import {
-  anchorOf,
-  edgeTextLayout,
-  edgeTexts,
-  endAt,
-  endLabelOf,
-  flipTarget,
-  setEdgeTextPlacement,
-} from '../edit/edgeLabels';
+import { anchorOf, edgeTextLayout, edgeTexts, endLabelOf, flipTarget, setEdgeTextPlacement } from '../edit/edgeLabels';
 import type { EdgeTextLayout, EndTextGap, EdgeEnd } from '../edit/edgeLabels';
-import { labelPoint, length as polylineLength, placementAt, positionAlong } from '../render/edges/polyline';
+import { labelPoint, length as polylineLength, placementAt } from '../render/edges/polyline';
 import { CONNECT_DIRECTIONS, connectSideOf, handlePoints, isConnectHandle, resizeBounds } from '../edit/handles';
 import type { ConnectSide, HandleKind, HandleLayout, ResizeHandle } from '../edit/handles';
 import { arrangeAnchors, arrangementChanges, arrangementConflicts } from '../edit/arrange';
@@ -77,18 +69,14 @@ import { dropBounds } from '../edit/palette';
 import { applyStylePreset } from '../edit/styles';
 import type { StylePreset } from '../edit/styles';
 import type { ShapeTemplate } from '../edit/palette';
-import { fitBounds, interpolateCamera, pageToScreen, screenToPage, withViewMode } from '../interaction/camera';
+import { fitBounds, interpolateCamera, screenToPage, withViewMode } from '../interaction/camera';
 import type { CameraState } from '../interaction/camera';
-import { CameraController } from '../interaction/controls';
-import type { HeldKeys } from '../interaction/controls';
+import type { CameraController } from '../interaction/controls';
 import { NavigationHistory, findParents, usageKey } from '../interaction/history';
 import type { HistoryEntry, LinkUsage } from '../interaction/history';
 import { GRAPH_PAGE_ID } from '../graph/graphPage';
-import { distanceToPolyline, insidePolygon, pickElement } from '../interaction/pick';
 import type { PickedElement } from '../interaction/pick';
-import { marqueeTakes } from '../interaction/marquee';
-import type { Footprint } from '../interaction/marquee';
-import { FOLLOW_LINK_KEY_LABELS, followLinkGesture, independentRoots, toggleSelected } from '../interaction/selection';
+import { FOLLOW_LINK_KEY_LABELS, followLinkGesture, independentRoots } from '../interaction/selection';
 import { easing, embedIn, embeddedCamera, phase } from '../interaction/transitions';
 import { computeBounds } from '../model/bounds';
 import type {
@@ -101,18 +89,11 @@ import type {
   Rect,
   ShapeModel,
 } from '../model/types';
-import { linkZone, selectionOutline } from '../render/decorations';
+import { linkZone } from '../render/decorations';
 import { middleTextAlong, toTerminal } from '../render/edges/edge';
 import { fixedAnchor, perimeterKind, routeEdgePoints, routingCenter } from '../render/edges/route';
 import { parseStyle } from '../format/style';
-import {
-  connectionHints,
-  connectorPreview,
-  edgeEndHandles,
-  edgePointHandles,
-  selectionHandles,
-} from '../render/handles';
-import { createVeil, createVeilHole, liftAboveVeil } from '../render/highlight';
+import { connectionHints, connectorPreview } from '../render/handles';
 import { disposeObject } from '../render/meshes';
 import { setElementsDim, setPageOpacity } from '../render/pageEffects';
 import { createEdgeObject, createShapeObject, edgeRoute, placeInDrawOrder } from '../render/pageScene';
@@ -145,9 +126,7 @@ import type {
   EngineOptions,
   LabelEditPlane,
   LabelEditRequest,
-  ModeHint,
   ModeIndicator,
-  Selection,
 } from './types';
 import { Config } from './runtime/config';
 import type { Settings } from '../settings';
@@ -156,12 +135,18 @@ import { Display } from './runtime/display';
 import { DocumentFile } from './document/file';
 import { EditHistory } from './document/undo';
 import { Pages } from './document/pages';
+import { createCameraController } from './input/controls';
 import { ViewCamera } from './view/camera';
 import { ViewModes } from './view/viewModes';
 import { Levels } from './view/levels';
 import { SceneView } from './view/scene';
 import { GraphView } from './view/graph';
 import { MinimapView } from './view/minimap';
+import { Selections } from './selection/selection';
+import { Picking } from './selection/picking';
+import { SelectionHighlight } from './selection/highlight';
+import { PointerInput } from './input/pointer';
+import { ModifierKeys } from './input/keys';
 
 /** Ouvre une URL externe (SPEC §11.4) : nouvel onglet, sans accès retour à cette page. */
 function defaultOpenUrl(href: string): void {
@@ -175,15 +160,6 @@ const ORDER_LABELS: Record<OrderMove, string> = {
   forward: 'Avancer',
   backward: 'Reculer',
 };
-
-/** Éléments pris sans leur conteneur (un élément pris avec lui n'est pas sélectionné à part), par ordre de z. */
-function takenRoots(page: PageModel, taken: PickedElement[]): PickedElement[] {
-  const ids = new Set(taken.map((item) => item.element.id));
-  const parentOf = new Map(page.shapes.map((s) => [s.id, s.parentId]));
-  const hasTakenAncestor = (id: string | undefined): boolean =>
-    id !== undefined && (ids.has(id) || hasTakenAncestor(parentOf.get(id)));
-  return taken.filter((item) => !hasTakenAncestor(item.element.parentId)).sort((a, b) => a.element.z - b.element.z);
-}
 
 /** Glisser d'édition en cours (SPEC §14.1). */
 interface MoveDrag {
@@ -299,21 +275,14 @@ function samePoints(a: Point[], b: Point[]): boolean {
   return a.length === b.length && a.every((p, i) => p.x === b[i]!.x && p.y === b[i]!.y);
 }
 
-/** Curseur de chaque poignée de redimensionnement. */
-const HANDLE_CURSORS: Record<ResizeHandle, string> = {
-  nw: 'nwse-resize',
-  se: 'nwse-resize',
-  ne: 'nesw-resize',
-  sw: 'nesw-resize',
-  n: 'ns-resize',
-  s: 'ns-resize',
-  e: 'ew-resize',
-  w: 'ew-resize',
-};
-
 /** Cœur du moteur : état et comportement, derrière la façade `Engine` (SPEC §4.3). */
 export class EngineCore {
   // Domaines
+  readonly keys = new ModifierKeys(this);
+  readonly pointer = new PointerInput(this);
+  readonly highlight = new SelectionHighlight(this);
+  readonly picking = new Picking(this);
+  readonly selection = new Selections(this);
   readonly minimap = new MinimapView(this);
   readonly graph = new GraphView(this);
   readonly sceneView = new SceneView(this);
@@ -348,22 +317,9 @@ export class EngineCore {
   disposed = false;
 
   readonly openUrl: (href: string) => void;
-  selection: Selection | undefined;
-  /** Contours de la sélection (style « contour »), un par élément sélectionné. */
-  selectionObject: Group | undefined;
   /** Touche pour suivre un lien maintenue : zones liées de la page en évidence (`linkZonesObject`). */
   linkZonesShown = false;
-  heldKeys: HeldKeys = { followLink: false, multiSelect: false };
-  modeHint: ModeHint | undefined;
   linkZonesObject: Group | undefined;
-  /** Contour animé : décalage des tirets (pixels écran) et boucle d'animation. */
-  selectionPhase = 0;
-  /** Voile de mise en valeur de la sélection, et de quoi l'annuler. */
-  veil: { key: string; object: Object3D; restore: () => void } | undefined;
-  /** Trou du voile autour d'une flèche sélectionnée (dépend du zoom : largeur fixe à l'écran). */
-  veilHole: { key: string; object: Object3D } | undefined;
-  selectionAnimation = 0;
-  hoverTimer: ReturnType<typeof setTimeout> | undefined;
   /** Transition en cours : de quoi l'interrompre proprement. */
   transition: { abort: () => void } | undefined;
   readonly history = new NavigationHistory();
@@ -371,13 +327,6 @@ export class EngineCore {
   /** Glisser d'édition en cours (déplacement, redimensionnement, connecteur). */
   drag: MoveDrag | ResizeDrag | ConnectDrag | EdgeEndDrag | EdgePointsDrag | LabelDrag | undefined;
   connectorPreview: Object3D | undefined;
-  /** Contours des formes pour le clic (`shapeOutline`). */
-  readonly outlines = new WeakMap<
-    ShapeModel,
-    { bounds: Rect; style: Record<string, string>; outline: Point[] | undefined }
-  >();
-  /** Poignées de la forme sélectionnée. */
-  handlesObject: Object3D | undefined;
   /**
    * Dernière copie faite dans l'appli (ticket 59) : son XML, sa page d'origine et le parent de ses
    * éléments (pour recoller dans le même conteneur), et le décalage du prochain collage, en pas de grille.
@@ -413,43 +362,7 @@ export class EngineCore {
 
     this.display.observe();
 
-    this.controller = new CameraController(
-      this.canvas,
-      {
-        getCameraState: () => this.camera.state,
-        setCameraState: (state) => this.camera.setCameraState(state),
-        getViewport: () => this.display.viewport,
-        toggleOverview: (screen) => this.camera.toggleOverview(screen),
-        click: (screen, options) => this.handleClick(screen, options.toggle, options.followLink),
-        doubleClick: (screen, options) => this.handleDoubleClick(screen, options.followLink),
-        heldKeys: (held) => this.setHeldKeys(held),
-        hover: (screen) => this.handleHover(screen),
-        back: () => this.back(),
-        toggleViewMode: () => this.viewModes.toggleViewMode(),
-        toggle3d: () => this.viewModes.toggle3d(),
-        toggleMinimap: () => this.events.emit('minimapToggle'),
-        toggleFlatten: () => this.viewModes.toggleFlatten(),
-        toggleGraph: () => this.graph.toggleGraph(),
-        beginMove: (screen) => this.beginMove(screen),
-        moveTo: (screen, options) => this.moveTo(screen, options.snap),
-        endMove: () => this.endMove(),
-        canMarquee: (screen) => !!this.editablePage() && !this.pickAt(screen),
-        selectInRect: (rect, options) => this.selectInRect(rect, options),
-        selectAll: () => this.selectAll(),
-        orderSelection: (move) => this.orderSelection(move),
-        nudgeSelection: (direction, coarse) => this.nudgeSelection(direction, coarse),
-        editSelection: () => this.editLabel(),
-        deleteSelection: () => this.deleteSelection(),
-        placementVariant: () => this.placementVariant(),
-        canDeleteSelection: () => {
-          const editable = this.editablePage();
-          return !!editable && this.selection?.pageId === editable.page.id;
-        },
-        escape: () => this.clearSelection(),
-        modeKey: (key) => this.modeKey(key),
-      },
-      this.config.effectiveControls(),
-    );
+    this.controller = createCameraController(this);
   }
 
   // -------------------------------------------------------------------------
@@ -471,7 +384,7 @@ export class EngineCore {
     if (this.editable === editable) return;
     this.endMove();
     this.editable = editable;
-    this.updateSelectionOutline();
+    this.highlight.update();
   }
 
   addShape(template: ShapeTemplate, screen?: Point): string | undefined {
@@ -490,7 +403,7 @@ export class EngineCore {
     const id = addShapeCell(pageTree, { style, value: template.value, ...bounds });
     this.file.documentChanged([page.id]);
     const shape = this.pages.getCurrentPage()?.shapes.find((s) => s.id === id);
-    if (shape) this.select({ type: 'shape', element: shape });
+    if (shape) this.selection.select({ type: 'shape', element: shape });
     return id;
   }
 
@@ -582,7 +495,10 @@ export class EngineCore {
     const editable = this.editablePage();
     if (!editable || this.anchoringOf(editable.page) !== 'auto' || !this.file.xmlTree) return false;
     const { page, pageTree } = editable;
-    const picked = this.selection?.pageId === page.id && !this.isMultiSelection() ? this.selection.picked : undefined;
+    const picked =
+      this.selection.current?.pageId === page.id && !this.selection.isMultiSelection()
+        ? this.selection.current.picked
+        : undefined;
     const around =
       picked?.type === 'edge'
         ? [picked.element.sourceId, picked.element.targetId].filter((id): id is string => !!id)
@@ -680,121 +596,8 @@ export class EngineCore {
   // -------------------------------------------------------------------------
   // Sélection et liens (SPEC §11)
 
-  getSelection(): Selection | undefined {
-    return this.selection;
-  }
-
   isTransitioning(): boolean {
     return this.transition !== undefined;
-  }
-
-  pickAt(screen: Point): PickedElement | undefined {
-    const page = this.pages.getCurrentPage();
-    if (!page) return undefined;
-    // Texte d'une flèche, même placé loin d'elle : la flèche.
-    const text = this.edgeTextAt(screen);
-    if (text) return { type: 'edge', element: text.edge };
-    const point = screenToPage(this.camera.state, this.display.viewport, screen);
-    return pickElement(page, point, {
-      edgeTolerance: this.settings.edit.edgePickTolerance / this.camera.state.zoom,
-      edgeRoute: (id) => {
-        const data = this.sceneView.sceneObject(id)?.userData;
-        return (data?.path ?? data?.route) as Point[] | undefined;
-      },
-      heightOf: (id) => this.sceneView.elementTop(id),
-      baseOf: (id) => this.sceneView.volumeBase(id),
-      pointAtHeight: (height) => this.groundPointAtHeight(screen, height),
-      contains: (shape, p) => this.registry.contains(shape, p, () => this.shapeOutline(shape)),
-      pickable: (shape) => this.registry.isPickable(shape),
-    });
-  }
-
-  /** Contour d'une forme (sa définition), mémorisé tant que ses bornes et son style ne changent pas. */
-  shapeOutline(shape: ShapeModel): Point[] | undefined {
-    const cached = this.outlines.get(shape);
-    if (cached && cached.bounds === shape.bounds && cached.style === shape.style) return cached.outline;
-    const outline = this.registry.resolve(shape).definition.outline?.(shape);
-    this.outlines.set(shape, { bounds: shape.bounds, style: shape.style, outline });
-    return outline;
-  }
-
-  select(picked: PickedElement | undefined): void {
-    this.selectItems(picked ? [picked] : []);
-  }
-
-  toggleSelect(picked: PickedElement): void {
-    const current = this.selection?.pageId === this.pages.currentPageId ? (this.selection?.items ?? []) : [];
-    this.selectItems(toggleSelected(current, picked));
-  }
-
-  selectItems(items: PickedElement[]): void {
-    const page = this.pages.getCurrentPage();
-    const picked = items[items.length - 1];
-    this.selection = picked && page ? { pageId: page.id, picked, items: [...items] } : undefined;
-    this.updateSelectionOutline();
-    this.syncSelectionAnimation();
-    this.events.emit('selectionChange', this.selection);
-    this.emitModeHint();
-    if (page && items.length === 1) this.pickModeCurrent(page, items[0]!.element);
-  }
-
-  selectInRect(rect: Rect, options: { add: boolean; touch: boolean }): void {
-    const page = this.pages.getCurrentPage();
-    if (!page) return;
-    const taken = this.selectableItems(page).filter((item) => {
-      const footprint = this.screenFootprint(item);
-      return footprint !== undefined && marqueeTakes(footprint, rect, options.touch);
-    });
-    const roots = takenRoots(page, taken);
-    const current = options.add && this.selection?.pageId === page.id ? this.selection.items : [];
-    const kept = current.filter((item) => !roots.some((r) => r.element.id === item.element.id));
-    this.selectItems([...kept, ...roots]);
-  }
-
-  selectAll(): void {
-    const page = this.pages.getCurrentPage();
-    if (page) this.selectItems(takenRoots(page, this.selectableItems(page)));
-  }
-
-  /** Éléments sélectionnables de la page : visibles, sur un calque visible. */
-  selectableItems(page: PageModel): PickedElement[] {
-    const hiddenLayers = new Set(page.layers.filter((l) => !l.visible).map((l) => l.id));
-    return [
-      ...page.shapes
-        // Comme au clic : un groupe invisible n'est pris que s'il porte un lien (sinon on prend ses formes).
-        .filter((s) => this.registry.isPickable(s))
-        .map((element) => ({ type: 'shape' as const, element })),
-      ...page.edges.map((element) => ({ type: 'edge' as const, element })),
-    ].filter(({ element }) => element.visible && !hiddenLayers.has(element.layerId));
-  }
-
-  /** Emprise à l'écran d'un élément : base et dessus d'une forme, tracé d'une flèche. */
-  screenFootprint(item: PickedElement): Footprint | undefined {
-    const top = this.sceneView.elementTop(item.element.id);
-    if (item.type === 'shape') {
-      const { x, y, width, height } = item.element.bounds;
-      const corners = [
-        { x, y },
-        { x: x + width, y },
-        { x: x + width, y: y + height },
-        { x, y: y + height },
-      ];
-      const heights = top === 0 ? [0] : [0, top];
-      return { points: heights.flatMap((h) => corners.map((p) => this.screenOfPoint(p, h))), closed: true };
-    }
-    const route = this.sceneView.sceneObject(item.element.id)?.userData.route as Point[] | undefined;
-    if (!route?.length) return undefined;
-    return { points: route.map((p) => this.screenOfPoint(p, top)), closed: false };
-  }
-
-  /** La sélection compte-t-elle plusieurs éléments ? */
-  isMultiSelection(): boolean {
-    return (this.selection?.items.length ?? 0) > 1;
-  }
-
-  clearSelection(): void {
-    if (!this.selection) return;
-    this.select(undefined);
   }
 
   preloadLink(link: LinkModel | undefined): void {
@@ -925,7 +728,7 @@ export class EngineCore {
 
     cancelAnimationFrame(this.camera.animation);
     this.camera.animation = 0;
-    this.clearSelection();
+    this.selection.clearSelection();
     const embedding = embedIn(inner.bounds, frame);
     const outerScene = this.scenes.prebuild(outer);
     const innerScene = this.scenes.prebuild(inner);
@@ -1020,10 +823,10 @@ export class EngineCore {
   /** Forme sélectionnée sur la page courante, si on peut la modifier (poignées affichées). */
   editableSelection(): { page: PageModel; pageTree: PageTree; shape: ShapeModel } | undefined {
     const editable = this.editablePage();
-    const picked = this.selection?.picked;
-    if (!editable || picked?.type !== 'shape' || this.selection?.pageId !== editable.page.id) return undefined;
+    const picked = this.selection.current?.picked;
+    if (!editable || picked?.type !== 'shape' || this.selection.current?.pageId !== editable.page.id) return undefined;
     // Poignées, redimensionnement et connecteur : une seule forme sélectionnée.
-    if (this.isMultiSelection()) return undefined;
+    if (this.selection.isMultiSelection()) return undefined;
     const shape = editable.page.shapes.find((s) => s.id === picked.element.id);
     if (!shape || isLocked(shape) || !canMoveCell(editable.pageTree, shape.id)) return undefined;
     return { ...editable, shape };
@@ -1032,9 +835,9 @@ export class EngineCore {
   /** Flèche sélectionnée seule sur la page courante, si on peut la modifier (poignées de ses bouts). */
   editableEdgeSelection(): { page: PageModel; pageTree: PageTree; edge: EdgeModel } | undefined {
     const editable = this.editablePage();
-    const picked = this.selection?.picked;
-    if (!editable || picked?.type !== 'edge' || this.selection?.pageId !== editable.page.id) return undefined;
-    if (this.isMultiSelection()) return undefined;
+    const picked = this.selection.current?.picked;
+    if (!editable || picked?.type !== 'edge' || this.selection.current?.pageId !== editable.page.id) return undefined;
+    if (this.selection.isMultiSelection()) return undefined;
     const edge = editable.page.edges.find((e) => e.id === picked.element.id);
     if (!edge || isLocked(edge) || !editable.pageTree.cells.get(edge.id)?.cell) return undefined;
     return { ...editable, edge };
@@ -1068,7 +871,7 @@ export class EngineCore {
     const top = this.sceneView.elementTop(edge.id);
     let best: { end: TerminalEnd; distance: number } | undefined;
     for (const end of ['target', 'source'] as const) {
-      const at = this.screenOfPoint(ends[end], top);
+      const at = this.picking.screenOfPoint(ends[end], top);
       const distance = Math.hypot(at.x - screen.x, at.y - screen.y);
       if (distance <= this.settings.edit.handlePickTolerance && (!best || distance < best.distance))
         best = { end, distance };
@@ -1119,24 +922,13 @@ export class EngineCore {
     const top = this.sceneView.elementTop(editable.edge.id);
     let best: { handle: PointHandle; distance: number } | undefined;
     for (const handle of pointHandles(context)) {
-      const at = this.screenOfPoint(handle.point, top);
+      const at = this.picking.screenOfPoint(handle.point, top);
       // À distance égale, une vraie poignée passe avant une poignée en transparence.
       const distance = Math.hypot(at.x - screen.x, at.y - screen.y) + (handle.faded ? 0.5 : 0);
       if (distance <= this.settings.edit.handlePickTolerance && (!best || distance < best.distance))
         best = { handle, distance };
     }
     return best?.handle;
-  }
-
-  /** Curseur d'une poignée entre les bouts (segment : perpendiculaire à lui). */
-  pointHandleCursor(handle: PointHandle, style: Record<string, string>): string {
-    if (handle.kind === 'segment') return handle.vertical ? 'col-resize' : 'row-resize';
-    if (handle.kind === 'elbow')
-      return style.edgeStyle === 'topToBottomEdgeStyle' ||
-        (style.edgeStyle === 'elbowEdgeStyle' && style.elbow === 'vertical')
-        ? 'row-resize'
-        : 'col-resize';
-    return 'move';
   }
 
   /** Écrit les points intermédiaires d'une flèche (repère de son parent, comme draw.io). */
@@ -1182,9 +974,9 @@ export class EngineCore {
   ): EndAttachment {
     if (this.anchoringOf(page) === 'auto') {
       // Ancrage automatique : on ne vise que le côté de la forme (le plus proche du pointeur) ; la répartition suit.
-      const shape = this.shapeAt(screen, options.exclude);
+      const shape = this.picking.shapeAt(screen, options.exclude);
       if (shape) {
-        const pointer = this.groundPointAtHeight(screen, this.sceneView.elementTop(shape.id));
+        const pointer = this.picking.groundPointAtHeight(screen, this.sceneView.elementTop(shape.id));
         const side = sideOfConstraint(frameConstraint(shape.bounds, pointer)) ?? 'n';
         return { kind: 'fixed', shapeId: shape.id, constraint: sideMiddle(side) };
       }
@@ -1197,16 +989,16 @@ export class EngineCore {
     for (const shape of shapes) {
       const top = this.sceneView.elementTop(shape.id);
       for (const { constraint } of this.anchorsOf(page, shape, options.skip, options.taken)) {
-        const at = this.screenOfPoint(this.anchorPosition(shape, constraint), top);
+        const at = this.picking.screenOfPoint(this.anchorPosition(shape, constraint), top);
         const distance = Math.hypot(at.x - screen.x, at.y - screen.y);
         if (distance <= this.settings.edit.handlePickTolerance * 1.5 && (!best || distance < best.distance))
           best = { shapeId: shape.id, constraint, distance };
       }
     }
     if (best) return { kind: 'fixed', shapeId: best.shapeId, constraint: { ...best.constraint } };
-    const shape = this.shapeAt(screen, options.exclude);
+    const shape = this.picking.shapeAt(screen, options.exclude);
     if (shape) return { kind: 'floating', shapeId: shape.id };
-    const point = this.groundPointAtHeight(screen, options.height);
+    const point = this.picking.groundPointAtHeight(screen, options.height);
     const step = options.snap && options.grid > 0 ? options.grid : 1;
     return { kind: 'free', point: { x: Math.round(point.x / step) * step, y: Math.round(point.y / step) * step } };
   }
@@ -1312,26 +1104,6 @@ export class EngineCore {
     );
   }
 
-  /** Forme sous un point écran à laquelle on peut attacher une flèche (les flèches sont ignorées). */
-  shapeAt(screen: Point, exclude?: string): ShapeModel | undefined {
-    const page = this.pages.getCurrentPage();
-    if (!page) return undefined;
-    const connectable = new Set(connectableShapes(page, this.registry).map((s) => s.id));
-    const picked = pickElement(
-      { ...page, shapes: page.shapes.filter((s) => connectable.has(s.id) && s.id !== exclude), edges: [] },
-      screenToPage(this.camera.state, this.display.viewport, screen),
-      {
-        edgeTolerance: 0,
-        edgeRoute: () => undefined,
-        heightOf: (id) => this.sceneView.elementTop(id),
-        baseOf: (id) => this.sceneView.volumeBase(id),
-        pointAtHeight: (height) => this.groundPointAtHeight(screen, height),
-        contains: (shape, p) => this.registry.contains(shape, p, () => this.shapeOutline(shape)),
-      },
-    );
-    return picked?.type === 'shape' ? picked.element : undefined;
-  }
-
   /** Repères d'accroche (contour, points de connexion) sur la forme visée par un bout de flèche. */
   showConnectionHints(
     page: PageModel,
@@ -1408,11 +1180,6 @@ export class EngineCore {
     this.rendering.requestRender();
   }
 
-  /** Point écran d'un point de la page posé à `height` au-dessus du sol (inverse de `groundPointAtHeight`). */
-  screenOfPoint(point: Point, height: number): Point {
-    return pageToScreen(this.camera.state, this.display.viewport, point, height);
-  }
-
   /** Disposition des poignées de la sélection (paramètres d'édition). */
   handleLayout(): HandleLayout {
     const { connectHandleOffset, middleHandleMinSpan } = this.settings.edit;
@@ -1429,7 +1196,7 @@ export class EngineCore {
     let best: { kind: HandleKind; distance: number } | undefined;
     for (const { kind, point } of handlePoints(shape.bounds, this.camera.state.zoom, this.handleLayout())) {
       if (!isConnectHandle(kind) && !resizable) continue;
-      const at = this.screenOfPoint(point, top);
+      const at = this.picking.screenOfPoint(point, top);
       const distance = Math.hypot(at.x - screen.x, at.y - screen.y);
       if (distance <= this.settings.edit.handlePickTolerance && (!best || distance < best.distance))
         best = { kind, distance };
@@ -1499,15 +1266,15 @@ export class EngineCore {
       return true;
     }
 
-    const picked = this.pickAt(screen);
+    const picked = this.picking.pickAt(screen);
     if (picked?.type !== 'shape') return false;
     const shape = moveTarget(page, picked.element, this.registry);
     if (isLocked(shape) || !canMoveCell(pageTree, shape.id)) return false;
     // Forme saisie dans une sélection multiple : toutes les formes sélectionnées bougent ensemble
     // (celles qu'on ne peut pas déplacer restent en place).
-    const selection = this.selection;
+    const selection = this.selection.current;
     const grabbedSelected =
-      this.isMultiSelection() &&
+      this.selection.isMultiSelection() &&
       selection?.pageId === page.id &&
       selection.items.some(
         (item) => item.type === 'shape' && moveTarget(page, item.element, this.registry).id === shape.id,
@@ -1580,7 +1347,7 @@ export class EngineCore {
 
   nudgeSelection(direction: Point, coarse: boolean): boolean {
     const editable = this.editablePage();
-    const selection = this.selection;
+    const selection = this.selection.current;
     if (!editable || this.drag || selection?.pageId !== editable.page.id) return false;
     const { page, pageTree } = editable;
     const shapes = selection.items
@@ -1633,7 +1400,7 @@ export class EngineCore {
     const route = this.sceneView.sceneObject(drag.edgeId)?.userData.route as Point[] | undefined;
     if (!edge || !route?.length) return;
     drag.started = true;
-    const point = this.groundPointAtHeight(screen, this.sceneView.elementTop(drag.edgeId));
+    const point = this.picking.groundPointAtHeight(screen, this.sceneView.elementTop(drag.edgeId));
     let placement = placementAt(route, point, drag.offset);
     // Texte du milieu qui suit la flèche, glissé le long du trait : le point visé est celui du texte glissé.
     const shift = drag.cellId === edge.id ? this.followedText(edge.id)?.shift : undefined;
@@ -1717,45 +1484,6 @@ export class EngineCore {
     this.relocateLabelEdit();
   }
 
-  /**
-   * Texte de flèche sous un point écran (sa boîte de texte dessinée, où qu'il soit placé) : le plus
-   * haut dans l'ordre de dessin. Cliquer un texte éloigné de sa flèche la sélectionne.
-   */
-  edgeTextAt(screen: Point): { edge: EdgeModel; cellId: string } | undefined {
-    const page = this.pages.getCurrentPage();
-    const root = this.scenes.current?.root;
-    if (!page || !root) return undefined;
-    root.updateMatrixWorld();
-    const toPage = new Matrix4().copy(root.matrixWorld).invert();
-    const padding = 2 / this.camera.state.zoom;
-    for (const edge of [...page.edges].reverse()) {
-      const object = this.sceneView.sceneObject(edge.id);
-      if (!object?.visible) continue;
-      const point = this.groundPointAtHeight(screen, this.sceneView.elementTop(edge.id));
-      let hit: string | undefined;
-      object.traverse((child) => {
-        const cellId = child.userData.labelCellId as string | undefined;
-        if (hit || !cellId || !child.visible) return;
-        // Texte le long du trait : la boîte tournée de chaque lettre (un coude ne fait pas une grande zone).
-        if (child.userData.alongPath) {
-          if (drawnGlyphQuads(child, toPage).some((quad) => nearPolygon(quad, point, padding))) hit = cellId;
-          return;
-        }
-        const box = drawnTextBox(child, toPage);
-        if (
-          box &&
-          point.x >= box.min.x - padding &&
-          point.x <= box.max.x + padding &&
-          point.y >= box.min.y - padding &&
-          point.y <= box.max.y + padding
-        )
-          hit = cellId;
-      });
-      if (hit) return { edge, cellId: hit };
-    }
-    return undefined;
-  }
-
   setEdgeTextAnchor(edgeId: string, cellId: string, anchor: EdgeTextAnchor): void {
     const editable = this.editablePage();
     const edge = editable?.page.edges.find((e) => e.id === edgeId);
@@ -1812,8 +1540,8 @@ export class EngineCore {
     if (!along) return rest;
     const { point, tangent } = alongAnchor(along);
     const top = this.sceneView.elementTop(request.elementId);
-    const from = this.screenOfPoint(point, top);
-    const to = this.screenOfPoint({ x: point.x + tangent.x * 10, y: point.y + tangent.y * 10 }, top);
+    const from = this.picking.screenOfPoint(point, top);
+    const to = this.picking.screenOfPoint({ x: point.x + tangent.x * 10, y: point.y + tangent.y * 10 }, top);
     let angle = Math.atan2(to.y - from.y, to.x - from.x);
     // Jamais à l'envers, comme le texte dessiné.
     if (angle > Math.PI / 2 + 1e-9) angle -= Math.PI;
@@ -1871,7 +1599,8 @@ export class EngineCore {
       move.started = true;
       // Une forme seule devient la sélection ; une sélection multiple déplacée reste telle quelle.
       const shape = page.shapes.find((s) => s.id === move.set.rootId);
-      if (shape && move.rootIds.length === 1 && move.edges.length === 0) this.select({ type: 'shape', element: shape });
+      if (shape && move.rootIds.length === 1 && move.edges.length === 0)
+        this.selection.select({ type: 'shape', element: shape });
       // Bouts détachés : libres là où ils sont, avant le premier pas.
       const detached = new Set<string>();
       for (const moved of move.edges) {
@@ -1953,7 +1682,7 @@ export class EngineCore {
       const end =
         connect.target?.kind === 'fixed' && target
           ? this.anchorPosition(target, connect.target.constraint)
-          : this.groundPointAtHeight(screen, top);
+          : this.picking.groundPointAtHeight(screen, top);
       connect.loop =
         target?.id === source.id && connect.target?.kind === 'fixed'
           ? this.loopBetween(source, sideExit, connect.target.constraint)
@@ -1985,7 +1714,7 @@ export class EngineCore {
         ? this.anchorPosition(target, connect.target.constraint)
         : target
           ? { x: target.bounds.x + target.bounds.width / 2, y: target.bounds.y + target.bounds.height / 2 }
-          : this.groundPointAtHeight(screen, top);
+          : this.picking.groundPointAtHeight(screen, top);
     // Départ : point libre du côté de la poignée le plus proche de la cible visée.
     const exit = loop
       ? loopExit
@@ -2018,7 +1747,7 @@ export class EngineCore {
     const pageTree = this.file.pageTreeOf(page.id);
     if (!edge || !pageTree) return;
     drag.started = true;
-    const raw = this.groundPointAtHeight(screen, this.sceneView.elementTop(edge.id));
+    const raw = this.picking.groundPointAtHeight(screen, this.sceneView.elementTop(edge.id));
     const grid = gridSizeOf(pageTree);
     const step = snap && grid > 0 ? grid : 1;
     const pointer = { x: Math.round(raw.x / step) * step, y: Math.round(raw.y / step) * step };
@@ -2145,7 +1874,7 @@ export class EngineCore {
       }
       this.file.documentChanged([drag.pageId]);
       const edge = this.pages.getCurrentPage()?.edges.find((e) => e.id === id);
-      if (edge) this.select({ type: 'edge', element: edge });
+      if (edge) this.selection.select({ type: 'edge', element: edge });
       return;
     }
 
@@ -2219,8 +1948,8 @@ export class EngineCore {
   /** Après une modification en direct : contour, poignées, voile et mini-carte à jour. */
   afterLiveEdit(): void {
     // Le voile met en valeur des objets précis : il est reconstruit (objets remplacés).
-    this.clearVeil();
-    this.updateSelectionOutline();
+    this.highlight.clearVeil();
+    this.highlight.update();
     this.minimap.invalidate();
     this.rendering.requestRender();
   }
@@ -2291,7 +2020,7 @@ export class EngineCore {
     // Hors voile, la racine d'un élément porte son rang dans l'ordre de dessin. Sous le voile, elle
     // porte en plus la mise en avant : on la retire d'abord (le voile est remis par `afterLiveEdit`),
     // sinon le nouvel objet la garderait, et chaque pas d'un glisser l'ajouterait encore.
-    this.clearVeil();
+    this.highlight.clearVeil();
     placeInDrawOrder(object, old.renderOrder);
     old.removeFromParent();
     disposeObject(old);
@@ -2303,7 +2032,7 @@ export class EngineCore {
 
   editLabel(elementId?: string): void {
     const editable = this.editablePage();
-    const id = elementId ?? this.selection?.picked.element.id;
+    const id = elementId ?? this.selection.current?.picked.element.id;
     const element =
       editable && id ? [...editable.page.shapes, ...editable.page.edges].find((e) => e.id === id) : undefined;
     if (!editable || !element || !editable.pageTree.cells.get(element.id)?.cell) return;
@@ -2384,7 +2113,7 @@ export class EngineCore {
     this.closeLabelEdit();
     this.labelEditing = this.withAngle(this.withFlip(request));
     this.hideEditedLabel();
-    this.updateSelectionOutline();
+    this.highlight.update();
     this.events.emit('labelEdit', this.labelEditing);
   }
 
@@ -2399,7 +2128,7 @@ export class EngineCore {
       const shape = this.pages.getCurrentPage()?.shapes.find((s) => s.id === elementId);
       const level = this.scenes.current?.level ?? 'flat';
       return shape
-        ? this.screenRectOf(elementId, this.labelEditZone(shape, level), this.sceneView.labelTop(shape))
+        ? this.picking.screenRectOf(elementId, this.labelEditZone(shape, level), this.sceneView.labelTop(shape))
         : undefined;
     }
     // Flèche : le point où le texte est dessiné (son label, un label enfant, ou un début / fin à créer).
@@ -2412,7 +2141,7 @@ export class EngineCore {
     // Texte du milieu qui suit la flèche : son point le long du trait dessiné (glissement compris).
     const along = !child && !end ? this.followedText(elementId) : undefined;
     const point = along ? alongAnchor(along).point : labelPoint(route, placement);
-    const center = this.screenOfPoint(point, this.sceneView.elementTop(elementId));
+    const center = this.picking.screenOfPoint(point, this.sceneView.elementTop(elementId));
     return { x: center.x, y: center.y, width: 0, height: 0 };
   }
 
@@ -2436,7 +2165,7 @@ export class EngineCore {
     if (!shape) return undefined;
     const { x, y, width, height } = this.labelEditZone(shape, this.scenes.current?.level ?? 'flat');
     const top = this.sceneView.labelTop(shape);
-    const at = (px: number, py: number) => this.screenOfPoint({ x: px, y: py }, top);
+    const at = (px: number, py: number) => this.picking.screenOfPoint({ x: px, y: py }, top);
     return {
       width,
       height,
@@ -2476,7 +2205,7 @@ export class EngineCore {
     if (!editing) return;
     this.labelEditing = undefined;
     this.sceneView.labelObjects(editing.styleCellId).forEach((object) => (object.visible = true));
-    this.updateSelectionOutline();
+    this.highlight.update();
   }
 
   hideEditedLabel(): void {
@@ -2489,7 +2218,7 @@ export class EngineCore {
   /** Pixels écran par pixel de page au niveau d'un élément (taille du texte de l'éditeur en place). */
   textScale(elementId: string): number {
     if (this.camera.state.mode !== '3d') return this.camera.state.zoom;
-    const rect = this.screenRectOf(elementId);
+    const rect = this.picking.screenRectOf(elementId);
     const top = this.sceneView.elementTop(elementId);
     const center = rect
       ? screenToPage(this.camera.state, this.display.viewport, {
@@ -2497,9 +2226,9 @@ export class EngineCore {
           y: rect.y + rect.height / 2,
         })
       : { x: 0, y: 0 };
-    const at = this.screenOfPoint(center, top);
-    const dx = this.screenOfPoint({ x: center.x + 10, y: center.y }, top);
-    const dy = this.screenOfPoint({ x: center.x, y: center.y + 10 }, top);
+    const at = this.picking.screenOfPoint(center, top);
+    const dx = this.picking.screenOfPoint({ x: center.x + 10, y: center.y }, top);
+    const dy = this.picking.screenOfPoint({ x: center.x, y: center.y + 10 }, top);
     return Math.max(Math.hypot(dx.x - at.x, dx.y - at.y), Math.hypot(dy.x - at.x, dy.y - at.y)) / 10;
   }
 
@@ -2749,7 +2478,7 @@ export class EngineCore {
 
   modeKey(key: string): boolean {
     const editable = this.editablePage();
-    const selection = this.selection;
+    const selection = this.selection.current;
     if (!editable || selection?.pageId !== editable.page.id || selection.items.length !== 1) return false;
     const action = this.modes.modeOf(editable.page)?.keys?.[key];
     const id = selection.picked.element.id;
@@ -2834,7 +2563,7 @@ export class EngineCore {
 
   orderSelection(move: OrderMove): void {
     const editable = this.editablePage();
-    const selection = this.selection;
+    const selection = this.selection.current;
     if (!editable || !selection || selection.pageId !== editable.page.id || !this.file.xmlTree) return;
     const before = writeDrawio(this.file.xmlTree);
     const ids = selection.items.map((item) => item.element.id);
@@ -2858,7 +2587,7 @@ export class EngineCore {
    */
   arrangeSelection(label: string, deltasOf: (items: AlignItem[]) => Map<string, Point>): void {
     const editable = this.editablePage();
-    const selection = this.selection;
+    const selection = this.selection.current;
     if (!editable || !selection || selection.pageId !== editable.page.id) return;
     const { page, pageTree } = editable;
     const targets = selection.items
@@ -2884,7 +2613,7 @@ export class EngineCore {
 
   deleteSelection(label = 'Suppression'): void {
     const editable = this.editablePage();
-    const selection = this.selection;
+    const selection = this.selection.current;
     if (!editable || !selection || selection.pageId !== editable.page.id) return;
     this.edits.recordEdit(label);
     removeCellsDeep(
@@ -2896,16 +2625,17 @@ export class EngineCore {
     const page =
       repair && this.file.xmlTree && documentFromTree(this.file.xmlTree).pages.find((p) => p.id === editable.page.id);
     if (repair && page) applyModeEdit(page, editable.pageTree, repair, modePalette(this.settings.styles));
-    this.clearSelection();
+    this.selection.clearSelection();
     this.file.documentChanged([editable.page.id]);
   }
 
   copySelection(): string | undefined {
     const xml = this.selectionClipboard();
-    if (!xml || !this.selection) return undefined;
+    if (!xml || !this.selection.current) return undefined;
     const parents = new Map<string, string>();
-    for (const { element } of this.selection.items) if (element.parentId) parents.set(element.id, element.parentId);
-    this.clipboard = { xml, fileId: this.file.fileId, pageId: this.selection.pageId, parents, steps: 1 };
+    for (const { element } of this.selection.current.items)
+      if (element.parentId) parents.set(element.id, element.parentId);
+    this.clipboard = { xml, fileId: this.file.fileId, pageId: this.selection.current.pageId, parents, steps: 1 };
     return xml;
   }
 
@@ -2937,7 +2667,7 @@ export class EngineCore {
 
   duplicateSelection(): void {
     const editable = this.editablePage();
-    const selection = this.selection;
+    const selection = this.selection.current;
     if (!editable || !selection) return;
     const xml = this.selectionClipboard();
     if (!xml) return;
@@ -2950,7 +2680,7 @@ export class EngineCore {
   /** XML du presse-papier pour la sélection de la page courante. */
   selectionClipboard(): string | undefined {
     const page = this.pages.getCurrentPage();
-    const selection = this.selection;
+    const selection = this.selection.current;
     if (!page || !selection || selection.pageId !== page.id) return undefined;
     const pageTree = this.file.pageTreeOf(page.id);
     if (!pageTree || pageTree.encoding === 'unreadable') return undefined;
@@ -2998,90 +2728,8 @@ export class EngineCore {
       const edge = current?.edges.find((e) => e.id === id);
       return edge ? [{ type: 'edge', element: edge }] : [];
     });
-    this.selectItems(items);
+    this.selection.selectItems(items);
     return true;
-  }
-
-  /**
-   * Emprise à l'écran d'un élément de la page courante (formes : dessus du volume) ; `area` : une
-   * partie de la forme en coordonnées page (sa zone de texte), à la place de ses bornes ; `elevation` :
-   * hauteur de cette partie, à la place du dessus du volume.
-   */
-  screenRectOf(elementId: string, area?: Rect, elevation?: number): Rect | undefined {
-    const page = this.pages.getCurrentPage();
-    const shape = page?.shapes.find((s) => s.id === elementId);
-    let corners: Point[];
-    if (shape) {
-      const { x, y, width, height } = area ?? shape.bounds;
-      const top = elevation ?? this.sceneView.elementTop(shape.id);
-      corners = [
-        { x, y },
-        { x: x + width, y },
-        { x: x + width, y: y + height },
-        { x, y: y + height },
-      ].map((p) => this.screenOfPoint(p, top));
-    } else {
-      const route = this.sceneView.sceneObject(elementId)?.userData.route as Point[] | undefined;
-      if (!route?.length) return undefined;
-      const middle = route[Math.floor(route.length / 2)]!;
-      const center = this.screenOfPoint(middle, this.sceneView.elementTop(elementId));
-      return { x: center.x - 60, y: center.y - 16, width: 120, height: 32 };
-    }
-    const xs = corners.map((p) => p.x);
-    const ys = corners.map((p) => p.y);
-    const left = Math.min(...xs);
-    const top = Math.min(...ys);
-    return { x: left, y: top, width: Math.max(...xs) - left, height: Math.max(...ys) - top };
-  }
-
-  /**
-   * Clic : sélectionne l'élément ; avec la touche de sélection multiple, l'ajoute ou le retire (le vide
-   * ne désélectionne pas). `followLink` (touche + clic, `controls.followLinkGesture`) : suit le lien de
-   * l'élément, s'il en a un.
-   */
-  handleClick(screen: Point, toggle = false, followLink = false): void {
-    const picked = this.pickAt(screen);
-    if (followLink && picked && isNavigableLink(picked.element.link)) {
-      this.followLink(picked.element.id);
-      return;
-    }
-    // Espace + clic hors d'une forme liée : rien (Espace sert au déplacement de la vue, pas à la sélection).
-    if (followLink && this.settings.controls.followLinkKey === 'space') return;
-    if (toggle) {
-      if (picked) this.toggleSelect(picked);
-      return;
-    }
-    // Mode de la page : un clic sur un élément d'un autre courant (ex. flèche d'un autre flux) ne fait que changer
-    // de courant ; un second clic le sélectionne.
-    const page = this.pages.getCurrentPage();
-    if (picked && page && this.pickModeCurrent(page, picked.element)) {
-      this.clearSelection();
-      return;
-    }
-    this.select(picked);
-    if (this.settings.preload.onClick) this.preloadLink(picked?.element.link);
-  }
-
-  /**
-   * Double-clic : avec la touche pour suivre un lien (quand le geste choisi est le double-clic), ou sur
-   * une carte de la vue graphe, suit le lien ; sinon, édite le label de l'élément (page modifiable).
-   * Sur une flèche, près d'un bout, édite son texte de début ou de fin.
-   */
-  handleDoubleClick(screen: Point, followLink: boolean): void {
-    if (this.doubleClickPointHandle(screen)) return;
-    const picked = this.pickAt(screen);
-    const text = picked?.type === 'edge' ? this.edgeTextAt(screen) : undefined;
-    const follow = followLink || this.graph.isGraphView();
-    if (picked && follow && isNavigableLink(picked.element.link)) this.followLink(picked.element.id);
-    else if (text) this.editEdgeText(text.edge.id, text.cellId);
-    else if (picked?.type === 'edge') {
-      // Près d'un bout : texte de début ou de fin ; vers le milieu : label de la flèche.
-      const route = this.sceneView.sceneObject(picked.element.id)?.userData.route as Point[] | undefined;
-      const point = this.groundPointAtHeight(screen, this.sceneView.elementTop(picked.element.id));
-      const end = route ? endAt(positionAlong(route, point)) : undefined;
-      if (end) this.editEdgeEndLabel(picked.element.id, end);
-      else this.editLabel(picked.element.id);
-    } else if (picked) this.editLabel(picked.element.id);
   }
 
   /**
@@ -3108,32 +2756,6 @@ export class EngineCore {
     return false;
   }
 
-  /** Survol : curseur main et infobulle sur les éléments liés ; préchargement optionnel. */
-  handleHover(screen: Point | undefined): void {
-    const picked = screen ? this.pickAt(screen) : undefined;
-    const link = isNavigableLink(picked?.element.link) ? picked?.element.link : undefined;
-    const handle = screen ? this.handleAt(screen) : undefined;
-    const edgeEnd = screen && !handle ? this.edgeEndAt(screen) : undefined;
-    const pointHandle = screen && !handle && !edgeEnd ? this.pointHandleAt(screen) : undefined;
-    const bent = pointHandle && this.editableEdgeSelection()?.edge;
-    const cursor =
-      (handle && isConnectHandle(handle)) || edgeEnd
-        ? 'crosshair'
-        : handle
-          ? HANDLE_CURSORS[handle]
-          : pointHandle && bent
-            ? this.pointHandleCursor(pointHandle, bent.style)
-            : link
-              ? 'pointer'
-              : '';
-    if (!this.canvas.style.cursor.startsWith('grab')) this.canvas.style.cursor = cursor;
-    this.canvas.title = link ? this.describeLink(link) : '';
-    clearTimeout(this.hoverTimer);
-    if (link && this.settings.preload.onHover) {
-      this.hoverTimer = setTimeout(() => this.preloadLink(link), this.settings.preload.hoverDelayMs);
-    }
-  }
-
   describeLink(link: LinkModel): string {
     const { followLinkKey: key, followLinkGesture: chosen } = this.settings.controls;
     const click = followLinkGesture(key, chosen) === 'click' ? 'clic' : 'double-clic';
@@ -3142,69 +2764,6 @@ export class EngineCore {
     const name = this.pages.pageById(link.pageId)?.name;
     const action = `${gesture} : aller à « ${name} »`;
     return name ? action.charAt(0).toUpperCase() + action.slice(1) : `Lien vers une page absente (${link.pageId})`;
-  }
-
-  /** Point de la page visé par un point écran, sur le plan horizontal à `height` au-dessus du sol. */
-  groundPointAtHeight(screen: Point, height: number): Point {
-    return screenToPage(this.camera.state, this.display.viewport, screen, height);
-  }
-
-  /**
-   * Contour de sélection animé (paramètre `selection`) : les tirets défilent lentement tant qu'il y a
-   * une sélection ; arrêté sans sélection, si désactivé, ou si les animations sont réduites.
-   */
-  syncSelectionAnimation(): void {
-    const run =
-      this.selection !== undefined &&
-      this.settings.selection.style === 'outline' &&
-      this.settings.selection.animated &&
-      !this.config.reducedMotion();
-    if (!run) {
-      cancelAnimationFrame(this.selectionAnimation);
-      this.selectionAnimation = 0;
-      if (this.selectionPhase !== 0) {
-        this.selectionPhase = 0;
-        this.updateSelectionOutline();
-      }
-      return;
-    }
-    if (this.selectionAnimation) return;
-    let last = performance.now();
-    const tick = (now: number) => {
-      const dt = Math.min((now - last) / 1000, 0.1);
-      last = now;
-      // Phase décroissante : les tirets avancent dans le sens du contour.
-      this.selectionPhase -= this.settings.selection.speed * dt;
-      this.updateSelectionOutline();
-      this.selectionAnimation = requestAnimationFrame(tick);
-    };
-    this.selectionAnimation = requestAnimationFrame(tick);
-  }
-
-  /**
-   * Touches de modification maintenues : zones liées en évidence (touche pour suivre un lien), et
-   * mode d'interaction signalé à l'UI (`modeHint`).
-   */
-  setHeldKeys(held: HeldKeys): void {
-    this.heldKeys = held;
-    if (this.linkZonesShown !== held.followLink) {
-      this.linkZonesShown = held.followLink;
-      this.updateLinkZones();
-    }
-    this.emitModeHint();
-  }
-
-  getModeHint(): ModeHint | undefined {
-    if (this.heldKeys.followLink) return 'navigation';
-    if (this.heldKeys.multiSelect && this.selection) return 'multiSelect';
-    return undefined;
-  }
-
-  emitModeHint(): void {
-    const hint = this.getModeHint();
-    if (hint === this.modeHint) return;
-    this.modeHint = hint;
-    this.events.emit('modeHint', hint);
   }
 
   /**
@@ -3242,163 +2801,6 @@ export class EngineCore {
     this.rendering.requestRender();
   }
 
-  /**
-   * Mise en valeur de la sélection (paramètre `selection.style`) : voile d'ombre sur le reste de la
-   * page (défaut), ou contour bleu pointillé (éventuellement animé).
-   */
-  updateSelectionOutline(): void {
-    if (this.selectionObject) {
-      this.selectionObject.parent?.remove(this.selectionObject);
-      disposeObject(this.selectionObject);
-      this.selectionObject = undefined;
-    }
-    const selection = this.selection;
-    const root = this.scenes.current?.root;
-    const visible = selection && root && selection.pageId === this.pages.currentPageId ? selection : undefined;
-    const items = visible?.items ?? [];
-    const ids = items.map((item) => item.element.id);
-
-    // Voile : gardé tant que la même sélection est affichée dans la même scène.
-    // L'emprise de la page en fait partie : le voile la couvre, et un déplacement peut l'agrandir.
-    const pageBounds = this.pages.getCurrentPage()?.bounds;
-    const veilKey =
-      visible && root && pageBounds && this.settings.selection.style === 'veil'
-        ? `${root.uuid}:${ids.join('|')}:${this.settings.selection.veilOpacity}:${this.settings.selection.veilColor}:${Object.values(pageBounds).join(',')}`
-        : undefined;
-    if (this.veil?.key !== veilKey) {
-      this.clearVeil();
-      const page = this.pages.getCurrentPage();
-      if (veilKey && root && page) {
-        const object = createVeil(page.bounds, this.settings.selection.veilOpacity, this.settings.selection.veilColor);
-        root.add(object);
-        // Une forme sélectionnée est mise en valeur avec son contenu (enfants d'un groupe, d'un conteneur).
-        const highlighted = new Set(ids);
-        for (const item of items) {
-          if (item.type !== 'shape') continue;
-          const content = collectMoveSet(page, item.element.id);
-          for (const id of [...content.shapeIds, ...content.edgeIds]) highlighted.add(id);
-        }
-        const lifted = root.children.filter((c) => {
-          const elementId = c.userData.elementId as string | undefined;
-          const partner = c.userData.highlightWith as string | undefined;
-          return (
-            (elementId !== undefined && highlighted.has(elementId)) ||
-            (partner !== undefined && highlighted.has(partner))
-          );
-        });
-        this.veil = { key: veilKey, object, restore: liftAboveVeil(lifted) };
-      }
-    }
-
-    // Flèches et liaisons : le voile est percé autour de leur tracé (≈ 10 px de chaque côté à l'écran).
-    const edges = veilKey ? items.filter((item) => item.type === 'edge') : [];
-    const holeKey =
-      edges.length > 0 ? `${veilKey}:${this.camera.state.zoom}:${this.settings.selection.veilPadding}` : undefined;
-    if (this.veilHole?.key !== holeKey) {
-      this.veilHole?.object.removeFromParent();
-      if (this.veilHole) disposeObject(this.veilHole.object);
-      this.veilHole = undefined;
-      if (holeKey && root) {
-        const holes = new Group();
-        holes.name = 'selection-veil-holes';
-        for (const { element } of edges) {
-          const object = this.sceneView.sceneObject(element.id);
-          const route = (object?.userData.path ?? object?.userData.route) as Point[] | undefined;
-          if (!object || !route || route.length < 2) continue;
-          const strokeWidth = parseFloat((element.style.strokeWidth as string | undefined) ?? '1') || 1;
-          const width = strokeWidth + (2 * this.settings.selection.veilPadding) / this.camera.state.zoom;
-          const hole = createVeilHole(route, object.position.z, width);
-          // Flèche déplacée en bloc (au clavier, avec sa forme) : son objet est décalé, pas son tracé.
-          hole.position.x = object.position.x;
-          hole.position.y = object.position.y;
-          holes.add(hole);
-        }
-        root.add(holes);
-        this.veilHole = { key: holeKey, object: holes };
-      }
-    }
-
-    if (root && items.length > 0 && this.settings.selection.style === 'outline') {
-      const outlines = new Group();
-      outlines.name = 'selection';
-      for (const { type, element } of items) {
-        const bounds = type === 'shape' ? element.bounds : this.sceneView.drawnBounds(element.id);
-        if (!bounds) continue;
-        const outline = selectionOutline(
-          bounds,
-          this.camera.state.zoom,
-          this.selectionPhase,
-          this.settings.selection.accentColor,
-        );
-        // Posé sur le dessus d'un volume, et toujours visible (pas caché par les blocs).
-        outline.position.z = ((this.sceneView.sceneObject(element.id)?.userData.top as number) ?? 0) + 0.2;
-        outline.traverse((o) => {
-          if (o instanceof Mesh) (o.material as MeshBasicMaterial).depthTest = false;
-        });
-        outlines.add(outline);
-      }
-      outlines.renderOrder = Number.MAX_SAFE_INTEGER;
-      this.selectionObject = outlines;
-      root.add(outlines);
-    }
-
-    // Poignées (redimensionner, connecter) de la forme sélectionnée, si on peut la modifier.
-    if (this.handlesObject) {
-      this.handlesObject.removeFromParent();
-      disposeObject(this.handlesObject);
-      this.handlesObject = undefined;
-    }
-    const editableEdge = visible && root ? this.edgeHandlesSelection() : undefined;
-    const ends = editableEdge && this.edgeEndPoints(editableEdge.edge.id);
-    if (editableEdge && ends && root) {
-      const { edge } = editableEdge;
-      const handleStyle = { size: this.settings.edit.handleSize, accent: this.settings.selection.accentColor };
-      this.handlesObject = edgeEndHandles(
-        [
-          { point: ends.source, attached: !!edge.sourceId },
-          { point: ends.target, attached: !!edge.targetId },
-        ],
-        this.camera.state.zoom,
-        handleStyle,
-      );
-      const context = this.pointsContext(editableEdge.page, edge);
-      if (context) this.handlesObject.add(edgePointHandles(pointHandles(context), this.camera.state.zoom, handleStyle));
-      this.handlesObject.position.z = this.sceneView.elementTop(edge.id) + 0.3;
-      this.handlesObject.traverse((o) => {
-        if (o instanceof Mesh) (o.material as MeshBasicMaterial).depthTest = false;
-      });
-      root.add(this.handlesObject);
-    }
-    const editable = visible && root ? this.editableSelection() : undefined;
-    if (editable && root) {
-      const { shape } = editable;
-      this.handlesObject = selectionHandles(shape.bounds, this.camera.state.zoom, {
-        resize: this.registry.isResizable(shape),
-        connect: true,
-        size: this.settings.edit.handleSize,
-        accent: this.settings.selection.accentColor,
-        layout: this.handleLayout(),
-      });
-      this.handlesObject.position.z = this.sceneView.elementTop(shape.id) + 0.3;
-      this.handlesObject.traverse((o) => {
-        if (o instanceof Mesh) (o.material as MeshBasicMaterial).depthTest = false;
-      });
-      root.add(this.handlesObject);
-    }
-    this.rendering.requestRender();
-  }
-
-  clearVeil(): void {
-    this.veilHole?.object.removeFromParent();
-    if (this.veilHole) disposeObject(this.veilHole.object);
-    this.veilHole = undefined;
-    if (!this.veil) return;
-    this.veil.restore();
-    this.veil.object.removeFromParent();
-    disposeObject(this.veil.object);
-    this.veil = undefined;
-  }
-
   on<K extends EngineEvent>(event: K, handler: (...args: EngineEvents[K]) => void): () => void {
     return this.events.on(event, handler);
   }
@@ -3407,8 +2809,8 @@ export class EngineCore {
     if (this.disposed) return;
     this.disposed = true;
     cancelAnimationFrame(this.camera.animation);
-    cancelAnimationFrame(this.selectionAnimation);
-    clearTimeout(this.hoverTimer);
+    this.highlight.dispose();
+    clearTimeout(this.pointer.hoverTimer);
     this.transition?.abort();
     this.display.dispose();
     this.controller.dispose();
@@ -3421,59 +2823,6 @@ export class EngineCore {
   }
 
   // -------------------------------------------------------------------------
-}
-
-/**
- * Boîte d'un texte dessiné (texte SDF mis en page, ou segments d'un texte riche), en coordonnées de
- * page ; undefined tant que la mise en page n'est pas prête.
- */
-function drawnTextBox(object: Object3D, toPage: Matrix4): Box3 | undefined {
-  const box = new Box3();
-  object.traverse((child) => {
-    const info = (child as Object3D & { textRenderInfo?: { blockBounds: [number, number, number, number] } })
-      .textRenderInfo;
-    if (!info) return;
-    const [minX, minY, maxX, maxY] = info.blockBounds;
-    for (const [x, y] of [
-      [minX, minY],
-      [maxX, minY],
-      [minX, maxY],
-      [maxX, maxY],
-    ] as const) {
-      box.expandByPoint(new Vector3(x, y, 0).applyMatrix4(child.matrixWorld).applyMatrix4(toPage));
-    }
-  });
-  return box.isEmpty() ? undefined : box;
-}
-
-/** Coins (espace page) de chaque texte SDF dessiné sous `object` : une lettre tournée par quadrilatère. */
-function drawnGlyphQuads(object: Object3D, toPage: Matrix4): Point[][] {
-  const quads: Point[][] = [];
-  object.traverse((child) => {
-    const info = (child as Object3D & { textRenderInfo?: { blockBounds: [number, number, number, number] } })
-      .textRenderInfo;
-    if (!info) return;
-    const [minX, minY, maxX, maxY] = info.blockBounds;
-    quads.push(
-      (
-        [
-          [minX, minY],
-          [maxX, minY],
-          [maxX, maxY],
-          [minX, maxY],
-        ] as const
-      ).map(([x, y]) => {
-        const v = new Vector3(x, y, 0).applyMatrix4(child.matrixWorld).applyMatrix4(toPage);
-        return { x: v.x, y: v.y };
-      }),
-    );
-  });
-  return quads;
-}
-
-/** Point dans un polygone ou à moins de `margin` de son bord. */
-function nearPolygon(polygon: Point[], p: Point, margin: number): boolean {
-  return insidePolygon(polygon, p) || distanceToPolyline(p, [...polygon, polygon[0]!]) <= margin;
 }
 
 /** Clés de style d'une flèche qui ne changent que le dessin de son texte : réglables en direct sans reconstruire la page. */
