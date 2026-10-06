@@ -335,7 +335,7 @@ type LinkModel =
 
 ### 8.2 Registre de renderers
 
-Chaque forme est décrite par une **définition**, dans son dossier `src/engine/shapes/impl/<catégorie>/<id>/` (`index.ts` exporte `definition`), collectée toute seule par le registre. Elle porte le nom de l'interface en anglais (`database`, `rounded-rectangle`…), gère une ou plusieurs formes draw.io (`kinds`, défaut `[id]`), avec au besoin une condition (`matches`, ex. `rounded=1`), et contient tout ce qui la concerne, iso / 3D compris ; elle étend une base de `shapes/generic/` ou une autre forme pour ce qu'elle partage. Le moteur et l'appli ne connaissent que l'interface commune : ils ne testent jamais le nom d'une forme, ils interrogent le registre. Guide pas à pas pour en ajouter une : [AJOUTER_UNE_FORME.md](AJOUTER_UNE_FORME.md).
+Chaque forme est décrite par une **définition**, dans son dossier `src/engine/shapes/impl/<catégorie>/<id>/` (`index.ts` exporte `definition`), collectée toute seule par le registre. Elle porte le nom de l'interface en anglais (`database`, `rounded-rectangle`…), gère une ou plusieurs formes draw.io (`kinds`, défaut `[id]`), avec au besoin une condition (`matches`, ex. `rounded=1`), et contient tout ce qui la concerne, iso / 3D compris ; elle étend une base de `shapes/generic/` ou une autre forme pour ce qu'elle partage. Des variantes d'une même forme forment une **famille** : `impl/<catégorie>/<famille>/<variante>/` (ex. `general/actors/human/` et `droid/`), le code partagé dans `<famille>/common/`, l'id commençant par le nom de la famille au singulier (`actor`, `actor-droid`). Le moteur et l'appli ne connaissent que l'interface commune : ils ne testent jamais le nom d'une forme, ils interrogent le registre. Guide pas à pas pour en ajouter une : [AJOUTER_UNE_FORME.md](AJOUTER_UNE_FORME.md).
 
 Une forme a **plusieurs niveaux de rendu** selon le contexte, avec un **repli systématique sur le rendu à plat** :
 
@@ -393,6 +393,9 @@ Ajouter une forme = **déposer son dossier** (au minimum `kind` et `flat`, idéa
   **pancarte** entre ses mains (texte ajusté au panneau ; case « Pancarte en iso / 3D » du panneau, `spatial.sign=0` :
   label au sol) ; seule sa silhouette se clique (tête, traits, pancarte), sélection = cercle autour de la tête ; il
   reçoit les flèches sur ses bornes (`outlineConnect=0`).
+- **Droid** (`actor-droid`, palette « Général », 30 × 60) : l'Actor (même famille `general/actors/`, mêmes rendus,
+  pancarte et interaction) avec une tête de robot (rectangle arrondi) surmontée d'une petite antenne ; pas de droid
+  natif dans draw.io : stencil embarqué (`stencil:actor-droid`), tiré des mêmes points que le moteur.
 - **Géométrie** (formes natives de draw.io, dessinées comme draw.io en 2D, prisme du contour en iso / 3D, palette
   « Géométrie ») : losange (`rhombus`), hexagone (`shape=hexagon`, pans de `size` px avec `fixedSize=1`, sinon
   fraction de la largeur ; périmètre `hexagonPerimeter2`), octogone (`shape=mxgraph.basic.octagon2`, coins coupés de

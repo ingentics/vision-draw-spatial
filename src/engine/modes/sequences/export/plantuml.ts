@@ -6,7 +6,7 @@ import type { SequenceExporter } from './index';
 
 /**
  * Flux en diagramme de séquence PlantUML (sujets 90 à 94, 96 pour tous les flux). Participants déclarés en tête dans l'ordre de première
- * apparition (alias `P1`, `P2`… et `order`), seuls les alias servant ensuite ; une forme `umlActor` est un `actor`, un
+ * apparition (alias `P1`, `P2`… et `order`), seuls les alias servant ensuite ; une forme `umlActor` (ou le droid) est un `actor`, un
  * cylindre une `database`. Une extrémité sans forme entre ou sort du diagramme (`[->`, `->]`).
  *
  * Messages en pile d'appels, dans l'ordre des rangs : une flèche pleine est un aller qui active sa cible (`++`), sauf
@@ -145,7 +145,7 @@ function eventSource(shape: ShapeModel): boolean {
 
 function participantKind(shape: ShapeModel): string {
   if (eventSource(shape)) return 'queue';
-  if (shape.kind === 'umlActor') return 'actor';
+  if (shape.kind === 'umlActor' || shape.kind === 'stencil:actor-droid') return 'actor';
   if (shape.kind.startsWith('cylinder')) return 'database';
   return 'participant';
 }

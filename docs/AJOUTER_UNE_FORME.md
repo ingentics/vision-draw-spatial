@@ -10,6 +10,9 @@ panneau.
 qui la concerne : rendu 2D, subtilités iso / 3D (sa façade, son étiquette), palette, aperçu, réglages, interaction.
 Elle peut étendre une base de `shapes/generic/` ou une autre forme. Déposer le dossier suffit : le registre le trouve
 tout seul, et le moteur comme l'appli ne posent leurs questions qu'à la définition (via le registre).
+Des variantes d'une même forme se rangent en famille : `impl/<catégorie>/<famille>/<variante>/index.ts`, le code
+commun dans `<famille>/common/` (sans `index.ts`), l'id commençant par le nom de la famille au singulier (exemple :
+[impl/general/actors/](../src/engine/shapes/impl/general/actors/), `human/` = `actor`, `droid/` = `actor-droid`).
 
 Références : SPEC §8.2 (registre), §8.3 (formes supportées), §8.4 (placeholder), §9.1 (volumes), §13 (paramètres).
 

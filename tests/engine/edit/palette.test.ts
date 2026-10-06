@@ -37,6 +37,7 @@ describe('palette', () => {
       'rectangle',
       'recurring-task',
       'rhombus',
+      'stencil:actor-droid',
       'stencil:plug',
       'step',
       'text',
@@ -89,7 +90,7 @@ describe('palette', () => {
       'four-point-star',
       'six-point-star',
     ]);
-    expect(byCategory('general')).toEqual(['text', 'actor']);
+    expect(byCategory('general')).toEqual(['text', 'actor', 'actor-droid']);
     const known = new Set(PALETTE_CATEGORIES.map((c) => c.id));
     for (const template of SHAPE_TEMPLATES) expect(known.has(template.category), template.id).toBe(true);
     expect(byCategory('architecture')).toEqual([

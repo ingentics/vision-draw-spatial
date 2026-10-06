@@ -12,6 +12,8 @@ import { buildPageScene } from '../../../src/engine/render/pageScene';
 import { applyPageSpace } from '../../../src/engine/render/space';
 import type { RenderContext, TextSpec } from '../../../src/engine/render/types';
 import { createDefaultRegistry } from '../../../src/engine/shapes/registry';
+import { DROID_SHAPE } from '../../../src/engine/shapes/impl/general/actors/droid';
+import { decodeDiagram } from '../../../src/engine/format/decode';
 
 /** Actor (41) : bonhomme de draw.io en 2D, debout face à la caméra en iso / 3D. */
 
@@ -292,5 +294,56 @@ describe('orientBillboards : silhouettes face à la caméra', () => {
     // De part et d'autre de la caméra, elles ne regardent pas dans la même direction.
     expect(facing(left!).x).toBeGreaterThan(0);
     expect(facing(right!).x).toBeLessThan(0);
+  });
+});
+
+/** Droid (173) : l'Actor avec une tête de robot à antenne, stencil embarqué pour draw.io. */
+describe('Droid (173)', () => {
+  const DROID = `shape=${DROID_SHAPE};verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;`;
+
+  it('stencil actor-droid dessiné par sa définition, absent des Diagnostics ; spatial.kind=actor-droid le dessine', () => {
+    const document = page([
+      { style: DROID, x: 0, y: 0 },
+      { style: 'shape=umlActor;spatial.kind=actor-droid;', x: 100, y: 0 },
+    ]);
+    const shapes = document.pages[0]!.shapes;
+    expect(shapes[0]!.kind).toBe('stencil:actor-droid');
+    expect(shapes.map((s) => registry.resolve(s).definition.id)).toEqual(['actor-droid', 'actor-droid']);
+    expect(collectUnsupported(document, registry).entries).toEqual([]);
+  });
+
+  it('stencil draw.io : cadre 30 × 60 étiré, tête en fond, antenne et corps devant', () => {
+    const xml = decodeDiagram(DROID_SHAPE.slice('stencil('.length, -1));
+    expect(xml).toMatch(/^<shape name="actor-droid" w="30" h="60" aspect="variable" strokewidth="inherit">/);
+    // Tête, puis boule de l'antenne (remplies), puis corps, bras, jambes et tige (traits).
+    expect(xml.match(/<fillstroke\/>/g)).toHaveLength(2);
+    expect(xml.match(/<stroke\/>/g)).toHaveLength(4);
+  });
+
+  it('2D : tête en rectangle arrondi sous l’antenne, corps de l’Actor, étirés dans les bornes', () => {
+    const scene = buildPageScene(page([{ style: DROID, x: 100, y: 100 }]).pages[0]!, registry, ctx, 'flat');
+    const droid = element(scene.root, 'a0');
+    const [head, ball] = droid.children.filter((c) => c.name === 'fill');
+    const box = (o: Object3D) => {
+      const b = new Box3().setFromObject(o);
+      return [b.min.x, b.min.y, b.max.x, b.max.y].map((v) => +v.toFixed(3));
+    };
+    expect(box(head!)).toEqual([107.5, 105, 122.5, 115]);
+    expect(box(ball!)).toEqual([113.75, 100, 116.25, 102.5]);
+    // Tête, boule, corps, bras, jambes, tige.
+    expect(droid.children.filter((c) => c.name === 'stroke')).toHaveLength(6);
+  });
+
+  it('iso : debout avec sa pancarte, sélection autour de la tête, tête et antenne cliquables', () => {
+    const scene = isoScene(page([{ style: DROID, x: 100, y: 100, value: 'Bot' }]));
+    const droid = element(scene.root, 'a0');
+    expect(droid.userData.standing).toBe(true);
+    const silhouette = droid.getObjectByName('silhouette')!;
+    expect(silhouette.userData.head).toEqual({ x: -7.5, y: 45, width: 15, height: 10 });
+    expect(silhouette.userData.parts).toHaveLength(2);
+    const head = new Box3().setFromObject(silhouette.getObjectByName('head')!);
+    expect([+head.min.y.toFixed(3), +head.max.y.toFixed(3)]).toEqual([45, 55]);
+    expect(silhouette.getObjectByName('sign')).toBeDefined();
+    expect(silhouette.userData.strokes[1].map((p: { x: number }) => p.x)).toEqual([-21, 21]);
   });
 });

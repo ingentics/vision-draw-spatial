@@ -2,7 +2,6 @@ import { Matrix4, Box3, Vector3 } from 'three';
 import { connectableShapes } from '../../edit/edgeEnds';
 import { pageToScreen, screenToPage } from '../../interaction/camera';
 import { pickElement, distanceToPolyline, insidePolygon } from '../../interaction/pick';
-import { ellipsePath } from '../../render/geometry/paths';
 import type { PickedElement } from '../../interaction/pick';
 import type { Footprint } from '../../interaction/marquee';
 import type { EdgeModel, Point, Rect, ShapeModel } from '../../model/types';
@@ -72,15 +71,15 @@ export class Picking {
   }
 
   /**
-   * Silhouette debout (Actor en iso / 3D) sous un point écran : le disque de la tête, ou un trait du corps à la
+   * Silhouette debout (acteur en iso / 3D) sous un point écran : une pièce pleine (la tête…), ou un trait du corps à la
    * tolérance de clic des flèches, tels qu'ils font face à la caméra. Renvoie la hauteur touchée ; `undefined` si la
    * forme n'est pas une silhouette debout.
    */
   private standingHit(shape: ShapeModel, screen: Point): { at: number | undefined } | undefined {
     const standing = this.standingPlane(shape.id);
-    const head = standing?.silhouette.userData.head as Rect | undefined;
+    const parts = standing?.silhouette.userData.parts as Point[][] | undefined;
     const strokes = standing?.silhouette.userData.strokes as Point[][] | undefined;
-    if (!standing || !head || !strokes) return undefined;
+    if (!standing || !parts || !strokes) return undefined;
     const { silhouette, toScreen } = standing;
     // Pancarte tenue devant le corps : prise sur toute sa surface, plus près de la caméra que le corps.
     const sign = silhouette.userData.sign as Rect | undefined;
@@ -94,12 +93,14 @@ export class Picking {
       ];
       if (insidePolygon(corners.map(toScreen), screen)) return { at: toScreen({ x: 0, y: y + height }).height };
     }
-    const outline = ellipsePath(head, 24);
-    if (insidePolygon(outline.map(toScreen), screen))
-      return { at: toScreen({ x: 0, y: head.y + head.height / 2 }).height };
+    for (const part of parts) {
+      if (!insidePolygon(part.map(toScreen), screen)) continue;
+      const ys = part.map((p) => p.y);
+      return { at: toScreen({ x: 0, y: (Math.min(...ys) + Math.max(...ys)) / 2 }).height };
+    }
     const tolerance = this.core.settings.edit.edgePickTolerance;
     let best: { distance: number; height: number } | undefined;
-    for (const line of [...strokes, [...outline, outline[0]!]]) {
+    for (const line of [...strokes, ...parts.map((part) => [...part, part[0]!])]) {
       const points = line.map(toScreen);
       for (let i = 1; i < points.length; i++) {
         const a = points[i - 1]!;

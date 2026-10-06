@@ -147,11 +147,15 @@ function rectangleSwatch(style: Record<string, string>): string {
 }
 
 /**
- * Formes supportées (SPEC §8.3) : une par dossier `impl/<catégorie>/<id>/index.ts` (qui exporte `definition`),
+ * Formes supportées (SPEC §8.3) : une par dossier `impl/<catégorie>/<id>/index.ts` (qui exporte `definition`), ou
+ * `impl/<catégorie>/<famille>/<variante>/index.ts` pour une famille (code commun dans `<famille>/common/`),
  * collectées toutes seules ; les bases qu'elles étendent sont dans `generic/`.
  */
 export const SHAPE_DEFINITIONS: ShapeDefinition[] = Object.values(
-  import.meta.glob<ShapeDefinition>('./impl/*/*/index.ts', { eager: true, import: 'definition' }),
+  import.meta.glob<ShapeDefinition>(['./impl/*/*/index.ts', './impl/*/*/*/index.ts'], {
+    eager: true,
+    import: 'definition',
+  }),
 );
 
 /** Registre des formes supportées. */

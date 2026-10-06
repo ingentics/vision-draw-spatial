@@ -8,15 +8,15 @@ import type { ShapeDefinition } from '../../../src/engine/shapes/types';
 const model = (kind: string, style: Record<string, string> = {}, extra: Partial<ShapeModel> = {}) =>
   ({ id: 's', kind, style, bounds: { x: 0, y: 0, width: 100, height: 60 }, ...extra }) as unknown as ShapeModel;
 
-/** Dossiers des formes : `impl/<catégorie>/<id>/index.ts`. */
+/** Dossiers des formes : `impl/<catégorie>/<id>/index.ts`, ou `impl/<catégorie>/<famille>/<variante>/index.ts`. */
 const FOLDERS = Object.entries(
-  import.meta.glob<ShapeDefinition>('../../../src/engine/shapes/impl/*/*/index.ts', {
-    eager: true,
-    import: 'definition',
-  }),
+  import.meta.glob<ShapeDefinition>(
+    ['../../../src/engine/shapes/impl/*/*/index.ts', '../../../src/engine/shapes/impl/*/*/*/index.ts'],
+    { eager: true, import: 'definition' },
+  ),
 ).map(([path, definition]) => {
-  const [category, folder] = path.split('/').slice(-3, -1) as [string, string];
-  return { category, folder, definition };
+  const [category, ...rest] = path.split('/impl/')[1]!.split('/').slice(0, -1) as [string, ...string[]];
+  return { category, folder: rest.join('/'), family: rest.length > 1 ? rest[0] : undefined, definition };
 });
 
 describe('formes en plugins (étapes 65, 67) : contrat des définitions', () => {
@@ -40,7 +40,8 @@ describe('formes en plugins (étapes 65, 67) : contrat des définitions', () => 
         'geometry/four-point-star',
         'geometry/six-point-star',
         'general/text',
-        'general/actor',
+        'general/actors/human',
+        'general/actors/droid',
         'architecture/database',
         'architecture/queue',
         'architecture/distributed-cache',
@@ -58,9 +59,10 @@ describe('formes en plugins (étapes 65, 67) : contrat des définitions', () => 
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('id = nom du dossier, catégorie de palette = dossier de catégorie (internal : hors palette), rendu à plat', () => {
-    for (const { category, folder, definition } of FOLDERS) {
-      expect(definition.id).toBe(folder);
+  it('id = nom du dossier (famille : commence par son nom au singulier), catégorie de palette = dossier de catégorie (internal : hors palette), rendu à plat', () => {
+    for (const { category, folder, family, definition } of FOLDERS) {
+      if (family) expect(definition.id, folder).toMatch(new RegExp(`^${family.replace(/s$/, '')}(-|$)`));
+      else expect(definition.id).toBe(folder);
       expect(definition.palette?.category ?? 'internal', folder).toBe(category);
       expect(typeof definition.flat.create, folder).toBe('function');
     }
