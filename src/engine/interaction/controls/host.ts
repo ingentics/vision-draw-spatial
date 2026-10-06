@@ -76,7 +76,7 @@ export interface CameraHost {
   deleteSelection?(): void;
   /** Variante de placement de la flèche sélectionnée ; faux si elle ne s'applique pas (rien n'est fait). */
   placementVariant?(): boolean;
-  /** Éditer le commentaire affiché au survol, sinon celui de l'élément sélectionné ; faux sans l'un ni l'autre. */
+  /** Éditer le commentaire de l'élément sélectionné, sinon de l'élément survolé ; faux sans l'un ni l'autre. */
   editComment?(): boolean;
   /** Y a-t-il une sélection supprimable (page modifiable) ? Décide entre supprimer et Retour. */
   canDeleteSelection?(): boolean;

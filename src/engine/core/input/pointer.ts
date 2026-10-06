@@ -30,8 +30,8 @@ export class PointerInput {
   private hoverTimer: ReturnType<typeof setTimeout> | undefined;
   /** Commentaire signalé à l'UI (`commentHover`), pour ne l'émettre qu'à un changement. */
   private hoverComment: ElementComment | undefined;
-  /** Élément dont le commentaire est affiché (touche C : l'éditer). */
-  private hoverCommented: PickedElement | undefined;
+  /** Forme ou flèche sous le curseur (touche C sans sélection : éditer son commentaire). */
+  private hovered: PickedElement | undefined;
 
   constructor(private readonly core: EngineCore) {}
 
@@ -120,12 +120,8 @@ export class PointerInput {
               : '';
     if (!this.core.canvas.style.cursor.startsWith('grab')) this.core.canvas.style.cursor = cursor;
     this.core.canvas.title = link ? this.core.links.describeLink(link) : '';
-    const comment = picked ? commentOf(picked.element) : undefined;
-    this.hoverCommented = comment ? picked : undefined;
-    if (!sameComment(comment, this.hoverComment)) {
-      this.hoverComment = comment;
-      this.core.events.emit('commentHover', comment);
-    }
+    this.hovered = picked;
+    this.syncHoverComment();
     clearTimeout(this.hoverTimer);
     if (link && this.core.settings.preload.onHover) {
       this.hoverTimer = setTimeout(() => this.core.links.preloadLink(link), this.core.settings.preload.hoverDelayMs);
@@ -133,20 +129,41 @@ export class PointerInput {
   }
 
   /**
-   * Touche C, édition activée ou non : sélectionne l'élément dont le commentaire est affiché au survol et passe ce
-   * commentaire en édition en place ; sans commentaire affiché, édite celui de la forme ou de la flèche sélectionnée
-   * seule (vide si elle n'en a pas, ticket 201). Faux s'il n'y a ni l'un ni l'autre, ou sur une page non modifiable.
+   * Commentaire affiché au survol : celui de l'élément sous le curseur, sauf quand une sélection existe et qu'il n'en
+   * fait pas partie (ticket 202). Rappelé à chaque changement de sélection.
+   */
+  syncHoverComment(): void {
+    const picked = this.hovered;
+    const selection = this.core.selection.current;
+    const shown =
+      picked &&
+      (!selection ||
+        selection.pageId !== this.core.pages.currentPageId ||
+        selection.items.some((item) => item.element.id === picked.element.id));
+    const comment = shown ? commentOf(picked.element) : undefined;
+    if (!sameComment(comment, this.hoverComment)) {
+      this.hoverComment = comment;
+      this.core.events.emit('commentHover', comment);
+    }
+  }
+
+  /**
+   * Touche C, édition activée ou non : passe en édition en place le commentaire de la forme ou de la flèche
+   * sélectionnée seule, sinon, sans sélection, celui de l'élément sous le curseur (qui est alors sélectionné) ; vide
+   * s'il n'en a pas (tickets 201, 202). Faux sans l'un ni l'autre, avec plusieurs éléments sélectionnés ou sur une
+   * page non modifiable.
    */
   editHoveredComment(): boolean {
     const page = this.core.targets.writablePage()?.page;
     if (!page) return false;
-    const picked = this.hoverCommented;
-    if (picked) {
-      this.core.selection.select(picked);
-      return this.core.properties.editComment(picked.element.id);
-    }
     const selection = this.core.selection.current;
-    if (!selection || selection.pageId !== page.id || this.core.selection.isMultiSelection()) return false;
-    return this.core.properties.editComment(selection.picked.element.id);
+    if (selection?.pageId === page.id) {
+      if (this.core.selection.isMultiSelection()) return false;
+      return this.core.properties.editComment(selection.picked.element.id);
+    }
+    const picked = this.hovered;
+    if (!picked) return false;
+    this.core.selection.select(picked);
+    return this.core.properties.editComment(picked.element.id);
   }
 }

@@ -31,6 +31,7 @@ export class Selections {
     this.core.highlight.update();
     this.core.highlight.syncAnimation();
     this.core.events.emit('selectionChange', this.current);
+    this.core.pointer.syncHoverComment();
     this.core.keys.emitModeHint();
     if (page && items.length === 1) this.core.pageModes.pickModeCurrent(page, items[0]!.element);
   }

@@ -46,7 +46,7 @@ const SHORTCUT_LABELS: Record<keyof Shortcuts, string> = {
   back: 'Retour (Alt+← aussi)',
   deleteSelection: 'Supprimer la sélection (Suppr aussi)',
   placementVariant: 'Variante de placement d’une flèche (ancrage manuel)',
-  editComment: 'Éditer le commentaire (survolé ou sélectionné)',
+  editComment: 'Éditer le commentaire (sélectionné, sinon survolé)',
 };
 
 /**
