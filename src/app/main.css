@@ -234,7 +234,7 @@ body {
 .mode-icon-accent {
   fill: none;
   stroke: var(--accent);
-  stroke-width: 1.2;
+  stroke-width: 1;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
