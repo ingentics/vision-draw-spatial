@@ -14,11 +14,15 @@ import {
   tableKindOf,
 } from './tables';
 import { fieldsText, setFields, setHeaderColor, setSecondary } from './operations';
+import { REGION_KIND, isRegion, regionContent, setRegionColor } from './regions';
 
 /** Table du mode sélectionnée ; undefined pour une flèche, la page ou une autre forme. */
 const tableOf = (target: ModeTarget): ShapeModel | undefined =>
   'kind' in target && tableKindOf(target) ? target : undefined;
 const notTable = (_page: unknown, target: ModeTarget) => !tableOf(target);
+/** Table ou région du mode sélectionnée (sujet 182). */
+const colored = (target: ModeTarget): ShapeModel | undefined =>
+  tableOf(target) ?? ('kind' in target && isRegion(target) ? target : undefined);
 
 /**
  * Mode « RDD — Relational Database Designer » (sujet 179) : une page de tables (modèles, entités…), lue à plat. Ses
@@ -36,23 +40,25 @@ export const definition: PageModeDefinition = {
     accent: 'M4 9h6M4 12h4.5',
   },
   viewModes: ['top'],
-  // Toutes les tables ; le modèle abstrait, sans élément de palette, n'y apparaît pas.
-  shapes: Object.keys(TABLE_KINDS),
+  // Toutes les tables, puis la région (sujet 182) ; le modèle abstrait, sans élément de palette, n'y apparaît pas.
+  shapes: [...Object.keys(TABLE_KINDS), REGION_KIND],
   paletteCategories: [{ id: 'rdd', name: 'RDD', order: 5 }],
   shapeProperties: [
     {
       type: 'select',
       key: 'fillColor',
       label: 'Couleur',
-      title: 'Couleur de l’entête (fillColor) ; texte noir ou blanc selon le contraste',
+      title:
+        'Couleur de l’entête d’une table (texte noir ou blanc selon le contraste) ou du fond d’une région (fillColor)',
       options: (_page, palette) =>
         [...new Set([DEFAULT_HEADER_COLOR, ...palette])].map((color) => ({ value: color, label: color, color })),
-      value: (_page, target) => tableOf(target)?.style.fillColor,
+      value: (_page, target) => colored(target)?.style.fillColor,
       write: (edit, target, value) => {
-        const shape = tableOf(target);
-        if (shape) setHeaderColor(edit, shape, value);
+        const shape = colored(target);
+        if (shape && isRegion(shape)) setRegionColor(edit, shape, value);
+        else if (shape) setHeaderColor(edit, shape, value);
       },
-      hidden: notTable,
+      hidden: (_page, target) => !colored(target),
     },
     {
       type: 'toggle',
@@ -115,6 +121,8 @@ export const definition: PageModeDefinition = {
       hidden: notTable,
     },
   ],
+  // Une région emporte son contenu (sujet 182).
+  carries: (page, shape) => regionContent(page, shape),
   // Clé primaire absente ou déplacée (fichier modifié) : remise en tête à l'affichage.
   check: (page) => [
     ...page.shapes.filter(misplacedPrimaryKey).map((shape) => ({

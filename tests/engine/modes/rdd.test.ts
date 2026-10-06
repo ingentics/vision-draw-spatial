@@ -7,6 +7,7 @@ import { createDefaultModeRegistry } from '../../../src/engine/modes/registry';
 import { definition as rdd } from '../../../src/engine/modes/rdd';
 import { FIELDS, ICON, SECONDARY, fieldsOf, tableFields } from '../../../src/engine/modes/rdd/tables';
 import { fieldsText, setFields, setHeaderColor, setSecondary } from '../../../src/engine/modes/rdd/operations';
+import { regionContent, regionOf, regionStroke } from '../../../src/engine/modes/rdd/regions';
 import type { ModeEdit } from '../../../src/engine/modes/types';
 import { buildPageScene } from '../../../src/engine/render/pageScene';
 import type { RenderContext, TextSpec } from '../../../src/engine/render/types';
@@ -44,6 +45,7 @@ describe('mode RDD (sujet 179) : page et palette', () => {
       ['rdd-embedded', 'Embedded'],
       ['rdd-document', 'Document'],
       ['rdd-view', 'Vue'],
+      ['rdd-region', 'Région'],
     ]);
   });
 
@@ -66,6 +68,7 @@ describe('mode RDD (sujet 179) : page et palette', () => {
   it('les tables du fichier sont reconnues ; champs lus de spatial.fields', () => {
     const shapes = createDefaultRegistry();
     expect(page().shapes.map((shape) => shapes.resolve(shape).definition.id)).toEqual([
+      'rdd-region',
       'rdd-model',
       'rdd-model',
       'rdd-model',
@@ -77,7 +80,7 @@ describe('mode RDD (sujet 179) : page et palette', () => {
       'rdd-document',
       'rdd-view',
     ]);
-    expect(page().shapes.slice(0, 3).map(fieldsOf)).toEqual([[], ['created_at', 'updated_at'], ['author']]);
+    expect(page().shapes.slice(1, 4).map(fieldsOf)).toEqual([[], ['created_at', 'updated_at'], ['author']]);
   });
 
   it('clé primaire : toujours en tête à l’affichage ; absente du fichier, signalée dans Diagnostics', () => {
@@ -97,7 +100,7 @@ describe('mode RDD (sujet 179) : page et palette', () => {
 
   it('réglages du mode masqués hors des tables ; clé primaire en lecture seule, sur les entités seulement', () => {
     const properties = rdd.shapeProperties!;
-    const model = page().shapes[0]!;
+    const model = page().shapes.find((s) => s.id === 'model')!;
     const entity = page().shapes.find((s) => s.id === 'user')!;
     expect(properties.map((p) => [p.label, p.hidden!(page(), model)])).toEqual([
       ['Couleur', false],
@@ -421,5 +424,65 @@ describe('mode RDD : rendu d’une table', () => {
     expect(light.texts.find((t) => t.text === 'Timestamped')!.color.getHexString()).toBe('000000');
     const dark = render('#1f3a5f');
     expect(dark.texts.find((t) => t.text === 'Timestamped')!.color.getHexString()).toBe('ffffff');
+  });
+});
+
+describe('mode RDD : région (sujet 182)', () => {
+  const templates = createDefaultRegistry().templates();
+
+  it('palette : rectangle léger, label gras en haut à gauche, posé au fond de la pile', () => {
+    const region = templates.find((t) => t.id === 'rdd-region')!;
+    expect(region.style).toContain('rounded=0;');
+    expect(region.style).toContain('fillColor=#dae8fc;fillOpacity=10;strokeColor=#828b97;');
+    expect(region.style).toContain('align=left;verticalAlign=top;fontStyle=1;');
+    expect(region.style).toContain('spatial.kind=rdd-region;');
+    expect(region.atBack).toBe(true);
+    expect(regionStroke('#dae8fc')).toBe('#828b97');
+  });
+
+  it('contenu : les formes du mode dont le coin haut-gauche est dans la région', () => {
+    const { page, shape } = setup();
+    expect(regionContent(page(), shape('accounts')).sort()).toEqual(['role', 'user']);
+    expect(regionOf(page(), shape('orphan'))).toBeUndefined();
+    // Une table n'emporte rien ; le mode déclare le contenu de la région comme emporté.
+    expect(regionContent(page(), shape('user'))).toEqual([]);
+    expect(rdd.carries!(page(), shape('accounts')).sort()).toEqual(['role', 'user']);
+  });
+
+  it('régions imbriquées : une forme appartient à la plus petite, la grande emporte tout', () => {
+    const { document } = readDrawio(`<mxfile><diagram id="p" name="P" spatial.mode="rdd"><mxGraphModel><root>
+      <mxCell id="0" /><mxCell id="1" parent="0" />
+      <mxCell id="big" value="" style="spatial.kind=rdd-region;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="500" height="500" as="geometry" /></mxCell>
+      <mxCell id="small" value="" style="spatial.kind=rdd-region;" vertex="1" parent="1"><mxGeometry x="100" y="100" width="200" height="200" as="geometry" /></mxCell>
+      <mxCell id="twin" value="" style="spatial.kind=rdd-region;" vertex="1" parent="1"><mxGeometry x="100" y="100" width="200" height="200" as="geometry" /></mxCell>
+      <mxCell id="inner" value="" style="swimlane;spatial.kind=rdd-entity;" vertex="1" parent="1"><mxGeometry x="150" y="150" width="160" height="46" as="geometry" /></mxCell>
+      <mxCell id="outer" value="" style="swimlane;spatial.kind=rdd-entity;" vertex="1" parent="1"><mxGeometry x="350" y="350" width="160" height="46" as="geometry" /></mxCell>
+      <mxCell id="note" value="" style="rounded=0;" vertex="1" parent="1"><mxGeometry x="20" y="20" width="40" height="40" as="geometry" /></mxCell>
+    </root></mxGraphModel></diagram></mxfile>`);
+    const page = document.pages[0]!;
+    const shape = (id: string) => page.shapes.find((s) => s.id === id)!;
+    // Deux régions de même taille ne se contiennent pas : la table va à la première trouvée des deux.
+    expect(regionOf(page, shape('inner'))?.id).toBe('small');
+    expect(regionOf(page, shape('small'))?.id).toBe('big');
+    expect(regionOf(page, shape('twin'))?.id).toBe('big');
+    // Une forme hors du mode n'est jamais contenue.
+    expect(regionOf(page, shape('note'))).toBeUndefined();
+    expect(regionContent(page, shape('small'))).toEqual(['inner']);
+    expect(regionContent(page, shape('big')).sort()).toEqual(['inner', 'outer', 'small', 'twin']);
+  });
+
+  it('couleur de la région : fond et bordure assortie ; réglages de table masqués', () => {
+    const { run, page, shape } = setup();
+    const color = rdd.shapeProperties!.find((p) => p.label === 'Couleur')!;
+    expect(rdd.shapeProperties!.map((p) => p.hidden!(page(), shape('accounts')))).toEqual([
+      false,
+      true,
+      true,
+      true,
+      true,
+    ]);
+    run((edit) => color.write!(edit, shape('accounts'), '#d5e8d4'));
+    expect(shape('accounts').style).toMatchObject({ fillColor: '#d5e8d4', strokeColor: regionStroke('#d5e8d4') });
+    expect(shape('accounts').style.fontColor).toBeUndefined();
   });
 });

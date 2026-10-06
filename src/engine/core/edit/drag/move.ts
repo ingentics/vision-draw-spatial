@@ -14,7 +14,8 @@ export class MoveDrags {
       move.started = true;
       // Une forme seule devient la sélection ; une sélection multiple déplacée reste telle quelle.
       const shape = page.shapes.find((s) => s.id === move.set.rootId);
-      if (shape && move.rootIds.length === 1 && move.edges.length === 0)
+      const grabbed = move.rootIds.filter((id) => !move.carried.has(id));
+      if (shape && grabbed.length === 1 && move.edges.every((edge) => move.carried.has(edge.id)))
         this.core.selection.select({ type: 'shape', element: shape });
       // Bouts détachés : libres là où ils sont, avant le premier pas.
       const detached = new Set<string>();

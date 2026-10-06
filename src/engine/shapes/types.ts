@@ -88,6 +88,8 @@ export interface PaletteEntry {
   height: number;
   /** Icône de la palette : contenu SVG d'un cadre `0 0 40 28`, sans couleurs (celles de la palette). */
   icon: string;
+  /** Posée au fond de la pile, derrière les autres formes (ex. région du mode RDD, sujet 182). */
+  atBack?: boolean;
 }
 
 /** Modèle de la palette : l'élément déclaré par une forme, identifié par l'`id` de la forme. */

@@ -39,6 +39,7 @@ describe('palette', () => {
       'rdd-embedded',
       'rdd-entity',
       'rdd-enum',
+      'rdd-region',
       'rdd-view',
       'rectangle',
       'recurring-task',

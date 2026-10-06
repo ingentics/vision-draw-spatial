@@ -137,11 +137,20 @@ export class DragGesture {
       if (!sets.has(id)) sets.set(id, collectMoveSet(page, id));
       return sets.get(id)!;
     };
-    const rootIds = independentRoots(shapeIds, (id) => setOf(id).shapeIds);
+    const carried = this.carried(page, pageTree, shapeIds);
+    const rootIds = independentRoots([...shapeIds, ...carried], (id) => setOf(id).shapeIds);
     const set = unionMoveSets(rootIds.map(setOf));
+    // Formes emportées : les flèches qui les relient entre elles (ou à la forme saisie) bougent avec elles.
+    const carriedEdges =
+      carried.length > 0
+        ? page.edges
+            .filter((edge) => set.shapeIds.has(edge.sourceId ?? '') && set.shapeIds.has(edge.targetId ?? ''))
+            .map((edge) => edge.id)
+            .filter((id) => !edgeIds.includes(id))
+        : [];
     // Flèches de la sélection qui bougent d'elles-mêmes (une flèche d'un groupe déplacé suit déjà).
     const edges: MoveDrag['edges'] = [];
-    for (const id of edgeIds) {
+    for (const id of [...edgeIds, ...carriedEdges]) {
       const edge = page.edges.find((e) => e.id === id);
       if (!edge || isLocked(edge) || !pageTree.cells.get(edge.id)?.cell || set.edgeIds.has(edge.id)) continue;
       const detach = (['source', 'target'] as const)
@@ -160,12 +169,37 @@ export class DragGesture {
       rootIds,
       set,
       edges,
+      carried: new Set([...carried, ...carriedEdges]),
       start,
       origin: { ...origin },
       applied: { x: 0, y: 0 },
       grid,
       started: false,
     };
+  }
+
+  /**
+   * Formes emportées par le mode de la page avec `shapeIds` (ex. contenu d'une région RDD), de proche en proche, sans
+   * celles qu'on ne peut pas déplacer.
+   */
+  private carried(page: PageModel, pageTree: PageTree, shapeIds: string[]): string[] {
+    const carries = this.core.modes.modeOf(page)?.carries;
+    if (!carries) return [];
+    const taken = new Set(shapeIds);
+    const carried: string[] = [];
+    const stack = [...shapeIds];
+    while (stack.length) {
+      const shape = page.shapes.find((s) => s.id === stack.pop());
+      if (!shape) continue;
+      for (const id of carries(page, shape)) {
+        const target = page.shapes.find((s) => s.id === id);
+        if (taken.has(id) || !target || isLocked(target) || !canMoveCell(pageTree, id)) continue;
+        taken.add(id);
+        carried.push(id);
+        stack.push(id);
+      }
+    }
+    return carried;
   }
 
   nudgeSelection(direction: Point, coarse: boolean): boolean {

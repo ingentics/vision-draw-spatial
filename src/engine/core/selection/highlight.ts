@@ -105,12 +105,22 @@ export class SelectionHighlight {
     if (!veilKey || !root || !page) return veilKey;
     const object = createVeil(page.bounds, veilOpacity, veilColor);
     root.add(object);
-    // Une forme sélectionnée est mise en valeur avec son contenu (enfants d'un groupe, d'un conteneur).
+    // Une forme sélectionnée est mise en valeur avec son contenu (enfants d'un groupe, d'un conteneur, formes emportées
+    // par le mode de la page, comme le contenu d'une région RDD).
     const highlighted = new Set(ids);
+    const carries = this.core.modes.modeOf(page)?.carries;
     for (const item of items) {
       if (item.type !== 'shape') continue;
-      const content = collectMoveSet(page, item.element.id);
-      for (const id of [...content.shapeIds, ...content.edgeIds]) highlighted.add(id);
+      const roots = [item.element.id, ...(carries?.(page, item.element) ?? [])];
+      for (const root of roots) {
+        const content = collectMoveSet(page, root);
+        for (const id of [...content.shapeIds, ...content.edgeIds]) highlighted.add(id);
+      }
+    }
+    if (carries) {
+      for (const edge of page.edges) {
+        if (highlighted.has(edge.sourceId ?? '') && highlighted.has(edge.targetId ?? '')) highlighted.add(edge.id);
+      }
     }
     const lifted = root.children.filter((c) => {
       const elementId = c.userData.elementId as string | undefined;

@@ -47,6 +47,11 @@ export interface PageModeDefinition {
   allowsEffect?(effectId: string): boolean;
   /** Touches sur l'élément sélectionné seul, par `KeyboardEvent.key` (ex. `+`). */
   keys?: Record<string, ModeKey>;
+  /**
+   * Formes emportées quand on déplace `shape` (ex. contenu d'une région RDD, sujet 182) : calculées, sans parent
+   * draw.io. Elles bougent dans la même étape d'annulation, avec les flèches qui les relient entre elles.
+   */
+  carries?(page: PageModel, shape: ShapeModel): string[];
 }
 
 /**

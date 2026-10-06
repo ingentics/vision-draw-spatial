@@ -16,6 +16,8 @@ export interface MoveDrag {
    * forme ne bouge pas est détaché, comme draw.io (`disconnectOnMove`) ; point libre au début du glisser.
    */
   edges: Array<{ id: string; detach: Array<{ end: TerminalEnd; point?: Point }> }>;
+  /** Formes et flèches emportées par le mode de la page (ex. contenu d'une région RDD, sujet 182), hors sélection. */
+  carried: Set<string>;
   start: Point;
   origin: Rect;
   applied: Point;

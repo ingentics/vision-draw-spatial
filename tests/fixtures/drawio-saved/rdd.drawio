@@ -1,9 +1,12 @@
 <mxfile host="Electron" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/24.7.5 Chrome/126.0.6478.183 Electron/31.3.0 Safari/537.36" version="24.7.5">
   <diagram id="rdd" name="RDD" spatial.mode="rdd">
-    <mxGraphModel dx="-444" dy="-134" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="0" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="-434" dy="-134" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="0" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
+        <mxCell id="accounts" value="Comptes" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;fillOpacity=10;strokeColor=#828b97;align=left;verticalAlign=top;fontStyle=1;spacingLeft=8;spacingTop=4;spatial.kind=rdd-region;" parent="1" vertex="1">
+          <mxGeometry x="20" y="130" width="400" height="130" as="geometry" />
+        </mxCell>
         <mxCell id="model" value="Model" style="swimlane;fontStyle=3;startSize=26;fillColor=#dae8fc;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;spatial.kind=rdd-model;" parent="1" vertex="1">
           <mxGeometry x="40" y="40" width="160" height="46" as="geometry" />
         </mxCell>
