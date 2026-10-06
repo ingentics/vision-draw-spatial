@@ -41,6 +41,9 @@ describe('mode RDD (sujet 179) : page et palette', () => {
     expect(palette.templates.map((t) => [t.id, t.name])).toEqual([
       ['rdd-entity', 'Entité'],
       ['rdd-enum', 'Entité énumérative'],
+      ['rdd-embedded', 'Embedded'],
+      ['rdd-document', 'Document JSONB'],
+      ['rdd-view', 'Vue'],
     ]);
   });
 
@@ -69,6 +72,10 @@ describe('mode RDD (sujet 179) : page et palette', () => {
       'rdd-entity',
       'rdd-enum',
       'rdd-entity',
+      'rdd-embedded',
+      'rdd-document',
+      'rdd-document',
+      'rdd-view',
     ]);
     expect(page().shapes.slice(0, 3).map(fieldsOf)).toEqual([[], ['created_at', 'updated_at'], ['author']]);
   });
@@ -84,6 +91,7 @@ describe('mode RDD (sujet 179) : page et palette', () => {
         cellId: 'orphan',
         message: 'Table « Orphan » : clé primaire id absente ou déplacée, remise en tête',
       },
+      { pageId: 'rdd', cellId: 'unnamed', message: 'Document sans nom : le nom est obligatoire' },
     ]);
   });
 
@@ -175,6 +183,60 @@ describe('mode RDD : entités (sujet 180)', () => {
   });
 });
 
+describe('mode RDD : embedded, document JSONB et vue (sujet 181)', () => {
+  const templates = createDefaultRegistry().templates();
+  const style = (id: string) => templates.find((t) => t.id === id)!.style;
+
+  it('palette : mention dans l’entête, sans clé primaire ; tirets pour l’embedded, coins arrondis pour la vue', () => {
+    for (const id of ['rdd-embedded', 'rdd-document', 'rdd-view']) {
+      expect(style(id)).toContain('startSize=38;');
+      expect(style(id)).not.toContain('spatial.fields');
+    }
+    expect(style('rdd-embedded')).toContain('dashed=1;');
+    expect(style('rdd-view')).toContain('rounded=1;');
+    expect(style('rdd-document')).not.toMatch(/dashed|rounded/);
+  });
+
+  function render() {
+    const { page } = setup();
+    const texts: TextSpec[] = [];
+    const ctx: RenderContext = {
+      text: {
+        create(spec) {
+          texts.push(spec);
+          return new Object3D();
+        },
+      },
+    };
+    const root = buildPageScene(page(), createDefaultRegistry(), ctx, 'flat').root;
+    const object = (id: string) => root.children.find((child) => child.userData.elementId === id)!;
+    return { texts, object };
+  }
+
+  it('mentions «embedded», «jsonb», «view» ; clés du document en italique ; document sans nom : « Document »', () => {
+    const { texts } = render();
+    const before = (name: string) => texts[texts.findIndex((t) => t.text === name) - 1]!.text;
+    expect([before('Address'), before('Settings'), before('ActiveUsers')]).toEqual(['«embedded»', '«jsonb»', '«view»']);
+    expect(['theme', 'locale'].map((key) => texts.find((t) => t.text === key)!.italic)).toEqual([true, true]);
+    expect(texts.find((t) => t.text === 'street')!.italic).toBeFalsy();
+    expect(texts.filter((t) => t.text === 'Document')).toHaveLength(1);
+  });
+
+  it('vue : contour arrondi, entête coupé dans ce contour', () => {
+    const { object } = render();
+    const view = object('active');
+    const header = view.getObjectByName('fill-header') as Mesh;
+    header.geometry.computeBoundingBox();
+    const box = header.geometry.boundingBox!;
+    expect([box.min.x, box.min.y, box.max.x, box.max.y]).toEqual([640, 300, 800, 338]);
+    // Coin haut-gauche arrondi : pas de sommet au coin exact.
+    const corner = [...(header.geometry.getAttribute('position').array as Float32Array)].some(
+      (_, i, a) => i % 3 === 0 && a[i] === 640 && a[i + 1] === 300,
+    );
+    expect(corner).toBe(false);
+  });
+});
+
 describe('mode RDD : rendu d’une table', () => {
   function render(color?: string) {
     const { run, page, shape } = setup();
@@ -206,7 +268,8 @@ describe('mode RDD : rendu d’une table', () => {
   it('entité : id souligné en tête ; énumération : sans mention (sujet 216), nom droit', () => {
     const { texts } = render();
     const id = texts.filter((t) => t.text === 'id');
-    expect(id.map((t) => t.underline)).toEqual([true, true, true]);
+    // Entités : clé primaire soulignée ; vue : un champ `id` ordinaire.
+    expect(id.map((t) => t.underline ?? false)).toEqual([true, true, true, false]);
     expect(texts.find((t) => t.text === 'email')!.underline).toBe(false);
     const at = texts.findIndex((t) => t.text === 'Role');
     expect(texts.some((t) => t.text.startsWith('«enum'))).toBe(false);

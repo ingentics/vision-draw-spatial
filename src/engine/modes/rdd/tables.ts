@@ -43,6 +43,12 @@ export interface TableKind {
   primaryKey?: boolean;
   /** Cadre double autour de l'entête (sujet 215). */
   doubleHeader?: boolean;
+  /** Champs en italique : indicatifs, sans contrainte (document JSONB, sujet 181). */
+  italicFields?: boolean;
+  /** Nom obligatoire : affiché à la place d'un nom vide, qui est signalé (document JSONB, sujet 181). */
+  requiredName?: string;
+  /** Clés du style draw.io d'une table neuve (ex. `dashed=1;`) : le rendu les suit, draw.io aussi. */
+  style?: string;
 }
 
 /** Clé primaire des tables qui en ont une : premier champ, souligné, ni retiré ni déplacé. */
@@ -57,6 +63,10 @@ export const TABLE_KINDS: Record<string, TableKind> = {
   'rdd-model': { stereotype: 'abstract', italic: true },
   'rdd-entity': { primaryKey: true },
   'rdd-enum': { primaryKey: true, doubleHeader: true },
+  // Sujet 181 : objet incorporé (bordure en tirets), document JSONB (clés indicatives), vue (coins arrondis).
+  'rdd-embedded': { stereotype: 'embedded', style: 'dashed=1;' },
+  'rdd-document': { stereotype: 'jsonb', italicFields: true, requiredName: 'Document' },
+  'rdd-view': { stereotype: 'view', style: 'rounded=1;absoluteArcSize=1;arcSize=16;' },
 };
 
 /** Forme de table d'une forme du mode ; undefined pour une autre forme. */
@@ -84,6 +94,10 @@ export function tableFields(shape: ShapeModel): string[] {
 /** La clé primaire manque ou n'est pas en tête dans le fichier (fichier modifié à la main ou dans draw.io) ? */
 export const misplacedPrimaryKey = (shape: ShapeModel) =>
   tableKindOf(shape)?.primaryKey === true && fieldsOf(shape)[0] !== PRIMARY_KEY;
+
+/** Nom vide d'une table au nom obligatoire (document JSONB) ? */
+export const missingName = (shape: ShapeModel) =>
+  tableKindOf(shape)?.requiredName !== undefined && shape.label.trim() === '';
 
 export const isSecondary = (shape: ShapeModel) => spatialValue(shape, SECONDARY) === '1';
 

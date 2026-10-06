@@ -891,6 +891,10 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   énumération ont toujours la clé primaire `id` en tête de leurs champs (créées avec `spatial.fields=["id"]`),
   soulignée, montrée en lecture seule dans le panneau (« Clé primaire ») et absente de « Champs » ; absente ou
   déplacée dans le fichier, elle est remise en tête à l'affichage et signalée dans Diagnostics.
+  Sujet 181 : « Embedded » (`rdd-embedded`, `«embedded»`, objet incorporé, bordure en tirets `dashed=1`), « Document
+  JSONB » (`rdd-document`, `«jsonb»`, clés connues en italique ; nom obligatoire : vide, il affiche « Document » et
+  Diagnostics le signale), « Vue » (`rdd-view`, `«view»`, coins arrondis `rounded=1;absoluteArcSize=1;arcSize=16`,
+  entête coupé dans le contour) ; sans clé primaire imposée.
   Une table est un rectangle en deux zones : entête de la couleur `fillColor` (nom centré, gras ; texte noir ou blanc
   selon le contraste), trait, puis zone blanche des champs (`spatial.fields`, un par ligne de 20 px, alignés à
   gauche). Modèle abstrait (`rdd-model`) : mention `«abstract»` en petit au-dessus du nom, en italique (entête de

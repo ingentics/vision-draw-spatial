@@ -1,7 +1,7 @@
 import { Color, Group } from 'three';
 import type { Point, Rect, ShapeModel } from '../../../../model/types';
 import { createLabel } from '../../../../render/flat/box';
-import { rectPath } from '../../../../render/geometry/paths';
+import { cornerRadius, rectPath, roundedRectPath } from '../../../../render/geometry/paths';
 import { dashPattern } from '../../../../render/geometry/stroke';
 import { fillMesh, strokeMesh } from '../../../../render/meshes';
 import { readableOn, styleColor, styleNumber, styleOpacity } from '../../../../render/styleValues';
@@ -17,6 +17,7 @@ import {
   TABLE_KINDS,
   headerHeight,
   isSecondary,
+  missingName,
   tableFields,
   tableHeight,
 } from '../../tables';
@@ -36,6 +37,12 @@ function nameZone(shape: ShapeModel, kind: TableKind): Rect {
   return { x, y: y + band, width, height: headerHeight(kind, isSecondary(shape)) - band };
 }
 
+/** Contour d'une table : rectangle, arrondi avec `rounded=1` (vue). */
+function outline(shape: ShapeModel): Point[] {
+  const { bounds, style } = shape;
+  return style.rounded === '1' ? roundedRectPath(bounds, cornerRadius(style, bounds)) : rectPath(bounds);
+}
+
 /**
  * Rendu à plat d'une table : zone des champs blanche, entête de la couleur `fillColor` (texte noir ou blanc selon le
  * contraste), séparés d'un trait ; mention en petit au-dessus du nom ; un champ par ligne, aligné à gauche.
@@ -49,8 +56,11 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
   const headerColor = styleColor(style, 'fillColor', DEFAULT_HEADER_COLOR) ?? new Color(DEFAULT_HEADER_COLOR);
   const textColor = readableOn(`#${headerColor.getHexString()}`);
 
-  group.add(fillMesh(rectPath(bounds), new Color(FIELDS_FILL), styleOpacity(style, 'fillOpacity')));
-  const headerFill = fillMesh(rectPath({ ...bounds, height: header }), headerColor, styleOpacity(style, 'fillOpacity'));
+  const path = outline(shape);
+  group.add(fillMesh(path, new Color(FIELDS_FILL), styleOpacity(style, 'fillOpacity')));
+  // Haut du contour (convexe), coupé sous l'entête : coins arrondis du haut compris.
+  const headerPath = path.map((p) => ({ x: p.x, y: Math.min(p.y, bounds.y + header) }));
+  const headerFill = fillMesh(headerPath, headerColor, styleOpacity(style, 'fillOpacity'));
   headerFill.name = 'fill-header';
   headerFill.renderOrder = PART_ORDER.fill + 0.5;
   group.add(headerFill);
@@ -69,7 +79,7 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
       mesh.renderOrder = PART_ORDER.stroke;
       group.add(mesh);
     };
-    line(rectPath(bounds), true);
+    line(path, true);
     line(
       [
         { x: bounds.x, y: bounds.y + header },
@@ -113,7 +123,7 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
       },
     },
     ctx,
-    shape.label,
+    missingName(shape) ? kind.requiredName : shape.label,
     nameZone(shape, kind),
   );
   if (label) group.add(label);
@@ -129,6 +139,7 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
       color: '#000000',
       align: 'left',
       underline: kind.primaryKey && index === 0,
+      italic: kind.italicFields,
     });
   });
   return group;
@@ -137,7 +148,15 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
 function addText(
   group: Group,
   ctx: RenderContext,
-  text: { text: string; at: Point; size: number; color: string; align: 'left' | 'center'; underline?: boolean },
+  text: {
+    text: string;
+    at: Point;
+    size: number;
+    color: string;
+    align: 'left' | 'center';
+    underline?: boolean;
+    italic?: boolean;
+  },
 ): void {
   const object = ctx.text.create({
     text: text.text,
@@ -151,6 +170,7 @@ function addText(
     opacity: 1,
     bold: false,
     underline: text.underline,
+    italic: text.italic,
   });
   object.name = 'table-text';
   object.renderOrder = PART_ORDER.label;
@@ -166,7 +186,7 @@ export function tableStyle(id: string, kind: TableKind): string {
   return (
     `swimlane;fontStyle=${1 | (kind.italic ? 2 : 0)};startSize=${headerHeight(kind, false)};` +
     `fillColor=${DEFAULT_HEADER_COLOR};swimlaneFillColor=${FIELDS_FILL};strokeColor=${BORDER};` +
-    `fontSize=${TABLE.nameSize};html=1;whiteSpace=wrap;spatial.kind=${id};${fields}`
+    `fontSize=${TABLE.nameSize};html=1;whiteSpace=wrap;${kind.style ?? ''}spatial.kind=${id};${fields}`
   );
 }
 
@@ -177,12 +197,12 @@ export function tableStyle(id: string, kind: TableKind): string {
  */
 export function table(
   id: string,
-  palette?: Pick<PaletteEntry, 'name' | 'order' | 'keywords' | 'value'>,
+  palette?: Pick<PaletteEntry, 'name' | 'order' | 'keywords' | 'value'> & { icon?: string },
 ): ShapeDefinition {
   const kind = TABLE_KINDS[id]!;
   return {
     id,
-    outline: (shape) => rectPath(shape.bounds),
+    outline,
     flat: { create: (shape, ctx) => createTable(shape, ctx, kind) },
     textZone: (shape) => nameZone(shape, kind),
     swatch: () => '<path d="M5 5h30v18H5zM5 11h30"/>',
@@ -194,10 +214,11 @@ export function table(
         width: TABLE.width,
         height: tableHeight(kind, false, kind.primaryKey ? 1 : 0),
         icon:
+          palette.icon ??
           (kind.stereotype
             ? '<path d="M6 3h28v22H6zM6 12h28M10 17h12M10 22h9M15 7.5h10"/>'
             : '<path d="M6 3h28v22H6zM6 10h28M10 15h12M10 20h9"/>') +
-          (kind.doubleHeader ? '<path d="M8 5h24v3H8z"/>' : ''),
+            (kind.doubleHeader ? '<path d="M8 5h24v3H8z"/>' : ''),
       },
     }),
   };

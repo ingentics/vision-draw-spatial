@@ -8,6 +8,7 @@ import {
   TABLE_KINDS,
   isSecondary,
   misplacedPrimaryKey,
+  missingName,
   tableKindOf,
 } from './tables';
 import { fieldsText, setFields, setHeaderColor, setSecondary } from './operations';
@@ -98,9 +99,15 @@ export const definition: PageModeDefinition = {
     },
   ],
   // Clé primaire absente ou déplacée (fichier modifié) : remise en tête à l'affichage.
-  check: (page) =>
-    page.shapes.filter(misplacedPrimaryKey).map((shape) => ({
+  check: (page) => [
+    ...page.shapes.filter(misplacedPrimaryKey).map((shape) => ({
       cellId: shape.id,
       message: `Table « ${shape.label || shape.id} » : clé primaire ${PRIMARY_KEY} absente ou déplacée, remise en tête`,
     })),
+    // Document JSONB sans nom : affiché « Document » (sujet 181).
+    ...page.shapes.filter(missingName).map((shape) => ({
+      cellId: shape.id,
+      message: `${tableKindOf(shape)!.requiredName} sans nom : le nom est obligatoire`,
+    })),
+  ],
 };
