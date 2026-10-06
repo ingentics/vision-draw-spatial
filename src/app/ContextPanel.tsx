@@ -624,7 +624,7 @@ function EdgeLineSection({
   edge: EdgeModel;
   pageJumps: JumpStyle | 'none';
   defaultJumpSize: number;
-  onChange: (patch: EdgeStylePatch) => void;
+  onChange: (patch: EdgeStylePatch, merge?: string) => void;
   onResetRoute: () => void;
 }) {
   const current: EdgeLine =
@@ -640,6 +640,7 @@ function EdgeLineSection({
   const jump = ownJump ?? pageJumps;
   const jumpSize = parseInt(edge.style.jumpSize ?? '', 10);
   const curved = current === 'curved';
+  const splitSession = useRef(0);
   return (
     <Section title="Tracé">
       <div className="field-row">
@@ -698,16 +699,22 @@ function EdgeLineSection({
       {edge.style.split === '1' &&
         (['Left', 'Right'] as const).map((side) => {
           const key = `splitLabel${side}`;
-          const current = edge.style[key] ?? '';
+          // Le point-virgule sépare les clés du style draw.io : retiré du texte.
+          const write = (text: string) => () => ({ [key]: text.replace(/;/g, '').trim() || undefined });
+          // Réglage en direct : une étape d'annulation par passage dans le champ.
+          const merge = `${key}:${edge.id}:${splitSession.current}`;
           return (
             <TextField
-              key={`${key}:${edge.id}:${current}`}
+              key={`${key}:${edge.id}`}
               label={side === 'Left' ? 'Renvoi départ' : 'Renvoi arrivée'}
               title={`Texte dans un cadre au bout du tronçon ${side === 'Left' ? 'de départ (côté source)' : 'd’arrivée (côté cible)'} (${key}) ; vide = fondu`}
-              value={current}
+              value={edge.style[key] ?? ''}
               placeholder="fondu"
-              // Le point-virgule sépare les clés du style draw.io : retiré du texte.
-              onCommit={(text) => onChange(() => ({ [key]: text.replace(/;/g, '').trim() || undefined }))}
+              onLive={(text) => onChange(write(text), merge)}
+              onCommit={(text) => {
+                onChange(write(text), merge);
+                splitSession.current++;
+              }}
             />
           );
         })}

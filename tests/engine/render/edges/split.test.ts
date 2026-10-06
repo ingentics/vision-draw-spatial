@@ -120,13 +120,15 @@ describe('rendu et clic', () => {
     expect(pickElement(page, { x: 100, y: 0 }, { ...options, edgePieces: () => undefined })?.element.id).toBe('e');
   });
 
-  it('survol (ticket 224) : tronçons et cadre épaissis de 1 px, ligne directe d’un bout à l’autre, au-dessus', () => {
+  it('survol (ticket 224) : tronçons et cadre épaissis de 1 px, ligne directe entre les coupures, au-dessus', () => {
     const group = createEdge(edge({ split: '1', splitLabelRight: 'depuis A' }), {}, ctx);
     const hover = group.userData.splitHover as SplitHover;
-    expect(hover.ends).toEqual([
-      { x: 0, y: 0 },
-      { x: 200, y: 0 },
-    ]);
+    // Bouts coupés (ticket 225) : fin du tronçon de départ ; côté arrivée, bord du cadre tourné vers le départ.
+    const [from, to] = hover.ends;
+    expect(from).toEqual({ x: 40, y: 0 });
+    const frameWidth = hover.frames[0]![1]!.x - hover.frames[0]![0]!.x;
+    expect(to!.x).toBeCloseTo(160 - frameWidth);
+    expect(to!.y).toBeCloseTo(0);
     expect(hover.frames).toHaveLength(1);
     const overlay = splitHoverOverlay(hover, 2);
     // Deux tronçons, le bord du cadre, la ligne directe.

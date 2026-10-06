@@ -124,7 +124,7 @@ export function createEdge(
       group.add(lines);
     }
 
-    if (split) addSplitPieces(group, line, route, style, ctx, { stroke, opacity, strokeWidth, dash });
+    if (split) addSplitPieces(group, line, style, ctx, { stroke, opacity, strokeWidth, dash });
 
     for (const marker of [start, end]) {
       if (marker?.fill) group.add(fillMesh(marker.fill, stroke, opacity));
@@ -157,7 +157,6 @@ export function createEdge(
 function addSplitPieces(
   group: Group,
   line: Point[],
-  route: Point[],
   style: Record<string, string>,
   ctx: RenderContext,
   trait: { stroke: Color; opacity: number; strokeWidth: number; dash: number[] | undefined },
@@ -166,23 +165,36 @@ function addSplitPieces(
   const pieces = splitPieces(line, style, settings);
   group.userData.splitPaths = pieces.map((piece) => piece.points);
   const hover: SplitHover = {
-    ends: [route[0]!, route[route.length - 1]!],
+    ends: [],
     pieces: [],
     frames: [],
     stroke: trait.stroke,
     opacity: trait.opacity,
     strokeWidth: trait.strokeWidth,
   };
+  // Bout coupé de chaque tronçon, ou son cadre de renvoi : départ de la ligne directe (ticket 225).
+  const cuts: Array<{ end: Point; box?: { center: Point; width: number; height: number } }> = [];
   for (const piece of pieces) {
     const paths = trait.dash ? dashPolyline(piece.points, trait.dash, false) : [piece.points];
     const mesh = fadedStrokeMesh(paths, piece.alphaAt, trait.stroke, trait.opacity, trait.strokeWidth);
     if (mesh) group.add(mesh);
     hover.pieces.push({ paths, alphaAt: piece.alphaAt });
-    if (piece.label) {
-      const frame = splitLabel(piece, style, ctx, trait, settings);
+    const frame = piece.label ? splitLabel(piece, style, ctx, trait, settings) : undefined;
+    if (frame) {
       group.add(frame);
       hover.frames.push(frame.userData.corners as Point[]);
     }
+    const box = frame?.userData.box as { center: Point; width: number; height: number } | undefined;
+    cuts.push({ end: piece.points[piece.points.length - 1]!, ...(box && { box }) });
+  }
+  // Ligne directe entre les deux bouts coupés ; avec un cadre, depuis son bord tourné vers l'autre bout (ticket 225).
+  if (cuts.length === 2) {
+    const aim = (cut: (typeof cuts)[number]) => cut.box?.center ?? cut.end;
+    hover.ends = cuts.map((cut, i) => {
+      if (!cut.box) return cut.end;
+      const { center, width, height } = cut.box;
+      return splitLabelFrame(center, unit(center, aim(cuts[1 - i]!)), width, height);
+    });
   }
   // Survol (ticket 224) : de quoi dessiner les tronçons épaissis et la ligne directe (`splitHoverOverlay`).
   group.userData.splitHover = hover;
@@ -211,6 +223,7 @@ function splitLabel(
   const frame = new Group();
   frame.name = 'split-label';
   frame.userData.corners = corners;
+  frame.userData.box = { center, width, height };
   frame.add(fillMesh(corners, new Color(ctx.background ?? PAGE_BACKGROUND), trait.opacity));
   const border = strokeMesh(corners, trait.stroke, trait.opacity, { width: trait.strokeWidth, closed: true });
   if (border) frame.add(border);

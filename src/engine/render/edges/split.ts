@@ -104,8 +104,8 @@ export function splitLabelFrame(end: Point, direction: Point, width: number, hei
 
 /** Ce qu'il faut pour dessiner le survol d'une flèche coupée (`userData.splitHover` de l'objet de la flèche). */
 export interface SplitHover {
-  /** Bouts de la flèche entière : départ (source) et arrivée (cible). */
-  ends: [Point, Point];
+  /** Bouts coupés : fin du tronçon de départ et fin du tronçon d'arrivée (vide : pas de ligne directe). */
+  ends: Point[];
   /** Tronçons tels que dessinés (tirets compris) et leur opacité. */
   pieces: Array<{ paths: Point[][]; alphaAt: (p: Point) => number }>;
   /** Coins des cadres de renvoi. */
@@ -117,12 +117,12 @@ export interface SplitHover {
 
 /** Épaississement des tronçons et des cadres au survol, en pixels de page. */
 export const SPLIT_HOVER_THICKEN = 1;
-/** Ligne directe du survol : 1 px à l'écran, noire à 80 %. */
-const DIRECT_LINE = { width: 1, color: '#000000', opacity: 0.8 };
+/** Ligne directe du survol : 1 px à l'écran, noire à 30 %. */
+const DIRECT_LINE = { width: 1, color: '#000000', opacity: 0.3 };
 
 /**
  * Survol d'une flèche coupée (ticket 224), au-dessus de tout le schéma : tronçons et cadres redessinés 1 px plus
- * épais, et une ligne droite d'un bout à l'autre de la flèche (épaisseur constante à l'écran, d'où `zoom`).
+ * épais, et une ligne droite entre les deux bouts coupés (épaisseur constante à l'écran, d'où `zoom`).
  */
 export function splitHoverOverlay(hover: SplitHover, zoom: number): Group {
   const group = new Group();
@@ -136,10 +136,12 @@ export function splitHoverOverlay(hover: SplitHover, zoom: number): Group {
     const border = strokeMesh(corners, hover.stroke, hover.opacity, { width, closed: true });
     if (border) group.add(border);
   }
-  const direct = strokeMesh(hover.ends, new Color(DIRECT_LINE.color), DIRECT_LINE.opacity, {
-    width: DIRECT_LINE.width / zoom,
-    closed: false,
-  });
+  const direct =
+    hover.ends.length === 2 &&
+    strokeMesh(hover.ends, new Color(DIRECT_LINE.color), DIRECT_LINE.opacity, {
+      width: DIRECT_LINE.width / zoom,
+      closed: false,
+    });
   if (direct) group.add(direct);
   group.traverse((o) => {
     o.renderOrder = Number.MAX_SAFE_INTEGER;
