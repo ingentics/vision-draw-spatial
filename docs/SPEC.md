@@ -886,7 +886,7 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   `<diagram>`, attribut d'élément là où il est déjà (objet), sinon dans le style ; clé du style draw.io d'un élément
   (`setElementStyle`) et bornes d'une forme (`setShapeBounds`, sujet 179).
 - **Mode RDD** (`rdd`, sujets 179, 180) : en 2D seulement ; la palette (catégorie « RDD ») ne propose que ses
-  tables : « Entité » (`rdd-entity`) et « Entité énumérative » (`rdd-enum`, mention `«enum»`). Le modèle abstrait
+  tables : « Entité » (`rdd-entity`) et « Entité énumérative » (`rdd-enum`, mention `«enum»`, entête à cadre double : second trait 3 px à l'intérieur). Le modèle abstrait
   (`rdd-model`) est leur base technique : jamais dans la palette, dessiné s'il est dans un fichier. Entité et
   énumération ont toujours la clé primaire `id` en tête de leurs champs (créées avec `spatial.fields=["id"]`),
   soulignée, montrée en lecture seule dans le panneau (« Clé primaire ») et absente de « Champs » ; absente ou

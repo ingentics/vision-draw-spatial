@@ -213,6 +213,32 @@ describe('mode RDD : rendu d’une table', () => {
     expect(texts.find((t) => t.text === 'User')!.italic).toBe(false);
   });
 
+  it('énumération : cadre double autour de l’entête, à 3 px dedans ; entité : cadre simple', () => {
+    const { run, page, shape } = setup();
+    const strokes = (id: string) => {
+      const root = buildPageScene(
+        page(),
+        createDefaultRegistry(),
+        { text: { create: () => new Object3D() } },
+        'flat',
+      ).root;
+      return root.children
+        .find((child) => child.userData.elementId === id)!
+        .children.filter((c): c is Mesh => c.name === 'stroke-table');
+    };
+    expect(strokes('user')).toHaveLength(2);
+    const inner = strokes('role')[2]!;
+    inner.geometry.computeBoundingBox();
+    const box = inner.geometry.boundingBox!;
+    // Trait de 1 px centré sur le rectangle intérieur : bornes ± 0,5.
+    expect([box.min.x, box.min.y, box.max.x, box.max.y]).toEqual([242.5, 162.5, 397.5, 195.5]);
+    // Table secondaire : écart à l'échelle (2,4 px).
+    run((edit) => setSecondary(edit, shape('role'), true));
+    const small = strokes('role')[2]!;
+    small.geometry.computeBoundingBox();
+    expect(small.geometry.boundingBox!.min.x).toBeCloseTo(241.9, 3);
+  });
+
   it("entête de la couleur fillColor, corps blanc ; texte de l'entête blanc sur une couleur sombre", () => {
     const fillHex = (mesh: Object3D | undefined) => ((mesh as Mesh).material as MeshBasicMaterial).color.getHexString();
     const light = render();

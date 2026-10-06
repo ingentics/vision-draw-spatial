@@ -29,6 +29,8 @@ export const TABLE = {
   fieldSize: 11,
   /** Marge des champs à gauche. */
   padding: 6,
+  /** Écart du second trait d'un entête à cadre double. */
+  doubleGap: 3,
   width: 160,
 } as const;
 
@@ -45,6 +47,8 @@ export interface TableKind {
   stereotype?: string;
   italic?: boolean;
   primaryKey?: boolean;
+  /** Cadre double autour de l'entête (sujet 215). */
+  doubleHeader?: boolean;
 }
 
 /** Clé primaire des tables qui en ont une : premier champ, souligné, ni retiré ni déplacé. */
@@ -58,7 +62,7 @@ export const PRIMARY_KEY = 'id';
 export const TABLE_KINDS: Record<string, TableKind> = {
   'rdd-model': { stereotype: 'abstract', italic: true },
   'rdd-entity': { primaryKey: true },
-  'rdd-enum': { stereotype: 'enum', primaryKey: true },
+  'rdd-enum': { stereotype: 'enum', primaryKey: true, doubleHeader: true },
 };
 
 /** Forme de table d'une forme du mode ; undefined pour une autre forme. */
@@ -137,6 +141,7 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
         dash: dashPattern(style, width),
       });
       if (!mesh) return;
+      mesh.name = 'stroke-table';
       mesh.renderOrder = PART_ORDER.stroke;
       group.add(mesh);
     };
@@ -148,6 +153,18 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
       ],
       false,
     );
+    if (kind.doubleHeader) {
+      const gap = TABLE.doubleGap * scale;
+      line(
+        rectPath({
+          x: bounds.x + gap,
+          y: bounds.y + gap,
+          width: Math.max(0, bounds.width - 2 * gap),
+          height: Math.max(0, header - 2 * gap),
+        }),
+        true,
+      );
+    }
   }
 
   if (kind.stereotype) {
