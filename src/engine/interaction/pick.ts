@@ -19,8 +19,8 @@ export interface PickOptions {
   heightOf?: (elementId: string) => number;
   pointAtHeight?: (height: number) => Point;
   /**
-   * Élément debout (silhouette de l'Actor) : hauteur de sa base. Il se teste alors sur toute sa hauteur, du dessus
-   * à la base, et pas seulement au dessus. Absent = au dessus seulement (blocs).
+   * Volumes (vue iso) : hauteur de la base d'un élément. Il se teste alors sur toute sa hauteur, du dessus à la
+   * base (côtés compris), et pas seulement au dessus. Absent = au dessus seulement.
    */
   baseOf?: (elementId: string) => number | undefined;
   /**
@@ -32,8 +32,9 @@ export interface PickOptions {
   pickable?: (shape: ShapeModel) => boolean;
 }
 
-/** Hauteurs testées sous le dessus d'un élément debout. */
-const STANDING_STEPS = 12;
+/** Pas (unités de page) entre deux hauteurs testées sous le dessus d'un volume, et nombre maximal de hauteurs. */
+const VOLUME_STEP = 1;
+const VOLUME_MAX_STEPS = 256;
 
 export function pickElement(page: PageModel, point: Point, options: PickOptions): PickedElement | undefined {
   const hiddenLayers = new Set(page.layers.filter((l) => !l.visible).map((l) => l.id));
@@ -52,11 +53,7 @@ export function pickElement(page: PageModel, point: Point, options: PickOptions)
       if (shapeContains(candidate.element, target, options.contains)) return candidate;
       const base = options.baseOf?.(element.id);
       if (base !== undefined && base < height && options.pointAtHeight) {
-        const at = options.pointAtHeight;
-        for (let step = 1; step <= STANDING_STEPS; step++) {
-          const p = at(height - ((height - base) * step) / STANDING_STEPS);
-          if (shapeContains(candidate.element, p, options.contains)) return candidate;
-        }
+        if (volumeContains(candidate.element, height, base, options.pointAtHeight, options.contains)) return candidate;
       }
     } else {
       const route = options.edgeRoute(element.id);
@@ -64,6 +61,31 @@ export function pickElement(page: PageModel, point: Point, options: PickOptions)
     }
   }
   return undefined;
+}
+
+/**
+ * Le rayon visé traverse-t-il le volume (contour extrudé de `base` à `top`) ? Le point visé glisse en ligne droite
+ * sur la page quand la hauteur varie : on teste les hauteurs au pas `VOLUME_STEP` le long de ce segment, après un
+ * rejet par les bornes.
+ */
+function volumeContains(
+  shape: ShapeModel,
+  top: number,
+  base: number,
+  at: (height: number) => Point,
+  contains?: (shape: ShapeModel, point: Point) => boolean,
+): boolean {
+  const a = at(top);
+  const b = at(base);
+  const { x, y, width, height } = shape.bounds;
+  if (Math.max(a.x, b.x) < x || Math.min(a.x, b.x) > x + width) return false;
+  if (Math.max(a.y, b.y) < y || Math.min(a.y, b.y) > y + height) return false;
+  const steps = Math.min(VOLUME_MAX_STEPS, Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / VOLUME_STEP)));
+  for (let step = 1; step <= steps; step++) {
+    const t = step / steps;
+    if (shapeContains(shape, { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }, contains)) return true;
+  }
+  return false;
 }
 
 /** Point dans la forme : dans ses bornes, puis selon `contains` (sa définition) s'il est donné. */

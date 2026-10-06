@@ -32,6 +32,23 @@ describe('pickElement', () => {
     expect(pickElement(simple, { x: 42, y: 182 }, options())).toBeUndefined();
   });
 
+  it('volume (iso) : se prend sur ses côtés, du dessus à la base, pas au-delà (étape 160)', () => {
+    const simple = parseDrawio(fixture('simple.drawio')).pages[0]!;
+    const page = { ...simple, shapes: simple.shapes.filter((s) => s.id === 'e1'), edges: [] };
+    const { x, y, width, height } = page.shapes[0]!.bounds;
+    // Le point visé avance en y avec la hauteur : au dessus (h = 40), 40 plus bas qu'à la base.
+    const iso = (screenY: number) => ({
+      ...options(),
+      heightOf: () => 40,
+      baseOf: () => 0,
+      pointAtHeight: (h: number) => ({ x: x + width / 2, y: screenY + h }),
+    });
+    const side = y + height - 10; // dessus visé hors de la forme, base dedans : le côté du volume
+    expect(pickElement(page, { x: 0, y: 0 }, iso(side))?.element.id).toBe('e1');
+    expect(pickElement(page, { x: 0, y: 0 }, { ...iso(side), baseOf: undefined })).toBeUndefined();
+    expect(pickElement(page, { x: 0, y: 0 }, iso(y + height + 5))).toBeUndefined();
+  });
+
   it('arêtes : à distance de tolérance de leur tracé, au-dessus des formes dessinées avant', () => {
     const page = parseDrawio(fixture('drawio-desktop.drawio')).pages[0]!;
     const edgeId = 'Fs-0jHc4KjceeW8xsn6R-4';

@@ -1835,7 +1835,7 @@ export class Engine {
         return (data?.path ?? data?.route) as Point[] | undefined;
       },
       heightOf: (id) => this.elementTop(id),
-      baseOf: (id) => this.standingBase(id),
+      baseOf: (id) => this.volumeBase(id),
       pointAtHeight: (height) => this.groundPointAtHeight(screen, height),
       contains: (shape, p) => this.registry.contains(shape, p, () => this.shapeOutline(shape)),
       pickable: (shape) => this.registry.isPickable(shape),
@@ -2496,7 +2496,7 @@ export class Engine {
         edgeTolerance: 0,
         edgeRoute: () => undefined,
         heightOf: (id) => this.elementTop(id),
-        baseOf: (id) => this.standingBase(id),
+        baseOf: (id) => this.volumeBase(id),
         pointAtHeight: (height) => this.groundPointAtHeight(screen, height),
         contains: (shape, p) => this.registry.contains(shape, p, () => this.shapeOutline(shape)),
       },
@@ -4501,10 +4501,10 @@ export class Engine {
     return this.scenes.current?.level === 'iso' ? top * this.heightScale : 0;
   }
 
-  /** Base d'un élément debout (`userData.standing`, silhouette de l'Actor) en iso / 3D, sinon `undefined`. */
-  private standingBase(elementId: string): number | undefined {
+  /** Base du volume d'un élément en iso / 3D (le clic le prend du dessus à la base), sinon `undefined`. */
+  private volumeBase(elementId: string): number | undefined {
     const object = this.sceneObject(elementId);
-    if (this.scenes.current?.level !== 'iso' || !object?.userData.standing) return undefined;
+    if (this.scenes.current?.level !== 'iso' || !object) return undefined;
     return ((object.userData.base as number | undefined) ?? 0) * this.heightScale;
   }
 
