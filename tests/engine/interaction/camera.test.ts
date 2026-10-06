@@ -331,6 +331,31 @@ describe('vue 3D (perspective)', () => {
     expect(((1 - ndc.y) / 2) * viewport.height).toBeCloseTo(expected.y, 3);
   });
 
+  it('champ de vision quasi nul (bascule iso ↔ 3D) : plan proche serré, sans couper ce qui est visible', () => {
+    const camera = new PerspectiveCamera();
+    // 3D ordinaire : plan proche à 2 % de la distance, comme avant.
+    applyPerspectiveState(camera, persp(), viewport);
+    const distance = (s: CameraState) => camera.position.distanceTo(new Vector3(s.center.x, 0, s.center.y));
+    expect(camera.near).toBeCloseTo(distance(persp()) * 0.02, 6);
+    // Étape 195 : à `FLAT_FOV`, la caméra recule très loin ; le plan proche suit (précision en profondeur).
+    const flat = persp({ fov: FLAT_FOV, zoom: 0.5 });
+    applyPerspectiveState(camera, flat, viewport);
+    camera.updateMatrixWorld();
+    expect(camera.near / distance(flat)).toBeGreaterThan(0.8);
+    // Les coins de la vue, au sol comme en hauteur, restent entre les plans proche et lointain.
+    for (const screen of [
+      { x: 0, y: 0 },
+      { x: 800, y: 0 },
+      { x: 0, y: 600 },
+      { x: 800, y: 600 },
+    ])
+      for (const height of [0, 200]) {
+        const page = screenToPage(flat, viewport, screen, height);
+        const z = new Vector3(page.x, height, page.y).project(camera).z;
+        expect(Math.abs(z)).toBeLessThan(1);
+      }
+  });
+
   it('zoom borné (dézoom et zoom maximaux) ; le point sous le curseur reste fixe', () => {
     const s = persp();
     const cursor = { x: 200, y: 150 };

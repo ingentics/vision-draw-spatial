@@ -316,8 +316,7 @@ export function applyCameraState(camera: OrthographicCamera, state: CameraState,
   camera.bottom = -halfHeight;
 
   // Distance de la caméra : au-delà de tout ce qui peut être visible, même incliné et dézoomé.
-  const k = Math.max(Math.cos(state.tilt), 0.05);
-  const reach = Math.max(viewport.width, viewport.height) / state.zoom / k;
+  const reach = visibleReach(state, viewport);
   const distance = reach + 1000;
   camera.near = 1;
   camera.far = 2 * distance + reach;
@@ -332,10 +331,19 @@ export function applyPerspectiveState(camera: PerspectiveCamera, state: CameraSt
   camera.fov = (fov * 180) / Math.PI;
   camera.aspect = viewport.width / viewport.height;
   // Le sol le plus lointain visible est à quelques distances (inclinaison bornée, §9.1).
-  camera.near = Math.max(distance * 0.02, 0.01);
+  // Plan proche juste devant ce qui peut être visible : à champ de vision quasi nul (bascule iso ↔ 3D), la caméra
+  // recule très loin, et un plan proche à 2 % de la distance ruinerait la précision en profondeur (les arêtes
+  // arrière des volumes traverseraient le dessus des blocs).
+  camera.near = Math.max(distance * 0.02, distance - visibleReach(state, viewport) - 1000, 0.01);
   camera.far = distance * 40 + 1000;
   placeCamera(camera, state, distance);
   camera.updateProjectionMatrix();
+}
+
+/** Étendue (en pixels de page) de ce qui peut être visible autour du centre, même incliné et dézoomé. */
+function visibleReach(state: CameraState, viewport: Viewport): number {
+  const k = Math.max(Math.cos(state.tilt), 0.05);
+  return Math.max(viewport.width, viewport.height) / state.zoom / k;
 }
 
 function placeCamera(camera: OrthographicCamera | PerspectiveCamera, state: CameraState, distance: number): void {
