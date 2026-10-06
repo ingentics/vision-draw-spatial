@@ -278,10 +278,20 @@ describe('mode RDD : embedded, document et vue (sujets 181, 218)', () => {
     expect(box.max.x).toBeLessThanOrEqual(800 - 7 + 0.5);
     expect(box.min.y).toBeGreaterThanOrEqual(300 + (26 - 9) / 2 - 0.5);
     expect(box.max.y).toBeLessThanOrEqual(300 + (26 + 9) / 2 + 0.5);
+    // Couleur de la bordure, pleinement opaque (sujet 221).
     const material = (binoculars.children[0] as Mesh).material as MeshBasicMaterial;
-    expect(material.opacity).toBe(0.5);
+    expect([material.color.getHexString(), material.opacity]).toEqual(['666666', 1]);
     for (const id of ['address', 'settings', 'user', 'role', 'model'])
       expect(object(id).getObjectByName('binoculars')).toBeUndefined();
+  });
+
+  it('vue : zone du titre réduite des deux côtés de la place des jumelles (sujet 221)', () => {
+    const { page } = render();
+    const view = page().shapes.find((s) => s.id === 'active')!;
+    // 7 (bord) + 14 (jumelles) + 4 (air) = 25 px de chaque côté.
+    expect(createDefaultRegistry().textZone(view, 'flat')).toEqual({ x: 665, y: 300, width: 110, height: 26 });
+    const entity = page().shapes.find((s) => s.id === 'user')!;
+    expect(createDefaultRegistry().textZone(entity, 'flat')).toEqual({ x: 40, y: 160, width: 160, height: 26 });
   });
 
   it('vue : contour arrondi, entête coupé dans ce contour', () => {

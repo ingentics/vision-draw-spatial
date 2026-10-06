@@ -899,7 +899,8 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     l'entête, 10 px), clés connues en italique ; nom obligatoire : vide, il affiche « Document » et Diagnostics le
     signale.
   - « Vue » (`rdd-view`) : coins arrondis (`rounded=1;absoluteArcSize=1;arcSize=16`), entête coupé dans le contour ;
-    petites jumelles en haut à droite de l'entête (14 × 9 px, trait fin de la couleur du texte à 50 %).
+    petites jumelles en haut à droite de l'entête (14 × 9 px, trait fin de la couleur de la bordure) ; zone du titre
+    réduite des deux côtés de leur place (25 px).
   - Modèle abstrait (`rdd-model`) : nom en italique ; base technique des autres tables, jamais dans la palette,
     dessiné s'il est dans un fichier.
   - Réglages du mode sur une table : « Couleur » (couleurs `modePalette`, écrit aussi `fontColor` pour draw.io),

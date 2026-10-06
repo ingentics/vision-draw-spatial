@@ -28,12 +28,20 @@ import type { TableKind } from '../../tables';
 const BORDER = '#666666';
 const FIELDS_FILL = '#ffffff';
 
+/** Air entre le titre d'une vue et ses jumelles. */
+const BINOCULARS_GAP = 4;
+
 const scaleOf = (shape: ShapeModel) => (isSecondary(shape) ? SECONDARY_SCALE : 1);
 
-/** Zone du nom : l'entête (label dessiné et éditeur en place). */
-function nameZone(shape: ShapeModel): Rect {
+/**
+ * Zone du nom : l'entête (label dessiné et éditeur en place), réduite des deux côtés de la place des jumelles d'une vue
+ * pour que le nom, centré, ne les recouvre pas (sujet 221).
+ */
+function nameZone(shape: ShapeModel, kind: TableKind): Rect {
   const { x, y, width } = shape.bounds;
-  return { x, y, width, height: headerHeight(isSecondary(shape)) };
+  const { width: mark, margin } = TABLE.binoculars;
+  const inset = kind.binoculars ? Math.min((margin + mark + BINOCULARS_GAP) * scaleOf(shape), width / 2) : 0;
+  return { x: x + inset, y, width: width - 2 * inset, height: headerHeight(isSecondary(shape)) };
 }
 
 /** Côté du coin plié d'un document, à l'échelle de la table (au plus la moitié de l'entête). */
@@ -147,7 +155,7 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
     }
     if (kind.folded) line(flapOf(shape), true);
   }
-  if (kind.binoculars) group.add(binoculars(shape, header, new Color(textColor)));
+  if (kind.binoculars) group.add(binoculars(shape, header, styleColor(style, 'strokeColor', BORDER)));
 
   const label = createLabel(
     {
@@ -163,7 +171,7 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
     },
     ctx,
     missingName(shape) ? kind.requiredName : shape.label,
-    nameZone(shape),
+    nameZone(shape, kind),
   );
   if (label) group.add(label);
 
@@ -194,10 +202,12 @@ function circle(cx: number, cy: number, r: number, segments = 16): Point[] {
 
 /**
  * Jumelles d'une vue (sujet 220), en haut à droite de l'entête : deux oculaires ronds, leurs corps et le pont, au
- * trait fin de la couleur du texte de l'entête, à demi transparent. Dessinées dans un cadre de 14 × 9 (à l'échelle).
+ * trait fin de la couleur de la bordure (sujet 221). Dessinées dans un cadre de 14 × 9 (à l'échelle) ; rien sans
+ * bordure (`strokeColor=none`).
  */
-function binoculars(shape: ShapeModel, header: number, color: Color): Group {
+function binoculars(shape: ShapeModel, header: number, color: Color | null): Group {
   const group = new Group();
+  if (!color) return group;
   group.name = 'binoculars';
   const scale = scaleOf(shape);
   const { width, height, margin } = TABLE.binoculars;
@@ -236,7 +246,7 @@ function binoculars(shape: ShapeModel, header: number, color: Color): Group {
     ],
   ];
   for (const [path, closed] of paths) {
-    const mesh = strokeMesh(path, color, 0.5, { width: scale, closed });
+    const mesh = strokeMesh(path, color, 1, { width: scale, closed });
     if (!mesh) continue;
     mesh.renderOrder = PART_ORDER.stroke;
     group.add(mesh);
@@ -303,7 +313,7 @@ export function table(
     id,
     outline: (shape) => outline(shape, kind),
     flat: { create: (shape, ctx) => createTable(shape, ctx, kind) },
-    textZone: (shape) => nameZone(shape),
+    textZone: (shape) => nameZone(shape, kind),
     swatch: () => '<path d="M5 5h30v18H5zM5 11h30"/>',
     ...(palette && {
       palette: {
