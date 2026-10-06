@@ -30,6 +30,7 @@ export class ElementCommands {
     const style = withStyleValue(template.style, 'fontSize', String(this.core.settings.shapes.textSize));
     const id = addShapeCell(pageTree, { style, value: template.value, ...bounds });
     if (template.atBack) reorderCells(pageTree, [id], 'back');
+    this.core.pageModes.shapesPlaced(page.id, [id]);
     this.core.file.documentChanged([page.id]);
     const shape = this.core.pages.getCurrentPage()?.shapes.find((s) => s.id === id);
     if (shape) this.core.selection.select({ type: 'shape', element: shape });

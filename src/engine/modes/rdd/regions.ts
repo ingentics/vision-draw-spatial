@@ -1,4 +1,4 @@
-import type { PageModel, ShapeModel } from '../../model/types';
+import type { PageModel, Rect, ShapeModel } from '../../model/types';
 import { readableOn } from '../../render/styleValues';
 import type { ModeEdit } from '../types';
 
@@ -15,6 +15,8 @@ export const REGION_KIND = 'rdd-region';
  */
 export const REGION = {
   fillOpacity: 10,
+  /** Marge de sécurité autour d'une forme qui dépasse de sa région, qui s'agrandit (sujet 183). */
+  margin: 20,
   strokeDarken: 0.6,
   fontSize: 9,
   /**
@@ -116,4 +118,36 @@ export function setRegionColor(edit: ModeEdit, shape: ShapeModel, color: string 
   edit.setElementStyle(shape.id, 'labelBackgroundColor', undefined);
   edit.setElementStyle(shape.id, 'labelBorderColor', stroke);
   edit.setElementStyle(shape.id, 'fontColor', regionTextColor(color));
+}
+
+/**
+ * Formes posées (déplacées ou ajoutées, sujet 183) : une forme du mode qui dépasse de la région qui la contient (coin
+ * haut-gauche dedans) l'agrandit vers la droite et / ou le bas, pour la contenir avec la marge de sécurité ; la région
+ * agrandie fait de même avec la sienne, de proche en proche. Une région ne rétrécit jamais ici.
+ */
+export function growRegions(edit: ModeEdit, shapeIds: string[]): void {
+  const { page } = edit;
+  /** Bornes des régions déjà agrandies par cette opération. */
+  const grown = new Map<string, Rect>();
+  const boundsOf = (shape: ShapeModel) => grown.get(shape.id) ?? shape.bounds;
+  for (const id of shapeIds) {
+    let shape = page.shapes.find((s) => s.id === id);
+    const seen = new Set<string>();
+    while (shape && !seen.has(shape.id)) {
+      seen.add(shape.id);
+      // L'appartenance se lit sur les bornes d'origine : agrandir vers la droite et le bas ne déplace pas un coin.
+      const region = regionOf(page, shape);
+      if (!region) break;
+      const inner = boundsOf(shape);
+      const outer = boundsOf(region);
+      const width = Math.max(outer.width, inner.x + inner.width + REGION.margin - outer.x);
+      const height = Math.max(outer.height, inner.y + inner.height + REGION.margin - outer.y);
+      const fits = inner.x + inner.width <= outer.x + outer.width && inner.y + inner.height <= outer.y + outer.height;
+      if (fits || (width === outer.width && height === outer.height)) break;
+      const next = { ...outer, width, height };
+      grown.set(region.id, next);
+      edit.setShapeBounds(region.id, next);
+      shape = region;
+    }
+  }
 }

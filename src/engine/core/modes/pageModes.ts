@@ -1,4 +1,5 @@
 import { setPageAttribute } from '../../format/edit';
+import { documentFromTree } from '../../format/parse';
 import { writeDrawio } from '../../format/write';
 import type { DocumentModel, PageModel } from '../../model/types';
 import { setElementsDim } from '../../render/pageEffects';
@@ -173,6 +174,22 @@ export class PageModes {
     const current = this.getModeCurrent(editable.page.id);
     this.editPageMode(action.label, (edit) => action.run(edit, target, current));
     return true;
+  }
+
+  /**
+   * Formes posées sur la page (déplacées ou ajoutées), déjà écrites dans l'arbre : le mode de la page les remet en ordre
+   * dans la même étape d'annulation (`placed`). Vrai si l'arbre a changé (le modèle est alors à relire).
+   */
+  shapesPlaced(pageId: string, shapeIds: string[]): boolean {
+    const page = this.core.pages.pageById(pageId);
+    const placed = page && this.core.modes.modeOf(page)?.placed;
+    const pageTree = this.core.file.pageTreeOf(pageId);
+    if (!placed || !pageTree || !this.core.file.xmlTree || shapeIds.length === 0) return false;
+    const fresh = documentFromTree(this.core.file.xmlTree).pages.find((p) => p.id === pageId);
+    return (
+      fresh !== undefined &&
+      applyModeEdit(fresh, pageTree, (edit) => placed(edit, shapeIds), modePalette(this.core.settings.styles))
+    );
   }
 
   /** Avertissements des modes de page (mode inconnu, données remises en ordre) ajoutés à ceux de la lecture. */

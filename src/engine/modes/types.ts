@@ -52,6 +52,12 @@ export interface PageModeDefinition {
    * draw.io. Elles bougent dans la même étape d'annulation, avec les flèches qui les relient entre elles.
    */
   carries?(page: PageModel, shape: ShapeModel): string[];
+  /**
+   * Formes posées : déplacées (fin d'un glisser, flèches du clavier) ou ajoutées depuis la palette ; remise en ordre
+   * dans la même étape d'annulation (ex. région RDD agrandie pour les contenir, sujet 183). `edit.page` est la page
+   * après la pose.
+   */
+  placed?(edit: ModeEdit, shapeIds: string[]): void;
 }
 
 /**

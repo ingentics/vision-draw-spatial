@@ -557,3 +557,55 @@ describe('mode RDD : région (sujet 182)', () => {
     expect(shape('accounts').style.fontColor).toBe('#000000');
   });
 });
+
+describe('mode RDD : la région s’étend quand on y pose une forme qui dépasse (sujet 183)', () => {
+  const xml = `<mxfile><diagram id="p" name="P" spatial.mode="rdd"><mxGraphModel><root>
+    <mxCell id="0" /><mxCell id="1" parent="0" />
+    <mxCell id="big" value="Big" style="spatial.kind=rdd-region;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="500" height="300" as="geometry" /></mxCell>
+    <mxCell id="small" value="Small" style="spatial.kind=rdd-region;" vertex="1" parent="1"><mxGeometry x="100" y="100" width="200" height="150" as="geometry" /></mxCell>
+    <mxCell id="t" value="T" style="swimlane;spatial.kind=rdd-entity;" vertex="1" parent="1"><mxGeometry x="150" y="120" width="160" height="46" as="geometry" /></mxCell>
+    <mxCell id="note" value="" style="rounded=0;" vertex="1" parent="1"><mxGeometry x="450" y="250" width="100" height="100" as="geometry" /></mxCell>
+  </root></mxGraphModel></diagram></mxfile>`;
+  const setupPage = () => {
+    const { document, tree } = readDrawio(xml);
+    let page = document.pages[0]!;
+    const run = (operation: (edit: ModeEdit) => void) => {
+      const changed = applyModeEdit(page, tree.pages[0]!, operation);
+      page = documentFromTree(tree).pages[0]!;
+      return changed;
+    };
+    const bounds = (id: string) => page.shapes.find((s) => s.id === id)!.bounds;
+    const place = (id: string, x: number, y: number) => {
+      run((edit) => edit.setShapeBounds(id, { ...bounds(id), x, y }));
+      return run((edit) => rdd.placed!(edit, [id]));
+    };
+    return { bounds, place };
+  };
+
+  it('la région s’agrandit vers la droite et le bas, 20 px de marge ; sa région englobante suit', () => {
+    const { bounds, place } = setupPage();
+    expect(REGION.margin).toBe(20);
+    // T dépasse à droite de Small (310 > 300) : Small va jusqu'à 330.
+    expect(place('t', 150, 120)).toBe(true);
+    expect(bounds('small')).toEqual({ x: 100, y: 100, width: 230, height: 150 });
+    expect(bounds('big')).toEqual({ x: 0, y: 0, width: 500, height: 300 });
+    // Coin toujours dans Small, plus bas et à droite : Small passe à 400 × 206 et dépasse Big par le bas, qui
+    // s'agrandit à son tour (marge autour de Small).
+    place('t', 320, 240);
+    expect(bounds('small')).toEqual({ x: 100, y: 100, width: 400, height: 206 });
+    expect(bounds('big')).toEqual({ x: 0, y: 0, width: 520, height: 326 });
+    // Coin hors de Small mais dans Big : seule Big s'agrandit.
+    place('t', 510, 320);
+    expect(bounds('small')).toEqual({ x: 100, y: 100, width: 400, height: 206 });
+    expect(bounds('big')).toEqual({ x: 0, y: 0, width: 690, height: 386 });
+  });
+
+  it('ni rétrécie ni changée si la forme tient ; une forme hors du mode ou hors région ne change rien', () => {
+    const { bounds, place } = setupPage();
+    expect(place('t', 110, 110)).toBe(false);
+    expect(bounds('small')).toEqual({ x: 100, y: 100, width: 200, height: 150 });
+    expect(place('note', 450, 250)).toBe(false);
+    expect(bounds('big')).toEqual({ x: 0, y: 0, width: 500, height: 300 });
+    expect(place('t', 700, 700)).toBe(false);
+  });
+});

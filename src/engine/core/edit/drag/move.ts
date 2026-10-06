@@ -76,8 +76,13 @@ export class MoveDrags {
         });
       }
     }
-    // Bouts détachés : le modèle est relu de l'arbre (attributs `source` / `target` retirés).
-    if (drag.edges.some((moved) => moved.detach.length > 0)) {
+    // Le mode de la page remet en ordre autour des formes posées (ex. région agrandie), même étape d'annulation.
+    const placed = this.core.pageModes.shapesPlaced(
+      drag.pageId,
+      drag.rootIds.filter((id) => !drag.carried.has(id)),
+    );
+    // Bouts détachés ou mode : le modèle est relu de l'arbre (attributs `source` / `target` retirés).
+    if (placed || drag.edges.some((moved) => moved.detach.length > 0)) {
       this.core.file.documentChanged([drag.pageId]);
       return false;
     }

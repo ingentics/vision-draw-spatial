@@ -14,7 +14,7 @@ import {
   tableKindOf,
 } from './tables';
 import { fieldsText, setFields, setHeaderColor, setSecondary } from './operations';
-import { REGION_KIND, isRegion, regionContent, setRegionColor } from './regions';
+import { REGION_KIND, growRegions, isRegion, regionContent, setRegionColor } from './regions';
 
 /** Table du mode sélectionnée ; undefined pour une flèche, la page ou une autre forme. */
 const tableOf = (target: ModeTarget): ShapeModel | undefined =>
@@ -123,6 +123,8 @@ export const definition: PageModeDefinition = {
   ],
   // Une région emporte son contenu (sujet 182).
   carries: (page, shape) => regionContent(page, shape),
+  // Une forme posée qui dépasse de sa région l'agrandit, marge comprise (sujet 183).
+  placed: growRegions,
   // Clé primaire absente ou déplacée (fichier modifié) : remise en tête à l'affichage.
   check: (page) => [
     ...page.shapes.filter(misplacedPrimaryKey).map((shape) => ({

@@ -44,6 +44,7 @@ interface PageModeDefinition {
   edgeCreated?(edit, edgeId, current): void;   // flèche tirée depuis une forme (même étape d'annulation)
   keys?: Record<string, ModeKey>;              // touches sur l'élément sélectionné seul (ex. « + »)
   carries?(page, shape): string[];             // formes emportées quand on déplace `shape` (ex. région RDD)
+  placed?(edit, shapeIds): void;               // formes déplacées ou ajoutées (ex. région RDD agrandie)
   shapes?: string[];                           // formes proposées par la palette (section 6)
   paletteCategories?: PaletteCategory[];       // catégories de palette du mode (section 6)
   viewModes?: ViewMode[];                      // modes d'affichage permis (section 6)
@@ -94,6 +95,8 @@ paramètres « Modes › Séquences » (clés `shapes.edgeBadge…`, communes à
 - `carries(page, shape)` : formes emportées quand on déplace `shape` (glisser ou flèches du clavier), calculées sans
   parent draw.io (ex. contenu d'une région RDD) ; de proche en proche, dans la même étape d'annulation, avec les
   flèches qui les relient entre elles. La sélection les met en valeur avec la forme.
+- `placed(edit, shapeIds)` : formes posées (fin d'un glisser, flèches du clavier, ajout depuis la palette), déjà
+  écrites ; remise en ordre dans la même étape d'annulation (`edit.page` : la page après la pose).
 
 ## 6. Formes, palette et modes d'affichage
 
