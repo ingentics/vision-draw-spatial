@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CollapseButton } from './Sidebar';
 import { PALETTE_CATEGORIES, SHAPE_TEMPLATES, searchTemplates } from '../engine/edit/palette';
-import type { PaletteCategory, PaletteCategoryId, ShapeTemplate } from '../engine/edit/palette';
+import type { PageModePalette, PaletteCategory, PaletteCategoryId, ShapeTemplate } from '../engine/edit/palette';
 
 /** Catégorie des formes présentes sur la page, en tête de la palette (hors `PALETTE_CATEGORIES`). */
 const USED_CATEGORY = { id: 'used', name: 'Utilisées' } as const;
@@ -65,6 +65,8 @@ interface PaletteProps {
   onAdd: (template: ShapeTemplate) => void;
   /** Modèles des formes de la page courante (catégorie « Utilisées », masquée si vide). */
   used?: ShapeTemplate[];
+  /** Catégories et formes proposées sur la page (mode de la page, sujet 178) ; défaut : la palette normale. */
+  content?: PageModePalette;
   disabled?: boolean;
 }
 
@@ -73,7 +75,9 @@ interface PaletteProps {
  * par catégorie, chacune repliable. Glisser une forme sur le plan la dépose au point visé (projeté au sol, en
  * vue de dessus comme en iso) ; un clic l'ajoute au centre de la vue.
  */
-export function Palette({ onAdd, used = [], disabled }: PaletteProps) {
+const DEFAULT_CONTENT: PageModePalette = { categories: PALETTE_CATEGORIES, templates: SHAPE_TEMPLATES };
+
+export function Palette({ onAdd, used = [], content = DEFAULT_CONTENT, disabled }: PaletteProps) {
   const [query, setQuery] = useState('');
   const [collapsed, setCollapsed] = useState(loadCollapsed);
   const [tooltip, setTooltip] = useState<Tooltip | null>(null);
@@ -98,7 +102,7 @@ export function Palette({ onAdd, used = [], disabled }: PaletteProps) {
   // Le texte reste en place pendant le fondu de sortie.
   const hideTooltip = () => setTooltip((current) => current && { ...current, visible: false });
   const searching = query.trim() !== '';
-  const found = searchTemplates(SHAPE_TEMPLATES, query);
+  const found = searchTemplates(content.templates, query, content.categories);
 
   const toggle = (id: SectionId) => {
     const next = new Set(collapsed);
@@ -110,7 +114,7 @@ export function Palette({ onAdd, used = [], disabled }: PaletteProps) {
 
   const sections: { category: PaletteCategory | typeof USED_CATEGORY; templates: ShapeTemplate[] }[] = [
     { category: USED_CATEGORY, templates: used.filter((t) => found.includes(t)) },
-    ...PALETTE_CATEGORIES.map((category) => ({
+    ...content.categories.map((category) => ({
       category,
       templates: found.filter((t) => t.category === category.id),
     })),

@@ -389,10 +389,14 @@ export function Viewer({
   const modeIndicator = pageId !== undefined ? engine?.getModeIndicator(pageId) : undefined;
   const editablePages = document !== undefined && engine?.canEditPages() === true;
   const canAddShapes = pageId !== undefined && pageId !== GRAPH_PAGE_ID;
+  const shownPage = document?.pages.find((page) => page.id === pageId);
   // Formes de la page courante, pour la catégorie « Utilisées » de la palette.
-  const usedShapes = useMemo(
-    () => (canAddShapes ? usedTemplates(document?.pages.find((page) => page.id === pageId)) : []),
-    [canAddShapes, document, pageId],
+  const usedShapes = useMemo(() => (canAddShapes ? usedTemplates(shownPage) : []), [canAddShapes, shownPage]);
+  // Palette et modes d'affichage permis par le mode de la page (sujet 178).
+  const modes = engine?.getModeRegistry();
+  const paletteContent = useMemo(() => modes?.paletteFor(shownPage), [modes, shownPage]);
+  const allowedViewModes = (['top', 'iso', '3d'] as const).filter(
+    (mode) => !shownPage || !modes || modes.allowsViewMode(shownPage, mode),
   );
   const issueCount = (report?.unsupportedElementCount ?? 0) + warnings.length;
   /**
@@ -518,6 +522,7 @@ export function Viewer({
         </span>
         <NavigationToolbar
           viewMode={viewMode}
+          allowedViewModes={allowedViewModes}
           onViewModeChange={(mode) => engine?.setViewMode(mode)}
           onResetView={() => engine?.resetView()}
         />
@@ -562,7 +567,12 @@ export function Viewer({
           minCanvas={settings.panels.minCanvas}
           onChange={(left) => onSettingsChange({ panels: { left } })}
         >
-          <Palette disabled={!canAddShapes} used={usedShapes} onAdd={(template) => engine?.addShape(template)} />
+          <Palette
+            disabled={!canAddShapes}
+            used={usedShapes}
+            content={paletteContent}
+            onAdd={(template) => engine?.addShape(template)}
+          />
         </Sidebar>
         <div
           className="canvas-area"

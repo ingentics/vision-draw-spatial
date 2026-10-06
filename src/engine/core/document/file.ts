@@ -138,6 +138,8 @@ export class DocumentFile {
     this.core.minimap.invalidate();
     this.core.edits.syncModified();
     this.core.events.emit('documentChange', this.document);
+    // Page passée dans un mode qui restreint les modes d'affichage (sujet 178).
+    this.core.viewModes.enforce();
     this.core.rendering.requestRender();
   }
 

@@ -54,7 +54,7 @@ export class GraphView {
       frame: card?.bounds,
       destination:
         this.core.pages.pageCameras.get(GRAPH_PAGE_ID) ??
-        fitBounds(graph.bounds, this.core.display.viewport, this.core.camera.orientation()),
+        fitBounds(graph.bounds, this.core.display.viewport, this.core.viewModes.arrivalOrientation()),
     });
   }
 

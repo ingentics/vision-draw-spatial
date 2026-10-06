@@ -40,12 +40,13 @@ export class ViewCamera {
     return structuredClone(this.state);
   }
 
-  fitToBounds(bounds: Rect): void {
+  /** Cadre les bornes, dans l'orientation courante ou celle donnée (ex. arrivée sur une page). */
+  fitToBounds(bounds: Rect, orientation = this.orientation()): void {
     if (!this.core.display.isMeasured()) {
       this.core.display.pendingFit = bounds;
       return;
     }
-    this.setCameraState(fitBounds(bounds, this.core.display.viewport, this.orientation()));
+    this.setCameraState(fitBounds(bounds, this.core.display.viewport, orientation));
   }
 
   setCameraState(state: CameraState): void {
@@ -103,7 +104,8 @@ export class ViewCamera {
     this.core.display.pendingFit = undefined;
     const previousZoom = this.state.zoom;
     const previousLevel = this.core.levels.requestedLevel();
-    this.state = normalizeCameraState(state);
+    // Pendant une transition, la page courante est l'extérieure : la destination est déjà ramenée à ses modes permis.
+    this.state = normalizeCameraState(this.core.transitions.active ? state : this.core.viewModes.constrain(state));
     // Changement de niveau (mode, ou fin d'une bascule vers la 2D) : la page passe au rendu de ce
     // niveau (même scène si tout est à plat).
     let sceneChanged = false;

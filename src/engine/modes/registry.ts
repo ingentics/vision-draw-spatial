@@ -1,6 +1,14 @@
+import { PALETTE_CATEGORIES, SHAPE_TEMPLATES } from '../edit/palette';
+import type { PageModePalette } from '../edit/palette';
+import type { ViewMode } from '../interaction/camera';
 import type { DocumentModel, ParseWarning, PageModel } from '../model/types';
+import type { PaletteCategory, ShapeDefinition, ShapeTemplate } from '../shapes/types';
 import { SPATIAL } from '../spatial';
+import { MODE_SHAPE_DEFINITIONS } from './shapes';
 import type { ModeProperty, PageDressing, PageModeDefinition } from './types';
+
+/** Modes d'affichage, dans l'ordre des boutons. */
+const VIEW_MODES: ViewMode[] = ['top', 'iso', '3d'];
 
 /** Portée d'un réglage déclaré : la page, une flèche, une forme. */
 export type ModeScope = 'page' | 'edge' | 'shape';
@@ -11,10 +19,19 @@ export type ModeScope = 'page' | 'edge' | 'shape';
  */
 export class PageModeRegistry {
   private readonly definitions = new Map<string, PageModeDefinition>();
+  /** Ids des formes propres à chaque mode (`modes/<id>/shapes/`), réservées à la palette de ses pages. */
+  private readonly shapeIds = new Map<string, string[]>();
 
-  /** Un mode de même `id` déjà enregistré est remplacé. */
-  register(definition: PageModeDefinition): this {
+  /**
+   * Un mode de même `id` déjà enregistré est remplacé. `shapes` : ses formes propres (enregistrées à part dans le
+   * registre des formes, qui les dessine sur toute page).
+   */
+  register(definition: PageModeDefinition, shapes: ShapeDefinition[] = []): this {
     this.definitions.set(definition.id, definition);
+    this.shapeIds.set(
+      definition.id,
+      shapes.map((shape) => shape.id),
+    );
     return this;
   }
 
@@ -48,6 +65,42 @@ export class PageModeRegistry {
     return this.modeOf(page)?.allowsEffect?.(effectId) ?? true;
   }
 
+  /** Le mode de la page permet-il ce mode d'affichage (sujet 178) ? Oui pour une page normale ou sans `viewModes`. */
+  allowsViewMode(page: PageModel, mode: ViewMode): boolean {
+    const allowed = this.modeOf(page)?.viewModes;
+    return !allowed || allowed.length === 0 || allowed.includes(mode);
+  }
+
+  /** Mode d'affichage de la page pour celui demandé : lui s'il est permis, sinon le premier permis par le mode. */
+  viewModeFor(page: PageModel, mode: ViewMode): ViewMode {
+    if (this.allowsViewMode(page, mode)) return mode;
+    return VIEW_MODES.find((m) => this.modeOf(page)!.viewModes!.includes(m))!;
+  }
+
+  /**
+   * Palette d'une page (sujet 178) : sur une page normale, les formes générales ; sur une page d'un mode, sa liste
+   * blanche (`shapes`) ou, à défaut, les formes générales et celles du mode. Les formes d'un autre mode n'y sont
+   * jamais. Catégories : celles de la palette et du mode, par rang, sans les vides.
+   */
+  paletteFor(
+    page: PageModel | undefined,
+    templates: ShapeTemplate[] = SHAPE_TEMPLATES,
+    categories: PaletteCategory[] = PALETTE_CATEGORIES,
+  ): PageModePalette {
+    const mode = page && this.modeOf(page);
+    const own = new Set(mode ? this.shapeIds.get(mode.id) : []);
+    const others = new Set([...this.shapeIds.values()].flat().filter((id) => !own.has(id)));
+    const offered = mode?.shapes ? new Set(mode.shapes) : undefined;
+    const shown = templates.filter((template) => (offered ? offered.has(template.id) : !others.has(template.id)));
+    const used = new Set(shown.map((template) => template.category));
+    return {
+      categories: [...categories, ...(mode?.paletteCategories ?? [])]
+        .filter((category) => used.has(category.id))
+        .sort((a, b) => a.order - b.order),
+      templates: shown,
+    };
+  }
+
   /** Réglages déclarés par le mode de la page pour une portée. */
   properties(page: PageModel, scope: ModeScope): ModeProperty[] {
     const mode = this.modeOf(page);
@@ -74,14 +127,18 @@ export class PageModeRegistry {
   }
 }
 
-/** Modes de page : un par dossier `modes/<id>/index.ts` (qui exporte `definition`), collectés tout seuls. */
+/**
+ * Modes de page : un par dossier `modes/<id>/index.ts` (qui exporte `definition`), collectés tout seuls ; leurs formes
+ * propres dans `modes/<id>/shapes/` (`MODE_SHAPE_DEFINITIONS`).
+ */
 export const PAGE_MODE_DEFINITIONS: PageModeDefinition[] = Object.values(
   import.meta.glob<PageModeDefinition>('./*/index.ts', { eager: true, import: 'definition' }),
 );
 
 export function createDefaultModeRegistry(): PageModeRegistry {
   const registry = new PageModeRegistry();
-  for (const definition of PAGE_MODE_DEFINITIONS) registry.register(definition);
+  for (const definition of PAGE_MODE_DEFINITIONS)
+    registry.register(definition, MODE_SHAPE_DEFINITIONS.get(definition.id));
   return registry;
 }
 

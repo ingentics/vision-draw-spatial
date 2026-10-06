@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { defaultModeRegistry } from '../../../src/engine/modes/registry';
 import {
   dropBounds,
   PALETTE_CATEGORIES,
@@ -91,7 +92,11 @@ describe('palette', () => {
       'six-point-star',
     ]);
     expect(byCategory('general')).toEqual(['text', 'title', 'actor', 'actor-droid']);
-    const known = new Set(PALETTE_CATEGORIES.map((c) => c.id));
+    const known = new Set(
+      [...PALETTE_CATEGORIES, ...defaultModeRegistry.list().flatMap((mode) => mode.paletteCategories ?? [])].map(
+        (c) => c.id,
+      ),
+    );
     for (const template of SHAPE_TEMPLATES) expect(known.has(template.category), template.id).toBe(true);
     expect(byCategory('architecture')).toEqual([
       'database',

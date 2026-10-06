@@ -12,6 +12,7 @@ Exemple complet : le mode « Séquences » ([engine](../src/engine/modes/sequenc
 ```
 src/engine/modes/<id>/      la lib (sans React) : tout le mode
 ├── index.ts                export const definition: PageModeDefinition = { … }
+├── shapes/<forme>/index.ts formes propres au mode (facultatif, section 6)
 └── …                       données, règles, opérations
 src/app/modes/<id>/         l'appli (facultatif) : sections React du panneau
 └── index.tsx               export const panel: ModePanel = { PageSection }
@@ -38,6 +39,9 @@ interface PageModeDefinition {
   current?: ModeCurrent;                       // « courant » de session (section 5)
   edgeCreated?(edit, edgeId, current): void;   // flèche tirée depuis une forme (même étape d'annulation)
   keys?: Record<string, ModeKey>;              // touches sur l'élément sélectionné seul (ex. « + »)
+  shapes?: string[];                           // formes proposées par la palette (section 6)
+  paletteCategories?: PaletteCategory[];       // catégories de palette du mode (section 6)
+  viewModes?: ViewMode[];                      // modes d'affichage permis (section 6)
 }
 ```
 
@@ -79,8 +83,27 @@ paramètres « Modes › Séquences » (clés `shapes.edgeBadge…`, communes à
 - `keys` : touches (`KeyboardEvent.key`) sur l'élément sélectionné seul ; `applies` dit si l'élément est concerné
   (sinon la touche garde son effet habituel), `run` est une opération (une étape d'annulation, libellée `label`).
 
-## 6. Vérifier
+## 6. Formes, palette et modes d'affichage
 
-- Tests : `tests/engine/modes/` (contrat des dossiers, mode de test enregistré ; opérations sur une fixture).
+- **Formes du mode** : un dossier par forme, `modes/<id>/shapes/<forme>/index.ts`, qui exporte `definition`
+  (`ShapeDefinition`, même contrat que `shapes/impl/<catégorie>/<forme>/`, voir `AJOUTER_UNE_FORME.md`). Déposer le
+  dossier suffit : le registre des formes l'enregistre (la forme se dessine sur toute page, collée ailleurs elle
+  reste lisible), le registre des modes la réserve à la palette des pages du mode. Son `id` est préfixé par celui du
+  mode (`rdd-entity`) pour ne jamais masquer une forme générale.
+- **`paletteCategories`** : catégories propres au mode (`{ id, name, order }`), rangées avec celles de la palette
+  (Géométrie 10, Général 20, Architecture 30) ; la `category` de la palette d'une forme du mode en nomme une. Une
+  catégorie vide pour la page n'est pas affichée.
+- **`shapes`** : liste blanche des ids proposés (formes générales ou du mode). Absente : palette normale et formes du
+  mode. Présente : la palette de la page (recherche comprise) n'affiche que ces formes ; les formes déjà posées et le
+  collage ne sont pas filtrés.
+- **`viewModes`** (`'top' | 'iso' | '3d'`) : modes d'affichage permis ; absent = tous. La page s'affiche dans le premier
+  permis (ouverture, changement de page, passage dans le mode, rechargement), `I` / `P` sont sans effet et les
+  boutons des autres modes désactivés ; en quittant la page, on retrouve la vue choisie par l'utilisateur.
+- Registre : `paletteFor(page)` (catégories et formes de la palette d'une page), `allowsViewMode(page, mode)`.
+
+## 7. Vérifier
+
+- Tests : `tests/engine/modes/` (contrat des dossiers, mode de test enregistré avec sa forme dans
+  `fixtures/test/shapes/` ; opérations sur une fixture).
 - Conservation par draw.io : une fixture avec le mode, puis `make drawio-check` (attributs de page et d'éléments
   comparés après réenregistrement).

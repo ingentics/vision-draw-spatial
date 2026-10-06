@@ -113,7 +113,11 @@ export class Pages {
     this.core.minimap.invalidate();
     const camera = this.pageCameras.get(page.id);
     if (camera) this.core.camera.setCameraState(camera);
-    else this.core.camera.fitToBounds(isEmptyPage(page) ? EMPTY_PAGE_AREA : page.bounds);
+    else
+      this.core.camera.fitToBounds(
+        isEmptyPage(page) ? EMPTY_PAGE_AREA : page.bounds,
+        this.core.viewModes.arrivalOrientation(),
+      );
     this.core.rendering.requestRender();
     this.core.links.updateLinkZones();
     this.core.events.emit('pageChange', page);

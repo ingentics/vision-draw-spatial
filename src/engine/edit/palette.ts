@@ -1,8 +1,8 @@
 import type { PageModel, Point, Rect, ShapeModel } from '../model/types';
 import { defaultShapeRegistry } from '../shapes/registry';
-import type { PaletteCategoryId, ShapeTemplate } from '../shapes/types';
+import type { PaletteCategory, PaletteCategoryId, ShapeTemplate } from '../shapes/types';
 
-export type { PaletteCategoryId, ShapeTemplate };
+export type { PaletteCategory, PaletteCategoryId, ShapeTemplate };
 
 /**
  * Palette de formes (SPEC §14.1) : uniquement des formes que le moteur sait dessiner, avec les styles et tailles par
@@ -10,19 +10,20 @@ export type { PaletteCategoryId, ShapeTemplate };
  * (`shapes/<forme>/`) ; la palette les rassemble.
  */
 
-export interface PaletteCategory {
-  id: PaletteCategoryId;
-  name: string;
-}
-
-/** Catégories de la palette, dans l'ordre d'affichage. */
+/** Catégories de la palette, dans l'ordre d'affichage (les modes ajoutent les leurs, rangées par `order`). */
 export const PALETTE_CATEGORIES: PaletteCategory[] = [
-  { id: 'geometry', name: 'Géométrie' },
-  { id: 'general', name: 'Général' },
-  { id: 'architecture', name: 'Architecture' },
+  { id: 'geometry', name: 'Géométrie', order: 10 },
+  { id: 'general', name: 'Général', order: 20 },
+  { id: 'architecture', name: 'Architecture', order: 30 },
 ];
 
-/** Modèles de la palette, dans l'ordre d'affichage. */
+/** Contenu de la palette d'une page : catégories non vides, dans l'ordre, et formes proposées. */
+export interface PageModePalette {
+  categories: PaletteCategory[];
+  templates: ShapeTemplate[];
+}
+
+/** Modèles de toutes les formes (y compris celles des modes), dans l'ordre d'affichage. */
 export const SHAPE_TEMPLATES: ShapeTemplate[] = defaultShapeRegistry.templates();
 
 /**
@@ -47,13 +48,18 @@ function normalize(text: string): string {
 
 /**
  * Formes trouvées par la recherche de la palette : chaque mot de la requête (casse et accents ignorés) doit
- * apparaître dans le nom, un mot-clé ou le nom de la catégorie. Requête vide = toutes les formes.
+ * apparaître dans le nom, un mot-clé ou le nom de la catégorie (`categories` : celles de la page). Requête vide =
+ * toutes les formes.
  */
-export function searchTemplates(templates: ShapeTemplate[], query: string): ShapeTemplate[] {
+export function searchTemplates(
+  templates: ShapeTemplate[],
+  query: string,
+  categories: PaletteCategory[] = PALETTE_CATEGORIES,
+): ShapeTemplate[] {
   const words = normalize(query).split(/\s+/).filter(Boolean);
   if (words.length === 0) return templates;
   return templates.filter((template) => {
-    const category = PALETTE_CATEGORIES.find((c) => c.id === template.category)?.name ?? '';
+    const category = categories.find((c) => c.id === template.category)?.name ?? '';
     const haystack = normalize([template.name, category, ...template.keywords].join(' '));
     return words.every((word) => haystack.includes(word));
   });

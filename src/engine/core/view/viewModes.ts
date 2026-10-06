@@ -1,6 +1,6 @@
 import type { IsoViewParams } from '../../format/viewState';
 import { withViewMode } from '../../interaction/camera';
-import type { ViewMode } from '../../interaction/camera';
+import type { CameraState, ViewMode } from '../../interaction/camera';
 import { mergeSettings } from '../../settings';
 import type { EngineCore } from '../EngineCore';
 
@@ -10,6 +10,11 @@ export class ViewModes {
   private lastFlatMode: 'top' | 'iso' = 'top';
   /** Volumes aplatis à la demande (touche V, iso et 3D) : état passager, non enregistré. */
   flattened = false;
+  /**
+   * Mode choisi par l'utilisateur : celui de la dernière vue d'une page qui permet tous les modes. Une page dont le
+   * mode en restreint (sujet 178) n'y touche pas : en la quittant, on retrouve ce mode.
+   */
+  private chosenMode: ViewMode | undefined;
 
   constructor(private readonly core: EngineCore) {}
 
@@ -17,8 +22,55 @@ export class ViewModes {
     return this.core.camera.state.mode;
   }
 
+  /** Le mode de la page affichée permet-il ce mode d'affichage ? */
+  allows(mode: ViewMode, pageId = this.core.pages.currentPageId): boolean {
+    const page = pageId === undefined ? undefined : this.core.pages.pageById(pageId);
+    return !page || this.core.modes.allowsViewMode(page, mode);
+  }
+
+  /**
+   * Vue d'une page dans un mode d'affichage qu'elle permet (sujet 178) : même vue sinon, passée au premier mode
+   * permis. Retient le mode choisi quand la page permet tous les modes.
+   */
+  constrain(state: CameraState, pageId = this.core.pages.currentPageId): CameraState {
+    const page = pageId === undefined ? undefined : this.core.pages.pageById(pageId);
+    if (!page) return state;
+    const mode = this.core.modes.viewModeFor(page, state.mode);
+    if (mode === state.mode) {
+      if (!this.core.modes.modeOf(page)?.viewModes) this.chosenMode = mode;
+      return state;
+    }
+    return withViewMode(state, mode, this.core.camera.isoTilt(), this.core.camera.isoAzimuth());
+  }
+
+  /**
+   * Orientation d'arrivée sur une page sans vue mémorisée : celle de la vue courante, dans le mode choisi par
+   * l'utilisateur (on sort peut-être d'une page qui l'avait restreint).
+   */
+  arrivalOrientation(): { rotation: number; tilt: number; mode: ViewMode } {
+    const { mode, rotation, tilt } = withViewMode(
+      this.core.camera.state,
+      this.chosenMode ?? this.core.camera.state.mode,
+      this.core.camera.isoTilt(),
+      this.core.camera.isoAzimuth(),
+    );
+    return { mode, rotation, tilt };
+  }
+
+  /** Passe la vue au premier mode permis si celui en vigueur ne l'est plus (ex. page passée dans un mode). */
+  enforce(): void {
+    if (this.allows(this.core.camera.state.mode)) return;
+    const page = this.core.pages.getCurrentPage();
+    if (page) this.animateTo(this.core.modes.viewModeFor(page, this.core.camera.state.mode));
+  }
+
+  /** Mode d'affichage demandé par l'utilisateur (boutons, touches) : sans effet s'il n'est pas permis sur la page. */
   setViewMode(mode: ViewMode): void {
-    if (this.core.transitions.active) return;
+    if (this.core.transitions.active || !this.allows(mode)) return;
+    this.animateTo(mode);
+  }
+
+  private animateTo(mode: ViewMode): void {
     if (this.core.camera.state.mode !== '3d') this.lastFlatMode = this.core.camera.state.mode;
     // Entre la 2D (à plat) et l'iso / la 3D (volumes) : fondu enchaîné des deux rendus.
     const crossesFlat = (this.core.camera.state.mode === 'top') !== (mode === 'top');
@@ -34,7 +86,8 @@ export class ViewModes {
   }
 
   toggle3d(): void {
-    this.setViewMode(this.core.camera.state.mode === '3d' ? this.lastFlatMode : '3d');
+    const back = this.allows(this.lastFlatMode) ? this.lastFlatMode : this.lastFlatMode === 'top' ? 'iso' : 'top';
+    this.setViewMode(this.core.camera.state.mode === '3d' ? back : '3d');
   }
 
   isFlattened(): boolean {

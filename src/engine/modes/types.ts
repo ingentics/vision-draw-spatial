@@ -1,10 +1,13 @@
+import type { ViewMode } from '../interaction/camera';
 import type { EdgeModel, PageModel, ShapeModel } from '../model/types';
+import type { PaletteCategory } from '../shapes/types';
 
 /**
  * Modes de page (sujet 69) : un mode spécialise une page (`spatial.mode=<id>` sur `<diagram>`). Il ajoute des
  * données de page, des réglages sur les éléments et un habillage du rendu, stockés en attributs `spatial.*` : draw.io
  * n'en montre rien. Chaque mode vit dans son dossier (`modes/<id>/index.ts`, qui exporte `definition`) ; le moteur ne
- * connaît aucun mode en particulier. Les sections React propres à un mode sont dans `src/app/modes/<id>/`.
+ * connaît aucun mode en particulier. Les sections React propres à un mode sont dans `src/app/modes/<id>/`. Ses formes
+ * propres sont dans `modes/<id>/shapes/<forme>/index.ts` (sujet 178), id préfixé par celui du mode.
  */
 export interface PageModeDefinition {
   /** Identifiant, valeur de `spatial.mode` : nom du dossier. */
@@ -29,6 +32,15 @@ export interface PageModeDefinition {
   current?: ModeCurrent;
   /** Flèche créée sur la page (tirée depuis une forme), dans la même étape d'annulation ; `current` : le courant. */
   edgeCreated?(edit: ModeEdit, edgeId: string, current: string | undefined): void;
+  /**
+   * Formes proposées par la palette sur une page du mode (ids, générales ou du mode), dans l'ordre de la palette ;
+   * absent = palette normale et formes du mode. Les formes déjà sur la page et le collage ne sont pas filtrés.
+   */
+  shapes?: string[];
+  /** Catégories de palette propres au mode (ex. « RDD »), rangées avec celles de la palette par `order`. */
+  paletteCategories?: PaletteCategory[];
+  /** Modes d'affichage permis sur une page du mode ; absent = tous. La page s'affiche dans le premier. */
+  viewModes?: ViewMode[];
   /** Effet de page permis sur une page de ce mode (le mode reste maître) ; absent = tous. */
   allowsEffect?(effectId: string): boolean;
   /** Touches sur l'élément sélectionné seul, par `KeyboardEvent.key` (ex. `+`). */

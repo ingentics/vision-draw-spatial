@@ -3,6 +3,8 @@ import type { ViewMode } from '../engine/interaction/camera';
 
 interface NavigationToolbarProps {
   viewMode: ViewMode;
+  /** Modes permis sur la page (mode de la page, sujet 178) ; les autres boutons sont désactivés. Défaut : tous. */
+  allowedViewModes?: readonly ViewMode[];
   onViewModeChange: (mode: ViewMode) => void;
   onResetView: () => void;
 }
@@ -31,25 +33,34 @@ const VIEW_MODES: Array<{ value: ViewMode; label: string; title: string; icon: R
 ];
 
 /** Mode de vue (groupe de boutons liés) et retour à la vue par défaut. */
-export function NavigationToolbar({ viewMode, onViewModeChange, onResetView }: NavigationToolbarProps) {
+export function NavigationToolbar({
+  viewMode,
+  allowedViewModes,
+  onViewModeChange,
+  onResetView,
+}: NavigationToolbarProps) {
   return (
     <div className="nav-tools">
       <div className="button-group" role="group" aria-label="Mode de vue">
-        {VIEW_MODES.map((mode) => (
-          <button
-            key={mode.value}
-            type="button"
-            className="group-button"
-            aria-pressed={viewMode === mode.value}
-            title={mode.title}
-            onClick={() => onViewModeChange(mode.value)}
-          >
-            <svg viewBox="0 0 16 16" aria-hidden="true">
-              {mode.icon}
-            </svg>
-            {mode.label}
-          </button>
-        ))}
+        {VIEW_MODES.map((mode) => {
+          const allowed = !allowedViewModes || allowedViewModes.includes(mode.value);
+          return (
+            <button
+              key={mode.value}
+              type="button"
+              className="group-button"
+              aria-pressed={viewMode === mode.value}
+              disabled={!allowed}
+              title={allowed ? mode.title : `${mode.label} : non disponible dans ce mode`}
+              onClick={() => onViewModeChange(mode.value)}
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                {mode.icon}
+              </svg>
+              {mode.label}
+            </button>
+          );
+        })}
       </div>
       <button
         type="button"

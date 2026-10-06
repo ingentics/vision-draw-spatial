@@ -871,6 +871,15 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   liste de choix ; lecture et écriture propres possibles), habillage (couleur imposée à une flèche, pastille face à
   la caméra), remise en ordre au mieux à la lecture (signalée dans les diagnostics) et écrite après une suppression,
   clés retirées des éléments collés ou dupliqués (sur toutes les pages).
+- **Formes et vues d'un mode** (sujet 178) : un mode peut apporter ses formes (`modes/<id>/shapes/<forme>/index.ts`,
+  même contrat que les formes de `impl/`, id préfixé par celui du mode) : elles se dessinent sur toute page, mais
+  seule la palette d'une page du mode les propose. `shapes` (liste blanche d'ids) restreint la palette de la page,
+  recherche comprise (sans toucher aux formes déjà posées ni au collage) ; `paletteCategories` ajoute des
+  catégories, rangées par `order` avec celles de la palette ; une catégorie vide n'est pas affichée. `viewModes`
+  restreint les modes d'affichage : la page s'affiche dans le premier permis (ouverture, changement de page, passage
+  dans le mode, vue restaurée au rechargement), `I` / `P` sont sans effet et les boutons des autres modes désactivés
+  (« non disponible dans ce mode ») ; en quittant la page, on retrouve la vue choisie par l'utilisateur.
+  Registre : `paletteFor(page)`, `allowsViewMode(page, mode)`.
 - **Écritures** : une opération de mode est une étape d'annulation (`Engine.editPageMode`) ; attribut de page sur
   `<diagram>`, attribut d'élément là où il est déjà (objet), sinon dans le style.
 - **Mode Séquences** (`sequences`) : flux ordonnés (`spatial.flows`), une flèche dans un flux au plus

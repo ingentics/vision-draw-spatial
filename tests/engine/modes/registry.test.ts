@@ -5,7 +5,10 @@ import { PAGE_MODE_DEFINITIONS, PageModeRegistry } from '../../../src/engine/mod
 import type { PageModeDefinition } from '../../../src/engine/modes/types';
 import { buildPageScene } from '../../../src/engine/render/pageScene';
 import { Object3D } from 'three';
-import { createDefaultRegistry } from '../../../src/engine/shapes/registry';
+import { createDefaultRegistry, ShapeRegistry } from '../../../src/engine/shapes/registry';
+import { MODE_SHAPE_DEFINITIONS, shapesByMode } from '../../../src/engine/modes/shapes';
+import type { ShapeDefinition } from '../../../src/engine/shapes/types';
+import { PALETTE_CATEGORIES } from '../../../src/engine/edit/palette';
 import { SPATIAL } from '../../../src/engine/spatial';
 
 /** Dossiers des modes : `modes/<id>/index.ts` (moteur) et `app/modes/<id>/index.tsx` (sections React, facultatives). */
@@ -13,6 +16,11 @@ const ENGINE = Object.entries(
   import.meta.glob<PageModeDefinition>('../../../src/engine/modes/*/index.ts', { eager: true, import: 'definition' }),
 ).map(([path, definition]) => ({ folder: path.split('/').at(-2)!, definition }));
 const APP = Object.keys(import.meta.glob('../../../src/app/modes/*/index.tsx')).map((path) => path.split('/').at(-2)!);
+
+/** Formes du mode de test, dans son dossier `shapes/` comme un vrai mode. */
+const TEST_SHAPES = shapesByMode(
+  import.meta.glob<ShapeDefinition>('./fixtures/*/shapes/*/index.ts', { eager: true, import: 'definition' }),
+);
 
 const page = (attributes: Record<string, string>) =>
   ({ id: 'p', name: 'P', layers: [], shapes: [], edges: [], attributes }) as unknown as PageModel;
@@ -61,5 +69,73 @@ describe('modes de page en plugins (sujet 69)', () => {
     expect(
       readDrawio('<mxGraphModel><root><mxCell id="0"/></root></mxGraphModel>').document.pages[0]!.attributes,
     ).toEqual({});
+  });
+
+  it('formes des modes : une par dossier modes/<id>/shapes/<forme>/, id préfixé par celui du mode (sujet 178)', () => {
+    expect(TEST_SHAPES.get('test')?.map((shape) => shape.id)).toEqual(['test-box']);
+    for (const [modeId, shapes] of MODE_SHAPE_DEFINITIONS) {
+      expect(ENGINE.map((m) => m.folder)).toContain(modeId);
+      for (const shape of shapes) expect(shape.id.startsWith(`${modeId}-`), shape.id).toBe(true);
+    }
+    const shapes = new ShapeRegistry();
+    for (const shape of TEST_SHAPES.get('test')!) shapes.register(shape);
+    expect(shapes.templates().map((t) => t.id)).toEqual(['test-box']);
+  });
+
+  describe('palette et modes d’affichage d’un mode (sujet 178)', () => {
+    const test: PageModeDefinition = {
+      id: 'test',
+      name: 'Test',
+      shapes: ['rectangle', 'test-box'],
+      paletteCategories: [{ id: 'test', name: 'Test', order: 15 }],
+      viewModes: ['top'],
+    };
+    const loose: PageModeDefinition = { id: 'loose', name: 'Libre', paletteCategories: test.paletteCategories };
+    const registry = new PageModeRegistry().register(test, TEST_SHAPES.get('test')).register(loose);
+    const shapes = createDefaultRegistry();
+    for (const shape of TEST_SHAPES.get('test')!) shapes.register(shape);
+    const templates = shapes.templates();
+    const ids = (attributes: Record<string, string>) => {
+      const { categories, templates: shown } = registry.paletteFor(page(attributes), templates);
+      return { categories: categories.map((c) => c.id), shapes: shown.map((t) => t.id) };
+    };
+
+    it('liste blanche : seules ces formes, dans leurs catégories non vides, rangées par rang', () => {
+      expect(ids({ [SPATIAL.mode]: 'test' })).toEqual({
+        categories: ['geometry', 'test'],
+        shapes: ['rectangle', 'test-box'],
+      });
+    });
+
+    it('page normale : palette normale, sans les formes des modes ; mode sans liste : formes générales', () => {
+      const normal = ids({});
+      expect(normal.categories).toEqual(PALETTE_CATEGORIES.map((c) => c.id));
+      expect(normal.shapes).not.toContain('test-box');
+      expect(normal.shapes).toContain('database');
+      const other = ids({ [SPATIAL.mode]: 'loose' });
+      expect(other).toEqual(normal);
+      expect(registry.paletteFor(undefined, templates).templates.map((t) => t.id)).toEqual(normal.shapes);
+    });
+
+    it('modes d’affichage : seul le 2D sur une page du mode, tous ailleurs', () => {
+      const modePage = page({ [SPATIAL.mode]: 'test' });
+      expect(registry.allowsViewMode(modePage, 'top')).toBe(true);
+      expect(registry.allowsViewMode(modePage, 'iso')).toBe(false);
+      expect(registry.allowsViewMode(modePage, '3d')).toBe(false);
+      expect(registry.viewModeFor(modePage, 'iso')).toBe('top');
+      expect(registry.viewModeFor(modePage, 'top')).toBe('top');
+      for (const attributes of [{}, { [SPATIAL.mode]: 'loose' }] as Record<string, string>[]) {
+        expect(registry.allowsViewMode(page(attributes), 'iso')).toBe(true);
+        expect(registry.viewModeFor(page(attributes), '3d')).toBe('3d');
+      }
+    });
+
+    it('la forme du mode se dessine sur une page normale', () => {
+      const xml = `<mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="s" vertex="1" parent="1" style="shape=test-box;"><mxGeometry x="0" y="0" width="120" height="60" as="geometry"/></mxCell>
+      </root></mxGraphModel>`;
+      const shape = readDrawio(xml).document.pages[0]!.shapes[0]!;
+      expect(shapes.resolve(shape)).toMatchObject({ supported: true, definition: { id: 'test-box' } });
+    });
   });
 });

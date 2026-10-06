@@ -72,7 +72,7 @@ export class Links {
       frame,
       destination:
         this.core.pages.pageCameras.get(target.id) ??
-        fitBounds(target.bounds, this.core.display.viewport, this.core.camera.orientation()),
+        fitBounds(target.bounds, this.core.display.viewport, this.core.viewModes.arrivalOrientation()),
     });
   }
 

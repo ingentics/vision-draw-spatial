@@ -59,7 +59,15 @@ export interface MinimapMapping {
 /** Dessin d'une forme dans la mini-carte (contexte déjà mis à l'échelle des pixels CSS). */
 export type MinimapPainter = (context: CanvasRenderingContext2D, shape: ShapeModel, map: MinimapMapping) => void;
 
-export type PaletteCategoryId = 'geometry' | 'general' | 'architecture';
+/** Catégorie de la palette : celles de la palette (`PALETTE_CATEGORIES`) ou d'un mode (`paletteCategories`). */
+export type PaletteCategoryId = string;
+
+export interface PaletteCategory {
+  id: PaletteCategoryId;
+  name: string;
+  /** Rang d'affichage (croissant, catégories de la palette et des modes confondues). */
+  order: number;
+}
 
 /**
  * Élément de la palette (SPEC §14.1) déclaré par une forme : la forme telle que la palette la crée, avec le style et
@@ -68,7 +76,7 @@ export type PaletteCategoryId = 'geometry' | 'general' | 'architecture';
 export interface PaletteEntry {
   /** Nom affiché (celui de l'interface). */
   name: string;
-  /** Catégorie de la palette (`PALETTE_CATEGORIES`). */
+  /** Catégorie de la palette (`PALETTE_CATEGORIES`, ou une catégorie du mode pour une forme de mode). */
   category: PaletteCategoryId;
   /** Rang dans la palette (croissant, toutes formes confondues). */
   order: number;

@@ -6,6 +6,7 @@ import type { RenderContext } from '../render/types';
 import { placeholderShape } from './placeholder';
 import type { MinimapPainter, SceneLevel, SceneRenderer, ShapeDefinition, ShapeProperty, ShapeTemplate } from './types';
 import { outlinePainter } from './minimap';
+import { MODE_SHAPE_DEFINITIONS } from '../modes/shapes';
 
 export interface ResolvedShape {
   definition: ShapeDefinition;
@@ -158,10 +159,12 @@ export const SHAPE_DEFINITIONS: ShapeDefinition[] = Object.values(
   }),
 );
 
-/** Registre des formes supportées. */
+/** Registre des formes supportées : celles de `impl/` et celles des modes (`modes/<id>/shapes/`, sujet 178). */
 export function createDefaultRegistry(): ShapeRegistry {
   const registry = new ShapeRegistry();
   for (const definition of SHAPE_DEFINITIONS) registry.register(definition);
+  for (const definitions of MODE_SHAPE_DEFINITIONS.values())
+    for (const definition of definitions) registry.register(definition);
   return registry;
 }
 

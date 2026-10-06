@@ -33,9 +33,11 @@ export class Transitions {
     frame: Rect | undefined;
     destination: CameraState;
   }): void {
-    const { direction, outer, inner, frame, destination } = options;
-    const from = this.core.pages.getCurrentPage();
+    const { direction, outer, inner, frame } = options;
     const to = direction === 'in' ? inner : outer;
+    // Arrivée dans un mode d'affichage permis par la page de destination (sujet 178).
+    const destination = this.core.viewModes.constrain(options.destination, to.id);
+    const from = this.core.pages.getCurrentPage();
     if (!from || this.active) return;
 
     if (
