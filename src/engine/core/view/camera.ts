@@ -128,7 +128,7 @@ export class ViewCamera {
       this.core.links.updateLinkZones();
     this.core.rendering.applyProjection();
     this.core.levels.applyHeightScale();
-    this.core.relocateLabelEdit();
+    this.core.labelEditor.relocateLabelEdit();
     this.core.events.emit('cameraChange', this.getCameraState());
     this.core.rendering.requestRender();
   }

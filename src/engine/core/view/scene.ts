@@ -36,7 +36,7 @@ export class SceneView {
       page,
       core.registry,
       core.levels.requestedLevel(),
-      core.effects.hasVolume(page, (id) => core.modes.allowsEffect(page, id)) || core.hasRaisedJumps(page),
+      core.effects.hasVolume(page, (id) => core.modes.allowsEffect(page, id)) || core.jumps.hasRaisedJumps(page),
     );
   }
 
@@ -61,7 +61,7 @@ export class SceneView {
   renderContext(page?: PageModel) {
     return {
       text: this.core.text,
-      edgeJumps: page && this.core.jumpsOf(page),
+      edgeJumps: page && this.core.jumps.jumpsOf(page),
       volume: {
         depth: this.core.settings.view.isoDepth,
         shadeLight: this.core.settings.view.shadeLight,

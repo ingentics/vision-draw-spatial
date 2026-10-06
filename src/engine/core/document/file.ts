@@ -39,7 +39,7 @@ export class DocumentFile {
     this.core.pages.currentPageId = undefined;
     this.core.graph.invalidate();
     this.core.pages.lastDocumentPageId = undefined;
-    this.core.drag = undefined;
+    this.core.gesture.drag = undefined;
     this.core.edits.undoStack.clear();
     this.core.pageModes.modeCurrents.clear();
     this.core.edits.syncModified();
@@ -77,7 +77,7 @@ export class DocumentFile {
 
   serialize(): string | undefined {
     if (!this.xmlTree) return undefined;
-    this.core.endMove();
+    this.core.gesture.endMove();
     if (this.core.pages.currentPageId)
       this.core.pages.pageIso.set(this.core.pages.currentPageId, this.core.viewModes.isoParams());
     const views = new Map<string, PageViewState>();
@@ -104,7 +104,7 @@ export class DocumentFile {
     const selected = this.core.selection.current;
     this.core.selection.clearSelection();
     let document = documentFromTree(this.xmlTree);
-    if (options.distribute !== false && this.core.distributeAfterEdit(document, changedPageIds))
+    if (options.distribute !== false && this.core.arrangement.distributeAfterEdit(document, changedPageIds))
       document = documentFromTree(this.xmlTree);
     this.document = this.core.pageModes.withModeWarnings(document);
     this.geometry = new Map(document.pages.map((p) => [p.id, pageGeometry(p)]));
@@ -115,7 +115,7 @@ export class DocumentFile {
     if (current) {
       this.core.scenes.show(current);
       this.core.levels.applyHeightScale();
-      this.core.hideEditedLabel();
+      this.core.labelEditor.hideEditedLabel();
     }
     if (selected && selected.pageId === current?.id) {
       const items: PickedElement[] = [];

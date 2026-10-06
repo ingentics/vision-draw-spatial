@@ -28,7 +28,7 @@ export class Pages {
   constructor(private readonly core: EngineCore) {}
 
   canEditPages(): boolean {
-    return this.core.editable && this.core.file.xmlTree?.xml.documentElement?.tagName === 'mxfile';
+    return this.core.targets.editable && this.core.file.xmlTree?.xml.documentElement?.tagName === 'mxfile';
   }
 
   addPage(name?: string): string | undefined {
@@ -67,7 +67,7 @@ export class Pages {
     const index = document.pages.findIndex((p) => p.id === pageId);
     if (index < 0) return;
     const wasCurrent = this.currentPageId === pageId || this.core.graph.isGraphView();
-    this.core.endMove();
+    this.core.gesture.endMove();
     this.core.edits.recordEdit('Page supprimée');
     removePage(this.core.file.xmlTree, pageId);
     this.core.scenes.invalidate(pageId, true);
@@ -102,7 +102,7 @@ export class Pages {
     this.core.transitions.active?.abort();
     cancelAnimationFrame(this.core.camera.animation);
     this.core.camera.animation = 0;
-    this.core.endMove();
+    this.core.gesture.endMove();
     if (this.currentPageId !== page.id) this.core.selection.clearSelection();
     this.core.viewModes.applyPageIso(page.id);
     this.currentPageId = page.id;

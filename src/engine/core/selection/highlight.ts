@@ -181,8 +181,8 @@ export class SelectionHighlight {
     }
     if (!root) return;
     const { zoom } = this.core.camera.state;
-    const editableEdge = this.core.edgeHandlesSelection();
-    const ends = editableEdge && this.core.edgeEndPoints(editableEdge.edge.id);
+    const editableEdge = this.core.targets.edgeHandlesSelection();
+    const ends = editableEdge && this.core.edgeHandles.edgeEndPoints(editableEdge.edge.id);
     if (editableEdge && ends) {
       const { edge } = editableEdge;
       const handleStyle = {
@@ -197,13 +197,13 @@ export class SelectionHighlight {
         zoom,
         handleStyle,
       );
-      const context = this.core.pointsContext(editableEdge.page, edge);
+      const context = this.core.edgeHandles.pointsContext(editableEdge.page, edge);
       if (context) this.handlesObject.add(edgePointHandles(pointHandles(context), zoom, handleStyle));
       this.handlesObject.position.z = this.core.sceneView.elementTop(edge.id) + 0.3;
       alwaysOnTop(this.handlesObject);
       root.add(this.handlesObject);
     }
-    const editable = this.core.editableSelection();
+    const editable = this.core.targets.editableSelection();
     if (editable) {
       const { shape } = editable;
       this.handlesObject = selectionHandles(shape.bounds, zoom, {
@@ -211,7 +211,7 @@ export class SelectionHighlight {
         connect: true,
         size: this.core.settings.edit.handleSize,
         accent: this.core.settings.selection.accentColor,
-        layout: this.core.handleLayout(),
+        layout: this.core.shapeHandles.handleLayout(),
       });
       this.handlesObject.position.z = this.core.sceneView.elementTop(shape.id) + 0.3;
       alwaysOnTop(this.handlesObject);

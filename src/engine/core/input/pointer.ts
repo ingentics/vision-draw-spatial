@@ -70,30 +70,30 @@ export class PointerInput {
    * Sur une flèche, près d'un bout, édite son texte de début ou de fin.
    */
   handleDoubleClick(screen: Point, followLink: boolean): void {
-    if (this.core.doubleClickPointHandle(screen)) return;
+    if (this.core.edgePoints.doubleClickPointHandle(screen)) return;
     const picked = this.core.picking.pickAt(screen);
     const text = picked?.type === 'edge' ? this.core.picking.edgeTextAt(screen) : undefined;
     const follow = followLink || this.core.graph.isGraphView();
     if (picked && follow && isNavigableLink(picked.element.link)) this.core.links.followLink(picked.element.id);
-    else if (text) this.core.editEdgeText(text.edge.id, text.cellId);
+    else if (text) this.core.edgeTexts.editEdgeText(text.edge.id, text.cellId);
     else if (picked?.type === 'edge') {
       // Près d'un bout : texte de début ou de fin ; vers le milieu : label de la flèche.
       const route = this.core.sceneView.sceneObject(picked.element.id)?.userData.route as Point[] | undefined;
       const point = this.core.picking.groundPointAtHeight(screen, this.core.sceneView.elementTop(picked.element.id));
       const end = route ? endAt(positionAlong(route, point)) : undefined;
-      if (end) this.core.editEdgeEndLabel(picked.element.id, end);
-      else this.core.editLabel(picked.element.id);
-    } else if (picked) this.core.editLabel(picked.element.id);
+      if (end) this.core.labelEditor.editEdgeEndLabel(picked.element.id, end);
+      else this.core.labelEditor.editLabel(picked.element.id);
+    } else if (picked) this.core.labelEditor.editLabel(picked.element.id);
   }
 
   /** Survol : curseur main et infobulle sur les éléments liés ; préchargement optionnel. */
   handleHover(screen: Point | undefined): void {
     const picked = screen ? this.core.picking.pickAt(screen) : undefined;
     const link = isNavigableLink(picked?.element.link) ? picked?.element.link : undefined;
-    const handle = screen ? this.core.handleAt(screen) : undefined;
-    const edgeEnd = screen && !handle ? this.core.edgeEndAt(screen) : undefined;
-    const pointHandle = screen && !handle && !edgeEnd ? this.core.pointHandleAt(screen) : undefined;
-    const bent = pointHandle && this.core.editableEdgeSelection()?.edge;
+    const handle = screen ? this.core.shapeHandles.handleAt(screen) : undefined;
+    const edgeEnd = screen && !handle ? this.core.edgeHandles.edgeEndAt(screen) : undefined;
+    const pointHandle = screen && !handle && !edgeEnd ? this.core.edgeHandles.pointHandleAt(screen) : undefined;
+    const bent = pointHandle && this.core.targets.editableEdgeSelection()?.edge;
     const cursor =
       (handle && isConnectHandle(handle)) || edgeEnd
         ? 'crosshair'

@@ -63,7 +63,7 @@ export class Display {
       return;
     }
     this.core.rendering.applyProjection();
-    this.core.relocateLabelEdit();
+    this.core.labelEditor.relocateLabelEdit();
     this.core.minimap.requestDraw();
     this.core.rendering.requestRender();
   }

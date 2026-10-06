@@ -89,16 +89,16 @@ export class Engine {
 
   /** Geste d'édition en cours (déplacement, redimensionnement, connecteur) : ne pas l'interrompre. */
   isDragging(): boolean {
-    return this.core.isDragging();
+    return this.core.gesture.isDragging();
   }
 
   isEditable(): boolean {
-    return this.core.isEditable();
+    return this.core.targets.isEditable();
   }
 
   /** Active ou désactive l'édition (poignées, glisser, commandes d'édition). */
   setEditable(editable: boolean): void {
-    this.core.setEditable(editable);
+    this.core.targets.setEditable(editable);
   }
 
   /** Pages modifiables : fichier `<mxfile>` (l'ancien format n'a qu'une page sans nom). */
@@ -112,7 +112,7 @@ export class Engine {
    * Renvoie l'id de la nouvelle cellule, sélectionnée.
    */
   addShape(template: ShapeTemplate, screen?: Point): string | undefined {
-    return this.core.addShape(template, screen);
+    return this.core.elements.addShape(template, screen);
   }
 
   /** Ajoute une page vide (« Page-n ») et l'affiche. */
@@ -136,12 +136,12 @@ export class Engine {
    * (`otherArrangement`). Faux si elle ne s'applique pas.
    */
   placementVariant(): boolean {
-    return this.core.placementVariant();
+    return this.core.arrangement.placementVariant();
   }
 
   /** Ancrage des flèches d'une page : le sien (`spatial.anchoring`), sinon le réglage de l'appli. */
   anchoringOf(page: PageModel): Anchoring {
-    return this.core.anchoringOf(page);
+    return this.core.arrangement.anchoringOf(page);
   }
 
   /**
@@ -149,17 +149,17 @@ export class Engine {
    * flèches, dans la même étape d'annulation.
    */
   setPageAnchoring(pageId: string, anchoring: Anchoring | undefined): void {
-    this.core.setPageAnchoring(pageId, anchoring);
+    this.core.arrangement.setPageAnchoring(pageId, anchoring);
   }
 
   /** Saut des flèches d'une page aux croisements : le sien (`spatial.jumps`), sinon le réglage de l'appli. */
   jumpsOf(page: PageModel): JumpDefaults {
-    return this.core.jumpsOf(page);
+    return this.core.jumps.jumpsOf(page);
   }
 
   /** Saut propre à une page (undefined : celui de l'appli), suivi par ses flèches sans `jumpStyle`. */
   setPageJumps(pageId: string, jumps: JumpDefaults['style'] | undefined): void {
-    this.core.setPageJumps(pageId, jumps);
+    this.core.jumps.setPageJumps(pageId, jumps);
   }
 
   /** Éléments non supportés du document chargé, triés par fréquence (SPEC §8.4). */
@@ -467,7 +467,7 @@ export class Engine {
    * aux mêmes formes (le tracé redevient entièrement calculé).
    */
   resetEdgeRoute(edgeId: string): void {
-    this.core.resetEdgeRoute(edgeId);
+    this.core.edgePoints.resetEdgeRoute(edgeId);
   }
 
   /**
@@ -476,7 +476,7 @@ export class Engine {
    * bouge (pas de sélection déplaçable : les flèches gardent alors leur rôle de déplacement de la vue).
    */
   nudgeSelection(direction: Point, coarse: boolean): boolean {
-    return this.core.nudgeSelection(direction, coarse);
+    return this.core.gesture.nudgeSelection(direction, coarse);
   }
 
   /**
@@ -484,7 +484,7 @@ export class Engine {
    * placé : double-clic sur le texte.
    */
   editEdgeText(edgeId: string, cellId: string): void {
-    this.core.editEdgeText(edgeId, cellId);
+    this.core.edgeTexts.editEdgeText(edgeId, cellId);
   }
 
   /**
@@ -492,7 +492,7 @@ export class Engine {
    * HTML draw.io s'il a une mise en forme partielle.
    */
   setEdgeText(edgeId: string, cellId: string, text: string, html?: string): void {
-    this.core.setEdgeText(edgeId, cellId, text, html);
+    this.core.edgeTexts.setEdgeText(edgeId, cellId, text, html);
   }
 
   /**
@@ -500,12 +500,12 @@ export class Engine {
    * pour le texte (son ancre). Suivi en direct ; `endEditedTextMove` l'écrit dans le fichier.
    */
   moveEditedText(screen: Point): void {
-    this.core.moveEditedText(screen);
+    this.core.edgeTexts.moveEditedText(screen);
   }
 
   /** Fin du déplacement du texte en cours d'édition : une étape d'annulation, écrite comme draw.io. */
   endEditedTextMove(): void {
-    this.core.endEditedTextMove();
+    this.core.edgeTexts.endEditedTextMove();
   }
 
   /**
@@ -513,7 +513,7 @@ export class Engine {
    * la fin, comme les textes créés), sur le tracé (distance et décalage remis à zéro).
    */
   setEdgeTextAnchor(edgeId: string, cellId: string, anchor: EdgeTextAnchor): void {
-    this.core.setEdgeTextAnchor(edgeId, cellId, anchor);
+    this.core.edgeTexts.setEdgeTextAnchor(edgeId, cellId, anchor);
   }
 
   /**
@@ -521,7 +521,7 @@ export class Engine {
    * est dans une configuration par défaut ; un texte encore à créer sera créé de ce côté.
    */
   flipEditedText(): void {
-    this.core.flipEditedText();
+    this.core.edgeTexts.flipEditedText();
   }
 
   /**
@@ -529,7 +529,7 @@ export class Engine {
    * le texte et l'emprise à l'écran (événement `labelEdit`), puis appelle `setLabel`.
    */
   editLabel(elementId?: string): void {
-    this.core.editLabel(elementId);
+    this.core.labelEditor.editLabel(elementId);
   }
 
   /**
@@ -537,12 +537,12 @@ export class Engine {
    * `editLabel`, avec `end` dans la demande ; l'UI appelle ensuite `setEdgeEndLabel`.
    */
   editEdgeEndLabel(edgeId: string, end: EdgeEnd): void {
-    this.core.editEdgeEndLabel(edgeId, end);
+    this.core.labelEditor.editEdgeEndLabel(edgeId, end);
   }
 
   /** Fin de l'édition en place (validée ou annulée) : le label dessiné réapparaît. */
   closeLabelEdit(): void {
-    this.core.closeLabelEdit();
+    this.core.labelEditor.closeLabelEdit();
   }
 
   /**
@@ -551,7 +551,7 @@ export class Engine {
    * étape d'annulation ; pendant l'édition en place, l'éditeur reçoit le nouveau format.
    */
   setTextFormat(cellId: string, patch: Record<string, string | undefined>): void {
-    this.core.setTextFormat(cellId, patch);
+    this.core.textEdits.setTextFormat(cellId, patch);
   }
 
   /**
@@ -559,7 +559,7 @@ export class Engine {
    * si le texte a une mise en forme partielle (`html`, le style passe en `html=1`).
    */
   setLabel(elementId: string, text: string, html?: string): void {
-    this.core.setLabel(elementId, text, html);
+    this.core.textEdits.setLabel(elementId, text, html);
   }
 
   /**
@@ -567,12 +567,12 @@ export class Engine {
    * la cible, comme dans draw.io) : créé, modifié, ou retiré si le texte est vide.
    */
   setEdgeEndLabel(edgeId: string, end: EdgeEnd, text: string, html?: string, flipped?: boolean): void {
-    this.core.setEdgeEndLabel(edgeId, end, text, html, flipped);
+    this.core.edgeTexts.setEdgeEndLabel(edgeId, end, text, html, flipped);
   }
 
   /** Lien d'un élément de la page courante (vers une page ou une URL) ; undefined = retiré. */
   setLink(elementId: string, link: LinkModel | undefined): void {
-    this.core.setLink(elementId, link);
+    this.core.properties.setLink(elementId, link);
   }
 
   /**
@@ -583,7 +583,7 @@ export class Engine {
    * (`LIVE_SHAPE_KEYS`), seule la forme est redessinée.
    */
   setSpatial(elementId: string, key: string, value: number | string | undefined, merge?: string): void {
-    this.core.setSpatial(elementId, key, value, merge);
+    this.core.properties.setSpatial(elementId, key, value, merge);
   }
 
   /** Registre des modes de page du moteur (choix du mode, réglages déclarés). */
@@ -662,7 +662,7 @@ export class Engine {
    * d'annulation. `known` : styles de la palette, pour retirer une couleur de texte posée par l'un d'eux.
    */
   applyStylePreset(elementIds: string[], preset: StylePreset, known?: StylePreset[]): void {
-    this.core.applyStylePreset(elementIds, preset, known);
+    this.core.styles.applyStylePreset(elementIds, preset, known);
   }
 
   /**
@@ -675,17 +675,17 @@ export class Engine {
     label?: string,
     merge?: string,
   ): void {
-    this.core.setElementsStyle(elementIds, patch, label, merge);
+    this.core.styles.setElementsStyle(elementIds, patch, label, merge);
   }
 
   /** Inverse des flèches de la page courante (ticket 131) : elles vont de leur ancienne cible à leur ancienne source. */
   reverseEdges(edgeIds: string[]): void {
-    this.core.reverseEdges(edgeIds);
+    this.core.styles.reverseEdges(edgeIds);
   }
 
   /** Ordre de dessin de la sélection (ticket 130) : premier plan, arrière-plan, avancer, reculer. */
   orderSelection(move: OrderMove): void {
-    this.core.orderSelection(move);
+    this.core.arrange.orderSelection(move);
   }
 
   /**
@@ -693,17 +693,17 @@ export class Engine {
    * élément sélectionné ; une étape d'annulation, flèches réparties à nouveau en ancrage automatique.
    */
   alignSelection(move: AlignMove, reference: AlignReference): void {
-    this.core.alignSelection(move, reference);
+    this.core.arrange.alignSelection(move, reference);
   }
 
   /** Répartit les formes de la sélection (ticket 136) à intervalles égaux, les deux extrêmes restant en place. */
   distributeSelection(move: DistributeMove): void {
-    this.core.distributeSelection(move);
+    this.core.arrange.distributeSelection(move);
   }
 
   /** Supprime la sélection : avec son contenu, ses labels et les arêtes qui y sont reliées (comme draw.io). */
   deleteSelection(label?: string): void {
-    this.core.deleteSelection(label);
+    this.core.elements.deleteSelection(label);
   }
 
   /**
@@ -711,12 +711,12 @@ export class Engine {
    * aussi gardé comme presse-papier interne. Undefined : rien à copier.
    */
   copySelection(): string | undefined {
-    return this.core.copySelection();
+    return this.core.clipboard.copySelection();
   }
 
   /** Coupe la sélection : copiée puis supprimée ; le premier collage la remet à sa place. */
   cutSelection(): string | undefined {
-    return this.core.cutSelection();
+    return this.core.clipboard.cutSelection();
   }
 
   /**
@@ -725,12 +725,12 @@ export class Engine {
    * contenu, puis sélectionnés. Renvoie false si le texte n'est pas un contenu draw.io.
    */
   paste(text?: string): boolean {
-    return this.core.paste(text);
+    return this.core.clipboard.paste(text);
   }
 
   /** Duplique la sélection (copier + coller sans toucher au presse-papier), décalée d'un pas de grille. */
   duplicateSelection(): void {
-    this.core.duplicateSelection();
+    this.core.clipboard.duplicateSelection();
   }
 
   canUndo(): boolean {

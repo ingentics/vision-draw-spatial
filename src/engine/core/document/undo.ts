@@ -29,23 +29,23 @@ export class EditHistory {
   }
 
   canUndo(): boolean {
-    return this.core.editable && this.undoStack.undoLabel() !== undefined;
+    return this.core.targets.editable && this.undoStack.undoLabel() !== undefined;
   }
 
   canRedo(): boolean {
-    return this.core.editable && this.undoStack.redoLabel() !== undefined;
+    return this.core.targets.editable && this.undoStack.redoLabel() !== undefined;
   }
 
   undo(): void {
-    if (!this.core.editable || !this.core.file.xmlTree || this.core.transitions.active) return;
-    this.core.endMove();
+    if (!this.core.targets.editable || !this.core.file.xmlTree || this.core.transitions.active) return;
+    this.core.gesture.endMove();
     const previous = this.undoStack.undo(writeDrawio(this.core.file.xmlTree));
     if (previous !== undefined) this.restore(previous);
   }
 
   redo(): void {
-    if (!this.core.editable || !this.core.file.xmlTree || this.core.transitions.active) return;
-    this.core.endMove();
+    if (!this.core.targets.editable || !this.core.file.xmlTree || this.core.transitions.active) return;
+    this.core.gesture.endMove();
     const next = this.undoStack.redo(writeDrawio(this.core.file.xmlTree));
     if (next !== undefined) this.restore(next);
   }

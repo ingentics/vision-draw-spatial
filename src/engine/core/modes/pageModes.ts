@@ -25,7 +25,13 @@ export class PageModes {
   setPageMode(pageId: string, modeId: string | undefined): void {
     const page = this.core.pages.pageById(pageId);
     const pageTree = this.core.file.pageTreeOf(pageId);
-    if (!this.core.file.xmlTree || !page || !pageTree?.diagram || !this.core.editable || this.core.transitions.active)
+    if (
+      !this.core.file.xmlTree ||
+      !page ||
+      !pageTree?.diagram ||
+      !this.core.targets.editable ||
+      this.core.transitions.active
+    )
       return;
     if ((this.core.modes.modeId(page) ?? '') === (modeId ?? '')) return;
     const name = modeId && this.core.modes.get(modeId)?.name;
@@ -37,7 +43,13 @@ export class PageModes {
   setPageEffect(pageId: string, effectId: string, enabled: boolean): void {
     const page = this.core.pages.pageById(pageId);
     const pageTree = this.core.file.pageTreeOf(pageId);
-    if (!this.core.file.xmlTree || !page || !pageTree?.diagram || !this.core.editable || this.core.transitions.active)
+    if (
+      !this.core.file.xmlTree ||
+      !page ||
+      !pageTree?.diagram ||
+      !this.core.targets.editable ||
+      this.core.transitions.active
+    )
       return;
     if (pageEffectIds(page).includes(effectId) === enabled) return;
     const name = this.core.effects.get(effectId)?.name ?? effectId;
@@ -47,7 +59,7 @@ export class PageModes {
   }
 
   editPageMode(label: string, edit: (edit: ModeEdit) => void): void {
-    const editable = this.core.editablePage();
+    const editable = this.core.targets.editablePage();
     if (!editable || !this.core.file.xmlTree) return;
     const before = writeDrawio(this.core.file.xmlTree);
     if (!applyModeEdit(editable.page, editable.pageTree, edit, modePalette(this.core.settings.styles))) return;
@@ -56,7 +68,7 @@ export class PageModes {
   }
 
   setModeProperty(scope: ModeScope, targetId: string | undefined, key: string, value: string | undefined): void {
-    const page = this.core.editablePage()?.page;
+    const page = this.core.targets.editablePage()?.page;
     const property = page && this.core.modes.properties(page, scope).find((p) => p.key === key);
     const target: ModeTarget | undefined =
       scope === 'page'
@@ -91,12 +103,12 @@ export class PageModes {
       color,
       label: current.label?.(page, value) ?? value,
       values: current.values?.(page) ?? [],
-      renamable: current.rename !== undefined && this.core.editablePage()?.page.id === page.id,
+      renamable: current.rename !== undefined && this.core.targets.editablePage()?.page.id === page.id,
     };
   }
 
   renameModeCurrent(label: string): void {
-    const page = this.core.editablePage()?.page;
+    const page = this.core.targets.editablePage()?.page;
     const rename = page && this.core.modes.modeOf(page)?.current?.rename;
     const value = page && this.getModeCurrent(page.id);
     const name = label.trim();
@@ -148,7 +160,7 @@ export class PageModes {
   }
 
   modeKey(key: string): boolean {
-    const editable = this.core.editablePage();
+    const editable = this.core.targets.editablePage();
     const selection = this.core.selection.current;
     if (!editable || selection?.pageId !== editable.page.id || selection.items.length !== 1) return false;
     const action = this.core.modes.modeOf(editable.page)?.keys?.[key];
