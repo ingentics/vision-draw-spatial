@@ -113,6 +113,7 @@ src/
       graphScene.ts    # scène du graphe avec les miniatures des pages
       flat/            # briques du rendu à plat (boîte, label)
       edges/           # arêtes : tracé, pointes, labels
+        route.ts       # façade du tracé porté de draw.io (route/ : périmètres, bouts, un fichier par routeur)
       geometry/        # contours, traits épais, pointillés
       pageScene.ts     # construction de la scène d'une page à un niveau donné
       sceneManager.ts  # scènes construites (par page et par niveau), visibilité, cache
@@ -449,7 +450,7 @@ Ajouter une forme = **déposer son dossier** (au minimum `kind` et `flat`, idéa
   `labels.drawio` (toutes les combinaisons de position et d'alignement) est exportée en SVG par draw.io
   (`make drawio-check`) et chaque texte doit y être ancré au même point que le nôtre.
 
-**Connecteurs.** draw.io n'enregistre que les points intermédiaires posés par l'utilisateur : le tracé (coudes, points d'attache) est **recalculé à l'affichage**, avec les **algorithmes de draw.io portés tels quels** (`render/edges/route.ts`, d'après mxGraph, Apache 2.0) : une flèche s'affiche comme dans draw.io, et un point posé ici y reste au même endroit :
+**Connecteurs.** draw.io n'enregistre que les points intermédiaires posés par l'utilisateur : le tracé (coudes, points d'attache) est **recalculé à l'affichage**, avec les **algorithmes de draw.io portés tels quels** (`render/edges/route.ts` et `route/`, d'après mxGraph, Apache 2.0) : une flèche s'affiche comme dans draw.io, et un point posé ici y reste au même endroit :
 
 - styles : droit (de contour à contour, par les points intermédiaires), `orthogonalEdgeStyle` (routeur local de draw.io ; avec des points intermédiaires, `segmentEdgeStyle`), `segmentEdgeStyle`, `elbowEdgeStyle` (horizontal / vertical, bascule selon le point intermédiaire), `sideToSideEdgeStyle`, `topToBottomEdgeStyle`, `entityRelationEdgeStyle`, boucles (`loopEdgeStyle`) ; un style inconnu est approché par l'orthogonal et journalisé (§8.4) ;
 - bouts comme draw.io : points d'attache imposés (`exitX/exitY`, `entryX/entryY`, décalages, projection sur le contour sauf `exitPerimeter=0`), extrémités libres, puis bouts flottants sur le contour (rectangle ou ellipse) visés depuis le point voisin, projetés dans l'axe pour les styles orthogonaux ; `jettySize` (10 par défaut, `auto`), `portConstraint`, `perimeterSpacing`, `routingCenterX/Y`, `flipH/V` ; non repris : rotation des formes, ports (`sourcePort`) ;
