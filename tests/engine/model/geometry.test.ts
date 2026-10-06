@@ -8,6 +8,7 @@ import {
   segmentDistance,
   segmentIntersection,
   segmentsCross,
+  prunePath,
   simplifyPath,
   unionOf,
 } from '../../../src/engine/model/geometry';
@@ -64,5 +65,20 @@ describe('géométrie partagée (sujet 205)', () => {
       { x: 10, y: 10 },
       { x: 20, y: 20 },
     ]);
+  });
+
+  it('simplification d’un tracé calculé : un demi-tour est retiré comme un point aligné', () => {
+    const path = [
+      { x: 0, y: 0 },
+      { x: 10, y: 0 },
+      { x: 10, y: 20 },
+      { x: 10, y: 10 },
+    ];
+    expect(simplifyPath(path)).toEqual([
+      { x: 0, y: 0 },
+      { x: 10, y: 0 },
+      { x: 10, y: 10 },
+    ]);
+    expect(prunePath(path, 1e-6, true)).toEqual(path);
   });
 });

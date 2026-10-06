@@ -249,6 +249,14 @@ describe('simplify', () => {
       { x: 10, y: 0 },
       { x: 10, y: 5 },
     ]);
+    // Point intermédiaire qui fait repartir le trait en arrière : draw.io dessine l'aller-retour.
+    const uTurn = [
+      { x: 0, y: 0 },
+      { x: 20, y: 0 },
+      { x: 10, y: 0 },
+      { x: 10, y: 5 },
+    ];
+    expect(simplify(uTurn)).toEqual(uTurn);
   });
 });
 

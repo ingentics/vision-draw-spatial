@@ -103,15 +103,29 @@ export function insidePolygon(polygon: readonly Point[], p: Point): boolean {
   return inside;
 }
 
-/** Retire d'un tracé les points confondus et ceux alignés avec leurs voisins (à `epsilon` près). */
-export function simplifyPath(path: readonly Point[], epsilon = 1e-6): Point[] {
+/**
+ * Retire d'un tracé les points confondus et ceux alignés avec leurs voisins (à `epsilon` près). Avec
+ * `keepBacktracks`, un point où le tracé repart en arrière sur sa droite (demi-tour) est gardé, sinon il est retiré
+ * comme un point aligné.
+ */
+export function prunePath(path: readonly Point[], epsilon: number, keepBacktracks: boolean): Point[] {
   const result: Point[] = [];
   for (const p of path) {
     const last = result[result.length - 1];
     if (last && Math.abs(last.x - p.x) < epsilon && Math.abs(last.y - p.y) < epsilon) continue;
     const before = result[result.length - 2];
-    if (before && last && Math.abs(cross(before, last, p)) < epsilon) result[result.length - 1] = p;
+    const aligned = before && last && Math.abs(cross(before, last, p)) < epsilon;
+    const forward = aligned && (last.x - before.x) * (p.x - last.x) + (last.y - before.y) * (p.y - last.y) > 0;
+    if (aligned && (forward || !keepBacktracks)) result[result.length - 1] = p;
     else result.push(p);
   }
   return result;
+}
+
+/**
+ * Tracé calculé nettoyé (contournement des ancrages automatique et Typon) : points confondus et alignés retirés,
+ * demi-tours compris (un pic n'a pas de sens dans un tracé calculé).
+ */
+export function simplifyPath(path: readonly Point[], epsilon = 1e-6): Point[] {
+  return prunePath(path, epsilon, false);
 }

@@ -17,10 +17,10 @@
  * géométries relatives (ports) dans `entityRelationEdgeStyle`.
  */
 
-export { perimeterKind, perimeterToward } from './route/perimeters';
-export { perimeterPolygon } from './route/perimeters/polygons';
-export { routeEdge, routeEdgePoints } from './route/routeEdge';
-export { routingKind } from './route/routingKind';
-export { simplify } from './route/simplify';
-export { constraintFromStyle, fixedAnchor, routingCenter } from './route/terminals';
-export type { Constraint, PerimeterKind, RouteInput, RoutingKind, Terminal } from './route/types';
+export { perimeterKind, perimeterToward } from './perimeters';
+export { perimeterPolygon } from './perimeters/polygons';
+export { routeEdge, routeEdgePoints } from './routeEdge';
+export { routingKind } from './routingKind';
+export { simplify } from './simplify';
+export { constraintFromStyle, fixedAnchor, routingCenter } from './terminals';
+export type { Constraint, PerimeterKind, RouteInput, RoutingKind, Terminal } from './types';
