@@ -43,16 +43,26 @@ function cornerIn(shape: ShapeModel, region: ShapeModel): boolean {
 }
 
 /**
- * Région qui contient une forme du mode : la plus petite dont le coin haut-gauche de la forme est dedans ; une région
- * n'est contenue que dans une région plus grande qu'elle (deux régions de même taille ne se contiennent pas).
+ * Une région peut-elle contenir `region`, dont le coin haut-gauche est dedans (sujet 231) ? Oui, quelle que soit sa
+ * taille, comme une table ; seul cas ambigu, deux coins au même point : la plus grande contient l'autre, à taille
+ * égale celle de derrière (pas de cycle).
+ */
+function canContainRegion(parent: ShapeModel, region: ShapeModel): boolean {
+  if (parent.bounds.x !== region.bounds.x || parent.bounds.y !== region.bounds.y) return true;
+  return area(parent) > area(region) || (area(parent) === area(region) && parent.z < region.z);
+}
+
+/**
+ * Région qui contient une forme du mode : la plus petite dont le coin haut-gauche de la forme est dedans, à taille
+ * égale celle de devant (la plus imbriquée).
  */
 export function regionOf(page: PageModel, shape: ShapeModel): ShapeModel | undefined {
   if (!isModeShape(shape)) return undefined;
   let owner: ShapeModel | undefined;
   for (const region of page.shapes) {
     if (!isRegion(region) || region.id === shape.id || !cornerIn(shape, region)) continue;
-    if (isRegion(shape) && area(region) <= area(shape)) continue;
-    if (!owner || area(region) < area(owner)) owner = region;
+    if (isRegion(shape) && !canContainRegion(region, shape)) continue;
+    if (!owner || area(region) < area(owner) || (area(region) === area(owner) && region.z > owner.z)) owner = region;
   }
   return owner;
 }

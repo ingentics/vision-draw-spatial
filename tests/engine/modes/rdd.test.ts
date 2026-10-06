@@ -470,13 +470,14 @@ describe('mode RDD : région (sujet 182)', () => {
     </root></mxGraphModel></diagram></mxfile>`);
     const page = document.pages[0]!;
     const shape = (id: string) => page.shapes.find((s) => s.id === id)!;
-    // Deux régions de même taille ne se contiennent pas : la table va à la première trouvée des deux.
-    expect(regionOf(page, shape('inner'))?.id).toBe('small');
+    // Deux régions au même coin et de même taille (sujet 231) : celle de devant (twin) est dans celle de derrière ; la
+    // table va à la plus imbriquée.
+    expect(regionOf(page, shape('inner'))?.id).toBe('twin');
     expect(regionOf(page, shape('small'))?.id).toBe('big');
-    expect(regionOf(page, shape('twin'))?.id).toBe('big');
+    expect(regionOf(page, shape('twin'))?.id).toBe('small');
     // Une forme hors du mode n'est jamais contenue.
     expect(regionOf(page, shape('note'))).toBeUndefined();
-    expect(regionContent(page, shape('small'))).toEqual(['inner']);
+    expect(regionContent(page, shape('small')).sort()).toEqual(['inner', 'twin']);
     expect(regionContent(page, shape('big')).sort()).toEqual(['inner', 'outer', 'small', 'twin']);
   });
 
@@ -579,7 +580,9 @@ describe('mode RDD : la région s’étend quand on y pose une forme qui dépass
       run((edit) => edit.setShapeBounds(id, { ...bounds(id), x, y }));
       return run((edit) => rdd.placed!(edit, [id]));
     };
-    return { bounds, place };
+    const resize = (id: string, width: number, height: number) =>
+      run((edit) => edit.setShapeBounds(id, { ...bounds(id), width, height }));
+    return { bounds, place, resize };
   };
 
   it('la région s’agrandit vers la droite et le bas, 20 px de marge ; sa région englobante suit', () => {
@@ -598,6 +601,22 @@ describe('mode RDD : la région s’étend quand on y pose une forme qui dépass
     place('t', 510, 320);
     expect(bounds('small')).toEqual({ x: 100, y: 100, width: 400, height: 206 });
     expect(bounds('big')).toEqual({ x: 0, y: 0, width: 690, height: 386 });
+  });
+
+  it('une région aussi grande que sa parente y est dès que son coin y est, et l’agrandit (sujet 231)', () => {
+    const { bounds, place, resize } = setupPage();
+    resize('small', 500, 300);
+    // Small, de la taille de Big, posée en mordant sur son bord : son coin est dans Big, qui s'agrandit.
+    expect(place('small', 300, 200)).toBe(true);
+    expect(bounds('big')).toEqual({ x: 0, y: 0, width: 820, height: 520 });
+  });
+
+  it('une région posée qui dépasse de sa région parente l’agrandit, comme une table (sujet 231)', () => {
+    const { bounds, place } = setupPage();
+    // Small (200 × 150) posée à (400, 200) : son coin est dans Big, elle en dépasse à droite et en bas.
+    expect(place('small', 400, 200)).toBe(true);
+    expect(bounds('big')).toEqual({ x: 0, y: 0, width: 620, height: 370 });
+    expect(bounds('small')).toEqual({ x: 400, y: 200, width: 200, height: 150 });
   });
 
   it('ni rétrécie ni changée si la forme tient ; une forme hors du mode ou hors région ne change rien', () => {

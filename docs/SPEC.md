@@ -917,9 +917,9 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     au-dessus de son coin haut-gauche, coin carré, terminé par un S qui rejoint le bord haut, d'un seul contour avec la
     région (même fond, même bordure) ; même marge (6 px) de part et d'autre du nom, mesuré avec les polices du dessin ;
     l'onglet se clique comme la région, l'éditeur en place s'ouvre sur le nom ; posée au fond de la pile. Son **contenu** est
-    calculé, rien n'en est écrit : les formes du mode dont le coin haut-gauche est dans la région (une région ne
-    contient qu'une région plus grande qu'elle ; dans deux régions imbriquées, une forme appartient à la plus
-    petite). Déplacer la région déplace son contenu (régions incluses, flèches entre ces formes), en une étape
+    calculé, rien n'en est écrit : les formes du mode dont le coin haut-gauche est dans la région, régions comprises,
+    quelle que soit leur taille (deux coins au même point : la plus grande contient l'autre, à taille égale celle de
+    derrière) ; dans deux régions imbriquées, une forme appartient à la plus petite (à taille égale, celle de devant). Déplacer la région déplace son contenu (régions incluses, flèches entre ces formes), en une étape
     d'annulation ; redimensionner ne déplace rien. Une forme du mode posée (déplacée ou ajoutée) dont le coin
     haut-gauche est dans une région mais qui en dépasse l'agrandit vers la droite et / ou le bas, avec 20 px de marge,
     dans la même étape d'annulation ; les régions englobantes suivent ; une région ne rétrécit jamais à cette occasion.
