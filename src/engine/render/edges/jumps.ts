@@ -1,4 +1,5 @@
 import type { Point } from '../../model/types';
+import { distance, segmentIntersection } from '../../model/geometry';
 
 /**
  * Sauts de ligne aux croisements (`jumpStyle`, `jumpSize`, ticket 129), comme draw.io
@@ -71,7 +72,7 @@ export function withJumps(
   for (let i = 1; i < line.length; i++) {
     const a = line[i - 1]!;
     const b = line[i]!;
-    const length = Math.hypot(b.x - a.x, b.y - a.y);
+    const length = distance(a, b);
     if (length === 0) continue;
     const u = { x: (b.x - a.x) / length, y: (b.y - a.y) / length };
     // Côté du saut, comme draw.io : vers le haut, ou vers la droite pour un segment vertical.
@@ -130,22 +131,12 @@ function crossings(a: Point, b: Point, below: readonly Point[][]): number[] {
   const result: number[] = [];
   for (const path of below)
     for (let j = 1; j < path.length; j++) {
-      const hit = intersection(a, b, path[j - 1]!, path[j]!);
+      const hit = segmentIntersection(a, b, path[j - 1]!, path[j]!);
       if (!hit) continue;
       const near = (p: Point) => Math.abs(hit.x - p.x) <= END_TOLERANCE && Math.abs(hit.y - p.y) <= END_TOLERANCE;
       if (near(a) || near(b) || near(path[j - 1]!) || near(path[j]!)) continue;
-      result.push(Math.hypot(hit.x - a.x, hit.y - a.y));
+      result.push(distance(a, hit));
     }
   result.sort((x, y) => x - y);
   return result.filter((d, i) => i === 0 || d - result[i - 1]! > 1e-6);
-}
-
-/** Point d'intersection de deux segments (undefined s'ils sont parallèles ou ne se coupent pas). */
-function intersection(a: Point, b: Point, c: Point, d: Point): Point | undefined {
-  const denominator = (d.y - c.y) * (b.x - a.x) - (d.x - c.x) * (b.y - a.y);
-  if (denominator === 0) return undefined;
-  const ua = ((d.x - c.x) * (a.y - c.y) - (d.y - c.y) * (a.x - c.x)) / denominator;
-  const ub = ((b.x - a.x) * (a.y - c.y) - (b.y - a.y) * (a.x - c.x)) / denominator;
-  if (ua < 0 || ua > 1 || ub < 0 || ub > 1) return undefined;
-  return { x: a.x + ua * (b.x - a.x), y: a.y + ua * (b.y - a.y) };
 }

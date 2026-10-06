@@ -1,12 +1,13 @@
 import { Matrix4, Box3, Vector3 } from 'three';
 import { connectableShapes } from '../../edit/edgeEnds';
 import { pageToScreen, screenToPage } from '../../interaction/camera';
-import { pickElement, distanceToPolyline, insidePolygon } from '../../interaction/pick';
+import { pickElement, distanceToPolyline } from '../../interaction/pick';
 import type { PickedElement } from '../../interaction/pick';
 import type { Footprint } from '../../interaction/marquee';
 import type { EdgeModel, Point, Rect, ShapeModel } from '../../model/types';
 import type { EngineCore } from '../EngineCore';
 import type { Object3D } from 'three';
+import { insidePolygon } from '../../model/geometry';
 
 /**
  * Ce qui est sous un point de l'écran (formes, flèches, textes de flèche) et passage écran ↔ page à une hauteur donnée.

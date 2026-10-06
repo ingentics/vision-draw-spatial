@@ -1,4 +1,5 @@
 import type { EdgeModel, PageModel, Point, ShapeModel } from '../model/types';
+import { distance, segmentDistance } from '../model/geometry';
 
 /**
  * Élément sous un point de la page (clic, survol). En volume (iso), le plus proche de la caméra gagne : celui que
@@ -97,7 +98,7 @@ function volumeHit(
   const { x, y, width, height } = shape.bounds;
   if (Math.max(a.x, b.x) < x || Math.min(a.x, b.x) > x + width) return undefined;
   if (Math.max(a.y, b.y) < y || Math.min(a.y, b.y) > y + height) return undefined;
-  const steps = Math.min(VOLUME_MAX_STEPS, Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / VOLUME_STEP)));
+  const steps = Math.min(VOLUME_MAX_STEPS, Math.max(1, Math.ceil(distance(a, b) / VOLUME_STEP)));
   for (let step = 1; step <= steps; step++) {
     const t = step / steps;
     if (shapeContains(shape, { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }, contains)) {
@@ -120,28 +121,8 @@ export function shapeContains(
 
 export function distanceToPolyline(p: Point, points: Point[]): number {
   if (points.length === 0) return Infinity;
-  if (points.length === 1) return Math.hypot(p.x - points[0]!.x, p.y - points[0]!.y);
+  if (points.length === 1) return distance(p, points[0]!);
   let best = Infinity;
-  for (let i = 1; i < points.length; i++) best = Math.min(best, distanceToSegment(p, points[i - 1]!, points[i]!));
+  for (let i = 1; i < points.length; i++) best = Math.min(best, segmentDistance(p, points[i - 1]!, points[i]!));
   return best;
-}
-
-function distanceToSegment(p: Point, a: Point, b: Point): number {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const lengthSq = dx * dx + dy * dy;
-  const t = lengthSq === 0 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / lengthSq));
-  return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
-}
-
-/** Point dans un polygone (règle pair-impair), bord compris à la précision près. */
-export function insidePolygon(polygon: Point[], p: Point): boolean {
-  let inside = false;
-  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-    const a = polygon[i]!;
-    const b = polygon[j]!;
-    if (distanceToSegment(p, a, b) < 1e-6) return true;
-    if (a.y > p.y !== b.y > p.y && p.x < ((b.x - a.x) * (p.y - a.y)) / (b.y - a.y) + a.x) inside = !inside;
-  }
-  return inside;
 }

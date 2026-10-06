@@ -4,6 +4,7 @@ import { fixedAnchor, routeEdge } from '../../../render/edges/route';
 import { endAttachmentOf, sideOfConstraint } from '../../edgeEnds';
 import { seededUnit } from './seed';
 import type { AnchorSide } from '../../edgeEnds';
+import { simplifyPath } from '../../../model/geometry';
 
 /**
  * Tracé automatique des flèches en ancrage automatique (SPEC §14.1) : si possible, le tracé orthogonal contourne les
@@ -121,20 +122,6 @@ export function segmentsOf(path: Point[]): Segment[] {
   for (let i = 0; i + 1 < path.length; i++) {
     const [a, b] = [path[i]!, path[i + 1]!];
     if ((a.x === b.x) !== (a.y === b.y)) result.push({ a, b });
-  }
-  return result;
-}
-
-/** Retire les points alignés ou confondus. */
-function simplifyPath(path: Point[]): Point[] {
-  const result: Point[] = [];
-  for (const p of path) {
-    const last = result[result.length - 1];
-    if (last && last.x === p.x && last.y === p.y) continue;
-    const before = result[result.length - 2];
-    if (before && last && ((before.x === last.x && last.x === p.x) || (before.y === last.y && last.y === p.y)))
-      result[result.length - 1] = p;
-    else result.push(p);
   }
   return result;
 }

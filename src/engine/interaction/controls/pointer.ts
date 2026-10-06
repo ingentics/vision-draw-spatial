@@ -6,6 +6,7 @@ import type { FollowLinkGesture } from '../selection';
 import type { ControlContext, DragMode } from './context';
 import type { Drift } from './drift';
 import { releaseVelocity, wheelZoomFactor } from './motion';
+import { distance } from '../../model/geometry';
 
 /** Souris et pointeur sur le canvas : molette, glisser (vue, orbite, déplacement, sélection par zone), clics. */
 export class PointerControls {
@@ -252,8 +253,4 @@ export class PointerControls {
       height: `${rect.height}px`,
     });
   }
-}
-
-function distance(a: Point, b: Point): number {
-  return Math.hypot(a.x - b.x, a.y - b.y);
 }

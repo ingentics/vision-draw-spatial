@@ -1,5 +1,6 @@
 import type { Point, Rect } from '../model/types';
 import { routingKind } from '../render/edges/route';
+import { center, rectContains, segmentDistanceSquared } from '../model/geometry';
 
 /**
  * Découpage d'une flèche en morceaux (SPEC §14.1) : poignées entre les bouts et points intermédiaires
@@ -180,7 +181,8 @@ function dragSegment(ctx: PointsContext, index: number, pointerIn: Point): Point
   // Un seul point, dans la source ou la cible : remplacé par le pointeur (deux fois).
   if (preview.length === 1) {
     const p = preview[0]!;
-    if ((ctx.source && contains(ctx.source, p)) || (ctx.target && contains(ctx.target, p))) preview = [point, point];
+    if ((ctx.source && rectContains(ctx.source, p)) || (ctx.target && rectContains(ctx.target, p)))
+      preview = [point, point];
   }
 
   // Tracé obtenu, réduit à ses coudes.
@@ -265,7 +267,7 @@ function dragBend(ctx: PointsContext, handle: PointHandle, pointerIn: Point): Po
     if (
       idx > 0 &&
       idx < abs.length - 1 &&
-      segmentDistanceSquared(abs[idx - 1]!, abs[idx + 1]!, pointerIn) < ctx.tolerance * ctx.tolerance
+      segmentDistanceSquared(pointerIn, abs[idx - 1]!, abs[idx + 1]!) < ctx.tolerance * ctx.tolerance
     ) {
       points.splice(idx - 1, 1);
       return points;
@@ -278,23 +280,4 @@ function dragBend(ctx: PointsContext, handle: PointHandle, pointerIn: Point): Po
 /** Retire le point intermédiaire de rang `index` dans le tracé (double-clic sur un point). */
 export function removePoint(waypoints: Point[], index: number): Point[] {
   return waypoints.filter((_, i) => i !== index - 1);
-}
-
-function contains(r: Rect, p: Point): boolean {
-  return r.x <= p.x && r.x + r.width >= p.x && r.y <= p.y && r.y + r.height >= p.y;
-}
-
-function center(r: Rect): Point {
-  return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
-}
-
-/** Carré de la distance de `p` au segment `[a, b]` (mxUtils.ptSegDistSq). */
-function segmentDistanceSquared(a: Point, b: Point, p: Point): number {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const length = dx * dx + dy * dy;
-  const t = length === 0 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / length));
-  const x = a.x + t * dx - p.x;
-  const y = a.y + t * dy - p.y;
-  return x * x + y * y;
 }

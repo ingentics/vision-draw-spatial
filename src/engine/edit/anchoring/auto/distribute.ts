@@ -2,6 +2,7 @@ import type { EdgeModel, PageModel, Point, Rect } from '../../../model/types';
 import { endAttachmentOf, sideOfConstraint } from '../../edgeEnds';
 import { seededUnit } from './seed';
 import type { AnchorSide, TerminalEnd } from '../../edgeEnds';
+import { center } from '../../../model/geometry';
 
 /**
  * Ancrage automatique des flèches (SPEC §14.1) : l'utilisateur ne choisit que le côté d'une forme, et les flèches
@@ -14,10 +15,6 @@ export interface AnchorChange {
   edgeId: string;
   end: TerminalEnd;
   constraint: Point;
-}
-
-function center(b: Rect): Point {
-  return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
 }
 
 /** Côté du cadre qui fait face à un point (direction depuis le centre, rapportée aux dimensions). */

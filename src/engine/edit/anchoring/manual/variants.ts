@@ -4,6 +4,7 @@ import { fixedAnchor, routeEdge } from '../../../render/edges/route';
 import { constraintStyle, endAttachmentOf, frameConstraint, shapeAnchors } from '../../edgeEnds';
 import type { AnchorSide, TerminalEnd } from '../../edgeEnds';
 import { LOOP_MARGIN, loopWaypoints } from '../../loops';
+import { center, distance } from '../../../model/geometry';
 
 /**
  * Variantes de placement d'une flèche en ancrage manuel (touche F, SPEC §14.1) : pour chaque couple côté de départ ×
@@ -28,7 +29,6 @@ const HIT_COST = 100000;
 /** Coût d'un coude, en pixels de longueur équivalente. */
 const BEND_COST = 30;
 
-const center = (b: Rect): Point => ({ x: b.x + b.width / 2, y: b.y + b.height / 2 });
 const same = (a: Point, b: Point) => a.x === b.x && a.y === b.y;
 
 function anchorPosition(shape: ShapeModel, c: Point): Point {
@@ -116,7 +116,7 @@ export function placementVariants(page: PageModel, edgeId: string, loopMargin = 
       let hits = 0;
       for (let i = 0; i + 1 < route.length; i++) {
         const [a, b] = [route[i]!, route[i + 1]!];
-        length += Math.hypot(b.x - a.x, b.y - a.y);
+        length += distance(a, b);
         const first = i === 0;
         const last = i + 2 === route.length;
         for (const shape of page.shapes) {

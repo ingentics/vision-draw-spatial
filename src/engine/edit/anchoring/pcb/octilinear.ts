@@ -2,6 +2,7 @@ import type { Point, Rect } from '../../../model/types';
 import { ATTRACT_COST, BEND_COST, Heap, NORMALS, OVERLAP_COST, SEED_JITTER, inflate, inside, out } from '../auto/avoid';
 import type { AvoidOptions, Port, Router, Segment } from '../auto/avoid';
 import { seededUnit } from '../auto/seed';
+import { cross, distance, segmentsCross as crossing, simplifyPath } from '../../../model/geometry';
 
 /**
  * Tracé octilinéaire de l'ancrage « Typon » (SPEC §14.1), inspiré des pistes de circuit imprimé : segments à 0°, 45°
@@ -49,16 +50,9 @@ export function pathSegments(path: readonly Point[]): Segment[] {
   return result;
 }
 
-const cross = (o: Point, a: Point, b: Point) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
-
 /** Vrai si deux segments quelconques se croisent franchement (bouts exclus, segments parallèles exclus). */
 export function segmentsCross(s: Segment, t: Segment): boolean {
-  const eps = 1e-6;
-  const d1 = cross(t.a, t.b, s.a);
-  const d2 = cross(t.a, t.b, s.b);
-  const d3 = cross(s.a, s.b, t.a);
-  const d4 = cross(s.a, s.b, t.b);
-  return ((d1 > eps && d2 < -eps) || (d1 < -eps && d2 > eps)) && ((d3 > eps && d4 < -eps) || (d3 < -eps && d4 > eps));
+  return crossing(s.a, s.b, t.a, t.b, 1e-6);
 }
 
 /** Vrai si deux segments non parallèles se touchent, bouts compris (un coude posé sur une flèche la croise). */
@@ -74,7 +68,7 @@ function segmentsTouch(s: Segment, t: Segment): boolean {
 
 /** Longueur commune de deux segments quelconques (0 s'ils ne sont pas sur une même droite). */
 export function segmentsOverlap(s: Segment, t: Segment): number {
-  const length = Math.hypot(s.b.x - s.a.x, s.b.y - s.a.y);
+  const length = distance(s.a, s.b);
   if (length < 1e-6) return 0;
   // Distance des bouts de t à la droite de s (0,5 px de tolérance, comme le tracé orthogonal).
   if (Math.abs(cross(s.a, s.b, t.a)) / length > 0.5 || Math.abs(cross(s.a, s.b, t.b)) / length > 0.5) return 0;
@@ -83,19 +77,6 @@ export function segmentsOverlap(s: Segment, t: Segment): number {
   const along = (p: Point) => (p.x - s.a.x) * ux + (p.y - s.a.y) * uy;
   const [t0, t1] = [along(t.a), along(t.b)];
   return Math.max(0, Math.min(length, Math.max(t0, t1)) - Math.max(0, Math.min(t0, t1)));
-}
-
-/** Retire les points confondus ou alignés (même direction de part et d'autre). */
-function simplifyPath(path: Point[]): Point[] {
-  const result: Point[] = [];
-  for (const p of path) {
-    const last = result[result.length - 1];
-    if (last && Math.abs(last.x - p.x) < 1e-6 && Math.abs(last.y - p.y) < 1e-6) continue;
-    const before = result[result.length - 2];
-    if (before && last && Math.abs(cross(before, last, p)) < 1e-6) result[result.length - 1] = p;
-    else result.push(p);
-  }
-  return result;
 }
 
 /**
@@ -190,7 +171,7 @@ export function routeOctilinear(
   };
   const segmentBlocked = (a: Point, b: Point) => {
     if (near.length === 0) return false;
-    const steps = Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / (g / 2));
+    const steps = Math.ceil(distance(a, b) / (g / 2));
     for (let k = 1; k < steps; k++)
       if (blockedAt({ x: a.x + ((b.x - a.x) * k) / steps, y: a.y + ((b.y - a.y) * k) / steps })) return true;
     return false;
@@ -222,7 +203,7 @@ export function routeOctilinear(
       for (const p of points) {
         const nd = dirOf({ x: p.x - previous.x, y: p.y - previous.y });
         if (nd < 0) return;
-        const length = Math.hypot(p.x - previous.x, p.y - previous.y);
+        const length = distance(previous, p);
         cost += length + turnCost(dir, nd);
         legsOf.push({ a: previous, b: p, d: nd, length });
         [dir, previous] = [nd, p];

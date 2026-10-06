@@ -1,4 +1,5 @@
 import type { Point } from '../../model/types';
+import { distance } from '../../model/geometry';
 
 /**
  * Traits épais posés au sol : une polyligne devient un ruban de triangles d'épaisseur
@@ -159,8 +160,4 @@ function miterOffset(prev: Point | undefined, next: Point | undefined, half: num
 
 function scale(p: Point, k: number): Point {
   return { x: p.x * k, y: p.y * k };
-}
-
-function distance(a: Point, b: Point): number {
-  return Math.hypot(b.x - a.x, b.y - a.y);
 }

@@ -1,4 +1,5 @@
 import type { Point, Rect } from '../model/types';
+import { unionOf } from '../model/geometry';
 
 /**
  * Aligner et répartir la sélection (ticket 136), comme « Arrange › Align / Distribute » de draw.io. Calcul pur : à
@@ -31,7 +32,7 @@ export function alignDeltas(
   const deltas = new Map<string, Point>();
   if (items.length < 2) return deltas;
   const anchor = reference === 'first' ? items[0]! : reference === 'last' ? items[items.length - 1]! : undefined;
-  const ref = anchor?.bounds ?? unionOf(items.map((item) => item.bounds));
+  const ref = anchor?.bounds ?? unionOf(items.map((item) => item.bounds))!;
   for (const item of items) {
     if (item === anchor) continue;
     const b = item.bounds;
@@ -110,12 +111,4 @@ export function distributeDeltas(items: readonly AlignItem[], move: DistributeMo
   const step = (keyOf(last) - from) / n;
   sorted.slice(1, -1).forEach((item, i) => set(item, from + step * (i + 1) - size(item.bounds) * fraction));
   return deltas;
-}
-
-function unionOf(rects: readonly Rect[]): Rect {
-  const x = Math.min(...rects.map((r) => r.x));
-  const y = Math.min(...rects.map((r) => r.y));
-  const right = Math.max(...rects.map((r) => r.x + r.width));
-  const bottom = Math.max(...rects.map((r) => r.y + r.height));
-  return { x, y, width: right - x, height: bottom - y };
 }

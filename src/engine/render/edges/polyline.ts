@@ -1,4 +1,5 @@
 import type { EdgeLabelPlacement, Point } from '../../model/types';
+import { distance } from '../../model/geometry';
 
 export function length(points: Point[]): number {
   let total = 0;
@@ -149,12 +150,8 @@ export function placementAt(points: Point[], point: Point, offset: Point = { x: 
   // Direction du segment au point trouvé (celle qu'utilise `labelPoint`).
   const ahead = labelPoint(points, { position: Math.min(position + 1e-6, 1), distance: 0, offset: { x: 0, y: 0 } });
   const behind = labelPoint(points, { position: Math.max(position - 1e-6, -1), distance: 0, offset: { x: 0, y: 0 } });
-  const length = Math.hypot(ahead.x - behind.x, ahead.y - behind.y);
+  const length = distance(behind, ahead);
   const u = length === 0 ? { x: 1, y: 0 } : { x: (ahead.x - behind.x) / length, y: (ahead.y - behind.y) / length };
   const distanceAcross = (target.x - onRoute.x) * u.y - (target.y - onRoute.y) * u.x;
   return { position, distance: distanceAcross, offset };
-}
-
-function distance(a: Point, b: Point): number {
-  return Math.hypot(b.x - a.x, b.y - a.y);
 }

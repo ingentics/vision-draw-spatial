@@ -1,4 +1,5 @@
 import type { Point, Rect } from '../model/types';
+import { cross, insidePolygon, rectContains, segmentsCross } from '../model/geometry';
 
 /**
  * Sélection par zone (ticket 60) : rectangle tiré au curseur, en coordonnées écran. Un élément est
@@ -25,9 +26,9 @@ export interface Footprint {
 export function marqueeTakes(footprint: Footprint, rect: Rect, touch: boolean): boolean {
   const { points } = footprint;
   if (points.length === 0) return false;
-  if (points.every((p) => inside(p, rect))) return true;
+  if (points.every((p) => rectContains(rect, p))) return true;
   if (!touch) return false;
-  if (points.some((p) => inside(p, rect))) return true;
+  if (points.some((p) => rectContains(rect, p))) return true;
   const outline = footprint.closed ? convexHull(points) : points;
   const corners = [
     { x: rect.x, y: rect.y },
@@ -43,23 +44,7 @@ export function marqueeTakes(footprint: Footprint, rect: Rect, touch: boolean): 
     if (sides.some(([c, d]) => segmentsCross(a, b, c, d))) return true;
   }
   // Rectangle entièrement dans la forme.
-  return footprint.closed && insidePolygon(corners[0]!, outline);
-}
-
-function inside(p: Point, rect: Rect): boolean {
-  return p.x >= rect.x && p.x <= rect.x + rect.width && p.y >= rect.y && p.y <= rect.y + rect.height;
-}
-
-function cross(o: Point, a: Point, b: Point): number {
-  return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
-}
-
-function segmentsCross(a: Point, b: Point, c: Point, d: Point): boolean {
-  const d1 = cross(c, d, a);
-  const d2 = cross(c, d, b);
-  const d3 = cross(a, b, c);
-  const d4 = cross(a, b, d);
-  return ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0));
+  return footprint.closed && insidePolygon(outline, corners[0]!);
 }
 
 /** Enveloppe convexe (chaîne monotone), dans le sens trigonométrique. */
@@ -76,14 +61,4 @@ function convexHull(points: Point[]): Point[] {
     return hull;
   };
   return [...half(sorted), ...half([...sorted].reverse())];
-}
-
-function insidePolygon(p: Point, polygon: Point[]): boolean {
-  let result = false;
-  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-    const a = polygon[i]!;
-    const b = polygon[j]!;
-    if (a.y > p.y !== b.y > p.y && p.x < ((b.x - a.x) * (p.y - a.y)) / (b.y - a.y) + a.x) result = !result;
-  }
-  return result;
 }

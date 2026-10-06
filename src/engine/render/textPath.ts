@@ -1,6 +1,7 @@
 import type { Point } from '../model/types';
 import type { FontSpec, MeasureText, RichTextLayout } from './richLayout';
 import { length } from './edges/polyline';
+import { distance } from '../model/geometry';
 
 /**
  * Texte posé le long d'un tracé (texte du milieu d'une flèche qui la suit, ticket 138) : chaque lettre
@@ -116,7 +117,7 @@ function pointAt(path: Point[], s: number): { point: Point; tangent: Point } {
   for (let i = 1; i < path.length; i++) {
     const a = path[i - 1]!;
     const b = path[i]!;
-    const segment = Math.hypot(b.x - a.x, b.y - a.y);
+    const segment = distance(a, b);
     if (segment > 0) segments.push({ a, b, length: segment });
   }
   let remaining = s;

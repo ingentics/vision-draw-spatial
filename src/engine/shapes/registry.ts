@@ -1,4 +1,3 @@
-import { insidePolygon } from '../interaction/pick';
 import type { Point, Rect, ShapeModel } from '../model/types';
 import { blockHeight } from '../render/iso/block';
 import { outsideLabelBox } from '../render/labelPosition';
@@ -7,6 +6,7 @@ import { placeholderShape } from './placeholder';
 import type { MinimapPainter, SceneLevel, SceneRenderer, ShapeDefinition, ShapeProperty, ShapeTemplate } from './types';
 import { outlinePainter } from './minimap';
 import { MODE_SHAPE_DEFINITIONS } from '../modes/shapes';
+import { insidePolygon } from '../model/geometry';
 
 export interface ResolvedShape {
   definition: ShapeDefinition;

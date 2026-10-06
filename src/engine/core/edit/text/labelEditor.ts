@@ -9,6 +9,7 @@ import type { SceneLevel } from '../../../shapes/types';
 import { alongAnchor } from '../../../render/textPath';
 import type { LabelEditPlane, LabelEditRequest } from '../../types';
 import type { EngineCore } from '../../EngineCore';
+import { distance } from '../../../model/geometry';
 
 /**
  * Édition en place d'un texte (double-clic, F2) : demande à l'UI, emprise et plan à l'écran, suivi de la vue, label
@@ -316,6 +317,6 @@ export class LabelEditor {
     const at = this.core.picking.screenOfPoint(center, top);
     const dx = this.core.picking.screenOfPoint({ x: center.x + 10, y: center.y }, top);
     const dy = this.core.picking.screenOfPoint({ x: center.x, y: center.y + 10 }, top);
-    return Math.max(Math.hypot(dx.x - at.x, dx.y - at.y), Math.hypot(dy.x - at.x, dy.y - at.y)) / 10;
+    return Math.max(distance(at, dx), distance(at, dy)) / 10;
   }
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parseDrawio } from '../../../src/engine/format/parse';
-import { distanceToPolyline, insidePolygon, pickElement, shapeContains } from '../../../src/engine/interaction/pick';
+import { distanceToPolyline, pickElement, shapeContains } from '../../../src/engine/interaction/pick';
+import { insidePolygon } from '../../../src/engine/model/geometry';
 import type { ShapeModel } from '../../../src/engine/model/types';
 import { defaultShapeRegistry } from '../../../src/engine/shapes/registry';
 import { fixture } from '../../helpers';

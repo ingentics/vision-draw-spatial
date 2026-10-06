@@ -3,6 +3,7 @@ import type { PageModel, Point, Rect } from '../model/types';
 import { outsideLabelBox } from '../render/labelPosition';
 import { edgeRoute } from '../render/pageScene';
 import type { EffectRoom } from './types';
+import { boundsOfPoints, distance, segmentDistance, unionOf } from '../model/geometry';
 
 /** Texte de flèche (texte troika) : de quoi estimer son encombrement. */
 interface LabelText {
@@ -43,7 +44,7 @@ export function pageRoom(page: PageModel, root: Object3D): EffectRoom {
   return {
     bounds: unionOf([
       ...rects,
-      ...segments.map(([a, b]) => rectOf([a, b])),
+      ...segments.map(([a, b]) => boundsOfPoints([a, b])!),
       ...circles.map(({ center, radius }) => ({
         x: center.x - radius,
         y: center.y - radius,
@@ -59,35 +60,8 @@ export function pageRoom(page: PageModel, root: Object3D): EffectRoom {
         best = Math.min(best, Math.hypot(dx, dy));
       }
       for (const [a, b] of segments) best = Math.min(best, segmentDistance(p, a, b));
-      for (const { center, radius } of circles)
-        best = Math.min(best, Math.max(0, Math.hypot(p.x - center.x, p.y - center.y) - radius));
+      for (const { center, radius } of circles) best = Math.min(best, Math.max(0, distance(center, p) - radius));
       return best;
     },
   };
-}
-
-function segmentDistance(p: Point, a: Point, b: Point): number {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const length = dx * dx + dy * dy;
-  const t = length === 0 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / length));
-  return Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy);
-}
-
-function rectOf(points: Point[]): Rect {
-  const xs = points.map((p) => p.x);
-  const ys = points.map((p) => p.y);
-  const x = Math.min(...xs);
-  const y = Math.min(...ys);
-  return { x, y, width: Math.max(...xs) - x, height: Math.max(...ys) - y };
-}
-
-function unionOf(rects: Rect[]): Rect | undefined {
-  if (rects.length === 0) return undefined;
-  return rectOf(
-    rects.flatMap((r) => [
-      { x: r.x, y: r.y },
-      { x: r.x + r.width, y: r.y + r.height },
-    ]),
-  );
 }

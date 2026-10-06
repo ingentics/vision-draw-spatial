@@ -1,4 +1,5 @@
 import type { EdgeLabelModel, EdgeLabelPlacement, EdgeModel, Point } from '../model/types';
+import { distance } from '../model/geometry';
 
 /**
  * Textes de début et de fin d'une flèche (SPEC §14.1) : labels enfants de l'arête, près de la source
@@ -103,7 +104,7 @@ export function edgeTextLayout(
   const tip = points[0]!;
   const next = points.find((p) => p.x !== tip.x || p.y !== tip.y);
   if (!next) return middle;
-  const length = Math.hypot(next.x - tip.x, next.y - tip.y);
+  const length = distance(tip, next);
   const u = { x: (next.x - tip.x) / length, y: (next.y - tip.y) / length };
   const { along, across } = gap;
   // Côté du trait : celui de la règle (début au-dessus / à droite), ou l'autre si retourné.

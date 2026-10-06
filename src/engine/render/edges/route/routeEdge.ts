@@ -6,7 +6,8 @@ import { routingKind } from './routingKind';
 import { simplify } from './simplify';
 import { constraintFromStyle, fixedTerminalPoint, perimeterOn } from './terminals';
 import type { RouteInput } from './types';
-import { center, number } from './util';
+import { number } from './util';
+import { center } from '../../../model/geometry';
 
 /** Tracé d'une arête, en trois temps : bouts fixes, routeur, bouts flottants (`mxGraphView.updateEdgeState`). */
 
