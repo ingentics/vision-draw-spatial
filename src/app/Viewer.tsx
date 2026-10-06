@@ -663,10 +663,12 @@ export function Viewer({
               onCommit={(content) => {
                 setCommentEdit(undefined);
                 engine?.setComment(commentEdit.elementId, content);
+                if (commentEdit.fromNavigation) engine?.clearSelection();
                 engine?.focusCanvas();
               }}
               onCancel={() => {
                 setCommentEdit(undefined);
+                if (commentEdit.fromNavigation) engine?.clearSelection();
                 engine?.focusCanvas();
               }}
             />

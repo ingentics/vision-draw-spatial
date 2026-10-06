@@ -53,9 +53,9 @@ export class PropertyEdits {
 
   /**
    * Demande l'édition en place du commentaire d'un élément de la page courante, édition activée ou non ; faux si
-   * l'élément n'y est pas.
+   * l'élément n'y est pas. `fromNavigation` : élément sélectionné pour l'occasion, désélectionné à la sortie.
    */
-  editComment(elementId: string): boolean {
+  editComment(elementId: string, fromNavigation = false): boolean {
     const editable = this.core.targets.writablePage();
     if (!editable) return false;
     const shape = editable.page.shapes.find((s) => s.id === elementId);
@@ -66,6 +66,7 @@ export class PropertyEdits {
       elementId,
       onEdge: !shape,
       comment: commentOf(element),
+      ...(fromNavigation && { fromNavigation }),
     });
     return true;
   }

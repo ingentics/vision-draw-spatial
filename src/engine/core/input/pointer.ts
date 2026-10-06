@@ -150,8 +150,8 @@ export class PointerInput {
   /**
    * Touche C, édition activée ou non : passe en édition en place le commentaire de la forme ou de la flèche
    * sélectionnée seule, sinon, sans sélection, celui de l'élément sous le curseur (qui est alors sélectionné) ; vide
-   * s'il n'en a pas (tickets 201, 202). Faux sans l'un ni l'autre, avec plusieurs éléments sélectionnés ou sur une
-   * page non modifiable.
+   * s'il n'en a pas (tickets 201, 202) ; dans ce second cas, la sortie de l'éditeur le désélectionne (ticket 203).
+   * Faux sans l'un ni l'autre, avec plusieurs éléments sélectionnés ou sur une page non modifiable.
    */
   editHoveredComment(): boolean {
     const page = this.core.targets.writablePage()?.page;
@@ -164,6 +164,6 @@ export class PointerInput {
     const picked = this.hovered;
     if (!picked) return false;
     this.core.selection.select(picked);
-    return this.core.properties.editComment(picked.element.id);
+    return this.core.properties.editComment(picked.element.id, true);
   }
 }

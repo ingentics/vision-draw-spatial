@@ -121,6 +121,11 @@ export interface CommentEditRequest {
   elementId: string;
   onEdge: boolean;
   comment?: ElementComment;
+  /**
+   * Élément sélectionné pour l'occasion depuis la navigation libre (« C » sans sélection) : la sortie de l'éditeur
+   * retire la sélection (ticket 203).
+   */
+  fromNavigation?: boolean;
 }
 
 export interface LabelEditRequest {
