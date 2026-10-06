@@ -44,15 +44,15 @@ export class PageEffectRegistry {
   }
 
   /** Effets actifs d'une page : écrits, connus et permis par son mode. */
-  active(page: PageModel, allows: (effectId: string) => boolean = () => true): PageEffectDefinition[] {
+  active(page: PageModel, allows: (effect: PageEffectDefinition) => boolean = () => true): PageEffectDefinition[] {
     return pageEffectIds(page).flatMap((id) => {
       const effect = this.definitions.get(id);
-      return effect && allows(id) ? [effect] : [];
+      return effect && allows(effect) ? [effect] : [];
     });
   }
 
   /** La page a-t-elle un décor en volume (elle passe alors en volume en iso / 3D, même sans forme en volume) ? */
-  hasVolume(page: PageModel, allows?: (effectId: string) => boolean): boolean {
+  hasVolume(page: PageModel, allows?: (effect: PageEffectDefinition) => boolean): boolean {
     return this.active(page, allows).some((effect) => effect.volume);
   }
 
@@ -79,7 +79,10 @@ export class PageEffectRegistry {
   decorate(
     page: PageModel,
     root: Object3D,
-    options: { allows?: (effectId: string) => boolean; settings?: Record<string, Record<string, number>> } = {},
+    options: {
+      allows?: (effect: PageEffectDefinition) => boolean;
+      settings?: Record<string, Record<string, number>>;
+    } = {},
   ): void {
     let room: EffectRoom | undefined;
     for (const effect of this.active(page, options.allows)) {

@@ -1,5 +1,6 @@
 import { PALETTE_CATEGORIES, SHAPE_TEMPLATES } from '../edit/palette';
 import type { PageModePalette } from '../edit/palette';
+import type { PageEffectDefinition } from '../effects/types';
 import type { ViewMode } from '../interaction/camera';
 import type { DocumentModel, ParseWarning, PageModel } from '../model/types';
 import type { PaletteCategory, ShapeDefinition, ShapeTemplate } from '../shapes/types';
@@ -60,9 +61,13 @@ export class PageModeRegistry {
     return this.modeOf(page)?.dressing?.(page);
   }
 
-  /** Le mode de la page permet-il cet effet (sujet 143) ? Oui pour une page normale ou un mode qui ne dit rien. */
-  allowsEffect(page: PageModel, effectId: string): boolean {
-    return this.modeOf(page)?.allowsEffect?.(effectId) ?? true;
+  /**
+   * L'effet est-il actif sur la page ? Son mode le permet (sujet 143 ; oui pour une page normale ou un mode qui ne dit
+   * rien) et permet l'un des modes d'affichage de l'effet (sujet 196).
+   */
+  allowsEffect(page: PageModel, effect: Pick<PageEffectDefinition, 'id' | 'viewModes'>): boolean {
+    if (!(this.modeOf(page)?.allowsEffect?.(effect.id) ?? true)) return false;
+    return !effect.viewModes || effect.viewModes.some((mode) => this.allowsViewMode(page, mode));
   }
 
   /** Le mode de la page permet-il ce mode d'affichage (sujet 178) ? Oui pour une page normale ou sans `viewModes`. */

@@ -17,6 +17,7 @@ export const definition: PageEffectDefinition = {
   id: 'forest',
   name: 'Forêt',
   description: 'Des arbres poussent autour du schéma en iso / 3D (spatial.effects)',
+  viewModes: ['iso', '3d'],
   settings: [
     {
       key: 'size',

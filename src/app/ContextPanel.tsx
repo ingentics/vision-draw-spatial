@@ -213,32 +213,28 @@ function PageSections({ page, onRenamePage: onRename, ...props }: ContextPanelPr
 }
 
 /**
- * Effets de la page (sujet 143) : une case par effet, cumulables. Un effet refusé par le mode de la page reste
- * cochable mais signalé inactif ; un effet inconnu (version plus récente) reste affiché tel quel.
+ * Effets de la page (sujet 143) : une case par effet, cumulables. Seuls sont listés les effets permis par le mode de
+ * la page et dans l'un de ses modes d'affichage (sujet 196) ; un effet inconnu (version plus récente) reste affiché
+ * tel quel.
  */
 function PageEffectsSection({ page, onPageEffect }: Pick<ContextPanelProps, 'page' | 'onPageEffect'>) {
   const written = pageEffectIds(page);
   const unknown = written.filter((id) => !defaultEffectRegistry.get(id));
+  const effects = defaultEffectRegistry.list().filter((effect) => defaultModeRegistry.allowsEffect(page, effect));
+  if (effects.length === 0 && unknown.length === 0) return null;
   return (
     <Section title="Effets">
-      {defaultEffectRegistry.list().map((effect) => {
-        const allowed = defaultModeRegistry.allowsEffect(page, effect.id);
-        return (
-          <label
-            key={effect.id}
-            className="field toggle"
-            title={allowed ? effect.description : `${effect.name} : sans effet dans le mode de cette page`}
-          >
-            <input
-              type="checkbox"
-              checked={written.includes(effect.id)}
-              disabled={!onPageEffect}
-              onChange={(event) => onPageEffect?.(effect.id, event.target.checked)}
-            />
-            {allowed ? effect.name : `${effect.name} (inactif)`}
-          </label>
-        );
-      })}
+      {effects.map((effect) => (
+        <label key={effect.id} className="field toggle" title={effect.description}>
+          <input
+            type="checkbox"
+            checked={written.includes(effect.id)}
+            disabled={!onPageEffect}
+            onChange={(event) => onPageEffect?.(effect.id, event.target.checked)}
+          />
+          {effect.name}
+        </label>
+      ))}
       {unknown.length > 0 && <p className="panel-hint">Effets inconnus : {unknown.join(', ')}.</p>}
     </Section>
   );

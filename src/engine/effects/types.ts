@@ -1,10 +1,11 @@
 import type { Object3D } from 'three';
+import type { ViewMode } from '../interaction/camera';
 import type { PageModel, Point, Rect } from '../model/types';
 
 /**
  * Effets de page (sujet 143) : décors et comportements qu'une page active en plus de son mode
  * (`spatial.effects="forest,…"` sur `<diagram>`). Contrairement au mode, ils se cumulent ; le mode reste maître et
- * peut en refuser (`PageModeDefinition.allowsEffect`). Chaque effet vit dans son dossier (`effects/<id>/index.ts`,
+ * peut en refuser (`PageModeDefinition.allowsEffect`), et un effet n'existe que dans ses modes d'affichage (`viewModes`). Chaque effet vit dans son dossier (`effects/<id>/index.ts`,
  * qui exporte `definition`), listé par `effects/registry.ts` : le retirer = supprimer le dossier et sa ligne.
  */
 export interface PageEffectDefinition {
@@ -16,6 +17,11 @@ export interface PageEffectDefinition {
   description?: string;
   /** Réglages globaux de l'effet (Paramètres › Effets), bornés ; leurs valeurs sont passées au décor. */
   settings?: EffectSetting[];
+  /**
+   * Modes d'affichage où l'effet existe (sujet 196) ; absent = tous. Sur une page dont le mode n'en permet aucun
+   * (ex. Séquences, 2D seulement), l'effet est inactif.
+   */
+  viewModes?: ViewMode[];
   /**
    * Décor de la scène en volume (vue iso / 3D, jamais en 2D), en espace page (x, y draw.io, z = hauteur) : il pousse
    * avec les volumes à la bascule et suit le fondu de la page. Reconstruit à chaque modification de la page.

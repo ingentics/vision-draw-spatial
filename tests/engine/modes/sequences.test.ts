@@ -1,6 +1,7 @@
 import { Mesh, Object3D } from 'three';
 import type { MeshBasicMaterial } from 'three';
 import { describe, expect, it } from 'vitest';
+import { definition as forest } from '../../../src/engine/effects/forest';
 import { documentFromTree, readDrawio } from '../../../src/engine/format/parse';
 import type { PageModel } from '../../../src/engine/model/types';
 import { applyModeEdit } from '../../../src/engine/modes/edit';
@@ -368,5 +369,14 @@ describe('mode Séquences : vues (sujet 193)', () => {
     expect(['top', 'iso', '3d'].filter((m) => registry.allowsViewMode(modePage, m as 'top'))).toEqual(['top']);
     expect(registry.viewModeFor(modePage, 'iso')).toBe('top');
     expect(registry.allowsViewMode(page({}), 'iso')).toBe(true);
+  });
+
+  it('forêt (iso / 3D) inactive sur une page Séquences, active ailleurs (sujet 196)', () => {
+    const registry = createDefaultModeRegistry();
+    const page = (attributes: Record<string, string>) =>
+      ({ id: 'p', name: 'P', layers: [], shapes: [], edges: [], attributes }) as unknown as PageModel;
+    expect(registry.allowsEffect(page({ 'spatial.mode': 'sequences' }), forest)).toBe(false);
+    expect(registry.allowsEffect(page({}), forest)).toBe(true);
+    expect(registry.allowsEffect(page({ 'spatial.mode': 'sequences' }), { id: 'x', viewModes: ['top'] })).toBe(true);
   });
 });
