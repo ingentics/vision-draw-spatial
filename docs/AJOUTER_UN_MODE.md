@@ -6,7 +6,8 @@ page normale. Le moteur ne connaît aucun mode en particulier : déposer les dos
 
 Exemple complet : le mode « Séquences » ([engine](../src/engine/modes/sequences/index.ts),
 [appli](../src/app/modes/sequences/index.tsx)). Mode avec ses propres formes : « RDD »
-([engine](../src/engine/modes/rdd/index.ts), tables dans `rdd/shapes/`).
+([engine](../src/engine/modes/rdd/index.ts) : données `tables.ts`, opérations `operations.ts`, formes dans
+`rdd/shapes/` et leur rendu commun dans `rdd/shapes/common/`).
 
 ## 1. Deux dossiers en miroir
 
@@ -14,6 +15,7 @@ Exemple complet : le mode « Séquences » ([engine](../src/engine/modes/sequenc
 src/engine/modes/<id>/      la lib (sans React) : tout le mode
 ├── index.ts                export const definition: PageModeDefinition = { … }
 ├── shapes/<forme>/index.ts formes propres au mode (facultatif, section 6)
+├── shapes/common/          code commun à ses formes (rendu, fabrique ; sans index.ts, ce n'est pas une forme)
 └── …                       données, règles, opérations
 src/app/modes/<id>/         l'appli (facultatif) : sections React du panneau
 └── index.tsx               export const panel: ModePanel = { PageSection }

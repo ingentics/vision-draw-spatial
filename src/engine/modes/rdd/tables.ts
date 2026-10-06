@@ -1,74 +1,98 @@
 import type { ShapeModel } from '../../model/types';
-import { readableOn } from '../../render/styleValues';
-import type { ModeEdit } from '../types';
-import {
-  FIELDS,
-  PRIMARY_KEY,
-  SECONDARY,
-  SECONDARY_SCALE,
-  TABLE,
-  headerHeight,
-  isSecondary,
-  tableFields,
-  tableHeight,
-  tableKindOf,
-} from './table';
+import { spatialValue } from '../../spatial';
 
 /**
- * Opérations du mode RDD sur une table (sujet 179) : champs, couleur d'entête, table secondaire. Chacune est une
- * opération de mode (une étape d'annulation) ; la forme garde la hauteur de ses champs.
+ * Données des tables du mode RDD (sujets 179, 180) : attributs `spatial.*`, formes de table, tailles, champs. Le rendu
+ * et la fabrique des formes sont dans `shapes/common/table.ts`, les opérations dans `operations.ts`.
  */
 
-/** Arrondi des tailles écrites (échelle 0,8 : pas de traîne de flottants). */
-const round = (value: number) => Math.round(value * 100) / 100;
+/** Champs d'une table : liste JSON de noms (`["name","created_at"]`). */
+export const FIELDS = 'spatial.fields';
+/** Table secondaire (`1`) : rendu 20 % plus petit. */
+export const SECONDARY = 'spatial.secondary';
+/** Échelle d'une table secondaire. */
+export const SECONDARY_SCALE = 0.8;
+
+/** Tailles d'une table principale, en pixels de page (× `SECONDARY_SCALE` pour une table secondaire). */
+export const TABLE = {
+  /** Entête : nom seul. */
+  header: 26,
+  /** Bande de la mention (`«abstract»`) au-dessus du nom. */
+  stereotype: 12,
+  row: 20,
+  nameSize: 12,
+  stereotypeSize: 9,
+  fieldSize: 11,
+  /** Marge des champs à gauche. */
+  padding: 6,
+  /** Écart du second trait d'un entête à cadre double. */
+  doubleGap: 3,
+  width: 160,
+} as const;
+
+/** Couleur d'entête par défaut (premier fond de `modePalette`). */
+export const DEFAULT_HEADER_COLOR = '#dae8fc';
 
 /**
- * Champs de la table, depuis le texte du panneau (un par ligne, lignes vides ignorées) ; la hauteur suit. Une table à
- * clé primaire la garde en tête : le texte ne donne que les champs suivants.
+ * Forme de table : mention au-dessus du nom (ex. `abstract`), nom en italique, clé primaire `id` toujours en tête des
+ * champs (sujet 180).
  */
-export function setFields(edit: ModeEdit, shape: ShapeModel, text: string | undefined): void {
-  const kind = tableKindOf(shape);
-  if (!kind) return;
-  const lines = (text ?? '')
-    .split('\n')
-    .map((field) => field.trim())
-    .filter(Boolean);
-  const fields = kind.primaryKey ? [PRIMARY_KEY, ...lines.filter((f) => f !== PRIMARY_KEY)] : lines;
-  edit.setElementAttribute(shape.id, FIELDS, fields.length > 0 ? JSON.stringify(fields) : undefined);
-  edit.setShapeBounds(shape.id, {
-    ...shape.bounds,
-    height: round(tableHeight(kind, isSecondary(shape), fields.length)),
-  });
+export interface TableKind {
+  stereotype?: string;
+  italic?: boolean;
+  primaryKey?: boolean;
+  /** Cadre double autour de l'entête (sujet 215). */
+  doubleHeader?: boolean;
 }
 
-/** Champs en texte pour le panneau (un par ligne), sans la clé primaire (elle n'y est pas modifiable). */
-export function fieldsText(shape: ShapeModel): string {
-  const fields = tableFields(shape);
-  return (tableKindOf(shape)?.primaryKey ? fields.slice(1) : fields).join('\n');
-}
+/** Clé primaire des tables qui en ont une : premier champ, souligné, ni retiré ni déplacé. */
+export const PRIMARY_KEY = 'id';
 
-/** Couleur de l'entête (`fillColor`) ; le texte du fichier suit le contraste pour draw.io (`fontColor`). */
-export function setHeaderColor(edit: ModeEdit, shape: ShapeModel, color: string | undefined): void {
-  if (!tableKindOf(shape) || !color) return;
-  edit.setElementStyle(shape.id, 'fillColor', color);
-  edit.setElementStyle(shape.id, 'fontColor', readableOn(color));
+/**
+ * Tables du mode, par id de forme : le rendu et les opérations du mode (hauteur, échelle) en dépendent. Le modèle
+ * abstrait est la base des autres : jamais posé depuis la palette (sujet 180), il reste dessiné s'il est dans un
+ * fichier.
+ */
+export const TABLE_KINDS: Record<string, TableKind> = {
+  'rdd-model': { stereotype: 'abstract', italic: true },
+  'rdd-entity': { primaryKey: true },
+  'rdd-enum': { primaryKey: true, doubleHeader: true },
+};
+
+/** Forme de table d'une forme du mode ; undefined pour une autre forme. */
+export const tableKindOf = (shape: ShapeModel): TableKind | undefined => TABLE_KINDS[shape.kind];
+
+/** Champs de la table (`spatial.fields`) ; une valeur illisible ou absente = aucun. */
+export function fieldsOf(shape: ShapeModel): string[] {
+  try {
+    const value: unknown = JSON.parse(spatialValue(shape, FIELDS) ?? '[]');
+    return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+  } catch {
+    return [];
+  }
 }
 
 /**
- * Table secondaire : la forme est mise à l'échelle depuis son coin haut-gauche (× 0,8 ou ÷ 0,8) ; entête et taille
- * du nom suivent dans le style, pour draw.io.
+ * Champs affichés : ceux du fichier, la clé primaire ramenée en tête (ajoutée si elle manque) pour une table qui en a
+ * une.
  */
-export function setSecondary(edit: ModeEdit, shape: ShapeModel, secondary: boolean): void {
-  const kind = tableKindOf(shape);
-  if (!kind || isSecondary(shape) === secondary) return;
-  const factor = secondary ? SECONDARY_SCALE : 1 / SECONDARY_SCALE;
-  const { bounds } = shape;
-  edit.setElementAttribute(shape.id, SECONDARY, secondary ? '1' : undefined);
-  edit.setShapeBounds(shape.id, {
-    ...bounds,
-    width: round(bounds.width * factor),
-    height: round(bounds.height * factor),
-  });
-  edit.setElementStyle(shape.id, 'startSize', String(round(headerHeight(kind, secondary))));
-  edit.setElementStyle(shape.id, 'fontSize', String(round(TABLE.nameSize * (secondary ? SECONDARY_SCALE : 1))));
+export function tableFields(shape: ShapeModel): string[] {
+  const fields = fieldsOf(shape);
+  return tableKindOf(shape)?.primaryKey ? [PRIMARY_KEY, ...fields.filter((f) => f !== PRIMARY_KEY)] : fields;
+}
+
+/** La clé primaire manque ou n'est pas en tête dans le fichier (fichier modifié à la main ou dans draw.io) ? */
+export const misplacedPrimaryKey = (shape: ShapeModel) =>
+  tableKindOf(shape)?.primaryKey === true && fieldsOf(shape)[0] !== PRIMARY_KEY;
+
+export const isSecondary = (shape: ShapeModel) => spatialValue(shape, SECONDARY) === '1';
+
+/** Hauteur de l'entête (nom et mention), à l'échelle de la table. */
+export function headerHeight(kind: TableKind, secondary: boolean): number {
+  return (TABLE.header + (kind.stereotype ? TABLE.stereotype : 0)) * (secondary ? SECONDARY_SCALE : 1);
+}
+
+/** Hauteur de la table pour `count` champs : entête et une ligne par champ (au moins une ligne vide). */
+export function tableHeight(kind: TableKind, secondary: boolean, count: number): number {
+  return headerHeight(kind, secondary) + Math.max(1, count) * TABLE.row * (secondary ? SECONDARY_SCALE : 1);
 }

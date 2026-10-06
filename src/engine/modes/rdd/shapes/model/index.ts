@@ -1,4 +1,4 @@
-import { table } from '../../table';
+import { table } from '../common/table';
 
 /**
  * Modèle abstrait (sujet 179) : table de base du mode RDD, mention `«abstract»` et nom en italique. Base technique des

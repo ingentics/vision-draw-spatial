@@ -9,8 +9,8 @@ import {
   isSecondary,
   misplacedPrimaryKey,
   tableKindOf,
-} from './table';
-import { fieldsText, setFields, setHeaderColor, setSecondary } from './tables';
+} from './tables';
+import { fieldsText, setFields, setHeaderColor, setSecondary } from './operations';
 
 /** Table du mode sélectionnée ; undefined pour une flèche, la page ou une autre forme. */
 const tableOf = (target: ModeTarget): ShapeModel | undefined =>
