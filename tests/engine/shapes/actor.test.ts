@@ -7,6 +7,7 @@ import { applyCameraState, applyPerspectiveState } from '../../../src/engine/int
 import { pickElement } from '../../../src/engine/interaction/pick';
 import type { CameraState } from '../../../src/engine/interaction/camera';
 import { orientBillboards } from '../../../src/engine/render/billboard';
+import { headSelectionRing } from '../../../src/engine/render/decorations';
 import { buildPageScene } from '../../../src/engine/render/pageScene';
 import { applyPageSpace } from '../../../src/engine/render/space';
 import type { RenderContext, TextSpec } from '../../../src/engine/render/types';
@@ -110,6 +111,26 @@ describe('Actor (41)', () => {
     expect(pickElement(document.pages[0]!, { x: 115, y: 158 }, options)).toBeUndefined();
     const picked = pickElement(document.pages[0]!, { x: 115, y: 158 }, { ...options, baseOf: () => 0 });
     expect(picked?.element.id).toBe('a0');
+  });
+
+  // Étape 168 : la sélection en iso / 3D est un cercle autour de la tête, pas un rectangle au-dessus de l'emprise.
+  it('sélection en iso : cercle autour de la tête, face à la caméra comme la silhouette', () => {
+    const scene = isoScene(page([{ x: 100, y: 100 }]));
+    const silhouette = element(scene.root, 'a0').getObjectByName('silhouette')!;
+    const head = silhouette.userData.head;
+    expect(head).toEqual({ x: -7.5, y: 45, width: 15, height: 15 });
+    const ring = headSelectionRing(head, silhouette.position, 1, { dashed: false });
+    expect(ring.userData.billboard).toBe(true);
+    scene.root.add(ring);
+    scene.root.updateMatrixWorld(true);
+    const ringBox = new Box3().setFromObject(ring);
+    const headBox = new Box3().setFromObject(silhouette.getObjectByName('head')!);
+    // Monde : y vers le haut ; le cercle entoure la tête de quelques pixels.
+    expect(ringBox.min.y).toBeLessThan(headBox.min.y);
+    expect(ringBox.max.y).toBeGreaterThan(headBox.max.y);
+    expect(ringBox.max.y).toBeLessThan(headBox.max.y + 5);
+    expect(ringBox.min.x).toBeLessThan(headBox.min.x);
+    expect(ringBox.max.x).toBeGreaterThan(headBox.max.x);
   });
 
   it('spatial.height : hauteur debout, proportions gardées', () => {

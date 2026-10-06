@@ -51,6 +51,13 @@ export const standingActor: SceneRenderer = {
     const figure = actorFigure(width, height);
     const upright = (p: Point): Point => ({ x: p.x - width / 2, y: height - p.y });
     const head = ellipsePath(figure.head, HEAD_SEGMENTS).map(upright);
+    // Cadre de la tête dans le plan de la silhouette (x, z) : la sélection l'entoure (`core/selection/highlight.ts`).
+    silhouette.userData.head = {
+      x: figure.head.x - width / 2,
+      y: height - figure.head.y - figure.head.height,
+      width: figure.head.width,
+      height: figure.head.height,
+    };
 
     const fill = styleColor(style, 'fillColor', '#ffffff');
     if (fill) {

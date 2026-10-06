@@ -16,7 +16,8 @@ export class ShapeHandles {
   /** Poignée de la sélection sous un point écran (tolérance : `edit.handlePickTolerance`). */
   handleAt(screen: Point): HandleKind | undefined {
     const editable = this.core.targets.editableSelection();
-    if (!editable) return undefined;
+    // Silhouette debout (Actor en iso / 3D) : pas de poignées.
+    if (!editable || this.core.sceneView.standingHead(editable.shape.id)) return undefined;
     const { shape } = editable;
     const top = this.core.sceneView.elementTop(shape.id);
     const resizable = this.core.registry.isResizable(shape);

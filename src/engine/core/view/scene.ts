@@ -134,6 +134,20 @@ export class SceneView {
     return ((object.userData.base as number | undefined) ?? 0) * this.core.levels.heightScale;
   }
 
+  /**
+   * Silhouette debout d'une forme en iso / 3D (Actor) : cadre de sa tête dans son plan et position de son pied
+   * dans la scène ; `undefined` à plat ou pour une autre forme.
+   */
+  standingHead(elementId: string): { head: Rect; at: { x: number; y: number; z: number } } | undefined {
+    const object = this.sceneObject(elementId);
+    if (this.core.scenes.current?.level !== 'iso' || !object?.userData.standing) return undefined;
+    const silhouette = object.getObjectByName('silhouette');
+    const head = silhouette?.userData.head as Rect | undefined;
+    if (!silhouette || !head) return undefined;
+    const at = object.position.clone().add(silhouette.position);
+    return { head, at: { x: at.x, y: at.y, z: at.z } };
+  }
+
   sceneObject(elementId: string) {
     return this.core.scenes.current?.root.children.find((c) => c.userData.elementId === elementId);
   }

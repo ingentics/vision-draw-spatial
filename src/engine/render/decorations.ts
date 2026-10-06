@@ -109,6 +109,42 @@ export function selectionOutline(bounds: Rect, zoom: number, phase = 0, accent =
 }
 
 /**
+ * Sélection d'une silhouette debout (Actor en iso / 3D) : cercle autour de sa tête `head` (cadre dans le plan de la
+ * silhouette : x horizontal, y vers le haut), posé en `at` et tourné face à la caméra comme elle
+ * (`userData.billboard`). Pointillé si `dashed` (tirets décalés de `phase` pixels écran), plein sinon.
+ */
+export function headSelectionRing(
+  head: Rect,
+  at: { x: number; y: number; z: number },
+  zoom: number,
+  options: { phase?: number; accent?: string; dashed: boolean },
+): Group {
+  const group = new Group();
+  group.name = 'selection-head';
+  group.userData.billboard = true;
+  group.position.set(at.x, at.y, at.z);
+  // Plan (x, y) couché sur (x, z), juste devant la silhouette (vers la caméra, −y).
+  const plane = new Group();
+  plane.rotation.x = Math.PI / 2;
+  plane.position.y = -0.2;
+  const gap = 3 / zoom;
+  const ring = strokeMesh(
+    ellipsePath({ x: head.x - gap, y: head.y - gap, width: head.width + 2 * gap, height: head.height + 2 * gap }, 48),
+    new Color(options.accent ?? DEFAULT_ACCENT),
+    1,
+    options.dashed
+      ? { width: 1.5 / zoom, closed: true, dash: [5 / zoom, 3 / zoom], dashOffset: (options.phase ?? 0) / zoom }
+      : { width: 2 / zoom, closed: true },
+  );
+  if (ring) plane.add(ring);
+  group.add(plane);
+  group.traverse((o) => {
+    o.renderOrder = Number.MAX_SAFE_INTEGER;
+  });
+  return group;
+}
+
+/**
  * Zone liée, mise en évidence pendant que la touche pour suivre un lien est maintenue (SPEC §11.1) :
  * voile d'accent léger et contour plein, d'épaisseur constante à l'écran, au-dessus de tout.
  */

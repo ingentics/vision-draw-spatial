@@ -3,7 +3,7 @@ import type { MeshBasicMaterial, Object3D } from 'three';
 import { pointHandles } from '../../edit/edgePoints';
 import { collectMoveSet } from '../../edit/move';
 import type { Point } from '../../model/types';
-import { selectionOutline } from '../../render/decorations';
+import { headSelectionRing, selectionOutline } from '../../render/decorations';
 import { edgeEndHandles, edgePointHandles, selectionHandles } from '../../render/handles';
 import { createVeil, createVeilHole, liftAboveVeil } from '../../render/highlight';
 import { disposeObject } from '../../render/meshes';
@@ -77,7 +77,7 @@ export class SelectionHighlight {
     const items = visible?.items ?? [];
     const veilKey = this.updateVeil(root, items);
     this.updateVeilHoles(root, items, veilKey);
-    if (root && items.length > 0 && this.core.settings.selection.style === 'outline') this.addOutlines(root, items);
+    if (root && items.length > 0) this.addOutlines(root, items);
     this.updateHandles(visible && root);
     this.core.rendering.requestRender();
   }
@@ -152,19 +152,30 @@ export class SelectionHighlight {
     this.veilHole = { key: holeKey, object: holes };
   }
 
-  /** Style « contour » : un contour pointillé (éventuellement animé) par élément sélectionné. */
+  /**
+   * Style « contour » : un contour pointillé (éventuellement animé) par élément sélectionné. Silhouette debout (Actor
+   * en iso / 3D) : un cercle autour de sa tête, quel que soit le style (plein avec le voile), à la place du contour.
+   */
   private addOutlines(root: Object3D, items: PickedElement[]): void {
     const outlines = new Group();
     outlines.name = 'selection';
+    const { style, accentColor } = this.core.settings.selection;
     for (const { type, element } of items) {
+      const standing = type === 'shape' ? this.core.sceneView.standingHead(element.id) : undefined;
+      if (standing) {
+        const ring = headSelectionRing(standing.head, standing.at, this.core.camera.state.zoom, {
+          phase: this.selectionPhase,
+          accent: accentColor,
+          dashed: style === 'outline',
+        });
+        alwaysOnTop(ring);
+        outlines.add(ring);
+        continue;
+      }
+      if (style !== 'outline') continue;
       const bounds = type === 'shape' ? element.bounds : this.core.sceneView.drawnBounds(element.id);
       if (!bounds) continue;
-      const outline = selectionOutline(
-        bounds,
-        this.core.camera.state.zoom,
-        this.selectionPhase,
-        this.core.settings.selection.accentColor,
-      );
+      const outline = selectionOutline(bounds, this.core.camera.state.zoom, this.selectionPhase, accentColor);
       // Posé sur le dessus d'un volume, et toujours visible (pas caché par les blocs).
       outline.position.z = ((this.core.sceneView.sceneObject(element.id)?.userData.top as number) ?? 0) + 0.2;
       alwaysOnTop(outline);
@@ -207,7 +218,8 @@ export class SelectionHighlight {
       root.add(this.handlesObject);
     }
     const editable = this.core.targets.editableSelection();
-    if (editable) {
+    // Silhouette debout (Actor en iso / 3D) : pas de poignées, le cercle de sa tête suffit (`addOutlines`).
+    if (editable && !this.core.sceneView.standingHead(editable.shape.id)) {
       const { shape } = editable;
       this.handlesObject = selectionHandles(shape.bounds, zoom, {
         resize: this.core.registry.isResizable(shape),
