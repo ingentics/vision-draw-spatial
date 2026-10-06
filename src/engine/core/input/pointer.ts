@@ -133,13 +133,20 @@ export class PointerInput {
   }
 
   /**
-   * Touche C : sélectionne l'élément dont le commentaire est affiché au survol et passe ce commentaire en édition en
-   * place ; faux sans commentaire affiché ou sur une page non modifiable.
+   * Touche C, édition activée ou non : sélectionne l'élément dont le commentaire est affiché au survol et passe ce
+   * commentaire en édition en place ; sans commentaire affiché, édite celui de la forme ou de la flèche sélectionnée
+   * seule (vide si elle n'en a pas, ticket 201). Faux s'il n'y a ni l'un ni l'autre, ou sur une page non modifiable.
    */
   editHoveredComment(): boolean {
+    const page = this.core.targets.writablePage()?.page;
+    if (!page) return false;
     const picked = this.hoverCommented;
-    if (!picked || !this.core.targets.editablePage()) return false;
-    this.core.selection.select(picked);
-    return this.core.properties.editComment(picked.element.id);
+    if (picked) {
+      this.core.selection.select(picked);
+      return this.core.properties.editComment(picked.element.id);
+    }
+    const selection = this.core.selection.current;
+    if (!selection || selection.pageId !== page.id || this.core.selection.isMultiSelection()) return false;
+    return this.core.properties.editComment(selection.picked.element.id);
   }
 }

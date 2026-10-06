@@ -29,7 +29,14 @@ export class EditTargets {
 
   /** Page courante modifiable (pas la vue graphe, ni une page illisible) et son arbre XML. */
   editablePage(): { page: PageModel; pageTree: PageTree } | undefined {
-    if (!this.editable) return undefined;
+    return this.editable ? this.writablePage() : undefined;
+  }
+
+  /**
+   * Page courante qu'on peut écrire, édition activée ou non : pour ce qui se modifie hors du mode édition, comme le
+   * commentaire d'un élément (ticket 201).
+   */
+  writablePage(): { page: PageModel; pageTree: PageTree } | undefined {
     const page = this.core.pages.getCurrentPage();
     if (!page || page.id === GRAPH_PAGE_ID || this.core.transitions.active) return undefined;
     const pageTree = this.core.file.pageTreeOf(page.id);

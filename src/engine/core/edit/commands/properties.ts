@@ -31,7 +31,7 @@ export class PropertyEdits {
    * `spatial.commentHtml`) ; texte vide = retiré.
    */
   setComment(elementId: string, comment: ElementComment): void {
-    const editable = this.core.targets.editablePage();
+    const editable = this.core.targets.writablePage();
     const element = editable && [...editable.page.shapes, ...editable.page.edges].find((e) => e.id === elementId);
     if (!editable || !element) return;
     const next = comment.text.trim()
@@ -51,9 +51,12 @@ export class PropertyEdits {
     this.core.file.documentChanged([editable.page.id]);
   }
 
-  /** Demande l'édition en place du commentaire d'un élément de la page modifiable ; faux si l'élément n'y est pas. */
+  /**
+   * Demande l'édition en place du commentaire d'un élément de la page courante, édition activée ou non ; faux si
+   * l'élément n'y est pas.
+   */
   editComment(elementId: string): boolean {
-    const editable = this.core.targets.editablePage();
+    const editable = this.core.targets.writablePage();
     if (!editable) return false;
     const shape = editable.page.shapes.find((s) => s.id === elementId);
     const element = shape ?? editable.page.edges.find((e) => e.id === elementId);

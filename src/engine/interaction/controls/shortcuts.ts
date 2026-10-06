@@ -26,7 +26,7 @@ export interface Shortcuts {
   deleteSelection: string;
   /** Variante de placement de la flèche sélectionnée (ancrage manuel), une étape d'annulation par appui. */
   placementVariant: string;
-  /** Éditer en place le commentaire affiché au survol (l'élément survolé est sélectionné). */
+  /** Éditer en place le commentaire affiché au survol, sinon celui de l'élément sélectionné (vide s'il n'en a pas). */
   editComment: string;
 }
 
