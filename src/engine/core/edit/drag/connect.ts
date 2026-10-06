@@ -33,7 +33,7 @@ export class ConnectDrags {
     connect.started = true;
     const top = this.core.sceneView.elementTop(source.id);
     const sideExit = CONNECT_DIRECTIONS[connect.side].exit;
-    if (this.core.arrangement.anchoringOf(page) === 'auto') {
+    if (this.core.arrangement.distributes(page)) {
       // Ancrage automatique : départ et arrivée au milieu des côtés choisis, répartis à l'écriture.
       const attachment = this.core.anchors.endAttachmentAt(page, screen, { height: top, snap: false, grid: 0 });
       connect.target = attachment.kind === 'free' ? undefined : attachment;

@@ -50,11 +50,25 @@ export function sideMiddle(side: AnchorSide): Point {
 const LEFT_OUT: Record<AnchorSide, number> = { n: -1, e: -1, s: 1, w: 1 };
 const LEFT_IN: Record<AnchorSide, number> = { n: 1, e: 1, s: -1, w: -1 };
 
-/** Côté où se trouve un bout attaché à une forme (point fixe sur le cadre, ou côté qui fait face à `toward`). */
-function endSide(page: PageModel, edge: EdgeModel, end: TerminalEnd, toward: Point): AnchorSide | undefined {
+/** Clé d'un bout de flèche dans un ensemble de bouts (`resitedEnds`). */
+export function endKey(edgeId: string, end: TerminalEnd): string {
+  return `${edgeId}\u0000${end}`;
+}
+
+/**
+ * Côté où se trouve un bout attaché à une forme : point fixe sur le cadre, ou côté qui fait face à `toward` (attache
+ * auto, ou bout à replacer de `resite`).
+ */
+function endSide(
+  page: PageModel,
+  edge: EdgeModel,
+  end: TerminalEnd,
+  toward: Point,
+  resite?: ReadonlySet<string>,
+): AnchorSide | undefined {
   const attachment = endAttachmentOf(edge, end);
   if (!attachment || attachment.kind === 'free') return undefined;
-  if (attachment.kind === 'fixed') return sideOfConstraint(attachment.constraint);
+  if (attachment.kind === 'fixed' && !resite?.has(endKey(edge.id, end))) return sideOfConstraint(attachment.constraint);
   const shape = page.shapes.find((s) => s.id === attachment.shapeId);
   return shape && facingSide(shape.bounds, toward);
 }
@@ -79,10 +93,15 @@ interface Slot {
  * attache auto rangée sur le côté qui fait face à son autre bout), ordonnés le long du côté par la position de la
  * forme à l'autre bout (pas son point d'attache, qui dépend lui-même de la répartition), placés à (k + 1) / (n + 1).
  * Les flèches qui relient les deux mêmes côtés (faisceau) gardent un ordre cohérent aux deux bouts, sans croisement.
- * Les deux bouts d'une boucle sur un même côté y sont rangés ensemble, en fin de côté. Ne renvoie que les bouts qui
- * changent.
+ * Les deux bouts d'une boucle sur un même côté y sont rangés ensemble, en fin de côté. Les bouts de `resite`
+ * (`resitedEnds`) quittent leur côté pour celui qui fait face à leur autre bout. Ne renvoie que les bouts qui changent.
  */
-export function distributeAnchors(page: PageModel, shapeIds: ReadonlySet<string>, seed = 0): AnchorChange[] {
+export function distributeAnchors(
+  page: PageModel,
+  shapeIds: ReadonlySet<string>,
+  seed = 0,
+  resite?: ReadonlySet<string>,
+): AnchorChange[] {
   // Égalités (faisceaux, flèches vers une même forme) : ordre des ids, ou celui que donne la graine.
   const tie = (a: string, b: string) =>
     (seed === 0 ? 0 : seededUnit(seed, a) - seededUnit(seed, b)) || a.localeCompare(b);
@@ -118,11 +137,11 @@ export function distributeAnchors(page: PageModel, shapeIds: ReadonlySet<string>
           : otherAttachment?.kind === 'free'
             ? otherAttachment.point
             : center(shape.bounds);
-      const side = endSide(page, edge, end, toward);
+      const side = endSide(page, edge, end, toward, resite);
       // Point fixe à l'intérieur de la forme (venu de draw.io) : laissé tel quel.
       if (!side) continue;
       const key = `${shape.id}\u0000${side}`;
-      const otherSide = otherShape && !loop ? endSide(page, edge, otherEnd, center(shape.bounds)) : undefined;
+      const otherSide = otherShape && !loop ? endSide(page, edge, otherEnd, center(shape.bounds), resite) : undefined;
       const other = otherShape && otherSide ? `${otherShape.id}\u0000${otherSide}` : undefined;
       // Faisceau parcouru du groupe de plus petite clé vers l'autre : ids croissants au départ, et à l'arrivée selon
       // que la gauche du parcours tombe du même côté de l'axe ou non.
@@ -204,6 +223,34 @@ export function affectedShapes(before: PageGeometry | undefined, after: PageMode
     if (a && b && touched.has(b)) affected.add(a);
   }
   return new Set([...affected].filter((id) => now.shapes.has(id)));
+}
+
+/**
+ * Bouts de flèches à replacer après une édition (ticket 177) : entre deux formes, un bout dont le côté qui fait face à
+ * l'autre forme a changé (l'une est passée de l'autre côté de l'autre). Un côté choisi qui ne fait pas face à l'autre
+ * forme est gardé tant que les deux formes restent placées l'une par rapport à l'autre comme avant.
+ */
+export function resitedEnds(before: PageGeometry | undefined, after: PageModel): Set<string> {
+  const resite = new Set<string>();
+  if (!before) return resite;
+  const shapes = new Map(after.shapes.map((s) => [s.id, s.bounds]));
+  for (const edge of after.edges) {
+    const { sourceId, targetId } = edge;
+    if (!sourceId || !targetId || sourceId === targetId) continue;
+    const [source, target] = [shapes.get(sourceId), shapes.get(targetId)];
+    const [oldSource, oldTarget] = [before.shapes.get(sourceId), before.shapes.get(targetId)];
+    if (!source || !target || !oldSource || !oldTarget) continue;
+    for (const [end, own, other, oldOwn, oldOther] of [
+      ['source', source, target, oldSource, oldTarget],
+      ['target', target, source, oldTarget, oldSource],
+    ] as const)
+      if (
+        endAttachmentOf(edge, end)?.kind === 'fixed' &&
+        facingSide(own, center(other)) !== facingSide(oldOwn, center(oldOther))
+      )
+        resite.add(endKey(edge.id, end));
+  }
+  return resite;
 }
 
 /** Formes `ids` et celles à l'autre bout de leurs flèches (l'ordre sur leurs côtés dépend des premières). */

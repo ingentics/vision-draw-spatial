@@ -564,9 +564,9 @@ export class Engine {
 
   /**
    * Variante de placement de la flèche sélectionnée seule, sur une page en ancrage manuel (touche F) : la variante
-   * qui suit le placement actuel (`edit/anchoring/manual/variants.ts`) est appliquée tout de suite, points intermédiaires retirés (sauf
-   * les coudes d'une boucle), en une étape d'annulation. En ancrage automatique : un autre agencement
-   * (`otherArrangement`). Faux si elle ne s'applique pas.
+   * qui suit le placement actuel (`edit/anchoring/manual/variants.ts`) est appliquée tout de suite, points
+   * intermédiaires retirés (sauf les coudes d'une boucle), en une étape d'annulation. En ancrage automatique ou
+   * Typon : un autre agencement (`otherArrangement`). Faux si elle ne s'applique pas.
    */
   placementVariant(): boolean {
     return this.core.arrangement.placementVariant();

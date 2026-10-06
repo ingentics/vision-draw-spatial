@@ -5,7 +5,7 @@ import { bool, color, num, oneOf, presets, textPresets } from '../validate';
 
 const LABEL_BACKDROPS = ['halo', 'solid', 'none'] as const;
 const EDGE_LINES = ['straight', 'sharp', 'rounded', 'curved'] as const;
-const EDGE_ANCHORINGS = ['manual', 'auto'] as const;
+const EDGE_ANCHORINGS = ['manual', 'auto', 'pcb'] as const;
 const EDGE_JUMPS = ['none', 'arc', 'gap', 'sharp', 'line'] as const;
 
 export function mergeShapes(base: ShapeSettings, patch: SettingsPatch['shapes']): ShapeSettings {

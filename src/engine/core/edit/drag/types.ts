@@ -21,6 +21,8 @@ export interface MoveDrag {
   applied: Point;
   grid: number;
   started: boolean;
+  /** Flèches réparties en aperçu pendant le glisser (ancrage automatique ou Typon) : modèle à relire si rien n'est écrit. */
+  arranged?: boolean;
 }
 
 export interface ResizeDrag {

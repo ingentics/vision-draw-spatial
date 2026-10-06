@@ -20,3 +20,12 @@
 - **Fini quand :** une page en Typon trace ses flèches en segments à 0/45/90°, en contournant une forme placée entre
   deux autres ; F propose un autre agencement ; le fichier rouvert dans draw.io montre les mêmes diagonales ;
   `make check` vert.
+- Fait : `src/engine/edit/anchoring/mode.ts` (`Anchoring` = `manual | auto | pcb`, `isAnchoring`, `distributes`),
+  `src/engine/edit/anchoring/pcb/octilinear.ts` (routeur octilinéaire), `auto/avoid.ts` (interface `Router`, routeur
+  orthogonal `ORTHOGONAL_ROUTER`), `auto/arrange.ts` (routeur choisi, `straightStyle`),
+  `core/edit/edges/arrangement.ts` (tracé selon l'ancrage de la page, `edgeStyle` retiré en Typon), appelants passés
+  à `distributes(page)` (`connect.ts`, `gesture.ts`, `preview.ts`, `anchors.ts`), réglage et panneau Page (`Typon`),
+  `docs/SPEC.md`, `tests/engine/edit/anchoring/pcb/octilinear.test.ts`. Le rangement par type (`manual/`, `auto/`) a
+  fait l'objet du commit `refactor` précédent. Vérifié dans l'appli (`anchor-auto-routing.drawio`, page passée en
+  Typon) : flèches tracées en segments à 0/45/90° qui contournent les formes, et retracées quand on déplace une
+  forme ; `make check` vert. Pas revérifié dans draw.io (`make drawio-check` non lancé).

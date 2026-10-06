@@ -32,7 +32,7 @@ export class ConnectorPreview {
     if (extra) group.add(extra);
     const shape =
       attachment && attachment.kind !== 'free' ? page.shapes.find((s) => s.id === attachment.shapeId) : undefined;
-    if (shape && attachment?.kind === 'fixed' && this.core.arrangement.anchoringOf(page) === 'auto') {
+    if (shape && attachment?.kind === 'fixed' && this.core.arrangement.distributes(page)) {
       // Ancrage automatique : le côté visé est surligné.
       const side = sideOfConstraint(attachment.constraint);
       const b = shape.bounds;

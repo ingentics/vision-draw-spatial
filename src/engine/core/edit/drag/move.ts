@@ -43,13 +43,24 @@ export class MoveDrags {
     move.applied = target;
     translateMoveSet(page, move.set, step);
     this.core.live.translateObjects(move.set, step);
-    this.core.live.retraceEdges(page, move.set.connectedEdgeIds, move.set.edgeIds);
+    // Ancrage automatique ou Typon : les flèches sont réparties et retracées en direct (modèle seul).
+    const arranged = this.core.arrangement.previewDistribution(page);
+    if (arranged.size > 0) move.arranged = true;
+    this.core.live.retraceEdges(
+      page,
+      new Set([...move.set.connectedEdgeIds, ...[...arranged].filter((id) => !move.set.edgeIds.has(id))]),
+      move.set.edgeIds,
+    );
     this.core.live.afterLiveEdit();
   }
 
   /** Déplacement lâché : géométrie écrite. Vrai s'il reste à répartir les flèches (`afterGeometryEdit`). */
   commit(drag: MoveDrag, pageTree: PageTree): boolean {
-    if (drag.applied.x === 0 && drag.applied.y === 0) return false;
+    if (drag.applied.x === 0 && drag.applied.y === 0) {
+      // Revenue à sa place : l'aperçu des flèches est oublié, le modèle relu de l'arbre.
+      if (drag.arranged) this.core.file.documentChanged([drag.pageId], { distribute: false });
+      return false;
+    }
     this.core.edits.recordEdit('Déplacement');
     for (const id of drag.rootIds) moveCell(pageTree, id, drag.applied);
     const page = this.core.pages.pageById(drag.pageId);

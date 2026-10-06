@@ -2,11 +2,18 @@ import { setCellStyleValue, setPageAttribute } from '../../../format/edit';
 import { documentFromTree } from '../../../format/parse';
 import type { PageTree } from '../../../format/xmlTree';
 import { constraintStyle } from '../../../edit/edgeEnds';
-import { arrangeAnchors, arrangementChanges, arrangementConflicts } from '../../../edit/anchoring/auto/arrange';
+import {
+  arrangeAnchors,
+  arrangementChanges,
+  arrangementConflicts,
+  straightStyle,
+} from '../../../edit/anchoring/auto/arrange';
 import type { Arrangement } from '../../../edit/anchoring/auto/arrange';
-import type { AvoidOptions } from '../../../edit/anchoring/auto/avoid';
+import type { AvoidOptions, Router } from '../../../edit/anchoring/auto/avoid';
+import { octilinearRouter } from '../../../edit/anchoring/pcb/octilinear';
 import { nextPlacementVariant } from '../../../edit/anchoring/manual/variants';
-import { affectedShapes, anchorSeedOf, withNeighbours } from '../../../edit/anchoring/auto/distribute';
+import { affectedShapes, anchorSeedOf, resitedEnds, withNeighbours } from '../../../edit/anchoring/auto/distribute';
+import { distributes, isAnchoring } from '../../../edit/anchoring/mode';
 import type { Anchoring } from '../../../edit/anchoring/mode';
 import type { DocumentModel, EdgeModel, PageModel } from '../../../model/types';
 import { SPATIAL } from '../../../spatial';
@@ -14,7 +21,7 @@ import type { EngineCore } from '../../EngineCore';
 import { samePoints } from '../helpers';
 
 /**
- * Ancrage des flèches d'une page (manuel ou automatique) : répartition sur les côtés des formes, autre agencement,
+ * Ancrage des flèches d'une page (manuel, automatique ou Typon) : répartition sur les côtés des formes, autre agencement,
  * variantes de placement.
  */
 export class EdgeArrangement {
@@ -29,46 +36,70 @@ export class EdgeArrangement {
     let wrote = false;
     for (const pageId of changedPageIds) {
       const page = after.pages.find((p) => p.id === pageId);
-      if (!page || this.anchoringOf(page) !== 'auto') continue;
+      if (!page || !this.distributes(page)) continue;
       const shapeIds = affectedShapes(this.core.file.geometry.get(pageId), page);
       if (shapeIds.size > 0) wrote = this.writeDistribution(page, shapeIds) || wrote;
     }
     return wrote;
   }
 
-  /** Écrit la répartition des flèches des formes `shapeIds` (et les coudes des boucles concernées). */
+  /**
+   * Écrit la répartition des flèches des formes `shapeIds` (et les coudes des boucles concernées). Une forme passée
+   * de l'autre côté de sa voisine depuis la dernière écriture (`file.geometry`) y replace ses bouts (`resitedEnds`).
+   */
   writeDistribution(page: PageModel, shapeIds: ReadonlySet<string>): boolean {
     const pageTree = this.core.file.pageTreeOf(page.id);
     if (!pageTree) return false;
-    const arrangement = arrangeAnchors(page, shapeIds, { seed: anchorSeedOf(page), route: this.avoidOptions() });
-    return this.writeArrangement(page, pageTree, arrangement);
+    return this.applyArrangement(page, this.arrangementOf(page, shapeIds), pageTree);
   }
 
-  /** Réglages du tracé automatique ; undefined si le contournement est coupé (`shapes.edgeAutoRoute`). */
-  private avoidOptions(): AvoidOptions | undefined {
+  /**
+   * Aperçu pendant le déplacement d'une forme (ticket 177) : les flèches des formes touchées sont réparties et
+   * retracées dans le modèle seul (l'arbre XML est écrit au lâcher). Renvoie les flèches à redessiner.
+   */
+  previewDistribution(page: PageModel): Set<string> {
+    if (!this.distributes(page)) return new Set();
+    const shapeIds = affectedShapes(this.core.file.geometry.get(page.id), page);
+    if (shapeIds.size === 0) return new Set();
+    const arrangement = this.arrangementOf(page, shapeIds);
+    this.applyArrangement(page, arrangement);
+    return new Set([...arrangement.edgeIds, ...arrangement.constraints.map((c) => c.edgeId)]);
+  }
+
+  private arrangementOf(page: PageModel, shapeIds: ReadonlySet<string>): Arrangement {
+    const resite = resitedEnds(this.core.file.geometry.get(page.id), page);
+    return arrangeAnchors(page, shapeIds, { seed: anchorSeedOf(page), resite, ...this.tracing(page) });
+  }
+
+  /**
+   * Tracé d'une page selon son ancrage : en automatique, orthogonal, sans tracé si le contournement est coupé
+   * (`shapes.edgeAutoRoute`) ; en Typon, toujours octilinéaire, direct si le contournement est coupé.
+   */
+  private tracing(page: PageModel): { route?: AvoidOptions; router?: Router } {
     const { shapes } = this.core.settings;
-    if (!shapes.edgeAutoRoute) return undefined;
-    return {
+    const options: AvoidOptions = {
       clearance: shapes.edgeShapeClearance,
       spacing: shapes.edgeSpacing,
       stub: shapes.edgePortStub,
       crossingDetour: shapes.edgeCrossingDetour,
     };
+    if (this.anchoringOf(page) === 'pcb') return { route: options, router: octilinearRouter(shapes.edgeAutoRoute) };
+    return shapes.edgeAutoRoute ? { route: options } : {};
   }
 
   /**
-   * Écrit un agencement (points d'attache, puis tracés) dans l'arbre XML et le modèle de la page. Sans tracé
-   * automatique, une flèche recalculée perd ses points intermédiaires (tracé de draw.io) ; une boucle sans tracé garde
-   * ses coudes par défaut. Vrai si quelque chose a été écrit.
+   * Applique un agencement (points d'attache, puis tracés) au modèle de la page et, si elle est donnée, à l'arbre XML.
+   * Sans tracé automatique, ou sans chemin trouvé, une flèche recalculée perd ses points intermédiaires (tracé de
+   * draw.io) ; une boucle sans tracé garde ses coudes par défaut. Vrai si quelque chose a changé.
    */
-  private writeArrangement(page: PageModel, pageTree: PageTree, arrangement: Arrangement): boolean {
+  private applyArrangement(page: PageModel, arrangement: Arrangement, pageTree?: PageTree): boolean {
     let wrote = false;
     const loops = new Set<EdgeModel>();
     for (const { edgeId, end, constraint } of arrangement.constraints) {
       const edge = page.edges.find((e) => e.id === edgeId);
       if (!edge) continue;
       for (const [key, value] of Object.entries(constraintStyle(end, constraint))) {
-        setCellStyleValue(pageTree, edgeId, key, value);
+        if (pageTree) setCellStyleValue(pageTree, edgeId, key, value);
         if (value === undefined) delete edge.style[key];
         else edge.style[key] = value;
       }
@@ -78,15 +109,18 @@ export class EdgeArrangement {
     const { edgeIds, routes, routed } = arrangement;
     for (const edge of page.edges) {
       const loop = edge.sourceId !== undefined && edge.sourceId === edge.targetId;
+      // Flèche à retracer entre deux formes (tracé coupé, ou sans chemin) : ses anciens points n'ont plus cours.
+      const retraced = edgeIds.has(edge.id) && (!routed || (!!edge.sourceId && !!edge.targetId));
       const points =
         routes.get(edge.id) ??
-        (loops.has(edge) || (!routed && loop && edgeIds.has(edge.id))
-          ? this.core.anchors.loopPoints(page, edge)
-          : !routed && edgeIds.has(edge.id)
-            ? []
-            : undefined);
+        (loops.has(edge) || (loop && retraced) ? this.core.anchors.loopPoints(page, edge) : retraced ? [] : undefined);
+      if (arrangement.router.straight && routes.has(edge.id) && edge.style.edgeStyle !== undefined) {
+        if (pageTree) setCellStyleValue(pageTree, edge.id, 'edgeStyle', undefined);
+        edge.style = straightStyle(edge.style);
+        wrote = true;
+      }
       if (!points || samePoints(points, edge.points)) continue;
-      this.core.edgePoints.writeEdgePoints(page, pageTree, edge, points);
+      if (pageTree) this.core.edgePoints.writeEdgePoints(page, pageTree, edge, points);
       edge.points = points;
       wrote = true;
     }
@@ -102,7 +136,7 @@ export class EdgeArrangement {
    */
   private otherArrangement(): boolean {
     const editable = this.core.targets.editablePage();
-    if (!editable || this.anchoringOf(editable.page) !== 'auto' || !this.core.file.xmlTree) return false;
+    if (!editable || !this.distributes(editable.page) || !this.core.file.xmlTree) return false;
     const { page, pageTree } = editable;
     const picked =
       this.core.selection.current?.pageId === page.id && !this.core.selection.isMultiSelection()
@@ -115,16 +149,16 @@ export class EdgeArrangement {
           ? [picked.element.id]
           : undefined;
     const shapeIds = around ? withNeighbours(page, around) : new Set(page.shapes.map((s) => s.id));
-    const route = this.avoidOptions();
-    const base = arrangementConflicts(page, arrangeAnchors(page, shapeIds, { seed: 0, route }));
+    const tracing = this.tracing(page);
+    const base = arrangementConflicts(page, arrangeAnchors(page, shapeIds, { seed: 0, ...tracing }));
     const current = anchorSeedOf(page);
     for (let k = 1; k <= 8; k++) {
       const seed = current + k;
-      const arrangement = arrangeAnchors(page, shapeIds, { seed, route });
+      const arrangement = arrangeAnchors(page, shapeIds, { seed, ...tracing });
       if (!arrangementChanges(page, arrangement) || arrangementConflicts(page, arrangement) > base) continue;
       this.core.edits.recordEdit('Autre agencement');
       setPageAttribute(pageTree, SPATIAL.anchorSeed, String(seed));
-      this.writeArrangement(page, pageTree, arrangement);
+      this.applyArrangement(page, arrangement, pageTree);
       // Pas de répartition derrière : elle déborderait de la zone choisie.
       this.core.file.documentChanged([page.id], { distribute: false });
       return true;
@@ -134,7 +168,7 @@ export class EdgeArrangement {
 
   placementVariant(): boolean {
     const current = this.core.targets.editablePage()?.page;
-    if (current && this.anchoringOf(current) === 'auto') return this.otherArrangement();
+    if (current && this.distributes(current)) return this.otherArrangement();
     const editable = this.core.targets.editableEdgeSelection();
     if (!editable || this.anchoringOf(editable.page) !== 'manual') return false;
     const { page, pageTree, edge } = editable;
@@ -153,7 +187,12 @@ export class EdgeArrangement {
 
   anchoringOf(page: PageModel): Anchoring {
     const own = page.attributes[SPATIAL.anchoring];
-    return own === 'manual' || own === 'auto' ? own : this.core.settings.shapes.edgeAnchoring;
+    return isAnchoring(own) ? own : this.core.settings.shapes.edgeAnchoring;
+  }
+
+  /** Vrai si les flèches de la page sont réparties sur les côtés (ancrage automatique ou Typon). */
+  distributes(page: PageModel): boolean {
+    return distributes(this.anchoringOf(page));
   }
 
   setPageAnchoring(pageId: string, anchoring: Anchoring | undefined): void {
@@ -171,8 +210,7 @@ export class EdgeArrangement {
     this.core.edits.recordEdit('Ancrage des flèches');
     setPageAttribute(pageTree, SPATIAL.anchoring, anchoring);
     const fresh = documentFromTree(this.core.file.xmlTree).pages.find((p) => p.id === pageId);
-    if (fresh && this.anchoringOf(fresh) === 'auto')
-      this.writeDistribution(fresh, new Set(fresh.shapes.map((s) => s.id)));
+    if (fresh && this.distributes(fresh)) this.writeDistribution(fresh, new Set(fresh.shapes.map((s) => s.id)));
     this.core.file.documentChanged([pageId]);
   }
 }

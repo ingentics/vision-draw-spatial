@@ -27,15 +27,15 @@ export interface AvoidOptions {
 export const DEFAULT_AVOID_OPTIONS: AvoidOptions = { clearance: 10, spacing: 10, stub: 20, crossingDetour: 500 };
 
 /** Coût d'un coude, en pixels de longueur équivalente. */
-const BEND_COST = 30;
+export const BEND_COST = 30;
 /** Coût par pixel de tracé superposé à une autre flèche. */
-const OVERLAP_COST = 40;
+export const OVERLAP_COST = 40;
 /** Attirance (par pixel de tracé et de distance) vers le bout où converge un faisceau : départage les égalités. */
-const ATTRACT_COST = 1e-4;
+export const ATTRACT_COST = 1e-4;
 /** Passes de reprise des tracés en conflit (croisement ou superposition), une fois toutes les flèches tracées. */
 const REROUTE_PASSES = 3;
 /** Biais maximal d'un couloir selon la graine, en part de la longueur. */
-const SEED_JITTER = 0.15;
+export const SEED_JITTER = 0.15;
 /** Marge de la zone de recherche autour des deux bouts. */
 const WINDOW = 300;
 
@@ -50,7 +50,7 @@ export interface Segment {
   b: Point;
 }
 
-const NORMALS: Record<AnchorSide, Point> = {
+export const NORMALS: Record<AnchorSide, Point> = {
   n: { x: 0, y: -1 },
   e: { x: 1, y: 0 },
   s: { x: 0, y: 1 },
@@ -65,17 +65,17 @@ const DIRS: readonly Point[] = [
 ];
 const dirIndex = (d: Point) => DIRS.findIndex((v) => v.x === d.x && v.y === d.y);
 
-const out = ({ point, side }: Port, length: number): Point => ({
+export const out = ({ point, side }: Port, length: number): Point => ({
   x: point.x + NORMALS[side].x * length,
   y: point.y + NORMALS[side].y * length,
 });
 
-function inflate(r: Rect, by: number): Rect {
+export function inflate(r: Rect, by: number): Rect {
   return { x: r.x - by, y: r.y - by, width: r.width + 2 * by, height: r.height + 2 * by };
 }
 
 /** Point strictement à l'intérieur (bord exclu). */
-function inside(r: Rect, p: Point): boolean {
+export function inside(r: Rect, p: Point): boolean {
   return p.x > r.x + 1e-6 && p.x < r.x + r.width - 1e-6 && p.y > r.y + 1e-6 && p.y < r.y + r.height - 1e-6;
 }
 
@@ -140,7 +140,7 @@ function simplifyPath(path: Point[]): Point[] {
 }
 
 /** File de priorité minimale (tas binaire). */
-class Heap {
+export class Heap {
   private items: Array<{ cost: number; state: number }> = [];
   get size(): number {
     return this.items.length;
@@ -316,6 +316,33 @@ function contains(outer: Rect, inner: Rect): boolean {
 }
 
 /**
+ * Façon de tracer une flèche (orthogonale en ancrage automatique, octilinéaire en Typon) : segments d'un tracé, conflit
+ * entre deux segments (croisement ou superposition), tracé d'une flèche.
+ */
+export interface Router {
+  /** Vrai si le tracé s'écrit en ligne droite par ses points intermédiaires (`edgeStyle` retiré). */
+  straight: boolean;
+  segments(path: Point[]): Segment[];
+  conflict(s: Segment, t: Segment): boolean;
+  route(
+    from: Port,
+    to: Port,
+    obstacles: readonly Rect[],
+    occupied: readonly Segment[],
+    attract: Point | undefined,
+    options: AvoidOptions,
+    seed: number,
+  ): Point[] | undefined;
+}
+
+export const ORTHOGONAL_ROUTER: Router = {
+  straight: false,
+  segments: segmentsOf,
+  conflict: (s, t) => crosses(s, t) || overlap(s, t) > 0.5,
+  route: routeAround,
+};
+
+/**
  * Tracés des flèches `edgeIds` (bouts fixes sur un côté) : chacune contourne les formes de la page (sauf celles qui
  * contiennent ses bouts, comme un conteneur) et évite les flèches déjà tracées, dans l'ordre des ids. Renvoie les
  * points intermédiaires de chaque flèche tracée.
@@ -325,6 +352,7 @@ export function avoidRoutes(
   edgeIds: ReadonlySet<string>,
   options: AvoidOptions = DEFAULT_AVOID_OPTIONS,
   seed = 0,
+  router: Router = ORTHOGONAL_ROUTER,
 ): Map<string, Point[]> {
   const shapes = new Map(page.shapes.map((s) => [s.id, s]));
   const routeOf = (edge: EdgeModel) =>
@@ -336,7 +364,7 @@ export function avoidRoutes(
       waypoints: edge.points,
       style: edge.style,
     });
-  const fixed: Segment[] = page.edges.filter((e) => !edgeIds.has(e.id)).flatMap((e) => segmentsOf(routeOf(e)));
+  const fixed: Segment[] = page.edges.filter((e) => !edgeIds.has(e.id)).flatMap((e) => router.segments(routeOf(e)));
   // Nombre de bouts par côté de forme : le bout le plus chargé attire les coudes de sa flèche.
   const load = new Map<string, number>();
   const sideKey = (edge: EdgeModel, end: 'source' | 'target') => {
@@ -377,7 +405,7 @@ export function avoidRoutes(
 
   const pathIn = (routes: Map<string, Point[]>, job: Job) => {
     const points = routes.get(job.edge.id);
-    return points ? segmentsOf([job.from.point, ...points, job.to.point]) : [];
+    return points ? router.segments([job.from.point, ...points, job.to.point]) : [];
   };
   /** Flèches en conflit (croisement ou superposition avec une autre) dans un jeu de tracés. */
   const conflicting = (routes: Map<string, Point[]>) => {
@@ -386,7 +414,7 @@ export function avoidRoutes(
     jobs.forEach((job, i) =>
       jobs.forEach((other, k) => {
         if (k <= i) return;
-        if (paths[i]!.some((s) => paths[k]!.some((t) => crosses(s, t) || overlap(s, t) > 0.5))) {
+        if (paths[i]!.some((s) => paths[k]!.some((t) => router.conflict(s, t)))) {
           found.add(job);
           found.add(other);
         }
@@ -400,7 +428,7 @@ export function avoidRoutes(
     for (const job of order) next.delete(job.edge.id);
     for (const job of order) {
       const occupied = [...fixed, ...jobs.filter((other) => other !== job).flatMap((other) => pathIn(next, other))];
-      const points = routeAround(job.from, job.to, job.obstacles, occupied, job.attract, options, seed);
+      const points = router.route(job.from, job.to, job.obstacles, occupied, job.attract, options, seed);
       if (points) next.set(job.edge.id, points);
     }
     return next;

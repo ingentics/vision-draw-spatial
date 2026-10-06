@@ -828,6 +828,7 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   options={[
                     ['manual', 'Manuel'],
                     ['auto', 'Automatique'],
+                    ['pcb', 'Typon'],
                   ]}
                   onChange={(edgeAnchoring) => onChange({ shapes: { edgeAnchoring } })}
                 />
@@ -844,8 +845,9 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                 </p>
                 <p className="hint muted">
                   Ancrage manuel : on choisit le point d'attache, un point libre est toujours proposé entre deux
-                  flèches. Automatique : on choisit le côté, les flèches y sont réparties sans se croiser. Une page peut
-                  avoir son propre réglage (panneau Page).
+                  flèches. Automatique : on choisit le côté, les flèches y sont réparties sans se croiser. Typon : comme
+                  l'automatique, tracé à 45° comme les pistes d'un circuit imprimé. Une page peut avoir son propre
+                  réglage (panneau Page).
                 </p>
               </Subsection>
               <Subsection title="Ancrage automatique">

@@ -133,7 +133,7 @@ export interface ShapeSettings {
    * Ancrage des flèches sur les formes : manuel (points d'ancrage subdivisés, au choix) ou automatique (on choisit
    * le côté, les flèches y sont réparties) ; une page peut le surcharger (`spatial.anchoring`).
    */
-  edgeAnchoring: 'manual' | 'auto';
+  edgeAnchoring: 'manual' | 'auto' | 'pcb';
   /** Ancrage automatique : le tracé contourne les formes et les autres flèches (points intermédiaires écrits). */
   edgeAutoRoute: boolean;
   /** Ancrage automatique : écart minimal entre un tracé et une forme, en pixels de page. */

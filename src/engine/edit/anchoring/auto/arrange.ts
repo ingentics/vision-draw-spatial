@@ -1,8 +1,8 @@
 import type { EdgeModel, PageModel, Point } from '../../../model/types';
 import { toTerminal } from '../../../render/edges/edge';
 import { routeEdge } from '../../../render/edges/route';
-import { avoidRoutes, crosses, edgesThrough, overlap, segmentsOf } from './avoid';
-import type { AvoidOptions } from './avoid';
+import { ORTHOGONAL_ROUTER, avoidRoutes, edgesThrough } from './avoid';
+import type { AvoidOptions, Router } from './avoid';
 import { distributeAnchors } from './distribute';
 import type { AnchorChange } from './distribute';
 import { constraintStyle } from '../../edgeEnds';
@@ -20,6 +20,14 @@ export interface Arrangement {
   routes: Map<string, Point[]>;
   /** Vrai si le tracé automatique était demandé. */
   routed: boolean;
+  /** Façon de tracer (orthogonale, ou octilinéaire en Typon). */
+  router: Router;
+}
+
+/** Style d'une flèche tracée en ligne droite par ses points intermédiaires (Typon) : sans routeur draw.io. */
+export function straightStyle(style: Record<string, string>): Record<string, string> {
+  const { edgeStyle: _, ...rest } = style;
+  return rest;
 }
 
 /** Copie de la page où les flèches ont leurs nouveaux points d'attache. */
@@ -42,17 +50,18 @@ function withConstraints(page: PageModel, changes: readonly AnchorChange[]): Pag
 export function arrangeAnchors(
   page: PageModel,
   shapeIds: ReadonlySet<string>,
-  options: { seed?: number; route?: AvoidOptions } = {},
+  options: { seed?: number; route?: AvoidOptions; router?: Router; resite?: ReadonlySet<string> } = {},
 ): Arrangement {
   const seed = options.seed ?? 0;
-  const constraints = distributeAnchors(page, shapeIds, seed);
+  const router = options.router ?? ORTHOGONAL_ROUTER;
+  const constraints = distributeAnchors(page, shapeIds, seed, options.resite);
   const work = withConstraints(page, constraints);
   const edgeIds = edgesThrough(work, shapeIds);
   for (const edge of work.edges)
     if ((edge.sourceId && shapeIds.has(edge.sourceId)) || (edge.targetId && shapeIds.has(edge.targetId)))
       edgeIds.add(edge.id);
-  const routes = options.route ? avoidRoutes(work, edgeIds, options.route, seed) : new Map<string, Point[]>();
-  return { constraints, edgeIds, routes, routed: !!options.route };
+  const routes = options.route ? avoidRoutes(work, edgeIds, options.route, seed, router) : new Map<string, Point[]>();
+  return { constraints, edgeIds, routes, routed: !!options.route, router };
 }
 
 /** Vrai si l'agencement change quelque chose à la page (point d'attache ou tracé). */
@@ -70,21 +79,22 @@ export function arrangementChanges(page: PageModel, arrangement: Arrangement): b
 export function arrangementConflicts(page: PageModel, arrangement: Arrangement): number {
   const work = withConstraints(page, arrangement.constraints);
   const shapes = new Map(work.shapes.map((s) => [s.id, s]));
+  const { router, routes } = arrangement;
   const paths = work.edges.map((edge) =>
-    segmentsOf(
+    router.segments(
       routeEdge({
         source: toTerminal(shapes.get(edge.sourceId ?? '')),
         target: toTerminal(shapes.get(edge.targetId ?? '')),
         sourcePoint: edge.sourcePoint,
         targetPoint: edge.targetPoint,
-        waypoints: arrangement.routes.get(edge.id) ?? edge.points,
-        style: edge.style,
+        waypoints: routes.get(edge.id) ?? edge.points,
+        style: router.straight && routes.has(edge.id) ? straightStyle(edge.style) : edge.style,
       }),
     ),
   );
   let count = 0;
   for (let i = 0; i < paths.length; i++)
     for (let k = i + 1; k < paths.length; k++)
-      if (paths[i]!.some((s) => paths[k]!.some((t) => crosses(s, t) || overlap(s, t) > 0.5))) count++;
+      if (paths[i]!.some((s) => paths[k]!.some((t) => router.conflict(s, t)))) count++;
   return count;
 }

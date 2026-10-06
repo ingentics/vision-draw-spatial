@@ -47,7 +47,7 @@ export class Anchors {
       grid: number;
     },
   ): EndAttachment {
-    if (this.core.arrangement.anchoringOf(page) === 'auto') {
+    if (this.core.arrangement.distributes(page)) {
       // Ancrage automatique : on ne vise que le côté de la forme (le plus proche du pointeur) ; la répartition suit.
       const shape = this.core.picking.shapeAt(screen, options.exclude);
       if (shape) {
@@ -56,10 +56,9 @@ export class Anchors {
         return { kind: 'fixed', shapeId: shape.id, constraint: sideMiddle(side) };
       }
     }
-    const shapes =
-      this.core.arrangement.anchoringOf(page) === 'auto'
-        ? []
-        : connectableShapes(page, this.core.registry).filter((s) => s.id !== options.exclude);
+    const shapes = this.core.arrangement.distributes(page)
+      ? []
+      : connectableShapes(page, this.core.registry).filter((s) => s.id !== options.exclude);
     let best: { shapeId: string; constraint: Point; distance: number } | undefined;
     for (const shape of shapes) {
       const top = this.core.sceneView.elementTop(shape.id);

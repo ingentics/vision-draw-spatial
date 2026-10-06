@@ -245,7 +245,7 @@ export class DragGesture {
     const moved = this.core.pages.pageById(pageId);
     const fresh =
       moved &&
-      this.core.arrangement.anchoringOf(moved) === 'auto' &&
+      this.core.arrangement.distributes(moved) &&
       this.core.file.xmlTree &&
       documentFromTree(this.core.file.xmlTree);
     const freshPage = fresh && fresh.pages.find((p) => p.id === pageId);

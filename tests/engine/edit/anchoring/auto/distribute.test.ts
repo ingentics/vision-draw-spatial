@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   affectedShapes,
   distributeAnchors,
+  endKey,
   facingSide,
   pageGeometry,
+  resitedEnds,
 } from '../../../../../src/engine/edit/anchoring/auto/distribute';
 import { readDrawio } from '../../../../../src/engine/format/parse';
 
@@ -125,5 +127,29 @@ describe('affectedShapes', () => {
     const removed = page([shape('a', 0, 0), shape('b', 300, 0), shape('c', 600, 0), edge('e', 'a', 'b')]);
     expect([...affectedShapes(pageGeometry(before), removed)].sort()).toEqual(['a', 'b', 'c']);
     expect(affectedShapes(pageGeometry(before), before).size).toBe(0);
+  });
+});
+
+describe('resitedEnds (ticket 177)', () => {
+  // a à gauche de b, flèche de la droite de a vers la gauche de b.
+  const RIGHT_TO_LEFT = 'exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;';
+  const before = page([shape('a', 0, 0), shape('b', 300, 0), edge('e', 'a', 'b', RIGHT_TO_LEFT)]);
+
+  it('forme passée de l’autre côté de sa voisine : ses bouts changent de côté', () => {
+    const moved = page([shape('a', 600, 0), shape('b', 300, 0), edge('e', 'a', 'b', RIGHT_TO_LEFT)]);
+    const resite = resitedEnds(pageGeometry(before), moved);
+    expect(resite).toEqual(new Set([endKey('e', 'source'), endKey('e', 'target')]));
+    expect(distributeAnchors(moved, new Set(['a', 'b']), 0, resite)).toEqual([
+      { edgeId: 'e', end: 'source', constraint: { x: 0, y: 0.5 } },
+      { edgeId: 'e', end: 'target', constraint: { x: 1, y: 0.5 } },
+    ]);
+  });
+
+  it('petit déplacement : le côté choisi est gardé, même s’il ne fait pas face', () => {
+    const TOP_TO_TOP = 'exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;';
+    const chosen = page([shape('a', 0, 0), shape('b', 300, 0), edge('e', 'a', 'b', TOP_TO_TOP)]);
+    const nudged = page([shape('a', 0, 20), shape('b', 300, 0), edge('e', 'a', 'b', TOP_TO_TOP)]);
+    expect(resitedEnds(pageGeometry(chosen), nudged).size).toBe(0);
+    expect(resitedEnds(undefined, nudged).size).toBe(0);
   });
 });
