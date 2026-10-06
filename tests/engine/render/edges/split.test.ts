@@ -2,9 +2,15 @@ import { Mesh, Object3D } from 'three';
 import type { BufferGeometry } from 'three';
 import { describe, expect, it } from 'vitest';
 import { createEdge } from '../../../../src/engine/render/edges/edge';
-import { DEFAULT_EDGE_SPLIT, splitLabelFrame, splitPieces } from '../../../../src/engine/render/edges/split';
+import {
+  DEFAULT_EDGE_SPLIT,
+  splitHoverOverlay,
+  splitLabelFrame,
+  splitPieces,
+} from '../../../../src/engine/render/edges/split';
 import { pickElement } from '../../../../src/engine/interaction/pick';
 import type { EdgeModel, PageModel, Point } from '../../../../src/engine/model/types';
+import type { SplitHover } from '../../../../src/engine/render/edges/split';
 import type { RenderContext } from '../../../../src/engine/render/types';
 
 // Ticket 219 : flèche coupée en deux (`split=1`), fondu ou cadre de renvoi au bout de chaque tronçon.
@@ -112,5 +118,19 @@ describe('rendu et clic', () => {
     expect(pickElement(page, { x: 100, y: 0 }, options)).toBeUndefined();
     expect(pickElement(page, { x: 10, y: 0 }, options)?.element.id).toBe('e');
     expect(pickElement(page, { x: 100, y: 0 }, { ...options, edgePieces: () => undefined })?.element.id).toBe('e');
+  });
+
+  it('survol (ticket 224) : tronçons et cadre épaissis de 1 px, ligne directe d’un bout à l’autre, au-dessus', () => {
+    const group = createEdge(edge({ split: '1', splitLabelRight: 'depuis A' }), {}, ctx);
+    const hover = group.userData.splitHover as SplitHover;
+    expect(hover.ends).toEqual([
+      { x: 0, y: 0 },
+      { x: 200, y: 0 },
+    ]);
+    expect(hover.frames).toHaveLength(1);
+    const overlay = splitHoverOverlay(hover, 2);
+    // Deux tronçons, le bord du cadre, la ligne directe.
+    expect(overlay.children).toHaveLength(4);
+    overlay.traverse((o) => expect(o.renderOrder).toBe(Number.MAX_SAFE_INTEGER));
   });
 });

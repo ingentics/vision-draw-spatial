@@ -14,7 +14,7 @@ import { edgeLines } from '../lines';
 import { fadedStrokeMesh, fillMesh, strokeMesh } from '../meshes';
 import { LINE_HEIGHT, approximateMeasure } from '../richLayout';
 import { DEFAULT_EDGE_SPLIT, isSplit, splitLabelFrame, splitPieces } from './split';
-import type { EdgeSplitSettings, SplitPiece } from './split';
+import type { EdgeSplitSettings, SplitHover, SplitPiece } from './split';
 import {
   DEFAULT_LABEL_BACKDROP,
   PAGE_BACKGROUND,
@@ -124,7 +124,7 @@ export function createEdge(
       group.add(lines);
     }
 
-    if (split) addSplitPieces(group, line, style, ctx, { stroke, opacity, strokeWidth, dash });
+    if (split) addSplitPieces(group, line, route, style, ctx, { stroke, opacity, strokeWidth, dash });
 
     for (const marker of [start, end]) {
       if (marker?.fill) group.add(fillMesh(marker.fill, stroke, opacity));
@@ -157,6 +157,7 @@ export function createEdge(
 function addSplitPieces(
   group: Group,
   line: Point[],
+  route: Point[],
   style: Record<string, string>,
   ctx: RenderContext,
   trait: { stroke: Color; opacity: number; strokeWidth: number; dash: number[] | undefined },
@@ -164,12 +165,27 @@ function addSplitPieces(
   const settings = ctx.edgeSplit ?? DEFAULT_EDGE_SPLIT;
   const pieces = splitPieces(line, style, settings);
   group.userData.splitPaths = pieces.map((piece) => piece.points);
+  const hover: SplitHover = {
+    ends: [route[0]!, route[route.length - 1]!],
+    pieces: [],
+    frames: [],
+    stroke: trait.stroke,
+    opacity: trait.opacity,
+    strokeWidth: trait.strokeWidth,
+  };
   for (const piece of pieces) {
     const paths = trait.dash ? dashPolyline(piece.points, trait.dash, false) : [piece.points];
     const mesh = fadedStrokeMesh(paths, piece.alphaAt, trait.stroke, trait.opacity, trait.strokeWidth);
     if (mesh) group.add(mesh);
-    if (piece.label) group.add(splitLabel(piece, style, ctx, trait, settings));
+    hover.pieces.push({ paths, alphaAt: piece.alphaAt });
+    if (piece.label) {
+      const frame = splitLabel(piece, style, ctx, trait, settings);
+      group.add(frame);
+      hover.frames.push(frame.userData.corners as Point[]);
+    }
   }
+  // Survol (ticket 224) : de quoi dessiner les tronçons épaissis et la ligne directe (`splitHoverOverlay`).
+  group.userData.splitHover = hover;
 }
 
 /** Cadre de renvoi d'un tronçon : rectangle au fond de la page, bordé de la couleur du trait, texte au centre. */
@@ -194,6 +210,7 @@ function splitLabel(
   ];
   const frame = new Group();
   frame.name = 'split-label';
+  frame.userData.corners = corners;
   frame.add(fillMesh(corners, new Color(ctx.background ?? PAGE_BACKGROUND), trait.opacity));
   const border = strokeMesh(corners, trait.stroke, trait.opacity, { width: trait.strokeWidth, closed: true });
   if (border) frame.add(border);

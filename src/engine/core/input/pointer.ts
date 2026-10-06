@@ -121,6 +121,7 @@ export class PointerInput {
     if (!this.core.canvas.style.cursor.startsWith('grab')) this.core.canvas.style.cursor = cursor;
     this.core.canvas.title = link ? this.core.links.describeLink(link) : '';
     this.hovered = picked;
+    this.core.splitHover.update(picked?.type === 'edge' ? picked.element.id : undefined);
     this.syncHoverComment();
     clearTimeout(this.hoverTimer);
     if (link && this.core.settings.preload.onHover) {

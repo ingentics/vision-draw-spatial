@@ -1,5 +1,7 @@
+import { Color, Group } from 'three';
 import type { Point } from '../../model/types';
 import { distance } from '../../model/geometry';
+import { fadedStrokeMesh, strokeMesh } from '../meshes';
 import { length, positionAlong, unit } from './polyline';
 
 /**
@@ -98,4 +100,49 @@ export function splitLabelFrame(end: Point, direction: Point, width: number, hei
   const reachY = direction.y === 0 ? Infinity : height / 2 / Math.abs(direction.y);
   const reach = Math.min(reachX, reachY);
   return { x: end.x + direction.x * reach, y: end.y + direction.y * reach };
+}
+
+/** Ce qu'il faut pour dessiner le survol d'une flèche coupée (`userData.splitHover` de l'objet de la flèche). */
+export interface SplitHover {
+  /** Bouts de la flèche entière : départ (source) et arrivée (cible). */
+  ends: [Point, Point];
+  /** Tronçons tels que dessinés (tirets compris) et leur opacité. */
+  pieces: Array<{ paths: Point[][]; alphaAt: (p: Point) => number }>;
+  /** Coins des cadres de renvoi. */
+  frames: Point[][];
+  stroke: Color;
+  opacity: number;
+  strokeWidth: number;
+}
+
+/** Épaississement des tronçons et des cadres au survol, en pixels de page. */
+export const SPLIT_HOVER_THICKEN = 1;
+/** Ligne directe du survol : 1 px à l'écran, noire à 80 %. */
+const DIRECT_LINE = { width: 1, color: '#000000', opacity: 0.8 };
+
+/**
+ * Survol d'une flèche coupée (ticket 224), au-dessus de tout le schéma : tronçons et cadres redessinés 1 px plus
+ * épais, et une ligne droite d'un bout à l'autre de la flèche (épaisseur constante à l'écran, d'où `zoom`).
+ */
+export function splitHoverOverlay(hover: SplitHover, zoom: number): Group {
+  const group = new Group();
+  group.name = 'split-hover';
+  const width = hover.strokeWidth + SPLIT_HOVER_THICKEN;
+  for (const piece of hover.pieces) {
+    const mesh = fadedStrokeMesh(piece.paths, piece.alphaAt, hover.stroke, hover.opacity, width);
+    if (mesh) group.add(mesh);
+  }
+  for (const corners of hover.frames) {
+    const border = strokeMesh(corners, hover.stroke, hover.opacity, { width, closed: true });
+    if (border) group.add(border);
+  }
+  const direct = strokeMesh(hover.ends, new Color(DIRECT_LINE.color), DIRECT_LINE.opacity, {
+    width: DIRECT_LINE.width / zoom,
+    closed: false,
+  });
+  if (direct) group.add(direct);
+  group.traverse((o) => {
+    o.renderOrder = Number.MAX_SAFE_INTEGER;
+  });
+  return group;
 }

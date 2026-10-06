@@ -27,6 +27,7 @@ import { MinimapView } from './view/minimap';
 import { Selections } from './selection/selection';
 import { Picking } from './selection/picking';
 import { SelectionHighlight } from './selection/highlight';
+import { SplitHoverView } from './selection/splitHover';
 import { PointerInput } from './input/pointer';
 import { ModifierKeys } from './input/keys';
 import { Links } from './navigation/links';
@@ -96,6 +97,7 @@ export class EngineCore {
   readonly selection = new Selections(this);
   readonly picking = new Picking(this);
   readonly highlight = new SelectionHighlight(this);
+  readonly splitHover = new SplitHoverView(this);
 
   // input : gestes du pointeur, touches maintenues
   readonly pointer = new PointerInput(this);
