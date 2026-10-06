@@ -131,6 +131,7 @@ src/
         internal/      # hors palette : group/
     interaction/
       camera.ts        # ortho / iso, pan, zoom, état sérialisable
+      controls.ts      # façade des contrôles (controls/ : raccourcis, réglages, inertie, souris, clavier)
       keyboard.ts
       pointer.ts       # pan souris, sélection, double-clic
       transitions.ts   # zoom + fondu entre pages
