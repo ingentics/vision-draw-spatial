@@ -189,7 +189,8 @@ export class DragGesture {
     const carried: string[] = [];
     const stack = [...shapeIds];
     while (stack.length) {
-      const shape = page.shapes.find((s) => s.id === stack.pop());
+      const next = stack.pop();
+      const shape = page.shapes.find((s) => s.id === next);
       if (!shape) continue;
       for (const id of carries(page, shape)) {
         const target = page.shapes.find((s) => s.id === id);

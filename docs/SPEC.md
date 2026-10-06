@@ -922,7 +922,9 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     petite). Déplacer la région déplace son contenu (régions incluses, flèches entre ces formes), en une étape
     d'annulation ; redimensionner ne déplace rien. Une forme du mode posée (déplacée ou ajoutée) dont le coin
     haut-gauche est dans une région mais qui en dépasse l'agrandit vers la droite et / ou le bas, avec 20 px de marge,
-    dans la même étape d'annulation ; les régions englobantes suivent ; une région ne rétrécit jamais à cette occasion. Réglage « Couleur » (fond, bordure et nom). Dans draw.io : un rectangle
+    dans la même étape d'annulation ; les régions englobantes suivent ; une région ne rétrécit jamais à cette occasion.
+    Ordre de dessin : à la pose d'une forme du mode, les régions passent au fond de la pile, les plus englobantes
+    derrière ; le contenu d'une région est ainsi toujours devant elle, à toute profondeur. Réglage « Couleur » (fond, bordure et nom). Dans draw.io : un rectangle
     de la même couleur, le nom au-dessus à gauche dans un cadre de la couleur de la bordure (`labelBorderColor`) ; son
     contenu n'y suit pas ses déplacements.
 - **Mode Séquences** (`sequences`) : en 2D seulement (`viewModes`) ; flux ordonnés (`spatial.flows`), une flèche dans un flux au plus

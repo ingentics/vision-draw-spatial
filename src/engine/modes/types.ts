@@ -124,6 +124,8 @@ export interface ModeEdit {
   setElementStyle(elementId: string, key: string, value: string | undefined): void;
   /** Nouvelles bornes d'une forme, en coordonnées page (sujet 179) ; ses enfants suivent son coin haut-gauche. */
   setShapeBounds(shapeId: string, bounds: Rect): void;
+  /** Envoie ces formes au fond de l'ordre de dessin, dans cet ordre (la première tout au fond) (sujet 230). */
+  sendToBack(shapeIds: readonly string[]): void;
 }
 
 export interface ModeOption {

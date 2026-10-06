@@ -151,3 +151,34 @@ export function growRegions(edit: ModeEdit, shapeIds: string[]): void {
     }
   }
 }
+
+/** Profondeur d'une forme dans les régions : 0 hors de toute région, 1 dans une région, 2 dans une région d'une région… */
+function depthOf(page: PageModel, shape: ShapeModel): number {
+  let depth = 0;
+  const seen = new Set<string>();
+  for (let region = regionOf(page, shape); region && !seen.has(region.id); region = regionOf(page, region)) {
+    seen.add(region.id);
+    depth++;
+  }
+  return depth;
+}
+
+/**
+ * Ordre de dessin des régions (sujet 230) : toutes au fond de la pile, les plus englobantes derrière, chaque région
+ * devant celle qui la contient ; leur contenu est ainsi toujours devant elles. À égalité, l'ordre en place est gardé.
+ */
+export function orderRegions(edit: ModeEdit): void {
+  const { page } = edit;
+  const regions = page.shapes
+    .filter(isRegion)
+    .map((region) => ({ region, depth: depthOf(page, region) }))
+    .sort((a, b) => a.depth - b.depth || a.region.z - b.region.z)
+    .map(({ region }) => region.id);
+  if (regions.length > 0) edit.sendToBack(regions);
+}
+
+/** Formes posées (sujets 183, 230) : régions agrandies pour les contenir, puis remises en ordre de dessin. */
+export function placeInRegions(edit: ModeEdit, shapeIds: string[]): void {
+  growRegions(edit, shapeIds);
+  orderRegions(edit);
+}

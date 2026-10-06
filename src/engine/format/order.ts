@@ -28,6 +28,28 @@ export function reorderCells(page: PageTree, cellIds: Iterable<string>, move: Or
   return true;
 }
 
+/**
+ * Envoie les cellules `cellIds` au fond, dans cet ordre (la première tout au fond), parmi leurs sœurs (ex. régions RDD
+ * derrière leur contenu, sujet 230) ; faux si elles y sont déjà.
+ */
+export function sendToBackInOrder(page: PageTree, cellIds: readonly string[]): boolean {
+  const parentOf = new Map(page.cellList.map((nodes) => [nodes.id, nodes.cell?.getAttribute('parent') ?? undefined]));
+  const ids = cellIds.filter((id) => page.cells.has(id));
+  let changed = false;
+  for (const parent of new Set(ids.map((id) => parentOf.get(id)))) {
+    const siblings = page.cellList.filter((nodes) => parentOf.get(nodes.id) === parent).map((nodes) => nodes.id);
+    const picked = ids.filter((id) => parentOf.get(id) === parent);
+    const order = [...picked, ...siblings.filter((id) => !picked.includes(id))];
+    if (order.every((id, i) => id === siblings[i])) continue;
+    moveBlocks(page, order, parentOf);
+    changed = true;
+  }
+  if (!changed) return false;
+  reindexPage(page);
+  markPageDirty(page);
+  return true;
+}
+
 /** Nouvel ordre des cellules sœurs ; les cellules choisies gardent leur ordre entre elles. */
 function reordered(siblings: string[], selected: ReadonlySet<string>, move: OrderMove): string[] {
   const order = [...siblings];

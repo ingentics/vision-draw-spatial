@@ -609,3 +609,25 @@ describe('mode RDD : la région s’étend quand on y pose une forme qui dépass
     expect(place('t', 700, 700)).toBe(false);
   });
 });
+
+describe('mode RDD : le contenu d’une région est devant elle (sujet 230)', () => {
+  it('à la pose, les régions passent au fond, les plus englobantes derrière ; draw.io garde l’ordre', () => {
+    // Ordre du fichier à l'envers : la table, puis la petite région, puis la grande.
+    const xml = `<mxfile><diagram id="p" name="P" spatial.mode="rdd"><mxGraphModel><root>
+      <mxCell id="0" /><mxCell id="1" parent="0" />
+      <mxCell id="t" value="T" style="swimlane;spatial.kind=rdd-entity;" vertex="1" parent="1"><mxGeometry x="150" y="120" width="100" height="46" as="geometry" /></mxCell>
+      <mxCell id="small" value="Small" style="spatial.kind=rdd-region;" vertex="1" parent="1"><mxGeometry x="100" y="100" width="200" height="150" as="geometry" /></mxCell>
+      <mxCell id="big" value="Big" style="spatial.kind=rdd-region;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="500" height="300" as="geometry" /></mxCell>
+      <mxCell id="other" value="Other" style="spatial.kind=rdd-region;" vertex="1" parent="1"><mxGeometry x="600" y="0" width="100" height="100" as="geometry" /></mxCell>
+    </root></mxGraphModel></diagram></mxfile>`;
+    const { document, tree } = readDrawio(xml);
+    const page = document.pages[0]!;
+    expect(applyModeEdit(page, tree.pages[0]!, (edit) => rdd.placed!(edit, ['t']))).toBe(true);
+    const order = () => documentFromTree(tree).pages[0]!.shapes.map((s) => s.id);
+    expect(order()).toEqual(['big', 'other', 'small', 't']);
+    // Déjà en ordre : rien ne change.
+    const again = documentFromTree(tree).pages[0]!;
+    expect(applyModeEdit(again, tree.pages[0]!, (edit) => rdd.placed!(edit, ['t']))).toBe(false);
+    expect(order()).toEqual(['big', 'other', 'small', 't']);
+  });
+});

@@ -1,4 +1,5 @@
 import { canMoveCell, resizeCell, setCellObjectAttribute, setCellStyleValue, setPageAttribute } from '../format/edit';
+import { sendToBackInOrder } from '../format/order';
 import type { PageTree } from '../format/xmlTree';
 import type { PageModel, Rect } from '../model/types';
 import { SPATIAL_PREFIX, spatialValue } from '../spatial';
@@ -73,6 +74,9 @@ export function applyModeEdit(
       resized.set(shapeId, bounds);
       changed = true;
       resizeCell(pageTree, shapeId, delta);
+    },
+    sendToBack: (shapeIds) => {
+      changed = sendToBackInOrder(pageTree, shapeIds) || changed;
     },
   });
   return changed;
