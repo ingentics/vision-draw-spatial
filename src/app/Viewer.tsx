@@ -621,6 +621,7 @@ export function Viewer({
               onToggle={(mark) => formatText({ type: 'toggle', mark })}
               onSelectionFormat={setSelectionFormat}
               onFitSize={setFittedSize}
+              onTextInput={labelEdit.onEdge ? undefined : (text) => engine?.previewEditedLabel(text)}
               onCommit={({ text, html }) => {
                 setLabelEdit(undefined);
                 engine?.closeLabelEdit();

@@ -18,6 +18,8 @@ import { distance } from '../../../model/geometry';
 export class LabelEditor {
   /** Texte en cours d'édition en place (son label dessiné est masqué). */
   editing?: LabelEditRequest;
+  /** Nom d'origine d'une forme dont le texte saisi est montré en direct (`previewLabel`), à rétablir à la fermeture. */
+  private previewed?: { pageId: string; shapeId: string; label: string };
 
   constructor(private readonly core: EngineCore) {}
 
@@ -72,6 +74,7 @@ export class LabelEditor {
     if (!editable || !element || !editable.pageTree.cells.get(element.id)?.cell) return;
     const rect = this.labelEditScreen(element.id);
     if (!rect) return;
+    const displayStyle = this.displayStyle(element.id, element.style);
     this.startLabelEdit({
       pageId: editable.page.id,
       elementId: element.id,
@@ -80,12 +83,13 @@ export class LabelEditor {
       plane: this.labelEditPlane(element.id),
       styleCellId: element.id,
       style: element.style,
-      displayStyle: this.displayStyle(element.id, element.style),
+      displayStyle,
       html: element.style.html === '1' ? cellLabelValue(editable.pageTree, element.id) : undefined,
       scale: this.textScale(element.id),
       onEdge: editable.page.edges.some((e) => e.id === element.id),
+      // Fond de l'éditeur : celui du texte affiché (une forme qui place elle-même son label peut l'ôter).
       ...this.labelEditBackdrop(
-        element.style,
+        displayStyle ?? element.style,
         editable.page.edges.some((e) => e.id === element.id),
       ),
     });
@@ -256,10 +260,40 @@ export class LabelEditor {
     this.core.events.emit('labelEdit', this.editing);
   }
 
+  /**
+   * Texte en cours de saisie d'une forme qui place elle-même son label (`editStyle`, ex. onglet d'une région RDD) :
+   * la forme est redessinée en direct avec lui (modèle seul, rien n'est écrit) et l'éditeur suit sa zone de texte.
+   */
+  previewLabel(text: string): void {
+    const editing = this.editing;
+    const page = this.core.pages.getCurrentPage();
+    const shape = page?.shapes.find((s) => s.id === editing?.elementId);
+    if (!editing || editing.onEdge || !page || page.id !== editing.pageId || !shape) return;
+    if (!this.core.registry.editStyle(shape) || shape.label === text) return;
+    this.previewed ??= { pageId: page.id, shapeId: shape.id, label: shape.label };
+    shape.label = text;
+    this.core.live.rebuildShapeObject(shape);
+    this.hideEditedLabel();
+    this.core.live.afterLiveEdit();
+    this.relocateLabelEdit();
+  }
+
   closeLabelEdit(): void {
     const editing = this.editing;
     if (!editing) return;
     this.editing = undefined;
+    // Aperçu de la saisie : le nom d'origine revient (une validation l'écrit ensuite et relit la page).
+    const previewed = this.previewed;
+    this.previewed = undefined;
+    const shape =
+      previewed && this.core.pages.pageById(previewed.pageId)?.shapes.find((s) => s.id === previewed.shapeId);
+    if (shape && previewed) {
+      shape.label = previewed.label;
+      if (this.core.pages.currentPageId === previewed.pageId) {
+        this.core.live.rebuildShapeObject(shape);
+        this.core.live.afterLiveEdit();
+      }
+    }
     this.core.sceneView.labelObjects(editing.styleCellId).forEach((object) => (object.visible = true));
     this.core.highlight.update();
   }

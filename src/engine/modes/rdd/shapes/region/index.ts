@@ -140,7 +140,8 @@ export const definition: ShapeDefinition = {
       width: REGION.tab.padding,
       height: REGION.tab.height,
     },
-  // Le nom dessiné : aligné à gauche, centré en hauteur, sans marge dans sa zone.
+  // Le nom dessiné : aligné à gauche, centré en hauteur, sans marge dans sa zone ; éditeur sans fond (sujet 229), le
+  // fond du label pour draw.io (`labelBackgroundColor` des régions du sujet 226) n'est pas dessiné.
   editStyle: (style) => ({
     ...style,
     align: 'left',
@@ -151,6 +152,7 @@ export const definition: ShapeDefinition = {
     spacingRight: '0',
     spacingBottom: '0',
     whiteSpace: 'nowrap',
+    labelBackgroundColor: 'none',
   }),
   palette: {
     name: 'Région',

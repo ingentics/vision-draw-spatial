@@ -678,6 +678,14 @@ export class Engine {
     this.core.labelEditor.editEdgeEndLabel(edgeId, end);
   }
 
+  /**
+   * Texte en cours de saisie dans l'éditeur en place (à chaque frappe) : une forme qui place elle-même son label (ex.
+   * onglet d'une région RDD) est redessinée avec lui, sans rien écrire ; la fermeture rétablit le texte d'origine.
+   */
+  previewEditedLabel(text: string): void {
+    this.core.labelEditor.previewLabel(text);
+  }
+
   /** Fin de l'édition en place (validée ou annulée) : le label dessiné réapparaît. */
   closeLabelEdit(): void {
     this.core.labelEditor.closeLabelEdit();

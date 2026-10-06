@@ -5,7 +5,7 @@ import { isMonospace } from '../engine/format/richText';
 import { homographyCss, rectToQuad } from '../engine/render/geometry/homography';
 import { labelPadding } from '../engine/render/labelPosition';
 import { largestFitting, MIN_FIT_SIZE } from '../engine/render/richLayout';
-import { isColor, TEXT_FORMAT_ATTRIBUTE, useRichEditor } from './richEditor';
+import { isColor, readContent, TEXT_FORMAT_ATTRIBUTE, useRichEditor } from './richEditor';
 import type { LabelContent, RichEditorHandle, SelectionFormat, ToggleMark } from './richEditor';
 
 export { TEXT_FORMAT_ATTRIBUTE } from './richEditor';
@@ -30,6 +30,8 @@ interface LabelEditorProps {
   onFlip?: () => void;
   /** Taille obtenue en mode « Ajuster » (`fitText=1`), à chaque recalcul ; undefined hors de ce mode. */
   onFitSize?: (size: number | undefined) => void;
+  /** Texte saisi, à chaque changement (aperçu en direct, ex. onglet d'une région RDD). */
+  onTextInput?: (text: string) => void;
 }
 
 /**
@@ -51,6 +53,7 @@ export function LabelEditor({
   onMoveTextEnd,
   onFlip,
   onFitSize,
+  onTextInput,
 }: LabelEditorProps) {
   const box = useRef<HTMLDivElement>(null);
   const ref = useRef<HTMLDivElement>(null);
@@ -76,6 +79,8 @@ export function LabelEditor({
   const baseSize = Number(shownStyle.fontSize) || 11;
   const onFitSizeRef = useRef(onFitSize);
   onFitSizeRef.current = onFitSize;
+  const onTextInputRef = useRef(onTextInput);
+  onTextInputRef.current = onTextInput;
   const fitRef = useRef<() => void>(() => undefined);
   fitRef.current = () => {
     const editor = ref.current;
@@ -117,6 +122,7 @@ export function LabelEditor({
       // Le zoom posé par le calcul lui-même ne relance pas le calcul.
       if (mutations.every((m) => m.target === editor && m.type === 'attributes')) return;
       fitRef.current();
+      onTextInputRef.current?.(readContent(editor).text);
     });
     observer.observe(editor, { childList: true, characterData: true, subtree: true, attributes: true });
     return () => {

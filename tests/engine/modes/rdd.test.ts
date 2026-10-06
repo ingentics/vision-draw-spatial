@@ -505,7 +505,12 @@ describe('mode RDD : région (sujet 182)', () => {
     // Éditeur en place exactement sur le nom : sa zone, aligné à gauche, centré en hauteur, sans marge.
     const registry = createDefaultRegistry();
     expect(registry.textZone(region, 'flat')).toEqual({ x: 20 + padding, y: 130 - height, width: nameWidth, height });
-    expect(registry.editStyle(region)).toMatchObject({ align: 'left', verticalAlign: 'middle', spacing: '0' });
+    expect(registry.editStyle(region)).toMatchObject({
+      align: 'left',
+      verticalAlign: 'middle',
+      spacing: '0',
+      labelBackgroundColor: 'none',
+    });
     // Sans nom : pas d'onglet.
     expect(tabPath({ ...region, label: ' ' })).toBeUndefined();
     // Un seul contour, région et onglet : le haut de l'onglet, le S, puis le reste du rectangle.
