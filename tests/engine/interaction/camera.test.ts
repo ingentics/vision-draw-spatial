@@ -19,6 +19,7 @@ import {
   pageToScreen,
   panByScreen,
   PERSPECTIVE_FOV,
+  revealShift,
   rotateAround,
   sameView,
   screenToPage,
@@ -137,6 +138,21 @@ describe('Entrée avec une sélection (ticket 242)', () => {
   it('saute une étape qui ne changerait rien', () => {
     const same = { ...views, selection: views.global };
     expect(nextOverviewStep(views.global, same, undefined, viewport).step).toBe('actual');
+  });
+});
+
+describe('texte édité amené à l’écran (ticket 240)', () => {
+  it('ne bouge pas une boîte déjà visible avec sa marge', () => {
+    expect(revealShift({ x: 20, y: 20, width: 100, height: 50 }, viewport, 20)).toEqual({ x: 0, y: 0 });
+  });
+
+  it('déplace juste assez une boîte coupée, sur chaque axe', () => {
+    expect(revealShift({ x: -30, y: 560, width: 100, height: 50 }, viewport, 20)).toEqual({ x: 50, y: -30 });
+    expect(revealShift({ x: 750, y: 10, width: 100, height: 50 }, viewport, 20)).toEqual({ x: -70, y: 10 });
+  });
+
+  it('aligne le coin haut-gauche sur la marge pour une boîte plus grande que le canvas', () => {
+    expect(revealShift({ x: 100, y: -40, width: 900, height: 100 }, viewport, 20)).toEqual({ x: -80, y: 60 });
   });
 });
 

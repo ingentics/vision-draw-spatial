@@ -534,6 +534,18 @@ export function panByScreen(state: CameraState, delta: Point): CameraState {
   };
 }
 
+/**
+ * Déplacement écran qui amène une boîte (écran) entièrement dans le viewport, à `margin` px du bord : nul si elle y est
+ * déjà, sinon juste ce qu'il faut ; une boîte plus grande que la place disponible a son coin haut-gauche sur la marge.
+ */
+export function revealShift(box: Rect, viewport: Viewport, margin: number): Point {
+  const axis = (start: number, size: number, length: number) => {
+    if (size > length - 2 * margin || start < margin) return margin - start;
+    return Math.min(length - margin - (start + size), 0);
+  };
+  return { x: axis(box.x, box.width, viewport.width), y: axis(box.y, box.height, viewport.height) };
+}
+
 /** Glisser de `from` à `to` (écran) : le point du sol attrapé sous `from` passe sous `to` (perspective comprise). */
 export function dragGround(state: CameraState, viewport: Viewport, from: Point, to: Point): CameraState {
   if (state.fov === undefined) return panByScreen(state, { x: to.x - from.x, y: to.y - from.y });

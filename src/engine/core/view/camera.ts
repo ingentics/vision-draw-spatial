@@ -82,10 +82,17 @@ export class ViewCamera {
     this.applyCamera(settleProjection(normalizeCameraState(state, this.limits), this.limits));
   }
 
-  animateCameraTo(target: CameraState, durationMs = this.core.settings.camera.animationMs, blendLevels = false): void {
+  /** `onDone` : appelé une fois la vue arrivée (jamais si l'animation est interrompue par une autre). */
+  animateCameraTo(
+    target: CameraState,
+    durationMs = this.core.settings.camera.animationMs,
+    blendLevels = false,
+    onDone?: () => void,
+  ): void {
     this.core.levels.endLevelBlend();
     if (this.core.config.reducedMotion() || durationMs <= 0) {
       this.setCameraState(target);
+      onDone?.();
       return;
     }
     cancelAnimationFrame(this.animation);
@@ -100,7 +107,9 @@ export class ViewCamera {
       const eased = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
       this.applyCamera(interpolateCamera(from, to, eased));
       this.animation = t < 1 ? requestAnimationFrame(step) : 0;
-      if (t >= 1) this.core.levels.endLevelBlend();
+      if (t < 1) return;
+      this.core.levels.endLevelBlend();
+      onDone?.();
     };
     this.animation = requestAnimationFrame(step);
   }

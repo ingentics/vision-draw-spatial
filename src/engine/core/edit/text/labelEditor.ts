@@ -2,14 +2,22 @@ import { cellLabelValue } from '../../../format/edit';
 import { edgeTextLayout, endLabelOf, flipTarget } from '../../../edit/edgeLabels';
 import type { EdgeEnd } from '../../../edit/edgeLabels';
 import { labelPoint } from '../../../render/edges/polyline';
-import { screenToPage } from '../../../interaction/camera';
+import { dragGround, revealShift, screenToPage } from '../../../interaction/camera';
+import type { CameraState } from '../../../interaction/camera';
 import type { Point, Rect, ShapeModel } from '../../../model/types';
 import { insetRect, labelMargins } from '../../../render/labelPosition';
 import type { SceneLevel } from '../../../shapes/types';
 import { alongAnchor } from '../../../render/textPath';
 import type { LabelEditPlane, LabelEditRequest } from '../../types';
 import type { EngineCore } from '../../EngineCore';
-import { distance } from '../../../model/geometry';
+import { boundsOfPoints, distance, unionOf } from '../../../model/geometry';
+
+/** Marge (px écran) laissée au bord du canvas quand la vue glisse pour montrer le texte édité (ticket 240). */
+const REVEAL_MARGIN = 20;
+/** Durée du glissement de la vue à l'entrée en édition. */
+const REVEAL_MS = 200;
+/** Emprise prise pour un texte de flèche (son point seul est connu), comme `Picking.screenRectOf`. */
+const EDGE_TEXT_BOX = { width: 120, height: 32 };
 
 /**
  * Édition en place d'un texte (double-clic, F2) : demande à l'UI, emprise et plan à l'écran, suivi de la vue, label
@@ -20,6 +28,8 @@ export class LabelEditor {
   editing?: LabelEditRequest;
   /** Nom d'origine d'une forme dont le texte saisi est montré en direct (`previewLabel`), à rétablir à la fermeture. */
   private previewed?: { pageId: string; shapeId: string; label: string };
+  /** Dernière demande d'édition : une ouverture différée (vue qui glisse) ne vaut que si aucune autre n'a suivi. */
+  private startToken = 0;
 
   constructor(private readonly core: EngineCore) {}
 
@@ -153,10 +163,51 @@ export class LabelEditor {
    */
   startLabelEdit(request: LabelEditRequest): void {
     this.closeLabelEdit();
+    const token = ++this.startToken;
+    const target = this.revealTarget(request);
+    if (!target) {
+      this.openLabelEdit(request);
+      return;
+    }
+    // La vue glisse d'abord ; l'éditeur s'ouvre à l'arrivée, à la nouvelle emprise du texte (`relocateLabelEdit`).
+    this.core.camera.animateCameraTo(target, REVEAL_MS, false, () => {
+      if (token !== this.startToken || this.editing) return;
+      this.openLabelEdit(request);
+      this.relocateLabelEdit();
+    });
+  }
+
+  private openLabelEdit(request: LabelEditRequest): void {
     this.editing = this.withAngle(this.withFlip(request));
     this.hideEditedLabel();
     this.core.highlight.update();
     this.core.events.emit('labelEdit', this.editing);
+  }
+
+  /**
+   * Forme (ou texte de flèche) coupé par le bord du canvas : vue qui la montre en entier, déplacée (translation
+   * seule) juste assez ; undefined si elle est déjà entièrement visible.
+   */
+  private revealTarget(request: LabelEditRequest): CameraState | undefined {
+    // Forme : toute la forme à l'écran, pas seulement sa zone de texte (plus petite que la forme).
+    const text = request.plane
+      ? boundsOfPoints(request.plane.corners)
+      : request.screen.width === 0 && request.screen.height === 0
+        ? {
+            x: request.screen.x - EDGE_TEXT_BOX.width / 2,
+            y: request.screen.y - EDGE_TEXT_BOX.height / 2,
+            ...EDGE_TEXT_BOX,
+          }
+        : request.screen;
+    const shape = request.onEdge ? undefined : this.core.picking.screenRectOf(request.elementId);
+    const box = unionOf([text, shape].filter((rect): rect is Rect => rect !== undefined));
+    if (!box) return undefined;
+    const viewport = this.core.display.viewport;
+    const shift = revealShift(box, viewport, REVEAL_MARGIN);
+    if (shift.x === 0 && shift.y === 0) return undefined;
+    const from = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    const to = { x: from.x + shift.x, y: from.y + shift.y };
+    return dragGround(this.core.camera.state, viewport, from, to);
   }
 
   /**
