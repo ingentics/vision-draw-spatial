@@ -444,7 +444,7 @@ export class LabelEditor {
    */
   private signPlane(elementId: string): LabelEditPlane | undefined {
     const standing = this.core.picking.standingPlane(elementId);
-    const sign = standing?.silhouette.userData.sign as Rect | undefined;
+    const sign = standing?.figure.sign;
     if (!standing || !sign) return undefined;
     // L'axe x de la silhouette va vers la gauche de l'écran (texte du panneau en repère retourné).
     const right = sign.x;
@@ -475,10 +475,8 @@ export class LabelEditor {
 
   /** Style du texte sur la pancarte d'une silhouette debout (centré, ajusté), s'il y en a une. */
   private signLabelStyle(elementId: string): ((style: Record<string, string>) => Record<string, string>) | undefined {
-    const silhouette = this.core.picking.standingPlane(elementId)?.silhouette;
-    return silhouette?.userData.sign
-      ? (silhouette.userData.signLabelStyle as (style: Record<string, string>) => Record<string, string>)
-      : undefined;
+    const figure = this.core.picking.standingPlane(elementId)?.figure;
+    return figure?.sign ? figure.signLabelStyle : undefined;
   }
 
   /** Pixels écran par pixel de page au niveau d'un élément (taille du texte de l'éditeur en place). */

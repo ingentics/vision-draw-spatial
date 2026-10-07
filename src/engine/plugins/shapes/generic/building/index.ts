@@ -17,6 +17,12 @@ import {
 import type { Point, Rect, RenderContext, SceneRenderer, ShapeModel, ShapeProperty } from '../../../../core/plugins';
 
 /**
+ * Étiquette des façades d'un bâtiment iso (BDD, queue, cache) : remplace « DB »… ; vide = aucune. Aussi le mot de la
+ * tranche d'un process étiqueté (`generic/tagged-process`).
+ */
+export const TAG = 'spatial.tag';
+
+/**
  * « Bâtiments » (niveau `iso`) : les composants d'architecture ont tous la même grammaire, comme les
  * familles de bâtiments d'un jeu de construction :
  * - emprise : le rectangle 2D de la forme ;
@@ -163,7 +169,7 @@ export const tagSize = (height: number) => Math.max(4, Math.min(10, height * 0.2
 /** Texte de l'étiquette d'une forme : `spatial.tag`, sinon celui du type ; undefined si désactivé ou vide. */
 export function tagOf(shape: ShapeModel, ctx: RenderContext, fallback: string): string | undefined {
   if (ctx.volume?.tags === false) return undefined;
-  const text = (spatialValue(shape, SPATIAL.tag) ?? fallback).trim();
+  const text = (spatialValue(shape, TAG) ?? fallback).trim();
   return text || undefined;
 }
 
@@ -239,7 +245,8 @@ export function facadeTag(
 export function tagProperty(fallback: string): ShapeProperty {
   return {
     type: 'text',
-    key: SPATIAL.tag,
+    key: TAG,
+    live: true,
     label: 'Étiquette',
     section: 'volume',
     title: `Étiquette des façades en vue iso (spatial.tag) ; vide = « ${fallback} »`,

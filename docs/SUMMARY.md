@@ -76,7 +76,7 @@ Règles :
   top-to-bottom, entity-relation, loop), pointes draw.io, labels principal + début/fin, bouts fixes/auto/libres,
   découpage en morceaux (éditeurs mxGraph portés), cohérence au déplacement. Vérifiés **au pixel** contre les exports SVG
   de draw.io (fixtures `edge-routing`, `edge-points`, `edge-ends`).
-- **Édition** : palette par catégories avec recherche (`core/edit/palette.ts` : `SHAPE_TEMPLATES`, `PALETTE_CATEGORIES`),
+- **Édition** : palette par catégories avec recherche (`core/edit/palette.ts` ; `SHAPE_TEMPLATES` et `PALETTE_CATEGORIES` dans la racine de composition `plugins/`),
   glisser-déposer, déplacement, redimensionnement, texte riche édité en place, panneau contextuel (Page / Forme /
   Flèche / N formes / Texte : styles draw.io, bordure, volume), pages ajoutées/renommées/supprimées, liens, sauvegarde
   et autosave.

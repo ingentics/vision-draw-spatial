@@ -8,6 +8,8 @@ import type { EdgeModel, Point, Rect, ShapeModel } from '../../model/types';
 import type { EngineCore } from '../EngineCore';
 import type { Object3D } from 'three';
 import { insidePolygon } from '../../model/geometry';
+import { standingFigure } from '../../render/standing';
+import type { StandingFigure } from '../../render/standing';
 
 /**
  * Ce qui est sous un point de l'écran (formes, flèches, textes de flèche) et passage écran ↔ page à une hauteur donnée.
@@ -55,11 +57,11 @@ export class Picking {
    */
   standingPlane(
     elementId: string,
-  ): { silhouette: Object3D; toScreen: (p: Point) => Point & { height: number } } | undefined {
+  ): { silhouette: Object3D; figure: StandingFigure; toScreen: (p: Point) => Point & { height: number } } | undefined {
     const object = this.core.sceneView.sceneObject(elementId);
-    if (this.core.scenes.current?.level !== 'iso' || !object?.userData.standing) return undefined;
-    const silhouette = object.getObjectByName('silhouette');
-    if (!silhouette) return undefined;
+    const standing = this.core.scenes.current?.level === 'iso' ? standingFigure(object) : undefined;
+    if (!object || !standing) return undefined;
+    const { silhouette, figure } = standing;
     // Tourné face à la caméra autour de la verticale (`render/billboard.ts`).
     const scale = this.core.levels.heightScale;
     const angle = silhouette.rotation.z;
@@ -74,7 +76,7 @@ export class Picking {
       );
       return { ...at, height };
     };
-    return { silhouette, toScreen };
+    return { silhouette, figure, toScreen };
   }
 
   /**
@@ -84,12 +86,10 @@ export class Picking {
    */
   private standingHit(shape: ShapeModel, screen: Point): { at: number | undefined } | undefined {
     const standing = this.standingPlane(shape.id);
-    const parts = standing?.silhouette.userData.parts as Point[][] | undefined;
-    const strokes = standing?.silhouette.userData.strokes as Point[][] | undefined;
-    if (!standing || !parts || !strokes) return undefined;
-    const { silhouette, toScreen } = standing;
+    if (!standing) return undefined;
+    const { figure, toScreen } = standing;
+    const { parts, strokes, sign } = figure;
     // Pancarte tenue devant le corps : prise sur toute sa surface, plus près de la caméra que le corps.
-    const sign = silhouette.userData.sign as Rect | undefined;
     if (sign) {
       const { x, y, width, height } = sign;
       const corners = [

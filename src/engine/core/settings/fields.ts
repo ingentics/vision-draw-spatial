@@ -119,10 +119,3 @@ export function textPresets(value: unknown, previous: TextPreset[]): TextPreset[
   });
   return list.every((entry) => entry !== undefined) ? (list as TextPreset[]) : previous;
 }
-
-/** URL de serveur : http(s) seulement, espaces et barres finales retirés ; sinon la valeur précédente. */
-export function serverUrl(value: unknown, previous: string): string {
-  if (typeof value !== 'string') return previous;
-  const url = value.trim().replace(/\/+$/, '');
-  return /^https?:\/\/\S+$/i.test(url) ? url : previous;
-}

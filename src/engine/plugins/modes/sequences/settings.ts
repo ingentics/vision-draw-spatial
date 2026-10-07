@@ -141,6 +141,28 @@ export const SEQUENCES_SETTINGS: PluginSetting[] = [
     unit: '%',
     legacy: 'edgeDressingDarken',
   },
+  {
+    key: 'plantumlRenderer',
+    type: 'choice',
+    group: 'Export PlantUML',
+    label: 'Moteur de rendu',
+    options: [
+      { value: 'kroki', label: 'kroki.io' },
+      { value: 'plantuml', label: 'plantuml.com' },
+      { value: 'local', label: 'Serveur local' },
+    ],
+    default: 'kroki',
+    legacy: 'exporters.plantuml.renderer',
+  },
+  {
+    key: 'plantumlUrl',
+    type: 'url',
+    label: 'URL du serveur local',
+    when: { key: 'plantumlRenderer', value: 'local' },
+    default: 'http://localhost:8080',
+    legacy: 'exporters.plantuml.localUrl',
+    hint: 'Rendu de la fenêtre d’export des flux. Le texte du diagramme part dans l’adresse de l’image : avec un serveur local, rien ne sort de la machine. Un serveur PlantUML se lance avec « make plantuml » (http://localhost:8080).',
+  },
 ];
 
 /** Apparence des pastilles d'après les réglages du mode. */

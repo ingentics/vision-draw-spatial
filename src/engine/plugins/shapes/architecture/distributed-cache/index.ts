@@ -1,9 +1,8 @@
-import { SPATIAL } from '../../../../core/plugins';
 import type { ShapeDefinition, ShapeModel } from '../../../../core/plugins';
 import { tagProperty } from '../../generic/building';
 import type { CylinderDrawing } from '../../generic/cylinder';
 import { cylinderFlat, cylinderLip, cylinderSilhouette, flatTextZone, ringHeight } from '../../generic/cylinder';
-import { CACHE_TAG, DEFAULT_CACHE_NODES, isoCache } from './facade';
+import { CACHE_TAG, DEFAULT_CACHE_NODES, NODES, isoCache } from './facade';
 
 /**
  * `shape=datastore` : ellipse de taille fixe, trois lèvres (les anneaux). Le label est toujours dans le
@@ -39,7 +38,7 @@ export const definition: ShapeDefinition = {
   properties: [
     {
       type: 'number',
-      key: SPATIAL.nodes,
+      key: NODES,
       label: 'Nœuds',
       section: 'volume',
       title: 'Nombre de nœuds du cache, disques empilés en vue iso (spatial.nodes)',

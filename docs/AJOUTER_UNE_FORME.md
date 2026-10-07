@@ -128,6 +128,7 @@ src/engine/plugins/shapes/      les formes, une par élément de la palette (suj
 │                               hexagon, octagon, pentagon, triangle, triangle-up, parallelogram, step,
 │                               four-point-star, six-point-star
 ├── general/                    catégorie « Général » : text, actor (debout face à la caméra en iso / 3D)
+├── categories.ts               catégories de la palette (nom, rang), une par dossier ; une nouvelle catégorie s'y ajoute
 └── architecture/               catégorie « Architecture » : database, queue, distributed-cache, plug, process,
     │                           event-consumer, background-task, recurring-task, labeled-process
     └── database/
@@ -263,8 +264,11 @@ Pour un rendu iso sur mesure :
   cachent entre eux. Les traits et les fonds plats utilisent `flatMaterial` (sans écriture de profondeur).
 - **Billboard.** Un élément qui doit toujours faire face à la caméra (silhouette de l'Actor) porte
   `userData.billboard = true` : avant chaque image, le moteur le tourne autour de la verticale pour que son axe −y
-  vise la caméra (sa position en perspective, `render/billboard.ts`). Le groupe d'une forme debout porte aussi
-  `userData.standing = true` : il se clique sur toute sa hauteur.
+  vise la caméra (sa position en perspective, `render/billboard.ts`).
+- **Silhouette debout.** Une forme dessinée debout face à la caméra (Actor) le déclare par `setStandingFigure(groupe,
+  silhouette, figure)` de l'API des plugins (`render/standing.ts`, sujet 306) : cadre de la tête, pièces pleines et
+  traits dans le plan de la silhouette, pancarte éventuelle et style de son texte. Le moteur s'en sert pour le clic
+  (toute la hauteur, la silhouette seule), la mise en valeur de la tête et l'édition du texte sur la pancarte.
 - **Volume « fantôme ».** Une forme sans fond ne doit pas produire de volume : renvoyez le rendu 2D.
 
 ### 3.3 Mini-carte
@@ -390,7 +394,9 @@ forme.
 Un élément de palette (`PaletteEntry`, exposé comme `ShapeTemplate` avec l'`id` de la forme) porte le style **et** la taille par défaut de draw.io, une catégorie, un rang
 `order` (ordre d'affichage, toutes formes confondues), des mots-clés de recherche et une icône (contenu SVG d'un cadre
 `0 0 40 28`, sans couleurs). Un réglage (`ShapeProperty`) est une case (`toggle`, écrit `1` / `0`), un nombre ou un
-texte ; une clé `spatial.…` est écrite comme attribut spatial. Sa `section` le range dans le panneau :
+texte ; une clé `spatial.…` est écrite comme attribut spatial, et sa constante vit dans la forme (le tronc n'en connaît
+aucune, sujet 306). Un texte `live: true` est réglé en direct : chaque frappe est écrite en une seule étape
+d'annulation et seule la forme est redessinée (ex. étiquette des façades). Sa `section` le range dans le panneau :
 
 - `shape` : **paramètre de l'instance**, dans la section de la forme elle-même, titrée de son nom de palette et placée
   sous « Texte » (absente si la forme n'en déclare pas). C'est la place des valeurs propres à chaque forme posée, ex.

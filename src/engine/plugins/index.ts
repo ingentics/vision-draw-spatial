@@ -9,6 +9,9 @@ import { PageModeRegistry } from '../core/modes/registry';
 import type { PageModeDefinition } from '../core/modes/types';
 import { groupShape } from '../core/shapes/group';
 import { ShapeRegistry } from '../core/shapes/registry';
+import { PALETTE_CATEGORIES } from './shapes/categories';
+
+export { PALETTE_CATEGORIES };
 import type { ShapeDefinition } from '../core/shapes/types';
 
 /**
@@ -47,9 +50,10 @@ export const PAGE_EFFECT_DEFINITIONS: PageEffectDefinition[] = Object.values(
   import.meta.glob<PageEffectDefinition>('./effects/*/index.ts', { eager: true, import: 'definition' }),
 );
 
-/** Registre des formes : le groupe (forme du tronc), les formes de `shapes/` et celles des modes. */
+/** Registre des formes : les catégories de la palette, le groupe (forme du tronc), les formes de `shapes/` et des modes. */
 export function createDefaultRegistry(): ShapeRegistry {
   const registry = new ShapeRegistry().register(groupShape);
+  for (const category of PALETTE_CATEGORIES) registry.registerCategory(category);
   for (const definition of SHAPE_DEFINITIONS) registry.register(definition);
   for (const definitions of MODE_SHAPE_DEFINITIONS.values())
     for (const definition of definitions) registry.register(definition);
@@ -84,9 +88,9 @@ export function usedTemplates(page: Pick<PageModel, 'shapes'> | undefined): Shap
 }
 
 /**
- * Réglages des modes par défaut repris des anciennes clés de la section `shapes` (ticket 283), pour la migration des
- * paramètres enregistrés, qui tourne avant la création d'un moteur.
+ * Réglages des modes par défaut repris de leurs anciennes clés dans les paramètres enregistrés (`stored`), pour leur
+ * migration, qui tourne avant la création d'un moteur.
  */
-export function legacyModeSettings(shapes: Record<string, unknown> | undefined): PluginSettings {
-  return createDefaultModeRegistry().legacySettings(shapes);
+export function legacyModeSettings(stored: Record<string, unknown> | undefined): PluginSettings {
+  return createDefaultModeRegistry().legacySettings(stored);
 }

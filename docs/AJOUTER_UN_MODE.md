@@ -151,13 +151,16 @@ change rien. Depuis l'appli : `onEdit(label, (edit) => monOperation(edit, …))`
 Les **réglages globaux** du mode (ticket 283), pour toute l'appli et non pour une page, sont déclarés dans sa
 définition (`settings`, rangés dans `plugins/modes/<id>/settings.ts`), du même type que ceux d'un effet
 (`PluginSetting`, sujet 287) : nombre borné (`unit` `px`, `ms`
-ou `%`, `zero` : libellé de 0), case à cocher ou couleur, avec leur défaut, un groupe (`group`, `groupHint`) et une aide
+ou `%`, `zero` : libellé de 0), case à cocher, couleur, choix dans une liste (`choice`, `options`) ou adresse http(s)
+(`url`, `when` : modifiable seulement quand un autre réglage a une valeur ; sujet 306), avec leur défaut, un groupe (`group`, `groupHint`) et une aide
 (`hint`). L'appli les affiche dans une sous-page du mode (Paramètres › Modes, titre `shortName` sinon `name`) et les
 enregistre dans `settings.modes[id][key]` ; le registre les borne (`values`, aussi dans la vue que l'appli reçoit,
 `engine.getModeRegistry()` : déclaration des modes seulement, jamais leurs points d'entrée, sujet 304). Le moteur ne les lit
 jamais : il passe les valeurs (`values`) aux mécanismes du mode (`gestures.obstacles`, `dressing`, `current.look`), qui lui
-rendent ce qu'il applique (écart, apparence des pastilles, opacité…). `legacy` : ancienne clé de la section `shapes`,
-reprise une fois par la migration des paramètres enregistrés.
+rendent ce qu'il applique (écart, apparence des pastilles, opacité…) ; la partie appli du mode les reçoit aussi
+(`ModePanelProps.values`, ex. moteur de rendu de l'export PlantUML de Séquences). `legacy` : ancienne clé de la section
+`shapes`, ou chemin depuis la racine des paramètres s'il contient un point (`exporters.plantuml.renderer`), reprise une
+fois par la migration des paramètres enregistrés.
 
 Les données dérivées d'une page (ex. flèches rangées par flux) se calculent une fois par `PageModel` (le modèle est
 relu après chaque modification) : un `WeakMap` suffit.

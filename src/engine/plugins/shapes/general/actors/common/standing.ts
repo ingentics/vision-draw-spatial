@@ -1,7 +1,6 @@
 import { Group, Vector3 } from 'three';
 import {
   PART_ORDER,
-  SPATIAL,
   blockHeight,
   createLabel,
   dashPattern,
@@ -15,10 +14,14 @@ import {
   styleFlag,
   styleNumber,
   styleOpacity,
+  setStandingFigure,
 } from '../../../../../core/plugins';
 import type { Point, Rect, RenderContext, SceneRenderer, ShapeModel } from '../../../../../core/plugins';
 import { ARMS } from './figure';
 import type { FigureOf } from './figure';
+
+/** Actor en iso / 3D : `0` = pas de pancarte (texte au sol) ; absent = il tient son texte sur une pancarte. */
+export const SIGN = 'spatial.sign';
 
 /** Traits juste devant la tête (vers la caméra) : pas de z-fighting avec son fond. */
 const FRONT = 0.05;
@@ -62,11 +65,7 @@ export function standingActor(figureOf: FigureOf): SceneRenderer {
       const group = new Group();
       group.name = `shape:${shape.id}`;
       group.userData.height = height;
-      // Se clique sur toute sa hauteur, pas seulement au dessus (`interaction/pick.ts`).
-      group.userData.standing = true;
-
       const silhouette = new Group();
-      silhouette.name = 'silhouette';
       silhouette.userData.billboard = true;
       silhouette.position.set(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2, 0);
       group.add(silhouette);
@@ -85,21 +84,19 @@ export function standingActor(figureOf: FigureOf): SceneRenderer {
         ];
       }
       const parts = figure.parts.map((part) => part.map(upright));
-      // Cadre de la tête, pièces et traits dans le plan de la silhouette (x, z) : la sélection entoure la tête
-      // (`core/domains/selection/highlight.ts`) et le clic ne prend que la silhouette (`core/domains/selection/picking.ts`).
-      silhouette.userData.head = {
-        x: width / 2 - figure.head.x - figure.head.width,
-        y: height - figure.head.y - figure.head.height,
-        width: figure.head.width,
-        height: figure.head.height,
-      };
-      silhouette.userData.parts = parts;
-      silhouette.userData.strokes = figure.strokes.map((line) => line.map(upright));
-      if (sign) {
-        silhouette.userData.sign = sign;
-        // L'éditeur en place reprend le format du texte dessiné (`core/domains/edit/text/labelEditor.ts`).
-        silhouette.userData.signLabelStyle = signLabelStyle;
-      }
+      // Silhouette debout (sujet 306) : cadre de la tête, pièces et traits dans son plan (x, z) ; elle se clique sur
+      // toute sa hauteur, la sélection entoure la tête, et l'éditeur en place reprend le format du texte de la pancarte.
+      setStandingFigure(group, silhouette, {
+        head: {
+          x: width / 2 - figure.head.x - figure.head.width,
+          y: height - figure.head.y - figure.head.height,
+          width: figure.head.width,
+          height: figure.head.height,
+        },
+        parts,
+        strokes: figure.strokes.map((line) => line.map(upright)),
+        ...(sign && { sign, signLabelStyle }),
+      });
 
       const fill = styleColor(style, 'fillColor', '#ffffff');
       if (fill) {
@@ -176,8 +173,7 @@ export function signLabelStyle(style: Record<string, string>): Record<string, st
  * au-dessus des mains (épaules du bonhomme) ; `undefined` sans pancarte (`spatial.sign=0`, ou pas de texte).
  */
 function signFrame(shape: ShapeModel, width: number, height: number): Rect | undefined {
-  if (spatialValue(shape, SPATIAL.sign) === '0' || !shape.label.trim() || styleFlag(shape.style, 'noLabel'))
-    return undefined;
+  if (spatialValue(shape, SIGN) === '0' || !shape.label.trim() || styleFlag(shape.style, 'noLabel')) return undefined;
   const signWidth = width * SIGN_WIDTH;
   const signHeight = height * SIGN_HEIGHT;
   const hands = height - height / 3;

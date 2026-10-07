@@ -28,7 +28,7 @@ describe('mode RDD (sujet 179) : page et palette', () => {
     expect(modes.allowsViewMode(page(), 'top')).toBe(true);
     expect(modes.allowsViewMode(page(), 'iso')).toBe(false);
     expect(modes.allowsViewMode(page(), '3d')).toBe(false);
-    const palette = modes.paletteFor(page(), createDefaultRegistry().templates());
+    const palette = modes.paletteFor(page(), createDefaultRegistry().templates(), createDefaultRegistry().categories());
     expect(palette.categories.map((c) => c.id)).toEqual(['rdd']);
     expect(palette.templates.map((t) => [t.id, t.name])).toEqual([
       ['rdd-entity', 'Entité'],

@@ -26,6 +26,30 @@ describe('réglages des plugins (sujet 287)', () => {
     expect(pluginValues(undefined, { gap: 3 })).toEqual({});
   });
 
+  it('choix et adresse (sujet 306) : une valeur parmi les choix ; http(s) sans barre finale ; sinon le défaut', () => {
+    const settings: PluginSetting[] = [
+      {
+        key: 'renderer',
+        type: 'choice',
+        label: 'Rendu',
+        default: 'kroki',
+        options: [
+          { value: 'kroki', label: 'kroki.io' },
+          { value: 'local', label: 'Serveur local' },
+        ],
+      },
+      { key: 'url', type: 'url', label: 'Serveur', default: 'http://localhost:8080' },
+    ];
+    expect(pluginValues(settings, { renderer: 'local', url: ' http://plantuml.lan:9000/ ' })).toEqual({
+      renderer: 'local',
+      url: 'http://plantuml.lan:9000',
+    });
+    expect(pluginValues(settings, { renderer: 'autre', url: 'ftp://serveur' })).toEqual({
+      renderer: 'kroki',
+      url: 'http://localhost:8080',
+    });
+  });
+
   it('les registres des modes et des effets lisent leurs réglages de la même façon', () => {
     const modes = new PageModeRegistry().register({ id: 'm', namespace: 'm', name: 'M', settings: SETTINGS });
     const effects = new PageEffectRegistry().register({ id: 'e', name: 'E', settings: SETTINGS });

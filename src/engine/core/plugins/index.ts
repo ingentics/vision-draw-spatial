@@ -7,6 +7,7 @@
 
 // Contrats : forme, mode, effet, réglages déclarés.
 export type {
+  PaletteCategory,
   PaletteEntry,
   SceneLevel,
   SceneRenderer,
@@ -75,6 +76,8 @@ export { edgeLines } from '../render/lines';
 export { fillMesh, solidMaterial, strokeMesh } from '../render/meshes';
 export { readableOn, styleColor } from '../render/styleColors';
 export { measureText } from '../render/textMeasure';
+export { setStandingFigure } from '../render/standing';
+export type { StandingFigure } from '../render/standing';
 export { stencilShape } from '../format/stencil';
 
 // Règles d'édition partagées.

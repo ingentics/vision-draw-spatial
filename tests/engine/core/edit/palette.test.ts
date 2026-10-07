@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { dropBounds, PALETTE_CATEGORIES, searchTemplates } from '../../../../src/engine/core/edit/palette';
+import { dropBounds, searchTemplates } from '../../../../src/engine/core/edit/palette';
 import { resolveShapeKind, parseStyle } from '../../../../src/engine/core/format/style';
 import type { ShapeModel } from '../../../../src/engine/core/model/types';
 import {
   createDefaultModeRegistry,
   createDefaultRegistry,
+  PALETTE_CATEGORIES,
   SHAPE_TEMPLATES,
   usedTemplates,
 } from '../../../../src/engine/plugins';
@@ -120,7 +121,7 @@ describe('palette', () => {
   });
 
   describe('searchTemplates', () => {
-    const ids = (query: string) => searchTemplates(SHAPE_TEMPLATES, query).map((t) => t.id);
+    const ids = (query: string) => searchTemplates(SHAPE_TEMPLATES, query, PALETTE_CATEGORIES).map((t) => t.id);
 
     it('requête vide : toutes les formes', () => {
       expect(ids('')).toEqual(SHAPE_TEMPLATES.map((t) => t.id));

@@ -1,7 +1,10 @@
 import { Color } from 'three';
-import { PART_ORDER, SPATIAL, fillMesh, rectPath, spatialNumber } from '../../../../core/plugins';
+import { PART_ORDER, fillMesh, rectPath, spatialNumber } from '../../../../core/plugins';
 import type { SceneRenderer } from '../../../../core/plugins';
 import { building, CAP_HEIGHT, darker, facadeTag, facesOf, slab, tagOf } from '../../generic/building';
+
+/** Nombre de nœuds d'un cache distribué : disques empilés en iso / 3D. */
+export const NODES = 'spatial.nodes';
 
 /** Étiquette de façade par défaut d'un cache (`spatial.tag` la remplace ; vide = aucune). */
 export const CACHE_TAG = 'CACHE';
@@ -17,7 +20,7 @@ export const DEFAULT_CACHE_NODES = 3;
 export function isoCache(flat: SceneRenderer): SceneRenderer {
   return building(flat, (shape, ctx, height, group) => {
     const { bounds } = shape;
-    const nodes = Math.min(12, Math.max(1, Math.round(spatialNumber(shape, SPATIAL.nodes) ?? DEFAULT_CACHE_NODES)));
+    const nodes = Math.min(12, Math.max(1, Math.round(spatialNumber(shape, NODES) ?? DEFAULT_CACHE_NODES)));
     const groove = nodes > 1 ? Math.min(3, height / (nodes * 4)) : 0;
     const slabHeight = (height - groove * (nodes - 1)) / nodes;
     const inset = Math.min(3, bounds.width / 6, bounds.height / 6);

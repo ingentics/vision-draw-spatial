@@ -10,6 +10,7 @@ import type { SceneLevel } from '../../shapes/types';
 import type { Settings } from '../../settings';
 import type { ReadonlyShapeModel } from '../../model/readonly';
 import { freezePlain } from '../../model/freeze';
+import { standingFigure } from '../../render/standing';
 
 /**
  * Scènes des pages : construction (contexte de rendu, niveau, décors des effets) et lecture de la scène affichée
@@ -159,12 +160,10 @@ export class SceneView {
    */
   standingHead(elementId: string): { head: Rect; at: { x: number; y: number; z: number } } | undefined {
     const object = this.sceneObject(elementId);
-    if (this.core.scenes.current?.level !== 'iso' || !object?.userData.standing) return undefined;
-    const silhouette = object.getObjectByName('silhouette');
-    const head = silhouette?.userData.head as Rect | undefined;
-    if (!silhouette || !head) return undefined;
-    const at = object.position.clone().add(silhouette.position);
-    return { head, at: { x: at.x, y: at.y, z: at.z } };
+    const standing = this.core.scenes.current?.level === 'iso' ? standingFigure(object) : undefined;
+    if (!object || !standing) return undefined;
+    const at = object.position.clone().add(standing.silhouette.position);
+    return { head: standing.figure.head, at: { x: at.x, y: at.y, z: at.z } };
   }
 
   sceneObject(elementId: string) {

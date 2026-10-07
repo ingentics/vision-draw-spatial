@@ -1,7 +1,6 @@
 import { Group } from 'three';
 import {
   PART_ORDER,
-  SPATIAL,
   createLabel,
   dashPattern,
   fillMesh,
@@ -13,7 +12,7 @@ import {
 } from '../../../../../core/plugins';
 import type { Point, RenderContext, ShapeDefinition, ShapeModel } from '../../../../../core/plugins';
 import type { FigureOf } from './figure';
-import { actorHeight, standingActor } from './standing';
+import { SIGN, actorHeight, standingActor } from './standing';
 
 /** Silhouette 2D, étirée dans les bornes et orientée comme draw.io (`direction`, `flipH`, `flipV`). */
 function flatActor(figureOf: FigureOf) {
@@ -67,7 +66,7 @@ export function actorDefinition(
     volumeHeight: actorHeight,
     contains: () => true,
     properties: [
-      { type: 'toggle', key: SPATIAL.sign, label: 'Pancarte en iso / 3D', section: 'shape', checkedByDefault: true },
+      { type: 'toggle', key: SIGN, label: 'Pancarte en iso / 3D', section: 'shape', checkedByDefault: true },
     ],
     minimap(context, shape, map) {
       const { x, y, width, height } = shape.bounds;

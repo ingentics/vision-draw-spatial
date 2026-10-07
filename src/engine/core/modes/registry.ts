@@ -1,4 +1,3 @@
-import { PALETTE_CATEGORIES } from '../edit/palette';
 import type { PageModePalette } from '../edit/palette';
 import type { PageEffectDefinition } from '../effects/types';
 import type { ViewMode } from '../interaction/cameraMath';
@@ -141,14 +140,20 @@ export class PageModeRegistry {
   }
 
   /**
-   * Réglages des modes repris des anciennes clés de la section `shapes` (ticket 283, `PluginSetting.legacy`) : seulement
-   * ceux qui différaient du défaut.
+   * Réglages des modes repris de leurs anciennes clés (`PluginSetting.legacy`) dans les paramètres enregistrés
+   * `stored` : seulement ceux qui différaient du défaut.
    */
-  legacySettings(shapes: Record<string, unknown> | undefined): PluginSettings {
+  legacySettings(stored: Record<string, unknown> | undefined): PluginSettings {
+    // Section `shapes` pour une clé seule (ticket 283), chemin depuis la racine sinon (sujet 306).
+    const read = (legacy: string): unknown =>
+      (legacy.includes('.') ? legacy.split('.') : ['shapes', legacy]).reduce<unknown>(
+        (value, key) => (value && typeof value === 'object' ? (value as Record<string, unknown>)[key] : undefined),
+        stored,
+      );
     const result: PluginSettings = {};
     for (const mode of this.definitions.values()) {
       for (const setting of mode.settings ?? []) {
-        const value = setting.legacy ? readPluginSetting(setting, shapes?.[setting.legacy]) : undefined;
+        const value = setting.legacy ? readPluginSetting(setting, read(setting.legacy)) : undefined;
         if (value === undefined || value === setting.default) continue;
         (result[mode.id] ??= {})[setting.key] = value;
       }
@@ -176,12 +181,12 @@ export class PageModeRegistry {
   /**
    * Palette d'une page (sujet 178) : sur une page normale, les formes générales ; sur une page d'un mode, sa liste
    * blanche (`page.palette.shapes`) ou, à défaut, les formes générales et celles du mode. Les formes d'un autre mode n'y sont
-   * jamais. Catégories : celles de la palette et du mode, par rang, sans les vides.
+   * jamais. Catégories : celles des formes (`categories`, du registre des formes) et du mode, par rang, sans les vides.
    */
   paletteFor(
     page: PageModel | undefined,
     templates: ShapeTemplate[],
-    categories: PaletteCategory[] = PALETTE_CATEGORIES,
+    categories: readonly PaletteCategory[],
   ): PageModePalette {
     const mode = page && this.modeOf(page);
     const own = new Set(mode ? this.shapeIds.get(mode.id) : []);

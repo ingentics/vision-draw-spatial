@@ -16,7 +16,10 @@ export type PluginSetting = {
   group?: string;
   /** Aide affichée sous le titre du groupe (sur le premier réglage du groupe). */
   groupHint?: string;
-  /** Ancienne clé de la section `shapes` des paramètres (avant le ticket 283), reprise une fois si elle a changé. */
+  /**
+   * Ancienne clé, reprise une fois si sa valeur différait du défaut : dans la section `shapes` des paramètres (avant le
+   * ticket 283), ou chemin depuis leur racine s'il contient un point (ex. `exporters.plantuml.renderer`, sujet 306).
+   */
   legacy?: string;
 } & (
   | {
@@ -32,6 +35,15 @@ export type PluginSetting = {
     }
   | { type: 'toggle'; default: boolean }
   | { type: 'color'; default: string }
+  /** Choix dans une liste (sujet 306, ex. moteur de rendu d'un export). */
+  | { type: 'choice'; default: string; options: ReadonlyArray<{ value: string; label: string }> }
+  | {
+      /** Adresse http(s), sans barre finale (sujet 306, ex. serveur local). */
+      type: 'url';
+      default: string;
+      /** Modifiable seulement quand le réglage `key` du même plugin vaut `value` (ex. rendu par le serveur local). */
+      when?: { key: string; value: string };
+    }
 );
 
 /** Valeur d'un réglage de plugin. */
@@ -54,6 +66,13 @@ export function readPluginSetting(setting: PluginSetting, value: unknown): Plugi
       return typeof value === 'boolean' ? value : undefined;
     case 'color':
       return typeof value === 'string' && isHexColor(value) ? value : undefined;
+    case 'choice':
+      return typeof value === 'string' && setting.options.some((option) => option.value === value) ? value : undefined;
+    case 'url': {
+      if (typeof value !== 'string') return undefined;
+      const url = value.trim().replace(/\/+$/, '');
+      return /^https?:\/\/\S+$/i.test(url) ? url : undefined;
+    }
   }
 }
 

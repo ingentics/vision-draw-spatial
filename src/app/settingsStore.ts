@@ -16,7 +16,7 @@ const LEGACY = {
 const LEGACY_SELECTION_SPEED = 12;
 
 /** Version des paramètres enregistrés, pour les migrations. */
-const VERSION = 5;
+const VERSION = 6;
 
 export function loadSettings(): Settings {
   try {
@@ -44,6 +44,8 @@ export function saveSettings(settings: Settings): void {
  * Version 4 : les tirets du contour de sélection défilent à 4 px/s par défaut (ancien défaut : 12, ticket 257).
  * Version 5 : les réglages des modes passent de la section `shapes` à `modes.<id>` (ticket 283) ; chaque réglage de
  * mode déclare son ancienne clé.
+ * Version 6 : les réglages PlantUML (`exporters.plantuml`) deviennent des réglages du mode Séquences (sujet 306),
+ * repris de la même façon.
  */
 export function migrate(stored: SettingsPatch & { version?: number }): SettingsPatch {
   const version = stored.version ?? 1;
@@ -54,8 +56,10 @@ export function migrate(stored: SettingsPatch & { version?: number }): SettingsP
     next = { ...next, controls: { ...next.controls, followLinkKey: 'space' } };
   if (version < 4 && stored.selection?.speed === LEGACY_SELECTION_SPEED)
     next = { ...next, selection: { ...next.selection, speed: DEFAULT_SETTINGS.selection.speed } };
-  if (version < 5) {
-    const modes = legacyModeSettings(stored.shapes as Record<string, unknown> | undefined);
+  if (version < 6) {
+    // Anciennes clés de `shapes` avant la version 5 seulement ; celles des exporteurs avant la version 6.
+    const legacy = version < 5 ? stored : { ...stored, shapes: undefined };
+    const modes = legacyModeSettings(legacy as Record<string, unknown>);
     if (Object.keys(modes).length > 0) next = { ...next, modes: { ...modes, ...next.modes } };
   }
   return next;

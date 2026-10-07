@@ -487,7 +487,7 @@ export class Engine {
 
   /** Palette d'une page : catégories et modèles proposés, d'après son mode et les formes du moteur. */
   paletteFor(page: PageModel | undefined): PageModePalette {
-    return this.core.modes.paletteFor(page, this.core.registry.templates());
+    return this.core.modes.paletteFor(page, this.core.registry.templates(), this.core.registry.categories());
   }
 
   /** Modèles des formes présentes sur la page (catégorie « Utilisées » de la palette). */

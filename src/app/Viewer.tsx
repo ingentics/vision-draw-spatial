@@ -732,7 +732,7 @@ export function Viewer({
                     edges={selected.edges}
                     part={selection?.pageId === currentPage.id ? selection.part : undefined}
                     styles={settings.styles}
-                    exporters={settings.exporters}
+                    modeSettings={settings.modes}
                     defaultDepth={settings.view.isoDepth}
                     multiSelectKey={MULTI_SELECT_LABELS[settings.controls.multiSelectKey]}
                     onLink={(link) => selection && engine?.setLink(selection.picked.element.id, link)}

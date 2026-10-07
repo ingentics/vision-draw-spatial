@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { ExporterSettings, PageModel } from '../../../../engine';
+import type { PageModel } from '../../../../engine';
 import { sequenceState } from '../../../../engine/plugins/modes/sequences/api';
 import type { SequenceExporter } from '../../../../engine/plugins/modes/sequences/api';
 import { plantUmlUrls } from './plantumlServer';
+import type { PlantUmlSettings } from './plantumlServer';
 
 /** Choix de toute la page dans la liste des flux (un id de flux n'est jamais vide). */
 const ALL = '';
@@ -10,13 +11,13 @@ const ALL = '';
 /** Rendu d'un texte exporté : image et page où l'ouvrir. */
 type Preview = (
   source: string,
-  settings: ExporterSettings,
+  settings: PlantUmlSettings,
 ) => Promise<{ image: string; link: string; linkLabel: string }>;
 
 /** Rendus connus, par id d'exporteur ; un exporteur sans rendu n'affiche que son texte. */
 const PREVIEWS: Record<string, Preview> = {
   plantuml: async (source, settings) => {
-    const { svg, editor } = await plantUmlUrls(source, settings.plantuml);
+    const { svg, editor } = await plantUmlUrls(source, settings);
     return { image: svg, link: editor, linkLabel: 'Ouvrir sur plantuml.com' };
   },
 };
@@ -33,8 +34,8 @@ export function ExportViewer({
 }: {
   page: PageModel;
   exporter: SequenceExporter;
-  /** Réglages des exporteurs (moteur de rendu). */
-  settings: ExporterSettings;
+  /** Moteur de rendu PlantUML (réglages du mode). */
+  settings: PlantUmlSettings;
   onClose: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);

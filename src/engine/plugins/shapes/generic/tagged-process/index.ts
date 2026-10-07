@@ -1,5 +1,4 @@
 import {
-  SPATIAL,
   cornerRadius,
   orientedPath,
   rectPath,
@@ -18,7 +17,7 @@ import type {
 } from '../../../../core/plugins';
 import type { Group } from 'three';
 import { box } from '../box';
-import { darker, facadeTag, tagOf, tagSize } from '../building';
+import { TAG, darker, facadeTag, tagOf, tagSize } from '../building';
 
 /** Écarts des lignes par défaut de `internalStorage` (`dx`, `dy`), en px. */
 const DEFAULT_DX = 20;
@@ -57,7 +56,7 @@ function outline(shape: ShapeModel): Point[] {
 }
 
 /** Mot de la tranche : `spatial.tag`, sinon celui de la forme ; vide = aucun. */
-const wordOf = (shape: ShapeModel, tag: string) => (spatialValue(shape, SPATIAL.tag) ?? tag).trim();
+const wordOf = (shape: ShapeModel, tag: string) => (spatialValue(shape, TAG) ?? tag).trim();
 
 /** Les deux lignes de draw.io, puis le mot de la tranche (entre le bord et la verticale), écrit de bas en haut. */
 function details(shape: ShapeModel, tag: string): ShapeDetail[] {
@@ -154,7 +153,8 @@ export function taggedProcess(
       { type: 'toggle', key: 'rounded', label: 'Coins arrondis', section: 'border' },
       {
         type: 'text',
-        key: SPATIAL.tag,
+        key: TAG,
+        live: true,
         label: 'Étiquette',
         section: 'shape',
         title: `Mot de la tranche (spatial.tag) ; vide = « ${tag} »`,

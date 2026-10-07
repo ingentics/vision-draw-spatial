@@ -6,7 +6,15 @@ import { blockHeight } from '../render/iso/block';
 import { outsideLabelBox } from '../render/labelPosition';
 import type { RenderContext } from '../render/types';
 import { placeholderShape } from './placeholder';
-import type { MinimapPainter, SceneLevel, SceneRenderer, ShapeDefinition, ShapeProperty, ShapeTemplate } from './types';
+import type {
+  MinimapPainter,
+  PaletteCategory,
+  SceneLevel,
+  SceneRenderer,
+  ShapeDefinition,
+  ShapeProperty,
+  ShapeTemplate,
+} from './types';
 import { outlinePainter } from './minimapOutline';
 import { insidePolygon } from '../model/geometry';
 import { styleFlag } from '../model/styleValues';
@@ -43,11 +51,28 @@ export class ShapeRegistry {
     private readonly fallback: ShapeDefinition = placeholderShape,
     private readonly definitions: ShapeDefinition[] = [],
     private readonly onError?: ShapeErrorHandler,
+    private readonly categoryList: PaletteCategory[] = [],
   ) {}
 
   /** Le même registre (mêmes formes, y compris celles enregistrées ensuite), dont les erreurs des formes vont à `onError`. */
   reportingTo(onError: ShapeErrorHandler): ShapeRegistry {
-    return new ShapeRegistry(this.fallback, this.definitions, onError);
+    return new ShapeRegistry(this.fallback, this.definitions, onError, this.categoryList);
+  }
+
+  /**
+   * Catégorie de la palette des formes (sujet 306 : déclarée par la racine de composition, le tronc n'en connaît
+   * aucune) ; un id déjà pris lève une exception.
+   */
+  registerCategory(category: PaletteCategory): this {
+    if (this.categoryList.some((other) => other.id === category.id))
+      throw new Error(`Catégorie ${category.id} : id déjà pris`);
+    this.categoryList.push(freezePlain({ ...category }));
+    return this;
+  }
+
+  /** Catégories de la palette des formes, par rang (`order`). */
+  categories(): PaletteCategory[] {
+    return [...this.categoryList].sort((a, b) => a.order - b.order);
   }
 
   /** Appel protégé du point d'entrée `hook` de `definition` : sa valeur, ou celle de `fallback` s'il lève une exception. */

@@ -10,13 +10,6 @@ export type { PaletteCategory, PaletteCategoryId, ShapeTemplate };
  * (`shapes/<forme>/`) ; la palette les rassemble.
  */
 
-/** Catégories de la palette, dans l'ordre d'affichage (les modes ajoutent les leurs, rangées par `order`). */
-export const PALETTE_CATEGORIES: PaletteCategory[] = [
-  { id: 'geometry', name: 'Géométrie', order: 10 },
-  { id: 'general', name: 'Général', order: 20 },
-  { id: 'architecture', name: 'Architecture', order: 30 },
-];
-
 /** Contenu de la palette d'une page : catégories non vides, dans l'ordre, et formes proposées. */
 export interface PageModePalette {
   categories: PaletteCategory[];
@@ -51,7 +44,7 @@ function normalize(text: string): string {
 export function searchTemplates(
   templates: ShapeTemplate[],
   query: string,
-  categories: PaletteCategory[] = PALETTE_CATEGORIES,
+  categories: readonly PaletteCategory[],
 ): ShapeTemplate[] {
   const words = normalize(query).split(/\s+/).filter(Boolean);
   if (words.length === 0) return templates;

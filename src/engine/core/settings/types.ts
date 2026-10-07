@@ -303,18 +303,6 @@ export interface PanelsSettings {
   minCanvas: number;
 }
 
-/** Moteur de rendu des exports PlantUML (sujet 100). */
-export type PlantUmlRenderer = 'kroki' | 'plantuml' | 'local';
-
-/** Exporteurs de l'appli (sujet 100) : rendu en ligne des textes exportés. */
-export interface ExporterSettings {
-  plantuml: {
-    renderer: PlantUmlRenderer;
-    /** Serveur PlantUML local (`renderer: 'local'`), http(s), sans barre finale. */
-    localUrl: string;
-  };
-}
-
 export interface Settings {
   transition: TransitionSettings;
   preload: PreloadSettings;
@@ -333,7 +321,6 @@ export interface Settings {
   debug: DebugSettings;
   accessibility: AccessibilitySettings;
   panels: PanelsSettings;
-  exporters: ExporterSettings;
   /**
    * Réglages globaux des effets (sujet 145) et des modes (ticket 283) de page : `[id][clé]`, seulement les valeurs
    * changées (nombre, booléen ou couleur #rrggbb). Chaque plugin déclare ses réglages, leurs bornes et leurs défauts
@@ -355,9 +342,7 @@ export type SettingsPatch = {
           shadow?: number;
           minCanvas?: number;
         }
-      : K extends 'exporters'
-        ? { plantuml?: Partial<ExporterSettings['plantuml']> }
-        : K extends 'effects' | 'modes'
-          ? Record<string, Record<string, PluginSettingValue | undefined>>
-          : Partial<Settings[K]>;
+      : K extends 'effects' | 'modes'
+        ? Record<string, Record<string, PluginSettingValue | undefined>>
+        : Partial<Settings[K]>;
 };

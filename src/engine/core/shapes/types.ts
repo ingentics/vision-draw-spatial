@@ -62,7 +62,7 @@ export interface MinimapMapping {
 /** Dessin d'une forme dans la mini-carte (contexte déjà mis à l'échelle des pixels CSS). */
 export type MinimapPainter = (context: CanvasRenderingContext2D, shape: ShapeModel, map: MinimapMapping) => void;
 
-/** Catégorie de la palette : celles de la palette (`PALETTE_CATEGORIES`) ou d'un mode (`page.palette.categories`). */
+/** Catégorie de la palette : celles des formes (enregistrées par la racine de composition) ou d'un mode (`page.palette.categories`). */
 export type PaletteCategoryId = string;
 
 export interface PaletteCategory {
@@ -79,7 +79,7 @@ export interface PaletteCategory {
 export interface PaletteEntry {
   /** Nom affiché (celui de l'interface). */
   name: string;
-  /** Catégorie de la palette (`PALETTE_CATEGORIES`, ou une catégorie du mode pour une forme de mode). */
+  /** Catégorie de la palette (celle de son dossier `shapes/<catégorie>/`, ou une catégorie du mode pour une forme de mode). */
   category: PaletteCategoryId;
   /** Rang dans la palette (croissant, toutes formes confondues). */
   order: number;
@@ -137,6 +137,11 @@ export type ShapeProperty =
       section: PropertySection;
       title?: string;
       placeholder?: string;
+      /**
+       * Réglé en direct (sujet 306, ex. étiquette d'un bâtiment) : chaque frappe est écrite, en une seule étape
+       * d'annulation, et seule la forme est redessinée ; la clé ne touche que le dessin de sa forme.
+       */
+      live?: boolean;
     };
 
 /**

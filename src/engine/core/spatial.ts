@@ -21,12 +21,6 @@ export const SPATIAL = {
   height: 'spatial.height',
   /** Hauteur du dessous du volume au-dessus de sa base (sol ou dessus du conteneur), en pixels de page. */
   elevation: 'spatial.elevation',
-  /** Étiquette des façades d'un bâtiment iso (BDD, queue, cache) : remplace « DB »… ; vide = aucune. */
-  tag: 'spatial.tag',
-  /** Actor en iso / 3D : `0` = pas de pancarte (texte au sol) ; absent = il tient son texte sur une pancarte. */
-  sign: 'spatial.sign',
-  /** Nombre de nœuds d'un cache distribué : disques empilés en iso (réglage déclaré par `shapes/datastore`). */
-  nodes: 'spatial.nodes',
   /**
    * Texte du milieu d'une flèche tourné dans le sens du segment où il est posé (`1`) ; absent = horizontal.
    * draw.io l'ignore et garde le texte horizontal.

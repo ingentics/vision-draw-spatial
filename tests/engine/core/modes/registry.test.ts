@@ -8,9 +8,13 @@ import { Object3D } from 'three';
 import { ShapeRegistry } from '../../../../src/engine/core/shapes/registry';
 import { shapesByMode } from '../../../../src/engine/core/modes/modeShapes';
 import type { ShapeDefinition } from '../../../../src/engine/core/shapes/types';
-import { PALETTE_CATEGORIES } from '../../../../src/engine/core/edit/palette';
 import { SPATIAL } from '../../../../src/engine/core/spatial';
-import { MODE_SHAPE_DEFINITIONS, PAGE_MODE_DEFINITIONS, createDefaultRegistry } from '../../../../src/engine/plugins';
+import {
+  MODE_SHAPE_DEFINITIONS,
+  PAGE_MODE_DEFINITIONS,
+  PALETTE_CATEGORIES,
+  createDefaultRegistry,
+} from '../../../../src/engine/plugins';
 import { modeHost } from '../../modeHost';
 import { PageEffectRegistry } from '../../../../src/engine/core/effects/registry';
 
@@ -178,7 +182,7 @@ describe('modes de page en plugins (sujet 69)', () => {
     for (const shape of TEST_SHAPES.get('test')!) shapes.register(shape);
     const templates = shapes.templates();
     const ids = (attributes: Record<string, string>) => {
-      const { categories, templates: shown } = registry.paletteFor(page(attributes), templates);
+      const { categories, templates: shown } = registry.paletteFor(page(attributes), templates, PALETTE_CATEGORIES);
       return { categories: categories.map((c) => c.id), shapes: shown.map((t) => t.id) };
     };
 
@@ -196,7 +200,9 @@ describe('modes de page en plugins (sujet 69)', () => {
       expect(normal.shapes).toContain('database');
       const other = ids({ [SPATIAL.mode]: 'loose' });
       expect(other).toEqual(normal);
-      expect(registry.paletteFor(undefined, templates).templates.map((t) => t.id)).toEqual(normal.shapes);
+      expect(registry.paletteFor(undefined, templates, PALETTE_CATEGORIES).templates.map((t) => t.id)).toEqual(
+        normal.shapes,
+      );
     });
 
     it('modes d’affichage : seul le 2D sur une page du mode, tous ailleurs', () => {
@@ -252,7 +258,7 @@ describe('réglages déclarés par un mode (ticket 283)', () => {
   });
 
   it('anciennes clés de `shapes` : reprises si elles différaient du défaut', () => {
-    expect(registry.legacySettings({ oldGap: 35, oldInk: '#000000' })).toEqual({ reglages: { gap: 35 } });
+    expect(registry.legacySettings({ shapes: { oldGap: 35, oldInk: '#000000' } })).toEqual({ reglages: { gap: 35 } });
     expect(registry.legacySettings(undefined)).toEqual({});
   });
 

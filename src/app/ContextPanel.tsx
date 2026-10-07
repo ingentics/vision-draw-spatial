@@ -22,7 +22,6 @@ import type {
   EdgeEnd,
   EdgeModel,
   EdgeTextAnchor,
-  ExporterSettings,
   JumpStyle,
   LinkModel,
   ModeEdit,
@@ -30,6 +29,7 @@ import type {
   ModeTarget,
   OrderMove,
   PageModel,
+  PluginSettings,
   ShapeModel,
   StylePreset,
   StyleSettings,
@@ -56,8 +56,8 @@ export interface ContextPanelProps {
   shapes: ShapeModel[];
   edges: EdgeModel[];
   styles: StyleSettings;
-  /** Réglages des exporteurs (moteur de rendu de la fenêtre d'export d'un mode). */
-  exporters: ExporterSettings;
+  /** Réglages enregistrés des modes (`settings.modes`), passés bornés à la section du mode. */
+  modeSettings: PluginSettings;
   /** Épaisseur par défaut des volumes (réglage), affichée quand la forme n'a pas la sienne. */
   defaultDepth: number;
   /** Libellé de la touche de sélection multiple (ex. « Ctrl »), pour l'aide. */
@@ -234,7 +234,7 @@ function PageSections({ page, onRenamePage: onRename, ...props }: ContextPanelPr
         onModeEdit={props.onModeEdit}
         onModeProperty={props.onModeProperty}
         modeCurrent={props.modeCurrent}
-        exporters={props.exporters}
+        modeSettings={props.modeSettings}
         styles={props.styles}
       />
       <PageEffectsSection page={page} onPageEffect={props.onPageEffect} />
@@ -282,11 +282,11 @@ function PageModeSections({
   onModeEdit,
   onModeProperty,
   modeCurrent,
-  exporters,
+  modeSettings,
   styles,
 }: Pick<
   ContextPanelProps,
-  'page' | 'onPageMode' | 'onModeEdit' | 'onModeProperty' | 'modeCurrent' | 'exporters' | 'styles'
+  'page' | 'onPageMode' | 'onModeEdit' | 'onModeProperty' | 'modeCurrent' | 'modeSettings' | 'styles'
 >) {
   const plugins = useEnginePlugins();
   const modeId = plugins.modes.modeId(page);
@@ -333,7 +333,14 @@ function PageModeSections({
           />
         </Section>
       ))}
-      {PageSection && <PageSection page={page} onEdit={onModeEdit} current={modeCurrent} exporters={exporters} />}
+      {PageSection && mode && (
+        <PageSection
+          page={page}
+          onEdit={onModeEdit}
+          current={modeCurrent}
+          values={plugins.modes.values(mode.id, modeSettings[mode.id])}
+        />
+      )}
     </>
   );
 }

@@ -4,11 +4,8 @@ import { setCellLink, setCellWrapperAttribute } from '../../../format/create';
 import { COMMENT_ATTRIBUTE, COMMENT_HTML_ATTRIBUTE, commentOf, sameComment } from '../../../edit/comment';
 import type { ElementComment } from '../../../edit/comment';
 import type { LinkModel } from '../../../model/types';
-import { SPATIAL_PREFIX, spatialValue, SPATIAL } from '../../../spatial';
+import { SPATIAL_PREFIX, spatialValue } from '../../../spatial';
 import type { EngineCore } from '../../EngineCore';
-
-/** Attributs spatiaux qui ne touchent que le dessin de leur forme : réglés en direct, seule la forme est redessinée. */
-const LIVE_SHAPE_KEYS: ReadonlySet<string> = new Set([SPATIAL.tag]);
 
 /** Lien, commentaire et attributs spatiaux d'un élément (SPEC §14.3). */
 export class PropertyEdits {
@@ -85,7 +82,9 @@ export class PropertyEdits {
     const inObject = shape.attributes[key] !== undefined && shape.style[key] === undefined;
     const written = inObject && setCellObjectAttribute(editable.pageTree, elementId, key, text);
     if (!written) setCellStyleValue(editable.pageTree, elementId, key, text);
-    if (merge !== undefined && LIVE_SHAPE_KEYS.has(key)) {
+    // Réglage déclaré en direct par la forme (sujet 306) : il ne touche que le dessin de sa forme.
+    const live = this.core.registry.properties(shape).some((p) => p.key === key && p.type === 'text' && p.live);
+    if (merge !== undefined && live) {
       // Le modèle suit le fichier, la forme seule est redessinée ; les autres rendus de la page (autres niveaux,
       // graphe) seront reconstruits à la demande.
       const values = written ? shape.attributes : shape.style;

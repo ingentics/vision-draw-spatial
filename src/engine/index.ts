@@ -26,7 +26,6 @@ export { DEFAULT_SETTINGS, mergeSettings, modePalette, SETTINGS_LIMITS } from '.
 export type {
   BackgroundSettings,
   CommentSettings,
-  ExporterSettings,
   PanelsSettings,
   Settings,
   SettingsPatch,
@@ -83,7 +82,7 @@ export { anchorOf, edgeTexts, endLabelOf } from './core/edit/edgeLabels';
 export type { EdgeEnd } from './core/edit/edgeLabels';
 export { LABEL_PLACES, labelPlaceName, labelPlaceOf, labelPlacePatch } from './core/edit/labelPlaces';
 export type { LabelPlace } from './core/edit/labelPlaces';
-export { PALETTE_CATEGORIES, searchTemplates } from './core/edit/palette';
+export { searchTemplates } from './core/edit/palette';
 export type { PageModePalette, PaletteCategory, PaletteCategoryId, ShapeTemplate } from './core/edit/palette';
 export { matchesPreset, matchesTextPreset } from './core/edit/stylePresets';
 export type { StylePreset, TextPreset } from './core/edit/stylePresets';
@@ -113,6 +112,6 @@ export type { EffectInfo, EffectRegistryView, PageEffectRegistry } from './core/
 export type { ModeInfo, ModeRegistryView, ModeScope, PageModeRegistry } from './core/modes/registry';
 export type { ShapeRegistry, ShapeRegistryView } from './core/shapes/registry';
 export type { ModeEdit, ModeProperty, ModeTarget, PageModeDefinition } from './core/modes/types';
-export type { PluginSetting, PluginValues } from './core/settings/pluginSettings';
-export { legacyModeSettings, SHAPE_TEMPLATES, usedTemplates } from './plugins';
+export type { PluginSetting, PluginSettings, PluginValues } from './core/settings/pluginSettings';
+export { legacyModeSettings, PALETTE_CATEGORIES, SHAPE_TEMPLATES, usedTemplates } from './plugins';
 export type { PropertySection, ShapeProperty } from './core/shapes/types';

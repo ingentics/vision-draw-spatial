@@ -103,7 +103,7 @@ let lastNode: SettingsNode = { section: 0 };
 export function SettingsPanel({ settings, onChange, onReset, onResetOrientation, onClose }: SettingsPanelProps) {
   const { controls, view, camera, background, transition, preload, minimap, selection, accessibility, debug, save } =
     settings;
-  const { shapes, graph, edit, exporters } = settings;
+  const { shapes, graph, edit } = settings;
   // Modes et effets du moteur affiché (sujet 290) ; aucun tant qu'il n'est pas créé.
   const plugins = usePlugins();
   const systemReduced = useSystemReducedMotion();
@@ -1166,32 +1166,6 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                 ))}
             </Section>
 
-            <Section title="Exporteurs">
-              <Subsection title="PlantUML">
-                <Choice
-                  label="Moteur de rendu"
-                  value={exporters.plantuml.renderer}
-                  options={[
-                    ['kroki', 'kroki.io'],
-                    ['plantuml', 'plantuml.com'],
-                    ['local', 'Serveur local'],
-                  ]}
-                  onChange={(renderer) => onChange({ exporters: { plantuml: { renderer } } })}
-                />
-                <UrlField
-                  label="URL du serveur local"
-                  value={exporters.plantuml.localUrl}
-                  disabled={exporters.plantuml.renderer !== 'local'}
-                  onChange={(localUrl) => onChange({ exporters: { plantuml: { localUrl } } })}
-                />
-                <p className="hint muted">
-                  Rendu de la fenêtre d’export des flux. Le texte du diagramme part dans l’adresse de l’image : avec un
-                  serveur local, rien ne sort de la machine. Un serveur PlantUML se lance avec «&nbsp;make
-                  plantuml&nbsp;» (http://localhost:8080).
-                </p>
-              </Subsection>
-            </Section>
-
             <Section title="Effets">
               {(plugins?.effects.list() ?? [])
                 .filter((effect) => (effect.settings ?? []).length > 0)
@@ -1810,6 +1784,20 @@ function PluginSettingFields({
         <Toggle
           label={setting.label}
           checked={values[setting.key] as boolean}
+          onChange={(value) => onChange(setting.key, value)}
+        />
+      ) : setting.type === 'choice' ? (
+        <Choice
+          label={setting.label}
+          value={values[setting.key] as string}
+          options={setting.options.map(({ value, label }) => [value, label])}
+          onChange={(value) => onChange(setting.key, value)}
+        />
+      ) : setting.type === 'url' ? (
+        <UrlField
+          label={setting.label}
+          value={values[setting.key] as string}
+          disabled={setting.when !== undefined && values[setting.when.key] !== setting.when.value}
           onChange={(value) => onChange(setting.key, value)}
         />
       ) : (

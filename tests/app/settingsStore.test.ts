@@ -21,4 +21,16 @@ describe('paramètres enregistrés : migrations', () => {
     expect(migrate({ version: 4, shapes: {} }).modes).toBeUndefined();
     expect(migrate({ version: 5, shapes: { modeObstacleGap: 30 } } as never).modes).toBeUndefined();
   });
+
+  it('version 6 : les réglages PlantUML deviennent des réglages du mode Séquences (sujet 306)', () => {
+    const stored = { version: 5, exporters: { plantuml: { renderer: 'local', localUrl: 'http://plantuml.lan:9000' } } };
+    expect(migrate(stored as never).modes).toEqual({
+      sequences: { plantumlRenderer: 'local', plantumlUrl: 'http://plantuml.lan:9000' },
+    });
+    // Moteur par défaut, adresse refusée : rien à reprendre ; déjà en version 6 : rien non plus.
+    expect(
+      migrate({ version: 5, exporters: { plantuml: { renderer: 'kroki', localUrl: 'ftp://x' } } } as never).modes,
+    ).toBeUndefined();
+    expect(migrate({ ...stored, version: 6 } as never).modes).toBeUndefined();
+  });
 });
