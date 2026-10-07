@@ -1,14 +1,13 @@
 # Bonnes pratiques de code
 
-> Pour un agent qui écrit du code dans ce dépôt. Chaque règle vient d'une dette réellement trouvée et corrigée
-> (sujets 204 à 213) : la suivre dès le départ évite d'avoir à la rembourser. Architecture : `SUMMARY.md` §3,
-> SPEC §4. Organisation des tickets et des commits : `ROADMAP.md`.
+> Pour un agent qui écrit du code dans ce dépôt : des règles à suivre dès le départ, pour ne pas créer de dette.
+> Architecture : `SUMMARY.md` §3, SPEC §4. Organisation des tickets et des commits : `ROADMAP.md`.
 
 ## 1. Avant d'écrire
 
 - **Chercher avant de créer.** Avant d'écrire une petite fonction (distance, centre, inclusion, lecture de style,
-  normale d'un côté…), chercher si elle existe (`grep -rn "function nom" src/engine`). Ce qui a été trouvé recopié :
-  `distance` ×3, `center` ×4, `insidePolygon` ×2 (arguments inversés !), `simplifyPath` ×2, `NORMALS` ×2.
+  normale d'un côté…), chercher si elle existe (`grep -rn "function nom" src/engine`). Une copie locale finit
+  toujours par diverger (tolérance, ordre des arguments).
 - **Lire le guide du type de sujet** : `AJOUTER_UNE_FORME.md`, `AJOUTER_UN_MODE.md`, `COMPOSANT.md`, et le tableau
   « Où regarder » de `SUMMARY.md` §5.
 - **Imiter le voisin.** Un nouveau fichier ressemble à ceux du même dossier : découpage, nommage, commentaires.
@@ -30,31 +29,31 @@
   `interaction/` ou `model/`, testée seule ; le domaine de `core/` ne fait que l'appeler avec son état.
   Ex. : `tracingOf(shapes, anchoring)` (`edit/anchoring/tracing.ts`) appelé par `core/edit/edges/arrangement.ts`.
 - **Un socle commun, pas une dépendance entre voisins.** Si deux variantes partagent des briques, celles-ci vont
-  dans un module commun du dossier parent ; une variante n'importe jamais l'autre. Ex. : le Typon (`pcb/`)
-  importait l'ancrage automatique (`auto/avoid.ts`) ; les briques sont maintenant dans `edit/anchoring/routing.ts`.
+  dans un module commun du dossier parent ; une variante n'importe jamais l'autre. Ex. : l'ancrage automatique
+  (`auto/`) et le Typon (`pcb/`) partagent `edit/anchoring/routing.ts`.
 - **Pas de nom de fichier déjà pris.** Avant de créer `camera.ts`, `history.ts`, `selection.ts`, `handles.ts`…,
   vérifier qu'un fichier du même nom n'existe pas ailleurs dans le moteur ; sinon, un nom qui dit le rôle
-  (`cameraMath.ts`, `selectionRules.ts`). Il y a déjà dix paires d'homonymes (idée 208), n'en ajoutez pas.
+  (`cameraMath.ts`, `selectionRules.ts`).
 - **Un dossier et un fichier du même nom, non** : `route.ts` à côté de `route/` devient `route/index.ts`.
-- **Placer un utilitaire selon ce qu'il est, pas selon son premier appelant.** `pageGeometry` est né dans
-  `edit/anchoring/auto/distribute.ts` alors que le document et le glisser s'en servent : c'est du modèle.
+- **Placer un utilitaire selon ce qu'il est, pas selon son premier appelant.** Une géométrie de page dont se
+  servent le document et le glisser va dans `model/`, pas dans le dossier de la fonctionnalité qui l'a créée.
 
 ## 3. État et couplage
 
 - **Aucun état mutable au niveau du module** (`let` ou objet modifié en dehors d'une classe). Tous les `Engine`
   d'une page le partageraient, et les tests s'influenceraient. L'état vit dans un domaine de `core/` et se passe en
-  paramètre aux fonctions pures. Ex. : les bornes de caméra étaient un objet de module ; elles sont maintenant
-  `ViewCamera.limits`, passées en dernier paramètre à `zoomAt`, `orbit`, `fitBounds`…
+  paramètre aux fonctions pures. Ex. : les bornes de caméra sont `ViewCamera.limits`, passées en dernier
+  paramètre à `zoomAt`, `orbit`, `fitBounds`…
 - **Un domaine n'écrit pas dans l'état d'un autre.** Pas de `this.core.pages.currentPageId = …` ni
   `this.core.camera.animation = undefined` : appeler une méthode du domaine propriétaire, à créer si elle manque
-  (ex. `pages.setCurrent()`, `camera.cancelAnimation()`, qui n'existent pas encore).
+  (ex. `pages.setCurrent()`, `camera.cancelAnimation()`).
 - **N'utiliser du cœur que ce dont on a besoin.** Chaque domaine reçoit `core` en entier ; ne pas en profiter pour
-  toucher dix domaines de plus (`gesture.ts` en touche déjà 24). Si un nouveau code a besoin de beaucoup de domaines,
-  c'est souvent qu'une partie est une fonction pure à sortir.
+  toucher d'autres domaines. Si un nouveau code a besoin de beaucoup de domaines, c'est souvent qu'une partie est
+  une fonction pure à sortir.
 - **Ne pas allonger les listes centrales tenues à la main.** `DocumentFile.load` remet à zéro les domaines un par
   un, `Config.updateSettings` liste à la main les clés qui reconstruisent les scènes. Un domaine nouveau qui a un
   état à remettre à zéro, ou un paramètre de vue qui change le rendu, doit y être ajouté : le vérifier, et le
-  signaler dans le ticket (idée 209 : chaque domaine réagira lui-même).
+  signaler dans le ticket.
 - **La façade `Engine.ts` délègue, elle ne calcule pas.** Une méthode publique de plus seulement si l'app ou le
   composant en a besoin.
 
@@ -65,7 +64,7 @@
   `prunePath`). Pas de `Math.hypot(a.x - b.x, a.y - b.y)` à la main. Une fonction qui manque s'y ajoute, avec son
   test dans `tests/engine/model/geometry.test.ts`.
 - **Valeurs de style** : `styleNumber`, `styleFlag`, `styleColor`, `styleOpacity` (`render/styleValues.ts`). Pas
-  de `parseFloat(style.x ?? '')` ni de `style.x === '1'` (idée 206 : il en reste une soixantaine à remplacer).
+  de `parseFloat(style.x ?? '')` ni de `style.x === '1'`.
 - **Normales des côtés** : `SIDE_NORMALS` (`edit/edgeEnds.ts`). **Ancrages** : `ANCHORINGS` (`edit/anchoring/mode.ts`).
   Une liste ou une table qui existe déjà ne se redéclare pas ailleurs.
 - **Deux variantes proches** : une fonction commune paramétrée, et deux noms qui disent la différence, avec un
@@ -82,9 +81,9 @@
 - **Le moteur ne connaît ni React ni l'app** ; `format/` et `model/` ne connaissent ni Three.js ni le rendu
   (vérifié par `.eslintrc.cjs`).
 - **L'app passe par l'API publique** (`src/index.ts`, `Engine`). N'ajoutez pas d'import d'un chemin interne
-  (`engine/render/…`, `engine/interaction/…`) dans `src/app/` : il y en a déjà une quarantaine (idée 207). S'il
-  manque quelque chose, l'exporter depuis le point d'entrée public.
-- **Un cas particulier ne se recopie pas.** Tester `GRAPH_PAGE_ID` ou `transitions.active` une douzième fois
+  (`engine/render/…`, `engine/interaction/…`) dans `src/app/`. S'il manque quelque chose, l'exporter depuis le
+  point d'entrée public.
+- **Un cas particulier ne se recopie pas.** Un test répété partout (`GRAPH_PAGE_ID`, `transitions.active`)
   appelle plutôt un garde commun (`canInteract()` ou équivalent) ; à défaut, le signaler dans le ticket.
 
 ## 6. Écrire le code
@@ -94,8 +93,8 @@
   tête d'un fichier non évident : une ligne sur son rôle. Une valeur reprise de draw.io le dit
   (`/** Pas de la grille en pixels de page (draw.io : 10). */`).
 - TypeScript strict, pas de `any` ; imports de types en `import type` (lint).
-- Fichiers courts et d'un seul sujet : au-delà de ~400 lignes, se demander ce qui peut sortir (`avoid.ts` est passé
-  de 478 à ~170 lignes en séparant briques, routeur et orchestration).
+- Fichiers courts et d'un seul sujet : au-delà de ~400 lignes, se demander ce qui peut sortir (briques communes,
+  algorithme, orchestration).
 - Pas de code mort ni d'accesseur qui doublonne une méthode existante ; un commentaire déplacé suit son code.
 
 ## 7. Valider
