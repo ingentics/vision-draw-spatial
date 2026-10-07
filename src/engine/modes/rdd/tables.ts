@@ -373,8 +373,9 @@ export function tableWidth(kind: TableKind, content: TableContent): number {
 }
 
 /**
- * Longueur écrite d'une table : arrondie au centième (échelle 0,8 : pas de traîne de flottants), puis au pas de grille
- * supérieur (`gridSize` ≤ 0 : sans grille), la table s'étendant à droite et en bas (sujet 263).
+ * Largeur écrite d'une table : arrondie au centième (échelle 0,8 : pas de traîne de flottants), puis au pas de grille
+ * supérieur (`gridSize` ≤ 0 : sans grille), la table s'étendant à droite (sujet 263). La hauteur, elle, reste celle des
+ * lignes (sujet 264).
  */
 export const tableSize = (value: number, gridSize: number): number =>
   ceilToGrid(Math.round(value * 100) / 100, gridSize);

@@ -359,13 +359,13 @@ export function table(
         ...palette,
         category: 'rdd',
         style: tableStyle(id, kind),
-        // Mesure approchée au chargement (polices pas encore là) : la première modification l'ajuste. Sur la grille par
-        // défaut de draw.io (10, sujet 263).
+        // Mesure approchée au chargement (polices pas encore là) : la première modification l'ajuste. Largeur sur la
+        // grille par défaut de draw.io (10, sujet 263), hauteur au plus juste (sujet 264).
         width: tableSize(
           tableWidth(kind, { name: palette.value, fields, secondary: false, mark: kind.mark !== undefined }),
           10,
         ),
-        height: tableSize(tableHeight(kind, false, fields.length), 10),
+        height: tableHeight(kind, false, fields.length),
         icon:
           palette.icon ??
           '<path d="M6 3h28v22H6zM6 10h28M10 15h12M10 20h9"/>' + (kind.doubleHeader ? '<path d="M8 5h24v3H8z"/>' : ''),
