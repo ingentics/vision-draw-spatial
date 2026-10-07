@@ -104,8 +104,13 @@ export interface ModeParts {
   bounds(page: PageModel, shape: ShapeModel, part: string): Rect | undefined;
   /** Texte modifiable sur place (double-clic, sur une ligne : Entrée valide) ; undefined = pas de texte. */
   text?(page: PageModel, shape: ShapeModel, part: string): ModePartText | undefined;
-  /** Écrit le texte validé (le mode décide d'un texte vide : refusé, ou partie retirée). */
+  /** Écrit le texte validé (le mode décide d'un texte vide : refusé, ou permis). */
   setText?(edit: ModeEdit, shape: ShapeModel, part: string, text: string): void;
+  /**
+   * Aperçu pendant la saisie (sujet 253) : la forme telle qu'elle serait avec ce texte (sans rien écrire), redessinée
+   * en direct ; le texte dessiné de la partie (objets marqués `userData.part`) est masqué pendant l'édition.
+   */
+  textPreview?(shape: ShapeModel, part: string, text: string): ShapeModel;
   /**
    * Suppr sur la partie sélectionnée (sujet 251) : la retire ; le mode peut refuser (ex. clé primaire), rien n'est
    * alors écrit. Dans tous les cas, la forme elle-même n'est pas supprimée.
@@ -144,6 +149,12 @@ export interface ModePartText {
   fontSize: number;
   /** Texte en italique. */
   italic?: boolean;
+  /** Texte centré dans son cadre (sinon à gauche). */
+  center?: boolean;
+  /** Éditeur sans fond (ex. séparateur, sujet 253) ; sinon fond blanc, qui couvre le dessin de la ligne. */
+  transparent?: boolean;
+  /** Couleur du texte dans l'éditeur (#rrggbb, celle du texte dessiné) ; défaut : noir. */
+  color?: string;
 }
 
 /** Obstacles d'une forme (sujet 241), en emprises (ex. onglet d'une région compris). */
@@ -193,9 +204,13 @@ export interface ModeCurrent {
 /** Touche d'un mode sur l'élément sélectionné : opération (une étape d'annulation, libellée `label`). */
 export interface ModeKey {
   label: string;
-  /** L'élément est-il concerné (sinon la touche n'est pas prise) ? */
-  applies(page: PageModel, target: ModeTarget): boolean;
-  run(edit: ModeEdit, target: ModeTarget, current: string | undefined): void;
+  /** L'élément est-il concerné (sinon la touche n'est pas prise) ? `part` : sa partie sélectionnée (sujet 253). */
+  applies(page: PageModel, target: ModeTarget, part?: string): boolean;
+  /**
+   * Opération de la touche ; peut renvoyer la partie de la forme à sélectionner ensuite, dont le texte passe en
+   * édition s'il en a un (ex. séparateur ajouté, sujet 253).
+   */
+  run(edit: ModeEdit, target: ModeTarget, current: string | undefined, part?: string): string | void;
 }
 
 /** Élément d'une page qui peut porter les réglages d'un mode. */
@@ -243,10 +258,15 @@ export type ModeProperty = {
    * réglages de forme seulement quand aucune ne l'est ; `part` est alors passé à `value`, `write` et `hidden`.
    */
   part?: boolean;
+  /** Montré que la forme seule ou une de ses parties soit sélectionnée (ex. bouton d'ajout d'un séparateur, 253). */
+  anyPart?: boolean;
   /** Valeur affichée ; défaut : l'attribut `key`. */
   value?(page: PageModel, target: ModeTarget, part?: string): string | undefined;
-  /** Écriture (undefined = vide) ; défaut : l'attribut `key`. */
-  write?(edit: ModeEdit, target: ModeTarget, value: string | undefined, part?: string): void;
+  /**
+   * Écriture (undefined = vide) ; défaut : l'attribut `key`. Peut renvoyer la partie de la forme à sélectionner ensuite,
+   * dont le texte passe en édition s'il en a un (ex. séparateur ajouté, sujet 253).
+   */
+  write?(edit: ModeEdit, target: ModeTarget, value: string | undefined, part?: string): string | void;
   /** Champ masqué pour cette cible (ex. rang d'une flèche sans flux). */
   hidden?(page: PageModel, target: ModeTarget, part?: string): boolean;
   /** Affiché sans être modifiable (ex. clé primaire d'une entité). */
@@ -254,6 +274,8 @@ export type ModeProperty = {
 } & (
   | { type: 'toggle' }
   | { type: 'number' }
+  /** Bouton pleine largeur (sujet 253) : son clic appelle `write` (valeur undefined). */
+  | { type: 'button' }
   | {
       type: 'text';
       /** Plusieurs lignes (zone de texte, ⌘ + Entrée ou sortie du champ pour valider). */

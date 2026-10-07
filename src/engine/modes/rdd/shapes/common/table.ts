@@ -19,6 +19,7 @@ import {
   TABLE_KINDS,
   fieldsValue,
   headerHeight,
+  isDivider,
   isSecondary,
   markInset,
   missingName,
@@ -28,7 +29,7 @@ import {
   tableWidth,
 } from '../../tables';
 import type { HeaderMark, TableKind } from '../../tables';
-import { addFieldRow } from './fieldRow';
+import { addDividerRow, addFieldRow } from './fieldRow';
 
 /** Rendu et fabrique des tables du mode RDD (sujet 179), communs à ses formes (`shapes/<forme>/`). */
 
@@ -185,7 +186,9 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
   tableFields(shape).forEach((field, index) => {
     const y = bounds.y + header + row * (index + 0.5);
     if (y > bounds.y + bounds.height) return;
-    addFieldRow(group, ctx, kind, field, { left: bounds.x, y, scale });
+    const part = String(index);
+    if (isDivider(field)) addDividerRow(group, ctx, field, { left: bounds.x, width: bounds.width, y, scale, part });
+    else addFieldRow(group, ctx, kind, field, { left: bounds.x, y, scale, part });
   });
   return group;
 }
@@ -345,6 +348,8 @@ export function table(
     textZone: (shape) => nameZone(shape),
     // Taille calculée de son contenu (sujet 247) : pas de poignées de redimensionnement.
     resizable: false,
+    // Texte brut : nom, champs et séparateurs s'écrivent sans mise en forme (sujet 258).
+    plainText: true,
     // Flèches tirées des côtés seulement : le « + » d'ajout de champ prend le bas (sujet 250).
     connectSides: ['e', 'w'],
     swatch: () => '<path d="M5 5h30v18H5zM5 11h30"/>',

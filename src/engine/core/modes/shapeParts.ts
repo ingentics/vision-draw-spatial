@@ -1,3 +1,4 @@
+import type { Object3D } from 'three';
 import type { PageModel, Point, Rect, ShapeModel } from '../../model/types';
 import type { ModePartText } from '../../modes/types';
 import type { EngineCore } from '../EngineCore';
@@ -36,11 +37,30 @@ export class ShapeParts {
     return shape && rect ? { shape, rect } : undefined;
   }
 
-  /** Texte modifiable d'une partie de la page courante ; undefined s'il n'y en a pas. */
-  text(shapeId: string, part: string): ModePartText | undefined {
+  /**
+   * Texte modifiable d'une partie de la page courante ; undefined s'il n'y en a pas. `shape` : la forme telle qu'elle
+   * est dessinée, si ce n'est pas celle du modèle (aperçu de la saisie).
+   */
+  text(shapeId: string, part: string, shape?: ShapeModel): ModePartText | undefined {
+    const page = this.core.pages.getCurrentPage();
+    const target = shape ?? page?.shapes.find((s) => s.id === shapeId);
+    return page && target ? this.core.modes.modeOf(page)?.parts?.text?.(page, target, part) : undefined;
+  }
+
+  /** Forme telle qu'elle serait avec ce texte sur la partie (aperçu de la saisie, sujet 253) ; undefined sans aperçu. */
+  textPreview(shapeId: string, part: string, text: string): ShapeModel | undefined {
     const page = this.core.pages.getCurrentPage();
     const shape = page?.shapes.find((s) => s.id === shapeId);
-    return page && shape ? this.core.modes.modeOf(page)?.parts?.text?.(page, shape, part) : undefined;
+    return page && shape ? this.core.modes.modeOf(page)?.parts?.textPreview?.(shape, part, text) : undefined;
+  }
+
+  /** Objets du texte dessiné d'une partie (marqués `userData.part` par le rendu du mode). */
+  textObjects(shapeId: string, part: string): Object3D[] {
+    const found: Object3D[] = [];
+    this.core.sceneView.sceneObject(shapeId)?.traverse((object) => {
+      if (object.userData.part === part) found.push(object);
+    });
+    return found;
   }
 
   /**

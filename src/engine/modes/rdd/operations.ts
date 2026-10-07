@@ -1,7 +1,7 @@
 import type { ShapeModel } from '../../model/types';
 import { readableOn } from '../../render/styleColors';
 import type { ModeEdit } from '../types';
-import type { Field, TableContent } from './tables';
+import type { Field, TableContent, TableRow } from './tables';
 import {
   FIELDS,
   ICON,
@@ -9,6 +9,8 @@ import {
   SECONDARY_SCALE,
   TABLE,
   headerHeight,
+  isDivider,
+  isPrimaryKey,
   isSecondary,
   fieldsValue,
   tableContent,
@@ -41,10 +43,16 @@ export function fitTable(edit: ModeEdit, shape: ShapeModel, changes: Partial<Tab
   });
 }
 
+/** Lignes écrites dans la table, et sa taille qui suit. */
+function writeRows(edit: ModeEdit, shape: ShapeModel, rows: readonly TableRow[]): void {
+  edit.setElementAttribute(shape.id, FIELDS, fieldsValue(rows));
+  fitTable(edit, shape, { fields: rows });
+}
+
 /**
  * Champ `index` de la table modifié (sujet 249) : label, kind, nullable, type (sujet 256, vide = aucun) ; la taille
  * suit. Un label vide est refusé ; la clé primaire garde son kind et n'est jamais nullable, et aucun champ ne devient
- * clé primaire.
+ * clé primaire. Un séparateur ne prend que le label, vide permis (sujet 253).
  */
 export function setField(
   edit: ModeEdit,
@@ -52,74 +60,95 @@ export function setField(
   index: number,
   patch: Partial<Pick<Field, 'label' | 'kind' | 'nullable' | 'type'>>,
 ): void {
-  const fields = tableFields(shape);
-  const field = fields[index];
+  const rows = tableFields(shape);
+  const row = rows[index];
   const label = patch.label?.trim();
-  if (!tableKindOf(shape) || !field || label === '') return;
-  const key = field.kind === 'pk';
-  const next: Field = {
-    ...field,
-    ...(label !== undefined && { label }),
-    ...(patch.kind !== undefined && !key && patch.kind !== 'pk' && { kind: patch.kind }),
-    ...(patch.nullable !== undefined && !key && { nullable: patch.nullable }),
-    ...(patch.type !== undefined && { type: patch.type }),
-  };
-  const written = fields.map((current, i) => (i === index ? next : current));
-  edit.setElementAttribute(shape.id, FIELDS, fieldsValue(written));
-  fitTable(edit, shape, { fields: written });
+  // Un séparateur peut être vide (sujet 253) ; un champ refuse un label vide.
+  if (!tableKindOf(shape) || !row || (label === '' && !isDivider(row))) return;
+  let next: TableRow;
+  if (isDivider(row)) next = { ...row, ...(label !== undefined && { label }) };
+  else {
+    const key = row.kind === 'pk';
+    next = {
+      ...row,
+      ...(label !== undefined && { label }),
+      ...(patch.kind !== undefined && !key && patch.kind !== 'pk' && { kind: patch.kind }),
+      ...(patch.nullable !== undefined && !key && { nullable: patch.nullable }),
+      ...(patch.type !== undefined && { type: patch.type }),
+    };
+  }
+  writeRows(
+    edit,
+    shape,
+    rows.map((current, i) => (i === index ? next : current)),
+  );
 }
 
 /** Label d'un champ ajouté : `Field1`, `Field2`… (premier numéro libre dans la table). */
-export function newFieldLabel(fields: readonly Field[]): string {
-  const used = new Set(fields.map((field) => field.label));
+export function newFieldLabel(rows: readonly TableRow[]): string {
+  const used = new Set(rows.map((row) => row.label));
   let number = 1;
   while (used.has(`Field${number}`)) number += 1;
   return `Field${number}`;
 }
 
-/**
- * Ajoute un champ (sujet 250) : propriété non nullable du type `type` (vide = sans type, sujet 256), nommée `FieldN`, après le champ `after` (sinon en
- * fin de liste ; jamais avant la clé primaire) ; la taille suit. Renvoie le rang du champ ajouté.
- */
-export function addField(edit: ModeEdit, shape: ShapeModel, type: string, after?: number): number | undefined {
+/** Ajoute une ligne après la ligne `after` (sinon en fin de liste ; jamais avant la clé primaire) ; renvoie son rang. */
+function addRow(edit: ModeEdit, shape: ShapeModel, make: (rows: TableRow[]) => TableRow, after?: number) {
   if (!tableKindOf(shape)) return undefined;
-  const fields = tableFields(shape);
-  const keyed = fields[0]?.kind === 'pk' ? 1 : 0;
-  const index = after === undefined ? fields.length : Math.max(keyed, Math.min(after + 1, fields.length));
-  const field: Field = { kind: 'property', label: newFieldLabel(fields), type, nullable: false };
-  const written = [...fields.slice(0, index), field, ...fields.slice(index)];
-  edit.setElementAttribute(shape.id, FIELDS, fieldsValue(written));
-  fitTable(edit, shape, { fields: written });
+  const rows = tableFields(shape);
+  const keyed = isPrimaryKey(rows[0]) ? 1 : 0;
+  const index = after === undefined ? rows.length : Math.max(keyed, Math.min(after + 1, rows.length));
+  writeRows(edit, shape, [...rows.slice(0, index), make(rows), ...rows.slice(index)]);
   return index;
 }
 
-/** Retire le champ `index` (sujet 251) ; jamais la clé primaire. La taille suit. */
+/**
+ * Ajoute un champ (sujet 250) : propriété non nullable du type `type` (vide = sans type, sujet 256), nommée `FieldN`,
+ * après la ligne `after` (sinon en fin de liste ; jamais avant la clé primaire) ; la taille suit. Renvoie son rang.
+ */
+export function addField(edit: ModeEdit, shape: ShapeModel, type: string, after?: number): number | undefined {
+  return addRow(
+    edit,
+    shape,
+    (rows) => ({ kind: 'property', label: newFieldLabel(rows), type, nullable: false }),
+    after,
+  );
+}
+
+/** Ajoute un séparateur sans label après la ligne `after` (sujet 253), comme `addField` ; renvoie son rang. */
+export function addDivider(edit: ModeEdit, shape: ShapeModel, after?: number): number | undefined {
+  return addRow(edit, shape, () => ({ divider: true, label: '' }), after);
+}
+
+/** Retire la ligne `index` (champ, sujet 251, ou séparateur) ; jamais la clé primaire. La taille suit. */
 export function removeField(edit: ModeEdit, shape: ShapeModel, index: number): void {
-  const fields = tableFields(shape);
-  if (!tableKindOf(shape) || !fields[index] || fields[index].kind === 'pk') return;
-  const written = fields.filter((_, i) => i !== index);
-  edit.setElementAttribute(shape.id, FIELDS, fieldsValue(written));
-  fitTable(edit, shape, { fields: written });
+  const rows = tableFields(shape);
+  if (!tableKindOf(shape) || !rows[index] || isPrimaryKey(rows[index])) return;
+  writeRows(
+    edit,
+    shape,
+    rows.filter((_, i) => i !== index),
+  );
 }
 
 /**
- * Ordre des champs avec le champ `from` à la place `slot` (sujet 252 ; place = rang du champ devant lequel il va, ou le
- * nombre de champs pour la fin) et son nouveau rang ; jamais la clé primaire, et rien ne passe devant elle.
+ * Ordre des lignes avec la ligne `from` à la place `slot` (sujet 252 ; place = rang de la ligne devant laquelle elle
+ * va, ou le nombre de lignes pour la fin) et son nouveau rang ; jamais la clé primaire, et rien ne passe devant elle.
  */
 export function movedFields(
-  fields: readonly Field[],
+  rows: readonly TableRow[],
   from: number,
   slot: number,
-): { fields: Field[]; index: number } | undefined {
-  const field = fields[from];
-  const keyed = fields[0]?.kind === 'pk' ? 1 : 0;
-  if (!field || field.kind === 'pk' || slot < keyed || slot > fields.length) return undefined;
+): { fields: TableRow[]; index: number } | undefined {
+  const row = rows[from];
+  const keyed = isPrimaryKey(rows[0]) ? 1 : 0;
+  if (!row || isPrimaryKey(row) || slot < keyed || slot > rows.length) return undefined;
   const to = slot > from ? slot - 1 : slot;
-  const rest = fields.filter((_, i) => i !== from);
-  return { fields: [...rest.slice(0, to), field, ...rest.slice(to)], index: to };
+  const rest = rows.filter((_, i) => i !== from);
+  return { fields: [...rest.slice(0, to), row, ...rest.slice(to)], index: to };
 }
 
-/** Déplace le champ `from` à la place `slot` (`movedFields`) ; renvoie son nouveau rang. */
+/** Déplace la ligne `from` à la place `slot` (`movedFields`) ; renvoie son nouveau rang. */
 export function moveField(edit: ModeEdit, shape: ShapeModel, from: number, slot: number): number | undefined {
   const moved = tableKindOf(shape) ? movedFields(tableFields(shape), from, slot) : undefined;
   if (!moved) return undefined;

@@ -67,6 +67,10 @@ page, section au nom du mode dans le panneau d'une flèche ou d'une forme. Par d
 `key` de sa cible ; `value`, `write` et `hidden` le font passer par les règles du mode (ex. le rang d'une flèche, qui
 s'échange avec une autre).
 
+Un réglage `button` (sujet 253) est un bouton sur toute la largeur de la section, dont le clic appelle `write`.
+`write` peut renvoyer une partie de la forme : elle est alors sélectionnée et son texte passe en édition (ex.
+séparateur ajouté) ; `anyPart` montre le réglage que la forme seule ou une de ses parties soit sélectionnée.
+
 Un réglage `part: true` porte sur une **partie** de la forme (ex. un champ d'une table RDD, sujet 249) : il n'est
 montré que lorsqu'une partie est sélectionnée (et les autres réglages de forme seulement lorsqu'aucune ne l'est) ;
 `value`, `write` et `hidden` reçoivent alors la partie en dernier paramètre.
@@ -124,7 +128,11 @@ paramètres « Modes › Séquences » (clés `shapes.edgeBadge…`, communes à
   emprise (`bounds`) ; Échap revient à la forme. `text` / `setText` : texte modifiable sur place au double-clic, sur une
   ligne (Entrée valide), écrit par une opération du mode (une étape d'annulation). `remove` : Suppr sur la partie
   sélectionnée la retire (sujet 251) ; la forme n'est jamais supprimée à sa place, et un refus du mode laisse tout tel
-  quel. `dropAt` / `move` (sujet 252) : un appui sur la partie sélectionnée la glisse (et non la forme) ; `dropAt` donne
+  quel. `textPreview` (sujet 253) : la forme telle qu'elle serait avec le texte en cours de saisie, redessinée en
+  direct ; les objets du texte dessiné de la partie (marqués `userData.part`) sont masqués pendant l'édition, et
+  `ModePartText` peut demander un éditeur sans fond (`transparent`), centré (`center`), d'une couleur (`color`). Les
+  touches du mode (`keys`) reçoivent aussi la partie sélectionnée et peuvent renvoyer la partie à sélectionner.
+  `dropAt` / `move` (sujet 252) : un appui sur la partie sélectionnée la glisse (et non la forme) ; `dropAt` donne
   la place visée sous le pointeur, `preview` la forme telle qu'elle serait (redessinée en direct, la partie mise en
   valeur à sa nouvelle place), `move` déplace la partie au lâcher (une étape d'annulation) et renvoie la partie à
   sélectionner.

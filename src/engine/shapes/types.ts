@@ -201,6 +201,8 @@ export interface ShapeDefinition {
   resizable?: boolean;
   /** On peut y accrocher une flèche (défaut : oui). */
   connectable?: boolean;
+  /** Texte brut : édité sans mise en forme ni panneau de format (ex. tables RDD, sujet 258 ; défaut : non). */
+  plainText?: boolean;
   /** Côtés qui ont une poignée de connexion (défaut : les quatre ; ex. table RDD : gauche et droite, sujet 250). */
   connectSides?: readonly ConnectSide[];
   /**

@@ -944,6 +944,16 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     jamais avant la clé primaire ; le champ ajouté est sélectionné et son label passe en édition. Une étape
     d'annulation. Un champ sans type n'affiche rien en gris et n'est pas signalé. La zone « Champs » du panneau a
     disparu.
+  - Texte brut (sujet 258) : nom d'une table, label d'un champ, texte d'un séparateur s'écrivent sans mise en forme
+    (pas de panneau de format pendant la saisie, ⌘B / ⌘I / ⌘U sans effet, collage sans format) et sans HTML
+    (`ShapeDefinition.plainText`, `LabelEditRequest.plain` ; le texte d'une partie est toujours brut).
+  - Séparateurs (sujet 253) : une ligne `{"divider":true,"label":"…"}` de `spatial.fields`, dessinée comme un trait
+    gris (`#cccccc`) sur la largeur de la table, interrompu autour de son texte éventuel, centré, 7 px, gris
+    (`#999999`) ; vide permis (un simple trait). Ajout : touche « - » sur une ligne sélectionnée, ou bouton « Ajouter un
+    séparateur » tout en bas de l'encart RDD du panneau (après la ligne sélectionnée, sinon en fin de liste ; jamais
+    avant la clé primaire) ; le séparateur ajouté est sélectionné, son texte en édition. Édition sur place sans fond,
+    texte gris, trait et largeur de la table suivant la saisie en direct. Sélection, suppression et glisser comme un
+    champ ; le panneau d'un séparateur ne montre que son texte.
   - Réordonner les champs (sujet 252) : un champ déjà sélectionné se glisse dans sa table ; pendant le glisser, la
     table est redessinée avec le champ à la place de la ligne survolée (les autres se décalent) et il y reste mis en
     valeur ; un glisser depuis un champ non sélectionné déplace la table. La clé primaire

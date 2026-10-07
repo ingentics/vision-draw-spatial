@@ -29,6 +29,8 @@ export class LabelEditor {
   editing?: LabelEditRequest;
   /** Nom d'origine d'une forme dont le texte saisi est montré en direct (`previewLabel`), à rétablir à la fermeture. */
   private previewed?: { pageId: string; shapeId: string; label: string };
+  /** Forme dessinée avec le texte saisi d'une de ses parties (sujet 253), en attendant la validation. */
+  private partPreview?: ShapeModel;
   /** Dernière demande d'édition : une ouverture différée (vue qui glisse) ne vaut que si aucune autre n'a suivi. */
   private startToken = 0;
 
@@ -92,16 +94,18 @@ export class LabelEditor {
     const rect = this.labelEditScreen(element.id);
     if (!rect) return;
     const displayStyle = this.displayStyle(element.id, element.style);
+    const plain = 'kind' in element && this.core.registry.isPlainText(element);
     this.startLabelEdit({
       pageId: editable.page.id,
       elementId: element.id,
       text: element.label,
+      ...(plain && { plain }),
       screen: rect,
       plane: this.labelEditPlane(element.id),
       styleCellId: element.id,
       style: element.style,
       displayStyle,
-      html: styleFlag(element.style, 'html') ? cellLabelValue(editable.pageTree, element.id) : undefined,
+      html: !plain && styleFlag(element.style, 'html') ? cellLabelValue(editable.pageTree, element.id) : undefined,
       scale: this.textScale(element.id),
       onEdge: editable.page.edges.some((e) => e.id === element.id),
       // Fond de l'éditeur : celui du texte affiché (une forme qui place elle-même son label peut l'ôter).
@@ -126,26 +130,27 @@ export class LabelEditor {
       elementId: shapeId,
       part,
       singleLine: true,
+      plain: true,
       text: text.text,
       screen,
       style: {
         fontSize: String(text.fontSize),
-        fontColor: '#000000',
+        fontColor: text.color ?? '#000000',
         fontStyle: text.italic ? '2' : '0',
-        align: 'left',
+        align: text.center ? 'center' : 'left',
         verticalAlign: 'middle',
         whiteSpace: 'nowrap',
       },
       scale: this.textScale(shapeId),
       onEdge: false,
-      background: '#ffffff',
+      ...(!text.transparent && { background: '#ffffff' }),
     });
   }
 
-  /** Cadre à l'écran du texte d'une partie (sujet 249). */
+  /** Cadre à l'écran du texte d'une partie (sujet 249), sur la forme telle qu'elle est dessinée (aperçu compris). */
   private partScreen(shapeId: string, part: string): Rect | undefined {
-    const text = this.core.shapeParts.text(shapeId, part);
-    const shape = this.core.pages.getCurrentPage()?.shapes.find((s) => s.id === shapeId);
+    const shape = this.partPreview ?? this.core.pages.getCurrentPage()?.shapes.find((s) => s.id === shapeId);
+    const text = this.core.shapeParts.text(shapeId, part, shape);
     return text && shape
       ? this.core.picking.screenRectOf(shapeId, text.zone, this.core.sceneView.labelTop(shape))
       : undefined;
@@ -367,6 +372,17 @@ export class LabelEditor {
    */
   previewLabel(text: string): void {
     const editing = this.editing;
+    // Partie d'une forme (sujet 253) : la forme redessinée avec ce texte, son texte dessiné masqué.
+    if (editing?.part !== undefined) {
+      const preview = this.core.shapeParts.textPreview(editing.elementId, editing.part, text);
+      if (!preview) return;
+      this.partPreview = preview;
+      this.core.live.rebuildShapeObject(preview);
+      this.hideEditedLabel();
+      this.core.live.afterLiveEdit();
+      this.relocateLabelEdit();
+      return;
+    }
     const page = this.core.pages.getCurrentPage();
     const shape = page?.shapes.find((s) => s.id === editing?.elementId);
     if (!editing || editing.onEdge || !page || page.id !== editing.pageId || !shape) return;
@@ -395,6 +411,17 @@ export class LabelEditor {
         this.core.live.afterLiveEdit();
       }
     }
+    // Aperçu d'une partie : la forme reprend son dessin (une validation l'écrit ensuite et relit la page).
+    if (this.partPreview) {
+      this.partPreview = undefined;
+      const shape = this.core.pages.getCurrentPage()?.shapes.find((s) => s.id === editing.elementId);
+      if (shape && editing.pageId === this.core.pages.currentPageId) {
+        this.core.live.rebuildShapeObject(shape);
+        this.core.live.afterLiveEdit();
+      }
+    }
+    if (editing.part !== undefined)
+      this.core.shapeParts.textObjects(editing.elementId, editing.part).forEach((object) => (object.visible = true));
     this.core.sceneView.labelObjects(editing.styleCellId).forEach((object) => (object.visible = true));
     this.core.highlight.update();
   }
@@ -403,6 +430,8 @@ export class LabelEditor {
     const editing = this.editing;
     if (!editing || editing.pageId !== this.core.pages.currentPageId) return;
     this.core.sceneView.labelObjects(editing.styleCellId).forEach((object) => (object.visible = false));
+    if (editing.part !== undefined)
+      this.core.shapeParts.textObjects(editing.elementId, editing.part).forEach((object) => (object.visible = false));
     this.core.rendering.requestRender();
   }
 

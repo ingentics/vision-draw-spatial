@@ -80,6 +80,8 @@ export interface RichEditorOptions {
   selectAll?: boolean;
   /** Texte d'une seule ligne (ex. champ d'une table RDD, sujet 249) : Entrée seule valide. */
   singleLine?: boolean;
+  /** Texte brut (sujet 258) : les raccourcis de mise en forme ne font rien. */
+  plain?: boolean;
 }
 
 /**
@@ -244,7 +246,7 @@ export function useRichEditor(options: RichEditorOptions) {
         finish(true);
       } else if (mod && !event.altKey && (key === 'b' || key === 'i' || key === 'u')) {
         event.preventDefault();
-        latest.current.onToggle(({ b: 'bold', i: 'italic', u: 'underline' } as const)[key]);
+        if (!latest.current.plain) latest.current.onToggle(({ b: 'bold', i: 'italic', u: 'underline' } as const)[key]);
       }
     },
   };

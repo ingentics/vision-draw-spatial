@@ -1,6 +1,7 @@
 import type { ShapeModel } from '../../model/types';
 import type { ModeParts } from '../types';
 import { moveField, movedFields, removeField, setField } from './operations';
+import { TYPE_COLOR } from './shapes/common/fieldRow';
 import {
   FIELDS,
   SECONDARY_SCALE,
@@ -8,9 +9,13 @@ import {
   fieldLayout,
   fieldRow,
   fieldsValue,
+  isDivider,
+  isPrimaryKey,
   isSecondary,
+  tableContent,
   tableFields,
   tableKindOf,
+  tableWidth,
 } from './tables';
 
 /**
@@ -45,6 +50,19 @@ export const fieldParts: ModeParts = {
     const field = tableFields(shape)[index]!;
     const scale = isSecondary(shape) ? SECONDARY_SCALE : 1;
     const row = fieldRow(shape, index);
+    // Séparateur (sujet 253) : son label au milieu de la ligne, petit.
+    if (isDivider(field)) {
+      const inset = TABLE.padding * scale;
+      return {
+        text: field.label,
+        zone: { x: row.x + inset, y: row.y, width: row.width - 2 * inset, height: row.height },
+        fontSize: TABLE.divider.size * scale,
+        center: true,
+        // Sans fond : le trait se redessine autour du texte saisi (aperçu en direct) ; gris comme le texte dessiné.
+        transparent: true,
+        color: TYPE_COLOR,
+      };
+    }
     const left = row.x + fieldLayout(kind, field).label * scale;
     return {
       text: field.label,
@@ -52,6 +70,19 @@ export const fieldParts: ModeParts = {
       zone: { x: left, y: row.y, width: row.x + row.width - left - TABLE.padding * scale, height: row.height },
       fontSize: TABLE.fieldSize * scale,
       italic: kind.italicFields,
+    };
+  },
+  // Saisie en direct (sujet 253) : la table avec ce texte sur la ligne, élargie s'il le faut.
+  textPreview(shape, part, text) {
+    const kind = tableKindOf(shape);
+    const index = kind ? fieldIndex(shape, part) : undefined;
+    if (!kind || index === undefined) return shape;
+    const rows = tableFields(shape).map((row, i) => (i === index ? { ...row, label: text.trim() } : row));
+    const width = tableWidth(kind, { ...tableContent(shape), fields: rows });
+    return {
+      ...shape,
+      style: { ...shape.style, [FIELDS]: fieldsValue(rows)! },
+      bounds: { ...shape.bounds, width: Math.round(width * 100) / 100 },
     };
   },
   setText(edit, shape, part, text) {
@@ -63,11 +94,11 @@ export const fieldParts: ModeParts = {
   dropAt(_page, shape, part, point) {
     const index = tableKindOf(shape) ? fieldIndex(shape, part) : undefined;
     const fields = tableFields(shape);
-    if (index === undefined || fields[index]!.kind === 'pk') return undefined;
+    if (index === undefined || isPrimaryKey(fields[index])) return undefined;
     const { x, y, width, height } = shape.bounds;
     if (point.x < x || point.x > x + width || point.y < y || point.y > y + height) return undefined;
     const first = fieldRow(shape, 0);
-    const keyed = fields[0]?.kind === 'pk' ? 1 : 0;
+    const keyed = isPrimaryKey(fields[0]) ? 1 : 0;
     // Place sous le pointeur : la ligne survolée, le champ glissé y prenant sa place.
     const row = Math.floor((point.y - first.y) / first.height);
     const slot = Math.min(fields.length, Math.max(keyed, row > index ? row + 1 : row));

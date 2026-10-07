@@ -144,6 +144,11 @@ export interface LabelEditRequest {
   part?: string;
   /** Texte d'une seule ligne : Entrée valide (sinon ⌘ + Entrée). */
   singleLine?: boolean;
+  /**
+   * Texte brut (sujet 258, ex. tables RDD, parties de forme) : ni mise en forme ni panneau de format ; validé sans
+   * HTML.
+   */
+  plain?: boolean;
   /** Texte brut actuel. */
   text: string;
   screen: Rect;

@@ -11,14 +11,15 @@ import {
   misplacedPrimaryKey,
   missingName,
   FIELD_TYPES,
+  isDivider,
   shownMark,
   tableFields,
   tableKindOf,
 } from './tables';
-import { fitTable, setField, setHeaderColor, setIcon, setSecondary } from './operations';
+import { addDivider, fitTable, setField, setHeaderColor, setIcon, setSecondary } from './operations';
 import { fieldHandleClicked, fieldHandles } from './fieldHandles';
 import { fieldIndex, fieldParts } from './fieldParts';
-import type { Field, FieldKind } from './tables';
+import type { Field, FieldKind, TableRow } from './tables';
 import {
   REGION_COLORS,
   REGION_KIND,
@@ -34,14 +35,22 @@ import {
 const tableOf = (target: ModeTarget): ShapeModel | undefined =>
   'kind' in target && tableKindOf(target) ? target : undefined;
 const notTable = (_page: unknown, target: ModeTarget) => !tableOf(target);
-/** Champ sélectionné d'une table (sujet 249) : la table, le rang et le champ. */
+/** Ligne sélectionnée d'une table (champ, sujet 249, ou séparateur, sujet 253) : la table, le rang et la ligne. */
+function rowOf(
+  target: ModeTarget,
+  part: string | undefined,
+): { shape: ShapeModel; index: number; row: TableRow } | undefined {
+  const shape = tableOf(target);
+  const index = shape && fieldIndex(shape, part);
+  return shape && index !== undefined ? { shape, index, row: tableFields(shape)[index]! } : undefined;
+}
+/** Champ sélectionné d'une table (pas un séparateur). */
 function fieldOf(
   target: ModeTarget,
   part: string | undefined,
 ): { shape: ShapeModel; index: number; field: Field } | undefined {
-  const shape = tableOf(target);
-  const index = shape && fieldIndex(shape, part);
-  return shape && index !== undefined ? { shape, index, field: tableFields(shape)[index]! } : undefined;
+  const selected = rowOf(target, part);
+  return selected && !isDivider(selected.row) ? { ...selected, field: selected.row } : undefined;
 }
 /** Kinds proposés pour un champ : jamais la clé primaire, unique et en tête. */
 const FIELD_KIND_OPTIONS: Array<{ value: Exclude<FieldKind, 'pk'>; label: string }> = [
@@ -170,6 +179,23 @@ export const definition: PageModeDefinition = {
       hidden: notField,
     },
     {
+      // Séparateur sélectionné (sujet 253) : son texte, vide permis (un simple trait).
+      type: 'text',
+      part: true,
+      key: 'rdd.divider.label',
+      label: 'Séparateur',
+      title: 'Texte au milieu du séparateur ; vide : un simple trait',
+      value: (_page, target, part) => rowOf(target, part)?.row.label,
+      write: (edit, target, value, part) => {
+        const selected = rowOf(target, part);
+        if (selected) fieldParts.setText!(edit, selected.shape, String(selected.index), value ?? '');
+      },
+      hidden: (_page, target, part) => {
+        const selected = rowOf(target, part);
+        return !selected || !isDivider(selected.row);
+      },
+    },
+    {
       // Type de donnée, modifiable à tout moment (sujet 256) ; « Aucun » pour un champ ajouté par le « + ».
       type: 'select',
       part: true,
@@ -215,6 +241,21 @@ export const definition: PageModeDefinition = {
       },
       hidden: notPlainField,
     },
+    {
+      // Tout en bas de l'encart, table ou ligne sélectionnée : un séparateur après la ligne (sinon en fin de liste),
+      // sélectionné et son texte en édition (sujet 253).
+      type: 'button',
+      anyPart: true,
+      key: 'rdd.addDivider',
+      label: 'Ajouter un séparateur',
+      title: 'Ajoute un séparateur après la ligne sélectionnée, sinon en fin de liste (touche « - » sur une ligne)',
+      write: (edit, target, _value, part) => {
+        const shape = tableOf(target);
+        const index = shape && addDivider(edit, shape, rowOf(target, part)?.index);
+        return index === undefined ? undefined : String(index);
+      },
+      hidden: notTable,
+    },
   ],
   // À l'ouverture, chaque table prend la taille de son contenu (sujet 255).
   opened: (edit) => {
@@ -238,6 +279,16 @@ export const definition: PageModeDefinition = {
   // Une région ne passe pas sur ses sœurs (sujet 241).
   obstacles: regionObstacles,
   keys: {
+    // « - » sur une ligne sélectionnée : un séparateur après elle, son texte en édition (sujet 253).
+    '-': {
+      label: 'Ajouter un séparateur',
+      applies: (_page, target, part) => rowOf(target, part) !== undefined,
+      run: (edit, target, _current, part) => {
+        const selected = rowOf(target, part);
+        const index = selected && addDivider(edit, selected.shape, selected.index);
+        return index === undefined ? undefined : String(index);
+      },
+    },
     // « f » : région ajustée à son contenu (sujet 184) ; sur un autre élément, la touche garde son effet.
     f: {
       label: 'Ajuster la région',

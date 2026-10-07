@@ -82,11 +82,21 @@ export class PageModes {
           ? page?.edges.find((e) => e.id === targetId)
           : page?.shapes.find((s) => s.id === targetId);
     if (!property || !target) return;
+    let next: string | void = undefined;
     this.editPageMode(property.label, (edit) => {
-      if (property.write) property.write(edit, target, value, part);
+      if (property.write) next = property.write(edit, target, value, part);
       else if (scope === 'page') edit.setPageAttribute(key, value);
       else edit.setElementAttribute(target.id, key, value);
     });
+    // Partie désignée par le réglage (ex. séparateur ajouté, sujet 253) : sélectionnée, son texte en édition.
+    const shape =
+      scope === 'shape' && typeof next === 'string'
+        ? this.core.pages.getCurrentPage()?.shapes.find((s) => s.id === target.id)
+        : undefined;
+    if (shape && typeof next === 'string') {
+      this.core.selection.selectItems([{ type: 'shape', element: shape }], next);
+      if (this.core.shapeParts.text(shape.id, next)) this.core.labelEditor.editPartLabel(shape.id, next);
+    }
   }
 
   getModeCurrent(pageId = this.core.pages.currentPageId): string | undefined {
@@ -171,9 +181,20 @@ export class PageModes {
     const action = this.core.modes.modeOf(editable.page)?.keys?.[key];
     const id = selection.picked.element.id;
     const target = [...editable.page.edges, ...editable.page.shapes].find((element) => element.id === id);
-    if (!action || !target || !action.applies(editable.page, target)) return false;
+    const part = selection.part;
+    if (!action || !target || !action.applies(editable.page, target, part)) return false;
     const current = this.getModeCurrent(editable.page.id);
-    this.editPageMode(action.label, (edit) => action.run(edit, target, current));
+    let next: string | void = undefined;
+    this.editPageMode(action.label, (edit) => {
+      next = action.run(edit, target, current, part);
+    });
+    // Partie désignée par la touche (ex. séparateur ajouté, sujet 253) : sélectionnée, son texte en édition.
+    const shape =
+      typeof next === 'string' ? this.core.pages.getCurrentPage()?.shapes.find((s) => s.id === id) : undefined;
+    if (shape && typeof next === 'string') {
+      this.core.selection.selectItems([{ type: 'shape', element: shape }], next);
+      if (this.core.shapeParts.text(id, next)) this.core.labelEditor.editPartLabel(id, next);
+    }
     return true;
   }
 

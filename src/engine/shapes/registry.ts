@@ -117,6 +117,11 @@ export class ShapeRegistry {
     return this.resolve(shape).definition.resizable !== false;
   }
 
+  /** Texte de la forme édité en texte brut, sans mise en forme (sujet 258) ? */
+  isPlainText(shape: ShapeModel): boolean {
+    return this.resolve(shape).definition.plainText === true;
+  }
+
   /** Côtés aux poignées de connexion de la forme sélectionnée. */
   connectSides(shape: ShapeModel): readonly ConnectSide[] {
     return this.resolve(shape).definition.connectSides ?? CONNECT_SIDES;

@@ -32,6 +32,8 @@ export const TABLE = {
   fieldIcon: { size: 12, gap: 4 },
   /** Air entre le label d'un champ et son type. */
   typeGap: 6,
+  /** Séparateur (sujet 253) : taille de son label, air autour du label, longueur minimale du trait de chaque côté. */
+  divider: { size: 7, gap: 4, stroke: 16 },
   /** Écart du second trait d'un entête à cadre double. */
   doubleGap: 3,
   /** Côté du coin plié d'un document. */
@@ -103,13 +105,28 @@ export interface Field {
   nullable: boolean;
 }
 
+/** Séparateur entre les champs (sujet 253) : un trait, son label éventuel au milieu. */
+export interface Divider {
+  divider: true;
+  label: string;
+}
+
+/** Ligne de la zone des champs : un champ ou un séparateur. */
+export type TableRow = Field | Divider;
+
+export const isDivider = (row: TableRow): row is Divider => 'divider' in row;
+
+/** La ligne est-elle la clé primaire ? */
+export const isPrimaryKey = (row: TableRow | undefined): boolean => !!row && !isDivider(row) && row.kind === 'pk';
+
 /** Clé primaire des tables qui en ont une : premier champ, jamais nullable, ni retirée ni déplacée. */
 export const PRIMARY_KEY: Field = { kind: 'pk', label: 'id', type: 'integer', nullable: false };
 
-/** Champ lu du fichier ; undefined pour une entrée illisible (sans label, kind inconnu…). */
-function readField(item: unknown): Field | undefined {
+/** Ligne lue du fichier ; undefined pour une entrée illisible (sans label, kind inconnu…). */
+function readField(item: unknown): TableRow | undefined {
   if (typeof item !== 'object' || item === null) return undefined;
-  const { kind, label, type, nullable } = item as Record<string, unknown>;
+  const { kind, label, type, nullable, divider } = item as Record<string, unknown>;
+  if (divider === true) return { divider: true, label: typeof label === 'string' ? label : '' };
   if (typeof label !== 'string' || !FIELD_KINDS.includes(kind as FieldKind)) return undefined;
   return {
     kind: kind as FieldKind,
@@ -130,11 +147,15 @@ function rawFields(shape: ShapeModel): unknown[] | undefined {
   }
 }
 
-/** Valeur écrite de `spatial.fields` (clés dans un ordre fixe) ; undefined sans champ. */
-export const fieldsValue = (fields: readonly Field[]): string | undefined =>
-  fields.length > 0
+/** Valeur écrite de `spatial.fields` (clés dans un ordre fixe) ; undefined sans ligne. */
+export const fieldsValue = (rows: readonly TableRow[]): string | undefined =>
+  rows.length > 0
     ? JSON.stringify(
-        fields.map(({ kind, label, type, nullable }) => ({ kind, label, type, nullable: kind !== 'pk' && nullable })),
+        rows.map((row) =>
+          isDivider(row)
+            ? { divider: true, label: row.label }
+            : { kind: row.kind, label: row.label, type: row.type, nullable: row.kind !== 'pk' && row.nullable },
+        ),
       )
     : undefined;
 
@@ -156,25 +177,28 @@ export const TABLE_KINDS: Record<string, TableKind> = {
 /** Forme de table d'une forme du mode ; undefined pour une autre forme. */
 export const tableKindOf = (shape: ShapeModel): TableKind | undefined => TABLE_KINDS[shape.kind];
 
-/** Champs de la table (`spatial.fields`) ; une valeur ou une entrée illisible est ignorée (et signalée). */
-export function fieldsOf(shape: ShapeModel): Field[] {
-  return (rawFields(shape) ?? []).map(readField).filter((field): field is Field => field !== undefined);
+/**
+ * Lignes de la table (`spatial.fields`) : champs et séparateurs ; une valeur ou une entrée illisible est ignorée (et
+ * signalée).
+ */
+export function fieldsOf(shape: ShapeModel): TableRow[] {
+  return (rawFields(shape) ?? []).map(readField).filter((row): row is TableRow => row !== undefined);
 }
 
 /**
  * Champs affichés : ceux du fichier, la clé primaire ramenée en tête (ajoutée si elle manque) pour une table qui en a
  * une.
  */
-export function tableFields(shape: ShapeModel): Field[] {
-  const fields = fieldsOf(shape);
-  if (!tableKindOf(shape)?.primaryKey) return fields;
-  const key = fields.find((field) => field.kind === 'pk');
-  return [key ?? PRIMARY_KEY, ...fields.filter((field) => field !== key)];
+export function tableFields(shape: ShapeModel): TableRow[] {
+  const rows = fieldsOf(shape);
+  if (!tableKindOf(shape)?.primaryKey) return rows;
+  const key = rows.find(isPrimaryKey);
+  return [key ?? PRIMARY_KEY, ...rows.filter((row) => row !== key)];
 }
 
 /** La clé primaire manque ou n'est pas en tête dans le fichier (fichier modifié à la main) ? */
 export const misplacedPrimaryKey = (shape: ShapeModel) =>
-  tableKindOf(shape)?.primaryKey === true && fieldsOf(shape)[0]?.kind !== 'pk';
+  tableKindOf(shape)?.primaryKey === true && !isPrimaryKey(fieldsOf(shape)[0]);
 
 /**
  * Défauts de `spatial.fields` d'une table (fichier modifié à la main) : valeur ou entrées illisibles, type inconnu,
@@ -187,12 +211,12 @@ export function fieldProblems(shape: ShapeModel): string[] {
   const problems: string[] = [];
   const unreadable = raw.filter((item) => !readField(item)).length;
   if (unreadable > 0) problems.push(`${unreadable} champ(s) illisible(s), ignoré(s)`);
-  for (const field of fieldsOf(shape)) {
+  for (const row of fieldsOf(shape)) {
     // Sans type (sujet 256) : permis ; seul un type écrit et inconnu est signalé.
-    if (field.type && !(field.type in FIELD_TYPES))
-      problems.push(`champ ${field.label} : type « ${field.type} » inconnu`);
+    if (!isDivider(row) && row.type && !(row.type in FIELD_TYPES))
+      problems.push(`champ ${row.label} : type « ${row.type} » inconnu`);
   }
-  if (raw.some((item) => readField(item)?.kind === 'pk' && (item as { nullable?: unknown }).nullable === true)) {
+  if (raw.some((item) => isPrimaryKey(readField(item)) && (item as { nullable?: unknown }).nullable === true)) {
     problems.push('clé primaire nullable, lue non nullable');
   }
   return problems;
@@ -252,10 +276,24 @@ export function fieldLayout(kind: TableKind, field: Field): { label: number; typ
   return { label, type, width };
 }
 
-/** Ce dont dépend la taille d'une table : nom affiché, champs, échelle, icône d'entête. */
+/**
+ * Largeur d'un séparateur (sujet 253), à l'échelle 1 : son label (s'il en a un) entre deux traits d'au moins
+ * `TABLE.divider.stroke`, marges comprises.
+ */
+export function dividerWidth(divider: Divider): number {
+  const { size, gap, stroke } = TABLE.divider;
+  const label = divider.label ? measureText(divider.label, { size, bold: false, italic: false }) + 2 * gap : 0;
+  return 2 * TABLE.padding + 2 * stroke + label;
+}
+
+/** Largeur d'une ligne de la zone des champs, à l'échelle 1. */
+export const rowWidth = (kind: TableKind, row: TableRow): number =>
+  isDivider(row) ? dividerWidth(row) : fieldLayout(kind, row).width;
+
+/** Ce dont dépend la taille d'une table : nom affiché, lignes, échelle, icône d'entête. */
 export interface TableContent {
   name: string;
-  fields: readonly Field[];
+  fields: readonly TableRow[];
   secondary: boolean;
   mark: boolean;
 }
@@ -280,7 +318,7 @@ export function tableWidth(kind: TableKind, content: TableContent): number {
       .split('\n')
       .map((line) => measureText(line.trim(), { size: TABLE.nameSize, bold: true, italic: kind.italic ?? false })),
   );
-  const fields = content.fields.map((field) => fieldLayout(kind, field).width);
+  const fields = content.fields.map((row) => rowWidth(kind, row));
   const header = name + 2 * (TABLE.padding + (content.mark ? markInset() : 0));
   const width = Math.ceil(Math.max(TABLE.minWidth, header, ...fields));
   return width * (content.secondary ? SECONDARY_SCALE : 1);

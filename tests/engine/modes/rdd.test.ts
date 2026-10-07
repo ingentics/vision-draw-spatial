@@ -10,11 +10,11 @@ import {
   ICON,
   SECONDARY,
   fieldProblems,
-  fieldsOf,
+  fieldsOf as rowsOf,
   fieldsValue,
-  tableFields,
+  tableFields as tableRows,
 } from '../../../src/engine/modes/rdd/tables';
-import type { Field } from '../../../src/engine/modes/rdd/tables';
+import type { Field, TableRow } from '../../../src/engine/modes/rdd/tables';
 import {
   addField,
   fitTable,
@@ -70,8 +70,11 @@ function setFields(edit: ModeEdit, shape: ShapeModel, text: string): void {
   fitTable(edit, shape, { fields: written });
 }
 
-/** Labels des champs, dans l'ordre. */
-const labels = (fields: Field[]) => fields.map((field) => field.label);
+/** Labels des lignes, dans l'ordre. */
+const labels = (rows: readonly TableRow[]) => rows.map((row) => row.label);
+/** Lignes d'une table qui n'a que des champs (hors tests des séparateurs, sujet 253). */
+const fieldsOf = (shape: ShapeModel) => rowsOf(shape) as Field[];
+const tableFields = (shape: ShapeModel) => tableRows(shape) as Field[];
 
 /** Page de la fixture, et une fonction qui applique une opération puis relit la page. */
 function setup() {
@@ -184,9 +187,10 @@ describe('mode RDD (sujet 179) : page et palette', () => {
       ['Table secondaire', false],
       ['Icône', true],
       ['Clé primaire', true],
+      ['Ajouter un séparateur', false],
     ]);
     // Entité : sans icône d'entête ; « Icône » n'est proposée qu'aux tables qui en ont une.
-    expect(properties.map((p) => p.hidden!(page(), entity))).toEqual([false, true, false, true, false]);
+    expect(properties.map((p) => p.hidden!(page(), entity))).toEqual([false, true, false, true, false, false]);
     const key = properties.find((p) => p.label === 'Clé primaire')!;
     expect([key.readOnly, key.value!(page(), entity)]).toEqual([true, 'id']);
     expect(properties.every((p) => p.hidden!(page(), page()))).toBe(true);
@@ -307,6 +311,15 @@ describe('mode RDD : taille calculée (sujet 247)', () => {
     expect(registry.isResizable(shape('accounts'))).toBe(true);
   });
 
+  it('texte brut sur les tables, pas sur la région (sujet 258)', () => {
+    const { shape } = setup();
+    const registry = createDefaultRegistry();
+    expect(
+      ['model', 'user', 'role', 'address', 'settings', 'active'].map((id) => registry.isPlainText(shape(id))),
+    ).toEqual([true, true, true, true, true, true]);
+    expect(registry.isPlainText(shape('accounts'))).toBe(false);
+  });
+
   it('largeur : au moins 120, sinon le plus long champ, marges comprises ; la table rétrécit aussi', () => {
     const { run, shape } = setup();
     const long = 'a_very_long_field_name_for_a_table';
@@ -403,12 +416,19 @@ describe('mode RDD : champ sélectionné dans sa table (sujet 249)', () => {
       ['Type', 'string'],
       ['Rôle', 'property'],
       ['Nullable', undefined],
+      ['Ajouter un séparateur', undefined],
     ]);
     expect(shown('0')).toEqual([
       ['Champ', 'id'],
       ['Type', 'integer'],
+      ['Ajouter un séparateur', undefined],
     ]);
-    expect(shown().map(([label]) => label)).toEqual(['Couleur', 'Table secondaire', 'Clé primaire']);
+    expect(shown().map(([label]) => label)).toEqual([
+      'Couleur',
+      'Table secondaire',
+      'Clé primaire',
+      'Ajouter un séparateur',
+    ]);
   });
 
   it('réglages du champ écrits par le panneau', () => {
@@ -566,6 +586,112 @@ describe('mode RDD : réordonner les champs au glisser (sujet 252)', () => {
     // Jamais devant la clé primaire, et la clé primaire ne bouge pas.
     expect(run((edit) => fieldParts.move!(edit, shape('user'), '2', '0'))).toBe(false);
     expect(run((edit) => fieldParts.move!(edit, shape('user'), '0', '3'))).toBe(false);
+  });
+});
+
+describe('mode RDD : séparateurs entre les champs (sujet 253)', () => {
+  const minus = rdd.keys!['-']!;
+
+  it('« - » sur une ligne sélectionnée : séparateur vide après elle, désigné ensuite ; écrit et relu', () => {
+    const { run, page, shape } = setup();
+    expect(minus.applies(page(), shape('user'))).toBe(false);
+    expect(minus.applies(page(), shape('user'), '1')).toBe(true);
+    let part: string | void = undefined;
+    run((edit) => (part = minus.run(edit, shape('user'), undefined, '1')));
+    expect(part).toBe('2');
+    expect(rowsOf(shape('user'))[2]).toEqual({ divider: true, label: '' });
+    expect(spatialValue(shape('user'), FIELDS)).toContain('{"divider":true,"label":""}');
+    expect(shape('user').bounds.height).toBe(26 + 4 * 20);
+    expect(fieldProblems(shape('user'))).toEqual([]);
+    // Sur la clé primaire : juste après elle.
+    run((edit) => (part = minus.run(edit, shape('user'), undefined, '0')));
+    expect([part, labels(rowsOf(shape('user')))]).toEqual(['1', ['id', '', 'email', '', 'role']]);
+  });
+
+  it('texte : écrit au milieu, éditeur sans fond ; vidé, le séparateur reste ; la largeur suit un long texte', () => {
+    const { run, page, shape } = setup();
+    run((edit) => minus.run(edit, shape('user'), undefined, '1'));
+    run((edit) => fieldParts.setText!(edit, shape('user'), '2', '  Audit '));
+    expect(rowsOf(shape('user'))[2]).toEqual({ divider: true, label: 'Audit' });
+    const text = fieldParts.text!(page(), shape('user'), '2')!;
+    expect([text.text, text.fontSize, text.center, text.transparent]).toEqual(['Audit', 7, true, true]);
+    expect(fieldParts.text!(page(), shape('user'), '1')!.transparent).toBeUndefined();
+    const long = 'A very long divider label for the table';
+    run((edit) => fieldParts.setText!(edit, shape('user'), '2', long));
+    const measure = approximateMeasure(long, { size: 7, bold: false, italic: false });
+    expect(shape('user').bounds.width).toBe(
+      Math.ceil(Math.max(2 * 6 + 2 * 16 + measure + 2 * 4, KEY_ROW, rowWidth('role', 'Nombre entier'))),
+    );
+    // Vidé : le séparateur reste, sans texte (un simple trait).
+    run((edit) => fieldParts.setText!(edit, shape('user'), '2', '   '));
+    expect(rowsOf(shape('user'))[2]).toEqual({ divider: true, label: '' });
+  });
+
+  it('sélection, suppression et glisser comme un champ ; le panneau ne montre que son texte', () => {
+    const { run, page, shape } = setup();
+    run((edit) => minus.run(edit, shape('user'), undefined, '2'));
+    run((edit) => fieldParts.setText!(edit, shape('user'), '3', 'Fin'));
+    expect(fieldParts.at(page(), shape('user'), { x: 60, y: 160 + 26 + 65 })).toBe('3');
+    const shown = rdd
+      .shapeProperties!.filter((p) => p.part && !p.hidden!(page(), shape('user'), '3'))
+      .map((p) => [p.label, p.value!(page(), shape('user'), '3')]);
+    expect(shown).toEqual([['Séparateur', 'Fin']]);
+    let part: string | undefined;
+    run((edit) => (part = fieldParts.move!(edit, shape('user'), '3', '1')));
+    expect([part, labels(rowsOf(shape('user')))]).toEqual(['1', ['id', 'Fin', 'email', 'role']]);
+    run((edit) => fieldParts.remove!(edit, shape('user'), '1'));
+    expect(labels(rowsOf(shape('user')))).toEqual(['id', 'email', 'role']);
+  });
+
+  it('bouton « Ajouter un séparateur » : après la ligne sélectionnée, sinon en fin ; désigné ensuite', () => {
+    const { run, shape } = setup();
+    const button = rdd.shapeProperties!.find((p) => p.key === 'rdd.addDivider')!;
+    expect([button.type, button.anyPart]).toEqual(['button', true]);
+    let part: string | void = undefined;
+    run((edit) => (part = button.write!(edit, shape('user'), undefined)));
+    expect([part, labels(rowsOf(shape('user')))]).toEqual(['3', ['id', 'email', 'role', '']]);
+    run((edit) => (part = button.write!(edit, shape('user'), undefined, '0')));
+    expect([part, labels(rowsOf(shape('user')))]).toEqual(['1', ['id', '', 'email', 'role', '']]);
+  });
+
+  it('saisie en direct : la table avec le texte tapé, élargie ; rien d’écrit', () => {
+    const { run, shape } = setup();
+    run((edit) => minus.run(edit, shape('user'), undefined, '2'));
+    const long = 'A very long divider label for the table';
+    const preview = fieldParts.textPreview!(shape('user'), '3', long);
+    expect(rowsOf(preview)[3]).toEqual({ divider: true, label: long });
+    expect(preview.bounds.width).toBeGreaterThan(shape('user').bounds.width);
+    expect(rowsOf(shape('user'))[3]).toEqual({ divider: true, label: '' });
+  });
+
+  it('rendu : trait gris coupé autour du texte gris, centré, petit', () => {
+    const { run, page, shape } = setup();
+    run((edit) => minus.run(edit, shape('user'), undefined, '1'));
+    run((edit) => fieldParts.setText!(edit, shape('user'), '2', 'Audit'));
+    const texts: TextSpec[] = [];
+    const ctx: RenderContext = {
+      text: {
+        create(spec) {
+          texts.push(spec);
+          return new Object3D();
+        },
+      },
+    };
+    const root = buildPageScene(page(), createDefaultRegistry(), ctx, 'flat').root;
+    const user = root.children.find((child) => child.userData.elementId === 'user')!;
+    expect(user.children.filter((child) => child.name === 'divider')).toHaveLength(2);
+    const audit = texts.find((t) => t.text === 'Audit')!;
+    // Textes des lignes marqués de leur partie (masqués pendant leur édition sur place).
+    const marked = user.children.filter((child) => child.userData.part !== undefined).map((c) => c.userData.part);
+    expect(marked).toEqual(['0', '1', '2', '3']);
+    const { x, width } = shape('user').bounds;
+    expect([audit.x, audit.y, audit.fontSize, audit.anchorX]).toEqual([x + width / 2, 160 + 26 + 50, 7, 'center']);
+    expect(`#${(audit.color as Color).getHexString()}`).toBe('#999999');
+    // Sans texte : un seul trait.
+    run((edit) => fieldParts.setText!(edit, shape('user'), '2', ''));
+    const again = buildPageScene(page(), createDefaultRegistry(), ctx, 'flat').root;
+    const lines = again.children.find((child) => child.userData.elementId === 'user')!.children;
+    expect(lines.filter((child) => child.name === 'divider')).toHaveLength(1);
   });
 });
 
@@ -984,6 +1110,7 @@ describe('mode RDD : région (sujet 182)', () => {
     expect(rdd.shapeProperties!.filter((p) => !p.part).map((p) => p.hidden!(page(), shape('accounts')))).toEqual([
       true,
       false,
+      true,
       true,
       true,
       true,

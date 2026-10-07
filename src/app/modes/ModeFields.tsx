@@ -105,6 +105,18 @@ function ModePropertyField({
           onCommit={(text) => write(text.trim() || undefined)}
         />
       );
+    case 'button':
+      return (
+        <button
+          type="button"
+          className="button wide-button"
+          title={title}
+          disabled={!editable}
+          onClick={() => write(undefined)}
+        >
+          {label}
+        </button>
+      );
     case 'select':
       return (
         <SelectField

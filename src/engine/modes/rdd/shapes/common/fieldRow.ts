@@ -1,9 +1,10 @@
 import { Color, Group } from 'three';
 import type { Point } from '../../../../model/types';
 import { fillMesh, strokeMesh } from '../../../../render/meshes';
+import { measureText } from '../../../../render/textMeasure';
 import { PART_ORDER } from '../../../../render/types';
 import type { RenderContext } from '../../../../render/types';
-import type { Field, FieldKind, TableKind } from '../../tables';
+import type { Divider, Field, FieldKind, TableKind } from '../../tables';
 import { TABLE, fieldLayout, fieldTypeLabel } from '../../tables';
 
 /**
@@ -67,15 +68,87 @@ export function addFieldRow(
   ctx: RenderContext,
   kind: TableKind,
   field: Field,
-  row: { left: number; y: number; scale: number },
+  row: { left: number; y: number; scale: number; part: string },
 ): void {
-  const { left, y, scale } = row;
+  const { left, y, scale, part } = row;
   const layout = fieldLayout(kind, field);
   group.add(fieldIcon(field, { x: left + (TABLE.padding + TABLE.fieldIcon.size / 2) * scale, y }, scale));
-  addRowText(group, ctx, field.label, { x: left + layout.label * scale, y }, scale, '#000000', kind.italicFields);
+  const size = TABLE.fieldSize * scale;
+  addRowText(
+    group,
+    ctx,
+    field.label,
+    { x: left + layout.label * scale, y },
+    { size, color: '#000000', italic: kind.italicFields, part },
+  );
   if (layout.type !== undefined) {
-    addRowText(group, ctx, fieldTypeLabel(field.type), { x: left + layout.type * scale, y }, scale, TYPE_COLOR);
+    addRowText(
+      group,
+      ctx,
+      fieldTypeLabel(field.type),
+      { x: left + layout.type * scale, y },
+      { size, color: TYPE_COLOR },
+    );
   }
+}
+
+/** Gris du trait d'un séparateur. */
+const DIVIDER_STROKE = '#cccccc';
+
+/**
+ * Dessine un séparateur (sujet 253) : trait horizontal sur la largeur de la table (marges comprises), interrompu
+ * autour de son label, petit et gris, au milieu ; `left` / `width` : la table, `y` milieu de la ligne.
+ */
+export function addDividerRow(
+  group: Group,
+  ctx: RenderContext,
+  divider: Divider,
+  row: { left: number; width: number; y: number; scale: number; part: string },
+): void {
+  const { left, width, y, scale, part } = row;
+  const { size, gap } = TABLE.divider;
+  const start = left + TABLE.padding * scale;
+  const end = left + width - TABLE.padding * scale;
+  const center = left + width / 2;
+  const half = divider.label ? (measureText(divider.label, { size, bold: false, italic: false }) / 2 + gap) * scale : 0;
+  const pieces: Point[][] = half
+    ? [
+        [
+          { x: start, y },
+          { x: center - half, y },
+        ],
+        [
+          { x: center + half, y },
+          { x: end, y },
+        ],
+      ]
+    : [
+        [
+          { x: start, y },
+          { x: end, y },
+        ],
+      ];
+  for (const piece of pieces) {
+    if (piece[1]!.x <= piece[0]!.x) continue;
+    const mesh = strokeMesh(piece, new Color(DIVIDER_STROKE), 1, { width: scale, closed: false });
+    if (!mesh) continue;
+    mesh.name = 'divider';
+    mesh.renderOrder = PART_ORDER.stroke;
+    group.add(mesh);
+  }
+  if (divider.label)
+    addRowText(
+      group,
+      ctx,
+      divider.label,
+      { x: center, y },
+      {
+        size: size * scale,
+        color: TYPE_COLOR,
+        center: true,
+        part,
+      },
+    );
 }
 
 function addRowText(
@@ -83,24 +156,25 @@ function addRowText(
   ctx: RenderContext,
   text: string,
   at: Point,
-  scale: number,
-  color: string,
-  italic?: boolean,
+  style: { size: number; color: string; italic?: boolean; center?: boolean; part?: string },
 ): void {
+  const { size, color, italic, center, part } = style;
   const object = ctx.text.create({
     text,
     x: at.x,
     y: at.y,
-    anchorX: 'left',
+    anchorX: center ? 'center' : 'left',
     anchorY: 'middle',
-    align: 'left',
-    fontSize: TABLE.fieldSize * scale,
+    align: center ? 'center' : 'left',
+    fontSize: size,
     color: new Color(color),
     opacity: 1,
     bold: false,
     italic,
   });
   object.name = 'table-text';
+  // Texte d'une partie (label de la ligne) : masqué pendant son édition sur place (sujet 253).
+  if (part !== undefined) object.userData.part = part;
   object.renderOrder = PART_ORDER.label;
   group.add(object);
 }

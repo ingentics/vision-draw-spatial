@@ -94,6 +94,8 @@ interface ShapeDefinition {
   // Interaction
   resizable?: boolean;                     // poignées de redimensionnement (défaut : oui)
   connectable?: boolean;                   // flèches accrochables (défaut : oui)
+  connectSides?: ConnectSide[];            // côtés aux poignées de connexion (défaut : les quatre)
+  plainText?: boolean;                     // texte brut, sans mise en forme ni panneau de format (défaut : non)
   pickable?: 'always' | 'withLink';        // prise au clic / au rectangle (défaut : always)
   movesAsBlock?: boolean;                  // saisir un enfant la déplace d'un bloc (défaut : non ; groupe : oui)
   // Palette et panneau
@@ -344,6 +346,8 @@ forme.
 | Clic, survol | `contains` | dans le `outline` s'il y en a un (les coins vides d'un losange ne se cliquent pas), sinon les bornes | ellipse exacte, rectangle arrondi cliquable dans ses coins |
 | Poignées | `resizable` | oui | groupe : non |
 | Accroche des flèches | `connectable` | oui | groupe : non |
+| Côtés des poignées de connexion | `connectSides` | les quatre | table RDD : gauche et droite |
+| Texte brut | `plainText` | non | table RDD : oui |
 | Prise au clic et au rectangle de sélection | `pickable` | `always` | groupe : `withLink` (on prend ses formes) |
 | Déplacement | `movesAsBlock` | non | groupe : saisir un enfant déplace le groupe |
 | Création | `palette` (une variante = une forme qui en étend une autre) | absente de la palette | rectangle / rectangle arrondi, BDD / queue |

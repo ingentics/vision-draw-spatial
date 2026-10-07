@@ -68,6 +68,7 @@ export function LabelEditor({
     handle,
     baseStyle: () => requestRef.current.style,
     singleLine: request.singleLine,
+    plain: request.plain,
     // Une ligne (champ d'une table RDD) : tout le texte sélectionné, à remplacer d'un coup.
     selectAll: request.singleLine,
   });

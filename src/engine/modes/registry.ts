@@ -113,7 +113,9 @@ export class PageModeRegistry {
     const all =
       (scope === 'page' ? mode.pageProperties : scope === 'edge' ? mode.edgeProperties : mode.shapeProperties) ?? [];
     // Partie sélectionnée (sujet 249) : ses réglages seulement ; sinon, ceux de la forme.
-    return scope === 'shape' ? all.filter((property) => (property.part === true) === (part !== undefined)) : all;
+    return scope === 'shape'
+      ? all.filter((property) => property.anyPart || (property.part === true) === (part !== undefined))
+      : all;
   }
 
   /** Attributs à retirer des éléments collés : ceux de tous les modes (ils dorment sur une page d'un autre mode). */

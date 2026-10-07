@@ -619,11 +619,7 @@ export function Viewer({
               onToggle={(mark) => formatText({ type: 'toggle', mark })}
               onSelectionFormat={setSelectionFormat}
               onFitSize={setFittedSize}
-              onTextInput={
-                labelEdit.onEdge || labelEdit.part !== undefined
-                  ? undefined
-                  : (text) => engine?.previewEditedLabel(text)
-              }
+              onTextInput={labelEdit.onEdge ? undefined : (text) => engine?.previewEditedLabel(text)}
               onCommit={({ text, html }) => {
                 setLabelEdit(undefined);
                 engine?.closeLabelEdit();
@@ -632,7 +628,7 @@ export function Viewer({
                   engine?.setEdgeText(labelEdit.elementId, labelEdit.labelCellId, text, html);
                 else if (labelEdit.end)
                   engine?.setEdgeEndLabel(labelEdit.elementId, labelEdit.end, text, html, labelEdit.flipped);
-                else engine?.setLabel(labelEdit.elementId, text, html);
+                else engine?.setLabel(labelEdit.elementId, text, labelEdit.plain ? undefined : html);
                 engine?.focusCanvas();
               }}
               onCancel={() => {
@@ -752,7 +748,8 @@ export function Viewer({
                     selection && engine?.setEdgeTextAnchor(selection.picked.element.id, cellId, anchor)
                   }
                   textEdit={
-                    labelEdit
+                    // Texte brut (sujet 258) : pas de panneau de format.
+                    labelEdit && !labelEdit.plain
                       ? {
                           style: labelEdit.style,
                           selection: selectionFormat,
@@ -763,18 +760,20 @@ export function Viewer({
                           onAction: formatText,
                           onOwner: () => editorHandle.current?.commit(),
                         }
-                      : commentEdit && {
-                          // Commentaire : le format de tout le texte est celui des réglages, les commandes du panneau
-                          // portent sur la sélection ou sur tout le commentaire (`CommentEditor`).
-                          style: commentTextStyle(settings.comment),
-                          selection: selectionFormat,
-                          canFormat: true,
-                          onEdge: commentEdit.onEdge,
-                          comment: true,
-                          presets: settings.styles.text,
-                          onAction: formatText,
-                          onOwner: () => editorHandle.current?.commit(),
-                        }
+                      : labelEdit
+                        ? undefined
+                        : commentEdit && {
+                            // Commentaire : le format de tout le texte est celui des réglages, les commandes du panneau
+                            // portent sur la sélection ou sur tout le commentaire (`CommentEditor`).
+                            style: commentTextStyle(settings.comment),
+                            selection: selectionFormat,
+                            canFormat: true,
+                            onEdge: commentEdit.onEdge,
+                            comment: true,
+                            presets: settings.styles.text,
+                            onAction: formatText,
+                            onOwner: () => editorHandle.current?.commit(),
+                          }
                   }
                   onApplyStyle={(preset) =>
                     engine?.applyStylePreset(
