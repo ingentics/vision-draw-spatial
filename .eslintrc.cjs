@@ -39,6 +39,33 @@ const PLUGIN_PACKAGES = {
   message: "Un plugin n'utilise que `three` et l'API des plugins (`core/plugins`).",
 };
 
+/**
+ * Sujet 305 : un plugin ne charge rien par lui-même (`import()`, `import.meta.glob` : seule la racine de composition
+ * collecte les plugins) et ne touche pas aux globales du navigateur (il vit dans le moteur, sans DOM ni minuterie).
+ */
+const PLUGIN_SYNTAX = [
+  'error',
+  { selector: 'ImportExpression', message: "Un plugin n'importe rien dynamiquement (`import()`)." },
+  {
+    selector: "MetaProperty[meta.name='import']",
+    message:
+      "Un plugin n'utilise pas `import.meta` : seule la racine de composition (`plugins/index.ts`) collecte les plugins.",
+  },
+];
+const PLUGIN_GLOBALS = [
+  'error',
+  ...['window', 'document', 'globalThis', 'self', 'localStorage', 'sessionStorage', 'navigator', 'fetch'].map(
+    (name) => ({
+      name,
+      message: "Un plugin ne touche pas aux globales du navigateur : il passe par l'API des plugins.",
+    }),
+  ),
+  ...['setTimeout', 'setInterval', 'requestAnimationFrame', 'queueMicrotask'].map((name) => ({
+    name,
+    message: "Un plugin n'a pas de minuterie : le moteur l'appelle quand il le faut.",
+  })),
+];
+
 /** Sujet 286 : formes, modes et effets, un dossier par plugin dans `src/engine/plugins/`. */
 const ENGINE_MODES = folders('src/engine/plugins/modes');
 const ENGINE_EFFECTS = folders('src/engine/plugins/effects');
@@ -64,6 +91,8 @@ const engineModeOverrides = ENGINE_MODES.map((mode) => ({
         ],
       },
     ],
+    'no-restricted-syntax': PLUGIN_SYNTAX,
+    'no-restricted-globals': PLUGIN_GLOBALS,
   },
 }));
 
@@ -90,6 +119,8 @@ const engineEffectOverrides = ENGINE_EFFECTS.map((effect) => ({
         ],
       },
     ],
+    'no-restricted-syntax': PLUGIN_SYNTAX,
+    'no-restricted-globals': PLUGIN_GLOBALS,
   },
 }));
 
@@ -179,6 +210,8 @@ module.exports = {
             ],
           },
         ],
+        'no-restricted-syntax': PLUGIN_SYNTAX,
+        'no-restricted-globals': PLUGIN_GLOBALS,
       },
     },
     ...engineModeOverrides,

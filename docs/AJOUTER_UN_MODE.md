@@ -28,8 +28,9 @@ src/app/plugins/modes/<id>/     l'appli (facultatif) : sections React du panneau
 - Un mode importe du tronc **seulement l'API des plugins** ([core/plugins/index.ts](../src/engine/core/plugins/index.ts),
   sujet 287 : contrats, modèle, calculs purs, briques de dessin), plus `three` et son propre dossier ; ni un autre
   mode, ni un effet. Ses formes peuvent étendre une forme générale (`plugins/shapes/`). Une brique du tronc qui manque
-  s'ajoute à l'API des plugins : c'est la décision d'en faire une brique commune. La lint et
-  `tests/engine/plugins/boundaries.test.ts` le vérifient.
+  s'ajoute à l'API des plugins : c'est la décision d'en faire une brique commune. Pas d'import dynamique
+  (`import()`, `import.meta.glob`) ni de globale du navigateur (`window`, `document`, `globalThis`, stockage,
+  minuteries : sujet 305). La lint et `tests/engine/plugins/boundaries.test.ts` (chemins résolus) le vérifient.
 - **Toutes les règles vont dans la lib** ; la partie appli affiche les données du mode et appelle ses opérations,
   sans règle métier. Un mode aux réglages simples n'a pas besoin de partie appli : il les déclare (section 3).
 
