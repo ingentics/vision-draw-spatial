@@ -1,0 +1,19 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/24.7.5 Chrome/126.0.6478.183 Electron/31.3.0 Safari/537.36" version="24.7.5">
+  <diagram id="nested" name="Régions imbriquées" spatial.mode="rdd">
+    <mxGraphModel dx="-284" dy="-125" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="0" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="outer" value="Domaine" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#969696;labelBorderColor=#969696;fontColor=#000000;align=left;verticalAlign=bottom;verticalLabelPosition=top;fontStyle=1;fontSize=9;spatial.kind=rdd-region;" parent="1" vertex="1">
+          <mxGeometry x="40" y="60" width="440" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="inner" value="Comptes" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fdebef;strokeColor=#969696;labelBorderColor=#969696;fontColor=#000000;align=left;verticalAlign=bottom;verticalLabelPosition=top;fontStyle=1;fontSize=9;spatial.kind=rdd-region;" parent="1" vertex="1">
+          <mxGeometry x="80" y="110" width="300" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="user" value="User" style="swimlane;fontStyle=1;startSize=26;fillColor=#dae8fc;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;spatial.kind=rdd-entity;spatial.fields=[{&quot;kind&quot;:&quot;pk&quot;,&quot;label&quot;:&quot;id&quot;,&quot;type&quot;:&quot;integer&quot;,&quot;nullable&quot;:false}];" parent="1" vertex="1">
+          <mxGeometry x="120" y="150" width="160" height="46" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

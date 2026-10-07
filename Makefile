@@ -56,7 +56,8 @@ drawio-check: .image ## Réenregistre les fixtures avec draw.io, vérifie la con
 	@for n in $(DRAWIO_SVG); do \
 	  "$(DRAWIO)" -x -f svg -o tests/fixtures/drawio-saved/$${n%.drawio}.svg tests/fixtures/$$n > /dev/null || exit 1; \
 	done
-	$(RUN) npx vitest run tests/engine/core/spatial tests/engine/core/edit/edgeEndsFixture.test.ts tests/engine/core/render/edges/routingFixture.test.ts tests/engine/core/edit/edgePointsFixture.test.ts tests/engine/plugins/shapes/shapesFixture.test.ts tests/engine/core/render/labelsFixture.test.ts
+	@# Tous les tests qui comparent avec les sorties de draw.io (pas de liste à tenir : sujet 293).
+	$(RUN) sh -c 'npx vitest run $$(grep -rl drawio-saved tests)'
 
 build: .image ## Build de production dans dist/
 	$(RUN) npm run build
