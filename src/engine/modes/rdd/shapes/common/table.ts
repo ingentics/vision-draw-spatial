@@ -10,6 +10,7 @@ import type { RenderContext } from '../../../../render/types';
 import type { PaletteEntry, ShapeDefinition } from '../../../../shapes/types';
 import {
   DEFAULT_HEADER_COLOR,
+  DEFAULT_HEADER_TEXT,
   FIELDS,
   PRIMARY_KEY,
   SECONDARY_SCALE,
@@ -102,7 +103,9 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
   const scale = scaleOf(shape);
   const header = Math.min(bounds.height, headerHeight(isSecondary(shape)));
   const headerColor = styleColor(style, 'fillColor', DEFAULT_HEADER_COLOR) ?? new Color(DEFAULT_HEADER_COLOR);
-  const textColor = readableOn(`#${headerColor.getHexString()}`);
+  // Texte de l'entête : `fontColor` s'il est écrit (gris d'une table neuve, sujet 235), sinon lisible sur l'entête.
+  const readable = readableOn(`#${headerColor.getHexString()}`);
+  const textColor = style.fontColor && style.fontColor !== 'default' ? style.fontColor : readable;
 
   const path = outline(shape, kind);
   group.add(fillMesh(path, new Color(FIELDS_FILL), styleOpacity(style, 'fillOpacity')));
@@ -358,7 +361,7 @@ export function tableStyle(id: string, kind: TableKind): string {
   const fields = kind.primaryKey ? `${FIELDS}=${JSON.stringify([PRIMARY_KEY])};` : '';
   return (
     `swimlane;fontStyle=${1 | (kind.italic ? 2 : 0)};startSize=${headerHeight(false)};` +
-    `fillColor=${DEFAULT_HEADER_COLOR};swimlaneFillColor=${FIELDS_FILL};strokeColor=${BORDER};` +
+    `fillColor=${DEFAULT_HEADER_COLOR};fontColor=${DEFAULT_HEADER_TEXT};swimlaneFillColor=${FIELDS_FILL};strokeColor=${BORDER};` +
     `fontSize=${TABLE.nameSize};html=1;whiteSpace=wrap;${kind.style ?? ''}spatial.kind=${id};${fields}`
   );
 }

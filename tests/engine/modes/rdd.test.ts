@@ -162,10 +162,21 @@ describe('mode RDD : opérations sur une table', () => {
   it('couleurs proposées : celle par défaut puis la palette de l’appli, sans doublon', () => {
     const { page } = setup();
     const color = rdd.shapeProperties!.find((p) => p.key === 'fillColor')!;
-    expect(color.type === 'select' && color.options(page(), ['#dae8fc', '#d5e8d4']).map((o) => o.value)).toEqual([
-      '#dae8fc',
+    expect(color.type === 'select' && color.options(page(), ['#f5f5f5', '#d5e8d4']).map((o) => o.value)).toEqual([
+      '#f5f5f5',
       '#d5e8d4',
     ]);
+  });
+
+  it('table neuve au style « Gris » (sujet 235) : entête #f5f5f5, bordure #666666, texte #333333', () => {
+    const templates = createDefaultRegistry()
+      .templates()
+      .filter((t) => t.category === 'rdd' && t.id !== 'rdd-region');
+    expect(templates.length).toBe(5);
+    for (const template of templates) {
+      expect(template.style).toContain('fillColor=#f5f5f5;fontColor=#333333;');
+      expect(template.style).toContain('strokeColor=#666666;');
+    }
   });
 });
 

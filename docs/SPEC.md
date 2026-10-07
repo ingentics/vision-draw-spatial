@@ -907,7 +907,9 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     icône jumelles.
   - Modèle abstrait (`rdd-model`) : nom en italique ; base technique des autres tables, jamais dans la palette,
     dessiné s'il est dans un fichier.
-  - Réglages du mode sur une table : « Couleur » (couleurs `modePalette`, écrit aussi `fontColor` pour draw.io),
+  - Table neuve au style « Gris » : entête `#f5f5f5`, bordure `#666666`, texte de l'entête `#333333` (`fontColor`, suivi
+    par le rendu ; sans lui, noir ou blanc selon le contraste).
+  - Réglages du mode sur une table : « Couleur » (le gris puis les couleurs `modePalette`, écrit aussi `fontColor` pour draw.io),
     « Table secondaire » (`spatial.secondary` : tailles × 0,8, forme mise à l'échelle depuis son coin haut-gauche),
     « Champs » (zone de texte, un par ligne ; la hauteur suit : entête + une ligne par champ, au moins une).
   - Fichier : `swimlane;startSize=26;fillColor=…;swimlaneFillColor=#ffffff;spatial.kind=rdd-…;…` : draw.io montre

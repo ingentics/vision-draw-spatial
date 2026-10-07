@@ -38,8 +38,9 @@ export const TABLE = {
   width: 160,
 } as const;
 
-/** Couleur d'entête par défaut (premier fond de `modePalette`). */
-export const DEFAULT_HEADER_COLOR = '#dae8fc';
+/** Couleur d'entête par défaut : le style « Gris » des styles de forme (sujet 235), avec son texte. */
+export const DEFAULT_HEADER_COLOR = '#f5f5f5';
+export const DEFAULT_HEADER_TEXT = '#333333';
 
 /** Icône d'entête : jumelles (vue), liste (énumération), prise électrique (embedded, sujet 223). */
 export type HeaderMark = 'binoculars' | 'list' | 'plug';
