@@ -494,7 +494,8 @@ function EdgeSections({ edge, ...props }: ContextPanelProps & { edge: EdgeModel 
     return shape.label ? `« ${shape.label} »` : 'forme sans texte';
   };
   // Flèche gérée par le mode (ex. relation RDD, sujets 265, 267) : ses réglages en tête, texte du milieu et
-  // commentaire ; le reste, imposé par le mode (cardinalités comprises), n'est pas montré.
+  // commentaire, coupure et renvois (sujet 270) ; le reste, imposé par le mode (cardinalités comprises), n'est pas
+  // montré.
   if (managedEdge(props.page, edge))
     return (
       <>
@@ -502,6 +503,9 @@ function EdgeSections({ edge, ...props }: ContextPanelProps & { edge: EdgeModel 
         <Section title="Texte">
           <LabelRow label={edge.label} name="Milieu" onEdit={props.onEditLabel} />
           <CommentField comment={commentOf(edge)} onEdit={props.onEditComment} />
+        </Section>
+        <Section title="Tracé">
+          <EdgeSplitFields edge={edge} onChange={props.onEdgeStyle} />
         </Section>
         <DeleteButton onDelete={props.onDelete} />
       </>
@@ -729,7 +733,6 @@ function EdgeLineSection({
   const jump = ownJump ?? pageJumps;
   const jumpSize = parseInt(edge.style.jumpSize ?? '', 10);
   const curved = current === 'curved';
-  const splitSession = useRef(0);
   return (
     <Section title="Tracé">
       <div className="field-row">
@@ -777,6 +780,38 @@ function EdgeLineSection({
           }
         />
       )}
+      <EdgeSplitFields edge={edge} onChange={onChange} />
+      <div className="field-row">
+        Chemin
+        <button
+          type="button"
+          className="button"
+          disabled={!manual}
+          title={
+            manual
+              ? 'Retirer les points posés et les points d’attache imposés : le tracé redevient automatique'
+              : 'Le tracé est déjà automatique'
+          }
+          onClick={onResetRoute}
+        >
+          Retour en auto
+        </button>
+      </div>
+    </Section>
+  );
+}
+
+/** Flèche coupée en deux (sujet 219) : case « Couper la flèche » et, cochée, les textes de renvoi des deux tronçons. */
+function EdgeSplitFields({
+  edge,
+  onChange,
+}: {
+  edge: EdgeModel;
+  onChange: (patch: EdgeStylePatch, merge?: string) => void;
+}) {
+  const splitSession = useRef(0);
+  return (
+    <>
       <label className="field toggle" title="Ne dessiner qu’un tronçon au départ et un à l’arrivée (split)">
         <input
           type="checkbox"
@@ -807,23 +842,7 @@ function EdgeLineSection({
             />
           );
         })}
-      <div className="field-row">
-        Chemin
-        <button
-          type="button"
-          className="button"
-          disabled={!manual}
-          title={
-            manual
-              ? 'Retirer les points posés et les points d’attache imposés : le tracé redevient automatique'
-              : 'Le tracé est déjà automatique'
-          }
-          onClick={onResetRoute}
-        >
-          Retour en auto
-        </button>
-      </div>
-    </Section>
+    </>
   );
 }
 
