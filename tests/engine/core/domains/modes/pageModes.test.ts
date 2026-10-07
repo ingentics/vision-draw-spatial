@@ -33,6 +33,7 @@ const BOOM: PageModeDefinition = {
   carries: (_page, shape) => (shape.id === 'a' ? ['b'] : fail()),
   obstacles: fail,
   connects: fail,
+  allowsEffect: (id) => (id === 'refused' ? false : fail()),
   edgeProperties: [
     { type: 'text', key: 'spatial.ok', label: 'Correct', value: () => 'calculé', readOnly: () => true },
     { type: 'select', key: 'spatial.broken', label: 'En panne', value: fail, readOnly: fail, options: fail },
@@ -131,5 +132,12 @@ describe('hôte des appels aux modes (sujet 288)', () => {
       'Mode boom : erreur dans réglage « spatial.broken » : options (panne)',
       'Mode boom : erreur dans réglage « spatial.hiddenBroken » : hidden (panne)',
     ]);
+  });
+
+  it('allowsEffect en panne : effet permis, modes d’affichage de l’effet toujours vérifiés (dette 296)', () => {
+    const { modes, guard, page } = setup();
+    expect(modes.allowsEffect(page, { id: 'refused' })).toBe(false);
+    expect(modes.allowsEffect(page, { id: 'forest' })).toBe(true);
+    expect(guard.warnings().map((w) => w.message)).toEqual(['Mode boom : erreur dans allowsEffect (panne)']);
   });
 });

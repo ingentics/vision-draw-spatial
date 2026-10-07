@@ -409,6 +409,7 @@ export function Viewer({
         modes: engine.getModeRegistry(),
         effects: engine.getEffectRegistry(),
         managesEdge: (edgeId) => engine.managesEdge(edgeId),
+        allowedEffects: (page) => engine.allowedEffects(page),
         modePropertyViews: (page, scope, target, part, palette) =>
           engine.modePropertyViews(page, scope, target, part, palette),
       },

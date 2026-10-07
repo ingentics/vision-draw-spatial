@@ -100,6 +100,11 @@ export class PageModeRegistry {
    */
   allowsEffect(page: PageModel, effect: Pick<PageEffectDefinition, 'id' | 'viewModes'>): boolean {
     if (!(this.modeOf(page)?.allowsEffect?.(effect.id) ?? true)) return false;
+    return this.effectViewable(page, effect);
+  }
+
+  /** L'effet existe-t-il dans l'un des modes d'affichage permis sur la page (sujet 196) ? */
+  effectViewable(page: PageModel, effect: Pick<PageEffectDefinition, 'viewModes'>): boolean {
     return !effect.viewModes || effect.viewModes.some((mode) => this.allowsViewMode(page, mode));
   }
 

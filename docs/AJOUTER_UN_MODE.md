@@ -221,7 +221,7 @@ Règles communes (sujet 288) :
 | `shapes` | palette d'une page du mode (`paletteFor`) | — | — | — |
 | `paletteCategories` | palette d'une page du mode | — | — | — |
 | `viewModes` | ouverture, changement de page, passage dans le mode, boutons de vue | — | — | — |
-| `allowsEffect` | effets actifs d'une page (scène en volume), panneau des effets | — | — | **non protégé** : appelé par le registre, l'exception remonte (dette 296) |
+| `allowsEffect` | effets actifs d'une page (scène en volume, page en volume ou non), panneau des effets | — | — | effet permis (les modes d'affichage de l'effet restent vérifiés) |
 | `selectionStyle` | mise en valeur de la sélection sur une page du mode | — | — | — |
 | `settings` | Paramètres › Modes ; valeurs bornées passées à `dressing`, `obstacles`, `current.look` | — | — | — |
 | `pasteKeys` | collage et duplication, sur toutes les pages | — | clés retirées des éléments collés | — |

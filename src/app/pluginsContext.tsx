@@ -20,6 +20,8 @@ export interface AppPlugins {
   effects: PageEffectRegistry;
   /** Flèche gérée par le mode de la page courante (réglages imposés, sujet 265). */
   managesEdge(edgeId: string): boolean;
+  /** Ids des effets permis sur la page par son mode (sujet 296 : l'appli n'appelle pas le mode). */
+  allowedEffects(page: PageModel): string[];
   /** Réglages déclarés par le mode pour une cible, évalués par le moteur (sujet 294 : l'appli n'appelle pas le mode). */
   modePropertyViews(
     page: PageModel,

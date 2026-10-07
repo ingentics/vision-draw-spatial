@@ -251,7 +251,8 @@ function PageEffectsSection({ page, onPageEffect }: Pick<ContextPanelProps, 'pag
   const plugins = useEnginePlugins();
   const written = pageEffectIds(page);
   const unknown = written.filter((id) => !plugins.effects.get(id));
-  const effects = plugins.effects.list().filter((effect) => plugins.modes.allowsEffect(page, effect));
+  const allowed = new Set(plugins.allowedEffects(page));
+  const effects = plugins.effects.list().filter((effect) => allowed.has(effect.id));
   if (effects.length === 0 && unknown.length === 0) return null;
   return (
     <Section title="Effets">

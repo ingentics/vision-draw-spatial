@@ -33,4 +33,9 @@ describe('appli et registres du moteur (sujet 290)', () => {
     );
     expect(calls.map((file) => relative(APP, file))).toEqual([]);
   });
+
+  it('l’appli ne demande pas au mode les effets permis (dette 296)', () => {
+    const calls = filesOf(APP).filter((file) => /modes\.allowsEffect\(/.test(readFileSync(file, 'utf8')));
+    expect(calls.map((file) => relative(APP, file))).toEqual([]);
+  });
 });

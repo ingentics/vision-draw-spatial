@@ -8,6 +8,7 @@ import type { DocumentModel, PageModel, Rect, ShapeModel } from '../../model/typ
 import { hasExactTextMeasure } from '../../render/textMeasure';
 import { applyModeEdit } from '../../modes/modeEdits';
 import { pageEffectIds, withPageEffect } from '../../effects/registry';
+import type { PageEffectDefinition } from '../../effects/types';
 import type { ModeScope, PageModeRegistry } from '../../modes/registry';
 import type {
   ModeEdit,
@@ -93,6 +94,17 @@ export class PageModes {
         edgeBadge: (edge) => this.guard(mode, 'dressing.edgeBadge', undefined, () => edgeBadge(edge)),
       }),
     };
+  }
+
+  /**
+   * L'effet est-il actif sur la page (`allowsEffect` du mode, sujet 143, et modes d'affichage de l'effet) ? Le mode en
+   * panne est traité comme absent : l'effet est permis (dette 296).
+   */
+  allowsEffect(page: PageModel, effect: Pick<PageEffectDefinition, 'id' | 'viewModes'>): boolean {
+    const mode = this.core.modes.modeOf(page);
+    const allows = mode?.allowsEffect;
+    if (mode && allows && !this.guard(mode, 'allowsEffect', true, () => allows(effect.id))) return false;
+    return this.core.modes.effectViewable(page, effect);
   }
 
   /** Bornes de `shape` pendant un déplacement ou un redimensionnement (`obstacles`, sujet 241) ; undefined : aucune. */

@@ -480,6 +480,14 @@ export class Engine {
     return usedTemplatesIn(page, this.core.registry);
   }
 
+  /** Effets actifs possibles sur la page : permis par son mode et ses modes d'affichage (appel du mode protégé). */
+  allowedEffects(page: PageModel): string[] {
+    return this.core.effects
+      .list()
+      .filter((effect) => this.core.pageModes.allowsEffect(page, effect))
+      .map((effect) => effect.id);
+  }
+
   /** Flèche gérée par le mode de la page courante (`managesEdge`, ex. relation RDD) : réglages imposés. */
   managesEdge(edgeId: string): boolean {
     return this.core.pageModes.managesEdge(edgeId);
