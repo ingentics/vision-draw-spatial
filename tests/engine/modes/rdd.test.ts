@@ -11,10 +11,11 @@ import {
   fieldProblems,
   fieldsOf as rowsOf,
   fieldsValue,
+  newFieldLabel,
   tableFields as tableRows,
 } from '../../../src/engine/modes/rdd/tables';
 import type { Field, TableRow } from '../../../src/engine/modes/rdd/tables';
-import { addField, fitTable, newFieldLabel, setField, setSecondary } from '../../../src/engine/modes/rdd/operations';
+import { addField, fitTable, setField, setSecondary } from '../../../src/engine/modes/rdd/operations';
 import { fieldParts } from '../../../src/engine/modes/rdd/fieldParts';
 import { REGION, REGION_COLORS, regionContent, regionOf, regionTextColor } from '../../../src/engine/modes/rdd/regions';
 import { regionOutline, tabPath, tabRect } from '../../../src/engine/modes/rdd/shapes/region';

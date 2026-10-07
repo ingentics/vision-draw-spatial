@@ -79,16 +79,14 @@ export interface TableKind {
   mark?: HeaderMark;
   /** Clés du style draw.io d'une table neuve (ex. `rounded=1;`) : le rendu les suit, draw.io aussi. */
   style?: string;
-  /**
-   * Relations (sujet 265) : `from`, flèches au départ seulement (embedded) ; `both`, au départ et à l'arrivée (entité,
-   * énumération). Absent : aucune flèche (ni poignée de connexion, ni cible).
-   */
-  links?: 'from' | 'both';
 }
 
-/** Rôle d'un champ (sujet 246) : clé primaire, propriété, clé étrangère, clé étrangère d'un autre domaine. */
-export type FieldKind = 'pk' | 'property' | 'fk' | 'external-fk';
-export const FIELD_KINDS: readonly FieldKind[] = ['pk', 'property', 'fk', 'external-fk'];
+/**
+ * Rôle d'un champ (sujet 246) : clé primaire, propriété, clé étrangère, clé étrangère d'un autre domaine, embedded
+ * incorporé (champ d'une relation embedded, sujet 268).
+ */
+export type FieldKind = 'pk' | 'property' | 'fk' | 'external-fk' | 'embed';
+export const FIELD_KINDS: readonly FieldKind[] = ['pk', 'property', 'fk', 'external-fk', 'embed'];
 
 /** Types imposés de la clé primaire (sujet 260), hors de la liste des autres champs. */
 export const KEY_TYPES = { 'primary-key': 'Primary key', word: 'Mot' } as const satisfies Record<string, string>;
@@ -126,11 +124,13 @@ export interface Field {
   personal?: boolean;
   /** Champ de relation (sujet 265) : id de la flèche qui l'a créé ; il la suit (retiré, déplacé avec elle). */
   edge?: string;
+  /** Préfixe d'un champ de relation embedded (sujet 268), réglé depuis la flèche, en gris à la place du type. */
+  prefix?: string;
 }
 
-/** Propriétés facultatives d'un champ : écrites seulement si elles sont renseignées (sujets 260, 265). */
+/** Propriétés facultatives d'un champ : écrites seulement si elles sont renseignées (sujets 260, 265, 268). */
 const OPTIONAL_FLAGS = ['unique', 'gdpr', 'personal'] as const;
-const OPTIONAL_TEXTS = ['comment', 'pgName', 'pgType', 'edge'] as const;
+const OPTIONAL_TEXTS = ['comment', 'pgName', 'pgType', 'edge', 'prefix'] as const;
 
 /** Séparateur entre les champs (sujet 253) : un trait, son label éventuel au milieu. */
 export interface Divider {
@@ -149,6 +149,17 @@ export const isPrimaryKey = (row: TableRow | undefined): boolean => !!row && !is
 /** La ligne est-elle un champ de relation, lié à sa flèche (sujet 265) ? */
 export const isRelation = (row: TableRow | undefined): row is Field & { edge: string } =>
   !!row && !isDivider(row) && row.edge !== undefined;
+
+/**
+ * Label d'un champ ajouté : `Field1`, `Field2`… (premier numéro libre dans la table) ; `prefix` : `relation` pour un
+ * champ de relation (sujet 265).
+ */
+export function newFieldLabel(rows: readonly TableRow[], prefix = 'Field'): string {
+  const used = new Set(rows.map((row) => row.label));
+  let number = 1;
+  while (used.has(`${prefix}${number}`)) number += 1;
+  return `${prefix}${number}`;
+}
 
 /** Label de la clé primaire : toujours `id` (sujet 260). */
 export const PRIMARY_KEY = 'id';
@@ -222,10 +233,10 @@ export const fieldsValue = (rows: readonly TableRow[]): string | undefined =>
  */
 export const TABLE_KINDS: Record<string, TableKind> = {
   'rdd-model': { italic: true },
-  'rdd-entity': { primaryKey: 'primary-key', uniqueFields: true, links: 'both' },
-  'rdd-enum': { primaryKey: 'word', uniqueFields: true, doubleHeader: true, mark: 'list', links: 'both' },
+  'rdd-entity': { primaryKey: 'primary-key', uniqueFields: true },
+  'rdd-enum': { primaryKey: 'word', uniqueFields: true, doubleHeader: true, mark: 'list' },
   // Sujet 181 : objet incorporé (bas ondulé, sujet 219), document JSONB (clés indicatives), vue (coins arrondis).
-  'rdd-embedded': { wavy: true, mark: 'plug', uniqueFields: true, links: 'from' },
+  'rdd-embedded': { wavy: true, mark: 'plug', uniqueFields: true },
   'rdd-document': { italicFields: true, requiredName: 'Document', folded: true },
   'rdd-view': { style: 'rounded=1;absoluteArcSize=1;arcSize=16;', mark: 'binoculars' },
 };
@@ -320,15 +331,19 @@ export const fieldTypeLabel = (type: string): string =>
       ? KEY_TYPES[type as KeyType]
       : type;
 
+/** Texte gris d'une ligne de champ : son type, sinon le préfixe d'un champ de relation embedded (sujet 268). */
+export const fieldNote = (field: Field): string => fieldTypeLabel(field.type) || (field.prefix ?? '');
+
 /**
  * Mise en page d'une ligne de champ (sujet 248), en abscisses depuis le bord gauche de la table, à l'échelle 1 : icône
- * de kind, label, puis type (absent sans type) ; `width` : largeur de la ligne, marge de droite comprise.
+ * de kind, label, puis texte gris (`fieldNote` : type ou préfixe ; absent sans texte) ; `width` : largeur de la ligne,
+ * marge de droite comprise.
  */
 export function fieldLayout(kind: TableKind, field: Field): { label: number; type?: number; width: number } {
   const label = TABLE.padding + TABLE.fieldIcon.size + TABLE.fieldIcon.gap;
   const end =
     label + measureText(field.label, { size: TABLE.fieldSize, bold: false, italic: kind.italicFields ?? false });
-  const typeText = fieldTypeLabel(field.type);
+  const typeText = fieldNote(field);
   if (!typeText) return { label, width: end + TABLE.padding };
   const type = end + TABLE.typeGap;
   const width = type + measureText(typeText, { size: TABLE.fieldSize, bold: false, italic: false }) + TABLE.padding;

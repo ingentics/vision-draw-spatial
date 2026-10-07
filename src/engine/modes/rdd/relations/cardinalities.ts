@@ -1,11 +1,12 @@
-import { SIDE_NORMALS, sideOfConstraint } from '../../edit/edgeEnds';
-import { center } from '../../model/geometry';
-import { styleNumber } from '../../model/styleValues';
-import type { EdgeModel, PageModel, Point } from '../../model/types';
-import type { ModeEdit } from '../types';
+import { SIDE_NORMALS, sideOfConstraint } from '../../../edit/edgeEnds';
+import { center } from '../../../model/geometry';
+import { styleNumber } from '../../../model/styleValues';
+import type { EdgeModel, PageModel, Point } from '../../../model/types';
+import type { ModeEdit } from '../../types';
+import { setEndArrows } from './ends';
 
 /**
- * Cardinalités d'une flèche de relation RDD (sujet 265), d'après « Optionnel » de son champ dans la table d'arrivée :
+ * Cardinalités d'une relation entre tables (sujet 265), d'après « Optionnel » de son champ dans la table d'arrivée :
  * au début, zéro ou plusieurs (`ERzeroToMany`, « 0,n ») ; à la fin (table du champ), une seule (`ERmandOne`, « 1,1 »),
  * ou zéro ou une si le champ est optionnel (`ERzeroToOne`, « 0,1 »). Pointes et textes des bouts (dans le style de
  * base des textes de début / fin) sont imposés par le mode : réécrits à chaque remise en ordre.
@@ -46,21 +47,13 @@ export const cardinalitiesShown = (page: PageModel): boolean => page.attributes[
 const TEXT_MARGIN = { along: 4, across: 4 };
 
 /**
- * Pointes et textes des bouts d'une flèche de relation ; `shown` : réglage de la page (passé quand l'opération vient
- * de le changer, `edit.page` ne le montrant pas encore). Masquées : les pointes seules, sans texte (sujet 266).
+ * Pointes et textes des bouts d'une flèche de relation ; `shown` : textes affichés (réglage de la page). Masqués : les
+ * pointes seules, sans texte (sujet 266).
  */
-export function writeCardinalities(
-  edit: ModeEdit,
-  edgeId: string,
-  nullable: boolean,
-  shown = cardinalitiesShown(edit.page),
-): void {
+export function writeCardinalities(edit: ModeEdit, edgeId: string, nullable: boolean, shown: boolean): void {
   const edge = edit.page.edges.find((e) => e.id === edgeId);
   if (!edge) return;
-  edit.setElementStyle(edgeId, 'startArrow', 'ERzeroToMany');
-  edit.setElementStyle(edgeId, 'endArrow', nullable ? 'ERzeroToOne' : 'ERmandOne');
-  edit.setElementStyle(edgeId, 'startFill', undefined);
-  edit.setElementStyle(edgeId, 'endFill', undefined);
+  setEndArrows(edit, edgeId, 'ERzeroToMany', nullable ? 'ERzeroToOne' : 'ERmandOne');
   edit.setEdgeEndText(
     edgeId,
     'start',

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="12"
+   height="12"
+   viewBox="0 0 12 12"
+   fill="none"
+   version="1.1"
+   id="svg188"
+   sodipodi:docname="embed_opt.svg"
+   inkscape:version="1.2.2 (b0a84865, 2022-12-01)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs192" />
+  <sodipodi:namedview
+     id="namedview190"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     showgrid="false"
+     inkscape:zoom="16"
+     inkscape:cx="-1.5"
+     inkscape:cy="11.3125"
+     inkscape:window-width="1573"
+     inkscape:window-height="1014"
+     inkscape:window-x="194"
+     inkscape:window-y="180"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg188" />
+  <polygon
+     class="diamond yellow"
+     points="25,30 15,20 25,10 35,20 "
+     id="polygon369"
+     style="fill:#ae62e3;stroke:#888888;stroke-width:2;fill-opacity:1"
+     transform="matrix(0.52393572,0,0,0.52780211,-7.098393,-4.5560422)" />
+  <polygon
+     class="hole"
+     points="85,64 81,60 85,56 89,60 "
+     id="polygon7560"
+     style="fill:#ffffff"
+     transform="matrix(0.51899077,0,0,0.49631737,-38.114215,-23.779042)" />
+</svg>

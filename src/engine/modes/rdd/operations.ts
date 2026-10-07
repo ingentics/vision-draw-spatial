@@ -1,6 +1,6 @@
 import type { ShapeModel } from '../../model/types';
 import type { ModeEdit } from '../types';
-import { writeCardinalities } from './cardinalities';
+import { writeRelationEdge } from './relations/relationKinds';
 import type { Field, TableContent, TableRow } from './tables';
 import {
   FIELDS,
@@ -13,6 +13,7 @@ import {
   isRelation,
   isSecondary,
   fieldsValue,
+  newFieldLabel,
   tableContent,
   tableFields,
   tableHeight,
@@ -87,6 +88,8 @@ export function setField(
       ...('pgName' in patch && { pgName: patch.pgName || undefined }),
       ...('pgType' in patch && { pgType: patch.pgType || undefined }),
       ...('gdpr' in patch && { gdpr: patch.gdpr || undefined }),
+      // Préfixe d'un champ de relation embedded (sujet 268).
+      ...('prefix' in patch && relation && { prefix: patch.prefix || undefined }),
       ...('personal' in patch && { personal: patch.personal || undefined }),
     };
   }
@@ -95,19 +98,8 @@ export function setField(
     shape,
     rows.map((current, i) => (i === index ? next : current)),
   );
-  // Champ de relation : les cardinalités de sa flèche suivent « Optionnel » (sujet 265).
-  if (isRelation(next)) writeCardinalities(edit, next.edge, next.nullable);
-}
-
-/**
- * Label d'un champ ajouté : `Field1`, `Field2`… (premier numéro libre dans la table) ; `prefix` : `relation` pour un
- * champ de relation (sujet 265).
- */
-export function newFieldLabel(rows: readonly TableRow[], prefix = 'Field'): string {
-  const used = new Set(rows.map((row) => row.label));
-  let number = 1;
-  while (used.has(`${prefix}${number}`)) number += 1;
-  return `${prefix}${number}`;
+  // Champ de relation : les bouts de sa flèche suivent le champ (cardinalités d'après « Optionnel », sujet 265).
+  if (isRelation(next)) writeRelationEdge(edit, next);
 }
 
 /** Ajoute une ligne après la ligne `after` (sinon en fin de liste ; jamais avant la clé primaire) ; renvoie son rang. */

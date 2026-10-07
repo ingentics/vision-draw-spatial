@@ -25,8 +25,8 @@ import {
   regionObstacles,
   setRegionColor,
 } from './regions';
-import { CARDINALITIES, cardinalitiesShown } from './cardinalities';
-import { REVERSE_NAME, forbiddenLinks, isRelationEdge, linksTables, syncRelations } from './relations';
+import { CARDINALITIES, cardinalitiesShown } from './relations/cardinalities';
+import { RELATION_PROPERTIES, forbiddenLinks, isRelationEdge, linksTables, syncRelations } from './relations';
 
 const notTable = (_page: unknown, target: ModeTarget) => !tableOf(target);
 /** Région du mode sélectionnée (sujet 182). */
@@ -67,21 +67,12 @@ export const definition: PageModeDefinition = {
       write: (edit, _target, value) => {
         const shown = value === '1';
         edit.setPageAttribute(CARDINALITIES, shown ? undefined : '0');
-        syncRelations(edit, shown);
+        syncRelations(edit, { cardinalities: shown });
       },
     },
   ],
-  edgeProperties: [
-    {
-      // Relation (sujet 265) : nom de la relation vue depuis la table d'arrivée.
-      type: 'text',
-      key: REVERSE_NAME,
-      section: 'Relation',
-      label: 'Nom inverse',
-      title: 'Nom de la relation vue depuis la table d’arrivée (reverseName)',
-      hidden: (page, target) => !('sourceId' in target) || !isRelationEdge(page, target),
-    },
-  ],
+  // Formulaire d'une flèche de relation : celui de sa sorte (sujets 265, 268).
+  edgeProperties: RELATION_PROPERTIES,
   shapeProperties: [
     {
       // Région (sujets 182, 233) : sa propre palette, bordure grise.
@@ -127,7 +118,8 @@ export const definition: PageModeDefinition = {
         return !shape || !tableKindOf(shape)?.primaryKey;
       },
     },
-    // Ligne sélectionnée : champ (sections du mode, PostgreSQL, Gouvernance) ou séparateur (sujets 249, 253, 260).
+    // Ligne sélectionnée : champ (sections du mode, PostgreSQL, Gouvernance), séparateur (sujets 249, 253, 260), ou
+    // champ d'une relation embedded (formulaire de sa flèche, sujet 268).
     ...FIELD_PROPERTIES,
     {
       // Tout en bas de l'encart, table ou ligne sélectionnée : un séparateur après la ligne (sinon en fin de liste),
@@ -154,7 +146,8 @@ export const definition: PageModeDefinition = {
   // Relations (sujet 265) : flèches permises, et le champ de relation de la table d'arrivée qui suit sa flèche
   // (créée, rebranchée, supprimée, collée).
   connects: (_page, source, target) => linksTables(source, target),
-  // Flèche de relation : cardinalités imposées, d'après « Optionnel » du champ ; le reste en lecture seule.
+  // Flèche de relation : bouts imposés par sa sorte (cardinalités d'après « Optionnel » du champ entre tables, aucune
+  // pointe depuis un embedded, sujet 268) ; le reste en lecture seule.
   managesEdge: isRelationEdge,
   edgeCreated: (edit) => syncRelations(edit),
   edgeReconnected: (edit) => syncRelations(edit),

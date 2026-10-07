@@ -9,6 +9,7 @@ import { readableOn, styleColor } from '../../../../render/styleColors';
 import { PART_ORDER } from '../../../../render/types';
 import type { RenderContext } from '../../../../render/types';
 import type { PaletteEntry, ShapeDefinition } from '../../../../shapes/types';
+import { isLinkable } from '../../relations/relationKinds';
 import {
   DEFAULT_HEADER_COLOR,
   DEFAULT_HEADER_TEXT,
@@ -354,7 +355,7 @@ export function table(
     // Flèches tirées des côtés seulement : le « + » d'ajout de champ prend le bas (sujet 250) ; aucune pour une table
     // sans relation (vue, document, modèle abstrait, sujet 265).
     connectSides: ['e', 'w'],
-    connectable: kind.links !== undefined,
+    connectable: isLinkable(id),
     swatch: () => '<path d="M5 5h30v18H5zM5 11h30"/>',
     ...(palette && {
       palette: {

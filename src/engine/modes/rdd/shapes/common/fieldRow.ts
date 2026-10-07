@@ -5,12 +5,12 @@ import { measureText } from '../../../../render/textMeasure';
 import { PART_ORDER } from '../../../../render/types';
 import type { RenderContext } from '../../../../render/types';
 import type { Divider, Field, FieldKind, TableKind } from '../../tables';
-import { TABLE, fieldLayout, fieldTypeLabel } from '../../tables';
+import { TABLE, fieldLayout, fieldNote } from '../../tables';
 
 /**
- * Ligne de champ d'une table RDD (sujet 248) : icône de kind, label, type en gris. Les icônes reprennent les SVG
- * fournis (12 × 12) : un losange de la couleur du kind, cerné de gris ; un champ nullable a un petit losange blanc
- * au centre.
+ * Ligne de champ d'une table RDD (sujet 248) : icône de kind, label, type (ou préfixe, sujet 268) en gris. Les
+ * icônes reprennent les SVG fournis (12 × 12, `docs/assets/`) : un losange de la couleur du kind, cerné de gris ; un
+ * champ nullable a un petit losange blanc au centre.
  */
 
 /** Couleur du losange par kind. */
@@ -19,6 +19,7 @@ export const FIELD_KIND_COLORS: Record<FieldKind, string> = {
   property: '#4a90e2',
   fk: '#e74c3c',
   'external-fk': '#3c9641',
+  embed: '#ae62e3',
 };
 const ICON_STROKE = '#888888';
 /** Demi-diagonales du losange et du trou (nullable), épaisseur du contour, dans le cadre de 12. */
@@ -84,13 +85,7 @@ export function addFieldRow(
     { size, color: '#000000', italic: kind.italicFields, part },
   );
   if (layout.type !== undefined) {
-    addRowText(
-      group,
-      ctx,
-      fieldTypeLabel(field.type),
-      { x: left + layout.type * scale, y },
-      { size, color: TYPE_COLOR },
-    );
+    addRowText(group, ctx, fieldNote(field), { x: left + layout.type * scale, y }, { size, color: TYPE_COLOR });
   }
 }
 

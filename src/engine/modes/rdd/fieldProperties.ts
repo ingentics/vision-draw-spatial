@@ -1,7 +1,8 @@
-import type { ShapeModel } from '../../model/types';
+import type { PageModel, ShapeModel } from '../../model/types';
 import type { ModeProperty, ModeTarget } from '../types';
 import { fieldIndex, fieldParts } from './fieldParts';
 import { setField } from './operations';
+import { RELATION_FIELD_PROPERTIES, relationOnlyField } from './relations';
 import type { Field, TableRow } from './tables';
 import { FIELD_TYPES, fieldTypeLabel, isDivider, isRelation, tableFields, tableKindOf } from './tables';
 
@@ -96,7 +97,8 @@ function text(
 const POSTGRESQL = 'PostgreSQL';
 const GOVERNANCE = 'Gouvernance';
 
-export const FIELD_PROPERTIES: ModeProperty[] = [
+/** Réglages d'un champ classique. */
+const CLASSIC_FIELD_PROPERTIES: ModeProperty[] = [
   {
     type: 'text',
     part: true,
@@ -175,4 +177,17 @@ export const FIELD_PROPERTIES: ModeProperty[] = [
   text('pgType', 'Type', 'Type PostgreSQL de la colonne (texte libre, ex. varchar(255), uuid)', POSTGRESQL),
   flag('gdpr', 'GDPR', 'Champ soumis au GDPR', GOVERNANCE),
   flag('personal', 'Donnée personnelle', 'Le champ contient une donnée personnelle', GOVERNANCE),
+];
+
+/**
+ * Réglages de la ligne sélectionnée : ceux d'un champ classique, sauf pour un champ qui n'est que la trace de sa
+ * relation (embedded, sujet 268), qui montre le formulaire de sa flèche.
+ */
+export const FIELD_PROPERTIES: ModeProperty[] = [
+  ...CLASSIC_FIELD_PROPERTIES.map((property) => ({
+    ...property,
+    hidden: (page: PageModel, target: ModeTarget, part?: string) =>
+      relationOnlyField(page, target, part) || !!property.hidden?.(page, target, part),
+  })),
+  ...RELATION_FIELD_PROPERTIES,
 ];
