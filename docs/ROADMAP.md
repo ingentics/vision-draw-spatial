@@ -22,6 +22,7 @@ docs/backlogs/
   scindé : la partie faite part en `done/`, le reste devient un nouveau fichier en `todo/`.
 - **Quand un sujet est traité, son fichier passe de `todo/` à `done/`** (`git mv`), dans le même commit que le code.
   On y ajoute alors ce qui a été fait (fichiers, choix, validation dans draw.io), sous une ligne « Fait : ».
+- Ne commit pas tout seul, attend d'avoir la validation que le ticket est traité (comme àa on traite les allez retours dans le même ticket que tu amenderas le cas échéant).
 - Un fichier `done/` n'est plus modifié ensuite : une évolution ou une reprise est un nouveau sujet en `todo/`.
 
 ### Nommage
@@ -51,6 +52,7 @@ Une **itération** est un petit sujet : une retouche, un réglage, une correctio
 (ex. « le double-clic seul édite le texte, ⌘ + double-clic suit le lien »). Elle suit le même formalisme qu'un sujet,
 en plus court :
 
+- Une itération concerne un ticket qui a été commité. Sinon, on est toujours sur le même ticket.
 - **Toute demande de modification devient un ticket.** Même formulée en une phrase dans la conversation, elle est
   d'abord écrite en fichier `todo/` (numéro suivant, mêmes règles de nommage) avant d'écrire le code ; si elle est
   ambiguë, on la précise avant de commencer.
