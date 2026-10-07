@@ -12,8 +12,11 @@ const LEGACY = {
   minimap: 'drawio-spatial:minimap-visible',
 };
 
+/** Ancienne vitesse par défaut des tirets du contour de sélection (px/s), avant le ticket 257. */
+const LEGACY_SELECTION_SPEED = 12;
+
 /** Version des paramètres enregistrés, pour les migrations. */
-const VERSION = 3;
+const VERSION = 4;
 
 export function loadSettings(): Settings {
   try {
@@ -38,6 +41,7 @@ export function saveSettings(settings: Settings): void {
  * Paramètres enregistrés par une version précédente. Version 2 : toutes les formes partagent la même
  * épaisseur par défaut (32) ; l'ancienne valeur par défaut (16) enregistrée telle quelle est migrée.
  * Version 3 : la touche pour suivre un lien passe de ⌘ (ancien défaut) à Espace (ticket 121).
+ * Version 4 : les tirets du contour de sélection défilent à 4 px/s par défaut (ancien défaut : 12, ticket 257).
  */
 export function migrate(stored: SettingsPatch & { version?: number }): SettingsPatch {
   const version = stored.version ?? 1;
@@ -46,6 +50,8 @@ export function migrate(stored: SettingsPatch & { version?: number }): SettingsP
     next = { ...next, view: { ...next.view, isoDepth: DEFAULT_DEPTH } };
   if (version < 3 && stored.controls?.followLinkKey === 'meta')
     next = { ...next, controls: { ...next.controls, followLinkKey: 'space' } };
+  if (version < 4 && stored.selection?.speed === LEGACY_SELECTION_SPEED)
+    next = { ...next, selection: { ...next.selection, speed: DEFAULT_SETTINGS.selection.speed } };
   return next;
 }
 

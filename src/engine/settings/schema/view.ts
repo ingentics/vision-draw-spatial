@@ -90,7 +90,7 @@ export const SELECTION = {
   style: oneOf(SELECTION_STYLES, 'veil'),
   veilOpacity: number(0.35, { min: 0.05, max: 0.85, step: 0.05 }),
   animated: flag(true),
-  speed: number(12, { min: 2, max: 80, step: 1 }),
+  speed: number(4, { min: 2, max: 80, step: 1 }),
   veilColor: color('#202124'),
   veilPadding: number(10, { min: 0, max: 60, step: 1 }),
   accentColor: color('#1a73e8'),

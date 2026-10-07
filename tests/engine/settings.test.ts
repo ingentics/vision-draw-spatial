@@ -57,7 +57,7 @@ describe('mergeSettings', () => {
       style: 'veil',
       veilOpacity: 0.35,
       animated: true,
-      speed: 12,
+      speed: 4,
       veilColor: '#202124',
       veilPadding: 10,
       accentColor: '#1a73e8',
