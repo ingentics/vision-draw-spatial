@@ -68,6 +68,11 @@ interface PageModeDefinition {
 }
 ```
 
+Le moteur appelle ces points d'entrée depuis un seul endroit (`core/domains/modes/`, sujet 288), chacun protégé : un
+point d'entrée qui lève une exception est traité comme absent (pas d'habillage, pas de borne, accroche permise…), et
+l'erreur est signalée une fois dans les Diagnostics (« Mode <id> : erreur dans <point d'entrée> »). Une opération
+(`ModeEdit`) qui lève une exception n'écrit rien : ses écritures ne sont appliquées qu'une fois l'opération terminée.
+
 ## 3. Réglages et opérations
 
 Un réglage déclaré (`toggle`, `number`, `text` — `multiline` pour une zone de texte —, `select`, dont les choix

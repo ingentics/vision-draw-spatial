@@ -498,7 +498,7 @@ export class Engine {
    * initiale du mode ; undefined pour une page sans mode ou sans courant.
    */
   getModeCurrent(pageId?: string): string | undefined {
-    return this.core.pageModes.getModeCurrent(pageId);
+    return this.core.modeCurrents.getModeCurrent(pageId);
   }
 
   /**
@@ -506,7 +506,7 @@ export class Engine {
    * l'ordre (boutons précédent / suivant). Undefined : pas de barre (pas de mode, pas de courant, pas de couleur).
    */
   getModeIndicator(pageId?: string): ModeIndicator | undefined {
-    return this.core.pageModes.getModeIndicator(pageId);
+    return this.core.modeCurrents.getModeIndicator(pageId);
   }
 
   /**
@@ -514,12 +514,12 @@ export class Engine {
    * d'annulation. Un nom vide (ou fait d'espaces) est ignoré.
    */
   renameModeCurrent(label: string): void {
-    this.core.pageModes.renameModeCurrent(label);
+    this.core.modeCurrents.renameModeCurrent(label);
   }
 
   /** Choisit le courant du mode d'une page (ex. bouton « suivant » de la barre) ; ignoré s'il n'est pas valable. */
   setModeCurrent(value: string, pageId?: string): void {
-    this.core.pageModes.setModeCurrent(value, pageId);
+    this.core.modeCurrents.setModeCurrent(value, pageId);
   }
 
   /**

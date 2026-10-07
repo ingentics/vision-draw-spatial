@@ -155,7 +155,7 @@ export class DragGesture {
       if (!sets.has(id)) sets.set(id, collectMoveSet(page, id));
       return sets.get(id)!;
     };
-    const carried = this.carried(page, pageTree, shapeIds);
+    const carried = this.core.pageModes.carried(page, shapeIds, pageTree);
     const rootIds = independentRoots([...shapeIds, ...carried], (id) => setOf(id).shapeIds);
     const set = unionMoveSets(rootIds.map(setOf));
     // Formes emportées : les flèches qui les relient entre elles (ou à la forme saisie) bougent avec elles.
@@ -206,15 +206,12 @@ export class DragGesture {
    * ces obstacles, sauf ceux qui bougent aussi (`moving`). Undefined : aucune borne.
    */
   private moveBounds(page: PageModel, rootIds: string[], moving: ReadonlySet<string>): MoveDrag['bounded'] {
-    const obstaclesOf = this.core.modes.modeOf(page)?.obstacles;
-    if (!obstaclesOf) return undefined;
-    const values = this.core.modes.valuesOf(page, this.core.settings.modes);
     const extents: Rect[] = [];
     const obstacles: Rect[] = [];
     let gap = 0;
     for (const id of rootIds) {
       const shape = page.shapes.find((s) => s.id === id);
-      const found = shape && obstaclesOf(page, shape, values);
+      const found = shape && this.core.pageModes.obstacles(page, shape);
       if (!shape || !found) continue;
       gap = Math.max(gap, found.gap);
       const above = found.above ?? 0;
@@ -227,35 +224,9 @@ export class DragGesture {
   /** Bornes du mode de la page pour le redimensionnement d'une forme (sujet 241) ; undefined : aucune. */
   private resizeBounds(page: PageModel, shapeId: string): ResizeDrag['bounded'] {
     const shape = page.shapes.find((s) => s.id === shapeId);
-    const values = this.core.modes.valuesOf(page, this.core.settings.modes);
-    const found = shape && this.core.modes.modeOf(page)?.obstacles?.(page, shape, values);
+    const found = shape && this.core.pageModes.obstacles(page, shape);
     if (!found || found.rects.length === 0) return undefined;
     return { obstacles: found.rects.map((r) => r.rect), above: found.above ?? 0, gap: found.gap };
-  }
-
-  /**
-   * Formes emportées par le mode de la page avec `shapeIds` (ex. contenu d'une région RDD), de proche en proche, sans
-   * celles qu'on ne peut pas déplacer.
-   */
-  private carried(page: PageModel, pageTree: PageTree, shapeIds: string[]): string[] {
-    const carries = this.core.modes.modeOf(page)?.carries;
-    if (!carries) return [];
-    const taken = new Set(shapeIds);
-    const carried: string[] = [];
-    const stack = [...shapeIds];
-    while (stack.length) {
-      const next = stack.pop();
-      const shape = page.shapes.find((s) => s.id === next);
-      if (!shape) continue;
-      for (const id of carries(page, shape)) {
-        const target = page.shapes.find((s) => s.id === id);
-        if (taken.has(id) || !target || isLocked(target) || !canMoveCell(pageTree, id)) continue;
-        taken.add(id);
-        carried.push(id);
-        stack.push(id);
-      }
-    }
-    return carried;
   }
 
   nudgeSelection(direction: Point, coarse: boolean): boolean {

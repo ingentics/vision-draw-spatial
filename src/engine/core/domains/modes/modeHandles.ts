@@ -13,10 +13,13 @@ export class ModeHandles {
   current(): { shape: ShapeModel; handles: Array<ModeHandle & { center: Point }> } | undefined {
     const editable = this.core.targets.editableSelection();
     const page = this.core.pages.getCurrentPage();
-    const declared = editable && page && this.core.modes.modeOf(page)?.handles;
-    if (!editable || !page || !declared) return undefined;
+    const mode = page && this.core.modes.modeOf(page);
+    const declared = mode?.handles;
+    if (!editable || !page || !mode || !declared) return undefined;
     const zoom = this.core.camera.state.zoom;
-    const handles = declared(page, editable.shape, this.core.selection.current?.part).map((handle) => ({
+    const part = this.core.selection.current?.part;
+    const found = this.core.pageModes.guard(mode, 'handles', [], () => declared(page, editable.shape, part));
+    const handles = found.map((handle) => ({
       ...handle,
       center: { x: handle.at.x + handle.offset.x / zoom, y: handle.at.y + handle.offset.y / zoom },
     }));
@@ -53,10 +56,7 @@ export class ModeHandles {
     this.core.pageModes.editPageMode(handle.title, (edit) => {
       next = clicked(edit, shape, handle.id, part);
     });
-    const fresh = this.core.pages.getCurrentPage()?.shapes.find((s) => s.id === shape.id);
-    if (next === undefined || !fresh) return true;
-    this.core.selection.selectItems([{ type: 'shape', element: fresh }], next);
-    if (this.core.shapeParts.text(shape.id, next)) this.core.labelEditor.editPartLabel(shape.id, next);
+    this.core.pageModes.selectPart(shape.id, next);
     return true;
   }
 

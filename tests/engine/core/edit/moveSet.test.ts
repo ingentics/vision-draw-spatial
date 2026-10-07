@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  carriedShapes,
   collectMoveSet,
   isLocked,
   moveTarget,
@@ -102,5 +103,24 @@ describe('unionMoveSets (sélection multiple)', () => {
     const set = unionMoveSets([collectMoveSet(page, 'lane'), collectMoveSet(page, 'lane-a')]);
     expect(set.edgeIds.has('lane-edge')).toBe(true);
     expect(set.connectedEdgeIds.has('lane-edge')).toBe(false);
+  });
+});
+
+describe('carriedShapes (sujet 288)', () => {
+  // Région r1 qui contient la région r2, qui contient la table t ; x n'est contenue par rien.
+  const page = {
+    shapes: ['r1', 'r2', 't', 'x'].map((id) => ({ id })),
+  } as unknown as PageModel;
+  const content: Record<string, string[]> = { r1: ['r2'], r2: ['t'], t: [], x: [] };
+  const carries = (s: { id: string }) => content[s.id]!;
+
+  it('de proche en proche, sans les formes de départ ni doublon', () => {
+    expect(carriedShapes(page, ['r1'], carries)).toEqual(['r2', 't']);
+    expect(carriedShapes(page, ['r1', 'r2'], carries)).toEqual(['t']);
+    expect(carriedShapes(page, ['x'], carries)).toEqual([]);
+  });
+
+  it('une forme écartée n’emporte pas son contenu', () => {
+    expect(carriedShapes(page, ['r1'], carries, (s) => s.id !== 'r2')).toEqual([]);
   });
 });

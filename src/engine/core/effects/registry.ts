@@ -72,13 +72,21 @@ export class PageEffectRegistry {
     options: {
       allows?: (effect: PageEffectDefinition) => boolean;
       settings?: PluginSettings;
+      /** Décor d'un effet qui lève une exception : la page s'affiche sans lui (sujet 288). */
+      onError?: (effectId: string, error: unknown) => void;
     } = {},
   ): void {
     let room: EffectRoom | undefined;
     for (const effect of this.active(page, options.allows)) {
       if (!effect.volume) continue;
       room ??= pageRoom(page, root);
-      const object = effect.volume(page, room, this.values(effect.id, options.settings?.[effect.id]));
+      let object: Object3D | undefined;
+      try {
+        object = effect.volume(page, room, this.values(effect.id, options.settings?.[effect.id]));
+      } catch (error) {
+        if (!options.onError) throw error;
+        options.onError(effect.id, error);
+      }
       if (!object) continue;
       object.name = `effect:${effect.id}`;
       object.userData.effectId = effect.id;

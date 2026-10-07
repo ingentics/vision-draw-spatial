@@ -32,18 +32,13 @@ export class SceneView {
     const layout = core.graph.layout;
     if (core.graph.isGraph(page.id) && layout && core.file.document)
       return buildGraphScene(page, layout, core.file.document, core.registry, this.renderContext(page), level);
-    const scene = buildPageScene(
-      page,
-      core.registry,
-      this.renderContext(page),
-      level,
-      core.modes.dressing(page, core.settings.modes),
-    );
+    const scene = buildPageScene(page, core.registry, this.renderContext(page), level, core.pageModes.dressing(page));
     // Décors des effets de la page : en volume seulement (iso / 3D).
     if (level === 'iso')
       core.effects.decorate(page, scene.root, {
         allows: (effect) => core.modes.allowsEffect(page, effect),
         settings: core.settings.effects,
+        onError: (effectId, error) => core.pluginGuard.report(`Effet ${effectId}`, 'volume', error),
       });
     return scene;
   }

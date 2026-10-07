@@ -143,10 +143,10 @@ export class SelectionHighlight {
     // Une forme sélectionnée est mise en valeur avec son contenu (enfants d'un groupe, d'un conteneur, formes emportées
     // par le mode de la page, comme le contenu d'une région RDD).
     const highlighted = new Set(ids);
-    const carries = this.core.modes.modeOf(page)?.carries;
+    const carries = this.core.pageModes.hasCarries(page);
     for (const item of items) {
       if (item.type !== 'shape') continue;
-      const roots = [item.element.id, ...(carries?.(page, item.element) ?? [])];
+      const roots = [item.element.id, ...this.core.pageModes.carried(page, [item.element.id])];
       for (const root of roots) {
         const content = collectMoveSet(page, root);
         for (const id of [...content.shapeIds, ...content.edgeIds]) highlighted.add(id);

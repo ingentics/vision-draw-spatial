@@ -1,12 +1,13 @@
 import type { Object3D } from 'three';
 import { gridSizeOf } from '../../format/cellEdits';
 import type { PageModel, Point, Rect, ShapeModel } from '../../model/types';
-import type { ModePartText } from '../../modes/types';
+import type { ModeParts, ModePartText } from '../../modes/types';
 import type { EngineCore } from '../EngineCore';
 
 /**
  * Parties des formes d'un mode de page (sujet 249, ex. champs d'une table RDD) : celle sous le pointeur, son emprise,
- * son texte. La partie sélectionnée vit dans la sélection (`Selection.part`) ; ce domaine n'a pas d'état.
+ * son texte, son glisser. La partie sélectionnée vit dans la sélection (`Selection.part`). Chaque appel au mode est
+ * protégé (sujet 288).
  */
 export class ShapeParts {
   /** Partie survolée par la souris (sujet 259), montrée en pré-sélection ; absente hors de toute partie. */
@@ -17,6 +18,27 @@ export class ShapeParts {
   /** Nouveau document : plus de partie survolée. */
   resetDocument(): void {
     this.hovered = undefined;
+  }
+
+  /**
+   * Point d'entrée `hook` des parties du mode de la page, appelé et protégé : `fallback` si le mode n'en a pas ou s'il
+   * lève une exception.
+   */
+  private call<K extends keyof ModeParts, T>(
+    page: PageModel | undefined,
+    hook: K,
+    fallback: T,
+    run: (entry: NonNullable<ModeParts[K]>) => T,
+  ): T {
+    const mode = page && this.core.modes.modeOf(page);
+    const entry = mode?.parts?.[hook];
+    if (!mode || !entry) return fallback;
+    return this.core.pageModes.guard(mode, `parts.${hook}`, fallback, () => run(entry as NonNullable<ModeParts[K]>));
+  }
+
+  /** Le mode de la page a-t-il ce point d'entrée de parties ? */
+  private has(page: PageModel | undefined, hook: keyof ModeParts): boolean {
+    return !!(page && this.core.modes.modeOf(page)?.parts?.[hook]);
   }
 
   /** Survol (sujet 259) : la partie sous le pointeur d'une forme d'une page modifiable ; la mise en valeur suit. */
@@ -37,7 +59,7 @@ export class ShapeParts {
   /** Commentaire non vide d'une partie de la page courante (sujet 262) ; undefined sans commentaire. */
   comment(shape: ShapeModel, part: string): { title: string; text: string } | undefined {
     const page = this.core.pages.getCurrentPage();
-    const comment = page ? this.core.modes.modeOf(page)?.parts?.comment?.(shape, part) : undefined;
+    const comment = this.call(page, 'comment', undefined, (comment) => comment(shape, part));
     return comment?.text.trim() ? comment : undefined;
   }
 
@@ -48,10 +70,10 @@ export class ShapeParts {
   editComment(shapeId: string, part: string, fromNavigation = false): boolean {
     const editable = this.core.targets.writablePage();
     const shape = editable?.page.shapes.find((s) => s.id === shapeId);
-    const parts = editable && this.core.modes.modeOf(editable.page)?.parts;
-    const comment = shape && parts?.comment?.(shape, part);
+    const comment =
+      editable && shape && this.call(editable.page, 'comment', undefined, (comment) => comment(shape, part));
     // Partie qui ne peut pas avoir de commentaire (ex. séparateur) : pas d'éditeur.
-    if (!editable || !shape || !parts?.setComment || !comment) return false;
+    if (!editable || !shape || !this.has(editable.page, 'setComment') || !comment) return false;
     this.core.events.emit('commentEdit', {
       pageId: editable.page.id,
       elementId: shapeId,
@@ -72,6 +94,11 @@ export class ShapeParts {
     this.core.pageModes.editPageMode('Commentaire', (edit) => setComment(edit, shape, part, text));
   }
 
+  /** Emprise d'une partie (pixels de page) d'après le mode de la page ; undefined = partie disparue. */
+  private bounds(page: PageModel, shape: ShapeModel, part: string): Rect | undefined {
+    return this.call(page, 'bounds', undefined, (bounds) => bounds(page, shape, part));
+  }
+
   /** Emprise de la partie survolée (pixels de page), et sa forme ; undefined sans survol ou si elle est sélectionnée. */
   hoveredBounds(): { shape: ShapeModel; rect: Rect } | undefined {
     const hovered = this.hovered;
@@ -79,22 +106,20 @@ export class ShapeParts {
     if (selection?.part === hovered?.part && selection?.picked.element.id === hovered?.shapeId) return undefined;
     const page = this.core.pages.getCurrentPage();
     const shape = hovered && page?.shapes.find((s) => s.id === hovered.shapeId);
-    const rect = shape && page && this.core.modes.modeOf(page)?.parts?.bounds(page, shape, hovered.part);
+    const rect = shape && page && this.bounds(page, shape, hovered.part);
     return shape && rect ? { shape, rect } : undefined;
   }
 
   /** `part` si le mode de la page la connaît encore sur `shape`, sinon undefined. */
   validPart(page: PageModel, shape: ShapeModel, part: string): string | undefined {
-    const parts = this.core.modes.modeOf(page)?.parts;
-    return parts?.bounds(page, shape, part) ? part : undefined;
+    return this.bounds(page, shape, part) ? part : undefined;
   }
 
   /** Partie de `shape` sous le point écran ; undefined = la forme elle-même, ou un mode sans parties. */
   partAt(page: PageModel, shape: ShapeModel, screen: Point): string | undefined {
-    const parts = this.core.modes.modeOf(page)?.parts;
-    if (!parts) return undefined;
+    if (!this.has(page, 'at')) return undefined;
     const point = this.core.picking.groundPointAtHeight(screen, this.core.sceneView.elementTop(shape.id));
-    return parts.at(page, shape, point);
+    return this.call(page, 'at', undefined, (at) => at(page, shape, point));
   }
 
   /** Emprise de la partie sélectionnée (pixels de page) ; undefined sans partie sélectionnée. */
@@ -106,7 +131,7 @@ export class ShapeParts {
     const previewed = this.core.partDrags.previewed();
     const shape = previewed?.shape ?? page.shapes.find((s) => s.id === selection.picked.element.id);
     const part = previewed?.part ?? selection.part;
-    const rect = shape && this.core.modes.modeOf(page)?.parts?.bounds(page, shape, part);
+    const rect = shape && this.bounds(page, shape, part);
     return shape && rect ? { shape, rect } : undefined;
   }
 
@@ -117,7 +142,7 @@ export class ShapeParts {
   text(shapeId: string, part: string, shape?: ShapeModel): ModePartText | undefined {
     const page = this.core.pages.getCurrentPage();
     const target = shape ?? page?.shapes.find((s) => s.id === shapeId);
-    return page && target ? this.core.modes.modeOf(page)?.parts?.text?.(page, target, part) : undefined;
+    return page && target ? this.call(page, 'text', undefined, (text) => text(page, target, part)) : undefined;
   }
 
   /** Forme telle qu'elle serait avec ce texte sur la partie (aperçu de la saisie, sujet 253) ; undefined sans aperçu. */
@@ -126,7 +151,9 @@ export class ShapeParts {
     const shape = page?.shapes.find((s) => s.id === shapeId);
     const tree = page && this.core.file.pageTreeOf(page.id);
     const gridSize = tree && tree.encoding !== 'unreadable' ? gridSizeOf(tree) : 0;
-    return page && shape ? this.core.modes.modeOf(page)?.parts?.textPreview?.(shape, part, text, gridSize) : undefined;
+    return shape
+      ? this.call(page, 'textPreview', undefined, (preview) => preview(shape, part, text, gridSize))
+      : undefined;
   }
 
   /** Objets du texte dessiné d'une partie (marqués `userData.part` par le rendu du mode). */
@@ -136,6 +163,39 @@ export class ShapeParts {
       if (object.userData.part === part) found.push(object);
     });
     return found;
+  }
+
+  /** Le mode de la page sait-il glisser une partie (`dropAt` et `move`, sujet 252) ? */
+  canDrag(page: PageModel): boolean {
+    return this.has(page, 'dropAt') && this.has(page, 'move');
+  }
+
+  /** Place visée par le glisser d'une partie sous `point` (pixels de page) ; undefined = aucune. */
+  dropAt(page: PageModel, shape: ShapeModel, part: string, point: Point): string | undefined {
+    return this.call(page, 'dropAt', undefined, (dropAt) => dropAt(page, shape, part, point));
+  }
+
+  /** Forme telle qu'elle serait avec la partie à la place `target`, et la partie à cette place ; undefined sans aperçu. */
+  dragPreview(
+    page: PageModel,
+    shape: ShapeModel,
+    part: string,
+    target: string,
+  ): { shape: ShapeModel; part: string } | undefined {
+    return this.call(page, 'preview', undefined, (preview) => preview(shape, part, target));
+  }
+
+  /**
+   * Lâcher d'une partie sur la place `target` : opération du mode (une étape d'annulation, `label`). Renvoie si quelque
+   * chose a changé, et la partie à sélectionner ensuite.
+   */
+  move(label: string, shape: ShapeModel, part: string, target: string): { changed: boolean; next: string | undefined } {
+    const page = this.core.targets.editablePage()?.page;
+    const move = page && this.core.modes.modeOf(page)?.parts?.move;
+    let next: string | undefined;
+    const changed =
+      !!move && this.core.pageModes.editPageMode(label, (edit) => (next = move(edit, shape, part, target)));
+    return { changed, next };
   }
 
   /**

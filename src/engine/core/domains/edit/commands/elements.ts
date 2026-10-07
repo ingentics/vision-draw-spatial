@@ -1,12 +1,10 @@
 import { gridSizeOf } from '../../../format/cellEdits';
 import { addShapeCell, removeCellsDeep } from '../../../format/create';
 import { reorderCells } from '../../../format/order';
-import { documentFromTree } from '../../../format/parse';
 import { dropBounds } from '../../../edit/palette';
 import type { ShapeTemplate } from '../../../edit/palette';
 import { screenToPage } from '../../../interaction/cameraMath';
 import type { Point } from '../../../model/types';
-import { applyModeEdit } from '../../../modes/modeEdits';
 import { withStyleValue } from '../helpers';
 import type { EngineCore } from '../../EngineCore';
 
@@ -46,12 +44,7 @@ export class ElementCommands {
       selection.items.map((item) => item.element.id),
     );
     // Le mode de la page remet ses données en ordre (ex. rangs resserrés), dans la même étape d'annulation.
-    const repair = this.core.modes.modeOf(editable.page)?.repair;
-    const page =
-      repair &&
-      this.core.file.xmlTree &&
-      documentFromTree(this.core.file.xmlTree).pages.find((p) => p.id === editable.page.id);
-    if (repair && page) applyModeEdit(page, editable.pageTree, repair, this.core.pageModes.editContext());
+    this.core.pageModes.elementsRemoved(editable.page.id);
     this.core.selection.clearSelection();
     this.core.file.documentChanged([editable.page.id]);
   }

@@ -27,8 +27,9 @@ export const DEFAULT_MODE_EDIT_CONTEXT: ModeEditContext = {
  * renvoie vrai si quelque chose a changé. Seuls les attributs `spatial.*` sont écrits : sur `<diagram>` pour la page ;
  * pour un élément, là où l'attribut est déjà (objet), sinon dans le style ; les autres clés du style draw.io par
  * `setElementStyle`, les bornes d'une forme par `setShapeBounds` (sujet 179), les labels enfants d'une flèche par
- * `setEdgeEndText` (sujet 265). Les valeurs sont suivies au fil des
- * écritures : une écriture identique à la valeur en place est ignorée.
+ * `setEdgeEndText` (sujet 265). Les valeurs sont suivies au fil des écritures : une écriture identique à la valeur en
+ * place est ignorée. Les écritures sont rassemblées, puis appliquées à l'arbre une fois l'opération terminée (sujet
+ * 288) : une opération qui lève une exception n'écrit rien.
  */
 export function applyModeEdit(
   page: PageModel,
@@ -36,19 +37,28 @@ export function applyModeEdit(
   edit: (edit: ModeEdit) => void,
   context: ModeEditContext = DEFAULT_MODE_EDIT_CONTEXT,
 ): boolean {
-  let changed = false;
   const elements = new Map([...page.shapes, ...page.edges].map((element) => [element.id, element]));
   const written = new Map<string, string | undefined>();
   const resized = new Map<string, Rect>();
+  /** Texte de bout d'une flèche par emplacement : sa cellule (connue à l'écriture s'il est créé), s'il existe. */
+  const endTexts = new Map<string, { id: string | undefined; exists: boolean; replaced: boolean }>();
+  /** Écritures dans l'arbre, dans l'ordre ; chacune dit si elle a changé quelque chose. */
+  const writes: Array<() => boolean> = [];
   edit({
     page,
     palette: context.palette,
     gridSize: gridSizeOf(pageTree),
     setPageAttribute: (key, value) => {
+      const slot = `\n${key}`;
       const diagram = pageTree.diagram;
-      const current = diagram?.hasAttribute(key) ? diagram.getAttribute(key) : undefined;
+      const current = written.has(slot)
+        ? written.get(slot)
+        : diagram?.hasAttribute(key)
+          ? diagram.getAttribute(key)
+          : undefined;
       if (!key.startsWith(SPATIAL_PREFIX) || current === value) return;
-      changed = setPageAttribute(pageTree, key, value) || changed;
+      written.set(slot, value);
+      writes.push(() => setPageAttribute(pageTree, key, value));
     },
     setElementAttribute: (elementId, key, value) => {
       const element = elements.get(elementId);
@@ -58,16 +68,18 @@ export function applyModeEdit(
       const current = written.has(slot) ? written.get(slot) : element && spatialValue(element, key);
       if (!element || !key.startsWith(SPATIAL_PREFIX) || current === text) return;
       written.set(slot, text);
-      changed = true;
-      if (text === undefined) {
-        if (element.attributes[key] !== undefined) setCellObjectAttribute(pageTree, elementId, key, undefined);
-        setCellStyleValue(pageTree, elementId, key, undefined);
-        return;
-      }
-      const inObject = element.attributes[key] !== undefined && element.style[key] === undefined;
-      if (!inObject || !setCellObjectAttribute(pageTree, elementId, key, text)) {
-        setCellStyleValue(pageTree, elementId, key, text);
-      }
+      writes.push(() => {
+        if (text === undefined) {
+          if (element.attributes[key] !== undefined) setCellObjectAttribute(pageTree, elementId, key, undefined);
+          setCellStyleValue(pageTree, elementId, key, undefined);
+          return true;
+        }
+        const inObject = element.attributes[key] !== undefined && element.style[key] === undefined;
+        if (!inObject || !setCellObjectAttribute(pageTree, elementId, key, text)) {
+          setCellStyleValue(pageTree, elementId, key, text);
+        }
+        return true;
+      });
     },
     setElementStyle: (elementId, key, value) => {
       const element = elements.get(elementId);
@@ -76,8 +88,10 @@ export function applyModeEdit(
       const current = written.has(slot) ? written.get(slot) : element?.style[key];
       if (!element || key.startsWith(SPATIAL_PREFIX) || current === text) return;
       written.set(slot, text);
-      changed = true;
-      setCellStyleValue(pageTree, elementId, key, text);
+      writes.push(() => {
+        setCellStyleValue(pageTree, elementId, key, text);
+        return true;
+      });
     },
     setShapeBounds: (shapeId, bounds) => {
       const shape = page.shapes.find((s) => s.id === shapeId);
@@ -91,20 +105,32 @@ export function applyModeEdit(
       };
       if (Object.values(delta).every((d) => d === 0)) return;
       resized.set(shapeId, bounds);
-      changed = true;
-      resizeCell(pageTree, shapeId, delta);
+      writes.push(() => {
+        resizeCell(pageTree, shapeId, delta);
+        return true;
+      });
     },
     setEdgeEndText: (edgeId, end, text, direction, margin = {}) => {
       const edge = page.edges.find((e) => e.id === edgeId);
       if (!edge) return;
       const slot = `${edgeId}\ntext ${end}`;
       // Texte déjà là (fichier, ou écrit plus tôt dans l'opération) à ce bout.
-      const id = written.has(slot) ? written.get(slot) : endLabelOf(edge, end)?.id;
+      let cell = endTexts.get(slot);
+      if (!cell) {
+        const id = endLabelOf(edge, end)?.id;
+        cell = { id, exists: id !== undefined, replaced: false };
+        endTexts.set(slot, cell);
+      }
+      const target = cell;
       if (text === undefined) {
-        if (id === undefined) return;
-        removeCells(pageTree, [id]);
-        written.set(slot, undefined);
-        changed = true;
+        if (!target.exists) return;
+        target.exists = false;
+        target.replaced = true;
+        writes.push(() => {
+          removeCells(pageTree, [target.id!]);
+          target.id = undefined;
+          return true;
+        });
         return;
       }
       // Configuration d'un texte créé à ce bout (comme `EdgeTexts.setEdgeEndLabel`), sur une flèche réduite à sa
@@ -121,7 +147,8 @@ export function applyModeEdit(
         align: layout.align,
         verticalAlign: layout.verticalAlign,
       };
-      const current = edge.labels.find((label) => label.id === id);
+      // Texte du fichier encore en place (ni retiré ni récrit dans l'opération) : on ne récrit pas le même.
+      const current = target.replaced ? undefined : edge.labels.find((label) => label.id === target.id);
       const { placement } = layout;
       const same =
         current &&
@@ -132,16 +159,22 @@ export function applyModeEdit(
         current.placement.offset.y === placement.offset.y &&
         Object.entries(style).every(([key, value]) => current.style[key] === value);
       if (same) return;
-      const cell = id ?? addEdgeLabelCell(pageTree, edgeId, { value: '', position: placement.position });
-      written.set(slot, cell);
-      setCellLabel(pageTree, cell, text);
-      setLabelPlacement(pageTree, cell, placement);
-      for (const [key, value] of Object.entries(style)) setCellStyleValue(pageTree, cell, key, value);
-      changed = true;
+      target.exists = true;
+      target.replaced = true;
+      writes.push(() => {
+        target.id ??= addEdgeLabelCell(pageTree, edgeId, { value: '', position: placement.position });
+        setCellLabel(pageTree, target.id, text);
+        setLabelPlacement(pageTree, target.id, placement);
+        for (const [key, value] of Object.entries(style)) setCellStyleValue(pageTree, target.id, key, value);
+        return true;
+      });
     },
     sendToBack: (shapeIds) => {
-      changed = sendToBackInOrder(pageTree, shapeIds) || changed;
+      const ids = [...shapeIds];
+      writes.push(() => sendToBackInOrder(pageTree, ids));
     },
   });
+  let changed = false;
+  for (const write of writes) changed = write() || changed;
   return changed;
 }

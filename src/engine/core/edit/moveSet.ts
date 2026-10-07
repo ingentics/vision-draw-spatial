@@ -72,6 +72,35 @@ export function collectMoveSet(page: PageModel, rootId: string): MoveSet {
 }
 
 /**
+ * Formes emportées avec `shapeIds` par le mode de la page (`carries`, ex. contenu d'une région RDD, sujet 182), de
+ * proche en proche ; `accept` écarte celles qui ne peuvent pas suivre (et ce qu'elles emporteraient). Sans les
+ * formes de départ. Commun au geste et à la mise en valeur de la sélection (sujet 288).
+ */
+export function carriedShapes(
+  page: PageModel,
+  shapeIds: readonly string[],
+  carries: (shape: ShapeModel) => readonly string[],
+  accept: (shape: ShapeModel) => boolean = () => true,
+): string[] {
+  const taken = new Set(shapeIds);
+  const carried: string[] = [];
+  const stack = [...shapeIds];
+  while (stack.length) {
+    const next = stack.pop();
+    const shape = page.shapes.find((s) => s.id === next);
+    if (!shape) continue;
+    for (const id of carries(shape)) {
+      const target = page.shapes.find((s) => s.id === id);
+      if (taken.has(id) || !target || !accept(target)) continue;
+      taken.add(id);
+      carried.push(id);
+      stack.push(id);
+    }
+  }
+  return carried;
+}
+
+/**
  * Déplacement de plusieurs formes ensemble (sélection multiple) : réunion de leurs ensembles. La
  * première forme reste la forme saisie ; une arête reliée à une forme mais contenue dans une autre
  * est déplacée avec elle, pas seulement retracée.

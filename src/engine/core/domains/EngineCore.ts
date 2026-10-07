@@ -30,7 +30,9 @@ import { ModifierKeys } from './input/keys';
 import { Links } from './navigation/links';
 import { BackHistory } from './navigation/history';
 import { Transitions } from './navigation/transition';
+import { ModeCurrents } from './modes/modeCurrents';
 import { PageModes } from './modes/pageModes';
+import { PluginGuard } from './modes/pluginGuard';
 import { ShapeParts } from './modes/shapeParts';
 import { ModeHandles } from './modes/modeHandles';
 import { EditTargets } from './edit/targets';
@@ -119,7 +121,9 @@ export class EngineCore {
   readonly transitions = new Transitions(this);
 
   // modes : modes et effets de page
+  readonly pluginGuard = new PluginGuard(this);
   readonly pageModes = new PageModes(this);
+  readonly modeCurrents = new ModeCurrents(this);
   readonly shapeParts = new ShapeParts(this);
   readonly modeHandles = new ModeHandles(this);
 
@@ -208,7 +212,7 @@ export class EngineCore {
       this.graph,
       this.gesture,
       this.edits,
-      this.pageModes,
+      this.modeCurrents,
       this.shapeParts,
       this.history,
       this.links,

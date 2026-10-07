@@ -1,12 +1,10 @@
 import { setEdgePoints } from '../../../format/cellEdits';
 import { addEdgeCell } from '../../../format/create';
-import { documentFromTree } from '../../../format/parse';
 import type { PageTree } from '../../../format/xmlTree';
 import { constraintStyle } from '../../../edit/edgeEnds';
 import { CONNECT_DIRECTIONS } from '../../../edit/handleKinds';
 import type { PageModel, Point } from '../../../model/types';
 import { connectorPreview } from '../../../render/handleMeshes';
-import { applyModeEdit } from '../../../modes/modeEdits';
 import type { ConnectDrag } from './types';
 import { samePoints, withStyleValue } from '../helpers';
 import type { EngineCore } from '../../EngineCore';
@@ -137,16 +135,7 @@ export class ConnectDrags {
     // Flèche créée dans un calque : ses points sont en coordonnées de page.
     if (drag.loop) setEdgePoints(pageTree, id, drag.loop);
     // Le mode de la page reçoit la flèche (ex. ajoutée au flux courant), dans la même étape d'annulation.
-    const page = this.core.pages.pageById(drag.pageId);
-    const created = page && this.core.modes.modeOf(page)?.edgeCreated;
-    const fresh =
-      created &&
-      this.core.file.xmlTree &&
-      documentFromTree(this.core.file.xmlTree).pages.find((p) => p.id === drag.pageId);
-    if (created && fresh) {
-      const current = this.core.pageModes.getModeCurrent(drag.pageId);
-      applyModeEdit(fresh, pageTree, (edit) => created(edit, id, current), this.core.pageModes.editContext());
-    }
+    this.core.pageModes.edgeCreated(drag.pageId, id);
     this.core.file.documentChanged([drag.pageId]);
     const edge = this.core.pages.getCurrentPage()?.edges.find((e) => e.id === id);
     if (edge) this.core.selection.select({ type: 'edge', element: edge });

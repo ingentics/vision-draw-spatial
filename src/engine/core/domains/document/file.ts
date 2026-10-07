@@ -60,6 +60,18 @@ export class DocumentFile {
     return xml;
   }
 
+  /**
+   * Erreurs des plugins signalées après la lecture (sujet 288) : avertissements du document republiés, sans le
+   * relire.
+   */
+  publishWarnings(): void {
+    if (!this.document) return;
+    const guard = this.core.pluginGuard;
+    const warnings = [...this.document.warnings.filter((w) => !guard.owns(w)), ...guard.warnings()];
+    this.document = { ...this.document, warnings };
+    this.core.events.emit('documentChange', this.document);
+  }
+
   /** Document lu (chargement, annuler / rétablir) : modèle, géométrie des pages, arbre XML, styles non pris en charge. */
   replaceDocument(document: DocumentModel, tree: DrawioTree): void {
     this.document = this.core.pageModes.withModeWarnings(document);
