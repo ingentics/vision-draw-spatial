@@ -178,7 +178,7 @@ export interface ShapeDefinition {
   contains?(shape: ShapeModel, point: Point): boolean;
   /**
    * Emprise prise au clic, si la forme dessine hors de ses bornes (ex. onglet d'une région RDD, sujet 227) ; le point y
-   * est d'abord testé, puis passé à `contains`. Absent = les bornes.
+   * est d'abord testé, puis passé à `contains`. Le cadre de sélection l'entoure (sujet 315). Absent = les bornes.
    */
   hitBounds?(shape: ShapeModel): Rect;
   flat: SceneRenderer;

@@ -219,7 +219,9 @@ export class SelectionHighlight {
         continue;
       }
       if (style !== 'outline') continue;
-      const bounds = type === 'shape' ? element.bounds : this.core.sceneView.drawnBounds(element.id);
+      // Forme : son emprise prise au clic (ex. région RDD et son onglet, sujet 315).
+      const bounds =
+        type === 'shape' ? this.core.registry.hitBounds(element) : this.core.sceneView.drawnBounds(element.id);
       if (!bounds) continue;
       const outline = selectionOutline(bounds, this.core.camera.state.zoom, this.selectionPhase, accentColor);
       // Posé sur le dessus d'un volume, et toujours visible (pas caché par les blocs).
