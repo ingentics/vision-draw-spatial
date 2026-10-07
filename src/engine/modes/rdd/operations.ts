@@ -91,6 +91,15 @@ export function addField(edit: ModeEdit, shape: ShapeModel, type: string, after?
   return index;
 }
 
+/** Retire le champ `index` (sujet 251) ; jamais la clé primaire. La taille suit. */
+export function removeField(edit: ModeEdit, shape: ShapeModel, index: number): void {
+  const fields = tableFields(shape);
+  if (!tableKindOf(shape) || !fields[index] || fields[index].kind === 'pk') return;
+  const written = fields.filter((_, i) => i !== index);
+  edit.setElementAttribute(shape.id, FIELDS, fieldsValue(written));
+  fitTable(edit, shape, { fields: written });
+}
+
 /** Couleur de l'entête (`fillColor`) ; le texte du fichier suit le contraste pour draw.io (`fontColor`). */
 export function setHeaderColor(edit: ModeEdit, shape: ShapeModel, color: string | undefined): void {
   if (!tableKindOf(shape) || !color) return;

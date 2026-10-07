@@ -30,7 +30,8 @@ export function createCameraController(core: EngineCore): CameraController {
       orderSelection: (move) => core.arrange.orderSelection(move),
       nudgeSelection: (direction, coarse) => core.gesture.nudgeSelection(direction, coarse),
       editSelection: () => core.labelEditor.editLabel(),
-      deleteSelection: () => core.elements.deleteSelection(),
+      // Une partie sélectionnée (ex. champ d'une table RDD, sujet 251) est retirée seule.
+      deleteSelection: () => core.shapeParts.removeSelected() || core.elements.deleteSelection(),
       placementVariant: () => core.arrangement.placementVariant(),
       editComment: () => core.pointer.editHoveredComment(),
       canDeleteSelection: () => {

@@ -122,7 +122,9 @@ paramètres « Modes › Séquences » (clés `shapes.edgeBadge…`, communes à
 - `parts` (sujet 249) : parties d'une forme du mode, désignées par une chaîne propre au mode. Un clic sur une partie
   (`at(page, shape, point)`) la sélectionne, la forme sélectionnée ou non (`Selection.part`), mise en valeur sur son
   emprise (`bounds`) ; Échap revient à la forme. `text` / `setText` : texte modifiable sur place au double-clic, sur une
-  ligne (Entrée valide), écrit par une opération du mode (une étape d'annulation).
+  ligne (Entrée valide), écrit par une opération du mode (une étape d'annulation). `remove` : Suppr sur la partie
+  sélectionnée la retire (sujet 251) ; la forme n'est jamais supprimée à sa place, et un refus du mode laisse tout tel
+  quel.
 - `obstacles(page, shape)` : emprises que `shape` ne doit pas approcher pendant un déplacement (glisser, flèches du
   clavier) ou un redimensionnement, à l'écart du paramètre `shapes.modeObstacleGap` ; `above` : ce que la forme dessine
   au-dessus de ses bornes. Le moteur borne le geste (un axe puis l'autre, on glisse le long d'un obstacle) et montre la

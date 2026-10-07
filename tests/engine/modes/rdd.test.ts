@@ -475,6 +475,32 @@ describe('mode RDD : ajouter un champ (sujet 250)', () => {
   });
 });
 
+describe('mode RDD : supprimer un champ (sujet 251)', () => {
+  it('Suppr retire le champ ; la table rétrécit en hauteur, et en largeur si c’était la plus longue ligne', () => {
+    const { run, shape } = setup();
+    const long = 'a_very_long_field_name_for_a_table';
+    run((edit) => setFields(edit, shape('user'), `email\nrole\n${long}`));
+    expect(shape('user').bounds.width).toBe(Math.ceil(rowWidth(long, 'Phrase')));
+    run((edit) => fieldParts.remove!(edit, shape('user'), '3'));
+    expect(labels(fieldsOf(shape('user')))).toEqual(['id', 'email', 'role']);
+    expect(shape('user').bounds).toEqual({
+      x: 40,
+      y: 160,
+      width: widthOf(KEY_ROW, rowWidth('role', 'Nombre entier')),
+      height: 26 + 3 * 20,
+    });
+    run((edit) => fieldParts.remove!(edit, shape('user'), '1'));
+    expect(labels(fieldsOf(shape('user')))).toEqual(['id', 'role']);
+  });
+
+  it('la clé primaire ne se supprime pas ; une partie inconnue non plus', () => {
+    const { run, shape } = setup();
+    expect(run((edit) => fieldParts.remove!(edit, shape('user'), '0'))).toBe(false);
+    expect(run((edit) => fieldParts.remove!(edit, shape('user'), '9'))).toBe(false);
+    expect(labels(fieldsOf(shape('user')))).toEqual(['id', 'email', 'role']);
+  });
+});
+
 describe('mode RDD : tables ajustées à l’ouverture (sujet 255)', () => {
   it('chaque table prend la taille de son contenu ; une seconde passe ne change rien ; la région reste', () => {
     const { run, shape } = setup();

@@ -40,6 +40,26 @@ export class ShapeParts {
     return page && shape ? this.core.modes.modeOf(page)?.parts?.text?.(page, shape, part) : undefined;
   }
 
+  /**
+   * Suppr avec une partie sélectionnée (sujet 251) : la partie est retirée par le mode (une étape d'annulation), la
+   * forme reste sélectionnée seule. Vrai si une partie était sélectionnée (la forme n'est alors jamais supprimée).
+   */
+  removeSelected(): boolean {
+    const editable = this.core.targets.editablePage();
+    const selection = this.core.selection.current;
+    if (!editable || selection?.part === undefined || selection.pageId !== editable.page.id) return false;
+    const shape = editable.page.shapes.find((s) => s.id === selection.picked.element.id);
+    const remove = this.core.modes.modeOf(editable.page)?.parts?.remove;
+    if (!shape || !remove) return true;
+    const part = selection.part;
+    // Refusée par le mode (ex. clé primaire) : rien ne change, la partie reste sélectionnée.
+    if (!this.core.pageModes.editPageMode('Suppression', (edit) => remove(edit, shape, part))) return true;
+    // Le rang de la partie retirée désigne maintenant la suivante : la sélection revient à la forme.
+    const fresh = this.core.pages.getCurrentPage()?.shapes.find((s) => s.id === shape.id);
+    if (fresh) this.core.selection.selectItems([{ type: 'shape', element: fresh }]);
+    return true;
+  }
+
   /** Texte validé d'une partie : opération du mode (une étape d'annulation). */
   setText(shapeId: string, part: string, text: string): void {
     const page = this.core.targets.editablePage()?.page;

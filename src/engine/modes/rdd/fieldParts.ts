@@ -1,6 +1,6 @@
 import type { ShapeModel } from '../../model/types';
 import type { ModeParts } from '../types';
-import { setField } from './operations';
+import { removeField, setField } from './operations';
 import { SECONDARY_SCALE, TABLE, fieldLayout, fieldRow, isSecondary, tableFields, tableKindOf } from './tables';
 
 /**
@@ -47,5 +47,10 @@ export const fieldParts: ModeParts = {
   setText(edit, shape, part, text) {
     const index = fieldIndex(shape, part);
     if (index !== undefined) setField(edit, shape, index, { label: text });
+  },
+  // Suppr : le champ, jamais la clé primaire (sujet 251).
+  remove(edit, shape, part) {
+    const index = fieldIndex(shape, part);
+    if (index !== undefined) removeField(edit, shape, index);
   },
 };

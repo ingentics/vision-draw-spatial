@@ -943,6 +943,9 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     propriété non nullable `Field1`, `Field2`… (premier numéro libre) après le champ sélectionné, sinon en fin de liste,
     jamais avant la clé primaire ; le champ ajouté est sélectionné et son label passe en édition. Une étape
     d'annulation ; le type ne change plus ensuite. La zone « Champs » du panneau a disparu.
+  - Supprimer un champ (sujet 251) : champ sélectionné, Suppr ou Retour arrière le retire (pas la table) et la
+    sélection revient à la table ; sur la clé primaire, la touche est sans effet. La table rétrécit ; une étape
+    d'annulation.
   - Champ sélectionné (sujet 249) : un clic sur une ligne de champ la sélectionne, la table sélectionnée ou non (fond
     léger et trait de la couleur d'accent sur la ligne) ; un clic sur l'entête revient à la table, Échap aussi. Le
     panneau ne montre alors que le champ : « Champ » (label), « Type » (lecture seule), « Rôle » (propriété, clé

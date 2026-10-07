@@ -54,13 +54,15 @@ export class PageModes {
     this.core.file.documentChanged([pageId], { distribute: false });
   }
 
-  editPageMode(label: string, edit: (edit: ModeEdit) => void): void {
+  /** Opération du mode sur la page courante, en une étape d'annulation ; vrai si elle a changé quelque chose. */
+  editPageMode(label: string, edit: (edit: ModeEdit) => void): boolean {
     const editable = this.core.targets.editablePage();
-    if (!editable || !this.core.file.xmlTree) return;
+    if (!editable || !this.core.file.xmlTree) return false;
     const before = writeDrawio(this.core.file.xmlTree);
-    if (!applyModeEdit(editable.page, editable.pageTree, edit, modePalette(this.core.settings.styles))) return;
+    if (!applyModeEdit(editable.page, editable.pageTree, edit, modePalette(this.core.settings.styles))) return false;
     this.core.edits.recordSnapshot(label, before);
     this.core.file.documentChanged([editable.page.id]);
+    return true;
   }
 
   /** `part` : partie de la forme sélectionnée, pour un réglage de partie (sujet 249). */

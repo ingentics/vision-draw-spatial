@@ -106,6 +106,11 @@ export interface ModeParts {
   text?(page: PageModel, shape: ShapeModel, part: string): ModePartText | undefined;
   /** Écrit le texte validé (le mode décide d'un texte vide : refusé, ou partie retirée). */
   setText?(edit: ModeEdit, shape: ShapeModel, part: string, text: string): void;
+  /**
+   * Suppr sur la partie sélectionnée (sujet 251) : la retire ; le mode peut refuser (ex. clé primaire), rien n'est
+   * alors écrit. Dans tous les cas, la forme elle-même n'est pas supprimée.
+   */
+  remove?(edit: ModeEdit, shape: ShapeModel, part: string): void;
 }
 
 /** Poignée d'un mode (sujet 250) : disque de couleur marqué d'un « + » blanc, et les choix de son menu. */
