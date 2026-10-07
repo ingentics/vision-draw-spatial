@@ -72,6 +72,7 @@ Le moteur appelle ces points d'entrée depuis un seul endroit (`core/domains/mod
 point d'entrée qui lève une exception est traité comme absent (pas d'habillage, pas de borne, accroche permise…), et
 l'erreur est signalée une fois dans les Diagnostics (« Mode <id> : erreur dans <point d'entrée> »). Une opération
 (`ModeEdit`) qui lève une exception n'écrit rien : ses écritures ne sont appliquées qu'une fois l'opération terminée.
+La section 8 donne, point d'entrée par point d'entrée, quand le moteur l'appelle et ce qu'il garantit.
 
 ## 3. Réglages et opérations
 
@@ -196,3 +197,59 @@ fait face à la caméra en iso / 3D (`userData.billboard = 'screen'`). Son appar
   `fixtures/test/shapes/`) ; ceux du mode dans `tests/engine/plugins/modes/` (opérations sur une fixture).
 - Conservation par draw.io : une fixture avec le mode, puis `make drawio-check` (attributs de page et d'éléments
   comparés après réenregistrement).
+
+## 8. Garanties du moteur, point d'entrée par point d'entrée
+
+Règles communes (sujet 288) :
+- **Opération** : une fonction qui reçoit un `ModeEdit`. `edit.page` est la page *avant* l'opération (le modèle n'est
+  relu qu'à la fin). Les écritures sont rassemblées puis appliquées une fois l'opération terminée. Une opération qui ne
+  change rien n'ouvre pas d'étape d'annulation ; une opération qui lève une exception n'écrit rien.
+- **Remise en ordre** : une opération appelée *après* un geste déjà écrit dans l'arbre. `edit.page` est la page relue
+  *après* le geste, et ses écritures tombent dans l'étape d'annulation du geste.
+- **En panne** : un point d'entrée qui lève une exception est traité comme absent (colonne « En panne ») ; l'erreur est
+  signalée une fois par session dans les Diagnostics.
+- Annuler / rétablir ne rappelle aucun point d'entrée : le document revient tel qu'il était, remises en ordre comprises.
+
+| Point d'entrée | Appelé | Page reçue | Écritures | En panne |
+|---|---|---|---|---|
+| **Déclaration** | | | | |
+| `id` | lu par le registre (dossier, `spatial.mode`) | — | — | — |
+| `name` | choix du mode, titres | — | — | — |
+| `shortName` | sous-page Paramètres › Modes | — | — | — |
+| `description` | aide du choix du mode | — | — | — |
+| `icon` | onglet d'une page du mode | — | — | — |
+| `shapes` | palette d'une page du mode (`paletteFor`) | — | — | — |
+| `paletteCategories` | palette d'une page du mode | — | — | — |
+| `viewModes` | ouverture, changement de page, passage dans le mode, boutons de vue | — | — | — |
+| `allowsEffect` | effets actifs d'une page (scène en volume), panneau des effets | — | — | **non protégé** : appelé par le registre, l'exception remonte (dette 296) |
+| `selectionStyle` | mise en valeur de la sélection sur une page du mode | — | — | — |
+| `settings` | Paramètres › Modes ; valeurs bornées passées à `dressing`, `obstacles`, `current.look` | — | — | — |
+| `pasteKeys` | collage et duplication, sur toutes les pages | — | clés retirées des éléments collés | — |
+| **Cycle de vie** | | | | |
+| `check` | chaque lecture du document (ouverture, chaque modification, annuler / rétablir) | page du modèle | aucune (avertissements) | aucun avertissement du mode pour la page |
+| `opened` | ouverture du document, et à nouveau quand la mesure exacte du texte arrive ; pas en lecture seule | page du modèle | une étape « Ajustement du mode » pour tout le document | rien d'écrit pour la page |
+| `repair` | après une suppression (Suppr, Couper) | relue après la suppression | remise en ordre, étape de la suppression | rien d'écrit |
+| **Rendu** | | | | |
+| `dressing` | construction de chaque scène de page, et pendant un déplacement (flèches retracées) | page du modèle | aucune | pas d'habillage ; `edgeColor` / `edgeBadge` en panne : couleur ou pastille absente pour la flèche |
+| **Flèches** | | | | |
+| `edgeCreated` | flèche tirée depuis une forme, au lâcher ; reçoit le courant | relue avec la flèche | remise en ordre, étape de la création | rien d'écrit |
+| `edgeReconnected` | bout d'une flèche rebranché (poignée d'extrémité), au lâcher | relue après le rebranchement | remise en ordre, étape du rebranchement | rien d'écrit |
+| `connects` | pendant le tirage ou le rebranchement d'un bout, pour chaque forme candidate | page du modèle | aucune | accroche permise |
+| `managesEdge` | panneau d'une flèche, textes de début / fin (édition, déplacement) | page courante | aucune | flèche non gérée |
+| **Formes et gestes** | | | | |
+| `carries` | début d'un déplacement (glisser, clavier), Aligner / Répartir, mise en valeur de la sélection ; de proche en proche | page du modèle | aucune | n'emporte rien (ce qui a été trouvé avant la panne est gardé) |
+| `obstacles` | début d'un déplacement ou d'un redimensionnement, Aligner / Répartir ; reçoit les réglages du mode | page du modèle | aucune | aucune borne |
+| `placed` | fin d'un déplacement (glisser, clavier), d'un redimensionnement, ajout depuis la palette, collage, Aligner / Répartir ; `before` : page d'avant un déplacement, absente pour un ajout | relue après la pose | remise en ordre, étape du geste | rien d'écrit |
+| `relabeled` | texte d'un élément validé (édition sur place ou panneau) | relue avec le nouveau texte | remise en ordre, étape du texte | rien d'écrit |
+| `keys` | touche sur l'élément sélectionné seul d'une page modifiable : `applies` puis `run` | page du modèle ; `run` : opération | une étape au titre `label` | `applies` : touche non prise ; `run` : rien d'écrit |
+| `handles` | forme sélectionnée seule et modifiable : dessin des poignées et pointeur | page du modèle | aucune | pas de poignée |
+| `handleClicked` | clic sur une poignée du mode ; renvoie la partie à sélectionner | opération | une étape au titre de la poignée | rien d'écrit |
+| **Parties** | | | | |
+| `parts` | `at` : pointeur et clic ; `bounds` : mise en valeur, validité de la partie sélectionnée ; `text`, `textPreview` : édition sur place ; `comment` : encart et touche C ; `dropAt`, `preview` : glisser d'une partie ; `setText`, `setComment`, `remove`, `move` : opérations | page du modèle (opérations : page avant) | `setText` « Texte », `setComment` « Commentaire », `remove` « Suppression », `move` « Ordre » | lecture : partie absente (la forme elle-même, pas de texte, pas de place) ; opération : rien d'écrit |
+| **Courant** | | | | |
+| `current` | `initial` / `valid` : à chaque lecture du courant ; `pick` : clic ou sélection d'un seul élément ; `color`, `label`, `values` : barre du courant ; `focus` : avant chaque image ; `look` : barre et estompage ; `rename` : opération depuis la barre | page du modèle (`rename` : opération) | `rename` : une étape « Renommage » ; le courant lui-même n'est jamais écrit | pas de courant, pas de barre, rien d'estompé, apparence par défaut |
+| **Réglages déclarés** | | | | |
+| `pageProperties` | panneau de la page : `hidden`, `value`, `readOnly`, `options` évalués par le moteur (sujet 294) ; `write` : opération | page du modèle (`write` : opération) | une étape au titre du réglage ; réglage en direct (`live`) : une étape par saisie | réglage montré, valeur de l'attribut, modifiable, sans choix ; `write` : rien d'écrit |
+| `edgeProperties` | panneau d'une flèche, comme `pageProperties` | idem | idem | idem |
+| `shapeProperties` | panneau d'une forme ou de sa partie sélectionnée (`part`), comme `pageProperties` | idem | idem | idem |
+
