@@ -26,8 +26,15 @@ export class SceneView {
     this.core.scenes.setMaxCached(settings.preload.maxCachedPages);
   }
 
-  /** Scène d'une page à un niveau de rendu (vue graphe comprise). */
+  /** Scène d'une page à un niveau de rendu (vue graphe comprise), sa durée de construction mesurée. */
   buildScene(page: PageModel, level: SceneLevel): PageScene {
+    const start = performance.now();
+    const scene = this.createScene(page, level);
+    this.core.metrics.sceneBuilt(page.id, performance.now() - start);
+    return scene;
+  }
+
+  private createScene(page: PageModel, level: SceneLevel): PageScene {
     const core = this.core;
     const layout = core.graph.layout;
     if (core.graph.isGraph(page.id) && layout && core.file.document)

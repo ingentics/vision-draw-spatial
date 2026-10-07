@@ -37,6 +37,7 @@ export type {
 
 // Modèle neutre (SPEC §7.3), format draw.io, attributs spatiaux
 export type { UnsupportedCategory, UnsupportedReport } from './core/diagnostics/unsupportedStyles';
+export type { EngineMetrics, FrameStats } from './core/domains/runtime/metrics';
 export type { OrderMove } from './core/format/order';
 export { DrawioParseError, parseDrawio } from './core/format/parse';
 export { isMonospace, isRich, parseColor, parseRichHtml, richToHtml, richToText } from './core/format/richText';

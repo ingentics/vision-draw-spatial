@@ -1,4 +1,5 @@
-import type { ParseWarning, UnsupportedCategory, UnsupportedReport } from '../engine';
+import { useEffect, useState } from 'react';
+import type { EngineMetrics, ParseWarning, UnsupportedCategory, UnsupportedReport } from '../engine';
 import { CollapseButton } from './Sidebar';
 
 const CATEGORY_LABELS: Record<UnsupportedCategory, string> = {
@@ -15,6 +16,9 @@ interface DiagnosticsPanelProps {
   /** Erreur de l'appli (chargement, sauvegarde). */
   appError: string | undefined;
   pageNames: Record<string, string>;
+  /** Métriques du moteur (sujet 298) et mesure des images rendues, active tant que le panneau est ouvert. */
+  getMetrics: () => EngineMetrics | undefined;
+  setFrameSampling: (on: boolean) => void;
   onFocus: (pageId: string, elementId: string) => void;
   onExport: () => void;
   onClose: () => void;
@@ -22,13 +26,15 @@ interface DiagnosticsPanelProps {
 
 /**
  * Panneau Diagnostics (SPEC §8.4) : tout ce qui est à signaler sur l'instance courante du moteur, en sections
- * Erreurs, Non supportés et Avertissements.
+ * Erreurs, Non supportés, Avertissements et Métriques.
  */
 export function DiagnosticsPanel({
   report,
   warnings,
   appError,
   pageNames,
+  getMetrics,
+  setFrameSampling,
   onFocus,
   onExport,
   onClose,
@@ -112,6 +118,8 @@ export function DiagnosticsPanel({
             <WarningItems warnings={others} pageNames={pageNames} onFocus={onFocus} />
           </ul>
         )}
+
+        <MetricsSection getMetrics={getMetrics} setFrameSampling={setFrameSampling} />
       </div>
     </aside>
   );
@@ -135,4 +143,54 @@ function WarningItems({
       {w.pageId && <span className="muted"> · {pageNames[w.pageId] ?? w.pageId}</span>}
     </li>
   ));
+}
+
+/** Rafraîchissement des métriques affichées. */
+const METRICS_REFRESH_MS = 1000;
+
+const ms = (value: number | undefined) => (value === undefined ? '—' : `${value.toFixed(1)} ms`);
+
+/** Métriques de l'instance courante, relues chaque seconde ; la mesure des images ne tourne que section affichée. */
+function MetricsSection({
+  getMetrics,
+  setFrameSampling,
+}: Pick<DiagnosticsPanelProps, 'getMetrics' | 'setFrameSampling'>) {
+  const [metrics, setMetrics] = useState(getMetrics);
+  useEffect(() => {
+    setFrameSampling(true);
+    const timer = setInterval(() => setMetrics(getMetrics()), METRICS_REFRESH_MS);
+    return () => {
+      clearInterval(timer);
+      setFrameSampling(false);
+    };
+  }, [getMetrics, setFrameSampling]);
+  if (!metrics) return null;
+  const { frames } = metrics;
+  const rows: [string, string, string?][] = [
+    ['Images / s', frames ? frames.fps.toFixed(1) : '—', 'Rendu à la demande : 0 au repos'],
+    ['Durée d’image (moyenne)', ms(frames?.averageMs)],
+    ['Durée d’image (pire)', ms(frames?.worstMs)],
+    ['Lecture du fichier', ms(metrics.readMs), 'Décodage et parsing'],
+    ['Construction de la scène', ms(metrics.sceneBuildMs), 'Dernière construction de la page courante'],
+    ['Cellules', String(metrics.cells), 'Formes et flèches de toutes les pages'],
+    ['Objets de la scène', String(metrics.sceneObjects)],
+    ['Draw calls', String(metrics.drawCalls), 'Dernière image'],
+    ['Géométries', String(metrics.geometries), 'En mémoire GPU'],
+    ['Textures', String(metrics.textures), 'En mémoire GPU'],
+  ];
+  return (
+    <>
+      <h3>Métriques</h3>
+      <table className="metrics">
+        <tbody>
+          {rows.map(([label, value, hint]) => (
+            <tr key={label} title={hint}>
+              <th>{label}</th>
+              <td>{value}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
+  );
 }

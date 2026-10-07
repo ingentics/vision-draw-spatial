@@ -502,6 +502,10 @@ Formes et arêtes sont dessinées dans l'**ordre du document** (une arête décl
   - **Non supportés** : entrées triées par fréquence, avec type, pages, un exemple de chaîne de style (pour écrire le
     renderer) et les occurrences ; cliquer une occurrence va à sa page et **cadre l'élément** ;
   - **Avertissements** : lecture (page illisible, parent manquant, lien cassé…), modes et effets ;
+  - **Métriques** de l'instance, relues chaque seconde : images rendues par seconde (rendu à la demande : 0 au repos),
+    durée d'image moyenne et pire sur 2 s, durée de lecture du fichier et de construction de la scène de la page
+    courante, cellules du document, objets de la scène, draw calls de la dernière image, géométries et textures en
+    mémoire GPU. La mesure des images ne tourne que panneau ouvert ;
   - **Exporter JSON** : rapport du fichier courant (non supportés, avertissements, erreurs).
 - Le panneau s'ouvre à côté de la vue (qui se réduit), pas par-dessus.
 

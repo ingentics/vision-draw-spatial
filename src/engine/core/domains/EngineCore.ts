@@ -11,6 +11,7 @@ import { Config } from './runtime/config';
 import type { Settings } from '../settings';
 import { Rendering } from './runtime/rendering';
 import { Display } from './runtime/display';
+import { Metrics } from './runtime/metrics';
 import { DocumentFile } from './document/file';
 import { EditHistory } from './document/undo';
 import { Pages } from './document/pages';
@@ -87,10 +88,11 @@ export class EngineCore {
   readonly controller: CameraController;
   disposed = false;
 
-  // runtime : paramètres, rendu, taille du canvas
+  // runtime : paramètres, rendu, taille du canvas, mesures
   readonly config: Config;
   readonly rendering: Rendering;
   readonly display = new Display(this);
+  readonly metrics = new Metrics(this);
 
   // document : fichier chargé, annuler / rétablir, pages
   readonly file = new DocumentFile(this);
@@ -216,6 +218,7 @@ export class EngineCore {
       this.shapeParts,
       this.history,
       this.links,
+      this.metrics,
     ];
     for (const state of states) state.resetDocument(initialView);
   }

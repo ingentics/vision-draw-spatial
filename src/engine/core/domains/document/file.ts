@@ -27,7 +27,9 @@ export class DocumentFile {
   constructor(private readonly core: EngineCore) {}
 
   async load(xml: string, fileId: string, initialView?: InitialView): Promise<void> {
+    const start = performance.now();
     const { document, tree } = readDrawio(xml);
+    this.core.metrics.fileRead(performance.now() - start);
     this.replaceDocument(document, tree);
     this.fileId = fileId;
     this.core.resetDocumentState(initialView);

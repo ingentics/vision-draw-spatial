@@ -415,6 +415,9 @@ export function Viewer({
   const allowedViewModes = (['top', 'iso', '3d'] as const).filter(
     (mode) => !shownPage || !modes || modes.allowsViewMode(shownPage, mode),
   );
+  // Stables : la section Métriques du panneau ne relance pas sa mesure à chaque rendu.
+  const getMetrics = useCallback(() => engine?.getMetrics(), [engine]);
+  const setFrameSampling = useCallback((on: boolean) => engine?.setFrameSampling(on), [engine]);
   const issueCount = (report?.unsupportedElementCount ?? 0) + warnings.length;
   /**
    * Format du texte en cours d'édition en place (panneau latéral, Ctrl+B / I / U) : sur la sélection
@@ -713,6 +716,8 @@ export function Viewer({
                   report={report}
                   warnings={warnings}
                   appError={error}
+                  getMetrics={getMetrics}
+                  setFrameSampling={setFrameSampling}
                   pageNames={Object.fromEntries((document?.pages ?? []).map((p) => [p.id, p.name]))}
                   onFocus={(page, element) => engine?.focusElement(page, element)}
                   onExport={() => exportJson(file.name, report, warnings, error)}

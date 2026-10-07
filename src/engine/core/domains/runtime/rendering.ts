@@ -21,6 +21,9 @@ export class Rendering {
   constructor(private readonly core: EngineCore) {
     // Stencil : trous du voile de sélection autour des flèches (render/veil).
     this.renderer = new WebGLRenderer({ canvas: core.canvas, antialias: true, stencil: true });
+    // Compteurs remis à zéro à chaque image, pas à chaque passe : le fondu enchaîné en fait deux (draw calls des
+    // Diagnostics, sujet 298).
+    this.renderer.info.autoReset = false;
     this.scene.background = new Color(core.settings.background.color);
     this.grid = createGrid(this.gridOptions());
     this.scene.add(this.grid.mesh);
@@ -115,6 +118,9 @@ export class Rendering {
     if (this.frame || this.core.disposed) return;
     this.frame = requestAnimationFrame(() => {
       this.frame = 0;
+      const metrics = this.core.metrics;
+      const start = metrics.sampling ? performance.now() : 0;
+      this.renderer.info.reset();
       // Silhouettes debout (Actor) face à la caméra de cette image.
       orientBillboards(this.scene, this.activeCamera());
       // Estompage de ce qui est hors du courant du mode de la page (ex. hors du flux courant).
@@ -122,6 +128,7 @@ export class Rendering {
       const blend = this.core.levels.levelBlend;
       if (blend?.flat && blend.volume) this.renderBlend(blend.flat, blend.volume);
       else this.renderer.render(this.scene, this.activeCamera());
+      if (metrics.sampling) metrics.frameRendered(start, performance.now());
     });
   };
 }

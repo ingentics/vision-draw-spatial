@@ -18,6 +18,7 @@ import type { ShapeRegistry } from './core/shapes/registry';
 import type { ModeEdit, ModeTarget } from './core/modes/types';
 import type { JumpDefaults } from './core/render/edges/jumps';
 import type { PageScene } from './core/render/pageScene';
+import type { EngineMetrics } from './core/domains/runtime/metrics';
 import type { Settings, SettingsPatch } from './core/settings';
 import { EngineCore } from './core/domains/EngineCore';
 import { defaultEffectRegistry, defaultModeRegistry, defaultShapeRegistry } from './plugins';
@@ -190,6 +191,19 @@ export class Engine {
    */
   focusElement(pageId: string, elementId: string): void {
     this.core.camera.focusElement(pageId, elementId);
+  }
+
+  /**
+   * Métriques de l'instance (sujet 298) : images rendues (si la mesure est active), durées de lecture et de
+   * construction de la scène courante, comptes de la scène et de la mémoire GPU.
+   */
+  getMetrics(): EngineMetrics {
+    return this.core.metrics.snapshot();
+  }
+
+  /** Mesure des images rendues, à n'activer que le temps de l'afficher (panneau Diagnostics ouvert). */
+  setFrameSampling(on: boolean): void {
+    this.core.metrics.setSampling(on);
   }
 
   /** Scène de la page courante (lecture seule : diagnostics, tests). */
