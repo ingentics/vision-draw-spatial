@@ -13,7 +13,7 @@ import { DEFAULT_SETTINGS } from '../../../../../src/engine/core/settings';
 const XML = `<mxfile><diagram id="p" name="P" spatial.mode="boom"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
 <mxCell id="a" value="A" vertex="1" parent="1"><mxGeometry x="0" y="0" width="100" height="60" as="geometry"/></mxCell>
 <mxCell id="b" value="B" vertex="1" parent="1"><mxGeometry x="300" y="0" width="100" height="60" as="geometry"/></mxCell>
-<mxCell id="e" edge="1" source="a" target="b" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="e" edge="1" source="a" target="b" parent="1" style="spatial.broken=x;"><mxGeometry relative="1" as="geometry"/></mxCell>
 </root></mxGraphModel></diagram></mxfile>`;
 
 const fail = (): never => {
@@ -33,6 +33,12 @@ const BOOM: PageModeDefinition = {
   carries: (_page, shape) => (shape.id === 'a' ? ['b'] : fail()),
   obstacles: fail,
   connects: fail,
+  edgeProperties: [
+    { type: 'text', key: 'spatial.ok', label: 'Correct', value: () => 'calculé', readOnly: () => true },
+    { type: 'select', key: 'spatial.broken', label: 'En panne', value: fail, readOnly: fail, options: fail },
+    { type: 'toggle', key: 'spatial.hidden', label: 'Masqué', hidden: () => true },
+    { type: 'toggle', key: 'spatial.hiddenBroken', label: 'Masquage en panne', hidden: fail },
+  ],
 };
 
 /** Cœur réduit à ce que le domaine des modes utilise ; `published` compte les republications des Diagnostics. */
@@ -107,5 +113,23 @@ describe('hôte des appels aux modes (sujet 288)', () => {
     const { document, modes } = setup();
     modes.withModeWarnings(document);
     expect(document.warnings.map((w) => w.message)).toContain('Mode boom : erreur dans check (panne)');
+  });
+
+  it('réglages déclarés évalués pour le panneau (sujet 294) : un point d’entrée en panne est traité comme absent', () => {
+    const { modes, guard, page } = setup();
+    const edge = page.edges[0]!;
+    const views = modes.propertyViews(page, 'edge', edge);
+    expect(views.map((view) => [view.property.key, view.value, view.readOnly, view.options])).toEqual([
+      ['spatial.ok', 'calculé', true, []],
+      // Valeur de l'attribut, modifiable, sans choix.
+      ['spatial.broken', 'x', false, []],
+      ['spatial.hiddenBroken', undefined, false, []],
+    ]);
+    expect(guard.warnings().map((w) => w.message)).toEqual([
+      'Mode boom : erreur dans réglage « spatial.broken » : value (panne)',
+      'Mode boom : erreur dans réglage « spatial.broken » : readOnly (panne)',
+      'Mode boom : erreur dans réglage « spatial.broken » : options (panne)',
+      'Mode boom : erreur dans réglage « spatial.hiddenBroken » : hidden (panne)',
+    ]);
   });
 });

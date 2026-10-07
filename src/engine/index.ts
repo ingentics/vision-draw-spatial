@@ -17,6 +17,7 @@ export type {
   LabelEditRequest,
   ModeHint,
   ModeIndicator,
+  ModePropertyView,
   Selection,
 } from './Engine';
 

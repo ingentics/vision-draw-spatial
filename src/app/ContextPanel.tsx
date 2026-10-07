@@ -299,10 +299,10 @@ function PageModeSections({
   // Réglages de page rangés dans un encart du mode (`section`, ex. « RDD »), après la section « Mode ».
   const sections = [
     ...new Set(
-      plugins.modes
-        .properties(page, 'page')
-        .filter((p) => p.section !== undefined && !p.hidden?.(page, page))
-        .map((p) => p.section!),
+      plugins
+        .modePropertyViews(page, 'page', page)
+        .map((view) => view.property.section)
+        .filter((section) => section !== undefined),
     ),
   ];
   return (
@@ -384,9 +384,9 @@ function ElementModeSection({
   const plugins = useEnginePlugins();
   const mode = plugins.modes.modeOf(props.page);
   const part = scope === 'shape' ? props.part : undefined;
-  const shown = plugins.modes.properties(props.page, scope, part).filter((p) => !p.hidden?.(props.page, element, part));
+  const shown = plugins.modePropertyViews(props.page, scope, element, part);
   if (!mode || shown.length === 0) return null;
-  const sections = [...new Set(shown.map((p) => p.section))];
+  const sections = [...new Set(shown.map((view) => view.property.section))];
   return (
     <>
       {sections.map((section) => (

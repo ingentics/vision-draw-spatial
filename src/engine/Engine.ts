@@ -15,7 +15,7 @@ import type { PickedElement } from './core/interaction/pick';
 import type { DocumentModel, LinkModel, PageModel, Point, Rect } from './core/model/types';
 import type { ModeScope, PageModeRegistry } from './core/modes/registry';
 import type { ShapeRegistry } from './core/shapes/registry';
-import type { ModeEdit } from './core/modes/types';
+import type { ModeEdit, ModeTarget } from './core/modes/types';
 import type { JumpDefaults } from './core/render/edges/jumps';
 import type { PageScene } from './core/render/pageScene';
 import type { Settings, SettingsPatch } from './core/settings';
@@ -30,6 +30,7 @@ import type {
   InitialView,
   ModeHint,
   ModeIndicator,
+  ModePropertyView,
   Selection,
 } from './core/domains/types';
 
@@ -46,6 +47,7 @@ export type {
   LabelEditRequest,
   ModeHint,
   ModeIndicator,
+  ModePropertyView,
   Selection,
 } from './core/domains/types';
 
@@ -510,6 +512,20 @@ export class Engine {
    * un réglage de partie (sujet 249). `merge` : réglage en direct (`ModeProperty.live`), une seule étape d'annulation
    * tant que la clé est la même (sujet 271).
    */
+  /**
+   * Réglages déclarés par le mode de la page pour une cible, évalués (valeur, lecture seule, choix) : le panneau les
+   * affiche sans appeler le mode (sujet 294). `palette` : couleurs proposées aux choix.
+   */
+  modePropertyViews(
+    page: PageModel,
+    scope: ModeScope,
+    target: ModeTarget,
+    part?: string,
+    palette?: readonly string[],
+  ): ModePropertyView[] {
+    return this.core.pageModes.propertyViews(page, scope, target, part, palette);
+  }
+
   setModeProperty(
     scope: ModeScope,
     targetId: string | undefined,

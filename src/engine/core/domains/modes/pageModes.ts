@@ -18,7 +18,8 @@ import type {
   PageModeDefinition,
 } from '../../modes/types';
 import { modePalette } from '../../settings';
-import { SPATIAL } from '../../spatial';
+import { SPATIAL, spatialValue } from '../../spatial';
+import type { ModePropertyView } from '../types';
 import type { EngineCore } from '../EngineCore';
 
 /**
@@ -163,6 +164,39 @@ export class PageModes {
     if (!shape || typeof part !== 'string') return;
     this.core.selection.selectItems([{ type: 'shape', element: shape }], part);
     if (this.core.shapeParts.text(shapeId, part)) this.core.labelEditor.editPartLabel(shapeId, part);
+  }
+
+  /**
+   * Réglages déclarés par le mode de `page` pour une cible et une portée, évalués pour le panneau (sujet 294) : ceux
+   * qui ne sont pas masqués, avec leur valeur, leur lecture seule et leurs choix. Chaque appel au mode est protégé ; un
+   * point d'entrée en panne est traité comme absent (réglage montré, valeur de l'attribut, modifiable, sans choix).
+   * `part` : partie de la forme sélectionnée ; `palette` : couleurs proposées aux choix.
+   */
+  propertyViews(
+    page: PageModel,
+    scope: ModeScope,
+    target: ModeTarget,
+    part?: string,
+    palette: readonly string[] = [],
+  ): ModePropertyView[] {
+    const mode = this.core.modes.modeOf(page);
+    if (!mode) return [];
+    return this.core.modes.properties(page, scope, part).flatMap((property) => {
+      const call = <T>(hook: string, fallback: T, run: () => T) =>
+        this.guard(mode, `réglage « ${property.key} » : ${hook}`, fallback, run);
+      if (property.hidden && call('hidden', false, () => property.hidden!(page, target, part))) return [];
+      const raw = 'style' in target ? spatialValue(target, property.key) : target.attributes[property.key];
+      const { readOnly } = property;
+      return [
+        {
+          property,
+          value: property.value ? call('value', raw, () => property.value!(page, target, part)) : raw,
+          readOnly:
+            typeof readOnly === 'function' ? call('readOnly', false, () => readOnly(page, target, part)) : !!readOnly,
+          options: property.type === 'select' ? call('options', [], () => property.options(page, palette)) : [],
+        },
+      ];
+    });
   }
 
   /**

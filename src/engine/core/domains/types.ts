@@ -10,6 +10,7 @@ import type { PageModeRegistry } from '../modes/registry';
 import type { FontSet } from '../render/troikaText';
 import type { Settings, SettingsPatch } from '../settings';
 import type { ShapeRegistry } from '../shapes/registry';
+import type { ModeOption, ModeProperty } from '../modes/types';
 
 export interface Selection {
   pageId: string;
@@ -110,6 +111,19 @@ export type EngineEvents = {
   modifiedChange: [modified: boolean];
 };
 export type EngineEvent = keyof EngineEvents;
+
+/**
+ * Réglage déclaré par le mode, évalué pour une cible (sujet 294) : ce que le panneau affiche, sans rappeler le mode.
+ * Un point d'entrée du réglage qui lève une exception est traité comme absent.
+ */
+export interface ModePropertyView {
+  property: ModeProperty;
+  /** Valeur affichée : celle du mode (`value`), sinon l'attribut `key` de la cible. */
+  value: string | undefined;
+  readOnly: boolean;
+  /** Choix offerts (réglage `select`) ; vide pour les autres. */
+  options: ModeOption[];
+}
 
 /** Barre du courant du mode d'une page (ex. flux courant du mode Séquences). */
 export interface ModeIndicator {

@@ -409,6 +409,8 @@ export function Viewer({
         modes: engine.getModeRegistry(),
         effects: engine.getEffectRegistry(),
         managesEdge: (edgeId) => engine.managesEdge(edgeId),
+        modePropertyViews: (page, scope, target, part, palette) =>
+          engine.modePropertyViews(page, scope, target, part, palette),
       },
     [engine],
   );

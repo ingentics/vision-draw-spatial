@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { spatialValue } from '../../../engine';
-import type { ModeProperty, ModeScope, ModeTarget, PageModel } from '../../../engine';
+import type { ModePropertyView, ModeScope, ModeTarget, PageModel } from '../../../engine';
 import { NumberField, SelectField, TextField } from '../../Fields';
 import { useEnginePlugins } from '../../pluginsContext';
 
@@ -30,49 +29,36 @@ export function ModePropertyFields({
   onChange?: (key: string, value: string | undefined, merge?: string) => void;
 }) {
   const plugins = useEnginePlugins();
-  const properties = plugins.modes
-    .properties(page, scope, part)
-    .filter((property) => property.section === section && !property.hidden?.(page, target, part));
+  // Évalués par le moteur (sujet 294) : le panneau n'appelle jamais le mode.
+  const views = plugins
+    .modePropertyViews(page, scope, target, part, palette)
+    .filter((view) => view.property.section === section);
   return (
     <>
-      {properties.map((property) => (
-        <ModePropertyField
-          key={property.key}
-          page={page}
-          target={target}
-          part={part}
-          property={property}
-          palette={palette}
-          onChange={onChange}
-        />
+      {views.map((view) => (
+        <ModePropertyField key={view.property.key} target={target} part={part} view={view} onChange={onChange} />
       ))}
     </>
   );
 }
 
 function ModePropertyField({
-  page,
   target,
   part,
-  property,
-  palette,
+  view,
   onChange,
 }: {
-  page: PageModel;
   target: ModeTarget;
   part?: string;
-  property: ModeProperty;
-  palette: readonly string[];
+  view: ModePropertyView;
   onChange?: (key: string, value: string | undefined, merge?: string) => void;
 }) {
+  const { property, value, readOnly, options } = view;
   // Saisie en direct (sujet 271) : une étape d'annulation par passage dans le champ, et le champ recréé ensuite, pour
   // montrer la valeur retenue (un libellé vidé est refusé).
   const [session, setSession] = useState(0);
   const { key, label } = property;
-  const value = property.value ? property.value(page, target, part) : rawValue(target, key);
   const title = property.title ?? label;
-  const readOnly =
-    typeof property.readOnly === 'function' ? property.readOnly(page, target, part) : property.readOnly === true;
   const editable = onChange !== undefined && !readOnly;
   const write = (next: string | undefined, merge?: string) => {
     if (editable) onChange(key, next, merge);
@@ -152,15 +138,10 @@ function ModePropertyField({
           label={label}
           title={title}
           value={value ?? ''}
-          options={property.options(page, palette)}
+          options={options}
           disabled={!editable}
           onChange={(next) => write(next || undefined)}
         />
       );
   }
-}
-
-/** Attribut d'une cible : celui de `<diagram>` pour la page, l'attribut spatial (style, puis objet) d'un élément. */
-function rawValue(target: ModeTarget, key: string): string | undefined {
-  return 'style' in target ? spatialValue(target, key) : target.attributes[key];
 }

@@ -26,4 +26,11 @@ describe('appli et registres du moteur (sujet 290)', () => {
       .map((file) => relative(APP, file));
     expect(users).toEqual(['settingsStore.ts']);
   });
+
+  it('l’appli n’appelle pas les points d’entrée des réglages déclarés (sujet 294)', () => {
+    const calls = filesOf(APP).filter((file) =>
+      /property\.(hidden|value|readOnly|options)\??\.?\(/.test(readFileSync(file, 'utf8')),
+    );
+    expect(calls.map((file) => relative(APP, file))).toEqual([]);
+  });
 });

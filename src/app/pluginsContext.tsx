@@ -1,5 +1,13 @@
 import { createContext, useContext } from 'react';
-import type { PageEffectRegistry, PageModeRegistry, ShapeRegistry } from '../engine';
+import type {
+  ModePropertyView,
+  ModeScope,
+  ModeTarget,
+  PageEffectRegistry,
+  PageModel,
+  PageModeRegistry,
+  ShapeRegistry,
+} from '../engine';
 
 /**
  * Plugins du moteur affiché (sujet 290) : ses registres de formes, de modes et d'effets, et la règle des flèches gérées
@@ -12,6 +20,14 @@ export interface AppPlugins {
   effects: PageEffectRegistry;
   /** Flèche gérée par le mode de la page courante (réglages imposés, sujet 265). */
   managesEdge(edgeId: string): boolean;
+  /** Réglages déclarés par le mode pour une cible, évalués par le moteur (sujet 294 : l'appli n'appelle pas le mode). */
+  modePropertyViews(
+    page: PageModel,
+    scope: ModeScope,
+    target: ModeTarget,
+    part?: string,
+    palette?: readonly string[],
+  ): ModePropertyView[];
 }
 
 export const PluginsContext = createContext<AppPlugins | undefined>(undefined);
