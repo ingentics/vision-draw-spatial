@@ -1,6 +1,14 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties, MutableRefObject, RefObject } from 'react';
-import { homographyCss, isMonospace, labelPadding, largestFitting, MIN_FIT_SIZE, rectToQuad } from '../engine';
+import {
+  fontStyleBits,
+  homographyCss,
+  isMonospace,
+  labelPadding,
+  largestFitting,
+  MIN_FIT_SIZE,
+  rectToQuad,
+} from '../engine';
 import type { LabelEditPlane, LabelEditRequest } from '../engine';
 import { isColor, readContent, TEXT_FORMAT_ATTRIBUTE, useRichEditor } from './richEditor';
 import type { LabelContent, RichEditorHandle, SelectionFormat, ToggleMark } from './richEditor';
@@ -168,7 +176,7 @@ export function LabelEditor({
 
   const { scale, onEdge } = request;
   const style = request.displayStyle ?? request.style;
-  const bits = Number(style.fontStyle) || 0;
+  const marks = fontStyleBits(style);
   const align = style.align === 'left' || style.align === 'right' ? style.align : 'center';
   const insets = labelPadding(style);
   // Boîte en pixels de page, agrandie au zoom : tailles du texte riche = tailles draw.io. Une forme : sur
@@ -202,12 +210,12 @@ export function LabelEditor({
             style.verticalAlign === 'top' ? 'flex-start' : style.verticalAlign === 'bottom' ? 'flex-end' : 'center',
         }),
   };
-  const decorations = [bits & 4 && 'underline', bits & 8 && 'line-through'].filter(Boolean).join(' ');
+  const decorations = [marks.underline && 'underline', marks.strike && 'line-through'].filter(Boolean).join(' ');
   const textStyle: CSSProperties = {
     fontSize: Number(style.fontSize) || 11,
     color: isColor(style.fontColor) ? style.fontColor : '#000000',
-    fontWeight: bits & 1 ? 700 : 400,
-    fontStyle: bits & 2 ? 'italic' : 'normal',
+    fontWeight: marks.bold ? 700 : 400,
+    fontStyle: marks.italic ? 'italic' : 'normal',
     textDecoration: decorations || 'none',
     fontFamily: isMonospace(style.fontFamily) ? "'Roboto Mono', monospace" : "'Roboto', sans-serif",
     textAlign: align,
@@ -365,11 +373,6 @@ function planeTransform(plane: LabelEditPlane): string {
   const [origin] = plane.corners;
   const corners = plane.corners.map((p) => ({ x: p.x - origin.x, y: p.y - origin.y }));
   return homographyCss(rectToQuad(plane.width, plane.height, corners));
-}
-
-/** Valeur de `fontStyle` (bits : 1 gras, 2 italique, 4 souligné, 8 barré) ; 0 = clé retirée. */
-export function fontStyleValue(bits: number): string | undefined {
-  return bits === 0 ? undefined : String(bits);
 }
 
 /**

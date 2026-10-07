@@ -1,6 +1,15 @@
 import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
-import { isHexColor, isMonospace, LABEL_PLACES, labelPlaceName, labelPlaceOf, matchesTextPreset } from '../engine';
+import {
+  fontStyleBits,
+  fontStyleValue,
+  isHexColor,
+  isMonospace,
+  LABEL_PLACES,
+  labelPlaceName,
+  labelPlaceOf,
+  matchesTextPreset,
+} from '../engine';
 import type { LabelPlace, TextPreset } from '../engine';
 import type { SelectionFormat, ToggleMark } from './LabelEditor';
 import { Section } from './PanelSection';
@@ -59,7 +68,6 @@ const MARKS: Array<{ mark: ToggleMark; label: string; content: ReactNode }> = [
   { mark: 'underline', label: 'Souligné (Ctrl+U)', content: <u>U</u> },
   { mark: 'strike', label: 'Barré', content: <s>S</s> },
 ];
-const BITS: Record<ToggleMark, number> = { bold: 1, italic: 2, underline: 4, strike: 8 };
 
 /**
  * Format du texte en cours d'édition (panneau latéral). Avec une partie du texte sélectionnée : gras,
@@ -71,12 +79,8 @@ export function TextFormatSections({ edit }: { edit: TextEdit }) {
   // « Ajuster » : texte d'une forme seulement ; la taille réglée devient la taille maximale.
   const canFit = canFormat && !onEdge && !comment;
   const fit = canFit && style.fitText === '1';
-  const bits = Number(style.fontStyle) || 0;
   const whole = {
-    bold: (bits & 1) !== 0,
-    italic: (bits & 2) !== 0,
-    underline: (bits & 4) !== 0,
-    strike: (bits & 8) !== 0,
+    ...fontStyleBits(style),
     fontSize: Number(style.fontSize) || DEFAULT_SIZE,
     color: isHexColor(style.fontColor) ? style.fontColor.toLowerCase() : '#000000',
     fontFamily: style.fontFamily,
@@ -292,8 +296,9 @@ export function wholeTextChange(
 } {
   switch (action.type) {
     case 'toggle': {
-      const bits = (Number(style.fontStyle) || 0) ^ BITS[action.mark];
-      return { patch: { fontStyle: bits === 0 ? undefined : String(bits) }, clear: [action.mark] };
+      const marks = fontStyleBits(style);
+      const value = fontStyleValue({ ...marks, [action.mark]: !marks[action.mark] });
+      return { patch: { fontStyle: value === 0 ? undefined : String(value) }, clear: [action.mark] };
     }
     case 'size':
       return {

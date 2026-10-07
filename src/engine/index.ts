@@ -62,7 +62,7 @@ export {
   spatialNumber,
   spatialValue,
 } from './core/spatial';
-export { isHexColor } from './core/model/styleValues';
+export { fontStyleBits, fontStyleValue, isHexColor } from './core/model/styleValues';
 
 // Bibliothèque de fichiers et sauvegarde (SPEC §5, §14.1)
 export { Autosaver } from './core/persistence/Autosaver';
