@@ -805,8 +805,8 @@ export function Viewer({
                   modeCurrent={engine?.getModeCurrent(currentPage.id)}
                   onModeProperty={
                     editablePages
-                      ? (scope, targetId, key, value, part) =>
-                          engine?.setModeProperty(scope, targetId, key, value, part)
+                      ? (scope, targetId, key, value, part, merge) =>
+                          engine?.setModeProperty(scope, targetId, key, value, part, merge)
                       : undefined
                   }
                 />

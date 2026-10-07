@@ -78,24 +78,31 @@ export class PageModes {
     };
   }
 
-  /** Opération du mode sur la page courante, en une étape d'annulation ; vrai si elle a changé quelque chose. */
-  editPageMode(label: string, edit: (edit: ModeEdit) => void): boolean {
+  /**
+   * Opération du mode sur la page courante, en une étape d'annulation ; vrai si elle a changé quelque chose. `merge` :
+   * réglage en direct, une seule étape tant que la clé est la même (sujet 271).
+   */
+  editPageMode(label: string, edit: (edit: ModeEdit) => void, merge?: string): boolean {
     const editable = this.core.targets.editablePage();
     if (!editable || !this.core.file.xmlTree) return false;
     const before = writeDrawio(this.core.file.xmlTree);
     if (!applyModeEdit(editable.page, editable.pageTree, edit, this.editContext())) return false;
-    this.core.edits.recordSnapshot(label, before);
+    this.core.edits.recordSnapshot(label, before, merge);
     this.core.file.documentChanged([editable.page.id]);
     return true;
   }
 
-  /** `part` : partie de la forme sélectionnée, pour un réglage de partie (sujet 249). */
+  /**
+   * `part` : partie de la forme sélectionnée, pour un réglage de partie (sujet 249) ; `merge` : réglage en direct
+   * (`ModeProperty.live`, sujet 271).
+   */
   setModeProperty(
     scope: ModeScope,
     targetId: string | undefined,
     key: string,
     value: string | undefined,
     part?: string,
+    merge?: string,
   ): void {
     const page = this.core.targets.editablePage()?.page;
     const property = page && this.core.modes.properties(page, scope, part).find((p) => p.key === key);
@@ -107,11 +114,15 @@ export class PageModes {
           : page?.shapes.find((s) => s.id === targetId);
     if (!property || !target) return;
     let next: string | void = undefined;
-    this.editPageMode(property.label, (edit) => {
-      if (property.write) next = property.write(edit, target, value, part);
-      else if (scope === 'page') edit.setPageAttribute(key, value);
-      else edit.setElementAttribute(target.id, key, value);
-    });
+    this.editPageMode(
+      property.label,
+      (edit) => {
+        if (property.write) next = property.write(edit, target, value, part);
+        else if (scope === 'page') edit.setPageAttribute(key, value);
+        else edit.setElementAttribute(target.id, key, value);
+      },
+      merge,
+    );
     // Partie désignée par le réglage (ex. séparateur ajouté, sujet 253) : sélectionnée, son texte en édition.
     const shape =
       scope === 'shape' && typeof next === 'string'

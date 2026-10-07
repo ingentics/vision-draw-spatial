@@ -330,6 +330,8 @@ export type ModeProperty = {
       type: 'text';
       /** Plusieurs lignes (zone de texte, ⌘ + Entrée ou sortie du champ pour valider). */
       multiline?: boolean;
+      /** Écrit à chaque frappe, une seule étape d'annulation par saisie (sujet 271) ; sinon à la validation. */
+      live?: boolean;
     }
   | {
       type: 'select';

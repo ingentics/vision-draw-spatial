@@ -11,7 +11,7 @@ export class EditHistory {
   readonly undoStack = new UndoStack<string>();
   /** Étapes enregistrées (et annulations / rétablissements) : repère des réglages en direct fusionnés. */
   private editCount = 0;
-  /** Dernier réglage en direct (`setElementsStyle` avec `merge`) et le compte d'étapes à ce moment. */
+  /** Dernier réglage en direct (`setElementsStyle`, `setModeProperty` avec `merge`) et le compte d'étapes à ce moment. */
   private lastMerge?: { key: string; edits: number };
 
   constructor(private readonly core: EngineCore) {}
@@ -64,14 +64,25 @@ export class EditHistory {
    * que rien d'autre n'a été enregistré entre-temps et que la clé est la même ; sans `merge`, une étape à chaque fois.
    */
   recordMergeableEdit(label: string, merge: string | undefined): void {
-    const merged = merge !== undefined && this.lastMerge?.key === merge && this.lastMerge.edits === this.editCount;
-    if (!merged) this.recordEdit(label);
+    if (!this.merges(merge)) this.recordEdit(label);
     this.lastMerge = merge === undefined ? undefined : { key: merge, edits: this.editCount };
   }
 
-  /** Étape d'annulation à partir d'un instantané pris avant une modification qui a pu ne rien changer. */
-  recordSnapshot(label: string, before: string): void {
-    this.undoStack.record(label, before);
+  /**
+   * Étape d'annulation à partir d'un instantané pris avant une modification qui a pu ne rien changer ; `merge` :
+   * réglage en direct, fusionné comme `recordMergeableEdit` (sujet 271).
+   */
+  recordSnapshot(label: string, before: string, merge?: string): void {
+    if (!this.merges(merge)) {
+      this.editCount++;
+      this.undoStack.record(label, before);
+    }
+    this.lastMerge = merge === undefined ? undefined : { key: merge, edits: this.editCount };
+  }
+
+  /** Le réglage en direct `merge` prolonge-t-il la dernière étape (même clé, rien d'enregistré entre-temps) ? */
+  private merges(merge: string | undefined): boolean {
+    return merge !== undefined && this.lastMerge?.key === merge && this.lastMerge.edits === this.editCount;
   }
 
   /** Document enregistré : plus rien de modifié. */

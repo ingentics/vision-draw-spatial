@@ -345,6 +345,8 @@ describe('mode RDD : relation embedded (sujet 268)', () => {
     run((edit) => prefix!.write!(edit, shape('user'), 'HOME_', index));
     const onEdge = rdd.edgeProperties!.filter((property) => !property.hidden?.(page(), edgeModel()));
     expect(onEdge.map((property) => property.value!(page(), edgeModel()))).toEqual(['home', 'HOME_']);
+    // Écrits à chaque frappe, sur la flèche comme sur le champ (sujet 271).
+    for (const property of [...onField, ...onEdge]) expect(property).toMatchObject({ type: 'text', live: true });
     // Modifié depuis la flèche : le champ suit ; un libellé vide est refusé.
     run((edit) => onEdge[0]!.write!(edit, edgeModel(), 'office'));
     run((edit) => onEdge[0]!.write!(edit, edgeModel(), ' '));

@@ -157,6 +157,8 @@ const fieldTextProperty = (
   scope: 'edge' | 'field',
 ): ModeProperty => ({
   type: 'text',
+  // Écrit à chaque frappe : la ligne de la table suit la saisie (sujet 271).
+  live: true,
   ...(scope === 'field' && { part: true }),
   key: `rdd.relation.${scope}.${key}`,
   section: 'Relation',

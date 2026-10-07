@@ -472,7 +472,8 @@ export class Engine {
   /**
    * Réglage déclaré par le mode de la page courante (`scope` : la page, ou la flèche / forme `targetId`), écrit par
    * sa règle s'il en a une, sinon dans son attribut. undefined = vide. `part` : partie sélectionnée de la forme, pour
-   * un réglage de partie (sujet 249).
+   * un réglage de partie (sujet 249). `merge` : réglage en direct (`ModeProperty.live`), une seule étape d'annulation
+   * tant que la clé est la même (sujet 271).
    */
   setModeProperty(
     scope: ModeScope,
@@ -480,8 +481,9 @@ export class Engine {
     key: string,
     value: string | undefined,
     part?: string,
+    merge?: string,
   ): void {
-    this.core.pageModes.setModeProperty(scope, targetId, key, value, part);
+    this.core.pageModes.setModeProperty(scope, targetId, key, value, part, merge);
   }
 
   /**

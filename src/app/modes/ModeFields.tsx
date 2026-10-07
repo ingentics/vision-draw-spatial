@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { defaultModeRegistry, spatialValue } from '../../engine';
 import type { ModeProperty, ModeScope, ModeTarget, PageModel } from '../../engine';
 import { NumberField, SelectField, TextField } from '../Fields';
@@ -24,8 +25,8 @@ export function ModePropertyFields({
   section?: string;
   /** Couleurs proposées par l'appli (`modePalette`), pour les choix d'un réglage. */
   palette: readonly string[];
-  /** Écriture d'un réglage (undefined = vide) ; absent : lecture seule. */
-  onChange?: (key: string, value: string | undefined) => void;
+  /** Écriture d'un réglage (undefined = vide ; `merge` : réglage en direct) ; absent : lecture seule. */
+  onChange?: (key: string, value: string | undefined, merge?: string) => void;
 }) {
   const properties = defaultModeRegistry
     .properties(page, scope, part)
@@ -60,16 +61,19 @@ function ModePropertyField({
   part?: string;
   property: ModeProperty;
   palette: readonly string[];
-  onChange?: (key: string, value: string | undefined) => void;
+  onChange?: (key: string, value: string | undefined, merge?: string) => void;
 }) {
+  // Saisie en direct (sujet 271) : une étape d'annulation par passage dans le champ, et le champ recréé ensuite, pour
+  // montrer la valeur retenue (un libellé vidé est refusé).
+  const [session, setSession] = useState(0);
   const { key, label } = property;
   const value = property.value ? property.value(page, target, part) : rawValue(target, key);
   const title = property.title ?? label;
   const readOnly =
     typeof property.readOnly === 'function' ? property.readOnly(page, target, part) : property.readOnly === true;
   const editable = onChange !== undefined && !readOnly;
-  const write = (next: string | undefined) => {
-    if (editable) onChange(key, next);
+  const write = (next: string | undefined, merge?: string) => {
+    if (editable) onChange(key, next, merge);
   };
   switch (property.type) {
     case 'toggle':
@@ -97,8 +101,25 @@ function ModePropertyField({
         />
       );
     }
-    case 'text':
-      return (
+    case 'text': {
+      const merge = `${target.id}:${part ?? ''}:${key}:${session}`;
+      return property.live ? (
+        // Pas de valeur dans la clé : le champ garde le curseur pendant la saisie.
+        <TextField
+          key={merge}
+          label={label}
+          title={title}
+          value={value ?? ''}
+          placeholder={property.placeholder}
+          multiline={property.multiline}
+          readOnly={!editable}
+          onLive={(text) => write(text.trim() || undefined, merge)}
+          onCommit={(text) => {
+            write(text.trim() || undefined, merge);
+            setSession((current) => current + 1);
+          }}
+        />
+      ) : (
         <TextField
           key={`${target.id}:${part ?? ''}:${key}:${value ?? ''}`}
           label={label}
@@ -110,6 +131,7 @@ function ModePropertyField({
           onCommit={(text) => write(text.trim() || undefined)}
         />
       );
+    }
     case 'button':
       return (
         <button

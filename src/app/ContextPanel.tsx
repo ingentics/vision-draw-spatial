@@ -92,13 +92,17 @@ export interface ContextPanelProps {
   defaultJumpSize: number;
   /** Opération du mode de la page (sections propres au mode) ; absent si la page n'est pas modifiable. */
   onModeEdit?: (label: string, edit: (edit: ModeEdit) => void) => void;
-  /** Réglage déclaré par le mode de la page (undefined = vide) ; absent si la page n'est pas modifiable. */
+  /**
+   * Réglage déclaré par le mode de la page (undefined = vide) ; absent si la page n'est pas modifiable. `merge` :
+   * réglage en direct, une étape d'annulation par saisie.
+   */
   onModeProperty?: (
     scope: ModeScope,
     targetId: string | undefined,
     key: string,
     value: string | undefined,
     part?: string,
+    merge?: string,
   ) => void;
   /** Partie sélectionnée de la forme (ex. champ d'une table RDD, sujet 249) : le panneau ne montre que ses réglages. */
   part?: string;
@@ -361,7 +365,8 @@ function ModeFields({
       palette={modePalette(styles)}
       onChange={
         onModeProperty &&
-        ((key, value) => onModeProperty(scope, scope === 'page' ? undefined : target.id, key, value, part))
+        ((key, value, merge) =>
+          onModeProperty(scope, scope === 'page' ? undefined : target.id, key, value, part, merge))
       }
     />
   );
