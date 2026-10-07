@@ -35,6 +35,7 @@ import { BackHistory } from './navigation/history';
 import { Transitions } from './navigation/transition';
 import { PageModes } from './modes/pageModes';
 import { ShapeParts } from './modes/shapeParts';
+import { ModeHandles } from './modes/modeHandles';
 import { EditTargets } from './edit/targets';
 import { ShapeHandles } from './edit/shapeHandles';
 import { EdgeHandles } from './edit/edges/edgeHandles';
@@ -122,6 +123,7 @@ export class EngineCore {
   // modes : modes et effets de page
   readonly pageModes = new PageModes(this);
   readonly shapeParts = new ShapeParts(this);
+  readonly modeHandles = new ModeHandles(this);
 
   // edit : cibles et poignées
   readonly targets: EditTargets;

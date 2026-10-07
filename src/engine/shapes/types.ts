@@ -1,4 +1,5 @@
 import type { Object3D } from 'three';
+import type { ConnectSide } from '../edit/handleKinds';
 import type { Point, Rect, ShapeModel } from '../model/types';
 import type { RenderContext } from '../render/types';
 
@@ -200,6 +201,8 @@ export interface ShapeDefinition {
   resizable?: boolean;
   /** On peut y accrocher une flèche (défaut : oui). */
   connectable?: boolean;
+  /** Côtés qui ont une poignée de connexion (défaut : les quatre ; ex. table RDD : gauche et droite, sujet 250). */
+  connectSides?: readonly ConnectSide[];
   /**
    * Prise au clic et au rectangle de sélection : `always` (défaut) ou seulement si elle porte un lien
    * (`withLink`, ex. groupe invisible : on prend ses formes).

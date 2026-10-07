@@ -77,6 +77,16 @@ export interface PageModeDefinition {
   /** Parties sélectionnables à l'intérieur des formes du mode (ex. champs d'une table RDD, sujet 249). */
   parts?: ModeParts;
   /**
+   * Poignées propres au mode sur la forme sélectionnée seule, modifiable (sujet 250, ex. « + » d'une table RDD) ;
+   * `part` : sa partie sélectionnée. Un clic sur l'une ouvre le menu de ses choix.
+   */
+  handles?(page: PageModel, shape: ShapeModel, part?: string): ModeHandle[];
+  /**
+   * Choix fait dans le menu d'une poignée : opération du mode (une étape d'annulation). Renvoie la partie à
+   * sélectionner ensuite (son texte passe en édition s'il en a un) ; undefined : la sélection ne change pas.
+   */
+  handleChosen?(edit: ModeEdit, shape: ShapeModel, handle: string, choice: string, part?: string): string | undefined;
+  /**
    * Bornes d'une forme qu'on déplace ou redimensionne (sujet 241, ex. régions sœurs d'une région RDD) : obstacles à ne
    * pas approcher à moins de l'écart des paramètres (`shapes.modeObstacleGap`) ; undefined = aucune borne.
    */
@@ -96,6 +106,25 @@ export interface ModeParts {
   text?(page: PageModel, shape: ShapeModel, part: string): ModePartText | undefined;
   /** Écrit le texte validé (le mode décide d'un texte vide : refusé, ou partie retirée). */
   setText?(edit: ModeEdit, shape: ShapeModel, part: string, text: string): void;
+}
+
+/** Poignée d'un mode (sujet 250) : disque de couleur marqué d'un « + » blanc, et les choix de son menu. */
+export interface ModeHandle {
+  id: string;
+  /** Point d'accroche, en pixels de page ; le centre en est décalé de `offset` pixels écran. */
+  at: Point;
+  offset: Point;
+  /** Fond du disque (#rrggbb). */
+  color: string;
+  /** Aide au survol, et titre de l'étape d'annulation. */
+  title: string;
+  /** Choix du menu, dans l'ordre ; `separator` : trait entre deux groupes. */
+  choices: Array<ModeHandleChoice | 'separator'>;
+}
+
+export interface ModeHandleChoice {
+  id: string;
+  label: string;
 }
 
 /** Texte d'une partie : valeur, cadre de l'éditeur (pixels de page) et taille du texte (pixels de page). */

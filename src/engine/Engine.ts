@@ -40,6 +40,7 @@ export type {
   LabelEditPlane,
   CommentEditRequest,
   LabelEditRequest,
+  ModeHandleMenu,
   ModeHint,
   ModeIndicator,
   Selection,
@@ -680,6 +681,11 @@ export class Engine {
    */
   setLabel(elementId: string, text: string, html?: string): void {
     this.core.textEdits.setLabel(elementId, text, html);
+  }
+
+  /** Choix fait dans le menu d'une poignée de mode (`modeHandleMenu`, sujet 250). */
+  chooseModeHandle(shapeId: string, handleId: string, choiceId: string): void {
+    this.core.modeHandles.choose(shapeId, handleId, choiceId);
   }
 
   /** Texte d'une partie d'une forme (ex. label d'un champ d'une table RDD, sujet 249), validé dans l'éditeur. */

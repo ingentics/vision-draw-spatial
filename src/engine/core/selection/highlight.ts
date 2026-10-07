@@ -4,7 +4,7 @@ import { pointHandles } from '../../edit/edgePointEdits';
 import { collectMoveSet } from '../../edit/moveSet';
 import type { Point } from '../../model/types';
 import { headSelectionRing, partSelection, selectionOutline } from '../../render/decorations';
-import { edgeEndHandles, edgePointHandles, selectionHandles } from '../../render/handleMeshes';
+import { edgeEndHandles, edgePointHandles, modeHandleMeshes, selectionHandles } from '../../render/handleMeshes';
 import { createVeil, createVeilHole, liftAboveVeil } from '../../render/veil';
 import { disposeObject } from '../../render/meshes';
 import type { EngineCore } from '../EngineCore';
@@ -256,10 +256,15 @@ export class SelectionHighlight {
       this.handlesObject = selectionHandles(shape.bounds, zoom, {
         resize: this.core.registry.isResizable(shape),
         connect: true,
+        connectSides: this.core.registry.connectSides(shape),
         size: this.core.settings.edit.handleSize,
         accent: this.core.settings.selection.accentColor,
         layout: this.core.shapeHandles.handleLayout(),
       });
+      // Poignées propres au mode de la page (sujet 250, ex. « + » d'une table RDD).
+      const modeHandles = this.core.modeHandles.current()?.handles ?? [];
+      if (modeHandles.length > 0)
+        this.handlesObject.add(modeHandleMeshes(modeHandles, zoom, this.core.settings.edit.handleSize));
       this.handlesObject.position.z = this.core.sceneView.elementTop(shape.id) + 0.3;
       alwaysOnTop(this.handlesObject);
       root.add(this.handlesObject);

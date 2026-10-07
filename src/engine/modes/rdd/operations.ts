@@ -42,33 +42,6 @@ export function fitTable(edit: ModeEdit, shape: ShapeModel, changes: Partial<Tab
 }
 
 /**
- * Champs de la table, depuis le texte du panneau (un label par ligne, lignes vides ignorées) ; la hauteur suit. Un
- * label déjà présent garde son champ (kind, type, nullable) ; un nouveau est une propriété « Phrase » non nullable
- * (en attendant l'ajout sur la forme, sujet 250). Une table à clé primaire la garde en tête : le texte ne donne que les
- * champs suivants.
- */
-export function setFields(edit: ModeEdit, shape: ShapeModel, text: string | undefined): void {
-  const kind = tableKindOf(shape);
-  if (!kind) return;
-  const current = tableFields(shape);
-  const key = kind.primaryKey ? current[0] : undefined;
-  const others = current.filter((field) => field !== key);
-  const labels = (text ?? '')
-    .split('\n')
-    .map((label) => label.trim())
-    .filter((label) => label && label !== key?.label);
-  const fields: Field[] = [
-    ...(key ? [key] : []),
-    ...labels.map(
-      (label): Field =>
-        others.find((field) => field.label === label) ?? { kind: 'property', label, type: 'string', nullable: false },
-    ),
-  ];
-  edit.setElementAttribute(shape.id, FIELDS, fieldsValue(fields));
-  fitTable(edit, shape, { fields });
-}
-
-/**
  * Champ `index` de la table modifié (sujet 249) : label, kind, nullable ; la taille suit. Un label vide est refusé ;
  * la clé primaire garde son kind et n'est jamais nullable, et aucun champ ne devient clé primaire.
  */
@@ -94,10 +67,28 @@ export function setField(
   fitTable(edit, shape, { fields: written });
 }
 
-/** Labels des champs en texte pour le panneau (un par ligne), sans la clé primaire (elle n'y est pas modifiable). */
-export function fieldsText(shape: ShapeModel): string {
+/** Label d'un champ ajouté : `Field1`, `Field2`… (premier numéro libre dans la table). */
+export function newFieldLabel(fields: readonly Field[]): string {
+  const used = new Set(fields.map((field) => field.label));
+  let number = 1;
+  while (used.has(`Field${number}`)) number += 1;
+  return `Field${number}`;
+}
+
+/**
+ * Ajoute un champ (sujet 250) : propriété non nullable du type `type`, nommée `FieldN`, après le champ `after` (sinon en
+ * fin de liste ; jamais avant la clé primaire) ; la taille suit. Renvoie le rang du champ ajouté.
+ */
+export function addField(edit: ModeEdit, shape: ShapeModel, type: string, after?: number): number | undefined {
+  if (!tableKindOf(shape)) return undefined;
   const fields = tableFields(shape);
-  return (tableKindOf(shape)?.primaryKey ? fields.slice(1) : fields).map((field) => field.label).join('\n');
+  const keyed = fields[0]?.kind === 'pk' ? 1 : 0;
+  const index = after === undefined ? fields.length : Math.max(keyed, Math.min(after + 1, fields.length));
+  const field: Field = { kind: 'property', label: newFieldLabel(fields), type, nullable: false };
+  const written = [...fields.slice(0, index), field, ...fields.slice(index)];
+  edit.setElementAttribute(shape.id, FIELDS, fieldsValue(written));
+  fitTable(edit, shape, { fields: written });
+  return index;
 }
 
 /** Couleur de l'entête (`fillColor`) ; le texte du fichier suit le contraste pour draw.io (`fontColor`). */

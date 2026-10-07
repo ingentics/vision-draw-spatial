@@ -911,7 +911,6 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     `text` « Texte », `boolean` « Booléen », `dynamic` « Dynamique », `money` « Money ») et `nullable` (toujours faux
     pour `pk`). Pas de lecture de l'ancien format (liste de noms) : le mode ne vise pas draw.io. Diagnostics signale
     une valeur ou des entrées illisibles (ignorées), un type inconnu, une clé primaire nullable (lue non nullable).
-    Un champ ajouté par « Champs » est une propriété « Phrase » non nullable ; un label déjà présent garde son champ.
   - Ligne de champ (sujet 248) : marge de 6 px, icône de kind (cadre de 12 px : losange `#ffd700` clé primaire,
     `#4a90e2` propriété, `#e74c3c` clé étrangère, `#3c9641` clé étrangère d'un autre domaine, cerné de `#888888` ;
     petit losange blanc au centre si nullable), 4 px, label, puis 6 px et le libellé du type en gris `#999999` (même
@@ -922,7 +921,7 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     largeur).
   - « Entité » (`rdd-entity`) et « Entité énumérative » (`rdd-enum`, entête à cadre double : second trait 3 px à
     l'intérieur ; icône liste) : clé primaire `id` (`pk`, `integer`) toujours en tête (icône de clé primaire), montrée en
-    lecture seule dans le panneau (« Clé primaire ») et absente de « Champs » ; absente ou déplacée dans le fichier,
+    lecture seule dans le panneau (« Clé primaire ») ; absente ou déplacée dans le fichier,
     elle est remise en tête à l'affichage et signalée dans Diagnostics.
   - « Embedded » (`rdd-embedded`) : objet incorporé, bas ondulé (une période sur la largeur, amplitude 2 px ; la
     table a 4 px de plus en bas) ; icône prise électrique (câble en S, deux broches).
@@ -936,9 +935,14 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   - Table neuve au style « Gris » : entête `#f5f5f5`, bordure `#666666`, texte de l'entête `#333333` (`fontColor`, suivi
     par le rendu ; sans lui, noir ou blanc selon le contraste).
   - Réglages du mode sur une table : « Couleur » (le gris puis les couleurs `modePalette`, écrit aussi `fontColor` pour draw.io),
-    « Table secondaire » (`spatial.secondary` : tailles × 0,8), « Champs » (zone de texte, un par ligne).
+    « Table secondaire » (`spatial.secondary` : tailles × 0,8).
   - Sélection toujours en contour sur une page RDD (sujet 254, `PageModeDefinition.selectionStyle`), quel que soit le
     paramètre « Style » de la mise en valeur ; les paramètres le mentionnent sous ce choix.
+  - Ajouter un champ (sujet 250) : table sélectionnée, poignée verte « + » sous la table, au milieu (les tables n'ont
+    de poignées de connexion qu'à gauche et à droite) ; son menu propose les sept types, et un choix ajoute une
+    propriété non nullable `Field1`, `Field2`… (premier numéro libre) après le champ sélectionné, sinon en fin de liste,
+    jamais avant la clé primaire ; le champ ajouté est sélectionné et son label passe en édition. Une étape
+    d'annulation ; le type ne change plus ensuite. La zone « Champs » du panneau a disparu.
   - Champ sélectionné (sujet 249) : un clic sur une ligne de champ la sélectionne, la table sélectionnée ou non (fond
     léger et trait de la couleur d'accent sur la ligne) ; un clic sur l'entête revient à la table, Échap aussi. Le
     panneau ne montre alors que le champ : « Champ » (label), « Type » (lecture seule), « Rôle » (propriété, clé

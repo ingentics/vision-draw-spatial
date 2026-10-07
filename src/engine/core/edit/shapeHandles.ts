@@ -1,4 +1,4 @@
-import { handlePoints, isConnectHandle } from '../../edit/handleKinds';
+import { connectSideOf, handlePoints, isConnectHandle } from '../../edit/handleKinds';
 import type { HandleKind, HandleLayout } from '../../edit/handleKinds';
 import type { Point } from '../../model/types';
 import type { EngineCore } from '../EngineCore';
@@ -21,9 +21,10 @@ export class ShapeHandles {
     const { shape } = editable;
     const top = this.core.sceneView.elementTop(shape.id);
     const resizable = this.core.registry.isResizable(shape);
+    const sides = this.core.registry.connectSides(shape);
     let best: { kind: HandleKind; distance: number } | undefined;
     for (const { kind, point } of handlePoints(shape.bounds, this.core.camera.state.zoom, this.handleLayout())) {
-      if (!isConnectHandle(kind) && !resizable) continue;
+      if (isConnectHandle(kind) ? !sides.includes(connectSideOf(kind)) : !resizable) continue;
       const at = this.core.picking.screenOfPoint(point, top);
       const distance = Math.hypot(at.x - screen.x, at.y - screen.y);
       if (distance <= this.core.settings.edit.handlePickTolerance && (!best || distance < best.distance))

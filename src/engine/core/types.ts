@@ -7,6 +7,7 @@ import type { HistoryEntry, LinkUsage, ParentLink } from '../interaction/navigat
 import type { PickedElement } from '../interaction/pick';
 import type { DocumentModel, PageModel, Point, Rect } from '../model/types';
 import type { PageModeRegistry } from '../modes/registry';
+import type { ModeHandleChoice } from '../modes/types';
 import type { FontSet } from '../render/troikaText';
 import type { Settings, SettingsPatch } from '../settings';
 import type { ShapeRegistry } from '../shapes/registry';
@@ -89,6 +90,8 @@ export type EngineEvents = {
   backChoice: [parents: ParentLink[]];
   /** Pages ou formes ajoutées, retirées ou renommées : nouveau modèle du document. */
   documentChange: [document: DocumentModel];
+  /** Clic sur une poignée de mode (sujet 250) : à l'UI d'afficher le menu de ses choix (`chooseModeHandle`). */
+  modeHandleMenu: [menu: ModeHandleMenu];
   /** Édition du label d'un élément demandée (double-clic, F2) : à l'UI d'afficher un champ. */
   labelEdit: [request: LabelEditRequest];
   /** Mode d'interaction en cours (touche maintenue), pour l'aide de l'UI ; undefined : aucun. */
@@ -103,6 +106,15 @@ export type EngineEvents = {
   modifiedChange: [modified: boolean];
 };
 export type EngineEvent = keyof EngineEvents;
+
+/** Menu d'une poignée de mode (sujet 250), sous la poignée. */
+export interface ModeHandleMenu {
+  shapeId: string;
+  handleId: string;
+  /** Point écran où ouvrir le menu (sous la poignée). */
+  screen: Point;
+  choices: Array<ModeHandleChoice | 'separator'>;
+}
 
 /** Barre du courant du mode d'une page (ex. flux courant du mode Séquences). */
 export interface ModeIndicator {

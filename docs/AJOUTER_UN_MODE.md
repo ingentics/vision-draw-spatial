@@ -48,7 +48,9 @@ interface PageModeDefinition {
   relabeled?(edit, elementId): void;          // texte d'un élément changé (ex. table RDD élargie)
   parts?: ModeParts;                           // parties sélectionnables d'une forme (ex. champs d'une table RDD)
   opened?(edit): void;                         // remise en ordre à l'ouverture (ex. tables RDD ajustées)
-  selectionStyle?: 'veil' | 'outline';         // mise en valeur de la sélection imposée (ex. RDD : contour)
+  selectionStyle?: 'veil' | 'outline';
+  handles?(page, shape, part?): ModeHandle[];  // poignées propres au mode sur la forme sélectionnée (ex. « + »)
+  handleChosen?(edit, shape, handle, choice, part?): string | undefined;  // choix du menu d'une poignée         // mise en valeur de la sélection imposée (ex. RDD : contour)
   obstacles?(page, shape): ModeObstacles;      // bornes d'un déplacement / redimensionnement (ex. régions sœurs)
   shapes?: string[];                           // formes proposées par la palette (section 6)
   paletteCategories?: PaletteCategory[];       // catégories de palette du mode (section 6)
@@ -112,6 +114,11 @@ paramètres « Modes › Séquences » (clés `shapes.edgeBadge…`, communes à
 - `opened(edit)` (sujet 255) : remise en ordre d'une page du mode à l'ouverture du document, faite sur la mesure
   exacte du texte (à l'ouverture si les polices sont chargées, sinon à leur arrivée) ; une étape d'annulation
   « Ajustement du mode » pour tout le document, rien si rien ne change ou si le document n'est pas modifiable.
+- `handles` / `handleChosen` (sujet 250) : poignées propres au mode sur la forme sélectionnée seule et modifiable
+  (disque de leur couleur marqué d'un « + », accroché à un point de page et décalé de pixels écran) ; un clic ouvre le
+  menu de leurs choix (événement `modeHandleMenu`, menu de l'appli), un choix est une opération du mode
+  (`chooseModeHandle`, une étape d'annulation) qui renvoie la partie à sélectionner, dont le texte passe en édition.
+  Une forme peut aussi limiter ses poignées de connexion (`ShapeDefinition.connectSides`).
 - `parts` (sujet 249) : parties d'une forme du mode, désignées par une chaîne propre au mode. Un clic sur une partie
   (`at(page, shape, point)`) la sélectionne, la forme sélectionnée ou non (`Selection.part`), mise en valeur sur son
   emprise (`bounds`) ; Échap revient à la forme. `text` / `setText` : texte modifiable sur place au double-clic, sur une

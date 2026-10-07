@@ -2,7 +2,6 @@ import type { ShapeModel } from '../../model/types';
 import type { ModeTarget, PageModeDefinition } from '../types';
 import {
   DEFAULT_HEADER_COLOR,
-  FIELDS,
   ICON,
   PRIMARY_KEY,
   SECONDARY,
@@ -16,7 +15,8 @@ import {
   tableFields,
   tableKindOf,
 } from './tables';
-import { fieldsText, fitTable, setField, setFields, setHeaderColor, setIcon, setSecondary } from './operations';
+import { fitTable, setField, setHeaderColor, setIcon, setSecondary } from './operations';
+import { fieldHandleChosen, fieldHandles } from './fieldHandles';
 import { fieldIndex, fieldParts } from './fieldParts';
 import type { Field, FieldKind } from './tables';
 import {
@@ -155,24 +155,6 @@ export const definition: PageModeDefinition = {
         return !shape || !tableKindOf(shape)?.primaryKey;
       },
     },
-    {
-      type: 'text',
-      multiline: true,
-      key: FIELDS,
-      label: 'Champs',
-      title:
-        'Champs de la table (spatial.fields), un par ligne, après la clé primaire s’il y en a une ; la table grandit avec eux',
-      placeholder: 'un champ par ligne',
-      value: (_page, target) => {
-        const shape = tableOf(target);
-        return shape && fieldsText(shape);
-      },
-      write: (edit, target, value) => {
-        const shape = tableOf(target);
-        if (shape) setFields(edit, shape, value);
-      },
-      hidden: notTable,
-    },
     // Champ sélectionné dans sa table (sujet 249).
     {
       type: 'text',
@@ -235,6 +217,9 @@ export const definition: PageModeDefinition = {
   },
   // Champs des tables, sélectionnables dans la table (sujet 249).
   parts: fieldParts,
+  // « + » sous la table : ajoute un champ du type choisi (sujet 250).
+  handles: (_page, shape) => fieldHandles(shape),
+  handleChosen: fieldHandleChosen,
   // Table renommée : sa largeur suit le nom (sujet 247).
   relabeled: (edit, elementId) => {
     const shape = edit.page.shapes.find((s) => s.id === elementId);

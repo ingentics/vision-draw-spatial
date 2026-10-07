@@ -1,3 +1,5 @@
+import { CONNECT_SIDES } from '../edit/handleKinds';
+import type { ConnectSide } from '../edit/handleKinds';
 import type { Point, Rect, ShapeModel } from '../model/types';
 import { blockHeight } from '../render/iso/block';
 import { outsideLabelBox } from '../render/labelPosition';
@@ -113,6 +115,11 @@ export class ShapeRegistry {
   /** Poignées de redimensionnement ? */
   isResizable(shape: ShapeModel): boolean {
     return this.resolve(shape).definition.resizable !== false;
+  }
+
+  /** Côtés aux poignées de connexion de la forme sélectionnée. */
+  connectSides(shape: ShapeModel): readonly ConnectSide[] {
+    return this.resolve(shape).definition.connectSides ?? CONNECT_SIDES;
   }
 
   /** Peut-on y accrocher une flèche ? */

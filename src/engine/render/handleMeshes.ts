@@ -1,6 +1,6 @@
 import { Color, Group } from 'three';
 import { CONNECT_DIRECTIONS, connectSideOf, handlePoints, isConnectHandle } from '../edit/handleKinds';
-import type { HandleLayout } from '../edit/handleKinds';
+import type { ConnectSide, HandleLayout } from '../edit/handleKinds';
 import type { Point, Rect } from '../model/types';
 import { ellipsePath, rectPath } from './geometry/paths';
 import { DEFAULT_ACCENT } from './decorations';
@@ -29,7 +29,7 @@ export interface HandleStyle {
 export function selectionHandles(
   bounds: Rect,
   zoom: number,
-  options: { resize: boolean; connect: boolean } & HandleStyle,
+  options: { resize: boolean; connect: boolean; connectSides?: readonly ConnectSide[] } & HandleStyle,
 ): Group {
   const group = new Group();
   group.name = 'handles';
@@ -37,7 +37,7 @@ export function selectionHandles(
   const ACCENT = new Color(options.accent ?? DEFAULT_ACCENT);
   for (const { kind, point } of handlePoints(bounds, zoom, options.layout)) {
     if (isConnectHandle(kind)) {
-      if (!options.connect) continue;
+      if (!options.connect || (options.connectSides && !options.connectSides.includes(connectSideOf(kind)))) continue;
       const square = { x: point.x - r * 1.5, y: point.y - r * 1.5, width: 3 * r, height: 3 * r };
       group.add(fillMesh(ellipsePath(square, 24), ACCENT, 1));
       // Flèche dessinée vers la droite puis tournée vers l'extérieur du côté de la poignée.
@@ -62,6 +62,36 @@ export function selectionHandles(
   // Ordre de groupe : par-dessus le reste, et dedans fonds puis traits (`PART_ORDER`). À `renderOrder` égal, Three.js
   // trie par profondeur du centre des géométries : en iso, la pointe d'une flèche tournée vers le fond passerait
   // sous son disque.
+  group.renderOrder = Number.MAX_SAFE_INTEGER;
+  return group;
+}
+
+/**
+ * Poignées propres à un mode (sujet 250) : disque de leur couleur, de la taille des poignées de connexion, marqué
+ * d'un « + » blanc.
+ */
+export function modeHandleMeshes(handles: Array<{ center: Point; color: string }>, zoom: number, size?: number): Group {
+  const group = new Group();
+  group.name = 'mode-handles';
+  const r = (size ?? HANDLE_SIZE) / zoom;
+  for (const { center, color } of handles) {
+    const square = { x: center.x - r * 1.5, y: center.y - r * 1.5, width: 3 * r, height: 3 * r };
+    group.add(fillMesh(ellipsePath(square, 24), new Color(color), 1));
+    const arms: Point[][] = [
+      [
+        { x: center.x - 0.7 * r, y: center.y },
+        { x: center.x + 0.7 * r, y: center.y },
+      ],
+      [
+        { x: center.x, y: center.y - 0.7 * r },
+        { x: center.x, y: center.y + 0.7 * r },
+      ],
+    ];
+    for (const arm of arms) {
+      const mesh = strokeMesh(arm, WHITE, 1, { width: 1.5 / zoom, closed: false });
+      if (mesh) group.add(mesh);
+    }
+  }
   group.renderOrder = Number.MAX_SAFE_INTEGER;
   return group;
 }

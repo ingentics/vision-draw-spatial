@@ -16,6 +16,7 @@ import type {
   Engine,
   InitialView,
   LabelEditRequest,
+  ModeHandleMenu,
   ModeHint,
   ParentLink,
   Selection,
@@ -34,6 +35,7 @@ import { desktop } from './desktop';
 import { saveAs, store } from './fileLibrary';
 import { SlidingModeBar } from './ModeBar';
 import { NavigationToolbar } from './NavigationToolbar';
+import { HandleMenu } from './HandleMenu';
 import { LabelEditor } from './LabelEditor';
 import type { RichEditorHandle, SelectionFormat } from './LabelEditor';
 import { wholeTextChange } from './TextFormat';
@@ -126,6 +128,8 @@ export function Viewer({
   const [commentEdit, setCommentEdit] = useState<CommentEditRequest>();
   const [transitioning, setTransitioning] = useState(false);
   const [labelEdit, setLabelEdit] = useState<LabelEditRequest>();
+  /** Menu d'une poignée de mode ouvert (sujet 250). */
+  const [handleMenu, setHandleMenu] = useState<ModeHandleMenu>();
   /** Éditeur de texte en place (commandes du panneau de format) et format de sa sélection. */
   const editorHandle = useRef<RichEditorHandle | undefined>(undefined);
   const [selectionFormat, setSelectionFormat] = useState<SelectionFormat>();
@@ -362,6 +366,7 @@ export function Viewer({
       instance.on('commentHover', setHoverComment);
       instance.on('commentEdit', setCommentEdit);
       instance.on('labelEdit', setLabelEdit);
+      instance.on('modeHandleMenu', setHandleMenu);
       instance.on('documentChange', (doc) => {
         setDocument(doc);
         setReport(instance.getUnsupportedReport());
@@ -606,6 +611,21 @@ export function Viewer({
             onChoose={(value) => engine?.setModeCurrent(value)}
             onRename={(label) => engine?.renameModeCurrent(label)}
           />
+          {handleMenu && (
+            <HandleMenu
+              key={`${handleMenu.shapeId}:${handleMenu.handleId}`}
+              menu={handleMenu}
+              onChoose={(choiceId) => {
+                setHandleMenu(undefined);
+                engine?.focusCanvas();
+                engine?.chooseModeHandle(handleMenu.shapeId, handleMenu.handleId, choiceId);
+              }}
+              onClose={() => {
+                setHandleMenu(undefined);
+                engine?.focusCanvas();
+              }}
+            />
+          )}
           {labelEdit && (
             <LabelEditor
               key={`${labelEdit.pageId}:${labelEdit.elementId}:${labelEdit.end ?? ''}:${labelEdit.part ?? ''}`}

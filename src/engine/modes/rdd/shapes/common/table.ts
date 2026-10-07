@@ -345,6 +345,8 @@ export function table(
     textZone: (shape) => nameZone(shape),
     // Taille calculée de son contenu (sujet 247) : pas de poignées de redimensionnement.
     resizable: false,
+    // Flèches tirées des côtés seulement : le « + » d'ajout de champ prend le bas (sujet 250).
+    connectSides: ['e', 'w'],
     swatch: () => '<path d="M5 5h30v18H5zM5 11h30"/>',
     ...(palette && {
       palette: {

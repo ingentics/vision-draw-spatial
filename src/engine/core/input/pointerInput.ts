@@ -56,6 +56,8 @@ export class PointerInput {
    * l'élément, s'il en a un.
    */
   handleClick(screen: Point, toggle = false, followLink = false): void {
+    // Poignée propre au mode (sujet 250) : son menu, rien d'autre.
+    if (!toggle && !followLink && this.core.modeHandles.click(screen)) return;
     const picked = this.core.picking.pickAt(screen);
     if (followLink && picked && isNavigableLink(picked.element.link)) {
       this.core.links.followLink(picked.element.id);
@@ -122,6 +124,7 @@ export class PointerInput {
     const picked = screen ? this.core.picking.pickAt(screen) : undefined;
     const link = isNavigableLink(picked?.element.link) ? picked?.element.link : undefined;
     const handle = screen ? this.core.shapeHandles.handleAt(screen) : undefined;
+    const modeHandle = screen && !handle ? this.core.modeHandles.handleAt(screen)?.handle : undefined;
     const edgeEnd = screen && !handle ? this.core.edgeHandles.edgeEndAt(screen) : undefined;
     const pointHandle = screen && !handle && !edgeEnd ? this.core.edgeHandles.pointHandleAt(screen) : undefined;
     const bent = pointHandle && this.core.targets.editableEdgeSelection()?.edge;
@@ -132,11 +135,11 @@ export class PointerInput {
           ? HANDLE_CURSORS[handle]
           : pointHandle && bent
             ? this.pointHandleCursor(pointHandle, bent.style)
-            : link
+            : link || modeHandle
               ? 'pointer'
               : '';
     if (!this.core.canvas.style.cursor.startsWith('grab')) this.core.canvas.style.cursor = cursor;
-    this.core.canvas.title = link ? this.core.links.describeLink(link) : '';
+    this.core.canvas.title = modeHandle ? modeHandle.title : link ? this.core.links.describeLink(link) : '';
     this.hovered = picked;
     this.core.splitHover.update(picked?.type === 'edge' ? picked.element.id : undefined);
     this.syncHoverComment();
