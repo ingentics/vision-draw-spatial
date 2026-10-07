@@ -10,6 +10,7 @@ import type { PickedElement } from '../../interaction/pick';
 import type { DocumentModel, PageModel } from '../../model/types';
 import type { InitialView } from '../types';
 import type { EngineCore } from '../EngineCore';
+import { freezeModel } from '../../model/freeze';
 
 /**
  * Document chargé : arbre XML d'origine (écrit en place, SPEC §14.2), modèle relu de l'arbre, chargement et
@@ -23,6 +24,15 @@ export class DocumentFile {
   xmlTree: DrawioTree | undefined;
   unsupportedReport: UnsupportedReport | undefined;
   fileId: string | undefined;
+  /**
+   * Page en cours de modification en direct (sujet 312) : pendant un geste, la page du document est remplacée par une
+   * copie modifiable, que les aperçus changent en place et que tout le moteur lit ; le modèle lu de l'arbre n'est
+   * jamais modifié. À la fin du geste (`settleLivePage`), la copie, conforme à l'arbre, est gelée comme le reste du
+   * document ; une relecture du document l'abandonne. Plusieurs détenteurs peuvent la partager (ex. texte en édition
+   * pendant un glisser) : elle n'est close que lorsque le dernier la rend.
+   */
+  private livePageId: string | undefined;
+  private readonly liveOwners = new Set<object>();
 
   constructor(private readonly core: EngineCore) {}
 
@@ -74,8 +84,50 @@ export class DocumentFile {
     this.core.events.emit('documentChange', this.document);
   }
 
+  /**
+   * Page `pageId` à modifier en direct pendant un geste (sujet 312), pour `owner` (le domaine du geste) : la copie de
+   * travail, créée au premier appel (la sélection est reprise sur ses éléments), ou celle en cours ; undefined pour une
+   * page inconnue. Une copie d'une autre page est d'abord close.
+   */
+  livePage(pageId: string, owner: object): PageModel | undefined {
+    const document = this.document;
+    const index = document?.pages.findIndex((p) => p.id === pageId) ?? -1;
+    if (!document || index < 0) return undefined;
+    if (this.livePageId === pageId) {
+      this.liveOwners.add(owner);
+      return document.pages[index];
+    }
+    this.closeLivePage();
+    this.liveOwners.add(owner);
+    const copy = structuredClone(document.pages[index]!) as PageModel;
+    this.document = { ...document, pages: document.pages.map((page, i) => (i === index ? copy : page)) };
+    this.livePageId = pageId;
+    this.core.selection.rebind(copy);
+    return copy;
+  }
+
+  /**
+   * Fin du geste de `owner` : il rend la copie de travail ; rendue par tous, elle devient, désormais conforme à l'arbre,
+   * une page du document (gelée).
+   */
+  settleLivePage(owner: object): void {
+    this.liveOwners.delete(owner);
+    if (this.liveOwners.size === 0) this.closeLivePage();
+  }
+
+  private closeLivePage(): void {
+    const pageId = this.livePageId;
+    this.livePageId = undefined;
+    this.liveOwners.clear();
+    const page = pageId === undefined ? undefined : this.document?.pages.find((p) => p.id === pageId);
+    if (page) freezeModel(page);
+  }
+
   /** Document lu (chargement, annuler / rétablir) : modèle, géométrie des pages, arbre XML, styles non pris en charge. */
   replaceDocument(document: DocumentModel, tree: DrawioTree): void {
+    this.livePageId = undefined;
+    this.liveOwners.clear();
+    for (const page of document.pages) freezeModel(page);
     this.document = this.core.pageModes.withModeWarnings(document);
     this.geometry = new Map(document.pages.map((p) => [p.id, pageGeometry(p)]));
     this.xmlTree = tree;
@@ -104,6 +156,9 @@ export class DocumentFile {
     let document = documentFromTree(this.xmlTree);
     if (options.distribute !== false && this.core.arrangement.distributeAfterEdit(document, changedPageIds))
       document = documentFromTree(this.xmlTree);
+    this.livePageId = undefined;
+    this.liveOwners.clear();
+    for (const page of document.pages) freezeModel(page);
     this.document = this.core.pageModes.withModeWarnings(document);
     this.geometry = new Map(document.pages.map((p) => [p.id, pageGeometry(p)]));
     this.unsupportedReport = collectUnsupported(this.document, this.core.registry);

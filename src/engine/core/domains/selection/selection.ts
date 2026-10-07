@@ -24,6 +24,26 @@ export class Selections {
     this.selectItems(toggleSelected(current, picked));
   }
 
+  /**
+   * Sélection reprise sur les éléments de `page` de même id (sujet 312 : copie de travail d'un geste) ; inchangée si
+   * elle est sur une autre page ou si un élément y manque.
+   */
+  rebind(page: PageModel): void {
+    const current = this.current;
+    if (!current || current.pageId !== page.id) return;
+    const items = current.items.flatMap((item): PickedElement[] => {
+      if (item.type === 'shape') {
+        const shape = page.shapes.find((s) => s.id === item.element.id);
+        return shape ? [{ type: 'shape', element: shape }] : [];
+      }
+      const edge = page.edges.find((e) => e.id === item.element.id);
+      return edge ? [{ type: 'edge', element: edge }] : [];
+    });
+    if (items.length !== current.items.length) return;
+    this.current = { ...current, items, picked: items[items.length - 1]! };
+    this.core.events.emit('selectionChange', this.current);
+  }
+
   /** `part` : partie de la forme sélectionnée seule (sujet 249), gardée si le mode la connaît encore. */
   selectItems(items: PickedElement[], part?: string): void {
     const page = this.core.pages.getCurrentPage();

@@ -1,7 +1,9 @@
-import { Color } from 'three';
+import { Color, Group, Object3D } from 'three';
 import { describe, expect, it } from 'vitest';
 import { PageEffectRegistry } from '../../../../src/engine/core/effects/registry';
-import { freezePlain } from '../../../../src/engine/core/model/freeze';
+import { freezeModel, freezePlain } from '../../../../src/engine/core/model/freeze';
+import { readDrawio } from '../../../../src/engine/core/format/parse';
+import { modeHost } from '../../modeHost';
 import { PageModeRegistry } from '../../../../src/engine/core/modes/registry';
 import type { PageModeDefinition } from '../../../../src/engine/core/modes/types';
 import type { ShapeDefinition } from '../../../../src/engine/core/plugins';
@@ -34,5 +36,47 @@ describe('gel des objets simples (sujet 303)', () => {
     const effect = { id: 'e', name: 'E', viewModes: ['iso' as const] };
     new PageEffectRegistry().register(effect);
     expect(() => effect.viewModes.push('iso')).toThrow(TypeError);
+  });
+});
+
+describe('plugin qui modifie le modèle reçu (sujet 312)', () => {
+  const XML = `<mxfile><diagram id="p" name="P" spatial.mode="tricheur"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="a" value="A" style="spatial.kind=tricheuse;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="100" height="60" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>`;
+
+  it('mode et forme de test : exception signalée, repli, document inchangé', () => {
+    const page = freezeModel(readDrawio(XML).document.pages[0]!);
+    const before = JSON.stringify(page);
+    // Mode qui écrit dans la page reçue pour son habillage.
+    const mode: PageModeDefinition = {
+      id: 'tricheur',
+      namespace: 'tricheur',
+      name: 'Tricheur',
+      dressing: (received) => {
+        (received.attributes as Record<string, string>)['spatial.mode'] = 'autre';
+        return {};
+      },
+    };
+    const { host } = modeHost(new PageModeRegistry().register(mode));
+    expect(host.dressing(page)).toBeUndefined();
+    // Forme qui écrit dans le style de la forme reçue en se dessinant.
+    const errors: string[] = [];
+    const shapes = new ShapeRegistry()
+      .register({
+        id: 'tricheuse',
+        flat: {
+          create: (shape) => {
+            (shape.style as Record<string, string>).fillColor = '#ff0000';
+            return new Group();
+          },
+        },
+      })
+      .reportingTo((id, hook) => errors.push(`${id} ${hook}`));
+    const object = shapes.sceneRenderer(page.shapes[0]!, 'flat').create(page.shapes[0]!, {
+      text: { create: () => new Object3D() },
+    });
+    expect(object.getObjectByName('stroke')).toBeDefined();
+    expect(errors).toEqual(['tricheuse flat.create']);
+    expect(JSON.stringify(page)).toBe(before);
   });
 });

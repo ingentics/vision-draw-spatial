@@ -56,6 +56,8 @@ Règles :
 - **Écriture in situ** (SPEC §14.2) : on ne régénère **jamais** le XML depuis le modèle. On garde l'arbre XML d'origine
   et on ne touche que les nœuds/attributs concernés ; tout ce qui est inconnu est préservé. Après une création, le
   modèle est relu de l'arbre. Une page compressée modifiée est réécrite compressée.
+- **Modèle jamais modifié en place** (sujet 312) : pages du document gelées en dev et en test ; un geste travaille sur
+  une copie de travail de la page (`file.livePage`), qui devient la page du document à la fin du geste.
 - **Undo/redo** par instantanés XML (100 max).
 - **Jamais d'échec de chargement** pour une forme inconnue : placeholder gris pointillé + entrée dans les Diagnostics
   (`core/diagnostics/unsupportedStyles.ts`), qui sert de backlog priorisé par fréquence (SPEC §8.4).

@@ -51,6 +51,10 @@ paths:
   it, and tests would influence each other. State lives in a `core/domains/` domain and is passed as a parameter to
   pure functions. E.g. camera bounds are `ViewCamera.limits`, passed as last parameter to `zoomAt`, `orbit`,
   `fitBounds`…
+- **The document model is never modified in place.** Its pages are frozen in dev and test. A gesture preview edits
+  the page's working copy (`core.file.livePage(pageId, owner)`, released by `settleLivePage(owner)` at the end of the
+  gesture); a one-off computation edits a fresh `documentFromTree` page. Writes go to the XML tree, then the model is
+  re-read (or the settled working copy becomes the page).
 - **A domain does not write another's state.** No `this.core.pages.currentPageId = …` nor
   `this.core.camera.animation = undefined`: call a method of the owning domain, created if missing (e.g.
   `pages.setCurrent()`, `camera.cancelAnimation()`).

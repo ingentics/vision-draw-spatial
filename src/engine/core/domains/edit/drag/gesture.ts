@@ -256,19 +256,22 @@ export class DragGesture {
     const onGrid = coarse && nudgeCoarseStep === 0;
     const step = onGrid ? grid : coarse ? nudgeCoarseStep : nudgeStep;
     this.drag = drag;
-    this.core.moveDrags.follow(page, drag, { x: direction.x * step, y: direction.y * step }, onGrid);
+    const live = this.core.file.livePage(page.id, this);
+    if (live) this.core.moveDrags.follow(live, drag, { x: direction.x * step, y: direction.y * step }, onGrid);
     this.endMove();
     return true;
   }
 
   /**
    * Suit le pointeur, mesuré au sol (projection orthographique, identique à toute hauteur : une
-   * forme en volume reste sous le curseur). Modèle et scène sont mis à jour en place.
+   * forme en volume reste sous le curseur). La copie de travail de la page (sujet 312) et la scène sont mises à jour
+   * en place.
    */
   moveTo(screen: Point, snap: boolean, free = false): void {
     const drag = this.drag;
-    const page = this.core.pages.getCurrentPage();
-    if (!drag || page?.id !== drag.pageId) return;
+    if (!drag || this.core.pages.getCurrentPage()?.id !== drag.pageId) return;
+    const page = this.core.file.livePage(drag.pageId, this);
+    if (!page) return;
     const point = screenToPage(this.core.camera.state, this.core.display.viewport, screen);
     if (drag.kind === 'move') this.core.moveDrags.follow(page, drag, point, snap, free);
     else if (drag.kind === 'resize') this.core.resizeDrags.follow(page, drag, point, snap, free);
@@ -279,8 +282,19 @@ export class DragGesture {
     else this.core.connectDrags.follow(page, drag, screen);
   }
 
-  /** Fin du glisser : la modification est écrite dans l'arbre XML (seuls les attributs concernés). */
+  /**
+   * Fin du glisser : la modification est écrite dans l'arbre XML (seuls les attributs concernés), puis la copie de
+   * travail de la page devient la page du document (sujet 312).
+   */
   endMove(): void {
+    try {
+      this.commitMove();
+    } finally {
+      this.core.file.settleLivePage(this);
+    }
+  }
+
+  private commitMove(): void {
     const drag = this.drag;
     this.drag = undefined;
     this.core.preview.clearConnectorPreview();

@@ -386,10 +386,14 @@ export class LabelEditor {
       this.relocateLabelEdit();
       return;
     }
-    const page = this.core.pages.getCurrentPage();
-    const shape = page?.shapes.find((s) => s.id === editing?.elementId);
-    if (!editing || editing.onEdge || !page || page.id !== editing.pageId || !shape) return;
-    if (!this.core.registry.editStyle(shape) || shape.label === text) return;
+    const current = this.core.pages.getCurrentPage();
+    if (!editing || editing.onEdge || current?.id !== editing.pageId) return;
+    const found = current.shapes.find((s) => s.id === editing.elementId);
+    if (!found || !this.core.registry.editStyle(found) || found.label === text) return;
+    // Copie de travail de la page (sujet 312) : l'aperçu ne touche pas au modèle du document.
+    const page = this.core.file.livePage(editing.pageId, this);
+    const shape = page?.shapes.find((s) => s.id === editing.elementId);
+    if (!page || !shape) return;
     this.previewed ??= { pageId: page.id, shapeId: shape.id, label: shape.label };
     shape.label = text;
     this.core.live.rebuildShapeObject(shape);
@@ -413,6 +417,7 @@ export class LabelEditor {
         this.core.live.rebuildShapeObject(shape);
         this.core.live.afterLiveEdit();
       }
+      this.core.file.settleLivePage(this);
     }
     // Aperçu d'une partie : la forme reprend son dessin (une validation l'écrit ensuite et relit la page).
     if (this.partPreview) {

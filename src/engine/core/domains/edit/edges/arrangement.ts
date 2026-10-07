@@ -147,7 +147,8 @@ export class EdgeArrangement {
       if (!arrangementChanges(page, arrangement) || arrangementConflicts(page, arrangement) > base) continue;
       this.core.edits.recordEdit('Autre agencement');
       setPageAttribute(pageTree, SPATIAL.anchorSeed, String(seed));
-      this.applyArrangement(page, arrangement, pageTree);
+      // Sur la copie de travail (sujet 312) : le modèle du document n'est pas modifié, il est relu juste après.
+      this.applyArrangement(this.core.file.livePage(page.id, this) ?? page, arrangement, pageTree);
       // Pas de répartition derrière : elle déborderait de la zone choisie.
       this.core.file.documentChanged([page.id], { distribute: false });
       return true;

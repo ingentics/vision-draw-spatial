@@ -85,7 +85,8 @@ interface PageModeDefinition {
 ```
 
 La page, ses formes et ses flèches reçues par le mode sont **en lecture seule** (sujet 303 : types `PageModel`,
-`ShapeModel`, `EdgeModel` de l'API des plugins) : le mode n'écrit que par `ModeEdit`. Sa définition est gelée à
+`ShapeModel`, `EdgeModel` de l'API des plugins) : le mode n'écrit que par `ModeEdit`. En dev et en test, les pages du
+document sont gelées (sujet 312) : une écriture lève une exception, traitée comme une panne du point d'entrée. Sa définition est gelée à
 l'enregistrement.
 
 Les points d'entrée sont rangés par groupe (sujet 295) : `page`, `lifecycle`, `edges`, `gestures`, `parts`,

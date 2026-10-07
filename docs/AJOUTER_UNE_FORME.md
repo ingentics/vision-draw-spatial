@@ -189,7 +189,8 @@ fonction, mais jamais entre deux formes : chaque forme a ses propres bornes.
 ### Ce que reçoit une forme
 
 La forme reçue (`ShapeModel` de l'API des plugins) et le contexte de rendu (`RenderContext`, gelé pour la scène) sont
-en lecture seule (sujet 303) : une forme dessine sans rien modifier ; pour un aperçu, elle crée une copie
+en lecture seule (sujet 303 ; gelés en dev et en test, sujet 312 : une écriture lève une exception, la forme est
+alors dessinée en placeholder) : une forme dessine sans rien modifier ; pour un aperçu, elle crée une copie
 (`{ ...shape, style: { ...shape.style, … } }`). Sa définition est gelée à l'enregistrement.
 
 ### Une forme en panne
