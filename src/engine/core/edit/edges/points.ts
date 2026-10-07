@@ -1,6 +1,6 @@
-import { setCellStyleValue, setEdgePoints } from '../../../format/edit';
+import { setCellStyleValue, setEdgePoints } from '../../../format/cellEdits';
 import type { PageTree } from '../../../format/xmlTree';
-import { removePoint } from '../../../edit/edgePoints';
+import { removePoint } from '../../../edit/edgePointEdits';
 import type { EdgeModel, PageModel, Point } from '../../../model/types';
 import type { EngineCore } from '../../EngineCore';
 

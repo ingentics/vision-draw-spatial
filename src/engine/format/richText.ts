@@ -1,5 +1,5 @@
 import type { RichLine, TextMarks, TextRun } from '../model/types';
-import { decodeEntities } from './label';
+import { decodeEntities } from './labelText';
 
 /**
  * Texte riche des labels HTML draw.io (`html=1`) : gras, italique, souligné, barré, taille, couleur et

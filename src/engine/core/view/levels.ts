@@ -1,4 +1,4 @@
-import { perspectiveAmount } from '../../interaction/camera';
+import { perspectiveAmount } from '../../interaction/cameraMath';
 import { setPageOpacity } from '../../render/pageEffects';
 import type { PageScene } from '../../render/pageScene';
 import type { SceneLevel } from '../../shapes/types';

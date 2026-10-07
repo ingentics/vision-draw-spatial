@@ -1,5 +1,5 @@
 import type { Point, Rect } from '../../model/types';
-import type { CameraLimits, CameraState, Viewport } from '../camera';
+import type { CameraLimits, CameraState, Viewport } from '../cameraMath';
 
 /** Touches de modification maintenues (voir `CameraHost.heldKeys`). */
 export interface HeldKeys {

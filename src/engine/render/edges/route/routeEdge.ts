@@ -18,7 +18,7 @@ export function routeEdge(input: RouteInput): Point[] {
 
 /**
  * Tracé brut, tel que draw.io le calcule (`state.absolutePoints`) : points alignés ou confondus compris.
- * C'est sur lui que travaillent les poignées des segments (`edit/edgePoints.ts`), comme dans draw.io.
+ * C'est sur lui que travaillent les poignées des segments (`edit/edgePointEdits.ts`), comme dans draw.io.
  */
 export function routeEdgePoints(input: RouteInput): Point[] {
   const { source, target, style } = input;

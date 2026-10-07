@@ -1,5 +1,5 @@
 import { formatLink } from '../../../format/link';
-import { formatNumber, setCellObjectAttribute, setCellStyleValue } from '../../../format/edit';
+import { formatNumber, setCellObjectAttribute, setCellStyleValue } from '../../../format/cellEdits';
 import { setCellLink, setCellWrapperAttribute } from '../../../format/create';
 import { COMMENT_ATTRIBUTE, COMMENT_HTML_ATTRIBUTE, commentOf, sameComment } from '../../../edit/comment';
 import type { ElementComment } from '../../../edit/comment';

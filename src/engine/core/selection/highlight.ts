@@ -1,11 +1,11 @@
 import { Group, Mesh } from 'three';
 import type { MeshBasicMaterial, Object3D } from 'three';
-import { pointHandles } from '../../edit/edgePoints';
-import { collectMoveSet } from '../../edit/move';
+import { pointHandles } from '../../edit/edgePointEdits';
+import { collectMoveSet } from '../../edit/moveSet';
 import type { Point } from '../../model/types';
 import { headSelectionRing, selectionOutline } from '../../render/decorations';
-import { edgeEndHandles, edgePointHandles, selectionHandles } from '../../render/handles';
-import { createVeil, createVeilHole, liftAboveVeil } from '../../render/highlight';
+import { edgeEndHandles, edgePointHandles, selectionHandles } from '../../render/handleMeshes';
+import { createVeil, createVeilHole, liftAboveVeil } from '../../render/veil';
 import { disposeObject } from '../../render/meshes';
 import type { EngineCore } from '../EngineCore';
 import type { PickedElement } from '../../interaction/pick';

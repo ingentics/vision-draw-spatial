@@ -1,6 +1,6 @@
 import { readDrawio } from '../../format/parse';
 import { writeDrawio } from '../../format/write';
-import { UndoStack } from '../../edit/undo';
+import { UndoStack } from '../../edit/undoStack';
 import type { EngineCore } from '../EngineCore';
 import type { Settings } from '../../settings';
 

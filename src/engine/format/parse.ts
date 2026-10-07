@@ -13,7 +13,7 @@ import type {
 } from '../model/types';
 import { computeBounds } from '../model/bounds';
 import { SPATIAL, SPATIAL_PREFIX, spatialValue } from '../spatial';
-import { htmlToText, resolvePlaceholders } from './label';
+import { htmlToText, resolvePlaceholders } from './labelText';
 import { isRich, parseRichHtml } from './richText';
 import { parseLink } from './link';
 import { parseStyle, resolveShapeKind } from './style';

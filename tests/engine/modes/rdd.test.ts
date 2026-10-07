@@ -2,7 +2,7 @@ import { Box3, Mesh, Object3D } from 'three';
 import type { MeshBasicMaterial } from 'three';
 import { describe, expect, it } from 'vitest';
 import { documentFromTree, readDrawio } from '../../../src/engine/format/parse';
-import { applyModeEdit } from '../../../src/engine/modes/edit';
+import { applyModeEdit } from '../../../src/engine/modes/modeEdits';
 import { createDefaultModeRegistry } from '../../../src/engine/modes/registry';
 import { definition as rdd } from '../../../src/engine/modes/rdd';
 import { FIELDS, ICON, SECONDARY, fieldsOf, tableFields } from '../../../src/engine/modes/rdd/tables';

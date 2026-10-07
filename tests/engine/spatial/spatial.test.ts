@@ -2,7 +2,7 @@ import { readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { Object3D } from 'three';
 import { describe, expect, it } from 'vitest';
-import { setCellObjectAttribute, setCellStyleValue } from '../../../src/engine/format/edit';
+import { setCellObjectAttribute, setCellStyleValue } from '../../../src/engine/format/cellEdits';
 import { parseDrawio, readDrawio } from '../../../src/engine/format/parse';
 import { VIEW_ATTRIBUTE } from '../../../src/engine/format/viewState';
 import { writeDrawio } from '../../../src/engine/format/write';

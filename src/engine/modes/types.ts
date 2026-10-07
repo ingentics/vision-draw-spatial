@@ -1,4 +1,4 @@
-import type { ViewMode } from '../interaction/camera';
+import type { ViewMode } from '../interaction/cameraMath';
 import type { EdgeModel, PageModel, Rect, ShapeModel } from '../model/types';
 import type { PaletteCategory } from '../shapes/types';
 

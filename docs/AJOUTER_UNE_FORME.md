@@ -286,7 +286,7 @@ Règles à respecter :
 
 ### 4.1 Rendre une valeur réglable
 
-Les paramètres sont la source de vérité ([engine/settings.ts](../src/engine/settings.ts)). Un renderer n'y accède
+Les paramètres sont la source de vérité ([engine/settings/index.ts](../src/engine/settings/index.ts)). Un renderer n'y accède
 jamais directement : tout passe par le **`RenderContext`**, construit par `Engine.renderContext()`.
 
 1. Ajoutez le champ dans l'interface de section (ex. `ShapeSettings`), dans `DEFAULT_SETTINGS`, dans `SETTINGS_LIMITS`

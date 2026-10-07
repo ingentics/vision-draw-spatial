@@ -4,10 +4,10 @@ import {
   distributeAnchors,
   endKey,
   facingSide,
-  pageGeometry,
   resitedEnds,
 } from '../../../../../src/engine/edit/anchoring/auto/distribute';
 import { readDrawio } from '../../../../../src/engine/format/parse';
+import { pageGeometry } from '../../../../../src/engine/model/pageGeometry';
 
 const shape = (id: string, x: number, y: number, w = 100, h = 60) =>
   `<mxCell id="${id}" vertex="1" parent="1"><mxGeometry x="${x}" y="${y}" width="${w}" height="${h}" as="geometry"/></mxCell>`;

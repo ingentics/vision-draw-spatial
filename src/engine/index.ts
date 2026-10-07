@@ -56,7 +56,7 @@ export type {
 export { DEFAULT_DEPTH, LEGACY_DEFAULT_DEPTH, SPATIAL, SPATIAL_PREFIX, spatialNumber, spatialValue } from './spatial';
 
 // Bibliothèque de fichiers et sauvegarde (SPEC §5, §14.1)
-export { Autosaver } from './edit/autosave';
+export { Autosaver } from './persistence/Autosaver';
 export type { FileStore, StoredFile, StoredFileMeta, StoredFilePatch } from './persistence/FileStore';
 export { FsStore, isFilePath } from './persistence/FsStore';
 export type { FileSystemAccess } from './persistence/FsStore';
@@ -71,21 +71,21 @@ export { commentOf } from './edit/comment';
 export type { ElementComment } from './edit/comment';
 export { anchorOf, edgeTexts, endLabelOf } from './edit/edgeLabels';
 export type { EdgeEnd } from './edit/edgeLabels';
-export { LABEL_PLACES, labelPlaceName, labelPlaceOf, labelPlacePatch } from './edit/labelPosition';
-export type { LabelPlace } from './edit/labelPosition';
+export { LABEL_PLACES, labelPlaceName, labelPlaceOf, labelPlacePatch } from './edit/labelPlaces';
+export type { LabelPlace } from './edit/labelPlaces';
 export { PALETTE_CATEGORIES, searchTemplates, SHAPE_TEMPLATES, usedTemplates } from './edit/palette';
 export type { PageModePalette, PaletteCategory, PaletteCategoryId, ShapeTemplate } from './edit/palette';
-export { matchesPreset, matchesTextPreset } from './edit/styles';
-export type { StylePreset, TextPreset } from './edit/styles';
+export { matchesPreset, matchesTextPreset } from './edit/stylePresets';
+export type { StylePreset, TextPreset } from './edit/stylePresets';
 
 // Caméra, navigation et sélection (SPEC §9–11)
-export { ISOMETRIC_ELEVATION_DEG } from './interaction/camera';
-export type { CameraState, ViewMode } from './interaction/camera';
+export { ISOMETRIC_ELEVATION_DEG } from './interaction/cameraMath';
+export type { CameraState, ViewMode } from './interaction/cameraMath';
 export { RESERVED_CODES } from './interaction/controls';
 export type { Shortcuts } from './interaction/controls';
-export type { ParentLink } from './interaction/history';
+export type { ParentLink } from './interaction/navigationHistory';
 export type { PickedElement } from './interaction/pick';
-export type { FollowLinkGesture, FollowLinkKey, MultiSelectKey } from './interaction/selection';
+export type { FollowLinkGesture, FollowLinkKey, MultiSelectKey } from './interaction/selectionRules';
 
 // Rendu (SPEC §8)
 export { JUMP_STYLES, jumpValue } from './render/edges/jumps';

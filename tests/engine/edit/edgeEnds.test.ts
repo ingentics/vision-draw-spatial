@@ -10,7 +10,7 @@ import {
   shapeAnchors,
   snapshotEnds,
 } from '../../../src/engine/edit/edgeEnds';
-import { setCellStyleValue, setEdgeTerminal } from '../../../src/engine/format/edit';
+import { setCellStyleValue, setEdgeTerminal } from '../../../src/engine/format/cellEdits';
 import { readDrawio } from '../../../src/engine/format/parse';
 import { writeDrawio } from '../../../src/engine/format/write';
 import { routeEdge } from '../../../src/engine/render/edges/route';

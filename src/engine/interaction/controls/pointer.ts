@@ -1,8 +1,8 @@
 import type { Point, Rect } from '../../model/types';
-import { dragGround, orbit, zoomAt } from '../camera';
+import { dragGround, orbit, zoomAt } from '../cameraMath';
 import { rectBetween } from '../marquee';
-import { followLinkGesture, hasFollowLinkKey, hasMultiSelectKey } from '../selection';
-import type { FollowLinkGesture } from '../selection';
+import { followLinkGesture, hasFollowLinkKey, hasMultiSelectKey } from '../selectionRules';
+import type { FollowLinkGesture } from '../selectionRules';
 import type { ControlContext, DragMode } from './context';
 import type { Drift } from './drift';
 import { releaseVelocity, wheelZoomFactor } from './motion';

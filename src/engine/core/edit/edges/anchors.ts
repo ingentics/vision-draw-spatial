@@ -6,9 +6,9 @@ import {
   sideOfConstraint,
 } from '../../../edit/edgeEnds';
 import type { Anchor, EndAttachment, TerminalEnd } from '../../../edit/edgeEnds';
-import { pointsEditor } from '../../../edit/edgePoints';
+import { pointsEditor } from '../../../edit/edgePointEdits';
 import { squareEnd } from '../../../edit/squareEnd';
-import type { ConnectSide } from '../../../edit/handles';
+import type { ConnectSide } from '../../../edit/handleKinds';
 import { sideMiddle } from '../../../edit/anchoring/auto/distribute';
 import { loopWaypoints } from '../../../edit/loops';
 import type { EdgeModel, PageModel, Point, ShapeModel } from '../../../model/types';

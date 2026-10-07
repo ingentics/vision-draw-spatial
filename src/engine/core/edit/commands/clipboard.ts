@@ -1,5 +1,5 @@
-import { gridSizeOf } from '../../../format/edit';
-import { copyCells, pasteCells, readClipboardModel, stripCellKeys } from '../../../format/clipboard';
+import { gridSizeOf } from '../../../format/cellEdits';
+import { copyCells, pasteCells, readClipboardModel, stripCellKeys } from '../../../format/clipboardCells';
 import type { PageTree } from '../../../format/xmlTree';
 import type { PickedElement } from '../../../interaction/pick';
 import type { Point } from '../../../model/types';

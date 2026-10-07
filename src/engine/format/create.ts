@@ -1,5 +1,5 @@
 import type { Document, Element, Node } from '@xmldom/xmldom';
-import { formatNumber } from './edit';
+import { formatNumber } from './cellEdits';
 import { createEmptyDrawio, randomId } from './skeleton';
 import { childElements, markPageDirty, parseXml, readDiagram, reindexPage } from './xmlTree';
 import type { DrawioTree, PageTree } from './xmlTree';

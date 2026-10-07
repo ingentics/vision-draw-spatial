@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { routeAround } from '../../../../../src/engine/edit/anchoring/auto/orthogonal';
+import { routeAround } from '../../../../../src/engine/edit/anchoring/auto/routeAround';
 import { DEFAULT_AVOID_OPTIONS } from '../../../../../src/engine/edit/anchoring/routing';
 
 describe('routeAround', () => {

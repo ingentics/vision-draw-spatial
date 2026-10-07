@@ -1,6 +1,6 @@
-import { moveCell, moveEdgeCell, setEdgeTerminal } from '../../../format/edit';
+import { moveCell, moveEdgeCell, setEdgeTerminal } from '../../../format/cellEdits';
 import type { PageTree } from '../../../format/xmlTree';
-import { snapDelta, translateMoveSet } from '../../../edit/move';
+import { snapDelta, translateMoveSet } from '../../../edit/moveSet';
 import { clampMove } from '../../../edit/obstacles';
 import type { PageModel, Point } from '../../../model/types';
 import type { MoveDrag } from './types';

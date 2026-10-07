@@ -1,6 +1,6 @@
 import { Matrix4, Box3, Vector3 } from 'three';
 import { connectableShapes } from '../../edit/edgeEnds';
-import { pageToScreen, screenToPage } from '../../interaction/camera';
+import { pageToScreen, screenToPage } from '../../interaction/cameraMath';
 import { pickElement, distanceToPolyline } from '../../interaction/pick';
 import type { PickedElement } from '../../interaction/pick';
 import type { Footprint } from '../../interaction/marquee';

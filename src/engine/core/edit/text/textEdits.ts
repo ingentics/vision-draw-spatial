@@ -1,4 +1,4 @@
-import { cellLabelValue, setCellLabel, setCellRichLabel, setCellStyleValue } from '../../../format/edit';
+import { cellLabelValue, setCellLabel, setCellRichLabel, setCellStyleValue } from '../../../format/cellEdits';
 import type { EngineCore } from '../../EngineCore';
 
 /** Texte et format du texte d'un élément de la page courante. */

@@ -11,8 +11,8 @@ import {
   tiltFromElevation,
   withViewMode,
   zoomAt,
-} from '../../interaction/camera';
-import type { CameraLimits, CameraState, OverviewStep, ViewMode } from '../../interaction/camera';
+} from '../../interaction/cameraMath';
+import type { CameraLimits, CameraState, OverviewStep, ViewMode } from '../../interaction/cameraMath';
 import { unionOf } from '../../model/geometry';
 import type { Point, Rect } from '../../model/types';
 import type { Settings } from '../../settings';

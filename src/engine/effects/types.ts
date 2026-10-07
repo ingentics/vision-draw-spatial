@@ -1,5 +1,5 @@
 import type { Object3D } from 'three';
-import type { ViewMode } from '../interaction/camera';
+import type { ViewMode } from '../interaction/cameraMath';
 import type { PageModel, Point, Rect } from '../model/types';
 
 /**

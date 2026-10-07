@@ -1,5 +1,5 @@
-import type { CameraState } from '../interaction/camera';
-import type { HistoryEntry, LinkUsage } from '../interaction/history';
+import type { CameraState } from '../interaction/cameraMath';
+import type { HistoryEntry, LinkUsage } from '../interaction/navigationHistory';
 
 /**
  * Persistance des fichiers et de leur état de consultation (SPEC §5).

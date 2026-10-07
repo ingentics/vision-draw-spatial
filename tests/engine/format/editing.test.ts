@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { addEdgeCell, removeCellsDeep, setCellLink, setCellWrapperAttribute } from '../../../src/engine/format/create';
 import { commentOf } from '../../../src/engine/edit/comment';
-import { resizeCell, setCellLabel, textToHtml } from '../../../src/engine/format/edit';
+import { resizeCell, setCellLabel, textToHtml } from '../../../src/engine/format/cellEdits';
 import { readDrawio } from '../../../src/engine/format/parse';
 import { writeDrawio } from '../../../src/engine/format/write';
 import { fixture } from '../../helpers';

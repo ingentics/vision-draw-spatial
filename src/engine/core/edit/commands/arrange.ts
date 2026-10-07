@@ -1,9 +1,9 @@
-import { canMoveCell, moveCell } from '../../../format/edit';
+import { canMoveCell, moveCell } from '../../../format/cellEdits';
 import { writeDrawio } from '../../../format/write';
-import { collectMoveSet, isLocked, moveTarget } from '../../../edit/move';
+import { collectMoveSet, isLocked, moveTarget } from '../../../edit/moveSet';
 import { alignDeltas, distributeDeltas } from '../../../edit/align';
 import type { AlignItem, AlignMove, AlignReference, DistributeMove } from '../../../edit/align';
-import { independentRoots } from '../../../interaction/selection';
+import { independentRoots } from '../../../interaction/selectionRules';
 import type { Point } from '../../../model/types';
 import { reorderCells } from '../../../format/order';
 import type { OrderMove } from '../../../format/order';

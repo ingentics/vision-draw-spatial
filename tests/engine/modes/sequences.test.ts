@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { definition as forest } from '../../../src/engine/effects/forest';
 import { documentFromTree, readDrawio } from '../../../src/engine/format/parse';
 import type { PageModel } from '../../../src/engine/model/types';
-import { applyModeEdit } from '../../../src/engine/modes/edit';
+import { applyModeEdit } from '../../../src/engine/modes/modeEdits';
 import { createDefaultModeRegistry } from '../../../src/engine/modes/registry';
 import { definition as sequences } from '../../../src/engine/modes/sequences';
 import { FLOW, FLOW_COLORS, STEP, readFlows } from '../../../src/engine/modes/sequences/flows';

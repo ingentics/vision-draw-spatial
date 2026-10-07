@@ -31,17 +31,20 @@
 
 ## 3. Architecture (SPEC §4)
 
-Couches, dépendances descendantes uniquement :
+Couches, dépendances descendantes uniquement. L'UI React (`src/react` = composant, `src/app` = appli de démo)
+n'importe du moteur que `src/engine/index.ts`. Chaque dossier du moteur, en une ligne :
 
-```
-UI React (src/react = composant, src/app = appli de démo : palette, panneaux, onglets)
-Interaction   src/engine/interaction  caméra, contrôles, sélection, pick, transitions, historique, mini-carte
-Édition       src/engine/edit         déplacement, poignées, bouts/points de flèche, styles, palette, undo, autosave
-Rendu         src/engine/render       registre de formes, scènes Three.js par page et par niveau (flat/iso/volume)
-Modèle neutre src/engine/model        DocumentModel, PageModel, ShapeModel, EdgeModel, LinkModel (aucune notion draw.io)
-Format        src/engine/format       decode, parse (XML→modèle), style, xmlTree, edit/write (écriture in situ)
-Persistance   src/engine/persistence  FileStore : MemoryStore, IndexedDbStore, FsStore (Electron)
-```
+| Dossier de `src/engine` | Rôle | Nature |
+|---|---|---|
+| `Engine.ts`, `core/` | façade publique ; un dossier de `core/` par domaine (document, vue, sélection, édition…) | avec état |
+| `interaction/` | caméra, transitions, historique, sélection, pick (calculs) ; contrôles du canvas et mini-carte (DOM) | pur, sauf `controls/` et la mini-carte |
+| `edit/` | règles d'édition : déplacement, poignées, bouts et points de flèche, styles, palette, ancrage | pur |
+| `modes/`, `effects/` | modes et effets de page, en plugins (un dossier chacun) | pur |
+| `render/`, `shapes/`, `graph/` | formes en plugins, scènes Three.js par page et par niveau, vue graphe | pur (objets Three.js) |
+| `settings/` | paramètres : types, défauts, bornes, fusion | pur |
+| `model/` | modèle neutre (aucune notion draw.io), géométrie, lecture du style | pur, sans Three.js |
+| `format/` | decode, parse (XML → modèle), style, xmlTree, cellEdits / write (écriture in situ) | pur, sans Three.js |
+| `persistence/` | FileStore : MemoryStore, IndexedDbStore, FsStore (Electron) ; Autosaver | avec état |
 
 Règles :
 - **Moteur sans React** (`src/engine/Engine.ts` = façade publique, événements dans `events.ts`). React ne fait que monter
@@ -74,7 +77,7 @@ Règles :
   glisser-déposer, déplacement, redimensionnement, texte riche édité en place, panneau contextuel (Page / Forme /
   Flèche / N formes / Texte : styles draw.io, bordure, volume), pages ajoutées/renommées/supprimées, liens, sauvegarde
   et autosave.
-- **Paramètres** (SPEC §13, `engine/settings.ts`) : tout le ressenti UX est réglable, persisté, appliqué à chaud.
+- **Paramètres** (SPEC §13, `engine/settings/index.ts`) : tout le ressenti UX est réglable, persisté, appliqué à chaud.
 - **Attributs spatiaux** (SPEC §14.3, `engine/spatial.ts`) : préfixe `spatial.` dans le style ou sur
   `<object>/<UserObject>` (`spatial.height`, `elevation`, `tag`, `nodes`, `noLinkBadge`) ; `spatial.view` sur
   `<diagram>` = état de vue par page. Survivent à une sauvegarde dans draw.io (vérifié par `make drawio-check`).
@@ -84,11 +87,11 @@ Règles :
 | Sujet | Lire d'abord |
 |---|---|
 | Nouvelle forme draw.io | `docs/AJOUTER_UNE_FORME.md` (parcours complet : style → kind → registre → rendus 2D/iso/3D/mini-carte, clic, flèches, diagnostics, palette, fixture) ; exemple récent : `render/shapes/rhombus.ts`, `render/geometry/orient.ts` ; sujets `todo/33…41` comme modèles de rédaction |
-| Comportement d'édition | SPEC §14, `src/engine/edit/`, `src/engine/format/edit.ts` |
-| Rendu / caméra / vues | SPEC §8–9, `render/pageScene.ts`, `render/sceneManager.ts`, `interaction/camera.ts` |
+| Comportement d'édition | SPEC §14, `src/engine/edit/`, `src/engine/format/cellEdits.ts` |
+| Rendu / caméra / vues | SPEC §8–9, `render/pageScene.ts`, `render/sceneManager.ts`, `interaction/cameraMath.ts` |
 | UI de l'appli de démo | `src/app/` (`App.tsx`, `Palette.tsx`, `ContextPanel.tsx`, `SettingsPanel.tsx`, `DiagnosticsPanel.tsx`, `main.css`) |
 | API du composant | `docs/COMPOSANT.md`, `src/react/DrawioSpatial.tsx`, `src/index.ts` |
-| Paramètre nouveau | SPEC §13, `engine/settings.ts`, `tests/settings.test.ts`, `src/app/SettingsPanel.tsx` |
+| Paramètre nouveau | SPEC §13, `engine/settings/index.ts`, `tests/settings.test.ts`, `src/app/SettingsPanel.tsx` |
 | Fichier draw.io / compat | SPEC §7, §14.2, §15 ; fixtures `tests/fixtures/*.drawio`, sorties draw.io versionnées dans `tests/fixtures/drawio-saved/` |
 
 ## 6. Backlog : comment écrire une spec ici

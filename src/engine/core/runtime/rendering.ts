@@ -1,6 +1,6 @@
 import { Color, OrthographicCamera, PerspectiveCamera, Scene, WebGLRenderer } from 'three';
-import { gridSizeOf } from '../../format/edit';
-import { applyCameraState, applyPerspectiveState } from '../../interaction/camera';
+import { gridSizeOf } from '../../format/cellEdits';
+import { applyCameraState, applyPerspectiveState } from '../../interaction/cameraMath';
 import type { Grid, GridOptions } from '../../render/grid';
 import { orientBillboards } from '../../render/billboard';
 import type { PageScene } from '../../render/pageScene';
@@ -19,7 +19,7 @@ export class Rendering {
   private frame = 0;
 
   constructor(private readonly core: EngineCore) {
-    // Stencil : trous du voile de sélection autour des flèches (render/highlight).
+    // Stencil : trous du voile de sélection autour des flèches (render/veil).
     this.renderer = new WebGLRenderer({ canvas: core.canvas, antialias: true, stencil: true });
     this.scene.background = new Color(core.settings.background.color);
     this.grid = createGrid(this.gridOptions());

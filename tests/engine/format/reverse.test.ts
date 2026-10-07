@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { reverseEdgeCell } from '../../../src/engine/format/edit';
+import { reverseEdgeCell } from '../../../src/engine/format/cellEdits';
 import { readDrawio } from '../../../src/engine/format/parse';
 import { writeDrawio } from '../../../src/engine/format/write';
 

@@ -1,4 +1,4 @@
-import { isModifierKeyEvent } from '../selection';
+import { isModifierKeyEvent } from '../selectionRules';
 import type { ControlContext } from './context';
 import type { Drift } from './drift';
 import type { HeldKeys } from './host';

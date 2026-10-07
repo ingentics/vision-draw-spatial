@@ -6,7 +6,7 @@ import { intersection, number } from '../util';
 
 /**
  * Contour d'un périmètre polygonal de draw.io (fermé : le premier point est répété à la fin), dans `bounds`, ou
- * `undefined` pour les autres périmètres. Sert aussi à surligner le périmètre (`render/handles.ts`).
+ * `undefined` pour les autres périmètres. Sert aussi à surligner le périmètre (`render/handleMeshes.ts`).
  */
 export function perimeterPolygon(
   kind: PerimeterKind,

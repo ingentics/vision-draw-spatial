@@ -10,7 +10,7 @@ import {
 } from '../../../src/engine/edit/edgeLabels';
 import { labelPoint, placementAt, positionAlong } from '../../../src/engine/render/edges/polyline';
 import { addEdgeLabelCell } from '../../../src/engine/format/create';
-import { setCellLabel, setLabelPlacement } from '../../../src/engine/format/edit';
+import { setCellLabel, setLabelPlacement } from '../../../src/engine/format/cellEdits';
 import { readDrawio } from '../../../src/engine/format/parse';
 import type { EdgeModel } from '../../../src/engine/model/types';
 import { writeDrawio } from '../../../src/engine/format/write';

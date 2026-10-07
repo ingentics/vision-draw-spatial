@@ -1,4 +1,4 @@
-import { setLabelPlacement } from '../../../format/edit';
+import { setLabelPlacement } from '../../../format/cellEdits';
 import type { PageTree } from '../../../format/xmlTree';
 import { setEdgeTextPlacement } from '../../../edit/edgeLabels';
 import { length as polylineLength, placementAt } from '../../../render/edges/polyline';

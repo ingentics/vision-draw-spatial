@@ -1,6 +1,6 @@
 import { setLineResolution } from '../../render/lines';
-import { fitBounds } from '../../interaction/camera';
-import type { Viewport } from '../../interaction/camera';
+import { fitBounds } from '../../interaction/cameraMath';
+import type { Viewport } from '../../interaction/cameraMath';
 import type { Rect } from '../../model/types';
 import type { EngineCore } from '../EngineCore';
 

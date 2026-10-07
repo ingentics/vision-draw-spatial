@@ -1,4 +1,4 @@
-import type { StylePreset, TextPreset } from '../edit/styles';
+import type { StylePreset, TextPreset } from '../edit/stylePresets';
 import { SETTINGS_LIMITS } from './limits';
 
 /** Validateurs des réglages : une valeur invalide (mauvais type, hors liste) laisse la valeur précédente. */

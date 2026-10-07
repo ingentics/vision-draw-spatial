@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { distributeAnchors, sideMiddle } from '../../../../src/engine/edit/anchoring/auto/distribute';
 import type { AnchorSide } from '../../../../src/engine/edit/edgeEnds';
 import { avoidRoutes } from '../../../../src/engine/edit/anchoring/auto/avoid';
-import { segmentsOf } from '../../../../src/engine/edit/anchoring/auto/orthogonal';
+import { segmentsOf } from '../../../../src/engine/edit/anchoring/auto/routeAround';
 import { loopWaypoints } from '../../../../src/engine/edit/loops';
 import { readDrawio } from '../../../../src/engine/format/parse';
 import type { PageModel, Point, ShapeModel } from '../../../../src/engine/model/types';

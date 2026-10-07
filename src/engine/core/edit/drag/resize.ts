@@ -1,8 +1,8 @@
-import { resizeCell } from '../../../format/edit';
+import { resizeCell } from '../../../format/cellEdits';
 import type { PageTree } from '../../../format/xmlTree';
-import { translateMoveSet } from '../../../edit/move';
-import type { MoveSet } from '../../../edit/move';
-import { resizeBounds } from '../../../edit/handles';
+import { translateMoveSet } from '../../../edit/moveSet';
+import type { MoveSet } from '../../../edit/moveSet';
+import { resizeBounds } from '../../../edit/handleKinds';
 import { clampResize } from '../../../edit/obstacles';
 import { computeBounds } from '../../../model/bounds';
 import type { PageModel, Point, Rect } from '../../../model/types';

@@ -1,5 +1,5 @@
 import type { Object3D } from 'three';
-import type { MoveSet } from '../../../edit/move';
+import type { MoveSet } from '../../../edit/moveSet';
 import type { EdgeModel, PageModel, Point, ShapeModel } from '../../../model/types';
 import { disposeObject } from '../../../render/meshes';
 import { createEdgeObject, createShapeObject, edgeRoute, placeInDrawOrder } from '../../../render/pageScene';

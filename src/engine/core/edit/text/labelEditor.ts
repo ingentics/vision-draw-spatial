@@ -1,9 +1,9 @@
-import { cellLabelValue } from '../../../format/edit';
+import { cellLabelValue } from '../../../format/cellEdits';
 import { edgeTextLayout, endLabelOf, flipTarget } from '../../../edit/edgeLabels';
 import type { EdgeEnd } from '../../../edit/edgeLabels';
 import { labelPoint } from '../../../render/edges/polyline';
-import { dragGround, revealShift, screenToPage } from '../../../interaction/camera';
-import type { CameraState } from '../../../interaction/camera';
+import { dragGround, revealShift, screenToPage } from '../../../interaction/cameraMath';
+import type { CameraState } from '../../../interaction/cameraMath';
 import type { Point, Rect, ShapeModel } from '../../../model/types';
 import { insetRect, labelMargins } from '../../../render/labelPosition';
 import type { SceneLevel } from '../../../shapes/types';

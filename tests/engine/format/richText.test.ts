@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { isRich, parseColor, parseRichHtml, richToHtml, richToText } from '../../../src/engine/format/richText';
-import { htmlToText } from '../../../src/engine/format/label';
+import { htmlToText } from '../../../src/engine/format/labelText';
 import { parseDrawio } from '../../../src/engine/format/parse';
 
 describe('texte riche des labels HTML', () => {

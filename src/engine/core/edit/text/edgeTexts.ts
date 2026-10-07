@@ -4,7 +4,7 @@ import {
   setCellLabel,
   setCellRichLabel,
   setCellStyleValue,
-} from '../../../format/edit';
+} from '../../../format/cellEdits';
 import { addEdgeLabelCell, removeCells } from '../../../format/create';
 import { anchorOf, edgeTextLayout, edgeTexts, endLabelOf, flipTarget } from '../../../edit/edgeLabels';
 import type { EdgeTextLayout, EndTextGap, EdgeEnd } from '../../../edit/edgeLabels';

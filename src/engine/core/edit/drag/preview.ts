@@ -5,7 +5,7 @@ import type { EndAttachment } from '../../../edit/edgeEnds';
 import type { PageModel, Point } from '../../../model/types';
 import { perimeterKind } from '../../../render/edges/route';
 import { parseStyle } from '../../../format/style';
-import { connectionHints } from '../../../render/handles';
+import { connectionHints } from '../../../render/handleMeshes';
 import { disposeObject, strokeMesh } from '../../../render/meshes';
 import type { Segment } from '../../../edit/obstacles';
 import type { AnchorSkip, TakenAnchor } from '../edges/anchors';

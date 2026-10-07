@@ -1,6 +1,6 @@
-import { gridSizeOf } from '../../../format/edit';
+import { gridSizeOf } from '../../../format/cellEdits';
 import type { PageTree } from '../../../format/xmlTree';
-import { dragPoints } from '../../../edit/edgePoints';
+import { dragPoints } from '../../../edit/edgePointEdits';
 import type { PageModel, Point } from '../../../model/types';
 import type { EdgePointsDrag } from './types';
 import { samePoints } from '../helpers';

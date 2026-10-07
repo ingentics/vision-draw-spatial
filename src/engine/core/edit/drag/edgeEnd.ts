@@ -1,4 +1,4 @@
-import { gridSizeOf } from '../../../format/edit';
+import { gridSizeOf } from '../../../format/cellEdits';
 import type { PageTree } from '../../../format/xmlTree';
 import {
   applyEndAttachment,

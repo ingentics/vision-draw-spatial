@@ -1,11 +1,11 @@
 import { PALETTE_CATEGORIES, SHAPE_TEMPLATES } from '../edit/palette';
 import type { PageModePalette } from '../edit/palette';
 import type { PageEffectDefinition } from '../effects/types';
-import type { ViewMode } from '../interaction/camera';
+import type { ViewMode } from '../interaction/cameraMath';
 import type { DocumentModel, ParseWarning, PageModel } from '../model/types';
 import type { PaletteCategory, ShapeDefinition, ShapeTemplate } from '../shapes/types';
 import { SPATIAL } from '../spatial';
-import { MODE_SHAPE_DEFINITIONS } from './shapes';
+import { MODE_SHAPE_DEFINITIONS } from './modeShapes';
 import type { ModeProperty, PageDressing, PageModeDefinition } from './types';
 
 /** Modes d'affichage, dans l'ordre des boutons. */

@@ -6,7 +6,7 @@ import { endAttachmentOf, sideOfConstraint } from '../../edgeEnds';
 import { DEFAULT_AVOID_OPTIONS, out } from '../routing';
 import type { AvoidOptions, Port, Router, Segment } from '../routing';
 import { seededUnit } from '../seed';
-import { ORTHOGONAL_ROUTER } from './orthogonal';
+import { ORTHOGONAL_ROUTER } from './routeAround';
 
 /**
  * Tracé automatique des flèches en ancrage automatique et Typon (SPEC §14.1) : si possible, le tracé contourne les

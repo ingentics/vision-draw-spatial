@@ -1,4 +1,4 @@
-import type { FollowLinkGesture, FollowLinkKey, MultiSelectKey } from '../selection';
+import type { FollowLinkGesture, FollowLinkKey, MultiSelectKey } from '../selectionRules';
 import { DEFAULT_SHORTCUTS } from './shortcuts';
 import type { Shortcuts } from './shortcuts';
 

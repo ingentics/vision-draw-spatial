@@ -2,7 +2,7 @@ import type { Point, Rect } from '../../../../model/types';
 import type { PerimeterKind, Terminal } from '../types';
 import { number } from '../util';
 import { perimeterPolygon, polygonPerimeter } from './polygons';
-import { ellipsePerimeter, rectanglePerimeter, rhombusPerimeter, trianglePerimeter } from './shapes';
+import { ellipsePerimeter, rectanglePerimeter, rhombusPerimeter, trianglePerimeter } from './shapePerimeters';
 import { center } from '../../../../model/geometry';
 
 /** Périmètres des formes (`mxPerimeter`) : choix du périmètre et point du contour visé depuis un point voisin. */

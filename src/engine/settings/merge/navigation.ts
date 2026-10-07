@@ -1,5 +1,5 @@
 import type { ControlSettings } from '../../interaction/controls';
-import { FOLLOW_LINK_GESTURES, FOLLOW_LINK_KEYS, MULTI_SELECT_KEYS } from '../../interaction/selection';
+import { FOLLOW_LINK_GESTURES, FOLLOW_LINK_KEYS, MULTI_SELECT_KEYS } from '../../interaction/selectionRules';
 import type { AccessibilitySettings, PreloadSettings, SettingsPatch, TransitionSettings } from '../types';
 import { bool, code, num, oneOf } from '../validate';
 

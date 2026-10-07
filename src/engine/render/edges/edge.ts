@@ -57,7 +57,7 @@ export function createEdge(
     style,
   });
   const route = simplify(points);
-  // Tracé conservé pour placer les textes ; tracé brut pour les poignées des segments (edit/edgePoints) ;
+  // Tracé conservé pour placer les textes ; tracé brut pour les poignées des segments (edit/edgePointEdits) ;
   // trait dessiné (coudes arrondis, courbe) pour la sélection au clic (interaction/pick) et le voile.
   group.userData.route = route;
   group.userData.points = points;

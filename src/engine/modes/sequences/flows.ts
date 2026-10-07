@@ -1,4 +1,4 @@
-import { DRAWIO_STYLES, PASTEL_STYLES } from '../../edit/styles';
+import { DRAWIO_STYLES, PASTEL_STYLES } from '../../edit/stylePresets';
 import { modePalette } from '../../settings';
 import type { PageModel } from '../../model/types';
 

@@ -1,6 +1,6 @@
 import type { AlignReference } from '../edit/align';
 import type { Anchoring } from '../edit/anchoring/mode';
-import type { StylePreset, TextPreset } from '../edit/styles';
+import type { StylePreset, TextPreset } from '../edit/stylePresets';
 import type { ControlSettings, Shortcuts } from '../interaction/controls';
 
 /** Types des paramètres (SPEC §13), section par section. */

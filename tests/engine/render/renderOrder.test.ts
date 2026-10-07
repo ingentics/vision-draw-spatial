@@ -1,6 +1,6 @@
 import { Object3D } from 'three';
 import { describe, expect, it } from 'vitest';
-import { liftAboveVeil } from '../../../src/engine/render/highlight';
+import { liftAboveVeil } from '../../../src/engine/render/veil';
 import { followRenderOrder } from '../../../src/engine/render/renderOrder';
 
 describe('fond des labels', () => {

@@ -1,12 +1,12 @@
-import { setEdgePoints } from '../../../format/edit';
+import { setEdgePoints } from '../../../format/cellEdits';
 import { addEdgeCell } from '../../../format/create';
 import { documentFromTree } from '../../../format/parse';
 import type { PageTree } from '../../../format/xmlTree';
 import { constraintStyle } from '../../../edit/edgeEnds';
-import { CONNECT_DIRECTIONS } from '../../../edit/handles';
+import { CONNECT_DIRECTIONS } from '../../../edit/handleKinds';
 import type { PageModel, Point } from '../../../model/types';
-import { connectorPreview } from '../../../render/handles';
-import { applyModeEdit } from '../../../modes/edit';
+import { connectorPreview } from '../../../render/handleMeshes';
+import { applyModeEdit } from '../../../modes/modeEdits';
 import { modePalette } from '../../../settings';
 import type { ConnectDrag } from './types';
 import { samePoints, withStyleValue } from '../helpers';

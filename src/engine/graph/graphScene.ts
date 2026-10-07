@@ -1,4 +1,4 @@
-import { embedIn } from '../interaction/transitions';
+import { embedIn } from '../interaction/transitionMath';
 import type { DocumentModel, PageModel } from '../model/types';
 import { buildPageScene } from '../render/pageScene';
 import type { PageScene } from '../render/pageScene';

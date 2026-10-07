@@ -1,7 +1,7 @@
 import type { EdgeEndsSnapshot, EndAttachment, TerminalEnd } from '../../../edit/edgeEnds';
-import type { PointHandle, PointsContext } from '../../../edit/edgePoints';
-import type { MoveSet } from '../../../edit/move';
-import type { ConnectSide, ResizeHandle } from '../../../edit/handles';
+import type { PointHandle, PointsContext } from '../../../edit/edgePointEdits';
+import type { MoveSet } from '../../../edit/moveSet';
+import type { ConnectSide, ResizeHandle } from '../../../edit/handleKinds';
 import type { EdgeLabelPlacement, Point, Rect } from '../../../model/types';
 
 /** Glisser d'édition en cours (SPEC §14.1). */

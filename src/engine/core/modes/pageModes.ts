@@ -1,9 +1,9 @@
-import { setPageAttribute } from '../../format/edit';
+import { setPageAttribute } from '../../format/cellEdits';
 import { documentFromTree } from '../../format/parse';
 import { writeDrawio } from '../../format/write';
 import type { DocumentModel, PageModel, Rect, ShapeModel } from '../../model/types';
 import { setElementsDim } from '../../render/pageEffects';
-import { applyModeEdit } from '../../modes/edit';
+import { applyModeEdit } from '../../modes/modeEdits';
 import { pageEffectIds, withPageEffect } from '../../effects/registry';
 import type { ModeScope, PageModeRegistry } from '../../modes/registry';
 import type { ModeEdit, ModeTarget } from '../../modes/types';

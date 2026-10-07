@@ -11,8 +11,8 @@ import {
   titleId,
 } from '../../../src/engine/graph/graphPage';
 import { buildGraphScene } from '../../../src/engine/graph/graphScene';
-import { embedIn } from '../../../src/engine/interaction/transitions';
-import { buildNavigationGraph } from '../../../src/engine/model/graph';
+import { embedIn } from '../../../src/engine/interaction/transitionMath';
+import { buildNavigationGraph } from '../../../src/engine/model/navigationGraph';
 import { createDefaultRegistry } from '../../../src/engine/shapes/registry';
 import { fixture } from '../../helpers';
 

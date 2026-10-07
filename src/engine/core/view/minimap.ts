@@ -1,4 +1,4 @@
-import { Minimap } from '../../interaction/minimap';
+import { Minimap } from '../../interaction/minimapLayout';
 import type { Point } from '../../model/types';
 import type { EngineCore } from '../EngineCore';
 import type { Settings } from '../../settings';

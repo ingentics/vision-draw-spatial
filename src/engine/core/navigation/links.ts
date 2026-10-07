@@ -1,10 +1,10 @@
 import { Group, Mesh } from 'three';
 import type { MeshBasicMaterial } from 'three';
 import { isNavigableLink } from '../../format/link';
-import { fitBounds } from '../../interaction/camera';
-import { usageKey } from '../../interaction/history';
-import type { LinkUsage } from '../../interaction/history';
-import { FOLLOW_LINK_KEY_LABELS, followLinkGesture } from '../../interaction/selection';
+import { fitBounds } from '../../interaction/cameraMath';
+import { usageKey } from '../../interaction/navigationHistory';
+import type { LinkUsage } from '../../interaction/navigationHistory';
+import { FOLLOW_LINK_KEY_LABELS, followLinkGesture } from '../../interaction/selectionRules';
 import type { LinkModel } from '../../model/types';
 import { linkZone } from '../../render/decorations';
 import { disposeObject } from '../../render/meshes';

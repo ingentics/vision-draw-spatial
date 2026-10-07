@@ -1,5 +1,5 @@
 import type { Point } from '../model/types';
-import { formatNumber } from './edit';
+import { formatNumber } from './cellEdits';
 import type { DrawioTree } from './xmlTree';
 import { DEFAULT_DEPTH, LEGACY_DEFAULT_DEPTH } from '../spatial';
 

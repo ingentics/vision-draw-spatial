@@ -1,6 +1,6 @@
 import type { PickedElement } from '../../interaction/pick';
 import { marqueeTakes } from '../../interaction/marquee';
-import { toggleSelected } from '../../interaction/selection';
+import { toggleSelected } from '../../interaction/selectionRules';
 import type { PageModel, Rect } from '../../model/types';
 import type { Selection } from '../types';
 import type { EngineCore } from '../EngineCore';

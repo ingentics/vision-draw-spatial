@@ -1,4 +1,4 @@
-import { setCellStyleValue, setPageAttribute } from '../../../format/edit';
+import { setCellStyleValue, setPageAttribute } from '../../../format/cellEdits';
 import { documentFromTree } from '../../../format/parse';
 import type { PageTree } from '../../../format/xmlTree';
 import { constraintStyle } from '../../../edit/edgeEnds';
@@ -7,8 +7,8 @@ import {
   arrangementChanges,
   arrangementConflicts,
   straightStyle,
-} from '../../../edit/anchoring/auto/arrange';
-import type { Arrangement } from '../../../edit/anchoring/auto/arrange';
+} from '../../../edit/anchoring/auto/anchorArrangement';
+import type { Arrangement } from '../../../edit/anchoring/auto/anchorArrangement';
 import type { AvoidOptions, Router } from '../../../edit/anchoring/routing';
 import { tracingOf } from '../../../edit/anchoring/tracing';
 import { nextPlacementVariant } from '../../../edit/anchoring/manual/variants';

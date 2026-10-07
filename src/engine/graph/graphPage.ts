@@ -1,5 +1,5 @@
-import { buildNavigationGraph } from '../model/graph';
-import type { GraphNode, NavigationGraph } from '../model/graph';
+import { buildNavigationGraph } from '../model/navigationGraph';
+import type { GraphNode, NavigationGraph } from '../model/navigationGraph';
 import type { DocumentModel, EdgeModel, PageModel, Point, Rect, ShapeModel } from '../model/types';
 
 /**

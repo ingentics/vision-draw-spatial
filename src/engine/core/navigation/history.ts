@@ -1,7 +1,7 @@
-import { fitBounds } from '../../interaction/camera';
-import type { CameraState } from '../../interaction/camera';
-import { NavigationHistory, findParents } from '../../interaction/history';
-import type { HistoryEntry } from '../../interaction/history';
+import { fitBounds } from '../../interaction/cameraMath';
+import type { CameraState } from '../../interaction/cameraMath';
+import { NavigationHistory, findParents } from '../../interaction/navigationHistory';
+import type { HistoryEntry } from '../../interaction/navigationHistory';
 import type { Rect } from '../../model/types';
 import type { BackTarget, InitialView } from '../types';
 import type { EngineCore } from '../EngineCore';

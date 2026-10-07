@@ -4,8 +4,8 @@ import { outsideLabelBox } from '../render/labelPosition';
 import type { RenderContext } from '../render/types';
 import { placeholderShape } from './placeholder';
 import type { MinimapPainter, SceneLevel, SceneRenderer, ShapeDefinition, ShapeProperty, ShapeTemplate } from './types';
-import { outlinePainter } from './minimap';
-import { MODE_SHAPE_DEFINITIONS } from '../modes/shapes';
+import { outlinePainter } from './minimapOutline';
+import { MODE_SHAPE_DEFINITIONS } from '../modes/modeShapes';
 import { insidePolygon } from '../model/geometry';
 import { styleFlag } from '../model/styleValues';
 

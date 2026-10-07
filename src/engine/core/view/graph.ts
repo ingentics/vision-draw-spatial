@@ -1,4 +1,4 @@
-import { fitBounds } from '../../interaction/camera';
+import { fitBounds } from '../../interaction/cameraMath';
 import { buildGraphPage, cardId, GRAPH_PAGE_ID } from '../../graph/graphPage';
 import type { GraphLayout } from '../../graph/graphPage';
 import type { PageModel } from '../../model/types';

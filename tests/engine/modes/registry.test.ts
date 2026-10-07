@@ -6,7 +6,7 @@ import type { PageModeDefinition } from '../../../src/engine/modes/types';
 import { buildPageScene } from '../../../src/engine/render/pageScene';
 import { Object3D } from 'three';
 import { createDefaultRegistry, ShapeRegistry } from '../../../src/engine/shapes/registry';
-import { MODE_SHAPE_DEFINITIONS, shapesByMode } from '../../../src/engine/modes/shapes';
+import { MODE_SHAPE_DEFINITIONS, shapesByMode } from '../../../src/engine/modes/modeShapes';
 import type { ShapeDefinition } from '../../../src/engine/shapes/types';
 import { PALETTE_CATEGORIES } from '../../../src/engine/edit/palette';
 import { SPATIAL } from '../../../src/engine/spatial';

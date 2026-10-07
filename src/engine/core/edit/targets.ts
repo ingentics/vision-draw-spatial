@@ -1,6 +1,6 @@
-import { canMoveCell } from '../../format/edit';
+import { canMoveCell } from '../../format/cellEdits';
 import type { DrawioTree, PageTree } from '../../format/xmlTree';
-import { isLocked } from '../../edit/move';
+import { isLocked } from '../../edit/moveSet';
 import type { EdgeModel, PageModel, ShapeModel } from '../../model/types';
 import type { EngineCore } from '../EngineCore';
 

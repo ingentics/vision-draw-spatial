@@ -1,6 +1,6 @@
-import { interpolateCamera } from '../../interaction/camera';
-import type { CameraState } from '../../interaction/camera';
-import { easing, embedIn, embeddedCamera, phase } from '../../interaction/transitions';
+import { interpolateCamera } from '../../interaction/cameraMath';
+import type { CameraState } from '../../interaction/cameraMath';
+import { easing, embedIn, embeddedCamera, phase } from '../../interaction/transitionMath';
 import type { PageModel, Rect } from '../../model/types';
 import { setPageOpacity } from '../../render/pageEffects';
 import { setPageTransform } from '../../render/space';

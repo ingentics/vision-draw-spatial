@@ -1,7 +1,7 @@
-import { reverseEdgeCell, setCellStyleValue } from '../../../format/edit';
+import { reverseEdgeCell, setCellStyleValue } from '../../../format/cellEdits';
 import { writeDrawio } from '../../../format/write';
-import { applyStylePreset } from '../../../edit/styles';
-import type { StylePreset } from '../../../edit/styles';
+import { applyStylePreset } from '../../../edit/stylePresets';
+import type { StylePreset } from '../../../edit/stylePresets';
 import type { EngineCore } from '../../EngineCore';
 import { SPATIAL } from '../../../spatial';
 

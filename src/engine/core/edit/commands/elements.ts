@@ -1,12 +1,12 @@
-import { gridSizeOf } from '../../../format/edit';
+import { gridSizeOf } from '../../../format/cellEdits';
 import { addShapeCell, removeCellsDeep } from '../../../format/create';
 import { reorderCells } from '../../../format/order';
 import { documentFromTree } from '../../../format/parse';
 import { dropBounds } from '../../../edit/palette';
 import type { ShapeTemplate } from '../../../edit/palette';
-import { screenToPage } from '../../../interaction/camera';
+import { screenToPage } from '../../../interaction/cameraMath';
 import type { Point } from '../../../model/types';
-import { applyModeEdit } from '../../../modes/edit';
+import { applyModeEdit } from '../../../modes/modeEdits';
 import { modePalette } from '../../../settings';
 import { withStyleValue } from '../helpers';
 import type { EngineCore } from '../../EngineCore';

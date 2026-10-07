@@ -1,5 +1,5 @@
-import { DRAWIO_STYLES, PASTEL_STYLES, TEXT_STYLES } from '../edit/styles';
-import { ISOMETRIC_ELEVATION_DEG } from '../interaction/camera';
+import { DRAWIO_STYLES, PASTEL_STYLES, TEXT_STYLES } from '../edit/stylePresets';
+import { ISOMETRIC_ELEVATION_DEG } from '../interaction/cameraMath';
 import { DEFAULT_CONTROLS } from '../interaction/controls';
 import { DEFAULT_DEPTH } from '../spatial';
 import type { Settings } from './types';
