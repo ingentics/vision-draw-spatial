@@ -3,12 +3,15 @@ import { dropBounds, PALETTE_CATEGORIES, searchTemplates } from '../../../../src
 import { resolveShapeKind, parseStyle } from '../../../../src/engine/core/format/style';
 import type { ShapeModel } from '../../../../src/engine/core/model/types';
 import {
-  SHAPE_TEMPLATES,
+  createDefaultModeRegistry,
   createDefaultRegistry,
-  defaultModeRegistry,
-  defaultShapeRegistry,
+  SHAPE_TEMPLATES,
   usedTemplates,
 } from '../../../../src/engine/plugins';
+
+/** Registres par défaut, construits pour ces tests (sujet 304 : plus de registres partagés). */
+const defaultShapeRegistry = createDefaultRegistry();
+const defaultModeRegistry = createDefaultModeRegistry();
 
 /** Nom de forme d'un style, comme à la lecture : `spatial.kind`, sinon deviné du style draw.io. */
 function kindOf(style: string): string {

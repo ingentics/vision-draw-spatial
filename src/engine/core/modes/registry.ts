@@ -2,13 +2,13 @@ import { PALETTE_CATEGORIES } from '../edit/palette';
 import type { PageModePalette } from '../edit/palette';
 import type { PageEffectDefinition } from '../effects/types';
 import type { ViewMode } from '../interaction/cameraMath';
-import type { DocumentModel, ParseWarning, PageModel } from '../model/types';
+import type { PageModel } from '../model/types';
 import { pluginValues, readPluginSetting } from '../settings/pluginSettings';
 import type { PluginSettings, PluginValues } from '../settings/pluginSettings';
 import type { PaletteCategory, ShapeDefinition, ShapeTemplate } from '../shapes/types';
 import { SPATIAL } from '../spatial';
 import { legacyKey, modeKey, NAMESPACE_PATTERN } from './modeKeys';
-import type { ModeProperty, PageDressing, PageModeDefinition } from './types';
+import type { ModeProperty, PageModeDefinition } from './types';
 import { freezePlain } from '../model/freeze';
 
 /** Modes d'affichage, dans l'ordre des boutons. */
@@ -17,10 +17,29 @@ const VIEW_MODES: ViewMode[] = ['top', 'iso', '3d'];
 /** Portée d'un réglage déclaré : la page, une flèche, une forme. */
 export type ModeScope = 'page' | 'edge' | 'shape';
 
+/** Ce que l'appli voit d'un mode (sujet 304) : sa déclaration, sans ses points d'entrée. */
+export type ModeInfo = Readonly<
+  Pick<PageModeDefinition, 'id' | 'name' | 'shortName' | 'description' | 'icon' | 'settings'> & {
+    /** Mise en valeur de la sélection imposée sur une page du mode (`page.selectionStyle`). */
+    selectionStyle?: 'veil' | 'outline';
+  }
+>;
+
+/** Ce que l'appli voit du registre des modes (sujet 304). */
+export interface ModeRegistryView {
+  list(): ModeInfo[];
+  get(id: string): ModeInfo | undefined;
+  modeId(page: PageModel): string | undefined;
+  modeOf(page: PageModel): ModeInfo | undefined;
+  allowsViewMode(page: PageModel, mode: ViewMode): boolean;
+  values(modeId: string, stored: Record<string, unknown> | undefined): PluginValues;
+}
+
 /**
  * Registre des modes de page (sujet 69) : ajouter un mode = déposer son dossier `plugins/modes/<id>/` ; la racine de
  * composition (`plugins/index.ts`) l'enregistre.
- * Le moteur et l'appli ne posent leurs questions qu'à lui : mode d'une page, habillage, réglages, incohérences.
+ * Le moteur ne pose ses questions qu'à lui : mode d'une page, réglages, palette ; l'appli n'en voit qu'une vue en
+ * lecture seule (`view`). Les points d'entrée des modes ne sont appelés que par leur hôte (`core/domains/modes/`).
  */
 export class PageModeRegistry {
   private readonly definitions = new Map<string, PageModeDefinition>();
@@ -28,17 +47,23 @@ export class PageModeRegistry {
   private readonly shapeIds = new Map<string, string[]>();
 
   /**
-   * Un mode de même `id` déjà enregistré est remplacé. `shapes` : ses formes propres (enregistrées à part dans le
-   * registre des formes, qui les dessine sur toute page). Un espace de noms invalide, ou déjà pris par un autre mode,
-   * lève une exception (sujet 301).
+   * `shapes` : ses formes propres (enregistrées à part dans le registre des formes, qui les dessine sur toute page).
+   * Lèvent une exception : un id déjà pris (sujet 304), un espace de noms invalide ou déjà pris (sujet 301), une forme
+   * du mode dont l'id n'est pas préfixé par celui du mode, ou qui déclare `kinds` ou `matches` : elle ne capte pas les
+   * noms draw.io des autres formes (sujet 304).
    */
   register(definition: PageModeDefinition, shapes: ShapeDefinition[] = []): this {
+    if (this.definitions.has(definition.id)) throw new Error(`Mode ${definition.id} : id déjà pris`);
+    for (const shape of shapes) {
+      if (!shape.id.startsWith(`${definition.id}-`))
+        throw new Error(`Mode ${definition.id} : forme ${shape.id} non préfixée par « ${definition.id}- »`);
+      if (shape.kinds || shape.matches)
+        throw new Error(`Mode ${definition.id} : forme ${shape.id} avec kinds ou matches`);
+    }
     // `typeof` d'abord : `test(undefined)` lit la chaîne « undefined », qui passerait.
     if (typeof definition.namespace !== 'string' || !NAMESPACE_PATTERN.test(definition.namespace))
       throw new Error(`Mode ${definition.id} : espace de noms invalide « ${definition.namespace} »`);
-    const owner = [...this.definitions.values()].find(
-      (mode) => mode.namespace === definition.namespace && mode.id !== definition.id,
-    );
+    const owner = [...this.definitions.values()].find((mode) => mode.namespace === definition.namespace);
     if (owner)
       throw new Error(`Mode ${definition.id} : espace de noms « ${definition.namespace} » déjà pris par ${owner.id}`);
     // Gelée (sujet 303) : un plugin ne modifie pas la définition d'un autre.
@@ -48,6 +73,37 @@ export class PageModeRegistry {
       shapes.map((shape) => shape.id),
     );
     return this;
+  }
+
+  /**
+   * Vue en lecture seule pour l'appli (sujet 304) : déclaration des modes, mode d'une page, modes d'affichage permis,
+   * valeurs des réglages ; jamais les points d'entrée des modes, appelés par le moteur seul.
+   */
+  view(): ModeRegistryView {
+    const info = (mode: PageModeDefinition): ModeInfo =>
+      Object.freeze({
+        id: mode.id,
+        name: mode.name,
+        shortName: mode.shortName,
+        description: mode.description,
+        icon: mode.icon,
+        settings: mode.settings,
+        selectionStyle: mode.page?.selectionStyle,
+      });
+    return {
+      list: () => this.list().map(info),
+      get: (id) => {
+        const mode = this.get(id);
+        return mode && info(mode);
+      },
+      modeId: (page) => this.modeId(page),
+      modeOf: (page) => {
+        const mode = this.modeOf(page);
+        return mode && info(mode);
+      },
+      allowsViewMode: (page, mode) => this.allowsViewMode(page, mode),
+      values: (modeId, stored) => this.values(modeId, stored),
+    };
   }
 
   /** Modes enregistrés, par nom. */
@@ -68,12 +124,6 @@ export class PageModeRegistry {
   modeOf(page: PageModel): PageModeDefinition | undefined {
     const id = this.modeId(page);
     return id === undefined ? undefined : this.definitions.get(id);
-  }
-
-  /** Habillage du rendu de la page par son mode (rien pour une page normale) ; `settings` : réglages des modes. */
-  dressing(page: PageModel, settings?: PluginSettings): PageDressing | undefined {
-    const mode = this.modeOf(page);
-    return mode?.dressing?.(page, this.values(mode.id, settings?.[mode.id]));
   }
 
   /**
@@ -104,15 +154,6 @@ export class PageModeRegistry {
       }
     }
     return result;
-  }
-
-  /**
-   * L'effet est-il actif sur la page ? Son mode le permet (sujet 143 ; oui pour une page normale ou un mode qui ne dit
-   * rien) et permet l'un des modes d'affichage de l'effet (sujet 196).
-   */
-  allowsEffect(page: PageModel, effect: Pick<PageEffectDefinition, 'id' | 'viewModes'>): boolean {
-    if (!(this.modeOf(page)?.page?.allowsEffect?.(effect.id) ?? true)) return false;
-    return this.effectViewable(page, effect);
   }
 
   /** L'effet existe-t-il dans l'un des modes d'affichage permis sur la page (sujet 196) ? */
@@ -179,16 +220,5 @@ export class PageModeRegistry {
         ...(mode.legacyKeys?.includes(name) ? [legacyKey(name)] : []),
       ]),
     );
-  }
-
-  /** Avertissements des pages en mode (mode inconnu, données remises en ordre), pour le panneau Diagnostics. */
-  warnings(document: DocumentModel): ParseWarning[] {
-    return document.pages.flatMap((page) => {
-      const id = this.modeId(page);
-      if (id === undefined) return [];
-      const mode = this.definitions.get(id);
-      if (!mode) return [{ pageId: page.id, message: `Mode de page inconnu : ${id}` }];
-      return (mode.lifecycle?.check?.(page) ?? []).map((issue) => ({ pageId: page.id, ...issue }));
-    });
   }
 }

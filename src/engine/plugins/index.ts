@@ -3,6 +3,7 @@ import type { PageEffectDefinition } from '../core/effects/types';
 import { usedTemplatesIn } from '../core/edit/palette';
 import type { ShapeTemplate } from '../core/edit/palette';
 import type { PageModel } from '../core/model/types';
+import type { PluginSettings } from '../core/settings/pluginSettings';
 import { shapesByMode } from '../core/modes/modeShapes';
 import { PageModeRegistry } from '../core/modes/registry';
 import type { PageModeDefinition } from '../core/modes/types';
@@ -68,15 +69,24 @@ export function createDefaultEffectRegistry(): PageEffectRegistry {
   return registry;
 }
 
-/** Registres par défaut, partagés par l'appli et le moteur quand on ne lui en donne pas. */
-export const defaultShapeRegistry = createDefaultRegistry();
-export const defaultModeRegistry = createDefaultModeRegistry();
-export const defaultEffectRegistry = createDefaultEffectRegistry();
+/**
+ * Registre des formes de la racine, pour les seules données ci-dessous (modèles de la palette) : jamais donné à un
+ * moteur, qui construit les siens (sujet 304).
+ */
+const templatesRegistry = createDefaultRegistry();
 
 /** Modèles de toutes les formes (y compris celles des modes), dans l'ordre d'affichage de la palette. */
-export const SHAPE_TEMPLATES: ShapeTemplate[] = defaultShapeRegistry.templates();
+export const SHAPE_TEMPLATES: ShapeTemplate[] = templatesRegistry.templates();
 
-/** Modèles des formes présentes sur la page, d'après le registre par défaut (`usedTemplatesIn`). */
+/** Modèles des formes présentes sur la page, d'après les formes par défaut (`usedTemplatesIn`). */
 export function usedTemplates(page: Pick<PageModel, 'shapes'> | undefined): ShapeTemplate[] {
-  return usedTemplatesIn(page, defaultShapeRegistry);
+  return usedTemplatesIn(page, templatesRegistry);
+}
+
+/**
+ * Réglages des modes par défaut repris des anciennes clés de la section `shapes` (ticket 283), pour la migration des
+ * paramètres enregistrés, qui tourne avant la création d'un moteur.
+ */
+export function legacyModeSettings(shapes: Record<string, unknown> | undefined): PluginSettings {
+  return createDefaultModeRegistry().legacySettings(shapes);
 }

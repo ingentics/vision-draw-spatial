@@ -11,7 +11,10 @@ import {
 import { parseDrawio } from '../../../../src/engine/core/format/parse';
 import type { PageModel } from '../../../../src/engine/core/model/types';
 import { fixture } from '../../../helpers';
-import { defaultShapeRegistry } from '../../../../src/engine/plugins';
+import { createDefaultRegistry } from '../../../../src/engine/plugins';
+
+/** Registres par défaut, construits pour ces tests (sujet 304 : plus de registres partagés). */
+const defaultShapeRegistry = createDefaultRegistry();
 
 const shape = (page: PageModel, id: string) => page.shapes.find((s) => s.id === id)!;
 

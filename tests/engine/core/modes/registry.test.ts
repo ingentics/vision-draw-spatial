@@ -11,6 +11,8 @@ import type { ShapeDefinition } from '../../../../src/engine/core/shapes/types';
 import { PALETTE_CATEGORIES } from '../../../../src/engine/core/edit/palette';
 import { SPATIAL } from '../../../../src/engine/core/spatial';
 import { MODE_SHAPE_DEFINITIONS, PAGE_MODE_DEFINITIONS, createDefaultRegistry } from '../../../../src/engine/plugins';
+import { modeHost } from '../../modeHost';
+import { PageEffectRegistry } from '../../../../src/engine/core/effects/registry';
 
 /**
  * Dossiers des modes : `plugins/modes/<id>/index.ts` (moteur) et `app/plugins/modes/<id>/index.tsx` (sections React,
@@ -68,7 +70,13 @@ describe('modes de page en plugins (sujet 69)', () => {
     </root></mxGraphModel></diagram></mxfile>`;
     const model = readDrawio(xml).document.pages[0]!;
     const ctx = { text: { create: () => new Object3D() } };
-    const root = buildPageScene(model, createDefaultRegistry(), ctx, 'flat', registry.dressing(model)).root;
+    const root = buildPageScene(
+      model,
+      createDefaultRegistry(),
+      ctx,
+      'flat',
+      modeHost(registry).host.dressing(model),
+    ).root;
     expect(root.getObjectByName('edge-badge')).toBeDefined();
   });
 
@@ -78,10 +86,54 @@ describe('modes de page en plugins (sujet 69)', () => {
     expect(() => registry.register({ id: 'c', namespace: 'Mauvais.ns', name: 'C' })).toThrow('invalide');
     // Mode écrit sans espace de noms (hors du typage) : refusé lui aussi.
     expect(() => registry.register({ id: 'c', name: 'C' } as unknown as PageModeDefinition)).toThrow('invalide');
-    // Le même mode réenregistré (remplacé) garde son espace de noms.
-    expect(() => registry.register({ id: 'a', namespace: 'ns', name: 'A2' })).not.toThrow();
+
     registry.register({ id: 'd', namespace: 'old', name: 'D', legacyKeys: ['flow'], pasteKeys: ['flow', 'step'] });
     expect(registry.pasteKeys()).toEqual(['spatial.old.flow', 'spatial.flow', 'spatial.old.step']);
+  });
+
+  it('ids uniques et formes d’un mode (sujet 304) : id pris, forme non préfixée ou avec kinds / matches, refusés', () => {
+    const registry = new PageModeRegistry().register({ id: 'a', namespace: 'a', name: 'A' });
+    expect(() => registry.register({ id: 'a', namespace: 'autre', name: 'A2' })).toThrow('Mode a : id déjà pris');
+    const shape = (definition: Partial<ShapeDefinition>) => ({
+      id: 'b-box',
+      flat: { create: () => new Object3D() },
+      ...definition,
+    });
+    expect(() => registry.register({ id: 'b', namespace: 'b', name: 'B' }, [shape({ id: 'box' })])).toThrow(
+      'non préfixée',
+    );
+    expect(() =>
+      registry.register({ id: 'c', namespace: 'c', name: 'C' }, [shape({ id: 'c-box', kinds: ['rect'] })]),
+    ).toThrow('kinds ou matches');
+    expect(() =>
+      registry.register({ id: 'd', namespace: 'd', name: 'D' }, [shape({ id: 'd-box', matches: () => true })]),
+    ).toThrow('kinds ou matches');
+    expect(() => registry.register({ id: 'e', namespace: 'e', name: 'E' }, [shape({ id: 'e-box' })])).not.toThrow();
+    // Formes et effets : un id pris est refusé aussi.
+    expect(() => createDefaultRegistry().register(shape({ id: 'rectangle' }))).toThrow(
+      'Forme rectangle : id déjà pris',
+    );
+    expect(() => new PageEffectRegistry().register({ id: 'x', name: 'X' }).register({ id: 'x', name: 'Y' })).toThrow(
+      'Effet x : id déjà pris',
+    );
+  });
+
+  it('vue pour l’appli (sujet 304) : la déclaration des modes, jamais leurs points d’entrée', () => {
+    const registry = new PageModeRegistry().register({
+      id: 'v',
+      namespace: 'v',
+      name: 'V',
+      page: { selectionStyle: 'outline', viewModes: ['top'] },
+      dressing: () => ({}),
+      lifecycle: { check: () => [] },
+    });
+    const view = registry.view();
+    const info = view.modeOf(page({ [SPATIAL.mode]: 'v' }))!;
+    expect(info).toEqual({ id: 'v', name: 'V', selectionStyle: 'outline' });
+    expect(Object.isFrozen(info)).toBe(true);
+    expect(view).not.toHaveProperty('register');
+    expect(view.allowsViewMode(page({ [SPATIAL.mode]: 'v' }), 'iso')).toBe(false);
+    expect(view.list().map((mode) => mode.id)).toEqual(['v']);
   });
 
   it('attributs de la page lus de <diagram> (spatial.* seulement), vides sans <diagram>', () => {
@@ -209,6 +261,8 @@ describe('réglages déclarés par un mode (ticket 283)', () => {
       ...mode,
       dressing: (_page, values) => ({ edgeDarken: values.gap as number }),
     });
-    expect(dressed.dressing(page({ [SPATIAL.mode]: 'reglages' }), { reglages: { gap: 7 } })?.edgeDarken).toBe(7);
+    expect(
+      modeHost(dressed, { reglages: { gap: 7 } }).host.dressing(page({ [SPATIAL.mode]: 'reglages' }))?.edgeDarken,
+    ).toBe(7);
   });
 });

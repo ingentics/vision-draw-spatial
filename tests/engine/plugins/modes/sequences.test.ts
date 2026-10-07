@@ -26,6 +26,7 @@ import { fixture } from '../../../helpers';
 import { createDefaultModeRegistry, createDefaultRegistry } from '../../../../src/engine/plugins';
 import { SEQUENCES_KEYS } from '../../../../src/engine/plugins/modes/sequences/flows';
 import { keys } from '../../../../src/engine/plugins/modes/sequences/flows';
+import { modeHost } from '../../modeHost';
 
 /** Page `index` de la fixture, et une fonction qui applique une opération puis relit la page. */
 function setup(index = 0) {
@@ -217,7 +218,13 @@ describe('mode Séquences : réglages déclarés et habillage', () => {
       },
     };
     const modes = createDefaultModeRegistry();
-    const root = buildPageScene(page(), createDefaultRegistry(), ctx, 'flat', modes.dressing(page())).root;
+    const root = buildPageScene(
+      page(),
+      createDefaultRegistry(),
+      ctx,
+      'flat',
+      modeHost(modes).host.dressing(page()),
+    ).root;
     const object = (id: string) => root.children.find((child) => child.userData.elementId === id)!;
     const strokeHex = (o: Object3D) =>
       ((o.children.find((c) => c instanceof Mesh) as Mesh).material as MeshBasicMaterial).color.getHexString();
@@ -298,7 +305,7 @@ describe('pastille : paramètres de la pastille (sujet 77)', () => {
         },
       },
     };
-    const dressing = createDefaultModeRegistry().dressing(page(), {
+    const dressing = modeHost(createDefaultModeRegistry(), {
       sequences: {
         badgeRadius: 20,
         badgeTextSize: 18,
@@ -312,7 +319,7 @@ describe('pastille : paramètres de la pastille (sujet 77)', () => {
         badgeLabelFaceCamera: false,
         edgeDarken: 0,
       },
-    });
+    }).host.dressing(page());
     const root = buildPageScene(page(), createDefaultRegistry(), ctx, 'flat', dressing).root;
     const login = root.children.find((child) => child.userData.elementId === 'login')!;
     const digit = texts.find((spec) => spec.text === '1')!;
@@ -330,9 +337,9 @@ describe('pastille et texte face à la caméra (sujet 105)', () => {
     const ctx: RenderContext = {
       text: { create: (spec) => new Object3D().translateX(spec.x).translateY(spec.y) },
     };
-    const dressing = createDefaultModeRegistry().dressing(page(), {
+    const dressing = modeHost(createDefaultModeRegistry(), {
       sequences: { badgeFaceCamera: faceCamera, badgeLabelFaceCamera: labelFaceCamera },
-    });
+    }).host.dressing(page());
     const root = buildPageScene(page(), createDefaultRegistry(), ctx, 'flat', dressing).root;
     return root.children.find((child) => child.userData.elementId === 'login')!;
   };
@@ -358,7 +365,7 @@ describe('pastille et texte face à la caméra (sujet 105)', () => {
 describe('modes de page (sujet 69) : avertissements', () => {
   it('mode inconnu et données remises en ordre, rattachés à leur page', () => {
     const { document } = readDrawio(fixture('sequences.drawio'));
-    const warnings = createDefaultModeRegistry().warnings(document);
+    const warnings = modeHost().warnings(document);
     expect(warnings.map((w) => [w.pageId, w.cellId])).toEqual([
       ['desordre', 'perdu'],
       ['desordre', undefined],
@@ -383,8 +390,9 @@ describe('mode Séquences : vues (sujet 193)', () => {
     const registry = createDefaultModeRegistry();
     const page = (attributes: Record<string, string>) =>
       ({ id: 'p', name: 'P', layers: [], shapes: [], edges: [], attributes }) as unknown as PageModel;
-    expect(registry.allowsEffect(page({ 'spatial.mode': 'sequences' }), forest)).toBe(false);
-    expect(registry.allowsEffect(page({}), forest)).toBe(true);
-    expect(registry.allowsEffect(page({ 'spatial.mode': 'sequences' }), { id: 'x', viewModes: ['top'] })).toBe(true);
+    const { host } = modeHost(registry);
+    expect(host.allowsEffect(page({ 'spatial.mode': 'sequences' }), forest)).toBe(false);
+    expect(host.allowsEffect(page({}), forest)).toBe(true);
+    expect(host.allowsEffect(page({ 'spatial.mode': 'sequences' }), { id: 'x', viewModes: ['top'] })).toBe(true);
   });
 });

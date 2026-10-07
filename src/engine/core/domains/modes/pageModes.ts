@@ -10,7 +10,7 @@ import { applyModeEdit } from '../../modes/modeEdits';
 import { migrateLegacyKeys, modeKeys } from '../../modes/modeKeys';
 import { pageEffectIds, withPageEffect } from '../../effects/registry';
 import type { PageEffectDefinition } from '../../effects/types';
-import type { ModeScope, PageModeRegistry } from '../../modes/registry';
+import type { ModeScope } from '../../modes/registry';
 import type {
   ModeEdit,
   ModeEditContext,
@@ -30,10 +30,6 @@ import type { EngineCore } from '../EngineCore';
  */
 export class PageModes {
   constructor(private readonly core: EngineCore) {}
-
-  getModeRegistry(): PageModeRegistry {
-    return this.core.modes;
-  }
 
   /**
    * Appel protégé d'un point d'entrée du mode `mode` (sujet 288) : sa valeur, ou `fallback` (le point d'appel traité
@@ -82,9 +78,8 @@ export class PageModes {
   dressing(page: PageModel): PageDressing | undefined {
     const mode = this.core.modes.modeOf(page);
     if (!mode?.dressing) return undefined;
-    const dressing = this.guard(mode, 'dressing', undefined, () =>
-      this.core.modes.dressing(page, this.core.settings.modes),
-    );
+    const values = this.core.modes.values(mode.id, this.core.settings.modes[mode.id]);
+    const dressing = this.guard(mode, 'dressing', undefined, () => mode.dressing!(page, values));
     if (!dressing) return undefined;
     const { edgeColor, edgeBadge } = dressing;
     return {
@@ -424,12 +419,16 @@ export class PageModes {
    */
   withModeWarnings(document: DocumentModel): DocumentModel {
     for (const page of document.pages) {
-      const mode = this.core.modes.modeOf(page);
-      const single = { ...document, pages: [page] };
-      const warnings = mode
-        ? this.guard(mode, 'lifecycle.check', [], () => this.core.modes.warnings(single))
-        : this.core.modes.warnings(single);
-      document.warnings.push(...warnings);
+      const id = this.core.modes.modeId(page);
+      if (id === undefined) continue;
+      const mode = this.core.modes.get(id);
+      if (!mode) {
+        document.warnings.push({ pageId: page.id, message: `Mode de page inconnu : ${id}` });
+        continue;
+      }
+      const lifecycle = mode.lifecycle;
+      const issues = lifecycle?.check ? this.guard(mode, 'lifecycle.check', [], () => lifecycle.check!(page)) : [];
+      document.warnings.push(...issues.map((issue) => ({ pageId: page.id, ...issue })));
     }
     document.warnings.push(...this.core.effects.warnings(document), ...this.core.pluginGuard.warnings());
     return document;

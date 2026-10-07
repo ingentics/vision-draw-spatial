@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import type { PageEffectDefinition } from '../../../src/engine/core/effects/types';
 import {
+  createDefaultEffectRegistry,
+  createDefaultRegistry,
   PAGE_EFFECT_DEFINITIONS,
   SHAPE_DEFINITIONS,
-  createDefaultEffectRegistry,
-  defaultShapeRegistry,
 } from '../../../src/engine/plugins';
+
+/** Registres par défaut, construits pour ces tests (sujet 304 : plus de registres partagés). */
+const defaultShapeRegistry = createDefaultRegistry();
 
 /** Dossiers des effets : `plugins/effects/<id>/index.ts`. */
 const EFFECTS = Object.entries(

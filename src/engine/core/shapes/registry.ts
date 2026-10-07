@@ -15,6 +15,14 @@ import { freezePlain } from '../model/freeze';
 /** Erreur levée par une forme (`hook` : point d'entrée, ex. `flat.create`), pour les Diagnostics. */
 export type ShapeErrorHandler = (shapeId: string, hook: string, error: unknown) => void;
 
+/** Ce que l'appli voit du registre des formes (sujet 304). */
+export interface ShapeRegistryView {
+  properties(shape: ShapeModel): ShapeProperty[];
+  swatch(shape: ShapeModel): string;
+  templates(): ShapeTemplate[];
+  templateOf(shape: ShapeModel): ShapeTemplate | undefined;
+}
+
 export interface ResolvedShape {
   definition: ShapeDefinition;
   /** Faux si aucune définition ne correspond : c'est le placeholder qui dessine. */
@@ -53,11 +61,23 @@ export class ShapeRegistry {
     }
   }
 
-  /** La dernière définition enregistrée est prioritaire (permet de surcharger une forme existante). */
+  /** Un id déjà pris lève une exception (sujet 304) : une forme ne remplace pas une autre en silence. */
   register(definition: ShapeDefinition): this {
+    if (this.definitions.some((other) => other.id === definition.id))
+      throw new Error(`Forme ${definition.id} : id déjà pris`);
     // Gelée (sujet 303) : un plugin ne modifie pas la définition d'un autre.
     this.definitions.push(freezePlain(definition));
     return this;
+  }
+
+  /** Vue en lecture seule pour l'appli (sujet 304) : réglages, aperçus et modèles des formes, sans leurs fonctions. */
+  view(): ShapeRegistryView {
+    return {
+      properties: (shape) => this.properties(shape),
+      swatch: (shape) => this.swatch(shape),
+      templates: () => this.templates(),
+      templateOf: (shape) => this.templateOf(shape),
+    };
   }
 
   /**

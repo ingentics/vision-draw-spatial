@@ -1,4 +1,4 @@
-import { DEFAULT_DEPTH, DEFAULT_SETTINGS, defaultModeRegistry, LEGACY_DEFAULT_DEPTH, mergeSettings } from '../engine';
+import { DEFAULT_DEPTH, DEFAULT_SETTINGS, legacyModeSettings, LEGACY_DEFAULT_DEPTH, mergeSettings } from '../engine';
 import type { Settings, SettingsPatch } from '../engine';
 
 /**
@@ -55,7 +55,7 @@ export function migrate(stored: SettingsPatch & { version?: number }): SettingsP
   if (version < 4 && stored.selection?.speed === LEGACY_SELECTION_SPEED)
     next = { ...next, selection: { ...next.selection, speed: DEFAULT_SETTINGS.selection.speed } };
   if (version < 5) {
-    const modes = defaultModeRegistry.legacySettings(stored.shapes as Record<string, unknown> | undefined);
+    const modes = legacyModeSettings(stored.shapes as Record<string, unknown> | undefined);
     if (Object.keys(modes).length > 0) next = { ...next, modes: { ...modes, ...next.modes } };
   }
   return next;

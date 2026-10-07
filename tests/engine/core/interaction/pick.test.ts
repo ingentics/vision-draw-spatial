@@ -4,7 +4,10 @@ import { distanceToPolyline, pickElement, shapeContains } from '../../../../src/
 import { insidePolygon } from '../../../../src/engine/core/model/geometry';
 import type { ShapeModel } from '../../../../src/engine/core/model/types';
 import { fixture } from '../../../helpers';
-import { defaultShapeRegistry } from '../../../../src/engine/plugins';
+import { createDefaultRegistry } from '../../../../src/engine/plugins';
+
+/** Registres par défaut, construits pour ces tests (sujet 304 : plus de registres partagés). */
+const defaultShapeRegistry = createDefaultRegistry();
 
 const options = (routes: Record<string, { x: number; y: number }[]> = {}) => ({
   edgeTolerance: 4,

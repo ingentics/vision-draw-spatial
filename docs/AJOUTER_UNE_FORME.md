@@ -164,8 +164,11 @@ vérifie que l'`id` est le nom du dossier et que la catégorie de palette est ce
   Gardez `matches` rapide : elle est appelée pour chaque forme, à chaque construction de scène.
 - Une forme enregistrée sort **automatiquement** du rapport « non supportées »
   ([diagnostics/unsupportedStyles.ts](../src/engine/core/diagnostics/unsupportedStyles.ts) appelle `registry.resolve`).
-- `EngineOptions.registry` permet de passer un autre registre au moteur ; l'appli (palette, panneau) utilise
-  `defaultShapeRegistry`, construit par la racine de composition (`plugins/index.ts`). `ShapeRegistry` n'est **pas exporté** par l'API publique ([src/index.ts](../src/index.ts)) :
+- `EngineOptions.registry` permet de passer un autre registre au moteur ; sinon, chaque moteur construit le sien
+  (`createDefaultRegistry`, racine de composition `plugins/index.ts`). L'appli (palette, panneau) n'en voit qu'une
+  vue en lecture seule (`engine.getShapeRegistry()`, sujet 304). Un id déjà pris est refusé à l'enregistrement : une
+  forme ne remplace pas une autre. Une forme d'un mode a un id préfixé par celui du mode et ne déclare ni `kinds` ni
+  `matches`. `ShapeRegistry` n'est **pas exporté** par l'API publique ([src/index.ts](../src/index.ts)) :
   une forme s'ajoute dans le moteur lui-même, pas depuis une application cliente.
 
 ### Le contour (`outline`)

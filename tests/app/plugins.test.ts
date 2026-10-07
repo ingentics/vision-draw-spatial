@@ -5,12 +5,11 @@ import { describe, expect, it } from 'vitest';
 
 /**
  * Registres injectables de bout en bout (sujet 290) : l'appli prend les registres du moteur affiché
- * (`PluginsContext`), jamais ceux par défaut ; seule exception, la reprise des anciens réglages
- * (`settingsStore.ts`), qui tourne avant la création du moteur.
+ * (`PluginsContext`), jamais ceux par défaut ; seule exception, la reprise des anciens réglages des modes
+ * (`legacyModeSettings`, dans `settingsStore.ts`), qui tourne avant la création du moteur.
  */
 const APP = resolve(dirname(fileURLToPath(import.meta.url)), '../../src/app');
-const DEFAULTS =
-  /(?<!\.)\b(defaultShapeRegistry|defaultModeRegistry|defaultEffectRegistry|SHAPE_TEMPLATES|usedTemplates)\b/;
+const DEFAULTS = /(?<!\.)\b(legacyModeSettings|SHAPE_TEMPLATES|usedTemplates)\b/;
 
 function filesOf(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {

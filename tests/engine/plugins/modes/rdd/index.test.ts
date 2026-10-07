@@ -7,6 +7,7 @@ import type { PageModel } from '../../../../../src/engine/core/model/types';
 import { fixture } from '../../../../helpers';
 import { isSecondary } from '../../../../../src/engine/plugins/modes/rdd/tables/tableLayout';
 import { cardinalitiesShown } from '../../../../../src/engine/plugins/modes/rdd/relations';
+import { modeHost } from '../../../modeHost';
 
 describe('mode RDD (sujet 179) : page et palette', () => {
   const modes = createDefaultModeRegistry();
@@ -85,7 +86,7 @@ describe('mode RDD (sujet 179) : page et palette', () => {
     expect(labels(tableFields(shape('role')))).toEqual(['id', 'admin', 'member']);
     expect(labels(tableFields(shape('orphan')))).toEqual(['id', 'name']);
     expect(tableFields(shape('orphan'))[0]!.kind).toBe('pk');
-    expect(modes.warnings({ pages: [page()] } as never)).toEqual([
+    expect(modeHost(modes).warnings({ pages: [page()] })).toEqual([
       {
         pageId: 'rdd',
         cellId: 'orphan',

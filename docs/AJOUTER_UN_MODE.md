@@ -152,7 +152,8 @@ définition (`settings`, rangés dans `plugins/modes/<id>/settings.ts`), du mêm
 (`PluginSetting`, sujet 287) : nombre borné (`unit` `px`, `ms`
 ou `%`, `zero` : libellé de 0), case à cocher ou couleur, avec leur défaut, un groupe (`group`, `groupHint`) et une aide
 (`hint`). L'appli les affiche dans une sous-page du mode (Paramètres › Modes, titre `shortName` sinon `name`) et les
-enregistre dans `settings.modes[id][key]` ; le registre les borne (`defaultModeRegistry.values`). Le moteur ne les lit
+enregistre dans `settings.modes[id][key]` ; le registre les borne (`values`, aussi dans la vue que l'appli reçoit,
+`engine.getModeRegistry()` : déclaration des modes seulement, jamais leurs points d'entrée, sujet 304). Le moteur ne les lit
 jamais : il passe les valeurs (`values`) aux mécanismes du mode (`gestures.obstacles`, `dressing`, `current.look`), qui lui
 rendent ce qu'il applique (écart, apparence des pastilles, opacité…). `legacy` : ancienne clé de la section `shapes`,
 reprise une fois par la migration des paramètres enregistrés.

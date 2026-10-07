@@ -5,7 +5,7 @@ import type { Anchoring } from './core/edit/anchoring/mode';
 import type { EdgeEnd } from './core/edit/edgeLabels';
 import { usedTemplatesIn } from './core/edit/palette';
 import type { PageModePalette, ShapeTemplate } from './core/edit/palette';
-import type { PageEffectRegistry } from './core/effects/registry';
+import type { EffectRegistryView } from './core/effects/registry';
 import type { StylePreset } from './core/edit/stylePresets';
 import type { OrderMove } from './core/format/order';
 import type { DrawioTree } from './core/format/xmlTree';
@@ -13,15 +13,15 @@ import type { CameraState, ViewMode } from './core/interaction/cameraMath';
 import type { HistoryEntry, LinkUsage } from './core/interaction/navigationHistory';
 import type { PickedElement } from './core/interaction/pick';
 import type { DocumentModel, LinkModel, PageModel, Point, Rect } from './core/model/types';
-import type { ModeScope, PageModeRegistry } from './core/modes/registry';
-import type { ShapeRegistry } from './core/shapes/registry';
+import type { ModeRegistryView, ModeScope } from './core/modes/registry';
+import type { ShapeRegistryView } from './core/shapes/registry';
 import type { ModeEdit, ModeTarget } from './core/modes/types';
 import type { JumpDefaults } from './core/render/edges/jumps';
 import type { PageScene } from './core/render/pageScene';
 import type { EngineMetrics } from './core/domains/runtime/metrics';
 import type { Settings, SettingsPatch } from './core/settings';
 import { EngineCore } from './core/domains/EngineCore';
-import { defaultEffectRegistry, defaultModeRegistry, defaultShapeRegistry } from './plugins';
+import { createDefaultEffectRegistry, createDefaultModeRegistry, createDefaultRegistry } from './plugins';
 import type {
   BackTarget,
   EdgeTextAnchor,
@@ -60,12 +60,13 @@ export class Engine {
   private readonly core: EngineCore;
 
   constructor(options: EngineOptions) {
-    // Registres des plugins : ceux donnés, sinon ceux construits par la racine de composition (sujet 286).
+    // Registres des plugins : ceux donnés, sinon ceux construits par la racine de composition (sujet 286), propres à
+    // ce moteur (sujet 304).
     this.core = new EngineCore({
       ...options,
-      registry: options.registry ?? defaultShapeRegistry,
-      modes: options.modes ?? defaultModeRegistry,
-      effects: options.effects ?? defaultEffectRegistry,
+      registry: options.registry ?? createDefaultRegistry(),
+      modes: options.modes ?? createDefaultModeRegistry(),
+      effects: options.effects ?? createDefaultEffectRegistry(),
     });
   }
 
@@ -469,19 +470,19 @@ export class Engine {
   // -------------------------------------------------------------------------
   // Modes et effets de page (sujets 69, 143)
 
-  /** Registre des modes de page du moteur (choix du mode, réglages déclarés). */
-  getModeRegistry(): PageModeRegistry {
-    return this.core.pageModes.getModeRegistry();
+  /** Modes de page du moteur, en lecture seule (sujet 304) : choix du mode, réglages déclarés, modes d'affichage. */
+  getModeRegistry(): ModeRegistryView {
+    return this.core.modes.view();
   }
 
-  /** Registre des effets de page du moteur (sujet 290 : l'appli n'en suppose pas d'autre). */
-  getEffectRegistry(): PageEffectRegistry {
-    return this.core.effects;
+  /** Effets de page du moteur, en lecture seule (sujets 290, 304 : l'appli n'en suppose pas d'autre). */
+  getEffectRegistry(): EffectRegistryView {
+    return this.core.effects.view();
   }
 
-  /** Registre des formes du moteur (panneau, aperçus ; sujet 290). */
-  getShapeRegistry(): ShapeRegistry {
-    return this.core.registry;
+  /** Formes du moteur, en lecture seule (panneau, aperçus ; sujets 290, 304). */
+  getShapeRegistry(): ShapeRegistryView {
+    return this.core.registry.view();
   }
 
   /** Palette d'une page : catégories et modèles proposés, d'après son mode et les formes du moteur. */

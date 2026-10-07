@@ -482,9 +482,8 @@ function ShapeOwnSection({
 }) {
   const plugins = useEnginePlugins();
   if (!plugins.shapes.properties(shape).some((property) => property.section === 'shape')) return null;
-  const { definition } = plugins.shapes.resolve(shape);
   return (
-    <Section title={definition.palette?.name ?? 'Forme'}>
+    <Section title={plugins.shapes.templateOf(shape)?.name ?? 'Forme'}>
       <ShapePropertyFields shape={shape} section="shape" onStyle={onShapeStyle} onSpatial={onSpatial} />
     </Section>
   );

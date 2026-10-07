@@ -21,6 +21,16 @@ export function withPageEffect(page: PageModel, effectId: string, enabled: boole
   return ids.length > 0 ? ids.join(',') : undefined;
 }
 
+/** Ce que l'appli voit d'un effet (sujet 304) : sa déclaration, sans son décor. */
+export type EffectInfo = Readonly<Pick<PageEffectDefinition, 'id' | 'name' | 'description' | 'settings' | 'viewModes'>>;
+
+/** Ce que l'appli voit du registre des effets (sujet 304). */
+export interface EffectRegistryView {
+  list(): EffectInfo[];
+  get(id: string): EffectInfo | undefined;
+  values(effectId: string, stored: Record<string, unknown> | undefined): PluginValues;
+}
+
 /**
  * Registre des effets de page (sujet 143). Le moteur et l'appli ne posent leurs questions qu'à lui ; `allows` (le
  * mode de la page, maître) filtre les effets actifs.
@@ -28,11 +38,32 @@ export function withPageEffect(page: PageModel, effectId: string, enabled: boole
 export class PageEffectRegistry {
   private readonly definitions = new Map<string, PageEffectDefinition>();
 
-  /** Un effet de même `id` déjà enregistré est remplacé. */
+  /** Un id déjà pris lève une exception (sujet 304). */
   register(definition: PageEffectDefinition): this {
+    if (this.definitions.has(definition.id)) throw new Error(`Effet ${definition.id} : id déjà pris`);
     // Gelée (sujet 303) : un plugin ne modifie pas la définition d'un autre.
     this.definitions.set(definition.id, freezePlain(definition));
     return this;
+  }
+
+  /** Vue en lecture seule pour l'appli (sujet 304) : déclaration des effets et valeurs de leurs réglages. */
+  view(): EffectRegistryView {
+    const info = (effect: PageEffectDefinition): EffectInfo =>
+      Object.freeze({
+        id: effect.id,
+        name: effect.name,
+        description: effect.description,
+        settings: effect.settings,
+        viewModes: effect.viewModes,
+      });
+    return {
+      list: () => this.list().map(info),
+      get: (id) => {
+        const effect = this.get(id);
+        return effect && info(effect);
+      },
+      values: (id, stored) => this.values(id, stored),
+    };
   }
 
   /** Effets enregistrés, par nom. */

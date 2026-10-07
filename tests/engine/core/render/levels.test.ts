@@ -53,7 +53,8 @@ describe('effectiveLevel : une scène par niveau seulement si utile', () => {
   });
 
   it('iso dès qu’une forme visible a un rendu iso', () => {
-    const registry = createDefaultRegistry().register(isoRectangle);
+    // Le rectangle seul, avec un rendu iso (une forme ne remplace plus une autre : sujet 304).
+    const registry = new ShapeRegistry().register(isoRectangle);
     expect(effectiveLevel(page, registry, 'iso')).toBe('iso');
     expect(effectiveLevel(page, registry, 'volume')).toBe('flat');
   });
