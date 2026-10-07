@@ -516,7 +516,8 @@ describe('mode RDD : ajouter un champ (sujet 250)', () => {
     ]);
     expect(rdd.handles!(page(), shape('accounts'))).toEqual([]);
     expect(createDefaultRegistry().connectSides(shape('user'))).toEqual(['e', 'w']);
-    expect(createDefaultRegistry().connectSides(shape('accounts'))).toEqual(['n', 'e', 's', 'w']);
+    // Une région n'a pas de flèche (sujet 265).
+    expect(createDefaultRegistry().connectSides(shape('accounts'))).toEqual([]);
   });
 
   it('clic : Field1, Field2, Field3 sans type (256) et optionnels (261), en fin de liste ; la table grandit ; la partie ajoutée est rendue', () => {

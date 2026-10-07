@@ -31,7 +31,37 @@ describe('buildMarker', () => {
 
   it('none : rien ; inconnu : flèche classique', () => {
     expect(buildMarker('none', tip, right, 6, 1, true)).toBeUndefined();
-    expect(buildMarker('ERmandOne', tip, right, 6, 1, true)?.fill).toHaveLength(4);
+    expect(buildMarker('doubleBlock', tip, right, 6, 1, true)?.fill).toHaveLength(4);
+  });
+
+  it('cardinalités ER (sujet 265) : barres et patte d’oie sur la ligne, cercle au-delà, ligne arrêtée avant lui', () => {
+    const one = buildMarker('ERmandOne', tip, right, 6, 1, true)!;
+    expect(one.strokes).toEqual([
+      {
+        points: [
+          { x: 96.5, y: 3.5 },
+          { x: 96.5, y: -3.5 },
+        ],
+        closed: false,
+      },
+      {
+        points: [
+          { x: 93, y: 3.5 },
+          { x: 93, y: -3.5 },
+        ],
+        closed: false,
+      },
+    ]);
+    expect(one.inset).toBe(0);
+    const many = buildMarker('ERzeroToMany', tip, right, 6, 1, true)!;
+    expect(many.strokes?.[0]?.points).toEqual([
+      { x: 100, y: 3.5 },
+      { x: 93, y: 0 },
+      { x: 100, y: -3.5 },
+    ]);
+    expect(many.strokes?.[1]?.closed).toBe(true);
+    expect(many.inset).toBe(14);
+    expect(buildMarker('ERzeroToOne', tip, right, 6, 1, true)?.strokes).toHaveLength(2);
   });
 });
 

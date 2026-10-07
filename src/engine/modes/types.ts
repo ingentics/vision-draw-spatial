@@ -1,4 +1,5 @@
 import type { ViewMode } from '../interaction/cameraMath';
+import type { EdgeEnd, EndTextGap } from '../edit/edgeLabels';
 import type { EdgeModel, PageModel, Point, Rect, ShapeModel } from '../model/types';
 import type { PaletteCategory } from '../shapes/types';
 
@@ -34,6 +35,22 @@ export interface PageModeDefinition {
   current?: ModeCurrent;
   /** Flèche créée sur la page (tirée depuis une forme), dans la même étape d'annulation ; `current` : le courant. */
   edgeCreated?(edit: ModeEdit, edgeId: string, current: string | undefined): void;
+  /**
+   * Bout d'une flèche rebranché (poignée de son extrémité), déjà écrit ; remise en ordre dans la même étape d'annulation
+   * (ex. champ de relation RDD qui suit sa flèche, sujet 265).
+   */
+  edgeReconnected?(edit: ModeEdit, edgeId: string): void;
+  /**
+   * Flèche permise de `source` vers `target` (sujet 265, ex. liaisons des tables RDD) : le bout tiré ou rebranché ne
+   * s'accroche qu'aux formes permises ; absent = toutes. Une forme sans aucune flèche se déclare `connectable: false`.
+   */
+  connects?(page: PageModel, source: ShapeModel, target: ShapeModel): boolean;
+  /**
+   * Flèche gérée par le mode (sujet 265, ex. relation RDD et ses cardinalités) : dans le panneau, les réglages du mode
+   * en tête, texte du milieu et commentaire modifiables, le reste en lecture seule ; positions des textes et lien
+   * masqués.
+   */
+  managesEdge?(page: PageModel, edge: EdgeModel): boolean;
   /**
    * Formes proposées par la palette sur une page du mode (ids, générales ou du mode), dans l'ordre de la palette ;
    * absent = palette normale et formes du mode. Les formes déjà sur la page et le collage ne sont pas filtrés.
@@ -228,6 +245,14 @@ export type ModeTarget = PageModel | ShapeModel | EdgeModel;
  * Écritures d'une opération de mode sur la page courante, groupées en une étape d'annulation. `page` est l'état
  * avant l'opération (le modèle n'est relu qu'à la fin) ; une écriture identique à la valeur en place est ignorée.
  */
+/** Ce que l'appli fournit aux opérations de mode : couleurs proposées et textes de début / fin (paramètres). */
+export interface ModeEditContext {
+  /** Fonds des styles de forme des paramètres (`modePalette`) ; peut être vide. */
+  palette: readonly string[];
+  /** Textes de début / fin des flèches : taille, couleur, écarts au bout (paramètres `shapes.edgeEndText…`). */
+  endText: { size: number; color: string; gap: EndTextGap };
+}
+
 export interface ModeEdit {
   readonly page: PageModel;
   /** Couleurs proposées par l'appli (fonds des styles de forme des paramètres, `modePalette`) ; peut être vide. */
@@ -244,6 +269,19 @@ export interface ModeEdit {
   setShapeBounds(shapeId: string, bounds: Rect): void;
   /** Envoie ces formes au fond de l'ordre de dessin, dans cet ordre (la première tout au fond) (sujet 230). */
   sendToBack(shapeIds: readonly string[]): void;
+  /**
+   * Texte de début ou de fin d'une flèche (sujet 265, ex. cardinalité) : ajouté ou réécrit dans la configuration
+   * par défaut de l'appli (contre le bout, la flèche partant dans le sens `direction`, alignement qui l'éloigne de la
+   * forme ; taille et couleur des paramètres), ou retiré (undefined). `margin` s'ajoute aux écarts des paramètres
+   * (ex. place d'une pointe large).
+   */
+  setEdgeEndText(
+    edgeId: string,
+    end: EdgeEnd,
+    text: string | undefined,
+    direction: Point,
+    margin?: Partial<EndTextGap>,
+  ): void;
 }
 
 export interface ModeOption {

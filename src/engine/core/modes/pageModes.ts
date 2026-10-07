@@ -1,13 +1,14 @@
 import { setPageAttribute } from '../../format/cellEdits';
 import { documentFromTree } from '../../format/parse';
 import { writeDrawio } from '../../format/write';
+import type { TerminalEnd } from '../../edit/edgeEnds';
 import type { DocumentModel, PageModel, Rect, ShapeModel } from '../../model/types';
 import { setElementsDim } from '../../render/pageEffects';
 import { hasExactTextMeasure } from '../../render/textMeasure';
 import { applyModeEdit } from '../../modes/modeEdits';
 import { pageEffectIds, withPageEffect } from '../../effects/registry';
 import type { ModeScope, PageModeRegistry } from '../../modes/registry';
-import type { ModeEdit, ModeTarget } from '../../modes/types';
+import type { ModeEdit, ModeEditContext, ModeTarget } from '../../modes/types';
 import { modePalette } from '../../settings';
 import { SPATIAL } from '../../spatial';
 import type { ModeIndicator } from '../types';
@@ -54,12 +55,35 @@ export class PageModes {
     this.core.file.documentChanged([pageId], { distribute: false });
   }
 
+  /**
+   * Flèche gérée par le mode de sa page (`managesEdge`, sujet 265, ex. relation RDD) : ses textes de début / fin
+   * (cardinalités) ne se modifient ni ne se déplacent.
+   */
+  managesEdge(edgeId: string): boolean {
+    const page = this.core.pages.getCurrentPage();
+    const edge = page?.edges.find((e) => e.id === edgeId);
+    return !!page && !!edge && !!this.core.modes.modeOf(page)?.managesEdge?.(page, edge);
+  }
+
+  /** Contexte des opérations de mode : couleurs proposées et textes de début / fin, d'après les paramètres. */
+  editContext(): ModeEditContext {
+    const { shapes, styles } = this.core.settings;
+    return {
+      palette: modePalette(styles),
+      endText: {
+        size: shapes.edgeEndTextSize,
+        color: shapes.edgeEndTextColor,
+        gap: { along: shapes.edgeEndTextGapAlong, across: shapes.edgeEndTextGapAcross },
+      },
+    };
+  }
+
   /** Opération du mode sur la page courante, en une étape d'annulation ; vrai si elle a changé quelque chose. */
   editPageMode(label: string, edit: (edit: ModeEdit) => void): boolean {
     const editable = this.core.targets.editablePage();
     if (!editable || !this.core.file.xmlTree) return false;
     const before = writeDrawio(this.core.file.xmlTree);
-    if (!applyModeEdit(editable.page, editable.pageTree, edit, modePalette(this.core.settings.styles))) return false;
+    if (!applyModeEdit(editable.page, editable.pageTree, edit, this.editContext())) return false;
     this.core.edits.recordSnapshot(label, before);
     this.core.file.documentChanged([editable.page.id]);
     return true;
@@ -218,12 +242,7 @@ export class PageModes {
         return bounds ? { ...shape, bounds } : shape;
       }),
     };
-    return applyModeEdit(
-      fresh,
-      pageTree,
-      (edit) => placed(edit, shapeIds, before),
-      modePalette(this.core.settings.styles),
-    );
+    return applyModeEdit(fresh, pageTree, (edit) => placed(edit, shapeIds, before), this.editContext());
   }
 
   /**
@@ -237,7 +256,36 @@ export class PageModes {
     if (!relabeled || !pageTree || !this.core.file.xmlTree) return;
     const fresh = documentFromTree(this.core.file.xmlTree).pages.find((p) => p.id === pageId);
     if (!fresh) return;
-    applyModeEdit(fresh, pageTree, (edit) => relabeled(edit, elementId), modePalette(this.core.settings.styles));
+    applyModeEdit(fresh, pageTree, (edit) => relabeled(edit, elementId), this.editContext());
+  }
+
+  /**
+   * Bout d'une flèche rebranché, déjà écrit dans l'arbre : le mode de la page le remet en ordre dans la même étape
+   * d'annulation (`edgeReconnected`, ex. champ de relation RDD, sujet 265).
+   */
+  edgeReconnected(pageId: string, edgeId: string): void {
+    const page = this.core.pages.pageById(pageId);
+    const reconnected = page && this.core.modes.modeOf(page)?.edgeReconnected;
+    const pageTree = this.core.file.pageTreeOf(pageId);
+    if (!reconnected || !pageTree || !this.core.file.xmlTree) return;
+    const fresh = documentFromTree(this.core.file.xmlTree).pages.find((p) => p.id === pageId);
+    if (!fresh) return;
+    applyModeEdit(fresh, pageTree, (edit) => reconnected(edit, edgeId), this.editContext());
+  }
+
+  /**
+   * Formes où accrocher le bout `end` d'une flèche dont l'autre bout est sur `otherId`, d'après le mode de la page
+   * (`connects`, sujet 265) ; undefined = toutes (pas de règle, ou autre bout libre).
+   */
+  endAccepts(
+    page: PageModel,
+    end: TerminalEnd,
+    otherId: string | undefined,
+  ): ((shape: ShapeModel) => boolean) | undefined {
+    const connects = this.core.modes.modeOf(page)?.connects;
+    const other = connects && otherId !== undefined ? page.shapes.find((s) => s.id === otherId) : undefined;
+    if (!connects || !other) return undefined;
+    return end === 'target' ? (shape) => connects(page, other, shape) : (shape) => connects(page, shape, other);
   }
 
   /**
@@ -252,12 +300,12 @@ export class PageModes {
     // tailles d'un fichier déjà ajusté.
     if (!document || !xmlTree || !hasExactTextMeasure()) return;
     const before = writeDrawio(xmlTree);
-    const palette = modePalette(this.core.settings.styles);
+    const context = this.editContext();
     const changed = document.pages
       .filter((page) => {
         const opened = this.core.modes.modeOf(page)?.opened;
         const target = opened && this.core.targets.editablePageById(page.id);
-        return !!target && applyModeEdit(target.page, target.pageTree, opened, palette);
+        return !!target && applyModeEdit(target.page, target.pageTree, opened, context);
       })
       .map((page) => page.id);
     if (changed.length === 0) return;

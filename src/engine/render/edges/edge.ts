@@ -128,6 +128,10 @@ export function createEdge(
         });
         if (outline) group.add(outline);
       }
+      for (const piece of marker?.strokes ?? []) {
+        const mesh = strokeMesh(piece.points, stroke, opacity, { width: strokeWidth, closed: piece.closed });
+        if (mesh) group.add(mesh);
+      }
     }
   }
 

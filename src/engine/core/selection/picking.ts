@@ -153,13 +153,16 @@ export class Picking {
     return { points: route.map((p) => this.screenOfPoint(p, top)), closed: false };
   }
 
-  /** Forme sous un point écran à laquelle on peut attacher une flèche (les flèches sont ignorées). */
-  shapeAt(screen: Point, exclude?: string): ShapeModel | undefined {
+  /**
+   * Forme sous un point écran à laquelle on peut attacher une flèche (les flèches sont ignorées) ; `accepts` : règle du
+   * mode de la page (ex. liaisons permises du mode RDD).
+   */
+  shapeAt(screen: Point, accepts?: (shape: ShapeModel) => boolean): ShapeModel | undefined {
     const page = this.core.pages.getCurrentPage();
     if (!page) return undefined;
     const connectable = new Set(connectableShapes(page, this.core.registry).map((s) => s.id));
     const picked = pickElement(
-      { ...page, shapes: page.shapes.filter((s) => connectable.has(s.id) && s.id !== exclude), edges: [] },
+      { ...page, shapes: page.shapes.filter((s) => connectable.has(s.id) && (!accepts || accepts(s))), edges: [] },
       screenToPage(this.core.camera.state, this.core.display.viewport, screen),
       {
         edgeTolerance: 0,

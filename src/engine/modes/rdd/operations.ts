@@ -1,5 +1,6 @@
 import type { ShapeModel } from '../../model/types';
 import type { ModeEdit } from '../types';
+import { writeCardinalities } from './cardinalities';
 import type { Field, TableContent, TableRow } from './tables';
 import {
   FIELDS,
@@ -9,6 +10,7 @@ import {
   headerHeight,
   isDivider,
   isPrimaryKey,
+  isRelation,
   isSecondary,
   fieldsValue,
   tableContent,
@@ -44,7 +46,7 @@ export function fitTable(edit: ModeEdit, shape: ShapeModel, changes: Partial<Tab
 }
 
 /** Lignes écrites dans la table, et sa taille qui suit. */
-function writeRows(edit: ModeEdit, shape: ShapeModel, rows: readonly TableRow[]): void {
+export function writeRows(edit: ModeEdit, shape: ShapeModel, rows: readonly TableRow[]): void {
   edit.setElementAttribute(shape.id, FIELDS, fieldsValue(rows));
   fitTable(edit, shape, { fields: rows });
 }
@@ -52,7 +54,8 @@ function writeRows(edit: ModeEdit, shape: ShapeModel, rows: readonly TableRow[])
 /**
  * Champ `index` de la table modifié (sujet 249) : label, kind, nullable, type (sujet 256, vide = aucun) ; la taille
  * suit. Un label vide est refusé ; la clé primaire garde son kind et n'est jamais nullable, et aucun champ ne devient
- * clé primaire. Un séparateur ne prend que le label, vide permis (sujet 253).
+ * clé primaire. Un champ de relation garde son kind et reste sans type (sujet 265). Un séparateur ne prend que le
+ * label, vide permis (sujet 253).
  */
 export function setField(
   edit: ModeEdit,
@@ -71,12 +74,13 @@ export function setField(
   if (isDivider(row)) next = { ...row, ...(label !== undefined && { label }) };
   else {
     const key = row.kind === 'pk';
+    const relation = isRelation(row);
     next = {
       ...row,
       ...(label !== undefined && { label }),
-      ...(patch.kind !== undefined && !key && patch.kind !== 'pk' && { kind: patch.kind }),
+      ...(patch.kind !== undefined && !key && !relation && patch.kind !== 'pk' && { kind: patch.kind }),
       ...(patch.nullable !== undefined && !key && { nullable: patch.nullable }),
-      ...(patch.type !== undefined && !key && { type: patch.type }),
+      ...(patch.type !== undefined && !key && !relation && { type: patch.type }),
       ...(patch.unique !== undefined && !key && { unique: patch.unique || undefined }),
       // Propriétés facultatives (sujet 260) : vide ou faux les retire.
       ...('comment' in patch && { comment: patch.comment || undefined }),
@@ -91,14 +95,19 @@ export function setField(
     shape,
     rows.map((current, i) => (i === index ? next : current)),
   );
+  // Champ de relation : les cardinalités de sa flèche suivent « Optionnel » (sujet 265).
+  if (isRelation(next)) writeCardinalities(edit, next.edge, next.nullable);
 }
 
-/** Label d'un champ ajouté : `Field1`, `Field2`… (premier numéro libre dans la table). */
-export function newFieldLabel(rows: readonly TableRow[]): string {
+/**
+ * Label d'un champ ajouté : `Field1`, `Field2`… (premier numéro libre dans la table) ; `prefix` : `relation` pour un
+ * champ de relation (sujet 265).
+ */
+export function newFieldLabel(rows: readonly TableRow[], prefix = 'Field'): string {
   const used = new Set(rows.map((row) => row.label));
   let number = 1;
-  while (used.has(`Field${number}`)) number += 1;
-  return `Field${number}`;
+  while (used.has(`${prefix}${number}`)) number += 1;
+  return `${prefix}${number}`;
 }
 
 /** Ajoute une ligne après la ligne `after` (sinon en fin de liste ; jamais avant la clé primaire) ; renvoie son rang. */
@@ -124,10 +133,13 @@ export function addDivider(edit: ModeEdit, shape: ShapeModel, after?: number): n
   return addRow(edit, shape, () => ({ divider: true, label: '' }), after);
 }
 
-/** Retire la ligne `index` (champ, sujet 251, ou séparateur) ; jamais la clé primaire. La taille suit. */
+/**
+ * Retire la ligne `index` (champ, sujet 251, ou séparateur) ; jamais la clé primaire, ni un champ de relation (il part
+ * avec sa flèche, sujet 265). La taille suit.
+ */
 export function removeField(edit: ModeEdit, shape: ShapeModel, index: number): void {
   const rows = tableFields(shape);
-  if (!tableKindOf(shape) || !rows[index] || isPrimaryKey(rows[index])) return;
+  if (!tableKindOf(shape) || !rows[index] || isPrimaryKey(rows[index]) || isRelation(rows[index])) return;
   writeRows(
     edit,
     shape,

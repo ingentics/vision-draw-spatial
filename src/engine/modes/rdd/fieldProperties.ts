@@ -3,7 +3,7 @@ import type { ModeProperty, ModeTarget } from '../types';
 import { fieldIndex, fieldParts } from './fieldParts';
 import { setField } from './operations';
 import type { Field, TableRow } from './tables';
-import { FIELD_TYPES, fieldTypeLabel, isDivider, tableFields, tableKindOf } from './tables';
+import { FIELD_TYPES, fieldTypeLabel, isDivider, isRelation, tableFields, tableKindOf } from './tables';
 
 /**
  * Réglages d'une ligne sélectionnée d'une table RDD (sujets 249, 253, 260) : section du mode (fonctionnel), puis
@@ -38,6 +38,9 @@ const notField = (_page: unknown, target: ModeTarget, part?: string) => !fieldOf
 /** Pas de champ, ou la clé primaire (ni type, ni optionnel, ni unique : imposés, sujet 260). */
 const notPlainField = (_page: unknown, target: ModeTarget, part?: string) =>
   !fieldOf(target, part) || isKey(target, part);
+/** Pas de type pour un champ de relation (sujet 265), en plus de la clé primaire. */
+const untyped = (page: unknown, target: ModeTarget, part?: string) =>
+  notPlainField(page, target, part) || isRelation(fieldOf(target, part)?.field);
 
 /** Écriture d'une propriété du champ sélectionné. */
 const writeField =
@@ -135,7 +138,7 @@ export const FIELD_PROPERTIES: ModeProperty[] = [
     ],
     value: (_page, target, part) => fieldOf(target, part)?.field.type,
     write: writeField((value) => ({ type: value ?? '' })),
-    hidden: notPlainField,
+    hidden: untyped,
   },
   {
     // Clé primaire : son type imposé (« Primary key », « Mot »), en lecture seule (sujet 260).

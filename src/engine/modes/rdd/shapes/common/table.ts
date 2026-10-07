@@ -351,8 +351,10 @@ export function table(
     resizable: false,
     // Texte brut : nom, champs et séparateurs s'écrivent sans mise en forme (sujet 258).
     plainText: true,
-    // Flèches tirées des côtés seulement : le « + » d'ajout de champ prend le bas (sujet 250).
+    // Flèches tirées des côtés seulement : le « + » d'ajout de champ prend le bas (sujet 250) ; aucune pour une table
+    // sans relation (vue, document, modèle abstrait, sujet 265).
     connectSides: ['e', 'w'],
+    connectable: kind.links !== undefined,
     swatch: () => '<path d="M5 5h30v18H5zM5 11h30"/>',
     ...(palette && {
       palette: {

@@ -122,9 +122,10 @@ export class ShapeRegistry {
     return this.resolve(shape).definition.plainText === true;
   }
 
-  /** Côtés aux poignées de connexion de la forme sélectionnée. */
+  /** Côtés aux poignées de connexion de la forme sélectionnée ; aucun si on ne peut pas y accrocher de flèche. */
   connectSides(shape: ShapeModel): readonly ConnectSide[] {
-    return this.resolve(shape).definition.connectSides ?? CONNECT_SIDES;
+    const { definition } = this.resolve(shape);
+    return definition.connectable === false ? [] : (definition.connectSides ?? CONNECT_SIDES);
   }
 
   /** Peut-on y accrocher une flèche ? */

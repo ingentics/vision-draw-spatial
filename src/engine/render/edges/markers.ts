@@ -10,6 +10,8 @@ export interface MarkerShape {
   fill?: Point[];
   /** Contour : flèches creuses (`endFill=0`) ou ouvertes (`open`). */
   outline?: { points: Point[]; closed: boolean };
+  /** Traits séparés (cardinalités ER : barres, patte d'oie, cercle). */
+  strokes?: Array<{ points: Point[]; closed: boolean }>;
   /** Longueur dont il faut raccourcir la ligne pour qu'elle ne dépasse pas de la pointe. */
   inset: number;
 }
@@ -24,6 +26,13 @@ const KNOWN = new Set([
   'oval',
   'diamond',
   'diamondThin',
+  // Cardinalités des diagrammes entité-relation (sujet 265).
+  'ERone',
+  'ERmandOne',
+  'ERmany',
+  'ERoneToMany',
+  'ERzeroToOne',
+  'ERzeroToMany',
 ]);
 
 export function isKnownMarker(type: string): boolean {
@@ -57,6 +66,8 @@ export function buildMarker(
     y: tip.y - n.y * back + perp.y * side,
   });
 
+  if (base.startsWith('ER')) return erMarker(base, at, length);
+
   const shape = (points: Point[], inset: number): MarkerShape =>
     filled ? { fill: points, inset } : { outline: { points, closed: true }, inset };
 
@@ -87,6 +98,41 @@ export function buildMarker(
       }
       return shape(points, length);
     }
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * Cardinalité ER, comme les marqueurs `ER…` de draw.io (Shapes.js) : sur une longueur `length` depuis l'extrémité,
+ * barre (un), patte d'oie (plusieurs) ; les variantes « zéro » ajoutent un cercle creux sur une seconde longueur, et
+ * la ligne s'arrête avant lui.
+ */
+function erMarker(type: string, at: (back: number, side: number) => Point, length: number): MarkerShape | undefined {
+  const half = length / 2;
+  const bar = (back: number) => ({ points: [at(back, half), at(back, -half)], closed: false });
+  const crowFoot = { points: [at(0, half), at(1, 0), at(0, -half)], closed: false };
+  const circle = {
+    points: Array.from({ length: 24 }, (_, i) => {
+      const center = at(1.5, 0);
+      const angle = (i / 24) * Math.PI * 2;
+      return { x: center.x + half * Math.cos(angle), y: center.y + half * Math.sin(angle) };
+    }),
+    closed: true,
+  };
+  switch (type) {
+    case 'ERone':
+      return { strokes: [bar(0.5)], inset: 0 };
+    case 'ERmandOne':
+      return { strokes: [bar(0.5), bar(1)], inset: 0 };
+    case 'ERmany':
+      return { strokes: [crowFoot], inset: 0 };
+    case 'ERoneToMany':
+      return { strokes: [crowFoot, bar(1)], inset: 0 };
+    case 'ERzeroToOne':
+      return { strokes: [bar(0.5), circle], inset: 2 * length };
+    case 'ERzeroToMany':
+      return { strokes: [crowFoot, circle], inset: 2 * length };
     default:
       return undefined;
   }

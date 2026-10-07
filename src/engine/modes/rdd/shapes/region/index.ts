@@ -135,6 +135,8 @@ export const definition: ShapeDefinition = {
   // Toute la région et son onglet (pas la bande vide à droite de l'onglet).
   contains: (shape, point) => insidePolygon(regionOutline(shape), point),
   hitBounds,
+  // Une région n'a pas de flèche (sujet 265).
+  connectable: false,
   // Éditeur en place exactement sur le nom dessiné (sans nom : à sa place, sur l'onglet à venir).
   textZone: (shape) =>
     tabText(shape) ?? {

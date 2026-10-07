@@ -79,6 +79,11 @@ export interface TableKind {
   mark?: HeaderMark;
   /** Clés du style draw.io d'une table neuve (ex. `rounded=1;`) : le rendu les suit, draw.io aussi. */
   style?: string;
+  /**
+   * Relations (sujet 265) : `from`, flèches au départ seulement (embedded) ; `both`, au départ et à l'arrivée (entité,
+   * énumération). Absent : aucune flèche (ni poignée de connexion, ni cible).
+   */
+  links?: 'from' | 'both';
 }
 
 /** Rôle d'un champ (sujet 246) : clé primaire, propriété, clé étrangère, clé étrangère d'un autre domaine. */
@@ -119,11 +124,13 @@ export interface Field {
   /** Gouvernance (sujet 260) : soumis au GDPR, donnée personnelle. */
   gdpr?: boolean;
   personal?: boolean;
+  /** Champ de relation (sujet 265) : id de la flèche qui l'a créé ; il la suit (retiré, déplacé avec elle). */
+  edge?: string;
 }
 
-/** Propriétés facultatives d'un champ : écrites seulement si elles sont renseignées (sujet 260). */
+/** Propriétés facultatives d'un champ : écrites seulement si elles sont renseignées (sujets 260, 265). */
 const OPTIONAL_FLAGS = ['unique', 'gdpr', 'personal'] as const;
-const OPTIONAL_TEXTS = ['comment', 'pgName', 'pgType'] as const;
+const OPTIONAL_TEXTS = ['comment', 'pgName', 'pgType', 'edge'] as const;
 
 /** Séparateur entre les champs (sujet 253) : un trait, son label éventuel au milieu. */
 export interface Divider {
@@ -138,6 +145,10 @@ export const isDivider = (row: TableRow): row is Divider => 'divider' in row;
 
 /** La ligne est-elle la clé primaire ? */
 export const isPrimaryKey = (row: TableRow | undefined): boolean => !!row && !isDivider(row) && row.kind === 'pk';
+
+/** La ligne est-elle un champ de relation, lié à sa flèche (sujet 265) ? */
+export const isRelation = (row: TableRow | undefined): row is Field & { edge: string } =>
+  !!row && !isDivider(row) && row.edge !== undefined;
 
 /** Label de la clé primaire : toujours `id` (sujet 260). */
 export const PRIMARY_KEY = 'id';
@@ -211,10 +222,10 @@ export const fieldsValue = (rows: readonly TableRow[]): string | undefined =>
  */
 export const TABLE_KINDS: Record<string, TableKind> = {
   'rdd-model': { italic: true },
-  'rdd-entity': { primaryKey: 'primary-key', uniqueFields: true },
-  'rdd-enum': { primaryKey: 'word', uniqueFields: true, doubleHeader: true, mark: 'list' },
+  'rdd-entity': { primaryKey: 'primary-key', uniqueFields: true, links: 'both' },
+  'rdd-enum': { primaryKey: 'word', uniqueFields: true, doubleHeader: true, mark: 'list', links: 'both' },
   // Sujet 181 : objet incorporé (bas ondulé, sujet 219), document JSONB (clés indicatives), vue (coins arrondis).
-  'rdd-embedded': { wavy: true, mark: 'plug', uniqueFields: true },
+  'rdd-embedded': { wavy: true, mark: 'plug', uniqueFields: true, links: 'from' },
   'rdd-document': { italicFields: true, requiredName: 'Document', folded: true },
   'rdd-view': { style: 'rounded=1;absoluteArcSize=1;arcSize=16;', mark: 'binoculars' },
 };

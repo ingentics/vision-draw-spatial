@@ -7,7 +7,6 @@ import type { ShapeTemplate } from '../../../edit/palette';
 import { screenToPage } from '../../../interaction/cameraMath';
 import type { Point } from '../../../model/types';
 import { applyModeEdit } from '../../../modes/modeEdits';
-import { modePalette } from '../../../settings';
 import { withStyleValue } from '../helpers';
 import type { EngineCore } from '../../EngineCore';
 
@@ -52,7 +51,7 @@ export class ElementCommands {
       repair &&
       this.core.file.xmlTree &&
       documentFromTree(this.core.file.xmlTree).pages.find((p) => p.id === editable.page.id);
-    if (repair && page) applyModeEdit(page, editable.pageTree, repair, modePalette(this.core.settings.styles));
+    if (repair && page) applyModeEdit(page, editable.pageTree, repair, this.core.pageModes.editContext());
     this.core.selection.clearSelection();
     this.core.file.documentChanged([editable.page.id]);
   }

@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import type { ReactNode } from 'react';
 import {
   anchorOf,
   commentOf,
@@ -292,6 +293,15 @@ function PageModeSections({
     ...(modeId && !mode ? [{ value: modeId, label: `Inconnu (${modeId})` }] : []),
   ];
   const PageSection = modePanel(mode?.id)?.PageSection;
+  // Réglages de page rangés dans un encart du mode (`section`, ex. « RDD »), après la section « Mode ».
+  const sections = [
+    ...new Set(
+      defaultModeRegistry
+        .properties(page, 'page')
+        .filter((p) => p.section !== undefined && !p.hidden?.(page, page))
+        .map((p) => p.section!),
+    ),
+  ];
   return (
     <>
       <Section title="Mode">
@@ -307,6 +317,18 @@ function PageModeSections({
         />
         <ModeFields page={page} scope="page" target={page} styles={styles} onModeProperty={onModeProperty} />
       </Section>
+      {sections.map((section) => (
+        <Section key={section} title={section}>
+          <ModeFields
+            page={page}
+            scope="page"
+            target={page}
+            section={section}
+            styles={styles}
+            onModeProperty={onModeProperty}
+          />
+        </Section>
+      ))}
       {PageSection && <PageSection page={page} onEdit={onModeEdit} current={modeCurrent} exporters={exporters} />}
     </>
   );
@@ -472,8 +494,12 @@ function EdgeSections({ edge, ...props }: ContextPanelProps & { edge: EdgeModel 
     if (!shape) return 'point libre';
     return shape.label ? `« ${shape.label} »` : 'forme sans texte';
   };
+  // Flèche gérée par le mode (ex. relation RDD, sujet 265) : ses réglages en tête ; texte du milieu et commentaire
+  // modifiables, le reste en lecture seule (cardinalités comprises) ; positions des textes et lien masqués.
+  const managed = managedEdge(props.page, edge);
   return (
     <>
+      {managed && <ElementModeSection {...props} element={edge} scope="edge" />}
       <Section title="Texte">
         <LabelRow label={edge.label} name="Milieu" onEdit={props.onEditLabel} />
         {(['start', 'end'] as const).map((which) => {
@@ -489,22 +515,25 @@ function EdgeSections({ edge, ...props }: ContextPanelProps & { edge: EdgeModel 
               }
               value={current}
               placeholder="aucun"
+              readOnly={managed}
               onCommit={(text) => props.onEndLabel(which, text)}
             />
           );
         })}
         <CommentField comment={commentOf(edge)} onEdit={props.onEditComment} />
       </Section>
-      <ElementModeSection {...props} element={edge} scope="edge" />
-      <TextAnchors edge={edge} onAnchor={props.onTextAnchor} onChange={props.onEdgeStyle} />
-      <EdgeLineSection
-        edge={edge}
-        pageJumps={props.pageJumps}
-        defaultJumpSize={props.defaultJumpSize}
-        onChange={props.onEdgeStyle}
-        onResetRoute={props.onResetRoute}
-      />
-      <EdgeEndsSection edge={edge} onChange={props.onEdgeStyle} onReverse={props.onReverse} />
+      {!managed && <ElementModeSection {...props} element={edge} scope="edge" />}
+      {!managed && <TextAnchors edge={edge} onAnchor={props.onTextAnchor} onChange={props.onEdgeStyle} />}
+      <Locked locked={managed}>
+        <EdgeLineSection
+          edge={edge}
+          pageJumps={props.pageJumps}
+          defaultJumpSize={props.defaultJumpSize}
+          onChange={props.onEdgeStyle}
+          onResetRoute={props.onResetRoute}
+        />
+        <EdgeEndsSection edge={edge} onChange={props.onEdgeStyle} onReverse={props.onReverse} />
+      </Locked>
       <Section title="Liaison">
         <div className="field-row">
           De
@@ -515,10 +544,14 @@ function EdgeSections({ edge, ...props }: ContextPanelProps & { edge: EdgeModel 
           <span className="field-value">{end(edge.targetId)}</span>
         </div>
       </Section>
-      <Section title="Lien">
-        <LinkField link={edge.link} pageId={props.page.id} pages={props.pages} onLink={props.onLink} />
-      </Section>
-      <OrderSection onOrder={props.onOrder} />
+      {!managed && (
+        <Section title="Lien">
+          <LinkField link={edge.link} pageId={props.page.id} pages={props.pages} onLink={props.onLink} />
+        </Section>
+      )}
+      <Locked locked={managed}>
+        <OrderSection onOrder={props.onOrder} />
+      </Locked>
       <DeleteButton onDelete={props.onDelete} />
     </>
   );
@@ -805,7 +838,28 @@ const MARKERS: Array<{ value: string; label: string; fillable: boolean }> = [
   { value: 'oval', label: 'Rond', fillable: true },
   { value: 'diamond', label: 'Losange', fillable: true },
   { value: 'diamondThin', label: 'Losange fin', fillable: true },
+  // Cardinalités des diagrammes entité-relation (sujet 265).
+  { value: 'ERone', label: 'ER : un', fillable: false },
+  { value: 'ERmandOne', label: 'ER : un et un seul', fillable: false },
+  { value: 'ERzeroToOne', label: 'ER : zéro ou un', fillable: false },
+  { value: 'ERmany', label: 'ER : plusieurs', fillable: false },
+  { value: 'ERoneToMany', label: 'ER : un ou plusieurs', fillable: false },
+  { value: 'ERzeroToMany', label: 'ER : zéro ou plusieurs', fillable: false },
 ];
+
+/** Flèche gérée par le mode de la page (ex. relation RDD et ses cardinalités, sujet 265). */
+const managedEdge = (page: PageModel, edge: EdgeModel) => !!defaultModeRegistry.modeOf(page)?.managesEdge?.(page, edge);
+
+/** Sections en lecture seule (flèche gérée par le mode) : champs et boutons désactivés. */
+function Locked({ locked, children }: { locked: boolean; children: ReactNode }) {
+  return locked ? (
+    <fieldset className="panel-locked" disabled>
+      {children}
+    </fieldset>
+  ) : (
+    <>{children}</>
+  );
+}
 
 /**
  * Bouts de la flèche : forme du début et de la fin, pleine ou vide (défauts draw.io : rien au début, classique pleine
@@ -920,7 +974,7 @@ function MultiSections(props: ContextPanelProps) {
           />
         </BorderSection>
       )}
-      {edges.length > 0 && (
+      {edges.length > 0 && !edges.some((edge) => managedEdge(props.page, edge)) && (
         <EdgeEndsSection edge={edges[edges.length - 1]!} onChange={props.onEdgeStyle} onReverse={props.onReverse} />
       )}
       <OrderSection onOrder={props.onOrder} />

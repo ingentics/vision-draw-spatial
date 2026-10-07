@@ -24,6 +24,8 @@ export class EdgeTexts {
       this.core.labelEditor.editLabel(edgeId);
       return;
     }
+    // Textes de bout d'une flèche gérée par le mode (cardinalités d'une relation RDD) : imposés.
+    if (this.core.pageModes.managesEdge(edgeId)) return;
     const editable = this.core.targets.editablePage();
     const edge = editable?.page.edges.find((e) => e.id === edgeId);
     const label = edge?.labels.find((l) => l.id === cellId);
@@ -51,6 +53,7 @@ export class EdgeTexts {
       this.core.textEdits.setLabel(edgeId, text, html);
       return;
     }
+    if (this.core.pageModes.managesEdge(edgeId)) return;
     const editable = this.core.targets.editablePage();
     const label = editable?.page.edges.find((e) => e.id === edgeId)?.labels.find((l) => l.id === cellId);
     if (!editable || !label) return;
@@ -72,7 +75,7 @@ export class EdgeTexts {
     const cellId = editing?.styleCellId;
     if (!editing?.onEdge || !cellId || !page || editing.pageId !== page.id) return;
     const edge = page.edges.find((e) => e.id === editing.elementId);
-    if (!edge) return;
+    if (!edge || (cellId !== edge.id && this.core.pageModes.managesEdge(edge.id))) return;
     let drag = this.core.gesture.drag;
     if (drag?.kind !== 'label') {
       const current = cellId === edge.id ? edge.labelPlacement : edge.labels.find((l) => l.id === cellId)?.placement;
@@ -95,6 +98,7 @@ export class EdgeTexts {
     const editable = this.core.targets.editablePage();
     const edge = editable?.page.edges.find((e) => e.id === edgeId);
     if (!editable || !edge || !edgeTexts(edge).some((text) => text.cellId === cellId)) return;
+    if (cellId !== edgeId && this.core.pageModes.managesEdge(edgeId)) return;
     const route = this.core.sceneView.sceneObject(edgeId)?.userData.route as Point[] | undefined;
     if (!route?.length) return;
     // Même configuration qu'un texte créé à cet endroit : placement et alignement.
@@ -133,6 +137,7 @@ export class EdgeTexts {
     const edge = editable?.page.edges.find((e) => e.id === editing?.elementId);
     const route = edge && (this.core.sceneView.sceneObject(edge.id)?.userData.route as Point[] | undefined);
     if (!editing?.onEdge || !editing.end || !editable || !edge || !route?.length) return;
+    if (this.core.pageModes.managesEdge(edge.id)) return;
     const child = editing.labelCellId ? edge.labels.find((l) => l.id === editing.labelCellId) : undefined;
     let next: LabelEditRequest;
     if (child) {
@@ -176,7 +181,7 @@ export class EdgeTexts {
   setEdgeEndLabel(edgeId: string, end: EdgeEnd, text: string, html?: string, flipped = false): void {
     const editable = this.core.targets.editablePage();
     const edge = editable?.page.edges.find((e) => e.id === edgeId);
-    if (!editable || !edge) return;
+    if (!editable || !edge || this.core.pageModes.managesEdge(edgeId)) return;
     const current = endLabelOf(edge, end);
     const value = text.trim() === '' ? '' : text;
     const rich = value ? html : undefined;

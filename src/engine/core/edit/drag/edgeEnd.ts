@@ -24,6 +24,8 @@ export class EdgeEndDrags {
     drag.started = true;
     const skip = { edgeId: edge.id, end: drag.end, origin: drag.origin };
     const attachment = this.core.anchors.endAttachmentAt(page, screen, {
+      // Formes permises par le mode de la page, d'après l'autre bout (sujet 265).
+      accepts: this.core.pageModes.endAccepts(page, drag.end, drag.end === 'target' ? edge.sourceId : edge.targetId),
       skip,
       height: this.core.sceneView.elementTop(edge.id),
       snap,
@@ -62,6 +64,8 @@ export class EdgeEndDrags {
     if (loop) this.core.edgePoints.writeEdgePoints(page, pageTree, edge, loop);
     else if (!samePoints(edge.points, drag.originalPoints))
       this.core.edgePoints.writeEdgePoints(page, pageTree, edge, edge.points);
+    // Le mode de la page suit le rebranchement (ex. champ de relation RDD), dans la même étape d'annulation.
+    this.core.pageModes.edgeReconnected(drag.pageId, edge.id);
     this.core.file.documentChanged([drag.pageId]);
   }
 }

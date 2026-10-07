@@ -157,6 +157,8 @@ export class LabelEditor {
   }
 
   editEdgeEndLabel(edgeId: string, end: EdgeEnd): void {
+    // Textes de bout d'une flèche gérée par le mode (cardinalités d'une relation RDD) : imposés.
+    if (this.core.pageModes.managesEdge(edgeId)) return;
     const editable = this.core.targets.editablePage();
     const edge = editable?.page.edges.find((e) => e.id === edgeId);
     const current = edge && endLabelOf(edge, end);

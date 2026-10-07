@@ -7,7 +7,6 @@ import { CONNECT_DIRECTIONS } from '../../../edit/handleKinds';
 import type { PageModel, Point } from '../../../model/types';
 import { connectorPreview } from '../../../render/handleMeshes';
 import { applyModeEdit } from '../../../modes/modeEdits';
-import { modePalette } from '../../../settings';
 import type { ConnectDrag } from './types';
 import { samePoints, withStyleValue } from '../helpers';
 import type { EngineCore } from '../../EngineCore';
@@ -33,9 +32,16 @@ export class ConnectDrags {
     connect.started = true;
     const top = this.core.sceneView.elementTop(source.id);
     const sideExit = CONNECT_DIRECTIONS[connect.side].exit;
+    // Formes permises par le mode de la page (sujet 265).
+    const accepts = this.core.pageModes.endAccepts(page, 'target', source.id);
     if (this.core.arrangement.distributes(page)) {
       // Ancrage automatique : départ et arrivée au milieu des côtés choisis, répartis à l'écriture.
-      const attachment = this.core.anchors.endAttachmentAt(page, screen, { height: top, snap: false, grid: 0 });
+      const attachment = this.core.anchors.endAttachmentAt(page, screen, {
+        accepts,
+        height: top,
+        snap: false,
+        grid: 0,
+      });
       connect.target = attachment.kind === 'free' ? undefined : attachment;
       connect.exit = sideExit;
       const target = connect.target && page.shapes.find((s) => s.id === connect.target!.shapeId);
@@ -69,7 +75,13 @@ export class ConnectDrags {
       point: this.core.anchors.anchorPosition(source, sideExit),
     };
     const taken = [{ shapeId: source.id, constraint: loopExit.constraint }];
-    const attachment = this.core.anchors.endAttachmentAt(page, screen, { taken, height: top, snap: false, grid: 0 });
+    const attachment = this.core.anchors.endAttachmentAt(page, screen, {
+      accepts,
+      taken,
+      height: top,
+      snap: false,
+      grid: 0,
+    });
     connect.target = attachment.kind === 'free' ? undefined : attachment;
     const target = connect.target && page.shapes.find((s) => s.id === connect.target!.shapeId);
     const loop = target?.id === source.id;
@@ -133,7 +145,7 @@ export class ConnectDrags {
       documentFromTree(this.core.file.xmlTree).pages.find((p) => p.id === drag.pageId);
     if (created && fresh) {
       const current = this.core.pageModes.getModeCurrent(drag.pageId);
-      applyModeEdit(fresh, pageTree, (edit) => created(edit, id, current), modePalette(this.core.settings.styles));
+      applyModeEdit(fresh, pageTree, (edit) => created(edit, id, current), this.core.pageModes.editContext());
     }
     this.core.file.documentChanged([drag.pageId]);
     const edge = this.core.pages.getCurrentPage()?.edges.find((e) => e.id === id);

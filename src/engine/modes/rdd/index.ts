@@ -25,6 +25,8 @@ import {
   regionObstacles,
   setRegionColor,
 } from './regions';
+import { CARDINALITIES, cardinalitiesShown } from './cardinalities';
+import { REVERSE_NAME, forbiddenLinks, isRelationEdge, linksTables, syncRelations } from './relations';
 
 const notTable = (_page: unknown, target: ModeTarget) => !tableOf(target);
 /** Région du mode sélectionnée (sujet 182). */
@@ -52,6 +54,33 @@ export const definition: PageModeDefinition = {
   // Toutes les tables, puis la région (sujet 182) ; le modèle abstrait, sans élément de palette, n'y apparaît pas.
   shapes: [...Object.keys(TABLE_KINDS), REGION_KIND],
   paletteCategories: [{ id: 'rdd', name: 'RDD', order: 5 }],
+  pageProperties: [
+    {
+      // Encart du mode sur la page (sujet 265) : pointes et textes des cardinalités, sur toutes les relations.
+      type: 'toggle',
+      key: CARDINALITIES,
+      section: 'RDD',
+      label: 'Afficher les cardinalités',
+      title: 'Pointes et textes des cardinalités aux bouts des flèches de relation (spatial.cardinalities)',
+      value: (page) => (cardinalitiesShown(page) ? '1' : undefined),
+      write: (edit, _target, value) => {
+        const shown = value === '1';
+        edit.setPageAttribute(CARDINALITIES, shown ? undefined : '0');
+        syncRelations(edit, shown);
+      },
+    },
+  ],
+  edgeProperties: [
+    {
+      // Relation (sujet 265) : nom de la relation vue depuis la table d'arrivée.
+      type: 'text',
+      key: REVERSE_NAME,
+      section: 'Relation',
+      label: 'Nom inverse',
+      title: 'Nom de la relation vue depuis la table d’arrivée (reverseName)',
+      hidden: (page, target) => !('sourceId' in target) || !isRelationEdge(page, target),
+    },
+  ],
   shapeProperties: [
     {
       // Région (sujets 182, 233) : sa propre palette, bordure grise.
@@ -115,10 +144,20 @@ export const definition: PageModeDefinition = {
       hidden: notTable,
     },
   ],
-  // À l'ouverture, chaque table prend la taille de son contenu (sujet 255).
+  // À l'ouverture, chaque table prend la taille de son contenu (sujet 255), ses champs de relation suivent les flèches
+  // (sujet 265).
   opened: (edit) => {
     for (const shape of edit.page.shapes) fitTable(edit, shape);
+    syncRelations(edit);
   },
+  // Relations (sujet 265) : flèches permises, et le champ de relation de la table d'arrivée qui suit sa flèche
+  // (créée, rebranchée, supprimée, collée).
+  connects: (_page, source, target) => linksTables(source, target),
+  // Flèche de relation : cardinalités imposées, d'après « Optionnel » du champ ; le reste en lecture seule.
+  managesEdge: isRelationEdge,
+  edgeCreated: (edit) => syncRelations(edit),
+  edgeReconnected: (edit) => syncRelations(edit),
+  repair: syncRelations,
   // Champs des tables, sélectionnables dans la table (sujet 249).
   parts: fieldParts,
   // « + » sous la table : ajoute aussitôt un champ sans type (sujets 250, 256).
@@ -133,7 +172,10 @@ export const definition: PageModeDefinition = {
   carries: (page, shape) => regionContent(page, shape),
   // Une forme posée qui dépasse de sa région l'agrandit, marge comprise (sujet 183) ; les régions restent derrière
   // leur contenu (sujet 230).
-  placed: placeInRegions,
+  placed: (edit, shapeIds, before) => {
+    placeInRegions(edit, shapeIds, before);
+    syncRelations(edit);
+  },
   // Une région ne passe pas sur ses sœurs (sujet 241).
   obstacles: regionObstacles,
   keys: {
@@ -169,6 +211,8 @@ export const definition: PageModeDefinition = {
         message: `Table « ${shape.label || shape.id} » : ${problem}`,
       })),
     ),
+    // Flèche entre deux formes qui ne peuvent pas être liées (sujet 265).
+    ...forbiddenLinks(page).map(({ edgeId, message }) => ({ cellId: edgeId, message })),
     // Document JSONB sans nom : affiché « Document » (sujet 181).
     ...page.shapes.filter(missingName).map((shape) => ({
       cellId: shape.id,

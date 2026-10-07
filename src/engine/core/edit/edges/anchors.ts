@@ -33,13 +33,14 @@ export class Anchors {
 
   /**
    * Accroche d'un bout de flèche sous le pointeur, comme draw.io : point de connexion proche (attache
-   * fixe), sinon intérieur d'une forme (attache auto), sinon un point libre au niveau de la flèche.
+   * fixe), sinon intérieur d'une forme (attache auto), sinon un point libre au niveau de la flèche. `accepts` : formes
+   * permises par le mode de la page (`PageModes.endAccepts`).
    */
   endAttachmentAt(
     page: PageModel,
     screen: Point,
     options: {
-      exclude?: string;
+      accepts?: (shape: ShapeModel) => boolean;
       skip?: AnchorSkip;
       taken?: TakenAnchor[];
       height: number;
@@ -49,7 +50,7 @@ export class Anchors {
   ): EndAttachment {
     if (this.core.arrangement.distributes(page)) {
       // Ancrage automatique : on ne vise que le côté de la forme (le plus proche du pointeur) ; la répartition suit.
-      const shape = this.core.picking.shapeAt(screen, options.exclude);
+      const shape = this.core.picking.shapeAt(screen, options.accepts);
       if (shape) {
         const pointer = this.core.picking.groundPointAtHeight(screen, this.core.sceneView.elementTop(shape.id));
         const side = sideOfConstraint(frameConstraint(shape.bounds, pointer)) ?? 'n';
@@ -58,7 +59,7 @@ export class Anchors {
     }
     const shapes = this.core.arrangement.distributes(page)
       ? []
-      : connectableShapes(page, this.core.registry).filter((s) => s.id !== options.exclude);
+      : connectableShapes(page, this.core.registry).filter((s) => !options.accepts || options.accepts(s));
     let best: { shapeId: string; constraint: Point; distance: number } | undefined;
     for (const shape of shapes) {
       const top = this.core.sceneView.elementTop(shape.id);
@@ -70,7 +71,7 @@ export class Anchors {
       }
     }
     if (best) return { kind: 'fixed', shapeId: best.shapeId, constraint: { ...best.constraint } };
-    const shape = this.core.picking.shapeAt(screen, options.exclude);
+    const shape = this.core.picking.shapeAt(screen, options.accepts);
     if (shape) return { kind: 'floating', shapeId: shape.id };
     const point = this.core.picking.groundPointAtHeight(screen, options.height);
     const step = options.snap && options.grid > 0 ? options.grid : 1;

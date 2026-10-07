@@ -223,7 +223,7 @@ describe('buildPageScene — arêtes', () => {
 
   it('style d’arête inconnu : approché (dessiné quand même)', () => {
     const xml = `<mxfile><diagram id="p"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
-      <mxCell id="e" style="edgeStyle=isometricEdgeStyle;endArrow=ERmandOne;" edge="1" parent="1">
+      <mxCell id="e" style="edgeStyle=isometricEdgeStyle;endArrow=doubleBlock;" edge="1" parent="1">
         <mxGeometry relative="1" as="geometry"><mxPoint x="0" y="0" as="sourcePoint"/><mxPoint x="50" y="50" as="targetPoint"/></mxGeometry>
       </mxCell></root></mxGraphModel></diagram></mxfile>`;
     const { ctx } = stubContext();
