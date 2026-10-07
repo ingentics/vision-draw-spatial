@@ -1,0 +1,66 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/24.7.5 Chrome/126.0.6478.183 Electron/31.3.0 Safari/537.36" version="24.7.5">
+  <diagram id="WFIsR6-TCxpS3icqyYuW" name="Page-1" spatial.view="mode=top;x=353.53;y=230.05;zoom=1;rotation=0;tilt=0;elevation=35.26;azimuth=-45;volume=1;depth=32;v=2;" spatial.mode="sequences" spatial.flows="[{&quot;id&quot;:&quot;f1&quot;,&quot;title&quot;:&quot;Inscription flow&quot;,&quot;color&quot;:&quot;#dae8fc&quot;},{&quot;id&quot;:&quot;f2&quot;,&quot;title&quot;:&quot;Sending flow&quot;,&quot;color&quot;:&quot;#d5e8d4&quot;}]">
+    <mxGraphModel dx="-382" dy="-129" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="0" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="t-gzPRMqcNz0Mii5ih8S-1" value="User" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;" parent="1" vertex="1">
+          <mxGeometry x="150" y="110" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t-gzPRMqcNz0Mii5ih8S-2" value="Notifications" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;" parent="1" vertex="1">
+          <mxGeometry x="320" y="200" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t-gzPRMqcNz0Mii5ih8S-4" value="BUS" style="shape=cylinder3;spatial.participant=bus;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=8;direction=south;fontSize=12;" parent="1" vertex="1">
+          <mxGeometry x="200" y="310" width="100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="t-gzPRMqcNz0Mii5ih8S-5" value="Actor" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontSize=12;" parent="1" vertex="1">
+          <mxGeometry x="60" y="40" width="30" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t-gzPRMqcNz0Mii5ih8S-6" value="send form" style="orthogonalLoop=1;jettySize=auto;html=1;edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=12;spatial.flow=f1;spatial.step=1;" parent="1" source="t-gzPRMqcNz0Mii5ih8S-5" target="t-gzPRMqcNz0Mii5ih8S-1" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t-gzPRMqcNz0Mii5ih8S-7" value="Create" style="orthogonalLoop=1;jettySize=auto;html=1;edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=12;spatial.flow=f1;spatial.step=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" parent="1" source="t-gzPRMqcNz0Mii5ih8S-1" target="t-gzPRMqcNz0Mii5ih8S-1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="120" as="sourcePoint" />
+            <mxPoint x="230" y="90" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="310" y="140" />
+              <mxPoint x="310" y="80" />
+              <mxPoint x="240" y="80" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="t-gzPRMqcNz0Mii5ih8S-8" value="Notify" style="orthogonalLoop=1;jettySize=auto;html=1;edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=12;spatial.flow=f1;spatial.step=3;" parent="1" source="t-gzPRMqcNz0Mii5ih8S-1" target="t-gzPRMqcNz0Mii5ih8S-2" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="380" y="150" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="DNLc4bSC__SgB1cA274D-1" value="Enqueue the email" style="orthogonalLoop=1;jettySize=auto;html=1;edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=12;spatial.flow=f1;spatial.step=4;" parent="1" source="t-gzPRMqcNz0Mii5ih8S-2" target="t-gzPRMqcNz0Mii5ih8S-4" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="170" y="230" />
+              <mxPoint x="170" y="325" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="DNLc4bSC__SgB1cA274D-2" value="Read" style="orthogonalLoop=1;jettySize=auto;html=1;edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=12;entryX=1;entryY=0.5;entryDx=0;entryDy=0;spatial.flow=f2;spatial.step=1;" parent="1" source="t-gzPRMqcNz0Mii5ih8S-2" target="t-gzPRMqcNz0Mii5ih8S-4" edge="1">
+          <mxGeometry x="0.21" y="-18.35" relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="380" y="320" />
+              <mxPoint x="320" y="320" />
+              <mxPoint x="320" y="325" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="DNLc4bSC__SgB1cA274D-3" value="Mailjet" style="shape=stencil(nZPdDoIwDIWfpvej00yvEd5jwISFwcj407c3WFQgQpS7nfbrTrOcAffrTFYKkJWyUMAvgFiZNgVEQNZTwUNGOhs1G7WsKxU3VOyk0zIyijp142yuep0044wuM+V0M3R5ANyPZJynzrZlQrqSAzmcCtsN+9xobnS6k8LjU4ZEGl1OSBR7UbZOHvaSW/aC70U3/M97yS1774/3X7JCrLOn+QqvQH1lufid3dogNrZWbwUYfiIHGC7zeLVOzbQ2hkI9vWJJAYb0n3jwAA==);whiteSpace=wrap;html=1;fontSize=12;" parent="1" vertex="1">
+          <mxGeometry x="560" y="190" width="96" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="DNLc4bSC__SgB1cA274D-4" value="Send" style="orthogonalLoop=1;jettySize=auto;html=1;edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=12;spatial.flow=f2;spatial.step=2;" parent="1" source="t-gzPRMqcNz0Mii5ih8S-2" target="DNLc4bSC__SgB1cA274D-3" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
