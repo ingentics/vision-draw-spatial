@@ -13,7 +13,7 @@ import {
   regionObstacles,
 } from './regions';
 import { CARDINALITIES, cardinalitiesShown } from './relations/cardinalities';
-import { RELATION_PROPERTIES, forbiddenLinks, isRelationEdge, linksTables, syncRelations } from './relations';
+import { RELATION_PROPERTIES, canLink, forbiddenLinks, isRelationEdge, syncRelations } from './relations';
 import { ADD_DIVIDER_PROPERTY, TABLE_PROPERTIES, addDividerAfter } from './tableProperties';
 import { TABLE_KINDS, missingRequiredName } from './tableKinds';
 import { rowOf, shapeName } from './tableTargets';
@@ -69,7 +69,7 @@ export const definition: PageModeDefinition = {
   },
   // Relations (sujet 265) : flèches permises, et le champ de relation de la table d'arrivée qui suit sa flèche
   // (créée, rebranchée, supprimée, collée).
-  connects: (_page, source, target) => linksTables(source, target),
+  connects: (_page, source, target) => canLink(source, target),
   // Flèche de relation : bouts imposés par sa sorte (cardinalités d'après « Optionnel » du champ entre tables, aucune
   // pointe depuis un embedded, sujet 268) ; le reste en lecture seule.
   managesEdge: isRelationEdge,

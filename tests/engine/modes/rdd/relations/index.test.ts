@@ -1,19 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { setEdgeTerminal } from '../../../../src/engine/format/cellEdits';
-import { addEdgeCell, removeCellsDeep } from '../../../../src/engine/format/create';
-import { documentFromTree, readDrawio } from '../../../../src/engine/format/parse';
-import { applyModeEdit } from '../../../../src/engine/modes/modeEdits';
-import { definition as rdd } from '../../../../src/engine/modes/rdd';
-import { fieldParts } from '../../../../src/engine/modes/rdd/fieldParts';
-import { removeField, setField } from '../../../../src/engine/modes/rdd/operations';
-import { forbiddenLinks, linksTables } from '../../../../src/engine/modes/rdd/relations';
-import { fieldLayout } from '../../../../src/engine/modes/rdd/tableLayout';
-import { fieldNote, tableFields } from '../../../../src/engine/modes/rdd/fieldModel';
-import { tableKindOf } from '../../../../src/engine/modes/rdd/tableKinds';
-import type { Field } from '../../../../src/engine/modes/rdd/fieldModel';
-import type { ModeEdit } from '../../../../src/engine/modes/types';
-import { createDefaultRegistry } from '../../../../src/engine/shapes/registry';
-import { fixture } from '../../../helpers';
+import { setEdgeTerminal } from '../../../../../src/engine/format/cellEdits';
+import { addEdgeCell, removeCellsDeep } from '../../../../../src/engine/format/create';
+import { documentFromTree, readDrawio } from '../../../../../src/engine/format/parse';
+import { applyModeEdit } from '../../../../../src/engine/modes/modeEdits';
+import { definition as rdd } from '../../../../../src/engine/modes/rdd';
+import { fieldParts } from '../../../../../src/engine/modes/rdd/fieldParts';
+import { removeField, setField } from '../../../../../src/engine/modes/rdd/operations';
+import { canLink, forbiddenLinks, syncRelations } from '../../../../../src/engine/modes/rdd/relations';
+import { RELATION_KINDS } from '../../../../../src/engine/modes/rdd/relations/relationKinds';
+import type { RelationKind } from '../../../../../src/engine/modes/rdd/relations/kind';
+import { fieldLayout } from '../../../../../src/engine/modes/rdd/tableLayout';
+import { fieldNote, tableFields } from '../../../../../src/engine/modes/rdd/fieldModel';
+import { tableKindOf } from '../../../../../src/engine/modes/rdd/tableKinds';
+import type { Field } from '../../../../../src/engine/modes/rdd/fieldModel';
+import type { ModeEdit } from '../../../../../src/engine/modes/types';
+import { createDefaultRegistry } from '../../../../../src/engine/shapes/registry';
+import { fixture } from '../../../../helpers';
 
 /**
  * Fixture RDD (sans flèche) : `user`, `orphan` (entités), `role` (énumération), `address` (embedded « Address »),
@@ -55,7 +57,7 @@ describe('mode RDD : liaisons permises (sujet 265)', () => {
     for (const id of ['active', 'settings', 'accounts', 'model']) {
       expect(shapes.isConnectable(shape(id))).toBe(false);
       expect(shapes.connectSides(shape(id))).toEqual([]);
-      expect(linksTables(shape('user'), shape(id))).toBe(false);
+      expect(canLink(shape('user'), shape(id))).toBe(false);
     }
     expect(shapes.connectSides(shape('address'))).toEqual(['e', 'w']);
     expect(shapes.isConnectable(shape('user'))).toBe(true);
@@ -374,5 +376,25 @@ describe('mode RDD : relation embedded (sujet 268)', () => {
     run((edit) => setField(edit, shape('user'), index, { nullable: false }));
     run(rdd.opened!);
     expect(relations('user')[0]!.nullable).toBe(true);
+  });
+});
+
+describe('mode RDD : sorte de relation sans champ (sujet 278)', () => {
+  /** Sorte de test : d'une vue vers une entité, sans champ, en tirets. */
+  const viewLink: RelationKind = {
+    id: 'test-view',
+    from: ['rdd-view'],
+    to: ['rdd-entity'],
+    look: () => ({ startArrow: 'none', endArrow: 'block', dashed: true }),
+  };
+
+  it('aucun champ créé dans la forme d’arrivée ; la flèche prend l’apparence de sa sorte', () => {
+    const { pageTree, page, run, fields } = setup();
+    const before = fields('user');
+    const id = addEdgeCell(pageTree, { source: 'active', target: 'user', style: '' });
+    run((edit) => syncRelations(edit, undefined, [...RELATION_KINDS, viewLink]));
+    expect(fields('user')).toEqual(before);
+    const edge = page().edges.find((e) => e.id === id)!;
+    expect([edge.style.startArrow, edge.style.endArrow, edge.style.dashed]).toEqual(['none', 'block', '1']);
   });
 });

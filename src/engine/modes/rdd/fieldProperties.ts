@@ -3,7 +3,7 @@ import type { FieldOption } from './fieldModel';
 import { FIELD_OPTIONS, FIELD_TYPES, fieldTypeLabel, isDivider, isPrimaryKey, isRelation } from './fieldModel';
 import { fieldParts } from './fieldParts';
 import { setField } from './operations';
-import { RELATION_FIELD_PROPERTIES, relationOnlyField } from './relations';
+import { RELATION_FIELD_PROPERTIES, edgeOwnedField } from './relations';
 import { tableKindOf } from './tableKinds';
 import { fieldOf, onlyWhen, rowOf } from './tableTargets';
 
@@ -122,6 +122,6 @@ const CLASSIC_FIELD_PROPERTIES: ModeProperty[] = [
  * relation (embedded, sujet 268), qui montre le formulaire de sa flèche.
  */
 export const FIELD_PROPERTIES: ModeProperty[] = [
-  ...onlyWhen(CLASSIC_FIELD_PROPERTIES, (page, target, part) => !relationOnlyField(page, target, part)),
+  ...onlyWhen(CLASSIC_FIELD_PROPERTIES, (page, target, part) => !edgeOwnedField(page, target, part)),
   ...RELATION_FIELD_PROPERTIES,
 ];

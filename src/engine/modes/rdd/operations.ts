@@ -92,7 +92,7 @@ export function setField(edit: ModeEdit, shape: ShapeModel, index: number, patch
     rows.map((current, i) => (i === index ? next : current)),
   );
   // Champ de relation : les bouts de sa flèche suivent le champ (cardinalités d'après « Optionnel », sujet 265).
-  if (isRelation(next)) writeRelationEdge(edit, next);
+  if (isRelation(next)) writeRelationEdge(edit, next.edge, next);
 }
 
 /** Ajoute une ligne après la ligne `after` (sinon en fin de liste ; jamais avant la clé primaire) ; renvoie son rang. */

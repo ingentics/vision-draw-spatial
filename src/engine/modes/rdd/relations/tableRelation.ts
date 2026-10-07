@@ -1,5 +1,5 @@
 import { newFieldLabel } from '../fieldModel';
-import { writeCardinalities } from './cardinalities';
+import { cardinalitiesLook } from './cardinalities';
 import type { RelationKind } from './kind';
 
 /** Nom inverse d'une relation, sur sa flèche : la relation vue depuis la table d'arrivée. */
@@ -13,10 +13,8 @@ export const tableRelation: RelationKind = {
   id: 'table',
   from: ['rdd-entity', 'rdd-enum'],
   to: ['rdd-entity', 'rdd-enum'],
-  fieldKind: 'fk',
-  fieldLabel: (rows) => newFieldLabel(rows, 'relation'),
-  writeEnds: (edit, edge, field, settings, shapes) =>
-    writeCardinalities(edit, edge, shapes, field.nullable, settings.cardinalities),
+  field: { kind: 'fk', label: (rows) => newFieldLabel(rows, 'relation') },
+  look: (field, settings) => cardinalitiesLook(!!field?.nullable, settings.cardinalities),
   properties: [
     {
       type: 'text',

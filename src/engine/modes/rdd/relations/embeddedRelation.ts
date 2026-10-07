@@ -1,5 +1,4 @@
 import { newFieldLabel } from '../fieldModel';
-import { removeEndTexts, setEndArrows } from './ends';
 import type { RelationKind } from './kind';
 
 /**
@@ -12,22 +11,20 @@ export const embeddedRelation: RelationKind = {
   id: 'embedded',
   from: ['rdd-embedded'],
   to: ['rdd-entity', 'rdd-enum'],
-  // Losange violet (docs/assets/embed.svg).
-  fieldKind: 'embed',
-  fieldLabel: (rows, source) => {
-    // Son nom sur une ligne, sinon celui de sa forme.
-    const name = source.label.replace(/\s+/g, ' ').trim() || 'Embedded';
-    return rows.some((row) => row.label === name) ? newFieldLabel(rows, name) : name;
+  field: {
+    // Losange violet (docs/assets/embed.svg).
+    kind: 'embed',
+    label: (rows, source) => {
+      // Son nom sur une ligne, sinon celui de sa forme.
+      const name = source.label.replace(/\s+/g, ' ').trim() || 'Embedded';
+      return rows.some((row) => row.label === name) ? newFieldLabel(rows, name) : name;
+    },
+    // Libellé et préfixe : dans le champ ; la table d'arrivée affiche le préfixe en gris à la place du type.
+    texts: [
+      { key: 'label', label: 'Champ', title: 'Nom du champ de l’embedded dans la table d’arrivée ; jamais vide' },
+      { key: 'prefix', label: 'Préfixe', title: 'Préfixe des champs de l’embedded dans la table d’arrivée (prefix)' },
+    ],
+    ownedByEdge: true,
   },
-  writeEnds: (edit, edge) => {
-    setEndArrows(edit, edge.id, 'none', 'none');
-    removeEndTexts(edit, edge.id);
-  },
-  properties: [],
-  // Libellé et préfixe : dans le champ ; la table d'arrivée affiche le préfixe en gris à la place du type.
-  fieldTexts: [
-    { key: 'label', label: 'Champ', title: 'Nom du champ de l’embedded dans la table d’arrivée ; jamais vide' },
-    { key: 'prefix', label: 'Préfixe', title: 'Préfixe des champs de l’embedded dans la table d’arrivée (prefix)' },
-  ],
-  fieldIsRelation: true,
+  look: () => ({ startArrow: 'none', endArrow: 'none' }),
 };
