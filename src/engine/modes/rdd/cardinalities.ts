@@ -37,7 +37,7 @@ function leavingDirection(page: PageModel, edge: EdgeModel, end: 'source' | 'tar
   return SIDE_NORMALS[dy < 0 ? 'n' : 's'];
 }
 
-/** Cardinalités affichées sur la page (`0` : masquées, sans pointes ni textes) ; absent : affichées. */
+/** Textes des cardinalités affichés sur la page (`0` : masqués, les pointes restent, sujet 266) ; absent : affichés. */
 export const CARDINALITIES = 'spatial.cardinalities';
 
 export const cardinalitiesShown = (page: PageModel): boolean => page.attributes[CARDINALITIES] !== '0';
@@ -47,7 +47,7 @@ const TEXT_MARGIN = { along: 4, across: 4 };
 
 /**
  * Pointes et textes des bouts d'une flèche de relation ; `shown` : réglage de la page (passé quand l'opération vient
- * de le changer, `edit.page` ne le montrant pas encore). Masquées : ni pointe ni texte.
+ * de le changer, `edit.page` ne le montrant pas encore). Masquées : les pointes seules, sans texte (sujet 266).
  */
 export function writeCardinalities(
   edit: ModeEdit,
@@ -57,8 +57,8 @@ export function writeCardinalities(
 ): void {
   const edge = edit.page.edges.find((e) => e.id === edgeId);
   if (!edge) return;
-  edit.setElementStyle(edgeId, 'startArrow', shown ? 'ERzeroToMany' : 'none');
-  edit.setElementStyle(edgeId, 'endArrow', !shown ? 'none' : nullable ? 'ERzeroToOne' : 'ERmandOne');
+  edit.setElementStyle(edgeId, 'startArrow', 'ERzeroToMany');
+  edit.setElementStyle(edgeId, 'endArrow', nullable ? 'ERzeroToOne' : 'ERmandOne');
   edit.setElementStyle(edgeId, 'startFill', undefined);
   edit.setElementStyle(edgeId, 'endFill', undefined);
   edit.setEdgeEndText(

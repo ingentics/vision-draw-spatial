@@ -56,12 +56,13 @@ export const definition: PageModeDefinition = {
   paletteCategories: [{ id: 'rdd', name: 'RDD', order: 5 }],
   pageProperties: [
     {
-      // Encart du mode sur la page (sujet 265) : pointes et textes des cardinalités, sur toutes les relations.
+      // Encart du mode sur la page (sujets 265, 266) : textes des cardinalités, sur toutes les relations (les pointes
+      // restent).
       type: 'toggle',
       key: CARDINALITIES,
       section: 'RDD',
       label: 'Afficher les cardinalités',
-      title: 'Pointes et textes des cardinalités aux bouts des flèches de relation (spatial.cardinalities)',
+      title: 'Textes des cardinalités aux bouts des flèches de relation ; les pointes restent (spatial.cardinalities)',
       value: (page) => (cardinalitiesShown(page) ? '1' : undefined),
       write: (edit, _target, value) => {
         const shown = value === '1';

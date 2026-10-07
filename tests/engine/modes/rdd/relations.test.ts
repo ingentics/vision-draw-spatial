@@ -212,7 +212,7 @@ describe('mode RDD : champ de relation (sujet 265)', () => {
     expect(end.placement.offset.x).not.toBe(0);
   });
 
-  it('« Afficher les cardinalités » décoché sur la page : ni pointes ni textes ; recoché : de retour', () => {
+  it('« Afficher les cardinalités » décoché sur la page : les pointes sans les textes (sujet 266) ; recoché : de retour', () => {
     const { connect, run, page } = setup();
     const edge = connect('user', 'role');
     const toggle = rdd.pageProperties!.find((property) => property.key === 'spatial.cardinalities')!;
@@ -225,10 +225,10 @@ describe('mode RDD : champ de relation (sujet 265)', () => {
     run((edit) => toggle.write!(edit, page(), undefined));
     expect(page().attributes['spatial.cardinalities']).toBe('0');
     expect(toggle.value!(page(), page())).toBeUndefined();
-    expect(ends()).toEqual(['none', 'none', []]);
+    expect(ends()).toEqual(['ERzeroToMany', 'ERzeroToOne', []]);
     // Une remise en ordre (ex. table déplacée) ne les fait pas revenir.
     run((edit) => rdd.placed!(edit, ['user']));
-    expect(ends()).toEqual(['none', 'none', []]);
+    expect(ends()).toEqual(['ERzeroToMany', 'ERzeroToOne', []]);
     run((edit) => toggle.write!(edit, page(), '1'));
     expect(page().attributes['spatial.cardinalities']).toBeUndefined();
     expect(ends()).toEqual(['ERzeroToMany', 'ERzeroToOne', ['0,1', '0,n']]);
