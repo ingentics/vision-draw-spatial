@@ -2,11 +2,11 @@ import type { PageModePalette } from '../edit/palette';
 import type { PageEffectDefinition } from '../effects/types';
 import type { ViewMode } from '../interaction/cameraMath';
 import type { PageModel } from '../model/types';
-import { pluginValues, readPluginSetting } from '../settings/pluginSettings';
+import { pluginValues } from '../settings/pluginSettings';
 import type { PluginSettings, PluginValues } from '../settings/pluginSettings';
 import type { PaletteCategory, ShapeDefinition, ShapeTemplate } from '../shapes/types';
 import { SPATIAL } from '../spatial';
-import { legacyKey, modeKey, NAMESPACE_PATTERN } from './modeKeys';
+import { modeKey, NAMESPACE_PATTERN } from './modeKeys';
 import type { ModeProperty, PageModeDefinition } from './types';
 import { freezePlain } from '../model/freeze';
 
@@ -139,28 +139,6 @@ export class PageModeRegistry {
     return mode ? this.values(mode.id, settings?.[mode.id]) : {};
   }
 
-  /**
-   * Réglages des modes repris de leurs anciennes clés (`PluginSetting.legacy`) dans les paramètres enregistrés
-   * `stored` : seulement ceux qui différaient du défaut.
-   */
-  legacySettings(stored: Record<string, unknown> | undefined): PluginSettings {
-    // Section `shapes` pour une clé seule (ticket 283), chemin depuis la racine sinon (sujet 306).
-    const read = (legacy: string): unknown =>
-      (legacy.includes('.') ? legacy.split('.') : ['shapes', legacy]).reduce<unknown>(
-        (value, key) => (value && typeof value === 'object' ? (value as Record<string, unknown>)[key] : undefined),
-        stored,
-      );
-    const result: PluginSettings = {};
-    for (const mode of this.definitions.values()) {
-      for (const setting of mode.settings ?? []) {
-        const value = setting.legacy ? readPluginSetting(setting, read(setting.legacy)) : undefined;
-        if (value === undefined || value === setting.default) continue;
-        (result[mode.id] ??= {})[setting.key] = value;
-      }
-    }
-    return result;
-  }
-
   /** L'effet existe-t-il dans l'un des modes d'affichage permis sur la page (sujet 196) ? */
   effectViewable(page: PageModel, effect: Pick<PageEffectDefinition, 'viewModes'>): boolean {
     return !effect.viewModes || effect.viewModes.some((mode) => this.allowsViewMode(page, mode));
@@ -216,14 +194,11 @@ export class PageModeRegistry {
 
   /**
    * Attributs à retirer des éléments collés : ceux de tous les modes (ils dorment sur une page d'un autre mode), clés
-   * complètes, anciennes clés comprises le temps de la migration (sujet 301).
+   * complètes.
    */
   pasteKeys(): string[] {
     return [...this.definitions.values()].flatMap((mode) =>
-      (mode.pasteKeys ?? []).flatMap((name) => [
-        modeKey(mode.namespace, name),
-        ...(mode.legacyKeys?.includes(name) ? [legacyKey(name)] : []),
-      ]),
+      (mode.pasteKeys ?? []).map((name) => modeKey(mode.namespace, name)),
     );
   }
 }

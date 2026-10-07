@@ -91,8 +91,8 @@ describe('modes de page en plugins (sujet 69)', () => {
     // Mode écrit sans espace de noms (hors du typage) : refusé lui aussi.
     expect(() => registry.register({ id: 'c', name: 'C' } as unknown as PageModeDefinition)).toThrow('invalide');
 
-    registry.register({ id: 'd', namespace: 'old', name: 'D', legacyKeys: ['flow'], pasteKeys: ['flow', 'step'] });
-    expect(registry.pasteKeys()).toEqual(['spatial.old.flow', 'spatial.flow', 'spatial.old.step']);
+    registry.register({ id: 'd', namespace: 'old', name: 'D', pasteKeys: ['flow', 'step'] });
+    expect(registry.pasteKeys()).toEqual(['spatial.old.flow', 'spatial.old.step']);
   });
 
   it('ids uniques et formes d’un mode (sujet 304) : id pris, forme non préfixée ou avec kinds / matches, refusés', () => {
@@ -234,9 +234,9 @@ describe('réglages déclarés par un mode (ticket 283)', () => {
     namespace: 'reglages',
     name: 'Réglages',
     settings: [
-      { key: 'gap', type: 'number', label: 'Écart', min: 0, max: 50, step: 1, default: 20, legacy: 'oldGap' },
+      { key: 'gap', type: 'number', label: 'Écart', min: 0, max: 50, step: 1, default: 20 },
       { key: 'face', type: 'toggle', label: 'Face', default: true },
-      { key: 'ink', type: 'color', label: 'Encre', default: '#000000', legacy: 'oldInk' },
+      { key: 'ink', type: 'color', label: 'Encre', default: '#000000' },
     ],
   };
   const registry = new PageModeRegistry().register(mode);
@@ -255,11 +255,6 @@ describe('réglages déclarés par un mode (ticket 283)', () => {
     });
     expect(registry.valuesOf(page({ [SPATIAL.mode]: 'reglages' }), { reglages: { gap: 5 } }).gap).toBe(5);
     expect(registry.valuesOf(page({}), { reglages: { gap: 5 } })).toEqual({});
-  });
-
-  it('anciennes clés de `shapes` : reprises si elles différaient du défaut', () => {
-    expect(registry.legacySettings({ shapes: { oldGap: 35, oldInk: '#000000' } })).toEqual({ reglages: { gap: 35 } });
-    expect(registry.legacySettings(undefined)).toEqual({});
   });
 
   it('habillage : le mode reçoit ses valeurs', () => {

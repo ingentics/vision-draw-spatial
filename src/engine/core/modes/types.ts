@@ -27,11 +27,6 @@ export interface PageModeDefinition {
    * `spatial.<namespace>.<nom>` en ne donnant que le nom court ; propre au mode (deux modes ne le partagent pas).
    */
   namespace: string;
-  /**
-   * Noms courts dont l'ancienne clé `spatial.<nom>` (avant l'espace de noms) est encore lue (`modeKeys`), puis
-   * réécrite sous son nouveau nom à l'ouverture du document (sujet 301).
-   */
-  legacyKeys?: string[];
   /** Nom affiché dans le choix du mode. */
   name: string;
   /** Nom court, là où la place manque (sous-page du mode dans les paramètres, ticket 283) ; défaut : `name`. */

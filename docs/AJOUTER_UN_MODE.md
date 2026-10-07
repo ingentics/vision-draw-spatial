@@ -40,7 +40,6 @@ src/app/plugins/modes/<id>/     l'appli (facultatif) : sections React du panneau
 interface PageModeDefinition {
   id: string;                                  // nom des dossiers, valeur de spatial.mode
   namespace: string;                           // espace de noms des clés : spatial.<namespace>.<nom> (section 3)
-  legacyKeys?: string[];                       // anciennes clés spatial.<nom> lues, renommées à l'ouverture
   name: string;                                // choix du mode dans le panneau de la page
   shortName?: string;                          // nom court (sous-page des paramètres ; défaut : name)
   description?: string;                        // aide au survol
@@ -112,15 +111,12 @@ qui n'écrit rien.
 Pour lire, le mode prend un lecteur de ses clés dans l'API des plugins, une fois, à partir de ce qui le situe :
 
 ```ts
-export const SEQUENCES_KEYS = { namespace: 'seq', legacyKeys: ['flows', 'flow', 'step', 'participant'] };
+export const SEQUENCES_KEYS = { namespace: 'seq' };
 export const keys = modeKeys(SEQUENCES_KEYS);   // keys.value(edge, 'flow'), keys.flag(…), keys.pageValue(page, 'flows')
 export const definition: PageModeDefinition = { id: 'sequences', ...SEQUENCES_KEYS, … };
 ```
 
 `keys.key(nom)` donne la clé complète, pour l'écrire soi-même dans un style (modèle de palette, aperçu d'une forme).
-`legacyKeys` : noms courts dont l'ancienne clé `spatial.<nom>` (d'avant l'espace de noms) est encore lue ; à
-l'ouverture du document, le moteur la réécrit sous son nouveau nom, à la même place, dans l'étape d'annulation de
-`lifecycle.opened`. Un nouveau mode n'en a pas.
 
 Un réglage déclaré (`toggle`, `number`, `text` — `multiline` pour une zone de texte —, `select`, dont les choix
 reçoivent les couleurs de l'appli ; `readOnly` pour l'afficher sans le rendre modifiable) est rendu par un champ
@@ -159,9 +155,7 @@ enregistre dans `settings.modes[id][key]` ; le registre les borne (`values`, aus
 `engine.getModeRegistry()` : déclaration des modes seulement, jamais leurs points d'entrée, sujet 304). Le moteur ne les lit
 jamais : il passe les valeurs (`values`) aux mécanismes du mode (`gestures.obstacles`, `dressing`, `current.look`), qui lui
 rendent ce qu'il applique (écart, apparence des pastilles, opacité…) ; la partie appli du mode les reçoit aussi
-(`ModePanelProps.values`, ex. moteur de rendu de l'export PlantUML de Séquences). `legacy` : ancienne clé de la section
-`shapes`, ou chemin depuis la racine des paramètres s'il contient un point (`exporters.plantuml.renderer`), reprise une
-fois par la migration des paramètres enregistrés.
+(`ModePanelProps.values`, ex. moteur de rendu de l'export PlantUML de Séquences).
 
 Les données dérivées d'une page (ex. flèches rangées par flux) se calculent une fois par `PageModel` (le modèle est
 relu après chaque modification) : un `WeakMap` suffit.
@@ -268,7 +262,6 @@ Règles communes (sujet 288) :
 | **Déclaration** | | | | |
 | `id` | lu par le registre (dossier, `spatial.mode`) | — | — | — |
 | `namespace` | enregistrement (unique, sinon refusé) ; préfixe de chaque écriture d'attribut du mode | — | — | — |
-| `legacyKeys` | ouverture du document : anciennes clés renommées, avant `lifecycle.opened` | page de l'arbre | dans l'étape de `lifecycle.opened` | — |
 | `name` | choix du mode, titres | — | — | — |
 | `shortName` | sous-page Paramètres › Modes | — | — | — |
 | `description` | aide du choix du mode | — | — | — |
@@ -279,7 +272,7 @@ Règles communes (sujet 288) :
 | `page.allowsEffect` | effets actifs d'une page (scène en volume, page en volume ou non), panneau des effets | — | — | effet permis (les modes d'affichage de l'effet restent vérifiés) |
 | `page.selectionStyle` | mise en valeur de la sélection sur une page du mode | — | — | — |
 | `settings` | Paramètres › Modes ; valeurs bornées passées à `dressing`, `gestures.obstacles`, `current.look` | — | — | — |
-| `pasteKeys` | collage et duplication, sur toutes les pages | — | clés du mode (et anciennes clés) retirées des éléments collés | — |
+| `pasteKeys` | collage et duplication, sur toutes les pages | — | clés du mode retirées des éléments collés | — |
 | **Cycle de vie** | | | | |
 | `lifecycle.check` | chaque lecture du document (ouverture, chaque modification, annuler / rétablir) | page du modèle | aucune (avertissements) | aucun avertissement du mode pour la page |
 | `lifecycle.opened` | ouverture du document, et à nouveau quand la mesure exacte du texte arrive ; pas en lecture seule | page du modèle | une étape « Ajustement du mode » pour tout le document | rien d'écrit pour la page |

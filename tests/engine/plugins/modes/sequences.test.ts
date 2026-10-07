@@ -64,12 +64,6 @@ describe('mode Séquences (sujet 70) : lecture', () => {
     expect(sequenceState(page()).issues.map((issue) => issue.cellId ?? 'flux')).toEqual(['perdu', 'flux']);
   });
 
-  it('fichier aux anciennes clés (avant le sujet 301) : lu comme le même aux nouvelles clés', () => {
-    const pages = (file: string) => readDrawio(fixture(file)).document.pages;
-    const [legacy, current] = [pages('sequences-anciennes-cles.drawio'), pages('sequences.drawio')];
-    for (const i of [0, 1]) expect(sequenceState(legacy[i]!)).toEqual(sequenceState(current[i]!));
-  });
-
   it('flux illisibles ignorés au mieux (JSON invalide, doublon, couleur invalide)', () => {
     const page = (flows: string) => ({ attributes: { 'spatial.seq.flows': flows } }) as unknown as PageModel;
     expect(readFlows(page('pas du JSON'))).toEqual([]);

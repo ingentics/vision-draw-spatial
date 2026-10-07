@@ -49,7 +49,7 @@ describe('mode RDD : embedded, document et vue (sujets 181, 218)', () => {
   it('palette : entête de 26 px, sans clé primaire ; embedded en trait plein, coins arrondis pour la vue', () => {
     for (const id of ['rdd-embedded', 'rdd-document', 'rdd-view']) {
       expect(style(id)).toContain('startSize=26;');
-      expect(style(id)).not.toContain('spatial.fields');
+      expect(style(id)).not.toContain('spatial.rdd.fields');
     }
     expect(style('rdd-embedded')).not.toMatch(/dashed|rounded/);
     expect(style('rdd-view')).toContain('rounded=1;');

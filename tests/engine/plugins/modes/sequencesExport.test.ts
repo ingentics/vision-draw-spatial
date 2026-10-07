@@ -26,7 +26,7 @@ function flow(...arrows: Array<[string | undefined, string | undefined, string?]
       label,
       sourceId: source?.replace(/^--/, '') || undefined,
       targetId: target,
-      style: { ...(dashed ? { dashed: '1' } : {}), 'spatial.flow': 'f1', 'spatial.step': String(i + 1) },
+      style: { ...(dashed ? { dashed: '1' } : {}), 'spatial.seq.flow': 'f1', 'spatial.seq.step': String(i + 1) },
     };
   });
   return {

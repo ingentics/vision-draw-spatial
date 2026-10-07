@@ -13,7 +13,6 @@ export const SEQUENCES_SETTINGS: PluginSetting[] = [
     step: 0.05,
     default: 0.3,
     unit: '%',
-    legacy: 'modeDimOpacity',
   },
   {
     key: 'barSlideDuration',
@@ -26,7 +25,6 @@ export const SEQUENCES_SETTINGS: PluginSetting[] = [
     default: 200,
     unit: 'ms',
     zero: 'sans',
-    legacy: 'modeBarSlideDuration',
   },
   {
     key: 'badgeFaceCamera',
@@ -35,21 +33,18 @@ export const SEQUENCES_SETTINGS: PluginSetting[] = [
     groupHint: 'Rang d’une flèche dans son flux.',
     label: 'Pastille face à la caméra',
     default: true,
-    legacy: 'edgeBadgeFaceCamera',
   },
   {
     key: 'badgeLabelFaceCamera',
     type: 'toggle',
     label: 'Texte des flèches en séquence face à la caméra',
     default: true,
-    legacy: 'edgeBadgeLabelFaceCamera',
   },
   {
     key: 'badgeBorderColor',
     type: 'color',
     label: 'Couleur de la bordure',
     default: '#000000',
-    legacy: 'edgeBadgeBorderColor',
   },
   {
     key: 'badgeBorderWidth',
@@ -61,16 +56,14 @@ export const SEQUENCES_SETTINGS: PluginSetting[] = [
     default: 1,
     unit: 'px',
     zero: 'aucune',
-    legacy: 'edgeBadgeBorderWidth',
   },
   {
     key: 'badgeTextColor',
     type: 'color',
     label: 'Couleur du chiffre',
     default: '#000000',
-    legacy: 'edgeBadgeTextColor',
   },
-  { key: 'badgeBold', type: 'toggle', label: 'Chiffre en gras', default: false, legacy: 'edgeBadgeBold' },
+  { key: 'badgeBold', type: 'toggle', label: 'Chiffre en gras', default: false },
   {
     key: 'badgeRadius',
     type: 'number',
@@ -81,7 +74,6 @@ export const SEQUENCES_SETTINGS: PluginSetting[] = [
     step: 0.5,
     default: 12,
     unit: 'px',
-    legacy: 'edgeBadgeRadius',
   },
   {
     key: 'badgeTextSize',
@@ -92,7 +84,6 @@ export const SEQUENCES_SETTINGS: PluginSetting[] = [
     step: 1,
     default: 15,
     unit: 'px',
-    legacy: 'edgeBadgeTextSize',
   },
   {
     key: 'badgeGap',
@@ -103,7 +94,6 @@ export const SEQUENCES_SETTINGS: PluginSetting[] = [
     step: 1,
     default: 2,
     unit: 'px',
-    legacy: 'edgeBadgeGap',
   },
   {
     key: 'badgeSmallRadius',
@@ -115,7 +105,6 @@ export const SEQUENCES_SETTINGS: PluginSetting[] = [
     step: 0.5,
     default: 5.5,
     unit: 'px',
-    legacy: 'edgeBadgeSmallRadius',
   },
   {
     key: 'badgeSmallTextSize',
@@ -126,7 +115,6 @@ export const SEQUENCES_SETTINGS: PluginSetting[] = [
     step: 1,
     default: 7,
     unit: 'px',
-    legacy: 'edgeBadgeSmallTextSize',
   },
   {
     key: 'edgeDarken',
@@ -139,7 +127,6 @@ export const SEQUENCES_SETTINGS: PluginSetting[] = [
     step: 0.05,
     default: 0.25,
     unit: '%',
-    legacy: 'edgeDressingDarken',
   },
   {
     key: 'plantumlRenderer',
@@ -152,7 +139,6 @@ export const SEQUENCES_SETTINGS: PluginSetting[] = [
       { value: 'local', label: 'Serveur local' },
     ],
     default: 'kroki',
-    legacy: 'exporters.plantuml.renderer',
   },
   {
     key: 'plantumlUrl',
@@ -160,7 +146,6 @@ export const SEQUENCES_SETTINGS: PluginSetting[] = [
     label: 'URL du serveur local',
     when: { key: 'plantumlRenderer', value: 'local' },
     default: 'http://localhost:8080',
-    legacy: 'exporters.plantuml.localUrl',
     hint: 'Rendu de la fenêtre d’export des flux. Le texte du diagramme part dans l’adresse de l’image : avec un serveur local, rien ne sort de la machine. Un serveur PlantUML se lance avec « make plantuml » (http://localhost:8080).',
   },
 ];

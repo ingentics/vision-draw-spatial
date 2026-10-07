@@ -5,11 +5,10 @@ import { describe, expect, it } from 'vitest';
 
 /**
  * Registres injectables de bout en bout (sujet 290) : l'appli prend les registres du moteur affiché
- * (`PluginsContext`), jamais ceux par défaut ; seule exception, la reprise des anciens réglages des modes
- * (`legacyModeSettings`, dans `settingsStore.ts`), qui tourne avant la création du moteur.
+ * (`PluginsContext`), jamais ceux par défaut.
  */
 const APP = resolve(dirname(fileURLToPath(import.meta.url)), '../../src/app');
-const DEFAULTS = /(?<!\.)\b(legacyModeSettings|SHAPE_TEMPLATES|usedTemplates)\b/;
+const DEFAULTS = /(?<!\.)\b(SHAPE_TEMPLATES|usedTemplates)\b/;
 
 function filesOf(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -19,11 +18,11 @@ function filesOf(dir: string): string[] {
 }
 
 describe('appli et registres du moteur (sujet 290)', () => {
-  it('aucun registre ni modèle de palette par défaut dans l’appli, hors settingsStore', () => {
+  it('aucun registre ni modèle de palette par défaut dans l’appli', () => {
     const users = filesOf(APP)
       .filter((file) => DEFAULTS.test(readFileSync(file, 'utf8')))
       .map((file) => relative(APP, file));
-    expect(users).toEqual(['settingsStore.ts']);
+    expect(users).toEqual([]);
   });
 
   it('l’appli n’appelle pas les points d’entrée des réglages déclarés (sujet 294)', () => {

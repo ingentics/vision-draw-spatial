@@ -16,11 +16,6 @@ export type PluginSetting = {
   group?: string;
   /** Aide affichée sous le titre du groupe (sur le premier réglage du groupe). */
   groupHint?: string;
-  /**
-   * Ancienne clé, reprise une fois si sa valeur différait du défaut : dans la section `shapes` des paramètres (avant le
-   * ticket 283), ou chemin depuis leur racine s'il contient un point (ex. `exporters.plantuml.renderer`, sujet 306).
-   */
-  legacy?: string;
 } & (
   | {
       type: 'number';

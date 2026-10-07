@@ -27,10 +27,6 @@ export class CameraController {
     this.keyboard.attach();
   }
 
-  getSettings(): ControlSettings {
-    return { ...this.ctx.settings };
-  }
-
   setSettings(patch: Partial<ControlSettings>): void {
     const settings = this.ctx.settings;
     const keyChanged = (name: 'followLinkKey' | 'multiSelectKey') =>

@@ -15,6 +15,5 @@ export const RDD_SETTINGS: PluginSetting[] = [
     step: 1,
     default: 20,
     unit: 'px',
-    legacy: 'modeObstacleGap',
   },
 ];

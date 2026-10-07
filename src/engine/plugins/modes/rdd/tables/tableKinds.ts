@@ -86,9 +86,6 @@ export function missingRequiredName(shape: ShapeModel): string | undefined {
   return required !== undefined && shape.label.trim() === '' ? required : undefined;
 }
 
-/** Nom vide d'une table au nom obligatoire (document JSONB) ? */
-export const missingName = (shape: ShapeModel) => missingRequiredName(shape) !== undefined;
-
 /** Nom affiché d'une table : son label, ou le nom obligatoire de sa forme s'il est vide (« Document »). */
 export const tableName = (shape: ShapeModel): string => missingRequiredName(shape) ?? shape.label;
 

@@ -2,11 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { definition as rdd } from '../../../../../src/engine/plugins/modes/rdd';
 import { rowWidth, widthOf, KEY_ROW, labels, fieldsOf, tableFields, setup } from './helpers';
 import { createDefaultModeRegistry, createDefaultRegistry } from '../../../../../src/engine/plugins';
-import { readDrawio } from '../../../../../src/engine/core/format/parse';
-import type { PageModel } from '../../../../../src/engine/core/model/types';
-import { fixture } from '../../../../helpers';
-import { isSecondary } from '../../../../../src/engine/plugins/modes/rdd/tables/tableLayout';
-import { cardinalitiesShown } from '../../../../../src/engine/plugins/modes/rdd/relations';
 import { modeHost } from '../../../modeHost';
 
 describe('mode RDD (sujet 179) : page et palette', () => {
@@ -58,7 +53,7 @@ describe('mode RDD (sujet 179) : page et palette', () => {
     expect(templates.find((t) => t.id === 'rdd-model')).toBeUndefined();
   });
 
-  it('les tables du fichier sont reconnues ; champs lus de spatial.fields', () => {
+  it('les tables du fichier sont reconnues ; champs lus de spatial.rdd.fields', () => {
     const shapes = createDefaultRegistry();
     expect(page().shapes.map((shape) => shapes.resolve(shape).definition.id)).toEqual([
       'rdd-region',
@@ -112,19 +107,6 @@ describe('mode RDD (sujet 179) : page et palette', () => {
     const key = properties.find((p) => p.label === 'Clé primaire')!;
     expect([key.readOnly, key.value!(page(), entity)]).toEqual([true, 'id']);
     expect(properties.every((p) => p.hidden!(page(), page()))).toBe(true);
-  });
-});
-
-describe('mode RDD : fichier aux anciennes clés (sujet 301)', () => {
-  it('mêmes champs, mêmes tables secondaires, mêmes cardinalités que le même fichier aux nouvelles clés', () => {
-    const page = (file: string) => readDrawio(fixture(file)).document.pages[0]!;
-    const [legacy, current] = [page('rdd-anciennes-cles.drawio'), page('rdd.drawio')];
-    const read = (p: PageModel) => [
-      cardinalitiesShown(p),
-      ...p.shapes.map((shape) => [shape.id, tableFields(shape), isSecondary(shape)]),
-    ];
-    expect(read(legacy)).toEqual(read(current));
-    expect(current.shapes.some(isSecondary)).toBe(true);
   });
 });
 

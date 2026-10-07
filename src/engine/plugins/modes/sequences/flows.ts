@@ -8,11 +8,8 @@ import {
 } from '../../../core/plugins';
 import type { PageModel } from '../../../core/plugins';
 
-/**
- * Clés du mode (sujet 301), par leur nom court : écrites `spatial.seq.<nom>` ; les anciennes clés `spatial.<nom>` sont
- * lues le temps de la migration.
- */
-export const SEQUENCES_KEYS = { namespace: 'seq', legacyKeys: ['flows', 'flow', 'step', 'participant'] };
+/** Clés du mode (sujet 301), par leur nom court : écrites `spatial.seq.<nom>`. */
+export const SEQUENCES_KEYS = { namespace: 'seq' };
 export const keys = modeKeys(SEQUENCES_KEYS);
 /** Flux de la page (attribut de `<diagram>`) : liste ordonnée en JSON `[{"id","title","color"}, …]`. */
 export const FLOWS = 'flows';

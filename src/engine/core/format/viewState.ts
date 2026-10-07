@@ -1,7 +1,6 @@
 import type { Point } from '../model/types';
 import { formatNumber } from './cellEdits';
 import type { DrawioTree } from './xmlTree';
-import { DEFAULT_DEPTH, LEGACY_DEFAULT_DEPTH } from '../spatial';
 
 /**
  * État de vue d'une page enregistré dans le fichier (attribut `spatial.view` de `<diagram>`) :
@@ -14,8 +13,6 @@ import { DEFAULT_DEPTH, LEGACY_DEFAULT_DEPTH } from '../spatial';
  */
 
 export const VIEW_ATTRIBUTE = 'spatial.view';
-/** Version du format de l'état de vue (`v=`), pour les migrations. */
-export const VIEW_STATE_VERSION = 2;
 
 /** Caméra enregistrée (même forme que l'état de caméra du moteur, qui la normalise à la lecture). */
 export interface SavedCamera {
@@ -60,8 +57,6 @@ export function formatViewState({ camera, iso }: PageViewState): string {
       ['depth', formatNumber(iso.isoDepth)],
     );
   }
-  // Version du format : avant la 2, `depth=16` était l'épaisseur par défaut (migrée à la lecture).
-  values.push(['v', String(VIEW_STATE_VERSION)]);
   return values.map(([key, value]) => `${key}=${value};`).join('');
 }
 
@@ -94,10 +89,7 @@ export function parseViewState(text: string | null | undefined): PageViewState |
 
   const elevation = num('elevation');
   const azimuth = num('azimuth');
-  // Écrit avant la version 2 : l'ancienne épaisseur par défaut devient la nouvelle (une valeur
-  // choisie explicitement depuis est gardée telle quelle, 16 compris).
-  const written = num('depth');
-  const depth = written === LEGACY_DEFAULT_DEPTH && (num('v') ?? 1) < VIEW_STATE_VERSION ? DEFAULT_DEPTH : written;
+  const depth = num('depth');
   const volume = values.get('volume');
   const iso =
     elevation !== undefined && azimuth !== undefined && depth !== undefined && (volume === '0' || volume === '1')

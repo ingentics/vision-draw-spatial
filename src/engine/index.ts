@@ -54,14 +54,7 @@ export type {
   ShapeModel,
   TextMarks,
 } from './core/model/types';
-export {
-  DEFAULT_DEPTH,
-  LEGACY_DEFAULT_DEPTH,
-  SPATIAL,
-  SPATIAL_PREFIX,
-  spatialNumber,
-  spatialValue,
-} from './core/spatial';
+export { DEFAULT_DEPTH, SPATIAL, SPATIAL_PREFIX, spatialNumber, spatialValue } from './core/spatial';
 export { fontStyleBits, fontStyleValue, isHexColor } from './core/model/styleValues';
 
 // Bibliothèque de fichiers et sauvegarde (SPEC §5, §14.1)
@@ -113,5 +106,5 @@ export type { ModeInfo, ModeRegistryView, ModeScope, PageModeRegistry } from './
 export type { ShapeRegistry, ShapeRegistryView } from './core/shapes/registry';
 export type { ModeEdit, ModeProperty, ModeTarget, PageModeDefinition } from './core/modes/types';
 export type { PluginSetting, PluginSettings, PluginValues } from './core/settings/pluginSettings';
-export { legacyModeSettings, PALETTE_CATEGORIES, SHAPE_TEMPLATES, usedTemplates } from './plugins';
+export { PALETTE_CATEGORIES, SHAPE_TEMPLATES, usedTemplates } from './plugins';
 export type { PropertySection, ShapeProperty } from './core/shapes/types';

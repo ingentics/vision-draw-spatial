@@ -29,7 +29,6 @@ import type {
   EngineEvents,
   EngineOptions,
   InitialView,
-  ModeHint,
   ModeIndicator,
   ModePropertyView,
   Selection,
@@ -273,10 +272,6 @@ export class Engine {
     this.core.viewModes.toggle3d();
   }
 
-  isFlattened(): boolean {
-    return this.core.viewModes.isFlattened();
-  }
-
   /**
    * Aplatit ou rétablit les volumes : rendu à plat, comme une épaisseur nulle, sans toucher à la
    * caméra ni aux réglages. Rien en 2D, où tout est déjà à plat (l'état y est seulement levé).
@@ -375,28 +370,6 @@ export class Engine {
     this.core.selection.select(picked);
   }
 
-  /**
-   * Sélection multiple (touche `controls.multiSelectKey` + clic) : ajoute l'élément à la sélection
-   * de la page courante, ou l'en retire s'il y est déjà.
-   */
-  toggleSelect(picked: PickedElement): void {
-    this.core.selection.toggleSelect(picked);
-  }
-
-  /** Sélectionne ces éléments de la page courante (aucun = désélection). */
-  selectItems(items: PickedElement[]): void {
-    this.core.selection.selectItems(items);
-  }
-
-  /**
-   * Sélection par zone (ticket 60) : éléments visibles de la page courante dont l'emprise à l'écran
-   * (volume compris en iso) est dans le rectangle — ou le touche (`touch`). Un élément pris avec son
-   * conteneur n'est pas sélectionné à part. `add` : ajoute à la sélection au lieu de la remplacer.
-   */
-  selectInRect(rect: Rect, options: { add: boolean; touch: boolean }): void {
-    this.core.selection.selectInRect(rect, options);
-  }
-
   /** Tout sélectionner (⌘ + A, ticket 122) : tous les éléments de la page courante, comme une zone qui les couvrirait. */
   selectAll(): void {
     this.core.selection.selectAll();
@@ -404,15 +377,6 @@ export class Engine {
 
   clearSelection(): void {
     this.core.selection.clearSelection();
-  }
-
-  /**
-   * Mode d'interaction en cours, pour l'aide de l'UI : « navigation » tant que la touche pour suivre
-   * un lien est maintenue ; « sélection multiple » quand la touche de sélection multiple l'est, avec
-   * une sélection.
-   */
-  getModeHint(): ModeHint | undefined {
-    return this.core.keys.getModeHint();
   }
 
   // -------------------------------------------------------------------------
@@ -624,22 +588,12 @@ export class Engine {
     return this.core.arrangement.placementVariant();
   }
 
-  /** Ancrage des flèches d'une page : le sien (`spatial.anchoring`), sinon le réglage de l'appli. */
-  anchoringOf(page: PageModel): Anchoring {
-    return this.core.arrangement.anchoringOf(page);
-  }
-
   /**
    * Ancrage propre à une page (undefined : celui de l'appli). Passer une page en automatique y répartit toutes les
    * flèches, dans la même étape d'annulation.
    */
   setPageAnchoring(pageId: string, anchoring: Anchoring | undefined): void {
     this.core.arrangement.setPageAnchoring(pageId, anchoring);
-  }
-
-  /** Saut des flèches d'une page aux croisements : le sien (`spatial.jumps`), sinon le réglage de l'appli. */
-  jumpsOf(page: PageModel): JumpDefaults {
-    return this.core.jumps.jumpsOf(page);
   }
 
   /** Saut propre à une page (undefined : celui de l'appli), suivi par ses flèches sans `jumpStyle`. */
@@ -655,25 +609,8 @@ export class Engine {
     this.core.edgePoints.resetEdgeRoute(edgeId);
   }
 
-  /**
-   * Flèches du clavier sur la sélection (ticket 123) : la déplace de `edit.nudgeStep`, ou avec Maj (`coarse`)
-   * de `edit.nudgeCoarseStep` — par défaut un pas de grille calé sur la grille —, selon les axes de la page ; un appui = une étape d'annulation. Faux si rien ne
-   * bouge (pas de sélection déplaçable : les flèches gardent alors leur rôle de déplacement de la vue).
-   */
-  nudgeSelection(direction: Point, coarse: boolean): boolean {
-    return this.core.gesture.nudgeSelection(direction, coarse);
-  }
-
   // -------------------------------------------------------------------------
   // Édition : textes
-
-  /**
-   * Édition en place d'un texte existant d'une flèche (son label ou un label enfant), où qu'il soit
-   * placé : double-clic sur le texte.
-   */
-  editEdgeText(edgeId: string, cellId: string): void {
-    this.core.edgeTexts.editEdgeText(edgeId, cellId);
-  }
 
   /**
    * Texte d'une flèche : son label (`cellId` = l'arête) ou un label enfant, retiré si le texte est vide ;
@@ -718,14 +655,6 @@ export class Engine {
    */
   editLabel(elementId?: string): void {
     this.core.labelEditor.editLabel(elementId);
-  }
-
-  /**
-   * Demande d'édition du texte de début ou de fin d'une flèche (double-clic près d'un bout) : comme
-   * `editLabel`, avec `end` dans la demande ; l'UI appelle ensuite `setEdgeEndLabel`.
-   */
-  editEdgeEndLabel(edgeId: string, end: EdgeEnd): void {
-    this.core.labelEditor.editEdgeEndLabel(edgeId, end);
   }
 
   /**

@@ -25,14 +25,22 @@ describe('utilitaires des attributs spatiaux (sujet 291)', () => {
   });
 
   it('fixtures RDD et Séquences relues et réécrites à l’identique', () => {
+    let checked = 0;
     for (const page of readDrawio(fixture('sequences.drawio')).document.pages) {
-      const flows = page.attributes[FLOWS];
-      if (flows !== undefined) expect(writeFlows(readFlows(page))).toBe(flows);
+      const flows = page.attributes[`spatial.seq.${FLOWS}`];
+      if (flows === undefined) continue;
+      expect(writeFlows(readFlows(page))).toBe(flows);
+      checked++;
     }
+    expect(checked).toBeGreaterThan(0);
+    checked = 0;
     for (const shape of readDrawio(fixture('rdd.drawio')).document.pages[0]!.shapes) {
-      const fields = spatialValue(shape, 'spatial.fields');
+      const fields = spatialValue(shape, 'spatial.rdd.fields');
       // Le mode remet en ordre certains champs à la lecture (ex. type de la clé primaire) : on compare la liste brute.
-      if (fields !== undefined) expect(jsonListValue(readJsonList(fields)!)).toBe(fields);
+      if (fields === undefined) continue;
+      expect(jsonListValue(readJsonList(fields)!)).toBe(fields);
+      checked++;
     }
+    expect(checked).toBeGreaterThan(0);
   });
 });

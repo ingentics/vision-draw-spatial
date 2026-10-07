@@ -98,7 +98,7 @@ export class Minimap {
   constructor(
     private readonly canvas: HTMLCanvasElement,
     private readonly source: MinimapSource,
-    private size = 200,
+    private readonly size = 200,
   ) {
     canvas.addEventListener('pointerdown', this.onPointerDown);
     canvas.addEventListener('pointermove', this.onPointerMove);
@@ -106,11 +106,6 @@ export class Minimap {
     canvas.addEventListener('pointercancel', this.onPointerUp);
     canvas.style.touchAction = 'none';
     canvas.style.cursor = 'pointer';
-  }
-
-  setSize(size: number): void {
-    this.size = size;
-    this.invalidate();
   }
 
   /** Le contenu de la page a changé (autre page, autre fichier) : redessiner le fond. */

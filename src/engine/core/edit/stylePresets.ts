@@ -162,15 +162,6 @@ export const TEXT_STYLES: TextPreset[] = [
   { name: 'Code', fontSize: 11, fontFamily: MONOSPACE_FAMILY },
 ];
 
-/** Clés de style d'un style de texte appliqué à tout le texte (undefined = clé retirée). */
-export function textPresetPatch(preset: TextPreset): Record<string, string | undefined> {
-  return {
-    fontSize: String(preset.fontSize),
-    fontColor: preset.fontColor,
-    fontFamily: preset.fontFamily,
-  };
-}
-
 /** Le format (style de la cellule, ou mise en forme de la sélection) correspond-il à ce style de texte ? */
 export function matchesTextPreset(
   format: { fontSize?: number; fontColor?: string; fontFamily?: string },

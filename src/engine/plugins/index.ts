@@ -3,7 +3,6 @@ import type { PageEffectDefinition } from '../core/effects/types';
 import { usedTemplatesIn } from '../core/edit/palette';
 import type { ShapeTemplate } from '../core/edit/palette';
 import type { PageModel } from '../core/model/types';
-import type { PluginSettings } from '../core/settings/pluginSettings';
 import { shapesByMode } from '../core/modes/modeShapes';
 import { PageModeRegistry } from '../core/modes/registry';
 import type { PageModeDefinition } from '../core/modes/types';
@@ -85,12 +84,4 @@ export const SHAPE_TEMPLATES: ShapeTemplate[] = templatesRegistry.templates();
 /** Modèles des formes présentes sur la page, d'après les formes par défaut (`usedTemplatesIn`). */
 export function usedTemplates(page: Pick<PageModel, 'shapes'> | undefined): ShapeTemplate[] {
   return usedTemplatesIn(page, templatesRegistry);
-}
-
-/**
- * Réglages des modes par défaut repris de leurs anciennes clés dans les paramètres enregistrés (`stored`), pour leur
- * migration, qui tourne avant la création d'un moteur.
- */
-export function legacyModeSettings(stored: Record<string, unknown> | undefined): PluginSettings {
-  return createDefaultModeRegistry().legacySettings(stored);
 }
