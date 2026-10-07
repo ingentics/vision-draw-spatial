@@ -608,7 +608,7 @@ export function Viewer({
           />
           {labelEdit && (
             <LabelEditor
-              key={`${labelEdit.pageId}:${labelEdit.elementId}:${labelEdit.end ?? ''}`}
+              key={`${labelEdit.pageId}:${labelEdit.elementId}:${labelEdit.end ?? ''}:${labelEdit.part ?? ''}`}
               request={labelEdit}
               handle={editorHandle}
               onMoveText={
@@ -619,11 +619,17 @@ export function Viewer({
               onToggle={(mark) => formatText({ type: 'toggle', mark })}
               onSelectionFormat={setSelectionFormat}
               onFitSize={setFittedSize}
-              onTextInput={labelEdit.onEdge ? undefined : (text) => engine?.previewEditedLabel(text)}
+              onTextInput={
+                labelEdit.onEdge || labelEdit.part !== undefined
+                  ? undefined
+                  : (text) => engine?.previewEditedLabel(text)
+              }
               onCommit={({ text, html }) => {
                 setLabelEdit(undefined);
                 engine?.closeLabelEdit();
-                if (labelEdit.labelCellId) engine?.setEdgeText(labelEdit.elementId, labelEdit.labelCellId, text, html);
+                if (labelEdit.part !== undefined) engine?.setPartText(labelEdit.elementId, labelEdit.part, text);
+                else if (labelEdit.labelCellId)
+                  engine?.setEdgeText(labelEdit.elementId, labelEdit.labelCellId, text, html);
                 else if (labelEdit.end)
                   engine?.setEdgeEndLabel(labelEdit.elementId, labelEdit.end, text, html, labelEdit.flipped);
                 else engine?.setLabel(labelEdit.elementId, text, html);
@@ -705,6 +711,7 @@ export function Viewer({
                   pages={document?.pages ?? []}
                   shapes={selected.shapes}
                   edges={selected.edges}
+                  part={selection?.pageId === currentPage.id ? selection.part : undefined}
                   styles={settings.styles}
                   exporters={settings.exporters}
                   defaultDepth={settings.view.isoDepth}
@@ -795,7 +802,8 @@ export function Viewer({
                   modeCurrent={engine?.getModeCurrent(currentPage.id)}
                   onModeProperty={
                     editablePages
-                      ? (scope, targetId, key, value) => engine?.setModeProperty(scope, targetId, key, value)
+                      ? (scope, targetId, key, value, part) =>
+                          engine?.setModeProperty(scope, targetId, key, value, part)
                       : undefined
                   }
                 />

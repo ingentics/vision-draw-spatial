@@ -1,4 +1,4 @@
-import { defaultEffectRegistry, RESERVED_CODES, SETTINGS_LIMITS } from '../engine';
+import { defaultEffectRegistry, defaultModeRegistry, RESERVED_CODES, SETTINGS_LIMITS } from '../engine';
 import type { FollowLinkGesture, FollowLinkKey, MultiSelectKey, Settings, SettingsPatch, Shortcuts } from '../engine';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { CommentSettingsSection } from './comment';
@@ -591,6 +591,14 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   ]}
                   onChange={(style) => onChange({ selection: { style } })}
                 />
+                {defaultModeRegistry
+                  .list()
+                  .filter((mode) => mode.selectionStyle)
+                  .map((mode) => (
+                    <p key={mode.id} className="panel-hint">
+                      Pages « {mode.name} » : {mode.selectionStyle === 'outline' ? 'contour' : 'voile'} imposé.
+                    </p>
+                  ))}
                 <ColorField
                   label="Couleur d’accent (contour, poignées, liens, mini-carte)"
                   value={selection.accentColor}

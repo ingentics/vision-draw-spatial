@@ -1,5 +1,5 @@
 import type { ViewMode } from '../interaction/cameraMath';
-import type { EdgeModel, PageModel, Rect, ShapeModel } from '../model/types';
+import type { EdgeModel, PageModel, Point, Rect, ShapeModel } from '../model/types';
 import type { PaletteCategory } from '../shapes/types';
 
 /**
@@ -64,10 +64,47 @@ export interface PageModeDefinition {
    */
   relabeled?(edit: ModeEdit, elementId: string): void;
   /**
+   * Remise en ordre d'une page du mode à l'ouverture du document, et de nouveau quand la mesure exacte du texte arrive
+   * (ex. tables RDD ajustées à leur contenu, sujet 255) ; une étape d'annulation pour tout le document, rien si rien ne
+   * change ni dans un document en lecture seule.
+   */
+  opened?(edit: ModeEdit): void;
+  /**
+   * Mise en valeur de la sélection imposée sur une page du mode (sujet 254, ex. RDD : contour) ; le paramètre
+   * `selection.style` vaut sur les autres pages.
+   */
+  selectionStyle?: 'veil' | 'outline';
+  /** Parties sélectionnables à l'intérieur des formes du mode (ex. champs d'une table RDD, sujet 249). */
+  parts?: ModeParts;
+  /**
    * Bornes d'une forme qu'on déplace ou redimensionne (sujet 241, ex. régions sœurs d'une région RDD) : obstacles à ne
    * pas approcher à moins de l'écart des paramètres (`shapes.modeObstacleGap`) ; undefined = aucune borne.
    */
   obstacles?(page: PageModel, shape: ShapeModel): ModeObstacles | undefined;
+}
+
+/**
+ * Parties d'une forme du mode (sujet 249) : un clic sur l'une d'elles la sélectionne directement (Échap revient à la
+ * forme). Une partie est désignée par une chaîne propre au mode (ex. rang d'un champ).
+ */
+export interface ModeParts {
+  /** Partie sous `point` (pixels de page) ; undefined = la forme elle-même (ex. son entête). */
+  at(page: PageModel, shape: ShapeModel, point: Point): string | undefined;
+  /** Emprise de la partie (pixels de page), mise en valeur à la sélection ; undefined = partie disparue. */
+  bounds(page: PageModel, shape: ShapeModel, part: string): Rect | undefined;
+  /** Texte modifiable sur place (double-clic, sur une ligne : Entrée valide) ; undefined = pas de texte. */
+  text?(page: PageModel, shape: ShapeModel, part: string): ModePartText | undefined;
+  /** Écrit le texte validé (le mode décide d'un texte vide : refusé, ou partie retirée). */
+  setText?(edit: ModeEdit, shape: ShapeModel, part: string, text: string): void;
+}
+
+/** Texte d'une partie : valeur, cadre de l'éditeur (pixels de page) et taille du texte (pixels de page). */
+export interface ModePartText {
+  text: string;
+  zone: Rect;
+  fontSize: number;
+  /** Texte en italique. */
+  italic?: boolean;
 }
 
 /** Obstacles d'une forme (sujet 241), en emprises (ex. onglet d'une région compris). */
@@ -162,12 +199,17 @@ export type ModeProperty = {
   /** Aide au survol. */
   title?: string;
   placeholder?: string;
+  /**
+   * Réglage d'une partie de la forme (sujet 249) : montré seulement quand une partie est sélectionnée, et les autres
+   * réglages de forme seulement quand aucune ne l'est ; `part` est alors passé à `value`, `write` et `hidden`.
+   */
+  part?: boolean;
   /** Valeur affichée ; défaut : l'attribut `key`. */
-  value?(page: PageModel, target: ModeTarget): string | undefined;
+  value?(page: PageModel, target: ModeTarget, part?: string): string | undefined;
   /** Écriture (undefined = vide) ; défaut : l'attribut `key`. */
-  write?(edit: ModeEdit, target: ModeTarget, value: string | undefined): void;
+  write?(edit: ModeEdit, target: ModeTarget, value: string | undefined, part?: string): void;
   /** Champ masqué pour cette cible (ex. rang d'une flèche sans flux). */
-  hidden?(page: PageModel, target: ModeTarget): boolean;
+  hidden?(page: PageModel, target: ModeTarget, part?: string): boolean;
   /** Affiché sans être modifiable (ex. clé primaire d'une entité). */
   readOnly?: boolean;
 } & (

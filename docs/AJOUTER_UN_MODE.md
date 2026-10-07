@@ -46,6 +46,9 @@ interface PageModeDefinition {
   carries?(page, shape): string[];             // formes emportées quand on déplace `shape` (ex. région RDD)
   placed?(edit, shapeIds, before?): void;      // formes déplacées ou ajoutées (ex. région RDD agrandie)
   relabeled?(edit, elementId): void;          // texte d'un élément changé (ex. table RDD élargie)
+  parts?: ModeParts;                           // parties sélectionnables d'une forme (ex. champs d'une table RDD)
+  opened?(edit): void;                         // remise en ordre à l'ouverture (ex. tables RDD ajustées)
+  selectionStyle?: 'veil' | 'outline';         // mise en valeur de la sélection imposée (ex. RDD : contour)
   obstacles?(page, shape): ModeObstacles;      // bornes d'un déplacement / redimensionnement (ex. régions sœurs)
   shapes?: string[];                           // formes proposées par la palette (section 6)
   paletteCategories?: PaletteCategory[];       // catégories de palette du mode (section 6)
@@ -61,6 +64,10 @@ générique : section « Mode » de la
 page, section au nom du mode dans le panneau d'une flèche ou d'une forme. Par défaut, il lit et écrit l'attribut
 `key` de sa cible ; `value`, `write` et `hidden` le font passer par les règles du mode (ex. le rang d'une flèche, qui
 s'échange avec une autre).
+
+Un réglage `part: true` porte sur une **partie** de la forme (ex. un champ d'une table RDD, sujet 249) : il n'est
+montré que lorsqu'une partie est sélectionnée (et les autres réglages de forme seulement lorsqu'aucune ne l'est) ;
+`value`, `write` et `hidden` reçoivent alors la partie en dernier paramètre.
 
 Une **opération** reçoit un `ModeEdit` : la page avant l'opération (`page`), les couleurs proposées par l'appli
 (`palette` : fonds des styles de forme des paramètres), `setPageAttribute`, `setElementAttribute` (attributs
@@ -102,6 +109,13 @@ paramètres « Modes › Séquences » (clés `shapes.edgeBadge…`, communes à
   avant un déplacement, absente pour un ajout).
 - `relabeled(edit, elementId)` : texte d'un élément changé (édition sur place ou panneau), déjà écrit ; remise en
   ordre dans la même étape d'annulation (`edit.page` montre le nouveau texte ; ex. table RDD élargie pour son nom).
+- `opened(edit)` (sujet 255) : remise en ordre d'une page du mode à l'ouverture du document, faite sur la mesure
+  exacte du texte (à l'ouverture si les polices sont chargées, sinon à leur arrivée) ; une étape d'annulation
+  « Ajustement du mode » pour tout le document, rien si rien ne change ou si le document n'est pas modifiable.
+- `parts` (sujet 249) : parties d'une forme du mode, désignées par une chaîne propre au mode. Un clic sur une partie
+  (`at(page, shape, point)`) la sélectionne, la forme sélectionnée ou non (`Selection.part`), mise en valeur sur son
+  emprise (`bounds`) ; Échap revient à la forme. `text` / `setText` : texte modifiable sur place au double-clic, sur une
+  ligne (Entrée valide), écrit par une opération du mode (une étape d'annulation).
 - `obstacles(page, shape)` : emprises que `shape` ne doit pas approcher pendant un déplacement (glisser, flèches du
   clavier) ou un redimensionnement, à l'écart du paramètre `shapes.modeObstacleGap` ; `above` : ce que la forme dessine
   au-dessus de ses bornes. Le moteur borne le geste (un axe puis l'autre, on glisse le long d'un obstacle) et montre la

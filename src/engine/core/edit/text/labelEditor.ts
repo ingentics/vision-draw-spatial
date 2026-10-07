@@ -112,6 +112,45 @@ export class LabelEditor {
     });
   }
 
+  /**
+   * Texte d'une partie d'une forme (ex. label d'un champ d'une table RDD, sujet 249) : éditeur sur une ligne, au cadre
+   * donné par le mode, sur fond blanc (il couvre le texte dessiné) ; sans format du texte. Validé par `setPartText`.
+   */
+  editPartLabel(shapeId: string, part: string): void {
+    const editable = this.core.targets.editablePage();
+    const text = this.core.shapeParts.text(shapeId, part);
+    const screen = this.partScreen(shapeId, part);
+    if (!editable || !text || !screen) return;
+    this.startLabelEdit({
+      pageId: editable.page.id,
+      elementId: shapeId,
+      part,
+      singleLine: true,
+      text: text.text,
+      screen,
+      style: {
+        fontSize: String(text.fontSize),
+        fontColor: '#000000',
+        fontStyle: text.italic ? '2' : '0',
+        align: 'left',
+        verticalAlign: 'middle',
+        whiteSpace: 'nowrap',
+      },
+      scale: this.textScale(shapeId),
+      onEdge: false,
+      background: '#ffffff',
+    });
+  }
+
+  /** Cadre à l'écran du texte d'une partie (sujet 249). */
+  private partScreen(shapeId: string, part: string): Rect | undefined {
+    const text = this.core.shapeParts.text(shapeId, part);
+    const shape = this.core.pages.getCurrentPage()?.shapes.find((s) => s.id === shapeId);
+    return text && shape
+      ? this.core.picking.screenRectOf(shapeId, text.zone, this.core.sceneView.labelTop(shape))
+      : undefined;
+  }
+
   editEdgeEndLabel(edgeId: string, end: EdgeEnd): void {
     const editable = this.core.targets.editablePage();
     const edge = editable?.page.edges.find((e) => e.id === edgeId);
@@ -295,13 +334,17 @@ export class LabelEditor {
   relocateLabelEdit(): void {
     const editing = this.editing;
     if (!editing || editing.pageId !== this.core.pages.currentPageId) return;
-    const screen = this.labelEditScreen(editing.elementId, editing.end, editing.labelCellId, editing.flipped);
+    const screen =
+      editing.part !== undefined
+        ? this.partScreen(editing.elementId, editing.part)
+        : this.labelEditScreen(editing.elementId, editing.end, editing.labelCellId, editing.flipped);
     if (!screen) return;
     const scale = this.textScale(editing.elementId);
     // La bascule disparaît dès que le texte est placé à la main (glisser de sa poignée).
-    const plane = editing.onEdge ? undefined : this.labelEditPlane(editing.elementId);
+    const own = editing.onEdge || editing.part !== undefined;
+    const plane = own ? undefined : this.labelEditPlane(editing.elementId);
     // Texte sur une pancarte : l'éditeur suit le format de la cellule (changé pendant l'édition), centré et ajusté.
-    const displayStyle = editing.onEdge ? undefined : this.displayStyle(editing.elementId, editing.style);
+    const displayStyle = own ? undefined : this.displayStyle(editing.elementId, editing.style);
     const next = this.withAngle(this.withFlip({ ...editing, screen, scale, plane, displayStyle }));
     const same = (a: Rect, b: Rect) => a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
     const samePlane = JSON.stringify(plane) === JSON.stringify(editing.plane);

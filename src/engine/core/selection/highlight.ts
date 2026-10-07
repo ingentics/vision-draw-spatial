@@ -3,7 +3,7 @@ import type { MeshBasicMaterial, Object3D } from 'three';
 import { pointHandles } from '../../edit/edgePointEdits';
 import { collectMoveSet } from '../../edit/moveSet';
 import type { Point } from '../../model/types';
-import { headSelectionRing, selectionOutline } from '../../render/decorations';
+import { headSelectionRing, partSelection, selectionOutline } from '../../render/decorations';
 import { edgeEndHandles, edgePointHandles, selectionHandles } from '../../render/handleMeshes';
 import { createVeil, createVeilHole, liftAboveVeil } from '../../render/veil';
 import { disposeObject } from '../../render/meshes';
@@ -30,6 +30,12 @@ export class SelectionHighlight {
 
   constructor(private readonly core: EngineCore) {}
 
+  /** Style de la mise en valeur : celui qu'impose le mode de la page courante (sujet 254), sinon le paramètre. */
+  private style(): 'veil' | 'outline' {
+    const page = this.core.pages.getCurrentPage();
+    return (page && this.core.modes.modeOf(page)?.selectionStyle) ?? this.core.settings.selection.style;
+  }
+
   /** Paramètres changés : style, couleur et animation de la mise en valeur. */
   settingsChanged(): void {
     this.syncAnimation();
@@ -43,7 +49,7 @@ export class SelectionHighlight {
   syncAnimation(): void {
     const run =
       this.core.selection.current !== undefined &&
-      this.core.settings.selection.style === 'outline' &&
+      this.style() === 'outline' &&
       this.core.settings.selection.animated &&
       !this.core.config.reducedMotion();
     if (!run) {
@@ -103,7 +109,7 @@ export class SelectionHighlight {
     const pageBounds = this.core.pages.getCurrentPage()?.bounds;
     const { veilOpacity, veilColor } = this.core.settings.selection;
     const veilKey =
-      items.length > 0 && root && pageBounds && this.core.settings.selection.style === 'veil'
+      items.length > 0 && root && pageBounds && this.style() === 'veil'
         ? `${root.uuid}:${ids.join('|')}:${veilOpacity}:${veilColor}:${Object.values(pageBounds).join(',')}`
         : undefined;
     if (this.veil?.key === veilKey) return veilKey;
@@ -176,7 +182,8 @@ export class SelectionHighlight {
   private addOutlines(root: Object3D, items: PickedElement[]): void {
     const outlines = new Group();
     outlines.name = 'selection';
-    const { style, accentColor } = this.core.settings.selection;
+    const { accentColor } = this.core.settings.selection;
+    const style = this.style();
     for (const { type, element } of items) {
       const standing = type === 'shape' ? this.core.sceneView.standingHead(element.id) : undefined;
       if (standing) {
@@ -197,6 +204,14 @@ export class SelectionHighlight {
       outline.position.z = ((this.core.sceneView.sceneObject(element.id)?.userData.top as number) ?? 0) + 0.2;
       alwaysOnTop(outline);
       outlines.add(outline);
+    }
+    // Partie sélectionnée de la forme (sujet 249), quel que soit le style de la mise en valeur.
+    const part = this.core.shapeParts.selectedBounds();
+    if (part) {
+      const object = partSelection(part.rect, this.core.camera.state.zoom, accentColor);
+      object.position.z = ((this.core.sceneView.sceneObject(part.shape.id)?.userData.top as number) ?? 0) + 0.25;
+      alwaysOnTop(object);
+      outlines.add(object);
     }
     outlines.renderOrder = Number.MAX_SAFE_INTEGER;
     this.selectionObject = outlines;

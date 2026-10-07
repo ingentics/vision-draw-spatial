@@ -11,11 +11,14 @@ import {
   isSecondary,
   misplacedPrimaryKey,
   missingName,
+  fieldTypeLabel,
   shownMark,
   tableFields,
   tableKindOf,
 } from './tables';
-import { fieldsText, fitTable, setFields, setHeaderColor, setIcon, setSecondary } from './operations';
+import { fieldsText, fitTable, setField, setFields, setHeaderColor, setIcon, setSecondary } from './operations';
+import { fieldIndex, fieldParts } from './fieldParts';
+import type { Field, FieldKind } from './tables';
 import {
   REGION_COLORS,
   REGION_KIND,
@@ -31,6 +34,25 @@ import {
 const tableOf = (target: ModeTarget): ShapeModel | undefined =>
   'kind' in target && tableKindOf(target) ? target : undefined;
 const notTable = (_page: unknown, target: ModeTarget) => !tableOf(target);
+/** Champ sélectionné d'une table (sujet 249) : la table, le rang et le champ. */
+function fieldOf(
+  target: ModeTarget,
+  part: string | undefined,
+): { shape: ShapeModel; index: number; field: Field } | undefined {
+  const shape = tableOf(target);
+  const index = shape && fieldIndex(shape, part);
+  return shape && index !== undefined ? { shape, index, field: tableFields(shape)[index]! } : undefined;
+}
+/** Kinds proposés pour un champ : jamais la clé primaire, unique et en tête. */
+const FIELD_KIND_OPTIONS: Array<{ value: Exclude<FieldKind, 'pk'>; label: string }> = [
+  { value: 'property', label: 'Propriété' },
+  { value: 'fk', label: 'Clé étrangère' },
+  { value: 'external-fk', label: 'Clé étrangère (autre domaine)' },
+];
+const notField = (_page: unknown, target: ModeTarget, part?: string) => !fieldOf(target, part);
+/** Pas de champ, ou la clé primaire (ni kind ni nullable modifiables). */
+const notPlainField = (_page: unknown, target: ModeTarget, part?: string) =>
+  (fieldOf(target, part)?.field.kind ?? 'pk') === 'pk';
 /** Région du mode sélectionnée (sujet 182). */
 const regionTarget = (target: ModeTarget): ShapeModel | undefined =>
   'kind' in target && isRegion(target) ? target : undefined;
@@ -51,6 +73,8 @@ export const definition: PageModeDefinition = {
     accent: 'M4 9h6M4 12h4.5',
   },
   viewModes: ['top'],
+  // Sélection toujours en contour, quel que soit le paramètre (sujet 254).
+  selectionStyle: 'outline',
   // Toutes les tables, puis la région (sujet 182) ; le modèle abstrait, sans élément de palette, n'y apparaît pas.
   shapes: [...Object.keys(TABLE_KINDS), REGION_KIND],
   paletteCategories: [{ id: 'rdd', name: 'RDD', order: 5 }],
@@ -149,7 +173,68 @@ export const definition: PageModeDefinition = {
       },
       hidden: notTable,
     },
+    // Champ sélectionné dans sa table (sujet 249).
+    {
+      type: 'text',
+      part: true,
+      key: 'rdd.field.label',
+      label: 'Champ',
+      title: 'Nom du champ (double-clic sur la ligne : modification sur place) ; jamais vide',
+      value: (_page, target, part) => fieldOf(target, part)?.field.label,
+      write: (edit, target, value, part) => {
+        const selected = fieldOf(target, part);
+        if (selected) setField(edit, selected.shape, selected.index, { label: value ?? '' });
+      },
+      hidden: notField,
+    },
+    {
+      type: 'text',
+      part: true,
+      key: 'rdd.field.type',
+      label: 'Type',
+      title: 'Type de donnée du champ, choisi à sa création',
+      readOnly: true,
+      value: (_page, target, part) => {
+        const selected = fieldOf(target, part);
+        return selected && fieldTypeLabel(selected.field.type);
+      },
+      hidden: notField,
+    },
+    {
+      type: 'select',
+      part: true,
+      key: 'rdd.field.kind',
+      label: 'Rôle',
+      title: 'Propriété, clé étrangère, ou clé étrangère vers un autre domaine',
+      options: () => FIELD_KIND_OPTIONS,
+      value: (_page, target, part) => fieldOf(target, part)?.field.kind,
+      write: (edit, target, value, part) => {
+        const selected = fieldOf(target, part);
+        const kind = FIELD_KIND_OPTIONS.find((option) => option.value === value)?.value;
+        if (selected && kind) setField(edit, selected.shape, selected.index, { kind });
+      },
+      hidden: notPlainField,
+    },
+    {
+      type: 'toggle',
+      part: true,
+      key: 'rdd.field.nullable',
+      label: 'Nullable',
+      title: 'Le champ peut être vide (NULL)',
+      value: (_page, target, part) => (fieldOf(target, part)?.field.nullable ? '1' : undefined),
+      write: (edit, target, value, part) => {
+        const selected = fieldOf(target, part);
+        if (selected) setField(edit, selected.shape, selected.index, { nullable: value === '1' });
+      },
+      hidden: notPlainField,
+    },
   ],
+  // À l'ouverture, chaque table prend la taille de son contenu (sujet 255).
+  opened: (edit) => {
+    for (const shape of edit.page.shapes) fitTable(edit, shape);
+  },
+  // Champs des tables, sélectionnables dans la table (sujet 249).
+  parts: fieldParts,
   // Table renommée : sa largeur suit le nom (sujet 247).
   relabeled: (edit, elementId) => {
     const shape = edit.page.shapes.find((s) => s.id === elementId);

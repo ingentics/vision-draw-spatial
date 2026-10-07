@@ -68,6 +68,32 @@ export function setFields(edit: ModeEdit, shape: ShapeModel, text: string | unde
   fitTable(edit, shape, { fields });
 }
 
+/**
+ * Champ `index` de la table modifié (sujet 249) : label, kind, nullable ; la taille suit. Un label vide est refusé ;
+ * la clé primaire garde son kind et n'est jamais nullable, et aucun champ ne devient clé primaire.
+ */
+export function setField(
+  edit: ModeEdit,
+  shape: ShapeModel,
+  index: number,
+  patch: Partial<Pick<Field, 'label' | 'kind' | 'nullable'>>,
+): void {
+  const fields = tableFields(shape);
+  const field = fields[index];
+  const label = patch.label?.trim();
+  if (!tableKindOf(shape) || !field || label === '') return;
+  const key = field.kind === 'pk';
+  const next: Field = {
+    ...field,
+    ...(label !== undefined && { label }),
+    ...(patch.kind !== undefined && !key && patch.kind !== 'pk' && { kind: patch.kind }),
+    ...(patch.nullable !== undefined && !key && { nullable: patch.nullable }),
+  };
+  const written = fields.map((current, i) => (i === index ? next : current));
+  edit.setElementAttribute(shape.id, FIELDS, fieldsValue(written));
+  fitTable(edit, shape, { fields: written });
+}
+
 /** Labels des champs en texte pour le panneau (un par ligne), sans la clé primaire (elle n'y est pas modifiable). */
 export function fieldsText(shape: ShapeModel): string {
   const fields = tableFields(shape);

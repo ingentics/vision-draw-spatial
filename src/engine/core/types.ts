@@ -17,6 +17,8 @@ export interface Selection {
   picked: PickedElement;
   /** Tous les éléments sélectionnés, dans l'ordre de sélection (`picked` est le dernier). */
   items: PickedElement[];
+  /** Partie de la forme sélectionnée seule (ex. champ d'une table RDD, sujet 249), définie par le mode de la page. */
+  part?: string;
 }
 
 export interface EngineOptions {
@@ -138,6 +140,10 @@ export interface LabelEditRequest {
    * `setEdgeText`. Absent : le label de l'élément, ou un texte de début / fin encore à créer (`end`).
    */
   labelCellId?: string;
+  /** Partie de la forme dont on édite le texte (sujet 249) : validé par `setPartText`. */
+  part?: string;
+  /** Texte d'une seule ligne : Entrée valide (sinon ⌘ + Entrée). */
+  singleLine?: boolean;
   /** Texte brut actuel. */
   text: string;
   screen: Rect;

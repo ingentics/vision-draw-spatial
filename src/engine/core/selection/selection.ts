@@ -1,7 +1,7 @@
 import type { PickedElement } from '../../interaction/pick';
 import { marqueeTakes } from '../../interaction/marquee';
 import { toggleSelected } from '../../interaction/selectionRules';
-import type { PageModel, Rect } from '../../model/types';
+import type { PageModel, Rect, ShapeModel } from '../../model/types';
 import type { Selection } from '../types';
 import type { EngineCore } from '../EngineCore';
 
@@ -24,10 +24,15 @@ export class Selections {
     this.selectItems(toggleSelected(current, picked));
   }
 
-  selectItems(items: PickedElement[]): void {
+  /** `part` : partie de la forme sélectionnée seule (sujet 249), gardée si le mode la connaît encore. */
+  selectItems(items: PickedElement[], part?: string): void {
     const page = this.core.pages.getCurrentPage();
     const picked = items[items.length - 1];
-    this.current = picked && page ? { pageId: page.id, picked, items: [...items] } : undefined;
+    const kept =
+      part !== undefined && page && items.length === 1 && picked?.type === 'shape'
+        ? this.core.shapeParts.validPart(page, picked.element as ShapeModel, part)
+        : undefined;
+    this.current = picked && page ? { pageId: page.id, picked, items: [...items], part: kept } : undefined;
     this.core.highlight.update();
     this.core.highlight.syncAnimation();
     this.core.events.emit('selectionChange', this.current);
@@ -74,6 +79,12 @@ export class Selections {
   clearSelection(): void {
     if (!this.current) return;
     this.select(undefined);
+  }
+
+  /** Échap : d'une partie sélectionnée, revient à sa forme ; sinon, plus rien de sélectionné. */
+  escape(): void {
+    if (this.current?.part !== undefined) this.selectItems(this.current.items);
+    else this.clearSelection();
   }
 
   /** Nouveau document : plus rien de sélectionné. */

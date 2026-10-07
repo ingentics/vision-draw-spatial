@@ -5,7 +5,7 @@ import type { PointHandle } from '../../edit/edgePointEdits';
 import { endAt } from '../../edit/edgeLabels';
 import { positionAlong } from '../../render/edges/polyline';
 import { isConnectHandle } from '../../edit/handleKinds';
-import type { Point } from '../../model/types';
+import type { Point, ShapeModel } from '../../model/types';
 import type { EngineCore } from '../EngineCore';
 import type { ResizeHandle } from '../../edit/handleKinds';
 import type { PickedElement } from '../../interaction/pick';
@@ -74,7 +74,13 @@ export class PointerInput {
       this.core.selection.clearSelection();
       return;
     }
-    this.core.selection.select(picked);
+    // Un clic sur une partie d'une forme (ex. champ d'une table RDD) la sélectionne directement (sujet 249).
+    const part =
+      picked?.type === 'shape' && page
+        ? this.core.shapeParts.partAt(page, picked.element as ShapeModel, screen)
+        : undefined;
+    if (picked) this.core.selection.selectItems([picked], part);
+    else this.core.selection.select(undefined);
     if (this.core.settings.preload.onClick) this.core.links.preloadLink(picked?.element.link);
   }
 
@@ -97,7 +103,18 @@ export class PointerInput {
       const end = route ? endAt(positionAlong(route, point)) : undefined;
       if (end) this.core.labelEditor.editEdgeEndLabel(picked.element.id, end);
       else this.core.labelEditor.editLabel(picked.element.id);
-    } else if (picked) this.core.labelEditor.editLabel(picked.element.id);
+    } else if (picked) {
+      // Partie d'une forme qui a un texte (ex. champ d'une table RDD, sujet 249) : son texte, pas celui de la forme.
+      const page = this.core.pages.getCurrentPage();
+      const part =
+        picked.type === 'shape' && page
+          ? this.core.shapeParts.partAt(page, picked.element as ShapeModel, screen)
+          : undefined;
+      if (part !== undefined && this.core.shapeParts.text(picked.element.id, part)) {
+        this.core.selection.selectItems([picked], part);
+        this.core.labelEditor.editPartLabel(picked.element.id, part);
+      } else this.core.labelEditor.editLabel(picked.element.id);
+    }
   }
 
   /** Survol : curseur main et infobulle sur les éléments liés, commentaire de l'élément ; préchargement optionnel. */

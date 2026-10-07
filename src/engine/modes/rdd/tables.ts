@@ -1,4 +1,4 @@
-import type { ShapeModel } from '../../model/types';
+import type { Rect, ShapeModel } from '../../model/types';
 import { measureText } from '../../render/textMeasure';
 import { spatialValue } from '../../spatial';
 
@@ -279,4 +279,12 @@ export function tableWidth(kind: TableKind, content: TableContent): number {
   const header = name + 2 * (TABLE.padding + (content.mark ? markInset() : 0));
   const width = Math.ceil(Math.max(TABLE.minWidth, header, ...fields));
   return width * (content.secondary ? SECONDARY_SCALE : 1);
+}
+
+/** Ligne du champ `index` (pixels de page), sous l'entête, sur toute la largeur de la table (sujet 249). */
+export function fieldRow(shape: ShapeModel, index: number): Rect {
+  const secondary = isSecondary(shape);
+  const row = TABLE.row * (secondary ? SECONDARY_SCALE : 1);
+  const { x, y, width } = shape.bounds;
+  return { x, y: y + headerHeight(secondary) + row * index, width, height: row };
 }

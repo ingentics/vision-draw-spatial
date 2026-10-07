@@ -78,6 +78,8 @@ export interface RichEditorOptions {
   wholeWithoutSelection?: boolean;
   /** À l'ouverture, tout le texte est sélectionné (sinon : curseur en fin de texte). */
   selectAll?: boolean;
+  /** Texte d'une seule ligne (ex. champ d'une table RDD, sujet 249) : Entrée seule valide. */
+  singleLine?: boolean;
 }
 
 /**
@@ -237,7 +239,7 @@ export function useRichEditor(options: RichEditorOptions) {
       if (event.key === 'Escape') {
         event.preventDefault();
         finish(false);
-      } else if (event.key === 'Enter' && mod) {
+      } else if (event.key === 'Enter' && (mod || latest.current.singleLine)) {
         event.preventDefault();
         finish(true);
       } else if (mod && !event.altKey && (key === 'b' || key === 'i' || key === 'u')) {

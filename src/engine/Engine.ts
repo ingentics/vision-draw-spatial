@@ -471,10 +471,17 @@ export class Engine {
 
   /**
    * Réglage déclaré par le mode de la page courante (`scope` : la page, ou la flèche / forme `targetId`), écrit par
-   * sa règle s'il en a une, sinon dans son attribut. undefined = vide.
+   * sa règle s'il en a une, sinon dans son attribut. undefined = vide. `part` : partie sélectionnée de la forme, pour
+   * un réglage de partie (sujet 249).
    */
-  setModeProperty(scope: ModeScope, targetId: string | undefined, key: string, value: string | undefined): void {
-    this.core.pageModes.setModeProperty(scope, targetId, key, value);
+  setModeProperty(
+    scope: ModeScope,
+    targetId: string | undefined,
+    key: string,
+    value: string | undefined,
+    part?: string,
+  ): void {
+    this.core.pageModes.setModeProperty(scope, targetId, key, value, part);
   }
 
   /**
@@ -673,6 +680,11 @@ export class Engine {
    */
   setLabel(elementId: string, text: string, html?: string): void {
     this.core.textEdits.setLabel(elementId, text, html);
+  }
+
+  /** Texte d'une partie d'une forme (ex. label d'un champ d'une table RDD, sujet 249), validé dans l'éditeur. */
+  setPartText(shapeId: string, part: string, text: string): void {
+    this.core.shapeParts.setText(shapeId, part, text);
   }
 
   /**

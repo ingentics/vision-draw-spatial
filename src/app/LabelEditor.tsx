@@ -67,6 +67,9 @@ export function LabelEditor({
     onSelectionFormat,
     handle,
     baseStyle: () => requestRef.current.style,
+    singleLine: request.singleLine,
+    // Une ligne (champ d'une table RDD) : tout le texte sélectionné, à remplacer d'un coup.
+    selectAll: request.singleLine,
   });
   // « Ajuster » (`fitText=1`, texte d'une forme) : le texte est réduit (CSS `zoom`, tailles partielles à
   // proportion, retour à la ligne à la largeur de la forme) jusqu'à tenir dans la boîte, comme le label

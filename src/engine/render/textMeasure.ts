@@ -12,6 +12,11 @@ export function setTextMeasure(measure: MeasureText | undefined): void {
   current = measure;
 }
 
+/** La mesure est-elle celle des polices chargées (et non l'approximation) ? */
+export function hasExactTextMeasure(): boolean {
+  return current !== undefined;
+}
+
 /** Largeur du texte en pixels de page. */
 export function measureText(text: string, font: FontSpec): number {
   return (current ?? approximateMeasure)(text, font);

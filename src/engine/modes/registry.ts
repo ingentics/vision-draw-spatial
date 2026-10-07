@@ -107,12 +107,13 @@ export class PageModeRegistry {
   }
 
   /** Réglages déclarés par le mode de la page pour une portée. */
-  properties(page: PageModel, scope: ModeScope): ModeProperty[] {
+  properties(page: PageModel, scope: ModeScope, part?: string): ModeProperty[] {
     const mode = this.modeOf(page);
     if (!mode) return [];
-    return (
-      (scope === 'page' ? mode.pageProperties : scope === 'edge' ? mode.edgeProperties : mode.shapeProperties) ?? []
-    );
+    const all =
+      (scope === 'page' ? mode.pageProperties : scope === 'edge' ? mode.edgeProperties : mode.shapeProperties) ?? [];
+    // Partie sélectionnée (sujet 249) : ses réglages seulement ; sinon, ceux de la forme.
+    return scope === 'shape' ? all.filter((property) => (property.part === true) === (part !== undefined)) : all;
   }
 
   /** Attributs à retirer des éléments collés : ceux de tous les modes (ils dorment sur une page d'un autre mode). */

@@ -93,7 +93,15 @@ export interface ContextPanelProps {
   /** Opération du mode de la page (sections propres au mode) ; absent si la page n'est pas modifiable. */
   onModeEdit?: (label: string, edit: (edit: ModeEdit) => void) => void;
   /** Réglage déclaré par le mode de la page (undefined = vide) ; absent si la page n'est pas modifiable. */
-  onModeProperty?: (scope: ModeScope, targetId: string | undefined, key: string, value: string | undefined) => void;
+  onModeProperty?: (
+    scope: ModeScope,
+    targetId: string | undefined,
+    key: string,
+    value: string | undefined,
+    part?: string,
+  ) => void;
+  /** Partie sélectionnée de la forme (ex. champ d'une table RDD, sujet 249) : le panneau ne montre que ses réglages. */
+  part?: string;
   /** « Courant » du mode de la page (ex. flux courant), montré par ses sections. */
   modeCurrent?: string;
   /** Lien de l'élément sélectionné (vers une page ou une URL) ; undefined = retiré. */
@@ -138,6 +146,8 @@ export function ContextPanel(props: ContextPanelProps) {
   if (props.textEdit) body = <TextFormatSections edit={props.textEdit} />;
   else if (count === 0) body = <PageSections {...props} />;
   else if (count > 1) body = <MultiSections {...props} />;
+  else if (shapes.length === 1 && props.part !== undefined)
+    body = <ElementModeSection {...props} element={shapes[0]!} scope="shape" />;
   else if (shapes.length === 1) body = <ShapeSections {...props} shape={shapes[0]!} />;
   else body = <EdgeSections {...props} edge={edges[0]!} />;
   return (
@@ -307,12 +317,14 @@ function ModeFields({
   page,
   scope,
   target,
+  part,
   styles,
   onModeProperty,
 }: {
   page: PageModel;
   scope: ModeScope;
   target: ModeTarget;
+  part?: string;
   styles: StyleSettings;
   onModeProperty?: ContextPanelProps['onModeProperty'];
 }) {
@@ -321,9 +333,11 @@ function ModeFields({
       page={page}
       scope={scope}
       target={target}
+      part={part}
       palette={modePalette(styles)}
       onChange={
-        onModeProperty && ((key, value) => onModeProperty(scope, scope === 'page' ? undefined : target.id, key, value))
+        onModeProperty &&
+        ((key, value) => onModeProperty(scope, scope === 'page' ? undefined : target.id, key, value, part))
       }
     />
   );
@@ -336,7 +350,10 @@ function ElementModeSection({
   ...props
 }: ContextPanelProps & { element: ModeTarget; scope: ModeScope }) {
   const mode = defaultModeRegistry.modeOf(props.page);
-  const shown = defaultModeRegistry.properties(props.page, scope).filter((p) => !p.hidden?.(props.page, element));
+  const part = scope === 'shape' ? props.part : undefined;
+  const shown = defaultModeRegistry
+    .properties(props.page, scope, part)
+    .filter((p) => !p.hidden?.(props.page, element, part));
   if (!mode || shown.length === 0) return null;
   return (
     <Section title={mode.name}>
@@ -344,6 +361,7 @@ function ElementModeSection({
         page={props.page}
         scope={scope}
         target={element}
+        part={part}
         styles={props.styles}
         onModeProperty={props.onModeProperty}
       />

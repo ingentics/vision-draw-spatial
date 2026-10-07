@@ -34,6 +34,7 @@ import { Links } from './navigation/links';
 import { BackHistory } from './navigation/history';
 import { Transitions } from './navigation/transition';
 import { PageModes } from './modes/pageModes';
+import { ShapeParts } from './modes/shapeParts';
 import { EditTargets } from './edit/targets';
 import { ShapeHandles } from './edit/shapeHandles';
 import { EdgeHandles } from './edit/edges/edgeHandles';
@@ -120,6 +121,7 @@ export class EngineCore {
 
   // modes : modes et effets de page
   readonly pageModes = new PageModes(this);
+  readonly shapeParts = new ShapeParts(this);
 
   // edit : cibles et poignées
   readonly targets: EditTargets;
@@ -172,6 +174,8 @@ export class EngineCore {
     void this.text.measured().then((measure) => {
       setTextMeasure(measure);
       if (!this.disposed && this.scenes.current) this.levels.rebuildScenes();
+      // Tailles calculées sur la mesure approchée : reprises sur la mesure exacte (sujet 255).
+      if (!this.disposed) this.pageModes.documentOpened();
     });
     this.scenes = new SceneManager(
       this.rendering.scene,

@@ -37,7 +37,7 @@ export function createCameraController(core: EngineCore): CameraController {
         const editable = core.targets.editablePage();
         return !!editable && core.selection.current?.pageId === editable.page.id;
       },
-      escape: () => core.selection.clearSelection(),
+      escape: () => core.selection.escape(),
       modeKey: (key) => core.pageModes.modeKey(key),
     },
     core.config.effectiveControls(),

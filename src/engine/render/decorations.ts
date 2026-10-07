@@ -109,6 +109,23 @@ export function selectionOutline(bounds: Rect, zoom: number, phase = 0, accent =
 }
 
 /**
+ * Partie sélectionnée d'une forme (sujet 249, ex. champ d'une table RDD) : fond léger et trait plein de la couleur
+ * d'accent, sur l'emprise de la partie.
+ */
+export function partSelection(bounds: Rect, zoom: number, accent = DEFAULT_ACCENT): Group {
+  const group = new Group();
+  group.name = 'part-selection';
+  const color = new Color(accent);
+  group.add(fillMesh(rectPath(bounds), color, 0.15));
+  const outline = strokeMesh(rectPath(bounds), color, 1, { width: 1.5 / zoom, closed: true });
+  if (outline) group.add(outline);
+  group.traverse((o) => {
+    o.renderOrder = Number.MAX_SAFE_INTEGER;
+  });
+  return group;
+}
+
+/**
  * Sélection d'une silhouette debout (Actor en iso / 3D) : cercle autour de sa tête `head` (cadre dans le plan de la
  * silhouette : x horizontal, y vers le haut), posé en `at` et tourné face à la caméra comme elle
  * (`userData.billboard`). Pointillé si `dashed` (tirets décalés de `phase` pixels écran), plein sinon.

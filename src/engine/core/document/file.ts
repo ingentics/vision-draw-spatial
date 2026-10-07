@@ -39,6 +39,8 @@ export class DocumentFile {
       return;
     }
     this.core.pages.goToPage(page.id);
+    // Pages d'un mode remises en ordre à l'ouverture (ex. tables RDD ajustées, sujet 255).
+    this.core.pageModes.documentOpened();
   }
 
   getDocument(): DocumentModel | undefined {
@@ -107,7 +109,7 @@ export class DocumentFile {
         if (shape) items.push({ type: 'shape', element: shape });
         else if (edge) items.push({ type: 'edge', element: edge });
       }
-      if (items.length > 0) this.core.selection.selectItems(items);
+      if (items.length > 0) this.core.selection.selectItems(items, selected.part);
     }
     this.core.rendering.syncBackground();
     this.core.minimap.invalidate();

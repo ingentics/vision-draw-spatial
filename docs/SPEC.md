@@ -937,11 +937,20 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     par le rendu ; sans lui, noir ou blanc selon le contraste).
   - Réglages du mode sur une table : « Couleur » (le gris puis les couleurs `modePalette`, écrit aussi `fontColor` pour draw.io),
     « Table secondaire » (`spatial.secondary` : tailles × 0,8), « Champs » (zone de texte, un par ligne).
+  - Sélection toujours en contour sur une page RDD (sujet 254, `PageModeDefinition.selectionStyle`), quel que soit le
+    paramètre « Style » de la mise en valeur ; les paramètres le mentionnent sous ce choix.
+  - Champ sélectionné (sujet 249) : un clic sur une ligne de champ la sélectionne, la table sélectionnée ou non (fond
+    léger et trait de la couleur d'accent sur la ligne) ; un clic sur l'entête revient à la table, Échap aussi. Le
+    panneau ne montre alors que le champ : « Champ » (label), « Type » (lecture seule), « Rôle » (propriété, clé
+    étrangère, clé étrangère d'un autre domaine) et « Nullable », ces deux derniers absents pour la clé primaire.
+    Double-clic sur une ligne : label modifié sur place (tout le texte sélectionné, Entrée valide, Échap annule) ; un
+    label vide est refusé. Chaque changement est une étape d'annulation, la largeur suit.
   - Taille calculée (sujet 247), sans poignées de redimensionnement : hauteur = entête + une ligne par champ (au moins
     une) ; largeur = la plus grande du nom (gras, plus la place de l'icône d'entête de chaque côté), des lignes de champ
     (icône, label et type, marge de 6 px de chaque côté) et du minimum de 120 px ; × 0,8 pour une table secondaire. Recalculée depuis le coin
-    haut-gauche à chaque changement de nom, de champs, d'échelle ou d'icône (même étape d'annulation) ; une table du
-    fichier aux dimensions fausses n'est corrigée qu'à sa première modification.
+    haut-gauche à chaque changement de nom, de champs, d'échelle ou d'icône (même étape d'annulation) ; à l'ouverture
+    d'un document modifiable, toute table d'une autre taille est ajustée (sujet 255), sur la mesure exacte du texte
+    (dès que les polices sont chargées), en une étape d'annulation « Ajustement du mode ».
   - Fichier : `swimlane;startSize=26;fillColor=…;swimlaneFillColor=#ffffff;spatial.kind=rdd-…;…` : draw.io montre
     l'entête et sa couleur et les coins arrondis, pas les champs, le cadre double, le coin plié, la vague ni les icônes.
   - « Région » (`rdd-region`) : rectangle à fond opaque et bordure fine grise (`#969696`) ; couleurs propres aux régions,

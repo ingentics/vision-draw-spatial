@@ -3,6 +3,7 @@ import { documentFromTree } from '../../format/parse';
 import { writeDrawio } from '../../format/write';
 import type { DocumentModel, PageModel, Rect, ShapeModel } from '../../model/types';
 import { setElementsDim } from '../../render/pageEffects';
+import { hasExactTextMeasure } from '../../render/textMeasure';
 import { applyModeEdit } from '../../modes/modeEdits';
 import { pageEffectIds, withPageEffect } from '../../effects/registry';
 import type { ModeScope, PageModeRegistry } from '../../modes/registry';
@@ -62,9 +63,16 @@ export class PageModes {
     this.core.file.documentChanged([editable.page.id]);
   }
 
-  setModeProperty(scope: ModeScope, targetId: string | undefined, key: string, value: string | undefined): void {
+  /** `part` : partie de la forme sélectionnée, pour un réglage de partie (sujet 249). */
+  setModeProperty(
+    scope: ModeScope,
+    targetId: string | undefined,
+    key: string,
+    value: string | undefined,
+    part?: string,
+  ): void {
     const page = this.core.targets.editablePage()?.page;
-    const property = page && this.core.modes.properties(page, scope).find((p) => p.key === key);
+    const property = page && this.core.modes.properties(page, scope, part).find((p) => p.key === key);
     const target: ModeTarget | undefined =
       scope === 'page'
         ? page
@@ -73,7 +81,7 @@ export class PageModes {
           : page?.shapes.find((s) => s.id === targetId);
     if (!property || !target) return;
     this.editPageMode(property.label, (edit) => {
-      if (property.write) property.write(edit, target, value);
+      if (property.write) property.write(edit, target, value, part);
       else if (scope === 'page') edit.setPageAttribute(key, value);
       else edit.setElementAttribute(target.id, key, value);
     });
@@ -207,6 +215,31 @@ export class PageModes {
     const fresh = documentFromTree(this.core.file.xmlTree).pages.find((p) => p.id === pageId);
     if (!fresh) return;
     applyModeEdit(fresh, pageTree, (edit) => relabeled(edit, elementId), modePalette(this.core.settings.styles));
+  }
+
+  /**
+   * Document ouvert, ou mesure exacte du texte arrivée : chaque page d'un mode qui a `opened` est remise en ordre
+   * (sujet 255), en une étape d'annulation pour tout le document ; rien si rien ne change, si on ne peut pas modifier
+   * ou tant que la mesure du texte n'est qu'approchée.
+   */
+  documentOpened(): void {
+    const document = this.core.file.getDocument();
+    const xmlTree = this.core.file.xmlTree;
+    // Mesure approchée (polices pas encore chargées) : on attend la mesure exacte, sinon chaque ouverture décalerait les
+    // tailles d'un fichier déjà ajusté.
+    if (!document || !xmlTree || !hasExactTextMeasure()) return;
+    const before = writeDrawio(xmlTree);
+    const palette = modePalette(this.core.settings.styles);
+    const changed = document.pages
+      .filter((page) => {
+        const opened = this.core.modes.modeOf(page)?.opened;
+        const target = opened && this.core.targets.editablePageById(page.id);
+        return !!target && applyModeEdit(target.page, target.pageTree, opened, palette);
+      })
+      .map((page) => page.id);
+    if (changed.length === 0) return;
+    this.core.edits.recordSnapshot('Ajustement du mode', before);
+    this.core.file.documentChanged(changed);
   }
 
   /** Avertissements des modes de page (mode inconnu, données remises en ordre) ajoutés à ceux de la lecture. */

@@ -10,18 +10,23 @@ export function ModePropertyFields({
   page,
   scope,
   target,
+  part,
   palette,
   onChange,
 }: {
   page: PageModel;
   scope: ModeScope;
   target: ModeTarget;
+  /** Partie sélectionnée de la forme (sujet 249) : ses réglages seulement. */
+  part?: string;
   /** Couleurs proposées par l'appli (`modePalette`), pour les choix d'un réglage. */
   palette: readonly string[];
   /** Écriture d'un réglage (undefined = vide) ; absent : lecture seule. */
   onChange?: (key: string, value: string | undefined) => void;
 }) {
-  const properties = defaultModeRegistry.properties(page, scope).filter((property) => !property.hidden?.(page, target));
+  const properties = defaultModeRegistry
+    .properties(page, scope, part)
+    .filter((property) => !property.hidden?.(page, target, part));
   return (
     <>
       {properties.map((property) => (
@@ -29,6 +34,7 @@ export function ModePropertyFields({
           key={property.key}
           page={page}
           target={target}
+          part={part}
           property={property}
           palette={palette}
           onChange={onChange}
@@ -41,18 +47,20 @@ export function ModePropertyFields({
 function ModePropertyField({
   page,
   target,
+  part,
   property,
   palette,
   onChange,
 }: {
   page: PageModel;
   target: ModeTarget;
+  part?: string;
   property: ModeProperty;
   palette: readonly string[];
   onChange?: (key: string, value: string | undefined) => void;
 }) {
   const { key, label } = property;
-  const value = property.value ? property.value(page, target) : rawValue(target, key);
+  const value = property.value ? property.value(page, target, part) : rawValue(target, key);
   const title = property.title ?? label;
   const editable = onChange !== undefined && !property.readOnly;
   const write = (next: string | undefined) => {
@@ -75,7 +83,7 @@ function ModePropertyField({
       const number = value === undefined || value === '' ? undefined : Number(value);
       return (
         <NumberField
-          key={`${target.id}:${key}:${value ?? ''}`}
+          key={`${target.id}:${part ?? ''}:${key}:${value ?? ''}`}
           label={label}
           title={title}
           value={Number.isFinite(number) ? number : undefined}
@@ -87,7 +95,7 @@ function ModePropertyField({
     case 'text':
       return (
         <TextField
-          key={`${target.id}:${key}:${value ?? ''}`}
+          key={`${target.id}:${part ?? ''}:${key}:${value ?? ''}`}
           label={label}
           title={title}
           value={value ?? ''}
