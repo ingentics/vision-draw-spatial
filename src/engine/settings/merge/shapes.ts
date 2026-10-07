@@ -53,6 +53,7 @@ export function mergeShapes(base: ShapeSettings, patch: SettingsPatch['shapes'])
     edgeBadgeFaceCamera: bool(p.edgeBadgeFaceCamera, base.edgeBadgeFaceCamera),
     edgeBadgeLabelFaceCamera: bool(p.edgeBadgeLabelFaceCamera, base.edgeBadgeLabelFaceCamera),
     edgeDressingDarken: num('shapes.edgeDressingDarken', p.edgeDressingDarken, base.edgeDressingDarken),
+    modeObstacleGap: num('shapes.modeObstacleGap', p.modeObstacleGap, base.modeObstacleGap),
     modeDimOpacity: num('shapes.modeDimOpacity', p.modeDimOpacity, base.modeDimOpacity),
     modeBarSlideDuration: num('shapes.modeBarSlideDuration', p.modeBarSlideDuration, base.modeBarSlideDuration),
     placeholderFill: color(p.placeholderFill, base.placeholderFill),

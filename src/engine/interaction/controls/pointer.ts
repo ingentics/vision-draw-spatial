@@ -117,7 +117,7 @@ export class PointerControls {
       if (!drag.moving && distance(drag.start, point) <= settings.clickSlop) return;
       drag.moving = true;
       ctx.element.style.cursor = 'move';
-      host.moveTo?.(point, { snap: !event.altKey });
+      host.moveTo?.(point, { snap: !event.altKey, free: event.ctrlKey });
       return;
     }
     if (drag.mode === 'marquee') {

@@ -1,6 +1,7 @@
 import { moveCell, moveEdgeCell, setEdgeTerminal } from '../../../format/edit';
 import type { PageTree } from '../../../format/xmlTree';
 import { snapDelta, translateMoveSet } from '../../../edit/move';
+import { clampMove } from '../../../edit/obstacles';
 import type { PageModel, Point } from '../../../model/types';
 import type { MoveDrag } from './types';
 import type { EngineCore } from '../../EngineCore';
@@ -9,7 +10,8 @@ import type { EngineCore } from '../../EngineCore';
 export class MoveDrags {
   constructor(private readonly core: EngineCore) {}
 
-  follow(page: PageModel, move: MoveDrag, point: Point, snap: boolean): void {
+  /** `free` : sans les bornes du mode (Ctrl maintenu, sujet 241). */
+  follow(page: PageModel, move: MoveDrag, point: Point, snap: boolean, free = false): void {
     if (!move.started) {
       move.started = true;
       // Une forme seule devient la sélection ; une sélection multiple déplacée reste telle quelle.
@@ -38,7 +40,21 @@ export class MoveDrags {
       this.core.live.retraceEdges(page, detached);
     }
     const raw = { x: point.x - move.start.x, y: point.y - move.start.y };
-    const target = snapDelta(move.origin, raw, snap ? move.grid : 0);
+    const snapped = snapDelta(move.origin, raw, snap ? move.grid : 0);
+    // Bornes du mode (sujet 241) : arrêt à distance des obstacles, limites montrées en pointillé rouge. Pas à pas depuis
+    // la dernière position permise, pour suivre le chemin du geste (on contourne un obstacle par n'importe quel côté).
+    let target = snapped;
+    if (free) this.core.preview.clearLimits();
+    else if (move.bounded) {
+      const { applied } = move;
+      const here = move.bounded.moving.map((r) => ({ ...r, x: r.x + applied.x, y: r.y + applied.y }));
+      const bounded = clampMove(here, move.bounded.obstacles, this.core.settings.shapes.modeObstacleGap, {
+        x: snapped.x - applied.x,
+        y: snapped.y - applied.y,
+      });
+      this.core.preview.showLimits(bounded.limits);
+      target = { x: applied.x + bounded.value.x, y: applied.y + bounded.value.y };
+    }
     const step = { x: target.x - move.applied.x, y: target.y - move.applied.y };
     if (step.x === 0 && step.y === 0) return;
     move.applied = target;

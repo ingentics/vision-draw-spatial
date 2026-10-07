@@ -50,8 +50,11 @@ export interface CameraHost {
    * qui suit le déplace (`moveTo`, au-delà du seuil de clic), jusqu'au relâchement (`endMove`).
    */
   beginMove?(screen: Point): boolean;
-  /** `snap` : aimanter à la grille (désactivé en maintenant Alt, comme dans draw.io). */
-  moveTo?(screen: Point, options: { snap: boolean }): void;
+  /**
+   * `snap` : aimanter à la grille (désactivé en maintenant Alt, comme dans draw.io) ; `free` : sans les bornes du mode
+   * de la page (Ctrl maintenu, sujet 241 : une région peut entrer dans une autre).
+   */
+  moveTo?(screen: Point, options: { snap: boolean; free?: boolean }): void;
   endMove?(): void;
   /**
    * Appui gauche sur le vide (rien à déplacer) : vrai si l'on peut y tirer un rectangle de sélection

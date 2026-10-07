@@ -1138,6 +1138,19 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
             </Section>
 
             <Section title="Modes">
+              <Subsection title="RDD">
+                <Slider
+                  label="Écart entre régions sœurs"
+                  value={shapes.modeObstacleGap}
+                  limits={SETTINGS_LIMITS['shapes.modeObstacleGap']}
+                  format={(v) => `${v} px`}
+                  onChange={(modeObstacleGap) => onChange({ shapes: { modeObstacleGap } })}
+                />
+                <p className="hint muted">
+                  Une région qu’on déplace ou redimensionne s’arrête à cette distance de ses voisines (même niveau),
+                  onglets compris ; une ligne rouge en pointillé montre la limite.
+                </p>
+              </Subsection>
               <Subsection title="Séquences">
                 <h5 className="settings-group">Flux courant</h5>
                 <Slider

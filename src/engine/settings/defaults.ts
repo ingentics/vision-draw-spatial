@@ -110,6 +110,7 @@ export const DEFAULT_SETTINGS: Settings = {
     edgeDressingDarken: 0.25,
     modeDimOpacity: 0.3,
     modeBarSlideDuration: 200,
+    modeObstacleGap: 20,
     placeholderFill: '#eeeeee',
     placeholderStroke: '#9e9e9e',
   },

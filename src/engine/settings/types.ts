@@ -224,6 +224,11 @@ export interface ShapeSettings {
   modeDimOpacity: number;
   /** Glissement de la barre du courant d'un mode quand elle part ou arrive avec une transition (ms, 0 = sans). */
   modeBarSlideDuration: number;
+  /**
+   * Écart minimal entre une forme qu'on déplace ou redimensionne et ses obstacles déclarés par le mode (ex. régions
+   * sœurs du mode RDD, sujet 241), en pixels de page.
+   */
+  modeObstacleGap: number;
   /** Formes non supportées (SPEC §8.4). */
   placeholderFill: string;
   placeholderStroke: string;

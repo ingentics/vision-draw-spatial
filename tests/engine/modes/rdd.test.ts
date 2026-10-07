@@ -854,3 +854,29 @@ describe('mode RDD : règles des régions au redimensionnement, à l’ajustemen
     expect([colorOf(a), colorOf(b)]).toEqual([REGION_COLORS[1], REGION_COLORS[2]]);
   });
 });
+
+describe('mode RDD : une région ne passe pas sur ses sœurs (sujet 241)', () => {
+  it('obstacles d’une région : ses sœurs, onglet compris ; ni sa parente ni son contenu', () => {
+    const { document } = readDrawio(`<mxfile><diagram id="p" name="P" spatial.mode="rdd"><mxGraphModel><root>
+      <mxCell id="0" /><mxCell id="1" parent="0" />
+      <mxCell id="big" value="Big" style="spatial.kind=rdd-region;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="800" height="400" as="geometry" /></mxCell>
+      <mxCell id="a" value="A" style="spatial.kind=rdd-region;" vertex="1" parent="1"><mxGeometry x="20" y="40" width="200" height="80" as="geometry" /></mxCell>
+      <mxCell id="b" value="B" style="spatial.kind=rdd-region;" vertex="1" parent="1"><mxGeometry x="300" y="40" width="200" height="80" as="geometry" /></mxCell>
+      <mxCell id="inner" value="" style="spatial.kind=rdd-region;" vertex="1" parent="1"><mxGeometry x="30" y="60" width="50" height="40" as="geometry" /></mxCell>
+      <mxCell id="other" value="O" style="spatial.kind=rdd-region;" vertex="1" parent="1"><mxGeometry x="1000" y="0" width="200" height="80" as="geometry" /></mxCell>
+      <mxCell id="t" value="T" style="swimlane;spatial.kind=rdd-entity;" vertex="1" parent="1"><mxGeometry x="300" y="200" width="160" height="46" as="geometry" /></mxCell>
+    </root></mxGraphModel></diagram></mxfile>`);
+    const page = document.pages[0]!;
+    const shape = (id: string) => page.shapes.find((s) => s.id === id)!;
+    const found = rdd.obstacles!(page, shape('a'))!;
+    // B, sa sœur dans Big, onglet compris ; ni Big (parente), ni Inner (son contenu), ni Other (autre niveau).
+    expect(found.rects).toEqual([
+      { id: 'b', rect: { x: 300, y: 40 - REGION.tab.height, width: 200, height: 80 + REGION.tab.height } },
+    ]);
+    expect(found.above).toBe(REGION.tab.height);
+    // Premier niveau : Big et Other sont sœurs.
+    expect(rdd.obstacles!(page, shape('big'))!.rects.map((r) => r.id)).toEqual(['other']);
+    // Une table n'est pas bornée.
+    expect(rdd.obstacles!(page, shape('t'))).toBeUndefined();
+  });
+});

@@ -929,6 +929,11 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     une forme déplacée qui sort de sa région par la gauche ou le haut en la chevauchant encore y reste et l'agrandit
     de ce côté (sauf si son coin entre dans une autre région qui n'englobe pas la sienne) ;
     dans la même étape d'annulation ; les régions englobantes suivent ; une région ne rétrécit jamais à cette occasion.
+    Une région déplacée ou redimensionnée ne s'approche pas de ses sœurs (même niveau) à moins de l'écart des
+    paramètres (« Modes › RDD », 20 px par défaut, onglets compris) : arrivée à la borne, une ligne rouge en pointillé
+    la montre et le geste glisse le long de la sœur (borne calculée pas à pas : on la contourne par n'importe quel
+    côté) ; Ctrl maintenu désactive la borne (la région peut entrer dans une autre et s'y emboîter) ; sa parente ne
+    la borne pas, les tables ne sont pas bornées.
     Ordre de dessin : à la pose d'une forme du mode, les régions passent au fond de la pile, les plus englobantes
     derrière ; le contenu d'une région est ainsi toujours devant elle, à toute profondeur.
     Touche **`f`** sur une région sélectionnée seule : ajustée à son contenu (rectangle englobant, 20 px de marge de

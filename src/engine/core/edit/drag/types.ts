@@ -18,6 +18,11 @@ export interface MoveDrag {
   edges: Array<{ id: string; detach: Array<{ end: TerminalEnd; point?: Point }> }>;
   /** Formes et flèches emportées par le mode de la page (ex. contenu d'une région RDD, sujet 182), hors sélection. */
   carried: Set<string>;
+  /**
+   * Bornes du mode de la page (sujet 241) : emprises des formes saisies qui en ont, à leur place d'origine, et
+   * obstacles à ne pas approcher ; absent = déplacement libre.
+   */
+  bounded?: { moving: Rect[]; obstacles: Rect[] };
   start: Point;
   origin: Rect;
   applied: Point;
@@ -37,6 +42,8 @@ export interface ResizeDrag {
   grid: number;
   /** La forme, son contenu (déplacé si le coin haut-gauche bouge) et ses arêtes reliées. */
   children: MoveSet;
+  /** Bornes du mode de la page (sujet 241) : obstacles, et ce que la forme dessine au-dessus de ses bornes. */
+  bounded?: { obstacles: Rect[]; above: number };
   started: boolean;
 }
 

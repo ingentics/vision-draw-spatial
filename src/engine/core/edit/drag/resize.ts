@@ -3,8 +3,9 @@ import type { PageTree } from '../../../format/xmlTree';
 import { translateMoveSet } from '../../../edit/move';
 import type { MoveSet } from '../../../edit/move';
 import { resizeBounds } from '../../../edit/handles';
+import { clampResize } from '../../../edit/obstacles';
 import { computeBounds } from '../../../model/bounds';
-import type { PageModel, Point } from '../../../model/types';
+import type { PageModel, Point, Rect } from '../../../model/types';
 import type { ResizeDrag } from './types';
 import type { EngineCore } from '../../EngineCore';
 
@@ -12,18 +13,34 @@ import type { EngineCore } from '../../EngineCore';
 export class ResizeDrags {
   constructor(private readonly core: EngineCore) {}
 
-  follow(page: PageModel, resize: ResizeDrag, point: Point, snap: boolean): void {
+  /** `free` : sans les bornes du mode (Ctrl maintenu, sujet 241). */
+  follow(page: PageModel, resize: ResizeDrag, point: Point, snap: boolean, free = false): void {
     const shape = page.shapes.find((s) => s.id === resize.shapeId);
     if (!shape) return;
     resize.started = true;
     const delta = { x: point.x - resize.start.x, y: point.y - resize.start.y };
-    const bounds = resizeBounds(
+    let bounds = resizeBounds(
       resize.origin,
       resize.handle,
       delta,
       snap ? resize.grid : 0,
       this.core.settings.edit.minShapeSize,
     );
+    // Bornes du mode (sujet 241), sur les emprises (ce qui dépasse au-dessus compris) ; limites en pointillé rouge.
+    if (free) this.core.preview.clearLimits();
+    else if (resize.bounded) {
+      const { above, obstacles } = resize.bounded;
+      const extent = (r: Rect): Rect => ({ ...r, y: r.y - above, height: r.height + above });
+      // Pas à pas depuis les bornes courantes (dernière taille permise), comme le déplacement.
+      const clamped = clampResize(
+        extent(shape.bounds),
+        extent(bounds),
+        obstacles,
+        this.core.settings.shapes.modeObstacleGap,
+      );
+      bounds = { ...clamped.value, y: clamped.value.y + above, height: clamped.value.height - above };
+      this.core.preview.showLimits(clamped.limits);
+    }
     const previous = shape.bounds;
     if (
       bounds.x === previous.x &&

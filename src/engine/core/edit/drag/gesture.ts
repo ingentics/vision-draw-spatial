@@ -10,7 +10,7 @@ import { screenToPage } from '../../../interaction/camera';
 import { GRAPH_PAGE_ID } from '../../../graph/graphPage';
 import { independentRoots } from '../../../interaction/selection';
 import type { PageModel, Point, Rect } from '../../../model/types';
-import type { Drag, MoveDrag } from './types';
+import type { Drag, MoveDrag, ResizeDrag } from './types';
 import type { EngineCore } from '../../EngineCore';
 
 /**
@@ -84,6 +84,7 @@ export class DragGesture {
             origin: { ...selected.bounds },
             grid,
             children: collectMoveSet(page, selected.id),
+            bounded: this.resizeBounds(page, selected.id),
             started: false,
           };
       return true;
@@ -170,12 +171,45 @@ export class DragGesture {
       set,
       edges,
       carried: new Set([...carried, ...carriedEdges]),
+      bounded: this.moveBounds(
+        page,
+        rootIds.filter((id) => !carried.includes(id)),
+        set.shapeIds,
+      ),
       start,
       origin: { ...origin },
       applied: { x: 0, y: 0 },
       grid,
       started: false,
     };
+  }
+
+  /**
+   * Bornes du mode de la page pour un déplacement (sujet 241) : emprises des formes saisies qui ont des obstacles, et
+   * ces obstacles, sauf ceux qui bougent aussi (`moving`). Undefined : aucune borne.
+   */
+  private moveBounds(page: PageModel, rootIds: string[], moving: ReadonlySet<string>): MoveDrag['bounded'] {
+    const obstaclesOf = this.core.modes.modeOf(page)?.obstacles;
+    if (!obstaclesOf) return undefined;
+    const extents: Rect[] = [];
+    const obstacles: Rect[] = [];
+    for (const id of rootIds) {
+      const shape = page.shapes.find((s) => s.id === id);
+      const found = shape && obstaclesOf(page, shape);
+      if (!shape || !found) continue;
+      const above = found.above ?? 0;
+      extents.push({ ...shape.bounds, y: shape.bounds.y - above, height: shape.bounds.height + above });
+      obstacles.push(...found.rects.filter((r) => !moving.has(r.id)).map((r) => r.rect));
+    }
+    return extents.length > 0 && obstacles.length > 0 ? { moving: extents, obstacles } : undefined;
+  }
+
+  /** Bornes du mode de la page pour le redimensionnement d'une forme (sujet 241) ; undefined : aucune. */
+  private resizeBounds(page: PageModel, shapeId: string): ResizeDrag['bounded'] {
+    const shape = page.shapes.find((s) => s.id === shapeId);
+    const found = shape && this.core.modes.modeOf(page)?.obstacles?.(page, shape);
+    if (!found || found.rects.length === 0) return undefined;
+    return { obstacles: found.rects.map((r) => r.rect), above: found.above ?? 0 };
   }
 
   /**
@@ -239,13 +273,13 @@ export class DragGesture {
    * Suit le pointeur, mesuré au sol (projection orthographique, identique à toute hauteur : une
    * forme en volume reste sous le curseur). Modèle et scène sont mis à jour en place.
    */
-  moveTo(screen: Point, snap: boolean): void {
+  moveTo(screen: Point, snap: boolean, free = false): void {
     const drag = this.drag;
     const page = this.core.pages.getCurrentPage();
     if (!drag || page?.id !== drag.pageId) return;
     const point = screenToPage(this.core.camera.state, this.core.display.viewport, screen);
-    if (drag.kind === 'move') this.core.moveDrags.follow(page, drag, point, snap);
-    else if (drag.kind === 'resize') this.core.resizeDrags.follow(page, drag, point, snap);
+    if (drag.kind === 'move') this.core.moveDrags.follow(page, drag, point, snap, free);
+    else if (drag.kind === 'resize') this.core.resizeDrags.follow(page, drag, point, snap, free);
     else if (drag.kind === 'label') this.core.labelDrags.follow(page, drag, screen);
     else if (drag.kind === 'edgeEnd') this.core.edgeEndDrags.follow(page, drag, screen, snap);
     else if (drag.kind === 'edgePoints') this.core.edgePointsDrags.follow(page, drag, screen, snap);
@@ -257,6 +291,7 @@ export class DragGesture {
     const drag = this.drag;
     this.drag = undefined;
     this.core.preview.clearConnectorPreview();
+    this.core.preview.clearLimits();
     if (!drag?.started || !this.core.file.document || !this.core.file.xmlTree) return;
     const pageTree = this.core.file.pageTreeOf(drag.pageId);
     if (!pageTree) return;

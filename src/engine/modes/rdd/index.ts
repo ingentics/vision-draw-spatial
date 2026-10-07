@@ -21,6 +21,7 @@ import {
   isRegion,
   placeInRegions,
   regionContent,
+  regionObstacles,
   setRegionColor,
 } from './regions';
 
@@ -146,6 +147,8 @@ export const definition: PageModeDefinition = {
   // Une forme posée qui dépasse de sa région l'agrandit, marge comprise (sujet 183) ; les régions restent derrière
   // leur contenu (sujet 230).
   placed: placeInRegions,
+  // Une région ne passe pas sur ses sœurs (sujet 241).
+  obstacles: regionObstacles,
   keys: {
     // « f » : région ajustée à son contenu (sujet 184) ; sur un autre élément, la touche garde son effet.
     f: {

@@ -73,6 +73,7 @@ export const SETTINGS_LIMITS = {
   'shapes.edgeBadgeBorderWidth': { min: 0, max: 6, step: 0.5 },
   'shapes.edgeBadgeGap': { min: 0, max: 30, step: 1 },
   'shapes.edgeDressingDarken': { min: 0, max: 0.9, step: 0.05 },
+  'shapes.modeObstacleGap': { min: 0, max: 80, step: 1 },
   'shapes.modeDimOpacity': { min: 0.05, max: 1, step: 0.05 },
   'shapes.modeBarSlideDuration': { min: 0, max: 1000, step: 10 },
   'selection.speed': { min: 2, max: 80, step: 1 },

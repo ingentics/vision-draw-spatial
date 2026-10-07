@@ -22,7 +22,7 @@ export function createCameraController(core: EngineCore): CameraController {
       toggleFlatten: () => core.viewModes.toggleFlatten(),
       toggleGraph: () => core.graph.toggleGraph(),
       beginMove: (screen) => core.gesture.beginMove(screen),
-      moveTo: (screen, options) => core.gesture.moveTo(screen, options.snap),
+      moveTo: (screen, options) => core.gesture.moveTo(screen, options.snap, options.free),
       endMove: () => core.gesture.endMove(),
       canMarquee: (screen) => !!core.targets.editablePage() && !core.picking.pickAt(screen),
       selectInRect: (rect, options) => core.selection.selectInRect(rect, options),

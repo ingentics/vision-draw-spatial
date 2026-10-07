@@ -58,6 +58,18 @@ export interface PageModeDefinition {
    * après la pose ; `before`, la page avant un déplacement (absente pour un ajout, sujet 234).
    */
   placed?(edit: ModeEdit, shapeIds: string[], before?: PageModel): void;
+  /**
+   * Bornes d'une forme qu'on déplace ou redimensionne (sujet 241, ex. régions sœurs d'une région RDD) : obstacles à ne
+   * pas approcher à moins de l'écart des paramètres (`shapes.modeObstacleGap`) ; undefined = aucune borne.
+   */
+  obstacles?(page: PageModel, shape: ShapeModel): ModeObstacles | undefined;
+}
+
+/** Obstacles d'une forme (sujet 241), en emprises (ex. onglet d'une région compris). */
+export interface ModeObstacles {
+  rects: Array<{ id: string; rect: Rect }>;
+  /** Ce que la forme dessine au-dessus de ses bornes et qui compte dans son emprise (ex. onglet), en pixels de page. */
+  above?: number;
 }
 
 /**
