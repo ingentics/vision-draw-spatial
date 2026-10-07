@@ -1,5 +1,70 @@
 # Changelog
 
+## [0.6.0](https://github.com/ingentics/vision-draw-spatial/compare/drawio-spatial-v0.5.0...drawio-spatial-v0.6.0) (2026-10-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* **engine:** MinimapPainter reçoit un MinimapBrush au lieu d'un CanvasRenderingContext2D
+* **engine:** anciennes clés `spatial.<nom>` des modes plus lues, `legacyModeSettings` et `LEGACY_DEFAULT_DEPTH` retirés de l'API du moteur, méthodes inutilisées de `Engine` retirées.
+* **engine:** SPATIAL.tag, sign et nodes, ExporterSettings et la section exporters des paramètres disparaissent ; ModePanelProps reçoit values au lieu d'exporters ; paletteFor et searchTemplates prennent les catégories en paramètre.
+* **engine:** defaultShapeRegistry, defaultModeRegistry et defaultEffectRegistry ne sont plus exportés ; getModeRegistry, getEffectRegistry et getShapeRegistry rendent des vues en lecture seule.
+* **engine:** PageModeDefinition.namespace est obligatoire ; les attributs des modes s'écrivent spatial.seq.* et spatial.rdd.* (fichiers existants migrés à l'ouverture).
+* **engine:** les membres de PageModeDefinition changent de place (ex. carries → gestures.carries, repair → lifecycle.removed, shapes → page.palette.shapes) ; contrat interne au dépôt.
+* **engine:** les types ModeSetting et ModeValues exportés par le moteur sont remplacés par PluginSetting et PluginValues.
+* **engine:** les clés shapes.modeObstacleGap, shapes.modeDimOpacity, shapes.modeBarSlideDuration, shapes.edgeBadge* et shapes.edgeDressingDarken disparaissent des paramètres (désormais settings.modes.rdd.* et settings.modes.sequences.*) ; RenderContext perd edgeBadge et dressingDarken ; dressing et obstacles reçoivent les valeurs du mode.
+
+### Fonctionnalités
+
+* **app:** Diagnostics en icône stéthoscope, limités à l'instance courante ([b2b965a](https://github.com/ingentics/vision-draw-spatial/commit/b2b965afcbc8818602707197768aa1bf605da79b))
+* **app:** tirets du contour de sélection à 4 px/s par défaut ([8ea4b14](https://github.com/ingentics/vision-draw-spatial/commit/8ea4b14423ebe7be70641cd3d3d350e34e5b8b5d))
+* **engine:** appels aux formes protégés par leur registre ([f84cb95](https://github.com/ingentics/vision-draw-spatial/commit/f84cb95579b70d5785e6695969711673a4ba7ded))
+* **engine:** cadre de sélection autour de l'emprise de la forme, onglet de la région compris ([a69696d](https://github.com/ingentics/vision-draw-spatial/commit/a69696d93e275ca358bbdaa19a8dc4d36570780c))
+* **engine:** clés des modes dans leur espace de noms ([697f4e2](https://github.com/ingentics/vision-draw-spatial/commit/697f4e21286140e4d1c84347d9b7f58116c6c8df))
+* **engine:** étanchéité des plugins, vues en lecture seule, verrou des attributs et pinceau de mini-carte ([90dba26](https://github.com/ingentics/vision-draw-spatial/commit/90dba263fe956891ecc431d86a876478df017e61))
+* **engine:** ligne rouge des bornes hors du cadre de sélection, prolongée en fondu ([f567266](https://github.com/ingentics/vision-draw-spatial/commit/f567266ddcabc7ab5842c1cea7484afb9cc7da40))
+* **engine:** métriques du moteur dans les Diagnostics ([1698b99](https://github.com/ingentics/vision-draw-spatial/commit/1698b99f823998d0242b069aa690d6dcf78ed89a))
+* **engine:** modèle en lecture seule pour les plugins ([01a9a86](https://github.com/ingentics/vision-draw-spatial/commit/01a9a86b71ea7e0eb2306b8b1298334d697c4fa6))
+* **rdd:** ajouter un champ par la poignée « + » ([6175cda](https://github.com/ingentics/vision-draw-spatial/commit/6175cdafd8c4cdf42d631108f5d70d576f7d6f73))
+* **rdd:** champs structurés, taille calculée, icône et type des champs ([e298ae5](https://github.com/ingentics/vision-draw-spatial/commit/e298ae50eaf44a862ea11f3bb0968561953aaa30))
+* **rdd:** couper une flèche de relation, avec ses renvois ([830d623](https://github.com/ingentics/vision-draw-spatial/commit/830d6238d50d5039a9a4f61e74ae215466472219))
+* **rdd:** le « + » crée tout de suite un champ sans type ; type choisi au panneau ([ab5b4e9](https://github.com/ingentics/vision-draw-spatial/commit/ab5b4e9e590b4af5c62de2cd0c6973403ac404dd))
+* **rdd:** libellé et préfixe d'une relation embedded écrits en direct ([cd21e79](https://github.com/ingentics/vision-draw-spatial/commit/cd21e796d16879d0d46f97e0eef8cb803a66ee98))
+* **rdd:** panneau d'un champ en sections, clé primaire imposée, commentaire du champ au survol ([54c3cb5](https://github.com/ingentics/vision-draw-spatial/commit/54c3cb5359fbb6d38a717ab0b7c2d463d3d909f0))
+* **rdd:** pré-sélection d'un champ au survol ([58d8b1d](https://github.com/ingentics/vision-draw-spatial/commit/58d8b1d145acb13e5a9d8338bc36d39c8dd56a01))
+* **rdd:** relation embedded à part, relations rangées par sorte ([f4bd926](https://github.com/ingentics/vision-draw-spatial/commit/f4bd92633f3ccc2cf9ce4b808ac692c6a74cb1bf))
+* **rdd:** relations entre tables, champ de relation et cardinalités ([400e916](https://github.com/ingentics/vision-draw-spatial/commit/400e9162d992b9d8431f9e602ab7c07bf9d2b360))
+* **rdd:** réordonner les champs au glisser ([8f0ed58](https://github.com/ingentics/vision-draw-spatial/commit/8f0ed58fa2398681e055720d3ae2c616630a35bd))
+* **rdd:** sélection d'un champ, sélection en contour, tables ajustées à l'ouverture ([1cf7fb4](https://github.com/ingentics/vision-draw-spatial/commit/1cf7fb4159b6ada4a8b2eb3beb918a6222c0b915))
+* **rdd:** séparateurs entre les champs, texte brut dans les tables ([3aecd8c](https://github.com/ingentics/vision-draw-spatial/commit/3aecd8c4f9bce307b0646410cd856dcf6a0ac028))
+* **rdd:** supprimer un champ ([e774829](https://github.com/ingentics/vision-draw-spatial/commit/e7748291e114c182fb3b292772067280bee536a3))
+* **rdd:** taille des tables sur la grille ([3ae0da2](https://github.com/ingentics/vision-draw-spatial/commit/3ae0da2eef233d275ed0fc82b680f1cc237ad6c9))
+
+
+### Corrections
+
+* **app:** réglages déclarés des modes évalués et protégés par le moteur ([14e1a93](https://github.com/ingentics/vision-draw-spatial/commit/14e1a93ef587ddda42c5bd9630fbee7401ea483a))
+* **engine:** Aligner et Répartir suivent le mode de la page ([4ecb0ee](https://github.com/ingentics/vision-draw-spatial/commit/4ecb0ee6da4b91a45a55166494a77e649cbdbb3e))
+* **engine:** allowsEffect d'un mode protégé comme les autres appels ([50fd8a1](https://github.com/ingentics/vision-draw-spatial/commit/50fd8a1891700b91ac682671a9ff171ed0fb7ead))
+* **engine:** cylindres retournés par flipH et flipV comme dans draw.io ([e3865a2](https://github.com/ingentics/vision-draw-spatial/commit/e3865a2d0b683071418da4d78f1a1aaa95af1a42))
+* **engine:** écritures d'un mode défaites si l'une échoue en route ([bc1a3d5](https://github.com/ingentics/vision-draw-spatial/commit/bc1a3d5d98cb6e38ef2b31614cef7034770247ea))
+* **engine:** forêt ombrée comme les volumes, d'après les réglages ([1f9b631](https://github.com/ingentics/vision-draw-spatial/commit/1f9b631f9a446d5b82eb482593c655c1f6c7315b))
+* **rdd:** bordure des régions en pointillé comme dans draw.io ([10652c6](https://github.com/ingentics/vision-draw-spatial/commit/10652c60b984f1262e2275664e21c02d444e4cae))
+* **rdd:** flèche de relation sans réglages en lecture seule ([f13aaed](https://github.com/ingentics/vision-draw-spatial/commit/f13aaed36e13868d3fdbc6751ed2ad167eee0092))
+* **rdd:** hauteur des tables au plus juste, hors grille ([ebc4434](https://github.com/ingentics/vision-draw-spatial/commit/ebc4434f5e0c1fe0a444763388d0b5264316f2be))
+* **rdd:** la case des cardinalités ne masque que les textes ([8db1100](https://github.com/ingentics/vision-draw-spatial/commit/8db11000ebbda353743055be660ccb1b9ddf3a34))
+* **sequences:** flèche pleine de retour reconnue, plus de retour PlantUML en double ([efa5533](https://github.com/ingentics/vision-draw-spatial/commit/efa55330394d4bfaeeecf0af810702ad6158e600))
+
+
+### Refactorisations
+
+* **engine:** API des plugins, seule porte d'entrée des extensions ([9394de9](https://github.com/ingentics/vision-draw-spatial/commit/9394de9618a68a1ef7a5c0b78e116ebc61d8eb59))
+* **engine:** contrat des modes regroupé par thème ([d89b1a8](https://github.com/ingentics/vision-draw-spatial/commit/d89b1a820df548636c8865ff485d232639ffe930))
+* **engine:** ménage du code mort et des migrations sans objet ([f71fccc](https://github.com/ingentics/vision-draw-spatial/commit/f71fccc5d8283c683fc205a7332b0be56a3fc3a5))
+* **engine:** paramètres déclarés par chaque mode de page ([75c6be9](https://github.com/ingentics/vision-draw-spatial/commit/75c6be93f84e5aa13b2b4e6427d9cefcceec171e))
+* **engine:** registres aux ids uniques, vus en lecture seule par l'appli ([1859055](https://github.com/ingentics/vision-draw-spatial/commit/18590553922bd0428eae0eafc3e3e02df08d5dec))
+* **engine:** tronc sans connaissance d'un plugin précis ([3b74327](https://github.com/ingentics/vision-draw-spatial/commit/3b743275fed3274f895bf8fea220de05c4896db4))
+
 ## [0.5.0](https://github.com/ingentics/vision-draw-spatial/compare/drawio-spatial-v0.4.0...drawio-spatial-v0.5.0) (2026-10-07)
 
 
