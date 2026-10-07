@@ -42,7 +42,7 @@ ligne :
 | `Engine.ts`, `core/domains/` | façade publique ; un dossier de `core/domains/` par domaine (document, vue, sélection, édition…) | avec état |
 | `core/interaction/` | caméra, transitions, historique, sélection, pick (calculs) ; contrôles du canvas et mini-carte (DOM) | pur, sauf `controls/` et la mini-carte |
 | `core/edit/` | règles d'édition : déplacement, poignées, bouts et points de flèche, styles, palette, ancrage | pur |
-| `plugins/shapes/`, `plugins/modes/`, `plugins/effects/` | formes, modes et effets de page, un dossier chacun ; leurs contrats et registres dans `core/shapes/`, `core/modes/`, `core/effects/` | pur |
+| `plugins/shapes/`, `plugins/modes/`, `plugins/effects/` | formes, modes et effets de page, un dossier chacun ; leurs contrats et registres dans `core/shapes/`, `core/modes/`, `core/effects/` ; un plugin n'importe du tronc que `core/plugins/` (son API) | pur |
 | `core/render/`, `core/graph/` | scènes Three.js par page et par niveau, vue graphe | pur (objets Three.js) |
 | `core/settings/` | paramètres : types, schéma (défauts, bornes, lecture), fusion qui en découle | pur |
 | `core/model/` | modèle neutre (aucune notion draw.io), géométrie, lecture du style | pur, sans Three.js |

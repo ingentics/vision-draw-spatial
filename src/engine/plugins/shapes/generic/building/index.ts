@@ -1,16 +1,20 @@
 import { Color, Group, Matrix4, Vector3 } from 'three';
 import type { Mesh, Object3D } from 'three';
-import type { Point, Rect, ShapeModel } from '../../../../core/model/types';
-import { VERTEX_DEFAULTS } from '../../../../core/render/flat/box';
-import { rectPath } from '../../../../core/render/geometry/paths';
-import { blockHeight, isoBlock, TOP_OFFSET } from '../../../../core/render/iso/block';
-import { strokeMesh } from '../../../../core/render/meshes';
-import { styleNumber, styleOpacity } from '../../../../core/model/styleValues';
-import { styleColor } from '../../../../core/render/styleColors';
-import { PART_ORDER } from '../../../../core/render/types';
-import type { RenderContext } from '../../../../core/render/types';
-import { SPATIAL, spatialValue } from '../../../../core/spatial';
-import type { SceneRenderer, ShapeProperty } from '../../../../core/shapes/types';
+import {
+  PART_ORDER,
+  SPATIAL,
+  TOP_OFFSET,
+  VERTEX_DEFAULTS,
+  blockHeight,
+  isoBlock,
+  rectPath,
+  spatialValue,
+  strokeMesh,
+  styleColor,
+  styleNumber,
+  styleOpacity,
+} from '../../../../core/plugins';
+import type { Point, Rect, RenderContext, SceneRenderer, ShapeModel, ShapeProperty } from '../../../../core/plugins';
 
 /**
  * « Bâtiments » (niveau `iso`) : les composants d'architecture ont tous la même grammaire, comme les

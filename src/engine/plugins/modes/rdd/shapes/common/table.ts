@@ -1,14 +1,27 @@
 import { Color, Group } from 'three';
-import type { Point, Rect, ShapeModel } from '../../../../../core/model/types';
-import { createLabel } from '../../../../../core/render/flat/box';
-import { cornerRadius, rectPath, roundedRectPath } from '../../../../../core/render/geometry/paths';
-import { dashPattern } from '../../../../../core/render/geometry/stroke';
-import { fillMesh, strokeMesh } from '../../../../../core/render/meshes';
-import { styleNumber, styleOpacity, styleFlag } from '../../../../../core/model/styleValues';
-import { readableOn, styleColor } from '../../../../../core/render/styleColors';
-import { PART_ORDER } from '../../../../../core/render/types';
-import type { RenderContext } from '../../../../../core/render/types';
-import type { PaletteEntry, ShapeDefinition } from '../../../../../core/shapes/types';
+import {
+  PART_ORDER,
+  cornerRadius,
+  createLabel,
+  dashPattern,
+  fillMesh,
+  readableOn,
+  rectPath,
+  roundedRectPath,
+  strokeMesh,
+  styleColor,
+  styleFlag,
+  styleNumber,
+  styleOpacity,
+} from '../../../../../core/plugins';
+import type {
+  PaletteEntry,
+  Point,
+  Rect,
+  RenderContext,
+  ShapeDefinition,
+  ShapeModel,
+} from '../../../../../core/plugins';
 import { FIELDS, fieldsValue, isDivider, primaryKeyField, tableFields } from '../../tables/fieldModel';
 import { isLinkable } from '../../relations';
 import { DEFAULT_HEADER_COLOR, DEFAULT_HEADER_TEXT, FIELDS_FILL, TABLE_BORDER } from '../../tables/tableColors';

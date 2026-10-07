@@ -1,17 +1,22 @@
 import { Group, Vector3 } from 'three';
-import type { Point, Rect, ShapeModel } from '../../../../../core/model/types';
-import { createLabel } from '../../../../../core/render/flat/box';
-import { dashPattern } from '../../../../../core/render/geometry/stroke';
-import { rectPath } from '../../../../../core/render/geometry/paths';
-import { blockHeight } from '../../../../../core/render/iso/block';
-import { edgeLines } from '../../../../../core/render/lines';
-import { fillMesh, solidMaterial, strokeMesh } from '../../../../../core/render/meshes';
-import { styleNumber, styleOpacity, styleFlag } from '../../../../../core/model/styleValues';
-import { styleColor } from '../../../../../core/render/styleColors';
-import { PART_ORDER } from '../../../../../core/render/types';
-import type { RenderContext } from '../../../../../core/render/types';
-import { SPATIAL, spatialValue } from '../../../../../core/spatial';
-import type { SceneRenderer } from '../../../../../core/shapes/types';
+import {
+  PART_ORDER,
+  SPATIAL,
+  blockHeight,
+  createLabel,
+  dashPattern,
+  edgeLines,
+  fillMesh,
+  rectPath,
+  solidMaterial,
+  spatialValue,
+  strokeMesh,
+  styleColor,
+  styleFlag,
+  styleNumber,
+  styleOpacity,
+} from '../../../../../core/plugins';
+import type { Point, Rect, RenderContext, SceneRenderer, ShapeModel } from '../../../../../core/plugins';
 import { ARMS } from './figure';
 import type { FigureOf } from './figure';
 

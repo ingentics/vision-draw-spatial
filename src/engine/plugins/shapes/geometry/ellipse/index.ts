@@ -1,7 +1,6 @@
-import type { ShapeModel } from '../../../../core/model/types';
-import { ellipsePath } from '../../../../core/render/geometry/paths';
+import { ellipsePath } from '../../../../core/plugins';
+import type { ShapeDefinition, ShapeModel } from '../../../../core/plugins';
 import { box } from '../../generic/box';
-import type { ShapeDefinition } from '../../../../core/shapes/types';
 
 /** Ellipse : boîte de l'ellipse inscrite dans les bornes. */
 export const definition: ShapeDefinition = {

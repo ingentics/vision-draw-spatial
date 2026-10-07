@@ -1,4 +1,4 @@
-import type { PageModel } from '../../../../../../core/model/types';
+import type { PageModel } from '../../../../../../core/plugins';
 import type { EdgeLook } from '../kind';
 
 /**

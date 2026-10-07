@@ -2,9 +2,9 @@ import { defaultEffectRegistry, defaultModeRegistry, RESERVED_CODES, SETTINGS_LI
 import type {
   FollowLinkGesture,
   FollowLinkKey,
-  ModeSetting,
-  ModeValues,
   MultiSelectKey,
+  PluginSetting,
+  PluginValues,
   Settings,
   SettingsPatch,
   Shortcuts,
@@ -1156,7 +1156,7 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                 .filter((mode) => (mode.settings ?? []).length > 0)
                 .map((mode) => (
                   <Subsection key={mode.id} title={mode.shortName ?? mode.name}>
-                    <ModeSettingFields
+                    <PluginSettingFields
                       settings={mode.settings!}
                       values={defaultModeRegistry.values(mode.id, settings.modes[mode.id])}
                       onChange={(key, value) => onChange({ modes: { [mode.id]: { [key]: value } } })}
@@ -1195,26 +1195,16 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
               {defaultEffectRegistry
                 .list()
                 .filter((effect) => (effect.settings ?? []).length > 0)
-                .map((effect) => {
-                  const values = defaultEffectRegistry.values(effect.id, settings.effects[effect.id]);
-                  return (
-                    <Subsection key={effect.id} title={effect.name}>
-                      {effect.settings!.map((setting) => (
-                        <Slider
-                          key={setting.key}
-                          label={setting.label}
-                          value={values[setting.key]!}
-                          limits={setting}
-                          format={(v) =>
-                            setting.unit === '%' ? `${Math.round(v * 100)} %` : `${v} ${setting.unit ?? ''}`.trim()
-                          }
-                          onChange={(value) => onChange({ effects: { [effect.id]: { [setting.key]: value } } })}
-                        />
-                      ))}
-                      <p className="hint muted">{effect.description}</p>
-                    </Subsection>
-                  );
-                })}
+                .map((effect) => (
+                  <Subsection key={effect.id} title={effect.name}>
+                    <PluginSettingFields
+                      settings={effect.settings!}
+                      values={defaultEffectRegistry.values(effect.id, settings.effects[effect.id])}
+                      onChange={(key, value) => onChange({ effects: { [effect.id]: { [key]: value } } })}
+                    />
+                    <p className="hint muted">{effect.description}</p>
+                  </Subsection>
+                ))}
             </Section>
 
             <Section title="Édition">
@@ -1786,17 +1776,17 @@ function useSystemReducedMotion(): boolean {
 }
 
 /**
- * Réglages déclarés par un mode (ticket 283), dans l'ordre : titre de groupe avant le premier réglage d'un groupe, aide
- * sous un réglage.
+ * Réglages déclarés par un plugin, mode (ticket 283) ou effet (sujet 287), dans l'ordre : titre de groupe avant le
+ * premier réglage d'un groupe, aide sous un réglage.
  */
-function ModeSettingFields({
+function PluginSettingFields({
   settings,
   values,
   onChange,
 }: {
-  settings: ModeSetting[];
-  values: ModeValues;
-  onChange: (key: string, value: ModeValues[string]) => void;
+  settings: PluginSetting[];
+  values: PluginValues;
+  onChange: (key: string, value: PluginValues[string]) => void;
 }) {
   return settings.map((setting) => (
     <Fragment key={setting.key}>

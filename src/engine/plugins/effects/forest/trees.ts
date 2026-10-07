@@ -1,5 +1,5 @@
 import { BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Mesh, MeshBasicMaterial } from 'three';
-import type { Point } from '../../../core/model/types';
+import type { Point } from '../../../core/plugins';
 
 export interface Tree {
   /** Graine de l'arbre (celle de sa case). */

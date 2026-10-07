@@ -1,4 +1,4 @@
-import type { ModeParts } from '../../../../core/modes/types';
+import type { ModeParts } from '../../../../core/plugins';
 import { FIELDS, fieldsValue, isDivider, isPrimaryKey, tableFields } from '../tables/fieldModel';
 import { moveField, movedFields, removeField, setField } from '../tables/operations';
 import { TYPE_COLOR } from '../tables/tableColors';

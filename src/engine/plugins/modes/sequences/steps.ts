@@ -1,6 +1,5 @@
-import type { EdgeModel, PageModel } from '../../../core/model/types';
-import { spatialValue } from '../../../core/spatial';
-import type { ModeEdit, ModeIssue } from '../../../core/modes/types';
+import { spatialValue } from '../../../core/plugins';
+import type { EdgeModel, ModeEdit, ModeIssue, PageModel } from '../../../core/plugins';
 import { FLOW, FLOWS, STEP, nextFlowColor, nextFlowId, readFlows, writeFlows } from './flows';
 import type { Flow } from './flows';
 

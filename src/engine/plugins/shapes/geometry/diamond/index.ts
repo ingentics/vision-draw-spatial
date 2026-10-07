@@ -1,7 +1,6 @@
-import type { ShapeModel } from '../../../../core/model/types';
-import { orientedPath } from '../../../../core/render/geometry/orient';
+import { orientedPath } from '../../../../core/plugins';
+import type { ShapeDefinition, ShapeModel } from '../../../../core/plugins';
 import { box } from '../../generic/box';
-import type { ShapeDefinition } from '../../../../core/shapes/types';
 
 /** Losange inscrit dans les bornes, sommets au milieu des côtés (mxRhombus), orienté comme draw.io. */
 function outline(shape: ShapeModel) {

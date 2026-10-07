@@ -2,6 +2,7 @@ import type { AlignReference } from '../edit/align';
 import type { Anchoring } from '../edit/anchoring/mode';
 import type { StylePreset, TextPreset } from '../edit/stylePresets';
 import type { ControlSettings, Shortcuts } from '../interaction/controls';
+import type { PluginSettings, PluginSettingValue } from './pluginSettings';
 
 /** Types des paramètres (SPEC §13), section par section. */
 
@@ -314,19 +315,6 @@ export interface ExporterSettings {
   };
 }
 
-/**
- * Réglages globaux des effets de page (sujet 145) : `effets[id][clé]`, seulement les valeurs changées. Chaque effet
- * déclare ses réglages, leurs bornes et leurs défauts (`plugins/effects/<id>/`) : le registre des effets les résout.
- */
-export type EffectSettings = Record<string, Record<string, number>>;
-
-/**
- * Réglages globaux des modes de page (ticket 283) : `modes[id][clé]`, seulement les valeurs changées (nombre, booléen
- * ou couleur #rrggbb). Chaque mode déclare ses réglages, leurs bornes et leurs défauts (`plugins/modes/<id>/`) : le
- * registre des modes les résout.
- */
-export type ModeSettings = Record<string, Record<string, number | boolean | string>>;
-
 export interface Settings {
   transition: TransitionSettings;
   preload: PreloadSettings;
@@ -346,8 +334,13 @@ export interface Settings {
   accessibility: AccessibilitySettings;
   panels: PanelsSettings;
   exporters: ExporterSettings;
-  effects: EffectSettings;
-  modes: ModeSettings;
+  /**
+   * Réglages globaux des effets (sujet 145) et des modes (ticket 283) de page : `[id][clé]`, seulement les valeurs
+   * changées (nombre, booléen ou couleur #rrggbb). Chaque plugin déclare ses réglages, leurs bornes et leurs défauts
+   * (`PluginSetting`) : son registre les résout.
+   */
+  effects: PluginSettings;
+  modes: PluginSettings;
 }
 
 /** Modification partielle, section par section (raccourcis compris). */
@@ -364,9 +357,7 @@ export type SettingsPatch = {
         }
       : K extends 'exporters'
         ? { plantuml?: Partial<ExporterSettings['plantuml']> }
-        : K extends 'effects'
-          ? Record<string, Record<string, number | undefined>>
-          : K extends 'modes'
-            ? Record<string, Record<string, number | boolean | string | undefined>>
-            : Partial<Settings[K]>;
+        : K extends 'effects' | 'modes'
+          ? Record<string, Record<string, PluginSettingValue | undefined>>
+          : Partial<Settings[K]>;
 };

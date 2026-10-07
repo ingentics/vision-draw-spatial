@@ -88,6 +88,11 @@ paths:
 - **The UI goes through the engine entry point** (`src/engine/index.ts`): `src/app/`, `src/react/` and
   `src/index.ts` import nothing else from the engine (checked by lint). If something is missing, export it there;
   `src/index.ts` (library API) only re-exports what is public.
+- **Plugins (shapes, modes, effects) import from the trunk only the plugin API** (`engine/core/plugins/index.ts`),
+  plus `three` and their own folder; a shape may also extend a shape of `plugins/shapes/`. A trunk building block a
+  plugin needs is re-exported there (that is the decision to make it common). The trunk (`core/`) never imports a
+  plugin: only the composition root `engine/plugins/index.ts` knows them. Checked by lint and
+  `tests/engine/plugins/boundaries.test.ts`.
 - **A special case is not copied around.** A repeated test goes through a shared guard: transition in progress
   (`core.canInteract()`), graph view (`graph.isGraph(id)`), editable page (`targets.editablePage()`,
   `editablePageById(id)`); if none fits, create one.

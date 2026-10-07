@@ -2,6 +2,7 @@ import type { ViewMode } from '../interaction/cameraMath';
 import type { EdgeEnd, EndTextGap } from '../edit/edgeLabels';
 import type { EdgeModel, PageModel, Point, Rect, ShapeModel } from '../model/types';
 import type { EdgeBadgeStyle } from '../render/types';
+import type { PluginSetting, PluginValues } from '../settings/pluginSettings';
 import type { PaletteCategory } from '../shapes/types';
 
 /**
@@ -31,9 +32,9 @@ export interface PageModeDefinition {
    * Réglages globaux du mode (Paramètres › Modes, ticket 283), bornés ; leurs valeurs sont passées aux mécanismes qu'il
    * fournit (`obstacles`, `dressing`, `current.look`), qui les rendent au moteur.
    */
-  settings?: ModeSetting[];
+  settings?: PluginSetting[];
   /** Habillage du rendu de la page, appliqué au dessin sans modifier le style draw.io ; `values` : ses réglages. */
-  dressing?(page: PageModel, values: ModeValues): PageDressing;
+  dressing?(page: PageModel, values: PluginValues): PageDressing;
   /** Incohérences des données (ex. fichier modifié dans draw.io), remises en ordre au mieux et signalées. */
   check?(page: PageModel): ModeIssue[];
   /** Remise en ordre écrite dans le fichier, après une suppression d'éléments (même étape d'annulation). */
@@ -116,7 +117,7 @@ export interface PageModeDefinition {
    * Bornes d'une forme qu'on déplace ou redimensionne (sujet 241, ex. régions sœurs d'une région RDD) : obstacles à ne
    * pas approcher à moins de leur écart (`gap`, réglage du mode) ; undefined = aucune borne.
    */
-  obstacles?(page: PageModel, shape: ShapeModel, values: ModeValues): ModeObstacles | undefined;
+  obstacles?(page: PageModel, shape: ShapeModel, values: PluginValues): ModeObstacles | undefined;
 }
 
 /**
@@ -236,7 +237,7 @@ export interface ModeCurrent {
   /** Renomme le courant (ex. titre du flux), depuis la barre ; `label` n'est jamais vide. */
   rename?(edit: ModeEdit, value: string, label: string): void;
   /** Apparence du courant d'après les réglages du mode (ticket 283) ; absent = défauts du moteur. */
-  look?(values: ModeValues): ModeCurrentLook;
+  look?(values: PluginValues): ModeCurrentLook;
 }
 
 /** Apparence du courant d'un mode ; une valeur absente prend le défaut du moteur. */
@@ -387,42 +388,3 @@ export interface ModeIssue {
   cellId?: string;
   message: string;
 }
-
-/**
- * Réglage global d'un mode (ticket 283), comme celui d'un effet : affiché dans la sous-page du mode (Paramètres ›
- * Modes), valeur dans `settings.modes[id][key]`, bornée et complétée par `default` par le registre des modes.
- */
-export type ModeSetting = {
-  key: string;
-  label: string;
-  /** Aide au survol. */
-  title?: string;
-  /** Aide affichée sous le réglage. */
-  hint?: string;
-  /** Groupe dans la sous-page du mode (titre affiché avant son premier réglage). */
-  group?: string;
-  /** Aide affichée sous le titre du groupe (sur le premier réglage du groupe). */
-  groupHint?: string;
-  /** Ancienne clé de la section `shapes` des paramètres (avant le ticket 283), reprise une fois si elle a changé. */
-  legacy?: string;
-} & (
-  | {
-      type: 'number';
-      min: number;
-      max: number;
-      step: number;
-      default: number;
-      /** Affichage : `px`, `ms`, ou `%` (fraction de 0 à 1 affichée en pourcentage). */
-      unit?: 'px' | 'ms' | '%';
-      /** Libellé de la valeur 0 (ex. « sans »). */
-      zero?: string;
-    }
-  | { type: 'toggle'; default: boolean }
-  | { type: 'color'; default: string }
-);
-
-/** Valeur d'un réglage de mode. */
-export type ModeSettingValue = number | boolean | string;
-
-/** Valeurs des réglages d'un mode, par clé (bornées, défaut pour les absentes ; nombre, booléen ou #rrggbb). */
-export type ModeValues = Record<string, ModeSettingValue>;

@@ -1,7 +1,6 @@
-import type { ShapeModel } from '../../../../core/model/types';
-import { rectPath } from '../../../../core/render/geometry/paths';
+import { rectPath } from '../../../../core/plugins';
+import type { ShapeDefinition, ShapeModel } from '../../../../core/plugins';
 import { box } from '../../generic/box';
-import type { ShapeDefinition } from '../../../../core/shapes/types';
 
 /** Texte seul : pas de fond ni de bordure, sauf si le style en définit explicitement ; reste à plat en iso. */
 export const definition: ShapeDefinition = {

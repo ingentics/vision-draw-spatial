@@ -1,3 +1,4 @@
+import { DEFAULT_SETTINGS } from './fromSchema';
 import type { AccessibilitySettings, Settings, StyleSettings } from './types';
 
 /** Faut-il réduire les animations ? (`systemPrefersReduced` = `prefers-reduced-motion: reduce`). */
@@ -15,6 +16,9 @@ export function resolveReducedMotion(
 export function modePalette(styles: StyleSettings): string[] {
   return [...styles.base, ...styles.extended].slice(2).map((preset) => preset.fillColor);
 }
+
+/** Couleurs proposées aux modes avec les styles par défaut (repli d'un mode quand l'appli n'en donne pas, sujet 287). */
+export const DEFAULT_MODE_PALETTE: readonly string[] = modePalette(DEFAULT_SETTINGS.styles);
 
 /** Une section des paramètres a-t-elle changé (valeurs comparées, pas l'objet) ? */
 export function settingsSectionChanged<K extends keyof Settings>(

@@ -1,8 +1,6 @@
-import { stencilShape } from '../../../../core/format/stencil';
-import type { Point, ShapeModel } from '../../../../core/model/types';
-import { orientedPath } from '../../../../core/render/geometry/orient';
+import { orientedPath, stencilShape } from '../../../../core/plugins';
+import type { Point, ShapeDefinition, ShapeModel } from '../../../../core/plugins';
 import { box } from '../box';
-import type { ShapeDefinition } from '../../../../core/shapes/types';
 
 /** Stencil embarqué : un contour fermé, en coordonnées du stencil. */
 export interface Stencil {

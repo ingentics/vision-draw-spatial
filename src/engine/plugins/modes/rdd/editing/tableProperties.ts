@@ -1,6 +1,5 @@
-import type { ShapeModel } from '../../../../core/model/types';
-import { spatialValue } from '../../../../core/spatial';
-import type { ModeEdit, ModeProperty, ModeTarget } from '../../../../core/modes/types';
+import { spatialValue } from '../../../../core/plugins';
+import type { ModeEdit, ModeProperty, ModeTarget, ShapeModel } from '../../../../core/plugins';
 import { tableFields } from '../tables/fieldModel';
 import { addDivider, setSecondary } from '../tables/operations';
 import type { TableKind, TableOptionKey } from '../tables/tableKinds';

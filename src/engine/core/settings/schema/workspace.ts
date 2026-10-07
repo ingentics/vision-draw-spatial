@@ -1,15 +1,8 @@
 import { ALIGN_REFERENCES } from '../../edit/align';
 import { custom, flag, number, oneOf, serverUrl } from '../fields';
 import type { Spec } from '../fields';
-import type {
-  DebugSettings,
-  EditSettings,
-  EffectSettings,
-  ModeSettings,
-  ExporterSettings,
-  PanelsSettings,
-  SaveSettings,
-} from '../types';
+import type { PluginSettings } from '../pluginSettings';
+import type { DebugSettings, EditSettings, ExporterSettings, PanelsSettings, SaveSettings } from '../types';
 
 /** Schéma des réglages de l'espace de travail : édition, enregistrement, panneaux, exports, effets, modes, débogage. */
 
@@ -63,33 +56,14 @@ export const EXPORTERS = {
   },
 } satisfies Spec<ExporterSettings>;
 
-/** Réglages des effets fusionnés, effet par effet : un nombre fini remplace, undefined retire (retour au défaut). */
-function mergeEffects(patch: unknown, base: EffectSettings): EffectSettings {
-  const changesById = (patch ?? {}) as Record<string, unknown>;
-  const result: EffectSettings = {};
-  for (const id of new Set([...Object.keys(base), ...Object.keys(changesById)])) {
-    const values = { ...base[id] };
-    const changes = changesById[id];
-    if (changes && typeof changes === 'object') {
-      for (const [key, value] of Object.entries(changes)) {
-        if (value === undefined) delete values[key];
-        else if (typeof value === 'number' && Number.isFinite(value)) values[key] = value;
-      }
-    }
-    if (Object.keys(values).length > 0) result[id] = values;
-  }
-  return result;
-}
-
-export const EFFECTS = custom<EffectSettings>({}, mergeEffects) satisfies Spec<EffectSettings>;
-
 /**
- * Réglages des modes fusionnés, mode par mode (ticket 283) : un nombre fini, un booléen ou une chaîne remplace,
- * undefined retire (retour au défaut). Le type attendu par chaque réglage est vérifié par le registre des modes.
+ * Réglages des plugins (effets, sujet 145 ; modes, ticket 283) fusionnés plugin par plugin : un nombre fini, un booléen
+ * ou une chaîne remplace, undefined retire (retour au défaut). Le type attendu par chaque réglage est vérifié par le
+ * registre du plugin (`readPluginSetting`).
  */
-function mergeModes(patch: unknown, base: ModeSettings): ModeSettings {
+function mergePluginSettings(patch: unknown, base: PluginSettings): PluginSettings {
   const changesById = (patch ?? {}) as Record<string, unknown>;
-  const result: ModeSettings = {};
+  const result: PluginSettings = {};
   for (const id of new Set([...Object.keys(base), ...Object.keys(changesById)])) {
     const values = { ...base[id] };
     const changes = changesById[id];
@@ -109,4 +83,6 @@ function mergeModes(patch: unknown, base: ModeSettings): ModeSettings {
   return result;
 }
 
-export const MODES = custom<ModeSettings>({}, mergeModes) satisfies Spec<ModeSettings>;
+export const EFFECTS = custom<PluginSettings>({}, mergePluginSettings) satisfies Spec<PluginSettings>;
+
+export const MODES = custom<PluginSettings>({}, mergePluginSettings) satisfies Spec<PluginSettings>;

@@ -1,10 +1,22 @@
-import type { Point, ShapeModel } from '../../../../core/model/types';
-import { orientedPath } from '../../../../core/render/geometry/orient';
-import { cornerRadius, rectPath, roundedRectPath } from '../../../../core/render/geometry/paths';
-import { styleNumber, styleFlag } from '../../../../core/model/styleValues';
-import { SPATIAL, spatialValue } from '../../../../core/spatial';
+import {
+  SPATIAL,
+  cornerRadius,
+  orientedPath,
+  rectPath,
+  roundedRectPath,
+  spatialValue,
+  styleFlag,
+  styleNumber,
+} from '../../../../core/plugins';
+import type {
+  PaletteEntry,
+  Point,
+  SceneRenderer,
+  ShapeDefinition,
+  ShapeDetail,
+  ShapeModel,
+} from '../../../../core/plugins';
 import type { Group } from 'three';
-import type { PaletteEntry, SceneRenderer, ShapeDefinition, ShapeDetail } from '../../../../core/shapes/types';
 import { box } from '../box';
 import { darker, facadeTag, tagOf, tagSize } from '../building';
 

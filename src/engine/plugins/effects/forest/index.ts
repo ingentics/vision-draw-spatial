@@ -1,5 +1,4 @@
-import type { Point } from '../../../core/model/types';
-import type { PageEffectDefinition } from '../../../core/effects/types';
+import type { PageEffectDefinition, Point } from '../../../core/plugins';
 import { forestMesh } from './trees';
 import type { Tree } from './trees';
 
@@ -20,6 +19,7 @@ export const definition: PageEffectDefinition = {
   viewModes: ['iso', '3d'],
   settings: [
     {
+      type: 'number',
       key: 'size',
       label: 'Taille des arbres',
       title: 'Hauteur des plus grands arbres',
@@ -30,6 +30,7 @@ export const definition: PageEffectDefinition = {
       unit: 'px',
     },
     {
+      type: 'number',
       key: 'spacing',
       label: 'Espacement',
       title: 'Pas de la grille : au plus un arbre par case',
@@ -40,6 +41,7 @@ export const definition: PageEffectDefinition = {
       unit: 'px',
     },
     {
+      type: 'number',
       key: 'density',
       label: 'Densité',
       title: 'Part des cases boisées au cœur de la forêt',
@@ -50,6 +52,7 @@ export const definition: PageEffectDefinition = {
       unit: '%',
     },
     {
+      type: 'number',
       key: 'reach',
       label: 'Étendue',
       title: 'Distance jusqu’où la forêt s’étend autour du schéma',
@@ -60,6 +63,7 @@ export const definition: PageEffectDefinition = {
       unit: 'px',
     },
     {
+      type: 'number',
       key: 'clearance',
       label: 'Écart au schéma',
       title: 'Écart minimal entre un arbre et une forme, un tracé ou un texte',

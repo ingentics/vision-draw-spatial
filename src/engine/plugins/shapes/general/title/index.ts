@@ -1,4 +1,4 @@
-import type { ShapeDefinition } from '../../../../core/shapes/types';
+import type { ShapeDefinition } from '../../../../core/plugins';
 import { definition as text } from '../text';
 
 /** Taille et couleur du texte d'un titre : un texte qui les porte est reconnu comme un titre. */

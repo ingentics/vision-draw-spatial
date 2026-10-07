@@ -1,12 +1,17 @@
-import type { Point, Rect, ShapeModel } from '../../../../core/model/types';
-import { createBox, createLabel, VERTEX_DEFAULTS } from '../../../../core/render/flat/box';
-import { cubicTo } from '../../../../core/render/geometry/curves';
-import { dashPattern } from '../../../../core/render/geometry/stroke';
-import { strokeMesh } from '../../../../core/render/meshes';
-import { styleNumber, styleOpacity, styleFlag } from '../../../../core/model/styleValues';
-import { styleColor } from '../../../../core/render/styleColors';
-import { PART_ORDER } from '../../../../core/render/types';
-import type { SceneLevel, SceneRenderer } from '../../../../core/shapes/types';
+import {
+  PART_ORDER,
+  VERTEX_DEFAULTS,
+  createBox,
+  createLabel,
+  cubicTo,
+  dashPattern,
+  strokeMesh,
+  styleColor,
+  styleFlag,
+  styleNumber,
+  styleOpacity,
+} from '../../../../core/plugins';
+import type { Point, Rect, SceneLevel, SceneRenderer, ShapeModel } from '../../../../core/plugins';
 
 /**
  * Cylindre générique (SPEC §8.3) : tracés communs des formes de stockage, natives de draw.io, dessinées comme draw.io en 2D, et en

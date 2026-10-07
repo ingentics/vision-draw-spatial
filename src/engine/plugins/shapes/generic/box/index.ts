@@ -1,22 +1,34 @@
 import { Color, Group } from 'three';
-import type { Point, Rect, ShapeModel } from '../../../../core/model/types';
-import { createBox, createLabel, flatBox, VERTEX_DEFAULTS } from '../../../../core/render/flat/box';
-import type { BoxDefaults } from '../../../../core/render/flat/box';
-import { dashPattern } from '../../../../core/render/geometry/stroke';
-import { polygonArc, roundedPolygon } from '../../../../core/render/geometry/paths';
-import { isoBlock, TOP_OFFSET } from '../../../../core/render/iso/block';
-import { fillMesh, strokeMesh } from '../../../../core/render/meshes';
-import { styleNumber, styleOpacity, styleFlag } from '../../../../core/model/styleValues';
-import { styleColor } from '../../../../core/render/styleColors';
-import { PART_ORDER } from '../../../../core/render/types';
-import type { RenderContext } from '../../../../core/render/types';
+import {
+  PART_ORDER,
+  TOP_OFFSET,
+  VERTEX_DEFAULTS,
+  createBox,
+  createLabel,
+  dashPattern,
+  fillMesh,
+  flatBox,
+  isoBlock,
+  polygonArc,
+  roundedPolygon,
+  strokeMesh,
+  styleColor,
+  styleFlag,
+  styleNumber,
+  styleOpacity,
+} from '../../../../core/plugins';
 import type {
+  BoxDefaults,
+  Point,
+  Rect,
+  RenderContext,
   SceneRenderer,
   ShapeDefinition,
   ShapeDetail,
   ShapeDetailPath,
   ShapeDetailText,
-} from '../../../../core/shapes/types';
+  ShapeModel,
+} from '../../../../core/plugins';
 
 export interface BoxOptions {
   defaults?: BoxDefaults;

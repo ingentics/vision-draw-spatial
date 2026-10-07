@@ -1,8 +1,6 @@
-import type { ShapeModel } from '../../../../core/model/types';
-import { orientedPath } from '../../../../core/render/geometry/orient';
-import { styleNumber } from '../../../../core/model/styleValues';
+import { orientedPath, styleNumber } from '../../../../core/plugins';
+import type { ShapeDefinition, ShapeModel } from '../../../../core/plugins';
 import { box } from '../../generic/box';
-import type { ShapeDefinition } from '../../../../core/shapes/types';
 
 /** Profondeur par défaut de draw.io : 20 px avec `fixedSize=1`, sinon le cinquième de la largeur. */
 const FIXED_SIZE = 20;

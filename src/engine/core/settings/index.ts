@@ -3,8 +3,10 @@
  * valeurs par défaut agréables. Objet sérialisable, fusionnable par morceaux, valeurs bornées.
  */
 
-export { modePalette, resolveReducedMotion, settingsSectionChanged } from './derived';
+export { DEFAULT_MODE_PALETTE, modePalette, resolveReducedMotion, settingsSectionChanged } from './derived';
 export { DEFAULT_SETTINGS, mergeSettings, SETTINGS_LIMITS } from './fromSchema';
+export { pluginValues, readPluginSetting } from './pluginSettings';
+export type { PluginSetting, PluginSettings, PluginSettingValue, PluginValues } from './pluginSettings';
 export type {
   AccessibilitySettings,
   BackgroundSettings,
@@ -12,9 +14,7 @@ export type {
   CommentSettings,
   DebugSettings,
   EditSettings,
-  EffectSettings,
   ExporterSettings,
-  ModeSettings,
   GraphSettings,
   MinimapSettings,
   PanelsSettings,

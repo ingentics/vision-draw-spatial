@@ -1,7 +1,6 @@
 import type { Group } from 'three';
-import type { Point, ShapeModel } from '../../../../core/model/types';
-import { SPATIAL } from '../../../../core/spatial';
-import type { SceneRenderer } from '../../../../core/shapes/types';
+import { SPATIAL } from '../../../../core/plugins';
+import type { Point, SceneRenderer, ShapeModel } from '../../../../core/plugins';
 import {
   building,
   engrave,

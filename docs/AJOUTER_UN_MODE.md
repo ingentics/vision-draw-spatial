@@ -25,8 +25,11 @@ src/app/plugins/modes/<id>/     l'appli (facultatif) : sections React du panneau
 
 - L'`id` du mode est le nom de ses dossiers et la valeur de `spatial.mode` sur `<diagram>`. La racine de composition
   (`src/engine/plugins/index.ts`) collecte le dossier ; le contrat est dans `src/engine/core/modes/types.ts`.
-- Un mode n'importe ni un autre mode, ni un effet, ni l'état du moteur (`core/domains/`), ni `core/format/` : la lint
-  le vérifie. Ses formes peuvent étendre une forme générale (`plugins/shapes/`).
+- Un mode importe du tronc **seulement l'API des plugins** ([core/plugins/index.ts](../src/engine/core/plugins/index.ts),
+  sujet 287 : contrats, modèle, calculs purs, briques de dessin), plus `three` et son propre dossier ; ni un autre
+  mode, ni un effet. Ses formes peuvent étendre une forme générale (`plugins/shapes/`). Une brique du tronc qui manque
+  s'ajoute à l'API des plugins : c'est la décision d'en faire une brique commune. La lint et
+  `tests/engine/plugins/boundaries.test.ts` le vérifient.
 - **Toutes les règles vont dans la lib** ; la partie appli affiche les données du mode et appelle ses opérations,
   sans règle métier. Un mode aux réglages simples n'a pas besoin de partie appli : il les déclare (section 3).
 
@@ -42,7 +45,7 @@ interface PageModeDefinition {
   pageProperties?: ModeProperty[];             // réglages déclarés (section 3)
   edgeProperties?: ModeProperty[];
   shapeProperties?: ModeProperty[];
-  settings?: ModeSetting[];                    // réglages globaux, Paramètres › Modes (section 3)
+  settings?: PluginSetting[];                  // réglages globaux, Paramètres › Modes (section 3)
   dressing?(page, values): PageDressing;       // habillage du rendu (section 4)
   check?(page): ModeIssue[];                   // incohérences, remises en ordre au mieux et signalées
   repair?(edit: ModeEdit): void;               // remise en ordre écrite, après une suppression
@@ -93,7 +96,8 @@ change rien. Depuis l'appli : `onEdit(label, (edit) => monOperation(edit, …))`
 `engine.editPageMode(label, …)`.
 
 Les **réglages globaux** du mode (ticket 283), pour toute l'appli et non pour une page, sont déclarés dans sa
-définition (`settings`, rangés dans `plugins/modes/<id>/settings.ts`) comme ceux d'un effet : nombre borné (`unit` `px`, `ms`
+définition (`settings`, rangés dans `plugins/modes/<id>/settings.ts`), du même type que ceux d'un effet
+(`PluginSetting`, sujet 287) : nombre borné (`unit` `px`, `ms`
 ou `%`, `zero` : libellé de 0), case à cocher ou couleur, avec leur défaut, un groupe (`group`, `groupHint`) et une aide
 (`hint`). L'appli les affiche dans une sous-page du mode (Paramètres › Modes, titre `shortName` sinon `name`) et les
 enregistre dans `settings.modes[id][key]` ; le registre les borne (`defaultModeRegistry.values`). Le moteur ne les lit

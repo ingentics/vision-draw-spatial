@@ -1,4 +1,4 @@
-import type { ShapeDefinition } from '../../../../core/shapes/types';
+import type { ShapeDefinition } from '../../../../core/plugins';
 import { definition as ellipse } from '../ellipse';
 
 /** Cercle : l'ellipse aux proportions fixes (`aspect=fixed`). */

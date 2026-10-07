@@ -1,9 +1,13 @@
-import type { Point, Rect, ShapeModel } from '../../../../core/model/types';
-import { orientedPath } from '../../../../core/render/geometry/orient';
-import { cornerRadius, rectPath, roundedRectPath } from '../../../../core/render/geometry/paths';
-import { styleNumber, styleFlag } from '../../../../core/model/styleValues';
+import {
+  cornerRadius,
+  orientedPath,
+  rectPath,
+  roundedRectPath,
+  styleFlag,
+  styleNumber,
+} from '../../../../core/plugins';
+import type { Point, Rect, ShapeDefinition, ShapeModel } from '../../../../core/plugins';
 import { box } from '../../generic/box';
-import type { ShapeDefinition } from '../../../../core/shapes/types';
 
 /** Écart des barres par défaut (`ProcessShape.prototype.size`), en fraction de la largeur. */
 const DEFAULT_SIZE = 0.1;

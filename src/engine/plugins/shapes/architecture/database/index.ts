@@ -1,7 +1,6 @@
-import type { ShapeModel } from '../../../../core/model/types';
+import type { ShapeDefinition, ShapeModel } from '../../../../core/plugins';
 import { tagProperty } from '../../generic/building';
 import { cylinder3Drawing, cylinderFlat, flatTextZone, isLying } from '../../generic/cylinder';
-import type { ShapeDefinition } from '../../../../core/shapes/types';
 import { DATABASE_TAG, isoDatabase } from './facade';
 
 /** Jamais couchée : une forme imposée en BDD (`spatial.kind=database`) ignore une direction couchée. */

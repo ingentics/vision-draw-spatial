@@ -1,5 +1,4 @@
-import type { PageModel, ShapeModel } from '../../../../core/model/types';
-import type { ModeProperty, ModeTarget } from '../../../../core/modes/types';
+import type { ModeProperty, ModeTarget, PageModel, ShapeModel } from '../../../../core/plugins';
 import { edgeTarget, onlyWhen, relationFieldOf } from '../editing/tableTargets';
 import type { Field } from '../tables/fieldModel';
 import { isRelation, tableFields } from '../tables/fieldModel';

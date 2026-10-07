@@ -2,7 +2,9 @@ import type { Object3D } from 'three';
 import type { DocumentModel, PageModel, ParseWarning } from '../model/types';
 import { SPATIAL } from '../spatial';
 import { pageRoom } from './room';
-import type { EffectRoom, EffectValues, PageEffectDefinition } from './types';
+import { pluginValues } from '../settings/pluginSettings';
+import type { PluginSettings, PluginValues } from '../settings/pluginSettings';
+import type { EffectRoom, PageEffectDefinition } from './types';
 
 /** Effets écrits sur une page (`spatial.effects`, séparés par des virgules), connus ou non, sans doublon. */
 export function pageEffectIds(page: PageModel): string[] {
@@ -56,16 +58,8 @@ export class PageEffectRegistry {
    * Valeurs des réglages d'un effet : celles des paramètres (`settings.effects[id]`) bornées, le défaut pour les
    * autres ; les clés inconnues sont ignorées.
    */
-  values(effectId: string, stored: Record<string, number> | undefined): EffectValues {
-    const values: EffectValues = {};
-    for (const setting of this.definitions.get(effectId)?.settings ?? []) {
-      const value = stored?.[setting.key];
-      values[setting.key] =
-        typeof value === 'number' && Number.isFinite(value)
-          ? Math.min(setting.max, Math.max(setting.min, value))
-          : setting.default;
-    }
-    return values;
+  values(effectId: string, stored: Record<string, unknown> | undefined): PluginValues {
+    return pluginValues(this.definitions.get(effectId)?.settings, stored);
   }
 
   /**
@@ -77,7 +71,7 @@ export class PageEffectRegistry {
     root: Object3D,
     options: {
       allows?: (effect: PageEffectDefinition) => boolean;
-      settings?: Record<string, Record<string, number>>;
+      settings?: PluginSettings;
     } = {},
   ): void {
     let room: EffectRoom | undefined;

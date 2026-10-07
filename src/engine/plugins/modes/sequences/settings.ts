@@ -1,8 +1,7 @@
-import type { EdgeBadgeStyle } from '../../../core/render/types';
-import type { ModeCurrentLook, ModeSetting, ModeValues } from '../../../core/modes/types';
+import type { EdgeBadgeStyle, ModeCurrentLook, PluginSetting, PluginValues } from '../../../core/plugins';
 
 /** Réglages globaux du mode Séquences (Paramètres › Modes › Séquences, ticket 283). */
-export const SEQUENCES_SETTINGS: ModeSetting[] = [
+export const SEQUENCES_SETTINGS: PluginSetting[] = [
   {
     key: 'dimOpacity',
     type: 'number',
@@ -145,7 +144,7 @@ export const SEQUENCES_SETTINGS: ModeSetting[] = [
 ];
 
 /** Apparence des pastilles d'après les réglages du mode. */
-export function badgeStyle(values: ModeValues): EdgeBadgeStyle {
+export function badgeStyle(values: PluginValues): EdgeBadgeStyle {
   return {
     radius: values.badgeRadius as number,
     textSize: values.badgeTextSize as number,
@@ -162,6 +161,6 @@ export function badgeStyle(values: ModeValues): EdgeBadgeStyle {
 }
 
 /** Apparence du flux courant d'après les réglages du mode. */
-export function currentLook(values: ModeValues): ModeCurrentLook {
+export function currentLook(values: PluginValues): ModeCurrentLook {
   return { dimOpacity: values.dimOpacity as number, barSlideDuration: values.barSlideDuration as number };
 }

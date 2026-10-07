@@ -107,14 +107,8 @@ export type { FontSet } from './core/render/troikaText';
 // Formes, modes et effets de page
 export { pageEffectIds } from './core/effects/registry';
 export type { ModeScope } from './core/modes/registry';
-export type {
-  ModeEdit,
-  ModeProperty,
-  ModeSetting,
-  ModeTarget,
-  ModeValues,
-  PageModeDefinition,
-} from './core/modes/types';
+export type { ModeEdit, ModeProperty, ModeTarget, PageModeDefinition } from './core/modes/types';
+export type { PluginSetting, PluginValues } from './core/settings/pluginSettings';
 export {
   defaultEffectRegistry,
   defaultModeRegistry,

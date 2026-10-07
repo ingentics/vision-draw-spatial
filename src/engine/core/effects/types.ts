@@ -1,6 +1,7 @@
 import type { Object3D } from 'three';
 import type { ViewMode } from '../interaction/cameraMath';
 import type { PageModel, Point, Rect } from '../model/types';
+import type { PluginSetting, PluginValues } from '../settings/pluginSettings';
 
 /**
  * Effets de page (sujet 143) : décors et comportements qu'une page active en plus de son mode
@@ -17,7 +18,7 @@ export interface PageEffectDefinition {
   /** Aide au survol de sa case. */
   description?: string;
   /** Réglages globaux de l'effet (Paramètres › Effets), bornés ; leurs valeurs sont passées au décor. */
-  settings?: EffectSetting[];
+  settings?: PluginSetting[];
   /**
    * Modes d'affichage où l'effet existe (sujet 196) ; absent = tous. Sur une page dont le mode n'en permet aucun
    * (ex. Séquences, 2D seulement), l'effet est inactif.
@@ -27,25 +28,8 @@ export interface PageEffectDefinition {
    * Décor de la scène en volume (vue iso / 3D, jamais en 2D), en espace page (x, y draw.io, z = hauteur) : il pousse
    * avec les volumes à la bascule et suit le fondu de la page. Reconstruit à chaque modification de la page.
    */
-  volume?(page: PageModel, room: EffectRoom, values: EffectValues): Object3D | undefined;
+  volume?(page: PageModel, room: EffectRoom, values: PluginValues): Object3D | undefined;
 }
-
-/** Réglage global d'un effet : un nombre borné, affiché par un curseur. */
-export interface EffectSetting {
-  key: string;
-  label: string;
-  /** Aide au survol. */
-  title?: string;
-  min: number;
-  max: number;
-  step: number;
-  default: number;
-  /** Affichage : `px` (pixels de page) ou `%` (fraction de 0 à 1 affichée en pourcentage). */
-  unit?: 'px' | '%';
-}
-
-/** Valeurs des réglages d'un effet, par clé (bornées, défaut pour les absentes). */
-export type EffectValues = Record<string, number>;
 
 /** Place prise par le schéma sur la page, pour qu'un décor l'évite. */
 export interface EffectRoom {

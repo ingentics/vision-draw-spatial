@@ -1,4 +1,4 @@
-import type { Point, Rect } from '../../../../../core/model/types';
+import type { Point, Rect } from '../../../../../core/plugins';
 
 /**
  * Silhouette d'un acteur dans un cadre `w` × `h` (y vers le bas) : le bonhomme de draw.io

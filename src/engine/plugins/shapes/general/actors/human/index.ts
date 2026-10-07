@@ -1,5 +1,5 @@
-import { ellipsePath } from '../../../../../core/render/geometry/paths';
-import type { ShapeDefinition } from '../../../../../core/shapes/types';
+import { ellipsePath } from '../../../../../core/plugins';
+import type { ShapeDefinition } from '../../../../../core/plugins';
 import { actorDefinition } from '../common/definition';
 import { actorBody } from '../common/figure';
 import type { ActorFigure } from '../common/figure';

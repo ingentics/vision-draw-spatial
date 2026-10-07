@@ -1,4 +1,4 @@
-import type { ShapeDefinition } from '../../../../core/shapes/types';
+import type { ShapeDefinition } from '../../../../core/plugins';
 import { definition as triangle } from '../triangle';
 
 /** Triangle vers le haut : le triangle tourné par `direction=north` (son contour suit déjà la direction). */

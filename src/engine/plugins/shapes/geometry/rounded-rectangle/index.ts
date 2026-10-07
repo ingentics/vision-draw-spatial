@@ -1,6 +1,6 @@
-import type { ShapeDefinition } from '../../../../core/shapes/types';
+import { styleFlag } from '../../../../core/plugins';
+import type { ShapeDefinition } from '../../../../core/plugins';
 import { definition as rectangle } from '../rectangle';
-import { styleFlag } from '../../../../core/model/styleValues';
 
 /** Rectangle arrondi : le rectangle (son contour gère déjà `rounded=1`), avec son élément de palette. */
 export const definition: ShapeDefinition = {

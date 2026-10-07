@@ -1,14 +1,16 @@
 import { Color, Group } from 'three';
-import { insidePolygon } from '../../../../../core/model/geometry';
-import type { Point, Rect, ShapeModel } from '../../../../../core/model/types';
-import { rectPath } from '../../../../../core/render/geometry/paths';
-import { fillMesh, strokeMesh } from '../../../../../core/render/meshes';
-import { measureText } from '../../../../../core/render/textMeasure';
-import { styleNumber, styleOpacity } from '../../../../../core/model/styleValues';
-import { styleColor } from '../../../../../core/render/styleColors';
-import { PART_ORDER } from '../../../../../core/render/types';
-import type { RenderContext } from '../../../../../core/render/types';
-import type { ShapeDefinition } from '../../../../../core/shapes/types';
+import {
+  PART_ORDER,
+  fillMesh,
+  insidePolygon,
+  measureText,
+  rectPath,
+  strokeMesh,
+  styleColor,
+  styleNumber,
+  styleOpacity,
+} from '../../../../../core/plugins';
+import type { Point, Rect, RenderContext, ShapeDefinition, ShapeModel } from '../../../../../core/plugins';
 import {
   DEFAULT_REGION_COLOR,
   REGION,

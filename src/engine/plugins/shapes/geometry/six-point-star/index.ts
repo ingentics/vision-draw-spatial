@@ -1,7 +1,6 @@
-import type { Point, ShapeModel } from '../../../../core/model/types';
-import { orientedPath } from '../../../../core/render/geometry/orient';
+import { orientedPath } from '../../../../core/plugins';
+import type { Point, ShapeDefinition, ShapeModel } from '../../../../core/plugins';
 import { box } from '../../generic/box';
-import type { ShapeDefinition } from '../../../../core/shapes/types';
 
 /** Cadre du stencil `6 Point Star` de draw.io (`stencils/basic.xml`, `w` et `h` de `<shape>`). */
 const STENCIL_W = 96;

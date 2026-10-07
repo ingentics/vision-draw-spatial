@@ -149,8 +149,11 @@ vérifie que l'`id` est le nom du dossier et que la catégorie de palette est ce
 - **Une forme contient tout ce qui la concerne**, en plusieurs fichiers si besoin (ex. `database/facade.ts`), y
   compris ses subtilités iso / 3D. Ce qu'elle partage avec d'autres vient d'une base de `generic/` ou d'une autre forme
   qu'elle étend ; les briques de rendu génériques restent dans le tronc (`core/render/flat`, `core/render/iso/block`,
-  `core/render/geometry`). Une forme n'importe ni un mode, ni un effet, ni l'état du moteur (`core/domains/`) : la
-  lint le vérifie.
+  `core/render/geometry`). Une forme importe du tronc **seulement l'API des plugins**
+  ([core/plugins/index.ts](../src/engine/core/plugins/index.ts), sujet 287), plus `three`, son dossier et les formes de
+  `plugins/shapes/` qu'elle étend ; ni un mode, ni un effet. Une brique du tronc qui manque s'ajoute à l'API des
+  plugins : c'est la décision d'en faire une brique commune. La lint et `tests/engine/plugins/boundaries.test.ts` le
+  vérifient.
 - **Étendre** : on reprend une définition et on change ce dont on a besoin.
   `rounded-rectangle` = `{ ...rectangle, id: 'rounded-rectangle', kinds: ['rectangle'], matches: rounded=1, palette }` ;
   une base générique se compose : `{ id: 'diamond', kinds: ['rhombus'], ...box(outline), palette }`.
@@ -387,14 +390,17 @@ draw.io : `shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.0
 
 ```ts
 // src/engine/plugins/shapes/geometry/note/index.ts
-import type { Point, ShapeModel } from '../../../../model/types';
-import { createBox, VERTEX_DEFAULTS } from '../../../../render/flat/box';
-import { isoBlock } from '../../../../render/iso/block';
-import { strokeMesh } from '../../../../render/meshes';
-import { styleNumber, styleOpacity } from '../../../../model/styleValues';
-import { styleColor } from '../../../../render/styleColors';
-import { PART_ORDER } from '../../../../render/types';
-import type { ShapeDefinition } from '../../../types';
+import {
+  createBox,
+  isoBlock,
+  PART_ORDER,
+  strokeMesh,
+  styleColor,
+  styleNumber,
+  styleOpacity,
+  VERTEX_DEFAULTS,
+} from '../../../../core/plugins';
+import type { Point, ShapeDefinition, ShapeModel } from '../../../../core/plugins';
 
 /** Taille du pli par défaut dans draw.io (`size`). */
 const DEFAULT_FOLD = 30;

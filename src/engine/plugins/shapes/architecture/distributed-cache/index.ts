@@ -1,9 +1,8 @@
-import type { ShapeModel } from '../../../../core/model/types';
-import { SPATIAL } from '../../../../core/spatial';
+import { SPATIAL } from '../../../../core/plugins';
+import type { ShapeDefinition, ShapeModel } from '../../../../core/plugins';
 import { tagProperty } from '../../generic/building';
 import type { CylinderDrawing } from '../../generic/cylinder';
 import { cylinderFlat, cylinderLip, cylinderSilhouette, flatTextZone, ringHeight } from '../../generic/cylinder';
-import type { ShapeDefinition } from '../../../../core/shapes/types';
 import { CACHE_TAG, DEFAULT_CACHE_NODES, isoCache } from './facade';
 
 /**

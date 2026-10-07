@@ -1,6 +1,5 @@
-import type { Point } from '../../../../core/model/types';
+import type { Point, ShapeDefinition } from '../../../../core/plugins';
 import { stencilBox } from '../../generic/stencil';
-import type { ShapeDefinition } from '../../../../core/shapes/types';
 
 /** Cadre du stencil (`w`, `h` de `<shape>`) : le contour s'étire dans les bornes de la forme. */
 const STENCIL_W = 120;

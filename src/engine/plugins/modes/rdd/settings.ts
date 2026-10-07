@@ -1,10 +1,10 @@
-import type { ModeSetting } from '../../../core/modes/types';
+import type { PluginSetting } from '../../../core/plugins';
 
 /** Clé du réglage de l'écart entre régions sœurs. */
 export const OBSTACLE_GAP = 'obstacleGap';
 
 /** Réglages globaux du mode RDD (Paramètres › Modes › RDD, ticket 283). */
-export const RDD_SETTINGS: ModeSetting[] = [
+export const RDD_SETTINGS: PluginSetting[] = [
   {
     key: OBSTACLE_GAP,
     type: 'number',

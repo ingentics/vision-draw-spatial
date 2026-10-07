@@ -1,4 +1,4 @@
-import type { PageModeDefinition } from '../../../core/modes/types';
+import type { PageModeDefinition } from '../../../core/plugins';
 import { PRIMARY_KEY, fieldProblems, misplacedPrimaryKey } from './tables/fieldModel';
 import { fitTable } from './tables/operations';
 import { fieldHandleClicked, fieldHandles } from './editing/fieldHandles';

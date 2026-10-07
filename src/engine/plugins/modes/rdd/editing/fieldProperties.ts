@@ -1,4 +1,4 @@
-import type { ModeProperty, ModeTarget } from '../../../../core/modes/types';
+import type { ModeProperty, ModeTarget } from '../../../../core/plugins';
 import type { FieldOption } from '../tables/fieldModel';
 import { FIELD_OPTIONS, FIELD_TYPES, fieldTypeLabel, isDivider, isPrimaryKey, isRelation } from '../tables/fieldModel';
 import { fieldParts } from './fieldParts';

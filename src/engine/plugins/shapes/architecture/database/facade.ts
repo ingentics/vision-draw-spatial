@@ -1,6 +1,5 @@
-import { cubicTo } from '../../../../core/render/geometry/curves';
-import { SPATIAL } from '../../../../core/spatial';
-import type { SceneRenderer } from '../../../../core/shapes/types';
+import { SPATIAL, cubicTo } from '../../../../core/plugins';
+import type { SceneRenderer } from '../../../../core/plugins';
 import {
   building,
   engrave,

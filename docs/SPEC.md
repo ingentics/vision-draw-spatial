@@ -149,6 +149,8 @@ src/
                          # placeholder.ts, minimapOutline.ts, group.ts (le groupe draw.io, hors palette)
       modes/             # tronc des modes : types.ts (contrat), registry.ts, modeEdits.ts (écritures d'un mode)
       effects/           # tronc des effets : types.ts (contrat), registry.ts, room.ts (place prise par le schéma)
+      plugins/           # API des plugins (sujet 287) : index.ts réexporte ce que formes, modes et effets peuvent
+                         # importer du tronc (contrats, modèle, calculs purs, briques de dessin)
       domains/           # comportement du moteur, un dossier par domaine
         EngineCore.ts    # infrastructure partagée et câblage des domaines
         types.ts         # types publics (réexportés par Engine.ts)

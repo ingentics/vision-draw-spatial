@@ -1,15 +1,17 @@
 import { Group } from 'three';
-import type { Point, ShapeModel } from '../../../../../core/model/types';
-import { createLabel } from '../../../../../core/render/flat/box';
-import { dashPattern } from '../../../../../core/render/geometry/stroke';
-import { orientedPath } from '../../../../../core/render/geometry/orient';
-import { fillMesh, strokeMesh } from '../../../../../core/render/meshes';
-import { styleNumber, styleOpacity } from '../../../../../core/model/styleValues';
-import { styleColor } from '../../../../../core/render/styleColors';
-import { PART_ORDER } from '../../../../../core/render/types';
-import type { RenderContext } from '../../../../../core/render/types';
-import { SPATIAL } from '../../../../../core/spatial';
-import type { ShapeDefinition } from '../../../../../core/shapes/types';
+import {
+  PART_ORDER,
+  SPATIAL,
+  createLabel,
+  dashPattern,
+  fillMesh,
+  orientedPath,
+  strokeMesh,
+  styleColor,
+  styleNumber,
+  styleOpacity,
+} from '../../../../../core/plugins';
+import type { Point, RenderContext, ShapeDefinition, ShapeModel } from '../../../../../core/plugins';
 import type { FigureOf } from './figure';
 import { actorHeight, standingActor } from './standing';
 

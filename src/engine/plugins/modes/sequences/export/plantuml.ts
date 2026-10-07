@@ -1,9 +1,8 @@
-import type { EdgeModel, PageModel, ShapeModel } from '../../../../core/model/types';
-import { spatialValue } from '../../../../core/spatial';
+import { spatialValue, styleFlag } from '../../../../core/plugins';
+import type { EdgeModel, PageModel, ShapeModel } from '../../../../core/plugins';
 import { EVENT_SOURCES, PARTICIPANT } from '../flows';
 import { sequenceState } from '../steps';
 import type { SequenceExporter } from './index';
-import { styleFlag } from '../../../../core/model/styleValues';
 
 /**
  * Flux en diagramme de séquence PlantUML (sujets 90 à 94, 96 pour tous les flux). Participants déclarés en tête dans l'ordre de première

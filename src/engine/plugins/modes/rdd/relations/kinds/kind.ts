@@ -1,5 +1,4 @@
-import type { ShapeModel } from '../../../../../core/model/types';
-import type { ModeProperty } from '../../../../../core/modes/types';
+import type { ModeProperty, ShapeModel } from '../../../../../core/plugins';
 import type { Field, FieldKind, TableRow } from '../../tables/fieldModel';
 import type { TableKindId } from '../../tables/tableKinds';
 

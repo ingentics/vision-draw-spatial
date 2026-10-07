@@ -1,5 +1,4 @@
-import type { ShapeModel } from '../../../../core/model/types';
-import type { ModeEdit } from '../../../../core/modes/types';
+import type { ModeEdit, ShapeModel } from '../../../../core/plugins';
 import { writeRelationEdge } from '../relations/edgeLook';
 import type { Field, TableRow } from './fieldModel';
 import {

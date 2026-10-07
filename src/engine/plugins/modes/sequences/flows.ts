@@ -1,6 +1,5 @@
-import { DRAWIO_STYLES, PASTEL_STYLES } from '../../../core/edit/stylePresets';
-import { modePalette } from '../../../core/settings';
-import type { PageModel } from '../../../core/model/types';
+import { DEFAULT_MODE_PALETTE } from '../../../core/plugins';
+import type { PageModel } from '../../../core/plugins';
 
 /** Flux de la page (attribut de `<diagram>`) : liste ordonnée en JSON `[{"id","title","color"}, …]`. */
 export const FLOWS = 'spatial.flows';
@@ -22,10 +21,10 @@ export interface Flow {
 }
 
 /**
- * Couleurs des flux par défaut : les fonds des styles de forme par défaut, à partir de « Bleu » (`modePalette`).
- * L'appli passe ceux de ses paramètres aux opérations (`ModeEdit.palette`).
+ * Couleurs des flux par défaut : les fonds des styles de forme par défaut, à partir de « Bleu »
+ * (`DEFAULT_MODE_PALETTE`). L'appli passe ceux de ses paramètres aux opérations (`ModeEdit.palette`).
  */
-export const FLOW_COLORS = modePalette({ base: DRAWIO_STYLES, extended: PASTEL_STYLES, text: [] });
+export const FLOW_COLORS = DEFAULT_MODE_PALETTE;
 
 const HEX = /^#[0-9a-f]{6}$/i;
 

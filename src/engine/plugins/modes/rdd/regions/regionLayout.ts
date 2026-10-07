@@ -1,7 +1,5 @@
-import { rectContains, rectContainsRect, rectsOverlap, unionOf } from '../../../../core/model/geometry';
-import type { PageModel, Rect, ShapeModel } from '../../../../core/model/types';
-import { readableOn } from '../../../../core/render/styleColors';
-import type { ModeEdit, ModeObstacles } from '../../../../core/modes/types';
+import { readableOn, rectContains, rectContainsRect, rectsOverlap, unionOf } from '../../../../core/plugins';
+import type { ModeEdit, ModeObstacles, PageModel, Rect, ShapeModel } from '../../../../core/plugins';
 import { tableKindOf } from '../tables/tableKinds';
 
 /**

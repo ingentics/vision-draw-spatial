@@ -24,20 +24,21 @@ const NO_PLUGIN = {
   message:
     'Le tronc ne connaît aucun plugin : il passe par les registres (core/shapes, core/modes, core/effects) et leurs contrats.',
 };
-/** Ce qu'un plugin n'importe pas du tronc : l'état du moteur et ses couches internes. */
-const NO_CORE_INTERNALS = {
-  group: [
-    '**/Engine',
-    '**/core/domains/**',
-    '**/core/format/**',
-    '**/core/interaction/**',
-    '**/core/persistence/**',
-    '**/core/graph/**',
-    '**/plugins/index',
-  ],
+/**
+ * Sujet 287 : ce qu'un plugin importe du tronc passe par son API, `core/plugins` (liste blanche). Motifs gitignore sur le
+ * texte de l'import : `core/plugins` est réadmis après l'exclusion de tout `core/`.
+ */
+const PLUGIN_TRUNK = {
+  group: ['**/core/**', '!**/core/plugins', '**/Engine', '**/events', '**/plugins/index'],
   message:
-    "Un plugin n'importe pas le cœur du moteur : il ne connaît que son contrat, le modèle et les briques de dessin.",
+    "Un plugin n'importe du tronc que son API (`core/plugins`) : une brique commune qui manque s'ajoute à core/plugins/index.ts.",
 };
+/** Sujet 287 : seul paquet externe permis à un plugin, `three` (le reste passe par l'API des plugins). */
+const PLUGIN_PACKAGES = {
+  group: ['/[a-z@]*', '!/three'],
+  message: "Un plugin n'utilise que `three` et l'API des plugins (`core/plugins`).",
+};
+
 /** Sujet 286 : formes, modes et effets, un dossier par plugin dans `src/engine/plugins/`. */
 const ENGINE_MODES = folders('src/engine/plugins/modes');
 const ENGINE_EFFECTS = folders('src/engine/plugins/effects');
@@ -52,7 +53,8 @@ const engineModeOverrides = ENGINE_MODES.map((mode) => ({
         patterns: [
           NO_REACT,
           NO_UI,
-          NO_CORE_INTERNALS,
+          PLUGIN_TRUNK,
+          PLUGIN_PACKAGES,
           // Motifs sur le texte de l'import (pas le chemin résolu) : on nomme les dossiers.
           { group: ['**/effects/**'], message: "Un mode n'importe pas un effet." },
           ...ENGINE_MODES.filter((other) => other !== mode).map((other) => ({
@@ -75,7 +77,8 @@ const engineEffectOverrides = ENGINE_EFFECTS.map((effect) => ({
         patterns: [
           NO_REACT,
           NO_UI,
-          NO_CORE_INTERNALS,
+          PLUGIN_TRUNK,
+          PLUGIN_PACKAGES,
           {
             group: ['**/modes/**', '**/shapes/**'],
             message: "Un effet n'importe ni un mode ni une forme (ni leurs registres : seulement son contrat).",
@@ -167,7 +170,8 @@ module.exports = {
             patterns: [
               NO_REACT,
               NO_UI,
-              { ...NO_CORE_INTERNALS, group: NO_CORE_INTERNALS.group.filter((g) => g !== '**/core/format/**') },
+              PLUGIN_TRUNK,
+              PLUGIN_PACKAGES,
               {
                 group: ['**/modes/**', '**/effects/**'],
                 message: "Une forme n'importe ni un mode ni un effet.",

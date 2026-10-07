@@ -1,8 +1,6 @@
-import type { ShapeModel } from '../../../../core/model/types';
-import { orientedPath } from '../../../../core/render/geometry/orient';
-import { styleNumber } from '../../../../core/model/styleValues';
+import { orientedPath, styleNumber } from '../../../../core/plugins';
+import type { ShapeDefinition, ShapeModel } from '../../../../core/plugins';
 import { box } from '../../generic/box';
-import type { ShapeDefinition } from '../../../../core/shapes/types';
 
 /** `dx` par défaut de draw.io sans valeur dans le style (la palette écrit `dx=15`). */
 const DEFAULT_DX = 0.5;
