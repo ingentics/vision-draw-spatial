@@ -7,6 +7,7 @@ import { pluginValues, readPluginSetting } from '../settings/pluginSettings';
 import type { PluginSettings, PluginValues } from '../settings/pluginSettings';
 import type { PaletteCategory, ShapeDefinition, ShapeTemplate } from '../shapes/types';
 import { SPATIAL } from '../spatial';
+import { legacyKey, modeKey, NAMESPACE_PATTERN } from './modeKeys';
 import type { ModeProperty, PageDressing, PageModeDefinition } from './types';
 
 /** Modes d'affichage, dans l'ordre des boutons. */
@@ -27,9 +28,17 @@ export class PageModeRegistry {
 
   /**
    * Un mode de même `id` déjà enregistré est remplacé. `shapes` : ses formes propres (enregistrées à part dans le
-   * registre des formes, qui les dessine sur toute page).
+   * registre des formes, qui les dessine sur toute page). Un espace de noms invalide, ou déjà pris par un autre mode,
+   * lève une exception (sujet 301).
    */
   register(definition: PageModeDefinition, shapes: ShapeDefinition[] = []): this {
+    if (!NAMESPACE_PATTERN.test(definition.namespace))
+      throw new Error(`Mode ${definition.id} : espace de noms invalide « ${definition.namespace} »`);
+    const owner = [...this.definitions.values()].find(
+      (mode) => mode.namespace === definition.namespace && mode.id !== definition.id,
+    );
+    if (owner)
+      throw new Error(`Mode ${definition.id} : espace de noms « ${definition.namespace} » déjà pris par ${owner.id}`);
     this.definitions.set(definition.id, definition);
     this.shapeIds.set(
       definition.id,
@@ -156,9 +165,17 @@ export class PageModeRegistry {
       : all;
   }
 
-  /** Attributs à retirer des éléments collés : ceux de tous les modes (ils dorment sur une page d'un autre mode). */
+  /**
+   * Attributs à retirer des éléments collés : ceux de tous les modes (ils dorment sur une page d'un autre mode), clés
+   * complètes, anciennes clés comprises le temps de la migration (sujet 301).
+   */
   pasteKeys(): string[] {
-    return [...new Set([...this.definitions.values()].flatMap((mode) => mode.pasteKeys ?? []))];
+    return [...this.definitions.values()].flatMap((mode) =>
+      (mode.pasteKeys ?? []).flatMap((name) => [
+        modeKey(mode.namespace, name),
+        ...(mode.legacyKeys?.includes(name) ? [legacyKey(name)] : []),
+      ]),
+    );
   }
 
   /** Avertissements des pages en mode (mode inconnu, données remises en ordre), pour le panneau Diagnostics. */

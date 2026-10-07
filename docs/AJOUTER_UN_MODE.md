@@ -1,8 +1,8 @@
 # Ajouter un mode de page
 
 Un **mode** spécialise une page : il ajoute des données de page, des réglages sur les flèches et les formes, et un
-habillage du rendu. Tout est stocké en attributs `spatial.*` (SPEC §14.3, §14.5) : dans draw.io, la page reste une
-page normale. Le moteur ne connaît aucun mode en particulier : déposer les dossiers suffit.
+habillage du rendu. Tout est stocké en attributs `spatial.<espace de noms du mode>.*` (SPEC §14.3, §14.5) : dans
+draw.io, la page reste une page normale. Le moteur ne connaît aucun mode en particulier : déposer les dossiers suffit.
 
 Exemple complet : le mode « Séquences » ([engine](../src/engine/plugins/modes/sequences/index.ts),
 [appli](../src/app/plugins/modes/sequences/index.tsx)). Mode avec ses propres formes : « RDD »
@@ -38,6 +38,8 @@ src/app/plugins/modes/<id>/     l'appli (facultatif) : sections React du panneau
 ```ts
 interface PageModeDefinition {
   id: string;                                  // nom des dossiers, valeur de spatial.mode
+  namespace: string;                           // espace de noms des clés : spatial.<namespace>.<nom> (section 3)
+  legacyKeys?: string[];                       // anciennes clés spatial.<nom> lues, renommées à l'ouverture
   name: string;                                // choix du mode dans le panneau de la page
   shortName?: string;                          // nom court (sous-page des paramètres ; défaut : name)
   description?: string;                        // aide au survol
@@ -77,7 +79,7 @@ interface PageModeDefinition {
   parts?: ModeParts;                           // parties sélectionnables d'une forme (ex. champs d'une table RDD)
   current?: ModeCurrent;                       // « courant » de session (section 5)
   keys?: Record<string, ModeKey>;              // touches sur l'élément sélectionné seul (ex. « + »)
-  pasteKeys?: string[];                        // attributs retirés des éléments collés ou dupliqués
+  pasteKeys?: string[];                        // attributs du mode (noms courts) retirés des éléments collés
 }
 ```
 
@@ -92,11 +94,33 @@ La section 8 donne, point d'entrée par point d'entrée, quand le moteur l'appel
 
 ## 3. Réglages et opérations
 
+### Les clés du mode
+
+Un mode n'écrit ses données que dans son **espace de noms** (sujet 301) : `namespace` (`^[a-z][a-z0-9]*$`, ex. `seq`
+pour Séquences, `rdd` pour RDD), propre au mode — un second mode qui le reprend est refusé à l'enregistrement. Le mode
+ne désigne ses clés que par leur **nom court** (`flow`, `fields`…) ; le moteur ajoute le préfixe et écrit
+`spatial.<namespace>.<nom>`. Un mode ne peut donc écrire ni les clés du tronc (`spatial.mode`, `spatial.height`…), ni
+celles d'un autre mode ; un nom invalide (`;`, `=`, espace, ou déjà préfixé par `spatial.`) fait échouer l'opération,
+qui n'écrit rien.
+
+Pour lire, le mode prend un lecteur de ses clés dans l'API des plugins, une fois, à partir de ce qui le situe :
+
+```ts
+export const SEQUENCES_KEYS = { namespace: 'seq', legacyKeys: ['flows', 'flow', 'step', 'participant'] };
+export const keys = modeKeys(SEQUENCES_KEYS);   // keys.value(edge, 'flow'), keys.flag(…), keys.pageValue(page, 'flows')
+export const definition: PageModeDefinition = { id: 'sequences', ...SEQUENCES_KEYS, … };
+```
+
+`keys.key(nom)` donne la clé complète, pour l'écrire soi-même dans un style (modèle de palette, aperçu d'une forme).
+`legacyKeys` : noms courts dont l'ancienne clé `spatial.<nom>` (d'avant l'espace de noms) est encore lue ; à
+l'ouverture du document, le moteur la réécrit sous son nouveau nom, à la même place, dans l'étape d'annulation de
+`lifecycle.opened`. Un nouveau mode n'en a pas.
+
 Un réglage déclaré (`toggle`, `number`, `text` — `multiline` pour une zone de texte —, `select`, dont les choix
 reçoivent les couleurs de l'appli ; `readOnly` pour l'afficher sans le rendre modifiable) est rendu par un champ
 générique : section « Mode » de la
-page, section au nom du mode dans le panneau d'une flèche ou d'une forme. Par défaut, il lit et écrit l'attribut
-`key` de sa cible ; `value`, `write` et `hidden` le font passer par les règles du mode (ex. le rang d'une flèche, qui
+page, section au nom du mode dans le panneau d'une flèche ou d'une forme. Par défaut, il lit et écrit l'attribut du
+mode de nom court `key` sur sa cible ; `value`, `write` et `hidden` le font passer par les règles du mode (ex. le rang d'une flèche, qui
 s'échange avec une autre).
 
 Un réglage peut aller dans sa propre section du panneau (`section`, son titre ; défaut : la section au nom du mode,
@@ -111,9 +135,11 @@ montré que lorsqu'une partie est sélectionnée (et les autres réglages de for
 `value`, `write` et `hidden` reçoivent alors la partie en dernier paramètre.
 
 Une **opération** reçoit un `ModeEdit` : la page avant l'opération (`page`), les couleurs proposées par l'appli
-(`palette` : fonds des styles de forme des paramètres), `setPageAttribute`, `setElementAttribute` (attributs
-`spatial.*`), `setElementStyle` (autre clé du style draw.io, ex. `fillColor`) et `setShapeBounds` (bornes d'une forme,
-ex. une table qui grandit avec ses champs). Toutes ses écritures forment une étape d'annulation, et rien n'est enregistré si elle ne
+(`palette` : fonds des styles de forme des paramètres), `setPageAttribute`, `setElementAttribute` (attributs du mode,
+par leur nom court), `setElementStyle` (autre clé du style draw.io, ex. `fillColor` ; ni `spatial.*`, ni clé de verrou
+`locked`, `movable`, `resizable`, `editable`, `deletable`) et `setShapeBounds` (bornes d'une forme, ex. une table qui
+grandit avec ses champs). Un élément verrouillé ne change ni de style, ni de bornes, ni de place dans l'ordre, ni de
+textes de bout. Toutes ses écritures forment une étape d'annulation, et rien n'est enregistré si elle ne
 change rien. Depuis l'appli : `onEdit(label, (edit) => monOperation(edit, …))` (prop des sections React), ou
 `engine.editPageMode(label, …)`.
 
@@ -230,6 +256,8 @@ Règles communes (sujet 288) :
 |---|---|---|---|---|
 | **Déclaration** | | | | |
 | `id` | lu par le registre (dossier, `spatial.mode`) | — | — | — |
+| `namespace` | enregistrement (unique, sinon refusé) ; préfixe de chaque écriture d'attribut du mode | — | — | — |
+| `legacyKeys` | ouverture du document : anciennes clés renommées, avant `lifecycle.opened` | page de l'arbre | dans l'étape de `lifecycle.opened` | — |
 | `name` | choix du mode, titres | — | — | — |
 | `shortName` | sous-page Paramètres › Modes | — | — | — |
 | `description` | aide du choix du mode | — | — | — |
@@ -240,7 +268,7 @@ Règles communes (sujet 288) :
 | `page.allowsEffect` | effets actifs d'une page (scène en volume, page en volume ou non), panneau des effets | — | — | effet permis (les modes d'affichage de l'effet restent vérifiés) |
 | `page.selectionStyle` | mise en valeur de la sélection sur une page du mode | — | — | — |
 | `settings` | Paramètres › Modes ; valeurs bornées passées à `dressing`, `gestures.obstacles`, `current.look` | — | — | — |
-| `pasteKeys` | collage et duplication, sur toutes les pages | — | clés retirées des éléments collés | — |
+| `pasteKeys` | collage et duplication, sur toutes les pages | — | clés du mode (et anciennes clés) retirées des éléments collés | — |
 | **Cycle de vie** | | | | |
 | `lifecycle.check` | chaque lecture du document (ouverture, chaque modification, annuler / rétablir) | page du modèle | aucune (avertissements) | aucun avertissement du mode pour la page |
 | `lifecycle.opened` | ouverture du document, et à nouveau quand la mesure exacte du texte arrive ; pas en lecture seule | page du modèle | une étape « Ajustement du mode » pour tout le document | rien d'écrit pour la page |

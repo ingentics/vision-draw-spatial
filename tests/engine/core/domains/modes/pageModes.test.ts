@@ -13,7 +13,7 @@ import { DEFAULT_SETTINGS } from '../../../../../src/engine/core/settings';
 const XML = `<mxfile><diagram id="p" name="P" spatial.mode="boom"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
 <mxCell id="a" value="A" vertex="1" parent="1"><mxGeometry x="0" y="0" width="100" height="60" as="geometry"/></mxCell>
 <mxCell id="b" value="B" vertex="1" parent="1"><mxGeometry x="300" y="0" width="100" height="60" as="geometry"/></mxCell>
-<mxCell id="e" edge="1" source="a" target="b" parent="1" style="spatial.broken=x;"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="e" edge="1" source="a" target="b" parent="1" style="spatial.boom.broken=x;"><mxGeometry relative="1" as="geometry"/></mxCell>
 </root></mxGraphModel></diagram></mxfile>`;
 
 const fail = (): never => {
@@ -23,12 +23,13 @@ const fail = (): never => {
 /** Mode de test dont les points d'entrée lèvent une exception. */
 const BOOM: PageModeDefinition = {
   id: 'boom',
+  namespace: 'boom',
   name: 'Boom',
   lifecycle: { check: fail },
   dressing: () => ({ edgeColor: fail, edgeBadge: () => ({ text: '1', color: '#ff0000' }) }),
   gestures: {
     placed: (edit) => {
-      edit.setPageAttribute('spatial.before', '1');
+      edit.setPageAttribute('before', '1');
       fail();
     },
     carries: (_page, shape) => (shape.id === 'a' ? ['b'] : fail()),
@@ -38,10 +39,10 @@ const BOOM: PageModeDefinition = {
   edges: {
     connects: fail,
     properties: [
-      { type: 'text', key: 'spatial.ok', label: 'Correct', value: () => 'calculé', readOnly: () => true },
-      { type: 'select', key: 'spatial.broken', label: 'En panne', value: fail, readOnly: fail, options: fail },
-      { type: 'toggle', key: 'spatial.hidden', label: 'Masqué', hidden: () => true },
-      { type: 'toggle', key: 'spatial.hiddenBroken', label: 'Masquage en panne', hidden: fail },
+      { type: 'text', key: 'ok', label: 'Correct', value: () => 'calculé', readOnly: () => true },
+      { type: 'select', key: 'broken', label: 'En panne', value: fail, readOnly: fail, options: fail },
+      { type: 'toggle', key: 'hidden', label: 'Masqué', hidden: () => true },
+      { type: 'toggle', key: 'hiddenBroken', label: 'Masquage en panne', hidden: fail },
     ],
   },
 };
@@ -73,9 +74,9 @@ describe('hôte des appels aux modes (sujet 288)', () => {
     const { tree, page } = setup();
     const before = writeDrawio(tree);
     expect(() =>
-      applyModeEdit(page, tree.pages[0]!, (edit) => {
-        edit.setPageAttribute('spatial.x', '1');
-        edit.setElementAttribute('a', 'spatial.y', '2');
+      applyModeEdit(page, tree.pages[0]!, BOOM, (edit) => {
+        edit.setPageAttribute('x', '1');
+        edit.setElementAttribute('a', 'y', '2');
         fail();
       }),
     ).toThrow('panne');
@@ -128,16 +129,16 @@ describe('hôte des appels aux modes (sujet 288)', () => {
     const edge = page.edges[0]!;
     const views = modes.propertyViews(page, 'edge', edge);
     expect(views.map((view) => [view.property.key, view.value, view.readOnly, view.options])).toEqual([
-      ['spatial.ok', 'calculé', true, []],
+      ['ok', 'calculé', true, []],
       // Valeur de l'attribut, modifiable, sans choix.
-      ['spatial.broken', 'x', false, []],
-      ['spatial.hiddenBroken', undefined, false, []],
+      ['broken', 'x', false, []],
+      ['hiddenBroken', undefined, false, []],
     ]);
     expect(guard.warnings().map((w) => w.message)).toEqual([
-      'Mode boom : erreur dans réglage « spatial.broken » : value (panne)',
-      'Mode boom : erreur dans réglage « spatial.broken » : readOnly (panne)',
-      'Mode boom : erreur dans réglage « spatial.broken » : options (panne)',
-      'Mode boom : erreur dans réglage « spatial.hiddenBroken » : hidden (panne)',
+      'Mode boom : erreur dans réglage « broken » : value (panne)',
+      'Mode boom : erreur dans réglage « broken » : readOnly (panne)',
+      'Mode boom : erreur dans réglage « broken » : options (panne)',
+      'Mode boom : erreur dans réglage « hiddenBroken » : hidden (panne)',
     ]);
   });
 

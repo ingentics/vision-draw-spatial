@@ -27,7 +27,7 @@ describe('réglages des plugins (sujet 287)', () => {
   });
 
   it('les registres des modes et des effets lisent leurs réglages de la même façon', () => {
-    const modes = new PageModeRegistry().register({ id: 'm', name: 'M', settings: SETTINGS });
+    const modes = new PageModeRegistry().register({ id: 'm', namespace: 'm', name: 'M', settings: SETTINGS });
     const effects = new PageEffectRegistry().register({ id: 'e', name: 'E', settings: SETTINGS });
     const stored = { gap: 500, shown: 'oui', color: '#123456' };
     expect(modes.values('m', stored)).toEqual(pluginValues(SETTINGS, stored));

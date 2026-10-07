@@ -15,6 +15,7 @@ import type { RenderContext, TextSpec } from '../../../../../../src/engine/core/
 import { spatialValue } from '../../../../../../src/engine/core/spatial';
 import { rowWidth, widthOf, KEY_ROW, setFields, labels, fieldsOf, setup } from '../helpers';
 import { createDefaultRegistry } from '../../../../../../src/engine/plugins';
+import { keys } from '../../../../../../src/engine/plugins/modes/rdd/keys';
 
 describe('mode RDD : champ sélectionné dans sa table (sujet 249)', () => {
   // User : (40, 160), 160 de large ; entête de 26, lignes de 20 (id, email, role).
@@ -146,7 +147,7 @@ describe('mode RDD : séparateurs entre les champs (sujet 253)', () => {
     run((edit) => (part = minus.run(edit, shape('user'), undefined, '1')));
     expect(part).toBe('2');
     expect(rowsOf(shape('user'))[2]).toEqual({ divider: true, label: '' });
-    expect(spatialValue(shape('user'), FIELDS)).toContain('{"divider":true,"label":""}');
+    expect(spatialValue(shape('user'), keys.key(FIELDS))).toContain('{"divider":true,"label":""}');
     expect(shape('user').bounds.height).toBe(26 + 4 * 20);
     expect(fieldProblems(shape('user'))).toEqual([]);
     // Sur la clé primaire : juste après elle.

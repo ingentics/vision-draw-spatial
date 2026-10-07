@@ -7,6 +7,7 @@ import { carriedShapes, isLocked } from '../../edit/moveSet';
 import type { DocumentModel, PageModel, Rect, ShapeModel } from '../../model/types';
 import { hasExactTextMeasure } from '../../render/textMeasure';
 import { applyModeEdit } from '../../modes/modeEdits';
+import { migrateLegacyKeys, modeKeys } from '../../modes/modeKeys';
 import { pageEffectIds, withPageEffect } from '../../effects/registry';
 import type { PageEffectDefinition } from '../../effects/types';
 import type { ModeScope, PageModeRegistry } from '../../modes/registry';
@@ -19,7 +20,7 @@ import type {
   PageModeDefinition,
 } from '../../modes/types';
 import { modePalette } from '../../settings';
-import { SPATIAL, spatialValue } from '../../spatial';
+import { SPATIAL } from '../../spatial';
 import type { ModePropertyView } from '../types';
 import type { EngineCore } from '../EngineCore';
 
@@ -161,7 +162,7 @@ export class PageModes {
     const context = this.editContext();
     if (
       !this.guard(mode, `opération « ${label} »`, false, () =>
-        applyModeEdit(editable.page, editable.pageTree, edit, context),
+        applyModeEdit(editable.page, editable.pageTree, mode, edit, context),
       )
     )
       return false;
@@ -196,11 +197,15 @@ export class PageModes {
   ): ModePropertyView[] {
     const mode = this.core.modes.modeOf(page);
     if (!mode) return [];
+    const keys = modeKeys(mode);
     return this.core.modes.properties(page, scope, part).flatMap((property) => {
       const call = <T>(hook: string, fallback: T, run: () => T) =>
         this.guard(mode, `réglage « ${property.key} » : ${hook}`, fallback, run);
       if (property.hidden && call('hidden', false, () => property.hidden!(page, target, part))) return [];
-      const raw = 'style' in target ? spatialValue(target, property.key) : target.attributes[property.key];
+      // Attribut du mode au nom court du réglage ; un nom invalide est traité comme un attribut absent.
+      const raw = this.guard(mode, `réglage « ${property.key} » : clé`, undefined, () =>
+        'style' in target ? keys.value(target, property.key) : keys.pageValue(target, property.key),
+      );
       const { readOnly } = property;
       return [
         {
@@ -288,7 +293,7 @@ export class PageModes {
     if (!fresh) return false;
     const context = this.editContext();
     return this.guard(mode, hook, false, () =>
-      applyModeEdit(fresh, pageTree, (edit) => run(entry, edit, fresh), context),
+      applyModeEdit(fresh, pageTree, mode, (edit) => run(entry, edit, fresh), context),
     );
   }
 
@@ -376,9 +381,10 @@ export class PageModes {
   }
 
   /**
-   * Document ouvert, ou mesure exacte du texte arrivée : chaque page d'un mode qui a `lifecycle.opened` est remise en ordre
-   * (sujet 255), en une étape d'annulation pour tout le document ; rien si rien ne change, si on ne peut pas modifier
-   * ou tant que la mesure du texte n'est qu'approchée.
+   * Document ouvert, ou mesure exacte du texte arrivée : sur chaque page d'un mode, les anciennes clés du mode sont
+   * renommées (sujet 301), puis la page est remise en ordre par `lifecycle.opened` (sujet 255), en une étape
+   * d'annulation pour tout le document ; rien si rien ne change, si on ne peut pas modifier ou tant que la mesure du
+   * texte n'est qu'approchée.
    */
   documentOpened(): void {
     const document = this.core.file.getDocument();
@@ -391,12 +397,19 @@ export class PageModes {
     const changed = document.pages
       .filter((page) => {
         const mode = this.core.modes.modeOf(page);
-        const opened = mode?.lifecycle?.opened;
-        const target = opened && this.core.targets.editablePageById(page.id);
-        if (!mode || !opened || !target) return false;
-        return this.guard(mode, 'lifecycle.opened', false, () =>
-          applyModeEdit(target.page, target.pageTree, opened, context),
+        const target = mode && this.core.targets.editablePageById(page.id);
+        if (!mode || !target) return false;
+        // Anciennes clés du mode (avant son espace de noms) réécrites sous leur nouveau nom (sujet 301), puis la page
+        // relue pour la remise en ordre du mode.
+        const migrated = migrateLegacyKeys(target.page, target.pageTree, mode);
+        const opened = mode.lifecycle?.opened;
+        if (!opened) return migrated;
+        const fresh = migrated ? documentFromTree(xmlTree).pages.find((p) => p.id === page.id) : target.page;
+        if (!fresh) return migrated;
+        const tidied = this.guard(mode, 'lifecycle.opened', false, () =>
+          applyModeEdit(fresh, target.pageTree, mode, opened, context),
         );
+        return migrated || tidied;
       })
       .map((page) => page.id);
     if (changed.length === 0) return;

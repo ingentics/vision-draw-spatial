@@ -4,6 +4,7 @@ import { SECONDARY } from '../../../../../../src/engine/plugins/modes/rdd/tables
 import { setField, setSecondary } from '../../../../../../src/engine/plugins/modes/rdd/tables/operations';
 import { spatialValue } from '../../../../../../src/engine/core/spatial';
 import { rowWidth, onGrid, contentWidth, widthOf, setFields, labels, fieldsOf, setup } from '../helpers';
+import { keys } from '../../../../../../src/engine/plugins/modes/rdd/keys';
 
 describe('mode RDD : opérations sur une table', () => {
   it('champs : un par ligne, la table prend la hauteur de ses champs (au moins une ligne)', () => {
@@ -17,7 +18,7 @@ describe('mode RDD : opérations sur une table', () => {
       height: 26 + 3 * 20,
     });
     run((edit) => setFields(edit, shape('model'), ''));
-    expect(spatialValue(shape('model'), FIELDS)).toBeUndefined();
+    expect(spatialValue(shape('model'), keys.key(FIELDS))).toBeUndefined();
     expect(shape('model').bounds.height).toBe(46);
   });
 
@@ -27,7 +28,7 @@ describe('mode RDD : opérations sur une table', () => {
     const width = onGrid(content);
     run((edit) => setSecondary(edit, shape('timestamped'), true));
     const small = shape('timestamped');
-    expect(spatialValue(small, SECONDARY)).toBe('1');
+    expect(spatialValue(small, keys.key(SECONDARY))).toBe('1');
     expect(small.bounds).toEqual({ x: 240, y: 40, width: onGrid(content * 0.8), height: 52.8 });
     expect([small.style.startSize, small.style.fontSize]).toEqual(['20.8', '9.6']);
     // Un champ de plus : lignes à l'échelle de la table secondaire.
@@ -35,7 +36,7 @@ describe('mode RDD : opérations sur une table', () => {
     expect(shape('timestamped').bounds.height).toBe(68.8);
     run((edit) => setSecondary(edit, shape('timestamped'), false));
     const back = shape('timestamped');
-    expect(spatialValue(back, SECONDARY)).toBeUndefined();
+    expect(spatialValue(back, keys.key(SECONDARY))).toBeUndefined();
     expect(back.bounds).toEqual({ x: 240, y: 40, width, height: 86 });
     expect([back.style.startSize, back.style.fontSize]).toEqual(['26', '12']);
     expect(run((edit) => setSecondary(edit, shape('timestamped'), false))).toBe(false);

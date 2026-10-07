@@ -19,6 +19,7 @@ import {
 import { ADD_DIVIDER_PROPERTY, TABLE_PROPERTIES, addDividerAfter } from './editing/tableProperties';
 import { TABLE_KINDS, missingRequiredName } from './tables/tableKinds';
 import { rowOf, shapeName } from './editing/tableTargets';
+import { RDD_KEYS } from './keys';
 
 /**
  * Mode « RDD — Relational Database Designer » (sujet 179) : une page de tables (modèles, entités…), lue à plat. Ses
@@ -27,6 +28,7 @@ import { rowOf, shapeName } from './editing/tableTargets';
  */
 export const definition: PageModeDefinition = {
   id: 'rdd',
+  ...RDD_KEYS,
   name: 'RDD — Relational Database Designer',
   shortName: 'RDD',
   description: 'Modèles de données relationnels : tables, champs et couleurs d’entête, en 2D',
@@ -55,7 +57,7 @@ export const definition: PageModeDefinition = {
         section: 'RDD',
         label: 'Afficher les cardinalités',
         title:
-          'Textes des cardinalités aux bouts des flèches de relation ; les pointes restent (spatial.cardinalities)',
+          'Textes des cardinalités aux bouts des flèches de relation ; les pointes restent (spatial.rdd.cardinalities)',
         value: (page) => (cardinalitiesShown(page) ? '1' : undefined),
         write: (edit, _target, value) => {
           const shown = value === '1';

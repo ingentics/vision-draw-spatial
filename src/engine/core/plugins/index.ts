@@ -29,6 +29,8 @@ export type {
   PageModeDefinition,
 } from '../modes/types';
 export type { EffectLight, PageEffectDefinition } from '../effects/types';
+export { modeKeys } from '../modes/modeKeys';
+export type { ModeKeys } from '../modes/modeKeys';
 export type { PluginSetting, PluginValues } from '../settings/pluginSettings';
 export { DEFAULT_MODE_PALETTE } from '../settings/derived';
 

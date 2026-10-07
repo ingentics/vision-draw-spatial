@@ -16,6 +16,7 @@ import type { Field } from '../../../../../../src/engine/plugins/modes/rdd/table
 import type { ModeEdit } from '../../../../../../src/engine/core/modes/types';
 import { fixture } from '../../../../../helpers';
 import { createDefaultRegistry } from '../../../../../../src/engine/plugins';
+import { RDD_KEYS } from '../../../../../../src/engine/plugins/modes/rdd/keys';
 
 /**
  * Fixture RDD (sans flèche) : `user`, `orphan` (entités), `role` (énumération), `address` (embedded « Address »),
@@ -25,7 +26,7 @@ function setup() {
   const { tree } = readDrawio(fixture('rdd.drawio'));
   const pageTree = tree.pages[0]!;
   const page = () => documentFromTree(tree).pages[0]!;
-  const run = (operation: (edit: ModeEdit) => void) => applyModeEdit(page(), pageTree, operation);
+  const run = (operation: (edit: ModeEdit) => void) => applyModeEdit(page(), pageTree, RDD_KEYS, operation);
   /** Flèche tirée d'une table à une autre, et le mode qui la reçoit (comme `ConnectDrags.commit`). */
   const connect = (source: string, target: string) => {
     const id = addEdgeCell(pageTree, { source, target, style: '' });
@@ -221,7 +222,7 @@ describe('mode RDD : champ de relation (sujet 265)', () => {
   it('« Afficher les cardinalités » décoché sur la page : les pointes sans les textes (sujet 266) ; recoché : de retour', () => {
     const { connect, run, page } = setup();
     const edge = connect('user', 'role');
-    const toggle = rdd.page!.properties!.find((property) => property.key === 'spatial.cardinalities')!;
+    const toggle = rdd.page!.properties!.find((property) => property.key === 'cardinalities')!;
     const ends = () => {
       const e = page().edges.find((x) => x.id === edge)!;
       return [e.style.startArrow, e.style.endArrow, e.labels.map((label) => label.label).sort()];
@@ -229,14 +230,14 @@ describe('mode RDD : champ de relation (sujet 265)', () => {
     expect(toggle.section).toBe('RDD');
     expect(toggle.value!(page(), page())).toBe('1');
     run((edit) => toggle.write!(edit, page(), undefined));
-    expect(page().attributes['spatial.cardinalities']).toBe('0');
+    expect(page().attributes['spatial.rdd.cardinalities']).toBe('0');
     expect(toggle.value!(page(), page())).toBeUndefined();
     expect(ends()).toEqual(['ERzeroToMany', 'ERzeroToOne', []]);
     // Une remise en ordre (ex. table déplacée) ne les fait pas revenir.
     run((edit) => rdd.gestures!.placed!(edit, ['user']));
     expect(ends()).toEqual(['ERzeroToMany', 'ERzeroToOne', []]);
     run((edit) => toggle.write!(edit, page(), '1'));
-    expect(page().attributes['spatial.cardinalities']).toBeUndefined();
+    expect(page().attributes['spatial.rdd.cardinalities']).toBeUndefined();
     expect(ends()).toEqual(['ERzeroToMany', 'ERzeroToOne', ['0,1', '0,n']]);
   });
 
@@ -296,11 +297,11 @@ describe('mode RDD : relation embedded (sujet 268)', () => {
   it('flèche qui change de sorte : les réglages de l’ancienne sorte sont retirés', () => {
     const { pageTree, run, page, connect } = setup();
     const edge = connect('user', 'role');
-    run((edit) => edit.setElementAttribute(edge, 'spatial.reverseName', 'roles'));
+    run((edit) => edit.setElementAttribute(edge, 'reverseName', 'roles'));
     setEdgeTerminal(pageTree, edge, 'source', { cellId: 'address' });
     run((edit) => rdd.edges!.reconnected!(edit, edge));
     const e = page().edges.find((x) => x.id === edge)!;
-    expect(e.attributes['spatial.reverseName'] ?? e.style['spatial.reverseName']).toBeUndefined();
+    expect(e.attributes['spatial.rdd.reverseName'] ?? e.style['spatial.rdd.reverseName']).toBeUndefined();
   });
 
   it('« Préfixe » de la flèche : rangé dans le champ, en gris à la place du type, la table s’élargit', () => {

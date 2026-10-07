@@ -1,4 +1,3 @@
-import { spatialFlag } from '../../../../core/plugins';
 import type { ModeEdit, ModeProperty, ModeTarget, ShapeModel } from '../../../../core/plugins';
 import { tableFields } from '../tables/fieldModel';
 import { addDivider, setSecondary } from '../tables/operations';
@@ -6,6 +5,7 @@ import type { TableKind, TableOptionKey } from '../tables/tableKinds';
 import { tableKindOf } from '../tables/tableKinds';
 import { SECONDARY } from '../tables/tableLayout';
 import { rowOf, tableOf } from './tableTargets';
+import { keys } from '../keys';
 
 /** Réglages d'une table RDD sélectionnée (sujets 179, 253, 260) : table secondaire, clé primaire, ajout d'un séparateur. */
 
@@ -42,7 +42,7 @@ export const TABLE_OPTIONS: readonly TableOption[] = [
     type: 'flag',
     attribute: SECONDARY,
     label: 'Table secondaire',
-    title: 'Table secondaire (spatial.secondary) : 20 % plus petite',
+    title: 'Table secondaire (spatial.rdd.secondary) : 20 % plus petite',
     on: (table) => table.rules.options.includes('secondary'),
     // Taille × 0,8, entête et taille du nom dans le style (sujet 179).
     write: setSecondary,
@@ -64,7 +64,7 @@ const tableOptionProperty = (option: TableOption): ModeProperty => ({
   title: option.title,
   value: (_page, target) => {
     const shape = optionTable(option, target);
-    return shape && spatialFlag(shape, option.attribute) ? '1' : undefined;
+    return shape && keys.flag(shape, option.attribute) ? '1' : undefined;
   },
   write: (edit, target, value) => {
     const shape = optionTable(option, target);

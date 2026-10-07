@@ -11,6 +11,7 @@ import {
 import { addShapeCell } from '../../../../../../src/engine/core/format/create';
 import type { ModeEdit } from '../../../../../../src/engine/core/modes/types';
 import { setup } from '../helpers';
+import { RDD_KEYS } from '../../../../../../src/engine/plugins/modes/rdd/keys';
 
 describe('mode RDD : région (sujet 182)', () => {
   it('contenu : les formes du mode dont le coin haut-gauche est dans la région', () => {
@@ -58,7 +59,7 @@ describe('mode RDD : la région s’étend quand on y pose une forme qui dépass
     const { document, tree } = readDrawio(xml);
     let page = document.pages[0]!;
     const run = (operation: (edit: ModeEdit) => void) => {
-      const changed = applyModeEdit(page, tree.pages[0]!, operation);
+      const changed = applyModeEdit(page, tree.pages[0]!, RDD_KEYS, operation);
       page = documentFromTree(tree).pages[0]!;
       return changed;
     };
@@ -154,12 +155,12 @@ describe('mode RDD : le contenu d’une région est devant elle (sujet 230)', ()
     </root></mxGraphModel></diagram></mxfile>`;
     const { document, tree } = readDrawio(xml);
     const page = document.pages[0]!;
-    expect(applyModeEdit(page, tree.pages[0]!, (edit) => rdd.gestures!.placed!(edit, ['t']))).toBe(true);
+    expect(applyModeEdit(page, tree.pages[0]!, RDD_KEYS, (edit) => rdd.gestures!.placed!(edit, ['t']))).toBe(true);
     const order = () => documentFromTree(tree).pages[0]!.shapes.map((s) => s.id);
     expect(order()).toEqual(['big', 'other', 'small', 't']);
     // Déjà en ordre : rien ne change.
     const again = documentFromTree(tree).pages[0]!;
-    expect(applyModeEdit(again, tree.pages[0]!, (edit) => rdd.gestures!.placed!(edit, ['t']))).toBe(false);
+    expect(applyModeEdit(again, tree.pages[0]!, RDD_KEYS, (edit) => rdd.gestures!.placed!(edit, ['t']))).toBe(false);
     expect(order()).toEqual(['big', 'other', 'small', 't']);
   });
 });
@@ -197,7 +198,7 @@ describe('mode RDD : l’onglet d’une région enfant compte dans sa parente (s
     const { document, tree } = readDrawio(xml);
     const page = document.pages[0]!;
     const big = page.shapes.find((s) => s.id === 'big')!;
-    applyModeEdit(page, tree.pages[0]!, (edit) => rdd.keys!.f!.run(edit, big, undefined));
+    applyModeEdit(page, tree.pages[0]!, RDD_KEYS, (edit) => rdd.keys!.f!.run(edit, big, undefined));
     const bounds = documentFromTree(tree).pages[0]!.shapes.find((s) => s.id === 'big')!.bounds;
     expect(bounds).toEqual({ x: 80, y: 100 - REGION.tab.height - 20, width: 240, height: 80 + REGION.tab.height + 40 });
   });
@@ -206,11 +207,11 @@ describe('mode RDD : l’onglet d’une région enfant compte dans sa parente (s
     const { document, tree } = readDrawio(xml);
     let page = document.pages[0]!;
     const before = page;
-    applyModeEdit(page, tree.pages[0]!, (edit) =>
+    applyModeEdit(page, tree.pages[0]!, RDD_KEYS, (edit) =>
       edit.setShapeBounds('small', { x: 100, y: 5, width: 200, height: 80 }),
     );
     page = documentFromTree(tree).pages[0]!;
-    applyModeEdit(page, tree.pages[0]!, (edit) => rdd.gestures!.placed!(edit, ['small'], before));
+    applyModeEdit(page, tree.pages[0]!, RDD_KEYS, (edit) => rdd.gestures!.placed!(edit, ['small'], before));
     const bounds = documentFromTree(tree).pages[0]!.shapes.find((s) => s.id === 'big')!.bounds;
     expect(bounds.y).toBe(5 - REGION.tab.height - 20);
   });
@@ -224,7 +225,7 @@ describe('mode RDD : couleur d’une région neuve selon ses sœurs (sujet 236)'
     /** Ajout depuis la palette : la cellule, puis le mode (sans page d'avant). */
     const add = (x: number, y: number, width = 200, height = 80) => {
       const id = addShapeCell(pageTree, { style: 'spatial.kind=rdd-region;', value: 'R', x, y, width, height });
-      applyModeEdit(documentFromTree(tree).pages[0]!, pageTree, (edit) => rdd.gestures!.placed!(edit, [id]));
+      applyModeEdit(documentFromTree(tree).pages[0]!, pageTree, RDD_KEYS, (edit) => rdd.gestures!.placed!(edit, [id]));
       return id;
     };
     const colorOf = (id: string) => documentFromTree(tree).pages[0]!.shapes.find((s) => s.id === id)!.style.fillColor;
@@ -235,7 +236,7 @@ describe('mode RDD : couleur d’une région neuve selon ses sœurs (sujet 236)'
     expect(inner.map(colorOf)).toEqual([REGION_COLORS[0], REGION_COLORS[1]]);
     // Un déplacement ne change pas la couleur.
     const page = documentFromTree(tree).pages[0]!;
-    applyModeEdit(page, pageTree, (edit) => rdd.gestures!.placed!(edit, [inner[1]!], page));
+    applyModeEdit(page, pageTree, RDD_KEYS, (edit) => rdd.gestures!.placed!(edit, [inner[1]!], page));
     expect(colorOf(inner[1]!)).toBe(REGION_COLORS[1]);
   });
 });
@@ -251,7 +252,7 @@ describe('mode RDD : règles des régions au redimensionnement, à l’ajustemen
     const { document, tree } = readDrawio(xml);
     let page = document.pages[0]!;
     const run = (operation: (edit: ModeEdit) => void) => {
-      const changed = applyModeEdit(page, tree.pages[0]!, operation);
+      const changed = applyModeEdit(page, tree.pages[0]!, RDD_KEYS, operation);
       page = documentFromTree(tree).pages[0]!;
       return changed;
     };
@@ -304,7 +305,7 @@ describe('mode RDD : règles des régions au redimensionnement, à l’ajustemen
       width: 200,
       height: 80,
     });
-    applyModeEdit(documentFromTree(tree).pages[0]!, pageTree, (edit) => rdd.gestures!.placed!(edit, [a, b]));
+    applyModeEdit(documentFromTree(tree).pages[0]!, pageTree, RDD_KEYS, (edit) => rdd.gestures!.placed!(edit, [a, b]));
     const colorOf = (id: string) => documentFromTree(tree).pages[0]!.shapes.find((s) => s.id === id)!.style.fillColor;
     // Big est la seule région de premier niveau déjà là.
     expect([colorOf(a), colorOf(b)]).toEqual([REGION_COLORS[1], REGION_COLORS[2]]);

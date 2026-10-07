@@ -16,6 +16,16 @@ import type { PaletteCategory } from '../shapes/types';
 export interface PageModeDefinition {
   /** Identifiant, valeur de `spatial.mode` : nom du dossier. */
   id: string;
+  /**
+   * Espace de noms des clés du mode (sujet 301, `^[a-z][a-z0-9]*$`, ex. `seq`) : il les écrit sous
+   * `spatial.<namespace>.<nom>` en ne donnant que le nom court ; propre au mode (deux modes ne le partagent pas).
+   */
+  namespace: string;
+  /**
+   * Noms courts dont l'ancienne clé `spatial.<nom>` (avant l'espace de noms) est encore lue (`modeKeys`), puis
+   * réécrite sous son nouveau nom à l'ouverture du document (sujet 301).
+   */
+  legacyKeys?: string[];
   /** Nom affiché dans le choix du mode. */
   name: string;
   /** Nom court, là où la place manque (sous-page du mode dans les paramètres, ticket 283) ; défaut : `name`. */
@@ -45,7 +55,10 @@ export interface PageModeDefinition {
   current?: ModeCurrent;
   /** Touches sur l'élément sélectionné seul, par `KeyboardEvent.key` (ex. `+`). */
   keys?: Record<string, ModeKey>;
-  /** Attributs retirés des éléments collés ou dupliqués (sur toutes les pages : ils dorment hors du mode). */
+  /**
+   * Attributs du mode, par leur nom court, retirés des éléments collés ou dupliqués (sur toutes les pages : ils dorment
+   * hors du mode ; ex. flux et rang d'une flèche).
+   */
   pasteKeys?: string[];
 }
 
@@ -295,10 +308,6 @@ export interface ModeKey {
 /** Élément d'une page qui peut porter les réglages d'un mode. */
 export type ModeTarget = PageModel | ShapeModel | EdgeModel;
 
-/**
- * Écritures d'une opération de mode sur la page courante, groupées en une étape d'annulation. `page` est l'état
- * avant l'opération (le modèle n'est relu qu'à la fin) ; une écriture identique à la valeur en place est ignorée.
- */
 /** Ce que l'appli fournit aux opérations de mode : couleurs proposées et textes de début / fin (paramètres). */
 export interface ModeEditContext {
   /** Fonds des styles de forme des paramètres (`modePalette`) ; peut être vide. */
@@ -307,17 +316,29 @@ export interface ModeEditContext {
   endText: { size: number; color: string; gap: EndTextGap };
 }
 
+/**
+ * Écritures d'une opération de mode sur la page courante, groupées en une étape d'annulation. `page` est l'état
+ * avant l'opération (le modèle n'est relu qu'à la fin) ; une écriture identique à la valeur en place est ignorée. Une
+ * clé invalide lève une exception (l'opération n'écrit alors rien) ; un élément verrouillé ne change ni de style, ni de
+ * bornes, ni de place dans l'ordre, ni de textes de bout (sujet 301).
+ */
 export interface ModeEdit {
   readonly page: PageModel;
   /** Couleurs proposées par l'appli (fonds des styles de forme des paramètres, `modePalette`) ; peut être vide. */
   readonly palette: readonly string[];
   /** Pas de la grille de la page (`gridSize` draw.io), 0 sans grille (sujet 263). */
   readonly gridSize: number;
-  /** Attribut de `<diagram>` ; undefined le retire. */
-  setPageAttribute(key: string, value: string | undefined): void;
-  /** Attribut spatial d'une forme ou d'une flèche (là où il est déjà, sinon dans le style) ; undefined le retire. */
-  setElementAttribute(elementId: string, key: string, value: string | undefined): void;
-  /** Clé du style draw.io d'un élément (ex. `fillColor`, sujet 179) ; undefined la retire. */
+  /** Attribut du mode sur `<diagram>`, par son nom court (écrit `spatial.<namespace>.<name>`) ; undefined le retire. */
+  setPageAttribute(name: string, value: string | undefined): void;
+  /**
+   * Attribut du mode sur une forme ou une flèche, par son nom court (là où il est déjà, sinon dans le style) ;
+   * undefined le retire.
+   */
+  setElementAttribute(elementId: string, name: string, value: string | undefined): void;
+  /**
+   * Clé du style draw.io d'un élément (ex. `fillColor`, sujet 179) ; undefined la retire. Ni `spatial.*` ni clé de
+   * verrou (`locked`, `movable`, `resizable`, `editable`, `deletable`).
+   */
   setElementStyle(elementId: string, key: string, value: string | undefined): void;
   /** Nouvelles bornes d'une forme, en coordonnées page (sujet 179) ; ses enfants suivent son coin haut-gauche. */
   setShapeBounds(shapeId: string, bounds: Rect): void;
@@ -346,8 +367,9 @@ export interface ModeOption {
 }
 
 /**
- * Réglage déclaré par un mode, rendu par un champ générique. Par défaut, il lit et écrit l'attribut `key` de sa
- * cible ; `value` et `write` le remplacent quand le réglage passe par les règles du mode (ex. un rang qui s'échange).
+ * Réglage déclaré par un mode, rendu par un champ générique. Par défaut, il lit et écrit l'attribut du mode de nom
+ * court `key` sur sa cible (`spatial.<namespace>.<key>`) ; `value` et `write` le remplacent quand le réglage passe par
+ * les règles du mode (ex. un rang qui s'échange).
  */
 export type ModeProperty = {
   key: string;

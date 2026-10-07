@@ -2,6 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { definition as rdd } from '../../../../../src/engine/plugins/modes/rdd';
 import { rowWidth, widthOf, KEY_ROW, labels, fieldsOf, tableFields, setup } from './helpers';
 import { createDefaultModeRegistry, createDefaultRegistry } from '../../../../../src/engine/plugins';
+import { readDrawio } from '../../../../../src/engine/core/format/parse';
+import type { PageModel } from '../../../../../src/engine/core/model/types';
+import { fixture } from '../../../../helpers';
+import { isSecondary } from '../../../../../src/engine/plugins/modes/rdd/tables/tableLayout';
+import { cardinalitiesShown } from '../../../../../src/engine/plugins/modes/rdd/relations';
 
 describe('mode RDD (sujet 179) : page et palette', () => {
   const modes = createDefaultModeRegistry();
@@ -40,7 +45,7 @@ describe('mode RDD (sujet 179) : page et palette', () => {
     expect(entity.style).toContain('swimlane;');
     expect(entity.style).toContain('spatial.kind=rdd-entity;');
     expect(entity.style).toContain(
-      'spatial.fields=[{"kind":"pk","label":"id","type":"primary-key","nullable":false}];',
+      'spatial.rdd.fields=[{"kind":"pk","label":"id","type":"primary-key","nullable":false}];',
     );
     expect(entity.style).toContain('startSize=26;');
     expect([entity.width, entity.height]).toEqual([widthOf(KEY_ROW), 46]);
@@ -106,6 +111,19 @@ describe('mode RDD (sujet 179) : page et palette', () => {
     const key = properties.find((p) => p.label === 'Clé primaire')!;
     expect([key.readOnly, key.value!(page(), entity)]).toEqual([true, 'id']);
     expect(properties.every((p) => p.hidden!(page(), page()))).toBe(true);
+  });
+});
+
+describe('mode RDD : fichier aux anciennes clés (sujet 301)', () => {
+  it('mêmes champs, mêmes tables secondaires, mêmes cardinalités que le même fichier aux nouvelles clés', () => {
+    const page = (file: string) => readDrawio(fixture(file)).document.pages[0]!;
+    const [legacy, current] = [page('rdd-anciennes-cles.drawio'), page('rdd.drawio')];
+    const read = (p: PageModel) => [
+      cardinalitiesShown(p),
+      ...p.shapes.map((shape) => [shape.id, tableFields(shape), isSecondary(shape)]),
+    ];
+    expect(read(legacy)).toEqual(read(current));
+    expect(current.shapes.some(isSecondary)).toBe(true);
   });
 });
 

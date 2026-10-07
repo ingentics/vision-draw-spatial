@@ -1,18 +1,19 @@
-import { jsonListValue, readJsonList, spatialValue } from '../../../../core/plugins';
+import { jsonListValue, readJsonList } from '../../../../core/plugins';
 import type { ShapeModel } from '../../../../core/plugins';
 import type { TableKind } from './tableKinds';
 import { tableKindOf } from './tableKinds';
+import { keys } from '../keys';
 
 /**
  * Champs d'une table du mode RDD (sujets 246, 253, 260) : modèle d'un champ et d'un séparateur, lecture et écriture de
- * `spatial.fields`, clé primaire.
+ * `spatial.rdd.fields`, clé primaire.
  */
 
 /**
  * Champs d'une table : liste JSON d'objets `{kind, label, type, nullable}` (sujet 246). Pas de lecture de l'ancien
  * format (liste de noms) : le mode RDD ne vise ni l'ouverture dans draw.io ni les fichiers d'avant.
  */
-export const FIELDS = 'spatial.fields';
+export const FIELDS = 'fields';
 
 /**
  * Rôle d'un champ (sujet 246) : clé primaire, propriété, clé étrangère, clé étrangère d'un autre domaine, embedded
@@ -150,7 +151,7 @@ export const FIELD_OPTIONS: readonly FieldOption[] = [
 const optionOf = (key: string) => FIELD_OPTIONS.find((option) => option.key === key);
 
 /**
- * Clés facultatives écrites dans `spatial.fields`, seulement si elles sont renseignées, dans cet ordre (celui des
+ * Clés facultatives écrites dans `spatial.rdd.fields`, seulement si elles sont renseignées, dans cet ordre (celui des
  * fichiers déjà écrits) : les options, sauf « Optionnel » toujours écrit avec le champ, et `edge`, le lien d'un champ
  * de relation à sa flèche (sujet 265).
  */
@@ -227,12 +228,12 @@ function readField(item: unknown): TableRow | undefined {
   return field;
 }
 
-/** Entrées brutes de `spatial.fields` ; undefined si la valeur n'est pas une liste JSON. */
+/** Entrées brutes de `spatial.rdd.fields` ; undefined si la valeur n'est pas une liste JSON. */
 function rawFields(shape: ShapeModel): unknown[] | undefined {
-  return readJsonList(spatialValue(shape, FIELDS));
+  return readJsonList(keys.value(shape, FIELDS));
 }
 
-/** Valeur écrite de `spatial.fields` (clés dans un ordre fixe) ; undefined sans ligne. */
+/** Valeur écrite de `spatial.rdd.fields` (clés dans un ordre fixe) ; undefined sans ligne. */
 export const fieldsValue = (rows: readonly TableRow[]): string | undefined =>
   jsonListValue(
     rows.map((row) =>
@@ -249,7 +250,7 @@ export const fieldsValue = (rows: readonly TableRow[]): string | undefined =>
   );
 
 /**
- * Lignes de la table (`spatial.fields`) : champs et séparateurs ; une valeur ou une entrée illisible est ignorée (et
+ * Lignes de la table (`spatial.rdd.fields`) : champs et séparateurs ; une valeur ou une entrée illisible est ignorée (et
  * signalée).
  */
 export function fieldsOf(shape: ShapeModel): TableRow[] {
@@ -287,7 +288,7 @@ export const misplacedPrimaryKey = (shape: ShapeModel) =>
   tableKindOf(shape)?.rules.primaryKey !== undefined && !isPrimaryKey(fieldsOf(shape)[0]);
 
 /**
- * Défauts de `spatial.fields` d'une table (fichier modifié à la main) : valeur ou entrées illisibles, type inconnu,
+ * Défauts de `spatial.rdd.fields` d'une table (fichier modifié à la main) : valeur ou entrées illisibles, type inconnu,
  * clé primaire nullable.
  */
 export function fieldProblems(shape: ShapeModel): string[] {

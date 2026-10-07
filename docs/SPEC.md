@@ -867,10 +867,19 @@ Réalisation retenue (`engine/core/spatial.ts`) :
 | `spatial.labelFollowShift` | style de la flèche | Texte du milieu qui suit la flèche : glissement le long du trait, en px (positif = vers la fin, négatif = vers le début) ; sans effet sans `spatial.labelFollow` |
 | `spatial.view` | `<diagram>` | État de vue de la page (§14.2) |
 | `spatial.mode` | `<diagram>` | Mode de la page (§14.5) : id d'un mode (`sequences`) ; absent = page normale |
-| `spatial.flows` | `<diagram>` | Mode Séquences : flux de la page, liste ordonnée en JSON `[{"id","title","color"}, …]` |
-| `spatial.flow`, `spatial.step` | style ou objet | Mode Séquences : flux d'une flèche (`id`) et son rang dans le flux (1…n) |
-| `spatial.fields` | style ou objet | Mode RDD : champs d'une table, liste JSON `[{"kind","label","type","nullable"}, …]` (§14.5) ; absent = aucun |
-| `spatial.secondary` | style ou objet | Mode RDD : `1` = table secondaire, rendue 20 % plus petite |
+| `spatial.<espace>.<nom>` | `<diagram>`, style ou objet | Données d'un mode de page (§14.5), dans l'espace de noms du mode (sujet 301) : `seq` (Séquences), `rdd` (RDD). Un mode n'écrit que dans le sien |
+| `spatial.seq.flows` | `<diagram>` | Mode Séquences : flux de la page, liste ordonnée en JSON `[{"id","title","color"}, …]` |
+| `spatial.seq.flow`, `spatial.seq.step` | style ou objet | Mode Séquences : flux d'une flèche (`id`) et son rang dans le flux (1…n) |
+| `spatial.seq.participant` | style ou objet | Mode Séquences : type d'une forme (`bus`, `queue`) |
+| `spatial.rdd.fields` | style ou objet | Mode RDD : champs d'une table, liste JSON `[{"kind","label","type","nullable"}, …]` (§14.5) ; absent = aucun |
+| `spatial.rdd.secondary` | style ou objet | Mode RDD : `1` = table secondaire, rendue 20 % plus petite |
+| `spatial.rdd.reverseName` | style ou objet | Mode RDD : nom inverse d'une relation, sur sa flèche |
+| `spatial.rdd.cardinalities` | `<diagram>` | Mode RDD : `0` = textes des cardinalités masqués |
+
+- Anciennes clés des modes (avant le sujet 301 : `spatial.flows`, `spatial.flow`, `spatial.step`, `spatial.participant`,
+  `spatial.fields`, `spatial.secondary`, `spatial.reverseName`, `spatial.cardinalities`) : encore lues ; à l'ouverture
+  d'un document modifiable, réécrites sous leur nouveau nom, à la même place, dans l'étape d'annulation « Ajustement du
+  mode ».
 
 - Lecture : style de la cellule, sinon attribut de son `<object>` / `<UserObject>` (« Modifier les données » dans draw.io) ; le style l'emporte. Valeurs négatives ou invalides ignorées.
 - Écriture (panneau contextuel, section « Volume » : « Épaisseur », « Élévation » ; vide = valeur par défaut) : là où l'attribut est déjà (objet), sinon dans le style, clé modifiée en place ou ajoutée à la fin.
@@ -911,7 +920,7 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   (`setElementStyle`) et bornes d'une forme (`setShapeBounds`, sujet 179).
 - **Mode RDD** (`rdd`, sujets 179 à 181, 215 à 223) : en 2D seulement ; la palette (catégorie « RDD ») ne
   propose que ses tables. Une table est un rectangle en deux zones : entête de 26 px de la couleur `fillColor` (nom
-  centré, gras ; texte noir ou blanc selon le contraste), trait, puis zone blanche des champs (`spatial.fields`, un
+  centré, gras ; texte noir ou blanc selon le contraste), trait, puis zone blanche des champs (`spatial.rdd.fields`, un
   par ligne de 20 px, alignés à gauche). Aucune mention au-dessus du nom : chaque table a sa marque.
   - Champs (sujet 246) : `kind` (`pk` clé primaire, `property`, `fk` clé étrangère, `external-fk` clé étrangère d'un
     autre domaine), `label`, `type` (`integer` « Nombre entier », `decimal` « Nombre réel », `string` « Phrase »,
@@ -940,7 +949,7 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     dessiné s'il est dans un fichier.
   - Table neuve au style « Gris » : entête `#f5f5f5`, bordure `#666666`, texte de l'entête `#333333` (`fontColor`, suivi
     par le rendu ; sans lui, noir ou blanc selon le contraste).
-  - Réglages du mode sur une table : « Table secondaire » (`spatial.secondary` : tailles × 0,8). La couleur de
+  - Réglages du mode sur une table : « Table secondaire » (`spatial.rdd.secondary` : tailles × 0,8). La couleur de
     l'entête vient du style de la forme (panneau « Style », sujet 260). Pas de section « Volume » (mode sans iso ni
     3D).
   - Sélection toujours en contour sur une page RDD (sujet 254, `PageModeDefinition.selectionStyle`), quel que soit le
@@ -954,7 +963,7 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   - Texte brut (sujet 258) : nom d'une table, label d'un champ, texte d'un séparateur s'écrivent sans mise en forme
     (pas de panneau de format pendant la saisie, ⌘B / ⌘I / ⌘U sans effet, collage sans format) et sans HTML
     (`ShapeDefinition.plainText`, `LabelEditRequest.plain` ; le texte d'une partie est toujours brut).
-  - Séparateurs (sujet 253) : une ligne `{"divider":true,"label":"…"}` de `spatial.fields`, dessinée comme un trait
+  - Séparateurs (sujet 253) : une ligne `{"divider":true,"label":"…"}` de `spatial.rdd.fields`, dessinée comme un trait
     gris (`#cccccc`) sur la largeur de la table, interrompu autour de son texte éventuel, centré, 7 px, gris
     (`#999999`) ; vide permis (un simple trait). Ajout : touche « - » sur une ligne sélectionnée, ou bouton « Ajouter un
     séparateur » tout en bas de l'encart RDD du panneau (après la ligne sélectionnée, sinon en fin de liste ; jamais
@@ -1024,8 +1033,8 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     autre élément, `f` garde son effet. Réglage « Couleur » (fond, bordure et nom). Dans draw.io : un rectangle
     de la même couleur, le nom au-dessus à gauche dans un cadre de la couleur de la bordure (`labelBorderColor`) ; son
     contenu n'y suit pas ses déplacements.
-- **Mode Séquences** (`sequences`) : en 2D seulement (`page.viewModes`) ; flux ordonnés (`spatial.flows`), une flèche dans un flux au plus
-  (`spatial.flow`, `spatial.step`), rangs toujours consécutifs (ajout en n + 1, échange, resserrement). Flèche d'un
+- **Mode Séquences** (`sequences`) : en 2D seulement (`page.viewModes`) ; flux ordonnés (`spatial.seq.flows`), une flèche dans un flux au plus
+  (`spatial.seq.flow`, `spatial.seq.step`), rangs toujours consécutifs (ajout en n + 1, échange, resserrement). Flèche d'un
   flux : trait et pointes dans la couleur du flux assombrie (−25 % de luminosité), pastille du rang au-dessus du
   texte du milieu (plus petite au milieu de la flèche sans texte). Taille, bordure, chiffre et assombrissement : paramètres
   « Modes › Séquences » (§13). Couleur d'un nouveau flux : fonds des styles de forme des paramètres, à partir du

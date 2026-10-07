@@ -1,5 +1,6 @@
 import type { PageModel } from '../../../../../../core/plugins';
 import type { EdgeLook } from '../kind';
+import { keys } from '../../../keys';
 
 /**
  * Cardinalités d'une relation entre tables (sujet 265), d'après « Optionnel » de son champ dans la table d'arrivée :
@@ -9,9 +10,9 @@ import type { EdgeLook } from '../kind';
  */
 
 /** Textes des cardinalités affichés sur la page (`0` : masqués, les pointes restent, sujet 266) ; absent : affichés. */
-export const CARDINALITIES = 'spatial.cardinalities';
+export const CARDINALITIES = 'cardinalities';
 
-export const cardinalitiesShown = (page: PageModel): boolean => page.attributes[CARDINALITIES] !== '0';
+export const cardinalitiesShown = (page: PageModel): boolean => keys.pageValue(page, CARDINALITIES) !== '0';
 
 /**
  * Pointes et textes des bouts d'une flèche de relation ; `shown` : textes affichés (réglage de la page). Masqués : les

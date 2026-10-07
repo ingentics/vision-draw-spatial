@@ -24,13 +24,15 @@ import type { RenderContext, TextSpec } from '../../../../src/engine/core/render
 import { spatialValue } from '../../../../src/engine/core/spatial';
 import { fixture } from '../../../helpers';
 import { createDefaultModeRegistry, createDefaultRegistry } from '../../../../src/engine/plugins';
+import { SEQUENCES_KEYS } from '../../../../src/engine/plugins/modes/sequences/flows';
+import { keys } from '../../../../src/engine/plugins/modes/sequences/flows';
 
 /** Page `index` de la fixture, et une fonction qui applique une opération puis relit la page. */
 function setup(index = 0) {
   const { document, tree } = readDrawio(fixture('sequences.drawio'));
   let page = document.pages[index]!;
   const run = (operation: (edit: ModeEdit) => void): boolean => {
-    const changed = applyModeEdit(page, tree.pages[index]!, operation);
+    const changed = applyModeEdit(page, tree.pages[index]!, SEQUENCES_KEYS, operation);
     page = documentFromTree(tree).pages[index]!;
     return changed;
   };
@@ -61,8 +63,14 @@ describe('mode Séquences (sujet 70) : lecture', () => {
     expect(sequenceState(page()).issues.map((issue) => issue.cellId ?? 'flux')).toEqual(['perdu', 'flux']);
   });
 
+  it('fichier aux anciennes clés (avant le sujet 301) : lu comme le même aux nouvelles clés', () => {
+    const pages = (file: string) => readDrawio(fixture(file)).document.pages;
+    const [legacy, current] = [pages('sequences-anciennes-cles.drawio'), pages('sequences.drawio')];
+    for (const i of [0, 1]) expect(sequenceState(legacy[i]!)).toEqual(sequenceState(current[i]!));
+  });
+
   it('flux illisibles ignorés au mieux (JSON invalide, doublon, couleur invalide)', () => {
-    const page = (flows: string) => ({ attributes: { 'spatial.flows': flows } }) as unknown as PageModel;
+    const page = (flows: string) => ({ attributes: { 'spatial.seq.flows': flows } }) as unknown as PageModel;
     expect(readFlows(page('pas du JSON'))).toEqual([]);
     expect(readFlows(page('[{"id":"a","title":"A","color":"rouge"},{"id":"a"},{"title":"sans id"}]'))).toEqual([
       { id: 'a', title: 'A', color: '#dae8fc' },
@@ -80,7 +88,7 @@ describe('mode Séquences : opérations', () => {
     const { page } = setup();
     let id = '';
     const { tree } = readDrawio(fixture('sequences.drawio'));
-    applyModeEdit(page(), tree.pages[0]!, (edit) => (id = addFlow(edit, 'Essai')), {
+    applyModeEdit(page(), tree.pages[0]!, SEQUENCES_KEYS, (edit) => (id = addFlow(edit, 'Essai')), {
       ...DEFAULT_MODE_EDIT_CONTEXT,
       palette: ['#4e79a7', '#123456'],
     });
@@ -109,14 +117,14 @@ describe('mode Séquences : opérations', () => {
     const { run, page } = setup();
     run((edit) => setEdgeFlow(edit, 'libre', 'f1'));
     expect(order(page()).f1).toEqual(['login', 'lecture', 'libre']);
-    expect(spatialValue(edge(page(), 'libre'), STEP)).toBe('3');
+    expect(spatialValue(edge(page(), 'libre'), keys.key(STEP))).toBe('3');
   });
 
   it('changer de flux : l’ancien se resserre, la flèche se met à la fin du nouveau', () => {
     const { run, page } = setup();
     run((edit) => setEdgeFlow(edit, 'login', 'f2'));
     expect(order(page())).toMatchObject({ f1: ['lecture'], f2: ['paiement', 'login'] });
-    expect(spatialValue(edge(page(), 'lecture'), STEP)).toBe('1');
+    expect(spatialValue(edge(page(), 'lecture'), keys.key(STEP))).toBe('1');
   });
 
   it('retirer une flèche de son flux efface ses attributs, là où ils étaient (objet)', () => {
@@ -144,7 +152,7 @@ describe('mode Séquences : opérations', () => {
     run((edit) => removeFlow(edit, 'f1'));
     expect(readFlows(page()).map((flow) => flow.id)).toEqual(['f2', 'f3']);
     for (const id of ['login', 'lecture']) {
-      expect([spatialValue(edge(page(), id), FLOW), spatialValue(edge(page(), id), STEP)]).toEqual([
+      expect([spatialValue(edge(page(), id), keys.key(FLOW)), spatialValue(edge(page(), id), keys.key(STEP))]).toEqual([
         undefined,
         undefined,
       ]);
@@ -162,13 +170,10 @@ describe('mode Séquences : opérations', () => {
     const { run, page } = setup(1);
     run(repairSequences);
     expect(sequenceState(page()).issues).toEqual([]);
-    expect(['trois', 'trois-bis', 'sept', 'sans-rang'].map((id) => spatialValue(edge(page(), id), STEP))).toEqual([
-      '1',
-      '2',
-      '3',
-      '4',
-    ]);
-    expect(spatialValue(edge(page(), 'perdu'), FLOW)).toBeUndefined();
+    expect(
+      ['trois', 'trois-bis', 'sept', 'sans-rang'].map((id) => spatialValue(edge(page(), id), keys.key(STEP))),
+    ).toEqual(['1', '2', '3', '4']);
+    expect(spatialValue(edge(page(), 'perdu'), keys.key(FLOW))).toBeUndefined();
   });
 });
 

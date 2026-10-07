@@ -66,3 +66,48 @@
     flux, rangs, collage) ;
   - fixtures + `make drawio-check` : les nouvelles clés survivent à un réenregistrement dans draw.io ;
   - `make check` vert.
+- Fait :
+  - Tronc :
+    - `core/modes/modeKeys.ts` (nouveau) : `modeKey(namespace, nom)` (nom court validé, `spatial.` refusé),
+      `modeKeys(owner)` (lecteur du mode : `value`, `flag`, `pageValue`, `key`, ancienne clé lue pour un nom de
+      `legacyKeys`), `migrateLegacyKeys(page, pageTree, owner)` ; `modeKeys` et `ModeKeys` exportés par l'API des
+      plugins ;
+    - contrat : `namespace` (obligatoire) et `legacyKeys` ; `ModeEdit.setPageAttribute` / `setElementAttribute` et
+      `ModeProperty.key` prennent des noms courts ;
+    - `applyModeEdit(page, pageTree, owner, edit, context)` : préfixe l'espace de noms ; `setElementStyle` refuse une
+      clé invalide (`^[A-Za-z][\w.:-]*$`), `spatial.*` et les clés de verrou (exception : l'opération n'écrit rien) ;
+      un élément verrouillé (`isLocked`) ne change ni de style, ni de bornes, ni d'ordre, ni de textes de bout ;
+    - registre : espace de noms invalide ou déjà pris par un autre mode refusé à l'enregistrement ;
+    - hôte des modes : espace de noms passé à chaque opération, lecture par défaut d'un réglage déclaré par le lecteur
+      du mode, migration des anciennes clés à l'ouverture (avant `lifecycle.opened`, page relue ensuite, même étape
+      d'annulation « Ajustement du mode », rien en lecture seule).
+  - Modes : Séquences (`seq` ; `SEQUENCES_KEYS` et `keys` dans `flows.ts`) et RDD (`rdd` ; `rdd/keys.ts`) en noms
+    courts ; lectures par `keys.value` / `flag` / `pageValue`, styles écrits soi-même (modèle de palette d'une table,
+    aperçus) par `keys.key`. Clés renommées : celles de la table, plus `spatial.seq.participant` et
+    `spatial.rdd.reverseName`, `spatial.rdd.cardinalities`. Les identifiants de réglages calculés de RDD
+    (`rdd.primaryKey`, `rdd.relation.edge.label`…) ne changent pas : ils ne désignent pas un attribut.
+  - **Écart avec le ticket** : `pasteKeys` est gardé. Retirer au collage toutes les clés des modes aurait fait perdre
+    ses champs (`spatial.rdd.fields`) à une table RDD copiée ; seul le flux et le rang d'une flèche Séquences doivent
+    partir, comme avant. Il prend maintenant des noms courts : le registre en fait les clés complètes (et les anciennes
+    clés), un mode ne peut plus faire retirer une clé hors de son espace de noms (`fillColor`, `id`…).
+  - Fixtures : `sequences.drawio`, `flows.drawio`, `rdd.drawio`, `rdd-regions-imbriquees.drawio` aux nouvelles clés ;
+    `sequences-anciennes-cles.drawio` et `rdd-anciennes-cles.drawio` (copies d'avant, pour la migration) ; copies
+    `drawio-saved/` régénérées par `make drawio-check` : draw.io garde les nouvelles clés.
+  - Doc : `AJOUTER_UN_MODE.md` (définition, section « Les clés du mode », opérations, table des garanties avec
+    `namespace` et `legacyKeys`), SPEC §14.3 (attributs des modes, anciennes clés).
+  - Tests :
+    - `tests/engine/core/modes/modeEdits.test.ts` (nouveau) : `mode` écrit en `spatial.test.mode` ; nom complet, nom
+      injecté (`;`, `=`, espace), clés de style `locked`, `movable`, `spatial.kind` : exception, rien d'écrit ; formes
+      verrouillées (`locked=1`, `movable=0`) : bornes, style et ordre inchangés ;
+    - `tests/engine/core/modes/modeKeys.test.ts` (nouveau) : préfixe, noms refusés, lecture avec ancienne clé, migration
+      (style, objet, nouvelle clé prioritaire, autres clés intactes) ;
+    - registre : espace de noms invalide ou pris refusé, clés de collage complètes ;
+    - Séquences et RDD : le fichier aux anciennes clés se lit comme le même aux nouvelles ;
+    - tests des modes adaptés aux noms courts et aux clés complètes.
+  - Validation dans l'appli (navigateur intégré, serveur 5173) :
+    - `rdd-anciennes-cles.drawio` : affichée comme avant ; à l'ouverture, plus que des clés `spatial.rdd.*` ; une
+      annulation remet les anciennes clés, l'affichage ne bouge pas ; « Table secondaire », « + » (nouveau champ) et
+      « Afficher les cardinalités » écrivent sous `spatial.rdd.*` ; modifications annulées ;
+    - `sequences-anciennes-cles.drawio` : flux, barre et pastilles comme avant, clés `spatial.seq.*` sur les deux
+      pages ; « + » change le rang ; une flèche dupliquée (⌘D) n'a ni flux ni rang ; modifications annulées.
+    - Relations RDD (champ de relation, nom inverse, cardinalités sur une flèche) vérifiées par les tests seulement.

@@ -48,18 +48,20 @@ describe('modes de page en plugins (sujet 69)', () => {
   it('un mode de test enregistré : choix, mode d’une page, réglages, collage, habillage du rendu', () => {
     const test: PageModeDefinition = {
       id: 'test',
+      namespace: 'test',
       name: 'Test',
-      edges: { properties: [{ type: 'text', key: 'spatial.test', label: 'Test' }] },
-      pasteKeys: ['spatial.test'],
+      edges: { properties: [{ type: 'text', key: 'value', label: 'Test' }] },
+      pasteKeys: ['value'],
       dressing: () => ({ edgeColor: () => '#ff0000', edgeBadge: () => ({ text: 'T', color: '#00ff00' }) }),
     };
     const registry = new PageModeRegistry().register(test);
     expect(registry.list().map((mode) => mode.id)).toEqual(['test']);
     expect(registry.modeOf(page({ [SPATIAL.mode]: 'test' }))).toBe(test);
     expect(registry.modeOf(page({}))).toBeUndefined();
-    expect(registry.properties(page({ [SPATIAL.mode]: 'test' }), 'edge').map((p) => p.key)).toEqual(['spatial.test']);
+    expect(registry.properties(page({ [SPATIAL.mode]: 'test' }), 'edge').map((p) => p.key)).toEqual(['value']);
     expect(registry.properties(page({}), 'edge')).toEqual([]);
-    expect(registry.pasteKeys()).toEqual(['spatial.test']);
+    // Clés complètes, dans l'espace de noms du mode (sujet 301).
+    expect(registry.pasteKeys()).toEqual(['spatial.test.value']);
 
     const xml = `<mxfile><diagram id="p" name="P" spatial.mode="test"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
       <mxCell id="e" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="0" y="0" as="sourcePoint"/><mxPoint x="100" y="0" as="targetPoint"/></mxGeometry></mxCell>
@@ -68,6 +70,16 @@ describe('modes de page en plugins (sujet 69)', () => {
     const ctx = { text: { create: () => new Object3D() } };
     const root = buildPageScene(model, createDefaultRegistry(), ctx, 'flat', registry.dressing(model)).root;
     expect(root.getObjectByName('edge-badge')).toBeDefined();
+  });
+
+  it('espace de noms (sujet 301) : invalide ou déjà pris par un autre mode, refusé ; clés de collage complètes', () => {
+    const registry = new PageModeRegistry().register({ id: 'a', namespace: 'ns', name: 'A' });
+    expect(() => registry.register({ id: 'b', namespace: 'ns', name: 'B' })).toThrow('déjà pris par a');
+    expect(() => registry.register({ id: 'c', namespace: 'Mauvais.ns', name: 'C' })).toThrow('invalide');
+    // Le même mode réenregistré (remplacé) garde son espace de noms.
+    expect(() => registry.register({ id: 'a', namespace: 'ns', name: 'A2' })).not.toThrow();
+    registry.register({ id: 'd', namespace: 'old', name: 'D', legacyKeys: ['flow'], pasteKeys: ['flow', 'step'] });
+    expect(registry.pasteKeys()).toEqual(['spatial.old.flow', 'spatial.flow', 'spatial.old.step']);
   });
 
   it('attributs de la page lus de <diagram> (spatial.* seulement), vides sans <diagram>', () => {
@@ -94,6 +106,7 @@ describe('modes de page en plugins (sujet 69)', () => {
   describe('palette et modes d’affichage d’un mode (sujet 178)', () => {
     const test: PageModeDefinition = {
       id: 'test',
+      namespace: 'test',
       name: 'Test',
       page: {
         palette: { shapes: ['rectangle', 'test-box'], categories: [{ id: 'test', name: 'Test', order: 15 }] },
@@ -102,6 +115,7 @@ describe('modes de page en plugins (sujet 69)', () => {
     };
     const loose: PageModeDefinition = {
       id: 'loose',
+      namespace: 'loose',
       name: 'Libre',
       page: { palette: { categories: test.page!.palette!.categories } },
     };
@@ -157,6 +171,7 @@ describe('modes de page en plugins (sujet 69)', () => {
 describe('réglages déclarés par un mode (ticket 283)', () => {
   const mode: PageModeDefinition = {
     id: 'reglages',
+    namespace: 'reglages',
     name: 'Réglages',
     settings: [
       { key: 'gap', type: 'number', label: 'Écart', min: 0, max: 50, step: 1, default: 20, legacy: 'oldGap' },

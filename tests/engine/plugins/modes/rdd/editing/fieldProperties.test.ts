@@ -8,6 +8,7 @@ import {
 import { spatialValue } from '../../../../../../src/engine/core/spatial';
 import { fieldsOf, setup } from '../helpers';
 import { createDefaultModeRegistry } from '../../../../../../src/engine/plugins';
+import { keys } from '../../../../../../src/engine/plugins/modes/rdd/keys';
 
 describe('mode RDD : champ sélectionné dans sa table (sujet 249)', () => {
   it('panneau : avec un champ, ses réglages seulement (kind et nullable masqués pour la clé primaire)', () => {
@@ -84,11 +85,11 @@ describe('mode RDD : champ sélectionné dans sa table (sujet 249)', () => {
       personal: true,
     });
     // Écrits dans le fichier, relus ; vidés ou décochés, retirés.
-    expect(spatialValue(shape('user'), FIELDS)).toContain('"pgType":"varchar(255)"');
+    expect(spatialValue(shape('user'), keys.key(FIELDS))).toContain('"pgType":"varchar(255)"');
     run((edit) => property('rdd.field.comment').write!(edit, shape('user'), undefined, '1'));
     run((edit) => property('rdd.field.gdpr').write!(edit, shape('user'), undefined, '1'));
     expect(fieldsOf(shape('user'))[1]!.comment).toBeUndefined();
-    expect(spatialValue(shape('user'), FIELDS)).not.toContain('gdpr');
+    expect(spatialValue(shape('user'), keys.key(FIELDS))).not.toContain('gdpr');
     // La clé primaire : ni renommée ni retypée.
     expect(run((edit) => property('rdd.field.label').write!(edit, shape('user'), 'uuid', '0'))).toBe(false);
     expect(run((edit) => property('rdd.field.type').write!(edit, shape('user'), 'text', '0'))).toBe(false);

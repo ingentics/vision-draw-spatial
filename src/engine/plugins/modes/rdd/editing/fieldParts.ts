@@ -5,6 +5,7 @@ import { TYPE_COLOR } from '../tables/tableColors';
 import { tableKindOf } from '../tables/tableKinds';
 import { TABLE, fieldLayout, fieldRow, tableContent, tableScale, tableSize, tableWidth } from '../tables/tableLayout';
 import { fieldIndex } from './tableTargets';
+import { keys } from '../keys';
 
 /**
  * Champs d'une table RDD comme parties de la forme (sujet 249) : une partie est le rang du champ (`"0"` pour le
@@ -75,7 +76,7 @@ export const fieldParts: ModeParts = {
     const width = tableWidth(kind, { ...tableContent(shape), fields: rows });
     return {
       ...shape,
-      style: { ...shape.style, [FIELDS]: fieldsValue(rows)! },
+      style: { ...shape.style, [keys.key(FIELDS)]: fieldsValue(rows)! },
       bounds: { ...shape.bounds, width: tableSize(width, gridSize) },
     };
   },
@@ -104,7 +105,7 @@ export const fieldParts: ModeParts = {
     const moved = index === undefined ? undefined : movedFields(tableFields(shape), index, Number(target));
     if (!moved) return undefined;
     return {
-      shape: { ...shape, style: { ...shape.style, [FIELDS]: fieldsValue(moved.fields)! } },
+      shape: { ...shape, style: { ...shape.style, [keys.key(FIELDS)]: fieldsValue(moved.fields)! } },
       part: String(moved.index),
     };
   },

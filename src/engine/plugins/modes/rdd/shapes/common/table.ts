@@ -39,6 +39,7 @@ import {
 } from '../../tables/tableLayout';
 import { addDividerRow, addFieldRow } from './fieldRow';
 import { headerMark } from './headerMarks';
+import { keys } from '../../keys';
 
 /** Rendu et fabrique des tables du mode RDD (sujet 179), communs à ses formes (`shapes/<forme>/`). */
 
@@ -202,7 +203,9 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
  * clé primaire dans ses champs s'il en a une.
  */
 export function tableStyle(id: TableKindId, kind: TableKind): string {
-  const fields = kind.rules.primaryKey ? `${FIELDS}=${fieldsValue([primaryKeyField(kind.rules.primaryKey)])};` : '';
+  const fields = kind.rules.primaryKey
+    ? `${keys.key(FIELDS)}=${fieldsValue([primaryKeyField(kind.rules.primaryKey)])};`
+    : '';
   return (
     `swimlane;fontStyle=${1 | (kind.look.italic ? 2 : 0)};startSize=${headerHeight(false)};` +
     `fillColor=${DEFAULT_HEADER_COLOR};fontColor=${DEFAULT_HEADER_TEXT};swimlaneFillColor=${FIELDS_FILL};strokeColor=${TABLE_BORDER};` +

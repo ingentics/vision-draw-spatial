@@ -1,15 +1,16 @@
 import type { EdgeModel, ModeKey, PageModeDefinition } from '../../../core/plugins';
-import { FLOW, PARTICIPANT, STEP } from './flows';
+import { FLOW, PARTICIPANT, SEQUENCES_KEYS, STEP } from './flows';
 import { badgeStyle, currentLook, SEQUENCES_SETTINGS } from './settings';
 import { renameFlow, repairSequences, sequenceState, setEdgeFlow, setEdgeStep } from './steps';
 
 /**
- * Mode « Séquences » (sujet 70) : la page enregistre des flux (`spatial.flows`) et l'ordre des flèches dans
- * chacun (`spatial.flow`, `spatial.step`), de quoi en déduire un diagramme de séquence par flux. Une flèche
+ * Mode « Séquences » (sujet 70) : la page enregistre des flux (`spatial.seq.flows`) et l'ordre des flèches dans
+ * chacun (`spatial.seq.flow`, `spatial.seq.step`), de quoi en déduire un diagramme de séquence par flux. Une flèche
  * appartient à un flux au plus ; ses rangs restent consécutifs. Dans draw.io, rien ne change.
  */
 export const definition: PageModeDefinition = {
   id: 'sequences',
+  ...SEQUENCES_KEYS,
   name: 'Séquences',
   description: 'Flux ordonnés de flèches : couleur par flux et rang de chaque flèche',
   // Acteur et participant pleins, lignes de vie en pointillé, message et réponse en accent, fins et à distance des
@@ -29,7 +30,7 @@ export const definition: PageModeDefinition = {
         type: 'select',
         key: FLOW,
         label: 'Flux',
-        title: 'Flux de la flèche (spatial.flow) : elle se met à la fin du flux choisi',
+        title: 'Flux de la flèche (spatial.seq.flow) : elle se met à la fin du flux choisi',
         options: (page) => [
           { value: '', label: 'Aucun' },
           ...sequenceState(page).flows.map((flow) => ({
@@ -45,7 +46,7 @@ export const definition: PageModeDefinition = {
         type: 'number',
         key: STEP,
         label: 'Rang',
-        title: 'Rang de la flèche dans son flux (spatial.step) : échange avec la flèche qui l’occupe',
+        title: 'Rang de la flèche dans son flux (spatial.seq.step) : échange avec la flèche qui l’occupe',
         value: (page, target) => String(sequenceState(page).placement.get(target.id)?.step ?? ''),
         write: (edit, target, value) => {
           if (value !== undefined) setEdgeStep(edit, target.id, Number(value));
@@ -65,7 +66,7 @@ export const definition: PageModeDefinition = {
         key: PARTICIPANT,
         label: 'Type',
         title:
-          'Type de la forme dans les séquences (spatial.participant) : un bus ou une queue est le point de départ d’un flux dont la première flèche va vers lui',
+          'Type de la forme dans les séquences (spatial.seq.participant) : un bus ou une queue est le point de départ d’un flux dont la première flèche va vers lui',
         options: () => [
           { value: '', label: '—' },
           { value: 'bus', label: 'Bus' },

@@ -9,11 +9,18 @@ import type { Field } from '../../../../../../src/engine/plugins/modes/rdd/table
 import { TABLE_KINDS } from '../../../../../../src/engine/plugins/modes/rdd/tables/tableKinds';
 import type { ShapeModel } from '../../../../../../src/engine/core/model/types';
 import { labels, fieldsOf, setup } from '../helpers';
+import { keys } from '../../../../../../src/engine/plugins/modes/rdd/keys';
 
 describe('mode RDD : champs structurés (sujet 246)', () => {
   /** Table du mode avec la valeur brute de `spatial.fields`. */
   const table = (fields: string, kind = 'rdd-entity') =>
-    ({ id: 't', kind, label: 'T', style: { 'spatial.kind': kind, [FIELDS]: fields } }) as unknown as ShapeModel;
+    ({
+      id: 't',
+      kind,
+      label: 'T',
+      style: { 'spatial.kind': kind, [keys.key(FIELDS)]: fields },
+      attributes: {},
+    }) as unknown as ShapeModel;
 
   it('champs lus avec kind, label, type et nullable', () => {
     const { shape } = setup();
@@ -85,7 +92,7 @@ describe('mode RDD : options d’un champ déclarées (sujet 277)', () => {
         id: 't',
         kind,
         label: 'T',
-        style: { [FIELDS]: '[{"kind":"property","label":"a","type":"","nullable":false,"unique":true}]' },
+        style: { [keys.key(FIELDS)]: '[{"kind":"property","label":"a","type":"","nullable":false,"unique":true}]' },
       }) as unknown as ShapeModel;
     expect((tableFields(shape('rdd-view'))[0] as Field).unique).toBeUndefined();
     expect((tableFields(shape('rdd-embedded'))[0] as Field).unique).toBe(true);

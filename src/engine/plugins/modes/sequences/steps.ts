@@ -1,6 +1,5 @@
-import { spatialValue } from '../../../core/plugins';
 import type { EdgeModel, ModeEdit, ModeIssue, PageModel } from '../../../core/plugins';
-import { FLOW, FLOWS, STEP, nextFlowColor, nextFlowId, readFlows, writeFlows } from './flows';
+import { FLOW, FLOWS, STEP, keys, nextFlowColor, nextFlowId, readFlows, writeFlows } from './flows';
 import type { Flow } from './flows';
 
 /**
@@ -34,14 +33,14 @@ function computeState(page: PageModel): SequenceState {
   const issues: ModeIssue[] = [];
   const raw = new Map<string, Array<{ edge: EdgeModel; step: number | undefined }>>(flows.map((f) => [f.id, []]));
   for (const edge of page.edges) {
-    const flowId = spatialValue(edge, FLOW)?.trim();
+    const flowId = keys.value(edge, FLOW)?.trim();
     if (!flowId) continue;
     const entries = raw.get(flowId);
     if (!entries) {
       issues.push({ cellId: edge.id, message: `Flèche d'un flux inconnu (${flowId}) : sans flux` });
       continue;
     }
-    const step = Number(spatialValue(edge, STEP));
+    const step = Number(keys.value(edge, STEP));
     entries.push({ edge, step: Number.isInteger(step) && step >= 1 ? step : undefined });
   }
 
@@ -137,7 +136,7 @@ export function repairSequences(edit: ModeEdit): void {
   const state = sequenceState(edit.page);
   for (const [flowId, order] of state.members) writeOrder(edit, flowId, order);
   for (const edge of edit.page.edges) {
-    if (spatialValue(edge, FLOW) !== undefined && !state.placement.has(edge.id)) clearEdge(edit, edge.id);
+    if (keys.value(edge, FLOW) !== undefined && !state.placement.has(edge.id)) clearEdge(edit, edge.id);
   }
 }
 

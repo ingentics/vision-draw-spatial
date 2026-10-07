@@ -7,6 +7,7 @@ import { buildPageScene } from '../../../../../../../src/engine/core/render/page
 import type { RenderContext, TextSpec } from '../../../../../../../src/engine/core/render/types';
 import { setFields, setup } from '../../helpers';
 import { createDefaultRegistry } from '../../../../../../../src/engine/plugins';
+import { setCellStyleValue } from '../../../../../../../src/engine/core/format/cellEdits';
 
 describe('mode RDD : opérations sur une table', () => {
   it('table neuve au style « Gris » (sujet 235) : entête #f5f5f5, bordure #666666, texte #333333', () => {
@@ -154,8 +155,10 @@ describe('mode RDD : embedded, document et vue (sujets 181, 218)', () => {
   });
 
   it('icône d’entête toujours affichée : spatial.icon=0 d’un fichier est ignoré (sujet 260)', () => {
-    const { run, page } = setup();
-    run((edit) => edit.setElementAttribute('role', 'spatial.icon', '0'));
+    const { run, page, tree } = setup();
+    // Écrit dans le fichier (un mode ne peut pas écrire `spatial.icon`, hors de son espace de noms : sujet 301).
+    setCellStyleValue(tree.pages[0]!, 'role', 'spatial.icon', '0');
+    run(() => {});
     const root = buildPageScene(
       page(),
       createDefaultRegistry(),

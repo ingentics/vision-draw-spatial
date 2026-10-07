@@ -10,7 +10,7 @@
         <mxCell id="inner" value="Comptes" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fdebef;strokeColor=#969696;labelBorderColor=#969696;fontColor=#000000;align=left;verticalAlign=bottom;verticalLabelPosition=top;fontStyle=1;fontSize=9;spatial.kind=rdd-region;" parent="1" vertex="1">
           <mxGeometry x="80" y="110" width="300" height="140" as="geometry" />
         </mxCell>
-        <mxCell id="user" value="User" style="swimlane;fontStyle=1;startSize=26;fillColor=#dae8fc;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;spatial.kind=rdd-entity;spatial.fields=[{&quot;kind&quot;:&quot;pk&quot;,&quot;label&quot;:&quot;id&quot;,&quot;type&quot;:&quot;integer&quot;,&quot;nullable&quot;:false}];" parent="1" vertex="1">
+        <mxCell id="user" value="User" style="swimlane;fontStyle=1;startSize=26;fillColor=#dae8fc;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;spatial.kind=rdd-entity;spatial.rdd.fields=[{&quot;kind&quot;:&quot;pk&quot;,&quot;label&quot;:&quot;id&quot;,&quot;type&quot;:&quot;integer&quot;,&quot;nullable&quot;:false}];" parent="1" vertex="1">
           <mxGeometry x="120" y="150" width="160" height="46" as="geometry" />
         </mxCell>
       </root>

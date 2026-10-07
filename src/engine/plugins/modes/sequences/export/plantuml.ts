@@ -1,6 +1,6 @@
-import { spatialValue, styleFlag } from '../../../../core/plugins';
+import { styleFlag } from '../../../../core/plugins';
 import type { EdgeModel, PageModel, ShapeModel } from '../../../../core/plugins';
-import { EVENT_SOURCES, PARTICIPANT } from '../flows';
+import { EVENT_SOURCES, PARTICIPANT, keys } from '../flows';
 import { sequenceState } from '../steps';
 import type { SequenceExporter } from './index';
 
@@ -18,7 +18,7 @@ import type { SequenceExporter } from './index';
  * participant actif, et l'aller de l'initiateur n'est refermé qu'à la fin, avec tous ceux encore ouverts. Ces retours
  * générés sont sans texte.
  *
- * Une forme de type `bus` ou `queue` (`spatial.participant`, sujet 97) est une `queue` ; si la première flèche d'un
+ * Une forme de type `bus` ou `queue` (`spatial.seq.participant`, sujet 97) est une `queue` ; si la première flèche d'un
  * flux va vers elle, elle est lue dans l'autre sens : le flux part du bus.
  */
 export const plantUml: SequenceExporter = {
@@ -146,7 +146,7 @@ function lastIndex<T>(items: T[], test: (item: T) => boolean): number {
 }
 
 function eventSource(shape: ShapeModel): boolean {
-  return EVENT_SOURCES.includes(spatialValue(shape, PARTICIPANT) ?? '');
+  return EVENT_SOURCES.includes(keys.value(shape, PARTICIPANT) ?? '');
 }
 
 function participantKind(shape: ShapeModel): string {

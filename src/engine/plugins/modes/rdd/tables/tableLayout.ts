@@ -1,9 +1,10 @@
-import { ceilToGrid, measureText, spatialFlag } from '../../../../core/plugins';
+import { ceilToGrid, measureText } from '../../../../core/plugins';
 import type { Rect, ShapeModel } from '../../../../core/plugins';
 import type { Divider, Field, TableRow } from './fieldModel';
 import { fieldNote, isDivider, tableFields } from './fieldModel';
 import type { TableKind } from './tableKinds';
 import { shownMark, tableName } from './tableKinds';
+import { keys } from '../keys';
 
 /**
  * Mise en page des tables du mode RDD (sujets 247, 248, 253, 263, 264) : tailles, échelle d'une table secondaire,
@@ -11,7 +12,7 @@ import { shownMark, tableName } from './tableKinds';
  */
 
 /** Table secondaire (`1`) : rendu 20 % plus petit. */
-export const SECONDARY = 'spatial.secondary';
+export const SECONDARY = 'secondary';
 /** Échelle d'une table secondaire. */
 export const SECONDARY_SCALE = 0.8;
 
@@ -45,7 +46,7 @@ export const TABLE = {
   minWidth: 120,
 } as const;
 
-export const isSecondary = (shape: ShapeModel) => spatialFlag(shape, SECONDARY);
+export const isSecondary = (shape: ShapeModel) => keys.flag(shape, SECONDARY);
 
 /** Échelle d'une table, secondaire ou non. */
 export const secondaryScale = (secondary: boolean): number => (secondary ? SECONDARY_SCALE : 1);

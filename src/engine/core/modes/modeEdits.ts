@@ -14,7 +14,15 @@ import type { PageTree } from '../format/xmlTree';
 import type { PageModel, Rect } from '../model/types';
 import { SPATIAL_PREFIX, spatialValue } from '../spatial';
 import { END_TEXT_GAP, edgeTextLayout, endLabelOf } from '../edit/edgeLabels';
+import { isLocked } from '../edit/moveSet';
+import { modeKey } from './modeKeys';
+import type { ModeKeyOwner } from './modeKeys';
 import type { ModeEdit, ModeEditContext } from './types';
+
+/** Clé du style draw.io écrite par un mode : ni `;`, ni `=`, ni espace (sujet 301). */
+const STYLE_KEY_PATTERN = /^[A-Za-z][\w.:-]*$/;
+/** Clés du style qu'un mode n'écrit pas : celles qui verrouillent l'élément (sujet 301). */
+const LOCK_KEYS: ReadonlySet<string> = new Set(['locked', 'movable', 'resizable', 'editable', 'deletable']);
 
 /** Contexte par défaut (tests, sans appli) : pas de couleurs proposées, textes de bout aux paramètres par défaut. */
 export const DEFAULT_MODE_EDIT_CONTEXT: ModeEditContext = {
@@ -23,17 +31,20 @@ export const DEFAULT_MODE_EDIT_CONTEXT: ModeEditContext = {
 };
 
 /**
- * Applique les écritures d'une opération de mode à l'arbre de la page (sans annulation ni relecture du modèle) ;
- * renvoie vrai si quelque chose a changé. Seuls les attributs `spatial.*` sont écrits : sur `<diagram>` pour la page ;
- * pour un élément, là où l'attribut est déjà (objet), sinon dans le style ; les autres clés du style draw.io par
- * `setElementStyle`, les bornes d'une forme par `setShapeBounds` (sujet 179), les labels enfants d'une flèche par
- * `setEdgeEndText` (sujet 265). Les valeurs sont suivies au fil des écritures : une écriture identique à la valeur en
- * place est ignorée. Les écritures sont rassemblées, puis appliquées à l'arbre une fois l'opération terminée (sujet
- * 288) : une opération qui lève une exception n'écrit rien.
+ * Applique les écritures d'une opération du mode `owner` à l'arbre de la page (sans annulation ni relecture du
+ * modèle) ; renvoie vrai si quelque chose a changé. Les attributs du mode, désignés par leur nom court, sont écrits
+ * sous `spatial.<espace de noms>.<nom>` (sujet 301) : sur `<diagram>` pour la page ; pour un élément, là où l'attribut
+ * est déjà (objet), sinon dans le style ; les autres clés du style draw.io par `setElementStyle` (ni `spatial.*`, ni
+ * clé de verrou), les bornes d'une forme par `setShapeBounds` (sujet 179), les labels enfants d'une flèche par
+ * `setEdgeEndText` (sujet 265). Un élément verrouillé (`locked`, `movable=0`) ne change ni de style, ni de bornes, ni
+ * de place dans l'ordre, ni de textes de bout. Une clé invalide lève une exception. Les valeurs sont suivies au fil des
+ * écritures : une écriture identique à la valeur en place est ignorée. Les écritures sont rassemblées, puis appliquées
+ * à l'arbre une fois l'opération terminée (sujet 288) : une opération qui lève une exception n'écrit rien.
  */
 export function applyModeEdit(
   page: PageModel,
   pageTree: PageTree,
+  owner: ModeKeyOwner,
   edit: (edit: ModeEdit) => void,
   context: ModeEditContext = DEFAULT_MODE_EDIT_CONTEXT,
 ): boolean {
@@ -48,7 +59,8 @@ export function applyModeEdit(
     page,
     palette: context.palette,
     gridSize: gridSizeOf(pageTree),
-    setPageAttribute: (key, value) => {
+    setPageAttribute: (name, value) => {
+      const key = modeKey(owner.namespace, name);
       const slot = `\n${key}`;
       const diagram = pageTree.diagram;
       const current = written.has(slot)
@@ -56,17 +68,18 @@ export function applyModeEdit(
         : diagram?.hasAttribute(key)
           ? diagram.getAttribute(key)
           : undefined;
-      if (!key.startsWith(SPATIAL_PREFIX) || current === value) return;
+      if (current === value) return;
       written.set(slot, value);
       writes.push(() => setPageAttribute(pageTree, key, value));
     },
-    setElementAttribute: (elementId, key, value) => {
+    setElementAttribute: (elementId, name, value) => {
+      const key = modeKey(owner.namespace, name);
       const element = elements.get(elementId);
       // `;` sépare les clés du style draw.io.
       const text = value?.replaceAll(';', '');
       const slot = `${elementId}\n${key}`;
       const current = written.has(slot) ? written.get(slot) : element && spatialValue(element, key);
-      if (!element || !key.startsWith(SPATIAL_PREFIX) || current === text) return;
+      if (!element || current === text) return;
       written.set(slot, text);
       writes.push(() => {
         if (text === undefined) {
@@ -82,11 +95,13 @@ export function applyModeEdit(
       });
     },
     setElementStyle: (elementId, key, value) => {
+      if (!STYLE_KEY_PATTERN.test(key) || key.startsWith(SPATIAL_PREFIX) || LOCK_KEYS.has(key))
+        throw new Error(`clé de style refusée à un mode : « ${key} »`);
       const element = elements.get(elementId);
       const text = value?.replaceAll(';', '');
       const slot = `${elementId}\n${key}`;
       const current = written.has(slot) ? written.get(slot) : element?.style[key];
-      if (!element || key.startsWith(SPATIAL_PREFIX) || current === text) return;
+      if (!element || isLocked(element) || current === text) return;
       written.set(slot, text);
       writes.push(() => {
         setCellStyleValue(pageTree, elementId, key, text);
@@ -95,7 +110,7 @@ export function applyModeEdit(
     },
     setShapeBounds: (shapeId, bounds) => {
       const shape = page.shapes.find((s) => s.id === shapeId);
-      if (!shape || !canMoveCell(pageTree, shapeId)) return;
+      if (!shape || isLocked(shape) || !canMoveCell(pageTree, shapeId)) return;
       const current = resized.get(shapeId) ?? shape.bounds;
       const delta = {
         x: bounds.x - current.x,
@@ -112,7 +127,7 @@ export function applyModeEdit(
     },
     setEdgeEndText: (edgeId, end, text, direction, margin = {}) => {
       const edge = page.edges.find((e) => e.id === edgeId);
-      if (!edge) return;
+      if (!edge || isLocked(edge)) return;
       const slot = `${edgeId}\ntext ${end}`;
       // Texte déjà là (fichier, ou écrit plus tôt dans l'opération) à ce bout.
       let cell = endTexts.get(slot);
@@ -170,7 +185,8 @@ export function applyModeEdit(
       });
     },
     sendToBack: (shapeIds) => {
-      const ids = [...shapeIds];
+      const locked = new Set(page.shapes.filter(isLocked).map((shape) => shape.id));
+      const ids = shapeIds.filter((id) => !locked.has(id));
       writes.push(() => sendToBackInOrder(pageTree, ids));
     },
   });

@@ -13,6 +13,7 @@ import type { ModeEdit } from '../../../../../src/engine/core/modes/types';
 import type { ShapeModel } from '../../../../../src/engine/core/model/types';
 import { ceilToGrid } from '../../../../../src/engine/core/model/geometry';
 import { fixture } from '../../../../helpers';
+import { RDD_KEYS } from '../../../../../src/engine/plugins/modes/rdd/keys';
 
 /** Aides communes des tests du mode RDD : fixture, largeurs attendues, pose des champs. */
 
@@ -65,7 +66,7 @@ export function setup() {
   const run = (operation: (edit: ModeEdit) => void): boolean => {
     // Relue avant : l'arbre a pu être écrit directement (ex. texte de la forme).
     page = documentFromTree(tree).pages[0]!;
-    const changed = applyModeEdit(page, tree.pages[0]!, operation);
+    const changed = applyModeEdit(page, tree.pages[0]!, RDD_KEYS, operation);
     page = documentFromTree(tree).pages[0]!;
     return changed;
   };

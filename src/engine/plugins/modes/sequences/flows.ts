@@ -1,14 +1,20 @@
-import { DEFAULT_MODE_PALETTE, isHexColor, jsonListValue, readJsonList } from '../../../core/plugins';
+import { DEFAULT_MODE_PALETTE, isHexColor, jsonListValue, modeKeys, readJsonList } from '../../../core/plugins';
 import type { PageModel } from '../../../core/plugins';
 
+/**
+ * Clés du mode (sujet 301), par leur nom court : écrites `spatial.seq.<nom>` ; les anciennes clés `spatial.<nom>` sont
+ * lues le temps de la migration.
+ */
+export const SEQUENCES_KEYS = { namespace: 'seq', legacyKeys: ['flows', 'flow', 'step', 'participant'] };
+export const keys = modeKeys(SEQUENCES_KEYS);
 /** Flux de la page (attribut de `<diagram>`) : liste ordonnée en JSON `[{"id","title","color"}, …]`. */
-export const FLOWS = 'spatial.flows';
+export const FLOWS = 'flows';
 /** Flux d'une flèche : `id` d'un flux de la page. */
-export const FLOW = 'spatial.flow';
+export const FLOW = 'flow';
 /** Rang d'une flèche dans son flux, à partir de 1. */
-export const STEP = 'spatial.step';
+export const STEP = 'step';
 /** Type d'une forme dans les séquences (sujet 97) : vide (selon la forme), `bus` ou `queue`. */
-export const PARTICIPANT = 'spatial.participant';
+export const PARTICIPANT = 'participant';
 /** Types de participant qui sont des points de départ d'événements : une première flèche vers eux part d'eux. */
 export const EVENT_SOURCES = ['bus', 'queue'];
 
@@ -29,7 +35,7 @@ export const FLOW_COLORS = DEFAULT_MODE_PALETTE;
 /** Flux de la page, au mieux : entrées illisibles ignorées, doublons d'id écartés, couleur invalide remplacée. */
 export function readFlows(page: PageModel): Flow[] {
   const flows: Flow[] = [];
-  for (const entry of readJsonList(page.attributes[FLOWS]) ?? []) {
+  for (const entry of readJsonList(keys.pageValue(page, FLOWS)) ?? []) {
     if (!entry || typeof entry !== 'object') continue;
     const { id, title, color } = entry as Record<string, unknown>;
     if (typeof id !== 'string' || !id || flows.some((flow) => flow.id === id)) continue;

@@ -3,7 +3,7 @@ import { cardinalitiesLook } from './cardinalities';
 import type { RelationKind } from '../kind';
 
 /** Nom inverse d'une relation, sur sa flèche : la relation vue depuis la table d'arrivée. */
-export const REVERSE_NAME = 'spatial.reverseName';
+export const REVERSE_NAME = 'reverseName';
 
 /**
  * Relation entre tables (sujet 265) : d'une entité ou d'une énumération vers une entité ou une énumération ; champ
