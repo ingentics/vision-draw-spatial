@@ -1,5 +1,7 @@
 import type { EdgeModel, ModeEdit, ModeIssue, PageModel } from '../../../core/plugins';
-import { FLOW, FLOWS, STEP, keys, nextFlowColor, nextFlowId, readFlows, writeFlows } from './flows';
+import { clamp } from '../../../core/plugins';
+import { FLOW, FLOWS, STEP, flowLabel, nextFlowColor, nextFlowId, readFlows, writeFlows } from './flows';
+import { keys } from './keys';
 import type { Flow } from './flows';
 
 /**
@@ -40,8 +42,8 @@ function computeState(page: PageModel): SequenceState {
       issues.push({ cellId: edge.id, message: `Flèche d'un flux inconnu (${flowId}) : sans flux` });
       continue;
     }
-    const step = Number(keys.value(edge, STEP));
-    entries.push({ edge, step: Number.isInteger(step) && step >= 1 ? step : undefined });
+    const step = keys.number(edge, STEP);
+    entries.push({ edge, step: step !== undefined && Number.isInteger(step) && step >= 1 ? step : undefined });
   }
 
   const members = new Map<string, string[]>();
@@ -54,7 +56,7 @@ function computeState(page: PageModel): SequenceState {
     ids.forEach((id, i) => placement.set(id, { flowId: flow.id, step: i + 1 }));
     if (entries.some((entry, i) => entry.step !== i + 1)) {
       issues.push({
-        message: `Rangs du flux « ${flow.title || flow.id} » remis en ordre (trous, doublons ou absents)`,
+        message: `Rangs du flux « ${flowLabel(flow)} » remis en ordre (trous, doublons ou absents)`,
       });
     }
   }
@@ -87,16 +89,6 @@ export function removeFlow(edit: ModeEdit, flowId: string): void {
   for (const edgeId of members.get(flowId) ?? []) clearEdge(edit, edgeId);
 }
 
-/** Déplace un flux à la position `index` (0 = premier) de la liste. */
-export function moveFlow(edit: ModeEdit, flowId: string, index: number): void {
-  const flows = [...sequenceState(edit.page).flows];
-  const from = flows.findIndex((flow) => flow.id === flowId);
-  if (from < 0) return;
-  const [flow] = flows.splice(from, 1);
-  flows.splice(Math.max(0, Math.min(index, flows.length)), 0, flow!);
-  edit.setPageAttribute(FLOWS, writeFlows(flows));
-}
-
 /**
  * Flux d'une flèche (undefined = aucun) : elle quitte son flux, dont les rangs suivants se resserrent, et se met à
  * la fin du nouveau.
@@ -122,7 +114,7 @@ export function setEdgeStep(edit: ModeEdit, edgeId: string, step: number): void 
   const placed = state.placement.get(edgeId);
   if (!placed || !Number.isFinite(step)) return;
   const order = [...state.members.get(placed.flowId)!];
-  const to = Math.max(1, Math.min(Math.round(step), order.length)) - 1;
+  const to = clamp(Math.round(step), 1, order.length) - 1;
   const from = placed.step - 1;
   [order[from], order[to]] = [order[to]!, order[from]!];
   writeOrder(edit, placed.flowId, order);

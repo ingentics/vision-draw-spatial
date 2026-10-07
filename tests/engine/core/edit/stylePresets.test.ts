@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   applyStylePreset,
   deriveStroke,
+  drawioStyle,
   DRAWIO_STYLES,
   matchesPreset,
   PASTEL_STYLES,
@@ -60,5 +61,17 @@ describe('styles de forme', () => {
     const untouched = (s: string) => s.split(';').filter((t) => t && !/^(fillColor|strokeColor|fontColor)=/.test(t));
     expect(untouched(after)).toEqual(untouched(before));
     expect(applyStylePreset(page, 'a', reread.style, style('Gris'), KNOWN)).toBe(false);
+  });
+});
+
+describe('style de base par son nom (sujet 316)', () => {
+  it('Gris : fond, contour et texte du préset', () => {
+    expect(drawioStyle('Gris')).toEqual({
+      name: 'Gris',
+      fillColor: '#f5f5f5',
+      strokeColor: '#666666',
+      fontColor: '#333333',
+    });
+    expect(() => drawioStyle('Inconnu')).toThrow('style draw.io inconnu');
   });
 });

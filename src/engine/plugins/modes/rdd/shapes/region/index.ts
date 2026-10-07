@@ -1,6 +1,5 @@
 import { Color, Group } from 'three';
 import {
-  PART_ORDER,
   fillMesh,
   insidePolygon,
   measureText,
@@ -11,15 +10,11 @@ import {
   styleOpacity,
   styleStroke,
   cubicTo,
+  labelObject,
+  readableOn,
 } from '../../../../../core/plugins';
 import type { Point, Rect, RenderContext, ShapeDefinition, ShapeModel } from '../../../../../core/plugins';
-import {
-  DEFAULT_REGION_COLOR,
-  REGION,
-  REGION_KIND,
-  regionLabelStyle,
-  regionTextColor,
-} from '../../regions/regionLayout';
+import { DEFAULT_REGION_COLOR, REGION, REGION_KIND, regionLabelStyle } from '../../regions/regionLayout';
 
 /**
  * Région (sujets 182, 227, 232) : rectangle à fond opaque et bordure fine, posé au fond de la pile ; son nom est sur un
@@ -105,22 +100,25 @@ function createRegion(shape: ShapeModel, ctx: RenderContext): Group {
 
   const text = tabText(shape);
   if (!text) return group;
-  const label = ctx.text.create({
-    text: shape.label.trim(),
-    x: text.x,
-    y: text.y + text.height / 2,
-    anchorX: 'left',
-    anchorY: 'middle',
-    align: 'left',
-    fontSize: fontSizeOf(shape),
-    color: new Color(regionTextColor(fill ?? DEFAULT_REGION_COLOR, fill ? fillOpacity : 0)),
-    opacity: 1,
-    bold: true,
-  });
+  const label = labelObject(
+    ctx,
+    {
+      text: shape.label.trim(),
+      x: text.x,
+      y: text.y + text.height / 2,
+      anchorX: 'left',
+      anchorY: 'middle',
+      align: 'left',
+      fontSize: fontSizeOf(shape),
+      // Noir ou blanc, lisible sur le fond de l'onglet (celui de la région, sujet 227 ; opaque depuis le sujet 232, plus
+      // léger dans un fichier qui porte un `fillOpacity`).
+      color: new Color(readableOn(fill ?? DEFAULT_REGION_COLOR, fill ? fillOpacity : 0)),
+      opacity: 1,
+      bold: true,
+    },
+    shape.id,
+  );
   label.name = 'region-label';
-  // L'éditeur en place masque le nom pendant la saisie.
-  label.userData.labelCellId = shape.id;
-  label.renderOrder = PART_ORDER.label;
   group.add(label);
   return group;
 }

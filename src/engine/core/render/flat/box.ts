@@ -1,4 +1,5 @@
 import { Group } from 'three';
+import type { Object3D } from 'three';
 import type { Point, Rect } from '../../model/types';
 import type { ReadonlyShapeModel as ShapeModel } from '../../model/readonly';
 import { labelInsets, outsideLabelBox } from '../labelPosition';
@@ -90,12 +91,20 @@ export function createLabel(shape: ShapeModel, ctx: RenderContext, text = shape.
       : undefined,
     background: labelBackground(style, null, ctx.background),
   };
-  const object = ctx.text.create(spec);
-  object.name = 'label';
-  // Cellule qui porte le texte : l'éditeur en place masque ce label pendant la saisie.
-  object.userData.labelCellId = shape.id;
+  const object = labelObject(ctx, spec, shape.id);
   // Hors de la forme : posé au sol à côté du volume en iso (`createShapeObject`).
   if (outside) object.userData.outsideLabel = true;
+  return object;
+}
+
+/**
+ * Objet texte d'une cellule : `cellId` est la cellule qui porte le texte, dont l'éditeur en place masque ce label
+ * pendant la saisie. Commun au label d'une forme et à celui qu'une forme place elle-même (ex. nom d'une région).
+ */
+export function labelObject(ctx: RenderContext, spec: TextSpec, cellId: string): Object3D {
+  const object = ctx.text.create(spec);
+  object.name = 'label';
+  object.userData.labelCellId = cellId;
   object.renderOrder = PART_ORDER.label;
   return object;
 }

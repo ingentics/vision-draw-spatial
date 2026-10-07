@@ -1,4 +1,4 @@
-import { SPATIAL, cubicTo } from '../../../../core/plugins';
+import { SPATIAL, cubicTo, clamp } from '../../../../core/plugins';
 import type { SceneRenderer } from '../../../../core/plugins';
 import {
   building,
@@ -33,7 +33,7 @@ export function isoDatabase(flat: SceneRenderer): SceneRenderer {
     const plinth = plinthOf(tag, height);
     const band = height - plinth;
     const count = band >= 24 ? 3 : 2;
-    const grooveWidth = Math.max(2, Math.min(4, height * 0.08));
+    const grooveWidth = clamp(height * 0.08, 2, 4);
     for (const face of facesOf(shape.bounds)) {
       const pad = Math.min(4, face.length * 0.08);
       const sag = Math.min(band / (count + 1) / 2, face.length * 0.1);

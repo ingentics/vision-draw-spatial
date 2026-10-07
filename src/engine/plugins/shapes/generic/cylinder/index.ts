@@ -1,5 +1,4 @@
 import {
-  PART_ORDER,
   VERTEX_DEFAULTS,
   createBox,
   createLabel,
@@ -10,6 +9,7 @@ import {
   styleStroke,
   orientation,
   boundsOfPoints,
+  clamp,
 } from '../../../../core/plugins';
 import type { Point, Rect, SceneLevel, SceneRenderer, ShapeModel } from '../../../../core/plugins';
 
@@ -116,7 +116,7 @@ function boundedLabel(bounds: Rect, style: Record<string, string>, top: number, 
 export function cylinder3Drawing(shape: ShapeModel): CylinderDrawing {
   const { style } = shape;
   return oriented(shape.bounds, style, (bounds) => {
-    const dy = Math.max(0, Math.min(bounds.height / 2, ringHeight(style)));
+    const dy = clamp(ringHeight(style), 0, bounds.height / 2);
     // `boundedLbl=1` : le label reste dans le corps, sous l'ellipse du haut (marges de draw.io).
     return {
       silhouette: cylinderSilhouette(bounds, dy),
@@ -145,7 +145,6 @@ export function cylinderFlat(drawing: (shape: ShapeModel) => CylinderDrawing): S
           });
           if (!mesh) continue;
           mesh.name = 'stroke-lip';
-          mesh.renderOrder = PART_ORDER.stroke;
           box.add(mesh);
         }
       }

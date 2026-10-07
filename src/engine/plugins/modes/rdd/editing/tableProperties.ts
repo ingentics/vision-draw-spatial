@@ -1,4 +1,5 @@
 import type { ModeEdit, ModeProperty, ModeTarget, ShapeModel } from '../../../../core/plugins';
+import { isToggled, toggleValue } from '../../../../core/plugins';
 import { tableFields } from '../tables/fieldModel';
 import { addDivider, setSecondary } from '../tables/operations';
 import type { TableKind, TableOptionKey } from '../tables/tableKinds';
@@ -64,13 +65,13 @@ const tableOptionProperty = (option: TableOption): ModeProperty => ({
   title: option.title,
   value: (_page, target) => {
     const shape = optionTable(option, target);
-    return shape && keys.flag(shape, option.attribute) ? '1' : undefined;
+    return toggleValue(!!shape && keys.flag(shape, option.attribute));
   },
   write: (edit, target, value) => {
     const shape = optionTable(option, target);
     if (!shape) return;
-    if (option.write) option.write(edit, shape, value === '1');
-    else edit.setElementAttribute(shape.id, option.attribute, value === '1' ? '1' : undefined);
+    if (option.write) option.write(edit, shape, isToggled(value));
+    else edit.setElementAttribute(shape.id, option.attribute, toggleValue(isToggled(value)));
   },
   hidden: (_page, target) => !optionTable(option, target),
 });

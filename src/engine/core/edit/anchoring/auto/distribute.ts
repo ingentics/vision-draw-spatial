@@ -5,6 +5,7 @@ import type { AnchorSide, TerminalEnd } from '../../edgeEnds';
 import { center } from '../../../model/geometry';
 import { pageGeometry } from '../../../model/pageGeometry';
 import type { PageGeometry } from '../../../model/pageGeometry';
+import { shapesById } from '../../../model/pageIndex';
 
 /**
  * Ancrage automatique des flèches (SPEC §14.1) : l'utilisateur ne choisit que le côté d'une forme, et les flèches
@@ -104,7 +105,7 @@ export function distributeAnchors(
   // Égalités (faisceaux, flèches vers une même forme) : ordre des ids, ou celui que donne la graine.
   const tie = (a: string, b: string) =>
     (seed === 0 ? 0 : seededUnit(seed, a) - seededUnit(seed, b)) || a.localeCompare(b);
-  const shapes = new Map(page.shapes.map((s) => [s.id, s]));
+  const shapes = shapesById(page);
   const groups = new Map<string, Slot[]>();
   for (const edge of page.edges)
     for (const end of ['source', 'target'] as const) {

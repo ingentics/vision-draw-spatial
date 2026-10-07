@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { definition as rdd } from '../../../../../../src/engine/plugins/modes/rdd';
-import { REGION_COLORS, regionTextColor } from '../../../../../../src/engine/plugins/modes/rdd/regions/regionLayout';
+import { readableOn } from '../../../../../../src/engine/core/render/styleColors';
+import { REGION_COLORS } from '../../../../../../src/engine/plugins/modes/rdd/regions/regionLayout';
 import { setup } from '../helpers';
 
 describe('mode RDD : région (sujet 182)', () => {
@@ -38,6 +39,6 @@ describe('mode RDD : région (sujet 182)', () => {
     expect(shape('accounts').style.fontColor).toBe('#ffffff');
     expect(shape('accounts').style.fillOpacity).toBeUndefined();
     // Sur un fond léger (fichier d'avant), le texte se lit sur le fond posé sur du blanc.
-    expect(regionTextColor('#1f3a5f', 0.1)).toBe('#000000');
+    expect(readableOn('#1f3a5f', 0.1)).toBe('#000000');
   });
 });

@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { PageEffectRegistry } from '../../../../src/engine/core/effects/registry';
 import { PageModeRegistry } from '../../../../src/engine/core/modes/registry';
-import { pluginValues } from '../../../../src/engine/core/settings/pluginSettings';
+import {
+  booleanValue,
+  numberValue,
+  pluginValues,
+  stringValue,
+} from '../../../../src/engine/core/settings/pluginSettings';
 import type { PluginSetting } from '../../../../src/engine/core/settings/pluginSettings';
 
 const SETTINGS: PluginSetting[] = [
@@ -56,5 +61,22 @@ describe('réglages des plugins (sujet 287)', () => {
     const stored = { gap: 500, shown: 'oui', color: '#123456' };
     expect(modes.values('m', stored)).toEqual(pluginValues(SETTINGS, stored));
     expect(effects.values('e', stored)).toEqual(pluginValues(SETTINGS, stored));
+  });
+});
+
+describe('accès typés aux valeurs (sujet 316)', () => {
+  const values = pluginValues(SETTINGS, {});
+
+  it('valeur du type attendu', () => {
+    expect(numberValue(values, 'gap')).toBe(20);
+    expect(booleanValue(values, 'shown')).toBe(true);
+    expect(stringValue(values, 'color')).toBe('#000000');
+  });
+
+  it('clé absente ou d’un autre type : exception', () => {
+    expect(() => numberValue(values, 'absent')).toThrow('réglage « absent »');
+    expect(() => numberValue(values, 'color')).toThrow('number attendu');
+    expect(() => stringValue(values, 'gap')).toThrow('string attendu');
+    expect(() => booleanValue(values, 'gap')).toThrow('boolean attendu');
   });
 });

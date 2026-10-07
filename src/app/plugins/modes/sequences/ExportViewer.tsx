@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { PageModel } from '../../../../engine';
-import { sequenceState } from '../../../../engine/plugins/modes/sequences/api';
+import { flowLabel, sequenceState } from '../../../../engine/plugins/modes/sequences/api';
 import type { SequenceExporter } from '../../../../engine/plugins/modes/sequences/api';
 import { plantUmlUrls } from './plantumlServer';
 import type { PlantUmlSettings } from './plantumlServer';
@@ -96,7 +96,7 @@ export function ExportViewer({
           </option>
           {flows.map((f) => (
             <option key={f.id} value={f.id}>
-              {f.title || f.id}
+              {flowLabel(f)}
             </option>
           ))}
         </select>

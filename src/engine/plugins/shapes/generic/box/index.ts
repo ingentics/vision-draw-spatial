@@ -143,7 +143,6 @@ function addPath(group: Group, shape: ShapeModel, detail: ShapeDetailPath, z: nu
   });
   if (!mesh) return;
   mesh.name = 'stroke-detail';
-  mesh.renderOrder = PART_ORDER.stroke;
   mesh.position.z = z;
   group.add(mesh);
 }

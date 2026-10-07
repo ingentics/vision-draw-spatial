@@ -1,7 +1,7 @@
 import type { PageEffectDefinition, Point } from '../../../core/plugins';
 import { forestMesh } from './trees';
 import type { Tree } from './trees';
-import { rectDistance } from '../../../core/plugins';
+import { rectDistance, clamp, numberValue } from '../../../core/plugins';
 
 /** Part de l'étendue où la forêt est pleine ; elle s'éclaircit au-delà. */
 const THIN_FROM = 0.45;
@@ -76,13 +76,11 @@ export const definition: PageEffectDefinition = {
     },
   ],
   volume(_page, room, values, light) {
-    const {
-      size,
-      spacing: CELL,
-      density,
-      reach,
-      clearance,
-    } = values as Record<'size' | 'spacing' | 'density' | 'reach' | 'clearance', number>;
+    const size = numberValue(values, 'size');
+    const CELL = numberValue(values, 'spacing');
+    const density = numberValue(values, 'density');
+    const reach = numberValue(values, 'reach');
+    const clearance = numberValue(values, 'clearance');
     const area = room.bounds ?? { x: 0, y: 0, width: 0, height: 0 };
     const outside = (p: Point) => rectDistance(area, p);
     const trees: Tree[] = [];
@@ -144,6 +142,6 @@ function mulberry32(seed: number): () => number {
 }
 
 function smoothstep(from: number, to: number, value: number): number {
-  const t = Math.max(0, Math.min(1, (value - from) / (to - from)));
+  const t = clamp((value - from) / (to - from), 0, 1);
   return t * t * (3 - 2 * t);
 }

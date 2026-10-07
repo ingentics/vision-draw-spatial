@@ -29,4 +29,24 @@ describe('clés d’un mode (sujet 301)', () => {
     expect(keys.flag({ style: { 'spatial.seq.on': '1' }, attributes: {} }, 'on')).toBe(true);
     expect(keys.key('flow')).toBe('spatial.seq.flow');
   });
+
+  it('nombre : fini ou absent ; drapeau de page : défaut éteint (« 1 ») ou allumé (sauf « 0 »)', () => {
+    const keys = modeKeys(OWNER);
+    const at = (text: string | undefined) => ({
+      style: (text === undefined ? {} : { 'spatial.seq.step': text }) as Record<string, string>,
+      attributes: {},
+    });
+    expect(keys.number(at('3'), 'step')).toBe(3);
+    expect(keys.number(at('-1.5'), 'step')).toBe(-1.5);
+    for (const text of [undefined, '', '  ', 'x', 'Infinity']) expect(keys.number(at(text), 'step')).toBeUndefined();
+    const pageWith = (text: string | undefined) => ({
+      attributes: (text === undefined ? {} : { 'spatial.seq.shown': text }) as Record<string, string>,
+    });
+    expect(keys.pageFlag(pageWith(undefined), 'shown')).toBe(false);
+    expect(keys.pageFlag(pageWith('1'), 'shown')).toBe(true);
+    expect(keys.pageFlag(pageWith('0'), 'shown')).toBe(false);
+    expect(keys.pageFlag(pageWith(undefined), 'shown', true)).toBe(true);
+    expect(keys.pageFlag(pageWith('1'), 'shown', true)).toBe(true);
+    expect(keys.pageFlag(pageWith('0'), 'shown', true)).toBe(false);
+  });
 });

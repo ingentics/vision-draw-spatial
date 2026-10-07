@@ -5,6 +5,7 @@ import type { EdgeModel, PageModel, Point } from '../../../model/types';
 import { toTerminal } from '../../../render/edges/edge';
 import { fixedAnchor, routeEdgePoints, routingCenter } from '../../../render/edges/route';
 import type { EngineCore } from '../../EngineCore';
+import { shapesById } from '../../../model/pageIndex';
 
 /** Poignées de la flèche sélectionnée : ses bouts, et entre eux ses segments, coudes et points. */
 export class EdgeHandles {
@@ -40,7 +41,7 @@ export class EdgeHandles {
     const object = this.core.sceneView.sceneObject(edge.id);
     const raw = object?.userData.points as Point[] | undefined;
     if (!object || !raw || raw.length < 2) return undefined;
-    const shapes = new Map(page.shapes.map((s) => [s.id, s]));
+    const shapes = shapesById(page);
     const source = toTerminal(shapes.get(edge.sourceId ?? ''));
     const target = toTerminal(shapes.get(edge.targetId ?? ''));
     const sourceFixed = source && fixedAnchor(source, edge.style, 'source');

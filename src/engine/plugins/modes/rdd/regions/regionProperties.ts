@@ -1,5 +1,5 @@
 import type { ModeKey, ModeProperty, ModeTarget, ShapeModel } from '../../../../core/plugins';
-import { shapeTarget } from '../editing/tableTargets';
+import { shapeTarget } from '../../../../core/plugins';
 import { REGION_COLORS, fitRegion, isRegion, setRegionColor } from './regionLayout';
 
 /** Réglages et touche d'une région du mode RDD (sujets 182, 184, 233). */

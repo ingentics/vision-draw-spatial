@@ -1,4 +1,5 @@
 import type { EdgeBadgeStyle, ModeCurrentLook, PluginSetting, PluginValues } from '../../../core/plugins';
+import { booleanValue, numberValue, stringValue } from '../../../core/plugins';
 
 /** Réglages globaux du mode Séquences (Paramètres › Modes › Séquences, ticket 283). */
 export const SEQUENCES_SETTINGS: PluginSetting[] = [
@@ -153,21 +154,21 @@ export const SEQUENCES_SETTINGS: PluginSetting[] = [
 /** Apparence des pastilles d'après les réglages du mode. */
 export function badgeStyle(values: PluginValues): EdgeBadgeStyle {
   return {
-    radius: values.badgeRadius as number,
-    textSize: values.badgeTextSize as number,
-    smallRadius: values.badgeSmallRadius as number,
-    smallTextSize: values.badgeSmallTextSize as number,
-    borderColor: values.badgeBorderColor as string,
-    borderWidth: values.badgeBorderWidth as number,
-    textColor: values.badgeTextColor as string,
-    bold: values.badgeBold as boolean,
-    gap: values.badgeGap as number,
-    faceCamera: values.badgeFaceCamera as boolean,
-    labelFaceCamera: values.badgeLabelFaceCamera as boolean,
+    radius: numberValue(values, 'badgeRadius'),
+    textSize: numberValue(values, 'badgeTextSize'),
+    smallRadius: numberValue(values, 'badgeSmallRadius'),
+    smallTextSize: numberValue(values, 'badgeSmallTextSize'),
+    borderColor: stringValue(values, 'badgeBorderColor'),
+    borderWidth: numberValue(values, 'badgeBorderWidth'),
+    textColor: stringValue(values, 'badgeTextColor'),
+    bold: booleanValue(values, 'badgeBold'),
+    gap: numberValue(values, 'badgeGap'),
+    faceCamera: booleanValue(values, 'badgeFaceCamera'),
+    labelFaceCamera: booleanValue(values, 'badgeLabelFaceCamera'),
   };
 }
 
 /** Apparence du flux courant d'après les réglages du mode. */
 export function currentLook(values: PluginValues): ModeCurrentLook {
-  return { dimOpacity: values.dimOpacity as number, barSlideDuration: values.barSlideDuration as number };
+  return { dimOpacity: numberValue(values, 'dimOpacity'), barSlideDuration: numberValue(values, 'barSlideDuration') };
 }

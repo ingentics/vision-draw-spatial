@@ -1,5 +1,5 @@
 import { Color } from 'three';
-import { PART_ORDER, fillMesh, rectPath, spatialNumber } from '../../../../core/plugins';
+import { PART_ORDER, fillMesh, rectPath, spatialNumber, clamp } from '../../../../core/plugins';
 import type { SceneRenderer } from '../../../../core/plugins';
 import { building, CAP_HEIGHT, darker, facadeTag, facesOf, slab, tagOf } from '../../generic/building';
 
@@ -20,7 +20,7 @@ export const DEFAULT_CACHE_NODES = 3;
 export function isoCache(flat: SceneRenderer): SceneRenderer {
   return building(flat, (shape, ctx, height, group) => {
     const { bounds } = shape;
-    const nodes = Math.min(12, Math.max(1, Math.round(spatialNumber(shape, NODES) ?? DEFAULT_CACHE_NODES)));
+    const nodes = clamp(Math.round(spatialNumber(shape, NODES) ?? DEFAULT_CACHE_NODES), 1, 12);
     const groove = nodes > 1 ? Math.min(3, height / (nodes * 4)) : 0;
     const slabHeight = (height - groove * (nodes - 1)) / nodes;
     const inset = Math.min(3, bounds.width / 6, bounds.height / 6);
@@ -34,7 +34,7 @@ export function isoCache(flat: SceneRenderer): SceneRenderer {
     // Étiquette sur la tranche du bas, à sa hauteur.
     const tag = tagOf(shape, ctx, CACHE_TAG);
     // Voyants : petits carrés à gauche de chaque face, centrés dans leur tranche.
-    const ledSize = Math.max(1.5, Math.min(3, slabHeight * 0.25));
+    const ledSize = clamp(slabHeight * 0.25, 1.5, 3);
     const ledMargin = ledSize * 1.5;
     if (tag) {
       // Dans la tranche du bas, centrée sur la rangée de voyants, à la même marge du bord.

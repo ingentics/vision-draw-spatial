@@ -7,6 +7,7 @@ import { ORTHOGONAL_ROUTER } from './routeAround';
 import { distributeAnchors } from './distribute';
 import type { AnchorChange } from './distribute';
 import { constraintStyle } from '../../edgeEnds';
+import { shapesById } from '../../../model/pageIndex';
 
 /**
  * Agencement en ancrage automatique (SPEC §14.1) : répartition des flèches sur les côtés des formes `shapeIds`, puis
@@ -79,7 +80,7 @@ export function arrangementChanges(page: PageModel, arrangement: Arrangement): b
 /** Nombre de paires de flèches qui se croisent ou se superposent, une fois l'agencement appliqué. */
 export function arrangementConflicts(page: PageModel, arrangement: Arrangement): number {
   const work = withConstraints(page, arrangement.constraints);
-  const shapes = new Map(work.shapes.map((s) => [s.id, s]));
+  const shapes = shapesById(work);
   const { router, routes } = arrangement;
   const paths = work.edges.map((edge) =>
     router.segments(

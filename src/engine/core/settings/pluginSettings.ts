@@ -84,3 +84,17 @@ export function pluginValues(
     values[setting.key] = readPluginSetting(setting, stored?.[setting.key]) ?? setting.default;
   return values;
 }
+
+/**
+ * Valeur du réglage `key` du type attendu : le registre a déjà borné et complété les valeurs, une absence ou un autre
+ * type est une erreur de clé du plugin (exception), pas une valeur à contourner.
+ */
+function typedValue<T extends PluginSettingValue>(values: PluginValues, key: string, type: string): T {
+  const value = values[key];
+  if (typeof value !== type) throw new Error(`réglage « ${key} » : ${type} attendu`);
+  return value as T;
+}
+
+export const numberValue = (values: PluginValues, key: string): number => typedValue<number>(values, key, 'number');
+export const stringValue = (values: PluginValues, key: string): string => typedValue<string>(values, key, 'string');
+export const booleanValue = (values: PluginValues, key: string): boolean => typedValue<boolean>(values, key, 'boolean');

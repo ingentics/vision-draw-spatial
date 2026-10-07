@@ -7,6 +7,7 @@ import { jumpStyleOf } from '../../../render/edges/jumps';
 import type { EngineCore } from '../../EngineCore';
 import { styleFlag } from '../../../model/styleValues';
 import type { ReadonlyShapeModel } from '../../../model/readonly';
+import { shapesById } from '../../../model/pageIndex';
 
 /**
  * Modifications en direct de la scène pendant un glisser (objets décalés, forme ou flèches redessinées), sans
@@ -72,7 +73,7 @@ export class LiveEdit {
       )
       .sort((a, b) => a.z - b.z);
     if (retraced.length === 0) return;
-    const shapes = new Map(page.shapes.map((shape) => [shape.id, shape]));
+    const shapes = shapesById(page);
     const dressing = this.core.pageModes.dressing(page);
     for (const edge of retraced) {
       const old = this.core.sceneView.sceneObject(edge.id);

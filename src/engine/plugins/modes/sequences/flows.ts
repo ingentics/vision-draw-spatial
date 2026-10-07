@@ -1,16 +1,7 @@
-import {
-  DEFAULT_MODE_PALETTE,
-  isHexColor,
-  jsonListValue,
-  modeKeys,
-  readJsonList,
-  firstFreeName,
-} from '../../../core/plugins';
+import { DEFAULT_MODE_PALETTE, isHexColor, jsonListValue, readJsonList, firstFreeName } from '../../../core/plugins';
 import type { PageModel } from '../../../core/plugins';
+import { keys } from './keys';
 
-/** Clés du mode (sujet 301), par leur nom court : écrites `spatial.seq.<nom>`. */
-export const SEQUENCES_KEYS = { namespace: 'seq' };
-export const keys = modeKeys(SEQUENCES_KEYS);
 /** Flux de la page (attribut de `<diagram>`) : liste ordonnée en JSON `[{"id","title","color"}, …]`. */
 export const FLOWS = 'flows';
 /** Flux d'une flèche : `id` d'un flux de la page. */
@@ -21,6 +12,9 @@ export const STEP = 'step';
 export const PARTICIPANT = 'participant';
 /** Types de participant qui sont des points de départ d'événements : une première flèche vers eux part d'eux. */
 export const EVENT_SOURCES = ['bus', 'queue'];
+
+/** Nom d'un flux à l'écran : son titre, sinon son id. */
+export const flowLabel = (flow: Pick<Flow, 'id' | 'title'>): string => flow.title || flow.id;
 
 export interface Flow {
   /** Identifiant stable (`f1`, `f2`…) : renommer un flux ne touche pas ses flèches. */

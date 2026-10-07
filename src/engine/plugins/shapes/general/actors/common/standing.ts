@@ -13,6 +13,7 @@ import {
   styleFlag,
   setStandingFigure,
   styleStroke,
+  VERTEX_DEFAULTS,
 } from '../../../../../core/plugins';
 import type { Point, Rect, RenderContext, SceneRenderer, ShapeModel } from '../../../../../core/plugins';
 import { ARMS } from './figure';
@@ -96,7 +97,7 @@ export function standingActor(figureOf: FigureOf): SceneRenderer {
         ...(sign && { sign, signLabelStyle }),
       });
 
-      const fill = styleColor(style, 'fillColor', '#ffffff');
+      const fill = styleColor(style, 'fillColor', VERTEX_DEFAULTS.fill);
       if (fill) {
         // Plan (x, y) couché sur (x, z) : rotation d'un quart de tour autour de x.
         const plane = new Group();
@@ -110,7 +111,7 @@ export function standingActor(figureOf: FigureOf): SceneRenderer {
         silhouette.add(plane);
       }
 
-      const stroke = styleStroke(style, '#000000');
+      const stroke = styleStroke(style, VERTEX_DEFAULTS.stroke);
       if (stroke) {
         const segments: number[] = [];
         const polyline = (points: Point[], closed: boolean) => {
@@ -190,14 +191,14 @@ function createSign(shape: ShapeModel, ctx: RenderContext, frame: Rect): Group {
   const panel = { x: frame.x, y: -(frame.y + frame.height), width: frame.width, height: frame.height };
   const path = rectPath(panel);
 
-  const fill = styleColor(style, 'fillColor', '#ffffff');
+  const fill = styleColor(style, 'fillColor', VERTEX_DEFAULTS.fill);
   if (fill) {
     const board = fillMesh(path, fill, 1);
     board.material = solidMaterial(fill);
     board.name = 'sign-board';
     sign.add(board);
   }
-  const stroke = styleStroke(style, '#000000');
+  const stroke = styleStroke(style, VERTEX_DEFAULTS.stroke);
   if (stroke) {
     const border = strokeMesh(path, stroke.color, stroke.opacity, {
       width: stroke.width,
@@ -206,7 +207,6 @@ function createSign(shape: ShapeModel, ctx: RenderContext, frame: Rect): Group {
     });
     if (border) {
       border.position.z = SIGN_LAYER;
-      border.renderOrder = PART_ORDER.stroke;
       sign.add(border);
     }
     // Mains : un petit trait de chaque côté, devant le panneau et à cheval sur son bord, à la hauteur des bras.
@@ -225,7 +225,6 @@ function createSign(shape: ShapeModel, ctx: RenderContext, frame: Rect): Group {
       if (hand) {
         hand.name = 'hand';
         hand.position.z = 3 * SIGN_LAYER;
-        hand.renderOrder = PART_ORDER.stroke;
         sign.add(hand);
       }
     }

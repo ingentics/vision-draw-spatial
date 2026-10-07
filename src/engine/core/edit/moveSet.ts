@@ -2,6 +2,7 @@ import { computeBounds } from '../model/bounds';
 import type { PageModel, Point, Rect, ShapeModel } from '../model/types';
 import type { ShapeRegistry } from '../shapes/registry';
 import { styleFlag } from '../model/styleValues';
+import { shapesById } from '../model/pageIndex';
 
 /**
  * Déplacement de formes dans le modèle neutre (SPEC §14.1). Les coordonnées du modèle sont
@@ -29,7 +30,7 @@ export function moveTarget(
   shape: ShapeModel,
   shapes: Pick<ShapeRegistry, 'movesAsBlock'>,
 ): ShapeModel {
-  const byId = new Map(page.shapes.map((s) => [s.id, s]));
+  const byId = shapesById(page);
   let target = shape;
   const seen = new Set<string>();
   for (let parent = byId.get(shape.parentId ?? ''); parent && !seen.has(parent.id);) {

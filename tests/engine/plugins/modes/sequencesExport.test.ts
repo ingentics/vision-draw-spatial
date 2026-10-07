@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readDrawio } from '../../../../src/engine/core/format/parse';
 import type { EdgeModel, PageModel } from '../../../../src/engine/core/model/types';
 import { definition as sequences } from '../../../../src/engine/plugins/modes/sequences';
-import { SEQUENCE_EXPORTERS, sequenceExporter } from '../../../../src/engine/plugins/modes/sequences/export';
+import { SEQUENCE_EXPORTERS } from '../../../../src/engine/plugins/modes/sequences/export';
 import { PARTICIPANT } from '../../../../src/engine/plugins/modes/sequences/flows';
 import { sequencePlantUml } from '../../../../src/engine/plugins/modes/sequences/export/plantuml';
 import { fixture } from '../../../helpers';
@@ -42,7 +42,7 @@ const messages = (text: string) => text.split('\n').slice(text.split('\n').index
 describe('export PlantUML des flux (sujets 90 à 97)', () => {
   it('est enregistré parmi les exporteurs de séquence', () => {
     expect(SEQUENCE_EXPORTERS.map((exporter) => exporter.id)).toContain('plantuml');
-    expect(sequenceExporter('plantuml')?.name).toBe('PlantUML');
+    expect(SEQUENCE_EXPORTERS.find((exporter) => exporter.id === 'plantuml')?.name).toBe('PlantUML');
   });
 
   it('déclare les participants en tête, ordonnés et aliasés, puis active et referme chaque aller', () => {

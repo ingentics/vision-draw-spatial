@@ -15,6 +15,7 @@ import { PARTS_PER_ELEMENT } from './types';
 import type { RenderContext } from './types';
 import { styleFlag } from '../model/styleValues';
 import type { ReadonlyShapeModel } from '../model/readonly';
+import { edgeEnds, shapesById } from '../model/pageIndex';
 
 /** Scène Three.js d'une page (SPEC §7.4 : construite seulement pour les pages affichées). */
 export interface PageScene {
@@ -54,7 +55,7 @@ export function buildPageScene(
   applyPageSpace(root);
 
   const hiddenLayers = new Set(page.layers.filter((l) => !l.visible).map((l) => l.id));
-  const shapesById = new Map(page.shapes.map((shape) => [shape.id, shape]));
+  const shapes = shapesById(page);
 
   // Ordre de dessin : rang dans la page, formes et arêtes confondues (pas la valeur brute de z).
   const ordered: Array<{ shape: ShapeModel } | { edge: EdgeModel }> = [
@@ -63,7 +64,7 @@ export function buildPageScene(
   ].sort((a, b) => zOf(a) - zOf(b));
 
   // Volumes (niveau iso) : une forme est posée sur le dessus de son conteneur s'il est en volume.
-  const elevation = volumeLayout(registry, ctx, level, shapesById);
+  const elevation = volumeLayout(registry, ctx, level, shapes);
   // Tracés des flèches déjà dessinées : celles du dessus sautent par-dessus (ticket 129).
   const below: Point[][] = [];
 
@@ -78,10 +79,7 @@ export function buildPageScene(
         height: elevation.height(item.shape),
       });
     } else {
-      const terminals = {
-        source: item.edge.sourceId ? shapesById.get(item.edge.sourceId) : undefined,
-        target: item.edge.targetId ? shapesById.get(item.edge.targetId) : undefined,
-      };
+      const terminals = edgeEnds(shapes, item.edge);
       object = createEdgeObject(item.edge, terminals, { ...ctx, raisedJumps: level === 'iso' }, dressing, below);
       if (!styleFlag(item.edge.style, 'noJump')) below.push(edgeRoute(object));
       object.position.z = elevation.edgeBase(item.edge);

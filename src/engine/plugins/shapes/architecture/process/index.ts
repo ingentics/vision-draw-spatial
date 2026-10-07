@@ -1,4 +1,4 @@
-import { orientedPath, styleFlag, styleNumber, boxOutline } from '../../../../core/plugins';
+import { orientedPath, styleFlag, styleNumber, boxOutline, clamp } from '../../../../core/plugins';
 import type { Point, Rect, ShapeDefinition, ShapeModel } from '../../../../core/plugins';
 import { box } from '../../generic/box';
 
@@ -10,7 +10,6 @@ const DEFAULT_SIZE = 0.1;
  */
 const DEFAULT_ARC_SIZE = 15;
 
-const clamp = (value: number, max: number) => Math.max(0, Math.min(max, value));
 const arcFraction = (style: Record<string, string>) => styleNumber(style, 'arcSize', DEFAULT_ARC_SIZE) / 100;
 
 /**
@@ -19,7 +18,7 @@ const arcFraction = (style: Record<string, string>) => styleNumber(style, 'arcSi
  */
 function barInset(style: Record<string, string>, w: number, h: number): number {
   const size = styleNumber(style, 'size', DEFAULT_SIZE);
-  let inset = styleFlag(style, 'fixedSize') ? clamp(size, w) : w * clamp(size, 1);
+  let inset = styleFlag(style, 'fixedSize') ? clamp(size, 0, w) : w * clamp(size, 0, 1);
   if (styleFlag(style, 'rounded')) inset = Math.max(inset, Math.min(w * arcFraction(style), h * arcFraction(style)));
   return Math.round(inset);
 }
@@ -49,7 +48,7 @@ function label(shape: ShapeModel): Rect {
   const { bounds, style } = shape;
   const lying = !style.direction || style.direction === 'east' || style.direction === 'west';
   if ((style.horizontal !== '0') !== lying) return bounds;
-  let inset = bounds.width * clamp(styleNumber(style, 'size', DEFAULT_SIZE), 1);
+  let inset = bounds.width * clamp(styleNumber(style, 'size', DEFAULT_SIZE), 0, 1);
   if (styleFlag(style, 'rounded'))
     inset = Math.max(inset, Math.min(bounds.width * arcFraction(style), bounds.height * arcFraction(style)));
   inset = Math.round(inset);

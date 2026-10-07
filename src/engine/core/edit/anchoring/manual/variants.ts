@@ -5,6 +5,7 @@ import { constraintStyle, endAttachmentOf, frameConstraint, shapeAnchors } from 
 import type { AnchorSide, TerminalEnd } from '../../edgeEnds';
 import { LOOP_MARGIN, loopWaypoints } from '../../loops';
 import { center, distance } from '../../../model/geometry';
+import { shapesById } from '../../../model/pageIndex';
 
 /**
  * Variantes de placement d'une flèche en ancrage manuel (touche F, SPEC §14.1) : pour chaque couple côté de départ ×
@@ -54,7 +55,7 @@ function enters(a: Point, b: Point, r: Rect): boolean {
 /** Variantes de placement d'une flèche reliée à deux formes, de la meilleure à la moins bonne. */
 export function placementVariants(page: PageModel, edgeId: string, loopMargin = LOOP_MARGIN): PlacementVariant[] {
   const edge = page.edges.find((e) => e.id === edgeId);
-  const shapes = new Map(page.shapes.map((s) => [s.id, s]));
+  const shapes = shapesById(page);
   const source = edge && shapes.get(edge.sourceId ?? '');
   const target = edge && shapes.get(edge.targetId ?? '');
   if (!edge || !source || !target) return [];

@@ -7,6 +7,7 @@ import { DEFAULT_AVOID_OPTIONS, out } from '../routing';
 import type { AvoidOptions, Port, Router, Segment } from '../routing';
 import { seededUnit } from '../seed';
 import { ORTHOGONAL_ROUTER } from './routeAround';
+import { shapesById } from '../../../model/pageIndex';
 
 /**
  * Tracé automatique des flèches en ancrage automatique et Typon (SPEC §14.1) : si possible, le tracé contourne les
@@ -40,7 +41,7 @@ export function avoidRoutes(
   seed = 0,
   router: Router = ORTHOGONAL_ROUTER,
 ): Map<string, Point[]> {
-  const shapes = new Map(page.shapes.map((s) => [s.id, s]));
+  const shapes = shapesById(page);
   const routeOf = (edge: EdgeModel) =>
     routeEdge({
       source: toTerminal(shapes.get(edge.sourceId ?? '')),
@@ -149,7 +150,7 @@ function segmentEnters(s: Segment, r: Rect): boolean {
 
 /** Flèches dont le tracé actuel traverse une des formes `shapeIds` (autre que ses bouts et leurs conteneurs). */
 export function edgesThrough(page: PageModel, shapeIds: ReadonlySet<string>): Set<string> {
-  const shapes = new Map(page.shapes.map((s) => [s.id, s]));
+  const shapes = shapesById(page);
   const result = new Set<string>();
   for (const edge of page.edges) {
     const ends = [shapes.get(edge.sourceId ?? ''), shapes.get(edge.targetId ?? '')];

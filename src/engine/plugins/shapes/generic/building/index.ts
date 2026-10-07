@@ -12,6 +12,8 @@ import {
   strokeMesh,
   styleColor,
   styleStroke,
+  clamp,
+  shade,
 } from '../../../../core/plugins';
 import type {
   Point,
@@ -89,7 +91,7 @@ export function slab(
 /** Couleur de fond assombrie (#rrggbb), pour les retraits (rainures, socles). */
 export function darker(shape: ShapeModel, factor: number): string {
   const fill = styleColor(shape.style, 'fillColor', VERTEX_DEFAULTS.fill) ?? new Color(0xffffff);
-  return `#${fill.clone().multiplyScalar(factor).getHexString()}`;
+  return shade(fill, factor);
 }
 
 /** Trait de la forme (couleur, opacité, épaisseur ; pointillés ignorés par les gravures), ou rien sans bordure. */
@@ -136,7 +138,6 @@ function faceStroke(face: Face, points: Point[], stroke: Stroke): Mesh | null {
   const mesh = strokeMesh(points, stroke.color, stroke.opacity, { width: stroke.width, closed: false });
   if (!mesh) return null;
   mesh.name = 'facade';
-  mesh.renderOrder = PART_ORDER.stroke;
   return face.place(mesh);
 }
 
@@ -168,7 +169,7 @@ export function engrave(
 }
 
 /** Taille du texte des étiquettes de façade, selon la hauteur du bâtiment. */
-export const tagSize = (height: number) => Math.max(4, Math.min(10, height * 0.22));
+export const tagSize = (height: number) => clamp(height * 0.22, 4, 10);
 
 /** Texte de l'étiquette d'une forme : `spatial.tag`, sinon celui du type ; undefined si désactivé ou vide. */
 export function tagOf(shape: ShapeModel, ctx: RenderContext, fallback: string): string | undefined {

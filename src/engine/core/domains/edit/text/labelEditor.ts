@@ -13,6 +13,7 @@ import type { EngineCore } from '../../EngineCore';
 import { boundsOfPoints, distance, unionOf } from '../../../model/geometry';
 import { styleFlag } from '../../../model/styleValues';
 import type { ReadonlyShapeModel } from '../../../model/readonly';
+import { shapeTarget } from '../../../modes/modeTargets';
 
 /** Marge (px écran) laissée au bord du canvas quand la vue glisse pour montrer le texte édité (ticket 240). */
 const REVEAL_MARGIN = 20;
@@ -95,7 +96,8 @@ export class LabelEditor {
     const rect = this.labelEditScreen(element.id);
     if (!rect) return;
     const displayStyle = this.displayStyle(element.id, element.style);
-    const plain = 'kind' in element && this.core.registry.isPlainText(element);
+    const shape = shapeTarget(element);
+    const plain = !!shape && this.core.registry.isPlainText(shape);
     this.startLabelEdit({
       pageId: editable.page.id,
       elementId: element.id,

@@ -1,4 +1,4 @@
-import { spatialValue, styleFlag, styleNumber, boxOutline, orientation } from '../../../../core/plugins';
+import { spatialValue, styleFlag, styleNumber, boxOutline, orientation, clamp } from '../../../../core/plugins';
 import type {
   PaletteEntry,
   Point,
@@ -36,8 +36,8 @@ function lines(style: Record<string, string>, w: number, h: number) {
   const arc = styleNumber(style, 'arcSize', DEFAULT_ARC_SIZE) / 100;
   const corner = styleFlag(style, 'rounded') ? Math.min(w * arc, h * arc) : 0;
   return {
-    x: Math.max(corner, Math.min(w, styleNumber(style, 'dx', DEFAULT_DX))),
-    y: Math.max(corner, Math.min(h, styleNumber(style, 'dy', DEFAULT_DY))),
+    x: clamp(styleNumber(style, 'dx', DEFAULT_DX), corner, w),
+    y: clamp(styleNumber(style, 'dy', DEFAULT_DY), corner, h),
   };
 }
 

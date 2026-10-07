@@ -1,4 +1,5 @@
 import type { PageModeDefinition } from '../../../core/plugins';
+import { isToggled, toggleValue, numberValue, elementName } from '../../../core/plugins';
 import { PRIMARY_KEY, fieldProblems, misplacedPrimaryKey } from './tables/fieldModel';
 import { fitTable } from './tables/operations';
 import { fieldHandleClicked, fieldHandles } from './editing/fieldHandles';
@@ -18,7 +19,7 @@ import {
 } from './relations';
 import { ADD_DIVIDER_PROPERTY, TABLE_PROPERTIES, addDividerAfter } from './editing/tableProperties';
 import { TABLE_KINDS, missingRequiredName } from './tables/tableKinds';
-import { rowOf, shapeName } from './editing/tableTargets';
+import { rowOf } from './editing/tableTargets';
 import { RDD_KEYS } from './keys';
 
 /**
@@ -58,9 +59,9 @@ export const definition: PageModeDefinition = {
         label: 'Afficher les cardinalités',
         title:
           'Textes des cardinalités aux bouts des flèches de relation ; les pointes restent (spatial.rdd.cardinalities)',
-        value: (page) => (cardinalitiesShown(page) ? '1' : undefined),
+        value: (page) => toggleValue(cardinalitiesShown(page)),
         write: (edit, _target, value) => {
-          const shown = value === '1';
+          const shown = isToggled(value);
           edit.setPageAttribute(CARDINALITIES, shown ? undefined : '0');
           syncRelations(edit, { cardinalities: shown });
         },
@@ -80,13 +81,13 @@ export const definition: PageModeDefinition = {
       // Clé primaire absente ou déplacée (fichier modifié) : remise en tête à l'affichage.
       ...page.shapes.filter(misplacedPrimaryKey).map((shape) => ({
         cellId: shape.id,
-        message: `Table « ${shapeName(shape)} » : clé primaire ${PRIMARY_KEY} absente ou déplacée, remise en tête`,
+        message: `Table « ${elementName(shape)} » : clé primaire ${PRIMARY_KEY} absente ou déplacée, remise en tête`,
       })),
       // Champs illisibles, type inconnu, clé primaire nullable (sujet 246).
       ...page.shapes.flatMap((shape) =>
         fieldProblems(shape).map((problem) => ({
           cellId: shape.id,
-          message: `Table « ${shapeName(shape)} » : ${problem}`,
+          message: `Table « ${elementName(shape)} » : ${problem}`,
         })),
       ),
       // Flèche entre deux formes qui ne peuvent pas être liées (sujet 265).
@@ -118,7 +119,7 @@ export const definition: PageModeDefinition = {
     // Une région emporte son contenu (sujet 182).
     carries: (page, shape) => regionContent(page, shape),
     // Une région ne passe pas sur ses sœurs (sujet 241).
-    obstacles: (page, shape, values) => regionObstacles(page, shape, values[OBSTACLE_GAP] as number),
+    obstacles: (page, shape, values) => regionObstacles(page, shape, numberValue(values, OBSTACLE_GAP)),
     // Une forme posée qui dépasse de sa région l'agrandit, marge comprise (sujet 183) ; les régions restent derrière
     // leur contenu (sujet 230).
     placed: (edit, shapeIds, before) => {

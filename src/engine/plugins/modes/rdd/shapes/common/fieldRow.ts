@@ -28,6 +28,7 @@ const diamond = (center: Point, half: number): Point[] => [
 function fieldIcon(field: Field, center: Point, scale: number): Group {
   const group = new Group();
   group.name = 'field-icon';
+  // Marqueurs pour les tests, non lus par le moteur.
   group.userData.kind = field.kind;
   group.userData.nullable = field.nullable;
   const unit = (TABLE.fieldIcon.size / 12) * scale;
@@ -40,7 +41,6 @@ function fieldIcon(field: Field, center: Point, scale: number): Group {
     closed: true,
   });
   if (stroke) {
-    stroke.renderOrder = PART_ORDER.stroke;
     group.add(stroke);
   }
   if (field.nullable) {
@@ -116,7 +116,6 @@ export function addDividerRow(
     const mesh = strokeMesh(piece, new Color(DIVIDER_STROKE), 1, { width: scale, closed: false });
     if (!mesh) continue;
     mesh.name = 'divider';
-    mesh.renderOrder = PART_ORDER.stroke;
     group.add(mesh);
   }
   if (divider.label)

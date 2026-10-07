@@ -1,7 +1,7 @@
 import type { EdgeModel, PageModel, ShapeModel } from '../../../../core/plugins';
+import { edgeEnds, shapesById, elementName } from '../../../../core/plugins';
 import type { Field } from '../tables/fieldModel';
 import { isTableKindId } from '../tables/tableKinds';
-import { shapeById, shapeName } from '../editing/tableTargets';
 import { embeddedRelation } from './kinds/embedded';
 import type { RelationKind, RelationSettings } from './kinds/kind';
 import { tableRelation } from './kinds/table';
@@ -62,15 +62,14 @@ export interface RelationIndex {
 }
 
 export const relationIndex = (page: PageModel, kinds: readonly RelationKind[] = RELATION_KINDS): RelationIndex => ({
-  shapes: shapeById(page),
+  shapes: shapesById(page),
   edges: new Map(page.edges.map((edge) => [edge.id, edge])),
   kinds,
 });
 
 /** Sorte de relation d'une flèche, d'après l'index de la page ; undefined si elle ne relie pas deux formes liables. */
 export function indexedRelationKind(index: RelationIndex, edge: EdgeModel): RelationKind | undefined {
-  const source = edge.sourceId === undefined ? undefined : index.shapes.get(edge.sourceId);
-  const target = edge.targetId === undefined ? undefined : index.shapes.get(edge.targetId);
+  const { source, target } = edgeEnds(index.shapes, edge);
   return source && target ? relationKindBetween(source, target, index.kinds) : undefined;
 }
 
@@ -81,10 +80,9 @@ export const isRelationEdge = (page: PageModel, edge: EdgeModel): boolean => rel
 export function forbiddenLinks(page: PageModel): Array<{ edgeId: string; message: string }> {
   const { shapes } = relationIndex(page);
   return page.edges.flatMap((edge) => {
-    const source = edge.sourceId === undefined ? undefined : shapes.get(edge.sourceId);
-    const target = edge.targetId === undefined ? undefined : shapes.get(edge.targetId);
+    const { source, target } = edgeEnds(shapes, edge);
     if (!source || !target || canLink(source, target)) return [];
-    const name = (shape: ShapeModel) => `« ${shapeName(shape)} »`;
+    const name = (shape: ShapeModel) => `« ${elementName(shape)} »`;
     return [{ edgeId: edge.id, message: `Flèche de ${name(source)} vers ${name(target)} : liaison non permise` }];
   });
 }

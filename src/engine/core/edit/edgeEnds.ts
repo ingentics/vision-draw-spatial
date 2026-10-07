@@ -2,6 +2,7 @@ import { setCellStyleValue, setEdgeTerminal } from '../format/cellEdits';
 import type { PageTree } from '../format/xmlTree';
 import type { EdgeModel, PageModel, Point, Rect, ShapeModel } from '../model/types';
 import type { ShapeRegistry } from '../shapes/registry';
+import { clamp } from '../model/numbers';
 import { styleNumber } from '../model/styleValues';
 import type { ReadonlyEdgeModel } from '../model/readonly';
 
@@ -74,9 +75,8 @@ export function freeAnchorPositions(used: number[]): number[] {
  * le tracé choisit le point) ; position le long du côté arrondie au millième.
  */
 export function frameConstraint(bounds: Rect, point: Point): Point {
-  const clamp = (v: number) => Math.min(1, Math.max(0, v));
-  const x = clamp(bounds.width > 0 ? (point.x - bounds.x) / bounds.width : 0.5);
-  const y = clamp(bounds.height > 0 ? (point.y - bounds.y) / bounds.height : 0.5);
+  const x = clamp(bounds.width > 0 ? (point.x - bounds.x) / bounds.width : 0.5, 0, 1);
+  const y = clamp(bounds.height > 0 ? (point.y - bounds.y) / bounds.height : 0.5, 0, 1);
   const round = (v: number) => Math.round(v * 1000) / 1000;
   const nearest = Math.min(y, 1 - y, x, 1 - x);
   if (nearest === y) return { x: round(x), y: 0 };

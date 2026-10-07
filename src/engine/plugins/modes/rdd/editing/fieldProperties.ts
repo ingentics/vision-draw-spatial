@@ -1,11 +1,12 @@
 import type { ModeProperty, ModeTarget } from '../../../../core/plugins';
+import { isToggled, toggleValue, onlyWhen } from '../../../../core/plugins';
 import type { FieldOption } from '../tables/fieldModel';
 import { FIELD_OPTIONS, FIELD_TYPES, fieldTypeLabel, isDivider, isPrimaryKey, isRelation } from '../tables/fieldModel';
 import { fieldParts } from './fieldParts';
 import { setField } from '../tables/operations';
 import { RELATION_FIELD_PROPERTIES, edgeOwnedField } from '../relations';
 import { tableKindOf } from '../tables/tableKinds';
-import { fieldOf, onlyWhen, rowOf } from './tableTargets';
+import { fieldOf, rowOf } from './tableTargets';
 
 /**
  * Réglages d'une ligne sélectionnée d'une table RDD (sujets 249, 253, 260) : section du mode (fonctionnel), puis
@@ -34,8 +35,8 @@ const optionProperty = (option: FieldOption): ModeProperty => ({
   ...(option.type === 'flag'
     ? {
         type: 'toggle' as const,
-        value: (_page, target, part) => (fieldOf(target, part)?.field[option.key] ? '1' : undefined),
-        write: writeField((value) => ({ [option.key]: value === '1' })),
+        value: (_page, target, part) => toggleValue(!!fieldOf(target, part)?.field[option.key]),
+        write: writeField((value) => ({ [option.key]: isToggled(value) })),
       }
     : {
         type: 'text' as const,

@@ -14,7 +14,3 @@ export interface SequenceExporter {
 }
 
 export const SEQUENCE_EXPORTERS: readonly SequenceExporter[] = [plantUml];
-
-export function sequenceExporter(id: string): SequenceExporter | undefined {
-  return SEQUENCE_EXPORTERS.find((exporter) => exporter.id === id);
-}

@@ -1,6 +1,5 @@
 import { Group } from 'three';
 import {
-  PART_ORDER,
   createLabel,
   fillMesh,
   orientedPath,
@@ -8,6 +7,7 @@ import {
   styleColor,
   styleOpacity,
   styleStroke,
+  VERTEX_DEFAULTS,
 } from '../../../../../core/plugins';
 import type { Point, RenderContext, ShapeDefinition, ShapeModel } from '../../../../../core/plugins';
 import type { FigureOf } from './figure';
@@ -23,10 +23,10 @@ function flatActor(figureOf: FigureOf) {
     const oriented = (pick: (w: number, h: number) => Point[]) => orientedPath(bounds, style, pick);
     const parts = figure.parts.map((_, i) => oriented((w, h) => figureOf(w, h).parts[i]!));
 
-    const fill = styleColor(style, 'fillColor', '#ffffff');
+    const fill = styleColor(style, 'fillColor', VERTEX_DEFAULTS.fill);
     if (fill) for (const part of parts) group.add(fillMesh(part, fill, styleOpacity(style, 'fillOpacity')));
 
-    const stroke = styleStroke(style, '#000000');
+    const stroke = styleStroke(style, VERTEX_DEFAULTS.stroke);
     if (stroke) {
       const { color, opacity, width, dash } = stroke;
       const lines = [
@@ -36,7 +36,6 @@ function flatActor(figureOf: FigureOf) {
       for (const { path, closed } of lines) {
         const mesh = strokeMesh(path, color, opacity, { width, closed, dash });
         if (mesh) {
-          mesh.renderOrder = PART_ORDER.stroke;
           group.add(mesh);
         }
       }

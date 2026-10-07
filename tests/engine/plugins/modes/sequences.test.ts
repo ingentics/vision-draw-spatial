@@ -9,7 +9,6 @@ import { definition as sequences } from '../../../../src/engine/plugins/modes/se
 import { FLOW, FLOW_COLORS, STEP, readFlows } from '../../../../src/engine/plugins/modes/sequences/flows';
 import {
   addFlow,
-  moveFlow,
   removeFlow,
   renameFlow,
   repairSequences,
@@ -24,8 +23,7 @@ import type { RenderContext, TextSpec } from '../../../../src/engine/core/render
 import { spatialValue } from '../../../../src/engine/core/spatial';
 import { fixture } from '../../../helpers';
 import { createDefaultModeRegistry, createDefaultRegistry } from '../../../../src/engine/plugins';
-import { SEQUENCES_KEYS } from '../../../../src/engine/plugins/modes/sequences/flows';
-import { keys } from '../../../../src/engine/plugins/modes/sequences/flows';
+import { SEQUENCES_KEYS, keys } from '../../../../src/engine/plugins/modes/sequences/keys';
 import { modeHost } from '../../modeHost';
 
 /** Page `index` de la fixture, et une fonction qui applique une opération puis relit la page. */
@@ -96,14 +94,13 @@ describe('mode Séquences : opérations', () => {
     expect(readFlows(page()).at(-1)).toEqual({ id: 'f4', title: 'Inscription', color: '#dae8fc' });
   });
 
-  it('renommer, réordonner : les flèches ne bougent pas', () => {
+  it('renommer : les flèches ne bougent pas', () => {
     const { run, page } = setup();
     run((edit) => renameFlow(edit, 'f1', 'Authentification'));
-    run((edit) => moveFlow(edit, 'f3', 0));
     expect(readFlows(page()).map((flow) => [flow.id, flow.title])).toEqual([
-      ['f3', 'Vide'],
       ['f1', 'Authentification'],
       ['f2', 'Paiement « carte »'],
+      ['f3', 'Vide'],
     ]);
     expect(order(page()).f1).toEqual(['login', 'lecture']);
   });

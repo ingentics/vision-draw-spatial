@@ -1,4 +1,4 @@
-import { orientedPath, styleNumber } from '../../../../core/plugins';
+import { orientedPath, styleNumber, clamp } from '../../../../core/plugins';
 import type { ShapeDefinition, ShapeModel } from '../../../../core/plugins';
 import { box } from '../../generic/box';
 
@@ -12,7 +12,7 @@ const DEFAULT_DX = 0.5;
 function outline(shape: ShapeModel) {
   const dx = styleNumber(shape.style, 'dx', DEFAULT_DX);
   return orientedPath(shape.bounds, shape.style, (w, h) => {
-    const c = Math.min(w / 2, h / 2, 2 * Math.max(0, Math.min(w, dx)));
+    const c = Math.min(w / 2, h / 2, 2 * clamp(dx, 0, w));
     return [
       { x: c, y: 0 },
       { x: w - c, y: 0 },

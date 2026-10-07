@@ -25,6 +25,13 @@ export const DRAWIO_STYLES: StylePreset[] = [
   { name: 'Violet', fillColor: '#e1d5e7', strokeColor: '#9673a6' },
 ];
 
+/** Style de base de draw.io par son nom (palette Style) ; un nom inconnu lève une exception. */
+export function drawioStyle(name: string): StylePreset {
+  const style = DRAWIO_STYLES.find((candidate) => candidate.name === name);
+  if (!style) throw new Error(`style draw.io inconnu : « ${name} »`);
+  return style;
+}
+
 /** Palette étendue : fonds pastel, contour dérivé (même teinte, plus soutenue). */
 export const PASTEL_STYLES: StylePreset[] = (
   [

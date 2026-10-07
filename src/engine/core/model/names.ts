@@ -8,3 +8,8 @@ export function firstFreeName(prefix: string, used: Iterable<string>, start = 1)
   while (taken.has(`${prefix}${n}`)) n++;
   return `${prefix}${n}`;
 }
+
+/** Nom d'un élément dans un message ou une liste : son label, sinon son id. */
+export function elementName(element: { readonly label: string; readonly id: string }): string {
+  return element.label || element.id;
+}

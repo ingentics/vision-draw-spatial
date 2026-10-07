@@ -11,6 +11,7 @@ import {
   styleStroke,
   boxOutline,
   fontStyleValue,
+  shade,
 } from '../../../../../core/plugins';
 import type {
   PaletteEntry,
@@ -122,7 +123,7 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
   group.add(headerFill);
   if (kind.look.folded) {
     // Rabat un peu plus sombre que l'entête : le revers de la page.
-    const flap = fillMesh(flapOf(shape), headerColor.clone().multiplyScalar(0.85), styleOpacity(style, 'fillOpacity'));
+    const flap = fillMesh(flapOf(shape), new Color(shade(headerColor, 0.85)), styleOpacity(style, 'fillOpacity'));
     flap.name = 'fill-fold';
     flap.renderOrder = PART_ORDER.fill + 0.75;
     group.add(flap);
@@ -134,7 +135,6 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
       const mesh = strokeMesh(path, stroke.color, stroke.opacity, { width: stroke.width, closed, dash: stroke.dash });
       if (!mesh) return;
       mesh.name = 'stroke-table';
-      mesh.renderOrder = PART_ORDER.stroke;
       group.add(mesh);
     };
     line(path, true);

@@ -1,6 +1,7 @@
-import { styleFlag } from '../../../../core/plugins';
+import { styleFlag, shapesById, elementName } from '../../../../core/plugins';
 import type { EdgeModel, PageModel, ShapeModel } from '../../../../core/plugins';
-import { EVENT_SOURCES, PARTICIPANT, keys } from '../flows';
+import { EVENT_SOURCES, PARTICIPANT, flowLabel } from '../flows';
+import { keys } from '../keys';
 import { sequenceState } from '../steps';
 import type { SequenceExporter } from './index';
 
@@ -36,7 +37,7 @@ interface Call {
 /** Un flux (`flowId`), ou tous les flux de la page (undefined) : titre de la page, un `== Titre ==` par flux. */
 export function sequencePlantUml(page: PageModel, flowId?: string): string {
   const state = sequenceState(page);
-  const shapes = new Map(page.shapes.map((shape) => [shape.id, shape]));
+  const shapes = shapesById(page);
   const edges = new Map(page.edges.map((edge) => [edge.id, edge]));
 
   const aliases = new Map<string, string>();
@@ -49,7 +50,7 @@ export function sequencePlantUml(page: PageModel, flowId?: string): string {
       const rank = aliases.size + 1;
       name = `P${rank}`;
       aliases.set(shape.id, name);
-      participants.push(`${participantKind(shape)} ${quote(shape.label || shape.id)} as ${name} order ${rank}`);
+      participants.push(`${participantKind(shape)} ${quote(elementName(shape))} as ${name} order ${rank}`);
     }
     return name;
   };
@@ -69,7 +70,7 @@ export function sequencePlantUml(page: PageModel, flowId?: string): string {
     // Un flux par section, séparées d'une ligne vide.
     body = state.flows.flatMap((flow, i) => [
       ...(i > 0 ? [''] : []),
-      `== ${oneLine(flow.title || flow.id)} ==`,
+      `== ${oneLine(flowLabel(flow))} ==`,
       ...flowMessages(flow.id),
     ]);
   } else {

@@ -1,4 +1,5 @@
 import type { ModeEdit, PageModel, ShapeModel } from '../../../../core/plugins';
+import { edgeEnds } from '../../../../core/plugins';
 import type { Field, TableRow } from '../tables/fieldModel';
 import { isRelation, tableFields } from '../tables/fieldModel';
 import { writeRows } from '../tables/operations';
@@ -25,8 +26,7 @@ interface RelationEdge {
 function relationEdges(page: PageModel, index: RelationIndex): Map<string, RelationEdge[]> {
   const byTarget = new Map<string, RelationEdge[]>();
   for (const edge of page.edges) {
-    const source = edge.sourceId === undefined ? undefined : index.shapes.get(edge.sourceId);
-    const target = edge.targetId === undefined ? undefined : index.shapes.get(edge.targetId);
+    const { source, target } = edgeEnds(index.shapes, edge);
     const kind = indexedRelationKind(index, edge);
     if (!source || !target || !kind?.field) continue;
     byTarget.set(target.id, [...(byTarget.get(target.id) ?? []), { edge: edge.id, source, kind, field: kind.field }]);

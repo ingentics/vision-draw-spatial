@@ -1,4 +1,5 @@
 import type { ShapeDefinition, ShapeModel } from '../../../../core/plugins';
+import { clamp } from '../../../../core/plugins';
 import { tagProperty } from '../../generic/building';
 import type { CylinderDrawing } from '../../generic/cylinder';
 import { cylinderFlat, cylinderLip, cylinderSilhouette, flatTextZone, ringHeight } from '../../generic/cylinder';
@@ -10,7 +11,7 @@ import { CACHE_TAG, DEFAULT_CACHE_NODES, NODES, isoCache } from './facade';
  */
 function datastoreDrawing(shape: ShapeModel): CylinderDrawing {
   const { bounds, style } = shape;
-  const dy = Math.max(0, Math.min(bounds.height / 2, ringHeight(style)));
+  const dy = clamp(ringHeight(style), 0, bounds.height / 2);
   return {
     silhouette: cylinderSilhouette(bounds, dy),
     lips: [0, dy / 2, dy].map((offset) => cylinderLip(bounds, dy, offset)),

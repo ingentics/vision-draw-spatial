@@ -38,8 +38,15 @@ export interface ModeKeys {
   value(element: SpatialSource, name: string): string | undefined;
   /** Drapeau sur une forme ou une flèche : vrai pour `1`. */
   flag(element: SpatialSource, name: string): boolean;
+  /** Nombre fini sur une forme ou une flèche ; `undefined` si la clé est absente, vide ou pas un nombre. */
+  number(element: SpatialSource, name: string): number | undefined;
   /** Valeur sur la page (attribut de `<diagram>`). */
   pageValue(page: Pick<PageModel, 'attributes'>, name: string): string | undefined;
+  /**
+   * Drapeau de la page. Défaut éteint : vrai pour `1`. Défaut allumé (`defaultOn`) : vrai sauf pour `0`, ce qu'un
+   * réglage « affiché » écrit pour se masquer (le fichier n'a pas à le porter pour être affiché).
+   */
+  pageFlag(page: Pick<PageModel, 'attributes'>, name: string, defaultOn?: boolean): boolean;
 }
 
 export function modeKeys(owner: ModeKeyOwner): ModeKeys {
@@ -50,6 +57,15 @@ export function modeKeys(owner: ModeKeyOwner): ModeKeys {
     key,
     value,
     flag: (element, name) => value(element, name) === '1',
+    number: (element, name) => {
+      const text = value(element, name)?.trim();
+      const parsed = text ? Number(text) : NaN;
+      return Number.isFinite(parsed) ? parsed : undefined;
+    },
     pageValue: (page, name) => page.attributes[key(name)],
+    pageFlag: (page, name, defaultOn = false) => {
+      const text = page.attributes[key(name)];
+      return defaultOn ? text !== '0' : text === '1';
+    },
   };
 }

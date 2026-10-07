@@ -1,4 +1,5 @@
 import type { ModeEdit, ShapeModel } from '../../../../core/plugins';
+import { clamp } from '../../../../core/plugins';
 import { writeRelationEdge } from '../relations/edgeLook';
 import type { Field, TableRow } from './fieldModel';
 import {
@@ -99,7 +100,7 @@ function addRow(edit: ModeEdit, shape: ShapeModel, make: (rows: TableRow[]) => T
   if (!tableKindOf(shape)) return undefined;
   const rows = tableFields(shape);
   const keyed = isPrimaryKey(rows[0]) ? 1 : 0;
-  const index = after === undefined ? rows.length : Math.max(keyed, Math.min(after + 1, rows.length));
+  const index = after === undefined ? rows.length : clamp(after + 1, keyed, rows.length);
   writeRows(edit, shape, [...rows.slice(0, index), make(rows), ...rows.slice(index)]);
   return index;
 }

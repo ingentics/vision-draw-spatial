@@ -185,9 +185,20 @@ export function linkZone(bounds: Rect, zoom: number, accent = DEFAULT_ACCENT): G
   return group;
 }
 
-/** Couleur assombrie (luminosité × (1 − `amount`), en HSL sRGB) : trait d'une flèche colorée par un mode. */
+/**
+ * Couleur assombrie (luminosité × (1 − `amount`), en HSL sRGB) : trait d'une flèche colorée par un mode. Garde la
+ * teinte perçue ; pour un retrait de gravure comme draw.io, voir `shade` (RVB).
+ */
 export function darken(color: string, amount: number): string {
   const hsl = { h: 0, s: 0, l: 0 };
   new Color(color).getHSL(hsl, SRGBColorSpace);
   return `#${new Color().setHSL(hsl.h, hsl.s, hsl.l * (1 - amount), SRGBColorSpace).getHexString()}`;
+}
+
+/**
+ * Couleur × `factor` en RVB (#rrggbb), `color` en #rrggbb ou en `Color` : retrait des gravures et des socles, comme
+ * draw.io. Diffère de `darken` (HSL), d'où deux noms.
+ */
+export function shade(color: string | Color, factor: number): string {
+  return `#${new Color(color).multiplyScalar(factor).getHexString()}`;
 }

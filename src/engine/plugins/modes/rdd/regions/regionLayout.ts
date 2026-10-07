@@ -1,7 +1,6 @@
 import { readableOn, rectContains, rectContainsRect, rectsOverlap, unionOf, inflate } from '../../../../core/plugins';
 import type { ModeEdit, ModeObstacles, PageModel, Rect, ShapeModel } from '../../../../core/plugins';
 import { tableKindOf } from '../tables/tableKinds';
-import type { Color } from 'three';
 
 /**
  * Régions du mode RDD (sujet 182) : rectangles posés derrière les tables, qui emportent leur contenu quand on les
@@ -87,20 +86,11 @@ export const REGION_COLORS = ['#fdebef', '#eae4f1', '#e7f5fd', '#e7f3e7', '#fefc
 export const DEFAULT_REGION_COLOR = REGION_COLORS[0];
 
 /**
- * Couleur du texte du nom d'une région de fond `color` : noir ou blanc, lisible sur ce fond posé à `opacity` (0–1) sur
- * du blanc (l'onglet a le fond de la région, sujet 227 ; opaque depuis le sujet 232, plus léger dans un fichier qui
- * porte un `fillOpacity`).
- */
-export function regionTextColor(color: string | Color, opacity = 1): string {
-  return readableOn(color, opacity);
-}
-
-/**
  * Label d'une région de fond `color` pour draw.io : cadre de la couleur de la bordure autour du nom (l'onglet n'y est
  * pas dessiné), texte lisible sur le fond.
  */
 export function regionLabelStyle(color: string): string {
-  return `labelBorderColor=${REGION.stroke};fontColor=${regionTextColor(color)};`;
+  return `labelBorderColor=${REGION.stroke};fontColor=${readableOn(color)};`;
 }
 
 /**
@@ -116,7 +106,7 @@ export function setRegionColor(edit: ModeEdit, shape: ShapeModel, color: string 
   edit.setElementStyle(shape.id, 'strokeColor', stroke);
   edit.setElementStyle(shape.id, 'labelBackgroundColor', undefined);
   edit.setElementStyle(shape.id, 'labelBorderColor', stroke);
-  edit.setElementStyle(shape.id, 'fontColor', regionTextColor(color));
+  edit.setElementStyle(shape.id, 'fontColor', readableOn(color));
 }
 
 /**

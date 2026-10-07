@@ -1,5 +1,7 @@
 import type { EdgeModel, ModeKey, PageModeDefinition } from '../../../core/plugins';
-import { FLOW, PARTICIPANT, SEQUENCES_KEYS, STEP } from './flows';
+import { numberValue } from '../../../core/plugins';
+import { FLOW, PARTICIPANT, STEP, flowLabel } from './flows';
+import { SEQUENCES_KEYS } from './keys';
 import { badgeStyle, currentLook, SEQUENCES_SETTINGS } from './settings';
 import { renameFlow, repairSequences, sequenceState, setEdgeFlow, setEdgeStep } from './steps';
 
@@ -35,7 +37,7 @@ export const definition: PageModeDefinition = {
           { value: '', label: 'Aucun' },
           ...sequenceState(page).flows.map((flow) => ({
             value: flow.id,
-            label: flow.title || flow.id,
+            label: flowLabel(flow),
             color: flow.color,
           })),
         ],
@@ -83,7 +85,7 @@ export const definition: PageModeDefinition = {
       return placed && { placed, flow: state.flows.find((flow) => flow.id === placed.flowId)! };
     };
     return {
-      edgeDarken: values.edgeDarken as number,
+      edgeDarken: numberValue(values, 'edgeDarken'),
       edgeBadgeStyle: badgeStyle(values),
       edgeColor: (edge) => {
         const found = flowOf(edge);
@@ -103,7 +105,7 @@ export const definition: PageModeDefinition = {
     color: (page, value) => sequenceState(page).flows.find((flow) => flow.id === value)?.color,
     label: (page, value) => {
       const flow = sequenceState(page).flows.find((f) => f.id === value);
-      return flow?.title || value;
+      return flow ? flowLabel(flow) : value;
     },
     values: (page) => sequenceState(page).flows.map((flow) => flow.id),
     rename: (edit, value, label) => renameFlow(edit, value, label),

@@ -12,7 +12,7 @@ import { keys } from '../../../keys';
 /** Textes des cardinalités affichés sur la page (`0` : masqués, les pointes restent, sujet 266) ; absent : affichés. */
 export const CARDINALITIES = 'cardinalities';
 
-export const cardinalitiesShown = (page: PageModel): boolean => keys.pageValue(page, CARDINALITIES) !== '0';
+export const cardinalitiesShown = (page: PageModel): boolean => keys.pageFlag(page, CARDINALITIES, true);
 
 /**
  * Pointes et textes des bouts d'une flèche de relation ; `shown` : textes affichés (réglage de la page). Masqués : les

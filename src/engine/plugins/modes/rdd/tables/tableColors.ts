@@ -1,3 +1,4 @@
+import { drawioStyle } from '../../../../core/plugins';
 import type { FieldKind } from './fieldModel';
 
 /**
@@ -5,11 +6,12 @@ import type { FieldKind } from './fieldModel';
  * (`shapes/common/`) les partagent.
  */
 
-/** Couleur d'entête par défaut : le style « Gris » des styles de forme (sujet 235), avec son texte. */
-export const DEFAULT_HEADER_COLOR = '#f5f5f5';
-export const DEFAULT_HEADER_TEXT = '#333333';
+/** Couleur d'entête par défaut : le style « Gris » des styles de forme (sujet 235), avec son texte et sa bordure. */
+const GRAY = drawioStyle('Gris');
+export const DEFAULT_HEADER_COLOR = GRAY.fillColor;
+export const DEFAULT_HEADER_TEXT = GRAY.fontColor!;
 /** Bordure d'une table neuve. */
-export const TABLE_BORDER = '#666666';
+export const TABLE_BORDER = GRAY.strokeColor;
 /** Fond de la zone des champs. */
 export const FIELDS_FILL = '#ffffff';
 

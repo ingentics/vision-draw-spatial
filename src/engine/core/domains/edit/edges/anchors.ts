@@ -15,6 +15,7 @@ import type { EdgeModel, PageModel, Point, ShapeModel } from '../../../model/typ
 import { toTerminal } from '../../../render/edges/edge';
 import { fixedAnchor, routeEdgePoints } from '../../../render/edges/route';
 import type { EngineCore } from '../../EngineCore';
+import { shapesById } from '../../../model/pageIndex';
 
 /** Point d'ancrage compté comme pris en plus des flèches existantes (ex. départ d'une boucle en cours). */
 export type TakenAnchor = { shapeId: string; constraint: Point };
@@ -141,7 +142,7 @@ export class Anchors {
       return undefined;
     const side = sideOfConstraint(attachment.constraint);
     if (!side) return undefined;
-    const shapes = new Map(page.shapes.map((s) => [s.id, s]));
+    const shapes = shapesById(page);
     const source = toTerminal(shapes.get(edge.sourceId ?? ''));
     const target = toTerminal(shapes.get(edge.targetId ?? ''));
     const reroute = (waypoints: Point[]) =>

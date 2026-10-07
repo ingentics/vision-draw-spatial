@@ -1,4 +1,5 @@
 import type { ModeParts } from '../../../../core/plugins';
+import { clamp, rectContains } from '../../../../core/plugins';
 import { FIELDS, fieldsValue, isDivider, isPrimaryKey, tableFields } from '../tables/fieldModel';
 import { moveField, movedFields, removeField, setField } from '../tables/operations';
 import { TYPE_COLOR } from '../tables/tableColors';
@@ -16,6 +17,7 @@ export const fieldParts: ModeParts = {
   at(_page, shape, point) {
     if (!tableKindOf(shape)) return undefined;
     const first = fieldRow(shape, 0);
+    // Pas de borne basse : sous le dernier champ, `fieldIndex` écarte le rang (la forme peut déborder de ses lignes).
     if (point.x < first.x || point.x > first.x + first.width || point.y < first.y) return undefined;
     const index = Math.floor((point.y - first.y) / first.height);
     return fieldIndex(shape, String(index)) !== undefined ? String(index) : undefined;
@@ -90,13 +92,12 @@ export const fieldParts: ModeParts = {
     const index = tableKindOf(shape) ? fieldIndex(shape, part) : undefined;
     const fields = tableFields(shape);
     if (index === undefined || isPrimaryKey(fields[index])) return undefined;
-    const { x, y, width, height } = shape.bounds;
-    if (point.x < x || point.x > x + width || point.y < y || point.y > y + height) return undefined;
+    if (!rectContains(shape.bounds, point)) return undefined;
     const first = fieldRow(shape, 0);
     const keyed = isPrimaryKey(fields[0]) ? 1 : 0;
     // Place sous le pointeur : la ligne survolée, le champ glissé y prenant sa place.
     const row = Math.floor((point.y - first.y) / first.height);
-    const slot = Math.min(fields.length, Math.max(keyed, row > index ? row + 1 : row));
+    const slot = clamp(row > index ? row + 1 : row, keyed, fields.length);
     return slot === index || slot === index + 1 ? undefined : String(slot);
   },
   // Aperçu : la table avec le champ à sa nouvelle place, rien d'écrit.

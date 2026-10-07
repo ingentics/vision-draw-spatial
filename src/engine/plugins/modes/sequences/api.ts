@@ -4,5 +4,6 @@
  */
 export { SEQUENCE_EXPORTERS } from './export';
 export type { SequenceExporter } from './export';
+export { flowLabel } from './flows';
 export type { Flow } from './flows';
 export { addFlow, removeFlow, renameFlow, sequenceState } from './steps';

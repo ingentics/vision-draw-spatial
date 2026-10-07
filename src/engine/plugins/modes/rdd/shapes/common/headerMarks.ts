@@ -1,6 +1,6 @@
 import { Group } from 'three';
 import type { Color } from 'three';
-import { PART_ORDER, strokeMesh, arcPath } from '../../../../../core/plugins';
+import { strokeMesh, arcPath } from '../../../../../core/plugins';
 import type { Point, ShapeModel } from '../../../../../core/plugins';
 import type { HeaderMark } from '../../tables/tableKinds';
 import { TABLE, tableScale } from '../../tables/tableLayout';
@@ -111,6 +111,7 @@ export const MARK_PATHS: Record<HeaderMark, Array<[Point[], boolean]>> = {
 export function headerMark(shape: ShapeModel, mark: HeaderMark, header: number, color: Color | null): Group {
   const group = new Group();
   group.name = 'header-mark';
+  // Marqueur pour les tests, non lu par le moteur.
   group.userData.mark = mark;
   if (!color) return group;
   const scale = tableScale(shape);
@@ -121,7 +122,6 @@ export function headerMark(shape: ShapeModel, mark: HeaderMark, header: number, 
     const path = points.map((p) => ({ x: left + p.x * zoom * scale, y: top + p.y * zoom * scale }));
     const mesh = strokeMesh(path, color, 1, { width: scale, closed });
     if (!mesh) continue;
-    mesh.renderOrder = PART_ORDER.stroke;
     group.add(mesh);
   }
   return group;

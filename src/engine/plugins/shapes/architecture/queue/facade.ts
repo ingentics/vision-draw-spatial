@@ -1,5 +1,5 @@
 import type { Group } from 'three';
-import { SPATIAL, arcPath } from '../../../../core/plugins';
+import { SPATIAL, arcPath, clamp } from '../../../../core/plugins';
 import type { Point, SceneRenderer, ShapeModel } from '../../../../core/plugins';
 import {
   building,
@@ -43,7 +43,7 @@ export function isoQueue(flat: SceneRenderer, toLeft: (shape: ShapeModel) => boo
     const count = Math.max(1, Math.floor(bounds.width / step));
     const half = Math.min(step * 0.18, band * 0.22);
     const rise = band * 0.28;
-    const grooveWidth = Math.max(2.5, Math.min(6, band * 0.12));
+    const grooveWidth = clamp(band * 0.12, 2.5, 6);
     const z = plinth + band / 2;
     for (const [face, mirrored] of [
       [north!, false],

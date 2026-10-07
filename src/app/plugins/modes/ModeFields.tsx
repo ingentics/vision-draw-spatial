@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { isToggled, toggleValue } from '../../../engine';
 import type { ModePropertyView, ModeScope, ModeTarget, PageModel } from '../../../engine';
 import { NumberField, SelectField, TextField } from '../../Fields';
 import { useEnginePlugins } from '../../pluginsContext';
@@ -69,9 +70,9 @@ function ModePropertyField({
         <label className="field toggle" title={title}>
           <input
             type="checkbox"
-            checked={value === '1'}
+            checked={isToggled(value)}
             disabled={!editable}
-            onChange={(event) => write(event.target.checked ? '1' : undefined)}
+            onChange={(event) => write(toggleValue(event.target.checked))}
           />
           {label}
         </label>
