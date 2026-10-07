@@ -12,7 +12,7 @@ import type { PaletteEntry, ShapeDefinition } from '../../../../shapes/types';
 import { FIELDS, fieldsValue, isDivider, primaryKeyField, tableFields } from '../../fieldModel';
 import { isLinkable } from '../../relations/relationKinds';
 import { DEFAULT_HEADER_COLOR, DEFAULT_HEADER_TEXT, FIELDS_FILL, TABLE_BORDER } from '../../tableColors';
-import type { TableKind } from '../../tableKinds';
+import type { TableKind, TableKindId } from '../../tableKinds';
 import { TABLE_KINDS, shownMark, tableName } from '../../tableKinds';
 import {
   MARK_INSET,
@@ -50,7 +50,7 @@ const foldOf = (shape: ShapeModel) => Math.min(TABLE.fold * tableScale(shape), h
 function outline(shape: ShapeModel, kind: TableKind): Point[] {
   const { bounds, style } = shape;
   const { x, y, width: w, height: h } = bounds;
-  if (kind.wavy) {
+  if (kind.look.wavy) {
     // Bas ondulé, une période sur la largeur, de droite à gauche : remonte puis descend (vu de gauche : descend puis
     // remonte), entre le bas des bornes et deux amplitudes au-dessus.
     const a = TABLE.wave * tableScale(shape);
@@ -61,7 +61,7 @@ function outline(shape: ShapeModel, kind: TableKind): Point[] {
     });
     return [{ x, y }, { x: x + w, y }, ...wave];
   }
-  if (kind.folded) {
+  if (kind.look.folded) {
     const f = foldOf(shape);
     return [
       { x, y },
@@ -108,7 +108,7 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
   headerFill.name = 'fill-header';
   headerFill.renderOrder = PART_ORDER.fill + 0.5;
   group.add(headerFill);
-  if (kind.folded) {
+  if (kind.look.folded) {
     // Rabat un peu plus sombre que l'entête : le revers de la page.
     const flap = fillMesh(flapOf(shape), headerColor.clone().multiplyScalar(0.85), styleOpacity(style, 'fillOpacity'));
     flap.name = 'fill-fold';
@@ -138,7 +138,7 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
       ],
       false,
     );
-    if (kind.doubleHeader) {
+    if (kind.look.doubleHeader) {
       const gap = TABLE.doubleGap * scale;
       line(
         rectPath({
@@ -150,7 +150,7 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
         true,
       );
     }
-    if (kind.folded) line(flapOf(shape), true);
+    if (kind.look.folded) line(flapOf(shape), true);
   }
   const mark = shownMark(shape);
   if (mark) group.add(headerMark(shape, mark, header, styleColor(style, 'strokeColor', TABLE_BORDER)));
@@ -162,7 +162,7 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
         ...style,
         fontSize: String(TABLE.nameSize * scale),
         fontColor: textColor,
-        fontStyle: String(1 | (kind.italic ? 2 : 0)),
+        fontStyle: String(1 | (kind.look.italic ? 2 : 0)),
         align: 'center',
         verticalAlign: 'middle',
       },
@@ -188,12 +188,12 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
  * Style draw.io d'une table neuve : un swimlane (entête de la couleur, corps blanc), désigné par `spatial.kind` ; la
  * clé primaire dans ses champs s'il en a une.
  */
-export function tableStyle(id: string, kind: TableKind): string {
-  const fields = kind.primaryKey ? `${FIELDS}=${fieldsValue([primaryKeyField(kind.primaryKey)])};` : '';
+export function tableStyle(id: TableKindId, kind: TableKind): string {
+  const fields = kind.rules.primaryKey ? `${FIELDS}=${fieldsValue([primaryKeyField(kind.rules.primaryKey)])};` : '';
   return (
-    `swimlane;fontStyle=${1 | (kind.italic ? 2 : 0)};startSize=${headerHeight(false)};` +
+    `swimlane;fontStyle=${1 | (kind.look.italic ? 2 : 0)};startSize=${headerHeight(false)};` +
     `fillColor=${DEFAULT_HEADER_COLOR};fontColor=${DEFAULT_HEADER_TEXT};swimlaneFillColor=${FIELDS_FILL};strokeColor=${TABLE_BORDER};` +
-    `fontSize=${TABLE.nameSize};html=1;whiteSpace=wrap;${kind.style ?? ''}spatial.kind=${id};${fields}`
+    `fontSize=${TABLE.nameSize};html=1;whiteSpace=wrap;${kind.look.style ?? ''}spatial.kind=${id};${fields}`
   );
 }
 
@@ -203,11 +203,11 @@ export function tableStyle(id: string, kind: TableKind): string {
  * (modèle abstrait).
  */
 export function table(
-  id: string,
+  id: TableKindId,
   palette?: Pick<PaletteEntry, 'name' | 'order' | 'keywords' | 'value'> & { icon?: string },
 ): ShapeDefinition {
-  const kind = TABLE_KINDS[id]!;
-  const fields = kind.primaryKey ? [primaryKeyField(kind.primaryKey)] : [];
+  const kind = TABLE_KINDS[id];
+  const fields = kind.rules.primaryKey ? [primaryKeyField(kind.rules.primaryKey)] : [];
   return {
     id,
     outline: (shape) => outline(shape, kind),
@@ -230,13 +230,14 @@ export function table(
         // Mesure approchée au chargement (polices pas encore là) : la première modification l'ajuste. Largeur sur la
         // grille par défaut de draw.io (10, sujet 263), hauteur au plus juste (sujet 264).
         width: tableSize(
-          tableWidth(kind, { name: palette.value, fields, secondary: false, mark: kind.mark !== undefined }),
+          tableWidth(kind, { name: palette.value, fields, secondary: false, mark: kind.look.mark !== undefined }),
           10,
         ),
         height: tableHeight(kind, false, fields.length),
         icon:
           palette.icon ??
-          '<path d="M6 3h28v22H6zM6 10h28M10 15h12M10 20h9"/>' + (kind.doubleHeader ? '<path d="M8 5h24v3H8z"/>' : ''),
+          '<path d="M6 3h28v22H6zM6 10h28M10 15h12M10 20h9"/>' +
+            (kind.look.doubleHeader ? '<path d="M8 5h24v3H8z"/>' : ''),
       },
     }),
   };

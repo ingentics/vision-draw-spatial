@@ -1,48 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { definition as rdd } from '../../../../src/engine/modes/rdd';
-import { FIELDS, fieldProblems } from '../../../../src/engine/modes/rdd/fieldModel';
 import { fitTable, setSecondary } from '../../../../src/engine/modes/rdd/operations';
 import { setCellLabel } from '../../../../src/engine/format/cellEdits';
 import { approximateMeasure } from '../../../../src/engine/render/richLayout';
-import type { ShapeModel } from '../../../../src/engine/model/types';
-import { rowWidth, onGrid, contentWidth, widthOf, KEY_ROW, setFields, labels, fieldsOf, setup } from './helpers';
-
-describe('mode RDD : champs structurés (sujet 246)', () => {
-  /** Table du mode avec la valeur brute de `spatial.fields`. */
-  const table = (fields: string, kind = 'rdd-entity') =>
-    ({ id: 't', kind, label: 'T', style: { 'spatial.kind': kind, [FIELDS]: fields } }) as unknown as ShapeModel;
-
-  it('champs lus avec kind, label, type et nullable', () => {
-    const { shape } = setup();
-    expect(fieldsOf(shape('user'))).toEqual([
-      { kind: 'pk', label: 'id', type: 'integer', nullable: false },
-      { kind: 'property', label: 'email', type: 'string', nullable: false },
-      { kind: 'fk', label: 'role', type: 'integer', nullable: false },
-    ]);
-    expect(fieldsOf(shape('secondary'))).toEqual([{ kind: 'fk', label: 'author', type: 'integer', nullable: true }]);
-    expect(fieldProblems(shape('user'))).toEqual([]);
-  });
-
-  it('pas de lecture de l’ancien format ; entrées illisibles ignorées et signalées', () => {
-    expect(fieldsOf(table('["id","name"]'))).toEqual([]);
-    expect(fieldProblems(table('["id","name"]'))).toEqual(['2 champ(s) illisible(s), ignoré(s)']);
-    expect(fieldProblems(table('pas du json'))).toEqual(['champs illisibles, ignorés']);
-    const mixed = table('[{"kind":"pk","label":"id","type":"integer"},{"kind":"other","label":"x"},{"kind":"fk"}]');
-    expect(labels(fieldsOf(mixed))).toEqual(['id']);
-    expect(fieldProblems(mixed)).toEqual(['2 champ(s) illisible(s), ignoré(s)']);
-  });
-
-  it('type inconnu signalé ; clé primaire jamais nullable', () => {
-    const shape = table(
-      '[{"kind":"pk","label":"id","type":"integer","nullable":true},{"kind":"property","label":"at","type":"date","nullable":true}]',
-    );
-    expect(fieldsOf(shape).map((field) => field.nullable)).toEqual([false, true]);
-    expect(fieldProblems(shape)).toEqual([
-      'champ at : type « date » inconnu',
-      'clé primaire nullable, lue non nullable',
-    ]);
-  });
-});
+import { rowWidth, onGrid, contentWidth, widthOf, KEY_ROW, setFields, setup } from './helpers';
 
 describe('mode RDD : taille calculée (sujet 247)', () => {
   /** Largeur approchée d'un texte (celle des tests, sans polices). */

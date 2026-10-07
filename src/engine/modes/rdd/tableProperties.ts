@@ -1,8 +1,11 @@
+import type { ShapeModel } from '../../model/types';
+import { spatialValue } from '../../spatial';
 import type { ModeEdit, ModeProperty, ModeTarget } from '../types';
 import { tableFields } from './fieldModel';
 import { addDivider, setSecondary } from './operations';
+import type { TableKind, TableOptionKey } from './tableKinds';
 import { tableKindOf } from './tableKinds';
-import { SECONDARY, isSecondary } from './tableLayout';
+import { SECONDARY } from './tableLayout';
 import { rowOf, tableOf } from './tableTargets';
 
 /** Réglages d'une table RDD sélectionnée (sujets 179, 253, 260) : table secondaire, clé primaire, ajout d'un séparateur. */
@@ -19,23 +22,63 @@ export function addDividerAfter(edit: ModeEdit, target: ModeTarget, part: string
   return index === undefined ? undefined : String(index);
 }
 
-/** Réglages de la table, avant ceux de la ligne sélectionnée. */
-export const TABLE_PROPERTIES: ModeProperty[] = [
+/**
+ * Option d'une table (au format de `FIELD_OPTIONS`) : case à cocher écrite dans l'attribut `attribute` (`1`), permise
+ * par `on` ; `write` : son effet, à la place de la seule écriture de l'attribut.
+ */
+export interface TableOption {
+  key: TableOptionKey;
+  type: 'flag';
+  attribute: string;
+  label: string;
+  title: string;
+  on(table: TableKind): boolean;
+  write?(edit: ModeEdit, shape: ShapeModel, value: boolean): void;
+}
+
+/** Options d'une table, dans l'ordre du panneau. */
+export const TABLE_OPTIONS: readonly TableOption[] = [
   {
-    type: 'toggle',
-    key: SECONDARY,
+    key: 'secondary',
+    type: 'flag',
+    attribute: SECONDARY,
     label: 'Table secondaire',
     title: 'Table secondaire (spatial.secondary) : 20 % plus petite',
-    value: (_page, target) => {
-      const shape = tableOf(target);
-      return shape && isSecondary(shape) ? '1' : undefined;
-    },
-    write: (edit, target, value) => {
-      const shape = tableOf(target);
-      if (shape) setSecondary(edit, shape, value === '1');
-    },
-    hidden: notTable,
+    on: (table) => table.rules.options.includes('secondary'),
+    // Taille × 0,8, entête et taille du nom dans le style (sujet 179).
+    write: setSecondary,
   },
+];
+
+/** Table sélectionnée qui permet l'option. */
+function optionTable(option: TableOption, target: ModeTarget): ShapeModel | undefined {
+  const shape = tableOf(target);
+  const table = shape && tableKindOf(shape);
+  return shape && table && option.on(table) ? shape : undefined;
+}
+
+/** Réglage du panneau d'une option de table : masqué là où sa règle `on` ne la permet pas. */
+const tableOptionProperty = (option: TableOption): ModeProperty => ({
+  type: 'toggle',
+  key: option.attribute,
+  label: option.label,
+  title: option.title,
+  value: (_page, target) => {
+    const shape = optionTable(option, target);
+    return shape && spatialValue(shape, option.attribute) === '1' ? '1' : undefined;
+  },
+  write: (edit, target, value) => {
+    const shape = optionTable(option, target);
+    if (!shape) return;
+    if (option.write) option.write(edit, shape, value === '1');
+    else edit.setElementAttribute(shape.id, option.attribute, value === '1' ? '1' : undefined);
+  },
+  hidden: (_page, target) => !optionTable(option, target),
+});
+
+/** Réglages de la table, avant ceux de la ligne sélectionnée. */
+export const TABLE_PROPERTIES: ModeProperty[] = [
+  ...TABLE_OPTIONS.map(tableOptionProperty),
   {
     type: 'text',
     key: 'rdd.primaryKey',
@@ -48,7 +91,7 @@ export const TABLE_PROPERTIES: ModeProperty[] = [
     },
     hidden: (_page, target) => {
       const shape = tableOf(target);
-      return !shape || !tableKindOf(shape)?.primaryKey;
+      return !shape || !tableKindOf(shape)?.rules.primaryKey;
     },
   },
 ];

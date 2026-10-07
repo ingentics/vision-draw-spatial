@@ -67,3 +67,13 @@ describe('mode RDD : entités (sujet 180)', () => {
     expect(shape('role').bounds.height).toBe(68.8);
   });
 });
+
+describe('mode RDD : options d’un champ selon la table (sujet 277)', () => {
+  it('« Unique » refusé par setField sur une vue ; accepté sur une entité', () => {
+    const { run, shape } = setup();
+    expect(run((edit) => setField(edit, shape('active'), 0, { unique: true }))).toBe(false);
+    expect(fieldsOf(shape('active'))[0]!.unique).toBeUndefined();
+    run((edit) => setField(edit, shape('user'), 1, { unique: true }));
+    expect(fieldsOf(shape('user'))[1]!.unique).toBe(true);
+  });
+});

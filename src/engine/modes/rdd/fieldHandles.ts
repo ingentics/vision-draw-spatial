@@ -14,7 +14,8 @@ const ADD_COLOR = '#2e9e44';
 const ADD_FIELD = 'rdd.addField';
 
 export function fieldHandles(shape: ShapeModel): ModeHandle[] {
-  if (!tableKindOf(shape)) return [];
+  // Une table sans champs n'a pas de « + » (aucune pour l'instant : `rules.fields` vrai partout).
+  if (!tableKindOf(shape)?.rules.fields) return [];
   const { x, y, width, height } = shape.bounds;
   return [
     {

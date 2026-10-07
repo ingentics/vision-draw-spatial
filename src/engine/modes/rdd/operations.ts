@@ -2,7 +2,17 @@ import type { ShapeModel } from '../../model/types';
 import type { ModeEdit } from '../types';
 import { writeRelationEdge } from './relations/relationKinds';
 import type { Field, TableRow } from './fieldModel';
-import { FIELDS, fieldsValue, isDivider, isPrimaryKey, isRelation, newFieldLabel, tableFields } from './fieldModel';
+import {
+  FIELDS,
+  FIELD_OPTIONS,
+  fieldsValue,
+  isDivider,
+  isPrimaryKey,
+  isRelation,
+  newFieldLabel,
+  optionValue,
+  tableFields,
+} from './fieldModel';
 import { tableKindOf } from './tableKinds';
 import type { TableContent } from './tableLayout';
 import {
@@ -46,17 +56,19 @@ export function writeRows(edit: ModeEdit, shape: ShapeModel, rows: readonly Tabl
 }
 
 /**
- * Champ `index` de la table modifié (sujet 249) : label, kind, nullable, type (sujet 256, vide = aucun) ; la taille
- * suit. Un label vide est refusé ; la clé primaire garde son kind et n'est jamais nullable, et aucun champ ne devient
- * clé primaire. Un champ de relation garde son kind et reste sans type (sujet 265). Un séparateur ne prend que le
- * label, vide permis (sujet 253).
+ * Champ `index` de la table modifié (sujet 249) : label, kind, type (sujet 256, vide = aucun) et options
+ * (`FIELD_OPTIONS`, chacune seulement là où sa règle `on` la permet ; vide ou faux la retire) ; la taille suit. Un label
+ * vide est refusé ; la clé primaire garde son label, son kind et son type, et aucun champ ne devient clé primaire. Un
+ * champ de relation garde son kind et reste sans type (sujet 265). Un séparateur ne prend que le label, vide permis
+ * (sujet 253).
  */
 export function setField(edit: ModeEdit, shape: ShapeModel, index: number, patch: Partial<Field>): void {
+  const table = tableKindOf(shape);
   const rows = tableFields(shape);
   const row = rows[index];
   const label = patch.label?.trim();
   // Un séparateur peut être vide (sujet 253) ; un champ refuse un label vide.
-  if (!tableKindOf(shape) || !row || (label === '' && !isDivider(row))) return;
+  if (!table || !row || (label === '' && !isDivider(row))) return;
   // Clé primaire : label `id` et type imposés (sujet 260).
   if (isPrimaryKey(row) && label !== undefined) return;
   let next: TableRow;
@@ -65,21 +77,13 @@ export function setField(edit: ModeEdit, shape: ShapeModel, index: number, patch
     const key = isPrimaryKey(row);
     const relation = isRelation(row);
     const kind = patch.kind;
+    const options = FIELD_OPTIONS.filter((option) => option.key in patch && option.on(table, row));
     next = {
       ...row,
       ...(label !== undefined && { label }),
       ...(kind !== undefined && !key && !relation && !isPrimaryKey({ ...row, kind }) && { kind }),
-      ...(patch.nullable !== undefined && !key && { nullable: patch.nullable }),
       ...(patch.type !== undefined && !key && !relation && { type: patch.type }),
-      ...(patch.unique !== undefined && !key && { unique: patch.unique || undefined }),
-      // Propriétés facultatives (sujet 260) : vide ou faux les retire.
-      ...('comment' in patch && { comment: patch.comment || undefined }),
-      ...('pgName' in patch && { pgName: patch.pgName || undefined }),
-      ...('pgType' in patch && { pgType: patch.pgType || undefined }),
-      ...('gdpr' in patch && { gdpr: patch.gdpr || undefined }),
-      // Préfixe d'un champ de relation embedded (sujet 268).
-      ...('prefix' in patch && relation && { prefix: patch.prefix || undefined }),
-      ...('personal' in patch && { personal: patch.personal || undefined }),
+      ...Object.fromEntries(options.map((option) => [option.key, optionValue(option, patch[option.key])])),
     };
   }
   writeRows(

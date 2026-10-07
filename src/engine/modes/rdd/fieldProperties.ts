@@ -1,10 +1,11 @@
 import type { ModeProperty, ModeTarget } from '../types';
-import { FIELD_TYPES, fieldTypeLabel, isDivider, isPrimaryKey, isRelation } from './fieldModel';
+import type { FieldOption } from './fieldModel';
+import { FIELD_OPTIONS, FIELD_TYPES, fieldTypeLabel, isDivider, isPrimaryKey, isRelation } from './fieldModel';
 import { fieldParts } from './fieldParts';
 import { setField } from './operations';
 import { RELATION_FIELD_PROPERTIES, relationOnlyField } from './relations';
 import { tableKindOf } from './tableKinds';
-import { fieldOf, onlyWhen, rowOf, tableOf } from './tableTargets';
+import { fieldOf, onlyWhen, rowOf } from './tableTargets';
 
 /**
  * Réglages d'une ligne sélectionnée d'une table RDD (sujets 249, 253, 260) : section du mode (fonctionnel), puis
@@ -28,51 +29,31 @@ const writeField =
     if (selected) setField(edit, selected.shape, selected.index, patch(value));
   };
 
-/** Case à cocher d'un champ (`unique`, `gdpr`, `personal`). */
-function flag(
-  key: 'unique' | 'gdpr' | 'personal',
-  label: string,
-  title: string,
-  section?: string,
-  hidden: ModeProperty['hidden'] = notField,
-): ModeProperty {
-  return {
-    type: 'toggle',
-    part: true,
-    key: `rdd.field.${key}`,
-    label,
-    title,
-    section,
-    value: (_page, target, part) => (fieldOf(target, part)?.field[key] ? '1' : undefined),
-    write: writeField((value) => ({ [key]: value === '1' })),
-    hidden,
-  };
-}
-
-/** Texte d'un champ (`comment`, `pgName`, `pgType`) ; vide le retire ; `multiline` : zone de texte sous le libellé. */
-function text(
-  key: 'comment' | 'pgName' | 'pgType',
-  label: string,
-  title: string,
-  section?: string,
-  multiline?: boolean,
-): ModeProperty {
-  return {
-    type: 'text',
-    multiline,
-    part: true,
-    key: `rdd.field.${key}`,
-    label,
-    title,
-    section,
-    value: (_page, target, part) => fieldOf(target, part)?.field[key],
-    write: writeField((value) => ({ [key]: value?.trim() || undefined })),
-    hidden: notField,
-  };
-}
-
-const POSTGRESQL = 'PostgreSQL';
-const GOVERNANCE = 'Gouvernance';
+/** Réglage du panneau d'une option de champ (`FIELD_OPTIONS`) : masqué là où sa règle `on` ne la permet pas. */
+const optionProperty = (option: FieldOption): ModeProperty => ({
+  ...(option.type === 'flag'
+    ? {
+        type: 'toggle' as const,
+        value: (_page, target, part) => (fieldOf(target, part)?.field[option.key] ? '1' : undefined),
+        write: writeField((value) => ({ [option.key]: value === '1' })),
+      }
+    : {
+        type: 'text' as const,
+        multiline: option.multiline,
+        value: (_page, target, part) => fieldOf(target, part)?.field[option.key],
+        write: writeField((value) => ({ [option.key]: value?.trim() || undefined })),
+      }),
+  part: true,
+  key: `rdd.field.${option.key}`,
+  label: option.label,
+  title: option.title,
+  section: option.section,
+  hidden: (_page, target, part) => {
+    const selected = fieldOf(target, part);
+    const table = selected && tableKindOf(selected.shape);
+    return !selected || !table || !option.on(table, selected.field);
+  },
+});
 
 /** Réglages d'un champ classique. */
 const CLASSIC_FIELD_PROPERTIES: ModeProperty[] = [
@@ -133,27 +114,7 @@ const CLASSIC_FIELD_PROPERTIES: ModeProperty[] = [
     },
     hidden: (_page, target, part) => !isKey(target, part),
   },
-  // « Optionnel » (ancien « Nullable ») et « Unique » : pas sur la clé primaire.
-  {
-    type: 'toggle',
-    part: true,
-    key: 'rdd.field.nullable',
-    label: 'Optionnel',
-    title: 'Le champ peut être vide (NULL)',
-    value: (_page, target, part) => (fieldOf(target, part)?.field.nullable ? '1' : undefined),
-    write: writeField((value) => ({ nullable: value === '1' })),
-    hidden: notPlainField,
-  },
-  flag('unique', 'Unique', 'Valeurs uniques dans la table (contrainte d’unicité)', undefined, (page, target, part) => {
-    const shape = tableOf(target);
-    return notPlainField(page, target, part) || !shape || !tableKindOf(shape)?.uniqueFields;
-  }),
-  // Commentaire : zone de texte sous son libellé, sur toute la largeur (⌘ + Entrée ou sortie du champ pour valider).
-  text('comment', 'Commentaire', 'Commentaire du champ (⌘ + Entrée pour valider)', undefined, true),
-  text('pgName', 'Nom du champ', 'Nom de la colonne PostgreSQL', POSTGRESQL),
-  text('pgType', 'Type', 'Type PostgreSQL de la colonne (texte libre, ex. varchar(255), uuid)', POSTGRESQL),
-  flag('gdpr', 'GDPR', 'Champ soumis au GDPR', GOVERNANCE),
-  flag('personal', 'Donnée personnelle', 'Le champ contient une donnée personnelle', GOVERNANCE),
+  ...FIELD_OPTIONS.filter((option) => option.panel !== false).map(optionProperty),
 ];
 
 /**

@@ -51,7 +51,7 @@ export const fieldParts: ModeParts = {
       // Du label au bord droit de la table (le type est couvert pendant la saisie).
       zone: { x: left, y: row.y, width: row.x + row.width - left - TABLE.padding * scale, height: row.height },
       fontSize: TABLE.fieldSize * scale,
-      italic: kind.italicFields,
+      italic: kind.look.italicFields,
     };
   },
   // Commentaire du champ (sujet 262) : au survol sous son nom, et édité par la touche C ; pas pour un séparateur.

@@ -73,7 +73,7 @@ export function addFieldRow(
     ctx,
     field.label,
     { x: left + layout.label * scale, y },
-    { size, color: '#000000', italic: kind.italicFields, part },
+    { size, color: '#000000', italic: kind.look.italicFields, part },
   );
   if (layout.type !== undefined) {
     addRowText(group, ctx, fieldNote(field), { x: left + layout.type * scale, y }, { size, color: TYPE_COLOR });

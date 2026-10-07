@@ -1,5 +1,6 @@
 import type { ShapeModel } from '../../model/types';
 import { spatialValue } from '../../spatial';
+import type { TableKind } from './tableKinds';
 import { tableKindOf } from './tableKinds';
 
 /**
@@ -60,9 +61,108 @@ export interface Field {
   prefix?: string;
 }
 
-/** Propriétés facultatives d'un champ : écrites seulement si elles sont renseignées (sujets 260, 265, 268). */
-const OPTIONAL_FLAGS = ['unique', 'gdpr', 'personal'] as const;
-const OPTIONAL_TEXTS = ['comment', 'pgName', 'pgType', 'edge', 'prefix'] as const;
+/** Options d'un champ à cocher, et en texte libre. */
+export type FieldFlag = 'nullable' | 'unique' | 'gdpr' | 'personal';
+export type FieldText = 'comment' | 'pgName' | 'pgType' | 'prefix';
+
+/**
+ * Option d'un champ (sujets 260, 261, 268) : case à cocher ou texte (vide : retiré), son réglage au panneau d'un champ
+ * (`label`, `title`, `section`, `multiline`) et `on`, la règle qui la permet : hors d'elle, elle n'est ni lue, ni écrite
+ * par `setField`, ni montrée au panneau.
+ */
+export type FieldOption = (
+  { key: FieldFlag; type: 'flag'; multiline?: never } | { key: FieldText; type: 'text'; multiline?: boolean }
+) & {
+  label: string;
+  title: string;
+  section?: string;
+  /** Réglée ailleurs qu'au panneau d'un champ (préfixe : formulaire de sa relation, sujet 268). */
+  panel?: false;
+  on(table: TableKind, field: Field): boolean;
+};
+
+const POSTGRESQL = 'PostgreSQL';
+const GOVERNANCE = 'Gouvernance';
+
+/** Options d'un champ, dans l'ordre du panneau. */
+export const FIELD_OPTIONS: readonly FieldOption[] = [
+  // « Optionnel » (ancien « Nullable ») et « Unique » : pas sur la clé primaire (unique par nature, sujet 260).
+  {
+    key: 'nullable',
+    type: 'flag',
+    label: 'Optionnel',
+    title: 'Le champ peut être vide (NULL)',
+    on: (_table, field) => !isPrimaryKey(field),
+  },
+  {
+    key: 'unique',
+    type: 'flag',
+    label: 'Unique',
+    title: 'Valeurs uniques dans la table (contrainte d’unicité)',
+    on: (table, field) => !isPrimaryKey(field) && !!table.rules.uniqueFields,
+  },
+  // Commentaire : zone de texte sous son libellé, sur toute la largeur (⌘ + Entrée ou sortie du champ pour valider).
+  {
+    key: 'comment',
+    type: 'text',
+    label: 'Commentaire',
+    title: 'Commentaire du champ (⌘ + Entrée pour valider)',
+    multiline: true,
+    on: () => true,
+  },
+  {
+    key: 'pgName',
+    type: 'text',
+    label: 'Nom du champ',
+    title: 'Nom de la colonne PostgreSQL',
+    section: POSTGRESQL,
+    on: () => true,
+  },
+  {
+    key: 'pgType',
+    type: 'text',
+    label: 'Type',
+    title: 'Type PostgreSQL de la colonne (texte libre, ex. varchar(255), uuid)',
+    section: POSTGRESQL,
+    on: () => true,
+  },
+  { key: 'gdpr', type: 'flag', label: 'GDPR', title: 'Champ soumis au GDPR', section: GOVERNANCE, on: () => true },
+  {
+    key: 'personal',
+    type: 'flag',
+    label: 'Donnée personnelle',
+    title: 'Le champ contient une donnée personnelle',
+    section: GOVERNANCE,
+    on: () => true,
+  },
+  // Préfixe d'un champ de relation (sujet 268), en gris à la place du type.
+  {
+    key: 'prefix',
+    type: 'text',
+    label: 'Préfixe',
+    title: 'Préfixe des champs de l’embedded dans la table d’arrivée (prefix)',
+    panel: false,
+    on: (_table, field) => isRelation(field),
+  },
+];
+
+/** Option `key` d'un champ. */
+const optionOf = (key: string) => FIELD_OPTIONS.find((option) => option.key === key);
+
+/**
+ * Clés facultatives écrites dans `spatial.fields`, seulement si elles sont renseignées, dans cet ordre (celui des
+ * fichiers déjà écrits) : les options, sauf « Optionnel » toujours écrit avec le champ, et `edge`, le lien d'un champ
+ * de relation à sa flèche (sujet 265).
+ */
+const STORED_KEYS = ['unique', 'gdpr', 'personal', 'comment', 'pgName', 'pgType', 'edge', 'prefix'] as const;
+const isFlagKey = (key: (typeof STORED_KEYS)[number]) => optionOf(key)?.type === 'flag';
+
+/** Valeur d'une option écrite par `setField` : vide ou faux la retire ; « Optionnel » reste un booléen. */
+export function optionValue(option: FieldOption, value: unknown): boolean | string | undefined {
+  if (option.key === 'nullable') return !!value;
+  if (option.type === 'flag') return value ? true : undefined;
+  return typeof value === 'string' && value ? value : undefined;
+}
 
 /** Séparateur entre les champs (sujet 253) : un trait, son label éventuel au milieu. */
 export interface Divider {
@@ -120,8 +220,10 @@ function readField(item: unknown): TableRow | undefined {
   // Une clé primaire n'est jamais nullable, quoi qu'en dise le fichier.
   field.nullable = nullable === true && !isPrimaryKey(field);
   const record = item as Record<string, unknown>;
-  for (const key of OPTIONAL_FLAGS) if (record[key] === true) field[key] = true;
-  for (const key of OPTIONAL_TEXTS) if (typeof record[key] === 'string' && record[key]) field[key] = record[key];
+  for (const key of STORED_KEYS) {
+    const value = record[key];
+    if (isFlagKey(key) ? value === true : typeof value === 'string' && value) Object.assign(field, { [key]: value });
+  }
   return field;
 }
 
@@ -147,8 +249,7 @@ export const fieldsValue = (rows: readonly TableRow[]): string | undefined =>
                 label: row.label,
                 type: row.type,
                 nullable: !isPrimaryKey(row) && row.nullable,
-                ...Object.fromEntries(OPTIONAL_FLAGS.filter((key) => row[key]).map((key) => [key, true])),
-                ...Object.fromEntries(OPTIONAL_TEXTS.filter((key) => row[key]).map((key) => [key, row[key]])),
+                ...Object.fromEntries(STORED_KEYS.filter((key) => row[key]).map((key) => [key, row[key]])),
               },
         ),
       )
@@ -162,13 +263,26 @@ export function fieldsOf(shape: ShapeModel): TableRow[] {
   return (rawFields(shape) ?? []).map(readField).filter((row): row is TableRow => row !== undefined);
 }
 
+/** Champ sans les options que la table ne permet pas (`on`, ex. « Unique » sur une vue, fichier modifié). */
+function allowedOptions(table: TableKind, field: Field): Field {
+  const refused = FIELD_OPTIONS.filter(
+    (option) => option.key !== 'nullable' && field[option.key] !== undefined && !option.on(table, field),
+  );
+  if (refused.length === 0) return field;
+  const next = { ...field };
+  for (const option of refused) delete next[option.key];
+  return next;
+}
+
 /**
- * Champs affichés : ceux du fichier, la clé primaire ramenée en tête (ajoutée si elle manque) pour une table qui en a
- * une.
+ * Champs affichés : ceux du fichier, sans les options que la table ne permet pas, la clé primaire ramenée en tête
+ * (ajoutée si elle manque) pour une table qui en a une. Toute écriture de la table repart d'eux : une option refusée
+ * disparaît du fichier.
  */
 export function tableFields(shape: ShapeModel): TableRow[] {
-  const rows = fieldsOf(shape);
-  const type = tableKindOf(shape)?.primaryKey;
+  const table = tableKindOf(shape);
+  const rows = fieldsOf(shape).map((row) => (table && !isDivider(row) ? allowedOptions(table, row) : row));
+  const type = table?.rules.primaryKey;
   if (!type) return rows;
   const key = rows.find(isPrimaryKey) as Field | undefined;
   // `id` et le type imposé, quoi qu'en dise le fichier (sujet 260).
@@ -177,7 +291,7 @@ export function tableFields(shape: ShapeModel): TableRow[] {
 
 /** La clé primaire manque ou n'est pas en tête dans le fichier (fichier modifié à la main) ? */
 export const misplacedPrimaryKey = (shape: ShapeModel) =>
-  tableKindOf(shape)?.primaryKey !== undefined && !isPrimaryKey(fieldsOf(shape)[0]);
+  tableKindOf(shape)?.rules.primaryKey !== undefined && !isPrimaryKey(fieldsOf(shape)[0]);
 
 /**
  * Défauts de `spatial.fields` d'une table (fichier modifié à la main) : valeur ou entrées illisibles, type inconnu,

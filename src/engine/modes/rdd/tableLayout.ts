@@ -68,7 +68,7 @@ export function headerHeight(secondary: boolean): number {
  * la vague d'un bas ondulé.
  */
 export function tableHeight(kind: TableKind, secondary: boolean, count: number): number {
-  const rows = Math.max(1, count) * TABLE.row + (kind.wavy ? 2 * TABLE.wave : 0);
+  const rows = Math.max(1, count) * TABLE.row + (kind.look.wavy ? 2 * TABLE.wave : 0);
   return headerHeight(secondary) + rows * secondaryScale(secondary);
 }
 
@@ -86,7 +86,7 @@ export const MARK_INSET = TABLE.mark.margin + TABLE.mark.width * TABLE.mark.zoom
 export function fieldLayout(kind: TableKind, field: Field): { label: number; type?: number; width: number } {
   const label = TABLE.padding + TABLE.fieldIcon.size + TABLE.fieldIcon.gap;
   const end =
-    label + measureText(field.label, { size: TABLE.fieldSize, bold: false, italic: kind.italicFields ?? false });
+    label + measureText(field.label, { size: TABLE.fieldSize, bold: false, italic: kind.look.italicFields ?? false });
   const typeText = fieldNote(field);
   if (!typeText) return { label, width: end + TABLE.padding };
   const type = end + TABLE.typeGap;
@@ -138,7 +138,7 @@ export function tableWidth(kind: TableKind, content: TableContent): number {
     0,
     ...content.name
       .split('\n')
-      .map((line) => measureText(line.trim(), { size: TABLE.nameSize, bold: true, italic: kind.italic ?? false })),
+      .map((line) => measureText(line.trim(), { size: TABLE.nameSize, bold: true, italic: kind.look.italic ?? false })),
   );
   const fields = content.fields.map((row) => rowWidth(kind, row));
   const header = name + 2 * (TABLE.padding + (content.mark ? MARK_INSET : 0));
