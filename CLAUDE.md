@@ -2,6 +2,8 @@
 
 @docs/ROADMAP.md
 
+@docs/BONNES_PRATIQUES.md
+
 Référence fonctionnelle et technique : `docs/SPEC.md` (à lire au besoin, pas chargée d'office : 80 Ko).
 
 ## Règles de travail
