@@ -16,6 +16,10 @@ export class Display {
   private bufferSize = { width: 0, height: 0 };
   /** Requête qui change quand `devicePixelRatio` change (autre écran, zoom du navigateur). */
   private pixelRatioQuery: MediaQueryList | undefined;
+  /** Écran de la dernière mesure (taille de `window.screen`, densité) : un changement = la fenêtre a changé d'écran. */
+  private screenKey: string | undefined;
+  /** Dernier changement d'écran : zoom quitté et zoom donné, pour retrouver le cadrage exact au retour. */
+  private lastSwitch: { from: string; to: string; fromZoom: number; toZoom: number } | undefined;
 
   constructor(private readonly core: EngineCore) {
     this.resizeObserver = new ResizeObserver((entries) => {
@@ -51,7 +55,13 @@ export class Display {
     const bufferWidth = Math.max(this.devicePixelBox?.width ?? Math.round(width * pixelRatio), 1);
     const bufferHeight = Math.max(this.devicePixelBox?.height ?? Math.round(height * pixelRatio), 1);
     const sameBuffer = bufferWidth === this.bufferSize.width && bufferHeight === this.bufferSize.height;
+    const screenKey = currentScreenKey();
+    const previousScreen = this.screenKey;
+    const screenChanged = previousScreen !== undefined && screenKey !== previousScreen;
+    this.screenKey = screenKey;
     if (width === this.viewport.width && height === this.viewport.height && sameBuffer) return;
+    const previous = this.viewport;
+    const wasMeasured = this.isMeasured();
     this.viewport = { width, height };
     if (!sameBuffer) {
       this.bufferSize = { width: bufferWidth, height: bufferHeight };
@@ -66,6 +76,30 @@ export class Display {
         }),
       );
       return;
+    }
+    // Autre écran (sujet 238) : même portion du schéma, la zone vue avant remplit le nouvel écran.
+    if (screenChanged && wasMeasured && this.isMeasured()) {
+      const state = this.core.camera.state;
+      const factor = keptFramingFactor(previous, this.viewport);
+      // Retour sur l'écran d'avant sans avoir touché à la vue : son zoom exact (les rapports ne s'annulent pas quand
+      // les deux écrans n'ont pas les mêmes proportions).
+      const back = this.lastSwitch;
+      const zoom =
+        back && back.from === screenKey && back.to === previousScreen && back.toZoom === state.zoom
+          ? back.fromZoom
+          : state.zoom * factor;
+      if (zoom !== state.zoom) {
+        this.core.camera.setCameraState({ ...state, zoom });
+        this.lastSwitch = {
+          from: previousScreen!,
+          to: screenKey,
+          fromZoom: state.zoom,
+          toZoom: this.core.camera.state.zoom,
+        };
+        this.core.labelEditor.relocateLabelEdit();
+        this.core.minimap.requestDraw();
+        return;
+      }
     }
     this.core.rendering.applyProjection();
     this.core.labelEditor.relocateLabelEdit();
@@ -89,4 +123,21 @@ export class Display {
   isMeasured(): boolean {
     return this.viewport.width > 1 && this.viewport.height > 1;
   }
+}
+
+/** Écran courant : taille de `window.screen` et densité de pixels (change quand la fenêtre passe sur un autre écran). */
+function currentScreenKey(): string {
+  const screen = typeof window.screen === 'undefined' ? undefined : window.screen;
+  return `${screen?.width ?? 0}x${screen?.height ?? 0}@${window.devicePixelRatio || 1}`;
+}
+
+/**
+ * Facteur de zoom qui garde le cadrage d'un viewport à l'autre (sujet 238) : la zone vue avant reste entièrement
+ * visible et remplit le nouveau viewport (le plus petit des deux rapports de taille).
+ */
+export function keptFramingFactor(
+  from: { width: number; height: number },
+  to: { width: number; height: number },
+): number {
+  return Math.min(to.width / from.width, to.height / from.height);
 }
