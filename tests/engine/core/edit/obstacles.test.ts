@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clampMove, clampResize } from '../../../../src/engine/core/edit/obstacles';
+import { clampMove, clampResize, shownLimit } from '../../../../src/engine/core/edit/obstacles';
 
 /** Obstacle à droite : 300..400 × 0..100 ; écart 20 → limite à x = 280. */
 const right = { x: 300, y: 0, width: 100, height: 100 };
@@ -87,5 +87,37 @@ describe('bornes d’un geste (sujet 241)', () => {
       value: { x: -50, y: 0, width: 250, height: 80 },
       limits: [],
     });
+  });
+});
+
+describe('limite montrée (sujet 316)', () => {
+  const limit: [{ x: number; y: number }, { x: number; y: number }] = [
+    { x: 280, y: -20 },
+    { x: 280, y: 120 },
+  ];
+
+  it('écartée du côté opposé à la forme arrêtée, prolongée à chaque bout', () => {
+    // Forme arrêtée à gauche de la limite : ligne poussée vers la droite (vers l'obstacle).
+    expect(shownLimit(limit, [{ x: 80, y: 0, width: 200, height: 80 }], 6, 20)).toEqual([
+      { x: 286, y: -40 },
+      { x: 286, y: 140 },
+    ]);
+    // Forme arrêtée à droite : vers la gauche.
+    expect(shownLimit(limit, [{ x: 280, y: 0, width: 200, height: 80 }], 6, 20)[0]).toEqual({ x: 274, y: -40 });
+  });
+
+  it('limite horizontale : côté de la forme la plus proche', () => {
+    const horizontal: typeof limit = [
+      { x: -20, y: 280 },
+      { x: 220, y: 280 },
+    ];
+    const stopped = [
+      { x: 0, y: 0, width: 100, height: 80 },
+      { x: 0, y: 280, width: 100, height: 80 },
+    ];
+    expect(shownLimit(horizontal, stopped, 6, 20)).toEqual([
+      { x: -40, y: 274 },
+      { x: 240, y: 274 },
+    ]);
   });
 });

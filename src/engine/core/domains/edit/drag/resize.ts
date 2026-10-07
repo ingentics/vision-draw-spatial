@@ -34,7 +34,7 @@ export class ResizeDrags {
       // Pas à pas depuis les bornes courantes (dernière taille permise), comme le déplacement.
       const clamped = clampResize(extent(shape.bounds), extent(bounds), obstacles, gap);
       bounds = { ...clamped.value, y: clamped.value.y + above, height: clamped.value.height - above };
-      this.core.preview.showLimits(clamped.limits);
+      this.core.preview.showLimits(clamped.limits, [clamped.value]);
     }
     const previous = shape.bounds;
     if (

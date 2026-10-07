@@ -52,7 +52,11 @@ export class MoveDrags {
         x: snapped.x - applied.x,
         y: snapped.y - applied.y,
       });
-      this.core.preview.showLimits(bounded.limits);
+      const { x, y } = bounded.value;
+      this.core.preview.showLimits(
+        bounded.limits,
+        here.map((r) => ({ ...r, x: r.x + x, y: r.y + y })),
+      );
       target = { x: applied.x + bounded.value.x, y: applied.y + bounded.value.y };
     }
     const step = { x: target.x - move.applied.x, y: target.y - move.applied.y };

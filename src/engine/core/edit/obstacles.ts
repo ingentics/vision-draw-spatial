@@ -130,3 +130,28 @@ export function clampResize(origin: Rect, next: Rect, obstacles: Rect[], gap: nu
   );
   return { value: { x: left, y: top, width: right - left, height: bottom - top }, limits: kept };
 }
+
+/**
+ * Limite telle qu'elle est montrée (sujet 316) : écartée de `offset` du côté opposé aux rectangles arrêtés `stopped`
+ * (pour ne pas être recouverte par leur cadre de sélection), et prolongée de `extension` à chaque bout.
+ */
+export function shownLimit(limit: Segment, stopped: Rect[], offset: number, extension: number): Segment {
+  const [a, b] = limit;
+  const vertical = a.x === b.x;
+  const at = vertical ? a.x : a.y;
+  // Côté des rectangles arrêtés : celui du plus proche de la limite.
+  const centers = stopped.map((r) => (vertical ? r.x + r.width / 2 : r.y + r.height / 2));
+  const nearest = centers.reduce((best, c) => (Math.abs(c - at) < Math.abs(best - at) ? c : best), centers[0] ?? at);
+  const shifted = at + (nearest <= at ? offset : -offset);
+  const from = Math.min(vertical ? a.y : a.x, vertical ? b.y : b.x) - extension;
+  const to = Math.max(vertical ? a.y : a.x, vertical ? b.y : b.x) + extension;
+  return vertical
+    ? [
+        { x: shifted, y: from },
+        { x: shifted, y: to },
+      ]
+    : [
+        { x: from, y: shifted },
+        { x: to, y: shifted },
+      ];
+}

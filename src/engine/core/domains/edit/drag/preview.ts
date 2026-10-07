@@ -2,11 +2,14 @@ import { Color, Group, Mesh } from 'three';
 import type { MeshBasicMaterial, Object3D } from 'three';
 import { sideOfConstraint } from '../../../edit/edgeEnds';
 import type { EndAttachment } from '../../../edit/edgeEnds';
-import type { PageModel, Point } from '../../../model/types';
+import { distance } from '../../../model/geometry';
+import type { PageModel, Point, Rect } from '../../../model/types';
 import { perimeterKind } from '../../../render/edges/route';
 import { parseStyle } from '../../../format/style';
 import { connectionHints } from '../../../render/handleMeshes';
-import { disposeObject, strokeMesh } from '../../../render/meshes';
+import { disposeObject, fadedStrokeMesh } from '../../../render/meshes';
+import { dashPolyline } from '../../../render/geometry/stroke';
+import { shownLimit } from '../../../edit/obstacles';
 import type { Segment } from '../../../edit/obstacles';
 import type { AnchorSkip, TakenAnchor } from '../edges/anchors';
 import type { EngineCore } from '../../EngineCore';
@@ -105,24 +108,25 @@ export class ConnectorPreview {
 
   /**
    * Limites atteintes par un déplacement ou un redimensionnement borné (sujet 241) : lignes rouges en pointillé,
-   * d'épaisseur et de tirets constants à l'écran, au-dessus du schéma. Aucune limite : rien n'est montré.
+   * d'épaisseur et de tirets constants à l'écran, au-dessus du schéma. Écartées des rectangles arrêtés `stopped` (hors
+   * de leur cadre de sélection), prolongées et fondues à leurs bouts (sujet 316). Aucune limite : rien n'est montré.
    */
-  showLimits(segments: Segment[]): void {
-    const key = JSON.stringify(segments);
+  showLimits(segments: Segment[], stopped: Rect[]): void {
+    const zoom = this.core.camera.state.zoom;
+    const key = JSON.stringify([segments, stopped, zoom]);
     if (key === this.limitsKey) return;
     this.clearLimits();
     this.limitsKey = key;
     const root = this.core.scenes.current?.root;
     if (!root || segments.length === 0) return;
-    const zoom = this.core.camera.state.zoom;
     const group = new Group();
     group.name = 'drag-limits';
     for (const segment of segments) {
-      const mesh = strokeMesh(segment, new Color(LIMIT_COLOR), 1, {
-        width: 1.5 / zoom,
-        closed: false,
-        dash: [6 / zoom, 4 / zoom],
-      });
+      const shown = shownLimit(segment, stopped, LIMIT_OFFSET / zoom, LIMIT_EXTENSION);
+      // Opacité pleine au milieu, nulle aux bouts, sur les `LIMIT_FADE` derniers pixels.
+      const alphaAt = (p: Point) => Math.min(1, Math.min(distance(p, shown[0]), distance(p, shown[1])) / LIMIT_FADE);
+      const dashes = dashPolyline(shown, [6 / zoom, 4 / zoom], false);
+      const mesh = fadedStrokeMesh(dashes, alphaAt, new Color(LIMIT_COLOR), 1, 1.5 / zoom);
       if (!mesh) continue;
       (mesh.material as MeshBasicMaterial).depthTest = false;
       mesh.renderOrder = Number.MAX_SAFE_INTEGER;
@@ -146,3 +150,8 @@ export class ConnectorPreview {
 
 /** Couleur des limites d'un geste borné (sujet 241). */
 const LIMIT_COLOR = '#e53935';
+/** Écart d'une limite au bord arrêté, en pixels écran : au-delà du cadre de sélection (3 px) (sujet 316). */
+const LIMIT_OFFSET = 6;
+/** Prolongement d'une limite à chaque bout, et longueur de son fondu, en pixels de page (sujet 316). */
+const LIMIT_EXTENSION = 40;
+const LIMIT_FADE = 10;
