@@ -1,5 +1,43 @@
 # Changelog
 
+## [0.5.0](https://github.com/ingentics/vision-draw-spatial/compare/drawio-spatial-v0.4.0...drawio-spatial-v0.5.0) (2026-10-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* **engine:** Engine n'a plus get/setViewSettings, get/setControls, get/setTransitionSettings ni get/setPreloadSettings : utiliser getSettings() et updateSettings({ view | controls | transition | preload: … }).
+
+### Fonctionnalités
+
+* **engine:** cadrage gardé quand la fenêtre change d'écran ([49425f2](https://github.com/ingentics/vision-draw-spatial/commit/49425f248cdbf3fd6121a5d6a3e68d06a7767bfd))
+* **engine:** contenu d'une région RDD dessiné devant elle ([c9c47cb](https://github.com/ingentics/vision-draw-spatial/commit/c9c47cb438a146a808b6ef386a1bd7d5faca2c53))
+* **engine:** couleur d'une région RDD neuve selon le nombre de ses sœurs ([1672ea2](https://github.com/ingentics/vision-draw-spatial/commit/1672ea2c3cc424f5e0dd5984bb0a016e7638f081))
+* **engine:** embedded, document JSONB et vue du mode RDD ([c64ff7f](https://github.com/ingentics/vision-draw-spatial/commit/c64ff7ffda65d7b48dd4042dfa6493a3f2df0b39))
+* **engine:** entité et entité énumérative du mode RDD ([fb0108a](https://github.com/ingentics/vision-draw-spatial/commit/fb0108ac9edfd98f17c9b3dd2731ae041ae4eb1b))
+* **engine:** Entrée cadre la sélection avant le 1:1 et la vue globale ([4792170](https://github.com/ingentics/vision-draw-spatial/commit/47921704ee726bac344d82c0afb8128da0df8c62))
+* **engine:** flèche coupée en deux, fondu ou cadre de renvoi ([6d25e63](https://github.com/ingentics/vision-draw-spatial/commit/6d25e6393013f2e247e45c892efe706c8e297bb3))
+* **engine:** garde canInteract, vue graphe et doublons de paramètres retirés ([66cbe65](https://github.com/ingentics/vision-draw-spatial/commit/66cbe65ac5fc67885535111ace6a78fd1d86776f))
+* **engine:** icônes d'entête des tables RDD ([425fb9c](https://github.com/ingentics/vision-draw-spatial/commit/425fb9ce10fdb82dd79ed4b6bf8640f407f4e5dd))
+* **engine:** ligne de survol entre les coupures, renvois en direct ([6b186b6](https://github.com/ingentics/vision-draw-spatial/commit/6b186b68c48e992f725e871a57948fae5d69137a))
+* **engine:** mode RDD et forme « Modèle abstrait » ([147a535](https://github.com/ingentics/vision-draw-spatial/commit/147a53509ba6e021f708ace071cc6f774aaaba68))
+* **engine:** onglet de la région RDD, fini par un S ([40f29c7](https://github.com/ingentics/vision-draw-spatial/commit/40f29c7207bcc5d011fd3016f0075fe52fe60465))
+* **engine:** onglet de la région redimensionné pendant la saisie du nom ([3a7c3d2](https://github.com/ingentics/vision-draw-spatial/commit/3a7c3d2465462ca1011992dd60390b2f48b15fdf))
+* **engine:** région RDD agrandie à gauche et en haut quand son contenu en sort ([6f84efa](https://github.com/ingentics/vision-draw-spatial/commit/6f84efaf0465a472aa0f9393eed3c5e93c38cb98))
+* **engine:** région RDD agrandie quand on y pose une forme qui dépasse ([9387cd7](https://github.com/ingentics/vision-draw-spatial/commit/9387cd77dd7165e331e887a6df1be4705033025b))
+* **engine:** région RDD qui emporte son contenu ([8fd1559](https://github.com/ingentics/vision-draw-spatial/commit/8fd15591fbcd2a2d360634f79777e6d5cc6b9968))
+* **engine:** règles des régions RDD au redimensionnement, à « f » et au collage ([8b2f4de](https://github.com/ingentics/vision-draw-spatial/commit/8b2f4ded885739da0732b1a46dd618805d5a782e))
+* **engine:** survol d'une flèche coupée, trait épaissi et ligne directe ([757c30f](https://github.com/ingentics/vision-draw-spatial/commit/757c30f0a9b6d6ba14e5e5032b774fda263842d5))
+* **engine:** touche « f » pour ajuster une région RDD à son contenu ([36191d4](https://github.com/ingentics/vision-draw-spatial/commit/36191d4cec761fa8d148e4025f7a1e8308c5ff80))
+* **engine:** une région RDD ne passe pas sur ses sœurs, borne en pointillé rouge ([a3a230b](https://github.com/ingentics/vision-draw-spatial/commit/a3a230ba26855292cb6195351b15c14db0d41d39))
+
+
+### Corrections
+
+* **engine:** forme amenée à l'écran avant l'édition de son texte ([bf63762](https://github.com/ingentics/vision-draw-spatial/commit/bf637623084498e1cc31f74e3b3bb4ceba15af29))
+* **engine:** onglet d'une région enfant compté dans l'ajustement de sa parente ([5a2bd50](https://github.com/ingentics/vision-draw-spatial/commit/5a2bd50e80014e64151b655af887f68718759d1c))
+* **engine:** onglet de la région au plus près du nom, édition sur le nom ([9575b75](https://github.com/ingentics/vision-draw-spatial/commit/9575b75fd3dcb79f687b23de4c6874a7ca5c76bf))
+* **engine:** région dans une région dès que son coin y est, quelle que soit sa taille ([42ccbcc](https://github.com/ingentics/vision-draw-spatial/commit/42ccbcc5268a1eea2ba0f579b31d36f7249d82b6))
+
 ## [0.4.0](https://github.com/ingentics/vision-draw-spatial/compare/drawio-spatial-v0.3.0...drawio-spatial-v0.4.0) (2026-10-06)
 
 
