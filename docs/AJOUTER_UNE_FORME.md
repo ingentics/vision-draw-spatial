@@ -181,7 +181,7 @@ Utilisez les aides de [render/geometry/paths.ts](../src/engine/core/render/geome
 arrondi avec `rounded=1`), `sizeOffset` (décalage `size` / `fixedSize` des formes à pans) ; pour l'orientation,
 `orientation` et `orientedPath` ([render/geometry/orient.ts](../src/engine/core/render/geometry/orient.ts)) ; pour le
 trait, `styleStroke` (couleur, opacité, épaisseur, pointillés). Avant d'écrire un calcul, cherchez-le dans l'API des
-plugins (`core/plugins/index.ts`) : une brique qui manque s'y ajoute plutôt que d'être recopiée (sujet 307). Briques à chercher d'abord (sujet 316) : `clamp` (borner), `shade` (couleur ×
+plugins (`core/plugins/index.ts`) : une brique qui manque s'y ajoute plutôt que d'être recopiée (sujet 307). Briques à chercher d'abord (sujet 325) : `clamp` (borner), `shade` (couleur ×
 facteur en RVB, retrait d'une gravure) et `darken` (HSL), `drawioStyle('Gris')` (couleurs d'un style de base),
 `VERTEX_DEFAULTS` (blanc / noir implicites), `labelObject` (étiquette d'une cellule), `shapesById` et `edgeEnds`
 (bouts d'une flèche), `elementName`.

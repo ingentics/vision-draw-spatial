@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { edgeEnds, shapesById } from '../../../../src/engine/core/model/pageIndex';
 
-describe('index d’une page (sujet 316)', () => {
+describe('index d’une page (sujet 325)', () => {
   const page = { shapes: [{ id: 'a' }, { id: 'b' }] };
 
   it('formes par id', () => {

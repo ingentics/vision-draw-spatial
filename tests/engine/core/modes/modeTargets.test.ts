@@ -8,7 +8,7 @@ const XML = `<mxfile><diagram id="p" name="P"><mxGraphModel><root><mxCell id="0"
 <mxCell id="e" edge="1" source="a" target="a" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
 </root></mxGraphModel></diagram></mxfile>`;
 
-describe('cibles d’un réglage de mode (sujet 316)', () => {
+describe('cibles d’un réglage de mode (sujet 325)', () => {
   const page = readDrawio(XML).document.pages[0]!;
   const shape = page.shapes[0]!;
   const edge = page.edges[0]!;

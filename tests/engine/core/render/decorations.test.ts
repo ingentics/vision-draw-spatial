@@ -21,7 +21,7 @@ describe('mise en valeur d’une partie de forme', () => {
   });
 });
 
-describe('couleurs assombries (sujet 316)', () => {
+describe('couleurs assombries (sujet 325)', () => {
   it('shade : couleur × facteur en RVB, #rrggbb ou Color', () => {
     expect(shade('#ffffff', 0.5)).toBe(`#${new Color(0xffffff).multiplyScalar(0.5).getHexString()}`);
     expect(shade(new Color('#336699'), 1)).toBe('#336699');

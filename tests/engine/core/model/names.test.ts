@@ -10,7 +10,7 @@ describe('premier nom numéroté libre (sujet 307)', () => {
   });
 });
 
-describe('nom d’un élément (sujet 316)', () => {
+describe('nom d’un élément (sujet 325)', () => {
   it('le label, sinon l’id', () => {
     expect(elementName({ id: 'a', label: 'Client' })).toBe('Client');
     expect(elementName({ id: 'a', label: '' })).toBe('a');

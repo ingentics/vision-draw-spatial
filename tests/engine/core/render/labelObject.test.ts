@@ -4,7 +4,7 @@ import { labelObject } from '../../../../src/engine/core/render/flat/box';
 import { PART_ORDER } from '../../../../src/engine/core/render/types';
 import type { RenderContext, TextSpec } from '../../../../src/engine/core/render/types';
 
-describe('étiquette d’une cellule (sujet 316)', () => {
+describe('étiquette d’une cellule (sujet 325)', () => {
   it('objet texte nommé « label », cellule porteuse et ordre de dessin posés', () => {
     const specs: TextSpec[] = [];
     const ctx = {

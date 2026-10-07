@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { TOGGLE_ON, isToggled, toggleValue } from '../../../../src/engine/core/modes/modeProperties';
 
-describe('convention des réglages toggle (sujet 316)', () => {
+describe('convention des réglages toggle (sujet 325)', () => {
   it('coché = « 1 », décoché = pas de valeur', () => {
     expect(TOGGLE_ON).toBe('1');
     expect(toggleValue(true)).toBe('1');

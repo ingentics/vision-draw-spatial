@@ -203,7 +203,7 @@ const WRITER: PageModeDefinition = {
   },
 };
 
-describe('page remise aux plugins pendant un geste (sujet 315)', () => {
+describe('page remise aux plugins pendant un geste (sujet 324)', () => {
   it('habillage, accroche et glisser de partie qui écrivent : modèle intact, erreur signalée une fois', () => {
     const { core, modes, guard, page } = setup(WRITER);
     // La page du document n'est pas gelée ici : c'est la copie de travail d'un geste.

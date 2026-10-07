@@ -301,7 +301,7 @@ export class PageModes {
     if (!mode || !entry || !pageTree || !this.core.file.xmlTree) return false;
     const read = documentFromTree(this.core.file.xmlTree).pages.find((p) => p.id === pageId);
     if (!read) return false;
-    // Page de ce seul usage : gelée comme celles du document, le mode n'y écrit pas (sujet 315).
+    // Page de ce seul usage : gelée comme celles du document, le mode n'y écrit pas (sujet 324).
     const fresh = freezeModel(read);
     const context = this.editContext();
     return this.guard(mode, hook, false, () =>

@@ -200,7 +200,7 @@ export class ShapeRegistry {
 
   /**
    * Dessin en mini-carte ; repli sur le contour. `undefined` = ne rien dessiner. La forme ne reçoit qu'un pinceau
-   * (sujet 315), jamais le contexte 2D, partagé par toutes les formes et rendu tel quel après chacune ; un dessin qui
+   * (sujet 324), jamais le contexte 2D, partagé par toutes les formes et rendu tel quel après chacune ; un dessin qui
    * lève une exception est remplacé par les bornes.
    */
   minimapPainter(

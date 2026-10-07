@@ -64,7 +64,7 @@ describe('styles de forme', () => {
   });
 });
 
-describe('style de base par son nom (sujet 316)', () => {
+describe('style de base par son nom (sujet 325)', () => {
   it('Gris : fond, contour et texte du préset', () => {
     expect(drawioStyle('Gris')).toEqual({
       name: 'Gris',

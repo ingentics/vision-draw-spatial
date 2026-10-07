@@ -260,7 +260,7 @@ describe('formes protégées (sujet 300)', () => {
     return { registry, guard, state, document, page, shape };
   }
 
-  it('forme qui écrit dans la forme remise : placeholder, erreur signalée, label intact (sujet 315)', () => {
+  it('forme qui écrit dans la forme remise : placeholder, erreur signalée, label intact (sujet 324)', () => {
     const { registry, guard, shape } = setup();
     const writer: ShapeDefinition = {
       id: 'writer',

@@ -84,7 +84,7 @@ describe('écritures d’une opération de mode (sujet 301)', () => {
   });
 });
 
-describe('attribut d’un élément verrouillé (sujet 315)', () => {
+describe('attribut d’un élément verrouillé (sujet 324)', () => {
   it('setElementAttribute ignore un élément verrouillé, pas un élément libre', () => {
     const { tree, run, shape } = setup();
     const before = writeDrawio(tree);

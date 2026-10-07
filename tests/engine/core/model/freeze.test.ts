@@ -81,7 +81,7 @@ describe('plugin qui modifie le modèle reçu (sujet 312)', () => {
   });
 });
 
-describe('vue en lecture seule pour un plugin (sujet 315)', () => {
+describe('vue en lecture seule pour un plugin (sujet 324)', () => {
   const source = () => ({ list: [{ a: 1 }, { a: 2 }], nested: { b: { c: 3 } }, text: 'x' });
 
   it('lecture transparente : valeurs, tableaux, itération, JSON', () => {

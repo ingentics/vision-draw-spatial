@@ -254,7 +254,7 @@ Règles communes (sujet 288) :
   relu qu'à la fin). Les écritures sont rassemblées puis appliquées une fois l'opération terminée. Une opération qui ne
   change rien n'ouvre pas d'étape d'annulation ; une opération qui lève une exception n'écrit rien, et si une de ses
   écritures échoue en route (ex. cellule disparue), la page revient à l'état d'avant l'opération (sujet 302). Une
-  écriture sur un élément verrouillé est ignorée sans exception (sujet 315).
+  écriture sur un élément verrouillé est ignorée sans exception (sujet 324).
 - **Remise en ordre** : une opération appelée *après* un geste déjà écrit dans l'arbre. `edit.page` est la page relue
   *après* le geste, et ses écritures tombent dans l'étape d'annulation du geste.
 - **En panne** : un point d'entrée qui lève une exception est traité comme absent (colonne « En panne ») ; l'erreur est

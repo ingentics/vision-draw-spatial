@@ -64,7 +64,7 @@ describe('réglages des plugins (sujet 287)', () => {
   });
 });
 
-describe('accès typés aux valeurs (sujet 316)', () => {
+describe('accès typés aux valeurs (sujet 325)', () => {
   const values = pluginValues(SETTINGS, {});
 
   it('valeur du type attendu', () => {

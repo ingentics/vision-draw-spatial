@@ -61,7 +61,7 @@ export interface MinimapMapping {
 
 /**
  * Pinceau restreint remis à une forme pour la mini-carte, en pixels de la mini-carte (`map.toMinimap`). Une forme ne
- * reçoit jamais le contexte 2D : par son canvas elle atteindrait le DOM (sujet 315).
+ * reçoit jamais le contexte 2D : par son canvas elle atteindrait le DOM (sujet 324).
  */
 export interface MinimapBrush {
   /** Polygone fermé : rempli de `fill` (rien si absent), bordé de `stroke` (rien si absent), trait `lineWidth` (défaut 0,75). */

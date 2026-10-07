@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { clamp } from '../../../../src/engine/core/model/numbers';
 
-describe('clamp (sujet 316)', () => {
+describe('clamp (sujet 325)', () => {
   it('ramène dans les bornes, bornes comprises', () => {
     expect(clamp(5, 0, 10)).toBe(5);
     expect(clamp(-1, 0, 10)).toBe(0);

@@ -22,7 +22,7 @@ const square = [
   { x: 4, y: 4 },
 ];
 
-describe('pinceau de la mini-carte (sujet 315)', () => {
+describe('pinceau de la mini-carte (sujet 324)', () => {
   it('polygone rempli et bordé : chemin fermé, remplissage puis trait de 0,75', () => {
     const { calls, brush } = recorder();
     brush.polygon(square, { fill: '#ff0000', stroke: '#00ff00' });

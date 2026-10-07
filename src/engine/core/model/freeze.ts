@@ -57,7 +57,7 @@ function view<T>(value: T): T {
 }
 
 /**
- * Page, forme ou flèche remise à un point d'entrée de plugin (sujet 315). Hors d'un geste, le modèle est déjà gelé
+ * Page, forme ou flèche remise à un point d'entrée de plugin (sujet 324). Hors d'un geste, le modèle est déjà gelé
  * (`freezeModel`) et rendu tel quel ; pendant un geste, la copie de travail est modifiée par le tronc et ne peut pas
  * être gelée : le plugin en reçoit une vue paresseuse dont toute écriture lève une exception (comme sur un objet
  * gelé), sans copie. En production, la valeur elle-même (pas de coût).
