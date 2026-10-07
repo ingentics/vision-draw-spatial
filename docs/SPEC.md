@@ -921,7 +921,9 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     quelle que soit leur taille (deux coins au même point : la plus grande contient l'autre, à taille égale celle de
     derrière) ; dans deux régions imbriquées, une forme appartient à la plus petite (à taille égale, celle de devant). Déplacer la région déplace son contenu (régions incluses, flèches entre ces formes), en une étape
     d'annulation ; redimensionner ne déplace rien. Une forme du mode posée (déplacée ou ajoutée) dont le coin
-    haut-gauche est dans une région mais qui en dépasse l'agrandit vers la droite et / ou le bas, avec 20 px de marge,
+    haut-gauche est dans une région mais qui en dépasse l'agrandit, avec 20 px de marge de chaque côté trop proche ;
+    une forme déplacée qui sort de sa région par la gauche ou le haut en la chevauchant encore y reste et l'agrandit
+    de ce côté (sauf si son coin entre dans une autre région qui n'englobe pas la sienne) ;
     dans la même étape d'annulation ; les régions englobantes suivent ; une région ne rétrécit jamais à cette occasion.
     Ordre de dessin : à la pose d'une forme du mode, les régions passent au fond de la pile, les plus englobantes
     derrière ; le contenu d'une région est ainsi toujours devant elle, à toute profondeur.

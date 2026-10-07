@@ -1,7 +1,7 @@
 import { setPageAttribute } from '../../format/edit';
 import { documentFromTree } from '../../format/parse';
 import { writeDrawio } from '../../format/write';
-import type { DocumentModel, PageModel } from '../../model/types';
+import type { DocumentModel, PageModel, Point } from '../../model/types';
 import { setElementsDim } from '../../render/pageEffects';
 import { applyModeEdit } from '../../modes/edit';
 import { pageEffectIds, withPageEffect } from '../../effects/registry';
@@ -178,17 +178,32 @@ export class PageModes {
 
   /**
    * Formes posées sur la page (déplacées ou ajoutées), déjà écrites dans l'arbre : le mode de la page les remet en ordre
-   * dans la même étape d'annulation (`placed`). Vrai si l'arbre a changé (le modèle est alors à relire).
+   * dans la même étape d'annulation (`placed`). `moved` : formes déplacées et décalage appliqué, pour retrouver la page
+   * d'avant le déplacement. Vrai si l'arbre a changé (le modèle est alors à relire).
    */
-  shapesPlaced(pageId: string, shapeIds: string[]): boolean {
+  shapesPlaced(pageId: string, shapeIds: string[], moved?: { shapeIds: ReadonlySet<string>; delta: Point }): boolean {
     const page = this.core.pages.pageById(pageId);
     const placed = page && this.core.modes.modeOf(page)?.placed;
     const pageTree = this.core.file.pageTreeOf(pageId);
     if (!placed || !pageTree || !this.core.file.xmlTree || shapeIds.length === 0) return false;
     const fresh = documentFromTree(this.core.file.xmlTree).pages.find((p) => p.id === pageId);
-    return (
-      fresh !== undefined &&
-      applyModeEdit(fresh, pageTree, (edit) => placed(edit, shapeIds), modePalette(this.core.settings.styles))
+    if (!fresh) return false;
+    const before = moved && {
+      ...fresh,
+      shapes: fresh.shapes.map((shape) =>
+        moved.shapeIds.has(shape.id)
+          ? {
+              ...shape,
+              bounds: { ...shape.bounds, x: shape.bounds.x - moved.delta.x, y: shape.bounds.y - moved.delta.y },
+            }
+          : shape,
+      ),
+    };
+    return applyModeEdit(
+      fresh,
+      pageTree,
+      (edit) => placed(edit, shapeIds, before),
+      modePalette(this.core.settings.styles),
     );
   }
 

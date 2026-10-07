@@ -599,9 +599,15 @@ describe('mode RDD : la région s’étend quand on y pose une forme qui dépass
       run((edit) => edit.setShapeBounds(id, { ...bounds(id), x, y }));
       return run((edit) => rdd.placed!(edit, [id]));
     };
+    /** Déplacement : le mode reçoit aussi la page d'avant (sujet 234). */
+    const move = (id: string, x: number, y: number) => {
+      const before = page;
+      run((edit) => edit.setShapeBounds(id, { ...bounds(id), x, y }));
+      return run((edit) => rdd.placed!(edit, [id], before));
+    };
     const resize = (id: string, width: number, height: number) =>
       run((edit) => edit.setShapeBounds(id, { ...bounds(id), width, height }));
-    return { bounds, place, resize };
+    return { bounds, place, move, resize };
   };
 
   it('la région s’agrandit vers la droite et le bas, 20 px de marge ; sa région englobante suit', () => {
@@ -636,6 +642,25 @@ describe('mode RDD : la région s’étend quand on y pose une forme qui dépass
     expect(place('small', 400, 200)).toBe(true);
     expect(bounds('big')).toEqual({ x: 0, y: 0, width: 620, height: 370 });
     expect(bounds('small')).toEqual({ x: 400, y: 200, width: 200, height: 150 });
+  });
+
+  it('sortie par la gauche ou le haut en chevauchant sa région : la région s’agrandit de ce côté (sujet 234)', () => {
+    const { bounds, move } = setupPage();
+    // T (160 × 46) dans Small (100, 100, 200 × 150) tirée à (80, 90) : coin hors de Small mais dans Big, qui englobe
+    // Small ; elle chevauche encore Small, qui s'agrandit à gauche et en haut (marge comprise), pas à droite.
+    expect(move('t', 80, 90)).toBe(true);
+    expect(bounds('small')).toEqual({ x: 60, y: 70, width: 240, height: 180 });
+    expect(bounds('big')).toEqual({ x: 0, y: 0, width: 500, height: 300 });
+    // Small sortie à son tour par le haut de Big : Big s'agrandit vers le haut, marge comprise.
+    expect(move('small', 60, -10)).toBe(true);
+    expect(bounds('big')).toEqual({ x: 0, y: -30, width: 500, height: 330 });
+  });
+
+  it('tirée complètement hors de sa région, la forme en sort : rien ne s’agrandit (sujet 234)', () => {
+    const { bounds, move } = setupPage();
+    expect(move('t', 600, 400)).toBe(false);
+    expect(bounds('small')).toEqual({ x: 100, y: 100, width: 200, height: 150 });
+    expect(bounds('big')).toEqual({ x: 0, y: 0, width: 500, height: 300 });
   });
 
   it('ni rétrécie ni changée si la forme tient ; une forme hors du mode ou hors région ne change rien', () => {

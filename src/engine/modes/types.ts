@@ -55,9 +55,9 @@ export interface PageModeDefinition {
   /**
    * Formes posées : déplacées (fin d'un glisser, flèches du clavier) ou ajoutées depuis la palette ; remise en ordre
    * dans la même étape d'annulation (ex. région RDD agrandie pour les contenir, sujet 183). `edit.page` est la page
-   * après la pose.
+   * après la pose ; `before`, la page avant un déplacement (absente pour un ajout, sujet 234).
    */
-  placed?(edit: ModeEdit, shapeIds: string[]): void;
+  placed?(edit: ModeEdit, shapeIds: string[], before?: PageModel): void;
 }
 
 /**

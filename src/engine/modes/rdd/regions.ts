@@ -129,31 +129,64 @@ export function setRegionColor(edit: ModeEdit, shape: ShapeModel, color: string 
   edit.setElementStyle(shape.id, 'fontColor', regionTextColor(color));
 }
 
+/** Deux rectangles se chevauchent-ils (bords exclus) ? */
+const overlaps = (a: Rect, b: Rect) =>
+  a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+
+/** `ancestor` contient-elle `region`, de proche en proche ? */
+function encloses(page: PageModel, ancestor: ShapeModel, region: ShapeModel): boolean {
+  const seen = new Set<string>();
+  for (let parent = regionOf(page, region); parent && !seen.has(parent.id); parent = regionOf(page, parent)) {
+    if (parent.id === ancestor.id) return true;
+    seen.add(parent.id);
+  }
+  return false;
+}
+
 /**
- * Formes posées (déplacées ou ajoutées, sujet 183) : une forme du mode qui dépasse de la région qui la contient (coin
- * haut-gauche dedans) l'agrandit vers la droite et / ou le bas, pour la contenir avec la marge de sécurité ; la région
- * agrandie fait de même avec la sienne, de proche en proche. Une région ne rétrécit jamais ici.
+ * Formes posées (déplacées ou ajoutées, sujets 183, 234) : une forme du mode qui dépasse de la région qui la contient
+ * l'agrandit, dans les quatre directions, pour la contenir avec la marge de sécurité ; la région agrandie fait de même
+ * avec la sienne, de proche en proche. Une région ne rétrécit jamais ici.
+ *
+ * La région d'une forme est celle de son coin haut-gauche ; après un déplacement (`before` : la page d'avant), une
+ * forme sortie de sa région par la gauche ou le haut y reste tant qu'elle la chevauche, sauf si son coin est entré dans
+ * une autre région qui n'englobe pas la sienne.
  */
-export function growRegions(edit: ModeEdit, shapeIds: string[]): void {
+export function growRegions(edit: ModeEdit, shapeIds: string[], before?: PageModel): void {
   const { page } = edit;
   /** Bornes des régions déjà agrandies par cette opération. */
   const grown = new Map<string, Rect>();
   const boundsOf = (shape: ShapeModel) => grown.get(shape.id) ?? shape.bounds;
+  const ownerOf = (shape: ShapeModel): ShapeModel | undefined => {
+    const owner = regionOf(page, shape);
+    const earlier = before?.shapes.find((s) => s.id === shape.id);
+    const previousId = earlier && before && regionOf(before, earlier)?.id;
+    const previous = previousId === undefined ? undefined : page.shapes.find((s) => s.id === previousId);
+    if (!previous || previous.id === owner?.id || !overlaps(boundsOf(shape), boundsOf(previous))) return owner;
+    return !owner || encloses(page, owner, previous) ? previous : owner;
+  };
   for (const id of shapeIds) {
     let shape = page.shapes.find((s) => s.id === id);
     const seen = new Set<string>();
     while (shape && !seen.has(shape.id)) {
       seen.add(shape.id);
-      // L'appartenance se lit sur les bornes d'origine : agrandir vers la droite et le bas ne déplace pas un coin.
-      const region = regionOf(page, shape);
+      const region = ownerOf(shape);
       if (!region) break;
       const inner = boundsOf(shape);
       const outer = boundsOf(region);
-      const width = Math.max(outer.width, inner.x + inner.width + REGION.margin - outer.x);
-      const height = Math.max(outer.height, inner.y + inner.height + REGION.margin - outer.y);
-      const fits = inner.x + inner.width <= outer.x + outer.width && inner.y + inner.height <= outer.y + outer.height;
-      if (fits || (width === outer.width && height === outer.height)) break;
-      const next = { ...outer, width, height };
+      const fits =
+        inner.x >= outer.x &&
+        inner.y >= outer.y &&
+        inner.x + inner.width <= outer.x + outer.width &&
+        inner.y + inner.height <= outer.y + outer.height;
+      if (fits) break;
+      // Elle dépasse : la région s'agrandit pour garder la marge de chaque côté où la forme en est trop près.
+      const { margin } = REGION;
+      const left = Math.min(outer.x, inner.x - margin);
+      const top = Math.min(outer.y, inner.y - margin);
+      const right = Math.max(outer.x + outer.width, inner.x + inner.width + margin);
+      const bottom = Math.max(outer.y + outer.height, inner.y + inner.height + margin);
+      const next = { x: left, y: top, width: right - left, height: bottom - top };
       grown.set(region.id, next);
       edit.setShapeBounds(region.id, next);
       shape = region;
@@ -187,8 +220,8 @@ export function orderRegions(edit: ModeEdit): void {
 }
 
 /** Formes posées (sujets 183, 230) : régions agrandies pour les contenir, puis remises en ordre de dessin. */
-export function placeInRegions(edit: ModeEdit, shapeIds: string[]): void {
-  growRegions(edit, shapeIds);
+export function placeInRegions(edit: ModeEdit, shapeIds: string[], before?: PageModel): void {
+  growRegions(edit, shapeIds, before);
   orderRegions(edit);
 }
 
