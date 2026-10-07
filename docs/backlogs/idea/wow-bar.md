@@ -1,0 +1,2 @@
+- Items de 20x20
+- Vue: 1:1, global
