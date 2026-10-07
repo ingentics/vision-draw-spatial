@@ -1,4 +1,4 @@
-import type { ShapeModel } from '../model/types';
+import type { ReadonlyShapeModel as ShapeModel } from '../model/readonly';
 import { createBox } from '../render/flat/box';
 import { rectPath } from '../render/geometry/paths';
 import { isoBlock } from '../render/iso/block';

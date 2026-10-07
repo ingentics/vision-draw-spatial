@@ -1,6 +1,7 @@
-import type { PageModel, Point, ShapeModel } from '../../../model/types';
+import type { PageModel, Point } from '../../../model/types';
 import type { PartDrag } from './types';
 import type { EngineCore } from '../../EngineCore';
+import type { ReadonlyShapeModel } from '../../../model/readonly';
 
 /**
  * Partie sélectionnée d'une forme glissée à une autre place (sujet 252, ex. champ d'une table RDD) : la place visée
@@ -9,7 +10,7 @@ import type { EngineCore } from '../../EngineCore';
  */
 export class PartDrags {
   /** Aperçu affiché : la forme redessinée et la partie à sa nouvelle place ; absent = forme telle quelle. */
-  private shown: { shape: ShapeModel; part: string; target: string } | undefined;
+  private shown: { shape: ReadonlyShapeModel; part: string; target: string } | undefined;
 
   constructor(private readonly core: EngineCore) {}
 
@@ -40,7 +41,7 @@ export class PartDrags {
   }
 
   /** Partie mise en valeur pendant le glisser : à sa place dans l'aperçu (`ShapeParts.selectedBounds`). */
-  previewed(): { shape: ShapeModel; part: string } | undefined {
+  previewed(): { shape: ReadonlyShapeModel; part: string } | undefined {
     return this.shown;
   }
 

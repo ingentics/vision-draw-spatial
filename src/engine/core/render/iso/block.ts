@@ -1,6 +1,7 @@
 import { BufferGeometry, Color, Float32BufferAttribute, Group, Mesh } from 'three';
 import type { Object3D } from 'three';
-import type { Point, ShapeModel } from '../../model/types';
+import type { Point } from '../../model/types';
+import type { ReadonlyShapeModel as ShapeModel } from '../../model/readonly';
 import { createBox, VERTEX_DEFAULTS } from '../flat/box';
 import type { BoxDefaults } from '../flat/box';
 import { cleanOutline, dashPattern, offsetOutline } from '../geometry/stroke';

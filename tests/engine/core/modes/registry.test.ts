@@ -76,6 +76,8 @@ describe('modes de page en plugins (sujet 69)', () => {
     const registry = new PageModeRegistry().register({ id: 'a', namespace: 'ns', name: 'A' });
     expect(() => registry.register({ id: 'b', namespace: 'ns', name: 'B' })).toThrow('déjà pris par a');
     expect(() => registry.register({ id: 'c', namespace: 'Mauvais.ns', name: 'C' })).toThrow('invalide');
+    // Mode écrit sans espace de noms (hors du typage) : refusé lui aussi.
+    expect(() => registry.register({ id: 'c', name: 'C' } as unknown as PageModeDefinition)).toThrow('invalide');
     // Le même mode réenregistré (remplacé) garde son espace de noms.
     expect(() => registry.register({ id: 'a', namespace: 'ns', name: 'A2' })).not.toThrow();
     registry.register({ id: 'd', namespace: 'old', name: 'D', legacyKeys: ['flow'], pasteKeys: ['flow', 'step'] });

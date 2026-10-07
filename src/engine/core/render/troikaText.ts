@@ -8,6 +8,7 @@ import type { FontSpec, MeasureText } from './richLayout';
 import { followRenderOrder } from './renderOrder';
 import { layoutOnPath } from './textPath';
 import type { TextFactory, TextSpec } from './types';
+import type { DeepReadonly } from '../model/readonly';
 
 const BACKGROUND_PADDING = 1;
 /** Couche des halos d'un texte en morceaux : sous les lettres (0), au-dessus du fond (−0,5). */
@@ -167,7 +168,7 @@ export function createTroikaTextFactory(
   function createOnPath(spec: TextSpec): Object3D {
     const group = new Group();
     const along = spec.along!;
-    const lines: RichLine[] = spec.rich ?? spec.text.split('\n').map((text) => [{ text }]);
+    const lines: DeepReadonly<RichLine[]> = spec.rich ?? spec.text.split('\n').map((text) => [{ text }]);
     void measure().then((measureText) => {
       const base = {
         size: spec.fontSize,
@@ -207,7 +208,7 @@ export function createTroikaTextFactory(
   /** Texte riche : groupe vide tout de suite, rempli une fois les polices prêtes (mesure des mots). */
   function createRich(spec: TextSpec): Object3D {
     const group = new Group();
-    const given: RichLine[] = spec.rich ?? spec.text.split('\n').map((text) => [{ text }]);
+    const given: DeepReadonly<RichLine[]> = spec.rich ?? spec.text.split('\n').map((text) => [{ text }]);
     void measure().then((measureText) => {
       const base = {
         size: spec.fontSize,

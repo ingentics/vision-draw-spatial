@@ -6,6 +6,7 @@ import { pluginValues } from '../settings/pluginSettings';
 import type { PluginSettings, PluginValues } from '../settings/pluginSettings';
 import { facetShade } from '../render/iso/block';
 import type { EffectLight, EffectRoom, PageEffectDefinition } from './types';
+import { freezePlain } from '../model/freeze';
 
 /** Effets écrits sur une page (`spatial.effects`, séparés par des virgules), connus ou non, sans doublon. */
 export function pageEffectIds(page: PageModel): string[] {
@@ -29,7 +30,8 @@ export class PageEffectRegistry {
 
   /** Un effet de même `id` déjà enregistré est remplacé. */
   register(definition: PageEffectDefinition): this {
-    this.definitions.set(definition.id, definition);
+    // Gelée (sujet 303) : un plugin ne modifie pas la définition d'un autre.
+    this.definitions.set(definition.id, freezePlain(definition));
     return this;
   }
 

@@ -1,6 +1,6 @@
 import { Box3 } from 'three';
 import type { Object3D } from 'three';
-import type { PageModel, Rect, ShapeModel } from '../../model/types';
+import type { PageModel, Rect } from '../../model/types';
 import { buildPageScene, effectiveLevel } from '../../render/pageScene';
 import type { PageScene } from '../../render/pageScene';
 import { outsideLabelBox } from '../../render/labelPosition';
@@ -8,6 +8,8 @@ import type { EngineCore } from '../EngineCore';
 import { buildGraphScene } from '../../graph/graphScene';
 import type { SceneLevel } from '../../shapes/types';
 import type { Settings } from '../../settings';
+import type { ReadonlyShapeModel } from '../../model/readonly';
+import { freezePlain } from '../../model/freeze';
 
 /**
  * Scènes des pages : construction (contexte de rendu, niveau, décors des effets) et lecture de la scène affichée
@@ -81,8 +83,12 @@ export class SceneView {
     return this.core.scenes.cachedIds();
   }
 
+  /**
+   * Contexte de rendu d'une page, gelé (sujet 303) : une forme ne change pas le rendu des suivantes. La fabrique de
+   * textes, partagée par tout le moteur, n'est pas gelée.
+   */
   renderContext(page?: PageModel) {
-    return {
+    const { text, ...settings } = {
       text: this.core.text,
       edgeJumps: page && this.core.jumps.jumpsOf(page),
       volume: {
@@ -110,6 +116,7 @@ export class SceneView {
         labelSize: this.core.settings.shapes.edgeSplitLabelSize,
       },
     };
+    return Object.freeze({ text, ...freezePlain(settings) });
   }
 
   /** Objets de label (texte dessiné) d'une cellule dans la scène courante. */
@@ -127,7 +134,7 @@ export class SceneView {
    * Hauteur où le label d'une forme est dessiné : le dessus de son volume, ou sa base pour un label hors
    * de la forme (posé au sol à côté du volume, `createShapeObject`).
    */
-  labelTop(shape: ShapeModel): number {
+  labelTop(shape: ReadonlyShapeModel): number {
     if (!outsideLabelBox(shape.bounds, shape.style)) return this.elementTop(shape.id);
     const base = (this.sceneObject(shape.id)?.userData.base as number | undefined) ?? 0;
     return this.core.scenes.current?.level === 'iso' ? base * this.core.levels.heightScale : 0;

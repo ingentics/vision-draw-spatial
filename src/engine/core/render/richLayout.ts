@@ -1,4 +1,5 @@
 import type { RichLine } from '../model/types';
+import type { DeepReadonly } from '../model/readonly';
 
 /**
  * Mise en page d'un texte riche (segments de tailles, graisses et polices différentes) : retour à la
@@ -47,7 +48,7 @@ export const LINE_HEIGHT = 1.2;
 const BASELINE = 0.942;
 
 export function layoutRichText(
-  lines: RichLine[],
+  lines: DeepReadonly<RichLine[]>,
   base: BaseTextFormat,
   measure: MeasureText,
   options: { maxWidth?: number; align: 'left' | 'center' | 'right' },
@@ -118,7 +119,7 @@ export function layoutRichText(
 }
 
 /** Taille d'une ligne vide : celle de son premier segment, sinon la taille de base. */
-function lineSize(line: RichLine, base: BaseTextFormat): number {
+function lineSize(line: DeepReadonly<RichLine>, base: BaseTextFormat): number {
   return line[0]?.fontSize ?? base.size;
 }
 
@@ -136,7 +137,7 @@ export const approximateMeasure: MeasureText = (text, font) =>
   text.length * font.size * (font.family && /mono|courier/i.test(font.family) ? 0.6 : font.bold ? 0.58 : 0.55);
 
 /** Texte dont toutes les tailles (base et tailles partielles) sont multipliées par `factor`. */
-export function scaleRichLines(lines: RichLine[], factor: number): RichLine[] {
+export function scaleRichLines(lines: DeepReadonly<RichLine[]>, factor: number): RichLine[] {
   return lines.map((line) =>
     line.map((run) => (run.fontSize === undefined ? run : { ...run, fontSize: run.fontSize * factor })),
   );
@@ -151,7 +152,7 @@ export const MIN_FIT_SIZE = 1;
  * Les tailles partielles suivent la taille de base, à proportion. Jamais sous `MIN_FIT_SIZE`.
  */
 export function fitFontSize(
-  lines: RichLine[],
+  lines: DeepReadonly<RichLine[]>,
   base: BaseTextFormat,
   measure: MeasureText,
   zone: { width: number; height: number; wrap: boolean; align: 'left' | 'center' | 'right' },

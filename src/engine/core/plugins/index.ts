@@ -35,7 +35,13 @@ export type { PluginSetting, PluginValues } from '../settings/pluginSettings';
 export { DEFAULT_MODE_PALETTE } from '../settings/derived';
 
 // Modèle neutre, attributs spatiaux, calculs purs.
-export type { EdgeModel, PageModel, Point, Rect, ShapeModel } from '../model/types';
+export type { Point, Rect } from '../model/types';
+// Modèle en lecture seule (sujet 303) : un plugin lit la page, il n'écrit que par `ModeEdit`.
+export type {
+  ReadonlyEdgeModel as EdgeModel,
+  ReadonlyPageModel as PageModel,
+  ReadonlyShapeModel as ShapeModel,
+} from '../model/readonly';
 export { jsonListValue, readJsonList, SPATIAL, spatialFlag, spatialNumber, spatialValue } from '../spatial';
 export {
   ceilToGrid,

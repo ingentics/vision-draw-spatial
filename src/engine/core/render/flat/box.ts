@@ -1,5 +1,6 @@
 import { Group } from 'three';
-import type { Point, Rect, ShapeModel } from '../../model/types';
+import type { Point, Rect } from '../../model/types';
+import type { ReadonlyShapeModel as ShapeModel } from '../../model/readonly';
 import { dashPattern } from '../geometry/stroke';
 import { labelInsets, outsideLabelBox } from '../labelPosition';
 import { fillMesh, strokeMesh } from '../meshes';

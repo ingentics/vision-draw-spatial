@@ -1,6 +1,12 @@
 import type { ViewMode } from '../interaction/cameraMath';
 import type { EdgeEnd, EndTextGap } from '../edit/edgeLabels';
-import type { EdgeModel, PageModel, Point, Rect, ShapeModel } from '../model/types';
+import type { Point, Rect } from '../model/types';
+// Modèle en lecture seule (sujet 303) : un mode lit la page, il n'écrit que par `ModeEdit`.
+import type {
+  ReadonlyEdgeModel as EdgeModel,
+  ReadonlyPageModel as PageModel,
+  ReadonlyShapeModel as ShapeModel,
+} from '../model/readonly';
 import type { EdgeBadgeStyle } from '../render/types';
 import type { PluginSetting, PluginValues } from '../settings/pluginSettings';
 import type { PaletteCategory } from '../shapes/types';

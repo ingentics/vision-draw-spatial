@@ -9,6 +9,7 @@ import type { PaletteCategory, ShapeDefinition, ShapeTemplate } from '../shapes/
 import { SPATIAL } from '../spatial';
 import { legacyKey, modeKey, NAMESPACE_PATTERN } from './modeKeys';
 import type { ModeProperty, PageDressing, PageModeDefinition } from './types';
+import { freezePlain } from '../model/freeze';
 
 /** Modes d'affichage, dans l'ordre des boutons. */
 const VIEW_MODES: ViewMode[] = ['top', 'iso', '3d'];
@@ -32,14 +33,16 @@ export class PageModeRegistry {
    * lève une exception (sujet 301).
    */
   register(definition: PageModeDefinition, shapes: ShapeDefinition[] = []): this {
-    if (!NAMESPACE_PATTERN.test(definition.namespace))
+    // `typeof` d'abord : `test(undefined)` lit la chaîne « undefined », qui passerait.
+    if (typeof definition.namespace !== 'string' || !NAMESPACE_PATTERN.test(definition.namespace))
       throw new Error(`Mode ${definition.id} : espace de noms invalide « ${definition.namespace} »`);
     const owner = [...this.definitions.values()].find(
       (mode) => mode.namespace === definition.namespace && mode.id !== definition.id,
     );
     if (owner)
       throw new Error(`Mode ${definition.id} : espace de noms « ${definition.namespace} » déjà pris par ${owner.id}`);
-    this.definitions.set(definition.id, definition);
+    // Gelée (sujet 303) : un plugin ne modifie pas la définition d'un autre.
+    this.definitions.set(definition.id, freezePlain(definition));
     this.shapeIds.set(
       definition.id,
       shapes.map((shape) => shape.id),

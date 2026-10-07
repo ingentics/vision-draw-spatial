@@ -1,6 +1,8 @@
 import type { Object3D } from 'three';
 import { gridSizeOf } from '../../format/cellEdits';
-import type { PageModel, Point, Rect, ShapeModel } from '../../model/types';
+import type { PageModel, Point, Rect } from '../../model/types';
+// Formes en lecture seule : ce domaine les passe aux modes (sujet 303), aperçus compris.
+import type { ReadonlyShapeModel as ShapeModel } from '../../model/readonly';
 import type { ModeParts, ModePartText } from '../../modes/types';
 import type { EngineCore } from '../EngineCore';
 

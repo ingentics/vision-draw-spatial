@@ -1,11 +1,12 @@
 import type { Object3D } from 'three';
 import type { MoveSet } from '../../../edit/moveSet';
-import type { EdgeModel, PageModel, Point, ShapeModel } from '../../../model/types';
+import type { EdgeModel, PageModel, Point } from '../../../model/types';
 import { disposeObject } from '../../../render/meshes';
 import { createEdgeObject, createShapeObject, edgeRoute, placeInDrawOrder } from '../../../render/pageScene';
 import { jumpStyleOf } from '../../../render/edges/jumps';
 import type { EngineCore } from '../../EngineCore';
 import { styleFlag } from '../../../model/styleValues';
+import type { ReadonlyShapeModel } from '../../../model/readonly';
 
 /**
  * Modifications en direct de la scène pendant un glisser (objets décalés, forme ou flèches redessinées), sans
@@ -34,7 +35,7 @@ export class LiveEdit {
   }
 
   /** Remplace l'objet d'une forme (taille changée), à la même hauteur et dans le même ordre de dessin. */
-  rebuildShapeObject(shape: ShapeModel): void {
+  rebuildShapeObject(shape: ReadonlyShapeModel): void {
     const root = this.core.scenes.current?.root;
     const old = this.core.sceneView.sceneObject(shape.id);
     if (!root || !old) return;

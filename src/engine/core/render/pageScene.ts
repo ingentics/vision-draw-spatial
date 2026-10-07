@@ -14,6 +14,7 @@ import { applyPageSpace } from './space';
 import { PARTS_PER_ELEMENT } from './types';
 import type { RenderContext } from './types';
 import { styleFlag } from '../model/styleValues';
+import type { ReadonlyShapeModel } from '../model/readonly';
 
 /** Scène Three.js d'une page (SPEC §7.4 : construite seulement pour les pages affichées). */
 export interface PageScene {
@@ -190,7 +191,7 @@ export function placeInDrawOrder(object: Object3D, base: number): void {
  * reconstruire une seule forme (ex. pendant un redimensionnement).
  */
 export function createShapeObject(
-  shape: ShapeModel,
+  shape: ReadonlyShapeModel,
   registry: ShapeRegistry,
   ctx: RenderContext,
   level: SceneLevel,

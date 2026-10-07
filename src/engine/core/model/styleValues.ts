@@ -1,4 +1,5 @@
 import type { RichLine } from './types';
+import type { DeepReadonly } from './readonly';
 
 /**
  * Lecture typée des valeurs de style du modèle neutre (chaînes de draw.io), avec les défauts de draw.io. Sans
@@ -34,7 +35,7 @@ export function fontStyleBits(style: Record<string, string>): {
  * Format du texte d'un style (gras, italique, souligné, barré, police) et texte riche éventuel, pour
  * une `TextSpec`.
  */
-export function textFormat(style: Record<string, string>, rich: RichLine[] | undefined) {
+export function textFormat(style: Record<string, string>, rich: DeepReadonly<RichLine[]> | undefined) {
   const bits = fontStyleBits(style);
   return {
     bold: bits.bold,

@@ -1,6 +1,7 @@
 import { CONNECT_SIDES } from '../edit/handleKinds';
 import type { ConnectSide } from '../edit/handleKinds';
-import type { Point, Rect, ShapeModel } from '../model/types';
+import type { Point, Rect } from '../model/types';
+import type { ReadonlyShapeModel as ShapeModel } from '../model/readonly';
 import { blockHeight } from '../render/iso/block';
 import { outsideLabelBox } from '../render/labelPosition';
 import type { RenderContext } from '../render/types';
@@ -9,6 +10,7 @@ import type { MinimapPainter, SceneLevel, SceneRenderer, ShapeDefinition, ShapeP
 import { outlinePainter } from './minimapOutline';
 import { insidePolygon } from '../model/geometry';
 import { styleFlag } from '../model/styleValues';
+import { freezePlain } from '../model/freeze';
 
 /** Erreur levée par une forme (`hook` : point d'entrée, ex. `flat.create`), pour les Diagnostics. */
 export type ShapeErrorHandler = (shapeId: string, hook: string, error: unknown) => void;
@@ -53,7 +55,8 @@ export class ShapeRegistry {
 
   /** La dernière définition enregistrée est prioritaire (permet de surcharger une forme existante). */
   register(definition: ShapeDefinition): this {
-    this.definitions.push(definition);
+    // Gelée (sujet 303) : un plugin ne modifie pas la définition d'un autre.
+    this.definitions.push(freezePlain(definition));
     return this;
   }
 

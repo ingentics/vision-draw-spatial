@@ -83,6 +83,10 @@ interface PageModeDefinition {
 }
 ```
 
+La page, ses formes et ses flèches reçues par le mode sont **en lecture seule** (sujet 303 : types `PageModel`,
+`ShapeModel`, `EdgeModel` de l'API des plugins) : le mode n'écrit que par `ModeEdit`. Sa définition est gelée à
+l'enregistrement.
+
 Les points d'entrée sont rangés par groupe (sujet 295) : `page`, `lifecycle`, `edges`, `gestures`, `parts`,
 `current`. Dans la suite, un point d'entrée est désigné par son chemin (ex. `gestures.placed`).
 

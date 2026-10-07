@@ -12,6 +12,7 @@ import type { LabelEditPlane, LabelEditRequest } from '../../types';
 import type { EngineCore } from '../../EngineCore';
 import { boundsOfPoints, distance, unionOf } from '../../../model/geometry';
 import { styleFlag } from '../../../model/styleValues';
+import type { ReadonlyShapeModel } from '../../../model/readonly';
 
 /** Marge (px écran) laissée au bord du canvas quand la vue glisse pour montrer le texte édité (ticket 240). */
 const REVEAL_MARGIN = 20;
@@ -30,7 +31,7 @@ export class LabelEditor {
   /** Nom d'origine d'une forme dont le texte saisi est montré en direct (`previewLabel`), à rétablir à la fermeture. */
   private previewed?: { pageId: string; shapeId: string; label: string };
   /** Forme dessinée avec le texte saisi d'une de ses parties (sujet 253), en attendant la validation. */
-  private partPreview?: ShapeModel;
+  private partPreview?: ReadonlyShapeModel;
   /** Dernière demande d'édition : une ouverture différée (vue qui glisse) ne vaut que si aucune autre n'a suivi. */
   private startToken = 0;
 

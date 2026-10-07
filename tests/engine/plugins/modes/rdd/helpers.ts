@@ -10,7 +10,7 @@ import type { Field, TableRow } from '../../../../../src/engine/plugins/modes/rd
 import { fitTable } from '../../../../../src/engine/plugins/modes/rdd/tables/operations';
 import { approximateMeasure } from '../../../../../src/engine/core/render/richLayout';
 import type { ModeEdit } from '../../../../../src/engine/core/modes/types';
-import type { ShapeModel } from '../../../../../src/engine/core/model/types';
+import type { ReadonlyShapeModel as ShapeModel } from '../../../../../src/engine/core/model/readonly';
 import { ceilToGrid } from '../../../../../src/engine/core/model/geometry';
 import { fixture } from '../../../../helpers';
 import { RDD_KEYS } from '../../../../../src/engine/plugins/modes/rdd/keys';

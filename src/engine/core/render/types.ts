@@ -1,5 +1,6 @@
 import type { Color, Object3D } from 'three';
 import type { RichLine } from '../model/types';
+import type { DeepReadonly } from '../model/readonly';
 import type { JumpDefaults } from './edges/jumps';
 import type { EdgeSplitSettings } from './edges/split';
 import type { TextAlong } from './textPath';
@@ -29,7 +30,7 @@ export interface TextSpec {
   /** Police draw.io (`fontFamily`) : une police à chasse fixe donne la police de code. */
   fontFamily?: string;
   /** Texte riche (mise en forme partielle) : remplace `text` pour le dessin. */
-  rich?: RichLine[];
+  rich?: DeepReadonly<RichLine[]>;
   /** Largeur de retour à la ligne ; absente = pas de retour automatique. */
   maxWidth?: number;
   /**

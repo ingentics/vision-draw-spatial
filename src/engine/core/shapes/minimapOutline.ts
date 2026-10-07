@@ -1,4 +1,5 @@
-import type { Point, ShapeModel } from '../model/types';
+import type { Point } from '../model/types';
+import type { ReadonlyShapeModel as ShapeModel } from '../model/readonly';
 import { rectPath } from '../render/geometry/paths';
 import type { MinimapMapping, MinimapPainter } from './types';
 
