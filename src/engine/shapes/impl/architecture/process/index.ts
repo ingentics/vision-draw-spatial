@@ -1,7 +1,7 @@
 import type { Point, Rect, ShapeModel } from '../../../../model/types';
 import { orientedPath } from '../../../../render/geometry/orient';
 import { cornerRadius, rectPath, roundedRectPath } from '../../../../render/geometry/paths';
-import { styleNumber } from '../../../../render/styleValues';
+import { styleNumber, styleFlag } from '../../../../model/styleValues';
 import { box } from '../../../generic/box';
 import type { ShapeDefinition } from '../../../types';
 
@@ -19,13 +19,13 @@ const arcFraction = (style: Record<string, string>) => styleNumber(style, 'arcSi
  */
 function barInset(style: Record<string, string>, w: number, h: number): number {
   const size = styleNumber(style, 'size', DEFAULT_SIZE);
-  let inset = style.fixedSize === '1' ? clamp(size, w) : w * clamp(size, 1);
-  if (style.rounded === '1') inset = Math.max(inset, Math.min(w * arcFraction(style), h * arcFraction(style)));
+  let inset = styleFlag(style, 'fixedSize') ? clamp(size, w) : w * clamp(size, 1);
+  if (styleFlag(style, 'rounded')) inset = Math.max(inset, Math.min(w * arcFraction(style), h * arcFraction(style)));
   return Math.round(inset);
 }
 
 function outline(shape: ShapeModel): Point[] {
-  return shape.style.rounded === '1'
+  return styleFlag(shape.style, 'rounded')
     ? roundedRectPath(shape.bounds, cornerRadius(shape.style, shape.bounds))
     : rectPath(shape.bounds);
 }
@@ -52,7 +52,7 @@ function label(shape: ShapeModel): Rect {
   const lying = !style.direction || style.direction === 'east' || style.direction === 'west';
   if ((style.horizontal !== '0') !== lying) return bounds;
   let inset = bounds.width * clamp(styleNumber(style, 'size', DEFAULT_SIZE), 1);
-  if (style.rounded === '1')
+  if (styleFlag(style, 'rounded'))
     inset = Math.max(inset, Math.min(bounds.width * arcFraction(style), bounds.height * arcFraction(style)));
   inset = Math.round(inset);
   return { ...bounds, x: bounds.x + inset, width: Math.max(0, bounds.width - 2 * inset) };

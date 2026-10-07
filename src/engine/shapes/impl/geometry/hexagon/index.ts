@@ -1,6 +1,6 @@
 import type { ShapeModel } from '../../../../model/types';
 import { orientedPath } from '../../../../render/geometry/orient';
-import { styleNumber } from '../../../../render/styleValues';
+import { styleNumber } from '../../../../model/styleValues';
 import { box } from '../../../generic/box';
 import type { ShapeDefinition } from '../../../types';
 

@@ -1,5 +1,6 @@
 import type { Point } from '../../model/types';
 import { distance } from '../../model/geometry';
+import { styleFlag } from '../../model/styleValues';
 
 /**
  * Traits épais posés au sol : une polyligne devient un ruban de triangles d'épaisseur
@@ -92,13 +93,13 @@ export function dashPolyline(input: Point[], pattern: number[], closed: boolean,
 
 /** Motif de pointillés draw.io : `dashPattern` (défaut « 3 3 »), multiplié par l'épaisseur sauf `fixDash=1`. */
 export function dashPattern(style: Record<string, string>, strokeWidth: number): number[] | undefined {
-  if (style.dashed !== '1') return undefined;
+  if (!styleFlag(style, 'dashed')) return undefined;
   const base = (style.dashPattern ?? '3 3')
     .split(/\s+/)
     .map(Number)
     .filter((v) => Number.isFinite(v) && v >= 0);
   const pattern = base.length > 0 ? base : [3, 3];
-  const scale = style.fixDash === '1' ? 1 : Math.max(strokeWidth, 1);
+  const scale = styleFlag(style, 'fixDash') ? 1 : Math.max(strokeWidth, 1);
   return pattern.map((v) => v * scale);
 }
 

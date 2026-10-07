@@ -1,5 +1,5 @@
 import type { PageModel, Rect, ShapeModel } from '../../model/types';
-import { readableOn } from '../../render/styleValues';
+import { readableOn } from '../../render/styleColors';
 import type { ModeEdit, ModeObstacles } from '../types';
 
 /**

@@ -6,7 +6,8 @@ import { dashPattern } from '../../../render/geometry/stroke';
 import { polygonArc, roundedPolygon } from '../../../render/geometry/paths';
 import { isoBlock, TOP_OFFSET } from '../../../render/iso/block';
 import { fillMesh, strokeMesh } from '../../../render/meshes';
-import { styleColor, styleNumber, styleOpacity } from '../../../render/styleValues';
+import { styleNumber, styleOpacity, styleFlag } from '../../../model/styleValues';
+import { styleColor } from '../../../render/styleColors';
 import { PART_ORDER } from '../../../render/types';
 import type { RenderContext } from '../../../render/types';
 import type { SceneRenderer, ShapeDefinition, ShapeDetail, ShapeDetailPath, ShapeDetailText } from '../../types';
@@ -35,7 +36,7 @@ export function box(
   const path = options.roundable
     ? (shape: ShapeModel) => {
         const points = outline(shape);
-        return shape.style.rounded === '1' ? roundedPolygon(points, polygonArc(shape.style)) : points;
+        return styleFlag(shape.style, 'rounded') ? roundedPolygon(points, polygonArc(shape.style)) : points;
       }
     : outline;
   const defaults = options.defaults ?? VERTEX_DEFAULTS;

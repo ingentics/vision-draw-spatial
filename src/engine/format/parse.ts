@@ -18,6 +18,7 @@ import { isRich, parseRichHtml } from './richText';
 import { parseLink } from './link';
 import { parseStyle, resolveShapeKind } from './style';
 import { childElements, type DrawioTree, type PageTree, readDrawioTree } from './xmlTree';
+import { styleFlag } from '../model/styleValues';
 
 export { DrawioParseError } from './xmlTree';
 
@@ -257,14 +258,14 @@ function parseGraphModel(page: PageTree, warnings: ParseWarning[]): PageModel {
 
   const labelOf = (cell: RawCell, style: Record<string, string>): string => {
     let label = cell.label;
-    if (cell.placeholders || style.placeholders === '1') label = resolvePlaceholders(label, cell.attributes);
-    return style.html === '1' ? htmlToText(label) : label;
+    if (cell.placeholders || styleFlag(style, 'placeholders')) label = resolvePlaceholders(label, cell.attributes);
+    return styleFlag(style, 'html') ? htmlToText(label) : label;
   };
   /** Mise en forme partielle d'un label HTML (gras sur un mot, taille d'une ligne…), sinon undefined. */
   const richOf = (cell: RawCell, style: Record<string, string>) => {
-    if (style.html !== '1' || !/<|&/.test(cell.label)) return undefined;
+    if (!styleFlag(style, 'html') || !/<|&/.test(cell.label)) return undefined;
     let label = cell.label;
-    if (cell.placeholders || style.placeholders === '1') label = resolvePlaceholders(label, cell.attributes);
+    if (cell.placeholders || styleFlag(style, 'placeholders')) label = resolvePlaceholders(label, cell.attributes);
     const lines = parseRichHtml(label);
     return isRich(lines) ? lines : undefined;
   };

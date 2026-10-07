@@ -1,4 +1,5 @@
 import type { Point, Rect } from '../../model/types';
+import { styleFlag, styleNumber } from '../../model/styleValues';
 
 /** Contours fermés en coordonnées page (le dernier point n'est pas répété). */
 
@@ -48,16 +49,13 @@ export function ellipsePath({ x, y, width, height }: Rect, segments = 64): Point
  * ou en pixels (diamètre) si `absoluteArcSize=1` (défaut 20).
  */
 export function cornerRadius(style: Record<string, string>, rect: Rect): number {
-  const absolute = style.absoluteArcSize === '1';
-  const arcSize = parseFloat(style.arcSize ?? '');
-  if (absolute) return (Number.isFinite(arcSize) ? arcSize : 20) / 2;
-  return (Math.min(rect.width, rect.height) * (Number.isFinite(arcSize) ? arcSize : 15)) / 100;
+  if (styleFlag(style, 'absoluteArcSize')) return styleNumber(style, 'arcSize', 20) / 2;
+  return (Math.min(rect.width, rect.height) * styleNumber(style, 'arcSize', 15)) / 100;
 }
 
 /** Rayon des coins d'un polygone arrondi de draw.io (`rounded=1`) : la moitié de `arcSize`, en px (10 par défaut). */
 export function polygonArc(style: Record<string, string>): number {
-  const arcSize = parseFloat(style.arcSize ?? '');
-  return (Number.isFinite(arcSize) ? arcSize : 20) / 2;
+  return styleNumber(style, 'arcSize', 20) / 2;
 }
 
 /**

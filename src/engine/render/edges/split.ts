@@ -3,6 +3,7 @@ import type { Point } from '../../model/types';
 import { distance } from '../../model/geometry';
 import { fadedStrokeMesh, strokeMesh } from '../meshes';
 import { length, positionAlong, unit } from './polyline';
+import { styleFlag } from '../../model/styleValues';
 
 /**
  * Flèche coupée en deux (`split=1`, ticket 219) : seuls un tronçon au départ de la source et un tronçon à l'arrivée
@@ -25,7 +26,7 @@ export interface EdgeSplitSettings {
 export const DEFAULT_EDGE_SPLIT: EdgeSplitSettings = { length: 40, fade: 20, labelPadding: 4, labelSize: 7 };
 
 export function isSplit(style: Record<string, string>): boolean {
-  return style.split === '1';
+  return styleFlag(style, 'split');
 }
 
 /** Un tronçon dessiné, du bout de la flèche vers le milieu. */

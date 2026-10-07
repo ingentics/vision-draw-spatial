@@ -271,9 +271,10 @@ draw.io codés dans le moteur.**
 
 Règles à respecter :
 
-- **Lisez le style avec les aides** de [render/styleValues.ts](../src/engine/render/styleValues.ts) :
-  `styleColor(style, clé, défaut)` gère `none`, `default` et les couleurs invalides ; `styleNumber`, `styleFlag`,
-  `styleOpacity`, `fontStyleBits`, `labelBackground`. Ne parsez pas les chaînes vous-même.
+- **Lisez le style avec les aides** de [model/styleValues.ts](../src/engine/model/styleValues.ts) (`styleNumber`,
+  `styleFlag`, `styleOpacity`, `fontStyleBits`) et de [render/styleColors.ts](../src/engine/render/styleColors.ts)
+  (`styleColor(style, clé, défaut)`, qui gère `none`, `default` et les couleurs invalides ; `labelBackground`). Ne
+  parsez pas les chaînes vous-même.
 - **Attributs spatiaux** : passez par `spatialNumber(shape, SPATIAL.xxx)` / `spatialValue`
   ([spatial.ts](../src/engine/spatial.ts)), qui lisent le style **puis** les attributs de l'objet. Un nouvel
   attribut se déclare dans `SPATIAL`, avec le préfixe `spatial.`, que draw.io conserve (SPEC §14.3).
@@ -380,7 +381,8 @@ import type { Point, ShapeModel } from '../../../../model/types';
 import { createBox, VERTEX_DEFAULTS } from '../../../../render/flat/box';
 import { isoBlock } from '../../../../render/iso/block';
 import { strokeMesh } from '../../../../render/meshes';
-import { styleColor, styleNumber, styleOpacity } from '../../../../render/styleValues';
+import { styleNumber, styleOpacity } from '../../../../model/styleValues';
+import { styleColor } from '../../../../render/styleColors';
 import { PART_ORDER } from '../../../../render/types';
 import type { ShapeDefinition } from '../../../types';
 
@@ -513,7 +515,7 @@ mini-carte, redimensionnement, flèches reliées, et réouverture du fichier dan
       draw.io diffère, `outline`, `flat` (complet à lui seul) ; une variante étend sa forme avec `matches`
 - [ ] `iso` (souvent `isoBlock(outline)`), à vérifier aussi en 3D et sous tous les angles
 - [ ] `minimap` : défaut, `null` ou peintre sur mesure
-- [ ] Valeurs lues avec `styleValues` / `spatialNumber` ; défauts draw.io en constantes ; préférences via `RenderContext`
+- [ ] Valeurs lues avec `styleValues` / `styleColors` / `spatialNumber` ; défauts draw.io en constantes ; préférences via `RenderContext`
 - [ ] Ordres de dessin dans `PART_ORDER`, matériaux propres à chaque mesh, enfants tardifs qui suivent leur parent
 - [ ] Tout ce qui est propre à la forme (iso / 3D compris) dans son dossier ; ce qu'elle partage vient de `generic/`
 - [ ] Interaction si elle diffère du défaut : `contains`, `resizable`, `connectable`, `pickable`, `movesAsBlock`

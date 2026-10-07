@@ -1,5 +1,5 @@
 import type { Rect } from '../model/types';
-import { styleNumber } from './styleValues';
+import { styleNumber } from '../model/styleValues';
 
 /**
  * Label hors de la forme, comme draw.io (`mxGraphView.updateVertexLabelOffset`) :

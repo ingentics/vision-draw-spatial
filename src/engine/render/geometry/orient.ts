@@ -1,4 +1,5 @@
 import type { Point, Rect } from '../../model/types';
+import { styleFlag } from '../../model/styleValues';
 
 /**
  * Orientation d'une forme draw.io (`direction`, `flipH`, `flipV`), **portée de draw.io** (mxGraph,
@@ -26,8 +27,8 @@ export function orientedPath(
   const local = draw(w, h).map((p) => ({ x: x + p.x, y: y + p.y }));
 
   // Cadre couché (north / south) : draw.io échange aussi les deux retournements (mxShape.apply).
-  const flipH = (inverted ? style.flipV : style.flipH) === '1';
-  const flipV = (inverted ? style.flipH : style.flipV) === '1';
+  const flipH = styleFlag(style, inverted ? 'flipV' : 'flipH');
+  const flipV = styleFlag(style, inverted ? 'flipH' : 'flipV');
   let theta = direction === 'north' ? 270 : direction === 'west' ? 180 : direction === 'south' ? 90 : 0;
   if (flipH && flipV) theta += 180;
   // Un seul retournement : l'angle change de sens (le miroir est appliqué après la rotation).

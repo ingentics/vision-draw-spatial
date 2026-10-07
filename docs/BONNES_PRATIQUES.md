@@ -63,8 +63,8 @@
   `unionOf`, `segmentsCross`, `segmentIntersection`, `segmentDistance`, `insidePolygon`, `simplifyPath`,
   `prunePath`). Pas de `Math.hypot(a.x - b.x, a.y - b.y)` à la main. Une fonction qui manque s'y ajoute, avec son
   test dans `tests/engine/model/geometry.test.ts`.
-- **Valeurs de style** : `styleNumber`, `styleFlag`, `styleColor`, `styleOpacity` (`render/styleValues.ts`). Pas
-  de `parseFloat(style.x ?? '')` ni de `style.x === '1'`.
+- **Valeurs de style** : `styleNumber`, `styleFlag`, `styleOpacity` (`model/styleValues.ts`), `styleColor`
+  (`render/styleColors.ts`). Pas de `parseFloat(style.x ?? '')` ni de `style.x === '1'`.
 - **Normales des côtés** : `SIDE_NORMALS` (`edit/edgeEnds.ts`). **Ancrages** : `ANCHORINGS` (`edit/anchoring/mode.ts`).
   Une liste ou une table qui existe déjà ne se redéclare pas ailleurs.
 - **Deux variantes proches** : une fonction commune paramétrée, et deux noms qui disent la différence, avec un

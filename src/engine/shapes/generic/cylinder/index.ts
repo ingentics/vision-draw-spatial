@@ -3,7 +3,8 @@ import { createBox, createLabel, VERTEX_DEFAULTS } from '../../../render/flat/bo
 import { cubicTo } from '../../../render/geometry/curves';
 import { dashPattern } from '../../../render/geometry/stroke';
 import { strokeMesh } from '../../../render/meshes';
-import { styleColor, styleNumber, styleOpacity } from '../../../render/styleValues';
+import { styleNumber, styleOpacity, styleFlag } from '../../../model/styleValues';
+import { styleColor } from '../../../render/styleColors';
 import { PART_ORDER } from '../../../render/types';
 import type { SceneLevel, SceneRenderer } from '../../types';
 
@@ -118,7 +119,7 @@ function oriented(bounds: Rect, direction: Direction, draw: (local: Rect) => Cyl
 
 /** Zone du label d'un cylindre debout : le corps (sans `top` en haut ni `bottom` en bas) si `boundedLbl=1`, sinon les bornes. */
 function boundedLabel(bounds: Rect, style: Record<string, string>, top: number, bottom: number): Rect {
-  if (style.boundedLbl !== '1') return bounds;
+  if (!styleFlag(style, 'boundedLbl')) return bounds;
   return { ...bounds, y: bounds.y + top, height: Math.max(0, bounds.height - top - bottom) };
 }
 

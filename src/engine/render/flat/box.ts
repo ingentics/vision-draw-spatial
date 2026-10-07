@@ -3,7 +3,8 @@ import type { Point, Rect, ShapeModel } from '../../model/types';
 import { dashPattern } from '../geometry/stroke';
 import { labelInsets, outsideLabelBox } from '../labelPosition';
 import { fillMesh, strokeMesh } from '../meshes';
-import { labelBackground, textFormat, styleColor, styleNumber, styleOpacity } from '../styleValues';
+import { textFormat, styleNumber, styleOpacity, styleFlag } from '../../model/styleValues';
+import { labelBackground, styleColor } from '../styleColors';
 import { PART_ORDER } from '../types';
 import type { RenderContext, TextSpec } from '../types';
 import type { SceneRenderer } from '../../shapes/types';
@@ -59,7 +60,7 @@ export function createBox(shape: ShapeModel, path: Point[], ctx: RenderContext, 
  * à côté des bornes, comme dans draw.io, quelle que soit la zone propre à la forme.
  */
 export function createLabel(shape: ShapeModel, ctx: RenderContext, text = shape.label, zone: Rect = shape.bounds) {
-  if (!text.trim() || shape.style.noLabel === '1') return null;
+  if (!text.trim() || styleFlag(shape.style, 'noLabel')) return null;
   const { style } = shape;
   const outside = outsideLabelBox(shape.bounds, style);
   const bounds = outside ?? zone;
@@ -85,7 +86,9 @@ export function createLabel(shape: ShapeModel, ctx: RenderContext, text = shape.
     opacity: styleOpacity(style, 'textOpacity'),
     ...textFormat(style, text === shape.label ? shape.rich : undefined),
     maxWidth: style.whiteSpace === 'wrap' ? Math.max(right - left, 1) : undefined,
-    fit: style.fitText === '1' ? { width: Math.max(right - left, 0), height: Math.max(bottom - top, 0) } : undefined,
+    fit: styleFlag(style, 'fitText')
+      ? { width: Math.max(right - left, 0), height: Math.max(bottom - top, 0) }
+      : undefined,
     background: labelBackground(style, null, ctx.background),
   };
   const object = ctx.text.create(spec);

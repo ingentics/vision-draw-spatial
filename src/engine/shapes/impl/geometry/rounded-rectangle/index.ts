@@ -1,12 +1,13 @@
 import type { ShapeDefinition } from '../../../types';
 import { definition as rectangle } from '../rectangle';
+import { styleFlag } from '../../../../model/styleValues';
 
 /** Rectangle arrondi : le rectangle (son contour gère déjà `rounded=1`), avec son élément de palette. */
 export const definition: ShapeDefinition = {
   ...rectangle,
   id: 'rounded-rectangle',
   kinds: ['rectangle'],
-  matches: (shape) => shape.style.rounded === '1',
+  matches: (shape) => styleFlag(shape.style, 'rounded'),
   palette: {
     name: 'Rectangle arrondi',
     category: 'geometry',

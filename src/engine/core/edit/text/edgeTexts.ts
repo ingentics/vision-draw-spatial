@@ -13,6 +13,7 @@ import { middleTextAlong } from '../../../render/edges/edge';
 import type { TextAlong } from '../../../render/textPath';
 import type { EdgeTextAnchor, LabelEditRequest } from '../../types';
 import type { EngineCore } from '../../EngineCore';
+import { styleFlag } from '../../../model/styleValues';
 
 /** Textes d'une flèche (label, début, fin, placés ailleurs) : édition, création, position, côté du trait. */
 export class EdgeTexts {
@@ -38,7 +39,7 @@ export class EdgeTexts {
       screen,
       styleCellId: cellId,
       style: label.style,
-      html: label.style.html === '1' ? cellLabelValue(editable.pageTree, cellId) : undefined,
+      html: styleFlag(label.style, 'html') ? cellLabelValue(editable.pageTree, cellId) : undefined,
       scale: this.core.labelEditor.textScale(edgeId),
       onEdge: true,
       ...this.core.labelEditor.labelEditBackdrop(label.style, true),

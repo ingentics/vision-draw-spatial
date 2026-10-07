@@ -1,7 +1,7 @@
 import type { Point, ShapeModel } from '../../../model/types';
 import { orientedPath } from '../../../render/geometry/orient';
 import { cornerRadius, rectPath, roundedRectPath } from '../../../render/geometry/paths';
-import { styleNumber } from '../../../render/styleValues';
+import { styleNumber, styleFlag } from '../../../model/styleValues';
 import { SPATIAL, spatialValue } from '../../../spatial';
 import type { Group } from 'three';
 import type { PaletteEntry, SceneRenderer, ShapeDefinition, ShapeDetail } from '../../types';
@@ -28,7 +28,7 @@ const TAG_SHADE = 0.45;
  */
 function lines(style: Record<string, string>, w: number, h: number) {
   const arc = styleNumber(style, 'arcSize', DEFAULT_ARC_SIZE) / 100;
-  const corner = style.rounded === '1' ? Math.min(w * arc, h * arc) : 0;
+  const corner = styleFlag(style, 'rounded') ? Math.min(w * arc, h * arc) : 0;
   return {
     x: Math.max(corner, Math.min(w, styleNumber(style, 'dx', DEFAULT_DX))),
     y: Math.max(corner, Math.min(h, styleNumber(style, 'dy', DEFAULT_DY))),
@@ -36,7 +36,7 @@ function lines(style: Record<string, string>, w: number, h: number) {
 }
 
 function outline(shape: ShapeModel): Point[] {
-  return shape.style.rounded === '1'
+  return styleFlag(shape.style, 'rounded')
     ? roundedRectPath(shape.bounds, cornerRadius(shape.style, shape.bounds))
     : rectPath(shape.bounds);
 }

@@ -1,6 +1,7 @@
 import { computeBounds } from '../model/bounds';
 import type { PageModel, Point, Rect, ShapeModel } from '../model/types';
 import type { ShapeRegistry } from '../shapes/registry';
+import { styleFlag } from '../model/styleValues';
 
 /**
  * Déplacement de formes dans le modèle neutre (SPEC §14.1). Les coordonnées du modèle sont
@@ -41,7 +42,7 @@ export function moveTarget(
 
 /** Style draw.io interdisant le déplacement (`movable=0`, `locked=1`). */
 export function isLocked(shape: Pick<ShapeModel, 'style'>): boolean {
-  return shape.style.movable === '0' || shape.style.locked === '1';
+  return shape.style.movable === '0' || styleFlag(shape.style, 'locked');
 }
 
 export function collectMoveSet(page: PageModel, rootId: string): MoveSet {

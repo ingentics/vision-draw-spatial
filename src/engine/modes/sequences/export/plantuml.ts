@@ -3,6 +3,7 @@ import { spatialValue } from '../../../spatial';
 import { EVENT_SOURCES, PARTICIPANT } from '../flows';
 import { sequenceState } from '../steps';
 import type { SequenceExporter } from './index';
+import { styleFlag } from '../../../model/styleValues';
 
 /**
  * Flux en diagramme de séquence PlantUML (sujets 90 à 94, 96 pour tous les flux). Participants déclarés en tête dans l'ordre de première
@@ -101,7 +102,7 @@ function messages(order: EdgeModel[], alias: (id: string | undefined) => string 
     const to = alias(edge.targetId);
     const text = messageText(edge);
     const label = text ? ` : ${text}` : '';
-    if (edge.style.dashed === '1') {
+    if (styleFlag(edge.style, 'dashed')) {
       const opened = from === undefined ? -1 : lastIndex(stack, (call) => call.callee === from && call.caller === to);
       if (opened >= 0) {
         while (stack.length > opened + 1) close();

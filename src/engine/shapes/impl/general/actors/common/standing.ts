@@ -6,7 +6,8 @@ import { rectPath } from '../../../../../render/geometry/paths';
 import { blockHeight } from '../../../../../render/iso/block';
 import { edgeLines } from '../../../../../render/lines';
 import { fillMesh, solidMaterial, strokeMesh } from '../../../../../render/meshes';
-import { styleColor, styleNumber, styleOpacity } from '../../../../../render/styleValues';
+import { styleNumber, styleOpacity, styleFlag } from '../../../../../model/styleValues';
+import { styleColor } from '../../../../../render/styleColors';
 import { PART_ORDER } from '../../../../../render/types';
 import type { RenderContext } from '../../../../../render/types';
 import { SPATIAL, spatialValue } from '../../../../../spatial';
@@ -170,7 +171,8 @@ export function signLabelStyle(style: Record<string, string>): Record<string, st
  * au-dessus des mains (épaules du bonhomme) ; `undefined` sans pancarte (`spatial.sign=0`, ou pas de texte).
  */
 function signFrame(shape: ShapeModel, width: number, height: number): Rect | undefined {
-  if (spatialValue(shape, SPATIAL.sign) === '0' || !shape.label.trim() || shape.style.noLabel === '1') return undefined;
+  if (spatialValue(shape, SPATIAL.sign) === '0' || !shape.label.trim() || styleFlag(shape.style, 'noLabel'))
+    return undefined;
   const signWidth = width * SIGN_WIDTH;
   const signHeight = height * SIGN_HEIGHT;
   const hands = height - height / 3;

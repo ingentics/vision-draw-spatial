@@ -2,10 +2,11 @@ import type { ShapeModel } from '../../../../model/types';
 import { cornerRadius, rectPath, roundedRectPath } from '../../../../render/geometry/paths';
 import { box } from '../../../generic/box';
 import type { ShapeDefinition } from '../../../types';
+import { styleFlag } from '../../../../model/styleValues';
 
 /** Contour : les bornes, aux coins arrondis si `rounded=1` (`arcSize`). */
 function outline(shape: ShapeModel) {
-  return shape.style.rounded === '1'
+  return styleFlag(shape.style, 'rounded')
     ? roundedRectPath(shape.bounds, cornerRadius(shape.style, shape.bounds))
     : rectPath(shape.bounds);
 }

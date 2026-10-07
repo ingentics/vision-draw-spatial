@@ -9,6 +9,7 @@ import { createVeil, createVeilHole, liftAboveVeil } from '../../render/highligh
 import { disposeObject } from '../../render/meshes';
 import type { EngineCore } from '../EngineCore';
 import type { PickedElement } from '../../interaction/pick';
+import { styleNumber } from '../../model/styleValues';
 
 /**
  * Mise en valeur de la sélection (paramètre `selection.style`) : voile, contour animé, poignées de l'élément
@@ -150,7 +151,7 @@ export class SelectionHighlight {
       const object = this.core.sceneView.sceneObject(element.id);
       const route = (object?.userData.path ?? object?.userData.route) as Point[] | undefined;
       if (!object || !route || route.length < 2) continue;
-      const strokeWidth = parseFloat((element.style.strokeWidth as string | undefined) ?? '1') || 1;
+      const strokeWidth = styleNumber(element.style, 'strokeWidth', 1) || 1;
       const width = strokeWidth + (2 * veilPadding) / zoom;
       const hole = createVeilHole(route, object.position.z, width);
       // Flèche déplacée en bloc (au clavier, avec sa forme) : son objet est décalé, pas son tracé.

@@ -2,7 +2,7 @@ import { Color, Group, SRGBColorSpace } from 'three';
 import type { EdgeModel, Point, Rect } from '../model/types';
 import type { EdgeBadge } from '../modes/types';
 import { labelPoint } from './edges/polyline';
-import { styleNumber } from './styleValues';
+import { styleNumber, styleFlag } from '../model/styleValues';
 import type { EdgeBadgeStyle, RenderContext } from './types';
 import { ellipsePath, rectPath } from './geometry/paths';
 import { fillMesh, strokeMesh } from './meshes';
@@ -36,7 +36,7 @@ const DIGIT_HEIGHT = 0.71;
  * est le haut de l'écran, quel que soit l'angle de vue.
  */
 export function edgeBadge(edge: EdgeModel, route: Point[], badge: EdgeBadge, ctx: RenderContext): Group {
-  const labelled = edge.label.trim() !== '' && edge.style.noLabel !== '1';
+  const labelled = edge.label.trim() !== '' && !styleFlag(edge.style, 'noLabel');
   const look = ctx.edgeBadge ?? DEFAULT_EDGE_BADGE;
   const radius = labelled ? look.radius : look.smallRadius;
   const fontSize = labelled ? look.textSize : look.smallTextSize;

@@ -4,7 +4,8 @@ import { createLabel } from '../../../../render/flat/box';
 import { cornerRadius, rectPath, roundedRectPath } from '../../../../render/geometry/paths';
 import { dashPattern } from '../../../../render/geometry/stroke';
 import { fillMesh, strokeMesh } from '../../../../render/meshes';
-import { readableOn, styleColor, styleNumber, styleOpacity } from '../../../../render/styleValues';
+import { styleNumber, styleOpacity, styleFlag } from '../../../../model/styleValues';
+import { readableOn, styleColor } from '../../../../render/styleColors';
 import { PART_ORDER } from '../../../../render/types';
 import type { RenderContext } from '../../../../render/types';
 import type { PaletteEntry, ShapeDefinition } from '../../../../shapes/types';
@@ -78,7 +79,7 @@ function outline(shape: ShapeModel, kind: TableKind): Point[] {
       { x, y: y + h },
     ];
   }
-  return style.rounded === '1' ? roundedRectPath(bounds, cornerRadius(style, bounds)) : rectPath(bounds);
+  return styleFlag(style, 'rounded') ? roundedRectPath(bounds, cornerRadius(style, bounds)) : rectPath(bounds);
 }
 
 /** Rabat du coin plié : triangle replié sous le coin coupé. */

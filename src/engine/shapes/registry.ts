@@ -7,6 +7,7 @@ import type { MinimapPainter, SceneLevel, SceneRenderer, ShapeDefinition, ShapeP
 import { outlinePainter } from './minimap';
 import { MODE_SHAPE_DEFINITIONS } from '../modes/shapes';
 import { insidePolygon } from '../model/geometry';
+import { styleFlag } from '../model/styleValues';
 
 export interface ResolvedShape {
   definition: ShapeDefinition;
@@ -155,7 +156,7 @@ export class ShapeRegistry {
 }
 
 function rectangleSwatch(style: Record<string, string>): string {
-  return `<rect x="5" y="5" width="30" height="18" rx="${style.rounded === '1' ? 4 : 0}"/>`;
+  return `<rect x="5" y="5" width="30" height="18" rx="${styleFlag(style, 'rounded') ? 4 : 0}"/>`;
 }
 
 /**

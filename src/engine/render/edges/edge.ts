@@ -15,15 +15,8 @@ import { fadedStrokeMesh, fillMesh, strokeMesh } from '../meshes';
 import { LINE_HEIGHT, approximateMeasure } from '../richLayout';
 import { DEFAULT_EDGE_SPLIT, isSplit, splitLabelFrame, splitPieces } from './split';
 import type { EdgeSplitSettings, SplitHover, SplitPiece } from './split';
-import {
-  DEFAULT_LABEL_BACKDROP,
-  PAGE_BACKGROUND,
-  labelBackground,
-  styleColor,
-  styleNumber,
-  styleOpacity,
-  textFormat,
-} from '../styleValues';
+import { styleNumber, styleOpacity, textFormat, styleFlag } from '../../model/styleValues';
+import { DEFAULT_LABEL_BACKDROP, PAGE_BACKGROUND, labelBackground, styleColor } from '../styleColors';
 import { PART_ORDER } from '../types';
 import type { RenderContext } from '../types';
 import type { TextAlong } from '../textPath';
@@ -69,12 +62,11 @@ export function createEdge(
   group.userData.route = route;
   group.userData.points = points;
   if (route.length < 2) return group;
-  group.userData.path =
-    style.curved === '1'
-      ? curveThrough(route)
-      : style.rounded === '1'
-        ? roundCorners(route, styleNumber(style, 'arcSize', DEFAULT_EDGE_ARC_SIZE) / 2)
-        : route;
+  group.userData.path = styleFlag(style, 'curved')
+    ? curveThrough(route)
+    : styleFlag(style, 'rounded')
+      ? roundCorners(route, styleNumber(style, 'arcSize', DEFAULT_EDGE_ARC_SIZE) / 2)
+      : route;
 
   const stroke = styleColor(style, 'strokeColor', '#000000');
   const strokeWidth = styleNumber(style, 'strokeWidth', 1);
@@ -102,8 +94,9 @@ export function createEdge(
 
   if (stroke && strokeWidth > 0) {
     let line = shorten(route, start?.inset ?? 0, end?.inset ?? 0);
-    if (style.curved === '1') line = curveThrough(line);
-    else if (style.rounded === '1') line = roundCorners(line, styleNumber(style, 'arcSize', DEFAULT_EDGE_ARC_SIZE) / 2);
+    if (styleFlag(style, 'curved')) line = curveThrough(line);
+    else if (styleFlag(style, 'rounded'))
+      line = roundCorners(line, styleNumber(style, 'arcSize', DEFAULT_EDGE_ARC_SIZE) / 2);
     const split = isSplit(style);
     const jump = !split && jumpStyleOf(style, ctx.edgeJumps);
     const pieces = split
@@ -274,9 +267,9 @@ function splitRaised(pieces: JumpPoint[][]): { flat: Point[][]; raised: number[]
  * placement, glissé de `spatial.labelFollowShift` le long du trait. Undefined : texte horizontal.
  */
 export function middleTextAlong(edge: EdgeModel, path: Point[] | undefined): TextAlong | undefined {
-  if (edge.style[SPATIAL.labelFollow] !== '1' || !path || path.length < 2) return undefined;
-  const shift = parseFloat(edge.style[SPATIAL.labelFollowShift] ?? '');
-  return { path, ...edge.labelPlacement, ...(Number.isFinite(shift) && shift !== 0 && { shift }) };
+  if (!styleFlag(edge.style, SPATIAL.labelFollow) || !path || path.length < 2) return undefined;
+  const shift = styleNumber(edge.style, SPATIAL.labelFollowShift, 0);
+  return { path, ...edge.labelPlacement, ...(shift !== 0 && { shift }) };
 }
 
 function createEdgeLabel(
@@ -289,7 +282,7 @@ function createEdgeLabel(
   ctx: RenderContext,
   along?: TextAlong,
 ): Object3D | null {
-  if (!text.trim() || style.noLabel === '1') return null;
+  if (!text.trim() || styleFlag(style, 'noLabel')) return null;
   const point = labelPoint(route, placement);
   // Comme draw.io : aligné à gauche, le texte part du point vers la droite (le côté gauche est fixe) ;
   // à droite, l'inverse ; centré, de part et d'autre.

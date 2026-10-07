@@ -2,6 +2,7 @@ import { setCellStyleValue, setEdgeTerminal } from '../format/edit';
 import type { PageTree } from '../format/xmlTree';
 import type { EdgeModel, PageModel, Point, Rect, ShapeModel } from '../model/types';
 import type { ShapeRegistry } from '../shapes/registry';
+import { styleNumber } from '../model/styleValues';
 
 /**
  * Extrémités d'une flèche (SPEC §8.3, §14.1) : d'où elle part et où elle arrive, comme draw.io.
@@ -158,8 +159,9 @@ export function endAttachmentOf(edge: EdgeModel, end: TerminalEnd): EndAttachmen
   const shapeId = end === 'source' ? edge.sourceId : edge.targetId;
   if (shapeId) {
     const prefix = constraintPrefix(end);
-    const x = parseFloat(edge.style[`${prefix}X`] ?? '');
-    const y = parseFloat(edge.style[`${prefix}Y`] ?? '');
+    // NaN : pas de point fixe (bout flottant).
+    const x = styleNumber(edge.style, `${prefix}X`, NaN);
+    const y = styleNumber(edge.style, `${prefix}Y`, NaN);
     return Number.isFinite(x) && Number.isFinite(y)
       ? { kind: 'fixed', shapeId, constraint: { x, y } }
       : { kind: 'floating', shapeId };

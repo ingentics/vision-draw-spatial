@@ -11,6 +11,7 @@ import { alongAnchor } from '../../../render/textPath';
 import type { LabelEditPlane, LabelEditRequest } from '../../types';
 import type { EngineCore } from '../../EngineCore';
 import { boundsOfPoints, distance, unionOf } from '../../../model/geometry';
+import { styleFlag } from '../../../model/styleValues';
 
 /** Marge (px écran) laissée au bord du canvas quand la vue glisse pour montrer le texte édité (ticket 240). */
 const REVEAL_MARGIN = 20;
@@ -94,7 +95,7 @@ export class LabelEditor {
       styleCellId: element.id,
       style: element.style,
       displayStyle,
-      html: element.style.html === '1' ? cellLabelValue(editable.pageTree, element.id) : undefined,
+      html: styleFlag(element.style, 'html') ? cellLabelValue(editable.pageTree, element.id) : undefined,
       scale: this.textScale(element.id),
       onEdge: editable.page.edges.some((e) => e.id === element.id),
       // Fond de l'éditeur : celui du texte affiché (une forme qui place elle-même son label peut l'ôter).
@@ -124,7 +125,7 @@ export class LabelEditor {
         ...edge.style,
         ...this.core.edgeTexts.endTextStyle(this.core.edgeTexts.endTextLayout(edgeId, end)),
       },
-      html: current?.style.html === '1' ? cellLabelValue(editable.pageTree, current.id) : undefined,
+      html: current && styleFlag(current.style, 'html') ? cellLabelValue(editable.pageTree, current.id) : undefined,
       scale: this.textScale(edgeId),
       onEdge: true,
       ...this.labelEditBackdrop(current?.style ?? edge.style, true),

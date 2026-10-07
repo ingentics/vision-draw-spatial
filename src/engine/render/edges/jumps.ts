@@ -1,5 +1,6 @@
 import type { Point } from '../../model/types';
 import { distance, segmentIntersection } from '../../model/geometry';
+import { styleFlag } from '../../model/styleValues';
 
 /**
  * Sauts de ligne aux croisements (`jumpStyle`, `jumpSize`, ticket 129), comme draw.io
@@ -37,7 +38,7 @@ export function jumpValue(value: string | undefined): JumpStyle | 'none' | undef
  * (`none`, ou flèche courbe).
  */
 export function jumpStyleOf(style: Record<string, string>, defaults?: JumpDefaults): JumpStyle | undefined {
-  if (style.curved === '1') return undefined;
+  if (styleFlag(style, 'curved')) return undefined;
   const value = jumpValue(style.jumpStyle) ?? defaults?.style;
   return value === 'none' ? undefined : value;
 }

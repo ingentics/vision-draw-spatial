@@ -13,6 +13,7 @@ import type { SceneLevel } from '../shapes/types';
 import { applyPageSpace } from './space';
 import { PARTS_PER_ELEMENT } from './types';
 import type { RenderContext } from './types';
+import { styleFlag } from '../model/styleValues';
 
 /** Scène Three.js d'une page (SPEC §7.4 : construite seulement pour les pages affichées). */
 export interface PageScene {
@@ -81,7 +82,7 @@ export function buildPageScene(
         target: item.edge.targetId ? shapesById.get(item.edge.targetId) : undefined,
       };
       object = createEdgeObject(item.edge, terminals, { ...ctx, raisedJumps: level === 'iso' }, dressing, below);
-      if (item.edge.style.noJump !== '1') below.push(edgeRoute(object));
+      if (!styleFlag(item.edge.style, 'noJump')) below.push(edgeRoute(object));
       object.position.z = elevation.edgeBase(item.edge);
       object.userData.top = object.position.z;
     }

@@ -5,6 +5,7 @@ import { disposeObject } from '../../../render/meshes';
 import { createEdgeObject, createShapeObject, edgeRoute, placeInDrawOrder } from '../../../render/pageScene';
 import { jumpStyleOf } from '../../../render/edges/jumps';
 import type { EngineCore } from '../../EngineCore';
+import { styleFlag } from '../../../model/styleValues';
 
 /**
  * Modifications en direct de la scène pendant un glisser (objets décalés, forme ou flèches redessinées), sans
@@ -93,7 +94,7 @@ export class LiveEdit {
   private routesBelow(page: PageModel, edge: EdgeModel): Point[][] {
     const routes: Point[][] = [];
     for (const other of page.edges) {
-      if (other.z >= edge.z || other.style.noJump === '1') continue;
+      if (other.z >= edge.z || styleFlag(other.style, 'noJump')) continue;
       const object = this.core.sceneView.sceneObject(other.id);
       if (object) routes.push(edgeRoute(object));
     }
