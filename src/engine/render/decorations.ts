@@ -10,7 +10,7 @@ import { PART_ORDER } from './types';
 
 /** Couleur d'accent par défaut (paramètre `selection.accentColor`). */
 export const DEFAULT_ACCENT = '#1a73e8';
-/** Pastille d'une flèche par défaut (paramètres « Modes › Séquences »). */
+/** Pastille d'une flèche par défaut, quand le mode n'en donne pas l'apparence (`PageDressing.edgeBadgeStyle`). */
 export const DEFAULT_EDGE_BADGE: EdgeBadgeStyle = {
   radius: 12,
   textSize: 15,
@@ -35,9 +35,14 @@ const DIGIT_HEIGHT = 0.71;
  * au milieu de la flèche sans texte. Elle fait face à la caméra (`userData.billboard = 'screen'`) : « au-dessus »
  * est le haut de l'écran, quel que soit l'angle de vue.
  */
-export function edgeBadge(edge: EdgeModel, route: Point[], badge: EdgeBadge, ctx: RenderContext): Group {
+export function edgeBadge(
+  edge: EdgeModel,
+  route: Point[],
+  badge: EdgeBadge,
+  look: EdgeBadgeStyle,
+  ctx: RenderContext,
+): Group {
   const labelled = edge.label.trim() !== '' && !styleFlag(edge.style, 'noLabel');
-  const look = ctx.edgeBadge ?? DEFAULT_EDGE_BADGE;
   const radius = labelled ? look.radius : look.smallRadius;
   const fontSize = labelled ? look.textSize : look.smallTextSize;
   const anchor = labelPoint(

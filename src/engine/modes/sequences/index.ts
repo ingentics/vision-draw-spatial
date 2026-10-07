@@ -1,6 +1,7 @@
 import type { EdgeModel } from '../../model/types';
 import type { ModeKey, PageModeDefinition } from '../types';
 import { FLOW, PARTICIPANT, STEP } from './flows';
+import { badgeStyle, currentLook, SEQUENCES_SETTINGS } from './settings';
 import { renameFlow, repairSequences, sequenceState, setEdgeFlow, setEdgeStep } from './steps';
 
 /**
@@ -66,13 +67,16 @@ export const definition: PageModeDefinition = {
       ],
     },
   ],
-  dressing(page) {
+  settings: SEQUENCES_SETTINGS,
+  dressing(page, values) {
     const state = sequenceState(page);
     const flowOf = (edge: EdgeModel) => {
       const placed = state.placement.get(edge.id);
       return placed && { placed, flow: state.flows.find((flow) => flow.id === placed.flowId)! };
     };
     return {
+      edgeDarken: values.edgeDarken as number,
+      edgeBadgeStyle: badgeStyle(values),
       edgeColor: (edge) => {
         const found = flowOf(edge);
         return found?.flow.color;
@@ -95,6 +99,7 @@ export const definition: PageModeDefinition = {
     },
     values: (page) => sequenceState(page).flows.map((flow) => flow.id),
     rename: (edit, value, label) => renameFlow(edit, value, label),
+    look: currentLook,
     // Flèches du flux et formes qu'elles relient ; flux sans flèche : rien d'estompé.
     focus: (page, value) => {
       const ids = sequenceState(page).members.get(value) ?? [];

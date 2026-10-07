@@ -14,6 +14,7 @@ export type {
   EditSettings,
   EffectSettings,
   ExporterSettings,
+  ModeSettings,
   GraphSettings,
   MinimapSettings,
   PanelsSettings,

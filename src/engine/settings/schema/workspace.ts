@@ -5,12 +5,13 @@ import type {
   DebugSettings,
   EditSettings,
   EffectSettings,
+  ModeSettings,
   ExporterSettings,
   PanelsSettings,
   SaveSettings,
 } from '../types';
 
-/** Schéma des réglages de l'espace de travail : édition, enregistrement, panneaux, exports, effets, débogage. */
+/** Schéma des réglages de l'espace de travail : édition, enregistrement, panneaux, exports, effets, modes, débogage. */
 
 const STRIP_TEXT = ['up', 'down'] as const;
 const PLANTUML_RENDERERS = ['kroki', 'plantuml', 'local'] as const;
@@ -81,3 +82,31 @@ function mergeEffects(patch: unknown, base: EffectSettings): EffectSettings {
 }
 
 export const EFFECTS = custom<EffectSettings>({}, mergeEffects) satisfies Spec<EffectSettings>;
+
+/**
+ * Réglages des modes fusionnés, mode par mode (ticket 283) : un nombre fini, un booléen ou une chaîne remplace,
+ * undefined retire (retour au défaut). Le type attendu par chaque réglage est vérifié par le registre des modes.
+ */
+function mergeModes(patch: unknown, base: ModeSettings): ModeSettings {
+  const changesById = (patch ?? {}) as Record<string, unknown>;
+  const result: ModeSettings = {};
+  for (const id of new Set([...Object.keys(base), ...Object.keys(changesById)])) {
+    const values = { ...base[id] };
+    const changes = changesById[id];
+    if (changes && typeof changes === 'object') {
+      for (const [key, value] of Object.entries(changes)) {
+        if (value === undefined) delete values[key];
+        else if (
+          (typeof value === 'number' && Number.isFinite(value)) ||
+          typeof value === 'boolean' ||
+          typeof value === 'string'
+        )
+          values[key] = value;
+      }
+    }
+    if (Object.keys(values).length > 0) result[id] = values;
+  }
+  return result;
+}
+
+export const MODES = custom<ModeSettings>({}, mergeModes) satisfies Spec<ModeSettings>;

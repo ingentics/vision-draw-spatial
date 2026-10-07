@@ -13,4 +13,12 @@ describe('paramètres enregistrés : migrations', () => {
     expect(migrate({ version: 3, selection: { speed: 30 } }).selection?.speed).toBe(30);
     expect(migrate({ version: 4, selection: { speed: 12 } }).selection?.speed).toBe(12);
   });
+
+  it('version 5 : les réglages de modes changés passent de `shapes` à `modes.<id>` (ticket 283)', () => {
+    const stored = { version: 4, shapes: { modeObstacleGap: 30, modeDimOpacity: 0.3, edgeBadgeBold: true } };
+    // L'écart et le gras avaient changé ; l'opacité est au défaut : rien à reprendre.
+    expect(migrate(stored as never).modes).toEqual({ rdd: { obstacleGap: 30 }, sequences: { badgeBold: true } });
+    expect(migrate({ version: 4, shapes: {} }).modes).toBeUndefined();
+    expect(migrate({ version: 5, shapes: { modeObstacleGap: 30 } } as never).modes).toBeUndefined();
+  });
 });

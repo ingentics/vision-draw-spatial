@@ -1,6 +1,15 @@
 import { defaultEffectRegistry, defaultModeRegistry, RESERVED_CODES, SETTINGS_LIMITS } from '../engine';
-import type { FollowLinkGesture, FollowLinkKey, MultiSelectKey, Settings, SettingsPatch, Shortcuts } from '../engine';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import type {
+  FollowLinkGesture,
+  FollowLinkKey,
+  ModeSetting,
+  ModeValues,
+  MultiSelectKey,
+  Settings,
+  SettingsPatch,
+  Shortcuts,
+} from '../engine';
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { CommentSettingsSection } from './comment';
 import { desktop } from './desktop';
 import { ColorField, Slider } from './SettingsFields';
@@ -1142,127 +1151,18 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
             </Section>
 
             <Section title="Modes">
-              <Subsection title="RDD">
-                <Slider
-                  label="Écart entre régions sœurs"
-                  value={shapes.modeObstacleGap}
-                  limits={SETTINGS_LIMITS['shapes.modeObstacleGap']}
-                  format={(v) => `${v} px`}
-                  onChange={(modeObstacleGap) => onChange({ shapes: { modeObstacleGap } })}
-                />
-                <p className="hint muted">
-                  Une région qu’on déplace ou redimensionne s’arrête à cette distance de ses voisines (même niveau),
-                  onglets compris ; une ligne rouge en pointillé montre la limite.
-                </p>
-              </Subsection>
-              <Subsection title="Séquences">
-                <h5 className="settings-group">Flux courant</h5>
-                <Slider
-                  label="Opacité hors du flux courant"
-                  value={shapes.modeDimOpacity}
-                  limits={SETTINGS_LIMITS['shapes.modeDimOpacity']}
-                  format={(v) => `${Math.round(v * 100)} %`}
-                  onChange={(modeDimOpacity) => onChange({ shapes: { modeDimOpacity } })}
-                />
-                <p className="hint muted">
-                  Flèches hors du flux courant et formes qu’aucune de ses flèches ne relie ; rien n’est estompé si le
-                  flux courant n’a pas de flèche.
-                </p>
-                <Slider
-                  label="Glissement de la barre du flux"
-                  value={shapes.modeBarSlideDuration}
-                  limits={SETTINGS_LIMITS['shapes.modeBarSlideDuration']}
-                  format={(v) => (v === 0 ? 'sans' : `${v} ms`)}
-                  onChange={(modeBarSlideDuration) => onChange({ shapes: { modeBarSlideDuration } })}
-                />
-                <p className="hint muted">
-                  Pendant une transition entre pages, la barre remonte hors de la vue au départ et redescend à
-                  l’arrivée.
-                </p>
-                <h5 className="settings-group">Pastilles</h5>
-                <p className="hint muted">Rang d’une flèche dans son flux.</p>
-                <Toggle
-                  label="Pastille face à la caméra"
-                  checked={shapes.edgeBadgeFaceCamera}
-                  onChange={(edgeBadgeFaceCamera) => onChange({ shapes: { edgeBadgeFaceCamera } })}
-                />
-                <Toggle
-                  label="Texte des flèches en séquence face à la caméra"
-                  checked={shapes.edgeBadgeLabelFaceCamera}
-                  onChange={(edgeBadgeLabelFaceCamera) => onChange({ shapes: { edgeBadgeLabelFaceCamera } })}
-                />
-                <ColorField
-                  label="Couleur de la bordure"
-                  value={shapes.edgeBadgeBorderColor}
-                  onChange={(edgeBadgeBorderColor) => onChange({ shapes: { edgeBadgeBorderColor } })}
-                />
-                <Slider
-                  label="Épaisseur de la bordure"
-                  value={shapes.edgeBadgeBorderWidth}
-                  limits={SETTINGS_LIMITS['shapes.edgeBadgeBorderWidth']}
-                  format={(v) => (v === 0 ? 'aucune' : `${v.toLocaleString('fr-FR')} px`)}
-                  onChange={(edgeBadgeBorderWidth) => onChange({ shapes: { edgeBadgeBorderWidth } })}
-                />
-                <ColorField
-                  label="Couleur du chiffre"
-                  value={shapes.edgeBadgeTextColor}
-                  onChange={(edgeBadgeTextColor) => onChange({ shapes: { edgeBadgeTextColor } })}
-                />
-                <Toggle
-                  label="Chiffre en gras"
-                  checked={shapes.edgeBadgeBold}
-                  onChange={(edgeBadgeBold) => onChange({ shapes: { edgeBadgeBold } })}
-                />
-                <h5 className="settings-group">Pastille d’une flèche avec texte</h5>
-                <Slider
-                  label="Rayon"
-                  value={shapes.edgeBadgeRadius}
-                  limits={SETTINGS_LIMITS['shapes.edgeBadgeRadius']}
-                  format={(v) => `${v.toLocaleString('fr-FR')} px`}
-                  onChange={(edgeBadgeRadius) => onChange({ shapes: { edgeBadgeRadius } })}
-                />
-                <Slider
-                  label="Taille du chiffre"
-                  value={shapes.edgeBadgeTextSize}
-                  limits={SETTINGS_LIMITS['shapes.edgeBadgeTextSize']}
-                  format={(v) => `${v.toLocaleString('fr-FR')} px`}
-                  onChange={(edgeBadgeTextSize) => onChange({ shapes: { edgeBadgeTextSize } })}
-                />
-                <Slider
-                  label="Écart avec le texte"
-                  value={shapes.edgeBadgeGap}
-                  limits={SETTINGS_LIMITS['shapes.edgeBadgeGap']}
-                  format={(v) => `${v.toLocaleString('fr-FR')} px`}
-                  onChange={(edgeBadgeGap) => onChange({ shapes: { edgeBadgeGap } })}
-                />
-                <h5 className="settings-group">Pastille d’une flèche sans texte</h5>
-                <Slider
-                  label="Rayon"
-                  value={shapes.edgeBadgeSmallRadius}
-                  limits={SETTINGS_LIMITS['shapes.edgeBadgeSmallRadius']}
-                  format={(v) => `${v.toLocaleString('fr-FR')} px`}
-                  onChange={(edgeBadgeSmallRadius) => onChange({ shapes: { edgeBadgeSmallRadius } })}
-                />
-                <Slider
-                  label="Taille du chiffre"
-                  value={shapes.edgeBadgeSmallTextSize}
-                  limits={SETTINGS_LIMITS['shapes.edgeBadgeSmallTextSize']}
-                  format={(v) => `${v.toLocaleString('fr-FR')} px`}
-                  onChange={(edgeBadgeSmallTextSize) => onChange({ shapes: { edgeBadgeSmallTextSize } })}
-                />
-                <h5 className="settings-group">Flèches et couleurs</h5>
-                <Slider
-                  label="Assombrissement du trait"
-                  value={shapes.edgeDressingDarken}
-                  limits={SETTINGS_LIMITS['shapes.edgeDressingDarken']}
-                  format={(v) => `${Math.round(v * 100)} %`}
-                  onChange={(edgeDressingDarken) => onChange({ shapes: { edgeDressingDarken } })}
-                />
-                <p className="hint muted">
-                  Une flèche colorée par un mode (couleur de son flux) prend cette couleur assombrie. Les couleurs des
-                  nouveaux flux sont les fonds des styles de forme, à partir du troisième.
-                </p>
-              </Subsection>
+              {defaultModeRegistry
+                .list()
+                .filter((mode) => (mode.settings ?? []).length > 0)
+                .map((mode) => (
+                  <Subsection key={mode.id} title={mode.shortName ?? mode.name}>
+                    <ModeSettingFields
+                      settings={mode.settings!}
+                      values={defaultModeRegistry.values(mode.id, settings.modes[mode.id])}
+                      onChange={(key, value) => onChange({ modes: { [mode.id]: { [key]: value } } })}
+                    />
+                  </Subsection>
+                ))}
             </Section>
 
             <Section title="Exporteurs">
@@ -1883,4 +1783,53 @@ function useSystemReducedMotion(): boolean {
     return () => query.removeEventListener?.('change', update);
   }, [query]);
   return reduced;
+}
+
+/**
+ * Réglages déclarés par un mode (ticket 283), dans l'ordre : titre de groupe avant le premier réglage d'un groupe, aide
+ * sous un réglage.
+ */
+function ModeSettingFields({
+  settings,
+  values,
+  onChange,
+}: {
+  settings: ModeSetting[];
+  values: ModeValues;
+  onChange: (key: string, value: ModeValues[string]) => void;
+}) {
+  return settings.map((setting) => (
+    <Fragment key={setting.key}>
+      {setting.group && <h5 className="settings-group">{setting.group}</h5>}
+      {setting.groupHint && <p className="hint muted">{setting.groupHint}</p>}
+      {setting.type === 'number' ? (
+        <Slider
+          label={setting.label}
+          value={values[setting.key] as number}
+          limits={setting}
+          format={(v) =>
+            v === 0 && setting.zero
+              ? setting.zero
+              : setting.unit === '%'
+                ? `${Math.round(v * 100)} %`
+                : `${v.toLocaleString('fr-FR')} ${setting.unit ?? ''}`.trim()
+          }
+          onChange={(value) => onChange(setting.key, value)}
+        />
+      ) : setting.type === 'toggle' ? (
+        <Toggle
+          label={setting.label}
+          checked={values[setting.key] as boolean}
+          onChange={(value) => onChange(setting.key, value)}
+        />
+      ) : (
+        <ColorField
+          label={setting.label}
+          value={values[setting.key] as string}
+          onChange={(value) => onChange(setting.key, value)}
+        />
+      )}
+      {setting.hint && <p className="hint muted">{setting.hint}</p>}
+    </Fragment>
+  ));
 }

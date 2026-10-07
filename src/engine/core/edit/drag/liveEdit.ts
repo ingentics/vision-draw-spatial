@@ -72,7 +72,7 @@ export class LiveEdit {
       .sort((a, b) => a.z - b.z);
     if (retraced.length === 0) return;
     const shapes = new Map(page.shapes.map((shape) => [shape.id, shape]));
-    const dressing = this.core.modes.dressing(page);
+    const dressing = this.core.modes.dressing(page, this.core.settings.modes);
     for (const edge of retraced) {
       const old = this.core.sceneView.sceneObject(edge.id);
       if (!old) continue;

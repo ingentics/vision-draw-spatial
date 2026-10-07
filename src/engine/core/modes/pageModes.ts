@@ -8,11 +8,15 @@ import { hasExactTextMeasure } from '../../render/textMeasure';
 import { applyModeEdit } from '../../modes/modeEdits';
 import { pageEffectIds, withPageEffect } from '../../effects/registry';
 import type { ModeScope, PageModeRegistry } from '../../modes/registry';
-import type { ModeEdit, ModeEditContext, ModeTarget } from '../../modes/types';
+import type { ModeCurrentLook, ModeEdit, ModeEditContext, ModeTarget } from '../../modes/types';
 import { modePalette } from '../../settings';
 import { SPATIAL } from '../../spatial';
 import type { ModeIndicator } from '../types';
 import type { EngineCore } from '../EngineCore';
+
+/** Apparence du courant d'un mode quand il n'en dit rien (`ModeCurrent.look`, ticket 283). */
+const DEFAULT_DIM_OPACITY = 0.3;
+const DEFAULT_BAR_SLIDE_DURATION = 200;
 
 /**
  * Modes et effets de page (sujets 69, 143) : choix du mode, réglages déclarés, « courant » du mode et ce qu'il estompe,
@@ -154,6 +158,7 @@ export class PageModes {
       label: current.label?.(page, value) ?? value,
       values: current.values?.(page) ?? [],
       renamable: current.rename !== undefined && this.core.targets.editablePage()?.page.id === page.id,
+      slideDuration: this.currentLook(page).barSlideDuration ?? DEFAULT_BAR_SLIDE_DURATION,
     };
   }
 
@@ -176,8 +181,8 @@ export class PageModes {
   }
 
   /**
-   * Estompe ce qui n'est pas gardé net par le courant du mode de la page courante (`ModeCurrent.focus`, paramètre
-   * `shapes.modeDimOpacity`) ; seuls les éléments dont l'état change sont repris. Appelé avant chaque image : suit
+   * Estompe ce qui n'est pas gardé net par le courant du mode de la page courante (`ModeCurrent.focus`, opacité de
+   * `ModeCurrent.look`) ; seuls les éléments dont l'état change sont repris. Appelé avant chaque image : suit
    * le courant, les modifications du schéma et les scènes reconstruites.
    */
   applyModeFocus(): void {
@@ -185,7 +190,7 @@ export class PageModes {
     const value = page && this.getModeCurrent(page.id);
     const focus = page && value !== undefined ? this.core.modes.modeOf(page)?.current?.focus?.(page, value) : undefined;
     const kept = focus && new Set(focus);
-    const opacity = this.core.settings.shapes.modeDimOpacity;
+    const opacity = (page && this.currentLook(page).dimOpacity) ?? DEFAULT_DIM_OPACITY;
     const scenes = new Set([
       this.core.scenes.current,
       this.core.levels.levelBlend?.flat,
@@ -194,6 +199,12 @@ export class PageModes {
     for (const scene of scenes) {
       if (scene && scene.pageId === page?.id) setElementsDim(scene.root, (id) => (kept && !kept.has(id) ? opacity : 1));
     }
+  }
+
+  /** Apparence du courant du mode de la page, d'après les réglages du mode. */
+  private currentLook(page: PageModel): ModeCurrentLook {
+    const look = this.core.modes.modeOf(page)?.current?.look;
+    return look?.(this.core.modes.valuesOf(page, this.core.settings.modes)) ?? {};
   }
 
   /**

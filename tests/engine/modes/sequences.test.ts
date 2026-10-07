@@ -19,7 +19,7 @@ import {
   setEdgeStep,
 } from '../../../src/engine/modes/sequences/steps';
 import type { ModeEdit } from '../../../src/engine/modes/types';
-import { DEFAULT_EDGE_BADGE, darken } from '../../../src/engine/render/decorations';
+import { darken } from '../../../src/engine/render/decorations';
 import { buildPageScene } from '../../../src/engine/render/pageScene';
 import type { RenderContext, TextSpec } from '../../../src/engine/render/types';
 import { createDefaultRegistry } from '../../../src/engine/shapes/registry';
@@ -190,7 +190,7 @@ describe('mode Séquences : réglages déclarés et habillage', () => {
   });
 
   it('flèche d’un flux : trait dans la couleur du flux assombrie, pastille du rang ; hors flux : rien', () => {
-    const dressing = sequences.dressing!(page());
+    const dressing = sequences.dressing!(page(), createDefaultModeRegistry().values('sequences', undefined));
     expect(dressing.edgeColor!(edge(page(), 'login'))).toBe('#4e79a7');
     expect(dressing.edgeBadge!(edge(page(), 'lecture'))).toEqual({ text: '2', color: '#4e79a7' });
     expect(dressing.edgeColor!(edge(page(), 'libre'))).toBeUndefined();
@@ -283,7 +283,7 @@ describe('flux courant (sujet 79)', () => {
 });
 
 describe('pastille : paramètres de la pastille (sujet 77)', () => {
-  it('taille, couleurs, gras et assombrissement viennent du contexte de rendu', () => {
+  it('taille, couleurs, gras et assombrissement viennent des réglages du mode (ticket 283)', () => {
     const { page } = setup();
     const texts: TextSpec[] = [];
     const ctx: RenderContext = {
@@ -293,22 +293,22 @@ describe('pastille : paramètres de la pastille (sujet 77)', () => {
           return new Object3D();
         },
       },
-      edgeBadge: {
-        radius: 20,
-        textSize: 18,
-        smallRadius: 4,
-        smallTextSize: 6,
-        borderColor: '#ff0000',
-        borderWidth: 0,
-        textColor: '#00ff00',
-        bold: true,
-        gap: 0,
-        faceCamera: true,
-        labelFaceCamera: false,
-      },
-      dressingDarken: 0,
     };
-    const dressing = createDefaultModeRegistry().dressing(page());
+    const dressing = createDefaultModeRegistry().dressing(page(), {
+      sequences: {
+        badgeRadius: 20,
+        badgeTextSize: 18,
+        badgeSmallRadius: 4,
+        badgeSmallTextSize: 6,
+        badgeBorderColor: '#ff0000',
+        badgeBorderWidth: 0,
+        badgeTextColor: '#00ff00',
+        badgeBold: true,
+        badgeGap: 0,
+        badgeLabelFaceCamera: false,
+        edgeDarken: 0,
+      },
+    });
     const root = buildPageScene(page(), createDefaultRegistry(), ctx, 'flat', dressing).root;
     const login = root.children.find((child) => child.userData.elementId === 'login')!;
     const digit = texts.find((spec) => spec.text === '1')!;
@@ -325,9 +325,10 @@ describe('pastille et texte face à la caméra (sujet 105)', () => {
     const { page } = setup();
     const ctx: RenderContext = {
       text: { create: (spec) => new Object3D().translateX(spec.x).translateY(spec.y) },
-      edgeBadge: { ...DEFAULT_EDGE_BADGE, faceCamera, labelFaceCamera },
     };
-    const dressing = createDefaultModeRegistry().dressing(page());
+    const dressing = createDefaultModeRegistry().dressing(page(), {
+      sequences: { badgeFaceCamera: faceCamera, badgeLabelFaceCamera: labelFaceCamera },
+    });
     const root = buildPageScene(page(), createDefaultRegistry(), ctx, 'flat', dressing).root;
     return root.children.find((child) => child.userData.elementId === 'login')!;
   };

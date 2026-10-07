@@ -32,7 +32,13 @@ export class SceneView {
     const layout = core.graph.layout;
     if (core.graph.isGraph(page.id) && layout && core.file.document)
       return buildGraphScene(page, layout, core.file.document, core.registry, this.renderContext(page), level);
-    const scene = buildPageScene(page, core.registry, this.renderContext(page), level, core.modes.dressing(page));
+    const scene = buildPageScene(
+      page,
+      core.registry,
+      this.renderContext(page),
+      level,
+      core.modes.dressing(page, core.settings.modes),
+    );
     // Décors des effets de la page : en volume seulement (iso / 3D).
     if (level === 'iso')
       core.effects.decorate(page, scene.root, {
@@ -94,26 +100,12 @@ export class SceneView {
         haloWidth: this.core.settings.shapes.edgeLabelHaloWidth,
         haloBlur: this.core.settings.shapes.edgeLabelHaloBlur,
       },
-      edgeBadge: {
-        radius: this.core.settings.shapes.edgeBadgeRadius,
-        textSize: this.core.settings.shapes.edgeBadgeTextSize,
-        smallRadius: this.core.settings.shapes.edgeBadgeSmallRadius,
-        smallTextSize: this.core.settings.shapes.edgeBadgeSmallTextSize,
-        borderColor: this.core.settings.shapes.edgeBadgeBorderColor,
-        borderWidth: this.core.settings.shapes.edgeBadgeBorderWidth,
-        textColor: this.core.settings.shapes.edgeBadgeTextColor,
-        bold: this.core.settings.shapes.edgeBadgeBold,
-        gap: this.core.settings.shapes.edgeBadgeGap,
-        faceCamera: this.core.settings.shapes.edgeBadgeFaceCamera,
-        labelFaceCamera: this.core.settings.shapes.edgeBadgeLabelFaceCamera,
-      },
       edgeSplit: {
         length: this.core.settings.shapes.edgeSplitLength,
         fade: this.core.settings.shapes.edgeSplitFade,
         labelPadding: this.core.settings.shapes.edgeSplitLabelPadding,
         labelSize: this.core.settings.shapes.edgeSplitLabelSize,
       },
-      dressingDarken: this.core.settings.shapes.edgeDressingDarken,
     };
   }
 

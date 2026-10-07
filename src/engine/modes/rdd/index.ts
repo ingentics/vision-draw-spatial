@@ -6,6 +6,7 @@ import { fieldParts } from './editing/fieldParts';
 import { FIELD_PROPERTIES } from './editing/fieldProperties';
 import { REGION_KIND, placeInRegions, regionContent, regionObstacles } from './regions/regionLayout';
 import { FIT_REGION_KEY, REGION_PROPERTIES } from './regions/regionProperties';
+import { OBSTACLE_GAP, RDD_SETTINGS } from './settings';
 import {
   CARDINALITIES,
   RELATION_PROPERTIES,
@@ -27,6 +28,7 @@ import { rowOf, shapeName } from './editing/tableTargets';
 export const definition: PageModeDefinition = {
   id: 'rdd',
   name: 'RDD — Relational Database Designer',
+  shortName: 'RDD',
   description: 'Modèles de données relationnels : tables, champs et couleurs d’entête, en 2D',
   // Une table : entête pleine, lignes des champs en accent.
   icon: {
@@ -40,6 +42,7 @@ export const definition: PageModeDefinition = {
   // Toutes les tables, puis la région (sujet 182) ; le modèle abstrait, sans élément de palette, n'y apparaît pas.
   shapes: [...Object.keys(TABLE_KINDS), REGION_KIND],
   paletteCategories: [{ id: 'rdd', name: 'RDD', order: 5 }],
+  settings: RDD_SETTINGS,
   pageProperties: [
     {
       // Encart du mode sur la page (sujets 265, 266) : textes des cardinalités, sur toutes les relations (les pointes
@@ -96,7 +99,7 @@ export const definition: PageModeDefinition = {
     syncRelations(edit);
   },
   // Une région ne passe pas sur ses sœurs (sujet 241).
-  obstacles: regionObstacles,
+  obstacles: (page, shape, values) => regionObstacles(page, shape, values[OBSTACLE_GAP] as number),
   keys: {
     // « - » sur une ligne sélectionnée : un séparateur après elle, son texte en édition (sujet 253).
     '-': {

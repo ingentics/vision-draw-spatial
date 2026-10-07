@@ -602,7 +602,6 @@ export function Viewer({
         >
           <SlidingModeBar
             indicator={transitioning ? undefined : modeIndicator}
-            duration={settings.shapes.modeBarSlideDuration}
             onChoose={(value) => engine?.setModeCurrent(value)}
             onRename={(label) => engine?.renameModeCurrent(label)}
           />

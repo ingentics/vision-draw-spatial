@@ -111,9 +111,9 @@ export function createEdgeObject(
   dressing?: PageDressing,
   below: readonly Point[][] = [],
 ): Object3D {
-  // Couleur du mode, assombrie pour le trait (paramètre « Assombrissement du trait »).
+  // Couleur du mode, assombrie pour le trait (réglage « Assombrissement du trait » du mode).
   const base = dressing?.edgeColor?.(edge);
-  const color = base && darken(base, ctx.dressingDarken ?? DEFAULT_DRESSING_DARKEN);
+  const color = base && darken(base, dressing?.edgeDarken ?? DEFAULT_DRESSING_DARKEN);
   const object = createEdge(
     color ? { ...edge, style: { ...edge.style, strokeColor: color } } : edge,
     terminals,
@@ -123,8 +123,9 @@ export function createEdgeObject(
   const badge = dressing?.edgeBadge?.(edge);
   const route = object.userData.route as Point[] | undefined;
   if (badge && route && route.length >= 2) {
-    object.add(edgeBadge(edge, route, badge, ctx));
-    if ((ctx.edgeBadge ?? DEFAULT_EDGE_BADGE).labelFaceCamera) standLabels(object);
+    const look = dressing?.edgeBadgeStyle ?? DEFAULT_EDGE_BADGE;
+    object.add(edgeBadge(edge, route, badge, look, ctx));
+    if (look.labelFaceCamera) standLabels(object);
   }
   return object;
 }

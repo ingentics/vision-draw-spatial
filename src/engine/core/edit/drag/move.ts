@@ -48,7 +48,7 @@ export class MoveDrags {
     else if (move.bounded) {
       const { applied } = move;
       const here = move.bounded.moving.map((r) => ({ ...r, x: r.x + applied.x, y: r.y + applied.y }));
-      const bounded = clampMove(here, move.bounded.obstacles, this.core.settings.shapes.modeObstacleGap, {
+      const bounded = clampMove(here, move.bounded.obstacles, move.bounded.gap, {
         x: snapped.x - applied.x,
         y: snapped.y - applied.y,
       });

@@ -101,6 +101,6 @@ export type { FontSet } from './render/troikaText';
 export { defaultEffectRegistry, pageEffectIds } from './effects/registry';
 export { defaultModeRegistry } from './modes/registry';
 export type { ModeScope } from './modes/registry';
-export type { ModeEdit, ModeProperty, ModeTarget, PageModeDefinition } from './modes/types';
+export type { ModeEdit, ModeProperty, ModeSetting, ModeTarget, ModeValues, PageModeDefinition } from './modes/types';
 export { defaultShapeRegistry } from './shapes/registry';
 export type { PropertySection, ShapeProperty } from './shapes/types';

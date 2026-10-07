@@ -1,6 +1,7 @@
 import type { ViewMode } from '../interaction/cameraMath';
 import type { EdgeEnd, EndTextGap } from '../edit/edgeLabels';
 import type { EdgeModel, PageModel, Point, Rect, ShapeModel } from '../model/types';
+import type { EdgeBadgeStyle } from '../render/types';
 import type { PaletteCategory } from '../shapes/types';
 
 /**
@@ -15,6 +16,8 @@ export interface PageModeDefinition {
   id: string;
   /** Nom affiché dans le choix du mode. */
   name: string;
+  /** Nom court, là où la place manque (sous-page du mode dans les paramètres, ticket 283) ; défaut : `name`. */
+  shortName?: string;
   /** Aide au survol du choix du mode. */
   description?: string;
   /** Icône de l'onglet d'une page du mode (sujets 197, 198). */
@@ -23,8 +26,13 @@ export interface PageModeDefinition {
   pageProperties?: ModeProperty[];
   edgeProperties?: ModeProperty[];
   shapeProperties?: ModeProperty[];
-  /** Habillage du rendu de la page, appliqué au dessin sans modifier le style draw.io. */
-  dressing?(page: PageModel): PageDressing;
+  /**
+   * Réglages globaux du mode (Paramètres › Modes, ticket 283), bornés ; leurs valeurs sont passées aux mécanismes qu'il
+   * fournit (`obstacles`, `dressing`, `current.look`), qui les rendent au moteur.
+   */
+  settings?: ModeSetting[];
+  /** Habillage du rendu de la page, appliqué au dessin sans modifier le style draw.io ; `values` : ses réglages. */
+  dressing?(page: PageModel, values: ModeValues): PageDressing;
   /** Incohérences des données (ex. fichier modifié dans draw.io), remises en ordre au mieux et signalées. */
   check?(page: PageModel): ModeIssue[];
   /** Remise en ordre écrite dans le fichier, après une suppression d'éléments (même étape d'annulation). */
@@ -105,9 +113,9 @@ export interface PageModeDefinition {
   handleClicked?(edit: ModeEdit, shape: ShapeModel, handle: string, part?: string): string | undefined;
   /**
    * Bornes d'une forme qu'on déplace ou redimensionne (sujet 241, ex. régions sœurs d'une région RDD) : obstacles à ne
-   * pas approcher à moins de l'écart des paramètres (`shapes.modeObstacleGap`) ; undefined = aucune borne.
+   * pas approcher à moins de leur écart (`gap`, réglage du mode) ; undefined = aucune borne.
    */
-  obstacles?(page: PageModel, shape: ShapeModel): ModeObstacles | undefined;
+  obstacles?(page: PageModel, shape: ShapeModel, values: ModeValues): ModeObstacles | undefined;
 }
 
 /**
@@ -187,6 +195,8 @@ export interface ModeObstacles {
   rects: Array<{ id: string; rect: Rect }>;
   /** Ce que la forme dessine au-dessus de ses bornes et qui compte dans son emprise (ex. onglet), en pixels de page. */
   above?: number;
+  /** Écart minimal à garder avec les obstacles, en pixels de page (réglage du mode, ticket 283). */
+  gap: number;
 }
 
 /**
@@ -219,11 +229,21 @@ export interface ModeCurrent {
   values?(page: PageModel): string[];
   /**
    * Éléments gardés nets pour ce courant (ex. flèches du flux et leurs formes) ; les autres sont estompés (paramètre
-   * « Opacité hors du flux courant »). Undefined : rien n'est estompé.
+   * « Opacité hors du courant »). Undefined : rien n'est estompé.
    */
   focus?(page: PageModel, value: string): string[] | undefined;
   /** Renomme le courant (ex. titre du flux), depuis la barre ; `label` n'est jamais vide. */
   rename?(edit: ModeEdit, value: string, label: string): void;
+  /** Apparence du courant d'après les réglages du mode (ticket 283) ; absent = défauts du moteur. */
+  look?(values: ModeValues): ModeCurrentLook;
+}
+
+/** Apparence du courant d'un mode ; une valeur absente prend le défaut du moteur. */
+export interface ModeCurrentLook {
+  /** Opacité de ce que le courant ne garde pas net (`focus`), de 0 à 1 (défaut : 0,3). */
+  dimOpacity?: number;
+  /** Glissement de la barre quand elle part ou arrive avec une transition, en ms (0 = sans ; défaut : 200). */
+  barSlideDuration?: number;
 }
 
 /** Touche d'un mode sur l'élément sélectionné : opération (une étape d'annulation, libellée `label`). */
@@ -343,12 +363,16 @@ export type ModeProperty = {
 /** Habillage d'une page par son mode. */
 export interface PageDressing {
   /**
-   * Couleur du mode pour une flèche (#rrggbb, ex. celle de son flux) : trait et pointes la prennent, assombrie selon
-   * le paramètre « Assombrissement du trait » ; undefined = son style.
+   * Couleur du mode pour une flèche (#rrggbb, ex. celle de son flux) : trait et pointes la prennent, assombrie de
+   * `edgeDarken` ; undefined = son style.
    */
   edgeColor?(edge: EdgeModel): string | undefined;
+  /** Assombrissement du trait coloré par le mode (fraction de la luminosité, 0,25 = −25 % ; défaut : 0,25). */
+  edgeDarken?: number;
   /** Pastille posée sur une flèche, face à la caméra. */
   edgeBadge?(edge: EdgeModel): EdgeBadge | undefined;
+  /** Apparence des pastilles (défaut : `DEFAULT_EDGE_BADGE`). */
+  edgeBadgeStyle?: EdgeBadgeStyle;
 }
 
 /** Pastille ronde d'une flèche : au-dessus de son texte du milieu, plus petite au milieu de la flèche sans texte. */
@@ -362,3 +386,42 @@ export interface ModeIssue {
   cellId?: string;
   message: string;
 }
+
+/**
+ * Réglage global d'un mode (ticket 283), comme celui d'un effet : affiché dans la sous-page du mode (Paramètres ›
+ * Modes), valeur dans `settings.modes[id][key]`, bornée et complétée par `default` par le registre des modes.
+ */
+export type ModeSetting = {
+  key: string;
+  label: string;
+  /** Aide au survol. */
+  title?: string;
+  /** Aide affichée sous le réglage. */
+  hint?: string;
+  /** Groupe dans la sous-page du mode (titre affiché avant son premier réglage). */
+  group?: string;
+  /** Aide affichée sous le titre du groupe (sur le premier réglage du groupe). */
+  groupHint?: string;
+  /** Ancienne clé de la section `shapes` des paramètres (avant le ticket 283), reprise une fois si elle a changé. */
+  legacy?: string;
+} & (
+  | {
+      type: 'number';
+      min: number;
+      max: number;
+      step: number;
+      default: number;
+      /** Affichage : `px`, `ms`, ou `%` (fraction de 0 à 1 affichée en pourcentage). */
+      unit?: 'px' | 'ms' | '%';
+      /** Libellé de la valeur 0 (ex. « sans »). */
+      zero?: string;
+    }
+  | { type: 'toggle'; default: boolean }
+  | { type: 'color'; default: string }
+);
+
+/** Valeur d'un réglage de mode. */
+export type ModeSettingValue = number | boolean | string;
+
+/** Valeurs des réglages d'un mode, par clé (bornées, défaut pour les absentes ; nombre, booléen ou #rrggbb). */
+export type ModeValues = Record<string, ModeSettingValue>;

@@ -32,12 +32,14 @@ src/app/modes/<id>/         l'appli (facultatif) : sections React du panneau
 interface PageModeDefinition {
   id: string;                                  // nom des dossiers, valeur de spatial.mode
   name: string;                                // choix du mode dans le panneau de la page
+  shortName?: string;                          // nom court (sous-page des paramètres ; défaut : name)
   description?: string;                        // aide au survol
   icon?: ModeIcon;                             // onglet : tracés 16 × 16 fill / line / accent
   pageProperties?: ModeProperty[];             // réglages déclarés (section 3)
   edgeProperties?: ModeProperty[];
   shapeProperties?: ModeProperty[];
-  dressing?(page): PageDressing;               // habillage du rendu (section 4)
+  settings?: ModeSetting[];                    // réglages globaux, Paramètres › Modes (section 3)
+  dressing?(page, values): PageDressing;       // habillage du rendu (section 4)
   check?(page): ModeIssue[];                   // incohérences, remises en ordre au mieux et signalées
   repair?(edit: ModeEdit): void;               // remise en ordre écrite, après une suppression
   pasteKeys?: string[];                        // attributs retirés des éléments collés ou dupliqués
@@ -52,7 +54,7 @@ interface PageModeDefinition {
   selectionStyle?: 'veil' | 'outline';         // mise en valeur de la sélection imposée (ex. RDD : contour)
   handles?(page, shape, part?): ModeHandle[];  // poignées propres au mode sur la forme sélectionnée (ex. « + »)
   handleClicked?(edit, shape, handle, part?): string | undefined;  // clic sur une poignée
-  obstacles?(page, shape): ModeObstacles;      // bornes d'un déplacement / redimensionnement (ex. régions sœurs)
+  obstacles?(page, shape, values): ModeObstacles; // bornes d'un déplacement / redimensionnement (ex. régions sœurs)
   shapes?: string[];                           // formes proposées par la palette (section 6)
   paletteCategories?: PaletteCategory[];       // catégories de palette du mode (section 6)
   viewModes?: ViewMode[];                      // modes d'affichage permis (section 6)
@@ -86,17 +88,26 @@ ex. une table qui grandit avec ses champs). Toutes ses écritures forment une é
 change rien. Depuis l'appli : `onEdit(label, (edit) => monOperation(edit, …))` (prop des sections React), ou
 `engine.editPageMode(label, …)`.
 
+Les **réglages globaux** du mode (ticket 283), pour toute l'appli et non pour une page, sont déclarés dans sa
+définition (`settings`, rangés dans `modes/<id>/settings.ts`) comme ceux d'un effet : nombre borné (`unit` `px`, `ms`
+ou `%`, `zero` : libellé de 0), case à cocher ou couleur, avec leur défaut, un groupe (`group`, `groupHint`) et une aide
+(`hint`). L'appli les affiche dans une sous-page du mode (Paramètres › Modes, titre `shortName` sinon `name`) et les
+enregistre dans `settings.modes[id][key]` ; le registre les borne (`defaultModeRegistry.values`). Le moteur ne les lit
+jamais : il passe les valeurs (`values`) aux mécanismes du mode (`obstacles`, `dressing`, `current.look`), qui lui
+rendent ce qu'il applique (écart, apparence des pastilles, opacité…). `legacy` : ancienne clé de la section `shapes`,
+reprise une fois par la migration des paramètres enregistrés.
+
 Les données dérivées d'une page (ex. flèches rangées par flux) se calculent une fois par `PageModel` (le modèle est
 relu après chaque modification) : un `WeakMap` suffit.
 
 ## 4. Habillage
 
-`dressing(page)` renvoie la couleur du mode pour une flèche (`edgeColor`, trait et pointes, assombrie selon le
-paramètre « Assombrissement du trait ») et une pastille
+`dressing(page, values)` renvoie la couleur du mode pour une flèche (`edgeColor`, trait et pointes, assombrie de
+`edgeDarken`, défaut 0,25) et une pastille
 (`edgeBadge` : texte et couleur de fond). Le style draw.io n'est jamais modifié : l'habillage est appliqué au dessin
 (`render/pageScene.ts`, `createEdgeObject`), à la construction de la page comme pendant un déplacement. La pastille
-fait face à la caméra en iso / 3D (`userData.billboard = 'screen'`). Son apparence (tailles, bordure, chiffre) vient des
-paramètres « Modes › Séquences » (clés `shapes.edgeBadge…`, communes à tous les modes).
+fait face à la caméra en iso / 3D (`userData.billboard = 'screen'`). Son apparence (tailles, bordure, chiffre) est
+`edgeBadgeStyle`, tirée des réglages du mode (défaut : `DEFAULT_EDGE_BADGE`).
 
 ## 5. Courant, flèche créée, touches
 
@@ -105,7 +116,8 @@ paramètres « Modes › Séquences » (clés `shapes.edgeBadge…`, communes à
   `label` et `values` (barre en haut de la zone de dessin : couleur, libellé centré, boutons précédent / suivant
   dans l'ordre de `values`, choix par `engine.setModeCurrent`). `rename` : renommer le courant depuis son libellé dans la barre (`engine.renameModeCurrent`, nom vide
   refusé). `focus` : éléments gardés nets pour le courant, les autres estompés
-  (paramètre `shapes.modeDimOpacity`, opacité multipliée par `setElementsDim`, compatible avec les fondus). L'appli le lit par `engine.getModeCurrent()` et le
+  (opacité de `look(values).dimOpacity`, défaut 0,3, multipliée par `setElementsDim`, compatible avec les fondus ;
+  `look(values).barSlideDuration` : glissement de la barre, défaut 200 ms). L'appli le lit par `engine.getModeCurrent()` et le
   reçoit dans ses
   sections (`current` des props) ; l'événement `modeCurrentChange` signale un changement.
 - `edgeCreated(edit, edgeId, current)` : une flèche tirée depuis une forme, dans la même étape d'annulation.
@@ -142,8 +154,8 @@ paramètres « Modes › Séquences » (clés `shapes.edgeBadge…`, communes à
   la place visée sous le pointeur, `preview` la forme telle qu'elle serait (redessinée en direct, la partie mise en
   valeur à sa nouvelle place), `move` déplace la partie au lâcher (une étape d'annulation) et renvoie la partie à
   sélectionner.
-- `obstacles(page, shape)` : emprises que `shape` ne doit pas approcher pendant un déplacement (glisser, flèches du
-  clavier) ou un redimensionnement, à l'écart du paramètre `shapes.modeObstacleGap` ; `above` : ce que la forme dessine
+- `obstacles(page, shape, values)` : emprises que `shape` ne doit pas approcher pendant un déplacement (glisser,
+  flèches du clavier) ou un redimensionnement, à l'écart `gap` (réglage du mode, ex. `obstacleGap` de RDD) ; `above` : ce que la forme dessine
   au-dessus de ses bornes. Le moteur borne le geste (un axe puis l'autre, on glisse le long d'un obstacle) et montre la
   limite atteinte en pointillé rouge (`edit/obstacles.ts`).
 

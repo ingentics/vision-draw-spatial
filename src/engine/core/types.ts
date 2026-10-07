@@ -114,6 +114,8 @@ export interface ModeIndicator {
   values: string[];
   /** Le libellé se renomme depuis la barre (`renameModeCurrent`). */
   renamable: boolean;
+  /** Glissement de la barre quand elle part ou arrive avec une transition, en ms (0 = sans ; réglage du mode). */
+  slideDuration: number;
 }
 
 /** Commentaire à éditer en place (`commentEdit`) : l'élément, flèche ou forme, et son commentaire actuel. */

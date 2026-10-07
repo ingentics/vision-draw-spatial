@@ -201,34 +201,6 @@ export interface ShapeSettings {
   edgeSplitLabelPadding: number;
   /** Taille du texte de renvoi (pt). */
   edgeSplitLabelSize: number;
-  /** Pastille d'une flèche posée par un mode de page (ex. rang dans un flux) : flèche avec texte, puis sans. */
-  edgeBadgeRadius: number;
-  edgeBadgeTextSize: number;
-  edgeBadgeSmallRadius: number;
-  edgeBadgeSmallTextSize: number;
-  /** Bordure de la pastille (#rrggbb, pixels de page). */
-  edgeBadgeBorderColor: string;
-  edgeBadgeBorderWidth: number;
-  /** Chiffre de la pastille (#rrggbb). */
-  edgeBadgeTextColor: string;
-  edgeBadgeBold: boolean;
-  /** Écart entre la pastille et le texte du milieu de la flèche, en pixels de page. */
-  edgeBadgeGap: number;
-  /** Pastille face à la caméra (sinon couchée à plat dans le plan de la page, comme le texte). */
-  edgeBadgeFaceCamera: boolean;
-  /** Texte d'une flèche qui porte une pastille face à la caméra (sinon à plat). */
-  edgeBadgeLabelFaceCamera: boolean;
-  /** Assombrissement du trait d'une flèche colorée par un mode (fraction de la luminosité, 0,25 = −25 %). */
-  edgeDressingDarken: number;
-  /** Opacité de ce qui est hors du courant d'un mode (ex. hors du flux courant du mode Séquences). */
-  modeDimOpacity: number;
-  /** Glissement de la barre du courant d'un mode quand elle part ou arrive avec une transition (ms, 0 = sans). */
-  modeBarSlideDuration: number;
-  /**
-   * Écart minimal entre une forme qu'on déplace ou redimensionne et ses obstacles déclarés par le mode (ex. régions
-   * sœurs du mode RDD, sujet 241), en pixels de page.
-   */
-  modeObstacleGap: number;
   /** Formes non supportées (SPEC §8.4). */
   placeholderFill: string;
   placeholderStroke: string;
@@ -348,6 +320,13 @@ export interface ExporterSettings {
  */
 export type EffectSettings = Record<string, Record<string, number>>;
 
+/**
+ * Réglages globaux des modes de page (ticket 283) : `modes[id][clé]`, seulement les valeurs changées (nombre, booléen
+ * ou couleur #rrggbb). Chaque mode déclare ses réglages, leurs bornes et leurs défauts (`modes/<id>/`) : le registre
+ * des modes les résout.
+ */
+export type ModeSettings = Record<string, Record<string, number | boolean | string>>;
+
 export interface Settings {
   transition: TransitionSettings;
   preload: PreloadSettings;
@@ -368,6 +347,7 @@ export interface Settings {
   panels: PanelsSettings;
   exporters: ExporterSettings;
   effects: EffectSettings;
+  modes: ModeSettings;
 }
 
 /** Modification partielle, section par section (raccourcis compris). */
@@ -386,5 +366,7 @@ export type SettingsPatch = {
         ? { plantuml?: Partial<ExporterSettings['plantuml']> }
         : K extends 'effects'
           ? Record<string, Record<string, number | undefined>>
-          : Partial<Settings[K]>;
+          : K extends 'modes'
+            ? Record<string, Record<string, number | boolean | string | undefined>>
+            : Partial<Settings[K]>;
 };

@@ -33,7 +33,8 @@ export class Levels {
       settings.selection.accentColor !== previous.selection.accentColor ||
       settingsSectionChanged(settings, previous, 'shapes') ||
       settingsSectionChanged(settings, previous, 'graph') ||
-      settingsSectionChanged(settings, previous, 'effects')
+      settingsSectionChanged(settings, previous, 'effects') ||
+      settingsSectionChanged(settings, previous, 'modes')
     ) {
       this.rebuildScenes();
     }

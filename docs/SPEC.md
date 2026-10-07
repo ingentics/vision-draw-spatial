@@ -750,14 +750,6 @@ interface Settings {
   shapes: {
     edgeFontColor: string;                                        // texte des flèches sans fontColor : '#000000'
     edgeLoopMargin: number;                                       // coudes d'une boucle, écart au cadre de la forme (px de page) : 20
-    edgeBadgeRadius: number; edgeBadgeTextSize: number;           // pastille d'une flèche avec texte (§14.5) : 12, 15
-    edgeBadgeSmallRadius: number; edgeBadgeSmallTextSize: number; // pastille d'une flèche sans texte : 5.5, 7
-    edgeBadgeBorderColor: string; edgeBadgeBorderWidth: number;   // '#000000', 1
-    edgeBadgeTextColor: string; edgeBadgeBold: boolean;           // '#000000', false
-    edgeBadgeGap: number;                                         // écart avec le texte de la flèche : 2
-    edgeDressingDarken: number;                                   // trait d'une flèche colorée par un mode : 0.25 (−25 %)
-    modeDimOpacity: number;                                       // hors du courant d'un mode (flux courant) : 0.3
-    modeBarSlideDuration: number;                                 // glissement de la barre du courant (ms, 0 = sans) : 200
     placeholderFill: string; placeholderStroke: string;           // formes non supportées (§8.4) : '#eeeeee', '#9e9e9e'
   };
   graph: {                                                        // vue graphe (§12)
@@ -786,6 +778,8 @@ interface Settings {
     shadow: number;                                               // ombre des barres sur la zone de dessin : 0.06 (0–0.3, 0 = aucune)
     minCanvas: number;                                            // largeur gardée à la zone de dessin : 320 (200–800)
   };
+  effects: Record<string, Record<string, number>>;                // réglages déclarés par chaque effet (effects/<id>/)
+  modes: Record<string, Record<string, number | boolean | string>>; // réglages déclarés par chaque mode (modes/<id>/settings.ts, ticket 283)
 }
 ```
 
@@ -1029,7 +1023,7 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   suivant en boucle ; un clic sur le titre le renomme sur place (composant commun `InlineEdit`, nom vide
   refusé) ; pastille de couleur cerclée dans le panneau. La barre part au début d'une transition entre pages (elle
   remonte hors de la vue) et n'arrive qu'à sa fin (elle descend à sa place), glissement réglable (« Glissement de la
-  barre du flux », `shapes.modeBarSlideDuration`, 200 ms, 0 = sans). Tout ce qui ne touche pas ses flèches (flèches hors du flux,
+  barre du flux », réglage `barSlideDuration` du mode, 200 ms, 0 = sans). Tout ce qui ne touche pas ses flèches (flèches hors du flux,
   formes qu'aucune ne relie) est estompé à 30 % (paramètre « Opacité hors du flux courant ») ; flux sans flèche :
   rien d'estompé. Une flèche tirée depuis une forme va à la fin du flux courant (même étape d'annulation). « + » / « - » sur
   une flèche d'un flux sélectionnée seule : rang suivant / précédent. Cadre générique : `current`, `edgeCreated` et

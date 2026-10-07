@@ -288,13 +288,14 @@ export function fitRegion(edit: ModeEdit, region: ShapeModel): void {
 /**
  * Bornes d'une région qu'on déplace ou redimensionne (sujet 241) : ses sœurs (régions de même région parente, ou du
  * premier niveau de la page), onglets compris. Sa parente ne la borne pas (elle s'agrandit), son contenu bouge avec elle.
+ * `gap` : écart à garder (réglage du mode).
  */
-export function regionObstacles(page: PageModel, shape: ShapeModel): ModeObstacles | undefined {
+export function regionObstacles(page: PageModel, shape: ShapeModel, gap: number): ModeObstacles | undefined {
   if (!isRegion(shape)) return undefined;
   const parent = regionOf(page, shape)?.id;
   const content = new Set(regionContent(page, shape));
   const rects = page.shapes
     .filter((s) => isRegion(s) && s.id !== shape.id && !content.has(s.id) && regionOf(page, s)?.id === parent)
     .map((s) => ({ id: s.id, rect: extentOf(s) }));
-  return { rects, above: shape.bounds.y - extentOf(shape).y };
+  return { rects, above: shape.bounds.y - extentOf(shape).y, gap };
 }

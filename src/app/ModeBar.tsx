@@ -5,17 +5,15 @@ import { InlineEdit } from './InlineEdit';
 
 /**
  * `ModeBar` qui glisse : elle remonte hors de la vue quand `indicator` disparaît (ex. au début d'une transition entre
- * pages) et descend depuis le haut quand il apparaît, en `duration` ms (0 = sans animation). Pendant la sortie, la
- * barre garde le dernier indicateur affiché.
+ * pages) et descend depuis le haut quand il apparaît, en `slideDuration` ms de l'indicateur (réglage du mode ; 0 = sans
+ * animation). Pendant la sortie, la barre garde le dernier indicateur affiché.
  */
 export function SlidingModeBar({
   indicator,
-  duration,
   onChoose,
   onRename,
 }: {
   indicator: ModeIndicator | undefined;
-  duration: number;
   onChoose: (value: string) => void;
   onRename: (label: string) => void;
 }) {
@@ -23,6 +21,7 @@ export function SlidingModeBar({
   const last = useRef(indicator);
   if (indicator) last.current = indicator;
   const visible = indicator !== undefined;
+  const duration = (indicator ?? last.current)?.slideDuration ?? 0;
   const [present, setPresent] = useState(visible);
 
   // La sortie animée finie, la barre est retirée.

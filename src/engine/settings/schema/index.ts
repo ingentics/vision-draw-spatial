@@ -3,7 +3,7 @@ import type { Settings } from '../types';
 import { ACCESSIBILITY, CONTROLS, PRELOAD, TRANSITION } from './navigation';
 import { SHAPES, STYLES } from './shapes';
 import { BACKGROUND, CAMERA, COMMENT, GRAPH, MINIMAP, orderedZooms, SELECTION, VIEW } from './view';
-import { DEBUG, EDIT, EFFECTS, EXPORTERS, PANELS, SAVE } from './workspace';
+import { DEBUG, EDIT, EFFECTS, EXPORTERS, MODES, PANELS, SAVE } from './workspace';
 
 /**
  * Schéma des paramètres (SPEC §13) : pour chaque réglage, sa valeur par défaut, ses bornes et sa lecture. Les
@@ -30,6 +30,7 @@ export const SETTINGS_SCHEMA = {
   panels: PANELS,
   exporters: EXPORTERS,
   effects: EFFECTS,
+  modes: MODES,
 } satisfies { readonly [K in keyof Settings]-?: Spec<Settings[K]> };
 
 /** Règles entre plusieurs réglages d'une section, appliquées après la lecture de chacun. */

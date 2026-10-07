@@ -22,7 +22,7 @@ export interface MoveDrag {
    * Bornes du mode de la page (sujet 241) : emprises des formes saisies qui en ont, à leur place d'origine, et
    * obstacles à ne pas approcher ; absent = déplacement libre.
    */
-  bounded?: { moving: Rect[]; obstacles: Rect[] };
+  bounded?: { moving: Rect[]; obstacles: Rect[]; gap: number };
   start: Point;
   origin: Rect;
   applied: Point;
@@ -43,7 +43,7 @@ export interface ResizeDrag {
   /** La forme, son contenu (déplacé si le coin haut-gauche bouge) et ses arêtes reliées. */
   children: MoveSet;
   /** Bornes du mode de la page (sujet 241) : obstacles, et ce que la forme dessine au-dessus de ses bornes. */
-  bounded?: { obstacles: Rect[]; above: number };
+  bounded?: { obstacles: Rect[]; above: number; gap: number };
   started: boolean;
 }
 

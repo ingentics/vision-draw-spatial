@@ -208,25 +208,29 @@ export class DragGesture {
   private moveBounds(page: PageModel, rootIds: string[], moving: ReadonlySet<string>): MoveDrag['bounded'] {
     const obstaclesOf = this.core.modes.modeOf(page)?.obstacles;
     if (!obstaclesOf) return undefined;
+    const values = this.core.modes.valuesOf(page, this.core.settings.modes);
     const extents: Rect[] = [];
     const obstacles: Rect[] = [];
+    let gap = 0;
     for (const id of rootIds) {
       const shape = page.shapes.find((s) => s.id === id);
-      const found = shape && obstaclesOf(page, shape);
+      const found = shape && obstaclesOf(page, shape, values);
       if (!shape || !found) continue;
+      gap = Math.max(gap, found.gap);
       const above = found.above ?? 0;
       extents.push({ ...shape.bounds, y: shape.bounds.y - above, height: shape.bounds.height + above });
       obstacles.push(...found.rects.filter((r) => !moving.has(r.id)).map((r) => r.rect));
     }
-    return extents.length > 0 && obstacles.length > 0 ? { moving: extents, obstacles } : undefined;
+    return extents.length > 0 && obstacles.length > 0 ? { moving: extents, obstacles, gap } : undefined;
   }
 
   /** Bornes du mode de la page pour le redimensionnement d'une forme (sujet 241) ; undefined : aucune. */
   private resizeBounds(page: PageModel, shapeId: string): ResizeDrag['bounded'] {
     const shape = page.shapes.find((s) => s.id === shapeId);
-    const found = shape && this.core.modes.modeOf(page)?.obstacles?.(page, shape);
+    const values = this.core.modes.valuesOf(page, this.core.settings.modes);
+    const found = shape && this.core.modes.modeOf(page)?.obstacles?.(page, shape, values);
     if (!found || found.rects.length === 0) return undefined;
-    return { obstacles: found.rects.map((r) => r.rect), above: found.above ?? 0 };
+    return { obstacles: found.rects.map((r) => r.rect), above: found.above ?? 0, gap: found.gap };
   }
 
   /**

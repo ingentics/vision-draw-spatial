@@ -80,15 +80,11 @@ export interface RenderContext {
   edgeLabelBackdrop?: { kind: 'halo' | 'solid' | 'none'; haloWidth: number; haloBlur: number };
   /** Couleur du fond de la vue : fond des labels `labelBackgroundColor=default` (blanc par défaut). */
   background?: string;
-  /** Pastille d'une flèche posée par un mode de page (défaut : `DEFAULT_EDGE_BADGE`). */
-  edgeBadge?: EdgeBadgeStyle;
   /** Flèches coupées (`split=1`, ticket 219) : longueur des tronçons, fondu, marge du cadre de renvoi. */
   edgeSplit?: EdgeSplitSettings;
-  /** Assombrissement du trait d'une flèche colorée par un mode (fraction de la luminosité, défaut 0,25). */
-  dressingDarken?: number;
 }
 
-/** Apparence de la pastille d'une flèche (paramètres « Modes › Séquences »), en pixels de page. */
+/** Apparence de la pastille d'une flèche (réglages du mode qui la pose, `PageDressing.edgeBadgeStyle`), en pixels de page. */
 export interface EdgeBadgeStyle {
   /** Flèche avec texte : pastille au-dessus du texte du milieu. */
   radius: number;

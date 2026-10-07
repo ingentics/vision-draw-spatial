@@ -324,15 +324,17 @@ describe('mode RDD : une région ne passe pas sur ses sœurs (sujet 241)', () =>
     </root></mxGraphModel></diagram></mxfile>`);
     const page = document.pages[0]!;
     const shape = (id: string) => page.shapes.find((s) => s.id === id)!;
-    const found = rdd.obstacles!(page, shape('a'))!;
+    const found = rdd.obstacles!(page, shape('a'), { obstacleGap: 12 })!;
     // B, sa sœur dans Big, onglet compris ; ni Big (parente), ni Inner (son contenu), ni Other (autre niveau).
     expect(found.rects).toEqual([
       { id: 'b', rect: { x: 300, y: 40 - REGION.tab.height, width: 200, height: 80 + REGION.tab.height } },
     ]);
     expect(found.above).toBe(REGION.tab.height);
+    // Écart : le réglage du mode (ticket 283).
+    expect(found.gap).toBe(12);
     // Premier niveau : Big et Other sont sœurs.
-    expect(rdd.obstacles!(page, shape('big'))!.rects.map((r) => r.id)).toEqual(['other']);
+    expect(rdd.obstacles!(page, shape('big'), { obstacleGap: 12 })!.rects.map((r) => r.id)).toEqual(['other']);
     // Une table n'est pas bornée.
-    expect(rdd.obstacles!(page, shape('t'))).toBeUndefined();
+    expect(rdd.obstacles!(page, shape('t'), { obstacleGap: 12 })).toBeUndefined();
   });
 });

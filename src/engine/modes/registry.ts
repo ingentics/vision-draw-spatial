@@ -3,13 +3,35 @@ import type { PageModePalette } from '../edit/palette';
 import type { PageEffectDefinition } from '../effects/types';
 import type { ViewMode } from '../interaction/cameraMath';
 import type { DocumentModel, ParseWarning, PageModel } from '../model/types';
+import type { ModeSettings } from '../settings/types';
 import type { PaletteCategory, ShapeDefinition, ShapeTemplate } from '../shapes/types';
 import { SPATIAL } from '../spatial';
 import { MODE_SHAPE_DEFINITIONS } from './modeShapes';
-import type { ModeProperty, PageDressing, PageModeDefinition } from './types';
+import type {
+  ModeProperty,
+  ModeSetting,
+  ModeSettingValue,
+  ModeValues,
+  PageDressing,
+  PageModeDefinition,
+} from './types';
 
 /** Modes d'affichage, dans l'ordre des boutons. */
 const VIEW_MODES: ViewMode[] = ['top', 'iso', '3d'];
+
+/** Valeur enregistrée d'un réglage de mode, si elle a le bon type (nombre ramené dans ses bornes) ; sinon undefined. */
+function readSetting(setting: ModeSetting, value: unknown): ModeSettingValue | undefined {
+  switch (setting.type) {
+    case 'number':
+      return typeof value === 'number' && Number.isFinite(value)
+        ? Math.min(setting.max, Math.max(setting.min, value))
+        : undefined;
+    case 'toggle':
+      return typeof value === 'boolean' ? value : undefined;
+    case 'color':
+      return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value) ? value : undefined;
+  }
+}
 
 /** Portée d'un réglage déclaré : la page, une flèche, une forme. */
 export type ModeScope = 'page' | 'edge' | 'shape';
@@ -56,9 +78,43 @@ export class PageModeRegistry {
     return id === undefined ? undefined : this.definitions.get(id);
   }
 
-  /** Habillage du rendu de la page par son mode (rien pour une page normale). */
-  dressing(page: PageModel): PageDressing | undefined {
-    return this.modeOf(page)?.dressing?.(page);
+  /** Habillage du rendu de la page par son mode (rien pour une page normale) ; `settings` : réglages des modes. */
+  dressing(page: PageModel, settings?: ModeSettings): PageDressing | undefined {
+    const mode = this.modeOf(page);
+    return mode?.dressing?.(page, this.values(mode.id, settings?.[mode.id]));
+  }
+
+  /**
+   * Valeurs des réglages d'un mode (ticket 283) : celles des paramètres (`settings.modes[id]`) bornées, le défaut pour
+   * les autres ; les clés inconnues et les valeurs du mauvais type sont ignorées.
+   */
+  values(modeId: string, stored: Record<string, unknown> | undefined): ModeValues {
+    const values: ModeValues = {};
+    for (const setting of this.definitions.get(modeId)?.settings ?? [])
+      values[setting.key] = readSetting(setting, stored?.[setting.key]) ?? setting.default;
+    return values;
+  }
+
+  /** Valeurs des réglages du mode de la page ; vide pour une page normale. */
+  valuesOf(page: PageModel, settings: ModeSettings | undefined): ModeValues {
+    const mode = this.modeOf(page);
+    return mode ? this.values(mode.id, settings?.[mode.id]) : {};
+  }
+
+  /**
+   * Réglages des modes repris des anciennes clés de la section `shapes` (ticket 283, `ModeSetting.legacy`) : seulement
+   * ceux qui différaient du défaut.
+   */
+  legacySettings(shapes: Record<string, unknown> | undefined): ModeSettings {
+    const result: ModeSettings = {};
+    for (const mode of this.definitions.values()) {
+      for (const setting of mode.settings ?? []) {
+        const value = setting.legacy ? readSetting(setting, shapes?.[setting.legacy]) : undefined;
+        if (value === undefined || value === setting.default) continue;
+        (result[mode.id] ??= {})[setting.key] = value;
+      }
+    }
+    return result;
   }
 
   /**

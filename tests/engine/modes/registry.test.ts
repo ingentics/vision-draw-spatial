@@ -139,3 +139,45 @@ describe('modes de page en plugins (sujet 69)', () => {
     });
   });
 });
+
+describe('réglages déclarés par un mode (ticket 283)', () => {
+  const mode: PageModeDefinition = {
+    id: 'reglages',
+    name: 'Réglages',
+    settings: [
+      { key: 'gap', type: 'number', label: 'Écart', min: 0, max: 50, step: 1, default: 20, legacy: 'oldGap' },
+      { key: 'face', type: 'toggle', label: 'Face', default: true },
+      { key: 'ink', type: 'color', label: 'Encre', default: '#000000', legacy: 'oldInk' },
+    ],
+  };
+  const registry = new PageModeRegistry().register(mode);
+
+  it('valeurs : bornées, défaut pour les absentes et celles du mauvais type, clés inconnues ignorées', () => {
+    expect(registry.values('reglages', undefined)).toEqual({ gap: 20, face: true, ink: '#000000' });
+    expect(registry.values('reglages', { gap: 90, face: false, ink: '#FF0000', other: 1 })).toEqual({
+      gap: 50,
+      face: false,
+      ink: '#FF0000',
+    });
+    expect(registry.values('reglages', { gap: 'x', face: 1, ink: 'rouge' })).toEqual({
+      gap: 20,
+      face: true,
+      ink: '#000000',
+    });
+    expect(registry.valuesOf(page({ [SPATIAL.mode]: 'reglages' }), { reglages: { gap: 5 } }).gap).toBe(5);
+    expect(registry.valuesOf(page({}), { reglages: { gap: 5 } })).toEqual({});
+  });
+
+  it('anciennes clés de `shapes` : reprises si elles différaient du défaut', () => {
+    expect(registry.legacySettings({ oldGap: 35, oldInk: '#000000' })).toEqual({ reglages: { gap: 35 } });
+    expect(registry.legacySettings(undefined)).toEqual({});
+  });
+
+  it('habillage : le mode reçoit ses valeurs', () => {
+    const dressed = new PageModeRegistry().register({
+      ...mode,
+      dressing: (_page, values) => ({ edgeDarken: values.gap as number }),
+    });
+    expect(dressed.dressing(page({ [SPATIAL.mode]: 'reglages' }), { reglages: { gap: 7 } })?.edgeDarken).toBe(7);
+  });
+});
