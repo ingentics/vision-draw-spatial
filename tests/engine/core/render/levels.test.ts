@@ -80,6 +80,8 @@ describe('mini-carte : rendu propre, repli sur le contour, ou rien', () => {
       fill: vi.fn(),
       stroke: vi.fn(),
       fillRect: vi.fn(),
+      save: vi.fn(),
+      restore: vi.fn(),
       fillStyle: '',
       strokeStyle: '',
       lineWidth: 1,

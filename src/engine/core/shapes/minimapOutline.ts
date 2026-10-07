@@ -1,6 +1,6 @@
 import type { Point, ShapeModel } from '../model/types';
 import { rectPath } from '../render/geometry/paths';
-import type { MinimapMapping, MinimapPainter, ShapeDefinition } from './types';
+import type { MinimapMapping, MinimapPainter } from './types';
 
 const DEFAULT_FILL = '#ffffff';
 /** Contour par défaut (paramètre `minimap.outlineColor`). */
@@ -10,7 +10,7 @@ const OUTLINE_STROKE = '#9aa0a6';
  * Repli mini-carte : le contour de la forme (ou ses bornes), rempli de sa couleur de fond,
  * avec un trait fin gris.
  */
-export function outlinePainter(definition: Pick<ShapeDefinition, 'outline'>): MinimapPainter {
+export function outlinePainter(definition: { outline?: (shape: ShapeModel) => Point[] | undefined }): MinimapPainter {
   return (context, shape, map) => {
     const outline = definition.outline?.(shape) ?? rectPath(shape.bounds);
     paintPolygon(context, outline, map, shape);

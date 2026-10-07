@@ -168,7 +168,10 @@ export class EngineCore {
   /** `options` : registres des plugins résolus par la façade (registres par défaut si on n'en donne pas, sujet 286). */
   constructor(options: EngineOptions & PluginRegistries) {
     this.canvas = options.canvas;
-    this.registry = options.registry;
+    // Formes protégées (sujet 300) : une forme en panne est signalée dans les Diagnostics, comme un mode.
+    this.registry = options.registry.reportingTo((shapeId, hook, error) =>
+      this.pluginGuard.report(`Forme ${shapeId}`, hook, error),
+    );
     this.modes = options.modes;
     this.effects = options.effects;
     this.config = new Config(this, options);

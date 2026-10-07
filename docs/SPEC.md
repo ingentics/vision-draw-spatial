@@ -493,7 +493,9 @@ Formes et arêtes sont dessinées dans l'**ordre du document** (une arête décl
 ### 8.4 Formes non supportées
 
 - Affichées avec un **placeholder** : rectangle gris en pointillés aux dimensions de la forme, avec le nom du style non reconnu sous le label. En iso et en 3D, le même rendu sur le dessus d'un bloc gris, arêtes en pointillés (attributs spatiaux de la forme conservés, ex. `spatial.height`).
-- Le chargement d'un fichier **n'échoue jamais** à cause d'une forme inconnue.
+- Le chargement d'un fichier **n'échoue jamais** à cause d'une forme inconnue, ni d'une forme qui lève une exception :
+  le registre des formes protège chaque appel (sujet 300) ; une forme en panne est dessinée en placeholder (ou avec ses
+  bornes pour un contour, une zone de texte…) et l'erreur est signalée dans les Diagnostics (`AJOUTER_UNE_FORME.md`).
 - Chaque style inconnu est **journalisé** avec son nombre d'occurrences (module `diagnostics/unsupportedStyles`), consultable dans l'UI (panneau debug) et exportable en JSON. Cela sert de **backlog priorisé par fréquence réelle**.
 - Sont recensés : les formes dessinées en placeholder, les tracés d'arête approchés (`edgeStyle` inconnu) et les pointes inconnues (`startArrow` / `endArrow`). Le recensement porte sur **tout le document** (pas seulement les pages affichées) et est calculé au chargement.
 - **Panneau Diagnostics** (icône stéthoscope dans la barre d'outils, avec le nombre de problèmes ; masquable dans les

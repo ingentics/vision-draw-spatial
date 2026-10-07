@@ -1,7 +1,14 @@
-import { Group } from 'three';
+import { Group, Object3D } from 'three';
 import { describe, expect, it } from 'vitest';
+import { collectUnsupported } from '../../../../src/engine/core/diagnostics/unsupportedStyles';
+import type { EngineCore } from '../../../../src/engine/core/domains/EngineCore';
+import { PluginGuard } from '../../../../src/engine/core/domains/modes/pluginGuard';
+import { readDrawio } from '../../../../src/engine/core/format/parse';
 import { parseStyle, resolveShapeKind } from '../../../../src/engine/core/format/style';
-import type { ShapeModel } from '../../../../src/engine/core/model/types';
+import { pickElement } from '../../../../src/engine/core/interaction/pick';
+import type { Point, ShapeModel } from '../../../../src/engine/core/model/types';
+import { buildPageScene } from '../../../../src/engine/core/render/pageScene';
+import type { RenderContext } from '../../../../src/engine/core/render/types';
 import { groupShape } from '../../../../src/engine/core/shapes/group';
 import { ShapeRegistry } from '../../../../src/engine/core/shapes/registry';
 import type { ShapeDefinition } from '../../../../src/engine/core/shapes/types';
@@ -211,5 +218,118 @@ describe('formes en plugins (étape 65) : une forme déposée se branche toute s
     expect(registry.swatch(shape)).toBe('<path d="M8 5h24v18H8z"/>');
     expect(registry.isResizable(shape)).toBe(false);
     expect(registry.isConnectable(shape)).toBe(true);
+  });
+});
+
+describe('formes protégées (sujet 300)', () => {
+  const fail = (): never => {
+    throw new Error('panne');
+  };
+  /** Forme de test dont tous les points d'entrée lèvent une exception (nommée par `spatial.kind=broken`). */
+  const BROKEN: ShapeDefinition = {
+    id: 'broken',
+    flat: { create: fail },
+    outline: fail,
+    textZone: fail,
+    contains: fail,
+    hitBounds: fail,
+    editStyle: fail,
+    swatch: fail,
+    minimap: fail,
+  };
+  /** Forme de test dont la condition lève une exception (`shape=boom`). */
+  const BOOM: ShapeDefinition = { id: 'boom', matches: fail, flat: { create: () => new Group() } };
+  const XML = `<mxfile><diagram id="p" name="P"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="a" value="A" style="spatial.kind=broken;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="100" height="60" as="geometry"/></mxCell>
+<mxCell id="b" value="B" style="shape=boom;" vertex="1" parent="1"><mxGeometry x="300" y="0" width="100" height="60" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>`;
+  const ctx: RenderContext = { text: { create: () => new Object3D() } };
+
+  /** Registre par défaut avec les formes en panne, ses erreurs signalées par un `PluginGuard`, comme dans le moteur. */
+  function setup() {
+    const state = { published: 0 };
+    const core = { file: { publishWarnings: () => state.published++ } } as unknown as EngineCore;
+    const guard = new PluginGuard(core);
+    const registry = createDefaultRegistry()
+      .register(BROKEN)
+      .register(BOOM)
+      .reportingTo((id, hook, error) => guard.report(`Forme ${id}`, hook, error));
+    const { document } = readDrawio(XML);
+    const page = document.pages[0]!;
+    const shape = (id: string) => page.shapes.find((s) => s.id === id)!;
+    return { registry, guard, state, document, page, shape };
+  }
+
+  it('condition (matches) en panne : la définition est ignorée, la forme est dessinée en placeholder', () => {
+    const { registry, document, shape } = setup();
+    expect(registry.resolve(shape('b')).supported).toBe(false);
+    expect(collectUnsupported(document, registry).entries.map((entry) => entry.name)).toEqual(['boom']);
+  });
+
+  it('les autres points d’entrée en panne : repli, chaque erreur signalée une fois', async () => {
+    const { registry, guard, state, shape } = setup();
+    const a = shape('a');
+    // Le placeholder à la place du rendu : rectangle en pointillé, découpé en tirets.
+    const object = registry.sceneRenderer(a, 'flat').create(a, ctx);
+    expect(object.getObjectByName('stroke')).toBeDefined();
+    expect(registry.outline(a)).toBeUndefined();
+    expect(registry.textZone(a, 'flat')).toEqual(a.bounds);
+    expect(registry.contains(a, { x: 10, y: 10 })).toBe(true);
+    expect(registry.hitBounds(a)).toEqual(a.bounds);
+    expect(registry.editStyle(a)).toBeUndefined();
+    expect(registry.swatch(a)).toContain('<rect');
+    // Mini-carte : le contexte partagé est rendu tel quel, puis les bornes sont dessinées.
+    const calls: string[] = [];
+    const record = (name: string) => () => calls.push(name);
+    const context = new Proxy({} as CanvasRenderingContext2D, {
+      get: (_target, key) => (typeof key === 'string' ? record(key) : undefined),
+      set: () => true,
+    });
+    registry.minimapPainter(a)!(context, a, { toMinimap: (p: Point) => p, scale: 1 });
+    expect(calls.slice(0, 2)).toEqual(['save', 'restore']);
+    expect(calls.filter((c) => c === 'lineTo')).toHaveLength(3);
+    expect(guard.warnings().map((w) => w.message)).toEqual([
+      'Forme broken : erreur dans flat.create (panne)',
+      'Forme broken : erreur dans outline (panne)',
+      'Forme broken : erreur dans textZone (panne)',
+      'Forme broken : erreur dans contains (panne)',
+      'Forme broken : erreur dans hitBounds (panne)',
+      'Forme broken : erreur dans editStyle (panne)',
+      'Forme broken : erreur dans swatch (panne)',
+      'Forme broken : erreur dans minimap (panne)',
+    ]);
+    // La deuxième panne d'un même point d'entrée n'est pas signalée à nouveau ; une seule republication.
+    registry.sceneRenderer(a, 'flat').create(a, ctx);
+    expect(guard.warnings()).toHaveLength(8);
+    await Promise.resolve();
+    expect(state.published).toBe(1);
+  });
+
+  it('page aux formes en panne : la scène se construit, les formes se sélectionnent au clic', () => {
+    const { registry, page } = setup();
+    const scene = buildPageScene(page, registry, ctx);
+    expect(scene.root.children.map((child) => child.userData.elementId)).toEqual(['a', 'b']);
+    const options = {
+      edgeTolerance: 4,
+      edgeRoute: () => undefined,
+      contains: (s: ShapeModel, p: Point) => registry.contains(s, p),
+      hitBounds: (s: ShapeModel) => registry.hitBounds(s),
+    };
+    expect(pickElement(page, { x: 50, y: 30 }, options)?.element.id).toBe('a');
+    expect(pickElement(page, { x: 350, y: 30 }, options)?.element.id).toBe('b');
+  });
+
+  it('sans destinataire des erreurs : repli quand même, erreur à la console', () => {
+    const registry = new ShapeRegistry().register(BROKEN);
+    const shape = model('broken');
+    const error = console.error;
+    const logged: unknown[] = [];
+    console.error = (...args: unknown[]) => logged.push(args[0]);
+    try {
+      expect(registry.hitBounds(shape)).toEqual(shape.bounds);
+    } finally {
+      console.error = error;
+    }
+    expect(logged).toEqual(['Forme broken : erreur dans hitBounds']);
   });
 });

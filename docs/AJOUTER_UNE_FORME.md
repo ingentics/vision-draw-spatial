@@ -178,6 +178,23 @@ Utilisez les aides de [render/geometry/paths.ts](../src/engine/core/render/geome
 Le contour est **retracé à chaque construction** de la forme. S'il est coûteux à calculer, mémorisez-le dans la
 fonction, mais jamais entre deux formes : chaque forme a ses propres bornes.
 
+### Une forme en panne
+
+Le moteur appelle une forme par son registre, qui protège chaque appel (sujet 300) : une fonction de la définition qui
+lève une exception n'empêche ni d'ouvrir le fichier, ni de dessiner la page, ni de sélectionner ou d'éditer la forme.
+Le point d'entrée est traité comme absent et l'erreur est signalée une fois par session dans les Diagnostics
+(« Forme <id> : erreur dans <point d'entrée> ») :
+
+| En panne | Repli |
+|---|---|
+| `matches` | la définition est ignorée pour cette forme (souvent : placeholder) |
+| `flat.create`, `iso.create`, `volume.create` | le placeholder, au même niveau |
+| `outline`, `contains`, `hitBounds`, `textZone` | les bornes de la forme |
+| `volumeHeight` | l'épaisseur par défaut (`blockHeight`) |
+| `editStyle` | le style de la forme, tel quel |
+| `minimap` | les bornes, dans un contexte 2D remis comme avant |
+| `swatch` | l'aperçu du rectangle |
+
 ---
 
 ## 3. Les rendus selon le mode de vue

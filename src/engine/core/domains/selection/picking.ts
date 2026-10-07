@@ -129,7 +129,7 @@ export class Picking {
   private shapeOutline(shape: ShapeModel): Point[] | undefined {
     const cached = this.outlines.get(shape);
     if (cached && cached.bounds === shape.bounds && cached.style === shape.style) return cached.outline;
-    const outline = this.core.registry.resolve(shape).definition.outline?.(shape);
+    const outline = this.core.registry.outline(shape);
     this.outlines.set(shape, { bounds: shape.bounds, style: shape.style, outline });
     return outline;
   }

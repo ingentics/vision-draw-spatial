@@ -2,8 +2,8 @@ import type { ParseWarning } from '../../model/types';
 import type { EngineCore } from '../EngineCore';
 
 /**
- * Appels protégés des plugins (sujet 288) : une exception levée par un mode ou un effet n'arrête ni la lecture, ni le
- * rendu, ni le geste. Le point d'appel est traité comme absent (la valeur de repli de l'appelant) et l'erreur est
+ * Appels protégés des plugins (sujet 288) : une exception levée par un mode, un effet ou une forme (sujet 300, appels
+ * protégés par le registre des formes) n'arrête ni la lecture, ni le rendu, ni le geste. Le point d'appel est traité comme absent (la valeur de repli de l'appelant) et l'erreur est
  * signalée une fois par plugin et par point d'appel, dans les Diagnostics, pour toute la session.
  */
 export class PluginGuard {
