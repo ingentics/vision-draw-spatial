@@ -5,6 +5,7 @@ import {
   createLabel,
   cubicTo,
   dashPattern,
+  orientedPath,
   strokeMesh,
   styleColor,
   styleFlag,
@@ -83,41 +84,32 @@ export function directionOf(style: Record<string, string>): Direction {
 export const isLying = (shape: ShapeModel) => ['south', 'north'].includes(directionOf(shape.style));
 
 /**
- * Tracé d'une forme orientée, comme draw.io : dessinée debout dans un cadre local (largeur et
- * hauteur échangées si elle est couchée), puis tournée dans ses bornes (`south` = quart de tour
- * horaire : le haut du cylindre passe à droite).
+ * Tracé d'une forme orientée, comme draw.io (`orientedPath`) : dessinée debout dans un cadre local (largeur et hauteur
+ * échangées si elle est couchée), puis tournée dans ses bornes (`south` = quart de tour horaire : le haut du cylindre
+ * passe à droite) et retournée (`flipH`, `flipV`).
  */
-function oriented(bounds: Rect, direction: Direction, draw: (local: Rect) => CylinderDrawing): CylinderDrawing {
-  if (direction === 'east') return draw(bounds);
-  const lying = direction === 'south' || direction === 'north';
-  const local = {
-    x: 0,
-    y: 0,
-    width: lying ? bounds.height : bounds.width,
-    height: lying ? bounds.width : bounds.height,
-  };
-  const { x, y, width: w, height: h } = bounds;
-  const map = (p: Point): Point =>
-    direction === 'south'
-      ? { x: x + w - p.y, y: y + p.x }
-      : direction === 'north'
-        ? { x: x + p.y, y: y + h - p.x }
-        : { x: x + w - p.x, y: y + h - p.y };
-  const drawing = draw(local);
-  const corners = [
-    map({ x: drawing.label.x, y: drawing.label.y }),
-    map({ x: drawing.label.x + drawing.label.width, y: drawing.label.y + drawing.label.height }),
-  ];
-  const left = Math.min(corners[0]!.x, corners[1]!.x);
-  const top = Math.min(corners[0]!.y, corners[1]!.y);
+function oriented(
+  bounds: Rect,
+  style: Record<string, string>,
+  draw: (local: Rect) => CylinderDrawing,
+): CylinderDrawing {
+  let drawing: CylinderDrawing | undefined;
+  const place = (pick: (drawing: CylinderDrawing) => Point[]) =>
+    orientedPath(bounds, style, (width, height) => pick((drawing ??= draw({ x: 0, y: 0, width, height }))));
+  const label = place(({ label: { x, y, width, height } }) => [
+    { x, y },
+    { x: x + width, y: y + height },
+  ]);
+  const left = Math.min(label[0]!.x, label[1]!.x);
+  const top = Math.min(label[0]!.y, label[1]!.y);
   return {
-    silhouette: drawing.silhouette.map(map),
-    lips: drawing.lips.map((lip) => lip.map(map)),
+    silhouette: place((d) => d.silhouette),
+    lips: drawing!.lips.map((_, i) => place((d) => d.lips[i]!)),
     label: {
       x: left,
       y: top,
-      width: Math.max(corners[0]!.x, corners[1]!.x) - left,
-      height: Math.max(corners[0]!.y, corners[1]!.y) - top,
+      width: Math.max(label[0]!.x, label[1]!.x) - left,
+      height: Math.max(label[0]!.y, label[1]!.y) - top,
     },
   };
 }
@@ -135,7 +127,7 @@ function boundedLabel(bounds: Rect, style: Record<string, string>, top: number, 
  */
 export function cylinder3Drawing(shape: ShapeModel): CylinderDrawing {
   const { style } = shape;
-  return oriented(shape.bounds, directionOf(style), (bounds) => {
+  return oriented(shape.bounds, style, (bounds) => {
     const dy = Math.max(0, Math.min(bounds.height / 2, ringHeight(style)));
     // `boundedLbl=1` : le label reste dans le corps, sous l'ellipse du haut (marges de draw.io).
     return {

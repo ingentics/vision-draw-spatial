@@ -4,6 +4,9 @@ import { collectUnsupported } from '../../../../src/engine/core/diagnostics/unsu
 import { parseDrawio } from '../../../../src/engine/core/format/parse';
 import { buildPageScene } from '../../../../src/engine/core/render/pageScene';
 import type { RenderContext, TextSpec } from '../../../../src/engine/core/render/types';
+import type { Point } from '../../../../src/engine/core/model/types';
+import { flowsLeft } from '../../../../src/engine/plugins/shapes/architecture/queue';
+import { cylinder3Drawing } from '../../../../src/engine/plugins/shapes/generic/cylinder';
 import { fixture } from '../../../helpers';
 import { createDefaultRegistry } from '../../../../src/engine/plugins';
 
@@ -152,6 +155,40 @@ describe('formes de stockage : BDD, queue, cache distribué', () => {
       expect(box(dbObject.getObjectByName('fill')!)).toEqual(box(cacheObject.getObjectByName('fill')!));
       expect(named(dbObject, 'stroke-lip')).toHaveLength(1);
       expect(box(named(dbObject, 'stroke-lip')[0]!)).toEqual(box(named(cacheObject, 'stroke-lip')[0]!));
+    });
+
+    it('retournements (flipH, flipV) : le tracé de draw.io en miroir dans les bornes (dette 310)', () => {
+      const mirrored = (id: string, flip: string, axis: 'x' | 'y') => {
+        const shape = page.shapes.find((s) => s.id === id)!;
+        const { x, y, width, height } = shape.bounds;
+        const mirror = (p: Point) =>
+          axis === 'x' ? { x: 2 * x + width - p.x, y: p.y } : { x: p.x, y: 2 * y + height - p.y };
+        const plain = cylinder3Drawing(shape);
+        const flipped = cylinder3Drawing({ ...shape, style: { ...shape.style, [flip]: '1' } });
+        const close = (a: Point[], b: Point[]) =>
+          a.length === b.length && a.every((p, i) => Math.abs(p.x - b[i]!.x) < 1e-9 && Math.abs(p.y - b[i]!.y) < 1e-9);
+        return (
+          close(flipped.silhouette, plain.silhouette.map(mirror)) && close(flipped.lips[0]!, plain.lips[0]!.map(mirror))
+        );
+      };
+      // BDD debout : flipV met l'ellipse en bas ; queue couchée : flipH met le bout visible à gauche.
+      expect(mirrored('db', 'flipV', 'y')).toBe(true);
+      expect(mirrored('db', 'flipH', 'x')).toBe(true);
+      expect(mirrored('queue', 'flipH', 'x')).toBe(true);
+      expect(mirrored('queue', 'flipV', 'y')).toBe(true);
+    });
+
+    it('queue en iso : les chevrons vont vers le bout visible en 2D, retournements compris (dette 310)', () => {
+      const queue = page.shapes.find((s) => s.id === 'queue')!;
+      const styled = (style: string) => ({
+        ...queue,
+        style: { ...queue.style, ...Object.fromEntries(style.split(';').map((pair) => pair.split('='))) },
+      });
+      expect(flowsLeft(styled('direction=south'))).toBe(false);
+      expect(flowsLeft(styled('direction=south;flipH=1'))).toBe(true);
+      expect(flowsLeft(styled('direction=south;flipV=1'))).toBe(false);
+      expect(flowsLeft(styled('direction=north'))).toBe(true);
+      expect(flowsLeft(styled('direction=north;flipH=1'))).toBe(false);
     });
 
     it('queue = BDD couchée : son bout a la taille de l’ellipse de la BDD', () => {

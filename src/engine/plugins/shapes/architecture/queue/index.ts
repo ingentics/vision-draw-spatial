@@ -1,6 +1,6 @@
 import type { ShapeDefinition, ShapeModel } from '../../../../core/plugins';
 import { tagProperty } from '../../generic/building';
-import { cylinder3Drawing, cylinderFlat, directionOf, flatTextZone, isLying } from '../../generic/cylinder';
+import { cylinder3Drawing, cylinderFlat, flatTextZone, isLying } from '../../generic/cylinder';
 import { DIRECT_DATA, directDataDrawing } from './directData';
 import { isoQueue, QUEUE_TAG } from './facade';
 
@@ -15,7 +15,19 @@ const drawing = (shape: ShapeModel) =>
 const flat = cylinderFlat(drawing);
 
 /**
- * Queue (« File ») : étend le cylindre (couché, bout visible à droite, à gauche si `direction=north`) et le bâtiment
+ * Bout visible à gauche en 2D (`direction=north`, ou retourné par `flipH` / `flipV`) : en iso, les chevrons vont vers
+ * lui.
+ */
+export function flowsLeft(shape: ShapeModel): boolean {
+  if (shape.kind === DIRECT_DATA) return false;
+  const lip = drawing(shape).lips[0];
+  if (!lip || lip.length === 0) return false;
+  const middle = lip.reduce((sum, point) => sum + point.x, 0) / lip.length;
+  return middle < shape.bounds.x + shape.bounds.width / 2;
+}
+
+/**
+ * Queue (« File ») : étend le cylindre (couché, bout visible à droite, à gauche si `direction=north` ou retourné) et le bâtiment
  * (en iso, demi-cylindre couché aux chevrons de flux, dans le sens de la largeur).
  */
 export const definition: ShapeDefinition = {
@@ -25,7 +37,7 @@ export const definition: ShapeDefinition = {
   outline: (shape) => drawing(shape).silhouette,
   flat,
   textZone: flatTextZone(drawing),
-  iso: isoQueue(flat, (shape) => shape.kind !== DIRECT_DATA && directionOf(shape.style) === 'north'),
+  iso: isoQueue(flat, flowsLeft),
   properties: [tagProperty(QUEUE_TAG)],
   swatch: () => '<path d="M10 6h20a3 8 0 0 1 0 16H10a3 8 0 0 1 0-16zM30 6a3 8 0 0 0 0 16"/>',
   palette: {
