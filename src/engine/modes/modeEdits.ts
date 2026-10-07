@@ -1,5 +1,6 @@
 import {
   canMoveCell,
+  gridSizeOf,
   resizeCell,
   setCellObjectAttribute,
   setCellStyleValue,
@@ -31,6 +32,7 @@ export function applyModeEdit(
   edit({
     page,
     palette,
+    gridSize: gridSizeOf(pageTree),
     setPageAttribute: (key, value) => {
       const diagram = pageTree.diagram;
       const current = diagram?.hasAttribute(key) ? diagram.getAttribute(key) : undefined;

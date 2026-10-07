@@ -1,4 +1,5 @@
 import type { Object3D } from 'three';
+import { gridSizeOf } from '../../format/cellEdits';
 import type { PageModel, Point, Rect, ShapeModel } from '../../model/types';
 import type { ModePartText } from '../../modes/types';
 import type { EngineCore } from '../EngineCore';
@@ -123,7 +124,9 @@ export class ShapeParts {
   textPreview(shapeId: string, part: string, text: string): ShapeModel | undefined {
     const page = this.core.pages.getCurrentPage();
     const shape = page?.shapes.find((s) => s.id === shapeId);
-    return page && shape ? this.core.modes.modeOf(page)?.parts?.textPreview?.(shape, part, text) : undefined;
+    const tree = page && this.core.file.pageTreeOf(page.id);
+    const gridSize = tree && tree.encoding !== 'unreadable' ? gridSizeOf(tree) : 0;
+    return page && shape ? this.core.modes.modeOf(page)?.parts?.textPreview?.(shape, part, text, gridSize) : undefined;
   }
 
   /** Objets du texte dessiné d'une partie (marqués `userData.part` par le rendu du mode). */

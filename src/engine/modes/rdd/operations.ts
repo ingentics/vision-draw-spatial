@@ -15,6 +15,7 @@ import {
   tableFields,
   tableHeight,
   tableKindOf,
+  tableSize,
   tableWidth,
 } from './tables';
 
@@ -27,8 +28,9 @@ import {
 const round = (value: number) => Math.round(value * 100) / 100;
 
 /**
- * Taille de la table recalculée de son contenu (sujet 247), depuis son coin haut-gauche ; `changes` : ce que
- * l'opération en cours vient d'écrire (la page de `edit` ne le montre pas encore).
+ * Taille de la table recalculée de son contenu (sujet 247), depuis son coin haut-gauche, étendue à droite et en bas
+ * jusqu'au pas de grille (sujet 263) ; `changes` : ce que l'opération en cours vient d'écrire (la page de `edit` ne
+ * le montre pas encore).
  */
 export function fitTable(edit: ModeEdit, shape: ShapeModel, changes: Partial<TableContent> = {}): void {
   const kind = tableKindOf(shape);
@@ -36,8 +38,8 @@ export function fitTable(edit: ModeEdit, shape: ShapeModel, changes: Partial<Tab
   const content = { ...tableContent(shape), ...changes };
   edit.setShapeBounds(shape.id, {
     ...shape.bounds,
-    width: round(tableWidth(kind, content)),
-    height: round(tableHeight(kind, content.secondary, content.fields.length)),
+    width: tableSize(tableWidth(kind, content), edit.gridSize),
+    height: tableSize(tableHeight(kind, content.secondary, content.fields.length), edit.gridSize),
   });
 }
 

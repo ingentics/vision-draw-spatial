@@ -28,6 +28,7 @@ import { buildPageScene } from '../../../src/engine/render/pageScene';
 import type { RenderContext, TextSpec } from '../../../src/engine/render/types';
 import { createDefaultRegistry } from '../../../src/engine/shapes/registry';
 import { spatialValue } from '../../../src/engine/spatial';
+import { ceilToGrid } from '../../../src/engine/model/geometry';
 import { fixture } from '../../helpers';
 
 /** Largeur d'une ligne de champ à l'échelle 1 (sujet 248) : marge, icône, air, label, puis air et type, marge. */
@@ -38,8 +39,12 @@ const rowWidth = (label: string, type?: string) =>
   approximateMeasure(label, { size: 11, bold: false, italic: false }) +
   (type ? 6 + approximateMeasure(type, { size: 11, bold: false, italic: false }) : 0) +
   6;
-/** Largeur d'une table d'après ses lignes : la plus grande, au moins 120. */
-const widthOf = (...rows: number[]) => Math.ceil(Math.max(120, ...rows));
+/** Longueur écrite d'une table : au pas supérieur de la grille de la fixture (10, sujet 263). */
+const onGrid = (value: number) => ceilToGrid(Math.round(value * 100) / 100, 10);
+/** Largeur du contenu d'une table d'après ses lignes : la plus grande, au moins 120. */
+const contentWidth = (...rows: number[]) => Math.ceil(Math.max(120, ...rows));
+/** Largeur écrite d'une table d'après ses lignes, sur la grille. */
+const widthOf = (...rows: number[]) => onGrid(contentWidth(...rows));
 /** Ligne de la clé primaire `id` d'une entité (« Primary key », sujet 260). */
 const KEY_ROW = rowWidth('id', 'Primary key');
 
@@ -123,11 +128,11 @@ describe('mode RDD (sujet 179) : page et palette', () => {
       'spatial.fields=[{"kind":"pk","label":"id","type":"primary-key","nullable":false}];',
     );
     expect(entity.style).toContain('startSize=26;');
-    expect([entity.width, entity.height]).toEqual([widthOf(KEY_ROW), 46]);
+    expect([entity.width, entity.height]).toEqual([widthOf(KEY_ROW), 50]);
     const enumeration = templates.find((t) => t.id === 'rdd-enum')!;
     // Sans mention (sujet 216) : même entête que l'entité.
     expect(enumeration.style).toContain('startSize=26;');
-    expect(enumeration.height).toBe(46);
+    expect(enumeration.height).toBe(50);
     // Le modèle abstrait : base technique, jamais dans la palette (sujet 180).
     expect(templates.find((t) => t.id === 'rdd-model')).toBeUndefined();
   });
@@ -198,28 +203,29 @@ describe('mode RDD : opérations sur une table', () => {
       x: 40,
       y: 40,
       width: widthOf(rowWidth('created_at', 'Phrase')),
-      height: 26 + 3 * 20,
+      height: onGrid(26 + 3 * 20),
     });
     run((edit) => setFields(edit, shape('model'), ''));
     expect(spatialValue(shape('model'), FIELDS)).toBeUndefined();
-    expect(shape('model').bounds.height).toBe(46);
+    expect(shape('model').bounds.height).toBe(50);
   });
 
   it('table secondaire : taille du contenu × 0,8 depuis le coin haut-gauche, puis ÷ 0,8 ; entête et texte suivent', () => {
     const { run, shape } = setup();
-    const width = widthOf(rowWidth('created_at', 'Phrase'), rowWidth('updated_at', 'Phrase'));
+    const content = contentWidth(rowWidth('created_at', 'Phrase'), rowWidth('updated_at', 'Phrase'));
+    const width = onGrid(content);
     run((edit) => setSecondary(edit, shape('timestamped'), true));
     const small = shape('timestamped');
     expect(spatialValue(small, SECONDARY)).toBe('1');
-    expect(small.bounds).toEqual({ x: 240, y: 40, width: Math.round(width * 80) / 100, height: 52.8 });
+    expect(small.bounds).toEqual({ x: 240, y: 40, width: onGrid(content * 0.8), height: 60 });
     expect([small.style.startSize, small.style.fontSize]).toEqual(['20.8', '9.6']);
     // Un champ de plus : lignes à l'échelle de la table secondaire.
     run((edit) => setFields(edit, shape('timestamped'), 'created_at\nupdated_at\ndeleted_at'));
-    expect(shape('timestamped').bounds.height).toBe(68.8);
+    expect(shape('timestamped').bounds.height).toBe(70);
     run((edit) => setSecondary(edit, shape('timestamped'), false));
     const back = shape('timestamped');
     expect(spatialValue(back, SECONDARY)).toBeUndefined();
-    expect(back.bounds).toEqual({ x: 240, y: 40, width, height: 86 });
+    expect(back.bounds).toEqual({ x: 240, y: 40, width, height: 90 });
     expect([back.style.startSize, back.style.fontSize]).toEqual(['26', '12']);
     expect(run((edit) => setSecondary(edit, shape('timestamped'), false))).toBe(false);
   });
@@ -303,19 +309,19 @@ describe('mode RDD : taille calculée (sujet 247)', () => {
     const { run, shape } = setup();
     const long = 'a_very_long_field_name_for_a_table';
     run((edit) => setFields(edit, shape('user'), `email\n${long}`));
-    expect(shape('user').bounds.width).toBe(Math.ceil(rowWidth(long, 'Phrase')));
+    expect(shape('user').bounds.width).toBe(widthOf(rowWidth(long, 'Phrase')));
     expect(shape('user').bounds.width).toBeGreaterThan(KEY_ROW);
     run((edit) => setFields(edit, shape('user'), 'email'));
-    expect(shape('user').bounds).toEqual({ x: 40, y: 160, width: widthOf(KEY_ROW), height: 26 + 2 * 20 });
+    expect(shape('user').bounds).toEqual({ x: 40, y: 160, width: widthOf(KEY_ROW), height: onGrid(26 + 2 * 20) });
     // Le minimum, sans champ plus large.
     run((edit) => setFields(edit, shape('model'), ''));
     expect(shape('model').bounds.width).toBe(120);
     // Table secondaire : le minimum et le reste × 0,8.
     run((edit) => setSecondary(edit, shape('model'), true));
-    expect(shape('model').bounds.width).toBe(96);
+    expect(shape('model').bounds.width).toBe(100);
     run((edit) => setFields(edit, shape('user'), long));
     run((edit) => setSecondary(edit, shape('user'), true));
-    expect(shape('user').bounds.width).toBeCloseTo(Math.ceil(rowWidth(long, 'Phrase')) * 0.8, 5);
+    expect(shape('user').bounds.width).toBe(onGrid(Math.ceil(rowWidth(long, 'Phrase')) * 0.8));
   });
 
   it('largeur : le nom, gras, avec la place de l’icône d’entête de chaque côté', () => {
@@ -324,11 +330,26 @@ describe('mode RDD : taille calculée (sujet 247)', () => {
     // Le renommage écrit le texte de la forme, puis le moteur appelle `relabeled` du mode.
     setCellLabel(tree.pages[0]!, 'role', name);
     run((edit) => rdd.relabeled!(edit, 'role'));
-    expect(shape('role').bounds.width).toBe(Math.ceil(measure(name, 12, true) + 2 * (6 + 7 + 14 * 1.5 + 4)));
+    expect(shape('role').bounds.width).toBe(onGrid(Math.ceil(measure(name, 12, true) + 2 * (6 + 7 + 14 * 1.5 + 4))));
     // Un nom court : la largeur des champs.
     setCellLabel(tree.pages[0]!, 'role', 'Role');
     run((edit) => rdd.relabeled!(edit, 'role'));
     expect(shape('role').bounds.width).toBe(widthOf(KEY_ROW));
+  });
+});
+
+describe('mode RDD : taille sur la grille (sujet 263)', () => {
+  it('la table s’étend à droite et en bas jusqu’au pas de grille ; sans grille, au pixel près', () => {
+    const { run, shape, tree } = setup();
+    const content = contentWidth(KEY_ROW, rowWidth('role', 'Nombre entier'));
+    run((edit) => fitTable(edit, shape('user')));
+    expect(shape('user').bounds).toEqual({ x: 40, y: 160, width: Math.ceil(content / 10) * 10, height: 90 });
+    tree.pages[0]!.model!.setAttribute('gridSize', '20');
+    run((edit) => fitTable(edit, shape('user')));
+    expect(shape('user').bounds).toEqual({ x: 40, y: 160, width: Math.ceil(content / 20) * 20, height: 100 });
+    tree.pages[0]!.model!.setAttribute('grid', '0');
+    run((edit) => fitTable(edit, shape('user')));
+    expect(shape('user').bounds).toEqual({ x: 40, y: 160, width: content, height: 26 + 3 * 20 });
   });
 });
 
@@ -365,7 +386,7 @@ describe('mode RDD : champ sélectionné dans sa table (sujet 249)', () => {
     const long = 'a_role_identifier_that_is_long';
     run((edit) => fieldParts.setText!(edit, shape('user'), '2', `  ${long} `));
     expect(labels(fieldsOf(shape('user')))).toEqual(['id', 'email', long]);
-    expect(shape('user').bounds.width).toBe(Math.ceil(rowWidth(long, 'Nombre entier')));
+    expect(shape('user').bounds.width).toBe(widthOf(rowWidth(long, 'Nombre entier')));
     expect(run((edit) => fieldParts.setText!(edit, shape('user'), '2', '  '))).toBe(false);
     expect(fieldParts.text!(page(), shape('user'), '2')!.text).toBe(long);
   });
@@ -508,8 +529,8 @@ describe('mode RDD : ajouter un champ (sujet 250)', () => {
       { kind: 'property', label: 'Field2', type: '', nullable: true },
       { kind: 'property', label: 'Field3', type: '', nullable: true },
     ]);
-    expect(shape('user').bounds.height).toBe(26 + 6 * 20);
-    expect(handle(page(), shape('user')).at.y).toBe(160 + 26 + 6 * 20);
+    expect(shape('user').bounds.height).toBe(onGrid(26 + 6 * 20));
+    expect(handle(page(), shape('user')).at.y).toBe(160 + onGrid(26 + 6 * 20));
     // Sans type : rien de signalé.
     expect(fieldProblems(shape('user'))).toEqual([]);
     // Poignée inconnue : rien.
@@ -555,14 +576,14 @@ describe('mode RDD : supprimer un champ (sujet 251)', () => {
     const { run, shape } = setup();
     const long = 'a_very_long_field_name_for_a_table';
     run((edit) => setFields(edit, shape('user'), `email\nrole\n${long}`));
-    expect(shape('user').bounds.width).toBe(Math.ceil(rowWidth(long, 'Phrase')));
+    expect(shape('user').bounds.width).toBe(widthOf(rowWidth(long, 'Phrase')));
     run((edit) => fieldParts.remove!(edit, shape('user'), '3'));
     expect(labels(fieldsOf(shape('user')))).toEqual(['id', 'email', 'role']);
     expect(shape('user').bounds).toEqual({
       x: 40,
       y: 160,
       width: widthOf(KEY_ROW, rowWidth('role', 'Nombre entier')),
-      height: 26 + 3 * 20,
+      height: onGrid(26 + 3 * 20),
     });
     run((edit) => fieldParts.remove!(edit, shape('user'), '1'));
     expect(labels(fieldsOf(shape('user')))).toEqual(['id', 'role']);
@@ -641,7 +662,7 @@ describe('mode RDD : séparateurs entre les champs (sujet 253)', () => {
     expect(part).toBe('2');
     expect(rowsOf(shape('user'))[2]).toEqual({ divider: true, label: '' });
     expect(spatialValue(shape('user'), FIELDS)).toContain('{"divider":true,"label":""}');
-    expect(shape('user').bounds.height).toBe(26 + 4 * 20);
+    expect(shape('user').bounds.height).toBe(onGrid(26 + 4 * 20));
     expect(fieldProblems(shape('user'))).toEqual([]);
     // Sur la clé primaire : juste après elle.
     run((edit) => (part = minus.run(edit, shape('user'), undefined, '0')));
@@ -660,7 +681,7 @@ describe('mode RDD : séparateurs entre les champs (sujet 253)', () => {
     run((edit) => fieldParts.setText!(edit, shape('user'), '2', long));
     const measure = approximateMeasure(long, { size: 7, bold: false, italic: false });
     expect(shape('user').bounds.width).toBe(
-      Math.ceil(Math.max(2 * 6 + 2 * 16 + measure + 2 * 4, KEY_ROW, rowWidth('role', 'Nombre entier'))),
+      widthOf(2 * 6 + 2 * 16 + measure + 2 * 4, KEY_ROW, rowWidth('role', 'Nombre entier')),
     );
     // Vidé : le séparateur reste, sans texte (un simple trait).
     run((edit) => fieldParts.setText!(edit, shape('user'), '2', '   '));
@@ -698,9 +719,11 @@ describe('mode RDD : séparateurs entre les champs (sujet 253)', () => {
     const { run, shape } = setup();
     run((edit) => minus.run(edit, shape('user'), undefined, '2'));
     const long = 'A very long divider label for the table';
-    const preview = fieldParts.textPreview!(shape('user'), '3', long);
+    const preview = fieldParts.textPreview!(shape('user'), '3', long, 10);
     expect(rowsOf(preview)[3]).toEqual({ divider: true, label: long });
     expect(preview.bounds.width).toBeGreaterThan(shape('user').bounds.width);
+    // Sur la grille, comme la taille écrite ensuite (sujet 263).
+    expect(preview.bounds.width % 10).toBe(0);
     expect(rowsOf(shape('user'))[3]).toEqual({ divider: true, label: '' });
   });
 
@@ -760,7 +783,7 @@ describe('mode RDD : tables ajustées à l’ouverture (sujet 255)', () => {
       x: 40,
       y: 160,
       width: widthOf(KEY_ROW, rowWidth('role', 'Nombre entier')),
-      height: 26 + 3 * 20,
+      height: onGrid(26 + 3 * 20),
     });
     expect(shape('timestamped').bounds.width).toBe(widthOf(rowWidth('created_at', 'Phrase')));
     expect(shape('accounts').bounds).toEqual(region);
@@ -779,7 +802,7 @@ describe('mode RDD : entités (sujet 180)', () => {
   it('table secondaire, comme sur le modèle', () => {
     const { run, shape } = setup();
     run((edit) => setSecondary(edit, shape('role'), true));
-    expect(shape('role').bounds.height).toBe(68.8);
+    expect(shape('role').bounds.height).toBe(70);
   });
 });
 

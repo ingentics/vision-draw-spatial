@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   boundsOfPoints,
+  ceilToGrid,
   center,
   distance,
   insidePolygon,
@@ -23,6 +24,14 @@ describe('géométrie partagée (sujet 205)', () => {
     expect(boundsOfPoints([])).toBeUndefined();
     expect(unionOf([])).toBeUndefined();
     expect(unionOf([r, { x: 20, y: -5, width: 5, height: 5 }])).toEqual({ x: 0, y: -5, width: 25, height: 15 });
+  });
+
+  it('longueur arrondie au pas de grille supérieur (sujet 263)', () => {
+    expect(ceilToGrid(121, 10)).toBe(130);
+    expect(ceilToGrid(120, 10)).toBe(120);
+    expect(ceilToGrid(130.0000001, 10)).toBe(130);
+    expect(ceilToGrid(96, 20)).toBe(100);
+    expect(ceilToGrid(121.5, 0)).toBe(121.5);
   });
 
   it('segments', () => {

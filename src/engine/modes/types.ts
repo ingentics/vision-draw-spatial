@@ -116,8 +116,9 @@ export interface ModeParts {
   /**
    * Aperçu pendant la saisie (sujet 253) : la forme telle qu'elle serait avec ce texte (sans rien écrire), redessinée
    * en direct ; le texte dessiné de la partie (objets marqués `userData.part`) est masqué pendant l'édition.
+   * `gridSize` : celui de `ModeEdit`, pour que l'aperçu ait la taille écrite ensuite (sujet 263).
    */
-  textPreview?(shape: ShapeModel, part: string, text: string): ShapeModel;
+  textPreview?(shape: ShapeModel, part: string, text: string, gridSize: number): ShapeModel;
   /**
    * Suppr sur la partie sélectionnée (sujet 251) : la retire ; le mode peut refuser (ex. clé primaire), rien n'est
    * alors écrit. Dans tous les cas, la forme elle-même n'est pas supprimée.
@@ -231,6 +232,8 @@ export interface ModeEdit {
   readonly page: PageModel;
   /** Couleurs proposées par l'appli (fonds des styles de forme des paramètres, `modePalette`) ; peut être vide. */
   readonly palette: readonly string[];
+  /** Pas de la grille de la page (`gridSize` draw.io), 0 sans grille (sujet 263). */
+  readonly gridSize: number;
   /** Attribut de `<diagram>` ; undefined le retire. */
   setPageAttribute(key: string, value: string | undefined): void;
   /** Attribut spatial d'une forme ou d'une flèche (là où il est déjà, sinon dans le style) ; undefined le retire. */

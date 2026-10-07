@@ -15,6 +15,7 @@ import {
   tableContent,
   tableFields,
   tableKindOf,
+  tableSize,
   tableWidth,
 } from './tables';
 
@@ -87,7 +88,7 @@ export const fieldParts: ModeParts = {
       setField(edit, shape, index, { comment: text.trim() || undefined });
   },
   // Saisie en direct (sujet 253) : la table avec ce texte sur la ligne, élargie s'il le faut.
-  textPreview(shape, part, text) {
+  textPreview(shape, part, text, gridSize) {
     const kind = tableKindOf(shape);
     const index = kind ? fieldIndex(shape, part) : undefined;
     if (!kind || index === undefined) return shape;
@@ -96,7 +97,7 @@ export const fieldParts: ModeParts = {
     return {
       ...shape,
       style: { ...shape.style, [FIELDS]: fieldsValue(rows)! },
-      bounds: { ...shape.bounds, width: Math.round(width * 100) / 100 },
+      bounds: { ...shape.bounds, width: tableSize(width, gridSize) },
     };
   },
   setText(edit, shape, part, text) {

@@ -10,6 +10,14 @@ export function center(r: Rect): Point {
   return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
 }
 
+/**
+ * Longueur arrondie au multiple supérieur du pas de grille (sujet 263) ; sans grille (`step` ≤ 0), inchangée. Une
+ * traîne de flottant (`130.0000001`) ne fait pas sauter d'un pas.
+ */
+export function ceilToGrid(value: number, step: number): number {
+  return step > 0 ? Math.ceil(value / step - 1e-6) * step : value;
+}
+
 /** Le point est-il dans le rectangle, bord compris ? */
 export function rectContains(r: Rect, p: Point): boolean {
   return p.x >= r.x && p.x <= r.x + r.width && p.y >= r.y && p.y <= r.y + r.height;

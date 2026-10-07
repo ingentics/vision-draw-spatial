@@ -1,3 +1,4 @@
+import { ceilToGrid } from '../../model/geometry';
 import type { Rect, ShapeModel } from '../../model/types';
 import { measureText } from '../../render/textMeasure';
 import { spatialValue } from '../../spatial';
@@ -370,6 +371,13 @@ export function tableWidth(kind: TableKind, content: TableContent): number {
   const width = Math.ceil(Math.max(TABLE.minWidth, header, ...fields));
   return width * (content.secondary ? SECONDARY_SCALE : 1);
 }
+
+/**
+ * Longueur écrite d'une table : arrondie au centième (échelle 0,8 : pas de traîne de flottants), puis au pas de grille
+ * supérieur (`gridSize` ≤ 0 : sans grille), la table s'étendant à droite et en bas (sujet 263).
+ */
+export const tableSize = (value: number, gridSize: number): number =>
+  ceilToGrid(Math.round(value * 100) / 100, gridSize);
 
 /** Ligne du champ `index` (pixels de page), sous l'entête, sur toute la largeur de la table (sujet 249). */
 export function fieldRow(shape: ShapeModel, index: number): Rect {
