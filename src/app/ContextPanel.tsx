@@ -1,5 +1,4 @@
 import { useRef } from 'react';
-import type { ReactNode } from 'react';
 import {
   anchorOf,
   commentOf,
@@ -494,12 +493,21 @@ function EdgeSections({ edge, ...props }: ContextPanelProps & { edge: EdgeModel 
     if (!shape) return 'point libre';
     return shape.label ? `« ${shape.label} »` : 'forme sans texte';
   };
-  // Flèche gérée par le mode (ex. relation RDD, sujet 265) : ses réglages en tête ; texte du milieu et commentaire
-  // modifiables, le reste en lecture seule (cardinalités comprises) ; positions des textes et lien masqués.
-  const managed = managedEdge(props.page, edge);
+  // Flèche gérée par le mode (ex. relation RDD, sujets 265, 267) : ses réglages en tête, texte du milieu et
+  // commentaire ; le reste, imposé par le mode (cardinalités comprises), n'est pas montré.
+  if (managedEdge(props.page, edge))
+    return (
+      <>
+        <ElementModeSection {...props} element={edge} scope="edge" />
+        <Section title="Texte">
+          <LabelRow label={edge.label} name="Milieu" onEdit={props.onEditLabel} />
+          <CommentField comment={commentOf(edge)} onEdit={props.onEditComment} />
+        </Section>
+        <DeleteButton onDelete={props.onDelete} />
+      </>
+    );
   return (
     <>
-      {managed && <ElementModeSection {...props} element={edge} scope="edge" />}
       <Section title="Texte">
         <LabelRow label={edge.label} name="Milieu" onEdit={props.onEditLabel} />
         {(['start', 'end'] as const).map((which) => {
@@ -515,25 +523,22 @@ function EdgeSections({ edge, ...props }: ContextPanelProps & { edge: EdgeModel 
               }
               value={current}
               placeholder="aucun"
-              readOnly={managed}
               onCommit={(text) => props.onEndLabel(which, text)}
             />
           );
         })}
         <CommentField comment={commentOf(edge)} onEdit={props.onEditComment} />
       </Section>
-      {!managed && <ElementModeSection {...props} element={edge} scope="edge" />}
-      {!managed && <TextAnchors edge={edge} onAnchor={props.onTextAnchor} onChange={props.onEdgeStyle} />}
-      <Locked locked={managed}>
-        <EdgeLineSection
-          edge={edge}
-          pageJumps={props.pageJumps}
-          defaultJumpSize={props.defaultJumpSize}
-          onChange={props.onEdgeStyle}
-          onResetRoute={props.onResetRoute}
-        />
-        <EdgeEndsSection edge={edge} onChange={props.onEdgeStyle} onReverse={props.onReverse} />
-      </Locked>
+      <ElementModeSection {...props} element={edge} scope="edge" />
+      <TextAnchors edge={edge} onAnchor={props.onTextAnchor} onChange={props.onEdgeStyle} />
+      <EdgeLineSection
+        edge={edge}
+        pageJumps={props.pageJumps}
+        defaultJumpSize={props.defaultJumpSize}
+        onChange={props.onEdgeStyle}
+        onResetRoute={props.onResetRoute}
+      />
+      <EdgeEndsSection edge={edge} onChange={props.onEdgeStyle} onReverse={props.onReverse} />
       <Section title="Liaison">
         <div className="field-row">
           De
@@ -544,14 +549,10 @@ function EdgeSections({ edge, ...props }: ContextPanelProps & { edge: EdgeModel 
           <span className="field-value">{end(edge.targetId)}</span>
         </div>
       </Section>
-      {!managed && (
-        <Section title="Lien">
-          <LinkField link={edge.link} pageId={props.page.id} pages={props.pages} onLink={props.onLink} />
-        </Section>
-      )}
-      <Locked locked={managed}>
-        <OrderSection onOrder={props.onOrder} />
-      </Locked>
+      <Section title="Lien">
+        <LinkField link={edge.link} pageId={props.page.id} pages={props.pages} onLink={props.onLink} />
+      </Section>
+      <OrderSection onOrder={props.onOrder} />
       <DeleteButton onDelete={props.onDelete} />
     </>
   );
@@ -849,17 +850,6 @@ const MARKERS: Array<{ value: string; label: string; fillable: boolean }> = [
 
 /** Flèche gérée par le mode de la page (ex. relation RDD et ses cardinalités, sujet 265). */
 const managedEdge = (page: PageModel, edge: EdgeModel) => !!defaultModeRegistry.modeOf(page)?.managesEdge?.(page, edge);
-
-/** Sections en lecture seule (flèche gérée par le mode) : champs et boutons désactivés. */
-function Locked({ locked, children }: { locked: boolean; children: ReactNode }) {
-  return locked ? (
-    <fieldset className="panel-locked" disabled>
-      {children}
-    </fieldset>
-  ) : (
-    <>{children}</>
-  );
-}
 
 /**
  * Bouts de la flèche : forme du début et de la fin, pleine ou vide (défauts draw.io : rien au début, classique pleine

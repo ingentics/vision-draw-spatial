@@ -2166,11 +2166,3 @@ button.mode-bar-label.renamable:hover {
   width: 100%;
   margin-top: 4px;
 }
-
-/* Sections en lecture seule d'une flèche gérée par le mode (sujet 265) : sans cadre de fieldset. */
-.panel-locked {
-  border: 0;
-  margin: 0;
-  padding: 0;
-  min-width: 0;
-}
