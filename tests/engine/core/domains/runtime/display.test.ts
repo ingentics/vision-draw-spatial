@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { keptFramingFactor } from '../../../../src/engine/core/domains/runtime/display';
+import { keptFramingFactor } from '../../../../../src/engine/core/domains/runtime/display';
 
 describe('cadrage gardé au changement d’écran (sujet 238)', () => {
   it('le plus petit des rapports de taille : la zone vue avant remplit le nouvel écran', () => {
