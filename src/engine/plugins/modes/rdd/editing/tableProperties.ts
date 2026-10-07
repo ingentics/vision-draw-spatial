@@ -1,4 +1,4 @@
-import { spatialValue } from '../../../../core/plugins';
+import { spatialFlag } from '../../../../core/plugins';
 import type { ModeEdit, ModeProperty, ModeTarget, ShapeModel } from '../../../../core/plugins';
 import { tableFields } from '../tables/fieldModel';
 import { addDivider, setSecondary } from '../tables/operations';
@@ -64,7 +64,7 @@ const tableOptionProperty = (option: TableOption): ModeProperty => ({
   title: option.title,
   value: (_page, target) => {
     const shape = optionTable(option, target);
-    return shape && spatialValue(shape, option.attribute) === '1' ? '1' : undefined;
+    return shape && spatialFlag(shape, option.attribute) ? '1' : undefined;
   },
   write: (edit, target, value) => {
     const shape = optionTable(option, target);

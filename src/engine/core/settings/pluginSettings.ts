@@ -1,3 +1,5 @@
+import { isHexColor } from '../model/styleValues';
+
 /**
  * Réglages globaux déclarés par un plugin, mode ou effet (tickets 145, 283 ; commun depuis le sujet 287) : affichés dans
  * sa sous-page des paramètres, valeurs dans `settings.modes[id][key]` ou `settings.effects[id][key]`, bornées et
@@ -51,7 +53,7 @@ export function readPluginSetting(setting: PluginSetting, value: unknown): Plugi
     case 'toggle':
       return typeof value === 'boolean' ? value : undefined;
     case 'color':
-      return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value) ? value : undefined;
+      return typeof value === 'string' && isHexColor(value) ? value : undefined;
   }
 }
 

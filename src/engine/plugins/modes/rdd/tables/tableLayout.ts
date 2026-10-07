@@ -1,4 +1,4 @@
-import { ceilToGrid, measureText, spatialValue } from '../../../../core/plugins';
+import { ceilToGrid, measureText, spatialFlag } from '../../../../core/plugins';
 import type { Rect, ShapeModel } from '../../../../core/plugins';
 import type { Divider, Field, TableRow } from './fieldModel';
 import { fieldNote, isDivider, tableFields } from './fieldModel';
@@ -45,7 +45,7 @@ export const TABLE = {
   minWidth: 120,
 } as const;
 
-export const isSecondary = (shape: ShapeModel) => spatialValue(shape, SECONDARY) === '1';
+export const isSecondary = (shape: ShapeModel) => spatialFlag(shape, SECONDARY);
 
 /** Échelle d'une table, secondaire ou non. */
 export const secondaryScale = (secondary: boolean): number => (secondary ? SECONDARY_SCALE : 1);

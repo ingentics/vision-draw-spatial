@@ -75,6 +75,29 @@ export function spatialNumber(element: SpatialSource, key: string): number | und
   return Number.isFinite(value) && value >= 0 ? value : undefined;
 }
 
+/** Drapeau spatial : vrai pour `1` (convention draw.io des booléens). */
+export function spatialFlag(element: SpatialSource, key: string): boolean {
+  return spatialValue(element, key) === '1';
+}
+
+/**
+ * Liste JSON écrite dans un attribut spatial (ex. `spatial.fields`, `spatial.flows`), lue au mieux (sujet 291) : la liste,
+ * ou undefined si le texte n'est pas une liste JSON (absent : liste vide). Chaque plugin vérifie ensuite ses entrées.
+ */
+export function readJsonList(text: string | undefined): unknown[] | undefined {
+  try {
+    const value: unknown = JSON.parse(text ?? '[]');
+    return Array.isArray(value) ? value : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Valeur à écrire d'une liste JSON : undefined (attribut retiré) pour une liste vide. */
+export function jsonListValue(items: readonly unknown[]): string | undefined {
+  return items.length > 0 ? JSON.stringify(items) : undefined;
+}
+
 /** Tous les attributs spatiaux d'un élément (style puis objet), pour l'affichage et les diagnostics. */
 export function spatialAttributes(element: SpatialSource): Record<string, string> {
   const result: Record<string, string> = {};

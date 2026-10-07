@@ -1,4 +1,4 @@
-import { DEFAULT_MODE_PALETTE } from '../../../core/plugins';
+import { DEFAULT_MODE_PALETTE, isHexColor, jsonListValue, readJsonList } from '../../../core/plugins';
 import type { PageModel } from '../../../core/plugins';
 
 /** Flux de la page (attribut de `<diagram>`) : liste ordonnée en JSON `[{"id","title","color"}, …]`. */
@@ -26,33 +26,24 @@ export interface Flow {
  */
 export const FLOW_COLORS = DEFAULT_MODE_PALETTE;
 
-const HEX = /^#[0-9a-f]{6}$/i;
-
 /** Flux de la page, au mieux : entrées illisibles ignorées, doublons d'id écartés, couleur invalide remplacée. */
 export function readFlows(page: PageModel): Flow[] {
-  let raw: unknown;
-  try {
-    raw = JSON.parse(page.attributes[FLOWS] ?? '[]');
-  } catch {
-    return [];
-  }
-  if (!Array.isArray(raw)) return [];
   const flows: Flow[] = [];
-  for (const entry of raw as unknown[]) {
+  for (const entry of readJsonList(page.attributes[FLOWS]) ?? []) {
     if (!entry || typeof entry !== 'object') continue;
     const { id, title, color } = entry as Record<string, unknown>;
     if (typeof id !== 'string' || !id || flows.some((flow) => flow.id === id)) continue;
     flows.push({
       id,
       title: typeof title === 'string' ? title : '',
-      color: typeof color === 'string' && HEX.test(color) ? color.toLowerCase() : nextFlowColor(flows),
+      color: typeof color === 'string' && isHexColor(color) ? color.toLowerCase() : nextFlowColor(flows),
     });
   }
   return flows;
 }
 
 export function writeFlows(flows: Flow[]): string | undefined {
-  return flows.length === 0 ? undefined : JSON.stringify(flows.map(({ id, title, color }) => ({ id, title, color })));
+  return jsonListValue(flows.map(({ id, title, color }) => ({ id, title, color })));
 }
 
 /** Couleur d'un nouveau flux : la première de la suite qui n'est pas prise, sinon la suite reprend. */

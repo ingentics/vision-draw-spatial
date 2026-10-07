@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
-import { isMonospace, LABEL_PLACES, labelPlaceName, labelPlaceOf, matchesTextPreset } from '../engine';
+import { isHexColor, isMonospace, LABEL_PLACES, labelPlaceName, labelPlaceOf, matchesTextPreset } from '../engine';
 import type { LabelPlace, TextPreset } from '../engine';
 import type { SelectionFormat, ToggleMark } from './LabelEditor';
 import { Section } from './PanelSection';
@@ -78,7 +78,7 @@ export function TextFormatSections({ edit }: { edit: TextEdit }) {
     underline: (bits & 4) !== 0,
     strike: (bits & 8) !== 0,
     fontSize: Number(style.fontSize) || DEFAULT_SIZE,
-    color: /^#[0-9a-f]{6}$/i.test(style.fontColor ?? '') ? style.fontColor!.toLowerCase() : '#000000',
+    color: isHexColor(style.fontColor) ? style.fontColor.toLowerCase() : '#000000',
     fontFamily: style.fontFamily,
   };
   const current = selection ?? whole;

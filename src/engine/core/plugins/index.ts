@@ -34,7 +34,7 @@ export { DEFAULT_MODE_PALETTE } from '../settings/derived';
 
 // Modèle neutre, attributs spatiaux, calculs purs.
 export type { EdgeModel, PageModel, Point, Rect, ShapeModel } from '../model/types';
-export { SPATIAL, spatialNumber, spatialValue } from '../spatial';
+export { jsonListValue, readJsonList, SPATIAL, spatialFlag, spatialNumber, spatialValue } from '../spatial';
 export {
   ceilToGrid,
   center,
@@ -44,7 +44,7 @@ export {
   rectsOverlap,
   unionOf,
 } from '../model/geometry';
-export { styleFlag, styleNumber, styleOpacity } from '../model/styleValues';
+export { isHexColor, styleFlag, styleNumber, styleOpacity } from '../model/styleValues';
 
 // Briques de dessin (Three.js) : rendu à plat et en volume, contours, traits, textes, couleurs.
 export { PART_ORDER } from '../render/types';

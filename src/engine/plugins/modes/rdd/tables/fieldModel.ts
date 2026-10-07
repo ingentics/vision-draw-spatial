@@ -1,4 +1,4 @@
-import { spatialValue } from '../../../../core/plugins';
+import { jsonListValue, readJsonList, spatialValue } from '../../../../core/plugins';
 import type { ShapeModel } from '../../../../core/plugins';
 import type { TableKind } from './tableKinds';
 import { tableKindOf } from './tableKinds';
@@ -229,31 +229,24 @@ function readField(item: unknown): TableRow | undefined {
 
 /** Entrées brutes de `spatial.fields` ; undefined si la valeur n'est pas une liste JSON. */
 function rawFields(shape: ShapeModel): unknown[] | undefined {
-  try {
-    const value: unknown = JSON.parse(spatialValue(shape, FIELDS) ?? '[]');
-    return Array.isArray(value) ? value : undefined;
-  } catch {
-    return undefined;
-  }
+  return readJsonList(spatialValue(shape, FIELDS));
 }
 
 /** Valeur écrite de `spatial.fields` (clés dans un ordre fixe) ; undefined sans ligne. */
 export const fieldsValue = (rows: readonly TableRow[]): string | undefined =>
-  rows.length > 0
-    ? JSON.stringify(
-        rows.map((row) =>
-          isDivider(row)
-            ? { divider: true, label: row.label }
-            : {
-                kind: row.kind,
-                label: row.label,
-                type: row.type,
-                nullable: !isPrimaryKey(row) && row.nullable,
-                ...Object.fromEntries(STORED_KEYS.filter((key) => row[key]).map((key) => [key, row[key]])),
-              },
-        ),
-      )
-    : undefined;
+  jsonListValue(
+    rows.map((row) =>
+      isDivider(row)
+        ? { divider: true, label: row.label }
+        : {
+            kind: row.kind,
+            label: row.label,
+            type: row.type,
+            nullable: !isPrimaryKey(row) && row.nullable,
+            ...Object.fromEntries(STORED_KEYS.filter((key) => row[key]).map((key) => [key, row[key]])),
+          },
+    ),
+  );
 
 /**
  * Lignes de la table (`spatial.fields`) : champs et séparateurs ; une valeur ou une entrée illisible est ignorée (et

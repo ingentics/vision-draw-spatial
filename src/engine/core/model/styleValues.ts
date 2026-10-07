@@ -45,3 +45,8 @@ export function textFormat(style: Record<string, string>, rich: RichLine[] | und
     rich,
   };
 }
+
+/** Couleur `#rrggbb` (casse libre), la forme qu'écrivent draw.io et l'appli (sujet 291). */
+export function isHexColor(value: string | undefined): value is string {
+  return value !== undefined && /^#[0-9a-f]{6}$/i.test(value);
+}

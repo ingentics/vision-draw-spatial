@@ -1,4 +1,5 @@
 import type { StylePreset, TextPreset } from '../edit/stylePresets';
+import { isHexColor } from '../model/styleValues';
 
 /**
  * Briques du schéma des réglages : chaque réglage déclare sa valeur par défaut et sa lecture. Une valeur invalide
@@ -39,9 +40,6 @@ export function isField(spec: unknown): spec is Field<unknown> {
   return typeof (spec as Partial<Field<unknown>>).read === 'function';
 }
 
-const HEX_COLOR = /^#[0-9a-f]{6}$/i;
-const isColor = (value: unknown): value is string => typeof value === 'string' && HEX_COLOR.test(value);
-
 /** Nombre fini ramené dans ses bornes, arrondi si `integer`. */
 export function number(fallback: number, limits: SettingLimits, options: { integer?: boolean } = {}): NumberField {
   return {
@@ -74,7 +72,7 @@ export const code = (fallback: string): Field<string> => ({
 /** Couleur #rrggbb, écrite en minuscules. */
 export const color = (fallback: string): Field<string> => ({
   default: fallback,
-  read: (value, previous) => (isColor(value) ? value.toLowerCase() : previous),
+  read: (value, previous) => (typeof value === 'string' && isHexColor(value) ? value.toLowerCase() : previous),
 });
 
 /** Réglage à lecture propre (liste, dictionnaire) : `read` reçoit la valeur reçue et la précédente. */
@@ -89,9 +87,9 @@ export function presets(value: unknown, previous: StylePreset[]): StylePreset[] 
   const list = value.map((entry: Partial<StylePreset> | null) =>
     entry &&
     typeof entry.name === 'string' &&
-    isColor(entry.fillColor) &&
-    isColor(entry.strokeColor) &&
-    (entry.fontColor === undefined || isColor(entry.fontColor))
+    isHexColor(entry.fillColor) &&
+    isHexColor(entry.strokeColor) &&
+    (entry.fontColor === undefined || isHexColor(entry.fontColor))
       ? {
           name: entry.name,
           fillColor: entry.fillColor.toLowerCase(),
@@ -110,7 +108,7 @@ export function textPresets(value: unknown, previous: TextPreset[]): TextPreset[
     if (!entry || typeof entry.name !== 'string') return undefined;
     const size = entry.fontSize;
     if (typeof size !== 'number' || !Number.isFinite(size) || size <= 0) return undefined;
-    if (entry.fontColor !== undefined && !isColor(entry.fontColor)) return undefined;
+    if (entry.fontColor !== undefined && !isHexColor(entry.fontColor)) return undefined;
     if (entry.fontFamily !== undefined && typeof entry.fontFamily !== 'string') return undefined;
     return {
       name: entry.name,

@@ -1,5 +1,6 @@
 import type { RichLine, TextMarks, TextRun } from '../model/types';
 import { decodeEntities } from './labelText';
+import { isHexColor } from '../model/styleValues';
 
 /**
  * Texte riche des labels HTML draw.io (`html=1`) : gras, italique, souligné, barré, taille, couleur et
@@ -203,7 +204,6 @@ function parseAttributes(source: string): Record<string, string> {
 /** Couleur CSS → #rrggbb (hexadécimal court ou long, `rgb()`), sinon undefined. */
 export function parseColor(value: string): string | undefined {
   const v = value.trim().toLowerCase();
-  if (/^#[0-9a-f]{6}$/.test(v)) return v;
   if (/^#[0-9a-f]{3}$/.test(v)) return `#${[...v.slice(1)].map((c) => c + c).join('')}`;
   const rgb = v.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
   if (rgb)
@@ -211,7 +211,8 @@ export function parseColor(value: string): string | undefined {
       .slice(1, 4)
       .map((c) => Math.min(255, Number(c)).toString(16).padStart(2, '0'))
       .join('')}`;
-  return undefined;
+  // Forme longue en dernier : le garde de type ne laisse rien de `v` après lui.
+  return isHexColor(v) ? v : undefined;
 }
 
 function firstFamily(value: string): string {
