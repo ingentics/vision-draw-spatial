@@ -9,6 +9,7 @@ import {
   FLAT_FOV,
   fitBounds,
   interpolateCamera,
+  nextOverviewStep,
   MAX_TILT_3D,
   MAX_ZOOM_3D,
   MIN_ZOOM_3D,
@@ -106,6 +107,36 @@ describe('vue globale ↔ 1:1', () => {
       expect(screenAt(t).x).toBeCloseTo(start.x, 6);
       expect(screenAt(t).y).toBeCloseTo(start.y, 6);
     }
+  });
+});
+
+describe('Entrée avec une sélection (ticket 242)', () => {
+  const views = {
+    selection: state({ zoom: 2, center: { x: 10, y: 10 } }),
+    actual: state({ zoom: 1, center: { x: 0, y: 0 } }),
+    global: state({ zoom: 0.5, center: { x: 400, y: 300 } }),
+  };
+
+  it('une vue quelconque part de la sélection, puis 1:1, globale et retour à la sélection', () => {
+    const other = state({ zoom: 3, center: { x: -50, y: 0 } });
+    let last = nextOverviewStep(other, views, undefined, viewport);
+    expect(last.step).toBe('selection');
+    const steps = [last.step];
+    for (let i = 0; i < 3; i++) {
+      last = nextOverviewStep(last.view, views, last, viewport);
+      steps.push(last.step);
+    }
+    expect(steps).toEqual(['selection', 'actual', 'global', 'selection']);
+  });
+
+  it('reconnaît la vue globale ou sélection sans étape mémorisée', () => {
+    expect(nextOverviewStep(views.global, views, undefined, viewport).step).toBe('selection');
+    expect(nextOverviewStep(views.selection, views, undefined, viewport).step).toBe('actual');
+  });
+
+  it('saute une étape qui ne changerait rien', () => {
+    const same = { ...views, selection: views.global };
+    expect(nextOverviewStep(views.global, same, undefined, viewport).step).toBe('actual');
   });
 });
 

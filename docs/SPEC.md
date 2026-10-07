@@ -528,7 +528,7 @@ Formes et arêtes sont dessinées dans l'**ordre du document** (une arête décl
 | Pan | Glisser molette enfoncée, clic droit + glisser (en 2D seulement), ou Espace + glisser |
 | Orienter (iso, 3D) | Clic droit + glisser : la caméra tourne autour du centre (horizontal) ; en 3D, s'incline aussi (vertical) (§9.1) |
 | Pivoter (iso, 3D) | **A / E** (AZERTY) = Q / E (QWERTY), par position physique : la vue pivote autour du centre de l'écran, vers la gauche / la droite, tant que la touche est enfoncée (`controls.rotateSpeed`, 90°/s), puis courte glissade (`controls.decelerationMs`) ; sans effet en 2D. Touches non attribuables à un raccourci |
-| Vue globale ↔ 1:1 | **Entrée** (§9.3) |
+| Vue globale ↔ 1:1 (avec une sélection : sélection → 1:1 → globale) | **Entrée** (§9.3) |
 | Vue graphe ↔ dernière page | Onglet « Vue graphe », touche **G** (§12) |
 | Mini-carte | Bouton × / « Mini-carte », touche **M** (§10) |
 | Aplatir les volumes (iso, 3D) | Touche **V** : rendu à plat (épaisseur nulle), caméra inchangée ; un second appui, ou un clic sur l'icône apparue en bas à gauche de la zone de dessin (infobulle au survol), rétablit les volumes. État passager, non enregistré ; sans effet en 2D |
@@ -565,7 +565,8 @@ Le déplacement s'appuie sur les touches physiques (`KeyboardEvent.code`) pour g
 - **Entrée** bascule entre :
   - la **vue globale** : toute la page visible, dans l'orientation actuelle, sans plafond de zoom (un petit schéma remplit l'écran) ;
   - la vue **1:1** (zoom 100 %), autour du curseur s'il est sur le plan, sinon autour du centre.
-  Depuis la vue globale on passe en 1:1 ; depuis toute autre vue, on revient à la vue globale. Transition animée courte (≈ 250 ms), instantanée si `prefers-reduced-motion`.
+  Depuis la vue globale on passe en 1:1 ; depuis toute autre vue, on revient à la vue globale.
+  **Avec une sélection** sur la page, Entrée fait défiler trois vues : la **sélection** cadrée (boîte englobante, marge et zoom maximal d'« aller à l'élément », `camera.focusPadding` / `camera.focusMaxZoom`), le **1:1** autour du curseur, puis la **vue globale**, et ainsi de suite ; une vue prise à la main repart de la sélection, une étape qui ne changerait rien est sautée. Transition animée courte (≈ 250 ms), instantanée si `prefers-reduced-motion`.
 - À l'ouverture d'une page, le cadrage reste celui de draw.io : toute la page, **plafonné à 100 %**, nord en haut.
 
 ### 9.4 Changement de page

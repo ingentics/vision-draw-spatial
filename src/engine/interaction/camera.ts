@@ -286,6 +286,38 @@ export function sameView(a: CameraState, b: CameraState, viewport: Viewport): bo
   );
 }
 
+/** Vues que parcourt la touche Entrée quand il y a une sélection, dans l'ordre (ticket 242). */
+export const OVERVIEW_CYCLE = ['selection', 'actual', 'global'] as const;
+export type OverviewStep = (typeof OVERVIEW_CYCLE)[number];
+
+/**
+ * Prochaine vue du cycle sélection → 1:1 → globale. L'étape courante est la dernière jouée si la vue n'a pas bougé
+ * depuis, sinon la vue globale ou sélection qu'elle reproduit ; une autre vue repart de la sélection. Une étape qui
+ * ne changerait rien à l'écran est sautée.
+ */
+export function nextOverviewStep(
+  current: CameraState,
+  views: Record<OverviewStep, CameraState>,
+  last: { step: OverviewStep; view: CameraState } | undefined,
+  viewport: Viewport,
+): { step: OverviewStep; view: CameraState } {
+  const at =
+    last && sameView(current, last.view, viewport)
+      ? last.step
+      : sameView(current, views.global, viewport)
+        ? 'global'
+        : sameView(current, views.selection, viewport)
+          ? 'selection'
+          : undefined;
+  let index = at === undefined ? 0 : (OVERVIEW_CYCLE.indexOf(at) + 1) % OVERVIEW_CYCLE.length;
+  for (let tries = 1; tries < OVERVIEW_CYCLE.length; tries++) {
+    if (!sameView(current, views[OVERVIEW_CYCLE[index]!], viewport)) break;
+    index = (index + 1) % OVERVIEW_CYCLE.length;
+  }
+  const step = OVERVIEW_CYCLE[index]!;
+  return { step, view: views[step] };
+}
+
 /**
  * Interpolation entre deux vues, comme un vrai zoom : le zoom progresse géométriquement et le
  * centre suit l'inverse du zoom, si bien qu'un point de l'écran reste fixe pendant tout le trajet

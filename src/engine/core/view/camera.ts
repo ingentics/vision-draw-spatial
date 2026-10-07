@@ -3,6 +3,7 @@ import {
   fitBounds,
   interpolateCamera,
   normalizeAngle,
+  nextOverviewStep,
   normalizeCameraState,
   rotateAround,
   sameView,
@@ -10,7 +11,8 @@ import {
   tiltFromElevation,
   zoomAt,
 } from '../../interaction/camera';
-import type { CameraLimits, CameraState, ViewMode } from '../../interaction/camera';
+import type { CameraLimits, CameraState, OverviewStep, ViewMode } from '../../interaction/camera';
+import { unionOf } from '../../model/geometry';
 import type { Point, Rect } from '../../model/types';
 import type { Settings } from '../../settings';
 import type { EngineCore } from '../EngineCore';
@@ -19,6 +21,8 @@ import type { EngineCore } from '../EngineCore';
 export class ViewCamera {
   state: CameraState = { mode: 'top', center: { x: 0, y: 0 }, zoom: 1, rotation: 0, tilt: 0 };
   animation = 0;
+  /** Dernière étape jouée par la touche Entrée avec une sélection, et la vue visée. */
+  private overviewStep: { step: OverviewStep; view: CameraState } | undefined;
   private limitsCache: { camera: Settings['camera']; limits: CameraLimits } | undefined;
 
   constructor(private readonly core: EngineCore) {}
@@ -111,16 +115,43 @@ export class ViewCamera {
     });
   }
 
+  /** Cadrage de la sélection de la page affichée (boîte englobante, comme « aller à l'élément »). */
+  private getSelectionState(): CameraState | undefined {
+    const selection = this.core.selection.current;
+    if (!selection || selection.pageId !== this.core.pages.currentPageId) return undefined;
+    const bounds = unionOf(
+      selection.items.flatMap((item) => {
+        const rect = item.type === 'shape' ? item.element.bounds : this.core.sceneView.drawnBounds(item.element.id);
+        return rect ? [rect] : [];
+      }),
+    );
+    if (!bounds) return undefined;
+    return fitBounds(bounds, this.core.display.viewport, {
+      ...this.orientation(),
+      padding: this.core.settings.camera.focusPadding,
+      maxZoom: this.core.settings.camera.focusMaxZoom,
+      limits: this.limits,
+    });
+  }
+
+  /** Touche Entrée : globale ↔ 1:1 sans sélection ; avec sélection, cycle sélection → 1:1 → globale (ticket 242). */
   toggleOverview(screen?: Point): void {
     const overview = this.getOverviewState();
     if (!overview) return;
-    const current = this.state;
-    if (sameView(current, overview, this.core.display.viewport)) {
-      const anchor = screen ?? { x: this.core.display.viewport.width / 2, y: this.core.display.viewport.height / 2 };
-      this.animateCameraTo(zoomAt(current, this.core.display.viewport, anchor, 1 / current.zoom, this.limits));
-    } else {
-      this.animateCameraTo(overview);
+    const viewport = this.core.display.viewport;
+    const selection = this.getSelectionState();
+    // Appuis rapprochés : pendant l'animation, la vue est déjà celle de l'étape jouée.
+    const current = this.animation && this.overviewStep ? this.overviewStep.view : this.state;
+    const anchor = screen ?? { x: viewport.width / 2, y: viewport.height / 2 };
+    const actual = zoomAt(current, viewport, anchor, 1 / current.zoom, this.limits);
+    if (!selection) {
+      this.overviewStep = undefined;
+      this.animateCameraTo(sameView(current, overview, viewport) ? actual : overview);
+      return;
     }
+    const next = nextOverviewStep(current, { selection, actual, global: overview }, this.overviewStep, viewport);
+    this.overviewStep = { step: next.step, view: normalizeCameraState(next.view, this.limits) };
+    this.animateCameraTo(next.view);
   }
 
   applyCamera(state: CameraState): void {
