@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { defaultModeRegistry, spatialValue } from '../../../engine';
+import { spatialValue } from '../../../engine';
 import type { ModeProperty, ModeScope, ModeTarget, PageModel } from '../../../engine';
 import { NumberField, SelectField, TextField } from '../../Fields';
+import { useEnginePlugins } from '../../pluginsContext';
 
 /**
  * Réglages déclarés par le mode de la page pour une cible (la page, une flèche, une forme), rendus par des champs
@@ -28,7 +29,8 @@ export function ModePropertyFields({
   /** Écriture d'un réglage (undefined = vide ; `merge` : réglage en direct) ; absent : lecture seule. */
   onChange?: (key: string, value: string | undefined, merge?: string) => void;
 }) {
-  const properties = defaultModeRegistry
+  const plugins = useEnginePlugins();
+  const properties = plugins.modes
     .properties(page, scope, part)
     .filter((property) => property.section === section && !property.hidden?.(page, target, part));
   return (

@@ -1,10 +1,10 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CollapseButton } from './Sidebar';
-import { PALETTE_CATEGORIES, searchTemplates, SHAPE_TEMPLATES } from '../engine';
+import { searchTemplates } from '../engine';
 import type { PageModePalette, PaletteCategory, PaletteCategoryId, ShapeTemplate } from '../engine';
 
-/** Catégorie des formes présentes sur la page, en tête de la palette (hors `PALETTE_CATEGORIES`). */
+/** Catégorie des formes présentes sur la page, en tête de la palette (hors catégories des formes). */
 const USED_CATEGORY = { id: 'used', name: 'Utilisées' } as const;
 type SectionId = PaletteCategoryId | typeof USED_CATEGORY.id;
 
@@ -75,7 +75,8 @@ interface PaletteProps {
  * par catégorie, chacune repliable. Glisser une forme sur le plan la dépose au point visé (projeté au sol, en
  * vue de dessus comme en iso) ; un clic l'ajoute au centre de la vue.
  */
-const DEFAULT_CONTENT: PageModePalette = { categories: PALETTE_CATEGORIES, templates: SHAPE_TEMPLATES };
+/** Rien à proposer tant que le moteur n'a pas donné la palette de la page (sujet 290). */
+const DEFAULT_CONTENT: PageModePalette = { categories: [], templates: [] };
 
 export function Palette({ onAdd, used = [], content = DEFAULT_CONTENT, disabled }: PaletteProps) {
   const [query, setQuery] = useState('');
@@ -113,7 +114,8 @@ export function Palette({ onAdd, used = [], content = DEFAULT_CONTENT, disabled 
   };
 
   const sections: { category: PaletteCategory | typeof USED_CATEGORY; templates: ShapeTemplate[] }[] = [
-    { category: USED_CATEGORY, templates: used.filter((t) => found.includes(t)) },
+    // Par id : les modèles viennent de deux appels au registre du moteur (sujet 290), objets distincts.
+    { category: USED_CATEGORY, templates: used.filter((t) => found.some((f) => f.id === t.id)) },
     ...content.categories.map((category) => ({
       category,
       templates: found.filter((t) => t.category === category.id),
@@ -216,10 +218,6 @@ export function Palette({ onAdd, used = [], content = DEFAULT_CONTENT, disabled 
         )}
     </aside>
   );
-}
-
-export function templateById(id: string): ShapeTemplate | undefined {
-  return SHAPE_TEMPLATES.find((t) => t.id === id);
 }
 
 /** Icône du modèle, déclarée par sa forme (contenu SVG statique du moteur, cadre `0 0 40 28`). */

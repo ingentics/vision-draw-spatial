@@ -6,15 +6,7 @@ import robotoMonoBold from '@fontsource/roboto-mono/files/roboto-mono-latin-700-
 import robotoMono from '@fontsource/roboto-mono/files/roboto-mono-latin-400-normal.woff?url';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import {
-  GRAPH_PAGE_ID,
-  isFilePath,
-  jumpValue,
-  labelPlacePatch,
-  SHAPE_TEMPLATES,
-  SPATIAL,
-  usedTemplates,
-} from '../engine';
+import { GRAPH_PAGE_ID, isFilePath, jumpValue, labelPlacePatch, SPATIAL } from '../engine';
 import type {
   BackTarget,
   CommentEditRequest,
@@ -48,7 +40,9 @@ import { wholeTextChange } from './TextFormat';
 import type { TextAction } from './TextFormat';
 import { PageTabs } from './PageTabs';
 import { MULTI_SELECT_LABELS } from './SettingsPanel';
-import { Palette, PALETTE_MIME, templateById } from './Palette';
+import { Palette, PALETTE_MIME } from './Palette';
+import { PluginsContext } from './pluginsContext';
+import type { AppPlugins } from './pluginsContext';
 import { SettingsPanel } from './SettingsPanel';
 import { ContextPanel, contextTitle } from './ContextPanel';
 import { Sidebar } from './Sidebar';
@@ -403,10 +397,24 @@ export function Viewer({
   const canAddShapes = pageId !== undefined && pageId !== GRAPH_PAGE_ID;
   const shownPage = document?.pages.find((page) => page.id === pageId);
   // Formes de la page courante, pour la catégorie « Utilisées » de la palette.
-  const usedShapes = useMemo(() => (canAddShapes ? usedTemplates(shownPage) : []), [canAddShapes, shownPage]);
+  const usedShapes = useMemo(
+    () => (canAddShapes && engine ? engine.usedTemplates(shownPage) : []),
+    [canAddShapes, engine, shownPage],
+  );
+  // Plugins du moteur (sujet 290) : registres de formes, modes, effets, pour toute l'interface.
+  const plugins = useMemo<AppPlugins | undefined>(
+    () =>
+      engine && {
+        shapes: engine.getShapeRegistry(),
+        modes: engine.getModeRegistry(),
+        effects: engine.getEffectRegistry(),
+        managesEdge: (edgeId) => engine.managesEdge(edgeId),
+      },
+    [engine],
+  );
   // Palette et modes d'affichage permis par le mode de la page (sujet 178).
-  const modes = engine?.getModeRegistry();
-  const paletteContent = useMemo(() => modes?.paletteFor(shownPage, SHAPE_TEMPLATES), [modes, shownPage]);
+  const modes = plugins?.modes;
+  const paletteContent = useMemo(() => engine?.paletteFor(shownPage), [engine, shownPage]);
   const allowedViewModes = (['top', 'iso', '3d'] as const).filter(
     (mode) => !shownPage || !modes || modes.allowsViewMode(shownPage, mode),
   );
@@ -457,401 +465,404 @@ export function Viewer({
       contextTitle(selected.shapes, selected.edges, labelEdit ? 'text' : commentEdit ? 'comment' : undefined);
 
   return (
-    <div className="app" style={{ '--bar-shadow-opacity': settings.panels.shadow } as CSSProperties}>
-      <header className="toolbar">
-        <BackButton
-          target={backTarget}
-          onBack={() => (backChoices ? setBackChoices(undefined) : engine?.back())}
-          choices={backChoices}
-          onChoose={(id) => {
-            setBackChoices(undefined);
-            engine?.backTo(id);
-          }}
-          onDismiss={() => setBackChoices(undefined)}
-        />
-        <button
-          type="button"
-          className="button file-button"
-          title="Revenir à la liste des fichiers"
-          onClick={() => {
-            if (modifiedRef.current && !window.confirm('Quitter sans sauvegarder les modifications ?')) return;
-            flush();
-            onShowFiles();
-          }}
-        >
-          <svg viewBox="0 0 16 16" aria-hidden="true">
-            <path d="M2.5 3.5h4l1.5 1.5h5.5v7.5h-11z" />
-          </svg>
-          <span className="file-name">{file.name}</span>
-        </button>
-        <button
-          type="button"
-          className="button save-button"
-          title={[
-            desktop
-              ? 'Enregistrer le fichier sous (Ctrl+S)'
-              : 'Enregistrer sous (Ctrl+S) : téléchargement et bibliothèque',
-            modified ? 'modifications non sauvegardées' : undefined,
-            autosavedAt
-              ? `enregistré automatiquement à ${new Date(autosavedAt).toLocaleTimeString('fr-FR')}`
-              : settings.save.autosave
-                ? 'sauvegarde automatique activée'
-                : undefined,
-          ]
-            .filter(Boolean)
-            .join(' — ')}
-          onClick={saveFile}
-        >
-          <svg viewBox="0 0 16 16" aria-hidden="true">
-            <path d="M8 2.5v7M5 6.5l3 3 3-3M3 11v2.5h10V11" />
-          </svg>
-          Enregistrer sous
-        </button>
-        <span className="button-group">
+    <PluginsContext.Provider value={plugins}>
+      <div className="app" style={{ '--bar-shadow-opacity': settings.panels.shadow } as CSSProperties}>
+        <header className="toolbar">
+          <BackButton
+            target={backTarget}
+            onBack={() => (backChoices ? setBackChoices(undefined) : engine?.back())}
+            choices={backChoices}
+            onChoose={(id) => {
+              setBackChoices(undefined);
+              engine?.backTo(id);
+            }}
+            onDismiss={() => setBackChoices(undefined)}
+          />
           <button
             type="button"
-            className="button icon-button"
-            disabled={!undoLabels.undo}
-            title={undoLabels.undo ? `Annuler : ${undoLabels.undo} (Ctrl+Z)` : 'Annuler (Ctrl+Z)'}
-            aria-label="Annuler"
-            onClick={() => engine?.undo()}
+            className="button file-button"
+            title="Revenir à la liste des fichiers"
+            onClick={() => {
+              if (modifiedRef.current && !window.confirm('Quitter sans sauvegarder les modifications ?')) return;
+              flush();
+              onShowFiles();
+            }}
           >
             <svg viewBox="0 0 16 16" aria-hidden="true">
-              <path d="M5.5 3.5 2.5 6.5l3 3M2.5 6.5h7a4 4 0 0 1 0 8h-2" />
+              <path d="M2.5 3.5h4l1.5 1.5h5.5v7.5h-11z" />
             </svg>
+            <span className="file-name">{file.name}</span>
           </button>
           <button
             type="button"
-            className="button icon-button"
-            disabled={!undoLabels.redo}
-            title={undoLabels.redo ? `Rétablir : ${undoLabels.redo} (Ctrl+Maj+Z)` : 'Rétablir (Ctrl+Maj+Z)'}
-            aria-label="Rétablir"
-            onClick={() => engine?.redo()}
+            className="button save-button"
+            title={[
+              desktop
+                ? 'Enregistrer le fichier sous (Ctrl+S)'
+                : 'Enregistrer sous (Ctrl+S) : téléchargement et bibliothèque',
+              modified ? 'modifications non sauvegardées' : undefined,
+              autosavedAt
+                ? `enregistré automatiquement à ${new Date(autosavedAt).toLocaleTimeString('fr-FR')}`
+                : settings.save.autosave
+                  ? 'sauvegarde automatique activée'
+                  : undefined,
+            ]
+              .filter(Boolean)
+              .join(' — ')}
+            onClick={saveFile}
           >
             <svg viewBox="0 0 16 16" aria-hidden="true">
-              <path d="M10.5 3.5l3 3-3 3M13.5 6.5h-7a4 4 0 0 0 0 8h2" />
+              <path d="M8 2.5v7M5 6.5l3 3 3-3M3 11v2.5h10V11" />
             </svg>
+            Enregistrer sous
           </button>
-        </span>
-        <NavigationToolbar
-          viewMode={viewMode}
-          allowedViewModes={allowedViewModes}
-          onViewModeChange={(mode) => engine?.setViewMode(mode)}
-          onResetView={() => engine?.resetView()}
-        />
-        {settings.save.autosave && (autosaving || modified || autosavedAt) && (
-          <span className="save-status" role="status">
-            {autosaving || modified ? 'Saving...' : 'All changes saved'}
-          </span>
-        )}
-        <div className="toolbar-end">
-          {settings.debug.showUnsupportedPanel && (
+          <span className="button-group">
             <button
               type="button"
-              className="button diagnostics-toggle"
-              aria-pressed={diagnosticsOpen}
-              title="Éléments non supportés et avertissements de lecture"
-              onClick={() => togglePanel('diagnostics')}
+              className="button icon-button"
+              disabled={!undoLabels.undo}
+              title={undoLabels.undo ? `Annuler : ${undoLabels.undo} (Ctrl+Z)` : 'Annuler (Ctrl+Z)'}
+              aria-label="Annuler"
+              onClick={() => engine?.undo()}
             >
-              Diagnostics
-              {issueCount > 0 && <span className="pill">{issueCount}</span>}
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M5.5 3.5 2.5 6.5l3 3M2.5 6.5h7a4 4 0 0 1 0 8h-2" />
+              </svg>
             </button>
+            <button
+              type="button"
+              className="button icon-button"
+              disabled={!undoLabels.redo}
+              title={undoLabels.redo ? `Rétablir : ${undoLabels.redo} (Ctrl+Maj+Z)` : 'Rétablir (Ctrl+Maj+Z)'}
+              aria-label="Rétablir"
+              onClick={() => engine?.redo()}
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M10.5 3.5l3 3-3 3M13.5 6.5h-7a4 4 0 0 0 0 8h2" />
+              </svg>
+            </button>
+          </span>
+          <NavigationToolbar
+            viewMode={viewMode}
+            allowedViewModes={allowedViewModes}
+            onViewModeChange={(mode) => engine?.setViewMode(mode)}
+            onResetView={() => engine?.resetView()}
+          />
+          {settings.save.autosave && (autosaving || modified || autosavedAt) && (
+            <span className="save-status" role="status">
+              {autosaving || modified ? 'Saving...' : 'All changes saved'}
+            </span>
           )}
-          <button
-            type="button"
-            className="button"
-            aria-pressed={settingsOpen}
-            aria-haspopup="dialog"
-            title="Paramètres"
-            onClick={() => setSettingsOpen(true)}
-          >
-            <svg viewBox="0 0 16 16" aria-hidden="true">
-              <path d="M2.5 4.5h7M12.5 4.5h1M2.5 11.5h1M6.5 11.5h7" />
-              <circle cx="11" cy="4.5" r="1.5" />
-              <circle cx="5" cy="11.5" r="1.5" />
-            </svg>
-            Paramètres
-          </button>
-        </div>
-        {error && <span className="badge error">{error}</span>}
-      </header>
+          <div className="toolbar-end">
+            {settings.debug.showUnsupportedPanel && (
+              <button
+                type="button"
+                className="button diagnostics-toggle"
+                aria-pressed={diagnosticsOpen}
+                title="Éléments non supportés et avertissements de lecture"
+                onClick={() => togglePanel('diagnostics')}
+              >
+                Diagnostics
+                {issueCount > 0 && <span className="pill">{issueCount}</span>}
+              </button>
+            )}
+            <button
+              type="button"
+              className="button"
+              aria-pressed={settingsOpen}
+              aria-haspopup="dialog"
+              title="Paramètres"
+              onClick={() => setSettingsOpen(true)}
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M2.5 4.5h7M12.5 4.5h1M2.5 11.5h1M6.5 11.5h7" />
+                <circle cx="11" cy="4.5" r="1.5" />
+                <circle cx="5" cy="11.5" r="1.5" />
+              </svg>
+              Paramètres
+            </button>
+          </div>
+          {error && <span className="badge error">{error}</span>}
+        </header>
 
-      <div className="viewport">
-        <Sidebar
-          side="left"
-          label="Formes"
-          layout={settings.panels.left}
-          stripText={settings.panels.stripText}
-          minCanvas={settings.panels.minCanvas}
-          onChange={(left) => onSettingsChange({ panels: { left } })}
-        >
-          <Palette
-            disabled={!canAddShapes}
-            used={usedShapes}
-            content={paletteContent}
-            onAdd={(template) => engine?.addShape(template)}
-          />
-        </Sidebar>
-        <div
-          className="canvas-area"
-          onDragOver={(event) => {
-            if (!canAddShapes || !event.dataTransfer.types.includes(PALETTE_MIME)) return;
-            event.preventDefault();
-            event.dataTransfer.dropEffect = 'copy';
-          }}
-          onDrop={(event) => {
-            const template = templateById(event.dataTransfer.getData(PALETTE_MIME));
-            if (!template || !engine) return;
-            event.preventDefault();
-            const rect = event.currentTarget.getBoundingClientRect();
-            engine.addShape(template, { x: event.clientX - rect.left, y: event.clientY - rect.top });
-            engine.focusCanvas();
-          }}
-        >
-          <SlidingModeBar
-            indicator={transitioning ? undefined : modeIndicator}
-            onChoose={(value) => engine?.setModeCurrent(value)}
-            onRename={(label) => engine?.renameModeCurrent(label)}
-          />
-          {labelEdit && (
-            <LabelEditor
-              key={`${labelEdit.pageId}:${labelEdit.elementId}:${labelEdit.end ?? ''}:${labelEdit.part ?? ''}`}
-              request={labelEdit}
-              handle={editorHandle}
-              onMoveText={
-                labelEdit.onEdge && labelEdit.styleCellId ? (screen) => engine?.moveEditedText(screen) : undefined
-              }
-              onMoveTextEnd={() => engine?.endEditedTextMove()}
-              onFlip={() => engine?.flipEditedText()}
-              onToggle={(mark) => formatText({ type: 'toggle', mark })}
-              onSelectionFormat={setSelectionFormat}
-              onFitSize={setFittedSize}
-              onTextInput={labelEdit.onEdge ? undefined : (text) => engine?.previewEditedLabel(text)}
-              onCommit={({ text, html }) => {
-                setLabelEdit(undefined);
-                engine?.closeLabelEdit();
-                if (labelEdit.part !== undefined) engine?.setPartText(labelEdit.elementId, labelEdit.part, text);
-                else if (labelEdit.labelCellId)
-                  engine?.setEdgeText(labelEdit.elementId, labelEdit.labelCellId, text, html);
-                else if (labelEdit.end)
-                  engine?.setEdgeEndLabel(labelEdit.elementId, labelEdit.end, text, html, labelEdit.flipped);
-                else engine?.setLabel(labelEdit.elementId, text, labelEdit.plain ? undefined : html);
-                engine?.focusCanvas();
-              }}
-              onCancel={() => {
-                setLabelEdit(undefined);
-                engine?.closeLabelEdit();
-                engine?.focusCanvas();
-              }}
-            />
-          )}
-          <DrawioSpatial
-            xml={file.content}
-            fileId={file.id}
-            editable
-            fonts={FONTS}
-            settings={settings}
-            minimap={settings.minimap}
-            onMinimapToggle={toggleMinimap}
-            initialView={initialView}
-            autosave={settings.save.autosave}
-            autosaveDelayMs={settings.save.delayMs}
-            onSave={(xml, { auto }) => persist(xml, auto)}
-            onEngine={handleEngine}
-            onError={(e) => setError(e instanceof Error ? e.message : String(e))}
-          />
-          {commentEdit ? (
-            <CommentEditor
-              key={`${commentEdit.elementId}:${commentEdit.part ?? ''}`}
-              comment={commentEdit.comment}
-              plain={commentEdit.part !== undefined}
-              settings={settings.comment}
-              handle={editorHandle}
-              onToggle={(mark) => formatText({ type: 'toggle', mark })}
-              onSelectionFormat={setSelectionFormat}
-              onCommit={(content) => {
-                setCommentEdit(undefined);
-                // Commentaire d'une partie (ex. champ, sujet 262) : texte brut, écrit par le mode.
-                if (commentEdit.part !== undefined)
-                  engine?.setPartComment(commentEdit.elementId, commentEdit.part, content.text);
-                else engine?.setComment(commentEdit.elementId, content);
-                if (commentEdit.fromNavigation) engine?.clearSelection();
-                engine?.focusCanvas();
-              }}
-              onCancel={() => {
-                setCommentEdit(undefined);
-                if (commentEdit.fromNavigation) engine?.clearSelection();
-                engine?.focusCanvas();
-              }}
-            />
-          ) : (
-            <CommentCard comment={hoverComment} settings={settings.comment} />
-          )}
-        </div>
-        {rightTitle && (
+        <div className="viewport">
           <Sidebar
-            side="right"
-            label={rightTitle}
-            layout={settings.panels.right}
+            side="left"
+            label="Formes"
+            layout={settings.panels.left}
             stripText={settings.panels.stripText}
             minCanvas={settings.panels.minCanvas}
-            onChange={(right) => onSettingsChange({ panels: { right } })}
+            onChange={(left) => onSettingsChange({ panels: { left } })}
           >
-            {diagnosticsOpen ? (
-              <DiagnosticsPanel
-                report={report}
-                warnings={warnings}
-                pageNames={Object.fromEntries((document?.pages ?? []).map((p) => [p.id, p.name]))}
-                cumulative={cumulative}
-                onFocus={(page, element) => engine?.focusElement(page, element)}
-                onExport={() => exportJson(file.name, report, warnings)}
-                onClearCumulative={() => {
-                  clearLog();
-                  setCumulative(cumulativeEntries());
+            <Palette
+              disabled={!canAddShapes}
+              used={usedShapes}
+              content={paletteContent}
+              onAdd={(template) => engine?.addShape(template)}
+            />
+          </Sidebar>
+          <div
+            className="canvas-area"
+            onDragOver={(event) => {
+              if (!canAddShapes || !event.dataTransfer.types.includes(PALETTE_MIME)) return;
+              event.preventDefault();
+              event.dataTransfer.dropEffect = 'copy';
+            }}
+            onDrop={(event) => {
+              const id = event.dataTransfer.getData(PALETTE_MIME);
+              const template = plugins?.shapes.templates().find((t) => t.id === id);
+              if (!template || !engine) return;
+              event.preventDefault();
+              const rect = event.currentTarget.getBoundingClientRect();
+              engine.addShape(template, { x: event.clientX - rect.left, y: event.clientY - rect.top });
+              engine.focusCanvas();
+            }}
+          >
+            <SlidingModeBar
+              indicator={transitioning ? undefined : modeIndicator}
+              onChoose={(value) => engine?.setModeCurrent(value)}
+              onRename={(label) => engine?.renameModeCurrent(label)}
+            />
+            {labelEdit && (
+              <LabelEditor
+                key={`${labelEdit.pageId}:${labelEdit.elementId}:${labelEdit.end ?? ''}:${labelEdit.part ?? ''}`}
+                request={labelEdit}
+                handle={editorHandle}
+                onMoveText={
+                  labelEdit.onEdge && labelEdit.styleCellId ? (screen) => engine?.moveEditedText(screen) : undefined
+                }
+                onMoveTextEnd={() => engine?.endEditedTextMove()}
+                onFlip={() => engine?.flipEditedText()}
+                onToggle={(mark) => formatText({ type: 'toggle', mark })}
+                onSelectionFormat={setSelectionFormat}
+                onFitSize={setFittedSize}
+                onTextInput={labelEdit.onEdge ? undefined : (text) => engine?.previewEditedLabel(text)}
+                onCommit={({ text, html }) => {
+                  setLabelEdit(undefined);
+                  engine?.closeLabelEdit();
+                  if (labelEdit.part !== undefined) engine?.setPartText(labelEdit.elementId, labelEdit.part, text);
+                  else if (labelEdit.labelCellId)
+                    engine?.setEdgeText(labelEdit.elementId, labelEdit.labelCellId, text, html);
+                  else if (labelEdit.end)
+                    engine?.setEdgeEndLabel(labelEdit.elementId, labelEdit.end, text, html, labelEdit.flipped);
+                  else engine?.setLabel(labelEdit.elementId, text, labelEdit.plain ? undefined : html);
+                  engine?.focusCanvas();
                 }}
-                onClose={() => setPanel(undefined)}
+                onCancel={() => {
+                  setLabelEdit(undefined);
+                  engine?.closeLabelEdit();
+                  engine?.focusCanvas();
+                }}
+              />
+            )}
+            <DrawioSpatial
+              xml={file.content}
+              fileId={file.id}
+              editable
+              fonts={FONTS}
+              settings={settings}
+              minimap={settings.minimap}
+              onMinimapToggle={toggleMinimap}
+              initialView={initialView}
+              autosave={settings.save.autosave}
+              autosaveDelayMs={settings.save.delayMs}
+              onSave={(xml, { auto }) => persist(xml, auto)}
+              onEngine={handleEngine}
+              onError={(e) => setError(e instanceof Error ? e.message : String(e))}
+            />
+            {commentEdit ? (
+              <CommentEditor
+                key={`${commentEdit.elementId}:${commentEdit.part ?? ''}`}
+                comment={commentEdit.comment}
+                plain={commentEdit.part !== undefined}
+                settings={settings.comment}
+                handle={editorHandle}
+                onToggle={(mark) => formatText({ type: 'toggle', mark })}
+                onSelectionFormat={setSelectionFormat}
+                onCommit={(content) => {
+                  setCommentEdit(undefined);
+                  // Commentaire d'une partie (ex. champ, sujet 262) : texte brut, écrit par le mode.
+                  if (commentEdit.part !== undefined)
+                    engine?.setPartComment(commentEdit.elementId, commentEdit.part, content.text);
+                  else engine?.setComment(commentEdit.elementId, content);
+                  if (commentEdit.fromNavigation) engine?.clearSelection();
+                  engine?.focusCanvas();
+                }}
+                onCancel={() => {
+                  setCommentEdit(undefined);
+                  if (commentEdit.fromNavigation) engine?.clearSelection();
+                  engine?.focusCanvas();
+                }}
               />
             ) : (
-              currentPage && (
-                <ContextPanel
-                  page={currentPage}
-                  pages={document?.pages ?? []}
-                  shapes={selected.shapes}
-                  edges={selected.edges}
-                  part={selection?.pageId === currentPage.id ? selection.part : undefined}
-                  styles={settings.styles}
-                  exporters={settings.exporters}
-                  defaultDepth={settings.view.isoDepth}
-                  multiSelectKey={MULTI_SELECT_LABELS[settings.controls.multiSelectKey]}
-                  onLink={(link) => selection && engine?.setLink(selection.picked.element.id, link)}
-                  onEditComment={() => selection && engine?.editComment(selection.picked.element.id)}
-                  onSpatial={(key, value, merge) =>
-                    selection && engine?.setSpatial(selection.picked.element.id, key, value, merge)
-                  }
-                  onEditLabel={() => selection && engine?.editLabel(selection.picked.element.id)}
-                  onEndLabel={(end, text) =>
-                    selection && engine?.setEdgeEndLabel(selection.picked.element.id, end, text)
-                  }
-                  onDelete={() => engine?.deleteSelection()}
-                  onOrder={(move) => engine?.orderSelection(move)}
-                  alignReference={settings.edit.alignReference}
-                  onAlignReference={(alignReference) => onSettingsChange({ edit: { alignReference } })}
-                  onAlign={(move) => engine?.alignSelection(move, settings.edit.alignReference)}
-                  onDistribute={(move) => engine?.distributeSelection(move)}
-                  onReverse={() => engine?.reverseEdges(selected.edges.map((edge) => edge.id))}
-                  onResetRoute={() => selection && engine?.resetEdgeRoute(selection.picked.element.id)}
-                  onEdgeStyle={(patch, merge) =>
-                    engine?.setElementsStyle(
-                      selected.edges.map((edge) => edge.id),
-                      patch,
-                      'Tracé',
-                      merge,
-                    )
-                  }
-                  onShapeStyle={(patch) =>
-                    engine?.setElementsStyle(
-                      selected.shapes.map((shape) => shape.id),
-                      patch,
-                      'Bordure',
-                    )
-                  }
-                  onTextAnchor={(cellId, anchor) =>
-                    selection && engine?.setEdgeTextAnchor(selection.picked.element.id, cellId, anchor)
-                  }
-                  textEdit={
-                    // Texte brut (sujet 258) : pas de panneau de format.
-                    labelEdit && !labelEdit.plain
-                      ? {
-                          style: labelEdit.style,
-                          selection: selectionFormat,
-                          canFormat: labelEdit.styleCellId !== undefined,
-                          onEdge: labelEdit.onEdge,
-                          fittedSize,
-                          presets: settings.styles.text,
-                          onAction: formatText,
-                          onOwner: () => editorHandle.current?.commit(),
-                        }
-                      : labelEdit || commentEdit?.part !== undefined
-                        ? undefined
-                        : commentEdit && {
-                            // Commentaire : le format de tout le texte est celui des réglages, les commandes du panneau
-                            // portent sur la sélection ou sur tout le commentaire (`CommentEditor`).
-                            style: commentTextStyle(settings.comment),
+              <CommentCard comment={hoverComment} settings={settings.comment} />
+            )}
+          </div>
+          {rightTitle && (
+            <Sidebar
+              side="right"
+              label={rightTitle}
+              layout={settings.panels.right}
+              stripText={settings.panels.stripText}
+              minCanvas={settings.panels.minCanvas}
+              onChange={(right) => onSettingsChange({ panels: { right } })}
+            >
+              {diagnosticsOpen ? (
+                <DiagnosticsPanel
+                  report={report}
+                  warnings={warnings}
+                  pageNames={Object.fromEntries((document?.pages ?? []).map((p) => [p.id, p.name]))}
+                  cumulative={cumulative}
+                  onFocus={(page, element) => engine?.focusElement(page, element)}
+                  onExport={() => exportJson(file.name, report, warnings)}
+                  onClearCumulative={() => {
+                    clearLog();
+                    setCumulative(cumulativeEntries());
+                  }}
+                  onClose={() => setPanel(undefined)}
+                />
+              ) : (
+                currentPage && (
+                  <ContextPanel
+                    page={currentPage}
+                    pages={document?.pages ?? []}
+                    shapes={selected.shapes}
+                    edges={selected.edges}
+                    part={selection?.pageId === currentPage.id ? selection.part : undefined}
+                    styles={settings.styles}
+                    exporters={settings.exporters}
+                    defaultDepth={settings.view.isoDepth}
+                    multiSelectKey={MULTI_SELECT_LABELS[settings.controls.multiSelectKey]}
+                    onLink={(link) => selection && engine?.setLink(selection.picked.element.id, link)}
+                    onEditComment={() => selection && engine?.editComment(selection.picked.element.id)}
+                    onSpatial={(key, value, merge) =>
+                      selection && engine?.setSpatial(selection.picked.element.id, key, value, merge)
+                    }
+                    onEditLabel={() => selection && engine?.editLabel(selection.picked.element.id)}
+                    onEndLabel={(end, text) =>
+                      selection && engine?.setEdgeEndLabel(selection.picked.element.id, end, text)
+                    }
+                    onDelete={() => engine?.deleteSelection()}
+                    onOrder={(move) => engine?.orderSelection(move)}
+                    alignReference={settings.edit.alignReference}
+                    onAlignReference={(alignReference) => onSettingsChange({ edit: { alignReference } })}
+                    onAlign={(move) => engine?.alignSelection(move, settings.edit.alignReference)}
+                    onDistribute={(move) => engine?.distributeSelection(move)}
+                    onReverse={() => engine?.reverseEdges(selected.edges.map((edge) => edge.id))}
+                    onResetRoute={() => selection && engine?.resetEdgeRoute(selection.picked.element.id)}
+                    onEdgeStyle={(patch, merge) =>
+                      engine?.setElementsStyle(
+                        selected.edges.map((edge) => edge.id),
+                        patch,
+                        'Tracé',
+                        merge,
+                      )
+                    }
+                    onShapeStyle={(patch) =>
+                      engine?.setElementsStyle(
+                        selected.shapes.map((shape) => shape.id),
+                        patch,
+                        'Bordure',
+                      )
+                    }
+                    onTextAnchor={(cellId, anchor) =>
+                      selection && engine?.setEdgeTextAnchor(selection.picked.element.id, cellId, anchor)
+                    }
+                    textEdit={
+                      // Texte brut (sujet 258) : pas de panneau de format.
+                      labelEdit && !labelEdit.plain
+                        ? {
+                            style: labelEdit.style,
                             selection: selectionFormat,
-                            canFormat: true,
-                            onEdge: commentEdit.onEdge,
-                            comment: true,
+                            canFormat: labelEdit.styleCellId !== undefined,
+                            onEdge: labelEdit.onEdge,
+                            fittedSize,
                             presets: settings.styles.text,
                             onAction: formatText,
                             onOwner: () => editorHandle.current?.commit(),
                           }
-                  }
-                  onApplyStyle={(preset) =>
-                    engine?.applyStylePreset(
-                      selected.shapes.map((shape) => shape.id),
-                      preset,
-                      [...settings.styles.base, ...settings.styles.extended],
-                    )
-                  }
-                  onRenamePage={editablePages ? (name) => engine?.renamePage(currentPage.id, name) : undefined}
-                  onPageMode={editablePages ? (modeId) => engine?.setPageMode(currentPage.id, modeId) : undefined}
-                  onPageEffect={
-                    editablePages
-                      ? (effectId, enabled) => engine?.setPageEffect(currentPage.id, effectId, enabled)
-                      : undefined
-                  }
-                  onPageAnchoring={
-                    editablePages ? (anchoring) => engine?.setPageAnchoring(currentPage.id, anchoring) : undefined
-                  }
-                  defaultAnchoring={settings.shapes.edgeAnchoring}
-                  onPageJumps={editablePages ? (jumps) => engine?.setPageJumps(currentPage.id, jumps) : undefined}
-                  defaultJumps={settings.shapes.edgeJumpStyle}
-                  pageJumps={jumpValue(currentPage.attributes[SPATIAL.jumps]) ?? settings.shapes.edgeJumpStyle}
-                  defaultJumpSize={settings.shapes.edgeJumpSize}
-                  onModeEdit={editablePages ? (label, edit) => engine?.editPageMode(label, edit) : undefined}
-                  modeCurrent={engine?.getModeCurrent(currentPage.id)}
-                  onModeProperty={
-                    editablePages
-                      ? (scope, targetId, key, value, part, merge) =>
-                          engine?.setModeProperty(scope, targetId, key, value, part, merge)
-                      : undefined
-                  }
-                />
-              )
-            )}
-          </Sidebar>
+                        : labelEdit || commentEdit?.part !== undefined
+                          ? undefined
+                          : commentEdit && {
+                              // Commentaire : le format de tout le texte est celui des réglages, les commandes du panneau
+                              // portent sur la sélection ou sur tout le commentaire (`CommentEditor`).
+                              style: commentTextStyle(settings.comment),
+                              selection: selectionFormat,
+                              canFormat: true,
+                              onEdge: commentEdit.onEdge,
+                              comment: true,
+                              presets: settings.styles.text,
+                              onAction: formatText,
+                              onOwner: () => editorHandle.current?.commit(),
+                            }
+                    }
+                    onApplyStyle={(preset) =>
+                      engine?.applyStylePreset(
+                        selected.shapes.map((shape) => shape.id),
+                        preset,
+                        [...settings.styles.base, ...settings.styles.extended],
+                      )
+                    }
+                    onRenamePage={editablePages ? (name) => engine?.renamePage(currentPage.id, name) : undefined}
+                    onPageMode={editablePages ? (modeId) => engine?.setPageMode(currentPage.id, modeId) : undefined}
+                    onPageEffect={
+                      editablePages
+                        ? (effectId, enabled) => engine?.setPageEffect(currentPage.id, effectId, enabled)
+                        : undefined
+                    }
+                    onPageAnchoring={
+                      editablePages ? (anchoring) => engine?.setPageAnchoring(currentPage.id, anchoring) : undefined
+                    }
+                    defaultAnchoring={settings.shapes.edgeAnchoring}
+                    onPageJumps={editablePages ? (jumps) => engine?.setPageJumps(currentPage.id, jumps) : undefined}
+                    defaultJumps={settings.shapes.edgeJumpStyle}
+                    pageJumps={jumpValue(currentPage.attributes[SPATIAL.jumps]) ?? settings.shapes.edgeJumpStyle}
+                    defaultJumpSize={settings.shapes.edgeJumpSize}
+                    onModeEdit={editablePages ? (label, edit) => engine?.editPageMode(label, edit) : undefined}
+                    modeCurrent={engine?.getModeCurrent(currentPage.id)}
+                    onModeProperty={
+                      editablePages
+                        ? (scope, targetId, key, value, part, merge) =>
+                            engine?.setModeProperty(scope, targetId, key, value, part, merge)
+                        : undefined
+                    }
+                  />
+                )
+              )}
+            </Sidebar>
+          )}
+        </div>
+
+        {document && (
+          <footer className="bottom-bar">
+            <PageTabs
+              pages={document.pages}
+              currentPageId={pageId}
+              graphActive={pageId === GRAPH_PAGE_ID}
+              onShowGraph={() => engine?.showGraph()}
+              onSelect={(id) => engine?.goToPage(id)}
+              modeOf={modes && ((page) => modes.modeOf(page))}
+              onAdd={editablePages ? () => engine?.addPage() : undefined}
+              onRename={editablePages ? (id, name) => engine?.renamePage(id, name) : undefined}
+              onRemove={editablePages ? (id) => engine?.removePage(id) : undefined}
+            />
+            {/* Aide : mode en cours tant qu'une touche de modification est maintenue (rien sinon). */}
+            <span className="mode-hint" role="status">
+              {modeHint && MODE_HINT_LABELS[modeHint]}
+            </span>
+          </footer>
+        )}
+        {settingsOpen && (
+          <SettingsPanel
+            settings={settings}
+            onChange={onSettingsChange}
+            onReset={onResetSettings}
+            onResetOrientation={() => engine?.resetRotation()}
+            onClose={() => setSettingsOpen(false)}
+          />
         )}
       </div>
-
-      {document && (
-        <footer className="bottom-bar">
-          <PageTabs
-            pages={document.pages}
-            currentPageId={pageId}
-            graphActive={pageId === GRAPH_PAGE_ID}
-            onShowGraph={() => engine?.showGraph()}
-            onSelect={(id) => engine?.goToPage(id)}
-            modeOf={modes && ((page) => modes.modeOf(page))}
-            onAdd={editablePages ? () => engine?.addPage() : undefined}
-            onRename={editablePages ? (id, name) => engine?.renamePage(id, name) : undefined}
-            onRemove={editablePages ? (id) => engine?.removePage(id) : undefined}
-          />
-          {/* Aide : mode en cours tant qu'une touche de modification est maintenue (rien sinon). */}
-          <span className="mode-hint" role="status">
-            {modeHint && MODE_HINT_LABELS[modeHint]}
-          </span>
-        </footer>
-      )}
-      {settingsOpen && (
-        <SettingsPanel
-          settings={settings}
-          onChange={onSettingsChange}
-          onReset={onResetSettings}
-          onResetOrientation={() => engine?.resetRotation()}
-          onClose={() => setSettingsOpen(false)}
-        />
-      )}
-    </div>
+    </PluginsContext.Provider>
   );
 }
 

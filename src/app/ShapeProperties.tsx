@@ -1,7 +1,8 @@
 import { useRef } from 'react';
-import { defaultShapeRegistry, SPATIAL_PREFIX, spatialNumber, spatialValue } from '../engine';
+import { SPATIAL_PREFIX, spatialNumber, spatialValue } from '../engine';
 import type { PropertySection, ShapeModel, ShapeProperty } from '../engine';
 import { NumberField, TextField } from './Fields';
+import { useEnginePlugins } from './pluginsContext';
 
 /** Numéro du prochain passage dans un champ (clé de fusion des frappes, unique pour toute la session). */
 let nextPass = 0;
@@ -26,7 +27,8 @@ export function ShapePropertyFields({
    */
   onSpatial: (key: string, value: number | string | undefined, merge?: string) => void;
 }) {
-  const properties = defaultShapeRegistry.properties(shape).filter((property) => property.section === section);
+  const plugins = useEnginePlugins();
+  const properties = plugins.shapes.properties(shape).filter((property) => property.section === section);
   return (
     <>
       {properties.map((property) => (

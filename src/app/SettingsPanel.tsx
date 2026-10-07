@@ -1,4 +1,4 @@
-import { defaultEffectRegistry, defaultModeRegistry, RESERVED_CODES, SETTINGS_LIMITS } from '../engine';
+import { RESERVED_CODES, SETTINGS_LIMITS } from '../engine';
 import type {
   FollowLinkGesture,
   FollowLinkKey,
@@ -15,6 +15,7 @@ import { desktop } from './desktop';
 import { ColorField, Slider } from './SettingsFields';
 import { IsoIcon, IsoSettings } from './IsoSettings';
 import { Section, Subsection, Subsubsection } from './PanelSection';
+import { usePlugins } from './pluginsContext';
 
 interface SettingsPanelProps {
   settings: Settings;
@@ -103,6 +104,8 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
   const { controls, view, camera, background, transition, preload, minimap, selection, accessibility, debug, save } =
     settings;
   const { shapes, graph, edit, exporters } = settings;
+  // Modes et effets du moteur affiché (sujet 290) ; aucun tant qu'il n'est pas créé.
+  const plugins = usePlugins();
   const systemReduced = useSystemReducedMotion();
   const [query, setQuery] = useState('');
   const [node, setNode] = useState(lastNode);
@@ -600,8 +603,7 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   ]}
                   onChange={(style) => onChange({ selection: { style } })}
                 />
-                {defaultModeRegistry
-                  .list()
+                {(plugins?.modes.list() ?? [])
                   .filter((mode) => mode.selectionStyle)
                   .map((mode) => (
                     <p key={mode.id} className="panel-hint">
@@ -1151,14 +1153,13 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
             </Section>
 
             <Section title="Modes">
-              {defaultModeRegistry
-                .list()
+              {(plugins?.modes.list() ?? [])
                 .filter((mode) => (mode.settings ?? []).length > 0)
                 .map((mode) => (
                   <Subsection key={mode.id} title={mode.shortName ?? mode.name}>
                     <PluginSettingFields
                       settings={mode.settings!}
-                      values={defaultModeRegistry.values(mode.id, settings.modes[mode.id])}
+                      values={plugins!.modes.values(mode.id, settings.modes[mode.id])}
                       onChange={(key, value) => onChange({ modes: { [mode.id]: { [key]: value } } })}
                     />
                   </Subsection>
@@ -1192,14 +1193,13 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
             </Section>
 
             <Section title="Effets">
-              {defaultEffectRegistry
-                .list()
+              {(plugins?.effects.list() ?? [])
                 .filter((effect) => (effect.settings ?? []).length > 0)
                 .map((effect) => (
                   <Subsection key={effect.id} title={effect.name}>
                     <PluginSettingFields
                       settings={effect.settings!}
-                      values={defaultEffectRegistry.values(effect.id, settings.effects[effect.id])}
+                      values={plugins!.effects.values(effect.id, settings.effects[effect.id])}
                       onChange={(key, value) => onChange({ effects: { [effect.id]: { [key]: value } } })}
                     />
                     <p className="hint muted">{effect.description}</p>

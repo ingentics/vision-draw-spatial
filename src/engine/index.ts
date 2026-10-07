@@ -106,7 +106,9 @@ export type { FontSet } from './core/render/troikaText';
 
 // Formes, modes et effets de page
 export { pageEffectIds } from './core/effects/registry';
-export type { ModeScope } from './core/modes/registry';
+export type { PageEffectRegistry } from './core/effects/registry';
+export type { ModeScope, PageModeRegistry } from './core/modes/registry';
+export type { ShapeRegistry } from './core/shapes/registry';
 export type { ModeEdit, ModeProperty, ModeTarget, PageModeDefinition } from './core/modes/types';
 export type { PluginSetting, PluginValues } from './core/settings/pluginSettings';
 export {

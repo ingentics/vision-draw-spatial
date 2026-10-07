@@ -3,7 +3,9 @@ import type { UnsupportedReport } from './core/diagnostics/unsupportedStyles';
 import type { AlignMove, AlignReference, DistributeMove } from './core/edit/align';
 import type { Anchoring } from './core/edit/anchoring/mode';
 import type { EdgeEnd } from './core/edit/edgeLabels';
-import type { ShapeTemplate } from './core/edit/palette';
+import { usedTemplatesIn } from './core/edit/palette';
+import type { PageModePalette, ShapeTemplate } from './core/edit/palette';
+import type { PageEffectRegistry } from './core/effects/registry';
 import type { StylePreset } from './core/edit/stylePresets';
 import type { OrderMove } from './core/format/order';
 import type { DrawioTree } from './core/format/xmlTree';
@@ -12,6 +14,7 @@ import type { HistoryEntry, LinkUsage } from './core/interaction/navigationHisto
 import type { PickedElement } from './core/interaction/pick';
 import type { DocumentModel, LinkModel, PageModel, Point, Rect } from './core/model/types';
 import type { ModeScope, PageModeRegistry } from './core/modes/registry';
+import type { ShapeRegistry } from './core/shapes/registry';
 import type { ModeEdit } from './core/modes/types';
 import type { JumpDefaults } from './core/render/edges/jumps';
 import type { PageScene } from './core/render/pageScene';
@@ -453,6 +456,31 @@ export class Engine {
   /** Registre des modes de page du moteur (choix du mode, réglages déclarés). */
   getModeRegistry(): PageModeRegistry {
     return this.core.pageModes.getModeRegistry();
+  }
+
+  /** Registre des effets de page du moteur (sujet 290 : l'appli n'en suppose pas d'autre). */
+  getEffectRegistry(): PageEffectRegistry {
+    return this.core.effects;
+  }
+
+  /** Registre des formes du moteur (panneau, aperçus ; sujet 290). */
+  getShapeRegistry(): ShapeRegistry {
+    return this.core.registry;
+  }
+
+  /** Palette d'une page : catégories et modèles proposés, d'après son mode et les formes du moteur. */
+  paletteFor(page: PageModel | undefined): PageModePalette {
+    return this.core.modes.paletteFor(page, this.core.registry.templates());
+  }
+
+  /** Modèles des formes présentes sur la page (catégorie « Utilisées » de la palette). */
+  usedTemplates(page: Pick<PageModel, 'shapes'> | undefined): ShapeTemplate[] {
+    return usedTemplatesIn(page, this.core.registry);
+  }
+
+  /** Flèche gérée par le mode de la page courante (`managesEdge`, ex. relation RDD) : réglages imposés. */
+  managesEdge(edgeId: string): boolean {
+    return this.core.pageModes.managesEdge(edgeId);
   }
 
   /**

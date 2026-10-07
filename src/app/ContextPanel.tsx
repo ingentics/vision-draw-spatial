@@ -2,9 +2,6 @@ import { useRef } from 'react';
 import {
   anchorOf,
   commentOf,
-  defaultEffectRegistry,
-  defaultModeRegistry,
-  defaultShapeRegistry,
   edgeTexts,
   endLabelOf,
   isAnchoring,
@@ -49,6 +46,7 @@ import { Section } from './PanelSection';
 import { TextFormatSections } from './TextFormat';
 import type { TextEdit } from './TextFormat';
 import { ArrangeSection } from './ArrangeSection';
+import { useEnginePlugins } from './pluginsContext';
 
 export interface ContextPanelProps {
   page: PageModel;
@@ -250,9 +248,10 @@ function PageSections({ page, onRenamePage: onRename, ...props }: ContextPanelPr
  * tel quel.
  */
 function PageEffectsSection({ page, onPageEffect }: Pick<ContextPanelProps, 'page' | 'onPageEffect'>) {
+  const plugins = useEnginePlugins();
   const written = pageEffectIds(page);
-  const unknown = written.filter((id) => !defaultEffectRegistry.get(id));
-  const effects = defaultEffectRegistry.list().filter((effect) => defaultModeRegistry.allowsEffect(page, effect));
+  const unknown = written.filter((id) => !plugins.effects.get(id));
+  const effects = plugins.effects.list().filter((effect) => plugins.modes.allowsEffect(page, effect));
   if (effects.length === 0 && unknown.length === 0) return null;
   return (
     <Section title="Effets">
@@ -288,18 +287,19 @@ function PageModeSections({
   ContextPanelProps,
   'page' | 'onPageMode' | 'onModeEdit' | 'onModeProperty' | 'modeCurrent' | 'exporters' | 'styles'
 >) {
-  const modeId = defaultModeRegistry.modeId(page);
-  const mode = defaultModeRegistry.modeOf(page);
+  const plugins = useEnginePlugins();
+  const modeId = plugins.modes.modeId(page);
+  const mode = plugins.modes.modeOf(page);
   const options = [
     { value: '', label: 'Aucun' },
-    ...defaultModeRegistry.list().map((m) => ({ value: m.id, label: m.name })),
+    ...plugins.modes.list().map((m) => ({ value: m.id, label: m.name })),
     ...(modeId && !mode ? [{ value: modeId, label: `Inconnu (${modeId})` }] : []),
   ];
   const PageSection = modePanel(mode?.id)?.PageSection;
   // Réglages de page rangés dans un encart du mode (`section`, ex. « RDD »), après la section « Mode ».
   const sections = [
     ...new Set(
-      defaultModeRegistry
+      plugins.modes
         .properties(page, 'page')
         .filter((p) => p.section !== undefined && !p.hidden?.(page, page))
         .map((p) => p.section!),
@@ -381,11 +381,10 @@ function ElementModeSection({
   scope,
   ...props
 }: ContextPanelProps & { element: ModeTarget; scope: ModeScope }) {
-  const mode = defaultModeRegistry.modeOf(props.page);
+  const plugins = useEnginePlugins();
+  const mode = plugins.modes.modeOf(props.page);
   const part = scope === 'shape' ? props.part : undefined;
-  const shown = defaultModeRegistry
-    .properties(props.page, scope, part)
-    .filter((p) => !p.hidden?.(props.page, element, part));
+  const shown = plugins.modes.properties(props.page, scope, part).filter((p) => !p.hidden?.(props.page, element, part));
   if (!mode || shown.length === 0) return null;
   const sections = [...new Set(shown.map((p) => p.section))];
   return (
@@ -411,6 +410,7 @@ function ElementModeSection({
 // Forme
 
 function ShapeSections({ shape, ...props }: ContextPanelProps & { shape: ShapeModel }) {
+  const plugins = useEnginePlugins();
   const known = [...props.styles.base, ...props.styles.extended];
   return (
     <>
@@ -431,8 +431,7 @@ function ShapeSections({ shape, ...props }: ContextPanelProps & { shape: ShapeMo
         <ShapePropertyFields shape={shape} section="border" onStyle={props.onShapeStyle} onSpatial={props.onSpatial} />
       </BorderSection>
       {/* Volume : seulement si le mode de la page permet l'iso ou la 3D (sujet 260). */}
-      {(defaultModeRegistry.allowsViewMode(props.page, 'iso') ||
-        defaultModeRegistry.allowsViewMode(props.page, '3d')) && (
+      {(plugins.modes.allowsViewMode(props.page, 'iso') || plugins.modes.allowsViewMode(props.page, '3d')) && (
         <Section title="Volume">
           <NumberField
             key={`h:${shape.id}:${spatialNumber(shape, SPATIAL.height) ?? ''}`}
@@ -480,8 +479,9 @@ function ShapeOwnSection({
   onShapeStyle: ContextPanelProps['onShapeStyle'];
   onSpatial: ContextPanelProps['onSpatial'];
 }) {
-  if (!defaultShapeRegistry.properties(shape).some((property) => property.section === 'shape')) return null;
-  const { definition } = defaultShapeRegistry.resolve(shape);
+  const plugins = useEnginePlugins();
+  if (!plugins.shapes.properties(shape).some((property) => property.section === 'shape')) return null;
+  const { definition } = plugins.shapes.resolve(shape);
   return (
     <Section title={definition.palette?.name ?? 'Forme'}>
       <ShapePropertyFields shape={shape} section="shape" onStyle={onShapeStyle} onSpatial={onSpatial} />
@@ -493,6 +493,7 @@ function ShapeOwnSection({
 // Flèche
 
 function EdgeSections({ edge, ...props }: ContextPanelProps & { edge: EdgeModel }) {
+  const plugins = useEnginePlugins();
   const end = (id: string | undefined) => {
     const shape = id ? props.page.shapes.find((s) => s.id === id) : undefined;
     if (!shape) return 'point libre';
@@ -501,7 +502,7 @@ function EdgeSections({ edge, ...props }: ContextPanelProps & { edge: EdgeModel 
   // Flèche gérée par le mode (ex. relation RDD, sujets 265, 267) : ses réglages en tête, texte du milieu et
   // commentaire, coupure et renvois (sujet 270) ; le reste, imposé par le mode (cardinalités comprises), n'est pas
   // montré.
-  if (managedEdge(props.page, edge))
+  if (plugins.managesEdge(edge.id))
     return (
       <>
         <ElementModeSection {...props} element={edge} scope="edge" />
@@ -873,7 +874,6 @@ const MARKERS: Array<{ value: string; label: string; fillable: boolean }> = [
 ];
 
 /** Flèche gérée par le mode de la page (ex. relation RDD et ses cardinalités, sujet 265). */
-const managedEdge = (page: PageModel, edge: EdgeModel) => !!defaultModeRegistry.modeOf(page)?.managesEdge?.(page, edge);
 
 /**
  * Bouts de la flèche : forme du début et de la fin, pleine ou vide (défauts draw.io : rien au début, classique pleine
@@ -948,6 +948,7 @@ function EdgeEndsSection({
 // Sélection multiple
 
 function MultiSections(props: ContextPanelProps) {
+  const plugins = useEnginePlugins();
   const { shapes, edges } = props;
   // La dernière forme choisie sert d'aperçu et de style courant.
   const current = shapes[shapes.length - 1];
@@ -988,7 +989,7 @@ function MultiSections(props: ContextPanelProps) {
           />
         </BorderSection>
       )}
-      {edges.length > 0 && !edges.some((edge) => managedEdge(props.page, edge)) && (
+      {edges.length > 0 && !edges.some((edge) => plugins.managesEdge(edge.id)) && (
         <EdgeEndsSection edge={edges[edges.length - 1]!} onChange={props.onEdgeStyle} onReverse={props.onReverse} />
       )}
       <OrderSection onOrder={props.onOrder} />
@@ -1129,13 +1130,14 @@ function StyleGrid({
 
 /** Aperçu de la forme sélectionnée avec ce style : le dessin déclaré par sa forme, aux couleurs du style. */
 function StylePreview({ shape, preset }: { shape: ShapeModel; preset: StylePreset }) {
+  const plugins = useEnginePlugins();
   const text = preset.fontColor ?? '#000000';
   return (
     <svg viewBox="0 0 40 28" aria-hidden="true">
       <g
         fill={preset.fillColor}
         stroke={preset.strokeColor}
-        dangerouslySetInnerHTML={{ __html: defaultShapeRegistry.swatch(shape) }}
+        dangerouslySetInnerHTML={{ __html: plugins.shapes.swatch(shape) }}
       />
       <text x="20" y="17.5" textAnchor="middle" fill={text}>
         Aa
