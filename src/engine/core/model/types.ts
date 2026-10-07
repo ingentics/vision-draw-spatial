@@ -29,6 +29,8 @@ export interface ParseWarning {
   pageId?: string;
   cellId?: string;
   message: string;
+  /** `error` : erreur (ex. plugin en panne), rangée à part dans les Diagnostics ; défaut : avertissement. */
+  level?: 'error';
 }
 
 export interface LayerModel {

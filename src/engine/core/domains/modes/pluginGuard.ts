@@ -27,7 +27,7 @@ export class PluginGuard {
     const key = `${plugin}\n${hook}`;
     if (this.errors.has(key)) return;
     const detail = error instanceof Error ? error.message : String(error);
-    this.errors.set(key, { message: `${plugin} : erreur dans ${hook} (${detail})` });
+    this.errors.set(key, { message: `${plugin} : erreur dans ${hook} (${detail})`, level: 'error' });
     console.error(`${plugin} : erreur dans ${hook}`, error);
     // Hors de l'appel en cours (lecture, rendu, geste), qui peut être au milieu d'une relecture du document.
     if (this.publishing) return;
@@ -38,7 +38,7 @@ export class PluginGuard {
     });
   }
 
-  /** Erreurs signalées, en avertissements des Diagnostics. */
+  /** Erreurs signalées, au niveau `error` dans les avertissements des Diagnostics. */
   warnings(): ParseWarning[] {
     return [...this.errors.values()];
   }

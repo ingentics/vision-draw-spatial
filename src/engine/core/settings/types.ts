@@ -276,7 +276,7 @@ export interface SaveSettings {
 }
 
 export interface DebugSettings {
-  /** Bouton et panneau « Diagnostics » (styles non supportés, SPEC §8.4). */
+  /** Bouton et panneau « Diagnostics » (erreurs, styles non supportés, avertissements, SPEC §8.4). */
   showUnsupportedPanel: boolean;
 }
 

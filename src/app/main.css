@@ -577,9 +577,23 @@ body {
   margin-left: auto;
 }
 
+.diagnostics-toggle svg {
+  width: 16px;
+  height: 16px;
+  stroke: var(--muted);
+}
+
+.diagnostics-toggle .diagnostics-chest {
+  stroke: var(--accent);
+}
+
 .diagnostics-toggle[aria-pressed='true'] {
   border-color: var(--accent);
   color: var(--accent);
+}
+
+.diagnostics-toggle[aria-pressed='true'] svg {
+  stroke: var(--accent);
 }
 
 .pill {
@@ -625,11 +639,6 @@ body {
   background: none;
   color: var(--muted);
   cursor: pointer;
-}
-
-.diagnostics-tabs {
-  margin: 8px 10px 0;
-  align-self: flex-start;
 }
 
 .diagnostics-body {
@@ -716,29 +725,6 @@ body {
 
 .link-button:hover {
   text-decoration: underline;
-}
-
-.cumulative {
-  width: 100%;
-  margin-bottom: 12px;
-  border-collapse: collapse;
-}
-
-.cumulative th,
-.cumulative td {
-  padding: 4px 6px 4px 0;
-  border-bottom: 1px solid var(--border);
-  text-align: left;
-}
-
-.cumulative th {
-  color: var(--muted);
-  font-weight: 500;
-}
-
-.cumulative .num {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
 }
 
 /* Bouton Retour et menu des pages parentes */

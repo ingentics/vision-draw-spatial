@@ -117,7 +117,10 @@ describe('hôte des appels aux modes (sujet 288)', () => {
   it('les avertissements du document incluent les erreurs signalées à la lecture', () => {
     const { document, modes } = setup();
     modes.withModeWarnings(document);
-    expect(document.warnings.map((w) => w.message)).toContain('Mode boom : erreur dans lifecycle.check (panne)');
+    expect(document.warnings).toContainEqual({
+      message: 'Mode boom : erreur dans lifecycle.check (panne)',
+      level: 'error',
+    });
   });
 
   it('réglages déclarés évalués pour le panneau (sujet 294) : un point d’entrée en panne est traité comme absent', () => {

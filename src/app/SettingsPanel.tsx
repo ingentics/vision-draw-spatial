@@ -1412,7 +1412,7 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
 
             <Section title="Diagnostics">
               <Toggle
-                label="Bouton « Diagnostics » (styles non supportés)"
+                label="Bouton « Diagnostics » (erreurs, non supportés, avertissements)"
                 checked={debug.showUnsupportedPanel}
                 onChange={(showUnsupportedPanel) => onChange({ debug: { showUnsupportedPanel } })}
               />

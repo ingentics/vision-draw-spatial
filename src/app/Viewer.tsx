@@ -28,7 +28,7 @@ import type {
 } from '../engine';
 import { BackButton } from '../react/BackButton';
 import { DrawioSpatial } from '../react/DrawioSpatial';
-import { clearLog, cumulativeEntries, exportJson, recordFile } from './diagnosticsLog';
+import { exportJson } from './diagnosticsExport';
 import { DiagnosticsPanel } from './DiagnosticsPanel';
 import { desktop } from './desktop';
 import { saveAs, store } from './fileLibrary';
@@ -98,7 +98,6 @@ export function Viewer({
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
   const [report, setReport] = useState<UnsupportedReport>();
-  const [cumulative, setCumulative] = useState(cumulativeEntries);
   /** Diagnostics dans la barre de droite ; sinon le panneau contextuel (page, forme, flèche) est affiché. */
   const [panel, setPanel] = useState<'diagnostics'>();
   const diagnosticsOpen = panel === 'diagnostics' && settings.debug.showUnsupportedPanel;
@@ -336,12 +335,7 @@ export function Viewer({
       instance.on('load', (doc) => {
         setDocument(doc);
         setError(undefined);
-        const unsupported = instance.getUnsupportedReport();
-        setReport(unsupported);
-        if (unsupported) {
-          recordFile(file.id, file.name, unsupported);
-          setCumulative(cumulativeEntries());
-        }
+        setReport(instance.getUnsupportedReport());
       });
       const refreshBack = () => setBackTarget(instance.getBackTarget());
       // La barre du courant du mode part au début d'une transition et n'arrive qu'à sa fin.
@@ -387,7 +381,7 @@ export function Viewer({
         scheduleSave();
       });
     },
-    [file.id, file.name, scheduleSave, onSettingsChange],
+    [scheduleSave, onSettingsChange],
   );
 
   const warnings = document?.warnings ?? [];
@@ -562,10 +556,14 @@ export function Viewer({
                 type="button"
                 className="button diagnostics-toggle"
                 aria-pressed={diagnosticsOpen}
-                title="Éléments non supportés et avertissements de lecture"
+                aria-label="Diagnostics"
+                title="Diagnostics : erreurs, éléments non supportés, avertissements"
                 onClick={() => togglePanel('diagnostics')}
               >
-                Diagnostics
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M3 1.5h1.5M7.5 1.5H9M3.75 1.5v4a2.5 2.5 0 0 0 5 0v-4M6.25 8v2.5a2.5 2.5 0 0 0 5 0V9" />
+                  <circle className="diagnostics-chest" cx="11.25" cy="7.5" r="1.5" />
+                </svg>
                 {issueCount > 0 && <span className="pill">{issueCount}</span>}
               </button>
             )}
@@ -714,14 +712,10 @@ export function Viewer({
                 <DiagnosticsPanel
                   report={report}
                   warnings={warnings}
+                  appError={error}
                   pageNames={Object.fromEntries((document?.pages ?? []).map((p) => [p.id, p.name]))}
-                  cumulative={cumulative}
                   onFocus={(page, element) => engine?.focusElement(page, element)}
-                  onExport={() => exportJson(file.name, report, warnings)}
-                  onClearCumulative={() => {
-                    clearLog();
-                    setCumulative(cumulativeEntries());
-                  }}
+                  onExport={() => exportJson(file.name, report, warnings, error)}
                   onClose={() => setPanel(undefined)}
                 />
               ) : (
