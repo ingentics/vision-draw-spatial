@@ -28,8 +28,11 @@ export class ShapeParts {
     const selection = this.core.selection.current;
     const page = this.core.pages.getCurrentPage();
     if (!selection || selection.part === undefined || !page || selection.pageId !== page.id) return undefined;
-    const shape = page.shapes.find((s) => s.id === selection.picked.element.id);
-    const rect = shape && this.core.modes.modeOf(page)?.parts?.bounds(page, shape, selection.part);
+    // Partie glissée (sujet 252) : à sa place dans l'aperçu.
+    const previewed = this.core.partDrags.previewed();
+    const shape = previewed?.shape ?? page.shapes.find((s) => s.id === selection.picked.element.id);
+    const part = previewed?.part ?? selection.part;
+    const rect = shape && this.core.modes.modeOf(page)?.parts?.bounds(page, shape, part);
     return shape && rect ? { shape, rect } : undefined;
   }
 

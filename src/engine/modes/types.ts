@@ -111,6 +111,18 @@ export interface ModeParts {
    * alors écrit. Dans tous les cas, la forme elle-même n'est pas supprimée.
    */
   remove?(edit: ModeEdit, shape: ShapeModel, part: string): void;
+  /**
+   * Glisser de la partie sélectionnée (sujet 252) : place visée sous `point` (pixels de page), désignée par une chaîne
+   * du mode ; undefined = aucune place (le lâcher ne fait rien).
+   */
+  dropAt?(page: PageModel, shape: ShapeModel, part: string, point: Point): string | undefined;
+  /**
+   * Aperçu pendant le glisser : la forme telle qu'elle serait avec la partie à la place `target` (sans rien écrire),
+   * et la partie à cette place ; la forme est redessinée ainsi en direct.
+   */
+  preview?(shape: ShapeModel, part: string, target: string): { shape: ShapeModel; part: string } | undefined;
+  /** Lâcher sur une place de `dropAt` : déplace la partie ; renvoie la partie à sélectionner ensuite. */
+  move?(edit: ModeEdit, shape: ShapeModel, part: string, target: string): string | undefined;
 }
 
 /** Poignée d'un mode (sujet 250) : disque de couleur marqué d'un « + » blanc, et les choix de son menu. */

@@ -124,7 +124,10 @@ paramètres « Modes › Séquences » (clés `shapes.edgeBadge…`, communes à
   emprise (`bounds`) ; Échap revient à la forme. `text` / `setText` : texte modifiable sur place au double-clic, sur une
   ligne (Entrée valide), écrit par une opération du mode (une étape d'annulation). `remove` : Suppr sur la partie
   sélectionnée la retire (sujet 251) ; la forme n'est jamais supprimée à sa place, et un refus du mode laisse tout tel
-  quel.
+  quel. `dropAt` / `move` (sujet 252) : un appui sur la partie sélectionnée la glisse (et non la forme) ; `dropAt` donne
+  la place visée sous le pointeur, `preview` la forme telle qu'elle serait (redessinée en direct, la partie mise en
+  valeur à sa nouvelle place), `move` déplace la partie au lâcher (une étape d'annulation) et renvoie la partie à
+  sélectionner.
 - `obstacles(page, shape)` : emprises que `shape` ne doit pas approcher pendant un déplacement (glisser, flèches du
   clavier) ou un redimensionnement, à l'écart du paramètre `shapes.modeObstacleGap` ; `above` : ce que la forme dessine
   au-dessus de ses bornes. Le moteur borne le geste (un axe puis l'autre, on glisse le long d'un obstacle) et montre la

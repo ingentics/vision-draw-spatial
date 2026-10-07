@@ -501,6 +501,59 @@ describe('mode RDD : supprimer un champ (sujet 251)', () => {
   });
 });
 
+describe('mode RDD : réordonner les champs au glisser (sujet 252)', () => {
+  // User : (40, 160), 160 de large ; lignes id (186), email (206), role (226), fin 246 ; plus Field1 (246), fin 266.
+  const setupWithField = () => {
+    const context = setup();
+    context.run((edit) => setFields(edit, context.shape('user'), 'email\nrole\nField1'));
+    return context;
+  };
+
+  it('place visée : la ligne survolée, jamais devant la clé primaire ni à la place actuelle', () => {
+    const { page, shape } = setupWithField();
+    const drop = (part: string, y: number) => fieldParts.dropAt!(page(), shape('user'), part, { x: 100, y });
+    // Field1 (rang 3) au-dessus de email (206-226) : à sa place.
+    expect(drop('3', 210)).toBe('1');
+    // Au-dessus de la clé primaire ou de l'entête : juste après elle.
+    expect([drop('3', 190), drop('3', 170)]).toEqual(['1', '1']);
+    // email (rang 1) sur Field1 (246-266) : après lui, en fin de liste.
+    expect(drop('1', 250)).toBe('4');
+    // Sur lui-même : aucune.
+    expect(drop('2', 230)).toBeUndefined();
+    // Hors de la table, ou la clé primaire : aucune.
+    expect(fieldParts.dropAt!(page(), shape('user'), '3', { x: 10, y: 210 })).toBeUndefined();
+    expect(drop('3', 300)).toBeUndefined();
+    expect(drop('0', 240)).toBeUndefined();
+  });
+
+  it('aperçu : la table avec le champ à sa nouvelle place, et ce champ désigné ; rien d’écrit', () => {
+    const { page, shape } = setupWithField();
+    const preview = fieldParts.preview!(shape('user'), '3', '1')!;
+    expect(preview.part).toBe('1');
+    expect(labels(fieldsOf(preview.shape))).toEqual(['id', 'Field1', 'email', 'role']);
+    expect(fieldParts.bounds(page(), preview.shape, preview.part)).toEqual({
+      x: 40,
+      y: 206,
+      width: shape('user').bounds.width,
+      height: 20,
+    });
+    expect(labels(fieldsOf(shape('user')))).toEqual(['id', 'email', 'role', 'Field1']);
+    expect(fieldParts.preview!(shape('user'), '0', '2')).toBeUndefined();
+  });
+
+  it('lâcher : le champ change de rang et reste désigné à sa nouvelle place ; une étape d’écriture', () => {
+    const { run, shape } = setupWithField();
+    let part: string | undefined;
+    expect(run((edit) => (part = fieldParts.move!(edit, shape('user'), '3', '1')))).toBe(true);
+    expect([part, labels(fieldsOf(shape('user')))]).toEqual(['1', ['id', 'Field1', 'email', 'role']]);
+    run((edit) => (part = fieldParts.move!(edit, shape('user'), '1', '4')));
+    expect([part, labels(fieldsOf(shape('user')))]).toEqual(['3', ['id', 'email', 'role', 'Field1']]);
+    // Jamais devant la clé primaire, et la clé primaire ne bouge pas.
+    expect(run((edit) => fieldParts.move!(edit, shape('user'), '2', '0'))).toBe(false);
+    expect(run((edit) => fieldParts.move!(edit, shape('user'), '0', '3'))).toBe(false);
+  });
+});
+
 describe('mode RDD : tables ajustées à l’ouverture (sujet 255)', () => {
   it('chaque table prend la taille de son contenu ; une seconde passe ne change rien ; la région reste', () => {
     const { run, shape } = setup();

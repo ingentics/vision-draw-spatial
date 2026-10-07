@@ -104,5 +104,16 @@ export interface LabelDrag {
   started: boolean;
 }
 
-/** Glisser d'édition en cours (déplacement, redimensionnement, connecteur, bout ou points d'une flèche, texte). */
-export type Drag = MoveDrag | ResizeDrag | ConnectDrag | EdgeEndDrag | EdgePointsDrag | LabelDrag;
+/** Partie sélectionnée d'une forme glissée à une autre place (sujet 252, ex. champ d'une table RDD). */
+export interface PartDrag {
+  kind: 'part';
+  pageId: string;
+  shapeId: string;
+  part: string;
+  /** Place visée (`ModeParts.dropAt`) ; absente : hors de toute place, le lâcher ne fait rien. */
+  target?: string;
+  started: boolean;
+}
+
+/** Glisser d'édition en cours (déplacement, redimensionnement, connecteur, bout ou points d'une flèche, texte, partie). */
+export type Drag = MoveDrag | ResizeDrag | ConnectDrag | EdgeEndDrag | EdgePointsDrag | LabelDrag | PartDrag;

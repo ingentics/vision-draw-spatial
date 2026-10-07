@@ -100,6 +100,31 @@ export function removeField(edit: ModeEdit, shape: ShapeModel, index: number): v
   fitTable(edit, shape, { fields: written });
 }
 
+/**
+ * Ordre des champs avec le champ `from` à la place `slot` (sujet 252 ; place = rang du champ devant lequel il va, ou le
+ * nombre de champs pour la fin) et son nouveau rang ; jamais la clé primaire, et rien ne passe devant elle.
+ */
+export function movedFields(
+  fields: readonly Field[],
+  from: number,
+  slot: number,
+): { fields: Field[]; index: number } | undefined {
+  const field = fields[from];
+  const keyed = fields[0]?.kind === 'pk' ? 1 : 0;
+  if (!field || field.kind === 'pk' || slot < keyed || slot > fields.length) return undefined;
+  const to = slot > from ? slot - 1 : slot;
+  const rest = fields.filter((_, i) => i !== from);
+  return { fields: [...rest.slice(0, to), field, ...rest.slice(to)], index: to };
+}
+
+/** Déplace le champ `from` à la place `slot` (`movedFields`) ; renvoie son nouveau rang. */
+export function moveField(edit: ModeEdit, shape: ShapeModel, from: number, slot: number): number | undefined {
+  const moved = tableKindOf(shape) ? movedFields(tableFields(shape), from, slot) : undefined;
+  if (!moved) return undefined;
+  edit.setElementAttribute(shape.id, FIELDS, fieldsValue(moved.fields));
+  return moved.index;
+}
+
 /** Couleur de l'entête (`fillColor`) ; le texte du fichier suit le contraste pour draw.io (`fontColor`). */
 export function setHeaderColor(edit: ModeEdit, shape: ShapeModel, color: string | undefined): void {
   if (!tableKindOf(shape) || !color) return;

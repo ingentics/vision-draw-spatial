@@ -50,6 +50,7 @@ import { ConnectDrags } from './edit/drag/connect';
 import { EdgeEndDrags } from './edit/drag/edgeEnd';
 import { EdgePointsDrags } from './edit/drag/edgePoints';
 import { LabelDrags } from './edit/drag/label';
+import { PartDrags } from './edit/drag/part';
 import { ConnectorPreview } from './edit/drag/preview';
 import { LiveEdit } from './edit/drag/liveEdit';
 import { LabelEditor } from './edit/text/labelEditor';
@@ -137,6 +138,7 @@ export class EngineCore {
   // edit/drag : glisser à la souris
   readonly gesture = new DragGesture(this);
   readonly moveDrags = new MoveDrags(this);
+  readonly partDrags = new PartDrags(this);
   readonly resizeDrags = new ResizeDrags(this);
   readonly connectDrags = new ConnectDrags(this);
   readonly edgeEndDrags = new EdgeEndDrags(this);

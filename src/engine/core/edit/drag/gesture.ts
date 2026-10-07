@@ -34,6 +34,7 @@ export class DragGesture {
   /** Nouveau document : le glisser en cours est abandonné, sans rien écrire. */
   resetDocument(): void {
     this.drag = undefined;
+    this.core.partDrags.clear();
   }
 
   /**
@@ -96,6 +97,13 @@ export class DragGesture {
             bounded: this.resizeBounds(page, selected.id),
             started: false,
           };
+      return true;
+    }
+
+    // Partie sélectionnée saisie (ex. champ d'une table RDD, sujet 252) : elle se glisse, pas la forme.
+    const part = this.core.partDrags.grab(page, screen);
+    if (part) {
+      this.drag = part;
       return true;
     }
 
@@ -292,6 +300,7 @@ export class DragGesture {
     else if (drag.kind === 'label') this.core.labelDrags.follow(page, drag, screen);
     else if (drag.kind === 'edgeEnd') this.core.edgeEndDrags.follow(page, drag, screen, snap);
     else if (drag.kind === 'edgePoints') this.core.edgePointsDrags.follow(page, drag, screen, snap);
+    else if (drag.kind === 'part') this.core.partDrags.follow(page, drag, screen);
     else this.core.connectDrags.follow(page, drag, screen);
   }
 
@@ -304,7 +313,8 @@ export class DragGesture {
     if (!drag?.started || !this.core.file.document || !this.core.file.xmlTree) return;
     const pageTree = this.core.file.pageTreeOf(drag.pageId);
     if (!pageTree) return;
-    if (drag.kind === 'label') this.core.labelDrags.commit(drag, pageTree);
+    if (drag.kind === 'part') this.core.partDrags.commit(drag);
+    else if (drag.kind === 'label') this.core.labelDrags.commit(drag, pageTree);
     else if (drag.kind === 'edgePoints') this.core.edgePointsDrags.commit(drag, pageTree);
     else if (drag.kind === 'edgeEnd') this.core.edgeEndDrags.commit(drag, pageTree);
     else if (drag.kind === 'connect') this.core.connectDrags.commit(drag, pageTree);
