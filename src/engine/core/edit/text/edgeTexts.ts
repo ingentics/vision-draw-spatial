@@ -73,19 +73,14 @@ export class EdgeTexts {
     if (!editing?.onEdge || !cellId || !page || editing.pageId !== page.id) return;
     const edge = page.edges.find((e) => e.id === editing.elementId);
     if (!edge) return;
-    if (this.core.gesture.drag?.kind !== 'label') {
+    let drag = this.core.gesture.drag;
+    if (drag?.kind !== 'label') {
       const current = cellId === edge.id ? edge.labelPlacement : edge.labels.find((l) => l.id === cellId)?.placement;
       if (!current) return;
-      this.core.gesture.drag = {
-        kind: 'label',
-        pageId: page.id,
-        edgeId: edge.id,
-        cellId,
-        offset: current.offset,
-        started: false,
-      };
+      drag = { kind: 'label', pageId: page.id, edgeId: edge.id, cellId, offset: current.offset, started: false };
+      this.core.gesture.startDrag(drag);
     }
-    this.core.labelDrags.follow(page, this.core.gesture.drag, screen);
+    this.core.labelDrags.follow(page, drag, screen);
     this.core.labelEditor.hideEditedLabel();
     this.core.labelEditor.relocateLabelEdit();
   }
@@ -163,10 +158,9 @@ export class EdgeTexts {
       };
     }
     const screen = this.core.labelEditor.labelEditScreen(next.elementId, next.end, next.labelCellId, next.flipped);
-    this.core.labelEditor.editing = this.core.labelEditor.withAngle(
-      this.core.labelEditor.withFlip({ ...next, screen: screen ?? next.screen }),
+    this.core.labelEditor.updateEditing(
+      this.core.labelEditor.withAngle(this.core.labelEditor.withFlip({ ...next, screen: screen ?? next.screen })),
     );
-    this.core.events.emit('labelEdit', this.core.labelEditor.editing);
   }
 
   /** Style d'un texte de début / fin créé : taille et couleur (paramètres), alignement de sa configuration. */

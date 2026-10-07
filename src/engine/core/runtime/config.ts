@@ -1,4 +1,4 @@
-import { normalizeAngle, sameView } from '../../interaction/camera';
+import type { IsoViewParams } from '../../format/viewState';
 import type { ControlSettings } from '../../interaction/controls';
 import { DEFAULT_SETTINGS, mergeSettings, resolveReducedMotion } from '../../settings';
 import type { Settings, SettingsPatch } from '../../settings';
@@ -38,53 +38,13 @@ export class Config {
     const previous = this.settings;
     this.settings = mergeSettings(previous, patch);
     this.core.controller.setSettings(this.effectiveControls());
-    this.core.scenes.setMaxCached(this.settings.preload.maxCachedPages);
-    this.core.edits.undoStack.setLimit(this.settings.edit.undoLimit);
-    this.core.highlight.syncAnimation();
-    this.core.highlight.update();
-    const changed = <K extends keyof Settings>(section: K) =>
-      JSON.stringify(this.settings[section]) !== JSON.stringify(previous[section]);
-    if (changed('graph') || this.settings.selection.accentColor !== previous.selection.accentColor)
-      this.core.graph.invalidate();
-    if (
-      this.settings.view.isoVolume !== previous.view.isoVolume ||
-      this.settings.view.isoDepth !== previous.view.isoDepth ||
-      this.settings.view.shadeLight !== previous.view.shadeLight ||
-      this.settings.view.shadeDark !== previous.view.shadeDark ||
-      this.settings.view.facadeTags !== previous.view.facadeTags ||
-      // Fonds de labels « default » = couleur du fond.
-      this.settings.background.color !== previous.background.color ||
-      this.settings.selection.accentColor !== previous.selection.accentColor ||
-      changed('shapes') ||
-      changed('graph') ||
-      changed('effects')
-    ) {
-      this.core.levels.rebuildScenes();
-    }
-    if (changed('camera') && this.core.canInteract() && !this.core.camera.animation)
-      this.core.camera.setCameraState(this.core.camera.state);
-    if (
-      this.settings.minimap.edgeColor !== previous.minimap.edgeColor ||
-      this.settings.minimap.outlineColor !== previous.minimap.outlineColor
-    )
-      this.core.minimap.invalidate();
-    else if (this.settings.selection.accentColor !== previous.selection.accentColor) this.core.minimap.requestDraw();
-    this.core.rendering.syncBackground();
-
-    const view = this.settings.view;
-    if (this.core.pages.currentPageId && this.core.canInteract())
-      this.core.pages.pageIso.set(this.core.pages.currentPageId, this.core.viewModes.isoParams());
-    const isoChanged =
-      view.isoAngleDeg !== previous.view.isoAngleDeg || view.isoAzimuthDeg !== previous.view.isoAzimuthDeg;
-    if (isoChanged && this.core.camera.state.mode === 'iso' && this.core.canInteract()) {
-      // Orientation absolue quand l'azimut change ; sinon la rotation faite à la souris est gardée.
-      const azimuthChanged = view.isoAzimuthDeg !== previous.view.isoAzimuthDeg;
-      const rotation = azimuthChanged ? normalizeAngle(this.core.camera.isoAzimuth()) : this.core.camera.state.rotation;
-      const target = { ...this.core.camera.state, tilt: this.core.camera.isoTilt(), rotation };
-      if (!sameView(target, this.core.camera.state, this.core.display.viewport))
-        this.core.camera.animateCameraTo(target, view.switchDurationMs);
-    }
+    this.core.settingsChanged(this.settings, previous);
     this.core.events.emit('settingsChange', this.getSettings());
+  }
+
+  /** Réglages iso propres à la page affichée, pris sans animer (la caméra de la page est appliquée ensuite). */
+  adoptPageIso(iso: IsoViewParams): void {
+    this.settings = mergeSettings(this.settings, { view: iso });
   }
 
   reducedMotion(): boolean {

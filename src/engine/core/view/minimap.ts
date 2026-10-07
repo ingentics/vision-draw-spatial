@@ -1,12 +1,23 @@
 import { Minimap } from '../../interaction/minimap';
 import type { Point } from '../../model/types';
 import type { EngineCore } from '../EngineCore';
+import type { Settings } from '../../settings';
 
 /** Mini-carte (SPEC §10), dans un canvas fourni par l'UI. */
 export class MinimapView {
   private current: Minimap | undefined;
 
   constructor(private readonly core: EngineCore) {}
+
+  /** Paramètres changés : couleurs de la mini-carte (redessinée), couleur d'accent (cadre de la vue). */
+  settingsChanged(settings: Settings, previous: Settings): void {
+    if (
+      settings.minimap.edgeColor !== previous.minimap.edgeColor ||
+      settings.minimap.outlineColor !== previous.minimap.outlineColor
+    )
+      this.invalidate();
+    else if (settings.selection.accentColor !== previous.selection.accentColor) this.requestDraw();
+  }
 
   /** Page ou scène changée : la mini-carte est redessinée de zéro. */
   invalidate(): void {

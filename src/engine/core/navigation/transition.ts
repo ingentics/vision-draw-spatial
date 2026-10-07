@@ -22,6 +22,11 @@ export class Transitions {
     this.active?.abort();
   }
 
+  /** Nouveau document : la transition en cours est interrompue. */
+  resetDocument(): void {
+    this.abort();
+  }
+
   /**
    * Transition « zoom + fondu » (SPEC §11.2), dans les deux sens, en un seul trajet de caméra.
    * La page intérieure (`inner`) est posée dans la forme (`frame`) de la page extérieure (`outer`).
@@ -50,14 +55,13 @@ export class Transitions {
       this.core.config.reducedMotion() ||
       this.core.settings.transition.durationMs <= 0
     ) {
-      if (direction === 'in') this.core.pages.pageCameras.set(outer.id, this.core.camera.state);
-      this.core.pages.pageCameras.set(to.id, destination);
+      if (direction === 'in') this.core.pages.rememberCamera(outer.id, this.core.camera.state);
+      this.core.pages.rememberCamera(to.id, destination);
       this.core.pages.goToPage(to.id);
       return;
     }
 
-    cancelAnimationFrame(this.core.camera.animation);
-    this.core.camera.animation = 0;
+    this.core.camera.cancelAnimation();
     this.core.selection.clearSelection();
     const embedding = embedIn(inner.bounds, frame);
     const outerScene = this.core.scenes.prebuild(outer);
@@ -69,7 +73,7 @@ export class Transitions {
     const outerCameraBefore = direction === 'in' ? this.core.camera.state : undefined;
 
     // Pendant la transition, la page courante est l'extérieure ; l'intérieure est posée dans la forme.
-    this.core.pages.currentPageId = outer.id;
+    this.core.pages.setCurrent(outer.id);
     this.core.scenes.show(outer);
     this.core.minimap.invalidate();
     innerScene.root.visible = true;
@@ -93,7 +97,7 @@ export class Transitions {
     };
     const finish = () => {
       this.active = undefined;
-      this.core.camera.animation = 0;
+      this.core.camera.cancelAnimation();
       this.core.controller.setEnabled(true);
       // Touche toujours maintenue : les zones liées de la page d'arrivée.
       this.core.links.updateLinkZones();
@@ -102,7 +106,7 @@ export class Transitions {
     this.active = {
       abort: () => {
         // On reste sur la page extérieure, à la vue courante.
-        cancelAnimationFrame(this.core.camera.animation);
+        this.core.camera.cancelAnimation();
         restore();
         this.core.scenes.show(outer);
         finish();
@@ -119,21 +123,20 @@ export class Transitions {
         const fade = phase(t, fadeStart, fadeEnd);
         setPageOpacity(innerScene.root, innerAlpha(fade));
         setPageOpacity(outerScene.root, 1 - innerAlpha(fade));
-        this.core.camera.animation = requestAnimationFrame(step);
+        this.core.camera.requestFrame(step);
         return;
       }
       // Arrivée : même image à l'écran, sur la page de destination sans transformation.
       restore();
-      if (outerCameraBefore) this.core.pages.pageCameras.set(outer.id, outerCameraBefore);
+      if (outerCameraBefore) this.core.pages.rememberCamera(outer.id, outerCameraBefore);
       this.core.viewModes.applyPageIso(to.id);
-      this.core.pages.currentPageId = to.id;
-      if (!this.core.graph.isGraph(to.id)) this.core.pages.lastDocumentPageId = to.id;
+      this.core.pages.arriveAt(to.id);
       this.core.scenes.show(to);
       this.core.minimap.invalidate();
       this.core.camera.applyCamera(destination);
       this.core.events.emit('pageChange', to);
       finish();
     };
-    this.core.camera.animation = requestAnimationFrame(step);
+    this.core.camera.requestFrame(step);
   }
 }

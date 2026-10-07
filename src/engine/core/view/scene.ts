@@ -7,6 +7,7 @@ import { outsideLabelBox } from '../../render/labelPosition';
 import type { EngineCore } from '../EngineCore';
 import { buildGraphScene } from '../../graph/graphScene';
 import type { SceneLevel } from '../../shapes/types';
+import type { Settings } from '../../settings';
 
 /**
  * Scènes des pages : construction (contexte de rendu, niveau, décors des effets) et lecture de la scène affichée
@@ -14,6 +15,16 @@ import type { SceneLevel } from '../../shapes/types';
  */
 export class SceneView {
   constructor(private readonly core: EngineCore) {}
+
+  /** Nouveau document : toutes les scènes construites sont libérées. */
+  resetDocument(): void {
+    this.core.scenes.clear();
+  }
+
+  /** Paramètres changés : taille du cache des scènes. */
+  settingsChanged(settings: Settings): void {
+    this.core.scenes.setMaxCached(settings.preload.maxCachedPages);
+  }
 
   /** Scène d'une page à un niveau de rendu (vue graphe comprise). */
   buildScene(page: PageModel, level: SceneLevel): PageScene {

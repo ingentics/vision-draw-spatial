@@ -18,9 +18,14 @@ import type { EngineCore } from '../EngineCore';
  */
 export class PageModes {
   /** « Courant » choisi du mode de chaque page (état de session, jamais écrit). */
-  readonly modeCurrents = new Map<string, string>();
+  private readonly modeCurrents = new Map<string, string>();
 
   constructor(private readonly core: EngineCore) {}
+
+  /** Nouveau document : « courants » des modes oubliés. */
+  resetDocument(): void {
+    this.modeCurrents.clear();
+  }
 
   getModeRegistry(): PageModeRegistry {
     return this.core.modes;
@@ -53,7 +58,7 @@ export class PageModes {
     if (!editable || !this.core.file.xmlTree) return;
     const before = writeDrawio(this.core.file.xmlTree);
     if (!applyModeEdit(editable.page, editable.pageTree, edit, modePalette(this.core.settings.styles))) return;
-    this.core.edits.undoStack.record(label, before);
+    this.core.edits.recordSnapshot(label, before);
     this.core.file.documentChanged([editable.page.id]);
   }
 

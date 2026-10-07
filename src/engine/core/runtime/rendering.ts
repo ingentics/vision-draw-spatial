@@ -55,6 +55,11 @@ export class Rendering {
     };
   }
 
+  /** Paramètres changés : couleur de fond et grille. */
+  settingsChanged(): void {
+    this.syncBackground();
+  }
+
   syncBackground(): void {
     (this.scene.background as Color).set(this.core.settings.background.color);
     this.grid.setOptions(this.gridOptions());

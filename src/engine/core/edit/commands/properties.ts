@@ -81,12 +81,7 @@ export class PropertyEdits {
           ? undefined
           : formatNumber(Math.max(0, value));
     if (spatialValue(shape, key) === text) return;
-    const merged =
-      merge !== undefined &&
-      this.core.edits.lastMerge?.key === merge &&
-      this.core.edits.lastMerge.edits === this.core.edits.editCount;
-    if (!merged) this.core.edits.recordEdit('Attribut spatial');
-    this.core.edits.lastMerge = merge === undefined ? undefined : { key: merge, edits: this.core.edits.editCount };
+    this.core.edits.recordMergeableEdit('Attribut spatial', merge);
     const inObject = shape.attributes[key] !== undefined && shape.style[key] === undefined;
     const written = inObject && setCellObjectAttribute(editable.pageTree, elementId, key, text);
     if (!written) setCellStyleValue(editable.pageTree, elementId, key, text);

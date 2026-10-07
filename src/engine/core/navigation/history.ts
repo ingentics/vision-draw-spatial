@@ -3,17 +3,37 @@ import type { CameraState } from '../../interaction/camera';
 import { NavigationHistory, findParents } from '../../interaction/history';
 import type { HistoryEntry } from '../../interaction/history';
 import type { Rect } from '../../model/types';
-import type { BackTarget } from '../types';
+import type { BackTarget, InitialView } from '../types';
 import type { EngineCore } from '../EngineCore';
 
 /** « Retour » (SPEC §11.3) : pile de navigation, sinon pages parentes de la page courante. */
 export class BackHistory {
-  readonly stack = new NavigationHistory();
+  private readonly stack = new NavigationHistory();
 
   constructor(private readonly core: EngineCore) {}
 
   getHistory(): HistoryEntry[] {
     return this.stack.entries();
+  }
+
+  /** Lien suivi : de quoi y revenir par « Retour ». */
+  push(entry: HistoryEntry): void {
+    this.stack.push(entry);
+    this.core.events.emit('historyChange', this.stack.entries());
+  }
+
+  /** Page supprimée : les entrées qui y mènent ou en partent disparaissent. */
+  forgetPage(pageId: string): void {
+    const entries = this.stack.entries();
+    const kept = entries.filter((e) => e.pageId !== pageId && e.targetPageId !== pageId);
+    if (kept.length === entries.length) return;
+    this.stack.replace(kept);
+    this.core.events.emit('historyChange', kept);
+  }
+
+  /** Nouveau document : la pile reprend celle de la session (sans l'annoncer, l'UI la lit au chargement). */
+  resetDocument(initialView: InitialView | undefined): void {
+    this.stack.replace(initialView?.history ?? []);
   }
 
   getBackTarget(): BackTarget {

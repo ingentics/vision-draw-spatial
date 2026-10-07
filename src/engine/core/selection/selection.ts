@@ -75,6 +75,11 @@ export class Selections {
     if (!this.current) return;
     this.select(undefined);
   }
+
+  /** Nouveau document : plus rien de sélectionné. */
+  resetDocument(): void {
+    this.clearSelection();
+  }
 }
 
 /** Éléments pris sans leur conteneur (un élément pris avec lui n'est pas sélectionné à part), par ordre de z. */

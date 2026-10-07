@@ -28,7 +28,7 @@ export class StyleCommands {
       changed = applyStylePreset(editable.pageTree, shape.id, shape.style, preset, known) || changed;
     }
     if (!changed) return;
-    this.core.edits.undoStack.record(shapes.length > 1 ? 'Style des formes' : 'Style', before);
+    this.core.edits.recordSnapshot(shapes.length > 1 ? 'Style des formes' : 'Style', before);
     this.core.file.documentChanged([editable.page.id]);
   }
 
@@ -49,14 +49,7 @@ export class StyleCommands {
         .map(([key, value]) => ({ id: shape.id, key, value })),
     );
     if (changes.length === 0) return;
-    // Réglage en direct (ex. champ tapé au fil des frappes) : une seule étape d'annulation tant que rien
-    // d'autre n'a été enregistré entre-temps et que la clé `merge` est la même.
-    const merged =
-      merge !== undefined &&
-      this.core.edits.lastMerge?.key === merge &&
-      this.core.edits.lastMerge.edits === this.core.edits.editCount;
-    if (!merged) this.core.edits.recordEdit(label);
-    this.core.edits.lastMerge = merge === undefined ? undefined : { key: merge, edits: this.core.edits.editCount };
+    this.core.edits.recordMergeableEdit(label, merge);
     for (const { id, key, value } of changes) setCellStyleValue(editable.pageTree, id, key, value);
     // Réglage en direct d'une clé qui ne touche que le texte d'une flèche : seule la flèche est redessinée (comme
     // pendant un glisser), sans reconstruire la page (tous ses textes clignoteraient à chaque frappe).

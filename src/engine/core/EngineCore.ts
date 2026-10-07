@@ -1,5 +1,4 @@
 import { Emitter } from '../events';
-import { withViewMode } from '../interaction/camera';
 import type { CameraController } from '../interaction/controls';
 import { defaultEffectRegistry } from '../effects/registry';
 import type { PageEffectRegistry } from '../effects/registry';
@@ -10,7 +9,7 @@ import { defaultShapeRegistry } from '../shapes/registry';
 import type { ShapeRegistry } from '../shapes/registry';
 import { setTextMeasure } from '../render/textMeasure';
 import { createTroikaTextFactory } from '../render/troikaText';
-import type { EngineEvent, EngineEvents, EngineOptions } from './types';
+import type { EngineEvent, EngineEvents, EngineOptions, InitialView } from './types';
 import { Config } from './runtime/config';
 import type { Settings } from '../settings';
 import { Rendering } from './runtime/rendering';
@@ -59,6 +58,16 @@ import { ElementCommands } from './edit/commands/elements';
 import { StyleCommands } from './edit/commands/styles';
 import { ArrangeCommands } from './edit/commands/arrange';
 import { Clipboard } from './edit/commands/clipboard';
+
+/** Domaine qui garde un état lié au document chargé : remis à zéro à chaque chargement. */
+interface DocumentState {
+  resetDocument(initialView: InitialView | undefined): void;
+}
+
+/** Domaine qui dépend des paramètres : prévenu de chaque changement (`previous` : valeurs d'avant). */
+interface SettingsListener {
+  settingsChanged(settings: Settings, previous: Settings): void;
+}
 
 /**
  * Cœur du moteur, derrière la façade `Engine` (SPEC §4.3) : l'infrastructure partagée (canvas, registres,
@@ -154,15 +163,7 @@ export class EngineCore {
     this.effects = options.effects ?? defaultEffectRegistry;
     this.config = new Config(this, options);
     this.edits.undoStack.setLimit(this.settings.edit.undoLimit);
-    if (this.settings.view.defaultMode !== 'top') {
-      this.camera.state = withViewMode(
-        this.camera.state,
-        this.settings.view.defaultMode,
-        this.camera.isoTilt(),
-        this.camera.isoAzimuth(),
-        this.camera.limits,
-      );
-    }
+    this.camera.startInDefaultMode();
     this.links = new Links(this, options.openUrl);
     this.targets = new EditTargets(this, options.editable ?? false);
     this.rendering = new Rendering(this);
@@ -188,6 +189,46 @@ export class EngineCore {
     this.canvas.focus({ preventScroll: true });
   }
 
+  /**
+   * Nouveau document (`DocumentFile.load`) : chaque domaine qui garde un état lié au document le remet à zéro, dans
+   * cet ordre. Un domaine qui ajoute un tel état s'inscrit ici.
+   */
+  resetDocumentState(initialView: InitialView | undefined): void {
+    const states: DocumentState[] = [
+      this.transitions,
+      this.selection,
+      this.sceneView,
+      this.pages,
+      this.graph,
+      this.gesture,
+      this.edits,
+      this.pageModes,
+      this.history,
+      this.links,
+    ];
+    for (const state of states) state.resetDocument(initialView);
+  }
+
+  /**
+   * Paramètres changés (`Config.updateSettings`) : chaque domaine concerné en tire les conséquences, dans cet ordre
+   * (la vue graphe est invalidée avant la reconstruction des scènes). Un domaine qui dépend d'un paramètre s'inscrit
+   * ici.
+   */
+  settingsChanged(settings: Settings, previous: Settings): void {
+    const listeners: SettingsListener[] = [
+      this.sceneView,
+      this.edits,
+      this.highlight,
+      this.graph,
+      this.levels,
+      this.camera,
+      this.minimap,
+      this.rendering,
+      this.viewModes,
+    ];
+    for (const listener of listeners) listener.settingsChanged(settings, previous);
+  }
+
   /** Garde commun : la vue accepte les commandes (pas de transition entre pages en cours, SPEC §11.2). */
   canInteract(): boolean {
     return !this.transitions.isTransitioning();
@@ -200,7 +241,7 @@ export class EngineCore {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
-    cancelAnimationFrame(this.camera.animation);
+    this.camera.cancelAnimation();
     this.highlight.dispose();
     this.pointer.dispose();
     this.transitions.abort();

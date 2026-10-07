@@ -1,8 +1,11 @@
 import { addPage, removePage, renamePage } from '../../format/create';
-import type { IsoViewParams } from '../../format/viewState';
+import { readPageViews } from '../../format/viewState';
+import type { IsoViewParams, PageViewState } from '../../format/viewState';
+import { normalizeCameraState } from '../../interaction/camera';
 import type { CameraState } from '../../interaction/camera';
 import type { PageModel, Rect } from '../../model/types';
 import type { EngineCore } from '../EngineCore';
+import type { InitialView } from '../types';
 
 /**
  * Cadrage d'une page vide : le haut de la feuille draw.io, pour que les formes ajoutées
@@ -73,17 +76,64 @@ export class Pages {
     this.pageCameras.delete(pageId);
     this.pageIso.delete(pageId);
     if (this.lastDocumentPageId === pageId) this.lastDocumentPageId = undefined;
-    const entries = this.core.history.stack.entries();
-    const kept = entries.filter((e) => e.pageId !== pageId && e.targetPageId !== pageId);
-    if (kept.length !== entries.length) {
-      this.core.history.stack.replace(kept);
-      this.core.events.emit('historyChange', kept);
-    }
+    this.core.history.forgetPage(pageId);
     if (this.currentPageId === pageId) this.currentPageId = undefined;
     this.core.file.documentChanged([]);
     if (wasCurrent && !this.core.graph.isGraphView()) {
       const next = this.core.file.document!.pages[Math.min(index, this.core.file.document!.pages.length - 1)];
       if (next) this.goToPage(next.id);
+    }
+  }
+
+  /** Page courante, sans rien afficher (pendant une transition, la page extérieure ; `undefined` : aucune). */
+  setCurrent(pageId: string | undefined): void {
+    this.currentPageId = pageId;
+  }
+
+  /** Page affichée : courante, et dernière page du document vue si ce n'est pas la vue graphe. */
+  arriveAt(pageId: string): void {
+    this.currentPageId = pageId;
+    if (!this.core.graph.isGraph(pageId)) this.lastDocumentPageId = pageId;
+  }
+
+  /** Dernière caméra d'une page, reprise à la prochaine visite. */
+  rememberCamera(pageId: string, camera: CameraState): void {
+    this.pageCameras.set(pageId, camera);
+  }
+
+  /** Réglages iso en vigueur, gardés pour la page courante. */
+  rememberIso(): void {
+    if (this.currentPageId) this.pageIso.set(this.currentPageId, this.core.viewModes.isoParams());
+  }
+
+  /** Vues de chaque page visitée (caméra, réglages iso), à écrire dans le fichier (vue graphe exclue). */
+  savedViews(): Map<string, PageViewState> {
+    this.rememberIso();
+    const views = new Map<string, PageViewState>();
+    for (const [id, camera] of this.pageCameras) {
+      if (this.core.graph.isGraph(id)) continue;
+      const iso = this.pageIso.get(id);
+      views.set(id, iso ? { camera, iso } : { camera });
+    }
+    return views;
+  }
+
+  /**
+   * Nouveau document : aucune page courante ; vues de chaque page lues dans le fichier, remplacées par celles
+   * mémorisées localement (plus récentes).
+   */
+  resetDocument(initialView: InitialView | undefined): void {
+    this.currentPageId = undefined;
+    this.lastDocumentPageId = undefined;
+    const fileViews = this.core.file.xmlTree ? readPageViews(this.core.file.xmlTree) : new Map<string, PageViewState>();
+    const { limits } = this.core.camera;
+    this.pageIso = new Map([...fileViews].flatMap(([id, view]) => (view.iso ? [[id, view.iso] as const] : [])));
+    this.pageCameras = new Map([...fileViews].map(([id, view]) => [id, normalizeCameraState(view.camera, limits)]));
+    for (const [id, camera] of Object.entries(initialView?.cameraByPage ?? {})) {
+      this.pageCameras.set(id, normalizeCameraState(camera, limits));
+    }
+    if (initialView?.pageId && initialView.camera) {
+      this.pageCameras.set(initialView.pageId, normalizeCameraState(initialView.camera, limits));
     }
   }
 
@@ -99,13 +149,11 @@ export class Pages {
     const page = this.pageById(pageId);
     if (!page) throw new Error(`Page inconnue : ${pageId}`);
     this.core.transitions.abort();
-    cancelAnimationFrame(this.core.camera.animation);
-    this.core.camera.animation = 0;
+    this.core.camera.cancelAnimation();
     this.core.gesture.endMove();
     if (this.currentPageId !== page.id) this.core.selection.clearSelection();
     this.core.viewModes.applyPageIso(page.id);
-    this.currentPageId = page.id;
-    if (!this.core.graph.isGraph(page.id)) this.lastDocumentPageId = page.id;
+    this.arriveAt(page.id);
     this.core.scenes.show(page);
     this.core.levels.applyHeightScale();
     this.core.rendering.syncBackground();

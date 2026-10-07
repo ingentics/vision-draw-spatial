@@ -1,7 +1,7 @@
 import type { IsoViewParams } from '../../format/viewState';
-import { withViewMode } from '../../interaction/camera';
+import { normalizeAngle, sameView, withViewMode } from '../../interaction/camera';
 import type { CameraState, ViewMode } from '../../interaction/camera';
-import { mergeSettings } from '../../settings';
+import type { Settings } from '../../settings';
 import type { EngineCore } from '../EngineCore';
 
 /** Modes de vue (SPEC §9.1) : dessus, iso, 3D, volumes aplatis, réglages iso propres à chaque page. */
@@ -17,6 +17,26 @@ export class ViewModes {
   private chosenMode: ViewMode | undefined;
 
   constructor(private readonly core: EngineCore) {}
+
+  /**
+   * Paramètres changés : réglages iso gardés pour la page affichée ; en iso, la vue suit la nouvelle élévation et la
+   * nouvelle orientation (animées).
+   */
+  settingsChanged(settings: Settings, previous: Settings): void {
+    if (!this.core.canInteract()) return;
+    this.core.pages.rememberIso();
+    const { view } = settings;
+    const camera = this.core.camera;
+    const isoChanged =
+      view.isoAngleDeg !== previous.view.isoAngleDeg || view.isoAzimuthDeg !== previous.view.isoAzimuthDeg;
+    if (!isoChanged || camera.state.mode !== 'iso') return;
+    // Orientation absolue quand l'azimut change ; sinon la rotation faite à la souris est gardée.
+    const azimuthChanged = view.isoAzimuthDeg !== previous.view.isoAzimuthDeg;
+    const rotation = azimuthChanged ? normalizeAngle(camera.isoAzimuth()) : camera.state.rotation;
+    const target = { ...camera.state, tilt: camera.isoTilt(), rotation };
+    if (!sameView(target, camera.state, this.core.display.viewport))
+      camera.animateCameraTo(target, view.switchDurationMs);
+  }
 
   getViewMode(): ViewMode {
     return this.core.camera.state.mode;
@@ -152,7 +172,7 @@ export class ViewModes {
     ) {
       return;
     }
-    this.core.config.settings = mergeSettings(this.core.settings, { view: iso });
+    this.core.config.adoptPageIso(iso);
     if (view.isoVolume !== this.core.settings.view.isoVolume || view.isoDepth !== this.core.settings.view.isoDepth) {
       this.core.scenes.clear();
     }

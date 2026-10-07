@@ -4,6 +4,8 @@ import type { PageScene } from '../../render/pageScene';
 import type { SceneLevel } from '../../shapes/types';
 import { setPageTransform } from '../../render/space';
 import type { EngineCore } from '../EngineCore';
+import { settingsSectionChanged } from '../../settings';
+import type { Settings } from '../../settings';
 
 /**
  * Niveau de rendu de la page (à plat ou en volume) : hauteur des volumes qui suit l'inclinaison, fondu enchaîné des
@@ -16,6 +18,26 @@ export class Levels {
   heightScale = 1;
 
   constructor(private readonly core: EngineCore) {}
+
+  /** Paramètres changés : les scènes sont reconstruites si leur dessin en dépend. */
+  settingsChanged(settings: Settings, previous: Settings): void {
+    const { view } = settings;
+    if (
+      view.isoVolume !== previous.view.isoVolume ||
+      view.isoDepth !== previous.view.isoDepth ||
+      view.shadeLight !== previous.view.shadeLight ||
+      view.shadeDark !== previous.view.shadeDark ||
+      view.facadeTags !== previous.view.facadeTags ||
+      // Fonds de labels « default » = couleur du fond.
+      settings.background.color !== previous.background.color ||
+      settings.selection.accentColor !== previous.selection.accentColor ||
+      settingsSectionChanged(settings, previous, 'shapes') ||
+      settingsSectionChanged(settings, previous, 'graph') ||
+      settingsSectionChanged(settings, previous, 'effects')
+    ) {
+      this.rebuildScenes();
+    }
+  }
 
   /**
    * Niveau de rendu demandé par le mode de vue (repli à plat si les formes n'en ont pas). En
@@ -57,6 +79,11 @@ export class Levels {
     blend.volume = volume;
     setPageOpacity(volume.root, weight);
     setPageOpacity(flat.root, 1 - weight);
+  }
+
+  /** Début d'une bascule 2D ↔ volume animée : fondu enchaîné des deux scènes de la page. */
+  startLevelBlend(): void {
+    this.levelBlend = {};
   }
 
   /** Fin (ou interruption) du fondu enchaîné : chaque scène retrouve son opacité, seule la courante reste visible. */

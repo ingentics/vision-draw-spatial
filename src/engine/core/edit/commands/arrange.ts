@@ -28,7 +28,7 @@ export class ArrangeCommands {
     const before = writeDrawio(this.core.file.xmlTree);
     const ids = selection.items.map((item) => item.element.id);
     if (!reorderCells(editable.pageTree, ids, move)) return;
-    this.core.edits.undoStack.record(ORDER_LABELS[move], before);
+    this.core.edits.recordSnapshot(ORDER_LABELS[move], before);
     this.core.file.documentChanged([editable.page.id], { distribute: false });
   }
 

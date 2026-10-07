@@ -1,15 +1,13 @@
 import { collectUnsupported } from '../../diagnostics/unsupportedStyles';
 import type { UnsupportedReport } from '../../diagnostics/unsupportedStyles';
 import { documentFromTree, readDrawio } from '../../format/parse';
-import { readPageViews, writePageViews } from '../../format/viewState';
-import type { PageViewState } from '../../format/viewState';
+import { writePageViews } from '../../format/viewState';
 import { writeDrawio } from '../../format/write';
 import type { DrawioTree } from '../../format/xmlTree';
 import { pageGeometry } from '../../edit/anchoring/auto/distribute';
 import type { PageGeometry } from '../../edit/anchoring/auto/distribute';
-import { normalizeCameraState } from '../../interaction/camera';
 import type { PickedElement } from '../../interaction/pick';
-import type { DocumentModel } from '../../model/types';
+import type { DocumentModel, PageModel } from '../../model/types';
 import type { InitialView } from '../types';
 import type { EngineCore } from '../EngineCore';
 
@@ -30,38 +28,9 @@ export class DocumentFile {
 
   async load(xml: string, fileId: string, initialView?: InitialView): Promise<void> {
     const { document, tree } = readDrawio(xml);
-    this.document = this.core.pageModes.withModeWarnings(document);
-    this.geometry = new Map(document.pages.map((p) => [p.id, pageGeometry(p)]));
-    this.xmlTree = tree;
+    this.replaceDocument(document, tree);
     this.fileId = fileId;
-    this.unsupportedReport = collectUnsupported(document, this.core.registry);
-    this.core.transitions.abort();
-    this.core.selection.clearSelection();
-    this.core.scenes.clear();
-    this.core.pages.currentPageId = undefined;
-    this.core.graph.invalidate();
-    this.core.pages.lastDocumentPageId = undefined;
-    this.core.gesture.drag = undefined;
-    this.core.edits.undoStack.clear();
-    this.core.pageModes.modeCurrents.clear();
-    this.core.edits.syncModified();
-    this.core.history.stack.replace(initialView?.history ?? []);
-    this.core.links.linkUsage = { ...initialView?.linkUsage };
-    // Vues enregistrées dans le fichier, remplacées par celles mémorisées localement (plus récentes).
-    const fileViews = readPageViews(tree);
-    const { limits } = this.core.camera;
-    this.core.pages.pageIso = new Map(
-      [...fileViews].flatMap(([id, view]) => (view.iso ? [[id, view.iso] as const] : [])),
-    );
-    this.core.pages.pageCameras = new Map(
-      [...fileViews].map(([id, view]) => [id, normalizeCameraState(view.camera, limits)]),
-    );
-    for (const [id, camera] of Object.entries(initialView?.cameraByPage ?? {})) {
-      this.core.pages.pageCameras.set(id, normalizeCameraState(camera, limits));
-    }
-    if (initialView?.pageId && initialView.camera) {
-      this.core.pages.pageCameras.set(initialView.pageId, normalizeCameraState(initialView.camera, limits));
-    }
+    this.core.resetDocumentState(initialView);
     this.core.events.emit('load', document, fileId);
     const page = (initialView?.pageId && this.core.pages.pageById(initialView.pageId)) || document.pages[0];
     if (!page) {
@@ -83,19 +52,23 @@ export class DocumentFile {
   serialize(): string | undefined {
     if (!this.xmlTree) return undefined;
     this.core.gesture.endMove();
-    if (this.core.pages.currentPageId)
-      this.core.pages.pageIso.set(this.core.pages.currentPageId, this.core.viewModes.isoParams());
-    const views = new Map<string, PageViewState>();
-    for (const [id, camera] of this.core.pages.pageCameras) {
-      if (this.core.graph.isGraph(id)) continue;
-      const iso = this.core.pages.pageIso.get(id);
-      views.set(id, iso ? { camera, iso } : { camera });
-    }
-    writePageViews(this.xmlTree, views);
+    writePageViews(this.xmlTree, this.core.pages.savedViews());
     const xml = writeDrawio(this.xmlTree);
-    this.core.edits.undoStack.markSaved();
-    this.core.edits.syncModified();
+    this.core.edits.markSaved();
     return xml;
+  }
+
+  /** Document lu (chargement, annuler / rétablir) : modèle, géométrie des pages, arbre XML, styles non pris en charge. */
+  replaceDocument(document: DocumentModel, tree: DrawioTree): void {
+    this.document = this.core.pageModes.withModeWarnings(document);
+    this.geometry = new Map(document.pages.map((p) => [p.id, pageGeometry(p)]));
+    this.xmlTree = tree;
+    this.unsupportedReport = collectUnsupported(document, this.core.registry);
+  }
+
+  /** Page écrite après un glisser : sa géométrie enregistrée suit. */
+  updateGeometry(page: PageModel): void {
+    this.geometry.set(page.id, pageGeometry(page));
   }
 
   /** Arbre XML d'une page du document (même rang que dans le modèle). */

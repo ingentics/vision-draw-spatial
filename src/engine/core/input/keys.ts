@@ -15,10 +15,7 @@ export class ModifierKeys {
    */
   setHeldKeys(held: HeldKeys): void {
     this.heldKeys = held;
-    if (this.core.links.linkZonesShown !== held.followLink) {
-      this.core.links.linkZonesShown = held.followLink;
-      this.core.links.updateLinkZones();
-    }
+    this.core.links.setLinkZonesShown(held.followLink);
     this.emitModeHint();
   }
 

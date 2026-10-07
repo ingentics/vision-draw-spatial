@@ -8,7 +8,7 @@ import type { EngineCore } from '../EngineCore';
 export class Display {
   viewport: Viewport = { width: 1, height: 1 };
   /** Cadrage demandé avant que le canvas ait une taille réelle : appliqué à la première mesure. */
-  pendingFit: Rect | undefined;
+  private pendingFit: Rect | undefined;
   private readonly resizeObserver: ResizeObserver;
   /** Taille de la boîte du canvas en pixels physiques, quand le navigateur la donne (pas Safari). */
   private devicePixelBox: { width: number; height: number } | undefined;
@@ -122,6 +122,16 @@ export class Display {
   /** Un canvas masqué ou pas encore mis en page mesure 0 (ramené à 1). */
   isMeasured(): boolean {
     return this.viewport.width > 1 && this.viewport.height > 1;
+  }
+
+  /** Cadrage à appliquer dès que le canvas aura une taille réelle. */
+  fitWhenMeasured(bounds: Rect): void {
+    this.pendingFit = bounds;
+  }
+
+  /** La caméra a été placée : le cadrage en attente n'a plus lieu d'être. */
+  cancelPendingFit(): void {
+    this.pendingFit = undefined;
   }
 }
 

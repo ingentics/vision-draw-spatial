@@ -50,10 +50,10 @@
 - **N'utiliser du cœur que ce dont on a besoin.** Chaque domaine reçoit `core` en entier ; ne pas en profiter pour
   toucher d'autres domaines. Si un nouveau code a besoin de beaucoup de domaines, c'est souvent qu'une partie est
   une fonction pure à sortir.
-- **Ne pas allonger les listes centrales tenues à la main.** `DocumentFile.load` remet à zéro les domaines un par
-  un, `Config.updateSettings` liste à la main les clés qui reconstruisent les scènes. Un domaine nouveau qui a un
-  état à remettre à zéro, ou un paramètre de vue qui change le rendu, doit y être ajouté : le vérifier, et le
-  signaler dans le ticket.
+- **Chaque domaine réagit lui-même au chargement et aux paramètres.** Un domaine qui garde un état lié au document
+  a un `resetDocument()` et s'inscrit dans la liste de `EngineCore.resetDocumentState` ; un domaine qui dépend
+  d'un paramètre a un `settingsChanged(settings, previous)` et s'inscrit dans `EngineCore.settingsChanged`. Ni
+  `DocumentFile.load` ni `Config.updateSettings` ne décident pour lui.
 - **La façade `Engine.ts` délègue, elle ne calcule pas.** Une méthode publique de plus seulement si l'app ou le
   composant en a besoin.
 
@@ -83,8 +83,9 @@
 - **L'app passe par l'API publique** (`src/index.ts`, `Engine`). N'ajoutez pas d'import d'un chemin interne
   (`engine/render/…`, `engine/interaction/…`) dans `src/app/`. S'il manque quelque chose, l'exporter depuis le
   point d'entrée public.
-- **Un cas particulier ne se recopie pas.** Un test répété partout (`GRAPH_PAGE_ID`, `transitions.active`)
-  appelle plutôt un garde commun (`canInteract()` ou équivalent) ; à défaut, le signaler dans le ticket.
+- **Un cas particulier ne se recopie pas.** Un test répété partout passe par un garde commun : transition en cours
+  (`core.canInteract()`), vue graphe (`graph.isGraph(id)`), page modifiable (`targets.editablePage()`,
+  `editablePageById(id)`) ; à défaut, en créer un.
 
 ## 6. Écrire le code
 

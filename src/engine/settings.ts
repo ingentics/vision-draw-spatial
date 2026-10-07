@@ -4,7 +4,7 @@
  */
 
 export { DEFAULT_SETTINGS } from './settings/defaults';
-export { modePalette, resolveReducedMotion } from './settings/derived';
+export { modePalette, resolveReducedMotion, settingsSectionChanged } from './settings/derived';
 export { SETTINGS_LIMITS } from './settings/limits';
 export { mergeSettings } from './settings/merge';
 export type {

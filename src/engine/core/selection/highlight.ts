@@ -30,6 +30,12 @@ export class SelectionHighlight {
 
   constructor(private readonly core: EngineCore) {}
 
+  /** Paramètres changés : style, couleur et animation de la mise en valeur. */
+  settingsChanged(): void {
+    this.syncAnimation();
+    this.update();
+  }
+
   /**
    * Contour de sélection animé (paramètre `selection`) : les tirets défilent lentement tant qu'il y a
    * une sélection ; arrêté sans sélection, si désactivé, ou si les animations sont réduites.

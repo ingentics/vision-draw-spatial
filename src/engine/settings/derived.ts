@@ -1,4 +1,4 @@
-import type { AccessibilitySettings, StyleSettings } from './types';
+import type { AccessibilitySettings, Settings, StyleSettings } from './types';
 
 /** Faut-il réduire les animations ? (`systemPrefersReduced` = `prefers-reduced-motion: reduce`). */
 export function resolveReducedMotion(
@@ -14,4 +14,13 @@ export function resolveReducedMotion(
  */
 export function modePalette(styles: StyleSettings): string[] {
   return [...styles.base, ...styles.extended].slice(2).map((preset) => preset.fillColor);
+}
+
+/** Une section des paramètres a-t-elle changé (valeurs comparées, pas l'objet) ? */
+export function settingsSectionChanged<K extends keyof Settings>(
+  next: Settings,
+  previous: Settings,
+  section: K,
+): boolean {
+  return JSON.stringify(next[section]) !== JSON.stringify(previous[section]);
 }

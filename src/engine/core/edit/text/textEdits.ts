@@ -22,8 +22,7 @@ export class TextEdits {
     if (editing?.styleCellId === cellId) {
       const next = { ...style, ...Object.fromEntries(changes) };
       for (const [key, value] of changes) if (value === undefined) delete next[key];
-      this.core.labelEditor.editing = { ...editing, style: next as Record<string, string> };
-      this.core.events.emit('labelEdit', this.core.labelEditor.editing);
+      this.core.labelEditor.updateEditing({ ...editing, style: next as Record<string, string> });
       // Position du texte changée : l'éditeur suit le texte à sa nouvelle place.
       this.core.labelEditor.relocateLabelEdit();
     }

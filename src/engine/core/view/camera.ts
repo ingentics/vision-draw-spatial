@@ -9,6 +9,7 @@ import {
   sameView,
   settleProjection,
   tiltFromElevation,
+  withViewMode,
   zoomAt,
 } from '../../interaction/camera';
 import type { CameraLimits, CameraState, OverviewStep, ViewMode } from '../../interaction/camera';
@@ -16,16 +17,24 @@ import { unionOf } from '../../model/geometry';
 import type { Point, Rect } from '../../model/types';
 import type { Settings } from '../../settings';
 import type { EngineCore } from '../EngineCore';
+import { settingsSectionChanged } from '../../settings';
 
 /** Caméra de la page affichée (SPEC §9) : état, animations, cadrages, vue globale, orientation de référence. */
 export class ViewCamera {
   state: CameraState = { mode: 'top', center: { x: 0, y: 0 }, zoom: 1, rotation: 0, tilt: 0 };
-  animation = 0;
+  /** Image demandée de l'animation de la vue en cours (caméra ou transition entre pages), 0 sinon. */
+  private animation = 0;
   /** Dernière étape jouée par la touche Entrée avec une sélection, et la vue visée. */
   private overviewStep: { step: OverviewStep; view: CameraState } | undefined;
   private limitsCache: { camera: Settings['camera']; limits: CameraLimits } | undefined;
 
   constructor(private readonly core: EngineCore) {}
+
+  /** Paramètres changés : nouvelles bornes de caméra appliquées à la vue (sauf pendant une animation). */
+  settingsChanged(settings: Settings, previous: Settings): void {
+    if (settingsSectionChanged(settings, previous, 'camera') && this.core.canInteract() && !this.isAnimating())
+      this.setCameraState(this.state);
+  }
 
   /** Bornes de la caméra de ce moteur (paramètres « Caméra »). */
   get limits(): CameraLimits {
@@ -62,6 +71,28 @@ export class ViewCamera {
     );
   }
 
+  /** Vue de départ dans le mode par défaut des paramètres (`view.defaultMode`), avant tout document. */
+  startInDefaultMode(): void {
+    const mode = this.core.settings.view.defaultMode;
+    if (mode !== 'top') this.state = withViewMode(this.state, mode, this.isoTilt(), this.isoAzimuth(), this.limits);
+  }
+
+  /** Animation de la vue en cours (caméra ou transition entre pages). */
+  isAnimating(): boolean {
+    return this.animation !== 0;
+  }
+
+  /** Arrête l'animation de la vue en cours, caméra ou transition (elles partagent la même image demandée). */
+  cancelAnimation(): void {
+    cancelAnimationFrame(this.animation);
+    this.animation = 0;
+  }
+
+  /** Image suivante d'une animation de la vue (transition entre pages) : une seule animation à la fois. */
+  requestFrame(step: FrameRequestCallback): void {
+    this.animation = requestAnimationFrame(step);
+  }
+
   getCameraState(): CameraState {
     return structuredClone(this.state);
   }
@@ -69,15 +100,14 @@ export class ViewCamera {
   /** Cadre les bornes, dans l'orientation courante ou celle donnée (ex. arrivée sur une page). */
   fitToBounds(bounds: Rect, orientation = this.orientation()): void {
     if (!this.core.display.isMeasured()) {
-      this.core.display.pendingFit = bounds;
+      this.core.display.fitWhenMeasured(bounds);
       return;
     }
     this.setCameraState(fitBounds(bounds, this.core.display.viewport, { ...orientation, limits: this.limits }));
   }
 
   setCameraState(state: CameraState): void {
-    cancelAnimationFrame(this.animation);
-    this.animation = 0;
+    this.cancelAnimation();
     this.core.levels.endLevelBlend();
     this.applyCamera(settleProjection(normalizeCameraState(state, this.limits), this.limits));
   }
@@ -97,7 +127,7 @@ export class ViewCamera {
     }
     cancelAnimationFrame(this.animation);
     if (blendLevels && this.core.settings.view.isoVolume && !this.core.viewModes.flattened)
-      this.core.levels.levelBlend = {};
+      this.core.levels.startLevelBlend();
     const from = this.state;
     const to = normalizeCameraState(target, this.limits);
     const start = performance.now();
@@ -164,7 +194,7 @@ export class ViewCamera {
   }
 
   applyCamera(state: CameraState): void {
-    this.core.display.pendingFit = undefined;
+    this.core.display.cancelPendingFit();
     const previousZoom = this.state.zoom;
     const previousLevel = this.core.levels.requestedLevel();
     // Pendant une transition, la page courante est l'extérieure : la destination est déjà ramenée à ses modes permis.
@@ -184,9 +214,8 @@ export class ViewCamera {
       }
     }
     if (this.core.pages.currentPageId) {
-      this.core.pages.pageCameras.set(this.core.pages.currentPageId, this.state);
-      if (this.core.canInteract())
-        this.core.pages.pageIso.set(this.core.pages.currentPageId, this.core.viewModes.isoParams());
+      this.core.pages.rememberCamera(this.core.pages.currentPageId, this.state);
+      if (this.core.canInteract()) this.core.pages.rememberIso();
     }
     this.core.minimap.requestDraw();
     // Contour de sélection d'épaisseur constante à l'écran ; la sélection est transférée à la scène

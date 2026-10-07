@@ -9,6 +9,7 @@ import type { LinkModel } from '../../model/types';
 import { linkZone } from '../../render/decorations';
 import { disposeObject } from '../../render/meshes';
 import type { EngineCore } from '../EngineCore';
+import type { InitialView } from '../types';
 
 /**
  * Liens des éléments (SPEC §11) : suivre un lien (page ou URL), préchargement, zones liées en évidence, usage des
@@ -30,6 +31,18 @@ export class Links {
     this.openUrl = openUrl ?? defaultOpenUrl;
   }
 
+  /** Touche pour suivre un lien maintenue ou relâchée : zones liées de la page en évidence ou non. */
+  setLinkZonesShown(shown: boolean): void {
+    if (this.linkZonesShown === shown) return;
+    this.linkZonesShown = shown;
+    this.updateLinkZones();
+  }
+
+  /** Nouveau document : usage des liens repris de la session. */
+  resetDocument(initialView: InitialView | undefined): void {
+    this.linkUsage = { ...initialView?.linkUsage };
+  }
+
   preloadLink(link: LinkModel | undefined): void {
     if (link?.type !== 'page' || link.pageId === this.core.pages.currentPageId) return;
     const page = this.core.pages.pageById(link.pageId);
@@ -49,14 +62,13 @@ export class Links {
     if (!target || target.id === page.id) return;
 
     const frame = page.shapes.find((s) => s.id === elementId)?.bounds ?? this.core.sceneView.drawnBounds(elementId);
-    this.core.history.stack.push({
+    this.core.history.push({
       pageId: page.id,
       elementId,
       frame,
       camera: this.core.camera.state,
       targetPageId: target.id,
     });
-    this.core.events.emit('historyChange', this.core.history.stack.entries());
     // L'usage ne compte que pour les vrais liens du document (pas les cartes de la vue graphe).
     if (!this.core.graph.isGraph(page.id)) {
       const at = Date.now();

@@ -55,6 +55,12 @@ export class LabelEditor {
     return target ? { ...rest, flip: target.direction } : rest;
   }
 
+  /** Champ en cours d'édition modifié (format, côté du texte…) : l'UI le reçoit par `labelEdit`. */
+  updateEditing(request: LabelEditRequest): void {
+    this.editing = request;
+    this.core.events.emit('labelEdit', request);
+  }
+
   /**
    * Angle de l'éditeur d'un texte du milieu qui suit sa flèche : celui du trait dessiné au point du texte, à l'écran.
    */

@@ -1,9 +1,8 @@
-import { collectUnsupported } from '../../diagnostics/unsupportedStyles';
 import { readDrawio } from '../../format/parse';
 import { writeDrawio } from '../../format/write';
-import { pageGeometry } from '../../edit/anchoring/auto/distribute';
 import { UndoStack } from '../../edit/undo';
 import type { EngineCore } from '../EngineCore';
+import type { Settings } from '../../settings';
 
 /** Annuler / rétablir (instantanés XML du document) et état « modifié » depuis la dernière sauvegarde. */
 export class EditHistory {
@@ -11,11 +10,16 @@ export class EditHistory {
   private modified = false;
   readonly undoStack = new UndoStack<string>();
   /** Étapes enregistrées (et annulations / rétablissements) : repère des réglages en direct fusionnés. */
-  editCount = 0;
+  private editCount = 0;
   /** Dernier réglage en direct (`setElementsStyle` avec `merge`) et le compte d'étapes à ce moment. */
-  lastMerge?: { key: string; edits: number };
+  private lastMerge?: { key: string; edits: number };
 
   constructor(private readonly core: EngineCore) {}
+
+  /** Paramètres changés : nombre d'étapes d'annulation gardées. */
+  settingsChanged(settings: Settings): void {
+    this.undoStack.setLimit(settings.edit.undoLimit);
+  }
 
   isModified(): boolean {
     return this.modified;
@@ -55,15 +59,39 @@ export class EditHistory {
     if (this.core.file.xmlTree) this.undoStack.record(label, writeDrawio(this.core.file.xmlTree));
   }
 
+  /**
+   * Étape d'un réglage en direct (ex. champ tapé au fil des frappes, clé `merge`) : une seule étape d'annulation tant
+   * que rien d'autre n'a été enregistré entre-temps et que la clé est la même ; sans `merge`, une étape à chaque fois.
+   */
+  recordMergeableEdit(label: string, merge: string | undefined): void {
+    const merged = merge !== undefined && this.lastMerge?.key === merge && this.lastMerge.edits === this.editCount;
+    if (!merged) this.recordEdit(label);
+    this.lastMerge = merge === undefined ? undefined : { key: merge, edits: this.editCount };
+  }
+
+  /** Étape d'annulation à partir d'un instantané pris avant une modification qui a pu ne rien changer. */
+  recordSnapshot(label: string, before: string): void {
+    this.undoStack.record(label, before);
+  }
+
+  /** Document enregistré : plus rien de modifié. */
+  markSaved(): void {
+    this.undoStack.markSaved();
+    this.syncModified();
+  }
+
+  /** Nouveau document : pile d'annulation vide, rien de modifié. */
+  resetDocument(): void {
+    this.undoStack.clear();
+    this.syncModified();
+  }
+
   /** Revient à un instantané : document relu, scènes reconstruites, même page si elle existe encore. */
   private restore(xml: string): void {
     // Annuler / rétablir : un réglage en direct qui reprend ensuite ouvre une nouvelle étape.
     this.editCount++;
     const { document, tree } = readDrawio(xml);
-    this.core.file.document = this.core.pageModes.withModeWarnings(document);
-    this.core.file.geometry = new Map(document.pages.map((p) => [p.id, pageGeometry(p)]));
-    this.core.file.xmlTree = tree;
-    this.core.file.unsupportedReport = collectUnsupported(document, this.core.registry);
+    this.core.file.replaceDocument(document, tree);
     this.core.selection.clearSelection();
     this.core.graph.invalidate();
     this.core.scenes.clear();
@@ -72,7 +100,7 @@ export class EditHistory {
       current && (this.core.graph.isGraph(current) || document.pages.some((p) => p.id === current))
         ? current
         : document.pages[0]?.id;
-    this.core.pages.currentPageId = undefined;
+    this.core.pages.setCurrent(undefined);
     this.syncModified();
     this.core.events.emit('documentChange', document);
     if (pageId) this.core.pages.goToPage(pageId);

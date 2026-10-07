@@ -3,6 +3,8 @@ import { buildGraphPage, cardId, GRAPH_PAGE_ID } from '../../graph/graphPage';
 import type { GraphLayout } from '../../graph/graphPage';
 import type { PageModel } from '../../model/types';
 import type { EngineCore } from '../EngineCore';
+import { settingsSectionChanged } from '../../settings';
+import type { Settings } from '../../settings';
 
 /**
  * Vue graphe du document (SPEC §12) : page générée (cartes des pages, flèches des liens), aller-retour avec la dernière
@@ -14,6 +16,15 @@ export class GraphView {
 
   constructor(private readonly core: EngineCore) {}
 
+  /** Paramètres changés : la vue graphe suit ses réglages et la couleur d'accent (carte de départ). */
+  settingsChanged(settings: Settings, previous: Settings): void {
+    if (
+      settingsSectionChanged(settings, previous, 'graph') ||
+      settings.selection.accentColor !== previous.selection.accentColor
+    )
+      this.invalidate();
+  }
+
   /** Disposition de la vue graphe, si elle est construite. */
   get layout(): GraphLayout | undefined {
     return this.cache?.layout;
@@ -22,6 +33,11 @@ export class GraphView {
   /** Document ou paramètres changés : la vue graphe sera reconstruite à la prochaine demande. */
   invalidate(): void {
     this.cache = undefined;
+  }
+
+  /** Nouveau document : la vue graphe sera reconstruite. */
+  resetDocument(): void {
+    this.invalidate();
   }
 
   /**

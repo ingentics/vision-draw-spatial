@@ -5,7 +5,7 @@ import { snapshotEnds } from '../../../edit/edgeEnds';
 import { collectMoveSet, isLocked, moveTarget, unionMoveSets } from '../../../edit/move';
 import type { MoveSet } from '../../../edit/move';
 import { connectSideOf, isConnectHandle } from '../../../edit/handles';
-import { affectedShapes, pageGeometry } from '../../../edit/anchoring/auto/distribute';
+import { affectedShapes } from '../../../edit/anchoring/auto/distribute';
 import { screenToPage } from '../../../interaction/camera';
 import { independentRoots } from '../../../interaction/selection';
 import type { PageModel, Point, Rect } from '../../../model/types';
@@ -24,6 +24,16 @@ export class DragGesture {
 
   isDragging(): boolean {
     return this.drag?.started === true;
+  }
+
+  /** Glisser saisi hors du pointeur (ex. texte d'une flèche déplacé pendant son édition). */
+  startDrag(drag: Drag): void {
+    this.drag = drag;
+  }
+
+  /** Nouveau document : le glisser en cours est abandonné, sans rien écrire. */
+  resetDocument(): void {
+    this.drag = undefined;
   }
 
   /**
@@ -325,7 +335,7 @@ export class DragGesture {
       this.core.file.documentChanged([pageId]);
       return;
     }
-    if (freshPage) this.core.file.geometry.set(pageId, pageGeometry(freshPage));
+    if (freshPage) this.core.file.updateGeometry(freshPage);
     // Scènes de cette page à d'autres niveaux, et vue graphe (miniatures) : à reconstruire.
     this.core.scenes.invalidate(pageId);
     this.core.graph.invalidateWithScenes();
