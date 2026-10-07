@@ -400,13 +400,13 @@ describe('mode RDD : champ sélectionné dans sa table (sujet 249)', () => {
         .map((property) => [property.label, property.value?.(page(), shape('user'), part)]);
     expect(shown('1')).toEqual([
       ['Champ', 'email'],
-      ['Type', 'Phrase'],
+      ['Type', 'string'],
       ['Rôle', 'property'],
       ['Nullable', undefined],
     ]);
     expect(shown('0')).toEqual([
       ['Champ', 'id'],
-      ['Type', 'Nombre entier'],
+      ['Type', 'integer'],
     ]);
     expect(shown().map(([label]) => label)).toEqual(['Couleur', 'Table secondaire', 'Clé primaire']);
   });
@@ -424,7 +424,7 @@ describe('mode RDD : champ sélectionné dans sa table (sujet 249)', () => {
 describe('mode RDD : ajouter un champ (sujet 250)', () => {
   const handle = (page: PageModel, shape: ShapeModel) => rdd.handles!(page, shape)[0]!;
 
-  it('poignée « + » verte au milieu du bas ; son menu : les sept types ; plus de poignée de connexion haut et bas', () => {
+  it('poignée « + » verte au milieu du bas ; plus de poignée de connexion haut et bas', () => {
     const { page, shape } = setup();
     const plus = handle(page(), shape('user'));
     expect([plus.at, plus.offset, plus.color, plus.title]).toEqual([
@@ -433,7 +433,34 @@ describe('mode RDD : ajouter un champ (sujet 250)', () => {
       '#2e9e44',
       'Ajouter un champ',
     ]);
-    expect(plus.choices.map((choice) => choice !== 'separator' && choice.label)).toEqual([
+    expect(rdd.handles!(page(), shape('accounts'))).toEqual([]);
+    expect(createDefaultRegistry().connectSides(shape('user'))).toEqual(['e', 'w']);
+    expect(createDefaultRegistry().connectSides(shape('accounts'))).toEqual(['n', 'e', 's', 'w']);
+  });
+
+  it('clic : Field1, Field2, Field3 sans type (256), en fin de liste ; la table grandit ; la partie ajoutée est rendue', () => {
+    const { run, page, shape } = setup();
+    const parts: Array<string | undefined> = [];
+    for (let i = 0; i < 3; i += 1) run((edit) => parts.push(rdd.handleClicked!(edit, shape('user'), 'rdd.addField')));
+    expect(parts).toEqual(['3', '4', '5']);
+    expect(fieldsOf(shape('user')).slice(3)).toEqual([
+      { kind: 'property', label: 'Field1', type: '', nullable: false },
+      { kind: 'property', label: 'Field2', type: '', nullable: false },
+      { kind: 'property', label: 'Field3', type: '', nullable: false },
+    ]);
+    expect(shape('user').bounds.height).toBe(26 + 6 * 20);
+    expect(handle(page(), shape('user')).at.y).toBe(160 + 26 + 6 * 20);
+    // Sans type : rien de signalé.
+    expect(fieldProblems(shape('user'))).toEqual([]);
+    // Poignée inconnue : rien.
+    expect(run((edit) => rdd.handleClicked!(edit, shape('user'), 'other'))).toBe(false);
+  });
+
+  it('type choisi au panneau (256) : un des sept, ou « Aucun » ; la largeur suit', () => {
+    const { run, page, shape } = setup();
+    const type = rdd.shapeProperties!.find((p) => p.key === 'rdd.field.type')!;
+    expect(type.type === 'select' && type.options(page(), []).map((o) => o.label)).toEqual([
+      'Aucun',
       'Nombre entier',
       'Nombre réel',
       'Phrase',
@@ -442,32 +469,20 @@ describe('mode RDD : ajouter un champ (sujet 250)', () => {
       'Dynamique',
       'Money',
     ]);
-    expect(rdd.handles!(page(), shape('accounts'))).toEqual([]);
-    expect(createDefaultRegistry().connectSides(shape('user'))).toEqual(['e', 'w']);
-    expect(createDefaultRegistry().connectSides(shape('accounts'))).toEqual(['n', 'e', 's', 'w']);
-  });
-
-  it('Field1, Field2, Field3 du type choisi, en fin de liste ; la table grandit ; la partie ajoutée est rendue', () => {
-    const { run, page, shape } = setup();
-    const parts: Array<string | undefined> = [];
-    for (const type of ['boolean', 'money', 'text'])
-      run((edit) => parts.push(rdd.handleChosen!(edit, shape('user'), 'rdd.addField', type)));
-    expect(parts).toEqual(['3', '4', '5']);
-    expect(fieldsOf(shape('user')).slice(3)).toEqual([
-      { kind: 'property', label: 'Field1', type: 'boolean', nullable: false },
-      { kind: 'property', label: 'Field2', type: 'money', nullable: false },
-      { kind: 'property', label: 'Field3', type: 'text', nullable: false },
-    ]);
-    expect(shape('user').bounds.height).toBe(26 + 6 * 20);
-    expect(handle(page(), shape('user')).at.y).toBe(160 + 26 + 6 * 20);
-    // Choix inconnu : rien.
-    expect(run((edit) => rdd.handleChosen!(edit, shape('user'), 'rdd.addField', 'date'))).toBe(false);
+    run((edit) => rdd.handleClicked!(edit, shape('user'), 'rdd.addField'));
+    run((edit) => type.write!(edit, shape('user'), 'money', '3'));
+    expect(fieldsOf(shape('user'))[3]!.type).toBe('money');
+    run((edit) => type.write!(edit, shape('user'), 'a_very_long_type_name_here_and_there', '3'));
+    expect(shape('user').bounds.width).toBeGreaterThan(widthOf(KEY_ROW, rowWidth('role', 'Nombre entier')));
+    run((edit) => type.write!(edit, shape('user'), undefined, '3'));
+    expect(fieldsOf(shape('user'))[3]!.type).toBe('');
+    expect(shape('user').bounds.width).toBe(widthOf(KEY_ROW, rowWidth('role', 'Nombre entier')));
   });
 
   it('après le champ sélectionné, jamais avant la clé primaire ; premier numéro libre', () => {
     const { run, shape } = setup();
     let part: string | undefined;
-    run((edit) => (part = rdd.handleChosen!(edit, shape('user'), 'rdd.addField', 'string', '1')));
+    run((edit) => (part = rdd.handleClicked!(edit, shape('user'), 'rdd.addField', '1')));
     expect([part, labels(fieldsOf(shape('user')))]).toEqual(['2', ['id', 'email', 'Field1', 'role']]);
     expect(run((edit) => addField(edit, shape('user'), 'string', -1))).toBe(true);
     expect(labels(fieldsOf(shape('user')))[1]).toBe('Field2');

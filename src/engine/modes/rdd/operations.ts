@@ -42,14 +42,15 @@ export function fitTable(edit: ModeEdit, shape: ShapeModel, changes: Partial<Tab
 }
 
 /**
- * Champ `index` de la table modifié (sujet 249) : label, kind, nullable ; la taille suit. Un label vide est refusé ;
- * la clé primaire garde son kind et n'est jamais nullable, et aucun champ ne devient clé primaire.
+ * Champ `index` de la table modifié (sujet 249) : label, kind, nullable, type (sujet 256, vide = aucun) ; la taille
+ * suit. Un label vide est refusé ; la clé primaire garde son kind et n'est jamais nullable, et aucun champ ne devient
+ * clé primaire.
  */
 export function setField(
   edit: ModeEdit,
   shape: ShapeModel,
   index: number,
-  patch: Partial<Pick<Field, 'label' | 'kind' | 'nullable'>>,
+  patch: Partial<Pick<Field, 'label' | 'kind' | 'nullable' | 'type'>>,
 ): void {
   const fields = tableFields(shape);
   const field = fields[index];
@@ -61,6 +62,7 @@ export function setField(
     ...(label !== undefined && { label }),
     ...(patch.kind !== undefined && !key && patch.kind !== 'pk' && { kind: patch.kind }),
     ...(patch.nullable !== undefined && !key && { nullable: patch.nullable }),
+    ...(patch.type !== undefined && { type: patch.type }),
   };
   const written = fields.map((current, i) => (i === index ? next : current));
   edit.setElementAttribute(shape.id, FIELDS, fieldsValue(written));
@@ -76,7 +78,7 @@ export function newFieldLabel(fields: readonly Field[]): string {
 }
 
 /**
- * Ajoute un champ (sujet 250) : propriété non nullable du type `type`, nommée `FieldN`, après le champ `after` (sinon en
+ * Ajoute un champ (sujet 250) : propriété non nullable du type `type` (vide = sans type, sujet 256), nommée `FieldN`, après le champ `after` (sinon en
  * fin de liste ; jamais avant la clé primaire) ; la taille suit. Renvoie le rang du champ ajouté.
  */
 export function addField(edit: ModeEdit, shape: ShapeModel, type: string, after?: number): number | undefined {

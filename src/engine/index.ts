@@ -15,7 +15,6 @@ export type {
   InitialView,
   LabelEditPlane,
   LabelEditRequest,
-  ModeHandleMenu,
   ModeHint,
   ModeIndicator,
   Selection,

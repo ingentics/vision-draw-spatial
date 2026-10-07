@@ -92,7 +92,10 @@ export const FIELD_TYPES = {
   money: 'Money',
 } as const satisfies Record<string, string>;
 
-/** Champ d'une table ; `type` peut être inconnu de `FIELD_TYPES` (fichier modifié), il est alors signalé. */
+/**
+ * Champ d'une table ; `type` vide : pas encore de type (champ ajouté par le « + », sujet 256) ; inconnu de
+ * `FIELD_TYPES` (fichier modifié) : signalé.
+ */
 export interface Field {
   kind: FieldKind;
   label: string;
@@ -185,7 +188,9 @@ export function fieldProblems(shape: ShapeModel): string[] {
   const unreadable = raw.filter((item) => !readField(item)).length;
   if (unreadable > 0) problems.push(`${unreadable} champ(s) illisible(s), ignoré(s)`);
   for (const field of fieldsOf(shape)) {
-    if (!(field.type in FIELD_TYPES)) problems.push(`champ ${field.label} : type « ${field.type} » inconnu`);
+    // Sans type (sujet 256) : permis ; seul un type écrit et inconnu est signalé.
+    if (field.type && !(field.type in FIELD_TYPES))
+      problems.push(`champ ${field.label} : type « ${field.type} » inconnu`);
   }
   if (raw.some((item) => readField(item)?.kind === 'pk' && (item as { nullable?: unknown }).nullable === true)) {
     problems.push('clé primaire nullable, lue non nullable');

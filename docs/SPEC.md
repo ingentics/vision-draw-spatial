@@ -939,10 +939,11 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   - Sélection toujours en contour sur une page RDD (sujet 254, `PageModeDefinition.selectionStyle`), quel que soit le
     paramètre « Style » de la mise en valeur ; les paramètres le mentionnent sous ce choix.
   - Ajouter un champ (sujet 250) : table sélectionnée, poignée verte « + » sous la table, au milieu (les tables n'ont
-    de poignées de connexion qu'à gauche et à droite) ; son menu propose les sept types, et un choix ajoute une
-    propriété non nullable `Field1`, `Field2`… (premier numéro libre) après le champ sélectionné, sinon en fin de liste,
+    de poignées de connexion qu'à gauche et à droite) ; un clic ajoute aussitôt (sans menu, sujet 256) une propriété non
+    nullable **sans type** `Field1`, `Field2`… (premier numéro libre) après le champ sélectionné, sinon en fin de liste,
     jamais avant la clé primaire ; le champ ajouté est sélectionné et son label passe en édition. Une étape
-    d'annulation ; le type ne change plus ensuite. La zone « Champs » du panneau a disparu.
+    d'annulation. Un champ sans type n'affiche rien en gris et n'est pas signalé. La zone « Champs » du panneau a
+    disparu.
   - Réordonner les champs (sujet 252) : un champ déjà sélectionné se glisse dans sa table ; pendant le glisser, la
     table est redessinée avec le champ à la place de la ligne survolée (les autres se décalent) et il y reste mis en
     valeur ; un glisser depuis un champ non sélectionné déplace la table. La clé primaire
@@ -953,7 +954,7 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     d'annulation.
   - Champ sélectionné (sujet 249) : un clic sur une ligne de champ la sélectionne, la table sélectionnée ou non (fond
     léger et trait de la couleur d'accent sur la ligne) ; un clic sur l'entête revient à la table, Échap aussi. Le
-    panneau ne montre alors que le champ : « Champ » (label), « Type » (lecture seule), « Rôle » (propriété, clé
+    panneau ne montre alors que le champ : « Champ » (label), « Type » (choix : « Aucun » ou un des sept types, modifiable à tout moment, sujet 256), « Rôle » (propriété, clé
     étrangère, clé étrangère d'un autre domaine) et « Nullable », ces deux derniers absents pour la clé primaire.
     Double-clic sur une ligne : label modifié sur place (tout le texte sélectionné, Entrée valide, Échap annule) ; un
     label vide est refusé. Chaque changement est une étape d'annulation, la largeur suit.

@@ -78,14 +78,14 @@ export interface PageModeDefinition {
   parts?: ModeParts;
   /**
    * Poignées propres au mode sur la forme sélectionnée seule, modifiable (sujet 250, ex. « + » d'une table RDD) ;
-   * `part` : sa partie sélectionnée. Un clic sur l'une ouvre le menu de ses choix.
+   * `part` : sa partie sélectionnée.
    */
   handles?(page: PageModel, shape: ShapeModel, part?: string): ModeHandle[];
   /**
-   * Choix fait dans le menu d'une poignée : opération du mode (une étape d'annulation). Renvoie la partie à
-   * sélectionner ensuite (son texte passe en édition s'il en a un) ; undefined : la sélection ne change pas.
+   * Clic sur une poignée : opération du mode (une étape d'annulation, sujet 256). Renvoie la partie à sélectionner
+   * ensuite (son texte passe en édition s'il en a un) ; undefined : la sélection ne change pas.
    */
-  handleChosen?(edit: ModeEdit, shape: ShapeModel, handle: string, choice: string, part?: string): string | undefined;
+  handleClicked?(edit: ModeEdit, shape: ShapeModel, handle: string, part?: string): string | undefined;
   /**
    * Bornes d'une forme qu'on déplace ou redimensionne (sujet 241, ex. régions sœurs d'une région RDD) : obstacles à ne
    * pas approcher à moins de l'écart des paramètres (`shapes.modeObstacleGap`) ; undefined = aucune borne.
@@ -125,7 +125,7 @@ export interface ModeParts {
   move?(edit: ModeEdit, shape: ShapeModel, part: string, target: string): string | undefined;
 }
 
-/** Poignée d'un mode (sujet 250) : disque de couleur marqué d'un « + » blanc, et les choix de son menu. */
+/** Poignée d'un mode (sujet 250) : disque de couleur marqué d'un « + » blanc. */
 export interface ModeHandle {
   id: string;
   /** Point d'accroche, en pixels de page ; le centre en est décalé de `offset` pixels écran. */
@@ -135,13 +135,6 @@ export interface ModeHandle {
   color: string;
   /** Aide au survol, et titre de l'étape d'annulation. */
   title: string;
-  /** Choix du menu, dans l'ordre ; `separator` : trait entre deux groupes. */
-  choices: Array<ModeHandleChoice | 'separator'>;
-}
-
-export interface ModeHandleChoice {
-  id: string;
-  label: string;
 }
 
 /** Texte d'une partie : valeur, cadre de l'éditeur (pixels de page) et taille du texte (pixels de page). */

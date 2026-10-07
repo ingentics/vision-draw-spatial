@@ -2,11 +2,11 @@ import type { ShapeModel } from '../../model/types';
 import type { ModeEdit, ModeHandle } from '../types';
 import { fieldIndex } from './fieldParts';
 import { addField } from './operations';
-import { FIELD_TYPES, tableKindOf } from './tables';
+import { tableKindOf } from './tables';
 
 /**
- * Poignée « + » d'une table RDD (sujet 250) : sous la table, au milieu ; son menu propose les types de donnée, et chaque
- * choix ajoute un champ de ce type après le champ sélectionné (sinon en fin de liste), sélectionné ensuite.
+ * Poignée « + » d'une table RDD (sujet 250) : sous la table, au milieu ; un clic ajoute aussitôt un champ sans type
+ * (sujet 256) après le champ sélectionné (sinon en fin de liste), sélectionné ensuite.
  */
 
 /** Vert de la poignée d'ajout. */
@@ -24,20 +24,18 @@ export function fieldHandles(shape: ShapeModel): ModeHandle[] {
       offset: { x: 0, y: 18 },
       color: ADD_COLOR,
       title: 'Ajouter un champ',
-      choices: Object.entries(FIELD_TYPES).map(([id, label]) => ({ id, label })),
     },
   ];
 }
 
-/** Choix du menu de la poignée : le champ ajouté, désigné par son rang (la partie à sélectionner). */
-export function fieldHandleChosen(
+/** Clic sur la poignée : le champ ajouté, sans type, désigné par son rang (la partie à sélectionner). */
+export function fieldHandleClicked(
   edit: ModeEdit,
   shape: ShapeModel,
   handle: string,
-  choice: string,
   part?: string,
 ): string | undefined {
-  if (handle !== ADD_FIELD || !(choice in FIELD_TYPES)) return undefined;
-  const index = addField(edit, shape, choice, fieldIndex(shape, part));
+  if (handle !== ADD_FIELD) return undefined;
+  const index = addField(edit, shape, '', fieldIndex(shape, part));
   return index === undefined ? undefined : String(index);
 }

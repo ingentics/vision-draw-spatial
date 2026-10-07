@@ -10,13 +10,13 @@ import {
   isSecondary,
   misplacedPrimaryKey,
   missingName,
-  fieldTypeLabel,
+  FIELD_TYPES,
   shownMark,
   tableFields,
   tableKindOf,
 } from './tables';
 import { fitTable, setField, setHeaderColor, setIcon, setSecondary } from './operations';
-import { fieldHandleChosen, fieldHandles } from './fieldHandles';
+import { fieldHandleClicked, fieldHandles } from './fieldHandles';
 import { fieldIndex, fieldParts } from './fieldParts';
 import type { Field, FieldKind } from './tables';
 import {
@@ -170,15 +170,20 @@ export const definition: PageModeDefinition = {
       hidden: notField,
     },
     {
-      type: 'text',
+      // Type de donnée, modifiable à tout moment (sujet 256) ; « Aucun » pour un champ ajouté par le « + ».
+      type: 'select',
       part: true,
       key: 'rdd.field.type',
       label: 'Type',
-      title: 'Type de donnée du champ, choisi à sa création',
-      readOnly: true,
-      value: (_page, target, part) => {
+      title: 'Type de donnée du champ',
+      options: () => [
+        { value: '', label: 'Aucun' },
+        ...Object.entries(FIELD_TYPES).map(([value, label]) => ({ value, label })),
+      ],
+      value: (_page, target, part) => fieldOf(target, part)?.field.type,
+      write: (edit, target, value, part) => {
         const selected = fieldOf(target, part);
-        return selected && fieldTypeLabel(selected.field.type);
+        if (selected) setField(edit, selected.shape, selected.index, { type: value ?? '' });
       },
       hidden: notField,
     },
@@ -217,9 +222,9 @@ export const definition: PageModeDefinition = {
   },
   // Champs des tables, sélectionnables dans la table (sujet 249).
   parts: fieldParts,
-  // « + » sous la table : ajoute un champ du type choisi (sujet 250).
+  // « + » sous la table : ajoute aussitôt un champ sans type (sujets 250, 256).
   handles: (_page, shape) => fieldHandles(shape),
-  handleChosen: fieldHandleChosen,
+  handleClicked: fieldHandleClicked,
   // Table renommée : sa largeur suit le nom (sujet 247).
   relabeled: (edit, elementId) => {
     const shape = edit.page.shapes.find((s) => s.id === elementId);
