@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { FIELDS } from '../../../../../src/engine/modes/rdd/tables/fieldModel';
 import { SECONDARY } from '../../../../../src/engine/modes/rdd/tables/tableLayout';
 import { setField, setSecondary } from '../../../../../src/engine/modes/rdd/tables/operations';
-import { spatialValue } from '../../../../../src/engine/spatial';
+import { spatialValue } from '../../../../../src/engine/core/spatial';
 import { rowWidth, onGrid, contentWidth, widthOf, setFields, labels, fieldsOf, setup } from '../helpers';
 
 describe('mode RDD : opérations sur une table', () => {

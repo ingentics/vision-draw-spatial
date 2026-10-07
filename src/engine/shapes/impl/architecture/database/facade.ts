@@ -1,5 +1,5 @@
-import { cubicTo } from '../../../../render/geometry/curves';
-import { SPATIAL } from '../../../../spatial';
+import { cubicTo } from '../../../../core/render/geometry/curves';
+import { SPATIAL } from '../../../../core/spatial';
 import type { SceneRenderer } from '../../../types';
 import {
   building,

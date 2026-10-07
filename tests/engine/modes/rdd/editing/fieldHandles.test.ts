@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { definition as rdd } from '../../../../../src/engine/modes/rdd';
 import { fieldProblems, newFieldLabel } from '../../../../../src/engine/modes/rdd/tables/fieldModel';
 import { addField } from '../../../../../src/engine/modes/rdd/tables/operations';
-import type { PageModel, ShapeModel } from '../../../../../src/engine/model/types';
+import type { PageModel, ShapeModel } from '../../../../../src/engine/core/model/types';
 import { createDefaultRegistry } from '../../../../../src/engine/shapes/registry';
 import { rowWidth, widthOf, KEY_ROW, labels, fieldsOf, setup } from '../helpers';
 

@@ -1,8 +1,8 @@
 import { Color } from 'three';
-import { rectPath } from '../../../../render/geometry/paths';
-import { fillMesh } from '../../../../render/meshes';
-import { PART_ORDER } from '../../../../render/types';
-import { SPATIAL, spatialNumber } from '../../../../spatial';
+import { rectPath } from '../../../../core/render/geometry/paths';
+import { fillMesh } from '../../../../core/render/meshes';
+import { PART_ORDER } from '../../../../core/render/types';
+import { SPATIAL, spatialNumber } from '../../../../core/spatial';
 import type { SceneRenderer } from '../../../types';
 import { building, CAP_HEIGHT, darker, facadeTag, facesOf, slab, tagOf } from '../../../generic/building';
 

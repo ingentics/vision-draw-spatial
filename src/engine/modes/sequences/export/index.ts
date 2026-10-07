@@ -1,4 +1,4 @@
-import type { PageModel } from '../../../model/types';
+import type { PageModel } from '../../../core/model/types';
 import { plantUml } from './plantuml';
 
 /**

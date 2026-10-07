@@ -1,7 +1,7 @@
-import type { Point, Rect, ShapeModel } from '../../../../model/types';
-import { orientedPath } from '../../../../render/geometry/orient';
-import { cornerRadius, rectPath, roundedRectPath } from '../../../../render/geometry/paths';
-import { styleNumber, styleFlag } from '../../../../model/styleValues';
+import type { Point, Rect, ShapeModel } from '../../../../core/model/types';
+import { orientedPath } from '../../../../core/render/geometry/orient';
+import { cornerRadius, rectPath, roundedRectPath } from '../../../../core/render/geometry/paths';
+import { styleNumber, styleFlag } from '../../../../core/model/styleValues';
 import { box } from '../../../generic/box';
 import type { ShapeDefinition } from '../../../types';
 

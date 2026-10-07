@@ -1,8 +1,8 @@
-import type { ShapeModel } from '../../../../model/types';
-import { cornerRadius, rectPath, roundedRectPath } from '../../../../render/geometry/paths';
+import type { ShapeModel } from '../../../../core/model/types';
+import { cornerRadius, rectPath, roundedRectPath } from '../../../../core/render/geometry/paths';
 import { box } from '../../../generic/box';
 import type { ShapeDefinition } from '../../../types';
-import { styleFlag } from '../../../../model/styleValues';
+import { styleFlag } from '../../../../core/model/styleValues';
 
 /** Contour : les bornes, aux coins arrondis si `rounded=1` (`arcSize`). */
 function outline(shape: ShapeModel) {

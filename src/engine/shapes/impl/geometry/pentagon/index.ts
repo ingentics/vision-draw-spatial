@@ -1,5 +1,5 @@
-import type { Point, ShapeModel } from '../../../../model/types';
-import { orientedPath } from '../../../../render/geometry/orient';
+import type { Point, ShapeModel } from '../../../../core/model/types';
+import { orientedPath } from '../../../../core/render/geometry/orient';
 import { box } from '../../../generic/box';
 import type { ShapeDefinition } from '../../../types';
 

@@ -1,15 +1,15 @@
-import { CONNECT_SIDES } from '../edit/handleKinds';
-import type { ConnectSide } from '../edit/handleKinds';
-import type { Point, Rect, ShapeModel } from '../model/types';
-import { blockHeight } from '../render/iso/block';
-import { outsideLabelBox } from '../render/labelPosition';
-import type { RenderContext } from '../render/types';
+import { CONNECT_SIDES } from '../core/edit/handleKinds';
+import type { ConnectSide } from '../core/edit/handleKinds';
+import type { Point, Rect, ShapeModel } from '../core/model/types';
+import { blockHeight } from '../core/render/iso/block';
+import { outsideLabelBox } from '../core/render/labelPosition';
+import type { RenderContext } from '../core/render/types';
 import { placeholderShape } from './placeholder';
 import type { MinimapPainter, SceneLevel, SceneRenderer, ShapeDefinition, ShapeProperty, ShapeTemplate } from './types';
 import { outlinePainter } from './minimapOutline';
 import { MODE_SHAPE_DEFINITIONS } from '../modes/modeShapes';
-import { insidePolygon } from '../model/geometry';
-import { styleFlag } from '../model/styleValues';
+import { insidePolygon } from '../core/model/geometry';
+import { styleFlag } from '../core/model/styleValues';
 
 export interface ResolvedShape {
   definition: ShapeDefinition;

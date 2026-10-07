@@ -1,6 +1,6 @@
 import type { Object3D } from 'three';
-import type { DocumentModel, PageModel, ParseWarning } from '../model/types';
-import { SPATIAL } from '../spatial';
+import type { DocumentModel, PageModel, ParseWarning } from '../core/model/types';
+import { SPATIAL } from '../core/spatial';
 import { definition as forest } from './forest';
 import { pageRoom } from './room';
 import type { EffectRoom, EffectValues, PageEffectDefinition } from './types';

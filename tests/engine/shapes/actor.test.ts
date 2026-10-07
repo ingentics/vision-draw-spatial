@@ -1,19 +1,19 @@
 import { Box3, Object3D, OrthographicCamera, PerspectiveCamera, Vector3 } from 'three';
 import type { Group } from 'three';
 import { describe, expect, it } from 'vitest';
-import { collectUnsupported } from '../../../src/engine/diagnostics/unsupportedStyles';
-import { parseDrawio } from '../../../src/engine/format/parse';
-import { applyCameraState, applyPerspectiveState } from '../../../src/engine/interaction/cameraMath';
-import { pickElement } from '../../../src/engine/interaction/pick';
-import type { CameraState } from '../../../src/engine/interaction/cameraMath';
-import { orientBillboards } from '../../../src/engine/render/billboard';
-import { headSelectionRing } from '../../../src/engine/render/decorations';
-import { buildPageScene } from '../../../src/engine/render/pageScene';
-import { applyPageSpace } from '../../../src/engine/render/space';
-import type { RenderContext, TextSpec } from '../../../src/engine/render/types';
+import { collectUnsupported } from '../../../src/engine/core/diagnostics/unsupportedStyles';
+import { parseDrawio } from '../../../src/engine/core/format/parse';
+import { applyCameraState, applyPerspectiveState } from '../../../src/engine/core/interaction/cameraMath';
+import { pickElement } from '../../../src/engine/core/interaction/pick';
+import type { CameraState } from '../../../src/engine/core/interaction/cameraMath';
+import { orientBillboards } from '../../../src/engine/core/render/billboard';
+import { headSelectionRing } from '../../../src/engine/core/render/decorations';
+import { buildPageScene } from '../../../src/engine/core/render/pageScene';
+import { applyPageSpace } from '../../../src/engine/core/render/space';
+import type { RenderContext, TextSpec } from '../../../src/engine/core/render/types';
 import { createDefaultRegistry } from '../../../src/engine/shapes/registry';
 import { DROID_SHAPE } from '../../../src/engine/shapes/impl/general/actors/droid';
-import { decodeDiagram } from '../../../src/engine/format/decode';
+import { decodeDiagram } from '../../../src/engine/core/format/decode';
 
 /** Actor (41) : bonhomme de draw.io en 2D, debout face à la caméra en iso / 3D. */
 

@@ -21,7 +21,7 @@ export type {
 } from './Engine';
 
 // Paramètres (SPEC §13)
-export { DEFAULT_SETTINGS, mergeSettings, modePalette, SETTINGS_LIMITS } from './settings';
+export { DEFAULT_SETTINGS, mergeSettings, modePalette, SETTINGS_LIMITS } from './core/settings';
 export type {
   BackgroundSettings,
   CommentSettings,
@@ -32,15 +32,15 @@ export type {
   SidePanelSettings,
   StyleSettings,
   ViewSettings,
-} from './settings';
+} from './core/settings';
 
 // Modèle neutre (SPEC §7.3), format draw.io, attributs spatiaux
-export type { UnsupportedCategory, UnsupportedReport } from './diagnostics/unsupportedStyles';
-export type { OrderMove } from './format/order';
-export { DrawioParseError, parseDrawio } from './format/parse';
-export { isMonospace, isRich, parseColor, parseRichHtml, richToHtml, richToText } from './format/richText';
-export { createEmptyDrawio } from './format/skeleton';
-export { GRAPH_PAGE_ID } from './graph/graphPage';
+export type { UnsupportedCategory, UnsupportedReport } from './core/diagnostics/unsupportedStyles';
+export type { OrderMove } from './core/format/order';
+export { DrawioParseError, parseDrawio } from './core/format/parse';
+export { isMonospace, isRich, parseColor, parseRichHtml, richToHtml, richToText } from './core/format/richText';
+export { createEmptyDrawio } from './core/format/skeleton';
+export { GRAPH_PAGE_ID } from './core/graph/graphPage';
 export type {
   DocumentModel,
   EdgeModel,
@@ -52,50 +52,57 @@ export type {
   Rect,
   ShapeModel,
   TextMarks,
-} from './model/types';
-export { DEFAULT_DEPTH, LEGACY_DEFAULT_DEPTH, SPATIAL, SPATIAL_PREFIX, spatialNumber, spatialValue } from './spatial';
+} from './core/model/types';
+export {
+  DEFAULT_DEPTH,
+  LEGACY_DEFAULT_DEPTH,
+  SPATIAL,
+  SPATIAL_PREFIX,
+  spatialNumber,
+  spatialValue,
+} from './core/spatial';
 
 // Bibliothèque de fichiers et sauvegarde (SPEC §5, §14.1)
-export { Autosaver } from './persistence/Autosaver';
-export type { FileStore, StoredFile, StoredFileMeta, StoredFilePatch } from './persistence/FileStore';
-export { FsStore, isFilePath } from './persistence/FsStore';
-export type { FileSystemAccess } from './persistence/FsStore';
-export { IndexedDbStore } from './persistence/IndexedDbStore';
-export { MemoryStore } from './persistence/MemoryStore';
+export { Autosaver } from './core/persistence/Autosaver';
+export type { FileStore, StoredFile, StoredFileMeta, StoredFilePatch } from './core/persistence/FileStore';
+export { FsStore, isFilePath } from './core/persistence/FsStore';
+export type { FileSystemAccess } from './core/persistence/FsStore';
+export { IndexedDbStore } from './core/persistence/IndexedDbStore';
+export { MemoryStore } from './core/persistence/MemoryStore';
 
 // Édition (SPEC §14)
-export type { AlignMove, AlignReference, DistributeMove } from './edit/align';
-export { isAnchoring } from './edit/anchoring/mode';
-export type { Anchoring } from './edit/anchoring/mode';
-export { commentOf } from './edit/comment';
-export type { ElementComment } from './edit/comment';
-export { anchorOf, edgeTexts, endLabelOf } from './edit/edgeLabels';
-export type { EdgeEnd } from './edit/edgeLabels';
-export { LABEL_PLACES, labelPlaceName, labelPlaceOf, labelPlacePatch } from './edit/labelPlaces';
-export type { LabelPlace } from './edit/labelPlaces';
-export { PALETTE_CATEGORIES, searchTemplates, SHAPE_TEMPLATES, usedTemplates } from './edit/palette';
-export type { PageModePalette, PaletteCategory, PaletteCategoryId, ShapeTemplate } from './edit/palette';
-export { matchesPreset, matchesTextPreset } from './edit/stylePresets';
-export type { StylePreset, TextPreset } from './edit/stylePresets';
+export type { AlignMove, AlignReference, DistributeMove } from './core/edit/align';
+export { isAnchoring } from './core/edit/anchoring/mode';
+export type { Anchoring } from './core/edit/anchoring/mode';
+export { commentOf } from './core/edit/comment';
+export type { ElementComment } from './core/edit/comment';
+export { anchorOf, edgeTexts, endLabelOf } from './core/edit/edgeLabels';
+export type { EdgeEnd } from './core/edit/edgeLabels';
+export { LABEL_PLACES, labelPlaceName, labelPlaceOf, labelPlacePatch } from './core/edit/labelPlaces';
+export type { LabelPlace } from './core/edit/labelPlaces';
+export { PALETTE_CATEGORIES, searchTemplates, SHAPE_TEMPLATES, usedTemplates } from './core/edit/palette';
+export type { PageModePalette, PaletteCategory, PaletteCategoryId, ShapeTemplate } from './core/edit/palette';
+export { matchesPreset, matchesTextPreset } from './core/edit/stylePresets';
+export type { StylePreset, TextPreset } from './core/edit/stylePresets';
 
 // Caméra, navigation et sélection (SPEC §9–11)
-export { ISOMETRIC_ELEVATION_DEG } from './interaction/cameraMath';
-export type { CameraState, ViewMode } from './interaction/cameraMath';
-export { RESERVED_CODES } from './interaction/controls';
-export type { Shortcuts } from './interaction/controls';
-export type { ParentLink } from './interaction/navigationHistory';
-export type { PickedElement } from './interaction/pick';
-export type { FollowLinkGesture, FollowLinkKey, MultiSelectKey } from './interaction/selectionRules';
+export { ISOMETRIC_ELEVATION_DEG } from './core/interaction/cameraMath';
+export type { CameraState, ViewMode } from './core/interaction/cameraMath';
+export { RESERVED_CODES } from './core/interaction/controls';
+export type { Shortcuts } from './core/interaction/controls';
+export type { ParentLink } from './core/interaction/navigationHistory';
+export type { PickedElement } from './core/interaction/pick';
+export type { FollowLinkGesture, FollowLinkKey, MultiSelectKey } from './core/interaction/selectionRules';
 
 // Rendu (SPEC §8)
-export { JUMP_STYLES, jumpValue } from './render/edges/jumps';
-export type { JumpStyle } from './render/edges/jumps';
-export { routingKind } from './render/edges/route';
-export { homographyCss, rectToQuad } from './render/geometry/homography';
-export { labelPadding } from './render/labelPosition';
-export { largestFitting, MIN_FIT_SIZE } from './render/richLayout';
-export { readableOn } from './render/styleColors';
-export type { FontSet } from './render/troikaText';
+export { JUMP_STYLES, jumpValue } from './core/render/edges/jumps';
+export type { JumpStyle } from './core/render/edges/jumps';
+export { routingKind } from './core/render/edges/route';
+export { homographyCss, rectToQuad } from './core/render/geometry/homography';
+export { labelPadding } from './core/render/labelPosition';
+export { largestFitting, MIN_FIT_SIZE } from './core/render/richLayout';
+export { readableOn } from './core/render/styleColors';
+export type { FontSet } from './core/render/troikaText';
 
 // Formes, modes et effets de page
 export { defaultEffectRegistry, pageEffectIds } from './effects/registry';

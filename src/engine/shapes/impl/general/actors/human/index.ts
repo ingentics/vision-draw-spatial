@@ -1,4 +1,4 @@
-import { ellipsePath } from '../../../../../render/geometry/paths';
+import { ellipsePath } from '../../../../../core/render/geometry/paths';
 import type { ShapeDefinition } from '../../../../types';
 import { actorDefinition } from '../common/definition';
 import { actorBody } from '../common/figure';

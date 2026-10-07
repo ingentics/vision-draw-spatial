@@ -1,15 +1,15 @@
 import { Color, Group, Matrix4, Vector3 } from 'three';
 import type { Mesh, Object3D } from 'three';
-import type { Point, Rect, ShapeModel } from '../../../model/types';
-import { VERTEX_DEFAULTS } from '../../../render/flat/box';
-import { rectPath } from '../../../render/geometry/paths';
-import { blockHeight, isoBlock, TOP_OFFSET } from '../../../render/iso/block';
-import { strokeMesh } from '../../../render/meshes';
-import { styleNumber, styleOpacity } from '../../../model/styleValues';
-import { styleColor } from '../../../render/styleColors';
-import { PART_ORDER } from '../../../render/types';
-import type { RenderContext } from '../../../render/types';
-import { SPATIAL, spatialValue } from '../../../spatial';
+import type { Point, Rect, ShapeModel } from '../../../core/model/types';
+import { VERTEX_DEFAULTS } from '../../../core/render/flat/box';
+import { rectPath } from '../../../core/render/geometry/paths';
+import { blockHeight, isoBlock, TOP_OFFSET } from '../../../core/render/iso/block';
+import { strokeMesh } from '../../../core/render/meshes';
+import { styleNumber, styleOpacity } from '../../../core/model/styleValues';
+import { styleColor } from '../../../core/render/styleColors';
+import { PART_ORDER } from '../../../core/render/types';
+import type { RenderContext } from '../../../core/render/types';
+import { SPATIAL, spatialValue } from '../../../core/spatial';
 import type { SceneRenderer, ShapeProperty } from '../../types';
 
 /**

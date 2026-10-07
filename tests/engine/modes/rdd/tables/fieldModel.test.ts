@@ -7,7 +7,7 @@ import {
 } from '../../../../../src/engine/modes/rdd/tables/fieldModel';
 import type { Field } from '../../../../../src/engine/modes/rdd/tables/fieldModel';
 import { TABLE_KINDS } from '../../../../../src/engine/modes/rdd/tables/tableKinds';
-import type { ShapeModel } from '../../../../../src/engine/model/types';
+import type { ShapeModel } from '../../../../../src/engine/core/model/types';
 import { labels, fieldsOf, setup } from '../helpers';
 
 describe('mode RDD : champs structurés (sujet 246)', () => {

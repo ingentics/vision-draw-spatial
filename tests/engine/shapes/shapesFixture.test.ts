@@ -1,10 +1,10 @@
 import { existsSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { readDrawio } from '../../../src/engine/format/parse';
-import type { PageModel, Point, ShapeModel } from '../../../src/engine/model/types';
-import { toTerminal } from '../../../src/engine/render/edges/edge';
-import { routeEdge, simplify } from '../../../src/engine/render/edges/route';
+import { readDrawio } from '../../../src/engine/core/format/parse';
+import type { PageModel, Point, ShapeModel } from '../../../src/engine/core/model/types';
+import { toTerminal } from '../../../src/engine/core/render/edges/edge';
+import { routeEdge, simplify } from '../../../src/engine/core/render/edges/route';
 import { PLUG_SHAPE } from '../../../src/engine/shapes/impl/architecture/plug';
 import { createDefaultRegistry } from '../../../src/engine/shapes/registry';
 import { drawioSvgOutlines, drawioSvgPaths, drawioSvgRoutes, dropCollinear, fixture } from '../../helpers';

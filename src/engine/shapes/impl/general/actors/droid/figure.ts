@@ -1,5 +1,5 @@
-import type { Point } from '../../../../../model/types';
-import { ellipsePath, roundedPolygon } from '../../../../../render/geometry/paths';
+import type { Point } from '../../../../../core/model/types';
+import { ellipsePath, roundedPolygon } from '../../../../../core/render/geometry/paths';
 import { actorBody } from '../common/figure';
 import type { ActorFigure } from '../common/figure';
 

@@ -1,6 +1,6 @@
 import type { Object3D } from 'three';
-import type { ViewMode } from '../interaction/cameraMath';
-import type { PageModel, Point, Rect } from '../model/types';
+import type { ViewMode } from '../core/interaction/cameraMath';
+import type { PageModel, Point, Rect } from '../core/model/types';
 
 /**
  * Effets de page (sujet 143) : décors et comportements qu'une page active en plus de son mode

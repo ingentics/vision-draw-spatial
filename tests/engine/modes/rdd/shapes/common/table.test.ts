@@ -2,9 +2,9 @@ import { Box3, Mesh, Object3D } from 'three';
 import type { Color, MeshBasicMaterial } from 'three';
 import { describe, expect, it } from 'vitest';
 import { setSecondary } from '../../../../../../src/engine/modes/rdd/tables/operations';
-import { approximateMeasure } from '../../../../../../src/engine/render/richLayout';
-import { buildPageScene } from '../../../../../../src/engine/render/pageScene';
-import type { RenderContext, TextSpec } from '../../../../../../src/engine/render/types';
+import { approximateMeasure } from '../../../../../../src/engine/core/render/richLayout';
+import { buildPageScene } from '../../../../../../src/engine/core/render/pageScene';
+import type { RenderContext, TextSpec } from '../../../../../../src/engine/core/render/types';
 import { createDefaultRegistry } from '../../../../../../src/engine/shapes/registry';
 import { setFields, setup } from '../../helpers';
 

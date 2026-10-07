@@ -39,11 +39,11 @@ const engineModeOverrides = ENGINE_MODES.map((mode) => ({
           {
             group: [
               '**/Engine',
-              '**/core/**',
-              '**/format/**',
-              '**/interaction/**',
-              '**/persistence/**',
-              '**/graph/**',
+              '**/core/domains/**',
+              '**/core/format/**',
+              '**/core/interaction/**',
+              '**/core/persistence/**',
+              '**/core/graph/**',
               '**/effects/**',
             ],
             message:
@@ -123,7 +123,7 @@ module.exports = {
     ...engineModeOverrides,
     {
       // SPEC §4.1 : le parsing ne connaît ni Three.js ni React.
-      files: ['src/engine/format/**/*.ts', 'src/engine/model/**/*.ts'],
+      files: ['src/engine/core/format/**/*.ts', 'src/engine/core/model/**/*.ts'],
       rules: {
         'no-restricted-imports': [
           'error',
@@ -135,7 +135,7 @@ module.exports = {
                 message: 'Le format et le modèle ne dépendent pas de Three.js (SPEC §4.1).',
               },
               {
-                group: ['**/render/**', '**/interaction/**', '**/react/**', '**/app/**'],
+                group: ['**/core/render/**', '**/core/interaction/**', '**/react/**', '**/app/**'],
                 message: 'Dépendance de couche interdite (SPEC §4.1).',
               },
               NO_MODE,

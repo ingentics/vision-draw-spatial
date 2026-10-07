@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { documentFromTree, readDrawio } from '../../../../../src/engine/format/parse';
+import { documentFromTree, readDrawio } from '../../../../../src/engine/core/format/parse';
 import { applyModeEdit } from '../../../../../src/engine/modes/modeEdits';
 import { definition as rdd } from '../../../../../src/engine/modes/rdd';
 import {
@@ -8,7 +8,7 @@ import {
   regionContent,
   regionOf,
 } from '../../../../../src/engine/modes/rdd/regions/regionLayout';
-import { addShapeCell } from '../../../../../src/engine/format/create';
+import { addShapeCell } from '../../../../../src/engine/core/format/create';
 import type { ModeEdit } from '../../../../../src/engine/modes/types';
 import { setup } from '../helpers';
 

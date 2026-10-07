@@ -32,19 +32,21 @@
 ## 3. Architecture (SPEC §4)
 
 Couches, dépendances descendantes uniquement. L'UI React (`src/react` = composant, `src/app` = appli de démo)
-n'importe du moteur que `src/engine/index.ts`. Chaque dossier du moteur, en une ligne :
+n'importe du moteur que `src/engine/index.ts`. À la racine de `src/engine`, la façade (`index.ts`, `Engine.ts`,
+`events.ts`) ; le tronc commun dans `core/` ; les plugins (`shapes/`, `modes/`, `effects/`) à côté, en attendant
+`plugins/` (sujet 286). Chaque dossier, en une ligne :
 
 | Dossier de `src/engine` | Rôle | Nature |
 |---|---|---|
-| `Engine.ts`, `core/` | façade publique ; un dossier de `core/` par domaine (document, vue, sélection, édition…) | avec état |
-| `interaction/` | caméra, transitions, historique, sélection, pick (calculs) ; contrôles du canvas et mini-carte (DOM) | pur, sauf `controls/` et la mini-carte |
-| `edit/` | règles d'édition : déplacement, poignées, bouts et points de flèche, styles, palette, ancrage | pur |
+| `Engine.ts`, `core/domains/` | façade publique ; un dossier de `core/domains/` par domaine (document, vue, sélection, édition…) | avec état |
+| `core/interaction/` | caméra, transitions, historique, sélection, pick (calculs) ; contrôles du canvas et mini-carte (DOM) | pur, sauf `controls/` et la mini-carte |
+| `core/edit/` | règles d'édition : déplacement, poignées, bouts et points de flèche, styles, palette, ancrage | pur |
 | `modes/`, `effects/` | modes et effets de page, en plugins (un dossier chacun) | pur |
-| `render/`, `shapes/`, `graph/` | formes en plugins, scènes Three.js par page et par niveau, vue graphe | pur (objets Three.js) |
-| `settings/` | paramètres : types, schéma (défauts, bornes, lecture), fusion qui en découle | pur |
-| `model/` | modèle neutre (aucune notion draw.io), géométrie, lecture du style | pur, sans Three.js |
-| `format/` | decode, parse (XML → modèle), style, xmlTree, cellEdits / write (écriture in situ) | pur, sans Three.js |
-| `persistence/` | FileStore : MemoryStore, IndexedDbStore, FsStore (Electron) ; Autosaver | avec état |
+| `core/render/`, `shapes/`, `core/graph/` | scènes Three.js par page et par niveau, formes en plugins, vue graphe | pur (objets Three.js) |
+| `core/settings/` | paramètres : types, schéma (défauts, bornes, lecture), fusion qui en découle | pur |
+| `core/model/` | modèle neutre (aucune notion draw.io), géométrie, lecture du style | pur, sans Three.js |
+| `core/format/` | decode, parse (XML → modèle), style, xmlTree, cellEdits / write (écriture in situ) | pur, sans Three.js |
+| `core/persistence/` | FileStore : MemoryStore, IndexedDbStore, FsStore (Electron) ; Autosaver | avec état |
 
 Règles :
 - **Moteur sans React** (`src/engine/Engine.ts` = façade publique, événements dans `events.ts`). React ne fait que monter
@@ -55,7 +57,7 @@ Règles :
   modèle est relu de l'arbre. Une page compressée modifiée est réécrite compressée.
 - **Undo/redo** par instantanés XML (100 max).
 - **Jamais d'échec de chargement** pour une forme inconnue : placeholder gris pointillé + entrée dans les Diagnostics
-  (`diagnostics/unsupportedStyles.ts`), qui sert de backlog priorisé par fréquence (SPEC §8.4).
+  (`core/diagnostics/unsupportedStyles.ts`), qui sert de backlog priorisé par fréquence (SPEC §8.4).
 
 ## 4. Fonctionnel acquis (résumé)
 
@@ -64,21 +66,21 @@ Règles :
   « poussent ». Réinitialiser la vue, rotation à la souris en iso/3D.
 - **Volumes** : formes = blocs d'épaisseur `view.isoDepth` (32 px) ou `spatial.height` ; formes contenues posées sur leur
   conteneur ; arêtes au sol. Formes de stockage (BDD `cylinder3`, file, cache `datastore`) rendues en « bâtiments »
-  iso avec façades gravées (`render/iso/buildings.ts`).
+  iso avec façades gravées (`shapes/generic/building/`).
 - **Navigation** : pages en onglets, liens entre pages (intention puis engagement, transition zoom + fondu), retour /
   historique, vue graphe de la documentation, mini-carte, fond et grille.
-- **Formes supportées** (`render/shapes/`) : rectangle (arrondi), ellipse, texte, groupe, stockage, **losange**
+- **Formes supportées** (`shapes/impl/`) : rectangle (arrondi), ellipse, texte, groupe, stockage, **losange**
   (premier de la série géométrique, socle commun posé à l'étape 21), placeholder.
-- **Flèches** (`render/edges/`) : routeurs draw.io portés tels quels (orthogonal, segment, elbow, side-to-side,
+- **Flèches** (`core/render/edges/`) : routeurs draw.io portés tels quels (orthogonal, segment, elbow, side-to-side,
   top-to-bottom, entity-relation, loop), pointes draw.io, labels principal + début/fin, bouts fixes/auto/libres,
   découpage en morceaux (éditeurs mxGraph portés), cohérence au déplacement. Vérifiés **au pixel** contre les exports SVG
   de draw.io (fixtures `edge-routing`, `edge-points`, `edge-ends`).
-- **Édition** : palette par catégories avec recherche (`edit/palette.ts` : `SHAPE_TEMPLATES`, `PALETTE_CATEGORIES`),
+- **Édition** : palette par catégories avec recherche (`core/edit/palette.ts` : `SHAPE_TEMPLATES`, `PALETTE_CATEGORIES`),
   glisser-déposer, déplacement, redimensionnement, texte riche édité en place, panneau contextuel (Page / Forme /
   Flèche / N formes / Texte : styles draw.io, bordure, volume), pages ajoutées/renommées/supprimées, liens, sauvegarde
   et autosave.
-- **Paramètres** (SPEC §13, `engine/settings/index.ts`) : tout le ressenti UX est réglable, persisté, appliqué à chaud.
-- **Attributs spatiaux** (SPEC §14.3, `engine/spatial.ts`) : préfixe `spatial.` dans le style ou sur
+- **Paramètres** (SPEC §13, `engine/core/settings/index.ts`) : tout le ressenti UX est réglable, persisté, appliqué à chaud.
+- **Attributs spatiaux** (SPEC §14.3, `engine/core/spatial.ts`) : préfixe `spatial.` dans le style ou sur
   `<object>/<UserObject>` (`spatial.height`, `elevation`, `tag`, `nodes`, `noLinkBadge`) ; `spatial.view` sur
   `<diagram>` = état de vue par page. Survivent à une sauvegarde dans draw.io (vérifié par `make drawio-check`).
 
@@ -86,12 +88,12 @@ Règles :
 
 | Sujet | Lire d'abord |
 |---|---|
-| Nouvelle forme draw.io | `docs/AJOUTER_UNE_FORME.md` (parcours complet : style → kind → registre → rendus 2D/iso/3D/mini-carte, clic, flèches, diagnostics, palette, fixture) ; exemple récent : `render/shapes/rhombus.ts`, `render/geometry/orient.ts` ; sujets `todo/33…41` comme modèles de rédaction |
-| Comportement d'édition | SPEC §14, `src/engine/edit/`, `src/engine/format/cellEdits.ts` |
-| Rendu / caméra / vues | SPEC §8–9, `render/pageScene.ts`, `render/sceneManager.ts`, `interaction/cameraMath.ts` |
+| Nouvelle forme draw.io | `docs/AJOUTER_UNE_FORME.md` (parcours complet : style → kind → registre → rendus 2D/iso/3D/mini-carte, clic, flèches, diagnostics, palette, fixture) ; exemple récent : `shapes/impl/geometry/diamond/`, `core/render/geometry/orient.ts` ; sujets `todo/33…41` comme modèles de rédaction |
+| Comportement d'édition | SPEC §14, `src/engine/core/edit/`, `src/engine/core/format/cellEdits.ts` |
+| Rendu / caméra / vues | SPEC §8–9, `core/render/pageScene.ts`, `core/render/sceneManager.ts`, `core/interaction/cameraMath.ts` |
 | UI de l'appli de démo | `src/app/` (`App.tsx`, `Palette.tsx`, `ContextPanel.tsx`, `SettingsPanel.tsx`, `DiagnosticsPanel.tsx`, `main.css`) |
 | API du composant | `docs/COMPOSANT.md`, `src/react/DrawioSpatial.tsx`, `src/index.ts` |
-| Paramètre nouveau | SPEC §13, `engine/settings/types.ts` et `schema/`, `tests/engine/settings.test.ts`, `src/app/SettingsPanel.tsx` |
+| Paramètre nouveau | SPEC §13, `engine/core/settings/types.ts` et `schema/`, `tests/engine/core/settings.test.ts`, `src/app/SettingsPanel.tsx` |
 | Fichier draw.io / compat | SPEC §7, §14.2, §15 ; fixtures `tests/fixtures/*.drawio`, sorties draw.io versionnées dans `tests/fixtures/drawio-saved/` |
 
 ## 6. Backlog : comment écrire une spec ici

@@ -1,4 +1,4 @@
-import type { Point } from '../../../../model/types';
+import type { Point } from '../../../../core/model/types';
 import { stencilBox } from '../../../generic/stencil';
 import type { ShapeDefinition } from '../../../types';
 

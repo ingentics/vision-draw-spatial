@@ -1,8 +1,8 @@
-import type { Point, ShapeModel } from '../../../model/types';
-import { orientedPath } from '../../../render/geometry/orient';
-import { cornerRadius, rectPath, roundedRectPath } from '../../../render/geometry/paths';
-import { styleNumber, styleFlag } from '../../../model/styleValues';
-import { SPATIAL, spatialValue } from '../../../spatial';
+import type { Point, ShapeModel } from '../../../core/model/types';
+import { orientedPath } from '../../../core/render/geometry/orient';
+import { cornerRadius, rectPath, roundedRectPath } from '../../../core/render/geometry/paths';
+import { styleNumber, styleFlag } from '../../../core/model/styleValues';
+import { SPATIAL, spatialValue } from '../../../core/spatial';
 import type { Group } from 'three';
 import type { PaletteEntry, SceneRenderer, ShapeDefinition, ShapeDetail } from '../../types';
 import { box } from '../box';

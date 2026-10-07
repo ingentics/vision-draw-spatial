@@ -1,7 +1,7 @@
-import { SIDE_NORMALS, sideOfConstraint } from '../../../edit/edgeEnds';
-import { center } from '../../../model/geometry';
-import { styleNumber } from '../../../model/styleValues';
-import type { EdgeModel, Point, ShapeModel } from '../../../model/types';
+import { SIDE_NORMALS, sideOfConstraint } from '../../../core/edit/edgeEnds';
+import { center } from '../../../core/model/geometry';
+import { styleNumber } from '../../../core/model/styleValues';
+import type { EdgeModel, Point, ShapeModel } from '../../../core/model/types';
 import type { ModeEdit } from '../../types';
 import type { Field } from '../tables/fieldModel';
 import type { EdgeLook } from './kinds/kind';

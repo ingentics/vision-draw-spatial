@@ -1,8 +1,8 @@
 import { Color, Group } from 'three';
-import type { Point } from '../../../../model/types';
-import { fillMesh, strokeMesh } from '../../../../render/meshes';
-import { PART_ORDER } from '../../../../render/types';
-import type { RenderContext } from '../../../../render/types';
+import type { Point } from '../../../../core/model/types';
+import { fillMesh, strokeMesh } from '../../../../core/render/meshes';
+import { PART_ORDER } from '../../../../core/render/types';
+import type { RenderContext } from '../../../../core/render/types';
 import type { Divider, Field } from '../../tables/fieldModel';
 import { fieldNote } from '../../tables/fieldModel';
 import { DIVIDER_STROKE, FIELD_ICON_STROKE, FIELD_KIND_COLORS, TYPE_COLOR } from '../../tables/tableColors';

@@ -1,5 +1,5 @@
-import type { ShapeModel } from '../../../../model/types';
-import { ellipsePath } from '../../../../render/geometry/paths';
+import type { ShapeModel } from '../../../../core/model/types';
+import { ellipsePath } from '../../../../core/render/geometry/paths';
 import { box } from '../../../generic/box';
 import type { ShapeDefinition } from '../../../types';
 

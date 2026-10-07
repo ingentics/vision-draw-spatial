@@ -1,13 +1,13 @@
 import { Color, Group } from 'three';
-import { insidePolygon } from '../../../../model/geometry';
-import type { Point, Rect, ShapeModel } from '../../../../model/types';
-import { rectPath } from '../../../../render/geometry/paths';
-import { fillMesh, strokeMesh } from '../../../../render/meshes';
-import { measureText } from '../../../../render/textMeasure';
-import { styleNumber, styleOpacity } from '../../../../model/styleValues';
-import { styleColor } from '../../../../render/styleColors';
-import { PART_ORDER } from '../../../../render/types';
-import type { RenderContext } from '../../../../render/types';
+import { insidePolygon } from '../../../../core/model/geometry';
+import type { Point, Rect, ShapeModel } from '../../../../core/model/types';
+import { rectPath } from '../../../../core/render/geometry/paths';
+import { fillMesh, strokeMesh } from '../../../../core/render/meshes';
+import { measureText } from '../../../../core/render/textMeasure';
+import { styleNumber, styleOpacity } from '../../../../core/model/styleValues';
+import { styleColor } from '../../../../core/render/styleColors';
+import { PART_ORDER } from '../../../../core/render/types';
+import type { RenderContext } from '../../../../core/render/types';
 import type { ShapeDefinition } from '../../../../shapes/types';
 import {
   DEFAULT_REGION_COLOR,

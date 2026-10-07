@@ -1,11 +1,11 @@
-import type { Point, Rect, ShapeModel } from '../../../model/types';
-import { createBox, createLabel, VERTEX_DEFAULTS } from '../../../render/flat/box';
-import { cubicTo } from '../../../render/geometry/curves';
-import { dashPattern } from '../../../render/geometry/stroke';
-import { strokeMesh } from '../../../render/meshes';
-import { styleNumber, styleOpacity, styleFlag } from '../../../model/styleValues';
-import { styleColor } from '../../../render/styleColors';
-import { PART_ORDER } from '../../../render/types';
+import type { Point, Rect, ShapeModel } from '../../../core/model/types';
+import { createBox, createLabel, VERTEX_DEFAULTS } from '../../../core/render/flat/box';
+import { cubicTo } from '../../../core/render/geometry/curves';
+import { dashPattern } from '../../../core/render/geometry/stroke';
+import { strokeMesh } from '../../../core/render/meshes';
+import { styleNumber, styleOpacity, styleFlag } from '../../../core/model/styleValues';
+import { styleColor } from '../../../core/render/styleColors';
+import { PART_ORDER } from '../../../core/render/types';
 import type { SceneLevel, SceneRenderer } from '../../types';
 
 /**

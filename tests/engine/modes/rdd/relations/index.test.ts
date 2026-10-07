@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { setEdgeTerminal } from '../../../../../src/engine/format/cellEdits';
-import { addEdgeCell, removeCellsDeep } from '../../../../../src/engine/format/create';
-import { documentFromTree, readDrawio } from '../../../../../src/engine/format/parse';
+import { setEdgeTerminal } from '../../../../../src/engine/core/format/cellEdits';
+import { addEdgeCell, removeCellsDeep } from '../../../../../src/engine/core/format/create';
+import { documentFromTree, readDrawio } from '../../../../../src/engine/core/format/parse';
 import { applyModeEdit } from '../../../../../src/engine/modes/modeEdits';
 import { definition as rdd } from '../../../../../src/engine/modes/rdd';
 import { fieldParts } from '../../../../../src/engine/modes/rdd/editing/fieldParts';

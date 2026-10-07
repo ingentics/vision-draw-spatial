@@ -1,5 +1,5 @@
 import type { ModeKey, ModeProperty, ModeTarget } from '../../types';
-import type { ShapeModel } from '../../../model/types';
+import type { ShapeModel } from '../../../core/model/types';
 import { shapeTarget } from '../editing/tableTargets';
 import { REGION_COLORS, fitRegion, isRegion, setRegionColor } from './regionLayout';
 

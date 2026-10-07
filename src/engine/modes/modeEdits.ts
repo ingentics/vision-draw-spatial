@@ -7,13 +7,13 @@ import {
   setCellStyleValue,
   setLabelPlacement,
   setPageAttribute,
-} from '../format/cellEdits';
-import { addEdgeLabelCell, removeCells } from '../format/create';
-import { sendToBackInOrder } from '../format/order';
-import type { PageTree } from '../format/xmlTree';
-import type { PageModel, Rect } from '../model/types';
-import { SPATIAL_PREFIX, spatialValue } from '../spatial';
-import { END_TEXT_GAP, edgeTextLayout, endLabelOf } from '../edit/edgeLabels';
+} from '../core/format/cellEdits';
+import { addEdgeLabelCell, removeCells } from '../core/format/create';
+import { sendToBackInOrder } from '../core/format/order';
+import type { PageTree } from '../core/format/xmlTree';
+import type { PageModel, Rect } from '../core/model/types';
+import { SPATIAL_PREFIX, spatialValue } from '../core/spatial';
+import { END_TEXT_GAP, edgeTextLayout, endLabelOf } from '../core/edit/edgeLabels';
 import type { ModeEdit, ModeEditContext } from './types';
 
 /** Contexte par défaut (tests, sans appli) : pas de couleurs proposées, textes de bout aux paramètres par défaut. */

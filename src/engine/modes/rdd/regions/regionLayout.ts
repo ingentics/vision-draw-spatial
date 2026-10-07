@@ -1,6 +1,6 @@
-import { rectContains, rectContainsRect, rectsOverlap, unionOf } from '../../../model/geometry';
-import type { PageModel, Rect, ShapeModel } from '../../../model/types';
-import { readableOn } from '../../../render/styleColors';
+import { rectContains, rectContainsRect, rectsOverlap, unionOf } from '../../../core/model/geometry';
+import type { PageModel, Rect, ShapeModel } from '../../../core/model/types';
+import { readableOn } from '../../../core/render/styleColors';
 import type { ModeEdit, ModeObstacles } from '../../types';
 import { tableKindOf } from '../tables/tableKinds';
 

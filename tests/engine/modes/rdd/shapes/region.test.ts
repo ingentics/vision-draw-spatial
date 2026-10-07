@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { REGION } from '../../../../../src/engine/modes/rdd/regions/regionLayout';
 import { regionOutline, tabPath, tabRect } from '../../../../../src/engine/modes/rdd/shapes/region';
-import { pickElement } from '../../../../../src/engine/interaction/pick';
-import { approximateMeasure } from '../../../../../src/engine/render/richLayout';
-import type { Point, ShapeModel } from '../../../../../src/engine/model/types';
+import { pickElement } from '../../../../../src/engine/core/interaction/pick';
+import { approximateMeasure } from '../../../../../src/engine/core/render/richLayout';
+import type { Point, ShapeModel } from '../../../../../src/engine/core/model/types';
 import { createDefaultRegistry } from '../../../../../src/engine/shapes/registry';
 import { setup } from '../helpers';
 

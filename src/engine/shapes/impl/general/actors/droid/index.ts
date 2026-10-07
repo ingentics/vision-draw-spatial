@@ -1,5 +1,5 @@
-import { stencilShape } from '../../../../../format/stencil';
-import type { Point } from '../../../../../model/types';
+import { stencilShape } from '../../../../../core/format/stencil';
+import type { Point } from '../../../../../core/model/types';
 import type { ShapeDefinition } from '../../../../types';
 import { actorDefinition } from '../common/definition';
 import { DROID_FRAME, DROID_H, DROID_W, droidFigure } from './figure';

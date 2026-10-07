@@ -5,11 +5,11 @@ import { definition as rdd } from '../../../../../src/engine/modes/rdd';
 import { FIELDS, fieldProblems, fieldsOf as rowsOf } from '../../../../../src/engine/modes/rdd/tables/fieldModel';
 import { setSecondary } from '../../../../../src/engine/modes/rdd/tables/operations';
 import { fieldParts } from '../../../../../src/engine/modes/rdd/editing/fieldParts';
-import { approximateMeasure } from '../../../../../src/engine/render/richLayout';
-import { buildPageScene } from '../../../../../src/engine/render/pageScene';
-import type { RenderContext, TextSpec } from '../../../../../src/engine/render/types';
+import { approximateMeasure } from '../../../../../src/engine/core/render/richLayout';
+import { buildPageScene } from '../../../../../src/engine/core/render/pageScene';
+import type { RenderContext, TextSpec } from '../../../../../src/engine/core/render/types';
 import { createDefaultRegistry } from '../../../../../src/engine/shapes/registry';
-import { spatialValue } from '../../../../../src/engine/spatial';
+import { spatialValue } from '../../../../../src/engine/core/spatial';
 import { rowWidth, widthOf, KEY_ROW, setFields, labels, fieldsOf, setup } from '../helpers';
 
 describe('mode RDD : champ sélectionné dans sa table (sujet 249)', () => {

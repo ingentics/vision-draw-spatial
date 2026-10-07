@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { readDrawio } from '../../../src/engine/format/parse';
-import type { EdgeModel, PageModel } from '../../../src/engine/model/types';
+import { readDrawio } from '../../../src/engine/core/format/parse';
+import type { EdgeModel, PageModel } from '../../../src/engine/core/model/types';
 import { definition as sequences } from '../../../src/engine/modes/sequences';
 import { SEQUENCE_EXPORTERS, sequenceExporter } from '../../../src/engine/modes/sequences/export';
 import { PARTICIPANT } from '../../../src/engine/modes/sequences/flows';

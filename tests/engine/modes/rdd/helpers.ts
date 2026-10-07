@@ -1,4 +1,4 @@
-import { documentFromTree, readDrawio } from '../../../../src/engine/format/parse';
+import { documentFromTree, readDrawio } from '../../../../src/engine/core/format/parse';
 import { applyModeEdit } from '../../../../src/engine/modes/modeEdits';
 import {
   FIELDS,
@@ -8,10 +8,10 @@ import {
 } from '../../../../src/engine/modes/rdd/tables/fieldModel';
 import type { Field, TableRow } from '../../../../src/engine/modes/rdd/tables/fieldModel';
 import { fitTable } from '../../../../src/engine/modes/rdd/tables/operations';
-import { approximateMeasure } from '../../../../src/engine/render/richLayout';
+import { approximateMeasure } from '../../../../src/engine/core/render/richLayout';
 import type { ModeEdit } from '../../../../src/engine/modes/types';
-import type { ShapeModel } from '../../../../src/engine/model/types';
-import { ceilToGrid } from '../../../../src/engine/model/geometry';
+import type { ShapeModel } from '../../../../src/engine/core/model/types';
+import { ceilToGrid } from '../../../../src/engine/core/model/geometry';
 import { fixture } from '../../../helpers';
 
 /** Aides communes des tests du mode RDD : fixture, largeurs attendues, pose des champs. */

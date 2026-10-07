@@ -105,7 +105,7 @@ relu après chaque modification) : un `WeakMap` suffit.
 `dressing(page, values)` renvoie la couleur du mode pour une flèche (`edgeColor`, trait et pointes, assombrie de
 `edgeDarken`, défaut 0,25) et une pastille
 (`edgeBadge` : texte et couleur de fond). Le style draw.io n'est jamais modifié : l'habillage est appliqué au dessin
-(`render/pageScene.ts`, `createEdgeObject`), à la construction de la page comme pendant un déplacement. La pastille
+(`core/render/pageScene.ts`, `createEdgeObject`), à la construction de la page comme pendant un déplacement. La pastille
 fait face à la caméra en iso / 3D (`userData.billboard = 'screen'`). Son apparence (tailles, bordure, chiffre) est
 `edgeBadgeStyle`, tirée des réglages du mode (défaut : `DEFAULT_EDGE_BADGE`).
 
@@ -157,7 +157,7 @@ fait face à la caméra en iso / 3D (`userData.billboard = 'screen'`). Son appar
 - `obstacles(page, shape, values)` : emprises que `shape` ne doit pas approcher pendant un déplacement (glisser,
   flèches du clavier) ou un redimensionnement, à l'écart `gap` (réglage du mode, ex. `obstacleGap` de RDD) ; `above` : ce que la forme dessine
   au-dessus de ses bornes. Le moteur borne le geste (un axe puis l'autre, on glisse le long d'un obstacle) et montre la
-  limite atteinte en pointillé rouge (`edit/obstacles.ts`).
+  limite atteinte en pointillé rouge (`core/edit/obstacles.ts`).
 
 ## 6. Formes, palette et modes d'affichage
 

@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { readDrawio } from '../../../src/engine/format/parse';
-import type { PageModel } from '../../../src/engine/model/types';
+import { readDrawio } from '../../../src/engine/core/format/parse';
+import type { PageModel } from '../../../src/engine/core/model/types';
 import { PAGE_MODE_DEFINITIONS, PageModeRegistry } from '../../../src/engine/modes/registry';
 import type { PageModeDefinition } from '../../../src/engine/modes/types';
-import { buildPageScene } from '../../../src/engine/render/pageScene';
+import { buildPageScene } from '../../../src/engine/core/render/pageScene';
 import { Object3D } from 'three';
 import { createDefaultRegistry, ShapeRegistry } from '../../../src/engine/shapes/registry';
 import { MODE_SHAPE_DEFINITIONS, shapesByMode } from '../../../src/engine/modes/modeShapes';
 import type { ShapeDefinition } from '../../../src/engine/shapes/types';
-import { PALETTE_CATEGORIES } from '../../../src/engine/edit/palette';
-import { SPATIAL } from '../../../src/engine/spatial';
+import { PALETTE_CATEGORIES } from '../../../src/engine/core/edit/palette';
+import { SPATIAL } from '../../../src/engine/core/spatial';
 
 /** Dossiers des modes : `modes/<id>/index.ts` (moteur) et `app/modes/<id>/index.tsx` (sections React, facultatives). */
 const ENGINE = Object.entries(

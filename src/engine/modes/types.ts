@@ -1,7 +1,7 @@
-import type { ViewMode } from '../interaction/cameraMath';
-import type { EdgeEnd, EndTextGap } from '../edit/edgeLabels';
-import type { EdgeModel, PageModel, Point, Rect, ShapeModel } from '../model/types';
-import type { EdgeBadgeStyle } from '../render/types';
+import type { ViewMode } from '../core/interaction/cameraMath';
+import type { EdgeEnd, EndTextGap } from '../core/edit/edgeLabels';
+import type { EdgeModel, PageModel, Point, Rect, ShapeModel } from '../core/model/types';
+import type { EdgeBadgeStyle } from '../core/render/types';
 import type { PaletteCategory } from '../shapes/types';
 
 /**

@@ -1,7 +1,7 @@
 import type { Object3D } from 'three';
-import type { ConnectSide } from '../edit/handleKinds';
-import type { Point, Rect, ShapeModel } from '../model/types';
-import type { RenderContext } from '../render/types';
+import type { ConnectSide } from '../core/edit/handleKinds';
+import type { Point, Rect, ShapeModel } from '../core/model/types';
+import type { RenderContext } from '../core/render/types';
 
 /**
  * Une forme peut avoir plusieurs rendus selon le contexte (SPEC §8.2) :

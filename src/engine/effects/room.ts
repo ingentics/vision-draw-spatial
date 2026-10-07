@@ -1,9 +1,9 @@
 import type { Object3D } from 'three';
-import type { PageModel, Point, Rect } from '../model/types';
-import { outsideLabelBox } from '../render/labelPosition';
-import { edgeRoute } from '../render/pageScene';
+import type { PageModel, Point, Rect } from '../core/model/types';
+import { outsideLabelBox } from '../core/render/labelPosition';
+import { edgeRoute } from '../core/render/pageScene';
 import type { EffectRoom } from './types';
-import { boundsOfPoints, distance, segmentDistance, unionOf } from '../model/geometry';
+import { boundsOfPoints, distance, segmentDistance, unionOf } from '../core/model/geometry';
 
 /** Texte de flèche (texte troika) : de quoi estimer son encombrement. */
 interface LabelText {

@@ -22,18 +22,19 @@ paths:
 
 | Kind of code | Folder | Constraints |
 |---|---|---|
-| Pure computation on points and rectangles | `engine/model/geometry.ts` | no Three.js import |
-| Reading / writing the draw.io file | `engine/format/` | no Three.js nor React; in-place writing (SPEC §14.2) |
-| Pure editing rule (computation, stateless) | `engine/edit/` | receives its data as parameters |
-| Camera geometry, transitions | `engine/interaction/` | pure |
-| Engine state and orchestration | `engine/core/<domain>/` | a domain owns its state |
-| Three.js drawing | `engine/render/`, `engine/shapes/` | consumes the neutral model, never the XML |
+| Pure computation on points and rectangles | `engine/core/model/geometry.ts` | no Three.js import |
+| Reading / writing the draw.io file | `engine/core/format/` | no Three.js nor React; in-place writing (SPEC §14.2) |
+| Pure editing rule (computation, stateless) | `engine/core/edit/` | receives its data as parameters |
+| Camera geometry, transitions | `engine/core/interaction/` | pure |
+| Engine state and orchestration | `engine/core/domains/<domain>/` | a domain owns its state |
+| Three.js drawing | `engine/core/render/`, `engine/shapes/` | consumes the neutral model, never the XML |
 | Anything specific to a mode | `engine/modes/<id>/` | nothing leaks out of the folder (`AJOUTER_UN_MODE.md`) |
 | UI | `src/app/`, `src/react/` | no business rule |
 
 - **Pure logic apart from state.** A rule (tracing, alignment, bounds) is a pure function in `edit/`,
-  `interaction/` or `model/`, tested alone; the `core/` domain only calls it with its state.
-  E.g. `tracingOf(shapes, anchoring)` (`edit/anchoring/tracing.ts`) called by `core/edit/edges/arrangement.ts`.
+  `interaction/` or `model/` (under `engine/core/`), tested alone; the `core/domains/` domain only calls it with its
+  state. E.g. `tracingOf(shapes, anchoring)` (`edit/anchoring/tracing.ts`) called by
+  `core/domains/edit/edges/arrangement.ts`.
 - **A common base, not a dependency between siblings.** If two variants share building blocks, these go in a
   common module of the parent folder; a variant never imports the other. E.g. automatic anchoring (`auto/`) and
   Typon (`pcb/`) share `edit/anchoring/routing.ts`.
@@ -47,8 +48,8 @@ paths:
 ## 3. State and coupling
 
 - **No mutable module-level state** (`let` or object modified outside a class). All `Engine`s of a page would share
-  it, and tests would influence each other. State lives in a `core/` domain and is passed as a parameter to pure
-  functions. E.g. camera bounds are `ViewCamera.limits`, passed as last parameter to `zoomAt`, `orbit`,
+  it, and tests would influence each other. State lives in a `core/domains/` domain and is passed as a parameter to
+  pure functions. E.g. camera bounds are `ViewCamera.limits`, passed as last parameter to `zoomAt`, `orbit`,
   `fitBounds`…
 - **A domain does not write another's state.** No `this.core.pages.currentPageId = …` nor
   `this.core.camera.animation = undefined`: call a method of the owning domain, created if missing (e.g.
@@ -67,7 +68,7 @@ paths:
 - **Geometry**: `model/geometry.ts` (`distance`, `center`, `rectContains`, `rectContainsRect`, `boundsOfPoints`,
   `unionOf`, `segmentsCross`, `segmentIntersection`, `segmentDistance`, `insidePolygon`, `simplifyPath`,
   `prunePath`). No hand-written `Math.hypot(a.x - b.x, a.y - b.y)`. A missing function is added there, with its test
-  in `tests/engine/model/geometry.test.ts`.
+  in `tests/engine/core/model/geometry.test.ts`.
 - **Style values**: `styleNumber`, `styleFlag`, `styleOpacity` (`model/styleValues.ts`), `styleColor`
   (`render/styleColors.ts`). No `parseFloat(style.x ?? '')` nor `style.x === '1'`.
 - **Side normals**: `SIDE_NORMALS` (`edit/edgeEnds.ts`). **Anchorings**: `ANCHORINGS` (`edit/anchoring/mode.ts`).
@@ -103,8 +104,8 @@ paths:
 
 ## 7. Tests and refactors
 
-- **One test per rule**, in `tests/` at the path mirroring `src/` (`src/engine/model/geometry.ts` →
-  `tests/engine/model/geometry.test.ts`). A refactor without behaviour change keeps tests intact except imports; a
+- **One test per rule**, in `tests/` at the path mirroring `src/` (`src/engine/core/model/geometry.ts` →
+  `tests/engine/core/model/geometry.test.ts`). A refactor without behaviour change keeps tests intact except imports; a
   test claiming to check a case must really contain it.
 - **A refactor announces its deviations.** Any behaviour change, even minimal, is written in the ticket's "Fait :"
   line. To replace two implementations with one, compare both on many inputs (throwaway test) before deleting the

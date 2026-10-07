@@ -1,10 +1,10 @@
 import { Box3, Object3D } from 'three';
 import { describe, expect, it } from 'vitest';
-import { collectUnsupported } from '../../../src/engine/diagnostics/unsupportedStyles';
-import { parseDrawio } from '../../../src/engine/format/parse';
-import type { Point } from '../../../src/engine/model/types';
-import { buildPageScene } from '../../../src/engine/render/pageScene';
-import type { RenderContext } from '../../../src/engine/render/types';
+import { collectUnsupported } from '../../../src/engine/core/diagnostics/unsupportedStyles';
+import { parseDrawio } from '../../../src/engine/core/format/parse';
+import type { Point } from '../../../src/engine/core/model/types';
+import { buildPageScene } from '../../../src/engine/core/render/pageScene';
+import type { RenderContext } from '../../../src/engine/core/render/types';
 import { createDefaultRegistry, SHAPE_DEFINITIONS } from '../../../src/engine/shapes/registry';
 
 /**

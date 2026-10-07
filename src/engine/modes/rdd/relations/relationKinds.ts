@@ -1,4 +1,4 @@
-import type { EdgeModel, PageModel, ShapeModel } from '../../../model/types';
+import type { EdgeModel, PageModel, ShapeModel } from '../../../core/model/types';
 import type { Field } from '../tables/fieldModel';
 import { isTableKindId } from '../tables/tableKinds';
 import { shapeById, shapeName } from '../editing/tableTargets';

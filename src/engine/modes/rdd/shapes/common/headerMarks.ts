@@ -1,8 +1,8 @@
 import { Group } from 'three';
 import type { Color } from 'three';
-import type { Point, ShapeModel } from '../../../../model/types';
-import { strokeMesh } from '../../../../render/meshes';
-import { PART_ORDER } from '../../../../render/types';
+import type { Point, ShapeModel } from '../../../../core/model/types';
+import { strokeMesh } from '../../../../core/render/meshes';
+import { PART_ORDER } from '../../../../core/render/types';
 import type { HeaderMark } from '../../tables/tableKinds';
 import { TABLE, tableScale } from '../../tables/tableLayout';
 

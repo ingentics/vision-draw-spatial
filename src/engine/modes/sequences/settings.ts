@@ -1,4 +1,4 @@
-import type { EdgeBadgeStyle } from '../../render/types';
+import type { EdgeBadgeStyle } from '../../core/render/types';
 import type { ModeCurrentLook, ModeSetting, ModeValues } from '../types';
 
 /** Réglages globaux du mode Séquences (Paramètres › Modes › Séquences, ticket 283). */

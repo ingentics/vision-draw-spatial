@@ -1,11 +1,11 @@
-import { PALETTE_CATEGORIES, SHAPE_TEMPLATES } from '../edit/palette';
-import type { PageModePalette } from '../edit/palette';
+import { PALETTE_CATEGORIES, SHAPE_TEMPLATES } from '../core/edit/palette';
+import type { PageModePalette } from '../core/edit/palette';
 import type { PageEffectDefinition } from '../effects/types';
-import type { ViewMode } from '../interaction/cameraMath';
-import type { DocumentModel, ParseWarning, PageModel } from '../model/types';
-import type { ModeSettings } from '../settings/types';
+import type { ViewMode } from '../core/interaction/cameraMath';
+import type { DocumentModel, ParseWarning, PageModel } from '../core/model/types';
+import type { ModeSettings } from '../core/settings/types';
 import type { PaletteCategory, ShapeDefinition, ShapeTemplate } from '../shapes/types';
-import { SPATIAL } from '../spatial';
+import { SPATIAL } from '../core/spatial';
 import { MODE_SHAPE_DEFINITIONS } from './modeShapes';
 import type {
   ModeProperty,

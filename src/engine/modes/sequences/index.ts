@@ -1,4 +1,4 @@
-import type { EdgeModel } from '../../model/types';
+import type { EdgeModel } from '../../core/model/types';
 import type { ModeKey, PageModeDefinition } from '../types';
 import { FLOW, PARTICIPANT, STEP } from './flows';
 import { badgeStyle, currentLook, SEQUENCES_SETTINGS } from './settings';

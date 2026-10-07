@@ -1,4 +1,4 @@
-import type { PageModel, ShapeModel } from '../../../model/types';
+import type { PageModel, ShapeModel } from '../../../core/model/types';
 import type { ModeEdit } from '../../types';
 import type { Field, TableRow } from '../tables/fieldModel';
 import { isRelation, tableFields } from '../tables/fieldModel';

@@ -2,8 +2,8 @@ import { Mesh, Object3D } from 'three';
 import type { MeshBasicMaterial } from 'three';
 import { describe, expect, it } from 'vitest';
 import { definition as forest } from '../../../src/engine/effects/forest';
-import { documentFromTree, readDrawio } from '../../../src/engine/format/parse';
-import type { PageModel } from '../../../src/engine/model/types';
+import { documentFromTree, readDrawio } from '../../../src/engine/core/format/parse';
+import type { PageModel } from '../../../src/engine/core/model/types';
 import { DEFAULT_MODE_EDIT_CONTEXT, applyModeEdit } from '../../../src/engine/modes/modeEdits';
 import { createDefaultModeRegistry } from '../../../src/engine/modes/registry';
 import { definition as sequences } from '../../../src/engine/modes/sequences';
@@ -19,11 +19,11 @@ import {
   setEdgeStep,
 } from '../../../src/engine/modes/sequences/steps';
 import type { ModeEdit } from '../../../src/engine/modes/types';
-import { darken } from '../../../src/engine/render/decorations';
-import { buildPageScene } from '../../../src/engine/render/pageScene';
-import type { RenderContext, TextSpec } from '../../../src/engine/render/types';
+import { darken } from '../../../src/engine/core/render/decorations';
+import { buildPageScene } from '../../../src/engine/core/render/pageScene';
+import type { RenderContext, TextSpec } from '../../../src/engine/core/render/types';
 import { createDefaultRegistry } from '../../../src/engine/shapes/registry';
-import { spatialValue } from '../../../src/engine/spatial';
+import { spatialValue } from '../../../src/engine/core/spatial';
 import { fixture } from '../../helpers';
 
 /** Page `index` de la fixture, et une fonction qui applique une opération puis relit la page. */

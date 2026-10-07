@@ -1,5 +1,5 @@
-import type { ShapeModel } from '../../../../model/types';
-import { SPATIAL } from '../../../../spatial';
+import type { ShapeModel } from '../../../../core/model/types';
+import { SPATIAL } from '../../../../core/spatial';
 import { tagProperty } from '../../../generic/building';
 import type { CylinderDrawing } from '../../../generic/cylinder';
 import { cylinderFlat, cylinderLip, cylinderSilhouette, flatTextZone, ringHeight } from '../../../generic/cylinder';

@@ -1,4 +1,4 @@
-import type { ShapeModel } from '../../../model/types';
+import type { ShapeModel } from '../../../core/model/types';
 import type { ModeEdit, ModeHandle } from '../../types';
 import { addField } from '../tables/operations';
 import { tableKindOf } from '../tables/tableKinds';

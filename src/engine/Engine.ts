@@ -1,22 +1,22 @@
-import type { ElementComment } from './edit/comment';
-import type { UnsupportedReport } from './diagnostics/unsupportedStyles';
-import type { AlignMove, AlignReference, DistributeMove } from './edit/align';
-import type { Anchoring } from './edit/anchoring/mode';
-import type { EdgeEnd } from './edit/edgeLabels';
-import type { ShapeTemplate } from './edit/palette';
-import type { StylePreset } from './edit/stylePresets';
-import type { OrderMove } from './format/order';
-import type { DrawioTree } from './format/xmlTree';
-import type { CameraState, ViewMode } from './interaction/cameraMath';
-import type { HistoryEntry, LinkUsage } from './interaction/navigationHistory';
-import type { PickedElement } from './interaction/pick';
-import type { DocumentModel, LinkModel, PageModel, Point, Rect } from './model/types';
+import type { ElementComment } from './core/edit/comment';
+import type { UnsupportedReport } from './core/diagnostics/unsupportedStyles';
+import type { AlignMove, AlignReference, DistributeMove } from './core/edit/align';
+import type { Anchoring } from './core/edit/anchoring/mode';
+import type { EdgeEnd } from './core/edit/edgeLabels';
+import type { ShapeTemplate } from './core/edit/palette';
+import type { StylePreset } from './core/edit/stylePresets';
+import type { OrderMove } from './core/format/order';
+import type { DrawioTree } from './core/format/xmlTree';
+import type { CameraState, ViewMode } from './core/interaction/cameraMath';
+import type { HistoryEntry, LinkUsage } from './core/interaction/navigationHistory';
+import type { PickedElement } from './core/interaction/pick';
+import type { DocumentModel, LinkModel, PageModel, Point, Rect } from './core/model/types';
 import type { ModeScope, PageModeRegistry } from './modes/registry';
 import type { ModeEdit } from './modes/types';
-import type { JumpDefaults } from './render/edges/jumps';
-import type { PageScene } from './render/pageScene';
-import type { Settings, SettingsPatch } from './settings';
-import { EngineCore } from './core/EngineCore';
+import type { JumpDefaults } from './core/render/edges/jumps';
+import type { PageScene } from './core/render/pageScene';
+import type { Settings, SettingsPatch } from './core/settings';
+import { EngineCore } from './core/domains/EngineCore';
 import type {
   BackTarget,
   EdgeTextAnchor,
@@ -27,9 +27,9 @@ import type {
   ModeHint,
   ModeIndicator,
   Selection,
-} from './core/types';
+} from './core/domains/types';
 
-export type { PreloadSettings, Settings, SettingsPatch, TransitionSettings, ViewSettings } from './settings';
+export type { PreloadSettings, Settings, SettingsPatch, TransitionSettings, ViewSettings } from './core/settings';
 export type {
   BackTarget,
   EdgeTextAnchor,
@@ -43,7 +43,7 @@ export type {
   ModeHint,
   ModeIndicator,
   Selection,
-} from './core/types';
+} from './core/domains/types';
 
 /**
  * Façade publique du moteur (SPEC §4.3). Aucune dépendance à React. Le comportement est dans `core/`, découpé

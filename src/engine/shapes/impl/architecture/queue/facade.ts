@@ -1,6 +1,6 @@
 import type { Group } from 'three';
-import type { Point, ShapeModel } from '../../../../model/types';
-import { SPATIAL } from '../../../../spatial';
+import type { Point, ShapeModel } from '../../../../core/model/types';
+import { SPATIAL } from '../../../../core/spatial';
 import type { SceneRenderer } from '../../../types';
 import {
   building,

@@ -1,6 +1,6 @@
-import { stencilShape } from '../../../format/stencil';
-import type { Point, ShapeModel } from '../../../model/types';
-import { orientedPath } from '../../../render/geometry/orient';
+import { stencilShape } from '../../../core/format/stencil';
+import type { Point, ShapeModel } from '../../../core/model/types';
+import { orientedPath } from '../../../core/render/geometry/orient';
 import { box } from '../box';
 import type { ShapeDefinition } from '../../types';
 

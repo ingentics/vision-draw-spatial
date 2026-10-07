@@ -1,4 +1,4 @@
-import type { ShapeModel } from '../../../../model/types';
+import type { ShapeModel } from '../../../../core/model/types';
 import { tagProperty } from '../../../generic/building';
 import { cylinder3Drawing, cylinderFlat, directionOf, flatTextZone, isLying } from '../../../generic/cylinder';
 import type { ShapeDefinition } from '../../../types';

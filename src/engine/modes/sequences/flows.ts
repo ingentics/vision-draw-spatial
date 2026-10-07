@@ -1,6 +1,6 @@
-import { DRAWIO_STYLES, PASTEL_STYLES } from '../../edit/stylePresets';
-import { modePalette } from '../../settings';
-import type { PageModel } from '../../model/types';
+import { DRAWIO_STYLES, PASTEL_STYLES } from '../../core/edit/stylePresets';
+import { modePalette } from '../../core/settings';
+import type { PageModel } from '../../core/model/types';
 
 /** Flux de la page (attribut de `<diagram>`) : liste ordonnée en JSON `[{"id","title","color"}, …]`. */
 export const FLOWS = 'spatial.flows';

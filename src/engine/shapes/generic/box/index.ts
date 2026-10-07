@@ -1,15 +1,15 @@
 import { Color, Group } from 'three';
-import type { Point, Rect, ShapeModel } from '../../../model/types';
-import { createBox, createLabel, flatBox, VERTEX_DEFAULTS } from '../../../render/flat/box';
-import type { BoxDefaults } from '../../../render/flat/box';
-import { dashPattern } from '../../../render/geometry/stroke';
-import { polygonArc, roundedPolygon } from '../../../render/geometry/paths';
-import { isoBlock, TOP_OFFSET } from '../../../render/iso/block';
-import { fillMesh, strokeMesh } from '../../../render/meshes';
-import { styleNumber, styleOpacity, styleFlag } from '../../../model/styleValues';
-import { styleColor } from '../../../render/styleColors';
-import { PART_ORDER } from '../../../render/types';
-import type { RenderContext } from '../../../render/types';
+import type { Point, Rect, ShapeModel } from '../../../core/model/types';
+import { createBox, createLabel, flatBox, VERTEX_DEFAULTS } from '../../../core/render/flat/box';
+import type { BoxDefaults } from '../../../core/render/flat/box';
+import { dashPattern } from '../../../core/render/geometry/stroke';
+import { polygonArc, roundedPolygon } from '../../../core/render/geometry/paths';
+import { isoBlock, TOP_OFFSET } from '../../../core/render/iso/block';
+import { fillMesh, strokeMesh } from '../../../core/render/meshes';
+import { styleNumber, styleOpacity, styleFlag } from '../../../core/model/styleValues';
+import { styleColor } from '../../../core/render/styleColors';
+import { PART_ORDER } from '../../../core/render/types';
+import type { RenderContext } from '../../../core/render/types';
 import type { SceneRenderer, ShapeDefinition, ShapeDetail, ShapeDetailPath, ShapeDetailText } from '../../types';
 
 export interface BoxOptions {

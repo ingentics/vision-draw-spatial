@@ -1,5 +1,5 @@
-import type { ShapeModel } from '../../../../model/types';
-import { halfEllipseTo } from '../../../../render/geometry/curves';
+import type { ShapeModel } from '../../../../core/model/types';
+import { halfEllipseTo } from '../../../../core/render/geometry/curves';
 import type { CylinderDrawing } from '../../../generic/cylinder';
 
 /** Nom draw.io du « Direct Data » des organigrammes, l'autre façon d'écrire une queue. */

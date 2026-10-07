@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createDefaultModeRegistry } from '../../../../../src/engine/modes/registry';
 import { definition as rdd } from '../../../../../src/engine/modes/rdd';
 import { FIELDS, fieldProblems, tableFields as tableRows } from '../../../../../src/engine/modes/rdd/tables/fieldModel';
-import { spatialValue } from '../../../../../src/engine/spatial';
+import { spatialValue } from '../../../../../src/engine/core/spatial';
 import { fieldsOf, setup } from '../helpers';
 
 describe('mode RDD : champ sélectionné dans sa table (sujet 249)', () => {

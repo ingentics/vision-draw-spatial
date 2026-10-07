@@ -1,10 +1,10 @@
 import { Box3, Object3D } from 'three';
 import { describe, expect, it } from 'vitest';
-import { collectUnsupported } from '../../../src/engine/diagnostics/unsupportedStyles';
-import { parseDrawio } from '../../../src/engine/format/parse';
-import { buildPageScene } from '../../../src/engine/render/pageScene';
+import { collectUnsupported } from '../../../src/engine/core/diagnostics/unsupportedStyles';
+import { parseDrawio } from '../../../src/engine/core/format/parse';
+import { buildPageScene } from '../../../src/engine/core/render/pageScene';
 import { createDefaultRegistry } from '../../../src/engine/shapes/registry';
-import type { RenderContext, TextSpec } from '../../../src/engine/render/types';
+import type { RenderContext, TextSpec } from '../../../src/engine/core/render/types';
 import { fixture } from '../../helpers';
 
 const document = parseDrawio(fixture('storage.drawio'));

@@ -9,9 +9,9 @@ import {
   pageEffectIds,
   withPageEffect,
 } from '../../../src/engine/effects/registry';
-import { readDrawio } from '../../../src/engine/format/parse';
-import type { PageModel } from '../../../src/engine/model/types';
-import { buildPageScene, effectiveLevel } from '../../../src/engine/render/pageScene';
+import { readDrawio } from '../../../src/engine/core/format/parse';
+import type { PageModel } from '../../../src/engine/core/model/types';
+import { buildPageScene, effectiveLevel } from '../../../src/engine/core/render/pageScene';
 import { createDefaultRegistry } from '../../../src/engine/shapes/registry';
 
 const ctx = { text: { create: () => new Object3D() } };

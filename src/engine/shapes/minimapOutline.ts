@@ -1,5 +1,5 @@
-import type { Point, ShapeModel } from '../model/types';
-import { rectPath } from '../render/geometry/paths';
+import type { Point, ShapeModel } from '../core/model/types';
+import { rectPath } from '../core/render/geometry/paths';
 import type { MinimapMapping, MinimapPainter, ShapeDefinition } from './types';
 
 const DEFAULT_FILL = '#ffffff';

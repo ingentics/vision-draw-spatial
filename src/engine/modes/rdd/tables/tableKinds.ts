@@ -1,4 +1,4 @@
-import type { ShapeModel } from '../../../model/types';
+import type { ShapeModel } from '../../../core/model/types';
 import type { KeyType } from './fieldModel';
 
 /** Formes de table du mode RDD (sujets 179 à 181, 215 à 223) : ce qui distingue une entité d'un document, d'une vue… */

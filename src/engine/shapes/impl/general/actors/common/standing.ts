@@ -1,16 +1,16 @@
 import { Group, Vector3 } from 'three';
-import type { Point, Rect, ShapeModel } from '../../../../../model/types';
-import { createLabel } from '../../../../../render/flat/box';
-import { dashPattern } from '../../../../../render/geometry/stroke';
-import { rectPath } from '../../../../../render/geometry/paths';
-import { blockHeight } from '../../../../../render/iso/block';
-import { edgeLines } from '../../../../../render/lines';
-import { fillMesh, solidMaterial, strokeMesh } from '../../../../../render/meshes';
-import { styleNumber, styleOpacity, styleFlag } from '../../../../../model/styleValues';
-import { styleColor } from '../../../../../render/styleColors';
-import { PART_ORDER } from '../../../../../render/types';
-import type { RenderContext } from '../../../../../render/types';
-import { SPATIAL, spatialValue } from '../../../../../spatial';
+import type { Point, Rect, ShapeModel } from '../../../../../core/model/types';
+import { createLabel } from '../../../../../core/render/flat/box';
+import { dashPattern } from '../../../../../core/render/geometry/stroke';
+import { rectPath } from '../../../../../core/render/geometry/paths';
+import { blockHeight } from '../../../../../core/render/iso/block';
+import { edgeLines } from '../../../../../core/render/lines';
+import { fillMesh, solidMaterial, strokeMesh } from '../../../../../core/render/meshes';
+import { styleNumber, styleOpacity, styleFlag } from '../../../../../core/model/styleValues';
+import { styleColor } from '../../../../../core/render/styleColors';
+import { PART_ORDER } from '../../../../../core/render/types';
+import type { RenderContext } from '../../../../../core/render/types';
+import { SPATIAL, spatialValue } from '../../../../../core/spatial';
 import type { SceneRenderer } from '../../../../types';
 import { ARMS } from './figure';
 import type { FigureOf } from './figure';
@@ -81,7 +81,7 @@ export function standingActor(figureOf: FigureOf): SceneRenderer {
       }
       const parts = figure.parts.map((part) => part.map(upright));
       // Cadre de la tête, pièces et traits dans le plan de la silhouette (x, z) : la sélection entoure la tête
-      // (`core/selection/highlight.ts`) et le clic ne prend que la silhouette (`core/selection/picking.ts`).
+      // (`core/domains/selection/highlight.ts`) et le clic ne prend que la silhouette (`core/domains/selection/picking.ts`).
       silhouette.userData.head = {
         x: width / 2 - figure.head.x - figure.head.width,
         y: height - figure.head.y - figure.head.height,
@@ -92,7 +92,7 @@ export function standingActor(figureOf: FigureOf): SceneRenderer {
       silhouette.userData.strokes = figure.strokes.map((line) => line.map(upright));
       if (sign) {
         silhouette.userData.sign = sign;
-        // L'éditeur en place reprend le format du texte dessiné (`core/edit/text/labelEditor.ts`).
+        // L'éditeur en place reprend le format du texte dessiné (`core/domains/edit/text/labelEditor.ts`).
         silhouette.userData.signLabelStyle = signLabelStyle;
       }
 

@@ -1,4 +1,4 @@
-import type { EdgeModel, PageModel, ShapeModel } from '../../../model/types';
+import type { EdgeModel, PageModel, ShapeModel } from '../../../core/model/types';
 import type { ModeProperty, ModeTarget } from '../../types';
 import type { Field, TableRow } from '../tables/fieldModel';
 import { isDivider, isRelation, tableFields } from '../tables/fieldModel';

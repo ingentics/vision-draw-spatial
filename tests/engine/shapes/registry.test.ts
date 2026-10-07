@@ -1,7 +1,7 @@
 import { Group } from 'three';
 import { describe, expect, it } from 'vitest';
-import { parseStyle, resolveShapeKind } from '../../../src/engine/format/style';
-import type { ShapeModel } from '../../../src/engine/model/types';
+import { parseStyle, resolveShapeKind } from '../../../src/engine/core/format/style';
+import type { ShapeModel } from '../../../src/engine/core/model/types';
 import { ShapeRegistry, SHAPE_DEFINITIONS, createDefaultRegistry } from '../../../src/engine/shapes/registry';
 import type { ShapeDefinition } from '../../../src/engine/shapes/types';
 

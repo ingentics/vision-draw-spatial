@@ -39,10 +39,10 @@ changent : la palette, le panneau, le clic, les poignées et les flèches interr
 
 ### Le nom de la forme (`kind`)
 
-Le parseur ([format/parse.ts](../src/engine/format/parse.ts)) prend d'abord l'attribut `spatial.kind` (style ou objet)
+Le parseur ([format/parse.ts](../src/engine/core/format/parse.ts)) prend d'abord l'attribut `spatial.kind` (style ou objet)
 s'il y en a un : il impose la forme dessinée par Drawio Spatial sans toucher au style draw.io (pratique pour essayer
 une définition sur une forme existante : `shape=note;spatial.kind=cylinder3;`). Sinon, `resolveShapeKind`
-([format/style.ts](../src/engine/format/style.ts)) choisit, dans cet ordre :
+([format/style.ts](../src/engine/core/format/style.ts)) choisit, dans cet ordre :
 
 1. `shape=…` explicite (`shape=cylinder3` ► `'cylinder3'`, `shape=mxgraph.aws4.lambda` ► tel quel) ;
 2. sinon le premier nom de style sans valeur (`ellipse;whiteSpace=wrap;` ► `'ellipse'`) ;
@@ -156,7 +156,7 @@ palette est celle du dossier (`internal/` : pas de palette).
   3. une définition qui gère le nom draw.io sans condition (rectangle, BDD).
   Gardez `matches` rapide : elle est appelée pour chaque forme, à chaque construction de scène.
 - Une forme enregistrée sort **automatiquement** du rapport « non supportées »
-  ([diagnostics/unsupportedStyles.ts](../src/engine/diagnostics/unsupportedStyles.ts) appelle `registry.resolve`).
+  ([diagnostics/unsupportedStyles.ts](../src/engine/core/diagnostics/unsupportedStyles.ts) appelle `registry.resolve`).
 - `EngineOptions.registry` permet de passer un autre registre au moteur ; l'appli (palette, panneau) utilise
   `defaultShapeRegistry`. `ShapeRegistry` n'est **pas exporté** par l'API publique ([src/index.ts](../src/index.ts)) :
   une forme s'ajoute dans le moteur lui-même, pas depuis une application cliente.
@@ -165,7 +165,7 @@ palette est celle du dossier (`internal/` : pas de palette).
 
 C'est la géométrie de référence de la forme : un polygone fermé, en coordonnées **page** (x vers la droite, y vers le
 bas, pixels draw.io). Il sert au rendu 2D (`flatBox`), aux volumes (`isoBlock`) et au repli de la mini-carte.
-Utilisez les aides de [render/geometry/paths.ts](../src/engine/render/geometry/paths.ts) : `rectPath`,
+Utilisez les aides de [render/geometry/paths.ts](../src/engine/core/render/geometry/paths.ts) : `rectPath`,
 `roundedRectPath`, `ellipsePath`, `cornerRadius` (lit `rounded` et `arcSize`).
 
 Le contour est **retracé à chaque construction** de la forme. S'il est coûteux à calculer, mémorisez-le dans la
@@ -195,7 +195,7 @@ Trois subtilités :
 ### 3.1 Rendu 2D (`flat`), obligatoire
 
 Pour une forme « boîte » (fond + bordure + label), réutilisez `flatBox(outline, defaults)`
-([render/flat/box.ts](../src/engine/render/flat/box.ts)). Elle lit `fillColor`, `strokeColor`, `strokeWidth`,
+([render/flat/box.ts](../src/engine/core/render/flat/box.ts)). Elle lit `fillColor`, `strokeColor`, `strokeWidth`,
 `dashed` / `dashPattern`, les opacités, puis place le label (`createLabel`). Pour ajouter un détail (pli, icône,
 séparateur…), appelez `createBox` et ajoutez vos meshes au groupe renvoyé.
 
@@ -204,7 +204,7 @@ Le rendu 2D est aussi **le repli de tout le reste** : il doit être complet par 
 ### 3.2 Rendu iso / 3D (`iso`), optionnel
 
 Pour un volume simple (prisme droit du contour), réutilisez `isoBlock(outline, defaults)`
-([render/iso/block.ts](../src/engine/render/iso/block.ts)). Elle fournit :
+([render/iso/block.ts](../src/engine/core/render/iso/block.ts)). Elle fournit :
 
 - le **dessus** : fond opaque et rendu 2D surélevé (label, détails) ;
 - les **côtés**, ombrés selon leur orientation (paramètres `view.shadeLight` et `view.shadeDark`) ;
@@ -244,7 +244,7 @@ Pour un rendu iso sur mesure :
 
 ### 3.4 Hauteurs, empilement, pastille de lien
 
-C'est calculé par `volumeLayout` ([render/pageScene.ts](../src/engine/render/pageScene.ts)), pas par la définition :
+C'est calculé par `volumeLayout` ([render/pageScene.ts](../src/engine/core/render/pageScene.ts)), pas par la définition :
 
 - **épaisseur** : 0 sans rendu `iso` ou avec `fillColor=none` ; sinon `registry.volumeHeight(shape, ctx)` (la `volumeHeight` de la définition, sinon `blockHeight`) ;
 - **base** : dessus du conteneur parent s'il est en volume, plus `spatial.elevation` ;
@@ -273,12 +273,12 @@ draw.io codés dans le moteur.**
 
 Règles à respecter :
 
-- **Lisez le style avec les aides** de [model/styleValues.ts](../src/engine/model/styleValues.ts) (`styleNumber`,
-  `styleFlag`, `styleOpacity`, `fontStyleBits`) et de [render/styleColors.ts](../src/engine/render/styleColors.ts)
+- **Lisez le style avec les aides** de [model/styleValues.ts](../src/engine/core/model/styleValues.ts) (`styleNumber`,
+  `styleFlag`, `styleOpacity`, `fontStyleBits`) et de [render/styleColors.ts](../src/engine/core/render/styleColors.ts)
   (`styleColor(style, clé, défaut)`, qui gère `none`, `default` et les couleurs invalides ; `labelBackground`). Ne
   parsez pas les chaînes vous-même.
 - **Attributs spatiaux** : passez par `spatialNumber(shape, SPATIAL.xxx)` / `spatialValue`
-  ([spatial.ts](../src/engine/spatial.ts)), qui lisent le style **puis** les attributs de l'objet. Un nouvel
+  ([spatial.ts](../src/engine/core/spatial.ts)), qui lisent le style **puis** les attributs de l'objet. Un nouvel
   attribut se déclare dans `SPATIAL`, avec le préfixe `spatial.`, que draw.io conserve (SPEC §14.3).
 - **Défauts de fidélité** : les défauts propres à une forme draw.io (sa couleur, sa taille de pli…) restent des
   constantes de la définition. Ils doivent donner **le même rendu qu'à la réouverture dans draw.io** et ne vont pas
@@ -288,14 +288,14 @@ Règles à respecter :
 
 ### 4.1 Rendre une valeur réglable
 
-Les paramètres sont la source de vérité ([engine/settings/index.ts](../src/engine/settings/index.ts)). Un renderer n'y accède
+Les paramètres sont la source de vérité ([engine/core/settings/index.ts](../src/engine/core/settings/index.ts)). Un renderer n'y accède
 jamais directement : tout passe par le **`RenderContext`**, construit par `Engine.renderContext()`.
 
 1. Ajoutez le champ dans l'interface de section (ex. `ShapeSettings`) et dans le schéma de sa section
-   ([settings/schema/](../src/engine/settings/schema/index.ts)) : `number(défaut, { min, max, step })`, `color`,
+   ([settings/schema/](../src/engine/core/settings/schema/index.ts)) : `number(défaut, { min, max, step })`, `color`,
    `flag` ou `oneOf` (une valeur invalide est ignorée). `DEFAULT_SETTINGS`, `SETTINGS_LIMITS` et `mergeSettings` en
    découlent.
-2. Ajoutez le champ dans `RenderContext` ([render/types.ts](../src/engine/render/types.ts)), **optionnel**, avec un
+2. Ajoutez le champ dans `RenderContext` ([render/types.ts](../src/engine/core/render/types.ts)), **optionnel**, avec un
    repli sur la constante dans le renderer (`ctx.monChamp ?? DEFAUT`). Les tests et les appels sans contexte complet
    continuent ainsi de fonctionner.
 3. Remplissez-le dans `Engine.renderContext()`.
@@ -304,7 +304,7 @@ jamais directement : tout passe par le **`RenderContext`**, construit par `Engin
    sans cette ligne, le réglage ne s'applique qu'aux pages construites ensuite.
 5. Ajoutez le champ au panneau ([app/SettingsPanel.tsx](../src/app/SettingsPanel.tsx)), dans la bonne section et
    sous-section. La recherche le trouve d'elle-même.
-6. Mettez à jour SPEC §13 et `tests/engine/settings.test.ts`.
+6. Mettez à jour SPEC §13 et `tests/engine/core/settings.test.ts`.
 
 ---
 
@@ -327,7 +327,7 @@ Le moteur manipule l'`Object3D` renvoyé par `create` après coup. Pour que tout
 - **Opacité et voile** : le fondu entre pages et les bascules (`setPageOpacity`) et le voile de sélection
   (`liftAboveVeil`) parcourent votre objet. Ils mémorisent l'opacité et l'ordre de dessin de chaque mesh et les
   restaurent ensuite. Un objet ajouté **plus tard**, de façon asynchrone, échappe à cette restauration : c'est le bug
-  corrigé pour le fond des labels (`followRenderOrder`, [render/renderOrder.ts](../src/engine/render/renderOrder.ts)).
+  corrigé pour le fond des labels (`followRenderOrder`, [render/renderOrder.ts](../src/engine/core/render/renderOrder.ts)).
   Si votre forme ajoute un enfant après coup (texture chargée, texte mis en page), son ordre de dessin doit suivre
   celui de son parent.
 - **Textes** : passez toujours par `ctx.text.create(spec)` (ou `createLabel`), jamais par troika directement. Les
@@ -369,8 +369,8 @@ Restent hors de la définition, parce que ce sont des règles du format draw.io 
 
 | Aspect | Où | Comportement |
 | --- | --- | --- |
-| Accroche des flèches : périmètre | `perimeterKind` dans [render/edges/route.ts](../src/engine/render/edges/route.ts) | `perimeter=…`, sinon style nommé (`ellipse`, `rhombus`, `triangle`), sinon **rectangle** ; à porter de draw.io (mxPerimeter) si la forme en a un propre (un périmètre polygonal : son contour dans `perimeterPolygon`, ex. `hexagonPerimeter2`) |
-| Nom de la forme | `SHAPE_ALIASES` dans [format/style.ts](../src/engine/format/style.ts) | synonymes draw.io (`rect`, `label` ► `rectangle`) |
+| Accroche des flèches : périmètre | `perimeterKind` dans [render/edges/route.ts](../src/engine/core/render/edges/route.ts) | `perimeter=…`, sinon style nommé (`ellipse`, `rhombus`, `triangle`), sinon **rectangle** ; à porter de draw.io (mxPerimeter) si la forme en a un propre (un périmètre polygonal : son contour dans `perimeterPolygon`, ex. `hexagonPerimeter2`) |
+| Nom de la forme | `SHAPE_ALIASES` dans [format/style.ts](../src/engine/core/format/style.ts) | synonymes draw.io (`rect`, `label` ► `rectangle`) |
 | Position du label | `createLabel` | `labelPosition` / `verticalLabelPosition` gérés par le registre (`textZone`) |
 | Conteneurs en volume | `volumeLayout` | un conteneur en volume porte ses enfants (3.4) |
 
@@ -476,16 +476,16 @@ Enfin :
 ## 8. Tests
 
 **Orientation et contour contre draw.io.** Dessinez le contour dans le cadre local avec `orientedPath`
-([render/geometry/orient.ts](../src/engine/render/geometry/orient.ts)), qui reproduit `direction`, `flipH` / `flipV`
+([render/geometry/orient.ts](../src/engine/core/render/geometry/orient.ts)), qui reproduit `direction`, `flipH` / `flipV`
 comme draw.io, puis ajoutez la forme et ses variantes à la fixture `shapes.drawio`
 ([tests/engine/shapes/shapesFixture.test.ts](../tests/engine/shapes/shapesFixture.test.ts)) :
 `make drawio-check` la fait exporter en SVG par draw.io et compare chaque contour et chaque flèche au pixel près.
 
 
 Les rendus se testent sans navigateur, avec une fabrique de texte factice. Modèles à suivre :
-[tests/engine/render/pageScene.test.ts](../tests/engine/render/pageScene.test.ts) (2D),
-[volume.test.ts](../tests/engine/render/volume.test.ts) (iso),
-[levels.test.ts](../tests/engine/render/levels.test.ts) (niveaux et replis).
+[tests/engine/core/render/pageScene.test.ts](../tests/engine/core/render/pageScene.test.ts) (2D),
+[volume.test.ts](../tests/engine/core/render/volume.test.ts) (iso),
+[levels.test.ts](../tests/engine/core/render/levels.test.ts) (niveaux et replis).
 
 ```ts
 const texts: TextSpec[] = [];

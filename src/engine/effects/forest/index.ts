@@ -1,4 +1,4 @@
-import type { Point } from '../../model/types';
+import type { Point } from '../../core/model/types';
 import type { PageEffectDefinition } from '../types';
 import { forestMesh } from './trees';
 import type { Tree } from './trees';

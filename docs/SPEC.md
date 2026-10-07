@@ -98,91 +98,92 @@ Règles de dépendance :
 ```
 src/
   engine/
-    index.ts           # point d'entrée du moteur : seul import permis à app/, react/ et src/index.ts
-    Engine.ts          # façade publique du moteur : délègue à core/
-    spatial.ts         # attributs spatial.* (lecture style puis objet)
-    events.ts          # émetteur d'événements
-    model/             # modèle neutre et calculs purs (ni Three.js ni rendu)
-      types.ts         # DocumentModel, PageModel, ShapeModel, EdgeModel, LinkModel
-      geometry.ts      # points, rectangles, segments
-      styleValues.ts   # lecture des valeurs de style (nombres, drapeaux, opacité, police)
-      pageGeometry.ts  # empreinte de la géométrie d'une page (avant / après une édition)
-      navigationGraph.ts # graphe de navigation entre pages
-    format/            # draw.io <-> modèle (ni Three.js ni React)
-      decode.ts        # décompression base64 + inflate + URI decode
-      parse.ts         # XML -> DocumentModel
-      style.ts         # parsing des chaînes de style "key=value;..."
-      xmlTree.ts       # conservation de l'arbre XML d'origine
-      write.ts         # écriture in situ
-      cellEdits.ts     # écritures dans l'arbre (géométrie, label, style)
-      clipboardCells.ts # copier / coller au format de draw.io
-    edit/              # règles d'édition pures (reçoivent leurs données en paramètres)
-      anchoring/       # ancrage des flèches : manual/, auto/, pcb/ et briques communes
-    interaction/       # calculs purs de la vue et de la navigation
-      cameraMath.ts    # ortho / iso / 3D, pan, zoom, cadrages, état sérialisable
-      controls/        # contrôles du canvas : raccourcis, réglages, inertie, souris, clavier
-      transitionMath.ts # zoom + fondu entre pages, partie calcul
-      navigationHistory.ts # pile de navigation, pages parentes
-      selectionRules.ts # sélection multiple, touches
-      minimapLayout.ts # mini-carte (canvas 2D)
-    render/            # dessin Three.js (consomme le modèle neutre)
-      flat/            # briques du rendu à plat (boîte, label)
-      iso/             # briques du rendu en volume
-      edges/           # arêtes : tracé, pointes, labels
-        route/         # tracé porté de draw.io : périmètres, bouts, un fichier par routeur
-      geometry/        # contours, traits épais, pointillés
-      styleColors.ts   # couleurs lues dans le style
-      pageScene.ts     # construction de la scène d'une page à un niveau donné
-      sceneManager.ts  # scènes construites (par page et par niveau), visibilité, cache
-    graph/
-      graphPage.ts     # vue graphe : page générée (cartes, flèches), disposition en couches
-      graphScene.ts    # scène du graphe avec les miniatures des pages
-    shapes/            # les formes, en plugins (§8.2)
-      types.ts         # ShapeDefinition : rendus, géométrie, interaction, palette, panneau
-      registry.ts      # collecte des dossiers, résolution forme → définition, replis génériques
-      placeholder.ts   # repli des formes non supportées
-      minimapOutline.ts # repli mini-carte : contour de la forme
-      generic/         # bases à étendre : box/, stencil/, tagged-process/, cylinder/, building/
-      impl/            # une forme par élément de la palette, nommée comme l'interface
-        geometry/      # rectangle/, rounded-rectangle/, ellipse/, circle/, diamond/
-        general/       # text/
-        architecture/  # database/, queue/, distributed-cache/, plug/, process/, event-consumer/, background-task/,
-                       # recurring-task/, labeled-process/
-        internal/      # hors palette : group/
-    modes/             # modes de page, un dossier par mode (rdd/, sequences/), registre et formes propres
-    effects/           # effets de page (forest/), registre
-    persistence/
-      FileStore.ts     # interface
-      IndexedDbStore.ts
-      Autosaver.ts     # sauvegarde automatique
-    diagnostics/
-      unsupportedStyles.ts
-    settings/          # paramètres : types, défauts, bornes, validateurs, fusion par section (index.ts : façade)
-    core/              # comportement du moteur, un dossier par domaine
-      EngineCore.ts    # infrastructure partagée et câblage des domaines
-      types.ts         # types publics (réexportés par Engine.ts)
-      runtime/         # paramètres, rendu WebGL, taille du canvas
-      document/        # fichier chargé, annuler / rétablir, pages
-      view/            # caméra, modes de vue, niveaux 2D / volume, scènes, vue graphe, mini-carte
-      selection/       # sélection, ce qui est sous le pointeur, mise en valeur
-      input/           # gestes du pointeur, touches maintenues, branchement des contrôles
-      navigation/      # liens, retour, transitions entre pages
-      modes/           # modes et effets de page
-      edit/            # cibles modifiables, poignées
-        edges/         # flèches : poignées, ancrages, points, agencement, sauts
-        drag/          # glisser : geste, un fichier par type de glisser, aperçu, modifications en direct
-        text/          # éditeur en place, textes de flèche, texte et format
-        commands/      # éléments, styles, ordre et alignement, presse-papier, lien et attributs
+    index.ts             # point d'entrée du moteur : seul import permis à app/, react/ et src/index.ts
+    Engine.ts            # façade publique du moteur : délègue à core/domains/
+    events.ts            # émetteur d'événements
+    core/                # tronc commun du moteur (tout sauf la façade et les plugins)
+      spatial.ts         # attributs spatial.* (lecture style puis objet)
+      model/             # modèle neutre et calculs purs (ni Three.js ni rendu)
+        types.ts         # DocumentModel, PageModel, ShapeModel, EdgeModel, LinkModel
+        geometry.ts      # points, rectangles, segments
+        styleValues.ts   # lecture des valeurs de style (nombres, drapeaux, opacité, police)
+        pageGeometry.ts  # empreinte de la géométrie d'une page (avant / après une édition)
+        navigationGraph.ts # graphe de navigation entre pages
+      format/            # draw.io <-> modèle (ni Three.js ni React)
+        decode.ts        # décompression base64 + inflate + URI decode
+        parse.ts         # XML -> DocumentModel
+        style.ts         # parsing des chaînes de style "key=value;..."
+        xmlTree.ts       # conservation de l'arbre XML d'origine
+        write.ts         # écriture in situ
+        cellEdits.ts     # écritures dans l'arbre (géométrie, label, style)
+        clipboardCells.ts # copier / coller au format de draw.io
+      edit/              # règles d'édition pures (reçoivent leurs données en paramètres)
+        anchoring/       # ancrage des flèches : manual/, auto/, pcb/ et briques communes
+      interaction/       # calculs purs de la vue et de la navigation
+        cameraMath.ts    # ortho / iso / 3D, pan, zoom, cadrages, état sérialisable
+        controls/        # contrôles du canvas : raccourcis, réglages, inertie, souris, clavier
+        transitionMath.ts # zoom + fondu entre pages, partie calcul
+        navigationHistory.ts # pile de navigation, pages parentes
+        selectionRules.ts # sélection multiple, touches
+        minimapLayout.ts # mini-carte (canvas 2D)
+      render/            # dessin Three.js (consomme le modèle neutre)
+        flat/            # briques du rendu à plat (boîte, label)
+        iso/             # briques du rendu en volume
+        edges/           # arêtes : tracé, pointes, labels
+          route/         # tracé porté de draw.io : périmètres, bouts, un fichier par routeur
+        geometry/        # contours, traits épais, pointillés
+        styleColors.ts   # couleurs lues dans le style
+        pageScene.ts     # construction de la scène d'une page à un niveau donné
+        sceneManager.ts  # scènes construites (par page et par niveau), visibilité, cache
+      graph/
+        graphPage.ts     # vue graphe : page générée (cartes, flèches), disposition en couches
+        graphScene.ts    # scène du graphe avec les miniatures des pages
+      persistence/
+        FileStore.ts     # interface
+        IndexedDbStore.ts
+        Autosaver.ts     # sauvegarde automatique
+      diagnostics/
+        unsupportedStyles.ts
+      settings/          # paramètres : types, défauts, bornes, validateurs, fusion par section (index.ts : façade)
+      domains/           # comportement du moteur, un dossier par domaine
+        EngineCore.ts    # infrastructure partagée et câblage des domaines
+        types.ts         # types publics (réexportés par Engine.ts)
+        runtime/         # paramètres, rendu WebGL, taille du canvas
+        document/        # fichier chargé, annuler / rétablir, pages
+        view/            # caméra, modes de vue, niveaux 2D / volume, scènes, vue graphe, mini-carte
+        selection/       # sélection, ce qui est sous le pointeur, mise en valeur
+        input/           # gestes du pointeur, touches maintenues, branchement des contrôles
+        navigation/      # liens, retour, transitions entre pages
+        modes/           # modes et effets de page
+        edit/            # cibles modifiables, poignées
+          edges/         # flèches : poignées, ancrages, points, agencement, sauts
+          drag/          # glisser : geste, un fichier par type de glisser, aperçu, modifications en direct
+          text/          # éditeur en place, textes de flèche, texte et format
+          commands/      # éléments, styles, ordre et alignement, presse-papier, lien et attributs
+    shapes/              # les formes, en plugins (§8.2)
+      types.ts           # ShapeDefinition : rendus, géométrie, interaction, palette, panneau
+      registry.ts        # collecte des dossiers, résolution forme → définition, replis génériques
+      placeholder.ts     # repli des formes non supportées
+      minimapOutline.ts  # repli mini-carte : contour de la forme
+      generic/           # bases à étendre : box/, stencil/, tagged-process/, cylinder/, building/
+      impl/              # une forme par élément de la palette, nommée comme l'interface
+        geometry/        # rectangle/, rounded-rectangle/, ellipse/, circle/, diamond/
+        general/         # text/
+        architecture/    # database/, queue/, distributed-cache/, plug/, process/, event-consumer/, background-task/,
+                         # recurring-task/, labeled-process/
+        internal/        # hors palette : group/
+    modes/               # modes de page, un dossier par mode (rdd/, sequences/), registre et formes propres
+    effects/             # effets de page (forest/), registre
   react/
-    DrawioSpatial.tsx  # composant principal
+    DrawioSpatial.tsx    # composant principal
     Launcher.tsx
     Toolbar.tsx
-    Palette.tsx        # M2
+    Palette.tsx          # M2
     BackButton.tsx
   app/
-    main.tsx           # application de démonstration
+    main.tsx             # application de démonstration
 tests/
-  fixtures/            # fichiers .drawio de test
+  fixtures/              # fichiers .drawio de test
 ```
 
 ### 4.3 Façade du moteur
@@ -700,7 +701,7 @@ Réalisation retenue :
 
 ## 13. Paramètres
 
-Tout ce qui touche à l'expérience utilisateur est paramétrable, avec des valeurs par défaut agréables (`engine/settings/schema/` : défaut, bornes et lecture de chaque réglage) :
+Tout ce qui touche à l'expérience utilisateur est paramétrable, avec des valeurs par défaut agréables (`engine/core/settings/schema/` : défaut, bornes et lecture de chaque réglage) :
 
 ```ts
 interface Settings {
@@ -804,7 +805,7 @@ Réalisation retenue :
 
 - **Nouveau fichier** à partir d'un squelette draw.io vide valide.
 - Ajout / suppression / renommage de **pages**.
-- **Palette** de formes (barre latérale gauche, comme celle de draw.io) : on **glisse-dépose** une forme sur le plan, elle est placée au point de dépôt (projection du curseur sur le sol, valable en vue de dessus comme en iso) ; un clic l'ajoute au centre de la vue. En haut, une **recherche** (en direct, casse et accents ignorés, sur le nom, les mots-clés et la catégorie de chaque forme ; plusieurs mots = tous présents ; Échap ou × la vide) ; en dessous, les formes en **grille d'icônes** (nom en infobulle), rangées par **catégorie** repliable (« Géométrie », « Général », « Architecture » ; état retenu dans le navigateur). En tête, la catégorie **« Utilisées »** montre une icône par type de forme présent sur la page courante (modèle reconnu d'après la définition de la forme résolue : chaque élément de la palette est une forme), dans l'ordre de la palette ; elle est masquée tant que la page n'a aucune forme reconnue et suit en direct ajouts, suppressions, annuler / rétablir et changement de page. Pendant une recherche, seules les catégories qui ont des résultats s'affichent, ouvertes. Modèles, catégories et mots-clés : `engine/edit/palette.ts` (`SHAPE_TEMPLATES`, `PALETTE_CATEGORIES`, `searchTemplates`, `templateOfShape`, `usedTemplates`).
+- **Palette** de formes (barre latérale gauche, comme celle de draw.io) : on **glisse-dépose** une forme sur le plan, elle est placée au point de dépôt (projection du curseur sur le sol, valable en vue de dessus comme en iso) ; un clic l'ajoute au centre de la vue. En haut, une **recherche** (en direct, casse et accents ignorés, sur le nom, les mots-clés et la catégorie de chaque forme ; plusieurs mots = tous présents ; Échap ou × la vide) ; en dessous, les formes en **grille d'icônes** (nom en infobulle), rangées par **catégorie** repliable (« Géométrie », « Général », « Architecture » ; état retenu dans le navigateur). En tête, la catégorie **« Utilisées »** montre une icône par type de forme présent sur la page courante (modèle reconnu d'après la définition de la forme résolue : chaque élément de la palette est une forme), dans l'ordre de la palette ; elle est masquée tant que la page n'a aucune forme reconnue et suit en direct ajouts, suppressions, annuler / rétablir et changement de page. Pendant une recherche, seules les catégories qui ont des résultats s'affichent, ouvertes. Modèles, catégories et mots-clés : `engine/core/edit/palette.ts` (`SHAPE_TEMPLATES`, `PALETTE_CATEGORIES`, `searchTemplates`, `templateOfShape`, `usedTemplates`).
 - **Barres latérales** (appli de démo, `app/Sidebar.tsx`) : à gauche la palette (« Formes »), à droite le panneau contextuel ou les Diagnostics, **tous à la même largeur** (celle de la barre de droite : le plan ne bouge pas quand on passe de l'un à l'autre). Chaque barre se **replie** par son bouton `«` / `»` en haut : elle laisse place à une bande verticale fine portant son nom à la verticale, de bas en haut par défaut (paramètre « Barres latérales », ou de haut en bas) — « Formes » à gauche ; à droite le titre du panneau courant, suivi en direct (« Page », « Forme », « Flèche », « 3 formes », « Texte », « Diagnostics ») ; un clic sur la bande la rouvre. Ouvrir les Diagnostics depuis la barre d'outils rouvre la barre de droite ; un changement de sélection ne fait que changer le texte de la bande. Une **poignée** sur le bord intérieur de chaque barre ouverte règle sa largeur au glisser (gauche 160–400 px, droite 240–600 px, le plan garde au moins 320 px), au clavier (flèches ± 16 px, Origine = défaut) ou par double-clic (largeur par défaut : 208 / 380 px). Replis et largeurs sont dans les paramètres (`panels`, §13), enregistrés au repli / dépli et à la fin d'un glisser, rechargés au lancement, remis par défaut par « Réinitialiser ».
 - **Déplacement** des formes à la souris, redimensionnement, édition du label.
 - **Textes de début et de fin d'une flèche** (comme les multiplicités UML) : labels enfants de l'arête au format draw.io (`edgeLabel`, géométrie relative `x=-0.8` côté source, `x=0.8` côté cible, soit 10 % de la longueur depuis chaque bout). **Double-clic près d'un bout** de la flèche (dernier quart du tracé de chaque côté) : boîte de texte du début ou de la fin ; vers le milieu : label principal. Aussi par les champs « Début » et « Fin » du panneau contextuel (section « Texte »). Texte vide = label retiré. **Position des textes** : pendant l'édition en place d'un texte de flèche, une poignée ◇ sous le texte le déplace librement (position le long du tracé = point le plus proche, écart de côté, décalage `offset` gardé), écrit comme draw.io dans la géométrie relative du label (`x`, `y`, `<mxPoint as="offset">`), une étape d'annulation. **Configuration par défaut** (`edgeTextLayout`) d'un texte de début ou de fin créé, d'après le tracé : contre son bout (x = ±1, décalage de 6 px le long de la flèche et 4 px de côté), le texte s'éloignant de la forme et du trait — segment horizontal : début au-dessus du trait (`verticalAlign=bottom`), fin en dessous (`top`), aligné à gauche si la flèche part vers la droite depuis ce bout, à droite sinon ; segment vertical : début à droite du trait, fin à gauche, le texte partant le long du trait ; taille, couleur et écarts des paramètres `shapes.edgeEndTextSize` (9 px), `shapes.edgeEndTextColor` (gris), `shapes.edgeEndTextGapAlong` / `edgeEndTextGapAcross` (6 / 4 px). **Bascule de côté** : pendant l'édition d'un texte de début ou de fin dans sa configuration par défaut, une flèche à côté de la poignée ◇ le fait sauter de l'autre côté du trait (règle inversée : dessous au lieu de dessus, ou aligné à droite à gauche au lieu d'aligné à gauche à droite), puis le ramène ; un texte encore à créer est créé de ce côté. Placé à la main, le texte n'a plus de bascule. Le panneau contextuel (« Position des textes ») ancre chaque texte au **début**, au **milieu** (centré sur le trait) ou à la **fin**, avec cette même configuration ; un texte vaut texte de début ou de fin selon sa position (au-delà de ±0,5). Case « Texte du milieu : suit la flèche » (`spatial.labelFollow=1` dans le style de la flèche ; draw.io le garde horizontal) : le texte du milieu court le long du trait dessiné (coudes arrondis et courbes compris) : chaque lettre est posée sur le tracé et tournée selon sa tangente, le bloc centré sur le point d'ancrage (ou parti de lui / fini sur lui selon l'alignement), écart de côté gardé parallèlement au trait, plusieurs lignes empilées ; posé dans l'autre sens du tracé s'il se lirait de droite à gauche ou de bas en haut ; prolongé en ligne droite au-delà des bouts ; fond, souligné et barré non dessinés (`render/textPath.ts`). Il suit le tracé quand celui-ci change ou qu'on tire le texte. Case cochée, un champ « Décalage le long du trait (px) » (négatif possible) le fait glisser le long du trait pour l'ajustement fin (`spatial.labelFollowShift`) ; l'éditeur en place, tourné comme le trait, et sa poignée ◇ suivent le texte décalé. Un clic sur le texte d'une flèche (sa boîte dessinée, même loin du tracé) sélectionne la flèche ; un double-clic édite ce texte. **Ancrage par l'alignement**, comme draw.io : un texte de flèche aligné à gauche part de son point vers la droite (côté gauche fixe), aligné à droite vers la gauche, centré de part et d'autre ; de même en hauteur (aligné en haut : vers le bas ; en bas : vers le haut). Un label enfant existant au-delà de ±0,5 compte comme texte de début ou de fin (le plus proche du bout). API : `engine.setEdgeEndLabel(edgeId, 'start' | 'end', texte)`, `engine.editEdgeEndLabel(edgeId, end)` (événement `labelEdit` avec `end`).
@@ -841,7 +842,7 @@ Réalisation retenue :
 - Préfixe unique pour éviter toute collision avec les attributs draw.io.
 - Ces attributs **ne doivent pas être perdus** quand le fichier est ouvert puis sauvegardé dans draw.io. À vérifier par des tests manuels documentés (voir §15).
 
-Réalisation retenue (`engine/spatial.ts`) :
+Réalisation retenue (`engine/core/spatial.ts`) :
 
 | Attribut | Où | Effet |
 |---|---|---|
@@ -1041,7 +1042,7 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   1. Ouvrir l'exemple `fixtures/three-rectangles.drawio`, déplacer A, B et C (en 2D et en iso), passer en iso, Sauvegarder.
   2. Ouvrir le fichier téléchargé dans draw.io : rectangles aux nouvelles positions, flèche A → B retracée, rien d'autre de changé. Le déplacer un peu dans draw.io, enregistrer.
   3. Rouvrir ce fichier dans l'application (glisser-déposer) : positions de draw.io, et même vue iso qu'à l'étape 1 (attribut `spatial.view` conservé).
-- **Conservation par draw.io, automatisée** : `make drawio-check` fait réenregistrer les fixtures par le draw.io installé (`draw.io -x -f xml --uncompressed`, qui charge le fichier dans l'éditeur puis l'écrit) dans `tests/fixtures/drawio-saved/`, puis vérifie que pages, `spatial.view`, attributs `spatial.*` (style et objet) et géométries sont identiques (`tests/engine/spatial`). Les sorties sont versionnées : le test tourne aussi sans draw.io. Exclues car volontairement invalides pour draw.io : `broken.drawio`, `groups.drawio` (parent inexistant : draw.io perd la page), `roundtrip.drawio` (élément inconnu dans `<root>` : export refusé). L'export en ligne de commande passe en mode visionneuse (`grid`, `page`, `dx`/`dy` de `<mxGraphModel>` réécrits) : ces attributs ne sont pas comparés.
+- **Conservation par draw.io, automatisée** : `make drawio-check` fait réenregistrer les fixtures par le draw.io installé (`draw.io -x -f xml --uncompressed`, qui charge le fichier dans l'éditeur puis l'écrit) dans `tests/fixtures/drawio-saved/`, puis vérifie que pages, `spatial.view`, attributs `spatial.*` (style et objet) et géométries sont identiques (`tests/engine/core/spatial`). Les sorties sont versionnées : le test tourne aussi sans draw.io. Exclues car volontairement invalides pour draw.io : `broken.drawio`, `groups.drawio` (parent inexistant : draw.io perd la page), `roundtrip.drawio` (élément inconnu dans `<root>` : export refusé). L'export en ligne de commande passe en mode visionneuse (`grid`, `page`, `dx`/`dy` de `<mxGraphModel>` réécrits) : ces attributs ne sont pas comparés.
 - **Procédure manuelle des attributs spatiaux** (sauvegarde interactive, complément de `make drawio-check`) :
   1. Ouvrir l'exemple `fixtures/spatial.drawio` dans l'appli (vue iso : socle épais, forme posée dessus, bloc haut, ellipse qui flotte) ; changer l'épaisseur d'une forme dans le panneau contextuel ; Sauvegarder.
   2. Ouvrir le fichier dans draw.io : clic droit sur une forme → « Modifier le style » (`spatial.height=…`, `spatial.elevation=…`) et « Modifier les données » (`spatial.height`, `spatial.note` du bloc vert) ; déplacer une forme, enregistrer.
