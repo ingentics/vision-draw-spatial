@@ -129,6 +129,16 @@ export function setRegionColor(edit: ModeEdit, shape: ShapeModel, color: string 
   edit.setElementStyle(shape.id, 'fontColor', regionTextColor(color));
 }
 
+/**
+ * Emprise d'une forme dans sa région parente (sujet 237) : ses bornes, onglet compris pour une région qui a un nom
+ * (il dépasse au-dessus d'elle).
+ */
+export function extentOf(shape: ShapeModel, bounds: Rect = shape.bounds): Rect {
+  if (!isRegion(shape) || !shape.label.trim()) return bounds;
+  const { height } = REGION.tab;
+  return { ...bounds, y: bounds.y - height, height: bounds.height + height };
+}
+
 /** Deux rectangles se chevauchent-ils (bords exclus) ? */
 const overlaps = (a: Rect, b: Rect) =>
   a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
@@ -172,7 +182,8 @@ export function growRegions(edit: ModeEdit, shapeIds: string[], before?: PageMod
       seen.add(shape.id);
       const region = ownerOf(shape);
       if (!region) break;
-      const inner = boundsOf(shape);
+      // La forme compte avec son onglet si c'est une région (sujet 237).
+      const inner = extentOf(shape, boundsOf(shape));
       const outer = boundsOf(region);
       const fits =
         inner.x >= outer.x &&
@@ -258,10 +269,12 @@ export function fitRegion(edit: ModeEdit, region: ShapeModel): void {
     .map((id) => page.shapes.find((s) => s.id === id))
     .filter((shape): shape is ShapeModel => shape !== undefined);
   if (!isRegion(region) || content.length === 0) return;
-  const left = Math.min(...content.map((s) => s.bounds.x)) - REGION.margin;
-  const top = Math.min(...content.map((s) => s.bounds.y)) - REGION.margin;
-  const right = Math.max(...content.map((s) => s.bounds.x + s.bounds.width)) + REGION.margin;
-  const bottom = Math.max(...content.map((s) => s.bounds.y + s.bounds.height)) + REGION.margin;
+  // Les régions contenues comptent avec leur onglet (sujet 237).
+  const extents = content.map((s) => extentOf(s));
+  const left = Math.min(...extents.map((r) => r.x)) - REGION.margin;
+  const top = Math.min(...extents.map((r) => r.y)) - REGION.margin;
+  const right = Math.max(...extents.map((r) => r.x + r.width)) + REGION.margin;
+  const bottom = Math.max(...extents.map((r) => r.y + r.height)) + REGION.margin;
   edit.setShapeBounds(region.id, { x: left, y: top, width: right - left, height: bottom - top });
   orderRegions(edit);
 }

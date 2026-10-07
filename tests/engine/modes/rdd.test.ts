@@ -663,9 +663,10 @@ describe('mode RDD : la région s’étend quand on y pose une forme qui dépass
     expect(move('t', 80, 90)).toBe(true);
     expect(bounds('small')).toEqual({ x: 60, y: 70, width: 240, height: 180 });
     expect(bounds('big')).toEqual({ x: 0, y: 0, width: 500, height: 300 });
-    // Small sortie à son tour par le haut de Big : Big s'agrandit vers le haut, marge comprise.
+    // Small sortie à son tour par le haut de Big : Big s'agrandit vers le haut, au-dessus de l'onglet de Small
+    // (sujet 237), marge comprise.
     expect(move('small', 60, -10)).toBe(true);
-    expect(bounds('big')).toEqual({ x: 0, y: -30, width: 500, height: 330 });
+    expect(bounds('big')).toEqual({ x: 0, y: -46, width: 500, height: 346 });
   });
 
   it('tirée complètement hors de sa région, la forme en sort : rien ne s’agrandit (sujet 234)', () => {
@@ -726,6 +727,36 @@ describe('mode RDD : ajuster une région à son contenu, touche « f » (sujet 1
     run((edit) => edit.setShapeBounds('accounts', { x: 900, y: 900, width: 100, height: 100 }));
     expect(run((edit) => key.run(edit, shape('accounts'), undefined))).toBe(false);
     expect(shape('accounts').bounds).toEqual({ x: 900, y: 900, width: 100, height: 100 });
+  });
+});
+
+describe('mode RDD : l’onglet d’une région enfant compte dans sa parente (sujet 237)', () => {
+  const xml = `<mxfile><diagram id="p" name="P" spatial.mode="rdd"><mxGraphModel><root>
+    <mxCell id="0" /><mxCell id="1" parent="0" />
+    <mxCell id="big" value="Big" style="spatial.kind=rdd-region;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="500" height="300" as="geometry" /></mxCell>
+    <mxCell id="small" value="Small" style="spatial.kind=rdd-region;" vertex="1" parent="1"><mxGeometry x="100" y="100" width="200" height="80" as="geometry" /></mxCell>
+  </root></mxGraphModel></diagram></mxfile>`;
+
+  it('« f » sur une région qui ne contient qu’une région : 20 px au-dessus de l’onglet de l’enfant', () => {
+    const { document, tree } = readDrawio(xml);
+    const page = document.pages[0]!;
+    const big = page.shapes.find((s) => s.id === 'big')!;
+    applyModeEdit(page, tree.pages[0]!, (edit) => rdd.keys!.f!.run(edit, big, undefined));
+    const bounds = documentFromTree(tree).pages[0]!.shapes.find((s) => s.id === 'big')!.bounds;
+    expect(bounds).toEqual({ x: 80, y: 100 - REGION.tab.height - 20, width: 240, height: 80 + REGION.tab.height + 40 });
+  });
+
+  it('une région posée en sortant par le haut agrandit sa parente au-dessus de son onglet', () => {
+    const { document, tree } = readDrawio(xml);
+    let page = document.pages[0]!;
+    const before = page;
+    applyModeEdit(page, tree.pages[0]!, (edit) =>
+      edit.setShapeBounds('small', { x: 100, y: 5, width: 200, height: 80 }),
+    );
+    page = documentFromTree(tree).pages[0]!;
+    applyModeEdit(page, tree.pages[0]!, (edit) => rdd.placed!(edit, ['small'], before));
+    const bounds = documentFromTree(tree).pages[0]!.shapes.find((s) => s.id === 'big')!.bounds;
+    expect(bounds.y).toBe(5 - REGION.tab.height - 20);
   });
 });
 

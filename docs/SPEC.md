@@ -931,7 +931,7 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     Ordre de dessin : à la pose d'une forme du mode, les régions passent au fond de la pile, les plus englobantes
     derrière ; le contenu d'une région est ainsi toujours devant elle, à toute profondeur.
     Touche **`f`** sur une région sélectionnée seule : ajustée à son contenu (rectangle englobant, 20 px de marge de
-    chaque côté ; grandit ou rétrécit), une étape d'annulation « Ajuster la région » ; région vide : rien ; sur un
+    chaque côté ; une région contenue compte avec son onglet, à l'ajustement comme à l'agrandissement ; grandit ou rétrécit), une étape d'annulation « Ajuster la région » ; région vide : rien ; sur un
     autre élément, `f` garde son effet. Réglage « Couleur » (fond, bordure et nom). Dans draw.io : un rectangle
     de la même couleur, le nom au-dessus à gauche dans un cadre de la couleur de la bordure (`labelBorderColor`) ; son
     contenu n'y suit pas ses déplacements.
