@@ -3,10 +3,8 @@
  * valeurs par défaut agréables. Objet sérialisable, fusionnable par morceaux, valeurs bornées.
  */
 
-export { DEFAULT_SETTINGS } from './defaults';
 export { modePalette, resolveReducedMotion, settingsSectionChanged } from './derived';
-export { SETTINGS_LIMITS } from './limits';
-export { mergeSettings } from './merge';
+export { DEFAULT_SETTINGS, mergeSettings, SETTINGS_LIMITS } from './fromSchema';
 export type {
   AccessibilitySettings,
   BackgroundSettings,

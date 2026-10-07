@@ -700,7 +700,7 @@ Réalisation retenue :
 
 ## 13. Paramètres
 
-Tout ce qui touche à l'expérience utilisateur est paramétrable, avec des valeurs par défaut agréables (`engine/settings/defaults.ts`) :
+Tout ce qui touche à l'expérience utilisateur est paramétrable, avec des valeurs par défaut agréables (`engine/settings/schema/` : défaut, bornes et lecture de chaque réglage) :
 
 ```ts
 interface Settings {

@@ -41,7 +41,7 @@ n'importe du moteur que `src/engine/index.ts`. Chaque dossier du moteur, en une 
 | `edit/` | règles d'édition : déplacement, poignées, bouts et points de flèche, styles, palette, ancrage | pur |
 | `modes/`, `effects/` | modes et effets de page, en plugins (un dossier chacun) | pur |
 | `render/`, `shapes/`, `graph/` | formes en plugins, scènes Three.js par page et par niveau, vue graphe | pur (objets Three.js) |
-| `settings/` | paramètres : types, défauts, bornes, fusion | pur |
+| `settings/` | paramètres : types, schéma (défauts, bornes, lecture), fusion qui en découle | pur |
 | `model/` | modèle neutre (aucune notion draw.io), géométrie, lecture du style | pur, sans Three.js |
 | `format/` | decode, parse (XML → modèle), style, xmlTree, cellEdits / write (écriture in situ) | pur, sans Three.js |
 | `persistence/` | FileStore : MemoryStore, IndexedDbStore, FsStore (Electron) ; Autosaver | avec état |
@@ -91,7 +91,7 @@ Règles :
 | Rendu / caméra / vues | SPEC §8–9, `render/pageScene.ts`, `render/sceneManager.ts`, `interaction/cameraMath.ts` |
 | UI de l'appli de démo | `src/app/` (`App.tsx`, `Palette.tsx`, `ContextPanel.tsx`, `SettingsPanel.tsx`, `DiagnosticsPanel.tsx`, `main.css`) |
 | API du composant | `docs/COMPOSANT.md`, `src/react/DrawioSpatial.tsx`, `src/index.ts` |
-| Paramètre nouveau | SPEC §13, `engine/settings/index.ts`, `tests/settings.test.ts`, `src/app/SettingsPanel.tsx` |
+| Paramètre nouveau | SPEC §13, `engine/settings/types.ts` et `schema/`, `tests/engine/settings.test.ts`, `src/app/SettingsPanel.tsx` |
 | Fichier draw.io / compat | SPEC §7, §14.2, §15 ; fixtures `tests/fixtures/*.drawio`, sorties draw.io versionnées dans `tests/fixtures/drawio-saved/` |
 
 ## 6. Backlog : comment écrire une spec ici

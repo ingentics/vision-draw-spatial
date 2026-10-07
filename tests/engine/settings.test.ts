@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_SHORTCUTS, shortcutAction } from '../../src/engine/interaction/controls';
-import { DEFAULT_SETTINGS, mergeSettings, resolveReducedMotion } from '../../src/engine/settings';
+import { DEFAULT_SETTINGS, mergeSettings, resolveReducedMotion, SETTINGS_LIMITS } from '../../src/engine/settings';
 import type { SettingsPatch } from '../../src/engine/settings';
 
 describe('mergeSettings', () => {
@@ -66,6 +66,17 @@ describe('mergeSettings', () => {
     expect(mergeSettings(DEFAULT_SETTINGS, { selection: { veilOpacity: 2 } }).selection.veilOpacity).toBe(0.85);
     expect(mergeSettings(DEFAULT_SETTINGS, { selection: { speed: 500 } }).selection.speed).toBe(80);
     expect(mergeSettings(DEFAULT_SETTINGS, { selection: { animated: false } }).selection.animated).toBe(false);
+  });
+
+  it('schéma unique (sujet 245) : chaque réglage numérique a ses bornes, et sa valeur par défaut y est', () => {
+    const valueAt = (path: string) =>
+      path.split('.').reduce<unknown>((node, key) => (node as Record<string, unknown>)[key], DEFAULT_SETTINGS);
+    expect(Object.keys(SETTINGS_LIMITS)).toContain('panels.left.width');
+    for (const [path, { min, max }] of Object.entries(SETTINGS_LIMITS)) {
+      const value = valueAt(path) as number;
+      expect(value, path).toBeGreaterThanOrEqual(min);
+      expect(value, path).toBeLessThanOrEqual(max);
+    }
   });
 
   it('nombres ramenés dans leurs bornes', () => {

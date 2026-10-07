@@ -289,8 +289,10 @@ Règles à respecter :
 Les paramètres sont la source de vérité ([engine/settings/index.ts](../src/engine/settings/index.ts)). Un renderer n'y accède
 jamais directement : tout passe par le **`RenderContext`**, construit par `Engine.renderContext()`.
 
-1. Ajoutez le champ dans l'interface de section (ex. `ShapeSettings`), dans `DEFAULT_SETTINGS`, dans `SETTINGS_LIMITS`
-   pour un nombre, et dans `mergeSettings` (`num`, `color`, `bool` ou `oneOf` : une valeur invalide est ignorée).
+1. Ajoutez le champ dans l'interface de section (ex. `ShapeSettings`) et dans le schéma de sa section
+   ([settings/schema/](../src/engine/settings/schema/index.ts)) : `number(défaut, { min, max, step })`, `color`,
+   `flag` ou `oneOf` (une valeur invalide est ignorée). `DEFAULT_SETTINGS`, `SETTINGS_LIMITS` et `mergeSettings` en
+   découlent.
 2. Ajoutez le champ dans `RenderContext` ([render/types.ts](../src/engine/render/types.ts)), **optionnel**, avec un
    repli sur la constante dans le renderer (`ctx.monChamp ?? DEFAUT`). Les tests et les appels sans contexte complet
    continuent ainsi de fonctionner.
