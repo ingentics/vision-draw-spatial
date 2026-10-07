@@ -23,7 +23,10 @@ import { darker, facadeTag, tagOf, tagSize } from '../building';
 /** Écarts des lignes par défaut de `internalStorage` (`dx`, `dy`), en px. */
 const DEFAULT_DX = 20;
 const DEFAULT_DY = 20;
-/** `arcSize` par défaut d'un rectangle arrondi (`RECTANGLE_ROUNDING_FACTOR`), en %. */
+/**
+ * `arcSize` par défaut d'un rectangle arrondi (`RECTANGLE_ROUNDING_FACTOR`), en %. Pour les lignes, draw.io le lit
+ * toujours en % et ignore `absoluteArcSize` (contrairement au contour, `cornerRadius`) : on fait de même.
+ */
 const DEFAULT_ARC_SIZE = 15;
 /** Largeur de la tranche dans la palette (`dx`), en px : fixe, quelle que soit la taille de la forme. */
 export const TAG_BAND = 16;

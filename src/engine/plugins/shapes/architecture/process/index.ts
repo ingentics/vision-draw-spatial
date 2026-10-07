@@ -11,7 +11,10 @@ import { box } from '../../generic/box';
 
 /** Écart des barres par défaut (`ProcessShape.prototype.size`), en fraction de la largeur. */
 const DEFAULT_SIZE = 0.1;
-/** `arcSize` par défaut d'un rectangle arrondi (`RECTANGLE_ROUNDING_FACTOR`), en %. */
+/**
+ * `arcSize` par défaut d'un rectangle arrondi (`RECTANGLE_ROUNDING_FACTOR`), en %. Pour l'écart des barres, draw.io le
+ * lit toujours en % et ignore `absoluteArcSize` (contrairement au contour, `cornerRadius`) : on fait de même.
+ */
 const DEFAULT_ARC_SIZE = 15;
 
 const clamp = (value: number, max: number) => Math.max(0, Math.min(max, value));
