@@ -12,8 +12,8 @@ import { styleFlag } from '../../../model/styleValues';
  *
  * Messages en pile d'appels, dans l'ordre des rangs : une flèche pleine est un aller qui active sa cible (`++`), sauf
  * vers soi-même ou vers l'extérieur (message simple, sans nouveau niveau) ; une
- * flèche en pointillés qui ferme un aller encore ouvert est son retour (`--`), les allers ouverts au-dessus étant
- * refermés d'abord. Un aller qui part de la cible d'un aller ouvert remonte jusqu'à elle en refermant les allers
+ * flèche, pleine ou en pointillés, qui ferme un aller encore ouvert est son retour (`--`, sujet 266), les allers ouverts
+ * au-dessus étant refermés d'abord ; une flèche pleine sans aller à fermer est un nouvel aller. Un aller qui part de la cible d'un aller ouvert remonte jusqu'à elle en refermant les allers
  * au-dessus ; parti d'un participant absent de la pile, il s'empile par-dessus. Une séquence se termine là où elle a
  * commencé : tant qu'elle est ouverte, un aller qui part de son initiateur (source du premier aller) part du
  * participant actif, et l'aller de l'initiateur n'est refermé qu'à la fin, avec tous ceux encore ouverts. Ces retours
@@ -102,13 +102,19 @@ function messages(order: EdgeModel[], alias: (id: string | undefined) => string 
     const to = alias(edge.targetId);
     const text = messageText(edge);
     const label = text ? ` : ${text}` : '';
-    if (styleFlag(edge.style, 'dashed')) {
-      const opened = from === undefined ? -1 : lastIndex(stack, (call) => call.callee === from && call.caller === to);
-      if (opened >= 0) {
-        while (stack.length > opened + 1) close();
-        stack.pop();
-        lines.push(`${message(from, '-->', to, true)} --${label}`);
-      } else lines.push(`${message(from, '-->', to)}${label}`);
+    // Pleine ou en pointillés, une flèche qui ferme un aller ouvert est son retour : seuls les retours absents sont
+    // générés. Une flèche pleine vers l'extérieur reste une sortie du diagramme (`->]`).
+    const dashed = styleFlag(edge.style, 'dashed');
+    const closes = from !== undefined && (dashed || to !== undefined);
+    const opened = closes ? lastIndex(stack, (call) => call.callee === from && call.caller === to) : -1;
+    if (opened >= 0) {
+      while (stack.length > opened + 1) close();
+      stack.pop();
+      lines.push(`${message(from, '-->', to, true)} --${label}`);
+      continue;
+    }
+    if (dashed) {
+      lines.push(`${message(from, '-->', to)}${label}`);
       continue;
     }
     // On ne remonte que vers la cible d'un aller ouvert ; l'initiateur (source du premier) n'est rejoint qu'à la fin :

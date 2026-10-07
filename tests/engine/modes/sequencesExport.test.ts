@@ -213,13 +213,22 @@ describe('export PlantUML des flux (sujets 90 à 97)', () => {
     ]);
   });
 
-  it('fait d’une flèche pleine de retour un nouvel aller, et d’une flèche en pointillés sans aller un message', () => {
-    expect(messages(sequencePlantUml(flow(['client', 'api'], ['api', 'client', 'rappel']), 'f1'))).toEqual([
+  it('fait d’une flèche pleine qui ferme un aller ouvert son retour, sans le doubler (sujet 266)', () => {
+    const expected = ['P1 -> P2 ++', 'P2 -> P3 ++', 'P3 --> P2 --', 'P2 --> P1 --'];
+    const full = flow(['client', 'api'], ['api', 'db'], ['db', 'api'], ['api', 'client']);
+    expect(messages(sequencePlantUml(full, 'f1'))).toEqual(expected);
+    const holed = flow(['client', 'api'], ['api', 'db'], ['api', 'client']);
+    expect(messages(sequencePlantUml(holed, 'f1'))).toEqual(expected);
+    expect(messages(sequencePlantUml(flow(['client', 'api'], ['api', 'client', 'ok']), 'f1'))).toEqual([
       'P1 -> P2 ++',
-      'P2 -> P1 ++ : rappel',
-      'P1 --> P2 --',
-      'P2 --> P1 --',
+      'P2 --> P1 -- : ok',
     ]);
+  });
+
+  it('fait d’une flèche pleine sans aller à fermer un nouvel aller, et d’une flèche en pointillés sans aller un message', () => {
+    expect(
+      messages(sequencePlantUml(flow(['client', 'api'], ['api', 'db'], ['db', 'client', 'rappel']), 'f1')),
+    ).toEqual(['P1 -> P2 ++', 'P2 -> P3 ++', 'P3 -> P1 ++ : rappel', 'P1 --> P3 --', 'P3 --> P2 --', 'P2 --> P1 --']);
     expect(messages(sequencePlantUml(flow(['--client', 'api', 'note']), 'f1'))).toEqual(['P1 --> P2 : note']);
   });
 
