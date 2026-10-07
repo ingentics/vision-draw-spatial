@@ -1,5 +1,7 @@
 import type { Point, Rect } from '../model/types';
 import { unionOf } from '../model/geometry';
+import { independentRoots } from '../interaction/selectionRules';
+import { clampMove } from './obstacles';
 
 /**
  * Aligner et répartir la sélection (ticket 136), comme « Arrange › Align / Distribute » de draw.io. Calcul pur : à
@@ -111,4 +113,46 @@ export function distributeDeltas(items: readonly AlignItem[], move: DistributeMo
   const step = (keyOf(last) - from) / n;
   sorted.slice(1, -1).forEach((item, i) => set(item, from + step * (i + 1) - size(item.bounds) * fraction));
   return deltas;
+}
+
+/** Ce qu'Aligner / Répartir doit savoir de la page (sujet 289), fourni par le moteur. */
+export interface ArrangeRules {
+  /** Formes qui suivent `id` : ses enfants draw.io et ce que le mode emporte avec lui (et leurs enfants). */
+  contentOf(id: string): Set<string>;
+  /** Formes emportées par le mode avec `id`, qui bougent du même décalage (sans ses enfants draw.io, qui le suivent). */
+  carried(id: string): readonly string[];
+  /** La forme bouge-t-elle (ni verrouillée, ni bloquée par le fichier) ? Une forme qui ne bouge pas compte quand même. */
+  movable(id: string): boolean;
+  /** Bornes du mode pour `id` (sujet 241) : son emprise, ses obstacles et l'écart à garder ; undefined : aucune. */
+  bounds(id: string): { extent: Rect; obstacles: ReadonlyArray<{ id: string; rect: Rect }>; gap: number } | undefined;
+}
+
+/**
+ * Déplacements d'Aligner / Répartir (sujet 289) : seules les formes indépendantes de la sélection comptent (une forme
+ * contenue dans une autre la suit) ; le décalage de chacune est borné par ses obstacles (un axe puis l'autre, comme au
+ * clavier), sans compter ce qui bouge aussi ; une forme bornée à zéro ne bouge pas, les autres si. `carried` : formes à
+ * déplacer avec elle.
+ */
+export function arrangedMoves(
+  items: readonly AlignItem[],
+  deltasOf: (items: AlignItem[]) => Map<string, Point>,
+  rules: ArrangeRules,
+): Array<{ id: string; delta: Point; carried: readonly string[] }> {
+  const roots = new Set(
+    independentRoots(
+      items.map((item) => item.id),
+      (id) => rules.contentOf(id),
+    ),
+  );
+  // Une forme une seule fois (deux éléments d'un même groupe déplacent le groupe), dans l'ordre de sélection.
+  const unique = [...new Map(items.filter((item) => roots.has(item.id)).map((item) => [item.id, item])).values()];
+  const moves = [...deltasOf(unique)].filter(([id]) => rules.movable(id));
+  const moving = new Set(moves.flatMap(([id]) => [id, ...rules.carried(id)]));
+  return moves.flatMap(([id, delta]) => {
+    const bounds = rules.bounds(id);
+    const obstacles = bounds?.obstacles.filter((o) => !moving.has(o.id)).map((o) => o.rect) ?? [];
+    const applied =
+      bounds && obstacles.length > 0 ? clampMove([bounds.extent], obstacles, bounds.gap, delta).value : delta;
+    return applied.x === 0 && applied.y === 0 ? [] : [{ id, delta: applied, carried: rules.carried(id) }];
+  });
 }

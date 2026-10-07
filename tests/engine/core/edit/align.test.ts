@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { alignDeltas, distributeDeltas } from '../../../../src/engine/core/edit/align';
-import type { AlignItem } from '../../../../src/engine/core/edit/align';
+import { alignDeltas, arrangedMoves, distributeDeltas } from '../../../../src/engine/core/edit/align';
+import type { AlignItem, ArrangeRules } from '../../../../src/engine/core/edit/align';
 
 const box = (id: string, x: number, y: number, width = 40, height = 20): AlignItem => ({
   id,
@@ -74,5 +74,70 @@ describe('distributeDeltas (ticket 136)', () => {
 
   it('ne fait rien sous trois formes', () => {
     expect(distributeDeltas([box('a', 0, 0), box('b', 50, 0)], 'left').size).toBe(0);
+  });
+});
+
+describe('Aligner / Répartir suivent le mode de la page (sujet 289)', () => {
+  // Région r (contient la table t) et table u à droite ; région sœur s plus bas à gauche.
+  const r = box('r', 100, 0, 200, 100);
+  const t = box('t', 120, 20, 60, 30);
+  const u = box('u', 400, 200, 60, 30);
+  const s = box('s', 0, 300, 200, 100);
+  const all = [r, t, u, s];
+  const rules = (overrides: Partial<ArrangeRules> = {}): ArrangeRules => ({
+    contentOf: (id) => new Set(id === 'r' ? ['r', 't'] : [id]),
+    carried: (id) => (id === 'r' ? ['t'] : []),
+    movable: () => true,
+    bounds: () => undefined,
+    ...overrides,
+  });
+  const left = (items: AlignItem[]) => alignDeltas(items, 'left', 'selection');
+
+  it('une région alignée emporte son contenu ; une table de la région sélectionnée avec elle la suit', () => {
+    expect(arrangedMoves([r, u], left, rules())).toEqual([{ id: 'u', delta: { x: -300, y: 0 }, carried: [] }]);
+    expect(arrangedMoves([u, r], (items) => alignDeltas(items, 'left', 'first'), rules())).toEqual([
+      { id: 'r', delta: { x: 300, y: 0 }, carried: ['t'] },
+    ]);
+    // La table ne s'aligne pas pour son compte : elle suit sa région.
+    expect(arrangedMoves([r, t, u], (items) => alignDeltas(items, 'left', 'last'), rules())).toEqual([
+      { id: 'r', delta: { x: 300, y: 0 }, carried: ['t'] },
+    ]);
+  });
+
+  it('une région alignée s’arrête à l’écart de ses sœurs, les autres formes s’alignent quand même', () => {
+    const bounded = rules({
+      bounds: (id) =>
+        id === 'r' ? { extent: r.bounds, obstacles: [{ id: 's', rect: s.bounds }], gap: 20 } : undefined,
+    });
+    // Aligner les bas sur u (y 230) : r descendrait jusqu'à 130-230, s commence à 300 : r va jusqu'à son écart.
+    const moves = arrangedMoves([u, r], (items) => alignDeltas(items, 'bottom', 'first'), bounded);
+    expect(moves).toEqual([{ id: 'r', delta: { x: 0, y: 130 }, carried: ['t'] }]);
+    // Bornée à zéro (déjà contre sa sœur) : r ne bouge pas, u si.
+    const stuck = rules({
+      bounds: (id) =>
+        id === 'r'
+          ? { extent: r.bounds, obstacles: [{ id: 's', rect: { x: 100, y: 120, width: 200, height: 50 } }], gap: 20 }
+          : undefined,
+    });
+    expect(arrangedMoves([r, u], (items) => alignDeltas(items, 'top', 'last'), stuck)).toEqual([]);
+    expect(arrangedMoves([r, u], (items) => alignDeltas(items, 'top', 'first'), stuck)).toEqual([
+      { id: 'u', delta: { x: 0, y: -200 }, carried: [] },
+    ]);
+  });
+
+  it('ce qui bouge aussi ne borne pas ; une forme bloquée compte sans bouger', () => {
+    // Sœur juste sous r ; aligner les bas sur w (y 400) : r et sa sœur descendent ensemble, sans se borner.
+    const sister = box('s', 100, 120, 200, 100);
+    const w = box('w', 400, 360, 40, 40);
+    const bounded = rules({
+      bounds: (id) =>
+        id === 'r' ? { extent: r.bounds, obstacles: [{ id: 's', rect: sister.bounds }], gap: 20 } : undefined,
+    });
+    expect(arrangedMoves([r, sister, w], (items) => alignDeltas(items, 'bottom', 'last'), bounded)).toEqual([
+      { id: 'r', delta: { x: 0, y: 300 }, carried: ['t'] },
+      { id: 's', delta: { x: 0, y: 180 }, carried: [] },
+    ]);
+    expect(arrangedMoves([r, u], left, rules({ movable: (id) => id !== 'u' }))).toEqual([]);
+    expect(all).toHaveLength(4);
   });
 });
