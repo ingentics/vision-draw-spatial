@@ -8,7 +8,36 @@ import type { EngineCore } from '../EngineCore';
  * son texte. La partie sélectionnée vit dans la sélection (`Selection.part`) ; ce domaine n'a pas d'état.
  */
 export class ShapeParts {
+  /** Partie survolée par la souris (sujet 259), montrée en pré-sélection ; absente hors de toute partie. */
+  private hovered: { shapeId: string; part: string } | undefined;
+
   constructor(private readonly core: EngineCore) {}
+
+  /** Nouveau document : plus de partie survolée. */
+  resetDocument(): void {
+    this.hovered = undefined;
+  }
+
+  /** Survol (sujet 259) : la partie sous le pointeur d'une forme d'une page modifiable ; la mise en valeur suit. */
+  hover(screen: Point | undefined, shape: ShapeModel | undefined): void {
+    const page = this.core.targets.editablePage()?.page;
+    const part = screen && shape && page ? this.partAt(page, shape, screen) : undefined;
+    const next = shape && part !== undefined ? { shapeId: shape.id, part } : undefined;
+    if (next?.shapeId === this.hovered?.shapeId && next?.part === this.hovered?.part) return;
+    this.hovered = next;
+    this.core.highlight.updateHover();
+  }
+
+  /** Emprise de la partie survolée (pixels de page), et sa forme ; undefined sans survol ou si elle est sélectionnée. */
+  hoveredBounds(): { shape: ShapeModel; rect: Rect } | undefined {
+    const hovered = this.hovered;
+    const selection = this.core.selection.current;
+    if (selection?.part === hovered?.part && selection?.picked.element.id === hovered?.shapeId) return undefined;
+    const page = this.core.pages.getCurrentPage();
+    const shape = hovered && page?.shapes.find((s) => s.id === hovered.shapeId);
+    const rect = shape && page && this.core.modes.modeOf(page)?.parts?.bounds(page, shape, hovered.part);
+    return shape && rect ? { shape, rect } : undefined;
+  }
 
   /** `part` si le mode de la page la connaît encore sur `shape`, sinon undefined. */
   validPart(page: PageModel, shape: ShapeModel, part: string): string | undefined {

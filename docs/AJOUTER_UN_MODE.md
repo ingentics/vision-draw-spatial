@@ -125,7 +125,7 @@ paramètres « Modes › Séquences » (clés `shapes.edgeBadge…`, communes à
   Une forme peut aussi limiter ses poignées de connexion (`ShapeDefinition.connectSides`).
 - `parts` (sujet 249) : parties d'une forme du mode, désignées par une chaîne propre au mode. Un clic sur une partie
   (`at(page, shape, point)`) la sélectionne, la forme sélectionnée ou non (`Selection.part`), mise en valeur sur son
-  emprise (`bounds`) ; Échap revient à la forme. `text` / `setText` : texte modifiable sur place au double-clic, sur une
+  emprise (`bounds`), et pré-sélectionnée au survol (fond plus léger, sujet 259) ; Échap revient à la forme. `text` / `setText` : texte modifiable sur place au double-clic, sur une
   ligne (Entrée valide), écrit par une opération du mode (une étape d'annulation). `remove` : Suppr sur la partie
   sélectionnée la retire (sujet 251) ; la forme n'est jamais supprimée à sa place, et un refus du mode laisse tout tel
   quel. `textPreview` (sujet 253) : la forme telle qu'elle serait avec le texte en cours de saisie, redessinée en

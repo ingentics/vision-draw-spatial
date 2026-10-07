@@ -962,6 +962,9 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   - Supprimer un champ (sujet 251) : champ sélectionné, Suppr ou Retour arrière le retire (pas la table) et la
     sélection revient à la table ; sur la clé primaire, la touche est sans effet. La table rétrécit ; une étape
     d'annulation.
+  - Survol d'une ligne (sujet 259) : sur une page modifiable, la ligne sous la souris (champ ou séparateur) est
+    pré-sélectionnée, fond de la couleur d'accent à 7 % et trait fin (1 px) à 50 % (la sélection : 15 % et un trait plein de 1,5 px) ; rien sur la
+    ligne déjà sélectionnée.
   - Champ sélectionné (sujet 249) : un clic sur une ligne de champ la sélectionne, la table sélectionnée ou non (fond
     léger et trait de la couleur d'accent sur la ligne) ; un clic sur l'entête revient à la table, Échap aussi. Le
     panneau ne montre alors que le champ : « Champ » (label), « Type » (choix : « Aucun » ou un des sept types, modifiable à tout moment, sujet 256), « Rôle » (propriété, clé

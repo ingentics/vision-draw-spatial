@@ -27,6 +27,8 @@ export class SelectionHighlight {
   private selectionAnimation = 0;
   /** Poignées de la forme sélectionnée. */
   private handlesObject: Object3D | undefined;
+  /** Pré-sélection de la partie survolée (sujet 259). */
+  private hoverObject: Object3D | undefined;
 
   constructor(private readonly core: EngineCore) {}
 
@@ -92,6 +94,26 @@ export class SelectionHighlight {
     this.updateVeilHoles(root, items, veilKey);
     if (root && items.length > 0) this.addOutlines(root, items);
     this.updateHandles(visible && root);
+    this.updateHover();
+  }
+
+  /** Pré-sélection de la partie survolée (sujet 259) : fond plus léger que la sélection, sans trait. */
+  updateHover(): void {
+    if (this.hoverObject) {
+      this.hoverObject.removeFromParent();
+      disposeObject(this.hoverObject);
+      this.hoverObject = undefined;
+    }
+    const root = this.core.scenes.current?.root;
+    const hovered = this.core.shapeParts.hoveredBounds();
+    if (root && hovered) {
+      const { zoom } = this.core.camera.state;
+      this.hoverObject = partSelection(hovered.rect, zoom, this.core.settings.selection.accentColor, true);
+      this.hoverObject.position.z =
+        ((this.core.sceneView.sceneObject(hovered.shape.id)?.userData.top as number) ?? 0) + 0.24;
+      alwaysOnTop(this.hoverObject);
+      root.add(this.hoverObject);
+    }
     this.core.rendering.requestRender();
   }
 

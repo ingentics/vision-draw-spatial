@@ -110,14 +110,18 @@ export function selectionOutline(bounds: Rect, zoom: number, phase = 0, accent =
 
 /**
  * Partie sélectionnée d'une forme (sujet 249, ex. champ d'une table RDD) : fond léger et trait plein de la couleur
- * d'accent, sur l'emprise de la partie.
+ * d'accent, sur l'emprise de la partie ; partie survolée (`hover`, sujet 259) : fond plus léger, trait fin à demi
+ * transparent.
  */
-export function partSelection(bounds: Rect, zoom: number, accent = DEFAULT_ACCENT): Group {
+export function partSelection(bounds: Rect, zoom: number, accent = DEFAULT_ACCENT, hover = false): Group {
   const group = new Group();
-  group.name = 'part-selection';
+  group.name = hover ? 'part-hover' : 'part-selection';
   const color = new Color(accent);
-  group.add(fillMesh(rectPath(bounds), color, 0.15));
-  const outline = strokeMesh(rectPath(bounds), color, 1, { width: 1.5 / zoom, closed: true });
+  group.add(fillMesh(rectPath(bounds), color, hover ? 0.07 : 0.15));
+  const outline = strokeMesh(rectPath(bounds), color, hover ? 0.5 : 1, {
+    width: (hover ? 1 : 1.5) / zoom,
+    closed: true,
+  });
   if (outline) group.add(outline);
   group.traverse((o) => {
     o.renderOrder = Number.MAX_SAFE_INTEGER;

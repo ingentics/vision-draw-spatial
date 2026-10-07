@@ -211,6 +211,7 @@ export class EngineCore {
       this.gesture,
       this.edits,
       this.pageModes,
+      this.shapeParts,
       this.history,
       this.links,
     ];

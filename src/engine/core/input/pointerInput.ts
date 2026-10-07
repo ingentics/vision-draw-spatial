@@ -141,6 +141,8 @@ export class PointerInput {
     if (!this.core.canvas.style.cursor.startsWith('grab')) this.core.canvas.style.cursor = cursor;
     this.core.canvas.title = modeHandle ? modeHandle.title : link ? this.core.links.describeLink(link) : '';
     this.hovered = picked;
+    // Partie survolée (ex. champ d'une table RDD) : pré-sélection (sujet 259).
+    this.core.shapeParts.hover(screen, picked?.type === 'shape' ? (picked.element as ShapeModel) : undefined);
     this.core.splitHover.update(picked?.type === 'edge' ? picked.element.id : undefined);
     this.syncHoverComment();
     clearTimeout(this.hoverTimer);
