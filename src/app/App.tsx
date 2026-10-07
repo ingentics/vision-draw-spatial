@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { StoredFile, StoredFileMeta } from '../engine/persistence/FileStore';
-import { DEFAULT_SETTINGS, mergeSettings } from '../engine/settings';
-import type { Settings, SettingsPatch } from '../engine/settings';
+import { DEFAULT_SETTINGS, mergeSettings } from '../engine';
+import type { Settings, SettingsPatch, StoredFile, StoredFileMeta } from '../engine';
 import { Launcher } from '../react/Launcher';
 import { demoFiles } from './demoFiles';
 import { desktop } from './desktop';

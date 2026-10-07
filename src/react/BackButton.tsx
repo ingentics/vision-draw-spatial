@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
-import type { BackTarget } from '../engine/Engine';
-import type { ParentLink } from '../engine/interaction/history';
+import type { BackTarget, ParentLink } from '../engine';
 
 interface BackButtonProps {
   target: BackTarget;

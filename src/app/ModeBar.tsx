@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import type { ModeIndicator } from '../engine/Engine';
-import { readableOn } from '../engine/render/styleColors';
+import { readableOn } from '../engine';
+import type { ModeIndicator } from '../engine';
 import { InlineEdit } from './InlineEdit';
 
 /**

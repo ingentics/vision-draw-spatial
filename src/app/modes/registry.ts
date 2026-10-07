@@ -1,7 +1,5 @@
 import type { ComponentType } from 'react';
-import type { PageModel } from '../../engine/model/types';
-import type { ModeEdit } from '../../engine/modes/types';
-import type { ExporterSettings } from '../../engine/settings';
+import type { ExporterSettings, ModeEdit, PageModel } from '../../engine';
 
 /** Sections React d'un mode, reçues par le panneau contextuel. */
 export interface ModePanelProps {

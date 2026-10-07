@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { DEFAULT_SETTINGS, SETTINGS_LIMITS } from '../engine/settings';
-import type { PanelsSettings, SidePanelSettings } from '../engine/settings';
+import { DEFAULT_SETTINGS, SETTINGS_LIMITS } from '../engine';
+import type { PanelsSettings, SidePanelSettings } from '../engine';
 
 /**
  * Barre latérale de l'appli (palette à gauche, panneaux à droite) : repliable en une bande verticale

@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import type { UnsupportedCategory, UnsupportedReport } from '../engine/diagnostics/unsupportedStyles';
-import type { ParseWarning } from '../engine/model/types';
+import type { ParseWarning, UnsupportedCategory, UnsupportedReport } from '../engine';
 import type { CumulativeEntry } from './diagnosticsLog';
 import { CollapseButton } from './Sidebar';
 

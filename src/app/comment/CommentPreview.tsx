@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { BackgroundSettings, CommentSettings } from '../../engine/settings';
+import type { BackgroundSettings, CommentSettings } from '../../engine';
 import { CommentCard } from './CommentCard';
 
 const PREVIEW_TEXT = 'Appel HTTP synchrone vers le service de paiement\ntimeout 2 s, 3 essais';

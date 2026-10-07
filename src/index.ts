@@ -8,7 +8,7 @@ export { DrawioSpatial } from './react/DrawioSpatial';
 export type { DrawioSpatialHandle, DrawioSpatialProps } from './react/DrawioSpatial';
 
 // Moteur (sans React)
-export { Engine } from './engine/Engine';
+export { Engine } from './engine';
 export type {
   BackTarget,
   EngineEvent,
@@ -19,14 +19,14 @@ export type {
   LabelEditRequest,
   ModeHint,
   Selection,
-} from './engine/Engine';
-export type { CameraState } from './engine/interaction/camera';
-export type { FontSet } from './engine/render/troikaText';
-export type { PickedElement } from './engine/interaction/pick';
+} from './engine';
+export type { CameraState } from './engine';
+export type { FontSet } from './engine';
+export type { PickedElement } from './engine';
 
 // Paramètres (SPEC §13)
-export { DEFAULT_SETTINGS, mergeSettings } from './engine/settings';
-export type { Settings, SettingsPatch, ViewSettings } from './engine/settings';
+export { DEFAULT_SETTINGS, mergeSettings } from './engine';
+export type { Settings, SettingsPatch, ViewSettings } from './engine';
 
 // Modèle neutre (SPEC §7.3) et format draw.io
 export type {
@@ -39,16 +39,16 @@ export type {
   Point,
   Rect,
   ShapeModel,
-} from './engine/model/types';
-export { DrawioParseError, parseDrawio } from './engine/format/parse';
-export { createEmptyDrawio } from './engine/format/skeleton';
+} from './engine';
+export { DrawioParseError, parseDrawio } from './engine';
+export { createEmptyDrawio } from './engine';
 
 // Bibliothèque de fichiers (SPEC §5)
-export type { FileStore, StoredFile, StoredFileMeta, StoredFilePatch } from './engine/persistence/FileStore';
-export { IndexedDbStore } from './engine/persistence/IndexedDbStore';
-export { MemoryStore } from './engine/persistence/MemoryStore';
+export type { FileStore, StoredFile, StoredFileMeta, StoredFilePatch } from './engine';
+export { IndexedDbStore } from './engine';
+export { MemoryStore } from './engine';
 
 // Édition et attributs spatiaux (SPEC §14)
-export { SHAPE_TEMPLATES } from './engine/edit/palette';
-export type { ShapeTemplate } from './engine/edit/palette';
-export { SPATIAL, spatialNumber, spatialValue } from './engine/spatial';
+export { SHAPE_TEMPLATES } from './engine';
+export type { ShapeTemplate } from './engine';
+export { SPATIAL, spatialNumber, spatialValue } from './engine';

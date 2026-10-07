@@ -1,4 +1,4 @@
-import type { FileSystemAccess } from '../engine/persistence/FsStore';
+import type { FileSystemAccess } from '../engine';
 
 /**
  * Pont de l'appli native (Electron, `desktop/preload.cjs`) : absent dans le navigateur.

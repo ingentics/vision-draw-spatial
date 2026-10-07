@@ -1,10 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties, MutableRefObject, RefObject } from 'react';
-import type { LabelEditPlane, LabelEditRequest } from '../engine/Engine';
-import { isMonospace } from '../engine/format/richText';
-import { homographyCss, rectToQuad } from '../engine/render/geometry/homography';
-import { labelPadding } from '../engine/render/labelPosition';
-import { largestFitting, MIN_FIT_SIZE } from '../engine/render/richLayout';
+import { homographyCss, isMonospace, labelPadding, largestFitting, MIN_FIT_SIZE, rectToQuad } from '../engine';
+import type { LabelEditPlane, LabelEditRequest } from '../engine';
 import { isColor, readContent, TEXT_FORMAT_ATTRIBUTE, useRichEditor } from './richEditor';
 import type { LabelContent, RichEditorHandle, SelectionFormat, ToggleMark } from './richEditor';
 

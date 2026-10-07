@@ -1,10 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
-import { LABEL_PLACES, labelPlaceName, labelPlaceOf } from '../engine/edit/labelPosition';
-import type { LabelPlace } from '../engine/edit/labelPosition';
-import { matchesTextPreset } from '../engine/edit/styles';
-import type { TextPreset } from '../engine/edit/styles';
-import { isMonospace } from '../engine/format/richText';
+import { isMonospace, LABEL_PLACES, labelPlaceName, labelPlaceOf, matchesTextPreset } from '../engine';
+import type { LabelPlace, TextPreset } from '../engine';
 import type { SelectionFormat, ToggleMark } from './LabelEditor';
 import { Section } from './PanelSection';
 

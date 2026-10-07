@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import type { StoredFileMeta } from '../engine/persistence/FileStore';
+import type { StoredFileMeta } from '../engine';
 
 export interface LauncherExample {
   id: string;

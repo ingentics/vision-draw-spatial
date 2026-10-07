@@ -1,25 +1,45 @@
 import { useRef } from 'react';
-import { commentOf } from '../engine/edit/comment';
-import { anchorOf, edgeTexts, endLabelOf } from '../engine/edit/edgeLabels';
-import type { EdgeTextAnchor } from '../engine/Engine';
-import type { EdgeEnd } from '../engine/edit/edgeLabels';
-import { matchesPreset } from '../engine/edit/styles';
-import { defaultShapeRegistry } from '../engine/shapes/registry';
-import { routingKind } from '../engine/render/edges/route';
-import type { StylePreset } from '../engine/edit/styles';
-import type { EdgeModel, LinkModel, PageModel, ShapeModel } from '../engine/model/types';
-import { modePalette } from '../engine/settings';
-import type { ExporterSettings, StyleSettings } from '../engine/settings';
-import { SPATIAL, spatialNumber } from '../engine/spatial';
+import {
+  anchorOf,
+  commentOf,
+  defaultEffectRegistry,
+  defaultModeRegistry,
+  defaultShapeRegistry,
+  edgeTexts,
+  endLabelOf,
+  isAnchoring,
+  JUMP_STYLES,
+  jumpValue,
+  matchesPreset,
+  modePalette,
+  pageEffectIds,
+  routingKind,
+  SPATIAL,
+  spatialNumber,
+} from '../engine';
+import type {
+  AlignMove,
+  AlignReference,
+  Anchoring,
+  DistributeMove,
+  EdgeEnd,
+  EdgeModel,
+  EdgeTextAnchor,
+  ExporterSettings,
+  JumpStyle,
+  LinkModel,
+  ModeEdit,
+  ModeScope,
+  ModeTarget,
+  OrderMove,
+  PageModel,
+  ShapeModel,
+  StylePreset,
+  StyleSettings,
+} from '../engine';
 import { TEXT_FORMAT_ATTRIBUTE } from './LabelEditor';
 import { BorderSection } from './BorderSection';
 import { NumberField, SelectField, TextField } from './Fields';
-import { JUMP_STYLES, jumpValue } from '../engine/render/edges/jumps';
-import type { JumpStyle } from '../engine/render/edges/jumps';
-import { defaultEffectRegistry, pageEffectIds } from '../engine/effects/registry';
-import { defaultModeRegistry } from '../engine/modes/registry';
-import type { ModeScope } from '../engine/modes/registry';
-import type { ModeEdit, ModeTarget } from '../engine/modes/types';
 import { ModePropertyFields } from './modes/ModeFields';
 import { modePanel } from './modes/registry';
 import { ShapePropertyFields } from './ShapeProperties';
@@ -28,11 +48,7 @@ import { CollapseButton } from './Sidebar';
 import { Section } from './PanelSection';
 import { TextFormatSections } from './TextFormat';
 import type { TextEdit } from './TextFormat';
-import type { OrderMove } from '../engine/format/order';
-import type { AlignMove, AlignReference, DistributeMove } from '../engine/edit/align';
 import { ArrangeSection } from './ArrangeSection';
-import { isAnchoring } from '../engine/edit/anchoring/mode';
-import type { Anchoring } from '../engine/edit/anchoring/mode';
 
 export interface ContextPanelProps {
   page: PageModel;

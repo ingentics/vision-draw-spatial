@@ -1,5 +1,5 @@
-import { ISOMETRIC_ELEVATION_DEG } from '../engine/interaction/camera';
-import type { ViewSettings } from '../engine/settings';
+import { ISOMETRIC_ELEVATION_DEG } from '../engine';
+import type { ViewSettings } from '../engine';
 
 type IsoPreferences = Pick<ViewSettings, 'isoAngleDeg' | 'isoAzimuthDeg'>;
 

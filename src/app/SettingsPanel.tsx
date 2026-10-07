@@ -1,10 +1,6 @@
-import { defaultEffectRegistry } from '../engine/effects/registry';
+import { defaultEffectRegistry, RESERVED_CODES, SETTINGS_LIMITS } from '../engine';
+import type { FollowLinkGesture, FollowLinkKey, MultiSelectKey, Settings, SettingsPatch, Shortcuts } from '../engine';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { RESERVED_CODES } from '../engine/interaction/controls';
-import type { Shortcuts } from '../engine/interaction/controls';
-import type { FollowLinkGesture, FollowLinkKey, MultiSelectKey } from '../engine/interaction/selection';
-import { SETTINGS_LIMITS } from '../engine/settings';
-import type { Settings, SettingsPatch } from '../engine/settings';
 import { CommentSettingsSection } from './comment';
 import { desktop } from './desktop';
 import { ColorField, Slider } from './SettingsFields';

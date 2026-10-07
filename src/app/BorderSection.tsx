@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
-import type { ShapeModel } from '../engine/model/types';
+import type { ShapeModel } from '../engine';
 import { Section } from './PanelSection';
 
 /** Style du trait : plein, tirets ou pointillés (clés draw.io `dashed`, `dashPattern`). */

@@ -1,6 +1,5 @@
-import { DEFAULT_SETTINGS, mergeSettings } from '../engine/settings';
-import type { Settings, SettingsPatch } from '../engine/settings';
-import { DEFAULT_DEPTH, LEGACY_DEFAULT_DEPTH } from '../engine/spatial';
+import { DEFAULT_DEPTH, DEFAULT_SETTINGS, LEGACY_DEFAULT_DEPTH, mergeSettings } from '../engine';
+import type { Settings, SettingsPatch } from '../engine';
 
 /**
  * Paramètres persistés dans le navigateur (SPEC §13). Reprend au premier lancement les réglages

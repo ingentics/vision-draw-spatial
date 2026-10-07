@@ -1,7 +1,6 @@
 import { useRef } from 'react';
 import type { MutableRefObject } from 'react';
-import type { ElementComment } from '../../engine/edit/comment';
-import type { CommentSettings } from '../../engine/settings';
+import type { CommentSettings, ElementComment } from '../../engine';
 import { useRichEditor } from '../richEditor';
 import type { LabelContent, RichEditorHandle, SelectionFormat, ToggleMark } from '../richEditor';
 import { commentCardStyle } from './CommentCard';

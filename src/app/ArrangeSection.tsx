@@ -1,4 +1,4 @@
-import type { AlignMove, AlignReference, DistributeMove } from '../engine/edit/align';
+import type { AlignMove, AlignReference, DistributeMove } from '../engine';
 import { SelectField } from './Fields';
 import { Section } from './PanelSection';
 

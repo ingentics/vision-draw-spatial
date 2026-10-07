@@ -1,5 +1,5 @@
-import type { Settings, SettingsPatch } from '../../engine/settings';
-import { SETTINGS_LIMITS } from '../../engine/settings';
+import { SETTINGS_LIMITS } from '../../engine';
+import type { Settings, SettingsPatch } from '../../engine';
 import { Section, Subsection } from '../PanelSection';
 import { ColorField, Slider } from '../SettingsFields';
 import { CommentPreview } from './CommentPreview';

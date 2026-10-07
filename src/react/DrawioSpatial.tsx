@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, Ref } from 'react';
-import { Autosaver } from '../engine/edit/autosave';
-import { Engine } from '../engine/Engine';
-import type { InitialView, Selection, SettingsPatch } from '../engine/Engine';
-import type { CameraState } from '../engine/interaction/camera';
-import type { DocumentModel, PageModel } from '../engine/model/types';
-import type { FileStore } from '../engine/persistence/FileStore';
-import type { FontSet } from '../engine/render/troikaText';
-import { DEFAULT_SETTINGS } from '../engine/settings';
+import { Autosaver, DEFAULT_SETTINGS, Engine } from '../engine';
+import type {
+  CameraState,
+  DocumentModel,
+  FileStore,
+  FontSet,
+  InitialView,
+  PageModel,
+  Selection,
+  SettingsPatch,
+} from '../engine';
 import './drawio-spatial.css';
 
 /** Actions disponibles par la `ref` du composant. */

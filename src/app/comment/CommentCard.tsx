@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import type { CSSProperties } from 'react';
-import type { ElementComment } from '../../engine/edit/comment';
-import { parseRichHtml, richToHtml } from '../../engine/format/richText';
-import type { CommentSettings } from '../../engine/settings';
+import { parseRichHtml, richToHtml } from '../../engine';
+import type { CommentSettings, ElementComment } from '../../engine';
 import './comment.css';
 
 /**

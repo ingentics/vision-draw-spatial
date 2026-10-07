@@ -1,5 +1,4 @@
-import type { UnsupportedCategory, UnsupportedReport } from '../engine/diagnostics/unsupportedStyles';
-import type { ParseWarning } from '../engine/model/types';
+import type { ParseWarning, UnsupportedCategory, UnsupportedReport } from '../engine';
 
 /**
  * Cumul des éléments non supportés sur tous les fichiers ouverts dans ce navigateur (SPEC §8.4) :

@@ -1,8 +1,6 @@
 import { useRef } from 'react';
-import type { ShapeModel } from '../engine/model/types';
-import { defaultShapeRegistry } from '../engine/shapes/registry';
-import type { PropertySection, ShapeProperty } from '../engine/shapes/types';
-import { SPATIAL_PREFIX, spatialNumber, spatialValue } from '../engine/spatial';
+import { defaultShapeRegistry, SPATIAL_PREFIX, spatialNumber, spatialValue } from '../engine';
+import type { PropertySection, ShapeModel, ShapeProperty } from '../engine';
 import { NumberField, TextField } from './Fields';
 
 /** Numéro du prochain passage dans un champ (clé de fusion des frappes, unique pour toute la session). */

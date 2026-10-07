@@ -1,9 +1,5 @@
-import { parseDrawio } from '../engine/format/parse';
-import { createEmptyDrawio } from '../engine/format/skeleton';
-import { FsStore } from '../engine/persistence/FsStore';
-import { IndexedDbStore } from '../engine/persistence/IndexedDbStore';
-import { MemoryStore } from '../engine/persistence/MemoryStore';
-import type { FileStore, StoredFile } from '../engine/persistence/FileStore';
+import { createEmptyDrawio, FsStore, IndexedDbStore, MemoryStore, parseDrawio } from '../engine';
+import type { FileStore, StoredFile } from '../engine';
 import type { DemoFile } from './demoFiles';
 import { baseName, desktop } from './desktop';
 

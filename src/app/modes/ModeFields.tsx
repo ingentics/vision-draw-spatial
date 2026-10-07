@@ -1,8 +1,5 @@
-import type { PageModel } from '../../engine/model/types';
-import { defaultModeRegistry } from '../../engine/modes/registry';
-import type { ModeScope } from '../../engine/modes/registry';
-import type { ModeProperty, ModeTarget } from '../../engine/modes/types';
-import { spatialValue } from '../../engine/spatial';
+import { defaultModeRegistry, spatialValue } from '../../engine';
+import type { ModeProperty, ModeScope, ModeTarget, PageModel } from '../../engine';
 import { NumberField, SelectField, TextField } from '../Fields';
 
 /**

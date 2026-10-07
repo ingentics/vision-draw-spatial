@@ -6,27 +6,31 @@ import robotoMonoBold from '@fontsource/roboto-mono/files/roboto-mono-latin-700-
 import robotoMono from '@fontsource/roboto-mono/files/roboto-mono-latin-400-normal.woff?url';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import type { UnsupportedReport } from '../engine/diagnostics/unsupportedStyles';
+import { GRAPH_PAGE_ID, isFilePath, jumpValue, labelPlacePatch, SPATIAL, usedTemplates } from '../engine';
 import type {
   BackTarget,
   CommentEditRequest,
+  DocumentModel,
+  EdgeModel,
+  ElementComment,
   Engine,
   InitialView,
   LabelEditRequest,
   ModeHint,
+  ParentLink,
   Selection,
-} from '../engine/Engine';
-import type { ElementComment } from '../engine/edit/comment';
-import type { ViewMode } from '../engine/interaction/camera';
-import type { ParentLink } from '../engine/interaction/history';
-import type { DocumentModel, EdgeModel, ShapeModel } from '../engine/model/types';
-import type { StoredFile } from '../engine/persistence/FileStore';
+  Settings,
+  SettingsPatch,
+  ShapeModel,
+  StoredFile,
+  UnsupportedReport,
+  ViewMode,
+} from '../engine';
 import { BackButton } from '../react/BackButton';
 import { DrawioSpatial } from '../react/DrawioSpatial';
 import { clearLog, cumulativeEntries, exportJson, recordFile } from './diagnosticsLog';
 import { DiagnosticsPanel } from './DiagnosticsPanel';
 import { desktop } from './desktop';
-import { isFilePath } from '../engine/persistence/FsStore';
 import { saveAs, store } from './fileLibrary';
 import { SlidingModeBar } from './ModeBar';
 import { NavigationToolbar } from './NavigationToolbar';
@@ -40,13 +44,7 @@ import { Palette, PALETTE_MIME, templateById } from './Palette';
 import { SettingsPanel } from './SettingsPanel';
 import { ContextPanel, contextTitle } from './ContextPanel';
 import { Sidebar } from './Sidebar';
-import type { Settings, SettingsPatch } from '../engine/settings';
 import { CommentCard, CommentEditor, commentTextStyle } from './comment';
-import { GRAPH_PAGE_ID } from '../engine/graph/graphPage';
-import { labelPlacePatch } from '../engine/edit/labelPosition';
-import { usedTemplates } from '../engine/edit/palette';
-import { jumpValue } from '../engine/render/edges/jumps';
-import { SPATIAL } from '../engine/spatial';
 
 const FONTS = {
   regular: robotoRegular,

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { ClipboardEvent, FocusEvent, KeyboardEvent, MutableRefObject, RefObject } from 'react';
-import { isRich, parseColor, parseRichHtml, richToHtml, richToText } from '../engine/format/richText';
-import type { TextMarks } from '../engine/model/types';
+import { isRich, parseColor, parseRichHtml, richToHtml, richToText } from '../engine';
+import type { TextMarks } from '../engine';
 
 /*
  * Saisie de texte riche partagée par l'édition en place d'un label (`LabelEditor`) et celle d'un commentaire

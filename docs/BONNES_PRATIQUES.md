@@ -80,9 +80,9 @@
 
 - **Le moteur ne connaît ni React ni l'app** ; `format/` et `model/` ne connaissent ni Three.js ni le rendu
   (vérifié par `.eslintrc.cjs`).
-- **L'app passe par l'API publique** (`src/index.ts`, `Engine`). N'ajoutez pas d'import d'un chemin interne
-  (`engine/render/…`, `engine/interaction/…`) dans `src/app/`. S'il manque quelque chose, l'exporter depuis le
-  point d'entrée public.
+- **L'interface passe par le point d'entrée du moteur** (`src/engine/index.ts`) : `src/app/`, `src/react/` et
+  `src/index.ts` n'importent rien d'autre du moteur (vérifié par le lint). S'il manque quelque chose, l'y exporter ;
+  `src/index.ts` (API de la bibliothèque) n'en réexporte que ce qui est public.
 - **Un cas particulier ne se recopie pas.** Un test répété partout passe par un garde commun : transition en cours
   (`core.canInteract()`), vue graphe (`graph.isGraph(id)`), page modifiable (`targets.editablePage()`,
   `editablePageById(id)`) ; à défaut, en créer un.

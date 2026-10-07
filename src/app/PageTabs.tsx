@@ -1,5 +1,4 @@
-import type { PageModel } from '../engine/model/types';
-import type { PageModeDefinition } from '../engine/modes/types';
+import type { PageModeDefinition, PageModel } from '../engine';
 import { InlineEdit } from './InlineEdit';
 
 interface PageTabsProps {

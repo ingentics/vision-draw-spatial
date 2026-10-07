@@ -1,4 +1,4 @@
-import type { ExporterSettings } from '../../../engine/settings';
+import type { ExporterSettings } from '../../../engine';
 
 /**
  * PlantUML en ligne (sujet 90) : le texte est compressé (deflate brut) puis encodé dans l'alphabet base64 de PlantUML

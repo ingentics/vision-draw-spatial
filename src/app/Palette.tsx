@@ -1,8 +1,8 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CollapseButton } from './Sidebar';
-import { PALETTE_CATEGORIES, SHAPE_TEMPLATES, searchTemplates } from '../engine/edit/palette';
-import type { PageModePalette, PaletteCategory, PaletteCategoryId, ShapeTemplate } from '../engine/edit/palette';
+import { PALETTE_CATEGORIES, searchTemplates, SHAPE_TEMPLATES } from '../engine';
+import type { PageModePalette, PaletteCategory, PaletteCategoryId, ShapeTemplate } from '../engine';
 
 /** Catégorie des formes présentes sur la page, en tête de la palette (hors `PALETTE_CATEGORIES`). */
 const USED_CATEGORY = { id: 'used', name: 'Utilisées' } as const;

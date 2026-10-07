@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react';
-import type { ViewMode } from '../engine/interaction/camera';
+import type { ViewMode } from '../engine';
 
 interface NavigationToolbarProps {
   viewMode: ViewMode;

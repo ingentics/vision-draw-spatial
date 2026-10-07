@@ -18,6 +18,24 @@ module.exports = {
   },
   overrides: [
     {
+      // Ticket 207 : l'interface et l'API de la bibliothèque passent par le point d'entrée du moteur.
+      files: ['src/app/**/*.ts', 'src/app/**/*.tsx', 'src/react/**/*.ts', 'src/react/**/*.tsx', 'src/index.ts'],
+      rules: {
+        'no-restricted-imports': [
+          'error',
+          {
+            patterns: [
+              {
+                group: ['**/engine/*'],
+                message:
+                  "Importer depuis le point d'entrée du moteur (`engine`, src/engine/index.ts), pas un fichier interne.",
+              },
+            ],
+          },
+        ],
+      },
+    },
+    {
       // SPEC §3.2 : le moteur ne dépend jamais de React.
       files: ['src/engine/**/*.ts', 'src/engine/**/*.tsx'],
       rules: {

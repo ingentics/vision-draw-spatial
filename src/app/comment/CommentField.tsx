@@ -1,4 +1,4 @@
-import type { ElementComment } from '../../engine/edit/comment';
+import type { ElementComment } from '../../engine';
 
 /**
  * Commentaire d'un élément, flèche ou forme (montré en bas à gauche du rendu au survol) : aperçu et bouton Modifier,
