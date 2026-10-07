@@ -93,6 +93,35 @@ export function reindexPage(page: PageTree): void {
   for (const nodes of page.cellList) if (!page.cells.has(nodes.id)) page.cells.set(nodes.id, nodes);
 }
 
+/**
+ * Instantané d'une page (contenu de `<mxGraphModel>`, attributs de `<diagram>`, page modifiée ou non), pour la
+ * remettre en l'état si une suite d'écritures échoue en route (sujet 302). Renvoie la fonction qui la restaure, en
+ * place : les nœuds `<diagram>` et `<mxGraphModel>` restent les mêmes, les cellules sont réindexées.
+ */
+export function snapshotPage(page: PageTree): () => void {
+  const { model, diagram, dirty } = page;
+  const content = model?.cloneNode(true) as Element | undefined;
+  const attributes = (element: Element | undefined) =>
+    element ? Array.from({ length: element.attributes.length }, (_, i) => element.attributes.item(i)!) : [];
+  const saved = (element: Element | undefined) => attributes(element).map(({ name, value }) => [name, value] as const);
+  const [modelAttributes, diagramAttributes] = [saved(model), saved(diagram)];
+  const restoreAttributes = (element: Element | undefined, values: ReadonlyArray<readonly [string, string]>) => {
+    if (!element) return;
+    for (const { name } of attributes(element)) element.removeAttribute(name);
+    for (const [name, value] of values) element.setAttribute(name, value);
+  };
+  return () => {
+    if (model && content) {
+      while (model.firstChild) model.removeChild(model.firstChild);
+      while (content.firstChild) model.appendChild(content.firstChild);
+    }
+    restoreAttributes(model, modelAttributes);
+    restoreAttributes(diagram, diagramAttributes);
+    page.dirty = dirty;
+    reindexPage(page);
+  };
+}
+
 /** Lit une page `<diagram>` (aussi pour une page ajoutée au fichier). */
 export function readDiagram(diagram: Element, index: number): PageTree {
   const id = diagram.getAttribute('id') || `page-${index + 1}`;

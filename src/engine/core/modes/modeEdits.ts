@@ -10,6 +10,7 @@ import {
 } from '../format/cellEdits';
 import { addEdgeLabelCell, removeCells } from '../format/create';
 import { sendToBackInOrder } from '../format/order';
+import { snapshotPage } from '../format/xmlTree';
 import type { PageTree } from '../format/xmlTree';
 import type { PageModel, Rect } from '../model/types';
 import { SPATIAL_PREFIX, spatialValue } from '../spatial';
@@ -39,7 +40,8 @@ export const DEFAULT_MODE_EDIT_CONTEXT: ModeEditContext = {
  * `setEdgeEndText` (sujet 265). Un élément verrouillé (`locked`, `movable=0`) ne change ni de style, ni de bornes, ni
  * de place dans l'ordre, ni de textes de bout. Une clé invalide lève une exception. Les valeurs sont suivies au fil des
  * écritures : une écriture identique à la valeur en place est ignorée. Les écritures sont rassemblées, puis appliquées
- * à l'arbre une fois l'opération terminée (sujet 288) : une opération qui lève une exception n'écrit rien.
+ * à l'arbre une fois l'opération terminée (sujet 288) : une opération qui lève une exception n'écrit rien, et une
+ * écriture qui échoue en route remet la page dans l'état d'avant l'opération (sujet 302) avant de lever l'exception.
  */
 export function applyModeEdit(
   page: PageModel,
@@ -190,7 +192,16 @@ export function applyModeEdit(
       writes.push(() => sendToBackInOrder(pageTree, ids));
     },
   });
+  if (writes.length === 0) return false;
+  // Une écriture qui échoue en route (ex. cellule disparue de l'arbre) : la page revient à l'état d'avant les
+  // écritures de l'opération (sujet 302), l'erreur remonte comme une opération en panne.
+  const restore = snapshotPage(pageTree);
   let changed = false;
-  for (const write of writes) changed = write() || changed;
+  try {
+    for (const write of writes) changed = write() || changed;
+  } catch (error) {
+    restore();
+    throw error;
+  }
   return changed;
 }

@@ -5,6 +5,7 @@ import { PluginGuard } from '../../../../../src/engine/core/domains/modes/plugin
 import { PageEffectRegistry } from '../../../../../src/engine/core/effects/registry';
 import { readDrawio } from '../../../../../src/engine/core/format/parse';
 import { writeDrawio } from '../../../../../src/engine/core/format/write';
+import { removeCells } from '../../../../../src/engine/core/format/create';
 import { applyModeEdit } from '../../../../../src/engine/core/modes/modeEdits';
 import { PageModeRegistry } from '../../../../../src/engine/core/modes/registry';
 import type { PageModeDefinition } from '../../../../../src/engine/core/modes/types';
@@ -50,16 +51,20 @@ const BOOM: PageModeDefinition = {
 /** Cœur réduit à ce que le domaine des modes utilise ; `published` compte les republications des Diagnostics. */
 function setup() {
   const { document, tree } = readDrawio(XML);
-  const state = { published: 0 };
+  const state = { published: 0, snapshots: [] as string[], changed: 0 };
+  const editable = () => ({ page: document.pages[0]!, pageTree: tree.pages[0]!, xmlTree: tree });
   const core = {
     modes: new PageModeRegistry().register(BOOM),
     effects: new PageEffectRegistry(),
     settings: DEFAULT_SETTINGS,
     pages: { pageById: (id: string) => document.pages.find((p) => p.id === id) },
+    targets: { editablePage: editable, editablePageById: (id: string) => (id === 'p' ? editable() : undefined) },
+    edits: { recordSnapshot: (label: string) => state.snapshots.push(label) },
     file: {
       xmlTree: tree,
       pageTreeOf: () => tree.pages[0],
       publishWarnings: () => state.published++,
+      documentChanged: () => state.changed++,
     },
   } as unknown as EngineCore;
   const guard = new PluginGuard(core);
@@ -147,5 +152,26 @@ describe('hôte des appels aux modes (sujet 288)', () => {
     expect(modes.allowsEffect(page, { id: 'refused' })).toBe(false);
     expect(modes.allowsEffect(page, { id: 'forest' })).toBe(true);
     expect(guard.warnings().map((w) => w.message)).toEqual(['Mode boom : erreur dans page.allowsEffect (panne)']);
+  });
+});
+
+describe('écritures d’une opération de mode qui échouent en route (sujet 302)', () => {
+  it('une écriture vers une cellule disparue : arbre inchangé, pas d’étape d’annulation, erreur signalée', () => {
+    const { tree, modes, guard, state } = setup();
+    // Le modèle de la page a encore `b`, l'arbre ne l'a plus : l'écriture vers `b` échoue une fois appliquée.
+    removeCells(tree.pages[0]!, ['b']);
+    const before = writeDrawio(tree);
+    const changed = modes.editPageMode('Essai', (edit) => {
+      edit.setPageAttribute('x', '1');
+      edit.setElementAttribute('a', 'y', '2');
+      edit.setElementAttribute('b', 'z', '3');
+    });
+    expect(changed).toBe(false);
+    expect(writeDrawio(tree)).toBe(before);
+    expect(state.snapshots).toEqual([]);
+    expect(state.changed).toBe(0);
+    expect(guard.warnings().map((w) => w.message)).toEqual([
+      'Mode boom : erreur dans opération « Essai » (Cellule b introuvable)',
+    ]);
   });
 });

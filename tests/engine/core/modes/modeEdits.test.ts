@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { moveCell } from '../../../../src/engine/core/format/cellEdits';
+import { removeCells } from '../../../../src/engine/core/format/create';
 import { documentFromTree, readDrawio } from '../../../../src/engine/core/format/parse';
 import { writeDrawio } from '../../../../src/engine/core/format/write';
 import { applyModeEdit } from '../../../../src/engine/core/modes/modeEdits';
@@ -78,5 +80,40 @@ describe('écritures d’une opération de mode (sujet 301)', () => {
     // Une forme libre, elle, bouge.
     run((edit) => edit.setShapeBounds('a', bounds));
     expect(shape('a').bounds).toEqual(bounds);
+  });
+});
+
+describe('écriture qui échoue en route (sujet 302)', () => {
+  it('opération : la page revient à l’état d’avant ses écritures, l’erreur remonte', () => {
+    const { tree, run } = setup();
+    // Le modèle de la page a encore `a`, l'arbre ne l'a plus : la deuxième écriture échoue une fois appliquée.
+    removeCells(tree.pages[0]!, ['a']);
+    const before = writeDrawio(tree);
+    expect(() =>
+      run((edit) => {
+        edit.setPageAttribute('x', '1');
+        edit.setElementAttribute('a', 'y', '2');
+      }),
+    ).toThrow('Cellule a introuvable');
+    expect(writeDrawio(tree)).toBe(before);
+  });
+
+  it('remise en ordre après un geste : le geste reste, seules les écritures du mode sont défaites', () => {
+    const { document, tree } = readDrawio(XML);
+    const pageTree = tree.pages[0]!;
+    // Le geste du tronc, déjà écrit : `a` déplacée.
+    moveCell(pageTree, 'a', { x: 30, y: 0 });
+    const fresh = documentFromTree(tree).pages[0]!;
+    removeCells(pageTree, ['locked']);
+    const afterGesture = writeDrawio(tree);
+    expect(() =>
+      applyModeEdit(fresh, pageTree, { namespace: 'test' }, (edit) => {
+        edit.setElementStyle('a', 'fillColor', '#ff0000');
+        edit.setElementAttribute('locked', 'y', '2');
+      }),
+    ).toThrow('Cellule locked introuvable');
+    expect(writeDrawio(tree)).toBe(afterGesture);
+    expect(documentFromTree(tree).pages[0]!.shapes.find((s) => s.id === 'a')!.bounds.x).toBe(30);
+    expect(document.pages[0]!.shapes.find((s) => s.id === 'a')!.bounds.x).toBe(0);
   });
 });

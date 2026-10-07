@@ -276,7 +276,7 @@ export class PageModes {
   /**
    * Remise en ordre par le mode de la page, après une modification déjà écrite dans l'arbre, dans la même étape
    * d'annulation (sujet 288) : `run` reçoit la page relue de l'arbre. Vrai si l'arbre a changé (le modèle est alors à
-   * relire) ; rien d'écrit si le mode lève une exception.
+   * relire) ; rien d'écrit si le mode lève une exception, ou si une de ses écritures échoue en route (sujet 302).
    */
   private followUp<F>(
     pageId: string,
@@ -284,10 +284,11 @@ export class PageModes {
     entryOf: (mode: PageModeDefinition) => F | undefined,
     run: (entry: F, edit: ModeEdit, fresh: PageModel) => void,
   ): boolean {
-    const page = this.core.pages.pageById(pageId);
-    const mode = page && this.core.modes.modeOf(page);
+    // Page modifiable seulement (sujet 302), comme une opération.
+    const target = this.core.targets.editablePageById(pageId);
+    const mode = target && this.core.modes.modeOf(target.page);
     const entry = mode && entryOf(mode);
-    const pageTree = this.core.file.pageTreeOf(pageId);
+    const pageTree = target?.pageTree;
     if (!mode || !entry || !pageTree || !this.core.file.xmlTree) return false;
     const fresh = documentFromTree(this.core.file.xmlTree).pages.find((p) => p.id === pageId);
     if (!fresh) return false;
