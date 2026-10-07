@@ -6,6 +6,7 @@ import {
   distance,
   insidePolygon,
   rectContains,
+  rectsOverlap,
   segmentDistance,
   segmentIntersection,
   segmentsCross,
@@ -24,6 +25,14 @@ describe('géométrie partagée (sujet 205)', () => {
     expect(boundsOfPoints([])).toBeUndefined();
     expect(unionOf([])).toBeUndefined();
     expect(unionOf([r, { x: 20, y: -5, width: 5, height: 5 }])).toEqual({ x: 0, y: -5, width: 25, height: 15 });
+  });
+
+  it('chevauchement de deux rectangles, bords exclus (sujet 276)', () => {
+    const r = { x: 0, y: 0, width: 10, height: 10 };
+    expect(rectsOverlap(r, { x: 5, y: 5, width: 10, height: 10 })).toBe(true);
+    expect(rectsOverlap(r, { x: 2, y: 2, width: 2, height: 2 })).toBe(true);
+    expect(rectsOverlap(r, { x: 10, y: 0, width: 5, height: 5 })).toBe(false);
+    expect(rectsOverlap(r, { x: 0, y: 11, width: 5, height: 5 })).toBe(false);
   });
 
   it('longueur arrondie au pas de grille supérieur (sujet 263)', () => {

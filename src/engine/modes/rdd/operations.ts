@@ -1,34 +1,27 @@
 import type { ShapeModel } from '../../model/types';
 import type { ModeEdit } from '../types';
 import { writeRelationEdge } from './relations/relationKinds';
-import type { Field, TableContent, TableRow } from './tables';
+import type { Field, TableRow } from './fieldModel';
+import { FIELDS, fieldsValue, isDivider, isPrimaryKey, isRelation, newFieldLabel, tableFields } from './fieldModel';
+import { tableKindOf } from './tableKinds';
+import type { TableContent } from './tableLayout';
 import {
-  FIELDS,
   SECONDARY,
-  SECONDARY_SCALE,
   TABLE,
   headerHeight,
-  isDivider,
-  isPrimaryKey,
-  isRelation,
   isSecondary,
-  fieldsValue,
-  newFieldLabel,
+  roundSize,
+  secondaryScale,
   tableContent,
-  tableFields,
   tableHeight,
-  tableKindOf,
   tableSize,
   tableWidth,
-} from './tables';
+} from './tableLayout';
 
 /**
  * Opérations du mode RDD sur une table (sujets 179, 180) : champs, couleur d'entête, table secondaire. Chacune est une
  * opération de mode (une étape d'annulation) ; la forme garde la taille de son contenu (sujet 247).
  */
-
-/** Arrondi des tailles écrites (échelle 0,8 : pas de traîne de flottants). */
-const round = (value: number) => Math.round(value * 100) / 100;
 
 /**
  * Taille de la table recalculée de son contenu (sujet 247), depuis son coin haut-gauche, la largeur étendue à droite
@@ -42,7 +35,7 @@ export function fitTable(edit: ModeEdit, shape: ShapeModel, changes: Partial<Tab
   edit.setShapeBounds(shape.id, {
     ...shape.bounds,
     width: tableSize(tableWidth(kind, content), edit.gridSize),
-    height: round(tableHeight(kind, content.secondary, content.fields.length)),
+    height: roundSize(tableHeight(kind, content.secondary, content.fields.length)),
   });
 }
 
@@ -58,12 +51,7 @@ export function writeRows(edit: ModeEdit, shape: ShapeModel, rows: readonly Tabl
  * clé primaire. Un champ de relation garde son kind et reste sans type (sujet 265). Un séparateur ne prend que le
  * label, vide permis (sujet 253).
  */
-export function setField(
-  edit: ModeEdit,
-  shape: ShapeModel,
-  index: number,
-  patch: Partial<Omit<Field, 'kind'>> & { kind?: Field['kind'] },
-): void {
+export function setField(edit: ModeEdit, shape: ShapeModel, index: number, patch: Partial<Field>): void {
   const rows = tableFields(shape);
   const row = rows[index];
   const label = patch.label?.trim();
@@ -74,12 +62,13 @@ export function setField(
   let next: TableRow;
   if (isDivider(row)) next = { ...row, ...(label !== undefined && { label }) };
   else {
-    const key = row.kind === 'pk';
+    const key = isPrimaryKey(row);
     const relation = isRelation(row);
+    const kind = patch.kind;
     next = {
       ...row,
       ...(label !== undefined && { label }),
-      ...(patch.kind !== undefined && !key && !relation && patch.kind !== 'pk' && { kind: patch.kind }),
+      ...(kind !== undefined && !key && !relation && !isPrimaryKey({ ...row, kind }) && { kind }),
       ...(patch.nullable !== undefined && !key && { nullable: patch.nullable }),
       ...(patch.type !== undefined && !key && !relation && { type: patch.type }),
       ...(patch.unique !== undefined && !key && { unique: patch.unique || undefined }),
@@ -173,6 +162,6 @@ export function setSecondary(edit: ModeEdit, shape: ShapeModel, secondary: boole
   if (!kind || isSecondary(shape) === secondary) return;
   edit.setElementAttribute(shape.id, SECONDARY, secondary ? '1' : undefined);
   fitTable(edit, shape, { secondary });
-  edit.setElementStyle(shape.id, 'startSize', String(round(headerHeight(secondary))));
-  edit.setElementStyle(shape.id, 'fontSize', String(round(TABLE.nameSize * (secondary ? SECONDARY_SCALE : 1))));
+  edit.setElementStyle(shape.id, 'startSize', String(roundSize(headerHeight(secondary))));
+  edit.setElementStyle(shape.id, 'fontSize', String(roundSize(TABLE.nameSize * secondaryScale(secondary))));
 }

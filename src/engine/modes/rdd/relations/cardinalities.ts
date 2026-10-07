@@ -1,7 +1,7 @@
 import { SIDE_NORMALS, sideOfConstraint } from '../../../edit/edgeEnds';
 import { center } from '../../../model/geometry';
 import { styleNumber } from '../../../model/styleValues';
-import type { EdgeModel, PageModel, Point } from '../../../model/types';
+import type { EdgeModel, PageModel, Point, ShapeModel } from '../../../model/types';
 import type { ModeEdit } from '../../types';
 import { setEndArrows } from './ends';
 
@@ -17,8 +17,7 @@ import { setEndArrows } from './ends';
  * (`exitX/exitY`, `entryX/entryY`) s'il y en a un ; sinon le côté que traverse la droite du centre de la table vers le
  * premier coude (ou le centre de l'autre table), comme une attache auto.
  */
-function leavingDirection(page: PageModel, edge: EdgeModel, end: 'source' | 'target'): Point {
-  const shapes = new Map(page.shapes.map((shape) => [shape.id, shape]));
+function leavingDirection(shapes: ReadonlyMap<string, ShapeModel>, edge: EdgeModel, end: 'source' | 'target'): Point {
   const own = shapes.get((end === 'source' ? edge.sourceId : edge.targetId) ?? '');
   const other = shapes.get((end === 'source' ? edge.targetId : edge.sourceId) ?? '');
   const prefix = end === 'source' ? 'exit' : 'entry';
@@ -48,24 +47,29 @@ const TEXT_MARGIN = { along: 4, across: 4 };
 
 /**
  * Pointes et textes des bouts d'une flèche de relation ; `shown` : textes affichés (réglage de la page). Masqués : les
- * pointes seules, sans texte (sujet 266).
+ * pointes seules, sans texte (sujet 266). `shapes` : formes de la page par id.
  */
-export function writeCardinalities(edit: ModeEdit, edgeId: string, nullable: boolean, shown: boolean): void {
-  const edge = edit.page.edges.find((e) => e.id === edgeId);
-  if (!edge) return;
+export function writeCardinalities(
+  edit: ModeEdit,
+  edge: EdgeModel,
+  shapes: ReadonlyMap<string, ShapeModel>,
+  nullable: boolean,
+  shown: boolean,
+): void {
+  const edgeId = edge.id;
   setEndArrows(edit, edgeId, 'ERzeroToMany', nullable ? 'ERzeroToOne' : 'ERmandOne');
   edit.setEdgeEndText(
     edgeId,
     'start',
     shown ? '0,n' : undefined,
-    leavingDirection(edit.page, edge, 'source'),
+    leavingDirection(shapes, edge, 'source'),
     TEXT_MARGIN,
   );
   edit.setEdgeEndText(
     edgeId,
     'end',
     !shown ? undefined : nullable ? '0,1' : '1,1',
-    leavingDirection(edit.page, edge, 'target'),
+    leavingDirection(shapes, edge, 'target'),
     TEXT_MARGIN,
   );
 }

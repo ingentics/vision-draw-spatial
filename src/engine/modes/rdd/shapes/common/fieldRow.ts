@@ -1,11 +1,13 @@
 import { Color, Group } from 'three';
 import type { Point } from '../../../../model/types';
 import { fillMesh, strokeMesh } from '../../../../render/meshes';
-import { measureText } from '../../../../render/textMeasure';
 import { PART_ORDER } from '../../../../render/types';
 import type { RenderContext } from '../../../../render/types';
-import type { Divider, Field, FieldKind, TableKind } from '../../tables';
-import { TABLE, fieldLayout, fieldNote } from '../../tables';
+import type { Divider, Field } from '../../fieldModel';
+import { fieldNote } from '../../fieldModel';
+import { DIVIDER_STROKE, FIELD_ICON_STROKE, FIELD_KIND_COLORS, TYPE_COLOR } from '../../tableColors';
+import type { TableKind } from '../../tableKinds';
+import { TABLE, dividerLabelWidth, fieldLayout } from '../../tableLayout';
 
 /**
  * Ligne de champ d'une table RDD (sujet 248) : icône de kind, label, type (ou préfixe, sujet 268) en gris. Les
@@ -13,19 +15,8 @@ import { TABLE, fieldLayout, fieldNote } from '../../tables';
  * champ nullable a un petit losange blanc au centre.
  */
 
-/** Couleur du losange par kind. */
-export const FIELD_KIND_COLORS: Record<FieldKind, string> = {
-  pk: '#ffd700',
-  property: '#4a90e2',
-  fk: '#e74c3c',
-  'external-fk': '#3c9641',
-  embed: '#ae62e3',
-};
-const ICON_STROKE = '#888888';
 /** Demi-diagonales du losange et du trou (nullable), épaisseur du contour, dans le cadre de 12. */
 const ICON = { half: 5.2, hole: 2, stroke: 1 };
-/** Gris du type de donnée. */
-export const TYPE_COLOR = '#999999';
 
 /** Losange de demi-diagonale `half` centré en `center`. */
 const diamond = (center: Point, half: number): Point[] => [
@@ -46,7 +37,7 @@ function fieldIcon(field: Field, center: Point, scale: number): Group {
   // Au-dessus du fond blanc de la table (même ordre sinon : selon le tri de Three.js, le fond pouvait le couvrir).
   fill.renderOrder = PART_ORDER.fill + 0.6;
   group.add(fill);
-  const stroke = strokeMesh(diamond(center, ICON.half * unit), new Color(ICON_STROKE), 1, {
+  const stroke = strokeMesh(diamond(center, ICON.half * unit), new Color(FIELD_ICON_STROKE), 1, {
     width: ICON.stroke * unit,
     closed: true,
   });
@@ -89,9 +80,6 @@ export function addFieldRow(
   }
 }
 
-/** Gris du trait d'un séparateur. */
-const DIVIDER_STROKE = '#cccccc';
-
 /**
  * Dessine un séparateur (sujet 253) : trait horizontal sur la largeur de la table (marges comprises), interrompu
  * autour de son label, petit et gris, au milieu ; `left` / `width` : la table, `y` milieu de la ligne.
@@ -103,11 +91,11 @@ export function addDividerRow(
   row: { left: number; width: number; y: number; scale: number; part: string },
 ): void {
   const { left, width, y, scale, part } = row;
-  const { size, gap } = TABLE.divider;
+  const { size } = TABLE.divider;
   const start = left + TABLE.padding * scale;
   const end = left + width - TABLE.padding * scale;
   const center = left + width / 2;
-  const half = divider.label ? (measureText(divider.label, { size, bold: false, italic: false }) / 2 + gap) * scale : 0;
+  const half = (dividerLabelWidth(divider) / 2) * scale;
   const pieces: Point[][] = half
     ? [
         [

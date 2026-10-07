@@ -1,6 +1,9 @@
+import { rectContains, rectContainsRect, rectsOverlap, unionOf } from '../../model/geometry';
 import type { PageModel, Rect, ShapeModel } from '../../model/types';
 import { readableOn } from '../../render/styleColors';
-import type { ModeEdit, ModeObstacles } from '../types';
+import type { ModeEdit, ModeKey, ModeObstacles, ModeProperty, ModeTarget } from '../types';
+import { tableKindOf } from './tableKinds';
+import { shapeTarget } from './tableTargets';
 
 /**
  * Régions du mode RDD (sujet 182) : rectangles posés derrière les tables, qui emportent leur contenu quand on les
@@ -31,16 +34,9 @@ export const REGION = {
 export const isRegion = (shape: ShapeModel) => shape.kind === REGION_KIND;
 
 /** Forme du mode RDD (table ou région) : elle peut être contenue dans une région. */
-const isModeShape = (shape: ShapeModel) => shape.kind.startsWith('rdd-');
+const isModeShape = (shape: ShapeModel) => tableKindOf(shape) !== undefined || isRegion(shape);
 
 const area = (shape: ShapeModel) => shape.bounds.width * shape.bounds.height;
-
-/** Le coin haut-gauche de `shape` est-il dans `region` (bords compris) ? */
-function cornerIn(shape: ShapeModel, region: ShapeModel): boolean {
-  const { x, y } = shape.bounds;
-  const r = region.bounds;
-  return x >= r.x && x <= r.x + r.width && y >= r.y && y <= r.y + r.height;
-}
 
 /**
  * Une région peut-elle contenir `region`, dont le coin haut-gauche est dedans (sujet 231) ? Oui, quelle que soit sa
@@ -60,7 +56,7 @@ export function regionOf(page: PageModel, shape: ShapeModel): ShapeModel | undef
   if (!isModeShape(shape)) return undefined;
   let owner: ShapeModel | undefined;
   for (const region of page.shapes) {
-    if (!isRegion(region) || region.id === shape.id || !cornerIn(shape, region)) continue;
+    if (!isRegion(region) || region.id === shape.id || !rectContains(region.bounds, shape.bounds)) continue;
     if (isRegion(shape) && !canContainRegion(region, shape)) continue;
     if (!owner || area(region) < area(owner) || (area(region) === area(owner) && region.z > owner.z)) owner = region;
   }
@@ -139,10 +135,6 @@ export function extentOf(shape: ShapeModel, bounds: Rect = shape.bounds): Rect {
   return { ...bounds, y: bounds.y - height, height: bounds.height + height };
 }
 
-/** Deux rectangles se chevauchent-ils (bords exclus) ? */
-const overlaps = (a: Rect, b: Rect) =>
-  a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
-
 /** `ancestor` contient-elle `region`, de proche en proche ? */
 function encloses(page: PageModel, ancestor: ShapeModel, region: ShapeModel): boolean {
   const seen = new Set<string>();
@@ -172,7 +164,7 @@ export function growRegions(edit: ModeEdit, shapeIds: string[], before?: PageMod
     const earlier = before?.shapes.find((s) => s.id === shape.id);
     const previousId = earlier && before && regionOf(before, earlier)?.id;
     const previous = previousId === undefined ? undefined : page.shapes.find((s) => s.id === previousId);
-    if (!previous || previous.id === owner?.id || !overlaps(boundsOf(shape), boundsOf(previous))) return owner;
+    if (!previous || previous.id === owner?.id || !rectsOverlap(boundsOf(shape), boundsOf(previous))) return owner;
     return !owner || encloses(page, owner, previous) ? previous : owner;
   };
   for (const id of shapeIds) {
@@ -185,12 +177,7 @@ export function growRegions(edit: ModeEdit, shapeIds: string[], before?: PageMod
       // La forme compte avec son onglet si c'est une région (sujet 237).
       const inner = extentOf(shape, boundsOf(shape));
       const outer = boundsOf(region);
-      const fits =
-        inner.x >= outer.x &&
-        inner.y >= outer.y &&
-        inner.x + inner.width <= outer.x + outer.width &&
-        inner.y + inner.height <= outer.y + outer.height;
-      if (fits) break;
+      if (rectContainsRect(outer, inner)) break;
       // Elle dépasse : la région s'agrandit pour garder la marge de chaque côté où la forme en est trop près.
       const { margin } = REGION;
       const left = Math.min(outer.x, inner.x - margin);
@@ -284,13 +271,15 @@ export function fitRegion(edit: ModeEdit, region: ShapeModel): void {
     const content = regionContent(page, current)
       .map((id) => page.shapes.find((s) => s.id === id))
       .filter((shape): shape is ShapeModel => shape !== undefined);
-    if (content.length === 0) break;
-    const extents = content.map((s) => extentOf(s, fitted.get(s.id) ?? s.bounds));
-    const left = Math.min(...extents.map((r) => r.x)) - REGION.margin;
-    const top = Math.min(...extents.map((r) => r.y)) - REGION.margin;
-    const right = Math.max(...extents.map((r) => r.x + r.width)) + REGION.margin;
-    const bottom = Math.max(...extents.map((r) => r.y + r.height)) + REGION.margin;
-    const bounds = { x: left, y: top, width: right - left, height: bottom - top };
+    const union = unionOf(content.map((s) => extentOf(s, fitted.get(s.id) ?? s.bounds)));
+    if (!union) break;
+    const { margin } = REGION;
+    const bounds = {
+      x: union.x - margin,
+      y: union.y - margin,
+      width: union.width + 2 * margin,
+      height: union.height + 2 * margin,
+    };
     fitted.set(current.id, bounds);
     edit.setShapeBounds(current.id, bounds);
   }
@@ -310,3 +299,36 @@ export function regionObstacles(page: PageModel, shape: ShapeModel): ModeObstacl
     .map((s) => ({ id: s.id, rect: extentOf(s) }));
   return { rects, above: shape.bounds.y - extentOf(shape).y };
 }
+
+/** Région du mode sélectionnée (sujet 182). */
+const regionTarget = (target: ModeTarget): ShapeModel | undefined => {
+  const shape = shapeTarget(target);
+  return shape && isRegion(shape) ? shape : undefined;
+};
+
+/** Réglages d'une région (sujets 182, 233) : sa propre palette, bordure grise. */
+export const REGION_PROPERTIES: ModeProperty[] = [
+  {
+    type: 'select',
+    key: 'rdd.regionColor',
+    label: 'Couleur',
+    title: 'Couleur du fond de la région (fillColor)',
+    options: () => REGION_COLORS.map((color) => ({ value: color, label: color, color })),
+    value: (_page, target) => regionTarget(target)?.style.fillColor,
+    write: (edit, target, value) => {
+      const shape = regionTarget(target);
+      if (shape) setRegionColor(edit, shape, value);
+    },
+    hidden: (_page, target) => !regionTarget(target),
+  },
+];
+
+/** « f » : région ajustée à son contenu (sujet 184) ; sur un autre élément, la touche garde son effet. */
+export const FIT_REGION_KEY: ModeKey = {
+  label: 'Ajuster la région',
+  applies: (_page, target) => regionTarget(target) !== undefined,
+  run: (edit, target) => {
+    const region = regionTarget(target);
+    if (region) fitRegion(edit, region);
+  },
+};

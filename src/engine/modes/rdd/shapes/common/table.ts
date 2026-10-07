@@ -9,36 +9,25 @@ import { readableOn, styleColor } from '../../../../render/styleColors';
 import { PART_ORDER } from '../../../../render/types';
 import type { RenderContext } from '../../../../render/types';
 import type { PaletteEntry, ShapeDefinition } from '../../../../shapes/types';
+import { FIELDS, fieldsValue, isDivider, primaryKeyField, tableFields } from '../../fieldModel';
 import { isLinkable } from '../../relations/relationKinds';
+import { DEFAULT_HEADER_COLOR, DEFAULT_HEADER_TEXT, FIELDS_FILL, TABLE_BORDER } from '../../tableColors';
+import type { TableKind } from '../../tableKinds';
+import { TABLE_KINDS, shownMark, tableName } from '../../tableKinds';
 import {
-  DEFAULT_HEADER_COLOR,
-  DEFAULT_HEADER_TEXT,
-  FIELDS,
-  primaryKeyField,
-  SECONDARY_SCALE,
+  MARK_INSET,
   TABLE,
-  TABLE_KINDS,
-  fieldsValue,
   headerHeight,
-  isDivider,
   isSecondary,
-  markInset,
-  missingName,
-  shownMark,
-  tableFields,
   tableHeight,
+  tableScale,
   tableSize,
   tableWidth,
-} from '../../tables';
-import type { HeaderMark, TableKind } from '../../tables';
+} from '../../tableLayout';
 import { addDividerRow, addFieldRow } from './fieldRow';
+import { headerMark } from './headerMarks';
 
 /** Rendu et fabrique des tables du mode RDD (sujet 179), communs à ses formes (`shapes/<forme>/`). */
-
-const BORDER = '#666666';
-const FIELDS_FILL = '#ffffff';
-
-const scaleOf = (shape: ShapeModel) => (isSecondary(shape) ? SECONDARY_SCALE : 1);
 
 /**
  * Zone du nom : l'entête (label dessiné et éditeur en place), réduite des deux côtés de la place de l'icône d'entête
@@ -46,12 +35,12 @@ const scaleOf = (shape: ShapeModel) => (isSecondary(shape) ? SECONDARY_SCALE : 1
  */
 function nameZone(shape: ShapeModel): Rect {
   const { x, y, width } = shape.bounds;
-  const inset = shownMark(shape) ? Math.min(markInset() * scaleOf(shape), width / 2) : 0;
+  const inset = shownMark(shape) ? Math.min(MARK_INSET * tableScale(shape), width / 2) : 0;
   return { x: x + inset, y, width: width - 2 * inset, height: headerHeight(isSecondary(shape)) };
 }
 
 /** Côté du coin plié d'un document, à l'échelle de la table (au plus la moitié de l'entête). */
-const foldOf = (shape: ShapeModel) => Math.min(TABLE.fold * scaleOf(shape), headerHeight(isSecondary(shape)) / 2);
+const foldOf = (shape: ShapeModel) => Math.min(TABLE.fold * tableScale(shape), headerHeight(isSecondary(shape)) / 2);
 
 /**
  * Contour d'une table : rectangle, arrondi avec `rounded=1` (vue), coin haut-droit coupé en biais pour un document
@@ -64,7 +53,7 @@ function outline(shape: ShapeModel, kind: TableKind): Point[] {
   if (kind.wavy) {
     // Bas ondulé, une période sur la largeur, de droite à gauche : remonte puis descend (vu de gauche : descend puis
     // remonte), entre le bas des bornes et deux amplitudes au-dessus.
-    const a = TABLE.wave * scaleOf(shape);
+    const a = TABLE.wave * tableScale(shape);
     const steps = 24;
     const wave = Array.from({ length: steps + 1 }, (_, i) => {
       const t = 1 - i / steps;
@@ -104,7 +93,7 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
   const group = new Group();
   group.name = `shape:${shape.id}`;
   const { bounds, style } = shape;
-  const scale = scaleOf(shape);
+  const scale = tableScale(shape);
   const header = Math.min(bounds.height, headerHeight(isSecondary(shape)));
   const headerColor = styleColor(style, 'fillColor', DEFAULT_HEADER_COLOR) ?? new Color(DEFAULT_HEADER_COLOR);
   // Texte de l'entête : `fontColor` s'il est écrit (gris d'une table neuve, sujet 235), sinon lisible sur l'entête.
@@ -127,7 +116,7 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
     group.add(flap);
   }
 
-  const stroke = styleColor(style, 'strokeColor', BORDER);
+  const stroke = styleColor(style, 'strokeColor', TABLE_BORDER);
   const width = styleNumber(style, 'strokeWidth', 1);
   if (stroke && width > 0) {
     const line = (path: Point[], closed: boolean) => {
@@ -164,7 +153,7 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
     if (kind.folded) line(flapOf(shape), true);
   }
   const mark = shownMark(shape);
-  if (mark) group.add(headerMark(shape, mark, header, styleColor(style, 'strokeColor', BORDER)));
+  if (mark) group.add(headerMark(shape, mark, header, styleColor(style, 'strokeColor', TABLE_BORDER)));
 
   const label = createLabel(
     {
@@ -179,7 +168,7 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
       },
     },
     ctx,
-    missingName(shape) ? kind.requiredName : shape.label,
+    tableName(shape),
     nameZone(shape),
   );
   if (label) group.add(label);
@@ -195,130 +184,6 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
   return group;
 }
 
-/** Arc de cercle de `from` à `to` (radians, repère page : −π/2 vers le haut), en polygone. */
-function arc(cx: number, cy: number, r: number, from: number, to: number, segments = 8): Point[] {
-  return Array.from({ length: segments + 1 }, (_, i) => {
-    const angle = from + ((to - from) * i) / segments;
-    return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
-  });
-}
-
-/** Cercle en polygone. */
-const circle = (cx: number, cy: number, r: number) => arc(cx, cy, r, 0, 2 * Math.PI, 16).slice(0, -1);
-
-/**
- * Câble de la prise (sujet 223) dans le cadre de 14 × 9 : part du haut à gauche, fait un S (boucle à droite puis à
- * gauche) et file vers la prise, en bas à droite.
- */
-function plugCable(): Point[] {
-  return [
-    { x: 1.8, y: 1.2 },
-    { x: 3.4, y: 1.2 },
-    ...arc(3.4, 2.6, 1.4, -Math.PI / 2, Math.PI / 2).slice(1),
-    { x: 2.6, y: 4 },
-    ...arc(2.6, 5.4, 1.4, -Math.PI / 2, -(3 * Math.PI) / 2).slice(1),
-    { x: 6.6, y: 6.8 },
-  ];
-}
-
-/** Tracés d'une icône d'entête dans son cadre de 14 × 9 : [points, fermé]. */
-const MARK_PATHS: Record<HeaderMark, Array<[Point[], boolean]>> = {
-  // Deux oculaires ronds, leurs corps resserrés vers le haut, le pont.
-  binoculars: [
-    [circle(3.5, 6.2, 2.6), true],
-    [circle(10.5, 6.2, 2.6), true],
-    [
-      [
-        { x: 1, y: 5.5 },
-        { x: 2.3, y: 0.8 },
-        { x: 5, y: 0.8 },
-        { x: 6, y: 5.5 },
-      ],
-      false,
-    ],
-    [
-      [
-        { x: 8, y: 5.5 },
-        { x: 9, y: 0.8 },
-        { x: 11.7, y: 0.8 },
-        { x: 13, y: 5.5 },
-      ],
-      false,
-    ],
-    [
-      [
-        { x: 5.6, y: 3 },
-        { x: 8.4, y: 3 },
-      ],
-      false,
-    ],
-  ],
-  // Trois puces rondes et leurs lignes.
-  list: [1.2, 4.5, 7.8].flatMap((y): Array<[Point[], boolean]> => [
-    [circle(2.2, y, 0.9), true],
-    [
-      [
-        { x: 4.6, y },
-        { x: 13, y },
-      ],
-      false,
-    ],
-  ]),
-  // Prise électrique : câble en S, corps rétréci côté câble, deux broches vers la droite.
-  plug: [
-    [plugCable(), false],
-    [
-      [
-        { x: 6.6, y: 6 },
-        { x: 7.6, y: 5.1 },
-        { x: 9.6, y: 5.1 },
-        { x: 9.6, y: 8.5 },
-        { x: 7.6, y: 8.5 },
-        { x: 6.6, y: 7.6 },
-      ],
-      true,
-    ],
-    [
-      [
-        { x: 9.6, y: 6 },
-        { x: 11.6, y: 6 },
-      ],
-      false,
-    ],
-    [
-      [
-        { x: 9.6, y: 7.6 },
-        { x: 11.6, y: 7.6 },
-      ],
-      false,
-    ],
-  ],
-};
-
-/**
- * Icône d'entête (sujets 220 à 222 : jumelles de la vue, liste de l'énumération, prise de l'embedded), en haut à
- * droite de l'entête, dans un cadre de 14 × 9 agrandi 1,5 fois (à l'échelle), au trait fin de la couleur de la bordure ; rien sans
- * bordure (`strokeColor=none`).
- */
-function headerMark(shape: ShapeModel, mark: HeaderMark, header: number, color: Color | null): Group {
-  const group = new Group();
-  group.name = 'header-mark';
-  group.userData.mark = mark;
-  if (!color) return group;
-  const scale = scaleOf(shape);
-  const { width, height, zoom, margin } = TABLE.mark;
-  const left = shape.bounds.x + shape.bounds.width - (margin + width * zoom) * scale;
-  const top = shape.bounds.y + (header - height * zoom * scale) / 2;
-  for (const [points, closed] of MARK_PATHS[mark]) {
-    const path = points.map((p) => ({ x: left + p.x * zoom * scale, y: top + p.y * zoom * scale }));
-    const mesh = strokeMesh(path, color, 1, { width: scale, closed });
-    if (!mesh) continue;
-    mesh.renderOrder = PART_ORDER.stroke;
-    group.add(mesh);
-  }
-  return group;
-}
-
 /**
  * Style draw.io d'une table neuve : un swimlane (entête de la couleur, corps blanc), désigné par `spatial.kind` ; la
  * clé primaire dans ses champs s'il en a une.
@@ -327,7 +192,7 @@ export function tableStyle(id: string, kind: TableKind): string {
   const fields = kind.primaryKey ? `${FIELDS}=${fieldsValue([primaryKeyField(kind.primaryKey)])};` : '';
   return (
     `swimlane;fontStyle=${1 | (kind.italic ? 2 : 0)};startSize=${headerHeight(false)};` +
-    `fillColor=${DEFAULT_HEADER_COLOR};fontColor=${DEFAULT_HEADER_TEXT};swimlaneFillColor=${FIELDS_FILL};strokeColor=${BORDER};` +
+    `fillColor=${DEFAULT_HEADER_COLOR};fontColor=${DEFAULT_HEADER_TEXT};swimlaneFillColor=${FIELDS_FILL};strokeColor=${TABLE_BORDER};` +
     `fontSize=${TABLE.nameSize};html=1;whiteSpace=wrap;${kind.style ?? ''}spatial.kind=${id};${fields}`
   );
 }

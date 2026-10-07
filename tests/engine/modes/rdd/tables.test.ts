@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { definition as rdd } from '../../../../src/engine/modes/rdd';
-import { FIELDS, fieldProblems } from '../../../../src/engine/modes/rdd/tables';
+import { FIELDS, fieldProblems } from '../../../../src/engine/modes/rdd/fieldModel';
 import { fitTable, setSecondary } from '../../../../src/engine/modes/rdd/operations';
 import { setCellLabel } from '../../../../src/engine/format/cellEdits';
 import { approximateMeasure } from '../../../../src/engine/render/richLayout';

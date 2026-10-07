@@ -1,36 +1,15 @@
-import type { ShapeModel } from '../../model/types';
 import type { ModeParts } from '../types';
+import { FIELDS, fieldsValue, isDivider, isPrimaryKey, tableFields } from './fieldModel';
 import { moveField, movedFields, removeField, setField } from './operations';
-import { TYPE_COLOR } from './shapes/common/fieldRow';
-import {
-  FIELDS,
-  SECONDARY_SCALE,
-  TABLE,
-  fieldLayout,
-  fieldRow,
-  fieldsValue,
-  isDivider,
-  isPrimaryKey,
-  isSecondary,
-  tableContent,
-  tableFields,
-  tableKindOf,
-  tableSize,
-  tableWidth,
-} from './tables';
+import { TYPE_COLOR } from './tableColors';
+import { tableKindOf } from './tableKinds';
+import { TABLE, fieldLayout, fieldRow, tableContent, tableScale, tableSize, tableWidth } from './tableLayout';
+import { fieldIndex } from './tableTargets';
 
 /**
  * Champs d'une table RDD comme parties de la forme (sujet 249) : une partie est le rang du champ (`"0"` pour le
  * premier, la clé primaire d'une entité). Un clic sur une ligne la sélectionne ; double-clic : son label sur place.
  */
-
-/** Rang du champ désigné par `part`, s'il existe dans la table. */
-export function fieldIndex(shape: ShapeModel, part: string | undefined): number | undefined {
-  const index = Number(part);
-  return part !== undefined && Number.isInteger(index) && index >= 0 && index < tableFields(shape).length
-    ? index
-    : undefined;
-}
 
 export const fieldParts: ModeParts = {
   at(_page, shape, point) {
@@ -51,7 +30,7 @@ export const fieldParts: ModeParts = {
     const field = tableFields(shape)[index]!;
     // La clé primaire reste `id` : pas de texte modifiable (sujet 260).
     if (isPrimaryKey(field)) return undefined;
-    const scale = isSecondary(shape) ? SECONDARY_SCALE : 1;
+    const scale = tableScale(shape);
     const row = fieldRow(shape, index);
     // Séparateur (sujet 253) : son label au milieu de la ligne, petit.
     if (isDivider(field)) {

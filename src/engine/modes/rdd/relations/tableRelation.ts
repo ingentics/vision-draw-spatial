@@ -1,4 +1,4 @@
-import { newFieldLabel } from '../tables';
+import { newFieldLabel } from '../fieldModel';
 import { writeCardinalities } from './cardinalities';
 import type { RelationKind } from './kind';
 
@@ -15,8 +15,8 @@ export const tableRelation: RelationKind = {
   to: ['rdd-entity', 'rdd-enum'],
   fieldKind: 'fk',
   fieldLabel: (rows) => newFieldLabel(rows, 'relation'),
-  writeEnds: (edit, edgeId, field, settings) =>
-    writeCardinalities(edit, edgeId, field.nullable, settings.cardinalities),
+  writeEnds: (edit, edge, field, settings, shapes) =>
+    writeCardinalities(edit, edge, shapes, field.nullable, settings.cardinalities),
   properties: [
     {
       type: 'text',

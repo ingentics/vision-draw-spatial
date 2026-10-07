@@ -1,6 +1,6 @@
-import type { ShapeModel } from '../../../model/types';
+import type { EdgeModel, ShapeModel } from '../../../model/types';
 import type { ModeEdit, ModeProperty } from '../../types';
-import type { Field, FieldKind, TableRow } from '../tables';
+import type { Field, FieldKind, TableRow } from '../fieldModel';
 
 /**
  * Sorte de relation du mode RDD (sujet 268) : tables de départ et d'arrivée, nom du champ de relation, bouts de la flèche
@@ -15,8 +15,17 @@ export interface RelationKind {
   fieldKind: FieldKind;
   /** Nom d'un champ de relation neuf, libre dans `rows` (lignes de la table d'arrivée). */
   fieldLabel(rows: readonly TableRow[], source: ShapeModel): string;
-  /** Bouts de la flèche (pointes, textes), imposés d'après son champ et les réglages de la page. */
-  writeEnds(edit: ModeEdit, edgeId: string, field: Field, settings: RelationSettings): void;
+  /**
+   * Bouts de la flèche (pointes, textes), imposés d'après son champ et les réglages de la page ; `shapes` : formes de
+   * la page par id (placement des textes).
+   */
+  writeEnds(
+    edit: ModeEdit,
+    edge: EdgeModel,
+    field: Field,
+    settings: RelationSettings,
+    shapes: ReadonlyMap<string, ShapeModel>,
+  ): void;
   /** Formulaire de la flèche, dans la section « Relation » du panneau : réglages de la flèche… */
   properties: ModeProperty[];
   /** … et textes de son champ de relation (ex. libellé, préfixe), rangés dans le champ, après eux. */

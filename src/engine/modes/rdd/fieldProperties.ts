@@ -1,40 +1,17 @@
-import type { PageModel, ShapeModel } from '../../model/types';
 import type { ModeProperty, ModeTarget } from '../types';
-import { fieldIndex, fieldParts } from './fieldParts';
+import { FIELD_TYPES, fieldTypeLabel, isDivider, isPrimaryKey, isRelation } from './fieldModel';
+import { fieldParts } from './fieldParts';
 import { setField } from './operations';
 import { RELATION_FIELD_PROPERTIES, relationOnlyField } from './relations';
-import type { Field, TableRow } from './tables';
-import { FIELD_TYPES, fieldTypeLabel, isDivider, isRelation, tableFields, tableKindOf } from './tables';
+import { tableKindOf } from './tableKinds';
+import { fieldOf, onlyWhen, rowOf, tableOf } from './tableTargets';
 
 /**
  * Réglages d'une ligne sélectionnée d'une table RDD (sujets 249, 253, 260) : section du mode (fonctionnel), puis
  * « PostgreSQL » et « Gouvernance » pour un champ ; le texte seul pour un séparateur.
  */
 
-/** Table du mode sélectionnée ; undefined pour une autre cible. */
-export const tableOf = (target: ModeTarget): ShapeModel | undefined =>
-  'kind' in target && tableKindOf(target) ? target : undefined;
-
-/** Ligne sélectionnée d'une table (champ ou séparateur) : la table, le rang et la ligne. */
-export function rowOf(
-  target: ModeTarget,
-  part: string | undefined,
-): { shape: ShapeModel; index: number; row: TableRow } | undefined {
-  const shape = tableOf(target);
-  const index = shape && fieldIndex(shape, part);
-  return shape && index !== undefined ? { shape, index, row: tableFields(shape)[index]! } : undefined;
-}
-
-/** Champ sélectionné d'une table (pas un séparateur). */
-function fieldOf(
-  target: ModeTarget,
-  part: string | undefined,
-): { shape: ShapeModel; index: number; field: Field } | undefined {
-  const selected = rowOf(target, part);
-  return selected && !isDivider(selected.row) ? { ...selected, field: selected.row } : undefined;
-}
-
-const isKey = (target: ModeTarget, part?: string) => fieldOf(target, part)?.field.kind === 'pk';
+const isKey = (target: ModeTarget, part?: string) => isPrimaryKey(fieldOf(target, part)?.field);
 const notField = (_page: unknown, target: ModeTarget, part?: string) => !fieldOf(target, part);
 /** Pas de champ, ou la clé primaire (ni type, ni optionnel, ni unique : imposés, sujet 260). */
 const notPlainField = (_page: unknown, target: ModeTarget, part?: string) =>
@@ -184,10 +161,6 @@ const CLASSIC_FIELD_PROPERTIES: ModeProperty[] = [
  * relation (embedded, sujet 268), qui montre le formulaire de sa flèche.
  */
 export const FIELD_PROPERTIES: ModeProperty[] = [
-  ...CLASSIC_FIELD_PROPERTIES.map((property) => ({
-    ...property,
-    hidden: (page: PageModel, target: ModeTarget, part?: string) =>
-      relationOnlyField(page, target, part) || !!property.hidden?.(page, target, part),
-  })),
+  ...onlyWhen(CLASSIC_FIELD_PROPERTIES, (page, target, part) => !relationOnlyField(page, target, part)),
   ...RELATION_FIELD_PROPERTIES,
 ];

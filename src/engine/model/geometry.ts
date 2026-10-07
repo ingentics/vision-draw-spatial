@@ -33,6 +33,11 @@ export function rectContainsRect(outer: Rect, inner: Rect): boolean {
   );
 }
 
+/** Les deux rectangles se chevauchent-ils (bords exclus : deux rectangles qui se touchent ne se chevauchent pas) ? */
+export function rectsOverlap(a: Rect, b: Rect): boolean {
+  return a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+}
+
 /** Plus petit rectangle contenant tous les points ; undefined sans point. */
 export function boundsOfPoints(points: readonly Point[]): Rect | undefined {
   if (points.length === 0) return undefined;

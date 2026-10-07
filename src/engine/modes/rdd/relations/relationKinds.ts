@@ -1,6 +1,7 @@
 import type { EdgeModel, PageModel, ShapeModel } from '../../../model/types';
 import type { ModeEdit } from '../../types';
-import type { Field } from '../tables';
+import type { Field } from '../fieldModel';
+import { shapeById } from '../tableTargets';
 import { cardinalitiesShown } from './cardinalities';
 import { embeddedRelation } from './embeddedRelation';
 import type { RelationKind, RelationSettings } from './kind';
@@ -40,19 +41,39 @@ export function relationKindOfField(page: PageModel, field: Field & { edge: stri
 /** Réglages de la page qui touchent les relations. */
 export const relationSettings = (page: PageModel): RelationSettings => ({ cardinalities: cardinalitiesShown(page) });
 
+/** Index de la page pour les relations : formes et flèches par id, calculés une fois par opération. */
+export interface RelationIndex {
+  shapes: ReadonlyMap<string, ShapeModel>;
+  edges: ReadonlyMap<string, EdgeModel>;
+}
+
+export const relationIndex = (page: PageModel): RelationIndex => ({
+  shapes: shapeById(page),
+  edges: new Map(page.edges.map((edge) => [edge.id, edge])),
+});
+
+/** Sorte de relation d'une flèche, d'après l'index de la page ; undefined si elle ne relie pas deux formes liables. */
+export function indexedRelationKind(index: RelationIndex, edge: EdgeModel): RelationKind | undefined {
+  const source = edge.sourceId === undefined ? undefined : index.shapes.get(edge.sourceId);
+  const target = edge.targetId === undefined ? undefined : index.shapes.get(edge.targetId);
+  return source && target ? relationKindBetween(source, target) : undefined;
+}
+
 /**
  * Flèche d'un champ de relation remise à sa sorte : bouts imposés d'après le champ, réglages des autres sortes retirés
  * (flèche qui a changé de sorte). `settings` : passés quand l'opération vient de les changer (`edit.page` ne le montre
- * pas encore).
+ * pas encore) ; `index` : celui de l'opération en cours, s'il est déjà calculé.
  */
 export function writeRelationEdge(
   edit: ModeEdit,
   field: Field & { edge: string },
   settings = relationSettings(edit.page),
+  index = relationIndex(edit.page),
 ): void {
-  const kind = relationKindOfField(edit.page, field);
-  if (!kind) return;
-  kind.writeEnds(edit, field.edge, field, settings);
+  const edge = index.edges.get(field.edge);
+  const kind = edge && indexedRelationKind(index, edge);
+  if (!edge || !kind) return;
+  kind.writeEnds(edit, edge, field, settings, index.shapes);
   for (const other of RELATION_KINDS)
     if (other !== kind)
       for (const property of other.properties) edit.setElementAttribute(field.edge, property.key, undefined);

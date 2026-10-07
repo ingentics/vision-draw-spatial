@@ -1,4 +1,4 @@
-import { newFieldLabel } from '../tables';
+import { newFieldLabel } from '../fieldModel';
 import { removeEndTexts, setEndArrows } from './ends';
 import type { RelationKind } from './kind';
 
@@ -19,9 +19,9 @@ export const embeddedRelation: RelationKind = {
     const name = source.label.replace(/\s+/g, ' ').trim() || 'Embedded';
     return rows.some((row) => row.label === name) ? newFieldLabel(rows, name) : name;
   },
-  writeEnds: (edit, edgeId) => {
-    setEndArrows(edit, edgeId, 'none', 'none');
-    removeEndTexts(edit, edgeId);
+  writeEnds: (edit, edge) => {
+    setEndArrows(edit, edge.id, 'none', 'none');
+    removeEndTexts(edit, edge.id);
   },
   properties: [],
   // Libellé et préfixe : dans le champ ; la table d'arrivée affiche le préfixe en gris à la place du type.

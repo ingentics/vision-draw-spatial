@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { definition as rdd } from '../../../../src/engine/modes/rdd';
-import { fieldProblems, newFieldLabel } from '../../../../src/engine/modes/rdd/tables';
+import { fieldProblems, newFieldLabel } from '../../../../src/engine/modes/rdd/fieldModel';
 import { addField } from '../../../../src/engine/modes/rdd/operations';
 import type { PageModel, ShapeModel } from '../../../../src/engine/model/types';
 import { createDefaultRegistry } from '../../../../src/engine/shapes/registry';

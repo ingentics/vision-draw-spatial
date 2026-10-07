@@ -1,14 +1,17 @@
 import type { EdgeModel, PageModel, ShapeModel } from '../../../model/types';
 import type { ModeEdit, ModeProperty, ModeTarget } from '../../types';
-import { fieldIndex } from '../fieldParts';
+import type { Field, TableRow } from '../fieldModel';
+import { isRelation, tableFields } from '../fieldModel';
 import { setField, writeRows } from '../operations';
-import type { Field, TableRow } from '../tables';
-import { isRelation, tableFields, tableKindOf } from '../tables';
+import { tableKindOf } from '../tableKinds';
+import { edgeTarget, onlyWhen, relationFieldOf, shapeName } from '../tableTargets';
 import type { RelationFieldText, RelationKind, RelationSettings } from './kind';
+import type { RelationIndex } from './relationKinds';
 import {
   RELATION_KINDS,
+  indexedRelationKind,
   linksTables,
-  relationKindBetween,
+  relationIndex,
   relationKindOf,
   relationKindOfField,
   relationSettings,
@@ -23,8 +26,6 @@ import {
 
 export { linksTables } from './relationKinds';
 
-const shapeById = (page: PageModel) => new Map(page.shapes.map((shape) => [shape.id, shape]));
-
 /** Flèche de relation : son id, sa forme de départ et sa sorte. */
 interface RelationEdge {
   edge: string;
@@ -33,13 +34,12 @@ interface RelationEdge {
 }
 
 /** Flèches de relation de la page, par forme d'arrivée, dans l'ordre de la page. */
-function relationEdges(page: PageModel): Map<string, RelationEdge[]> {
-  const shapes = shapeById(page);
+function relationEdges(page: PageModel, index: RelationIndex): Map<string, RelationEdge[]> {
   const byTarget = new Map<string, RelationEdge[]>();
   for (const edge of page.edges) {
-    const source = edge.sourceId === undefined ? undefined : shapes.get(edge.sourceId);
-    const target = edge.targetId === undefined ? undefined : shapes.get(edge.targetId);
-    const kind = source && target ? relationKindBetween(source, target) : undefined;
+    const source = edge.sourceId === undefined ? undefined : index.shapes.get(edge.sourceId);
+    const target = edge.targetId === undefined ? undefined : index.shapes.get(edge.targetId);
+    const kind = indexedRelationKind(index, edge);
     if (!source || !target || !kind) continue;
     byTarget.set(target.id, [...(byTarget.get(target.id) ?? []), { edge: edge.id, source, kind }]);
   }
@@ -75,7 +75,9 @@ function ownField(field: Field & { edge: string }, kind: RelationKind): Field & 
  * est pris ; il prend le kind de sa sorte et perd les textes d'une autre sorte. Chaque flèche de relation est remise à sa sorte (`writeRelationEdge`).
  */
 export function syncRelations(edit: ModeEdit, settings: RelationSettings = relationSettings(edit.page)): void {
-  const wanted = relationEdges(edit.page);
+  // Formes et flèches indexées une fois pour toute l'opération (la page de `edit` ne change pas pendant elle).
+  const index = relationIndex(edit.page);
+  const wanted = relationEdges(edit.page, index);
   const tables = edit.page.shapes.filter((shape) => tableKindOf(shape));
   // Champs de relation actuels, où qu'ils soient : un champ rebranché garde ses propriétés.
   const existing = new Map(
@@ -90,7 +92,7 @@ export function syncRelations(edit: ModeEdit, settings: RelationSettings = relat
       return relation ? [ownField(row, relation.kind)] : [];
     });
     const missing = edges.filter(({ edge }) => !kept.some((row) => isRelation(row) && row.edge === edge));
-    for (const row of kept) if (isRelation(row)) writeRelationEdge(edit, row, settings);
+    for (const row of kept) if (isRelation(row)) writeRelationEdge(edit, row, settings, index);
     const unchanged = kept.length === rows.length && kept.every((row, i) => row === rows[i]);
     if (missing.length === 0 && unchanged) continue;
     const next: TableRow[] = [...kept];
@@ -102,7 +104,7 @@ export function syncRelations(edit: ModeEdit, settings: RelationSettings = relat
         ? { ...ownField(moved, kind), label }
         : { kind: kind.fieldKind, label, type: '', nullable: true, edge };
       next.push(field);
-      writeRelationEdge(edit, field, settings);
+      writeRelationEdge(edit, field, settings, index);
     }
     writeRows(edit, shape, next);
   }
@@ -110,12 +112,12 @@ export function syncRelations(edit: ModeEdit, settings: RelationSettings = relat
 
 /** Flèches de la page entre deux formes qui ne peuvent pas être liées (fichier modifié) : signalées. */
 export function forbiddenLinks(page: PageModel): Array<{ edgeId: string; message: string }> {
-  const shapes = shapeById(page);
+  const { shapes } = relationIndex(page);
   return page.edges.flatMap((edge) => {
     const source = edge.sourceId === undefined ? undefined : shapes.get(edge.sourceId);
     const target = edge.targetId === undefined ? undefined : shapes.get(edge.targetId);
     if (!source || !target || linksTables(source, target)) return [];
-    const name = (shape: ShapeModel) => `« ${shape.label || shape.id} »`;
+    const name = (shape: ShapeModel) => `« ${shapeName(shape)} »`;
     return [{ edgeId: edge.id, message: `Flèche de ${name(source)} vers ${name(target)} : liaison non permise` }];
   });
 }
@@ -138,13 +140,9 @@ type FieldLocator = (
   part?: string,
 ) => { shape: ShapeModel; index: number; field: Field & { edge: string } } | undefined;
 
-const fromEdge: FieldLocator = (page, target) => ('sourceId' in target ? relationField(page, target.id) : undefined);
-
-const fromField: FieldLocator = (_page, target, part) => {
-  if (!('kind' in target) || !tableKindOf(target)) return undefined;
-  const index = fieldIndex(target, part);
-  const row = index === undefined ? undefined : tableFields(target)[index];
-  return index !== undefined && isRelation(row) ? { shape: target, index, field: row } : undefined;
+const fromEdge: FieldLocator = (page, target) => {
+  const edge = edgeTarget(target);
+  return edge && relationField(page, edge.id);
 };
 
 /**
@@ -173,18 +171,18 @@ const fieldTextProperty = (
 
 /** Champ de relation sélectionné qui n'est que la trace de sa relation (`fieldIsRelation`, relation embedded). */
 export function relationOnlyField(page: PageModel, target: ModeTarget, part?: string): boolean {
-  const found = fromField(page, target, part);
+  const found = relationFieldOf(target, part);
   return !!found && !!relationKindOfField(page, found.field)?.fieldIsRelation;
 }
 
 /** Formulaires des flèches de relation : chaque sorte montre le sien sur ses seules flèches. */
 export const RELATION_PROPERTIES: ModeProperty[] = RELATION_KINDS.flatMap((kind) =>
-  [...kind.properties, ...(kind.fieldTexts ?? []).map((text) => fieldTextProperty(text, fromEdge, 'edge'))].map(
-    (property) => ({
-      ...property,
-      hidden: (page, target, part) =>
-        !('sourceId' in target) || relationKindOf(page, target) !== kind || !!property.hidden?.(page, target, part),
-    }),
+  onlyWhen(
+    [...kind.properties, ...(kind.fieldTexts ?? []).map((text) => fieldTextProperty(text, fromEdge, 'edge'))],
+    (page, target) => {
+      const edge = edgeTarget(target);
+      return !!edge && relationKindOf(page, edge) === kind;
+    },
   ),
 );
 
@@ -194,11 +192,13 @@ export const RELATION_PROPERTIES: ModeProperty[] = RELATION_KINDS.flatMap((kind)
  */
 export const RELATION_FIELD_PROPERTIES: ModeProperty[] = RELATION_KINDS.filter((kind) => kind.fieldIsRelation).flatMap(
   (kind) =>
-    (kind.fieldTexts ?? []).map((text) => ({
-      ...fieldTextProperty(text, fromField, 'field'),
-      hidden: (page: PageModel, target: ModeTarget, part?: string) => {
-        const found = fromField(page, target, part);
-        return !found || relationKindOfField(page, found.field) !== kind;
+    onlyWhen(
+      (kind.fieldTexts ?? []).map((text) =>
+        fieldTextProperty(text, (_page, target, part) => relationFieldOf(target, part), 'field'),
+      ),
+      (page, target, part) => {
+        const found = relationFieldOf(target, part);
+        return !!found && relationKindOfField(page, found.field) === kind;
       },
-    })),
+    ),
 );

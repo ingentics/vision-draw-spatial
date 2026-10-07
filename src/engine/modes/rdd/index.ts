@@ -1,37 +1,22 @@
-import type { ShapeModel } from '../../model/types';
-import type { ModeTarget, PageModeDefinition } from '../types';
-import {
-  PRIMARY_KEY,
-  SECONDARY,
-  TABLE_KINDS,
-  fieldProblems,
-  isSecondary,
-  misplacedPrimaryKey,
-  missingName,
-  tableFields,
-  tableKindOf,
-} from './tables';
-import { addDivider, fitTable, setSecondary } from './operations';
+import type { PageModeDefinition } from '../types';
+import { PRIMARY_KEY, fieldProblems, misplacedPrimaryKey } from './fieldModel';
+import { fitTable } from './operations';
 import { fieldHandleClicked, fieldHandles } from './fieldHandles';
 import { fieldParts } from './fieldParts';
-import { FIELD_PROPERTIES, rowOf, tableOf } from './fieldProperties';
+import { FIELD_PROPERTIES } from './fieldProperties';
 import {
-  REGION_COLORS,
+  FIT_REGION_KEY,
   REGION_KIND,
-  fitRegion,
-  isRegion,
+  REGION_PROPERTIES,
   placeInRegions,
   regionContent,
   regionObstacles,
-  setRegionColor,
 } from './regions';
 import { CARDINALITIES, cardinalitiesShown } from './relations/cardinalities';
 import { RELATION_PROPERTIES, forbiddenLinks, isRelationEdge, linksTables, syncRelations } from './relations';
-
-const notTable = (_page: unknown, target: ModeTarget) => !tableOf(target);
-/** Région du mode sélectionnée (sujet 182). */
-const regionTarget = (target: ModeTarget): ShapeModel | undefined =>
-  'kind' in target && isRegion(target) ? target : undefined;
+import { ADD_DIVIDER_PROPERTY, TABLE_PROPERTIES, addDividerAfter } from './tableProperties';
+import { TABLE_KINDS, missingRequiredName } from './tableKinds';
+import { rowOf, shapeName } from './tableTargets';
 
 /**
  * Mode « RDD — Relational Database Designer » (sujet 179) : une page de tables (modèles, entités…), lue à plat. Ses
@@ -73,70 +58,9 @@ export const definition: PageModeDefinition = {
   ],
   // Formulaire d'une flèche de relation : celui de sa sorte (sujets 265, 268).
   edgeProperties: RELATION_PROPERTIES,
-  shapeProperties: [
-    {
-      // Région (sujets 182, 233) : sa propre palette, bordure grise.
-      type: 'select',
-      key: 'rdd.regionColor',
-      label: 'Couleur',
-      title: 'Couleur du fond de la région (fillColor)',
-      options: () => REGION_COLORS.map((color) => ({ value: color, label: color, color })),
-      value: (_page, target) => regionTarget(target)?.style.fillColor,
-      write: (edit, target, value) => {
-        const shape = regionTarget(target);
-        if (shape) setRegionColor(edit, shape, value);
-      },
-      hidden: (_page, target) => !regionTarget(target),
-    },
-    {
-      type: 'toggle',
-      key: SECONDARY,
-      label: 'Table secondaire',
-      title: 'Table secondaire (spatial.secondary) : 20 % plus petite',
-      value: (_page, target) => {
-        const shape = tableOf(target);
-        return shape && isSecondary(shape) ? '1' : undefined;
-      },
-      write: (edit, target, value) => {
-        const shape = tableOf(target);
-        if (shape) setSecondary(edit, shape, value === '1');
-      },
-      hidden: notTable,
-    },
-    {
-      type: 'text',
-      key: 'rdd.primaryKey',
-      label: 'Clé primaire',
-      title: 'Clé primaire de la table : toujours le premier champ, ni retirée ni déplacée',
-      readOnly: true,
-      value: (_page, target) => {
-        const shape = tableOf(target);
-        return shape && tableFields(shape)[0]?.label;
-      },
-      hidden: (_page, target) => {
-        const shape = tableOf(target);
-        return !shape || !tableKindOf(shape)?.primaryKey;
-      },
-    },
-    // Ligne sélectionnée : champ (sections du mode, PostgreSQL, Gouvernance), séparateur (sujets 249, 253, 260), ou
-    // champ d'une relation embedded (formulaire de sa flèche, sujet 268).
-    ...FIELD_PROPERTIES,
-    {
-      // Tout en bas de l'encart, table ou ligne sélectionnée : un séparateur après la ligne (sinon en fin de liste),
-      // sélectionné et son texte en édition (sujet 253).
-      type: 'button',
-      anyPart: true,
-      key: 'rdd.addDivider',
-      label: 'Ajouter un séparateur',
-      title: 'Ajoute un séparateur après la ligne sélectionnée, sinon en fin de liste (touche « - » sur une ligne)',
-      write: (edit, target, _value, part) => {
-        const shape = tableOf(target);
-        const index = shape && addDivider(edit, shape, rowOf(target, part)?.index);
-        return index === undefined ? undefined : String(index);
-      },
-      hidden: notTable,
-    },
-  ],
+  // Région, table, puis ligne sélectionnée : champ (sections du mode, PostgreSQL, Gouvernance), séparateur (sujets 249,
+  // 253, 260), ou champ d'une relation embedded (formulaire de sa flèche, sujet 268) ; le bouton du séparateur en bas.
+  shapeProperties: [...REGION_PROPERTIES, ...TABLE_PROPERTIES, ...FIELD_PROPERTIES, ADD_DIVIDER_PROPERTY],
   // À l'ouverture, chaque table prend la taille de son contenu (sujet 255), ses champs de relation suivent les flèches
   // (sujet 265).
   opened: (edit) => {
@@ -177,40 +101,29 @@ export const definition: PageModeDefinition = {
     '-': {
       label: 'Ajouter un séparateur',
       applies: (_page, target, part) => rowOf(target, part) !== undefined,
-      run: (edit, target, _current, part) => {
-        const selected = rowOf(target, part);
-        const index = selected && addDivider(edit, selected.shape, selected.index);
-        return index === undefined ? undefined : String(index);
-      },
+      run: (edit, target, _current, part) => addDividerAfter(edit, target, part),
     },
-    // « f » : région ajustée à son contenu (sujet 184) ; sur un autre élément, la touche garde son effet.
-    f: {
-      label: 'Ajuster la région',
-      applies: (_page, target) => 'kind' in target && isRegion(target),
-      run: (edit, target) => {
-        if ('kind' in target) fitRegion(edit, target);
-      },
-    },
+    f: FIT_REGION_KEY,
   },
   // Clé primaire absente ou déplacée (fichier modifié) : remise en tête à l'affichage.
   check: (page) => [
     ...page.shapes.filter(misplacedPrimaryKey).map((shape) => ({
       cellId: shape.id,
-      message: `Table « ${shape.label || shape.id} » : clé primaire ${PRIMARY_KEY} absente ou déplacée, remise en tête`,
+      message: `Table « ${shapeName(shape)} » : clé primaire ${PRIMARY_KEY} absente ou déplacée, remise en tête`,
     })),
     // Champs illisibles, type inconnu, clé primaire nullable (sujet 246).
     ...page.shapes.flatMap((shape) =>
       fieldProblems(shape).map((problem) => ({
         cellId: shape.id,
-        message: `Table « ${shape.label || shape.id} » : ${problem}`,
+        message: `Table « ${shapeName(shape)} » : ${problem}`,
       })),
     ),
     // Flèche entre deux formes qui ne peuvent pas être liées (sujet 265).
     ...forbiddenLinks(page).map(({ edgeId, message }) => ({ cellId: edgeId, message })),
     // Document JSONB sans nom : affiché « Document » (sujet 181).
-    ...page.shapes.filter(missingName).map((shape) => ({
-      cellId: shape.id,
-      message: `${tableKindOf(shape)!.requiredName} sans nom : le nom est obligatoire`,
-    })),
+    ...page.shapes.flatMap((shape) => {
+      const name = missingRequiredName(shape);
+      return name === undefined ? [] : [{ cellId: shape.id, message: `${name} sans nom : le nom est obligatoire` }];
+    }),
   ],
 };

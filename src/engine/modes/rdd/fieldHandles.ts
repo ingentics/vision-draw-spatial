@@ -1,8 +1,8 @@
 import type { ShapeModel } from '../../model/types';
 import type { ModeEdit, ModeHandle } from '../types';
-import { fieldIndex } from './fieldParts';
 import { addField } from './operations';
-import { tableKindOf } from './tables';
+import { tableKindOf } from './tableKinds';
+import { fieldIndex } from './tableTargets';
 
 /**
  * Poignée « + » d'une table RDD (sujet 250) : sous la table, au milieu ; un clic ajoute aussitôt un champ sans type

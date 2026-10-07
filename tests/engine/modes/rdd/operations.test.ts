@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { FIELDS, SECONDARY } from '../../../../src/engine/modes/rdd/tables';
+import { FIELDS } from '../../../../src/engine/modes/rdd/fieldModel';
+import { SECONDARY } from '../../../../src/engine/modes/rdd/tableLayout';
 import { setField, setSecondary } from '../../../../src/engine/modes/rdd/operations';
 import { spatialValue } from '../../../../src/engine/spatial';
 import { rowWidth, onGrid, contentWidth, widthOf, setFields, labels, fieldsOf, setup } from './helpers';
