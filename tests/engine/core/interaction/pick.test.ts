@@ -3,8 +3,8 @@ import { parseDrawio } from '../../../../src/engine/core/format/parse';
 import { distanceToPolyline, pickElement, shapeContains } from '../../../../src/engine/core/interaction/pick';
 import { insidePolygon } from '../../../../src/engine/core/model/geometry';
 import type { ShapeModel } from '../../../../src/engine/core/model/types';
-import { defaultShapeRegistry } from '../../../../src/engine/shapes/registry';
 import { fixture } from '../../../helpers';
+import { defaultShapeRegistry } from '../../../../src/engine/plugins';
 
 const options = (routes: Record<string, { x: number; y: number }[]> = {}) => ({
   edgeTolerance: 4,

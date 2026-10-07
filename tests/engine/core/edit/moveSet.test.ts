@@ -9,8 +9,8 @@ import {
 } from '../../../../src/engine/core/edit/moveSet';
 import { parseDrawio } from '../../../../src/engine/core/format/parse';
 import type { PageModel } from '../../../../src/engine/core/model/types';
-import { defaultShapeRegistry } from '../../../../src/engine/shapes/registry';
 import { fixture } from '../../../helpers';
+import { defaultShapeRegistry } from '../../../../src/engine/plugins';
 
 const shape = (page: PageModel, id: string) => page.shapes.find((s) => s.id === id)!;
 

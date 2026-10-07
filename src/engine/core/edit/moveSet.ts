@@ -1,6 +1,6 @@
 import { computeBounds } from '../model/bounds';
 import type { PageModel, Point, Rect, ShapeModel } from '../model/types';
-import type { ShapeRegistry } from '../../shapes/registry';
+import type { ShapeRegistry } from '../shapes/registry';
 import { styleFlag } from '../model/styleValues';
 
 /**

@@ -40,8 +40,8 @@ import type {
 import { TEXT_FORMAT_ATTRIBUTE } from './LabelEditor';
 import { BorderSection } from './BorderSection';
 import { NumberField, SelectField, TextField } from './Fields';
-import { ModePropertyFields } from './modes/ModeFields';
-import { modePanel } from './modes/registry';
+import { ModePropertyFields } from './plugins/modes/ModeFields';
+import { modePanel } from './plugins/modes/registry';
 import { ShapePropertyFields } from './ShapeProperties';
 import { CommentField } from './comment';
 import { CollapseButton } from './Sidebar';
@@ -274,7 +274,7 @@ function PageEffectsSection({ page, onPageEffect }: Pick<ContextPanelProps, 'pag
 
 /**
  * Mode de la page (sujet 69) : choix du mode, puis ses réglages déclarés et ses sections propres
- * (`src/app/modes/<id>/`). Un mode inconnu (écrit par une version plus récente) reste affiché tel quel.
+ * (`src/app/plugins/modes/<id>/`). Un mode inconnu (écrit par une version plus récente) reste affiché tel quel.
  */
 function PageModeSections({
   page,

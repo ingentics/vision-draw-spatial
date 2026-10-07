@@ -5,14 +5,14 @@ placeholder gris). Il couvre les quatre rendus (2D, iso, 3D, mini-carte), l'orig
 attributs `spatial.*`, paramètres) et tout ce qu'une forme déclare en plus du rendu : clic, poignées, flèches, palette,
 panneau.
 
-**En bref :** une forme est un dossier `src/engine/shapes/impl/<catégorie>/<id>/` dont `index.ts` exporte
+**En bref :** une forme est un dossier `src/engine/plugins/shapes/<catégorie>/<id>/` dont `index.ts` exporte
 `definition`. Elle porte le nom de l'interface en anglais (`database`, `rounded-rectangle`…) et contient **tout** ce
 qui la concerne : rendu 2D, subtilités iso / 3D (sa façade, son étiquette), palette, aperçu, réglages, interaction.
 Elle peut étendre une base de `shapes/generic/` ou une autre forme. Déposer le dossier suffit : le registre le trouve
 tout seul, et le moteur comme l'appli ne posent leurs questions qu'à la définition (via le registre).
-Des variantes d'une même forme se rangent en famille : `impl/<catégorie>/<famille>/<variante>/index.ts`, le code
+Des variantes d'une même forme se rangent en famille : `shapes/<catégorie>/<famille>/<variante>/index.ts`, le code
 commun dans `<famille>/common/` (sans `index.ts`), l'id commençant par le nom de la famille au singulier (exemple :
-[impl/general/actors/](../src/engine/shapes/impl/general/actors/), `human/` = `actor`, `droid/` = `actor-droid`).
+[shapes/general/actors/](../src/engine/plugins/shapes/general/actors/), `human/` = `actor`, `droid/` = `actor-droid`).
 
 Références : SPEC §8.2 (registre), §8.3 (formes supportées), §8.4 (placeholder), §9.1 (volumes), §13 (paramètres).
 
@@ -33,7 +33,7 @@ fichier .drawio
                                 └─ hauteur (base), ordre de dessin, userData.elementId
 ```
 
-Le moteur ne connaît que l'interface `ShapeDefinition` ([shapes/types.ts](../src/engine/shapes/types.ts)).
+Le moteur ne connaît que l'interface `ShapeDefinition` ([core/shapes/types.ts](../src/engine/core/shapes/types.ts)).
 Ajouter une forme revient donc à **déposer son dossier**. Ni la scène, ni la caméra, ni l'édition, ni l'appli ne
 changent : la palette, le panneau, le clic, les poignées et les flèches interrogent la définition (section 6).
 
@@ -50,23 +50,23 @@ une définition sur une forme existante : `shape=note;spatial.kind=cylinder3;`).
 
 Un stencil embarqué (`shape=stencil(<XML compressé>)`) prend le nom `stencil:<nom>` de son `<shape name="…">` : c'est
 la façon d'ajouter une forme que draw.io n'a pas, tout en restant dessinée par draw.io (exemple :
-[impl/architecture/plug/](../src/engine/shapes/impl/architecture/plug/index.ts), XML tiré du même contour que le
-moteur). La base [generic/stencil/](../src/engine/shapes/generic/stencil/index.ts) (`stencilBox`) fait les deux d'un
+[shapes/architecture/plug/](../src/engine/plugins/shapes/architecture/plug/index.ts), XML tiré du même contour que le
+moteur). La base [generic/stencil/](../src/engine/plugins/shapes/generic/stencil/index.ts) (`stencilBox`) fait les deux d'un
 coup : à partir du contour, elle donne la valeur de `shape=` et le rendu, tirés des mêmes points. Un stencil s'étire
 tout entier avec la forme : pour un détail de taille fixe, partir d'une forme native de draw.io et la désigner par
-`spatial.kind` (exemple : [generic/tagged-process/](../src/engine/shapes/generic/tagged-process/index.ts), dont
+`spatial.kind` (exemple : [generic/tagged-process/](../src/engine/plugins/shapes/generic/tagged-process/index.ts), dont
 héritent `event-consumer`, `background-task` et `recurring-task`).
 
 `SHAPE_ALIASES` ramène des synonymes à un nom canonique (`rect`, `label` ► `rectangle`). Si draw.io écrit
 la même forme de plusieurs façons, ajoutez l'alias à cet endroit plutôt que de multiplier les définitions.
 Cas particulier : `swimlane` a un alias mais **aucune définition**, donc il s'affiche en placeholder.
 
-Exemples réels à lire : [impl/architecture/database/](../src/engine/shapes/impl/architecture/database/index.ts),
-[queue/](../src/engine/shapes/impl/architecture/queue/index.ts) et
-[distributed-cache/](../src/engine/shapes/impl/architecture/distributed-cache/index.ts) (tracés draw.io en courbes de
+Exemples réels à lire : [shapes/architecture/database/](../src/engine/plugins/shapes/architecture/database/index.ts),
+[queue/](../src/engine/plugins/shapes/architecture/queue/index.ts) et
+[distributed-cache/](../src/engine/plugins/shapes/architecture/distributed-cache/index.ts) (tracés draw.io en courbes de
 Bézier, « bâtiments » iso à toit plat, façade propre à chacune dans son `facade.ts`, repli à plat avec le dessin 2D).
-Elles étendent les génériques [generic/cylinder/](../src/engine/shapes/generic/cylinder/index.ts) (tracés de
-cylindre) et [generic/building/](../src/engine/shapes/generic/building/index.ts) (toit, faces, gravures, étiquette).
+Elles étendent les génériques [generic/cylinder/](../src/engine/plugins/shapes/generic/cylinder/index.ts) (tracés de
+cylindre) et [generic/building/](../src/engine/plugins/shapes/generic/building/index.ts) (toit, faces, gravures, étiquette).
 
 Pour trouver le nom exact d'une forme, insérez-la dans draw.io, ouvrez « Modifier le style », ou consultez le panneau
 **Diagnostics** de l'appli, qui liste les noms non reconnus avec leur nombre d'occurrences.
@@ -115,7 +115,7 @@ l'`id` (`text`, `ellipse`) et il n'y a pas de `kinds` à écrire.
 ### Enregistrement : déposer le dossier
 
 ```
-src/engine/shapes/
+src/engine/plugins/shapes/      les formes, une par élément de la palette (sujet 286 : des plugins)
 ├── generic/                    bases à étendre (hors palette, hors registre)
 │   ├── box/                    contour → rendu 2D + bloc iso (`roundable` : coins arrondis de draw.io ;
 │   │                           `details` : dessin intérieur, traits et textes, sur le dessus en iso ;
@@ -124,29 +124,33 @@ src/engine/shapes/
 │   ├── tagged-process/         process à tranche étiquetée (internalStorage + mot gris de bas en haut)
 │   ├── cylinder/               tracés draw.io des cylindres, rendu 2D à lèvres
 │   └── building/               bâtiment iso : toit, faces, gravures, étiquette
-├── impl/                       les formes, une par élément de la palette
-│   ├── geometry/               catégorie « Géométrie » : rectangle, rounded-rectangle, ellipse, circle, diamond,
-│   │                           hexagon, octagon, pentagon, triangle, triangle-up, parallelogram, step,
-│   │                           four-point-star, six-point-star
-│   ├── general/                catégorie « Général » : text, actor (debout face à la caméra en iso / 3D)
-│   ├── architecture/           catégorie « Architecture » : database, queue, distributed-cache, plug, process,
-│   │                           event-consumer, background-task, recurring-task, labeled-process
-│   │   └── database/
-│   │       ├── index.ts        export const definition: ShapeDefinition = { … }
-│   │       └── facade.ts       sa façade iso (arcs gravés, étiquette « DB »)
-│   └── internal/               hors palette : group
-├── registry.ts                 collecte impl/*/*/index.ts (import.meta.glob)
-└── types.ts                    le contrat
+├── geometry/                   catégorie « Géométrie » : rectangle, rounded-rectangle, ellipse, circle, diamond,
+│                               hexagon, octagon, pentagon, triangle, triangle-up, parallelogram, step,
+│                               four-point-star, six-point-star
+├── general/                    catégorie « Général » : text, actor (debout face à la caméra en iso / 3D)
+└── architecture/               catégorie « Architecture » : database, queue, distributed-cache, plug, process,
+    │                           event-consumer, background-task, recurring-task, labeled-process
+    └── database/
+        ├── index.ts            export const definition: ShapeDefinition = { … }
+        └── facade.ts           sa façade iso (arcs gravés, étiquette « DB »)
+src/engine/plugins/index.ts     racine de composition : collecte shapes/*/*/index.ts (import.meta.glob, sans generic/)
+src/engine/core/shapes/         le tronc des formes
+├── types.ts                    le contrat
+├── registry.ts                 résolution forme → définition, replis génériques
+├── placeholder.ts              repli des formes non supportées
+└── group.ts                    le groupe draw.io, hors palette (sans lui, un groupe ne se lit plus)
 ```
 
-`SHAPE_DEFINITIONS` ([shapes/registry.ts](../src/engine/shapes/registry.ts)) importe tous les `impl/*/*/index.ts` et
-`createDefaultRegistry()` les enregistre : **il n'y a aucune liste à tenir à jour**. Plusieurs formes peuvent donc
-s'écrire en parallèle sans se marcher dessus. Un test vérifie que l'`id` est le nom du dossier et que la catégorie de
-palette est celle du dossier (`internal/` : pas de palette).
+`SHAPE_DEFINITIONS` ([plugins/index.ts](../src/engine/plugins/index.ts)) importe tous les `shapes/*/*/index.ts` (et
+`shapes/*/*/*/index.ts` pour une famille) et `createDefaultRegistry()` les enregistre après le groupe : **il n'y a
+aucune liste à tenir à jour**. Plusieurs formes peuvent donc s'écrire en parallèle sans se marcher dessus. Un test
+vérifie que l'`id` est le nom du dossier et que la catégorie de palette est celle du dossier.
 
 - **Une forme contient tout ce qui la concerne**, en plusieurs fichiers si besoin (ex. `database/facade.ts`), y
-  compris ses subtilités iso / 3D. Ce qu'elle partage avec d'autres vient d'une base de `generic/` qu'elle étend ; les
-  briques de rendu génériques restent dans `render/` (`render/flat`, `render/iso/block`, `render/geometry`).
+  compris ses subtilités iso / 3D. Ce qu'elle partage avec d'autres vient d'une base de `generic/` ou d'une autre forme
+  qu'elle étend ; les briques de rendu génériques restent dans le tronc (`core/render/flat`, `core/render/iso/block`,
+  `core/render/geometry`). Une forme n'importe ni un mode, ni un effet, ni l'état du moteur (`core/domains/`) : la
+  lint le vérifie.
 - **Étendre** : on reprend une définition et on change ce dont on a besoin.
   `rounded-rectangle` = `{ ...rectangle, id: 'rounded-rectangle', kinds: ['rectangle'], matches: rounded=1, palette }` ;
   une base générique se compose : `{ id: 'diamond', kinds: ['rhombus'], ...box(outline), palette }`.
@@ -158,7 +162,7 @@ palette est celle du dossier (`internal/` : pas de palette).
 - Une forme enregistrée sort **automatiquement** du rapport « non supportées »
   ([diagnostics/unsupportedStyles.ts](../src/engine/core/diagnostics/unsupportedStyles.ts) appelle `registry.resolve`).
 - `EngineOptions.registry` permet de passer un autre registre au moteur ; l'appli (palette, panneau) utilise
-  `defaultShapeRegistry`. `ShapeRegistry` n'est **pas exporté** par l'API publique ([src/index.ts](../src/index.ts)) :
+  `defaultShapeRegistry`, construit par la racine de composition (`plugins/index.ts`). `ShapeRegistry` n'est **pas exporté** par l'API publique ([src/index.ts](../src/index.ts)) :
   une forme s'ajoute dans le moteur lui-même, pas depuis une application cliente.
 
 ### Le contour (`outline`)
@@ -382,7 +386,7 @@ draw.io : `shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.0
 `docs/test.drawio`).
 
 ```ts
-// src/engine/shapes/impl/geometry/note/index.ts
+// src/engine/plugins/shapes/geometry/note/index.ts
 import type { Point, ShapeModel } from '../../../../model/types';
 import { createBox, VERTEX_DEFAULTS } from '../../../../render/flat/box';
 import { isoBlock } from '../../../../render/iso/block';
@@ -467,7 +471,7 @@ n'apparaît donc **pas** sur le dessus du bloc. Pour l'avoir, écrivez un `iso.c
 
 Enfin :
 
-1. rien à enregistrer : le dossier `impl/geometry/note/` suffit (palette, panneau et rendu la trouvent) ;
+1. rien à enregistrer : le dossier `shapes/geometry/note/` suffit (palette, panneau et rendu la trouvent) ;
 2. ajoutez `note` dans le tableau de SPEC §8.3 ;
 3. écrivez les tests (section 8).
 
@@ -478,7 +482,7 @@ Enfin :
 **Orientation et contour contre draw.io.** Dessinez le contour dans le cadre local avec `orientedPath`
 ([render/geometry/orient.ts](../src/engine/core/render/geometry/orient.ts)), qui reproduit `direction`, `flipH` / `flipV`
 comme draw.io, puis ajoutez la forme et ses variantes à la fixture `shapes.drawio`
-([tests/engine/shapes/shapesFixture.test.ts](../tests/engine/shapes/shapesFixture.test.ts)) :
+([tests/engine/plugins/shapes/shapesFixture.test.ts](../tests/engine/plugins/shapes/shapesFixture.test.ts)) :
 `make drawio-check` la fait exporter en SVG par draw.io et compare chaque contour et chaque flèche au pixel près.
 
 
@@ -501,7 +505,7 @@ const scene = buildPageScene(page, createDefaultRegistry(), ctx, 'iso');
 
 - la forme est **supportée** : `registry.resolve(shape).supported === true`, et elle n'apparaît plus dans
   `collectUnsupported` ; le contrat commun (`id` = dossier, palette valide et reconnue…) est vérifié pour toutes les
-  formes par [tests/engine/shapes/registry.test.ts](../tests/engine/shapes/registry.test.ts) ;
+  formes par [tests/engine/core/shapes/registry.test.ts](../tests/engine/core/shapes/registry.test.ts) ;
 - **2D** : contour attendu (bornes du mesh `fill`), couleurs lues du style, label présent avec les bonnes valeurs ;
 - **iso** : bloc de `0` à l'épaisseur (`spatial.height` respecté), repli à plat avec `fillColor=none` ;
 - **replis** : `sceneRenderer(shape, 'volume')` renvoie le rendu `iso` ou `flat` attendu ;
@@ -517,7 +521,7 @@ mini-carte, redimensionnement, flèches reliées, et réouverture du fichier dan
 ## 9. Récapitulatif
 
 - [ ] Nom de forme identifié (Diagnostics) ; alias dans `SHAPE_ALIASES` si besoin
-- [ ] `shapes/impl/<catégorie>/<id>/index.ts` qui exporte `definition` : `id` (nom de l'interface), `kinds` si le nom
+- [ ] `plugins/shapes/<catégorie>/<id>/index.ts` qui exporte `definition` : `id` (nom de l'interface), `kinds` si le nom
       draw.io diffère, `outline`, `flat` (complet à lui seul) ; une variante étend sa forme avec `matches`
 - [ ] `iso` (souvent `isoBlock(outline)`), à vérifier aussi en 3D et sous tous les angles
 - [ ] `minimap` : défaut, `null` ou peintre sur mesure

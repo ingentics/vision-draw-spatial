@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { collectUnsupported } from '../../../../src/engine/core/diagnostics/unsupportedStyles';
 import { parseDrawio } from '../../../../src/engine/core/format/parse';
-import { createDefaultRegistry } from '../../../../src/engine/shapes/registry';
 import { fixture } from '../../../helpers';
+import { createDefaultRegistry } from '../../../../src/engine/plugins';
 
 const xml = `<mxfile>
   <diagram id="p1" name="Archi"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>

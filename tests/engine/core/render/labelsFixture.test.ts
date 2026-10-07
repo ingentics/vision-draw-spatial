@@ -6,9 +6,9 @@ import { readDrawio } from '../../../../src/engine/core/format/parse';
 import type { PageModel, ShapeModel } from '../../../../src/engine/core/model/types';
 import { TOP_OFFSET } from '../../../../src/engine/core/render/iso/block';
 import { buildPageScene } from '../../../../src/engine/core/render/pageScene';
-import { createDefaultRegistry } from '../../../../src/engine/shapes/registry';
 import type { RenderContext, TextSpec } from '../../../../src/engine/core/render/types';
 import { fixture } from '../../../helpers';
+import { createDefaultRegistry } from '../../../../src/engine/plugins';
 
 /**
  * Fixture `labels.drawio` (étape 31) : labels hors de la forme (`labelPosition`, `verticalLabelPosition`)

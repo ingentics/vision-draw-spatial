@@ -11,12 +11,13 @@ import type { CameraState, ViewMode } from './core/interaction/cameraMath';
 import type { HistoryEntry, LinkUsage } from './core/interaction/navigationHistory';
 import type { PickedElement } from './core/interaction/pick';
 import type { DocumentModel, LinkModel, PageModel, Point, Rect } from './core/model/types';
-import type { ModeScope, PageModeRegistry } from './modes/registry';
-import type { ModeEdit } from './modes/types';
+import type { ModeScope, PageModeRegistry } from './core/modes/registry';
+import type { ModeEdit } from './core/modes/types';
 import type { JumpDefaults } from './core/render/edges/jumps';
 import type { PageScene } from './core/render/pageScene';
 import type { Settings, SettingsPatch } from './core/settings';
 import { EngineCore } from './core/domains/EngineCore';
+import { defaultEffectRegistry, defaultModeRegistry, defaultShapeRegistry } from './plugins';
 import type {
   BackTarget,
   EdgeTextAnchor,
@@ -53,7 +54,13 @@ export class Engine {
   private readonly core: EngineCore;
 
   constructor(options: EngineOptions) {
-    this.core = new EngineCore(options);
+    // Registres des plugins : ceux donnés, sinon ceux construits par la racine de composition (sujet 286).
+    this.core = new EngineCore({
+      ...options,
+      registry: options.registry ?? defaultShapeRegistry,
+      modes: options.modes ?? defaultModeRegistry,
+      effects: options.effects ?? defaultEffectRegistry,
+    });
   }
 
   // -------------------------------------------------------------------------

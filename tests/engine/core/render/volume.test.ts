@@ -5,9 +5,9 @@ import { parseDrawio } from '../../../../src/engine/core/format/parse';
 import { pickElement } from '../../../../src/engine/core/interaction/pick';
 import { blockHeight } from '../../../../src/engine/core/render/iso/block';
 import { buildPageScene } from '../../../../src/engine/core/render/pageScene';
-import { createDefaultRegistry } from '../../../../src/engine/shapes/registry';
 import type { RenderContext } from '../../../../src/engine/core/render/types';
 import { fixture } from '../../../helpers';
+import { createDefaultRegistry } from '../../../../src/engine/plugins';
 
 const ctx: RenderContext = { text: { create: () => new Object3D() }, volume: { depth: 20 } };
 const page = parseDrawio(fixture('drawio-desktop.drawio')).pages[0]!;

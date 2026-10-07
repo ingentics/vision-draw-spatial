@@ -1,5 +1,5 @@
 import type { Point, ShapeModel } from '../../model/types';
-import type { ModeHandle } from '../../../modes/types';
+import type { ModeHandle } from '../../modes/types';
 import type { EngineCore } from '../EngineCore';
 
 /**

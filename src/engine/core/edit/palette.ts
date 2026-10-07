@@ -1,6 +1,6 @@
-import type { PageModel, Point, Rect, ShapeModel } from '../model/types';
-import { defaultShapeRegistry } from '../../shapes/registry';
-import type { PaletteCategory, PaletteCategoryId, ShapeTemplate } from '../../shapes/types';
+import type { PageModel, Point, Rect } from '../model/types';
+import type { ShapeRegistry } from '../shapes/registry';
+import type { PaletteCategory, PaletteCategoryId, ShapeTemplate } from '../shapes/types';
 
 export type { PaletteCategory, PaletteCategoryId, ShapeTemplate };
 
@@ -22,9 +22,6 @@ export interface PageModePalette {
   categories: PaletteCategory[];
   templates: ShapeTemplate[];
 }
-
-/** Modèles de toutes les formes (y compris celles des modes), dans l'ordre d'affichage. */
-export const SHAPE_TEMPLATES: ShapeTemplate[] = defaultShapeRegistry.templates();
 
 /**
  * Emprise d'une forme déposée : centrée sur le point de dépôt (au sol), coin haut-gauche
@@ -66,20 +63,15 @@ export function searchTemplates(
 }
 
 /**
- * Modèle de la palette d'une forme, d'après sa définition (la variante qu'elle est) : une forme d'un fichier ouvert
- * est reconnue comme une forme posée depuis la palette. `undefined` : aucun modèle.
+ * Modèles des formes présentes sur la page, une fois chacun, dans l'ordre de la palette : une forme d'un fichier ouvert
+ * est reconnue comme une forme posée depuis la palette (`ShapeRegistry.templateOf`, la variante qu'elle est).
  */
-export function templateOfShape(shape: ShapeModel): ShapeTemplate | undefined {
-  return defaultShapeRegistry.templateOf(shape);
-}
-
-/** Modèles des formes présentes sur la page, une fois chacun, dans l'ordre de la palette. */
-export function usedTemplates(page: Pick<PageModel, 'shapes'> | undefined): ShapeTemplate[] {
+export function usedTemplatesIn(page: Pick<PageModel, 'shapes'> | undefined, registry: ShapeRegistry): ShapeTemplate[] {
   if (!page) return [];
   const used = new Set<string>();
   for (const shape of page.shapes) {
-    const template = templateOfShape(shape);
+    const template = registry.templateOf(shape);
     if (template) used.add(template.id);
   }
-  return SHAPE_TEMPLATES.filter((template) => used.has(template.id));
+  return registry.templates().filter((template) => used.has(template.id));
 }

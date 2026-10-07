@@ -4,9 +4,9 @@ import { parseDrawio } from '../../../../../src/engine/core/format/parse';
 import { jumpHalfLength, jumpStyleOf, withJumps } from '../../../../../src/engine/core/render/edges/jumps';
 import { buildPageScene } from '../../../../../src/engine/core/render/pageScene';
 import type { RenderContext } from '../../../../../src/engine/core/render/types';
-import { createDefaultRegistry } from '../../../../../src/engine/shapes/registry';
 import type { Point } from '../../../../../src/engine/core/model/types';
 import { fixture } from '../../../../helpers';
+import { createDefaultRegistry } from '../../../../../src/engine/plugins';
 
 // Étape 129 : sauts de ligne aux croisements (jumpStyle, jumpSize).
 

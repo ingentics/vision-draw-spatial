@@ -6,7 +6,15 @@ import robotoMonoBold from '@fontsource/roboto-mono/files/roboto-mono-latin-700-
 import robotoMono from '@fontsource/roboto-mono/files/roboto-mono-latin-400-normal.woff?url';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { GRAPH_PAGE_ID, isFilePath, jumpValue, labelPlacePatch, SPATIAL, usedTemplates } from '../engine';
+import {
+  GRAPH_PAGE_ID,
+  isFilePath,
+  jumpValue,
+  labelPlacePatch,
+  SHAPE_TEMPLATES,
+  SPATIAL,
+  usedTemplates,
+} from '../engine';
 import type {
   BackTarget,
   CommentEditRequest,
@@ -398,7 +406,7 @@ export function Viewer({
   const usedShapes = useMemo(() => (canAddShapes ? usedTemplates(shownPage) : []), [canAddShapes, shownPage]);
   // Palette et modes d'affichage permis par le mode de la page (sujet 178).
   const modes = engine?.getModeRegistry();
-  const paletteContent = useMemo(() => modes?.paletteFor(shownPage), [modes, shownPage]);
+  const paletteContent = useMemo(() => modes?.paletteFor(shownPage, SHAPE_TEMPLATES), [modes, shownPage]);
   const allowedViewModes = (['top', 'iso', '3d'] as const).filter(
     (mode) => !shownPage || !modes || modes.allowsViewMode(shownPage, mode),
   );

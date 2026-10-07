@@ -6,7 +6,7 @@ import { dropBounds } from '../../../edit/palette';
 import type { ShapeTemplate } from '../../../edit/palette';
 import { screenToPage } from '../../../interaction/cameraMath';
 import type { Point } from '../../../model/types';
-import { applyModeEdit } from '../../../../modes/modeEdits';
+import { applyModeEdit } from '../../../modes/modeEdits';
 import { withStyleValue } from '../helpers';
 import type { EngineCore } from '../../EngineCore';
 

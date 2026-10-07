@@ -1,16 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { defaultModeRegistry } from '../../../../src/engine/modes/registry';
-import {
-  dropBounds,
-  PALETTE_CATEGORIES,
-  SHAPE_TEMPLATES,
-  searchTemplates,
-  templateOfShape,
-  usedTemplates,
-} from '../../../../src/engine/core/edit/palette';
+import { dropBounds, PALETTE_CATEGORIES, searchTemplates } from '../../../../src/engine/core/edit/palette';
 import { resolveShapeKind, parseStyle } from '../../../../src/engine/core/format/style';
 import type { ShapeModel } from '../../../../src/engine/core/model/types';
-import { createDefaultRegistry } from '../../../../src/engine/shapes/registry';
+import {
+  SHAPE_TEMPLATES,
+  createDefaultRegistry,
+  defaultModeRegistry,
+  defaultShapeRegistry,
+  usedTemplates,
+} from '../../../../src/engine/plugins';
 
 /** Nom de forme d'un style, comme à la lecture : `spatial.kind`, sinon deviné du style draw.io. */
 function kindOf(style: string): string {
@@ -171,18 +169,19 @@ describe('formes utilisées (étape 56)', () => {
   };
 
   it('reconnaît chaque modèle depuis son propre style', () => {
-    for (const template of SHAPE_TEMPLATES) expect(templateOfShape(shape(template.style))?.id).toBe(template.id);
+    for (const template of SHAPE_TEMPLATES)
+      expect(defaultShapeRegistry.templateOf(shape(template.style))?.id).toBe(template.id);
   });
 
   it('reconnaît les formes d’un fichier depuis les clés distinctives', () => {
-    expect(templateOfShape(shape('whiteSpace=wrap;html=1;'))?.id).toBe('rectangle');
-    expect(templateOfShape(shape('rounded=1;fillColor=#f00;'))?.id).toBe('rounded-rectangle');
-    expect(templateOfShape(shape('ellipse;aspect=fixed;'))?.id).toBe('circle');
-    expect(templateOfShape(shape('shape=cylinder3;direction=north;'))?.id).toBe('queue');
-    expect(templateOfShape(shape('shape=cylinder3;'))?.id).toBe('database');
-    expect(templateOfShape(shape('shape=mxgraph.aws4.lambda;'))).toBeUndefined();
-    expect(templateOfShape(shape('text;html=1;fontSize=64;fontColor=#dedede;'))?.id).toBe('title');
-    expect(templateOfShape(shape('text;html=1;fontSize=64;fontColor=#FF0000;'))?.id).toBe('text');
+    expect(defaultShapeRegistry.templateOf(shape('whiteSpace=wrap;html=1;'))?.id).toBe('rectangle');
+    expect(defaultShapeRegistry.templateOf(shape('rounded=1;fillColor=#f00;'))?.id).toBe('rounded-rectangle');
+    expect(defaultShapeRegistry.templateOf(shape('ellipse;aspect=fixed;'))?.id).toBe('circle');
+    expect(defaultShapeRegistry.templateOf(shape('shape=cylinder3;direction=north;'))?.id).toBe('queue');
+    expect(defaultShapeRegistry.templateOf(shape('shape=cylinder3;'))?.id).toBe('database');
+    expect(defaultShapeRegistry.templateOf(shape('shape=mxgraph.aws4.lambda;'))).toBeUndefined();
+    expect(defaultShapeRegistry.templateOf(shape('text;html=1;fontSize=64;fontColor=#dedede;'))?.id).toBe('title');
+    expect(defaultShapeRegistry.templateOf(shape('text;html=1;fontSize=64;fontColor=#FF0000;'))?.id).toBe('text');
   });
 
   it('liste chaque type une fois, dans l’ordre de la palette', () => {

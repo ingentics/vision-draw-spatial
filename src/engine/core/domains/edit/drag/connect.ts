@@ -6,7 +6,7 @@ import { constraintStyle } from '../../../edit/edgeEnds';
 import { CONNECT_DIRECTIONS } from '../../../edit/handleKinds';
 import type { PageModel, Point } from '../../../model/types';
 import { connectorPreview } from '../../../render/handleMeshes';
-import { applyModeEdit } from '../../../../modes/modeEdits';
+import { applyModeEdit } from '../../../modes/modeEdits';
 import type { ConnectDrag } from './types';
 import { samePoints, withStyleValue } from '../helpers';
 import type { EngineCore } from '../../EngineCore';

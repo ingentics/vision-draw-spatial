@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { stencilShape } from '../../../../src/engine/core/format/stencil';
 import { parseStyle, resolveShapeKind } from '../../../../src/engine/core/format/style';
-import { PLUG_SHAPE } from '../../../../src/engine/shapes/impl/architecture/plug';
+import { PLUG_SHAPE } from '../../../../src/engine/plugins/shapes/architecture/plug';
 
 describe('parseStyle', () => {
   it('sépare noms et paires clé=valeur', () => {

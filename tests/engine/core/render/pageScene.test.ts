@@ -3,10 +3,11 @@ import { Box3, Mesh, Object3D, Vector3 } from 'three';
 import { describe, expect, it } from 'vitest';
 import { parseDrawio } from '../../../../src/engine/core/format/parse';
 import { buildPageScene } from '../../../../src/engine/core/render/pageScene';
-import { ShapeRegistry, createDefaultRegistry } from '../../../../src/engine/shapes/registry';
-import type { ShapeDefinition } from '../../../../src/engine/shapes/types';
+import { ShapeRegistry } from '../../../../src/engine/core/shapes/registry';
+import type { ShapeDefinition } from '../../../../src/engine/core/shapes/types';
 import type { RenderContext, TextSpec } from '../../../../src/engine/core/render/types';
 import { fixture } from '../../../helpers';
+import { createDefaultRegistry } from '../../../../src/engine/plugins';
 
 /** Fabrique de texte factice : garde la spec pour inspection. */
 function stubContext() {

@@ -316,14 +316,14 @@ export interface ExporterSettings {
 
 /**
  * Réglages globaux des effets de page (sujet 145) : `effets[id][clé]`, seulement les valeurs changées. Chaque effet
- * déclare ses réglages, leurs bornes et leurs défauts (`effects/<id>/`) : le registre des effets les résout.
+ * déclare ses réglages, leurs bornes et leurs défauts (`plugins/effects/<id>/`) : le registre des effets les résout.
  */
 export type EffectSettings = Record<string, Record<string, number>>;
 
 /**
  * Réglages globaux des modes de page (ticket 283) : `modes[id][clé]`, seulement les valeurs changées (nombre, booléen
- * ou couleur #rrggbb). Chaque mode déclare ses réglages, leurs bornes et leurs défauts (`modes/<id>/`) : le registre
- * des modes les résout.
+ * ou couleur #rrggbb). Chaque mode déclare ses réglages, leurs bornes et leurs défauts (`plugins/modes/<id>/`) : le
+ * registre des modes les résout.
  */
 export type ModeSettings = Record<string, Record<string, number | boolean | string>>;
 

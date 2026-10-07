@@ -6,7 +6,7 @@ import type { PageScene } from '../../render/pageScene';
 import { outsideLabelBox } from '../../render/labelPosition';
 import type { EngineCore } from '../EngineCore';
 import { buildGraphScene } from '../../graph/graphScene';
-import type { SceneLevel } from '../../../shapes/types';
+import type { SceneLevel } from '../../shapes/types';
 import type { Settings } from '../../settings';
 
 /**

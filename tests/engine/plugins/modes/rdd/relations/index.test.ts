@@ -1,0 +1,400 @@
+import { describe, expect, it } from 'vitest';
+import { setEdgeTerminal } from '../../../../../../src/engine/core/format/cellEdits';
+import { addEdgeCell, removeCellsDeep } from '../../../../../../src/engine/core/format/create';
+import { documentFromTree, readDrawio } from '../../../../../../src/engine/core/format/parse';
+import { applyModeEdit } from '../../../../../../src/engine/core/modes/modeEdits';
+import { definition as rdd } from '../../../../../../src/engine/plugins/modes/rdd';
+import { fieldParts } from '../../../../../../src/engine/plugins/modes/rdd/editing/fieldParts';
+import { removeField, setField } from '../../../../../../src/engine/plugins/modes/rdd/tables/operations';
+import { canLink, forbiddenLinks, syncRelations } from '../../../../../../src/engine/plugins/modes/rdd/relations';
+import { RELATION_KINDS } from '../../../../../../src/engine/plugins/modes/rdd/relations/relationKinds';
+import type { RelationKind } from '../../../../../../src/engine/plugins/modes/rdd/relations/kinds/kind';
+import { fieldLayout } from '../../../../../../src/engine/plugins/modes/rdd/tables/tableLayout';
+import { fieldNote, tableFields } from '../../../../../../src/engine/plugins/modes/rdd/tables/fieldModel';
+import { tableKindOf } from '../../../../../../src/engine/plugins/modes/rdd/tables/tableKinds';
+import type { Field } from '../../../../../../src/engine/plugins/modes/rdd/tables/fieldModel';
+import type { ModeEdit } from '../../../../../../src/engine/core/modes/types';
+import { fixture } from '../../../../../helpers';
+import { createDefaultRegistry } from '../../../../../../src/engine/plugins';
+
+/**
+ * Fixture RDD (sans flèche) : `user`, `orphan` (entités), `role` (énumération), `address` (embedded « Address »),
+ * `settings` (document), `active` (vue), `accounts` (région), `model` (modèle abstrait).
+ */
+function setup() {
+  const { tree } = readDrawio(fixture('rdd.drawio'));
+  const pageTree = tree.pages[0]!;
+  const page = () => documentFromTree(tree).pages[0]!;
+  const run = (operation: (edit: ModeEdit) => void) => applyModeEdit(page(), pageTree, operation);
+  /** Flèche tirée d'une table à une autre, et le mode qui la reçoit (comme `ConnectDrags.commit`). */
+  const connect = (source: string, target: string) => {
+    const id = addEdgeCell(pageTree, { source, target, style: '' });
+    run((edit) => rdd.edgeCreated!(edit, id, undefined));
+    return id;
+  };
+  const shape = (id: string) => page().shapes.find((s) => s.id === id)!;
+  const fields = (id: string) => tableFields(shape(id)) as Field[];
+  const relations = (id: string) => fields(id).filter((field) => field.edge !== undefined);
+  return { tree, pageTree, page, run, connect, shape, fields, relations };
+}
+
+describe('mode RDD : liaisons permises (sujet 265)', () => {
+  const { page, shape } = setup();
+  const shapes = createDefaultRegistry();
+
+  it('entité et énumération se lient entre elles ; un embedded seulement au départ', () => {
+    const allowed = (source: string, target: string) => rdd.connects!(page(), shape(source), shape(target));
+    expect(allowed('user', 'role')).toBe(true);
+    expect(allowed('role', 'user')).toBe(true);
+    expect(allowed('user', 'user')).toBe(true);
+    expect(allowed('address', 'user')).toBe(true);
+    expect(allowed('address', 'role')).toBe(true);
+    expect(allowed('user', 'address')).toBe(false);
+    expect(allowed('address', 'address')).toBe(false);
+  });
+
+  it('vue, document, région et modèle abstrait : ni poignée de connexion ni cible', () => {
+    for (const id of ['active', 'settings', 'accounts', 'model']) {
+      expect(shapes.isConnectable(shape(id))).toBe(false);
+      expect(shapes.connectSides(shape(id))).toEqual([]);
+      expect(canLink(shape('user'), shape(id))).toBe(false);
+    }
+    expect(shapes.connectSides(shape('address'))).toEqual(['e', 'w']);
+    expect(shapes.isConnectable(shape('user'))).toBe(true);
+  });
+
+  it('une flèche du fichier entre formes qui ne se lient pas est signalée', () => {
+    const { pageTree, page: fresh } = setup();
+    const id = addEdgeCell(pageTree, { source: 'user', target: 'active', style: '' });
+    addEdgeCell(pageTree, { source: 'user', target: 'role', style: '' });
+    expect(forbiddenLinks(fresh()).map((link) => link.edgeId)).toEqual([id]);
+    expect(rdd.check!(fresh()).some((issue) => issue.cellId === id)).toBe(true);
+  });
+});
+
+describe('mode RDD : champ de relation (sujet 265)', () => {
+  it('flèche entre entités : champ fk `relation1` dans la cible, sans type, optionnel, en fin de liste', () => {
+    const { connect, fields, relations } = setup();
+    const before = fields('role').length;
+    const edge = connect('user', 'role');
+    expect(fields('role')).toHaveLength(before + 1);
+    expect(fields('role').at(-1)).toEqual({ kind: 'fk', label: 'relation1', type: '', nullable: true, edge });
+    expect(relations('user')).toEqual([]);
+    connect('orphan', 'role');
+    expect(relations('role').map((field) => field.label)).toEqual(['relation1', 'relation2']);
+  });
+
+  it('depuis un embedded : le nom de l’embedded, puis numéroté', () => {
+    const { connect, relations } = setup();
+    connect('address', 'user');
+    connect('address', 'user');
+    connect('address', 'user');
+    expect(relations('user').map((field) => field.label)).toEqual(['Address', 'Address1', 'Address2']);
+    // Kind `embed` (losange violet, sujet 268).
+    expect(relations('user').map((field) => field.kind)).toEqual(['embed', 'embed', 'embed']);
+  });
+
+  it('la table d’arrivée grandit d’une ligne', () => {
+    const { connect, shape } = setup();
+    const height = shape('role').bounds.height;
+    connect('user', 'role');
+    expect(shape('role').bounds.height).toBeCloseTo(height + 20);
+  });
+
+  it('flèche supprimée : son champ est retiré (remise en ordre après suppression)', () => {
+    const { connect, pageTree, run, relations } = setup();
+    const first = connect('user', 'role');
+    const second = connect('orphan', 'role');
+    removeCellsDeep(pageTree, [first]);
+    run(rdd.repair!);
+    expect(relations('role').map((field) => field.edge)).toEqual([second]);
+  });
+
+  it('table de départ supprimée : le champ part aussi', () => {
+    const { connect, pageTree, run, relations } = setup();
+    connect('user', 'role');
+    removeCellsDeep(pageTree, ['user']);
+    run(rdd.repair!);
+    expect(relations('role')).toEqual([]);
+  });
+
+  it('bout d’arrivée rebranché : le champ passe dans la nouvelle table avec son nom et ses propriétés', () => {
+    const { connect, pageTree, run, shape, fields, relations } = setup();
+    const edge = connect('user', 'role');
+    const index = fields('role').findIndex((field) => field.edge === edge);
+    run((edit) => setField(edit, shape('role'), index, { label: 'owner', comment: 'Propriétaire' }));
+    expect(relations('role')[0]).toMatchObject({ label: 'owner', comment: 'Propriétaire' });
+    setEdgeTerminal(pageTree, edge, 'target', { cellId: 'orphan' });
+    run((edit) => rdd.edgeReconnected!(edit, edge));
+    expect(relations('role')).toEqual([]);
+    expect(relations('orphan')).toEqual([
+      { kind: 'fk', label: 'owner', type: '', nullable: true, edge, comment: 'Propriétaire' },
+    ]);
+  });
+
+  it('rebranché sur une table qui ne peut pas être cible : le champ est retiré', () => {
+    const { connect, pageTree, run, relations } = setup();
+    const edge = connect('user', 'role');
+    setEdgeTerminal(pageTree, edge, 'target', { cellId: 'address' });
+    run((edit) => rdd.edgeReconnected!(edit, edge));
+    expect(relations('role')).toEqual([]);
+    expect(relations('address')).toEqual([]);
+  });
+
+  it('kind et type imposés, Suppr refusé ; nom et optionnel modifiables', () => {
+    const { connect, run, shape, fields, relations } = setup();
+    connect('user', 'role');
+    const index = fields('role').findIndex((field) => field.edge !== undefined);
+    run((edit) => setField(edit, shape('role'), index, { kind: 'property', type: 'string', label: 'owner' }));
+    run((edit) => setField(edit, shape('role'), index, { nullable: false }));
+    expect(relations('role')[0]).toMatchObject({ kind: 'fk', type: '', label: 'owner', nullable: false });
+    expect(run((edit) => removeField(edit, shape('role'), index))).toBe(false);
+    expect(run((edit) => fieldParts.remove!(edit, shape('role'), String(index)))).toBe(false);
+    expect(relations('role')).toHaveLength(1);
+  });
+
+  it('pas de choix de type dans le panneau pour un champ de relation', () => {
+    const { connect, page, shape, fields } = setup();
+    connect('user', 'role');
+    const index = fields('role').findIndex((field) => field.edge !== undefined);
+    const type = rdd.shapeProperties!.find((property) => property.key === 'rdd.field.type')!;
+    expect(type.hidden!(page(), shape('role'), String(index))).toBe(true);
+    expect(type.hidden!(page(), shape('role'), '1')).toBe(false);
+  });
+
+  it('cardinalités imposées sur les bouts, d’après « Optionnel » du champ', () => {
+    const { connect, run, page, shape, fields } = setup();
+    const edge = connect('user', 'role');
+    const style = () => page().edges.find((e) => e.id === edge)!.style;
+    expect([style().startArrow, style().endArrow]).toEqual(['ERzeroToMany', 'ERzeroToOne']);
+    const index = fields('role').findIndex((field) => field.edge === edge);
+    run((edit) => setField(edit, shape('role'), index, { nullable: false }));
+    expect([style().startArrow, style().endArrow]).toEqual(['ERzeroToMany', 'ERmandOne']);
+    // Bouts changés hors du mode (fichier) : remis à la remise en ordre suivante.
+    run((edit) => edit.setElementStyle(edge, 'startArrow', 'classic'));
+    run(rdd.opened!);
+    expect(style().startArrow).toBe('ERzeroToMany');
+    const edgeModel = page().edges.find((e) => e.id === edge)!;
+    expect(rdd.managesEdge!(page(), edgeModel)).toBe(true);
+  });
+
+  it('textes des bouts dans le style de base des textes de début / fin : « 0,n » au début, « 0,1 » ou « 1,1 » à la fin', () => {
+    const { connect, run, page, shape, fields } = setup();
+    const edge = connect('user', 'role');
+    const labels = () => page().edges.find((e) => e.id === edge)!.labels;
+    const texts = () =>
+      labels()
+        .map((label) => [label.label, label.placement.position, label.placement.offset, label.style.align] as const)
+        .sort((a, b) => a[1] - b[1]);
+    // `user` est à gauche de `role` : la flèche part vers la droite et arrive par la gauche ; chaque texte s'éloigne
+    // de sa table (écarts par défaut 6 le long et 4 de côté, plus la marge de 4 des pointes ER ; début au-dessus, fin
+    // en dessous).
+    expect(shape('user').bounds.x).toBeLessThan(shape('role').bounds.x);
+    expect(texts()).toEqual([
+      ['0,n', -1, { x: 10, y: -8 }, 'left'],
+      ['0,1', 1, { x: -10, y: 8 }, 'right'],
+    ]);
+    for (const label of labels()) expect([label.style.fontSize, label.style.fontColor]).toEqual(['9', '#808080']);
+    const index = fields('role').findIndex((field) => field.edge === edge);
+    run((edit) => setField(edit, shape('role'), index, { nullable: false }));
+    expect(texts().map(([text]) => text)).toEqual(['0,n', '1,1']);
+    // Rien de plus à une nouvelle remise en ordre : pas de texte en double
+    // (la première ajuste aussi la taille des tables de la fixture, sujet 255).
+    run(rdd.opened!);
+    expect(run(rdd.opened!)).toBe(false);
+    expect(texts()).toHaveLength(2);
+  });
+
+  it('flèche arrivée par le haut de la table : le texte longe le trait, hors de la table', () => {
+    const { pageTree, run, page } = setup();
+    // Arrivée fixée au milieu du haut de `orphan`.
+    const edge = addEdgeCell(pageTree, { source: 'user', target: 'orphan', style: 'entryX=0.5;entryY=0;' });
+    run((edit) => rdd.edgeCreated!(edit, edge, undefined));
+    const end = page()
+      .edges.find((e) => e.id === edge)!
+      .labels.find((label) => label.placement.position === 1)!;
+    // Vers le bas en arrivant : le texte est au-dessus du bout (décalé vers le haut), à côté du trait.
+    expect(end.placement.offset.y).toBeLessThan(0);
+    expect(end.placement.offset.x).not.toBe(0);
+  });
+
+  it('« Afficher les cardinalités » décoché sur la page : les pointes sans les textes (sujet 266) ; recoché : de retour', () => {
+    const { connect, run, page } = setup();
+    const edge = connect('user', 'role');
+    const toggle = rdd.pageProperties!.find((property) => property.key === 'spatial.cardinalities')!;
+    const ends = () => {
+      const e = page().edges.find((x) => x.id === edge)!;
+      return [e.style.startArrow, e.style.endArrow, e.labels.map((label) => label.label).sort()];
+    };
+    expect(toggle.section).toBe('RDD');
+    expect(toggle.value!(page(), page())).toBe('1');
+    run((edit) => toggle.write!(edit, page(), undefined));
+    expect(page().attributes['spatial.cardinalities']).toBe('0');
+    expect(toggle.value!(page(), page())).toBeUndefined();
+    expect(ends()).toEqual(['ERzeroToMany', 'ERzeroToOne', []]);
+    // Une remise en ordre (ex. table déplacée) ne les fait pas revenir.
+    run((edit) => rdd.placed!(edit, ['user']));
+    expect(ends()).toEqual(['ERzeroToMany', 'ERzeroToOne', []]);
+    run((edit) => toggle.write!(edit, page(), '1'));
+    expect(page().attributes['spatial.cardinalities']).toBeUndefined();
+    expect(ends()).toEqual(['ERzeroToMany', 'ERzeroToOne', ['0,1', '0,n']]);
+  });
+
+  it('à l’ouverture, les champs suivent les flèches du fichier', () => {
+    const { pageTree, run, relations } = setup();
+    const edge = addEdgeCell(pageTree, { source: 'user', target: 'role', style: '' });
+    run(rdd.opened!);
+    expect(relations('role').map((field) => field.edge)).toEqual([edge]);
+  });
+});
+
+describe('mode RDD : relation embedded (sujet 268)', () => {
+  it('embedded → entité : flèche sans pointe ni texte, quel que soit « Optionnel »', () => {
+    const { connect, run, page, shape, fields } = setup();
+    const edge = connect('address', 'user');
+    const ends = () => {
+      const e = page().edges.find((x) => x.id === edge)!;
+      return [e.style.startArrow, e.style.endArrow, e.labels.map((label) => label.label)];
+    };
+    expect(ends()).toEqual(['none', 'none', []]);
+    const index = fields('user').findIndex((field) => field.edge === edge);
+    run((edit) => setField(edit, shape('user'), index, { nullable: false }));
+    expect(ends()).toEqual(['none', 'none', []]);
+    expect(
+      rdd.managesEdge!(
+        page(),
+        page().edges.find((e) => e.id === edge)!,
+      ),
+    ).toBe(true);
+  });
+
+  it('relation embedded d’un fichier avec cardinalités : pointes et textes retirés à l’ouverture', () => {
+    const { pageTree, run, page } = setup();
+    const edge = addEdgeCell(pageTree, { source: 'user', target: 'role', style: '' });
+    run(rdd.opened!);
+    // Départ rebranché sur l'embedded : la flèche change de sorte.
+    setEdgeTerminal(pageTree, edge, 'source', { cellId: 'address' });
+    run(rdd.opened!);
+    const e = page().edges.find((x) => x.id === edge)!;
+    expect([e.style.startArrow, e.style.endArrow, e.labels]).toEqual(['none', 'none', []]);
+    expect(run(rdd.opened!)).toBe(false);
+  });
+
+  it('panneau : « Préfixe » pour une relation embedded, « Nom inverse » pour une relation entre tables', () => {
+    const { connect, page } = setup();
+    const embedded = connect('address', 'user');
+    const between = connect('user', 'role');
+    const edge = (id: string) => page().edges.find((e) => e.id === id)!;
+    const shown = (id: string) =>
+      rdd.edgeProperties!.filter((property) => !property.hidden?.(page(), edge(id))).map((property) => property.label);
+    expect(shown(embedded)).toEqual(['Champ', 'Préfixe']);
+    expect(shown(between)).toEqual(['Nom inverse']);
+  });
+
+  it('flèche qui change de sorte : les réglages de l’ancienne sorte sont retirés', () => {
+    const { pageTree, run, page, connect } = setup();
+    const edge = connect('user', 'role');
+    run((edit) => edit.setElementAttribute(edge, 'spatial.reverseName', 'roles'));
+    setEdgeTerminal(pageTree, edge, 'source', { cellId: 'address' });
+    run((edit) => rdd.edgeReconnected!(edit, edge));
+    const e = page().edges.find((x) => x.id === edge)!;
+    expect(e.attributes['spatial.reverseName'] ?? e.style['spatial.reverseName']).toBeUndefined();
+  });
+
+  it('« Préfixe » de la flèche : rangé dans le champ, en gris à la place du type, la table s’élargit', () => {
+    const { connect, run, page, shape, relations } = setup();
+    const edge = connect('address', 'user');
+    const prefix = rdd.edgeProperties!.find((property) => property.label === 'Préfixe')!;
+    const edgeModel = () => page().edges.find((e) => e.id === edge)!;
+    const width = shape('user').bounds.width;
+    run((edit) => prefix.write!(edit, edgeModel(), ' PLOP_ '));
+    expect(relations('user')[0]).toMatchObject({ label: 'Address', prefix: 'PLOP_', type: '' });
+    expect(prefix.value!(page(), edgeModel())).toBe('PLOP_');
+    expect(fieldNote(relations('user')[0]!)).toBe('PLOP_');
+    expect(fieldLayout(tableKindOf(shape('user'))!, relations('user')[0]!).type).toBeDefined();
+    expect(shape('user').bounds.width).toBeGreaterThanOrEqual(width);
+    run((edit) => prefix.write!(edit, edgeModel(), ''));
+    expect(relations('user')[0]!.prefix).toBeUndefined();
+  });
+
+  it('relation embedded devenue relation entre tables : le champ perd son préfixe', () => {
+    const { connect, pageTree, run, page, relations } = setup();
+    const edge = connect('address', 'role');
+    const prefix = rdd.edgeProperties!.find((property) => property.label === 'Préfixe')!;
+    run((edit) =>
+      prefix.write!(
+        edit,
+        page().edges.find((e) => e.id === edge)!,
+        'PLOP_',
+      ),
+    );
+    setEdgeTerminal(pageTree, edge, 'source', { cellId: 'user' });
+    run((edit) => rdd.edgeReconnected!(edit, edge));
+    expect(relations('role')[0]).toMatchObject({ kind: 'fk' });
+    expect(relations('role')[0]!.prefix).toBeUndefined();
+  });
+
+  it('champ embed : même formulaire que sa flèche, les deux écrivent le champ', () => {
+    const { connect, run, page, shape, fields, relations } = setup();
+    const edge = connect('address', 'user');
+    const edgeModel = () => page().edges.find((e) => e.id === edge)!;
+    const index = String(fields('user').findIndex((field) => field.edge === edge));
+    const onField = rdd.shapeProperties!.filter(
+      (property) => property.part && !property.hidden?.(page(), shape('user'), index),
+    );
+    expect(onField.map((property) => property.label)).toEqual(['Champ', 'Préfixe']);
+    const [label, prefix] = onField;
+    // Modifié depuis le champ : la flèche le montre.
+    run((edit) => label!.write!(edit, shape('user'), 'home', index));
+    run((edit) => prefix!.write!(edit, shape('user'), 'HOME_', index));
+    const onEdge = rdd.edgeProperties!.filter((property) => !property.hidden?.(page(), edgeModel()));
+    expect(onEdge.map((property) => property.value!(page(), edgeModel()))).toEqual(['home', 'HOME_']);
+    // Écrits à chaque frappe, sur la flèche comme sur le champ (sujet 271).
+    for (const property of [...onField, ...onEdge]) expect(property).toMatchObject({ type: 'text', live: true });
+    // Modifié depuis la flèche : le champ suit ; un libellé vide est refusé.
+    run((edit) => onEdge[0]!.write!(edit, edgeModel(), 'office'));
+    run((edit) => onEdge[0]!.write!(edit, edgeModel(), ' '));
+    expect(relations('user')[0]).toMatchObject({ kind: 'embed', label: 'office', prefix: 'HOME_', nullable: true });
+    expect(label!.value!(page(), shape('user'), index)).toBe('office');
+  });
+
+  it('un champ de relation entre tables garde les réglages d’un champ', () => {
+    const { connect, page, shape, fields } = setup();
+    const edge = connect('user', 'role');
+    const index = String(fields('role').findIndex((field) => field.edge === edge));
+    const shown = rdd
+      .shapeProperties!.filter((property) => property.part && !property.hidden?.(page(), shape('role'), index))
+      .map((property) => property.label);
+    expect(shown).toContain('Optionnel');
+    expect(shown).not.toContain('Préfixe');
+  });
+
+  it('champ embed rendu non optionnel dans le fichier : redevient optionnel', () => {
+    const { connect, run, shape, fields, relations } = setup();
+    const edge = connect('address', 'user');
+    const index = fields('user').findIndex((field) => field.edge === edge);
+    run((edit) => setField(edit, shape('user'), index, { nullable: false }));
+    run(rdd.opened!);
+    expect(relations('user')[0]!.nullable).toBe(true);
+  });
+});
+
+describe('mode RDD : sorte de relation sans champ (sujet 278)', () => {
+  /** Sorte de test : d'une vue vers une entité, sans champ, en tirets. */
+  const viewLink: RelationKind = {
+    id: 'test-view',
+    from: ['rdd-view'],
+    to: ['rdd-entity'],
+    look: () => ({ startArrow: 'none', endArrow: 'block', dashed: true }),
+  };
+
+  it('aucun champ créé dans la forme d’arrivée ; la flèche prend l’apparence de sa sorte', () => {
+    const { pageTree, page, run, fields } = setup();
+    const before = fields('user');
+    const id = addEdgeCell(pageTree, { source: 'active', target: 'user', style: '' });
+    run((edit) => syncRelations(edit, undefined, [...RELATION_KINDS, viewLink]));
+    expect(fields('user')).toEqual(before);
+    const edge = page().edges.find((e) => e.id === id)!;
+    expect([edge.style.startArrow, edge.style.endArrow, edge.style.dashed]).toEqual(['none', 'block', '1']);
+  });
+});

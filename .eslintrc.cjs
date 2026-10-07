@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 
-/** Dossiers d'un répertoire (un par mode de page). */
+/** Dossiers d'un répertoire (un par plugin). */
 const folders = (dir) =>
   fs
     .readdirSync(path.join(__dirname, dir), { withFileTypes: true })
@@ -18,17 +18,33 @@ const ENGINE_ENTRY = {
   group: ['**/engine/*'],
   message: "Importer depuis le point d'entrée du moteur (`engine`, src/engine/index.ts), pas un fichier interne.",
 };
-/** Ticket 281 : modes de page, un par dossier de `src/engine/modes/`. */
-const ENGINE_MODES = folders('src/engine/modes');
-const NO_MODE = {
-  group: ENGINE_MODES.flatMap((mode) => [`**/modes/${mode}`, `**/modes/${mode}/**`]),
+/** Sujet 286 : le tronc (`core/`) ne connaît aucun plugin ; seule la racine de composition (`plugins/index.ts`) les collecte. */
+const NO_PLUGIN = {
+  group: ['**/plugins', '**/plugins/**'],
   message:
-    "Le moteur ne connaît aucun mode précis : il passe par le registre (modes/registry) et le contrat d'un mode (modes/types).",
+    'Le tronc ne connaît aucun plugin : il passe par les registres (core/shapes, core/modes, core/effects) et leurs contrats.',
 };
+/** Ce qu'un plugin n'importe pas du tronc : l'état du moteur et ses couches internes. */
+const NO_CORE_INTERNALS = {
+  group: [
+    '**/Engine',
+    '**/core/domains/**',
+    '**/core/format/**',
+    '**/core/interaction/**',
+    '**/core/persistence/**',
+    '**/core/graph/**',
+    '**/plugins/index',
+  ],
+  message:
+    "Un plugin n'importe pas le cœur du moteur : il ne connaît que son contrat, le modèle et les briques de dessin.",
+};
+/** Sujet 286 : formes, modes et effets, un dossier par plugin dans `src/engine/plugins/`. */
+const ENGINE_MODES = folders('src/engine/plugins/modes');
+const ENGINE_EFFECTS = folders('src/engine/plugins/effects');
 
-/** Ticket 281 : un mode de page n'importe ni le cœur du moteur, ni un autre mode. */
+/** Ticket 281, sujet 286 : un mode n'importe ni le cœur du moteur, ni un autre mode, ni un effet. */
 const engineModeOverrides = ENGINE_MODES.map((mode) => ({
-  files: [`src/engine/modes/${mode}/**/*.ts`],
+  files: [`src/engine/plugins/modes/${mode}/**/*.ts`],
   rules: {
     'no-restricted-imports': [
       'error',
@@ -36,22 +52,37 @@ const engineModeOverrides = ENGINE_MODES.map((mode) => ({
         patterns: [
           NO_REACT,
           NO_UI,
-          {
-            group: [
-              '**/Engine',
-              '**/core/domains/**',
-              '**/core/format/**',
-              '**/core/interaction/**',
-              '**/core/persistence/**',
-              '**/core/graph/**',
-              '**/effects/**',
-            ],
-            message:
-              "Un mode n'importe pas le cœur du moteur : il ne connaît que son contrat (modes/types), le modèle et les briques de dessin.",
-          },
+          NO_CORE_INTERNALS,
+          // Motifs sur le texte de l'import (pas le chemin résolu) : on nomme les dossiers.
+          { group: ['**/effects/**'], message: "Un mode n'importe pas un effet." },
           ...ENGINE_MODES.filter((other) => other !== mode).map((other) => ({
-            group: [`**/${other}/**`],
-            message: `Un mode n'importe pas un autre mode (ici « ${other} ») : voir modes/types.`,
+            group: [`**/${other}`, `**/${other}/**`],
+            message: `Un mode n'importe pas un autre mode (ici « ${other} ») : voir core/modes/types.`,
+          })),
+        ],
+      },
+    ],
+  },
+}));
+
+/** Sujet 286 : un effet n'importe ni le cœur du moteur, ni un autre plugin. */
+const engineEffectOverrides = ENGINE_EFFECTS.map((effect) => ({
+  files: [`src/engine/plugins/effects/${effect}/**/*.ts`],
+  rules: {
+    'no-restricted-imports': [
+      'error',
+      {
+        patterns: [
+          NO_REACT,
+          NO_UI,
+          NO_CORE_INTERNALS,
+          {
+            group: ['**/modes/**', '**/shapes/**'],
+            message: "Un effet n'importe ni un mode ni une forme (ni leurs registres : seulement son contrat).",
+          },
+          ...ENGINE_EFFECTS.filter((other) => other !== effect).map((other) => ({
+            group: [`**/${other}`, `**/${other}/**`],
+            message: `Un effet n'importe pas un autre effet (ici « ${other} ») : voir core/effects/types.`,
           })),
         ],
       },
@@ -60,24 +91,26 @@ const engineModeOverrides = ENGINE_MODES.map((mode) => ({
 }));
 
 /** Ticket 281 : la partie appli d'un mode n'importe pas celle d'un autre mode. */
-const APP_MODES = folders('src/app/modes');
+const APP_MODES = folders('src/app/plugins/modes');
 const appModeOverrides = APP_MODES.map((mode) => ({
-  files: [`src/app/modes/${mode}/**/*.ts`, `src/app/modes/${mode}/**/*.tsx`],
+  files: [`src/app/plugins/modes/${mode}/**/*.ts`, `src/app/plugins/modes/${mode}/**/*.tsx`],
   rules: {
     'no-restricted-imports': [
       'error',
       {
         patterns: [
-          // Ticket 282 : en plus du point d'entrée, l'API de son mode (`engine/modes/<id>/api`), et seulement elle.
+          // Ticket 282 : en plus du point d'entrée, l'API de son mode (`engine/plugins/modes/<id>/api`), et seulement elle.
           {
-            message: `Importer depuis le point d'entrée du moteur (\`engine\`) ou l'API de son mode (\`engine/modes/${mode}/api\`), pas un fichier interne.`,
+            message: `Importer depuis le point d'entrée du moteur (\`engine\`) ou l'API de son mode (\`engine/plugins/modes/${mode}/api\`), pas un fichier interne.`,
             group: [
               ...ENGINE_ENTRY.group,
-              '!**/engine/modes',
-              '**/engine/modes/*',
-              `!**/engine/modes/${mode}`,
-              `**/engine/modes/${mode}/*`,
-              `!**/engine/modes/${mode}/api`,
+              '!**/engine/plugins',
+              '**/engine/plugins/*',
+              '!**/engine/plugins/modes',
+              '**/engine/plugins/modes/*',
+              `!**/engine/plugins/modes/${mode}`,
+              `**/engine/plugins/modes/${mode}/*`,
+              `!**/engine/plugins/modes/${mode}/api`,
             ],
           },
           ...APP_MODES.filter((other) => other !== mode).map((other) => ({
@@ -115,12 +148,37 @@ module.exports = {
     },
     ...appModeOverrides,
     {
-      // SPEC §3.2 : le moteur ne dépend jamais de React. Ticket 281 : ni d'un mode précis.
+      // SPEC §3.2 : le moteur ne dépend jamais de React.
       files: ['src/engine/**/*.ts', 'src/engine/**/*.tsx'],
-      excludedFiles: ['src/engine/modes/*/**'],
-      rules: { 'no-restricted-imports': ['error', { patterns: [NO_REACT, NO_UI, NO_MODE] }] },
+      rules: { 'no-restricted-imports': ['error', { patterns: [NO_REACT, NO_UI] }] },
+    },
+    {
+      // Sujet 286 : ni d'un plugin précis.
+      files: ['src/engine/core/**/*.ts'],
+      rules: { 'no-restricted-imports': ['error', { patterns: [NO_REACT, NO_UI, NO_PLUGIN] }] },
+    },
+    {
+      // Sujet 286 : une forme peut en étendre une autre, mais n'importe ni le cœur du moteur, ni un mode, ni un effet.
+      files: ['src/engine/plugins/shapes/**/*.ts'],
+      rules: {
+        'no-restricted-imports': [
+          'error',
+          {
+            patterns: [
+              NO_REACT,
+              NO_UI,
+              { ...NO_CORE_INTERNALS, group: NO_CORE_INTERNALS.group.filter((g) => g !== '**/core/format/**') },
+              {
+                group: ['**/modes/**', '**/effects/**'],
+                message: "Une forme n'importe ni un mode ni un effet.",
+              },
+            ],
+          },
+        ],
+      },
     },
     ...engineModeOverrides,
+    ...engineEffectOverrides,
     {
       // SPEC §4.1 : le parsing ne connaît ni Three.js ni React.
       files: ['src/engine/core/format/**/*.ts', 'src/engine/core/model/**/*.ts'],
@@ -138,7 +196,7 @@ module.exports = {
                 group: ['**/core/render/**', '**/core/interaction/**', '**/react/**', '**/app/**'],
                 message: 'Dépendance de couche interdite (SPEC §4.1).',
               },
-              NO_MODE,
+              NO_PLUGIN,
             ],
           },
         ],

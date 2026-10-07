@@ -1,15 +1,15 @@
 /** Types publics du moteur, réexportés par la façade `Engine`. */
 import type { ElementComment } from '../edit/comment';
-import type { PageEffectRegistry } from '../../effects/registry';
+import type { PageEffectRegistry } from '../effects/registry';
 import type { EdgeEnd } from '../edit/edgeLabels';
 import type { CameraState } from '../interaction/cameraMath';
 import type { HistoryEntry, LinkUsage, ParentLink } from '../interaction/navigationHistory';
 import type { PickedElement } from '../interaction/pick';
 import type { DocumentModel, PageModel, Point, Rect } from '../model/types';
-import type { PageModeRegistry } from '../../modes/registry';
+import type { PageModeRegistry } from '../modes/registry';
 import type { FontSet } from '../render/troikaText';
 import type { Settings, SettingsPatch } from '../settings';
-import type { ShapeRegistry } from '../../shapes/registry';
+import type { ShapeRegistry } from '../shapes/registry';
 
 export interface Selection {
   pageId: string;
@@ -19,6 +19,13 @@ export interface Selection {
   items: PickedElement[];
   /** Partie de la forme sélectionnée seule (ex. champ d'une table RDD, sujet 249), définie par le mode de la page. */
   part?: string;
+}
+
+/** Registres des plugins (formes, modes, effets) que reçoit le cœur du moteur. */
+export interface PluginRegistries {
+  registry: ShapeRegistry;
+  modes: PageModeRegistry;
+  effects: PageEffectRegistry;
 }
 
 export interface EngineOptions {

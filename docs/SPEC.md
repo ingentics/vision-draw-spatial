@@ -145,6 +145,10 @@ src/
       diagnostics/
         unsupportedStyles.ts
       settings/          # paramètres : types, défauts, bornes, validateurs, fusion par section (index.ts : façade)
+      shapes/            # tronc des formes : types.ts (ShapeDefinition), registry.ts (résolution, replis),
+                         # placeholder.ts, minimapOutline.ts, group.ts (le groupe draw.io, hors palette)
+      modes/             # tronc des modes : types.ts (contrat), registry.ts, modeEdits.ts (écritures d'un mode)
+      effects/           # tronc des effets : types.ts (contrat), registry.ts, room.ts (place prise par le schéma)
       domains/           # comportement du moteur, un dossier par domaine
         EngineCore.ts    # infrastructure partagée et câblage des domaines
         types.ts         # types publics (réexportés par Engine.ts)
@@ -160,20 +164,16 @@ src/
           drag/          # glisser : geste, un fichier par type de glisser, aperçu, modifications en direct
           text/          # éditeur en place, textes de flèche, texte et format
           commands/      # éléments, styles, ordre et alignement, presse-papier, lien et attributs
-    shapes/              # les formes, en plugins (§8.2)
-      types.ts           # ShapeDefinition : rendus, géométrie, interaction, palette, panneau
-      registry.ts        # collecte des dossiers, résolution forme → définition, replis génériques
-      placeholder.ts     # repli des formes non supportées
-      minimapOutline.ts  # repli mini-carte : contour de la forme
-      generic/           # bases à étendre : box/, stencil/, tagged-process/, cylinder/, building/
-      impl/              # une forme par élément de la palette, nommée comme l'interface
-        geometry/        # rectangle/, rounded-rectangle/, ellipse/, circle/, diamond/
-        general/         # text/
+    plugins/             # les extensions du moteur, un dossier chacune (sujet 286)
+      index.ts           # racine de composition : collecte les dossiers, construit les registres par défaut
+      shapes/            # les formes (§8.2), une par élément de la palette, nommée comme l'interface
+        generic/         # bases à étendre : box/, stencil/, tagged-process/, cylinder/, building/
+        geometry/        # rectangle/, rounded-rectangle/, ellipse/, circle/, diamond/…
+        general/         # text/, actors/
         architecture/    # database/, queue/, distributed-cache/, plug/, process/, event-consumer/, background-task/,
                          # recurring-task/, labeled-process/
-        internal/        # hors palette : group/
-    modes/               # modes de page, un dossier par mode (rdd/, sequences/), registre et formes propres
-    effects/             # effets de page (forest/), registre
+      modes/             # modes de page, un dossier par mode (rdd/, sequences/), avec leurs formes propres
+      effects/           # effets de page (forest/)
   react/
     DrawioSpatial.tsx    # composant principal
     Launcher.tsx
@@ -351,7 +351,7 @@ type LinkModel =
 
 ### 8.2 Registre de renderers
 
-Chaque forme est décrite par une **définition**, dans son dossier `src/engine/shapes/impl/<catégorie>/<id>/` (`index.ts` exporte `definition`), collectée toute seule par le registre. Elle porte le nom de l'interface en anglais (`database`, `rounded-rectangle`…), gère une ou plusieurs formes draw.io (`kinds`, défaut `[id]`), avec au besoin une condition (`matches`, ex. `rounded=1`), et contient tout ce qui la concerne, iso / 3D compris ; elle étend une base de `shapes/generic/` ou une autre forme pour ce qu'elle partage. Des variantes d'une même forme forment une **famille** : `impl/<catégorie>/<famille>/<variante>/` (ex. `general/actors/human/` et `droid/`), le code partagé dans `<famille>/common/`, l'id commençant par le nom de la famille au singulier (`actor`, `actor-droid`). Le moteur et l'appli ne connaissent que l'interface commune : ils ne testent jamais le nom d'une forme, ils interrogent le registre. Guide pas à pas pour en ajouter une : [AJOUTER_UNE_FORME.md](AJOUTER_UNE_FORME.md).
+Chaque forme est décrite par une **définition**, dans son dossier `src/engine/plugins/shapes/<catégorie>/<id>/` (`index.ts` exporte `definition`), collectée toute seule par la racine de composition (`src/engine/plugins/index.ts`). Elle porte le nom de l'interface en anglais (`database`, `rounded-rectangle`…), gère une ou plusieurs formes draw.io (`kinds`, défaut `[id]`), avec au besoin une condition (`matches`, ex. `rounded=1`), et contient tout ce qui la concerne, iso / 3D compris ; elle étend une base de `shapes/generic/` ou une autre forme pour ce qu'elle partage. Des variantes d'une même forme forment une **famille** : `shapes/<catégorie>/<famille>/<variante>/` (ex. `general/actors/human/` et `droid/`), le code partagé dans `<famille>/common/`, l'id commençant par le nom de la famille au singulier (`actor`, `actor-droid`). Le moteur et l'appli ne connaissent que l'interface commune : ils ne testent jamais le nom d'une forme, ils interrogent le registre. Guide pas à pas pour en ajouter une : [AJOUTER_UNE_FORME.md](AJOUTER_UNE_FORME.md).
 
 Une forme a **plusieurs niveaux de rendu** selon le contexte, avec un **repli systématique sur le rendu à plat** :
 
@@ -396,7 +396,7 @@ interface SceneRenderer {
 - Rectangles, ellipses et placeholders ont un rendu `iso` en volume (§9.1) ; le texte et les groupes restent à plat.
 - Les arêtes ont pour l'instant un rendu unique (à plat), et un tracé simplifié en mini-carte.
 
-Ajouter une forme = **déposer son dossier** (au minimum `kind` et `flat`, idéalement `outline`). Aucune autre modification : palette, panneau, clic, poignées et flèches la prennent en compte d'après sa définition ; les niveaux plus riches s'ajoutent ensuite, forme par forme. Le code partagé entre formes va dans `shapes/utils/`.
+Ajouter une forme = **déposer son dossier** (au minimum `kind` et `flat`, idéalement `outline`). Aucune autre modification : palette, panneau, clic, poignées et flèches la prennent en compte d'après sa définition ; les niveaux plus riches s'ajoutent ensuite, forme par forme. Le code partagé entre formes va dans une base de `plugins/shapes/generic/`.
 
 ### 8.3 Formes supportées en M1
 
@@ -779,8 +779,8 @@ interface Settings {
     shadow: number;                                               // ombre des barres sur la zone de dessin : 0.06 (0–0.3, 0 = aucune)
     minCanvas: number;                                            // largeur gardée à la zone de dessin : 320 (200–800)
   };
-  effects: Record<string, Record<string, number>>;                // réglages déclarés par chaque effet (effects/<id>/)
-  modes: Record<string, Record<string, number | boolean | string>>; // réglages déclarés par chaque mode (modes/<id>/settings.ts, ticket 283)
+  effects: Record<string, Record<string, number>>;                // réglages déclarés par chaque effet (plugins/effects/<id>/)
+  modes: Record<string, Record<string, number | boolean | string>>; // réglages déclarés par chaque mode (plugins/modes/<id>/settings.ts, ticket 283)
 }
 ```
 
@@ -875,18 +875,19 @@ Un **mode** spécialise une page (`spatial.mode` sur `<diagram>`) : données de 
 habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste une page normale. Guide :
 `docs/AJOUTER_UN_MODE.md`.
 
-- **Un dossier par mode, en miroir** : `src/engine/modes/<id>/` porte tout le mode (données, règles, opérations,
-  habillage, cohérence ; `index.ts` exporte `definition: PageModeDefinition`) ; `src/app/modes/<id>/` porte seulement
-  ses sections React du panneau (facultatif). Les deux registres collectent les dossiers tout seuls.
+- **Un dossier par mode, en miroir** : `src/engine/plugins/modes/<id>/` porte tout le mode (données, règles, opérations,
+  habillage, cohérence ; `index.ts` exporte `definition: PageModeDefinition`) ; `src/app/plugins/modes/<id>/` porte seulement
+  ses sections React du panneau (facultatif). Les dossiers sont collectés tout seuls (racine de composition
+  `src/engine/plugins/index.ts` côté moteur, `src/app/plugins/modes/registry.ts` côté appli).
 - **Un mode par page**, choisi dans le panneau de la page (« Mode »). Quitter un mode retire seulement
   `spatial.mode` : ses données dorment sur la page et ses éléments, et réapparaissent si on y revient. Un mode inconnu
   est signalé dans les diagnostics et affiché tel quel.
-- **Contrat** (`modes/types.ts`) : réglages déclarés de la page, d'une flèche, d'une forme (case, nombre, texte,
+- **Contrat** (`core/modes/types.ts`) : réglages déclarés de la page, d'une flèche, d'une forme (case, nombre, texte,
   liste de choix ; lecture et écriture propres possibles), habillage (couleur imposée à une flèche, pastille face à
   la caméra), remise en ordre au mieux à la lecture (signalée dans les diagnostics) et écrite après une suppression,
   clés retirées des éléments collés ou dupliqués (sur toutes les pages).
-- **Formes et vues d'un mode** (sujet 178) : un mode peut apporter ses formes (`modes/<id>/shapes/<forme>/index.ts`,
-  même contrat que les formes de `impl/`, id préfixé par celui du mode) : elles se dessinent sur toute page, mais
+- **Formes et vues d'un mode** (sujet 178) : un mode peut apporter ses formes (`plugins/modes/<id>/shapes/<forme>/index.ts`,
+  même contrat que les formes de `shapes/`, id préfixé par celui du mode) : elles se dessinent sur toute page, mais
   seule la palette d'une page du mode les propose. `shapes` (liste blanche d'ids) restreint la palette de la page,
   recherche comprise (sans toucher aux formes déjà posées ni au collage) ; `paletteCategories` ajoute des
   catégories, rangées par `order` avec celles de la palette ; une catégorie vide n'est pas affichée. `viewModes`

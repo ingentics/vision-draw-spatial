@@ -8,10 +8,10 @@ import { VIEW_ATTRIBUTE } from '../../../../src/engine/core/format/viewState';
 import { writeDrawio } from '../../../../src/engine/core/format/write';
 import type { PageModel } from '../../../../src/engine/core/model/types';
 import { buildPageScene } from '../../../../src/engine/core/render/pageScene';
-import { createDefaultRegistry } from '../../../../src/engine/shapes/registry';
 import type { RenderContext } from '../../../../src/engine/core/render/types';
 import { SPATIAL, spatialAttributes, spatialNumber, spatialValue } from '../../../../src/engine/core/spatial';
 import { fixture } from '../../../helpers';
+import { createDefaultRegistry } from '../../../../src/engine/plugins';
 
 const element = (page: PageModel, id: string) => [...page.shapes, ...page.edges].find((e) => e.id === id)!;
 

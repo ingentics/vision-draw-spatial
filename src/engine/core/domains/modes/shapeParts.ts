@@ -1,7 +1,7 @@
 import type { Object3D } from 'three';
 import { gridSizeOf } from '../../format/cellEdits';
 import type { PageModel, Point, Rect, ShapeModel } from '../../model/types';
-import type { ModePartText } from '../../../modes/types';
+import type { ModePartText } from '../../modes/types';
 import type { EngineCore } from '../EngineCore';
 
 /**

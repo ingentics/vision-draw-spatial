@@ -6,7 +6,7 @@ import { dragGround, revealShift, screenToPage } from '../../../interaction/came
 import type { CameraState } from '../../../interaction/cameraMath';
 import type { Point, Rect, ShapeModel } from '../../../model/types';
 import { insetRect, labelMargins } from '../../../render/labelPosition';
-import type { SceneLevel } from '../../../../shapes/types';
+import type { SceneLevel } from '../../../shapes/types';
 import { alongAnchor } from '../../../render/textPath';
 import type { LabelEditPlane, LabelEditRequest } from '../../types';
 import type { EngineCore } from '../../EngineCore';

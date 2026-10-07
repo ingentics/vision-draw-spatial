@@ -1,6 +1,6 @@
 import type { DocumentModel } from '../model/types';
 import { edgeUnsupported } from '../render/edges/support';
-import type { ShapeRegistry } from '../../shapes/registry';
+import type { ShapeRegistry } from '../shapes/registry';
 
 /**
  * Recensement des éléments non supportés d'un document (SPEC §8.4) : formes dessinées en

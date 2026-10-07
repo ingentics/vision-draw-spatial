@@ -13,8 +13,8 @@ import {
 import { buildGraphScene } from '../../../../src/engine/core/graph/graphScene';
 import { embedIn } from '../../../../src/engine/core/interaction/transitionMath';
 import { buildNavigationGraph } from '../../../../src/engine/core/model/navigationGraph';
-import { createDefaultRegistry } from '../../../../src/engine/shapes/registry';
 import { fixture } from '../../../helpers';
+import { createDefaultRegistry } from '../../../../src/engine/plugins';
 
 const parents = parseDrawio(fixture('parents.drawio'));
 const links = parseDrawio(fixture('links.drawio'));

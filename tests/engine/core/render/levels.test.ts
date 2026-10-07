@@ -3,10 +3,11 @@ import { describe, expect, it, vi } from 'vitest';
 import { parseDrawio } from '../../../../src/engine/core/format/parse';
 import type { ShapeModel } from '../../../../src/engine/core/model/types';
 import { buildPageScene, effectiveLevel } from '../../../../src/engine/core/render/pageScene';
-import { ShapeRegistry, createDefaultRegistry } from '../../../../src/engine/shapes/registry';
-import type { MinimapMapping, ShapeDefinition } from '../../../../src/engine/shapes/types';
+import { ShapeRegistry } from '../../../../src/engine/core/shapes/registry';
+import type { MinimapMapping, ShapeDefinition } from '../../../../src/engine/core/shapes/types';
 import type { RenderContext } from '../../../../src/engine/core/render/types';
 import { fixture } from '../../../helpers';
+import { createDefaultRegistry } from '../../../../src/engine/plugins';
 
 const ctx: RenderContext = { text: { create: () => new Object3D() } };
 const named = (name: string) => ({ create: () => Object.assign(new Object3D(), { name }) });

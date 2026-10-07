@@ -1,5 +1,5 @@
 import type { PageModel, Point, Rect, ShapeModel } from '../model/types';
-import type { MinimapMapping } from '../../shapes/types';
+import type { MinimapMapping } from '../shapes/types';
 import { screenToPage } from './cameraMath';
 import type { CameraState, Viewport } from './cameraMath';
 

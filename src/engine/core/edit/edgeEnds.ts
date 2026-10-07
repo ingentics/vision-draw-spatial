@@ -1,7 +1,7 @@
 import { setCellStyleValue, setEdgeTerminal } from '../format/cellEdits';
 import type { PageTree } from '../format/xmlTree';
 import type { EdgeModel, PageModel, Point, Rect, ShapeModel } from '../model/types';
-import type { ShapeRegistry } from '../../shapes/registry';
+import type { ShapeRegistry } from '../shapes/registry';
 import { styleNumber } from '../model/styleValues';
 
 /**

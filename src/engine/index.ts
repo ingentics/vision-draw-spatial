@@ -80,7 +80,7 @@ export { anchorOf, edgeTexts, endLabelOf } from './core/edit/edgeLabels';
 export type { EdgeEnd } from './core/edit/edgeLabels';
 export { LABEL_PLACES, labelPlaceName, labelPlaceOf, labelPlacePatch } from './core/edit/labelPlaces';
 export type { LabelPlace } from './core/edit/labelPlaces';
-export { PALETTE_CATEGORIES, searchTemplates, SHAPE_TEMPLATES, usedTemplates } from './core/edit/palette';
+export { PALETTE_CATEGORIES, searchTemplates } from './core/edit/palette';
 export type { PageModePalette, PaletteCategory, PaletteCategoryId, ShapeTemplate } from './core/edit/palette';
 export { matchesPreset, matchesTextPreset } from './core/edit/stylePresets';
 export type { StylePreset, TextPreset } from './core/edit/stylePresets';
@@ -105,9 +105,21 @@ export { readableOn } from './core/render/styleColors';
 export type { FontSet } from './core/render/troikaText';
 
 // Formes, modes et effets de page
-export { defaultEffectRegistry, pageEffectIds } from './effects/registry';
-export { defaultModeRegistry } from './modes/registry';
-export type { ModeScope } from './modes/registry';
-export type { ModeEdit, ModeProperty, ModeSetting, ModeTarget, ModeValues, PageModeDefinition } from './modes/types';
-export { defaultShapeRegistry } from './shapes/registry';
-export type { PropertySection, ShapeProperty } from './shapes/types';
+export { pageEffectIds } from './core/effects/registry';
+export type { ModeScope } from './core/modes/registry';
+export type {
+  ModeEdit,
+  ModeProperty,
+  ModeSetting,
+  ModeTarget,
+  ModeValues,
+  PageModeDefinition,
+} from './core/modes/types';
+export {
+  defaultEffectRegistry,
+  defaultModeRegistry,
+  defaultShapeRegistry,
+  SHAPE_TEMPLATES,
+  usedTemplates,
+} from './plugins';
+export type { PropertySection, ShapeProperty } from './core/shapes/types';

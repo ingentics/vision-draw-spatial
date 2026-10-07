@@ -1,15 +1,12 @@
 import { Emitter } from '../../events';
 import type { CameraController } from '../interaction/controls';
-import { defaultEffectRegistry } from '../../effects/registry';
-import type { PageEffectRegistry } from '../../effects/registry';
-import { defaultModeRegistry } from '../../modes/registry';
-import type { PageModeRegistry } from '../../modes/registry';
+import type { PageEffectRegistry } from '../effects/registry';
+import type { PageModeRegistry } from '../modes/registry';
 import { SceneManager } from '../render/sceneManager';
-import { defaultShapeRegistry } from '../../shapes/registry';
-import type { ShapeRegistry } from '../../shapes/registry';
+import type { ShapeRegistry } from '../shapes/registry';
 import { setTextMeasure } from '../render/textMeasure';
 import { createTroikaTextFactory } from '../render/troikaText';
-import type { EngineEvent, EngineEvents, EngineOptions, InitialView } from './types';
+import type { EngineEvent, EngineEvents, EngineOptions, InitialView, PluginRegistries } from './types';
 import { Config } from './runtime/config';
 import type { Settings } from '../settings';
 import { Rendering } from './runtime/rendering';
@@ -162,11 +159,12 @@ export class EngineCore {
     return this.config.settings;
   }
 
-  constructor(options: EngineOptions) {
+  /** `options` : registres des plugins résolus par la façade (registres par défaut si on n'en donne pas, sujet 286). */
+  constructor(options: EngineOptions & PluginRegistries) {
     this.canvas = options.canvas;
-    this.registry = options.registry ?? defaultShapeRegistry;
-    this.modes = options.modes ?? defaultModeRegistry;
-    this.effects = options.effects ?? defaultEffectRegistry;
+    this.registry = options.registry;
+    this.modes = options.modes;
+    this.effects = options.effects;
     this.config = new Config(this, options);
     this.edits.undoStack.setLimit(this.settings.edit.undoLimit);
     this.camera.startInDefaultMode();

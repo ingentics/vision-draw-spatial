@@ -4,25 +4,29 @@ Un **mode** spécialise une page : il ajoute des données de page, des réglages
 habillage du rendu. Tout est stocké en attributs `spatial.*` (SPEC §14.3, §14.5) : dans draw.io, la page reste une
 page normale. Le moteur ne connaît aucun mode en particulier : déposer les dossiers suffit.
 
-Exemple complet : le mode « Séquences » ([engine](../src/engine/modes/sequences/index.ts),
-[appli](../src/app/modes/sequences/index.tsx)). Mode avec ses propres formes : « RDD »
-([engine](../src/engine/modes/rdd/index.ts), seul fichier à la racine du mode : modèle des tables dans `rdd/tables/`,
+Exemple complet : le mode « Séquences » ([engine](../src/engine/plugins/modes/sequences/index.ts),
+[appli](../src/app/plugins/modes/sequences/index.tsx)). Mode avec ses propres formes : « RDD »
+([engine](../src/engine/plugins/modes/rdd/index.ts), seul fichier à la racine du mode : modèle des tables dans `rdd/tables/`,
 sélection et réglages dans `rdd/editing/`, régions dans `rdd/regions/`, relations dans `rdd/relations/`, formes dans
 `rdd/shapes/` et leur rendu commun dans `rdd/shapes/common/`).
 
 ## 1. Deux dossiers en miroir
 
 ```
-src/engine/modes/<id>/      la lib (sans React) : tout le mode
-├── index.ts                export const definition: PageModeDefinition = { … }
-├── shapes/<forme>/index.ts formes propres au mode (facultatif, section 6)
-├── shapes/common/          code commun à ses formes (rendu, fabrique ; sans index.ts, ce n'est pas une forme)
-└── …                       données, règles, opérations
-src/app/modes/<id>/         l'appli (facultatif) : sections React du panneau
-└── index.tsx               export const panel: ModePanel = { PageSection }
+src/engine/plugins/modes/<id>/  la lib (sans React) : tout le mode
+├── index.ts                    export const definition: PageModeDefinition = { … }
+├── api.ts                      ce que sa partie appli importe (facultatif)
+├── shapes/<forme>/index.ts     formes propres au mode (facultatif, section 6)
+├── shapes/common/              code commun à ses formes (rendu, fabrique ; sans index.ts, ce n'est pas une forme)
+└── …                           données, règles, opérations
+src/app/plugins/modes/<id>/     l'appli (facultatif) : sections React du panneau
+└── index.tsx                   export const panel: ModePanel = { PageSection }
 ```
 
-- L'`id` du mode est le nom de ses dossiers et la valeur de `spatial.mode` sur `<diagram>`.
+- L'`id` du mode est le nom de ses dossiers et la valeur de `spatial.mode` sur `<diagram>`. La racine de composition
+  (`src/engine/plugins/index.ts`) collecte le dossier ; le contrat est dans `src/engine/core/modes/types.ts`.
+- Un mode n'importe ni un autre mode, ni un effet, ni l'état du moteur (`core/domains/`), ni `core/format/` : la lint
+  le vérifie. Ses formes peuvent étendre une forme générale (`plugins/shapes/`).
 - **Toutes les règles vont dans la lib** ; la partie appli affiche les données du mode et appelle ses opérations,
   sans règle métier. Un mode aux réglages simples n'a pas besoin de partie appli : il les déclare (section 3).
 
@@ -89,7 +93,7 @@ change rien. Depuis l'appli : `onEdit(label, (edit) => monOperation(edit, …))`
 `engine.editPageMode(label, …)`.
 
 Les **réglages globaux** du mode (ticket 283), pour toute l'appli et non pour une page, sont déclarés dans sa
-définition (`settings`, rangés dans `modes/<id>/settings.ts`) comme ceux d'un effet : nombre borné (`unit` `px`, `ms`
+définition (`settings`, rangés dans `plugins/modes/<id>/settings.ts`) comme ceux d'un effet : nombre borné (`unit` `px`, `ms`
 ou `%`, `zero` : libellé de 0), case à cocher ou couleur, avec leur défaut, un groupe (`group`, `groupHint`) et une aide
 (`hint`). L'appli les affiche dans une sous-page du mode (Paramètres › Modes, titre `shortName` sinon `name`) et les
 enregistre dans `settings.modes[id][key]` ; le registre les borne (`defaultModeRegistry.values`). Le moteur ne les lit
@@ -161,8 +165,8 @@ fait face à la caméra en iso / 3D (`userData.billboard = 'screen'`). Son appar
 
 ## 6. Formes, palette et modes d'affichage
 
-- **Formes du mode** : un dossier par forme, `modes/<id>/shapes/<forme>/index.ts`, qui exporte `definition`
-  (`ShapeDefinition`, même contrat que `shapes/impl/<catégorie>/<forme>/`, voir `AJOUTER_UNE_FORME.md`). Déposer le
+- **Formes du mode** : un dossier par forme, `plugins/modes/<id>/shapes/<forme>/index.ts`, qui exporte `definition`
+  (`ShapeDefinition`, même contrat que `plugins/shapes/<catégorie>/<forme>/`, voir `AJOUTER_UNE_FORME.md`). Déposer le
   dossier suffit : le registre des formes l'enregistre (la forme se dessine sur toute page, collée ailleurs elle
   reste lisible), le registre des modes la réserve à la palette des pages du mode. Son `id` est préfixé par celui du
   mode (`rdd-entity`) pour ne jamais masquer une forme générale.
@@ -179,7 +183,7 @@ fait face à la caméra en iso / 3D (`userData.billboard = 'screen'`). Son appar
 
 ## 7. Vérifier
 
-- Tests : `tests/engine/modes/` (contrat des dossiers, mode de test enregistré avec sa forme dans
-  `fixtures/test/shapes/` ; opérations sur une fixture).
+- Tests : `tests/engine/core/modes/registry.test.ts` (contrat des dossiers, mode de test enregistré avec sa forme dans
+  `fixtures/test/shapes/`) ; ceux du mode dans `tests/engine/plugins/modes/` (opérations sur une fixture).
 - Conservation par draw.io : une fixture avec le mode, puis `make drawio-check` (attributs de page et d'éléments
   comparés après réenregistrement).

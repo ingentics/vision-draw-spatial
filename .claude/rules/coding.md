@@ -27,8 +27,8 @@ paths:
 | Pure editing rule (computation, stateless) | `engine/core/edit/` | receives its data as parameters |
 | Camera geometry, transitions | `engine/core/interaction/` | pure |
 | Engine state and orchestration | `engine/core/domains/<domain>/` | a domain owns its state |
-| Three.js drawing | `engine/core/render/`, `engine/shapes/` | consumes the neutral model, never the XML |
-| Anything specific to a mode | `engine/modes/<id>/` | nothing leaks out of the folder (`AJOUTER_UN_MODE.md`) |
+| Three.js drawing | `engine/core/render/`, `engine/plugins/shapes/` | consumes the neutral model, never the XML |
+| Anything specific to a mode | `engine/plugins/modes/<id>/` | nothing leaks out of the folder (`AJOUTER_UN_MODE.md`) |
 | UI | `src/app/`, `src/react/` | no business rule |
 
 - **Pure logic apart from state.** A rule (tracing, alignment, bounds) is a pure function in `edit/`,

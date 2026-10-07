@@ -33,16 +33,17 @@
 
 Couches, dépendances descendantes uniquement. L'UI React (`src/react` = composant, `src/app` = appli de démo)
 n'importe du moteur que `src/engine/index.ts`. À la racine de `src/engine`, la façade (`index.ts`, `Engine.ts`,
-`events.ts`) ; le tronc commun dans `core/` ; les plugins (`shapes/`, `modes/`, `effects/`) à côté, en attendant
-`plugins/` (sujet 286). Chaque dossier, en une ligne :
+`events.ts`) ; le tronc commun dans `core/` ; les plugins dans `plugins/` (formes, modes, effets : un dossier chacun,
+collectés par `plugins/index.ts`, la racine de composition ; le tronc n'en importe aucun). Chaque dossier, en une
+ligne :
 
 | Dossier de `src/engine` | Rôle | Nature |
 |---|---|---|
 | `Engine.ts`, `core/domains/` | façade publique ; un dossier de `core/domains/` par domaine (document, vue, sélection, édition…) | avec état |
 | `core/interaction/` | caméra, transitions, historique, sélection, pick (calculs) ; contrôles du canvas et mini-carte (DOM) | pur, sauf `controls/` et la mini-carte |
 | `core/edit/` | règles d'édition : déplacement, poignées, bouts et points de flèche, styles, palette, ancrage | pur |
-| `modes/`, `effects/` | modes et effets de page, en plugins (un dossier chacun) | pur |
-| `core/render/`, `shapes/`, `core/graph/` | scènes Three.js par page et par niveau, formes en plugins, vue graphe | pur (objets Three.js) |
+| `plugins/shapes/`, `plugins/modes/`, `plugins/effects/` | formes, modes et effets de page, un dossier chacun ; leurs contrats et registres dans `core/shapes/`, `core/modes/`, `core/effects/` | pur |
+| `core/render/`, `core/graph/` | scènes Three.js par page et par niveau, vue graphe | pur (objets Three.js) |
 | `core/settings/` | paramètres : types, schéma (défauts, bornes, lecture), fusion qui en découle | pur |
 | `core/model/` | modèle neutre (aucune notion draw.io), géométrie, lecture du style | pur, sans Three.js |
 | `core/format/` | decode, parse (XML → modèle), style, xmlTree, cellEdits / write (écriture in situ) | pur, sans Three.js |
@@ -69,7 +70,7 @@ Règles :
   iso avec façades gravées (`shapes/generic/building/`).
 - **Navigation** : pages en onglets, liens entre pages (intention puis engagement, transition zoom + fondu), retour /
   historique, vue graphe de la documentation, mini-carte, fond et grille.
-- **Formes supportées** (`shapes/impl/`) : rectangle (arrondi), ellipse, texte, groupe, stockage, **losange**
+- **Formes supportées** (`plugins/shapes/`) : rectangle (arrondi), ellipse, texte, groupe, stockage, **losange**
   (premier de la série géométrique, socle commun posé à l'étape 21), placeholder.
 - **Flèches** (`core/render/edges/`) : routeurs draw.io portés tels quels (orthogonal, segment, elbow, side-to-side,
   top-to-bottom, entity-relation, loop), pointes draw.io, labels principal + début/fin, bouts fixes/auto/libres,
@@ -88,7 +89,7 @@ Règles :
 
 | Sujet | Lire d'abord |
 |---|---|
-| Nouvelle forme draw.io | `docs/AJOUTER_UNE_FORME.md` (parcours complet : style → kind → registre → rendus 2D/iso/3D/mini-carte, clic, flèches, diagnostics, palette, fixture) ; exemple récent : `shapes/impl/geometry/diamond/`, `core/render/geometry/orient.ts` ; sujets `todo/33…41` comme modèles de rédaction |
+| Nouvelle forme draw.io | `docs/AJOUTER_UNE_FORME.md` (parcours complet : style → kind → registre → rendus 2D/iso/3D/mini-carte, clic, flèches, diagnostics, palette, fixture) ; exemple récent : `plugins/shapes/geometry/diamond/`, `core/render/geometry/orient.ts` ; sujets `todo/33…41` comme modèles de rédaction |
 | Comportement d'édition | SPEC §14, `src/engine/core/edit/`, `src/engine/core/format/cellEdits.ts` |
 | Rendu / caméra / vues | SPEC §8–9, `core/render/pageScene.ts`, `core/render/sceneManager.ts`, `core/interaction/cameraMath.ts` |
 | UI de l'appli de démo | `src/app/` (`App.tsx`, `Palette.tsx`, `ContextPanel.tsx`, `SettingsPanel.tsx`, `DiagnosticsPanel.tsx`, `main.css`) |

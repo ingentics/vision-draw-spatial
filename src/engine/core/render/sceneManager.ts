@@ -1,7 +1,7 @@
 import type { Object3D } from 'three';
 import type { PageModel } from '../model/types';
 import type { PageScene } from './pageScene';
-import type { SceneLevel } from '../../shapes/types';
+import type { SceneLevel } from '../shapes/types';
 
 /**
  * Scènes de pages construites (SPEC §7.4) : seule la page courante est visible, les autres

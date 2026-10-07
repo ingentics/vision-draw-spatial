@@ -1,7 +1,7 @@
 import { perspectiveAmount } from '../../interaction/cameraMath';
 import { setPageOpacity } from '../../render/pageEffects';
 import type { PageScene } from '../../render/pageScene';
-import type { SceneLevel } from '../../../shapes/types';
+import type { SceneLevel } from '../../shapes/types';
 import { setPageTransform } from '../../render/space';
 import type { EngineCore } from '../EngineCore';
 import { settingsSectionChanged } from '../../settings';
