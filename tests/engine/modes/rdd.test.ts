@@ -783,3 +783,74 @@ describe('mode RDD : couleur d’une région neuve selon ses sœurs (sujet 236)'
     expect(colorOf(inner[1]!)).toBe(REGION_COLORS[1]);
   });
 });
+
+describe('mode RDD : règles des régions au redimensionnement, à l’ajustement et au collage (sujet 239)', () => {
+  const xml = `<mxfile><diagram id="p" name="P" spatial.mode="rdd"><mxGraphModel><root>
+    <mxCell id="0" /><mxCell id="1" parent="0" />
+    <mxCell id="big" value="Big" style="spatial.kind=rdd-region;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="500" height="300" as="geometry" /></mxCell>
+    <mxCell id="small" value="Small" style="spatial.kind=rdd-region;" vertex="1" parent="1"><mxGeometry x="100" y="100" width="200" height="80" as="geometry" /></mxCell>
+    <mxCell id="t" value="T" style="swimlane;spatial.kind=rdd-entity;" vertex="1" parent="1"><mxGeometry x="120" y="120" width="160" height="46" as="geometry" /></mxCell>
+  </root></mxGraphModel></diagram></mxfile>`;
+  const setupPage = () => {
+    const { document, tree } = readDrawio(xml);
+    let page = document.pages[0]!;
+    const run = (operation: (edit: ModeEdit) => void) => {
+      const changed = applyModeEdit(page, tree.pages[0]!, operation);
+      page = documentFromTree(tree).pages[0]!;
+      return changed;
+    };
+    const shape = (id: string) => page.shapes.find((s) => s.id === id)!;
+    return { run, shape, tree, page: () => page };
+  };
+
+  it('redimensionnement : un enfant agrandi au-delà de sa parente l’agrandit, contenu en place', () => {
+    const { run, shape, page } = setupPage();
+    const before = page();
+    run((edit) => edit.setShapeBounds('small', { x: 100, y: 100, width: 500, height: 250 }));
+    expect(run((edit) => rdd.placed!(edit, ['small'], before))).toBe(true);
+    expect(shape('big').bounds).toEqual({ x: 0, y: 0, width: 620, height: 370 });
+    expect(shape('t').bounds).toEqual({ x: 120, y: 120, width: 160, height: 46 });
+  });
+
+  it('« f » sur une sous-région : elle, puis sa parente, ajustées à leur contenu (grandir ou rétrécir)', () => {
+    const { run, shape } = setupPage();
+    // T déborde de Small vers la droite et le bas ; Big est juste assez grande pour Small.
+    run((edit) => edit.setShapeBounds('t', { x: 120, y: 120, width: 400, height: 200 }));
+    run((edit) => edit.setShapeBounds('big', { x: 0, y: 0, width: 320, height: 200 }));
+    run((edit) => rdd.keys!.f!.run(edit, shape('small'), undefined));
+    const small = { x: 100, y: 100, width: 440, height: 240 };
+    expect(shape('small').bounds).toEqual(small);
+    // Big autour de Small et de son onglet, 20 px de marge.
+    const tab = REGION.tab.height;
+    expect(shape('big').bounds).toEqual({ x: 80, y: 100 - tab - 20, width: 480, height: 240 + tab + 40 });
+    // Big trop grande : « f » sur Small la ramène aussi autour de Small.
+    run((edit) => edit.setShapeBounds('big', { x: -200, y: -200, width: 1200, height: 900 }));
+    run((edit) => rdd.keys!.f!.run(edit, shape('small'), undefined));
+    expect(shape('big').bounds).toEqual({ x: 80, y: 100 - tab - 20, width: 480, height: 240 + tab + 40 });
+  });
+
+  it('collage de deux régions : chacune la couleur suivante de son niveau', () => {
+    const { tree } = setupPage();
+    const pageTree = tree.pages[0]!;
+    const a = addShapeCell(pageTree, {
+      style: 'spatial.kind=rdd-region;',
+      value: 'A',
+      x: 1000,
+      y: 0,
+      width: 200,
+      height: 80,
+    });
+    const b = addShapeCell(pageTree, {
+      style: 'spatial.kind=rdd-region;',
+      value: 'B',
+      x: 1300,
+      y: 0,
+      width: 200,
+      height: 80,
+    });
+    applyModeEdit(documentFromTree(tree).pages[0]!, pageTree, (edit) => rdd.placed!(edit, [a, b]));
+    const colorOf = (id: string) => documentFromTree(tree).pages[0]!.shapes.find((s) => s.id === id)!.style.fillColor;
+    // Big est la seule région de premier niveau déjà là.
+    expect([colorOf(a), colorOf(b)]).toEqual([REGION_COLORS[1], REGION_COLORS[2]]);
+  });
+});

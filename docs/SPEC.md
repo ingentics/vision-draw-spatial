@@ -925,13 +925,15 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     derrière) ; dans deux régions imbriquées, une forme appartient à la plus petite (à taille égale, celle de devant). Déplacer la région déplace son contenu (régions incluses, flèches entre ces formes), en une étape
     d'annulation ; redimensionner ne déplace rien. Une forme du mode posée (déplacée ou ajoutée) dont le coin
     haut-gauche est dans une région mais qui en dépasse l'agrandit, avec 20 px de marge de chaque côté trop proche ;
+    mêmes règles au redimensionnement aux poignées et au collage ou à la duplication (une région collée prend la couleur de son rang) ;
     une forme déplacée qui sort de sa région par la gauche ou le haut en la chevauchant encore y reste et l'agrandit
     de ce côté (sauf si son coin entre dans une autre région qui n'englobe pas la sienne) ;
     dans la même étape d'annulation ; les régions englobantes suivent ; une région ne rétrécit jamais à cette occasion.
     Ordre de dessin : à la pose d'une forme du mode, les régions passent au fond de la pile, les plus englobantes
     derrière ; le contenu d'une région est ainsi toujours devant elle, à toute profondeur.
     Touche **`f`** sur une région sélectionnée seule : ajustée à son contenu (rectangle englobant, 20 px de marge de
-    chaque côté ; une région contenue compte avec son onglet, à l'ajustement comme à l'agrandissement ; grandit ou rétrécit), une étape d'annulation « Ajuster la région » ; région vide : rien ; sur un
+    chaque côté ; une région contenue compte avec son onglet, à l'ajustement comme à l'agrandissement ; puis ses régions parentes sont ajustées à leur tour,
+    jusqu'au premier niveau ; grandit ou rétrécit), une étape d'annulation « Ajuster la région » ; région vide : rien ; sur un
     autre élément, `f` garde son effet. Réglage « Couleur » (fond, bordure et nom). Dans draw.io : un rectangle
     de la même couleur, le nom au-dessus à gauche dans un cadre de la couleur de la bordure (`labelBorderColor`) ; son
     contenu n'y suit pas ses déplacements.

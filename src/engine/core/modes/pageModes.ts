@@ -1,7 +1,7 @@
 import { setPageAttribute } from '../../format/edit';
 import { documentFromTree } from '../../format/parse';
 import { writeDrawio } from '../../format/write';
-import type { DocumentModel, PageModel, Point } from '../../model/types';
+import type { DocumentModel, PageModel, Rect, ShapeModel } from '../../model/types';
 import { setElementsDim } from '../../render/pageEffects';
 import { applyModeEdit } from '../../modes/edit';
 import { pageEffectIds, withPageEffect } from '../../effects/registry';
@@ -177,27 +177,24 @@ export class PageModes {
   }
 
   /**
-   * Formes posées sur la page (déplacées ou ajoutées), déjà écrites dans l'arbre : le mode de la page les remet en ordre
-   * dans la même étape d'annulation (`placed`). `moved` : formes déplacées et décalage appliqué, pour retrouver la page
-   * d'avant le déplacement. Vrai si l'arbre a changé (le modèle est alors à relire).
+   * Formes posées sur la page (déplacées, redimensionnées, ajoutées, collées), déjà écrites dans l'arbre : le mode de
+   * la page les remet en ordre dans la même étape d'annulation (`placed`). `previous` : bornes d'avant d'une forme qui a
+   * bougé (déplacement, redimensionnement), pour retrouver la page d'avant ; absent pour un ajout. Vrai si l'arbre a
+   * changé (le modèle est alors à relire).
    */
-  shapesPlaced(pageId: string, shapeIds: string[], moved?: { shapeIds: ReadonlySet<string>; delta: Point }): boolean {
+  shapesPlaced(pageId: string, shapeIds: string[], previous?: (shape: ShapeModel) => Rect | undefined): boolean {
     const page = this.core.pages.pageById(pageId);
     const placed = page && this.core.modes.modeOf(page)?.placed;
     const pageTree = this.core.file.pageTreeOf(pageId);
     if (!placed || !pageTree || !this.core.file.xmlTree || shapeIds.length === 0) return false;
     const fresh = documentFromTree(this.core.file.xmlTree).pages.find((p) => p.id === pageId);
     if (!fresh) return false;
-    const before = moved && {
+    const before = previous && {
       ...fresh,
-      shapes: fresh.shapes.map((shape) =>
-        moved.shapeIds.has(shape.id)
-          ? {
-              ...shape,
-              bounds: { ...shape.bounds, x: shape.bounds.x - moved.delta.x, y: shape.bounds.y - moved.delta.y },
-            }
-          : shape,
-      ),
+      shapes: fresh.shapes.map((shape) => {
+        const bounds = previous(shape);
+        return bounds ? { ...shape, bounds } : shape;
+      }),
     };
     return applyModeEdit(
       fresh,

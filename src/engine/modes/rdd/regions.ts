@@ -232,13 +232,15 @@ export function orderRegions(edit: ModeEdit): void {
 
 /**
  * Couleur d'une région ajoutée (sujet 236) : celle de la palette des régions au rang du nombre de ses sœurs (régions de
- * la même région parente, ou du premier niveau de la page), modulo la taille de la palette.
+ * la même région parente, ou du premier niveau de la page), modulo la taille de la palette. `ignored` : régions
+ * ajoutées dans la même opération et pas encore colorées (collage de plusieurs régions, sujet 239).
  */
-export function colorNewRegion(edit: ModeEdit, region: ShapeModel): void {
+export function colorNewRegion(edit: ModeEdit, region: ShapeModel, ignored: ReadonlySet<string> = new Set()): void {
   const { page } = edit;
   const parent = regionOf(page, region)?.id;
   const siblings = page.shapes.filter(
-    (shape) => isRegion(shape) && shape.id !== region.id && regionOf(page, shape)?.id === parent,
+    (shape) =>
+      isRegion(shape) && shape.id !== region.id && !ignored.has(shape.id) && regionOf(page, shape)?.id === parent,
   ).length;
   setRegionColor(edit, region, REGION_COLORS[siblings % REGION_COLORS.length]);
 }
@@ -249,9 +251,12 @@ export function colorNewRegion(edit: ModeEdit, region: ShapeModel): void {
  */
 export function placeInRegions(edit: ModeEdit, shapeIds: string[], before?: PageModel): void {
   if (!before) {
+    // Une à une, dans l'ordre : chaque région ajoutée compte celles colorées avant elle (collage, sujet 239).
+    const pending = new Set(shapeIds);
     for (const id of shapeIds) {
+      pending.delete(id);
       const shape = edit.page.shapes.find((s) => s.id === id);
-      if (shape && isRegion(shape)) colorNewRegion(edit, shape);
+      if (shape && isRegion(shape)) colorNewRegion(edit, shape, pending);
     }
   }
   growRegions(edit, shapeIds, before);
@@ -259,22 +264,35 @@ export function placeInRegions(edit: ModeEdit, shapeIds: string[], before?: Page
 }
 
 /**
- * Ajuste une région à son contenu (touche « f », sujet 184) : rectangle englobant des formes qu'elle contient, plus
- * la marge de sécurité de chaque côté (le nom est sur l'onglet, au-dessus) ; elle grandit ou rétrécit. Région vide :
+ * Ajuste une région à son contenu (touche « f », sujets 184, 239) : rectangle englobant des formes qu'elle contient
+ * (une région contenue avec son onglet, sujet 237), plus la marge de sécurité de chaque côté ; elle grandit ou
+ * rétrécit. Puis sa région parente est ajustée à son tour, et ainsi de suite jusqu'au premier niveau. Région vide :
  * rien ne change. L'ordre de dessin des régions est ensuite remis en place (sujet 230).
  */
 export function fitRegion(edit: ModeEdit, region: ShapeModel): void {
   const { page } = edit;
-  const content = regionContent(page, region)
-    .map((id) => page.shapes.find((s) => s.id === id))
-    .filter((shape): shape is ShapeModel => shape !== undefined);
-  if (!isRegion(region) || content.length === 0) return;
-  // Les régions contenues comptent avec leur onglet (sujet 237).
-  const extents = content.map((s) => extentOf(s));
-  const left = Math.min(...extents.map((r) => r.x)) - REGION.margin;
-  const top = Math.min(...extents.map((r) => r.y)) - REGION.margin;
-  const right = Math.max(...extents.map((r) => r.x + r.width)) + REGION.margin;
-  const bottom = Math.max(...extents.map((r) => r.y + r.height)) + REGION.margin;
-  edit.setShapeBounds(region.id, { x: left, y: top, width: right - left, height: bottom - top });
-  orderRegions(edit);
+  if (!isRegion(region)) return;
+  /** Bornes écrites par cet ajustement (régions déjà ajustées, plus bas dans la chaîne). */
+  const fitted = new Map<string, Rect>();
+  const seen = new Set<string>();
+  for (
+    let current: ShapeModel | undefined = region;
+    current && !seen.has(current.id);
+    current = regionOf(page, current)
+  ) {
+    seen.add(current.id);
+    const content = regionContent(page, current)
+      .map((id) => page.shapes.find((s) => s.id === id))
+      .filter((shape): shape is ShapeModel => shape !== undefined);
+    if (content.length === 0) break;
+    const extents = content.map((s) => extentOf(s, fitted.get(s.id) ?? s.bounds));
+    const left = Math.min(...extents.map((r) => r.x)) - REGION.margin;
+    const top = Math.min(...extents.map((r) => r.y)) - REGION.margin;
+    const right = Math.max(...extents.map((r) => r.x + r.width)) + REGION.margin;
+    const bottom = Math.max(...extents.map((r) => r.y + r.height)) + REGION.margin;
+    const bounds = { x: left, y: top, width: right - left, height: bottom - top };
+    fitted.set(current.id, bounds);
+    edit.setShapeBounds(current.id, bounds);
+  }
+  if (fitted.size > 0) orderRegions(edit);
 }

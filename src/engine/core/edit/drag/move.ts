@@ -80,7 +80,10 @@ export class MoveDrags {
     const placed = this.core.pageModes.shapesPlaced(
       drag.pageId,
       drag.rootIds.filter((id) => !drag.carried.has(id)),
-      { shapeIds: drag.set.shapeIds, delta: drag.applied },
+      (shape) =>
+        drag.set.shapeIds.has(shape.id)
+          ? { ...shape.bounds, x: shape.bounds.x - drag.applied.x, y: shape.bounds.y - drag.applied.y }
+          : undefined,
     );
     // Bouts détachés ou mode : le modèle est relu de l'arbre (attributs `source` / `target` retirés).
     if (placed || drag.edges.some((moved) => moved.detach.length > 0)) {
