@@ -35,7 +35,7 @@ export class SelectionHighlight {
   /** Style de la mise en valeur : celui qu'impose le mode de la page courante (sujet 254), sinon le paramètre. */
   private style(): 'veil' | 'outline' {
     const page = this.core.pages.getCurrentPage();
-    return (page && this.core.modes.modeOf(page)?.selectionStyle) ?? this.core.settings.selection.style;
+    return (page && this.core.modes.modeOf(page)?.page?.selectionStyle) ?? this.core.settings.selection.style;
   }
 
   /** Paramètres changés : style, couleur et animation de la mise en valeur. */

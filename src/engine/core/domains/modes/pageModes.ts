@@ -65,15 +65,16 @@ export class PageModes {
   }
 
   /**
-   * Flèche gérée par le mode de sa page (`managesEdge`, sujet 265, ex. relation RDD) : ses textes de début / fin
+   * Flèche gérée par le mode de sa page (`edges.manages`, sujet 265, ex. relation RDD) : ses textes de début / fin
    * (cardinalités) ne se modifient ni ne se déplacent.
    */
   managesEdge(edgeId: string): boolean {
     const page = this.core.pages.getCurrentPage();
     const edge = page?.edges.find((e) => e.id === edgeId);
     const mode = page && this.core.modes.modeOf(page);
-    if (!page || !edge || !mode?.managesEdge) return false;
-    return this.guard(mode, 'managesEdge', false, () => mode.managesEdge!(page, edge));
+    const manages = mode?.edges?.manages;
+    if (!page || !edge || !mode || !manages) return false;
+    return this.guard(mode, 'edges.manages', false, () => manages(page, edge));
   }
 
   /** Habillage du rendu de la page par son mode, protégé jusque dans ses fonctions (appelées au dessin). */
@@ -97,37 +98,39 @@ export class PageModes {
   }
 
   /**
-   * L'effet est-il actif sur la page (`allowsEffect` du mode, sujet 143, et modes d'affichage de l'effet) ? Le mode en
+   * L'effet est-il actif sur la page (`page.allowsEffect` du mode, sujet 143, et modes d'affichage de l'effet) ? Le mode en
    * panne est traité comme absent : l'effet est permis (dette 296).
    */
   allowsEffect(page: PageModel, effect: Pick<PageEffectDefinition, 'id' | 'viewModes'>): boolean {
     const mode = this.core.modes.modeOf(page);
-    const allows = mode?.allowsEffect;
-    if (mode && allows && !this.guard(mode, 'allowsEffect', true, () => allows(effect.id))) return false;
+    const allows = mode?.page?.allowsEffect;
+    if (mode && allows && !this.guard(mode, 'page.allowsEffect', true, () => allows(effect.id))) return false;
     return this.core.modes.effectViewable(page, effect);
   }
 
-  /** Bornes de `shape` pendant un déplacement ou un redimensionnement (`obstacles`, sujet 241) ; undefined : aucune. */
+  /** Bornes de `shape` pendant un déplacement ou un redimensionnement (`gestures.obstacles`, sujet 241) ; undefined : aucune. */
   obstacles(page: PageModel, shape: ShapeModel): ModeObstacles | undefined {
     const mode = this.core.modes.modeOf(page);
-    if (!mode?.obstacles) return undefined;
+    const obstacles = mode?.gestures?.obstacles;
+    if (!mode || !obstacles) return undefined;
     const values = this.core.modes.values(mode.id, this.core.settings.modes[mode.id]);
-    return this.guard(mode, 'obstacles', undefined, () => mode.obstacles!(page, shape, values));
+    return this.guard(mode, 'gestures.obstacles', undefined, () => obstacles(page, shape, values));
   }
 
-  /** Le mode de la page emporte-t-il des formes (`carries`) ? Leurs flèches sont alors mises en valeur avec elles. */
+  /** Le mode de la page emporte-t-il des formes (`gestures.carries`) ? Leurs flèches sont alors mises en valeur avec elles. */
   hasCarries(page: PageModel): boolean {
-    return !!this.core.modes.modeOf(page)?.carries;
+    return !!this.core.modes.modeOf(page)?.gestures?.carries;
   }
 
   /**
-   * Formes emportées par le mode avec `shapeIds` (`carries`, ex. contenu d'une région RDD), de proche en proche ;
+   * Formes emportées par le mode avec `shapeIds` (`gestures.carries`, ex. contenu d'une région RDD), de proche en proche ;
    * `movableIn` : seulement celles qui peuvent bouger dans cet arbre (geste), sinon toutes (mise en valeur).
    */
   carried(page: PageModel, shapeIds: readonly string[], movableIn?: PageTree): string[] {
     const mode = this.core.modes.modeOf(page);
-    if (!mode?.carries) return [];
-    const carries = (shape: ShapeModel) => this.guard(mode, 'carries', [], () => mode.carries!(page, shape));
+    const carriesOf = mode?.gestures?.carries;
+    if (!mode || !carriesOf) return [];
+    const carries = (shape: ShapeModel) => this.guard(mode, 'gestures.carries', [], () => carriesOf(page, shape));
     const accept = movableIn ? (shape: ShapeModel) => !isLocked(shape) && canMoveCell(movableIn, shape.id) : undefined;
     return carriedShapes(page, shapeIds, carries, accept);
   }
@@ -270,66 +273,93 @@ export class PageModes {
    * d'annulation (sujet 288) : `run` reçoit la page relue de l'arbre. Vrai si l'arbre a changé (le modèle est alors à
    * relire) ; rien d'écrit si le mode lève une exception.
    */
-  private followUp(
+  private followUp<F>(
     pageId: string,
-    hook: keyof PageModeDefinition,
-    run: (mode: PageModeDefinition, edit: ModeEdit, fresh: PageModel) => void,
+    hook: string,
+    entryOf: (mode: PageModeDefinition) => F | undefined,
+    run: (entry: F, edit: ModeEdit, fresh: PageModel) => void,
   ): boolean {
     const page = this.core.pages.pageById(pageId);
     const mode = page && this.core.modes.modeOf(page);
+    const entry = mode && entryOf(mode);
     const pageTree = this.core.file.pageTreeOf(pageId);
-    if (!mode?.[hook] || !pageTree || !this.core.file.xmlTree) return false;
+    if (!mode || !entry || !pageTree || !this.core.file.xmlTree) return false;
     const fresh = documentFromTree(this.core.file.xmlTree).pages.find((p) => p.id === pageId);
     if (!fresh) return false;
     const context = this.editContext();
     return this.guard(mode, hook, false, () =>
-      applyModeEdit(fresh, pageTree, (edit) => run(mode, edit, fresh), context),
+      applyModeEdit(fresh, pageTree, (edit) => run(entry, edit, fresh), context),
     );
   }
 
   /**
    * Formes posées sur la page (déplacées, redimensionnées, ajoutées, collées), déjà écrites dans l'arbre : le mode de
-   * la page les remet en ordre (`placed`). `previous` : bornes d'avant d'une forme qui a bougé (déplacement,
+   * la page les remet en ordre (`gestures.placed`). `previous` : bornes d'avant d'une forme qui a bougé (déplacement,
    * redimensionnement), pour retrouver la page d'avant ; absent pour un ajout.
    */
   shapesPlaced(pageId: string, shapeIds: string[], previous?: (shape: ShapeModel) => Rect | undefined): boolean {
     if (shapeIds.length === 0) return false;
-    return this.followUp(pageId, 'placed', (mode, edit, fresh) => {
-      const before = previous && {
-        ...fresh,
-        shapes: fresh.shapes.map((shape) => {
-          const bounds = previous(shape);
-          return bounds ? { ...shape, bounds } : shape;
-        }),
-      };
-      mode.placed!(edit, shapeIds, before);
-    });
+    return this.followUp(
+      pageId,
+      'gestures.placed',
+      (mode) => mode.gestures?.placed,
+      (placed, edit, fresh) => {
+        const before = previous && {
+          ...fresh,
+          shapes: fresh.shapes.map((shape) => {
+            const bounds = previous(shape);
+            return bounds ? { ...shape, bounds } : shape;
+          }),
+        };
+        placed(edit, shapeIds, before);
+      },
+    );
   }
 
-  /** Texte d'un élément changé, déjà écrit : remise en ordre par le mode (`relabeled`, ex. table RDD élargie). */
+  /** Texte d'un élément changé, déjà écrit : remise en ordre par le mode (`gestures.relabeled`, ex. table RDD élargie). */
   elementRelabeled(pageId: string, elementId: string): void {
-    this.followUp(pageId, 'relabeled', (mode, edit) => mode.relabeled!(edit, elementId));
+    this.followUp(
+      pageId,
+      'gestures.relabeled',
+      (mode) => mode.gestures?.relabeled,
+      (relabeled, edit) => relabeled(edit, elementId),
+    );
   }
 
-  /** Bout d'une flèche rebranché, déjà écrit : remise en ordre par le mode (`edgeReconnected`, sujet 265). */
+  /** Bout d'une flèche rebranché, déjà écrit : remise en ordre par le mode (`edges.reconnected`, sujet 265). */
   edgeReconnected(pageId: string, edgeId: string): void {
-    this.followUp(pageId, 'edgeReconnected', (mode, edit) => mode.edgeReconnected!(edit, edgeId));
+    this.followUp(
+      pageId,
+      'edges.reconnected',
+      (mode) => mode.edges?.reconnected,
+      (reconnected, edit) => reconnected(edit, edgeId),
+    );
   }
 
-  /** Flèche tirée depuis une forme, déjà écrite : le mode la reçoit (`edgeCreated`, ex. ajoutée au flux courant). */
+  /** Flèche tirée depuis une forme, déjà écrite : le mode la reçoit (`edges.created`, ex. ajoutée au flux courant). */
   edgeCreated(pageId: string, edgeId: string): void {
     const current = this.core.modeCurrents.getModeCurrent(pageId);
-    this.followUp(pageId, 'edgeCreated', (mode, edit) => mode.edgeCreated!(edit, edgeId, current));
+    this.followUp(
+      pageId,
+      'edges.created',
+      (mode) => mode.edges?.created,
+      (created, edit) => created(edit, edgeId, current),
+    );
   }
 
-  /** Éléments supprimés, déjà retirés de l'arbre : le mode remet ses données en ordre (`repair`, ex. rangs resserrés). */
+  /** Éléments supprimés, déjà retirés de l'arbre : le mode remet ses données en ordre (`lifecycle.removed`, ex. rangs resserrés). */
   elementsRemoved(pageId: string): void {
-    this.followUp(pageId, 'repair', (mode, edit) => mode.repair!(edit));
+    this.followUp(
+      pageId,
+      'lifecycle.removed',
+      (mode) => mode.lifecycle?.removed,
+      (removed, edit) => removed(edit),
+    );
   }
 
   /**
    * Formes où accrocher le bout `end` d'une flèche dont l'autre bout est sur `otherId`, d'après le mode de la page
-   * (`connects`, sujet 265) ; undefined = toutes (pas de règle, ou autre bout libre).
+   * (`edges.connects`, sujet 265) ; undefined = toutes (pas de règle, ou autre bout libre).
    */
   endAccepts(
     page: PageModel,
@@ -337,16 +367,16 @@ export class PageModes {
     otherId: string | undefined,
   ): ((shape: ShapeModel) => boolean) | undefined {
     const mode = this.core.modes.modeOf(page);
-    const connects = mode?.connects;
+    const connects = mode?.edges?.connects;
     const other = connects && otherId !== undefined ? page.shapes.find((s) => s.id === otherId) : undefined;
     if (!mode || !connects || !other) return undefined;
     const allowed = (source: ShapeModel, target: ShapeModel) =>
-      this.guard(mode, 'connects', true, () => connects(page, source, target));
+      this.guard(mode, 'edges.connects', true, () => connects(page, source, target));
     return end === 'target' ? (shape) => allowed(other, shape) : (shape) => allowed(shape, other);
   }
 
   /**
-   * Document ouvert, ou mesure exacte du texte arrivée : chaque page d'un mode qui a `opened` est remise en ordre
+   * Document ouvert, ou mesure exacte du texte arrivée : chaque page d'un mode qui a `lifecycle.opened` est remise en ordre
    * (sujet 255), en une étape d'annulation pour tout le document ; rien si rien ne change, si on ne peut pas modifier
    * ou tant que la mesure du texte n'est qu'approchée.
    */
@@ -361,10 +391,11 @@ export class PageModes {
     const changed = document.pages
       .filter((page) => {
         const mode = this.core.modes.modeOf(page);
-        const target = mode?.opened && this.core.targets.editablePageById(page.id);
-        if (!mode?.opened || !target) return false;
-        return this.guard(mode, 'opened', false, () =>
-          applyModeEdit(target.page, target.pageTree, mode.opened!, context),
+        const opened = mode?.lifecycle?.opened;
+        const target = opened && this.core.targets.editablePageById(page.id);
+        if (!mode || !opened || !target) return false;
+        return this.guard(mode, 'lifecycle.opened', false, () =>
+          applyModeEdit(target.page, target.pageTree, opened, context),
         );
       })
       .map((page) => page.id);
@@ -382,7 +413,7 @@ export class PageModes {
       const mode = this.core.modes.modeOf(page);
       const single = { ...document, pages: [page] };
       const warnings = mode
-        ? this.guard(mode, 'check', [], () => this.core.modes.warnings(single))
+        ? this.guard(mode, 'lifecycle.check', [], () => this.core.modes.warnings(single))
         : this.core.modes.warnings(single);
       document.warnings.push(...warnings);
     }

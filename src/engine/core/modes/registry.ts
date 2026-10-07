@@ -99,7 +99,7 @@ export class PageModeRegistry {
    * rien) et permet l'un des modes d'affichage de l'effet (sujet 196).
    */
   allowsEffect(page: PageModel, effect: Pick<PageEffectDefinition, 'id' | 'viewModes'>): boolean {
-    if (!(this.modeOf(page)?.allowsEffect?.(effect.id) ?? true)) return false;
+    if (!(this.modeOf(page)?.page?.allowsEffect?.(effect.id) ?? true)) return false;
     return this.effectViewable(page, effect);
   }
 
@@ -108,21 +108,21 @@ export class PageModeRegistry {
     return !effect.viewModes || effect.viewModes.some((mode) => this.allowsViewMode(page, mode));
   }
 
-  /** Le mode de la page permet-il ce mode d'affichage (sujet 178) ? Oui pour une page normale ou sans `viewModes`. */
+  /** Le mode de la page permet-il ce mode d'affichage (sujet 178) ? Oui pour une page normale ou sans `page.viewModes`. */
   allowsViewMode(page: PageModel, mode: ViewMode): boolean {
-    const allowed = this.modeOf(page)?.viewModes;
+    const allowed = this.modeOf(page)?.page?.viewModes;
     return !allowed || allowed.length === 0 || allowed.includes(mode);
   }
 
   /** Mode d'affichage de la page pour celui demandé : lui s'il est permis, sinon le premier permis par le mode. */
   viewModeFor(page: PageModel, mode: ViewMode): ViewMode {
     if (this.allowsViewMode(page, mode)) return mode;
-    return VIEW_MODES.find((m) => this.modeOf(page)!.viewModes!.includes(m))!;
+    return VIEW_MODES.find((m) => this.modeOf(page)!.page!.viewModes!.includes(m))!;
   }
 
   /**
    * Palette d'une page (sujet 178) : sur une page normale, les formes générales ; sur une page d'un mode, sa liste
-   * blanche (`shapes`) ou, à défaut, les formes générales et celles du mode. Les formes d'un autre mode n'y sont
+   * blanche (`page.palette.shapes`) ou, à défaut, les formes générales et celles du mode. Les formes d'un autre mode n'y sont
    * jamais. Catégories : celles de la palette et du mode, par rang, sans les vides.
    */
   paletteFor(
@@ -133,11 +133,12 @@ export class PageModeRegistry {
     const mode = page && this.modeOf(page);
     const own = new Set(mode ? this.shapeIds.get(mode.id) : []);
     const others = new Set([...this.shapeIds.values()].flat().filter((id) => !own.has(id)));
-    const offered = mode?.shapes ? new Set(mode.shapes) : undefined;
+    const whitelist = mode?.page?.palette?.shapes;
+    const offered = whitelist ? new Set(whitelist) : undefined;
     const shown = templates.filter((template) => (offered ? offered.has(template.id) : !others.has(template.id)));
     const used = new Set(shown.map((template) => template.category));
     return {
-      categories: [...categories, ...(mode?.paletteCategories ?? [])]
+      categories: [...categories, ...(mode?.page?.palette?.categories ?? [])]
         .filter((category) => used.has(category.id))
         .sort((a, b) => a.order - b.order),
       templates: shown,
@@ -148,8 +149,7 @@ export class PageModeRegistry {
   properties(page: PageModel, scope: ModeScope, part?: string): ModeProperty[] {
     const mode = this.modeOf(page);
     if (!mode) return [];
-    const all =
-      (scope === 'page' ? mode.pageProperties : scope === 'edge' ? mode.edgeProperties : mode.shapeProperties) ?? [];
+    const all = (scope === 'page' ? mode.page : scope === 'edge' ? mode.edges : mode.gestures)?.properties ?? [];
     // Partie sélectionnée (sujet 249) : ses réglages seulement ; sinon, ceux de la forme.
     return scope === 'shape'
       ? all.filter((property) => property.anyPart || (property.part === true) === (part !== undefined))
@@ -168,7 +168,7 @@ export class PageModeRegistry {
       if (id === undefined) return [];
       const mode = this.definitions.get(id);
       if (!mode) return [{ pageId: page.id, message: `Mode de page inconnu : ${id}` }];
-      return (mode.check?.(page) ?? []).map((issue) => ({ pageId: page.id, ...issue }));
+      return (mode.lifecycle?.check?.(page) ?? []).map((issue) => ({ pageId: page.id, ...issue }));
     });
   }
 }

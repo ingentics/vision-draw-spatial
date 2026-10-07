@@ -57,7 +57,7 @@ export class ViewModes {
     if (!page) return state;
     const mode = this.core.modes.viewModeFor(page, state.mode);
     if (mode === state.mode) {
-      if (!this.core.modes.modeOf(page)?.viewModes) this.chosenMode = mode;
+      if (!this.core.modes.modeOf(page)?.page?.viewModes) this.chosenMode = mode;
       return state;
     }
     return withViewMode(

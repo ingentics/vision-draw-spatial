@@ -22,50 +22,58 @@ export const definition: PageModeDefinition = {
     accent: 'M4.7 10h6.6M10.2 8.9l1.1 1.1-1.1 1.1M11.3 13.5h-1M9.3 13.5h-1M7.3 13.5H4.7M5.8 12.4l-1.1 1.1 1.1 1.1',
   },
   // Diagramme de séquence : lu à plat, en 2D seulement (sujet 193).
-  viewModes: ['top'],
-  edgeProperties: [
-    {
-      type: 'select',
-      key: FLOW,
-      label: 'Flux',
-      title: 'Flux de la flèche (spatial.flow) : elle se met à la fin du flux choisi',
-      options: (page) => [
-        { value: '', label: 'Aucun' },
-        ...sequenceState(page).flows.map((flow) => ({
-          value: flow.id,
-          label: flow.title || flow.id,
-          color: flow.color,
-        })),
-      ],
-      value: (page, target) => sequenceState(page).placement.get(target.id)?.flowId,
-      write: (edit, target, value) => setEdgeFlow(edit, target.id, value || undefined),
-    },
-    {
-      type: 'number',
-      key: STEP,
-      label: 'Rang',
-      title: 'Rang de la flèche dans son flux (spatial.step) : échange avec la flèche qui l’occupe',
-      value: (page, target) => String(sequenceState(page).placement.get(target.id)?.step ?? ''),
-      write: (edit, target, value) => {
-        if (value !== undefined) setEdgeStep(edit, target.id, Number(value));
+  page: { viewModes: ['top'] },
+  edges: {
+    properties: [
+      {
+        type: 'select',
+        key: FLOW,
+        label: 'Flux',
+        title: 'Flux de la flèche (spatial.flow) : elle se met à la fin du flux choisi',
+        options: (page) => [
+          { value: '', label: 'Aucun' },
+          ...sequenceState(page).flows.map((flow) => ({
+            value: flow.id,
+            label: flow.title || flow.id,
+            color: flow.color,
+          })),
+        ],
+        value: (page, target) => sequenceState(page).placement.get(target.id)?.flowId,
+        write: (edit, target, value) => setEdgeFlow(edit, target.id, value || undefined),
       },
-      hidden: (page, target) => !sequenceState(page).placement.has(target.id),
+      {
+        type: 'number',
+        key: STEP,
+        label: 'Rang',
+        title: 'Rang de la flèche dans son flux (spatial.step) : échange avec la flèche qui l’occupe',
+        value: (page, target) => String(sequenceState(page).placement.get(target.id)?.step ?? ''),
+        write: (edit, target, value) => {
+          if (value !== undefined) setEdgeStep(edit, target.id, Number(value));
+        },
+        hidden: (page, target) => !sequenceState(page).placement.has(target.id),
+      },
+    ],
+    // Une flèche tirée depuis une forme va dans le flux courant.
+    created: (edit, edgeId, current) => {
+      if (current !== undefined) setEdgeFlow(edit, edgeId, current);
     },
-  ],
-  shapeProperties: [
-    {
-      type: 'select',
-      key: PARTICIPANT,
-      label: 'Type',
-      title:
-        'Type de la forme dans les séquences (spatial.participant) : un bus ou une queue est le point de départ d’un flux dont la première flèche va vers lui',
-      options: () => [
-        { value: '', label: '—' },
-        { value: 'bus', label: 'Bus' },
-        { value: 'queue', label: 'Queue' },
-      ],
-    },
-  ],
+  },
+  gestures: {
+    properties: [
+      {
+        type: 'select',
+        key: PARTICIPANT,
+        label: 'Type',
+        title:
+          'Type de la forme dans les séquences (spatial.participant) : un bus ou une queue est le point de départ d’un flux dont la première flèche va vers lui',
+        options: () => [
+          { value: '', label: '—' },
+          { value: 'bus', label: 'Bus' },
+          { value: 'queue', label: 'Queue' },
+        ],
+      },
+    ],
+  },
   settings: SEQUENCES_SETTINGS,
   dressing(page, values) {
     const state = sequenceState(page);
@@ -108,15 +116,14 @@ export const definition: PageModeDefinition = {
       return [...new Set([...ids, ...ends])];
     },
   },
-  edgeCreated: (edit, edgeId, current) => {
-    if (current !== undefined) setEdgeFlow(edit, edgeId, current);
-  },
   keys: {
     '+': stepKey(+1),
     '-': stepKey(-1),
   },
-  check: (page) => sequenceState(page).issues,
-  repair: repairSequences,
+  lifecycle: {
+    check: (page) => sequenceState(page).issues,
+    removed: repairSequences,
+  },
   pasteKeys: [FLOW, STEP],
 };
 

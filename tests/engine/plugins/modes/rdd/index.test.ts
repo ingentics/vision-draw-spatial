@@ -8,11 +8,11 @@ describe('mode RDD (sujet 179) : page et palette', () => {
   const { page } = setup();
 
   it('sélection imposée en contour (sujet 254)', () => {
-    expect(rdd.selectionStyle).toBe('outline');
+    expect(rdd.page!.selectionStyle).toBe('outline');
     expect(
       createDefaultModeRegistry()
         .list()
-        .filter((mode) => mode.selectionStyle)
+        .filter((mode) => mode.page!.selectionStyle)
         .map((mode) => mode.id),
     ).toEqual(['rdd']);
   });
@@ -92,7 +92,7 @@ describe('mode RDD (sujet 179) : page et palette', () => {
 
   it('réglages du mode masqués hors des tables ; clé primaire en lecture seule, sur les entités seulement', () => {
     // Réglages de la table (ceux d'un champ sélectionné : sujet 249).
-    const properties = rdd.shapeProperties!.filter((p) => !p.part);
+    const properties = rdd.gestures!.properties!.filter((p) => !p.part);
     const model = page().shapes.find((s) => s.id === 'model')!;
     const entity = page().shapes.find((s) => s.id === 'user')!;
     // Plus de « Couleur » (le style de la forme, sujet 260 : celle-ci est celle de la région) ni d'« Icône ».
@@ -111,7 +111,7 @@ describe('mode RDD (sujet 179) : page et palette', () => {
 
 describe('mode RDD : opérations sur une table', () => {
   it('plus de réglage de couleur d’entête : elle vient du style de la forme (sujet 260)', () => {
-    expect(rdd.shapeProperties!.find((p) => p.key === 'fillColor')).toBeUndefined();
+    expect(rdd.gestures!.properties!.find((p) => p.key === 'fillColor')).toBeUndefined();
   });
 });
 
@@ -120,7 +120,7 @@ describe('mode RDD : tables ajustées à l’ouverture (sujet 255)', () => {
     const { run, shape } = setup();
     const region = shape('accounts').bounds;
     expect(shape('user').bounds.width).toBe(160);
-    expect(run((edit) => rdd.opened!(edit))).toBe(true);
+    expect(run((edit) => rdd.lifecycle!.opened!(edit))).toBe(true);
     expect(shape('user').bounds).toEqual({
       x: 40,
       y: 160,
@@ -129,6 +129,6 @@ describe('mode RDD : tables ajustées à l’ouverture (sujet 255)', () => {
     });
     expect(shape('timestamped').bounds.width).toBe(widthOf(rowWidth('created_at', 'Phrase')));
     expect(shape('accounts').bounds).toEqual(region);
-    expect(run((edit) => rdd.opened!(edit))).toBe(false);
+    expect(run((edit) => rdd.lifecycle!.opened!(edit))).toBe(false);
   });
 });

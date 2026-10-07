@@ -7,7 +7,7 @@ import { rowWidth, widthOf, KEY_ROW, labels, fieldsOf, setup } from '../helpers'
 import { createDefaultRegistry } from '../../../../../../src/engine/plugins';
 
 describe('mode RDD : ajouter un champ (sujet 250)', () => {
-  const handle = (page: PageModel, shape: ShapeModel) => rdd.handles!(page, shape)[0]!;
+  const handle = (page: PageModel, shape: ShapeModel) => rdd.gestures!.handles!.list(page, shape)[0]!;
 
   it('poignée « + » verte au milieu du bas ; plus de poignée de connexion haut et bas', () => {
     const { page, shape } = setup();
@@ -18,7 +18,7 @@ describe('mode RDD : ajouter un champ (sujet 250)', () => {
       '#2e9e44',
       'Ajouter un champ',
     ]);
-    expect(rdd.handles!(page(), shape('accounts'))).toEqual([]);
+    expect(rdd.gestures!.handles!.list(page(), shape('accounts'))).toEqual([]);
     expect(createDefaultRegistry().connectSides(shape('user'))).toEqual(['e', 'w']);
     // Une région n'a pas de flèche (sujet 265).
     expect(createDefaultRegistry().connectSides(shape('accounts'))).toEqual([]);
@@ -27,7 +27,8 @@ describe('mode RDD : ajouter un champ (sujet 250)', () => {
   it('clic : Field1, Field2, Field3 sans type (256) et optionnels (261), en fin de liste ; la table grandit ; la partie ajoutée est rendue', () => {
     const { run, page, shape } = setup();
     const parts: Array<string | undefined> = [];
-    for (let i = 0; i < 3; i += 1) run((edit) => parts.push(rdd.handleClicked!(edit, shape('user'), 'rdd.addField')));
+    for (let i = 0; i < 3; i += 1)
+      run((edit) => parts.push(rdd.gestures!.handles!.clicked!(edit, shape('user'), 'rdd.addField')));
     expect(parts).toEqual(['3', '4', '5']);
     expect(fieldsOf(shape('user')).slice(3)).toEqual([
       { kind: 'property', label: 'Field1', type: '', nullable: true },
@@ -39,12 +40,12 @@ describe('mode RDD : ajouter un champ (sujet 250)', () => {
     // Sans type : rien de signalé.
     expect(fieldProblems(shape('user'))).toEqual([]);
     // Poignée inconnue : rien.
-    expect(run((edit) => rdd.handleClicked!(edit, shape('user'), 'other'))).toBe(false);
+    expect(run((edit) => rdd.gestures!.handles!.clicked!(edit, shape('user'), 'other'))).toBe(false);
   });
 
   it('type choisi au panneau (256) : un des sept, ou « Aucun » ; la largeur suit', () => {
     const { run, page, shape } = setup();
-    const type = rdd.shapeProperties!.find((p) => p.key === 'rdd.field.type')!;
+    const type = rdd.gestures!.properties!.find((p) => p.key === 'rdd.field.type')!;
     expect(type.type === 'select' && type.options(page(), []).map((o) => o.label)).toEqual([
       'Aucun',
       'Nombre entier',
@@ -55,7 +56,7 @@ describe('mode RDD : ajouter un champ (sujet 250)', () => {
       'Dynamique',
       'Money',
     ]);
-    run((edit) => rdd.handleClicked!(edit, shape('user'), 'rdd.addField'));
+    run((edit) => rdd.gestures!.handles!.clicked!(edit, shape('user'), 'rdd.addField'));
     run((edit) => type.write!(edit, shape('user'), 'money', '3'));
     expect(fieldsOf(shape('user'))[3]!.type).toBe('money');
     run((edit) => type.write!(edit, shape('user'), 'a_very_long_type_name_here_and_there', '3'));
@@ -68,7 +69,7 @@ describe('mode RDD : ajouter un champ (sujet 250)', () => {
   it('après le champ sélectionné, jamais avant la clé primaire ; premier numéro libre', () => {
     const { run, shape } = setup();
     let part: string | undefined;
-    run((edit) => (part = rdd.handleClicked!(edit, shape('user'), 'rdd.addField', '1')));
+    run((edit) => (part = rdd.gestures!.handles!.clicked!(edit, shape('user'), 'rdd.addField', '1')));
     expect([part, labels(fieldsOf(shape('user')))]).toEqual(['2', ['id', 'email', 'Field1', 'role']]);
     expect(run((edit) => addField(edit, shape('user'), 'string', -1))).toBe(true);
     expect(labels(fieldsOf(shape('user')))[1]).toBe('Field2');

@@ -488,7 +488,7 @@ export class Engine {
       .map((effect) => effect.id);
   }
 
-  /** Flèche gérée par le mode de la page courante (`managesEdge`, ex. relation RDD) : réglages imposés. */
+  /** Flèche gérée par le mode de la page courante (`edges.manages`, ex. relation RDD) : réglages imposés. */
   managesEdge(edgeId: string): boolean {
     return this.core.pageModes.managesEdge(edgeId);
   }

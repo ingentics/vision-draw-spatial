@@ -48,9 +48,9 @@ describe('mode RDD : champ sélectionné dans sa table (sujet 249)', () => {
       ['Donnée personnelle', undefined],
       ['Ajouter un séparateur', undefined],
     ]);
-    const comment = rdd.shapeProperties!.find((p) => p.key === 'rdd.field.comment')!;
+    const comment = rdd.gestures!.properties!.find((p) => p.key === 'rdd.field.comment')!;
     expect(comment.type === 'text' && comment.multiline).toBe(true);
-    const label = rdd.shapeProperties!.find((p) => p.key === 'rdd.field.label')!;
+    const label = rdd.gestures!.properties!.find((p) => p.key === 'rdd.field.label')!;
     expect(
       typeof label.readOnly === 'function' && [
         label.readOnly(page(), shape('user'), '0'),
@@ -62,7 +62,7 @@ describe('mode RDD : champ sélectionné dans sa table (sujet 249)', () => {
 
   it('réglages du champ écrits par le panneau', () => {
     const { run, shape } = setup();
-    const property = (key: string) => rdd.shapeProperties!.find((p) => p.key === key)!;
+    const property = (key: string) => rdd.gestures!.properties!.find((p) => p.key === key)!;
     run((edit) => property('rdd.field.nullable').write!(edit, shape('user'), '1', '1'));
     run((edit) => property('rdd.field.label').write!(edit, shape('user'), 'mail', '1'));
     run((edit) => property('rdd.field.unique').write!(edit, shape('user'), '1', '1'));
@@ -105,7 +105,7 @@ describe('mode RDD : champ sélectionné dans sa table (sujet 249)', () => {
     expect(tableRows(odd)[0]).toMatchObject({ label: 'id', type: 'primary-key' });
     expect(fieldProblems(odd)).toEqual([]);
     // « Unique » : entité, énumération, embedded ; pas les autres tables.
-    const unique = rdd.shapeProperties!.find((p) => p.key === 'rdd.field.unique')!;
+    const unique = rdd.gestures!.properties!.find((p) => p.key === 'rdd.field.unique')!;
     expect(
       ['user', 'role', 'address', 'settings', 'active'].map((id) => unique.hidden!(page(), shape(id), '1')),
     ).toEqual([false, false, false, true, true]);

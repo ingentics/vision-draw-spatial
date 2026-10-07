@@ -42,10 +42,10 @@ export class ArrangeCommands {
   /**
    * Déplace chaque forme de la sélection (celle qui bouge vraiment : son groupe, cf. `moveTarget`) du décalage calculé
    * sur leurs cadres, dans l'ordre de sélection. Une forme contenue dans une autre de la sélection suit celle-ci, qu'elle
-   * soit son enfant draw.io ou emportée par le mode de la page (`carries`, ex. contenu d'une région RDD) ; une forme
+   * soit son enfant draw.io ou emportée par le mode de la page (`gestures.carries`, ex. contenu d'une région RDD) ; une forme
    * verrouillée compte (référence, extrême) mais ne bouge pas. Comme au clavier (sujet 289), le décalage d'une forme
    * qui a des obstacles est borné (`clampMove`), les formes qu'elle emporte la suivent, et le mode remet en ordre
-   * autour des formes posées (`placed`), dans la même étape d'annulation.
+   * autour des formes posées (`gestures.placed`), dans la même étape d'annulation.
    */
   private arrangeSelection(label: string, deltasOf: (items: AlignItem[]) => Map<string, Point>): void {
     const editable = this.core.targets.editablePage();
@@ -81,7 +81,7 @@ export class ArrangeCommands {
     );
     if (moves.length === 0) return;
     this.core.edits.recordEdit(label);
-    // Bornes d'avant des formes déplacées, pour que le mode retrouve la page d'avant (`placed`).
+    // Bornes d'avant des formes déplacées, pour que le mode retrouve la page d'avant (`gestures.placed`).
     const previous = new Map<string, Rect>();
     for (const move of moves) {
       for (const id of [move.id, ...move.carried]) {

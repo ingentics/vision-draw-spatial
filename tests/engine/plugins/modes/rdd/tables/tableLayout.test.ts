@@ -33,11 +33,11 @@ describe('mode RDD : taille calculée (sujet 247)', () => {
     const name = 'ActiveUsersOfTheWholePlatform';
     // Le renommage écrit le texte de la forme, puis le moteur appelle `relabeled` du mode.
     setCellLabel(tree.pages[0]!, 'role', name);
-    run((edit) => rdd.relabeled!(edit, 'role'));
+    run((edit) => rdd.gestures!.relabeled!(edit, 'role'));
     expect(shape('role').bounds.width).toBe(onGrid(Math.ceil(measure(name, 12, true) + 2 * (6 + 7 + 14 * 1.5 + 4))));
     // Un nom court : la largeur des champs.
     setCellLabel(tree.pages[0]!, 'role', 'Role');
-    run((edit) => rdd.relabeled!(edit, 'role'));
+    run((edit) => rdd.gestures!.relabeled!(edit, 'role'));
     expect(shape('role').bounds.width).toBe(widthOf(KEY_ROW));
   });
 });

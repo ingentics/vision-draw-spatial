@@ -890,9 +890,9 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   clés retirées des éléments collés ou dupliqués (sur toutes les pages).
 - **Formes et vues d'un mode** (sujet 178) : un mode peut apporter ses formes (`plugins/modes/<id>/shapes/<forme>/index.ts`,
   même contrat que les formes de `shapes/`, id préfixé par celui du mode) : elles se dessinent sur toute page, mais
-  seule la palette d'une page du mode les propose. `shapes` (liste blanche d'ids) restreint la palette de la page,
-  recherche comprise (sans toucher aux formes déjà posées ni au collage) ; `paletteCategories` ajoute des
-  catégories, rangées par `order` avec celles de la palette ; une catégorie vide n'est pas affichée. `viewModes`
+  seule la palette d'une page du mode les propose. `page.palette.shapes` (liste blanche d'ids) restreint la palette de la page,
+  recherche comprise (sans toucher aux formes déjà posées ni au collage) ; `page.palette.categories` ajoute des
+  catégories, rangées par `order` avec celles de la palette ; une catégorie vide n'est pas affichée. `page.viewModes`
   restreint les modes d'affichage : la page s'affiche dans le premier permis (ouverture, changement de page, passage
   dans le mode, vue restaurée au rechargement), `I` / `P` sont sans effet et les boutons des autres modes désactivés
   (« non disponible dans ce mode ») ; en quittant la page, on retrouve la vue choisie par l'utilisateur.
@@ -1015,7 +1015,7 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     autre élément, `f` garde son effet. Réglage « Couleur » (fond, bordure et nom). Dans draw.io : un rectangle
     de la même couleur, le nom au-dessus à gauche dans un cadre de la couleur de la bordure (`labelBorderColor`) ; son
     contenu n'y suit pas ses déplacements.
-- **Mode Séquences** (`sequences`) : en 2D seulement (`viewModes`) ; flux ordonnés (`spatial.flows`), une flèche dans un flux au plus
+- **Mode Séquences** (`sequences`) : en 2D seulement (`page.viewModes`) ; flux ordonnés (`spatial.flows`), une flèche dans un flux au plus
   (`spatial.flow`, `spatial.step`), rangs toujours consécutifs (ajout en n + 1, échange, resserrement). Flèche d'un
   flux : trait et pointes dans la couleur du flux assombrie (−25 % de luminosité), pastille du rang au-dessus du
   texte du milieu (plus petite au milieu de la flèche sans texte). Taille, bordure, chiffre et assombrissement : paramètres
@@ -1030,7 +1030,7 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   barre du flux », réglage `barSlideDuration` du mode, 200 ms, 0 = sans). Tout ce qui ne touche pas ses flèches (flèches hors du flux,
   formes qu'aucune ne relie) est estompé à 30 % (paramètre « Opacité hors du flux courant ») ; flux sans flèche :
   rien d'estompé. Une flèche tirée depuis une forme va à la fin du flux courant (même étape d'annulation). « + » / « - » sur
-  une flèche d'un flux sélectionnée seule : rang suivant / précédent. Cadre générique : `current`, `edgeCreated` et
+  une flèche d'un flux sélectionnée seule : rang suivant / précédent. Cadre générique : `current`, `edges.created` et
   `keys` de `PageModeDefinition`, courant gardé par le moteur (`getModeCurrent`, `getModeIndicator`, `setModeCurrent`, événement
   `modeCurrentChange`).
 

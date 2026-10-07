@@ -14,11 +14,13 @@ export class ModeHandles {
     const editable = this.core.targets.editableSelection();
     const page = this.core.pages.getCurrentPage();
     const mode = page && this.core.modes.modeOf(page);
-    const declared = mode?.handles;
+    const declared = mode?.gestures?.handles?.list;
     if (!editable || !page || !mode || !declared) return undefined;
     const zoom = this.core.camera.state.zoom;
     const part = this.core.selection.current?.part;
-    const found = this.core.pageModes.guard(mode, 'handles', [], () => declared(page, editable.shape, part));
+    const found = this.core.pageModes.guard(mode, 'gestures.handles.list', [], () =>
+      declared(page, editable.shape, part),
+    );
     const handles = found.map((handle) => ({
       ...handle,
       center: { x: handle.at.x + handle.offset.x / zoom, y: handle.at.y + handle.offset.y / zoom },
@@ -47,7 +49,7 @@ export class ModeHandles {
   click(screen: Point): boolean {
     const hit = this.handleAt(screen);
     const page = this.core.targets.editablePage()?.page;
-    const clicked = page && this.core.modes.modeOf(page)?.handleClicked;
+    const clicked = page && this.core.modes.modeOf(page)?.gestures?.handles?.clicked;
     if (!hit) return false;
     if (!clicked) return true;
     const { shape, handle } = hit;

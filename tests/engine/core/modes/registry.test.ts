@@ -49,7 +49,7 @@ describe('modes de page en plugins (sujet 69)', () => {
     const test: PageModeDefinition = {
       id: 'test',
       name: 'Test',
-      edgeProperties: [{ type: 'text', key: 'spatial.test', label: 'Test' }],
+      edges: { properties: [{ type: 'text', key: 'spatial.test', label: 'Test' }] },
       pasteKeys: ['spatial.test'],
       dressing: () => ({ edgeColor: () => '#ff0000', edgeBadge: () => ({ text: 'T', color: '#00ff00' }) }),
     };
@@ -95,11 +95,16 @@ describe('modes de page en plugins (sujet 69)', () => {
     const test: PageModeDefinition = {
       id: 'test',
       name: 'Test',
-      shapes: ['rectangle', 'test-box'],
-      paletteCategories: [{ id: 'test', name: 'Test', order: 15 }],
-      viewModes: ['top'],
+      page: {
+        palette: { shapes: ['rectangle', 'test-box'], categories: [{ id: 'test', name: 'Test', order: 15 }] },
+        viewModes: ['top'],
+      },
     };
-    const loose: PageModeDefinition = { id: 'loose', name: 'Libre', paletteCategories: test.paletteCategories };
+    const loose: PageModeDefinition = {
+      id: 'loose',
+      name: 'Libre',
+      page: { palette: { categories: test.page!.palette!.categories } },
+    };
     const registry = new PageModeRegistry().register(test, TEST_SHAPES.get('test')).register(loose);
     const shapes = createDefaultRegistry();
     for (const shape of TEST_SHAPES.get('test')!) shapes.register(shape);

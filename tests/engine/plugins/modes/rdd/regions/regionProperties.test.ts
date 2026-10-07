@@ -6,8 +6,8 @@ import { setup } from '../helpers';
 describe('mode RDD : région (sujet 182)', () => {
   it('couleur de la région : sa palette (sujet 233), bordure grise ; réglages de table masqués', () => {
     const { run, page, shape } = setup();
-    const color = rdd.shapeProperties!.find((p) => p.key === 'rdd.regionColor')!;
-    expect(rdd.shapeProperties!.filter((p) => !p.part).map((p) => p.hidden!(page(), shape('accounts')))).toEqual([
+    const color = rdd.gestures!.properties!.find((p) => p.key === 'rdd.regionColor')!;
+    expect(rdd.gestures!.properties!.filter((p) => !p.part).map((p) => p.hidden!(page(), shape('accounts')))).toEqual([
       false,
       true,
       true,

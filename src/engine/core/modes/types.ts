@@ -24,32 +24,74 @@ export interface PageModeDefinition {
   description?: string;
   /** Icône de l'onglet d'une page du mode (sujets 197, 198). */
   icon?: ModeIcon;
-  /** Réglages déclarés de la page, d'une flèche, d'une forme : affichés par des champs génériques du panneau. */
-  pageProperties?: ModeProperty[];
-  edgeProperties?: ModeProperty[];
-  shapeProperties?: ModeProperty[];
   /**
    * Réglages globaux du mode (Paramètres › Modes, ticket 283), bornés ; leurs valeurs sont passées aux mécanismes qu'il
-   * fournit (`obstacles`, `dressing`, `current.look`), qui les rendent au moteur.
+   * fournit (`gestures.obstacles`, `dressing`, `current.look`), qui les rendent au moteur.
    */
   settings?: PluginSetting[];
+  /** La page du mode : ses réglages, ses vues, sa palette (sujet 295). */
+  page?: ModePage;
+  /** Moments de la vie du document : lecture, ouverture, suppression d'éléments. */
+  lifecycle?: ModeLifecycle;
   /** Habillage du rendu de la page, appliqué au dessin sans modifier le style draw.io ; `values` : ses réglages. */
   dressing?(page: PageModel, values: PluginValues): PageDressing;
-  /** Incohérences des données (ex. fichier modifié dans draw.io), remises en ordre au mieux et signalées. */
-  check?(page: PageModel): ModeIssue[];
-  /** Remise en ordre écrite dans le fichier, après une suppression d'éléments (même étape d'annulation). */
-  repair?(edit: ModeEdit): void;
-  /** Attributs retirés des éléments collés ou dupliqués (sur toutes les pages : ils dorment hors du mode). */
-  pasteKeys?: string[];
+  /** Les flèches de la page : réglages, accroches permises, flèches gérées, création et rebranchement. */
+  edges?: ModeEdges;
+  /** Les formes et les gestes sur elles : réglages, formes emportées, bornes, pose, texte, poignées. */
+  gestures?: ModeGestures;
+  /** Parties sélectionnables à l'intérieur des formes du mode (ex. champs d'une table RDD, sujet 249). */
+  parts?: ModeParts;
   /** « Courant » du mode sur une page (ex. flux courant) : état de session, gardé par le moteur, jamais écrit. */
   current?: ModeCurrent;
-  /** Flèche créée sur la page (tirée depuis une forme), dans la même étape d'annulation ; `current` : le courant. */
-  edgeCreated?(edit: ModeEdit, edgeId: string, current: string | undefined): void;
+  /** Touches sur l'élément sélectionné seul, par `KeyboardEvent.key` (ex. `+`). */
+  keys?: Record<string, ModeKey>;
+  /** Attributs retirés des éléments collés ou dupliqués (sur toutes les pages : ils dorment hors du mode). */
+  pasteKeys?: string[];
+}
+
+/** La page d'un mode (sujet 295). */
+export interface ModePage {
+  /** Réglages déclarés de la page : affichés par des champs génériques du panneau. */
+  properties?: ModeProperty[];
+  /** Modes d'affichage permis sur une page du mode ; absent = tous. La page s'affiche dans le premier. */
+  viewModes?: ViewMode[];
+  /** Effet de page permis sur une page de ce mode (le mode reste maître) ; absent = tous. */
+  allowsEffect?(effectId: string): boolean;
   /**
-   * Bout d'une flèche rebranché (poignée de son extrémité), déjà écrit ; remise en ordre dans la même étape d'annulation
-   * (ex. champ de relation RDD qui suit sa flèche, sujet 265).
+   * Mise en valeur de la sélection imposée sur une page du mode (sujet 254, ex. RDD : contour) ; le paramètre
+   * `selection.style` vaut sur les autres pages.
    */
-  edgeReconnected?(edit: ModeEdit, edgeId: string): void;
+  selectionStyle?: 'veil' | 'outline';
+  /** Palette d'une page du mode. */
+  palette?: {
+    /**
+     * Formes proposées (ids, générales ou du mode), dans l'ordre de la palette ; absent = palette normale et formes du
+     * mode. Les formes déjà sur la page et le collage ne sont pas filtrés.
+     */
+    shapes?: string[];
+    /** Catégories de palette propres au mode (ex. « RDD »), rangées avec celles de la palette par `order`. */
+    categories?: PaletteCategory[];
+  };
+}
+
+/** Moments de la vie du document où le mode remet en ordre ou signale (sujet 295). */
+export interface ModeLifecycle {
+  /** Incohérences des données (ex. fichier modifié dans draw.io), remises en ordre au mieux et signalées. */
+  check?(page: PageModel): ModeIssue[];
+  /**
+   * Remise en ordre d'une page du mode à l'ouverture du document, et de nouveau quand la mesure exacte du texte arrive
+   * (ex. tables RDD ajustées à leur contenu, sujet 255) ; une étape d'annulation pour tout le document, rien si rien ne
+   * change ni dans un document en lecture seule.
+   */
+  opened?(edit: ModeEdit): void;
+  /** Éléments supprimés : remise en ordre écrite dans le fichier, dans la même étape d'annulation (ex-`repair`). */
+  removed?(edit: ModeEdit): void;
+}
+
+/** Les flèches d'une page du mode (sujet 295). */
+export interface ModeEdges {
+  /** Réglages déclarés d'une flèche : affichés par des champs génériques du panneau. */
+  properties?: ModeProperty[];
   /**
    * Flèche permise de `source` vers `target` (sujet 265, ex. liaisons des tables RDD) : le bout tiré ou rebranché ne
    * s'accroche qu'aux formes permises ; absent = toutes. Une forme sans aucune flèche se déclare `connectable: false`.
@@ -60,25 +102,30 @@ export interface PageModeDefinition {
    * en tête, texte du milieu et commentaire modifiables, le reste en lecture seule ; positions des textes et lien
    * masqués.
    */
-  managesEdge?(page: PageModel, edge: EdgeModel): boolean;
+  manages?(page: PageModel, edge: EdgeModel): boolean;
+  /** Flèche créée sur la page (tirée depuis une forme), dans la même étape d'annulation ; `current` : le courant. */
+  created?(edit: ModeEdit, edgeId: string, current: string | undefined): void;
   /**
-   * Formes proposées par la palette sur une page du mode (ids, générales ou du mode), dans l'ordre de la palette ;
-   * absent = palette normale et formes du mode. Les formes déjà sur la page et le collage ne sont pas filtrés.
+   * Bout d'une flèche rebranché (poignée de son extrémité), déjà écrit ; remise en ordre dans la même étape d'annulation
+   * (ex. champ de relation RDD qui suit sa flèche, sujet 265).
    */
-  shapes?: string[];
-  /** Catégories de palette propres au mode (ex. « RDD »), rangées avec celles de la palette par `order`. */
-  paletteCategories?: PaletteCategory[];
-  /** Modes d'affichage permis sur une page du mode ; absent = tous. La page s'affiche dans le premier. */
-  viewModes?: ViewMode[];
-  /** Effet de page permis sur une page de ce mode (le mode reste maître) ; absent = tous. */
-  allowsEffect?(effectId: string): boolean;
-  /** Touches sur l'élément sélectionné seul, par `KeyboardEvent.key` (ex. `+`). */
-  keys?: Record<string, ModeKey>;
+  reconnected?(edit: ModeEdit, edgeId: string): void;
+}
+
+/** Les formes d'une page du mode et les gestes sur elles (sujet 295). */
+export interface ModeGestures {
+  /** Réglages déclarés d'une forme ou de sa partie : affichés par des champs génériques du panneau. */
+  properties?: ModeProperty[];
   /**
    * Formes emportées quand on déplace `shape` (ex. contenu d'une région RDD, sujet 182) : calculées, sans parent
    * draw.io. Elles bougent dans la même étape d'annulation, avec les flèches qui les relient entre elles.
    */
   carries?(page: PageModel, shape: ShapeModel): string[];
+  /**
+   * Bornes d'une forme qu'on déplace ou redimensionne (sujet 241, ex. régions sœurs d'une région RDD) : obstacles à ne
+   * pas approcher à moins de leur écart (`gap`, réglage du mode) ; undefined = aucune borne.
+   */
+  obstacles?(page: PageModel, shape: ShapeModel, values: PluginValues): ModeObstacles | undefined;
   /**
    * Formes posées : déplacées (fin d'un glisser, flèches du clavier) ou ajoutées depuis la palette ; remise en ordre
    * dans la même étape d'annulation (ex. région RDD agrandie pour les contenir, sujet 183). `edit.page` est la page
@@ -90,34 +137,19 @@ export interface PageModeDefinition {
    * table RDD élargie pour son nom, sujet 247). `edit.page` montre le nouveau texte.
    */
   relabeled?(edit: ModeEdit, elementId: string): void;
-  /**
-   * Remise en ordre d'une page du mode à l'ouverture du document, et de nouveau quand la mesure exacte du texte arrive
-   * (ex. tables RDD ajustées à leur contenu, sujet 255) ; une étape d'annulation pour tout le document, rien si rien ne
-   * change ni dans un document en lecture seule.
-   */
-  opened?(edit: ModeEdit): void;
-  /**
-   * Mise en valeur de la sélection imposée sur une page du mode (sujet 254, ex. RDD : contour) ; le paramètre
-   * `selection.style` vaut sur les autres pages.
-   */
-  selectionStyle?: 'veil' | 'outline';
-  /** Parties sélectionnables à l'intérieur des formes du mode (ex. champs d'une table RDD, sujet 249). */
-  parts?: ModeParts;
-  /**
-   * Poignées propres au mode sur la forme sélectionnée seule, modifiable (sujet 250, ex. « + » d'une table RDD) ;
-   * `part` : sa partie sélectionnée.
-   */
-  handles?(page: PageModel, shape: ShapeModel, part?: string): ModeHandle[];
+  /** Poignées propres au mode sur la forme sélectionnée seule, modifiable (sujet 250, ex. « + » d'une table RDD). */
+  handles?: ModeHandleSet;
+}
+
+/** Poignées d'un mode (sujets 250, 256). */
+export interface ModeHandleSet {
+  /** Poignées de `shape` ; `part` : sa partie sélectionnée. */
+  list(page: PageModel, shape: ShapeModel, part?: string): ModeHandle[];
   /**
    * Clic sur une poignée : opération du mode (une étape d'annulation, sujet 256). Renvoie la partie à sélectionner
    * ensuite (son texte passe en édition s'il en a un) ; undefined : la sélection ne change pas.
    */
-  handleClicked?(edit: ModeEdit, shape: ShapeModel, handle: string, part?: string): string | undefined;
-  /**
-   * Bornes d'une forme qu'on déplace ou redimensionne (sujet 241, ex. régions sœurs d'une région RDD) : obstacles à ne
-   * pas approcher à moins de leur écart (`gap`, réglage du mode) ; undefined = aucune borne.
-   */
-  obstacles?(page: PageModel, shape: ShapeModel, values: PluginValues): ModeObstacles | undefined;
+  clicked?(edit: ModeEdit, shape: ShapeModel, handle: string, part?: string): string | undefined;
 }
 
 /**

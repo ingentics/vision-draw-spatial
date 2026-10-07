@@ -72,7 +72,7 @@ export function collectMoveSet(page: PageModel, rootId: string): MoveSet {
 }
 
 /**
- * Formes emportées avec `shapeIds` par le mode de la page (`carries`, ex. contenu d'une région RDD, sujet 182), de
+ * Formes emportées avec `shapeIds` par le mode de la page (`gestures.carries`, ex. contenu d'une région RDD, sujet 182), de
  * proche en proche ; `accept` écarte celles qui ne peuvent pas suivre (et ce qu'elles emporteraient). Sans les
  * formes de départ. Commun au geste et à la mise en valeur de la sélection (sujet 288).
  */

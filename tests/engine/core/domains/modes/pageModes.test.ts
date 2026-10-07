@@ -24,22 +24,26 @@ const fail = (): never => {
 const BOOM: PageModeDefinition = {
   id: 'boom',
   name: 'Boom',
-  check: fail,
+  lifecycle: { check: fail },
   dressing: () => ({ edgeColor: fail, edgeBadge: () => ({ text: '1', color: '#ff0000' }) }),
-  placed: (edit) => {
-    edit.setPageAttribute('spatial.before', '1');
-    fail();
+  gestures: {
+    placed: (edit) => {
+      edit.setPageAttribute('spatial.before', '1');
+      fail();
+    },
+    carries: (_page, shape) => (shape.id === 'a' ? ['b'] : fail()),
+    obstacles: fail,
   },
-  carries: (_page, shape) => (shape.id === 'a' ? ['b'] : fail()),
-  obstacles: fail,
-  connects: fail,
-  allowsEffect: (id) => (id === 'refused' ? false : fail()),
-  edgeProperties: [
-    { type: 'text', key: 'spatial.ok', label: 'Correct', value: () => 'calculé', readOnly: () => true },
-    { type: 'select', key: 'spatial.broken', label: 'En panne', value: fail, readOnly: fail, options: fail },
-    { type: 'toggle', key: 'spatial.hidden', label: 'Masqué', hidden: () => true },
-    { type: 'toggle', key: 'spatial.hiddenBroken', label: 'Masquage en panne', hidden: fail },
-  ],
+  page: { allowsEffect: (id) => (id === 'refused' ? false : fail()) },
+  edges: {
+    connects: fail,
+    properties: [
+      { type: 'text', key: 'spatial.ok', label: 'Correct', value: () => 'calculé', readOnly: () => true },
+      { type: 'select', key: 'spatial.broken', label: 'En panne', value: fail, readOnly: fail, options: fail },
+      { type: 'toggle', key: 'spatial.hidden', label: 'Masqué', hidden: () => true },
+      { type: 'toggle', key: 'spatial.hiddenBroken', label: 'Masquage en panne', hidden: fail },
+    ],
+  },
 };
 
 /** Cœur réduit à ce que le domaine des modes utilise ; `published` compte les republications des Diagnostics. */
@@ -95,12 +99,12 @@ describe('hôte des appels aux modes (sujet 288)', () => {
     // Formes emportées : celles trouvées avant la panne.
     expect(modes.carried(page, ['a'])).toEqual(['b']);
     expect(guard.warnings().map((w) => w.message)).toEqual([
-      'Mode boom : erreur dans check (panne)',
+      'Mode boom : erreur dans lifecycle.check (panne)',
       'Mode boom : erreur dans dressing.edgeColor (panne)',
-      'Mode boom : erreur dans placed (panne)',
-      'Mode boom : erreur dans obstacles (panne)',
-      'Mode boom : erreur dans connects (panne)',
-      'Mode boom : erreur dans carries (panne)',
+      'Mode boom : erreur dans gestures.placed (panne)',
+      'Mode boom : erreur dans gestures.obstacles (panne)',
+      'Mode boom : erreur dans edges.connects (panne)',
+      'Mode boom : erreur dans gestures.carries (panne)',
     ]);
     // La deuxième panne d'un même point d'entrée n'est pas signalée à nouveau.
     modes.obstacles(page, page.shapes[0]!);
@@ -113,7 +117,7 @@ describe('hôte des appels aux modes (sujet 288)', () => {
   it('les avertissements du document incluent les erreurs signalées à la lecture', () => {
     const { document, modes } = setup();
     modes.withModeWarnings(document);
-    expect(document.warnings.map((w) => w.message)).toContain('Mode boom : erreur dans check (panne)');
+    expect(document.warnings.map((w) => w.message)).toContain('Mode boom : erreur dans lifecycle.check (panne)');
   });
 
   it('réglages déclarés évalués pour le panneau (sujet 294) : un point d’entrée en panne est traité comme absent', () => {
@@ -138,6 +142,6 @@ describe('hôte des appels aux modes (sujet 288)', () => {
     const { modes, guard, page } = setup();
     expect(modes.allowsEffect(page, { id: 'refused' })).toBe(false);
     expect(modes.allowsEffect(page, { id: 'forest' })).toBe(true);
-    expect(guard.warnings().map((w) => w.message)).toEqual(['Mode boom : erreur dans allowsEffect (panne)']);
+    expect(guard.warnings().map((w) => w.message)).toEqual(['Mode boom : erreur dans page.allowsEffect (panne)']);
   });
 });

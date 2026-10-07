@@ -19,7 +19,7 @@ describe('mode RDD : région (sujet 182)', () => {
     expect(regionOf(page(), shape('orphan'))).toBeUndefined();
     // Une table n'emporte rien ; le mode déclare le contenu de la région comme emporté.
     expect(regionContent(page(), shape('user'))).toEqual([]);
-    expect(rdd.carries!(page(), shape('accounts')).sort()).toEqual(['role', 'user']);
+    expect(rdd.gestures!.carries!(page(), shape('accounts')).sort()).toEqual(['role', 'user']);
   });
 
   it('régions imbriquées : une forme appartient à la plus petite, la grande emporte tout', () => {
@@ -65,13 +65,13 @@ describe('mode RDD : la région s’étend quand on y pose une forme qui dépass
     const bounds = (id: string) => page.shapes.find((s) => s.id === id)!.bounds;
     const place = (id: string, x: number, y: number) => {
       run((edit) => edit.setShapeBounds(id, { ...bounds(id), x, y }));
-      return run((edit) => rdd.placed!(edit, [id]));
+      return run((edit) => rdd.gestures!.placed!(edit, [id]));
     };
     /** Déplacement : le mode reçoit aussi la page d'avant (sujet 234). */
     const move = (id: string, x: number, y: number) => {
       const before = page;
       run((edit) => edit.setShapeBounds(id, { ...bounds(id), x, y }));
-      return run((edit) => rdd.placed!(edit, [id], before));
+      return run((edit) => rdd.gestures!.placed!(edit, [id], before));
     };
     const resize = (id: string, width: number, height: number) =>
       run((edit) => edit.setShapeBounds(id, { ...bounds(id), width, height }));
@@ -154,12 +154,12 @@ describe('mode RDD : le contenu d’une région est devant elle (sujet 230)', ()
     </root></mxGraphModel></diagram></mxfile>`;
     const { document, tree } = readDrawio(xml);
     const page = document.pages[0]!;
-    expect(applyModeEdit(page, tree.pages[0]!, (edit) => rdd.placed!(edit, ['t']))).toBe(true);
+    expect(applyModeEdit(page, tree.pages[0]!, (edit) => rdd.gestures!.placed!(edit, ['t']))).toBe(true);
     const order = () => documentFromTree(tree).pages[0]!.shapes.map((s) => s.id);
     expect(order()).toEqual(['big', 'other', 'small', 't']);
     // Déjà en ordre : rien ne change.
     const again = documentFromTree(tree).pages[0]!;
-    expect(applyModeEdit(again, tree.pages[0]!, (edit) => rdd.placed!(edit, ['t']))).toBe(false);
+    expect(applyModeEdit(again, tree.pages[0]!, (edit) => rdd.gestures!.placed!(edit, ['t']))).toBe(false);
     expect(order()).toEqual(['big', 'other', 'small', 't']);
   });
 });
@@ -210,7 +210,7 @@ describe('mode RDD : l’onglet d’une région enfant compte dans sa parente (s
       edit.setShapeBounds('small', { x: 100, y: 5, width: 200, height: 80 }),
     );
     page = documentFromTree(tree).pages[0]!;
-    applyModeEdit(page, tree.pages[0]!, (edit) => rdd.placed!(edit, ['small'], before));
+    applyModeEdit(page, tree.pages[0]!, (edit) => rdd.gestures!.placed!(edit, ['small'], before));
     const bounds = documentFromTree(tree).pages[0]!.shapes.find((s) => s.id === 'big')!.bounds;
     expect(bounds.y).toBe(5 - REGION.tab.height - 20);
   });
@@ -224,7 +224,7 @@ describe('mode RDD : couleur d’une région neuve selon ses sœurs (sujet 236)'
     /** Ajout depuis la palette : la cellule, puis le mode (sans page d'avant). */
     const add = (x: number, y: number, width = 200, height = 80) => {
       const id = addShapeCell(pageTree, { style: 'spatial.kind=rdd-region;', value: 'R', x, y, width, height });
-      applyModeEdit(documentFromTree(tree).pages[0]!, pageTree, (edit) => rdd.placed!(edit, [id]));
+      applyModeEdit(documentFromTree(tree).pages[0]!, pageTree, (edit) => rdd.gestures!.placed!(edit, [id]));
       return id;
     };
     const colorOf = (id: string) => documentFromTree(tree).pages[0]!.shapes.find((s) => s.id === id)!.style.fillColor;
@@ -235,7 +235,7 @@ describe('mode RDD : couleur d’une région neuve selon ses sœurs (sujet 236)'
     expect(inner.map(colorOf)).toEqual([REGION_COLORS[0], REGION_COLORS[1]]);
     // Un déplacement ne change pas la couleur.
     const page = documentFromTree(tree).pages[0]!;
-    applyModeEdit(page, pageTree, (edit) => rdd.placed!(edit, [inner[1]!], page));
+    applyModeEdit(page, pageTree, (edit) => rdd.gestures!.placed!(edit, [inner[1]!], page));
     expect(colorOf(inner[1]!)).toBe(REGION_COLORS[1]);
   });
 });
@@ -263,7 +263,7 @@ describe('mode RDD : règles des régions au redimensionnement, à l’ajustemen
     const { run, shape, page } = setupPage();
     const before = page();
     run((edit) => edit.setShapeBounds('small', { x: 100, y: 100, width: 500, height: 250 }));
-    expect(run((edit) => rdd.placed!(edit, ['small'], before))).toBe(true);
+    expect(run((edit) => rdd.gestures!.placed!(edit, ['small'], before))).toBe(true);
     expect(shape('big').bounds).toEqual({ x: 0, y: 0, width: 620, height: 370 });
     expect(shape('t').bounds).toEqual({ x: 120, y: 120, width: 160, height: 46 });
   });
@@ -304,7 +304,7 @@ describe('mode RDD : règles des régions au redimensionnement, à l’ajustemen
       width: 200,
       height: 80,
     });
-    applyModeEdit(documentFromTree(tree).pages[0]!, pageTree, (edit) => rdd.placed!(edit, [a, b]));
+    applyModeEdit(documentFromTree(tree).pages[0]!, pageTree, (edit) => rdd.gestures!.placed!(edit, [a, b]));
     const colorOf = (id: string) => documentFromTree(tree).pages[0]!.shapes.find((s) => s.id === id)!.style.fillColor;
     // Big est la seule région de premier niveau déjà là.
     expect([colorOf(a), colorOf(b)]).toEqual([REGION_COLORS[1], REGION_COLORS[2]]);
@@ -324,7 +324,7 @@ describe('mode RDD : une région ne passe pas sur ses sœurs (sujet 241)', () =>
     </root></mxGraphModel></diagram></mxfile>`);
     const page = document.pages[0]!;
     const shape = (id: string) => page.shapes.find((s) => s.id === id)!;
-    const found = rdd.obstacles!(page, shape('a'), { obstacleGap: 12 })!;
+    const found = rdd.gestures!.obstacles!(page, shape('a'), { obstacleGap: 12 })!;
     // B, sa sœur dans Big, onglet compris ; ni Big (parente), ni Inner (son contenu), ni Other (autre niveau).
     expect(found.rects).toEqual([
       { id: 'b', rect: { x: 300, y: 40 - REGION.tab.height, width: 200, height: 80 + REGION.tab.height } },
@@ -333,8 +333,10 @@ describe('mode RDD : une région ne passe pas sur ses sœurs (sujet 241)', () =>
     // Écart : le réglage du mode (ticket 283).
     expect(found.gap).toBe(12);
     // Premier niveau : Big et Other sont sœurs.
-    expect(rdd.obstacles!(page, shape('big'), { obstacleGap: 12 })!.rects.map((r) => r.id)).toEqual(['other']);
+    expect(rdd.gestures!.obstacles!(page, shape('big'), { obstacleGap: 12 })!.rects.map((r) => r.id)).toEqual([
+      'other',
+    ]);
     // Une table n'est pas bornée.
-    expect(rdd.obstacles!(page, shape('t'), { obstacleGap: 12 })).toBeUndefined();
+    expect(rdd.gestures!.obstacles!(page, shape('t'), { obstacleGap: 12 })).toBeUndefined();
   });
 });

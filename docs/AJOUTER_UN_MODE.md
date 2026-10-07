@@ -42,31 +42,47 @@ interface PageModeDefinition {
   shortName?: string;                          // nom court (sous-page des paramètres ; défaut : name)
   description?: string;                        // aide au survol
   icon?: ModeIcon;                             // onglet : tracés 16 × 16 fill / line / accent
-  pageProperties?: ModeProperty[];             // réglages déclarés (section 3)
-  edgeProperties?: ModeProperty[];
-  shapeProperties?: ModeProperty[];
   settings?: PluginSetting[];                  // réglages globaux, Paramètres › Modes (section 3)
+  page?: {                                     // la page du mode
+    properties?: ModeProperty[];               // réglages déclarés de la page (section 3)
+    viewModes?: ViewMode[];                    // modes d'affichage permis (section 6)
+    allowsEffect?(effectId): boolean;          // effets permis (absent : tous)
+    selectionStyle?: 'veil' | 'outline';       // mise en valeur de la sélection imposée (ex. RDD : contour)
+    palette?: { shapes?: string[]; categories?: PaletteCategory[] };  // palette du mode (section 6)
+  };
+  lifecycle?: {                                // moments de la vie du document
+    check?(page): ModeIssue[];                 // incohérences, remises en ordre au mieux et signalées
+    opened?(edit): void;                       // remise en ordre à l'ouverture (ex. tables RDD ajustées)
+    removed?(edit): void;                      // remise en ordre après une suppression d'éléments
+  };
   dressing?(page, values): PageDressing;       // habillage du rendu (section 4)
-  check?(page): ModeIssue[];                   // incohérences, remises en ordre au mieux et signalées
-  repair?(edit: ModeEdit): void;               // remise en ordre écrite, après une suppression
-  pasteKeys?: string[];                        // attributs retirés des éléments collés ou dupliqués
-  current?: ModeCurrent;                       // « courant » de session (section 5)
-  edgeCreated?(edit, edgeId, current): void;   // flèche tirée depuis une forme (même étape d'annulation)
-  keys?: Record<string, ModeKey>;              // touches sur l'élément sélectionné seul (ex. « + »)
-  carries?(page, shape): string[];             // formes emportées quand on déplace `shape` (ex. région RDD)
-  placed?(edit, shapeIds, before?): void;      // formes déplacées ou ajoutées (ex. région RDD agrandie)
-  relabeled?(edit, elementId): void;          // texte d'un élément changé (ex. table RDD élargie)
+  edges?: {                                    // les flèches
+    properties?: ModeProperty[];               // réglages déclarés d'une flèche (section 3)
+    connects?(page, source, target): boolean;  // flèches permises (ex. liaisons des tables RDD)
+    manages?(page, edge): boolean;             // flèche gérée par le mode (réglages imposés)
+    created?(edit, edgeId, current): void;     // flèche tirée depuis une forme (même étape d'annulation)
+    reconnected?(edit, edgeId): void;          // bout d'une flèche rebranché (même étape)
+  };
+  gestures?: {                                 // les formes et les gestes sur elles (section 5)
+    properties?: ModeProperty[];               // réglages déclarés d'une forme ou de sa partie (section 3)
+    carries?(page, shape): string[];           // formes emportées quand on déplace `shape` (ex. région RDD)
+    obstacles?(page, shape, values): ModeObstacles; // bornes d'un déplacement / redimensionnement (ex. régions sœurs)
+    placed?(edit, shapeIds, before?): void;    // formes déplacées ou ajoutées (ex. région RDD agrandie)
+    relabeled?(edit, elementId): void;         // texte d'un élément changé (ex. table RDD élargie)
+    handles?: {                                // poignées propres au mode sur la forme sélectionnée (ex. « + »)
+      list(page, shape, part?): ModeHandle[];
+      clicked?(edit, shape, handle, part?): string | undefined;  // clic sur une poignée
+    };
+  };
   parts?: ModeParts;                           // parties sélectionnables d'une forme (ex. champs d'une table RDD)
-  opened?(edit): void;                         // remise en ordre à l'ouverture (ex. tables RDD ajustées)
-  selectionStyle?: 'veil' | 'outline';         // mise en valeur de la sélection imposée (ex. RDD : contour)
-  handles?(page, shape, part?): ModeHandle[];  // poignées propres au mode sur la forme sélectionnée (ex. « + »)
-  handleClicked?(edit, shape, handle, part?): string | undefined;  // clic sur une poignée
-  obstacles?(page, shape, values): ModeObstacles; // bornes d'un déplacement / redimensionnement (ex. régions sœurs)
-  shapes?: string[];                           // formes proposées par la palette (section 6)
-  paletteCategories?: PaletteCategory[];       // catégories de palette du mode (section 6)
-  viewModes?: ViewMode[];                      // modes d'affichage permis (section 6)
+  current?: ModeCurrent;                       // « courant » de session (section 5)
+  keys?: Record<string, ModeKey>;              // touches sur l'élément sélectionné seul (ex. « + »)
+  pasteKeys?: string[];                        // attributs retirés des éléments collés ou dupliqués
 }
 ```
+
+Les points d'entrée sont rangés par groupe (sujet 295) : `page`, `lifecycle`, `edges`, `gestures`, `parts`,
+`current`. Dans la suite, un point d'entrée est désigné par son chemin (ex. `gestures.placed`).
 
 Le moteur appelle ces points d'entrée depuis un seul endroit (`core/domains/modes/`, sujet 288), chacun protégé : un
 point d'entrée qui lève une exception est traité comme absent (pas d'habillage, pas de borne, accroche permise…), et
@@ -107,7 +123,7 @@ définition (`settings`, rangés dans `plugins/modes/<id>/settings.ts`), du mêm
 ou `%`, `zero` : libellé de 0), case à cocher ou couleur, avec leur défaut, un groupe (`group`, `groupHint`) et une aide
 (`hint`). L'appli les affiche dans une sous-page du mode (Paramètres › Modes, titre `shortName` sinon `name`) et les
 enregistre dans `settings.modes[id][key]` ; le registre les borne (`defaultModeRegistry.values`). Le moteur ne les lit
-jamais : il passe les valeurs (`values`) aux mécanismes du mode (`obstacles`, `dressing`, `current.look`), qui lui
+jamais : il passe les valeurs (`values`) aux mécanismes du mode (`gestures.obstacles`, `dressing`, `current.look`), qui lui
 rendent ce qu'il applique (écart, apparence des pastilles, opacité…). `legacy` : ancienne clé de la section `shapes`,
 reprise une fois par la migration des paramètres enregistrés.
 
@@ -134,21 +150,21 @@ fait face à la caméra en iso / 3D (`userData.billboard = 'screen'`). Son appar
   `look(values).barSlideDuration` : glissement de la barre, défaut 200 ms). L'appli le lit par `engine.getModeCurrent()` et le
   reçoit dans ses
   sections (`current` des props) ; l'événement `modeCurrentChange` signale un changement.
-- `edgeCreated(edit, edgeId, current)` : une flèche tirée depuis une forme, dans la même étape d'annulation.
+- `edges.created(edit, edgeId, current)` : une flèche tirée depuis une forme, dans la même étape d'annulation.
 - `keys` : touches (`KeyboardEvent.key`) sur l'élément sélectionné seul ; `applies` dit si l'élément est concerné
   (sinon la touche garde son effet habituel), `run` est une opération (une étape d'annulation, libellée `label`).
-- `carries(page, shape)` : formes emportées quand on déplace `shape` (glisser ou flèches du clavier), calculées sans
+- `gestures.carries(page, shape)` : formes emportées quand on déplace `shape` (glisser ou flèches du clavier), calculées sans
   parent draw.io (ex. contenu d'une région RDD) ; de proche en proche, dans la même étape d'annulation, avec les
   flèches qui les relient entre elles. La sélection les met en valeur avec la forme.
-- `placed(edit, shapeIds)` : formes posées (fin d'un glisser, flèches du clavier, ajout depuis la palette), déjà
+- `gestures.placed(edit, shapeIds)` : formes posées (fin d'un glisser, flèches du clavier, ajout depuis la palette), déjà
   écrites ; remise en ordre dans la même étape d'annulation (`edit.page` : la page après la pose ; `before` : la page
   avant un déplacement, absente pour un ajout).
-- `relabeled(edit, elementId)` : texte d'un élément changé (édition sur place ou panneau), déjà écrit ; remise en
+- `gestures.relabeled(edit, elementId)` : texte d'un élément changé (édition sur place ou panneau), déjà écrit ; remise en
   ordre dans la même étape d'annulation (`edit.page` montre le nouveau texte ; ex. table RDD élargie pour son nom).
-- `opened(edit)` (sujet 255) : remise en ordre d'une page du mode à l'ouverture du document, faite sur la mesure
+- `lifecycle.opened(edit)` (sujet 255) : remise en ordre d'une page du mode à l'ouverture du document, faite sur la mesure
   exacte du texte (à l'ouverture si les polices sont chargées, sinon à leur arrivée) ; une étape d'annulation
   « Ajustement du mode » pour tout le document, rien si rien ne change ou si le document n'est pas modifiable.
-- `handles` / `handleClicked` (sujets 250, 256) : poignées propres au mode sur la forme sélectionnée seule et
+- `gestures.handles` : `list` / `clicked` (sujets 250, 256) : poignées propres au mode sur la forme sélectionnée seule et
   modifiable (disque de leur couleur marqué d'un « + », accroché à un point de page et décalé de pixels écran) ; un
   clic est une opération du mode (une étape d'annulation) qui renvoie la partie à sélectionner, dont le texte passe en
   édition.
@@ -168,7 +184,7 @@ fait face à la caméra en iso / 3D (`userData.billboard = 'screen'`). Son appar
   la place visée sous le pointeur, `preview` la forme telle qu'elle serait (redessinée en direct, la partie mise en
   valeur à sa nouvelle place), `move` déplace la partie au lâcher (une étape d'annulation) et renvoie la partie à
   sélectionner.
-- `obstacles(page, shape, values)` : emprises que `shape` ne doit pas approcher pendant un déplacement (glisser,
+- `gestures.obstacles(page, shape, values)` : emprises que `shape` ne doit pas approcher pendant un déplacement (glisser,
   flèches du clavier) ou un redimensionnement, à l'écart `gap` (réglage du mode, ex. `obstacleGap` de RDD) ; `above` : ce que la forme dessine
   au-dessus de ses bornes. Le moteur borne le geste (un axe puis l'autre, on glisse le long d'un obstacle) et montre la
   limite atteinte en pointillé rouge (`core/edit/obstacles.ts`).
@@ -180,13 +196,13 @@ fait face à la caméra en iso / 3D (`userData.billboard = 'screen'`). Son appar
   dossier suffit : le registre des formes l'enregistre (la forme se dessine sur toute page, collée ailleurs elle
   reste lisible), le registre des modes la réserve à la palette des pages du mode. Son `id` est préfixé par celui du
   mode (`rdd-entity`) pour ne jamais masquer une forme générale.
-- **`paletteCategories`** : catégories propres au mode (`{ id, name, order }`), rangées avec celles de la palette
+- **`page.palette.categories`** : catégories propres au mode (`{ id, name, order }`), rangées avec celles de la palette
   (Géométrie 10, Général 20, Architecture 30) ; la `category` de la palette d'une forme du mode en nomme une. Une
   catégorie vide pour la page n'est pas affichée.
-- **`shapes`** : liste blanche des ids proposés (formes générales ou du mode). Absente : palette normale et formes du
+- **`page.palette.shapes`** : liste blanche des ids proposés (formes générales ou du mode). Absente : palette normale et formes du
   mode. Présente : la palette de la page (recherche comprise) n'affiche que ces formes ; les formes déjà posées et le
   collage ne sont pas filtrés.
-- **`viewModes`** (`'top' | 'iso' | '3d'`) : modes d'affichage permis ; absent = tous. La page s'affiche dans le premier
+- **`page.viewModes`** (`'top' | 'iso' | '3d'`) : modes d'affichage permis ; absent = tous. La page s'affiche dans le premier
   permis (ouverture, changement de page, passage dans le mode, rechargement), `I` / `P` sont sans effet et les
   boutons des autres modes désactivés ; en quittant la page, on retrouve la vue choisie par l'utilisateur.
 - Registre : `paletteFor(page)` (catégories et formes de la palette d'une page), `allowsViewMode(page, mode)`.
@@ -218,38 +234,38 @@ Règles communes (sujet 288) :
 | `shortName` | sous-page Paramètres › Modes | — | — | — |
 | `description` | aide du choix du mode | — | — | — |
 | `icon` | onglet d'une page du mode | — | — | — |
-| `shapes` | palette d'une page du mode (`paletteFor`) | — | — | — |
-| `paletteCategories` | palette d'une page du mode | — | — | — |
-| `viewModes` | ouverture, changement de page, passage dans le mode, boutons de vue | — | — | — |
-| `allowsEffect` | effets actifs d'une page (scène en volume, page en volume ou non), panneau des effets | — | — | effet permis (les modes d'affichage de l'effet restent vérifiés) |
-| `selectionStyle` | mise en valeur de la sélection sur une page du mode | — | — | — |
-| `settings` | Paramètres › Modes ; valeurs bornées passées à `dressing`, `obstacles`, `current.look` | — | — | — |
+| `page.palette.shapes` | palette d'une page du mode (`paletteFor`) | — | — | — |
+| `page.palette.categories` | palette d'une page du mode | — | — | — |
+| `page.viewModes` | ouverture, changement de page, passage dans le mode, boutons de vue | — | — | — |
+| `page.allowsEffect` | effets actifs d'une page (scène en volume, page en volume ou non), panneau des effets | — | — | effet permis (les modes d'affichage de l'effet restent vérifiés) |
+| `page.selectionStyle` | mise en valeur de la sélection sur une page du mode | — | — | — |
+| `settings` | Paramètres › Modes ; valeurs bornées passées à `dressing`, `gestures.obstacles`, `current.look` | — | — | — |
 | `pasteKeys` | collage et duplication, sur toutes les pages | — | clés retirées des éléments collés | — |
 | **Cycle de vie** | | | | |
-| `check` | chaque lecture du document (ouverture, chaque modification, annuler / rétablir) | page du modèle | aucune (avertissements) | aucun avertissement du mode pour la page |
-| `opened` | ouverture du document, et à nouveau quand la mesure exacte du texte arrive ; pas en lecture seule | page du modèle | une étape « Ajustement du mode » pour tout le document | rien d'écrit pour la page |
-| `repair` | après une suppression (Suppr, Couper) | relue après la suppression | remise en ordre, étape de la suppression | rien d'écrit |
+| `lifecycle.check` | chaque lecture du document (ouverture, chaque modification, annuler / rétablir) | page du modèle | aucune (avertissements) | aucun avertissement du mode pour la page |
+| `lifecycle.opened` | ouverture du document, et à nouveau quand la mesure exacte du texte arrive ; pas en lecture seule | page du modèle | une étape « Ajustement du mode » pour tout le document | rien d'écrit pour la page |
+| `lifecycle.removed` | après une suppression (Suppr, Couper) | relue après la suppression | remise en ordre, étape de la suppression | rien d'écrit |
 | **Rendu** | | | | |
 | `dressing` | construction de chaque scène de page, et pendant un déplacement (flèches retracées) | page du modèle | aucune | pas d'habillage ; `edgeColor` / `edgeBadge` en panne : couleur ou pastille absente pour la flèche |
 | **Flèches** | | | | |
-| `edgeCreated` | flèche tirée depuis une forme, au lâcher ; reçoit le courant | relue avec la flèche | remise en ordre, étape de la création | rien d'écrit |
-| `edgeReconnected` | bout d'une flèche rebranché (poignée d'extrémité), au lâcher | relue après le rebranchement | remise en ordre, étape du rebranchement | rien d'écrit |
-| `connects` | pendant le tirage ou le rebranchement d'un bout, pour chaque forme candidate | page du modèle | aucune | accroche permise |
-| `managesEdge` | panneau d'une flèche, textes de début / fin (édition, déplacement) | page courante | aucune | flèche non gérée |
+| `edges.created` | flèche tirée depuis une forme, au lâcher ; reçoit le courant | relue avec la flèche | remise en ordre, étape de la création | rien d'écrit |
+| `edges.reconnected` | bout d'une flèche rebranché (poignée d'extrémité), au lâcher | relue après le rebranchement | remise en ordre, étape du rebranchement | rien d'écrit |
+| `edges.connects` | pendant le tirage ou le rebranchement d'un bout, pour chaque forme candidate | page du modèle | aucune | accroche permise |
+| `edges.manages` | panneau d'une flèche, textes de début / fin (édition, déplacement) | page courante | aucune | flèche non gérée |
 | **Formes et gestes** | | | | |
-| `carries` | début d'un déplacement (glisser, clavier), Aligner / Répartir, mise en valeur de la sélection ; de proche en proche | page du modèle | aucune | n'emporte rien (ce qui a été trouvé avant la panne est gardé) |
-| `obstacles` | début d'un déplacement ou d'un redimensionnement, Aligner / Répartir ; reçoit les réglages du mode | page du modèle | aucune | aucune borne |
-| `placed` | fin d'un déplacement (glisser, clavier), d'un redimensionnement, ajout depuis la palette, collage, Aligner / Répartir ; `before` : page d'avant un déplacement, absente pour un ajout | relue après la pose | remise en ordre, étape du geste | rien d'écrit |
-| `relabeled` | texte d'un élément validé (édition sur place ou panneau) | relue avec le nouveau texte | remise en ordre, étape du texte | rien d'écrit |
+| `gestures.carries` | début d'un déplacement (glisser, clavier), Aligner / Répartir, mise en valeur de la sélection ; de proche en proche | page du modèle | aucune | n'emporte rien (ce qui a été trouvé avant la panne est gardé) |
+| `gestures.obstacles` | début d'un déplacement ou d'un redimensionnement, Aligner / Répartir ; reçoit les réglages du mode | page du modèle | aucune | aucune borne |
+| `gestures.placed` | fin d'un déplacement (glisser, clavier), d'un redimensionnement, ajout depuis la palette, collage, Aligner / Répartir ; `before` : page d'avant un déplacement, absente pour un ajout | relue après la pose | remise en ordre, étape du geste | rien d'écrit |
+| `gestures.relabeled` | texte d'un élément validé (édition sur place ou panneau) | relue avec le nouveau texte | remise en ordre, étape du texte | rien d'écrit |
 | `keys` | touche sur l'élément sélectionné seul d'une page modifiable : `applies` puis `run` | page du modèle ; `run` : opération | une étape au titre `label` | `applies` : touche non prise ; `run` : rien d'écrit |
-| `handles` | forme sélectionnée seule et modifiable : dessin des poignées et pointeur | page du modèle | aucune | pas de poignée |
-| `handleClicked` | clic sur une poignée du mode ; renvoie la partie à sélectionner | opération | une étape au titre de la poignée | rien d'écrit |
+| `gestures.handles.list` | forme sélectionnée seule et modifiable : dessin des poignées et pointeur | page du modèle | aucune | pas de poignée |
+| `gestures.handles.clicked` | clic sur une poignée du mode ; renvoie la partie à sélectionner | opération | une étape au titre de la poignée | rien d'écrit |
 | **Parties** | | | | |
 | `parts` | `at` : pointeur et clic ; `bounds` : mise en valeur, validité de la partie sélectionnée ; `text`, `textPreview` : édition sur place ; `comment` : encart et touche C ; `dropAt`, `preview` : glisser d'une partie ; `setText`, `setComment`, `remove`, `move` : opérations | page du modèle (opérations : page avant) | `setText` « Texte », `setComment` « Commentaire », `remove` « Suppression », `move` « Ordre » | lecture : partie absente (la forme elle-même, pas de texte, pas de place) ; opération : rien d'écrit |
 | **Courant** | | | | |
 | `current` | `initial` / `valid` : à chaque lecture du courant ; `pick` : clic ou sélection d'un seul élément ; `color`, `label`, `values` : barre du courant ; `focus` : avant chaque image ; `look` : barre et estompage ; `rename` : opération depuis la barre | page du modèle (`rename` : opération) | `rename` : une étape « Renommage » ; le courant lui-même n'est jamais écrit | pas de courant, pas de barre, rien d'estompé, apparence par défaut |
 | **Réglages déclarés** | | | | |
-| `pageProperties` | panneau de la page : `hidden`, `value`, `readOnly`, `options` évalués par le moteur (sujet 294) ; `write` : opération | page du modèle (`write` : opération) | une étape au titre du réglage ; réglage en direct (`live`) : une étape par saisie | réglage montré, valeur de l'attribut, modifiable, sans choix ; `write` : rien d'écrit |
-| `edgeProperties` | panneau d'une flèche, comme `pageProperties` | idem | idem | idem |
-| `shapeProperties` | panneau d'une forme ou de sa partie sélectionnée (`part`), comme `pageProperties` | idem | idem | idem |
+| `page.properties` | panneau de la page : `hidden`, `value`, `readOnly`, `options` évalués par le moteur (sujet 294) ; `write` : opération | page du modèle (`write` : opération) | une étape au titre du réglage ; réglage en direct (`live`) : une étape par saisie | réglage montré, valeur de l'attribut, modifiable, sans choix ; `write` : rien d'écrit |
+| `edges.properties` | panneau d'une flèche, comme `page.properties` | idem | idem | idem |
+| `gestures.properties` | panneau d'une forme ou de sa partie sélectionnée (`part`), comme `page.properties` | idem | idem | idem |
 

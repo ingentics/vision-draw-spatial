@@ -604,10 +604,10 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   onChange={(style) => onChange({ selection: { style } })}
                 />
                 {(plugins?.modes.list() ?? [])
-                  .filter((mode) => mode.selectionStyle)
+                  .filter((mode) => mode.page?.selectionStyle)
                   .map((mode) => (
                     <p key={mode.id} className="panel-hint">
-                      Pages « {mode.name} » : {mode.selectionStyle === 'outline' ? 'contour' : 'voile'} imposé.
+                      Pages « {mode.name} » : {mode.page?.selectionStyle === 'outline' ? 'contour' : 'voile'} imposé.
                     </p>
                   ))}
                 <ColorField

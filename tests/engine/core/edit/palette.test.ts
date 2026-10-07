@@ -97,9 +97,10 @@ describe('palette', () => {
     ]);
     expect(byCategory('general')).toEqual(['text', 'title', 'actor', 'actor-droid']);
     const known = new Set(
-      [...PALETTE_CATEGORIES, ...defaultModeRegistry.list().flatMap((mode) => mode.paletteCategories ?? [])].map(
-        (c) => c.id,
-      ),
+      [
+        ...PALETTE_CATEGORIES,
+        ...defaultModeRegistry.list().flatMap((mode) => mode.page?.palette?.categories ?? []),
+      ].map((c) => c.id),
     );
     for (const template of SHAPE_TEMPLATES) expect(known.has(template.category), template.id).toBe(true);
     expect(byCategory('architecture')).toEqual([

@@ -179,7 +179,7 @@ describe('mode RDD : séparateurs entre les champs (sujet 253)', () => {
     run((edit) => fieldParts.setText!(edit, shape('user'), '3', 'Fin'));
     expect(fieldParts.at(page(), shape('user'), { x: 60, y: 160 + 26 + 65 })).toBe('3');
     const shown = rdd
-      .shapeProperties!.filter((p) => p.part && !p.hidden!(page(), shape('user'), '3'))
+      .gestures!.properties!.filter((p) => p.part && !p.hidden!(page(), shape('user'), '3'))
       .map((p) => [p.label, p.value!(page(), shape('user'), '3')]);
     expect(shown).toEqual([['Séparateur', 'Fin']]);
     let part: string | undefined;
@@ -191,7 +191,7 @@ describe('mode RDD : séparateurs entre les champs (sujet 253)', () => {
 
   it('bouton « Ajouter un séparateur » : après la ligne sélectionnée, sinon en fin ; désigné ensuite', () => {
     const { run, shape } = setup();
-    const button = rdd.shapeProperties!.find((p) => p.key === 'rdd.addDivider')!;
+    const button = rdd.gestures!.properties!.find((p) => p.key === 'rdd.addDivider')!;
     expect([button.type, button.anyPart]).toEqual(['button', true]);
     let part: string | void = undefined;
     run((edit) => (part = button.write!(edit, shape('user'), undefined)));

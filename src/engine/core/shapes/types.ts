@@ -60,7 +60,7 @@ export interface MinimapMapping {
 /** Dessin d'une forme dans la mini-carte (contexte déjà mis à l'échelle des pixels CSS). */
 export type MinimapPainter = (context: CanvasRenderingContext2D, shape: ShapeModel, map: MinimapMapping) => void;
 
-/** Catégorie de la palette : celles de la palette (`PALETTE_CATEGORIES`) ou d'un mode (`paletteCategories`). */
+/** Catégorie de la palette : celles de la palette (`PALETTE_CATEGORIES`) ou d'un mode (`page.palette.categories`). */
 export type PaletteCategoryId = string;
 
 export interface PaletteCategory {

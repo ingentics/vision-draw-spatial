@@ -176,7 +176,7 @@ describe('mode Séquences : réglages déclarés et habillage', () => {
   const { page } = setup();
 
   it('flux et rang d’une flèche, rang masqué hors flux', () => {
-    const [flow, step] = sequences.edgeProperties!;
+    const [flow, step] = sequences.edges!.properties!;
     expect(flow!.value!(page(), edge(page(), 'paiement'))).toBe('f2');
     expect(step!.value!(page(), edge(page(), 'lecture'))).toBe('2');
     expect(step!.hidden!(page(), edge(page(), 'libre'))).toBe(true);
@@ -262,9 +262,9 @@ describe('flux courant (sujet 79)', () => {
   it('une flèche créée va à la fin du flux courant', () => {
     const { run, page } = setup();
     // `libre` joue la flèche tout juste créée (sans flux).
-    run((edit) => sequences.edgeCreated!(edit, 'libre', 'f2'));
+    run((edit) => sequences.edges!.created!(edit, 'libre', 'f2'));
     expect(order(page()).f2).toEqual(['paiement', 'libre']);
-    expect(run((edit) => sequences.edgeCreated!(edit, 'login', undefined))).toBe(false);
+    expect(run((edit) => sequences.edges!.created!(edit, 'login', undefined))).toBe(false);
   });
 
   it('« + » / « - » : rang suivant / précédent, sans effet aux bouts ; flèche hors flux non concernée', () => {

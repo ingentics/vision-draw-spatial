@@ -6,7 +6,7 @@ import type { PluginSetting, PluginValues } from '../settings/pluginSettings';
 /**
  * Effets de page (sujet 143) : décors et comportements qu'une page active en plus de son mode
  * (`spatial.effects="forest,…"` sur `<diagram>`). Contrairement au mode, ils se cumulent ; le mode reste maître et
- * peut en refuser (`PageModeDefinition.allowsEffect`), et un effet n'existe que dans ses modes d'affichage
+ * peut en refuser (`PageModeDefinition.page.allowsEffect`), et un effet n'existe que dans ses modes d'affichage
  * (`viewModes`). Chaque effet vit dans son dossier (`plugins/effects/<id>/index.ts`, qui exporte `definition`),
  * collecté tout seul (sujet 286) : le retirer = supprimer le dossier.
  */
