@@ -1,8 +1,8 @@
-import type { EdgeModel, PageModel, ShapeModel } from '../../model/types';
-import type { ModeProperty, ModeTarget } from '../types';
-import type { Field, TableRow } from './fieldModel';
-import { isDivider, isRelation, tableFields } from './fieldModel';
-import { tableKindOf } from './tableKinds';
+import type { EdgeModel, PageModel, ShapeModel } from '../../../model/types';
+import type { ModeProperty, ModeTarget } from '../../types';
+import type { Field, TableRow } from '../tables/fieldModel';
+import { isDivider, isRelation, tableFields } from '../tables/fieldModel';
+import { tableKindOf } from '../tables/tableKinds';
 
 /**
  * Cibles des réglages et des touches du mode RDD : forme ou flèche sélectionnée, table, ligne, champ (sujets 249, 253,

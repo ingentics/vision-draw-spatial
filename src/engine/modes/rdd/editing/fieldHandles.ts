@@ -1,7 +1,7 @@
-import type { ShapeModel } from '../../model/types';
-import type { ModeEdit, ModeHandle } from '../types';
-import { addField } from './operations';
-import { tableKindOf } from './tableKinds';
+import type { ShapeModel } from '../../../model/types';
+import type { ModeEdit, ModeHandle } from '../../types';
+import { addField } from '../tables/operations';
+import { tableKindOf } from '../tables/tableKinds';
 import { fieldIndex } from './tableTargets';
 
 /**

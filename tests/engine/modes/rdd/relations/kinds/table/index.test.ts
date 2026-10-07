@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { tableRelation } from '../../../../../src/engine/modes/rdd/relations/tableRelation';
-import type { Field } from '../../../../../src/engine/modes/rdd/fieldModel';
+import { tableRelation } from '../../../../../../../src/engine/modes/rdd/relations/kinds/table';
+import type { Field } from '../../../../../../../src/engine/modes/rdd/tables/fieldModel';
 
 describe('mode RDD : apparence d’une relation entre tables (sujets 265, 266, 278)', () => {
   const field = (nullable: boolean): Field => ({ kind: 'fk', label: 'relation1', type: '', nullable, edge: 'e' });

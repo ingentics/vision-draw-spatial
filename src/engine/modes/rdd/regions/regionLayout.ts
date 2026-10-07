@@ -1,9 +1,8 @@
-import { rectContains, rectContainsRect, rectsOverlap, unionOf } from '../../model/geometry';
-import type { PageModel, Rect, ShapeModel } from '../../model/types';
-import { readableOn } from '../../render/styleColors';
-import type { ModeEdit, ModeKey, ModeObstacles, ModeProperty, ModeTarget } from '../types';
-import { tableKindOf } from './tableKinds';
-import { shapeTarget } from './tableTargets';
+import { rectContains, rectContainsRect, rectsOverlap, unionOf } from '../../../model/geometry';
+import type { PageModel, Rect, ShapeModel } from '../../../model/types';
+import { readableOn } from '../../../render/styleColors';
+import type { ModeEdit, ModeObstacles } from '../../types';
+import { tableKindOf } from '../tables/tableKinds';
 
 /**
  * Régions du mode RDD (sujet 182) : rectangles posés derrière les tables, qui emportent leur contenu quand on les
@@ -299,36 +298,3 @@ export function regionObstacles(page: PageModel, shape: ShapeModel): ModeObstacl
     .map((s) => ({ id: s.id, rect: extentOf(s) }));
   return { rects, above: shape.bounds.y - extentOf(shape).y };
 }
-
-/** Région du mode sélectionnée (sujet 182). */
-const regionTarget = (target: ModeTarget): ShapeModel | undefined => {
-  const shape = shapeTarget(target);
-  return shape && isRegion(shape) ? shape : undefined;
-};
-
-/** Réglages d'une région (sujets 182, 233) : sa propre palette, bordure grise. */
-export const REGION_PROPERTIES: ModeProperty[] = [
-  {
-    type: 'select',
-    key: 'rdd.regionColor',
-    label: 'Couleur',
-    title: 'Couleur du fond de la région (fillColor)',
-    options: () => REGION_COLORS.map((color) => ({ value: color, label: color, color })),
-    value: (_page, target) => regionTarget(target)?.style.fillColor,
-    write: (edit, target, value) => {
-      const shape = regionTarget(target);
-      if (shape) setRegionColor(edit, shape, value);
-    },
-    hidden: (_page, target) => !regionTarget(target),
-  },
-];
-
-/** « f » : région ajustée à son contenu (sujet 184) ; sur un autre élément, la touche garde son effet. */
-export const FIT_REGION_KEY: ModeKey = {
-  label: 'Ajuster la région',
-  applies: (_page, target) => regionTarget(target) !== undefined,
-  run: (edit, target) => {
-    const region = regionTarget(target);
-    if (region) fitRegion(edit, region);
-  },
-};

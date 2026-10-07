@@ -1,7 +1,7 @@
 import { Box3, Mesh, Object3D } from 'three';
 import type { Color, MeshBasicMaterial } from 'three';
 import { describe, expect, it } from 'vitest';
-import { setSecondary } from '../../../../../../src/engine/modes/rdd/operations';
+import { setSecondary } from '../../../../../../src/engine/modes/rdd/tables/operations';
 import { approximateMeasure } from '../../../../../../src/engine/render/richLayout';
 import { buildPageScene } from '../../../../../../src/engine/render/pageScene';
 import type { RenderContext, TextSpec } from '../../../../../../src/engine/render/types';

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { TABLE_OPTIONS } from '../../../../src/engine/modes/rdd/tableProperties';
-import { TABLE_KINDS } from '../../../../src/engine/modes/rdd/tableKinds';
+import { TABLE_OPTIONS } from '../../../../../src/engine/modes/rdd/editing/tableProperties';
+import { TABLE_KINDS } from '../../../../../src/engine/modes/rdd/tables/tableKinds';
 
 describe('mode RDD : options d’une table déclarées (sujet 277)', () => {
   it('« Table secondaire » : permise sur toutes les formes de table', () => {

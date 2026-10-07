@@ -1,5 +1,5 @@
-import type { PageModel } from '../../../model/types';
-import type { EdgeLook } from './kind';
+import type { PageModel } from '../../../../../model/types';
+import type { EdgeLook } from '../kind';
 
 /**
  * Cardinalités d'une relation entre tables (sujet 265), d'après « Optionnel » de son champ dans la table d'arrivée :

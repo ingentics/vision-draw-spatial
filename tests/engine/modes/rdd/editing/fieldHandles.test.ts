@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { definition as rdd } from '../../../../src/engine/modes/rdd';
-import { fieldProblems, newFieldLabel } from '../../../../src/engine/modes/rdd/fieldModel';
-import { addField } from '../../../../src/engine/modes/rdd/operations';
-import type { PageModel, ShapeModel } from '../../../../src/engine/model/types';
-import { createDefaultRegistry } from '../../../../src/engine/shapes/registry';
-import { rowWidth, widthOf, KEY_ROW, labels, fieldsOf, setup } from './helpers';
+import { definition as rdd } from '../../../../../src/engine/modes/rdd';
+import { fieldProblems, newFieldLabel } from '../../../../../src/engine/modes/rdd/tables/fieldModel';
+import { addField } from '../../../../../src/engine/modes/rdd/tables/operations';
+import type { PageModel, ShapeModel } from '../../../../../src/engine/model/types';
+import { createDefaultRegistry } from '../../../../../src/engine/shapes/registry';
+import { rowWidth, widthOf, KEY_ROW, labels, fieldsOf, setup } from '../helpers';
 
 describe('mode RDD : ajouter un champ (sujet 250)', () => {
   const handle = (page: PageModel, shape: ShapeModel) => rdd.handles!(page, shape)[0]!;

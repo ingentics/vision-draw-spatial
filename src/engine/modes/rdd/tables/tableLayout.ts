@@ -1,7 +1,7 @@
-import { ceilToGrid } from '../../model/geometry';
-import type { Rect, ShapeModel } from '../../model/types';
-import { measureText } from '../../render/textMeasure';
-import { spatialValue } from '../../spatial';
+import { ceilToGrid } from '../../../model/geometry';
+import type { Rect, ShapeModel } from '../../../model/types';
+import { measureText } from '../../../render/textMeasure';
+import { spatialValue } from '../../../spatial';
 import type { Divider, Field, TableRow } from './fieldModel';
 import { fieldNote, isDivider, tableFields } from './fieldModel';
 import type { TableKind } from './tableKinds';

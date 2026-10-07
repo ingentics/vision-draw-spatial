@@ -1,6 +1,6 @@
-import { newFieldLabel } from '../fieldModel';
+import { newFieldLabel } from '../../../tables/fieldModel';
 import { cardinalitiesLook } from './cardinalities';
-import type { RelationKind } from './kind';
+import type { RelationKind } from '../kind';
 
 /** Nom inverse d'une relation, sur sa flèche : la relation vue depuis la table d'arrivée. */
 export const REVERSE_NAME = 'spatial.reverseName';

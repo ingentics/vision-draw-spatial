@@ -5,9 +5,9 @@ import {
   fieldsOf as rowsOf,
   fieldsValue,
   tableFields as tableRows,
-} from '../../../../src/engine/modes/rdd/fieldModel';
-import type { Field, TableRow } from '../../../../src/engine/modes/rdd/fieldModel';
-import { fitTable } from '../../../../src/engine/modes/rdd/operations';
+} from '../../../../src/engine/modes/rdd/tables/fieldModel';
+import type { Field, TableRow } from '../../../../src/engine/modes/rdd/tables/fieldModel';
+import { fitTable } from '../../../../src/engine/modes/rdd/tables/operations';
 import { approximateMeasure } from '../../../../src/engine/render/richLayout';
 import type { ModeEdit } from '../../../../src/engine/modes/types';
 import type { ShapeModel } from '../../../../src/engine/model/types';

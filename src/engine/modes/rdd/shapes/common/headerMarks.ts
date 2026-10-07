@@ -3,8 +3,8 @@ import type { Color } from 'three';
 import type { Point, ShapeModel } from '../../../../model/types';
 import { strokeMesh } from '../../../../render/meshes';
 import { PART_ORDER } from '../../../../render/types';
-import type { HeaderMark } from '../../tableKinds';
-import { TABLE, tableScale } from '../../tableLayout';
+import type { HeaderMark } from '../../tables/tableKinds';
+import { TABLE, tableScale } from '../../tables/tableLayout';
 
 /** Icônes d'entête des tables RDD (sujets 220 à 223) : tracés dans leur cadre de 14 × 9, et leur dessin. */
 

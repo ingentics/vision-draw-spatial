@@ -1,11 +1,11 @@
-import type { ShapeModel } from '../../model/types';
-import { spatialValue } from '../../spatial';
-import type { ModeEdit, ModeProperty, ModeTarget } from '../types';
-import { tableFields } from './fieldModel';
-import { addDivider, setSecondary } from './operations';
-import type { TableKind, TableOptionKey } from './tableKinds';
-import { tableKindOf } from './tableKinds';
-import { SECONDARY } from './tableLayout';
+import type { ShapeModel } from '../../../model/types';
+import { spatialValue } from '../../../spatial';
+import type { ModeEdit, ModeProperty, ModeTarget } from '../../types';
+import { tableFields } from '../tables/fieldModel';
+import { addDivider, setSecondary } from '../tables/operations';
+import type { TableKind, TableOptionKey } from '../tables/tableKinds';
+import { tableKindOf } from '../tables/tableKinds';
+import { SECONDARY } from '../tables/tableLayout';
 import { rowOf, tableOf } from './tableTargets';
 
 /** Réglages d'une table RDD sélectionnée (sujets 179, 253, 260) : table secondaire, clé primaire, ajout d'un séparateur. */

@@ -1,22 +1,23 @@
 import type { PageModeDefinition } from '../types';
-import { PRIMARY_KEY, fieldProblems, misplacedPrimaryKey } from './fieldModel';
-import { fitTable } from './operations';
-import { fieldHandleClicked, fieldHandles } from './fieldHandles';
-import { fieldParts } from './fieldParts';
-import { FIELD_PROPERTIES } from './fieldProperties';
+import { PRIMARY_KEY, fieldProblems, misplacedPrimaryKey } from './tables/fieldModel';
+import { fitTable } from './tables/operations';
+import { fieldHandleClicked, fieldHandles } from './editing/fieldHandles';
+import { fieldParts } from './editing/fieldParts';
+import { FIELD_PROPERTIES } from './editing/fieldProperties';
+import { REGION_KIND, placeInRegions, regionContent, regionObstacles } from './regions/regionLayout';
+import { FIT_REGION_KEY, REGION_PROPERTIES } from './regions/regionProperties';
 import {
-  FIT_REGION_KEY,
-  REGION_KIND,
-  REGION_PROPERTIES,
-  placeInRegions,
-  regionContent,
-  regionObstacles,
-} from './regions';
-import { CARDINALITIES, cardinalitiesShown } from './relations/cardinalities';
-import { RELATION_PROPERTIES, canLink, forbiddenLinks, isRelationEdge, syncRelations } from './relations';
-import { ADD_DIVIDER_PROPERTY, TABLE_PROPERTIES, addDividerAfter } from './tableProperties';
-import { TABLE_KINDS, missingRequiredName } from './tableKinds';
-import { rowOf, shapeName } from './tableTargets';
+  CARDINALITIES,
+  RELATION_PROPERTIES,
+  canLink,
+  cardinalitiesShown,
+  forbiddenLinks,
+  isRelationEdge,
+  syncRelations,
+} from './relations';
+import { ADD_DIVIDER_PROPERTY, TABLE_PROPERTIES, addDividerAfter } from './editing/tableProperties';
+import { TABLE_KINDS, missingRequiredName } from './tables/tableKinds';
+import { rowOf, shapeName } from './editing/tableTargets';
 
 /**
  * Mode « RDD — Relational Database Designer » (sujet 179) : une page de tables (modèles, entités…), lue à plat. Ses

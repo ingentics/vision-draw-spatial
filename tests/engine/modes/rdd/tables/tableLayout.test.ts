@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { definition as rdd } from '../../../../src/engine/modes/rdd';
-import { fitTable, setSecondary } from '../../../../src/engine/modes/rdd/operations';
-import { setCellLabel } from '../../../../src/engine/format/cellEdits';
-import { approximateMeasure } from '../../../../src/engine/render/richLayout';
-import { rowWidth, onGrid, contentWidth, widthOf, KEY_ROW, setFields, setup } from './helpers';
+import { definition as rdd } from '../../../../../src/engine/modes/rdd';
+import { fitTable, setSecondary } from '../../../../../src/engine/modes/rdd/tables/operations';
+import { setCellLabel } from '../../../../../src/engine/format/cellEdits';
+import { approximateMeasure } from '../../../../../src/engine/render/richLayout';
+import { rowWidth, onGrid, contentWidth, widthOf, KEY_ROW, setFields, setup } from '../helpers';
 
 describe('mode RDD : taille calculée (sujet 247)', () => {
   /** Largeur approchée d'un texte (celle des tests, sans polices). */

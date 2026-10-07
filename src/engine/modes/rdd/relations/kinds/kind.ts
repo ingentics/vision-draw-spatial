@@ -1,7 +1,7 @@
-import type { ShapeModel } from '../../../model/types';
-import type { ModeProperty } from '../../types';
-import type { Field, FieldKind, TableRow } from '../fieldModel';
-import type { TableKindId } from '../tableKinds';
+import type { ShapeModel } from '../../../../model/types';
+import type { ModeProperty } from '../../../types';
+import type { Field, FieldKind, TableRow } from '../../tables/fieldModel';
+import type { TableKindId } from '../../tables/tableKinds';
 
 /**
  * Sorte de relation du mode RDD (sujets 268, 278) : formes de départ et d'arrivée, champ éventuel créé dans la forme

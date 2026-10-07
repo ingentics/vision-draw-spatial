@@ -1,10 +1,10 @@
-import type { ModeProperty, ModeTarget } from '../types';
-import type { FieldOption } from './fieldModel';
-import { FIELD_OPTIONS, FIELD_TYPES, fieldTypeLabel, isDivider, isPrimaryKey, isRelation } from './fieldModel';
+import type { ModeProperty, ModeTarget } from '../../types';
+import type { FieldOption } from '../tables/fieldModel';
+import { FIELD_OPTIONS, FIELD_TYPES, fieldTypeLabel, isDivider, isPrimaryKey, isRelation } from '../tables/fieldModel';
 import { fieldParts } from './fieldParts';
-import { setField } from './operations';
-import { RELATION_FIELD_PROPERTIES, edgeOwnedField } from './relations';
-import { tableKindOf } from './tableKinds';
+import { setField } from '../tables/operations';
+import { RELATION_FIELD_PROPERTIES, edgeOwnedField } from '../relations';
+import { tableKindOf } from '../tables/tableKinds';
 import { fieldOf, onlyWhen, rowOf } from './tableTargets';
 
 /**

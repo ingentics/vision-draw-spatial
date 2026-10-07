@@ -1,5 +1,5 @@
-import type { ShapeModel } from '../../model/types';
-import { spatialValue } from '../../spatial';
+import type { ShapeModel } from '../../../model/types';
+import { spatialValue } from '../../../spatial';
 import type { TableKind } from './tableKinds';
 import { tableKindOf } from './tableKinds';
 

@@ -1,5 +1,5 @@
-import { newFieldLabel } from '../fieldModel';
-import type { RelationKind } from './kind';
+import { newFieldLabel } from '../../../tables/fieldModel';
+import type { RelationKind } from '../kind';
 
 /**
  * Relation embedded (sujets 265, 268) : d'un embedded vers une entité ou une énumération ; champ au nom de l'embedded

@@ -3,12 +3,15 @@ import { center } from '../../../model/geometry';
 import { styleNumber } from '../../../model/styleValues';
 import type { EdgeModel, Point, ShapeModel } from '../../../model/types';
 import type { ModeEdit } from '../../types';
-import type { EdgeLook } from './kind';
+import type { Field } from '../tables/fieldModel';
+import type { EdgeLook } from './kinds/kind';
 import type { RelationIndex } from './relationKinds';
+import { indexedRelationKind, relationIndex, relationSettings } from './relationKinds';
 
 /**
- * Écriture de l'apparence d'une flèche de relation (sujets 265, 268, 278) : le seul écrivain de ses pointes, de leurs
- * remplissages, de ses textes de bout et de son trait. Textes dans le style de base des textes de début / fin.
+ * Écriture d'une flèche de relation (sujets 265, 268, 278) : le seul écrivain de ses pointes, de leurs remplissages, de
+ * ses textes de bout et de son trait (textes dans le style de base des textes de début / fin), et de sa remise à sa
+ * sorte.
  */
 
 /** Marge des textes en plus des écarts des paramètres : hors du cercle et des barres des pointes ER. */
@@ -53,4 +56,25 @@ export function writeEdgeLook(edit: ModeEdit, edgeId: string, look: EdgeLook, in
   edit.setElementStyle(edgeId, 'dashed', look.dashed ? '1' : undefined);
   edit.setEdgeEndText(edgeId, 'start', look.startText, leavingDirection(index.shapes, edge, 'source'), TEXT_MARGIN);
   edit.setEdgeEndText(edgeId, 'end', look.endText, leavingDirection(index.shapes, edge, 'target'), TEXT_MARGIN);
+}
+
+/**
+ * Flèche de relation remise à sa sorte : son apparence, d'après son champ (`field`, absent pour une sorte sans champ),
+ * et les réglages des autres sortes retirés (flèche qui a changé de sorte). `settings` : passés quand l'opération vient
+ * de les changer (`edit.page` ne le montre pas encore) ; `index` : celui de l'opération en cours, s'il est calculé.
+ */
+export function writeRelationEdge(
+  edit: ModeEdit,
+  edgeId: string,
+  field?: Field,
+  settings = relationSettings(edit.page),
+  index = relationIndex(edit.page),
+): void {
+  const edge = index.edges.get(edgeId);
+  const kind = edge && indexedRelationKind(index, edge);
+  if (!kind) return;
+  writeEdgeLook(edit, edgeId, kind.look(field, settings), index);
+  for (const other of index.kinds)
+    if (other !== kind)
+      for (const property of other.properties ?? []) edit.setElementAttribute(edgeId, property.key, undefined);
 }

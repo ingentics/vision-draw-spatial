@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { REGION } from '../../../../../src/engine/modes/rdd/regions';
+import { REGION } from '../../../../../src/engine/modes/rdd/regions/regionLayout';
 import { regionOutline, tabPath, tabRect } from '../../../../../src/engine/modes/rdd/shapes/region';
 import { pickElement } from '../../../../../src/engine/interaction/pick';
 import { approximateMeasure } from '../../../../../src/engine/render/richLayout';

@@ -6,9 +6,9 @@ page normale. Le moteur ne connaît aucun mode en particulier : déposer les dos
 
 Exemple complet : le mode « Séquences » ([engine](../src/engine/modes/sequences/index.ts),
 [appli](../src/app/modes/sequences/index.tsx)). Mode avec ses propres formes : « RDD »
-([engine](../src/engine/modes/rdd/index.ts) : champs `fieldModel.ts`, formes de table `tableKinds.ts`, tailles
-`tableLayout.ts`, cibles des réglages `tableTargets.ts`, opérations `operations.ts`, formes dans `rdd/shapes/` et leur
-rendu commun dans `rdd/shapes/common/`).
+([engine](../src/engine/modes/rdd/index.ts), seul fichier à la racine du mode : modèle des tables dans `rdd/tables/`,
+sélection et réglages dans `rdd/editing/`, régions dans `rdd/regions/`, relations dans `rdd/relations/`, formes dans
+`rdd/shapes/` et leur rendu commun dans `rdd/shapes/common/`).
 
 ## 1. Deux dossiers en miroir
 

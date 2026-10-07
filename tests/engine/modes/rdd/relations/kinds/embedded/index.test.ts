@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { embeddedRelation } from '../../../../../src/engine/modes/rdd/relations/embeddedRelation';
-import type { Field } from '../../../../../src/engine/modes/rdd/fieldModel';
+import { embeddedRelation } from '../../../../../../../src/engine/modes/rdd/relations/kinds/embedded';
+import type { Field } from '../../../../../../../src/engine/modes/rdd/tables/fieldModel';
 
 describe('mode RDD : apparence d’une relation embedded (sujets 268, 278)', () => {
   it('ni pointe ni texte de bout, quels que soient « Optionnel » et l’affichage des cardinalités', () => {

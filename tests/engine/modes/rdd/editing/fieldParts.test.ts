@@ -1,16 +1,16 @@
 import { Object3D } from 'three';
 import type { Color } from 'three';
 import { describe, expect, it } from 'vitest';
-import { definition as rdd } from '../../../../src/engine/modes/rdd';
-import { FIELDS, fieldProblems, fieldsOf as rowsOf } from '../../../../src/engine/modes/rdd/fieldModel';
-import { setSecondary } from '../../../../src/engine/modes/rdd/operations';
-import { fieldParts } from '../../../../src/engine/modes/rdd/fieldParts';
-import { approximateMeasure } from '../../../../src/engine/render/richLayout';
-import { buildPageScene } from '../../../../src/engine/render/pageScene';
-import type { RenderContext, TextSpec } from '../../../../src/engine/render/types';
-import { createDefaultRegistry } from '../../../../src/engine/shapes/registry';
-import { spatialValue } from '../../../../src/engine/spatial';
-import { rowWidth, widthOf, KEY_ROW, setFields, labels, fieldsOf, setup } from './helpers';
+import { definition as rdd } from '../../../../../src/engine/modes/rdd';
+import { FIELDS, fieldProblems, fieldsOf as rowsOf } from '../../../../../src/engine/modes/rdd/tables/fieldModel';
+import { setSecondary } from '../../../../../src/engine/modes/rdd/tables/operations';
+import { fieldParts } from '../../../../../src/engine/modes/rdd/editing/fieldParts';
+import { approximateMeasure } from '../../../../../src/engine/render/richLayout';
+import { buildPageScene } from '../../../../../src/engine/render/pageScene';
+import type { RenderContext, TextSpec } from '../../../../../src/engine/render/types';
+import { createDefaultRegistry } from '../../../../../src/engine/shapes/registry';
+import { spatialValue } from '../../../../../src/engine/spatial';
+import { rowWidth, widthOf, KEY_ROW, setFields, labels, fieldsOf, setup } from '../helpers';
 
 describe('mode RDD : champ sélectionné dans sa table (sujet 249)', () => {
   // User : (40, 160), 160 de large ; entête de 26, lignes de 20 (id, email, role).

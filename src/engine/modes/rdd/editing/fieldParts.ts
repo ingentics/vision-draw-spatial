@@ -1,9 +1,9 @@
-import type { ModeParts } from '../types';
-import { FIELDS, fieldsValue, isDivider, isPrimaryKey, tableFields } from './fieldModel';
-import { moveField, movedFields, removeField, setField } from './operations';
-import { TYPE_COLOR } from './tableColors';
-import { tableKindOf } from './tableKinds';
-import { TABLE, fieldLayout, fieldRow, tableContent, tableScale, tableSize, tableWidth } from './tableLayout';
+import type { ModeParts } from '../../types';
+import { FIELDS, fieldsValue, isDivider, isPrimaryKey, tableFields } from '../tables/fieldModel';
+import { moveField, movedFields, removeField, setField } from '../tables/operations';
+import { TYPE_COLOR } from '../tables/tableColors';
+import { tableKindOf } from '../tables/tableKinds';
+import { TABLE, fieldLayout, fieldRow, tableContent, tableScale, tableSize, tableWidth } from '../tables/tableLayout';
 import { fieldIndex } from './tableTargets';
 
 /**

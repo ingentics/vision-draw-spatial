@@ -1,13 +1,11 @@
 import type { EdgeModel, PageModel, ShapeModel } from '../../../model/types';
-import type { ModeEdit } from '../../types';
-import type { Field } from '../fieldModel';
-import { isTableKindId } from '../tableKinds';
-import { shapeById } from '../tableTargets';
-import { cardinalitiesShown } from './cardinalities';
-import { writeEdgeLook } from './edgeLook';
-import { embeddedRelation } from './embeddedRelation';
-import type { RelationKind, RelationSettings } from './kind';
-import { tableRelation } from './tableRelation';
+import type { Field } from '../tables/fieldModel';
+import { isTableKindId } from '../tables/tableKinds';
+import { shapeById, shapeName } from '../editing/tableTargets';
+import { embeddedRelation } from './kinds/embedded';
+import type { RelationKind, RelationSettings } from './kinds/kind';
+import { tableRelation } from './kinds/table';
+import { cardinalitiesShown } from './kinds/table/cardinalities';
 
 /**
  * Sortes de relation du mode RDD (sujets 268, 278) : une flèche permise relie deux formes d'une même sorte, qui lui
@@ -76,23 +74,17 @@ export function indexedRelationKind(index: RelationIndex, edge: EdgeModel): Rela
   return source && target ? relationKindBetween(source, target, index.kinds) : undefined;
 }
 
-/**
- * Flèche de relation remise à sa sorte : son apparence, d'après son champ (`field`, absent pour une sorte sans champ),
- * et les réglages des autres sortes retirés (flèche qui a changé de sorte). `settings` : passés quand l'opération vient
- * de les changer (`edit.page` ne le montre pas encore) ; `index` : celui de l'opération en cours, s'il est calculé.
- */
-export function writeRelationEdge(
-  edit: ModeEdit,
-  edgeId: string,
-  field?: Field,
-  settings = relationSettings(edit.page),
-  index = relationIndex(edit.page),
-): void {
-  const edge = index.edges.get(edgeId);
-  const kind = edge && indexedRelationKind(index, edge);
-  if (!kind) return;
-  writeEdgeLook(edit, edgeId, kind.look(field, settings), index);
-  for (const other of index.kinds)
-    if (other !== kind)
-      for (const property of other.properties ?? []) edit.setElementAttribute(edgeId, property.key, undefined);
+/** Flèche de relation : entre deux formes qui peuvent être liées (son apparence est alors imposée). */
+export const isRelationEdge = (page: PageModel, edge: EdgeModel): boolean => relationKindOf(page, edge) !== undefined;
+
+/** Flèches de la page entre deux formes qui ne peuvent pas être liées (fichier modifié) : signalées. */
+export function forbiddenLinks(page: PageModel): Array<{ edgeId: string; message: string }> {
+  const { shapes } = relationIndex(page);
+  return page.edges.flatMap((edge) => {
+    const source = edge.sourceId === undefined ? undefined : shapes.get(edge.sourceId);
+    const target = edge.targetId === undefined ? undefined : shapes.get(edge.targetId);
+    if (!source || !target || canLink(source, target)) return [];
+    const name = (shape: ShapeModel) => `« ${shapeName(shape)} »`;
+    return [{ edgeId: edge.id, message: `Flèche de ${name(source)} vers ${name(target)} : liaison non permise` }];
+  });
 }

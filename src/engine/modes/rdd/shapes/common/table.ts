@@ -9,11 +9,11 @@ import { readableOn, styleColor } from '../../../../render/styleColors';
 import { PART_ORDER } from '../../../../render/types';
 import type { RenderContext } from '../../../../render/types';
 import type { PaletteEntry, ShapeDefinition } from '../../../../shapes/types';
-import { FIELDS, fieldsValue, isDivider, primaryKeyField, tableFields } from '../../fieldModel';
-import { isLinkable } from '../../relations/relationKinds';
-import { DEFAULT_HEADER_COLOR, DEFAULT_HEADER_TEXT, FIELDS_FILL, TABLE_BORDER } from '../../tableColors';
-import type { TableKind, TableKindId } from '../../tableKinds';
-import { TABLE_KINDS, shownMark, tableName } from '../../tableKinds';
+import { FIELDS, fieldsValue, isDivider, primaryKeyField, tableFields } from '../../tables/fieldModel';
+import { isLinkable } from '../../relations';
+import { DEFAULT_HEADER_COLOR, DEFAULT_HEADER_TEXT, FIELDS_FILL, TABLE_BORDER } from '../../tables/tableColors';
+import type { TableKind, TableKindId } from '../../tables/tableKinds';
+import { TABLE_KINDS, shownMark, tableName } from '../../tables/tableKinds';
 import {
   MARK_INSET,
   TABLE,
@@ -23,7 +23,7 @@ import {
   tableScale,
   tableSize,
   tableWidth,
-} from '../../tableLayout';
+} from '../../tables/tableLayout';
 import { addDividerRow, addFieldRow } from './fieldRow';
 import { headerMark } from './headerMarks';
 

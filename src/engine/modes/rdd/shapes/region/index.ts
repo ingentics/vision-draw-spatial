@@ -9,7 +9,13 @@ import { styleColor } from '../../../../render/styleColors';
 import { PART_ORDER } from '../../../../render/types';
 import type { RenderContext } from '../../../../render/types';
 import type { ShapeDefinition } from '../../../../shapes/types';
-import { DEFAULT_REGION_COLOR, REGION, REGION_KIND, regionLabelStyle, regionTextColor } from '../../regions';
+import {
+  DEFAULT_REGION_COLOR,
+  REGION,
+  REGION_KIND,
+  regionLabelStyle,
+  regionTextColor,
+} from '../../regions/regionLayout';
 
 /**
  * Région (sujets 182, 227, 232) : rectangle à fond opaque et bordure fine, posé au fond de la pile ; son nom est sur un

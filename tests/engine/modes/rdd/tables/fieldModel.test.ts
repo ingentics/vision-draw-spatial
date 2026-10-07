@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { FIELDS, FIELD_OPTIONS, fieldProblems, tableFields } from '../../../../src/engine/modes/rdd/fieldModel';
-import type { Field } from '../../../../src/engine/modes/rdd/fieldModel';
-import { TABLE_KINDS } from '../../../../src/engine/modes/rdd/tableKinds';
-import type { ShapeModel } from '../../../../src/engine/model/types';
-import { labels, fieldsOf, setup } from './helpers';
+import {
+  FIELDS,
+  FIELD_OPTIONS,
+  fieldProblems,
+  tableFields,
+} from '../../../../../src/engine/modes/rdd/tables/fieldModel';
+import type { Field } from '../../../../../src/engine/modes/rdd/tables/fieldModel';
+import { TABLE_KINDS } from '../../../../../src/engine/modes/rdd/tables/tableKinds';
+import type { ShapeModel } from '../../../../../src/engine/model/types';
+import { labels, fieldsOf, setup } from '../helpers';
 
 describe('mode RDD : champs structurés (sujet 246)', () => {
   /** Table du mode avec la valeur brute de `spatial.fields`. */
