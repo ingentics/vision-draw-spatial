@@ -1,11 +1,4 @@
-import {
-  cornerRadius,
-  orientedPath,
-  rectPath,
-  roundedRectPath,
-  styleFlag,
-  styleNumber,
-} from '../../../../core/plugins';
+import { orientedPath, styleFlag, styleNumber, boxOutline } from '../../../../core/plugins';
 import type { Point, Rect, ShapeDefinition, ShapeModel } from '../../../../core/plugins';
 import { box } from '../../generic/box';
 
@@ -32,9 +25,7 @@ function barInset(style: Record<string, string>, w: number, h: number): number {
 }
 
 function outline(shape: ShapeModel): Point[] {
-  return styleFlag(shape.style, 'rounded')
-    ? roundedRectPath(shape.bounds, cornerRadius(shape.style, shape.bounds))
-    : rectPath(shape.bounds);
+  return boxOutline(shape.bounds, shape.style);
 }
 
 /** Les deux barres, sur toute la hauteur du cadre local, orientées comme la forme (`direction`). */

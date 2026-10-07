@@ -1,6 +1,7 @@
-import { readableOn, rectContains, rectContainsRect, rectsOverlap, unionOf } from '../../../../core/plugins';
+import { readableOn, rectContains, rectContainsRect, rectsOverlap, unionOf, inflate } from '../../../../core/plugins';
 import type { ModeEdit, ModeObstacles, PageModel, Rect, ShapeModel } from '../../../../core/plugins';
 import { tableKindOf } from '../tables/tableKinds';
+import type { Color } from 'three';
 
 /**
  * Régions du mode RDD (sujet 182) : rectangles posés derrière les tables, qui emportent leur contenu quand on les
@@ -90,12 +91,8 @@ export const DEFAULT_REGION_COLOR = REGION_COLORS[0];
  * du blanc (l'onglet a le fond de la région, sujet 227 ; opaque depuis le sujet 232, plus léger dans un fichier qui
  * porte un `fillOpacity`).
  */
-export function regionTextColor(color: string, opacity = 1): string {
-  const channel = (offset: number) =>
-    Math.round(255 * (1 - opacity) + parseInt(color.slice(offset, offset + 2), 16) * opacity)
-      .toString(16)
-      .padStart(2, '0');
-  return readableOn(`#${channel(1)}${channel(3)}${channel(5)}`);
+export function regionTextColor(color: string | Color, opacity = 1): string {
+  return readableOn(color, opacity);
 }
 
 /**
@@ -176,12 +173,7 @@ export function growRegions(edit: ModeEdit, shapeIds: string[], before?: PageMod
       const outer = boundsOf(region);
       if (rectContainsRect(outer, inner)) break;
       // Elle dépasse : la région s'agrandit pour garder la marge de chaque côté où la forme en est trop près.
-      const { margin } = REGION;
-      const left = Math.min(outer.x, inner.x - margin);
-      const top = Math.min(outer.y, inner.y - margin);
-      const right = Math.max(outer.x + outer.width, inner.x + inner.width + margin);
-      const bottom = Math.max(outer.y + outer.height, inner.y + inner.height + margin);
-      const next = { x: left, y: top, width: right - left, height: bottom - top };
+      const next = unionOf([outer, inflate(inner, REGION.margin)])!;
       grown.set(region.id, next);
       edit.setShapeBounds(region.id, next);
       shape = region;
@@ -270,13 +262,7 @@ export function fitRegion(edit: ModeEdit, region: ShapeModel): void {
       .filter((shape): shape is ShapeModel => shape !== undefined);
     const union = unionOf(content.map((s) => extentOf(s, fitted.get(s.id) ?? s.bounds)));
     if (!union) break;
-    const { margin } = REGION;
-    const bounds = {
-      x: union.x - margin,
-      y: union.y - margin,
-      width: union.width + 2 * margin,
-      height: union.height + 2 * margin,
-    };
+    const bounds = inflate(union, REGION.margin);
     fitted.set(current.id, bounds);
     edit.setShapeBounds(current.id, bounds);
   }

@@ -4,13 +4,12 @@ import {
   createBox,
   createLabel,
   cubicTo,
-  dashPattern,
-  orientedPath,
   strokeMesh,
-  styleColor,
   styleFlag,
   styleNumber,
-  styleOpacity,
+  styleStroke,
+  orientation,
+  boundsOfPoints,
 } from '../../../../core/plugins';
 import type { Point, Rect, SceneLevel, SceneRenderer, ShapeModel } from '../../../../core/plugins';
 
@@ -84,7 +83,7 @@ export function directionOf(style: Record<string, string>): Direction {
 export const isLying = (shape: ShapeModel) => ['south', 'north'].includes(directionOf(shape.style));
 
 /**
- * Tracé d'une forme orientée, comme draw.io (`orientedPath`) : dessinée debout dans un cadre local (largeur et hauteur
+ * Tracé d'une forme orientée, comme draw.io (`orientation`) : dessinée debout dans un cadre local (largeur et hauteur
  * échangées si elle est couchée), puis tournée dans ses bornes (`south` = quart de tour horaire : le haut du cylindre
  * passe à droite) et retournée (`flipH`, `flipV`).
  */
@@ -93,24 +92,13 @@ function oriented(
   style: Record<string, string>,
   draw: (local: Rect) => CylinderDrawing,
 ): CylinderDrawing {
-  let drawing: CylinderDrawing | undefined;
-  const place = (pick: (drawing: CylinderDrawing) => Point[]) =>
-    orientedPath(bounds, style, (width, height) => pick((drawing ??= draw({ x: 0, y: 0, width, height }))));
-  const label = place(({ label: { x, y, width, height } }) => [
-    { x, y },
-    { x: x + width, y: y + height },
-  ]);
-  const left = Math.min(label[0]!.x, label[1]!.x);
-  const top = Math.min(label[0]!.y, label[1]!.y);
+  const turned = orientation(bounds, style);
+  const drawing = draw({ x: 0, y: 0, width: turned.width, height: turned.height });
+  const { x, y, width, height } = drawing.label;
   return {
-    silhouette: place((d) => d.silhouette),
-    lips: drawing!.lips.map((_, i) => place((d) => d.lips[i]!)),
-    label: {
-      x: left,
-      y: top,
-      width: Math.max(label[0]!.x, label[1]!.x) - left,
-      height: Math.max(label[0]!.y, label[1]!.y) - top,
-    },
+    silhouette: drawing.silhouette.map(turned.map),
+    lips: drawing.lips.map((lip) => lip.map(turned.map)),
+    label: boundsOfPoints([turned.map({ x, y }), turned.map({ x: x + width, y: y + height })])!,
   };
 }
 
@@ -147,14 +135,13 @@ export function cylinderFlat(drawing: (shape: ShapeModel) => CylinderDrawing): S
     create(shape, ctx) {
       const { silhouette, lips, label } = drawing(shape);
       const box = createBox({ ...shape, label: '' }, silhouette, ctx, VERTEX_DEFAULTS);
-      const color = styleColor(shape.style, 'strokeColor', VERTEX_DEFAULTS.stroke);
-      const width = styleNumber(shape.style, 'strokeWidth', 1);
-      if (color && width > 0) {
+      const stroke = styleStroke(shape.style, VERTEX_DEFAULTS.stroke);
+      if (stroke) {
         for (const lip of lips) {
-          const mesh = strokeMesh(lip, color, styleOpacity(shape.style, 'strokeOpacity'), {
-            width,
+          const mesh = strokeMesh(lip, stroke.color, stroke.opacity, {
+            width: stroke.width,
             closed: false,
-            dash: dashPattern(shape.style, width),
+            dash: stroke.dash,
           });
           if (!mesh) continue;
           mesh.name = 'stroke-lip';

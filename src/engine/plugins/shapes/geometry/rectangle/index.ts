@@ -1,12 +1,10 @@
-import { cornerRadius, rectPath, roundedRectPath, styleFlag } from '../../../../core/plugins';
+import { boxOutline } from '../../../../core/plugins';
 import type { ShapeDefinition, ShapeModel } from '../../../../core/plugins';
 import { box } from '../../generic/box';
 
 /** Contour : les bornes, aux coins arrondis si `rounded=1` (`arcSize`). */
 function outline(shape: ShapeModel) {
-  return styleFlag(shape.style, 'rounded')
-    ? roundedRectPath(shape.bounds, cornerRadius(shape.style, shape.bounds))
-    : rectPath(shape.bounds);
+  return boxOutline(shape.bounds, shape.style);
 }
 
 /** Rectangle : boîte du contour (bloc en iso, repli à plat sans fond). */

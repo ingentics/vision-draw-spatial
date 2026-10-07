@@ -177,7 +177,11 @@ vérifie que l'`id` est le nom du dossier et que la catégorie de palette est ce
 C'est la géométrie de référence de la forme : un polygone fermé, en coordonnées **page** (x vers la droite, y vers le
 bas, pixels draw.io). Il sert au rendu 2D (`flatBox`), aux volumes (`isoBlock`) et au repli de la mini-carte.
 Utilisez les aides de [render/geometry/paths.ts](../src/engine/core/render/geometry/paths.ts) : `rectPath`,
-`roundedRectPath`, `ellipsePath`, `cornerRadius` (lit `rounded` et `arcSize`).
+`roundedRectPath`, `ellipsePath`, `arcPath`, `cornerRadius` (lit `rounded` et `arcSize`), `boxOutline` (rectangle,
+arrondi avec `rounded=1`), `sizeOffset` (décalage `size` / `fixedSize` des formes à pans) ; pour l'orientation,
+`orientation` et `orientedPath` ([render/geometry/orient.ts](../src/engine/core/render/geometry/orient.ts)) ; pour le
+trait, `styleStroke` (couleur, opacité, épaisseur, pointillés). Avant d'écrire un calcul, cherchez-le dans l'API des
+plugins (`core/plugins/index.ts`) : une brique qui manque s'y ajoute plutôt que d'être recopiée (sujet 307).
 
 Le contour est **retracé à chaque construction** de la forme. S'il est coûteux à calculer, mémorisez-le dans la
 fonction, mais jamais entre deux formes : chaque forme a ses propres bornes.

@@ -3,6 +3,7 @@ import type { PageTree } from '../format/xmlTree';
 import type { EdgeModel, PageModel, Point, Rect, ShapeModel } from '../model/types';
 import type { ShapeRegistry } from '../shapes/registry';
 import { styleNumber } from '../model/styleValues';
+import type { ReadonlyEdgeModel } from '../model/readonly';
 
 /**
  * Extrémités d'une flèche (SPEC §8.3, §14.1) : d'où elle part et où elle arrive, comme draw.io.
@@ -155,7 +156,7 @@ export function constraintStyle(end: TerminalEnd, constraint: Point | undefined)
 }
 
 /** Attache actuelle d'une extrémité ; undefined si elle n'a ni forme ni point. */
-export function endAttachmentOf(edge: EdgeModel, end: TerminalEnd): EndAttachment | undefined {
+export function endAttachmentOf(edge: ReadonlyEdgeModel, end: TerminalEnd): EndAttachment | undefined {
   const shapeId = end === 'source' ? edge.sourceId : edge.targetId;
   if (shapeId) {
     const prefix = constraintPrefix(end);

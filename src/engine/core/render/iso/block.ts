@@ -4,11 +4,10 @@ import type { Point } from '../../model/types';
 import type { ReadonlyShapeModel as ShapeModel } from '../../model/readonly';
 import { createBox, VERTEX_DEFAULTS } from '../flat/box';
 import type { BoxDefaults } from '../flat/box';
-import { cleanOutline, dashPattern, offsetOutline } from '../geometry/stroke';
+import { cleanOutline, offsetOutline } from '../geometry/stroke';
 import { fillMesh, solidMaterial } from '../meshes';
 import type { SceneRenderer } from '../../shapes/types';
-import { styleNumber, styleOpacity } from '../../model/styleValues';
-import { styleColor } from '../styleColors';
+import { styleColor, styleStroke } from '../styleColors';
 import type { RenderContext } from '../types';
 import { DEFAULT_DEPTH, SPATIAL, spatialNumber } from '../../spatial';
 import { edgeLines } from '../lines';
@@ -114,10 +113,9 @@ export function isoBlock(
  */
 function volumeEdges(shape: ShapeModel, outline: Point[], top: number, defaults: BoxDefaults): Object3D[] {
   const { style } = shape;
-  const color = styleColor(style, 'strokeColor', defaults.stroke);
-  const width = styleNumber(style, 'strokeWidth', 1);
-  if (!color || width <= 0) return [];
-  const lineStyle = { color, opacity: styleOpacity(style, 'strokeOpacity'), width, dash: dashPattern(style, width) };
+  const lineStyle = styleStroke(style, defaults.stroke);
+  if (!lineStyle) return [];
+  const { width } = lineStyle;
   // Même indexation pour le contour et son décalé (points répétés retirés une seule fois).
   const path = cleanOutline(outline);
   const outside = offsetOutline(path, width / 2);

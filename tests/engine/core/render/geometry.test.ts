@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
+  arcPath,
+  boxOutline,
   cornerRadius,
   ellipsePath,
   rectPath,
   roundedRectPath,
+  sizeOffset,
 } from '../../../../src/engine/core/render/geometry/paths';
+import { orientation, orientedPath } from '../../../../src/engine/core/render/geometry/orient';
 import {
   dashPattern,
   dashPolyline,
@@ -168,5 +172,60 @@ describe('pointillés', () => {
     expect(dashPattern({ dashed: '1' }, 2)).toEqual([6, 6]);
     expect(dashPattern({ dashed: '1', dashPattern: '8 4 1 4' }, 1)).toEqual([8, 4, 1, 4]);
     expect(dashPattern({ dashed: '1', fixDash: '1' }, 3)).toEqual([3, 3]);
+  });
+});
+
+describe('briques reprises des formes (sujet 307)', () => {
+  const box = { x: 10, y: 20, width: 100, height: 60 };
+
+  it('décalage `size` : px avec fixedSize (borné), sinon fraction de la longueur (bornée à 0…1)', () => {
+    expect(sizeOffset({ fixedSize: '1', size: '30' }, 20, 0.2)(100)).toBe(30);
+    expect(sizeOffset({ fixedSize: '1', size: '300' }, 20, 0.2)(100, 50)).toBe(50);
+    expect(sizeOffset({ fixedSize: '1' }, 20, 0.2)(100)).toBe(20);
+    expect(sizeOffset({ size: '0.3' }, 20, 0.2)(100)).toBeCloseTo(30);
+    expect(sizeOffset({ size: '2' }, 20, 0.2)(100)).toBe(100);
+    expect(sizeOffset({}, 20, 0.2)(100)).toBeCloseTo(20);
+  });
+
+  it('contour d’une boîte : rectangle, ou arrondi avec rounded=1', () => {
+    expect(boxOutline(box, {})).toEqual(rectPath(box));
+    expect(boxOutline(box, { rounded: '1' })).toEqual(roundedRectPath(box, cornerRadius({ rounded: '1' }, box)));
+  });
+
+  it('arc : extrémités comprises ; de 0 à 2π, un cercle fermé', () => {
+    const arc = arcPath({ x: 0, y: 0 }, 10, 0, Math.PI / 2, 4);
+    expect(arc).toHaveLength(5);
+    expect(arc[0]!).toEqual({ x: 10, y: 0 });
+    expect(arc[4]!.x).toBeCloseTo(0);
+    expect(arc[4]!.y).toBeCloseTo(10);
+    const circle = arcPath({ x: 5, y: 5 }, 2, 0, 2 * Math.PI, 8);
+    expect(circle[8]!.x).toBeCloseTo(circle[0]!.x);
+    expect(circle[8]!.y).toBeCloseTo(circle[0]!.y);
+  });
+
+  it('orientation : le contour orienté est le cadre local placé par `map` ; `direction` tourne sans déplacer', () => {
+    const draw = (w: number, h: number) => [
+      { x: 0, y: 0 },
+      { x: w, y: h / 3 },
+    ];
+    const styles: Array<Record<string, string>> = [
+      {},
+      { direction: 'south' },
+      { direction: 'north', flipH: '1' },
+      { flipV: '1' },
+    ];
+    for (const style of styles) {
+      const turned = orientation(box, style);
+      expect(draw(turned.width, turned.height).map(turned.map)).toEqual(orientedPath(box, style, draw));
+      const a = turned.map({ x: 1, y: 2 });
+      const b = turned.map({ x: 4, y: 6 });
+      const d = turned.direction({ x: 3, y: 4 });
+      expect(d.x).toBeCloseTo(b.x - a.x);
+      expect(d.y).toBeCloseTo(b.y - a.y);
+    }
+    // Couché vers le sud : le haut du cadre local (−y) pointe vers la droite de la page.
+    const up = orientation(box, { direction: 'south' }).direction({ x: 0, y: -1 });
+    expect(up.x).toBeCloseTo(1);
+    expect(up.y).toBeCloseTo(0);
   });
 });

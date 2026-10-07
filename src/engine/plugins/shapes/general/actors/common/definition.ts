@@ -2,13 +2,12 @@ import { Group } from 'three';
 import {
   PART_ORDER,
   createLabel,
-  dashPattern,
   fillMesh,
   orientedPath,
   strokeMesh,
   styleColor,
-  styleNumber,
   styleOpacity,
+  styleStroke,
 } from '../../../../../core/plugins';
 import type { Point, RenderContext, ShapeDefinition, ShapeModel } from '../../../../../core/plugins';
 import type { FigureOf } from './figure';
@@ -27,17 +26,15 @@ function flatActor(figureOf: FigureOf) {
     const fill = styleColor(style, 'fillColor', '#ffffff');
     if (fill) for (const part of parts) group.add(fillMesh(part, fill, styleOpacity(style, 'fillOpacity')));
 
-    const stroke = styleColor(style, 'strokeColor', '#000000');
-    const width = styleNumber(style, 'strokeWidth', 1);
-    if (stroke && width > 0) {
-      const opacity = styleOpacity(style, 'strokeOpacity');
-      const dash = dashPattern(style, width);
+    const stroke = styleStroke(style, '#000000');
+    if (stroke) {
+      const { color, opacity, width, dash } = stroke;
       const lines = [
         ...parts.map((path) => ({ path, closed: true })),
         ...figure.strokes.map((_, i) => ({ path: oriented((w, h) => figureOf(w, h).strokes[i]!), closed: false })),
       ];
       for (const { path, closed } of lines) {
-        const mesh = strokeMesh(path, stroke, opacity, { width, closed, dash });
+        const mesh = strokeMesh(path, color, opacity, { width, closed, dash });
         if (mesh) {
           mesh.renderOrder = PART_ORDER.stroke;
           group.add(mesh);

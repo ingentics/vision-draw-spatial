@@ -1,9 +1,9 @@
 import type { Point, Rect } from '../../../model/types';
 import { SIDE_NORMALS } from '../../edgeEnds';
-import { ATTRACT_COST, BEND_COST, Heap, OVERLAP_COST, SEED_JITTER, inflate, inside, out } from '../routing';
+import { ATTRACT_COST, BEND_COST, Heap, OVERLAP_COST, SEED_JITTER, inside, out } from '../routing';
 import type { AvoidOptions, Port, Router, Segment } from '../routing';
 import { seededUnit } from '../seed';
-import { cross, distance, segmentsCross as crossing, simplifyPath } from '../../../model/geometry';
+import { cross, distance, segmentsCross as crossing, simplifyPath, inflate } from '../../../model/geometry';
 
 /**
  * Tracé octilinéaire de l'ancrage « Typon » (SPEC §14.1), inspiré des pistes de circuit imprimé : segments à 0°, 45°

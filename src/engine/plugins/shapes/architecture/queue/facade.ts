@@ -1,5 +1,5 @@
 import type { Group } from 'three';
-import { SPATIAL } from '../../../../core/plugins';
+import { SPATIAL, arcPath } from '../../../../core/plugins';
 import type { Point, SceneRenderer, ShapeModel } from '../../../../core/plugins';
 import {
   building,
@@ -67,10 +67,7 @@ export function isoQueue(flat: SceneRenderer, toLeft: (shape: ShapeModel) => boo
     for (const face of [west!, east!]) {
       const radius = Math.min(rise, face.length * 0.35);
       if (radius <= grooveWidth) continue;
-      const circle: Point[] = Array.from({ length: CIRCLE_STEPS + 1 }, (_, i) => {
-        const angle = (i / CIRCLE_STEPS) * 2 * Math.PI;
-        return { x: face.length / 2 + Math.cos(angle) * radius, y: z + Math.sin(angle) * radius };
-      });
+      const circle = arcPath({ x: face.length / 2, y: z }, radius, 0, 2 * Math.PI, CIRCLE_STEPS);
       engrave(group, face, circle, shape, stroke, grooveWidth);
     }
   });

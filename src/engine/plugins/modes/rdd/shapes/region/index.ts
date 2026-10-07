@@ -1,7 +1,6 @@
 import { Color, Group } from 'three';
 import {
   PART_ORDER,
-  dashPattern,
   fillMesh,
   insidePolygon,
   measureText,
@@ -10,6 +9,8 @@ import {
   styleColor,
   styleNumber,
   styleOpacity,
+  styleStroke,
+  cubicTo,
 } from '../../../../../core/plugins';
 import type { Point, Rect, RenderContext, ShapeDefinition, ShapeModel } from '../../../../../core/plugins';
 import {
@@ -63,16 +64,9 @@ export function tabPath(shape: ShapeModel): Point[] | undefined {
   const start = x + width;
   const end = start + REGION.tab.curve;
   const middle = (start + end) / 2;
-  const steps = 12;
-  const curve = Array.from({ length: steps + 1 }, (_, i) => {
-    const t = i / steps;
-    const u = 1 - t;
-    return {
-      x: u * u * u * start + 3 * u * t * (u + t) * middle + t * t * t * end,
-      y: u * u * (u + 3 * t) * top + t * t * (3 * u + t) * bottom,
-    };
-  });
-  return [{ x, y: bottom }, { x, y: top }, ...curve];
+  const from = { x: start, y: top };
+  const curve = cubicTo(from, { x: middle, y: top }, { x: middle, y: bottom }, { x: end, y: bottom }, 12);
+  return [{ x, y: bottom }, { x, y: top }, from, ...curve];
 }
 
 /** Emprise de la région et de son onglet : la prise au clic. */
@@ -104,17 +98,9 @@ function createRegion(shape: ShapeModel, ctx: RenderContext): Group {
   const fill = styleColor(style, 'fillColor', DEFAULT_REGION_COLOR);
   const fillOpacity = styleOpacity(style, 'fillOpacity');
   if (fill) group.add(fillMesh(path, fill, fillOpacity));
-  const stroke = styleColor(style, 'strokeColor', REGION.stroke);
-  const width = styleNumber(style, 'strokeWidth', 1);
-  // Bordure en pointillé comme dans draw.io (`dashed`, `dashPattern`, `fixDash`), aucune sans épaisseur.
+  const stroke = styleStroke(style, REGION.stroke);
   const border =
-    stroke &&
-    width > 0 &&
-    strokeMesh(path, stroke, styleOpacity(style, 'strokeOpacity'), {
-      width,
-      closed: true,
-      dash: dashPattern(style, width),
-    });
+    stroke && strokeMesh(path, stroke.color, stroke.opacity, { width: stroke.width, closed: true, dash: stroke.dash });
   if (border) group.add(border);
 
   const text = tabText(shape);
@@ -127,9 +113,7 @@ function createRegion(shape: ShapeModel, ctx: RenderContext): Group {
     anchorY: 'middle',
     align: 'left',
     fontSize: fontSizeOf(shape),
-    color: new Color(
-      regionTextColor(`#${(fill ?? new Color(DEFAULT_REGION_COLOR)).getHexString()}`, fill ? fillOpacity : 0),
-    ),
+    color: new Color(regionTextColor(fill ?? DEFAULT_REGION_COLOR, fill ? fillOpacity : 0)),
     opacity: 1,
     bold: true,
   });

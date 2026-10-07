@@ -6,6 +6,7 @@ import type { CameraState } from '../../interaction/cameraMath';
 import type { PageModel, Rect } from '../../model/types';
 import type { EngineCore } from '../EngineCore';
 import type { InitialView } from '../types';
+import { firstFreeName } from '../../model/names';
 
 /**
  * Cadrage d'une page vide : le haut de la feuille draw.io, pour que les formes ajoutées
@@ -37,9 +38,9 @@ export class Pages {
     if (!this.core.file.xmlTree || !this.core.file.document || !this.canEditPages() || !this.core.canInteract())
       return undefined;
     const names = new Set(this.core.file.document.pages.map((p) => p.name));
-    let pageName = name?.trim();
-    for (let n = this.core.file.document.pages.length + 1; !pageName || names.has(pageName); n++)
-      pageName = `Page-${n}`;
+    const asked = name?.trim();
+    const pageName =
+      asked && !names.has(asked) ? asked : firstFreeName('Page-', names, this.core.file.document.pages.length + 1);
     this.core.edits.recordEdit('Nouvelle page');
     const page = addPage(this.core.file.xmlTree, pageName);
     this.core.file.documentChanged([]);

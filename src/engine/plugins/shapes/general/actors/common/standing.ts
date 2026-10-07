@@ -3,7 +3,6 @@ import {
   PART_ORDER,
   blockHeight,
   createLabel,
-  dashPattern,
   edgeLines,
   fillMesh,
   rectPath,
@@ -12,9 +11,8 @@ import {
   strokeMesh,
   styleColor,
   styleFlag,
-  styleNumber,
-  styleOpacity,
   setStandingFigure,
+  styleStroke,
 } from '../../../../../core/plugins';
 import type { Point, Rect, RenderContext, SceneRenderer, ShapeModel } from '../../../../../core/plugins';
 import { ARMS } from './figure';
@@ -112,9 +110,8 @@ export function standingActor(figureOf: FigureOf): SceneRenderer {
         silhouette.add(plane);
       }
 
-      const stroke = styleColor(style, 'strokeColor', '#000000');
-      const strokeWidth = styleNumber(style, 'strokeWidth', 1);
-      if (stroke && strokeWidth > 0) {
+      const stroke = styleStroke(style, '#000000');
+      if (stroke) {
         const segments: number[] = [];
         const polyline = (points: Point[], closed: boolean) => {
           const last = closed ? points.length : points.length - 1;
@@ -126,12 +123,7 @@ export function standingActor(figureOf: FigureOf): SceneRenderer {
         };
         for (const part of parts) polyline(part, true);
         for (const line of figure.strokes) polyline(line.map(upright), false);
-        const lines = edgeLines(segments, {
-          color: stroke,
-          opacity: styleOpacity(style, 'strokeOpacity'),
-          width: strokeWidth,
-          dash: dashPattern(style, strokeWidth),
-        });
+        const lines = edgeLines(segments, stroke);
         lines.name = 'stroke';
         lines.renderOrder = PART_ORDER.stroke;
         silhouette.add(lines);
@@ -205,13 +197,12 @@ function createSign(shape: ShapeModel, ctx: RenderContext, frame: Rect): Group {
     board.name = 'sign-board';
     sign.add(board);
   }
-  const stroke = styleColor(style, 'strokeColor', '#000000');
-  const strokeWidth = styleNumber(style, 'strokeWidth', 1);
-  if (stroke && strokeWidth > 0) {
-    const border = strokeMesh(path, stroke, styleOpacity(style, 'strokeOpacity'), {
-      width: strokeWidth,
+  const stroke = styleStroke(style, '#000000');
+  if (stroke) {
+    const border = strokeMesh(path, stroke.color, stroke.opacity, {
+      width: stroke.width,
       closed: true,
-      dash: dashPattern(style, strokeWidth),
+      dash: stroke.dash,
     });
     if (border) {
       border.position.z = SIGN_LAYER;
@@ -227,9 +218,9 @@ function createSign(shape: ShapeModel, ctx: RenderContext, frame: Rect): Group {
           { x: edge + side * frame.width * HAND_REACH, y: hands },
           { x: edge - side * frame.width * HAND_GRIP, y: hands },
         ],
-        stroke,
-        styleOpacity(style, 'strokeOpacity'),
-        { width: strokeWidth * HAND_WIDTH, closed: false },
+        stroke.color,
+        stroke.opacity,
+        { width: stroke.width * HAND_WIDTH, closed: false },
       );
       if (hand) {
         hand.name = 'hand';

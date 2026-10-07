@@ -1,12 +1,4 @@
-import {
-  cornerRadius,
-  orientedPath,
-  rectPath,
-  roundedRectPath,
-  spatialValue,
-  styleFlag,
-  styleNumber,
-} from '../../../../core/plugins';
+import { spatialValue, styleFlag, styleNumber, boxOutline, orientation } from '../../../../core/plugins';
 import type {
   PaletteEntry,
   Point,
@@ -50,9 +42,7 @@ function lines(style: Record<string, string>, w: number, h: number) {
 }
 
 function outline(shape: ShapeModel): Point[] {
-  return styleFlag(shape.style, 'rounded')
-    ? roundedRectPath(shape.bounds, cornerRadius(shape.style, shape.bounds))
-    : rectPath(shape.bounds);
+  return boxOutline(shape.bounds, shape.style);
 }
 
 /** Mot de la tranche : `spatial.tag`, sinon celui de la forme ; vide = aucun. */
@@ -61,47 +51,39 @@ const wordOf = (shape: ShapeModel, tag: string) => (spatialValue(shape, TAG) ?? 
 /** Les deux lignes de draw.io, puis le mot de la tranche (entre le bord et la verticale), écrit de bas en haut. */
 function details(shape: ShapeModel, tag: string): ShapeDetail[] {
   const { bounds, style } = shape;
-  const oriented = (draw: (w: number, h: number) => Point[]) => orientedPath(bounds, style, draw);
-  const vertical = oriented((w, h) => {
-    const { x } = lines(style, w, h);
-    return [
-      { x, y: 0 },
-      { x, y: h },
-    ];
-  });
-  const horizontal = oriented((w, h) => {
-    const { y } = lines(style, w, h);
-    return [
-      { x: 0, y },
-      { x: w, y },
-    ];
-  });
+  const oriented = orientation(bounds, style);
+  const { width: w, height: h } = oriented;
+  const { x, y } = lines(style, w, h);
   const result: ShapeDetail[] = [
-    { path: vertical, closed: false },
-    { path: horizontal, closed: false },
+    {
+      path: [
+        { x, y: 0 },
+        { x, y: h },
+      ].map(oriented.map),
+      closed: false,
+    },
+    {
+      path: [
+        { x: 0, y },
+        { x: w, y },
+      ].map(oriented.map),
+      closed: false,
+    },
   ];
   const text = wordOf(shape, tag);
   if (!text) return result;
-  let band = { width: 0, length: 0 };
-  // Centre de la tranche et un point au-dessus : la direction d'écriture, orientée avec la forme.
-  const [center, above] = oriented((w, h) => {
-    const { x } = lines(style, w, h);
-    band = { width: x, length: h };
-    return [
-      { x: x / 2, y: h / 2 },
-      { x: x / 2, y: h / 2 - 1 },
-    ];
-  });
+  // Mot au centre de la tranche, écrit vers le haut du cadre local, orienté avec la forme.
+  const up = oriented.direction({ x: 0, y: -1 });
   result.push({
     text,
-    at: center!,
-    angle: Math.atan2(above!.y - center!.y, above!.x - center!.x),
+    at: oriented.map({ x: x / 2, y: h / 2 }),
+    angle: Math.atan2(up.y, up.x),
     fontSize: TAG_SIZE,
     color: darker(shape, TAG_SHADE),
     bold: true,
     fit: {
-      width: Math.max(0, band.length - 2 * TAG_MARGIN),
-      height: Math.max(0, band.width - 2 * TAG_MARGIN),
+      width: Math.max(0, h - 2 * TAG_MARGIN),
+      height: Math.max(0, x - 2 * TAG_MARGIN),
     },
   });
   return result;

@@ -1,4 +1,4 @@
-import { jsonListValue, readJsonList } from '../../../../core/plugins';
+import { jsonListValue, readJsonList, firstFreeName } from '../../../../core/plugins';
 import type { ShapeModel } from '../../../../core/plugins';
 import type { TableKind } from './tableKinds';
 import { tableKindOf } from './tableKinds';
@@ -188,10 +188,10 @@ export const isRelation = (row: TableRow | undefined): row is Field & { edge: st
  * champ de relation (sujet 265).
  */
 export function newFieldLabel(rows: readonly TableRow[], prefix = 'Field'): string {
-  const used = new Set(rows.map((row) => row.label));
-  let number = 1;
-  while (used.has(`${prefix}${number}`)) number += 1;
-  return `${prefix}${number}`;
+  return firstFreeName(
+    prefix,
+    rows.map((row) => row.label),
+  );
 }
 
 /** Label de la clé primaire : toujours `id` (sujet 260). */

@@ -45,6 +45,40 @@ export function ellipsePath({ x, y, width, height }: Rect, segments = 64): Point
 }
 
 /**
+ * Arc de cercle de centre `center` et de rayon `radius`, de l'angle `from` à `to` (radians, repère page : −π/2 vers le
+ * haut), en `segments` segments, extrémités comprises (sujet 307). De 0 à 2π : un cercle fermé (premier point répété).
+ */
+export function arcPath(center: Point, radius: number, from: number, to: number, segments = 8): Point[] {
+  return Array.from({ length: segments + 1 }, (_, i) => {
+    const angle = from + ((to - from) * i) / segments;
+    return { x: center.x + radius * Math.cos(angle), y: center.y + radius * Math.sin(angle) };
+  });
+}
+
+/**
+ * Contour d'une boîte draw.io (sujet 307) : rectangle aux coins arrondis avec `rounded=1` (rayon de `cornerRadius`),
+ * sinon rectangle. Celui du rectangle, du process, du process étiqueté, des tables RDD.
+ */
+export function boxOutline(bounds: Rect, style: Record<string, string>): Point[] {
+  return styleFlag(style, 'rounded') ? roundedRectPath(bounds, cornerRadius(style, bounds)) : rectPath(bounds);
+}
+
+/**
+ * Décalage `size` d'une forme à pans de draw.io (étape, hexagone, parallélogramme… et leurs périmètres) : px avec
+ * `fixedSize` (toute valeur autre que `0`, au plus `max`), sinon fraction de `length` (de 0 à 1) ; défauts propres à la
+ * forme dans les deux cas.
+ */
+export function sizeOffset(
+  style: Record<string, string>,
+  fixedDefault: number,
+  relativeDefault: number,
+): (length: number, max?: number) => number {
+  const fixed = (style.fixedSize ?? '0') !== '0';
+  const size = styleNumber(style, 'size', fixed ? fixedDefault : relativeDefault);
+  return (length, max = length) => (fixed ? Math.max(0, Math.min(max, size)) : length * Math.max(0, Math.min(1, size)));
+}
+
+/**
  * Rayon des coins arrondis selon draw.io : `arcSize` en % du plus petit côté (défaut 15),
  * ou en pixels (diamètre) si `absoluteArcSize=1` (défaut 20).
  */

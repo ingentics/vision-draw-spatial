@@ -1,6 +1,6 @@
 import { Group } from 'three';
 import type { Color } from 'three';
-import { PART_ORDER, strokeMesh } from '../../../../../core/plugins';
+import { PART_ORDER, strokeMesh, arcPath } from '../../../../../core/plugins';
 import type { Point, ShapeModel } from '../../../../../core/plugins';
 import type { HeaderMark } from '../../tables/tableKinds';
 import { TABLE, tableScale } from '../../tables/tableLayout';
@@ -8,12 +8,8 @@ import { TABLE, tableScale } from '../../tables/tableLayout';
 /** Icônes d'entête des tables RDD (sujets 220 à 223) : tracés dans leur cadre de 14 × 9, et leur dessin. */
 
 /** Arc de cercle de `from` à `to` (radians, repère page : −π/2 vers le haut), en polygone. */
-function arc(cx: number, cy: number, r: number, from: number, to: number, segments = 8): Point[] {
-  return Array.from({ length: segments + 1 }, (_, i) => {
-    const angle = from + ((to - from) * i) / segments;
-    return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
-  });
-}
+const arc = (cx: number, cy: number, r: number, from: number, to: number, segments = 8) =>
+  arcPath({ x: cx, y: cy }, r, from, to, segments);
 
 /** Cercle en polygone. */
 const circle = (cx: number, cy: number, r: number) => arc(cx, cy, r, 0, 2 * Math.PI, 16).slice(0, -1);

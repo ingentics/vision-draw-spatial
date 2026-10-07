@@ -1,5 +1,5 @@
 import type { Point, Rect } from '../../../model/types';
-import { simplifyPath } from '../../../model/geometry';
+import { simplifyPath, inflate } from '../../../model/geometry';
 import { SIDE_NORMALS } from '../../edgeEnds';
 import {
   ATTRACT_COST,
@@ -8,7 +8,6 @@ import {
   Heap,
   OVERLAP_COST,
   SEED_JITTER,
-  inflate,
   inside,
   out,
 } from '../routing';

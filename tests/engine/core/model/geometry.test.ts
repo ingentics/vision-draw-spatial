@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   boundsOfPoints,
+  inflate,
+  rectDistance,
   ceilToGrid,
   center,
   distance,
@@ -98,5 +100,21 @@ describe('géométrie partagée (sujet 205)', () => {
       { x: 10, y: 10 },
     ]);
     expect(prunePath(path, 1e-6, true)).toEqual(path);
+  });
+});
+
+describe('rectangle agrandi, distance à un rectangle (sujet 307)', () => {
+  const r = { x: 0, y: 0, width: 10, height: 20 };
+
+  it('agrandi de chaque côté, rétréci avec une marge négative', () => {
+    expect(inflate(r, 5)).toEqual({ x: -5, y: -5, width: 20, height: 30 });
+    expect(inflate(r, -2)).toEqual({ x: 2, y: 2, width: 6, height: 16 });
+  });
+
+  it('distance : 0 dedans et sur le bord, au plus proche bord ou coin dehors', () => {
+    expect(rectDistance(r, { x: 5, y: 5 })).toBe(0);
+    expect(rectDistance(r, { x: 10, y: 20 })).toBe(0);
+    expect(rectDistance(r, { x: 15, y: 10 })).toBe(5);
+    expect(rectDistance(r, { x: 13, y: 24 })).toBe(5);
   });
 });

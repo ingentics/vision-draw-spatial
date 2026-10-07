@@ -44,16 +44,20 @@ export type {
   ReadonlyShapeModel as ShapeModel,
 } from '../model/readonly';
 export { jsonListValue, readJsonList, SPATIAL, spatialFlag, spatialNumber, spatialValue } from '../spatial';
+export { firstFreeName } from '../model/names';
 export {
+  boundsOfPoints,
   ceilToGrid,
   center,
+  inflate,
   insidePolygon,
   rectContains,
   rectContainsRect,
+  rectDistance,
   rectsOverlap,
   unionOf,
 } from '../model/geometry';
-export { isHexColor, styleFlag, styleNumber, styleOpacity } from '../model/styleValues';
+export { fontStyleValue, isHexColor, styleFlag, styleNumber, styleOpacity } from '../model/styleValues';
 
 // Briques de dessin (Three.js) : rendu à plat et en volume, contours, traits, textes, couleurs.
 export { PART_ORDER } from '../render/types';
@@ -62,23 +66,30 @@ export { createBox, createLabel, flatBox, VERTEX_DEFAULTS } from '../render/flat
 export type { BoxDefaults } from '../render/flat/box';
 export { blockHeight, isoBlock, TOP_OFFSET } from '../render/iso/block';
 export { cubicTo, halfEllipseTo } from '../render/geometry/curves';
-export { orientedPath } from '../render/geometry/orient';
+export { orientation, orientedPath } from '../render/geometry/orient';
+export type { Orientation } from '../render/geometry/orient';
 export {
+  arcPath,
+  boxOutline,
   cornerRadius,
   ellipsePath,
   polygonArc,
   rectPath,
   roundedPolygon,
   roundedRectPath,
+  sizeOffset,
 } from '../render/geometry/paths';
 export { dashPattern } from '../render/geometry/stroke';
 export { edgeLines } from '../render/lines';
 export { fillMesh, solidMaterial, strokeMesh } from '../render/meshes';
-export { readableOn, styleColor } from '../render/styleColors';
+export { readableOn, styleColor, styleStroke } from '../render/styleColors';
+export type { StyleStroke } from '../render/styleColors';
 export { measureText } from '../render/textMeasure';
 export { setStandingFigure } from '../render/standing';
 export type { StandingFigure } from '../render/standing';
 export { stencilShape } from '../format/stencil';
 
 // Règles d'édition partagées.
-export { SIDE_NORMALS, sideOfConstraint } from '../edit/edgeEnds';
+export { SIDE_NORMALS, endAttachmentOf, sideOfConstraint } from '../edit/edgeEnds';
+export type { EndAttachment } from '../edit/edgeEnds';
+export { facingSide } from '../edit/anchoring/auto/distribute';

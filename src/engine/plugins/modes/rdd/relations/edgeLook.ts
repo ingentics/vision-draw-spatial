@@ -1,4 +1,4 @@
-import { SIDE_NORMALS, center, sideOfConstraint, styleNumber } from '../../../../core/plugins';
+import { SIDE_NORMALS, center, endAttachmentOf, facingSide, sideOfConstraint } from '../../../../core/plugins';
 import type { EdgeModel, ModeEdit, Point, ShapeModel } from '../../../../core/plugins';
 import type { Field } from '../tables/fieldModel';
 import type { EdgeLook } from './kinds/kind';
@@ -20,23 +20,15 @@ const TEXT_MARGIN = { along: 4, across: 4 };
  * premier coude (ou le centre de l'autre forme), comme une attache auto.
  */
 function leavingDirection(shapes: ReadonlyMap<string, ShapeModel>, edge: EdgeModel, end: 'source' | 'target'): Point {
+  const attachment = endAttachmentOf(edge, end);
+  const fixedSide = attachment?.kind === 'fixed' ? sideOfConstraint(attachment.constraint) : undefined;
+  if (fixedSide) return SIDE_NORMALS[fixedSide];
   const own = shapes.get((end === 'source' ? edge.sourceId : edge.targetId) ?? '');
   const other = shapes.get((end === 'source' ? edge.targetId : edge.sourceId) ?? '');
-  const prefix = end === 'source' ? 'exit' : 'entry';
-  const fixed = {
-    x: styleNumber(edge.style, `${prefix}X`, NaN),
-    y: styleNumber(edge.style, `${prefix}Y`, NaN),
-  };
-  const fixedSide = Number.isFinite(fixed.x) && Number.isFinite(fixed.y) ? sideOfConstraint(fixed) : undefined;
-  if (fixedSide) return SIDE_NORMALS[fixedSide];
   const bend = end === 'source' ? edge.points[0] : edge.points[edge.points.length - 1];
   const toward: Point | undefined = bend ?? (other && center(other.bounds));
   if (!own || !toward) return SIDE_NORMALS.e;
-  const from = center(own.bounds);
-  const dx = (toward.x - from.x) / Math.max(own.bounds.width, 1);
-  const dy = (toward.y - from.y) / Math.max(own.bounds.height, 1);
-  if (Math.abs(dx) >= Math.abs(dy)) return SIDE_NORMALS[dx < 0 ? 'w' : 'e'];
-  return SIDE_NORMALS[dy < 0 ? 'n' : 's'];
+  return SIDE_NORMALS[facingSide(own.bounds, toward)];
 }
 
 /**

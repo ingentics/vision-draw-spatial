@@ -1,18 +1,16 @@
 import { Color, Group } from 'three';
 import {
   PART_ORDER,
-  cornerRadius,
   createLabel,
-  dashPattern,
   fillMesh,
   readableOn,
   rectPath,
-  roundedRectPath,
   strokeMesh,
   styleColor,
-  styleFlag,
-  styleNumber,
   styleOpacity,
+  styleStroke,
+  boxOutline,
+  fontStyleValue,
 } from '../../../../../core/plugins';
 import type {
   PaletteEntry,
@@ -85,7 +83,7 @@ function outline(shape: ShapeModel, kind: TableKind): Point[] {
       { x, y: y + h },
     ];
   }
-  return styleFlag(style, 'rounded') ? roundedRectPath(bounds, cornerRadius(style, bounds)) : rectPath(bounds);
+  return boxOutline(bounds, style);
 }
 
 /** Rabat du coin plié : triangle replié sous le coin coupé. */
@@ -111,7 +109,7 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
   const header = Math.min(bounds.height, headerHeight(isSecondary(shape)));
   const headerColor = styleColor(style, 'fillColor', DEFAULT_HEADER_COLOR) ?? new Color(DEFAULT_HEADER_COLOR);
   // Texte de l'entête : `fontColor` s'il est écrit (gris d'une table neuve, sujet 235), sinon lisible sur l'entête.
-  const readable = readableOn(`#${headerColor.getHexString()}`);
+  const readable = readableOn(headerColor);
   const textColor = style.fontColor && style.fontColor !== 'default' ? style.fontColor : readable;
 
   const path = outline(shape, kind);
@@ -130,15 +128,10 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
     group.add(flap);
   }
 
-  const stroke = styleColor(style, 'strokeColor', TABLE_BORDER);
-  const width = styleNumber(style, 'strokeWidth', 1);
-  if (stroke && width > 0) {
+  const stroke = styleStroke(style, TABLE_BORDER);
+  if (stroke) {
     const line = (path: Point[], closed: boolean) => {
-      const mesh = strokeMesh(path, stroke, styleOpacity(style, 'strokeOpacity'), {
-        width,
-        closed,
-        dash: dashPattern(style, width),
-      });
+      const mesh = strokeMesh(path, stroke.color, stroke.opacity, { width: stroke.width, closed, dash: stroke.dash });
       if (!mesh) return;
       mesh.name = 'stroke-table';
       mesh.renderOrder = PART_ORDER.stroke;
@@ -176,7 +169,7 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
         ...style,
         fontSize: String(TABLE.nameSize * scale),
         fontColor: textColor,
-        fontStyle: String(1 | (kind.look.italic ? 2 : 0)),
+        fontStyle: String(fontStyleValue({ bold: true, italic: kind.look.italic })),
         align: 'center',
         verticalAlign: 'middle',
       },
@@ -207,7 +200,7 @@ export function tableStyle(id: TableKindId, kind: TableKind): string {
     ? `${keys.key(FIELDS)}=${fieldsValue([primaryKeyField(kind.rules.primaryKey)])};`
     : '';
   return (
-    `swimlane;fontStyle=${1 | (kind.look.italic ? 2 : 0)};startSize=${headerHeight(false)};` +
+    `swimlane;fontStyle=${fontStyleValue({ bold: true, italic: kind.look.italic })};startSize=${headerHeight(false)};` +
     `fillColor=${DEFAULT_HEADER_COLOR};fontColor=${DEFAULT_HEADER_TEXT};swimlaneFillColor=${FIELDS_FILL};strokeColor=${TABLE_BORDER};` +
     `fontSize=${TABLE.nameSize};html=1;whiteSpace=wrap;${kind.look.style ?? ''}spatial.kind=${id};${fields}`
   );

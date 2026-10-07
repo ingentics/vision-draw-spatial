@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isHexColor } from '../../../../src/engine/core/model/styleValues';
+import { fontStyleBits, fontStyleValue, isHexColor } from '../../../../src/engine/core/model/styleValues';
 
 describe('isHexColor (sujet 291)', () => {
   it('#rrggbb, casse libre ; ni forme courte, ni nom, ni absent', () => {
@@ -9,5 +9,17 @@ describe('isHexColor (sujet 291)', () => {
     expect(isHexColor('red')).toBe(false);
     expect(isHexColor('#dae8fc ')).toBe(false);
     expect(isHexColor(undefined)).toBe(false);
+  });
+});
+
+describe('fontStyleValue (sujet 307)', () => {
+  it('bits de fontStyle, l’inverse de fontStyleBits', () => {
+    expect(fontStyleValue({})).toBe(0);
+    expect(fontStyleValue({ bold: true, italic: true })).toBe(3);
+    for (const marks of [
+      { bold: true, italic: false, underline: true, strike: false },
+      { bold: false, italic: true, underline: false, strike: true },
+    ])
+      expect(fontStyleBits({ fontStyle: String(fontStyleValue(marks)) })).toEqual(marks);
   });
 });

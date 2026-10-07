@@ -31,6 +31,16 @@ export function fontStyleBits(style: Record<string, string>): {
   return { bold: (bits & 1) !== 0, italic: (bits & 2) !== 0, underline: (bits & 4) !== 0, strike: (bits & 8) !== 0 };
 }
 
+/** Valeur de `fontStyle` (bits 1 gras, 2 italique, 4 souligné, 8 barré), l'inverse de `fontStyleBits` (sujet 307). */
+export function fontStyleValue(marks: {
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  strike?: boolean;
+}): number {
+  return (marks.bold ? 1 : 0) | (marks.italic ? 2 : 0) | (marks.underline ? 4 : 0) | (marks.strike ? 8 : 0);
+}
+
 /**
  * Format du texte d'un style (gras, italique, souligné, barré, police) et texte riche éventuel, pour
  * une `TextSpec`.

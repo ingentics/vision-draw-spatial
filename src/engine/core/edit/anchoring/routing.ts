@@ -48,10 +48,6 @@ export const out = ({ point, side }: Port, length: number): Point => ({
   y: point.y + SIDE_NORMALS[side].y * length,
 });
 
-export function inflate(r: Rect, by: number): Rect {
-  return { x: r.x - by, y: r.y - by, width: r.width + 2 * by, height: r.height + 2 * by };
-}
-
 /** Point strictement à l'intérieur (bord exclu). */
 export function inside(r: Rect, p: Point): boolean {
   return p.x > r.x + 1e-6 && p.x < r.x + r.width - 1e-6 && p.y > r.y + 1e-6 && p.y < r.y + r.height - 1e-6;

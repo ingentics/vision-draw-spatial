@@ -7,6 +7,7 @@ import type { EdgeBadgeStyle, RenderContext } from './types';
 import { ellipsePath, rectPath } from './geometry/paths';
 import { fillMesh, strokeMesh } from './meshes';
 import { PART_ORDER } from './types';
+import { inflate } from '../model/geometry';
 
 /** Couleur d'accent par défaut (paramètre `selection.accentColor`). */
 export const DEFAULT_ACCENT = '#1a73e8';
@@ -94,17 +95,12 @@ export function selectionOutline(bounds: Rect, zoom: number, phase = 0, accent =
   const group = new Group();
   group.name = 'selection';
   const gap = 3 / zoom;
-  const outline = strokeMesh(
-    rectPath({
-      x: bounds.x - gap,
-      y: bounds.y - gap,
-      width: bounds.width + 2 * gap,
-      height: bounds.height + 2 * gap,
-    }),
-    new Color(accent),
-    1,
-    { width: 1.5 / zoom, closed: true, dash: [5 / zoom, 3 / zoom], dashOffset: phase / zoom },
-  );
+  const outline = strokeMesh(rectPath(inflate(bounds, gap)), new Color(accent), 1, {
+    width: 1.5 / zoom,
+    closed: true,
+    dash: [5 / zoom, 3 / zoom],
+    dashOffset: phase / zoom,
+  });
   if (outline) group.add(outline);
   // Toujours au-dessus de tout le contenu de la page.
   group.traverse((o) => {
@@ -155,7 +151,7 @@ export function headSelectionRing(
   plane.position.y = -0.2;
   const gap = 3 / zoom;
   const ring = strokeMesh(
-    ellipsePath({ x: head.x - gap, y: head.y - gap, width: head.width + 2 * gap, height: head.height + 2 * gap }, 48),
+    ellipsePath(inflate(head, gap), 48),
     new Color(options.accent ?? DEFAULT_ACCENT),
     1,
     options.dashed
@@ -178,12 +174,7 @@ export function linkZone(bounds: Rect, zoom: number, accent = DEFAULT_ACCENT): G
   const group = new Group();
   group.name = 'link-zone';
   const gap = 2 / zoom;
-  const path = rectPath({
-    x: bounds.x - gap,
-    y: bounds.y - gap,
-    width: bounds.width + 2 * gap,
-    height: bounds.height + 2 * gap,
-  });
+  const path = rectPath(inflate(bounds, gap));
   const color = new Color(accent);
   group.add(fillMesh(path, color, 0.14));
   const outline = strokeMesh(path, color, 1, { width: 2 / zoom, closed: true });

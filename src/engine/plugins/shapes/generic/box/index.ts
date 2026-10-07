@@ -5,7 +5,6 @@ import {
   VERTEX_DEFAULTS,
   createBox,
   createLabel,
-  dashPattern,
   fillMesh,
   flatBox,
   isoBlock,
@@ -14,8 +13,8 @@ import {
   strokeMesh,
   styleColor,
   styleFlag,
-  styleNumber,
   styleOpacity,
+  styleStroke,
 } from '../../../../core/plugins';
 import type {
   BoxDefaults,
@@ -135,13 +134,12 @@ function addPath(group: Group, shape: ShapeModel, detail: ShapeDetailPath, z: nu
     mesh.position.z = z;
     group.add(mesh);
   }
-  const stroke = styleColor(style, 'strokeColor', defaults.stroke);
-  const width = styleNumber(style, 'strokeWidth', 1);
-  if (!stroke || width <= 0) return;
-  const mesh = strokeMesh(detail.path, stroke, styleOpacity(style, 'strokeOpacity'), {
-    width,
+  const stroke = styleStroke(style, defaults.stroke);
+  if (!stroke) return;
+  const mesh = strokeMesh(detail.path, stroke.color, stroke.opacity, {
+    width: stroke.width,
     closed: detail.closed,
-    dash: dashPattern(style, width),
+    dash: stroke.dash,
   });
   if (!mesh) return;
   mesh.name = 'stroke-detail';

@@ -48,6 +48,16 @@ export function boundsOfPoints(points: readonly Point[]): Rect | undefined {
   return { x, y, width: Math.max(...xs) - x, height: Math.max(...ys) - y };
 }
 
+/** Rectangle agrandi de `by` de chaque côté (rétréci si `by` est négatif). */
+export function inflate(r: Rect, by: number): Rect {
+  return { x: r.x - by, y: r.y - by, width: r.width + 2 * by, height: r.height + 2 * by };
+}
+
+/** Distance d'un point au rectangle (bords compris) ; 0 dedans. */
+export function rectDistance(r: Rect, p: Point): number {
+  return Math.hypot(Math.max(r.x - p.x, 0, p.x - r.x - r.width), Math.max(r.y - p.y, 0, p.y - r.y - r.height));
+}
+
 /** Plus petit rectangle contenant tous les rectangles ; undefined sans rectangle. */
 export function unionOf(rects: readonly Rect[]): Rect | undefined {
   return boundsOfPoints(

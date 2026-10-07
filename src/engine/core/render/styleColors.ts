@@ -1,4 +1,26 @@
 import { Color } from 'three';
+import { styleNumber, styleOpacity } from '../model/styleValues';
+import { dashPattern } from './geometry/stroke';
+
+/** Trait d'un style draw.io : couleur, opacité, épaisseur et pointillés (sujet 307). */
+export interface StyleStroke {
+  color: Color;
+  opacity: number;
+  width: number;
+  /** Motif des pointillés (`dashed`, `dashPattern`, `fixDash`) ; undefined pour un trait plein. */
+  dash: number[] | undefined;
+}
+
+/**
+ * Trait d'un style (`strokeColor`, `fallback` si absente ou `default` ; `strokeOpacity`, `strokeWidth`, pointillés) ;
+ * undefined sans trait (`none`, ou épaisseur nulle). Lecture commune des formes, du tronc comme des plugins.
+ */
+export function styleStroke(style: Record<string, string>, fallback: string | null): StyleStroke | undefined {
+  const color = styleColor(style, 'strokeColor', fallback);
+  const width = styleNumber(style, 'strokeWidth', 1);
+  if (!color || width <= 0) return undefined;
+  return { color, opacity: styleOpacity(style, 'strokeOpacity'), width, dash: dashPattern(style, width) };
+}
 
 /** Couleurs lues dans le style du modèle neutre, défauts de draw.io (nombres, booléens : `model/styleValues.ts`). */
 
@@ -34,10 +56,16 @@ export function labelBackground(
   return styleColor(style, 'labelBackgroundColor', fallback) ?? undefined;
 }
 
-/** Texte lisible sur un fond #rrggbb : noir sur une couleur claire, blanc sinon (luminance relative, WCAG). */
-export function readableOn(background: string): string {
+/**
+ * Texte lisible sur un fond (#rrggbb ou couleur) posé à `opacity` sur la page blanche : noir sur une couleur claire,
+ * blanc sinon (luminance relative, WCAG).
+ */
+export function readableOn(background: string | Color, opacity = 1): string {
+  const hex = typeof background === 'string' ? background : `#${background.getHexString()}`;
+  // Fond posé à `opacity` sur la page blanche (sujet 307 : ex. onglet d'une région RDD), arrondi à l'octet.
   const channel = (offset: number) => {
-    const c = parseInt(background.slice(offset, offset + 2), 16) / 255;
+    const byte = Math.round(255 * (1 - opacity) + parseInt(hex.slice(offset, offset + 2), 16) * opacity);
+    const c = byte / 255;
     return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
   };
   const luminance = 0.2126 * channel(1) + 0.7152 * channel(3) + 0.0722 * channel(5);

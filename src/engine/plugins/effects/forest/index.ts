@@ -1,6 +1,7 @@
 import type { PageEffectDefinition, Point } from '../../../core/plugins';
 import { forestMesh } from './trees';
 import type { Tree } from './trees';
+import { rectDistance } from '../../../core/plugins';
 
 /** Part de l'étendue où la forêt est pleine ; elle s'éclaircit au-delà. */
 const THIN_FROM = 0.45;
@@ -83,11 +84,7 @@ export const definition: PageEffectDefinition = {
       clearance,
     } = values as Record<'size' | 'spacing' | 'density' | 'reach' | 'clearance', number>;
     const area = room.bounds ?? { x: 0, y: 0, width: 0, height: 0 };
-    const outside = (p: Point) =>
-      Math.hypot(
-        Math.max(area.x - p.x, 0, p.x - area.x - area.width),
-        Math.max(area.y - p.y, 0, p.y - area.y - area.height),
-      );
+    const outside = (p: Point) => rectDistance(area, p);
     const trees: Tree[] = [];
     const [x0, x1] = [Math.floor((area.x - reach) / CELL), Math.ceil((area.x + area.width + reach) / CELL)];
     const [y0, y1] = [Math.floor((area.y - reach) / CELL), Math.ceil((area.y + area.height + reach) / CELL)];

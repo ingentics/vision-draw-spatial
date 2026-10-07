@@ -1,6 +1,7 @@
 import type { Point, Rect } from '../../../../model/types';
 import type { PerimeterKind } from '../types';
-import { intersection, number } from '../util';
+import { intersection } from '../util';
+import { sizeOffset } from '../../../geometry/paths';
 
 /** Périmètres polygonaux (`mxPerimeter`) : étape, parallélogramme, hexagone. */
 
@@ -24,7 +25,7 @@ export function perimeterPolygon(
  * 20 par défaut ; sinon fraction, 0,2), pointe vers `direction` (à droite par défaut).
  */
 function stepPerimeter(bounds: Rect, style: Record<string, string>): Point[] {
-  const offset = perimeterSize(style, 20, 0.2);
+  const offset = sizeOffset(style, 20, 0.2);
   const { x, y, width: w, height: h } = bounds;
   const cx = x + w / 2;
   const cy = y + h / 2;
@@ -74,20 +75,12 @@ function stepPerimeter(bounds: Rect, style: Record<string, string>): Point[] {
   return [...points, points[0]!];
 }
 
-/** Décalage d'un périmètre à pans (`size`) : px avec `fixedSize=1`, sinon fraction de `length`. */
-function perimeterSize(style: Record<string, string>, fixedDefault: number, relativeDefault: number) {
-  const fixed = (style.fixedSize ?? '0') !== '0';
-  const size = number(style.size, fixed ? fixedDefault : relativeDefault);
-  return (length: number, max = length) =>
-    fixed ? Math.max(0, Math.min(max, size)) : length * Math.max(0, Math.min(1, size));
-}
-
 /**
  * `mxPerimeter.ParallelogramPerimeter` : côtés obliques décalés de `size` (px avec `fixedSize=1`, 20 par défaut,
  * au plus la demi-largeur ; sinon fraction, 0,2), debout avec `direction=north|south`.
  */
 function parallelogramPerimeter(bounds: Rect, style: Record<string, string>): Point[] {
-  const offset = perimeterSize(style, 20, 0.2);
+  const offset = sizeOffset(style, 20, 0.2);
   const { x, y, width: w, height: h } = bounds;
   if (style.direction === 'north' || style.direction === 'south') {
     const s = offset(h);
@@ -114,7 +107,7 @@ function parallelogramPerimeter(bounds: Rect, style: Record<string, string>): Po
  * `direction=north|south`), pans de `size` (px avec `fixedSize=1`, 20 par défaut ; sinon fraction, 0,25).
  */
 function hexagonPerimeter(bounds: Rect, style: Record<string, string>): Point[] {
-  const offset = perimeterSize(style, 20, 0.25);
+  const offset = sizeOffset(style, 20, 0.25);
   const { x, y, width: w, height: h } = bounds;
   const cx = x + w / 2;
   const cy = y + h / 2;

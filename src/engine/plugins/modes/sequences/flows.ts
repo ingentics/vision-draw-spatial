@@ -1,4 +1,11 @@
-import { DEFAULT_MODE_PALETTE, isHexColor, jsonListValue, modeKeys, readJsonList } from '../../../core/plugins';
+import {
+  DEFAULT_MODE_PALETTE,
+  isHexColor,
+  jsonListValue,
+  modeKeys,
+  readJsonList,
+  firstFreeName,
+} from '../../../core/plugins';
 import type { PageModel } from '../../../core/plugins';
 
 /**
@@ -61,8 +68,8 @@ export function nextFlowColor(flows: Flow[], palette: readonly string[] = FLOW_C
 
 /** Identifiant d'un nouveau flux : `f` + le plus petit numéro libre. */
 export function nextFlowId(flows: Flow[]): string {
-  const ids = new Set(flows.map((flow) => flow.id));
-  let n = 1;
-  while (ids.has(`f${n}`)) n++;
-  return `f${n}`;
+  return firstFreeName(
+    'f',
+    flows.map((flow) => flow.id),
+  );
 }

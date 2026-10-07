@@ -1,4 +1,4 @@
-import { orientedPath, styleNumber } from '../../../../core/plugins';
+import { orientedPath, sizeOffset } from '../../../../core/plugins';
 import type { ShapeDefinition, ShapeModel } from '../../../../core/plugins';
 import { box } from '../../generic/box';
 
@@ -11,10 +11,9 @@ const RELATIVE_SIZE = 0.2;
  * avec `fixedSize=1`, au plus la largeur ; sinon fraction de la largeur), orienté comme draw.io.
  */
 function outline(shape: ShapeModel) {
-  const fixed = (shape.style.fixedSize ?? '0') !== '0';
-  const size = styleNumber(shape.style, 'size', fixed ? FIXED_SIZE : RELATIVE_SIZE);
+  const offset = sizeOffset(shape.style, FIXED_SIZE, RELATIVE_SIZE);
   return orientedPath(shape.bounds, shape.style, (w, h) => {
-    const s = fixed ? Math.max(0, Math.min(w, size)) : w * Math.max(0, Math.min(1, size));
+    const s = offset(w);
     return [
       { x: 0, y: 0 },
       { x: w - s, y: 0 },

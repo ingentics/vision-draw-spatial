@@ -1,11 +1,10 @@
 import { Group } from 'three';
 import type { Point, Rect } from '../../model/types';
 import type { ReadonlyShapeModel as ShapeModel } from '../../model/readonly';
-import { dashPattern } from '../geometry/stroke';
 import { labelInsets, outsideLabelBox } from '../labelPosition';
 import { fillMesh, strokeMesh } from '../meshes';
 import { textFormat, styleNumber, styleOpacity, styleFlag } from '../../model/styleValues';
-import { labelBackground, styleColor } from '../styleColors';
+import { labelBackground, styleColor, styleStroke } from '../styleColors';
 import { PART_ORDER } from '../types';
 import type { RenderContext, TextSpec } from '../types';
 import type { SceneRenderer } from '../../shapes/types';
@@ -39,13 +38,12 @@ export function createBox(shape: ShapeModel, path: Point[], ctx: RenderContext, 
   const fill = styleColor(style, 'fillColor', defaults.fill);
   if (fill) group.add(fillMesh(path, fill, styleOpacity(style, 'fillOpacity')));
 
-  const stroke = styleColor(style, 'strokeColor', defaults.stroke);
-  const strokeWidth = styleNumber(style, 'strokeWidth', 1);
-  if (stroke && strokeWidth > 0) {
-    const mesh = strokeMesh(path, stroke, styleOpacity(style, 'strokeOpacity'), {
-      width: strokeWidth,
+  const stroke = styleStroke(style, defaults.stroke);
+  if (stroke) {
+    const mesh = strokeMesh(path, stroke.color, stroke.opacity, {
+      width: stroke.width,
       closed: true,
-      dash: dashPattern(style, strokeWidth),
+      dash: stroke.dash,
     });
     if (mesh) group.add(mesh);
   }

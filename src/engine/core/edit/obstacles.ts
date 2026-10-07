@@ -1,4 +1,5 @@
 import type { Point, Rect } from '../model/types';
+import { inflate } from '../model/geometry';
 
 /**
  * Bornes d'un déplacement ou d'un redimensionnement (sujet 241) : des obstacles (ex. régions sœurs d'une région RDD)
@@ -15,14 +16,6 @@ export interface Clamped<T> {
 }
 
 const EPSILON = 1e-6;
-
-/** Rectangle agrandi de `gap` de chaque côté. */
-const inflate = (r: Rect, gap: number): Rect => ({
-  x: r.x - gap,
-  y: r.y - gap,
-  width: r.width + 2 * gap,
-  height: r.height + 2 * gap,
-});
 
 /** Les intervalles [a, a + la] et [b, b + lb] se recouvrent-ils (bords exclus) ? */
 const crosses = (a: number, la: number, b: number, lb: number) => a < b + lb - EPSILON && b < a + la - EPSILON;

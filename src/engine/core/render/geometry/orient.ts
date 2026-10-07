@@ -10,11 +10,20 @@ import { styleFlag } from '../../model/styleValues';
  * dessin est ensuite tourné autour du centre (south 90°, west 180°, north 270°, sens horaire à l'écran),
  * puis retourné (`flipH`, `flipV`, échangés pour un cadre couché) comme le fait le canevas de draw.io.
  */
-export function orientedPath(
-  bounds: Rect,
-  style: Record<string, string>,
-  draw: (w: number, h: number) => Point[],
-): Point[] {
+
+/** Orientation d'une forme dans ses bornes : cadre local, et passage d'un point ou d'une direction de ce cadre à la page. */
+export interface Orientation {
+  /** Taille du cadre local (largeur et hauteur échangées avec `direction=north|south`). */
+  width: number;
+  height: number;
+  /** Point du cadre local (origine en haut à gauche) vers la page. */
+  map(point: Point): Point;
+  /** Direction du cadre local vers la page (rotation et retournement, sans translation). */
+  direction(vector: Point): Point;
+}
+
+/** Orientation de la forme de bornes `bounds` et de style `style` (sujet 307 : commune à `orientedPath` et aux formes). */
+export function orientation(bounds: Rect, style: Record<string, string>): Orientation {
   const direction = style.direction;
   const inverted = direction === 'north' || direction === 'south';
   let { x, y, width: w, height: h } = bounds;
@@ -24,7 +33,6 @@ export function orientedPath(
     y -= shift;
     [w, h] = [h, w];
   }
-  const local = draw(w, h).map((p) => ({ x: x + p.x, y: y + p.y }));
 
   // Cadre couché (north / south) : draw.io échange aussi les deux retournements (mxShape.apply).
   const flipH = styleFlag(style, inverted ? 'flipV' : 'flipH');
@@ -34,20 +42,41 @@ export function orientedPath(
   // Un seul retournement : l'angle change de sens (le miroir est appliqué après la rotation).
   if (flipH !== flipV) theta = -theta;
   const mirror = flipH !== flipV;
-  if (theta % 360 === 0 && !mirror) return local;
-
-  const cx = bounds.x + bounds.width / 2;
-  const cy = bounds.y + bounds.height / 2;
   const rad = (theta * Math.PI) / 180;
   const cos = Math.round(Math.cos(rad) * 1e12) / 1e12;
   const sin = Math.round(Math.sin(rad) * 1e12) / 1e12;
-  return local.map((p) => {
-    const dx = p.x - cx;
-    const dy = p.y - cy;
-    let px = cx + dx * cos - dy * sin;
-    let py = cy + dx * sin + dy * cos;
-    if (mirror && flipH) px = 2 * cx - px;
-    if (mirror && flipV) py = 2 * cy - py;
-    return { x: px, y: py };
-  });
+  const turn = (v: Point): Point => {
+    let dx = v.x * cos - v.y * sin;
+    let dy = v.x * sin + v.y * cos;
+    if (mirror && flipH) dx = -dx;
+    if (mirror && flipV) dy = -dy;
+    return { x: dx, y: dy };
+  };
+  const identity = theta % 360 === 0 && !mirror;
+  const cx = bounds.x + bounds.width / 2;
+  const cy = bounds.y + bounds.height / 2;
+  return {
+    width: w,
+    height: h,
+    map: (p) => {
+      const local = { x: x + p.x, y: y + p.y };
+      if (identity) return local;
+      const v = turn({ x: local.x - cx, y: local.y - cy });
+      return { x: cx + v.x, y: cy + v.y };
+    },
+    direction: (v) => (identity ? { ...v } : turn(v)),
+  };
+}
+
+/**
+ * Contour orienté : dessiné par `draw(largeur, hauteur)` dans le cadre local de la forme, puis placé dans ses bornes
+ * (`orientation`).
+ */
+export function orientedPath(
+  bounds: Rect,
+  style: Record<string, string>,
+  draw: (w: number, h: number) => Point[],
+): Point[] {
+  const oriented = orientation(bounds, style);
+  return draw(oriented.width, oriented.height).map(oriented.map);
 }

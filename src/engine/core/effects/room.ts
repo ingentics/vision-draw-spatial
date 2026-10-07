@@ -3,7 +3,7 @@ import type { PageModel, Point, Rect } from '../model/types';
 import { outsideLabelBox } from '../render/labelPosition';
 import { edgeRoute } from '../render/pageScene';
 import type { EffectRoom } from './types';
-import { boundsOfPoints, distance, segmentDistance, unionOf } from '../model/geometry';
+import { boundsOfPoints, distance, segmentDistance, unionOf, rectDistance } from '../model/geometry';
 
 /** Texte de flèche (texte troika) : de quoi estimer son encombrement. */
 interface LabelText {
@@ -54,11 +54,7 @@ export function pageRoom(page: PageModel, root: Object3D): EffectRoom {
     ]),
     distance(p) {
       let best = Infinity;
-      for (const r of rects) {
-        const dx = Math.max(r.x - p.x, 0, p.x - r.x - r.width);
-        const dy = Math.max(r.y - p.y, 0, p.y - r.y - r.height);
-        best = Math.min(best, Math.hypot(dx, dy));
-      }
+      for (const r of rects) best = Math.min(best, rectDistance(r, p));
       for (const [a, b] of segments) best = Math.min(best, segmentDistance(p, a, b));
       for (const { center, radius } of circles) best = Math.min(best, Math.max(0, distance(center, p) - radius));
       return best;

@@ -3,7 +3,7 @@ import type { PerimeterKind, Terminal } from '../types';
 import { number } from '../util';
 import { perimeterPolygon, polygonPerimeter } from './polygons';
 import { ellipsePerimeter, rectanglePerimeter, rhombusPerimeter, trianglePerimeter } from './shapePerimeters';
-import { center } from '../../../../model/geometry';
+import { center, inflate } from '../../../../model/geometry';
 
 /** Périmètres des formes (`mxPerimeter`) : choix du périmètre et point du contour visé depuis un point voisin. */
 
@@ -35,8 +35,7 @@ export function perimeterKind(style: Record<string, string>, names: string[]): P
 
 export function perimeterBounds(terminal: Terminal, border: number): Rect {
   const grow = border + number(terminal.style?.perimeterSpacing, 0);
-  const b = terminal.bounds;
-  return { x: b.x - grow, y: b.y - grow, width: b.width + 2 * grow, height: b.height + 2 * grow };
+  return inflate(terminal.bounds, grow);
 }
 
 /** Point du contour visé depuis `next` (mxGraphView.getPerimeterPoint), `orthogonal` : projeté dans l'axe. */

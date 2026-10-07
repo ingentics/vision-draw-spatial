@@ -11,10 +11,17 @@ import {
   spatialValue,
   strokeMesh,
   styleColor,
-  styleNumber,
-  styleOpacity,
+  styleStroke,
 } from '../../../../core/plugins';
-import type { Point, Rect, RenderContext, SceneRenderer, ShapeModel, ShapeProperty } from '../../../../core/plugins';
+import type {
+  Point,
+  Rect,
+  RenderContext,
+  SceneRenderer,
+  ShapeModel,
+  ShapeProperty,
+  StyleStroke,
+} from '../../../../core/plugins';
 
 /**
  * Étiquette des façades d'un bâtiment iso (BDD, queue, cache) : remplace « DB »… ; vide = aucune. Aussi le mot de la
@@ -85,14 +92,11 @@ export function darker(shape: ShapeModel, factor: number): string {
   return `#${fill.clone().multiplyScalar(factor).getHexString()}`;
 }
 
-/** Style de trait de la forme (couleur, opacité, épaisseur), ou rien sans bordure. */
-/** Trait de la forme. */
-export type Stroke = { color: Color; opacity: number; width: number };
+/** Trait de la forme (couleur, opacité, épaisseur ; pointillés ignorés par les gravures), ou rien sans bordure. */
+export type Stroke = StyleStroke;
 
 export function strokeOf(shape: ShapeModel): Stroke | undefined {
-  const color = styleColor(shape.style, 'strokeColor', VERTEX_DEFAULTS.stroke);
-  const width = styleNumber(shape.style, 'strokeWidth', 1);
-  return color && width > 0 ? { color, opacity: styleOpacity(shape.style, 'strokeOpacity'), width } : undefined;
+  return styleStroke(shape.style, VERTEX_DEFAULTS.stroke);
 }
 
 /**
