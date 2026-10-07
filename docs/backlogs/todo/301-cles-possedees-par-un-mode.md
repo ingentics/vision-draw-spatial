@@ -19,10 +19,18 @@
   - `PageModeDefinition.namespace` (obligatoire, `^[a-z][a-z0-9]*$`), distinct de l'id : `rdd` pour RDD, `seq` pour
     Séquences ;
   - deux modes ne peuvent pas déclarer le même espace de noms (erreur à l'enregistrement) ;
-  - un mode n'écrit, par `setPageAttribute` et `setElementAttribute`, que des clés `spatial.<namespace>.<nom>`, et
-    seulement celles-là ; toute autre clé `spatial.*` lève une exception (opération annulée et signalée, sujet 288) ;
-  - le mode écrit et lit ses clés par leur nom court ou complet, au choix motivé dans le « Fait : » (ex.
-    `edit.setElementAttribute(id, 'flow', …)` préfixé par le moteur, ou constantes `spatial.seq.flow` dans le mode).
+  - un mode n'écrit, par `setPageAttribute` et `setElementAttribute`, que des clés `spatial.<namespace>.<nom>` ; une
+    clé invalide lève une exception (opération annulée et signalée, sujet 288) ;
+  - le mode désigne ses clés par leur **nom court** et le moteur ajoute le préfixe (décidé le 2026-10-07) : le mode
+    ne peut pas sortir de son espace de noms, même par erreur, et ne voit jamais le préfixe :
+    - écriture : `edit.setElementAttribute(id, 'flow', '3')` écrit `spatial.seq.flow=3` ; même chose pour
+      `setPageAttribute` ;
+    - lecture : accès fournis au mode qui ajoutent le préfixe (ex. `edit.value(element, 'flow')`, et une lecture
+      équivalente pour les points d'entrée qui ne reçoivent pas `ModeEdit` : `dressing`, `parts`, `current`…, forme
+      exacte décidée au ticket) ; ils remplacent les lectures directes `spatialValue(element, FLOW)` des deux modes ;
+    - réglages déclarés : `ModeProperty.key` est un nom court, préfixé par le moteur pour la lecture et l'écriture
+      par défaut ;
+    - un nom court est validé par `^[A-Za-z][\w.-]*$` ; un nom qui commence par `spatial.` est refusé.
 - Clés renommées (liste à compléter en relevant les clés lues et écrites par les deux modes) :
   | Avant | Après |
   |---|---|
@@ -39,8 +47,7 @@
     plus tard par un sujet à part).
 - Dans tous les cas :
   - les clés de `SPATIAL` (tronc) sont refusées aux modes ;
-  - clés validées par expression régulière : attribut `^spatial\.[a-z][a-z0-9]*\.[\w.-]+$`, style
-    `^[A-Za-z][\w.:-]*$` ; une clé invalide lève une exception ;
+  - clés de style validées par expression régulière (`^[A-Za-z][\w.:-]*$`) ; une clé invalide lève une exception ;
   - `setElementStyle` refuse `locked`, `movable`, `resizable`, `editable`, `deletable` ;
   - `setShapeBounds`, `sendToBack`, `setElementStyle` et `setEdgeEndText` ignorent un élément verrouillé
     (`isLocked`), comme les gestes du tronc ;
@@ -49,8 +56,9 @@
 - RDD, Séquences, le mode de test, les fixtures (`tests/fixtures/*.drawio` et leurs copies `drawio-saved/`),
   `AJOUTER_UN_MODE.md` (définition, table des garanties, clés) et la SPEC §14.3 mis à jour.
 - **Fini quand :**
-  - tests : un mode de test qui écrit `spatial.mode`, une clé d'un autre espace de noms, une clé hors espace de noms,
-    une clé injectée (`;`, espace) et les bornes d'une forme verrouillée ; rien n'est écrit, l'erreur est signalée ;
+  - tests : écrire `mode` arrive en `spatial.<namespace>.mode`, pas en `spatial.mode` ; une opération qui écrit un
+    nom complet (`spatial.mode`, `spatial.rdd.fields`), un nom injecté (`;`, `=`, espace) ou la clé de style `locked`
+    n'écrit rien et est signalée ; les bornes d'une forme verrouillée ne changent pas ;
     deux modes au même espace de noms : erreur à l'enregistrement ;
   - migration : une fixture aux anciennes clés (RDD et Séquences) s'ouvre identique à l'œil ; après ouverture,
     plus aucune ancienne clé dans le fichier enregistré, une annulation les remet ;
