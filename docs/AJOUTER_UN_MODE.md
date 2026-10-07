@@ -67,6 +67,9 @@ page, section au nom du mode dans le panneau d'une flèche ou d'une forme. Par d
 `key` de sa cible ; `value`, `write` et `hidden` le font passer par les règles du mode (ex. le rang d'une flèche, qui
 s'échange avec une autre).
 
+Un réglage peut aller dans sa propre section du panneau (`section`, son titre ; défaut : la section au nom du mode,
+sujet 260), et être en lecture seule selon sa cible (`readOnly` fonction, ex. label de la clé primaire).
+
 Un réglage `button` (sujet 253) est un bouton sur toute la largeur de la section, dont le clic appelle `write`.
 `write` peut renvoyer une partie de la forme : elle est alors sélectionnée et son texte passe en édition (ex.
 séparateur ajouté) ; `anyPart` montre le réglage que la forme seule ou une de ses parties soit sélectionnée.
@@ -128,7 +131,9 @@ paramètres « Modes › Séquences » (clés `shapes.edgeBadge…`, communes à
   emprise (`bounds`), et pré-sélectionnée au survol (fond plus léger, sujet 259) ; Échap revient à la forme. `text` / `setText` : texte modifiable sur place au double-clic, sur une
   ligne (Entrée valide), écrit par une opération du mode (une étape d'annulation). `remove` : Suppr sur la partie
   sélectionnée la retire (sujet 251) ; la forme n'est jamais supprimée à sa place, et un refus du mode laisse tout tel
-  quel. `textPreview` (sujet 253) : la forme telle qu'elle serait avec le texte en cours de saisie, redessinée en
+  quel. `comment` / `setComment` (sujet 262) : commentaire d'une partie (titre et texte, vide s'il n'y en a pas,
+  undefined si elle ne peut pas en avoir), montré dans l'encart au survol après celui de la forme, et édité en texte
+  brut par la touche C quand la partie est sélectionnée ou survolée. `textPreview` (sujet 253) : la forme telle qu'elle serait avec le texte en cours de saisie, redessinée en
   direct ; les objets du texte dessiné de la partie (marqués `userData.part`) sont masqués pendant l'édition, et
   `ModePartText` peut demander un éditeur sans fond (`transparent`), centré (`center`), d'une couleur (`color`). Les
   touches du mode (`keys`) reçoivent aussi la partie sélectionnée et peuvent renvoyer la partie à sélectionner.

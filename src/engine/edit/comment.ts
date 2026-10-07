@@ -13,6 +13,11 @@ export const COMMENT_HTML_ATTRIBUTE = 'spatial.commentHtml';
 export interface ElementComment {
   text: string;
   html?: string;
+  /**
+   * Au survol seulement (sujet 262) : commentaire de la partie survolée de la forme (ex. champ d'une table RDD), montré
+   * après celui de l'élément (vide s'il n'en a pas), séparé d'un trait, sous son titre en gras.
+   */
+  part?: { title: string; text: string };
 }
 
 /** Commentaire de l'élément ; undefined s'il n'en a pas (ou s'il est vide). */
@@ -24,7 +29,18 @@ export function commentOf(element: ShapeModel | EdgeModel): ElementComment | und
   return text.trim() ? { text, html: raw } : undefined;
 }
 
+/**
+ * Commentaire montré au survol d'une partie commentée d'une forme (sujet 262) : celui de la forme (texte vide s'il
+ * n'en a pas), avec celui de la partie à part.
+ */
+export const withPartComment = (
+  shape: ElementComment | undefined,
+  part: { title: string; text: string },
+): ElementComment => ({ ...(shape ?? { text: '' }), part });
+
 /** Même commentaire (texte et mise en forme). */
 export function sameComment(a: ElementComment | undefined, b: ElementComment | undefined): boolean {
-  return a?.text === b?.text && a?.html === b?.html;
+  return (
+    a?.text === b?.text && a?.html === b?.html && a?.part?.title === b?.part?.title && a?.part?.text === b?.part?.text
+  );
 }

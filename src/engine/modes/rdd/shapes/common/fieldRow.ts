@@ -42,6 +42,8 @@ function fieldIcon(field: Field, center: Point, scale: number): Group {
   group.userData.nullable = field.nullable;
   const unit = (TABLE.fieldIcon.size / 12) * scale;
   const fill = fillMesh(diamond(center, ICON.half * unit), new Color(FIELD_KIND_COLORS[field.kind]), 1);
+  // Au-dessus du fond blanc de la table (même ordre sinon : selon le tri de Three.js, le fond pouvait le couvrir).
+  fill.renderOrder = PART_ORDER.fill + 0.6;
   group.add(fill);
   const stroke = strokeMesh(diamond(center, ICON.half * unit), new Color(ICON_STROKE), 1, {
     width: ICON.stroke * unit,

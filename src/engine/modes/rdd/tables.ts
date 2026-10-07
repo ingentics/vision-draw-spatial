@@ -14,8 +14,6 @@ import { spatialValue } from '../../spatial';
 export const FIELDS = 'spatial.fields';
 /** Table secondaire (`1`) : rendu 20 % plus petit. */
 export const SECONDARY = 'spatial.secondary';
-/** Icône d'entête masquée (`0`) ; absent = affichée, pour une table qui en a une (sujet 222). */
-export const ICON = 'spatial.icon';
 /** Échelle d'une table secondaire. */
 export const SECONDARY_SCALE = 0.8;
 
@@ -62,7 +60,10 @@ export type HeaderMark = 'binoculars' | 'list' | 'plug';
  */
 export interface TableKind {
   italic?: boolean;
-  primaryKey?: boolean;
+  /** Clé primaire `id` en tête, et son type imposé (sujet 260) : « Primary key » (entité) ou « Mot » (énumération). */
+  primaryKey?: KeyType;
+  /** Champs qui peuvent être déclarés uniques (sujet 260 : entité, énumération, embedded). */
+  uniqueFields?: boolean;
   /** Cadre double autour de l'entête (sujet 215). */
   doubleHeader?: boolean;
   /** Champs en italique : indicatifs, sans contrainte (document JSONB, sujet 181). */
@@ -82,6 +83,10 @@ export interface TableKind {
 /** Rôle d'un champ (sujet 246) : clé primaire, propriété, clé étrangère, clé étrangère d'un autre domaine. */
 export type FieldKind = 'pk' | 'property' | 'fk' | 'external-fk';
 export const FIELD_KINDS: readonly FieldKind[] = ['pk', 'property', 'fk', 'external-fk'];
+
+/** Types imposés de la clé primaire (sujet 260), hors de la liste des autres champs. */
+export const KEY_TYPES = { 'primary-key': 'Primary key', word: 'Mot' } as const satisfies Record<string, string>;
+export type KeyType = keyof typeof KEY_TYPES;
 
 /** Types de donnée d'un champ : identifiant écrit dans le fichier, libellé affiché. */
 export const FIELD_TYPES = {
@@ -103,7 +108,21 @@ export interface Field {
   label: string;
   type: string;
   nullable: boolean;
+  /** Valeurs uniques (sujet 260 ; entité, énumération, embedded ; jamais la clé primaire). */
+  unique?: boolean;
+  /** Commentaire du champ (sujet 260). */
+  comment?: string;
+  /** PostgreSQL (sujet 260) : nom de la colonne et son type (texte libre, ex. `varchar(255)`). */
+  pgName?: string;
+  pgType?: string;
+  /** Gouvernance (sujet 260) : soumis au GDPR, donnée personnelle. */
+  gdpr?: boolean;
+  personal?: boolean;
 }
+
+/** Propriétés facultatives d'un champ : écrites seulement si elles sont renseignées (sujet 260). */
+const OPTIONAL_FLAGS = ['unique', 'gdpr', 'personal'] as const;
+const OPTIONAL_TEXTS = ['comment', 'pgName', 'pgType'] as const;
 
 /** Séparateur entre les champs (sujet 253) : un trait, son label éventuel au milieu. */
 export interface Divider {
@@ -119,8 +138,22 @@ export const isDivider = (row: TableRow): row is Divider => 'divider' in row;
 /** La ligne est-elle la clé primaire ? */
 export const isPrimaryKey = (row: TableRow | undefined): boolean => !!row && !isDivider(row) && row.kind === 'pk';
 
-/** Clé primaire des tables qui en ont une : premier champ, jamais nullable, ni retirée ni déplacée. */
-export const PRIMARY_KEY: Field = { kind: 'pk', label: 'id', type: 'integer', nullable: false };
+/** Label de la clé primaire : toujours `id` (sujet 260). */
+export const PRIMARY_KEY = 'id';
+
+/**
+ * Clé primaire d'une table qui en a une : premier champ, `id`, du type imposé par la table (sujet 260), jamais nullable
+ * ni unique (elle l'est par nature), ni retirée ni déplacée ; ses autres propriétés (commentaire, PostgreSQL,
+ * gouvernance) sont gardées.
+ */
+export const primaryKeyField = (type: KeyType, from?: Field): Field => ({
+  ...from,
+  kind: 'pk',
+  label: PRIMARY_KEY,
+  type,
+  nullable: false,
+  unique: undefined,
+});
 
 /** Ligne lue du fichier ; undefined pour une entrée illisible (sans label, kind inconnu…). */
 function readField(item: unknown): TableRow | undefined {
@@ -128,13 +161,17 @@ function readField(item: unknown): TableRow | undefined {
   const { kind, label, type, nullable, divider } = item as Record<string, unknown>;
   if (divider === true) return { divider: true, label: typeof label === 'string' ? label : '' };
   if (typeof label !== 'string' || !FIELD_KINDS.includes(kind as FieldKind)) return undefined;
-  return {
+  const field: Field = {
     kind: kind as FieldKind,
     label,
     type: typeof type === 'string' ? type : '',
     // Une clé primaire n'est jamais nullable, quoi qu'en dise le fichier.
     nullable: nullable === true && kind !== 'pk',
   };
+  const record = item as Record<string, unknown>;
+  for (const key of OPTIONAL_FLAGS) if (record[key] === true) field[key] = true;
+  for (const key of OPTIONAL_TEXTS) if (typeof record[key] === 'string' && record[key]) field[key] = record[key];
+  return field;
 }
 
 /** Entrées brutes de `spatial.fields` ; undefined si la valeur n'est pas une liste JSON. */
@@ -154,7 +191,14 @@ export const fieldsValue = (rows: readonly TableRow[]): string | undefined =>
         rows.map((row) =>
           isDivider(row)
             ? { divider: true, label: row.label }
-            : { kind: row.kind, label: row.label, type: row.type, nullable: row.kind !== 'pk' && row.nullable },
+            : {
+                kind: row.kind,
+                label: row.label,
+                type: row.type,
+                nullable: row.kind !== 'pk' && row.nullable,
+                ...Object.fromEntries(OPTIONAL_FLAGS.filter((key) => row[key]).map((key) => [key, true])),
+                ...Object.fromEntries(OPTIONAL_TEXTS.filter((key) => row[key]).map((key) => [key, row[key]])),
+              },
         ),
       )
     : undefined;
@@ -166,10 +210,10 @@ export const fieldsValue = (rows: readonly TableRow[]): string | undefined =>
  */
 export const TABLE_KINDS: Record<string, TableKind> = {
   'rdd-model': { italic: true },
-  'rdd-entity': { primaryKey: true },
-  'rdd-enum': { primaryKey: true, doubleHeader: true, mark: 'list' },
+  'rdd-entity': { primaryKey: 'primary-key', uniqueFields: true },
+  'rdd-enum': { primaryKey: 'word', uniqueFields: true, doubleHeader: true, mark: 'list' },
   // Sujet 181 : objet incorporé (bas ondulé, sujet 219), document JSONB (clés indicatives), vue (coins arrondis).
-  'rdd-embedded': { wavy: true, mark: 'plug' },
+  'rdd-embedded': { wavy: true, mark: 'plug', uniqueFields: true },
   'rdd-document': { italicFields: true, requiredName: 'Document', folded: true },
   'rdd-view': { style: 'rounded=1;absoluteArcSize=1;arcSize=16;', mark: 'binoculars' },
 };
@@ -191,14 +235,16 @@ export function fieldsOf(shape: ShapeModel): TableRow[] {
  */
 export function tableFields(shape: ShapeModel): TableRow[] {
   const rows = fieldsOf(shape);
-  if (!tableKindOf(shape)?.primaryKey) return rows;
-  const key = rows.find(isPrimaryKey);
-  return [key ?? PRIMARY_KEY, ...rows.filter((row) => row !== key)];
+  const type = tableKindOf(shape)?.primaryKey;
+  if (!type) return rows;
+  const key = rows.find(isPrimaryKey) as Field | undefined;
+  // `id` et le type imposé, quoi qu'en dise le fichier (sujet 260).
+  return [primaryKeyField(type, key), ...rows.filter((row) => row !== key)];
 }
 
 /** La clé primaire manque ou n'est pas en tête dans le fichier (fichier modifié à la main) ? */
 export const misplacedPrimaryKey = (shape: ShapeModel) =>
-  tableKindOf(shape)?.primaryKey === true && !isPrimaryKey(fieldsOf(shape)[0]);
+  tableKindOf(shape)?.primaryKey !== undefined && !isPrimaryKey(fieldsOf(shape)[0]);
 
 /**
  * Défauts de `spatial.fields` d'une table (fichier modifié à la main) : valeur ou entrées illisibles, type inconnu,
@@ -213,7 +259,7 @@ export function fieldProblems(shape: ShapeModel): string[] {
   if (unreadable > 0) problems.push(`${unreadable} champ(s) illisible(s), ignoré(s)`);
   for (const row of fieldsOf(shape)) {
     // Sans type (sujet 256) : permis ; seul un type écrit et inconnu est signalé.
-    if (!isDivider(row) && row.type && !(row.type in FIELD_TYPES))
+    if (!isDivider(row) && row.kind !== 'pk' && row.type && !(row.type in FIELD_TYPES))
       problems.push(`champ ${row.label} : type « ${row.type} » inconnu`);
   }
   if (raw.some((item) => isPrimaryKey(readField(item)) && (item as { nullable?: unknown }).nullable === true)) {
@@ -226,11 +272,8 @@ export function fieldProblems(shape: ShapeModel): string[] {
 export const missingName = (shape: ShapeModel) =>
   tableKindOf(shape)?.requiredName !== undefined && shape.label.trim() === '';
 
-/** Icône d'entête affichée : celle de la forme de table, sauf si la table la masque (`spatial.icon=0`). */
-export function shownMark(shape: ShapeModel): HeaderMark | undefined {
-  const mark = tableKindOf(shape)?.mark;
-  return mark && spatialValue(shape, ICON) !== '0' ? mark : undefined;
-}
+/** Icône d'entête : celle de la forme de table, toujours affichée (sujet 260 ; `spatial.icon=0` est ignoré). */
+export const shownMark = (shape: ShapeModel): HeaderMark | undefined => tableKindOf(shape)?.mark;
 
 export const isSecondary = (shape: ShapeModel) => spatialValue(shape, SECONDARY) === '1';
 
@@ -259,7 +302,11 @@ export function markInset(): number {
 
 /** Type affiché d'un champ : son libellé, ou l'identifiant tel quel s'il est inconnu ; vide sans type. */
 export const fieldTypeLabel = (type: string): string =>
-  type in FIELD_TYPES ? FIELD_TYPES[type as keyof typeof FIELD_TYPES] : type;
+  type in FIELD_TYPES
+    ? FIELD_TYPES[type as keyof typeof FIELD_TYPES]
+    : type in KEY_TYPES
+      ? KEY_TYPES[type as KeyType]
+      : type;
 
 /**
  * Mise en page d'une ligne de champ (sujet 248), en abscisses depuis le bord gauche de la table, à l'échelle 1 : icône

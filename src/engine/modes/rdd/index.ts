@@ -1,8 +1,6 @@
 import type { ShapeModel } from '../../model/types';
 import type { ModeTarget, PageModeDefinition } from '../types';
 import {
-  DEFAULT_HEADER_COLOR,
-  ICON,
   PRIMARY_KEY,
   SECONDARY,
   TABLE_KINDS,
@@ -10,16 +8,13 @@ import {
   isSecondary,
   misplacedPrimaryKey,
   missingName,
-  FIELD_TYPES,
-  isDivider,
-  shownMark,
   tableFields,
   tableKindOf,
 } from './tables';
-import { addDivider, fitTable, setField, setHeaderColor, setIcon, setSecondary } from './operations';
+import { addDivider, fitTable, setSecondary } from './operations';
 import { fieldHandleClicked, fieldHandles } from './fieldHandles';
-import { fieldIndex, fieldParts } from './fieldParts';
-import type { Field, FieldKind, TableRow } from './tables';
+import { fieldParts } from './fieldParts';
+import { FIELD_PROPERTIES, rowOf, tableOf } from './fieldProperties';
 import {
   REGION_COLORS,
   REGION_KIND,
@@ -31,45 +26,15 @@ import {
   setRegionColor,
 } from './regions';
 
-/** Table du mode sélectionnée ; undefined pour une flèche, la page ou une autre forme. */
-const tableOf = (target: ModeTarget): ShapeModel | undefined =>
-  'kind' in target && tableKindOf(target) ? target : undefined;
 const notTable = (_page: unknown, target: ModeTarget) => !tableOf(target);
-/** Ligne sélectionnée d'une table (champ, sujet 249, ou séparateur, sujet 253) : la table, le rang et la ligne. */
-function rowOf(
-  target: ModeTarget,
-  part: string | undefined,
-): { shape: ShapeModel; index: number; row: TableRow } | undefined {
-  const shape = tableOf(target);
-  const index = shape && fieldIndex(shape, part);
-  return shape && index !== undefined ? { shape, index, row: tableFields(shape)[index]! } : undefined;
-}
-/** Champ sélectionné d'une table (pas un séparateur). */
-function fieldOf(
-  target: ModeTarget,
-  part: string | undefined,
-): { shape: ShapeModel; index: number; field: Field } | undefined {
-  const selected = rowOf(target, part);
-  return selected && !isDivider(selected.row) ? { ...selected, field: selected.row } : undefined;
-}
-/** Kinds proposés pour un champ : jamais la clé primaire, unique et en tête. */
-const FIELD_KIND_OPTIONS: Array<{ value: Exclude<FieldKind, 'pk'>; label: string }> = [
-  { value: 'property', label: 'Propriété' },
-  { value: 'fk', label: 'Clé étrangère' },
-  { value: 'external-fk', label: 'Clé étrangère (autre domaine)' },
-];
-const notField = (_page: unknown, target: ModeTarget, part?: string) => !fieldOf(target, part);
-/** Pas de champ, ou la clé primaire (ni kind ni nullable modifiables). */
-const notPlainField = (_page: unknown, target: ModeTarget, part?: string) =>
-  (fieldOf(target, part)?.field.kind ?? 'pk') === 'pk';
 /** Région du mode sélectionnée (sujet 182). */
 const regionTarget = (target: ModeTarget): ShapeModel | undefined =>
   'kind' in target && isRegion(target) ? target : undefined;
 
 /**
  * Mode « RDD — Relational Database Designer » (sujet 179) : une page de tables (modèles, entités…), lue à plat. Ses
- * formes sont les seules de la palette ; leurs réglages (champs, couleur d'entête, table secondaire) sont ceux du
- * mode. Dans draw.io, une table est un swimlane de la couleur de son entête.
+ * formes sont les seules de la palette ; leurs réglages (champs, table secondaire) sont ceux du mode, la couleur de
+ * l'entête vient du style de la forme (sujet 260). Dans draw.io, une table est un swimlane de la couleur de son entête.
  */
 export const definition: PageModeDefinition = {
   id: 'rdd',
@@ -88,20 +53,6 @@ export const definition: PageModeDefinition = {
   shapes: [...Object.keys(TABLE_KINDS), REGION_KIND],
   paletteCategories: [{ id: 'rdd', name: 'RDD', order: 5 }],
   shapeProperties: [
-    {
-      type: 'select',
-      key: 'fillColor',
-      label: 'Couleur',
-      title: 'Couleur de l’entête (fillColor) ; texte noir ou blanc selon le contraste',
-      options: (_page, palette) =>
-        [...new Set([DEFAULT_HEADER_COLOR, ...palette])].map((color) => ({ value: color, label: color, color })),
-      value: (_page, target) => tableOf(target)?.style.fillColor,
-      write: (edit, target, value) => {
-        const shape = tableOf(target);
-        if (shape) setHeaderColor(edit, shape, value);
-      },
-      hidden: notTable,
-    },
     {
       // Région (sujets 182, 233) : sa propre palette, bordure grise.
       type: 'select',
@@ -132,24 +83,6 @@ export const definition: PageModeDefinition = {
       hidden: notTable,
     },
     {
-      type: 'toggle',
-      key: ICON,
-      label: 'Icône',
-      title: 'Icône de la table en haut à droite de l’entête (spatial.icon=0 la masque)',
-      value: (_page, target) => {
-        const shape = tableOf(target);
-        return shape && shownMark(shape) ? '1' : undefined;
-      },
-      write: (edit, target, value) => {
-        const shape = tableOf(target);
-        if (shape) setIcon(edit, shape, value === '1');
-      },
-      hidden: (_page, target) => {
-        const shape = tableOf(target);
-        return !shape || !tableKindOf(shape)?.mark;
-      },
-    },
-    {
       type: 'text',
       key: 'rdd.primaryKey',
       label: 'Clé primaire',
@@ -164,83 +97,8 @@ export const definition: PageModeDefinition = {
         return !shape || !tableKindOf(shape)?.primaryKey;
       },
     },
-    // Champ sélectionné dans sa table (sujet 249).
-    {
-      type: 'text',
-      part: true,
-      key: 'rdd.field.label',
-      label: 'Champ',
-      title: 'Nom du champ (double-clic sur la ligne : modification sur place) ; jamais vide',
-      value: (_page, target, part) => fieldOf(target, part)?.field.label,
-      write: (edit, target, value, part) => {
-        const selected = fieldOf(target, part);
-        if (selected) setField(edit, selected.shape, selected.index, { label: value ?? '' });
-      },
-      hidden: notField,
-    },
-    {
-      // Séparateur sélectionné (sujet 253) : son texte, vide permis (un simple trait).
-      type: 'text',
-      part: true,
-      key: 'rdd.divider.label',
-      label: 'Séparateur',
-      title: 'Texte au milieu du séparateur ; vide : un simple trait',
-      value: (_page, target, part) => rowOf(target, part)?.row.label,
-      write: (edit, target, value, part) => {
-        const selected = rowOf(target, part);
-        if (selected) fieldParts.setText!(edit, selected.shape, String(selected.index), value ?? '');
-      },
-      hidden: (_page, target, part) => {
-        const selected = rowOf(target, part);
-        return !selected || !isDivider(selected.row);
-      },
-    },
-    {
-      // Type de donnée, modifiable à tout moment (sujet 256) ; « Aucun » pour un champ ajouté par le « + ».
-      type: 'select',
-      part: true,
-      key: 'rdd.field.type',
-      label: 'Type',
-      title: 'Type de donnée du champ',
-      options: () => [
-        { value: '', label: 'Aucun' },
-        ...Object.entries(FIELD_TYPES).map(([value, label]) => ({ value, label })),
-      ],
-      value: (_page, target, part) => fieldOf(target, part)?.field.type,
-      write: (edit, target, value, part) => {
-        const selected = fieldOf(target, part);
-        if (selected) setField(edit, selected.shape, selected.index, { type: value ?? '' });
-      },
-      hidden: notField,
-    },
-    {
-      type: 'select',
-      part: true,
-      key: 'rdd.field.kind',
-      label: 'Rôle',
-      title: 'Propriété, clé étrangère, ou clé étrangère vers un autre domaine',
-      options: () => FIELD_KIND_OPTIONS,
-      value: (_page, target, part) => fieldOf(target, part)?.field.kind,
-      write: (edit, target, value, part) => {
-        const selected = fieldOf(target, part);
-        const kind = FIELD_KIND_OPTIONS.find((option) => option.value === value)?.value;
-        if (selected && kind) setField(edit, selected.shape, selected.index, { kind });
-      },
-      hidden: notPlainField,
-    },
-    {
-      type: 'toggle',
-      part: true,
-      key: 'rdd.field.nullable',
-      label: 'Nullable',
-      title: 'Le champ peut être vide (NULL)',
-      value: (_page, target, part) => (fieldOf(target, part)?.field.nullable ? '1' : undefined),
-      write: (edit, target, value, part) => {
-        const selected = fieldOf(target, part);
-        if (selected) setField(edit, selected.shape, selected.index, { nullable: value === '1' });
-      },
-      hidden: notPlainField,
-    },
+    // Ligne sélectionnée : champ (sections du mode, PostgreSQL, Gouvernance) ou séparateur (sujets 249, 253, 260).
+    ...FIELD_PROPERTIES,
     {
       // Tout en bas de l'encart, table ou ligne sélectionnée : un séparateur après la ligne (sinon en fin de liste),
       // sélectionné et son texte en édition (sujet 253).
@@ -302,7 +160,7 @@ export const definition: PageModeDefinition = {
   check: (page) => [
     ...page.shapes.filter(misplacedPrimaryKey).map((shape) => ({
       cellId: shape.id,
-      message: `Table « ${shape.label || shape.id} » : clé primaire ${PRIMARY_KEY.label} absente ou déplacée, remise en tête`,
+      message: `Table « ${shape.label || shape.id} » : clé primaire ${PRIMARY_KEY} absente ou déplacée, remise en tête`,
     })),
     // Champs illisibles, type inconnu, clé primaire nullable (sujet 246).
     ...page.shapes.flatMap((shape) =>

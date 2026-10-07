@@ -13,7 +13,7 @@ import {
   DEFAULT_HEADER_COLOR,
   DEFAULT_HEADER_TEXT,
   FIELDS,
-  PRIMARY_KEY,
+  primaryKeyField,
   SECONDARY_SCALE,
   TABLE,
   TABLE_KINDS,
@@ -322,7 +322,7 @@ function headerMark(shape: ShapeModel, mark: HeaderMark, header: number, color: 
  * clé primaire dans ses champs s'il en a une.
  */
 export function tableStyle(id: string, kind: TableKind): string {
-  const fields = kind.primaryKey ? `${FIELDS}=${fieldsValue([PRIMARY_KEY])};` : '';
+  const fields = kind.primaryKey ? `${FIELDS}=${fieldsValue([primaryKeyField(kind.primaryKey)])};` : '';
   return (
     `swimlane;fontStyle=${1 | (kind.italic ? 2 : 0)};startSize=${headerHeight(false)};` +
     `fillColor=${DEFAULT_HEADER_COLOR};fontColor=${DEFAULT_HEADER_TEXT};swimlaneFillColor=${FIELDS_FILL};strokeColor=${BORDER};` +
@@ -340,7 +340,7 @@ export function table(
   palette?: Pick<PaletteEntry, 'name' | 'order' | 'keywords' | 'value'> & { icon?: string },
 ): ShapeDefinition {
   const kind = TABLE_KINDS[id]!;
-  const fields = kind.primaryKey ? [PRIMARY_KEY] : [];
+  const fields = kind.primaryKey ? [primaryKeyField(kind.primaryKey)] : [];
   return {
     id,
     outline: (shape) => outline(shape, kind),

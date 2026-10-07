@@ -655,15 +655,19 @@ export function Viewer({
           />
           {commentEdit ? (
             <CommentEditor
-              key={commentEdit.elementId}
+              key={`${commentEdit.elementId}:${commentEdit.part ?? ''}`}
               comment={commentEdit.comment}
+              plain={commentEdit.part !== undefined}
               settings={settings.comment}
               handle={editorHandle}
               onToggle={(mark) => formatText({ type: 'toggle', mark })}
               onSelectionFormat={setSelectionFormat}
               onCommit={(content) => {
                 setCommentEdit(undefined);
-                engine?.setComment(commentEdit.elementId, content);
+                // Commentaire d'une partie (ex. champ, sujet 262) : texte brut, écrit par le mode.
+                if (commentEdit.part !== undefined)
+                  engine?.setPartComment(commentEdit.elementId, commentEdit.part, content.text);
+                else engine?.setComment(commentEdit.elementId, content);
                 if (commentEdit.fromNavigation) engine?.clearSelection();
                 engine?.focusCanvas();
               }}
@@ -760,7 +764,7 @@ export function Viewer({
                           onAction: formatText,
                           onOwner: () => editorHandle.current?.commit(),
                         }
-                      : labelEdit
+                      : labelEdit || commentEdit?.part !== undefined
                         ? undefined
                         : commentEdit && {
                             // Commentaire : le format de tout le texte est celui des réglages, les commandes du panneau

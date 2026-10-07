@@ -7,7 +7,6 @@ import { createDefaultModeRegistry } from '../../../src/engine/modes/registry';
 import { definition as rdd } from '../../../src/engine/modes/rdd';
 import {
   FIELDS,
-  ICON,
   SECONDARY,
   fieldProblems,
   fieldsOf as rowsOf,
@@ -15,14 +14,7 @@ import {
   tableFields as tableRows,
 } from '../../../src/engine/modes/rdd/tables';
 import type { Field, TableRow } from '../../../src/engine/modes/rdd/tables';
-import {
-  addField,
-  fitTable,
-  newFieldLabel,
-  setField,
-  setHeaderColor,
-  setSecondary,
-} from '../../../src/engine/modes/rdd/operations';
+import { addField, fitTable, newFieldLabel, setField, setSecondary } from '../../../src/engine/modes/rdd/operations';
 import { fieldParts } from '../../../src/engine/modes/rdd/fieldParts';
 import { REGION, REGION_COLORS, regionContent, regionOf, regionTextColor } from '../../../src/engine/modes/rdd/regions';
 import { regionOutline, tabPath, tabRect } from '../../../src/engine/modes/rdd/shapes/region';
@@ -48,8 +40,8 @@ const rowWidth = (label: string, type?: string) =>
   6;
 /** Largeur d'une table d'après ses lignes : la plus grande, au moins 120. */
 const widthOf = (...rows: number[]) => Math.ceil(Math.max(120, ...rows));
-/** Ligne de la clé primaire `id` (Nombre entier) : 125 px. */
-const KEY_ROW = rowWidth('id', 'Nombre entier');
+/** Ligne de la clé primaire `id` d'une entité (« Primary key », sujet 260). */
+const KEY_ROW = rowWidth('id', 'Primary key');
 
 /**
  * Pose les champs d'une table par leurs labels (un par ligne ; la clé primaire d'une entité reste en tête) : un label
@@ -127,7 +119,9 @@ describe('mode RDD (sujet 179) : page et palette', () => {
     const entity = templates.find((t) => t.id === 'rdd-entity')!;
     expect(entity.style).toContain('swimlane;');
     expect(entity.style).toContain('spatial.kind=rdd-entity;');
-    expect(entity.style).toContain('spatial.fields=[{"kind":"pk","label":"id","type":"integer","nullable":false}];');
+    expect(entity.style).toContain(
+      'spatial.fields=[{"kind":"pk","label":"id","type":"primary-key","nullable":false}];',
+    );
     expect(entity.style).toContain('startSize=26;');
     expect([entity.width, entity.height]).toEqual([widthOf(KEY_ROW), 46]);
     const enumeration = templates.find((t) => t.id === 'rdd-enum')!;
@@ -181,16 +175,14 @@ describe('mode RDD (sujet 179) : page et palette', () => {
     const properties = rdd.shapeProperties!.filter((p) => !p.part);
     const model = page().shapes.find((s) => s.id === 'model')!;
     const entity = page().shapes.find((s) => s.id === 'user')!;
+    // Plus de « Couleur » (le style de la forme, sujet 260 : celle-ci est celle de la région) ni d'« Icône ».
     expect(properties.map((p) => [p.label, p.hidden!(page(), model)])).toEqual([
-      ['Couleur', false],
       ['Couleur', true],
       ['Table secondaire', false],
-      ['Icône', true],
       ['Clé primaire', true],
       ['Ajouter un séparateur', false],
     ]);
-    // Entité : sans icône d'entête ; « Icône » n'est proposée qu'aux tables qui en ont une.
-    expect(properties.map((p) => p.hidden!(page(), entity))).toEqual([false, true, false, true, false, false]);
+    expect(properties.map((p) => p.hidden!(page(), entity))).toEqual([true, false, false, false]);
     const key = properties.find((p) => p.label === 'Clé primaire')!;
     expect([key.readOnly, key.value!(page(), entity)]).toEqual([true, 'id']);
     expect(properties.every((p) => p.hidden!(page(), page()))).toBe(true);
@@ -232,21 +224,8 @@ describe('mode RDD : opérations sur une table', () => {
     expect(run((edit) => setSecondary(edit, shape('timestamped'), false))).toBe(false);
   });
 
-  it("couleur d'entête : fillColor, et fontColor lisible pour draw.io", () => {
-    const { run, shape } = setup();
-    run((edit) => setHeaderColor(edit, shape('model'), '#e1d5e7'));
-    expect([shape('model').style.fillColor, shape('model').style.fontColor]).toEqual(['#e1d5e7', '#000000']);
-    run((edit) => setHeaderColor(edit, shape('model'), '#1f3a5f'));
-    expect(shape('model').style.fontColor).toBe('#ffffff');
-  });
-
-  it('couleurs proposées : celle par défaut puis la palette de l’appli, sans doublon', () => {
-    const { page } = setup();
-    const color = rdd.shapeProperties!.find((p) => p.key === 'fillColor')!;
-    expect(color.type === 'select' && color.options(page(), ['#f5f5f5', '#d5e8d4']).map((o) => o.value)).toEqual([
-      '#f5f5f5',
-      '#d5e8d4',
-    ]);
+  it('plus de réglage de couleur d’entête : elle vient du style de la forme (sujet 260)', () => {
+    expect(rdd.shapeProperties!.find((p) => p.key === 'fillColor')).toBeUndefined();
   });
 
   it('table neuve au style « Gris » (sujet 235) : entête #f5f5f5, bordure #666666, texte #333333', () => {
@@ -339,16 +318,13 @@ describe('mode RDD : taille calculée (sujet 247)', () => {
     expect(shape('user').bounds.width).toBeCloseTo(Math.ceil(rowWidth(long, 'Phrase')) * 0.8, 5);
   });
 
-  it('largeur : le nom, gras, avec la place de l’icône d’entête de chaque côté ; sans icône, le nom seul', () => {
+  it('largeur : le nom, gras, avec la place de l’icône d’entête de chaque côté', () => {
     const { run, shape, tree } = setup();
     const name = 'ActiveUsersOfTheWholePlatform';
     // Le renommage écrit le texte de la forme, puis le moteur appelle `relabeled` du mode.
     setCellLabel(tree.pages[0]!, 'role', name);
     run((edit) => rdd.relabeled!(edit, 'role'));
     expect(shape('role').bounds.width).toBe(Math.ceil(measure(name, 12, true) + 2 * (6 + 7 + 14 * 1.5 + 4)));
-    const icon = rdd.shapeProperties!.find((p) => p.label === 'Icône')!;
-    run((edit) => icon.write!(edit, shape('role'), undefined));
-    expect(shape('role').bounds.width).toBe(Math.ceil(measure(name, 12, true) + 2 * 6));
     // Un nom court : la largeur des champs.
     setCellLabel(tree.pages[0]!, 'role', 'Role');
     run((edit) => rdd.relabeled!(edit, 'role'));
@@ -411,33 +387,97 @@ describe('mode RDD : champ sélectionné dans sa table (sujet 249)', () => {
         .properties(page(), 'shape', part)
         .filter((property) => !property.hidden?.(page(), shape('user'), part))
         .map((property) => [property.label, property.value?.(page(), shape('user'), part)]);
+    // Sujet 260 : plus de « Rôle », « Optionnel » (ancien « Nullable »), « Unique », commentaire ; PostgreSQL et
+    // Gouvernance en sections à part.
     expect(shown('1')).toEqual([
       ['Champ', 'email'],
       ['Type', 'string'],
-      ['Rôle', 'property'],
-      ['Nullable', undefined],
+      ['Optionnel', undefined],
+      ['Unique', undefined],
+      ['Commentaire', undefined],
+      ['Nom du champ', undefined],
+      ['Type', undefined],
+      ['GDPR', undefined],
+      ['Donnée personnelle', undefined],
       ['Ajouter un séparateur', undefined],
     ]);
+    const sections = modes
+      .properties(page(), 'shape', '1')
+      .filter((property) => !property.hidden?.(page(), shape('user'), '1'))
+      .map((property) => property.section);
+    expect([...new Set(sections)]).toEqual([undefined, 'PostgreSQL', 'Gouvernance']);
+    // Clé primaire : `id` en lecture seule, son type imposé, ni optionnel ni unique.
     expect(shown('0')).toEqual([
       ['Champ', 'id'],
-      ['Type', 'integer'],
+      ['Type', 'Primary key'],
+      ['Commentaire', undefined],
+      ['Nom du champ', undefined],
+      ['Type', undefined],
+      ['GDPR', undefined],
+      ['Donnée personnelle', undefined],
       ['Ajouter un séparateur', undefined],
     ]);
-    expect(shown().map(([label]) => label)).toEqual([
-      'Couleur',
-      'Table secondaire',
-      'Clé primaire',
-      'Ajouter un séparateur',
-    ]);
+    const comment = rdd.shapeProperties!.find((p) => p.key === 'rdd.field.comment')!;
+    expect(comment.type === 'text' && comment.multiline).toBe(true);
+    const label = rdd.shapeProperties!.find((p) => p.key === 'rdd.field.label')!;
+    expect(
+      typeof label.readOnly === 'function' && [
+        label.readOnly(page(), shape('user'), '0'),
+        label.readOnly(page(), shape('user'), '1'),
+      ],
+    ).toEqual([true, false]);
+    expect(shown().map(([label]) => label)).toEqual(['Table secondaire', 'Clé primaire', 'Ajouter un séparateur']);
   });
 
   it('réglages du champ écrits par le panneau', () => {
     const { run, shape } = setup();
     const property = (key: string) => rdd.shapeProperties!.find((p) => p.key === key)!;
-    run((edit) => property('rdd.field.kind').write!(edit, shape('user'), 'fk', '1'));
     run((edit) => property('rdd.field.nullable').write!(edit, shape('user'), '1', '1'));
     run((edit) => property('rdd.field.label').write!(edit, shape('user'), 'mail', '1'));
-    expect(fieldsOf(shape('user'))[1]).toEqual({ kind: 'fk', label: 'mail', type: 'string', nullable: true });
+    run((edit) => property('rdd.field.unique').write!(edit, shape('user'), '1', '1'));
+    run((edit) => property('rdd.field.comment').write!(edit, shape('user'), ' Adresse de contact ', '1'));
+    run((edit) => property('rdd.field.pgName').write!(edit, shape('user'), 'email_address', '1'));
+    run((edit) => property('rdd.field.pgType').write!(edit, shape('user'), 'varchar(255)', '1'));
+    run((edit) => property('rdd.field.gdpr').write!(edit, shape('user'), '1', '1'));
+    run((edit) => property('rdd.field.personal').write!(edit, shape('user'), '1', '1'));
+    expect(fieldsOf(shape('user'))[1]).toEqual({
+      kind: 'property',
+      label: 'mail',
+      type: 'string',
+      nullable: true,
+      unique: true,
+      comment: 'Adresse de contact',
+      pgName: 'email_address',
+      pgType: 'varchar(255)',
+      gdpr: true,
+      personal: true,
+    });
+    // Écrits dans le fichier, relus ; vidés ou décochés, retirés.
+    expect(spatialValue(shape('user'), FIELDS)).toContain('"pgType":"varchar(255)"');
+    run((edit) => property('rdd.field.comment').write!(edit, shape('user'), undefined, '1'));
+    run((edit) => property('rdd.field.gdpr').write!(edit, shape('user'), undefined, '1'));
+    expect(fieldsOf(shape('user'))[1]!.comment).toBeUndefined();
+    expect(spatialValue(shape('user'), FIELDS)).not.toContain('gdpr');
+    // La clé primaire : ni renommée ni retypée.
+    expect(run((edit) => property('rdd.field.label').write!(edit, shape('user'), 'uuid', '0'))).toBe(false);
+    expect(run((edit) => property('rdd.field.type').write!(edit, shape('user'), 'text', '0'))).toBe(false);
+  });
+
+  it('clé primaire : id et type imposés par la table (« Primary key », « Mot »), quoi qu’en dise le fichier', () => {
+    const { page, shape } = setup();
+    expect(tableRows(shape('user'))[0]).toMatchObject({ kind: 'pk', label: 'id', type: 'primary-key' });
+    expect(tableRows(shape('role'))[0]).toMatchObject({ kind: 'pk', label: 'id', type: 'word' });
+    const odd = {
+      ...shape('user'),
+      style: { ...shape('user').style, [FIELDS]: '[{"kind":"pk","label":"uuid","type":"text","nullable":false}]' },
+    };
+    expect(tableRows(odd)[0]).toMatchObject({ label: 'id', type: 'primary-key' });
+    expect(fieldProblems(odd)).toEqual([]);
+    // « Unique » : entité, énumération, embedded ; pas les autres tables.
+    const unique = rdd.shapeProperties!.find((p) => p.key === 'rdd.field.unique')!;
+    expect(
+      ['user', 'role', 'address', 'settings', 'active'].map((id) => unique.hidden!(page(), shape(id), '1')),
+    ).toEqual([false, false, false, true, true]);
   });
 });
 
@@ -458,15 +498,15 @@ describe('mode RDD : ajouter un champ (sujet 250)', () => {
     expect(createDefaultRegistry().connectSides(shape('accounts'))).toEqual(['n', 'e', 's', 'w']);
   });
 
-  it('clic : Field1, Field2, Field3 sans type (256), en fin de liste ; la table grandit ; la partie ajoutée est rendue', () => {
+  it('clic : Field1, Field2, Field3 sans type (256) et optionnels (261), en fin de liste ; la table grandit ; la partie ajoutée est rendue', () => {
     const { run, page, shape } = setup();
     const parts: Array<string | undefined> = [];
     for (let i = 0; i < 3; i += 1) run((edit) => parts.push(rdd.handleClicked!(edit, shape('user'), 'rdd.addField')));
     expect(parts).toEqual(['3', '4', '5']);
     expect(fieldsOf(shape('user')).slice(3)).toEqual([
-      { kind: 'property', label: 'Field1', type: '', nullable: false },
-      { kind: 'property', label: 'Field2', type: '', nullable: false },
-      { kind: 'property', label: 'Field3', type: '', nullable: false },
+      { kind: 'property', label: 'Field1', type: '', nullable: true },
+      { kind: 'property', label: 'Field2', type: '', nullable: true },
+      { kind: 'property', label: 'Field3', type: '', nullable: true },
     ]);
     expect(shape('user').bounds.height).toBe(26 + 6 * 20);
     expect(handle(page(), shape('user')).at.y).toBe(160 + 26 + 6 * 20);
@@ -695,6 +735,21 @@ describe('mode RDD : séparateurs entre les champs (sujet 253)', () => {
   });
 });
 
+describe('mode RDD : commentaire d’un champ (sujet 262)', () => {
+  it('titre et texte d’un champ (vide sans commentaire) ; un séparateur n’en a pas ; écrit par la touche C', () => {
+    const { run, shape } = setup();
+    expect(fieldParts.comment!(shape('user'), '1')).toEqual({ title: 'email', text: '' });
+    run((edit) => fieldParts.setComment!(edit, shape('user'), '1', '  Adresse de contact  '));
+    expect(fieldParts.comment!(shape('user'), '1')).toEqual({ title: 'email', text: 'Adresse de contact' });
+    expect(fieldsOf(shape('user'))[1]!.comment).toBe('Adresse de contact');
+    run((edit) => fieldParts.setComment!(edit, shape('user'), '1', ''));
+    expect(fieldsOf(shape('user'))[1]!.comment).toBeUndefined();
+    run((edit) => rdd.keys!['-']!.run(edit, shape('user'), undefined, '1'));
+    expect(fieldParts.comment!(shape('user'), '2')).toBeUndefined();
+    expect(run((edit) => fieldParts.setComment!(edit, shape('user'), '2', 'x'))).toBe(false);
+  });
+});
+
 describe('mode RDD : tables ajustées à l’ouverture (sujet 255)', () => {
   it('chaque table prend la taille de son contenu ; une seconde passe ne change rien ; la région reste', () => {
     const { run, shape } = setup();
@@ -721,12 +776,10 @@ describe('mode RDD : entités (sujet 180)', () => {
     expect(fieldsOf(shape('orphan'))[0]!.kind).toBe('pk');
   });
 
-  it('table secondaire et couleur, comme sur le modèle', () => {
+  it('table secondaire, comme sur le modèle', () => {
     const { run, shape } = setup();
     run((edit) => setSecondary(edit, shape('role'), true));
-    expect(shape('role').bounds).toEqual({ x: 240, y: 160, width: widthOf(KEY_ROW) * 0.8, height: 68.8 });
-    run((edit) => setHeaderColor(edit, shape('role'), '#d5e8d4'));
-    expect(shape('role').style.fillColor).toBe('#d5e8d4');
+    expect(shape('role').bounds.height).toBe(68.8);
   });
 });
 
@@ -842,20 +895,9 @@ describe('mode RDD : embedded, document et vue (sujets 181, 218)', () => {
     for (const id of ['settings', 'user', 'model']) expect(markOf(id), id).toBeUndefined();
   });
 
-  it('« Icône » décochée : spatial.icon=0, icône masquée, titre sur toute la largeur ; recochée : retirée (222)', () => {
+  it('icône d’entête toujours affichée : spatial.icon=0 d’un fichier est ignoré (sujet 260)', () => {
     const { run, page } = setup();
-    const icon = rdd.shapeProperties!.find((p) => p.label === 'Icône')!;
-    const role = () => page().shapes.find((s) => s.id === 'role')!;
-    expect([icon.hidden!(page(), role()), icon.value!(page(), role())]).toEqual([false, '1']);
-    run((edit) => icon.write!(edit, role(), undefined));
-    expect(spatialValue(role(), ICON)).toBe('0');
-    expect(icon.value!(page(), role())).toBeUndefined();
-    expect(createDefaultRegistry().textZone(role(), 'flat')).toEqual({
-      x: 240,
-      y: 160,
-      width: widthOf(KEY_ROW),
-      height: 26,
-    });
+    run((edit) => edit.setElementAttribute('role', 'spatial.icon', '0'));
     const root = buildPageScene(
       page(),
       createDefaultRegistry(),
@@ -863,9 +905,7 @@ describe('mode RDD : embedded, document et vue (sujets 181, 218)', () => {
       'flat',
     ).root;
     const object = root.children.find((child) => child.userData.elementId === 'role')!;
-    expect(object.getObjectByName('header-mark')).toBeUndefined();
-    run((edit) => icon.write!(edit, role(), '1'));
-    expect(spatialValue(role(), ICON)).toBeUndefined();
+    expect(object.getObjectByName('header-mark')).toBeDefined();
   });
 
   it('zone du titre réduite des deux côtés de la place de l’icône d’entête (sujets 221, 222)', () => {
@@ -900,7 +940,7 @@ describe('mode RDD : embedded, document et vue (sujets 181, 218)', () => {
 describe('mode RDD : rendu d’une table', () => {
   function render(color?: string) {
     const { run, page, shape } = setup();
-    if (color) run((edit) => setHeaderColor(edit, shape('timestamped'), color));
+    if (color) run((edit) => edit.setElementStyle(shape('timestamped').id, 'fillColor', color));
     const texts: TextSpec[] = [];
     const ctx: RenderContext = {
       text: {
@@ -949,6 +989,8 @@ describe('mode RDD : rendu d’une table', () => {
       .find((child) => child.userData.elementId === 'user')!
       .children.find((child) => child.name === 'field-icon')!.children[0] as Mesh;
     expect(`#${(fill.material as MeshBasicMaterial).color.getHexString()}`).toBe('#ffd700');
+    // Dessiné au-dessus du fond de la table (sujet 261).
+    expect(fill.renderOrder).toBeGreaterThan(0);
     expect(texts.some((t) => t.underline)).toBe(false);
   });
 
@@ -1108,9 +1150,7 @@ describe('mode RDD : région (sujet 182)', () => {
     const { run, page, shape } = setup();
     const color = rdd.shapeProperties!.find((p) => p.key === 'rdd.regionColor')!;
     expect(rdd.shapeProperties!.filter((p) => !p.part).map((p) => p.hidden!(page(), shape('accounts')))).toEqual([
-      true,
       false,
-      true,
       true,
       true,
       true,

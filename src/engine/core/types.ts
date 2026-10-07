@@ -122,6 +122,8 @@ export interface CommentEditRequest {
   elementId: string;
   onEdge: boolean;
   comment?: ElementComment;
+  /** Partie de la forme dont on édite le commentaire (sujet 262) : texte brut, sans format ; `setPartComment`. */
+  part?: string;
   /**
    * Élément sélectionné pour l'occasion depuis la navigation libre (« C » sans sélection) : la sortie de l'éditeur
    * retire la sélection (ticket 203).

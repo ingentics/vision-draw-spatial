@@ -1,5 +1,5 @@
 import { isNavigableLink } from '../../format/link';
-import { commentOf, sameComment } from '../../edit/comment';
+import { commentOf, sameComment, withPartComment } from '../../edit/comment';
 import type { ElementComment } from '../../edit/comment';
 import type { PointHandle } from '../../edit/edgePointEdits';
 import { endAt } from '../../edit/edgeLabels';
@@ -112,9 +112,11 @@ export class PointerInput {
         picked.type === 'shape' && page
           ? this.core.shapeParts.partAt(page, picked.element as ShapeModel, screen)
           : undefined;
-      if (part !== undefined && this.core.shapeParts.text(picked.element.id, part)) {
+      // Une partie sans texte modifiable (ex. clé primaire `id`, sujet 260) : sélectionnée, rien d'autre.
+      if (part !== undefined) {
         this.core.selection.selectItems([picked], part);
-        this.core.labelEditor.editPartLabel(picked.element.id, part);
+        if (this.core.shapeParts.text(picked.element.id, part))
+          this.core.labelEditor.editPartLabel(picked.element.id, part);
       } else this.core.labelEditor.editLabel(picked.element.id);
     }
   }
@@ -163,7 +165,12 @@ export class PointerInput {
       (!selection ||
         selection.pageId !== this.core.pages.currentPageId ||
         selection.items.some((item) => item.element.id === picked.element.id));
-    const comment = shown ? commentOf(picked.element) : undefined;
+    const own = shown ? commentOf(picked.element) : undefined;
+    // Partie survolée commentée (ex. champ d'une table RDD, sujet 262) : son commentaire après celui de la forme.
+    const shape = shown && picked.type === 'shape' ? (picked.element as ShapeModel) : undefined;
+    const part = shape && this.core.shapeParts.hoveredPart(shape.id);
+    const partComment = shape && part !== undefined && this.core.shapeParts.comment(shape, part);
+    const comment = partComment ? withPartComment(own, partComment) : own;
     if (!sameComment(comment, this.hoverComment)) {
       this.hoverComment = comment;
       this.core.events.emit('commentHover', comment);
@@ -182,10 +189,20 @@ export class PointerInput {
     const selection = this.core.selection.current;
     if (selection?.pageId === page.id) {
       if (this.core.selection.isMultiSelection()) return false;
+      // Partie sélectionnée (ex. champ, sujet 262) : son commentaire, si le mode en a un.
+      if (selection.part !== undefined && this.core.shapeParts.editComment(selection.picked.element.id, selection.part))
+        return true;
       return this.core.properties.editComment(selection.picked.element.id);
     }
     const picked = this.hovered;
     if (!picked) return false;
+    // Partie survolée sans sélection : elle est sélectionnée pour l'occasion, son commentaire en édition.
+    const part = picked.type === 'shape' ? this.core.shapeParts.hoveredPart(picked.element.id) : undefined;
+    if (part !== undefined) {
+      this.core.selection.selectItems([picked], part);
+      if (this.core.shapeParts.editComment(picked.element.id, part, true)) return true;
+      this.core.selection.select(picked);
+    }
     this.core.selection.select(picked);
     return this.core.properties.editComment(picked.element.id, true);
   }

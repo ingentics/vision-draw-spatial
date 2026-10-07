@@ -1,10 +1,8 @@
 import type { ShapeModel } from '../../model/types';
-import { readableOn } from '../../render/styleColors';
 import type { ModeEdit } from '../types';
 import type { Field, TableContent, TableRow } from './tables';
 import {
   FIELDS,
-  ICON,
   SECONDARY,
   SECONDARY_SCALE,
   TABLE,
@@ -58,13 +56,15 @@ export function setField(
   edit: ModeEdit,
   shape: ShapeModel,
   index: number,
-  patch: Partial<Pick<Field, 'label' | 'kind' | 'nullable' | 'type'>>,
+  patch: Partial<Omit<Field, 'kind'>> & { kind?: Field['kind'] },
 ): void {
   const rows = tableFields(shape);
   const row = rows[index];
   const label = patch.label?.trim();
   // Un séparateur peut être vide (sujet 253) ; un champ refuse un label vide.
   if (!tableKindOf(shape) || !row || (label === '' && !isDivider(row))) return;
+  // Clé primaire : label `id` et type imposés (sujet 260).
+  if (isPrimaryKey(row) && label !== undefined) return;
   let next: TableRow;
   if (isDivider(row)) next = { ...row, ...(label !== undefined && { label }) };
   else {
@@ -74,7 +74,14 @@ export function setField(
       ...(label !== undefined && { label }),
       ...(patch.kind !== undefined && !key && patch.kind !== 'pk' && { kind: patch.kind }),
       ...(patch.nullable !== undefined && !key && { nullable: patch.nullable }),
-      ...(patch.type !== undefined && { type: patch.type }),
+      ...(patch.type !== undefined && !key && { type: patch.type }),
+      ...(patch.unique !== undefined && !key && { unique: patch.unique || undefined }),
+      // Propriétés facultatives (sujet 260) : vide ou faux les retire.
+      ...('comment' in patch && { comment: patch.comment || undefined }),
+      ...('pgName' in patch && { pgName: patch.pgName || undefined }),
+      ...('pgType' in patch && { pgType: patch.pgType || undefined }),
+      ...('gdpr' in patch && { gdpr: patch.gdpr || undefined }),
+      ...('personal' in patch && { personal: patch.personal || undefined }),
     };
   }
   writeRows(
@@ -103,16 +110,11 @@ function addRow(edit: ModeEdit, shape: ShapeModel, make: (rows: TableRow[]) => T
 }
 
 /**
- * Ajoute un champ (sujet 250) : propriété non nullable du type `type` (vide = sans type, sujet 256), nommée `FieldN`,
+ * Ajoute un champ (sujet 250) : propriété optionnelle (sujet 261) du type `type` (vide = sans type, sujet 256), nommée `FieldN`,
  * après la ligne `after` (sinon en fin de liste ; jamais avant la clé primaire) ; la taille suit. Renvoie son rang.
  */
 export function addField(edit: ModeEdit, shape: ShapeModel, type: string, after?: number): number | undefined {
-  return addRow(
-    edit,
-    shape,
-    (rows) => ({ kind: 'property', label: newFieldLabel(rows), type, nullable: false }),
-    after,
-  );
+  return addRow(edit, shape, (rows) => ({ kind: 'property', label: newFieldLabel(rows), type, nullable: true }), after);
 }
 
 /** Ajoute un séparateur sans label après la ligne `after` (sujet 253), comme `addField` ; renvoie son rang. */
@@ -156,13 +158,6 @@ export function moveField(edit: ModeEdit, shape: ShapeModel, from: number, slot:
   return moved.index;
 }
 
-/** Couleur de l'entête (`fillColor`) ; le texte du fichier suit le contraste pour draw.io (`fontColor`). */
-export function setHeaderColor(edit: ModeEdit, shape: ShapeModel, color: string | undefined): void {
-  if (!tableKindOf(shape) || !color) return;
-  edit.setElementStyle(shape.id, 'fillColor', color);
-  edit.setElementStyle(shape.id, 'fontColor', readableOn(color));
-}
-
 /**
  * Table secondaire : la forme prend la taille de son contenu à la nouvelle échelle (× 0,8), depuis son coin
  * haut-gauche ; entête et taille du nom suivent dans le style, pour draw.io.
@@ -174,11 +169,4 @@ export function setSecondary(edit: ModeEdit, shape: ShapeModel, secondary: boole
   fitTable(edit, shape, { secondary });
   edit.setElementStyle(shape.id, 'startSize', String(round(headerHeight(secondary))));
   edit.setElementStyle(shape.id, 'fontSize', String(round(TABLE.nameSize * (secondary ? SECONDARY_SCALE : 1))));
-}
-
-/** Icône d'entête affichée ou masquée (`spatial.icon=0`, sujet 222) : la place du nom change, la largeur suit. */
-export function setIcon(edit: ModeEdit, shape: ShapeModel, shown: boolean): void {
-  if (!tableKindOf(shape)?.mark) return;
-  edit.setElementAttribute(shape.id, ICON, shown ? undefined : '0');
-  fitTable(edit, shape, { mark: shown });
 }

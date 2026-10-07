@@ -917,8 +917,7 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     taille ; l'identifiant tel quel si le type est inconnu, rien sans type).
   - Icône d'entête (base commune des tables, déclarée par chaque forme) : en haut à droite de l'entête, 21 × 13,5 px
     à 7 px du bord, trait fin de la couleur de la bordure ; la zone du titre est réduite des deux côtés de sa place
-    (32 px). Réglage « Icône » (cochée par défaut ; décochée, `spatial.icon=0` la masque et rend au titre toute la
-    largeur).
+    (32 px). Toujours affichée (sujet 260 : plus de réglage « Icône », `spatial.icon=0` d'un fichier est ignoré).
   - « Entité » (`rdd-entity`) et « Entité énumérative » (`rdd-enum`, entête à cadre double : second trait 3 px à
     l'intérieur ; icône liste) : clé primaire `id` (`pk`, `integer`) toujours en tête (icône de clé primaire), montrée en
     lecture seule dans le panneau (« Clé primaire ») ; absente ou déplacée dans le fichier,
@@ -934,13 +933,14 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     dessiné s'il est dans un fichier.
   - Table neuve au style « Gris » : entête `#f5f5f5`, bordure `#666666`, texte de l'entête `#333333` (`fontColor`, suivi
     par le rendu ; sans lui, noir ou blanc selon le contraste).
-  - Réglages du mode sur une table : « Couleur » (le gris puis les couleurs `modePalette`, écrit aussi `fontColor` pour draw.io),
-    « Table secondaire » (`spatial.secondary` : tailles × 0,8).
+  - Réglages du mode sur une table : « Table secondaire » (`spatial.secondary` : tailles × 0,8). La couleur de
+    l'entête vient du style de la forme (panneau « Style », sujet 260). Pas de section « Volume » (mode sans iso ni
+    3D).
   - Sélection toujours en contour sur une page RDD (sujet 254, `PageModeDefinition.selectionStyle`), quel que soit le
     paramètre « Style » de la mise en valeur ; les paramètres le mentionnent sous ce choix.
   - Ajouter un champ (sujet 250) : table sélectionnée, poignée verte « + » sous la table, au milieu (les tables n'ont
-    de poignées de connexion qu'à gauche et à droite) ; un clic ajoute aussitôt (sans menu, sujet 256) une propriété non
-    nullable **sans type** `Field1`, `Field2`… (premier numéro libre) après le champ sélectionné, sinon en fin de liste,
+    de poignées de connexion qu'à gauche et à droite) ; un clic ajoute aussitôt (sans menu, sujet 256) une propriété
+    **optionnelle** (sujet 261) **sans type** `Field1`, `Field2`… (premier numéro libre) après le champ sélectionné, sinon en fin de liste,
     jamais avant la clé primaire ; le champ ajouté est sélectionné et son label passe en édition. Une étape
     d'annulation. Un champ sans type n'affiche rien en gris et n'est pas signalé. La zone « Champs » du panneau a
     disparu.
@@ -962,13 +962,23 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   - Supprimer un champ (sujet 251) : champ sélectionné, Suppr ou Retour arrière le retire (pas la table) et la
     sélection revient à la table ; sur la clé primaire, la touche est sans effet. La table rétrécit ; une étape
     d'annulation.
+  - Commentaire d'un champ au survol (sujet 262) : l'encart des commentaires montre celui de la table (s'il y en a
+    un), un trait, puis le nom du champ en gras et son commentaire ; celui du champ seul si la table n'en a pas ; sans
+    effet d'apparition pour la partie du champ. Touche C : sur un champ sélectionné (ou survolé sans sélection), édite
+    son commentaire en texte brut (sans panneau de format), écrit dans `comment` ; sur la table, celui de la table.
   - Survol d'une ligne (sujet 259) : sur une page modifiable, la ligne sous la souris (champ ou séparateur) est
     pré-sélectionnée, fond de la couleur d'accent à 7 % et trait fin (1 px) à 50 % (la sélection : 15 % et un trait plein de 1,5 px) ; rien sur la
     ligne déjà sélectionnée.
   - Champ sélectionné (sujet 249) : un clic sur une ligne de champ la sélectionne, la table sélectionnée ou non (fond
     léger et trait de la couleur d'accent sur la ligne) ; un clic sur l'entête revient à la table, Échap aussi. Le
-    panneau ne montre alors que le champ : « Champ » (label), « Type » (choix : « Aucun » ou un des sept types, modifiable à tout moment, sujet 256), « Rôle » (propriété, clé
-    étrangère, clé étrangère d'un autre domaine) et « Nullable », ces deux derniers absents pour la clé primaire.
+    panneau ne montre alors que le champ, en trois sections (sujet 260) : celle du mode — « Champ » (label), « Type »
+    (« Aucun » ou un des sept types, sujet 256), « Optionnel » (`nullable`), « Unique » (`unique` ; entité,
+    énumération, embedded), « Commentaire » (`comment`, zone de texte sous son libellé, sur toute la largeur) — ; « PostgreSQL » — « Nom du champ » (`pgName`), « Type »
+    (`pgType`, texte libre) — ; « Gouvernance » — « GDPR » (`gdpr`), « Donnée personnelle » (`personal`). Ces clés ne
+    sont écrites que si elles sont renseignées. Le kind reste dans les données sans être réglable ici. Clé primaire :
+    toujours `id`, type imposé « Primary key » (entité) ou « Mot » (énumération), hors de la liste des types ; ni
+    renommée (ni panneau ni sur place), ni retypée, ni optionnelle, ni unique ; un fichier qui dit autre chose est lu
+    ainsi.
     Double-clic sur une ligne : label modifié sur place (tout le texte sélectionné, Entrée valide, Échap annule) ; un
     label vide est refusé. Chaque changement est une étape d'annulation, la largeur suit.
   - Taille calculée (sujet 247), sans poignées de redimensionnement : hauteur = entête + une ligne par champ (au moins

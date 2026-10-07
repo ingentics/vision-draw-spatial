@@ -23,7 +23,18 @@ export function CommentCard({ comment, settings }: { comment: ElementComment | u
       {shown.html !== undefined ? (
         <div className="comment-text" dangerouslySetInnerHTML={{ __html: richToHtml(parseRichHtml(shown.html)) }} />
       ) : (
-        <div className="comment-text">{shown.text}</div>
+        shown.text && <div className="comment-text">{shown.text}</div>
+      )}
+      {/* Partie survolée (ex. champ, sujet 262) : sous un trait s'il y a un commentaire de l'élément au-dessus. */}
+      {shown.part && (
+        <>
+          {(shown.text || shown.html !== undefined) && <hr className="comment-divider" />}
+          <div className="comment-text comment-part">
+            <strong>{shown.part.title}</strong>
+            {'\n'}
+            {shown.part.text}
+          </div>
+        </>
       )}
     </div>
   );

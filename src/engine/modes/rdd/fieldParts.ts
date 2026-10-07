@@ -48,6 +48,8 @@ export const fieldParts: ModeParts = {
     const index = kind ? fieldIndex(shape, part) : undefined;
     if (!kind || index === undefined) return undefined;
     const field = tableFields(shape)[index]!;
+    // La clé primaire reste `id` : pas de texte modifiable (sujet 260).
+    if (isPrimaryKey(field)) return undefined;
     const scale = isSecondary(shape) ? SECONDARY_SCALE : 1;
     const row = fieldRow(shape, index);
     // Séparateur (sujet 253) : son label au milieu de la ligne, petit.
@@ -71,6 +73,18 @@ export const fieldParts: ModeParts = {
       fontSize: TABLE.fieldSize * scale,
       italic: kind.italicFields,
     };
+  },
+  // Commentaire du champ (sujet 262) : au survol sous son nom, et édité par la touche C ; pas pour un séparateur.
+  comment(shape, part) {
+    const index = fieldIndex(shape, part);
+    const field = index === undefined ? undefined : tableFields(shape)[index];
+    return field && !isDivider(field) ? { title: field.label, text: field.comment ?? '' } : undefined;
+  },
+  setComment(edit, shape, part, text) {
+    const index = fieldIndex(shape, part);
+    const field = index === undefined ? undefined : tableFields(shape)[index];
+    if (index !== undefined && field && !isDivider(field))
+      setField(edit, shape, index, { comment: text.trim() || undefined });
   },
   // Saisie en direct (sujet 253) : la table avec ce texte sur la ligne, élargie s'il le faut.
   textPreview(shape, part, text) {

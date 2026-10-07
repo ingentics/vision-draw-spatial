@@ -18,6 +18,7 @@ export function CommentEditor({
   onToggle,
   onSelectionFormat,
   handle,
+  plain,
 }: {
   comment: ElementComment | undefined;
   settings: CommentSettings;
@@ -26,6 +27,8 @@ export function CommentEditor({
   onToggle: (mark: ToggleMark) => void;
   onSelectionFormat: (format: SelectionFormat | undefined) => void;
   handle: MutableRefObject<RichEditorHandle | undefined>;
+  /** Texte brut (commentaire d'une partie, sujet 262) : pas de mise en forme. */
+  plain?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const handlers = useRichEditor({
@@ -38,6 +41,7 @@ export function CommentEditor({
     onToggle,
     onSelectionFormat,
     handle,
+    plain,
     baseStyle: () => commentTextStyle(settings),
     wholeWithoutSelection: true,
     selectAll: true,

@@ -28,6 +28,49 @@ export class ShapeParts {
     this.core.highlight.updateHover();
   }
 
+  /** Partie survolée de la forme `shapeId` (sujet 262) ; undefined si la souris n'est sur aucune de ses parties. */
+  hoveredPart(shapeId: string): string | undefined {
+    return this.hovered?.shapeId === shapeId ? this.hovered.part : undefined;
+  }
+
+  /** Commentaire non vide d'une partie de la page courante (sujet 262) ; undefined sans commentaire. */
+  comment(shape: ShapeModel, part: string): { title: string; text: string } | undefined {
+    const page = this.core.pages.getCurrentPage();
+    const comment = page ? this.core.modes.modeOf(page)?.parts?.comment?.(shape, part) : undefined;
+    return comment?.text.trim() ? comment : undefined;
+  }
+
+  /**
+   * Touche C sur une partie (sujet 262) : l'UI ouvre l'éditeur de commentaire sur elle (`commentEdit`), si le mode sait
+   * l'écrire ; faux sinon. `fromNavigation` : partie sélectionnée pour l'occasion, désélectionnée à la sortie.
+   */
+  editComment(shapeId: string, part: string, fromNavigation = false): boolean {
+    const editable = this.core.targets.writablePage();
+    const shape = editable?.page.shapes.find((s) => s.id === shapeId);
+    const parts = editable && this.core.modes.modeOf(editable.page)?.parts;
+    const comment = shape && parts?.comment?.(shape, part);
+    // Partie qui ne peut pas avoir de commentaire (ex. séparateur) : pas d'éditeur.
+    if (!editable || !shape || !parts?.setComment || !comment) return false;
+    this.core.events.emit('commentEdit', {
+      pageId: editable.page.id,
+      elementId: shapeId,
+      onEdge: false,
+      part,
+      ...(comment.text && { comment: { text: comment.text } }),
+      ...(fromNavigation && { fromNavigation }),
+    });
+    return true;
+  }
+
+  /** Commentaire d'une partie validé (touche C) : opération du mode (une étape d'annulation). */
+  setComment(shapeId: string, part: string, text: string): void {
+    const page = this.core.targets.writablePage()?.page;
+    const shape = page?.shapes.find((s) => s.id === shapeId);
+    const setComment = page && this.core.modes.modeOf(page)?.parts?.setComment;
+    if (!shape || !setComment) return;
+    this.core.pageModes.editPageMode('Commentaire', (edit) => setComment(edit, shape, part, text));
+  }
+
   /** Emprise de la partie survolée (pixels de page), et sa forme ; undefined sans survol ou si elle est sélectionnée. */
   hoveredBounds(): { shape: ShapeModel; rect: Rect } | undefined {
     const hovered = this.hovered;

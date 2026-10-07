@@ -107,6 +107,13 @@ export interface ModeParts {
   /** Écrit le texte validé (le mode décide d'un texte vide : refusé, ou permis). */
   setText?(edit: ModeEdit, shape: ShapeModel, part: string, text: string): void;
   /**
+   * Commentaire d'une partie (sujet 262) : titre (ex. nom du champ) et texte brut, vide s'il n'y en a pas encore ;
+   * undefined si la partie ne peut pas en avoir (ex. séparateur).
+   */
+  comment?(shape: ShapeModel, part: string): { title: string; text: string } | undefined;
+  /** Commentaire d'une partie édité en place (touche C, sujet 262) : texte brut ; vide le retire. */
+  setComment?(edit: ModeEdit, shape: ShapeModel, part: string, text: string): void;
+  /**
    * Aperçu pendant la saisie (sujet 253) : la forme telle qu'elle serait avec ce texte (sans rien écrire), redessinée
    * en direct ; le texte dessiné de la partie (objets marqués `userData.part`) est masqué pendant l'édition.
    */
@@ -269,8 +276,10 @@ export type ModeProperty = {
   write?(edit: ModeEdit, target: ModeTarget, value: string | undefined, part?: string): string | void;
   /** Champ masqué pour cette cible (ex. rang d'une flèche sans flux). */
   hidden?(page: PageModel, target: ModeTarget, part?: string): boolean;
-  /** Affiché sans être modifiable (ex. clé primaire d'une entité). */
-  readOnly?: boolean;
+  /** Affiché sans être modifiable (ex. clé primaire d'une entité) ; selon la cible (ex. label de la clé, sujet 260). */
+  readOnly?: boolean | ((page: PageModel, target: ModeTarget, part?: string) => boolean);
+  /** Section du panneau (titre) ; défaut : celle au nom du mode (sujet 260, ex. « PostgreSQL »). */
+  section?: string;
 } & (
   | { type: 'toggle' }
   | { type: 'number' }

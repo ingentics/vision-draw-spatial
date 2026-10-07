@@ -110,3 +110,20 @@
   cursor: text;
   pointer-events: auto;
 }
+
+/* Trait entre le commentaire de l'élément et celui de la partie survolée (sujet 262). */
+.comment-divider {
+  position: relative;
+  z-index: 1;
+  max-width: var(--comment-text-width);
+  margin: 6px 0;
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--comment-text-color) 35%, transparent);
+}
+
+/* Commentaire de la partie survolée (sujet 262) : sans effet d'apparition, il change d'une ligne à l'autre. */
+.comment-card .comment-text.comment-part {
+  transform: none;
+  transition: none;
+  animation: none;
+}

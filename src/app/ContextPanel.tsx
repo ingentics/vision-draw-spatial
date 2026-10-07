@@ -318,6 +318,7 @@ function ModeFields({
   scope,
   target,
   part,
+  section,
   styles,
   onModeProperty,
 }: {
@@ -325,6 +326,7 @@ function ModeFields({
   scope: ModeScope;
   target: ModeTarget;
   part?: string;
+  section?: string;
   styles: StyleSettings;
   onModeProperty?: ContextPanelProps['onModeProperty'];
 }) {
@@ -334,6 +336,7 @@ function ModeFields({
       scope={scope}
       target={target}
       part={part}
+      section={section}
       palette={modePalette(styles)}
       onChange={
         onModeProperty &&
@@ -343,7 +346,10 @@ function ModeFields({
   );
 }
 
-/** Section des réglages du mode de la page sur un élément (flèche ou forme), s'il en déclare. */
+/**
+ * Sections des réglages du mode de la page sur un élément (flèche ou forme), s'il en déclare : celle au nom du mode,
+ * puis une par `section` déclarée (sujet 260), dans l'ordre des réglages.
+ */
 function ElementModeSection({
   element,
   scope,
@@ -355,17 +361,23 @@ function ElementModeSection({
     .properties(props.page, scope, part)
     .filter((p) => !p.hidden?.(props.page, element, part));
   if (!mode || shown.length === 0) return null;
+  const sections = [...new Set(shown.map((p) => p.section))];
   return (
-    <Section title={mode.name}>
-      <ModeFields
-        page={props.page}
-        scope={scope}
-        target={element}
-        part={part}
-        styles={props.styles}
-        onModeProperty={props.onModeProperty}
-      />
-    </Section>
+    <>
+      {sections.map((section) => (
+        <Section key={section ?? ''} title={section ?? mode.name}>
+          <ModeFields
+            page={props.page}
+            scope={scope}
+            target={element}
+            part={part}
+            section={section}
+            styles={props.styles}
+            onModeProperty={props.onModeProperty}
+          />
+        </Section>
+      ))}
+    </>
   );
 }
 
@@ -392,25 +404,34 @@ function ShapeSections({ shape, ...props }: ContextPanelProps & { shape: ShapeMo
       <BorderSection shape={shape} onChange={props.onShapeStyle}>
         <ShapePropertyFields shape={shape} section="border" onStyle={props.onShapeStyle} onSpatial={props.onSpatial} />
       </BorderSection>
-      <Section title="Volume">
-        <NumberField
-          key={`h:${shape.id}:${spatialNumber(shape, SPATIAL.height) ?? ''}`}
-          label="Épaisseur"
-          title="Épaisseur du volume en vue iso (spatial.height) ; vide = réglage par défaut"
-          value={spatialNumber(shape, SPATIAL.height)}
-          placeholder={String(props.defaultDepth)}
-          onCommit={(value) => props.onSpatial(SPATIAL.height, value)}
-        />
-        <NumberField
-          key={`e:${shape.id}:${spatialNumber(shape, SPATIAL.elevation) ?? ''}`}
-          label="Élévation"
-          title="Hauteur au-dessus du sol ou du conteneur en vue iso (spatial.elevation)"
-          value={spatialNumber(shape, SPATIAL.elevation)}
-          placeholder="0"
-          onCommit={(value) => props.onSpatial(SPATIAL.elevation, value)}
-        />
-        <ShapePropertyFields shape={shape} section="volume" onStyle={props.onShapeStyle} onSpatial={props.onSpatial} />
-      </Section>
+      {/* Volume : seulement si le mode de la page permet l'iso ou la 3D (sujet 260). */}
+      {(defaultModeRegistry.allowsViewMode(props.page, 'iso') ||
+        defaultModeRegistry.allowsViewMode(props.page, '3d')) && (
+        <Section title="Volume">
+          <NumberField
+            key={`h:${shape.id}:${spatialNumber(shape, SPATIAL.height) ?? ''}`}
+            label="Épaisseur"
+            title="Épaisseur du volume en vue iso (spatial.height) ; vide = réglage par défaut"
+            value={spatialNumber(shape, SPATIAL.height)}
+            placeholder={String(props.defaultDepth)}
+            onCommit={(value) => props.onSpatial(SPATIAL.height, value)}
+          />
+          <NumberField
+            key={`e:${shape.id}:${spatialNumber(shape, SPATIAL.elevation) ?? ''}`}
+            label="Élévation"
+            title="Hauteur au-dessus du sol ou du conteneur en vue iso (spatial.elevation)"
+            value={spatialNumber(shape, SPATIAL.elevation)}
+            placeholder="0"
+            onCommit={(value) => props.onSpatial(SPATIAL.elevation, value)}
+          />
+          <ShapePropertyFields
+            shape={shape}
+            section="volume"
+            onStyle={props.onShapeStyle}
+            onSpatial={props.onSpatial}
+          />
+        </Section>
+      )}
       <Section title="Lien">
         <LinkField link={shape.link} pageId={props.page.id} pages={props.pages} onLink={props.onLink} />
       </Section>

@@ -682,6 +682,11 @@ export class Engine {
     this.core.textEdits.setLabel(elementId, text, html);
   }
 
+  /** Commentaire d'une partie d'une forme validé dans l'éditeur (touche C, sujet 262) ; vide le retire. */
+  setPartComment(shapeId: string, part: string, text: string): void {
+    this.core.shapeParts.setComment(shapeId, part, text);
+  }
+
   /** Texte d'une partie d'une forme (ex. label d'un champ d'une table RDD, sujet 249), validé dans l'éditeur. */
   setPartText(shapeId: string, part: string, text: string): void {
     this.core.shapeParts.setText(shapeId, part, text);

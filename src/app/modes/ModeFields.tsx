@@ -11,6 +11,7 @@ export function ModePropertyFields({
   scope,
   target,
   part,
+  section,
   palette,
   onChange,
 }: {
@@ -19,6 +20,8 @@ export function ModePropertyFields({
   target: ModeTarget;
   /** Partie sélectionnée de la forme (sujet 249) : ses réglages seulement. */
   part?: string;
+  /** Section affichée (sujet 260) : ses réglages seulement ; absente : ceux de la section du mode. */
+  section?: string;
   /** Couleurs proposées par l'appli (`modePalette`), pour les choix d'un réglage. */
   palette: readonly string[];
   /** Écriture d'un réglage (undefined = vide) ; absent : lecture seule. */
@@ -26,7 +29,7 @@ export function ModePropertyFields({
 }) {
   const properties = defaultModeRegistry
     .properties(page, scope, part)
-    .filter((property) => !property.hidden?.(page, target, part));
+    .filter((property) => property.section === section && !property.hidden?.(page, target, part));
   return (
     <>
       {properties.map((property) => (
@@ -62,7 +65,9 @@ function ModePropertyField({
   const { key, label } = property;
   const value = property.value ? property.value(page, target, part) : rawValue(target, key);
   const title = property.title ?? label;
-  const editable = onChange !== undefined && !property.readOnly;
+  const readOnly =
+    typeof property.readOnly === 'function' ? property.readOnly(page, target, part) : property.readOnly === true;
+  const editable = onChange !== undefined && !readOnly;
   const write = (next: string | undefined) => {
     if (editable) onChange(key, next);
   };
