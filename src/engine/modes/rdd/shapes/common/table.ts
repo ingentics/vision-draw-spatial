@@ -17,22 +17,23 @@ import {
   SECONDARY_SCALE,
   TABLE,
   TABLE_KINDS,
+  fieldsValue,
   headerHeight,
   isSecondary,
+  markInset,
   missingName,
   shownMark,
   tableFields,
   tableHeight,
+  tableWidth,
 } from '../../tables';
 import type { HeaderMark, TableKind } from '../../tables';
+import { addFieldRow } from './fieldRow';
 
 /** Rendu et fabrique des tables du mode RDD (sujet 179), communs à ses formes (`shapes/<forme>/`). */
 
 const BORDER = '#666666';
 const FIELDS_FILL = '#ffffff';
-
-/** Air entre le titre et l'icône d'entête. */
-const MARK_GAP = 4;
 
 const scaleOf = (shape: ShapeModel) => (isSecondary(shape) ? SECONDARY_SCALE : 1);
 
@@ -42,8 +43,7 @@ const scaleOf = (shape: ShapeModel) => (isSecondary(shape) ? SECONDARY_SCALE : 1
  */
 function nameZone(shape: ShapeModel): Rect {
   const { x, y, width } = shape.bounds;
-  const { width: mark, zoom, margin } = TABLE.mark;
-  const inset = shownMark(shape) ? Math.min((margin + mark * zoom + MARK_GAP) * scaleOf(shape), width / 2) : 0;
+  const inset = shownMark(shape) ? Math.min(markInset() * scaleOf(shape), width / 2) : 0;
   return { x: x + inset, y, width: width - 2 * inset, height: headerHeight(isSecondary(shape)) };
 }
 
@@ -185,15 +185,7 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
   tableFields(shape).forEach((field, index) => {
     const y = bounds.y + header + row * (index + 0.5);
     if (y > bounds.y + bounds.height) return;
-    addText(group, ctx, {
-      text: field,
-      at: { x: bounds.x + TABLE.padding * scale, y },
-      size: TABLE.fieldSize * scale,
-      color: '#000000',
-      align: 'left',
-      underline: kind.primaryKey && index === 0,
-      italic: kind.italicFields,
-    });
+    addFieldRow(group, ctx, kind, field, { left: bounds.x, y, scale });
   });
   return group;
 }
@@ -322,44 +314,12 @@ function headerMark(shape: ShapeModel, mark: HeaderMark, header: number, color: 
   return group;
 }
 
-function addText(
-  group: Group,
-  ctx: RenderContext,
-  text: {
-    text: string;
-    at: Point;
-    size: number;
-    color: string;
-    align: 'left' | 'center';
-    underline?: boolean;
-    italic?: boolean;
-  },
-): void {
-  const object = ctx.text.create({
-    text: text.text,
-    x: text.at.x,
-    y: text.at.y,
-    anchorX: text.align,
-    anchorY: 'middle',
-    align: text.align,
-    fontSize: text.size,
-    color: new Color(text.color),
-    opacity: 1,
-    bold: false,
-    underline: text.underline,
-    italic: text.italic,
-  });
-  object.name = 'table-text';
-  object.renderOrder = PART_ORDER.label;
-  group.add(object);
-}
-
 /**
  * Style draw.io d'une table neuve : un swimlane (entête de la couleur, corps blanc), désigné par `spatial.kind` ; la
  * clé primaire dans ses champs s'il en a une.
  */
 export function tableStyle(id: string, kind: TableKind): string {
-  const fields = kind.primaryKey ? `${FIELDS}=${JSON.stringify([PRIMARY_KEY])};` : '';
+  const fields = kind.primaryKey ? `${FIELDS}=${fieldsValue([PRIMARY_KEY])};` : '';
   return (
     `swimlane;fontStyle=${1 | (kind.italic ? 2 : 0)};startSize=${headerHeight(false)};` +
     `fillColor=${DEFAULT_HEADER_COLOR};fontColor=${DEFAULT_HEADER_TEXT};swimlaneFillColor=${FIELDS_FILL};strokeColor=${BORDER};` +
@@ -377,19 +337,23 @@ export function table(
   palette?: Pick<PaletteEntry, 'name' | 'order' | 'keywords' | 'value'> & { icon?: string },
 ): ShapeDefinition {
   const kind = TABLE_KINDS[id]!;
+  const fields = kind.primaryKey ? [PRIMARY_KEY] : [];
   return {
     id,
     outline: (shape) => outline(shape, kind),
     flat: { create: (shape, ctx) => createTable(shape, ctx, kind) },
     textZone: (shape) => nameZone(shape),
+    // Taille calculée de son contenu (sujet 247) : pas de poignées de redimensionnement.
+    resizable: false,
     swatch: () => '<path d="M5 5h30v18H5zM5 11h30"/>',
     ...(palette && {
       palette: {
         ...palette,
         category: 'rdd',
         style: tableStyle(id, kind),
-        width: TABLE.width,
-        height: tableHeight(kind, false, kind.primaryKey ? 1 : 0),
+        // Mesure approchée au chargement (polices pas encore là) : la première modification l'ajuste.
+        width: tableWidth(kind, { name: palette.value, fields, secondary: false, mark: kind.mark !== undefined }),
+        height: tableHeight(kind, false, fields.length),
         icon:
           palette.icon ??
           '<path d="M6 3h28v22H6zM6 10h28M10 15h12M10 20h9"/>' + (kind.doubleHeader ? '<path d="M8 5h24v3H8z"/>' : ''),

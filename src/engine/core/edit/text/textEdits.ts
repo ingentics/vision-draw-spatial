@@ -41,6 +41,7 @@ export class TextEdits {
     this.core.edits.recordEdit('Texte');
     if (html === undefined) setCellLabel(editable.pageTree, elementId, text);
     else setCellRichLabel(editable.pageTree, elementId, html);
+    this.core.pageModes.elementRelabeled(editable.page.id, elementId);
     this.core.file.documentChanged([editable.page.id]);
   }
 }

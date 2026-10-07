@@ -7,13 +7,15 @@ import {
   PRIMARY_KEY,
   SECONDARY,
   TABLE_KINDS,
+  fieldProblems,
   isSecondary,
   misplacedPrimaryKey,
   missingName,
   shownMark,
+  tableFields,
   tableKindOf,
 } from './tables';
-import { fieldsText, setFields, setHeaderColor, setSecondary } from './operations';
+import { fieldsText, fitTable, setFields, setHeaderColor, setIcon, setSecondary } from './operations';
 import {
   REGION_COLORS,
   REGION_KIND,
@@ -105,7 +107,10 @@ export const definition: PageModeDefinition = {
         const shape = tableOf(target);
         return shape && shownMark(shape) ? '1' : undefined;
       },
-      write: (edit, target, value) => edit.setElementAttribute(target.id, ICON, value === '1' ? undefined : '0'),
+      write: (edit, target, value) => {
+        const shape = tableOf(target);
+        if (shape) setIcon(edit, shape, value === '1');
+      },
       hidden: (_page, target) => {
         const shape = tableOf(target);
         return !shape || !tableKindOf(shape)?.mark;
@@ -117,7 +122,10 @@ export const definition: PageModeDefinition = {
       label: 'Clé primaire',
       title: 'Clé primaire de la table : toujours le premier champ, ni retirée ni déplacée',
       readOnly: true,
-      value: () => PRIMARY_KEY,
+      value: (_page, target) => {
+        const shape = tableOf(target);
+        return shape && tableFields(shape)[0]?.label;
+      },
       hidden: (_page, target) => {
         const shape = tableOf(target);
         return !shape || !tableKindOf(shape)?.primaryKey;
@@ -142,6 +150,11 @@ export const definition: PageModeDefinition = {
       hidden: notTable,
     },
   ],
+  // Table renommée : sa largeur suit le nom (sujet 247).
+  relabeled: (edit, elementId) => {
+    const shape = edit.page.shapes.find((s) => s.id === elementId);
+    if (shape) fitTable(edit, shape);
+  },
   // Une région emporte son contenu (sujet 182).
   carries: (page, shape) => regionContent(page, shape),
   // Une forme posée qui dépasse de sa région l'agrandit, marge comprise (sujet 183) ; les régions restent derrière
@@ -163,8 +176,15 @@ export const definition: PageModeDefinition = {
   check: (page) => [
     ...page.shapes.filter(misplacedPrimaryKey).map((shape) => ({
       cellId: shape.id,
-      message: `Table « ${shape.label || shape.id} » : clé primaire ${PRIMARY_KEY} absente ou déplacée, remise en tête`,
+      message: `Table « ${shape.label || shape.id} » : clé primaire ${PRIMARY_KEY.label} absente ou déplacée, remise en tête`,
     })),
+    // Champs illisibles, type inconnu, clé primaire nullable (sujet 246).
+    ...page.shapes.flatMap((shape) =>
+      fieldProblems(shape).map((problem) => ({
+        cellId: shape.id,
+        message: `Table « ${shape.label || shape.id} » : ${problem}`,
+      })),
+    ),
     // Document JSONB sans nom : affiché « Document » (sujet 181).
     ...page.shapes.filter(missingName).map((shape) => ({
       cellId: shape.id,

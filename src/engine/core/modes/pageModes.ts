@@ -195,6 +195,20 @@ export class PageModes {
     );
   }
 
+  /**
+   * Texte d'un élément changé, déjà écrit dans l'arbre : le mode de la page le remet en ordre dans la même étape
+   * d'annulation (`relabeled`, ex. table RDD élargie, sujet 247).
+   */
+  elementRelabeled(pageId: string, elementId: string): void {
+    const page = this.core.pages.pageById(pageId);
+    const relabeled = page && this.core.modes.modeOf(page)?.relabeled;
+    const pageTree = this.core.file.pageTreeOf(pageId);
+    if (!relabeled || !pageTree || !this.core.file.xmlTree) return;
+    const fresh = documentFromTree(this.core.file.xmlTree).pages.find((p) => p.id === pageId);
+    if (!fresh) return;
+    applyModeEdit(fresh, pageTree, (edit) => relabeled(edit, elementId), modePalette(this.core.settings.styles));
+  }
+
   /** Avertissements des modes de page (mode inconnu, données remises en ordre) ajoutés à ceux de la lecture. */
   withModeWarnings(document: DocumentModel): DocumentModel {
     document.warnings.push(...this.core.modes.warnings(document), ...this.core.effects.warnings(document));

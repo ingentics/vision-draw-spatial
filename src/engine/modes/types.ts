@@ -59,6 +59,11 @@ export interface PageModeDefinition {
    */
   placed?(edit: ModeEdit, shapeIds: string[], before?: PageModel): void;
   /**
+   * Texte d'un élément changé (édition sur place ou panneau) ; remise en ordre dans la même étape d'annulation (ex.
+   * table RDD élargie pour son nom, sujet 247). `edit.page` montre le nouveau texte.
+   */
+  relabeled?(edit: ModeEdit, elementId: string): void;
+  /**
    * Bornes d'une forme qu'on déplace ou redimensionne (sujet 241, ex. régions sœurs d'une région RDD) : obstacles à ne
    * pas approcher à moins de l'écart des paramètres (`shapes.modeObstacleGap`) ; undefined = aucune borne.
    */

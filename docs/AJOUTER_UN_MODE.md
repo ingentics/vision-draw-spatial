@@ -45,6 +45,7 @@ interface PageModeDefinition {
   keys?: Record<string, ModeKey>;              // touches sur l'élément sélectionné seul (ex. « + »)
   carries?(page, shape): string[];             // formes emportées quand on déplace `shape` (ex. région RDD)
   placed?(edit, shapeIds, before?): void;      // formes déplacées ou ajoutées (ex. région RDD agrandie)
+  relabeled?(edit, elementId): void;          // texte d'un élément changé (ex. table RDD élargie)
   obstacles?(page, shape): ModeObstacles;      // bornes d'un déplacement / redimensionnement (ex. régions sœurs)
   shapes?: string[];                           // formes proposées par la palette (section 6)
   paletteCategories?: PaletteCategory[];       // catégories de palette du mode (section 6)
@@ -99,6 +100,8 @@ paramètres « Modes › Séquences » (clés `shapes.edgeBadge…`, communes à
 - `placed(edit, shapeIds)` : formes posées (fin d'un glisser, flèches du clavier, ajout depuis la palette), déjà
   écrites ; remise en ordre dans la même étape d'annulation (`edit.page` : la page après la pose ; `before` : la page
   avant un déplacement, absente pour un ajout).
+- `relabeled(edit, elementId)` : texte d'un élément changé (édition sur place ou panneau), déjà écrit ; remise en
+  ordre dans la même étape d'annulation (`edit.page` montre le nouveau texte ; ex. table RDD élargie pour son nom).
 - `obstacles(page, shape)` : emprises que `shape` ne doit pas approcher pendant un déplacement (glisser, flèches du
   clavier) ou un redimensionnement, à l'écart du paramètre `shapes.modeObstacleGap` ; `above` : ce que la forme dessine
   au-dessus de ses bornes. Le moteur borne le geste (un axe puis l'autre, on glisse le long d'un obstacle) et montre la
