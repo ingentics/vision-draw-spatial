@@ -915,7 +915,8 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   - Fichier : `swimlane;startSize=26;fillColor=…;swimlaneFillColor=#ffffff;spatial.kind=rdd-…;…` : draw.io montre
     l'entête et sa couleur et les coins arrondis, pas les champs, le cadre double, le coin plié, la vague ni les icônes.
   - « Région » (`rdd-region`) : rectangle à fond opaque et bordure fine grise (`#969696`) ; couleurs propres aux régions,
-    proposées par « Couleur » : `#fdebef` (par défaut), `#eae4f1`, `#e7f5fd`, `#e7f3e7`, `#fefce8`, `#feefe3` ; 200 × 80 à la pose ; son nom (gras, 9 px, noir ou blanc selon le contraste) est sur un **onglet**
+    proposées par « Couleur » : `#fdebef`, `#eae4f1`, `#e7f5fd`, `#e7f3e7`, `#fefce8`, `#feefe3` ; 200 × 80 à la pose ; une région ajoutée
+    prend la couleur au rang du nombre de ses sœurs (même région parente, ou premier niveau de la page) modulo 6 ; son nom (gras, 9 px, noir ou blanc selon le contraste) est sur un **onglet**
     au-dessus de son coin haut-gauche, coin carré, terminé par un S qui rejoint le bord haut, d'un seul contour avec la
     région (même fond, même bordure) ; même marge (6 px) de part et d'autre du nom, mesuré avec les polices du dessin ;
     l'onglet se clique comme la région, l'éditeur en place s'ouvre sur le nom ; posée au fond de la pile. Son **contenu** est

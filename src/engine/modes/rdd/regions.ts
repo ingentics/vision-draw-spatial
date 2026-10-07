@@ -219,8 +219,30 @@ export function orderRegions(edit: ModeEdit): void {
   if (regions.length > 0) edit.sendToBack(regions);
 }
 
-/** Formes posées (sujets 183, 230) : régions agrandies pour les contenir, puis remises en ordre de dessin. */
+/**
+ * Couleur d'une région ajoutée (sujet 236) : celle de la palette des régions au rang du nombre de ses sœurs (régions de
+ * la même région parente, ou du premier niveau de la page), modulo la taille de la palette.
+ */
+export function colorNewRegion(edit: ModeEdit, region: ShapeModel): void {
+  const { page } = edit;
+  const parent = regionOf(page, region)?.id;
+  const siblings = page.shapes.filter(
+    (shape) => isRegion(shape) && shape.id !== region.id && regionOf(page, shape)?.id === parent,
+  ).length;
+  setRegionColor(edit, region, REGION_COLORS[siblings % REGION_COLORS.length]);
+}
+
+/**
+ * Formes posées (sujets 183, 230, 236) : une région ajoutée (pas de `before`) prend la couleur de son rang parmi ses
+ * sœurs ; régions agrandies pour contenir les formes, puis remises en ordre de dessin.
+ */
 export function placeInRegions(edit: ModeEdit, shapeIds: string[], before?: PageModel): void {
+  if (!before) {
+    for (const id of shapeIds) {
+      const shape = edit.page.shapes.find((s) => s.id === id);
+      if (shape && isRegion(shape)) colorNewRegion(edit, shape);
+    }
+  }
   growRegions(edit, shapeIds, before);
   orderRegions(edit);
 }

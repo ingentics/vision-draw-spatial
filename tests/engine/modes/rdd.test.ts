@@ -10,6 +10,7 @@ import { fieldsText, setFields, setHeaderColor, setSecondary } from '../../../sr
 import { REGION, REGION_COLORS, regionContent, regionOf, regionTextColor } from '../../../src/engine/modes/rdd/regions';
 import { regionOutline, tabPath, tabRect } from '../../../src/engine/modes/rdd/shapes/region';
 import { pickElement } from '../../../src/engine/interaction/pick';
+import { addShapeCell } from '../../../src/engine/format/create';
 import { approximateMeasure } from '../../../src/engine/render/richLayout';
 import type { ModeEdit } from '../../../src/engine/modes/types';
 import type { Point, ShapeModel } from '../../../src/engine/model/types';
@@ -725,5 +726,29 @@ describe('mode RDD : ajuster une région à son contenu, touche « f » (sujet 1
     run((edit) => edit.setShapeBounds('accounts', { x: 900, y: 900, width: 100, height: 100 }));
     expect(run((edit) => key.run(edit, shape('accounts'), undefined))).toBe(false);
     expect(shape('accounts').bounds).toEqual({ x: 900, y: 900, width: 100, height: 100 });
+  });
+});
+
+describe('mode RDD : couleur d’une région neuve selon ses sœurs (sujet 236)', () => {
+  it('rose, lavande, bleu… modulo la palette ; dans une région, comptée parmi ses propres sœurs', () => {
+    const { tree } = readDrawio(`<mxfile><diagram id="p" name="P" spatial.mode="rdd"><mxGraphModel><root>
+      <mxCell id="0" /><mxCell id="1" parent="0" /></root></mxGraphModel></diagram></mxfile>`);
+    const pageTree = tree.pages[0]!;
+    /** Ajout depuis la palette : la cellule, puis le mode (sans page d'avant). */
+    const add = (x: number, y: number, width = 200, height = 80) => {
+      const id = addShapeCell(pageTree, { style: 'spatial.kind=rdd-region;', value: 'R', x, y, width, height });
+      applyModeEdit(documentFromTree(tree).pages[0]!, pageTree, (edit) => rdd.placed!(edit, [id]));
+      return id;
+    };
+    const colorOf = (id: string) => documentFromTree(tree).pages[0]!.shapes.find((s) => s.id === id)!.style.fillColor;
+    const top = [0, 1, 2, 3, 4, 5, 6].map((i) => add(i * 1000, 0, 800, 600));
+    expect(top.map(colorOf)).toEqual([...REGION_COLORS, REGION_COLORS[0]]);
+    // Dans la première région : premier de son niveau, rose ; la suivante, lavande.
+    const inner = [add(20, 20), add(20, 200)];
+    expect(inner.map(colorOf)).toEqual([REGION_COLORS[0], REGION_COLORS[1]]);
+    // Un déplacement ne change pas la couleur.
+    const page = documentFromTree(tree).pages[0]!;
+    applyModeEdit(page, pageTree, (edit) => rdd.placed!(edit, [inner[1]!], page));
+    expect(colorOf(inner[1]!)).toBe(REGION_COLORS[1]);
   });
 });
