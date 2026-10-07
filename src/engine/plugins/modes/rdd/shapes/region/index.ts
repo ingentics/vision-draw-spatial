@@ -1,6 +1,7 @@
 import { Color, Group } from 'three';
 import {
   PART_ORDER,
+  dashPattern,
   fillMesh,
   insidePolygon,
   measureText,
@@ -104,11 +105,15 @@ function createRegion(shape: ShapeModel, ctx: RenderContext): Group {
   const fillOpacity = styleOpacity(style, 'fillOpacity');
   if (fill) group.add(fillMesh(path, fill, fillOpacity));
   const stroke = styleColor(style, 'strokeColor', REGION.stroke);
+  const width = styleNumber(style, 'strokeWidth', 1);
+  // Bordure en pointillé comme dans draw.io (`dashed`, `dashPattern`, `fixDash`), aucune sans épaisseur.
   const border =
     stroke &&
+    width > 0 &&
     strokeMesh(path, stroke, styleOpacity(style, 'strokeOpacity'), {
-      width: styleNumber(style, 'strokeWidth', 1),
+      width,
       closed: true,
+      dash: dashPattern(style, width),
     });
   if (border) group.add(border);
 

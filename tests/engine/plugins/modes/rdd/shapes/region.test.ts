@@ -1,9 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { REGION } from '../../../../../../src/engine/plugins/modes/rdd/regions/regionLayout';
-import { regionOutline, tabPath, tabRect } from '../../../../../../src/engine/plugins/modes/rdd/shapes/region';
+import {
+  definition,
+  regionOutline,
+  tabPath,
+  tabRect,
+} from '../../../../../../src/engine/plugins/modes/rdd/shapes/region';
 import { pickElement } from '../../../../../../src/engine/core/interaction/pick';
 import { approximateMeasure } from '../../../../../../src/engine/core/render/richLayout';
 import type { Point, ShapeModel } from '../../../../../../src/engine/core/model/types';
+import type { RenderContext } from '../../../../../../src/engine/core/render/types';
+import type { Mesh } from 'three';
+import { Object3D } from 'three';
 import { setup } from '../helpers';
 import { createDefaultRegistry } from '../../../../../../src/engine/plugins';
 
@@ -79,5 +87,18 @@ describe('mode RDD : région (sujet 182)', () => {
     };
     expect(pickElement(page(), { x: 25, y: 130 - height / 2 }, options)?.element.id).toBe('accounts');
     expect(pickElement(page(), { x: 300, y: 130 - height / 2 }, options)).toBeUndefined();
+  });
+
+  it('bordure en pointillé avec `dashed=1`, aucune sans épaisseur (dette 308)', () => {
+    const { shape } = setup();
+    const region = shape('accounts');
+    const ctx: RenderContext = { text: { create: () => new Object3D() } };
+    const border = (style: Record<string, string>) =>
+      definition.flat.create({ ...region, style: { ...region.style, ...style } }, ctx).getObjectByName('stroke') as
+        Mesh | undefined;
+    const solid = border({})!.geometry.getAttribute('position').count;
+    const dashed = border({ dashed: '1' })!.geometry.getAttribute('position').count;
+    expect(dashed).toBeGreaterThan(solid * 10);
+    expect(border({ strokeWidth: '0' })).toBeUndefined();
   });
 });

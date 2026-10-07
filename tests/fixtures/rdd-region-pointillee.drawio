@@ -1,0 +1,19 @@
+<mxfile host="drawio-spatial" version="24.7.5">
+  <diagram id="dashed" name="Régions en pointillé" spatial.mode="rdd">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="plain" value="Trait plein" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fdebef;strokeColor=#969696;labelBorderColor=#969696;fontColor=#000000;align=left;verticalAlign=bottom;verticalLabelPosition=top;fontStyle=1;fontSize=9;spatial.kind=rdd-region;" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="dashed" value="Pointillé" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fdebef;strokeColor=#969696;labelBorderColor=#969696;fontColor=#000000;align=left;verticalAlign=bottom;verticalLabelPosition=top;fontStyle=1;fontSize=9;spatial.kind=rdd-region;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="60" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="pattern" value="Pointillé 8 4" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fdebef;strokeColor=#969696;labelBorderColor=#969696;fontColor=#000000;align=left;verticalAlign=bottom;verticalLabelPosition=top;fontStyle=1;fontSize=9;spatial.kind=rdd-region;dashed=1;dashPattern=8 4;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="520" y="60" width="200" height="80" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
