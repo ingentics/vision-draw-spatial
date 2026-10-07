@@ -8,3 +8,4 @@ node_modules
 tests/fixtures
 docs
 CHANGELOG.md
+.claude

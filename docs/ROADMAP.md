@@ -1,38 +1,29 @@
-# Organisation du travail — Drawio Spatial
+# Work organisation — Drawio Spatial
 
-> Le suivi des sujets ne se fait plus dans ce fichier : il décrit seulement comment on s'organise.
-> Référence fonctionnelle et technique : `SPEC.md`.
+> Topics are not tracked in this file: it only describes how work is organised. Reference: `SPEC.md`.
 
-## Les backlogs
+## Backlogs
 
-Chaque sujet (fonctionnalité, forme, correction, idée) est **un fichier Markdown** dans `docs/backlogs/` :
+Each topic (feature, shape, fix, idea) is **one Markdown file** in `docs/backlogs/`: `idea/` (not specified yet),
+`todo/` (to do or in progress), `done/` (finished), and `debt/` (debt noticed in passing).
 
-```
-docs/backlogs/
-├── idea/   idées pas encore précisées
-├── todo/   sujets à traiter (ou en cours)
-└── done/   sujets terminés
-```
+- **An idea** (wish, lead, "if needed") goes to `idea/`, even as one line. When we decide to work on it, it is made
+  precise (exact values, "Fini quand" criterion) and moves to `todo/` (`git mv`); it may also spawn several `todo/`
+  topics, and the idea file is then deleted.
+- **One topic = one file.** A topic too big is split into several files; a partly done topic is split: the done part
+  goes to `done/`, the rest becomes a new `todo/` file.
+- **When a topic is done, its file moves from `todo/` to `done/`** (`git mv`) in the same commit as the code, with
+  what was done (files, choices, validation in draw.io) added under a "Fait :" line. Behaviour changes, even minor
+  (including from a refactor), are written there.
+- A `done/` file is never modified afterwards: an evolution or rework is a new `todo/` topic.
 
-- **Une idée** (envie, piste, « si nécessaire ») va dans `idea/`, même en une ligne. Quand on décide de la traiter,
-  on la précise (valeurs exactes, critère « Fini quand ») et elle passe en `todo/` (`git mv`) ; elle peut aussi
-  donner naissance à plusieurs sujets `todo/`, et le fichier d'idée est alors supprimé.
+### Naming
 
-- **Un sujet = un fichier.** Un sujet trop gros se découpe en plusieurs fichiers ; un sujet terminé en partie est
-  scindé : la partie faite part en `done/`, le reste devient un nouveau fichier en `todo/`.
-- **Quand un sujet est traité, son fichier passe de `todo/` à `done/`** (`git mv`), dans le même commit que le code.
-  On y ajoute alors ce qui a été fait (fichiers, choix, validation dans draw.io), sous une ligne « Fait : ».
-- Ne commit pas tout seul, attend d'avoir la validation que le ticket est traité (comme àa on traite les allez retours dans le même ticket que tu amenderas le cas échéant).
-- Un fichier `done/` n'est plus modifié ensuite : une évolution ou une reprise est un nouveau sujet en `todo/`.
+`NN-sujet-en-kebab-case.md` (French slug), where `NN` is a **unique number, never reused**: a new topic takes the
+largest existing number + 1 (`idea/`, `todo/`, `done/` and `debt/` together: `ls docs/backlogs/*/`). The number is a
+stable reference ("étape 24" in code and tests), not an order. Numbers 0 to 26 are the steps of the old roadmap.
 
-### Nommage
-
-`NN-sujet-en-kebab-case.md`, où `NN` est un **numéro unique**, jamais réutilisé : un nouveau sujet prend le numéro
-suivant le plus grand existant (`idea/`, `todo/` et `done/` confondus). Le numéro sert de référence stable (« étape 24 » dans
-le code et les tests), il ne fixe pas l'ordre de traitement. Les numéros 0 à 26 reprennent les étapes de l'ancienne
-feuille de route.
-
-### Contenu d'un fichier
+### File content (written in French)
 
 ```markdown
 # Titre du sujet
@@ -44,42 +35,23 @@ feuille de route.
 - Fait : (ajouté une fois le sujet terminé) ce qui a été réalisé et comment c'est validé.
 ```
 
-Un fichier `idea/` peut se limiter au titre et à une ligne de description.
+An `idea/` file may be just a title and one line.
 
-### Les itérations
+## Iterations
 
-Une **itération** est un petit sujet : une retouche, un réglage, une correction sur une partie précise de l'appli
-(ex. « le double-clic seul édite le texte, ⌘ + double-clic suit le lien »). Elle suit le même formalisme qu'un sujet,
-en plus court :
+An **iteration** is a small topic: a tweak, a setting, a fix on a precise part of the app. Same format, shorter.
 
-- Une itération concerne un ticket qui a été commité. Sinon, on est toujours sur le même ticket.
-- **Toute demande de modification devient un ticket.** Même formulée en une phrase dans la conversation, elle est
-  d'abord écrite en fichier `todo/` (numéro suivant, mêmes règles de nommage) avant d'écrire le code ; si elle est
-  ambiguë, on la précise avant de commencer.
-- Le fichier tient en quelques lignes : titre, rattachement (`> Itération — <partie de l'appli>`, et le sujet repris
-  s'il y en a un, ex. « reprise de 47 »), ce qui change, **Fini quand**.
-- Comme tout sujet, elle se termine par `make check` et un commit qui passe le fichier en `done/` avec sa ligne
-  « Fait : » (fichiers touchés, vérification dans l'appli).
-- Plusieurs petites demandes sur la même partie, faites ensemble, peuvent partager une itération ; des demandes sans
-  rapport font chacune la leur.
+- **Every change request becomes a ticket.** Even a one-sentence request in the conversation is first written as a
+  `todo/` file (next number) before writing code; if it is ambiguous, clarify it before starting.
+- An iteration concerns an already committed ticket. Otherwise we are still on the same ticket (amend it).
+- A few lines: title, attachment (`> Itération — <partie de l'appli>`, plus the reworked topic if any, e.g. « reprise
+  de 47 »), what changes, **Fini quand**.
+- It ends like any topic: `make check` and, after validation, a commit moving the file to `done/` with its
+  "Fait :" line (files touched, check in the app).
+- Several small requests on the same part, done together, may share an iteration; unrelated requests each get
+  their own.
 
-```markdown
-# Suivre un lien au ⌘ + double-clic
+## Principle
 
-> Itération — interaction (sélection et liens) ; reprise de 09
-
-- Le double-clic seul édite le texte ; ⌘ + double-clic suit le lien (touche réglable dans les paramètres).
-- **Fini quand :** sur une forme liée, double-clic = édition, ⌘ + double-clic = navigation ; `make check` vert.
-```
-
-## Façon de travailler (phase de dev)
-
-- Tout tourne dans Docker (Node figé par l'image) ; `make dev` lance l'appli et affiche le lien (SPEC §3.4).
-- **Un seul serveur en hot reload** reste ouvert (`make dev`, port 5173) : on travaille directement dessus, il suffit
-  de regarder ou de rafraîchir l'onglet. Une modification du moteur recharge la page en restaurant fichier, page et
-  caméra.
-- Principe : à chaque sujet, l'application tourne et on peut vérifier le résultat à l'œil.
-- Ce qui touche au fichier draw.io se valide contre draw.io lui-même (`make drawio-check` : réenregistrement et export
-  SVG des fixtures).
-- Chaque sujet se termine par `make check` (lint, types, format, tests) et un commit qui inclut le déplacement du
-  fichier en `done/` ; les pushes sont faits à la main.
+At every topic the app runs and the result can be checked by eye; anything touching the draw.io file is validated
+against draw.io itself.

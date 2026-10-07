@@ -2,24 +2,36 @@
 
 @docs/ROADMAP.md
 
-@docs/BONNES_PRATIQUES.md
+Functional and technical reference: `docs/SPEC.md` (read on demand, not preloaded: 130 KB). Architecture and
+"where to look" table: `docs/SUMMARY.md`. Coding rules: `.claude/rules/coding.md` (auto-loaded when touching
+`src/` or `tests/`).
 
-Référence fonctionnelle et technique : `docs/SPEC.md` (à lire au besoin, pas chargée d'office : 80 Ko).
+**Language:** identifiers in English; code comments, project docs, tickets and commit messages in French. Only the
+agent instruction files (this one, `docs/ROADMAP.md`, `.claude/rules/`) are in English.
 
-## Règles de travail
+## Work rules
 
-- **Serveur partagé.** Pendant le dev, un seul serveur en hot reload : le `make dev` de l'utilisateur (port 5173),
-  qu'il suit dans son navigateur. On vérifie à l'œil dessus (`curl localhost:5173` pour savoir s'il tourne) ; on n'en
-  lance pas un autre. S'il est arrêté, on lance `make dev` (projet compose par défaut, port 5173) en arrière-plan pour
-  que ce soit lui le serveur partagé. Une modification du moteur recharge la page en restaurant fichier, page et
-  caméra (plugin dans `vite.config.ts`, `src/app/devSession.ts`) : garder cette restauration fonctionnelle.
-- **`make check` avant tout commit.** On ne commite que si `make check` sort à 0 : lancer le check
-  (avec `COMPOSE_PROJECT_NAME=drawio-claude` pour ne pas toucher au conteneur de l'utilisateur), récupérer son code
-  de retour et ne lancer `git commit` que s'il vaut 0 — jamais `make check ; git commit`. Les fichiers modifiés par
-  l'utilisateur lui-même restent hors du commit.
-- **Messages de commit : Conventional Commits.** `type(portée): description`, description en français, à
-  l'impératif ou au nominal, sans point final. Types : `feat` (fonctionnalité), `fix` (correction), `docs`
-  (documentation, backlogs), `refactor`, `perf`, `test`, `style` (format seul), `build` (Docker, Makefile,
-  dépendances), `chore` (le reste). Portée facultative : la partie de l'appli (`engine`, `app`, `palette`,
-  `drawio`…). Un changement cassant prend `!` (`feat(engine)!: …`) et un pied `BREAKING CHANGE: …`. Le numéro du
-  ticket va en pied de message : `Sujet : 49`.
+- **Shared server.** During dev there is a single hot-reload server: the user's `make dev` (port 5173), which they
+  watch in their browser. Check results by eye there (`curl localhost:5173` to see if it runs); never start another
+  one. If it is down, start `make dev` (default compose project, port 5173) in the background so that it becomes the
+  shared server. An engine change reloads the page restoring file, page and camera (plugin in `vite.config.ts`,
+  `src/app/devSession.ts`): keep that restoration working. After moving a file, Vite may keep the old path cached
+  (blank page): touch the files importing it.
+- **Everything runs in Docker** (Node pinned by the image): use `make`, never host `npx`.
+- **Validate:**
+  - By eye in the app, on the shared server, with a fixture showing the case. Say what was only checked by tests.
+  - Against draw.io as soon as the `.drawio` file is touched: fixture + `make drawio-check` (re-save and SVG export
+    of the fixtures).
+  - `make check` (lint, types, format, tests) with `COMPOSE_PROJECT_NAME=drawio-claude` (so the user's container is
+    not replaced), must exit 0 before any commit: get its exit code and only run `git commit` if it is 0 — never
+    `make check ; git commit`.
+- **Commit only after the user validates the ticket.** Finish → `make check` → report and stop. Back-and-forth
+  before that validation amends the same ticket. Stage files one by one (`git add path`), never `git add .` or a
+  whole directory: files modified by the user stay out of the commit (check `git status`). Pushes are manual.
+- **Commit messages: Conventional Commits.** `type(scope): description`, description in French, imperative or
+  nominal, no final period. Types: `feat`, `fix`, `docs` (documentation, backlogs), `refactor`, `perf`, `test`,
+  `style` (formatting only), `build` (Docker, Makefile, dependencies), `chore` (the rest). Optional scope: the part
+  of the app (`engine`, `app`, `palette`, `drawio`, `rdd`…). A breaking change takes `!` (`feat(engine)!: …`) and a
+  `BREAKING CHANGE: …` footer. Ticket number in the footer: `Sujet : 49`.
+- **Debt seen in passing** is not fixed in the current ticket unless it needs it: write it in `docs/backlogs/debt/`
+  (one line, next number) and tell the user.
