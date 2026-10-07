@@ -1,5 +1,5 @@
 import { BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Mesh, MeshBasicMaterial } from 'three';
-import type { Point } from '../../../core/plugins';
+import type { EffectLight, Point } from '../../../core/plugins';
 
 export interface Tree {
   /** Graine de l'arbre (celle de sa case). */
@@ -20,14 +20,15 @@ export interface Tree {
 
 const TRUNK = new Color('#8c5e36');
 const LEAVES = new Color('#3d7a3c');
-/** Lumière (espace page, z vers le haut) : éclaire le dessus et un côté, comme les volumes. */
-const LIGHT = normalize([-0.45, -0.35, 0.82]);
 /** Facettes d'un tronc, d'un cône, d'un anneau de feuillu. */
 const SIDES = 7;
 
-/** Toute la forêt en un seul maillage (couleurs par sommet, facettes ombrées), opaque avec profondeur. */
-export function forestMesh(trees: Tree[]): Mesh {
-  const out: Faces = { positions: [], colors: [] };
+/**
+ * Toute la forêt en un seul maillage (couleurs par sommet, facettes ombrées comme les volumes des formes : `light`),
+ * opaque avec profondeur.
+ */
+export function forestMesh(trees: Tree[], light: EffectLight): Mesh {
+  const out: Faces = { positions: [], colors: [], light };
   for (const tree of trees) addTree(out, tree);
   const geometry = new BufferGeometry();
   geometry.setAttribute('position', new Float32BufferAttribute(out.positions, 3));
@@ -40,6 +41,7 @@ export function forestMesh(trees: Tree[]): Mesh {
 interface Faces {
   positions: number[];
   colors: number[];
+  light: EffectLight;
 }
 
 function addTree(out: Faces, tree: Tree): void {
@@ -90,7 +92,7 @@ function frustum(out: Faces, at: Point, z0: number, z1: number, r0: number, r1: 
 
 type Vec = [number, number, number];
 
-/** Triangle ombré selon sa pente et son orientation face à la lumière. */
+/** Triangle ombré selon sa pente et son orientation face à la lumière (`out.light`). */
 function triangle(out: Faces, a: Vec, b: Vec, c: Vec, color: Color): void {
   const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
   const v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
@@ -100,8 +102,7 @@ function triangle(out: Faces, a: Vec, b: Vec, c: Vec, color: Color): void {
     u[0]! * v[1]! - u[1]! * v[0]!,
   ]);
   // Normale sortante (sommets dans le sens direct vus de l'extérieur).
-  const light = Math.max(0, normal[0]! * LIGHT[0]! + normal[1]! * LIGHT[1]! + normal[2]! * LIGHT[2]!);
-  const shade = 0.55 + 0.6 * light;
+  const shade = out.light.shade({ x: normal[0]!, y: normal[1]!, z: normal[2]! });
   for (const p of [a, b, c]) {
     out.positions.push(...p);
     out.colors.push(color.r * shade, color.g * shade, color.b * shade);

@@ -41,6 +41,22 @@ export const SHADE_LIGHT = 0.9;
 export const SHADE_DARK = 0.62;
 
 /**
+ * Luminosité d'une facette de normale sortante `normal` (espace page, z vers le haut, longueur 1), en fraction de sa
+ * couleur : 1 tournée vers le haut (comme le dessus d'un bloc) ; à la verticale, de `shadeDark` (dos à la lumière) à
+ * `shadeLight` (face à elle), comme les côtés ; entre les deux pour une pente.
+ */
+export function facetShade(
+  normal: { x: number; y: number; z: number },
+  shadeLight = SHADE_LIGHT,
+  shadeDark = SHADE_DARK,
+): number {
+  const up = Math.max(0, normal.z);
+  const across = Math.hypot(normal.x, normal.y);
+  const light = across === 0 ? 0 : Math.max(0, (normal.x * LIGHT.x + normal.y * LIGHT.y) / across);
+  return up + (1 - up) * (shadeDark + (shadeLight - shadeDark) * light);
+}
+
+/**
  * Hauteur d'une forme en volume : `spatial.height` (style ou objet), sinon la hauteur par défaut
  * propre à la forme (`fallback`, ex. tube couché : rond), sinon l'épaisseur par défaut du réglage.
  */
@@ -163,8 +179,7 @@ function sides(path: Point[], height: number, color: Color, shadeLight: number, 
     if (length === 0) continue;
     const normal = clockwise ? { x: -dy / length, y: dx / length } : { x: dy / length, y: -dx / length };
     // De la face à l'ombre (`shadeDark`) à la face éclairée (`shadeLight`).
-    const light = Math.max(0, normal.x * LIGHT.x + normal.y * LIGHT.y);
-    shaded.copy(color).multiplyScalar(shadeDark + (shadeLight - shadeDark) * light);
+    shaded.copy(color).multiplyScalar(facetShade({ ...normal, z: 0 }, shadeLight, shadeDark));
     for (const [x, y, z] of [
       [a.x, a.y, 0],
       [b.x, b.y, 0],

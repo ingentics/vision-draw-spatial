@@ -25,9 +25,9 @@ const SHAPE = `<mxCell id="a" value="A" vertex="1" parent="1"><mxGeometry x="0" 
 const EDGE = `<mxCell id="e" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="200" y="60" as="sourcePoint"/><mxPoint x="700" y="60" as="targetPoint"/></mxGeometry></mxCell>`;
 
 /** Pieds des arbres de la forêt d'une scène : centres des troncs (premier anneau de chaque arbre). */
-function forestOf(page: PageModel): BufferGeometry | undefined {
+function forestOf(page: PageModel, shading?: { light: number; dark: number }): BufferGeometry | undefined {
   const root = buildPageScene(page, createDefaultRegistry(), ctx, 'iso').root;
-  createDefaultEffectRegistry().decorate(page, root);
+  createDefaultEffectRegistry().decorate(page, root, { shading });
   return (root.getObjectByName('effect:forest') as Mesh | undefined)?.geometry;
 }
 
@@ -84,5 +84,17 @@ describe('effets de page (sujet 143)', () => {
     const before = forestOf(pageOf('forest', SHAPE))!.getAttribute('position').count;
     const after = forestOf(pageOf('forest', moved))!.getAttribute('position').count;
     expect(after).not.toBe(before);
+  });
+
+  it('forêt : ombrée comme les volumes, d’après les réglages d’ombrage (dette 311)', () => {
+    const page = pageOf('forest', SHAPE);
+    const brightness = (shading?: { light: number; dark: number }) => {
+      const colors = forestOf(page, shading)!.getAttribute('color');
+      let sum = 0;
+      for (let i = 0; i < colors.count; i++) sum += colors.getX(i) + colors.getY(i) + colors.getZ(i);
+      return sum / colors.count;
+    };
+    expect(brightness({ light: 0.4, dark: 0.3 })).toBeLessThan(brightness());
+    expect(brightness({ light: 1.2, dark: 1.1 })).toBeGreaterThan(brightness());
   });
 });

@@ -3,7 +3,7 @@ import type { BufferGeometry, MeshBasicMaterial, Mesh } from 'three';
 import { describe, expect, it } from 'vitest';
 import { parseDrawio } from '../../../../src/engine/core/format/parse';
 import { pickElement } from '../../../../src/engine/core/interaction/pick';
-import { blockHeight } from '../../../../src/engine/core/render/iso/block';
+import { SHADE_DARK, SHADE_LIGHT, blockHeight, facetShade } from '../../../../src/engine/core/render/iso/block';
 import { buildPageScene } from '../../../../src/engine/core/render/pageScene';
 import type { RenderContext } from '../../../../src/engine/core/render/types';
 import { fixture } from '../../../helpers';
@@ -179,5 +179,16 @@ describe('pickElement avec volumes', () => {
     };
     expect(pickElement(page, { x: 500, y: 300 }, options)?.element.id).toBe(B);
     expect(pickElement(page, { x: 500, y: 300 }, { ...options, heightOf: () => 0 })).toBeUndefined();
+  });
+
+  it('ombrage d’une facette (dette 311) : dessus plein, côtés des réglages selon la lumière, pente entre les deux', () => {
+    expect(facetShade({ x: 0, y: 0, z: 1 })).toBe(1);
+    // Lumière venant de (1, 2) dans le plan de la page.
+    const lit = { x: 1 / Math.sqrt(5), y: 2 / Math.sqrt(5), z: 0 };
+    expect(facetShade(lit)).toBeCloseTo(SHADE_LIGHT, 9);
+    expect(facetShade({ x: -lit.x, y: -lit.y, z: 0 })).toBeCloseTo(SHADE_DARK, 9);
+    expect(facetShade(lit, 0.5, 0.3)).toBeCloseTo(0.5, 9);
+    const slope = facetShade({ x: lit.x * 0.6, y: lit.y * 0.6, z: 0.8 });
+    expect(slope).toBeCloseTo(0.8 + 0.2 * SHADE_LIGHT, 9);
   });
 });

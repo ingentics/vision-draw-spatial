@@ -4,7 +4,8 @@ import { SPATIAL } from '../spatial';
 import { pageRoom } from './room';
 import { pluginValues } from '../settings/pluginSettings';
 import type { PluginSettings, PluginValues } from '../settings/pluginSettings';
-import type { EffectRoom, PageEffectDefinition } from './types';
+import { facetShade } from '../render/iso/block';
+import type { EffectLight, EffectRoom, PageEffectDefinition } from './types';
 
 /** Effets écrits sur une page (`spatial.effects`, séparés par des virgules), connus ou non, sans doublon. */
 export function pageEffectIds(page: PageModel): string[] {
@@ -72,17 +73,21 @@ export class PageEffectRegistry {
     options: {
       allows?: (effect: PageEffectDefinition) => boolean;
       settings?: PluginSettings;
+      /** Réglages d'ombrage des volumes (`view.shadeLight`, `view.shadeDark`) ; absent = leurs défauts. */
+      shading?: { light: number; dark: number };
       /** Décor d'un effet qui lève une exception : la page s'affiche sans lui (sujet 288). */
       onError?: (effectId: string, error: unknown) => void;
     } = {},
   ): void {
     let room: EffectRoom | undefined;
+    const { shading } = options;
+    const light: EffectLight = { shade: (normal) => facetShade(normal, shading?.light, shading?.dark) };
     for (const effect of this.active(page, options.allows)) {
       if (!effect.volume) continue;
       room ??= pageRoom(page, root);
       let object: Object3D | undefined;
       try {
-        object = effect.volume(page, room, this.values(effect.id, options.settings?.[effect.id]));
+        object = effect.volume(page, room, this.values(effect.id, options.settings?.[effect.id]), light);
       } catch (error) {
         if (!options.onError) throw error;
         options.onError(effect.id, error);

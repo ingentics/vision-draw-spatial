@@ -26,9 +26,16 @@ export interface PageEffectDefinition {
   viewModes?: ViewMode[];
   /**
    * Décor de la scène en volume (vue iso / 3D, jamais en 2D), en espace page (x, y draw.io, z = hauteur) : il pousse
-   * avec les volumes à la bascule et suit le fondu de la page. Reconstruit à chaque modification de la page.
+   * avec les volumes à la bascule et suit le fondu de la page. Reconstruit à chaque modification de la page. `light` :
+   * l'ombrage des volumes des formes, d'après les réglages.
    */
-  volume?(page: PageModel, room: EffectRoom, values: PluginValues): Object3D | undefined;
+  volume?(page: PageModel, room: EffectRoom, values: PluginValues, light: EffectLight): Object3D | undefined;
+}
+
+/** Lumière des volumes, pour qu'un décor soit ombré comme les formes (réglages d'ombrage des volumes). */
+export interface EffectLight {
+  /** Luminosité d'une facette de normale sortante `normal` (espace page, z vers le haut, longueur 1), en fraction de sa couleur. */
+  shade(normal: { x: number; y: number; z: number }): number;
 }
 
 /** Place prise par le schéma sur la page, pour qu'un décor l'évite. */

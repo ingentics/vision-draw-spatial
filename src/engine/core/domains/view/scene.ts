@@ -45,6 +45,7 @@ export class SceneView {
       core.effects.decorate(page, scene.root, {
         allows: (effect) => core.pageModes.allowsEffect(page, effect),
         settings: core.settings.effects,
+        shading: { light: core.settings.view.shadeLight, dark: core.settings.view.shadeDark },
         onError: (effectId, error) => core.pluginGuard.report(`Effet ${effectId}`, 'volume', error),
       });
     return scene;

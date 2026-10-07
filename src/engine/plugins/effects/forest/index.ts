@@ -74,7 +74,7 @@ export const definition: PageEffectDefinition = {
       unit: 'px',
     },
   ],
-  volume(_page, room, values) {
+  volume(_page, room, values, light) {
     const {
       size,
       spacing: CELL,
@@ -107,7 +107,7 @@ export const definition: PageEffectDefinition = {
         }
       }
     }
-    return trees.length > 0 ? forestMesh(trees) : undefined;
+    return trees.length > 0 ? forestMesh(trees, light) : undefined;
   },
 };
 
