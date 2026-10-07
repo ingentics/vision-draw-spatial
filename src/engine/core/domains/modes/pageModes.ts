@@ -5,6 +5,7 @@ import type { PageTree } from '../../format/xmlTree';
 import type { TerminalEnd } from '../../edit/edgeEnds';
 import { carriedShapes, isLocked } from '../../edit/moveSet';
 import type { DocumentModel, PageModel, Rect, ShapeModel } from '../../model/types';
+import { freezeModel, readonlyModel } from '../../model/freeze';
 import { hasExactTextMeasure } from '../../render/textMeasure';
 import { applyModeEdit } from '../../modes/modeEdits';
 import { modeKeys } from '../../modes/modeKeys';
@@ -71,7 +72,7 @@ export class PageModes {
     const mode = page && this.core.modes.modeOf(page);
     const manages = mode?.edges?.manages;
     if (!page || !edge || !mode || !manages) return false;
-    return this.guard(mode, 'edges.manages', false, () => manages(page, edge));
+    return this.guard(mode, 'edges.manages', false, () => manages(readonlyModel(page), readonlyModel(edge)));
   }
 
   /** Habillage du rendu de la page par son mode, protégé jusque dans ses fonctions (appelées au dessin). */
@@ -79,16 +80,16 @@ export class PageModes {
     const mode = this.core.modes.modeOf(page);
     if (!mode?.dressing) return undefined;
     const values = this.core.modes.values(mode.id, this.core.settings.modes[mode.id]);
-    const dressing = this.guard(mode, 'dressing', undefined, () => mode.dressing!(page, values));
+    const dressing = this.guard(mode, 'dressing', undefined, () => mode.dressing!(readonlyModel(page), values));
     if (!dressing) return undefined;
     const { edgeColor, edgeBadge } = dressing;
     return {
       ...dressing,
       ...(edgeColor && {
-        edgeColor: (edge) => this.guard(mode, 'dressing.edgeColor', undefined, () => edgeColor(edge)),
+        edgeColor: (edge) => this.guard(mode, 'dressing.edgeColor', undefined, () => edgeColor(readonlyModel(edge))),
       }),
       ...(edgeBadge && {
-        edgeBadge: (edge) => this.guard(mode, 'dressing.edgeBadge', undefined, () => edgeBadge(edge)),
+        edgeBadge: (edge) => this.guard(mode, 'dressing.edgeBadge', undefined, () => edgeBadge(readonlyModel(edge))),
       }),
     };
   }
@@ -110,7 +111,9 @@ export class PageModes {
     const obstacles = mode?.gestures?.obstacles;
     if (!mode || !obstacles) return undefined;
     const values = this.core.modes.values(mode.id, this.core.settings.modes[mode.id]);
-    return this.guard(mode, 'gestures.obstacles', undefined, () => obstacles(page, shape, values));
+    return this.guard(mode, 'gestures.obstacles', undefined, () =>
+      obstacles(readonlyModel(page), readonlyModel(shape), values),
+    );
   }
 
   /** Le mode de la page emporte-t-il des formes (`gestures.carries`) ? Leurs flèches sont alors mises en valeur avec elles. */
@@ -126,7 +129,8 @@ export class PageModes {
     const mode = this.core.modes.modeOf(page);
     const carriesOf = mode?.gestures?.carries;
     if (!mode || !carriesOf) return [];
-    const carries = (shape: ShapeModel) => this.guard(mode, 'gestures.carries', [], () => carriesOf(page, shape));
+    const carries = (shape: ShapeModel) =>
+      this.guard(mode, 'gestures.carries', [], () => carriesOf(readonlyModel(page), readonlyModel(shape)));
     const accept = movableIn ? (shape: ShapeModel) => !isLocked(shape) && canMoveCell(movableIn, shape.id) : undefined;
     return carriedShapes(page, shapeIds, carries, accept);
   }
@@ -193,10 +197,13 @@ export class PageModes {
     const mode = this.core.modes.modeOf(page);
     if (!mode) return [];
     const keys = modeKeys(mode);
+    const readonlyPage = readonlyModel(page);
+    const readonlyTarget = readonlyModel(target);
     return this.core.modes.properties(page, scope, part).flatMap((property) => {
       const call = <T>(hook: string, fallback: T, run: () => T) =>
         this.guard(mode, `réglage « ${property.key} » : ${hook}`, fallback, run);
-      if (property.hidden && call('hidden', false, () => property.hidden!(page, target, part))) return [];
+      if (property.hidden && call('hidden', false, () => property.hidden!(readonlyPage, readonlyTarget, part)))
+        return [];
       // Attribut du mode au nom court du réglage ; un nom invalide est traité comme un attribut absent.
       const raw = this.guard(mode, `réglage « ${property.key} » : clé`, undefined, () =>
         'style' in target ? keys.value(target, property.key) : keys.pageValue(target, property.key),
@@ -205,10 +212,12 @@ export class PageModes {
       return [
         {
           property,
-          value: property.value ? call('value', raw, () => property.value!(page, target, part)) : raw,
+          value: property.value ? call('value', raw, () => property.value!(readonlyPage, readonlyTarget, part)) : raw,
           readOnly:
-            typeof readOnly === 'function' ? call('readOnly', false, () => readOnly(page, target, part)) : !!readOnly,
-          options: property.type === 'select' ? call('options', [], () => property.options(page, palette)) : [],
+            typeof readOnly === 'function'
+              ? call('readOnly', false, () => readOnly(readonlyPage, readonlyTarget, part))
+              : !!readOnly,
+          options: property.type === 'select' ? call('options', [], () => property.options(readonlyPage, palette)) : [],
         },
       ];
     });
@@ -239,7 +248,7 @@ export class PageModes {
     this.editPageMode(
       property.label,
       (edit) => {
-        if (property.write) next = property.write(edit, target, value, part);
+        if (property.write) next = property.write(edit, readonlyModel(target), value, part);
         else if (scope === 'page') edit.setPageAttribute(key, value);
         else edit.setElementAttribute(target.id, key, value);
       },
@@ -258,11 +267,16 @@ export class PageModes {
     const target = [...editable.page.edges, ...editable.page.shapes].find((element) => element.id === id);
     const part = selection.part;
     if (!mode || !action || !target) return false;
-    if (!this.guard(mode, `touche « ${key} »`, false, () => action.applies(editable.page, target, part))) return false;
+    if (
+      !this.guard(mode, `touche « ${key} »`, false, () =>
+        action.applies(readonlyModel(editable.page), readonlyModel(target), part),
+      )
+    )
+      return false;
     const current = this.core.modeCurrents.getModeCurrent(editable.page.id);
     let next: string | void = undefined;
     this.editPageMode(action.label, (edit) => {
-      next = action.run(edit, target, current, part);
+      next = action.run(edit, readonlyModel(target), current, part);
     });
     this.selectPart(id, next);
     return true;
@@ -285,8 +299,10 @@ export class PageModes {
     const entry = mode && entryOf(mode);
     const pageTree = target?.pageTree;
     if (!mode || !entry || !pageTree || !this.core.file.xmlTree) return false;
-    const fresh = documentFromTree(this.core.file.xmlTree).pages.find((p) => p.id === pageId);
-    if (!fresh) return false;
+    const read = documentFromTree(this.core.file.xmlTree).pages.find((p) => p.id === pageId);
+    if (!read) return false;
+    // Page de ce seul usage : gelée comme celles du document, le mode n'y écrit pas (sujet 315).
+    const fresh = freezeModel(read);
     const context = this.editContext();
     return this.guard(mode, hook, false, () =>
       applyModeEdit(fresh, pageTree, mode, (edit) => run(entry, edit, fresh), context),
@@ -312,7 +328,7 @@ export class PageModes {
             return bounds ? { ...shape, bounds } : shape;
           }),
         };
-        placed(edit, shapeIds, before);
+        placed(edit, shapeIds, readonlyModel(before));
       },
     );
   }
@@ -372,7 +388,9 @@ export class PageModes {
     const other = connects && otherId !== undefined ? page.shapes.find((s) => s.id === otherId) : undefined;
     if (!mode || !connects || !other) return undefined;
     const allowed = (source: ShapeModel, target: ShapeModel) =>
-      this.guard(mode, 'edges.connects', true, () => connects(page, source, target));
+      this.guard(mode, 'edges.connects', true, () =>
+        connects(readonlyModel(page), readonlyModel(source), readonlyModel(target)),
+      );
     return end === 'target' ? (shape) => allowed(other, shape) : (shape) => allowed(shape, other);
   }
 
@@ -419,7 +437,9 @@ export class PageModes {
         continue;
       }
       const lifecycle = mode.lifecycle;
-      const issues = lifecycle?.check ? this.guard(mode, 'lifecycle.check', [], () => lifecycle.check!(page)) : [];
+      const issues = lifecycle?.check
+        ? this.guard(mode, 'lifecycle.check', [], () => lifecycle.check!(readonlyModel(page)))
+        : [];
       document.warnings.push(...issues.map((issue) => ({ pageId: page.id, ...issue })));
     }
     document.warnings.push(...this.core.effects.warnings(document), ...this.core.pluginGuard.warnings());

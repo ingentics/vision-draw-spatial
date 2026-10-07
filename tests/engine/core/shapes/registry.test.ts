@@ -260,6 +260,35 @@ describe('formes protégées (sujet 300)', () => {
     return { registry, guard, state, document, page, shape };
   }
 
+  it('forme qui écrit dans la forme remise : placeholder, erreur signalée, label intact (sujet 315)', () => {
+    const { registry, guard, shape } = setup();
+    const writer: ShapeDefinition = {
+      id: 'writer',
+      flat: {
+        create: (target) => {
+          (target as { label: string }).label = 'x';
+          return new Group();
+        },
+      },
+      outline: (target) => {
+        (target.bounds as { x: number }).x = 5;
+        return [];
+      },
+    };
+    registry.register(writer);
+    const a = { ...shape('a'), kind: 'writer' };
+    expect(Object.isFrozen(a)).toBe(false);
+    const object = registry.sceneRenderer(a, 'flat').create(a, ctx);
+    expect(object.getObjectByName('stroke')).toBeDefined();
+    expect(registry.outline(a)).toBeUndefined();
+    expect(a.label).not.toBe('x');
+    expect(a.bounds.x).toBe(0);
+    expect(guard.warnings().map((w) => w.message)).toEqual([
+      expect.stringMatching(/^Forme writer : erreur dans flat\.create \(/),
+      expect.stringMatching(/^Forme writer : erreur dans outline \(/),
+    ]);
+  });
+
   it('condition (matches) en panne : la définition est ignorée, la forme est dessinée en placeholder', () => {
     const { registry, document, shape } = setup();
     expect(registry.resolve(shape('b')).supported).toBe(false);

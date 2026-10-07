@@ -59,8 +59,19 @@ export interface MinimapMapping {
   colors?: { outline?: string; placeholder?: string };
 }
 
-/** Dessin d'une forme dans la mini-carte (contexte déjà mis à l'échelle des pixels CSS). */
-export type MinimapPainter = (context: CanvasRenderingContext2D, shape: ShapeModel, map: MinimapMapping) => void;
+/**
+ * Pinceau restreint remis à une forme pour la mini-carte, en pixels de la mini-carte (`map.toMinimap`). Une forme ne
+ * reçoit jamais le contexte 2D : par son canvas elle atteindrait le DOM (sujet 315).
+ */
+export interface MinimapBrush {
+  /** Polygone fermé : rempli de `fill` (rien si absent), bordé de `stroke` (rien si absent), trait `lineWidth` (défaut 0,75). */
+  polygon(points: readonly Point[], look: { fill?: string; stroke?: string; lineWidth?: number }): void;
+  /** Polyligne ouverte, trait `stroke` d'épaisseur `lineWidth` (défaut 0,75). */
+  polyline(points: readonly Point[], look: { stroke: string; lineWidth?: number }): void;
+}
+
+/** Dessin d'une forme dans la mini-carte. */
+export type MinimapPainter = (brush: MinimapBrush, shape: ShapeModel, map: MinimapMapping) => void;
 
 /** Catégorie de la palette : celles des formes (enregistrées par la racine de composition) ou d'un mode (`page.palette.categories`). */
 export type PaletteCategoryId = string;

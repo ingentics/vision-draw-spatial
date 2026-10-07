@@ -7,6 +7,8 @@
 
 // Contrats : forme, mode, effet, réglages déclarés.
 export type {
+  MinimapBrush,
+  MinimapMapping,
   PaletteCategory,
   PaletteEntry,
   SceneLevel,

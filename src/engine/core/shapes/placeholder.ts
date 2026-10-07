@@ -43,9 +43,18 @@ export const placeholderShape: ShapeDefinition = {
   outline,
   flat: { create: (shape, ctx) => createBox(asPlaceholder(shape, ctx), outline(shape), ctx, NO_DEFAULTS) },
   iso: { create: (shape, ctx) => block.create(asPlaceholder(shape, ctx), ctx) },
-  minimap: (context, shape, map) => {
+  minimap: (brush, shape, map) => {
     const { x, y } = map.toMinimap(shape.bounds);
-    context.fillStyle = map.colors?.placeholder ?? PLACEHOLDER_FILL;
-    context.fillRect(x, y, Math.max(shape.bounds.width * map.scale, 1), Math.max(shape.bounds.height * map.scale, 1));
+    const width = Math.max(shape.bounds.width * map.scale, 1);
+    const height = Math.max(shape.bounds.height * map.scale, 1);
+    brush.polygon(
+      [
+        { x, y },
+        { x: x + width, y },
+        { x: x + width, y: y + height },
+        { x, y: y + height },
+      ],
+      { fill: map.colors?.placeholder ?? PLACEHOLDER_FILL },
+    );
   },
 };

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { EngineCore } from '../../../../../src/engine/core/domains/EngineCore';
 import { PageModes } from '../../../../../src/engine/core/domains/modes/pageModes';
+import { ShapeParts } from '../../../../../src/engine/core/domains/modes/shapeParts';
 import { PluginGuard } from '../../../../../src/engine/core/domains/modes/pluginGuard';
 import { PageEffectRegistry } from '../../../../../src/engine/core/effects/registry';
 import { readDrawio } from '../../../../../src/engine/core/format/parse';
@@ -49,12 +50,12 @@ const BOOM: PageModeDefinition = {
 };
 
 /** Cœur réduit à ce que le domaine des modes utilise ; `published` compte les republications des Diagnostics. */
-function setup() {
+function setup(mode: PageModeDefinition = BOOM) {
   const { document, tree } = readDrawio(XML);
   const state = { published: 0, snapshots: [] as string[], changed: 0 };
   const editable = () => ({ page: document.pages[0]!, pageTree: tree.pages[0]!, xmlTree: tree });
   const core = {
-    modes: new PageModeRegistry().register(BOOM),
+    modes: new PageModeRegistry().register(mode),
     effects: new PageEffectRegistry(),
     settings: DEFAULT_SETTINGS,
     pages: { pageById: (id: string) => document.pages.find((p) => p.id === id) },
@@ -71,7 +72,7 @@ function setup() {
   Object.assign(core, { pluginGuard: guard });
   const modes = new PageModes(core);
   Object.assign(core, { pageModes: modes });
-  return { document, tree, modes, guard, state, page: document.pages[0]! };
+  return { core, document, tree, modes, guard, state, page: document.pages[0]! };
 }
 
 describe('hôte des appels aux modes (sujet 288)', () => {
@@ -173,5 +174,52 @@ describe('écritures d’une opération de mode qui échouent en route (sujet 30
     expect(guard.warnings().map((w) => w.message)).toEqual([
       'Mode boom : erreur dans opération « Essai » (Cellule b introuvable)',
     ]);
+  });
+});
+
+/** Mode de test dont les points d'entrée écrivent dans la page qu'on leur remet. */
+const WRITER: PageModeDefinition = {
+  id: 'boom',
+  namespace: 'boom',
+  name: 'Boom',
+  dressing: (page) => {
+    (page.shapes[0]!.bounds as { x: number }).x = 999;
+    return {};
+  },
+  edges: {
+    connects: (page) => {
+      (page.shapes as unknown[]).length = 0;
+      return true;
+    },
+  },
+  parts: {
+    dropAt: (page) => {
+      (page.edges[0]!.style as Record<string, string>).stroke = 'x';
+      return undefined;
+    },
+    bounds: () => ({ x: 0, y: 0, width: 1, height: 1 }),
+    at: () => undefined,
+    move: () => undefined,
+  },
+};
+
+describe('page remise aux plugins pendant un geste (sujet 315)', () => {
+  it('habillage, accroche et glisser de partie qui écrivent : modèle intact, erreur signalée une fois', () => {
+    const { core, modes, guard, page } = setup(WRITER);
+    // La page du document n'est pas gelée ici : c'est la copie de travail d'un geste.
+    expect(Object.isFrozen(page)).toBe(false);
+    const snapshot = JSON.stringify(page);
+    expect(modes.dressing(page)).toBeUndefined();
+    expect(modes.endAccepts(page, 'target', 'a')?.(page.shapes[1]!)).toBe(true);
+    const parts = new ShapeParts(core);
+    expect(parts.dropAt(page, page.shapes[0]!, 'p', { x: 0, y: 0 })).toBeUndefined();
+    expect(JSON.stringify(page)).toBe(snapshot);
+    expect(guard.warnings().map((w) => w.message)).toEqual([
+      expect.stringMatching(/^Mode boom : erreur dans dressing \(/),
+      expect.stringMatching(/^Mode boom : erreur dans edges\.connects \(/),
+      expect.stringMatching(/^Mode boom : erreur dans parts\.dropAt \(/),
+    ]);
+    modes.dressing(page);
+    expect(guard.warnings()).toHaveLength(3);
   });
 });

@@ -140,7 +140,7 @@ Une **opération** reçoit un `ModeEdit` : la page avant l'opération (`page`), 
 (`palette` : fonds des styles de forme des paramètres), `setPageAttribute`, `setElementAttribute` (attributs du mode,
 par leur nom court), `setElementStyle` (autre clé du style draw.io, ex. `fillColor` ; ni `spatial.*`, ni clé de verrou
 `locked`, `movable`, `resizable`, `editable`, `deletable`) et `setShapeBounds` (bornes d'une forme, ex. une table qui
-grandit avec ses champs). Un élément verrouillé ne change ni de style, ni de bornes, ni de place dans l'ordre, ni de
+grandit avec ses champs). Un élément verrouillé ne change ni d'attribut du mode, ni de style, ni de bornes, ni de place dans l'ordre, ni de
 textes de bout. Toutes ses écritures forment une étape d'annulation, et rien n'est enregistré si elle ne
 change rien. Depuis l'appli : `onEdit(label, (edit) => monOperation(edit, …))` (prop des sections React), ou
 `engine.editPageMode(label, …)`.
@@ -250,7 +250,8 @@ Règles communes (sujet 288) :
 - **Opération** : une fonction qui reçoit un `ModeEdit`. `edit.page` est la page *avant* l'opération (le modèle n'est
   relu qu'à la fin). Les écritures sont rassemblées puis appliquées une fois l'opération terminée. Une opération qui ne
   change rien n'ouvre pas d'étape d'annulation ; une opération qui lève une exception n'écrit rien, et si une de ses
-  écritures échoue en route (ex. cellule disparue), la page revient à l'état d'avant l'opération (sujet 302).
+  écritures échoue en route (ex. cellule disparue), la page revient à l'état d'avant l'opération (sujet 302). Une
+  écriture sur un élément verrouillé est ignorée sans exception (sujet 315).
 - **Remise en ordre** : une opération appelée *après* un geste déjà écrit dans l'arbre. `edit.page` est la page relue
   *après* le geste, et ses écritures tombent dans l'étape d'annulation du geste.
 - **En panne** : un point d'entrée qui lève une exception est traité comme absent (colonne « En panne ») ; l'erreur est

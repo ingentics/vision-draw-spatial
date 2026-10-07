@@ -320,8 +320,8 @@ export interface ModeEditContext {
 /**
  * Écritures d'une opération de mode sur la page courante, groupées en une étape d'annulation. `page` est l'état
  * avant l'opération (le modèle n'est relu qu'à la fin) ; une écriture identique à la valeur en place est ignorée. Une
- * clé invalide lève une exception (l'opération n'écrit alors rien) ; un élément verrouillé ne change ni de style, ni de
- * bornes, ni de place dans l'ordre, ni de textes de bout (sujet 301).
+ * clé invalide lève une exception (l'opération n'écrit alors rien) ; un élément verrouillé ne change ni d'attribut, ni de
+ * style, ni de bornes, ni de place dans l'ordre, ni de textes de bout (sujet 301).
  */
 export interface ModeEdit {
   readonly page: PageModel;

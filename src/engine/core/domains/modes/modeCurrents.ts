@@ -1,3 +1,4 @@
+import { readonlyModel } from '../../model/freeze';
 import type { PageModel } from '../../model/types';
 import { setElementsDim } from '../../render/pageEffects';
 import type { ModeCurrentLook, ModeTarget } from '../../modes/types';
@@ -30,7 +31,9 @@ export class ModeCurrents {
     if (!page || !mode || !current) return undefined;
     const chosen = this.modeCurrents.get(page.id);
     return this.core.pageModes.guard(mode, 'current', undefined, () =>
-      chosen !== undefined && current.valid(page, chosen) ? chosen : current.initial(page),
+      chosen !== undefined && current.valid(readonlyModel(page), chosen)
+        ? chosen
+        : current.initial(readonlyModel(page)),
     );
   }
 
@@ -41,13 +44,13 @@ export class ModeCurrents {
     const value = this.getModeCurrent(pageId);
     if (!page || !mode || !current || value === undefined) return undefined;
     return this.core.pageModes.guard(mode, 'current', undefined, () => {
-      const color = current.color?.(page, value);
+      const color = current.color?.(readonlyModel(page), value);
       if (!color) return undefined;
       return {
         value,
         color,
-        label: current.label?.(page, value) ?? value,
-        values: current.values?.(page) ?? [],
+        label: current.label?.(readonlyModel(page), value) ?? value,
+        values: current.values?.(readonlyModel(page)) ?? [],
         renamable: current.rename !== undefined && this.core.targets.editablePage()?.page.id === page.id,
         slideDuration: this.currentLook(page).barSlideDuration ?? DEFAULT_BAR_SLIDE_DURATION,
       };
@@ -68,7 +71,8 @@ export class ModeCurrents {
     const mode = page && this.core.modes.modeOf(page);
     const current = mode?.current;
     if (!page || !mode || !current || value === this.getModeCurrent(page.id)) return;
-    if (!this.core.pageModes.guard(mode, 'current.valid', false, () => current.valid(page, value))) return;
+    if (!this.core.pageModes.guard(mode, 'current.valid', false, () => current.valid(readonlyModel(page), value)))
+      return;
     this.chooseCurrent(page.id, value);
   }
 
@@ -83,7 +87,9 @@ export class ModeCurrents {
     const value = page && this.getModeCurrent(page.id);
     const focus =
       page && mode?.current?.focus && value !== undefined
-        ? this.core.pageModes.guard(mode, 'current.focus', undefined, () => mode.current!.focus!(page, value))
+        ? this.core.pageModes.guard(mode, 'current.focus', undefined, () =>
+            mode.current!.focus!(readonlyModel(page), value),
+          )
         : undefined;
     const kept = focus && new Set(focus);
     const opacity = (page && this.currentLook(page).dimOpacity) ?? DEFAULT_DIM_OPACITY;
@@ -115,7 +121,11 @@ export class ModeCurrents {
     const mode = this.core.modes.modeOf(page);
     const pick = mode?.current?.pick;
     const value =
-      mode && pick ? this.core.pageModes.guard(mode, 'current.pick', undefined, () => pick(page, element)) : undefined;
+      mode && pick
+        ? this.core.pageModes.guard(mode, 'current.pick', undefined, () =>
+            pick(readonlyModel(page), readonlyModel(element)),
+          )
+        : undefined;
     if (value === undefined || value === this.getModeCurrent(page.id)) return false;
     this.chooseCurrent(page.id, value);
     return true;

@@ -16,6 +16,7 @@ import type { PageModel, Rect } from '../model/types';
 import { SPATIAL_PREFIX, spatialValue } from '../spatial';
 import { END_TEXT_GAP, edgeTextLayout, endLabelOf } from '../edit/edgeLabels';
 import { isLocked } from '../edit/moveSet';
+import { readonlyModel } from '../model/freeze';
 import { modeKey } from './modeKeys';
 import type { ModeKeyOwner } from './modeKeys';
 import type { ModeEdit, ModeEditContext } from './types';
@@ -58,7 +59,7 @@ export function applyModeEdit(
   /** Écritures dans l'arbre, dans l'ordre ; chacune dit si elle a changé quelque chose. */
   const writes: Array<() => boolean> = [];
   edit({
-    page,
+    page: readonlyModel(page),
     palette: context.palette,
     gridSize: gridSizeOf(pageTree),
     setPageAttribute: (name, value) => {
@@ -81,7 +82,7 @@ export function applyModeEdit(
       const text = value?.replaceAll(';', '');
       const slot = `${elementId}\n${key}`;
       const current = written.has(slot) ? written.get(slot) : element && spatialValue(element, key);
-      if (!element || current === text) return;
+      if (!element || isLocked(element) || current === text) return;
       written.set(slot, text);
       writes.push(() => {
         if (text === undefined) {

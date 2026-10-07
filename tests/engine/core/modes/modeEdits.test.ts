@@ -10,6 +10,7 @@ const XML = `<mxfile><diagram id="p" name="P" spatial.mode="test"><mxGraphModel>
 <mxCell id="a" value="A" style="fillColor=#ffffff;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="100" height="60" as="geometry"/></mxCell>
 <mxCell id="locked" value="L" style="locked=1;" vertex="1" parent="1"><mxGeometry x="200" y="0" width="100" height="60" as="geometry"/></mxCell>
 <mxCell id="fixed" value="F" style="movable=0;" vertex="1" parent="1"><mxGeometry x="400" y="0" width="100" height="60" as="geometry"/></mxCell>
+<mxCell id="free" value="X" style="" vertex="1" parent="1"><mxGeometry x="600" y="0" width="100" height="60" as="geometry"/></mxCell>
 </root></mxGraphModel></diagram></mxfile>`;
 
 /** Page de test et une fonction qui applique une opération du mode `test` puis relit la page. */
@@ -76,10 +77,27 @@ describe('écritures d’une opération de mode (sujet 301)', () => {
     expect(shape('locked').bounds).toEqual({ x: 200, y: 0, width: 100, height: 60 });
     expect(shape('fixed').bounds).toEqual({ x: 400, y: 0, width: 100, height: 60 });
     expect(shape('locked').style.fillColor).toBeUndefined();
-    expect(page().shapes.map((s) => s.id)).toEqual(['a', 'locked', 'fixed']);
+    expect(page().shapes.map((s) => s.id)).toEqual(['a', 'locked', 'fixed', 'free']);
     // Une forme libre, elle, bouge.
     run((edit) => edit.setShapeBounds('a', bounds));
     expect(shape('a').bounds).toEqual(bounds);
+  });
+});
+
+describe('attribut d’un élément verrouillé (sujet 315)', () => {
+  it('setElementAttribute ignore un élément verrouillé, pas un élément libre', () => {
+    const { tree, run, shape } = setup();
+    const before = writeDrawio(tree);
+    expect(run((edit) => edit.setElementAttribute('locked', 'x', '1'))).toBe(false);
+    expect(writeDrawio(tree)).toBe(before);
+    expect(
+      run((edit) => {
+        edit.setElementAttribute('locked', 'x', '1');
+        edit.setElementAttribute('a', 'x', '1');
+      }),
+    ).toBe(true);
+    expect(shape('a').style['spatial.test.x']).toBeDefined();
+    expect(shape('locked').style['spatial.test.x']).toBeUndefined();
   });
 });
 
@@ -104,14 +122,14 @@ describe('écriture qui échoue en route (sujet 302)', () => {
     // Le geste du tronc, déjà écrit : `a` déplacée.
     moveCell(pageTree, 'a', { x: 30, y: 0 });
     const fresh = documentFromTree(tree).pages[0]!;
-    removeCells(pageTree, ['locked']);
+    removeCells(pageTree, ['free']);
     const afterGesture = writeDrawio(tree);
     expect(() =>
       applyModeEdit(fresh, pageTree, { namespace: 'test' }, (edit) => {
         edit.setElementStyle('a', 'fillColor', '#ff0000');
-        edit.setElementAttribute('locked', 'y', '2');
+        edit.setElementAttribute('free', 'y', '2');
       }),
-    ).toThrow('Cellule locked introuvable');
+    ).toThrow('Cellule free introuvable');
     expect(writeDrawio(tree)).toBe(afterGesture);
     expect(documentFromTree(tree).pages[0]!.shapes.find((s) => s.id === 'a')!.bounds.x).toBe(30);
     expect(document.pages[0]!.shapes.find((s) => s.id === 'a')!.bounds.x).toBe(0);

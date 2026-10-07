@@ -65,21 +65,13 @@ export function actorDefinition(
     properties: [
       { type: 'toggle', key: SIGN, label: 'Pancarte en iso / 3D', section: 'shape', checkedByDefault: true },
     ],
-    minimap(context, shape, map) {
+    minimap(brush, shape, map) {
       const { x, y, width, height } = shape.bounds;
       const figure = figureOf(width, height);
       const at = (p: Point) => map.toMinimap({ x: x + p.x, y: y + p.y });
-      context.beginPath();
-      for (const part of figure.parts) {
-        part.map(at).forEach((p, i) => (i === 0 ? context.moveTo(p.x, p.y) : context.lineTo(p.x, p.y)));
-        context.closePath();
-      }
-      for (const stroke of figure.strokes) {
-        stroke.map(at).forEach((p, i) => (i === 0 ? context.moveTo(p.x, p.y) : context.lineTo(p.x, p.y)));
-      }
-      context.lineWidth = 0.75;
-      context.strokeStyle = '#5f6368';
-      context.stroke();
+      const stroke = '#5f6368';
+      for (const part of figure.parts) brush.polygon(part.map(at), { stroke });
+      for (const line of figure.strokes) brush.polyline(line.map(at), { stroke });
     },
   };
 }

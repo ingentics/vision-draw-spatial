@@ -6,7 +6,7 @@ import { pluginValues } from '../settings/pluginSettings';
 import type { PluginSettings, PluginValues } from '../settings/pluginSettings';
 import { facetShade } from '../render/iso/block';
 import type { EffectLight, EffectRoom, PageEffectDefinition } from './types';
-import { freezePlain } from '../model/freeze';
+import { freezePlain, readonlyModel } from '../model/freeze';
 
 /** Effets écrits sur une page (`spatial.effects`, séparés par des virgules), connus ou non, sans doublon. */
 export function pageEffectIds(page: PageModel): string[] {
@@ -120,7 +120,7 @@ export class PageEffectRegistry {
       room ??= pageRoom(page, root);
       let object: Object3D | undefined;
       try {
-        object = effect.volume(page, room, this.values(effect.id, options.settings?.[effect.id]), light);
+        object = effect.volume(readonlyModel(page), room, this.values(effect.id, options.settings?.[effect.id]), light);
       } catch (error) {
         if (!options.onError) throw error;
         options.onError(effect.id, error);

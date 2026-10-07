@@ -1,7 +1,7 @@
 import { Color, Group, Object3D } from 'three';
 import { describe, expect, it } from 'vitest';
 import { PageEffectRegistry } from '../../../../src/engine/core/effects/registry';
-import { freezeModel, freezePlain } from '../../../../src/engine/core/model/freeze';
+import { freezeModel, freezePlain, readonlyModel } from '../../../../src/engine/core/model/freeze';
 import { readDrawio } from '../../../../src/engine/core/format/parse';
 import { modeHost } from '../../modeHost';
 import { PageModeRegistry } from '../../../../src/engine/core/modes/registry';
@@ -78,5 +78,53 @@ describe('plugin qui modifie le modèle reçu (sujet 312)', () => {
     expect(object.getObjectByName('stroke')).toBeDefined();
     expect(errors).toEqual(['tricheuse flat.create']);
     expect(JSON.stringify(page)).toBe(before);
+  });
+});
+
+describe('vue en lecture seule pour un plugin (sujet 315)', () => {
+  const source = () => ({ list: [{ a: 1 }, { a: 2 }], nested: { b: { c: 3 } }, text: 'x' });
+
+  it('lecture transparente : valeurs, tableaux, itération, JSON', () => {
+    const value = source();
+    const view = readonlyModel(value);
+    expect(view).toEqual(value);
+    expect(Array.isArray(view.list)).toBe(true);
+    expect(view.list.map((item) => item.a)).toEqual([1, 2]);
+    expect([...view.list].length).toBe(2);
+    expect(JSON.stringify(view)).toBe(JSON.stringify(value));
+    expect(Object.keys(view)).toEqual(Object.keys(value));
+  });
+
+  it('écriture refusée à tous les niveaux, objet source intact', () => {
+    const value = source();
+    const view = readonlyModel(value);
+    expect(() => {
+      view.text = 'y';
+    }).toThrow(TypeError);
+    expect(() => {
+      view.nested.b.c = 4;
+    }).toThrow(TypeError);
+    expect(() => view.list.push({ a: 3 })).toThrow(TypeError);
+    expect(() => view.list.sort((x, y) => y.a - x.a)).toThrow(TypeError);
+    expect(() => {
+      delete (view as { text?: string }).text;
+    }).toThrow(TypeError);
+    expect(() => Object.defineProperty(view, 'z', { value: 1 })).toThrow(TypeError);
+    expect(value).toEqual(source());
+  });
+
+  it('même proxy pour le même objet ; objet gelé, fonction et objet de classe rendus tels quels', () => {
+    const value = source();
+    const view = readonlyModel(value);
+    expect(view.nested).toBe(view.nested);
+    expect(readonlyModel(value)).toBe(view);
+    expect(readonlyModel(view)).toBe(view);
+    const frozen = freezePlain(source());
+    expect(readonlyModel(frozen)).toBe(frozen);
+    const color = new Color();
+    expect(readonlyModel(color)).toBe(color);
+    const run = () => 1;
+    expect(readonlyModel(run)).toBe(run);
+    expect(readonlyModel(undefined)).toBeUndefined();
   });
 });

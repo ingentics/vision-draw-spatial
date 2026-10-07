@@ -1,6 +1,7 @@
 import type { PageModel, Point, Rect, ShapeModel } from '../model/types';
 import type { MinimapMapping } from '../shapes/types';
 import { screenToPage } from './cameraMath';
+import { canvasBrush } from './minimapBrush';
 import type { CameraState, Viewport } from './cameraMath';
 
 /**
@@ -203,15 +204,10 @@ export class Minimap {
   private drawEdge(context: CanvasRenderingContext2D, layout: MinimapLayout, edgeId: string, color: string): void {
     const route = this.source.getEdgeRoute(edgeId);
     if (!route || route.length < 2) return;
-    context.beginPath();
-    route.forEach((p, i) => {
-      const m = pageToMinimap(layout, p);
-      if (i === 0) context.moveTo(m.x, m.y);
-      else context.lineTo(m.x, m.y);
-    });
-    context.lineWidth = 0.75;
-    context.strokeStyle = color;
-    context.stroke();
+    canvasBrush(context).polyline(
+      route.map((p) => pageToMinimap(layout, p)),
+      { stroke: color },
+    );
   }
 
   // -------------------------------------------------------------------------

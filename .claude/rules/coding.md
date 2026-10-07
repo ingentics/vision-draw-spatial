@@ -97,7 +97,8 @@ paths:
   plugin needs is re-exported there (that is the decision to make it common). The trunk (`core/`) never imports a
   plugin: only the composition root `engine/plugins/index.ts` knows them. A plugin uses no dynamic `import()`, no
   `import.meta`, no browser globals (`window`, `document`, `globalThis`, storage, timers). Checked by lint and
-  `tests/engine/plugins/boundaries.test.ts` (resolved paths).
+  `tests/engine/plugins/boundaries.test.ts` (resolved paths). A shape never receives a DOM object (canvas, 2D
+  context): a restricted brush (`MinimapBrush`).
 - **A special case is not copied around.** A repeated test goes through a shared guard: transition in progress
   (`core.canInteract()`), graph view (`graph.isGraph(id)`), editable page (`targets.editablePage()`,
   `editablePageById(id)`); if none fits, create one.

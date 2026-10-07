@@ -280,8 +280,11 @@ Pour un rendu iso sur mesure :
 
 - **Absent** : `outlinePainter` remplit le contour avec `fillColor` (blanc par défaut) et un trait gris fin.
 - **`null`** : rien n'est dessiné. C'est le choix pour le texte et les groupes, illisibles à cette échelle.
-- **Peintre sur mesure** : `(context, shape, map) => void` en Canvas 2D, avec `map.toMinimap(point)` et `map.scale`
-  (pixels mini-carte par pixel de page). Le peintre ne reçoit **pas** le `RenderContext`, il n'a donc pas accès aux
+- **Peintre sur mesure** : `(brush, shape, map) => void`, avec `map.toMinimap(point)` et `map.scale` (pixels
+  mini-carte par pixel de page). Le `brush` (`MinimapBrush`) n'a que `polygon(points, { fill?, stroke?, lineWidth? })`
+  et `polyline(points, { stroke, lineWidth? })` (trait de 0,75 px par défaut) : la forme ne reçoit jamais le contexte
+  2D, par lequel elle atteindrait le DOM. L'acteur dessine ses pièces en `polygon(part, { stroke })` et ses traits en
+  `polyline(trait, { stroke })`. Le peintre ne reçoit **pas** le `RenderContext`, il n'a donc pas accès aux
   paramètres. C'est pour cette raison que le placeholder garde son gris par défaut dans la mini-carte.
 
 ### 3.4 Hauteurs, empilement, pastille de lien

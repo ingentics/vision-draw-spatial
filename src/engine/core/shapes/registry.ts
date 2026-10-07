@@ -2,12 +2,13 @@ import { CONNECT_SIDES } from '../edit/handleKinds';
 import type { ConnectSide } from '../edit/handleKinds';
 import type { Point, Rect } from '../model/types';
 import type { ReadonlyShapeModel as ShapeModel } from '../model/readonly';
+import { canvasBrush } from '../interaction/minimapBrush';
 import { blockHeight } from '../render/iso/block';
 import { outsideLabelBox } from '../render/labelPosition';
 import type { RenderContext } from '../render/types';
 import { placeholderShape } from './placeholder';
 import type {
-  MinimapPainter,
+  MinimapMapping,
   PaletteCategory,
   SceneLevel,
   SceneRenderer,
@@ -18,7 +19,7 @@ import type {
 import { outlinePainter } from './minimapOutline';
 import { insidePolygon } from '../model/geometry';
 import { styleFlag } from '../model/styleValues';
-import { freezePlain } from '../model/freeze';
+import { freezePlain, readonlyModel } from '../model/freeze';
 
 /** Erreur levée par une forme (`hook` : point d'entrée, ex. `flat.create`), pour les Diagnostics. */
 export type ShapeErrorHandler = (shapeId: string, hook: string, error: unknown) => void;
@@ -124,7 +125,7 @@ export class ShapeRegistry {
             definition,
             'matches',
             () => undefined,
-            () => matches(shape),
+            () => matches(readonlyModel(shape)),
           );
           if (matched === undefined) continue;
           if (matched) return { definition, supported: true };
@@ -152,7 +153,7 @@ export class ShapeRegistry {
           definition,
           `${drawn}.create`,
           () => placeholder.create(target, ctx),
-          () => renderer.create(target, ctx),
+          () => renderer.create(readonlyModel(target), ctx),
         ),
     };
   }
@@ -180,7 +181,7 @@ export class ShapeRegistry {
       definition,
       'textZone',
       () => shape.bounds,
-      () => textZone(shape, drawn) ?? shape.bounds,
+      () => textZone(readonlyModel(shape), drawn) ?? shape.bounds,
     );
   }
 
@@ -193,34 +194,38 @@ export class ShapeRegistry {
       definition,
       'volumeHeight',
       () => blockHeight(shape, ctx),
-      () => volumeHeight(shape, ctx),
+      () => volumeHeight(readonlyModel(shape), ctx),
     );
   }
 
   /**
-   * Dessin en mini-carte ; repli sur le contour. `undefined` = ne rien dessiner. Le contexte 2D, partagé par toutes
-   * les formes, est rendu tel quel après chacune ; un dessin qui lève une exception est remplacé par les bornes.
+   * Dessin en mini-carte ; repli sur le contour. `undefined` = ne rien dessiner. La forme ne reçoit qu'un pinceau
+   * (sujet 315), jamais le contexte 2D, partagé par toutes les formes et rendu tel quel après chacune ; un dessin qui
+   * lève une exception est remplacé par les bornes.
    */
-  minimapPainter(shape: ShapeModel): MinimapPainter | undefined {
+  minimapPainter(
+    shape: ShapeModel,
+  ): ((context: CanvasRenderingContext2D, shape: ShapeModel, map: MinimapMapping) => void) | undefined {
     const { definition } = this.resolve(shape);
     if (definition.minimap === null) return undefined;
     const { minimap } = definition;
     const outline = outlinePainter({ outline: (target) => this.outline(target) });
-    if (!minimap) return outline;
+    if (!minimap) return (context, target, map) => outline(canvasBrush(context), target, map);
     const bounds = outlinePainter({});
     return (context, target, map) => {
+      const brush = canvasBrush(context);
       context.save();
       const drawn = this.guard(
         definition,
         'minimap',
         () => false,
         () => {
-          minimap(context, target, map);
+          minimap(brush, readonlyModel(target), map);
           return true;
         },
       );
       context.restore();
-      if (!drawn) bounds(context, target, map);
+      if (!drawn) bounds(brush, target, map);
     };
   }
 
@@ -233,7 +238,7 @@ export class ShapeRegistry {
       definition,
       'outline',
       () => undefined,
-      () => outline(shape),
+      () => outline(readonlyModel(shape)),
     );
   }
 
@@ -250,7 +255,7 @@ export class ShapeRegistry {
         definition,
         'contains',
         () => true,
-        () => contains(shape, point),
+        () => contains(readonlyModel(shape), point),
       );
     const path = outline ? outline() : this.outline(shape);
     return !path || path.length < 3 || insidePolygon(path, point);
@@ -265,7 +270,7 @@ export class ShapeRegistry {
       definition,
       'editStyle',
       () => undefined,
-      () => editStyle(shape.style),
+      () => editStyle(readonlyModel(shape.style)),
     );
   }
 
@@ -278,7 +283,7 @@ export class ShapeRegistry {
       definition,
       'hitBounds',
       () => shape.bounds,
-      () => hitBounds(shape),
+      () => hitBounds(readonlyModel(shape)),
     );
   }
 
@@ -336,7 +341,7 @@ export class ShapeRegistry {
     const { definition } = this.resolve(shape);
     const { swatch } = definition;
     const fallback = () => rectangleSwatch(shape.style);
-    return swatch ? this.guard(definition, 'swatch', fallback, () => swatch(shape.style)) : fallback();
+    return swatch ? this.guard(definition, 'swatch', fallback, () => swatch(readonlyModel(shape.style))) : fallback();
   }
 }
 
