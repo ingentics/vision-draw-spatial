@@ -1,7 +1,6 @@
 import { addPage, removePage, renamePage } from '../../format/create';
 import type { IsoViewParams } from '../../format/viewState';
 import type { CameraState } from '../../interaction/camera';
-import { GRAPH_PAGE_ID } from '../../graph/graphPage';
 import type { PageModel, Rect } from '../../model/types';
 import type { EngineCore } from '../EngineCore';
 
@@ -32,7 +31,7 @@ export class Pages {
   }
 
   addPage(name?: string): string | undefined {
-    if (!this.core.file.xmlTree || !this.core.file.document || !this.canEditPages() || this.core.transitions.active)
+    if (!this.core.file.xmlTree || !this.core.file.document || !this.canEditPages() || !this.core.canInteract())
       return undefined;
     const names = new Set(this.core.file.document.pages.map((p) => p.name));
     let pageName = name?.trim();
@@ -61,7 +60,7 @@ export class Pages {
       !document ||
       !this.canEditPages() ||
       document.pages.length <= 1 ||
-      this.core.transitions.active
+      !this.core.canInteract()
     )
       return;
     const index = document.pages.findIndex((p) => p.id === pageId);
@@ -99,14 +98,14 @@ export class Pages {
   goToPage(pageId: string): void {
     const page = this.pageById(pageId);
     if (!page) throw new Error(`Page inconnue : ${pageId}`);
-    this.core.transitions.active?.abort();
+    this.core.transitions.abort();
     cancelAnimationFrame(this.core.camera.animation);
     this.core.camera.animation = 0;
     this.core.gesture.endMove();
     if (this.currentPageId !== page.id) this.core.selection.clearSelection();
     this.core.viewModes.applyPageIso(page.id);
     this.currentPageId = page.id;
-    if (page.id !== GRAPH_PAGE_ID) this.lastDocumentPageId = page.id;
+    if (!this.core.graph.isGraph(page.id)) this.lastDocumentPageId = page.id;
     this.core.scenes.show(page);
     this.core.levels.applyHeightScale();
     this.core.rendering.syncBackground();
@@ -125,7 +124,7 @@ export class Pages {
 
   /** Page du document, ou la page générée de la vue graphe. */
   pageById(id: string): PageModel | undefined {
-    if (id === GRAPH_PAGE_ID) return this.core.graph.getGraphPage();
+    if (this.core.graph.isGraph(id)) return this.core.graph.getGraphPage();
     return this.core.file.document?.pages.find((p) => p.id === id);
   }
 }

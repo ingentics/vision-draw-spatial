@@ -1,7 +1,6 @@
 import { canMoveCell } from '../../format/edit';
-import type { PageTree } from '../../format/xmlTree';
+import type { DrawioTree, PageTree } from '../../format/xmlTree';
 import { isLocked } from '../../edit/move';
-import { GRAPH_PAGE_ID } from '../../graph/graphPage';
 import type { EdgeModel, PageModel, ShapeModel } from '../../model/types';
 import type { EngineCore } from '../EngineCore';
 
@@ -38,10 +37,22 @@ export class EditTargets {
    */
   writablePage(): { page: PageModel; pageTree: PageTree } | undefined {
     const page = this.core.pages.getCurrentPage();
-    if (!page || page.id === GRAPH_PAGE_ID || this.core.transitions.active) return undefined;
+    if (!page || this.core.graph.isGraph(page.id) || !this.core.canInteract()) return undefined;
     const pageTree = this.core.file.pageTreeOf(page.id);
     if (!pageTree || pageTree.encoding === 'unreadable') return undefined;
     return { page, pageTree };
+  }
+
+  /**
+   * Page du document dont on change un réglage (mode, effets, ancrage, sauts) : édition activée, page lisible dans un
+   * `<diagram>` et pas de transition en cours.
+   */
+  editablePageById(pageId: string): { page: PageModel; pageTree: PageTree; xmlTree: DrawioTree } | undefined {
+    const xmlTree = this.core.file.xmlTree;
+    const page = this.core.pages.pageById(pageId);
+    const pageTree = this.core.file.pageTreeOf(pageId);
+    if (!xmlTree || !page || !pageTree?.diagram || !this.editable || !this.core.canInteract()) return undefined;
+    return { page, pageTree, xmlTree };
   }
 
   /** Forme sélectionnée sur la page courante, si on peut la modifier (poignées affichées). */

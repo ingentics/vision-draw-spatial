@@ -169,13 +169,13 @@ export class ViewCamera {
     const previousLevel = this.core.levels.requestedLevel();
     // Pendant une transition, la page courante est l'extérieure : la destination est déjà ramenée à ses modes permis.
     this.state = normalizeCameraState(
-      this.core.transitions.active ? state : this.core.viewModes.constrain(state),
+      this.core.canInteract() ? this.core.viewModes.constrain(state) : state,
       this.limits,
     );
     // Changement de niveau (mode, ou fin d'une bascule vers la 2D) : la page passe au rendu de ce
     // niveau (même scène si tout est à plat).
     let sceneChanged = false;
-    if (this.core.levels.requestedLevel() !== previousLevel && !this.core.transitions.active) {
+    if (this.core.levels.requestedLevel() !== previousLevel && this.core.canInteract()) {
       const page = this.core.pages.getCurrentPage();
       if (page) {
         this.core.scenes.show(page);
@@ -185,7 +185,7 @@ export class ViewCamera {
     }
     if (this.core.pages.currentPageId) {
       this.core.pages.pageCameras.set(this.core.pages.currentPageId, this.state);
-      if (!this.core.transitions.active)
+      if (this.core.canInteract())
         this.core.pages.pageIso.set(this.core.pages.currentPageId, this.core.viewModes.isoParams());
     }
     this.core.minimap.requestDraw();
@@ -220,7 +220,7 @@ export class ViewCamera {
 
   resetView(): void {
     const page = this.core.pages.getCurrentPage();
-    if (!page || this.core.transitions.active) return;
+    if (!page || !this.core.canInteract()) return;
     const { mode } = this.state;
     this.animateCameraTo(
       defaultView(page.bounds, this.core.display.viewport, mode, this.isoTilt(), this.isoAzimuth(), this.limits),

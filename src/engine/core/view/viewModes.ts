@@ -73,7 +73,7 @@ export class ViewModes {
 
   /** Mode d'affichage demandé par l'utilisateur (boutons, touches) : sans effet s'il n'est pas permis sur la page. */
   setViewMode(mode: ViewMode): void {
-    if (this.core.transitions.active || !this.allows(mode)) return;
+    if (!this.core.canInteract() || !this.allows(mode)) return;
     this.animateTo(mode);
   }
 
@@ -108,7 +108,7 @@ export class ViewModes {
   }
 
   setFlattened(flattened: boolean): void {
-    if (flattened === this.flattened || this.core.transitions.active) return;
+    if (flattened === this.flattened || !this.core.canInteract()) return;
     if (flattened && this.core.camera.state.mode === 'top') return;
     this.core.levels.endLevelBlend();
     const previousLevel = this.core.levels.requestedLevel();

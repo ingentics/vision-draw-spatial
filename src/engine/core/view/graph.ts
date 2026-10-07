@@ -24,6 +24,20 @@ export class GraphView {
     this.cache = undefined;
   }
 
+  /**
+   * Une page du document a changé : la vue graphe et ses scènes (miniatures) sont à reconstruire ; `includeCurrent` :
+   * la scène affichée aussi (voir `SceneManager.invalidate`).
+   */
+  invalidateWithScenes(includeCurrent = false): void {
+    this.invalidate();
+    this.core.scenes.invalidate(GRAPH_PAGE_ID, includeCurrent);
+  }
+
+  /** Vrai pour la page générée de la vue graphe (pas une page du document). */
+  isGraph(pageId: string | undefined): boolean {
+    return pageId === GRAPH_PAGE_ID;
+  }
+
   getGraphPage(): PageModel | undefined {
     if (!this.core.file.document) return undefined;
     const graph = this.core.settings.graph;
@@ -39,13 +53,13 @@ export class GraphView {
   }
 
   isGraphView(): boolean {
-    return this.core.pages.currentPageId === GRAPH_PAGE_ID;
+    return this.isGraph(this.core.pages.currentPageId);
   }
 
   showGraph(): void {
     const graph = this.getGraphPage();
     const page = this.core.pages.getCurrentPage();
-    if (!graph || !page || page.id === GRAPH_PAGE_ID || this.core.transitions.active) return;
+    if (!graph || !page || this.isGraph(page.id) || !this.core.canInteract()) return;
     const card = graph.shapes.find((s) => s.id === cardId(page.id));
     this.core.transitions.runTransition({
       direction: 'out',

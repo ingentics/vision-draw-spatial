@@ -3,7 +3,6 @@ import { readDrawio } from '../../format/parse';
 import { writeDrawio } from '../../format/write';
 import { pageGeometry } from '../../edit/anchoring/auto/distribute';
 import { UndoStack } from '../../edit/undo';
-import { GRAPH_PAGE_ID } from '../../graph/graphPage';
 import type { EngineCore } from '../EngineCore';
 
 /** Annuler / rétablir (instantanés XML du document) et état « modifié » depuis la dernière sauvegarde. */
@@ -37,14 +36,14 @@ export class EditHistory {
   }
 
   undo(): void {
-    if (!this.core.targets.editable || !this.core.file.xmlTree || this.core.transitions.active) return;
+    if (!this.core.targets.editable || !this.core.file.xmlTree || !this.core.canInteract()) return;
     this.core.gesture.endMove();
     const previous = this.undoStack.undo(writeDrawio(this.core.file.xmlTree));
     if (previous !== undefined) this.restore(previous);
   }
 
   redo(): void {
-    if (!this.core.targets.editable || !this.core.file.xmlTree || this.core.transitions.active) return;
+    if (!this.core.targets.editable || !this.core.file.xmlTree || !this.core.canInteract()) return;
     this.core.gesture.endMove();
     const next = this.undoStack.redo(writeDrawio(this.core.file.xmlTree));
     if (next !== undefined) this.restore(next);
@@ -70,7 +69,7 @@ export class EditHistory {
     this.core.scenes.clear();
     const current = this.core.pages.currentPageId;
     const pageId =
-      current && (current === GRAPH_PAGE_ID || document.pages.some((p) => p.id === current))
+      current && (this.core.graph.isGraph(current) || document.pages.some((p) => p.id === current))
         ? current
         : document.pages[0]?.id;
     this.core.pages.currentPageId = undefined;

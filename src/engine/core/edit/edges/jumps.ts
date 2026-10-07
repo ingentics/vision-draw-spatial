@@ -24,16 +24,9 @@ export class EdgeJumps {
   }
 
   setPageJumps(pageId: string, jumps: JumpDefaults['style'] | undefined): void {
-    const page = this.core.pages.pageById(pageId);
-    const pageTree = this.core.file.pageTreeOf(pageId);
-    if (
-      !this.core.file.xmlTree ||
-      !page ||
-      !pageTree?.diagram ||
-      !this.core.targets.editable ||
-      this.core.transitions.active
-    )
-      return;
+    const target = this.core.targets.editablePageById(pageId);
+    if (!target) return;
+    const { page, pageTree } = target;
     if ((page.attributes[SPATIAL.jumps] ?? '') === (jumps ?? '')) return;
     this.core.edits.recordEdit('Croisements des flèches');
     setPageAttribute(pageTree, SPATIAL.jumps, jumps);

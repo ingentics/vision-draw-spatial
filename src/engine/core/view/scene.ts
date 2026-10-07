@@ -5,7 +5,6 @@ import { buildPageScene, effectiveLevel } from '../../render/pageScene';
 import type { PageScene } from '../../render/pageScene';
 import { outsideLabelBox } from '../../render/labelPosition';
 import type { EngineCore } from '../EngineCore';
-import { GRAPH_PAGE_ID } from '../../graph/graphPage';
 import { buildGraphScene } from '../../graph/graphScene';
 import type { SceneLevel } from '../../shapes/types';
 
@@ -20,7 +19,7 @@ export class SceneView {
   buildScene(page: PageModel, level: SceneLevel): PageScene {
     const core = this.core;
     const layout = core.graph.layout;
-    if (page.id === GRAPH_PAGE_ID && layout && core.file.document)
+    if (core.graph.isGraph(page.id) && layout && core.file.document)
       return buildGraphScene(page, layout, core.file.document, core.registry, this.renderContext(page), level);
     const scene = buildPageScene(page, core.registry, this.renderContext(page), level, core.modes.dressing(page));
     // Décors des effets de la page : en volume seulement (iso / 3D).

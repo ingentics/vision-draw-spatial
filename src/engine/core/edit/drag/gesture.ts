@@ -7,7 +7,6 @@ import type { MoveSet } from '../../../edit/move';
 import { connectSideOf, isConnectHandle } from '../../../edit/handles';
 import { affectedShapes, pageGeometry } from '../../../edit/anchoring/auto/distribute';
 import { screenToPage } from '../../../interaction/camera';
-import { GRAPH_PAGE_ID } from '../../../graph/graphPage';
 import { independentRoots } from '../../../interaction/selection';
 import type { PageModel, Point, Rect } from '../../../model/types';
 import type { Drag, MoveDrag, ResizeDrag } from './types';
@@ -329,8 +328,7 @@ export class DragGesture {
     if (freshPage) this.core.file.geometry.set(pageId, pageGeometry(freshPage));
     // Scènes de cette page à d'autres niveaux, et vue graphe (miniatures) : à reconstruire.
     this.core.scenes.invalidate(pageId);
-    this.core.scenes.invalidate(GRAPH_PAGE_ID);
-    this.core.graph.invalidate();
+    this.core.graph.invalidateWithScenes();
     this.core.minimap.invalidate();
     this.core.edits.syncModified();
   }

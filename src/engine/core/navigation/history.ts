@@ -31,7 +31,7 @@ export class BackHistory {
   }
 
   back(): void {
-    if (this.core.transitions.active) return;
+    if (!this.core.canInteract()) return;
     const target = this.getBackTarget();
     if (target.kind === 'history') {
       this.stack.pop();
@@ -46,7 +46,7 @@ export class BackHistory {
 
   backTo(parentPageId: string): void {
     const page = this.core.pages.getCurrentPage();
-    if (!page || !this.core.file.document || this.core.transitions.active) return;
+    if (!page || !this.core.file.document || !this.core.canInteract()) return;
     const parent = findParents(this.core.file.document, page.id, this.core.links.linkUsage).find(
       (p) => p.pageId === parentPageId,
     );

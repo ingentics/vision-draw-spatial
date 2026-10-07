@@ -3,7 +3,6 @@ import { formatNumber, setCellObjectAttribute, setCellStyleValue } from '../../.
 import { setCellLink, setCellWrapperAttribute } from '../../../format/create';
 import { COMMENT_ATTRIBUTE, COMMENT_HTML_ATTRIBUTE, commentOf, sameComment } from '../../../edit/comment';
 import type { ElementComment } from '../../../edit/comment';
-import { GRAPH_PAGE_ID } from '../../../graph/graphPage';
 import type { LinkModel } from '../../../model/types';
 import { SPATIAL_PREFIX, spatialValue, SPATIAL } from '../../../spatial';
 import type { EngineCore } from '../../EngineCore';
@@ -99,8 +98,7 @@ export class PropertyEdits {
       else values[key] = text;
       this.core.live.rebuildShapeObject(shape);
       this.core.scenes.invalidate(editable.page.id);
-      this.core.graph.invalidate();
-      this.core.scenes.invalidate(GRAPH_PAGE_ID, true);
+      this.core.graph.invalidateWithScenes(true);
       this.core.live.afterLiveEdit();
       this.core.edits.syncModified();
       if (this.core.file.document) this.core.events.emit('documentChange', this.core.file.document);

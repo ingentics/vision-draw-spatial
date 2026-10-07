@@ -8,7 +8,6 @@ import type { StylePreset } from './edit/styles';
 import type { OrderMove } from './format/order';
 import type { DrawioTree } from './format/xmlTree';
 import type { CameraState, ViewMode } from './interaction/camera';
-import type { ControlSettings } from './interaction/controls';
 import type { HistoryEntry, LinkUsage } from './interaction/history';
 import type { PickedElement } from './interaction/pick';
 import type { DocumentModel, LinkModel, PageModel, Point, Rect } from './model/types';
@@ -16,7 +15,7 @@ import type { ModeScope, PageModeRegistry } from './modes/registry';
 import type { ModeEdit } from './modes/types';
 import type { JumpDefaults } from './render/edges/jumps';
 import type { PageScene } from './render/pageScene';
-import type { PreloadSettings, Settings, SettingsPatch, TransitionSettings, ViewSettings } from './settings';
+import type { Settings, SettingsPatch } from './settings';
 import { EngineCore } from './core/EngineCore';
 import type {
   BackTarget,
@@ -315,22 +314,6 @@ export class Engine {
   // -------------------------------------------------------------------------
   // Paramètres (SPEC §13)
 
-  getViewSettings(): ViewSettings {
-    return this.core.config.getViewSettings();
-  }
-
-  setViewSettings(patch: Partial<ViewSettings>): void {
-    this.core.config.setViewSettings(patch);
-  }
-
-  getControls(): ControlSettings {
-    return this.core.config.getControls();
-  }
-
-  setControls(patch: Partial<ControlSettings>): void {
-    this.core.config.setControls(patch);
-  }
-
   getSettings(): Settings {
     return this.core.config.getSettings();
   }
@@ -347,22 +330,6 @@ export class Engine {
   /** Animations réduites : réglage d'accessibilité, ou préférence système si « système ». */
   reducedMotion(): boolean {
     return this.core.config.reducedMotion();
-  }
-
-  getTransitionSettings(): TransitionSettings {
-    return this.core.config.getTransitionSettings();
-  }
-
-  setTransitionSettings(patch: Partial<TransitionSettings>): void {
-    this.core.config.setTransitionSettings(patch);
-  }
-
-  getPreloadSettings(): PreloadSettings {
-    return this.core.config.getPreloadSettings();
-  }
-
-  setPreloadSettings(patch: Partial<PreloadSettings>): void {
-    this.core.config.setPreloadSettings(patch);
   }
 
   // -------------------------------------------------------------------------

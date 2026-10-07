@@ -27,16 +27,9 @@ export class PageModes {
   }
 
   setPageMode(pageId: string, modeId: string | undefined): void {
-    const page = this.core.pages.pageById(pageId);
-    const pageTree = this.core.file.pageTreeOf(pageId);
-    if (
-      !this.core.file.xmlTree ||
-      !page ||
-      !pageTree?.diagram ||
-      !this.core.targets.editable ||
-      this.core.transitions.active
-    )
-      return;
+    const target = this.core.targets.editablePageById(pageId);
+    if (!target) return;
+    const { page, pageTree } = target;
     if ((this.core.modes.modeId(page) ?? '') === (modeId ?? '')) return;
     const name = modeId && this.core.modes.get(modeId)?.name;
     this.core.edits.recordEdit(name ? `Mode ${name}` : 'Page normale');
@@ -45,16 +38,9 @@ export class PageModes {
   }
 
   setPageEffect(pageId: string, effectId: string, enabled: boolean): void {
-    const page = this.core.pages.pageById(pageId);
-    const pageTree = this.core.file.pageTreeOf(pageId);
-    if (
-      !this.core.file.xmlTree ||
-      !page ||
-      !pageTree?.diagram ||
-      !this.core.targets.editable ||
-      this.core.transitions.active
-    )
-      return;
+    const target = this.core.targets.editablePageById(pageId);
+    if (!target) return;
+    const { page, pageTree } = target;
     if (pageEffectIds(page).includes(effectId) === enabled) return;
     const name = this.core.effects.get(effectId)?.name ?? effectId;
     this.core.edits.recordEdit(enabled ? `Effet ${name}` : `Sans effet ${name}`);

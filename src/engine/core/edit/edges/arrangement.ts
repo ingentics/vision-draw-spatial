@@ -185,20 +185,13 @@ export class EdgeArrangement {
   }
 
   setPageAnchoring(pageId: string, anchoring: Anchoring | undefined): void {
-    const page = this.core.pages.pageById(pageId);
-    const pageTree = this.core.file.pageTreeOf(pageId);
-    if (
-      !this.core.file.xmlTree ||
-      !page ||
-      !pageTree?.diagram ||
-      !this.core.targets.editable ||
-      this.core.transitions.active
-    )
-      return;
+    const target = this.core.targets.editablePageById(pageId);
+    if (!target) return;
+    const { page, pageTree, xmlTree } = target;
     if ((page.attributes[SPATIAL.anchoring] ?? '') === (anchoring ?? '')) return;
     this.core.edits.recordEdit('Ancrage des flèches');
     setPageAttribute(pageTree, SPATIAL.anchoring, anchoring);
-    const fresh = documentFromTree(this.core.file.xmlTree).pages.find((p) => p.id === pageId);
+    const fresh = documentFromTree(xmlTree).pages.find((p) => p.id === pageId);
     if (fresh && this.distributes(fresh)) this.writeDistribution(fresh, new Set(fresh.shapes.map((s) => s.id)));
     this.core.file.documentChanged([pageId]);
   }

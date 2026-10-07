@@ -40,8 +40,7 @@ export class MinimapView {
         getEdgeRoute: (id) => this.core.sceneView.sceneObject(id)?.userData.route as Point[] | undefined,
         paintShape: (context, shape, map) => this.core.registry.minimapPainter(shape)?.(context, shape, map),
         centerOn: (point) => {
-          if (!this.core.transitions.active)
-            this.core.camera.setCameraState({ ...this.core.camera.state, center: point });
+          if (this.core.canInteract()) this.core.camera.setCameraState({ ...this.core.camera.state, center: point });
         },
       },
       size,

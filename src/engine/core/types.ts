@@ -114,7 +114,6 @@ export interface ModeIndicator {
   renamable: boolean;
 }
 
-/** Champ d'édition de label à afficher par l'UI, à l'emprise de l'élément (pixels du canvas). */
 /** Commentaire à éditer en place (`commentEdit`) : l'élément, flèche ou forme, et son commentaire actuel. */
 export interface CommentEditRequest {
   pageId: string;
@@ -128,6 +127,7 @@ export interface CommentEditRequest {
   fromNavigation?: boolean;
 }
 
+/** Champ d'édition de label à afficher par l'UI, à l'emprise de l'élément (pixels du canvas). */
 export interface LabelEditRequest {
   pageId: string;
   elementId: string;

@@ -192,7 +192,8 @@ class Engine {
   toggleOverview(screenPoint?: Point): void; // vue globale ↔ 1:1 (§9.3)
   resetRotation(): void; // remet le nord en haut (§9.1)
   resetView(): void; // vue par défaut du mode : orientation de référence, page entière (§9.1)
-  setControls(patch: Partial<ControlSettings>): void;
+  getSettings(): Settings;
+  updateSettings(patch: SettingsPatch): void; // section par section (§13)
   on(event: EngineEvent, handler: (...args: any[]) => void): () => void;
   dispose(): void;
 }

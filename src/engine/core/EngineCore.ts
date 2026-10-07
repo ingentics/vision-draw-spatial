@@ -188,6 +188,11 @@ export class EngineCore {
     this.canvas.focus({ preventScroll: true });
   }
 
+  /** Garde commun : la vue accepte les commandes (pas de transition entre pages en cours, SPEC §11.2). */
+  canInteract(): boolean {
+    return !this.transitions.isTransitioning();
+  }
+
   on<K extends EngineEvent>(event: K, handler: (...args: EngineEvents[K]) => void): () => void {
     return this.events.on(event, handler);
   }
@@ -198,7 +203,7 @@ export class EngineCore {
     cancelAnimationFrame(this.camera.animation);
     this.highlight.dispose();
     this.pointer.dispose();
-    this.transitions.active?.abort();
+    this.transitions.abort();
     this.display.dispose();
     this.controller.dispose();
     this.config.dispose();

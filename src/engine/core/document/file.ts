@@ -8,7 +8,6 @@ import type { DrawioTree } from '../../format/xmlTree';
 import { pageGeometry } from '../../edit/anchoring/auto/distribute';
 import type { PageGeometry } from '../../edit/anchoring/auto/distribute';
 import { normalizeCameraState } from '../../interaction/camera';
-import { GRAPH_PAGE_ID } from '../../graph/graphPage';
 import type { PickedElement } from '../../interaction/pick';
 import type { DocumentModel } from '../../model/types';
 import type { InitialView } from '../types';
@@ -36,7 +35,7 @@ export class DocumentFile {
     this.xmlTree = tree;
     this.fileId = fileId;
     this.unsupportedReport = collectUnsupported(document, this.core.registry);
-    this.core.transitions.active?.abort();
+    this.core.transitions.abort();
     this.core.selection.clearSelection();
     this.core.scenes.clear();
     this.core.pages.currentPageId = undefined;
@@ -88,7 +87,7 @@ export class DocumentFile {
       this.core.pages.pageIso.set(this.core.pages.currentPageId, this.core.viewModes.isoParams());
     const views = new Map<string, PageViewState>();
     for (const [id, camera] of this.core.pages.pageCameras) {
-      if (id === GRAPH_PAGE_ID) continue;
+      if (this.core.graph.isGraph(id)) continue;
       const iso = this.core.pages.pageIso.get(id);
       views.set(id, iso ? { camera, iso } : { camera });
     }
@@ -119,8 +118,8 @@ export class DocumentFile {
     this.document = this.core.pageModes.withModeWarnings(document);
     this.geometry = new Map(document.pages.map((p) => [p.id, pageGeometry(p)]));
     this.unsupportedReport = collectUnsupported(this.document, this.core.registry);
-    this.core.graph.invalidate();
-    for (const id of [...changedPageIds, GRAPH_PAGE_ID]) this.core.scenes.invalidate(id, true);
+    for (const id of changedPageIds) this.core.scenes.invalidate(id, true);
+    this.core.graph.invalidateWithScenes(true);
     const current = this.core.pages.getCurrentPage();
     if (current) {
       this.core.scenes.show(current);

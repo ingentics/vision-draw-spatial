@@ -1,7 +1,7 @@
 import { normalizeAngle, sameView } from '../../interaction/camera';
 import type { ControlSettings } from '../../interaction/controls';
 import { DEFAULT_SETTINGS, mergeSettings, resolveReducedMotion } from '../../settings';
-import type { PreloadSettings, Settings, SettingsPatch, TransitionSettings, ViewSettings } from '../../settings';
+import type { Settings, SettingsPatch } from '../../settings';
 import type { EngineCore } from '../EngineCore';
 import type { EngineOptions } from '../types';
 
@@ -28,22 +28,6 @@ export class Config {
 
   dispose(): void {
     this.reducedMotionQuery?.removeEventListener?.('change', this.onReducedMotionChange);
-  }
-
-  getViewSettings(): ViewSettings {
-    return { ...this.settings.view };
-  }
-
-  setViewSettings(patch: Partial<ViewSettings>): void {
-    this.updateSettings({ view: patch });
-  }
-
-  getControls(): ControlSettings {
-    return structuredClone(this.settings.controls);
-  }
-
-  setControls(patch: Partial<ControlSettings>): void {
-    this.updateSettings({ controls: patch });
   }
 
   getSettings(): Settings {
@@ -77,7 +61,7 @@ export class Config {
     ) {
       this.core.levels.rebuildScenes();
     }
-    if (changed('camera') && !this.core.transitions.active && !this.core.camera.animation)
+    if (changed('camera') && this.core.canInteract() && !this.core.camera.animation)
       this.core.camera.setCameraState(this.core.camera.state);
     if (
       this.settings.minimap.edgeColor !== previous.minimap.edgeColor ||
@@ -88,11 +72,11 @@ export class Config {
     this.core.rendering.syncBackground();
 
     const view = this.settings.view;
-    if (this.core.pages.currentPageId && !this.core.transitions.active)
+    if (this.core.pages.currentPageId && this.core.canInteract())
       this.core.pages.pageIso.set(this.core.pages.currentPageId, this.core.viewModes.isoParams());
     const isoChanged =
       view.isoAngleDeg !== previous.view.isoAngleDeg || view.isoAzimuthDeg !== previous.view.isoAzimuthDeg;
-    if (isoChanged && this.core.camera.state.mode === 'iso' && !this.core.transitions.active) {
+    if (isoChanged && this.core.camera.state.mode === 'iso' && this.core.canInteract()) {
       // Orientation absolue quand l'azimut change ; sinon la rotation faite à la souris est gardée.
       const azimuthChanged = view.isoAzimuthDeg !== previous.view.isoAzimuthDeg;
       const rotation = azimuthChanged ? normalizeAngle(this.core.camera.isoAzimuth()) : this.core.camera.state.rotation;
@@ -118,20 +102,4 @@ export class Config {
     this.core.highlight.syncAnimation();
     this.core.events.emit('settingsChange', this.getSettings());
   };
-
-  getTransitionSettings(): TransitionSettings {
-    return { ...this.settings.transition };
-  }
-
-  setTransitionSettings(patch: Partial<TransitionSettings>): void {
-    this.updateSettings({ transition: patch });
-  }
-
-  getPreloadSettings(): PreloadSettings {
-    return { ...this.settings.preload };
-  }
-
-  setPreloadSettings(patch: Partial<PreloadSettings>): void {
-    this.updateSettings({ preload: patch });
-  }
 }

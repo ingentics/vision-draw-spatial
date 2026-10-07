@@ -1,6 +1,5 @@
 import { interpolateCamera } from '../../interaction/camera';
 import type { CameraState } from '../../interaction/camera';
-import { GRAPH_PAGE_ID } from '../../graph/graphPage';
 import { easing, embedIn, embeddedCamera, phase } from '../../interaction/transitions';
 import type { PageModel, Rect } from '../../model/types';
 import { setPageOpacity } from '../../render/pageEffects';
@@ -10,12 +9,17 @@ import type { EngineCore } from '../EngineCore';
 /** Transition « zoom + fondu » entre une page et une page liée (SPEC §11.2), dans les deux sens. */
 export class Transitions {
   /** Transition en cours : de quoi l'interrompre proprement. */
-  active: { abort: () => void } | undefined;
+  private active: { abort: () => void } | undefined;
 
   constructor(private readonly core: EngineCore) {}
 
   isTransitioning(): boolean {
     return this.active !== undefined;
+  }
+
+  /** Interrompt la transition en cours, s'il y en a une. */
+  abort(): void {
+    this.active?.abort();
   }
 
   /**
@@ -123,7 +127,7 @@ export class Transitions {
       if (outerCameraBefore) this.core.pages.pageCameras.set(outer.id, outerCameraBefore);
       this.core.viewModes.applyPageIso(to.id);
       this.core.pages.currentPageId = to.id;
-      if (to.id !== GRAPH_PAGE_ID) this.core.pages.lastDocumentPageId = to.id;
+      if (!this.core.graph.isGraph(to.id)) this.core.pages.lastDocumentPageId = to.id;
       this.core.scenes.show(to);
       this.core.minimap.invalidate();
       this.core.camera.applyCamera(destination);

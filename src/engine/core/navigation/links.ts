@@ -4,7 +4,6 @@ import { isNavigableLink } from '../../format/link';
 import { fitBounds } from '../../interaction/camera';
 import { usageKey } from '../../interaction/history';
 import type { LinkUsage } from '../../interaction/history';
-import { GRAPH_PAGE_ID } from '../../graph/graphPage';
 import { FOLLOW_LINK_KEY_LABELS, followLinkGesture } from '../../interaction/selection';
 import type { LinkModel } from '../../model/types';
 import { linkZone } from '../../render/decorations';
@@ -41,7 +40,7 @@ export class Links {
     const page = this.core.pages.getCurrentPage();
     const element = page && [...page.shapes, ...page.edges].find((e) => e.id === elementId);
     const link = element?.link;
-    if (!page || !element || !isNavigableLink(link) || this.core.transitions.active) return;
+    if (!page || !element || !isNavigableLink(link) || !this.core.canInteract()) return;
     if (link.type === 'url') {
       this.openUrl(link.href);
       return;
@@ -59,7 +58,7 @@ export class Links {
     });
     this.core.events.emit('historyChange', this.core.history.stack.entries());
     // L'usage ne compte que pour les vrais liens du document (pas les cartes de la vue graphe).
-    if (page.id !== GRAPH_PAGE_ID) {
+    if (!this.core.graph.isGraph(page.id)) {
       const at = Date.now();
       this.linkUsage[usageKey(page.id, target.id)] = at;
       this.core.events.emit('linkUsed', page.id, target.id, at);
@@ -105,7 +104,7 @@ export class Links {
     }
     const root = this.core.scenes.current?.root;
     const page = this.core.pages.getCurrentPage();
-    if (this.linkZonesShown && root && page && !this.core.transitions.active) {
+    if (this.linkZonesShown && root && page && this.core.canInteract()) {
       const zones = new Group();
       zones.name = 'link-zones';
       for (const element of [...page.shapes, ...page.edges]) {
