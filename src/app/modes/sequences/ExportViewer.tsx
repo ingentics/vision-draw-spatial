@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { sequenceState } from '../../../engine';
-import type { ExporterSettings, PageModel, SequenceExporter } from '../../../engine';
+import type { ExporterSettings, PageModel } from '../../../engine';
+import { sequenceState } from '../../../engine/modes/sequences/api';
+import type { SequenceExporter } from '../../../engine/modes/sequences/api';
 import { plantUmlUrls } from './plantumlServer';
 
 /** Choix de toute la page dans la liste des flux (un id de flux n'est jamais vide). */

@@ -68,7 +68,18 @@ const appModeOverrides = APP_MODES.map((mode) => ({
       'error',
       {
         patterns: [
-          ENGINE_ENTRY,
+          // Ticket 282 : en plus du point d'entrée, l'API de son mode (`engine/modes/<id>/api`), et seulement elle.
+          {
+            message: `Importer depuis le point d'entrée du moteur (\`engine\`) ou l'API de son mode (\`engine/modes/${mode}/api\`), pas un fichier interne.`,
+            group: [
+              ...ENGINE_ENTRY.group,
+              '!**/engine/modes',
+              '**/engine/modes/*',
+              `!**/engine/modes/${mode}`,
+              `**/engine/modes/${mode}/*`,
+              `!**/engine/modes/${mode}/api`,
+            ],
+          },
           ...APP_MODES.filter((other) => other !== mode).map((other) => ({
             group: [`**/${other}/**`],
             message: `La partie appli d'un mode n'importe pas celle d'un autre mode (ici « ${other} »).`,
@@ -106,13 +117,8 @@ module.exports = {
     {
       // SPEC §3.2 : le moteur ne dépend jamais de React. Ticket 281 : ni d'un mode précis.
       files: ['src/engine/**/*.ts', 'src/engine/**/*.tsx'],
-      excludedFiles: ['src/engine/modes/*/**', 'src/engine/index.ts'],
+      excludedFiles: ['src/engine/modes/*/**'],
       rules: { 'no-restricted-imports': ['error', { patterns: [NO_REACT, NO_UI, NO_MODE] }] },
-    },
-    {
-      // Exception provisoire (ticket 281) : le point d'entrée exporte encore l'API du mode Séquences, jusqu'au 282.
-      files: ['src/engine/index.ts'],
-      rules: { 'no-restricted-imports': ['error', { patterns: [NO_REACT, NO_UI] }] },
     },
     ...engineModeOverrides,
     {
