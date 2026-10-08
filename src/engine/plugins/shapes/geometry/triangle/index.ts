@@ -15,6 +15,8 @@ function outline(shape: ShapeModel) {
 export const definition: ShapeDefinition = {
   id: 'triangle',
   ...box(outline, { roundable: true }),
+  flippable: { horizontal: true, vertical: true },
+  rotatable: true,
   swatch: () => '<path d="M10 4l20 10l-20 10z"/>',
   palette: {
     name: 'Triangle',

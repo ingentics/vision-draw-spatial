@@ -86,6 +86,15 @@ describe('capacités déclarées (sujet 335)', () => {
     });
   });
 
+  it('les triangles (vers la droite et vers le haut) déclarent tout, la prise et les silhouettes rien', () => {
+    const all = { flipHorizontal: true, flipVertical: true, rotate: true };
+    expect(registry.orientable(model({}, 'triangle'))).toEqual(all);
+    expect(registry.orientable(model({ direction: 'north' }, 'triangle'))).toEqual(all);
+    const none = { flipHorizontal: false, flipVertical: false, rotate: false };
+    expect(registry.orientable(model({}, 'stencil:plug'))).toEqual(none);
+    expect(registry.orientable(model({}, 'umlActor'))).toEqual(none);
+  });
+
   it('les accolades gauche et droite déclarent tout', () => {
     for (const style of [{} as Record<string, string>, { flipH: '1' }])
       expect(registry.orientable(model(style, 'curlyBracket'))).toEqual({
