@@ -677,6 +677,14 @@ export function Viewer({
                 setBackChoosing(false);
                 engine?.backTo(id);
               }}
+              onShowGraph={
+                pageId !== GRAPH_PAGE_ID && (document?.pages.length ?? 0) > 1
+                  ? () => {
+                      engine?.showGraph();
+                      engine?.focusCanvas();
+                    }
+                  : undefined
+              }
               onDismiss={dismissBackChoice}
             />
             {labelEdit && (

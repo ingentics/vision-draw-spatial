@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { ModeInfo, ParentLink } from '../engine';
+import { GraphIcon } from './GraphIcon';
 import { ModeIcon } from './ModeIcon';
 import { useTooltip } from './Tooltip';
 
@@ -12,6 +13,7 @@ const SLIDE_MS = 150;
  * courante (titre précédé de l'icône de son mode), la plus récemment utilisée d'abord ; un clic y remonte comme
  * « Retour ». Ils descendent depuis le haut quand `open` passe à vrai (mode navigation, ou choix demandé par Alt+↑)
  * et remontent quand il repasse à faux, en gardant pendant la sortie les derniers parents affichés.
+ * Page sans parent : un bouton « Vue graphe » à la place si `onShowGraph` est fourni (sujet 361).
  * `choosing` : choix demandé par Alt+↑ (plusieurs parents, pile vide), refermé par Échap ou un clic ailleurs
  * (`onDismiss`).
  */
@@ -21,6 +23,7 @@ export function ParentPagesBar({
   choosing,
   modeOf,
   onChoose,
+  onShowGraph,
   onDismiss,
   now = Date.now(),
 }: {
@@ -29,16 +32,19 @@ export function ParentPagesBar({
   choosing: boolean;
   modeOf: (pageId: string) => Pick<ModeInfo, 'name' | 'icon'> | undefined;
   onChoose: (pageId: string) => void;
+  /** Ouvre la vue graphe (absent : pas de vue graphe, ou on y est déjà). */
+  onShowGraph?: () => void;
   onDismiss: () => void;
   /** Horloge, pour l'ancienneté des liens dans l'infobulle (injectable pour les tests). */
   now?: number;
 }) {
   const { hover, hide, tooltip } = useTooltip();
   const rootRef = useRef<HTMLDivElement>(null);
-  const visible = open && parents.length > 0;
-  // Derniers parents affichés : les boutons les gardent pendant leur sortie.
-  const last = useRef(parents);
-  if (visible) last.current = parents;
+  const graph = parents.length === 0 && onShowGraph !== undefined;
+  const visible = open && (parents.length > 0 || graph);
+  // Derniers boutons affichés (parents ou vue graphe) : ils les gardent pendant leur sortie.
+  const last = useRef({ parents, graph });
+  if (visible) last.current = { parents, graph };
   const [present, setPresent] = useState(visible);
 
   // La sortie animée finie, les boutons sont retirés.
@@ -77,7 +83,22 @@ export function ParentPagesBar({
       aria-label="Pages parentes"
       inert={!visible}
     >
-      {last.current.map((parent) => {
+      {last.current.graph && (
+        <button
+          type="button"
+          className="parent-page"
+          {...hover('Vue d’ensemble des pages et de leurs liens (touche G)')}
+          onClick={() => {
+            hide();
+            onShowGraph?.();
+          }}
+        >
+          <UpArrow />
+          <GraphIcon />
+          <span className="parent-page-name">Vue graphe</span>
+        </button>
+      )}
+      {last.current.parents.map((parent) => {
         const mode = modeOf(parent.pageId);
         const used = parent.lastUsedAt ? `lien suivi ${ago(now - parent.lastUsedAt)}` : 'lien jamais suivi';
         return (
@@ -91,10 +112,7 @@ export function ParentPagesBar({
               onChoose(parent.pageId);
             }}
           >
-            {/* Flèche vers le haut : on remonte vers la page qui contient la page courante. */}
-            <svg className="parent-page-up" viewBox="0 0 16 16" aria-hidden="true">
-              <path d="M8 13.5v-11M3.5 7 8 2.5 12.5 7" />
-            </svg>
+            <UpArrow />
             {mode && <ModeIcon mode={mode} className="tab-mode-icon" />}
             <span className="parent-page-name">{parent.pageName}</span>
           </button>
@@ -102,6 +120,15 @@ export function ParentPagesBar({
       })}
       {tooltip}
     </div>
+  );
+}
+
+/** Flèche vers le haut : on remonte vers la page qui contient la page courante (ou vers la vue graphe). */
+function UpArrow() {
+  return (
+    <svg className="parent-page-up" viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M8 13.5v-11M3.5 7 8 2.5 12.5 7" />
+    </svg>
   );
 }
 

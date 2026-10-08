@@ -1072,7 +1072,8 @@ body {
   border-right: 1px solid var(--border);
 }
 
-.graph-tab svg {
+.graph-icon {
+  flex-shrink: 0;
   width: 14px;
   height: 14px;
   fill: none;
@@ -1082,7 +1083,7 @@ body {
 }
 
 /* Nœud central à la couleur d'accent, comme la page de départ dans la vue graphe. */
-.graph-tab .graph-tab-hub {
+.graph-icon-hub {
   stroke: var(--accent);
 }
 
