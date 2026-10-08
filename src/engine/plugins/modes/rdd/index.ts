@@ -28,15 +28,14 @@ import { RDD_KEYS } from './keys';
 const arrivalOf = (edgeId: string, part: string | undefined) => (part === undefined ? undefined : { edgeId, part });
 
 /**
- * Mode « RDD — Relational Database Designer » (sujet 179) : une page de tables (modèles, entités…), lue à plat. Ses
+ * Mode « RDB Designer » (sujets 179, 353) : une page de tables (modèles, entités…), lue à plat. Ses
  * formes sont les seules de la palette ; leurs réglages (champs, table secondaire) sont ceux du mode, la couleur de
  * l'entête vient du style de la forme (sujet 260). Dans draw.io, une table est un swimlane de la couleur de son entête.
  */
 export const definition: PageModeDefinition = {
   id: 'rdd',
   ...RDD_KEYS,
-  name: 'RDB Designer — Relational Database Designer',
-  shortName: 'RDB Designer',
+  name: 'RDB Designer',
   description: 'Modèles de données relationnels : tables, champs et couleurs d’entête, en 2D',
   // Une table : entête pleine, lignes des champs en accent.
   icon: {
