@@ -77,10 +77,11 @@ export { ANCHORINGS, isAnchoring } from './core/edit/anchoring/mode';
 export type { Anchoring } from './core/edit/anchoring/mode';
 export { commentOf } from './core/edit/comment';
 export type { ElementComment } from './core/edit/comment';
-export { anchorOf, edgeTexts, endLabelOf } from './core/edit/edgeLabels';
+export { anchorOf, edgeTextLayout, edgeTexts, endLabelOf } from './core/edit/edgeLabels';
 export type { EdgeEnd } from './core/edit/edgeLabels';
 export { LABEL_PLACES, labelPlaceName, labelPlaceOf, labelPlacePatch } from './core/edit/labelPlaces';
 export type { LabelPlace } from './core/edit/labelPlaces';
+export { loopWaypoints } from './core/edit/loops';
 export { searchTemplates } from './core/edit/palette';
 export type { PageModePalette, PaletteCategory, PaletteCategoryId, ShapeTemplate } from './core/edit/palette';
 export { matchesPreset, matchesTextPreset } from './core/edit/stylePresets';
@@ -97,9 +98,10 @@ export { easing } from './core/interaction/transitionMath';
 export type { FollowLinkGesture, FollowLinkKey, MultiSelectKey } from './core/interaction/selectionRules';
 
 // Rendu (SPEC §8)
-export { JUMP_STYLES, jumpValue } from './core/render/edges/jumps';
+export { JUMP_STYLES, jumpHalfLength, jumpValue, withJumps } from './core/render/edges/jumps';
 export type { JumpStyle } from './core/render/edges/jumps';
 export { routingKind } from './core/render/edges/route';
+export { splitLabelFrame, splitPieces } from './core/render/edges/split';
 export { homographyCss, rectToQuad } from './core/render/geometry/homography';
 export { labelPadding } from './core/render/labelPosition';
 export { largestFitting, MIN_FIT_SIZE } from './core/render/richLayout';

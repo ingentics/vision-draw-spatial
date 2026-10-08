@@ -22,11 +22,15 @@ import { Section, Subsection, Subsubsection } from './PanelSection';
 import { usePlugins } from './pluginsContext';
 import {
   BackgroundPreview,
+  EdgeEndTextsPreview,
+  EdgeLabelPreview,
   GraphPreview,
+  LoopPreview,
   MinimapPreview,
   PlaceholderPreview,
   SelectionPreview,
   SidebarPreview,
+  SplitEdgePreview,
   TransitionPreview,
   VolumePreview,
 } from './settingsPreviews';
@@ -897,6 +901,7 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   Écrits dans le style draw.io des formes de la palette et des flèches tirées depuis une forme ; à
                   changer ensuite forme par forme dans le panneau de droite.
                 </p>
+                <LoopPreview shapes={shapes} background={background} />
               </Subsection>
               <Subsection title="Ancrage">
                 <Choice
@@ -1054,6 +1059,7 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   Textes créés au début ou à la fin d'une flèche : contre leur bout (à ces écarts de la forme et du
                   trait), du côté et avec l'alignement qui les éloignent de la forme.
                 </p>
+                <EdgeEndTextsPreview shapes={shapes} background={background} />
               </Subsection>
               <Subsection title="Flèches">
                 <ColorField
@@ -1112,6 +1118,7 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   flèche. Fond uni : un rectangle de la couleur du fond. Une couleur de fond précisée dans le style
                   draw.io l'emporte.
                 </p>
+                <EdgeLabelPreview shapes={shapes} background={background} />
               </Subsection>
               <Subsection title="Flèches coupées">
                 <Slider
@@ -1147,6 +1154,7 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   l’arrivée. Le fondu est compris dans la longueur visible ; un tronçon qui porte un texte de renvoi
                   s’arrête net sur son cadre.
                 </p>
+                <SplitEdgePreview shapes={shapes} background={background} />
               </Subsection>
               <Subsection title="Formes non supportées">
                 <ColorField
