@@ -15,12 +15,25 @@ export class ModifierKeys {
    */
   setHeldKeys(held: HeldKeys): void {
     this.heldKeys = held;
-    this.core.links.setLinkZonesShown(held.followLink);
+    this.refresh();
+  }
+
+  /** Page courante changée : la touche maintenue vaut ou non mode navigation sur la nouvelle page. */
+  refresh(): void {
+    this.core.links.setLinkZonesShown(this.followsLinks());
     this.emitModeHint();
   }
 
+  /**
+   * Touche pour suivre un lien maintenue, hors de la vue graphe (sujet 364) : ses nœuds s'ouvrent au double-clic, pas
+   * de mode navigation. La touche reste connue : maintenue pendant une plongée, le mode s'active à l'arrivée.
+   */
+  private followsLinks(): boolean {
+    return this.heldKeys.followLink && !this.core.graph.isGraphView();
+  }
+
   getModeHint(): ModeHint | undefined {
-    if (this.heldKeys.followLink) return 'navigation';
+    if (this.followsLinks()) return 'navigation';
     if (this.heldKeys.multiSelect && this.core.selection.current) return 'multiSelect';
     return undefined;
   }

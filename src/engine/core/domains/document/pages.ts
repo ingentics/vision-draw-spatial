@@ -89,12 +89,14 @@ export class Pages {
   /** Page courante, sans rien afficher (pendant une transition, la page extérieure ; `undefined` : aucune). */
   setCurrent(pageId: string | undefined): void {
     this.currentPageId = pageId;
+    this.core.keys.refresh();
   }
 
   /** Page affichée : courante, et dernière page du document vue si ce n'est pas la vue graphe. */
   arriveAt(pageId: string): void {
     this.currentPageId = pageId;
     if (!this.core.graph.isGraph(pageId)) this.lastDocumentPageId = pageId;
+    this.core.keys.refresh();
   }
 
   /** Dernière caméra d'une page, reprise à la prochaine visite. */

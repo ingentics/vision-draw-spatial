@@ -59,7 +59,8 @@ export class PointerInput {
     // Poignée propre au mode (sujet 250) : son menu, rien d'autre.
     if (!toggle && !followLink && this.core.modeHandles.click(screen)) return;
     const picked = this.core.picking.pickAt(screen);
-    if (followLink && picked && isNavigableLink(picked.element.link)) {
+    // Pas de mode navigation sur la vue graphe (sujet 364) : touche + clic n'y suit pas de lien.
+    if (followLink && picked && !this.core.graph.isGraphView() && isNavigableLink(picked.element.link)) {
       this.core.links.followLink(picked.element.id);
       return;
     }
