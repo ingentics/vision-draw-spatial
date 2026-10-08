@@ -39,6 +39,8 @@ export const definition: ShapeDefinition = {
   id: 'plug',
   kinds: ['stencil:plug'],
   ...PLUG.box,
+  flippable: { horizontal: true, vertical: true },
+  rotatable: true,
   palette: {
     name: 'Prise',
     category: 'architecture',

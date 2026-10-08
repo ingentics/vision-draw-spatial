@@ -232,6 +232,14 @@ export interface ShapeDefinition {
   connectable?: boolean;
   /** Texte brut : édité sans mise en forme ni panneau de format (ex. tables RDD, sujet 258 ; défaut : non). */
   plainText?: boolean;
+  /**
+   * Retournements (miroir) que la forme accepte, dans le panneau (sujet 335 ; défaut : aucun). La forme doit dessiner son
+   * contour par `orientedPath` / `orientation` : le champ déclare la capacité, il ne l'implémente pas. Le texte ne se
+   * retourne jamais.
+   */
+  flippable?: { horizontal?: boolean; vertical?: boolean };
+  /** Pivote par quarts de tour (`direction`, largeur et hauteur échangées), dans le panneau (sujet 335 ; défaut : non). */
+  rotatable?: boolean;
   /** Côtés qui ont une poignée de connexion (défaut : les quatre ; ex. table RDD : gauche et droite, sujet 250). */
   connectSides?: readonly ConnectSide[];
   /**

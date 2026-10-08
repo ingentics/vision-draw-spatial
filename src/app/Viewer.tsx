@@ -760,6 +760,12 @@ export function Viewer({
                         merge,
                       )
                     }
+                    onOrient={(action) =>
+                      engine?.orientShapes(
+                        selected.shapes.map((shape) => shape.id),
+                        action,
+                      )
+                    }
                     onShapeStyle={(patch) =>
                       engine?.setElementsStyle(
                         selected.shapes.map((shape) => shape.id),

@@ -91,6 +91,8 @@ export const definition: ShapeDefinition = {
   id: 'curly-bracket-left',
   kinds: ['curlyBracket'],
   matches: (shape) => !styleFlag(shape.style, 'flipH'),
+  flippable: { horizontal: true, vertical: true },
+  rotatable: true,
   flat: { create },
   palette: {
     name: 'Accolade gauche',

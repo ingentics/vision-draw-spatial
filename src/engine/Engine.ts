@@ -15,6 +15,7 @@ import type { PickedElement } from './core/interaction/pick';
 import type { DocumentModel, LinkModel, PageModel, Point, Rect } from './core/model/types';
 import type { ModeRegistryView, ModeScope } from './core/modes/registry';
 import type { ShapeRegistryView } from './core/shapes/registry';
+import type { OrientAction } from './core/edit/orientShapes';
 import type { ModeEdit, ModeTarget } from './core/modes/types';
 import type { JumpDefaults } from './core/render/edges/jumps';
 import type { PageScene } from './core/render/pageScene';
@@ -765,6 +766,14 @@ export class Engine {
     merge?: string,
   ): void {
     this.core.styles.setElementsStyle(elementIds, patch, label, merge);
+  }
+
+  /**
+   * Retourne ou pivote de 90° les formes données qui l'acceptent (sujet 335), chacune sur son centre, en une étape
+   * d'annulation. Le texte ne bouge pas.
+   */
+  orientShapes(shapeIds: string[], action: OrientAction): void {
+    this.core.orient.orientShapes(shapeIds, action);
   }
 
   /** Inverse des flèches de la page courante (ticket 131) : elles vont de leur ancienne cible à leur ancienne source. */

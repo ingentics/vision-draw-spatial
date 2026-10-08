@@ -2255,3 +2255,16 @@ button.mode-bar-label.renamable:hover {
   width: 100%;
   margin-top: 4px;
 }
+
+/* Orientation (`OrientSection`) : forme en trait, axe ou flèche en couleur d'accent. */
+.button.orient-button svg {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.button.orient-button svg .orient-mark {
+  stroke: var(--accent);
+}

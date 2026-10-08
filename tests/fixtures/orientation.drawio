@@ -1,0 +1,28 @@
+<mxfile host="Electron" agent="draw.io/24.7.5" version="24.7.5">
+  <diagram name="Orientation" id="orientation">
+    <mxGraphModel grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="brace" value="Accolade avec texte" style="shape=curlyBracket;whiteSpace=wrap;html=1;rounded=1;labelPosition=right;verticalLabelPosition=middle;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="80" y="40" width="20" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="brace-south" value="Accolade couchée" style="shape=curlyBracket;whiteSpace=wrap;html=1;rounded=1;direction=south;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="240" y="80" width="120" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="plug" value="Prise" style="shape=stencil(nZPdDoIwDIWfpvej00yvEd5jwISFwcj407c3WFQgQpS7nfbrTrOcAffrTFYKkJWyUMAvgFiZNgVEQNZTwUNGOhs1G7WsKxU3VOyk0zIyijp142yuep0044wuM+V0M3R5ANyPZJynzrZlQrqSAzmcCtsN+9xobnS6k8LjU4ZEGl1OSBR7UbZOHvaSW/aC70U3/M97yS1774/3X7JCrLOn+QqvQH1lufid3dogNrZWbwUYfiIHGC7zeLVOzbQ2hkI9vWJJAYb0n3jwAA==);whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="440" y="40" width="96" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="actor" value="Acteur" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="620" y="40" width="30" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="plain" value="Rectangle (rien à retourner)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="240" width="160" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrow" style="edgeStyle=none;html=1;" edge="1" parent="1" source="plain" target="brace">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

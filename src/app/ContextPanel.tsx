@@ -14,6 +14,7 @@ import {
 } from '../engine';
 import type {
   AlignMove,
+  OrientAction,
   AlignReference,
   Anchoring,
   DistributeMove,
@@ -44,6 +45,7 @@ import { Section } from './PanelSection';
 import { TextFormatSections } from './TextFormat';
 import type { TextEdit } from './TextFormat';
 import { ArrangeSection } from './ArrangeSection';
+import { OrientSection } from './OrientSection';
 import { ChoiceGroup } from './ChoiceGroup';
 import { useTooltip } from './Tooltip';
 import {
@@ -76,6 +78,8 @@ export interface ContextPanelProps {
   onApplyStyle: (preset: StylePreset) => void;
   /** Clés de style des formes sélectionnées (bordure : couleur, épaisseur, trait, coins). */
   onShapeStyle: (patch: Record<string, string | undefined>) => void;
+  /** Retourner ou pivoter les formes sélectionnées qui l'acceptent (sujet 335). */
+  onOrient: (action: OrientAction) => void;
   /** Clés de style des flèches sélectionnées (tracé : droite, angles droits, arrondi, courbe), calculées par flèche. */
   /** `merge` : réglage en direct, fusionné en une étape d'annulation avec les précédents de même clé. */
   onEdgeStyle: (patch: EdgeStylePatch, merge?: string) => void;
@@ -451,6 +455,7 @@ function ShapeSections({ shape, ...props }: ContextPanelProps & { shape: ShapeMo
       </Section>
       <ShapeOwnSection shape={shape} onShapeStyle={props.onShapeStyle} onSpatial={props.onSpatial} />
       <ElementModeSection {...props} element={shape} scope="shape" />
+      <OrientSection shapes={[shape]} onOrient={props.onOrient} />
       <Section title="Style">
         <StyleGrid presets={props.styles.base} shape={shape} onApply={props.onApplyStyle} />
         <StyleGrid presets={props.styles.extended} shape={shape} onApply={props.onApplyStyle} />
@@ -956,6 +961,7 @@ function MultiSections(props: ContextPanelProps) {
         onAlign={props.onAlign}
         onDistribute={props.onDistribute}
       />
+      <OrientSection shapes={shapes} onOrient={props.onOrient} />
       {current && (
         <Section title="Style">
           <StyleGrid presets={props.styles.base} shape={current} onApply={props.onApplyStyle} />

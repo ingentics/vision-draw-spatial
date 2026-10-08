@@ -180,7 +180,9 @@ Utilisez les aides de [render/geometry/paths.ts](../src/engine/core/render/geome
 `roundedRectPath`, `ellipsePath`, `arcPath`, `cornerRadius` (lit `rounded` et `arcSize`), `boxOutline` (rectangle,
 arrondi avec `rounded=1`), `sizeOffset` (décalage `size` / `fixedSize` des formes à pans) ; pour l'orientation,
 `orientation` et `orientedPath` ([render/geometry/orient.ts](../src/engine/core/render/geometry/orient.ts)) ; pour le
-trait, `styleStroke` (couleur, opacité, épaisseur, pointillés). Avant d'écrire un calcul, cherchez-le dans l'API des
+trait, `styleStroke` (couleur, opacité, épaisseur, pointillés). Pour qu'une forme se **retourne** ou **pivote** depuis le panneau (section « Orientation », sujet 335), dessinez-la
+par `orientedPath` et déclarez `flippable: { horizontal: true, vertical: true }` et / ou `rotatable: true` dans sa
+définition : sans cela, aucun bouton (le texte, lui, ne se retourne ni ne pivote jamais). Avant d'écrire un calcul, cherchez-le dans l'API des
 plugins (`core/plugins/index.ts`) : une brique qui manque s'y ajoute plutôt que d'être recopiée (sujet 307). Briques à chercher d'abord (sujet 325) : `clamp` (borner), `shade` (couleur ×
 facteur en RVB, retrait d'une gravure) et `darken` (HSL), `drawioStyle('Gris')` (couleurs d'un style de base),
 `VERTEX_DEFAULTS` (blanc / noir implicites), `labelObject` (étiquette d'une cellule), `shapesById` et `edgeEnds`

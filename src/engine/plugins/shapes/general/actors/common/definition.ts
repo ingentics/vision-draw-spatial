@@ -55,8 +55,13 @@ function flatActor(figureOf: FigureOf) {
  */
 export function actorDefinition(
   figureOf: FigureOf,
-): Pick<ShapeDefinition, 'flat' | 'iso' | 'volumeHeight' | 'contains' | 'properties' | 'minimap'> {
+): Pick<
+  ShapeDefinition,
+  'flat' | 'iso' | 'volumeHeight' | 'contains' | 'properties' | 'minimap' | 'flippable' | 'rotatable'
+> {
   return {
+    flippable: { horizontal: true, vertical: true },
+    rotatable: true,
     flat: { create: flatActor(figureOf) },
     iso: standingActor(figureOf),
     volumeHeight: actorHeight,

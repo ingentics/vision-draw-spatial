@@ -28,9 +28,17 @@ export type ShapeErrorHandler = (shapeId: string, hook: string, error: unknown) 
 /** Ce que l'appli voit du registre des formes (sujet 304). */
 export interface ShapeRegistryView {
   properties(shape: ShapeModel): ShapeProperty[];
+  orientable(shape: ShapeModel): ShapeOrientable;
   swatch(shape: ShapeModel): string;
   templates(): ShapeTemplate[];
   templateOf(shape: ShapeModel): ShapeTemplate | undefined;
+}
+
+/** Ce que le panneau propose pour orienter une forme (sujet 335). */
+export interface ShapeOrientable {
+  flipHorizontal: boolean;
+  flipVertical: boolean;
+  rotate: boolean;
 }
 
 export interface ResolvedShape {
@@ -101,6 +109,7 @@ export class ShapeRegistry {
   view(): ShapeRegistryView {
     return {
       properties: (shape) => this.properties(shape),
+      orientable: (shape) => this.orientable(shape),
       swatch: (shape) => this.swatch(shape),
       templates: () => this.templates(),
       templateOf: (shape) => this.templateOf(shape),
@@ -327,6 +336,16 @@ export class ShapeRegistry {
   /** Réglages propres à la forme (panneau). */
   properties(shape: ShapeModel): ShapeProperty[] {
     return this.resolve(shape).definition.properties ?? [];
+  }
+
+  /** Retournements et pivot que la forme accepte (sujet 335) ; rien par défaut. */
+  orientable(shape: ShapeModel): ShapeOrientable {
+    const { flippable, rotatable } = this.resolve(shape).definition;
+    return {
+      flipHorizontal: flippable?.horizontal === true,
+      flipVertical: flippable?.vertical === true,
+      rotate: rotatable === true,
+    };
   }
 
   /** Modèles de la palette de toutes les formes, par rang (`order`). */

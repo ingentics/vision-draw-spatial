@@ -60,6 +60,7 @@ import { PropertyEdits } from './edit/commands/properties';
 import { ElementCommands } from './edit/commands/elements';
 import { StyleCommands } from './edit/commands/styles';
 import { ArrangeCommands } from './edit/commands/arrange';
+import { OrientCommands } from './edit/commands/orient';
 import { Clipboard } from './edit/commands/clipboard';
 
 /** Domaine qui garde un état lié au document chargé : remis à zéro à chaque chargement. */
@@ -157,6 +158,7 @@ export class EngineCore {
   readonly elements = new ElementCommands(this);
   readonly styles = new StyleCommands(this);
   readonly arrange = new ArrangeCommands(this);
+  readonly orient = new OrientCommands(this);
   readonly clipboard = new Clipboard(this);
   readonly properties = new PropertyEdits(this);
 
