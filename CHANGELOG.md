@@ -1,5 +1,47 @@
 # Changelog
 
+## [0.8.0](https://github.com/ingentics/vision-draw-spatial/compare/drawio-spatial-v0.7.0...drawio-spatial-v0.8.0) (2026-10-08)
+
+
+### Fonctionnalités
+
+* **app:** barres latérales qui glissent vers et depuis la vue graphe ([8d43434](https://github.com/ingentics/vision-draw-spatial/commit/8d43434fe94c31e904b0be992a42e132f8e969f9))
+* **app:** bouton « Vue graphe » en mode navigation sur une page sans parent ([9654bd1](https://github.com/ingentics/vision-draw-spatial/commit/9654bd115b057358412905b9ce90b53a4fe12040))
+* **app:** boutons des pages parentes en mode navigation, Alt+↑ pour remonter ([df4f0c4](https://github.com/ingentics/vision-draw-spatial/commit/df4f0c448895ed5b8d49313ad86049dd7c75f191))
+* **app:** catégorie « Utilisées » toujours présente, repliée par défaut ([b2696b8](https://github.com/ingentics/vision-draw-spatial/commit/b2696b8bb913e1a74fbfce206bec94bb3a4f7da6))
+* **app:** défauts de la vue graphe, case du mini-graphe dans ses réglages ([662fa6b](https://github.com/ingentics/vision-draw-spatial/commit/662fa6b23f1881a2081f056926ad4f94e74381bc))
+* **app:** focus sur la zone de dessin au choix d’une page ([bf07d56](https://github.com/ingentics/vision-draw-spatial/commit/bf07d56dc4fbf958297565d6d7a23833798c069f))
+* **app:** mini-graphe à gauche de la mini-carte, touche G ([967a921](https://github.com/ingentics/vision-draw-spatial/commit/967a9212e5a5d066d0ad48369162eb12864b6cbd))
+* **app:** navigateur, réécriture sur le disque du fichier ouvert depuis le disque ([7e41d91](https://github.com/ingentics/vision-draw-spatial/commit/7e41d915b8f241a927dfc8526c127ffe3652b7b6))
+* **app:** nouvelle icône de l’onglet Vue graphe, nœud central en bleu ([c2b9223](https://github.com/ingentics/vision-draw-spatial/commit/c2b9223ea01814494c12cfce683d202344f15605))
+* **app:** palette de formes cachée en vue graphe ([d76a0dd](https://github.com/ingentics/vision-draw-spatial/commit/d76a0ddcc4aa2fd1ebe088ac3e6edd4b91ec766e))
+* **app:** pas de lien vers une page sur une flèche ([82d5f32](https://github.com/ingentics/vision-draw-spatial/commit/82d5f3240a158ea99d385a7fbdc8e545c15f8cb4))
+* **app:** raccourci de la vue graphe sans touche par défaut ([36ffb07](https://github.com/ingentics/vision-draw-spatial/commit/36ffb071c5650bf040f516560d9b933511641367))
+* **app:** section Disposition en boutons-icônes ([3ed9427](https://github.com/ingentics/vision-draw-spatial/commit/3ed9427e7e0fde9c58211d083447a701c38c8ed3))
+* **app:** vue graphe en cercles de haut en bas, transition graphe ↔ page de 50 ms ([988e49f](https://github.com/ingentics/vision-draw-spatial/commit/988e49f8db771baf0892f41514943379d6e8c0c0))
+* **engine:** nœuds sans miniature dans la vue graphe ([4ac1774](https://github.com/ingentics/vision-draw-spatial/commit/4ac1774293e36ad8b2d820dbce6665d94ffaa4e0))
+* **engine:** vue graphe cadrée en entier à chaque arrivée ([cfc60ab](https://github.com/ingentics/vision-draw-spatial/commit/cfc60ab6aab5d3a3385030e5933315743afab6ab))
+* **rdd:** « f » sur une table ou un champ ajuste sa région ([8d9c051](https://github.com/ingentics/vision-draw-spatial/commit/8d9c051e5d0f45673f4c5e31e04eebb2751f348a))
+* **rdd:** champ de relation éclairé au survol et à la sélection de sa flèche ([f1313bc](https://github.com/ingentics/vision-draw-spatial/commit/f1313bc80228b80f62e5e5bdd8fa00e2bbd76d31))
+* **rdd:** contour d'une région dans une sélection multiple ([2bb8796](https://github.com/ingentics/vision-draw-spatial/commit/2bb8796573fff31c80f7d8e46b314b2b307a38e7))
+* **rdd:** corps d'un document en texte libre, sans contrôle YAML ([5a9a688](https://github.com/ingentics/vision-draw-spatial/commit/5a9a6887a0ff8efa4fb1a4574cb58fe1d3dda2d2))
+* **rdd:** Ctrl détache une région de son contenu pendant son déplacement ([2a6b568](https://github.com/ingentics/vision-draw-spatial/commit/2a6b568756d58d24e01d80142d51057825f19087))
+* **rdd:** losange violet de l'embed pour un champ non structuré ([c83f622](https://github.com/ingentics/vision-draw-spatial/commit/c83f622b06b3082235603253de46825750f4cb73))
+* **rdd:** mode « RDB Designer », Texte et Titre en palette, contour imposé sur les tables ([36a1169](https://github.com/ingentics/vision-draw-spatial/commit/36a11691d257b8aef1591c5b31270d1114c6d2e6))
+* **rdd:** nom de champ édité sur place, sans éditeur sur fond blanc ([c17524a](https://github.com/ingentics/vision-draw-spatial/commit/c17524ae97d8f0942f93fe1c61deb52f2c598699))
+* **rdd:** nom de région édité en texte brut, sans panneau de format ([f9c235f](https://github.com/ingentics/vision-draw-spatial/commit/f9c235fb29005aa9eabab11c187b2a40760403be))
+* **rdd:** nom du mode réduit à « RDB Designer » ([2d08d7c](https://github.com/ingentics/vision-draw-spatial/commit/2d08d7c91706e3df4f3556f2ff609d0b18823b56))
+* **rdd:** styles de l'appli pour les régions, fond éclairci au dessin ([f7978f1](https://github.com/ingentics/vision-draw-spatial/commit/f7978f16b3cf59946701e28c7d8fd8fc753cd4ab))
+* **rdd:** toute flèche vers une vue en pointillé ([b52c944](https://github.com/ingentics/vision-draw-spatial/commit/b52c944a7c42d96803ed654deecc3bb3a7978f2f))
+
+
+### Corrections
+
+* **app:** n'enregistrer que les écarts aux paramètres par défaut ([73904fc](https://github.com/ingentics/vision-draw-spatial/commit/73904fc7b2cfc66efe89546c4bf0cd075fb89e58))
+* **engine:** le cadre du nom qui suivait la bordure suit le style appliqué ([2708025](https://github.com/ingentics/vision-draw-spatial/commit/2708025b29cfd629b67226b97d3e916479c04370))
+* **engine:** mode navigation conservé pendant une plongée ([8e8de36](https://github.com/ingentics/vision-draw-spatial/commit/8e8de36f3635986996ff1b9dae7b1ec4535750a2))
+* **engine:** pas de mode navigation sur la vue graphe ([cc6359f](https://github.com/ingentics/vision-draw-spatial/commit/cc6359ffd0be2602a9c0be27b318a40599512d52))
+
 ## [0.7.0](https://github.com/ingentics/vision-draw-spatial/compare/drawio-spatial-v0.6.0...drawio-spatial-v0.7.0) (2026-10-08)
 
 
