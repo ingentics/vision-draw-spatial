@@ -401,3 +401,35 @@ describe('mode RDD : sorte de relation sans champ (sujet 278)', () => {
     expect([edge.style.startArrow, edge.style.endArrow, edge.style.dashed]).toEqual(['none', 'block', '1']);
   });
 });
+
+describe('mode RDD : flèche vers une vue en pointillé (sujet 374)', () => {
+  /** Sorte de test : d'une énumération vers une vue, sans tirets déclarés. */
+  const toView: RelationKind = {
+    id: 'test-to-view',
+    from: ['rdd-enum'],
+    to: ['rdd-view'],
+    look: () => ({ startArrow: 'none', endArrow: 'block' }),
+  };
+
+  it('toute flèche qui arrive sur une vue est en pointillé, quelle que soit sa sorte', () => {
+    const { pageTree, page, run } = setup();
+    const id = addEdgeCell(pageTree, { source: 'role', target: 'active', style: '' });
+    run((edit) => syncRelations(edit, undefined, [...RELATION_KINDS, toView]));
+    const { style } = page().edges.find((e) => e.id === id)!;
+    expect([style.dashed, style.dashPattern]).toEqual(['1', '1 2']);
+  });
+
+  it('source → vue : en pointillé ; une flèche qui ne va pas sur une vue ne l’est pas', () => {
+    const { connect, page } = setup();
+    const view = connect('user', 'active');
+    const table = connect('user', 'role');
+    const dashes = (id: string) => {
+      const { style } = page().edges.find((e) => e.id === id)!;
+      return [style.dashed, style.dashPattern];
+    };
+    expect([dashes(view), dashes(table)]).toEqual([
+      ['1', '1 2'],
+      [undefined, undefined],
+    ]);
+  });
+});

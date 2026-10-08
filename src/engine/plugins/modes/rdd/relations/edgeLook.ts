@@ -1,6 +1,7 @@
 import { SIDE_NORMALS, center, endAttachmentOf, facingSide, sideOfConstraint } from '../../../../core/plugins';
 import type { EdgeModel, ModeEdit, Point, ShapeModel } from '../../../../core/plugins';
 import type { Field } from '../tables/fieldModel';
+import type { TableKindId } from '../tables/tableKinds';
 import type { EdgeLook } from './kinds/kind';
 import type { RelationIndex } from './relationKinds';
 import { indexedRelationKind, relationIndex, relationSettings } from './relationKinds';
@@ -10,6 +11,12 @@ import { indexedRelationKind, relationIndex, relationSettings } from './relation
  * ses textes de bout et de son trait (textes dans le style de base des textes de début / fin), et de sa remise à sa
  * sorte.
  */
+
+/** Forme de table vue : toute flèche qui y arrive est en pointillé (sujet 374). */
+const VIEW: TableKindId = 'rdd-view';
+
+/** Motif du pointillé, celui du bouton « Pointillés » de draw.io (avec `dashed=1`). */
+const DOTTED = '1 2';
 
 /** Marge des textes en plus des écarts des paramètres : hors du cercle et des barres des pointes ER. */
 const TEXT_MARGIN = { along: 4, across: 4 };
@@ -33,7 +40,8 @@ function leavingDirection(shapes: ReadonlyMap<string, ShapeModel>, edge: EdgeMod
 
 /**
  * Apparence `look` écrite sur la flèche `edgeId`, toutes clés comprises : pointes, remplissages retirés (propres aux
- * pointes de draw.io), tirets, textes des deux bouts (absents : retirés) ; `index` : celui de l'opération en cours.
+ * pointes de draw.io), tirets et leur motif, textes des deux bouts (absents : retirés) ; `index` : celui de l'opération
+ * en cours. Toute flèche qui arrive sur une vue est en pointillé, quelle que soit sa sorte (sujet 374).
  */
 export function writeEdgeLook(edit: ModeEdit, edgeId: string, look: EdgeLook, index: RelationIndex): void {
   const edge = index.edges.get(edgeId);
@@ -42,7 +50,9 @@ export function writeEdgeLook(edit: ModeEdit, edgeId: string, look: EdgeLook, in
   edit.setElementStyle(edgeId, 'endArrow', look.endArrow);
   edit.setElementStyle(edgeId, 'startFill', undefined);
   edit.setElementStyle(edgeId, 'endFill', undefined);
-  edit.setElementStyle(edgeId, 'dashed', look.dashed ? '1' : undefined);
+  const toView = index.shapes.get(edge.targetId ?? '')?.kind === VIEW;
+  edit.setElementStyle(edgeId, 'dashed', look.dashed || toView ? '1' : undefined);
+  edit.setElementStyle(edgeId, 'dashPattern', toView ? DOTTED : undefined);
   edit.setEdgeEndText(edgeId, 'start', look.startText, leavingDirection(index.shapes, edge, 'source'), TEXT_MARGIN);
   edit.setEdgeEndText(edgeId, 'end', look.endText, leavingDirection(index.shapes, edge, 'target'), TEXT_MARGIN);
 }
