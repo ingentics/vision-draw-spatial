@@ -435,15 +435,15 @@ export function Viewer({
   const editablePages = document !== undefined && engine?.canEditPages() === true;
   const canAddShapes = pageId !== undefined && pageId !== GRAPH_PAGE_ID;
   const shownPage = document?.pages.find((page) => page.id === pageId);
-  // Page affichée (pas la vue graphe) : le panneau contextuel est toujours ouvert dessus. Pendant une plongée depuis
-  // la vue graphe, les barres sont déjà celles de la page d'arrivée.
+  // Page affichée (pas la vue graphe) : le panneau contextuel est toujours ouvert dessus, la palette la suit. Pendant
+  // une plongée depuis la vue graphe, les barres sont déjà celles de la page d'arrivée.
   const panelsPageId = graphSlide?.pageId ?? pageId;
   const currentPage =
     panelsPageId !== GRAPH_PAGE_ID ? document?.pages.find((page) => page.id === panelsPageId) : undefined;
   // Formes de la page courante, pour la catégorie « Utilisées » de la palette.
   const usedShapes = useMemo(
-    () => (canAddShapes && engine ? engine.usedTemplates(shownPage) : []),
-    [canAddShapes, engine, shownPage],
+    () => (currentPage && engine ? engine.usedTemplates(currentPage) : []),
+    [currentPage, engine],
   );
   // Plugins du moteur (sujet 290) : registres de formes, modes, effets, pour toute l'interface.
   const plugins = useMemo<AppPlugins | undefined>(
@@ -461,7 +461,7 @@ export function Viewer({
   );
   // Palette et modes d'affichage permis par le mode de la page (sujet 178).
   const modes = plugins?.modes;
-  const paletteContent = useMemo(() => engine?.paletteFor(shownPage), [engine, shownPage]);
+  const paletteContent = useMemo(() => engine?.paletteFor(currentPage), [engine, currentPage]);
   const allowedViewModes = (['top', 'iso', '3d'] as const).filter(
     (mode) => !shownPage || !modes || modes.allowsViewMode(shownPage, mode),
   );
@@ -651,7 +651,7 @@ export function Viewer({
               slide={graphSlide?.slide}
             >
               <Palette
-                disabled={!canAddShapes && !graphSlide?.pageId}
+                disabled={!currentPage}
                 used={usedShapes}
                 content={paletteContent}
                 onAdd={(template) => engine?.addShape(template)}

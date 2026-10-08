@@ -14,16 +14,27 @@ export const PALETTE_MIME = 'application/x-drawio-spatial-shape';
 /** Catégories repliées, retenues d'une session à l'autre. */
 const COLLAPSED_KEY = 'drawio-spatial:palette-collapsed';
 
-function loadCollapsed(): Set<SectionId> {
+/**
+ * « Utilisées » est repliée par défaut (sujet 365), les autres dépliées : dans la même liste, on retient qu'elle a été
+ * dépliée (une ancienne entrée `used`, d'avant ce défaut, ne compte plus).
+ */
+const USED_OPEN = 'used-open';
+type StoredSection = SectionId | typeof USED_OPEN;
+
+function isCollapsed(stored: Set<StoredSection>, id: SectionId): boolean {
+  return id === USED_CATEGORY.id ? !stored.has(USED_OPEN) : stored.has(id);
+}
+
+function loadCollapsed(): Set<StoredSection> {
   try {
     const raw = localStorage.getItem(COLLAPSED_KEY);
-    return new Set(raw ? (JSON.parse(raw) as SectionId[]) : []);
+    return new Set(raw ? (JSON.parse(raw) as StoredSection[]) : []);
   } catch {
     return new Set();
   }
 }
 
-function saveCollapsed(collapsed: Set<SectionId>): void {
+function saveCollapsed(collapsed: Set<StoredSection>): void {
   try {
     localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...collapsed]));
   } catch {
@@ -34,7 +45,7 @@ function saveCollapsed(collapsed: Set<SectionId>): void {
 interface PaletteProps {
   /** Clic (ou Entrée) sur une forme : ajout au centre de la vue. */
   onAdd: (template: ShapeTemplate) => void;
-  /** Modèles des formes de la page courante (catégorie « Utilisées », masquée si vide). */
+  /** Modèles des formes de la page courante (catégorie « Utilisées », présente même vide hors recherche). */
   used?: ShapeTemplate[];
   /** Catégories et formes proposées sur la page (mode de la page, sujet 178) ; défaut : la palette normale. */
   content?: PageModePalette;
@@ -60,8 +71,9 @@ export function Palette({ onAdd, used = [], content = DEFAULT_CONTENT, disabled 
 
   const toggle = (id: SectionId) => {
     const next = new Set(collapsed);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
+    const key = id === USED_CATEGORY.id ? USED_OPEN : id;
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
     setCollapsed(next);
     saveCollapsed(next);
   };
@@ -73,7 +85,7 @@ export function Palette({ onAdd, used = [], content = DEFAULT_CONTENT, disabled 
       category,
       templates: found.filter((t) => t.category === category.id),
     })),
-  ].filter((section) => section.templates.length > 0 || (!searching && section.category !== USED_CATEGORY));
+  ].filter((section) => section.templates.length > 0 || !searching);
 
   return (
     <aside className="palette" aria-label="Formes">
@@ -112,7 +124,7 @@ export function Palette({ onAdd, used = [], content = DEFAULT_CONTENT, disabled 
       </div>
       <div className="palette-sections" ref={sectionsRef}>
         {sections.map(({ category, templates }) => {
-          const open = searching || !collapsed.has(category.id);
+          const open = searching || !isCollapsed(collapsed, category.id);
           return (
             <section key={category.id} className="palette-category">
               <button
@@ -127,7 +139,10 @@ export function Palette({ onAdd, used = [], content = DEFAULT_CONTENT, disabled 
                 </span>
                 {category.name}
               </button>
-              {open && (
+              {open && templates.length === 0 && category === USED_CATEGORY && (
+                <p className="palette-empty">Aucune forme sur la page</p>
+              )}
+              {open && templates.length > 0 && (
                 <div className="palette-grid">
                   {templates.map((template) => (
                     <button
