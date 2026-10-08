@@ -45,6 +45,7 @@ import { TextFormatSections } from './TextFormat';
 import type { TextEdit } from './TextFormat';
 import { ArrangeSection } from './ArrangeSection';
 import { ChoiceGroup } from './ChoiceGroup';
+import { useTooltip } from './Tooltip';
 import {
   ANCHORING_LABELS,
   ANCHORING_OPTIONS,
@@ -610,9 +611,15 @@ function TextAnchors({
   onAnchor: (cellId: string, anchor: EdgeTextAnchor) => void;
   onChange: (patch: EdgeStylePatch) => void;
 }) {
+  const { hover, tooltip } = useTooltip();
   const texts = edgeTexts(edge);
   if (texts.length === 0) return null;
   const names: Record<EdgeTextAnchor, string> = { start: 'Début', middle: 'Milieu', end: 'Fin' };
+  const tips: Record<EdgeTextAnchor, string> = {
+    start: 'Début : texte posé au début du tracé, contre la forme de départ (x de sa géométrie, align, verticalAlign)',
+    middle: 'Milieu : texte posé au milieu du tracé (x de sa géométrie ; align et verticalAlign retirés)',
+    end: 'Fin : texte posé au bout du tracé, contre la forme d’arrivée (x de sa géométrie, align, verticalAlign)',
+  };
   return (
     <Section title="Position des textes">
       {texts.map((text) => {
@@ -631,7 +638,7 @@ function TextAnchors({
                   className="group-button format-button"
                   aria-checked={anchor === value}
                   aria-pressed={anchor === value}
-                  title={`Ancrer au ${value === 'start' ? 'début' : value === 'end' ? 'bout' : 'milieu'} de la flèche`}
+                  {...hover(tips[value])}
                   onClick={() => onAnchor(text.cellId, value)}
                 >
                   {names[value]}
@@ -660,6 +667,7 @@ function TextAnchors({
       <p className="panel-hint">
         Placement libre : en modifiant le texte (double-clic), tirer la poignée ◇ sous le texte.
       </p>
+      {tooltip}
     </Section>
   );
 }

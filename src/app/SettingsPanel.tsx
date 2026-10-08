@@ -751,7 +751,7 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   label="Pages gardées en mémoire"
                   value={preload.maxCachedPages}
                   limits={SETTINGS_LIMITS['preload.maxCachedPages']}
-                  format={(v) => `${v} px`}
+                  format={(v) => `${v} page${v > 1 ? 's' : ''}`}
                   onChange={(maxCachedPages) => onChange({ preload: { maxCachedPages } })}
                 />
               </Subsection>

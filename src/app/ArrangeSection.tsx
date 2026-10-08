@@ -2,6 +2,7 @@ import type { AlignMove, AlignReference, DistributeMove } from '../engine';
 import { ChoiceGroup } from './ChoiceGroup';
 import type { ChoiceOption } from './ChoiceGroup';
 import { Section } from './PanelSection';
+import { useTooltip } from './Tooltip';
 
 /**
  * Aligner et répartir la sélection (ticket 136), comme « Arrange › Align / Distribute » de draw.io : avec au moins
@@ -21,6 +22,7 @@ export function ArrangeSection({
   onAlign: (move: AlignMove) => void;
   onDistribute: (move: DistributeMove) => void;
 }) {
+  const { hover, tooltip } = useTooltip();
   if (shapeCount < 2) return null;
   const canDistribute = shapeCount >= 3;
   return (
@@ -41,7 +43,8 @@ export function ArrangeSection({
               key={move}
               type="button"
               className="button arrange-button"
-              title={title}
+              aria-label={title}
+              {...hover(title)}
               onClick={() => onAlign(move)}
             >
               <ArrangeIcon parts={icon} vertical={row === 1} />
@@ -57,7 +60,8 @@ export function ArrangeSection({
               key={move}
               type="button"
               className="button arrange-button"
-              title={canDistribute ? title : `${title} (à partir de trois formes)`}
+              aria-label={title}
+              {...hover(canDistribute ? title : `${title} (à partir de trois formes)`)}
               disabled={!canDistribute}
               onClick={() => onDistribute(move)}
             >
@@ -66,6 +70,7 @@ export function ArrangeSection({
           ))}
         </div>
       ))}
+      {tooltip}
     </Section>
   );
 }
@@ -118,28 +123,48 @@ const REFERENCE_OPTIONS: Array<ChoiceOption<AlignReference>> = (
 const ALIGN_ACTIONS: Array<{ move: AlignMove; title: string; icon: IconPart[] }> = [
   {
     move: 'leftOf',
-    title: 'Placer à gauche de la référence',
+    title: 'Placer à gauche : les formes passent contre le bord gauche de la référence',
     icon: [...pair(2, 0), mark(12, 1, 12, 17), ref(13.5, 5, 3.5, 8)],
   },
-  { move: 'left', title: 'Aligner à gauche', icon: [...pair(4, 4), mark(3, 1, 3, 17)] },
-  { move: 'center', title: 'Centrer horizontalement', icon: [...pair(5, 3), mark(9, 1, 9, 17)] },
-  { move: 'right', title: 'Aligner à droite', icon: [...pair(6, 2), mark(15, 1, 15, 17)] },
+  {
+    move: 'left',
+    title: 'Aligner à gauche : bords gauches sur celui de la référence',
+    icon: [...pair(4, 4), mark(3, 1, 3, 17)],
+  },
+  {
+    move: 'center',
+    title: 'Centrer horizontalement : centres sur la verticale de celui de la référence',
+    icon: [...pair(5, 3), mark(9, 1, 9, 17)],
+  },
+  {
+    move: 'right',
+    title: 'Aligner à droite : bords droits sur celui de la référence',
+    icon: [...pair(6, 2), mark(15, 1, 15, 17)],
+  },
   {
     move: 'rightOf',
-    title: 'Placer à droite de la référence',
+    title: 'Placer à droite : les formes passent contre le bord droit de la référence',
     icon: [...pair(7, 7), mark(6, 1, 6, 17), ref(1, 5, 3.5, 8)],
   },
   {
     move: 'above',
-    title: 'Placer au-dessus de la référence',
+    title: 'Placer au-dessus : les formes passent contre le haut de la référence',
     icon: [...pair(2, 0), mark(12, 1, 12, 17), ref(13.5, 5, 3.5, 8)],
   },
-  { move: 'top', title: 'Aligner en haut', icon: [...pair(4, 4), mark(3, 1, 3, 17)] },
-  { move: 'middle', title: 'Centrer verticalement', icon: [...pair(5, 3), mark(9, 1, 9, 17)] },
-  { move: 'bottom', title: 'Aligner en bas', icon: [...pair(6, 2), mark(15, 1, 15, 17)] },
+  { move: 'top', title: 'Aligner en haut : hauts sur celui de la référence', icon: [...pair(4, 4), mark(3, 1, 3, 17)] },
+  {
+    move: 'middle',
+    title: 'Centrer verticalement : centres sur l’horizontale de celui de la référence',
+    icon: [...pair(5, 3), mark(9, 1, 9, 17)],
+  },
+  {
+    move: 'bottom',
+    title: 'Aligner en bas : bas sur celui de la référence',
+    icon: [...pair(6, 2), mark(15, 1, 15, 17)],
+  },
   {
     move: 'below',
-    title: 'Placer en dessous de la référence',
+    title: 'Placer en dessous : les formes passent contre le bas de la référence',
     icon: [...pair(7, 7), mark(6, 1, 6, 17), ref(1, 5, 3.5, 8)],
   },
 ];
@@ -147,30 +172,44 @@ const ALIGN_ACTIONS: Array<{ move: AlignMove; title: string; icon: IconPart[] }>
 const DISTRIBUTE_ACTIONS: Array<{ move: DistributeMove; title: string; icon: IconPart[] }> = [
   {
     move: 'left',
-    title: 'Répartir les bords gauches',
+    title:
+      'Répartir les bords gauches : écarts égaux entre bords gauches, la plus à gauche et la plus à droite restent en place',
     icon: [...row3, ...[1, 7.5, 14].map((x) => mark(x, 0.5, x, 17.5))],
   },
   {
     move: 'center',
-    title: 'Répartir les centres',
+    title: 'Répartir les centres : écarts égaux entre centres, la plus à gauche et la plus à droite restent en place',
     icon: [...row3, ...[2.5, 9, 15.5].map((x) => mark(x, 0.5, x, 17.5))],
   },
   {
     move: 'right',
-    title: 'Répartir les bords droits',
+    title:
+      'Répartir les bords droits : écarts égaux entre bords droits, la plus à gauche et la plus à droite restent en place',
     icon: [...row3, ...[4, 10.5, 17].map((x) => mark(x, 0.5, x, 17.5))],
   },
-  { move: 'spacingX', title: 'Espacer également', icon: [...row3, mark(4.5, 9, 7, 9), mark(11, 9, 13.5, 9)] },
-  { move: 'top', title: 'Répartir les hauts', icon: [...row3, ...[1, 7.5, 14].map((x) => mark(x, 0.5, x, 17.5))] },
+  {
+    move: 'spacingX',
+    title: 'Espacer également : même vide entre formes voisines, de gauche à droite',
+    icon: [...row3, mark(4.5, 9, 7, 9), mark(11, 9, 13.5, 9)],
+  },
+  {
+    move: 'top',
+    title: 'Répartir les hauts : écarts égaux entre hauts, la plus haute et la plus basse restent en place',
+    icon: [...row3, ...[1, 7.5, 14].map((x) => mark(x, 0.5, x, 17.5))],
+  },
   {
     move: 'middle',
-    title: 'Répartir les milieux',
+    title: 'Répartir les milieux : écarts égaux entre centres, la plus haute et la plus basse restent en place',
     icon: [...row3, ...[2.5, 9, 15.5].map((x) => mark(x, 0.5, x, 17.5))],
   },
-  { move: 'bottom', title: 'Répartir les bas', icon: [...row3, ...[4, 10.5, 17].map((x) => mark(x, 0.5, x, 17.5))] },
+  {
+    move: 'bottom',
+    title: 'Répartir les bas : écarts égaux entre bas, la plus haute et la plus basse restent en place',
+    icon: [...row3, ...[4, 10.5, 17].map((x) => mark(x, 0.5, x, 17.5))],
+  },
   {
     move: 'spacingY',
-    title: 'Espacer également en hauteur',
+    title: 'Espacer également en hauteur : même vide entre formes voisines, de haut en bas',
     icon: [...row3, mark(4.5, 9, 7, 9), mark(11, 9, 13.5, 9)],
   },
 ];

@@ -3,14 +3,27 @@ import type { ReactNode } from 'react';
 import type { ShapeModel } from '../engine';
 import { Section } from './PanelSection';
 import { isHexColor } from '../engine';
+import { useTooltip } from './Tooltip';
 
 /** Style du trait : plein, tirets ou pointillés (clés draw.io `dashed`, `dashPattern`). */
 type LineStyle = 'solid' | 'dashed' | 'dotted';
 
-const LINE_STYLES: Record<LineStyle, { label: string; patch: Record<string, string | undefined> }> = {
-  solid: { label: 'Plein', patch: { dashed: undefined, dashPattern: undefined } },
-  dashed: { label: 'Tirets', patch: { dashed: '1', dashPattern: undefined } },
-  dotted: { label: 'Pointillés', patch: { dashed: '1', dashPattern: '1 2' } },
+const LINE_STYLES: Record<LineStyle, { label: string; tip: string; patch: Record<string, string | undefined> }> = {
+  solid: {
+    label: 'Plein',
+    tip: 'Plein : trait continu (dashed et dashPattern retirés)',
+    patch: { dashed: undefined, dashPattern: undefined },
+  },
+  dashed: {
+    label: 'Tirets',
+    tip: 'Tirets : trait en tirets (dashed=1)',
+    patch: { dashed: '1', dashPattern: undefined },
+  },
+  dotted: {
+    label: 'Pointillés',
+    tip: 'Pointillés : trait en points (dashed=1, dashPattern=1 2)',
+    patch: { dashed: '1', dashPattern: '1 2' },
+  },
 };
 
 /** Couleurs de bordure rapides : noir, gris, puis les contours des styles draw.io. */
@@ -46,6 +59,7 @@ export function BorderSection({
   const none = style.strokeColor === 'none';
   const color = isHexColor(style.strokeColor) ? style.strokeColor.toLowerCase() : '#000000';
   const width = Number(style.strokeWidth) || 1;
+  const { hover, tooltip } = useTooltip();
   const line: LineStyle =
     style.dashed !== '1' ? 'solid' : /^1(\s|$)/.test(style.dashPattern ?? '') ? 'dotted' : 'dashed';
   const setWidth = (next: number) => {
@@ -64,8 +78,8 @@ export function BorderSection({
         <button
           type="button"
           className="text-color no-color"
-          title="Aucune bordure"
           aria-label="Aucune bordure"
+          {...hover('Aucune bordure : trait non dessiné (strokeColor=none)')}
           aria-pressed={none}
           onClick={() => onChange({ strokeColor: 'none' })}
         />
@@ -75,8 +89,8 @@ export function BorderSection({
             type="button"
             className="text-color"
             style={{ background: swatch }}
-            title={swatch}
             aria-label={`Bordure ${swatch}`}
+            {...hover(`Bordure ${swatch} (strokeColor)`)}
             aria-pressed={!none && swatch === color}
             onClick={() => onChange({ strokeColor: swatch })}
           />
@@ -89,7 +103,8 @@ export function BorderSection({
             <button
               type="button"
               className="group-button format-button"
-              title="Plus fine"
+              aria-label="Plus fine"
+              {...hover('Plus fine : épaisseur − 0,5 (strokeWidth)')}
               onClick={() => setWidth(width - 0.5)}
             >
               −
@@ -113,7 +128,8 @@ export function BorderSection({
             <button
               type="button"
               className="group-button format-button"
-              title="Plus épaisse"
+              aria-label="Plus épaisse"
+              {...hover('Plus épaisse : épaisseur + 0,5 (strokeWidth)')}
               onClick={() => setWidth(width + 0.5)}
             >
               +
@@ -131,7 +147,8 @@ export function BorderSection({
                 className="group-button format-button"
                 aria-checked={line === value}
                 aria-pressed={line === value}
-                title={LINE_STYLES[value].label}
+                aria-label={LINE_STYLES[value].label}
+                {...hover(LINE_STYLES[value].tip)}
                 onClick={() => onChange(LINE_STYLES[value].patch)}
               >
                 <LineIcon kind={value} />
@@ -141,6 +158,7 @@ export function BorderSection({
         </div>
         {children}
       </fieldset>
+      {tooltip}
     </Section>
   );
 }

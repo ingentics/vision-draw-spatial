@@ -8,11 +8,13 @@ import {
   LABEL_PLACES,
   labelPlaceName,
   labelPlaceOf,
+  labelPlacePatch,
   matchesTextPreset,
 } from '../engine';
 import type { LabelPlace, TextPreset } from '../engine';
 import type { SelectionFormat, ToggleMark } from './LabelEditor';
 import { Section } from './PanelSection';
+import { useTooltip } from './Tooltip';
 
 /** Action du panneau de format : sur la sélection dans le texte, sinon sur tout le texte. */
 export type TextAction =
@@ -62,12 +64,36 @@ const TEXT_COLORS = [
   '#9673a6',
   '#1a73e8',
 ];
-const MARKS: Array<{ mark: ToggleMark; label: string; content: ReactNode }> = [
-  { mark: 'bold', label: 'Gras (Ctrl+B)', content: <strong>B</strong> },
-  { mark: 'italic', label: 'Italique (Ctrl+I)', content: <em>I</em> },
-  { mark: 'underline', label: 'Souligné (Ctrl+U)', content: <u>U</u> },
-  { mark: 'strike', label: 'Barré', content: <s>S</s> },
+const MARKS: Array<{ mark: ToggleMark; label: string; tip: string; content: ReactNode }> = [
+  {
+    mark: 'bold',
+    label: 'Gras',
+    tip: 'Gras (Ctrl+B) : la sélection, sinon tout le texte (fontStyle)',
+    content: <strong>B</strong>,
+  },
+  {
+    mark: 'italic',
+    label: 'Italique',
+    tip: 'Italique (Ctrl+I) : la sélection, sinon tout le texte (fontStyle)',
+    content: <em>I</em>,
+  },
+  {
+    mark: 'underline',
+    label: 'Souligné',
+    tip: 'Souligné (Ctrl+U) : la sélection, sinon tout le texte (fontStyle)',
+    content: <u>U</u>,
+  },
+  { mark: 'strike', label: 'Barré', tip: 'Barré : la sélection, sinon tout le texte (fontStyle)', content: <s>S</s> },
 ];
+/** Alignement du texte : nom (lecteur d'écran) et infobulle. */
+const ALIGNS: Record<'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom', [string, string]> = {
+  left: ['À gauche', 'À gauche : lignes calées à gauche (align=left)'],
+  center: ['Centré', 'Centré : lignes centrées (align=center)'],
+  right: ['À droite', 'À droite : lignes calées à droite (align=right)'],
+  top: ['En haut', 'En haut : texte calé en haut (verticalAlign=top)'],
+  middle: ['Au milieu', 'Au milieu : texte centré en hauteur (verticalAlign=middle)'],
+  bottom: ['En bas', 'En bas : texte calé en bas (verticalAlign=bottom)'],
+};
 
 /**
  * Format du texte en cours d'édition (panneau latéral). Avec une partie du texte sélectionnée : gras,
@@ -76,6 +102,7 @@ const MARKS: Array<{ mark: ToggleMark; label: string; content: ReactNode }> = [
  */
 export function TextFormatSections({ edit }: { edit: TextEdit }) {
   const { style, selection, canFormat, onEdge, fittedSize, presets, onAction, onOwner, comment } = edit;
+  const { hover, tooltip } = useTooltip();
   // « Ajuster » : texte d'une forme seulement ; la taille réglée devient la taille maximale.
   const canFit = canFormat && !onEdge && !comment;
   const fit = canFit && style.fitText === '1';
@@ -150,10 +177,11 @@ export function TextFormatSections({ edit }: { edit: TextEdit }) {
           <div className="field-row">
             Style
             <span className="button-group">
-              {MARKS.map(({ mark, label, content }) => (
+              {MARKS.map(({ mark, label, tip, content }) => (
                 <FormatButton
                   key={mark}
                   label={label}
+                  tip={tip}
                   pressed={current[mark]}
                   onClick={() => onAction({ type: 'toggle', mark })}
                 >
@@ -171,7 +199,11 @@ export function TextFormatSections({ edit }: { edit: TextEdit }) {
                 </span>
               ) : (
                 <>
-                  <FormatButton label="Plus petit" onClick={() => setSize(current.fontSize - 1)}>
+                  <FormatButton
+                    label="Plus petit"
+                    tip="Plus petit : taille − 1 (fontSize)"
+                    onClick={() => setSize(current.fontSize - 1)}
+                  >
                     −
                   </FormatButton>
                   <input
@@ -189,14 +221,19 @@ export function TextFormatSections({ edit }: { edit: TextEdit }) {
                       if (event.key === 'Enter') setSize(Number(event.currentTarget.value));
                     }}
                   />
-                  <FormatButton label="Plus grand" onClick={() => setSize(current.fontSize + 1)}>
+                  <FormatButton
+                    label="Plus grand"
+                    tip="Plus grand : taille + 1 (fontSize)"
+                    onClick={() => setSize(current.fontSize + 1)}
+                  >
                     +
                   </FormatButton>
                 </>
               )}
               {canFit && (
                 <FormatButton
-                  label="Ajuster : réduire le texte pour qu’il tienne dans la forme"
+                  label="Ajuster"
+                  tip="Ajuster : réduire le texte pour qu’il tienne dans la forme, la taille réglée devient un maximum (fitText=1)"
                   pressed={fit}
                   onClick={() => onAction({ type: 'fit', on: !fit })}
                 >
@@ -220,8 +257,8 @@ export function TextFormatSections({ edit }: { edit: TextEdit }) {
                 type="button"
                 className="text-color"
                 style={{ background: swatch }}
-                title={swatch}
                 aria-label={`Couleur ${swatch}`}
+                {...hover(`Couleur ${swatch} : la sélection, sinon tout le texte (fontColor)`)}
                 aria-pressed={swatch === current.color}
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => onAction({ type: 'color', color: swatch === '#000000' ? undefined : swatch })}
@@ -239,7 +276,8 @@ export function TextFormatSections({ edit }: { edit: TextEdit }) {
                 {(['left', 'center', 'right'] as const).map((value) => (
                   <FormatButton
                     key={value}
-                    label={{ left: 'À gauche', center: 'Centré', right: 'À droite' }[value]}
+                    label={ALIGNS[value][0]}
+                    tip={ALIGNS[value][1]}
                     pressed={align === value}
                     onClick={() => onAction({ type: 'align', key: 'align', value })}
                   >
@@ -255,7 +293,8 @@ export function TextFormatSections({ edit }: { edit: TextEdit }) {
                   {(['top', 'middle', 'bottom'] as const).map((value) => (
                     <FormatButton
                       key={value}
-                      label={{ top: 'En haut', middle: 'Au milieu', bottom: 'En bas' }[value]}
+                      label={ALIGNS[value][0]}
+                      tip={ALIGNS[value][1]}
                       pressed={vertical === value}
                       onClick={() => onAction({ type: 'align', key: 'verticalAlign', value })}
                     >
@@ -277,6 +316,7 @@ export function TextFormatSections({ edit }: { edit: TextEdit }) {
           ? 'Ctrl+Entrée ou clic ailleurs : valider · Échap : annuler.'
           : 'Sélectionnez une partie du texte pour la formater ; le format de tout le texte sera disponible une fois ce texte créé.'}
       </p>
+      {tooltip}
     </>
   );
 }
@@ -326,6 +366,7 @@ const PLACE_Y = { top: 2, middle: 8, bottom: 14 } as const;
 
 /** Position du texte : grille 3 × 3, au milieu dans la forme ou collé à un côté ou un coin. */
 function LabelPlaceGrid({ current, onPlace }: { current: LabelPlace; onPlace: (place: LabelPlace) => void }) {
+  const { hover, tooltip } = useTooltip();
   return (
     <div className="field-row">
       Position
@@ -343,7 +384,7 @@ function LabelPlaceGrid({ current, onPlace }: { current: LabelPlace; onPlace: (p
               className="group-button format-button"
               aria-checked={checked}
               aria-label={name}
-              title={name}
+              {...hover(placeTip(place))}
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => {
                 if (!checked) onPlace(place);
@@ -357,33 +398,54 @@ function LabelPlaceGrid({ current, onPlace }: { current: LabelPlace; onPlace: (p
           );
         })}
       </span>
+      {tooltip}
     </div>
   );
 }
 
+/** Infobulle d'une position du texte : où il va, et les clés draw.io écrites (`labelPlacePatch`). */
+function placeTip(place: LabelPlace): string {
+  const name = labelPlaceName(place);
+  if (place.horizontal === 'center' && place.vertical === 'middle') {
+    return `${name} : texte dans la forme (labelPosition, verticalLabelPosition, align et verticalAlign retirés)`;
+  }
+  const keys = Object.entries(labelPlacePatch(place))
+    .filter(([, value]) => value !== undefined)
+    .map(([key, value]) => `${key}=${value}`)
+    .join(', ');
+  return `${name} : texte hors de la forme, collé à ce côté (${keys})`;
+}
+
+/** `label` : nom du bouton (lecteur d'écran) ; `tip` : ce qu'il fait, au survol. */
 function FormatButton({
   label,
+  tip,
   pressed,
   onClick,
   children,
 }: {
   label: string;
+  tip: string;
   pressed?: boolean;
   onClick: () => void;
   children: ReactNode;
 }) {
+  const { hover, tooltip } = useTooltip();
   return (
-    <button
-      type="button"
-      className="group-button format-button"
-      title={label}
-      aria-label={label}
-      aria-pressed={pressed}
-      onMouseDown={(event) => event.preventDefault()}
-      onClick={onClick}
-    >
-      {children}
-    </button>
+    <>
+      <button
+        type="button"
+        className="group-button format-button"
+        aria-label={label}
+        aria-pressed={pressed}
+        {...hover(tip)}
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={onClick}
+      >
+        {children}
+      </button>
+      {tooltip}
+    </>
   );
 }
 
