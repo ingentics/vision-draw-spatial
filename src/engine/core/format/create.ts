@@ -55,10 +55,14 @@ export function addShapeCell(page: PageTree, shape: NewShape): string {
   return id;
 }
 
-/** Ajoute une arête entre deux cellules, sur le premier calque (style des connecteurs draw.io). */
-export function addEdgeCell(page: PageTree, edge: { source: string; target: string; style: string }): string {
+/**
+ * Ajoute une arête sur le premier calque (style des connecteurs draw.io), entre deux cellules ; un bout sans cellule
+ * est libre (à poser ensuite avec `setEdgeTerminal`).
+ */
+export function addEdgeCell(page: PageTree, edge: { source?: string; target?: string; style: string }): string {
   if (page.encoding === 'unreadable') throw new Error(`Page ${page.id} illisible : ajout impossible`);
-  for (const end of [edge.source, edge.target]) if (!page.cells.has(end)) throw new Error(`Cellule ${end} introuvable`);
+  for (const end of [edge.source, edge.target])
+    if (end !== undefined && !page.cells.has(end)) throw new Error(`Cellule ${end} introuvable`);
   const rootEl = ensureRoot(page);
   const document = ownerOf(rootEl);
   const layerId = ensureLayer(page, rootEl);
@@ -68,8 +72,8 @@ export function addEdgeCell(page: PageTree, edge: { source: string; target: stri
   cell.setAttribute('style', edge.style);
   cell.setAttribute('edge', '1');
   cell.setAttribute('parent', layerId);
-  cell.setAttribute('source', edge.source);
-  cell.setAttribute('target', edge.target);
+  if (edge.source !== undefined) cell.setAttribute('source', edge.source);
+  if (edge.target !== undefined) cell.setAttribute('target', edge.target);
   const geometry = document.createElement('mxGeometry');
   geometry.setAttribute('relative', '1');
   geometry.setAttribute('as', 'geometry');

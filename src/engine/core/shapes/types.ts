@@ -102,6 +102,11 @@ export interface PaletteEntry {
   height: number;
   /** Icône de la palette : contenu SVG d'un cadre `0 0 40 28`, sans couleurs (celles de la palette). */
   icon: string;
+  /**
+   * Flèche libre (sujet 327) : l'élément crée une arête sans forme attachée, horizontale, de longueur `width` et
+   * centrée sur le point de dépôt (`height` vaut 0), au lieu d'un sommet.
+   */
+  edge?: boolean;
   /** Posée au fond de la pile, derrière les autres formes (ex. région du mode RDD, sujet 182). */
   atBack?: boolean;
 }

@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { addPage, addShapeCell, newCellId, removePage, renamePage } from '../../../../src/engine/core/format/create';
+import { setEdgeTerminal } from '../../../../src/engine/core/format/cellEdits';
+import {
+  addEdgeCell,
+  addPage,
+  addShapeCell,
+  newCellId,
+  removePage,
+  renamePage,
+} from '../../../../src/engine/core/format/create';
 import { documentFromTree, readDrawio } from '../../../../src/engine/core/format/parse';
 import { createEmptyDrawio } from '../../../../src/engine/core/format/skeleton';
 import { writeDrawio } from '../../../../src/engine/core/format/write';
@@ -98,5 +106,25 @@ describe('pages', () => {
     expect(() => removePage(single, single.pages[0]!.id)).toThrow();
     const legacy = readDrawio(fixture('legacy.xml')).tree;
     expect(() => addPage(legacy, 'x')).toThrow();
+  });
+});
+
+describe('addEdgeCell (flèche libre)', () => {
+  it('sans cellule : bouts libres écrits en sourcePoint et targetPoint, comme draw.io', () => {
+    const { tree } = readDrawio(createEmptyDrawio('Page-1', 'p1'));
+    const page = tree.pages[0]!;
+    const id = addEdgeCell(page, { style: 'endArrow=classic;html=1;rounded=0;' });
+    setEdgeTerminal(page, id, 'source', { point: { x: 40, y: 80 } });
+    setEdgeTerminal(page, id, 'target', { point: { x: 140, y: 80 } });
+
+    const written = writeDrawio(tree);
+    expect(written).toMatch(/<mxCell id="[^"]+" style="endArrow=classic;html=1;rounded=0;" edge="1" parent="1">/);
+    expect(written).not.toContain('source="');
+    expect(written).toContain('<mxPoint as="sourcePoint" x="40" y="80"/>');
+    expect(written).toContain('<mxPoint as="targetPoint" x="140" y="80"/>');
+
+    const edge = documentFromTree(readDrawio(written).tree).pages[0]!.edges[0]!;
+    expect(edge.sourcePoint).toEqual({ x: 40, y: 80 });
+    expect(edge.targetPoint).toEqual({ x: 140, y: 80 });
   });
 });

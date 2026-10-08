@@ -10,10 +10,10 @@ import { samePoints, withStyleValue } from '../helpers';
 import type { EngineCore } from '../../EngineCore';
 
 /** Style des connecteurs créés (celui de draw.io par défaut) ; le tracé vient du paramètre `shapes.edgeLineStyle`. */
-const CONNECTOR_STYLE = 'orthogonalLoop=1;jettySize=auto;html=1;';
+export const CONNECTOR_STYLE = 'orthogonalLoop=1;jettySize=auto;html=1;';
 
 /** Clés du tracé d'une flèche : droite (sans routeur), angles droits, coudes arrondis, courbe (orthogonaux). */
-const EDGE_LINE_KEYS = {
+export const EDGE_LINE_KEYS = {
   straight: 'rounded=0;',
   sharp: 'edgeStyle=orthogonalEdgeStyle;rounded=0;',
   rounded: 'edgeStyle=orthogonalEdgeStyle;rounded=1;',

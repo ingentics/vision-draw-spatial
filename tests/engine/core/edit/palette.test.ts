@@ -57,7 +57,8 @@ describe('palette', () => {
 
   it('toutes les formes de la palette sont dessinées par le moteur (pas de placeholder)', () => {
     const registry = createDefaultRegistry();
-    for (const template of SHAPE_TEMPLATES) {
+    // La flèche libre (sujet 327) crée une arête, pas une forme.
+    for (const template of SHAPE_TEMPLATES.filter((t) => !t.edge)) {
       const style = parseStyle(template.style);
       const shape = { kind: kindOf(template.style), style: style.values } as Parameters<typeof registry.resolve>[0];
       expect(registry.resolve(shape).supported, template.id).toBe(true);
@@ -99,7 +100,7 @@ describe('palette', () => {
       'four-point-star',
       'six-point-star',
     ]);
-    expect(byCategory('general')).toEqual(['text', 'title', 'actor', 'actor-droid']);
+    expect(byCategory('general')).toEqual(['text', 'title', 'actor', 'arrow', 'actor-droid']);
     const known = new Set(
       [
         ...PALETTE_CATEGORIES,
@@ -174,7 +175,7 @@ describe('formes utilisées (étape 56)', () => {
   };
 
   it('reconnaît chaque modèle depuis son propre style', () => {
-    for (const template of SHAPE_TEMPLATES)
+    for (const template of SHAPE_TEMPLATES.filter((t) => !t.edge))
       expect(defaultShapeRegistry.templateOf(shape(template.style))?.id).toBe(template.id);
   });
 

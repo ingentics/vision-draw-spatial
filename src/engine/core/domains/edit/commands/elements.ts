@@ -1,11 +1,13 @@
-import { gridSizeOf } from '../../../format/cellEdits';
-import { addShapeCell, removeCellsDeep } from '../../../format/create';
+import { gridSizeOf, setEdgeTerminal } from '../../../format/cellEdits';
+import { addEdgeCell, addShapeCell, removeCellsDeep } from '../../../format/create';
 import { reorderCells } from '../../../format/order';
 import { dropBounds } from '../../../edit/palette';
 import type { ShapeTemplate } from '../../../edit/palette';
 import { screenToPage } from '../../../interaction/cameraMath';
-import type { Point } from '../../../model/types';
+import type { PageTree } from '../../../format/xmlTree';
+import type { Point, Rect } from '../../../model/types';
 import { withStyleValue } from '../helpers';
+import { CONNECTOR_STYLE, EDGE_LINE_KEYS } from '../drag/connect';
 import type { EngineCore } from '../../EngineCore';
 
 /** Ajout d'une forme de la palette et suppression de la sélection. */
@@ -23,6 +25,7 @@ export class ElementCommands {
       screen ?? { x: this.core.display.viewport.width / 2, y: this.core.display.viewport.height / 2 },
     );
     const bounds = dropBounds(template, at, gridSizeOf(pageTree));
+    if (template.edge) return this.addFreeEdge(template, page.id, pageTree, bounds);
     this.core.edits.recordEdit('Nouvelle forme');
     const style = withStyleValue(template.style, 'fontSize', String(this.core.settings.shapes.textSize));
     const id = addShapeCell(pageTree, { style, value: template.value, ...bounds });
@@ -31,6 +34,22 @@ export class ElementCommands {
     this.core.file.documentChanged([page.id]);
     const shape = this.core.pages.getCurrentPage()?.shapes.find((s) => s.id === id);
     if (shape) this.core.selection.select({ type: 'shape', element: shape });
+    return id;
+  }
+
+  /** Flèche libre de la palette : horizontale, ses deux bouts posés aux extrémités de `bounds`, au style des flèches créées. */
+  private addFreeEdge(template: ShapeTemplate, pageId: string, pageTree: PageTree, bounds: Rect): string {
+    this.core.edits.recordEdit('Nouvelle flèche');
+    const line = CONNECTOR_STYLE + EDGE_LINE_KEYS[this.core.settings.shapes.edgeLineStyle];
+    const style = withStyleValue(template.style + line, 'fontSize', String(this.core.settings.shapes.textSize));
+    const id = addEdgeCell(pageTree, { style });
+    const y = bounds.y + bounds.height / 2;
+    setEdgeTerminal(pageTree, id, 'source', { point: { x: bounds.x, y } });
+    setEdgeTerminal(pageTree, id, 'target', { point: { x: bounds.x + bounds.width, y } });
+    this.core.pageModes.edgeCreated(pageId, id);
+    this.core.file.documentChanged([pageId]);
+    const edge = this.core.pages.getCurrentPage()?.edges.find((e) => e.id === id);
+    if (edge) this.core.selection.select({ type: 'edge', element: edge });
     return id;
   }
 

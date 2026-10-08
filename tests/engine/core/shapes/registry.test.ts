@@ -88,7 +88,7 @@ describe('formes en plugins (étapes 65, 67) : contrat des définitions', () => 
   it('chaque élément de palette crée une forme résolue vers sa définition', () => {
     const registry = createDefaultRegistry();
     for (const definition of SHAPE_DEFINITIONS) {
-      if (!definition.palette) continue;
+      if (!definition.palette || definition.palette.edge) continue;
       const parsed = parseStyle(definition.palette.style);
       // Nom de la forme comme à la lecture : `spatial.kind`, sinon deviné du style.
       const shape = model(parsed.values['spatial.kind'] ?? resolveShapeKind(parsed), parsed.values);
