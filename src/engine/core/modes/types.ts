@@ -365,6 +365,10 @@ export interface ModeOption {
   label: string;
   /** Pastille de couleur devant l'option (#rrggbb). */
   color?: string;
+  /** Icône de l'option, mêmes tracés que l'icône d'un mode (sujet 319). */
+  icon?: ModeIcon;
+  /** Aide au survol d'une option en bouton (sujet 319) : ce que fait le choix ; défaut : `label`. */
+  title?: string;
 }
 
 /**
@@ -412,7 +416,11 @@ export type ModeProperty = {
     }
   | {
       type: 'select';
-      /** Choix offerts (valeur vide = aucun) ; `palette` : couleurs proposées par l'appli (`ModeEdit.palette`). */
+      /**
+       * Choix offerts (valeur vide = aucun) ; `palette` : couleurs proposées par l'appli (`ModeEdit.palette`). Si toutes
+       * les options ont une icône ou une couleur, le panneau les montre en boutons (pastilles), sinon en liste (sujet
+       * 319).
+       */
       options(page: PageModel, palette: readonly string[]): ModeOption[];
     }
 );

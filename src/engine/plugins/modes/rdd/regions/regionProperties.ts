@@ -17,7 +17,13 @@ export const REGION_PROPERTIES: ModeProperty[] = [
     key: 'rdd.regionColor',
     label: 'Couleur',
     title: 'Couleur du fond de la région (fillColor)',
-    options: () => REGION_COLORS.map((color) => ({ value: color, label: color, color })),
+    options: () =>
+      REGION_COLORS.map((color) => ({
+        value: color,
+        label: color,
+        color,
+        title: `Fond de la région (fillColor=${color})`,
+      })),
     value: (_page, target) => regionTarget(target)?.style.fillColor,
     write: (edit, target, value) => {
       const shape = regionTarget(target);

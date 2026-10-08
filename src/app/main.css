@@ -144,6 +144,14 @@ body {
   height: 16px;
 }
 
+/* Pastille de couleur d'un choix (réglage de mode, sujet 319). */
+.choice-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.2);
+}
+
 .group-button .arrange-icon {
   width: 18px;
   height: 18px;

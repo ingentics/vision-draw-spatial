@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { isToggled, toggleValue } from '../../../engine';
-import type { ModePropertyView, ModeScope, ModeTarget, PageModel } from '../../../engine';
+import type { ModeOption, ModePropertyView, ModeScope, ModeTarget, PageModel } from '../../../engine';
+import { ChoiceGroup } from '../../ChoiceGroup';
+import type { ChoiceOption } from '../../ChoiceGroup';
 import { NumberField, SelectField, TextField } from '../../Fields';
+import { ModeIcon } from '../../ModeIcon';
 import { useEnginePlugins } from '../../pluginsContext';
 
 /**
@@ -134,7 +137,19 @@ function ModePropertyField({
         </button>
       );
     case 'select':
-      return (
+      // Choix tous dessinés (icône ou couleur) : boutons ; sinon (choix nommés, nombreux) : liste (sujet 319).
+      return options.length > 0 && options.every((option) => option.icon || option.color) ? (
+        <div className="field-row">
+          <span title={title}>{label}</span>
+          <ChoiceGroup
+            label={label}
+            value={value ?? ''}
+            options={options.map(choiceOf)}
+            disabled={!editable}
+            onChange={(next) => write(next || undefined)}
+          />
+        </div>
+      ) : (
         <SelectField
           label={label}
           title={title}
@@ -145,4 +160,19 @@ function ModePropertyField({
         />
       );
   }
+}
+
+/** Option d'un réglage `select` en bouton : son icône, ou une pastille de sa couleur. */
+function choiceOf(option: ModeOption): ChoiceOption<string> {
+  const { value, label, icon, color, title } = option;
+  return {
+    value,
+    label,
+    title: title ?? label,
+    icon: icon ? (
+      <ModeIcon mode={{ icon }} />
+    ) : (
+      <span className="choice-swatch" style={{ background: color }} aria-hidden="true" />
+    ),
+  };
 }

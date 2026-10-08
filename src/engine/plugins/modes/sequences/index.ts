@@ -5,6 +5,20 @@ import { SEQUENCES_KEYS } from './keys';
 import { badgeStyle, currentLook, SEQUENCES_SETTINGS } from './settings';
 import { renameFlow, repairSequences, sequenceState, setEdgeFlow, setEdgeStep } from './steps';
 
+/** Icônes des types de participant (sujet 319), au style de celle du mode. */
+const PARTICIPANT_ICONS = {
+  // Boîte du participant et sa ligne de vie.
+  none: { fill: 'M4.5 1.5h7a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1z', line: 'M8 8V15.5' },
+  // Barre du bus, branchements de part et d'autre.
+  bus: { fill: 'M1 6.5h14v3H1z', accent: 'M4 6.5V3M8 6.5V3M12 6.5V3M4 9.5V13M8 9.5V13M12 9.5V13' },
+  // Messages en file dans un tuyau, sortie à droite.
+  queue: {
+    fill: 'M2.5 6h2.5v4H2.5zM6.5 6h2.5v4H6.5zM10.5 6h2.5v4h-2.5z',
+    line: 'M1 4.5h12.5M1 11.5h12.5',
+    accent: 'M13.5 8h2M14.5 7l1 1-1 1',
+  },
+};
+
 /**
  * Mode « Séquences » (sujet 70) : la page enregistre des flux (`spatial.seq.flows`) et l'ordre des flèches dans
  * chacun (`spatial.seq.flow`, `spatial.seq.step`), de quoi en déduire un diagramme de séquence par flux. Une flèche
@@ -70,9 +84,24 @@ export const definition: PageModeDefinition = {
         title:
           'Type de la forme dans les séquences (spatial.seq.participant) : un bus ou une queue est le point de départ d’un flux dont la première flèche va vers lui',
         options: () => [
-          { value: '', label: '—' },
-          { value: 'bus', label: 'Bus' },
-          { value: 'queue', label: 'Queue' },
+          {
+            value: '',
+            label: '—',
+            title: '— : participant ordinaire, une boîte et sa ligne de vie (rien n’est écrit)',
+            icon: PARTICIPANT_ICONS.none,
+          },
+          {
+            value: 'bus',
+            label: 'Bus',
+            title: 'Bus : bus d’événements, point de départ du flux dont la première flèche va vers lui (bus)',
+            icon: PARTICIPANT_ICONS.bus,
+          },
+          {
+            value: 'queue',
+            label: 'Queue',
+            title: 'Queue : file de messages, point de départ du flux dont la première flèche va vers elle (queue)',
+            icon: PARTICIPANT_ICONS.queue,
+          },
         ],
       },
     ],

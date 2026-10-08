@@ -128,6 +128,11 @@ page, section au nom du mode dans le panneau d'une flèche ou d'une forme. Par d
 mode de nom court `key` sur sa cible ; `value`, `write` et `hidden` le font passer par les règles du mode (ex. le rang d'une flèche, qui
 s'échange avec une autre).
 
+Un réglage `select` dont toutes les options ont une icône (`icon`, mêmes tracés que l'icône du mode) ou une couleur
+(`color`) s'affiche en groupe de boutons, pastilles ou icônes, avec l'aide `title` de chaque option au survol (ex. couleur
+d'une région RDD, type de participant) ; sinon il reste une liste, faite pour des choix nommés, nombreux ou qui varient
+avec la page (ex. flux d'une flèche, type d'un champ RDD), sujet 319.
+
 Un réglage peut aller dans sa propre section du panneau (`section`, son titre ; défaut : la section au nom du mode,
 sujet 260), et être en lecture seule selon sa cible (`readOnly` fonction, ex. label de la clé primaire).
 

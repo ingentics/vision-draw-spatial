@@ -105,7 +105,7 @@ export type { EffectInfo, EffectRegistryView, PageEffectRegistry } from './core/
 export { isToggled, toggleValue } from './core/modes/modeProperties';
 export type { ModeInfo, ModeRegistryView, ModeScope, PageModeRegistry } from './core/modes/registry';
 export type { ShapeRegistry, ShapeRegistryView } from './core/shapes/registry';
-export type { ModeEdit, ModeProperty, ModeTarget, PageModeDefinition } from './core/modes/types';
+export type { ModeEdit, ModeOption, ModeProperty, ModeTarget, PageModeDefinition } from './core/modes/types';
 export type { PluginSetting, PluginSettings, PluginValues } from './core/settings/pluginSettings';
 export { PALETTE_CATEGORIES, SHAPE_TEMPLATES, usedTemplates } from './plugins';
 export type { PropertySection, ShapeProperty } from './core/shapes/types';
