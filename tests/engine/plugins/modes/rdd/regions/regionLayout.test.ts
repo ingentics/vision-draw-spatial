@@ -79,22 +79,22 @@ describe('mode RDD : la région s’étend quand on y pose une forme qui dépass
     return { bounds, place, move, resize };
   };
 
-  it('la région s’agrandit vers la droite et le bas, 20 px de marge ; sa région englobante suit', () => {
+  it('la région s’agrandit vers la droite et le bas, 40 px de marge ; sa région englobante suit', () => {
     const { bounds, place } = setupPage();
-    expect(REGION.margin).toBe(20);
-    // T dépasse à droite de Small (310 > 300) : Small va jusqu'à 330.
-    expect(place('t', 150, 120)).toBe(true);
-    expect(bounds('small')).toEqual({ x: 100, y: 100, width: 230, height: 150 });
+    expect(REGION.margin).toBe(40);
+    // T dépasse à droite de Small (310 > 300) : Small va jusqu'à 350.
+    expect(place('t', 150, 140)).toBe(true);
+    expect(bounds('small')).toEqual({ x: 100, y: 100, width: 250, height: 150 });
     expect(bounds('big')).toEqual({ x: 0, y: 0, width: 500, height: 300 });
-    // Coin toujours dans Small, plus bas et à droite : Small passe à 400 × 206 et dépasse Big par le bas, qui
+    // Coin toujours dans Small, plus bas et à droite : Small passe à 420 × 226 et dépasse Big par le bas, qui
     // s'agrandit à son tour (marge autour de Small).
     place('t', 320, 240);
-    expect(bounds('small')).toEqual({ x: 100, y: 100, width: 400, height: 206 });
-    expect(bounds('big')).toEqual({ x: 0, y: 0, width: 520, height: 326 });
+    expect(bounds('small')).toEqual({ x: 100, y: 100, width: 420, height: 226 });
+    expect(bounds('big')).toEqual({ x: 0, y: 0, width: 560, height: 366 });
     // Coin hors de Small mais dans Big : seule Big s'agrandit.
-    place('t', 510, 320);
-    expect(bounds('small')).toEqual({ x: 100, y: 100, width: 400, height: 206 });
-    expect(bounds('big')).toEqual({ x: 0, y: 0, width: 690, height: 386 });
+    place('t', 530, 330);
+    expect(bounds('small')).toEqual({ x: 100, y: 100, width: 420, height: 226 });
+    expect(bounds('big')).toEqual({ x: 0, y: 0, width: 730, height: 416 });
   });
 
   it('une région aussi grande que sa parente y est dès que son coin y est, et l’agrandit (sujet 231)', () => {
@@ -102,14 +102,14 @@ describe('mode RDD : la région s’étend quand on y pose une forme qui dépass
     resize('small', 500, 300);
     // Small, de la taille de Big, posée en mordant sur son bord : son coin est dans Big, qui s'agrandit.
     expect(place('small', 300, 200)).toBe(true);
-    expect(bounds('big')).toEqual({ x: 0, y: 0, width: 820, height: 520 });
+    expect(bounds('big')).toEqual({ x: 0, y: 0, width: 840, height: 540 });
   });
 
   it('une région posée qui dépasse de sa région parente l’agrandit, comme une table (sujet 231)', () => {
     const { bounds, place } = setupPage();
     // Small (200 × 150) posée à (400, 200) : son coin est dans Big, elle en dépasse à droite et en bas.
     expect(place('small', 400, 200)).toBe(true);
-    expect(bounds('big')).toEqual({ x: 0, y: 0, width: 620, height: 370 });
+    expect(bounds('big')).toEqual({ x: 0, y: 0, width: 640, height: 390 });
     expect(bounds('small')).toEqual({ x: 400, y: 200, width: 200, height: 150 });
   });
 
@@ -118,12 +118,12 @@ describe('mode RDD : la région s’étend quand on y pose une forme qui dépass
     // T (160 × 46) dans Small (100, 100, 200 × 150) tirée à (80, 90) : coin hors de Small mais dans Big, qui englobe
     // Small ; elle chevauche encore Small, qui s'agrandit à gauche et en haut (marge comprise), pas à droite.
     expect(move('t', 80, 90)).toBe(true);
-    expect(bounds('small')).toEqual({ x: 60, y: 70, width: 240, height: 180 });
+    expect(bounds('small')).toEqual({ x: 40, y: 50, width: 260, height: 200 });
     expect(bounds('big')).toEqual({ x: 0, y: 0, width: 500, height: 300 });
     // Small sortie à son tour par le haut de Big : Big s'agrandit vers le haut, au-dessus de l'onglet de Small
     // (sujet 237), marge comprise.
-    expect(move('small', 60, -10)).toBe(true);
-    expect(bounds('big')).toEqual({ x: 0, y: -46, width: 500, height: 346 });
+    expect(move('small', 40, -10)).toBe(true);
+    expect(bounds('big')).toEqual({ x: 0, y: -66, width: 500, height: 366 });
   });
 
   it('tirée complètement hors de sa région, la forme en sort : rien ne s’agrandit (sujet 234)', () => {
@@ -166,14 +166,14 @@ describe('mode RDD : le contenu d’une région est devant elle (sujet 230)', ()
 });
 
 describe('mode RDD : ajuster une région à son contenu, touche « f » (sujet 184)', () => {
-  it('trop grande puis trop petite : ramenée autour de ses tables avec 20 px de marge ; vide : inchangée', () => {
+  it('trop grande puis trop petite : ramenée autour de ses tables avec 40 px de marge ; vide : inchangée', () => {
     const { run, page, shape } = setup();
     const key = rdd.keys!.f!;
     expect(key.label).toBe('Ajuster la région');
     expect(key.applies(page(), shape('accounts'))).toBe(true);
     expect(key.applies(page(), shape('user'))).toBe(false);
     // Comptes contient User (40, 160, 160 × 86) et Role (240, 160, 160 × 86).
-    const fitted = { x: 20, y: 140, width: 400, height: 126 };
+    const fitted = { x: 0, y: 120, width: 440, height: 166 };
     run((edit) => edit.setShapeBounds('accounts', { x: 10, y: 120, width: 425, height: 170 }));
     run((edit) => key.run(edit, shape('accounts'), undefined));
     expect(shape('accounts').bounds).toEqual(fitted);
@@ -194,13 +194,13 @@ describe('mode RDD : l’onglet d’une région enfant compte dans sa parente (s
     <mxCell id="small" value="Small" style="spatial.kind=rdd-region;" vertex="1" parent="1"><mxGeometry x="100" y="100" width="200" height="80" as="geometry" /></mxCell>
   </root></mxGraphModel></diagram></mxfile>`;
 
-  it('« f » sur une région qui ne contient qu’une région : 20 px au-dessus de l’onglet de l’enfant', () => {
+  it('« f » sur une région qui ne contient qu’une région : 40 px au-dessus de l’onglet de l’enfant', () => {
     const { document, tree } = readDrawio(xml);
     const page = document.pages[0]!;
     const big = page.shapes.find((s) => s.id === 'big')!;
     applyModeEdit(page, tree.pages[0]!, RDD_KEYS, (edit) => rdd.keys!.f!.run(edit, big, undefined));
     const bounds = documentFromTree(tree).pages[0]!.shapes.find((s) => s.id === 'big')!.bounds;
-    expect(bounds).toEqual({ x: 80, y: 100 - REGION.tab.height - 20, width: 240, height: 80 + REGION.tab.height + 40 });
+    expect(bounds).toEqual({ x: 60, y: 100 - REGION.tab.height - 40, width: 280, height: 80 + REGION.tab.height + 80 });
   });
 
   it('une région posée en sortant par le haut agrandit sa parente au-dessus de son onglet', () => {
@@ -213,7 +213,7 @@ describe('mode RDD : l’onglet d’une région enfant compte dans sa parente (s
     page = documentFromTree(tree).pages[0]!;
     applyModeEdit(page, tree.pages[0]!, RDD_KEYS, (edit) => rdd.gestures!.placed!(edit, ['small'], before));
     const bounds = documentFromTree(tree).pages[0]!.shapes.find((s) => s.id === 'big')!.bounds;
-    expect(bounds.y).toBe(5 - REGION.tab.height - 20);
+    expect(bounds.y).toBe(5 - REGION.tab.height - 40);
   });
 });
 
@@ -265,7 +265,7 @@ describe('mode RDD : règles des régions au redimensionnement, à l’ajustemen
     const before = page();
     run((edit) => edit.setShapeBounds('small', { x: 100, y: 100, width: 500, height: 250 }));
     expect(run((edit) => rdd.gestures!.placed!(edit, ['small'], before))).toBe(true);
-    expect(shape('big').bounds).toEqual({ x: 0, y: 0, width: 620, height: 370 });
+    expect(shape('big').bounds).toEqual({ x: 0, y: 0, width: 640, height: 390 });
     expect(shape('t').bounds).toEqual({ x: 120, y: 120, width: 160, height: 46 });
   });
 
@@ -275,15 +275,15 @@ describe('mode RDD : règles des régions au redimensionnement, à l’ajustemen
     run((edit) => edit.setShapeBounds('t', { x: 120, y: 120, width: 400, height: 200 }));
     run((edit) => edit.setShapeBounds('big', { x: 0, y: 0, width: 320, height: 200 }));
     run((edit) => rdd.keys!.f!.run(edit, shape('small'), undefined));
-    const small = { x: 100, y: 100, width: 440, height: 240 };
+    const small = { x: 80, y: 80, width: 480, height: 280 };
     expect(shape('small').bounds).toEqual(small);
-    // Big autour de Small et de son onglet, 20 px de marge.
+    // Big autour de Small et de son onglet, 40 px de marge.
     const tab = REGION.tab.height;
-    expect(shape('big').bounds).toEqual({ x: 80, y: 100 - tab - 20, width: 480, height: 240 + tab + 40 });
+    expect(shape('big').bounds).toEqual({ x: 40, y: 80 - tab - 40, width: 560, height: 280 + tab + 80 });
     // Big trop grande : « f » sur Small la ramène aussi autour de Small.
     run((edit) => edit.setShapeBounds('big', { x: -200, y: -200, width: 1200, height: 900 }));
     run((edit) => rdd.keys!.f!.run(edit, shape('small'), undefined));
-    expect(shape('big').bounds).toEqual({ x: 80, y: 100 - tab - 20, width: 480, height: 240 + tab + 40 });
+    expect(shape('big').bounds).toEqual({ x: 40, y: 80 - tab - 40, width: 560, height: 280 + tab + 80 });
   });
 
   it('collage de deux régions : chacune la couleur suivante de son niveau', () => {

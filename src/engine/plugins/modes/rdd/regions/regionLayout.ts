@@ -14,8 +14,8 @@ export const REGION_KIND = 'rdd-region';
  * sur un onglet au fond et à la bordure de la région (sujets 226, 227).
  */
 export const REGION = {
-  /** Marge de sécurité autour d'une forme qui dépasse de sa région, qui s'agrandit (sujet 183). */
-  margin: 20,
+  /** Marge de sécurité autour d'une forme qui dépasse de sa région, qui s'agrandit (sujets 183, 329). */
+  margin: 40,
   /** Bordure des régions, quelle que soit leur couleur (sujet 233). */
   stroke: '#969696',
   fontSize: 9,
