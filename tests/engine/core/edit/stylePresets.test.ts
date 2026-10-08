@@ -43,6 +43,18 @@ describe('styles de forme', () => {
     expect(stylePresetChanges({ fontColor: '#ff0000' }, style('Vert'), KNOWN)).not.toHaveProperty('fontColor');
   });
 
+  it('cadre du nom de la couleur de la bordure : suit la nouvelle bordure ; autre couleur ou absent : intact (sujet 347)', () => {
+    const region = { fillColor: '#dae8fc', strokeColor: '#6C8EBF', labelBorderColor: '#6c8ebf' };
+    expect(stylePresetChanges(region, style('Vert'), KNOWN)).toMatchObject({ labelBorderColor: '#82b366' });
+    expect(stylePresetChanges({ labelBorderColor: '#000000' }, style('Vert'), KNOWN)).toMatchObject({
+      labelBorderColor: '#82b366',
+    });
+    expect(stylePresetChanges({ ...region, labelBorderColor: '#ff0000' }, style('Vert'), KNOWN)).not.toHaveProperty(
+      'labelBorderColor',
+    );
+    expect(stylePresetChanges({ strokeColor: '#6c8ebf' }, style('Vert'), KNOWN)).not.toHaveProperty('labelBorderColor');
+  });
+
   it('style courant : couleurs implicites de draw.io (blanc, noir) comprises', () => {
     expect(matchesPreset({}, style('Par défaut'))).toBe(true);
     expect(matchesPreset({ fillColor: '#F8CECC', strokeColor: '#b85450' }, style('Rouge'))).toBe(true);

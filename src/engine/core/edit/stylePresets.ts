@@ -66,6 +66,8 @@ export function deriveStroke(fill: string): string {
  * Clés de style à écrire pour appliquer un style à une forme (undefined = clé retirée) ; seules
  * les clés qui changent. `fontColor` : celle du style s'il en a une ; sinon une couleur de texte
  * posée par un autre style de la palette (`known`) est retirée, une couleur choisie à la main reste.
+ * `labelBorderColor` : un cadre du nom de la couleur de la bordure suit la nouvelle bordure (sujet 347, ex. régions
+ * RDD) ; un cadre d'une autre couleur reste.
  */
 export function stylePresetChanges(
   style: Record<string, string>,
@@ -77,6 +79,9 @@ export function stylePresetChanges(
     strokeColor: preset.strokeColor,
   };
   const font = normalize(style.fontColor);
+  const frame = normalize(style.labelBorderColor);
+  if (frame && frame === (normalize(style.strokeColor) ?? IMPLICIT.strokeColor))
+    wanted.labelBorderColor = preset.strokeColor;
   if (preset.fontColor) wanted.fontColor = preset.fontColor;
   else if (font && known.some((p) => p.fontColor && normalize(p.fontColor) === font)) wanted.fontColor = undefined;
   const changes: Record<string, string | undefined> = {};
