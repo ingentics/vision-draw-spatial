@@ -44,3 +44,41 @@
   `src/app/tabSession.ts` + plugin `engineFullReload` de `vite.config.ts` ; « 130 KB » → 137 KB.
 - **Fini quand :** chaque chemin et symbole cité dans `docs/*.md`, `coding.md` et `CLAUDE.md` existe (vérifié par le
   test de 390, ou à la main si 390 n'est pas fait) ; aucune carte des dossiers en double ; `make check` vert.
+- Fait :
+  - `docs/AJOUTER_UNE_FORME.md` : encadré « Ce qui touche encore le tronc » en tête (alias `SHAPE_ALIASES`, périmètre
+    `perimeterKind` dans `route/perimeters/index.ts`, réglage de forme §4.1 en attendant 380, catégorie de palette),
+    renvoyé depuis §1 et l'exemple de la note ; contrat recopié remplacé par un tableau unique « champ → rôle → défaut →
+    exemple » des 28 champs de `ShapeDefinition` (`types.ts` fait foi), le tableau de §6 y renvoie ; briques absentes de
+    l'API corrigées sans rien exporter (`flatMaterial` → `fillMesh` / `strokeMesh`, `fontStyleBits` →
+    `fontStyleValue`, `labelBackground` → `styleStroke`) ; renvois `Levels.requestedLevel()`,
+    `SceneView.renderContext()`, `Levels.settingsChanged` / `settingsSectionChanged`, `route/perimeters/index.ts` ;
+    arbre réduit aux dossiers (plus de liste de formes) avec `minimapOutline.ts` ; liste « briques à chercher »
+    remplacée par les rubriques de `core/plugins/index.ts` ; frontières renvoyées à `coding.md` §5 ; note en
+    `order: 200` (110 pris par l'hexagone).
+  - `docs/AJOUTER_UN_MODE.md` : `part?` de `edges.connects` / `created` / `reconnected` ; `ModeEdit` complet
+    (`gridSize`, `sendToBack`, `setEdgeEndText`) ; fichiers conventionnels de la racine d'un mode (`keys.ts`,
+    `settings.ts`) au lieu de « `index.ts` seul » ; frontières et briques renvoyées à `coding.md` §5 et aux rubriques
+    de l'API ; `WeakMap` présenté comme l'exception de `coding.md` §3.
+  - `docs/SUMMARY.md` : §3 devient la seule carte des dossiers (avec `core/shapes|modes|effects|plugins`,
+    `core/graph`, `core/diagnostics`, `plugins/`, `src/react`, `src/app/plugins`) ; §4 : chemin
+    `plugins/shapes/generic/building/`, formes par renvoi au dossier et à SPEC §8.3, modes RDD / Séquences, effet
+    forêt, mini-graphe ; §5 : lignes « Nouveau mode », « Nouvel effet », sans `todo/33…41` ; §6 : `debt/`, numéro
+    par `ls` seul, gabarit retiré (renvoi à `ROADMAP.md`) ; §7 : seul le routage ignore les quarts de tour.
+  - `docs/SPEC.md` : §4.2 réduit aux couches → dossiers, renvoi à SUMMARY §3 ; §4.3 aligné sur `Engine.ts`
+    (`EngineOptions` complet, `goToPage`, `animateCameraTo`, `on` typé, `InitialView`, `CameraState` avec `3d` et
+    `fov`) ; §8.2 renvoie au tableau du guide au lieu de recopier le contrat, « au minimum `id` » ; hors de ces
+    sections, quatre chemins périmés corrigés en place (`render/iso/buildings.ts`, `render/edges/route.ts`,
+    `core/selection/splitHover.ts`, `edit/anchoring/auto/seed.ts`).
+  - `.claude/rules/coding.md` : §2 renvoie à SUMMARY §3, tableau complété (contrats et registres, API des plugins,
+    forme, effet, partie appli d'un mode), exception des fichiers conventionnels d'un plugin ; §3 : exception du
+    cache `WeakMap` indexé par un objet immuable (partie doc de 377, faite ici).
+  - `CLAUDE.md` : `src/app/tabSession.ts` + plugin `engineFullReload` de `vite.config.ts` ; taille de la SPEC (135 KB
+    après ce sujet).
+  - Renommages (doublons de nom, aucun changement de comportement) : `core/domains/edit/commands/orient.ts` →
+    `orientation.ts`, `plugins/shapes/general/actors/common/standing.ts` → `standingActor.ts`, test
+    `tests/engine/core/domains/edit/orient.test.ts` → `orientation.test.ts`, imports mis à jour. Gardés :
+    `core/render/geometry/orient.ts` et `core/render/standing.ts` (cités par l'API des plugins et les guides).
+  - Dette notée : `debt/394` (commentaire orphelin dans `core/shapes/types.ts`).
+  - Laissé : le test des docs (390) ; la procédure §4.1 du guide, seulement corrigée (réécrite par 380) ; aucun
+    export ajouté à l'API des plugins. Vérification : boucle shell sur les chemins `src/…`, `tests/…`, `docs/…` et les
+    liens `../src/…` de `docs/*.md`, `coding.md`, `CLAUDE.md` (tous existent) ; `make check` vert.

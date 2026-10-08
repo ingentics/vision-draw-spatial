@@ -8,13 +8,26 @@ panneau.
 **En bref :** une forme est un dossier `src/engine/plugins/shapes/<catégorie>/<id>/` dont `index.ts` exporte
 `definition`. Elle porte le nom de l'interface en anglais (`database`, `rounded-rectangle`…) et contient **tout** ce
 qui la concerne : rendu 2D, subtilités iso / 3D (sa façade, son étiquette), palette, aperçu, réglages, interaction.
-Elle peut étendre une base de `shapes/generic/` ou une autre forme. Déposer le dossier suffit : le registre le trouve
-tout seul, et le moteur comme l'appli ne posent leurs questions qu'à la définition (via le registre).
+Elle peut étendre une base de `shapes/generic/` ou une autre forme. Dans le cas courant, déposer le dossier suffit :
+le registre le trouve tout seul, et le moteur comme l'appli ne posent leurs questions qu'à la définition (via le
+registre).
 Des variantes d'une même forme se rangent en famille : `shapes/<catégorie>/<famille>/<variante>/index.ts`, le code
 commun dans `<famille>/common/` (sans `index.ts`), l'id commençant par le nom de la famille au singulier (exemple :
 [shapes/general/actors/](../src/engine/plugins/shapes/general/actors/), `human/` = `actor`, `droid/` = `actor-droid`).
 
+> **Ce qui touche encore le tronc.** Quatre cas demandent de modifier un fichier hors du dossier de la forme :
+>
+> - un synonyme du nom draw.io : `SHAPE_ALIASES` dans [core/format/style.ts](../src/engine/core/format/style.ts)
+>   (section 1) ;
+> - un périmètre d'accroche des flèches propre à la forme : `perimeterKind` dans
+>   [core/render/edges/route/perimeters/index.ts](../src/engine/core/render/edges/route/perimeters/index.ts)
+>   (section 6) ;
+> - un réglage de l'appli lu par la forme : procédure de la section 4.1 (sujet 380 : les formes déclareront leurs
+>   réglages comme les modes) ;
+> - une nouvelle catégorie de palette : [plugins/shapes/categories.ts](../src/engine/plugins/shapes/categories.ts).
+
 Références : SPEC §8.2 (registre), §8.3 (formes supportées), §8.4 (placeholder), §9.1 (volumes), §13 (paramètres).
+Frontières d'un plugin (ce qu'il peut importer) : `.claude/rules/coding.md` §5.
 
 ---
 
@@ -34,8 +47,9 @@ fichier .drawio
 ```
 
 Le moteur ne connaît que l'interface `ShapeDefinition` ([core/shapes/types.ts](../src/engine/core/shapes/types.ts)).
-Ajouter une forme revient donc à **déposer son dossier**. Ni la scène, ni la caméra, ni l'édition, ni l'appli ne
-changent : la palette, le panneau, le clic, les poignées et les flèches interrogent la définition (section 6).
+Ajouter une forme revient donc à **déposer son dossier** (sauf les cas de l'encadré du début). Ni la scène, ni la
+caméra, ni l'édition, ni l'appli ne changent : la palette, le panneau, le clic, les poignées et les flèches
+interrogent la définition (section 6).
 
 ### Le nom de la forme (`kind`)
 
@@ -75,42 +89,43 @@ Pour trouver le nom exact d'une forme, insérez-la dans draw.io, ouvrez « Modif
 
 ## 2. La définition
 
-```ts
-interface ShapeDefinition {
-  // Identité
-  id: string;                              // nom de l'interface en anglais = nom du dossier (accepté par spatial.kind)
-  kinds?: string[];                        // formes draw.io gérées, ShapeModel.kind (défaut : [id])
-  matches?(shape: ShapeModel): boolean;    // condition en plus (variante : rounded=1, aspect=fixed…)
-  // Géométrie
-  outline?(shape: ShapeModel): Point[];    // contour au sol, polygone fermé, coordonnées page
-  contains?(shape, point): boolean;        // clic (défaut : dans le contour, sinon les bornes)
-  // Rendu
-  flat: SceneRenderer;                     // OBLIGATOIRE : 2D, et repli de tous les autres niveaux
-  iso?: SceneRenderer;                     // vues iso ET 3D (voir § 3)
-  volume?: SceneRenderer;                  // réservé (extrusion, SPEC §17) : jamais demandé aujourd'hui
-  volumeHeight?(shape, ctx): number;       // hauteur par défaut propre à la forme (défaut : blockHeight)
-  textZone?(shape, level): Rect;           // zone du texte (défaut : les bornes)
-  minimap?: MinimapPainter | null;         // absent = contour rempli ; null = rien
-  // Interaction
-  resizable?: boolean;                     // poignées de redimensionnement (défaut : oui)
-  connectable?: boolean;                   // flèches accrochables (défaut : oui)
-  connectSides?: ConnectSide[];            // côtés aux poignées de connexion (défaut : les quatre)
-  plainText?: boolean;                     // texte brut, sans mise en forme ni panneau de format (défaut : non)
-  pickable?: 'always' | 'withLink';        // prise au clic / au rectangle (défaut : always)
-  movesAsBlock?: boolean;                  // saisir un enfant la déplace d'un bloc (défaut : non ; groupe : oui)
-  // Palette et panneau
-  palette?: PaletteEntry;                  // élément de la palette (nom, catégorie, rang, style, taille, icône)
-  swatch?(style): string;                  // aperçu des styles du panneau (défaut : rectangle)
-  properties?: ShapeProperty[];            // réglages propres à la forme, dans le panneau
-}
+Le contrat fait foi : [core/shapes/types.ts](../src/engine/core/shapes/types.ts) (`ShapeDefinition`, avec la JSDoc de
+chaque champ). Seuls `id` et `flat` sont obligatoires ; tout le reste a un repli générique. Dans le cas nominal, le nom
+draw.io est l'`id` (`text`, `ellipse`) et il n'y a pas de `kinds` à écrire.
 
-interface SceneRenderer {
-  create(shape: ShapeModel, ctx: RenderContext): Object3D;
-}
-```
+| Champ | Rôle | Défaut (absent) | Exemple |
+|---|---|---|---|
+| `id` | nom de l'interface en anglais = nom du dossier, accepté par `spatial.kind` | obligatoire | `database`, `rounded-rectangle` |
+| `kinds` | formes draw.io gérées (`ShapeModel.kind`) | `[id]` | BDD : `cylinder3` |
+| `matches(shape)` | condition en plus du nom draw.io (variante) | aucune condition | rectangle arrondi : `rounded=1` |
+| `outline(shape)` | contour au sol, polygone fermé en coordonnées page | rectangle des bornes | losange, hexagone |
+| `details(shape)` | dessin intérieur (tracés, textes) par-dessus le fond | aucun | barres du process (`generic/box`) |
+| `contains(shape, point)` | clic et survol | dans le contour s'il y en a un, sinon les bornes | ellipse exacte, acteur (toute la hauteur) |
+| `hitBounds(shape)` | emprise prise au clic quand la forme dessine hors de ses bornes | les bornes | onglet d'une région RDD |
+| `selectionStyle` | mise en valeur imposée de la forme sélectionnée | celle de la page | région RDD : `none` |
+| `multiSelectionStyle` | idem dans une sélection de plusieurs éléments | `selectionStyle` | région RDD : `outline` |
+| `flat` | rendu 2D, repli de tous les autres niveaux (§ 3.1) | obligatoire | `flatBox(outline)` |
+| `iso` | rendu des vues iso **et** 3D (§ 3.2) | `flat` (à plat au sol) | `isoBlock(outline)` |
+| `volume` | réservé (extrusion, SPEC §17) : jamais demandé aujourd'hui | `flat` | — |
+| `volumeHeight(shape, ctx)` | hauteur du volume propre à la forme (§ 3.2) | `blockHeight` | acteur |
+| `textZone(shape, level)` | zone du texte (affichage et éditeur en place) | les bornes | BDD, file, cache, tables RDD |
+| `editStyle(style)` | style de l'éditeur en place quand le label dessiné ne suit pas le style draw.io | le style de la forme | nom d'une région RDD sur son onglet |
+| `minimap` | peintre de la mini-carte (§ 3.3) ; `null` = rien | contour rempli | texte : `null` ; acteur |
+| `resizable` | poignées de redimensionnement | oui | groupe : non |
+| `movedHandles(shape)` | poignées placées ailleurs que sur les bornes | sur les bornes | coin de l'onglet d'une région RDD |
+| `connectable` | flèches accrochables | oui | groupe : non |
+| `connectSides` | côtés qui ont une poignée de connexion | les quatre | table RDD : gauche et droite |
+| `plainText` | texte brut, sans mise en forme ni panneau de format | non | table RDD : oui |
+| `flippable` | retournements proposés dans le panneau « Orientation » (§ 1, `orientedPath`) | aucun | triangle, accolade |
+| `rotatable` | pivot par quarts de tour dans le panneau | non | triangle, accolade |
+| `pickable` | prise au clic et au rectangle de sélection | `always` | groupe : `withLink` (on prend ses formes) |
+| `movesAsBlock` | saisir un enfant déplace la forme avec ses enfants | non | groupe : oui |
+| `palette` | élément de la palette (§ 6) | absente de la palette | rectangle / rectangle arrondi, BDD / queue |
+| `properties` | réglages propres à la forme, dans le panneau (§ 6) | aucun | « Coins arrondis », étiquette de façade |
+| `swatch(style)` | aperçu dans les styles du panneau | rectangle (arrondi si `rounded=1`) | ellipse, cylindre |
 
-Seuls `id` et `flat` sont obligatoires ; tout le reste a un repli générique. Dans le cas nominal, le nom draw.io est
-l'`id` (`text`, `ellipse`) et il n'y a pas de `kinds` à écrire.
+Un rendu (`SceneRenderer`) n'a qu'une méthode : `create(shape, ctx)`, qui renvoie un `Object3D` en espace page
+(section 5).
 
 ### Enregistrement : déposer le dossier
 
@@ -124,21 +139,18 @@ src/engine/plugins/shapes/      les formes, une par élément de la palette (suj
 │   ├── tagged-process/         process à tranche étiquetée (internalStorage + mot gris de bas en haut)
 │   ├── cylinder/               tracés draw.io des cylindres, rendu 2D à lèvres
 │   └── building/               bâtiment iso : toit, faces, gravures, étiquette
-├── geometry/                   catégorie « Géométrie » : rectangle, rounded-rectangle, ellipse, circle, diamond,
-│                               hexagon, octagon, pentagon, triangle, triangle-up, parallelogram, step,
-│                               four-point-star, six-point-star
-├── general/                    catégorie « Général » : text, actor (debout face à la caméra en iso / 3D)
-├── categories.ts               catégories de la palette (nom, rang), une par dossier ; une nouvelle catégorie s'y ajoute
-└── architecture/               catégorie « Architecture » : database, queue, distributed-cache, plug, process,
-    │                           event-consumer, background-task, recurring-task, labeled-process
-    └── database/
-        ├── index.ts            export const definition: ShapeDefinition = { … }
-        └── facade.ts           sa façade iso (arcs gravés, étiquette « DB »)
+├── <catégorie>/                une catégorie de la palette par dossier (`geometry/`, `general/`, `architecture/`) :
+│   │                           la liste des formes est le contenu du dossier (et SPEC §8.3)
+│   └── <id>/                   ex. `architecture/database/`
+│       ├── index.ts            export const definition: ShapeDefinition = { … }
+│       └── facade.ts           sa façade iso (arcs gravés, étiquette « DB »)
+└── categories.ts               catégories de la palette (nom, rang) ; une nouvelle catégorie s'y ajoute
 src/engine/plugins/index.ts     racine de composition : collecte shapes/*/*/index.ts (import.meta.glob, sans generic/)
 src/engine/core/shapes/         le tronc des formes
 ├── types.ts                    le contrat
 ├── registry.ts                 résolution forme → définition, replis génériques
 ├── placeholder.ts              repli des formes non supportées
+├── minimapOutline.ts           repli de la mini-carte : le contour rempli
 └── group.ts                    le groupe draw.io, hors palette (sans lui, un groupe ne se lit plus)
 ```
 
@@ -151,10 +163,8 @@ vérifie que l'`id` est le nom du dossier et que la catégorie de palette est ce
   compris ses subtilités iso / 3D. Ce qu'elle partage avec d'autres vient d'une base de `generic/` ou d'une autre forme
   qu'elle étend ; les briques de rendu génériques restent dans le tronc (`core/render/flat`, `core/render/iso/block`,
   `core/render/geometry`). Une forme importe du tronc **seulement l'API des plugins**
-  ([core/plugins/index.ts](../src/engine/core/plugins/index.ts), sujet 287), plus `three`, son dossier et les formes de
-  `plugins/shapes/` qu'elle étend ; ni un mode, ni un effet. Une brique du tronc qui manque s'ajoute à l'API des
-  plugins : c'est la décision d'en faire une brique commune. La lint et `tests/engine/plugins/boundaries.test.ts` le
-  vérifient.
+  ([core/plugins/index.ts](../src/engine/core/plugins/index.ts), sujet 287) : règle complète des frontières dans
+  `.claude/rules/coding.md` §5.
 - **Étendre** : on reprend une définition et on change ce dont on a besoin.
   `rounded-rectangle` = `{ ...rectangle, id: 'rounded-rectangle', kinds: ['rectangle'], matches: rounded=1, palette }` ;
   une base générique se compose : `{ id: 'diamond', kinds: ['rhombus'], ...box(outline), palette }`.
@@ -180,13 +190,15 @@ Utilisez les aides de [render/geometry/paths.ts](../src/engine/core/render/geome
 `roundedRectPath`, `ellipsePath`, `arcPath`, `cornerRadius` (lit `rounded` et `arcSize`), `boxOutline` (rectangle,
 arrondi avec `rounded=1`), `sizeOffset` (décalage `size` / `fixedSize` des formes à pans) ; pour l'orientation,
 `orientation` et `orientedPath` ([render/geometry/orient.ts](../src/engine/core/render/geometry/orient.ts)) ; pour le
-trait, `styleStroke` (couleur, opacité, épaisseur, pointillés). Pour qu'une forme se **retourne** ou **pivote** depuis le panneau (section « Orientation », sujet 335), dessinez-la
-par `orientedPath` et déclarez `flippable: { horizontal: true, vertical: true }` et / ou `rotatable: true` dans sa
-définition : sans cela, aucun bouton (le texte, lui, ne se retourne ni ne pivote jamais). Avant d'écrire un calcul, cherchez-le dans l'API des
-plugins (`core/plugins/index.ts`) : une brique qui manque s'y ajoute plutôt que d'être recopiée (sujet 307). Briques à chercher d'abord (sujet 325) : `clamp` (borner), `shade` (couleur ×
-facteur en RVB, retrait d'une gravure) et `darken` (HSL), `drawioStyle('Gris')` (couleurs d'un style de base),
-`VERTEX_DEFAULTS` (blanc / noir implicites), `labelObject` (étiquette d'une cellule), `shapesById` et `edgeEnds`
-(bouts d'une flèche), `elementName`.
+trait, `styleStroke` (couleur, opacité, épaisseur, pointillés). Pour qu'une forme se **retourne** ou **pivote**
+depuis le panneau (section « Orientation », sujet 335), dessinez-la par `orientedPath` et déclarez
+`flippable: { horizontal: true, vertical: true }` et / ou `rotatable: true` dans sa définition : sans cela, aucun
+bouton (le texte, lui, ne se retourne ni ne pivote jamais).
+
+Avant d'écrire un calcul, cherchez-le dans l'API des plugins
+([core/plugins/index.ts](../src/engine/core/plugins/index.ts)), rangée par rubriques commentées : contrats ; modèle
+neutre, attributs spatiaux et calculs purs ; briques de dessin (contours, traits, textes, couleurs) ; règles
+d'édition partagées. Une brique qui manque s'y ajoute plutôt que d'être recopiée (sujets 307, 325).
 
 Le contour est **retracé à chaque construction** de la forme. S'il est coûteux à calculer, mémorisez-le dans la
 fonction, mais jamais entre deux formes : chaque forme a ses propres bornes.
@@ -228,7 +240,7 @@ Le point d'entrée est traité comme absent et l'erreur est signalée une fois p
 
 Trois subtilités :
 
-- **La 3D utilise le niveau `iso`.** `Engine.requestedLevel()` ne demande jamais `volume`. Un rendu iso doit donc
+- **La 3D utilise le niveau `iso`.** `Levels.requestedLevel()` (`core/domains/view/levels.ts`) ne demande jamais `volume`. Un rendu iso doit donc
   rester correct vu en perspective, sous tous les angles (rotation sur 360°, inclinaison jusqu'à
   `camera.maxTilt3dDeg`).
 - **Si l'option « Formes en volume » est désactivée** (`view.isoVolume = false`), l'iso et la 3D demandent `flat`.
@@ -271,7 +283,8 @@ Pour un rendu iso sur mesure :
   `blockHeight(shape, ctx, défaut)` garde `spatial.height` prioritaire.
 - **Z-fighting.** Décalez légèrement ce qui est posé sur une face (`TOP_OFFSET = 0.05` dans `block.ts`).
 - **Matériaux.** Les faces opaques avec test de profondeur doivent utiliser `solidMaterial`, pour que les blocs se
-  cachent entre eux. Les traits et les fonds plats utilisent `flatMaterial` (sans écriture de profondeur).
+  cachent entre eux. Les traits et les fonds plats passent par `fillMesh` / `strokeMesh` (matériau sans écriture de
+  profondeur).
 - **Billboard.** Un élément qui doit toujours faire face à la caméra (silhouette de l'Actor) porte
   `userData.billboard = true` : avant chaque image, le moteur le tourne autour de la verticale pour que son axe −y
   vise la caméra (sa position en perspective, `render/billboard.ts`).
@@ -324,8 +337,9 @@ draw.io codés dans le moteur.**
 Règles à respecter :
 
 - **Lisez le style avec les aides** de [model/styleValues.ts](../src/engine/core/model/styleValues.ts) (`styleNumber`,
-  `styleFlag`, `styleOpacity`, `fontStyleBits`) et de [render/styleColors.ts](../src/engine/core/render/styleColors.ts)
-  (`styleColor(style, clé, défaut)`, qui gère `none`, `default` et les couleurs invalides ; `labelBackground`). Ne
+  `styleFlag`, `styleOpacity`, `fontStyleValue`) et de [render/styleColors.ts](../src/engine/core/render/styleColors.ts)
+  (`styleColor(style, clé, défaut)`, qui gère `none`, `default` et les couleurs invalides ; `styleStroke`), par l'API
+  des plugins. Ne
   parsez pas les chaînes vous-même.
 - **Attributs spatiaux** : passez par `spatialNumber(shape, SPATIAL.xxx)` / `spatialValue`
   ([spatial.ts](../src/engine/core/spatial.ts)), qui lisent le style **puis** les attributs de l'objet. Un nouvel
@@ -339,7 +353,8 @@ Règles à respecter :
 ### 4.1 Rendre une valeur réglable
 
 Les paramètres sont la source de vérité ([engine/core/settings/index.ts](../src/engine/core/settings/index.ts)). Un renderer n'y accède
-jamais directement : tout passe par le **`RenderContext`**, construit par `Engine.renderContext()`.
+jamais directement : tout passe par le **`RenderContext`**, construit par `SceneView.renderContext()`
+([core/domains/view/scene.ts](../src/engine/core/domains/view/scene.ts)).
 
 1. Ajoutez le champ dans l'interface de section (ex. `ShapeSettings`) et dans le schéma de sa section
    ([settings/schema/](../src/engine/core/settings/schema/index.ts)) : `number(défaut, { min, max, step })`, `color`,
@@ -348,9 +363,11 @@ jamais directement : tout passe par le **`RenderContext`**, construit par `Engin
 2. Ajoutez le champ dans `RenderContext` ([render/types.ts](../src/engine/core/render/types.ts)), **optionnel**, avec un
    repli sur la constante dans le renderer (`ctx.monChamp ?? DEFAUT`). Les tests et les appels sans contexte complet
    continuent ainsi de fonctionner.
-3. Remplissez-le dans `Engine.renderContext()`.
-4. **Faites reconstruire les scènes** quand il change : dans `Engine.updateSettings`, la condition qui appelle
-   `rebuildScenes()`. Une section entière se surveille avec `changed('shapes')`. C'est l'oubli le plus fréquent :
+3. Remplissez-le dans `SceneView.renderContext()`.
+4. **Faites reconstruire les scènes** quand il change : dans `Levels.settingsChanged`
+   ([core/domains/view/levels.ts](../src/engine/core/domains/view/levels.ts)), la condition qui appelle
+   `rebuildScenes()`. Une section entière se surveille avec `settingsSectionChanged(settings, previous, 'shapes')`
+   (déjà le cas de `shapes`). C'est l'oubli le plus fréquent :
    sans cette ligne, le réglage ne s'applique qu'aux pages construites ensuite.
 5. Ajoutez le champ au panneau ([app/SettingsPanel.tsx](../src/app/SettingsPanel.tsx)), dans la bonne section et
    sous-section. La recherche le trouve d'elle-même.
@@ -372,7 +389,7 @@ Le moteur manipule l'`Object3D` renvoyé par `create` après coup. Pour que tout
   (`rebuildShapeObject`) et après chaque modification du fichier.
 - **Matériaux propres à chaque mesh** : `disposeObject` libère géométries **et matériaux** quand une scène est jetée.
   Un matériau partagé entre formes (constante de module) serait libéré une fois, puis réutilisé cassé. Créez-les
-  avec `flatMaterial` / `solidMaterial` / `fillMesh` / `strokeMesh`. Seul le texte troika partage un matériau de
+  avec `solidMaterial` / `fillMesh` / `strokeMesh`. Seul le texte troika partage un matériau de
   base, et c'est géré par sa fabrique.
 - **Opacité et voile** : le fondu entre pages et les bascules (`setPageOpacity`) et le voile de sélection
   (`liftAboveVeil`) parcourent votre objet. Ils mémorisent l'opacité et l'ordre de dessin de chaque mesh et les
@@ -391,18 +408,8 @@ Tout passe par la définition : le moteur et l'appli interrogent le registre (`r
 `isConnectable`, `isPickable`, `movesAsBlock`, `templates`, `templateOf`, `swatch`, `properties`), jamais le nom d'une
 forme.
 
-| Aspect | Champ de la définition | Défaut | Exemple |
-| --- | --- | --- | --- |
-| Clic, survol | `contains` | dans le `outline` s'il y en a un (les coins vides d'un losange ne se cliquent pas), sinon les bornes | ellipse exacte, rectangle arrondi cliquable dans ses coins |
-| Poignées | `resizable` | oui | groupe : non |
-| Accroche des flèches | `connectable` | oui | groupe : non |
-| Côtés des poignées de connexion | `connectSides` | les quatre | table RDD : gauche et droite |
-| Texte brut | `plainText` | non | table RDD : oui |
-| Prise au clic et au rectangle de sélection | `pickable` | `always` | groupe : `withLink` (on prend ses formes) |
-| Déplacement | `movesAsBlock` | non | groupe : saisir un enfant déplace le groupe |
-| Création | `palette` (une variante = une forme qui en étend une autre) | absente de la palette | rectangle / rectangle arrondi, BDD / queue |
-| Aperçu des styles du panneau | `swatch(style)` | rectangle (arrondi si `rounded=1`) | ellipse, cylindre |
-| Réglages du panneau | `properties` | aucun | « Coins arrondis » (`rounded`), nœuds du cache (`spatial.nodes`), étiquette de façade (`spatial.tag`), mot de la tranche d'un process étiqueté (section `shape`) |
+Les champs concernés (clic, poignées, accroche des flèches, texte brut, prise, déplacement, palette, aperçu, réglages)
+sont dans le tableau de la section 2, avec leur défaut et un exemple.
 
 Un élément de palette (`PaletteEntry`, exposé comme `ShapeTemplate` avec l'`id` de la forme) porte le style **et** la taille par défaut de draw.io, une catégorie, un rang
 `order` (ordre d'affichage, toutes formes confondues), des mots-clés de recherche et une icône (contenu SVG d'un cadre
@@ -421,7 +428,7 @@ Restent hors de la définition, parce que ce sont des règles du format draw.io 
 
 | Aspect | Où | Comportement |
 | --- | --- | --- |
-| Accroche des flèches : périmètre | `perimeterKind` dans [render/edges/route.ts](../src/engine/core/render/edges/route.ts) | `perimeter=…`, sinon style nommé (`ellipse`, `rhombus`, `triangle`), sinon **rectangle** ; à porter de draw.io (mxPerimeter) si la forme en a un propre (un périmètre polygonal : son contour dans `perimeterPolygon`, ex. `hexagonPerimeter2`) |
+| Accroche des flèches : périmètre | `perimeterKind` dans [render/edges/route/perimeters/index.ts](../src/engine/core/render/edges/route/perimeters/index.ts) | `perimeter=…`, sinon style nommé (`ellipse`, `rhombus`, `triangle`), sinon **rectangle** ; à porter de draw.io (mxPerimeter) si la forme en a un propre (un périmètre polygonal : son contour dans `perimeterPolygon`, ex. `hexagonPerimeter2`) |
 | Nom de la forme | `SHAPE_ALIASES` dans [format/style.ts](../src/engine/core/format/style.ts) | synonymes draw.io (`rect`, `label` ► `rectangle`) |
 | Position du label | `createLabel` | `labelPosition` / `verticalLabelPosition` gérés par le registre (`textZone`) |
 | Conteneurs en volume | `volumeLayout` | un conteneur en volume porte ses enfants (3.4) |
@@ -499,11 +506,11 @@ export const definition: ShapeDefinition = {
   // Volume : prisme du contour coupé ; le dessus reprend le rendu 2D (avec le pli).
   iso: isoBlock(outline),
   // Mini-carte : le contour rempli (repli par défaut), rien à écrire.
-  // Palette : le modèle de draw.io (style et taille), rangé après les formes générales existantes.
+  // Palette : le modèle de draw.io (style et taille), rangée après les formes de la Géométrie (rang libre).
   palette: {
     name: 'Note',
     category: 'geometry',
-    order: 110,
+    order: 200,
     keywords: ['note', 'post-it', 'mémo'],
     style: 'shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;size=15;',
     value: '',
@@ -522,7 +529,8 @@ n'apparaît donc **pas** sur le dessus du bloc. Pour l'avoir, écrivez un `iso.c
 
 Enfin :
 
-1. rien à enregistrer : le dossier `shapes/geometry/note/` suffit (palette, panneau et rendu la trouvent) ;
+1. rien à enregistrer : le dossier `shapes/geometry/note/` suffit (palette, panneau et rendu la trouvent ; voir
+   l'encadré du début pour les cas qui touchent encore le tronc) ;
 2. ajoutez `note` dans le tableau de SPEC §8.3 ;
 3. écrivez les tests (section 8).
 

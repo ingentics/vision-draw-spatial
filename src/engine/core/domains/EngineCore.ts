@@ -60,7 +60,7 @@ import { PropertyEdits } from './edit/commands/properties';
 import { ElementCommands } from './edit/commands/elements';
 import { StyleCommands } from './edit/commands/styles';
 import { ArrangeCommands } from './edit/commands/arrange';
-import { OrientCommands } from './edit/commands/orient';
+import { OrientCommands } from './edit/commands/orientation';
 import { Clipboard } from './edit/commands/clipboard';
 
 /** Domaine qui garde un état lié au document chargé : remis à zéro à chaque chargement. */

@@ -31,23 +31,30 @@
 
 ## 3. Architecture (SPEC §4)
 
-Couches, dépendances descendantes uniquement. L'UI React (`src/react` = composant, `src/app` = appli de démo)
-n'importe du moteur que `src/engine/index.ts`. À la racine de `src/engine`, la façade (`index.ts`, `Engine.ts`,
+Couches, dépendances descendantes uniquement (SPEC §4.1). L'UI React (`src/react` = composant, `src/app` = appli de
+démo) n'importe du moteur que `src/engine/index.ts`. À la racine de `src/engine`, la façade (`index.ts`, `Engine.ts`,
 `events.ts`) ; le tronc commun dans `core/` ; les plugins dans `plugins/` (formes, modes, effets : un dossier chacun,
-collectés par `plugins/index.ts`, la racine de composition ; le tronc n'en importe aucun). Chaque dossier, en une
-ligne :
+collectés par `plugins/index.ts`, la racine de composition ; le tronc n'en importe aucun). C'est la seule carte des
+dossiers du projet (SPEC §4.2 et `.claude/rules/coding.md` §2 y renvoient) ; le détail se lit dans chaque dossier :
 
-| Dossier de `src/engine` | Rôle | Nature |
+| Dossier (sous `src/engine/` sauf mention) | Rôle | Nature |
 |---|---|---|
-| `Engine.ts`, `core/domains/` | façade publique ; un dossier de `core/domains/` par domaine (document, vue, sélection, édition…) | avec état |
-| `core/interaction/` | caméra, transitions, historique, sélection, pick (calculs) ; contrôles du canvas et mini-carte (DOM) | pur, sauf `controls/` et la mini-carte |
-| `core/edit/` | règles d'édition : déplacement, poignées, bouts et points de flèche, styles, palette, ancrage | pur |
-| `plugins/shapes/`, `plugins/modes/`, `plugins/effects/` | formes, modes et effets de page, un dossier chacun ; leurs contrats et registres dans `core/shapes/`, `core/modes/`, `core/effects/` ; un plugin n'importe du tronc que `core/plugins/` (son API) | pur |
-| `core/render/`, `core/graph/` | scènes Three.js par page et par niveau, vue graphe | pur (objets Three.js) |
+| `index.ts`, `Engine.ts`, `events.ts` | point d'entrée du moteur, façade publique (délègue aux domaines), événements | avec état |
+| `core/domains/` | un dossier par domaine (`runtime/`, `document/`, `view/`, `selection/`, `input/`, `navigation/`, `modes/`, `edit/`) ; `EngineCore.ts` les câble | avec état |
+| `core/interaction/` | caméra, transitions, historique de navigation, sélection, pick, mini-carte (calculs) ; `controls/` : contrôles du canvas (DOM) | pur, sauf `controls/` |
+| `core/edit/` | règles d'édition : déplacement, poignées, bouts et points de flèche, styles, palette, ancrage (`anchoring/`) | pur |
+| `core/render/` | scènes Three.js par page et par niveau ; briques `flat/`, `iso/`, `geometry/` ; flèches `edges/` (tracés portés de mxGraph dans `edges/route/`) | pur (objets Three.js) |
+| `core/graph/` | vue graphe (page générée, disposition) et mini-graphe | pur |
+| `core/shapes/`, `core/modes/`, `core/effects/` | contrats et registres des plugins (plus le placeholder et le groupe ; les écritures d'un mode ; la place prise par le schéma) | pur |
+| `core/plugins/` | API des plugins : seul fichier du tronc qu'une forme, un mode ou un effet importe (`.claude/rules/coding.md` §5) | réexports |
 | `core/settings/` | paramètres : types, schéma (défauts, bornes, lecture), fusion qui en découle | pur |
-| `core/model/` | modèle neutre (aucune notion draw.io), géométrie, lecture du style | pur, sans Three.js |
-| `core/format/` | decode, parse (XML → modèle), style, xmlTree, cellEdits / write (écriture in situ) | pur, sans Three.js |
+| `core/model/` | modèle neutre (aucune notion draw.io), géométrie, lecture du style, index de page, gel | pur, sans Three.js |
+| `core/format/` | decode, parse (XML → modèle), style, xmlTree, cellEdits / write (écriture in situ), presse-papier | pur, sans Three.js |
 | `core/persistence/` | FileStore : MemoryStore, IndexedDbStore, FsStore (Electron) ; Autosaver | avec état |
+| `core/diagnostics/`, `core/spatial.ts` | formes non supportées (SPEC §8.4) ; attributs `spatial.*` (SPEC §14.3) | pur |
+| `plugins/` | `index.ts` (racine de composition) ; `shapes/<catégorie>/<id>/` (bases à étendre dans `shapes/generic/`), `modes/<id>/`, `effects/<id>/` | pur |
+| `src/react/` | composant `<DrawioSpatial />`, lanceur, mini-graphe | UI |
+| `src/app/` | appli de démo : panneaux, palette, paramètres ; `plugins/modes/<id>/` : partie appli d'un mode | UI |
 
 Règles :
 - **Moteur sans React** (`src/engine/Engine.ts` = façade publique, événements dans `events.ts`). React ne fait que monter
@@ -71,11 +78,13 @@ Règles :
   « poussent ». Réinitialiser la vue, rotation à la souris en iso/3D.
 - **Volumes** : formes = blocs d'épaisseur `view.isoDepth` (32 px) ou `spatial.height` ; formes contenues posées sur leur
   conteneur ; arêtes au sol. Formes de stockage (BDD `cylinder3`, file, cache `datastore`) rendues en « bâtiments »
-  iso avec façades gravées (`shapes/generic/building/`).
+  iso avec façades gravées (`plugins/shapes/generic/building/`).
 - **Navigation** : pages en onglets, liens entre pages (intention puis engagement, transition zoom + fondu), retour /
-  historique, vue graphe de la documentation, mini-carte, fond et grille.
-- **Formes supportées** (`plugins/shapes/`) : rectangle (arrondi), ellipse, texte, groupe, stockage, **losange**
-  (premier de la série géométrique, socle commun posé à l'étape 21), placeholder.
+  historique, vue graphe de la documentation, mini-carte et mini-graphe, fond et grille.
+- **Formes supportées** : une par dossier de `plugins/shapes/<catégorie>/` (liste dans SPEC §8.3), plus le groupe et le
+  placeholder ; retournement et pivot par quarts de tour pour celles qui le déclarent.
+- **Modes et effets de page** (`plugins/modes/`, `plugins/effects/`) : modes RDD (tables, relations, régions) et
+  Séquences (flux de flèches, export PlantUML) ; effet forêt.
 - **Flèches** (`core/render/edges/`) : routeurs draw.io portés tels quels (orthogonal, segment, elbow, side-to-side,
   top-to-bottom, entity-relation, loop), pointes draw.io, labels principal + début/fin, bouts fixes/auto/libres,
   découpage en morceaux (éditeurs mxGraph portés), cohérence au déplacement. Vérifiés **au pixel** contre les exports SVG
@@ -93,7 +102,9 @@ Règles :
 
 | Sujet | Lire d'abord |
 |---|---|
-| Nouvelle forme draw.io | `docs/AJOUTER_UNE_FORME.md` (parcours complet : style → kind → registre → rendus 2D/iso/3D/mini-carte, clic, flèches, diagnostics, palette, fixture) ; exemple récent : `plugins/shapes/geometry/diamond/`, `core/render/geometry/orient.ts` ; sujets `todo/33…41` comme modèles de rédaction |
+| Nouvelle forme draw.io | `docs/AJOUTER_UNE_FORME.md` (parcours complet : style → kind → registre → rendus 2D/iso/3D/mini-carte, clic, flèches, diagnostics, palette, fixture) ; exemple : `plugins/shapes/geometry/diamond/`, `core/render/geometry/orient.ts` |
+| Nouveau mode de page | `docs/AJOUTER_UN_MODE.md` ; exemples `plugins/modes/sequences/` (avec sa partie appli `src/app/plugins/modes/sequences/`) et `plugins/modes/rdd/` (avec ses formes) |
+| Nouvel effet de page | contrat `core/effects/types.ts` (JSDoc) ; exemple `plugins/effects/forest/`, test `tests/engine/plugins/effects/forest.test.ts` |
 | Comportement d'édition | SPEC §14, `src/engine/core/edit/`, `src/engine/core/format/cellEdits.ts` |
 | Rendu / caméra / vues | SPEC §8–9, `core/render/pageScene.ts`, `core/render/sceneManager.ts`, `core/interaction/cameraMath.ts` |
 | UI de l'appli de démo | `src/app/` (`App.tsx`, `Palette.tsx`, `ContextPanel.tsx`, `SettingsPanel.tsx`, `DiagnosticsPanel.tsx`, `main.css`) |
@@ -105,25 +116,14 @@ Règles :
 
 Organisation complète : `docs/ROADMAP.md`. Essentiel :
 
-- Un sujet = **un fichier** `docs/backlogs/{idea,todo,done}/NN-sujet-en-kebab-case.md`.
-- `NN` = **numéro unique jamais réutilisé** : prendre le plus grand existant (tous dossiers confondus) + 1.
-  Au moment de la rédaction de ce résumé, le plus grand est **47** → prochain sujet **48** (vérifier avec
-  `ls docs/backlogs/*/`).
+- Un sujet = **un fichier** `docs/backlogs/{idea,todo,done,debt}/NN-sujet-en-kebab-case.md` (`debt/` : dette vue en
+  passant).
+- `NN` = **numéro unique jamais réutilisé** : le plus grand existant (tous dossiers confondus, `ls docs/backlogs/*/`)
+  + 1.
 - `idea/` : une ligne suffit. `todo/` : précis, avec **valeurs exactes de draw.io** (style, tailles, attributs) et un
   critère **« Fini quand : »** vérifiable à l'œil dans l'appli et, si le fichier est touché, dans draw.io.
   `done/` : jamais modifié ensuite ; on y ajoute « Fait : » au moment du commit (`git mv` dans le même commit).
-- Gabarit :
-
-```markdown
-# Titre du sujet
-
-> Milestone ou thème de rattachement (ex. « Milestone 5 — Formes géométriques »), dépendances (numéros)
-
-- Ce qu'on veut, avec les valeurs exactes de draw.io quand il y en a.
-- Comportement dans les trois vues (2D, iso, 3D) et la mini-carte si pertinent.
-- Écarts assumés avec draw.io, s'il y en a (à expliciter).
-- **Fini quand :** critère vérifiable.
-```
+- Gabarit d'un sujet : `docs/ROADMAP.md`.
 
 Attendus implicites d'une bonne spec ici :
 - préciser ce qui est **écrit dans le XML** (quels attributs, où, format draw.io) et ce qui ne l'est pas ;
@@ -133,5 +133,5 @@ Attendus implicites d'une bonne spec ici :
 
 ## 7. Hors périmètre (sauf décision contraire)
 
-Collaboration temps réel, export image/PDF, rotation des formes et ports (`sourcePort`) dans le routage, `.dmg` /
-notarisation macOS.
+Collaboration temps réel, export image/PDF, rotation des formes (les quarts de tour `rotatable` existent, mais le
+routage des flèches les ignore) et ports (`sourcePort`) dans le routage, `.dmg` / notarisation macOS.

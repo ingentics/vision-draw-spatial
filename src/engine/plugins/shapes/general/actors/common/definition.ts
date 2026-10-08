@@ -11,7 +11,7 @@ import {
 } from '../../../../../core/plugins';
 import type { Point, RenderContext, ShapeDefinition, ShapeModel } from '../../../../../core/plugins';
 import type { FigureOf } from './figure';
-import { SIGN, actorHeight, standingActor } from './standing';
+import { SIGN, actorHeight, standingActor } from './standingActor';
 
 /** Silhouette 2D, étirée dans les bornes et orientée comme draw.io (`direction`, `flipH`, `flipV`). */
 function flatActor(figureOf: FigureOf) {

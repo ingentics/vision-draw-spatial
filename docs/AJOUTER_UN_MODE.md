@@ -6,7 +6,8 @@ draw.io, la page reste une page normale. Le moteur ne connaît aucun mode en par
 
 Exemple complet : le mode « Séquences » ([engine](../src/engine/plugins/modes/sequences/index.ts),
 [appli](../src/app/plugins/modes/sequences/index.tsx)). Mode avec ses propres formes : « RDD »
-([engine](../src/engine/plugins/modes/rdd/index.ts), seul fichier à la racine du mode : modèle des tables dans `rdd/tables/`,
+([engine](../src/engine/plugins/modes/rdd/index.ts) ; à la racine, seulement les fichiers conventionnels de la
+section 1 ; modèle des tables dans `rdd/tables/`,
 sélection et réglages dans `rdd/editing/`, régions dans `rdd/regions/`, relations dans `rdd/relations/`, formes dans
 `rdd/shapes/` et leur rendu commun dans `rdd/shapes/common/`).
 
@@ -15,6 +16,8 @@ sélection et réglages dans `rdd/editing/`, régions dans `rdd/regions/`, relat
 ```
 src/engine/plugins/modes/<id>/  la lib (sans React) : tout le mode
 ├── index.ts                    export const definition: PageModeDefinition = { … }
+├── keys.ts                     lecteur de ses clés : `modeKeys({ namespace })` (section 3)
+├── settings.ts                 ses réglages globaux, `PluginSetting[]` (facultatif, section 3)
 ├── api.ts                      ce que sa partie appli importe (facultatif)
 ├── shapes/<forme>/index.ts     formes propres au mode (facultatif, section 6)
 ├── shapes/common/              code commun à ses formes (rendu, fabrique ; sans index.ts, ce n'est pas une forme)
@@ -26,14 +29,10 @@ src/app/plugins/modes/<id>/     l'appli (facultatif) : sections React du panneau
 - L'`id` du mode est le nom de ses dossiers et la valeur de `spatial.mode` sur `<diagram>`. La racine de composition
   (`src/engine/plugins/index.ts`) collecte le dossier ; le contrat est dans `src/engine/core/modes/types.ts`.
 - Un mode importe du tronc **seulement l'API des plugins** ([core/plugins/index.ts](../src/engine/core/plugins/index.ts),
-  sujet 287 : contrats, modèle, calculs purs, briques de dessin), plus `three` et son propre dossier ; ni un autre
-  mode, ni un effet. Ses formes peuvent étendre une forme générale (`plugins/shapes/`). Une brique du tronc qui manque
-  s'ajoute à l'API des plugins : c'est la décision d'en faire une brique commune. Briques à chercher d'abord (sujet
-  316) : `clamp`, `numberValue` / `stringValue` / `booleanValue` (valeurs des réglages), `keys.number` et
-  `keys.pageFlag`, `isToggled` / `toggleValue` (réglages `toggle`), `shapeTarget` / `edgeTarget` / `onlyWhen` (cibles
-  d'un réglage), `shapesById` / `edgeEnds`, `elementName`, `drawioStyle`, `shade`. Pas d'import dynamique
-  (`import()`, `import.meta.glob`) ni de globale du navigateur (`window`, `document`, `globalThis`, stockage,
-  minuteries : sujet 305). La lint et `tests/engine/plugins/boundaries.test.ts` (chemins résolus) le vérifient.
+  sujet 287) ; ses formes peuvent étendre une forme générale (`plugins/shapes/`). Règle complète des frontières
+  (imports, globales du navigateur, vérification) : `.claude/rules/coding.md` §5. Avant d'écrire une brique,
+  cherchez-la dans les rubriques de l'API des plugins (contrats et aides des réglages, modèle et calculs purs,
+  briques de dessin, règles d'édition partagées ; sujet 316) : une brique qui manque s'y ajoute.
 - **Toutes les règles vont dans la lib** ; la partie appli affiche les données du mode et appelle ses opérations,
   sans règle métier. Un mode aux réglages simples n'a pas besoin de partie appli : il les déclare (section 3).
 
@@ -63,11 +62,11 @@ interface PageModeDefinition {
   dressing?(page, values): PageDressing;       // habillage du rendu (section 4)
   edges?: {                                    // les flèches
     properties?: ModeProperty[];               // réglages déclarés d'une flèche (section 3)
-    connects?(page, source, target): boolean;  // flèches permises (ex. liaisons des tables RDD)
+    connects?(page, source, target, part?): boolean; // flèches permises (ex. liaisons des tables RDD)
     manages?(page, edge): boolean;             // flèche gérée par le mode (réglages imposés)
     placedEntries?(page): string[];            // flèches dont le mode place l'arrivée (pas réparties en auto / Typon)
-    created?(edit, edgeId, current): void;     // flèche tirée depuis une forme (même étape d'annulation)
-    reconnected?(edit, edgeId): void;          // bout d'une flèche rebranché (même étape)
+    created?(edit, edgeId, current, part?): void; // flèche tirée depuis une forme (même étape d'annulation)
+    reconnected?(edit, edgeId, part?): void;   // bout d'une flèche rebranché (même étape)
   };
   gestures?: {                                 // les formes et les gestes sur elles (section 5)
     properties?: ModeProperty[];               // réglages déclarés d'une forme ou de sa partie (section 3)
@@ -112,11 +111,14 @@ ne désigne ses clés que par leur **nom court** (`flow`, `fields`…) ; le mote
 celles d'un autre mode ; un nom invalide (`;`, `=`, espace, ou déjà préfixé par `spatial.`) fait échouer l'opération,
 qui n'écrit rien.
 
-Pour lire, le mode prend un lecteur de ses clés dans l'API des plugins, une fois, à partir de ce qui le situe :
+Pour lire, le mode prend un lecteur de ses clés dans l'API des plugins, une fois, à partir de ce qui le situe
+(dans son `keys.ts`, importé par ses autres fichiers) :
 
 ```ts
+// keys.ts
 export const SEQUENCES_KEYS = { namespace: 'seq' };
 export const keys = modeKeys(SEQUENCES_KEYS);   // keys.value(edge, 'flow'), keys.flag(…), keys.pageValue(page, 'flows')
+// index.ts
 export const definition: PageModeDefinition = { id: 'sequences', ...SEQUENCES_KEYS, … };
 ```
 
@@ -145,11 +147,14 @@ Un réglage `part: true` porte sur une **partie** de la forme (ex. un champ d'un
 montré que lorsqu'une partie est sélectionnée (et les autres réglages de forme seulement lorsqu'aucune ne l'est) ;
 `value`, `write` et `hidden` reçoivent alors la partie en dernier paramètre.
 
-Une **opération** reçoit un `ModeEdit` : la page avant l'opération (`page`), les couleurs proposées par l'appli
-(`palette` : fonds des styles de forme des paramètres), `setPageAttribute`, `setElementAttribute` (attributs du mode,
+Une **opération** reçoit un `ModeEdit` (`core/modes/types.ts`) : la page avant l'opération (`page`), les couleurs
+proposées par l'appli (`palette` : fonds des styles de forme des paramètres), le pas de la grille (`gridSize`, 0 sans
+grille), `setPageAttribute`, `setElementAttribute` (attributs du mode,
 par leur nom court), `setElementStyle` (autre clé du style draw.io, ex. `fillColor` ; ni `spatial.*`, ni clé de verrou
 `locked`, `movable`, `resizable`, `editable`, `deletable`), `setShapeBounds` (bornes d'une forme, ex. une table qui
-grandit avec ses champs) et `removeEdge` (supprime une flèche et ses textes, sujet 269). Un élément verrouillé ne change ni d'attribut du mode, ni de style, ni de bornes, ni de place dans l'ordre, ni de
+grandit avec ses champs), `removeEdge` (supprime une flèche et ses textes, sujet 269), `sendToBack` (formes au fond
+de l'ordre de dessin, sujet 230) et `setEdgeEndText` (texte de début ou de fin d'une flèche, ex. cardinalité, sujet
+265). Un élément verrouillé ne change ni d'attribut du mode, ni de style, ni de bornes, ni de place dans l'ordre, ni de
 textes de bout. Toutes ses écritures forment une étape d'annulation, et rien n'est enregistré si elle ne
 change rien. Depuis l'appli : `onEdit(label, (edit) => monOperation(edit, …))` (prop des sections React), ou
 `engine.editPageMode(label, …)`.
@@ -167,7 +172,8 @@ rendent ce qu'il applique (écart, apparence des pastilles, opacité…) ; la pa
 (`ModePanelProps.values`, ex. moteur de rendu de l'export PlantUML de Séquences).
 
 Les données dérivées d'une page (ex. flèches rangées par flux) se calculent une fois par `PageModel` (le modèle est
-relu après chaque modification) : un `WeakMap` suffit.
+relu après chaque modification) : un `WeakMap` de module indexé par la page suffit (ex. `sequences/steps.ts`). C'est un
+cache pur sur un objet immuable, admis par `.claude/rules/coding.md` §3, pas un état de module.
 
 ## 4. Habillage
 

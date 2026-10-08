@@ -93,132 +93,66 @@ Règles de dépendance :
 - L'**interaction** ne touche jamais au parsing.
 - Le **modèle neutre** ne contient aucune notion propre à draw.io (pas de chaîne de style brute exposée hors du format, sauf dans un champ `raw` pour le debug et les placeholders).
 
-### 4.2 Arborescence suggérée
+### 4.2 Arborescence
 
-```
-src/
-  engine/
-    index.ts             # point d'entrée du moteur : seul import permis à app/, react/ et src/index.ts
-    Engine.ts            # façade publique du moteur : délègue à core/domains/
-    events.ts            # émetteur d'événements
-    core/                # tronc commun du moteur (tout sauf la façade et les plugins)
-      spatial.ts         # attributs spatial.* (lecture style puis objet)
-      model/             # modèle neutre et calculs purs (ni Three.js ni rendu)
-        types.ts         # DocumentModel, PageModel, ShapeModel, EdgeModel, LinkModel
-        geometry.ts      # points, rectangles, segments
-        styleValues.ts   # lecture des valeurs de style (nombres, drapeaux, opacité, police)
-        pageGeometry.ts  # empreinte de la géométrie d'une page (avant / après une édition)
-        navigationGraph.ts # graphe de navigation entre pages
-      format/            # draw.io <-> modèle (ni Three.js ni React)
-        decode.ts        # décompression base64 + inflate + URI decode
-        parse.ts         # XML -> DocumentModel
-        style.ts         # parsing des chaînes de style "key=value;..."
-        xmlTree.ts       # conservation de l'arbre XML d'origine
-        write.ts         # écriture in situ
-        cellEdits.ts     # écritures dans l'arbre (géométrie, label, style)
-        clipboardCells.ts # copier / coller au format de draw.io
-      edit/              # règles d'édition pures (reçoivent leurs données en paramètres)
-        anchoring/       # ancrage des flèches : manual/, auto/, pcb/ et briques communes
-      interaction/       # calculs purs de la vue et de la navigation
-        cameraMath.ts    # ortho / iso / 3D, pan, zoom, cadrages, état sérialisable
-        controls/        # contrôles du canvas : raccourcis, réglages, inertie, souris, clavier
-        transitionMath.ts # zoom + fondu entre pages, partie calcul
-        navigationHistory.ts # pile de navigation, pages parentes
-        selectionRules.ts # sélection multiple, touches
-        minimapLayout.ts # mini-carte (canvas 2D)
-      render/            # dessin Three.js (consomme le modèle neutre)
-        flat/            # briques du rendu à plat (boîte, label)
-        iso/             # briques du rendu en volume
-        edges/           # arêtes : tracé, pointes, labels
-          route/         # tracé porté de draw.io : périmètres, bouts, un fichier par routeur
-        geometry/        # contours, traits épais, pointillés
-        styleColors.ts   # couleurs lues dans le style
-        pageScene.ts     # construction de la scène d'une page à un niveau donné
-        sceneManager.ts  # scènes construites (par page et par niveau), visibilité, cache
-      graph/
-        graphPage.ts     # vue graphe : page générée (nœuds, flèches), disposition en couches
-      persistence/
-        FileStore.ts     # interface
-        IndexedDbStore.ts
-        Autosaver.ts     # sauvegarde automatique
-      diagnostics/
-        unsupportedStyles.ts
-      settings/          # paramètres : types, défauts, bornes, validateurs, fusion par section (index.ts : façade)
-      shapes/            # tronc des formes : types.ts (ShapeDefinition), registry.ts (résolution, replis),
-                         # placeholder.ts, minimapOutline.ts, group.ts (le groupe draw.io, hors palette)
-      modes/             # tronc des modes : types.ts (contrat), registry.ts, modeEdits.ts (écritures d'un mode)
-      effects/           # tronc des effets : types.ts (contrat), registry.ts, room.ts (place prise par le schéma)
-      plugins/           # API des plugins (sujet 287) : index.ts réexporte ce que formes, modes et effets peuvent
-                         # importer du tronc (contrats, modèle, calculs purs, briques de dessin)
-      domains/           # comportement du moteur, un dossier par domaine
-        EngineCore.ts    # infrastructure partagée et câblage des domaines
-        types.ts         # types publics (réexportés par Engine.ts)
-        runtime/         # paramètres, rendu WebGL, taille du canvas
-        document/        # fichier chargé, annuler / rétablir, pages
-        view/            # caméra, modes de vue, niveaux 2D / volume, scènes, vue graphe, mini-carte
-        selection/       # sélection, ce qui est sous le pointeur, mise en valeur
-        input/           # gestes du pointeur, touches maintenues, branchement des contrôles
-        navigation/      # liens, retour, transitions entre pages
-        modes/           # modes et effets de page
-        edit/            # cibles modifiables, poignées
-          edges/         # flèches : poignées, ancrages, points, agencement, sauts
-          drag/          # glisser : geste, un fichier par type de glisser, aperçu, modifications en direct
-          text/          # éditeur en place, textes de flèche, texte et format
-          commands/      # éléments, styles, ordre et alignement, presse-papier, lien et attributs
-    plugins/             # les extensions du moteur, un dossier chacune (sujet 286)
-      index.ts           # racine de composition : collecte les dossiers, construit les registres par défaut
-      shapes/            # les formes (§8.2), une par élément de la palette, nommée comme l'interface
-        generic/         # bases à étendre : box/, stencil/, tagged-process/, cylinder/, building/
-        geometry/        # rectangle/, rounded-rectangle/, ellipse/, circle/, diamond/…
-        general/         # text/, actors/
-        architecture/    # database/, queue/, distributed-cache/, plug/, process/, event-consumer/, background-task/,
-                         # recurring-task/, labeled-process/
-      modes/             # modes de page, un dossier par mode (rdd/, sequences/), avec leurs formes propres
-      effects/           # effets de page (forest/)
-  react/
-    DrawioSpatial.tsx    # composant principal
-    Launcher.tsx
-    Toolbar.tsx
-    Palette.tsx          # M2
-  app/
-    main.tsx             # application de démonstration
-tests/
-  fixtures/              # fichiers .drawio de test
-```
+Les couches de §4.1 se rangent ainsi ; la carte des dossiers, un par ligne avec son rôle, est dans
+[SUMMARY.md](SUMMARY.md) §3 (seule source), et les règles de placement du code dans `.claude/rules/coding.md` §2 et §5.
+
+- `src/engine/` : le moteur, sans React. `index.ts` est le seul import permis à `src/app/`, `src/react/` et
+  `src/index.ts` (API de la bibliothèque) ; `Engine.ts` est la façade publique (§4.3), qui délègue aux domaines.
+  - `core/` : le tronc commun. Format draw.io (`format/`), modèle neutre (`model/`), rendu (`render/`, `graph/`),
+    interaction (`interaction/`, `edit/`), persistance (`persistence/`), paramètres (`settings/`), contrats et
+    registres des plugins (`shapes/`, `modes/`, `effects/`) et leur API (`plugins/`), état et comportement du moteur
+    (`domains/`, un dossier par domaine).
+  - `plugins/` : les extensions, un dossier chacune (formes §8.2, modes, effets), collectées par la racine de
+    composition `plugins/index.ts` ; le tronc n'en importe aucune.
+- `src/react/` : la coquille UI (composant `<DrawioSpatial />`, §16) ; `src/app/` : l'appli de démonstration.
+- `tests/` : miroir de `src/`, fixtures `.drawio` dans `tests/fixtures/`.
 
 ### 4.3 Façade du moteur
+
+Extrait ; la référence est `src/engine/Engine.ts` et ses types (`core/domains/types.ts`,
+`core/interaction/cameraMath.ts`).
 
 ```ts
 interface EngineOptions {
   canvas: HTMLCanvasElement;
-  settings?: Partial<Settings>;
+  fonts?: FontSet;
+  registry?: ShapeRegistry;     // formes (défaut : celles de plugins/)
+  modes?: PageModeRegistry;     // modes de page
+  effects?: PageEffectRegistry; // effets de page
+  background?: string;          // couleur de fond initiale
+  settings?: SettingsPatch;     // §13
+  openUrl?: (href: string) => void;
+  editable?: boolean;           // édition (§14) ; défaut : visionneuse
 }
 
 class Engine {
   constructor(options: EngineOptions);
-  /** `initialView` : page et caméra à restaurer (§5.3). */
-  load(xml: string, fileId: string, initialView?: { pageId?: string; camera?: CameraState }): Promise<void>;
-  goToPage(pageId: string, opts?: { transition?: boolean }): void;
+  /** `initialView` : page, caméras par page et pile de navigation à restaurer (§5.3). */
+  load(xml: string, fileId: string, initialView?: InitialView): Promise<void>;
+  goToPage(pageId: string): void;
   back(): void;
   setViewMode(mode: 'top' | 'iso' | '3d'): void;
   getCameraState(): CameraState;
   setCameraState(state: CameraState): void;
-  animateCameraTo(state: CameraState, durationMs?: number): void;
-  toggleOverview(screenPoint?: Point): void; // vue globale ↔ 1:1 (§9.3)
+  animateCameraTo(target: CameraState, durationMs?: number, blendLevels?: boolean): void;
+  toggleOverview(screen?: Point): void; // vue globale ↔ 1:1 (§9.3)
   resetRotation(): void; // remet le nord en haut (§9.1)
   resetView(): void; // vue par défaut du mode : orientation de référence, page entière (§9.1)
   getSettings(): Settings;
   updateSettings(patch: SettingsPatch): void; // section par section (§13)
-  on(event: EngineEvent, handler: (...args: any[]) => void): () => void;
+  on<K extends EngineEvent>(event: K, handler: (...args: EngineEvents[K]) => void): () => void;
   dispose(): void;
 }
 
 interface CameraState {
-  mode: 'top' | 'iso';
+  mode: 'top' | 'iso' | '3d';
   center: Point;    // point de la page (au sol) au centre de l'écran (coordonnées draw.io)
   zoom: number;     // pixels écran par pixel draw.io (axe horizontal de l'écran)
   rotation: number; // orientation autour de la verticale, en radians
   tilt: number;     // inclinaison par rapport à la verticale, en radians (0 = dessus)
+  fov?: number;     // champ de vision vertical : présent = perspective (3D)
 }
 ```
 
@@ -362,43 +296,17 @@ Une forme a **plusieurs niveaux de rendu** selon le contexte, avec un **repli sy
 | `volume` | 3D (ex. extrusion, §17) | non | `flat` |
 | `minimap` | mini-carte (Canvas 2D) | non (`null` = rien) | contour de la forme, sinon ses bornes |
 
-```ts
-type SceneLevel = 'flat' | 'iso' | 'volume';
-
-interface ShapeDefinition {
-  id: string;                                  // nom de l'interface = nom du dossier (accepté par spatial.kind)
-  kinds?: string[];                            // formes draw.io gérées (défaut : [id])
-  matches?(shape: ShapeModel): boolean;        // condition de variante (rounded=1, aspect=fixed, cylindre couché…)
-  outline?(shape: ShapeModel): Point[];        // contour au sol : géométrie de référence (rendu à plat, replis)
-  contains?(shape: ShapeModel, p: Point): boolean; // clic ; par défaut : le contour, sinon les bornes
-  flat: SceneRenderer;                         // obligatoire
-  iso?: SceneRenderer;
-  volume?: SceneRenderer;
-  volumeHeight?(shape, ctx): number;
-  textZone?(shape, level): Rect;
-  minimap?: MinimapPainter | null;
-  resizable?: boolean;                         // défaut : oui
-  connectable?: boolean;                       // défaut : oui
-  pickable?: 'always' | 'withLink';            // défaut : always (groupe : withLink)
-  movesAsBlock?: boolean;                      // défaut : non (groupe : oui)
-  palette?: PaletteEntry;                      // élément de la palette (§14.1) ; modèle d'id = id de la forme
-  swatch?(style): string;                      // aperçu des styles du panneau
-  properties?: ShapeProperty[];                // réglages propres à la forme, dans le panneau
-  flippable?: { horizontal?: boolean; vertical?: boolean }; // retournements permis (panneau « Orientation », défaut : aucun)
-  rotatable?: boolean;                         // pivot de 90° permis (défaut : non)
-}
-
-interface SceneRenderer {
-  create(shape: ShapeModel, ctx: RenderContext): THREE.Object3D; // en espace page
-}
-```
+Le contrat est `ShapeDefinition` ([core/shapes/types.ts](../src/engine/core/shapes/types.ts), qui fait foi) : seuls
+`id` et `flat` sont obligatoires, chaque autre champ a un repli. Le tableau de ses champs (rôle, défaut, exemple) est
+dans [AJOUTER_UNE_FORME.md](AJOUTER_UNE_FORME.md) §2. Un rendu (`SceneRenderer`) a une seule méthode,
+`create(shape, ctx)`, qui renvoie un `THREE.Object3D` en espace page.
 
 - Le registre résout la définition d'une forme, de la plus précise à la plus générale : condition `matches` vérifiée, puis `id` égal au nom de la forme (`spatial.kind`), puis nom draw.io sans condition (placeholder si aucune) ; puis le rendu d'un niveau : `registry.sceneRenderer(shape, level)` (repli `flat`), `registry.minimapPainter(shape)` (repli contour).
 - Une page est construite **au niveau du mode de vue** (iso en mode iso, à plat sinon). Si aucune forme de la page n'a de rendu propre à ce niveau, la scène à plat est réutilisée telle quelle : pas de reconstruction en basculant de mode. Le cache de scènes est donc indexé par page **et** niveau.
 - Rectangles, ellipses et placeholders ont un rendu `iso` en volume (§9.1) ; le texte et les groupes restent à plat.
 - Les arêtes ont pour l'instant un rendu unique (à plat), et un tracé simplifié en mini-carte.
 
-Ajouter une forme = **déposer son dossier** (au minimum `kind` et `flat`, idéalement `outline`). Aucune autre modification : palette, panneau, clic, poignées et flèches la prennent en compte d'après sa définition ; les niveaux plus riches s'ajoutent ensuite, forme par forme. Le code partagé entre formes va dans une base de `plugins/shapes/generic/`.
+Ajouter une forme = **déposer son dossier** (au minimum `id` et `flat`, idéalement `outline`). Aucune autre modification, sauf les cas listés en tête du guide (alias, périmètre d'accroche, réglage, catégorie) : palette, panneau, clic, poignées et flèches la prennent en compte d'après sa définition ; les niveaux plus riches s'ajoutent ensuite, forme par forme. Le code partagé entre formes va dans une base de `plugins/shapes/generic/`.
 
 ### 8.3 Formes supportées en M1
 
@@ -439,7 +347,7 @@ Ajouter une forme = **déposer son dossier** (au minimum `kind` et `flat`, idéa
   | File (queue) | `shape=cylinder3;direction=south` (palette : 100 × 30, `size=8`) ; `shape=mxgraph.flowchart.direct_data` aussi | cylindre couché, bout visible à droite (`north` : à gauche) ; label décalé comme dans draw.io | bloc dont les faces longues portent une rangée de chevrons ▶ **creusés** (rainure sombre et arête claire) dans le sens du flux (vers le bout visible en 2D) ; chaque bout porte un cercle gravé au même niveau, centré sur la face |
   | Cache distribué | `shape=datastore` | cylindre à trois anneaux, de taille fixe ; label sous les anneaux, comme draw.io | tranches empilées, une par nœud (`spatial.nodes`, 3 par défaut, 1–12), séparées par une rainure en retrait plus sombre, voyants (couleur d'accent) sur les quatre faces |
 
-  En iso / 3D, ce sont des **« bâtiments »** (`render/iso/buildings.ts`), comme les familles de bâtiments d'un jeu de construction : emprise = le rectangle 2D de la forme, **toit plat et rectangulaire** en haut (bordé, avec le label : toujours lisible), et une **façade propre au type** dans l'épaisseur, sur les quatre côtés (lisible sous tous les angles). Hauteur par défaut : la **même épaisseur que toutes les formes** (réglage `view.isoDepth`, 32 px), `spatial.height` prioritaire. **Étiquette de façade**, comme une enseigne : « DB », « QUEUE » ou « CACHE » en bas à droite de chaque face, à l'endroit vu de l'extérieur, discrète (teinte des gravures) ; les motifs (arcs, chevrons) se placent au-dessus ; sur le cache, dans la tranche du bas (voyants à l'autre bout). `spatial.tag` la remplace (ex. `PostgreSQL`, `Kafka`), vide = aucune ; réglage `view.facadeTags` (activé) pour toutes les couper. Sans fond (`fillColor=none`), le dessin 2D reste à plat.
+  En iso / 3D, ce sont des **« bâtiments »** (`plugins/shapes/generic/building/`), comme les familles de bâtiments d'un jeu de construction : emprise = le rectangle 2D de la forme, **toit plat et rectangulaire** en haut (bordé, avec le label : toujours lisible), et une **façade propre au type** dans l'épaisseur, sur les quatre côtés (lisible sous tous les angles). Hauteur par défaut : la **même épaisseur que toutes les formes** (réglage `view.isoDepth`, 32 px), `spatial.height` prioritaire. **Étiquette de façade**, comme une enseigne : « DB », « QUEUE » ou « CACHE » en bas à droite de chaque face, à l'endroit vu de l'extérieur, discrète (teinte des gravures) ; les motifs (arcs, chevrons) se placent au-dessus ; sur le cache, dans la tranche du bas (voyants à l'autre bout). `spatial.tag` la remplace (ex. `PostgreSQL`, `Kafka`), vide = aucune ; réglage `view.facadeTags` (activé) pour toutes les couper. Sans fond (`fillColor=none`), le dessin 2D reste à plat.
 
   **Redimensionnement** : le corps du cylindre s'étire, les ellipses gardent leur taille. Les trois formes ont la **même ellipse**, de 8 px (celle de draw.io pour un cache de 60 px de haut) ; le bout de `direct_data` reste à 9/98 de la largeur, comme draw.io. **Écarts assumés avec draw.io** : draw.io agrandit les anneaux du cache avec sa hauteur, et dessine l'ellipse du `cylinder3` de hauteur `size` (15 par défaut) ; avec les valeurs de la palette (`size=8`, cache de 60 px), le rendu est identique dans les deux. Contour par défaut : épaisseur 1, comme les autres formes.
 
@@ -477,7 +385,7 @@ Ajouter une forme = **déposer son dossier** (au minimum `kind` et `flat`, idéa
   `labels.drawio` (toutes les combinaisons de position et d'alignement) est exportée en SVG par draw.io
   (`make drawio-check`) et chaque texte doit y être ancré au même point que le nôtre.
 
-**Connecteurs.** draw.io n'enregistre que les points intermédiaires posés par l'utilisateur : le tracé (coudes, points d'attache) est **recalculé à l'affichage**, avec les **algorithmes de draw.io portés tels quels** (`render/edges/route.ts` et `route/`, d'après mxGraph, Apache 2.0) : une flèche s'affiche comme dans draw.io, et un point posé ici y reste au même endroit :
+**Connecteurs.** draw.io n'enregistre que les points intermédiaires posés par l'utilisateur : le tracé (coudes, points d'attache) est **recalculé à l'affichage**, avec les **algorithmes de draw.io portés tels quels** (`render/edges/route/`, d'après mxGraph, Apache 2.0) : une flèche s'affiche comme dans draw.io, et un point posé ici y reste au même endroit :
 
 - styles : droit (de contour à contour, par les points intermédiaires), `orthogonalEdgeStyle` (routeur local de draw.io ; avec des points intermédiaires, `segmentEdgeStyle`), `segmentEdgeStyle`, `elbowEdgeStyle` (horizontal / vertical, bascule selon le point intermédiaire), `sideToSideEdgeStyle`, `topToBottomEdgeStyle`, `entityRelationEdgeStyle`, boucles (`loopEdgeStyle`) ; un style inconnu est approché par l'orthogonal et journalisé (§8.4) ;
 - bouts comme draw.io : points d'attache imposés (`exitX/exitY`, `entryX/entryY`, décalages, projection sur le contour sauf `exitPerimeter=0`), extrémités libres, puis bouts flottants sur le contour (rectangle ou ellipse) visés depuis le point voisin, projetés dans l'axe pour les styles orthogonaux ; `jettySize` (10 par défaut, `auto`), `portConstraint`, `perimeterSpacing`, `routingCenterX/Y`, `flipH/V` ; non repris : rotation des formes, ports (`sourcePort`) ;
@@ -570,7 +478,7 @@ Formes et arêtes sont dessinées dans l'**ordre du document** (une arête décl
 | Lien, suppression | Panneau contextuel (à droite) : section « Lien » (page ou URL), « Supprimer » / **Suppr** ; **Échap** désélectionne (§14.1) |
 | Tracé d'une flèche | Panneau contextuel, section « Tracé » : droite (« Straight » de draw.io : `edgeStyle` retiré, ligne droite par les points posés ; revenir aux coudes remet `edgeStyle=orthogonalEdgeStyle`), angles droits (`rounded=0`), coudes arrondis (`rounded=1`, tracé par défaut des flèches créées, paramètre `shapes.edgeLineStyle`) ou courbe (`curved=1` : courbes quadratiques par les coudes, passant par le milieu des segments, comme draw.io) ; la sélection au clic et le voile suivent le trait dessiné |
 | Croisements d'une flèche | Panneau contextuel, section « Tracé » : saut là où la flèche passe au-dessus d'une autre, comme draw.io (`jumpStyle` : aucun, arc, coupure, marche, ligne ; `jumpSize` en pt, défaut 6, demi-longueur `(jumpSize − 2) / 2 + strokeWidth`) ; seule la flèche du dessus saute, pas de saut pour une flèche courbe ; une flèche sans `jumpStyle` suit sa page (panneau de la page, `spatial.jumps` sur `<diagram>`), sinon le paramètre `shapes.edgeJumpStyle` (taille sans `jumpSize` : `shapes.edgeJumpSize`) ; draw.io ne connaît que le `jumpStyle` de la flèche |
-| Flèche coupée | Panneau contextuel, section « Tracé », case « Couper la flèche » (`split=1`, ticket 219) : seuls un tronçon au départ et un à l'arrivée sont dessinés (`render/edges/split.ts`), chacun avec sa pointe, sur `shapes.edgeSplitLength` (40 px, au plus la moitié de la flèche) ; sans texte de renvoi, il s'efface en fondu sur ses `shapes.edgeSplitFade` derniers pixels (opacité par sommet, `fadedStrokeMesh`) ; un texte de renvoi (`splitLabelLeft` côté source, `splitLabelRight` côté cible, champs « Renvoi départ / arrivée ») pose au bout un cadre (fond de la page, bord du trait, marge `shapes.edgeSplitLabelPadding`, texte à `shapes.edgeSplitLabelSize`, 7 pt) sur lequel le tronçon s'arrête net ; pas de saut aux croisements ; non sélectionnée, seuls les tronçons se cliquent (`userData.splitPaths`), sélectionnée, tout le tracé ; au survol (ticket 224), tronçons et bords de cadre 1 px plus épais et ligne droite entre les deux bouts coupés, depuis le bord d'un cadre de renvoi tourné vers l'autre bout (1 px à l'écran, noire à 30 %, ticket 225) au-dessus du schéma (`splitHoverOverlay`, `core/selection/splitHover.ts`) ; draw.io garde les clés et dessine la flèche entière |
+| Flèche coupée | Panneau contextuel, section « Tracé », case « Couper la flèche » (`split=1`, ticket 219) : seuls un tronçon au départ et un à l'arrivée sont dessinés (`render/edges/split.ts`), chacun avec sa pointe, sur `shapes.edgeSplitLength` (40 px, au plus la moitié de la flèche) ; sans texte de renvoi, il s'efface en fondu sur ses `shapes.edgeSplitFade` derniers pixels (opacité par sommet, `fadedStrokeMesh`) ; un texte de renvoi (`splitLabelLeft` côté source, `splitLabelRight` côté cible, champs « Renvoi départ / arrivée ») pose au bout un cadre (fond de la page, bord du trait, marge `shapes.edgeSplitLabelPadding`, texte à `shapes.edgeSplitLabelSize`, 7 pt) sur lequel le tronçon s'arrête net ; pas de saut aux croisements ; non sélectionnée, seuls les tronçons se cliquent (`userData.splitPaths`), sélectionnée, tout le tracé ; au survol (ticket 224), tronçons et bords de cadre 1 px plus épais et ligne droite entre les deux bouts coupés, depuis le bord d'un cadre de renvoi tourné vers l'autre bout (1 px à l'écran, noire à 30 %, ticket 225) au-dessus du schéma (`splitHoverOverlay`, `core/domains/selection/splitHover.ts`) ; draw.io garde les clés et dessine la flèche entière |
 | Bordure d'une forme | Panneau contextuel, section « Bordure » (formes sélectionnées, une étape d'annulation) : couleur (ou aucune), épaisseur, trait plein / tirets / pointillés, coins arrondis (rectangles) — clés `strokeColor`, `strokeWidth`, `dashed`, `dashPattern`, `rounded` ; c'est aussi le trait des arêtes du volume en iso / 3D |
 | Position du texte d'une forme | Format du texte, pendant l'édition en place d'un texte de forme (section « Alignement », ligne « Position ») : grille 3 × 3 comme le menu « Position » de draw.io — au milieu (dans la forme) ou collé à un côté ou un coin ; clés `labelPosition`, `verticalLabelPosition` et l'alignement qui fait toucher la forme (`align`, `verticalAlign`), valeurs par défaut retirées (`edit/labelPlaces.ts`, §8.3), une étape d'annulation ; l'éditeur suit le texte à sa nouvelle place et la saisie continue |
 | Retourner, pivoter une forme | Panneau contextuel, section « Orientation » (sujet 335), seulement pour une forme dont la définition déclare `flippable` (`horizontal`, `vertical`) ou `rotatable` (défaut : rien, la section est absente ; une sélection multiple propose ce que permet au moins une de ses formes, et seules celles qui le permettent changent). Quatre boutons-icônes : retourner horizontalement / verticalement, pivoter de 90° à gauche / à droite ; les actions portent sur **l'écran**, quelle que soit l'orientation déjà posée, chaque forme sur son propre centre. Écrit les clés draw.io `direction` (cycle `east → south → west → north`, `east` retire la clé), `flipH`, `flipV` (`1`, clé retirée au retour) : la combinaison la plus proche de l'état courant (`edit/orientShapes.ts`, qui s'appuie sur `render/geometry/orient.ts`). Un pivot échange aussi `width` et `height` autour du centre (la forme tourne vraiment), un retournement ne touche pas la géométrie. Seule la forme change : le texte garde son sens, sa position et son alignement. Une étape d'annulation par action (« Retourner horizontalement », « Pivoter à droite »…). API : `engine.orientShapes(ids, action)`. Pas de bouton enfoncé (l'état d'un retournement est ambigu sur une forme pivotée : le second clic défait). Une cellule collée de draw.io avec `direction` / `flipH` / `flipV` est dessinée orientée, y compris sans les boutons. Non repris : `rotation=<degrés>` (rotation libre) |
@@ -834,7 +742,7 @@ Réalisation retenue :
 - **Déplacement** des formes à la souris, redimensionnement, édition du label.
 - **Textes de début et de fin d'une flèche** (comme les multiplicités UML) : labels enfants de l'arête au format draw.io (`edgeLabel`, géométrie relative `x=-0.8` côté source, `x=0.8` côté cible, soit 10 % de la longueur depuis chaque bout). **Double-clic près d'un bout** de la flèche (dernier quart du tracé de chaque côté) : boîte de texte du début ou de la fin ; vers le milieu : label principal. Aussi par les champs « Début » et « Fin » du panneau contextuel (section « Texte »). Texte vide = label retiré. **Position des textes** : pendant l'édition en place d'un texte de flèche, une poignée ◇ sous le texte le déplace librement (position le long du tracé = point le plus proche, écart de côté, décalage `offset` gardé), écrit comme draw.io dans la géométrie relative du label (`x`, `y`, `<mxPoint as="offset">`), une étape d'annulation. **Configuration par défaut** (`edgeTextLayout`) d'un texte de début ou de fin créé, d'après le tracé : contre son bout (x = ±1, décalage de 6 px le long de la flèche et 4 px de côté), le texte s'éloignant de la forme et du trait — segment horizontal : début au-dessus du trait (`verticalAlign=bottom`), fin en dessous (`top`), aligné à gauche si la flèche part vers la droite depuis ce bout, à droite sinon ; segment vertical : début à droite du trait, fin à gauche, le texte partant le long du trait ; taille, couleur et écarts des paramètres `shapes.edgeEndTextSize` (9 px), `shapes.edgeEndTextColor` (gris), `shapes.edgeEndTextGapAlong` / `edgeEndTextGapAcross` (6 / 4 px). **Bascule de côté** : pendant l'édition d'un texte de début ou de fin dans sa configuration par défaut, une flèche à côté de la poignée ◇ le fait sauter de l'autre côté du trait (règle inversée : dessous au lieu de dessus, ou aligné à droite à gauche au lieu d'aligné à gauche à droite), puis le ramène ; un texte encore à créer est créé de ce côté. Placé à la main, le texte n'a plus de bascule. Le panneau contextuel (« Position des textes ») ancre chaque texte au **début**, au **milieu** (centré sur le trait) ou à la **fin**, avec cette même configuration ; un texte vaut texte de début ou de fin selon sa position (au-delà de ±0,5). Case « Texte du milieu : suit la flèche » (`spatial.labelFollow=1` dans le style de la flèche ; draw.io le garde horizontal) : le texte du milieu court le long du trait dessiné (coudes arrondis et courbes compris) : chaque lettre est posée sur le tracé et tournée selon sa tangente, le bloc centré sur le point d'ancrage (ou parti de lui / fini sur lui selon l'alignement), écart de côté gardé parallèlement au trait, plusieurs lignes empilées ; posé dans l'autre sens du tracé s'il se lirait de droite à gauche ou de bas en haut ; prolongé en ligne droite au-delà des bouts ; fond, souligné et barré non dessinés (`render/textPath.ts`). Il suit le tracé quand celui-ci change ou qu'on tire le texte. Case cochée, un champ « Décalage le long du trait (px) » (négatif possible) le fait glisser le long du trait pour l'ajustement fin (`spatial.labelFollowShift`) ; l'éditeur en place, tourné comme le trait, et sa poignée ◇ suivent le texte décalé. Un clic sur le texte d'une flèche (sa boîte dessinée, même loin du tracé) sélectionne la flèche ; un double-clic édite ce texte. **Ancrage par l'alignement**, comme draw.io : un texte de flèche aligné à gauche part de son point vers la droite (côté gauche fixe), aligné à droite vers la gauche, centré de part et d'autre ; de même en hauteur (aligné en haut : vers le bas ; en bas : vers le haut). Un label enfant existant au-delà de ±0,5 compte comme texte de début ou de fin (le plus proche du bout). API : `engine.setEdgeEndLabel(edgeId, 'start' | 'end', texte)`, `engine.editEdgeEndLabel(edgeId, end)` (événement `labelEdit` avec `end`).
 - Création de connecteurs entre formes.
-- **Bouts d'une flèche** (d'où elle part, où elle arrive), comme draw.io, dans les trois modes : une flèche sélectionnée seule montre une **poignée à chaque bout** (disque bleu = attaché à une forme, blanc = libre ; posée au niveau de la flèche). La tirer : près d'un **point d'ancrage** (mode manuel : sur chaque côté, les ancres déjà prises par des flèches — disque plein ; point fixe, ou point où le tracé d'une attache auto touche la forme ; le bout déplacé compte à sa place d'origine — et un point libre — croix — au milieu de chaque intervalle entre les coins et ces ancres, pour qu'il reste toujours un point libre entre deux ancres ; sans flèche, le milieu ; positions projetées sur le contour ; celui retenu cerclé ; tolérance 1,5 × `edit.handlePickTolerance`) = attache **fixe** (`exitX/exitY/exitDx/exitDy` pour la source, `entry…` pour la cible) ; sur l'**intérieur d'une forme** (contour surligné) = attache **auto** (ces clés retirées, le tracé choisit le côté) ; **dans le vide** = bout **libre** (`<mxPoint as="sourcePoint|targetPoint">` dans le repère du parent de la flèche, aimanté à la grille, Alt = libre ; attribut `source` / `target` retiré). Tracé recalculé en direct, une étape d'annulation (« Extrémité de flèche »). Les quatre poignées de connexion d'une forme (une par côté) suivent les mêmes règles (lâcher sur un point de connexion = entrée fixe) ; la flèche créée sort du côté de la poignée tirée, au point libre de ce côté le plus proche de la cible (`exitX/exitY` fixes) ; lâchée dans une forme, elle y arrive au point libre le plus proche du départ (`entryX/entryY` fixes) ; lâchée sur sa propre forme, elle **boucle** (départ : point libre du côté le plus proche de son milieu ; arrivée ailleurs) et ses coudes, à 20 px du cadre (`shapes.edgeLoopMargin`), sont écrits en points intermédiaires pour qu'elle tourne hors de la forme (même côté = U, côtés voisins = par le coin, côtés opposés = autour de la forme) ; déplacer un bout pour refermer une boucle recalcule ces coudes. **Variante de placement** (ancrage manuel, flèche sélectionnée seule reliée à deux formes) : la touche **F** (raccourci `controls.shortcuts.placementVariant`) applique tout de suite la variante qui suit le placement actuel ; les variantes sont les couples côté de départ × côté d'arrivée, chacun sur le point d'ancrage libre de ce côté le plus proche de l'autre forme (arrivée : le plus proche du départ ; boucle : ailleurs que le départ, avec ses coudes), rangées de la meilleure à la moins bonne (tracé qui ne traverse aucune forme d'abord, puis longueur et coudes ; `edit/anchoring/manual/variants.ts`) ; un appui = une étape d'annulation (« Variante de placement »), points intermédiaires retirés. **Ancrage automatique** (réglage d'appli `shapes.edgeAnchoring` « Ancrage des flèches » : Manuel par défaut, Automatique ou Typon ; une page peut le surcharger dans le panneau Page, attribut `spatial.anchoring="manual|auto|pcb"` de `<diagram>` — ce n'est pas un mode de page) : on ne vise que le **côté** de la forme (le plus proche du pointeur, surligné), la poignée de connexion fixe le côté de départ ; les flèches d'un côté y sont **réparties** à 1/(n+1), 2/(n+1)… (`exitX/exitY`, `entryX/entryY`), ordonnées par la position de la forme à leur autre bout (son centre, pas son point d'attache, qui dépend lui-même de la répartition) pour ne pas se croiser ; les flèches qui relient les deux mêmes côtés (faisceau) gardent un ordre cohérent aux deux bouts (même ordre entre côtés face à face, inversé pour un tracé en L) ; les deux bouts d'une boucle sur un seul côté y sont rangés ensemble, en fin de côté ; une attache auto compte sur le côté qui fait face à son autre bout et passe en point fixe ; un point d'arrivée placé par le mode de la page (`edges.placedEntries`, ex. flèche vers un champ RDD, sujet 338) n'est ni déplacé ni compté. Recalcul après chaque édition (création, rattachement, suppression, déplacement, redimensionnement, collage) pour les formes touchées et leurs voisines, dans la même étape d'annulation (`edit/anchoring/auto/distribute.ts`) ; une forme **déplacée** voit ses flèches réparties et retracées en direct pendant le glisser (modèle seul, écrit au lâcher ; ticket 177), et un bout dont le côté qui fait face à l'autre forme a changé (une forme passée de l'autre côté de sa voisine) prend ce nouveau côté (`resitedEnds`) — un côté choisi qui ne fait pas face reste tant que les deux formes gardent leur position relative ; passer une page en automatique la répartit entière ; les coudes des boucles suivent. **Tracé automatique** (toujours en ancrage automatique, si possible ; réglages de Paramètres › Formes et flèches › Ancrage, groupe Automatique : « Contourner les formes et les flèches » `shapes.edgeAutoRoute`, « Écart aux formes » `shapes.edgeShapeClearance` 10 px, « Écart entre flèches » `shapes.edgeSpacing` 10 px, « Premier et dernier segments » `shapes.edgePortStub` 20 px, « Détour pour éviter un croisement » `shapes.edgeCrossingDetour` 500 px, appliqués à la prochaine modification d'une page ; sans contournement, une flèche recalculée perd ses points intermédiaires et reprend le tracé de draw.io, une boucle garde ses coudes) : le tracé orthogonal contourne les formes et ne se superpose pas aux autres flèches (voies parallèles) ; il est calculé par l'appli (`edit/anchoring/auto/avoid.ts` : premier et dernier segments perpendiculaires aux côtés, puis plus court chemin sur une grille tirée des formes et des flèches déjà tracées, coudes, superpositions et surtout croisements pénalisés — un croisement coûte le détour réglé ; les plus longues d'abord, coudes attirés vers le bout où converge le faisceau ; puis les flèches en conflit sont retirées ensemble et retracées dans les deux ordres, le jeu le moins conflictuel est gardé) et écrit en points intermédiaires, que draw.io suit tels quels ; recalculé avec la répartition pour les flèches des formes concernées et celles qui en traversent une ; sans chemin, la flèche reprend le tracé par défaut (ses anciens points intermédiaires sont retirés). La répartition ne s'appuie pas sur ces points intermédiaires (le bout d'une boucle garde sa place). **Autre agencement** (ancrage automatique, touche **F**, même raccourci que la variante de placement) : la graine de la page (`spatial.anchorSeed` sur `<diagram>`, absente = 0) est augmentée et les flèches réparties et retracées avec elle — autour de la flèche ou de la forme sélectionnée (ses formes et leurs voisines, leurs flèches et celles qui les traversent), sinon sur toute la page ; la graine départage les égalités (ordre d'un faisceau, ordre de tracé, choix entre détours de coût voisin, `edit/anchoring/auto/seed.ts`, `edit/anchoring/auto/anchorArrangement.ts`) sans changer les côtés ; les graines suivantes sont essayées (8 au plus) jusqu'à un agencement différent sans plus de croisements ni de superpositions qu'avec la graine 0 ; graine et modifications forment une seule entrée d'historique (« Autre agencement »). Les éditions suivantes reprennent la graine de la page. **Typon** (`pcb`, ticket 175 ; type `Anchoring` et `distributes` dans `edit/anchoring/mode.ts`) : comme l'automatique (côté seul visé, répartition, recalcul après chaque édition, touche F), mais le tracé est **octilinéaire** comme les pistes d'un circuit imprimé (segments à 0°, 45° et 90°, `edit/anchoring/pcb/octilinear.ts` : plus court chemin sur une grille au pas de l'écart entre flèches, 8 directions, premier et dernier segments perpendiculaires aux côtés) ; réglages propres, groupe Typon de Paramètres › Formes et flèches › Ancrage (ticket 186) : « Contourner les formes et les flèches » `shapes.edgePcbAutoRoute`, écart aux formes `shapes.edgePcbShapeClearance` 10 px, écart entre flèches = pas de la grille `shapes.edgePcbSpacing` 10 px, premier et dernier segments `shapes.edgePcbPortStub` 20 px, détour pour éviter un croisement `shapes.edgePcbCrossingDetour` 500 px, coût d'un coude à 45° `shapes.edgePcbBend45` 15 et à 90° `shapes.edgePcbBend90` 30 (pixels de longueur équivalente) ; sans chemin, la flèche est tracée quand même ; « Contourner » décoché : tracé octilinéaire direct. Écrit en points intermédiaires avec un tracé droit (`edgeStyle` retiré) pour que draw.io dessine les mêmes diagonales.
+- **Bouts d'une flèche** (d'où elle part, où elle arrive), comme draw.io, dans les trois modes : une flèche sélectionnée seule montre une **poignée à chaque bout** (disque bleu = attaché à une forme, blanc = libre ; posée au niveau de la flèche). La tirer : près d'un **point d'ancrage** (mode manuel : sur chaque côté, les ancres déjà prises par des flèches — disque plein ; point fixe, ou point où le tracé d'une attache auto touche la forme ; le bout déplacé compte à sa place d'origine — et un point libre — croix — au milieu de chaque intervalle entre les coins et ces ancres, pour qu'il reste toujours un point libre entre deux ancres ; sans flèche, le milieu ; positions projetées sur le contour ; celui retenu cerclé ; tolérance 1,5 × `edit.handlePickTolerance`) = attache **fixe** (`exitX/exitY/exitDx/exitDy` pour la source, `entry…` pour la cible) ; sur l'**intérieur d'une forme** (contour surligné) = attache **auto** (ces clés retirées, le tracé choisit le côté) ; **dans le vide** = bout **libre** (`<mxPoint as="sourcePoint|targetPoint">` dans le repère du parent de la flèche, aimanté à la grille, Alt = libre ; attribut `source` / `target` retiré). Tracé recalculé en direct, une étape d'annulation (« Extrémité de flèche »). Les quatre poignées de connexion d'une forme (une par côté) suivent les mêmes règles (lâcher sur un point de connexion = entrée fixe) ; la flèche créée sort du côté de la poignée tirée, au point libre de ce côté le plus proche de la cible (`exitX/exitY` fixes) ; lâchée dans une forme, elle y arrive au point libre le plus proche du départ (`entryX/entryY` fixes) ; lâchée sur sa propre forme, elle **boucle** (départ : point libre du côté le plus proche de son milieu ; arrivée ailleurs) et ses coudes, à 20 px du cadre (`shapes.edgeLoopMargin`), sont écrits en points intermédiaires pour qu'elle tourne hors de la forme (même côté = U, côtés voisins = par le coin, côtés opposés = autour de la forme) ; déplacer un bout pour refermer une boucle recalcule ces coudes. **Variante de placement** (ancrage manuel, flèche sélectionnée seule reliée à deux formes) : la touche **F** (raccourci `controls.shortcuts.placementVariant`) applique tout de suite la variante qui suit le placement actuel ; les variantes sont les couples côté de départ × côté d'arrivée, chacun sur le point d'ancrage libre de ce côté le plus proche de l'autre forme (arrivée : le plus proche du départ ; boucle : ailleurs que le départ, avec ses coudes), rangées de la meilleure à la moins bonne (tracé qui ne traverse aucune forme d'abord, puis longueur et coudes ; `edit/anchoring/manual/variants.ts`) ; un appui = une étape d'annulation (« Variante de placement »), points intermédiaires retirés. **Ancrage automatique** (réglage d'appli `shapes.edgeAnchoring` « Ancrage des flèches » : Manuel par défaut, Automatique ou Typon ; une page peut le surcharger dans le panneau Page, attribut `spatial.anchoring="manual|auto|pcb"` de `<diagram>` — ce n'est pas un mode de page) : on ne vise que le **côté** de la forme (le plus proche du pointeur, surligné), la poignée de connexion fixe le côté de départ ; les flèches d'un côté y sont **réparties** à 1/(n+1), 2/(n+1)… (`exitX/exitY`, `entryX/entryY`), ordonnées par la position de la forme à leur autre bout (son centre, pas son point d'attache, qui dépend lui-même de la répartition) pour ne pas se croiser ; les flèches qui relient les deux mêmes côtés (faisceau) gardent un ordre cohérent aux deux bouts (même ordre entre côtés face à face, inversé pour un tracé en L) ; les deux bouts d'une boucle sur un seul côté y sont rangés ensemble, en fin de côté ; une attache auto compte sur le côté qui fait face à son autre bout et passe en point fixe ; un point d'arrivée placé par le mode de la page (`edges.placedEntries`, ex. flèche vers un champ RDD, sujet 338) n'est ni déplacé ni compté. Recalcul après chaque édition (création, rattachement, suppression, déplacement, redimensionnement, collage) pour les formes touchées et leurs voisines, dans la même étape d'annulation (`edit/anchoring/auto/distribute.ts`) ; une forme **déplacée** voit ses flèches réparties et retracées en direct pendant le glisser (modèle seul, écrit au lâcher ; ticket 177), et un bout dont le côté qui fait face à l'autre forme a changé (une forme passée de l'autre côté de sa voisine) prend ce nouveau côté (`resitedEnds`) — un côté choisi qui ne fait pas face reste tant que les deux formes gardent leur position relative ; passer une page en automatique la répartit entière ; les coudes des boucles suivent. **Tracé automatique** (toujours en ancrage automatique, si possible ; réglages de Paramètres › Formes et flèches › Ancrage, groupe Automatique : « Contourner les formes et les flèches » `shapes.edgeAutoRoute`, « Écart aux formes » `shapes.edgeShapeClearance` 10 px, « Écart entre flèches » `shapes.edgeSpacing` 10 px, « Premier et dernier segments » `shapes.edgePortStub` 20 px, « Détour pour éviter un croisement » `shapes.edgeCrossingDetour` 500 px, appliqués à la prochaine modification d'une page ; sans contournement, une flèche recalculée perd ses points intermédiaires et reprend le tracé de draw.io, une boucle garde ses coudes) : le tracé orthogonal contourne les formes et ne se superpose pas aux autres flèches (voies parallèles) ; il est calculé par l'appli (`edit/anchoring/auto/avoid.ts` : premier et dernier segments perpendiculaires aux côtés, puis plus court chemin sur une grille tirée des formes et des flèches déjà tracées, coudes, superpositions et surtout croisements pénalisés — un croisement coûte le détour réglé ; les plus longues d'abord, coudes attirés vers le bout où converge le faisceau ; puis les flèches en conflit sont retirées ensemble et retracées dans les deux ordres, le jeu le moins conflictuel est gardé) et écrit en points intermédiaires, que draw.io suit tels quels ; recalculé avec la répartition pour les flèches des formes concernées et celles qui en traversent une ; sans chemin, la flèche reprend le tracé par défaut (ses anciens points intermédiaires sont retirés). La répartition ne s'appuie pas sur ces points intermédiaires (le bout d'une boucle garde sa place). **Autre agencement** (ancrage automatique, touche **F**, même raccourci que la variante de placement) : la graine de la page (`spatial.anchorSeed` sur `<diagram>`, absente = 0) est augmentée et les flèches réparties et retracées avec elle — autour de la flèche ou de la forme sélectionnée (ses formes et leurs voisines, leurs flèches et celles qui les traversent), sinon sur toute la page ; la graine départage les égalités (ordre d'un faisceau, ordre de tracé, choix entre détours de coût voisin, `edit/anchoring/seed.ts`, `edit/anchoring/auto/anchorArrangement.ts`) sans changer les côtés ; les graines suivantes sont essayées (8 au plus) jusqu'à un agencement différent sans plus de croisements ni de superpositions qu'avec la graine 0 ; graine et modifications forment une seule entrée d'historique (« Autre agencement »). Les éditions suivantes reprennent la graine de la page. **Typon** (`pcb`, ticket 175 ; type `Anchoring` et `distributes` dans `edit/anchoring/mode.ts`) : comme l'automatique (côté seul visé, répartition, recalcul après chaque édition, touche F), mais le tracé est **octilinéaire** comme les pistes d'un circuit imprimé (segments à 0°, 45° et 90°, `edit/anchoring/pcb/octilinear.ts` : plus court chemin sur une grille au pas de l'écart entre flèches, 8 directions, premier et dernier segments perpendiculaires aux côtés) ; réglages propres, groupe Typon de Paramètres › Formes et flèches › Ancrage (ticket 186) : « Contourner les formes et les flèches » `shapes.edgePcbAutoRoute`, écart aux formes `shapes.edgePcbShapeClearance` 10 px, écart entre flèches = pas de la grille `shapes.edgePcbSpacing` 10 px, premier et dernier segments `shapes.edgePcbPortStub` 20 px, détour pour éviter un croisement `shapes.edgePcbCrossingDetour` 500 px, coût d'un coude à 45° `shapes.edgePcbBend45` 15 et à 90° `shapes.edgePcbBend90` 30 (pixels de longueur équivalente) ; sans chemin, la flèche est tracée quand même ; « Contourner » décoché : tracé octilinéaire direct. Écrit en points intermédiaires avec un tracé droit (`edgeStyle` retiré) pour que draw.io dessine les mêmes diagonales.
 - **Découpage en morceaux**, avec les éditeurs de draw.io portés tels quels (`edit/edgePointEdits.ts`, mxGraph Apache 2.0), dans les trois modes ; poignées carrées entre les bouts de la flèche sélectionnée, aimantées à la grille (Alt = libre), une étape d'annulation (« Points de la flèche ») :
   - **orthogonale** (`orthogonalEdgeStyle`, `segmentEdgeStyle`) : une poignée au milieu de chaque segment, qui le déplace perpendiculairement (curseur `col-resize` / `row-resize`) ; les points écrits sont les coudes du nouveau tracé ; un tracé droit a trois poignées (celle du milieu crée un détour, les deux autres en transparence) ;
   - **coude** (`elbowEdgeStyle`, côte à côte, haut en bas) : une seule poignée, qui fixe le coude ; double-clic = bascule horizontal ↔ vertical (`elbow`) ;

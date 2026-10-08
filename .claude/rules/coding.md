@@ -20,6 +20,8 @@ paths:
 
 ## 2. Where code goes
 
+Folder map with each folder's role: `docs/SUMMARY.md` §3 (single source). Where a given kind of code goes:
+
 | Kind of code | Folder | Constraints |
 |---|---|---|
 | Pure computation on points and rectangles | `engine/core/model/geometry.ts` | no Three.js import |
@@ -28,7 +30,12 @@ paths:
 | Camera geometry, transitions | `engine/core/interaction/` | pure |
 | Engine state and orchestration | `engine/core/domains/<domain>/` | a domain owns its state |
 | Three.js drawing | `engine/core/render/`, `engine/plugins/shapes/` | consumes the neutral model, never the XML |
+| Plugin contract and registry (shape, mode, effect) | `engine/core/shapes/`, `core/modes/`, `core/effects/` | knows no plugin by name |
+| Trunk building block offered to plugins | re-exported by `engine/core/plugins/index.ts` | the code stays in its trunk folder |
+| A shape | `engine/plugins/shapes/<category>/<id>/` (shared bases: `shapes/generic/`) | `AJOUTER_UNE_FORME.md` |
 | Anything specific to a mode | `engine/plugins/modes/<id>/` | nothing leaks out of the folder (`AJOUTER_UN_MODE.md`) |
+| A page effect | `engine/plugins/effects/<id>/` | contract in `core/effects/types.ts` |
+| React part of a mode (panel sections) | `src/app/plugins/modes/<id>/` | no rule: calls the mode's operations (`api.ts`) |
 | UI | `src/app/`, `src/react/` | no business rule |
 
 - **Pure logic apart from state.** A rule (tracing, alignment, bounds) is a pure function in `edit/`,
@@ -40,7 +47,8 @@ paths:
   Typon (`pcb/`) share `edit/anchoring/routing.ts`.
 - **No file name already taken.** Before creating `camera.ts`, `history.ts`, `selection.ts`, `handles.ts`…, check
   no file with that name exists elsewhere in the engine; otherwise use a name saying the role (`cameraMath.ts`,
-  `selectionRules.ts`).
+  `selectionRules.ts`). Exception: the conventional files of a plugin folder (`index.ts`, `facade.ts`, `keys.ts`,
+  `settings.ts`, `api.ts`), the same in every plugin by design.
 - **No folder and file with the same name**: `route.ts` next to `route/` becomes `route/index.ts`.
 - **Place a utility by what it is, not by its first caller.** Page geometry used by the document and by dragging
   goes in `model/`, not in the folder of the feature that created it.
@@ -49,7 +57,8 @@ paths:
 
 - **No mutable module-level state** (`let` or object modified outside a class). All `Engine`s of a page would share
   it, and tests would influence each other. State lives in a `core/domains/` domain and is passed as a parameter to
-  pure functions. E.g. camera bounds are `ViewCamera.limits`, passed as last parameter to `zoomAt`, `orbit`,
+  pure functions. Exception: a pure cache keyed by an immutable object (`WeakMap` keyed by a frozen `PageModel`, e.g.
+  `plugins/modes/sequences/steps.ts`) is not state. E.g. camera bounds are `ViewCamera.limits`, passed as last parameter to `zoomAt`, `orbit`,
   `fitBounds`…
 - **The document model is never modified in place.** Its pages are frozen in dev and test. A gesture preview edits
   the page's working copy (`core.file.livePage(pageId, owner)`, released by `settleLivePage(owner)` at the end of the

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { OrientCommands } from '../../../../../src/engine/core/domains/edit/commands/orient';
+import { OrientCommands } from '../../../../../src/engine/core/domains/edit/commands/orientation';
 import type { EngineCore } from '../../../../../src/engine/core/domains/EngineCore';
 import { documentFromTree, readDrawio } from '../../../../../src/engine/core/format/parse';
 import { writeDrawio } from '../../../../../src/engine/core/format/write';

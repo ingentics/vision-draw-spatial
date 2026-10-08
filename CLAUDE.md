@@ -2,7 +2,7 @@
 
 @docs/ROADMAP.md
 
-Functional and technical reference: `docs/SPEC.md` (read on demand, not preloaded: 130 KB). Architecture and
+Functional and technical reference: `docs/SPEC.md` (read on demand, not preloaded: 135 KB). Architecture and
 "where to look" table: `docs/SUMMARY.md`. Coding rules: `.claude/rules/coding.md` (auto-loaded when touching
 `src/` or `tests/`).
 
@@ -14,9 +14,9 @@ agent instruction files (this one, `docs/ROADMAP.md`, `.claude/rules/`) are in E
 - **Shared server.** During dev there is a single hot-reload server: the user's `make dev` (port 5173), which they
   watch in their browser. Check results by eye there (`curl localhost:5173` to see if it runs); never start another
   one. If it is down, start `make dev` (default compose project, port 5173) in the background so that it becomes the
-  shared server. An engine change reloads the page restoring file, page and camera (plugin in `vite.config.ts`,
-  `src/app/devSession.ts`): keep that restoration working. After moving a file, Vite may keep the old path cached
-  (blank page): touch the files importing it.
+  shared server. An engine change reloads the page restoring file, page and camera (plugin `engineFullReload` in
+  `vite.config.ts`, `src/app/tabSession.ts`): keep that restoration working. After moving a file, Vite may keep the
+  old path cached (blank page): touch the files importing it.
 - **Everything runs in Docker** (Node pinned by the image): use `make`, never host `npx`.
 - **Validate:**
   - By eye in the app, on the shared server, with a fixture showing the case. Say what was only checked by tests.
