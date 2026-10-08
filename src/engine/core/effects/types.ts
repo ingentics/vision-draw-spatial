@@ -9,11 +9,12 @@ import type { PluginSetting, PluginValues } from '../settings/pluginSettings';
  * Effets de page (sujet 143) : décors et comportements qu'une page active en plus de son mode
  * (`spatial.effects="forest,…"` sur `<diagram>`). Contrairement au mode, ils se cumulent ; le mode reste maître et
  * peut en refuser (`PageModeDefinition.page.allowsEffect`), et un effet n'existe que dans ses modes d'affichage
- * (`viewModes`). Chaque effet vit dans son dossier (`plugins/effects/<id>/index.ts`, qui exporte `definition`),
+ * (`viewModes`). Le moteur l'appelle par son hôte (`core/domains/effects/`) : un décor qui lève une exception est omis
+ * et signalé dans les Diagnostics (« Effet <id> : erreur dans volume »). Chaque effet vit dans son dossier (`plugins/effects/<id>/index.ts`, qui exporte `definition`),
  * collecté tout seul (sujet 286) : le retirer = supprimer le dossier.
  */
 export interface PageEffectDefinition {
-  /** Identifiant, écrit dans `spatial.effects` : nom du dossier. */
+  /** Identifiant, écrit dans `spatial.effects` : nom du dossier (`^[a-z][a-z0-9-]*$`, vérifié à l'enregistrement). */
   id: string;
   /** Nom affiché dans le panneau. */
   name: string;

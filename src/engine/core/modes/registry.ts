@@ -1,11 +1,11 @@
 import type { PageModePalette } from '../edit/palette';
 import type { PageEffectDefinition } from '../effects/types';
 import type { ViewMode } from '../interaction/cameraMath';
-import type { PageModel } from '../model/types';
+import type { DocumentModel, PageModel, ParseWarning } from '../model/types';
 import { pluginValues } from '../settings/pluginSettings';
 import type { PluginSettings, PluginValues } from '../settings/pluginSettings';
 import type { PaletteCategory, ShapeDefinition, ShapeTemplate } from '../shapes/types';
-import { SPATIAL } from '../spatial';
+import { PLUGIN_ID_PATTERN, SPATIAL } from '../spatial';
 import { modeKey, NAMESPACE_PATTERN } from './modeKeys';
 import type { ModeProperty, PageModeDefinition } from './types';
 import { freezePlain } from '../model/freeze';
@@ -47,11 +47,13 @@ export class PageModeRegistry {
 
   /**
    * `shapes` : ses formes propres (enregistrées à part dans le registre des formes, qui les dessine sur toute page).
-   * Lèvent une exception : un id déjà pris (sujet 304), un espace de noms invalide ou déjà pris (sujet 301), une forme
-   * du mode dont l'id n'est pas préfixé par celui du mode, ou qui déclare `kinds` ou `matches` : elle ne capte pas les
-   * noms draw.io des autres formes (sujet 304).
+   * Lèvent une exception : un id déjà pris (sujet 304) ou hors de `PLUGIN_ID_PATTERN` (sujet 378), un espace de noms
+   * invalide ou déjà pris (sujet 301), une forme du mode dont l'id n'est pas préfixé par celui du mode, ou qui déclare
+   * `kinds` ou `matches` : elle ne capte pas les noms draw.io des autres formes (sujet 304).
    */
   register(definition: PageModeDefinition, shapes: ShapeDefinition[] = []): this {
+    if (typeof definition.id !== 'string' || !PLUGIN_ID_PATTERN.test(definition.id))
+      throw new Error(`Mode ${definition.id} : id invalide (minuscules, chiffres et tirets)`);
     if (this.definitions.has(definition.id)) throw new Error(`Mode ${definition.id} : id déjà pris`);
     for (const shape of shapes) {
       if (!shape.id.startsWith(`${definition.id}-`))
@@ -123,6 +125,16 @@ export class PageModeRegistry {
   modeOf(page: PageModel): PageModeDefinition | undefined {
     const id = this.modeId(page);
     return id === undefined ? undefined : this.definitions.get(id);
+  }
+
+  /** Modes inconnus (écrits par une version plus récente), pour le panneau Diagnostics. */
+  warnings(document: Pick<DocumentModel, 'pages'>): ParseWarning[] {
+    return document.pages.flatMap((page) => {
+      const id = this.modeId(page);
+      return id === undefined || this.definitions.has(id)
+        ? []
+        : [{ pageId: page.id, message: `Mode de page inconnu : ${id}` }];
+    });
   }
 
   /**

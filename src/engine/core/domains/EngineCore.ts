@@ -12,6 +12,7 @@ import type { Settings } from '../settings';
 import { Rendering } from './runtime/rendering';
 import { Display } from './runtime/display';
 import { Metrics } from './runtime/metrics';
+import { PluginGuard } from './runtime/pluginGuard';
 import { DocumentFile } from './document/file';
 import { EditHistory } from './document/undo';
 import { Pages } from './document/pages';
@@ -33,9 +34,9 @@ import { BackHistory } from './navigation/history';
 import { Transitions } from './navigation/transition';
 import { ModeCurrents } from './modes/modeCurrents';
 import { PageModes } from './modes/pageModes';
-import { PluginGuard } from './modes/pluginGuard';
 import { ShapeParts } from './modes/shapeParts';
 import { ModeHandles } from './modes/modeHandles';
+import { PageEffects } from './effects/pageEffects';
 import { EditTargets } from './edit/targets';
 import { ShapeHandles } from './edit/shapeHandles';
 import { EdgeHandles } from './edit/edges/edgeHandles';
@@ -89,11 +90,12 @@ export class EngineCore {
   readonly controller: CameraController;
   disposed = false;
 
-  // runtime : paramètres, rendu, taille du canvas, mesures
+  // runtime : paramètres, rendu, taille du canvas, mesures, erreurs des plugins
   readonly config: Config;
   readonly rendering: Rendering;
   readonly display = new Display(this);
   readonly metrics = new Metrics(this);
+  readonly pluginGuard = new PluginGuard(this);
 
   // document : fichier chargé, annuler / rétablir, pages
   readonly file = new DocumentFile(this);
@@ -123,12 +125,14 @@ export class EngineCore {
   readonly history = new BackHistory(this);
   readonly transitions = new Transitions(this);
 
-  // modes : modes et effets de page
-  readonly pluginGuard = new PluginGuard(this);
+  // modes : modes de page
   readonly pageModes = new PageModes(this);
   readonly modeCurrents = new ModeCurrents(this);
   readonly shapeParts = new ShapeParts(this);
   readonly modeHandles = new ModeHandles(this);
+
+  // effects : effets de page
+  readonly pageEffects = new PageEffects(this);
 
   // edit : cibles et poignées
   readonly targets: EditTargets;
@@ -172,7 +176,7 @@ export class EngineCore {
     this.canvas = options.canvas;
     // Formes protégées (sujet 300) : une forme en panne est signalée dans les Diagnostics, comme un mode.
     this.registry = options.registry.reportingTo((shapeId, hook, error) =>
-      this.pluginGuard.report(`Forme ${shapeId}`, hook, error),
+      this.pluginGuard.reporter('Forme', shapeId, hook, error),
     );
     this.modes = options.modes;
     this.effects = options.effects;

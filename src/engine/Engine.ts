@@ -479,10 +479,7 @@ export class Engine {
 
   /** Effets actifs possibles sur la page : permis par son mode et ses modes d'affichage (appel du mode protégé). */
   allowedEffects(page: PageModel): string[] {
-    return this.core.effects
-      .list()
-      .filter((effect) => this.core.pageModes.allowsEffect(page, effect))
-      .map((effect) => effect.id);
+    return this.core.pageEffects.allowed(page);
   }
 
   /** Flèche gérée par le mode de la page courante (`edges.manages`, ex. relation RDD) : réglages imposés. */
@@ -500,7 +497,7 @@ export class Engine {
 
   /** Active ou retire un effet d'une page (`spatial.effects`), en une étape d'annulation. */
   setPageEffect(pageId: string, effectId: string, enabled: boolean): void {
-    this.core.pageModes.setPageEffect(pageId, effectId, enabled);
+    this.core.pageEffects.setPageEffect(pageId, effectId, enabled);
   }
 
   /**

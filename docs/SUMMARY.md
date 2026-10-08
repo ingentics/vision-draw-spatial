@@ -40,7 +40,7 @@ dossiers du projet (SPEC §4.2 et `.claude/rules/coding.md` §2 y renvoient) ; l
 | Dossier (sous `src/engine/` sauf mention) | Rôle | Nature |
 |---|---|---|
 | `index.ts`, `Engine.ts`, `events.ts` | point d'entrée du moteur, façade publique (délègue aux domaines), événements | avec état |
-| `core/domains/` | un dossier par domaine (`runtime/`, `document/`, `view/`, `selection/`, `input/`, `navigation/`, `modes/`, `edit/`) ; `EngineCore.ts` les câble | avec état |
+| `core/domains/` | un dossier par domaine (`runtime/`, `document/`, `view/`, `selection/`, `input/`, `navigation/`, `modes/`, `effects/`, `edit/`) ; `EngineCore.ts` les câble. Hôtes des plugins : `modes/` (`PageModes`), `effects/` (`PageEffects`) ; erreurs des plugins : `runtime/pluginGuard.ts` | avec état |
 | `core/interaction/` | caméra, transitions, historique de navigation, sélection, pick, mini-carte (calculs) ; `controls/` : contrôles du canvas (DOM) | pur, sauf `controls/` |
 | `core/edit/` | règles d'édition : déplacement, poignées, bouts et points de flèche, styles, palette, ancrage (`anchoring/`) | pur |
 | `core/render/` | scènes Three.js par page et par niveau ; briques `flat/`, `iso/`, `geometry/` ; flèches `edges/` (tracés portés de mxGraph dans `edges/route/`) | pur (objets Three.js) |
@@ -51,7 +51,7 @@ dossiers du projet (SPEC §4.2 et `.claude/rules/coding.md` §2 y renvoient) ; l
 | `core/model/` | modèle neutre (aucune notion draw.io), géométrie, lecture du style, index de page, gel | pur, sans Three.js |
 | `core/format/` | decode, parse (XML → modèle), style, xmlTree, cellEdits / write (écriture in situ), presse-papier | pur, sans Three.js |
 | `core/persistence/` | FileStore : MemoryStore, IndexedDbStore, FsStore (Electron) ; Autosaver | avec état |
-| `core/diagnostics/`, `core/spatial.ts` | formes non supportées (SPEC §8.4) ; attributs `spatial.*` (SPEC §14.3) | pur |
+| `core/diagnostics/`, `core/spatial.ts` | formes non supportées (SPEC §8.4), appel protégé commun aux plugins (`pluginCalls.ts`) ; attributs `spatial.*` (SPEC §14.3) | pur |
 | `plugins/` | `index.ts` (racine de composition) ; `shapes/<catégorie>/<id>/` (bases à étendre dans `shapes/generic/`), `modes/<id>/`, `effects/<id>/` | pur |
 | `src/react/` | composant `<DrawioSpatial />`, lanceur, mini-graphe | UI |
 | `src/app/` | appli de démo : panneaux, palette, paramètres ; `plugins/modes/<id>/` : partie appli d'un mode | UI |

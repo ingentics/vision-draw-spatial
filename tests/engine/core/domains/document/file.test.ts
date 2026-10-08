@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { DocumentFile } from '../../../../../src/engine/core/domains/document/file';
 import type { EngineCore } from '../../../../../src/engine/core/domains/EngineCore';
+import { PageEffects } from '../../../../../src/engine/core/domains/effects/pageEffects';
+import { PageModes } from '../../../../../src/engine/core/domains/modes/pageModes';
+import { PluginGuard } from '../../../../../src/engine/core/domains/runtime/pluginGuard';
+import { PageEffectRegistry } from '../../../../../src/engine/core/effects/registry';
 import { readDrawio } from '../../../../../src/engine/core/format/parse';
+import { PageModeRegistry } from '../../../../../src/engine/core/modes/registry';
+import { DEFAULT_SETTINGS } from '../../../../../src/engine/core/settings';
 import type { PageModel } from '../../../../../src/engine/core/model/types';
 import { createDefaultRegistry } from '../../../../../src/engine/plugins';
 
@@ -16,6 +22,8 @@ function setup() {
   const core = {
     registry: createDefaultRegistry(),
     pageModes: { withModeWarnings: (document: unknown) => document },
+    pageEffects: { warnings: () => [] },
+    pluginGuard: { warnings: () => [] },
     selection: { rebind: (page: PageModel) => rebound.push(page) },
   } as unknown as EngineCore;
   const file = new DocumentFile(core);
@@ -74,5 +82,44 @@ describe('copie de travail d’un geste (sujet 312)', () => {
     file.replaceDocument(document, tree);
     expect(Object.isFrozen(page('q'))).toBe(true);
     expect(file.livePage('inconnue', owner)).toBeUndefined();
+  });
+});
+
+describe('avertissements des plugins (sujet 378)', () => {
+  const WARNED = `<mxfile><diagram id="p" name="P" spatial.mode="boom"><mxGraphModel><root><mxCell id="0"/></root></mxGraphModel></diagram>
+<diagram id="q" name="Q" spatial.mode="inconnu" spatial.effects="mystere"><mxGraphModel><root><mxCell id="0"/></root></mxGraphModel></diagram></mxfile>`;
+
+  it('modes et effets inconnus, puis erreurs des formes, modes et effets : assemblés à la lecture', () => {
+    const fail = (): never => {
+      throw new Error('panne');
+    };
+    const core = {
+      registry: createDefaultRegistry(),
+      modes: new PageModeRegistry().register({
+        id: 'boom',
+        namespace: 'boom',
+        name: 'Boom',
+        lifecycle: { check: fail },
+      }),
+      effects: new PageEffectRegistry(),
+      settings: DEFAULT_SETTINGS,
+      file: { publishWarnings: () => {} },
+    } as unknown as EngineCore;
+    const guard = new PluginGuard(core);
+    Object.assign(core, { pluginGuard: guard, pageModes: new PageModes(core), pageEffects: new PageEffects(core) });
+    // Erreurs signalées avant la lecture (rendu d'une forme, décor d'un effet).
+    guard.reporter('Forme', 'cassee', 'flat.create', new Error('dessin'));
+    guard.reporter('Effet', 'brume', 'volume', new Error('décor'));
+    const file = new DocumentFile(core);
+    const { document, tree } = readDrawio(WARNED);
+    file.replaceDocument(document, tree);
+    expect(file.document!.warnings.map((w) => [w.pageId, w.message])).toEqual([
+      ['q', 'Mode de page inconnu : inconnu'],
+      ['q', 'Effet de page inconnu : mystere'],
+      [undefined, 'Forme cassee : erreur dans flat.create (dessin)'],
+      [undefined, 'Effet brume : erreur dans volume (décor)'],
+      // Erreur signalée pendant la lecture même : dans les avertissements du document lu.
+      [undefined, 'Mode boom : erreur dans lifecycle.check (panne)'],
+    ]);
   });
 });

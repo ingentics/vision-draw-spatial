@@ -2,7 +2,7 @@ import { Group, Object3D } from 'three';
 import { describe, expect, it } from 'vitest';
 import { collectUnsupported } from '../../../../src/engine/core/diagnostics/unsupportedStyles';
 import type { EngineCore } from '../../../../src/engine/core/domains/EngineCore';
-import { PluginGuard } from '../../../../src/engine/core/domains/modes/pluginGuard';
+import { PluginGuard } from '../../../../src/engine/core/domains/runtime/pluginGuard';
 import { readDrawio } from '../../../../src/engine/core/format/parse';
 import { parseStyle, resolveShapeKind } from '../../../../src/engine/core/format/style';
 import { pickElement } from '../../../../src/engine/core/interaction/pick';

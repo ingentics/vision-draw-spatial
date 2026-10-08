@@ -8,6 +8,12 @@
 
 export const SPATIAL_PREFIX = 'spatial.';
 
+/**
+ * Id d'un mode ou d'un effet (sujet 378), vérifié à l'enregistrement : il est écrit tel quel dans `spatial.mode` et
+ * dans `spatial.effects`, liste à virgules (une virgule ou une espace le couperait).
+ */
+export const PLUGIN_ID_PATTERN = /^[a-z][a-z0-9-]*$/;
+
 /** Épaisseur par défaut des volumes (iso / 3D), commune à toutes les formes, en pixels de page. */
 export const DEFAULT_DEPTH = 32;
 

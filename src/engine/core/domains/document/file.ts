@@ -128,10 +128,21 @@ export class DocumentFile {
     this.livePageId = undefined;
     this.liveOwners.clear();
     for (const page of document.pages) freezeModel(page);
-    this.document = this.core.pageModes.withModeWarnings(document);
+    this.document = this.withPluginWarnings(document);
     this.geometry = new Map(document.pages.map((p) => [p.id, pageGeometry(p)]));
     this.xmlTree = tree;
     this.unsupportedReport = collectUnsupported(document, this.core.registry);
+  }
+
+  /**
+   * Avertissements des plugins ajoutés à ceux de la lecture (sujet 378) : modes (inconnus, données remises en ordre),
+   * effets inconnus, puis erreurs des plugins signalées jusque-là. Les formes inconnues vont au recensement des formes
+   * non prises en charge (`collectUnsupported`), pas aux avertissements.
+   */
+  private withPluginWarnings(document: DocumentModel): DocumentModel {
+    this.core.pageModes.withModeWarnings(document);
+    document.warnings.push(...this.core.pageEffects.warnings(document), ...this.core.pluginGuard.warnings());
+    return document;
   }
 
   /** Page écrite après un glisser : sa géométrie enregistrée suit. */
@@ -159,7 +170,7 @@ export class DocumentFile {
     this.livePageId = undefined;
     this.liveOwners.clear();
     for (const page of document.pages) freezeModel(page);
-    this.document = this.core.pageModes.withModeWarnings(document);
+    this.document = this.withPluginWarnings(document);
     this.geometry = new Map(document.pages.map((p) => [p.id, pageGeometry(p)]));
     this.unsupportedReport = collectUnsupported(this.document, this.core.registry);
     for (const id of changedPageIds) this.core.scenes.invalidate(id, true);

@@ -1,12 +1,14 @@
 import type { Object3D } from 'three';
 import type { DocumentModel, PageModel, ParseWarning } from '../model/types';
-import { SPATIAL } from '../spatial';
+import { PLUGIN_ID_PATTERN, SPATIAL } from '../spatial';
 import { pageRoom } from './room';
 import { pluginValues } from '../settings/pluginSettings';
 import type { PluginSettings, PluginValues } from '../settings/pluginSettings';
 import { facetShade } from '../render/iso/block';
 import type { EffectLight, EffectRoom, PageEffectDefinition } from './types';
 import { freezePlain, readonlyModel } from '../model/freeze';
+import { callPlugin } from '../diagnostics/pluginCalls';
+import type { PluginReport } from '../diagnostics/pluginCalls';
 
 /** Effets écrits sur une page (`spatial.effects`, séparés par des virgules), connus ou non, sans doublon. */
 export function pageEffectIds(page: PageModel): string[] {
@@ -32,14 +34,17 @@ export interface EffectRegistryView {
 }
 
 /**
- * Registre des effets de page (sujet 143). Le moteur et l'appli ne posent leurs questions qu'à lui ; `allows` (le
- * mode de la page, maître) filtre les effets actifs.
+ * Registre des effets de page (sujet 143) : déclaration des effets et questions sur eux ; `allows` (le mode de la page,
+ * maître) filtre les effets actifs. Le moteur ne l'interroge que par l'hôte des effets (`core/domains/effects/`, sujet
+ * 378), qui sait ce que le mode permet.
  */
 export class PageEffectRegistry {
   private readonly definitions = new Map<string, PageEffectDefinition>();
 
-  /** Un id déjà pris lève une exception (sujet 304). */
+  /** Lèvent une exception : un id déjà pris (sujet 304), un id hors de `PLUGIN_ID_PATTERN` (sujet 378). */
   register(definition: PageEffectDefinition): this {
+    if (typeof definition.id !== 'string' || !PLUGIN_ID_PATTERN.test(definition.id))
+      throw new Error(`Effet ${definition.id} : id invalide (minuscules, chiffres et tirets)`);
     if (this.definitions.has(definition.id)) throw new Error(`Effet ${definition.id} : id déjà pris`);
     // Gelée (sujet 303) : un plugin ne modifie pas la définition d'un autre.
     this.definitions.set(definition.id, freezePlain(definition));
@@ -108,8 +113,11 @@ export class PageEffectRegistry {
       settings?: PluginSettings;
       /** Réglages d'ombrage des volumes (`view.shadeLight`, `view.shadeDark`) ; absent = leurs défauts. */
       shading?: { light: number; dark: number };
-      /** Décor d'un effet qui lève une exception : la page s'affiche sans lui (sujet 288). */
-      onError?: (effectId: string, error: unknown) => void;
+      /**
+       * Erreur d'un décor (sujet 288) : la page s'affiche sans lui ; sans rapporteur, l'erreur va à la console (appel
+       * protégé commun, sujet 378).
+       */
+      report?: PluginReport;
     } = {},
   ): void {
     let room: EffectRoom | undefined;
@@ -117,14 +125,17 @@ export class PageEffectRegistry {
     const light: EffectLight = { shade: (normal) => facetShade(normal, shading?.light, shading?.dark) };
     for (const effect of this.active(page, options.allows)) {
       if (!effect.volume) continue;
-      room ??= pageRoom(page, root);
-      let object: Object3D | undefined;
-      try {
-        object = effect.volume(readonlyModel(page), room, this.values(effect.id, options.settings?.[effect.id]), light);
-      } catch (error) {
-        if (!options.onError) throw error;
-        options.onError(effect.id, error);
-      }
+      const { volume } = effect;
+      const effectRoom = (room ??= pageRoom(page, root));
+      const values = this.values(effect.id, options.settings?.[effect.id]);
+      const object = callPlugin(
+        'Effet',
+        effect.id,
+        'volume',
+        () => undefined,
+        () => volume(readonlyModel(page), effectRoom, values, light),
+        options.report,
+      );
       if (!object) continue;
       object.name = `effect:${effect.id}`;
       object.userData.effectId = effect.id;
@@ -133,7 +144,7 @@ export class PageEffectRegistry {
   }
 
   /** Effets inconnus (écrits par une version plus récente), pour le panneau Diagnostics. */
-  warnings(document: DocumentModel): ParseWarning[] {
+  warnings(document: Pick<DocumentModel, 'pages'>): ParseWarning[] {
     return document.pages.flatMap((page) =>
       pageEffectIds(page)
         .filter((id) => !this.definitions.has(id))

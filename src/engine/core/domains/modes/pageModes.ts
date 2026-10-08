@@ -10,7 +10,6 @@ import { freezeModel, readonlyModel } from '../../model/freeze';
 import { hasExactTextMeasure } from '../../render/textMeasure';
 import { applyModeEdit } from '../../modes/modeEdits';
 import { modeKeys } from '../../modes/modeKeys';
-import { pageEffectIds, withPageEffect } from '../../effects/registry';
 import type { PageEffectDefinition } from '../../effects/types';
 import type { ModeScope } from '../../modes/registry';
 import type {
@@ -30,8 +29,10 @@ import type { EngineCore } from '../EngineCore';
 export type EndAccepts = (shape: ShapeModel, point: Point) => boolean;
 
 /**
- * Modes et effets de page (sujets 69, 143) : choix du mode, réglages déclarés, opérations et touches du mode. Hôte des appels au mode de la page (sujet 288) : le reste du moteur passe par ses méthodes (ou par
- * `ShapeParts` et `ModeHandles`), qui protègent chaque appel (`PluginGuard`).
+ * Modes de page (sujet 69) : choix du mode, réglages déclarés, opérations et touches du mode. Hôte des appels au mode de
+ * la page (sujet 288) : le reste du moteur passe par ses méthodes (ou par `ShapeParts` et `ModeHandles`), qui protègent
+ * chaque appel (`PluginGuard`, appel protégé commun aux plugins, sujet 378). Les effets ont leur hôte (`PageEffects`),
+ * qui ne demande au mode que s'il permet un effet (`allowsEffect`).
  */
 export class PageModes {
   constructor(private readonly core: EngineCore) {}
@@ -41,7 +42,7 @@ export class PageModes {
    * comme absent) s'il lève une exception, signalée dans les Diagnostics.
    */
   guard<T>(mode: PageModeDefinition, hook: string, fallback: T, run: () => T): T {
-    return this.core.pluginGuard.call(`Mode ${mode.id}`, hook, fallback, run);
+    return this.core.pluginGuard.call('Mode', mode.id, hook, fallback, run);
   }
 
   setPageMode(pageId: string, modeId: string | undefined): void {
@@ -53,17 +54,6 @@ export class PageModes {
     this.core.edits.recordEdit(name ? `Mode ${name}` : 'Page normale');
     setPageAttribute(pageTree, SPATIAL.mode, modeId);
     this.core.file.documentChanged([pageId]);
-  }
-
-  setPageEffect(pageId: string, effectId: string, enabled: boolean): void {
-    const target = this.core.targets.editablePageById(pageId);
-    if (!target) return;
-    const { page, pageTree } = target;
-    if (pageEffectIds(page).includes(effectId) === enabled) return;
-    const name = this.core.effects.get(effectId)?.name ?? effectId;
-    this.core.edits.recordEdit(enabled ? `Effet ${name}` : `Sans effet ${name}`);
-    setPageAttribute(pageTree, SPATIAL.effects, withPageEffect(page, effectId, enabled));
-    this.core.file.documentChanged([pageId], { distribute: false });
   }
 
   /**
@@ -443,16 +433,14 @@ export class PageModes {
   }
 
   /**
-   * Avertissements des modes de page (mode inconnu, données remises en ordre) et des effets ajoutés à ceux de la
-   * lecture, puis les erreurs des plugins (sujet 288).
+   * Avertissements des modes de page ajoutés à ceux de la lecture, page par page : mode inconnu (registre), données
+   * remises en ordre (`lifecycle.check`). `DocumentFile` y ajoute ceux des effets et les erreurs des plugins (sujet 378).
    */
   withModeWarnings(document: DocumentModel): DocumentModel {
     for (const page of document.pages) {
-      const id = this.core.modes.modeId(page);
-      if (id === undefined) continue;
-      const mode = this.core.modes.get(id);
+      const mode = this.core.modes.modeOf(page);
       if (!mode) {
-        document.warnings.push({ pageId: page.id, message: `Mode de page inconnu : ${id}` });
+        document.warnings.push(...this.core.modes.warnings({ pages: [page] }));
         continue;
       }
       const lifecycle = mode.lifecycle;
@@ -461,7 +449,6 @@ export class PageModes {
         : [];
       document.warnings.push(...issues.map((issue) => ({ pageId: page.id, ...issue })));
     }
-    document.warnings.push(...this.core.effects.warnings(document), ...this.core.pluginGuard.warnings());
     return document;
   }
 }

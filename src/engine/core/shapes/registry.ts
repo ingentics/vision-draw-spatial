@@ -21,6 +21,8 @@ import { outlinePainter } from './minimapOutline';
 import { insidePolygon } from '../model/geometry';
 import { styleFlag } from '../model/styleValues';
 import { freezePlain, readonlyModel } from '../model/freeze';
+import { callPlugin } from '../diagnostics/pluginCalls';
+import type { PluginReport } from '../diagnostics/pluginCalls';
 
 /** Erreur levée par une forme (`hook` : point d'entrée, ex. `flat.create`), pour les Diagnostics. */
 export type ShapeErrorHandler = (shapeId: string, hook: string, error: unknown) => void;
@@ -52,17 +54,22 @@ export interface ResolvedShape {
  * de composition (`plugins/index.ts`) les enregistre.
  * Le registre résout la définition d'une forme, puis le rendu d'un niveau avec repli sur `flat`.
  *
- * Il protège chaque appel à une forme (sujet 300) : une forme qui lève une exception n'arrête ni la lecture, ni le
- * rendu, ni le geste. Le point d'entrée est traité comme absent (repli indiqué par chaque méthode) et l'erreur va à
- * `onError` (le moteur la signale dans les Diagnostics), sinon à la console.
+ * Il protège chaque appel à une forme (sujet 300) par l'appel protégé commun aux plugins (`callPlugin`, sujet 378) : une
+ * forme qui lève une exception n'arrête ni la lecture, ni le rendu, ni le geste. Le point d'entrée est traité comme
+ * absent (repli indiqué par chaque méthode) et l'erreur va à `onError` (le moteur la signale dans les Diagnostics),
+ * sinon à la console.
  */
 export class ShapeRegistry {
+  private readonly report: PluginReport | undefined;
+
   constructor(
     private readonly fallback: ShapeDefinition = placeholderShape,
     private readonly definitions: ShapeDefinition[] = [],
-    private readonly onError?: ShapeErrorHandler,
+    onError?: ShapeErrorHandler,
     private readonly categoryList: PaletteCategory[] = [],
-  ) {}
+  ) {
+    this.report = onError && ((_family, id, hook, error) => onError(id, hook, error));
+  }
 
   /** Le même registre (mêmes formes, y compris celles enregistrées ensuite), dont les erreurs des formes vont à `onError`. */
   reportingTo(onError: ShapeErrorHandler): ShapeRegistry {
@@ -87,13 +94,7 @@ export class ShapeRegistry {
 
   /** Appel protégé du point d'entrée `hook` de `definition` : sa valeur, ou celle de `fallback` s'il lève une exception. */
   private guard<T>(definition: ShapeDefinition, hook: string, fallback: () => T, run: () => T): T {
-    try {
-      return run();
-    } catch (error) {
-      if (this.onError) this.onError(definition.id, hook, error);
-      else console.error(`Forme ${definition.id} : erreur dans ${hook}`, error);
-      return fallback();
-    }
+    return callPlugin('Forme', definition.id, hook, fallback, run, this.report);
   }
 
   /** Un id déjà pris lève une exception (sujet 304) : une forme ne remplace pas une autre en silence. */

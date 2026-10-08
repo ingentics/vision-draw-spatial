@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { EngineCore } from '../../../../../src/engine/core/domains/EngineCore';
 import { PageModes } from '../../../../../src/engine/core/domains/modes/pageModes';
 import { ShapeParts } from '../../../../../src/engine/core/domains/modes/shapeParts';
-import { PluginGuard } from '../../../../../src/engine/core/domains/modes/pluginGuard';
+import { PluginGuard } from '../../../../../src/engine/core/domains/runtime/pluginGuard';
 import { PageEffectRegistry } from '../../../../../src/engine/core/effects/registry';
 import { readDrawio } from '../../../../../src/engine/core/format/parse';
 import { writeDrawio } from '../../../../../src/engine/core/format/write';
@@ -121,15 +121,6 @@ describe('hôte des appels aux modes (sujet 288)', () => {
     // Les Diagnostics sont republiés une fois, après l'appel en cours.
     await Promise.resolve();
     expect(state.published).toBe(1);
-  });
-
-  it('les avertissements du document incluent les erreurs signalées à la lecture', () => {
-    const { document, modes } = setup();
-    modes.withModeWarnings(document);
-    expect(document.warnings).toContainEqual({
-      message: 'Mode boom : erreur dans lifecycle.check (panne)',
-      level: 'error',
-    });
   });
 
   it('réglages déclarés évalués pour le panneau (sujet 294) : un point d’entrée en panne est traité comme absent', () => {

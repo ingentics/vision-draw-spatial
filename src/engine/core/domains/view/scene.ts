@@ -40,13 +40,7 @@ export class SceneView {
     const core = this.core;
     const scene = buildPageScene(page, core.registry, this.renderContext(page), level, core.pageModes.dressing(page));
     // Décors des effets de la page : en volume seulement (iso / 3D).
-    if (level === 'iso')
-      core.effects.decorate(page, scene.root, {
-        allows: (effect) => core.pageModes.allowsEffect(page, effect),
-        settings: core.settings.effects,
-        shading: { light: core.settings.view.shadeLight, dark: core.settings.view.shadeDark },
-        onError: (effectId, error) => core.pluginGuard.report(`Effet ${effectId}`, 'volume', error),
-      });
+    if (level === 'iso') core.pageEffects.decorate(page, scene.root);
     return scene;
   }
 
@@ -57,8 +51,7 @@ export class SceneView {
       page,
       core.registry,
       core.levels.requestedLevel(),
-      core.effects.hasVolume(page, (effect) => core.pageModes.allowsEffect(page, effect)) ||
-        core.jumps.hasRaisedJumps(page),
+      core.pageEffects.hasVolume(page) || core.jumps.hasRaisedJumps(page),
     );
   }
 

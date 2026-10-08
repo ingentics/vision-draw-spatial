@@ -212,7 +212,8 @@ alors dessinée en placeholder) : une forme dessine sans rien modifier ; pour un
 
 ### Une forme en panne
 
-Le moteur appelle une forme par son registre, qui protège chaque appel (sujet 300) : une fonction de la définition qui
+Le moteur appelle une forme par son registre, qui protège chaque appel (sujet 300 ; appel protégé commun aux formes,
+modes et effets, `core/diagnostics/pluginCalls.ts`, sujet 378) : une fonction de la définition qui
 lève une exception n'empêche ni d'ouvrir le fichier, ni de dessiner la page, ni de sélectionner ou d'éditer la forme.
 Le point d'entrée est traité comme absent et l'erreur est signalée une fois par session dans les Diagnostics
 (« Forme <id> : erreur dans <point d'entrée> ») :

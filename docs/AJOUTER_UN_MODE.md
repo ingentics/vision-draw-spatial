@@ -26,7 +26,8 @@ src/app/plugins/modes/<id>/     l'appli (facultatif) : sections React du panneau
 └── index.tsx                   export const panel: ModePanel = { PageSection }
 ```
 
-- L'`id` du mode est le nom de ses dossiers et la valeur de `spatial.mode` sur `<diagram>`. La racine de composition
+- L'`id` du mode est le nom de ses dossiers et la valeur de `spatial.mode` sur `<diagram>` (`^[a-z][a-z0-9-]*$`,
+  vérifié à l'enregistrement). La racine de composition
   (`src/engine/plugins/index.ts`) collecte le dossier ; le contrat est dans `src/engine/core/modes/types.ts`.
 - Un mode importe du tronc **seulement l'API des plugins** ([core/plugins/index.ts](../src/engine/core/plugins/index.ts),
   sujet 287) ; ses formes peuvent étendre une forme générale (`plugins/shapes/`). Règle complète des frontières
@@ -94,7 +95,8 @@ l'enregistrement.
 Les points d'entrée sont rangés par groupe (sujet 295) : `page`, `lifecycle`, `edges`, `gestures`, `parts`,
 `current`. Dans la suite, un point d'entrée est désigné par son chemin (ex. `gestures.placed`).
 
-Le moteur appelle ces points d'entrée depuis un seul endroit (`core/domains/modes/`, sujet 288), chacun protégé : un
+Le moteur appelle ces points d'entrée depuis un seul endroit (`core/domains/modes/`, sujet 288), chacun protégé par
+l'appel protégé commun aux formes, modes et effets (`core/diagnostics/pluginCalls.ts`, sujet 378) : un
 point d'entrée qui lève une exception est traité comme absent (pas d'habillage, pas de borne, accroche permise…), et
 l'erreur est signalée une fois dans les Diagnostics (« Mode <id> : erreur dans <point d'entrée> »). Une opération
 (`ModeEdit`) qui lève une exception n'écrit rien : ses écritures ne sont appliquées qu'une fois l'opération terminée.

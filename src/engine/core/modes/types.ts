@@ -20,7 +20,7 @@ import type { PaletteCategory } from '../shapes/types';
  * 178), id préfixé par celui du mode.
  */
 export interface PageModeDefinition {
-  /** Identifiant, valeur de `spatial.mode` : nom du dossier. */
+  /** Identifiant, valeur de `spatial.mode` : nom du dossier (`^[a-z][a-z0-9-]*$`, vérifié à l'enregistrement). */
   id: string;
   /**
    * Espace de noms des clés du mode (sujet 301, `^[a-z][a-z0-9]*$`, ex. `seq`) : il les écrit sous

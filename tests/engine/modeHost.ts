@@ -1,6 +1,6 @@
 import type { EngineCore } from '../../src/engine/core/domains/EngineCore';
 import { PageModes } from '../../src/engine/core/domains/modes/pageModes';
-import { PluginGuard } from '../../src/engine/core/domains/modes/pluginGuard';
+import { PluginGuard } from '../../src/engine/core/domains/runtime/pluginGuard';
 import { PageEffectRegistry } from '../../src/engine/core/effects/registry';
 import type { DocumentModel } from '../../src/engine/core/model/types';
 import type { PageModeRegistry } from '../../src/engine/core/modes/registry';

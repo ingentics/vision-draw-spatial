@@ -16,6 +16,8 @@ export function liveCore(xml: string) {
   const core = {
     registry: createDefaultRegistry(),
     pageModes: { withModeWarnings: (document: DocumentModel) => document },
+    pageEffects: { warnings: () => [] },
+    pluginGuard: { warnings: () => [] },
     selection: { rebind: () => {} },
     scenes: { current: undefined, invalidate: () => {} },
     sceneView: { sceneObject: () => undefined },

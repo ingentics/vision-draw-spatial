@@ -267,3 +267,22 @@ describe('réglages déclarés par un mode (ticket 283)', () => {
     ).toBe(7);
   });
 });
+
+describe('registre des modes : id et modes inconnus (sujet 378)', () => {
+  it('id hors de ^[a-z][a-z0-9-]*$ refusé à l’enregistrement : il est écrit dans spatial.mode', () => {
+    const registry = new PageModeRegistry();
+    for (const id of ['Rdd', 'a,b', 'a b', '1er', ''])
+      expect(() => registry.register({ id, namespace: 'n', name: id })).toThrow('id invalide');
+    expect(() => registry.register({ id: 'mode-2', namespace: 'n', name: 'Mode 2' })).not.toThrow();
+  });
+
+  it('avertissement pour une page d’un mode inconnu, rien pour une page normale ou d’un mode connu', () => {
+    const registry = new PageModeRegistry().register({ id: 'connu', namespace: 'connu', name: 'Connu' });
+    const diagram = (id: string, mode = '') =>
+      `<diagram id="${id}" name="${id}"${mode}><mxGraphModel><root><mxCell id="0"/></root></mxGraphModel></diagram>`;
+    const { document } = readDrawio(
+      `<mxfile>${diagram('a')}${diagram('b', ' spatial.mode="connu"')}${diagram('c', ' spatial.mode="plus-tard"')}</mxfile>`,
+    );
+    expect(registry.warnings(document)).toEqual([{ pageId: 'c', message: 'Mode de page inconnu : plus-tard' }]);
+  });
+});
