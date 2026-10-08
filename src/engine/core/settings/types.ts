@@ -223,15 +223,15 @@ export interface StyleSettings {
   text: TextPreset[];
 }
 
-/** Vue graphe (SPEC §12) : disposition des cartes de pages. */
+/** Vue graphe (SPEC §12) : disposition des nœuds de pages. */
 export interface GraphSettings {
   cardWidth: number;
   columnGap: number;
   rowGap: number;
   /** Écart entre les deux arcs d'un aller-retour, pour qu'ils ne se superposent pas. */
   pairOffset: number;
-  /** Couleurs (#rrggbb) : cadre d'une carte, page orpheline, page inaccessible, arcs, titres. La page de départ prend
-   * la couleur d'accent (`selection.accentColor`). */
+  /** Couleurs (#rrggbb) : cadre d'un nœud, page orpheline, page inaccessible, arcs, noms des pages. La page de départ
+   * prend la couleur d'accent (`selection.accentColor`). */
   cardColor: string;
   orphanColor: string;
   unreachableColor: string;

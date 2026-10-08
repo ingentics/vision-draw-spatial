@@ -1,16 +1,13 @@
-import { distance } from '../../engine';
+import { distance, NODE_HEIGHT, STATUS_HEIGHT } from '../../engine';
 import type { BackgroundSettings, GraphSettings, Point, Rect } from '../../engine';
 import { ArrowHead, PreviewFrame, pathOf } from './previewParts';
 
-/** Proportions d'une carte (hauteur / largeur), entre les bornes de la vue graphe (`graphPage.ts`). */
-const CARD_RATIO = 0.55;
-/** Hauteur du titre au-dessus d'une carte (`graphPage.ts` : 26). */
-const TITLE_HEIGHT = 26;
 const MARGIN = 20;
 
 /**
- * Aperçu de la vue graphe (sujet 320) : la page de départ (couleur d'accent) reliée dans les deux sens à une page, et
- * dessous une page orpheline et une inaccessible (cadres en tirets) ; tailles et écarts réglés, comme `graphPage.ts`.
+ * Aperçu de la vue graphe (sujets 320, 362) : la page de départ (couleur d'accent) reliée dans les deux sens à une
+ * page, et dessous une page orpheline et une inaccessible (cadres en tirets) ; tailles et écarts réglés, comme
+ * `graphPage.ts`.
  */
 export function GraphPreview({
   graph,
@@ -22,38 +19,51 @@ export function GraphPreview({
   accent: string;
 }) {
   const width = graph.cardWidth;
-  const height = graph.cardWidth * CARD_RATIO;
+  const height = NODE_HEIGHT;
   const card = (column: number, row: number): Rect => ({
     x: MARGIN + column * (width + graph.columnGap),
-    y: MARGIN + TITLE_HEIGHT + row * (height + graph.rowGap + TITLE_HEIGHT),
+    y: MARGIN + STATUS_HEIGHT + row * (height + graph.rowGap + STATUS_HEIGHT),
     width,
     height,
   });
   const start = card(0, 0);
   const page = card(1, 0);
   const cards = [
-    { rect: start, title: 'Accueil  ·  départ', stroke: accent, dashed: false },
-    { rect: page, title: 'Architecture', stroke: graph.cardColor, dashed: false },
-    { rect: card(0, 1), title: 'Brouillon  ·  orpheline', stroke: graph.orphanColor, dashed: true },
-    { rect: card(1, 1), title: 'Annexe  ·  inaccessible', stroke: graph.unreachableColor, dashed: true },
+    { rect: start, name: 'Accueil', status: 'départ', stroke: accent, dashed: false },
+    { rect: page, name: 'Architecture', status: '', stroke: graph.cardColor, dashed: false },
+    { rect: card(0, 1), name: 'Brouillon', status: 'orpheline', stroke: graph.orphanColor, dashed: true },
+    { rect: card(1, 1), name: 'Annexe', status: 'inaccessible', stroke: graph.unreachableColor, dashed: true },
   ];
   const viewWidth = 2 * MARGIN + 2 * width + graph.columnGap;
-  const viewHeight = 2 * MARGIN + 2 * (height + TITLE_HEIGHT) + graph.rowGap;
+  const viewHeight = 2 * MARGIN + 2 * (height + STATUS_HEIGHT) + graph.rowGap;
   return (
     <PreviewFrame background={background} height={250} zoom={0.5} viewBox={`0 0 ${viewWidth} ${viewHeight}`}>
-      {cards.map(({ rect, title, stroke, dashed }, i) => (
+      {cards.map(({ rect, name, status, stroke, dashed }, i) => (
         <g key={i}>
           <rect
             {...rect}
             rx={12}
-            fill="none"
+            fill="#ffffff"
             stroke={stroke}
             strokeWidth={2}
             strokeDasharray={dashed ? '6 4' : undefined}
           />
-          <text x={rect.x} y={rect.y - 4} fontSize={15} fontWeight="bold" fill={dashed ? stroke : graph.titleColor}>
-            {title}
+          <text
+            x={rect.x + rect.width / 2}
+            y={rect.y + rect.height / 2}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontSize={15}
+            fontWeight="bold"
+            fill={graph.titleColor}
+          >
+            {name}
           </text>
+          {status && (
+            <text x={rect.x} y={rect.y - 4} fontSize={12} fill={stroke}>
+              {status}
+            </text>
+          )}
         </g>
       ))}
       {[link(start, page, graph.pairOffset), link(page, start, graph.pairOffset)].map((points, i) => (

@@ -46,7 +46,7 @@ export type { OrderMove } from './core/format/order';
 export { DrawioParseError, parseDrawio } from './core/format/parse';
 export { isMonospace, isRich, parseColor, parseRichHtml, richToHtml, richToText } from './core/format/richText';
 export { createEmptyDrawio } from './core/format/skeleton';
-export { GRAPH_PAGE_ID } from './core/graph/graphPage';
+export { GRAPH_PAGE_ID, NODE_HEIGHT, STATUS_HEIGHT } from './core/graph/graphPage';
 export type {
   DocumentModel,
   EdgeModel,

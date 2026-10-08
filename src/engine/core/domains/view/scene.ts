@@ -5,7 +5,6 @@ import { buildPageScene, effectiveLevel } from '../../render/pageScene';
 import type { PageScene } from '../../render/pageScene';
 import { outsideLabelBox } from '../../render/labelPosition';
 import type { EngineCore } from '../EngineCore';
-import { buildGraphScene } from '../../graph/graphScene';
 import type { SceneLevel } from '../../shapes/types';
 import type { Settings } from '../../settings';
 import type { ReadonlyShapeModel } from '../../model/readonly';
@@ -29,7 +28,7 @@ export class SceneView {
     this.core.scenes.setMaxCached(settings.preload.maxCachedPages);
   }
 
-  /** Scène d'une page à un niveau de rendu (vue graphe comprise), sa durée de construction mesurée. */
+  /** Scène d'une page à un niveau de rendu (vue graphe comprise, page générée ordinaire), sa durée de construction mesurée. */
   buildScene(page: PageModel, level: SceneLevel): PageScene {
     const start = performance.now();
     const scene = this.createScene(page, level);
@@ -39,9 +38,6 @@ export class SceneView {
 
   private createScene(page: PageModel, level: SceneLevel): PageScene {
     const core = this.core;
-    const layout = core.graph.layout;
-    if (core.graph.isGraph(page.id) && layout && core.file.document)
-      return buildGraphScene(page, layout, core.file.document, core.registry, this.renderContext(page), level);
     const scene = buildPageScene(page, core.registry, this.renderContext(page), level, core.pageModes.dressing(page));
     // Décors des effets de la page : en volume seulement (iso / 3D).
     if (level === 'iso')

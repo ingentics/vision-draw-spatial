@@ -1,33 +1,27 @@
 import { fitBounds } from '../../interaction/cameraMath';
 import { buildGraphPage, cardId, GRAPH_PAGE_ID } from '../../graph/graphPage';
-import type { GraphLayout } from '../../graph/graphPage';
 import type { PageModel } from '../../model/types';
 import type { EngineCore } from '../EngineCore';
 import { settingsSectionChanged } from '../../settings';
 import type { Settings } from '../../settings';
 
 /**
- * Vue graphe du document (SPEC §12) : page générée (cartes des pages, flèches des liens), aller-retour avec la dernière
+ * Vue graphe du document (SPEC §12) : page générée (nœuds des pages, flèches des liens), aller-retour avec la dernière
  * page.
  */
 export class GraphView {
   /** Vue graphe du document (SPEC §12), construite à la première demande. */
-  private cache: { page: PageModel; layout: GraphLayout } | undefined;
+  private cache: PageModel | undefined;
 
   constructor(private readonly core: EngineCore) {}
 
-  /** Paramètres changés : la vue graphe suit ses réglages et la couleur d'accent (carte de départ). */
+  /** Paramètres changés : la vue graphe suit ses réglages et la couleur d'accent (nœud de départ). */
   settingsChanged(settings: Settings, previous: Settings): void {
     if (
       settingsSectionChanged(settings, previous, 'graph') ||
       settings.selection.accentColor !== previous.selection.accentColor
     )
       this.invalidate();
-  }
-
-  /** Disposition de la vue graphe, si elle est construite. */
-  get layout(): GraphLayout | undefined {
-    return this.cache?.layout;
   }
 
   /** Document ou paramètres changés : la vue graphe sera reconstruite à la prochaine demande. */
@@ -41,7 +35,7 @@ export class GraphView {
   }
 
   /**
-   * Une page du document a changé : la vue graphe et ses scènes (miniatures) sont à reconstruire ; `includeCurrent` :
+   * Une page du document a changé (noms, liens) : la vue graphe et ses scènes sont à reconstruire ; `includeCurrent` :
    * la scène affichée aussi (voir `SceneManager.invalidate`).
    */
   invalidateWithScenes(includeCurrent = false): void {
@@ -64,8 +58,8 @@ export class GraphView {
       unreachable: graph.unreachableColor,
       arc: graph.arcColor,
       title: graph.titleColor,
-    });
-    return this.cache.page;
+    }).page;
+    return this.cache;
   }
 
   isGraphView(): boolean {

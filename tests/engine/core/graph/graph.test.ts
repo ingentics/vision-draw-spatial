@@ -1,4 +1,4 @@
-import { Object3D, Vector3 } from 'three';
+import { Object3D } from 'three';
 import { describe, expect, it } from 'vitest';
 import { parseDrawio } from '../../../../src/engine/core/format/parse';
 import {
@@ -8,10 +8,10 @@ import {
   buildGraphPage,
   cardId,
   layoutGraph,
-  titleId,
+  NODE_HEIGHT,
+  statusId,
 } from '../../../../src/engine/core/graph/graphPage';
-import { buildGraphScene } from '../../../../src/engine/core/graph/graphScene';
-import { embedIn } from '../../../../src/engine/core/interaction/transitionMath';
+import { buildPageScene } from '../../../../src/engine/core/render/pageScene';
 import { buildNavigationGraph } from '../../../../src/engine/core/model/navigationGraph';
 import { fixture } from '../../../helpers';
 import { createDefaultRegistry } from '../../../../src/engine/plugins';
@@ -56,7 +56,7 @@ describe('layoutGraph', () => {
     expect(columnX('archi')).toBeLessThan(columnX('orphan'));
   });
 
-  it('les cartes ne se chevauchent pas', () => {
+  it('les nœuds ne se chevauchent pas', () => {
     const { cards } = layoutGraph(parents);
     for (const a of cards) {
       for (const b of cards) {
@@ -75,31 +75,41 @@ describe('layoutGraph', () => {
 describe('buildGraphPage', () => {
   const { page } = buildGraphPage(parents);
 
-  it('une page générée : carte + titre par page, liens vers les pages', () => {
+  it('une page générée : un nœud par page portant son nom, lien vers la page', () => {
     expect(page.id).toBe(GRAPH_PAGE_ID);
     expect(page.shapes.filter((s) => s.id.startsWith('graph-card:'))).toHaveLength(4);
     const card = page.shapes.find((s) => s.id === cardId('detail'))!;
     expect(card.link).toEqual({ type: 'page', pageId: 'detail' });
-    expect(page.shapes.find((s) => s.id === titleId('detail'))!.label).toBe('Détail');
+    expect(card.label).toBe('Détail');
   });
 
-  it('statuts visibles : départ, inaccessible, orpheline', () => {
-    const title = (id: string) => page.shapes.find((s) => s.id === titleId(id))!.label;
-    expect(title('home')).toBe('Accueil  ·  départ');
-    expect(title('archi')).toBe('Architecture  ·  inaccessible');
-    expect(title('orphan')).toBe('Orpheline  ·  orpheline');
+  it('nœuds de taille fixe, quelles que soient les dimensions des pages', () => {
+    const { cards } = layoutGraph(parents);
+    expect(new Set(cards.map((c) => `${c.bounds.width}×${c.bounds.height}`))).toEqual(
+      new Set([`${DEFAULT_GRAPH_LAYOUT.cardWidth}×${NODE_HEIGHT}`]),
+    );
+  });
+
+  it('statuts visibles au-dessus du nœud : départ, inaccessible, orpheline ; rien pour une page ordinaire', () => {
+    const status = (id: string) => page.shapes.find((s) => s.id === statusId(id))?.label;
+    expect(status('home')).toBe('départ');
+    expect(status('archi')).toBe('inaccessible');
+    expect(status('orphan')).toBe('orpheline');
+    expect(status('detail')).toBeUndefined();
     expect(page.shapes.find((s) => s.id === cardId('orphan'))!.style.dashed).toBe('1');
+    expect(page.shapes.find((s) => s.id === cardId('home'))!.style.dashed).toBeUndefined();
   });
 
-  it('couleurs fournies : départ, orpheline, arcs', () => {
-    const colors = { ...GRAPH_COLORS, start: '#00aa00', orphan: '#123456', arc: '#abcdef' };
+  it('couleurs fournies : départ, orpheline, arcs, noms', () => {
+    const colors = { ...GRAPH_COLORS, start: '#00aa00', orphan: '#123456', arc: '#abcdef', title: '#111111' };
     const { page: colored } = buildGraphPage(parents, DEFAULT_GRAPH_LAYOUT, colors);
     expect(colored.shapes.find((s) => s.id === cardId('home'))!.style.strokeColor).toBe('#00aa00');
-    expect(colored.shapes.find((s) => s.id === titleId('orphan'))!.style.fontColor).toBe('#123456');
+    expect(colored.shapes.find((s) => s.id === statusId('orphan'))!.style.fontColor).toBe('#123456');
+    expect(colored.shapes.find((s) => s.id === cardId('orphan'))!.style.fontColor).toBe('#111111');
     expect(colored.edges[0]!.style.strokeColor).toBe('#abcdef');
   });
 
-  it('flèches entre cartes, nombre de liens si plusieurs', () => {
+  it('flèches entre nœuds, nombre de liens si plusieurs', () => {
     const arc = page.edges.find((e) => e.id === 'graph-link:archi>detail')!;
     expect(arc).toMatchObject({ sourceId: cardId('archi'), targetId: cardId('detail'), label: '×2' });
   });
@@ -116,24 +126,17 @@ describe('buildGraphPage', () => {
     const points = merged.edges.map((e) => e.points[0]);
     expect(points[0]).toEqual(points[1]);
   });
-});
 
-describe('buildGraphScene', () => {
-  it('chaque carte contient la vraie page, posée exactement comme pendant la plongée (transition continue)', () => {
-    const { page, layout } = buildGraphPage(parents);
+  it('sa scène ne dessine aucun élément des pages du document (pas de miniature, sujet 362)', () => {
     const ctx = { text: { create: () => new Object3D() } };
-    const scene = buildGraphScene(page, layout, parents, createDefaultRegistry(), ctx, 'flat');
-    scene.root.updateMatrixWorld(true);
-    const thumbnail = scene.root.getObjectByName('thumbnail:detail')!;
-    const detail = parents.pages.find((p) => p.id === 'detail')!;
-    const card = layout.cards.find((c) => c.pageId === 'detail')!;
-    const { scale, offset } = embedIn(detail.bounds, card.bounds);
-    // Un point de la page Détail, vu dans la miniature, tombe à scale·p + offset (sol : X = x, Z = y).
-    const world = new Vector3(10, 20, 0).applyMatrix4(thumbnail.matrixWorld);
-    expect(world.x).toBeCloseTo(scale * 10 + offset.x);
-    expect(world.y).toBeCloseTo(0);
-    expect(world.z).toBeCloseTo(scale * 20 + offset.y);
-    // Pas de miniature pour une page vide.
-    expect(scene.root.getObjectByName('thumbnail:orphan')).toBeUndefined();
+    const scene = buildPageScene(page, createDefaultRegistry(), ctx, 'flat');
+    const documentIds = new Set(parents.pages.flatMap((p) => [...p.shapes, ...p.edges].map((e) => e.id)));
+    const drawn: string[] = [];
+    scene.root.traverse((object) => {
+      const id = object.userData.elementId as string | undefined;
+      if (id !== undefined) drawn.push(id);
+    });
+    expect(drawn.length).toBeGreaterThan(0);
+    expect(drawn.filter((id) => documentIds.has(id))).toEqual([]);
   });
 });

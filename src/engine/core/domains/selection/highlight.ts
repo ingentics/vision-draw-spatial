@@ -169,10 +169,7 @@ export class SelectionHighlight {
     }
     const lifted = root.children.filter((c) => {
       const elementId = c.userData.elementId as string | undefined;
-      const partner = c.userData.highlightWith as string | undefined;
-      return (
-        (elementId !== undefined && highlighted.has(elementId)) || (partner !== undefined && highlighted.has(partner))
-      );
+      return elementId !== undefined && highlighted.has(elementId);
     });
     this.veil = { key: veilKey, object, restore: liftAboveVeil(lifted) };
     return veilKey;

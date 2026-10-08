@@ -748,7 +748,7 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
               </Subsection>
               <Subsection title="Vue graphe">
                 <Slider
-                  label="Largeur des cartes de pages"
+                  label="Largeur des nœuds de pages"
                   value={graph.cardWidth}
                   limits={SETTINGS_LIMITS['graph.cardWidth']}
                   format={(v) => `${v} px`}
@@ -762,7 +762,7 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   onChange={(columnGap) => onChange({ graph: { columnGap } })}
                 />
                 <Slider
-                  label="Écart entre les cartes d’une colonne"
+                  label="Écart entre les nœuds d’une colonne"
                   value={graph.rowGap}
                   limits={SETTINGS_LIMITS['graph.rowGap']}
                   format={(v) => `${v} px`}
@@ -776,7 +776,7 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   onChange={(pairOffset) => onChange({ graph: { pairOffset } })}
                 />
                 <ColorField
-                  label="Cadre des cartes"
+                  label="Cadre des nœuds"
                   value={graph.cardColor}
                   onChange={(cardColor) => onChange({ graph: { cardColor } })}
                 />
@@ -796,7 +796,7 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   onChange={(arcColor) => onChange({ graph: { arcColor } })}
                 />
                 <ColorField
-                  label="Titres des cartes"
+                  label="Noms des pages"
                   value={graph.titleColor}
                   onChange={(titleColor) => onChange({ graph: { titleColor } })}
                 />

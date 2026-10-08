@@ -4,38 +4,41 @@ import type { DocumentModel, EdgeModel, PageModel, Point, Rect, ShapeModel } fro
 
 /**
  * Vue graphe de la documentation (SPEC §12), sous forme d'une **page générée** : chaque page du
- * fichier devient une carte (cadre + titre), chaque lien entre pages une flèche. Comme c'est un
+ * fichier devient un nœud (cadre portant son nom), chaque lien entre pages une flèche. Comme c'est un
  * `PageModel` ordinaire, rendu, sélection, liens, transitions et mini-carte fonctionnent tels quels.
- * Les miniatures des pages sont posées dans les cartes par la scène du graphe (`graphScene.ts`).
+ * Le contenu des pages n'est jamais dessiné, et la disposition n'utilise que leurs noms et leurs liens
+ * (sujet 362) : le coût de la vue ne dépend que du nombre de pages et de liens.
  */
 
 export const GRAPH_PAGE_ID = '__graph__';
 export const GRAPH_PAGE_NAME = 'Vue graphe';
 
-/** Disposition des cartes (paramètres « Vue graphe »). */
+/** Disposition des nœuds (paramètres « Vue graphe »). */
 export interface GraphLayoutOptions {
-  /** Largeur d'une carte ; la hauteur suit les proportions de la page. */
+  /** Largeur d'un nœud ; sa hauteur est fixe (`NODE_HEIGHT`). */
   cardWidth: number;
   columnGap: number;
-  /** Espace vertical entre cartes (le titre se place au-dessus de chaque carte). */
+  /** Espace vertical entre nœuds (le statut se place au-dessus de chaque nœud). */
   rowGap: number;
   /** Décalage des deux flèches d'un aller-retour, pour qu'elles ne se superposent pas. */
   pairOffset: number;
 }
 
 export const DEFAULT_GRAPH_LAYOUT: GraphLayoutOptions = { cardWidth: 260, columnGap: 200, rowGap: 90, pairOffset: 16 };
-/** Hauteur d'une carte bornée, en fraction de sa largeur. */
-const CARD_MIN_RATIO = 110 / 260;
-const CARD_MAX_RATIO = 1;
-const TITLE_HEIGHT = 26;
+/** Hauteur d'un nœud : deux lignes du nom en 15 px. Fixe, pour ne pas dépendre des dimensions de la page. */
+export const NODE_HEIGHT = 56;
+/** Hauteur réservée au statut (« départ », « orpheline »…) au-dessus de chaque nœud. */
+export const STATUS_HEIGHT = 20;
 
 /** Couleurs de la vue graphe (#rrggbb) : `start` = couleur d'accent, les autres = paramètres `graph.*Color`. */
 export interface GraphColors {
+  /** Cadre d'un nœud ordinaire. */
   card: string;
   start: string;
   orphan: string;
   unreachable: string;
   arc: string;
+  /** Nom des pages, dans les nœuds. */
   title: string;
 }
 
@@ -50,7 +53,7 @@ export const GRAPH_COLORS: GraphColors = {
 
 export interface GraphCard {
   pageId: string;
-  /** Cadre de la carte, en coordonnées de la page graphe. */
+  /** Cadre du nœud, en coordonnées de la page graphe. */
   bounds: Rect;
   node: GraphNode;
 }
@@ -61,7 +64,7 @@ export interface GraphLayout {
 }
 
 export const cardId = (pageId: string) => `graph-card:${pageId}`;
-export const titleId = (pageId: string) => `graph-title:${pageId}`;
+export const statusId = (pageId: string) => `graph-status:${pageId}`;
 
 /**
  * Disposition en colonnes : distance (en liens) depuis la première page ; puis une colonne pour
@@ -80,30 +83,25 @@ export function layoutGraph(document: DocumentModel, options = DEFAULT_GRAPH_LAY
     const column = columnOf(node);
     columns.set(column, [...(columns.get(column) ?? []), node]);
   }
-  const pages = new Map(document.pages.map((p) => [p.id, p]));
-  const heightOf = (node: GraphNode) => {
-    const bounds = pages.get(node.pageId)!.bounds;
-    const aspect = bounds.width > 0 && bounds.height > 0 ? bounds.height / bounds.width : 0.6;
-    return cardWidth * Math.min(CARD_MAX_RATIO, Math.max(CARD_MIN_RATIO, aspect));
-  };
-
   const cards: GraphCard[] = [];
+  const step = STATUS_HEIGHT + NODE_HEIGHT + rowGap;
   [...columns.keys()]
     .sort((a, b) => a - b)
     .forEach((column, i) => {
       const nodes = columns.get(column)!;
-      const total = nodes.reduce((sum, n) => sum + heightOf(n) + TITLE_HEIGHT, 0) + rowGap * (nodes.length - 1);
-      let y = -total / 2;
-      for (const node of nodes) {
-        const height = heightOf(node);
-        y += TITLE_HEIGHT;
+      const top = -(nodes.length * step - rowGap) / 2;
+      nodes.forEach((node, row) => {
         cards.push({
           pageId: node.pageId,
-          bounds: { x: i * (cardWidth + columnGap), y, width: cardWidth, height },
+          bounds: {
+            x: i * (cardWidth + columnGap),
+            y: top + row * step + STATUS_HEIGHT,
+            width: cardWidth,
+            height: NODE_HEIGHT,
+          },
           node,
         });
-        y += height + rowGap;
-      }
+      });
     });
   return { graph, cards };
 }
@@ -127,17 +125,11 @@ export function buildGraphPage(
     const { node } = card;
     const status = !node.reachable
       ? node.orphan
-        ? { text: 'orpheline', color: colors.orphan }
-        : { text: 'inaccessible', color: colors.unreachable }
+        ? { text: 'orpheline', color: colors.orphan, dashed: true }
+        : { text: 'inaccessible', color: colors.unreachable, dashed: true }
       : node.pageId === graph.startPageId
-        ? { text: 'départ', color: colors.start }
+        ? { text: 'départ', color: colors.start, dashed: false }
         : undefined;
-    const stroke =
-      status && status.text !== 'départ'
-        ? status.color
-        : node.pageId === graph.startPageId
-          ? colors.start
-          : colors.card;
     const link = { type: 'page' as const, pageId: node.pageId };
 
     shapes.push({
@@ -145,34 +137,36 @@ export function buildGraphPage(
       id: cardId(node.pageId),
       kind: 'rectangle',
       bounds: card.bounds,
-      label: '',
-      // Pas de fond : la miniature de la page se dessine directement sur le fond de la scène.
+      label: node.name,
       style: {
         rounded: '1',
         absoluteArcSize: '1',
         arcSize: '12',
-        fillColor: 'none',
-        strokeColor: stroke,
+        fillColor: '#ffffff',
+        strokeColor: status?.color ?? colors.card,
         strokeWidth: '2',
-        ...(status && status.text !== 'départ' ? { dashed: '1' } : {}),
+        ...(status?.dashed ? { dashed: '1' } : {}),
+        fontSize: '15',
+        fontStyle: '1',
+        fontColor: colors.title,
+        whiteSpace: 'wrap',
       },
       link,
       z: z++,
     });
+    if (!status) continue;
     shapes.push({
       ...base,
-      id: titleId(node.pageId),
+      id: statusId(node.pageId),
       kind: 'text',
-      bounds: { x: card.bounds.x, y: card.bounds.y - TITLE_HEIGHT, width: card.bounds.width, height: TITLE_HEIGHT - 4 },
-      label: status ? `${node.name}  ·  ${status.text}` : node.name,
-      style: {
-        align: 'left',
-        verticalAlign: 'bottom',
-        fontSize: '15',
-        fontStyle: '1',
-        fontColor: status && status.text !== 'départ' ? status.color : colors.title,
-        spacing: '0',
+      bounds: {
+        x: card.bounds.x,
+        y: card.bounds.y - STATUS_HEIGHT,
+        width: card.bounds.width,
+        height: STATUS_HEIGHT - 4,
       },
+      label: status.text,
+      style: { align: 'left', verticalAlign: 'bottom', fontSize: '12', fontColor: status.color, spacing: '0' },
       link,
       z: z++,
     });
