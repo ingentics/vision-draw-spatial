@@ -5,7 +5,7 @@ import { documentBody, hasBody, setBody } from '../tables/documentBody';
 import { addDivider, setSecondary } from '../tables/operations';
 import type { TableKind, TableOptionKey } from '../tables/tableKinds';
 import { tableKindOf } from '../tables/tableKinds';
-import { MATERIALIZED, SECONDARY } from '../tables/tableLayout';
+import { MATERIALIZED, PRIVATE, SECONDARY } from '../tables/tableLayout';
 import { rowOf, tableOf } from './tableTargets';
 import { keys } from '../keys';
 
@@ -69,6 +69,15 @@ export const TABLE_OPTIONS: readonly TableOption[] = [
     title: 'Vue matérialisée (spatial.rdd.materialized) : CREATE MATERIALIZED VIEW',
     section: 'PostgreSQL',
     on: (table) => table.rules.options.includes('materialized'),
+  },
+  {
+    // Vue privée (sujet 342) : clé à gauche du nom.
+    key: 'private',
+    type: 'flag',
+    attribute: PRIVATE,
+    label: 'Privée',
+    title: 'Vue privée (spatial.rdd.private) : clé à gauche du nom',
+    on: (table) => table.rules.options.includes('private'),
   },
 ];
 

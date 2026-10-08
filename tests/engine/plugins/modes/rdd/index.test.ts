@@ -28,7 +28,7 @@ describe('mode RDD (sujet 179) : page et palette', () => {
     expect(palette.templates.map((t) => [t.id, t.name])).toEqual([
       ['rdd-entity', 'Entité'],
       ['rdd-enum', 'Entité énumérative'],
-      ['rdd-embedded', 'Embedded'],
+      ['rdd-embedded', 'Fragment'],
       ['rdd-document', 'Document'],
       ['rdd-view', 'Vue'],
       ['rdd-region', 'Région'],
@@ -101,11 +101,12 @@ describe('mode RDD (sujet 179) : page et palette', () => {
       ['Couleur', true],
       ['Table secondaire', false],
       ['Matérialisé', true],
+      ['Privée', true],
       ['Clé primaire', true],
       ['YAML', true],
       ['Ajouter un séparateur', false],
     ]);
-    expect(properties.map((p) => p.hidden!(page(), entity))).toEqual([true, false, true, false, true, false]);
+    expect(properties.map((p) => p.hidden!(page(), entity))).toEqual([true, false, true, true, false, true, false]);
     const key = properties.find((p) => p.label === 'Clé primaire')!;
     expect([key.readOnly, key.value!(page(), entity)]).toEqual([true, 'id']);
     expect(properties.every((p) => p.hidden!(page(), page()))).toBe(true);

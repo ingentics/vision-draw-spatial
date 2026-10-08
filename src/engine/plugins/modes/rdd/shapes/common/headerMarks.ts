@@ -72,6 +72,31 @@ export const MARK_PATHS: Record<HeaderMark, Array<[Point[], boolean]>> = {
       false,
     ],
   ]),
+  // Clé : anneau à gauche, tige vers la droite, deux dents.
+  key: [
+    [circle(2.9, 4.5, 2.4), true],
+    [
+      [
+        { x: 5.3, y: 4.5 },
+        { x: 13, y: 4.5 },
+      ],
+      false,
+    ],
+    [
+      [
+        { x: 10.2, y: 4.5 },
+        { x: 10.2, y: 7.2 },
+      ],
+      false,
+    ],
+    [
+      [
+        { x: 12.8, y: 4.5 },
+        { x: 12.8, y: 6.6 },
+      ],
+      false,
+    ],
+  ],
   // Prise électrique : câble en S, corps rétréci côté câble, deux broches vers la droite.
   plug: [
     [plugCable(), false],
@@ -104,11 +129,17 @@ export const MARK_PATHS: Record<HeaderMark, Array<[Point[], boolean]>> = {
 };
 
 /**
- * Icône d'entête (sujets 220 à 222 : jumelles de la vue, liste de l'énumération, prise de l'embedded), en haut à
- * droite de l'entête, dans un cadre de 14 × 9 agrandi 1,5 fois (à l'échelle), au trait fin de la couleur de la bordure ; rien sans
+ * Icône d'entête (sujets 220 à 222 : jumelles de la vue, liste de l'énumération, prise du fragment ; clé de la vue
+ * privée, à gauche, sujet 342), en haut à droite de l'entête, dans un cadre de 14 × 9 agrandi 1,5 fois (à l'échelle), au trait fin de la couleur de la bordure ; rien sans
  * bordure (`strokeColor=none`).
  */
-export function headerMark(shape: ShapeModel, mark: HeaderMark, header: number, color: Color | null): Group {
+export function headerMark(
+  shape: ShapeModel,
+  mark: HeaderMark,
+  header: number,
+  color: Color | null,
+  side: 'left' | 'right' = 'right',
+): Group {
   const group = new Group();
   group.name = 'header-mark';
   // Marqueur pour les tests, non lu par le moteur.
@@ -116,7 +147,10 @@ export function headerMark(shape: ShapeModel, mark: HeaderMark, header: number, 
   if (!color) return group;
   const scale = tableScale(shape);
   const { width, height, zoom, margin } = TABLE.mark;
-  const left = shape.bounds.x + shape.bounds.width - (margin + width * zoom) * scale;
+  const left =
+    side === 'left'
+      ? shape.bounds.x + margin * scale
+      : shape.bounds.x + shape.bounds.width - (margin + width * zoom) * scale;
   const top = shape.bounds.y + (header - height * zoom * scale) / 2;
   for (const [points, closed] of MARK_PATHS[mark]) {
     const path = points.map((p) => ({ x: left + p.x * zoom * scale, y: top + p.y * zoom * scale }));

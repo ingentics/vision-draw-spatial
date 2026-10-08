@@ -2,7 +2,7 @@ import { ceilToGrid, measureText } from '../../../../core/plugins';
 import type { Rect, ShapeModel } from '../../../../core/plugins';
 import type { Divider, Field, TableRow } from './fieldModel';
 import { fieldNote, isDivider, tableFields } from './fieldModel';
-import type { TableKind } from './tableKinds';
+import type { HeaderMark, TableKind } from './tableKinds';
 import { shownMark, tableName } from './tableKinds';
 import { keys } from '../keys';
 
@@ -18,6 +18,8 @@ export const SECONDARY_SCALE = 0.8;
 
 /** Attribut d'une vue matérialisée (sujet 272). */
 export const MATERIALIZED = 'materialized';
+/** Attribut d'une vue privée (sujet 342) : clé à gauche du nom. */
+export const PRIVATE = 'private';
 
 /** Tailles d'une table principale, en pixels de page (× `SECONDARY_SCALE` pour une table secondaire). */
 export const TABLE = {
@@ -52,6 +54,10 @@ export const TABLE = {
 } as const;
 
 export const isSecondary = (shape: ShapeModel) => keys.flag(shape, SECONDARY);
+
+/** Icône d'entête à gauche du nom (sujet 342) : la clé d'une vue privée ; aucune sinon. */
+export const leftMark = (shape: ShapeModel): HeaderMark | undefined =>
+  shape.kind === 'rdd-view' && keys.flag(shape, PRIVATE) ? 'key' : undefined;
 
 /** Échelle d'une table, secondaire ou non. */
 export const secondaryScale = (secondary: boolean): number => (secondary ? SECONDARY_SCALE : 1);

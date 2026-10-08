@@ -85,7 +85,7 @@ describe('mode RDD : champ de relation (sujet 265)', () => {
     expect(relations('role').map((field) => field.label)).toEqual(['relation1', 'relation2']);
   });
 
-  it('depuis un embedded : le nom de l’embedded, puis numéroté', () => {
+  it('depuis un fragment : le nom du fragment, puis numéroté', () => {
     const { connect, relations } = setup();
     connect('address', 'user');
     connect('address', 'user');

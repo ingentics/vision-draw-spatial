@@ -33,6 +33,7 @@ import {
   bodyZone,
   headerHeight,
   isSecondary,
+  leftMark,
   tableHeight,
   tableScale,
   tableSize,
@@ -162,7 +163,10 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
     if (kind.look.folded) line(flapOf(shape), true);
   }
   const mark = shownMark(shape);
-  if (mark) group.add(headerMark(shape, mark, header, styleColor(style, 'strokeColor', TABLE_BORDER)));
+  const border = styleColor(style, 'strokeColor', TABLE_BORDER);
+  if (mark) group.add(headerMark(shape, mark, header, border));
+  const left = leftMark(shape);
+  if (left) group.add(headerMark(shape, left, header, border, 'left'));
 
   const label = createLabel(
     {

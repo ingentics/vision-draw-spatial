@@ -17,4 +17,13 @@ describe('mode RDD : options d’une table déclarées (sujet 277)', () => {
     expect(allowed).toEqual(['rdd-view']);
     expect(materialized.section).toBe('PostgreSQL');
   });
+
+  it('« Privée » (sujet 342) : vue seulement', () => {
+    const option = TABLE_OPTIONS.find((o) => o.key === 'private')!;
+    expect(
+      Object.entries(TABLE_KINDS)
+        .filter(([, table]) => option.on(table))
+        .map(([id]) => id),
+    ).toEqual(['rdd-view']);
+  });
 });

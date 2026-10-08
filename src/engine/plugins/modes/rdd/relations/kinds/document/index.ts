@@ -6,7 +6,7 @@ const DYNAMIC: keyof typeof FIELD_TYPES = 'dynamic';
 
 /**
  * Relation document → champ dynamique (sujet 269) : « ce champ peut contenir ce document ». Elle part d'un document et
- * arrive sur un champ « Dynamique » d'une entité, d'un embedded ou d'une énumération (le seul bout possible), retenu par
+ * arrive sur un champ « Non structuré » d'une entité, d'un embedded ou d'une énumération (le seul bout possible), retenu par
  * le champ (`Field.incoming`) ; aucun champ n'est créé. Flèche en tirets, sans pointe ni texte, sans réglage.
  */
 export const documentRelation: RelationKind = {

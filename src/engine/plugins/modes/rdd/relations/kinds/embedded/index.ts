@@ -16,13 +16,13 @@ export const embeddedRelation: RelationKind = {
     kind: 'embed',
     label: (rows, source) => {
       // Son nom sur une ligne, sinon celui de sa forme.
-      const name = source.label.replace(/\s+/g, ' ').trim() || 'Embedded';
+      const name = source.label.replace(/\s+/g, ' ').trim() || 'Fragment';
       return rows.some((row) => row.label === name) ? newFieldLabel(rows, name) : name;
     },
     // Libellé et préfixe : dans le champ ; la table d'arrivée affiche le préfixe en gris à la place du type.
     texts: [
-      { key: 'label', label: 'Champ', title: 'Nom du champ de l’embedded dans la table d’arrivée ; jamais vide' },
-      { key: 'prefix', label: 'Préfixe', title: 'Préfixe des champs de l’embedded dans la table d’arrivée (prefix)' },
+      { key: 'label', label: 'Champ', title: 'Nom du champ du fragment dans la table d’arrivée ; jamais vide' },
+      { key: 'prefix', label: 'Préfixe', title: 'Préfixe des champs du fragment dans la table d’arrivée (prefix)' },
     ],
     ownedByEdge: true,
   },

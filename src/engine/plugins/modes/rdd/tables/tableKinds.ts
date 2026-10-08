@@ -3,8 +3,8 @@ import type { KeyType } from './fieldModel';
 
 /** Formes de table du mode RDD (sujets 179 à 181, 215 à 223) : ce qui distingue une entité d'un document, d'une vue… */
 
-/** Icône d'entête : jumelles (vue), liste (énumération), prise électrique (embedded, sujet 223). */
-export type HeaderMark = 'binoculars' | 'list' | 'plug';
+/** Icône d'entête : jumelles (vue), liste (énumération), prise électrique (fragment, sujet 223), clé (vue privée). */
+export type HeaderMark = 'binoculars' | 'list' | 'plug' | 'key';
 
 /** Apparence d'une forme de table : ce que le rendu (et le style écrit pour draw.io) en tire. */
 export interface TableLook {
@@ -22,7 +22,7 @@ export interface TableLook {
 }
 
 /** Option d'une table (`TABLE_OPTIONS`) : table secondaire (sujet 179), vue matérialisée (sujet 272). */
-export type TableOptionKey = 'secondary' | 'materialized';
+export type TableOptionKey = 'secondary' | 'materialized' | 'private';
 
 /** Règles d'une forme de table : ce que ses champs et ses réglages peuvent être. */
 export interface TableRules {
@@ -79,7 +79,7 @@ export const TABLE_KINDS: Record<TableKindId, TableKind> = {
   },
   'rdd-view': {
     look: { style: 'rounded=1;absoluteArcSize=1;arcSize=16;', mark: 'binoculars' },
-    rules: { ...PLAIN, derived: true, options: ['secondary', 'materialized'] },
+    rules: { ...PLAIN, derived: true, options: ['secondary', 'materialized', 'private'] },
   },
 };
 

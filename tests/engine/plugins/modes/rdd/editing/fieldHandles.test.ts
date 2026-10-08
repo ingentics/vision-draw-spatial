@@ -53,7 +53,7 @@ describe('mode RDD : ajouter un champ (sujet 250)', () => {
       'Phrase',
       'Texte',
       'Booléen',
-      'Dynamique',
+      'Non structuré',
       'Money',
       'Date simple',
       'Date et heure',

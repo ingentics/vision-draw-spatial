@@ -923,7 +923,7 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   par ligne de 20 px, alignés à gauche). Aucune mention au-dessus du nom : chaque table a sa marque.
   - Champs (sujet 246) : `kind` (`pk` clé primaire, `property`, `fk` clé étrangère, `external-fk` clé étrangère d'un
     autre domaine), `label`, `type` (`integer` « Nombre entier », `decimal` « Nombre réel », `string` « Phrase »,
-    `text` « Texte », `boolean` « Booléen », `dynamic` « Dynamique », `money` « Money ») et `nullable` (toujours faux
+    `text` « Texte », `boolean` « Booléen », `dynamic` « Non structuré », `money` « Money ») et `nullable` (toujours faux
     pour `pk`). Pas de lecture de l'ancien format (liste de noms) : le mode ne vise pas draw.io. Diagnostics signale
     une valeur ou des entrées illisibles (ignorées), un type inconnu, une clé primaire nullable (lue non nullable).
   - Ligne de champ (sujet 248) : marge de 6 px, icône de kind (cadre de 12 px : losange `#ffd700` clé primaire,
@@ -937,7 +937,7 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     l'intérieur ; icône liste) : clé primaire `id` (`pk`, `integer`) toujours en tête (icône de clé primaire), montrée en
     lecture seule dans le panneau (« Clé primaire ») ; absente ou déplacée dans le fichier,
     elle est remise en tête à l'affichage et signalée dans Diagnostics.
-  - « Embedded » (`rdd-embedded`) : objet incorporé, bas ondulé (une période sur la largeur, amplitude 2 px ; la
+  - « Fragment » (`rdd-embedded`, ex-« Embedded ») : objet incorporé, bas ondulé (une période sur la largeur, amplitude 2 px ; la
     table a 4 px de plus en bas) ; icône prise électrique (câble en S, deux broches).
   - « Document » (`rdd-document`) : document JSONB, coin plié en haut à droite (coin coupé, rabat plus sombre que
     l'entête, 10 px) ; nom obligatoire : vide, il affiche « Document » et Diagnostics le signale. Pas de champs (sujet
@@ -949,7 +949,7 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     sélectionner de partie ; panneau : section « Document body », zone en police à chasse fixe avec ascenseurs. Les
     tabulations deviennent deux espaces. Un YAML invalide est signalé dans Diagnostics (première erreur, ligne et
     colonne). À l'ouverture, un document à clés (sujet 181) prend un corps d'une ligne `clé:` par clé.
-  - Relation document → champ dynamique (sujet 269) : d'un document vers la ligne d'un champ « Dynamique » d'une
+  - Relation document → champ non structuré (sujet 269) : d'un document vers la ligne d'un champ « Non structuré » d'une
     entité, d'un embedded ou d'une énumération (seule arrivée permise pendant le tirer) ; aucun champ créé : le champ
     retient la flèche (`incoming`, ids des flèches, dans `spatial.rdd.fields`), plusieurs documents par champ. Flèche en
     tirets, sans pointe ni texte, sans section « Relation » ; elle arrive au milieu de la ligne, du côté le plus proche

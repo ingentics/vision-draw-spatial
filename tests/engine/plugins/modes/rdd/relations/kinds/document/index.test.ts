@@ -26,7 +26,7 @@ function setup() {
   const shape = (id: string) => page().shapes.find((s) => s.id === id)!;
   const edge = (id: string) => page().edges.find((e) => e.id === id);
   const fields = (id: string) => tableFields(shape(id)) as Field[];
-  /** Champ `index` de la table rendu « Dynamique ». */
+  /** Champ `index` de la table rendu « Non structuré ». */
   const dynamic = (table: string, index: number) =>
     run((edit) => setField(edit, shape(table), index, { type: 'dynamic' }));
   /** Flèche tirée d'un document vers la partie `part` d'une table (comme `ConnectDrags.commit`). */
@@ -39,7 +39,7 @@ function setup() {
 }
 
 describe('mode RDD : relation document → champ dynamique (sujet 269)', () => {
-  it('permise vers la ligne d’un champ « Dynamique » d’une entité, d’un embedded ou d’une énumération, seulement', () => {
+  it('permise vers la ligne d’un champ « Non structuré » d’une entité, d’un embedded ou d’une énumération, seulement', () => {
     const { page, shape, dynamic } = setup();
     const connects = (source: string, target: string, part?: string) =>
       rdd.edges!.connects!(page(), shape(source), shape(target), part);
@@ -100,7 +100,7 @@ describe('mode RDD : relation document → champ dynamique (sujet 269)', () => {
     expect(edge(first)!.style.entryY).toBe(String(Math.round((76 / 86) * 1000) / 1000));
   });
 
-  it('le champ cesse d’être « Dynamique » ou est supprimé : ses flèches sont supprimées', () => {
+  it('le champ cesse d’être « Non structuré » ou est supprimé : ses flèches sont supprimées', () => {
     const { run, shape, edge, fields, dynamic, connect } = setup();
     dynamic('user', 1);
     dynamic('user', 2);

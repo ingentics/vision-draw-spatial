@@ -169,6 +169,31 @@ describe('mode RDD : embedded, document et vue (sujets 181, 218)', () => {
     expect(object.getObjectByName('header-mark')).toBeDefined();
   });
 
+  it('vue privée : clé à gauche du nom, jumelles à droite ; vue publique : jumelles seules (sujet 342)', () => {
+    const { run, page, tree } = setup();
+    const marks = () => {
+      const root = buildPageScene(
+        page(),
+        createDefaultRegistry(),
+        { text: { create: () => new Object3D() } },
+        'flat',
+      ).root;
+      const object = root.children.find((child) => child.userData.elementId === 'active')!;
+      return object.children.filter((child) => child.name === 'header-mark');
+    };
+    expect(marks().map((mark) => mark.userData.mark)).toEqual(['binoculars']);
+    setCellStyleValue(tree.pages[0]!, 'active', 'spatial.rdd.private', '1');
+    run(() => {});
+    const [right, left] = marks();
+    expect([right!.userData.mark, left!.userData.mark]).toEqual(['binoculars', 'key']);
+    const { x, width } = page().shapes.find((s) => s.id === 'active')!.bounds;
+    const box = new Box3().setFromObject(left!);
+    // À 7 px du bord gauche, dans le cadre de 21 px, avant le nom.
+    expect(box.min.x).toBeGreaterThanOrEqual(x + 7 - 0.5);
+    expect(box.max.x).toBeLessThanOrEqual(x + 7 + 21 + 0.5);
+    expect(box.max.x).toBeLessThan(x + width / 2);
+  });
+
   it('zone du titre réduite des deux côtés de la place de l’icône d’entête (sujets 221, 222)', () => {
     const { page } = render();
     const zone = (id: string) =>
