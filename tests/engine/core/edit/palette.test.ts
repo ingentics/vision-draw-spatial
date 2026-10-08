@@ -25,6 +25,7 @@ describe('palette', () => {
     const kinds = new Set(SHAPE_TEMPLATES.map((t) => kindOf(t.style)));
     expect([...kinds].sort()).toEqual([
       'background-task',
+      'curlyBracket',
       'cylinder3',
       'datastore',
       'ellipse',
@@ -100,7 +101,15 @@ describe('palette', () => {
       'four-point-star',
       'six-point-star',
     ]);
-    expect(byCategory('general')).toEqual(['text', 'title', 'actor', 'arrow', 'actor-droid']);
+    expect(byCategory('general')).toEqual([
+      'text',
+      'title',
+      'actor',
+      'arrow',
+      'actor-droid',
+      'curly-bracket-left',
+      'curly-bracket-right',
+    ]);
     const known = new Set(
       [
         ...PALETTE_CATEGORIES,
