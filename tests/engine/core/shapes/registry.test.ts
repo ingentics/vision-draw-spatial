@@ -364,3 +364,72 @@ describe('formes protégées (sujet 300)', () => {
     expect(logged).toEqual(['Forme broken : erreur dans hitBounds']);
   });
 });
+
+describe('réglages déclarés par une catégorie de formes (sujet 380)', () => {
+  const seen: RenderContext[] = [];
+  const spy = (id: string, category: string): ShapeDefinition => ({
+    id,
+    flat: {
+      create: (_shape, ctx) => {
+        seen.push(ctx);
+        return new Group();
+      },
+    },
+    volumeHeight: (_shape, ctx) => (ctx.values?.depth as number | undefined) ?? 0,
+    palette: {
+      name: id,
+      category,
+      order: 1,
+      keywords: [],
+      style: '',
+      value: '',
+      width: 10,
+      height: 10,
+      icon: '',
+    },
+  });
+  const registry = new ShapeRegistry()
+    .registerCategory({
+      id: 'boxes',
+      name: 'Boîtes',
+      order: 1,
+      settings: [
+        { key: 'lid', type: 'toggle', label: 'Couvercle', default: true, legacy: 'view.lid' },
+        { key: 'depth', type: 'number', label: 'Profondeur', min: 0, max: 50, step: 1, default: 10 },
+      ],
+    })
+    .registerCategory({ id: 'plain', name: 'Simples', order: 2 })
+    .register(spy('box', 'boxes'))
+    .register(spy('plate', 'plain'));
+
+  it('valeurs bornées, défaut pour les absentes ; seules les catégories qui en déclarent', () => {
+    expect(registry.values('boxes', { depth: 99, lid: 'non' })).toEqual({ lid: true, depth: 50 });
+    expect(registry.view().values('plain', { lid: false })).toEqual({});
+    expect(registry.categoryValues({ boxes: { lid: false } })).toEqual({ boxes: { lid: false, depth: 10 } });
+    expect(
+      registry
+        .view()
+        .categories()
+        .map((c) => c.id),
+    ).toEqual(['boxes', 'plain']);
+  });
+
+  it('ancienne clé reprise si elle diffère du défaut', () => {
+    expect(registry.legacySettings({ view: { lid: false } })).toEqual({ boxes: { lid: false } });
+    expect(registry.legacySettings({ view: { lid: true } })).toEqual({});
+  });
+
+  it('chaque forme reçoit dans `ctx.values` les réglages de sa catégorie, et rien d’une autre', () => {
+    const ctx: RenderContext = {
+      text: { create: () => new Object3D() },
+      categoryValues: registry.categoryValues({ boxes: { lid: false, depth: 30 } }),
+    };
+    seen.length = 0;
+    registry.sceneRenderer(model('box'), 'flat').create(model('box'), ctx);
+    registry.sceneRenderer(model('plate'), 'flat').create(model('plate'), ctx);
+    expect(seen[0]!.values).toEqual({ lid: false, depth: 30 });
+    expect(seen[1]!.values).toBeUndefined();
+    expect(Object.isFrozen(seen[0])).toBe(true);
+    expect(registry.volumeHeight(model('box'), ctx)).toBe(30);
+  });
+});

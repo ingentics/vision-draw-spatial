@@ -6,13 +6,15 @@ import { canvasBrush } from '../interaction/minimapBrush';
 import { blockHeight } from '../render/iso/block';
 import { outsideLabelBox } from '../render/labelPosition';
 import type { RenderContext } from '../render/types';
+import { legacyPluginSettings, pluginValues } from '../settings/pluginSettings';
+import type { PluginSettings, PluginValues } from '../settings/pluginSettings';
 import type { SelectionStyle } from '../settings/types';
 import { placeholderShape } from './placeholder';
 import type {
   MinimapMapping,
-  PaletteCategory,
   SceneLevel,
   SceneRenderer,
+  ShapeCategory,
   ShapeDefinition,
   ShapeProperty,
   ShapeTemplate,
@@ -34,6 +36,8 @@ export interface ShapeRegistryView {
   swatch(shape: ShapeModel): string;
   templates(): ShapeTemplate[];
   templateOf(shape: ShapeModel): ShapeTemplate | undefined;
+  categories(): ShapeCategory[];
+  values(categoryId: string, stored: Record<string, unknown> | undefined): PluginValues;
 }
 
 /** Ce que le panneau propose pour orienter une forme (sujet 335). */
@@ -66,7 +70,7 @@ export class ShapeRegistry {
     private readonly fallback: ShapeDefinition = placeholderShape,
     private readonly definitions: ShapeDefinition[] = [],
     onError?: ShapeErrorHandler,
-    private readonly categoryList: PaletteCategory[] = [],
+    private readonly categoryList: ShapeCategory[] = [],
   ) {
     this.report = onError && ((_family, id, hook, error) => onError(id, hook, error));
   }
@@ -80,7 +84,7 @@ export class ShapeRegistry {
    * Catégorie de la palette des formes (sujet 306 : déclarée par la racine de composition, le tronc n'en connaît
    * aucune) ; un id déjà pris lève une exception.
    */
-  registerCategory(category: PaletteCategory): this {
+  registerCategory(category: ShapeCategory): this {
     if (this.categoryList.some((other) => other.id === category.id))
       throw new Error(`Catégorie ${category.id} : id déjà pris`);
     this.categoryList.push(freezePlain({ ...category }));
@@ -88,8 +92,40 @@ export class ShapeRegistry {
   }
 
   /** Catégories de la palette des formes, par rang (`order`). */
-  categories(): PaletteCategory[] {
+  categories(): ShapeCategory[] {
     return [...this.categoryList].sort((a, b) => a.order - b.order);
+  }
+
+  /**
+   * Valeurs des réglages d'une catégorie (sujet 380) : celles des paramètres (`settings.shapeCategories[id]`) bornées,
+   * le défaut pour les autres.
+   */
+  values(categoryId: string, stored: Record<string, unknown> | undefined): PluginValues {
+    return pluginValues(this.categoryList.find((category) => category.id === categoryId)?.settings, stored);
+  }
+
+  /** Valeurs des réglages de chaque catégorie qui en déclare, pour le contexte de rendu (`categoryValues`). */
+  categoryValues(stored: PluginSettings | undefined): Record<string, PluginValues> {
+    return Object.fromEntries(
+      this.categoryList
+        .filter((category) => (category.settings ?? []).length > 0)
+        .map((category) => [category.id, this.values(category.id, stored?.[category.id])]),
+    );
+  }
+
+  /** Réglages des catégories repris de leurs anciennes clés (`PluginSetting.legacy`) dans les paramètres enregistrés. */
+  legacySettings(stored: unknown): PluginSettings {
+    return legacyPluginSettings(this.categoryList, stored);
+  }
+
+  /**
+   * Contexte de rendu remis à une forme : celui de la page, plus les réglages de sa catégorie (`values`) ; le même s'il
+   * n'y en a pas.
+   */
+  private contextFor(definition: ShapeDefinition, ctx: RenderContext): RenderContext {
+    const category = definition.palette?.category;
+    const values = category === undefined ? undefined : ctx.categoryValues?.[category];
+    return values ? Object.freeze({ ...ctx, values }) : ctx;
   }
 
   /** Appel protégé du point d'entrée `hook` de `definition` : sa valeur, ou celle de `fallback` s'il lève une exception. */
@@ -114,6 +150,8 @@ export class ShapeRegistry {
       swatch: (shape) => this.swatch(shape),
       templates: () => this.templates(),
       templateOf: (shape) => this.templateOf(shape),
+      categories: () => this.categories(),
+      values: (categoryId, stored) => this.values(categoryId, stored),
     };
   }
 
@@ -164,7 +202,7 @@ export class ShapeRegistry {
           definition,
           `${drawn}.create`,
           () => placeholder.create(target, ctx),
-          () => renderer.create(readonlyModel(target), ctx),
+          () => renderer.create(readonlyModel(target), this.contextFor(definition, ctx)),
         ),
     };
   }
@@ -205,7 +243,7 @@ export class ShapeRegistry {
       definition,
       'volumeHeight',
       () => blockHeight(shape, ctx),
-      () => volumeHeight(readonlyModel(shape), ctx),
+      () => volumeHeight(readonlyModel(shape), this.contextFor(definition, ctx)),
     );
   }
 

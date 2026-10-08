@@ -1,6 +1,7 @@
 import type { Color, Object3D } from 'three';
 import type { RichLine } from '../model/types';
 import type { DeepReadonly } from '../model/readonly';
+import type { PluginValues } from '../settings/pluginSettings';
 import type { JumpDefaults } from './edges/jumps';
 import type { EdgeSplitSettings } from './edges/split';
 import type { TextAlong } from './textPath';
@@ -66,7 +67,7 @@ export interface RenderContext {
    * Volume des formes en vue iso (niveau `iso`) : épaisseur par défaut, en pixels de page, et
    * luminosité des côtés (fraction de la couleur de fond) face éclairée / face à l'ombre.
    */
-  volume?: { depth: number; shadeLight?: number; shadeDark?: number; tags?: boolean };
+  volume?: { depth: number; shadeLight?: number; shadeDark?: number };
   /** Couleurs du placeholder des formes non supportées (#rrggbb). */
   placeholder?: { fill: string; stroke: string };
   /** Couleur d'accent, #rrggbb. */
@@ -83,6 +84,16 @@ export interface RenderContext {
   background?: string;
   /** Flèches coupées (`split=1`, ticket 219) : longueur des tronçons, fondu, marge du cadre de renvoi. */
   edgeSplit?: EdgeSplitSettings;
+  /**
+   * Réglages des catégories de formes (sujet 380), bornés, par id de catégorie : le registre en remet à chaque forme
+   * ceux de sa catégorie (`values`).
+   */
+  categoryValues?: Readonly<Record<string, PluginValues>>;
+  /**
+   * Réglages de la catégorie de la forme dessinée (`palette.category`), posés par le registre des formes ; absents
+   * pour une forme hors catégorie ou sans contexte complet (tests) : la forme garde alors son défaut.
+   */
+  values?: PluginValues;
 }
 
 /** Apparence de la pastille d'une flèche (réglages du mode qui la pose, `PageDressing.edgeBadgeStyle`), en pixels de page. */

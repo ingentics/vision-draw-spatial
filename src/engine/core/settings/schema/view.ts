@@ -27,7 +27,6 @@ export const VIEW = {
   isoDepth: number(DEFAULT_DEPTH, { min: 2, max: 120, step: 1 }),
   shadeLight: number(0.9, { min: 0.3, max: 1.2, step: 0.02 }),
   shadeDark: number(0.62, { min: 0.2, max: 1.2, step: 0.02 }),
-  facadeTags: flag(true),
 } satisfies Spec<ViewSettings>;
 
 export const CAMERA = {

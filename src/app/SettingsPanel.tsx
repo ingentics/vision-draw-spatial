@@ -479,13 +479,6 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   onChange={(isoDepth) => onChange({ view: { isoDepth } })}
                 />
                 <p className="hint muted">Par forme : style draw.io « spatial.height=… »</p>
-                <Toggle
-                  label="Étiquettes sur les façades (DB, QUEUE, CACHE)"
-                  checked={view.facadeTags}
-                  disabled={!view.isoVolume}
-                  onChange={(facadeTags) => onChange({ view: { facadeTags } })}
-                />
-                <p className="hint muted">Par forme : style draw.io « spatial.tag=… » (vide = aucune).</p>
                 <Slider
                   label="Luminosité de la face éclairée"
                   value={view.shadeLight}
@@ -1173,6 +1166,20 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                 />
                 <PlaceholderPreview shapes={shapes} background={background} />
               </Subsection>
+            </Section>
+
+            <Section title="Formes">
+              {(plugins?.shapes.categories() ?? [])
+                .filter((category) => (category.settings ?? []).length > 0)
+                .map((category) => (
+                  <Subsection key={category.id} title={category.name}>
+                    <PluginSettingFields
+                      settings={category.settings!}
+                      values={plugins!.shapes.values(category.id, settings.shapeCategories[category.id])}
+                      onChange={(key, value) => onChange({ shapeCategories: { [category.id]: { [key]: value } } })}
+                    />
+                  </Subsection>
+                ))}
             </Section>
 
             <Section title="Modes">

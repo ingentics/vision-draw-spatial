@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { settingsDiff } from '../../src/app/settingsStore';
+import { settingsDiff, withLegacy } from '../../src/app/settingsStore';
 import { DEFAULT_SETTINGS, mergeSettings } from '../../src/engine';
+import type { SettingsPatch } from '../../src/engine';
 
 describe('paramètres enregistrés : écarts aux défauts seulement (sujet 364)', () => {
   it('les défauts seuls : rien à enregistrer', () => {
@@ -24,5 +25,30 @@ describe('paramètres enregistrés : écarts aux défauts seulement (sujet 364)'
     const loaded = mergeSettings(newDefaults, saved);
     expect(loaded.graph.nodeSize).toBe(80);
     expect(loaded.graph.nodeGap).toBe(120);
+  });
+});
+
+describe('paramètres enregistrés : anciennes clés reprises (sujet 380)', () => {
+  const load = (stored: unknown) => mergeSettings(DEFAULT_SETTINGS, withLegacy(stored as SettingsPatch));
+
+  it('« étiquettes sur les façades » coupé dans la vue iso : repris dans Formes › Architecture', () => {
+    const settings = load({ view: { facadeTags: false, isoDepth: 40 } });
+    expect(settings.shapeCategories).toEqual({ architecture: { facadeTags: false } });
+    expect(settings.view.isoDepth).toBe(40);
+    // L'ancienne clé, hors du schéma, n'est plus enregistrée.
+    expect(settingsDiff(settings, DEFAULT_SETTINGS)).toEqual({
+      view: { isoDepth: 40 },
+      shapeCategories: { architecture: { facadeTags: false } },
+    });
+  });
+
+  it('valeur déjà enregistrée à la nouvelle place : elle l’emporte', () => {
+    const stored = { view: { facadeTags: false }, shapeCategories: { architecture: { facadeTags: true } } };
+    expect(load(stored).shapeCategories).toEqual({ architecture: { facadeTags: true } });
+  });
+
+  it('ancienne valeur égale au défaut : rien à reprendre', () => {
+    const stored = { view: { facadeTags: true } };
+    expect(withLegacy(stored as SettingsPatch)).toBe(stored);
   });
 });

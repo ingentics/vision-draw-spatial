@@ -27,14 +27,14 @@ export class Levels {
       view.isoDepth !== previous.view.isoDepth ||
       view.shadeLight !== previous.view.shadeLight ||
       view.shadeDark !== previous.view.shadeDark ||
-      view.facadeTags !== previous.view.facadeTags ||
       // Fonds de labels « default » = couleur du fond.
       settings.background.color !== previous.background.color ||
       settings.selection.accentColor !== previous.selection.accentColor ||
       settingsSectionChanged(settings, previous, 'shapes') ||
       settingsSectionChanged(settings, previous, 'graph') ||
       settingsSectionChanged(settings, previous, 'effects') ||
-      settingsSectionChanged(settings, previous, 'modes')
+      settingsSectionChanged(settings, previous, 'modes') ||
+      settingsSectionChanged(settings, previous, 'shapeCategories')
     ) {
       this.rebuildScenes();
     }

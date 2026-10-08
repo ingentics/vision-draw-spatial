@@ -119,5 +119,5 @@ export type { ShapeOrientable, ShapeRegistry, ShapeRegistryView } from './core/s
 export type { OrientAction } from './core/edit/orientShapes';
 export type { ModeEdit, ModeOption, ModeProperty, ModeTarget, PageModeDefinition } from './core/modes/types';
 export type { PluginSetting, PluginSettings, PluginValues } from './core/settings/pluginSettings';
-export { PALETTE_CATEGORIES, SHAPE_TEMPLATES, usedTemplates } from './plugins';
+export { legacyShapeCategorySettings, PALETTE_CATEGORIES, SHAPE_TEMPLATES, usedTemplates } from './plugins';
 export type { PropertySection, ShapeProperty } from './core/shapes/types';

@@ -1,9 +1,10 @@
 import { isHexColor } from '../model/styleValues';
 
 /**
- * Réglages globaux déclarés par un plugin, mode ou effet (tickets 145, 283 ; commun depuis le sujet 287) : affichés dans
- * sa sous-page des paramètres, valeurs dans `settings.modes[id][key]` ou `settings.effects[id][key]`, bornées et
- * complétées par `default` par le registre du plugin.
+ * Réglages globaux déclarés par un plugin, mode ou effet (tickets 145, 283 ; commun depuis le sujet 287), ou par une
+ * catégorie de formes (sujet 380) : affichés dans sa sous-page des paramètres, valeurs dans `settings.modes[id][key]`,
+ * `settings.effects[id][key]` ou `settings.shapeCategories[id][key]`, bornées et complétées par `default` par le
+ * registre du plugin.
  */
 export type PluginSetting = {
   key: string;
@@ -16,6 +17,12 @@ export type PluginSetting = {
   group?: string;
   /** Aide affichée sous le titre du groupe (sur le premier réglage du groupe). */
   groupHint?: string;
+  /**
+   * Ancienne clé du réglage, chemin depuis la racine des paramètres enregistrés (ex. `view.isoDepth`, sujet 380) : sa
+   * valeur est reprise tant que le réglage n'a pas la sienne (`legacyPluginSettings`), aucune préférence perdue. Lue
+   * aujourd'hui pour les catégories de formes seulement (au chargement des paramètres, par l'appli).
+   */
+  legacy?: string;
 } & (
   | {
       type: 'number';
@@ -83,6 +90,31 @@ export function pluginValues(
   for (const setting of settings ?? [])
     values[setting.key] = readPluginSetting(setting, stored?.[setting.key]) ?? setting.default;
   return values;
+}
+
+/**
+ * Réglages repris de leurs anciennes clés (`legacy`) dans les paramètres enregistrés `stored`, par plugin (`[id][clé]`) :
+ * seulement les valeurs valides qui diffèrent du défaut (un défaut n'est pas enregistré).
+ */
+export function legacyPluginSettings(
+  owners: Iterable<{ id: string; settings?: readonly PluginSetting[] }>,
+  stored: unknown,
+): PluginSettings {
+  const read = (path: string): unknown =>
+    path
+      .split('.')
+      .reduce<unknown>(
+        (value, key) => (value && typeof value === 'object' ? (value as Record<string, unknown>)[key] : undefined),
+        stored,
+      );
+  const result: PluginSettings = {};
+  for (const owner of owners) {
+    for (const setting of owner.settings ?? []) {
+      const value = setting.legacy ? readPluginSetting(setting, read(setting.legacy)) : undefined;
+      if (value !== undefined && value !== setting.default) (result[owner.id] ??= {})[setting.key] = value;
+    }
+  }
+  return result;
 }
 
 /**

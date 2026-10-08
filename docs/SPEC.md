@@ -347,7 +347,7 @@ Ajouter une forme = **déposer son dossier** (au minimum `id` et `flat`, idéale
   | File (queue) | `shape=cylinder3;direction=south` (palette : 100 × 30, `size=8`) ; `shape=mxgraph.flowchart.direct_data` aussi | cylindre couché, bout visible à droite (`north` : à gauche) ; label décalé comme dans draw.io | bloc dont les faces longues portent une rangée de chevrons ▶ **creusés** (rainure sombre et arête claire) dans le sens du flux (vers le bout visible en 2D) ; chaque bout porte un cercle gravé au même niveau, centré sur la face |
   | Cache distribué | `shape=datastore` | cylindre à trois anneaux, de taille fixe ; label sous les anneaux, comme draw.io | tranches empilées, une par nœud (`spatial.nodes`, 3 par défaut, 1–12), séparées par une rainure en retrait plus sombre, voyants (couleur d'accent) sur les quatre faces |
 
-  En iso / 3D, ce sont des **« bâtiments »** (`plugins/shapes/generic/building/`), comme les familles de bâtiments d'un jeu de construction : emprise = le rectangle 2D de la forme, **toit plat et rectangulaire** en haut (bordé, avec le label : toujours lisible), et une **façade propre au type** dans l'épaisseur, sur les quatre côtés (lisible sous tous les angles). Hauteur par défaut : la **même épaisseur que toutes les formes** (réglage `view.isoDepth`, 32 px), `spatial.height` prioritaire. **Étiquette de façade**, comme une enseigne : « DB », « QUEUE » ou « CACHE » en bas à droite de chaque face, à l'endroit vu de l'extérieur, discrète (teinte des gravures) ; les motifs (arcs, chevrons) se placent au-dessus ; sur le cache, dans la tranche du bas (voyants à l'autre bout). `spatial.tag` la remplace (ex. `PostgreSQL`, `Kafka`), vide = aucune ; réglage `view.facadeTags` (activé) pour toutes les couper. Sans fond (`fillColor=none`), le dessin 2D reste à plat.
+  En iso / 3D, ce sont des **« bâtiments »** (`plugins/shapes/generic/building/`), comme les familles de bâtiments d'un jeu de construction : emprise = le rectangle 2D de la forme, **toit plat et rectangulaire** en haut (bordé, avec le label : toujours lisible), et une **façade propre au type** dans l'épaisseur, sur les quatre côtés (lisible sous tous les angles). Hauteur par défaut : la **même épaisseur que toutes les formes** (réglage `view.isoDepth`, 32 px), `spatial.height` prioritaire. **Étiquette de façade**, comme une enseigne : « DB », « QUEUE » ou « CACHE » en bas à droite de chaque face, à l'endroit vu de l'extérieur, discrète (teinte des gravures) ; les motifs (arcs, chevrons) se placent au-dessus ; sur le cache, dans la tranche du bas (voyants à l'autre bout). `spatial.tag` la remplace (ex. `PostgreSQL`, `Kafka`), vide = aucune ; réglage « Étiquettes sur les façades » de la catégorie Architecture (`shapeCategories.architecture.facadeTags`, activé ; Paramètres › Formes › Architecture) pour toutes les couper. Sans fond (`fillColor=none`), le dessin 2D reste à plat.
 
   **Redimensionnement** : le corps du cylindre s'étire, les ellipses gardent leur taille. Les trois formes ont la **même ellipse**, de 8 px (celle de draw.io pour un cache de 60 px de haut) ; le bout de `direct_data` reste à 9/98 de la largeur, comme draw.io. **Écarts assumés avec draw.io** : draw.io agrandit les anneaux du cache avec sa hauteur, et dessine l'ellipse du `cylinder3` de hauteur `size` (15 par défaut) ; avec les valeurs de la palette (`size=8`, cache de 60 px), le rendu est identique dans les deux. Contour par défaut : épaisseur 1, comme les autres formes.
 
@@ -373,7 +373,7 @@ Ajouter une forme = **déposer son dossier** (au minimum `id` et `flat`, idéale
   un paramètre de l'instance : champ « Étiquette » de la section de la forme dans le panneau (`spatial.tag`, vide =
   le mot par défaut). **Écart assumé** : seul Drawio Spatial dessine le mot, draw.io montre la tranche vide. Prisme
   du contour en iso / 3D, ligne et mot sur le dessus (comme en 2D), mot aussi **en façade**, en bas à droite de chaque face, comme l'étiquette
-  des bâtiments (coupé avec elles par `view.facadeTags`) ; se cliquent sur toutes leurs bornes.
+  des bâtiments (coupé avec elles par `shapeCategories.architecture.facadeTags`) ; se cliquent sur toutes leurs bornes.
 - Connecteurs (arêtes) : segments, points intermédiaires, flèche de fin,
 - Couleurs de remplissage, de bordure, épaisseur de trait, pointillés, label centré.
 - **Position du label**, comme draw.io : dans la forme selon `align` / `verticalAlign` (marges `spacing*`, plus
@@ -657,7 +657,6 @@ interface Settings {
     defaultMode: 'top' | 'iso' | '3d'; isoAngleDeg: number; isoAzimuthDeg: number; switchDurationMs: number; // 'top', 35.26, -45, 450
     isoVolume: boolean; isoDepth: number;                                                              // true, 32 (px), toutes les formes
     shadeLight: number; shadeDark: number;                    // luminosité des côtés des volumes : 0.9, 0.62
-    facadeTags: boolean;                                      // étiquettes DB / QUEUE / CACHE sur les façades : true
   };
   camera: {                                                   // bornes et animations de la caméra (§9)
     minZoom: number; maxZoom: number;                         // 2D et iso : 0.05, 16
@@ -713,6 +712,7 @@ interface Settings {
   };
   effects: Record<string, Record<string, number>>;                // réglages déclarés par chaque effet (plugins/effects/<id>/)
   modes: Record<string, Record<string, number | boolean | string>>; // réglages déclarés par chaque mode (plugins/modes/<id>/settings.ts, ticket 283)
+  shapeCategories: Record<string, Record<string, number | boolean | string>>; // réglages déclarés par chaque catégorie de formes (plugins/shapes/categories.ts, sujet 380) : architecture.facadeTags (étiquettes DB / QUEUE / CACHE sur les façades : true, ancienne clé view.facadeTags reprise) ; Paramètres › Formes › Architecture
 }
 ```
 

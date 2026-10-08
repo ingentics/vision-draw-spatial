@@ -305,7 +305,9 @@ describe('formes de stockage : BDD, queue, cache distribué', () => {
       render({ ...db, style: { ...db.style, 'spatial.tag': 'PostgreSQL' } });
       expect(texts.filter((t) => t.text === 'PostgreSQL')).toHaveLength(4);
       expect(named(render({ ...db, style: { ...db.style, 'spatial.tag': '' } }), 'facade-tag')).toHaveLength(0);
-      expect(named(render(db, { ...ctx, volume: { depth: 20, tags: false } }), 'facade-tag')).toHaveLength(0);
+      // Réglage de la catégorie Architecture (sujet 380), remis à la forme par le registre.
+      const untagged = { ...ctx, categoryValues: { architecture: { facadeTags: false } } };
+      expect(named(render(db, untagged), 'facade-tag')).toHaveLength(0);
     });
 
     it('sans fond : reste à plat (pas de volume fantôme)', () => {

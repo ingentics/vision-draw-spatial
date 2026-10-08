@@ -15,16 +15,15 @@ Des variantes d'une même forme se rangent en famille : `shapes/<catégorie>/<fa
 commun dans `<famille>/common/` (sans `index.ts`), l'id commençant par le nom de la famille au singulier (exemple :
 [shapes/general/actors/](../src/engine/plugins/shapes/general/actors/), `human/` = `actor`, `droid/` = `actor-droid`).
 
-> **Ce qui touche encore le tronc.** Quatre cas demandent de modifier un fichier hors du dossier de la forme :
+> **Ce qui touche encore le tronc.** Trois cas demandent de modifier un fichier hors du dossier de la forme :
 >
 > - un synonyme du nom draw.io : `SHAPE_ALIASES` dans [core/format/style.ts](../src/engine/core/format/style.ts)
 >   (section 1) ;
 > - un périmètre d'accroche des flèches propre à la forme : `perimeterKind` dans
 >   [core/render/edges/route/perimeters/index.ts](../src/engine/core/render/edges/route/perimeters/index.ts)
 >   (section 6) ;
-> - un réglage de l'appli lu par la forme : procédure de la section 4.1 (sujet 380 : les formes déclareront leurs
->   réglages comme les modes) ;
-> - une nouvelle catégorie de palette : [plugins/shapes/categories.ts](../src/engine/plugins/shapes/categories.ts).
+> - une nouvelle catégorie de palette, ou un réglage global lu par les formes d'une catégorie (déclaré par elle,
+>   section 4.1) : [plugins/shapes/categories.ts](../src/engine/plugins/shapes/categories.ts), hors du tronc.
 
 Références : SPEC §8.2 (registre), §8.3 (formes supportées), §8.4 (placeholder), §9.1 (volumes), §13 (paramètres).
 Frontières d'un plugin (ce qu'il peut importer) : `.claude/rules/coding.md` §5.
@@ -144,7 +143,7 @@ src/engine/plugins/shapes/      les formes, une par élément de la palette (suj
 │   └── <id>/                   ex. `architecture/database/`
 │       ├── index.ts            export const definition: ShapeDefinition = { … }
 │       └── facade.ts           sa façade iso (arcs gravés, étiquette « DB »)
-└── categories.ts               catégories de la palette (nom, rang) ; une nouvelle catégorie s'y ajoute
+└── categories.ts               catégories de la palette (nom, rang, réglages déclarés) ; une nouvelle catégorie s'y ajoute
 src/engine/plugins/index.ts     racine de composition : collecte shapes/*/*/index.ts (import.meta.glob, sans generic/)
 src/engine/core/shapes/         le tronc des formes
 ├── types.ts                    le contrat
@@ -333,6 +332,7 @@ draw.io codés dans le moteur.**
 | Épaisseur (iso) | `spatial.height` | `spatial.height` (`<UserObject>`) | `view.isoDepth` (toutes les formes) | 32 |
 | Élévation | `spatial.elevation` | `spatial.elevation` | — | 0 |
 | Ombrage des côtés | — | — | `view.shadeLight`, `view.shadeDark` | 0,9 / 0,62 |
+| Étiquette de façade | `spatial.tag` (vide = aucune) | `spatial.tag` | `shapeCategories.architecture.facadeTags` (`ctx.values`, 4.1) | affichée |
 | Pastille de lien | — | — | `selection.accentColor` | `#1a73e8` |
 
 Règles à respecter :
@@ -351,28 +351,34 @@ Règles à respecter :
 - **Paramètres de l'appli** : une valeur de ressenti ou de préférence (pas une valeur draw.io) va dans les paramètres.
   Voir 4.1.
 
-### 4.1 Rendre une valeur réglable
+### 4.1 Rendre une valeur réglable : déclarer `settings`
 
-Les paramètres sont la source de vérité ([engine/core/settings/index.ts](../src/engine/core/settings/index.ts)). Un renderer n'y accède
-jamais directement : tout passe par le **`RenderContext`**, construit par `SceneView.renderContext()`
-([core/domains/view/scene.ts](../src/engine/core/domains/view/scene.ts)).
+Un réglage global lu par des formes (une préférence, pas une valeur draw.io) est **déclaré par leur catégorie**, comme
+les modes et les effets déclarent les leurs (sujet 380) : aucun fichier du tronc ni de l'appli à toucher.
 
-1. Ajoutez le champ dans l'interface de section (ex. `ShapeSettings`) et dans le schéma de sa section
-   ([settings/schema/](../src/engine/core/settings/schema/index.ts)) : `number(défaut, { min, max, step })`, `color`,
-   `flag` ou `oneOf` (une valeur invalide est ignorée). `DEFAULT_SETTINGS`, `SETTINGS_LIMITS` et `mergeSettings` en
-   découlent.
-2. Ajoutez le champ dans `RenderContext` ([render/types.ts](../src/engine/core/render/types.ts)), **optionnel**, avec un
-   repli sur la constante dans le renderer (`ctx.monChamp ?? DEFAUT`). Les tests et les appels sans contexte complet
-   continuent ainsi de fonctionner.
-3. Remplissez-le dans `SceneView.renderContext()`.
-4. **Faites reconstruire les scènes** quand il change : dans `Levels.settingsChanged`
-   ([core/domains/view/levels.ts](../src/engine/core/domains/view/levels.ts)), la condition qui appelle
-   `rebuildScenes()`. Une section entière se surveille avec `settingsSectionChanged(settings, previous, 'shapes')`
-   (déjà le cas de `shapes`). C'est l'oubli le plus fréquent :
-   sans cette ligne, le réglage ne s'applique qu'aux pages construites ensuite.
-5. Ajoutez le champ au panneau ([app/SettingsPanel.tsx](../src/app/SettingsPanel.tsx)), dans la bonne section et
-   sous-section. La recherche le trouve d'elle-même.
-6. Mettez à jour SPEC §13 et `tests/engine/core/settings.test.ts`.
+1. Déclarez le réglage (`PluginSetting`, par l'API des plugins) près de la forme ou de la base qui le lit, et
+   ajoutez-le aux `settings` de la catégorie dans
+   [plugins/shapes/categories.ts](../src/engine/plugins/shapes/categories.ts). Mêmes types que pour un mode
+   (`AJOUTER_UN_MODE.md` section 3) : nombre borné, case, couleur, choix, adresse ; `label`, `hint`, `group`.
+   Exemple : `FACADE_TAGS_SETTING` dans [generic/building](../src/engine/plugins/shapes/generic/building/index.ts),
+   déclaré par la catégorie Architecture.
+2. Lisez la valeur dans `ctx.values` (contexte de rendu) : le registre y remet, à chaque forme dont la
+   `palette.category` est cette catégorie, les valeurs bornées et complétées par le défaut. `ctx.values` est absent
+   pour une forme d'une autre catégorie et dans les tests sans contexte complet : gardez un repli sur le défaut
+   (`ctx.values?.[clé] === false`), ou utilisez `booleanValue` / `numberValue` / `stringValue` si la valeur est
+   forcément là.
+
+Le reste découle de la déclaration : la sous-page **Paramètres › Formes › <catégorie>** (générique, comme celle des
+modes), l'enregistrement dans `settings.shapeCategories[catégorie][clé]` (seulement les écarts au défaut) et la
+reconstruction des scènes quand la valeur change. Un réglage qui change de place garde la préférence enregistrée :
+déclarez son ancienne clé par `legacy` (chemin depuis la racine des paramètres, ex. `view.facadeTags`), reprise au
+chargement tant que la nouvelle n'a pas de valeur. Ne renommez jamais la clé d'un réglage déclaré : la préférence
+serait perdue.
+
+Une valeur commune à toutes les formes (épaisseur `view.isoDepth`, ombrage des côtés) reste un paramètre du tronc,
+passé par un champ du `RenderContext` rempli par `SceneView.renderContext()`
+([core/domains/view/scene.ts](../src/engine/core/domains/view/scene.ts)) : ce n'est plus le travail d'une forme
+(SPEC §13).
 
 ---
 

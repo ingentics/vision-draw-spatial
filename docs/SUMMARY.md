@@ -109,7 +109,7 @@ Règles :
 | Rendu / caméra / vues | SPEC §8–9, `core/render/pageScene.ts`, `core/render/sceneManager.ts`, `core/interaction/cameraMath.ts` |
 | UI de l'appli de démo | `src/app/` (`App.tsx`, `Palette.tsx`, `ContextPanel.tsx`, `SettingsPanel.tsx`, `DiagnosticsPanel.tsx`, `main.css`) |
 | API du composant | `docs/COMPOSANT.md`, `src/react/DrawioSpatial.tsx`, `src/index.ts` |
-| Paramètre nouveau | SPEC §13, `engine/core/settings/types.ts` et `schema/`, `tests/engine/core/settings.test.ts`, `src/app/SettingsPanel.tsx` |
+| Paramètre nouveau | SPEC §13, `engine/core/settings/types.ts` et `schema/`, `tests/engine/core/settings.test.ts`, `src/app/SettingsPanel.tsx` ; réglage lu par des formes : déclaré par leur catégorie (`plugins/shapes/categories.ts`, `AJOUTER_UNE_FORME.md` §4.1) |
 | Fichier draw.io / compat | SPEC §7, §14.2, §15 ; fixtures `tests/fixtures/*.drawio`, sorties draw.io versionnées dans `tests/fixtures/drawio-saved/` |
 
 ## 6. Backlog : comment écrire une spec ici

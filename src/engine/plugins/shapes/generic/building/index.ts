@@ -16,6 +16,7 @@ import {
   shade,
 } from '../../../../core/plugins';
 import type {
+  PluginSetting,
   Point,
   Rect,
   RenderContext,
@@ -30,6 +31,19 @@ import type {
  * tranche d'un process étiqueté (`generic/tagged-process`).
  */
 export const TAG = 'spatial.tag';
+
+/**
+ * Réglage global des étiquettes de façade (sujet 380), déclaré par la catégorie qui range les bâtiments (Architecture,
+ * `shapes/categories.ts`) : la base le lit dans `ctx.values`. Ancienne place : `view.facadeTags` (reprise).
+ */
+export const FACADE_TAGS_SETTING: PluginSetting = {
+  key: 'facadeTags',
+  type: 'toggle',
+  label: 'Étiquettes sur les façades (DB, QUEUE, CACHE)',
+  hint: 'En iso et en 3D. Par forme : style draw.io « spatial.tag=… » (vide = aucune).',
+  default: true,
+  legacy: 'view.facadeTags',
+};
 
 /**
  * « Bâtiments » (niveau `iso`) : les composants d'architecture ont tous la même grammaire, comme les
@@ -171,9 +185,12 @@ export function engrave(
 /** Taille du texte des étiquettes de façade, selon la hauteur du bâtiment. */
 export const tagSize = (height: number) => clamp(height * 0.22, 4, 10);
 
-/** Texte de l'étiquette d'une forme : `spatial.tag`, sinon celui du type ; undefined si désactivé ou vide. */
+/**
+ * Texte de l'étiquette d'une forme : `spatial.tag`, sinon celui du type ; undefined si désactivé ou vide. Sans le
+ * réglage dans `ctx.values` (forme rangée dans une catégorie qui ne le déclare pas), les étiquettes restent (défaut).
+ */
 export function tagOf(shape: ShapeModel, ctx: RenderContext, fallback: string): string | undefined {
-  if (ctx.volume?.tags === false) return undefined;
+  if (ctx.values?.[FACADE_TAGS_SETTING.key] === false) return undefined;
   const text = (spatialValue(shape, TAG) ?? fallback).trim();
   return text || undefined;
 }

@@ -4,6 +4,7 @@ import type { Point, Rect } from '../model/types';
 // Modèle en lecture seule (sujet 303) : une forme dessine la forme reçue, sans la modifier.
 import type { ReadonlyShapeModel as ShapeModel } from '../model/readonly';
 import type { RenderContext } from '../render/types';
+import type { PluginSetting } from '../settings/pluginSettings';
 import type { SelectionStyle } from '../settings/types';
 
 /**
@@ -82,6 +83,16 @@ export interface PaletteCategory {
   name: string;
   /** Rang d'affichage (croissant, catégories de la palette et des modes confondues). */
   order: number;
+}
+
+/**
+ * Catégorie des formes (dossier `shapes/<catégorie>/`), enregistrée par la racine de composition (sujet 306). Elle
+ * déclare les réglages globaux partagés par ses formes (sujet 380, ex. étiquettes des façades) :
+ * Paramètres › Formes › <catégorie>, valeurs dans `settings.shapeCategories[id]`, remises bornées à chacune de ses
+ * formes (`palette.category`) dans `ctx.values`. Les catégories des modes (`page.palette.categories`) n'en ont pas.
+ */
+export interface ShapeCategory extends PaletteCategory {
+  settings?: PluginSetting[];
 }
 
 /**

@@ -3,6 +3,7 @@ import type { PageEffectDefinition } from '../core/effects/types';
 import { usedTemplatesIn } from '../core/edit/palette';
 import type { ShapeTemplate } from '../core/edit/palette';
 import type { PageModel } from '../core/model/types';
+import type { PluginSettings } from '../core/settings/pluginSettings';
 import { shapesByMode } from '../core/modes/modeShapes';
 import { PageModeRegistry } from '../core/modes/registry';
 import type { PageModeDefinition } from '../core/modes/types';
@@ -73,8 +74,8 @@ export function createDefaultEffectRegistry(): PageEffectRegistry {
 }
 
 /**
- * Registre des formes de la racine, pour les seules données ci-dessous (modèles de la palette) : jamais donné à un
- * moteur, qui construit les siens (sujet 304).
+ * Registre des formes de la racine, pour les seules données ci-dessous (modèles de la palette, anciens réglages) :
+ * jamais donné à un moteur, qui construit les siens (sujet 304).
  */
 const templatesRegistry = createDefaultRegistry();
 
@@ -84,4 +85,12 @@ export const SHAPE_TEMPLATES: ShapeTemplate[] = templatesRegistry.templates();
 /** Modèles des formes présentes sur la page, d'après les formes par défaut (`usedTemplatesIn`). */
 export function usedTemplates(page: Pick<PageModel, 'shapes'> | undefined): ShapeTemplate[] {
   return usedTemplatesIn(page, templatesRegistry);
+}
+
+/**
+ * Réglages des catégories de formes repris de leurs anciennes clés dans les paramètres enregistrés (`stored`), lus par
+ * l'appli au chargement des paramètres, avant la création d'un moteur (sujet 380).
+ */
+export function legacyShapeCategorySettings(stored: unknown): PluginSettings {
+  return templatesRegistry.legacySettings(stored);
 }

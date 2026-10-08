@@ -85,7 +85,6 @@ export class SceneView {
         depth: this.core.settings.view.isoDepth,
         shadeLight: this.core.settings.view.shadeLight,
         shadeDark: this.core.settings.view.shadeDark,
-        tags: this.core.settings.view.facadeTags,
       },
       background: this.core.settings.background.color,
       placeholder: {
@@ -105,6 +104,7 @@ export class SceneView {
         labelPadding: this.core.settings.shapes.edgeSplitLabelPadding,
         labelSize: this.core.settings.shapes.edgeSplitLabelSize,
       },
+      categoryValues: this.core.registry.categoryValues(this.core.settings.shapeCategories),
     };
     return Object.freeze({ text, ...freezePlain(settings) });
   }

@@ -3,6 +3,7 @@ import { PageEffectRegistry } from '../../../../src/engine/core/effects/registry
 import { PageModeRegistry } from '../../../../src/engine/core/modes/registry';
 import {
   booleanValue,
+  legacyPluginSettings,
   numberValue,
   pluginValues,
   stringValue,
@@ -78,5 +79,30 @@ describe('accès typés aux valeurs (sujet 325)', () => {
     expect(() => numberValue(values, 'color')).toThrow('number attendu');
     expect(() => stringValue(values, 'gap')).toThrow('string attendu');
     expect(() => booleanValue(values, 'gap')).toThrow('boolean attendu');
+  });
+});
+
+describe('anciennes clés des réglages (sujet 380)', () => {
+  const owners = [
+    {
+      id: 'architecture',
+      settings: [
+        { key: 'tags', type: 'toggle', label: 'Étiquettes', default: true, legacy: 'view.facadeTags' },
+        { key: 'gap', type: 'number', label: 'Écart', min: 0, max: 80, step: 1, default: 20, legacy: 'view.gap' },
+      ] satisfies PluginSetting[],
+    },
+    { id: 'general' },
+  ];
+
+  it('valeur reprise par son chemin depuis la racine, bornée', () => {
+    expect(legacyPluginSettings(owners, { view: { facadeTags: false, gap: 500 } })).toEqual({
+      architecture: { tags: false, gap: 80 },
+    });
+  });
+
+  it('défaut, mauvais type ou absente : rien à reprendre', () => {
+    expect(legacyPluginSettings(owners, { view: { facadeTags: true, gap: 'large' } })).toEqual({});
+    expect(legacyPluginSettings(owners, { view: 3 })).toEqual({});
+    expect(legacyPluginSettings(owners, undefined)).toEqual({});
   });
 });

@@ -43,8 +43,6 @@ export interface ViewSettings {
   /** Luminosité des côtés des volumes (fraction de la couleur de fond) : face éclairée, face à l'ombre. */
   shadeLight: number;
   shadeDark: number;
-  /** Étiquettes sur les façades des bâtiments iso (DB, QUEUE, CACHE ; `spatial.tag` par forme). */
-  facadeTags: boolean;
 }
 
 /** Caméra (SPEC §9) : bornes de zoom et d'inclinaison, perspective, animations. */
@@ -344,6 +342,8 @@ export interface Settings {
    */
   effects: PluginSettings;
   modes: PluginSettings;
+  /** Réglages déclarés par les catégories de formes (sujet 380), même forme : `[catégorie][clé]`. */
+  shapeCategories: PluginSettings;
 }
 
 /** Modification partielle, section par section (raccourcis compris). */
@@ -358,7 +358,7 @@ export type SettingsPatch = {
           shadow?: number;
           minCanvas?: number;
         }
-      : K extends 'effects' | 'modes'
+      : K extends 'effects' | 'modes' | 'shapeCategories'
         ? Record<string, Record<string, PluginSettingValue | undefined>>
         : Partial<Settings[K]>;
 };

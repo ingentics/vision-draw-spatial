@@ -13,6 +13,7 @@ export type {
   PaletteEntry,
   SceneLevel,
   SceneRenderer,
+  ShapeCategory,
   ShapeDefinition,
   ShapeDetail,
   ShapeDetailPath,

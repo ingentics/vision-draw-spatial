@@ -4,7 +4,10 @@ import type { Spec } from '../fields';
 import type { PluginSettings } from '../pluginSettings';
 import type { DebugSettings, EditSettings, PanelsSettings, SaveSettings } from '../types';
 
-/** Schéma des réglages de l'espace de travail : édition, enregistrement, panneaux, exports, effets, modes, débogage. */
+/**
+ * Schéma des réglages de l'espace de travail : édition, enregistrement, panneaux, effets, modes, catégories de formes,
+ * débogage.
+ */
 
 const STRIP_TEXT = ['up', 'down'] as const;
 
@@ -49,9 +52,9 @@ export const PANELS = {
 } satisfies Spec<PanelsSettings>;
 
 /**
- * Réglages des plugins (effets, sujet 145 ; modes, ticket 283) fusionnés plugin par plugin : un nombre fini, un booléen
- * ou une chaîne remplace, undefined retire (retour au défaut). Le type attendu par chaque réglage est vérifié par le
- * registre du plugin (`readPluginSetting`).
+ * Réglages des plugins (effets, sujet 145 ; modes, ticket 283 ; catégories de formes, sujet 380) fusionnés plugin par
+ * plugin : un nombre fini, un booléen ou une chaîne remplace, undefined retire (retour au défaut). Le type attendu par
+ * chaque réglage est vérifié par le registre du plugin (`readPluginSetting`).
  */
 function mergePluginSettings(patch: unknown, base: PluginSettings): PluginSettings {
   const changesById = (patch ?? {}) as Record<string, unknown>;
@@ -78,3 +81,5 @@ function mergePluginSettings(patch: unknown, base: PluginSettings): PluginSettin
 export const EFFECTS = custom<PluginSettings>({}, mergePluginSettings) satisfies Spec<PluginSettings>;
 
 export const MODES = custom<PluginSettings>({}, mergePluginSettings) satisfies Spec<PluginSettings>;
+
+export const SHAPE_CATEGORIES = custom<PluginSettings>({}, mergePluginSettings) satisfies Spec<PluginSettings>;
