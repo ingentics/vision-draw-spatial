@@ -6,6 +6,7 @@ import { canvasBrush } from '../interaction/minimapBrush';
 import { blockHeight } from '../render/iso/block';
 import { outsideLabelBox } from '../render/labelPosition';
 import type { RenderContext } from '../render/types';
+import type { SelectionStyle } from '../settings/types';
 import { placeholderShape } from './placeholder';
 import type {
   MinimapMapping,
@@ -285,6 +286,11 @@ export class ShapeRegistry {
       () => shape.bounds,
       () => hitBounds(readonlyModel(shape)),
     );
+  }
+
+  /** Mise en valeur imposée par la définition à la forme sélectionnée (sujet 330), undefined sinon. */
+  selectionStyle(shape: ShapeModel): SelectionStyle | undefined {
+    return this.resolve(shape).definition.selectionStyle;
   }
 
   /** Poignées de redimensionnement ? */

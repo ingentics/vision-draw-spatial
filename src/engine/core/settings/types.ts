@@ -122,10 +122,16 @@ export interface CommentSettings {
   fadeOutMs: number;
 }
 
+/**
+ * Mise en valeur d'un élément sélectionné : voile d'ombre sur le reste de la page, contour bleu pointillé, ou rien
+ * (`none`, imposé par une forme, sujet 330).
+ */
+export type SelectionStyle = 'veil' | 'outline' | 'none';
+
 /** Contour de sélection (SPEC §11.1). */
 export interface SelectionSettings {
   /** Mise en valeur : voile d'ombre sur le reste de la page, ou contour bleu pointillé. */
-  style: 'veil' | 'outline';
+  style: Exclude<SelectionStyle, 'none'>;
   /** Opacité du voile (0 = invisible, 1 = noir). */
   veilOpacity: number;
   /** Contour : tirets qui défilent lentement le long du contour (« fourmis »). */

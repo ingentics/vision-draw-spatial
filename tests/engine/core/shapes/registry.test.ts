@@ -150,6 +150,8 @@ describe('formes en plugins (étapes 65, 67) : contrat des définitions', () => 
       registry.isPickable(rectangle),
     ]).toEqual([true, true, true]);
     expect(registry.movesAsBlock(rectangle)).toBe(false);
+    // Mise en valeur de la sélection : celle de la page, la forme n'en impose pas (sujet 330).
+    expect(registry.selectionStyle(rectangle)).toBeUndefined();
     const group = model('group');
     expect([registry.isResizable(group), registry.isConnectable(group), registry.isPickable(group)]).toEqual([
       false,

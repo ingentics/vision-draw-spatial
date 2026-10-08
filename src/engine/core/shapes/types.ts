@@ -4,6 +4,7 @@ import type { Point, Rect } from '../model/types';
 // Modèle en lecture seule (sujet 303) : une forme dessine la forme reçue, sans la modifier.
 import type { ReadonlyShapeModel as ShapeModel } from '../model/readonly';
 import type { RenderContext } from '../render/types';
+import type { SelectionStyle } from '../settings/types';
 
 /**
  * Une forme peut avoir plusieurs rendus selon le contexte (SPEC §8.2) :
@@ -197,6 +198,11 @@ export interface ShapeDefinition {
    * est d'abord testé, puis passé à `contains`. Le cadre de sélection l'entoure (sujet 315). Absent = les bornes.
    */
   hitBounds?(shape: ShapeModel): Rect;
+  /**
+   * Mise en valeur de la forme sélectionnée, imposée quel que soit le style de la page et le paramètre (sujet 330, ex.
+   * région RDD : `none`, ni contour ni voile ; ses poignées restent). Absent = celui de la page.
+   */
+  selectionStyle?: SelectionStyle;
   flat: SceneRenderer;
   iso?: SceneRenderer;
   volume?: SceneRenderer;

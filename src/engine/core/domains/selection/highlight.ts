@@ -10,6 +10,7 @@ import { disposeObject } from '../../render/meshes';
 import type { EngineCore } from '../EngineCore';
 import type { PickedElement } from '../../interaction/pick';
 import { styleNumber } from '../../model/styleValues';
+import type { SelectionStyle } from '../../settings/types';
 
 /**
  * Mise en valeur de la sélection (paramètre `selection.style`) : voile, contour animé, poignées de l'élément
@@ -33,9 +34,14 @@ export class SelectionHighlight {
   constructor(private readonly core: EngineCore) {}
 
   /** Style de la mise en valeur : celui qu'impose le mode de la page courante (sujet 254), sinon le paramètre. */
-  private style(): 'veil' | 'outline' {
+  private style(): SelectionStyle {
     const page = this.core.pages.getCurrentPage();
     return (page && this.core.modes.modeOf(page)?.page?.selectionStyle) ?? this.core.settings.selection.style;
+  }
+
+  /** Style de la mise en valeur d'un élément sélectionné : celui qu'impose sa forme (sujet 330), sinon `style()`. */
+  private itemStyle(item: PickedElement): SelectionStyle {
+    return (item.type === 'shape' ? this.core.registry.selectionStyle(item.element) : undefined) ?? this.style();
   }
 
   /** Paramètres changés : style, couleur et animation de la mise en valeur. */
@@ -49,9 +55,9 @@ export class SelectionHighlight {
    * une sélection ; arrêté sans sélection, si désactivé, ou si les animations sont réduites.
    */
   syncAnimation(): void {
+    const items = this.core.selection.current?.items ?? [];
     const run =
-      this.core.selection.current !== undefined &&
-      this.style() === 'outline' &&
+      items.some((item) => this.itemStyle(item) === 'outline') &&
       this.core.settings.selection.animated &&
       !this.core.config.reducedMotion();
     if (!run) {
@@ -90,8 +96,10 @@ export class SelectionHighlight {
     const root = this.core.scenes.current?.root;
     const visible = selection && root && selection.pageId === this.core.pages.currentPageId ? selection : undefined;
     const items = visible?.items ?? [];
-    const veilKey = this.updateVeil(root, items);
-    this.updateVeilHoles(root, items, veilKey);
+    // Chaque élément selon son style (sujet 330) : voilés, cerclés ou non ; `none` : rien.
+    const veiled = items.filter((item) => this.itemStyle(item) === 'veil');
+    const veilKey = this.updateVeil(root, veiled);
+    this.updateVeilHoles(root, veiled, veilKey);
     if (root && items.length > 0) this.addOutlines(root, items);
     this.updateHandles(visible && root);
     this.updateHover();
@@ -124,14 +132,15 @@ export class SelectionHighlight {
 
   /**
    * Voile : gardé tant que la même sélection est affichée dans la même scène. L'emprise de la page en fait
-   * partie : le voile la couvre, et un déplacement peut l'agrandir. Renvoie la clé du voile affiché.
+   * partie : le voile la couvre, et un déplacement peut l'agrandir. `items` : les éléments de style « voile » ; sans
+   * eux, pas de voile. Renvoie la clé du voile affiché.
    */
   private updateVeil(root: Object3D | undefined, items: PickedElement[]): string | undefined {
     const ids = items.map((item) => item.element.id);
     const pageBounds = this.core.pages.getCurrentPage()?.bounds;
     const { veilOpacity, veilColor } = this.core.settings.selection;
     const veilKey =
-      items.length > 0 && root && pageBounds && this.style() === 'veil'
+      items.length > 0 && root && pageBounds
         ? `${root.uuid}:${ids.join('|')}:${veilOpacity}:${veilColor}:${Object.values(pageBounds).join(',')}`
         : undefined;
     if (this.veil?.key === veilKey) return veilKey;
@@ -200,13 +209,16 @@ export class SelectionHighlight {
   /**
    * Style « contour » : un contour pointillé (éventuellement animé) par élément sélectionné. Silhouette debout (Actor
    * en iso / 3D) : un cercle autour de sa tête, quel que soit le style (plein avec le voile), à la place du contour.
+   * Style `none` (sujet 330) : ni l'un ni l'autre.
    */
   private addOutlines(root: Object3D, items: PickedElement[]): void {
     const outlines = new Group();
     outlines.name = 'selection';
     const { accentColor } = this.core.settings.selection;
-    const style = this.style();
-    for (const { type, element } of items) {
+    for (const item of items) {
+      const { type, element } = item;
+      const style = this.itemStyle(item);
+      if (style === 'none') continue;
       const standing = type === 'shape' ? this.core.sceneView.standingHead(element.id) : undefined;
       if (standing) {
         const ring = headSelectionRing(standing.head, standing.at, this.core.camera.state.zoom, {

@@ -130,6 +130,8 @@ export const definition: ShapeDefinition = {
   // Toute la région et son onglet (pas la bande vide à droite de l'onglet).
   contains: (shape, point) => insidePolygon(regionOutline(shape), point),
   hitBounds,
+  // Sélectionnée, ni contour ni voile : ses poignées suffisent (sujet 330).
+  selectionStyle: 'none',
   // Une région n'a pas de flèche (sujet 265).
   connectable: false,
   // Éditeur en place exactement sur le nom dessiné (sans nom : à sa place, sur l'onglet à venir).

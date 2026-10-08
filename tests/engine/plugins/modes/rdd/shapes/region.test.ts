@@ -36,6 +36,14 @@ describe('mode RDD : région (sujet 182)', () => {
     expect([region.width, region.height]).toEqual([200, 80]);
   });
 
+  it('sélectionnée, ni contour ni voile : style « none » imposé, poignées gardées (sujet 330)', () => {
+    const registry = createDefaultRegistry();
+    const region = setup().shape('accounts');
+    expect(definition.selectionStyle).toBe('none');
+    expect(registry.selectionStyle(region)).toBe('none');
+    expect(registry.isResizable(region)).toBe(true);
+  });
+
   it('onglet du nom (sujet 227) : au-dessus du coin haut-gauche, coin carré, fini par un S jusqu’au bord haut', () => {
     const { page, shape } = setup();
     const region = shape('accounts');
