@@ -52,11 +52,18 @@ function withConstraints(page: PageModel, changes: readonly AnchorChange[]): Pag
 export function arrangeAnchors(
   page: PageModel,
   shapeIds: ReadonlySet<string>,
-  options: { seed?: number; route?: AvoidOptions; router?: Router; resite?: ReadonlySet<string> } = {},
+  options: {
+    seed?: number;
+    route?: AvoidOptions;
+    router?: Router;
+    resite?: ReadonlySet<string>;
+    /** Bouts placés par le mode de la page (`endKey`, sujet 338) : laissés où il les a mis. */
+    kept?: ReadonlySet<string>;
+  } = {},
 ): Arrangement {
   const seed = options.seed ?? 0;
   const router = options.router ?? ORTHOGONAL_ROUTER;
-  const constraints = distributeAnchors(page, shapeIds, seed, options.resite);
+  const constraints = distributeAnchors(page, shapeIds, seed, options.resite, options.kept);
   const work = withConstraints(page, constraints);
   const edgeIds = edgesThrough(work, shapeIds);
   for (const edge of work.edges)

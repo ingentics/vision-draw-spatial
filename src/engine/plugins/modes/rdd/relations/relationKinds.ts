@@ -131,6 +131,12 @@ export function indexedRelationKind(index: RelationIndex, edge: EdgeModel): Rela
   return source && target ? edgeKind(edge, source, target, index.arrivals, index.kinds) : undefined;
 }
 
+/**
+ * Flèches retenues par un champ (sujet 269) : leur point d'arrivée est sur la ligne du champ (`placeArrivals`), pas
+ * réparti par l'ancrage automatique ni Typon (sujet 338).
+ */
+export const arrivalEdges = (page: PageModel): string[] => [...storedArrivals(page).keys()];
+
 /** Flèche de relation : entre deux formes qui peuvent être liées (son apparence est alors imposée). */
 export const isRelationEdge = (page: PageModel, edge: EdgeModel): boolean => relationKindOf(page, edge) !== undefined;
 

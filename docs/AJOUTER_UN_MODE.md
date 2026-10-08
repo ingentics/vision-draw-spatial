@@ -65,6 +65,7 @@ interface PageModeDefinition {
     properties?: ModeProperty[];               // réglages déclarés d'une flèche (section 3)
     connects?(page, source, target): boolean;  // flèches permises (ex. liaisons des tables RDD)
     manages?(page, edge): boolean;             // flèche gérée par le mode (réglages imposés)
+    placedEntries?(page): string[];            // flèches dont le mode place l'arrivée (pas réparties en auto / Typon)
     created?(edit, edgeId, current): void;     // flèche tirée depuis une forme (même étape d'annulation)
     reconnected?(edit, edgeId): void;          // bout d'une flèche rebranché (même étape)
   };
@@ -295,6 +296,7 @@ Règles communes (sujet 288) :
 | `edges.reconnected` | bout d'une flèche rebranché (poignée d'extrémité), au lâcher | relue après le rebranchement | remise en ordre, étape du rebranchement | rien d'écrit |
 | `edges.connects` | pendant le tirage ou le rebranchement d'un bout, pour chaque forme candidate | page du modèle | aucune | accroche permise |
 | `edges.manages` | panneau d'une flèche, textes de début / fin (édition, déplacement) | page courante | aucune | flèche non gérée |
+| `edges.placedEntries` | chaque répartition en ancrage automatique ou Typon (édition, déplacement en cours, Autre agencement, changement d'ancrage) | page du modèle | aucune | toutes les arrivées réparties |
 | **Formes et gestes** | | | | |
 | `gestures.carries` | début d'un déplacement (glisser, clavier), Aligner / Répartir, mise en valeur de la sélection ; de proche en proche | page du modèle | aucune | n'emporte rien (ce qui a été trouvé avant la panne est gardé) |
 | `gestures.obstacles` | début d'un déplacement ou d'un redimensionnement, Aligner / Répartir ; reçoit les réglages du mode | page du modèle | aucune | aucune borne |

@@ -12,6 +12,7 @@ import { OBSTACLE_GAP, RDD_SETTINGS } from './settings';
 import {
   CARDINALITIES,
   RELATION_PROPERTIES,
+  arrivalEdges,
   canLink,
   cardinalitiesShown,
   forbiddenLinks,
@@ -123,6 +124,8 @@ export const definition: PageModeDefinition = {
     // Flèche de relation : bouts imposés par sa sorte (cardinalités d'après « Optionnel » du champ entre tables, aucune
     // pointe depuis un embedded, sujet 268) ; le reste en lecture seule.
     manages: isRelationEdge,
+    // Flèche vers un champ : arrivée sur sa ligne, même en ancrage automatique ou Typon (sujet 338).
+    placedEntries: arrivalEdges,
     created: (edit, edgeId, _current, part) => syncRelations(edit, undefined, undefined, arrivalOf(edgeId, part)),
     reconnected: (edit, edgeId, part) => syncRelations(edit, undefined, undefined, arrivalOf(edgeId, part)),
   },

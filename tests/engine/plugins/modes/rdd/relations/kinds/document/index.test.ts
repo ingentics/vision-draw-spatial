@@ -72,6 +72,13 @@ describe('mode RDD : relation document → champ dynamique (sujet 269)', () => {
     expect(shape('settings').style['spatial.rdd.fields']).toBeDefined();
   });
 
+  it('son point d’arrivée est placé par le mode, pas réparti en ancrage automatique (sujet 338)', () => {
+    const { page, dynamic, connect } = setup();
+    dynamic('user', 1);
+    const id = connect('settings', 'user', '1');
+    expect(rdd.edges!.placedEntries!(page())).toEqual([id]);
+  });
+
   it('pas de section « Relation » au panneau ; gérée par le mode', () => {
     const { page, edge, dynamic, connect } = setup();
     dynamic('user', 1);

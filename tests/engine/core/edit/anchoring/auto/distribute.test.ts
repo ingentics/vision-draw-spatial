@@ -43,6 +43,17 @@ describe('distributeAnchors', () => {
     ]);
   });
 
+  it('un bout placé par le mode (sujet 338) : ni déplacé, ni compté parmi ceux de son côté', () => {
+    const p = page([
+      shape('t', 200, 300),
+      shape('a', 400, 0),
+      shape('b', 0, 0),
+      edge('ea', 'a', 't', 'entryX=0.9;entryY=0;entryPerimeter=0;'),
+      edge('eb', 'b', 't', TOP),
+    ]);
+    expect(distributeAnchors(p, new Set(['t']), 0, undefined, new Set([endKey('ea', 'target')]))).toEqual([]);
+  });
+
   it('deux flèches : 1/3 et 2/3 ; attache auto rangée sur le côté qui fait face', () => {
     const p = page([
       shape('s', 0, 0),

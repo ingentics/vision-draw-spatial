@@ -6,5 +6,5 @@
 
 export { syncRelations } from './relationFields';
 export { RELATION_FIELD_PROPERTIES, RELATION_PROPERTIES, edgeOwnedField } from './relationProperties';
-export { canLink, forbiddenLinks, isLinkable, isRelationEdge } from './relationKinds';
+export { arrivalEdges, canLink, forbiddenLinks, isLinkable, isRelationEdge } from './relationKinds';
 export { CARDINALITIES, cardinalitiesShown } from './kinds/table/cardinalities';

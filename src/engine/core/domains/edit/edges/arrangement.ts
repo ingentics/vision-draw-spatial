@@ -71,9 +71,15 @@ export class EdgeArrangement {
     return arrangeAnchors(page, shapeIds, { seed: anchorSeedOf(page), resite, ...this.tracing(page) });
   }
 
-  /** Tracé d'une page selon son ancrage (réglages de l'automatique ou du Typon). */
-  private tracing(page: PageModel): { route?: AvoidOptions; router?: Router } {
-    return tracingOf(this.core.settings.shapes, this.anchoringOf(page));
+  /**
+   * Tracé d'une page selon son ancrage (réglages de l'automatique ou du Typon), et bouts que son mode place lui-même
+   * (sujet 338).
+   */
+  private tracing(page: PageModel): { route?: AvoidOptions; router?: Router; kept: ReadonlySet<string> } {
+    return {
+      ...tracingOf(this.core.settings.shapes, this.anchoringOf(page)),
+      kept: this.core.pageModes.placedEntries(page),
+    };
   }
 
   /**

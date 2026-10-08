@@ -3,6 +3,7 @@ import { documentFromTree } from '../../format/parse';
 import { writeDrawio } from '../../format/write';
 import type { PageTree } from '../../format/xmlTree';
 import type { TerminalEnd } from '../../edit/edgeEnds';
+import { endKey } from '../../edit/anchoring/auto/distribute';
 import { carriedShapes, isLocked } from '../../edit/moveSet';
 import type { DocumentModel, PageModel, Point, Rect, ShapeModel } from '../../model/types';
 import { freezeModel, readonlyModel } from '../../model/freeze';
@@ -76,6 +77,18 @@ export class PageModes {
     const manages = mode?.edges?.manages;
     if (!page || !edge || !mode || !manages) return false;
     return this.guard(mode, 'edges.manages', false, () => manages(readonlyModel(page), readonlyModel(edge)));
+  }
+
+  /**
+   * Bouts d'arrivée que le mode de `page` place lui-même (`edges.placedEntries`, sujet 338), en clés `endKey` : la
+   * répartition de l'ancrage automatique et Typon les laisse en place.
+   */
+  placedEntries(page: PageModel): Set<string> {
+    const mode = this.core.modes.modeOf(page);
+    const placedEntries = mode?.edges?.placedEntries;
+    if (!mode || !placedEntries) return new Set();
+    const ids = this.guard(mode, 'edges.placedEntries', [], () => placedEntries(readonlyModel(page)));
+    return new Set(ids.map((id) => endKey(id, 'target')));
   }
 
   /** Habillage du rendu de la page par son mode, protégé jusque dans ses fonctions (appelées au dessin). */

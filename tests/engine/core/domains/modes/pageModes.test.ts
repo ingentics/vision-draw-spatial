@@ -11,6 +11,7 @@ import { applyModeEdit } from '../../../../../src/engine/core/modes/modeEdits';
 import { PageModeRegistry } from '../../../../../src/engine/core/modes/registry';
 import type { PageModeDefinition } from '../../../../../src/engine/core/modes/types';
 import { DEFAULT_SETTINGS } from '../../../../../src/engine/core/settings';
+import { endKey } from '../../../../../src/engine/core/edit/anchoring/auto/distribute';
 
 const XML = `<mxfile><diagram id="p" name="P" spatial.mode="boom"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
 <mxCell id="a" value="A" vertex="1" parent="1"><mxGeometry x="0" y="0" width="100" height="60" as="geometry"/></mxCell>
@@ -266,5 +267,14 @@ describe('flèche qui arrive sur une partie (sujet 333)', () => {
     modes.edgeReconnected('p', 'e');
     expect(seen.created).toEqual(['haut']);
     expect(seen.reconnected).toEqual(['bas', undefined]);
+  });
+});
+
+describe('point d’arrivée placé par le mode (sujet 338)', () => {
+  it('placedEntries : les bouts d’arrivée des flèches nommées par le mode ; aucun si le mode est en panne', () => {
+    const placing = setup({ id: 'boom', namespace: 'boom', name: 'Boom', edges: { placedEntries: () => ['e'] } });
+    expect([...placing.modes.placedEntries(placing.page)]).toEqual([endKey('e', 'target')]);
+    const broken = setup({ id: 'boom', namespace: 'boom', name: 'Boom', edges: { placedEntries: fail } });
+    expect(broken.modes.placedEntries(broken.page).size).toBe(0);
   });
 });

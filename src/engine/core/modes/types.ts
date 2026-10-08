@@ -120,6 +120,11 @@ export interface ModeEdges {
    */
   manages?(page: PageModel, edge: EdgeModel): boolean;
   /**
+   * Flèches dont le mode place le point d'arrivée (sujet 338, ex. flèches vers un champ RDD, sujet 333) : en ancrage
+   * automatique et Typon, ce bout n'est pas réparti sur son côté ; le tracé arrive là où le mode l'a mis.
+   */
+  placedEntries?(page: PageModel): readonly string[];
+  /**
    * Flèche créée sur la page (tirée depuis une forme), dans la même étape d'annulation ; `current` : le courant.
    * `part` (sujet 333) : partie visée au bout d'arrivée. Le mode la retient dans son attribut et place le point
    * d'arrivée (`edit.setElementStyle`, `sideConstraintAt`).

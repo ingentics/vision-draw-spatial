@@ -94,13 +94,15 @@ interface Slot {
  * forme à l'autre bout (pas son point d'attache, qui dépend lui-même de la répartition), placés à (k + 1) / (n + 1).
  * Les flèches qui relient les deux mêmes côtés (faisceau) gardent un ordre cohérent aux deux bouts, sans croisement.
  * Les deux bouts d'une boucle sur un même côté y sont rangés ensemble, en fin de côté. Les bouts de `resite`
- * (`resitedEnds`) quittent leur côté pour celui qui fait face à leur autre bout. Ne renvoie que les bouts qui changent.
+ * (`resitedEnds`) quittent leur côté pour celui qui fait face à leur autre bout. Les bouts de `kept` (`endKey`, placés par
+ * le mode de la page, sujet 338) ne sont ni déplacés ni comptés. Ne renvoie que les bouts qui changent.
  */
 export function distributeAnchors(
   page: PageModel,
   shapeIds: ReadonlySet<string>,
   seed = 0,
   resite?: ReadonlySet<string>,
+  kept?: ReadonlySet<string>,
 ): AnchorChange[] {
   // Égalités (faisceaux, flèches vers une même forme) : ordre des ids, ou celui que donne la graine.
   const tie = (a: string, b: string) =>
@@ -111,6 +113,7 @@ export function distributeAnchors(
     for (const end of ['source', 'target'] as const) {
       const attachment = endAttachmentOf(edge, end);
       if (!attachment || attachment.kind === 'free' || !shapeIds.has(attachment.shapeId)) continue;
+      if (kept?.has(endKey(edge.id, end))) continue;
       const shape = shapes.get(attachment.shapeId);
       if (!shape) continue;
       const otherEnd: TerminalEnd = end === 'source' ? 'target' : 'source';
