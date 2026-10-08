@@ -748,6 +748,11 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                 />
               </Subsection>
               <Subsection title="Vue graphe">
+                <Toggle
+                  label="Afficher le mini-graphe (à gauche de la mini-carte, de sa largeur)"
+                  checked={settings.minigraph.visible}
+                  onChange={(visible) => onChange({ minigraph: { visible } })}
+                />
                 <Slider
                   label="Diamètre des nœuds"
                   value={graph.nodeSize}
@@ -840,11 +845,6 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                 onChange={(outlineColor) => onChange({ minimap: { outlineColor } })}
               />
               <MinimapPreview minimap={minimap} background={background} accent={selection.accentColor} />
-              <Toggle
-                label="Afficher le mini-graphe (à gauche de la mini-carte, de sa largeur)"
-                checked={settings.minigraph.visible}
-                onChange={(visible) => onChange({ minigraph: { visible } })}
-              />
             </Section>
 
             <CommentSettingsSection settings={settings} onChange={onChange} />

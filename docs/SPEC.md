@@ -715,7 +715,7 @@ Réalisation retenue :
 - La vue graphe est une **page générée** (`graph/graphPage.ts`, id `__graph__`) : un nœud par page (cercle, nom de la page dessous), une flèche par paire de pages liées (`×n` s'il y a plusieurs liens ; deux flèches décalées pour un aller-retour). Rendu, sélection, survol, mini-carte, Entrée, iso… fonctionnent donc tels quels.
 - **Disposition en couches, de haut en bas** (sujet 367) : une rangée par distance depuis la page de départ (départ en haut), puis une rangée pour les pages **inaccessibles** (orange, pointillé), puis une pour les **orphelines** (rouge, pointillé) ; la page de départ est en bleu. Ordre du document de gauche à droite dans chaque rangée, rangées centrées. Écarts `graph.nodeGap` (entre voisins d'une rangée, de bord de nom à bord de nom) et `graph.layerGap` (entre rangées).
 - **Nœuds sans miniature** (sujet 362), en vue d'un très grand nombre de pages : le coût de la vue ne dépend que du nombre de pages et de liens, jamais de leur contenu. Nœud = **cercle** de diamètre fixe (`graph.nodeSize`), fond blanc, contour selon le statut ; **nom de la page sous le cercle** (sujet 367), centré, en gras 15, sur 160 px de large et deux lignes (renvoi à la ligne), posé au-dessus des flèches sur le fond de la vue pour rester lisible ; le statut (« départ », « inaccessible », « orpheline ») est écrit en petit au-dessus du cercle, centré, dans sa couleur. Le nom porte le même lien que le cercle (survol, clic, double-clic). La disposition n'utilise que les noms, l'ordre et les liens des pages, jamais leurs dimensions.
-- **Double-clic sur un nœud = plongée** dans la page (transition de lien, empilée dans l'historique) : la page, posée dans le carré du cercle, apparaît en fondu pendant le zoom ; « Retour » ressort vers le graphe par la transition inverse (la page rétrécit dans son nœud). Seule la page de la transition est construite. Ces transitions, dans les deux sens, ont leur propre durée (`graph.transitionMs`, 50 ms ; sujet 367).
+- **Double-clic sur un nœud = plongée** dans la page (transition de lien, empilée dans l'historique) : la page, posée dans le carré du cercle, apparaît en fondu pendant le zoom ; « Retour » ressort vers le graphe par la transition inverse (la page rétrécit dans son nœud). Seule la page de la transition est construite. Ces transitions, dans les deux sens, ont leur propre durée (`graph.transitionMs`, 0 par défaut : passage direct ; sujets 367, 368).
 - Accès : onglet **« Vue graphe »** en tête des onglets de pages (la page courante rétrécit dans son nœud) ; raccourci clavier graphe ↔ dernière page affichée, sans touche par défaut (sujet 365).
 - Les nœuds du graphe ne comptent pas dans l'usage des liens (§11.3).
 
@@ -777,11 +777,11 @@ interface Settings {
     placeholderFill: string; placeholderStroke: string;           // formes non supportées (§8.4) : '#eeeeee', '#9e9e9e'
   };
   graph: {                                                        // vue graphe (§12)
-    nodeSize: number; nodeGap: number; layerGap: number;          // diamètre des nœuds, écarts : 64, 40, 80
-    pairOffset: number;                                           // écart entre l'aller et le retour d'un lien : 16
+    nodeSize: number; nodeGap: number; layerGap: number;          // diamètre des nœuds, écarts : 64, 50, 20
+    pairOffset: number;                                           // écart entre l'aller et le retour d'un lien : 15
     cardColor: string; orphanColor: string; unreachableColor: string; // '#9aa0a6', '#d93025', '#e37400' (départ : accentColor)
     arcColor: string; titleColor: string;                         // '#5f6368', '#202124'
-    transitionMs: number;                                         // transitions vue graphe ↔ page (ms) : 50
+    transitionMs: number;                                         // transitions vue graphe ↔ page (ms) : 0 = direct
   };
   edit: {                                                         // édition (§14)
     edgePickTolerance: number; handlePickTolerance: number;       // px écran : 6, 8

@@ -25,7 +25,7 @@ export interface GraphLayoutOptions {
   pairOffset: number;
 }
 
-export const DEFAULT_GRAPH_LAYOUT: GraphLayoutOptions = { nodeSize: 64, nodeGap: 40, layerGap: 80, pairOffset: 16 };
+export const DEFAULT_GRAPH_LAYOUT: GraphLayoutOptions = { nodeSize: 64, nodeGap: 50, layerGap: 20, pairOffset: 15 };
 /** Hauteur réservée au statut (« départ », « orpheline »…) au-dessus de chaque nœud. */
 export const STATUS_HEIGHT = 20;
 /** Nom de la page sous le cercle : écart au cercle, largeur fixe, hauteur de deux lignes en 15 px. */
