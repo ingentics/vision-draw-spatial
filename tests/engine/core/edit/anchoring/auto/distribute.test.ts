@@ -43,7 +43,7 @@ describe('distributeAnchors', () => {
     ]);
   });
 
-  it('un bout placé par le mode (sujet 338) : ni déplacé, ni compté parmi ceux de son côté', () => {
+  it('un bout placé par le mode (sujet 338) : jamais déplacé', () => {
     const p = page([
       shape('t', 200, 300),
       shape('a', 400, 0),
@@ -51,7 +51,21 @@ describe('distributeAnchors', () => {
       edge('ea', 'a', 't', 'entryX=0.9;entryY=0;entryPerimeter=0;'),
       edge('eb', 'b', 't', TOP),
     ]);
-    expect(distributeAnchors(p, new Set(['t']), 0, undefined, new Set([endKey('ea', 'target')]))).toEqual([]);
+    const changes = distributeAnchors(p, new Set(['t']), 0, undefined, new Set([endKey('ea', 'target')]));
+    expect(changes.some((c) => c.edgeId === 'ea')).toBe(false);
+  });
+
+  it('un bout réparti ne tombe pas sur le point d’un bout placé par le mode (sujet 339)', () => {
+    // Arrivée du mode au milieu du haut ; la seconde flèche seule serait placée à 0,5, au même point.
+    const p = page([
+      shape('t', 200, 300),
+      shape('a', 400, 0),
+      shape('b', 0, 0),
+      edge('ea', 'a', 't', TOP),
+      edge('eb', 'b', 't', TOP),
+    ]);
+    const changes = distributeAnchors(p, new Set(['t']), 0, undefined, new Set([endKey('ea', 'target')]));
+    expect(changes).toEqual([{ edgeId: 'eb', end: 'target', constraint: { x: 0.3333, y: 0 } }]);
   });
 
   it('deux flèches : 1/3 et 2/3 ; attache auto rangée sur le côté qui fait face', () => {

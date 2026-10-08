@@ -89,13 +89,31 @@ interface Slot {
 }
 
 /**
+ * Positions de `count` bouts répartis sur un côté où `fixed` sont déjà occupées (bouts placés par le mode) : la grille
+ * des (j + 1) / (m + 1) pour `count` + `fixed` bouts, dont on retire le point le plus proche de chaque point occupé.
+ * Sans point occupé, c'est la répartition à (k + 1) / (count + 1) ; l'ordre des positions restantes est conservé.
+ */
+function freeSlots(count: number, fixed: readonly number[]): number[] {
+  const total = count + fixed.length;
+  const grid = Array.from({ length: total }, (_, j) => (j + 1) / (total + 1));
+  for (const t of fixed) {
+    let nearest = 0;
+    grid.forEach((g, j) => {
+      if (Math.abs(g - t) < Math.abs(grid[nearest]! - t)) nearest = j;
+    });
+    grid.splice(nearest, 1);
+  }
+  return grid;
+}
+
+/**
  * Répartition des bouts de flèches attachés aux formes `shapeIds` : regroupés par côté (point fixe sur le cadre, ou
  * attache auto rangée sur le côté qui fait face à son autre bout), ordonnés le long du côté par la position de la
  * forme à l'autre bout (pas son point d'attache, qui dépend lui-même de la répartition), placés à (k + 1) / (n + 1).
  * Les flèches qui relient les deux mêmes côtés (faisceau) gardent un ordre cohérent aux deux bouts, sans croisement.
  * Les deux bouts d'une boucle sur un même côté y sont rangés ensemble, en fin de côté. Les bouts de `resite`
  * (`resitedEnds`) quittent leur côté pour celui qui fait face à leur autre bout. Les bouts de `kept` (`endKey`, placés par
- * le mode de la page, sujet 338) ne sont ni déplacés ni comptés. Ne renvoie que les bouts qui changent.
+ * le mode de la page, sujets 338 et 339) ne sont pas déplacés : leur point est évité par les bouts répartis du même côté. Ne renvoie que les bouts qui changent.
  */
 export function distributeAnchors(
   page: PageModel,
@@ -109,13 +127,25 @@ export function distributeAnchors(
     (seed === 0 ? 0 : seededUnit(seed, a) - seededUnit(seed, b)) || a.localeCompare(b);
   const shapes = shapesById(page);
   const groups = new Map<string, Slot[]>();
+  const fixedPoints = new Map<string, number[]>();
   for (const edge of page.edges)
     for (const end of ['source', 'target'] as const) {
       const attachment = endAttachmentOf(edge, end);
       if (!attachment || attachment.kind === 'free' || !shapeIds.has(attachment.shapeId)) continue;
-      if (kept?.has(endKey(edge.id, end))) continue;
       const shape = shapes.get(attachment.shapeId);
       if (!shape) continue;
+      if (kept?.has(endKey(edge.id, end))) {
+        // Placé par le mode : point fixe de son côté, que les bouts répartis évitent.
+        if (attachment.kind === 'fixed') {
+          const fixedSide = sideOfConstraint(attachment.constraint);
+          if (fixedSide) {
+            const fixedKey = `${shape.id}\u0000${fixedSide}`;
+            const t = fixedSide === 'n' || fixedSide === 's' ? attachment.constraint.x : attachment.constraint.y;
+            fixedPoints.set(fixedKey, [...(fixedPoints.get(fixedKey) ?? []), t]);
+          }
+        }
+        continue;
+      }
       const otherEnd: TerminalEnd = end === 'source' ? 'target' : 'source';
       const otherAttachment = endAttachmentOf(edge, otherEnd);
       const otherShape =
@@ -155,7 +185,7 @@ export function distributeAnchors(
       groups.set(key, [...(groups.get(key) ?? []), { edgeId: edge.id, end, along, other, bundle, current, side }]);
     }
   const changes: AnchorChange[] = [];
-  for (const group of groups.values()) {
+  for (const [groupKey, group] of groups) {
     group.sort(
       (a, b) =>
         (a.along === b.along ? 0 : a.along - b.along) ||
@@ -163,8 +193,9 @@ export function distributeAnchors(
         tie(a.edgeId, b.edgeId) ||
         a.end.localeCompare(b.end),
     );
+    const positions = freeSlots(group.length, fixedPoints.get(groupKey) ?? []);
     group.forEach(({ edgeId, end, current, side }, k) => {
-      const constraint = pointOnSide(side, round((k + 1) / (group.length + 1)));
+      const constraint = pointOnSide(side, round(positions[k]!));
       if (!current || current.x !== constraint.x || current.y !== constraint.y)
         changes.push({ edgeId, end, constraint });
     });
