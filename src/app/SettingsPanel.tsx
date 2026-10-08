@@ -10,6 +10,7 @@ import type {
   Shortcuts,
 } from '../engine';
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { CommentSettingsSection } from './comment';
 import { ChoiceGroup } from './ChoiceGroup';
 import type { ChoiceOption } from './ChoiceGroup';
@@ -19,6 +20,16 @@ import { ColorField, Slider } from './SettingsFields';
 import { IsoIcon, IsoSettings } from './IsoSettings';
 import { Section, Subsection, Subsubsection } from './PanelSection';
 import { usePlugins } from './pluginsContext';
+import {
+  BackgroundPreview,
+  GraphPreview,
+  MinimapPreview,
+  PlaceholderPreview,
+  SelectionPreview,
+  SidebarPreview,
+  TransitionPreview,
+  VolumePreview,
+} from './settingsPreviews';
 
 interface SettingsPanelProps {
   settings: Settings;
@@ -495,6 +506,7 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   disabled={!view.isoVolume}
                   onChange={(shadeDark) => onChange({ view: { shadeDark } })}
                 />
+                <VolumePreview view={view} background={background} />
               </Subsection>
             </Section>
 
@@ -593,6 +605,9 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   onChange={(minorStrength) => onChange({ background: { minorStrength } })}
                 />
               </Subsection>
+              <SectionPreview>
+                <BackgroundPreview background={background} />
+              </SectionPreview>
             </Section>
 
             <Section title="Sélection">
@@ -659,6 +674,9 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   onChange={(speed) => onChange({ selection: { speed } })}
                 />
               </Subsection>
+              <SectionPreview>
+                <SelectionPreview selection={selection} background={background} />
+              </SectionPreview>
             </Section>
 
             <Section title="Liens entre pages">
@@ -704,6 +722,7 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   disabled={!transition.enabled}
                   onChange={(fadeEnd) => onChange({ transition: { fadeEnd } })}
                 />
+                <TransitionPreview transition={transition} />
               </Subsection>
               <Subsection title="Préchargement">
                 <Toggle
@@ -787,6 +806,7 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   onChange={(titleColor) => onChange({ graph: { titleColor } })}
                 />
                 <p className="hint muted">La page de départ prend la couleur d’accent (Sélection).</p>
+                <GraphPreview graph={graph} background={background} accent={selection.accentColor} />
               </Subsection>
             </Section>
 
@@ -816,6 +836,7 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                 disabled={!minimap.visible}
                 onChange={(outlineColor) => onChange({ minimap: { outlineColor } })}
               />
+              <MinimapPreview minimap={minimap} background={background} accent={selection.accentColor} />
             </Section>
 
             <CommentSettingsSection settings={settings} onChange={onChange} />
@@ -847,6 +868,7 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
               <p className="hint muted">
                 Replier : double flèche en haut de la barre ; largeur : glisser son bord (double-clic = par défaut).
               </p>
+              <SidebarPreview panels={settings.panels} background={background} />
             </Section>
 
             <Section title="Formes et flèches">
@@ -1137,6 +1159,7 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   value={shapes.placeholderStroke}
                   onChange={(placeholderStroke) => onChange({ shapes: { placeholderStroke } })}
                 />
+                <PlaceholderPreview shapes={shapes} background={background} />
               </Subsection>
             </Section>
 
@@ -1406,11 +1429,12 @@ export function normalizeSearch(text: string): string {
  */
 function filterSections(root: HTMLElement, query: string): boolean {
   const needle = normalizeSearch(query);
-  const matches = (element: Element | null) => !!element && normalizeSearch(element.textContent ?? '').includes(needle);
+  const matches = (element: Element | null) => !!element && normalizeSearch(searchText(element)).includes(needle);
   let any = false;
   for (const section of sectionsOf(root)) {
     const subsections = subsectionsOf(section);
-    const loose = looseOf(section);
+    // L'aperçu d'une section suit la section, son texte (dessin) n'est pas cherché.
+    const loose = looseOf(section).filter((child) => !isSectionPreview(child));
     const whole = !needle || matches(section.querySelector(':scope > h3'));
     const looseMatch = loose.some((child) => matches(child));
     let shown = whole || looseMatch;
@@ -1426,10 +1450,19 @@ function filterSections(root: HTMLElement, query: string): boolean {
       if (groupsOf(subsection).length > 0) for (const child of inner) child.hidden = !(all || innerMatch);
     }
     for (const child of loose) child.hidden = !(whole || looseMatch);
+    for (const child of looseOf(section).filter(isSectionPreview)) child.hidden = !shown;
     section.hidden = !shown;
     any ||= shown;
   }
   return any;
+}
+
+/** Texte cherché d'un élément : sans celui des aperçus (sujets 320, 321), qui ne sont que des dessins. */
+function searchText(element: Element): string {
+  if (!element.querySelector('.settings-preview')) return element.textContent ?? '';
+  const copy = element.cloneNode(true) as Element;
+  copy.querySelectorAll('.settings-preview').forEach((preview) => preview.remove());
+  return copy.textContent ?? '';
 }
 
 const sectionsOf = (root: HTMLElement | null) => [
@@ -1454,6 +1487,13 @@ const looseOf = (parent: HTMLElement) =>
       child.tagName !== 'H4',
   ) as HTMLElement[];
 
+/** Aperçu commun aux sous-sections d'une section (sujet 320), posé en bas de la section. */
+function SectionPreview({ children }: { children: ReactNode }) {
+  return <div className="settings-section-preview">{children}</div>;
+}
+
+const isSectionPreview = (element: HTMLElement) => element.classList.contains('settings-section-preview');
+
 /** N'affiche que le nœud choisi : la section entière, ou une seule de ses sous-sections. Vrai s'il existe. */
 function showNode(root: HTMLElement, node: SettingsNode): boolean {
   let found = false;
@@ -1475,7 +1515,8 @@ function showNode(root: HTMLElement, node: SettingsNode): boolean {
       });
       if (groupsOf(subsection).length > 0) for (const child of looseOf(subsection)) child.hidden = chosen;
     });
-    for (const child of looseOf(section)) child.hidden = node.subsection !== undefined;
+    // L'aperçu de la section (sujet 320) reste sous chacune de ses sous-sections.
+    for (const child of looseOf(section)) child.hidden = node.subsection !== undefined && !isSectionPreview(child);
   });
   return found;
 }

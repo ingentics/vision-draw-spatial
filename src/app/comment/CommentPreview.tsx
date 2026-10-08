@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { BackgroundSettings, CommentSettings } from '../../engine';
+import { planStyle } from '../settingsPreviews';
 import { CommentCard } from './CommentCard';
 
 const PREVIEW_TEXT = 'Appel HTTP synchrone vers le service de paiement\ntimeout 2 s, 3 essais';
@@ -23,18 +24,9 @@ export function CommentPreview({
     setVisible(false);
     timer.current = setTimeout(() => setVisible(true), settings.fadeOutMs + 300);
   };
-  const line = background.grid ? background.gridColor : 'transparent';
-  const step = background.gridSize * 2;
   return (
     <div className="comment-preview">
-      <div
-        className="comment-preview-canvas"
-        style={{
-          backgroundColor: background.color,
-          backgroundImage: `linear-gradient(${line} 1px, transparent 1px), linear-gradient(90deg, ${line} 1px, transparent 1px)`,
-          backgroundSize: `${step}px ${step}px`,
-        }}
-      >
+      <div className="comment-preview-canvas" style={planStyle(background, 2)}>
         <div className="comment-preview-shape" style={{ left: '12%', top: '18%' }} />
         <div className="comment-preview-shape" style={{ left: '58%', top: '30%' }} />
         <div className="comment-preview-shape" style={{ left: '30%', top: '62%' }} />

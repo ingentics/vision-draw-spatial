@@ -26,11 +26,16 @@ export { DEFAULT_SETTINGS, mergeSettings, modePalette, SETTINGS_LIMITS } from '.
 export type {
   BackgroundSettings,
   CommentSettings,
+  GraphSettings,
+  MinimapSettings,
   PanelsSettings,
+  SelectionSettings,
   Settings,
   SettingsPatch,
+  ShapeSettings,
   SidePanelSettings,
   StyleSettings,
+  TransitionSettings,
   ViewSettings,
 } from './core/settings';
 
@@ -55,6 +60,7 @@ export type {
   TextMarks,
 } from './core/model/types';
 export { DEFAULT_DEPTH, SPATIAL, SPATIAL_PREFIX, spatialNumber, spatialValue } from './core/spatial';
+export { boundsOfPoints, distance, inflate } from './core/model/geometry';
 export { fontStyleBits, fontStyleValue, isHexColor } from './core/model/styleValues';
 
 // Bibliothèque de fichiers et sauvegarde (SPEC §5, §14.1)
@@ -87,6 +93,7 @@ export { RESERVED_CODES } from './core/interaction/controls';
 export type { Shortcuts } from './core/interaction/controls';
 export type { ParentLink } from './core/interaction/navigationHistory';
 export type { PickedElement } from './core/interaction/pick';
+export { easing } from './core/interaction/transitionMath';
 export type { FollowLinkGesture, FollowLinkKey, MultiSelectKey } from './core/interaction/selectionRules';
 
 // Rendu (SPEC §8)
