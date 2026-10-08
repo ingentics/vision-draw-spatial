@@ -1081,6 +1081,11 @@ body {
   stroke-linecap: round;
 }
 
+/* Nœud central à la couleur d'accent, comme la page de départ dans la vue graphe. */
+.graph-tab .graph-tab-hub {
+  stroke: var(--accent);
+}
+
 /* Panneaux latéraux (paramètres) */
 .side-panel {
   min-width: 0;

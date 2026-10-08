@@ -41,7 +41,10 @@ export function PageTabs({
           onClick={onShowGraph}
         >
           <svg viewBox="0 0 16 16" aria-hidden="true">
-            <path d="M4 4.5h3M9 11.5h3M5.5 6 10 10M4 3a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM12 10a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM8.5 3a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z" />
+            <path d="M5.3 7.1 11.3 3.8M5.2 9 9.5 11.4" />
+            <circle cx="12.8" cy="3" r="1.7" />
+            <circle cx="11.5" cy="12.5" r="2.3" />
+            <circle className="graph-tab-hub" cx="3.5" cy="8" r="2" />
           </svg>
           Vue graphe
         </button>
