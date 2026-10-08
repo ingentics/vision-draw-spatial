@@ -626,21 +626,23 @@ export function Viewer({
         </header>
 
         <div className="viewport">
-          <Sidebar
-            side="left"
-            label="Formes"
-            layout={settings.panels.left}
-            stripText={settings.panels.stripText}
-            minCanvas={settings.panels.minCanvas}
-            onChange={(left) => onSettingsChange({ panels: { left } })}
-          >
-            <Palette
-              disabled={!canAddShapes}
-              used={usedShapes}
-              content={paletteContent}
-              onAdd={(template) => engine?.addShape(template)}
-            />
-          </Sidebar>
+          {pageId !== GRAPH_PAGE_ID && (
+            <Sidebar
+              side="left"
+              label="Formes"
+              layout={settings.panels.left}
+              stripText={settings.panels.stripText}
+              minCanvas={settings.panels.minCanvas}
+              onChange={(left) => onSettingsChange({ panels: { left } })}
+            >
+              <Palette
+                disabled={!canAddShapes}
+                used={usedShapes}
+                content={paletteContent}
+                onAdd={(template) => engine?.addShape(template)}
+              />
+            </Sidebar>
+          )}
           <div
             className="canvas-area"
             onDragOver={(event) => {
