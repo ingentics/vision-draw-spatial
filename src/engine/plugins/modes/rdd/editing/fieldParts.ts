@@ -1,5 +1,5 @@
 import type { ModeParts, ShapeModel } from '../../../../core/plugins';
-import { clamp, rectContains } from '../../../../core/plugins';
+import { clamp, rectContains, shapeOf } from '../../../../core/plugins';
 import { BODY, BODY_PART, bodyValue, documentBody, hasBody, normalizedBody, setBody } from '../tables/documentBody';
 import { FIELDS, fieldsValue, isDivider, isPrimaryKey, isRelation, tableFields } from '../tables/fieldModel';
 import { moveField, movedFields, removeField, setField } from '../tables/operations';
@@ -50,7 +50,7 @@ export const fieldParts: ModeParts = {
   },
   // Flèche de relation survolée ou sélectionnée (sujet 373) : le champ qu'elle a créé dans sa table d'arrivée.
   edgePart(page, edge) {
-    const target = edge.targetId === undefined ? undefined : page.shapes.find((s) => s.id === edge.targetId);
+    const target = shapeOf(page, edge.targetId);
     if (!target || !tableKindOf(target)) return undefined;
     const index = tableFields(target).findIndex((row) => isRelation(row) && row.edge === edge.id);
     return index < 0 ? undefined : { shapeId: target.id, part: String(index) };

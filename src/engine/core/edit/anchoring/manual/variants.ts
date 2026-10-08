@@ -12,8 +12,8 @@ import {
 } from '../../edgeEnds';
 import type { Side, TerminalEnd } from '../../edgeEnds';
 import { LOOP_MARGIN, loopWaypoints } from '../../loops';
-import { center, distance } from '../../../model/geometry';
-import { shapesById } from '../../../model/pageIndex';
+import { center, distance, samePoint } from '../../../model/geometry';
+import { edgeOf, shapesById } from '../../../model/pageIndex';
 
 /**
  * Variantes de placement d'une flèche en ancrage manuel (touche F, SPEC §14.1) : pour chaque couple côté de départ ×
@@ -37,8 +37,6 @@ const HIT_COST = 100000;
 /** Coût d'un coude, en pixels de longueur équivalente. */
 const BEND_COST = 30;
 
-const same = (a: Point, b: Point) => a.x === b.x && a.y === b.y;
-
 /** Vrai si un segment passe par l'intérieur d'un rectangle (approché par son emprise s'il est oblique). */
 function enters(a: Point, b: Point, r: Rect): boolean {
   return (
@@ -51,7 +49,7 @@ function enters(a: Point, b: Point, r: Rect): boolean {
 
 /** Variantes de placement d'une flèche reliée à deux formes, de la meilleure à la moins bonne. */
 export function placementVariants(page: PageModel, edgeId: string, loopMargin = LOOP_MARGIN): PlacementVariant[] {
-  const edge = page.edges.find((e) => e.id === edgeId);
+  const edge = edgeOf(page, edgeId);
   const shapes = shapesById(page);
   const source = edge && shapes.get(edge.sourceId ?? '');
   const target = edge && shapes.get(edge.targetId ?? '');
@@ -89,7 +87,7 @@ export function placementVariants(page: PageModel, edgeId: string, loopMargin = 
     if (!exit) continue;
     for (const t of SIDES) {
       const entry = nearestFree(target, t, exit.point, loop ? [exit.constraint] : []);
-      if (!entry || (loop && same(entry.constraint, exit.constraint))) continue;
+      if (!entry || (loop && samePoint(entry.constraint, exit.constraint))) continue;
       const points = loop
         ? loopWaypoints(source.bounds, { point: exit.point, side: s }, { point: entry.point, side: t }, loopMargin)
         : [];
@@ -131,14 +129,14 @@ export function nextPlacementVariant(
   edgeId: string,
   loopMargin = LOOP_MARGIN,
 ): PlacementVariant | undefined {
-  const edge = page.edges.find((e) => e.id === edgeId);
+  const edge = edgeOf(page, edgeId);
   const variants = placementVariants(page, edgeId, loopMargin);
   if (!edge || variants.length === 0) return undefined;
   const exit = endAttachmentOf(edge, 'source');
   const entry = endAttachmentOf(edge, 'target');
   const current =
     exit?.kind === 'fixed' && entry?.kind === 'fixed'
-      ? variants.findIndex((v) => same(v.exit, exit.constraint) && same(v.entry, entry.constraint))
+      ? variants.findIndex((v) => samePoint(v.exit, exit.constraint) && samePoint(v.entry, entry.constraint))
       : -1;
   const next = variants[(current + 1) % variants.length]!;
   return current >= 0 && variants.length === 1 ? undefined : next;

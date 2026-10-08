@@ -4,7 +4,7 @@ import type { EdgeLabelPlacement, EdgeModel, Point, RichLine, ShapeModel } from 
 import { buildMarker } from './markers';
 import { jumpHalfLength, jumpStyleOf, withJumps } from './jumps';
 import type { JumpPoint } from './jumps';
-import { curveThrough, labelPoint, roundCorners, shorten, unit } from './polyline';
+import { curveThrough, labelPoint, roundCorners, shorten } from './polyline';
 import { SPATIAL } from '../../spatial';
 import { routeEdgePoints, simplify } from './route';
 import { toTerminal } from './terminal';
@@ -19,6 +19,7 @@ import { DEFAULT_LABEL_BACKDROP, PAGE_BACKGROUND, labelBackground, styleColor } 
 import { PART_ORDER } from '../types';
 import type { RenderContext } from '../types';
 import type { TextAlong } from '../textPath';
+import { direction } from '../../model/geometry';
 
 /** Défauts draw.io pour les arêtes. */
 const DEFAULT_END_ARROW = 'classic';
@@ -77,7 +78,7 @@ export function createEdge(
   const start = buildMarker(
     startType,
     route[0]!,
-    unit(route[1]!, route[0]!),
+    direction(route[1]!, route[0]!),
     styleNumber(style, 'startSize', DEFAULT_MARKER_SIZE),
     strokeWidth,
     style.startFill !== '0',
@@ -85,7 +86,7 @@ export function createEdge(
   const end = buildMarker(
     endType,
     route[route.length - 1]!,
-    unit(route[route.length - 2]!, route[route.length - 1]!),
+    direction(route[route.length - 2]!, route[route.length - 1]!),
     styleNumber(style, 'endSize', DEFAULT_MARKER_SIZE),
     strokeWidth,
     style.endFill !== '0',
@@ -189,7 +190,7 @@ function addSplitPieces(
     hover.ends = cuts.map((cut, i) => {
       if (!cut.box) return cut.end;
       const { center, width, height } = cut.box;
-      return splitLabelFrame(center, unit(center, aim(cuts[1 - i]!)), width, height);
+      return splitLabelFrame(center, direction(center, aim(cuts[1 - i]!)), width, height);
     });
   }
   // Survol (ticket 224) : de quoi dessiner les tronçons épaissis et la ligne directe (`splitHoverOverlay`).
@@ -209,7 +210,7 @@ function splitLabel(
   const height = fontSize * LINE_HEIGHT + 2 * padding;
   const points = piece.points;
   const end = points[points.length - 1]!;
-  const center = splitLabelFrame(end, unit(points[points.length - 2] ?? points[0]!, end), width, height);
+  const center = splitLabelFrame(end, direction(points[points.length - 2] ?? points[0]!, end), width, height);
   const corners: Point[] = [
     { x: center.x - width / 2, y: center.y - height / 2 },
     { x: center.x + width / 2, y: center.y - height / 2 },

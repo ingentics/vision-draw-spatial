@@ -11,6 +11,7 @@ import type { DocumentModel, PageModel } from '../../model/types';
 import type { InitialView } from '../types';
 import type { EngineCore } from '../EngineCore';
 import { freezeModel } from '../../model/freeze';
+import { byId, edgeOf, shapeOf } from '../../model/pageIndex';
 
 /**
  * Document chargé : arbre XML d'origine (écrit en place, SPEC §14.2), modèle relu de l'arbre, chargement et
@@ -119,7 +120,7 @@ export class DocumentFile {
     const pageId = this.livePageId;
     this.livePageId = undefined;
     this.liveOwners.clear();
-    const page = pageId === undefined ? undefined : this.document?.pages.find((p) => p.id === pageId);
+    const page = byId(this.document?.pages, pageId);
     if (page) freezeModel(page);
   }
 
@@ -184,8 +185,8 @@ export class DocumentFile {
     if (selected && selected.pageId === current?.id) {
       const items: PickedElement[] = [];
       for (const { element } of selected.items) {
-        const shape = current.shapes.find((s) => s.id === element.id);
-        const edge = current.edges.find((e) => e.id === element.id);
+        const shape = shapeOf(current, element.id);
+        const edge = edgeOf(current, element.id);
         if (shape) items.push({ type: 'shape', element: shape });
         else if (edge) items.push({ type: 'edge', element: edge });
       }

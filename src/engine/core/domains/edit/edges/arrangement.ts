@@ -18,7 +18,8 @@ import type { Anchoring } from '../../../edit/anchoring/mode';
 import type { DocumentModel, EdgeModel, PageModel } from '../../../model/types';
 import { SPATIAL } from '../../../spatial';
 import type { EngineCore } from '../../EngineCore';
-import { samePoints } from '../helpers';
+import { byId, edgeOf } from '../../../model/pageIndex';
+import { samePoints } from '../../../model/geometry';
 
 /**
  * Ancrage des flèches d'une page (manuel, automatique ou Typon) : répartition sur les côtés des formes, autre agencement,
@@ -35,7 +36,7 @@ export class EdgeArrangement {
     if (!this.core.targets.editable) return false;
     let wrote = false;
     for (const pageId of changedPageIds) {
-      const page = after.pages.find((p) => p.id === pageId);
+      const page = byId(after.pages, pageId);
       if (!page || !this.distributes(page)) continue;
       const shapeIds = affectedShapes(this.core.file.geometry.get(pageId), page);
       if (shapeIds.size > 0) wrote = this.writeDistribution(page, shapeIds) || wrote;
@@ -91,7 +92,7 @@ export class EdgeArrangement {
     let wrote = false;
     const loops = new Set<EdgeModel>();
     for (const { edgeId, end, constraint } of arrangement.constraints) {
-      const edge = page.edges.find((e) => e.id === edgeId);
+      const edge = edgeOf(page, edgeId);
       if (!edge) continue;
       for (const [key, value] of Object.entries(constraintStyle(end, constraint))) {
         if (pageTree) setCellStyleValue(pageTree, edgeId, key, value);
@@ -198,7 +199,7 @@ export class EdgeArrangement {
     if ((page.attributes[SPATIAL.anchoring] ?? '') === (anchoring ?? '')) return;
     this.core.edits.recordEdit('Ancrage des flèches');
     setPageAttribute(pageTree, SPATIAL.anchoring, anchoring);
-    const fresh = documentFromTree(xmlTree).pages.find((p) => p.id === pageId);
+    const fresh = byId(documentFromTree(xmlTree).pages, pageId);
     if (fresh && this.distributes(fresh)) this.writeDistribution(fresh, new Set(fresh.shapes.map((s) => s.id)));
     this.core.file.documentChanged([pageId]);
   }

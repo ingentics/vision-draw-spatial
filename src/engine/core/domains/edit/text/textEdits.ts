@@ -1,5 +1,6 @@
 import { cellLabelValue, setCellLabel, setCellRichLabel, setCellStyleValue } from '../../../format/cellEdits';
 import type { EngineCore } from '../../EngineCore';
+import { byId, elementOf } from '../../../model/pageIndex';
 
 /** Texte et format du texte d'un élément de la page courante. */
 export class TextEdits {
@@ -9,9 +10,8 @@ export class TextEdits {
     const editable = this.core.targets.editablePage();
     if (!editable || !editable.pageTree.cells.get(cellId)?.cell) return;
     const page = editable.page;
-    const style =
-      [...page.shapes, ...page.edges].find((e) => e.id === cellId)?.style ??
-      page.edges.flatMap((e) => e.labels).find((l) => l.id === cellId)?.style;
+    const labels = page.edges.flatMap((e) => e.labels);
+    const style = elementOf(page, cellId)?.style ?? byId(labels, cellId)?.style;
     if (!style) return;
     const changes = Object.entries(patch).filter(([key, value]) => style[key] !== value);
     if (changes.length === 0) return;
@@ -30,7 +30,7 @@ export class TextEdits {
 
   setLabel(elementId: string, text: string, html?: string): void {
     const editable = this.core.targets.editablePage();
-    const element = editable && [...editable.page.shapes, ...editable.page.edges].find((e) => e.id === elementId);
+    const element = editable && elementOf(editable.page, elementId);
     if (!editable || !element) return;
     if (
       html === undefined

@@ -1,6 +1,7 @@
 import { buildNavigationGraph } from '../model/navigationGraph';
 import type { GraphNode, NavigationGraph } from '../model/navigationGraph';
 import type { DocumentModel, EdgeModel, PageModel, Point, Rect, ShapeModel } from '../model/types';
+import { center, direction, unionOf } from '../model/geometry';
 
 /**
  * Vue graphe de la documentation (SPEC §12), sous forme d'une **page générée** : chaque page du
@@ -229,26 +230,15 @@ export function buildGraphPage(
     shapes,
     edges,
     attributes: {},
-    bounds: unionBounds(shapes.map((s) => s.bounds)),
+    bounds: unionOf(shapes.map((s) => s.bounds)) ?? { x: 0, y: 0, width: 0, height: 0 },
   };
   return { page, layout };
 }
 
 /** Milieu des centres de deux nœuds, décalé perpendiculairement (à droite du sens de parcours). */
 function offsetMidpoint(a: Rect, b: Rect, offset: number): Point {
-  const ca = { x: a.x + a.width / 2, y: a.y + a.height / 2 };
-  const cb = { x: b.x + b.width / 2, y: b.y + b.height / 2 };
-  const dx = cb.x - ca.x;
-  const dy = cb.y - ca.y;
-  const length = Math.hypot(dx, dy) || 1;
-  return { x: (ca.x + cb.x) / 2 - (dy / length) * offset, y: (ca.y + cb.y) / 2 + (dx / length) * offset };
-}
-
-function unionBounds(rects: Rect[]): Rect {
-  if (rects.length === 0) return { x: 0, y: 0, width: 0, height: 0 };
-  const minX = Math.min(...rects.map((r) => r.x));
-  const minY = Math.min(...rects.map((r) => r.y));
-  const maxX = Math.max(...rects.map((r) => r.x + r.width));
-  const maxY = Math.max(...rects.map((r) => r.y + r.height));
-  return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+  const ca = center(a);
+  const cb = center(b);
+  const u = direction(ca, cb);
+  return { x: (ca.x + cb.x) / 2 - u.y * offset, y: (ca.y + cb.y) / 2 + u.x * offset };
 }

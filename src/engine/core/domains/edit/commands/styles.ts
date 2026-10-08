@@ -8,6 +8,7 @@ import type { StylePreset } from '../../../edit/stylePresets';
 import type { Point } from '../../../model/types';
 import type { EngineCore } from '../../EngineCore';
 import { SPATIAL } from '../../../spatial';
+import { edgesById } from '../../../model/pageIndex';
 
 /**
  * Clés de style d'une flèche qui ne changent que le dessin de son texte : réglables en direct sans reconstruire la
@@ -65,7 +66,7 @@ export class StyleCommands {
     if (live) {
       // Sur la copie de travail de la page (sujet 312), rendue aussitôt : le modèle du document, gelé, n'est pas
       // modifié.
-      const edges = new Map(live.edges.map((edge) => [edge.id, edge]));
+      const edges = edgesById(live);
       for (const { id, key, value } of changes) {
         const style = edges.get(id)!.style;
         if (value === undefined) delete style[key];

@@ -1,5 +1,6 @@
 import type { StylePreset, TextPreset } from '../edit/stylePresets';
 import { isHexColor } from '../model/styleValues';
+import { clamp } from '../model/numbers';
 
 /**
  * Briques du schéma des réglages : chaque réglage déclare sa valeur par défaut et sa lecture. Une valeur invalide
@@ -47,7 +48,8 @@ export function number(fallback: number, limits: SettingLimits, options: { integ
     limits,
     read: (value, previous) => {
       if (typeof value !== 'number' || !Number.isFinite(value)) return previous;
-      const clamped = Math.min(limits.max, Math.max(limits.min, value));
+      // Bornes déclarées par le schéma du tronc, toutes dans l'ordre (`min ≤ max`).
+      const clamped = clamp(value, limits.min, limits.max);
       return options.integer ? Math.round(clamped) : clamped;
     },
   };

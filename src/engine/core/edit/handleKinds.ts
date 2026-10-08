@@ -1,6 +1,7 @@
 import type { Point, Rect } from '../model/types';
 import { SIDES, SIDE_NORMALS } from './edgeEnds';
 import type { Side } from './edgeEnds';
+import { snapToGrid } from '../model/geometry';
 
 /**
  * Poignées de la forme sélectionnée (SPEC §14.1) : huit poignées de redimensionnement (coins et
@@ -93,8 +94,7 @@ export function resizeBounds(
   gridSize: number,
   minSize = MIN_SIZE,
 ): Rect {
-  const step = gridSize > 0 ? gridSize : 1;
-  const snap = (value: number) => Math.round(value / step) * step;
+  const snap = (value: number) => snapToGrid(value, gridSize);
   let left = origin.x;
   let top = origin.y;
   let right = origin.x + origin.width;

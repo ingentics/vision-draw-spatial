@@ -6,6 +6,7 @@ import { setPageTransform } from '../../render/space';
 import type { EngineCore } from '../EngineCore';
 import { settingsSectionChanged } from '../../settings';
 import type { Settings } from '../../settings';
+import { clamp } from '../../model/numbers';
 
 /**
  * Niveau de rendu de la page (à plat ou en volume) : hauteur des volumes qui suit l'inclinaison, fondu enchaîné des
@@ -60,7 +61,7 @@ export class Levels {
     const scene = this.core.scenes.current;
     if (!scene || scene.level !== 'iso' || !this.core.canInteract()) return;
     const tilted = this.core.camera.state.tilt / Math.max(this.core.camera.isoTilt(), 1e-6);
-    const scale = Math.min(1, Math.max(0, tilted, perspectiveAmount(this.core.camera.state, this.core.camera.limits)));
+    const scale = clamp(Math.max(tilted, perspectiveAmount(this.core.camera.state, this.core.camera.limits)), 0, 1);
     this.heightScale = scale;
     setPageTransform(scene.root, undefined, scale);
     this.blendLevels(scene, scale);

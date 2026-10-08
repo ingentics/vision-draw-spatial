@@ -1,5 +1,5 @@
 import type { ModeEdit, PageModel, ShapeModel } from '../../../../core/plugins';
-import { edgeEnds, shapesById } from '../../../../core/plugins';
+import { edgeEnds, edgesById, shapesById } from '../../../../core/plugins';
 import type { Field, TableRow } from '../tables/fieldModel';
 import { isDivider, isRelation, tableFields } from '../tables/fieldModel';
 import { writeRows } from '../tables/operations';
@@ -85,7 +85,7 @@ function arrivalsAfter(
   link: EdgeArrival | undefined,
 ): Map<string, Arrival> {
   const shapes = shapesById(page);
-  const edges = new Map(page.edges.map((edge) => [edge.id, edge]));
+  const edges = edgesById(page);
   const permits = (id: string, table: ShapeModel, field: Field) => {
     const edge = edges.get(id);
     const source = shapes.get(edge?.sourceId ?? '');

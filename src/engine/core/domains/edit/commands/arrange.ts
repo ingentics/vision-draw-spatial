@@ -7,6 +7,7 @@ import type { Point, Rect } from '../../../model/types';
 import { reorderCells } from '../../../format/order';
 import type { OrderMove } from '../../../format/order';
 import type { EngineCore } from '../../EngineCore';
+import { shapeOf } from '../../../model/pageIndex';
 
 /** Étape d'annulation de chaque changement d'ordre de dessin (ticket 130). */
 const ORDER_LABELS: Record<OrderMove, string> = {
@@ -53,7 +54,6 @@ export class ArrangeCommands {
     if (!editable || !selection || selection.pageId !== editable.page.id) return;
     const { page, pageTree } = editable;
     const modes = this.core.pageModes;
-    const shapeOf = (id: string) => page.shapes.find((s) => s.id === id);
     const targets = selection.items
       .filter((item) => item.type === 'shape')
       .map((item) => moveTarget(page, item.element, this.core.registry));
@@ -66,11 +66,11 @@ export class ArrangeCommands {
         contentOf: (id) => new Set([id, ...carried(id)].flatMap((root) => [...collectMoveSet(page, root).shapeIds])),
         carried,
         movable: (id) => {
-          const shape = shapeOf(id);
+          const shape = shapeOf(page, id);
           return shape !== undefined && !isLocked(shape) && canMoveCell(pageTree, id);
         },
         bounds: (id) => {
-          const shape = shapeOf(id);
+          const shape = shapeOf(page, id);
           const found = shape && modes.obstacles(page, shape);
           if (!shape || !found) return undefined;
           const above = found.above ?? 0;
@@ -87,7 +87,7 @@ export class ArrangeCommands {
       for (const id of [move.id, ...move.carried]) {
         moveCell(pageTree, id, move.delta);
         for (const contentId of collectMoveSet(page, id).shapeIds) {
-          const bounds = shapeOf(contentId)?.bounds;
+          const bounds = shapeOf(page, contentId)?.bounds;
           if (bounds) previous.set(contentId, bounds);
         }
       }

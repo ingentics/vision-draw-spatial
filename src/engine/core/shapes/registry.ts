@@ -28,6 +28,7 @@ import { styleFlag } from '../model/styleValues';
 import { freezePlain, readonlyModel } from '../model/freeze';
 import { callPlugin } from '../diagnostics/pluginCalls';
 import type { PluginReport } from '../diagnostics/pluginCalls';
+import { byId } from '../model/pageIndex';
 
 /** Erreur levée par une forme (`hook` : point d'entrée, ex. `flat.create`), pour les Diagnostics. */
 export type ShapeErrorHandler = (shapeId: string, hook: string, error: unknown) => void;
@@ -116,7 +117,7 @@ export class ShapeRegistry {
    * le défaut pour les autres.
    */
   values(categoryId: string, stored: Record<string, unknown> | undefined): PluginValues {
-    return pluginValues(this.categoryList.find((category) => category.id === categoryId)?.settings, stored);
+    return pluginValues(byId(this.categoryList, categoryId)?.settings, stored);
   }
 
   /** Valeurs des réglages de chaque catégorie qui en déclare, pour le contexte de rendu (`categoryValues`). */

@@ -7,6 +7,7 @@ import { callMode } from '../../modes/modeCalls';
 import type { ModeEdit } from '../../modes/modeEdit';
 import type { PageModeDefinition } from '../../modes/types';
 import type { EngineCore } from '../EngineCore';
+import { byId } from '../../model/pageIndex';
 
 /**
  * Remises en ordre par le mode de la page (sujets 255, 288, 302), sorties de `PageModes` (sujet 379) : après une
@@ -33,7 +34,7 @@ export class ModeFollowUps {
     const entry = mode && entryOf(mode);
     const pageTree = target?.pageTree;
     if (!mode || !entry || !pageTree || !this.core.file.xmlTree) return false;
-    const read = documentFromTree(this.core.file.xmlTree).pages.find((p) => p.id === pageId);
+    const read = byId(documentFromTree(this.core.file.xmlTree).pages, pageId);
     if (!read) return false;
     // Page de ce seul usage : gelée comme celles du document, le mode n'y écrit pas (sujet 324).
     const fresh = freezeModel(read);

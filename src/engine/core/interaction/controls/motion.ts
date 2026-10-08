@@ -1,6 +1,7 @@
 import type { Point } from '../../model/types';
 import { DEFAULT_CONTROLS } from './settings';
 import type { ControlSettings } from './settings';
+import { unit } from '../../model/geometry';
 
 /** Déplacement et rotation de la vue : touches, molette, inertie (calculs purs). */
 
@@ -90,8 +91,7 @@ export function keyDirection(pressed: Iterable<string>, moveKeys: ControlSetting
       }
     }
   }
-  const length = Math.hypot(x, y);
-  return length === 0 ? { x: 0, y: 0 } : { x: x / length, y: y / length };
+  return unit({ x, y });
 }
 
 /** Variation de zoom pour un événement molette (lignes / pages ramenées en pixels ; pincement trackpad amplifié). */

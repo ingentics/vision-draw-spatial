@@ -5,7 +5,7 @@ import type { Side, TerminalEnd } from '../../edgeEnds';
 import { center } from '../../../model/geometry';
 import { pageGeometry } from '../../../model/pageGeometry';
 import type { PageGeometry } from '../../../model/pageGeometry';
-import { shapesById } from '../../../model/pageIndex';
+import { shapeOf, shapesById } from '../../../model/pageIndex';
 
 /**
  * Ancrage automatique des flèches (SPEC §14.1) : l'utilisateur ne choisit que le côté d'une forme, et les flèches
@@ -56,7 +56,7 @@ function endSide(
   const attachment = endAttachmentOf(edge, end);
   if (!attachment || attachment.kind === 'free') return undefined;
   if (attachment.kind === 'fixed' && !resite?.has(endKey(edge.id, end))) return sideOfConstraint(attachment.constraint);
-  const shape = page.shapes.find((s) => s.id === attachment.shapeId);
+  const shape = shapeOf(page, attachment.shapeId);
   return shape && facingSide(shape.bounds, toward);
 }
 

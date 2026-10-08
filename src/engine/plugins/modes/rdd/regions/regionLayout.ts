@@ -1,13 +1,14 @@
 import {
   DRAWIO_STYLES,
+  inflate,
   lighten,
   readableOn,
   rectContains,
   rectContainsRect,
   rectsOverlap,
+  shapeOf,
   styleColor,
   unionOf,
-  inflate,
 } from '../../../../core/plugins';
 import type { ModeEdit, ModeObstacles, PageModel, Rect, ShapeModel, StylePreset } from '../../../../core/plugins';
 import { tableKindOf } from '../tables/tableKinds';
@@ -171,14 +172,14 @@ export function growRegions(edit: ModeEdit, shapeIds: string[], before?: PageMod
   const boundsOf = (shape: ShapeModel) => grown.get(shape.id) ?? shape.bounds;
   const ownerOf = (shape: ShapeModel): ShapeModel | undefined => {
     const owner = regionOf(page, shape);
-    const earlier = before?.shapes.find((s) => s.id === shape.id);
+    const earlier = shapeOf(before, shape.id);
     const previousId = earlier && before && regionOf(before, earlier)?.id;
-    const previous = previousId === undefined ? undefined : page.shapes.find((s) => s.id === previousId);
+    const previous = shapeOf(page, previousId);
     if (!previous || previous.id === owner?.id || !rectsOverlap(boundsOf(shape), boundsOf(previous))) return owner;
     return !owner || encloses(page, owner, previous) ? previous : owner;
   };
   for (const id of shapeIds) {
-    let shape = page.shapes.find((s) => s.id === id);
+    let shape = shapeOf(page, id);
     const seen = new Set<string>();
     while (shape && !seen.has(shape.id)) {
       seen.add(shape.id);
@@ -247,7 +248,7 @@ export function placeInRegions(edit: ModeEdit, shapeIds: string[], before?: Page
     const pending = new Set(shapeIds);
     for (const id of shapeIds) {
       pending.delete(id);
-      const shape = edit.page.shapes.find((s) => s.id === id);
+      const shape = shapeOf(edit.page, id);
       if (shape && isRegion(shape)) styleNewRegion(edit, shape, pending);
     }
   }
@@ -274,7 +275,7 @@ export function fitRegion(edit: ModeEdit, region: ShapeModel): void {
   ) {
     seen.add(current.id);
     const content = regionContent(page, current)
-      .map((id) => page.shapes.find((s) => s.id === id))
+      .map((id) => shapeOf(page, id))
       .filter((shape): shape is ShapeModel => shape !== undefined);
     const union = unionOf(content.map((s) => extentOf(s, fitted.get(s.id) ?? s.bounds)));
     if (!union) break;

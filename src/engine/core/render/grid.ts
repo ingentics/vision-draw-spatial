@@ -1,5 +1,6 @@
 import { Color, Mesh, PlaneGeometry, ShaderMaterial } from 'three';
 import type { Point } from '../model/types';
+import { clamp } from '../model/numbers';
 
 /**
  * Fond de la vue (SPEC §9.5) : un plan au sol, sous tout le reste, qui peint la couleur de fond
@@ -103,7 +104,7 @@ export function createGrid(options: GridOptions): Grid {
       u.uCell!.value = Math.max(next.cell, 1e-3);
       u.uMajor!.value = Math.max(1, Math.round(next.majorEvery));
       u.uShowGrid!.value = next.visible ? 1 : 0;
-      u.uMinor!.value = Math.min(1, Math.max(0, next.minorStrength));
+      u.uMinor!.value = clamp(next.minorStrength, 0, 1);
     },
     follow(center, extent) {
       mesh.position.set(center.x, 0, center.y);

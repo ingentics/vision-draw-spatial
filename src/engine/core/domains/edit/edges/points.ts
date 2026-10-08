@@ -3,6 +3,7 @@ import type { PageTree } from '../../../format/xmlTree';
 import { removePoint } from '../../../edit/edgePointEdits';
 import type { EdgeModel, PageModel, Point } from '../../../model/types';
 import type { EngineCore } from '../../EngineCore';
+import { edgeOf, shapeOf } from '../../../model/pageIndex';
 
 /** Points intermédiaires d'une flèche : écriture, retour au tracé automatique, retrait ou bascule au double-clic. */
 export class EdgePoints {
@@ -10,7 +11,7 @@ export class EdgePoints {
 
   /** Écrit les points intermédiaires d'une flèche (repère de son parent, comme draw.io). */
   writeEdgePoints(page: PageModel, pageTree: PageTree, edge: EdgeModel, points: Point[]): void {
-    const origin = page.shapes.find((s) => s.id === edge.parentId)?.bounds ?? { x: 0, y: 0 };
+    const origin = shapeOf(page, edge.parentId)?.bounds ?? { x: 0, y: 0 };
     setEdgePoints(
       pageTree,
       edge.id,
@@ -20,7 +21,7 @@ export class EdgePoints {
 
   resetEdgeRoute(edgeId: string): void {
     const editable = this.core.targets.editablePage();
-    const edge = editable?.page.edges.find((e) => e.id === edgeId);
+    const edge = edgeOf(editable?.page, edgeId);
     if (!editable || !edge) return;
     const keys = ['exit', 'entry'].flatMap((prefix) =>
       ['X', 'Y', 'Dx', 'Dy', 'Perimeter'].map((suffix) => `${prefix}${suffix}`),

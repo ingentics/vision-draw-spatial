@@ -5,6 +5,7 @@ import type { ModeTarget } from '../../modes/types';
 import type { PageModel } from '../../model/types';
 import type { ModePropertyView } from '../types';
 import type { EngineCore } from '../EngineCore';
+import { edgeOf, elementOf, shapeOf } from '../../model/pageIndex';
 
 /**
  * Panneau d'une page de mode (sujets 249, 271, 294), sorti de `PageModes` (sujet 379) : réglages déclarés évalués et
@@ -69,11 +70,7 @@ export class ModePanel {
     const page = this.core.targets.editablePage()?.page;
     const property = page && this.core.modes.properties(page, scope, part).find((p) => p.key === key);
     const target: ModeTarget | undefined =
-      scope === 'page'
-        ? page
-        : scope === 'edge'
-          ? page?.edges.find((e) => e.id === targetId)
-          : page?.shapes.find((s) => s.id === targetId);
+      scope === 'page' ? page : scope === 'edge' ? edgeOf(page, targetId) : shapeOf(page, targetId);
     if (!property || !target) return;
     let next: string | void = undefined;
     this.core.pageModes.editPageMode(
@@ -95,7 +92,7 @@ export class ModePanel {
     const mode = this.core.modes.modeOf(editable.page);
     const action = mode?.keys?.[key];
     const id = selection.picked.element.id;
-    const target = [...editable.page.edges, ...editable.page.shapes].find((element) => element.id === id);
+    const target = elementOf(editable.page, id);
     const part = selection.part;
     if (!mode || !action || !target) return false;
     if (!this.core.pageModes.call(mode, `touche « ${key} »`, false, action.applies, editable.page, target, part))

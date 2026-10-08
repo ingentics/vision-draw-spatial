@@ -9,8 +9,9 @@ import {
 } from '../../../edit/edgeEnds';
 import type { PageModel, Point } from '../../../model/types';
 import type { EdgeEndDrag } from './types';
-import { samePoints } from '../helpers';
 import type { EngineCore } from '../../EngineCore';
+import { edgeOf } from '../../../model/pageIndex';
+import { samePoints } from '../../../model/geometry';
 
 /** Bout de flèche déplacé par sa poignée : attaché à une forme (auto ou point fixe) ou libre. */
 export class EdgeEndDrags {
@@ -18,7 +19,7 @@ export class EdgeEndDrags {
 
   /** Bout de flèche suivant le pointeur : tracé recalculé en direct, repères sur la forme visée. */
   follow(page: PageModel, drag: EdgeEndDrag, screen: Point, snap: boolean): void {
-    const edge = page.edges.find((e) => e.id === drag.edgeId);
+    const edge = edgeOf(page, drag.edgeId);
     const pageTree = this.core.file.pageTreeOf(page.id);
     if (!edge || !pageTree) return;
     drag.started = true;
@@ -48,7 +49,7 @@ export class EdgeEndDrags {
   /** Bout de flèche lâché : nouvelle attache écrite (et coudes d'une boucle), sauf s'il revient où il était. */
   commit(drag: EdgeEndDrag, pageTree: PageTree): void {
     const page = this.core.pages.pageById(drag.pageId);
-    const edge = page?.edges.find((e) => e.id === drag.edgeId);
+    const edge = edgeOf(page, drag.edgeId);
     if (!page || !edge) return;
     const before = endAttachmentOf({ ...edge, ...drag.original }, drag.end);
     const after = drag.attachment;

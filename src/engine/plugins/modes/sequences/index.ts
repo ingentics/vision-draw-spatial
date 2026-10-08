@@ -1,5 +1,5 @@
 import type { EdgeModel, ModeKey, PageModeDefinition } from '../../../core/plugins';
-import { numberValue } from '../../../core/plugins';
+import { byId, numberValue } from '../../../core/plugins';
 import { FLOW, PARTICIPANT, STEP, flowLabel } from './flows';
 import { SEQUENCES_KEYS } from './keys';
 import { badgeStyle, currentLook, SEQUENCES_SETTINGS } from './settings';
@@ -111,7 +111,7 @@ export const definition: PageModeDefinition = {
     const state = sequenceState(page);
     const flowOf = (edge: EdgeModel) => {
       const placed = state.placement.get(edge.id);
-      return placed && { placed, flow: state.flows.find((flow) => flow.id === placed.flowId)! };
+      return placed && { placed, flow: byId(state.flows, placed.flowId)! };
     };
     return {
       edgeDarken: numberValue(values, 'edgeDarken'),
@@ -131,9 +131,9 @@ export const definition: PageModeDefinition = {
     initial: (page) => sequenceState(page).flows[0]?.id,
     valid: (page, value) => sequenceState(page).members.has(value),
     pick: (page, target) => sequenceState(page).placement.get(target.id)?.flowId,
-    color: (page, value) => sequenceState(page).flows.find((flow) => flow.id === value)?.color,
+    color: (page, value) => byId(sequenceState(page).flows, value)?.color,
     label: (page, value) => {
-      const flow = sequenceState(page).flows.find((f) => f.id === value);
+      const flow = byId(sequenceState(page).flows, value);
       return flow ? flowLabel(flow) : value;
     },
     values: (page) => sequenceState(page).flows.map((flow) => flow.id),

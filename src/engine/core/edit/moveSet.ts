@@ -2,7 +2,8 @@ import { computeBounds } from '../model/bounds';
 import type { PageModel, Point, Rect, ShapeModel } from '../model/types';
 import type { ShapeRegistry } from '../shapes/registry';
 import { styleFlag } from '../model/styleValues';
-import { shapesById } from '../model/pageIndex';
+import { shapeOf, shapesById } from '../model/pageIndex';
+import { snapToGrid } from '../model/geometry';
 
 /**
  * Déplacement de formes dans le modèle neutre (SPEC §14.1). Les coordonnées du modèle sont
@@ -88,10 +89,10 @@ export function carriedShapes(
   const stack = [...shapeIds];
   while (stack.length) {
     const next = stack.pop();
-    const shape = page.shapes.find((s) => s.id === next);
+    const shape = shapeOf(page, next);
     if (!shape) continue;
     for (const id of carries(shape)) {
-      const target = page.shapes.find((s) => s.id === id);
+      const target = shapeOf(page, id);
       if (taken.has(id) || !target || !accept(target)) continue;
       taken.add(id);
       carried.push(id);
@@ -148,8 +149,7 @@ export function translateMoveSet(page: PageModel, set: MoveSet, delta: Point): v
  * la grille. Sans grille (`gridSize` ≤ 0), le déplacement est arrondi au pixel.
  */
 export function snapDelta(bounds: Rect, raw: Point, gridSize: number): Point {
-  const step = gridSize > 0 ? gridSize : 1;
-  const snap = (origin: number, d: number) => Math.round((origin + d) / step) * step - origin;
+  const snap = (origin: number, d: number) => snapToGrid(origin + d, gridSize) - origin;
   return { x: snap(bounds.x, raw.x), y: snap(bounds.y, raw.y) };
 }
 

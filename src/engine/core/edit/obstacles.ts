@@ -1,5 +1,5 @@
 import type { Point, Rect } from '../model/types';
-import { inflate } from '../model/geometry';
+import { distance, inflate } from '../model/geometry';
 
 /**
  * Bornes d'un déplacement ou d'un redimensionnement (sujet 241) : des obstacles (ex. régions sœurs d'une région RDD)
@@ -39,7 +39,7 @@ export function clampMove(moving: Rect[], obstacles: Rect[], gap: number, delta:
   const zones = obstacles.map((o) => inflate(o, gap));
   const xFirst = clampAxes(moving, zones, delta, 'x');
   const yFirst = clampAxes(moving, zones, delta, 'y');
-  const miss = (d: Point) => Math.hypot(delta.x - d.x, delta.y - d.y);
+  const miss = (d: Point) => distance(delta, d);
   const best = miss(yFirst.value) < miss(xFirst.value) ? yFirst : xFirst;
   return { value: best.value, limits: lastLimits(best.limits, best.value, moving) };
 }

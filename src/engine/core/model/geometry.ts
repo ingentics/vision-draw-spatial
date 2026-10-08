@@ -1,3 +1,4 @@
+import { clamp } from './numbers';
 import type { Point, Rect } from './types';
 
 /** Petits calculs de géométrie plane partagés (points, rectangles, segments, polygones), en pixels de page. */
@@ -6,8 +7,61 @@ export function distance(a: Point, b: Point): number {
   return Math.hypot(b.x - a.x, b.y - a.y);
 }
 
+/** Vecteur `v` ramené à la longueur 1 ; nul s'il est nul. */
+export function unit(v: Point): Point {
+  const length = Math.hypot(v.x, v.y);
+  return length === 0 ? { x: 0, y: 0 } : { x: v.x / length, y: v.y / length };
+}
+
+/** Vecteur unitaire du segment `from → to` (nul si les points sont confondus). */
+export function direction(from: Point, to: Point): Point {
+  return unit({ x: to.x - from.x, y: to.y - from.y });
+}
+
+/** Mêmes coordonnées exactement. */
+export function samePoint(a: Point, b: Point): boolean {
+  return a.x === b.x && a.y === b.y;
+}
+
+/** Mêmes points, dans le même ordre. */
+export function samePoints(a: readonly Point[], b: readonly Point[]): boolean {
+  return a.length === b.length && a.every((p, i) => samePoint(p, b[i]!));
+}
+
+/** Même position et même taille exactement. */
+export function sameRect(a: Rect, b: Rect): boolean {
+  return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
+}
+
 export function center(r: Rect): Point {
   return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+}
+
+/**
+ * Coins du rectangle dans l'ordre du tour : haut-gauche, haut-droit, bas-droit, bas-gauche (y vers le bas). C'est aussi
+ * son contour fermé (le dernier point n'est pas répété), d'où le nom partagé avec les contours du rendu.
+ */
+export function rectPath({ x, y, width, height }: Rect): Point[] {
+  return [
+    { x, y },
+    { x: x + width, y },
+    { x: x + width, y: y + height },
+    { x, y: y + height },
+  ];
+}
+
+/**
+ * Échelle qui fait tenir `content` dans `available` (le côté le plus serré décide) ; `fallback` pour un contenu sans
+ * étendue (point). Un côté nul du contenu ne borne pas (1e-6 évite la division par zéro).
+ */
+export function fitScale(
+  content: { readonly width: number; readonly height: number },
+  available: { readonly width: number; readonly height: number },
+  fallback: number,
+): number {
+  return content.width > 0 || content.height > 0
+    ? Math.min(available.width / Math.max(content.width, 1e-6), available.height / Math.max(content.height, 1e-6))
+    : fallback;
 }
 
 /**
@@ -16,6 +70,21 @@ export function center(r: Rect): Point {
  */
 export function ceilToGrid(value: number, step: number): number {
   return step > 0 ? Math.ceil(value / step - 1e-6) * step : value;
+}
+
+/**
+ * Valeur aimantée au pas de grille le plus proche, comme draw.io au déplacement, au redimensionnement et au dépôt.
+ * Sans grille (`grid` ≤ 0), arrondie au pixel : une position éditée reste entière, contrairement à `ceilToGrid` qui
+ * laisse une taille inchangée.
+ */
+export function snapToGrid(value: number, grid: number): number {
+  const step = grid > 0 ? grid : 1;
+  return Math.round(value / step) * step;
+}
+
+/** Point aimanté à la grille sur ses deux coordonnées (`snapToGrid`). */
+export function snapPoint(p: Point, grid: number): Point {
+  return { x: snapToGrid(p.x, grid), y: snapToGrid(p.y, grid) };
 }
 
 /** Le point est-il dans le rectangle, bord compris ? */
@@ -110,14 +179,23 @@ export function segmentIntersection(a: Point, b: Point, c: Point, d: Point): Poi
   return { x: a.x + ua * (b.x - a.x), y: a.y + ua * (b.y - a.y) };
 }
 
-/** Carré de la distance de `p` au segment `[a, b]` (mxUtils.ptSegDistSq). */
-export function segmentDistanceSquared(p: Point, a: Point, b: Point): number {
+/**
+ * Projection de `p` sur le segment `[a, b]` : paramètre `t` dans [0, 1] (0 en `a`, 1 en `b`) et point du segment le
+ * plus proche ; `a` (t = 0) si le segment est nul.
+ */
+export function segmentProjection(p: Point, a: Point, b: Point): { t: number; point: Point } {
   const dx = b.x - a.x;
   const dy = b.y - a.y;
   const lengthSq = dx * dx + dy * dy;
-  const t = lengthSq === 0 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / lengthSq));
-  const x = a.x + t * dx - p.x;
-  const y = a.y + t * dy - p.y;
+  const t = lengthSq === 0 ? 0 : clamp(((p.x - a.x) * dx + (p.y - a.y) * dy) / lengthSq, 0, 1);
+  return { t, point: { x: a.x + t * dx, y: a.y + t * dy } };
+}
+
+/** Carré de la distance de `p` au segment `[a, b]` (mxUtils.ptSegDistSq). */
+export function segmentDistanceSquared(p: Point, a: Point, b: Point): number {
+  const { point } = segmentProjection(p, a, b);
+  const x = point.x - p.x;
+  const y = point.y - p.y;
   return x * x + y * y;
 }
 

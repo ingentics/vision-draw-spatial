@@ -1,16 +1,9 @@
 import type { Point, Rect } from '../../model/types';
 import { styleFlag, styleNumber } from '../../model/styleValues';
+import { clamp } from '../../model/numbers';
+import { rectPath } from '../../model/geometry';
 
 /** Contours fermés en coordonnées page (le dernier point n'est pas répété). */
-
-export function rectPath({ x, y, width, height }: Rect): Point[] {
-  return [
-    { x, y },
-    { x: x + width, y },
-    { x: x + width, y: y + height },
-    { x, y: y + height },
-  ];
-}
 
 /** Rectangle à coins arrondis ; rayon borné à la moitié du plus petit côté. */
 export function roundedRectPath(rect: Rect, radius: number, segmentsPerCorner = 8): Point[] {
@@ -75,7 +68,7 @@ export function sizeOffset(
 ): (length: number, max?: number) => number {
   const fixed = (style.fixedSize ?? '0') !== '0';
   const size = styleNumber(style, 'size', fixed ? fixedDefault : relativeDefault);
-  return (length, max = length) => (fixed ? Math.max(0, Math.min(max, size)) : length * Math.max(0, Math.min(1, size)));
+  return (length, max = length) => (fixed ? clamp(size, 0, max) : length * clamp(size, 0, 1));
 }
 
 /**

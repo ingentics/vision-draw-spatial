@@ -1,6 +1,6 @@
 import type { ReadonlyShapeModel as ShapeModel } from '../model/readonly';
 import { createBox } from '../render/flat/box';
-import { rectPath } from '../render/geometry/paths';
+import { rectPath } from '../model/geometry';
 import { isoBlock } from '../render/iso/block';
 import type { RenderContext } from '../render/types';
 import { SPATIAL_PREFIX } from '../spatial';

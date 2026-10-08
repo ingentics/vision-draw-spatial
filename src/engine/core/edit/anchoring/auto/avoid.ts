@@ -7,7 +7,7 @@ import { DEFAULT_AVOID_OPTIONS, out } from '../routing';
 import type { AvoidOptions, Port, Router, Segment } from '../routing';
 import { seededUnit } from '../seed';
 import { ORTHOGONAL_ROUTER } from './routeAround';
-import { shapesById } from '../../../model/pageIndex';
+import { shapeOf, shapesById } from '../../../model/pageIndex';
 
 /**
  * Tracé automatique des flèches en ancrage automatique et Typon (SPEC §14.1) : si possible, le tracé contourne les
@@ -24,7 +24,7 @@ function portOf(page: PageModel, edge: EdgeModel, end: 'source' | 'target'): Por
   const attachment = endAttachmentOf(edge, end);
   if (attachment?.kind !== 'fixed') return undefined;
   const side = sideOfConstraint(attachment.constraint);
-  const terminal = toTerminal(page.shapes.find((s) => s.id === attachment.shapeId));
+  const terminal = toTerminal(shapeOf(page, attachment.shapeId));
   const point = terminal && fixedAnchor(terminal, edge.style, end);
   return side && point ? { point, side } : undefined;
 }

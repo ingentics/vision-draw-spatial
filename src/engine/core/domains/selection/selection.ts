@@ -4,6 +4,7 @@ import { toggleSelected } from '../../interaction/selectionRules';
 import type { PageModel, Rect, ShapeModel } from '../../model/types';
 import type { Selection } from '../types';
 import type { EngineCore } from '../EngineCore';
+import { edgeOf, shapeOf } from '../../model/pageIndex';
 
 /** Sélection de la page courante (SPEC §11) : un ou plusieurs éléments, par clic, ajout / retrait, zone ou « tout ». */
 export class Selections {
@@ -33,10 +34,10 @@ export class Selections {
     if (!current || current.pageId !== page.id) return;
     const items = current.items.flatMap((item): PickedElement[] => {
       if (item.type === 'shape') {
-        const shape = page.shapes.find((s) => s.id === item.element.id);
+        const shape = shapeOf(page, item.element.id);
         return shape ? [{ type: 'shape', element: shape }] : [];
       }
-      const edge = page.edges.find((e) => e.id === item.element.id);
+      const edge = edgeOf(page, item.element.id);
       return edge ? [{ type: 'edge', element: edge }] : [];
     });
     if (items.length !== current.items.length) return;

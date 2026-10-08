@@ -5,17 +5,26 @@ import {
   rectDistance,
   ceilToGrid,
   center,
+  direction,
   distance,
+  fitScale,
   insidePolygon,
   rectContains,
   rectsOverlap,
+  samePoint,
+  samePoints,
+  sameRect,
   segmentDistance,
+  segmentProjection,
   segmentIntersection,
   segmentsCross,
   prunePath,
   rectExitPoint,
   simplifyPath,
+  snapPoint,
+  snapToGrid,
   unionOf,
+  unit,
 } from '../../../../src/engine/core/model/geometry';
 
 describe('géométrie partagée (sujet 205)', () => {
@@ -127,5 +136,61 @@ describe('rectangle agrandi, distance à un rectangle (sujet 307)', () => {
     expect(rectDistance(r, { x: 10, y: 20 })).toBe(0);
     expect(rectDistance(r, { x: 15, y: 10 })).toBe(5);
     expect(rectDistance(r, { x: 13, y: 24 })).toBe(5);
+  });
+});
+
+describe('briques géométriques du tronc (sujet 382)', () => {
+  it('aimantation à la grille ; sans grille, arrondi au pixel', () => {
+    expect(snapToGrid(14, 10)).toBe(10);
+    expect(snapToGrid(15, 10)).toBe(20);
+    expect(snapToGrid(-14, 10)).toBe(-10);
+    expect(snapToGrid(14.6, 0)).toBe(15);
+    expect(snapToGrid(14.4, -5)).toBe(14);
+    expect(snapPoint({ x: 26, y: 34 }, 20)).toEqual({ x: 20, y: 40 });
+  });
+
+  it('projection sur un segment : paramètre borné à [0, 1], début d’un segment nul', () => {
+    const a = { x: 0, y: 0 };
+    const b = { x: 10, y: 0 };
+    expect(segmentProjection({ x: 4, y: 3 }, a, b)).toEqual({ t: 0.4, point: { x: 4, y: 0 } });
+    expect(segmentProjection({ x: -5, y: 2 }, a, b)).toEqual({ t: 0, point: a });
+    expect(segmentProjection({ x: 15, y: 2 }, a, b)).toEqual({ t: 1, point: b });
+    expect(segmentProjection({ x: 3, y: 3 }, a, a)).toEqual({ t: 0, point: a });
+  });
+
+  it('échelle qui fait tenir : le côté le plus serré décide, repli pour un contenu sans étendue', () => {
+    expect(fitScale({ width: 100, height: 50 }, { width: 200, height: 200 }, 1)).toBe(2);
+    expect(fitScale({ width: 100, height: 50 }, { width: 200, height: 50 }, 1)).toBe(1);
+    expect(fitScale({ width: 100, height: 0 }, { width: 50, height: 10 }, 1)).toBe(0.5);
+    expect(fitScale({ width: 0, height: 0 }, { width: 50, height: 10 }, 3)).toBe(3);
+  });
+
+  it('vecteurs unitaires : nul pour un vecteur nul ou des points confondus', () => {
+    expect(unit({ x: 3, y: -4 })).toEqual({ x: 0.6, y: -0.8 });
+    expect(unit({ x: 0, y: 0 })).toEqual({ x: 0, y: 0 });
+    expect(direction({ x: 1, y: 1 }, { x: 1, y: 6 })).toEqual({ x: 0, y: 1 });
+    expect(direction({ x: 1, y: 1 }, { x: 1, y: 1 })).toEqual({ x: 0, y: 0 });
+  });
+
+  it('égalités exactes de points et de rectangles', () => {
+    expect(samePoint({ x: 1, y: 2 }, { x: 1, y: 2 })).toBe(true);
+    expect(samePoint({ x: 1, y: 2 }, { x: 1, y: 2.0001 })).toBe(false);
+    expect(samePoints([{ x: 1, y: 2 }], [{ x: 1, y: 2 }])).toBe(true);
+    expect(samePoints([{ x: 1, y: 2 }], [])).toBe(false);
+    expect(
+      samePoints(
+        [
+          { x: 0, y: 0 },
+          { x: 1, y: 1 },
+        ],
+        [
+          { x: 1, y: 1 },
+          { x: 0, y: 0 },
+        ],
+      ),
+    ).toBe(false);
+    const r = { x: 0, y: 0, width: 10, height: 5 };
+    expect(sameRect(r, { ...r })).toBe(true);
+    expect(sameRect(r, { ...r, height: 6 })).toBe(false);
   });
 });

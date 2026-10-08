@@ -18,6 +18,7 @@ import type { Point, Rect } from '../../model/types';
 import type { Settings } from '../../settings';
 import type { EngineCore } from '../EngineCore';
 import { settingsSectionChanged } from '../../settings';
+import { shapeOf } from '../../model/pageIndex';
 
 /** Caméra de la page affichée (SPEC §9) : état, animations, cadrages, vue globale, orientation de référence. */
 export class ViewCamera {
@@ -59,8 +60,7 @@ export class ViewCamera {
     if (this.core.pages.currentPageId !== pageId) this.core.pages.goToPage(pageId);
     const page = this.core.pages.getCurrentPage();
     if (!page) return;
-    const bounds =
-      page.shapes.find((s) => s.id === elementId)?.bounds ?? this.core.sceneView.drawnBounds(elementId) ?? page.bounds;
+    const bounds = shapeOf(page, elementId)?.bounds ?? this.core.sceneView.drawnBounds(elementId) ?? page.bounds;
     this.animateCameraTo(
       fitBounds(bounds, this.core.display.viewport, {
         ...this.orientation(),

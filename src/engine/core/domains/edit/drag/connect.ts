@@ -5,8 +5,10 @@ import { anchorPosition, constraintStyle, sideMiddle } from '../../../edit/edgeE
 import type { PageModel, Point } from '../../../model/types';
 import { connectorPreview } from '../../../render/handleMeshes';
 import type { ConnectDrag } from './types';
-import { samePoints, withStyleValue } from '../helpers';
+import { withStyleValue } from '../helpers';
 import type { EngineCore } from '../../EngineCore';
+import { edgeOf, shapeOf } from '../../../model/pageIndex';
+import { center, samePoint } from '../../../model/geometry';
 
 /** Style des connecteurs créés (celui de draw.io par défaut) ; le tracé vient du paramètre `shapes.edgeLineStyle`. */
 export const CONNECTOR_STYLE = 'orthogonalLoop=1;jettySize=auto;html=1;';
@@ -24,7 +26,7 @@ export class ConnectDrags {
   constructor(private readonly core: EngineCore) {}
 
   follow(page: PageModel, connect: ConnectDrag, screen: Point): void {
-    const source = page.shapes.find((s) => s.id === connect.sourceId);
+    const source = shapeOf(page, connect.sourceId);
     if (!source) return;
     connect.started = true;
     const top = this.core.sceneView.elementTop(source.id);
@@ -42,7 +44,7 @@ export class ConnectDrags {
       connect.target = attachment.kind === 'free' ? undefined : attachment;
       connect.part = this.core.shapeParts.targetedPart(page, connect.target, screen);
       connect.exit = sideExit;
-      const target = connect.target && page.shapes.find((s) => s.id === connect.target!.shapeId);
+      const target = connect.target && shapeOf(page, connect.target!.shapeId);
       const from = anchorPosition(source, sideExit);
       const end =
         connect.target?.kind === 'fixed' && target
@@ -82,15 +84,15 @@ export class ConnectDrags {
     });
     connect.target = attachment.kind === 'free' ? undefined : attachment;
     connect.part = this.core.shapeParts.targetedPart(page, connect.target, screen);
-    const target = connect.target && page.shapes.find((s) => s.id === connect.target!.shapeId);
+    const target = connect.target && shapeOf(page, connect.target!.shapeId);
     const loop = target?.id === source.id;
-    if (loop && connect.target?.kind === 'fixed' && samePoints([connect.target.constraint], [loopExit.constraint]))
+    if (loop && connect.target?.kind === 'fixed' && samePoint(connect.target.constraint, loopExit.constraint))
       connect.target = { kind: 'floating', shapeId: source.id };
     const aim =
       connect.target?.kind === 'fixed' && target
         ? anchorPosition(target, connect.target.constraint)
         : target
-          ? { x: target.bounds.x + target.bounds.width / 2, y: target.bounds.y + target.bounds.height / 2 }
+          ? center(target.bounds)
           : this.core.picking.groundPointAtHeight(screen, top);
     // Départ : point libre du côté de la poignée le plus proche de la cible visée.
     const exit = loop
@@ -138,7 +140,7 @@ export class ConnectDrags {
     // Le mode de la page reçoit la flèche (ex. ajoutée au flux courant), dans la même étape d'annulation.
     this.core.modeFollowUps.edgeCreated(drag.pageId, id, drag.part);
     this.core.file.documentChanged([drag.pageId]);
-    const edge = this.core.pages.getCurrentPage()?.edges.find((e) => e.id === id);
+    const edge = edgeOf(this.core.pages.getCurrentPage(), id);
     if (edge) this.core.selection.select({ type: 'edge', element: edge });
   }
 }

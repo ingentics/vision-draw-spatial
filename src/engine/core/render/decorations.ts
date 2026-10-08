@@ -4,10 +4,10 @@ import type { EdgeBadge } from '../modes/dressing';
 import { labelPoint } from './edges/polyline';
 import { styleNumber, styleFlag } from '../model/styleValues';
 import type { EdgeBadgeStyle, RenderContext } from './types';
-import { ellipsePath, rectPath } from './geometry/paths';
+import { ellipsePath } from './geometry/paths';
 import { fillMesh, strokeMesh } from './meshes';
 import { PART_ORDER } from './types';
-import { inflate } from '../model/geometry';
+import { inflate, rectPath } from '../model/geometry';
 
 /** Couleur d'accent par défaut (paramètre `selection.accentColor`). */
 export const DEFAULT_ACCENT = '#1a73e8';

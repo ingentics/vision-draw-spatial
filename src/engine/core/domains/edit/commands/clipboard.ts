@@ -4,6 +4,7 @@ import type { PageTree } from '../../../format/xmlTree';
 import type { PickedElement } from '../../../interaction/pick';
 import type { Point } from '../../../model/types';
 import type { EngineCore } from '../../EngineCore';
+import { edgeOf, shapeOf } from '../../../model/pageIndex';
 
 /** Copier, couper, coller et dupliquer (ticket 59), au format du presse-papier de draw.io. */
 export class Clipboard {
@@ -75,7 +76,7 @@ export class Clipboard {
       pageTree,
       selection.items.map((item) => item.element.id),
       {
-        origin: (id) => page.shapes.find((s) => s.id === id)?.bounds,
+        origin: (id) => shapeOf(page, id)?.bounds,
         edgeEnd: (id, end) => {
           const route = this.core.sceneView.sceneObject(id)?.userData.route as Point[] | undefined;
           return end === 'source' ? route?.[0] : route?.at(-1);
@@ -103,7 +104,7 @@ export class Clipboard {
       delta,
       parentOf: (id) => {
         const parentId = parents?.get(id);
-        const parent = parentId ? page.shapes.find((s) => s.id === parentId) : undefined;
+        const parent = parentId ? shapeOf(page, parentId) : undefined;
         return parent && pageTree.cells.has(parent.id) ? { id: parent.id, origin: parent.bounds } : undefined;
       },
     });
@@ -112,9 +113,9 @@ export class Clipboard {
     this.core.file.documentChanged([page.id]);
     const current = this.core.pages.getCurrentPage();
     const items = ids.flatMap((id): PickedElement[] => {
-      const shape = current?.shapes.find((s) => s.id === id);
+      const shape = shapeOf(current, id);
       if (shape) return [{ type: 'shape', element: shape }];
-      const edge = current?.edges.find((e) => e.id === id);
+      const edge = edgeOf(current, id);
       return edge ? [{ type: 'edge', element: edge }] : [];
     });
     this.core.selection.selectItems(items);

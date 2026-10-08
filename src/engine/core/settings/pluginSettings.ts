@@ -61,6 +61,8 @@ export type PluginSettings = Record<string, Record<string, PluginSettingValue>>;
 export function readPluginSetting(setting: PluginSetting, value: unknown): PluginSettingValue | undefined {
   switch (setting.type) {
     case 'number':
+      // Pas `clamp` : les bornes sont déclarées par le plugin, rien ne garantit `min ≤ max` ; à bornes inversées, le
+      // maximum l'emporte ici (`clamp` ferait gagner le minimum), comme avant la mise en commun.
       return typeof value === 'number' && Number.isFinite(value)
         ? Math.min(setting.max, Math.max(setting.min, value))
         : undefined;

@@ -78,10 +78,15 @@ Folder map with each folder's role: `docs/SUMMARY.md` §3 (single source). Where
 
 ## 4. Reuse what exists
 
-- **Geometry**: `model/geometry.ts` (`distance`, `center`, `rectContains`, `rectContainsRect`, `boundsOfPoints`,
-  `unionOf`, `segmentsCross`, `segmentIntersection`, `segmentDistance`, `insidePolygon`, `simplifyPath`,
-  `prunePath`). No hand-written `Math.hypot(a.x - b.x, a.y - b.y)`. A missing function is added there, with its test
-  in `tests/engine/core/model/geometry.test.ts`.
+- **Geometry**: `model/geometry.ts` (`distance`, `center`, `unit`, `direction`, `samePoint`, `samePoints`,
+  `sameRect`, `rectPath` (corners / outline of a rectangle), `fitScale`, `snapToGrid`, `snapPoint`, `ceilToGrid`,
+  `rectContains`, `rectContainsRect`, `boundsOfPoints`, `unionOf`, `segmentProjection`, `segmentsCross`,
+  `segmentIntersection`, `segmentDistance`, `insidePolygon`, `simplifyPath`, `prunePath`) and `clamp`
+  (`model/numbers.ts`). No hand-written `Math.hypot(a.x - b.x, a.y - b.y)`, `Math.round(v / step) * step`, center,
+  corners nor `Math.min(max, Math.max(min, v))`. A missing function is added there, with its test in
+  `tests/engine/core/model/geometry.test.ts`.
+- **Access by id**: `shapeOf(page, id)`, `edgeOf`, `elementOf`, `byId(list, id)`, and the indexes `shapesById`,
+  `edgesById` (`model/pageIndex.ts`, also in the plugin API). No `page.shapes.find((s) => s.id === id)`.
 - **Style values**: `styleNumber`, `styleFlag`, `styleOpacity` (`model/styleValues.ts`), `styleColor`
   (`render/styleColors.ts`). No `parseFloat(style.x ?? '')` nor `style.x === '1'`.
 - **Sides of a shape**: type `Side`, `SIDES`, `SIDE_NORMALS`, `pointOnSide`, `sideMiddle`, `sideSegment`, and anchor

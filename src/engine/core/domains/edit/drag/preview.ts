@@ -14,6 +14,7 @@ import { shownLimit } from '../../../edit/obstacles';
 import type { Segment } from '../../../edit/obstacles';
 import type { AnchorSkip, TakenAnchor } from '../edges/anchors';
 import type { EngineCore } from '../../EngineCore';
+import { shapeOf } from '../../../model/pageIndex';
 
 /** Aperçu d'un connecteur ou d'un bout de flèche en cours : tracé, repères d'accroche sur la forme visée. */
 export class ConnectorPreview {
@@ -39,8 +40,7 @@ export class ConnectorPreview {
     const group = new Group();
     group.name = 'connector-preview';
     if (extra) group.add(extra);
-    const shape =
-      attachment && attachment.kind !== 'free' ? page.shapes.find((s) => s.id === attachment.shapeId) : undefined;
+    const shape = attachment && attachment.kind !== 'free' ? shapeOf(page, attachment.shapeId) : undefined;
     if (shape && attachment?.kind === 'fixed' && this.core.arrangement.distributes(page)) {
       // Ancrage automatique : le côté visé est surligné.
       const side = sideOfConstraint(attachment.constraint);

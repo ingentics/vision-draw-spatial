@@ -8,6 +8,7 @@ import { callMode } from '../../modes/modeCalls';
 import type { ModeSizing } from '../../modes/modeEdit';
 import type { ModeParts, ModePartText } from '../../modes/types';
 import type { EngineCore } from '../EngineCore';
+import { edgeOf, shapeOf } from '../../model/pageIndex';
 
 /** Point d'entrée `K` des parties d'un mode. */
 type PartEntry<K extends keyof ModeParts> = NonNullable<ModeParts[K]>;
@@ -86,7 +87,7 @@ export class ShapeParts {
    */
   editComment(shapeId: string, part: string, fromNavigation = false): boolean {
     const editable = this.core.targets.writablePage();
-    const shape = editable?.page.shapes.find((s) => s.id === shapeId);
+    const shape = shapeOf(editable?.page, shapeId);
     const comment = editable && shape && this.call(editable.page, 'comment', shape, part);
     // Partie qui ne peut pas avoir de commentaire (ex. séparateur) : pas d'éditeur.
     if (!editable || !shape || !this.has(editable.page, 'setComment') || !comment) return false;
@@ -104,7 +105,7 @@ export class ShapeParts {
   /** Commentaire d'une partie validé (touche C) : opération du mode (une étape d'annulation). */
   setComment(shapeId: string, part: string, text: string): void {
     const page = this.core.targets.writablePage()?.page;
-    const shape = page?.shapes.find((s) => s.id === shapeId);
+    const shape = shapeOf(page, shapeId);
     const setComment = page && this.core.modes.modeOf(page)?.parts?.setComment;
     if (!shape || !setComment) return;
     this.core.pageModes.editPageMode('Commentaire', (edit) => callMode(setComment, edit, shape, part, text));
@@ -131,7 +132,7 @@ export class ShapeParts {
     const parts = [
       ...(this.hovered ? [this.hovered] : []),
       ...edgeIds.flatMap((id) => {
-        const edge = page.edges.find((e) => e.id === id);
+        const edge = edgeOf(page, id);
         const linked = edge && this.call(page, 'edgePart', page, edge);
         return linked ? [linked] : [];
       }),
@@ -142,7 +143,7 @@ export class ShapeParts {
       if (shown.has(key)) return [];
       shown.add(key);
       if (selection?.part === part && selection.picked.element.id === shapeId) return [];
-      const shape = page.shapes.find((s) => s.id === shapeId);
+      const shape = shapeOf(page, shapeId);
       const rect = shape && this.bounds(page, shape, part);
       return shape && rect ? [{ shape, rect }] : [];
     });
@@ -183,7 +184,7 @@ export class ShapeParts {
    * elle-même, ou bout libre.
    */
   targetedPart(page: PageModel, attachment: EndAttachment | undefined, screen: Point): string | undefined {
-    const shape = attachment && attachment.kind !== 'free' && page.shapes.find((s) => s.id === attachment.shapeId);
+    const shape = attachment && attachment.kind !== 'free' && shapeOf(page, attachment.shapeId);
     return shape ? this.partAt(page, shape, screen) : undefined;
   }
 
@@ -194,7 +195,7 @@ export class ShapeParts {
     if (!selection || selection.part === undefined || !page || selection.pageId !== page.id) return undefined;
     // Partie glissée (sujet 252) : à sa place dans l'aperçu.
     const previewed = this.core.partDrags.previewed();
-    const shape = previewed?.shape ?? page.shapes.find((s) => s.id === selection.picked.element.id);
+    const shape = previewed?.shape ?? shapeOf(page, selection.picked.element.id);
     const part = previewed?.part ?? selection.part;
     const rect = shape && this.bounds(page, shape, part);
     return shape && rect ? { shape, rect } : undefined;
@@ -206,14 +207,14 @@ export class ShapeParts {
    */
   text(shapeId: string, part: string, shape?: ShapeModel): ModePartText | undefined {
     const page = this.core.pages.getCurrentPage();
-    const target = shape ?? page?.shapes.find((s) => s.id === shapeId);
+    const target = shape ?? shapeOf(page, shapeId);
     return page && target ? this.call(page, 'text', page, target, part) : undefined;
   }
 
   /** Forme telle qu'elle serait avec ce texte sur la partie (aperçu de la saisie, sujet 253) ; undefined sans aperçu. */
   textPreview(shapeId: string, part: string, text: string): ShapeModel | undefined {
     const page = this.core.pages.getCurrentPage();
-    const shape = page?.shapes.find((s) => s.id === shapeId);
+    const shape = shapeOf(page, shapeId);
     const tree = page && this.core.file.pageTreeOf(page.id);
     const sizing: ModeSizing = Object.freeze({
       gridSize: tree && tree.encoding !== 'unreadable' ? gridSizeOf(tree) : 0,
@@ -272,14 +273,14 @@ export class ShapeParts {
     const editable = this.core.targets.editablePage();
     const selection = this.core.selection.current;
     if (!editable || selection?.part === undefined || selection.pageId !== editable.page.id) return false;
-    const shape = editable.page.shapes.find((s) => s.id === selection.picked.element.id);
+    const shape = shapeOf(editable.page, selection.picked.element.id);
     const remove = this.core.modes.modeOf(editable.page)?.parts?.remove;
     if (!shape || !remove) return true;
     const part = selection.part;
     // Refusée par le mode (ex. clé primaire) : rien ne change, la partie reste sélectionnée.
     if (!this.core.pageModes.editPageMode('Suppression', (edit) => callMode(remove, edit, shape, part))) return true;
     // Le rang de la partie retirée désigne maintenant la suivante : la sélection revient à la forme.
-    const fresh = this.core.pages.getCurrentPage()?.shapes.find((s) => s.id === shape.id);
+    const fresh = shapeOf(this.core.pages.getCurrentPage(), shape.id);
     if (fresh) this.core.selection.selectItems([{ type: 'shape', element: fresh }]);
     return true;
   }
@@ -287,7 +288,7 @@ export class ShapeParts {
   /** Texte validé d'une partie : opération du mode (une étape d'annulation). */
   setText(shapeId: string, part: string, text: string): void {
     const page = this.core.targets.editablePage()?.page;
-    const shape = page?.shapes.find((s) => s.id === shapeId);
+    const shape = shapeOf(page, shapeId);
     const setText = page && this.core.modes.modeOf(page)?.parts?.setText;
     if (!shape || !setText) return;
     this.core.pageModes.editPageMode('Texte', (edit) => callMode(setText, edit, shape, part, text));

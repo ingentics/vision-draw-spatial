@@ -1,9 +1,10 @@
 import { Color, Group } from 'three';
 import type { Point } from '../../model/types';
-import { distance } from '../../model/geometry';
+import { direction, distance } from '../../model/geometry';
 import { fadedStrokeMesh, strokeMesh } from '../meshes';
-import { length, positionAlong, unit } from './polyline';
+import { length, positionAlong } from './polyline';
 import { styleFlag } from '../../model/styleValues';
+import { clamp } from '../../model/numbers';
 
 /**
  * Flèche coupée en deux (`split=1`, ticket 219) : seuls un tronçon au départ de la source et un tronçon à l'arrivée
@@ -59,7 +60,7 @@ export function splitPieces(line: Point[], style: Record<string, string>, settin
     const alphaAt = (p: Point) => {
       if (label || fade === 0) return 1;
       const along = ((positionAlong(points, p) + 1) / 2) * visible;
-      return Math.max(0, Math.min(1, (visible - along) / fade));
+      return clamp((visible - along) / fade, 0, 1);
     };
     return { points, side, alphaAt, ...(label && { label }) };
   });
@@ -74,7 +75,7 @@ function subPath(points: Point[], to: number): Point[] {
     const b = points[i]!;
     const segment = distance(a, b);
     if (travelled + segment >= to) {
-      const u = unit(a, b);
+      const u = direction(a, b);
       const k = to - travelled;
       result.push({ x: a.x + u.x * k, y: a.y + u.y * k });
       return result;

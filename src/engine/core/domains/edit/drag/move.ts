@@ -5,6 +5,7 @@ import { clampMove } from '../../../edit/obstacles';
 import type { PageModel, Point } from '../../../model/types';
 import type { MoveDrag, MovePlan } from './types';
 import type { EngineCore } from '../../EngineCore';
+import { edgeOf, shapeOf } from '../../../model/pageIndex';
 
 /** Déplacement de formes (et des flèches sélectionnées avec elles). */
 export class MoveDrags {
@@ -18,14 +19,14 @@ export class MoveDrags {
     if (!move.started) {
       move.started = true;
       // Une forme seule devient la sélection ; une sélection multiple déplacée reste telle quelle.
-      const shape = page.shapes.find((s) => s.id === move.set.rootId);
+      const shape = shapeOf(page, move.set.rootId);
       const grabbed = move.rootIds.filter((id) => !move.carried.has(id));
       if (shape && grabbed.length === 1 && move.edges.every((edge) => move.carried.has(edge.id)))
         this.core.selection.select({ type: 'shape', element: shape });
       // Bouts détachés : libres là où ils sont, avant le premier pas.
       const detached = new Set<string>();
       for (const moved of move.edges) {
-        const edge = page.edges.find((e) => e.id === moved.id);
+        const edge = edgeOf(page, moved.id);
         const ends = this.core.edgeHandles.edgeEndPoints(moved.id);
         if (!edge || !ends) continue;
         for (const item of moved.detach) {
@@ -123,8 +124,8 @@ export class MoveDrags {
     const page = this.core.pages.pageById(drag.pageId);
     for (const moved of drag.edges) {
       moveEdgeCell(pageTree, moved.id, drag.applied);
-      const edge = page?.edges.find((e) => e.id === moved.id);
-      const origin = page?.shapes.find((s) => s.id === edge?.parentId)?.bounds ?? { x: 0, y: 0 };
+      const edge = edgeOf(page, moved.id);
+      const origin = shapeOf(page, edge?.parentId)?.bounds ?? { x: 0, y: 0 };
       for (const { end, point } of moved.detach) {
         if (!point) continue;
         setEdgeTerminal(pageTree, moved.id, end, {

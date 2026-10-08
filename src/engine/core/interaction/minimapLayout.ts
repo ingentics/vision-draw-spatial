@@ -3,6 +3,8 @@ import type { MinimapMapping } from '../shapes/types';
 import { screenToPage } from './cameraMath';
 import { canvasBrush } from './minimapBrush';
 import type { CameraState, Viewport } from './cameraMath';
+import { center, fitScale } from '../model/geometry';
+import { clamp } from '../model/numbers';
 
 /**
  * Mini-carte (SPEC §10) : en bas à droite, toujours en vue de dessus et nord en haut, quel que
@@ -31,16 +33,12 @@ const MIN_HEIGHT = 70;
 export function minimapLayout(bounds: Rect, size: number): MinimapLayout {
   const width = size;
   const aspect = bounds.width > 0 ? bounds.height / bounds.width : 0.75;
-  const height = Math.round(Math.min(size, Math.max(MIN_HEIGHT, (size - 2 * PADDING) * aspect + 2 * PADDING)));
+  // `size` (réglage `minimap.size`, 120 à 400 ; mini-graphe : même largeur) dépasse MIN_HEIGHT : bornes dans l'ordre.
+  const height = Math.round(clamp((size - 2 * PADDING) * aspect + 2 * PADDING, MIN_HEIGHT, size));
   const available = { width: width - 2 * PADDING, height: height - 2 * PADDING };
-  const scale =
-    bounds.width > 0 || bounds.height > 0
-      ? Math.min(available.width / Math.max(bounds.width, 1e-6), available.height / Math.max(bounds.height, 1e-6))
-      : 1;
-  const offset = {
-    x: width / 2 - (bounds.x + bounds.width / 2) * scale,
-    y: height / 2 - (bounds.y + bounds.height / 2) * scale,
-  };
+  const scale = fitScale(bounds, available, 1);
+  const middle = center(bounds);
+  const offset = { x: width / 2 - middle.x * scale, y: height / 2 - middle.y * scale };
   return { width, height, scale, offset };
 }
 

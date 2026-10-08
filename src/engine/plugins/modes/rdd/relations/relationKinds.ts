@@ -1,5 +1,5 @@
 import type { EdgeModel, PageModel, ShapeModel } from '../../../../core/plugins';
-import { edgeEnds, shapesById, elementName } from '../../../../core/plugins';
+import { edgeEnds, edgeOf, edgesById, elementName, shapesById } from '../../../../core/plugins';
 import type { Field } from '../tables/fieldModel';
 import { isDivider, tableFields } from '../tables/fieldModel';
 import { isTableKindId, tableKindOf } from '../tables/tableKinds';
@@ -103,7 +103,7 @@ export function relationKindOf(page: PageModel, edge: EdgeModel): RelationKind |
 
 /** Sorte de relation d'un champ de relation, par sa flèche ; undefined si la flèche n'en est plus une. */
 export function relationKindOfField(page: PageModel, field: Field & { edge: string }): RelationKind | undefined {
-  const edge = page.edges.find((e) => e.id === field.edge);
+  const edge = edgeOf(page, field.edge);
   return edge && relationKindOf(page, edge);
 }
 
@@ -128,7 +128,7 @@ export const relationIndex = (
   arrivals: ReadonlyMap<string, Arrival> = storedArrivals(page),
 ): RelationIndex => ({
   shapes: shapesById(page),
-  edges: new Map(page.edges.map((edge) => [edge.id, edge])),
+  edges: edgesById(page),
   arrivals,
   kinds,
 });

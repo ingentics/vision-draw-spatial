@@ -10,6 +10,7 @@ import { linkZone } from '../../render/decorations';
 import { disposeObject } from '../../render/meshes';
 import type { EngineCore } from '../EngineCore';
 import type { InitialView } from '../types';
+import { elementOf, shapeOf } from '../../model/pageIndex';
 
 /**
  * Liens des éléments (SPEC §11) : suivre un lien (page ou URL), préchargement, zones liées en évidence, usage des
@@ -51,7 +52,7 @@ export class Links {
 
   followLink(elementId: string): void {
     const page = this.core.pages.getCurrentPage();
-    const element = page && [...page.shapes, ...page.edges].find((e) => e.id === elementId);
+    const element = page && elementOf(page, elementId);
     const link = element?.link;
     if (!page || !element || !isNavigableLink(link) || !this.core.canInteract()) return;
     if (link.type === 'url') {
@@ -61,7 +62,7 @@ export class Links {
     const target = this.core.pages.pageById(link.pageId);
     if (!target || target.id === page.id) return;
 
-    const frame = page.shapes.find((s) => s.id === elementId)?.bounds ?? this.core.sceneView.drawnBounds(elementId);
+    const frame = shapeOf(page, elementId)?.bounds ?? this.core.sceneView.drawnBounds(elementId);
     this.core.history.push({
       pageId: page.id,
       elementId,

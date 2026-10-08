@@ -1,5 +1,5 @@
 import type { PageModel, Point } from '../../model/types';
-import { shapesById } from '../../model/pageIndex';
+import { edgeOf, shapesById } from '../../model/pageIndex';
 import { toTerminal } from '../../render/edges/terminal';
 import { routeEdge } from '../../render/edges/route';
 import { constraintStyle, frameConstraint } from '../edgeEnds';
@@ -35,7 +35,7 @@ export function reversalFix(
   edgeId: string,
   reversedStyle: Record<string, string>,
 ): ReversalFix | undefined {
-  const edge = page.edges.find((e) => e.id === edgeId);
+  const edge = edgeOf(page, edgeId);
   const shapes = shapesById(page);
   if (!edge) return undefined;
   const source = shapes.get(edge.sourceId ?? '');

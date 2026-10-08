@@ -8,6 +8,7 @@ import type { ReadonlyEdgeModel } from '../model/readonly';
 import { distance } from '../model/geometry';
 import { toTerminal } from '../render/edges/terminal';
 import { fixedAnchor } from '../render/edges/route';
+import { shapeOf } from '../model/pageIndex';
 
 /**
  * Extrémités d'une flèche (SPEC §8.3, §14.1) : d'où elle part et où elle arrive, comme draw.io.
@@ -292,7 +293,7 @@ export function writeEndAttachment(
   attachment: EndAttachment,
 ): void {
   if (attachment.kind === 'free') {
-    const origin = page.shapes.find((s) => s.id === edge.parentId)?.bounds ?? { x: 0, y: 0 };
+    const origin = shapeOf(page, edge.parentId)?.bounds ?? { x: 0, y: 0 };
     setEdgeTerminal(pageTree, edge.id, end, {
       point: { x: attachment.point.x - origin.x, y: attachment.point.y - origin.y },
     });

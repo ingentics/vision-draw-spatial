@@ -1,5 +1,6 @@
 import type { EdgeModel, PageModel, Point, Rect, ShapeModel } from '../model/types';
 import { distance, segmentDistance } from '../model/geometry';
+import { clamp } from '../model/numbers';
 
 /**
  * Élément sous un point de la page (clic, survol). En volume (iso), le plus proche de la caméra gagne : celui que
@@ -107,7 +108,7 @@ function volumeHit(
   const { x, y, width, height } = shape.bounds;
   if (Math.max(a.x, b.x) < x || Math.min(a.x, b.x) > x + width) return undefined;
   if (Math.max(a.y, b.y) < y || Math.min(a.y, b.y) > y + height) return undefined;
-  const steps = Math.min(VOLUME_MAX_STEPS, Math.max(1, Math.ceil(distance(a, b) / VOLUME_STEP)));
+  const steps = clamp(Math.ceil(distance(a, b) / VOLUME_STEP), 1, VOLUME_MAX_STEPS);
   for (let step = 1; step <= steps; step++) {
     const t = step / steps;
     if (shapeContains(shape, { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }, contains)) {

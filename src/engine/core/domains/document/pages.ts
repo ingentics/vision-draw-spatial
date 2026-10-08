@@ -7,6 +7,7 @@ import type { PageModel, Rect } from '../../model/types';
 import type { EngineCore } from '../EngineCore';
 import type { InitialView } from '../types';
 import { firstFreeName } from '../../model/names';
+import { byId } from '../../model/pageIndex';
 
 /**
  * Cadrage d'une page vide : le haut de la feuille draw.io, pour que les formes ajoutées
@@ -176,6 +177,6 @@ export class Pages {
   /** Page du document, ou la page générée de la vue graphe. */
   pageById(id: string): PageModel | undefined {
     if (this.core.graph.isGraph(id)) return this.core.graph.getGraphPage();
-    return this.core.file.document?.pages.find((p) => p.id === id);
+    return byId(this.core.file.document?.pages, id);
   }
 }

@@ -1,6 +1,6 @@
 import type { Point } from '../model/types';
 import type { ReadonlyShapeModel as ShapeModel } from '../model/readonly';
-import { rectPath } from '../render/geometry/paths';
+import { rectPath } from '../model/geometry';
 import type { MinimapPainter } from './types';
 
 const DEFAULT_FILL = '#ffffff';

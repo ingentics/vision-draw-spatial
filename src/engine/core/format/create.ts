@@ -3,6 +3,7 @@ import { formatNumber } from './cellEdits';
 import { createEmptyDrawio, randomId } from './skeleton';
 import { childElements, markPageDirty, parseXml, readDiagram, reindexPage } from './xmlTree';
 import type { DrawioTree, PageTree } from './xmlTree';
+import { byId } from '../model/pageIndex';
 
 /**
  * Création dans l'arbre XML (SPEC §14.1, §14.2) : nouvelles cellules et nouvelles pages, ajoutées
@@ -242,7 +243,7 @@ export function newCellId(page: PageTree): string {
 const prefixes = new WeakMap<PageTree, { value: string; next: number }>();
 
 function pageOf(tree: DrawioTree, pageId: string): PageTree {
-  const page = tree.pages.find((p) => p.id === pageId);
+  const page = byId(tree.pages, pageId);
   if (!page) throw new Error(`Page inconnue : ${pageId}`);
   return page;
 }

@@ -1,5 +1,5 @@
 import type { PageModeDefinition } from '../../../core/plugins';
-import { isToggled, toggleValue, numberValue, elementName } from '../../../core/plugins';
+import { elementName, isToggled, numberValue, shapeOf, toggleValue } from '../../../core/plugins';
 import { convertDocumentKeys } from './tables/documentBody';
 import { PRIMARY_KEY, fieldProblems, misplacedPrimaryKey } from './tables/fieldModel';
 import { fitTable } from './tables/operations';
@@ -140,7 +140,7 @@ export const definition: PageModeDefinition = {
     },
     // Table renommée : sa largeur suit le nom (sujet 247).
     relabeled: (edit, elementId) => {
-      const shape = edit.page.shapes.find((s) => s.id === elementId);
+      const shape = shapeOf(edit.page, elementId);
       if (shape) fitTable(edit, shape);
     },
     // « + » sous la table : ajoute aussitôt un champ sans type (sujets 250, 256).

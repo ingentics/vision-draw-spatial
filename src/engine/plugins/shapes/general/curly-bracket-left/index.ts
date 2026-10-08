@@ -2,6 +2,7 @@ import { Group } from 'three';
 import {
   clamp,
   createLabel,
+  distance,
   orientedPath,
   polygonArc,
   strokeMesh,
@@ -25,7 +26,7 @@ function roundedOpen(points: Point[], arc: number): Point[] {
   for (let i = 1; i < points.length - 1; i++) {
     const [prev, corner, next] = [out[out.length - 1]!, points[i]!, points[i + 1]!];
     const toward = (from: Point) => {
-      const length = Math.hypot(from.x - corner.x, from.y - corner.y);
+      const length = distance(from, corner);
       if (length === 0) return corner;
       const k = Math.min(arc, length / 2) / length;
       return { x: corner.x + (from.x - corner.x) * k, y: corner.y + (from.y - corner.y) * k };

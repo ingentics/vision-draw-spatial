@@ -2,6 +2,7 @@ import type { PageModel, Point } from '../../../model/types';
 import type { PartDrag } from './types';
 import type { EngineCore } from '../../EngineCore';
 import type { ReadonlyShapeModel } from '../../../model/readonly';
+import { shapeOf } from '../../../model/pageIndex';
 
 /**
  * Partie sélectionnée d'une forme glissée à une autre place (sujet 252, ex. champ d'une table RDD) : la place visée
@@ -19,7 +20,7 @@ export class PartDrags {
     const selection = this.core.selection.current;
     if (selection?.part === undefined || selection.pageId !== page.id || !this.core.shapeParts.canDrag(page))
       return undefined;
-    const shape = page.shapes.find((s) => s.id === selection.picked.element.id);
+    const shape = shapeOf(page, selection.picked.element.id);
     if (!shape || this.core.shapeParts.partAt(page, shape, screen) !== selection.part) return undefined;
     return { kind: 'part', pageId: page.id, shapeId: shape.id, part: selection.part, started: false };
   }
@@ -28,7 +29,7 @@ export class PartDrags {
   follow(page: PageModel, drag: PartDrag, screen: Point): void {
     drag.started = true;
     this.core.canvas.style.cursor = 'grabbing';
-    const shape = page.shapes.find((s) => s.id === drag.shapeId);
+    const shape = shapeOf(page, drag.shapeId);
     if (!shape) return;
     const point = this.core.picking.groundPointAtHeight(screen, this.core.sceneView.elementTop(shape.id));
     drag.target = this.core.shapeParts.dropAt(page, shape, drag.part, point);
@@ -49,7 +50,7 @@ export class PartDrags {
   commit(drag: PartDrag): void {
     this.shown = undefined;
     const page = this.core.targets.editablePage()?.page;
-    const shape = page?.shapes.find((s) => s.id === drag.shapeId);
+    const shape = shapeOf(page, drag.shapeId);
     if (!page || !shape || !this.core.shapeParts.canDrag(page)) return;
     const target = drag.target;
     const { changed, next } =
@@ -62,7 +63,7 @@ export class PartDrags {
       this.core.live.afterLiveEdit();
       return;
     }
-    const fresh = this.core.pages.getCurrentPage()?.shapes.find((s) => s.id === shape.id);
+    const fresh = shapeOf(this.core.pages.getCurrentPage(), shape.id);
     if (fresh && next !== undefined) this.core.selection.selectItems([{ type: 'shape', element: fresh }], next);
   }
 

@@ -7,9 +7,10 @@ import type { Footprint } from '../../interaction/marquee';
 import type { EdgeModel, Point, Rect, ShapeModel } from '../../model/types';
 import type { EngineCore } from '../EngineCore';
 import type { Object3D } from 'three';
-import { distance, insidePolygon } from '../../model/geometry';
+import { boundsOfPoints, distance, insidePolygon, rectPath, segmentProjection } from '../../model/geometry';
 import { standingFigure } from '../../render/standing';
 import type { StandingFigure } from '../../render/standing';
+import { shapeOf } from '../../model/pageIndex';
 
 /**
  * Élément le plus proche d'un point écran, à `tolerance` pixels au plus (poignées, points d'ancrage) ; à distance égale,
@@ -111,14 +112,8 @@ export class Picking {
     const { parts, strokes, sign } = figure;
     // Pancarte tenue devant le corps : prise sur toute sa surface, plus près de la caméra que le corps.
     if (sign) {
-      const { x, y, width, height } = sign;
-      const corners = [
-        { x, y },
-        { x: x + width, y },
-        { x: x + width, y: y + height },
-        { x, y: y + height },
-      ];
-      if (insidePolygon(corners.map(toScreen), screen)) return { at: toScreen({ x: 0, y: y + height }).height };
+      if (insidePolygon(rectPath(sign).map(toScreen), screen))
+        return { at: toScreen({ x: 0, y: sign.y + sign.height }).height };
     }
     for (const part of parts) {
       if (!insidePolygon(part.map(toScreen), screen)) continue;
@@ -132,14 +127,10 @@ export class Picking {
       for (let i = 1; i < points.length; i++) {
         const a = points[i - 1]!;
         const b = points[i]!;
-        const dx = b.x - a.x;
-        const dy = b.y - a.y;
-        const lengthSq = dx * dx + dy * dy;
-        const t =
-          lengthSq === 0 ? 0 : Math.max(0, Math.min(1, ((screen.x - a.x) * dx + (screen.y - a.y) * dy) / lengthSq));
-        const distance = Math.hypot(screen.x - (a.x + t * dx), screen.y - (a.y + t * dy));
-        if (distance <= tolerance && (!best || distance < best.distance))
-          best = { distance, height: a.height + (b.height - a.height) * t };
+        const { t, point } = segmentProjection(screen, a, b);
+        const gap = distance(screen, point);
+        if (gap <= tolerance && (!best || gap < best.distance))
+          best = { distance: gap, height: a.height + (b.height - a.height) * t };
       }
     }
     return { at: best?.height };
@@ -247,29 +238,16 @@ export class Picking {
    */
   screenRectOf(elementId: string, area?: Rect, elevation?: number): Rect | undefined {
     const page = this.core.pages.getCurrentPage();
-    const shape = page?.shapes.find((s) => s.id === elementId);
-    let corners: Point[];
+    const shape = shapeOf(page, elementId);
     if (shape) {
-      const { x, y, width, height } = area ?? shape.bounds;
       const top = elevation ?? this.core.sceneView.elementTop(shape.id);
-      corners = [
-        { x, y },
-        { x: x + width, y },
-        { x: x + width, y: y + height },
-        { x, y: y + height },
-      ].map((p) => this.screenOfPoint(p, top));
-    } else {
-      const route = this.core.sceneView.sceneObject(elementId)?.userData.route as Point[] | undefined;
-      if (!route?.length) return undefined;
-      const middle = route[Math.floor(route.length / 2)]!;
-      const center = this.screenOfPoint(middle, this.core.sceneView.elementTop(elementId));
-      return { x: center.x - 60, y: center.y - 16, width: 120, height: 32 };
+      return boundsOfPoints(rectPath(area ?? shape.bounds).map((p) => this.screenOfPoint(p, top)));
     }
-    const xs = corners.map((p) => p.x);
-    const ys = corners.map((p) => p.y);
-    const left = Math.min(...xs);
-    const top = Math.min(...ys);
-    return { x: left, y: top, width: Math.max(...xs) - left, height: Math.max(...ys) - top };
+    const route = this.core.sceneView.sceneObject(elementId)?.userData.route as Point[] | undefined;
+    if (!route?.length) return undefined;
+    const middle = route[Math.floor(route.length / 2)]!;
+    const center = this.screenOfPoint(middle, this.core.sceneView.elementTop(elementId));
+    return { x: center.x - 60, y: center.y - 16, width: 120, height: 32 };
   }
 
   /** Point de la page visé par un point écran, sur le plan horizontal à `height` au-dessus du sol. */

@@ -3,7 +3,7 @@ import { SIDE_NORMALS } from '../../edgeEnds';
 import { ATTRACT_COST, BEND_COST, Heap, OVERLAP_COST, SEED_JITTER, inside, out } from '../routing';
 import type { AvoidOptions, Port, Router, Segment } from '../routing';
 import { seededUnit } from '../seed';
-import { cross, distance, segmentsCross as crossing, simplifyPath, inflate } from '../../../model/geometry';
+import { cross, distance, inflate, segmentsCross as crossing, simplifyPath } from '../../../model/geometry';
 
 /**
  * Tracé octilinéaire de l'ancrage « Typon » (SPEC §14.1), inspiré des pistes de circuit imprimé : segments à 0°, 45°
@@ -198,7 +198,7 @@ export function routeOctilinear(
       let previous = a;
       // Jusqu'au bout du dernier segment (à `stub` de la forme), puis vers la forme.
       const points = (legs === 0 ? [goalStub, into] : [q, goalStub, into]).filter(
-        (p, k, all) => k === 0 || Math.hypot(p.x - all[k - 1]!.x, p.y - all[k - 1]!.y) > 1e-6,
+        (p, k, all) => k === 0 || distance(p, all[k - 1]!) > 1e-6,
       );
       const legsOf: Array<{ a: Point; b: Point; d: number; length: number }> = [];
       for (const p of points) {

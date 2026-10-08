@@ -1,16 +1,10 @@
 import type { EdgeLabelPlacement, Point } from '../../model/types';
-import { distance } from '../../model/geometry';
+import { direction, distance, segmentProjection } from '../../model/geometry';
 
 export function length(points: Point[]): number {
   let total = 0;
   for (let i = 1; i < points.length; i++) total += distance(points[i - 1]!, points[i]!);
   return total;
-}
-
-/** Vecteur unitaire du segment `from → to` (nul si les points sont confondus). */
-export function unit(from: Point, to: Point): Point {
-  const d = distance(from, to);
-  return d === 0 ? { x: 0, y: 0 } : { x: (to.x - from.x) / d, y: (to.y - from.y) / d };
 }
 
 /** Raccourcit le début ou la fin d'une polyligne (sans jamais la retourner). */
@@ -21,14 +15,14 @@ export function shorten(points: Point[], atStart: number, atEnd: number): Point[
     const a = result[result.length - 2]!;
     const b = result[result.length - 1]!;
     const k = Math.min(atEnd, distance(a, b));
-    const u = unit(a, b);
+    const u = direction(a, b);
     result[result.length - 1] = { x: b.x - u.x * k, y: b.y - u.y * k };
   }
   if (atStart > 0) {
     const a = result[0]!;
     const b = result[1]!;
     const k = Math.min(atStart, distance(a, b));
-    const u = unit(a, b);
+    const u = direction(a, b);
     result[0] = { x: a.x + u.x * k, y: a.y + u.y * k };
   }
   return result;
@@ -43,8 +37,8 @@ export function roundCorners(points: Point[], radius: number, steps = 8): Point[
     const corner = points[i]!;
     const next = points[i + 1]!;
     const r = Math.min(radius, distance(prev, corner) / 2, distance(corner, next) / 2);
-    const u0 = unit(corner, prev);
-    const u1 = unit(corner, next);
+    const u0 = direction(corner, prev);
+    const u1 = direction(corner, next);
     const a = { x: corner.x + u0.x * r, y: corner.y + u0.y * r };
     const b = { x: corner.x + u1.x * r, y: corner.y + u1.y * r };
     // Courbe de Bézier quadratique de a à b, contrôlée par le coin.
@@ -102,7 +96,7 @@ export function labelPoint(points: Point[], placement: EdgeLabelPlacement): Poin
     const segment = distance(a, b);
     if (remaining <= segment || i === points.length - 1) {
       const t = segment === 0 ? 0 : Math.min(remaining / segment, 1);
-      const u = unit(a, b);
+      const u = direction(a, b);
       return {
         x: a.x + (b.x - a.x) * t + u.y * placement.distance + placement.offset.x,
         y: a.y + (b.y - a.y) * t - u.x * placement.distance + placement.offset.y,
@@ -126,11 +120,7 @@ export function positionAlong(points: Point[], point: Point): number {
     const a = points[i - 1]!;
     const b = points[i]!;
     const segment = distance(a, b);
-    const t =
-      segment === 0
-        ? 0
-        : Math.min(1, Math.max(0, ((point.x - a.x) * (b.x - a.x) + (point.y - a.y) * (b.y - a.y)) / segment ** 2));
-    const closest = { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+    const { t, point: closest } = segmentProjection(point, a, b);
     const d = distance(closest, point);
     if (d < best.distance) best = { distance: d, along: travelled + t * segment };
     travelled += segment;

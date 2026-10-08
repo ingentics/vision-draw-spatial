@@ -14,6 +14,7 @@ import type { ModeObstacles, PageModeDefinition } from '../../modes/types';
 import { modePalette } from '../../settings';
 import { SPATIAL } from '../../spatial';
 import type { EngineCore } from '../EngineCore';
+import { edgeOf, shapeOf } from '../../model/pageIndex';
 
 /** Règle d'accroche d'un bout de flèche : la forme est-elle permise au point visé (pixels de page, sujet 333) ? */
 export type EndAccepts = (shape: ShapeModel, point: Point) => boolean;
@@ -70,7 +71,7 @@ export class PageModes {
    */
   managesEdge(edgeId: string): boolean {
     const page = this.core.pages.getCurrentPage();
-    const edge = page?.edges.find((e) => e.id === edgeId);
+    const edge = edgeOf(page, edgeId);
     const mode = page && this.core.modes.modeOf(page);
     if (!page || !edge || !mode) return false;
     return this.call(mode, 'edges.manages', false, mode.edges?.manages, page, edge);
@@ -190,7 +191,7 @@ export class PageModes {
    * texte passe en édition s'il en a un.
    */
   selectPart(shapeId: string, part: string | void | undefined): void {
-    const shape = this.core.pages.getCurrentPage()?.shapes.find((s) => s.id === shapeId);
+    const shape = shapeOf(this.core.pages.getCurrentPage(), shapeId);
     if (!shape || typeof part !== 'string') return;
     this.core.selection.selectItems([{ type: 'shape', element: shape }], part);
     if (this.core.shapeParts.text(shapeId, part)) this.core.labelEditor.editPartLabel(shapeId, part);
@@ -204,7 +205,7 @@ export class PageModes {
   endAccepts(page: PageModel, end: TerminalEnd, otherId: string | undefined): EndAccepts | undefined {
     const mode = this.core.modes.modeOf(page);
     const connects = mode?.edges?.connects;
-    const other = connects && otherId !== undefined ? page.shapes.find((s) => s.id === otherId) : undefined;
+    const other = connects ? shapeOf(page, otherId) : undefined;
     if (!mode || !connects || !other) return undefined;
     const allowed = (source: ShapeModel, target: ShapeModel, part?: string) =>
       this.call(mode, 'edges.connects', true, connects, page, source, target, part);

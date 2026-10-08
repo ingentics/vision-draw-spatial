@@ -6,6 +6,7 @@ import type { ElementComment } from '../../../edit/comment';
 import type { LinkModel } from '../../../model/types';
 import { SPATIAL_PREFIX, spatialValue } from '../../../spatial';
 import type { EngineCore } from '../../EngineCore';
+import { edgeOf, elementOf, shapeOf } from '../../../model/pageIndex';
 
 /** Lien, commentaire et attributs spatiaux d'un élément (SPEC §14.3). */
 export class PropertyEdits {
@@ -13,7 +14,7 @@ export class PropertyEdits {
 
   setLink(elementId: string, link: LinkModel | undefined): void {
     const editable = this.core.targets.editablePage();
-    const element = editable && [...editable.page.shapes, ...editable.page.edges].find((e) => e.id === elementId);
+    const element = editable && elementOf(editable.page, elementId);
     if (!editable || !element) return;
     const href = link ? formatLink(link) : undefined;
     if (href === (element.link ? formatLink(element.link) : undefined)) return;
@@ -28,7 +29,7 @@ export class PropertyEdits {
    */
   setComment(elementId: string, comment: ElementComment): void {
     const editable = this.core.targets.writablePage();
-    const element = editable && [...editable.page.shapes, ...editable.page.edges].find((e) => e.id === elementId);
+    const element = editable && elementOf(editable.page, elementId);
     if (!editable || !element) return;
     const next = comment.text.trim()
       ? comment.html !== undefined
@@ -54,8 +55,8 @@ export class PropertyEdits {
   editComment(elementId: string, fromNavigation = false): boolean {
     const editable = this.core.targets.writablePage();
     if (!editable) return false;
-    const shape = editable.page.shapes.find((s) => s.id === elementId);
-    const element = shape ?? editable.page.edges.find((e) => e.id === elementId);
+    const shape = shapeOf(editable.page, elementId);
+    const element = shape ?? edgeOf(editable.page, elementId);
     if (!element) return false;
     this.core.events.emit('commentEdit', {
       pageId: editable.page.id,
@@ -69,7 +70,7 @@ export class PropertyEdits {
 
   setSpatial(elementId: string, key: string, value: number | string | undefined, merge?: string): void {
     const editable = this.core.targets.editablePage();
-    const shape = editable?.page.shapes.find((s) => s.id === elementId);
+    const shape = shapeOf(editable?.page, elementId);
     if (!editable || !shape || !key.startsWith(SPATIAL_PREFIX)) return;
     const text =
       typeof value === 'string'
@@ -87,7 +88,7 @@ export class PropertyEdits {
     // Copie de travail de la page (sujet 312), rendue aussitôt : le modèle du document, gelé, n'est pas modifié.
     const copy = merge !== undefined && live ? this.core.file.livePage(editable.page.id, this) : undefined;
     if (copy) {
-      const liveShape = copy.shapes.find((s) => s.id === elementId)!;
+      const liveShape = shapeOf(copy, elementId)!;
       // Le modèle suit le fichier, la forme seule est redessinée.
       const values = written ? liveShape.attributes : liveShape.style;
       if (text === undefined) delete values[key];

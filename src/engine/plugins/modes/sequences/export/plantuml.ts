@@ -1,4 +1,4 @@
-import { styleFlag, shapesById, elementName } from '../../../../core/plugins';
+import { byId, edgesById, elementName, shapesById, styleFlag } from '../../../../core/plugins';
 import type { EdgeModel, PageModel, ShapeModel } from '../../../../core/plugins';
 import { EVENT_SOURCES, PARTICIPANT, flowLabel } from '../flows';
 import { keys } from '../keys';
@@ -38,7 +38,7 @@ interface Call {
 export function sequencePlantUml(page: PageModel, flowId?: string): string {
   const state = sequenceState(page);
   const shapes = shapesById(page);
-  const edges = new Map(page.edges.map((edge) => [edge.id, edge]));
+  const edges = edgesById(page);
 
   const aliases = new Map<string, string>();
   const participants: string[] = [];
@@ -74,7 +74,7 @@ export function sequencePlantUml(page: PageModel, flowId?: string): string {
       ...flowMessages(flow.id),
     ]);
   } else {
-    title = state.flows.find((f) => f.id === flowId)?.title;
+    title = byId(state.flows, flowId)?.title;
     body = flowMessages(flowId);
   }
 

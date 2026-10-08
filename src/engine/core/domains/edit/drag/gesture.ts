@@ -11,6 +11,7 @@ import { independentRoots } from '../../../interaction/selectionRules';
 import type { PageModel, Point, Rect } from '../../../model/types';
 import type { Drag, MoveDrag, MovePlan, ResizeDrag } from './types';
 import type { EngineCore } from '../../EngineCore';
+import { byId, edgeOf, shapeOf } from '../../../model/pageIndex';
 
 /**
  * Glisser d'édition à la souris (SPEC §14.1) : ce que l'appui saisit, le suivi du pointeur et l'écriture au lâcher ;
@@ -195,7 +196,7 @@ export class DragGesture {
     // Flèches de la sélection qui bougent d'elles-mêmes (une flèche d'un groupe déplacé suit déjà).
     const edges: MoveDrag['edges'] = [];
     for (const id of [...edgeIds, ...carriedEdges]) {
-      const edge = page.edges.find((e) => e.id === id);
+      const edge = edgeOf(page, id);
       if (!edge || isLocked(edge) || !pageTree.cells.get(edge.id)?.cell || set.edgeIds.has(edge.id)) continue;
       const detach = (['source', 'target'] as const)
         .filter((end) => {
@@ -229,7 +230,7 @@ export class DragGesture {
     const obstacles: Rect[] = [];
     let gap = 0;
     for (const id of rootIds) {
-      const shape = page.shapes.find((s) => s.id === id);
+      const shape = shapeOf(page, id);
       const found = shape && this.core.pageModes.obstacles(page, shape);
       if (!shape || !found) continue;
       gap = Math.max(gap, found.gap);
@@ -242,7 +243,7 @@ export class DragGesture {
 
   /** Bornes du mode de la page pour le redimensionnement d'une forme (sujet 241) ; undefined : aucune. */
   private resizeBounds(page: PageModel, shapeId: string): ResizeDrag['bounded'] {
-    const shape = page.shapes.find((s) => s.id === shapeId);
+    const shape = shapeOf(page, shapeId);
     const found = shape && this.core.pageModes.obstacles(page, shape);
     if (!found || found.rects.length === 0) return undefined;
     return { obstacles: found.rects.map((r) => r.rect), above: found.above ?? 0, gap: found.gap };
@@ -345,7 +346,7 @@ export class DragGesture {
       this.core.arrangement.distributes(moved) &&
       this.core.file.xmlTree &&
       documentFromTree(this.core.file.xmlTree);
-    const freshPage = fresh && fresh.pages.find((p) => p.id === pageId);
+    const freshPage = fresh && byId(fresh.pages, pageId);
     if (
       freshPage &&
       this.core.arrangement.writeDistribution(freshPage, affectedShapes(this.core.file.geometry.get(pageId), freshPage))

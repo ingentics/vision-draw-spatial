@@ -185,8 +185,8 @@ vérifie que l'`id` est le nom du dossier et que la catégorie de palette est ce
 
 C'est la géométrie de référence de la forme : un polygone fermé, en coordonnées **page** (x vers la droite, y vers le
 bas, pixels draw.io). Il sert au rendu 2D (`flatBox`), aux volumes (`isoBlock`) et au repli de la mini-carte.
-Utilisez les aides de [render/geometry/paths.ts](../src/engine/core/render/geometry/paths.ts) : `rectPath`,
-`roundedRectPath`, `ellipsePath`, `arcPath`, `cornerRadius` (lit `rounded` et `arcSize`), `boxOutline` (rectangle,
+Utilisez les aides de l'API des plugins : `rectPath` ([model/geometry.ts](../src/engine/core/model/geometry.ts)), et
+de [render/geometry/paths.ts](../src/engine/core/render/geometry/paths.ts) `roundedRectPath`, `ellipsePath`, `arcPath`, `cornerRadius` (lit `rounded` et `arcSize`), `boxOutline` (rectangle,
 arrondi avec `rounded=1`), `sizeOffset` (décalage `size` / `fixedSize` des formes à pans) ; pour l'orientation,
 `orientation` et `orientedPath` ([render/geometry/orient.ts](../src/engine/core/render/geometry/orient.ts)) ; pour le
 trait, `styleStroke` (couleur, opacité, épaisseur, pointillés). Pour qu'une forme se **retourne** ou **pivote**

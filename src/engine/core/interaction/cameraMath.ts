@@ -1,5 +1,7 @@
 import type { OrthographicCamera, PerspectiveCamera } from 'three';
 import type { Point, Rect } from '../model/types';
+import { center, distance, fitScale, rectPath } from '../model/geometry';
+import { clamp } from '../model/numbers';
 
 export type ViewMode = 'top' | 'iso' | '3d';
 
@@ -81,15 +83,16 @@ export function tiltFromElevation(elevationDeg: number): number {
   return clampTilt(((90 - elevationDeg) * Math.PI) / 180);
 }
 
-/** Zoom borné ; plus resserré en vue 3D. */
+/**
+ * Zoom borné ; plus resserré en vue 3D. Bornes dans l'ordre : les réglages passent par `orderedZooms` (maximum jamais
+ * sous le minimum), sans quoi `clamp` ferait gagner le minimum là où l'ancienne écriture faisait gagner le maximum.
+ */
 export function clampZoom(zoom: number, mode?: ViewMode, limits: CameraLimits = DEFAULT_CAMERA_LIMITS): number {
-  return mode === '3d'
-    ? Math.min(limits.maxZoom3d, Math.max(limits.minZoom3d, zoom))
-    : Math.min(limits.maxZoom, Math.max(limits.minZoom, zoom));
+  return mode === '3d' ? clamp(zoom, limits.minZoom3d, limits.maxZoom3d) : clamp(zoom, limits.minZoom, limits.maxZoom);
 }
 
 export function clampTilt(tilt: number, mode?: ViewMode, limits: CameraLimits = DEFAULT_CAMERA_LIMITS): number {
-  return Math.min(mode === '3d' ? limits.maxTilt3d : MAX_TILT, Math.max(0, tilt));
+  return clamp(tilt, 0, mode === '3d' ? limits.maxTilt3d : MAX_TILT);
 }
 
 /** Complète un état partiel ou ancien (ex. restauré depuis le stockage, sans `rotation` ni `tilt`). */
@@ -106,7 +109,8 @@ export function normalizeCameraState(
     zoom: clampZoom(state.zoom, undefined, limits),
     rotation: normalizeAngle(state.rotation ?? 0),
     tilt,
-    ...(fov === undefined ? {} : { fov: Math.min(limits.fov, Math.max(FLAT_FOV, fov)) }),
+    // `limits.fov` vaut au moins 15° (réglage `fovDeg`), au-dessus de FLAT_FOV (1°) : bornes dans l'ordre.
+    ...(fov === undefined ? {} : { fov: clamp(fov, FLAT_FOV, limits.fov) }),
   };
 }
 
@@ -178,7 +182,7 @@ export function fitBounds(
   const maxZoom = options.maxZoom ?? 1;
   const rotation = normalizeAngle(options.rotation ?? 0);
   const tilt = clampTilt(options.tilt ?? 0, options.mode, limits);
-  const center = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+  const middle = center(bounds);
 
   // Dimensions de l'emprise vue à l'écran : projection des demi-diagonales sur les axes écran.
   const { right, down } = screenAxes(rotation);
@@ -189,15 +193,15 @@ export function fitBounds(
 
   const availableWidth = Math.max(viewport.width - 2 * padding, 1);
   const availableHeight = Math.max(viewport.height - 2 * padding, 1);
-  const zoom =
-    screenWidth > 0 || screenHeight > 0
-      ? Math.min(availableWidth / Math.max(screenWidth, 1e-6), availableHeight / Math.max(screenHeight, 1e-6), maxZoom)
-      : maxZoom;
+  const zoom = Math.min(
+    fitScale({ width: screenWidth, height: screenHeight }, { width: availableWidth, height: availableHeight }, maxZoom),
+    maxZoom,
+  );
   if (options.mode === '3d')
-    return fitPerspective(bounds, viewport, { center, zoom, rotation, tilt, padding, maxZoom }, limits);
+    return fitPerspective(bounds, viewport, { center: middle, zoom, rotation, tilt, padding, maxZoom }, limits);
   return {
     mode: options.mode ?? (tilt > 0 ? 'iso' : 'top'),
-    center,
+    center: middle,
     zoom: clampZoom(zoom, undefined, limits),
     rotation,
     tilt,
@@ -216,12 +220,7 @@ function fitPerspective(
 ): CameraState {
   const availableWidth = Math.max(viewport.width - 2 * fit.padding, 1);
   const availableHeight = Math.max(viewport.height - 2 * fit.padding, 1);
-  const corners = [
-    { x: bounds.x, y: bounds.y },
-    { x: bounds.x + bounds.width, y: bounds.y },
-    { x: bounds.x, y: bounds.y + bounds.height },
-    { x: bounds.x + bounds.width, y: bounds.y + bounds.height },
-  ];
+  const corners = rectPath(bounds);
   let state: CameraState = {
     mode: '3d',
     center: fit.center,
@@ -276,7 +275,7 @@ export function defaultView(
 export function sameView(a: CameraState, b: CameraState, viewport: Viewport): boolean {
   const tolerancePx = 1;
   const size = Math.max(viewport.width, viewport.height);
-  const centerPx = Math.hypot(a.center.x - b.center.x, a.center.y - b.center.y) * a.zoom;
+  const centerPx = distance(a.center, b.center) * a.zoom;
   return (
     Math.abs(a.zoom - b.zoom) / b.zoom < 1e-3 &&
     centerPx < tolerancePx &&

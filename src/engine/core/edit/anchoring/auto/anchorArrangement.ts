@@ -7,7 +7,7 @@ import { ORTHOGONAL_ROUTER } from './routeAround';
 import { distributeAnchors } from './distribute';
 import type { AnchorChange } from './distribute';
 import { constraintStyle } from '../../edgeEnds';
-import { shapesById } from '../../../model/pageIndex';
+import { edgeOf, shapesById } from '../../../model/pageIndex';
 
 /**
  * Agencement en ancrage automatique (SPEC §14.1) : répartition des flèches sur les côtés des formes `shapeIds`, puis
@@ -77,7 +77,7 @@ export function arrangeAnchors(
 export function arrangementChanges(page: PageModel, arrangement: Arrangement): boolean {
   if (arrangement.constraints.length > 0) return true;
   for (const [id, points] of arrangement.routes) {
-    const edge = page.edges.find((e) => e.id === id);
+    const edge = edgeOf(page, id);
     if (!edge || edge.points.length !== points.length) return true;
     if (edge.points.some((p, i) => p.x !== points[i]!.x || p.y !== points[i]!.y)) return true;
   }

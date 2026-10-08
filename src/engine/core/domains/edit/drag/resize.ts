@@ -8,6 +8,7 @@ import { computeBounds } from '../../../model/bounds';
 import type { PageModel, Point, Rect } from '../../../model/types';
 import type { ResizeDrag } from './types';
 import type { EngineCore } from '../../EngineCore';
+import { shapeOf } from '../../../model/pageIndex';
 
 /** Redimensionnement d'une forme par une poignée de son cadre. */
 export class ResizeDrags {
@@ -15,7 +16,7 @@ export class ResizeDrags {
 
   /** `free` : sans les bornes du mode (Ctrl maintenu, sujet 241). */
   follow(page: PageModel, resize: ResizeDrag, point: Point, snap: boolean, free = false): void {
-    const shape = page.shapes.find((s) => s.id === resize.shapeId);
+    const shape = shapeOf(page, resize.shapeId);
     if (!shape) return;
     resize.started = true;
     const delta = { x: point.x - resize.start.x, y: point.y - resize.start.y };
@@ -60,7 +61,7 @@ export class ResizeDrags {
 
   /** Redimensionnement lâché : géométrie écrite. Vrai s'il reste à répartir les flèches (`afterGeometryEdit`). */
   commit(drag: ResizeDrag, pageTree: PageTree): boolean {
-    const shape = this.core.pages.pageById(drag.pageId)?.shapes.find((s) => s.id === drag.shapeId);
+    const shape = shapeOf(this.core.pages.pageById(drag.pageId), drag.shapeId);
     if (!shape) return false;
     const { origin } = drag;
     const delta = {

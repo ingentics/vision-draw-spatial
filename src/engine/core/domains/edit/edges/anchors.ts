@@ -17,8 +17,9 @@ import { toTerminal } from '../../../render/edges/terminal';
 import { routeEdgePoints } from '../../../render/edges/route';
 import type { EndAccepts } from '../../modes/pageModes';
 import type { EngineCore } from '../../EngineCore';
-import { shapesById } from '../../../model/pageIndex';
+import { shapeOf, shapesById } from '../../../model/pageIndex';
 import { nearestOnScreen } from '../../selection/picking';
+import { snapPoint } from '../../../model/geometry';
 
 /** Point d'ancrage compté comme pris en plus des flèches existantes (ex. départ d'une boucle en cours). */
 export type TakenAnchor = { shapeId: string; constraint: Point };
@@ -88,8 +89,7 @@ export class Anchors {
     const shape = this.core.picking.shapeAt(screen, accepted);
     if (shape) return { kind: 'floating', shapeId: shape.id };
     const point = this.core.picking.groundPointAtHeight(screen, options.height);
-    const step = options.snap && options.grid > 0 ? options.grid : 1;
-    return { kind: 'free', point: { x: Math.round(point.x / step) * step, y: Math.round(point.y / step) * step } };
+    return { kind: 'free', point: snapPoint(point, options.snap ? options.grid : 0) };
   }
 
   /**
@@ -113,7 +113,7 @@ export class Anchors {
   endAnchor(page: PageModel, edge: EdgeModel, end: TerminalEnd): { shapeId: string; constraint: Point } | undefined {
     const attachment = endAttachmentOf(edge, end);
     if (attachment?.kind === 'fixed') return { shapeId: attachment.shapeId, constraint: attachment.constraint };
-    const shape = attachment?.kind === 'floating' && page.shapes.find((s) => s.id === attachment.shapeId);
+    const shape = attachment?.kind === 'floating' && shapeOf(page, attachment.shapeId);
     const point = shape && this.core.edgeHandles.edgeEndPoints(edge.id)?.[end];
     return shape && point ? { shapeId: shape.id, constraint: frameConstraint(shape.bounds, point) } : undefined;
   }
@@ -131,7 +131,7 @@ export class Anchors {
 
   /** Coudes d'une flèche qui boucle sur sa forme par deux points fixes ; undefined si ce n'en est pas une. */
   loopPoints(page: PageModel, edge: EdgeModel): Point[] | undefined {
-    const shape = edge.sourceId === edge.targetId && page.shapes.find((s) => s.id === edge.sourceId);
+    const shape = edge.sourceId === edge.targetId && shapeOf(page, edge.sourceId);
     const from = endAttachmentOf(edge, 'source');
     const to = endAttachmentOf(edge, 'target');
     if (!shape || from?.kind !== 'fixed' || to?.kind !== 'fixed') return undefined;

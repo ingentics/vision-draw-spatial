@@ -1,6 +1,8 @@
 import type { PageModel, Point, Rect } from '../model/types';
 import type { ShapeRegistry } from '../shapes/registry';
 import type { PaletteCategory, PaletteCategoryId, ShapeTemplate } from '../shapes/types';
+import { byId } from '../model/pageIndex';
+import { snapToGrid } from '../model/geometry';
 
 export type { PaletteCategory, PaletteCategoryId, ShapeTemplate };
 
@@ -21,11 +23,9 @@ export interface PageModePalette {
  * aimanté à la grille (`gridSize` ≤ 0 : arrondi au pixel).
  */
 export function dropBounds(template: Pick<ShapeTemplate, 'width' | 'height'>, at: Point, gridSize: number): Rect {
-  const step = gridSize > 0 ? gridSize : 1;
-  const snap = (value: number) => Math.round(value / step) * step;
   return {
-    x: snap(at.x - template.width / 2),
-    y: snap(at.y - template.height / 2),
+    x: snapToGrid(at.x - template.width / 2, gridSize),
+    y: snapToGrid(at.y - template.height / 2, gridSize),
     width: template.width,
     height: template.height,
   };
@@ -49,7 +49,7 @@ export function searchTemplates(
   const words = normalize(query).split(/\s+/).filter(Boolean);
   if (words.length === 0) return templates;
   return templates.filter((template) => {
-    const category = categories.find((c) => c.id === template.category)?.name ?? '';
+    const category = byId(categories, template.category)?.name ?? '';
     const haystack = normalize([template.name, category, ...template.keywords].join(' '));
     return words.every((word) => haystack.includes(word));
   });

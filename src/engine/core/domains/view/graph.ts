@@ -8,6 +8,7 @@ import type { PageModel } from '../../model/types';
 import type { EngineCore } from '../EngineCore';
 import { settingsSectionChanged } from '../../settings';
 import type { Settings } from '../../settings';
+import { shapeOf } from '../../model/pageIndex';
 
 /**
  * Vue graphe du document (SPEC §12) : page générée (nœuds des pages, flèches des liens), aller-retour avec la dernière
@@ -84,7 +85,7 @@ export class GraphView {
     const graph = this.getGraphPage();
     const page = this.core.pages.getCurrentPage();
     if (!graph || !page || this.isGraph(page.id) || !this.core.canInteract()) return;
-    const card = graph.shapes.find((s) => s.id === cardId(page.id));
+    const card = shapeOf(graph, cardId(page.id));
     this.core.transitions.runTransition({
       direction: 'out',
       outer: graph,

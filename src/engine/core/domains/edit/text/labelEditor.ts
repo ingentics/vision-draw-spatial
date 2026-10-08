@@ -10,10 +10,11 @@ import type { SceneLevel } from '../../../shapes/types';
 import { alongAnchor } from '../../../render/textPath';
 import type { LabelEditPlane, LabelEditRequest } from '../../types';
 import type { EngineCore } from '../../EngineCore';
-import { boundsOfPoints, distance, unionOf } from '../../../model/geometry';
+import { boundsOfPoints, center, distance, rectPath, sameRect, unionOf } from '../../../model/geometry';
 import { styleFlag } from '../../../model/styleValues';
 import type { ReadonlyShapeModel } from '../../../model/readonly';
 import { shapeTarget } from '../../../modes/modeTargets';
+import { byId, edgeOf, elementOf, shapeOf } from '../../../model/pageIndex';
 
 /** Marge (px écran) laissée au bord du canvas quand la vue glisse pour montrer le texte édité (ticket 240). */
 const REVEAL_MARGIN = 20;
@@ -40,12 +41,12 @@ export class LabelEditor {
 
   /** Demande d'édition complétée de la bascule possible (texte de début / fin en configuration par défaut). */
   withFlip(request: LabelEditRequest): LabelEditRequest {
-    const edge = this.core.pages.getCurrentPage()?.edges.find((e) => e.id === request.elementId);
+    const edge = edgeOf(this.core.pages.getCurrentPage(), request.elementId);
     const route = this.core.sceneView.sceneObject(request.elementId)?.userData.route as Point[] | undefined;
     const rest = { ...request };
     delete rest.flip;
     if (!request.onEdge || !request.end || !edge || !route?.length) return rest;
-    const child = request.labelCellId ? edge.labels.find((l) => l.id === request.labelCellId) : undefined;
+    const child = request.labelCellId ? byId(edge.labels, request.labelCellId) : undefined;
     const placement =
       child?.placement ??
       edgeTextLayout(route, request.end, request.flipped, this.core.edgeTexts.endTextGap()).placement;
@@ -90,8 +91,7 @@ export class LabelEditor {
   editLabel(elementId?: string): void {
     const editable = this.core.targets.editablePage();
     const id = elementId ?? this.core.selection.current?.picked.element.id;
-    const element =
-      editable && id ? [...editable.page.shapes, ...editable.page.edges].find((e) => e.id === id) : undefined;
+    const element = editable && id ? elementOf(editable.page, id) : undefined;
     if (!editable || !element || !editable.pageTree.cells.get(element.id)?.cell) return;
     const rect = this.labelEditScreen(element.id);
     if (!rect) return;
@@ -155,7 +155,7 @@ export class LabelEditor {
 
   /** Cadre à l'écran du texte d'une partie (sujet 249), sur la forme telle qu'elle est dessinée (aperçu compris). */
   private partScreen(shapeId: string, part: string): Rect | undefined {
-    const shape = this.partPreview ?? this.core.pages.getCurrentPage()?.shapes.find((s) => s.id === shapeId);
+    const shape = this.partPreview ?? shapeOf(this.core.pages.getCurrentPage(), shapeId);
     const text = this.core.shapeParts.text(shapeId, part, shape);
     return text && shape
       ? this.core.picking.screenRectOf(shapeId, text.zone, this.core.sceneView.labelTop(shape))
@@ -166,7 +166,7 @@ export class LabelEditor {
     // Textes de bout d'une flèche gérée par le mode (cardinalités d'une relation RDD) : imposés.
     if (this.core.pageModes.managesEdge(edgeId)) return;
     const editable = this.core.targets.editablePage();
-    const edge = editable?.page.edges.find((e) => e.id === edgeId);
+    const edge = edgeOf(editable?.page, edgeId);
     const current = edge && endLabelOf(edge, end);
     const screen = this.labelEditScreen(edgeId, end, current?.id);
     if (!editable || !edge || !screen) return;
@@ -264,7 +264,7 @@ export class LabelEditor {
     const viewport = this.core.display.viewport;
     const shift = revealShift(box, viewport, REVEAL_MARGIN);
     if (shift.x === 0 && shift.y === 0) return undefined;
-    const from = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    const from = center(box);
     const to = { x: from.x + shift.x, y: from.y + shift.y };
     return dragGround(this.core.camera.state, viewport, from, to);
   }
@@ -274,19 +274,15 @@ export class LabelEditor {
    * flèche, ou le point de son texte de début / fin.
    */
   labelEditScreen(elementId: string, end?: EdgeEnd, labelCellId?: string, flipped = false): Rect | undefined {
-    const edge = this.core.pages.getCurrentPage()?.edges.find((e) => e.id === elementId);
+    const edge = edgeOf(this.core.pages.getCurrentPage(), elementId);
     if (!edge) {
       // Forme : sa zone de texte, celle où le label est dessiné à ce niveau de rendu.
-      const shape = this.core.pages.getCurrentPage()?.shapes.find((s) => s.id === elementId);
+      const shape = shapeOf(this.core.pages.getCurrentPage(), elementId);
       const level = this.core.scenes.current?.level ?? 'flat';
       // Texte sur la pancarte d'une silhouette debout : le cadre du panneau à l'écran.
       const sign = this.signPlane(elementId);
       if (sign) {
-        const xs = sign.corners.map((p) => p.x);
-        const ys = sign.corners.map((p) => p.y);
-        const left = Math.min(...xs);
-        const top = Math.min(...ys);
-        return { x: left, y: top, width: Math.max(...xs) - left, height: Math.max(...ys) - top };
+        return boundsOfPoints(sign.corners);
       }
       return shape
         ? this.core.picking.screenRectOf(
@@ -299,7 +295,7 @@ export class LabelEditor {
     // Flèche : le point où le texte est dessiné (son label, un label enfant, ou un début / fin à créer).
     const route = this.core.sceneView.sceneObject(elementId)?.userData.route as Point[] | undefined;
     if (!route?.length) return undefined;
-    const child = labelCellId ? edge.labels.find((l) => l.id === labelCellId) : undefined;
+    const child = labelCellId ? byId(edge.labels, labelCellId) : undefined;
     const placement =
       child?.placement ??
       (end ? edgeTextLayout(route, end, flipped, this.core.edgeTexts.endTextGap()).placement : edge.labelPlacement);
@@ -328,16 +324,13 @@ export class LabelEditor {
     if (sign) return sign;
     const { tilt, rotation, fov } = this.core.camera.state;
     if (tilt === 0 && rotation === 0 && fov === undefined) return undefined;
-    const shape = this.core.pages.getCurrentPage()?.shapes.find((s) => s.id === elementId);
+    const shape = shapeOf(this.core.pages.getCurrentPage(), elementId);
     if (!shape) return undefined;
-    const { x, y, width, height } = this.labelEditZone(shape, this.core.scenes.current?.level ?? 'flat');
+    const zone = this.labelEditZone(shape, this.core.scenes.current?.level ?? 'flat');
     const top = this.core.sceneView.labelTop(shape);
-    const at = (px: number, py: number) => this.core.picking.screenOfPoint({ x: px, y: py }, top);
-    return {
-      width,
-      height,
-      corners: [at(x, y), at(x + width, y), at(x + width, y + height), at(x, y + height)],
-    };
+    const at = (p: Point) => this.core.picking.screenOfPoint(p, top);
+    const [topLeft, topRight, bottomRight, bottomLeft] = rectPath(zone).map(at);
+    return { width: zone.width, height: zone.height, corners: [topLeft!, topRight!, bottomRight!, bottomLeft!] };
   }
 
   /**
@@ -359,10 +352,9 @@ export class LabelEditor {
     // Texte sur une pancarte : l'éditeur suit le format de la cellule (changé pendant l'édition), centré et ajusté.
     const displayStyle = own ? undefined : this.displayStyle(editing.elementId, editing.style);
     const next = this.withAngle(this.withFlip({ ...editing, screen, scale, plane, displayStyle }));
-    const same = (a: Rect, b: Rect) => a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
     const samePlane = JSON.stringify(plane) === JSON.stringify(editing.plane);
     if (
-      same(screen, editing.screen) &&
+      sameRect(screen, editing.screen) &&
       samePlane &&
       JSON.stringify(displayStyle) === JSON.stringify(editing.displayStyle) &&
       scale === editing.scale &&
@@ -393,11 +385,11 @@ export class LabelEditor {
     }
     const current = this.core.pages.getCurrentPage();
     if (!editing || editing.onEdge || current?.id !== editing.pageId) return;
-    const found = current.shapes.find((s) => s.id === editing.elementId);
+    const found = shapeOf(current, editing.elementId);
     if (!found || !this.core.registry.editStyle(found) || found.label === text) return;
     // Copie de travail de la page (sujet 312) : l'aperçu ne touche pas au modèle du document.
     const page = this.core.file.livePage(editing.pageId, this);
-    const shape = page?.shapes.find((s) => s.id === editing.elementId);
+    const shape = shapeOf(page, editing.elementId);
     if (!page || !shape) return;
     this.previewed ??= { pageId: page.id, shapeId: shape.id, label: shape.label };
     shape.label = text;
@@ -414,8 +406,7 @@ export class LabelEditor {
     // Aperçu de la saisie : le nom d'origine revient (une validation l'écrit ensuite et relit la page).
     const previewed = this.previewed;
     this.previewed = undefined;
-    const shape =
-      previewed && this.core.pages.pageById(previewed.pageId)?.shapes.find((s) => s.id === previewed.shapeId);
+    const shape = previewed && shapeOf(this.core.pages.pageById(previewed.pageId), previewed.shapeId);
     if (shape && previewed) {
       shape.label = previewed.label;
       if (this.core.pages.currentPageId === previewed.pageId) {
@@ -427,7 +418,7 @@ export class LabelEditor {
     // Aperçu d'une partie : la forme reprend son dessin (une validation l'écrit ensuite et relit la page).
     if (this.partPreview) {
       this.partPreview = undefined;
-      const shape = this.core.pages.getCurrentPage()?.shapes.find((s) => s.id === editing.elementId);
+      const shape = shapeOf(this.core.pages.getCurrentPage(), editing.elementId);
       if (shape && editing.pageId === this.core.pages.currentPageId) {
         this.core.live.rebuildShapeObject(shape);
         this.core.live.afterLiveEdit();
@@ -479,7 +470,7 @@ export class LabelEditor {
   private displayStyle(elementId: string, style: Record<string, string>): Record<string, string> | undefined {
     const sign = this.signLabelStyle(elementId);
     if (sign) return sign(style);
-    const shape = this.core.pages.getCurrentPage()?.shapes.find((s) => s.id === elementId);
+    const shape = shapeOf(this.core.pages.getCurrentPage(), elementId);
     return shape && this.core.registry.editStyle({ ...shape, style });
   }
 

@@ -4,10 +4,10 @@ import {
   boxOutline,
   cornerRadius,
   ellipsePath,
-  rectPath,
   roundedRectPath,
   sizeOffset,
 } from '../../../../src/engine/core/render/geometry/paths';
+import { rectPath } from '../../../../src/engine/core/model/geometry';
 import { orientation, orientedPath } from '../../../../src/engine/core/render/geometry/orient';
 import {
   dashPattern,

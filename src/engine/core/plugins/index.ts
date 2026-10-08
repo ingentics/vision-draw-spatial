@@ -52,16 +52,18 @@ export type {
 export { jsonListValue, readJsonList, SPATIAL, spatialFlag, spatialNumber, spatialValue } from '../spatial';
 export { elementName, firstFreeName } from '../model/names';
 export { clamp } from '../model/numbers';
-export { edgeEnds, shapesById } from '../model/pageIndex';
+export { byId, edgeEnds, edgeOf, edgesById, elementOf, shapeOf, shapesById } from '../model/pageIndex';
 export {
   boundsOfPoints,
   ceilToGrid,
   center,
+  distance,
   inflate,
   insidePolygon,
   rectContains,
   rectContainsRect,
   rectDistance,
+  rectPath,
   rectsOverlap,
   unionOf,
 } from '../model/geometry';
@@ -83,7 +85,6 @@ export {
   cornerRadius,
   ellipsePath,
   polygonArc,
-  rectPath,
   roundedPolygon,
   roundedRectPath,
   sizeOffset,

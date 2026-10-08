@@ -9,6 +9,7 @@ import type { Point, Rect } from '../../../model/types';
 import { withStyleValue } from '../helpers';
 import { CONNECTOR_STYLE, EDGE_LINE_KEYS } from '../drag/connect';
 import type { EngineCore } from '../../EngineCore';
+import { edgeOf, shapeOf } from '../../../model/pageIndex';
 
 /** Ajout d'une forme de la palette et suppression de la sélection. */
 export class ElementCommands {
@@ -32,7 +33,7 @@ export class ElementCommands {
     if (template.atBack) reorderCells(pageTree, [id], 'back');
     this.core.modeFollowUps.shapesPlaced(page.id, [id]);
     this.core.file.documentChanged([page.id]);
-    const shape = this.core.pages.getCurrentPage()?.shapes.find((s) => s.id === id);
+    const shape = shapeOf(this.core.pages.getCurrentPage(), id);
     if (shape) this.core.selection.select({ type: 'shape', element: shape });
     return id;
   }
@@ -48,7 +49,7 @@ export class ElementCommands {
     setEdgeTerminal(pageTree, id, 'target', { point: { x: bounds.x + bounds.width, y } });
     this.core.modeFollowUps.edgeCreated(pageId, id);
     this.core.file.documentChanged([pageId]);
-    const edge = this.core.pages.getCurrentPage()?.edges.find((e) => e.id === id);
+    const edge = edgeOf(this.core.pages.getCurrentPage(), id);
     if (edge) this.core.selection.select({ type: 'edge', element: edge });
     return id;
   }

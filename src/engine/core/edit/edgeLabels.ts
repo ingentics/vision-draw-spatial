@@ -1,5 +1,6 @@
 import type { EdgeLabelModel, EdgeLabelPlacement, EdgeModel, Point } from '../model/types';
 import { distance } from '../model/geometry';
+import { byId } from '../model/pageIndex';
 
 /**
  * Textes de début et de fin d'une flèche (SPEC §14.1) : labels enfants de l'arête, près de la source
@@ -57,7 +58,7 @@ export function anchorOf(placement: EdgeLabelPlacement): 'start' | 'middle' | 'e
 export function setEdgeTextPlacement(edge: EdgeModel, cellId: string, placement: EdgeLabelPlacement): void {
   if (cellId === edge.id) edge.labelPlacement = placement;
   else {
-    const label = edge.labels.find((l) => l.id === cellId);
+    const label = byId(edge.labels, cellId);
     if (label) label.placement = placement;
   }
 }

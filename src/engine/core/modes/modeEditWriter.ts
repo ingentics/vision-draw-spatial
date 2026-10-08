@@ -24,6 +24,7 @@ import type { MeasureText } from '../render/richLayout';
 import { modeKey } from './modeKeys';
 import type { ModeKeyOwner } from './modeKeys';
 import type { ModeEdit, ModeEditContext } from './modeEdit';
+import { byId, edgeOf, shapeOf } from '../model/pageIndex';
 
 /** Clé du style draw.io écrite par un mode : ni `;`, ni `=`, ni espace (sujet 301). */
 const STYLE_KEY_PATTERN = /^[A-Za-z][\w.:-]*$/;
@@ -147,7 +148,7 @@ export class ModeEditWriter implements ModeEdit {
   }
 
   setShapeBounds(shapeId: string, bounds: Rect): void {
-    const shape = this.#model.shapes.find((s) => s.id === shapeId);
+    const shape = shapeOf(this.#model, shapeId);
     if (!shape || isLocked(shape) || !canMoveCell(this.#pageTree, shapeId)) return;
     const current = this.#resized.get(shapeId) ?? shape.bounds;
     const delta = {
@@ -171,7 +172,7 @@ export class ModeEditWriter implements ModeEdit {
     direction: Point,
     margin: Partial<EndTextGap> = {},
   ): void {
-    const edge = this.#model.edges.find((e) => e.id === edgeId);
+    const edge = edgeOf(this.#model, edgeId);
     if (!edge || isLocked(edge)) return;
     const slot = `${edgeId}\ntext ${end}`;
     // Texte déjà là (fichier, ou écrit plus tôt dans l'opération) à ce bout.
@@ -209,7 +210,7 @@ export class ModeEditWriter implements ModeEdit {
       verticalAlign: layout.verticalAlign,
     };
     // Texte du fichier encore en place (ni retiré ni récrit dans l'opération) : on ne récrit pas le même.
-    const current = target.replaced ? undefined : edge.labels.find((label) => label.id === target.id);
+    const current = target.replaced ? undefined : byId(edge.labels, target.id);
     const { placement } = layout;
     const same =
       current &&
@@ -232,7 +233,7 @@ export class ModeEditWriter implements ModeEdit {
   }
 
   removeEdge(edgeId: string): void {
-    const edge = this.#model.edges.find((e) => e.id === edgeId);
+    const edge = edgeOf(this.#model, edgeId);
     const slot = `${edgeId}\nremoved`;
     if (!edge || isLocked(edge) || this.#written.has(slot)) return;
     this.#written.set(slot, undefined);

@@ -11,6 +11,8 @@ import { styleColor, styleStroke } from '../styleColors';
 import type { RenderContext } from '../types';
 import { DEFAULT_DEPTH, SPATIAL, spatialNumber } from '../../spatial';
 import { edgeLines } from '../lines';
+import { direction, unit } from '../../model/geometry';
+import { clamp } from '../../model/numbers';
 
 /**
  * Rendu iso en volume (niveau `iso`) : la forme devient un bloc posé au sol.
@@ -35,7 +37,7 @@ const SHARP_CORNER_DEG = 30;
  * Direction (page) vers la lumière. Dans l'orientation iso par défaut, la face visible de gauche
  * est claire et celle de droite plus sombre, comme une illustration isométrique classique.
  */
-const LIGHT = normalize({ x: 1, y: 2 });
+const LIGHT = unit({ x: 1, y: 2 });
 /** Luminosité des côtés par défaut (fraction de la couleur de fond) : face éclairée, face à l'ombre. */
 export const SHADE_LIGHT = 0.9;
 export const SHADE_DARK = 0.62;
@@ -122,9 +124,8 @@ function volumeEdges(shape: ShapeModel, outline: Point[], top: number, defaults:
   const n = path.length;
   // Points d'angle des arêtes : à une demi-épaisseur de l'angle, vers l'extérieur.
   const points = path.map((corner, i) => {
-    const out = { x: outside[i]!.x - corner.x, y: outside[i]!.y - corner.y };
-    const length = Math.hypot(out.x, out.y) || 1;
-    return { x: corner.x + (out.x / length) * (width / 2), y: corner.y + (out.y / length) * (width / 2) };
+    const out = direction(corner, outside[i]!);
+    return { x: corner.x + out.x * (width / 2), y: corner.y + out.y * (width / 2) };
   });
   const loop = (corners: Point[], z: number) =>
     corners.flatMap((p, i) => {
@@ -147,9 +148,9 @@ function volumeEdges(shape: ShapeModel, outline: Point[], top: number, defaults:
     const previous = path[(i - 1 + n) % n]!;
     const corner = path[i]!;
     const next = path[(i + 1) % n]!;
-    const incoming = normalize({ x: corner.x - previous.x, y: corner.y - previous.y });
-    const outgoing = normalize({ x: next.x - corner.x, y: next.y - corner.y });
-    const turn = Math.acos(Math.max(-1, Math.min(1, incoming.x * outgoing.x + incoming.y * outgoing.y)));
+    const incoming = direction(previous, corner);
+    const outgoing = direction(corner, next);
+    const turn = Math.acos(clamp(incoming.x * outgoing.x + incoming.y * outgoing.y, -1, 1));
     if ((turn * 180) / Math.PI < SHARP_CORNER_DEG) continue;
     const p = points[i]!;
     vertical.push(p.x, p.y, TOP_OFFSET, p.x, p.y, top);
@@ -216,9 +217,4 @@ function signedArea(path: Point[]): number {
     area += a.x * b.y - b.x * a.y;
   }
   return area / 2;
-}
-
-function normalize(p: Point): Point {
-  const length = Math.hypot(p.x, p.y) || 1;
-  return { x: p.x / length, y: p.y / length };
 }

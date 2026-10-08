@@ -1,5 +1,5 @@
 import type { Point, Rect } from '../model/types';
-import { cross, insidePolygon, rectContains, segmentsCross } from '../model/geometry';
+import { cross, insidePolygon, rectContains, rectPath, segmentsCross } from '../model/geometry';
 
 /**
  * Sélection par zone (ticket 60) : rectangle tiré au curseur, en coordonnées écran. Un élément est
@@ -30,12 +30,7 @@ export function marqueeTakes(footprint: Footprint, rect: Rect, touch: boolean): 
   if (!touch) return false;
   if (points.some((p) => rectContains(rect, p))) return true;
   const outline = footprint.closed ? convexHull(points) : points;
-  const corners = [
-    { x: rect.x, y: rect.y },
-    { x: rect.x + rect.width, y: rect.y },
-    { x: rect.x + rect.width, y: rect.y + rect.height },
-    { x: rect.x, y: rect.y + rect.height },
-  ];
+  const corners = rectPath(rect);
   const sides = corners.map((c, i) => [c, corners[(i + 1) % 4]!] as const);
   const count = footprint.closed ? outline.length : outline.length - 1;
   for (let i = 0; i < count; i++) {

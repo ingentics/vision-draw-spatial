@@ -1,5 +1,6 @@
 import type { Rect } from '../model/types';
 import type { CameraState } from './cameraMath';
+import { center, fitScale } from '../model/geometry';
 
 /**
  * Transition « zoom + fondu » entre pages (SPEC §11.2), partie calcul.
@@ -39,12 +40,9 @@ export function easing(name: string): (t: number) => number {
  */
 export function embedIn(content: Rect, frame: Rect, margin = 0.1): PageEmbedding {
   const available = { width: frame.width * (1 - 2 * margin), height: frame.height * (1 - 2 * margin) };
-  const scale =
-    content.width > 0 || content.height > 0
-      ? Math.min(available.width / Math.max(content.width, 1e-6), available.height / Math.max(content.height, 1e-6))
-      : 1;
-  const contentCenter = { x: content.x + content.width / 2, y: content.y + content.height / 2 };
-  const frameCenter = { x: frame.x + frame.width / 2, y: frame.y + frame.height / 2 };
+  const scale = fitScale(content, available, 1);
+  const contentCenter = center(content);
+  const frameCenter = center(frame);
   return { scale, offset: { x: frameCenter.x - scale * contentCenter.x, y: frameCenter.y - scale * contentCenter.y } };
 }
 

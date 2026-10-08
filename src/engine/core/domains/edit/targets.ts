@@ -3,6 +3,7 @@ import type { DrawioTree, PageTree } from '../../format/xmlTree';
 import { isLocked } from '../../edit/moveSet';
 import type { EdgeModel, PageModel, ShapeModel } from '../../model/types';
 import type { EngineCore } from '../EngineCore';
+import { edgeOf, shapeOf } from '../../model/pageIndex';
 
 /** Édition activée ou non, et ce qu'on peut modifier : la page courante, la forme ou la flèche sélectionnée seule. */
 export class EditTargets {
@@ -63,7 +64,7 @@ export class EditTargets {
       return undefined;
     // Poignées, redimensionnement et connecteur : une seule forme sélectionnée.
     if (this.core.selection.isMultiSelection()) return undefined;
-    const shape = editable.page.shapes.find((s) => s.id === picked.element.id);
+    const shape = shapeOf(editable.page, picked.element.id);
     if (!shape || isLocked(shape) || !canMoveCell(editable.pageTree, shape.id)) return undefined;
     return { ...editable, shape };
   }
@@ -75,7 +76,7 @@ export class EditTargets {
     if (!editable || picked?.type !== 'edge' || this.core.selection.current?.pageId !== editable.page.id)
       return undefined;
     if (this.core.selection.isMultiSelection()) return undefined;
-    const edge = editable.page.edges.find((e) => e.id === picked.element.id);
+    const edge = edgeOf(editable.page, picked.element.id);
     if (!edge || isLocked(edge) || !editable.pageTree.cells.get(edge.id)?.cell) return undefined;
     return { ...editable, edge };
   }
