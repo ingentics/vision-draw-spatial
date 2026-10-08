@@ -1,7 +1,11 @@
-import { reverseEdgeCell, setCellStyleValue } from '../../../format/cellEdits';
+import { reverseEdgeCell, setCellStyleValue, setEdgePoints } from '../../../format/cellEdits';
+import { parseStyle } from '../../../format/style';
 import { writeDrawio } from '../../../format/write';
+import { reversalFix } from '../../../edit/anchoring/reversal';
+import { constraintStyle } from '../../../edit/edgeEnds';
 import { applyStylePreset } from '../../../edit/stylePresets';
 import type { StylePreset } from '../../../edit/stylePresets';
+import type { Point } from '../../../model/types';
 import type { EngineCore } from '../../EngineCore';
 import { SPATIAL } from '../../../spatial';
 
@@ -75,7 +79,17 @@ export class StyleCommands {
     const ids = editable?.page.edges.filter((edge) => edgeIds.includes(edge.id)).map((edge) => edge.id) ?? [];
     if (!editable || ids.length === 0) return;
     this.core.edits.recordEdit('Inverser');
-    for (const id of ids) reverseEdgeCell(editable.pageTree, id);
+    for (const id of ids) {
+      reverseEdgeCell(editable.pageTree, id);
+      // Seul le sens change : si le tracé changeait (le routeur dépend du sens), on le fige.
+      const style = parseStyle(editable.pageTree.cells.get(id)?.cell?.getAttribute('style')).values;
+      const fix = reversalFix(editable.page, id, style);
+      if (!fix) continue;
+      for (const [end, constraint] of Object.entries(fix.pins) as Array<['source' | 'target', Point]>)
+        for (const [key, value] of Object.entries(constraintStyle(end, constraint)))
+          if (value !== undefined) setCellStyleValue(editable.pageTree, id, key, value);
+      if (fix.points) setEdgePoints(editable.pageTree, id, fix.points);
+    }
     this.core.file.documentChanged([editable.page.id], { distribute: false });
   }
 }
