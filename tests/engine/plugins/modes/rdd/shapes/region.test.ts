@@ -44,6 +44,13 @@ describe('mode RDD : région (sujet 182)', () => {
     expect(registry.isResizable(region)).toBe(true);
   });
 
+  it('poignée haut-gauche au coin de l’onglet, au coin de la région sans nom (sujet 344)', () => {
+    const registry = createDefaultRegistry();
+    const region = setup().shape('accounts');
+    expect(registry.movedHandles(region)).toEqual({ nw: { x: 20, y: 130 - REGION.tab.height } });
+    expect(registry.movedHandles({ ...region, label: ' ' })).toEqual({});
+  });
+
   it('onglet du nom (sujet 227) : au-dessus du coin haut-gauche, coin carré, fini par un S jusqu’au bord haut', () => {
     const { page, shape } = setup();
     const region = shape('accounts');

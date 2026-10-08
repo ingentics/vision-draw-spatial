@@ -1,5 +1,5 @@
 import { CONNECT_SIDES } from '../edit/handleKinds';
-import type { ConnectSide } from '../edit/handleKinds';
+import type { ConnectSide, MovedHandles } from '../edit/handleKinds';
 import type { Point, Rect } from '../model/types';
 import type { ReadonlyShapeModel as ShapeModel } from '../model/readonly';
 import { canvasBrush } from '../interaction/minimapBrush';
@@ -305,6 +305,19 @@ export class ShapeRegistry {
   /** Poignées de redimensionnement ? */
   isResizable(shape: ShapeModel): boolean {
     return this.resolve(shape).definition.resizable !== false;
+  }
+
+  /** Poignées de redimensionnement placées hors des bornes (sujet 344) ; aucune par défaut. */
+  movedHandles(shape: ShapeModel): MovedHandles {
+    const { definition } = this.resolve(shape);
+    const { movedHandles } = definition;
+    if (!movedHandles) return {};
+    return this.guard(
+      definition,
+      'movedHandles',
+      () => ({}),
+      () => movedHandles(readonlyModel(shape)),
+    );
   }
 
   /** Texte de la forme édité en texte brut, sans mise en forme (sujet 258) ? */

@@ -296,6 +296,7 @@ export class SelectionHighlight {
         size: this.core.settings.edit.handleSize,
         accent: this.core.settings.selection.accentColor,
         layout: this.core.shapeHandles.handleLayout(),
+        moved: this.core.registry.movedHandles(shape),
       });
       // Poignées propres au mode de la page (sujet 250, ex. « + » d'une table RDD).
       const modeHandles = this.core.modeHandles.current()?.handles ?? [];

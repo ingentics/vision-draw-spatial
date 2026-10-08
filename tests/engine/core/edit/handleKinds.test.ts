@@ -59,4 +59,11 @@ describe('handlePoints', () => {
     const tall = { x: 0, y: 0, width: 20, height: 200 };
     expect(handlePoints(tall, 1, { connectOffset: 18, middleMinSpan: 0 })).toHaveLength(12);
   });
+
+  it('poignée déplacée par la forme (sujet 344) : à sa place, les autres et celles de connexion sur les bornes', () => {
+    const plain = handlePoints(RECT, 1);
+    const moved = handlePoints(RECT, 1, undefined, { nw: { x: 40, y: 25 } });
+    expect(moved.find((p) => p.kind === 'nw')!.point).toEqual({ x: 40, y: 25 });
+    expect(moved.filter((p) => p.kind !== 'nw')).toEqual(plain.filter((p) => p.kind !== 'nw'));
+  });
 });

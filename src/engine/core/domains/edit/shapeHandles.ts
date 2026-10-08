@@ -23,7 +23,8 @@ export class ShapeHandles {
     const resizable = this.core.registry.isResizable(shape);
     const sides = this.core.registry.connectSides(shape);
     let best: { kind: HandleKind; distance: number } | undefined;
-    for (const { kind, point } of handlePoints(shape.bounds, this.core.camera.state.zoom, this.handleLayout())) {
+    const moved = this.core.registry.movedHandles(shape);
+    for (const { kind, point } of handlePoints(shape.bounds, this.core.camera.state.zoom, this.handleLayout(), moved)) {
       if (isConnectHandle(kind) ? !sides.includes(connectSideOf(kind)) : !resizable) continue;
       const at = this.core.picking.screenOfPoint(point, top);
       const distance = Math.hypot(at.x - screen.x, at.y - screen.y);

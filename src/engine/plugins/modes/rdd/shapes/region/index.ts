@@ -130,6 +130,11 @@ export const definition: ShapeDefinition = {
   // Toute la région et son onglet (pas la bande vide à droite de l'onglet).
   contains: (shape, point) => insidePolygon(regionOutline(shape), point),
   hitBounds,
+  // Poignée haut-gauche au coin de l'onglet (sujet 344).
+  movedHandles: (shape) => {
+    const rect = tabRect(shape);
+    return rect ? { nw: { x: rect.x, y: rect.y } } : {};
+  },
   // Sélectionnée, ni contour ni voile : ses poignées suffisent (sujet 330).
   selectionStyle: 'none',
   // Une région n'a pas de flèche (sujet 265).

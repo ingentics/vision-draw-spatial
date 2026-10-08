@@ -1,6 +1,6 @@
 import { Color, Group } from 'three';
 import { CONNECT_DIRECTIONS, connectSideOf, handlePoints, isConnectHandle } from '../edit/handleKinds';
-import type { ConnectSide, HandleLayout } from '../edit/handleKinds';
+import type { ConnectSide, HandleLayout, MovedHandles } from '../edit/handleKinds';
 import type { Point, Rect } from '../model/types';
 import { ellipsePath, rectPath } from './geometry/paths';
 import { DEFAULT_ACCENT } from './decorations';
@@ -29,13 +29,18 @@ export interface HandleStyle {
 export function selectionHandles(
   bounds: Rect,
   zoom: number,
-  options: { resize: boolean; connect: boolean; connectSides?: readonly ConnectSide[] } & HandleStyle,
+  options: {
+    resize: boolean;
+    connect: boolean;
+    connectSides?: readonly ConnectSide[];
+    moved?: MovedHandles;
+  } & HandleStyle,
 ): Group {
   const group = new Group();
   group.name = 'handles';
   const r = (options.size ?? HANDLE_SIZE) / zoom;
   const ACCENT = new Color(options.accent ?? DEFAULT_ACCENT);
-  for (const { kind, point } of handlePoints(bounds, zoom, options.layout)) {
+  for (const { kind, point } of handlePoints(bounds, zoom, options.layout, options.moved)) {
     if (isConnectHandle(kind)) {
       if (!options.connect || (options.connectSides && !options.connectSides.includes(connectSideOf(kind)))) continue;
       const square = { x: point.x - r * 1.5, y: point.y - r * 1.5, width: 3 * r, height: 3 * r };

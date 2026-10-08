@@ -1,5 +1,5 @@
 import type { Object3D } from 'three';
-import type { ConnectSide } from '../edit/handleKinds';
+import type { ConnectSide, MovedHandles } from '../edit/handleKinds';
 import type { Point, Rect } from '../model/types';
 // Modèle en lecture seule (sujet 303) : une forme dessine la forme reçue, sans la modifier.
 import type { ReadonlyShapeModel as ShapeModel } from '../model/readonly';
@@ -228,6 +228,11 @@ export interface ShapeDefinition {
   minimap?: MinimapPainter | null;
   /** Poignées de redimensionnement (défaut : oui). */
   resizable?: boolean;
+  /**
+   * Poignées de redimensionnement placées ailleurs que sur les bornes, en coordonnées page (ex. région RDD : poignée
+   * haut-gauche au coin de l'onglet, sujet 344). Elles redimensionnent comme les autres. Absent = sur les bornes.
+   */
+  movedHandles?(shape: ShapeModel): MovedHandles;
   /** On peut y accrocher une flèche (défaut : oui). */
   connectable?: boolean;
   /** Texte brut : édité sans mise en forme ni panneau de format (ex. tables RDD, sujet 258 ; défaut : non). */

@@ -43,17 +43,21 @@ export interface HandleLayout {
 
 export const DEFAULT_HANDLE_LAYOUT: HandleLayout = { connectOffset: 18, middleMinSpan: 32 };
 
+/** Poignées de redimensionnement placées ailleurs que sur les bornes (ex. région RDD : coin de l'onglet, sujet 344). */
+export type MovedHandles = Partial<Record<ResizeHandle, Point>>;
+
 export function handlePoints(
   bounds: Rect,
   zoom: number,
   layout: HandleLayout = DEFAULT_HANDLE_LAYOUT,
+  moved: MovedHandles = {},
 ): Array<{ kind: HandleKind; point: Point }> {
   const { width: w, height: h } = bounds;
   const narrow = w * zoom < layout.middleMinSpan;
   const flat = h * zoom < layout.middleMinSpan;
-  return allHandlePoints(bounds, zoom, layout.connectOffset).filter(
-    ({ kind }) => !(narrow && (kind === 'n' || kind === 's')) && !(flat && (kind === 'e' || kind === 'w')),
-  );
+  return allHandlePoints(bounds, zoom, layout.connectOffset)
+    .filter(({ kind }) => !(narrow && (kind === 'n' || kind === 's')) && !(flat && (kind === 'e' || kind === 'w')))
+    .map(({ kind, point }) => ({ kind, point: (!isConnectHandle(kind) && moved[kind]) || point }));
 }
 
 function allHandlePoints(bounds: Rect, zoom: number, connectOffset: number): Array<{ kind: HandleKind; point: Point }> {
