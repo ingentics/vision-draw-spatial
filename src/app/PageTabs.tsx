@@ -1,5 +1,6 @@
 import type { PageModeDefinition, PageModel } from '../engine';
 import { InlineEdit } from './InlineEdit';
+import { ModeIcon } from './ModeIcon';
 
 interface PageTabsProps {
   pages: PageModel[];
@@ -60,14 +61,7 @@ export function PageTabs({
               onClick={() => onSelect(page.id)}
               onCommit={onRename && ((name) => onRename(page.id, name))}
             >
-              {mode?.icon && (
-                <svg className="tab-mode-icon" viewBox="0 0 16 16" role="img" aria-label={`Mode ${mode.name}`}>
-                  <title>{`Mode ${mode.name}`}</title>
-                  {mode.icon.fill && <path className="mode-icon-fill" d={mode.icon.fill} />}
-                  {mode.icon.line && <path className="mode-icon-line" d={mode.icon.line} />}
-                  {mode.icon.accent && <path className="mode-icon-accent" d={mode.icon.accent} />}
-                </svg>
-              )}
+              {mode && <ModeIcon mode={mode} className="tab-mode-icon" label={`Mode ${mode.name}`} />}
               {page.name}
             </InlineEdit>
             {active && onRemove && pages.length > 1 && (

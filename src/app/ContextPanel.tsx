@@ -4,8 +4,6 @@ import {
   commentOf,
   edgeTexts,
   endLabelOf,
-  isAnchoring,
-  JUMP_STYLES,
   jumpValue,
   matchesPreset,
   modePalette,
@@ -36,7 +34,7 @@ import type {
 } from '../engine';
 import { TEXT_FORMAT_ATTRIBUTE } from './LabelEditor';
 import { BorderSection } from './BorderSection';
-import { NumberField, SelectField, TextField } from './Fields';
+import { NumberField, TextField } from './Fields';
 import { ModePropertyFields } from './plugins/modes/ModeFields';
 import { modePanel } from './plugins/modes/registry';
 import { ShapePropertyFields } from './ShapeProperties';
@@ -46,6 +44,18 @@ import { Section } from './PanelSection';
 import { TextFormatSections } from './TextFormat';
 import type { TextEdit } from './TextFormat';
 import { ArrangeSection } from './ArrangeSection';
+import { ChoiceGroup } from './ChoiceGroup';
+import {
+  ANCHORING_LABELS,
+  ANCHORING_OPTIONS,
+  EDGE_LINE_OPTIONS,
+  JUMP_LABELS,
+  JUMP_OPTIONS,
+  MARKERS,
+  markerOptions,
+} from './edgeIcons';
+import type { EdgeLine } from './edgeIcons';
+import { ModeIcon } from './ModeIcon';
 import { useEnginePlugins } from './pluginsContext';
 
 export interface ContextPanelProps {
@@ -184,8 +194,6 @@ export function contextTitle(
 // ---------------------------------------------------------------------------
 // Page
 
-const ANCHORING_LABELS = { manual: 'Manuel', auto: 'Automatique', pcb: 'Typon' } as const;
-
 function PageSections({ page, onRenamePage: onRename, ...props }: ContextPanelProps) {
   return (
     <>
@@ -206,27 +214,34 @@ function PageSections({ page, onRenamePage: onRename, ...props }: ContextPanelPr
             {plural(page.shapes.length, 'forme')}, {plural(page.edges.length, 'flèche')}
           </span>
         </div>
-        <SelectField
-          label="Ancrage des flèches"
-          title="Manuel : on choisit le point d'attache. Automatique : on choisit le côté, les flèches y sont réparties. Typon : idem, tracé à 45° (spatial.anchoring)"
-          value={isAnchoring(page.attributes[SPATIAL.anchoring]) ? page.attributes[SPATIAL.anchoring]! : ''}
-          options={[
-            { value: '', label: `Par défaut (${ANCHORING_LABELS[props.defaultAnchoring ?? 'manual']})` },
-            { value: 'manual', label: ANCHORING_LABELS.manual },
-            { value: 'auto', label: ANCHORING_LABELS.auto },
-            { value: 'pcb', label: ANCHORING_LABELS.pcb },
-          ]}
-          disabled={!props.onPageAnchoring}
-          onChange={(value) => props.onPageAnchoring?.(isAnchoring(value) ? value : undefined)}
-        />
-        <SelectField
-          label="Croisements des flèches"
-          title="Rendu des flèches sans le leur là où elles passent au-dessus d'une autre (spatial.jumps)"
-          value={jumpValue(page.attributes[SPATIAL.jumps]) ?? ''}
-          options={[{ value: '', label: `Par défaut (${jumpLabel(props.defaultJumps)})` }, ...JUMP_OPTIONS]}
-          disabled={!props.onPageJumps}
-          onChange={(value) => props.onPageJumps?.(jumpValue(value))}
-        />
+        <div className="field-row">
+          <span title="Manuel : on choisit le point d'attache. Automatique : on choisit le côté, les flèches y sont réparties. Typon : idem, tracé à 45° (spatial.anchoring)">
+            Ancrage des flèches
+          </span>
+          <ChoiceGroup
+            label="Ancrage des flèches"
+            value={page.attributes[SPATIAL.anchoring]}
+            options={ANCHORING_OPTIONS}
+            inherited={ANCHORING_LABELS[props.defaultAnchoring ?? 'manual']}
+            inheritedFrom="les paramètres"
+            disabled={!props.onPageAnchoring}
+            onChange={(value) => props.onPageAnchoring?.(value)}
+          />
+        </div>
+        <div className="field-row">
+          <span title="Rendu des flèches sans le leur là où elles passent au-dessus d'une autre (spatial.jumps)">
+            Croisements des flèches
+          </span>
+          <ChoiceGroup
+            label="Croisements des flèches"
+            value={page.attributes[SPATIAL.jumps]}
+            options={JUMP_OPTIONS}
+            inherited={JUMP_LABELS[props.defaultJumps]}
+            inheritedFrom="les paramètres"
+            disabled={!props.onPageJumps}
+            onChange={(value) => props.onPageJumps?.(value)}
+          />
+        </div>
       </Section>
       <PageModeSections
         page={page}
@@ -272,6 +287,9 @@ function PageEffectsSection({ page, onPageEffect }: Pick<ContextPanelProps, 'pag
   );
 }
 
+/** Choix « Aucun » du mode de la page (aucun mode ne peut porter un identifiant vide). */
+const NO_MODE = '';
+
 /**
  * Mode de la page (sujet 69) : choix du mode, puis ses réglages déclarés et ses sections propres
  * (`src/app/plugins/modes/<id>/`). Un mode inconnu (écrit par une version plus récente) reste affiché tel quel.
@@ -292,9 +310,13 @@ function PageModeSections({
   const modeId = plugins.modes.modeId(page);
   const mode = plugins.modes.modeOf(page);
   const options = [
-    { value: '', label: 'Aucun' },
-    ...plugins.modes.list().map((m) => ({ value: m.id, label: m.name })),
-    ...(modeId && !mode ? [{ value: modeId, label: `Inconnu (${modeId})` }] : []),
+    { value: NO_MODE, label: 'Aucun', title: 'Aucun : page normale, sans mode (spatial.mode retiré)' },
+    ...plugins.modes.list().map((m) => ({
+      value: m.id,
+      label: m.shortName ?? m.name,
+      icon: m.icon && <ModeIcon mode={m} />,
+      title: m.description ? `${m.name} : ${m.description}` : m.name,
+    })),
   ];
   const PageSection = modePanel(mode?.id)?.PageSection;
   // Réglages de page rangés dans un encart du mode (`section`, ex. « RDD »), après la section « Mode ».
@@ -309,16 +331,16 @@ function PageModeSections({
   return (
     <>
       <Section title="Mode">
-        <SelectField
-          label="Mode"
-          title={
-            mode?.description ?? 'Mode de la page (spatial.mode) : spécialise la page ; rien ne change dans draw.io'
-          }
-          value={modeId ?? ''}
-          options={options}
-          disabled={!onPageMode}
-          onChange={(value) => onPageMode?.(value || undefined)}
-        />
+        <div className="field-row">
+          <span title="Mode de la page (spatial.mode) : spécialise la page ; rien ne change dans draw.io">Mode</span>
+          <ChoiceGroup
+            label="Mode de la page"
+            value={modeId ?? NO_MODE}
+            options={options}
+            disabled={!onPageMode}
+            onChange={(value) => onPageMode?.(value === NO_MODE ? undefined : value)}
+          />
+        </div>
         <ModeFields page={page} scope="page" target={page} styles={styles} onModeProperty={onModeProperty} />
       </Section>
       {sections.map((section) => (
@@ -675,7 +697,6 @@ function FollowShiftField({
 }
 
 /** Tracé d'une flèche : droite, angles droits, coudes arrondis (par défaut des flèches créées), ou courbe. */
-type EdgeLine = 'straight' | 'sharp' | 'rounded' | 'curved';
 
 /** Clés de style à écrire sur une flèche, d'après son style actuel. */
 type EdgeStylePatch = (style: Record<string, string>) => Record<string, string | undefined>;
@@ -688,34 +709,13 @@ const withRouter =
   (style) =>
     isStraight(style) ? { ...keys, edgeStyle: 'orthogonalEdgeStyle', noEdgeStyle: undefined } : keys;
 
-const EDGE_LINES: Record<EdgeLine, { label: string; patch: EdgeStylePatch; icon: string }> = {
-  straight: {
-    label: 'Droite',
-    patch: () => ({ edgeStyle: undefined, noEdgeStyle: undefined, rounded: '0', curved: undefined }),
-    icon: 'M2 13L14 5',
-  },
-  sharp: { label: 'Angles droits', patch: withRouter({ rounded: '0', curved: undefined }), icon: 'M2 13V5h12' },
-  rounded: {
-    label: 'Arrondi',
-    patch: withRouter({ rounded: '1', curved: undefined }),
-    icon: 'M2 13V8a3 3 0 0 1 3-3h9',
-  },
-  curved: { label: 'Courbe', patch: withRouter({ rounded: '0', curved: '1' }), icon: 'M2 13C2 7 7 5 14 5' },
+/** Clés de style écrites par chaque tracé. */
+const EDGE_LINE_PATCHES: Record<EdgeLine, EdgeStylePatch> = {
+  straight: () => ({ edgeStyle: undefined, noEdgeStyle: undefined, rounded: '0', curved: undefined }),
+  sharp: withRouter({ rounded: '0', curved: undefined }),
+  rounded: withRouter({ rounded: '1', curved: undefined }),
+  curved: withRouter({ rounded: '0', curved: '1' }),
 };
-
-/** Sauts aux croisements (`jumpStyle`), libellés du panneau. */
-const JUMP_LABELS: Record<JumpStyle | 'none', string> = {
-  none: 'Aucun',
-  arc: 'Arc',
-  gap: 'Coupure',
-  sharp: 'Marche',
-  line: 'Ligne',
-};
-
-const jumpLabel = (jumps: JumpStyle | 'none') => JUMP_LABELS[jumps];
-
-/** Choix explicites d'un saut (le choix « par défaut » est ajouté par chaque liste). */
-const JUMP_OPTIONS = (['none', ...JUMP_STYLES] as const).map((value) => ({ value, label: JUMP_LABELS[value] }));
 
 /** Clés de style des points d'attache imposés (`exitX`…, `entryX`…). */
 const CONSTRAINT_KEYS = ['exit', 'entry'].flatMap((prefix) => ['X', 'Y'].map((axis) => `${prefix}${axis}`));
@@ -742,45 +742,40 @@ function EdgeLineSection({
           ? 'rounded'
           : 'sharp';
   const manual = edge.points.length > 0 || CONSTRAINT_KEYS.some((key) => edge.style[key] !== undefined);
-  const ownJump = jumpValue(edge.style.jumpStyle);
-  const jump = ownJump ?? pageJumps;
+  const jump = jumpValue(edge.style.jumpStyle) ?? pageJumps;
   const jumpSize = parseInt(edge.style.jumpSize ?? '', 10);
   const curved = current === 'curved';
   return (
     <Section title="Tracé">
       <div className="field-row">
         Coudes
-        <span className="button-group" role="radiogroup" aria-label="Tracé de la flèche">
-          {(Object.keys(EDGE_LINES) as EdgeLine[]).map((value) => (
-            <button
-              key={value}
-              type="button"
-              role="radio"
-              className="group-button format-button"
-              aria-checked={current === value}
-              aria-pressed={current === value}
-              title={EDGE_LINES[value].label}
-              onClick={() => onChange(EDGE_LINES[value].patch)}
-            >
-              <svg viewBox="0 0 16 16" aria-hidden="true">
-                <path d={EDGE_LINES[value].icon} />
-              </svg>
-            </button>
-          ))}
-        </span>
+        <ChoiceGroup
+          label="Tracé de la flèche"
+          value={current}
+          options={EDGE_LINE_OPTIONS}
+          onChange={(value) => value && onChange(EDGE_LINE_PATCHES[value])}
+        />
       </div>
-      <SelectField
-        label="Croisements"
-        title={
-          curved
-            ? 'Une flèche courbe ne fait pas de saut (comme draw.io)'
-            : 'Rendu de la flèche là où elle passe au-dessus d’une autre (jumpStyle) ; par défaut : celui de la page'
-        }
-        value={ownJump ?? ''}
-        disabled={curved}
-        options={[{ value: '', label: `Par défaut (${jumpLabel(pageJumps)})` }, ...JUMP_OPTIONS]}
-        onChange={(value) => onChange(() => ({ jumpStyle: jumpValue(value) }))}
-      />
+      <div className="field-row">
+        <span
+          title={
+            curved
+              ? 'Une flèche courbe ne fait pas de saut (comme draw.io)'
+              : 'Rendu de la flèche là où elle passe au-dessus d’une autre (jumpStyle) ; par défaut : celui de la page'
+          }
+        >
+          Croisements
+        </span>
+        <ChoiceGroup
+          label="Croisements de la flèche"
+          value={edge.style.jumpStyle}
+          options={JUMP_OPTIONS}
+          inherited={JUMP_LABELS[pageJumps]}
+          inheritedFrom="la page"
+          disabled={curved}
+          onChange={(value) => onChange(() => ({ jumpStyle: value }))}
+        />
+      </div>
       {jump !== 'none' && !curved && (
         <NumberField
           key={`${edge.id}:${edge.style.jumpSize ?? ''}`}
@@ -859,27 +854,6 @@ function EdgeSplitFields({
   );
 }
 
-/** Bouts de flèche (`startArrow`, `endArrow`) que l'appli dessine, et s'ils peuvent être vides. */
-const MARKERS: Array<{ value: string; label: string; fillable: boolean }> = [
-  { value: 'none', label: 'Aucun', fillable: false },
-  { value: 'classic', label: 'Classique', fillable: true },
-  { value: 'classicThin', label: 'Classique fine', fillable: true },
-  { value: 'block', label: 'Triangle', fillable: true },
-  { value: 'blockThin', label: 'Triangle fin', fillable: true },
-  { value: 'open', label: 'Ouverte', fillable: false },
-  { value: 'openThin', label: 'Ouverte fine', fillable: false },
-  { value: 'oval', label: 'Rond', fillable: true },
-  { value: 'diamond', label: 'Losange', fillable: true },
-  { value: 'diamondThin', label: 'Losange fin', fillable: true },
-  // Cardinalités des diagrammes entité-relation (sujet 265).
-  { value: 'ERone', label: 'ER : un', fillable: false },
-  { value: 'ERmandOne', label: 'ER : un et un seul', fillable: false },
-  { value: 'ERzeroToOne', label: 'ER : zéro ou un', fillable: false },
-  { value: 'ERmany', label: 'ER : plusieurs', fillable: false },
-  { value: 'ERoneToMany', label: 'ER : un ou plusieurs', fillable: false },
-  { value: 'ERzeroToMany', label: 'ER : zéro ou plusieurs', fillable: false },
-];
-
 /** Flèche gérée par le mode de la page (ex. relation RDD et ses cardinalités, sujet 265). */
 
 /**
@@ -903,11 +877,11 @@ function EdgeEndsSection({
         const filled = edge.style[`${end}Fill`] !== '0';
         const name = end === 'start' ? 'Début' : 'Fin';
         return (
-          <div key={end} className="field-row">
-            {name}
-            <span className="end-fields">
+          <div key={end} className="end-field">
+            <div className="field-row">
+              {name}
               {known?.fillable && (
-                <label title={`Pointe pleine ou vide (${end}Fill)`}>
+                <label className="end-fill" title={`Pointe pleine ou vide (${end}Fill)`}>
                   <input
                     type="checkbox"
                     checked={filled}
@@ -916,23 +890,18 @@ function EdgeEndsSection({
                   pleine
                 </label>
               )}
-              <select
-                aria-label={`Bout du ${name.toLowerCase()} de la flèche`}
-                title={`Forme du bout (${end}Arrow)`}
-                value={current}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  onChange(() => ({ [`${end}Arrow`]: end === 'start' && value === 'none' ? undefined : value }));
-                }}
-              >
-                {!known && <option value={current}>{current} (non dessiné)</option>}
-                {MARKERS.map((marker) => (
-                  <option key={marker.value} value={marker.value}>
-                    {marker.label}
-                  </option>
-                ))}
-              </select>
-            </span>
+            </div>
+            <ChoiceGroup
+              label={`Bout du ${name.toLowerCase()} de la flèche`}
+              value={current}
+              options={markerOptions(end, filled)}
+              unknownLabel={(value) => `${value} (non dessiné)`}
+              columns={8}
+              onChange={(value) =>
+                value && onChange(() => ({ [`${end}Arrow`]: end === 'start' && value === 'none' ? undefined : value }))
+              }
+            />
+            {!known && <p className="panel-hint">Bout non dessiné : {current}.</p>}
           </div>
         );
       })}

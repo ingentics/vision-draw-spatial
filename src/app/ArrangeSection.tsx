@@ -1,5 +1,6 @@
 import type { AlignMove, AlignReference, DistributeMove } from '../engine';
-import { SelectField } from './Fields';
+import { ChoiceGroup } from './ChoiceGroup';
+import type { ChoiceOption } from './ChoiceGroup';
 import { Section } from './PanelSection';
 
 /**
@@ -24,13 +25,15 @@ export function ArrangeSection({
   const canDistribute = shapeCount >= 3;
   return (
     <Section title="Aligner">
-      <SelectField
-        label="Par rapport à"
-        title="Forme de référence de l’alignement, qui ne bouge pas"
-        value={reference}
-        options={REFERENCE_OPTIONS}
-        onChange={(value) => onReference(value as AlignReference)}
-      />
+      <div className="field-row">
+        <span title="Forme de référence de l’alignement, qui ne bouge pas">Par rapport à</span>
+        <ChoiceGroup
+          label="Référence de l’alignement"
+          value={reference}
+          options={REFERENCE_OPTIONS}
+          onChange={(value) => value && onReference(value)}
+        />
+      </div>
       {[ALIGN_ACTIONS.slice(0, 5), ALIGN_ACTIONS.slice(5)].map((actions, row) => (
         <div key={row} className="arrange-buttons">
           {actions.map(({ move, title, icon }) => (
@@ -67,12 +70,6 @@ export function ArrangeSection({
   );
 }
 
-const REFERENCE_OPTIONS: Array<{ value: AlignReference; label: string }> = [
-  { value: 'selection', label: 'Sélection' },
-  { value: 'first', label: 'Premier sélectionné' },
-  { value: 'last', label: 'Dernier sélectionné' },
-];
-
 /**
  * Icône en 18 × 18, dessinée pour la ligne horizontale (« vertical » la transpose) : `bar` = forme pleine,
  * `ref` = forme de référence (contour), `mark` = trait d'alignement (couleur d'accent).
@@ -88,6 +85,35 @@ const mark = (x1: number, y1: number, x2: number, y2: number): IconPart => ({ ki
 const pair = (x8: number, x12: number) => [bar(x8, 4, 8, 4), bar(x12, 10, 12, 4)];
 /** Trois formes côte à côte. */
 const row3 = [bar(1, 5, 3, 9), bar(7.5, 3, 3, 12), bar(14, 6, 3, 7)];
+
+/** Deux formes de la sélection, la référence en contour : cadre englobant, première forme, dernière forme. */
+const REFERENCE_OPTIONS: Array<ChoiceOption<AlignReference>> = (
+  [
+    [
+      'selection',
+      'Sélection',
+      'les formes s’alignent sur le cadre englobant de la sélection',
+      [bar(2.5, 3, 6, 6), bar(10.5, 8, 5, 7), ref(1, 1.5, 16, 15)],
+    ],
+    [
+      'first',
+      'Premier sélectionné',
+      'la première forme choisie reste en place, les autres s’alignent sur elle',
+      [ref(2.5, 3, 6, 6), bar(10.5, 8, 5, 7)],
+    ],
+    [
+      'last',
+      'Dernier sélectionné',
+      'la dernière forme choisie reste en place, les autres s’alignent sur elle',
+      [bar(2.5, 3, 6, 6), ref(10.5, 8, 5, 7)],
+    ],
+  ] as const
+).map(([value, label, hint, parts]) => ({
+  value,
+  label,
+  title: `${label} : ${hint}`,
+  icon: <ArrangeIcon parts={parts} vertical={false} />,
+}));
 
 const ALIGN_ACTIONS: Array<{ move: AlignMove; title: string; icon: IconPart[] }> = [
   {
@@ -149,9 +175,9 @@ const DISTRIBUTE_ACTIONS: Array<{ move: DistributeMove; title: string; icon: Ico
   },
 ];
 
-function ArrangeIcon({ parts, vertical }: { parts: IconPart[]; vertical: boolean }) {
+function ArrangeIcon({ parts, vertical }: { parts: readonly IconPart[]; vertical: boolean }) {
   return (
-    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+    <svg className="arrange-icon" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
       {parts.map((part, i) => {
         if (part.kind === 'mark') {
           const [x1, y1, x2, y2] = vertical

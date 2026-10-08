@@ -67,7 +67,7 @@ export { MemoryStore } from './core/persistence/MemoryStore';
 
 // Édition (SPEC §14)
 export type { AlignMove, AlignReference, DistributeMove } from './core/edit/align';
-export { isAnchoring } from './core/edit/anchoring/mode';
+export { ANCHORINGS, isAnchoring } from './core/edit/anchoring/mode';
 export type { Anchoring } from './core/edit/anchoring/mode';
 export { commentOf } from './core/edit/comment';
 export type { ElementComment } from './core/edit/comment';

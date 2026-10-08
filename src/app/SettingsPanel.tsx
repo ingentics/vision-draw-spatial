@@ -11,7 +11,10 @@ import type {
 } from '../engine';
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { CommentSettingsSection } from './comment';
+import { ChoiceGroup } from './ChoiceGroup';
+import type { ChoiceOption } from './ChoiceGroup';
 import { desktop } from './desktop';
+import { ANCHORING_OPTIONS, EDGE_LINE_OPTIONS, JUMP_OPTIONS } from './edgeIcons';
 import { ColorField, Slider } from './SettingsFields';
 import { IsoIcon, IsoSettings } from './IsoSettings';
 import { Section, Subsection, Subsubsection } from './PanelSection';
@@ -858,12 +861,7 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                 <Choice
                   label="Tracé des flèches"
                   value={shapes.edgeLineStyle}
-                  options={[
-                    ['straight', 'Droite'],
-                    ['sharp', 'Angles droits'],
-                    ['rounded', 'Arrondi'],
-                    ['curved', 'Courbe'],
-                  ]}
+                  options={EDGE_LINE_OPTIONS}
                   onChange={(edgeLineStyle) => onChange({ shapes: { edgeLineStyle } })}
                 />
                 <Slider
@@ -882,11 +880,7 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                 <Choice
                   label="Ancrage des flèches"
                   value={shapes.edgeAnchoring}
-                  options={[
-                    ['manual', 'Manuel'],
-                    ['auto', 'Automatique'],
-                    ['pcb', 'Typon'],
-                  ]}
+                  options={ANCHORING_OPTIONS}
                   onChange={(edgeAnchoring) => onChange({ shapes: { edgeAnchoring } })}
                 />
                 <ul className="hint muted hint-list">
@@ -1049,13 +1043,7 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                 <Choice
                   label="Croisements des flèches"
                   value={shapes.edgeJumpStyle}
-                  options={[
-                    ['none', 'Aucun'],
-                    ['arc', 'Arc'],
-                    ['gap', 'Coupure'],
-                    ['sharp', 'Marche'],
-                    ['line', 'Ligne'],
-                  ]}
+                  options={JUMP_OPTIONS}
                   onChange={(edgeJumpStyle) => onChange({ shapes: { edgeJumpStyle } })}
                 />
                 {shapes.edgeJumpStyle !== 'none' && (
@@ -1622,6 +1610,7 @@ function UrlField({
   );
 }
 
+/** Choix par boutons, en texte (`[valeur, nom]`) ou en icônes (`ChoiceOption`, nom en infobulle). */
 function Choice<T extends string>({
   label,
   value,
@@ -1631,29 +1620,21 @@ function Choice<T extends string>({
 }: {
   label: string;
   value: T;
-  options: Array<[T, string]>;
+  options: ReadonlyArray<[T, string] | ChoiceOption<T>>;
   disabled?: boolean;
   onChange: (value: T) => void;
 }) {
   return (
     <div className={disabled ? 'field disabled' : 'field'}>
       <span className="field-row">{label}</span>
-      <div className="button-group choice" role="radiogroup" aria-label={label}>
-        {options.map(([option, text]) => (
-          <button
-            key={option}
-            type="button"
-            role="radio"
-            className="group-button"
-            aria-checked={value === option}
-            aria-pressed={value === option}
-            disabled={disabled}
-            onClick={() => onChange(option)}
-          >
-            {text}
-          </button>
-        ))}
-      </div>
+      <ChoiceGroup
+        className="choice"
+        label={label}
+        value={value}
+        options={options.map((option) => (Array.isArray(option) ? { value: option[0], label: option[1] } : option))}
+        disabled={disabled}
+        onChange={(next) => next && onChange(next)}
+      />
     </div>
   );
 }

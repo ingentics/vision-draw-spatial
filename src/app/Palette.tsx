@@ -1,6 +1,6 @@
-import { useLayoutEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useRef, useState } from 'react';
 import { CollapseButton } from './Sidebar';
+import { useTooltip } from './Tooltip';
 import { searchTemplates } from '../engine';
 import type { PageModePalette, PaletteCategory, PaletteCategoryId, ShapeTemplate } from '../engine';
 
@@ -31,35 +31,6 @@ function saveCollapsed(collapsed: Set<SectionId>): void {
   }
 }
 
-/** Infobulle du nom d'une forme, placée sous la forme survolée (`anchor` : son cadre dans la fenêtre). */
-interface Tooltip {
-  text: string;
-  anchor: DOMRect;
-  visible: boolean;
-}
-
-/** Écart entre l'infobulle et la forme, et marge minimale aux bords de la fenêtre. */
-const TOOLTIP_GAP = 4;
-
-/**
- * Position de l'infobulle : centrée sous la forme, décalée pour rester dans la fenêtre, et au-dessus de la forme
- * s'il n'y a pas la place en dessous dans la zone visible (`area` : la liste des formes de la palette, dont le bas
- * peut être bordé par la barre des onglets).
- */
-function tooltipPosition(
-  anchor: Pick<DOMRect, 'left' | 'width' | 'top' | 'bottom'>,
-  size: { width: number; height: number },
-  viewport: { width: number; height: number },
-  area: { top: number; bottom: number } = { top: 0, bottom: viewport.height },
-): { left: number; top: number } {
-  const centered = anchor.left + anchor.width / 2 - size.width / 2;
-  const left = Math.max(TOOLTIP_GAP, Math.min(centered, viewport.width - size.width - TOOLTIP_GAP));
-  const below = anchor.bottom + TOOLTIP_GAP;
-  const bottom = Math.min(area.bottom, viewport.height);
-  const top = below + size.height + TOOLTIP_GAP <= bottom ? below : anchor.top - TOOLTIP_GAP - size.height;
-  return { left, top: Math.max(Math.max(area.top, 0) + TOOLTIP_GAP, top) };
-}
-
 interface PaletteProps {
   /** Clic (ou Entrée) sur une forme : ajout au centre de la vue. */
   onAdd: (template: ShapeTemplate) => void;
@@ -81,27 +52,9 @@ const DEFAULT_CONTENT: PageModePalette = { categories: [], templates: [] };
 export function Palette({ onAdd, used = [], content = DEFAULT_CONTENT, disabled }: PaletteProps) {
   const [query, setQuery] = useState('');
   const [collapsed, setCollapsed] = useState(loadCollapsed);
-  const [tooltip, setTooltip] = useState<Tooltip | null>(null);
-  const tooltipRef = useRef<HTMLDivElement>(null);
   const sectionsRef = useRef<HTMLDivElement>(null);
-  const showTooltip = (template: ShapeTemplate, target: HTMLElement) => {
-    setTooltip({ text: template.name, anchor: target.getBoundingClientRect(), visible: true });
-  };
-  // Placée une fois sa taille connue, avant l'affichage.
-  useLayoutEffect(() => {
-    const element = tooltipRef.current;
-    if (!tooltip || !element) return;
-    const { left, top } = tooltipPosition(
-      tooltip.anchor,
-      { width: element.offsetWidth, height: element.offsetHeight },
-      { width: window.innerWidth, height: window.innerHeight },
-      sectionsRef.current?.getBoundingClientRect(),
-    );
-    element.style.left = `${left}px`;
-    element.style.top = `${top}px`;
-  }, [tooltip]);
-  // Le texte reste en place pendant le fondu de sortie.
-  const hideTooltip = () => setTooltip((current) => current && { ...current, visible: false });
+  // Gardée dans la liste des formes, dont le bas peut être bordé par la barre des onglets.
+  const { hover, hide: hideTooltip, tooltip } = useTooltip(() => sectionsRef.current?.getBoundingClientRect());
   const searching = query.trim() !== '';
   const found = searchTemplates(content.templates, query, content.categories);
 
@@ -184,8 +137,7 @@ export function Palette({ onAdd, used = [], content = DEFAULT_CONTENT, disabled 
                       draggable={!disabled}
                       disabled={disabled}
                       aria-label={template.name}
-                      onMouseEnter={(event) => showTooltip(template, event.currentTarget)}
-                      onMouseLeave={hideTooltip}
+                      {...hover(template.name)}
                       onDragStart={(event) => {
                         hideTooltip();
                         event.dataTransfer.setData(PALETTE_MIME, template.id);
@@ -203,19 +155,7 @@ export function Palette({ onAdd, used = [], content = DEFAULT_CONTENT, disabled 
         })}
         {sections.length === 0 && <p className="palette-empty">Aucune forme trouvée</p>}
       </div>
-      {/* À la racine du document : au premier plan, hors de la couche de la barre latérale. */}
-      {tooltip &&
-        createPortal(
-          <div
-            key={tooltip.text}
-            ref={tooltipRef}
-            className={`palette-tooltip${tooltip.visible ? ' visible' : ''}`}
-            role="tooltip"
-          >
-            {tooltip.text}
-          </div>,
-          document.body,
-        )}
+      {tooltip}
     </aside>
   );
 }

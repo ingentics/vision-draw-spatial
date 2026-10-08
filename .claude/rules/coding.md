@@ -112,6 +112,11 @@ paths:
 - Strict TypeScript, no `any`; type imports as `import type` (lint).
 - Short single-topic files: beyond ~400 lines, ask what can move out (shared blocks, algorithm, orchestration).
 - No dead code nor accessor duplicating an existing method; a moved comment follows its code.
+- **Every icon has a tooltip**, shown by `useTooltip` (`src/app/Tooltip.tsx`, same as the palette shape names), not
+  a native `title` (and no `title` on an ancestor: it would show too), plus `aria-label` when the icon is the only
+  content. It says not just the name but what the choice does, in French, with the draw.io key it writes when there
+  is one (`Arc : la flèche saute l'autre par un petit arc (jumpStyle=arc)`). Choices by icons go through
+  `ChoiceGroup` (`src/app/ChoiceGroup.tsx`, option `title`).
 
 ## 7. Tests and refactors
 

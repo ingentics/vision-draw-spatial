@@ -132,6 +132,67 @@ body {
   color: #ffffff;
 }
 
+/* Groupe de choix (`ChoiceGroup`, sujet 317) : icônes, nom en infobulle. */
+.choice-icon {
+  justify-content: center;
+  min-width: 28px;
+  padding: 3px 6px;
+}
+
+.choice-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.group-button .arrange-icon {
+  width: 18px;
+  height: 18px;
+  stroke: none;
+}
+
+.icon-under {
+  opacity: 0.45;
+}
+
+.icon-fill {
+  fill: currentColor;
+}
+
+/* Bouton enfoncé : les gris des icônes passent à la couleur du texte. */
+.group-button[aria-checked='true'] :is(.mode-icon-fill, .arrange-bar) {
+  fill: currentColor;
+}
+
+.group-button[aria-checked='true'] :is(.mode-icon-line, .mode-icon-accent, .arrange-ref) {
+  stroke: currentColor;
+}
+
+/* Valeur écrite inconnue : aucun bouton enfoncé, le cadre en pointillé la signale. */
+.button-group.unknown-choice {
+  border-style: dashed;
+  border-color: var(--accent);
+}
+
+/* Grille de boutons : le trait de séparation est le fond, vu entre les cases. */
+.button-grid {
+  display: inline-grid;
+  gap: 1px;
+  background: var(--border);
+}
+
+.button-grid .group-button + .group-button {
+  border-left: none;
+}
+
+.button-grid .choice-icon {
+  min-width: 0;
+  padding: 3px 0;
+}
+
+.context-panel .group-button:not(.choice-icon) {
+  padding: 3px 6px;
+}
+
 .group-button:focus-visible,
 .button:focus-visible {
   outline: 2px solid var(--accent);
@@ -535,12 +596,11 @@ body {
 }
 
 /*
- * Infobulle du nom d'une forme : rendue à la racine du document et fixée à la fenêtre, pour n'être ni coupée par le
- * défilement de la palette ni recouverte par la barre des onglets
- * (position calculée dans Palette.tsx pour rester dans la zone visible de la palette).
- * Fondu et léger glissement, plus rapides en sortie qu'en entrée.
+ * Infobulle au survol (`useTooltip`, Tooltip.tsx) : noms des formes de la palette, choix par icônes. Rendue à la
+ * racine du document et fixée à la fenêtre, pour n'être ni coupée par un défilement ni recouverte par la barre des
+ * onglets ; un texte long passe à la ligne. Fondu et léger glissement, plus rapides en sortie qu'en entrée.
  */
-.palette-tooltip {
+.tooltip {
   position: fixed;
   z-index: 100;
   padding: 3px 7px;
@@ -548,7 +608,9 @@ body {
   background: var(--fg);
   color: var(--bg);
   font-size: 11px;
-  white-space: nowrap;
+  width: max-content;
+  max-width: 260px;
+  white-space: pre-line;
   pointer-events: none;
   opacity: 0;
   transform: translateY(-3px);
@@ -557,13 +619,13 @@ body {
     transform 80ms ease-in;
 }
 
-.palette-tooltip.visible {
+.tooltip.visible {
   opacity: 1;
   transform: none;
-  animation: palette-tooltip-in 120ms ease-out;
+  animation: tooltip-in 120ms ease-out;
 }
 
-@keyframes palette-tooltip-in {
+@keyframes tooltip-in {
   from {
     opacity: 0;
     transform: translateY(-3px);
@@ -918,6 +980,7 @@ body {
 /* Bouton fichier de la visionneuse */
 .file-button {
   max-width: 260px;
+  white-space: pre-line;
 }
 
 /* Sauvegarde : pastille quand il y a des modifications non sauvegardées */
@@ -1737,14 +1800,12 @@ body {
   justify-content: flex-end;
 }
 
-/* Bouts d'une flèche : case « pleine » puis liste des formes. */
-.end-fields {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+/* Bouts d'une flèche : nom et case « pleine », puis la grille des formes. */
+.end-field .button-grid {
+  display: grid;
 }
 
-.end-fields label {
+.end-fill {
   display: flex;
   align-items: center;
   gap: 4px;
