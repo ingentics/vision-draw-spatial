@@ -297,9 +297,10 @@ export class ShapeRegistry {
     );
   }
 
-  /** Mise en valeur imposée par la définition à la forme sélectionnée (sujet 330), undefined sinon. */
-  selectionStyle(shape: ShapeModel): SelectionStyle | undefined {
-    return this.resolve(shape).definition.selectionStyle;
+  /** Mise en valeur imposée par la définition à la forme sélectionnée (sujets 330, 346), undefined sinon. */
+  selectionStyle(shape: ShapeModel, selectionSize = 1): SelectionStyle | undefined {
+    const { selectionStyle, multiSelectionStyle } = this.resolve(shape).definition;
+    return (selectionSize > 1 ? multiSelectionStyle : undefined) ?? selectionStyle;
   }
 
   /** Poignées de redimensionnement ? */

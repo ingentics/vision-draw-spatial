@@ -203,6 +203,8 @@ export interface ShapeDefinition {
    * région RDD : `none`, ni contour ni voile ; ses poignées restent). Absent = celui de la page.
    */
   selectionStyle?: SelectionStyle;
+  /** Idem `selectionStyle` quand la sélection compte plusieurs éléments (sujet 346). Absent = `selectionStyle`. */
+  multiSelectionStyle?: SelectionStyle;
   flat: SceneRenderer;
   iso?: SceneRenderer;
   volume?: SceneRenderer;

@@ -41,7 +41,8 @@ export class SelectionHighlight {
 
   /** Style de la mise en valeur d'un élément sélectionné : celui qu'impose sa forme (sujet 330), sinon `style()`. */
   private itemStyle(item: PickedElement): SelectionStyle {
-    return (item.type === 'shape' ? this.core.registry.selectionStyle(item.element) : undefined) ?? this.style();
+    const size = this.core.selection.current?.items.length ?? 1;
+    return (item.type === 'shape' ? this.core.registry.selectionStyle(item.element, size) : undefined) ?? this.style();
   }
 
   /** Paramètres changés : style, couleur et animation de la mise en valeur. */
