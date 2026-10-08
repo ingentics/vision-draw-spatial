@@ -354,10 +354,6 @@ export class DragGesture {
       return;
     }
     if (freshPage) this.core.file.updateGeometry(freshPage);
-    // Scènes de cette page à d'autres niveaux, et vue graphe (miniatures) : à reconstruire.
-    this.core.scenes.invalidate(pageId);
-    this.core.graph.invalidateWithScenes();
-    this.core.minimap.invalidate();
-    this.core.edits.syncModified();
+    this.core.live.afterLiveWrite(pageId);
   }
 }

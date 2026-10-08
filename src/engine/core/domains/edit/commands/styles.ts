@@ -57,18 +57,24 @@ export class StyleCommands {
     for (const { id, key, value } of changes) setCellStyleValue(editable.pageTree, id, key, value);
     // Réglage en direct d'une clé qui ne touche que le texte d'une flèche : seule la flèche est redessinée (comme
     // pendant un glisser), sans reconstruire la page (tous ses textes clignoteraient à chaque frappe).
-    const edges = new Map(editable.page.edges.map((edge) => [edge.id, edge]));
-    if (merge !== undefined && changes.every(({ id, key }) => edges.has(id) && LIVE_EDGE_TEXT_KEYS.has(key))) {
+    const isEdge = new Set(editable.page.edges.map((edge) => edge.id));
+    const live =
+      merge !== undefined && changes.every(({ id, key }) => isEdge.has(id) && LIVE_EDGE_TEXT_KEYS.has(key))
+        ? this.core.file.livePage(editable.page.id, this)
+        : undefined;
+    if (live) {
+      // Sur la copie de travail de la page (sujet 312), rendue aussitôt : le modèle du document, gelé, n'est pas
+      // modifié.
+      const edges = new Map(live.edges.map((edge) => [edge.id, edge]));
       for (const { id, key, value } of changes) {
         const style = edges.get(id)!.style;
         if (value === undefined) delete style[key];
         else style[key] = value;
       }
-      this.core.live.retraceEdges(editable.page, new Set(changes.map(({ id }) => id)));
-      this.core.live.afterLiveEdit();
+      this.core.live.retraceEdges(live, new Set(changes.map(({ id }) => id)));
+      this.core.file.settleLivePage(this);
       this.core.labelEditor.relocateLabelEdit();
-      this.core.edits.syncModified();
-      if (this.core.file.document) this.core.events.emit('documentChange', this.core.file.document);
+      this.core.live.afterLiveWrite(editable.page.id);
       return;
     }
     this.core.file.documentChanged([editable.page.id]);

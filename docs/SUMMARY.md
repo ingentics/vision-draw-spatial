@@ -57,7 +57,9 @@ Règles :
   et on ne touche que les nœuds/attributs concernés ; tout ce qui est inconnu est préservé. Après une création, le
   modèle est relu de l'arbre. Une page compressée modifiée est réécrite compressée.
 - **Modèle jamais modifié en place** (sujet 312) : pages du document gelées en dev et en test ; un geste travaille sur
-  une copie de travail de la page (`file.livePage`), qui devient la page du document à la fin du geste.
+  une copie de travail de la page (`file.livePage`), qui devient la page du document à la fin du geste ; un réglage
+  tapé en direct (champ `live` d'une forme, texte d'une flèche) passe par une copie rendue à chaque frappe (sujet 376).
+  Une modification en direct écrite sans relire le document finit par `live.afterLiveWrite(pageId)`.
 - **Undo/redo** par instantanés XML (100 max).
 - **Jamais d'échec de chargement** pour une forme inconnue : placeholder gris pointillé + entrée dans les Diagnostics
   (`core/diagnostics/unsupportedStyles.ts`), qui sert de backlog priorisé par fréquence (SPEC §8.4).

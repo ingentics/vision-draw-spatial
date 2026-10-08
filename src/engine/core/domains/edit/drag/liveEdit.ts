@@ -35,6 +35,19 @@ export class LiveEdit {
     this.core.rendering.requestRender();
   }
 
+  /**
+   * Modification en direct écrite dans l'arbre XML, le modèle suivant sans être relu (fin d'un glisser, réglage tapé au
+   * fil des frappes) : la scène courante, déjà redessinée, est gardée ; les autres rendus de la page (autres niveaux,
+   * vue graphe) seront reconstruits à la demande ; état « modifié » et abonnés au document à jour.
+   */
+  afterLiveWrite(pageId: string): void {
+    this.core.scenes.invalidate(pageId);
+    this.core.graph.invalidateWithScenes();
+    this.afterLiveEdit();
+    this.core.edits.syncModified();
+    if (this.core.file.document) this.core.events.emit('documentChange', this.core.file.document);
+  }
+
   /** Remplace l'objet d'une forme (taille changée), à la même hauteur et dans le même ordre de dessin. */
   rebuildShapeObject(shape: ReadonlyShapeModel): void {
     const root = this.core.scenes.current?.root;

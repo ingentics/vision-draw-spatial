@@ -84,18 +84,17 @@ export class PropertyEdits {
     if (!written) setCellStyleValue(editable.pageTree, elementId, key, text);
     // Réglage déclaré en direct par la forme (sujet 306) : il ne touche que le dessin de sa forme.
     const live = this.core.registry.properties(shape).some((p) => p.key === key && p.type === 'text' && p.live);
-    if (merge !== undefined && live) {
-      // Le modèle suit le fichier, la forme seule est redessinée ; les autres rendus de la page (autres niveaux,
-      // graphe) seront reconstruits à la demande.
-      const values = written ? shape.attributes : shape.style;
+    // Copie de travail de la page (sujet 312), rendue aussitôt : le modèle du document, gelé, n'est pas modifié.
+    const copy = merge !== undefined && live ? this.core.file.livePage(editable.page.id, this) : undefined;
+    if (copy) {
+      const liveShape = copy.shapes.find((s) => s.id === elementId)!;
+      // Le modèle suit le fichier, la forme seule est redessinée.
+      const values = written ? liveShape.attributes : liveShape.style;
       if (text === undefined) delete values[key];
       else values[key] = text;
-      this.core.live.rebuildShapeObject(shape);
-      this.core.scenes.invalidate(editable.page.id);
-      this.core.graph.invalidateWithScenes(true);
-      this.core.live.afterLiveEdit();
-      this.core.edits.syncModified();
-      if (this.core.file.document) this.core.events.emit('documentChange', this.core.file.document);
+      this.core.live.rebuildShapeObject(liveShape);
+      this.core.file.settleLivePage(this);
+      this.core.live.afterLiveWrite(editable.page.id);
       return;
     }
     this.core.file.documentChanged([editable.page.id]);
