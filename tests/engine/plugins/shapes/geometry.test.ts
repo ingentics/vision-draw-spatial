@@ -194,6 +194,18 @@ describe('triangles (36)', () => {
     expect(registry.contains(s, { x: 120, y: 140 })).toBe(true);
     expect(registry.contains(s, { x: 155, y: 105 })).toBe(false);
   });
+
+  it('pointe en haut ou en bas : texte dans les 2/3 côté base (341) ; à gauche ou à droite : les bornes', () => {
+    expect(registry.textZone(shape(UP, 90, 60), 'flat')).toEqual({ x: 100, y: 120, width: 90, height: 40 });
+    // Vers le bas retourné verticalement : pointe en haut aussi.
+    const flipped = shape(`${STYLE}direction=south;flipV=1;`, 90, 60);
+    expect(registry.textZone(flipped, 'flat')).toEqual({ x: 100, y: 120, width: 90, height: 40 });
+    expect(registry.textZone(shape(), 'flat')).toEqual({ x: 100, y: 100, width: 60, height: 80 });
+    const down = { x: 100, y: 100, width: 90, height: 40 };
+    expect(registry.textZone(shape(`${STYLE}direction=south;`, 90, 60), 'flat')).toEqual(down);
+    expect(registry.textZone(shape(`${UP}flipV=1;`, 90, 60), 'flat')).toEqual(down);
+    expect(registry.textZone(shape(`${STYLE}direction=west;`), 'flat')).toEqual(shape().bounds);
+  });
 });
 
 describe('parallélogramme (37)', () => {
