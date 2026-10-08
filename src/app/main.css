@@ -658,10 +658,15 @@ body {
   margin-left: auto;
 }
 
-.diagnostics-toggle svg {
+.diagnostics-toggle svg,
+.fullscreen-toggle svg {
   width: 16px;
   height: 16px;
   stroke: var(--muted);
+}
+
+.fullscreen-toggle[aria-pressed='true'] svg {
+  stroke: var(--accent);
 }
 
 .diagnostics-toggle .diagnostics-chest {

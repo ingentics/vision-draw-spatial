@@ -38,6 +38,7 @@ import type { RichEditorHandle, SelectionFormat } from './LabelEditor';
 import { wholeTextChange } from './TextFormat';
 import type { TextAction } from './TextFormat';
 import { PageTabs } from './PageTabs';
+import { useTooltip } from './Tooltip';
 import { ParentPagesBar } from './ParentPagesBar';
 import { MULTI_SELECT_LABELS } from './SettingsPanel';
 import { Palette, PALETTE_MIME } from './Palette';
@@ -112,6 +113,18 @@ export function Viewer({
       onSettingsChange({ panels: { right: { collapsed: false } } });
       setPanel(name);
     } else setPanel((open) => (open === name ? undefined : name));
+  };
+  /** Plein écran de la page, suivi sur le navigateur (Échap en sort aussi, sujet 396). */
+  const [fullscreen, setFullscreen] = useState(() => window.document.fullscreenElement !== null);
+  useEffect(() => {
+    const follow = () => setFullscreen(window.document.fullscreenElement !== null);
+    window.document.addEventListener('fullscreenchange', follow);
+    return () => window.document.removeEventListener('fullscreenchange', follow);
+  }, []);
+  const { hover, hide, tooltip } = useTooltip();
+  const toggleFullscreen = () => {
+    if (window.document.fullscreenElement) void window.document.exitFullscreen();
+    else void window.document.documentElement.requestFullscreen();
   };
   /** Paramètres : fenêtre modale au-dessus de l'appli. */
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -608,6 +621,31 @@ export function Viewer({
             </span>
           )}
           <div className="toolbar-end">
+            {window.document.fullscreenEnabled && (
+              <button
+                type="button"
+                className="button fullscreen-toggle"
+                aria-pressed={fullscreen}
+                aria-label="Plein écran"
+                onClick={() => {
+                  hide();
+                  toggleFullscreen();
+                }}
+                {...hover(
+                  fullscreen
+                    ? 'Quitter le plein écran (ou Échap)'
+                    : "Plein écran : l'appli occupe tout l'écran, sans la barre du navigateur",
+                )}
+              >
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  {fullscreen ? (
+                    <path d="M6 2.5V6H2.5M10 2.5V6h3.5M6 13.5V10H2.5M10 13.5V10h3.5" />
+                  ) : (
+                    <path d="M2.5 6V2.5H6M13.5 6V2.5H10M2.5 10v3.5H6M13.5 10v3.5H10" />
+                  )}
+                </svg>
+              </button>
+            )}
             {settings.debug.showUnsupportedPanel && (
               <button
                 type="button"
@@ -948,6 +986,7 @@ export function Viewer({
             </span>
           </footer>
         )}
+        {tooltip}
         {settingsOpen && (
           <SettingsPanel
             settings={settings}
