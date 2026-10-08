@@ -10,7 +10,7 @@ import type { PageModeRegistry } from '../modes/registry';
 import type { FontSet } from '../render/troikaText';
 import type { Settings, SettingsPatch } from '../settings';
 import type { ShapeRegistry } from '../shapes/registry';
-import type { ModeOption, ModeProperty } from '../modes/types';
+import type { ModeOption, ModeProperty } from '../modes/modeProperty';
 
 export interface Selection {
   pageId: string;

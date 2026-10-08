@@ -30,7 +30,7 @@ export class ElementCommands {
     const style = withStyleValue(template.style, 'fontSize', String(this.core.settings.shapes.textSize));
     const id = addShapeCell(pageTree, { style, value: template.value, ...bounds });
     if (template.atBack) reorderCells(pageTree, [id], 'back');
-    this.core.pageModes.shapesPlaced(page.id, [id]);
+    this.core.modeFollowUps.shapesPlaced(page.id, [id]);
     this.core.file.documentChanged([page.id]);
     const shape = this.core.pages.getCurrentPage()?.shapes.find((s) => s.id === id);
     if (shape) this.core.selection.select({ type: 'shape', element: shape });
@@ -46,7 +46,7 @@ export class ElementCommands {
     const y = bounds.y + bounds.height / 2;
     setEdgeTerminal(pageTree, id, 'source', { point: { x: bounds.x, y } });
     setEdgeTerminal(pageTree, id, 'target', { point: { x: bounds.x + bounds.width, y } });
-    this.core.pageModes.edgeCreated(pageId, id);
+    this.core.modeFollowUps.edgeCreated(pageId, id);
     this.core.file.documentChanged([pageId]);
     const edge = this.core.pages.getCurrentPage()?.edges.find((e) => e.id === id);
     if (edge) this.core.selection.select({ type: 'edge', element: edge });
@@ -63,7 +63,7 @@ export class ElementCommands {
       selection.items.map((item) => item.element.id),
     );
     // Le mode de la page remet ses données en ordre (ex. rangs resserrés), dans la même étape d'annulation.
-    this.core.pageModes.elementsRemoved(editable.page.id);
+    this.core.modeFollowUps.elementsRemoved(editable.page.id);
     this.core.selection.clearSelection();
     this.core.file.documentChanged([editable.page.id]);
   }

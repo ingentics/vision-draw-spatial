@@ -17,7 +17,8 @@ import type { DocumentModel, LinkModel, PageModel, Point, Rect } from './core/mo
 import type { ModeRegistryView, ModeScope } from './core/modes/registry';
 import type { ShapeRegistryView } from './core/shapes/registry';
 import type { OrientAction } from './core/edit/orientShapes';
-import type { ModeEdit, ModeTarget } from './core/modes/types';
+import type { ModeEdit } from './core/modes/modeEdit';
+import type { ModeTarget } from './core/modes/types';
 import type { JumpDefaults } from './core/render/edges/jumps';
 import type { PageScene } from './core/render/pageScene';
 import type { EngineMetrics } from './core/domains/runtime/metrics';
@@ -525,7 +526,7 @@ export class Engine {
     part?: string,
     palette?: readonly string[],
   ): ModePropertyView[] {
-    return this.core.pageModes.propertyViews(page, scope, target, part, palette);
+    return this.core.modePanel.propertyViews(page, scope, target, part, palette);
   }
 
   setModeProperty(
@@ -536,7 +537,7 @@ export class Engine {
     part?: string,
     merge?: string,
   ): void {
-    this.core.pageModes.setModeProperty(scope, targetId, key, value, part, merge);
+    this.core.modePanel.setModeProperty(scope, targetId, key, value, part, merge);
   }
 
   /**
@@ -573,7 +574,7 @@ export class Engine {
    * d'annulation. Faux si la touche n'est pas prise (pas de mode, pas de touche, élément non concerné).
    */
   modeKey(key: string): boolean {
-    return this.core.pageModes.modeKey(key);
+    return this.core.modePanel.modeKey(key);
   }
 
   // -------------------------------------------------------------------------

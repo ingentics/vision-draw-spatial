@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { documentFromTree, readDrawio } from '../../../../../../src/engine/core/format/parse';
-import { applyModeEdit } from '../../../../../../src/engine/core/modes/modeEdits';
+import { applyModeEdit } from '../../../../../../src/engine/core/modes/modeEditWriter';
 import { definition as rdd } from '../../../../../../src/engine/plugins/modes/rdd';
 import {
   REGION,
@@ -10,7 +10,7 @@ import {
   regionOf,
 } from '../../../../../../src/engine/plugins/modes/rdd/regions/regionLayout';
 import { addShapeCell } from '../../../../../../src/engine/core/format/create';
-import type { ModeEdit } from '../../../../../../src/engine/core/modes/types';
+import type { ModeEdit } from '../../../../../../src/engine/core/modes/modeEdit';
 import { pluginValues } from '../../../../../../src/engine/core/settings/pluginSettings';
 import { setup } from '../helpers';
 import { RDD_KEYS } from '../../../../../../src/engine/plugins/modes/rdd/keys';

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { setEdgeTerminal } from '../../../../../../src/engine/core/format/cellEdits';
 import { addEdgeCell, removeCellsDeep } from '../../../../../../src/engine/core/format/create';
 import { documentFromTree, readDrawio } from '../../../../../../src/engine/core/format/parse';
-import { applyModeEdit } from '../../../../../../src/engine/core/modes/modeEdits';
+import { applyModeEdit } from '../../../../../../src/engine/core/modes/modeEditWriter';
 import { definition as rdd } from '../../../../../../src/engine/plugins/modes/rdd';
 import { fieldParts } from '../../../../../../src/engine/plugins/modes/rdd/editing/fieldParts';
 import { removeField, setField } from '../../../../../../src/engine/plugins/modes/rdd/tables/operations';
@@ -12,7 +12,7 @@ import type { RelationKind } from '../../../../../../src/engine/plugins/modes/rd
 import { fieldLayout } from '../../../../../../src/engine/plugins/modes/rdd/tables/tableLayout';
 import { fieldNote, tableFields } from '../../../../../../src/engine/plugins/modes/rdd/tables/fieldModel';
 import type { Field } from '../../../../../../src/engine/plugins/modes/rdd/tables/fieldModel';
-import type { ModeEdit } from '../../../../../../src/engine/core/modes/types';
+import type { ModeEdit } from '../../../../../../src/engine/core/modes/modeEdit';
 import { fixture } from '../../../../../helpers';
 import { createDefaultRegistry } from '../../../../../../src/engine/plugins';
 import { RDD_KEYS } from '../../../../../../src/engine/plugins/modes/rdd/keys';

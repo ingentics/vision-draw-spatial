@@ -28,7 +28,8 @@ src/app/plugins/modes/<id>/     l'appli (facultatif) : sections React du panneau
 
 - L'`id` du mode est le nom de ses dossiers et la valeur de `spatial.mode` sur `<diagram>` (`^[a-z][a-z0-9-]*$`,
   vérifié à l'enregistrement). La racine de composition
-  (`src/engine/plugins/index.ts`) collecte le dossier ; le contrat est dans `src/engine/core/modes/types.ts`.
+  (`src/engine/plugins/index.ts`) collecte le dossier ; le contrat est dans `src/engine/core/modes/` : `types.ts` (la définition), `modeEdit.ts` (opération),
+  `modeProperty.ts` (réglages déclarés), `dressing.ts` (habillage).
 - Un mode importe du tronc **seulement l'API des plugins** ([core/plugins/index.ts](../src/engine/core/plugins/index.ts),
   sujet 287) ; ses formes peuvent étendre une forme générale (`plugins/shapes/`). Règle complète des frontières
   (imports, globales du navigateur, vérification) : `.claude/rules/coding.md` §5. Avant d'écrire une brique,
@@ -95,8 +96,10 @@ l'enregistrement.
 Les points d'entrée sont rangés par groupe (sujet 295) : `page`, `lifecycle`, `edges`, `gestures`, `parts`,
 `current`. Dans la suite, un point d'entrée est désigné par son chemin (ex. `gestures.placed`).
 
-Le moteur appelle ces points d'entrée depuis un seul endroit (`core/domains/modes/`, sujet 288), chacun protégé par
-l'appel protégé commun aux formes, modes et effets (`core/diagnostics/pluginCalls.ts`, sujet 378) : un
+Le moteur appelle ces points d'entrée depuis un seul endroit (`core/domains/modes/`, sujet 288) : l'adaptateur
+`PageModes.call` (sujet 379) remet chaque argument en lecture seule (`core/modes/modeCalls.ts`) et protège l'appel
+par l'appel protégé commun aux formes, modes et effets (`core/diagnostics/pluginCalls.ts`, sujet 378). Le point
+d'entrée est appelé détaché de son objet : un mode n'utilise pas `this`. Un
 point d'entrée qui lève une exception est traité comme absent (pas d'habillage, pas de borne, accroche permise…), et
 l'erreur est signalée une fois dans les Diagnostics (« Mode <id> : erreur dans <point d'entrée> »). Une opération
 (`ModeEdit`) qui lève une exception n'écrit rien : ses écritures ne sont appliquées qu'une fois l'opération terminée.
@@ -149,14 +152,14 @@ Un réglage `part: true` porte sur une **partie** de la forme (ex. un champ d'un
 montré que lorsqu'une partie est sélectionnée (et les autres réglages de forme seulement lorsqu'aucune ne l'est) ;
 `value`, `write` et `hidden` reçoivent alors la partie en dernier paramètre.
 
-Une **opération** reçoit un `ModeEdit` (`core/modes/types.ts`) : la page avant l'opération (`page`), les couleurs
+Une **opération** reçoit un `ModeEdit` (`core/modes/modeEdit.ts`, écrit par `ModeEditWriter`) : la page avant l'opération (`page`), les couleurs
 proposées par l'appli (`palette` : fonds des styles de forme des paramètres), le pas de la grille (`gridSize`, 0 sans
 grille), `setPageAttribute`, `setElementAttribute` (attributs du mode,
 par leur nom court), `setElementStyle` (autre clé du style draw.io, ex. `fillColor` ; ni `spatial.*`, ni clé de verrou
 `locked`, `movable`, `resizable`, `editable`, `deletable`), `setShapeBounds` (bornes d'une forme, ex. une table qui
 grandit avec ses champs), `removeEdge` (supprime une flèche et ses textes, sujet 269), `sendToBack` (formes au fond
 de l'ordre de dessin, sujet 230) et `setEdgeEndText` (texte de début ou de fin d'une flèche, ex. cardinalité, sujet
-265). Un élément verrouillé ne change ni d'attribut du mode, ni de style, ni de bornes, ni de place dans l'ordre, ni de
+265) ; ses méthodes s'appellent sur l'objet (`edit.setPageAttribute(…)`), pas détachées. Un élément verrouillé ne change ni d'attribut du mode, ni de style, ni de bornes, ni de place dans l'ordre, ni de
 textes de bout. Toutes ses écritures forment une étape d'annulation, et rien n'est enregistré si elle ne
 change rien. Depuis l'appli : `onEdit(label, (edit) => monOperation(edit, …))` (prop des sections React), ou
 `engine.editPageMode(label, …)`.

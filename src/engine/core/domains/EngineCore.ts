@@ -34,6 +34,8 @@ import { BackHistory } from './navigation/history';
 import { Transitions } from './navigation/transition';
 import { ModeCurrents } from './modes/modeCurrents';
 import { PageModes } from './modes/pageModes';
+import { ModePanel } from './modes/modePanel';
+import { ModeFollowUps } from './modes/modeFollowUps';
 import { ShapeParts } from './modes/shapeParts';
 import { ModeHandles } from './modes/modeHandles';
 import { PageEffects } from './effects/pageEffects';
@@ -127,6 +129,8 @@ export class EngineCore {
 
   // modes : modes de page
   readonly pageModes = new PageModes(this);
+  readonly modePanel = new ModePanel(this);
+  readonly modeFollowUps = new ModeFollowUps(this);
   readonly modeCurrents = new ModeCurrents(this);
   readonly shapeParts = new ShapeParts(this);
   readonly modeHandles = new ModeHandles(this);
@@ -192,7 +196,7 @@ export class EngineCore {
       setTextMeasure(measure);
       if (!this.disposed && this.scenes.current) this.levels.rebuildScenes();
       // Tailles calculées sur la mesure approchée : reprises sur la mesure exacte (sujet 255).
-      if (!this.disposed) this.pageModes.documentOpened();
+      if (!this.disposed) this.modeFollowUps.documentOpened();
     });
     this.scenes = new SceneManager(
       this.rendering.scene,

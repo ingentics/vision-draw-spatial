@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { definition as forest } from '../../../../src/engine/plugins/effects/forest';
 import { documentFromTree, readDrawio } from '../../../../src/engine/core/format/parse';
 import type { PageModel } from '../../../../src/engine/core/model/types';
-import { DEFAULT_MODE_EDIT_CONTEXT, applyModeEdit } from '../../../../src/engine/core/modes/modeEdits';
+import { DEFAULT_MODE_EDIT_CONTEXT, applyModeEdit } from '../../../../src/engine/core/modes/modeEditWriter';
 import { definition as sequences } from '../../../../src/engine/plugins/modes/sequences';
 import { FLOW, FLOW_COLORS, STEP, readFlows } from '../../../../src/engine/plugins/modes/sequences/flows';
 import {
@@ -16,7 +16,7 @@ import {
   setEdgeFlow,
   setEdgeStep,
 } from '../../../../src/engine/plugins/modes/sequences/steps';
-import type { ModeEdit } from '../../../../src/engine/core/modes/types';
+import type { ModeEdit } from '../../../../src/engine/core/modes/modeEdit';
 import { darken } from '../../../../src/engine/core/render/decorations';
 import { buildPageScene } from '../../../../src/engine/core/render/pageScene';
 import type { RenderContext, TextSpec } from '../../../../src/engine/core/render/types';

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { addEdgeCell } from '../../../../../../../../src/engine/core/format/create';
 import { documentFromTree, readDrawio } from '../../../../../../../../src/engine/core/format/parse';
-import { applyModeEdit } from '../../../../../../../../src/engine/core/modes/modeEdits';
-import type { ModeEdit } from '../../../../../../../../src/engine/core/modes/types';
+import { applyModeEdit } from '../../../../../../../../src/engine/core/modes/modeEditWriter';
+import type { ModeEdit } from '../../../../../../../../src/engine/core/modes/modeEdit';
 import { definition as rdd } from '../../../../../../../../src/engine/plugins/modes/rdd';
 import { RELATION_PROPERTIES, forbiddenLinks } from '../../../../../../../../src/engine/plugins/modes/rdd/relations';
 import { viewSourceRelation } from '../../../../../../../../src/engine/plugins/modes/rdd/relations/kinds/viewSource';

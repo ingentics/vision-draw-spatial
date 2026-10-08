@@ -3,11 +3,13 @@ import type { PageEffectDefinition } from '../effects/types';
 import type { ViewMode } from '../interaction/cameraMath';
 import type { DocumentModel, PageModel, ParseWarning } from '../model/types';
 import { pluginValues } from '../settings/pluginSettings';
+import type { SelectionStyle } from '../settings/types';
 import type { PluginSettings, PluginValues } from '../settings/pluginSettings';
 import type { PaletteCategory, ShapeDefinition, ShapeTemplate } from '../shapes/types';
 import { PLUGIN_ID_PATTERN, SPATIAL } from '../spatial';
 import { modeKey, NAMESPACE_PATTERN } from './modeKeys';
-import type { ModeProperty, PageModeDefinition } from './types';
+import type { ModeProperty } from './modeProperty';
+import type { PageModeDefinition } from './types';
 import { freezePlain } from '../model/freeze';
 
 /** Modes d'affichage, dans l'ordre des boutons. */
@@ -20,7 +22,7 @@ export type ModeScope = 'page' | 'edge' | 'shape';
 export type ModeInfo = Readonly<
   Pick<PageModeDefinition, 'id' | 'name' | 'shortName' | 'description' | 'icon' | 'settings'> & {
     /** Mise en valeur de la sélection imposée sur une page du mode (`page.selectionStyle`). */
-    selectionStyle?: 'veil' | 'outline';
+    selectionStyle?: Exclude<SelectionStyle, 'none'>;
   }
 >;
 

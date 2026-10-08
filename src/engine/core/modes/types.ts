@@ -1,5 +1,4 @@
 import type { ViewMode } from '../interaction/cameraMath';
-import type { EdgeEnd, EndTextGap } from '../edit/edgeLabels';
 import type { Point, Rect } from '../model/types';
 // Modèle en lecture seule (sujet 303) : un mode lit la page, il n'écrit que par `ModeEdit`.
 import type {
@@ -7,10 +6,12 @@ import type {
   ReadonlyPageModel as PageModel,
   ReadonlyShapeModel as ShapeModel,
 } from '../model/readonly';
-import type { EdgeBadgeStyle } from '../render/types';
+import type { SelectionStyle } from '../settings/types';
 import type { PluginSetting, PluginValues } from '../settings/pluginSettings';
 import type { PaletteCategory } from '../shapes/types';
-
+import type { PageDressing } from './dressing';
+import type { ModeEdit } from './modeEdit';
+import type { ModeProperty } from './modeProperty';
 /**
  * Modes de page (sujet 69) : un mode spécialise une page (`spatial.mode=<id>` sur `<diagram>`). Il ajoute des
  * données de page, des réglages sur les éléments et un habillage du rendu, stockés en attributs `spatial.*` : draw.io
@@ -75,7 +76,7 @@ export interface ModePage {
    * Mise en valeur de la sélection imposée sur une page du mode (sujet 254, ex. RDD : contour) ; le paramètre
    * `selection.style` vaut sur les autres pages.
    */
-  selectionStyle?: 'veil' | 'outline';
+  selectionStyle?: Exclude<SelectionStyle, 'none'>;
   /** Palette d'une page du mode. */
   palette?: {
     /**
@@ -98,7 +99,7 @@ export interface ModeLifecycle {
    * change ni dans un document en lecture seule.
    */
   opened?(edit: ModeEdit): void;
-  /** Éléments supprimés : remise en ordre écrite dans le fichier, dans la même étape d'annulation (ex-`repair`). */
+  /** Éléments supprimés : remise en ordre écrite dans le fichier, dans la même étape d'annulation. */
   removed?(edit: ModeEdit): void;
 }
 
@@ -338,156 +339,6 @@ export interface ModeKey {
 
 /** Élément d'une page qui peut porter les réglages d'un mode. */
 export type ModeTarget = PageModel | ShapeModel | EdgeModel;
-
-/** Ce que l'appli fournit aux opérations de mode : couleurs proposées et textes de début / fin (paramètres). */
-export interface ModeEditContext {
-  /** Fonds des styles de forme des paramètres (`modePalette`) ; peut être vide. */
-  palette: readonly string[];
-  /** Textes de début / fin des flèches : taille, couleur, écarts au bout (paramètres `shapes.edgeEndText…`). */
-  endText: { size: number; color: string; gap: EndTextGap };
-}
-
-/**
- * Écritures d'une opération de mode sur la page courante, groupées en une étape d'annulation. `page` est l'état
- * avant l'opération (le modèle n'est relu qu'à la fin) ; une écriture identique à la valeur en place est ignorée. Une
- * clé invalide lève une exception (l'opération n'écrit alors rien) ; un élément verrouillé ne change ni d'attribut, ni de
- * style, ni de bornes, ni de place dans l'ordre, ni de textes de bout (sujet 301).
- */
-export interface ModeEdit {
-  readonly page: PageModel;
-  /** Couleurs proposées par l'appli (fonds des styles de forme des paramètres, `modePalette`) ; peut être vide. */
-  readonly palette: readonly string[];
-  /** Pas de la grille de la page (`gridSize` draw.io), 0 sans grille (sujet 263). */
-  readonly gridSize: number;
-  /** Attribut du mode sur `<diagram>`, par son nom court (écrit `spatial.<namespace>.<name>`) ; undefined le retire. */
-  setPageAttribute(name: string, value: string | undefined): void;
-  /**
-   * Attribut du mode sur une forme ou une flèche, par son nom court (là où il est déjà, sinon dans le style) ;
-   * undefined le retire.
-   */
-  setElementAttribute(elementId: string, name: string, value: string | undefined): void;
-  /**
-   * Clé du style draw.io d'un élément (ex. `fillColor`, sujet 179) ; undefined la retire. Ni `spatial.*` ni clé de
-   * verrou (`locked`, `movable`, `resizable`, `editable`, `deletable`).
-   */
-  setElementStyle(elementId: string, key: string, value: string | undefined): void;
-  /** Nouvelles bornes d'une forme, en coordonnées page (sujet 179) ; ses enfants suivent son coin haut-gauche. */
-  setShapeBounds(shapeId: string, bounds: Rect): void;
-  /**
-   * Supprime une flèche et ses textes (sujet 269, ex. flèche vers un champ qui n'existe plus) ; rien pour une flèche
-   * verrouillée.
-   */
-  removeEdge(edgeId: string): void;
-  /** Envoie ces formes au fond de l'ordre de dessin, dans cet ordre (la première tout au fond) (sujet 230). */
-  sendToBack(shapeIds: readonly string[]): void;
-  /**
-   * Texte de début ou de fin d'une flèche (sujet 265, ex. cardinalité) : ajouté ou réécrit dans la configuration
-   * par défaut de l'appli (contre le bout, la flèche partant dans le sens `direction`, alignement qui l'éloigne de la
-   * forme ; taille et couleur des paramètres), ou retiré (undefined). `margin` s'ajoute aux écarts des paramètres
-   * (ex. place d'une pointe large).
-   */
-  setEdgeEndText(
-    edgeId: string,
-    end: EdgeEnd,
-    text: string | undefined,
-    direction: Point,
-    margin?: Partial<EndTextGap>,
-  ): void;
-}
-
-export interface ModeOption {
-  value: string;
-  label: string;
-  /** Pastille de couleur devant l'option (#rrggbb). */
-  color?: string;
-  /** Icône de l'option, mêmes tracés que l'icône d'un mode (sujet 319). */
-  icon?: ModeIcon;
-  /** Aide au survol d'une option en bouton (sujet 319) : ce que fait le choix ; défaut : `label`. */
-  title?: string;
-}
-
-/**
- * Réglage déclaré par un mode, rendu par un champ générique. Par défaut, il lit et écrit l'attribut du mode de nom
- * court `key` sur sa cible (`spatial.<namespace>.<key>`) ; `value` et `write` le remplacent quand le réglage passe par
- * les règles du mode (ex. un rang qui s'échange).
- */
-export type ModeProperty = {
-  key: string;
-  label: string;
-  /** Aide au survol. */
-  title?: string;
-  placeholder?: string;
-  /**
-   * Réglage d'une partie de la forme (sujet 249) : montré seulement quand une partie est sélectionnée, et les autres
-   * réglages de forme seulement quand aucune ne l'est ; `part` est alors passé à `value`, `write` et `hidden`.
-   */
-  part?: boolean;
-  /** Montré que la forme seule ou une de ses parties soit sélectionnée (ex. bouton d'ajout d'un séparateur, 253). */
-  anyPart?: boolean;
-  /** Valeur affichée ; défaut : l'attribut `key`. */
-  value?(page: PageModel, target: ModeTarget, part?: string): string | undefined;
-  /**
-   * Écriture (undefined = vide) ; défaut : l'attribut `key`. Peut renvoyer la partie de la forme à sélectionner ensuite,
-   * dont le texte passe en édition s'il en a un (ex. séparateur ajouté, sujet 253).
-   */
-  write?(edit: ModeEdit, target: ModeTarget, value: string | undefined, part?: string): string | void;
-  /** Champ masqué pour cette cible (ex. rang d'une flèche sans flux). */
-  hidden?(page: PageModel, target: ModeTarget, part?: string): boolean;
-  /** Affiché sans être modifiable (ex. clé primaire d'une entité) ; selon la cible (ex. label de la clé, sujet 260). */
-  readOnly?: boolean | ((page: PageModel, target: ModeTarget, part?: string) => boolean);
-  /** Section du panneau (titre) ; défaut : celle au nom du mode (sujet 260, ex. « PostgreSQL »). */
-  section?: string;
-} & (
-  | { type: 'toggle' }
-  | { type: 'number' }
-  /** Bouton pleine largeur (sujet 253) : son clic appelle `write` (valeur undefined). */
-  | { type: 'button' }
-  | {
-      type: 'text';
-      /** Plusieurs lignes (zone de texte, ⌘ + Entrée ou sortie du champ pour valider). */
-      multiline?: boolean;
-      /** Zone de texte en police à chasse fixe, sans retour automatique (sujet 331). */
-      monospace?: boolean;
-      /** Écrit à chaque frappe, une seule étape d'annulation par saisie (sujet 271) ; sinon à la validation. */
-      live?: boolean;
-    }
-  | {
-      type: 'select';
-      /**
-       * Choix offerts (valeur vide = aucun) ; `palette` : couleurs proposées par l'appli (`ModeEdit.palette`). Si toutes
-       * les options ont une icône ou une couleur, le panneau les montre en boutons (pastilles), sinon en liste (sujet
-       * 319).
-       */
-      options(page: PageModel, palette: readonly string[]): ModeOption[];
-    }
-);
-
-/** Habillage d'une page par son mode. */
-export interface PageDressing {
-  /**
-   * Clés de style dessinées à la place de celles de la forme (ex. fond d'une région éclairci, sujet 345) ; le style
-   * draw.io reste intact. undefined = son style.
-   */
-  shapeStyle?(shape: ShapeModel): Record<string, string> | undefined;
-  /**
-   * Couleur du mode pour une flèche (#rrggbb, ex. celle de son flux) : trait et pointes la prennent, assombrie de
-   * `edgeDarken` ; undefined = son style.
-   */
-  edgeColor?(edge: EdgeModel): string | undefined;
-  /** Assombrissement du trait coloré par le mode (fraction de la luminosité, 0,25 = −25 % ; défaut : 0,25). */
-  edgeDarken?: number;
-  /** Pastille posée sur une flèche, face à la caméra. */
-  edgeBadge?(edge: EdgeModel): EdgeBadge | undefined;
-  /** Apparence des pastilles (défaut : `DEFAULT_EDGE_BADGE`). */
-  edgeBadgeStyle?: EdgeBadgeStyle;
-}
-
-/** Pastille ronde d'une flèche : au-dessus de son texte du milieu, plus petite au milieu de la flèche sans texte. */
-export interface EdgeBadge {
-  text: string;
-  /** Fond (#rrggbb) ; le texte est noir. */
-  color: string;
-}
 
 export interface ModeIssue {
   cellId?: string;

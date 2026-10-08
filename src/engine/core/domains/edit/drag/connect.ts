@@ -137,7 +137,7 @@ export class ConnectDrags {
     // Flèche créée dans un calque : ses points sont en coordonnées de page.
     if (drag.loop) setEdgePoints(pageTree, id, drag.loop);
     // Le mode de la page reçoit la flèche (ex. ajoutée au flux courant), dans la même étape d'annulation.
-    this.core.pageModes.edgeCreated(drag.pageId, id, drag.part);
+    this.core.modeFollowUps.edgeCreated(drag.pageId, id, drag.part);
     this.core.file.documentChanged([drag.pageId]);
     const edge = this.core.pages.getCurrentPage()?.edges.find((e) => e.id === id);
     if (edge) this.core.selection.select({ type: 'edge', element: edge });

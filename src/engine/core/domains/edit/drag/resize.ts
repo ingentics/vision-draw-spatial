@@ -74,7 +74,9 @@ export class ResizeDrags {
     resizeCell(pageTree, drag.shapeId, delta);
     // Le mode de la page remet en ordre autour de la forme (ex. région parente agrandie, sujet 239), même étape.
     if (
-      this.core.pageModes.shapesPlaced(drag.pageId, [drag.shapeId], (s) => (s.id === drag.shapeId ? origin : undefined))
+      this.core.modeFollowUps.shapesPlaced(drag.pageId, [drag.shapeId], (s) =>
+        s.id === drag.shapeId ? origin : undefined,
+      )
     ) {
       this.core.file.documentChanged([drag.pageId]);
       return false;

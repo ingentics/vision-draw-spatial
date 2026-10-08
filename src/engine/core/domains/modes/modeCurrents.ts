@@ -1,6 +1,6 @@
-import { readonlyModel } from '../../model/freeze';
 import type { PageModel } from '../../model/types';
 import { setElementsDim } from '../../render/pageEffects';
+import { callMode } from '../../modes/modeCalls';
 import type { ModeCurrentLook, ModeTarget } from '../../modes/types';
 import type { ModeIndicator } from '../types';
 import type { EngineCore } from '../EngineCore';
@@ -11,7 +11,7 @@ const DEFAULT_BAR_SLIDE_DURATION = 200;
 
 /**
  * « Courant » du mode de chaque page (ex. flux courant du mode Séquences) : choix, barre du courant, ce qu'il estompe.
- * Sorti de `PageModes` (sujet 288) ; ses appels au mode sont protégés comme les autres (`PageModes.guard`).
+ * Sorti de `PageModes` (sujet 288) ; ses appels au mode passent par l'hôte comme les autres (`PageModes.call`, `PageModes.guard`).
  */
 export class ModeCurrents {
   /** « Courant » choisi du mode de chaque page (état de session, jamais écrit). */
@@ -31,9 +31,7 @@ export class ModeCurrents {
     if (!page || !mode || !current) return undefined;
     const chosen = this.modeCurrents.get(page.id);
     return this.core.pageModes.guard(mode, 'current', undefined, () =>
-      chosen !== undefined && current.valid(readonlyModel(page), chosen)
-        ? chosen
-        : current.initial(readonlyModel(page)),
+      chosen !== undefined && callMode(current.valid, page, chosen) ? chosen : callMode(current.initial, page),
     );
   }
 
@@ -44,13 +42,13 @@ export class ModeCurrents {
     const value = this.getModeCurrent(pageId);
     if (!page || !mode || !current || value === undefined) return undefined;
     return this.core.pageModes.guard(mode, 'current', undefined, () => {
-      const color = current.color?.(readonlyModel(page), value);
+      const color = current.color && callMode(current.color, page, value);
       if (!color) return undefined;
       return {
         value,
         color,
-        label: current.label?.(readonlyModel(page), value) ?? value,
-        values: current.values?.(readonlyModel(page)) ?? [],
+        label: (current.label && callMode(current.label, page, value)) ?? value,
+        values: (current.values && callMode(current.values, page)) ?? [],
         renamable: current.rename !== undefined && this.core.targets.editablePage()?.page.id === page.id,
         slideDuration: this.currentLook(page).barSlideDuration ?? DEFAULT_BAR_SLIDE_DURATION,
       };
@@ -63,7 +61,7 @@ export class ModeCurrents {
     const value = page && this.getModeCurrent(page.id);
     const name = label.trim();
     if (!rename || value === undefined || !name) return;
-    this.core.pageModes.editPageMode('Renommage', (edit) => rename(edit, value, name));
+    this.core.pageModes.editPageMode('Renommage', (edit) => callMode(rename, edit, value, name));
   }
 
   setModeCurrent(value: string, pageId = this.core.pages.currentPageId): void {
@@ -71,8 +69,7 @@ export class ModeCurrents {
     const mode = page && this.core.modes.modeOf(page);
     const current = mode?.current;
     if (!page || !mode || !current || value === this.getModeCurrent(page.id)) return;
-    if (!this.core.pageModes.guard(mode, 'current.valid', false, () => current.valid(readonlyModel(page), value)))
-      return;
+    if (!this.core.pageModes.call(mode, 'current.valid', false, current.valid, page, value)) return;
     this.chooseCurrent(page.id, value);
   }
 
@@ -86,10 +83,8 @@ export class ModeCurrents {
     const mode = page && this.core.modes.modeOf(page);
     const value = page && this.getModeCurrent(page.id);
     const focus =
-      page && mode?.current?.focus && value !== undefined
-        ? this.core.pageModes.guard(mode, 'current.focus', undefined, () =>
-            mode.current!.focus!(readonlyModel(page), value),
-          )
+      page && mode && value !== undefined
+        ? this.core.pageModes.call(mode, 'current.focus', undefined, mode.current?.focus, page, value)
         : undefined;
     const kept = focus && new Set(focus);
     const opacity = (page && this.currentLook(page).dimOpacity) ?? DEFAULT_DIM_OPACITY;
@@ -108,8 +103,12 @@ export class ModeCurrents {
     const mode = this.core.modes.modeOf(page);
     const look = mode?.current?.look;
     if (!mode || !look) return {};
-    return this.core.pageModes.guard(mode, 'current.look', {}, () =>
-      look(this.core.modes.valuesOf(page, this.core.settings.modes)),
+    return this.core.pageModes.call(
+      mode,
+      'current.look',
+      {},
+      look,
+      this.core.modes.valuesOf(page, this.core.settings.modes),
     );
   }
 
@@ -120,12 +119,7 @@ export class ModeCurrents {
   pickModeCurrent(page: PageModel, element: ModeTarget): boolean {
     const mode = this.core.modes.modeOf(page);
     const pick = mode?.current?.pick;
-    const value =
-      mode && pick
-        ? this.core.pageModes.guard(mode, 'current.pick', undefined, () =>
-            pick(readonlyModel(page), readonlyModel(element)),
-          )
-        : undefined;
+    const value = mode && this.core.pageModes.call(mode, 'current.pick', undefined, pick, page, element);
     if (value === undefined || value === this.getModeCurrent(page.id)) return false;
     this.chooseCurrent(page.id, value);
     return true;

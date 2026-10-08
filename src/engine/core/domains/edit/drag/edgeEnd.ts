@@ -67,7 +67,7 @@ export class EdgeEndDrags {
     else if (!samePoints(edge.points, drag.originalPoints))
       this.core.edgePoints.writeEdgePoints(page, pageTree, edge, edge.points);
     // Le mode de la page suit le rebranchement (ex. champ de relation RDD), dans la même étape d'annulation.
-    this.core.pageModes.edgeReconnected(drag.pageId, edge.id, drag.end === 'target' ? drag.part : undefined);
+    this.core.modeFollowUps.edgeReconnected(drag.pageId, edge.id, drag.end === 'target' ? drag.part : undefined);
     this.core.file.documentChanged([drag.pageId]);
   }
 }

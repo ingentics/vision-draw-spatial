@@ -40,12 +40,12 @@ dossiers du projet (SPEC §4.2 et `.claude/rules/coding.md` §2 y renvoient) ; l
 | Dossier (sous `src/engine/` sauf mention) | Rôle | Nature |
 |---|---|---|
 | `index.ts`, `Engine.ts`, `events.ts` | point d'entrée du moteur, façade publique (délègue aux domaines), événements | avec état |
-| `core/domains/` | un dossier par domaine (`runtime/`, `document/`, `view/`, `selection/`, `input/`, `navigation/`, `modes/`, `effects/`, `edit/`) ; `EngineCore.ts` les câble. Hôtes des plugins : `modes/` (`PageModes`), `effects/` (`PageEffects`) ; erreurs des plugins : `runtime/pluginGuard.ts` | avec état |
+| `core/domains/` | un dossier par domaine (`runtime/`, `document/`, `view/`, `selection/`, `input/`, `navigation/`, `modes/`, `effects/`, `edit/`) ; `EngineCore.ts` les câble. Hôtes des plugins : `modes/` (`PageModes`, adaptateur unique `call` ; réglages `ModePanel`, remises en ordre `ModeFollowUps`), `effects/` (`PageEffects`) ; erreurs des plugins : `runtime/pluginGuard.ts` | avec état |
 | `core/interaction/` | caméra, transitions, historique de navigation, sélection, pick, mini-carte (calculs) ; `controls/` : contrôles du canvas (DOM) | pur, sauf `controls/` |
 | `core/edit/` | règles d'édition : déplacement, poignées, bouts et points de flèche, styles, palette, ancrage (`anchoring/`) | pur |
 | `core/render/` | scènes Three.js par page et par niveau ; briques `flat/`, `iso/`, `geometry/` ; flèches `edges/` (tracés portés de mxGraph dans `edges/route/`) | pur (objets Three.js) |
 | `core/graph/` | vue graphe (page générée, disposition) et mini-graphe | pur |
-| `core/shapes/`, `core/modes/`, `core/effects/` | contrats et registres des plugins (plus le placeholder et le groupe ; les écritures d'un mode ; la place prise par le schéma) | pur |
+| `core/shapes/`, `core/modes/`, `core/effects/` | contrats et registres des plugins (plus le placeholder et le groupe ; les écritures d'un mode (`ModeEditWriter`), ses arguments en lecture seule (`modeCalls.ts`) ; la place prise par le schéma) | pur |
 | `core/plugins/` | API des plugins : seul fichier du tronc qu'une forme, un mode ou un effet importe (`.claude/rules/coding.md` §5) | réexports |
 | `core/settings/` | paramètres : types, schéma (défauts, bornes, lecture), fusion qui en découle | pur |
 | `core/model/` | modèle neutre (aucune notion draw.io), géométrie, lecture du style, index de page, gel | pur, sans Three.js |

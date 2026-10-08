@@ -1,6 +1,6 @@
 import { Color, Group, SRGBColorSpace } from 'three';
 import type { EdgeModel, Point, Rect } from '../model/types';
-import type { EdgeBadge } from '../modes/types';
+import type { EdgeBadge } from '../modes/dressing';
 import { labelPoint } from './edges/polyline';
 import { styleNumber, styleFlag } from '../model/styleValues';
 import type { EdgeBadgeStyle, RenderContext } from './types';

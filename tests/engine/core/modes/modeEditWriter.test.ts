@@ -3,8 +3,8 @@ import { moveCell } from '../../../../src/engine/core/format/cellEdits';
 import { removeCells } from '../../../../src/engine/core/format/create';
 import { documentFromTree, readDrawio } from '../../../../src/engine/core/format/parse';
 import { writeDrawio } from '../../../../src/engine/core/format/write';
-import { applyModeEdit } from '../../../../src/engine/core/modes/modeEdits';
-import type { ModeEdit } from '../../../../src/engine/core/modes/types';
+import { applyModeEdit } from '../../../../src/engine/core/modes/modeEditWriter';
+import type { ModeEdit } from '../../../../src/engine/core/modes/modeEdit';
 
 const XML = `<mxfile><diagram id="p" name="P" spatial.mode="test"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
 <mxCell id="a" value="A" style="fillColor=#ffffff;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="100" height="60" as="geometry"/></mxCell>

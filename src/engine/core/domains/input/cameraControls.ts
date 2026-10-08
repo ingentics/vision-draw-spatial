@@ -40,7 +40,7 @@ export function createCameraController(core: EngineCore): CameraController {
         return !!editable && core.selection.current?.pageId === editable.page.id;
       },
       escape: () => core.selection.escape(),
-      modeKey: (key) => core.pageModes.modeKey(key),
+      modeKey: (key) => core.modePanel.modeKey(key),
     },
     core.config.effectiveControls(),
   );

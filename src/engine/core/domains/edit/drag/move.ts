@@ -133,7 +133,7 @@ export class MoveDrags {
       }
     }
     // Le mode de la page remet en ordre autour des formes posées (ex. région agrandie), même étape d'annulation.
-    const placed = this.core.pageModes.shapesPlaced(
+    const placed = this.core.modeFollowUps.shapesPlaced(
       drag.pageId,
       drag.rootIds.filter((id) => !drag.carried.has(id)),
       (shape) =>

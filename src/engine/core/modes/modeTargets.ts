@@ -1,5 +1,6 @@
 import type { ReadonlyEdgeModel, ReadonlyPageModel, ReadonlyShapeModel } from '../model/readonly';
-import type { ModeProperty, ModeTarget } from './types';
+import type { ModeProperty } from './modeProperty';
+import type { ModeTarget } from './types';
 
 /** Forme sélectionnée ; undefined pour la page ou une flèche. */
 export const shapeTarget = (target: ModeTarget): ReadonlyShapeModel | undefined =>

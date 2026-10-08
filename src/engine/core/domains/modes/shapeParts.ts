@@ -1,12 +1,15 @@
 import type { Object3D } from 'three';
 import { gridSizeOf } from '../../format/cellEdits';
-import { readonlyModel } from '../../model/freeze';
 import type { EndAttachment } from '../../edit/edgeEnds';
 import type { PageModel, Point, Rect } from '../../model/types';
 // Formes en lecture seule : ce domaine les passe aux modes (sujet 303), aperçus compris.
 import type { ReadonlyShapeModel as ShapeModel } from '../../model/readonly';
+import { callMode } from '../../modes/modeCalls';
 import type { ModeParts, ModePartText } from '../../modes/types';
 import type { EngineCore } from '../EngineCore';
+
+/** Point d'entrée `K` des parties d'un mode. */
+type PartEntry<K extends keyof ModeParts> = NonNullable<ModeParts[K]>;
 
 /**
  * Parties des formes d'un mode de page (sujet 249, ex. champs d'une table RDD) : celle sous le pointeur, son emprise,
@@ -28,19 +31,19 @@ export class ShapeParts {
   }
 
   /**
-   * Point d'entrée `hook` des parties du mode de la page, appelé et protégé : `fallback` si le mode n'en a pas ou s'il
-   * lève une exception.
+   * Point d'entrée `hook` des parties du mode de la page, appelé avec `args` par l'hôte (`PageModes.call` : lecture
+   * seule et protection) : undefined si le mode n'en a pas ou s'il lève une exception.
    */
-  private call<K extends keyof ModeParts, T>(
+  private call<K extends keyof ModeParts>(
     page: PageModel | undefined,
     hook: K,
-    fallback: T,
-    run: (entry: NonNullable<ModeParts[K]>) => T,
-  ): T {
+    ...args: Parameters<PartEntry<K>>
+  ): ReturnType<PartEntry<K>> | undefined {
     const mode = page && this.core.modes.modeOf(page);
-    const entry = mode?.parts?.[hook];
-    if (!mode || !entry) return fallback;
-    return this.core.pageModes.guard(mode, `parts.${hook}`, fallback, () => run(entry as NonNullable<ModeParts[K]>));
+    if (!mode) return undefined;
+    // `ModeParts[K]` pour un `K` générique : TypeScript ne relie pas le point d'entrée à ses arguments.
+    const entry = mode.parts?.[hook] as ((...args: Parameters<PartEntry<K>>) => ReturnType<PartEntry<K>>) | undefined;
+    return this.core.pageModes.call(mode, `parts.${hook}`, undefined, entry, ...args);
   }
 
   /** Le mode de la page a-t-il ce point d'entrée de parties ? */
@@ -72,7 +75,7 @@ export class ShapeParts {
   /** Commentaire non vide d'une partie de la page courante (sujet 262) ; undefined sans commentaire. */
   comment(shape: ShapeModel, part: string): { title: string; text: string } | undefined {
     const page = this.core.pages.getCurrentPage();
-    const comment = this.call(page, 'comment', undefined, (comment) => comment(readonlyModel(shape), part));
+    const comment = this.call(page, 'comment', shape, part);
     return comment?.text.trim() ? comment : undefined;
   }
 
@@ -83,10 +86,7 @@ export class ShapeParts {
   editComment(shapeId: string, part: string, fromNavigation = false): boolean {
     const editable = this.core.targets.writablePage();
     const shape = editable?.page.shapes.find((s) => s.id === shapeId);
-    const comment =
-      editable &&
-      shape &&
-      this.call(editable.page, 'comment', undefined, (comment) => comment(readonlyModel(shape), part));
+    const comment = editable && shape && this.call(editable.page, 'comment', shape, part);
     // Partie qui ne peut pas avoir de commentaire (ex. séparateur) : pas d'éditeur.
     if (!editable || !shape || !this.has(editable.page, 'setComment') || !comment) return false;
     this.core.events.emit('commentEdit', {
@@ -106,12 +106,12 @@ export class ShapeParts {
     const shape = page?.shapes.find((s) => s.id === shapeId);
     const setComment = page && this.core.modes.modeOf(page)?.parts?.setComment;
     if (!shape || !setComment) return;
-    this.core.pageModes.editPageMode('Commentaire', (edit) => setComment(edit, readonlyModel(shape), part, text));
+    this.core.pageModes.editPageMode('Commentaire', (edit) => callMode(setComment, edit, shape, part, text));
   }
 
   /** Emprise d'une partie (pixels de page) d'après le mode de la page ; undefined = partie disparue. */
   bounds(page: PageModel, shape: ShapeModel, part: string): Rect | undefined {
-    return this.call(page, 'bounds', undefined, (bounds) => bounds(readonlyModel(page), readonlyModel(shape), part));
+    return this.call(page, 'bounds', page, shape, part);
   }
 
   /**
@@ -131,9 +131,7 @@ export class ShapeParts {
       ...(this.hovered ? [this.hovered] : []),
       ...edgeIds.flatMap((id) => {
         const edge = page.edges.find((e) => e.id === id);
-        const linked =
-          edge &&
-          this.call(page, 'edgePart', undefined, (edgePart) => edgePart(readonlyModel(page), readonlyModel(edge)));
+        const linked = edge && this.call(page, 'edgePart', page, edge);
         return linked ? [linked] : [];
       }),
     ];
@@ -171,12 +169,12 @@ export class ShapeParts {
   textPartAt(page: PageModel, shape: ShapeModel, screen: Point): string | undefined {
     if (!this.has(page, 'textAt')) return undefined;
     const point = this.core.picking.groundPointAtHeight(screen, this.core.sceneView.elementTop(shape.id));
-    return this.call(page, 'textAt', undefined, (textAt) => textAt(readonlyModel(page), readonlyModel(shape), point));
+    return this.call(page, 'textAt', page, shape, point);
   }
 
   /** Partie de `shape` sous un point de la page (pixels) ; undefined = la forme elle-même, ou un mode sans parties. */
   at(page: PageModel, shape: ShapeModel, point: Point): string | undefined {
-    return this.call(page, 'at', undefined, (at) => at(readonlyModel(page), readonlyModel(shape), point));
+    return this.call(page, 'at', page, shape, point);
   }
 
   /**
@@ -208,9 +206,7 @@ export class ShapeParts {
   text(shapeId: string, part: string, shape?: ShapeModel): ModePartText | undefined {
     const page = this.core.pages.getCurrentPage();
     const target = shape ?? page?.shapes.find((s) => s.id === shapeId);
-    return page && target
-      ? this.call(page, 'text', undefined, (text) => text(readonlyModel(page), readonlyModel(target), part))
-      : undefined;
+    return page && target ? this.call(page, 'text', page, target, part) : undefined;
   }
 
   /** Forme telle qu'elle serait avec ce texte sur la partie (aperçu de la saisie, sujet 253) ; undefined sans aperçu. */
@@ -219,9 +215,7 @@ export class ShapeParts {
     const shape = page?.shapes.find((s) => s.id === shapeId);
     const tree = page && this.core.file.pageTreeOf(page.id);
     const gridSize = tree && tree.encoding !== 'unreadable' ? gridSizeOf(tree) : 0;
-    return shape
-      ? this.call(page, 'textPreview', undefined, (preview) => preview(readonlyModel(shape), part, text, gridSize))
-      : undefined;
+    return shape ? this.call(page, 'textPreview', shape, part, text, gridSize) : undefined;
   }
 
   /** Objets du texte dessiné d'une partie (marqués `userData.part` par le rendu du mode). */
@@ -240,9 +234,7 @@ export class ShapeParts {
 
   /** Place visée par le glisser d'une partie sous `point` (pixels de page) ; undefined = aucune. */
   dropAt(page: PageModel, shape: ShapeModel, part: string, point: Point): string | undefined {
-    return this.call(page, 'dropAt', undefined, (dropAt) =>
-      dropAt(readonlyModel(page), readonlyModel(shape), part, point),
-    );
+    return this.call(page, 'dropAt', page, shape, part, point);
   }
 
   /** Forme telle qu'elle serait avec la partie à la place `target`, et la partie à cette place ; undefined sans aperçu. */
@@ -252,7 +244,7 @@ export class ShapeParts {
     part: string,
     target: string,
   ): { shape: ShapeModel; part: string } | undefined {
-    return this.call(page, 'preview', undefined, (preview) => preview(readonlyModel(shape), part, target));
+    return this.call(page, 'preview', shape, part, target);
   }
 
   /**
@@ -264,8 +256,7 @@ export class ShapeParts {
     const move = page && this.core.modes.modeOf(page)?.parts?.move;
     let next: string | undefined;
     const changed =
-      !!move &&
-      this.core.pageModes.editPageMode(label, (edit) => (next = move(edit, readonlyModel(shape), part, target)));
+      !!move && this.core.pageModes.editPageMode(label, (edit) => (next = callMode(move, edit, shape, part, target)));
     return { changed, next };
   }
 
@@ -282,8 +273,7 @@ export class ShapeParts {
     if (!shape || !remove) return true;
     const part = selection.part;
     // Refusée par le mode (ex. clé primaire) : rien ne change, la partie reste sélectionnée.
-    if (!this.core.pageModes.editPageMode('Suppression', (edit) => remove(edit, readonlyModel(shape), part)))
-      return true;
+    if (!this.core.pageModes.editPageMode('Suppression', (edit) => callMode(remove, edit, shape, part))) return true;
     // Le rang de la partie retirée désigne maintenant la suivante : la sélection revient à la forme.
     const fresh = this.core.pages.getCurrentPage()?.shapes.find((s) => s.id === shape.id);
     if (fresh) this.core.selection.selectItems([{ type: 'shape', element: fresh }]);
@@ -296,6 +286,6 @@ export class ShapeParts {
     const shape = page?.shapes.find((s) => s.id === shapeId);
     const setText = page && this.core.modes.modeOf(page)?.parts?.setText;
     if (!shape || !setText) return;
-    this.core.pageModes.editPageMode('Texte', (edit) => setText(edit, readonlyModel(shape), part, text));
+    this.core.pageModes.editPageMode('Texte', (edit) => callMode(setText, edit, shape, part, text));
   }
 }

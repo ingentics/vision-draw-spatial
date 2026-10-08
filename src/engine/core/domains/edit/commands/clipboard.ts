@@ -108,7 +108,7 @@ export class Clipboard {
       },
     });
     // Le mode de la page reçoit les formes collées comme des ajouts (ex. couleur d'une région, sujet 239).
-    this.core.pageModes.shapesPlaced(page.id, ids);
+    this.core.modeFollowUps.shapesPlaced(page.id, ids);
     this.core.file.documentChanged([page.id]);
     const current = this.core.pages.getCurrentPage();
     const items = ids.flatMap((id): PickedElement[] => {

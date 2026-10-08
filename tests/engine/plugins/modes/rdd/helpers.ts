@@ -1,5 +1,5 @@
 import { documentFromTree, readDrawio } from '../../../../../src/engine/core/format/parse';
-import { applyModeEdit } from '../../../../../src/engine/core/modes/modeEdits';
+import { applyModeEdit } from '../../../../../src/engine/core/modes/modeEditWriter';
 import {
   FIELDS,
   fieldsOf as rowsOf,
@@ -9,7 +9,7 @@ import {
 import type { Field, TableRow } from '../../../../../src/engine/plugins/modes/rdd/tables/fieldModel';
 import { fitTable } from '../../../../../src/engine/plugins/modes/rdd/tables/operations';
 import { approximateMeasure } from '../../../../../src/engine/core/render/richLayout';
-import type { ModeEdit } from '../../../../../src/engine/core/modes/types';
+import type { ModeEdit } from '../../../../../src/engine/core/modes/modeEdit';
 import type { ReadonlyShapeModel as ShapeModel } from '../../../../../src/engine/core/model/readonly';
 import { ceilToGrid } from '../../../../../src/engine/core/model/geometry';
 import { fixture } from '../../../../helpers';

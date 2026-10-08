@@ -7,7 +7,7 @@ import { TOP_OFFSET } from './iso/block';
 import { disposeObject } from './meshes';
 import { createEdge } from './edges/edge';
 import type { EdgeTerminals } from './edges/edge';
-import type { PageDressing } from '../modes/types';
+import type { PageDressing } from '../modes/dressing';
 import type { ShapeRegistry } from '../shapes/registry';
 import type { SceneLevel } from '../shapes/types';
 import { applyPageSpace } from './space';

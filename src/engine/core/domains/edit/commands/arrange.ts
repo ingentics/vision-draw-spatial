@@ -92,7 +92,7 @@ export class ArrangeCommands {
         }
       }
     }
-    modes.shapesPlaced(
+    this.core.modeFollowUps.shapesPlaced(
       page.id,
       moves.map((move) => move.id),
       (shape) => previous.get(shape.id),

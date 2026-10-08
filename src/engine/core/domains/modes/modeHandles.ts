@@ -1,5 +1,5 @@
-import { readonlyModel } from '../../model/freeze';
 import type { Point, ShapeModel } from '../../model/types';
+import { callMode } from '../../modes/modeCalls';
 import type { ModeHandle } from '../../modes/types';
 import type { EngineCore } from '../EngineCore';
 
@@ -19,9 +19,7 @@ export class ModeHandles {
     if (!editable || !page || !mode || !declared) return undefined;
     const zoom = this.core.camera.state.zoom;
     const part = this.core.selection.current?.part;
-    const found = this.core.pageModes.guard(mode, 'gestures.handles.list', [], () =>
-      declared(readonlyModel(page), readonlyModel(editable.shape), part),
-    );
+    const found = this.core.pageModes.call(mode, 'gestures.handles.list', [], declared, page, editable.shape, part);
     const handles = found.map((handle) => ({
       ...handle,
       center: { x: handle.at.x + handle.offset.x / zoom, y: handle.at.y + handle.offset.y / zoom },
@@ -57,7 +55,7 @@ export class ModeHandles {
     const part = this.selectedPart(shape.id);
     let next: string | undefined;
     this.core.pageModes.editPageMode(handle.title, (edit) => {
-      next = clicked(edit, readonlyModel(shape), handle.id, part);
+      next = callMode(clicked, edit, shape, handle.id, part);
     });
     this.core.pageModes.selectPart(shape.id, next);
     return true;

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readDrawio } from '../../../../src/engine/core/format/parse';
 import { edgeTarget, onlyWhen, shapeTarget } from '../../../../src/engine/core/modes/modeTargets';
-import type { ModeProperty } from '../../../../src/engine/core/modes/types';
+import type { ModeProperty } from '../../../../src/engine/core/modes/modeProperty';
 
 const XML = `<mxfile><diagram id="p" name="P"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
 <mxCell id="a" value="A" vertex="1" parent="1"><mxGeometry x="0" y="0" width="100" height="60" as="geometry"/></mxCell>

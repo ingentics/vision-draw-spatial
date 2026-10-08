@@ -52,7 +52,7 @@ export class DocumentFile {
     }
     this.core.pages.goToPage(page.id);
     // Pages d'un mode remises en ordre à l'ouverture (ex. tables RDD ajustées, sujet 255).
-    this.core.pageModes.documentOpened();
+    this.core.modeFollowUps.documentOpened();
   }
 
   getDocument(): DocumentModel | undefined {

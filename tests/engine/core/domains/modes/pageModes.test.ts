@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { EngineCore } from '../../../../../src/engine/core/domains/EngineCore';
+import { ModeFollowUps } from '../../../../../src/engine/core/domains/modes/modeFollowUps';
+import { ModePanel } from '../../../../../src/engine/core/domains/modes/modePanel';
 import { PageModes } from '../../../../../src/engine/core/domains/modes/pageModes';
 import { ShapeParts } from '../../../../../src/engine/core/domains/modes/shapeParts';
 import { PluginGuard } from '../../../../../src/engine/core/domains/runtime/pluginGuard';
@@ -7,7 +9,7 @@ import { PageEffectRegistry } from '../../../../../src/engine/core/effects/regis
 import { readDrawio } from '../../../../../src/engine/core/format/parse';
 import { writeDrawio } from '../../../../../src/engine/core/format/write';
 import { removeCells } from '../../../../../src/engine/core/format/create';
-import { applyModeEdit } from '../../../../../src/engine/core/modes/modeEdits';
+import { applyModeEdit } from '../../../../../src/engine/core/modes/modeEditWriter';
 import { PageModeRegistry } from '../../../../../src/engine/core/modes/registry';
 import type { PageModeDefinition } from '../../../../../src/engine/core/modes/types';
 import { DEFAULT_SETTINGS } from '../../../../../src/engine/core/settings';
@@ -73,8 +75,16 @@ function setup(mode: PageModeDefinition = BOOM) {
   const guard = new PluginGuard(core);
   Object.assign(core, { pluginGuard: guard });
   const modes = new PageModes(core);
-  Object.assign(core, { pageModes: modes, shapeParts: new ShapeParts(core) });
-  return { core, document, tree, modes, guard, state, page: document.pages[0]! };
+  // Réglages et remises en ordre sortis de l'hôte (sujet 379).
+  const panel = new ModePanel(core);
+  const followUps = new ModeFollowUps(core);
+  Object.assign(core, {
+    pageModes: modes,
+    modePanel: panel,
+    modeFollowUps: followUps,
+    shapeParts: new ShapeParts(core),
+  });
+  return { core, document, tree, modes, panel, followUps, guard, state, page: document.pages[0]! };
 }
 
 describe('hôte des appels aux modes (sujet 288)', () => {
@@ -92,7 +102,7 @@ describe('hôte des appels aux modes (sujet 288)', () => {
   });
 
   it('check, dressing, placed, carries, obstacles, connects en panne : repli, rien d’écrit, signalés une fois', async () => {
-    const { document, tree, modes, guard, state, page } = setup();
+    const { document, tree, modes, followUps, guard, state, page } = setup();
     const before = writeDrawio(tree);
     // Lecture : le document garde ses avertissements, plus l'erreur du mode.
     modes.withModeWarnings(document);
@@ -101,7 +111,7 @@ describe('hôte des appels aux modes (sujet 288)', () => {
     expect(dressing.edgeColor?.(page.edges[0]!)).toBeUndefined();
     expect(dressing.edgeBadge?.(page.edges[0]!)).toEqual({ text: '1', color: '#ff0000' });
     // Geste : remise en ordre annulée, bornes et accroches comme sans mode.
-    expect(modes.shapesPlaced('p', ['a'])).toBe(false);
+    expect(followUps.shapesPlaced('p', ['a'])).toBe(false);
     expect(writeDrawio(tree)).toBe(before);
     expect(modes.obstacles(page, page.shapes[0]!)).toBeUndefined();
     expect(modes.endAccepts(page, 'target', 'a')?.(page.shapes[1]!, { x: 0, y: 0 })).toBe(true);
@@ -124,9 +134,9 @@ describe('hôte des appels aux modes (sujet 288)', () => {
   });
 
   it('réglages déclarés évalués pour le panneau (sujet 294) : un point d’entrée en panne est traité comme absent', () => {
-    const { modes, guard, page } = setup();
+    const { panel, guard, page } = setup();
     const edge = page.edges[0]!;
-    const views = modes.propertyViews(page, 'edge', edge);
+    const views = panel.propertyViews(page, 'edge', edge);
     expect(views.map((view) => [view.property.key, view.value, view.readOnly, view.options])).toEqual([
       ['ok', 'calculé', true, []],
       // Valeur de l'attribut, modifiable, sans choix.
@@ -252,10 +262,10 @@ describe('flèche qui arrive sur une partie (sujet 333)', () => {
   });
 
   it('created et reconnected reçoivent la partie visée (et rien si le départ est rebranché)', () => {
-    const { seen, modes } = spy();
-    modes.edgeCreated('p', 'e', 'haut');
-    modes.edgeReconnected('p', 'e', 'bas');
-    modes.edgeReconnected('p', 'e');
+    const { seen, followUps } = spy();
+    followUps.edgeCreated('p', 'e', 'haut');
+    followUps.edgeReconnected('p', 'e', 'bas');
+    followUps.edgeReconnected('p', 'e');
     expect(seen.created).toEqual(['haut']);
     expect(seen.reconnected).toEqual(['bas', undefined]);
   });
@@ -267,5 +277,41 @@ describe('point d’arrivée placé par le mode (sujet 338)', () => {
     expect([...placing.modes.placedEntries(placing.page)]).toEqual([endKey('e', 'target')]);
     const broken = setup({ id: 'boom', namespace: 'boom', name: 'Boom', edges: { placedEntries: fail } });
     expect(broken.modes.placedEntries(broken.page).size).toBe(0);
+  });
+});
+
+describe('adaptateur unique des appels aux modes (sujet 379)', () => {
+  it('call : chaque argument objet en lecture seule, appel protégé, repli si le point d’entrée est absent', () => {
+    const { modes, guard, page } = setup();
+    const point = { x: 1, y: 2 };
+    const ids = ['a'];
+    const writes = (
+      p: typeof page,
+      shape: (typeof page.shapes)[number],
+      at: typeof point,
+      list: string[],
+      part: string,
+    ) => {
+      expect(part).toBe('haut');
+      expect(() => ((p as { id: string }).id = 'x')).toThrow(TypeError);
+      expect(() => ((shape.bounds as { x: number }).x = 1)).toThrow(TypeError);
+      expect(() => (at.x = 9)).toThrow(TypeError);
+      expect(() => list.push('b')).toThrow(TypeError);
+      return 'lu';
+    };
+    expect(modes.call(BOOM, 'essai', 'repli', writes, page, page.shapes[0]!, point, ids, 'haut')).toBe('lu');
+    // Rien n'a été écrit, aucune erreur signalée : les écritures refusées ont été rattrapées dans le point d'entrée.
+    expect(point).toEqual({ x: 1, y: 2 });
+    expect(ids).toEqual(['a']);
+    expect(guard.warnings()).toEqual([]);
+    // Une écriture non rattrapée par le mode : repli, erreur signalée sous le nom du point d'entrée.
+    const careless = (p: typeof page) => ((p as { id: string }).id = 'x');
+    expect(modes.call(BOOM, 'essai', 'repli', careless, page)).toBe('repli');
+    expect(page.id).toBe('p');
+    expect(guard.warnings().map((w) => w.message)).toEqual([
+      expect.stringMatching(/^Mode boom : erreur dans essai \(/),
+    ]);
+    // Point d'entrée absent : repli, sans appel.
+    expect(modes.call(BOOM, 'absent', 'repli', undefined, page)).toBe('repli');
   });
 });
