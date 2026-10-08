@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { parseDrawio } from '../../../../src/engine/core/format/parse';
 import { layoutGraph } from '../../../../src/engine/core/graph/graphPage';
 import { miniGraph } from '../../../../src/engine/core/graph/miniGraph';
-import { inflate, rectContains, rectContainsRect } from '../../../../src/engine/core/model/geometry';
+import { center, distance, rectContainsRect } from '../../../../src/engine/core/model/geometry';
 import { fixture } from '../../../helpers';
 
 const parents = parseDrawio(fixture('parents.drawio'));
@@ -25,12 +25,17 @@ describe('miniGraph (sujet 366)', () => {
     expect(node.width / node.height).toBeCloseTo(card.width / card.height);
   });
 
-  it('un lien par lien de pages, du bord du nœud de départ au bord du nœud d’arrivée', () => {
+  it('un lien par lien de pages, du bord du disque de départ au bord du disque d’arrivée (sujet 367)', () => {
     expect(mini.links).toHaveLength(layout.graph.links.length);
-    const rectOf = (id: string) => inflate(mini.nodes.find((n) => n.pageId === id)!.rect, 1e-9);
+    const rectOf = (id: string) => mini.nodes.find((n) => n.pageId === id)!.rect;
     layout.graph.links.forEach((link, i) => {
-      expect(rectContains(rectOf(link.from), mini.links[i]!.from)).toBe(true);
-      expect(rectContains(rectOf(link.to), mini.links[i]!.to)).toBe(true);
+      for (const [id, point] of [
+        [link.from, mini.links[i]!.from],
+        [link.to, mini.links[i]!.to],
+      ] as const) {
+        const rect = rectOf(id);
+        expect(distance(center(rect), point)).toBeCloseTo(rect.width / 2);
+      }
     });
   });
 });

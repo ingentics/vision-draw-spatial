@@ -230,18 +230,22 @@ export interface StyleSettings {
 
 /** Vue graphe (SPEC §12) : disposition des nœuds de pages. */
 export interface GraphSettings {
-  cardWidth: number;
-  columnGap: number;
-  rowGap: number;
+  /** Diamètre d'un nœud (cercle). */
+  nodeSize: number;
+  /** Écart entre deux nœuds voisins d'une rangée (de bord de nom à bord de nom) et entre deux rangées. */
+  nodeGap: number;
+  layerGap: number;
   /** Écart entre les deux arcs d'un aller-retour, pour qu'ils ne se superposent pas. */
   pairOffset: number;
-  /** Couleurs (#rrggbb) : cadre d'un nœud, page orpheline, page inaccessible, arcs, noms des pages. La page de départ
+  /** Couleurs (#rrggbb) : contour d'un nœud, page orpheline, page inaccessible, arcs, noms des pages. La page de départ
    * prend la couleur d'accent (`selection.accentColor`). */
   cardColor: string;
   orphanColor: string;
   unreachableColor: string;
   arcColor: string;
   titleColor: string;
+  /** Durée des transitions vue graphe ↔ page, dans les deux sens (ms ; 0 = passage direct). */
+  transitionMs: number;
 }
 
 /** Édition (SPEC §16) : tolérances et tailles. */

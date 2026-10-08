@@ -33,7 +33,8 @@ export class Transitions {
    * - `in` : on part de la page extérieure et on plonge jusqu'à la vue `destination` de l'intérieure ;
    * - `out` : on part de la page intérieure (même image, exprimée dans le repère extérieur) et on
    *   recule jusqu'à la vue `destination` de l'extérieure, la page intérieure rétrécissant dans la forme.
-   * Fondu croisé entre 25 % et 75 %. Entrées ignorées pendant la transition.
+   * Fondu croisé entre 25 % et 75 %. Entrées ignorées pendant la transition. Vers ou depuis la vue graphe, durée
+   * propre (`graph.transitionMs`, sujet 367).
    */
   runTransition(options: {
     direction: 'in' | 'out';
@@ -49,12 +50,11 @@ export class Transitions {
     const from = this.core.pages.getCurrentPage();
     if (!from || this.active) return;
 
-    if (
-      !frame ||
-      !this.core.settings.transition.enabled ||
-      this.core.config.reducedMotion() ||
-      this.core.settings.transition.durationMs <= 0
-    ) {
+    // La vue graphe est toujours la page extérieure d'une transition qui la touche.
+    const duration = this.core.graph.isGraph(outer.id)
+      ? this.core.settings.graph.transitionMs
+      : this.core.settings.transition.durationMs;
+    if (!frame || !this.core.settings.transition.enabled || this.core.config.reducedMotion() || duration <= 0) {
       if (direction === 'in') this.core.pages.rememberCamera(outer.id, this.core.camera.state);
       this.core.pages.rememberCamera(to.id, destination);
       this.core.pages.goToPage(to.id);
@@ -84,7 +84,6 @@ export class Transitions {
     this.core.camera.applyCamera(startCamera);
 
     const ease = easing(this.core.settings.transition.easing);
-    const duration = this.core.settings.transition.durationMs;
     const { fadeStart, fadeEnd } = this.core.settings.transition;
 
     this.core.controller.setEnabled(false);

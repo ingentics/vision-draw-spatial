@@ -23,8 +23,8 @@ function readState(engine: Engine, size: number): MiniGraphState {
 }
 
 /**
- * Mini-graphe (sujet 366), à gauche de la mini-carte : graphe des pages, la page courante en couleur d'accent, le
- * reste en gris (comme l'icône de l'onglet « Vue graphe »). Lecture seule ; absent en vue graphe, où il ferait
+ * Mini-graphe (sujet 366), à gauche de la mini-carte : graphe des pages en disques (sujet 367), la page courante en
+ * couleur d'accent, le reste en gris (comme l'icône de l'onglet « Vue graphe »). Lecture seule ; absent en vue graphe, où il ferait
  * doublon.
  */
 export function MiniGraphView({
@@ -99,10 +99,11 @@ export function MiniGraphView({
           />
         ))}
         {graph.nodes.map(({ pageId, rect }) => (
-          <rect
+          <circle
             key={pageId}
-            {...rect}
-            rx={Math.min(3, rect.height / 4)}
+            cx={rect.x + rect.width / 2}
+            cy={rect.y + rect.height / 2}
+            r={rect.width / 2}
             fill={pageId === state.pageId ? state.accent : state.node}
           />
         ))}

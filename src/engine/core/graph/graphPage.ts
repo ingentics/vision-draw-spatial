@@ -4,7 +4,7 @@ import type { DocumentModel, EdgeModel, PageModel, Point, Rect, ShapeModel } fro
 
 /**
  * Vue graphe de la documentation (SPEC §12), sous forme d'une **page générée** : chaque page du
- * fichier devient un nœud (cadre portant son nom), chaque lien entre pages une flèche. Comme c'est un
+ * fichier devient un nœud (cercle, son nom dessous), chaque lien entre pages une flèche. Comme c'est un
  * `PageModel` ordinaire, rendu, sélection, liens, transitions et mini-carte fonctionnent tels quels.
  * Le contenu des pages n'est jamais dessiné, et la disposition n'utilise que leurs noms et leurs liens
  * (sujet 362) : le coût de la vue ne dépend que du nombre de pages et de liens.
@@ -15,30 +15,33 @@ export const GRAPH_PAGE_NAME = 'Vue graphe';
 
 /** Disposition des nœuds (paramètres « Vue graphe »). */
 export interface GraphLayoutOptions {
-  /** Largeur d'un nœud ; sa hauteur est fixe (`NODE_HEIGHT`). */
-  cardWidth: number;
-  columnGap: number;
-  /** Espace vertical entre nœuds (le statut se place au-dessus de chaque nœud). */
-  rowGap: number;
+  /** Diamètre d'un nœud (cercle). */
+  nodeSize: number;
+  /** Espace horizontal entre deux nœuds voisins d'une rangée, de bord de nom à bord de nom. */
+  nodeGap: number;
+  /** Espace vertical entre deux rangées, du bas des noms au haut des statuts. */
+  layerGap: number;
   /** Décalage des deux flèches d'un aller-retour, pour qu'elles ne se superposent pas. */
   pairOffset: number;
 }
 
-export const DEFAULT_GRAPH_LAYOUT: GraphLayoutOptions = { cardWidth: 260, columnGap: 200, rowGap: 90, pairOffset: 16 };
-/** Hauteur d'un nœud : deux lignes du nom en 15 px. Fixe, pour ne pas dépendre des dimensions de la page. */
-export const NODE_HEIGHT = 56;
+export const DEFAULT_GRAPH_LAYOUT: GraphLayoutOptions = { nodeSize: 64, nodeGap: 40, layerGap: 80, pairOffset: 16 };
 /** Hauteur réservée au statut (« départ », « orpheline »…) au-dessus de chaque nœud. */
 export const STATUS_HEIGHT = 20;
+/** Nom de la page sous le cercle : écart au cercle, largeur fixe, hauteur de deux lignes en 15 px. */
+export const LABEL_GAP = 6;
+export const LABEL_WIDTH = 160;
+export const LABEL_HEIGHT = 40;
 
 /** Couleurs de la vue graphe (#rrggbb) : `start` = couleur d'accent, les autres = paramètres `graph.*Color`. */
 export interface GraphColors {
-  /** Cadre d'un nœud ordinaire. */
+  /** Contour d'un nœud ordinaire. */
   card: string;
   start: string;
   orphan: string;
   unreachable: string;
   arc: string;
-  /** Nom des pages, dans les nœuds. */
+  /** Nom des pages, sous les nœuds. */
   title: string;
 }
 
@@ -53,7 +56,7 @@ export const GRAPH_COLORS: GraphColors = {
 
 export interface GraphCard {
   pageId: string;
-  /** Cadre du nœud, en coordonnées de la page graphe. */
+  /** Carré du cercle du nœud, en coordonnées de la page graphe. */
   bounds: Rect;
   node: GraphNode;
 }
@@ -65,40 +68,37 @@ export interface GraphLayout {
 
 export const cardId = (pageId: string) => `graph-card:${pageId}`;
 export const statusId = (pageId: string) => `graph-status:${pageId}`;
+export const nameId = (pageId: string) => `graph-name:${pageId}`;
 
 /**
- * Disposition en colonnes : distance (en liens) depuis la première page ; puis une colonne pour
- * les pages inaccessibles, puis une pour les orphelines. Ordre du document dans chaque colonne,
- * colonnes centrées verticalement.
+ * Disposition en rangées, de haut en bas : distance (en liens) depuis la première page ; puis une rangée pour les
+ * pages inaccessibles, puis une pour les orphelines. Ordre du document de gauche à droite dans chaque rangée, rangées
+ * centrées horizontalement. Chaque nœud occupe une case : statut, cercle, nom.
  */
 export function layoutGraph(document: DocumentModel, options = DEFAULT_GRAPH_LAYOUT): GraphLayout {
-  const { cardWidth, columnGap, rowGap } = options;
+  const { nodeSize, nodeGap, layerGap } = options;
   const graph = buildNavigationGraph(document);
   const reachableDepth = Math.max(-1, ...graph.nodes.filter((n) => n.reachable).map((n) => n.depth!));
-  const columnOf = (node: GraphNode) =>
+  const rowOf = (node: GraphNode) =>
     node.reachable ? node.depth! : node.orphan ? reachableDepth + 2 : reachableDepth + 1;
 
-  const columns = new Map<number, GraphNode[]>();
+  const rows = new Map<number, GraphNode[]>();
   for (const node of graph.nodes) {
-    const column = columnOf(node);
-    columns.set(column, [...(columns.get(column) ?? []), node]);
+    const row = rowOf(node);
+    rows.set(row, [...(rows.get(row) ?? []), node]);
   }
   const cards: GraphCard[] = [];
-  const step = STATUS_HEIGHT + NODE_HEIGHT + rowGap;
-  [...columns.keys()]
+  const stepX = Math.max(nodeSize, LABEL_WIDTH) + nodeGap;
+  const stepY = STATUS_HEIGHT + nodeSize + LABEL_GAP + LABEL_HEIGHT + layerGap;
+  [...rows.keys()]
     .sort((a, b) => a - b)
-    .forEach((column, i) => {
-      const nodes = columns.get(column)!;
-      const top = -(nodes.length * step - rowGap) / 2;
-      nodes.forEach((node, row) => {
+    .forEach((row, i) => {
+      const nodes = rows.get(row)!;
+      nodes.forEach((node, k) => {
+        const centerX = (k - (nodes.length - 1) / 2) * stepX;
         cards.push({
           pageId: node.pageId,
-          bounds: {
-            x: i * (cardWidth + columnGap),
-            y: top + row * step + STATUS_HEIGHT,
-            width: cardWidth,
-            height: NODE_HEIGHT,
-          },
+          bounds: { x: centerX - nodeSize / 2, y: i * stepY + STATUS_HEIGHT, width: nodeSize, height: nodeSize },
           node,
         });
       });
@@ -117,6 +117,8 @@ export function buildGraphPage(
   const byPage = new Map(cards.map((c) => [c.pageId, c]));
   const shapes: ShapeModel[] = [];
   const edges: EdgeModel[] = [];
+  // Noms posés après les flèches : une flèche qui descend d'un nœud passe sous son nom.
+  const names: ShapeModel[] = [];
   let z = 0;
   const layerId = 'graph';
   const base = { layerId, visible: true, attributes: {}, raw: { styleString: '' } };
@@ -135,24 +137,42 @@ export function buildGraphPage(
     shapes.push({
       ...base,
       id: cardId(node.pageId),
-      kind: 'rectangle',
+      kind: 'ellipse',
       bounds: card.bounds,
-      label: node.name,
+      label: '',
       style: {
-        rounded: '1',
-        absoluteArcSize: '1',
-        arcSize: '12',
+        perimeter: 'ellipsePerimeter',
         fillColor: '#ffffff',
         strokeColor: status?.color ?? colors.card,
         strokeWidth: '2',
         ...(status?.dashed ? { dashed: '1' } : {}),
+      },
+      link,
+      z: z++,
+    });
+    names.push({
+      ...base,
+      id: nameId(node.pageId),
+      kind: 'text',
+      bounds: {
+        x: card.bounds.x + (card.bounds.width - LABEL_WIDTH) / 2,
+        y: card.bounds.y + card.bounds.height + LABEL_GAP,
+        width: LABEL_WIDTH,
+        height: LABEL_HEIGHT,
+      },
+      label: node.name,
+      style: {
+        align: 'center',
+        verticalAlign: 'top',
         fontSize: '15',
         fontStyle: '1',
         fontColor: colors.title,
         whiteSpace: 'wrap',
+        spacing: '0',
+        labelBackgroundColor: 'default',
       },
       link,
-      z: z++,
+      z: 0,
     });
     if (!status) continue;
     shapes.push({
@@ -160,13 +180,13 @@ export function buildGraphPage(
       id: statusId(node.pageId),
       kind: 'text',
       bounds: {
-        x: card.bounds.x,
+        x: card.bounds.x + (card.bounds.width - LABEL_WIDTH) / 2,
         y: card.bounds.y - STATUS_HEIGHT,
-        width: card.bounds.width,
+        width: LABEL_WIDTH,
         height: STATUS_HEIGHT - 4,
       },
       label: status.text,
-      style: { align: 'left', verticalAlign: 'bottom', fontSize: '12', fontColor: status.color, spacing: '0' },
+      style: { align: 'center', verticalAlign: 'bottom', fontSize: '12', fontColor: status.color, spacing: '0' },
       link,
       z: z++,
     });
@@ -200,6 +220,8 @@ export function buildGraphPage(
     });
   }
 
+  for (const name of names) shapes.push({ ...name, z: z++ });
+
   const page: PageModel = {
     id: GRAPH_PAGE_ID,
     name: GRAPH_PAGE_NAME,
@@ -212,7 +234,7 @@ export function buildGraphPage(
   return { page, layout };
 }
 
-/** Milieu des centres de deux cadres, décalé perpendiculairement (à droite du sens de parcours). */
+/** Milieu des centres de deux nœuds, décalé perpendiculairement (à droite du sens de parcours). */
 function offsetMidpoint(a: Rect, b: Rect, offset: number): Point {
   const ca = { x: a.x + a.width / 2, y: a.y + a.height / 2 };
   const cb = { x: b.x + b.width / 2, y: b.y + b.height / 2 };

@@ -634,7 +634,7 @@ Réalisation retenue :
 
 **Mini-graphe** (sujet 366) : juste à gauche de la mini-carte, alignés sur leur bas (12 px d'écart), le graphe des pages
 de la vue graphe (§12) ramené à la largeur de la mini-carte (`minimap.size`, même cadrage : `graph/miniGraph.ts`).
-Nœuds pleins sans nom ni statut, flèches fines ; la **page courante en couleur d'accent**, le reste en gris (couleurs de
+Nœuds en disques pleins (sujet 367) sans nom ni statut, flèches fines de bord de disque à bord de disque ; la **page courante en couleur d'accent**, le reste en gris (couleurs de
 la mini-carte : `minimap.outlineColor` pour les nœuds, `minimap.edgeColor` pour les flèches), comme l'icône de l'onglet
 « Vue graphe ». Il suit la page courante. Lecture seule (SVG, `react/MiniGraphView.tsx`). **Fermé par défaut** :
 bouton × pour le masquer, bouton « Mini-graphe » pour le rouvrir, touche **G** ; choix mémorisé (`minigraph.visible`).
@@ -704,18 +704,18 @@ Seules les URL `http:`, `https:` et `mailto:` sont considérées comme navigable
 ## 12. Vue graphe de la documentation
 
 - À partir des liens, on construit le **graphe de navigation** entre pages. Ce n'est **pas un arbre** : les cycles sont possibles.
-- Vue dédiée, rendue dans le même moteur : chaque page devient un **plan flottant** (vignette de la page), reliée aux autres par des **arcs** orientés.
+- Vue dédiée, rendue dans le même moteur : chaque page devient un **nœud**, relié aux autres par des **arcs** orientés.
 - Mise en évidence des **pages orphelines** (aucun lien entrant ni sortant) et des pages inaccessibles depuis la première page.
-- Double-clic sur un plan = aller à la page.
+- Double-clic sur un nœud = aller à la page.
 - Disposition : algorithme de placement de graphe simple (force-directed ou couches), à affiner.
 
 Réalisation retenue :
 
 - Le graphe (`model/navigationGraph.ts`) vient des liens `data:page/id,…` des formes et des arêtes (comptés par paire de pages, liens vers soi exclus). Accessibilité et distance par parcours en largeur depuis la **première page**.
-- La vue graphe est une **page générée** (`graph/graphPage.ts`, id `__graph__`) : un nœud par page (cadre arrondi portant le nom de la page), une flèche par paire de pages liées (`×n` s'il y a plusieurs liens ; deux flèches décalées pour un aller-retour). Rendu, sélection, survol, mini-carte, Entrée, iso… fonctionnent donc tels quels.
-- **Disposition en couches**, de gauche à droite : distance depuis la page de départ, puis une colonne pour les pages **inaccessibles** (orange, pointillé), puis une pour les **orphelines** (rouge, pointillé) ; la page de départ est en bleu. Ordre du document dans chaque colonne.
-- **Nœuds sans miniature** (sujet 362), en vue d'un très grand nombre de pages : le coût de la vue ne dépend que du nombre de pages et de liens, jamais de leur contenu. Nœud de taille fixe (largeur `graph.cardWidth`, hauteur 56), fond blanc, nom de la page centré en gras (renvoi à la ligne) ; le statut (« départ », « inaccessible », « orpheline ») est écrit en petit au-dessus du nœud, dans sa couleur. La disposition n'utilise que les noms, l'ordre et les liens des pages, jamais leurs dimensions.
-- **Double-clic sur un nœud = plongée** dans la page (transition de lien, empilée dans l'historique) : la page, posée dans le nœud, apparaît en fondu pendant le zoom ; « Retour » ressort vers le graphe par la transition inverse (la page rétrécit dans son nœud). Seule la page de la transition est construite.
+- La vue graphe est une **page générée** (`graph/graphPage.ts`, id `__graph__`) : un nœud par page (cercle, nom de la page dessous), une flèche par paire de pages liées (`×n` s'il y a plusieurs liens ; deux flèches décalées pour un aller-retour). Rendu, sélection, survol, mini-carte, Entrée, iso… fonctionnent donc tels quels.
+- **Disposition en couches, de haut en bas** (sujet 367) : une rangée par distance depuis la page de départ (départ en haut), puis une rangée pour les pages **inaccessibles** (orange, pointillé), puis une pour les **orphelines** (rouge, pointillé) ; la page de départ est en bleu. Ordre du document de gauche à droite dans chaque rangée, rangées centrées. Écarts `graph.nodeGap` (entre voisins d'une rangée, de bord de nom à bord de nom) et `graph.layerGap` (entre rangées).
+- **Nœuds sans miniature** (sujet 362), en vue d'un très grand nombre de pages : le coût de la vue ne dépend que du nombre de pages et de liens, jamais de leur contenu. Nœud = **cercle** de diamètre fixe (`graph.nodeSize`), fond blanc, contour selon le statut ; **nom de la page sous le cercle** (sujet 367), centré, en gras 15, sur 160 px de large et deux lignes (renvoi à la ligne), posé au-dessus des flèches sur le fond de la vue pour rester lisible ; le statut (« départ », « inaccessible », « orpheline ») est écrit en petit au-dessus du cercle, centré, dans sa couleur. Le nom porte le même lien que le cercle (survol, clic, double-clic). La disposition n'utilise que les noms, l'ordre et les liens des pages, jamais leurs dimensions.
+- **Double-clic sur un nœud = plongée** dans la page (transition de lien, empilée dans l'historique) : la page, posée dans le carré du cercle, apparaît en fondu pendant le zoom ; « Retour » ressort vers le graphe par la transition inverse (la page rétrécit dans son nœud). Seule la page de la transition est construite. Ces transitions, dans les deux sens, ont leur propre durée (`graph.transitionMs`, 50 ms ; sujet 367).
 - Accès : onglet **« Vue graphe »** en tête des onglets de pages (la page courante rétrécit dans son nœud) ; raccourci clavier graphe ↔ dernière page affichée, sans touche par défaut (sujet 365).
 - Les nœuds du graphe ne comptent pas dans l'usage des liens (§11.3).
 
@@ -777,10 +777,11 @@ interface Settings {
     placeholderFill: string; placeholderStroke: string;           // formes non supportées (§8.4) : '#eeeeee', '#9e9e9e'
   };
   graph: {                                                        // vue graphe (§12)
-    cardWidth: number; columnGap: number; rowGap: number;         // 260, 200, 90
+    nodeSize: number; nodeGap: number; layerGap: number;          // diamètre des nœuds, écarts : 64, 40, 80
     pairOffset: number;                                           // écart entre l'aller et le retour d'un lien : 16
     cardColor: string; orphanColor: string; unreachableColor: string; // '#9aa0a6', '#d93025', '#e37400' (départ : accentColor)
     arcColor: string; titleColor: string;                         // '#5f6368', '#202124'
+    transitionMs: number;                                         // transitions vue graphe ↔ page (ms) : 50
   };
   edit: {                                                         // édition (§14)
     edgePickTolerance: number; handlePickTolerance: number;       // px écran : 6, 8

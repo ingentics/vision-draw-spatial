@@ -204,15 +204,16 @@ describe('réglages exposés (caméra, vue graphe, édition…)', () => {
       focusPadding: 80,
     });
     expect(DEFAULT_SETTINGS.graph).toEqual({
-      cardWidth: 260,
-      columnGap: 200,
-      rowGap: 90,
+      nodeSize: 64,
+      nodeGap: 40,
+      layerGap: 80,
       pairOffset: 16,
       cardColor: '#9aa0a6',
       orphanColor: '#d93025',
       unreachableColor: '#e37400',
       arcColor: '#5f6368',
       titleColor: '#202124',
+      transitionMs: 50,
     });
     expect(DEFAULT_SETTINGS.minimap).toMatchObject({ edgeColor: '#80868b', outlineColor: '#9aa0a6' });
     expect(mergeSettings(DEFAULT_SETTINGS, { graph: { arcColor: 'rouge' } }).graph.arcColor).toBe('#5f6368');

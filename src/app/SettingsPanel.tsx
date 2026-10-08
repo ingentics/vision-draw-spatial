@@ -749,25 +749,32 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
               </Subsection>
               <Subsection title="Vue graphe">
                 <Slider
-                  label="Largeur des nœuds de pages"
-                  value={graph.cardWidth}
-                  limits={SETTINGS_LIMITS['graph.cardWidth']}
+                  label="Diamètre des nœuds"
+                  value={graph.nodeSize}
+                  limits={SETTINGS_LIMITS['graph.nodeSize']}
                   format={(v) => `${v} px`}
-                  onChange={(cardWidth) => onChange({ graph: { cardWidth } })}
+                  onChange={(nodeSize) => onChange({ graph: { nodeSize } })}
                 />
                 <Slider
-                  label="Écart entre les colonnes"
-                  value={graph.columnGap}
-                  limits={SETTINGS_LIMITS['graph.columnGap']}
+                  label="Écart entre les nœuds d’une rangée"
+                  value={graph.nodeGap}
+                  limits={SETTINGS_LIMITS['graph.nodeGap']}
                   format={(v) => `${v} px`}
-                  onChange={(columnGap) => onChange({ graph: { columnGap } })}
+                  onChange={(nodeGap) => onChange({ graph: { nodeGap } })}
                 />
                 <Slider
-                  label="Écart entre les nœuds d’une colonne"
-                  value={graph.rowGap}
-                  limits={SETTINGS_LIMITS['graph.rowGap']}
+                  label="Écart entre les rangées"
+                  value={graph.layerGap}
+                  limits={SETTINGS_LIMITS['graph.layerGap']}
                   format={(v) => `${v} px`}
-                  onChange={(rowGap) => onChange({ graph: { rowGap } })}
+                  onChange={(layerGap) => onChange({ graph: { layerGap } })}
+                />
+                <Slider
+                  label="Durée de la transition graphe ↔ page"
+                  value={graph.transitionMs}
+                  limits={SETTINGS_LIMITS['graph.transitionMs']}
+                  format={(v) => (v === 0 ? 'aucune' : `${v} ms`)}
+                  onChange={(transitionMs) => onChange({ graph: { transitionMs } })}
                 />
                 <Slider
                   label="Écart entre l’aller et le retour d’un lien"
@@ -777,7 +784,7 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   onChange={(pairOffset) => onChange({ graph: { pairOffset } })}
                 />
                 <ColorField
-                  label="Cadre des nœuds"
+                  label="Contour des nœuds"
                   value={graph.cardColor}
                   onChange={(cardColor) => onChange({ graph: { cardColor } })}
                 />

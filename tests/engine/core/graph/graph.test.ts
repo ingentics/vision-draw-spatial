@@ -8,7 +8,8 @@ import {
   buildGraphPage,
   cardId,
   layoutGraph,
-  NODE_HEIGHT,
+  LABEL_GAP,
+  nameId,
   statusId,
 } from '../../../../src/engine/core/graph/graphPage';
 import { buildPageScene } from '../../../../src/engine/core/render/pageScene';
@@ -18,6 +19,7 @@ import { createDefaultRegistry } from '../../../../src/engine/plugins';
 
 const parents = parseDrawio(fixture('parents.drawio'));
 const links = parseDrawio(fixture('links.drawio'));
+const multipage = parseDrawio(fixture('multipage.drawio'));
 
 describe('buildNavigationGraph', () => {
   const graph = buildNavigationGraph(parents);
@@ -48,12 +50,24 @@ describe('buildNavigationGraph', () => {
 });
 
 describe('layoutGraph', () => {
-  it('colonnes : distance depuis le départ, puis inaccessibles, puis orphelines', () => {
+  it('rangées de haut en bas : distance depuis le départ, puis inaccessibles, puis orphelines (sujet 367)', () => {
     const { cards } = layoutGraph(parents);
-    const columnX = (id: string) => cards.find((c) => c.pageId === id)!.bounds.x;
-    expect(columnX('home')).toBeLessThan(columnX('detail'));
-    expect(columnX('detail')).toBeLessThan(columnX('archi'));
-    expect(columnX('archi')).toBeLessThan(columnX('orphan'));
+    const rowY = (id: string) => cards.find((c) => c.pageId === id)!.bounds.y;
+    expect(rowY('home')).toBeLessThan(rowY('detail'));
+    expect(rowY('detail')).toBeLessThan(rowY('archi'));
+    expect(rowY('archi')).toBeLessThan(rowY('orphan'));
+  });
+
+  it('une rangée de plusieurs nœuds : ordre du document de gauche à droite, centrée', () => {
+    const { cards } = layoutGraph(multipage);
+    const byRow = new Map<number, typeof cards>();
+    for (const card of cards) byRow.set(card.bounds.y, [...(byRow.get(card.bounds.y) ?? []), card]);
+    expect(Math.max(...[...byRow.values()].map((row) => row.length))).toBeGreaterThan(1);
+    for (const row of byRow.values()) {
+      const centers = row.map((c) => c.bounds.x + c.bounds.width / 2);
+      expect(centers).toEqual([...centers].sort((a, b) => a - b));
+      expect(centers.reduce((sum, x) => sum + x, 0)).toBeCloseTo(0);
+    }
   });
 
   it('les nœuds ne se chevauchent pas', () => {
@@ -75,19 +89,27 @@ describe('layoutGraph', () => {
 describe('buildGraphPage', () => {
   const { page } = buildGraphPage(parents);
 
-  it('une page générée : un nœud par page portant son nom, lien vers la page', () => {
+  it('une page générée : un nœud par page, lien vers la page', () => {
     expect(page.id).toBe(GRAPH_PAGE_ID);
     expect(page.shapes.filter((s) => s.id.startsWith('graph-card:'))).toHaveLength(4);
     const card = page.shapes.find((s) => s.id === cardId('detail'))!;
     expect(card.link).toEqual({ type: 'page', pageId: 'detail' });
-    expect(card.label).toBe('Détail');
+    expect(card.label).toBe('');
   });
 
-  it('nœuds de taille fixe, quelles que soient les dimensions des pages', () => {
-    const { cards } = layoutGraph(parents);
-    expect(new Set(cards.map((c) => `${c.bounds.width}×${c.bounds.height}`))).toEqual(
-      new Set([`${DEFAULT_GRAPH_LAYOUT.cardWidth}×${NODE_HEIGHT}`]),
-    );
+  it('nœuds en cercle de diamètre fixe, quelles que soient les dimensions des pages', () => {
+    const { cards } = layoutGraph(parents, { ...DEFAULT_GRAPH_LAYOUT, nodeSize: 48 });
+    expect(new Set(cards.map((c) => `${c.bounds.width}×${c.bounds.height}`))).toEqual(new Set(['48×48']));
+    expect(page.shapes.find((s) => s.id === cardId('home'))!.kind).toBe('ellipse');
+  });
+
+  it('nom de la page sous le cercle, centré, avec le même lien', () => {
+    const circle = page.shapes.find((s) => s.id === cardId('detail'))!;
+    const name = page.shapes.find((s) => s.id === nameId('detail'))!;
+    expect(name.label).toBe('Détail');
+    expect(name.link).toEqual(circle.link);
+    expect(name.bounds.y).toBe(circle.bounds.y + circle.bounds.height + LABEL_GAP);
+    expect(name.bounds.x + name.bounds.width / 2).toBe(circle.bounds.x + circle.bounds.width / 2);
   });
 
   it('statuts visibles au-dessus du nœud : départ, inaccessible, orpheline ; rien pour une page ordinaire', () => {
@@ -105,7 +127,7 @@ describe('buildGraphPage', () => {
     const { page: colored } = buildGraphPage(parents, DEFAULT_GRAPH_LAYOUT, colors);
     expect(colored.shapes.find((s) => s.id === cardId('home'))!.style.strokeColor).toBe('#00aa00');
     expect(colored.shapes.find((s) => s.id === statusId('orphan'))!.style.fontColor).toBe('#123456');
-    expect(colored.shapes.find((s) => s.id === cardId('orphan'))!.style.fontColor).toBe('#111111');
+    expect(colored.shapes.find((s) => s.id === nameId('orphan'))!.style.fontColor).toBe('#111111');
     expect(colored.edges[0]!.style.strokeColor).toBe('#abcdef');
   });
 

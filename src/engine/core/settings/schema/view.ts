@@ -102,13 +102,14 @@ export const SELECTION = {
 } satisfies Spec<SelectionSettings>;
 
 export const GRAPH = {
-  cardWidth: number(260, { min: 120, max: 600, step: 10 }),
-  columnGap: number(200, { min: 40, max: 600, step: 10 }),
-  rowGap: number(90, { min: 20, max: 400, step: 10 }),
+  nodeSize: number(64, { min: 24, max: 200, step: 4 }),
+  nodeGap: number(40, { min: 0, max: 400, step: 10 }),
+  layerGap: number(80, { min: 20, max: 600, step: 10 }),
   pairOffset: number(16, { min: 0, max: 60, step: 1 }),
   cardColor: color('#9aa0a6'),
   orphanColor: color('#d93025'),
   unreachableColor: color('#e37400'),
   arcColor: color('#5f6368'),
   titleColor: color('#202124'),
+  transitionMs: number(50, { min: 0, max: 5000, step: 10 }),
 } satisfies Spec<GraphSettings>;
