@@ -32,13 +32,13 @@ describe('mode RDD : taille calculée (sujet 247)', () => {
     expect(registry.isResizable(shape('accounts'))).toBe(true);
   });
 
-  it('texte brut sur les tables, pas sur la région (sujet 258)', () => {
+  it('texte brut sur les tables (sujet 258) et sur la région (sujet 371)', () => {
     const { shape } = setup();
     const registry = createDefaultRegistry();
     expect(
       ['model', 'user', 'role', 'address', 'settings', 'active'].map((id) => registry.isPlainText(shape(id))),
     ).toEqual([true, true, true, true, true, true]);
-    expect(registry.isPlainText(shape('accounts'))).toBe(false);
+    expect(registry.isPlainText(shape('accounts'))).toBe(true);
   });
 });
 

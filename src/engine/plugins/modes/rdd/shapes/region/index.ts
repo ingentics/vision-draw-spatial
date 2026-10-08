@@ -141,6 +141,8 @@ export const definition: ShapeDefinition = {
   multiSelectionStyle: 'outline',
   // Une région n'a pas de flèche (sujet 265).
   connectable: false,
+  // Texte brut : son nom s'édite sans mise en forme ni panneau de format, comme celui d'une table (sujets 258, 371).
+  plainText: true,
   // Éditeur en place exactement sur le nom dessiné (sans nom : à sa place, sur l'onglet à venir).
   textZone: (shape) =>
     tabText(shape) ?? {
