@@ -558,6 +558,7 @@ Formes et arêtes sont dessinées dans l'**ordre du document** (une arête décl
 | Vue globale ↔ 1:1 (avec une sélection : sélection → 1:1 → globale) | **Entrée** (§9.3) |
 | Vue graphe ↔ dernière page | Onglet « Vue graphe » ; raccourci sans touche par défaut, attribuable dans les paramètres (§12) |
 | Mini-carte | Bouton × / « Mini-carte », touche **M** (§10) |
+| Mini-graphe | Bouton × / « Mini-graphe », touche **G** (§10) |
 | Aplatir les volumes (iso, 3D) | Touche **V** : rendu à plat (épaisseur nulle), caméra inchangée ; un second appui, ou un clic sur l'icône apparue en bas à gauche de la zone de dessin (infobulle au survol), rétablit les volumes. État passager, non enregistré ; sans effet en 2D |
 | Sélectionner | Clic gauche |
 | Déplacer une forme | Clic gauche + glisser sur la forme (vue de dessus comme iso), aimanté à la grille de la page ; **Alt** maintenu : sans grille (§14.1) |
@@ -630,6 +631,14 @@ Réalisation retenue :
 - **Emprise exacte** : les quatre coins de l'écran projetés sur le sol. La caméra iso étant orthographique (§9.1), l'emprise en iso est un **rectangle tourné et allongé** (de 1 / cos(inclinaison)), et non un trapèze : il n'y a pas de perspective. En 3D (perspective), c'est un trapèze. Elle peut déborder de la mini-carte quand la vue couvre plus que la page.
 - Clic ou glisser : la vue principale se recentre sur le point visé (zoom, rotation et inclinaison conservés).
 - Repliable : bouton × sur la mini-carte, bouton « Mini-carte » pour la rouvrir, touche **M** ; choix mémorisé (`minimap.visible`).
+
+**Mini-graphe** (sujet 366) : juste à gauche de la mini-carte, alignés sur leur bas (12 px d'écart), le graphe des pages
+de la vue graphe (§12) ramené à la largeur de la mini-carte (`minimap.size`, même cadrage : `graph/miniGraph.ts`).
+Nœuds pleins sans nom ni statut, flèches fines ; la **page courante en couleur d'accent**, le reste en gris (couleurs de
+la mini-carte : `minimap.outlineColor` pour les nœuds, `minimap.edgeColor` pour les flèches), comme l'icône de l'onglet
+« Vue graphe ». Il suit la page courante. Lecture seule (SVG, `react/MiniGraphView.tsx`). **Fermé par défaut** :
+bouton × pour le masquer, bouton « Mini-graphe » pour le rouvrir, touche **G** ; choix mémorisé (`minigraph.visible`).
+Absent en vue graphe, où il ferait doublon.
 
 ---
 
@@ -734,7 +743,7 @@ interface Settings {
     multiSelectKey: 'ctrl' | 'meta' | 'shift' | 'alt'; // touche + clic = sélection multiple (§11.1) : 'ctrl'
     followLinkKey: 'ctrl' | 'meta' | 'shift' | 'alt' | 'none'; // touche + geste = suivre un lien (§11.1) : 'meta'
     followLinkGesture: 'click' | 'doubleClick'; // geste pour suivre un lien, avec la touche : 'click'
-    shortcuts: { toggleViewMode: 'i'; toggle3d: 'p'; toggleGraph: ''; toggleMinimap: 'm'; toggleFlatten: 'v'; overview: 'Enter'; deleteSelection: 'Backspace' };
+    shortcuts: { toggleViewMode: 'i'; toggle3d: 'p'; toggleGraph: ''; toggleMinimap: 'm'; toggleMinigraph: 'g'; toggleFlatten: 'v'; overview: 'Enter'; deleteSelection: 'Backspace' };
   };
   view: {
     defaultMode: 'top' | 'iso' | '3d'; isoAngleDeg: number; isoAzimuthDeg: number; switchDurationMs: number; // 'top', 35.26, -45, 450
@@ -756,6 +765,7 @@ interface Settings {
   };
   minimap: { visible: boolean; size: number;                      // true, 200
     edgeColor: string; outlineColor: string };                    // flèches, contour des formes : '#80868b', '#9aa0a6'
+  minigraph: { visible: boolean };                                // false (sujet 366)
   selection: {
     style: 'veil' | 'outline'; veilOpacity: number; animated: boolean; speed: number; // 'veil', 0.35, true, 4
     veilColor: string; veilPadding: number;                       // '#202124', 10 (px écran autour d'une flèche)

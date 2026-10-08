@@ -58,6 +58,18 @@ export function rectDistance(r: Rect, p: Point): number {
   return Math.hypot(Math.max(r.x - p.x, 0, p.x - r.x - r.width), Math.max(r.y - p.y, 0, p.y - r.y - r.height));
 }
 
+/** Point où le segment du centre du rectangle vers `toward` en franchit le bord ; le centre si `toward` y est. */
+export function rectExitPoint(r: Rect, toward: Point): Point {
+  const c = center(r);
+  const dx = toward.x - c.x;
+  const dy = toward.y - c.y;
+  const t = Math.min(
+    dx === 0 ? Infinity : r.width / 2 / Math.abs(dx),
+    dy === 0 ? Infinity : r.height / 2 / Math.abs(dy),
+  );
+  return t === Infinity ? c : { x: c.x + dx * t, y: c.y + dy * t };
+}
+
 /** Plus petit rectangle contenant tous les rectangles ; undefined sans rectangle. */
 export function unionOf(rects: readonly Rect[]): Rect | undefined {
   return boundsOfPoints(

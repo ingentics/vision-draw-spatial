@@ -87,6 +87,8 @@ export type EngineEvents = {
   settingsChange: [settings: Settings];
   /** Touche M : l'UI affiche ou masque la mini-carte. */
   minimapToggle: [];
+  /** Touche G : l'UI affiche ou masque le mini-graphe (sujet 366). */
+  minigraphToggle: [];
   /** Volumes aplatis ou rétablis (touche V, `setFlattened`). */
   flattenChange: [flattened: boolean];
   /** La pile de navigation a changé (à persister). */

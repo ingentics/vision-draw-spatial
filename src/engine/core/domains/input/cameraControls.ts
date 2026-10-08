@@ -19,6 +19,7 @@ export function createCameraController(core: EngineCore): CameraController {
       toggleViewMode: () => core.viewModes.toggleViewMode(),
       toggle3d: () => core.viewModes.toggle3d(),
       toggleMinimap: () => core.events.emit('minimapToggle'),
+      toggleMinigraph: () => core.events.emit('minigraphToggle'),
       toggleFlatten: () => core.viewModes.toggleFlatten(),
       toggleGraph: () => core.graph.toggleGraph(),
       beginMove: (screen) => core.gesture.beginMove(screen),

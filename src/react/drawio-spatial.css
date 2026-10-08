@@ -17,12 +17,25 @@
 }
 
 /* Commandes posées sur la vue : au-dessus de ce que l'appli superpose au rendu (ex. commentaire survolé, z-index 1). */
-.drawio-minimap,
+.drawio-corner,
 .drawio-flatten {
   z-index: 2;
 }
 
-.drawio-minimap canvas {
+/* Mini-graphe et mini-carte côte à côte, alignés sur leur bas (sujet 366). */
+.drawio-corner {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.drawio-minimap,
+.drawio-minigraph {
+  position: relative;
+}
+
+.drawio-minimap canvas,
+.drawio-minigraph svg {
   display: block;
   border: 1px solid var(--drawio-spatial-border);
   border-radius: 6px;

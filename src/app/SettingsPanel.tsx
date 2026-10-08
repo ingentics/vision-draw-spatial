@@ -65,6 +65,7 @@ const SHORTCUT_LABELS: Record<keyof Shortcuts, string> = {
   toggle3d: 'Basculer vers / depuis la 3D',
   toggleGraph: 'Vue graphe ↔ dernière page',
   toggleMinimap: 'Afficher / masquer la mini-carte',
+  toggleMinigraph: 'Afficher / masquer le mini-graphe',
   toggleFlatten: 'Aplatir / rétablir les volumes (iso, 3D)',
   overview: 'Vue globale ↔ 1:1',
   deleteSelection: 'Supprimer la sélection (Suppr aussi)',
@@ -832,6 +833,11 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                 onChange={(outlineColor) => onChange({ minimap: { outlineColor } })}
               />
               <MinimapPreview minimap={minimap} background={background} accent={selection.accentColor} />
+              <Toggle
+                label="Afficher le mini-graphe (à gauche de la mini-carte, de sa largeur)"
+                checked={settings.minigraph.visible}
+                onChange={(visible) => onChange({ minigraph: { visible } })}
+              />
             </Section>
 
             <CommentSettingsSection settings={settings} onChange={onChange} />

@@ -28,6 +28,7 @@ export type {
   CommentSettings,
   GraphSettings,
   MinimapSettings,
+  MinigraphSettings,
   PanelsSettings,
   SelectionSettings,
   Settings,
@@ -47,6 +48,7 @@ export { DrawioParseError, parseDrawio } from './core/format/parse';
 export { isMonospace, isRich, parseColor, parseRichHtml, richToHtml, richToText } from './core/format/richText';
 export { createEmptyDrawio } from './core/format/skeleton';
 export { GRAPH_PAGE_ID, NODE_HEIGHT, STATUS_HEIGHT } from './core/graph/graphPage';
+export type { MiniGraph, MiniGraphLink, MiniGraphNode } from './core/graph/miniGraph';
 export type {
   DocumentModel,
   EdgeModel,

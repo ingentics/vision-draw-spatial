@@ -11,6 +11,7 @@ import type {
   Selection,
   SettingsPatch,
 } from '../engine';
+import { MiniGraphView } from './MiniGraphView';
 import './drawio-spatial.css';
 
 /** Actions disponibles par la `ref` du composant. */
@@ -50,6 +51,12 @@ export interface DrawioSpatialProps {
    */
   minimap?: { visible: boolean; size?: number };
   onMinimapToggle?: () => void;
+  /**
+   * Mini-graphe (sujet 366), à gauche de la mini-carte et de sa largeur, fermé par défaut. Sans `onMinigraphToggle`,
+   * son affichage est géré par le composant (bouton ×, touche G) ; avec, c'est à l'hôte de changer `minigraph.visible`.
+   */
+  minigraph?: { visible: boolean };
+  onMinigraphToggle?: () => void;
   /** Page et caméra à restaurer au chargement (sinon, avec `store`, celles mémorisées). */
   initialView?: InitialView;
   className?: string;
@@ -90,6 +97,8 @@ export function DrawioSpatial(props: DrawioSpatialProps) {
     settings,
     minimap,
     onMinimapToggle,
+    minigraph,
+    onMinigraphToggle,
     initialView,
     className,
     style,
@@ -100,6 +109,8 @@ export function DrawioSpatial(props: DrawioSpatialProps) {
   const [engine, setEngine] = useState<Engine>();
   const [localMinimap, setLocalMinimap] = useState(true);
   const minimapVisible = minimap?.visible ?? localMinimap;
+  const [localMinigraph, setLocalMinigraph] = useState(false);
+  const minigraphVisible = minigraph?.visible ?? localMinigraph;
   /** Volumes aplatis (touche V) en iso ou en 3D : icône pour les rétablir. */
   const [flattened, setFlattened] = useState(false);
   const [flatView, setFlatView] = useState(true);
@@ -119,6 +130,11 @@ export function DrawioSpatial(props: DrawioSpatialProps) {
     const host = propsRef.current.onMinimapToggle;
     if (host) host();
     else setLocalMinimap((visible) => !visible);
+  }, []);
+  const toggleMinigraph = useCallback(() => {
+    const host = propsRef.current.onMinigraphToggle;
+    if (host) host();
+    else setLocalMinigraph((visible) => !visible);
   }, []);
 
   useEffect(() => {
@@ -144,13 +160,14 @@ export function DrawioSpatial(props: DrawioSpatialProps) {
       instance.on('flattenChange', setFlattened),
       instance.on('modifiedChange', (modified) => propsRef.current.onModifiedChange?.(modified)),
       instance.on('minimapToggle', toggleMinimap),
+      instance.on('minigraphToggle', toggleMinigraph),
     ];
     return () => {
       for (const unsubscribe of subscriptions) unsubscribe();
       propsRef.current.onEngine?.(undefined);
       instance.dispose();
     };
-  }, [toggleMinimap]);
+  }, [toggleMinimap, toggleMinigraph]);
 
   // Changements de paramètres et de mode après la création du moteur.
   useEffect(() => {
@@ -289,6 +306,7 @@ export function DrawioSpatial(props: DrawioSpatialProps) {
   };
 
   const canToggle = onMinimapToggle !== undefined || minimap === undefined;
+  const canToggleMinigraph = onMinigraphToggle !== undefined || minigraph === undefined;
   return (
     <div
       className={className ? `drawio-spatial ${className}` : 'drawio-spatial'}
@@ -328,34 +346,43 @@ export function DrawioSpatial(props: DrawioSpatialProps) {
           </span>
         </button>
       )}
-      <div className="drawio-minimap" style={{ position: 'absolute', right: 12, bottom: 12 }}>
-        {minimapVisible ? (
-          <>
-            <canvas ref={minimapRef} aria-label="Mini-carte : cliquer ou glisser pour se déplacer" />
-            {canToggle && (
+      {/* Mini-graphe puis mini-carte, alignés en bas à droite (sujet 366). */}
+      <div className="drawio-corner" style={{ position: 'absolute', right: 12, bottom: 12 }}>
+        <MiniGraphView
+          engine={engine}
+          visible={minigraphVisible}
+          size={minimap?.size ?? DEFAULT_SETTINGS.minimap.size}
+          onToggle={canToggleMinigraph ? toggleMinigraph : undefined}
+        />
+        <div className="drawio-minimap">
+          {minimapVisible ? (
+            <>
+              <canvas ref={minimapRef} aria-label="Mini-carte : cliquer ou glisser pour se déplacer" />
+              {canToggle && (
+                <button
+                  type="button"
+                  className="drawio-minimap-toggle"
+                  aria-label="Masquer la mini-carte (M)"
+                  title="Masquer la mini-carte (M)"
+                  onClick={toggleMinimap}
+                >
+                  ×
+                </button>
+              )}
+            </>
+          ) : (
+            canToggle && (
               <button
                 type="button"
-                className="drawio-minimap-toggle"
-                aria-label="Masquer la mini-carte (M)"
-                title="Masquer la mini-carte (M)"
+                className="drawio-minimap-show"
+                title="Afficher la mini-carte (M)"
                 onClick={toggleMinimap}
               >
-                ×
+                Mini-carte
               </button>
-            )}
-          </>
-        ) : (
-          canToggle && (
-            <button
-              type="button"
-              className="drawio-minimap-show"
-              title="Afficher la mini-carte (M)"
-              onClick={toggleMinimap}
-            >
-              Mini-carte
-            </button>
-          )
-        )}
+            )
+          )}
+        </div>
       </div>
     </div>
   );

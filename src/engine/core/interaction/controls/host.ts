@@ -41,6 +41,8 @@ export interface CameraHost {
   toggle3d?(): void;
   /** Affiche / masque la mini-carte (touche M). */
   toggleMinimap?(): void;
+  /** Affiche / masque le mini-graphe (touche G). */
+  toggleMinigraph?(): void;
   /** Aplatit / rétablit les volumes en iso et en 3D (touche V). */
   toggleFlatten?(): void;
   /** Vue graphe ↔ dernière page (raccourci sans touche par défaut). */

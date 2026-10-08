@@ -8,6 +8,7 @@ import type {
   CommentSettings,
   GraphSettings,
   MinimapSettings,
+  MinigraphSettings,
   SelectionSettings,
   ViewSettings,
 } from '../types';
@@ -69,6 +70,10 @@ export const MINIMAP = {
   edgeColor: color('#80868b'),
   outlineColor: color('#9aa0a6'),
 } satisfies Spec<MinimapSettings>;
+
+export const MINIGRAPH = {
+  visible: flag(false),
+} satisfies Spec<MinigraphSettings>;
 
 export const COMMENT = {
   veilColor: color('#202124'),

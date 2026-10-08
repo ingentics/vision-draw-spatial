@@ -59,6 +59,8 @@ y est enregistré. L'interface `FileStore` (SPEC §5.1) permet de brancher un au
 | `settings` | `SettingsPatch` | | Paramètres (SPEC §13), fusionnés avec les valeurs par défaut, appliqués à chaud |
 | `minimap` | `{ visible, size? }` | | Mini-carte contrôlée par l'hôte ; absente, le composant gère son affichage (×, touche M) |
 | `onMinimapToggle` | `() => void` | | Bouton × ou touche M, en mode contrôlé |
+| `minigraph` | `{ visible }` | | Mini-graphe (à gauche de la mini-carte, fermé par défaut) contrôlé par l'hôte ; absent, le composant gère son affichage (×, touche G) |
+| `onMinigraphToggle` | `() => void` | | Bouton × ou touche G, en mode contrôlé |
 | `initialView` | `InitialView` | | Page, caméras, historique à restaurer au chargement |
 | `className`, `style` | | | Sur l'élément racine (`.drawio-spatial`) |
 | `ref` | `Ref<DrawioSpatialHandle>` | | Actions (voir plus bas) |
@@ -96,7 +98,7 @@ Quelques méthodes utiles du moteur : `goToPage`, `setViewMode('top' | 'iso' | '
 
 Navigation (toujours) : ZQSD / WASD et flèches, molette (zoom au curseur), clic droit (en 2D) ou
 Espace + glisser (déplacer), molette enfoncée (déplacer), Entrée (vue globale ↔ 1:1),
-I (2D ↔ iso), P (3D ↔ 2D / iso), clic droit + glisser en iso et en 3D (tourner la caméra ; en 3D, l'incliner aussi), G (vue graphe), M (mini-carte), Alt+↑ (remonter à la page parente), clic (sélection),
+I (2D ↔ iso), P (3D ↔ 2D / iso), clic droit + glisser en iso et en 3D (tourner la caméra ; en 3D, l'incliner aussi), G (mini-graphe), M (mini-carte), Alt+↑ (remonter à la page parente), clic (sélection),
 ⌘ + clic (suivre un lien ; maintenir ⌘ fait ressortir les zones liées ; touche et geste réglables :
 `settings.controls.followLinkKey`, `followLinkGesture`). Les raccourcis sont réglables (`settings.controls.shortcuts`).
 

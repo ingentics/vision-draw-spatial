@@ -47,6 +47,7 @@ export const CONTROLS = {
     toggle3d: code(DEFAULT_SHORTCUTS.toggle3d),
     toggleGraph: code(DEFAULT_SHORTCUTS.toggleGraph),
     toggleMinimap: code(DEFAULT_SHORTCUTS.toggleMinimap),
+    toggleMinigraph: code(DEFAULT_SHORTCUTS.toggleMinigraph),
     toggleFlatten: code(DEFAULT_SHORTCUTS.toggleFlatten),
     overview: code(DEFAULT_SHORTCUTS.overview),
     deleteSelection: code(DEFAULT_SHORTCUTS.deleteSelection),

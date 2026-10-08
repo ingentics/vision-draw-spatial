@@ -53,6 +53,11 @@ describe('mergeSettings', () => {
     expect(cleared.controls.shortcuts.toggleMinimap).toBe(DEFAULT_SHORTCUTS.toggleMinimap);
   });
 
+  it('mini-graphe fermé par défaut (sujet 366)', () => {
+    expect(DEFAULT_SETTINGS.minigraph.visible).toBe(false);
+    expect(mergeSettings(DEFAULT_SETTINGS, { minigraph: { visible: true } }).minigraph.visible).toBe(true);
+  });
+
   it('sélection : voile par défaut, contour animé en option, valeurs bornées', () => {
     expect(DEFAULT_SETTINGS.selection).toEqual({
       style: 'veil',
@@ -120,13 +125,13 @@ describe('shortcutAction', () => {
     expect(shortcutAction('Enter', DEFAULT_SHORTCUTS)).toBe('overview');
     expect(shortcutAction('Backspace', DEFAULT_SHORTCUTS)).toBe('deleteSelection');
     expect(shortcutAction('x', DEFAULT_SHORTCUTS)).toBeUndefined();
-    // Vue graphe : aucune touche par défaut (sujet 365).
-    expect(shortcutAction('g', DEFAULT_SHORTCUTS)).toBeUndefined();
+    // Vue graphe : aucune touche par défaut (sujet 365) ; G affiche le mini-graphe (sujet 366).
+    expect(shortcutAction('g', DEFAULT_SHORTCUTS)).toBe('toggleMinigraph');
   });
 
   it('raccourcis personnalisés', () => {
     expect(shortcutAction('k', { ...DEFAULT_SHORTCUTS, toggleGraph: 'k' })).toBe('toggleGraph');
-    expect(shortcutAction('g', { ...DEFAULT_SHORTCUTS, toggleGraph: 'k' })).toBeUndefined();
+    expect(shortcutAction('g', { ...DEFAULT_SHORTCUTS, toggleGraph: 'k', toggleMinigraph: 'j' })).toBeUndefined();
   });
 });
 

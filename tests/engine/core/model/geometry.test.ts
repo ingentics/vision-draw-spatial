@@ -13,6 +13,7 @@ import {
   segmentIntersection,
   segmentsCross,
   prunePath,
+  rectExitPoint,
   simplifyPath,
   unionOf,
 } from '../../../../src/engine/core/model/geometry';
@@ -100,6 +101,16 @@ describe('géométrie partagée (sujet 205)', () => {
       { x: 10, y: 10 },
     ]);
     expect(prunePath(path, 1e-6, true)).toEqual(path);
+  });
+});
+
+describe('sortie d’un rectangle vers un point (sujet 366)', () => {
+  const r = { x: 0, y: 0, width: 40, height: 20 };
+  it('franchit le bord du côté du point, centre si le point est au centre', () => {
+    expect(rectExitPoint(r, { x: 100, y: 10 })).toEqual({ x: 40, y: 10 });
+    expect(rectExitPoint(r, { x: 20, y: -50 })).toEqual({ x: 20, y: 0 });
+    expect(rectExitPoint(r, { x: 40, y: 20 })).toEqual({ x: 40, y: 20 });
+    expect(rectExitPoint(r, { x: 20, y: 10 })).toEqual({ x: 20, y: 10 });
   });
 });
 

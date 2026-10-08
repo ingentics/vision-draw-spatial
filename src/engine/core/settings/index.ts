@@ -16,6 +16,7 @@ export type {
   EditSettings,
   GraphSettings,
   MinimapSettings,
+  MinigraphSettings,
   PanelsSettings,
   PreloadSettings,
   SaveSettings,

@@ -151,6 +151,7 @@ export class KeyboardControls {
       action === 'toggle3d' ||
       action === 'toggleGraph' ||
       action === 'toggleMinimap' ||
+      action === 'toggleMinigraph' ||
       action === 'toggleFlatten'
     ) {
       event.preventDefault();
@@ -159,6 +160,7 @@ export class KeyboardControls {
       else if (action === 'toggle3d') host.toggle3d?.();
       else if (action === 'toggleGraph') host.toggleGraph?.();
       else if (action === 'toggleFlatten') host.toggleFlatten?.();
+      else if (action === 'toggleMinigraph') host.toggleMinigraph?.();
       else host.toggleMinimap?.();
       return;
     }

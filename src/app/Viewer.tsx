@@ -95,6 +95,10 @@ export function Viewer({
     () => onSettingsChange({ minimap: { visible: !settingsRef.current.minimap.visible } }),
     [onSettingsChange],
   );
+  const toggleMinigraph = useCallback(
+    () => onSettingsChange({ minigraph: { visible: !settingsRef.current.minigraph.visible } }),
+    [onSettingsChange],
+  );
   // Paramètres courants pour les rappels du moteur (créés une seule fois).
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
@@ -742,6 +746,8 @@ export function Viewer({
               settings={settings}
               minimap={settings.minimap}
               onMinimapToggle={toggleMinimap}
+              minigraph={settings.minigraph}
+              onMinigraphToggle={toggleMinigraph}
               initialView={initialView}
               autosave={settings.save.autosave}
               autosaveDelayMs={settings.save.delayMs}

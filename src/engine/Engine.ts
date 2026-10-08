@@ -8,6 +8,7 @@ import type { PageModePalette, ShapeTemplate } from './core/edit/palette';
 import type { EffectRegistryView } from './core/effects/registry';
 import type { StylePreset } from './core/edit/stylePresets';
 import type { OrderMove } from './core/format/order';
+import type { MiniGraph } from './core/graph/miniGraph';
 import type { DrawioTree } from './core/format/xmlTree';
 import type { CameraState, ViewMode } from './core/interaction/cameraMath';
 import type { HistoryEntry, LinkUsage, ParentLink } from './core/interaction/navigationHistory';
@@ -321,9 +322,17 @@ export class Engine {
     this.core.graph.showGraph();
   }
 
-  /** Touche G : graphe ↔ dernière page affichée (en plongeant dans sa carte). */
+  /** Graphe ↔ dernière page affichée (en plongeant dans sa carte). */
   toggleGraph(): void {
     this.core.graph.toggleGraph();
+  }
+
+  /**
+   * Mini-graphe (sujet 366) : nœuds et liens de la vue graphe ramenés à un encart de largeur `size` (pixels CSS, la
+   * hauteur suit les proportions du graphe). Undefined sans document.
+   */
+  getMiniGraph(size: number): MiniGraph | undefined {
+    return this.core.graph.getMiniGraph(size);
   }
 
   /**

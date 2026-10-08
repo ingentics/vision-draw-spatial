@@ -94,6 +94,11 @@ export interface MinimapSettings {
   outlineColor: string;
 }
 
+/** Mini-graphe (sujet 366) : graphe des pages à gauche de la mini-carte, de sa largeur (`minimap.size`). */
+export interface MinigraphSettings {
+  visible: boolean;
+}
+
 /**
  * Commentaire de l'élément survolé, flèche ou forme (étapes 188 à 190) : texte en bas à gauche du rendu, sur un voile
  * dégradé dont la courbe finit au-dessus et à droite du texte.
@@ -317,6 +322,7 @@ export interface Settings {
   camera: CameraSettings;
   background: BackgroundSettings;
   minimap: MinimapSettings;
+  minigraph: MinigraphSettings;
   comment: CommentSettings;
   selection: SelectionSettings;
   shapes: ShapeSettings;

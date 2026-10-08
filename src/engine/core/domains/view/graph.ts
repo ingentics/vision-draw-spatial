@@ -1,5 +1,8 @@
 import { fitBounds } from '../../interaction/cameraMath';
 import { buildGraphPage, cardId, GRAPH_PAGE_ID } from '../../graph/graphPage';
+import type { GraphLayout } from '../../graph/graphPage';
+import { miniGraph } from '../../graph/miniGraph';
+import type { MiniGraph } from '../../graph/miniGraph';
 import type { PageModel } from '../../model/types';
 import type { EngineCore } from '../EngineCore';
 import { settingsSectionChanged } from '../../settings';
@@ -11,7 +14,7 @@ import type { Settings } from '../../settings';
  */
 export class GraphView {
   /** Vue graphe du document (SPEC §12), construite à la première demande. */
-  private cache: PageModel | undefined;
+  private cache: { page: PageModel; layout: GraphLayout } | undefined;
 
   constructor(private readonly core: EngineCore) {}
 
@@ -49,6 +52,16 @@ export class GraphView {
   }
 
   getGraphPage(): PageModel | undefined {
+    return this.built()?.page;
+  }
+
+  /** Mini-graphe (sujet 366) : la disposition de la vue graphe ramenée à un encart de largeur `size`. */
+  getMiniGraph(size: number): MiniGraph | undefined {
+    const layout = this.built()?.layout;
+    return layout && miniGraph(layout, size);
+  }
+
+  private built(): { page: PageModel; layout: GraphLayout } | undefined {
     if (!this.core.file.document) return undefined;
     const graph = this.core.settings.graph;
     this.cache ??= buildGraphPage(this.core.file.document, graph, {
@@ -58,7 +71,7 @@ export class GraphView {
       unreachable: graph.unreachableColor,
       arc: graph.arcColor,
       title: graph.titleColor,
-    }).page;
+    });
     return this.cache;
   }
 

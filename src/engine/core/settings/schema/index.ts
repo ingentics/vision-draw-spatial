@@ -2,7 +2,7 @@ import type { Spec } from '../fields';
 import type { Settings } from '../types';
 import { ACCESSIBILITY, CONTROLS, PRELOAD, TRANSITION } from './navigation';
 import { SHAPES, STYLES } from './shapes';
-import { BACKGROUND, CAMERA, COMMENT, GRAPH, MINIMAP, orderedZooms, SELECTION, VIEW } from './view';
+import { BACKGROUND, CAMERA, COMMENT, GRAPH, MINIGRAPH, MINIMAP, orderedZooms, SELECTION, VIEW } from './view';
 import { DEBUG, EDIT, EFFECTS, MODES, PANELS, SAVE } from './workspace';
 
 /**
@@ -18,6 +18,7 @@ export const SETTINGS_SCHEMA = {
   camera: CAMERA,
   background: BACKGROUND,
   minimap: MINIMAP,
+  minigraph: MINIGRAPH,
   comment: COMMENT,
   selection: SELECTION,
   shapes: SHAPES,

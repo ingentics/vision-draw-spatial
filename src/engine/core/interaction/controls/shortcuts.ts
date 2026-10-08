@@ -12,6 +12,8 @@ export interface Shortcuts {
   toggleGraph: string;
   /** Affiche / masque la mini-carte. */
   toggleMinimap: string;
+  /** Affiche / masque le mini-graphe (sujet 366). */
+  toggleMinigraph: string;
   /** Aplatit / rétablit les volumes (iso, 3D). */
   toggleFlatten: string;
   /** Vue globale ↔ 1:1 (l'Entrée du pavé numérique donne aussi la touche « Enter »). */
@@ -32,6 +34,7 @@ export const DEFAULT_SHORTCUTS: Shortcuts = {
   toggle3d: 'p',
   toggleGraph: '',
   toggleMinimap: 'm',
+  toggleMinigraph: 'g',
   toggleFlatten: 'v',
   overview: 'Enter',
   deleteSelection: 'Backspace',
