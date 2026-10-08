@@ -59,6 +59,8 @@ export interface ConnectDrag {
   loop?: Point[];
   /** Forme visée, en attache auto ou sur un point de connexion (entrée fixe). */
   target?: Exclude<EndAttachment, { kind: 'free' }>;
+  /** Partie de la forme visée sous le pointeur (sujet 333) ; undefined = la forme elle-même. */
+  part?: string;
   started: boolean;
 }
 
@@ -75,6 +77,8 @@ export interface EdgeEndDrag {
   /** Points intermédiaires d'origine (remplacés par les coudes si le bout referme une boucle). */
   originalPoints: Point[];
   attachment?: EndAttachment;
+  /** Partie de la forme visée sous le pointeur, bout d'arrivée seulement (sujet 333). */
+  part?: string;
   started: boolean;
 }
 

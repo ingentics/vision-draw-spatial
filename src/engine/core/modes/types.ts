@@ -109,21 +109,28 @@ export interface ModeEdges {
   /**
    * Flèche permise de `source` vers `target` (sujet 265, ex. liaisons des tables RDD) : le bout tiré ou rebranché ne
    * s'accroche qu'aux formes permises ; absent = toutes. Une forme sans aucune flèche se déclare `connectable: false`.
+   * `part` (sujet 333) : partie de `target` sous le pointeur (`parts.at`), undefined = la forme elle-même ; seul le bout
+   * d'arrivée en a une.
    */
-  connects?(page: PageModel, source: ShapeModel, target: ShapeModel): boolean;
+  connects?(page: PageModel, source: ShapeModel, target: ShapeModel, part?: string): boolean;
   /**
    * Flèche gérée par le mode (sujet 265, ex. relation RDD et ses cardinalités) : dans le panneau, les réglages du mode
    * en tête, texte du milieu et commentaire modifiables, le reste en lecture seule ; positions des textes et lien
    * masqués.
    */
   manages?(page: PageModel, edge: EdgeModel): boolean;
-  /** Flèche créée sur la page (tirée depuis une forme), dans la même étape d'annulation ; `current` : le courant. */
-  created?(edit: ModeEdit, edgeId: string, current: string | undefined): void;
+  /**
+   * Flèche créée sur la page (tirée depuis une forme), dans la même étape d'annulation ; `current` : le courant.
+   * `part` (sujet 333) : partie visée au bout d'arrivée. Le mode la retient dans son attribut et place le point
+   * d'arrivée (`edit.setElementStyle`, `sideConstraintAt`).
+   */
+  created?(edit: ModeEdit, edgeId: string, current: string | undefined, part?: string): void;
   /**
    * Bout d'une flèche rebranché (poignée de son extrémité), déjà écrit ; remise en ordre dans la même étape d'annulation
-   * (ex. champ de relation RDD qui suit sa flèche, sujet 265).
+   * (ex. champ de relation RDD qui suit sa flèche, sujet 265). `part` (sujet 333) : partie visée, seulement si c'est le
+   * bout d'arrivée qui a été rebranché ; sinon le mode garde la partie qu'il a retenue.
    */
-  reconnected?(edit: ModeEdit, edgeId: string): void;
+  reconnected?(edit: ModeEdit, edgeId: string, part?: string): void;
 }
 
 /** Les formes d'une page du mode et les gestes sur elles (sujet 295). */
@@ -236,13 +243,6 @@ export interface ModePartText {
   transparent?: boolean;
   /** Couleur du texte dans l'éditeur (#rrggbb, celle du texte dessiné) ; défaut : noir. */
   color?: string;
-}
-
-/** Obstacles d'une forme (sujet 241), en emprises (ex. onglet d'une région compris). */
-export interface ModeObstacles {
-  rects: Array<{ id: string; rect: Rect }>;
-  /** Ce que la forme dessine au-dessus de ses bornes et qui compte dans son emprise (ex. onglet), en pixels de page. */
-  above?: number;
   /**
    * Texte sur plusieurs lignes (sujet 331) : Entrée passe à la ligne (⌘ + Entrée ou clic dehors valide), texte en haut
    * à gauche du cadre sans retour automatique, ascenseurs si le texte dépasse ; `setText` le reçoit tel quel.
@@ -250,6 +250,13 @@ export interface ModeObstacles {
   multiline?: boolean;
   /** Éditeur en police à chasse fixe (police de code). */
   monospace?: boolean;
+}
+
+/** Obstacles d'une forme (sujet 241), en emprises (ex. onglet d'une région compris). */
+export interface ModeObstacles {
+  rects: Array<{ id: string; rect: Rect }>;
+  /** Ce que la forme dessine au-dessus de ses bornes et qui compte dans son emprise (ex. onglet), en pixels de page. */
+  above?: number;
   /** Écart minimal à garder avec les obstacles, en pixels de page (réglage du mode, ticket 283). */
   gap: number;
 }
@@ -418,6 +425,8 @@ export type ModeProperty = {
       type: 'text';
       /** Plusieurs lignes (zone de texte, ⌘ + Entrée ou sortie du champ pour valider). */
       multiline?: boolean;
+      /** Zone de texte en police à chasse fixe, sans retour automatique (sujet 331). */
+      monospace?: boolean;
       /** Écrit à chaque frappe, une seule étape d'annulation par saisie (sujet 271) ; sinon à la validation. */
       live?: boolean;
     }
@@ -425,8 +434,6 @@ export type ModeProperty = {
       type: 'select';
       /**
        * Choix offerts (valeur vide = aucun) ; `palette` : couleurs proposées par l'appli (`ModeEdit.palette`). Si toutes
-      /** Zone de texte en police à chasse fixe, sans retour automatique (sujet 331). */
-      monospace?: boolean;
        * les options ont une icône ou une couleur, le panneau les montre en boutons (pastilles), sinon en liste (sujet
        * 319).
        */

@@ -8,6 +8,7 @@ import {
   restoreEnds,
   sameAttachment,
   shapeAnchors,
+  sideConstraintAt,
   snapshotEnds,
 } from '../../../../src/engine/core/edit/edgeEnds';
 import { setCellStyleValue, setEdgeTerminal } from '../../../../src/engine/core/format/cellEdits';
@@ -173,5 +174,20 @@ describe('écriture des bouts (setEdgeTerminal)', () => {
   it('cellule inconnue : erreur', () => {
     const { pageTree } = load();
     expect(() => setEdgeTerminal(pageTree, 'e', 'source', { cellId: 'zz' })).toThrow();
+  });
+});
+
+describe('sideConstraintAt (sujet 333)', () => {
+  const bounds = { x: 100, y: 50, width: 200, height: 40 };
+
+  it('côté le plus proche du point de départ, à la hauteur demandée', () => {
+    expect(sideConstraintAt(bounds, 70, { x: 0, y: 0 })).toEqual({ x: 0, y: 0.5 });
+    expect(sideConstraintAt(bounds, 60, { x: 500, y: 0 })).toEqual({ x: 1, y: 0.25 });
+  });
+
+  it('hauteur aux bords ou hors du cadre : ramenée sur le cadre', () => {
+    expect(sideConstraintAt(bounds, 50, { x: 0, y: 0 })).toEqual({ x: 0, y: 0 });
+    expect(sideConstraintAt(bounds, 90, { x: 500, y: 0 })).toEqual({ x: 1, y: 1 });
+    expect(sideConstraintAt(bounds, 400, { x: 500, y: 0 })).toEqual({ x: 1, y: 1 });
   });
 });

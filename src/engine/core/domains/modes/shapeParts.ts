@@ -1,6 +1,7 @@
 import type { Object3D } from 'three';
 import { gridSizeOf } from '../../format/cellEdits';
 import { readonlyModel } from '../../model/freeze';
+import type { EndAttachment } from '../../edit/edgeEnds';
 import type { PageModel, Point, Rect } from '../../model/types';
 // Formes en lecture seule : ce domaine les passe aux modes (sujet 303), aperçus compris.
 import type { ReadonlyShapeModel as ShapeModel } from '../../model/readonly';
@@ -100,7 +101,7 @@ export class ShapeParts {
   }
 
   /** Emprise d'une partie (pixels de page) d'après le mode de la page ; undefined = partie disparue. */
-  private bounds(page: PageModel, shape: ShapeModel, part: string): Rect | undefined {
+  bounds(page: PageModel, shape: ShapeModel, part: string): Rect | undefined {
     return this.call(page, 'bounds', undefined, (bounds) => bounds(readonlyModel(page), readonlyModel(shape), part));
   }
 
@@ -123,8 +124,25 @@ export class ShapeParts {
   /** Partie de `shape` sous le point écran ; undefined = la forme elle-même, ou un mode sans parties. */
   partAt(page: PageModel, shape: ShapeModel, screen: Point): string | undefined {
     if (!this.has(page, 'at')) return undefined;
-    const point = this.core.picking.groundPointAtHeight(screen, this.core.sceneView.elementTop(shape.id));
+    return this.at(
+      page,
+      shape,
+      this.core.picking.groundPointAtHeight(screen, this.core.sceneView.elementTop(shape.id)),
+    );
+  }
+
+  /** Partie de `shape` sous un point de la page (pixels) ; undefined = la forme elle-même, ou un mode sans parties. */
+  at(page: PageModel, shape: ShapeModel, point: Point): string | undefined {
     return this.call(page, 'at', undefined, (at) => at(readonlyModel(page), readonlyModel(shape), point));
+  }
+
+  /**
+   * Partie visée par un bout d'arrivée attaché à une forme (sujet 333), sous le point écran ; undefined = la forme
+   * elle-même, ou bout libre.
+   */
+  targetedPart(page: PageModel, attachment: EndAttachment | undefined, screen: Point): string | undefined {
+    const shape = attachment && attachment.kind !== 'free' && page.shapes.find((s) => s.id === attachment.shapeId);
+    return shape ? this.partAt(page, shape, screen) : undefined;
   }
 
   /** Emprise de la partie sélectionnée (pixels de page) ; undefined sans partie sélectionnée. */

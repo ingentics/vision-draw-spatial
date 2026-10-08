@@ -85,6 +85,16 @@ export function frameConstraint(bounds: Rect, point: Point): Point {
   return { x: 0, y: round(y) };
 }
 
+/**
+ * Point relatif sur le côté gauche ou droit de `bounds` à la hauteur `y` (page), côté le plus proche de `from` (à
+ * égalité, le droit) ; `y` ramené dans le cadre (sujet 333, ex. centre de la ligne d'un champ). Arrondi au millième.
+ */
+export function sideConstraintAt(bounds: Rect, y: number, from: Point): Point {
+  const t = bounds.height > 0 ? clamp((y - bounds.y) / bounds.height, 0, 1) : 0.5;
+  const left = from.x < bounds.x + bounds.width / 2;
+  return { x: left ? 0 : 1, y: Math.round(t * 1000) / 1000 };
+}
+
 export interface AnchorOptions {
   /** Bout de flèche en cours de déplacement : sa position du moment ne compte pas. */
   skip?: { edgeId: string; end: TerminalEnd };

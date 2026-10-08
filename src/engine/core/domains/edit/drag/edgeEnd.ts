@@ -31,7 +31,8 @@ export class EdgeEndDrags {
       snap,
       grid: gridSizeOf(pageTree),
     });
-    this.core.preview.showConnectionHints(page, attachment, undefined, skip);
+    drag.part = drag.end === 'target' ? this.core.shapeParts.targetedPart(page, attachment, screen) : undefined;
+    this.core.preview.showConnectionHints(page, attachment, undefined, skip, [], drag.part);
     if (sameAttachment(attachment, drag.attachment)) return;
     drag.attachment = attachment;
     restoreEnds(edge, drag.original);
@@ -51,7 +52,8 @@ export class EdgeEndDrags {
     if (!page || !edge) return;
     const before = endAttachmentOf({ ...edge, ...drag.original }, drag.end);
     const after = drag.attachment;
-    if (!after || sameAttachment(after, before)) {
+    // Même forme mais une partie visée (sujet 333) : le mode doit la recevoir, même si l'attache ne change pas.
+    if (!after || (sameAttachment(after, before) && drag.part === undefined)) {
       restoreEnds(edge, drag.original);
       edge.points = drag.originalPoints;
       if (this.core.pages.getCurrentPage()?.id === drag.pageId) this.core.live.retraceEdges(page, new Set([edge.id]));
@@ -65,7 +67,7 @@ export class EdgeEndDrags {
     else if (!samePoints(edge.points, drag.originalPoints))
       this.core.edgePoints.writeEdgePoints(page, pageTree, edge, edge.points);
     // Le mode de la page suit le rebranchement (ex. champ de relation RDD), dans la même étape d'annulation.
-    this.core.pageModes.edgeReconnected(drag.pageId, edge.id);
+    this.core.pageModes.edgeReconnected(drag.pageId, edge.id, drag.end === 'target' ? drag.part : undefined);
     this.core.file.documentChanged([drag.pageId]);
   }
 }

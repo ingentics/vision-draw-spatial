@@ -6,6 +6,7 @@ import { distance } from '../../../model/geometry';
 import type { PageModel, Point, Rect } from '../../../model/types';
 import { perimeterKind } from '../../../render/edges/route';
 import { parseStyle } from '../../../format/style';
+import { partSelection } from '../../../render/decorations';
 import { connectionHints } from '../../../render/handleMeshes';
 import { disposeObject, fadedStrokeMesh } from '../../../render/meshes';
 import { dashPolyline } from '../../../render/geometry/stroke';
@@ -30,6 +31,7 @@ export class ConnectorPreview {
     extra?: Object3D,
     skip?: AnchorSkip,
     taken: TakenAnchor[] = [],
+    part?: string,
   ): void {
     this.clearConnectorPreview();
     const root = this.core.scenes.current?.root;
@@ -89,6 +91,13 @@ export class ConnectorPreview {
       );
       hints.position.z = this.core.sceneView.elementTop(shape.id) + 0.3;
       group.add(hints);
+    }
+    // Partie visée (sujet 333) : du même cadre que la sélection d'une partie.
+    const rect = shape && part !== undefined ? this.core.shapeParts.bounds(page, shape, part) : undefined;
+    if (shape && rect) {
+      const mark = partSelection(rect, this.core.camera.state.zoom, this.core.settings.selection.accentColor);
+      mark.position.z = this.core.sceneView.elementTop(shape.id) + 0.25;
+      group.add(mark);
     }
     group.traverse((o) => {
       o.renderOrder = Number.MAX_SAFE_INTEGER;

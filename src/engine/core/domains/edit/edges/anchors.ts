@@ -14,6 +14,7 @@ import { loopWaypoints } from '../../../edit/loops';
 import type { EdgeModel, PageModel, Point, ShapeModel } from '../../../model/types';
 import { toTerminal } from '../../../render/edges/edge';
 import { fixedAnchor, routeEdgePoints } from '../../../render/edges/route';
+import type { EndAccepts } from '../../modes/pageModes';
 import type { EngineCore } from '../../EngineCore';
 import { shapesById } from '../../../model/pageIndex';
 
@@ -41,7 +42,7 @@ export class Anchors {
     page: PageModel,
     screen: Point,
     options: {
-      accepts?: (shape: ShapeModel) => boolean;
+      accepts?: EndAccepts;
       skip?: AnchorSkip;
       taken?: TakenAnchor[];
       height: number;
@@ -49,9 +50,15 @@ export class Anchors {
       grid: number;
     },
   ): EndAttachment {
+    // Règle du mode au point visé, à la hauteur de chaque forme (sujet 333).
+    const { accepts } = options;
+    const accepted = accepts
+      ? (shape: ShapeModel) =>
+          accepts(shape, this.core.picking.groundPointAtHeight(screen, this.core.sceneView.elementTop(shape.id)))
+      : undefined;
     if (this.core.arrangement.distributes(page)) {
       // Ancrage automatique : on ne vise que le côté de la forme (le plus proche du pointeur) ; la répartition suit.
-      const shape = this.core.picking.shapeAt(screen, options.accepts);
+      const shape = this.core.picking.shapeAt(screen, accepted);
       if (shape) {
         const pointer = this.core.picking.groundPointAtHeight(screen, this.core.sceneView.elementTop(shape.id));
         const side = sideOfConstraint(frameConstraint(shape.bounds, pointer)) ?? 'n';
@@ -60,7 +67,7 @@ export class Anchors {
     }
     const shapes = this.core.arrangement.distributes(page)
       ? []
-      : connectableShapes(page, this.core.registry).filter((s) => !options.accepts || options.accepts(s));
+      : connectableShapes(page, this.core.registry).filter((s) => !accepted || accepted(s));
     let best: { shapeId: string; constraint: Point; distance: number } | undefined;
     for (const shape of shapes) {
       const top = this.core.sceneView.elementTop(shape.id);
@@ -72,7 +79,7 @@ export class Anchors {
       }
     }
     if (best) return { kind: 'fixed', shapeId: best.shapeId, constraint: { ...best.constraint } };
-    const shape = this.core.picking.shapeAt(screen, options.accepts);
+    const shape = this.core.picking.shapeAt(screen, accepted);
     if (shape) return { kind: 'floating', shapeId: shape.id };
     const point = this.core.picking.groundPointAtHeight(screen, options.height);
     const step = options.snap && options.grid > 0 ? options.grid : 1;

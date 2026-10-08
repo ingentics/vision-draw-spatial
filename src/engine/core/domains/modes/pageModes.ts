@@ -4,7 +4,7 @@ import { writeDrawio } from '../../format/write';
 import type { PageTree } from '../../format/xmlTree';
 import type { TerminalEnd } from '../../edit/edgeEnds';
 import { carriedShapes, isLocked } from '../../edit/moveSet';
-import type { DocumentModel, PageModel, Rect, ShapeModel } from '../../model/types';
+import type { DocumentModel, PageModel, Point, Rect, ShapeModel } from '../../model/types';
 import { freezeModel, readonlyModel } from '../../model/freeze';
 import { hasExactTextMeasure } from '../../render/textMeasure';
 import { applyModeEdit } from '../../modes/modeEdits';
@@ -24,6 +24,9 @@ import { modePalette } from '../../settings';
 import { SPATIAL } from '../../spatial';
 import type { ModePropertyView } from '../types';
 import type { EngineCore } from '../EngineCore';
+
+/** Règle d'accroche d'un bout de flèche : la forme est-elle permise au point visé (pixels de page, sujet 333) ? */
+export type EndAccepts = (shape: ShapeModel, point: Point) => boolean;
 
 /**
  * Modes et effets de page (sujets 69, 143) : choix du mode, réglages déclarés, opérations et touches du mode. Hôte des appels au mode de la page (sujet 288) : le reste du moteur passe par ses méthodes (ou par
@@ -344,23 +347,23 @@ export class PageModes {
   }
 
   /** Bout d'une flèche rebranché, déjà écrit : remise en ordre par le mode (`edges.reconnected`, sujet 265). */
-  edgeReconnected(pageId: string, edgeId: string): void {
+  edgeReconnected(pageId: string, edgeId: string, part?: string): void {
     this.followUp(
       pageId,
       'edges.reconnected',
       (mode) => mode.edges?.reconnected,
-      (reconnected, edit) => reconnected(edit, edgeId),
+      (reconnected, edit) => reconnected(edit, edgeId, part),
     );
   }
 
   /** Flèche tirée depuis une forme, déjà écrite : le mode la reçoit (`edges.created`, ex. ajoutée au flux courant). */
-  edgeCreated(pageId: string, edgeId: string): void {
+  edgeCreated(pageId: string, edgeId: string, part?: string): void {
     const current = this.core.modeCurrents.getModeCurrent(pageId);
     this.followUp(
       pageId,
       'edges.created',
       (mode) => mode.edges?.created,
-      (created, edit) => created(edit, edgeId, current),
+      (created, edit) => created(edit, edgeId, current, part),
     );
   }
 
@@ -376,22 +379,21 @@ export class PageModes {
 
   /**
    * Formes où accrocher le bout `end` d'une flèche dont l'autre bout est sur `otherId`, d'après le mode de la page
-   * (`edges.connects`, sujet 265) ; undefined = toutes (pas de règle, ou autre bout libre).
+   * (`edges.connects`, sujet 265) ; undefined = toutes (pas de règle, ou autre bout libre). Le prédicat reçoit la forme
+   * et le point visé (pixels de page) : au bout d'arrivée, la partie sous ce point est transmise au mode (sujet 333).
    */
-  endAccepts(
-    page: PageModel,
-    end: TerminalEnd,
-    otherId: string | undefined,
-  ): ((shape: ShapeModel) => boolean) | undefined {
+  endAccepts(page: PageModel, end: TerminalEnd, otherId: string | undefined): EndAccepts | undefined {
     const mode = this.core.modes.modeOf(page);
     const connects = mode?.edges?.connects;
     const other = connects && otherId !== undefined ? page.shapes.find((s) => s.id === otherId) : undefined;
     if (!mode || !connects || !other) return undefined;
-    const allowed = (source: ShapeModel, target: ShapeModel) =>
+    const allowed = (source: ShapeModel, target: ShapeModel, part?: string) =>
       this.guard(mode, 'edges.connects', true, () =>
-        connects(readonlyModel(page), readonlyModel(source), readonlyModel(target)),
+        connects(readonlyModel(page), readonlyModel(source), readonlyModel(target), part),
       );
-    return end === 'target' ? (shape) => allowed(other, shape) : (shape) => allowed(shape, other);
+    return end === 'target'
+      ? (shape, point) => allowed(other, shape, this.core.shapeParts.at(page, shape, point))
+      : (shape) => allowed(shape, other);
   }
 
   /**

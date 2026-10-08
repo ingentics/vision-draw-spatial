@@ -61,6 +61,7 @@ function setup(mode: PageModeDefinition = BOOM) {
     pages: { pageById: (id: string) => document.pages.find((p) => p.id === id) },
     targets: { editablePage: editable, editablePageById: (id: string) => (id === 'p' ? editable() : undefined) },
     edits: { recordSnapshot: (label: string) => state.snapshots.push(label) },
+    modeCurrents: { getModeCurrent: () => undefined },
     file: {
       xmlTree: tree,
       pageTreeOf: () => tree.pages[0],
@@ -71,7 +72,7 @@ function setup(mode: PageModeDefinition = BOOM) {
   const guard = new PluginGuard(core);
   Object.assign(core, { pluginGuard: guard });
   const modes = new PageModes(core);
-  Object.assign(core, { pageModes: modes });
+  Object.assign(core, { pageModes: modes, shapeParts: new ShapeParts(core) });
   return { core, document, tree, modes, guard, state, page: document.pages[0]! };
 }
 
@@ -102,7 +103,7 @@ describe('hôte des appels aux modes (sujet 288)', () => {
     expect(modes.shapesPlaced('p', ['a'])).toBe(false);
     expect(writeDrawio(tree)).toBe(before);
     expect(modes.obstacles(page, page.shapes[0]!)).toBeUndefined();
-    expect(modes.endAccepts(page, 'target', 'a')?.(page.shapes[1]!)).toBe(true);
+    expect(modes.endAccepts(page, 'target', 'a')?.(page.shapes[1]!, { x: 0, y: 0 })).toBe(true);
     // Formes emportées : celles trouvées avant la panne.
     expect(modes.carried(page, ['a'])).toEqual(['b']);
     expect(guard.warnings().map((w) => w.message)).toEqual([
@@ -210,7 +211,7 @@ describe('page remise aux plugins pendant un geste (sujet 324)', () => {
     expect(Object.isFrozen(page)).toBe(false);
     const snapshot = JSON.stringify(page);
     expect(modes.dressing(page)).toBeUndefined();
-    expect(modes.endAccepts(page, 'target', 'a')?.(page.shapes[1]!)).toBe(true);
+    expect(modes.endAccepts(page, 'target', 'a')?.(page.shapes[1]!, { x: 0, y: 0 })).toBe(true);
     const parts = new ShapeParts(core);
     expect(parts.dropAt(page, page.shapes[0]!, 'p', { x: 0, y: 0 })).toBeUndefined();
     expect(JSON.stringify(page)).toBe(snapshot);
@@ -221,5 +222,49 @@ describe('page remise aux plugins pendant un geste (sujet 324)', () => {
     ]);
     modes.dressing(page);
     expect(guard.warnings()).toHaveLength(3);
+  });
+});
+
+describe('flèche qui arrive sur une partie (sujet 333)', () => {
+  /** Mode dont `connects` et les suites notent la partie reçue ; les parties sont « haut » (y < 30) et « bas ». */
+  function spy() {
+    const seen = {
+      connects: [] as Array<string | undefined>,
+      created: [] as Array<string | undefined>,
+      reconnected: [] as Array<string | undefined>,
+    };
+    const mode: PageModeDefinition = {
+      id: 'boom',
+      namespace: 'boom',
+      name: 'Boom',
+      edges: {
+        connects: (_page, _source, _target, part) => (seen.connects.push(part), true),
+        created: (_edit, _id, _current, part) => void seen.created.push(part),
+        reconnected: (_edit, _id, part) => void seen.reconnected.push(part),
+      },
+      parts: {
+        at: (_page, _shape, point) => (point.y < 30 ? 'haut' : 'bas'),
+        bounds: () => ({ x: 0, y: 0, width: 1, height: 1 }),
+      },
+    };
+    return { seen, ...setup(mode) };
+  }
+
+  it('endAccepts passe à connects la partie sous le point, au bout d’arrivée seulement', () => {
+    const { seen, modes, page } = spy();
+    const b = page.shapes[1]!;
+    modes.endAccepts(page, 'target', 'a')?.(b, { x: 310, y: 5 });
+    modes.endAccepts(page, 'target', 'a')?.(b, { x: 310, y: 50 });
+    modes.endAccepts(page, 'source', 'a')?.(b, { x: 310, y: 5 });
+    expect(seen.connects).toEqual(['haut', 'bas', undefined]);
+  });
+
+  it('created et reconnected reçoivent la partie visée (et rien si le départ est rebranché)', () => {
+    const { seen, modes } = spy();
+    modes.edgeCreated('p', 'e', 'haut');
+    modes.edgeReconnected('p', 'e', 'bas');
+    modes.edgeReconnected('p', 'e');
+    expect(seen.created).toEqual(['haut']);
+    expect(seen.reconnected).toEqual(['bas', undefined]);
   });
 });

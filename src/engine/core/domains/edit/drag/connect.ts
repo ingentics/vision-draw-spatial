@@ -41,6 +41,7 @@ export class ConnectDrags {
         grid: 0,
       });
       connect.target = attachment.kind === 'free' ? undefined : attachment;
+      connect.part = this.core.shapeParts.targetedPart(page, connect.target, screen);
       connect.exit = sideExit;
       const target = connect.target && page.shapes.find((s) => s.id === connect.target!.shapeId);
       const from = this.core.anchors.anchorPosition(source, sideExit);
@@ -58,7 +59,7 @@ export class ConnectDrags {
         this.core.settings.selection.accentColor,
       );
       line.position.z = top + 0.2;
-      this.core.preview.showConnectionHints(page, connect.target, line);
+      this.core.preview.showConnectionHints(page, connect.target, line, undefined, [], connect.part);
       return;
     }
     // Boucle sur la forme elle-même : départ stable (point libre du côté le plus proche de son milieu), compté
@@ -81,6 +82,7 @@ export class ConnectDrags {
       grid: 0,
     });
     connect.target = attachment.kind === 'free' ? undefined : attachment;
+    connect.part = this.core.shapeParts.targetedPart(page, connect.target, screen);
     const target = connect.target && page.shapes.find((s) => s.id === connect.target!.shapeId);
     const loop = target?.id === source.id;
     if (loop && connect.target?.kind === 'fixed' && samePoints([connect.target.constraint], [loopExit.constraint]))
@@ -113,7 +115,7 @@ export class ConnectDrags {
     const path = [exit.point, ...(connect.loop ?? []), end];
     const line = connectorPreview(path, this.core.camera.state.zoom, this.core.settings.selection.accentColor);
     line.position.z = top + 0.2;
-    this.core.preview.showConnectionHints(page, connect.target, line, undefined, taken);
+    this.core.preview.showConnectionHints(page, connect.target, line, undefined, taken, connect.part);
   }
 
   /** Connecteur lâché sur une forme : la flèche est créée (style des paramètres) et sélectionnée. */
@@ -135,7 +137,7 @@ export class ConnectDrags {
     // Flèche créée dans un calque : ses points sont en coordonnées de page.
     if (drag.loop) setEdgePoints(pageTree, id, drag.loop);
     // Le mode de la page reçoit la flèche (ex. ajoutée au flux courant), dans la même étape d'annulation.
-    this.core.pageModes.edgeCreated(drag.pageId, id);
+    this.core.pageModes.edgeCreated(drag.pageId, id, drag.part);
     this.core.file.documentChanged([drag.pageId]);
     const edge = this.core.pages.getCurrentPage()?.edges.find((e) => e.id === id);
     if (edge) this.core.selection.select({ type: 'edge', element: edge });
