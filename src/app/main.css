@@ -390,8 +390,10 @@ body {
   color: var(--fg);
 }
 
-/* Barre repliée : bande fine sur toute la hauteur, nom écrit à la verticale. */
+/* Barre repliée : bande fine sur toute la hauteur, nom écrit à la verticale. Positionnée, comme
+   `.sidebar`, pour que son ombre passe devant la zone de dessin (elle-même positionnée). */
 .sidebar-strip {
+  position: relative;
   display: flex;
   flex: 0 0 26px;
   flex-direction: column;
@@ -406,11 +408,15 @@ body {
 }
 
 .sidebar-strip-left {
+  /* Au-dessus de la zone de dessin (qui la suit dans le DOM) pour que l'ombre s'y voie. */
+  z-index: 1;
   border-right: 1px solid var(--border);
+  box-shadow: 4px 0 12px var(--bar-shadow);
 }
 
 .sidebar-strip-right {
   border-left: 1px solid var(--border);
+  box-shadow: -4px 0 12px var(--bar-shadow);
 }
 
 .sidebar-strip:hover,
