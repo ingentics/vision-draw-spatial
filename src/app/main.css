@@ -225,6 +225,11 @@ body {
   min-height: 0;
 }
 
+/* Barres latérales qui glissent vers leur bord ou en arrivent (passage page ↔ vue graphe) : rognées au bord. */
+.viewport.sliding {
+  overflow: hidden;
+}
+
 /* La vue se réduit quand un panneau est ouvert : le cadrage reste dans la partie visible. */
 .canvas-area {
   position: relative;

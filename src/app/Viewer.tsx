@@ -46,6 +46,7 @@ import type { AppPlugins } from './pluginsContext';
 import { SettingsPanel } from './SettingsPanel';
 import { ContextPanel, contextTitle } from './ContextPanel';
 import { Sidebar } from './Sidebar';
+import type { SidebarSlide } from './Sidebar';
 import { CommentCard, CommentEditor, commentTextStyle } from './comment';
 
 const FONTS = {
@@ -133,6 +134,11 @@ export function Viewer({
   /** Commentaire en cours d'édition en place (dans l'encart du rendu) : élément, flèche ou non, commentaire actuel. */
   const [commentEdit, setCommentEdit] = useState<CommentEditRequest>();
   const [transitioning, setTransitioning] = useState(false);
+  /**
+   * Passage page ↔ vue graphe en cours (sujet 363) : les barres latérales partent vers leur bord (`out`) ou en
+   * arrivent (`in`, avec la page d'arrivée, dont les barres s'affichent dès le début de la plongée).
+   */
+  const [graphSlide, setGraphSlide] = useState<{ slide: SidebarSlide; pageId?: string }>();
   const [labelEdit, setLabelEdit] = useState<LabelEditRequest>();
   /** Éditeur de texte en place (commandes du panneau de format) et format de sa sélection. */
   const editorHandle = useRef<RichEditorHandle | undefined>(undefined);
@@ -371,9 +377,14 @@ export function Viewer({
       });
       const refreshBack = () => setParentPages(instance.getParentPages());
       // La barre du courant du mode part au début d'une transition et n'arrive qu'à sa fin.
-      instance.on('transitionStart', () => setTransitioning(true));
+      instance.on('transitionStart', (from, to) => {
+        setTransitioning(true);
+        if (to === GRAPH_PAGE_ID) setGraphSlide({ slide: 'out' });
+        else if (from === GRAPH_PAGE_ID) setGraphSlide({ slide: 'in', pageId: to });
+      });
       instance.on('transitionEnd', () => {
         setTransitioning(false);
+        setGraphSlide(undefined);
         refreshBack();
       });
       instance.on('historyChange', () => {
@@ -424,6 +435,11 @@ export function Viewer({
   const editablePages = document !== undefined && engine?.canEditPages() === true;
   const canAddShapes = pageId !== undefined && pageId !== GRAPH_PAGE_ID;
   const shownPage = document?.pages.find((page) => page.id === pageId);
+  // Page affichée (pas la vue graphe) : le panneau contextuel est toujours ouvert dessus. Pendant une plongée depuis
+  // la vue graphe, les barres sont déjà celles de la page d'arrivée.
+  const panelsPageId = graphSlide?.pageId ?? pageId;
+  const currentPage =
+    panelsPageId !== GRAPH_PAGE_ID ? document?.pages.find((page) => page.id === panelsPageId) : undefined;
   // Formes de la page courante, pour la catégorie « Utilisées » de la palette.
   const usedShapes = useMemo(
     () => (canAddShapes && engine ? engine.usedTemplates(shownPage) : []),
@@ -490,8 +506,6 @@ export function Viewer({
     editor?.clear(clear);
     engine?.setTextFormat(cellId, patch);
   };
-  // Page affichée (pas la vue graphe) : le panneau contextuel est toujours ouvert dessus.
-  const currentPage = pageId !== GRAPH_PAGE_ID ? document?.pages.find((page) => page.id === pageId) : undefined;
   // Titre de la barre de droite (et de sa bande quand elle est repliée) ; pas de panneau, pas de barre.
   const rightTitle = diagnosticsOpen
     ? 'Diagnostics'
@@ -625,8 +639,8 @@ export function Viewer({
           {error && <span className="badge error">{error}</span>}
         </header>
 
-        <div className="viewport">
-          {pageId !== GRAPH_PAGE_ID && (
+        <div className={graphSlide ? 'viewport sliding' : 'viewport'}>
+          {panelsPageId !== GRAPH_PAGE_ID && (
             <Sidebar
               side="left"
               label="Formes"
@@ -634,9 +648,10 @@ export function Viewer({
               stripText={settings.panels.stripText}
               minCanvas={settings.panels.minCanvas}
               onChange={(left) => onSettingsChange({ panels: { left } })}
+              slide={graphSlide?.slide}
             >
               <Palette
-                disabled={!canAddShapes}
+                disabled={!canAddShapes && !graphSlide?.pageId}
                 used={usedShapes}
                 content={paletteContent}
                 onAdd={(template) => engine?.addShape(template)}
@@ -766,6 +781,7 @@ export function Viewer({
             <Sidebar
               side="right"
               label={rightTitle}
+              slide={graphSlide?.slide}
               layout={settings.panels.right}
               stripText={settings.panels.stripText}
               minCanvas={settings.panels.minCanvas}

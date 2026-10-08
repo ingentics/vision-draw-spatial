@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { DEFAULT_SETTINGS, SETTINGS_LIMITS } from '../engine';
 import type { PanelsSettings, SidePanelSettings } from '../engine';
@@ -13,6 +13,12 @@ type Side = 'left' | 'right';
 
 /** Pas des flèches du clavier sur la poignée. */
 const KEY_STEP = 16;
+
+/** Durée du glissement de la barre vers son bord ou depuis lui (passage page ↔ vue graphe, sujet 363). */
+const SLIDE_MS = 200;
+
+/** Glissement de la barre : `in` arrive depuis son bord, `out` y part (et y reste jusqu'à son retrait). */
+export type SidebarSlide = 'in' | 'out';
 
 const ARROWS = { left: { collapse: '«', expand: '»' }, right: { collapse: '»', expand: '«' } } as const;
 
@@ -46,10 +52,12 @@ interface SidebarProps {
   /** Largeur que le plan garde toujours quand on élargit la barre (paramètre `panels.minCanvas`). */
   minCanvas: number;
   onChange: (patch: Partial<SidePanelSettings>) => void;
+  /** Glissement en cours ; la zone de dessin suit la place libérée ou prise. */
+  slide?: SidebarSlide;
   children: ReactNode;
 }
 
-export function Sidebar({ side, label, layout, stripText, minCanvas, onChange, children }: SidebarProps) {
+export function Sidebar({ side, label, layout, stripText, minCanvas, onChange, slide, children }: SidebarProps) {
   const { min, max } = SETTINGS_LIMITS[`panels.${side}.width`];
   const defaultWidth = DEFAULT_SETTINGS.panels[side].width;
   // Largeur suivie en direct pendant un glisser ; enregistrée seulement au lâcher.
@@ -58,10 +66,30 @@ export function Sidebar({ side, label, layout, stripText, minCanvas, onChange, c
   const handle = useRef<HTMLDivElement>(null);
   const width = dragWidth ?? layout.width;
   useEffect(() => setDragWidth(undefined), [layout.width]);
+  // Barre ou bande repliée : l'élément qui glisse.
+  const root = useRef<HTMLElement | null>(null);
+  const setRoot = (element: HTMLElement | null) => {
+    root.current = element;
+  };
+  // Marge négative de la largeur de l'élément : il passe derrière son bord et la zone de dessin prend sa place.
+  useLayoutEffect(() => {
+    const element = root.current;
+    if (!slide || !element) return;
+    const margin = side === 'left' ? 'marginLeft' : 'marginRight';
+    const shown = { [margin]: '0px' };
+    const hidden = { [margin]: `${-element.offsetWidth}px` };
+    const animation = element.animate(slide === 'in' ? [hidden, shown] : [shown, hidden], {
+      duration: SLIDE_MS,
+      easing: 'ease-out',
+      fill: slide === 'out' ? 'forwards' : 'none',
+    });
+    return () => animation.cancel();
+  }, [slide, side]);
 
   if (layout.collapsed) {
     return (
       <button
+        ref={setRoot}
         type="button"
         className={`sidebar-strip sidebar-strip-${side} sidebar-strip-${stripText}`}
         onClick={() => onChange({ collapsed: false })}
@@ -87,7 +115,7 @@ export function Sidebar({ side, label, layout, stripText, minCanvas, onChange, c
   const direction = side === 'left' ? 1 : -1;
 
   return (
-    <div className={`sidebar sidebar-${side}`} style={{ width }}>
+    <div ref={setRoot} className={`sidebar sidebar-${side}`} style={{ width }}>
       <CollapseContext.Provider value={{ side, collapse: () => onChange({ collapsed: true }) }}>
         {children}
       </CollapseContext.Provider>
