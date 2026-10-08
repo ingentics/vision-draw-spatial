@@ -825,48 +825,10 @@ body {
   text-decoration: underline;
 }
 
-/* Bouton Retour et menu des pages parentes */
-.back {
-  position: relative;
-}
-
 .button:disabled {
   color: var(--muted);
   cursor: default;
   opacity: 0.6;
-}
-
-.back-menu {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  z-index: 10;
-  min-width: 220px;
-  margin: 0;
-  padding: 4px 0;
-  list-style: none;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-}
-
-.back-menu button {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  width: 100%;
-  padding: 6px 12px;
-  font: inherit;
-  text-align: left;
-  border: none;
-  background: none;
-  cursor: pointer;
-}
-
-.back-menu button:hover,
-.back-menu button:focus-visible {
-  background: var(--panel);
 }
 
 /* Lanceur */
@@ -2137,6 +2099,85 @@ body {
 .mode-bar-slide.open > .mode-bar {
   transform: none;
   animation: mode-bar-slide-in var(--mode-bar-slide) ease-out;
+}
+
+/* Boutons des pages parentes (`ParentPagesBar`, sujet 357), centrés en haut de la zone de dessin, sous la barre du
+   mode s'il y en a une : ils descendent depuis le haut en entrant, remontent hors de la vue en sortant. */
+.parent-pages {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  /* Au-dessus de la barre du mode (z-index 2), qu'ils traversent en glissant. */
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 16px;
+  pointer-events: none;
+}
+
+.mode-bar-slide.open ~ .parent-pages {
+  top: 28px;
+}
+
+.parent-page {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 280px;
+  margin-top: 8px;
+  padding: 5px 12px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  pointer-events: auto;
+  transform: translateY(calc(-100% - 20px));
+  transition: transform var(--parent-pages-slide) ease-in;
+}
+
+.parent-page:hover,
+.parent-page:focus-visible {
+  background: var(--panel);
+}
+
+.parent-pages.open > .parent-page {
+  transform: none;
+  animation: parent-pages-slide-in var(--parent-pages-slide) ease-out;
+}
+
+@keyframes parent-pages-slide-in {
+  from {
+    transform: translateY(calc(-100% - 20px));
+  }
+}
+
+.parent-page-up {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.parent-page .tab-mode-icon {
+  flex-shrink: 0;
+  margin-right: 0;
+}
+
+.parent-page-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @keyframes mode-bar-slide-in {

@@ -95,16 +95,16 @@ describe('glissade', () => {
 });
 
 describe('raccourci « supprimer la sélection »', () => {
-  it('Backspace supprime s’il y a une sélection, sinon c’est Retour', () => {
+  it('Backspace supprime s’il y a une sélection, sinon ne fait rien (plus de Retour, sujet 357)', () => {
     expect(resolveShortcut('Backspace', DEFAULT_SHORTCUTS, { canDelete: true })).toBe('deleteSelection');
-    expect(resolveShortcut('Backspace', DEFAULT_SHORTCUTS, { canDelete: false })).toBe('back');
+    expect(resolveShortcut('Backspace', DEFAULT_SHORTCUTS, { canDelete: false })).toBeUndefined();
   });
 
   it('touche paramétrable ; sans sélection, une touche dédiée ne fait rien', () => {
     const shortcuts = { ...DEFAULT_SHORTCUTS, deleteSelection: 'x' };
     expect(resolveShortcut('X', shortcuts, { canDelete: true })).toBe('deleteSelection');
     expect(resolveShortcut('x', shortcuts, { canDelete: false })).toBeUndefined();
-    expect(resolveShortcut('Backspace', shortcuts, { canDelete: true })).toBe('back');
+    expect(resolveShortcut('Backspace', shortcuts, { canDelete: true })).toBeUndefined();
   });
 });
 

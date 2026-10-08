@@ -67,19 +67,10 @@ const SHORTCUT_LABELS: Record<keyof Shortcuts, string> = {
   toggleMinimap: 'Afficher / masquer la mini-carte',
   toggleFlatten: 'Aplatir / rétablir les volumes (iso, 3D)',
   overview: 'Vue globale ↔ 1:1',
-  back: 'Retour (Alt+← aussi)',
   deleteSelection: 'Supprimer la sélection (Suppr aussi)',
   placementVariant: 'Variante de placement d’une flèche (ancrage manuel)',
   editComment: 'Éditer le commentaire (sélectionné, sinon survolé)',
 };
-
-/**
- * Raccourcis qui peuvent partager une touche : supprimer agit seulement s'il y a une sélection,
- * sinon la touche garde son autre action (Backspace : supprimer, ou Retour).
- */
-const SHARED_KEYS: Array<[keyof Shortcuts, keyof Shortcuts]> = [['deleteSelection', 'back']];
-const canShare = (a: keyof Shortcuts, b: keyof Shortcuts) =>
-  SHARED_KEYS.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
 
 /**
  * Nœud de l'arbre des catégories : une section, l'une de ses sous-sections, ou l'un des groupes d'une sous-section
@@ -1337,15 +1328,14 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
                   label={SHORTCUT_LABELS[action]}
                   value={controls.shortcuts[action]}
                   taken={Object.entries(controls.shortcuts)
-                    .filter(([other]) => other !== action && !canShare(action, other as keyof Shortcuts))
+                    .filter(([other]) => other !== action)
                     .map(([, key]) => key.toLowerCase())}
                   onChange={(key) => onChange({ controls: { shortcuts: { [action]: key } } })}
                 />
               ))}
               <p className="hint muted">
-                Le déplacement (ZQSD / WASD, flèches), la rotation (A / E) et Espace ne sont pas attribuables. Supprimer
-                et Retour peuvent partager une touche : elle supprime s’il y a une sélection, sinon elle revient en
-                arrière.
+                Le déplacement (ZQSD / WASD, flèches), la rotation (A / E) et Espace ne sont pas attribuables. Remonter
+                à la page parente : Alt+↑.
               </p>
               <Choice
                 label="Sélection multiple : touche + clic"

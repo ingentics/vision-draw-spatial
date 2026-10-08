@@ -33,7 +33,7 @@ export interface CameraHost {
   heldKeys?(held: HeldKeys): void;
   /** Survol (undefined quand le pointeur quitte le canvas). */
   hover?(screen: Point | undefined): void;
-  /** Retour (Retour arrière, Alt+←). */
+  /** Retour (Alt+↑). */
   back?(): void;
   /** Bascule vue 2D ↔ iso (touche I). */
   toggleViewMode?(): void;

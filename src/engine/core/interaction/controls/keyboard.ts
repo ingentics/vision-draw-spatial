@@ -104,11 +104,8 @@ export class KeyboardControls {
       if (!event.repeat) host.deleteSelection?.();
       return;
     }
-    // Retour (SPEC §9.2) : son raccourci, ou Alt+← comme dans un navigateur.
-    const isBack =
-      (action === 'back' && !event.ctrlKey && !event.metaKey && !event.altKey) ||
-      (event.code === 'ArrowLeft' && event.altKey && !event.ctrlKey && !event.metaKey);
-    if (isBack) {
+    // Retour (SPEC §9.2) : Alt+↑, remonter (sujet 357) ; ni Backspace (trop utilisé) ni Alt+← (souvent déjà pris).
+    if (event.code === 'ArrowUp' && event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey) {
       event.preventDefault();
       if (!event.repeat) host.back?.();
       return;

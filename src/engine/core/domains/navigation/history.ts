@@ -1,7 +1,7 @@
 import { fitBounds } from '../../interaction/cameraMath';
 import type { CameraState } from '../../interaction/cameraMath';
 import { NavigationHistory, findParents } from '../../interaction/navigationHistory';
-import type { HistoryEntry } from '../../interaction/navigationHistory';
+import type { HistoryEntry, ParentLink } from '../../interaction/navigationHistory';
 import type { Rect } from '../../model/types';
 import type { BackTarget, InitialView } from '../types';
 import type { EngineCore } from '../EngineCore';
@@ -36,6 +36,13 @@ export class BackHistory {
     this.stack.replace(initialView?.history ?? []);
   }
 
+  /** Pages parentes de la page courante (liens vers elle), la plus récemment utilisée d'abord ; aucune hors page. */
+  parents(): ParentLink[] {
+    const page = this.core.pages.getCurrentPage();
+    if (!page || !this.core.file.document) return [];
+    return findParents(this.core.file.document, page.id, this.core.links.linkUsage);
+  }
+
   getBackTarget(): BackTarget {
     const page = this.core.pages.getCurrentPage();
     if (!page || !this.core.file.document) return { kind: 'none' };
@@ -67,6 +74,12 @@ export class BackHistory {
   backTo(parentPageId: string): void {
     const page = this.core.pages.getCurrentPage();
     if (!page || !this.core.file.document || !this.core.canInteract()) return;
+    // La pile y ramène : retour exact à la vue d'origine, comme « Retour ».
+    const entry = this.stack.peek();
+    if (entry && entry.targetPageId === page.id && entry.pageId === parentPageId) {
+      this.back();
+      return;
+    }
     const parent = findParents(this.core.file.document, page.id, this.core.links.linkUsage).find(
       (p) => p.pageId === parentPageId,
     );

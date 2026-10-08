@@ -49,7 +49,6 @@ export const CONTROLS = {
     toggleMinimap: code(DEFAULT_SHORTCUTS.toggleMinimap),
     toggleFlatten: code(DEFAULT_SHORTCUTS.toggleFlatten),
     overview: code(DEFAULT_SHORTCUTS.overview),
-    back: code(DEFAULT_SHORTCUTS.back),
     deleteSelection: code(DEFAULT_SHORTCUTS.deleteSelection),
     placementVariant: code(DEFAULT_SHORTCUTS.placementVariant),
     editComment: code(DEFAULT_SHORTCUTS.editComment),

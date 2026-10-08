@@ -10,7 +10,7 @@ import type { StylePreset } from './core/edit/stylePresets';
 import type { OrderMove } from './core/format/order';
 import type { DrawioTree } from './core/format/xmlTree';
 import type { CameraState, ViewMode } from './core/interaction/cameraMath';
-import type { HistoryEntry, LinkUsage } from './core/interaction/navigationHistory';
+import type { HistoryEntry, LinkUsage, ParentLink } from './core/interaction/navigationHistory';
 import type { PickedElement } from './core/interaction/pick';
 import type { DocumentModel, LinkModel, PageModel, Point, Rect } from './core/model/types';
 import type { ModeRegistryView, ModeScope } from './core/modes/registry';
@@ -427,7 +427,15 @@ export class Engine {
     this.core.history.back();
   }
 
-  /** Remonte vers une page parente choisie (sortie par la forme qui porte le lien). */
+  /** Pages parentes de la page courante (pages ayant un lien vers elle), la plus récemment utilisée d'abord. */
+  getParentPages(): ParentLink[] {
+    return this.core.history.parents();
+  }
+
+  /**
+   * Remonte vers une page parente choisie : comme `back` si la pile y ramène (vue d'origine exacte), sinon sortie par
+   * la forme qui porte le lien.
+   */
   backTo(parentPageId: string): void {
     this.core.history.backTo(parentPageId);
   }

@@ -16,12 +16,9 @@ export interface Shortcuts {
   toggleFlatten: string;
   /** Vue globale ↔ 1:1 (l'Entrée du pavé numérique donne aussi la touche « Enter »). */
   overview: string;
-  /** Retour (Alt+← fonctionne en plus, comme dans un navigateur). */
-  back: string;
   /**
-   * Supprimer la sélection (Suppr fonctionne en plus). Prioritaire seulement s'il y a une sélection
-   * supprimable : la même touche que Retour (Backspace, la touche « delete » du Mac) supprime la
-   * sélection, sinon revient en arrière.
+   * Supprimer la sélection (Suppr fonctionne en plus ; défaut : Backspace, la touche « delete » du Mac). Retour
+   * n'a pas de raccourci configurable : Alt+↑, fixe (sujet 357 ; Backspace, trop utilisé, ne revient plus en arrière).
    */
   deleteSelection: string;
   /** Variante de placement de la flèche sélectionnée (ancrage manuel), une étape d'annulation par appui. */
@@ -37,7 +34,6 @@ export const DEFAULT_SHORTCUTS: Shortcuts = {
   toggleMinimap: 'm',
   toggleFlatten: 'v',
   overview: 'Enter',
-  back: 'Backspace',
   deleteSelection: 'Backspace',
   placementVariant: 'f',
   editComment: 'c',
@@ -60,8 +56,8 @@ export const RESERVED_CODES = [
 ];
 
 /**
- * Action d'une touche, selon le contexte : `deleteSelection` d'abord s'il y a une sélection
- * supprimable (elle peut partager sa touche avec Retour), sinon le premier raccourci de la touche.
+ * Action d'une touche, selon le contexte : `deleteSelection` seulement s'il y a une sélection supprimable, sinon le
+ * premier autre raccourci de la touche.
  */
 export function resolveShortcut(
   key: string,

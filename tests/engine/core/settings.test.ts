@@ -110,7 +110,7 @@ describe('shortcutAction', () => {
     expect(shortcutAction('I', DEFAULT_SHORTCUTS)).toBe('toggleViewMode');
     expect(shortcutAction('P', DEFAULT_SHORTCUTS)).toBe('toggle3d');
     expect(shortcutAction('Enter', DEFAULT_SHORTCUTS)).toBe('overview');
-    expect(shortcutAction('Backspace', DEFAULT_SHORTCUTS)).toBe('back');
+    expect(shortcutAction('Backspace', DEFAULT_SHORTCUTS)).toBe('deleteSelection');
     expect(shortcutAction('x', DEFAULT_SHORTCUTS)).toBeUndefined();
   });
 

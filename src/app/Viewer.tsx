@@ -8,7 +8,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { GRAPH_PAGE_ID, isFilePath, jumpValue, labelPlacePatch, SPATIAL } from '../engine';
 import type {
-  BackTarget,
   CommentEditRequest,
   DocumentModel,
   EdgeModel,
@@ -26,7 +25,6 @@ import type {
   UnsupportedReport,
   ViewMode,
 } from '../engine';
-import { BackButton } from '../react/BackButton';
 import { DrawioSpatial } from '../react/DrawioSpatial';
 import { exportJson } from './diagnosticsExport';
 import { DiagnosticsPanel } from './DiagnosticsPanel';
@@ -40,6 +38,7 @@ import type { RichEditorHandle, SelectionFormat } from './LabelEditor';
 import { wholeTextChange } from './TextFormat';
 import type { TextAction } from './TextFormat';
 import { PageTabs } from './PageTabs';
+import { ParentPagesBar } from './ParentPagesBar';
 import { MULTI_SELECT_LABELS } from './SettingsPanel';
 import { Palette, PALETTE_MIME } from './Palette';
 import { PluginsContext } from './pluginsContext';
@@ -111,8 +110,11 @@ export function Viewer({
   };
   /** Paramètres : fenêtre modale au-dessus de l'appli. */
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [backTarget, setBackTarget] = useState<BackTarget>({ kind: 'none' });
-  const [backChoices, setBackChoices] = useState<ParentLink[]>();
+  /** Pages parentes de la page courante : boutons du mode navigation (sujet 357). */
+  const [parentPages, setParentPages] = useState<ParentLink[]>([]);
+  /** Retour arrière avec plusieurs parents et une pile vide : les boutons des parents restent affichés pour choisir. */
+  const [backChoosing, setBackChoosing] = useState(false);
+  const dismissBackChoice = useCallback(() => setBackChoosing(false), []);
   const [modified, setModified] = useState(false);
   const [autosavedAt, setAutosavedAt] = useState<number>();
   /** Sauvegarde automatique en cours d'écriture (texte d'état de la barre d'outils). */
@@ -367,7 +369,7 @@ export function Viewer({
         setError(undefined);
         setReport(instance.getUnsupportedReport());
       });
-      const refreshBack = () => setBackTarget(instance.getBackTarget());
+      const refreshBack = () => setParentPages(instance.getParentPages());
       // La barre du courant du mode part au début d'une transition et n'arrive qu'à sa fin.
       instance.on('transitionStart', () => setTransitioning(true));
       instance.on('transitionEnd', () => {
@@ -379,7 +381,7 @@ export function Viewer({
         scheduleSave();
       });
       instance.on('linkUsed', scheduleSave);
-      instance.on('backChoice', setBackChoices);
+      instance.on('backChoice', () => setBackChoosing(true));
       instance.on('modifiedChange', setModified);
       instance.on('undoChange', (undo, redo) => setUndoLabels({ undo, redo }));
       instance.on('selectionChange', setSelection);
@@ -391,6 +393,8 @@ export function Viewer({
       instance.on('documentChange', (doc) => {
         setDocument(doc);
         setReport(instance.getUnsupportedReport());
+        // Un lien ajouté ou retiré change les pages parentes.
+        refreshBack();
       });
       // Une page peut imposer ses réglages iso (état de vue du fichier) : l'appli les reprend.
       instance.on('settingsChange', (next) => {
@@ -401,7 +405,7 @@ export function Viewer({
       });
       instance.on('pageChange', (page) => {
         setPageId(page.id);
-        setBackChoices(undefined);
+        setBackChoosing(false);
         refreshBack();
         scheduleSave();
       });
@@ -498,16 +502,6 @@ export function Viewer({
     <PluginsContext.Provider value={plugins}>
       <div className="app" style={{ '--bar-shadow-opacity': settings.panels.shadow } as CSSProperties}>
         <header className="toolbar">
-          <BackButton
-            target={backTarget}
-            onBack={() => (backChoices ? setBackChoices(undefined) : engine?.back())}
-            choices={backChoices}
-            onChoose={(id) => {
-              setBackChoices(undefined);
-              engine?.backTo(id);
-            }}
-            onDismiss={() => setBackChoices(undefined)}
-          />
           <button
             type="button"
             className="button file-button"
@@ -668,6 +662,20 @@ export function Viewer({
               indicator={transitioning ? undefined : modeIndicator}
               onChoose={(value) => engine?.setModeCurrent(value)}
               onRename={(label) => engine?.renameModeCurrent(label)}
+            />
+            <ParentPagesBar
+              parents={parentPages}
+              open={!transitioning && (modeHint === 'navigation' || backChoosing)}
+              choosing={backChoosing}
+              modeOf={(id) => {
+                const page = document?.pages.find((p) => p.id === id);
+                return page && modes?.modeOf(page);
+              }}
+              onChoose={(id) => {
+                setBackChoosing(false);
+                engine?.backTo(id);
+              }}
+              onDismiss={dismissBackChoice}
             />
             {labelEdit && (
               <LabelEditor

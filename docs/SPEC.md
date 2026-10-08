@@ -181,7 +181,6 @@ src/
     Launcher.tsx
     Toolbar.tsx
     Palette.tsx          # M2
-    BackButton.tsx
   app/
     main.tsx             # application de démonstration
 tests/
@@ -578,10 +577,10 @@ Formes et arêtes sont dessinées dans l'**ordre du document** (une arête décl
 | Volume d'une forme | Panneau contextuel, section « Volume » : « Épaisseur » (`spatial.height`), « Élévation » (`spatial.elevation`) (§14.3) |
 | Annuler / rétablir | Boutons de la barre d'outils, **Ctrl+Z**, **Ctrl+Maj+Z** / Ctrl+Y (§14.1) |
 | Entrer dans un lien | **⌘ + clic** (touche et geste réglables : `controls.followLinkKey`, `controls.followLinkGesture`) ; maintenir ⌘ fait ressortir les zones liées |
-| Retour | Bouton « Retour » + raccourci (ex. Backspace / Alt+←) |
+| Retour | Boutons des pages parentes (mode navigation) + Alt+↑ |
 | Basculer 2D ↔ iso | Boutons « 2D \| Iso » de la barre d'outils, touche **I** |
 
-Le déplacement s'appuie sur les touches physiques (`KeyboardEvent.code`) pour gérer correctement les dispositions AZERTY / QWERTY ; les raccourcis (I, G, M, Entrée, Retour arrière) suivent la touche affichée (`KeyboardEvent.key`) et sont configurables (§13). Les touches sont ignorées pendant une saisie (champ, liste) ; Entrée est laissée aux boutons qui ont le focus.
+Le déplacement s'appuie sur les touches physiques (`KeyboardEvent.code`) pour gérer correctement les dispositions AZERTY / QWERTY ; les raccourcis (I, G, M, Entrée, Retour arrière pour supprimer) suivent la touche affichée (`KeyboardEvent.key`) et sont configurables (§13). Les touches sont ignorées pendant une saisie (champ, liste) ; Entrée est laissée aux boutons qui ont le focus.
 
 **Glissade (drift).** Pour éviter les à-coups, un déplacement ne s'arrête pas net :
 
@@ -681,8 +680,8 @@ Réalisation retenue — **un seul trajet de caméra**, sans étape intermédiai
 Réalisation retenue :
 
 - **Transition inverse** : la même transition que l'aller, jouée à l'envers en un seul trajet de caméra. La page courante est posée dans la forme d'origine (image identique au départ), la caméra recule jusqu'à la vue mémorisée de la page d'origine, la page courante rétrécit et s'efface.
-- **Bouton « Retour »** (coquille React, `react/BackButton.tsx`) à gauche de la barre d'outils ; raccourcis **Retour arrière** et **Alt+←**. Infobulle indiquant la destination ; grisé s'il n'y a nulle part où revenir.
-- **Pile vide** : le haut de pile ne compte que s'il mène à la page courante ; sinon on cherche les **pages parentes** (pages ayant un lien — forme de préférence, sinon arête — vers la page courante). Un seul parent : on y remonte directement, en sortant par la forme qui porte le lien. Plusieurs : **menu** sous le bouton, trié par usage récent (« il y a 5 min », « jamais utilisé »), fermé par Échap ou clic extérieur.
+- **Boutons des pages parentes** (sujet 357, `app/ParentPagesBar.tsx`) : en mode navigation (Espace maintenue), un bouton par page parente glisse depuis le haut de la zone de dessin (icône du mode de la page, titre) ; un clic y remonte, par la pile si elle y ramène (vue d'origine exacte). Pas de parent, pas de bouton. Raccourci **Alt+↑** (fixe ; ni Retour arrière, trop utilisé, ni Alt+←, souvent déjà pris).
+- **Pile vide** : le haut de pile ne compte que s'il mène à la page courante ; sinon on cherche les **pages parentes** (pages ayant un lien — forme de préférence, sinon arête — vers la page courante). Un seul parent : on y remonte directement, en sortant par la forme qui porte le lien. Plusieurs : les **boutons des pages parentes** apparaissent pour choisir, triés par usage récent (infobulle « lien suivi il y a 5 min », « lien jamais suivi »), fermés par Échap ou clic extérieur.
 - **Usage des liens** (`from>to` → date) : enregistré à chaque lien suivi, persisté avec le fichier dans le `FileStore` (§5), comme la pile de navigation.
 - Transitions désactivées ou `prefers-reduced-motion` : retour instantané, même pile, même vue d'arrivée.
 
@@ -735,7 +734,7 @@ interface Settings {
     multiSelectKey: 'ctrl' | 'meta' | 'shift' | 'alt'; // touche + clic = sélection multiple (§11.1) : 'ctrl'
     followLinkKey: 'ctrl' | 'meta' | 'shift' | 'alt' | 'none'; // touche + geste = suivre un lien (§11.1) : 'meta'
     followLinkGesture: 'click' | 'doubleClick'; // geste pour suivre un lien, avec la touche : 'click'
-    shortcuts: { toggleViewMode: 'i'; toggle3d: 'p'; toggleGraph: 'g'; toggleMinimap: 'm'; toggleFlatten: 'v'; overview: 'Enter'; back: 'Backspace'; deleteSelection: 'Backspace' };
+    shortcuts: { toggleViewMode: 'i'; toggle3d: 'p'; toggleGraph: 'g'; toggleMinimap: 'm'; toggleFlatten: 'v'; overview: 'Enter'; deleteSelection: 'Backspace' };
   };
   view: {
     defaultMode: 'top' | 'iso' | '3d'; isoAngleDeg: number; isoAzimuthDeg: number; switchDurationMs: number; // 'top', 35.26, -45, 450
@@ -807,7 +806,7 @@ Réalisation retenue :
 - Les bornes de la caméra (zoom, inclinaison et champ de vision de la 3D) sont un réglage du module `interaction/cameraMath` (`setCameraLimits`), commun à toutes les vues de la page. Un zoom maximal inférieur au minimal est ramené au minimal.
 - Restent dans le code les valeurs purement techniques (ordres de dessin, tolérances numériques, stencil) et les valeurs de fidélité à draw.io (couleurs et tailles par défaut des styles).
 - **Réduire les animations** : « comme le système » (`prefers-reduced-motion`, suivi en direct), « toujours » ou « jamais ». Réduites = transitions de liens, bascule iso, vue globale ↔ 1:1 instantanées, **glissade et contour de sélection animé** coupés.
-- **Supprimer la sélection** (`deleteSelection`, Backspace par défaut, la touche « delete » du Mac ; Suppr fonctionne toujours) : prioritaire seulement s'il y a une sélection supprimable. Il peut partager sa touche avec Retour : Backspace supprime la sélection, sinon revient en arrière.
+- **Supprimer la sélection** (`deleteSelection`, Backspace par défaut, la touche « delete » du Mac ; Suppr fonctionne toujours) : prioritaire seulement s'il y a une sélection supprimable ; sans sélection, Backspace ne fait rien (il ne revient plus en arrière, sujet 357).
 - **Raccourcis par touche affichée** (`KeyboardEvent.key`, insensibles à la casse) : « M » est la touche M en AZERTY comme en QWERTY. Le déplacement reste par position physique (`code`). Les touches de déplacement et Espace ne sont pas attribuables ; une touche déjà utilisée est refusée.
 - Appli de démo : paramètres partagés entre fichiers, persistés dans le navigateur (`localStorage`, une seule clé ; les réglages enregistrés séparément auparavant sont repris une fois). Fenêtre modale **« Paramètres »** (bouton de la barre d'outils, au-dessus de l'appli ; croix ou Échap pour fermer), avec **tous** les paramètres, en sections et sous-sections, à la façon d'IntelliJ : à gauche l'arbre des catégories (sections dépliables sur leurs sous-sections), à droite les réglages du nœud choisi (une section entière ou une seule sous-section) sous un fil d'Ariane ; le dernier nœud choisi est repris à la réouverture. Sections : Navigation (clavier, souris), Vue (modes, vue isométrique, vue 3D, volumes), Caméra (zoom, animations, aller à un élément), Fond et grille, Sélection (mise en valeur, voile, contour), Liens entre pages (transitions, préchargement, vue graphe), Mini-carte, Formes et flèches (texte des flèches, formes non supportées), Édition, Sauvegarde, Raccourcis (cliquer puis appuyer sur la touche), Accessibilité, Diagnostics ; bouton « Réinitialiser ». Un réglage sans effet dans la configuration actuelle reste affiché, grisé. **Recherche** au-dessus de l'arbre, sur tous les réglages : à droite ne restent que les sections dont le texte (titres, libellés, choix, aides) contient la recherche, sans tenir compte des accents ni de la casse ; dans une section dont le titre ne correspond pas, seules les sous-sections qui correspondent restent ; l'arbre ne garde que ces nœuds, et un clic sur l'un d'eux fait défiler jusqu'à lui. Échap vide d'abord la recherche. Les réglages rapides de la barre (× de la mini-carte) écrivent dans les mêmes paramètres ; les réglages iso (orientation avec aperçu, élévation) ont leur section « Vue isométrique ».
 
