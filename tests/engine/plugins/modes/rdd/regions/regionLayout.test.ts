@@ -173,7 +173,7 @@ describe('mode RDD : ajuster une région à son contenu, touche « f » (sujet 1
     const key = rdd.keys!.f!;
     expect(key.label).toBe('Ajuster la région');
     expect(key.applies(page(), shape('accounts'))).toBe(true);
-    expect(key.applies(page(), shape('user'))).toBe(false);
+    expect(key.applies(page(), shape('address'))).toBe(false);
     // Comptes contient User (40, 160, 160 × 86) et Role (240, 160, 160 × 86).
     const fitted = { x: 0, y: 120, width: 440, height: 166 };
     run((edit) => edit.setShapeBounds('accounts', { x: 10, y: 120, width: 425, height: 170 }));
@@ -186,6 +186,19 @@ describe('mode RDD : ajuster une région à son contenu, touche « f » (sujet 1
     run((edit) => edit.setShapeBounds('accounts', { x: 900, y: 900, width: 100, height: 100 }));
     expect(run((edit) => key.run(edit, shape('accounts'), undefined))).toBe(false);
     expect(shape('accounts').bounds).toEqual({ x: 900, y: 900, width: 100, height: 100 });
+  });
+
+  it('sur une table ou un de ses champs : sa région est ajustée (sujet 374)', () => {
+    const { run, page, shape } = setup();
+    const key = rdd.keys!.f!;
+    expect([key.applies(page(), shape('user')), key.applies(page(), shape('user'), '1')]).toEqual([true, true]);
+    const fitted = { x: 0, y: 120, width: 440, height: 166 };
+    run((edit) => edit.setShapeBounds('accounts', { x: 10, y: 120, width: 425, height: 170 }));
+    run((edit) => key.run(edit, shape('user'), undefined, '1'));
+    expect(shape('accounts').bounds).toEqual(fitted);
+    run((edit) => edit.setShapeBounds('accounts', { x: 20, y: 140, width: 250, height: 110 }));
+    run((edit) => key.run(edit, shape('role'), undefined));
+    expect(shape('accounts').bounds).toEqual(fitted);
   });
 });
 
