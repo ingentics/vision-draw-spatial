@@ -13,3 +13,4 @@ desktop/web
 # Fichiers d'IDE (JetBrains)
 .idea/
 *.iml
+/docs/backlogs/.notes
