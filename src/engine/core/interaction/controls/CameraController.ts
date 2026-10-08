@@ -39,7 +39,7 @@ export class CameraController {
   /** Ignore les entrées (ex. pendant une transition, SPEC §11.2). */
   setEnabled(enabled: boolean): void {
     this.ctx.enabled = enabled;
-    if (!enabled) this.keyboard.release();
+    if (!enabled) this.keyboard.stopMotion();
   }
 
   dispose(): void {

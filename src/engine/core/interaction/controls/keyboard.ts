@@ -31,14 +31,22 @@ export class KeyboardControls {
     window.removeEventListener('blur', this.release);
   }
 
-  /** Oublie les touches maintenues (perte du focus, contrôles désactivés). */
+  /** Oublie les touches maintenues (perte du focus : leur relâchement ne sera pas reçu). */
   readonly release = (): void => {
     this.setHeld({ followLink: false, multiSelect: false });
-    this.drift.pressed.clear();
-    this.drift.stop();
+    this.stopMotion();
     this.ctx.spaceDown = false;
     this.ctx.element.style.cursor = '';
   };
+
+  /**
+   * Arrête la glissade de la vue (contrôles désactivés, ex. pendant une transition). Les touches de modification
+   * restent connues : leur relâchement est toujours lu, et Espace maintenue garde le mode navigation à l'arrivée.
+   */
+  stopMotion(): void {
+    this.drift.pressed.clear();
+    this.drift.stop();
+  }
 
   setHeld(held: HeldKeys): void {
     if (this.held.followLink === held.followLink && this.held.multiSelect === held.multiSelect) return;
