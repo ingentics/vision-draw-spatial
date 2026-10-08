@@ -595,9 +595,6 @@ function EdgeSections({ edge, ...props }: ContextPanelProps & { edge: EdgeModel 
           <span className="field-value">{end(edge.targetId)}</span>
         </div>
       </Section>
-      <Section title="Lien">
-        <LinkField link={edge.link} pageId={props.page.id} pages={props.pages} onLink={props.onLink} />
-      </Section>
       <OrderSection onOrder={props.onOrder} />
       <DeleteButton onDelete={props.onDelete} />
     </>
