@@ -1841,18 +1841,6 @@ body {
   color: var(--muted);
 }
 
-/* Disposition : deux boutons par ligne, de même largeur sur les deux lignes. */
-.order-buttons {
-  flex: 0 1 210px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px;
-}
-
-.order-buttons .button {
-  white-space: nowrap;
-}
-
 /* Aligner et répartir (`ArrangeSection`) : boutons-icônes en ligne, trait d'alignement en couleur d'accent. */
 .arrange-buttons {
   display: flex;
@@ -2275,5 +2263,27 @@ button.mode-bar-label.renamable:hover {
 }
 
 .button.orient-button svg .orient-mark {
+  stroke: var(--accent);
+}
+
+/* Disposition (`OrderSection`) : l'élément déplacé en accent, les autres en contour qui cache ce qu'il recouvre. */
+.button.order-button svg {
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.order-other {
+  fill: var(--bg);
+  stroke: var(--muted);
+}
+
+.order-moved {
+  fill: var(--accent);
+  stroke: var(--accent);
+}
+
+.order-arrow {
+  fill: none;
   stroke: var(--accent);
 }

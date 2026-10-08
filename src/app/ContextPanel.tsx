@@ -59,6 +59,7 @@ import {
 } from './edgeIcons';
 import type { EdgeLine } from './edgeIcons';
 import { ModeIcon } from './ModeIcon';
+import { OrderSection } from './OrderSection';
 import { useEnginePlugins } from './pluginsContext';
 
 export interface ContextPanelProps {
@@ -1051,34 +1052,6 @@ function LinkField({
         <option value={URL_OPTION}>{link?.type === 'url' ? `URL : ${link.href}` : 'URL…'}</option>
       </select>
     </label>
-  );
-}
-
-/** Actions d'ordre de dessin, avec leur raccourci de draw.io (infobulle). */
-const ORDER_ACTIONS: Array<{ move: OrderMove; label: string; title: string }> = [
-  { move: 'front', label: 'Premier plan', title: 'Passer au-dessus de tout (Ctrl / ⌘ + Maj + F)' },
-  { move: 'back', label: 'Arrière-plan', title: 'Passer sous tout (Ctrl / ⌘ + Maj + B)' },
-  { move: 'forward', label: 'Avancer', title: 'Monter d’un cran (Alt + Maj + F)' },
-  { move: 'backward', label: 'Reculer', title: 'Descendre d’un cran (Alt + Maj + B)' },
-];
-
-/** Ordre de dessin, comme « Disposition » de draw.io : parmi les éléments de même parent (calque, conteneur). */
-function OrderSection({ onOrder }: { onOrder: (move: OrderMove) => void }) {
-  return (
-    <Section title="Disposition">
-      {[ORDER_ACTIONS.slice(0, 2), ORDER_ACTIONS.slice(2)].map((actions, row) => (
-        <div key={row} className="field-row order-row">
-          {row === 0 ? 'Plan' : 'D’un cran'}
-          <span className="order-buttons">
-            {actions.map(({ move, label, title }) => (
-              <button key={move} type="button" className="button" title={title} onClick={() => onOrder(move)}>
-                {label}
-              </button>
-            ))}
-          </span>
-        </div>
-      ))}
-    </Section>
   );
 }
 
