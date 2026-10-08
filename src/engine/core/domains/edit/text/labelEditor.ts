@@ -122,6 +122,8 @@ export class LabelEditor {
   /**
    * Texte d'une partie d'une forme (ex. label d'un champ d'une table RDD, sujet 249) : éditeur sur une ligne, au cadre
    * donné par le mode, sur fond blanc (il couvre le texte dessiné) ; sans format du texte. Validé par `setPartText`.
+   * `multiline` (sujet 331) : plusieurs lignes, texte en haut à gauche sans retour automatique ; `monospace` : police
+   * de code.
    */
   editPartLabel(shapeId: string, part: string): void {
     const editable = this.core.targets.editablePage();
@@ -132,7 +134,7 @@ export class LabelEditor {
       pageId: editable.page.id,
       elementId: shapeId,
       part,
-      singleLine: true,
+      ...(!text.multiline && { singleLine: true }),
       plain: true,
       text: text.text,
       screen,
@@ -141,8 +143,9 @@ export class LabelEditor {
         fontColor: text.color ?? '#000000',
         fontStyle: text.italic ? '2' : '0',
         align: text.center ? 'center' : 'left',
-        verticalAlign: 'middle',
+        verticalAlign: text.multiline ? 'top' : 'middle',
         whiteSpace: 'nowrap',
+        ...(text.monospace && { fontFamily: 'Courier New' }),
       },
       scale: this.textScale(shapeId),
       onEdge: false,

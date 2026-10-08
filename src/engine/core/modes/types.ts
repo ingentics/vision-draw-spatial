@@ -243,6 +243,13 @@ export interface ModeObstacles {
   rects: Array<{ id: string; rect: Rect }>;
   /** Ce que la forme dessine au-dessus de ses bornes et qui compte dans son emprise (ex. onglet), en pixels de page. */
   above?: number;
+  /**
+   * Texte sur plusieurs lignes (sujet 331) : Entrée passe à la ligne (⌘ + Entrée ou clic dehors valide), texte en haut
+   * à gauche du cadre sans retour automatique, ascenseurs si le texte dépasse ; `setText` le reçoit tel quel.
+   */
+  multiline?: boolean;
+  /** Éditeur en police à chasse fixe (police de code). */
+  monospace?: boolean;
   /** Écart minimal à garder avec les obstacles, en pixels de page (réglage du mode, ticket 283). */
   gap: number;
 }
@@ -418,6 +425,8 @@ export type ModeProperty = {
       type: 'select';
       /**
        * Choix offerts (valeur vide = aucun) ; `palette` : couleurs proposées par l'appli (`ModeEdit.palette`). Si toutes
+      /** Zone de texte en police à chasse fixe, sans retour automatique (sujet 331). */
+      monospace?: boolean;
        * les options ont une icône ou une couleur, le panneau les montre en boutons (pastilles), sinon en liste (sujet
        * 319).
        */

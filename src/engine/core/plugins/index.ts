@@ -70,7 +70,7 @@ export { fontStyleValue, isHexColor, styleFlag, styleNumber, styleOpacity } from
 export { PART_ORDER } from '../render/types';
 export type { EdgeBadgeStyle, RenderContext } from '../render/types';
 export { createBox, createLabel, flatBox, labelObject, VERTEX_DEFAULTS } from '../render/flat/box';
-export type { BoxDefaults } from '../render/flat/box';
+export type { BoxDefaults, LabelOptions } from '../render/flat/box';
 export { blockHeight, isoBlock, TOP_OFFSET } from '../render/iso/block';
 export { cubicTo, halfEllipseTo } from '../render/geometry/curves';
 export { orientation, orientedPath } from '../render/geometry/orient';

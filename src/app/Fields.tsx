@@ -12,6 +12,7 @@ export function TextField({
   value,
   placeholder,
   multiline,
+  monospace,
   readOnly,
   onLive,
   onCommit,
@@ -22,6 +23,8 @@ export function TextField({
   placeholder?: string;
   /** Zone de texte sur plusieurs lignes : Entrée va à la ligne, ⌘ / Ctrl + Entrée valide. */
   multiline?: boolean;
+  /** Police à chasse fixe, sans retour automatique (zone de texte seulement). */
+  monospace?: boolean;
   readOnly?: boolean;
   /** Appelé à chaque frappe, pour un réglage en direct ; Échap y renvoie la valeur d'avant le passage. */
   onLive?: (text: string) => void;
@@ -62,7 +65,12 @@ export function TextField({
     <label className={multiline ? 'field-row multiline' : 'field-row'} title={title}>
       {label}
       {multiline ? (
-        <textarea rows={Math.max(3, value.split('\n').length + 1)} {...props} />
+        <textarea
+          // Au plus 16 lignes de haut ; au-delà, ascenseurs.
+          rows={Math.min(16, Math.max(3, value.split('\n').length + 1))}
+          {...(monospace && { wrap: 'off', className: 'mono' })}
+          {...props}
+        />
       ) : (
         <input type="text" {...props} />
       )}

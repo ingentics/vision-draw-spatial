@@ -1608,6 +1608,12 @@ body {
   resize: vertical;
 }
 
+/* Texte à chasse fixe (sujet 331) : police de code, sans retour automatique (ascenseur en largeur). */
+.context-panel .field-row textarea.mono {
+  font-family: 'Roboto Mono', monospace;
+  overflow: auto;
+}
+
 .style-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

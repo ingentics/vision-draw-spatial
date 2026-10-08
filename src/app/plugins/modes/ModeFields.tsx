@@ -104,6 +104,7 @@ function ModePropertyField({
           value={value ?? ''}
           placeholder={property.placeholder}
           multiline={property.multiline}
+          monospace={property.monospace}
           readOnly={!editable}
           onLive={(text) => write(text.trim() || undefined, merge)}
           onCommit={(text) => {
@@ -119,6 +120,7 @@ function ModePropertyField({
           value={value ?? ''}
           placeholder={property.placeholder}
           multiline={property.multiline}
+          monospace={property.monospace}
           readOnly={!editable}
           onCommit={(text) => write(text.trim() || undefined)}
         />

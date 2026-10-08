@@ -189,6 +189,8 @@ export function LabelEditor({
     top: top + shift.y,
     outlineWidth: 1 / scale,
     background: request.background ?? 'transparent',
+    // Texte de partie sur plusieurs lignes (sujet 331) : le cadre reste celui de la zone, avec ascenseurs.
+    ...(request.part && !request.singleLine && { overflow: 'auto' }),
     ...(onEdge
       ? {
           padding: 1,

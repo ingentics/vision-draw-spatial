@@ -6,6 +6,8 @@ import { labelInsets, outsideLabelBox } from '../labelPosition';
 import { fillMesh, strokeMesh } from '../meshes';
 import { textFormat, styleNumber, styleOpacity, styleFlag } from '../../model/styleValues';
 import { labelBackground, styleColor, styleStroke } from '../styleColors';
+import { measureText } from '../textMeasure';
+import { truncateLines } from '../textTruncate';
 import { PART_ORDER } from '../types';
 import type { RenderContext, TextSpec } from '../types';
 import type { SceneRenderer } from '../../shapes/types';
@@ -54,12 +56,29 @@ export function createBox(shape: ShapeModel, path: Point[], ctx: RenderContext, 
   return group;
 }
 
+/** Options de `createLabel` (sujet 331). */
+export interface LabelOptions {
+  /** Police à chasse fixe (police de code). */
+  monospace?: boolean;
+  /**
+   * Texte tronqué à `zone`, sans retour automatique : ligne trop large ou lignes en trop finissent par « … »
+   * (`truncateLines`).
+   */
+  truncate?: boolean;
+}
+
 /**
  * Label d'une forme, placé dans sa zone de texte (`zone`, les bornes par défaut) selon `align` / `verticalAlign`
  * (SPEC §8.3 : centré par défaut). Un label hors de la forme (`labelPosition`, `verticalLabelPosition`) se place
  * à côté des bornes, comme dans draw.io, quelle que soit la zone propre à la forme.
  */
-export function createLabel(shape: ShapeModel, ctx: RenderContext, text = shape.label, zone: Rect = shape.bounds) {
+export function createLabel(
+  shape: ShapeModel,
+  ctx: RenderContext,
+  text = shape.label,
+  zone: Rect = shape.bounds,
+  options: LabelOptions = {},
+) {
   if (!text.trim() || styleFlag(shape.style, 'noLabel')) return null;
   const { style } = shape;
   const outside = outsideLabelBox(shape.bounds, style);
@@ -74,18 +93,34 @@ export function createLabel(shape: ShapeModel, ctx: RenderContext, text = shape.
   const top = bounds.y + insets.top;
   const bottom = bounds.y + bounds.height - insets.bottom;
 
+  const format = textFormat(style, text === shape.label ? shape.rich : undefined);
+  const fontFamily = options.monospace ? 'Courier New' : format.fontFamily;
+  const fontSize = styleNumber(style, 'fontSize', 11);
+  const shown = options.truncate
+    ? truncateLines(
+        text,
+        Math.max(right - left, 0),
+        Math.max(bottom - top, 0),
+        { size: fontSize, bold: format.bold, italic: format.italic ?? false, family: fontFamily },
+        measureText,
+      )
+    : text;
+
   const spec: TextSpec = {
-    text,
+    text: shown,
     x: align === 'left' ? left : align === 'right' ? right : (left + right) / 2,
     y: vertical === 'top' ? top : vertical === 'bottom' ? bottom : (top + bottom) / 2,
     anchorX: align,
     anchorY: vertical,
     align,
-    fontSize: styleNumber(style, 'fontSize', 11),
+    fontSize,
     color: styleColor(style, 'fontColor', '#000000')!,
     opacity: styleOpacity(style, 'textOpacity'),
-    ...textFormat(style, text === shape.label ? shape.rich : undefined),
-    maxWidth: style.whiteSpace === 'wrap' ? Math.max(right - left, 1) : undefined,
+    ...format,
+    ...(fontFamily !== undefined && { fontFamily }),
+    // Tronqué : pas de retour automatique ni de rich (le texte coupé remplace le texte riche).
+    ...(options.truncate && { rich: undefined }),
+    maxWidth: style.whiteSpace === 'wrap' && !options.truncate ? Math.max(right - left, 1) : undefined,
     fit: styleFlag(style, 'fitText')
       ? { width: Math.max(right - left, 0), height: Math.max(bottom - top, 0) }
       : undefined,
