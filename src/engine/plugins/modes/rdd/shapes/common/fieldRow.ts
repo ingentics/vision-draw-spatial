@@ -3,13 +3,13 @@ import { PART_ORDER, fillMesh, strokeMesh } from '../../../../../core/plugins';
 import type { Point, RenderContext } from '../../../../../core/plugins';
 import type { Divider, Field } from '../../tables/fieldModel';
 import { fieldNote } from '../../tables/fieldModel';
-import { DIVIDER_STROKE, FIELD_ICON_STROKE, FIELD_KIND_COLORS, TYPE_COLOR } from '../../tables/tableColors';
+import { DIVIDER_STROKE, FIELD_ICON_STROKE, TYPE_COLOR, fieldIconColor } from '../../tables/tableColors';
 import { TABLE, dividerLabelWidth, fieldLayout } from '../../tables/tableLayout';
 
 /**
  * Ligne de champ d'une table RDD (sujet 248) : icône de kind, label, type (ou préfixe, sujet 268) en gris. Les
- * icônes reprennent les SVG fournis (12 × 12, `docs/assets/`) : un losange de la couleur du kind, cerné de gris ; un
- * champ nullable a un petit losange blanc au centre.
+ * icônes reprennent les SVG fournis (12 × 12, `docs/assets/`) : un losange de la couleur du kind (violet `embed.svg`
+ * pour un champ non structuré, sujet 375), cerné de gris ; un champ nullable a un petit losange blanc au centre.
  */
 
 /** Demi-diagonales du losange et du trou (nullable), épaisseur du contour, dans le cadre de 12. */
@@ -31,7 +31,7 @@ function fieldIcon(field: Field, center: Point, scale: number): Group {
   group.userData.kind = field.kind;
   group.userData.nullable = field.nullable;
   const unit = (TABLE.fieldIcon.size / 12) * scale;
-  const fill = fillMesh(diamond(center, ICON.half * unit), new Color(FIELD_KIND_COLORS[field.kind]), 1);
+  const fill = fillMesh(diamond(center, ICON.half * unit), new Color(fieldIconColor(field)), 1);
   // Au-dessus du fond blanc de la table (même ordre sinon : selon le tri de Three.js, le fond pouvait le couvrir).
   fill.renderOrder = PART_ORDER.fill + 0.6;
   group.add(fill);

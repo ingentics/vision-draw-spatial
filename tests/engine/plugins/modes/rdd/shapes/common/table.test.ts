@@ -7,6 +7,8 @@ import { buildPageScene } from '../../../../../../../src/engine/core/render/page
 import type { RenderContext, TextSpec } from '../../../../../../../src/engine/core/render/types';
 import { setFields, setup } from '../../helpers';
 import { createDefaultRegistry } from '../../../../../../../src/engine/plugins';
+import { FIELDS, fieldsValue } from '../../../../../../../src/engine/plugins/modes/rdd/tables/fieldModel';
+import type { Field } from '../../../../../../../src/engine/plugins/modes/rdd/tables/fieldModel';
 import { setCellStyleValue } from '../../../../../../../src/engine/core/format/cellEdits';
 
 describe('mode RDD : opérations sur une table', () => {
@@ -278,6 +280,26 @@ describe('mode RDD : rendu d’une table', () => {
     // Dessiné au-dessus du fond de la table (sujet 261).
     expect(fill.renderOrder).toBeGreaterThan(0);
     expect(texts.some((t) => t.underline)).toBe(false);
+  });
+
+  it('champ non structuré : losange violet de l’embed, quel que soit son kind (sujet 375)', () => {
+    const { run, page, shape } = setup();
+    const fields: Field[] = [
+      { kind: 'property', label: 'payload', type: 'dynamic', nullable: true },
+      { kind: 'property', label: 'name', type: 'string', nullable: false },
+    ];
+    run((edit) => edit.setElementAttribute(shape('timestamped').id, FIELDS, fieldsValue(fields)));
+    const root = buildPageScene(
+      page(),
+      createDefaultRegistry(),
+      { text: { create: () => new Object3D() } },
+      'flat',
+    ).root;
+    const colors = root.children
+      .find((child) => child.userData.elementId === 'timestamped')!
+      .children.filter((child) => child.name === 'field-icon')
+      .map((icon) => `#${((icon.children[0] as Mesh).material as MeshBasicMaterial).color.getHexString()}`);
+    expect(colors).toEqual(['#ae62e3', '#4a90e2']);
   });
 
   it('énumération : sans mention (sujet 216), nom droit', () => {
