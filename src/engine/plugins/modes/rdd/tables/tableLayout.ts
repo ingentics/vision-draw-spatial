@@ -16,6 +16,9 @@ export const SECONDARY = 'secondary';
 /** Échelle d'une table secondaire. */
 export const SECONDARY_SCALE = 0.8;
 
+/** Attribut d'une vue matérialisée (sujet 272). */
+export const MATERIALIZED = 'materialized';
+
 /** Tailles d'une table principale, en pixels de page (× `SECONDARY_SCALE` pour une table secondaire). */
 export const TABLE = {
   /** Entête : le nom. */

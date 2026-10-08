@@ -8,4 +8,13 @@ describe('mode RDD : options d’une table déclarées (sujet 277)', () => {
     expect(Object.values(TABLE_KINDS).every((table) => secondary.on(table))).toBe(true);
     expect(secondary.on({ look: {}, rules: { fields: true, options: [] } })).toBe(false);
   });
+
+  it('« Matérialisé » (sujet 272) : vue seulement, sous PostgreSQL', () => {
+    const materialized = TABLE_OPTIONS.find((option) => option.key === 'materialized')!;
+    const allowed = Object.entries(TABLE_KINDS)
+      .filter(([, table]) => materialized.on(table))
+      .map(([id]) => id);
+    expect(allowed).toEqual(['rdd-view']);
+    expect(materialized.section).toBe('PostgreSQL');
+  });
 });

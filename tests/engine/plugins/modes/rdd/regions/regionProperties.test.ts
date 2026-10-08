@@ -14,6 +14,7 @@ describe('mode RDD : région (sujet 182)', () => {
       true,
       true,
       true,
+      true,
     ]);
     expect(color.type === 'select' && color.options(page(), ['#123456']).map((o) => o.value)).toEqual([
       '#fdebef',

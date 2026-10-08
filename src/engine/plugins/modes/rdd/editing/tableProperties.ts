@@ -5,7 +5,7 @@ import { documentBody, hasBody, setBody } from '../tables/documentBody';
 import { addDivider, setSecondary } from '../tables/operations';
 import type { TableKind, TableOptionKey } from '../tables/tableKinds';
 import { tableKindOf } from '../tables/tableKinds';
-import { SECONDARY } from '../tables/tableLayout';
+import { MATERIALIZED, SECONDARY } from '../tables/tableLayout';
 import { rowOf, tableOf } from './tableTargets';
 import { keys } from '../keys';
 
@@ -43,6 +43,7 @@ export interface TableOption {
   attribute: string;
   label: string;
   title: string;
+  section?: string;
   on(table: TableKind): boolean;
   write?(edit: ModeEdit, shape: ShapeModel, value: boolean): void;
 }
@@ -59,6 +60,16 @@ export const TABLE_OPTIONS: readonly TableOption[] = [
     // Taille × 0,8, entête et taille du nom dans le style (sujet 179).
     write: setSecondary,
   },
+  {
+    // Vue matérialisée (sujet 272) : CREATE MATERIALIZED VIEW.
+    key: 'materialized',
+    type: 'flag',
+    attribute: MATERIALIZED,
+    label: 'Matérialisé',
+    title: 'Vue matérialisée (spatial.rdd.materialized) : CREATE MATERIALIZED VIEW',
+    section: 'PostgreSQL',
+    on: (table) => table.rules.options.includes('materialized'),
+  },
 ];
 
 /** Table sélectionnée qui permet l'option. */
@@ -74,6 +85,7 @@ const tableOptionProperty = (option: TableOption): ModeProperty => ({
   key: option.attribute,
   label: option.label,
   title: option.title,
+  section: option.section,
   value: (_page, target) => {
     const shape = optionTable(option, target);
     return toggleValue(!!shape && keys.flag(shape, option.attribute));

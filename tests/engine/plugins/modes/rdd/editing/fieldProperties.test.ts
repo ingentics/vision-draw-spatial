@@ -10,6 +10,24 @@ import { fieldsOf, setup } from '../helpers';
 import { createDefaultModeRegistry } from '../../../../../../src/engine/plugins';
 import { keys } from '../../../../../../src/engine/plugins/modes/rdd/keys';
 
+describe('mode RDD : champ d’une vue (sujet 272)', () => {
+  it('panneau : ni « Optionnel » ni Gouvernance ; les autres tables gardent les leurs', () => {
+    const { page, shape } = setup();
+    const modes = createDefaultModeRegistry();
+    const labels = (id: string) =>
+      modes
+        .properties(page(), 'shape', '1')
+        .filter((property) => !property.hidden?.(page(), shape(id), '1'))
+        .map((property) => property.label);
+    expect(labels('active')).not.toContain('Optionnel');
+    expect(labels('active')).not.toContain('GDPR');
+    expect(labels('active')).not.toContain('Donnée personnelle');
+    expect(labels('active')).toContain('Nom du champ');
+    expect(labels('user')).toContain('Optionnel');
+    expect(labels('user')).toContain('GDPR');
+  });
+});
+
 describe('mode RDD : champ sélectionné dans sa table (sujet 249)', () => {
   it('panneau : avec un champ, ses réglages seulement (kind et nullable masqués pour la clé primaire)', () => {
     const { page, shape } = setup();

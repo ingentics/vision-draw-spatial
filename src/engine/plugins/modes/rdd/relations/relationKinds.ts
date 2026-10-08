@@ -8,6 +8,7 @@ import { documentRelation } from './kinds/document';
 import { embeddedRelation } from './kinds/embedded';
 import type { RelationKind, RelationSettings } from './kinds/kind';
 import { tableRelation } from './kinds/table';
+import { viewSourceRelation } from './kinds/viewSource';
 import { cardinalitiesShown } from './kinds/table/cardinalities';
 
 /**
@@ -15,7 +16,12 @@ import { cardinalitiesShown } from './kinds/table/cardinalities';
  * impose son apparence et son formulaire. Une forme absente de toutes les sortes n'a aucune flèche (ni poignée de
  * connexion, ni cible).
  */
-export const RELATION_KINDS: readonly RelationKind[] = [tableRelation, embeddedRelation, documentRelation];
+export const RELATION_KINDS: readonly RelationKind[] = [
+  tableRelation,
+  embeddedRelation,
+  documentRelation,
+  viewSourceRelation,
+];
 
 /** Sorte de la relation de `source` vers `target` parmi `kinds` ; undefined si la flèche n'est pas permise. */
 export function relationKindBetween(
@@ -26,7 +32,9 @@ export function relationKindBetween(
   if (!isTableKindId(source.kind) || !isTableKindId(target.kind)) return undefined;
   const from = source.kind;
   const to = target.kind;
-  return kinds.find((kind) => kind.from.includes(from) && kind.to.includes(to));
+  return kinds.find(
+    (kind) => kind.from.includes(from) && kind.to.includes(to) && !(kind.distinct && source.id === target.id),
+  );
 }
 
 /**

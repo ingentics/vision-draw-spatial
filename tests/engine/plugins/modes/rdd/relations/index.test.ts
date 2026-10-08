@@ -53,19 +53,20 @@ describe('mode RDD : liaisons permises (sujet 265)', () => {
     expect(allowed('address', 'address')).toBe(false);
   });
 
-  it('vue, région et modèle abstrait : ni poignée de connexion ni cible', () => {
-    for (const id of ['active', 'accounts', 'model']) {
+  it('région et modèle abstrait : ni poignée de connexion ni cible (la vue en a, sujet 272)', () => {
+    for (const id of ['accounts', 'model']) {
       expect(shapes.isConnectable(shape(id))).toBe(false);
       expect(shapes.connectSides(shape(id))).toEqual([]);
       expect(canLink(shape('user'), shape(id))).toBe(false);
     }
     expect(shapes.connectSides(shape('address'))).toEqual(['e', 'w']);
     expect(shapes.isConnectable(shape('user'))).toBe(true);
+    expect(shapes.isConnectable(shape('active'))).toBe(true);
   });
 
   it('une flèche du fichier entre formes qui ne se lient pas est signalée', () => {
     const { pageTree, page: fresh } = setup();
-    const id = addEdgeCell(pageTree, { source: 'user', target: 'active', style: '' });
+    const id = addEdgeCell(pageTree, { source: 'active', target: 'user', style: '' });
     addEdgeCell(pageTree, { source: 'user', target: 'role', style: '' });
     expect(forbiddenLinks(fresh()).map((link) => link.edgeId)).toEqual([id]);
     expect(rdd.lifecycle!.check!(fresh()).some((issue) => issue.cellId === id)).toBe(true);

@@ -21,8 +21,8 @@ export interface TableLook {
   style?: string;
 }
 
-/** Option d'une table (`TABLE_OPTIONS`) : table secondaire (sujet 179). */
-export type TableOptionKey = 'secondary';
+/** Option d'une table (`TABLE_OPTIONS`) : table secondaire (sujet 179), vue matérialisée (sujet 272). */
+export type TableOptionKey = 'secondary' | 'materialized';
 
 /** Règles d'une forme de table : ce que ses champs et ses réglages peuvent être. */
 export interface TableRules {
@@ -39,6 +39,8 @@ export interface TableRules {
   fields: boolean;
   /** Corps en texte YAML libre, à la place des champs (document, sujet 269). */
   body?: boolean;
+  /** Champs calculés (vue) : ni « Optionnel » ni « Gouvernance » au panneau d'un champ (sujet 272). */
+  derived?: boolean;
   /** Options de table permises (`TABLE_OPTIONS`). */
   options: readonly TableOptionKey[];
 }
@@ -75,7 +77,10 @@ export const TABLE_KINDS: Record<TableKindId, TableKind> = {
     look: { folded: true },
     rules: { fields: false, body: true, options: ['secondary'], requiredName: 'Document' },
   },
-  'rdd-view': { look: { style: 'rounded=1;absoluteArcSize=1;arcSize=16;', mark: 'binoculars' }, rules: PLAIN },
+  'rdd-view': {
+    look: { style: 'rounded=1;absoluteArcSize=1;arcSize=16;', mark: 'binoculars' },
+    rules: { ...PLAIN, derived: true, options: ['secondary', 'materialized'] },
+  },
 };
 
 /** Id de forme d'une table du mode ? */

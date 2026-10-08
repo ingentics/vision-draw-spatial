@@ -12,6 +12,8 @@ export interface RelationKind {
   /** Formes de table d'où la flèche peut partir, et où elle peut arriver. */
   from: readonly TableKindId[];
   to: readonly TableKindId[];
+  /** La flèche ne peut pas boucler sur une même forme (source → vue, sujet 272). */
+  distinct?: boolean;
   /**
    * L'arrivée est un champ de la forme d'arrivée, permis par cette règle (document → champ dynamique, sujet 269) : la
    * flèche se tire vers la ligne du champ, qui la retient (`Field.incoming`) ; hors d'un tel champ, ce n'est pas une

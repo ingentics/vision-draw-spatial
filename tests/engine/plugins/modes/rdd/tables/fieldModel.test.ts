@@ -63,6 +63,7 @@ describe('mode RDD : options d’un champ déclarées (sujet 277)', () => {
 
   it('« Optionnel » : tout champ sauf la clé primaire', () => {
     expect([option('nullable').on(entity, property), option('nullable').on(entity, key)]).toEqual([true, false]);
+    expect(option('nullable').on(view, property)).toBe(false);
   });
 
   it('« Unique » : hors clé primaire, sur une table aux champs uniques (entité, énumération, embedded)', () => {
@@ -76,9 +77,14 @@ describe('mode RDD : options d’un champ déclarées (sujet 277)', () => {
     ).toEqual([true, true, true, false]);
   });
 
-  it('commentaire, PostgreSQL et gouvernance : tout champ, clé primaire comprise, sur toute table', () => {
-    for (const name of ['comment', 'pgName', 'pgType', 'gdpr', 'personal'])
+  it('commentaire et PostgreSQL : tout champ, clé primaire comprise, sur toute table', () => {
+    for (const name of ['comment', 'pgName', 'pgType'])
       expect([option(name).on(view, property), option(name).on(entity, key)], name).toEqual([true, true]);
+  });
+
+  it('gouvernance : tout champ, clé primaire comprise, sauf ceux d’une vue (sujet 272)', () => {
+    for (const name of ['gdpr', 'personal'])
+      expect([option(name).on(view, property), option(name).on(entity, key)], name).toEqual([false, true]);
   });
 
   it('préfixe : un champ de relation seulement, réglé depuis sa flèche (hors du panneau d’un champ)', () => {

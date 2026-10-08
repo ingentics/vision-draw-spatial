@@ -98,7 +98,7 @@ export const FIELD_OPTIONS: readonly FieldOption[] = [
     type: 'flag',
     label: 'Optionnel',
     title: 'Le champ peut être vide (NULL)',
-    on: (_table, field) => !isPrimaryKey(field),
+    on: (table, field) => !isPrimaryKey(field) && !table.rules.derived,
   },
   {
     key: 'unique',
@@ -132,14 +132,21 @@ export const FIELD_OPTIONS: readonly FieldOption[] = [
     section: POSTGRESQL,
     on: () => true,
   },
-  { key: 'gdpr', type: 'flag', label: 'GDPR', title: 'Champ soumis au GDPR', section: GOVERNANCE, on: () => true },
+  {
+    key: 'gdpr',
+    type: 'flag',
+    label: 'GDPR',
+    title: 'Champ soumis au GDPR',
+    section: GOVERNANCE,
+    on: (table) => !table.rules.derived,
+  },
   {
     key: 'personal',
     type: 'flag',
     label: 'Donnée personnelle',
     title: 'Le champ contient une donnée personnelle',
     section: GOVERNANCE,
-    on: () => true,
+    on: (table) => !table.rules.derived,
   },
   // Préfixe d'un champ de relation (sujet 268), en gris à la place du type.
   {
