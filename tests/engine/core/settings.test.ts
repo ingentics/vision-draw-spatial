@@ -45,6 +45,14 @@ describe('mergeSettings', () => {
     expect(merged.controls.shortcuts).toEqual({ ...DEFAULT_SHORTCUTS, toggleGraph: 'p' });
   });
 
+  it('raccourcis : vide seulement pour ceux sans touche par défaut (vue graphe, sujet 365)', () => {
+    expect(DEFAULT_SHORTCUTS.toggleGraph).toBe('');
+    const assigned = mergeSettings(DEFAULT_SETTINGS, { controls: { shortcuts: { toggleGraph: 'p' } } });
+    const cleared = mergeSettings(assigned, { controls: { shortcuts: { toggleGraph: '', toggleMinimap: '' } } });
+    expect(cleared.controls.shortcuts.toggleGraph).toBe('');
+    expect(cleared.controls.shortcuts.toggleMinimap).toBe(DEFAULT_SHORTCUTS.toggleMinimap);
+  });
+
   it('sélection : voile par défaut, contour animé en option, valeurs bornées', () => {
     expect(DEFAULT_SETTINGS.selection).toEqual({
       style: 'veil',
@@ -112,6 +120,8 @@ describe('shortcutAction', () => {
     expect(shortcutAction('Enter', DEFAULT_SHORTCUTS)).toBe('overview');
     expect(shortcutAction('Backspace', DEFAULT_SHORTCUTS)).toBe('deleteSelection');
     expect(shortcutAction('x', DEFAULT_SHORTCUTS)).toBeUndefined();
+    // Vue graphe : aucune touche par défaut (sujet 365).
+    expect(shortcutAction('g', DEFAULT_SHORTCUTS)).toBeUndefined();
   });
 
   it('raccourcis personnalisés', () => {

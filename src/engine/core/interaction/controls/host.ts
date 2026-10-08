@@ -43,7 +43,7 @@ export interface CameraHost {
   toggleMinimap?(): void;
   /** Aplatit / rétablit les volumes en iso et en 3D (touche V). */
   toggleFlatten?(): void;
-  /** Vue graphe ↔ dernière page (touche G). */
+  /** Vue graphe ↔ dernière page (raccourci sans touche par défaut). */
   toggleGraph?(): void;
   /**
    * Appui gauche (sans Espace) : vrai si un élément déplaçable est sous le pointeur ; le glisser

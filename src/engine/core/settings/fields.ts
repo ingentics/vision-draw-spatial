@@ -63,10 +63,10 @@ export const oneOf = <T extends string>(list: readonly T[], fallback: T): Field<
   read: (value, previous) => (list.includes(value as T) ? (value as T) : previous),
 });
 
-/** Code de touche (raccourci) : chaîne non vide. */
+/** Code de touche (raccourci) : chaîne non vide, ou vide si le raccourci n'a pas de touche par défaut (sujet 365). */
 export const code = (fallback: string): Field<string> => ({
   default: fallback,
-  read: (value, previous) => (typeof value === 'string' && value.length > 0 ? value : previous),
+  read: (value, previous) => (typeof value === 'string' && (value.length > 0 || fallback === '') ? value : previous),
 });
 
 /** Couleur #rrggbb, écrite en minuscules. */

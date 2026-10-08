@@ -87,7 +87,7 @@ export function ParentPagesBar({
         <button
           type="button"
           className="parent-page"
-          {...hover('Vue d’ensemble des pages et de leurs liens (touche G)')}
+          {...hover('Vue d’ensemble des pages et de leurs liens')}
           onClick={() => {
             hide();
             onShowGraph?.();

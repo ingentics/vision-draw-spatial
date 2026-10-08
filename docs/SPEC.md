@@ -556,7 +556,7 @@ Formes et arêtes sont dessinées dans l'**ordre du document** (une arête décl
 | Orienter (iso, 3D) | Clic droit + glisser : la caméra tourne autour du centre (horizontal) ; en 3D, s'incline aussi (vertical) (§9.1) |
 | Pivoter (iso, 3D) | **A / E** (AZERTY) = Q / E (QWERTY), par position physique : la vue pivote autour du centre de l'écran, vers la gauche / la droite, tant que la touche est enfoncée (`controls.rotateSpeed`, 90°/s), puis courte glissade (`controls.decelerationMs`) ; sans effet en 2D. Touches non attribuables à un raccourci |
 | Vue globale ↔ 1:1 (avec une sélection : sélection → 1:1 → globale) | **Entrée** (§9.3) |
-| Vue graphe ↔ dernière page | Onglet « Vue graphe », touche **G** (§12) |
+| Vue graphe ↔ dernière page | Onglet « Vue graphe » ; raccourci sans touche par défaut, attribuable dans les paramètres (§12) |
 | Mini-carte | Bouton × / « Mini-carte », touche **M** (§10) |
 | Aplatir les volumes (iso, 3D) | Touche **V** : rendu à plat (épaisseur nulle), caméra inchangée ; un second appui, ou un clic sur l'icône apparue en bas à gauche de la zone de dessin (infobulle au survol), rétablit les volumes. État passager, non enregistré ; sans effet en 2D |
 | Sélectionner | Clic gauche |
@@ -707,7 +707,7 @@ Réalisation retenue :
 - **Disposition en couches**, de gauche à droite : distance depuis la page de départ, puis une colonne pour les pages **inaccessibles** (orange, pointillé), puis une pour les **orphelines** (rouge, pointillé) ; la page de départ est en bleu. Ordre du document dans chaque colonne.
 - **Nœuds sans miniature** (sujet 362), en vue d'un très grand nombre de pages : le coût de la vue ne dépend que du nombre de pages et de liens, jamais de leur contenu. Nœud de taille fixe (largeur `graph.cardWidth`, hauteur 56), fond blanc, nom de la page centré en gras (renvoi à la ligne) ; le statut (« départ », « inaccessible », « orpheline ») est écrit en petit au-dessus du nœud, dans sa couleur. La disposition n'utilise que les noms, l'ordre et les liens des pages, jamais leurs dimensions.
 - **Double-clic sur un nœud = plongée** dans la page (transition de lien, empilée dans l'historique) : la page, posée dans le nœud, apparaît en fondu pendant le zoom ; « Retour » ressort vers le graphe par la transition inverse (la page rétrécit dans son nœud). Seule la page de la transition est construite.
-- Accès : onglet **« Vue graphe »** en tête des onglets de pages (la page courante rétrécit dans son nœud), touche **G** (graphe ↔ dernière page affichée).
+- Accès : onglet **« Vue graphe »** en tête des onglets de pages (la page courante rétrécit dans son nœud) ; raccourci clavier graphe ↔ dernière page affichée, sans touche par défaut (sujet 365).
 - Les nœuds du graphe ne comptent pas dans l'usage des liens (§11.3).
 
 ---
@@ -734,7 +734,7 @@ interface Settings {
     multiSelectKey: 'ctrl' | 'meta' | 'shift' | 'alt'; // touche + clic = sélection multiple (§11.1) : 'ctrl'
     followLinkKey: 'ctrl' | 'meta' | 'shift' | 'alt' | 'none'; // touche + geste = suivre un lien (§11.1) : 'meta'
     followLinkGesture: 'click' | 'doubleClick'; // geste pour suivre un lien, avec la touche : 'click'
-    shortcuts: { toggleViewMode: 'i'; toggle3d: 'p'; toggleGraph: 'g'; toggleMinimap: 'm'; toggleFlatten: 'v'; overview: 'Enter'; deleteSelection: 'Backspace' };
+    shortcuts: { toggleViewMode: 'i'; toggle3d: 'p'; toggleGraph: ''; toggleMinimap: 'm'; toggleFlatten: 'v'; overview: 'Enter'; deleteSelection: 'Backspace' };
   };
   view: {
     defaultMode: 'top' | 'iso' | '3d'; isoAngleDeg: number; isoAzimuthDeg: number; switchDurationMs: number; // 'top', 35.26, -45, 450

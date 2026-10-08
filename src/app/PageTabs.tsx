@@ -38,7 +38,7 @@ export function PageTabs({
       {pages.length > 1 && (
         <button
           className={graphActive ? 'tab graph-tab active' : 'tab graph-tab'}
-          title="Vue d’ensemble des pages et de leurs liens (touche G)"
+          title="Vue d’ensemble des pages et de leurs liens"
           onClick={onShowGraph}
         >
           <GraphIcon />

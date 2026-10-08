@@ -1754,6 +1754,7 @@ const KEY_NAMES: Record<string, string> = {
 };
 
 export function keyLabel(key: string): string {
+  if (key === '') return 'Aucune';
   return KEY_NAMES[key] ?? (key.length === 1 ? key.toUpperCase() : key);
 }
 

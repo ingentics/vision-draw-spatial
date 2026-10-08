@@ -8,7 +8,7 @@ export interface Shortcuts {
   toggleViewMode: string;
   /** Bascule vers / depuis la vue 3D. */
   toggle3d: string;
-  /** Vue graphe ↔ dernière page. */
+  /** Vue graphe ↔ dernière page ; aucune touche par défaut (sujet 365). */
   toggleGraph: string;
   /** Affiche / masque la mini-carte. */
   toggleMinimap: string;
@@ -30,7 +30,7 @@ export interface Shortcuts {
 export const DEFAULT_SHORTCUTS: Shortcuts = {
   toggleViewMode: 'i',
   toggle3d: 'p',
-  toggleGraph: 'g',
+  toggleGraph: '',
   toggleMinimap: 'm',
   toggleFlatten: 'v',
   overview: 'Enter',
@@ -72,6 +72,7 @@ export function resolveShortcut(
 /** Action d'un raccourci pour une touche (`KeyboardEvent.key`) ; undefined si aucune. */
 export function shortcutAction(key: string, shortcuts: Shortcuts): keyof Shortcuts | undefined {
   const pressed = key.toLowerCase();
+  // Un raccourci sans touche (chaîne vide) ne correspond à aucune touche : `KeyboardEvent.key` n'est jamais vide.
   return (Object.keys(shortcuts) as Array<keyof Shortcuts>).find(
     (action) => shortcuts[action].toLowerCase() === pressed,
   );
