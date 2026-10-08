@@ -43,7 +43,7 @@ describe('mode RDD : ajouter un champ (sujet 250)', () => {
     expect(run((edit) => rdd.gestures!.handles!.clicked!(edit, shape('user'), 'other'))).toBe(false);
   });
 
-  it('type choisi au panneau (256) : un des sept, ou « Aucun » ; la largeur suit', () => {
+  it('type choisi au panneau (256) : un des neuf, ou « Aucun » ; la largeur suit', () => {
     const { run, page, shape } = setup();
     const type = rdd.gestures!.properties!.find((p) => p.key === 'rdd.field.type')!;
     expect(type.type === 'select' && type.options(page(), []).map((o) => o.label)).toEqual([
@@ -55,6 +55,8 @@ describe('mode RDD : ajouter un champ (sujet 250)', () => {
       'Booléen',
       'Dynamique',
       'Money',
+      'Date simple',
+      'Date et heure',
     ]);
     run((edit) => rdd.gestures!.handles!.clicked!(edit, shape('user'), 'rdd.addField'));
     run((edit) => type.write!(edit, shape('user'), 'money', '3'));

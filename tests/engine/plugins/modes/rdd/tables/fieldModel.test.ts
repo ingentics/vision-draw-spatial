@@ -3,12 +3,16 @@ import {
   FIELDS,
   FIELD_OPTIONS,
   fieldProblems,
+  fieldTypeLabel,
   tableFields,
 } from '../../../../../../src/engine/plugins/modes/rdd/tables/fieldModel';
 import type { Field } from '../../../../../../src/engine/plugins/modes/rdd/tables/fieldModel';
 import { TABLE_KINDS } from '../../../../../../src/engine/plugins/modes/rdd/tables/tableKinds';
 import type { ShapeModel } from '../../../../../../src/engine/core/model/types';
-import { labels, fieldsOf, setup } from '../helpers';
+import { labels, fieldsOf, setup, rowWidth, widthOf, KEY_ROW } from '../helpers';
+import { readDrawio } from '../../../../../../src/engine/core/format/parse';
+import { writeDrawio } from '../../../../../../src/engine/core/format/write';
+import { fixture } from '../../../../../helpers';
 import { keys } from '../../../../../../src/engine/plugins/modes/rdd/keys';
 
 describe('mode RDD : champs structurés (sujet 246)', () => {
@@ -44,11 +48,11 @@ describe('mode RDD : champs structurés (sujet 246)', () => {
 
   it('type inconnu signalé ; clé primaire jamais nullable', () => {
     const shape = table(
-      '[{"kind":"pk","label":"id","type":"integer","nullable":true},{"kind":"property","label":"at","type":"date","nullable":true}]',
+      '[{"kind":"pk","label":"id","type":"integer","nullable":true},{"kind":"property","label":"at","type":"timestamp","nullable":true}]',
     );
     expect(fieldsOf(shape).map((field) => field.nullable)).toEqual([false, true]);
     expect(fieldProblems(shape)).toEqual([
-      'champ at : type « date » inconnu',
+      'champ at : type « timestamp » inconnu',
       'clé primaire nullable, lue non nullable',
     ]);
   });
@@ -102,5 +106,19 @@ describe('mode RDD : options d’un champ déclarées (sujet 277)', () => {
       }) as unknown as ShapeModel;
     expect((tableFields(shape('rdd-view'))[0] as Field).unique).toBeUndefined();
     expect((tableFields(shape('rdd-embedded'))[0] as Field).unique).toBe(true);
+  });
+});
+
+describe('mode RDD : types date simple, date et heure (sujet 284)', () => {
+  it('fixture : libellés affichés, sans problème ; type relu après enregistrement ; largeur d’après les libellés', () => {
+    const { document, tree } = readDrawio(fixture('rdd-types-date.drawio'));
+    const event = document.pages[0]!.shapes.find((s) => s.id === 'event')!;
+    expect(fieldsOf(event).map((f) => fieldTypeLabel(f.type))).toEqual(['Primary key', 'Date simple', 'Date et heure']);
+    expect(fieldProblems(event)).toEqual([]);
+    expect(event.bounds.width).toBe(
+      widthOf(KEY_ROW, rowWidth('day', 'Date simple'), rowWidth('starts_at', 'Date et heure')),
+    );
+    const reread = readDrawio(writeDrawio(tree)).document.pages[0]!.shapes.find((s) => s.id === 'event')!;
+    expect(fieldsOf(reread).map((f) => f.type)).toEqual(['primary-key', 'date', 'datetime']);
   });
 });

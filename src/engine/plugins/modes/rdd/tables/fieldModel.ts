@@ -35,6 +35,8 @@ export const FIELD_TYPES = {
   boolean: 'Booléen',
   dynamic: 'Dynamique',
   money: 'Money',
+  date: 'Date simple',
+  datetime: 'Date et heure',
 } as const satisfies Record<string, string>;
 
 /**
