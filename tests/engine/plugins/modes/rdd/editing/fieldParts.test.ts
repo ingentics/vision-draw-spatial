@@ -16,6 +16,7 @@ import { spatialValue } from '../../../../../../src/engine/core/spatial';
 import { rowWidth, widthOf, KEY_ROW, setFields, labels, fieldsOf, setup } from '../helpers';
 import { createDefaultRegistry } from '../../../../../../src/engine/plugins';
 import { keys } from '../../../../../../src/engine/plugins/modes/rdd/keys';
+import { addEdgeCell } from '../../../../../../src/engine/core/format/create';
 
 describe('mode RDD : champ sélectionné dans sa table (sujet 249)', () => {
   // User : (40, 160), 160 de large ; entête de 26, lignes de 20 (id, email, role).
@@ -255,5 +256,30 @@ describe('mode RDD : commentaire d’un champ (sujet 262)', () => {
     run((edit) => rdd.keys!['-']!.run(edit, shape('user'), undefined, '1'));
     expect(fieldParts.comment!(shape('user'), '2')).toBeUndefined();
     expect(run((edit) => fieldParts.setComment!(edit, shape('user'), '2', 'x'))).toBe(false);
+  });
+});
+
+describe('mode RDD : champ de relation éclairé par sa flèche (sujet 373)', () => {
+  it('flèche de relation : le champ qu’elle a créé dans sa table d’arrivée ; autre flèche : rien', () => {
+    const { run, page, shape, tree } = setup();
+    const connect = (source: string, target: string) => {
+      const id = addEdgeCell(tree.pages[0]!, { source, target, style: '' });
+      run((edit) => rdd.edges!.created!(edit, id, undefined));
+      return page().edges.find((edge) => edge.id === id)!;
+    };
+    const toRole = connect('user', 'role');
+    const embedded = connect('address', 'user');
+    const index = (id: string, edge: string) => String(fieldsOf(shape(id)).findIndex((field) => field.edge === edge));
+    expect(fieldParts.edgePart!(page(), toRole)).toEqual({ shapeId: 'role', part: index('role', toRole.id) });
+    expect(fieldParts.edgePart!(page(), embedded)).toEqual({ shapeId: 'user', part: index('user', embedded.id) });
+    // Flèche vers une forme qui n'est pas une table, ou sans champ : aucune partie.
+    const free = addEdgeCell(tree.pages[0]!, { source: 'user', target: 'accounts', style: '' });
+    run(() => undefined);
+    expect(
+      fieldParts.edgePart!(
+        page(),
+        page().edges.find((edge) => edge.id === free)!,
+      ),
+    ).toBeUndefined();
   });
 });

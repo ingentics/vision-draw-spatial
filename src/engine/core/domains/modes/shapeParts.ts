@@ -16,12 +16,15 @@ import type { EngineCore } from '../EngineCore';
 export class ShapeParts {
   /** Partie survolée par la souris (sujet 259), montrée en pré-sélection ; absente hors de toute partie. */
   private hovered: { shapeId: string; part: string } | undefined;
+  /** Flèche survolée (sujet 373) : sa partie liée (`ModeParts.edgePart`) est montrée comme survolée. */
+  private hoveredEdge: string | undefined;
 
   constructor(private readonly core: EngineCore) {}
 
   /** Nouveau document : plus de partie survolée. */
   resetDocument(): void {
     this.hovered = undefined;
+    this.hoveredEdge = undefined;
   }
 
   /**
@@ -45,13 +48,19 @@ export class ShapeParts {
     return !!(page && this.core.modes.modeOf(page)?.parts?.[hook]);
   }
 
-  /** Survol (sujet 259) : la partie sous le pointeur d'une forme d'une page modifiable ; la mise en valeur suit. */
-  hover(screen: Point | undefined, shape: ShapeModel | undefined): void {
+  /**
+   * Survol (sujet 259) : la partie sous le pointeur d'une forme d'une page modifiable, ou la flèche survolée (sujet
+   * 373) ; la mise en valeur suit.
+   */
+  hover(screen: Point | undefined, shape: ShapeModel | undefined, edgeId?: string): void {
     const page = this.core.targets.editablePage()?.page;
     const part = screen && shape && page ? this.partAt(page, shape, screen) : undefined;
     const next = shape && part !== undefined ? { shapeId: shape.id, part } : undefined;
-    if (next?.shapeId === this.hovered?.shapeId && next?.part === this.hovered?.part) return;
+    const edge = page ? edgeId : undefined;
+    if (next?.shapeId === this.hovered?.shapeId && next?.part === this.hovered?.part && edge === this.hoveredEdge)
+      return;
     this.hovered = next;
+    this.hoveredEdge = edge;
     this.core.highlight.updateHover();
   }
 
@@ -105,15 +114,39 @@ export class ShapeParts {
     return this.call(page, 'bounds', undefined, (bounds) => bounds(readonlyModel(page), readonlyModel(shape), part));
   }
 
-  /** Emprise de la partie survolée (pixels de page), et sa forme ; undefined sans survol ou si elle est sélectionnée. */
-  hoveredBounds(): { shape: ShapeModel; rect: Rect } | undefined {
-    const hovered = this.hovered;
-    const selection = this.core.selection.current;
-    if (selection?.part === hovered?.part && selection?.picked.element.id === hovered?.shapeId) return undefined;
+  /**
+   * Emprises montrées comme survolées (pixels de page), et leur forme : la partie survolée, et la partie liée à la
+   * flèche survolée ou sélectionnée (sujet 373) ; ni la partie sélectionnée, ni deux fois la même.
+   */
+  hoveredBounds(): { shape: ShapeModel; rect: Rect }[] {
     const page = this.core.pages.getCurrentPage();
-    const shape = hovered && page?.shapes.find((s) => s.id === hovered.shapeId);
-    const rect = shape && page && this.bounds(page, shape, hovered.part);
-    return shape && rect ? { shape, rect } : undefined;
+    if (!page) return [];
+    const selection = this.core.selection.current;
+    const selectedEdges =
+      this.core.targets.editablePage()?.page.id === page.id && selection?.pageId === page.id
+        ? selection.items.filter((item) => item.type === 'edge').map((item) => item.element.id)
+        : [];
+    const edgeIds = [...new Set([...(this.hoveredEdge ? [this.hoveredEdge] : []), ...selectedEdges])];
+    const parts = [
+      ...(this.hovered ? [this.hovered] : []),
+      ...edgeIds.flatMap((id) => {
+        const edge = page.edges.find((e) => e.id === id);
+        const linked =
+          edge &&
+          this.call(page, 'edgePart', undefined, (edgePart) => edgePart(readonlyModel(page), readonlyModel(edge)));
+        return linked ? [linked] : [];
+      }),
+    ];
+    const shown = new Set<string>();
+    return parts.flatMap(({ shapeId, part }) => {
+      const key = `${shapeId}:${part}`;
+      if (shown.has(key)) return [];
+      shown.add(key);
+      if (selection?.part === part && selection.picked.element.id === shapeId) return [];
+      const shape = page.shapes.find((s) => s.id === shapeId);
+      const rect = shape && this.bounds(page, shape, part);
+      return shape && rect ? [{ shape, rect }] : [];
+    });
   }
 
   /** `part` si le mode de la page la connaît encore sur `shape`, sinon undefined. */

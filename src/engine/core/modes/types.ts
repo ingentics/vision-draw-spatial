@@ -188,6 +188,11 @@ export interface ModeParts {
   /** Emprise de la partie (pixels de page), mise en valeur à la sélection ; undefined = partie disparue. */
   bounds(page: PageModel, shape: ShapeModel, part: string): Rect | undefined;
   /**
+   * Partie liée à une flèche (sujet 373, ex. champ de relation RDD) : montrée comme survolée quand la flèche est
+   * survolée ou sélectionnée ; undefined = aucune.
+   */
+  edgePart?(page: PageModel, edge: EdgeModel): { shapeId: string; part: string } | undefined;
+  /**
    * Partie dont le texte s'édite au double-clic sous `point` (pixels de page) sans être sélectionnable : ni survol, ni
    * sélection, ni glisser (sujet 269, ex. corps d'un document RDD) ; undefined = aucune. Son texte passe par `text` et
    * `setText` comme celui d'une partie.

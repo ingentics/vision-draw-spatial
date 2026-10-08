@@ -1,7 +1,7 @@
 import type { ModeParts, ShapeModel } from '../../../../core/plugins';
 import { clamp, rectContains } from '../../../../core/plugins';
 import { BODY, BODY_PART, bodyValue, documentBody, hasBody, normalizedBody, setBody } from '../tables/documentBody';
-import { FIELDS, fieldsValue, isDivider, isPrimaryKey, tableFields } from '../tables/fieldModel';
+import { FIELDS, fieldsValue, isDivider, isPrimaryKey, isRelation, tableFields } from '../tables/fieldModel';
 import { moveField, movedFields, removeField, setField } from '../tables/operations';
 import { TYPE_COLOR } from '../tables/tableColors';
 import { tableKindOf } from '../tables/tableKinds';
@@ -47,6 +47,13 @@ export const fieldParts: ModeParts = {
   bounds(_page, shape, part) {
     const index = tableKindOf(shape) ? fieldIndex(shape, part) : undefined;
     return index === undefined ? undefined : fieldRow(shape, index);
+  },
+  // Flèche de relation survolée ou sélectionnée (sujet 373) : le champ qu'elle a créé dans sa table d'arrivée.
+  edgePart(page, edge) {
+    const target = edge.targetId === undefined ? undefined : page.shapes.find((s) => s.id === edge.targetId);
+    if (!target || !tableKindOf(target)) return undefined;
+    const index = tableFields(target).findIndex((row) => isRelation(row) && row.edge === edge.id);
+    return index < 0 ? undefined : { shapeId: target.id, part: String(index) };
   },
   text(_page, shape, part) {
     if (part === BODY_PART)

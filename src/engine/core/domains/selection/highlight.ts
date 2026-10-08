@@ -115,11 +115,15 @@ export class SelectionHighlight {
     }
     const root = this.core.scenes.current?.root;
     const hovered = this.core.shapeParts.hoveredBounds();
-    if (root && hovered) {
+    if (root && hovered.length > 0) {
       const { zoom } = this.core.camera.state;
-      this.hoverObject = partSelection(hovered.rect, zoom, this.core.settings.selection.accentColor, true);
-      this.hoverObject.position.z =
-        ((this.core.sceneView.sceneObject(hovered.shape.id)?.userData.top as number) ?? 0) + 0.24;
+      // Partie survolée et partie liée à une flèche (sujet 373) : un objet chacune, au-dessus de sa forme.
+      this.hoverObject = new Group();
+      for (const { shape, rect } of hovered) {
+        const object = partSelection(rect, zoom, this.core.settings.selection.accentColor, true);
+        object.position.z = ((this.core.sceneView.sceneObject(shape.id)?.userData.top as number) ?? 0) + 0.24;
+        this.hoverObject.add(object);
+      }
       alwaysOnTop(this.hoverObject);
       root.add(this.hoverObject);
     }

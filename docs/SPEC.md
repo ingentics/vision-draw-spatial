@@ -1008,6 +1008,8 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   - Survol d'une ligne (sujet 259) : sur une page modifiable, la ligne sous la souris (champ ou séparateur) est
     pré-sélectionnée, fond de la couleur d'accent à 7 % et trait fin (1 px) à 50 % (la sélection : 15 % et un trait plein de 1,5 px) ; rien sur la
     ligne déjà sélectionnée.
+  - Flèche de relation survolée ou sélectionnée (sujet 373) : le champ qu'elle a créé dans sa table d'arrivée prend
+    la même pré-sélection (rien s'il est lui-même sélectionné).
   - Champ sélectionné (sujet 249) : un clic sur une ligne de champ la sélectionne, la table sélectionnée ou non (fond
     léger et trait de la couleur d'accent sur la ligne) ; un clic sur l'entête revient à la table, Échap aussi. Le
     panneau ne montre alors que le champ, en trois sections (sujet 260) : celle du mode — « Champ » (label), « Type »
