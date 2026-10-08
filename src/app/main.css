@@ -1010,6 +1010,15 @@ body {
   white-space: nowrap;
 }
 
+/* Navigateur : écriture du fichier sur le disque à autoriser (un clic la demande) */
+.disk-warning {
+  border-color: var(--warn-fg);
+  background: var(--warn-bg);
+  color: var(--warn-fg);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
 /* Glisser-déposer */
 .drop-overlay {
   position: fixed;

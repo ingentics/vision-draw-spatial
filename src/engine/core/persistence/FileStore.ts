@@ -23,6 +23,14 @@ export interface StoredFile extends StoredFileMeta {
   history?: HistoryEntry[];
   /** Dernière utilisation des liens entre pages (tri des pages parentes). */
   linkUsage?: LinkUsage;
+  /** Navigateur : accès au fichier du disque d'où il a été ouvert (File System Access), réécrit à la sauvegarde. */
+  disk?: DiskFile;
+}
+
+/** Fichier du disque ouvert dans le navigateur et date de sa dernière modification connue (garde-fou d'écrasement). */
+export interface DiskFile {
+  handle: FileSystemFileHandle;
+  modifiedAt: number;
 }
 
 /** Ce qui peut être mis à jour sans réécrire le contenu. */

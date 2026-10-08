@@ -1,10 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { DEFAULT_SETTINGS, mergeSettings } from '../engine';
-import type { Settings, SettingsPatch, StoredFile, StoredFileMeta } from '../engine';
+import type { DiskFile, Settings, SettingsPatch, StoredFile, StoredFileMeta } from '../engine';
 import { Launcher } from '../react/Launcher';
 import { demoFiles } from './demoFiles';
 import { desktop } from './desktop';
-import { createNewFile, importFile, openDemo, openFromDialog, openPath, openStored, store } from './fileLibrary';
+import { diskAccess, droppedDiskFile } from './diskFile';
+import {
+  createNewFile,
+  importFile,
+  openDemo,
+  openFromDialog,
+  openFromPicker,
+  openPath,
+  openStored,
+  store,
+} from './fileLibrary';
 import { loadSettings, saveSettings } from './settingsStore';
 import { getCurrentFileId, setCurrentFileId } from './tabSession';
 import { Viewer } from './Viewer';
@@ -61,12 +71,12 @@ export function App() {
     [show, refreshRecents],
   );
 
-  // Appli native : un fichier déposé garde son chemin (il sera réécrit à la sauvegarde).
+  // Un fichier déposé garde son chemin (appli native) ou son accès (navigateur) : il sera réécrit à la sauvegarde.
   const openFromDisk = useCallback(
-    (file: File) =>
+    (file: File, disk?: Promise<DiskFile | undefined>) =>
       void open(file.name, async () => {
         const path = await desktop?.pathForFile(file);
-        return path ? openPath(path, await file.text()) : importFile(file.name, await file.text());
+        return path ? openPath(path, await file.text()) : importFile(file.name, await file.text(), await disk);
       }),
     [open],
   );
@@ -108,7 +118,7 @@ export function App() {
       depth.current = 0;
       setDragging(false);
       const file = event.dataTransfer?.files[0];
-      if (file) openFromDisk(file);
+      if (file) openFromDisk(file, desktop ? undefined : droppedDiskFile(event));
     };
     window.addEventListener('dragenter', onEnter);
     window.addEventListener('dragleave', onLeave);
@@ -150,7 +160,13 @@ export function App() {
           onOpenRecent={(id) => void open(recents.find((f) => f.id === id)?.name ?? id, () => openStored(id))}
           onRemoveRecent={(id) => void store.remove(id).then(refreshRecents)}
           onOpenFile={openFromDisk}
-          onOpenDialog={desktop ? () => void open('fichier', openFromDialog) : undefined}
+          onOpenDialog={
+            desktop
+              ? () => void open('fichier', openFromDialog)
+              : diskAccess
+                ? () => void open('fichier', openFromPicker)
+                : undefined
+          }
           onNewFile={() => void open('Nouveau fichier', createNewFile)}
           onOpenExample={(id) => {
             const demo = demoFiles.find((f) => f.id === id);

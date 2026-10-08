@@ -31,6 +31,7 @@ import { DrawioSpatial } from '../react/DrawioSpatial';
 import { exportJson } from './diagnosticsExport';
 import { DiagnosticsPanel } from './DiagnosticsPanel';
 import { desktop } from './desktop';
+import { canWrite, requestWrite, writeDiskFile } from './diskFile';
 import { saveAs, store } from './fileLibrary';
 import { SlidingModeBar } from './ModeBar';
 import { NavigationToolbar } from './NavigationToolbar';
@@ -116,6 +117,10 @@ export function Viewer({
   const [autosavedAt, setAutosavedAt] = useState<number>();
   /** Sauvegarde automatique en cours d'écriture (texte d'état de la barre d'outils). */
   const [autosaving, setAutosaving] = useState(false);
+  /** Navigateur : fichier du disque ouvert, sa date de modification suivie au fil des écritures. */
+  const diskRef = useRef(desktop ? undefined : file.disk);
+  /** Écriture sur le disque non autorisée : avertissement dans la barre d'outils, un clic la demande. */
+  const [diskBlocked, setDiskBlocked] = useState(false);
   const [undoLabels, setUndoLabels] = useState<{ undo?: string; redo?: string }>({});
   const [selection, setSelection] = useState<Selection>();
   /** « Courant » du mode de la page changé (ex. flux courant) : redessine l'indicateur et le panneau. */
@@ -197,14 +202,39 @@ export function Viewer({
     };
   }, [flush]);
 
+  // Navigateur : l'autorisation d'écrire ne survit pas toujours au rechargement ; on prévient dès l'ouverture.
+  useEffect(() => {
+    const disk = diskRef.current;
+    if (disk)
+      void canWrite(disk).then(
+        (ok) => setDiskBlocked(!ok),
+        () => setDiskBlocked(true),
+      );
+  }, []);
+
   /**
-   * Sauvegarde (SPEC §14.1) : XML réécrit en place par le moteur (avec l'état de vue des pages),
-   * téléchargé sous le nom du fichier et enregistré dans la bibliothèque.
+   * Navigateur : réécrit le fichier du disque d'où il a été ouvert. `ask` (geste de l'utilisateur) demande
+   * l'autorisation au besoin ; sinon, sans autorisation, l'avertissement s'affiche et rien n'est écrit.
    */
+  const writeDisk = useCallback(
+    async (xml: string, ask: boolean) => {
+      const disk = diskRef.current;
+      if (!disk) return;
+      if (!(await (ask ? requestWrite(disk) : canWrite(disk)))) {
+        setDiskBlocked(true);
+        return;
+      }
+      setDiskBlocked(false);
+      diskRef.current = { ...disk, modifiedAt: await writeDiskFile(disk, xml) };
+      await store.updateMeta(file.id, { disk: diskRef.current });
+    },
+    [file.id],
+  );
+
   /**
-   * Enregistre le XML sauvegardé : navigateur → bibliothèque, et téléchargement si demandé ;
-   * appli native → le vrai fichier (un exemple embarqué : « Enregistrer sous » si demandé,
-   * sinon sa copie dans la bibliothèque).
+   * Enregistre le XML sauvegardé (SPEC §14.1) : navigateur → bibliothèque, plus le fichier du disque s'il en
+   * vient (étape 354), sinon téléchargement si demandé ; appli native → le vrai fichier (un exemple embarqué :
+   * « Enregistrer sous » si demandé, sinon sa copie dans la bibliothèque).
    */
   const persist = useCallback(
     (xml: string, auto: boolean) => {
@@ -215,17 +245,17 @@ export function Viewer({
         void saveAs(xml, file.name).then((saved) => saved && onFileReplaced?.(saved));
         return;
       }
-      if (!desktop && !auto) download(file.name.split('/').pop() || 'diagram.drawio', xml);
+      if (!desktop && !diskRef.current && !auto) download(file.name.split('/').pop() || 'diagram.drawio', xml);
       if (auto) setAutosaving(true);
-      store
-        .updateMeta(file.id, { content: xml, size: xml.length })
+      // Bibliothèque et disque à part : un refus d'écrire sur le disque garde la copie de la bibliothèque.
+      Promise.all([store.updateMeta(file.id, { content: xml, size: xml.length }), writeDisk(xml, !auto)])
         .then(() => {
           setError(undefined);
           if (auto) setAutosavedAt(Date.now());
         }, report)
         .finally(() => auto && setAutosaving(false));
     },
-    [file.id, file.name, save, onFileReplaced],
+    [file.id, file.name, save, onFileReplaced, writeDisk],
   );
 
   /** Sauvegarde demandée (bouton, Ctrl+S hors du canvas). */
@@ -499,7 +529,9 @@ export function Viewer({
             title={[
               desktop
                 ? 'Enregistrer le fichier sous (Ctrl+S)'
-                : 'Enregistrer sous (Ctrl+S) : téléchargement et bibliothèque',
+                : diskRef.current
+                  ? 'Enregistrer (Ctrl+S) : réécrit le fichier sur le disque et la bibliothèque'
+                  : 'Enregistrer sous (Ctrl+S) : téléchargement et bibliothèque',
               modified ? 'modifications non sauvegardées' : undefined,
               autosavedAt
                 ? `enregistré automatiquement à ${new Date(autosavedAt).toLocaleTimeString('fr-FR')}`
@@ -514,8 +546,18 @@ export function Viewer({
             <svg viewBox="0 0 16 16" aria-hidden="true">
               <path d="M8 2.5v7M5 6.5l3 3 3-3M3 11v2.5h10V11" />
             </svg>
-            Enregistrer sous
+            {diskRef.current ? 'Enregistrer' : 'Enregistrer sous'}
           </button>
+          {diskBlocked && (
+            <button
+              type="button"
+              className="button disk-warning"
+              title="Le navigateur n’autorise pas (encore) l’écriture du fichier sur le disque : les sauvegardes ne vont que dans la bibliothèque. Cliquer pour l’autoriser et enregistrer."
+              onClick={saveFile}
+            >
+              ⚠ Écriture sur le disque non autorisée
+            </button>
+          )}
           <span className="button-group">
             <button
               type="button"

@@ -1,7 +1,8 @@
 import { createEmptyDrawio, FsStore, IndexedDbStore, MemoryStore, parseDrawio } from '../engine';
-import type { FileStore, StoredFile } from '../engine';
+import type { DiskFile, FileStore, StoredFile } from '../engine';
 import type { DemoFile } from './demoFiles';
 import { baseName, desktop } from './desktop';
+import { pickDiskFile } from './diskFile';
 
 /**
  * Bibliothèque de fichiers de l'appli (SPEC §5, §6) au-dessus du FileStore :
@@ -28,16 +29,19 @@ function newId(): string {
  * Importe un fichier du disque. Il doit être lisible (sinon `DrawioParseError`).
  * Un fichier du même nom déjà connu est mis à jour (contenu), en gardant pages et vues mémorisées :
  * rouvrir `archi.drawio` après l'avoir modifié dans draw.io retrouve le même point de vue.
+ * Avec `disk` (navigateur, File System Access), le fichier du disque sera réécrit à la sauvegarde ; sans, un
+ * accès mémorisé est oublié (il pourrait désigner un autre fichier du même nom).
  */
-export async function importFile(name: string, content: string): Promise<StoredFile> {
+export async function importFile(name: string, content: string, disk?: DiskFile): Promise<StoredFile> {
   parseDrawio(content);
   const now = Date.now();
   const existing = (await store.listRecent(ALL)).find((f) => f.name === name);
   if (existing) {
-    await store.updateMeta(existing.id, { content, size: content.length, lastOpenedAt: now });
+    await store.updateMeta(existing.id, { content, size: content.length, lastOpenedAt: now, disk });
     return (await store.get(existing.id))!;
   }
   const file: StoredFile = { id: newId(), name, content, size: content.length, lastOpenedAt: now, cameraByPage: {} };
+  if (disk) file.disk = disk;
   await store.put(file);
   return file;
 }
@@ -69,6 +73,12 @@ export async function openPath(path: string, content: string): Promise<StoredFil
 export async function openFromDialog(): Promise<StoredFile | undefined> {
   const chosen = await desktop?.openDialog();
   return chosen && openPath(chosen.path, chosen.content);
+}
+
+/** Navigateur avec File System Access : dialogue « Ouvrir » ; undefined si l'utilisateur annule. */
+export async function openFromPicker(): Promise<StoredFile | undefined> {
+  const chosen = await pickDiskFile();
+  return chosen && importFile(chosen.file.name, await chosen.file.text(), chosen.disk);
 }
 
 /** Appli native : « Enregistrer sous » ; le fichier écrit devient un fichier de la bibliothèque. */

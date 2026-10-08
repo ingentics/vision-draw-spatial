@@ -1312,7 +1312,7 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
               <p className="hint muted">
                 {desktop
                   ? 'Le fichier est réécrit sur le disque. Un exemple est gardé dans la bibliothèque ; « Enregistrer sous » l’enregistre comme fichier.'
-                  : 'Le fichier est enregistré dans la bibliothèque du navigateur ; « Enregistrer sous » le télécharge en plus.'}
+                  : 'Le fichier est enregistré dans la bibliothèque du navigateur ; ouvert depuis le disque (Chrome, Edge), il y est aussi réécrit, sinon « Enregistrer sous » le télécharge en plus.'}
               </p>
               <Slider
                 label="Mémoriser la position de consultation (page, vue) après"

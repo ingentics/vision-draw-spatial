@@ -65,7 +65,7 @@ export { fontStyleBits, fontStyleValue, isHexColor } from './core/model/styleVal
 
 // Bibliothèque de fichiers et sauvegarde (SPEC §5, §14.1)
 export { Autosaver } from './core/persistence/Autosaver';
-export type { FileStore, StoredFile, StoredFileMeta, StoredFilePatch } from './core/persistence/FileStore';
+export type { DiskFile, FileStore, StoredFile, StoredFileMeta, StoredFilePatch } from './core/persistence/FileStore';
 export { FsStore, isFilePath } from './core/persistence/FsStore';
 export type { FileSystemAccess } from './core/persistence/FsStore';
 export { IndexedDbStore } from './core/persistence/IndexedDbStore';
