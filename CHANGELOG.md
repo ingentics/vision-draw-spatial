@@ -1,5 +1,38 @@
 # Changelog
 
+## [0.7.0](https://github.com/ingentics/vision-draw-spatial/compare/drawio-spatial-v0.6.0...drawio-spatial-v0.7.0) (2026-10-08)
+
+
+### Fonctionnalités
+
+* **app:** aperçus en direct dans les paramètres d'affichage ([a336ad9](https://github.com/ingentics/vision-draw-spatial/commit/a336ad9394992e1cc2133d062a22cb93b4c3b535))
+* **app:** aperçus en direct dans les paramètres des flèches ([8c216e1](https://github.com/ingentics/vision-draw-spatial/commit/8c216e1dac4f90b4844e26317575f2ba75918087))
+* **app:** choix par icônes avec bouton « Défaut » et infobulles ([a30f654](https://github.com/ingentics/vision-draw-spatial/commit/a30f65471e0fa83456168139bd7daa78db246ec2))
+* **app:** pastilles et icônes pour les réglages des modes ([b142e21](https://github.com/ingentics/vision-draw-spatial/commit/b142e213ac9e8c4203d1da25aadbeb828d508a46))
+* **engine:** flèche qui arrive sur une partie d'une forme de mode ([7ec62a8](https://github.com/ingentics/vision-draw-spatial/commit/7ec62a840b29e0870ec7b4c9b37fc03c7e92121c))
+* **engine:** orientation limitée aux accolades et aux triangles ([1bcb6d9](https://github.com/ingentics/vision-draw-spatial/commit/1bcb6d948842144676cbc4d5e9ca9f05a59fd3a2))
+* **engine:** retourner et pivoter une forme depuis le panneau ([cca11a5](https://github.com/ingentics/vision-draw-spatial/commit/cca11a5dacd72b62a58930b6322390e8747fc073))
+* **engine:** style de sélection « none » imposable par une forme, utilisé par la région RDD ([e853860](https://github.com/ingentics/vision-draw-spatial/commit/e8538608a6d49966d47450b4d3f867ab8485d63a))
+* **engine:** texte du triangle vers le haut ou le bas loin de la pointe ([318416a](https://github.com/ingentics/vision-draw-spatial/commit/318416a489834b06a80c56e18b7b7495bf3a1a05))
+* **engine:** texte multiligne en police à chasse fixe pour les parties de forme ([9f6640a](https://github.com/ingentics/vision-draw-spatial/commit/9f6640a181aa4359286c46ba82d22c3c6e0d9dfc))
+* **palette:** accolades gauche et droite dans Général ([a62dd3e](https://github.com/ingentics/vision-draw-spatial/commit/a62dd3e19bf0cfe6544365a82a5fe89f25c78f18))
+* **palette:** flèche libre dans la catégorie « Général » ([277e9d7](https://github.com/ingentics/vision-draw-spatial/commit/277e9d776fbe1319e26f2adf232bae8c68e03b9a))
+* **rdd:** document au corps YAML, relié aux champs dynamiques ([6582e1e](https://github.com/ingentics/vision-draw-spatial/commit/6582e1ee440c8281a86bc156bbe23377e7a2976c))
+* **rdd:** marge des régions doublée, 40 px autour de leur contenu ([94da328](https://github.com/ingentics/vision-draw-spatial/commit/94da32849320a3c9b022cb4afc65fc7591562809))
+* **rdd:** poignée haut-gauche d'une région au coin de son onglet ([fc03225](https://github.com/ingentics/vision-draw-spatial/commit/fc03225b41be98f0bec395c26210b6e74d36402f))
+* **rdd:** sources d'une vue et vue matérialisée ([eb3d904](https://github.com/ingentics/vision-draw-spatial/commit/eb3d904b6ba99247517ffe959ec3335c826dba40))
+* **rdd:** types de donnée date simple, date et heure ([db914eb](https://github.com/ingentics/vision-draw-spatial/commit/db914eb64ac4d51cefb9543e357f4652de34b7bb))
+* **rdd:** vue privée avec clé, vocabulaire « Fragment » et « Non structuré » ([02f2729](https://github.com/ingentics/vision-draw-spatial/commit/02f2729358a960c3ca9ffcf46c505c50a83a0c24))
+
+
+### Corrections
+
+* **app:** infobulles des anciens boutons-icônes et unité des pages gardées en mémoire ([2e02475](https://github.com/ingentics/vision-draw-spatial/commit/2e024751ffbf34294ed6daaba2b67bac774d2e9c))
+* **app:** ombre des barres latérales repliées sur la zone de dessin ([3e9a74e](https://github.com/ingentics/vision-draw-spatial/commit/3e9a74e1e634cdfdc73303213800feebfeaf304a))
+* **engine:** bouts répartis écartés d'une arrivée placée par le mode ([fc7574c](https://github.com/ingentics/vision-draw-spatial/commit/fc7574c9923b8cc78ef7e7c1815103b8614778fc))
+* **engine:** flèche vers un champ en ancrage automatique et Typon ([6635ac5](https://github.com/ingentics/vision-draw-spatial/commit/6635ac55a14417807e1704bfcc3a65204f6c666a))
+* **engine:** inverser une flèche garde son tracé ([532cf96](https://github.com/ingentics/vision-draw-spatial/commit/532cf96d8ed4de034c3680cf32aee11c266f9450))
+
 ## [0.6.0](https://github.com/ingentics/vision-draw-spatial/compare/drawio-spatial-v0.5.0...drawio-spatial-v0.6.0) (2026-10-07)
 
 
