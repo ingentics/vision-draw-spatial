@@ -3,6 +3,7 @@ import { buildGraphPage, cardId, GRAPH_PAGE_ID } from '../../graph/graphPage';
 import type { GraphLayout } from '../../graph/graphPage';
 import { miniGraph } from '../../graph/miniGraph';
 import type { MiniGraph } from '../../graph/miniGraph';
+import type { CameraState } from '../../interaction/cameraMath';
 import type { PageModel } from '../../model/types';
 import type { EngineCore } from '../EngineCore';
 import { settingsSectionChanged } from '../../settings';
@@ -89,12 +90,16 @@ export class GraphView {
       outer: graph,
       inner: page,
       frame: card?.bounds,
-      destination:
-        this.core.pages.pageCameras.get(GRAPH_PAGE_ID) ??
-        fitBounds(graph.bounds, this.core.display.viewport, {
-          ...this.core.viewModes.arrivalOrientation(),
-          limits: this.core.camera.limits,
-        }),
+      destination: this.overviewCamera(graph),
+    });
+  }
+
+  /** Arrivée sur la vue graphe (sujet 369) : vue globale, tout le graphe cadré, quelle que soit la vue quittée. */
+  overviewCamera(graph: PageModel): CameraState {
+    return fitBounds(graph.bounds, this.core.display.viewport, {
+      ...this.core.viewModes.arrivalOrientation(),
+      maxZoom: this.core.settings.camera.maxZoom,
+      limits: this.core.camera.limits,
     });
   }
 

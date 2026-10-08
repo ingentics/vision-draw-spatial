@@ -94,12 +94,14 @@ export class BackHistory {
     const inner = this.core.pages.getCurrentPage();
     const outer = this.core.pages.pageById(pageId);
     if (!inner || !outer) return;
-    const destination =
-      camera ??
-      fitBounds(outer.bounds, this.core.display.viewport, {
-        ...this.core.camera.orientation(),
-        limits: this.core.camera.limits,
-      });
+    // Retour vers la vue graphe : vue globale (sujet 369).
+    const destination = this.core.graph.isGraph(outer.id)
+      ? this.core.graph.overviewCamera(outer)
+      : (camera ??
+        fitBounds(outer.bounds, this.core.display.viewport, {
+          ...this.core.camera.orientation(),
+          limits: this.core.camera.limits,
+        }));
     this.core.transitions.runTransition({ direction: 'out', outer, inner, frame, destination });
   }
 }
