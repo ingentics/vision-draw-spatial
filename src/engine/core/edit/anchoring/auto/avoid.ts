@@ -1,6 +1,6 @@
 import type { EdgeModel, PageModel, Point, Rect } from '../../../model/types';
 import { rectContainsRect } from '../../../model/geometry';
-import { toTerminal } from '../../../render/edges/edge';
+import { toTerminal } from '../../../render/edges/terminal';
 import { fixedAnchor, routeEdge } from '../../../render/edges/route';
 import { endAttachmentOf, sideOfConstraint } from '../../edgeEnds';
 import { DEFAULT_AVOID_OPTIONS, out } from '../routing';

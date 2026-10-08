@@ -84,7 +84,9 @@ Folder map with each folder's role: `docs/SUMMARY.md` §3 (single source). Where
   in `tests/engine/core/model/geometry.test.ts`.
 - **Style values**: `styleNumber`, `styleFlag`, `styleOpacity` (`model/styleValues.ts`), `styleColor`
   (`render/styleColors.ts`). No `parseFloat(style.x ?? '')` nor `style.x === '1'`.
-- **Side normals**: `SIDE_NORMALS` (`edit/edgeEnds.ts`). **Anchorings**: `ANCHORINGS` (`edit/anchoring/mode.ts`).
+- **Sides of a shape**: type `Side`, `SIDES`, `SIDE_NORMALS`, `pointOnSide`, `sideMiddle`, `sideSegment`, and anchor
+  points `anchorPosition`, `nearestFreeAnchor` (`edit/edgeEnds.ts`). **Nearest handle on screen**: `nearestOnScreen`
+  (`domains/selection/picking.ts`). **Anchorings**: `ANCHORINGS` (`edit/anchoring/mode.ts`).
   An existing list or table is not redeclared elsewhere.
 - **Two close variants**: one shared parameterised function, and two names saying the difference, with a comment
   explaining why they differ. E.g. `prunePath(path, epsilon, keepBacktracks)` under `simplify` (rendering, keeps

@@ -1,8 +1,16 @@
 import type { EdgeModel, PageModel, Point, Rect, ShapeModel } from '../../../model/types';
-import { toTerminal } from '../../../render/edges/edge';
-import { fixedAnchor, routeEdge } from '../../../render/edges/route';
-import { constraintStyle, endAttachmentOf, frameConstraint, shapeAnchors } from '../../edgeEnds';
-import type { AnchorSide, TerminalEnd } from '../../edgeEnds';
+import { toTerminal } from '../../../render/edges/terminal';
+import { routeEdge } from '../../../render/edges/route';
+import {
+  SIDES,
+  anchorPosition,
+  constraintStyle,
+  endAttachmentOf,
+  frameConstraint,
+  nearestFreeAnchor,
+  shapeAnchors,
+} from '../../edgeEnds';
+import type { Side, TerminalEnd } from '../../edgeEnds';
 import { LOOP_MARGIN, loopWaypoints } from '../../loops';
 import { center, distance } from '../../../model/geometry';
 import { shapesById } from '../../../model/pageIndex';
@@ -20,27 +28,16 @@ export interface PlacementVariant {
   entry: Point;
   /** Points intermédiaires (coudes d'une boucle ; aucun sinon). */
   points: Point[];
-  sides: [AnchorSide, AnchorSide];
+  sides: [Side, Side];
   score: number;
 }
 
-const SIDES: readonly AnchorSide[] = ['n', 'e', 's', 'w'];
 /** Poids d'une forme traversée : une variante qui en traverse une passe après toutes les autres. */
 const HIT_COST = 100000;
 /** Coût d'un coude, en pixels de longueur équivalente. */
 const BEND_COST = 30;
 
 const same = (a: Point, b: Point) => a.x === b.x && a.y === b.y;
-
-function anchorPosition(shape: ShapeModel, c: Point): Point {
-  const terminal = toTerminal(shape)!;
-  return (
-    fixedAnchor(terminal, { exitX: String(c.x), exitY: String(c.y) }, 'source') ?? {
-      x: shape.bounds.x + c.x * shape.bounds.width,
-      y: shape.bounds.y + c.y * shape.bounds.height,
-    }
-  );
-}
 
 /** Vrai si un segment passe par l'intérieur d'un rectangle (approché par son emprise s'il est oblique). */
 function enters(a: Point, b: Point, r: Rect): boolean {
@@ -83,16 +80,8 @@ export function placementVariants(page: PageModel, edgeId: string, loopMargin = 
     }
     return touched.get(key);
   };
-  const nearestFree = (shape: ShapeModel, side: AnchorSide, toward: Point, extra: Point[] = []) => {
-    let best: { constraint: Point; point: Point; distance: number } | undefined;
-    for (const anchor of shapeAnchors(shape.id, others, { floatingAt, extra })) {
-      if (anchor.used || anchor.side !== side) continue;
-      const point = anchorPosition(shape, anchor.constraint);
-      const distance = Math.hypot(point.x - toward.x, point.y - toward.y);
-      if (!best || distance < best.distance) best = { constraint: anchor.constraint, point, distance };
-    }
-    return best;
-  };
+  const nearestFree = (shape: ShapeModel, side: Side, toward: Point, extra: Point[] = []) =>
+    nearestFreeAnchor(shape, shapeAnchors(shape.id, others, { floatingAt, extra }), toward, side);
 
   const variants: PlacementVariant[] = [];
   for (const s of SIDES) {

@@ -1,6 +1,8 @@
 import { Color, Group } from 'three';
-import { CONNECT_DIRECTIONS, connectSideOf, handlePoints, isConnectHandle } from '../edit/handleKinds';
-import type { ConnectSide, HandleLayout, MovedHandles } from '../edit/handleKinds';
+import { SIDE_NORMALS } from '../edit/edgeEnds';
+import type { Side } from '../edit/edgeEnds';
+import { connectSideOf, handlePoints, isConnectHandle } from '../edit/handleKinds';
+import type { HandleLayout, MovedHandles } from '../edit/handleKinds';
 import type { Point, Rect } from '../model/types';
 import { ellipsePath, rectPath } from './geometry/paths';
 import { DEFAULT_ACCENT } from './decorations';
@@ -32,7 +34,7 @@ export function selectionHandles(
   options: {
     resize: boolean;
     connect: boolean;
-    connectSides?: readonly ConnectSide[];
+    connectSides?: readonly Side[];
     moved?: MovedHandles;
   } & HandleStyle,
 ): Group {
@@ -46,7 +48,7 @@ export function selectionHandles(
       const square = { x: point.x - r * 1.5, y: point.y - r * 1.5, width: 3 * r, height: 3 * r };
       group.add(fillMesh(ellipsePath(square, 24), ACCENT, 1));
       // Flèche dessinée vers la droite puis tournée vers l'extérieur du côté de la poignée.
-      const { direction: d } = CONNECT_DIRECTIONS[connectSideOf(kind)];
+      const d = SIDE_NORMALS[connectSideOf(kind)];
       const at = (along: number, across: number): Point => ({
         x: point.x + r * (along * d.x - across * d.y),
         y: point.y + r * (along * d.y + across * d.x),

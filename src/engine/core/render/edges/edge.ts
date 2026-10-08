@@ -5,10 +5,9 @@ import { buildMarker } from './markers';
 import { jumpHalfLength, jumpStyleOf, withJumps } from './jumps';
 import type { JumpPoint } from './jumps';
 import { curveThrough, labelPoint, roundCorners, shorten, unit } from './polyline';
-import { parseStyle } from '../../format/style';
 import { SPATIAL } from '../../spatial';
-import { perimeterKind, routeEdgePoints, simplify } from './route';
-import type { Terminal } from './route';
+import { routeEdgePoints, simplify } from './route';
+import { toTerminal } from './terminal';
 import { dashPattern, dashPolyline } from '../geometry/stroke';
 import { edgeLines } from '../lines';
 import { fadedStrokeMesh, fillMesh, strokeMesh } from '../meshes';
@@ -328,14 +327,4 @@ function edgeLabelBackdrop(style: Record<string, string>, ctx: RenderContext) {
   const { kind, haloWidth, haloBlur } = ctx.edgeLabelBackdrop ?? DEFAULT_LABEL_BACKDROP;
   if (kind === 'solid') return { background: page };
   return kind === 'halo' ? { halo: { color: page, width: haloWidth, blur: haloBlur } } : {};
-}
-
-export function toTerminal(shape: ShapeModel | undefined): Terminal | undefined {
-  if (!shape) return undefined;
-  return {
-    bounds: shape.bounds,
-    perimeter: perimeterKind(shape.style, parseStyle(shape.raw?.styleString).names),
-    style: shape.style,
-    id: shape.id,
-  };
 }

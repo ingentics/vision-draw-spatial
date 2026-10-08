@@ -1,5 +1,6 @@
 import type { Object3D } from 'three';
-import type { ConnectSide, MovedHandles } from '../edit/handleKinds';
+import type { Side } from '../edit/edgeEnds';
+import type { MovedHandles } from '../edit/handleKinds';
 import type { Point, Rect } from '../model/types';
 // Modèle en lecture seule (sujet 303) : une forme dessine la forme reçue, sans la modifier.
 import type { ReadonlyShapeModel as ShapeModel } from '../model/readonly';
@@ -260,7 +261,7 @@ export interface ShapeDefinition {
   /** Pivote par quarts de tour (`direction`, largeur et hauteur échangées), dans le panneau (sujet 335 ; défaut : non). */
   rotatable?: boolean;
   /** Côtés qui ont une poignée de connexion (défaut : les quatre ; ex. table RDD : gauche et droite, sujet 250). */
-  connectSides?: readonly ConnectSide[];
+  connectSides?: readonly Side[];
   /**
    * Prise au clic et au rectangle de sélection : `always` (défaut) ou seulement si elle porte un lien
    * (`withLink`, ex. groupe invisible : on prend ses formes).

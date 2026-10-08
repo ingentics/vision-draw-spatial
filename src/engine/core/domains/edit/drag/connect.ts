@@ -1,8 +1,7 @@
 import { setEdgePoints } from '../../../format/cellEdits';
 import { addEdgeCell } from '../../../format/create';
 import type { PageTree } from '../../../format/xmlTree';
-import { constraintStyle } from '../../../edit/edgeEnds';
-import { CONNECT_DIRECTIONS } from '../../../edit/handleKinds';
+import { anchorPosition, constraintStyle, sideMiddle } from '../../../edit/edgeEnds';
 import type { PageModel, Point } from '../../../model/types';
 import { connectorPreview } from '../../../render/handleMeshes';
 import type { ConnectDrag } from './types';
@@ -29,7 +28,7 @@ export class ConnectDrags {
     if (!source) return;
     connect.started = true;
     const top = this.core.sceneView.elementTop(source.id);
-    const sideExit = CONNECT_DIRECTIONS[connect.side].exit;
+    const sideExit = sideMiddle(connect.side);
     // Formes permises par le mode de la page (sujet 265).
     const accepts = this.core.pageModes.endAccepts(page, 'target', source.id);
     if (this.core.arrangement.distributes(page)) {
@@ -44,10 +43,10 @@ export class ConnectDrags {
       connect.part = this.core.shapeParts.targetedPart(page, connect.target, screen);
       connect.exit = sideExit;
       const target = connect.target && page.shapes.find((s) => s.id === connect.target!.shapeId);
-      const from = this.core.anchors.anchorPosition(source, sideExit);
+      const from = anchorPosition(source, sideExit);
       const end =
         connect.target?.kind === 'fixed' && target
-          ? this.core.anchors.anchorPosition(target, connect.target.constraint)
+          ? anchorPosition(target, connect.target.constraint)
           : this.core.picking.groundPointAtHeight(screen, top);
       connect.loop =
         target?.id === source.id && connect.target?.kind === 'fixed'
@@ -67,11 +66,11 @@ export class ConnectDrags {
     const loopExit = this.core.anchors.nearestFreeAnchor(
       page,
       source,
-      this.core.anchors.anchorPosition(source, sideExit),
+      anchorPosition(source, sideExit),
       connect.side,
     ) ?? {
       constraint: sideExit,
-      point: this.core.anchors.anchorPosition(source, sideExit),
+      point: anchorPosition(source, sideExit),
     };
     const taken = [{ shapeId: source.id, constraint: loopExit.constraint }];
     const attachment = this.core.anchors.endAttachmentAt(page, screen, {
@@ -89,7 +88,7 @@ export class ConnectDrags {
       connect.target = { kind: 'floating', shapeId: source.id };
     const aim =
       connect.target?.kind === 'fixed' && target
-        ? this.core.anchors.anchorPosition(target, connect.target.constraint)
+        ? anchorPosition(target, connect.target.constraint)
         : target
           ? { x: target.bounds.x + target.bounds.width / 2, y: target.bounds.y + target.bounds.height / 2 }
           : this.core.picking.groundPointAtHeight(screen, top);
@@ -98,7 +97,7 @@ export class ConnectDrags {
       ? loopExit
       : (this.core.anchors.nearestFreeAnchor(page, source, aim, connect.side) ?? {
           constraint: sideExit,
-          point: this.core.anchors.anchorPosition(source, sideExit),
+          point: anchorPosition(source, sideExit),
         });
     connect.exit = exit.constraint;
     // Arrivée lâchée dans la forme : point libre de la cible le plus proche du départ.
@@ -127,7 +126,7 @@ export class ConnectDrags {
     this.core.edits.recordEdit('Connecteur');
     const line = CONNECTOR_STYLE + EDGE_LINE_KEYS[this.core.settings.shapes.edgeLineStyle];
     let style = withStyleValue(line, 'fontSize', String(this.core.settings.shapes.textSize));
-    const exit = drag.exit ?? CONNECT_DIRECTIONS[drag.side].exit;
+    const exit = drag.exit ?? sideMiddle(drag.side);
     for (const [key, value] of Object.entries(constraintStyle('source', exit)))
       if (value !== undefined) style = withStyleValue(style, key, value);
     if (drag.target.kind === 'fixed')

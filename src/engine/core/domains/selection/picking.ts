@@ -7,9 +7,29 @@ import type { Footprint } from '../../interaction/marquee';
 import type { EdgeModel, Point, Rect, ShapeModel } from '../../model/types';
 import type { EngineCore } from '../EngineCore';
 import type { Object3D } from 'three';
-import { insidePolygon } from '../../model/geometry';
+import { distance, insidePolygon } from '../../model/geometry';
 import { standingFigure } from '../../render/standing';
 import type { StandingFigure } from '../../render/standing';
+
+/**
+ * Élément le plus proche d'un point écran, à `tolerance` pixels au plus (poignées, points d'ancrage) ; à distance égale,
+ * le premier. `screenOf` place l'élément à l'écran ; `bias` ajoute des pixels à sa distance (départage, ex. une poignée
+ * en transparence passe après une vraie).
+ */
+export function nearestOnScreen<T>(
+  items: Iterable<T>,
+  screenOf: (item: T) => Point,
+  screen: Point,
+  tolerance: number,
+  bias?: (item: T) => number,
+): T | undefined {
+  let best: { item: T; distance: number } | undefined;
+  for (const item of items) {
+    const d = distance(screenOf(item), screen) + (bias?.(item) ?? 0);
+    if (d <= tolerance && (!best || d < best.distance)) best = { item, distance: d };
+  }
+  return best?.item;
+}
 
 /**
  * Ce qui est sous un point de l'écran (formes, flèches, textes de flèche) et passage écran ↔ page à une hauteur donnée.

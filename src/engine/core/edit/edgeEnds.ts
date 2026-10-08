@@ -5,6 +5,9 @@ import type { ShapeRegistry } from '../shapes/registry';
 import { clamp } from '../model/numbers';
 import { styleNumber } from '../model/styleValues';
 import type { ReadonlyEdgeModel } from '../model/readonly';
+import { distance } from '../model/geometry';
+import { toTerminal } from '../render/edges/terminal';
+import { fixedAnchor } from '../render/edges/route';
 
 /**
  * Extrémités d'une flèche (SPEC §8.3, §14.1) : d'où elle part et où elle arrive, comme draw.io.
@@ -20,28 +23,48 @@ export type EndAttachment =
   | { kind: 'fixed'; shapeId: string; constraint: Point }
   | { kind: 'free'; point: Point };
 
-/** Côté du cadre d'une forme. */
-export type AnchorSide = 'n' | 'e' | 's' | 'w';
+/** Côté du cadre d'une forme (point d'ancrage, poignée de connexion, départ d'un tracé). */
+export type Side = 'n' | 'e' | 's' | 'w';
 
-/** Normale sortante de chaque côté, vers l'extérieur de la forme. */
-export const SIDE_NORMALS: Readonly<Record<AnchorSide, Point>> = {
+/** Les quatre côtés, dans l'ordre des aiguilles d'une montre depuis le haut (ordre d'affichage des poignées). */
+export const SIDES: readonly Side[] = ['n', 'e', 's', 'w'];
+
+/** Normale sortante de chaque côté, vers l'extérieur de la forme (y vers le bas). */
+export const SIDE_NORMALS: Readonly<Record<Side, Point>> = {
   n: { x: 0, y: -1 },
   e: { x: 1, y: 0 },
   s: { x: 0, y: 1 },
   w: { x: -1, y: 0 },
 };
 
+/** Point relatif au cadre à la position `t` d'un côté (de gauche à droite, de haut en bas). */
+export function pointOnSide(side: Side, t: number): Point {
+  if (side === 'n') return { x: t, y: 0 };
+  if (side === 's') return { x: t, y: 1 };
+  if (side === 'e') return { x: 1, y: t };
+  return { x: 0, y: t };
+}
+
+/** Milieu d'un côté, relatif au cadre (point de sortie d'une poignée de connexion). */
+export function sideMiddle(side: Side): Point {
+  return pointOnSide(side, 0.5);
+}
+
+/** Segment d'un côté sur la page, de son début à sa fin (de gauche à droite, de haut en bas). */
+export function sideSegment(bounds: Rect, side: Side): [Point, Point] {
+  const at = (c: Point) => ({ x: bounds.x + c.x * bounds.width, y: bounds.y + c.y * bounds.height });
+  return [at(pointOnSide(side, 0)), at(pointOnSide(side, 1))];
+}
+
 /** Point d'ancrage proposé sur une forme : relatif à ses bornes, pris par une flèche ou libre. */
 export interface Anchor {
   constraint: Point;
-  side?: AnchorSide;
+  side?: Side;
   used: boolean;
 }
 
-const ANCHOR_SIDES: readonly AnchorSide[] = ['n', 'e', 's', 'w'];
-
 /** Côté du cadre sur lequel tombe un point relatif (un coin compte pour le haut ou le bas) ; undefined à l'intérieur. */
-export function sideOfConstraint(c: Point): AnchorSide | undefined {
+export function sideOfConstraint(c: Point): Side | undefined {
   if (c.y === 0) return 'n';
   if (c.y === 1) return 's';
   if (c.x === 1) return 'e';
@@ -50,15 +73,8 @@ export function sideOfConstraint(c: Point): AnchorSide | undefined {
 }
 
 /** Position le long du côté (0 → 1, de gauche à droite ou de haut en bas). */
-function alongSide(side: AnchorSide, c: Point): number {
+function alongSide(side: Side, c: Point): number {
   return side === 'n' || side === 's' ? c.x : c.y;
-}
-
-function onSide(side: AnchorSide, t: number): Point {
-  if (side === 'n') return { x: t, y: 0 };
-  if (side === 's') return { x: t, y: 1 };
-  if (side === 'e') return { x: 1, y: t };
-  return { x: 0, y: t };
 }
 
 /**
@@ -126,17 +142,49 @@ export function shapeAnchors(shapeId: string, edges: readonly EdgeModel[], optio
     if (!used.some((a) => a.constraint.x === constraint.x && a.constraint.y === constraint.y))
       used.push({ constraint, side: sideOfConstraint(constraint), used: true });
   const anchors: Anchor[] = [];
-  for (const side of ANCHOR_SIDES) {
+  for (const side of SIDES) {
     const taken = used.filter((a) => a.side === side);
     const free = freeAnchorPositions(taken.map((a) => alongSide(side, a.constraint)));
     anchors.push(
-      ...[...taken, ...free.map((t) => ({ constraint: onSide(side, t), side, used: false }))].sort(
+      ...[...taken, ...free.map((t) => ({ constraint: pointOnSide(side, t), side, used: false }))].sort(
         (a, b) => alongSide(side, a.constraint) - alongSide(side, b.constraint),
       ),
     );
   }
   // Ancres prises hors du cadre (point intérieur venu de draw.io) : gardées, accrochables.
   return [...anchors, ...used.filter((a) => !a.side)];
+}
+
+/** Position d'un point d'ancrage sur la page, projeté sur le contour de la forme comme le tracé. */
+export function anchorPosition(shape: ShapeModel, constraint: Point): Point {
+  const terminal = toTerminal(shape);
+  const style = { exitX: String(constraint.x), exitY: String(constraint.y) };
+  return (
+    (terminal && fixedAnchor(terminal, style, 'source')) ?? {
+      x: shape.bounds.x + constraint.x * shape.bounds.width,
+      y: shape.bounds.y + constraint.y * shape.bounds.height,
+    }
+  );
+}
+
+/**
+ * Point d'ancrage libre d'une forme parmi `anchors` (`shapeAnchors`), sur un côté donné ou sur tous, le plus proche
+ * d'un point de la page ; à distance égale, le premier.
+ */
+export function nearestFreeAnchor(
+  shape: ShapeModel,
+  anchors: readonly Anchor[],
+  toward: Point,
+  side?: Side,
+): { constraint: Point; point: Point } | undefined {
+  let best: { constraint: Point; point: Point; distance: number } | undefined;
+  for (const anchor of anchors) {
+    if (anchor.used || !anchor.side || (side && anchor.side !== side)) continue;
+    const point = anchorPosition(shape, anchor.constraint);
+    const d = distance(point, toward);
+    if (!best || d < best.distance) best = { constraint: anchor.constraint, point, distance: d };
+  }
+  return best && { constraint: best.constraint, point: best.point };
 }
 
 /**

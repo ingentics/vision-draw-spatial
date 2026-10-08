@@ -1,6 +1,6 @@
 import type { Point, Rect } from '../../model/types';
 import { SIDE_NORMALS } from '../edgeEnds';
-import type { AnchorSide } from '../edgeEnds';
+import type { Side } from '../edgeEnds';
 
 /**
  * Briques communes aux tracés qui contournent formes et flèches (ancrage automatique et Typon, SPEC §14.1) : réglages,
@@ -33,7 +33,7 @@ export const SEED_JITTER = 0.15;
 /** Bout de flèche : point d'attache et côté de la forme. */
 export interface Port {
   point: Point;
-  side: AnchorSide;
+  side: Side;
 }
 
 /** Segment d'un tracé. */

@@ -1,6 +1,6 @@
 import type { Point } from '../model/types';
 import { SIDE_NORMALS } from './edgeEnds';
-import type { AnchorSide } from './edgeEnds';
+import type { Side } from './edgeEnds';
 
 /**
  * Bout perpendiculaire à son point d'ancrage (étape 128) : une flèche orthogonale à coudes dont le dernier segment
@@ -33,7 +33,7 @@ function bends(route: Point[]): Point[] {
 }
 
 /** Vrai si le tracé arrive sur son dernier point par l'extérieur du côté, à angle droit. */
-function arrivesSquare(route: Point[], side: AnchorSide): boolean {
+function arrivesSquare(route: Point[], side: Side): boolean {
   const pts = bends(route);
   const a = pts[pts.length - 1];
   const c = pts[pts.length - 2];
@@ -51,7 +51,7 @@ function arrivesSquare(route: Point[], side: AnchorSide): boolean {
 export function squareEnd(
   route: Point[],
   end: 'source' | 'target',
-  side: AnchorSide,
+  side: Side,
   reroute: (waypoints: Point[]) => Point[],
 ): Point[] | undefined {
   const forward = end === 'target' ? route : [...route].reverse();

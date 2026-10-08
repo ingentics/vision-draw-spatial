@@ -2,6 +2,7 @@ import { connectSideOf, handlePoints, isConnectHandle } from '../../edit/handleK
 import type { HandleKind, HandleLayout } from '../../edit/handleKinds';
 import type { Point } from '../../model/types';
 import type { EngineCore } from '../EngineCore';
+import { nearestOnScreen } from '../selection/picking';
 
 /** Poignées de la forme sélectionnée (redimensionner, connecter) : disposition et poignée sous le pointeur. */
 export class ShapeHandles {
@@ -22,15 +23,15 @@ export class ShapeHandles {
     const top = this.core.sceneView.elementTop(shape.id);
     const resizable = this.core.registry.isResizable(shape);
     const sides = this.core.registry.connectSides(shape);
-    let best: { kind: HandleKind; distance: number } | undefined;
     const moved = this.core.registry.movedHandles(shape);
-    for (const { kind, point } of handlePoints(shape.bounds, this.core.camera.state.zoom, this.handleLayout(), moved)) {
-      if (isConnectHandle(kind) ? !sides.includes(connectSideOf(kind)) : !resizable) continue;
-      const at = this.core.picking.screenOfPoint(point, top);
-      const distance = Math.hypot(at.x - screen.x, at.y - screen.y);
-      if (distance <= this.core.settings.edit.handlePickTolerance && (!best || distance < best.distance))
-        best = { kind, distance };
-    }
-    return best?.kind;
+    const handles = handlePoints(shape.bounds, this.core.camera.state.zoom, this.handleLayout(), moved).filter(
+      ({ kind }) => (isConnectHandle(kind) ? sides.includes(connectSideOf(kind)) : resizable),
+    );
+    return nearestOnScreen(
+      handles,
+      (h) => this.core.picking.screenOfPoint(h.point, top),
+      screen,
+      this.core.settings.edit.handlePickTolerance,
+    )?.kind;
   }
 }

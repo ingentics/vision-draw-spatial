@@ -2,6 +2,7 @@ import type { Point, ShapeModel } from '../../model/types';
 import { callMode } from '../../modes/modeCalls';
 import type { ModeHandle } from '../../modes/types';
 import type { EngineCore } from '../EngineCore';
+import { nearestOnScreen } from '../selection/picking';
 
 /**
  * Poignées propres au mode de la page sur la forme sélectionnée (sujet 250, ex. « + » d'une table RDD) : où elles
@@ -32,12 +33,14 @@ export class ModeHandles {
     const current = this.current();
     if (!current) return undefined;
     const top = this.core.sceneView.elementTop(current.shape.id);
-    for (const handle of current.handles) {
-      const at = this.core.picking.screenOfPoint(handle.center, top);
-      if (Math.hypot(at.x - screen.x, at.y - screen.y) <= this.core.settings.edit.handlePickTolerance)
-        return { shape: current.shape, handle };
-    }
-    return undefined;
+    // Deux poignées qui se chevauchent : la plus proche du pointeur (sujet 381).
+    const handle = nearestOnScreen(
+      current.handles,
+      (h) => this.core.picking.screenOfPoint(h.center, top),
+      screen,
+      this.core.settings.edit.handlePickTolerance,
+    );
+    return handle && { shape: current.shape, handle };
   }
 
   /**

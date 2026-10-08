@@ -1,5 +1,5 @@
 import type { EdgeModel, PageModel, Point } from '../../../model/types';
-import { toTerminal } from '../../../render/edges/edge';
+import { toTerminal } from '../../../render/edges/terminal';
 import { routeEdge } from '../../../render/edges/route';
 import type { AvoidOptions, Router } from '../routing';
 import { avoidRoutes, edgesThrough } from './avoid';

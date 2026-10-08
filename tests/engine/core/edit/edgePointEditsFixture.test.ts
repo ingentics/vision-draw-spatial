@@ -5,7 +5,7 @@ import { dragPoints, pointHandles, pointsEditor } from '../../../../src/engine/c
 import type { PointHandle, PointsContext } from '../../../../src/engine/core/edit/edgePointEdits';
 import { readDrawio } from '../../../../src/engine/core/format/parse';
 import type { Point } from '../../../../src/engine/core/model/types';
-import { toTerminal } from '../../../../src/engine/core/render/edges/edge';
+import { toTerminal } from '../../../../src/engine/core/render/edges/terminal';
 import {
   fixedAnchor,
   routeEdge,

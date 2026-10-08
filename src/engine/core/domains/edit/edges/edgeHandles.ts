@@ -2,9 +2,10 @@ import type { TerminalEnd } from '../../../edit/edgeEnds';
 import { pointHandles, pointsEditor } from '../../../edit/edgePointEdits';
 import type { PointHandle, PointsContext } from '../../../edit/edgePointEdits';
 import type { EdgeModel, PageModel, Point } from '../../../model/types';
-import { toTerminal } from '../../../render/edges/edge';
+import { toTerminal } from '../../../render/edges/terminal';
 import { fixedAnchor, routeEdgePoints, routingCenter } from '../../../render/edges/route';
 import type { EngineCore } from '../../EngineCore';
+import { nearestOnScreen } from '../../selection/picking';
 import { shapesById } from '../../../model/pageIndex';
 
 /** Poignées de la flèche sélectionnée : ses bouts, et entre eux ses segments, coudes et points. */
@@ -26,14 +27,12 @@ export class EdgeHandles {
     const ends = edge && this.edgeEndPoints(edge.id);
     if (!edge || !ends) return undefined;
     const top = this.core.sceneView.elementTop(edge.id);
-    let best: { end: TerminalEnd; distance: number } | undefined;
-    for (const end of ['target', 'source'] as const) {
-      const at = this.core.picking.screenOfPoint(ends[end], top);
-      const distance = Math.hypot(at.x - screen.x, at.y - screen.y);
-      if (distance <= this.core.settings.edit.handlePickTolerance && (!best || distance < best.distance))
-        best = { end, distance };
-    }
-    return best?.end;
+    return nearestOnScreen(
+      ['target', 'source'] as const,
+      (end) => this.core.picking.screenOfPoint(ends[end], top),
+      screen,
+      this.core.settings.edit.handlePickTolerance,
+    );
   }
 
   /** Ce que les poignées entre les bouts savent de la flèche (tracé brut affiché, formes, points d'appui). */
@@ -77,14 +76,13 @@ export class EdgeHandles {
     const context = editable && this.pointsContext(editable.page, editable.edge);
     if (!editable || !context) return undefined;
     const top = this.core.sceneView.elementTop(editable.edge.id);
-    let best: { handle: PointHandle; distance: number } | undefined;
-    for (const handle of pointHandles(context)) {
-      const at = this.core.picking.screenOfPoint(handle.point, top);
+    return nearestOnScreen(
+      pointHandles(context),
+      (handle) => this.core.picking.screenOfPoint(handle.point, top),
+      screen,
+      this.core.settings.edit.handlePickTolerance,
       // À distance égale, une vraie poignée passe avant une poignée en transparence.
-      const distance = Math.hypot(at.x - screen.x, at.y - screen.y) + (handle.faded ? 0.5 : 0);
-      if (distance <= this.core.settings.edit.handlePickTolerance && (!best || distance < best.distance))
-        best = { handle, distance };
-    }
-    return best?.handle;
+      (handle) => (handle.faded ? 0.5 : 0),
+    );
   }
 }

@@ -1,7 +1,7 @@
-import type { EdgeEndsSnapshot, EndAttachment, TerminalEnd } from '../../../edit/edgeEnds';
+import type { EdgeEndsSnapshot, EndAttachment, Side, TerminalEnd } from '../../../edit/edgeEnds';
 import type { PointHandle, PointsContext } from '../../../edit/edgePointEdits';
 import type { MoveSet } from '../../../edit/moveSet';
-import type { ConnectSide, ResizeHandle } from '../../../edit/handleKinds';
+import type { ResizeHandle } from '../../../edit/handleKinds';
 import type { EdgeLabelPlacement, Point, Rect } from '../../../model/types';
 
 /** Ce que bouge un déplacement : formes saisies, ce qui les suit, et les bornes du mode. */
@@ -63,7 +63,7 @@ export interface ConnectDrag {
   pageId: string;
   sourceId: string;
   /** Côté de la forme d'où part la flèche (poignée tirée). */
-  side: ConnectSide;
+  side: Side;
   /** Point de départ retenu : point libre de ce côté le plus proche de la cible visée. */
   exit?: Point;
   /** Coudes d'une boucle sur la forme de départ, écrits en points intermédiaires. */

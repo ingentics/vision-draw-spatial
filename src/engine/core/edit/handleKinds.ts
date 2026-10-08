@@ -1,4 +1,6 @@
 import type { Point, Rect } from '../model/types';
+import { SIDES, SIDE_NORMALS } from './edgeEnds';
+import type { Side } from './edgeEnds';
 
 /**
  * Poignées de la forme sélectionnée (SPEC §14.1) : huit poignées de redimensionnement (coins et
@@ -6,27 +8,15 @@ import type { Point, Rect } from '../model/types';
  * la flèche part du côté de la poignée.
  */
 export type ResizeHandle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
-export type ConnectSide = 'n' | 'e' | 's' | 'w';
-export type ConnectHandle = `connect-${ConnectSide}`;
+export type ConnectHandle = `connect-${Side}`;
 export type HandleKind = ResizeHandle | ConnectHandle;
-
-/** Côtés des poignées de connexion, dans l'ordre d'affichage. */
-export const CONNECT_SIDES: readonly ConnectSide[] = ['n', 'e', 's', 'w'];
-
-/** Direction (vecteur unité, y vers le bas) et point de sortie relatif (`exitX/exitY`) de chaque côté. */
-export const CONNECT_DIRECTIONS: Record<ConnectSide, { direction: Point; exit: Point }> = {
-  n: { direction: { x: 0, y: -1 }, exit: { x: 0.5, y: 0 } },
-  e: { direction: { x: 1, y: 0 }, exit: { x: 1, y: 0.5 } },
-  s: { direction: { x: 0, y: 1 }, exit: { x: 0.5, y: 1 } },
-  w: { direction: { x: -1, y: 0 }, exit: { x: 0, y: 0.5 } },
-};
 
 export function isConnectHandle(kind: HandleKind): kind is ConnectHandle {
   return kind.startsWith('connect-');
 }
 
-export function connectSideOf(kind: ConnectHandle): ConnectSide {
-  return kind.slice('connect-'.length) as ConnectSide;
+export function connectSideOf(kind: ConnectHandle): Side {
+  return kind.slice('connect-'.length) as Side;
 }
 
 /** Disposition des poignées, en pixels écran (paramètres `edit.connectHandleOffset` et `edit.middleHandleMinSpan`). */
@@ -64,8 +54,8 @@ function allHandlePoints(bounds: Rect, zoom: number, connectOffset: number): Arr
   const { x, y, width: w, height: h } = bounds;
   const center = { x: x + w / 2, y: y + h / 2 };
   const offset = connectOffset / zoom;
-  const connect = CONNECT_SIDES.map((side) => {
-    const { direction } = CONNECT_DIRECTIONS[side];
+  const connect = SIDES.map((side) => {
+    const direction = SIDE_NORMALS[side];
     const kind: HandleKind = `connect-${side}`;
     return {
       kind,

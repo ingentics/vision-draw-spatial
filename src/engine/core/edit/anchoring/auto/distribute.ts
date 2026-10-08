@@ -1,7 +1,7 @@
 import type { EdgeModel, PageModel, Point, Rect } from '../../../model/types';
-import { endAttachmentOf, sideOfConstraint } from '../../edgeEnds';
+import { endAttachmentOf, pointOnSide, sideOfConstraint } from '../../edgeEnds';
 import { seededUnit } from '../seed';
-import type { AnchorSide, TerminalEnd } from '../../edgeEnds';
+import type { Side, TerminalEnd } from '../../edgeEnds';
 import { center } from '../../../model/geometry';
 import { pageGeometry } from '../../../model/pageGeometry';
 import type { PageGeometry } from '../../../model/pageGeometry';
@@ -21,7 +21,7 @@ export interface AnchorChange {
 }
 
 /** Côté du cadre qui fait face à un point (direction depuis le centre, rapportée aux dimensions). */
-export function facingSide(bounds: Rect, toward: Point): AnchorSide {
+export function facingSide(bounds: Rect, toward: Point): Side {
   const c = center(bounds);
   const dx = (toward.x - c.x) / Math.max(bounds.width, 1);
   const dy = (toward.y - c.y) / Math.max(bounds.height, 1);
@@ -29,26 +29,13 @@ export function facingSide(bounds: Rect, toward: Point): AnchorSide {
   return dy >= 0 ? 's' : 'n';
 }
 
-/** Point relatif au cadre à la position `t` d'un côté (de gauche à droite, de haut en bas). */
-export function pointOnSide(side: AnchorSide, t: number): Point {
-  if (side === 'n') return { x: t, y: 0 };
-  if (side === 's') return { x: t, y: 1 };
-  if (side === 'e') return { x: 1, y: t };
-  return { x: 0, y: t };
-}
-
-/** Milieu d'un côté. */
-export function sideMiddle(side: AnchorSide): Point {
-  return pointOnSide(side, 0.5);
-}
-
 /**
  * Sens du côté pour un faisceau parcouru de la forme de départ vers celle d'arrivée : signe de la position le long
  * du côté (x pour haut / bas, y pour gauche / droite) dans la « gauche » du sens de parcours. Un faisceau ne se croise
  * pas si la gauche reste à gauche : même ordre aux deux bouts si les signes sont égaux, ordre inversé sinon.
  */
-const LEFT_OUT: Record<AnchorSide, number> = { n: -1, e: -1, s: 1, w: 1 };
-const LEFT_IN: Record<AnchorSide, number> = { n: 1, e: 1, s: -1, w: -1 };
+const LEFT_OUT: Record<Side, number> = { n: -1, e: -1, s: 1, w: 1 };
+const LEFT_IN: Record<Side, number> = { n: 1, e: 1, s: -1, w: -1 };
 
 /** Clé d'un bout de flèche dans un ensemble de bouts (`resitedEnds`). */
 export function endKey(edgeId: string, end: TerminalEnd): string {
@@ -65,7 +52,7 @@ function endSide(
   end: TerminalEnd,
   toward: Point,
   resite?: ReadonlySet<string>,
-): AnchorSide | undefined {
+): Side | undefined {
   const attachment = endAttachmentOf(edge, end);
   if (!attachment || attachment.kind === 'free') return undefined;
   if (attachment.kind === 'fixed' && !resite?.has(endKey(edge.id, end))) return sideOfConstraint(attachment.constraint);
@@ -85,7 +72,7 @@ interface Slot {
   /** Sens d'un faisceau dans ce groupe : +1 = ids croissants, -1 = décroissants. */
   bundle: number;
   current?: Point;
-  side: AnchorSide;
+  side: Side;
 }
 
 /**

@@ -1,22 +1,24 @@
 import {
+  anchorPosition,
   connectableShapes,
   endAttachmentOf,
   frameConstraint,
+  nearestFreeAnchor,
   shapeAnchors,
+  sideMiddle,
   sideOfConstraint,
 } from '../../../edit/edgeEnds';
-import type { Anchor, EndAttachment, TerminalEnd } from '../../../edit/edgeEnds';
+import type { Anchor, EndAttachment, Side, TerminalEnd } from '../../../edit/edgeEnds';
 import { pointsEditor } from '../../../edit/edgePointEdits';
 import { squareEnd } from '../../../edit/squareEnd';
-import type { ConnectSide } from '../../../edit/handleKinds';
-import { sideMiddle } from '../../../edit/anchoring/auto/distribute';
 import { loopWaypoints } from '../../../edit/loops';
 import type { EdgeModel, PageModel, Point, ShapeModel } from '../../../model/types';
-import { toTerminal } from '../../../render/edges/edge';
-import { fixedAnchor, routeEdgePoints } from '../../../render/edges/route';
+import { toTerminal } from '../../../render/edges/terminal';
+import { routeEdgePoints } from '../../../render/edges/route';
 import type { EndAccepts } from '../../modes/pageModes';
 import type { EngineCore } from '../../EngineCore';
 import { shapesById } from '../../../model/pageIndex';
+import { nearestOnScreen } from '../../selection/picking';
 
 /** Point d'ancrage compté comme pris en plus des flèches existantes (ex. départ d'une boucle en cours). */
 export type TakenAnchor = { shapeId: string; constraint: Point };
@@ -68,17 +70,21 @@ export class Anchors {
     const shapes = this.core.arrangement.distributes(page)
       ? []
       : connectableShapes(page, this.core.registry).filter((s) => !accepted || accepted(s));
-    let best: { shapeId: string; constraint: Point; distance: number } | undefined;
-    for (const shape of shapes) {
+    const candidates = shapes.flatMap((shape) => {
       const top = this.core.sceneView.elementTop(shape.id);
-      for (const { constraint } of this.anchorsOf(page, shape, options.skip, options.taken)) {
-        const at = this.core.picking.screenOfPoint(this.anchorPosition(shape, constraint), top);
-        const distance = Math.hypot(at.x - screen.x, at.y - screen.y);
-        if (distance <= this.core.settings.edit.handlePickTolerance * 1.5 && (!best || distance < best.distance))
-          best = { shapeId: shape.id, constraint, distance };
-      }
-    }
-    if (best) return { kind: 'fixed', shapeId: best.shapeId, constraint: { ...best.constraint } };
+      return this.anchorsOf(page, shape, options.skip, options.taken).map(({ constraint }) => ({
+        shape,
+        constraint,
+        top,
+      }));
+    });
+    const best = nearestOnScreen(
+      candidates,
+      (c) => this.core.picking.screenOfPoint(anchorPosition(c.shape, c.constraint), c.top),
+      screen,
+      this.core.settings.edit.handlePickTolerance * 1.5,
+    );
+    if (best) return { kind: 'fixed', shapeId: best.shape.id, constraint: { ...best.constraint } };
     const shape = this.core.picking.shapeAt(screen, accepted);
     if (shape) return { kind: 'floating', shapeId: shape.id };
     const point = this.core.picking.groundPointAtHeight(screen, options.height);
@@ -117,17 +123,10 @@ export class Anchors {
     page: PageModel,
     shape: ShapeModel,
     toward: Point,
-    side?: ConnectSide,
+    side?: Side,
     taken: TakenAnchor[] = [],
   ): { constraint: Point; point: Point } | undefined {
-    let best: { constraint: Point; point: Point; distance: number } | undefined;
-    for (const anchor of this.anchorsOf(page, shape, undefined, taken)) {
-      if (anchor.used || !anchor.side || (side && anchor.side !== side)) continue;
-      const point = this.anchorPosition(shape, anchor.constraint);
-      const distance = Math.hypot(point.x - toward.x, point.y - toward.y);
-      if (!best || distance < best.distance) best = { constraint: anchor.constraint, point, distance };
-    }
-    return best && { constraint: best.constraint, point: best.point };
+    return nearestFreeAnchor(shape, this.anchorsOf(page, shape, undefined, taken), toward, side);
   }
 
   /** Coudes d'une flèche qui boucle sur sa forme par deux points fixes ; undefined si ce n'en est pas une. */
@@ -168,22 +167,10 @@ export class Anchors {
   loopBetween(shape: ShapeModel, from: Point, to: Point): Point[] | undefined {
     const end = (c: Point) => {
       const side = sideOfConstraint(c);
-      return side && { point: this.anchorPosition(shape, c), side };
+      return side && { point: anchorPosition(shape, c), side };
     };
     const a = end(from);
     const b = end(to);
     return a && b ? loopWaypoints(shape.bounds, a, b, this.core.settings.shapes.edgeLoopMargin) : undefined;
-  }
-
-  /** Position d'un point d'ancrage sur la page, projeté sur le contour de la forme comme le tracé. */
-  anchorPosition(shape: ShapeModel, constraint: Point): Point {
-    const terminal = toTerminal(shape);
-    const style = { exitX: String(constraint.x), exitY: String(constraint.y) };
-    return (
-      (terminal && fixedAnchor(terminal, style, 'source')) ?? {
-        x: shape.bounds.x + constraint.x * shape.bounds.width,
-        y: shape.bounds.y + constraint.y * shape.bounds.height,
-      }
-    );
   }
 }

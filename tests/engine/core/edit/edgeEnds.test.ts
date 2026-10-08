@@ -1,14 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import {
+  SIDES,
+  SIDE_NORMALS,
+  anchorPosition,
   applyEndAttachment,
   constraintStyle,
   endAttachmentOf,
   frameConstraint,
   freeAnchorPositions,
+  nearestFreeAnchor,
+  pointOnSide,
   restoreEnds,
   sameAttachment,
   shapeAnchors,
   sideConstraintAt,
+  sideMiddle,
+  sideSegment,
   snapshotEnds,
 } from '../../../../src/engine/core/edit/edgeEnds';
 import { setCellStyleValue, setEdgeTerminal } from '../../../../src/engine/core/format/cellEdits';
@@ -189,5 +196,76 @@ describe('sideConstraintAt (sujet 333)', () => {
     expect(sideConstraintAt(bounds, 50, { x: 0, y: 0 })).toEqual({ x: 0, y: 0 });
     expect(sideConstraintAt(bounds, 90, { x: 500, y: 0 })).toEqual({ x: 1, y: 1 });
     expect(sideConstraintAt(bounds, 400, { x: 500, y: 0 })).toEqual({ x: 1, y: 1 });
+  });
+});
+
+describe('côtés du cadre (sujet 381)', () => {
+  it('quatre côtés, normales sortantes unitaires', () => {
+    expect(SIDES).toEqual(['n', 'e', 's', 'w']);
+    expect(SIDE_NORMALS.n).toEqual({ x: 0, y: -1 });
+    expect(SIDE_NORMALS.e).toEqual({ x: 1, y: 0 });
+    expect(SIDE_NORMALS.s).toEqual({ x: 0, y: 1 });
+    expect(SIDE_NORMALS.w).toEqual({ x: -1, y: 0 });
+  });
+
+  it('point relatif le long d’un côté, milieu, segment sur la page', () => {
+    expect(pointOnSide('n', 0.25)).toEqual({ x: 0.25, y: 0 });
+    expect(pointOnSide('e', 0.25)).toEqual({ x: 1, y: 0.25 });
+    expect(pointOnSide('s', 0.25)).toEqual({ x: 0.25, y: 1 });
+    expect(pointOnSide('w', 0.25)).toEqual({ x: 0, y: 0.25 });
+    expect(sideMiddle('e')).toEqual({ x: 1, y: 0.5 });
+    const bounds = { x: 10, y: 20, width: 100, height: 60 };
+    expect(sideSegment(bounds, 'n')).toEqual([
+      { x: 10, y: 20 },
+      { x: 110, y: 20 },
+    ]);
+    expect(sideSegment(bounds, 'e')).toEqual([
+      { x: 110, y: 20 },
+      { x: 110, y: 80 },
+    ]);
+    expect(sideSegment(bounds, 's')).toEqual([
+      { x: 10, y: 80 },
+      { x: 110, y: 80 },
+    ]);
+    expect(sideSegment(bounds, 'w')).toEqual([
+      { x: 10, y: 20 },
+      { x: 10, y: 80 },
+    ]);
+  });
+});
+
+describe('position et choix d’un point d’ancrage (sujet 381)', () => {
+  const ELLIPSE =
+    '<mxfile><diagram id="p"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>' +
+    '<mxCell id="o" vertex="1" parent="1" style="ellipse;"><mxGeometry x="0" y="0" width="100" height="100" as="geometry"/></mxCell>' +
+    '</root></mxGraphModel></diagram></mxfile>';
+
+  it('rectangle : point du cadre ; ellipse : projeté sur le contour', () => {
+    const { page } = load();
+    expect(
+      anchorPosition(
+        page.shapes.find((s) => s.id === 'a')!,
+        { x: 0.5, y: 1 },
+      ),
+    ).toEqual({ x: 50, y: 60 });
+    const ellipse = readDrawio(ELLIPSE).document.pages[0]!.shapes[0]!;
+    const corner = anchorPosition(ellipse, { x: 1, y: 0 });
+    expect(Math.hypot(corner.x - 50, corner.y - 50)).toBeCloseTo(50, 6);
+  });
+
+  it('point libre le plus proche, sur un côté donné ou tous ; les ancres prises sont sautées', () => {
+    const { page } = load();
+    const a = page.shapes.find((s) => s.id === 'a')!;
+    const anchors = shapeAnchors('a', [], { extra: [{ x: 1, y: 0.5 }] });
+    // Le milieu de droite est pris : les points libres de droite sont à 0,25 et 0,75.
+    expect(nearestFreeAnchor(a, anchors, { x: 500, y: 30 })).toEqual({
+      constraint: { x: 1, y: 0.25 },
+      point: { x: 100, y: 15 },
+    });
+    const top = nearestFreeAnchor(a, anchors, { x: 500, y: 30 }, 'n');
+    expect(top?.constraint).toEqual({ x: 0.5, y: 0 });
+    expect(top?.point.x).toBeCloseTo(50, 9);
+    expect(top?.point.y).toBeCloseTo(0, 9);
+    expect(nearestFreeAnchor(a, [], { x: 0, y: 0 })).toBeUndefined();
   });
 });

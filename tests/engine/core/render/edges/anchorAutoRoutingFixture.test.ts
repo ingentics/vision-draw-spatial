@@ -1,14 +1,15 @@
 import { existsSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { distributeAnchors, sideMiddle } from '../../../../../src/engine/core/edit/anchoring/auto/distribute';
-import type { AnchorSide } from '../../../../../src/engine/core/edit/edgeEnds';
+import { distributeAnchors } from '../../../../../src/engine/core/edit/anchoring/auto/distribute';
+import { sideMiddle } from '../../../../../src/engine/core/edit/edgeEnds';
+import type { Side as AnchorSide } from '../../../../../src/engine/core/edit/edgeEnds';
 import { avoidRoutes } from '../../../../../src/engine/core/edit/anchoring/auto/avoid';
 import { segmentsOf } from '../../../../../src/engine/core/edit/anchoring/auto/routeAround';
 import { loopWaypoints } from '../../../../../src/engine/core/edit/loops';
 import { readDrawio } from '../../../../../src/engine/core/format/parse';
 import type { PageModel, Point, ShapeModel } from '../../../../../src/engine/core/model/types';
-import { toTerminal } from '../../../../../src/engine/core/render/edges/edge';
+import { toTerminal } from '../../../../../src/engine/core/render/edges/terminal';
 import { routeEdge, simplify } from '../../../../../src/engine/core/render/edges/route';
 import { drawioSvgRoutes, dropCollinear, fixture } from '../../../../helpers';
 

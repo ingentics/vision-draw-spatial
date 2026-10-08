@@ -1,5 +1,6 @@
-import { CONNECT_SIDES } from '../edit/handleKinds';
-import type { ConnectSide, MovedHandles } from '../edit/handleKinds';
+import { SIDES } from '../edit/edgeEnds';
+import type { Side } from '../edit/edgeEnds';
+import type { MovedHandles } from '../edit/handleKinds';
 import type { Point, Rect } from '../model/types';
 import type { ReadonlyShapeModel as ShapeModel } from '../model/readonly';
 import { canvasBrush } from '../interaction/minimapBrush';
@@ -380,9 +381,9 @@ export class ShapeRegistry {
   }
 
   /** Côtés aux poignées de connexion de la forme sélectionnée ; aucun si on ne peut pas y accrocher de flèche. */
-  connectSides(shape: ShapeModel): readonly ConnectSide[] {
+  connectSides(shape: ShapeModel): readonly Side[] {
     const { definition } = this.resolve(shape);
-    return definition.connectable === false ? [] : (definition.connectSides ?? CONNECT_SIDES);
+    return definition.connectable === false ? [] : (definition.connectSides ?? SIDES);
   }
 
   /** Peut-on y accrocher une flèche ? */

@@ -20,7 +20,7 @@
   passent par `createDefaultRegistry()` + `usedTemplatesIn` ; `shapesByMode` (`core/modes/modeShapes.ts:7-15`, découpe
   les chemins du glob) va dans `plugins/`, son seul appelant.
 - Code mort : `setLocalEmbedding` (`render/space.ts:45`, aucun appelant) ; ≈ 40 `export` lus seulement dans leur
-  fichier (ex. `constraintPrefix`, `pointOnSide`, `DEFAULT_BEND_COSTS`, `matchesLayout`, `clampZoom`, `clampTilt`,
+  fichier (ex. `constraintPrefix`, `DEFAULT_BEND_COSTS`, `matchesLayout`, `clampZoom`, `clampTilt`,
   `screenAxes`, `verticalScale`, `OVERVIEW_CYCLE`, `growRegions`, `styleNewRegion`, `orderRegions`, `extentOf`,
   `FIELD_KINDS`, `KEY_TYPES`, `storedArrivals`, `tableStyle`, `buildingHeight`, `CYLINDER_RING`, `stencilXml`,
   `toMeta`, `errorMessage`, `MODIFIER_KEY_LABELS`, `GRAPH_PAGE_NAME`) : retirer l'`export` (recherche relue dans

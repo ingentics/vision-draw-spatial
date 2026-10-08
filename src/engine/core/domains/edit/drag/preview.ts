@@ -1,6 +1,6 @@
 import { Color, Group, Mesh } from 'three';
 import type { MeshBasicMaterial, Object3D } from 'three';
-import { sideOfConstraint } from '../../../edit/edgeEnds';
+import { anchorPosition, sideOfConstraint, sideSegment } from '../../../edit/edgeEnds';
 import type { EndAttachment } from '../../../edit/edgeEnds';
 import { distance } from '../../../model/geometry';
 import type { PageModel, Point, Rect } from '../../../model/types';
@@ -45,29 +45,11 @@ export class ConnectorPreview {
       // Ancrage automatique : le côté visé est surligné.
       const side = sideOfConstraint(attachment.constraint);
       const b = shape.bounds;
-      const corners: Record<string, [Point, Point]> = {
-        n: [
-          { x: b.x, y: b.y },
-          { x: b.x + b.width, y: b.y },
-        ],
-        e: [
-          { x: b.x + b.width, y: b.y },
-          { x: b.x + b.width, y: b.y + b.height },
-        ],
-        s: [
-          { x: b.x, y: b.y + b.height },
-          { x: b.x + b.width, y: b.y + b.height },
-        ],
-        w: [
-          { x: b.x, y: b.y },
-          { x: b.x, y: b.y + b.height },
-        ],
-      };
       const hints = connectionHints(
         { bounds: b, perimeter: 'rectangle', style: shape.style },
         [],
         this.core.camera.state.zoom,
-        { outline: false, side: side && corners[side], accent: this.core.settings.selection.accentColor },
+        { outline: false, side: side && sideSegment(b, side), accent: this.core.settings.selection.accentColor },
       );
       hints.position.z = this.core.sceneView.elementTop(shape.id) + 0.3;
       group.add(hints);
@@ -85,7 +67,7 @@ export class ConnectorPreview {
           perimeter: perimeterKind(shape.style, parseStyle(shape.raw?.styleString).names),
           style: shape.style,
         },
-        anchors.map((a) => ({ point: this.core.anchors.anchorPosition(shape, a.constraint), used: a.used })),
+        anchors.map((a) => ({ point: anchorPosition(shape, a.constraint), used: a.used })),
         this.core.camera.state.zoom,
         { active, outline: attachment?.kind === 'floating', accent: this.core.settings.selection.accentColor },
       );

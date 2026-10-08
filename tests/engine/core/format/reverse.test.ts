@@ -5,7 +5,7 @@ import { reversalFix } from '../../../../src/engine/core/edit/anchoring/reversal
 import { parseStyle } from '../../../../src/engine/core/format/style';
 import type { PageModel, Point } from '../../../../src/engine/core/model/types';
 import { shapesById } from '../../../../src/engine/core/model/pageIndex';
-import { toTerminal } from '../../../../src/engine/core/render/edges/edge';
+import { toTerminal } from '../../../../src/engine/core/render/edges/terminal';
 import { routeEdge } from '../../../../src/engine/core/render/edges/route';
 import { readDrawio } from '../../../../src/engine/core/format/parse';
 import { writeDrawio } from '../../../../src/engine/core/format/write';

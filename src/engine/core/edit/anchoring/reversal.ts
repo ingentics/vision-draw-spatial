@@ -1,6 +1,6 @@
 import type { PageModel, Point } from '../../model/types';
 import { shapesById } from '../../model/pageIndex';
-import { toTerminal } from '../../render/edges/edge';
+import { toTerminal } from '../../render/edges/terminal';
 import { routeEdge } from '../../render/edges/route';
 import { constraintStyle, frameConstraint } from '../edgeEnds';
 import type { TerminalEnd } from '../edgeEnds';
