@@ -38,6 +38,7 @@ describe('mode RDD : champ sélectionné dans sa table (sujet 249)', () => {
       zone: { x: 62, y: 206, width: 132, height: 20 },
       fontSize: 11,
       italic: undefined,
+      transparent: true,
     });
     run((edit) => setSecondary(edit, shape('address'), true));
     const text = fieldParts.text!(page(), shape('address'), '0')!;
@@ -154,14 +155,13 @@ describe('mode RDD : séparateurs entre les champs (sujet 253)', () => {
     expect([part, labels(rowsOf(shape('user')))]).toEqual(['1', ['id', '', 'email', '', 'role']]);
   });
 
-  it('texte : écrit au milieu, éditeur sans fond ; vidé, le séparateur reste ; la largeur suit un long texte', () => {
+  it('texte : écrit au milieu, éditeur sans fond (comme un champ) ; vidé, le séparateur reste ; la largeur suit un long texte', () => {
     const { run, page, shape } = setup();
     run((edit) => minus.run(edit, shape('user'), undefined, '1'));
     run((edit) => fieldParts.setText!(edit, shape('user'), '2', '  Audit '));
     expect(rowsOf(shape('user'))[2]).toEqual({ divider: true, label: 'Audit' });
     const text = fieldParts.text!(page(), shape('user'), '2')!;
     expect([text.text, text.fontSize, text.center, text.transparent]).toEqual(['Audit', 7, true, true]);
-    expect(fieldParts.text!(page(), shape('user'), '1')!.transparent).toBeUndefined();
     const long = 'A very long divider label for the table';
     run((edit) => fieldParts.setText!(edit, shape('user'), '2', long));
     const measure = approximateMeasure(long, { size: 7, bold: false, italic: false });

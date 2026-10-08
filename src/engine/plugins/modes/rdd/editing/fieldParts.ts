@@ -83,9 +83,11 @@ export const fieldParts: ModeParts = {
     const left = row.x + fieldLayout(field).label * scale;
     return {
       text: field.label,
-      // Du label au bord droit de la table (le type est couvert pendant la saisie).
+      // Du label au bord droit de la table.
       zone: { x: left, y: row.y, width: row.x + row.width - left - TABLE.padding * scale, height: row.height },
       fontSize: TABLE.fieldSize * scale,
+      // Sans fond (sujet 372) : la saisie prend la place du label masqué, le type la suit dans l'aperçu en direct.
+      transparent: true,
     };
   },
   // Commentaire du champ (sujet 262) : au survol sous son nom, et édité par la touche C ; pas pour un séparateur.
