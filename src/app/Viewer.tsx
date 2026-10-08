@@ -889,8 +889,14 @@ export function Viewer({
               pages={document.pages}
               currentPageId={pageId}
               graphActive={pageId === GRAPH_PAGE_ID}
-              onShowGraph={() => engine?.showGraph()}
-              onSelect={(id) => engine?.goToPage(id)}
+              onShowGraph={() => {
+                engine?.showGraph();
+                engine?.focusCanvas();
+              }}
+              onSelect={(id) => {
+                engine?.goToPage(id);
+                engine?.focusCanvas();
+              }}
               modeOf={modes && ((page) => modes.modeOf(page))}
               onAdd={editablePages ? () => engine?.addPage() : undefined}
               onRename={editablePages ? (id, name) => engine?.renamePage(id, name) : undefined}
