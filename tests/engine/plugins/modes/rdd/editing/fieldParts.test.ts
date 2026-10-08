@@ -17,6 +17,7 @@ import { rowWidth, widthOf, KEY_ROW, setFields, labels, fieldsOf, setup } from '
 import { createDefaultRegistry } from '../../../../../../src/engine/plugins';
 import { keys } from '../../../../../../src/engine/plugins/modes/rdd/keys';
 import { addEdgeCell } from '../../../../../../src/engine/core/format/create';
+import { MEASURE } from '../../../../../helpers';
 
 describe('mode RDD : champ sélectionné dans sa table (sujet 249)', () => {
   // User : (40, 160), 160 de large ; entête de 26, lignes de 20 (id, email, role).
@@ -205,7 +206,7 @@ describe('mode RDD : séparateurs entre les champs (sujet 253)', () => {
     const { run, shape } = setup();
     run((edit) => minus.run(edit, shape('user'), undefined, '2'));
     const long = 'A very long divider label for the table';
-    const preview = fieldParts.textPreview!(shape('user'), '3', long, 10);
+    const preview = fieldParts.textPreview!(shape('user'), '3', long, { gridSize: 10, ...MEASURE });
     expect(rowsOf(preview)[3]).toEqual({ divider: true, label: long });
     expect(preview.bounds.width).toBeGreaterThan(shape('user').bounds.width);
     // Sur la grille, comme la taille écrite ensuite (sujet 263).
@@ -219,6 +220,7 @@ describe('mode RDD : séparateurs entre les champs (sujet 253)', () => {
     run((edit) => fieldParts.setText!(edit, shape('user'), '2', 'Audit'));
     const texts: TextSpec[] = [];
     const ctx: RenderContext = {
+      ...MEASURE,
       text: {
         create(spec) {
           texts.push(spec);

@@ -11,8 +11,9 @@ import {
   createDefaultEffectRegistry,
   createDefaultRegistry,
 } from '../../../../src/engine/plugins';
+import { MEASURE } from '../../../helpers';
 
-const ctx = { text: { create: () => new Object3D() } };
+const ctx = { ...MEASURE, text: { create: () => new Object3D() } };
 
 function pageOf(effects: string | undefined, cells = ''): PageModel {
   const attribute = effects === undefined ? '' : ` spatial.effects="${effects}"`;

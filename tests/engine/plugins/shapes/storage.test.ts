@@ -7,7 +7,7 @@ import type { RenderContext, TextSpec } from '../../../../src/engine/core/render
 import type { Point } from '../../../../src/engine/core/model/types';
 import { flowsLeft } from '../../../../src/engine/plugins/shapes/architecture/queue';
 import { cylinder3Drawing } from '../../../../src/engine/plugins/shapes/generic/cylinder';
-import { fixture } from '../../../helpers';
+import { fixture, MEASURE } from '../../../helpers';
 import { createDefaultRegistry } from '../../../../src/engine/plugins';
 
 const document = parseDrawio(fixture('storage.drawio'));
@@ -17,6 +17,7 @@ const registry = createDefaultRegistry();
 function build(level: 'flat' | 'iso') {
   const texts: TextSpec[] = [];
   const ctx: RenderContext = {
+    ...MEASURE,
     text: {
       create(spec) {
         texts.push(spec);
@@ -97,6 +98,7 @@ describe('formes de stockage : BDD, queue, cache distribué', () => {
       expect(zone(shape('cache'))).toEqual([320, 70, 60, 40]);
       const texts: TextSpec[] = [];
       registry.sceneRenderer(shape('cache'), 'flat').create(shape('cache'), {
+        ...MEASURE,
         text: {
           create(spec) {
             texts.push(spec);
@@ -127,7 +129,7 @@ describe('formes de stockage : BDD, queue, cache distribué', () => {
       const resized = { ...shape, bounds: { ...shape.bounds, ...patch } };
       const object = registry
         .sceneRenderer(resized, 'flat')
-        .create(resized, { text: { create: () => new Object3D() } });
+        .create(resized, { ...MEASURE, text: { create: () => new Object3D() } });
       object.updateMatrixWorld(true);
       const [min, max] = box(named(object, 'stroke-lip')[0]!);
       return +(max![axis]! - min![axis]!).toFixed(2);
@@ -143,7 +145,7 @@ describe('formes de stockage : BDD, queue, cache distribué', () => {
     });
 
     it('BDD = cache avec une seule lèvre : même silhouette, même première lèvre, même avec size=15', () => {
-      const ctx: RenderContext = { text: { create: () => new Object3D() } };
+      const ctx: RenderContext = { ...MEASURE, text: { create: () => new Object3D() } };
       const cache = page.shapes.find((s) => s.id === 'cache')!;
       const db = { ...cache, kind: 'cylinder3', style: { ...cache.style, shape: 'cylinder3', size: '15' } };
       const draw = (shape: typeof cache) => {
@@ -202,7 +204,7 @@ describe('formes de stockage : BDD, queue, cache distribué', () => {
   });
 
   describe('iso / 3D : bâtiments (toit plat rectangulaire avec le label, façade du type)', () => {
-    const ctx: RenderContext = { text: { create: () => new Object3D() }, volume: { depth: 40 } };
+    const ctx: RenderContext = { ...MEASURE, text: { create: () => new Object3D() }, volume: { depth: 40 } };
     const shape = (id: string) => page.shapes.find((s) => s.id === id)!;
 
     it('hauteur : la même épaisseur par défaut que toutes les formes, spatial.height prioritaire', () => {
@@ -292,6 +294,7 @@ describe('formes de stockage : BDD, queue, cache distribué', () => {
     it('étiquettes : spatial.tag les remplace, vide = aucune ; désactivables par le réglage', () => {
       const texts: TextSpec[] = [];
       const ctx: RenderContext = {
+        ...MEASURE,
         text: {
           create(spec) {
             texts.push(spec);

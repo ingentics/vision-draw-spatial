@@ -7,7 +7,7 @@ import type { PageModel, ShapeModel } from '../../../../src/engine/core/model/ty
 import { TOP_OFFSET } from '../../../../src/engine/core/render/iso/block';
 import { buildPageScene } from '../../../../src/engine/core/render/pageScene';
 import type { RenderContext, TextSpec } from '../../../../src/engine/core/render/types';
-import { fixture } from '../../../helpers';
+import { fixture, MEASURE } from '../../../helpers';
 import { createDefaultRegistry } from '../../../../src/engine/plugins';
 
 /**
@@ -106,6 +106,7 @@ const registry = createDefaultRegistry();
 function render(page: PageModel, level: 'flat' | 'iso') {
   const texts: TextSpec[] = [];
   const ctx: RenderContext = {
+    ...MEASURE,
     text: {
       create(spec) {
         texts.push(spec);

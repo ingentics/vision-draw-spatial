@@ -4,10 +4,10 @@ import { describe, expect, it } from 'vitest';
 import { parseDrawio } from '../../../../src/engine/core/format/parse';
 import { VEIL_ORDER, createVeil, createVeilHole, liftAboveVeil } from '../../../../src/engine/core/render/veil';
 import { buildPageScene } from '../../../../src/engine/core/render/pageScene';
-import { fixture } from '../../../helpers';
+import { fixture, MEASURE } from '../../../helpers';
 import { createDefaultRegistry } from '../../../../src/engine/plugins';
 
-const ctx = { text: { create: () => new Object3D() }, volume: { depth: 16 } };
+const ctx = { ...MEASURE, text: { create: () => new Object3D() }, volume: { depth: 16 } };
 const page = parseDrawio(fixture('drawio-desktop.drawio')).pages[0]!;
 const B = 'Fs-0jHc4KjceeW8xsn6R-2';
 

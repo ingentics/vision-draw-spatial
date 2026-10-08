@@ -9,6 +9,7 @@ import { createDefaultRegistry } from '../../../../../../src/engine/plugins';
 import { writeDrawio } from '../../../../../../src/engine/core/format/write';
 import { readDrawio } from '../../../../../../src/engine/core/format/parse';
 import { setup } from '../helpers';
+import { MEASURE } from '../../../../../helpers';
 
 /** Corps en texte libre d'un document RDD (sujet 269). Fixture : `settings` (document à clés `theme`, `locale`), `unnamed`. */
 
@@ -73,7 +74,9 @@ describe('mode RDD : corps en texte libre d’un document (sujets 269, 352)', ()
     });
     run((edit) => fieldParts.setText!(edit, settings, BODY_PART, 'a:\n\tb: 1'));
     expect(documentBody(shape('settings'))).toBe('a:\n  b: 1');
-    expect(documentBody(fieldParts.textPreview!(settings, BODY_PART, 'x: 1', 10))).toBe('x: 1');
+    expect(documentBody(fieldParts.textPreview!(settings, BODY_PART, 'x: 1', { gridSize: 10, ...MEASURE }))).toBe(
+      'x: 1',
+    );
   });
 
   it('panneau : « Document body », tout le texte, éditable ; masqué hors d’un document', () => {

@@ -1,6 +1,7 @@
 import { Color, Group } from 'three';
 import {
   PART_ORDER,
+  approximateMeasure,
   createLabel,
   fillMesh,
   readableOn,
@@ -272,13 +273,17 @@ export function table(
         ...palette,
         category: 'rdd',
         style: tableStyle(id, kind),
-        // Mesure approchée au chargement (polices pas encore là) : la première modification l'ajuste. Largeur sur la
-        // grille par défaut de draw.io (10, sujet 263), hauteur au plus juste (sujet 264). Document : taille par
-        // défaut, réglée ensuite à la main (sujet 269).
+        // Mesure approchée (modèle calculé sans moteur, polices pas encore là) : la première modification l'ajuste.
+        // Largeur sur la grille par défaut de draw.io (10, sujet 263), hauteur au plus juste (sujet 264). Document :
+        // taille par défaut, réglée ensuite à la main (sujet 269).
         ...(kind.rules.fields
           ? {
               width: tableSize(
-                tableWidth(kind, { name: palette.value, fields, secondary: false, mark: kind.look.mark !== undefined }),
+                tableWidth(
+                  kind,
+                  { name: palette.value, fields, secondary: false, mark: kind.look.mark !== undefined },
+                  approximateMeasure,
+                ),
                 10,
               ),
               height: tableHeight(kind, false, fields.length),

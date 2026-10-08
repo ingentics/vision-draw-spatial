@@ -3,6 +3,7 @@ import type { RichLine } from '../model/types';
 import type { DeepReadonly } from '../model/readonly';
 import type { PluginValues } from '../settings/pluginSettings';
 import type { JumpDefaults } from './edges/jumps';
+import type { MeasureText } from './richLayout';
 import type { EdgeSplitSettings } from './edges/split';
 import type { TextAlong } from './textPath';
 
@@ -61,7 +62,17 @@ export interface TextFactory {
   create(spec: TextSpec): Object3D;
 }
 
-export interface RenderContext {
+/**
+ * Mesure du texte du moteur (sujet 377), remise aux formes (rendu et points d'entrée géométriques) et aux modes : celle
+ * des polices du texte SDF une fois chargées, une approximation avant (et sans DOM). Le moteur reconstruit ses scènes
+ * quand elle devient exacte.
+ */
+export interface MeasureContext {
+  /** Largeur du texte en pixels de page. */
+  readonly measureText: MeasureText;
+}
+
+export interface RenderContext extends MeasureContext {
   text: TextFactory;
   /**
    * Volume des formes en vue iso (niveau `iso`) : épaisseur par défaut, en pixels de page, et

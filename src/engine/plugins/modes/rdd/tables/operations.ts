@@ -46,7 +46,7 @@ export function fitTable(edit: ModeEdit, shape: ShapeModel, changes: Partial<Tab
   const content = { ...tableContent(shape), ...changes };
   const bounds = {
     ...shape.bounds,
-    width: tableSize(tableWidth(kind, content), edit.gridSize),
+    width: tableSize(tableWidth(kind, content, edit.measureText), edit.gridSize),
     height: roundSize(tableHeight(kind, content.secondary, content.fields.length)),
   };
   edit.setShapeBounds(shape.id, bounds);

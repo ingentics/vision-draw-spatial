@@ -2,13 +2,31 @@ import type { EdgeEnd, EndTextGap } from '../edit/edgeLabels';
 import type { Point, Rect } from '../model/types';
 // Modèle en lecture seule (sujet 303) : un mode lit la page, il n'écrit que par `ModeEdit`.
 import type { ReadonlyPageModel as PageModel } from '../model/readonly';
+import type { MeasureText } from '../render/richLayout';
 
-/** Ce que l'appli fournit aux opérations de mode : couleurs proposées et textes de début / fin (paramètres). */
+/**
+ * Ce que le moteur fournit aux opérations de mode : couleurs proposées et textes de début / fin (paramètres), mesure du
+ * texte.
+ */
 export interface ModeEditContext {
   /** Fonds des styles de forme des paramètres (`modePalette`) ; peut être vide. */
   palette: readonly string[];
   /** Textes de début / fin des flèches : taille, couleur, écarts au bout (paramètres `shapes.edgeEndText…`). */
   endText: { size: number; color: string; gap: EndTextGap };
+  /** Mesure du texte du moteur (sujet 377) : approchée tant que les polices ne sont pas chargées. */
+  measureText: MeasureText;
+}
+
+/**
+ * Ce qui fixe la taille qu'un mode écrit pour une forme qui suit son texte : grille de la page (sujet 263) et mesure du
+ * texte du moteur (sujet 377). Celui de `ModeEdit`, remis aussi à l'aperçu de saisie (`ModeParts.textPreview`) pour
+ * qu'il ait la taille écrite ensuite.
+ */
+export interface ModeSizing {
+  /** Pas de la grille de la page (`gridSize` draw.io), 0 sans grille (sujet 263). */
+  readonly gridSize: number;
+  /** Largeur d'un texte en pixels de page, mesurée comme le moteur le dessine (sujet 377). */
+  readonly measureText: MeasureText;
 }
 
 /**
@@ -17,12 +35,10 @@ export interface ModeEditContext {
  * clé invalide lève une exception (l'opération n'écrit alors rien) ; un élément verrouillé ne change ni d'attribut, ni de
  * style, ni de bornes, ni de place dans l'ordre, ni de textes de bout (sujet 301).
  */
-export interface ModeEdit {
+export interface ModeEdit extends ModeSizing {
   readonly page: PageModel;
   /** Couleurs proposées par l'appli (fonds des styles de forme des paramètres, `modePalette`) ; peut être vide. */
   readonly palette: readonly string[];
-  /** Pas de la grille de la page (`gridSize` draw.io), 0 sans grille (sujet 263). */
-  readonly gridSize: number;
   /** Attribut du mode sur `<diagram>`, par son nom court (écrit `spatial.<namespace>.<name>`) ; undefined le retire. */
   setPageAttribute(name: string, value: string | undefined): void;
   /**

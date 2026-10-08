@@ -6,13 +6,14 @@ import { buildPageScene } from '../../../../src/engine/core/render/pageScene';
 import { ShapeRegistry } from '../../../../src/engine/core/shapes/registry';
 import type { ShapeDefinition } from '../../../../src/engine/core/shapes/types';
 import type { RenderContext, TextSpec } from '../../../../src/engine/core/render/types';
-import { fixture } from '../../../helpers';
+import { fixture, MEASURE } from '../../../helpers';
 import { createDefaultRegistry } from '../../../../src/engine/plugins';
 
 /** Fabrique de texte factice : garde la spec pour inspection. */
 function stubContext() {
   const texts: TextSpec[] = [];
   const ctx: RenderContext = {
+    ...MEASURE,
     text: {
       create(spec) {
         texts.push(spec);

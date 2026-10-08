@@ -5,7 +5,9 @@ import type { ReadonlyShapeModel as ShapeModel } from '../model/readonly';
 import { canvasBrush } from '../interaction/minimapBrush';
 import { blockHeight } from '../render/iso/block';
 import { outsideLabelBox } from '../render/labelPosition';
-import type { RenderContext } from '../render/types';
+import { approximateMeasure } from '../render/richLayout';
+import type { MeasureText } from '../render/richLayout';
+import type { MeasureContext, RenderContext } from '../render/types';
 import { legacyPluginSettings, pluginValues } from '../settings/pluginSettings';
 import type { PluginSettings, PluginValues } from '../settings/pluginSettings';
 import type { SelectionStyle } from '../settings/types';
@@ -65,19 +67,31 @@ export interface ResolvedShape {
  */
 export class ShapeRegistry {
   private readonly report: PluginReport | undefined;
+  /** Remis aux points d'entrée géométriques des formes (`outline`, `contains`…) : la mesure du texte (sujet 377). */
+  private readonly measuring: MeasureContext;
 
   constructor(
     private readonly fallback: ShapeDefinition = placeholderShape,
     private readonly definitions: ShapeDefinition[] = [],
-    onError?: ShapeErrorHandler,
+    private readonly onError?: ShapeErrorHandler,
     private readonly categoryList: ShapeCategory[] = [],
+    measureText: MeasureText = approximateMeasure,
   ) {
     this.report = onError && ((_family, id, hook, error) => onError(id, hook, error));
+    this.measuring = Object.freeze({ measureText });
   }
 
   /** Le même registre (mêmes formes, y compris celles enregistrées ensuite), dont les erreurs des formes vont à `onError`. */
   reportingTo(onError: ShapeErrorHandler): ShapeRegistry {
-    return new ShapeRegistry(this.fallback, this.definitions, onError, this.categoryList);
+    return new ShapeRegistry(this.fallback, this.definitions, onError, this.categoryList, this.measuring.measureText);
+  }
+
+  /**
+   * Le même registre, dont les formes mesurent le texte par `measureText` (celle du moteur, sujet 377) hors du rendu ;
+   * l'approximation par défaut (registre sans moteur, tests).
+   */
+  measuringWith(measureText: MeasureText): ShapeRegistry {
+    return new ShapeRegistry(this.fallback, this.definitions, this.onError, this.categoryList, measureText);
   }
 
   /**
@@ -230,7 +244,7 @@ export class ShapeRegistry {
       definition,
       'textZone',
       () => shape.bounds,
-      () => textZone(readonlyModel(shape), drawn) ?? shape.bounds,
+      () => textZone(readonlyModel(shape), drawn, this.measuring) ?? shape.bounds,
     );
   }
 
@@ -287,7 +301,7 @@ export class ShapeRegistry {
       definition,
       'outline',
       () => undefined,
-      () => outline(readonlyModel(shape)),
+      () => outline(readonlyModel(shape), this.measuring),
     );
   }
 
@@ -304,7 +318,7 @@ export class ShapeRegistry {
         definition,
         'contains',
         () => true,
-        () => contains(readonlyModel(shape), point),
+        () => contains(readonlyModel(shape), point, this.measuring),
       );
     const path = outline ? outline() : this.outline(shape);
     return !path || path.length < 3 || insidePolygon(path, point);
@@ -332,7 +346,7 @@ export class ShapeRegistry {
       definition,
       'hitBounds',
       () => shape.bounds,
-      () => hitBounds(readonlyModel(shape)),
+      () => hitBounds(readonlyModel(shape), this.measuring),
     );
   }
 
@@ -356,7 +370,7 @@ export class ShapeRegistry {
       definition,
       'movedHandles',
       () => ({}),
-      () => movedHandles(readonlyModel(shape)),
+      () => movedHandles(readonlyModel(shape), this.measuring),
     );
   }
 

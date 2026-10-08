@@ -1,5 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { approximateMeasure } from '../src/engine/core/render/richLayout';
+import type { MeasureContext } from '../src/engine/core/render/types';
+
+/** Mesure du texte remise aux formes d'un test (sujet 377) : l'approximation, celle d'un moteur sans polices chargées. */
+export const MEASURE: MeasureContext = { measureText: approximateMeasure };
 
 export function fixture(name: string): string {
   return readFileSync(fileURLToPath(new URL(`./fixtures/${name}`, import.meta.url)), 'utf8');

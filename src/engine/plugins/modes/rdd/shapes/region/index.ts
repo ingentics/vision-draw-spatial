@@ -2,7 +2,6 @@ import { Color, Group } from 'three';
 import {
   fillMesh,
   insidePolygon,
-  measureText,
   rectPath,
   strokeMesh,
   styleColor,
@@ -13,7 +12,14 @@ import {
   labelObject,
   readableOn,
 } from '../../../../../core/plugins';
-import type { Point, Rect, RenderContext, ShapeDefinition, ShapeModel } from '../../../../../core/plugins';
+import type {
+  MeasureContext,
+  Point,
+  Rect,
+  RenderContext,
+  ShapeDefinition,
+  ShapeModel,
+} from '../../../../../core/plugins';
 import { DEFAULT_REGION_STYLE, REGION, REGION_KIND, regionStyle } from '../../regions/regionLayout';
 
 /**
@@ -26,12 +32,15 @@ import { DEFAULT_REGION_STYLE, REGION, REGION_KIND, regionStyle } from '../../re
 
 const fontSizeOf = (shape: ShapeModel) => styleNumber(shape.style, 'fontSize', REGION.fontSize);
 
-/** Nom de la région sur son onglet (texte et place), undefined sans nom. */
-function tabText(shape: ShapeModel): Rect | undefined {
+/**
+ * Nom de la région sur son onglet (texte et place), undefined sans nom ; sa largeur est celle de la mesure du moteur
+ * (`ctx`, sujet 377), la même pour le dessin, la prise au clic et les poignées.
+ */
+function tabText(shape: ShapeModel, ctx: MeasureContext): Rect | undefined {
   const text = shape.label.trim();
   if (!text) return undefined;
   const { height, padding } = REGION.tab;
-  const width = measureText(text, { size: fontSizeOf(shape), bold: true, italic: false });
+  const width = ctx.measureText(text, { size: fontSizeOf(shape), bold: true, italic: false });
   return { x: shape.bounds.x + padding, y: shape.bounds.y - height, width, height };
 }
 
@@ -39,8 +48,8 @@ function tabText(shape: ShapeModel): Rect | undefined {
  * Partie droite de l'onglet, avant le S ; undefined sans nom. Le nom a la même marge des deux côtés : du bord gauche,
  * et jusqu'au milieu du S (sujet 228).
  */
-export function tabRect(shape: ShapeModel): Rect | undefined {
-  const text = tabText(shape);
+export function tabRect(shape: ShapeModel, ctx: MeasureContext): Rect | undefined {
+  const text = tabText(shape, ctx);
   if (!text) return undefined;
   const { padding, curve } = REGION.tab;
   const width = 2 * padding + text.width - curve / 2;
@@ -51,8 +60,8 @@ export function tabRect(shape: ShapeModel): Rect | undefined {
  * Contour de l'onglet : bord gauche dans le prolongement de la région, coin haut-gauche carré, haut jusqu'après le
  * texte, puis un S (courbe de Bézier à tangentes horizontales) qui redescend jusqu'au bord haut de la région.
  */
-export function tabPath(shape: ShapeModel): Point[] | undefined {
-  const rect = tabRect(shape);
+export function tabPath(shape: ShapeModel, ctx: MeasureContext): Point[] | undefined {
+  const rect = tabRect(shape, ctx);
   if (!rect) return undefined;
   const { x, y: top, width, height } = rect;
   const bottom = top + height;
@@ -65,8 +74,8 @@ export function tabPath(shape: ShapeModel): Point[] | undefined {
 }
 
 /** Emprise de la région et de son onglet : la prise au clic. */
-function hitBounds(shape: ShapeModel): Rect {
-  const rect = tabRect(shape);
+function hitBounds(shape: ShapeModel, ctx: MeasureContext): Rect {
+  const rect = tabRect(shape, ctx);
   const { bounds } = shape;
   if (!rect) return bounds;
   const right = Math.max(bounds.x + bounds.width, rect.x + rect.width + REGION.tab.curve);
@@ -77,8 +86,8 @@ function hitBounds(shape: ShapeModel): Rect {
  * Contour de la région et de son onglet, d'un seul tenant : haut de l'onglet, S, bord haut de la région à droite de
  * l'onglet, puis le reste du rectangle ; le bord gauche file de bas en haut de l'onglet. Sans nom : le rectangle.
  */
-export function regionOutline(shape: ShapeModel): Point[] {
-  const tab = tabPath(shape);
+export function regionOutline(shape: ShapeModel, ctx: MeasureContext): Point[] {
+  const tab = tabPath(shape, ctx);
   if (!tab) return rectPath(shape.bounds);
   const { x, y, width, height } = shape.bounds;
   return [...tab.slice(1), { x: x + width, y }, { x: x + width, y: y + height }, { x, y: y + height }];
@@ -89,7 +98,7 @@ function createRegion(shape: ShapeModel, ctx: RenderContext): Group {
   const group = new Group();
   group.name = `shape:${shape.id}`;
   const { style } = shape;
-  const path = regionOutline(shape);
+  const path = regionOutline(shape, ctx);
   const fill = styleColor(style, 'fillColor', DEFAULT_REGION_STYLE.fillColor);
   const fillOpacity = styleOpacity(style, 'fillOpacity');
   if (fill) group.add(fillMesh(path, fill, fillOpacity));
@@ -98,7 +107,7 @@ function createRegion(shape: ShapeModel, ctx: RenderContext): Group {
     stroke && strokeMesh(path, stroke.color, stroke.opacity, { width: stroke.width, closed: true, dash: stroke.dash });
   if (border) group.add(border);
 
-  const text = tabText(shape);
+  const text = tabText(shape, ctx);
   if (!text) return group;
   const label = labelObject(
     ctx,
@@ -128,11 +137,11 @@ export const definition: ShapeDefinition = {
   outline: regionOutline,
   flat: { create: createRegion },
   // Toute la région et son onglet (pas la bande vide à droite de l'onglet).
-  contains: (shape, point) => insidePolygon(regionOutline(shape), point),
+  contains: (shape, point, ctx) => insidePolygon(regionOutline(shape, ctx), point),
   hitBounds,
   // Poignée haut-gauche au coin de l'onglet (sujet 344).
-  movedHandles: (shape) => {
-    const rect = tabRect(shape);
+  movedHandles: (shape, ctx) => {
+    const rect = tabRect(shape, ctx);
     return rect ? { nw: { x: rect.x, y: rect.y } } : {};
   },
   // Sélectionnée, ni contour ni voile : ses poignées suffisent (sujet 330).
@@ -144,8 +153,8 @@ export const definition: ShapeDefinition = {
   // Texte brut : son nom s'édite sans mise en forme ni panneau de format, comme celui d'une table (sujets 258, 371).
   plainText: true,
   // Éditeur en place exactement sur le nom dessiné (sans nom : à sa place, sur l'onglet à venir).
-  textZone: (shape) =>
-    tabText(shape) ?? {
+  textZone: (shape, _level, ctx) =>
+    tabText(shape, ctx) ?? {
       x: shape.bounds.x + REGION.tab.padding,
       y: shape.bounds.y - REGION.tab.height,
       width: REGION.tab.padding,

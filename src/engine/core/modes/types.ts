@@ -10,7 +10,7 @@ import type { SelectionStyle } from '../settings/types';
 import type { PluginSetting, PluginValues } from '../settings/pluginSettings';
 import type { PaletteCategory } from '../shapes/types';
 import type { PageDressing } from './dressing';
-import type { ModeEdit } from './modeEdit';
+import type { ModeEdit, ModeSizing } from './modeEdit';
 import type { ModeProperty } from './modeProperty';
 /**
  * Modes de page (sujet 69) : un mode spécialise une page (`spatial.mode=<id>` sur `<diagram>`). Il ajoute des
@@ -213,9 +213,10 @@ export interface ModeParts {
   /**
    * Aperçu pendant la saisie (sujet 253) : la forme telle qu'elle serait avec ce texte (sans rien écrire), redessinée
    * en direct ; le texte dessiné de la partie (objets marqués `userData.part`) est masqué pendant l'édition.
-   * `gridSize` : celui de `ModeEdit`, pour que l'aperçu ait la taille écrite ensuite (sujet 263).
+   * `sizing` : grille et mesure du texte, celles de `ModeEdit`, pour que l'aperçu ait la taille écrite ensuite (sujets
+   * 263, 377).
    */
-  textPreview?(shape: ShapeModel, part: string, text: string, gridSize: number): ShapeModel;
+  textPreview?(shape: ShapeModel, part: string, text: string, sizing: ModeSizing): ShapeModel;
   /**
    * Suppr sur la partie sélectionnée (sujet 251) : la retire ; le mode peut refuser (ex. clé primaire), rien n'est
    * alors écrit. Dans tous les cas, la forme elle-même n'est pas supprimée.

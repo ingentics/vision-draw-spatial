@@ -17,6 +17,7 @@ import {
 } from '../../../../src/engine/plugins';
 import { modeHost } from '../../modeHost';
 import { PageEffectRegistry } from '../../../../src/engine/core/effects/registry';
+import { MEASURE } from '../../../helpers';
 
 /**
  * Dossiers des modes : `plugins/modes/<id>/index.ts` (moteur) et `app/plugins/modes/<id>/index.tsx` (sections React,
@@ -73,7 +74,7 @@ describe('modes de page en plugins (sujet 69)', () => {
       <mxCell id="e" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="0" y="0" as="sourcePoint"/><mxPoint x="100" y="0" as="targetPoint"/></mxGeometry></mxCell>
     </root></mxGraphModel></diagram></mxfile>`;
     const model = readDrawio(xml).document.pages[0]!;
-    const ctx = { text: { create: () => new Object3D() } };
+    const ctx = { ...MEASURE, text: { create: () => new Object3D() } };
     const root = buildPageScene(
       model,
       createDefaultRegistry(),

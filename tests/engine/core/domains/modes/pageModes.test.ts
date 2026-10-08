@@ -13,6 +13,7 @@ import { applyModeEdit } from '../../../../../src/engine/core/modes/modeEditWrit
 import { PageModeRegistry } from '../../../../../src/engine/core/modes/registry';
 import type { PageModeDefinition } from '../../../../../src/engine/core/modes/types';
 import { DEFAULT_SETTINGS } from '../../../../../src/engine/core/settings';
+import { TextMeasure } from '../../../../../src/engine/core/render/textMeasure';
 import { endKey } from '../../../../../src/engine/core/edit/anchoring/auto/distribute';
 
 const XML = `<mxfile><diagram id="p" name="P" spatial.mode="boom"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
@@ -65,6 +66,7 @@ function setup(mode: PageModeDefinition = BOOM) {
     targets: { editablePage: editable, editablePageById: (id: string) => (id === 'p' ? editable() : undefined) },
     edits: { recordSnapshot: (label: string) => state.snapshots.push(label) },
     modeCurrents: { getModeCurrent: () => undefined },
+    textMeasure: new TextMeasure(),
     file: {
       xmlTree: tree,
       pageTreeOf: () => tree.pages[0],

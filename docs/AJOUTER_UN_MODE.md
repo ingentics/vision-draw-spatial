@@ -154,7 +154,8 @@ montré que lorsqu'une partie est sélectionnée (et les autres réglages de for
 
 Une **opération** reçoit un `ModeEdit` (`core/modes/modeEdit.ts`, écrit par `ModeEditWriter`) : la page avant l'opération (`page`), les couleurs
 proposées par l'appli (`palette` : fonds des styles de forme des paramètres), le pas de la grille (`gridSize`, 0 sans
-grille), `setPageAttribute`, `setElementAttribute` (attributs du mode,
+grille), la mesure du texte du moteur (`measureText`, sujet 377 : approchée tant que les polices ne sont pas chargées ;
+ex. largeur d'une table RDD), `setPageAttribute`, `setElementAttribute` (attributs du mode,
 par leur nom court), `setElementStyle` (autre clé du style draw.io, ex. `fillColor` ; ni `spatial.*`, ni clé de verrou
 `locked`, `movable`, `resizable`, `editable`, `deletable`), `setShapeBounds` (bornes d'une forme, ex. une table qui
 grandit avec ses champs), `removeEdge` (supprime une flèche et ses textes, sujet 269), `sendToBack` (formes au fond
@@ -227,7 +228,7 @@ fait face à la caméra en iso / 3D (`userData.billboard = 'screen'`). Son appar
   quel. `comment` / `setComment` (sujet 262) : commentaire d'une partie (titre et texte, vide s'il n'y en a pas,
   undefined si elle ne peut pas en avoir), montré dans l'encart au survol après celui de la forme, et édité en texte
   brut par la touche C quand la partie est sélectionnée ou survolée. `textPreview` (sujet 253) : la forme telle qu'elle serait avec le texte en cours de saisie, redessinée en
-  direct ; les objets du texte dessiné de la partie (marqués `userData.part`) sont masqués pendant l'édition, et
+  direct (elle reçoit `sizing`, la grille et la mesure du texte de `ModeEdit`, pour avoir la taille écrite ensuite) ; les objets du texte dessiné de la partie (marqués `userData.part`) sont masqués pendant l'édition, et
   `ModePartText` peut demander un éditeur sans fond (`transparent`), centré (`center`), d'une couleur (`color`). Les
   touches du mode (`keys`) reçoivent aussi la partie sélectionnée et peuvent renvoyer la partie à sélectionner.
   `textAt` (sujet 269) : partie au texte modifiable par double-clic sans être sélectionnable (ni survol, ni sélection,

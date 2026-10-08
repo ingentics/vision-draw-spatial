@@ -10,6 +10,7 @@ import { createDefaultRegistry } from '../../../../../../../src/engine/plugins';
 import { FIELDS, fieldsValue } from '../../../../../../../src/engine/plugins/modes/rdd/tables/fieldModel';
 import type { Field } from '../../../../../../../src/engine/plugins/modes/rdd/tables/fieldModel';
 import { setCellStyleValue } from '../../../../../../../src/engine/core/format/cellEdits';
+import { MEASURE } from '../../../../../../helpers';
 
 describe('mode RDD : opérations sur une table', () => {
   it('table neuve au style « Gris » (sujet 235) : entête #f5f5f5, bordure #666666, texte #333333', () => {
@@ -62,6 +63,7 @@ describe('mode RDD : embedded, document et vue (sujets 181, 218)', () => {
     const { page } = setup();
     const texts: TextSpec[] = [];
     const ctx: RenderContext = {
+      ...MEASURE,
       text: {
         create(spec) {
           texts.push(spec);
@@ -95,6 +97,7 @@ describe('mode RDD : embedded, document et vue (sujets 181, 218)', () => {
     expect(
       createDefaultRegistry().resolve(page().shapes.find((s) => s.id === 'settings')!).definition.outline!(
         page().shapes.find((s) => s.id === 'settings')!,
+        MEASURE,
       ),
     ).toEqual([
       { x: 240, y: 300 },
@@ -109,7 +112,7 @@ describe('mode RDD : embedded, document et vue (sujets 181, 218)', () => {
   it('embedded : bas ondulé dans les bornes, sous le dernier champ ; 4 px de plus pour la vague (sujet 219)', () => {
     const { page } = render();
     const address = page().shapes.find((s) => s.id === 'address')!;
-    const path = createDefaultRegistry().resolve(address).definition.outline!(address);
+    const path = createDefaultRegistry().resolve(address).definition.outline!(address, MEASURE);
     const bottom = path.filter((p) => p.y > 300 + 26);
     const ys = bottom.map((p) => p.y);
     // Vague entre 366 (sous les deux champs) et 370 (bas des bornes), qui descend d'abord en partant de la gauche.
@@ -164,7 +167,7 @@ describe('mode RDD : embedded, document et vue (sujets 181, 218)', () => {
     const root = buildPageScene(
       page(),
       createDefaultRegistry(),
-      { text: { create: () => new Object3D() } },
+      { ...MEASURE, text: { create: () => new Object3D() } },
       'flat',
     ).root;
     const object = root.children.find((child) => child.userData.elementId === 'role')!;
@@ -177,7 +180,7 @@ describe('mode RDD : embedded, document et vue (sujets 181, 218)', () => {
       const root = buildPageScene(
         page(),
         createDefaultRegistry(),
-        { text: { create: () => new Object3D() } },
+        { ...MEASURE, text: { create: () => new Object3D() } },
         'flat',
       ).root;
       const object = root.children.find((child) => child.userData.elementId === 'active')!;
@@ -231,6 +234,7 @@ describe('mode RDD : rendu d’une table', () => {
     if (color) run((edit) => edit.setElementStyle(shape('timestamped').id, 'fillColor', color));
     const texts: TextSpec[] = [];
     const ctx: RenderContext = {
+      ...MEASURE,
       text: {
         create(spec) {
           texts.push(spec);
@@ -292,7 +296,7 @@ describe('mode RDD : rendu d’une table', () => {
     const root = buildPageScene(
       page(),
       createDefaultRegistry(),
-      { text: { create: () => new Object3D() } },
+      { ...MEASURE, text: { create: () => new Object3D() } },
       'flat',
     ).root;
     const colors = root.children
@@ -317,7 +321,7 @@ describe('mode RDD : rendu d’une table', () => {
       const root = buildPageScene(
         page(),
         createDefaultRegistry(),
-        { text: { create: () => new Object3D() } },
+        { ...MEASURE, text: { create: () => new Object3D() } },
         'flat',
       ).root;
       return root.children

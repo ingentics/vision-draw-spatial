@@ -13,6 +13,7 @@ import { groupShape } from '../../../../src/engine/core/shapes/group';
 import { ShapeRegistry } from '../../../../src/engine/core/shapes/registry';
 import type { ShapeDefinition } from '../../../../src/engine/core/shapes/types';
 import { SHAPE_DEFINITIONS, createDefaultRegistry } from '../../../../src/engine/plugins';
+import { MEASURE } from '../../../helpers';
 
 const model = (kind: string, style: Record<string, string> = {}, extra: Partial<ShapeModel> = {}) =>
   ({ id: 's', kind, style, bounds: { x: 0, y: 0, width: 100, height: 60 }, ...extra }) as unknown as ShapeModel;
@@ -126,7 +127,7 @@ describe('formes en plugins (étapes 65, 67) : contrat des définitions', () => 
   it('une forme imposée garde l’orientation de sa forme : BDD debout, queue couchée', () => {
     const registry = createDefaultRegistry();
     const silhouette = (kind: string, style: Record<string, string> = {}) =>
-      registry.resolve(model(kind, style)).definition.outline!(model(kind, style));
+      registry.resolve(model(kind, style)).definition.outline!(model(kind, style), MEASURE);
     const width = (points: { x: number }[]) =>
       Math.max(...points.map((p) => p.x)) - Math.min(...points.map((p) => p.x));
     expect(silhouette('database', { direction: 'south' })).toEqual(silhouette('cylinder3'));
@@ -245,7 +246,7 @@ describe('formes protégées (sujet 300)', () => {
 <mxCell id="a" value="A" style="spatial.kind=broken;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="100" height="60" as="geometry"/></mxCell>
 <mxCell id="b" value="B" style="shape=boom;" vertex="1" parent="1"><mxGeometry x="300" y="0" width="100" height="60" as="geometry"/></mxCell>
 </root></mxGraphModel></diagram></mxfile>`;
-  const ctx: RenderContext = { text: { create: () => new Object3D() } };
+  const ctx: RenderContext = { ...MEASURE, text: { create: () => new Object3D() } };
 
   /** Registre par défaut avec les formes en panne, ses erreurs signalées par un `PluginGuard`, comme dans le moteur. */
   function setup() {
@@ -421,6 +422,7 @@ describe('réglages déclarés par une catégorie de formes (sujet 380)', () => 
 
   it('chaque forme reçoit dans `ctx.values` les réglages de sa catégorie, et rien d’une autre', () => {
     const ctx: RenderContext = {
+      ...MEASURE,
       text: { create: () => new Object3D() },
       categoryValues: registry.categoryValues({ boxes: { lid: false, depth: 30 } }),
     };

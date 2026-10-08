@@ -6,13 +6,14 @@ import type { Point } from '../../../../src/engine/core/model/types';
 import { buildPageScene } from '../../../../src/engine/core/render/pageScene';
 import type { RenderContext } from '../../../../src/engine/core/render/types';
 import { SHAPE_DEFINITIONS, createDefaultRegistry } from '../../../../src/engine/plugins';
+import { MEASURE } from '../../../helpers';
 
 /**
  * Formes géométriques (Milestone 5) : contour 2D, volume iso, clic, nom de forme imposé. Le tracé et l'accroche
  * des flèches sont comparés à l'export de draw.io dans `shapesFixture.test.ts`.
  */
 
-const ctx: RenderContext = { text: { create: () => new Object3D() }, volume: { depth: 20 } };
+const ctx: RenderContext = { ...MEASURE, text: { create: () => new Object3D() }, volume: { depth: 20 } };
 const registry = createDefaultRegistry();
 
 /** Une page d'une forme par style, à (100, 100), de la taille donnée. */
@@ -49,7 +50,7 @@ describe('hexagone (33)', () => {
   const shape = (style = STYLE, width = 120, height = 80) => page([style], width, height).page.shapes[0]!;
   const outline = (style?: string, width?: number, height?: number) => {
     const s = shape(style, width, height);
-    return round(registry.resolve(s).definition.outline!(s));
+    return round(registry.resolve(s).definition.outline!(s, MEASURE));
   };
 
   it('dessiné par sa définition, absent des Diagnostics ; spatial.kind=hexagon le dessine', () => {
@@ -92,7 +93,7 @@ describe('octogone (34)', () => {
   const shape = (style = STYLE, width = 100, height = 100) => page([style], width, height).page.shapes[0]!;
   const outline = (style?: string, width?: number, height?: number) => {
     const s = shape(style, width, height);
-    return round(registry.resolve(s).definition.outline!(s));
+    return round(registry.resolve(s).definition.outline!(s, MEASURE));
   };
 
   it('dessiné par sa définition, absent des Diagnostics ; spatial.kind=octagon le dessine', () => {
@@ -141,7 +142,7 @@ describe('pentagone (35)', () => {
 
   it('contour : le stencil de draw.io (pointe en haut) étiré dans les bornes', () => {
     const s = shape();
-    expect(round(registry.resolve(s).definition.outline!(s))).toEqual([
+    expect(round(registry.resolve(s).definition.outline!(s, MEASURE))).toEqual([
       [118.5, 190],
       [100, 133],
       [148.5, 100],
@@ -149,7 +150,7 @@ describe('pentagone (35)', () => {
       [178.5, 190],
     ]);
     const wide = shape(STYLE, 194, 45);
-    expect(round(registry.resolve(wide).definition.outline!(wide))[2]).toEqual([197, 100]);
+    expect(round(registry.resolve(wide).definition.outline!(wide, MEASURE))[2]).toEqual([197, 100]);
   });
 
   it('volume : prisme du contour ; clic dans le contour, pas dans les coins vides', () => {
@@ -166,7 +167,7 @@ describe('triangles (36)', () => {
   const shape = (style = STYLE, width = 60, height = 80) => page([style], width, height).page.shapes[0]!;
   const outline = (style?: string, width?: number, height?: number) => {
     const s = shape(style, width, height);
-    return round(registry.resolve(s).definition.outline!(s));
+    return round(registry.resolve(s).definition.outline!(s, MEASURE));
   };
 
   it('dessinés par leur définition, absents des Diagnostics ; spatial.kind les dessine', () => {
@@ -213,7 +214,7 @@ describe('parallélogramme (37)', () => {
   const shape = (style = STYLE, width = 120, height = 60) => page([style], width, height).page.shapes[0]!;
   const outline = (style?: string, width?: number, height?: number) => {
     const s = shape(style, width, height);
-    return round(registry.resolve(s).definition.outline!(s));
+    return round(registry.resolve(s).definition.outline!(s, MEASURE));
   };
 
   it('dessiné par sa définition, absent des Diagnostics ; spatial.kind=parallelogram le dessine', () => {
@@ -245,7 +246,7 @@ describe('étape (38)', () => {
   const shape = (style = STYLE, width = 120, height = 80) => page([style], width, height).page.shapes[0]!;
   const outline = (style?: string, width?: number, height?: number) => {
     const s = shape(style, width, height);
-    return round(registry.resolve(s).definition.outline!(s));
+    return round(registry.resolve(s).definition.outline!(s, MEASURE));
   };
 
   it('dessinée par sa définition, absente des Diagnostics ; spatial.kind=step la dessine', () => {
@@ -279,7 +280,7 @@ describe('étoile à 4 branches (39)', () => {
   const shape = (style = STYLE, width = 100, height = 100) => page([style], width, height).page.shapes[0]!;
   const outline = (style?: string, width?: number, height?: number) => {
     const s = shape(style, width, height);
-    return round(registry.resolve(s).definition.outline!(s));
+    return round(registry.resolve(s).definition.outline!(s, MEASURE));
   };
 
   it('dessinée par sa définition, absente des Diagnostics ; spatial.kind=four-point-star la dessine', () => {
@@ -326,12 +327,12 @@ describe('étoile à 6 branches (40)', () => {
 
   it('contour : le stencil de draw.io (12 sommets) étiré dans les bornes', () => {
     const s = shape();
-    const points = round(registry.resolve(s).definition.outline!(s));
+    const points = round(registry.resolve(s).definition.outline!(s, MEASURE));
     expect(points).toHaveLength(12);
     expect(points[0]).toEqual([123, 128.9]);
     expect(points[5]).toEqual([196, 142.2]);
     const wide = shape(STYLE, 192, 84.5);
-    expect(round(registry.resolve(wide).definition.outline!(wide))[5]).toEqual([292, 142.2]);
+    expect(round(registry.resolve(wide).definition.outline!(wide, MEASURE))[5]).toEqual([292, 142.2]);
   });
 
   it('volume : prisme du contour, arêtes verticales ; clic dans le contour, pas entre les branches', () => {
@@ -357,7 +358,7 @@ describe('polygones arrondis (32)', () => {
   it('losange arrondi : coins contournés à arcSize / 2 px (10 par défaut), du milieu du dernier côté', () => {
     const { page: p } = page(['rhombus;whiteSpace=wrap;html=1;rounded=1;'], 80, 80);
     const shape = p.shapes[0]!;
-    const outline = round(registry.resolve(shape).definition.outline!(shape));
+    const outline = round(registry.resolve(shape).definition.outline!(shape, MEASURE));
     // Départ : milieu du côté gauche-haut ; puis arrêt à 10 px du sommet du haut, courbe, etc.
     expect(outline[0]).toEqual([120, 120]);
     const d = 10 / Math.SQRT2;

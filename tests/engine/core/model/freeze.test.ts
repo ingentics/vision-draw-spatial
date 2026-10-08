@@ -8,6 +8,7 @@ import { PageModeRegistry } from '../../../../src/engine/core/modes/registry';
 import type { PageModeDefinition } from '../../../../src/engine/core/modes/types';
 import type { ShapeDefinition } from '../../../../src/engine/core/plugins';
 import { ShapeRegistry } from '../../../../src/engine/core/shapes/registry';
+import { MEASURE } from '../../../helpers';
 
 describe('gel des objets simples (sujet 303)', () => {
   it('objets littéraux et tableaux gelés en profondeur ; fonctions et objets d’une classe laissés tels quels', () => {
@@ -73,6 +74,7 @@ describe('plugin qui modifie le modèle reçu (sujet 312)', () => {
       })
       .reportingTo((id, hook) => errors.push(`${id} ${hook}`));
     const object = shapes.sceneRenderer(page.shapes[0]!, 'flat').create(page.shapes[0]!, {
+      ...MEASURE,
       text: { create: () => new Object3D() },
     });
     expect(object.getObjectByName('stroke')).toBeDefined();

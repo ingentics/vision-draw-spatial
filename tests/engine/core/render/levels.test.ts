@@ -6,10 +6,10 @@ import { buildPageScene, effectiveLevel } from '../../../../src/engine/core/rend
 import { ShapeRegistry } from '../../../../src/engine/core/shapes/registry';
 import type { MinimapMapping, ShapeDefinition } from '../../../../src/engine/core/shapes/types';
 import type { RenderContext } from '../../../../src/engine/core/render/types';
-import { fixture } from '../../../helpers';
+import { fixture, MEASURE } from '../../../helpers';
 import { createDefaultRegistry } from '../../../../src/engine/plugins';
 
-const ctx: RenderContext = { text: { create: () => new Object3D() } };
+const ctx: RenderContext = { ...MEASURE, text: { create: () => new Object3D() } };
 const named = (name: string) => ({ create: () => Object.assign(new Object3D(), { name }) });
 
 /** Rectangle avec un rendu iso propre (ex. labels dressés), sans volume ni mini-carte dédiés. */

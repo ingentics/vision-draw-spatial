@@ -1,5 +1,5 @@
-import { ceilToGrid, measureText } from '../../../../core/plugins';
-import type { Rect, ShapeModel } from '../../../../core/plugins';
+import { ceilToGrid } from '../../../../core/plugins';
+import type { MeasureText, Rect, ShapeModel } from '../../../../core/plugins';
 import type { Divider, Field, TableRow } from './fieldModel';
 import { fieldNote, isDivider, tableFields } from './fieldModel';
 import type { HeaderMark, TableKind } from './tableKinds';
@@ -88,37 +88,41 @@ export function tableHeight(kind: TableKind, secondary: boolean, count: number):
  */
 export const MARK_INSET = TABLE.mark.margin + TABLE.mark.width * TABLE.mark.zoom + TABLE.mark.gap;
 
+/** Abscisse du label d'un champ depuis le bord gauche de la table, à l'échelle 1 : après l'icône de kind. */
+export const FIELD_LABEL_X = TABLE.padding + TABLE.fieldIcon.size + TABLE.fieldIcon.gap;
+
 /**
  * Mise en page d'une ligne de champ (sujet 248), en abscisses depuis le bord gauche de la table, à l'échelle 1 : icône
  * de kind, label, puis texte gris (`fieldNote` : type ou préfixe ; absent sans texte) ; `width` : largeur de la ligne,
- * marge de droite comprise.
+ * marge de droite comprise. `measure` : la mesure du texte du moteur (sujet 377).
  */
-export function fieldLayout(field: Field): { label: number; type?: number; width: number } {
-  const label = TABLE.padding + TABLE.fieldIcon.size + TABLE.fieldIcon.gap;
-  const end = label + measureText(field.label, { size: TABLE.fieldSize, bold: false, italic: false });
+export function fieldLayout(field: Field, measure: MeasureText): { label: number; type?: number; width: number } {
+  const label = FIELD_LABEL_X;
+  const end = label + measure(field.label, { size: TABLE.fieldSize, bold: false, italic: false });
   const typeText = fieldNote(field);
   if (!typeText) return { label, width: end + TABLE.padding };
   const type = end + TABLE.typeGap;
-  const width = type + measureText(typeText, { size: TABLE.fieldSize, bold: false, italic: false }) + TABLE.padding;
+  const width = type + measure(typeText, { size: TABLE.fieldSize, bold: false, italic: false }) + TABLE.padding;
   return { label, type, width };
 }
 
 /** Coupure du trait d'un séparateur pour son label (sujet 253), air compris, à l'échelle 1 ; 0 sans label. */
-export function dividerLabelWidth(divider: Divider): number {
+export function dividerLabelWidth(divider: Divider, measure: MeasureText): number {
   const { size, gap } = TABLE.divider;
-  return divider.label ? measureText(divider.label, { size, bold: false, italic: false }) + 2 * gap : 0;
+  return divider.label ? measure(divider.label, { size, bold: false, italic: false }) + 2 * gap : 0;
 }
 
 /**
  * Largeur d'un séparateur (sujet 253), à l'échelle 1 : son label (s'il en a un) entre deux traits d'au moins
  * `TABLE.divider.stroke`, marges comprises.
  */
-export function dividerWidth(divider: Divider): number {
-  return 2 * TABLE.padding + 2 * TABLE.divider.stroke + dividerLabelWidth(divider);
+export function dividerWidth(divider: Divider, measure: MeasureText): number {
+  return 2 * TABLE.padding + 2 * TABLE.divider.stroke + dividerLabelWidth(divider, measure);
 }
 
 /** Largeur d'une ligne de la zone des champs, à l'échelle 1. */
-export const rowWidth = (row: TableRow): number => (isDivider(row) ? dividerWidth(row) : fieldLayout(row).width);
+export const rowWidth = (row: TableRow, measure: MeasureText): number =>
+  isDivider(row) ? dividerWidth(row, measure) : fieldLayout(row, measure).width;
 
 /** Ce dont dépend la taille d'une table : nom affiché, lignes, échelle, icône d'entête. */
 export interface TableContent {
@@ -141,14 +145,14 @@ export const tableContent = (shape: ShapeModel): TableContent => ({
  * son plus long champ (icône, label et type), marges comprises, au moins `TABLE.minWidth` ; à l'échelle d'une table
  * secondaire. Mesurée à l'échelle 1 puis réduite, comme le reste de la table.
  */
-export function tableWidth(kind: TableKind, content: TableContent): number {
+export function tableWidth(kind: TableKind, content: TableContent, measure: MeasureText): number {
   const name = Math.max(
     0,
     ...content.name
       .split('\n')
-      .map((line) => measureText(line.trim(), { size: TABLE.nameSize, bold: true, italic: kind.look.italic ?? false })),
+      .map((line) => measure(line.trim(), { size: TABLE.nameSize, bold: true, italic: kind.look.italic ?? false })),
   );
-  const fields = content.fields.map(rowWidth);
+  const fields = content.fields.map((row) => rowWidth(row, measure));
   const header = name + 2 * (TABLE.padding + (content.mark ? MARK_INSET : 0));
   const width = Math.ceil(Math.max(TABLE.minWidth, header, ...fields));
   return width * secondaryScale(content.secondary);

@@ -5,6 +5,7 @@ import type { PageModel, Point, Rect } from '../../model/types';
 // Formes en lecture seule : ce domaine les passe aux modes (sujet 303), aperçus compris.
 import type { ReadonlyShapeModel as ShapeModel } from '../../model/readonly';
 import { callMode } from '../../modes/modeCalls';
+import type { ModeSizing } from '../../modes/modeEdit';
 import type { ModeParts, ModePartText } from '../../modes/types';
 import type { EngineCore } from '../EngineCore';
 
@@ -214,8 +215,11 @@ export class ShapeParts {
     const page = this.core.pages.getCurrentPage();
     const shape = page?.shapes.find((s) => s.id === shapeId);
     const tree = page && this.core.file.pageTreeOf(page.id);
-    const gridSize = tree && tree.encoding !== 'unreadable' ? gridSizeOf(tree) : 0;
-    return shape ? this.call(page, 'textPreview', shape, part, text, gridSize) : undefined;
+    const sizing: ModeSizing = Object.freeze({
+      gridSize: tree && tree.encoding !== 'unreadable' ? gridSizeOf(tree) : 0,
+      measureText: this.core.textMeasure.measure,
+    });
+    return shape ? this.call(page, 'textPreview', shape, part, text, sizing) : undefined;
   }
 
   /** Objets du texte dessiné d'une partie (marqués `userData.part` par le rendu du mode). */

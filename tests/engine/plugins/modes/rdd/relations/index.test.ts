@@ -13,7 +13,7 @@ import { fieldLayout } from '../../../../../../src/engine/plugins/modes/rdd/tabl
 import { fieldNote, tableFields } from '../../../../../../src/engine/plugins/modes/rdd/tables/fieldModel';
 import type { Field } from '../../../../../../src/engine/plugins/modes/rdd/tables/fieldModel';
 import type { ModeEdit } from '../../../../../../src/engine/core/modes/modeEdit';
-import { fixture } from '../../../../../helpers';
+import { fixture, MEASURE } from '../../../../../helpers';
 import { createDefaultRegistry } from '../../../../../../src/engine/plugins';
 import { RDD_KEYS } from '../../../../../../src/engine/plugins/modes/rdd/keys';
 
@@ -314,7 +314,7 @@ describe('mode RDD : relation embedded (sujet 268)', () => {
     expect(relations('user')[0]).toMatchObject({ label: 'Address', prefix: 'PLOP_', type: '' });
     expect(prefix.value!(page(), edgeModel())).toBe('PLOP_');
     expect(fieldNote(relations('user')[0]!)).toBe('PLOP_');
-    expect(fieldLayout(relations('user')[0]!).type).toBeDefined();
+    expect(fieldLayout(relations('user')[0]!, MEASURE.measureText).type).toBeDefined();
     expect(shape('user').bounds.width).toBeGreaterThanOrEqual(width);
     run((edit) => prefix.write!(edit, edgeModel(), ''));
     expect(relations('user')[0]!.prefix).toBeUndefined();

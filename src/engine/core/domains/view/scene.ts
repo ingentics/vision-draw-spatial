@@ -75,11 +75,12 @@ export class SceneView {
 
   /**
    * Contexte de rendu d'une page, gelé (sujet 303) : une forme ne change pas le rendu des suivantes. La fabrique de
-   * textes, partagée par tout le moteur, n'est pas gelée.
+   * textes, partagée par tout le moteur, n'est pas gelée ; la mesure du texte est celle du moteur (sujet 377).
    */
   renderContext(page?: PageModel) {
-    const { text, ...settings } = {
+    const { text, measureText, ...settings } = {
       text: this.core.text,
+      measureText: this.core.textMeasure.measure,
       edgeJumps: page && this.core.jumps.jumpsOf(page),
       volume: {
         depth: this.core.settings.view.isoDepth,
@@ -106,7 +107,7 @@ export class SceneView {
       },
       categoryValues: this.core.registry.categoryValues(this.core.settings.shapeCategories),
     };
-    return Object.freeze({ text, ...freezePlain(settings) });
+    return Object.freeze({ text, measureText, ...freezePlain(settings) });
   }
 
   /** Objets de label (texte dessiné) d'une cellule dans la scène courante. */

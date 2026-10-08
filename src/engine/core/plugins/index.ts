@@ -30,7 +30,7 @@ export type {
   ModeTarget,
   PageModeDefinition,
 } from '../modes/types';
-export type { ModeEdit } from '../modes/modeEdit';
+export type { ModeEdit, ModeSizing } from '../modes/modeEdit';
 export type { ModeProperty } from '../modes/modeProperty';
 export type { EffectLight, PageEffectDefinition } from '../effects/types';
 export { modeKeys } from '../modes/modeKeys';
@@ -70,7 +70,7 @@ export { fontStyleValue, isHexColor, styleFlag, styleNumber, styleOpacity } from
 
 // Briques de dessin (Three.js) : rendu à plat et en volume, contours, traits, textes, couleurs.
 export { PART_ORDER } from '../render/types';
-export type { EdgeBadgeStyle, RenderContext } from '../render/types';
+export type { EdgeBadgeStyle, MeasureContext, RenderContext } from '../render/types';
 export { createBox, createLabel, flatBox, labelObject, VERTEX_DEFAULTS } from '../render/flat/box';
 export type { BoxDefaults, LabelOptions } from '../render/flat/box';
 export { blockHeight, isoBlock, TOP_OFFSET } from '../render/iso/block';
@@ -96,7 +96,10 @@ export type { StylePreset } from '../edit/stylePresets';
 export { darken, lighten, shade } from '../render/decorations';
 export { readableOn, styleColor, styleStroke } from '../render/styleColors';
 export type { StyleStroke } from '../render/styleColors';
-export { measureText } from '../render/textMeasure';
+// Mesure du texte : celle du moteur arrive par `ctx.measureText` (formes) ou `edit.measureText` (modes, sujet 377) ;
+// l'approximation seule sert à ce qui est calculé sans moteur (ex. taille d'un modèle de la palette).
+export { approximateMeasure } from '../render/richLayout';
+export type { FontSpec, MeasureText } from '../render/richLayout';
 export { setStandingFigure } from '../render/standing';
 export type { StandingFigure } from '../render/standing';
 export { stencilShape } from '../format/stencil';

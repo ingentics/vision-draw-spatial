@@ -14,12 +14,14 @@ import type { RenderContext, TextSpec } from '../../../../src/engine/core/render
 import { DROID_SHAPE } from '../../../../src/engine/plugins/shapes/general/actors/droid';
 import { decodeDiagram } from '../../../../src/engine/core/format/decode';
 import { createDefaultRegistry } from '../../../../src/engine/plugins';
+import { MEASURE } from '../../../helpers';
 
 /** Actor (41) : bonhomme de draw.io en 2D, debout face à la caméra en iso / 3D. */
 
 const STYLE = 'shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;';
 const texts: TextSpec[] = [];
 const ctx: RenderContext = {
+  ...MEASURE,
   text: { create: (spec) => (texts.push(spec), Object.assign(new Object3D(), { userData: { spec } })) },
   volume: { depth: 20 },
 };

@@ -11,9 +11,10 @@ import { approximateMeasure } from '../../../../../../src/engine/core/render/ric
 import type { Point, ShapeModel } from '../../../../../../src/engine/core/model/types';
 import type { RenderContext } from '../../../../../../src/engine/core/render/types';
 import type { Mesh } from 'three';
-import { Object3D } from 'three';
+import { Box3, Object3D } from 'three';
 import { setup } from '../helpers';
 import { createDefaultRegistry } from '../../../../../../src/engine/plugins';
+import { MEASURE } from '../../../../../helpers';
 
 describe('mode RDD : région (sujet 182)', () => {
   const templates = createDefaultRegistry().templates();
@@ -56,10 +57,10 @@ describe('mode RDD : région (sujet 182)', () => {
   it('onglet du nom (sujet 227) : au-dessus du coin haut-gauche, coin carré, fini par un S jusqu’au bord haut', () => {
     const { page, shape } = setup();
     const region = shape('accounts');
-    const rect = tabRect(region)!;
+    const rect = tabRect(region, MEASURE)!;
     const { height, curve } = REGION.tab;
     expect([rect.x, rect.y, rect.height]).toEqual([20, 130 - height, height]);
-    const path = tabPath(region)!;
+    const path = tabPath(region, MEASURE)!;
     // Bord gauche dans le prolongement de la région, coin haut-gauche carré.
     expect(path.slice(0, 2)).toEqual([
       { x: 20, y: 130 },
@@ -85,9 +86,9 @@ describe('mode RDD : région (sujet 182)', () => {
       labelBackgroundColor: 'none',
     });
     // Sans nom : pas d'onglet.
-    expect(tabPath({ ...region, label: ' ' })).toBeUndefined();
+    expect(tabPath({ ...region, label: ' ' }, MEASURE)).toBeUndefined();
     // Un seul contour, région et onglet : le haut de l'onglet, le S, puis le reste du rectangle.
-    const outline = regionOutline(region);
+    const outline = regionOutline(region, MEASURE);
     expect(outline.slice(0, s.length + 1)).toEqual([{ x: 20, y: 130 - height }, ...s]);
     expect(outline.slice(-3)).toEqual([
       { x: 420, y: 130 },
@@ -106,10 +107,35 @@ describe('mode RDD : région (sujet 182)', () => {
     expect(pickElement(page(), { x: 300, y: 130 - height / 2 }, options)).toBeUndefined();
   });
 
+  it('onglet mesuré par la mesure du moteur (sujet 377) : deux registres de mesures différentes ne se gênent pas', () => {
+    const region = setup().shape('accounts');
+    const narrow = createDefaultRegistry().measuringWith(() => 10);
+    const wide = createDefaultRegistry()
+      .measuringWith(() => 100)
+      .reportingTo(() => undefined);
+    const right = (registry: typeof narrow) => {
+      const { x, width } = registry.hitBounds({ ...region, bounds: { ...region.bounds, width: 20 } });
+      return x + width;
+    };
+    // Onglet plus large que la région : son bord droit (S compris) suit la largeur mesurée du nom.
+    const { padding, curve } = REGION.tab;
+    expect(right(narrow)).toBe(region.bounds.x + 2 * padding + 10 + curve / 2);
+    expect(right(wide)).toBe(region.bounds.x + 2 * padding + 100 + curve / 2);
+    // Rendu : l'onglet dessiné suit la mesure du contexte, comme la prise au clic suit celle du registre.
+    const drawnRight = (measureText: (text: string) => number) => {
+      const small = { ...region, bounds: { ...region.bounds, width: 20 } };
+      const group = definition.flat.create(small, { measureText, text: { create: () => new Object3D() } });
+      return new Box3().setFromObject(group.getObjectByName('stroke')!).max.x;
+    };
+    expect(drawnRight(() => 100) - drawnRight(() => 10)).toBeCloseTo(90);
+    expect(narrow.textZone(region, 'flat').width).toBe(10);
+    expect(wide.textZone(region, 'flat').width).toBe(100);
+  });
+
   it('bordure en pointillé avec `dashed=1`, aucune sans épaisseur (dette 308)', () => {
     const { shape } = setup();
     const region = shape('accounts');
-    const ctx: RenderContext = { text: { create: () => new Object3D() } };
+    const ctx: RenderContext = { ...MEASURE, text: { create: () => new Object3D() } };
     const border = (style: Record<string, string>) =>
       definition.flat.create({ ...region, style: { ...region.style, ...style } }, ctx).getObjectByName('stroke') as
         Mesh | undefined;

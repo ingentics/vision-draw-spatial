@@ -10,7 +10,7 @@ import type { PageModel } from '../../../../src/engine/core/model/types';
 import { buildPageScene } from '../../../../src/engine/core/render/pageScene';
 import type { RenderContext } from '../../../../src/engine/core/render/types';
 import { SPATIAL, spatialAttributes, spatialNumber, spatialValue } from '../../../../src/engine/core/spatial';
-import { fixture } from '../../../helpers';
+import { fixture, MEASURE } from '../../../helpers';
 import { createDefaultRegistry } from '../../../../src/engine/plugins';
 
 const element = (page: PageModel, id: string) => [...page.shapes, ...page.edges].find((e) => e.id === id)!;
@@ -58,7 +58,7 @@ describe('lecture des attributs spatiaux (SPEC §14.3)', () => {
 });
 
 describe('rendu iso', () => {
-  const ctx: RenderContext = { text: { create: () => new Object3D() }, volume: { depth: 20 } };
+  const ctx: RenderContext = { ...MEASURE, text: { create: () => new Object3D() }, volume: { depth: 20 } };
   const page = readDrawio(fixture('spatial.drawio')).document.pages[0]!;
   const root = buildPageScene(page, createDefaultRegistry(), ctx, 'iso').root;
   const object = (id: string) => root.children.find((c) => c.userData.elementId === id)!;

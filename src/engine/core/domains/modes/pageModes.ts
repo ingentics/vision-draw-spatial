@@ -146,7 +146,10 @@ export class PageModes {
     return carriedShapes(page, shapeIds, carries, accept);
   }
 
-  /** Contexte des opérations de mode : couleurs proposées et textes de début / fin, d'après les paramètres. */
+  /**
+   * Contexte des opérations de mode : couleurs proposées et textes de début / fin, d'après les paramètres ; mesure du
+   * texte du moteur.
+   */
   editContext(): ModeEditContext {
     const { shapes, styles } = this.core.settings;
     return {
@@ -156,6 +159,7 @@ export class PageModes {
         color: shapes.edgeEndTextColor,
         gap: { along: shapes.edgeEndTextGapAlong, across: shapes.edgeEndTextGapAcross },
       },
+      measureText: this.core.textMeasure.measure,
     };
   }
 

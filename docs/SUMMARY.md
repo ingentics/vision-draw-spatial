@@ -67,6 +67,9 @@ Règles :
   une copie de travail de la page (`file.livePage`), qui devient la page du document à la fin du geste ; un réglage
   tapé en direct (champ `live` d'une forme, texte d'une flèche) passe par une copie rendue à chaque frappe (sujet 376).
   Une modification en direct écrite sans relire le document finit par `live.afterLiveWrite(pageId)`.
+- **Pas d'état de module** (`.claude/rules/coding.md` §3) : tout état appartient à un moteur. Ex. la mesure du texte
+  (`core/render/textMeasure.ts`, sujet 377) : une par moteur, remise aux formes (`ctx.measureText`, et en dernier
+  paramètre de leurs points d'entrée géométriques) et aux modes (`edit.measureText`).
 - **Undo/redo** par instantanés XML (100 max).
 - **Jamais d'échec de chargement** pour une forme inconnue : placeholder gris pointillé + entrée dans les Diagnostics
   (`core/diagnostics/unsupportedStyles.ts`), qui sert de backlog priorisé par fréquence (SPEC §8.4).

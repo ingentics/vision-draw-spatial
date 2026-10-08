@@ -12,6 +12,7 @@ import { pickElement } from '../../../../../src/engine/core/interaction/pick';
 import type { EdgeModel, PageModel, Point } from '../../../../../src/engine/core/model/types';
 import type { SplitHover } from '../../../../../src/engine/core/render/edges/split';
 import type { RenderContext } from '../../../../../src/engine/core/render/types';
+import { MEASURE } from '../../../../helpers';
 
 // Ticket 219 : flèche coupée en deux (`split=1`), fondu ou cadre de renvoi au bout de chaque tronçon.
 
@@ -76,7 +77,7 @@ describe('tronçons d’une flèche coupée', () => {
 });
 
 describe('rendu et clic', () => {
-  const ctx: RenderContext = { text: { create: () => new Object3D() } };
+  const ctx: RenderContext = { ...MEASURE, text: { create: () => new Object3D() } };
   const edge = (style: Record<string, string>): EdgeModel =>
     ({
       id: 'e',

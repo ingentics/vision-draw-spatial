@@ -19,6 +19,8 @@ import { SPATIAL_PREFIX, spatialValue } from '../spatial';
 import { END_TEXT_GAP, edgeTextLayout, endLabelOf } from '../edit/edgeLabels';
 import { isLocked } from '../edit/moveSet';
 import { readonlyModel } from '../model/freeze';
+import { approximateMeasure } from '../render/richLayout';
+import type { MeasureText } from '../render/richLayout';
 import { modeKey } from './modeKeys';
 import type { ModeKeyOwner } from './modeKeys';
 import type { ModeEdit, ModeEditContext } from './modeEdit';
@@ -28,10 +30,14 @@ const STYLE_KEY_PATTERN = /^[A-Za-z][\w.:-]*$/;
 /** Clés du style qu'un mode n'écrit pas : celles qui verrouillent l'élément (sujet 301). */
 const LOCK_KEYS: ReadonlySet<string> = new Set(['locked', 'movable', 'resizable', 'editable', 'deletable']);
 
-/** Contexte par défaut (tests, sans appli) : pas de couleurs proposées, textes de bout aux paramètres par défaut. */
+/**
+ * Contexte par défaut (tests, sans moteur) : pas de couleurs proposées, textes de bout aux paramètres par défaut, mesure
+ * du texte approchée.
+ */
 export const DEFAULT_MODE_EDIT_CONTEXT: ModeEditContext = {
   palette: [],
   endText: { size: 9, color: '#808080', gap: END_TEXT_GAP },
+  measureText: approximateMeasure,
 };
 
 /** Texte de bout d'une flèche par emplacement : sa cellule (connue à l'écriture s'il est créé), s'il existe. */
@@ -54,6 +60,7 @@ export class ModeEditWriter implements ModeEdit {
   readonly page: ReadonlyPageModel;
   readonly palette: readonly string[];
   readonly gridSize: number;
+  readonly measureText: MeasureText;
   // Champs privés du langage (`#`), pas seulement de TypeScript : l'objet est remis au mode, qui ne doit atteindre ni
   // la page modifiable, ni l'arbre, ni les écritures en attente.
   readonly #model: PageModel;
@@ -82,6 +89,7 @@ export class ModeEditWriter implements ModeEdit {
     this.page = readonlyModel(model);
     this.palette = context.palette;
     this.gridSize = gridSizeOf(pageTree);
+    this.measureText = context.measureText;
     this.#elements = new Map([...model.shapes, ...model.edges].map((element) => [element.id, element]));
   }
 

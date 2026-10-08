@@ -3,7 +3,7 @@ import type { ConnectSide, MovedHandles } from '../edit/handleKinds';
 import type { Point, Rect } from '../model/types';
 // Modèle en lecture seule (sujet 303) : une forme dessine la forme reçue, sans la modifier.
 import type { ReadonlyShapeModel as ShapeModel } from '../model/readonly';
-import type { RenderContext } from '../render/types';
+import type { MeasureContext, RenderContext } from '../render/types';
 import type { PluginSetting } from '../settings/pluginSettings';
 import type { SelectionStyle } from '../settings/types';
 
@@ -190,9 +190,10 @@ export interface ShapeDefinition {
   matches?(shape: ShapeModel): boolean;
   /**
    * Contour au sol, en coordonnées page (polygone fermé). Géométrie de référence de la forme :
-   * utilisée par le rendu à plat et par les replis (mini-carte…). Absent = rectangle des bornes.
+   * utilisée par le rendu à plat et par les replis (mini-carte…). Absent = rectangle des bornes. `ctx` : la mesure du
+   * texte du moteur (sujet 377), pour un contour qui suit un texte (onglet d'une région RDD) ; celle du rendu aussi.
    */
-  outline?(shape: ShapeModel): Point[];
+  outline?(shape: ShapeModel, ctx: MeasureContext): Point[];
   /**
    * Dessin intérieur, en coordonnées page (barres du process, avant-plan d'un stencil…), tracé par le rendu par-dessus
    * le fond ; sert aussi à le comparer à draw.io. Absent = aucun.
@@ -203,12 +204,12 @@ export interface ShapeDefinition {
    * Le point (coordonnées page, déjà dans les bornes) est-il dans la forme ? Sert à la sélection au clic.
    * Absent = dans le contour s'il y en a un, sinon dans les bornes.
    */
-  contains?(shape: ShapeModel, point: Point): boolean;
+  contains?(shape: ShapeModel, point: Point, ctx: MeasureContext): boolean;
   /**
    * Emprise prise au clic, si la forme dessine hors de ses bornes (ex. onglet d'une région RDD, sujet 227) ; le point y
    * est d'abord testé, puis passé à `contains`. Le cadre de sélection l'entoure (sujet 315). Absent = les bornes.
    */
-  hitBounds?(shape: ShapeModel): Rect;
+  hitBounds?(shape: ShapeModel, ctx: MeasureContext): Rect;
   /**
    * Mise en valeur de la forme sélectionnée, imposée quel que soit le style de la page et le paramètre (sujet 330, ex.
    * région RDD : `none`, ni contour ni voile ; ses poignées restent). Absent = celui de la page.
@@ -230,7 +231,7 @@ export interface ShapeDefinition {
    * dessine elle-même, sinon `flat`). Le label y est placé (marges `spacing*` comprises) et l'éditeur en
    * place s'y ouvre : affichage et édition coïncident. Absent = les bornes de la forme.
    */
-  textZone?(shape: ShapeModel, level: SceneLevel): Rect;
+  textZone?(shape: ShapeModel, level: SceneLevel, ctx: MeasureContext): Rect;
   /**
    * Style de l'éditeur en place, quand le label dessiné ne suit pas le style draw.io (ex. nom d'une région RDD sur son
    * onglet, sujet 228) : alignements et marges du texte dessiné dans `textZone`, qui s'applique alors même à un label
@@ -245,7 +246,7 @@ export interface ShapeDefinition {
    * Poignées de redimensionnement placées ailleurs que sur les bornes, en coordonnées page (ex. région RDD : poignée
    * haut-gauche au coin de l'onglet, sujet 344). Elles redimensionnent comme les autres. Absent = sur les bornes.
    */
-  movedHandles?(shape: ShapeModel): MovedHandles;
+  movedHandles?(shape: ShapeModel, ctx: MeasureContext): MovedHandles;
   /** On peut y accrocher une flèche (défaut : oui). */
   connectable?: boolean;
   /** Texte brut : édité sans mise en forme ni panneau de format (ex. tables RDD, sujet 258 ; défaut : non). */

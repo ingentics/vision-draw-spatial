@@ -6,7 +6,6 @@ import { labelInsets, outsideLabelBox } from '../labelPosition';
 import { fillMesh, strokeMesh } from '../meshes';
 import { textFormat, styleNumber, styleOpacity, styleFlag } from '../../model/styleValues';
 import { labelBackground, styleColor, styleStroke } from '../styleColors';
-import { measureText } from '../textMeasure';
 import { truncateLines } from '../textTruncate';
 import { PART_ORDER } from '../types';
 import type { RenderContext, TextSpec } from '../types';
@@ -102,7 +101,7 @@ export function createLabel(
         Math.max(right - left, 0),
         Math.max(bottom - top, 0),
         { size: fontSize, bold: format.bold, italic: format.italic ?? false, family: fontFamily },
-        measureText,
+        ctx.measureText,
       )
     : text;
 

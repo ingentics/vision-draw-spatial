@@ -8,7 +8,7 @@ import { tableKindOf } from '../tables/tableKinds';
 import {
   TABLE,
   bodyZone,
-  fieldLayout,
+  FIELD_LABEL_X,
   fieldRow,
   tableContent,
   tableScale,
@@ -87,7 +87,7 @@ export const fieldParts: ModeParts = {
         color: TYPE_COLOR,
       };
     }
-    const left = row.x + fieldLayout(field).label * scale;
+    const left = row.x + FIELD_LABEL_X * scale;
     return {
       text: field.label,
       // Du label au bord droit de la table.
@@ -110,17 +110,17 @@ export const fieldParts: ModeParts = {
       setField(edit, shape, index, { comment: text.trim() || undefined });
   },
   // Saisie en direct (sujet 253) : la table avec ce texte sur la ligne, élargie s'il le faut.
-  textPreview(shape, part, text, gridSize) {
+  textPreview(shape, part, text, sizing) {
     if (part === BODY_PART) return hasBody(shape) ? withBody(shape, text) : shape;
     const kind = tableKindOf(shape);
     const index = kind ? fieldIndex(shape, part) : undefined;
     if (!kind || index === undefined) return shape;
     const rows = tableFields(shape).map((row, i) => (i === index ? { ...row, label: text.trim() } : row));
-    const width = tableWidth(kind, { ...tableContent(shape), fields: rows });
+    const width = tableWidth(kind, { ...tableContent(shape), fields: rows }, sizing.measureText);
     return {
       ...shape,
       style: { ...shape.style, [keys.key(FIELDS)]: fieldsValue(rows)! },
-      bounds: { ...shape.bounds, width: tableSize(width, gridSize) },
+      bounds: { ...shape.bounds, width: tableSize(width, sizing.gridSize) },
     };
   },
   setText(edit, shape, part, text) {

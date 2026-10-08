@@ -14,7 +14,7 @@ import {
 } from '../../../../src/engine/core/graph/graphPage';
 import { buildPageScene } from '../../../../src/engine/core/render/pageScene';
 import { buildNavigationGraph } from '../../../../src/engine/core/model/navigationGraph';
-import { fixture } from '../../../helpers';
+import { fixture, MEASURE } from '../../../helpers';
 import { createDefaultRegistry } from '../../../../src/engine/plugins';
 
 const parents = parseDrawio(fixture('parents.drawio'));
@@ -150,7 +150,7 @@ describe('buildGraphPage', () => {
   });
 
   it('sa scène ne dessine aucun élément des pages du document (pas de miniature, sujet 362)', () => {
-    const ctx = { text: { create: () => new Object3D() } };
+    const ctx = { ...MEASURE, text: { create: () => new Object3D() } };
     const scene = buildPageScene(page, createDefaultRegistry(), ctx, 'flat');
     const documentIds = new Set(parents.pages.flatMap((p) => [...p.shapes, ...p.edges].map((e) => e.id)));
     const drawn: string[] = [];

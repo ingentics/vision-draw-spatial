@@ -61,7 +61,7 @@ export function addFieldRow(
   row: { left: number; y: number; scale: number; part: string },
 ): void {
   const { left, y, scale, part } = row;
-  const layout = fieldLayout(field);
+  const layout = fieldLayout(field, ctx.measureText);
   group.add(fieldIcon(field, { x: left + (TABLE.padding + TABLE.fieldIcon.size / 2) * scale, y }, scale));
   const size = TABLE.fieldSize * scale;
   addRowText(group, ctx, field.label, { x: left + layout.label * scale, y }, { size, color: '#000000', part });
@@ -85,7 +85,7 @@ export function addDividerRow(
   const start = left + TABLE.padding * scale;
   const end = left + width - TABLE.padding * scale;
   const center = left + width / 2;
-  const half = (dividerLabelWidth(divider) / 2) * scale;
+  const half = (dividerLabelWidth(divider, ctx.measureText) / 2) * scale;
   const pieces: Point[][] = half
     ? [
         [

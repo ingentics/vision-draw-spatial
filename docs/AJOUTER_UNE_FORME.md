@@ -97,21 +97,21 @@ draw.io est l'`id` (`text`, `ellipse`) et il n'y a pas de `kinds` à écrire.
 | `id` | nom de l'interface en anglais = nom du dossier, accepté par `spatial.kind` | obligatoire | `database`, `rounded-rectangle` |
 | `kinds` | formes draw.io gérées (`ShapeModel.kind`) | `[id]` | BDD : `cylinder3` |
 | `matches(shape)` | condition en plus du nom draw.io (variante) | aucune condition | rectangle arrondi : `rounded=1` |
-| `outline(shape)` | contour au sol, polygone fermé en coordonnées page | rectangle des bornes | losange, hexagone |
+| `outline(shape, ctx)` | contour au sol, polygone fermé en coordonnées page | rectangle des bornes | losange, hexagone |
 | `details(shape)` | dessin intérieur (tracés, textes) par-dessus le fond | aucun | barres du process (`generic/box`) |
-| `contains(shape, point)` | clic et survol | dans le contour s'il y en a un, sinon les bornes | ellipse exacte, acteur (toute la hauteur) |
-| `hitBounds(shape)` | emprise prise au clic quand la forme dessine hors de ses bornes | les bornes | onglet d'une région RDD |
+| `contains(shape, point, ctx)` | clic et survol | dans le contour s'il y en a un, sinon les bornes | ellipse exacte, acteur (toute la hauteur) |
+| `hitBounds(shape, ctx)` | emprise prise au clic quand la forme dessine hors de ses bornes | les bornes | onglet d'une région RDD |
 | `selectionStyle` | mise en valeur imposée de la forme sélectionnée | celle de la page | région RDD : `none` |
 | `multiSelectionStyle` | idem dans une sélection de plusieurs éléments | `selectionStyle` | région RDD : `outline` |
 | `flat` | rendu 2D, repli de tous les autres niveaux (§ 3.1) | obligatoire | `flatBox(outline)` |
 | `iso` | rendu des vues iso **et** 3D (§ 3.2) | `flat` (à plat au sol) | `isoBlock(outline)` |
 | `volume` | réservé (extrusion, SPEC §17) : jamais demandé aujourd'hui | `flat` | — |
 | `volumeHeight(shape, ctx)` | hauteur du volume propre à la forme (§ 3.2) | `blockHeight` | acteur |
-| `textZone(shape, level)` | zone du texte (affichage et éditeur en place) | les bornes | BDD, file, cache, tables RDD |
+| `textZone(shape, level, ctx)` | zone du texte (affichage et éditeur en place) | les bornes | BDD, file, cache, tables RDD |
 | `editStyle(style)` | style de l'éditeur en place quand le label dessiné ne suit pas le style draw.io | le style de la forme | nom d'une région RDD sur son onglet |
 | `minimap` | peintre de la mini-carte (§ 3.3) ; `null` = rien | contour rempli | texte : `null` ; acteur |
 | `resizable` | poignées de redimensionnement | oui | groupe : non |
-| `movedHandles(shape)` | poignées placées ailleurs que sur les bornes | sur les bornes | coin de l'onglet d'une région RDD |
+| `movedHandles(shape, ctx)` | poignées placées ailleurs que sur les bornes | sur les bornes | coin de l'onglet d'une région RDD |
 | `connectable` | flèches accrochables | oui | groupe : non |
 | `connectSides` | côtés qui ont une poignée de connexion | les quatre | table RDD : gauche et droite |
 | `plainText` | texte brut, sans mise en forme ni panneau de format | non | table RDD : oui |
@@ -208,6 +208,13 @@ La forme reçue (`ShapeModel` de l'API des plugins) et le contexte de rendu (`Re
 en lecture seule (sujet 303 ; gelés en dev et en test, sujet 312 : une écriture lève une exception, la forme est
 alors dessinée en placeholder) : une forme dessine sans rien modifier ; pour un aperçu, elle crée une copie
 (`{ ...shape, style: { ...shape.style, … } }`). Sa définition est gelée à l'enregistrement.
+
+**Mesure du texte** (sujet 377) : une géométrie qui suit la largeur d'un texte (ex. onglet d'une région RDD) mesure
+par `ctx.measureText(text, font)`, celle du moteur qui dessine : approchée tant que les polices ne sont pas chargées,
+exacte ensuite (le moteur reconstruit alors ses scènes). Le contexte de rendu la porte, et les points d'entrée
+géométriques (`outline`, `contains`, `hitBounds`, `textZone`, `movedHandles`) la reçoivent en dernier paramètre
+(`MeasureContext`) : dessin, clic et poignées mesurent pareil. Pas de mesure globale : deux moteurs d'une page ont
+chacun la leur. Ce qui se calcule sans moteur (taille d'un modèle de la palette) prend `approximateMeasure`.
 
 ### Une forme en panne
 

@@ -4,7 +4,7 @@ import type { PageEffectRegistry } from '../effects/registry';
 import type { PageModeRegistry } from '../modes/registry';
 import { SceneManager } from '../render/sceneManager';
 import type { ShapeRegistry } from '../shapes/registry';
-import { setTextMeasure } from '../render/textMeasure';
+import { TextMeasure } from '../render/textMeasure';
 import { createTroikaTextFactory } from '../render/troikaText';
 import type { EngineEvent, EngineEvents, EngineOptions, InitialView, PluginRegistries } from './types';
 import { Config } from './runtime/config';
@@ -88,6 +88,8 @@ export class EngineCore {
   readonly effects: PageEffectRegistry;
   readonly events = new Emitter<EngineEvents>();
   readonly text: ReturnType<typeof createTroikaTextFactory>;
+  /** Mesure du texte de ce moteur (sujet 377), remise aux formes et aux modes : approchée, puis exacte. */
+  readonly textMeasure = new TextMeasure();
   readonly scenes: SceneManager;
   readonly controller: CameraController;
   disposed = false;
@@ -179,9 +181,9 @@ export class EngineCore {
   constructor(options: EngineOptions & PluginRegistries) {
     this.canvas = options.canvas;
     // Formes protégées (sujet 300) : une forme en panne est signalée dans les Diagnostics, comme un mode.
-    this.registry = options.registry.reportingTo((shapeId, hook, error) =>
-      this.pluginGuard.reporter('Forme', shapeId, hook, error),
-    );
+    this.registry = options.registry
+      .reportingTo((shapeId, hook, error) => this.pluginGuard.reporter('Forme', shapeId, hook, error))
+      .measuringWith(this.textMeasure.measure);
     this.modes = options.modes;
     this.effects = options.effects;
     this.config = new Config(this, options);
@@ -193,7 +195,7 @@ export class EngineCore {
     this.text = createTroikaTextFactory(options.fonts ?? {}, this.rendering.requestRender);
     // Polices chargées : les géométries qui suivent la largeur d'un texte (onglet d'une région RDD) la prennent exacte.
     void this.text.measured().then((measure) => {
-      setTextMeasure(measure);
+      this.textMeasure.settle(measure);
       if (!this.disposed && this.scenes.current) this.levels.rebuildScenes();
       // Tailles calculées sur la mesure approchée : reprises sur la mesure exacte (sujet 255).
       if (!this.disposed) this.modeFollowUps.documentOpened();

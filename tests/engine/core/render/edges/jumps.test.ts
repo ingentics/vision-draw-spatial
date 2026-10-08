@@ -5,7 +5,7 @@ import { jumpHalfLength, jumpStyleOf, withJumps } from '../../../../../src/engin
 import { buildPageScene } from '../../../../../src/engine/core/render/pageScene';
 import type { RenderContext } from '../../../../../src/engine/core/render/types';
 import type { Point } from '../../../../../src/engine/core/model/types';
-import { fixture } from '../../../../helpers';
+import { fixture, MEASURE } from '../../../../helpers';
 import { createDefaultRegistry } from '../../../../../src/engine/plugins';
 
 // Étape 129 : sauts de ligne aux croisements (jumpStyle, jumpSize).
@@ -109,7 +109,7 @@ describe('withJumps', () => {
 });
 
 describe('buildPageScene — sauts', () => {
-  const ctx: RenderContext = { text: { create: () => new Object3D() } };
+  const ctx: RenderContext = { ...MEASURE, text: { create: () => new Object3D() } };
   const page = (jumpStyle: string) =>
     parseDrawio(`<mxfile><diagram id="p"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
       <mxCell id="under" style="endArrow=none;" edge="1" parent="1">

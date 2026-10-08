@@ -21,7 +21,7 @@ import { darken } from '../../../../src/engine/core/render/decorations';
 import { buildPageScene } from '../../../../src/engine/core/render/pageScene';
 import type { RenderContext, TextSpec } from '../../../../src/engine/core/render/types';
 import { spatialValue } from '../../../../src/engine/core/spatial';
-import { fixture } from '../../../helpers';
+import { fixture, MEASURE } from '../../../helpers';
 import { createDefaultModeRegistry, createDefaultRegistry } from '../../../../src/engine/plugins';
 import { SEQUENCES_KEYS, keys } from '../../../../src/engine/plugins/modes/sequences/keys';
 import { modeHost } from '../../modeHost';
@@ -201,6 +201,7 @@ describe('mode Séquences : réglages déclarés et habillage', () => {
   it('rendu : trait recoloré (style draw.io intact), pastille face à l’écran, plus petite sans texte', () => {
     const texts: TextSpec[] = [];
     const ctx: RenderContext = {
+      ...MEASURE,
       text: {
         create(spec) {
           texts.push(spec);
@@ -289,6 +290,7 @@ describe('pastille : paramètres de la pastille (sujet 77)', () => {
     const { page } = setup();
     const texts: TextSpec[] = [];
     const ctx: RenderContext = {
+      ...MEASURE,
       text: {
         create(spec) {
           texts.push(spec);
@@ -326,6 +328,7 @@ describe('pastille et texte face à la caméra (sujet 105)', () => {
   const build = (faceCamera: boolean, labelFaceCamera: boolean) => {
     const { page } = setup();
     const ctx: RenderContext = {
+      ...MEASURE,
       text: { create: (spec) => new Object3D().translateX(spec.x).translateY(spec.y) },
     };
     const dressing = modeHost(createDefaultModeRegistry(), {

@@ -4,7 +4,10 @@ import { SECONDARY } from '../../../../../../src/engine/plugins/modes/rdd/tables
 import { setField, setSecondary } from '../../../../../../src/engine/plugins/modes/rdd/tables/operations';
 import { spatialValue } from '../../../../../../src/engine/core/spatial';
 import { rowWidth, onGrid, contentWidth, widthOf, setFields, labels, fieldsOf, setup } from '../helpers';
-import { keys } from '../../../../../../src/engine/plugins/modes/rdd/keys';
+import { RDD_KEYS, keys } from '../../../../../../src/engine/plugins/modes/rdd/keys';
+import { applyModeEdit, DEFAULT_MODE_EDIT_CONTEXT } from '../../../../../../src/engine/core/modes/modeEditWriter';
+import type { ModeEdit } from '../../../../../../src/engine/core/modes/modeEdit';
+import { documentFromTree } from '../../../../../../src/engine/core/format/parse';
 
 describe('mode RDD : opérations sur une table', () => {
   it('champs : un par ligne, la table prend la hauteur de ses champs (au moins une ligne)', () => {
@@ -76,5 +79,22 @@ describe('mode RDD : options d’un champ selon la table (sujet 277)', () => {
     expect(fieldsOf(shape('active'))[0]!.unique).toBeUndefined();
     run((edit) => setField(edit, shape('user'), 1, { unique: true }));
     expect(fieldsOf(shape('user'))[1]!.unique).toBe(true);
+  });
+
+  it('largeur mesurée par la mesure du moteur qui opère (sujet 377) : deux moteurs ne se gênent pas', () => {
+    const widthWith = (measureText: (text: string) => number) => {
+      const { tree, page } = setup();
+      const operation = (edit: ModeEdit) =>
+        setFields(
+          edit,
+          edit.page.shapes.find((s) => s.id === 'model')!,
+          'name',
+        );
+      applyModeEdit(page(), tree.pages[0]!, RDD_KEYS, operation, { ...DEFAULT_MODE_EDIT_CONTEXT, measureText });
+      return documentFromTree(tree).pages[0]!.shapes.find((s) => s.id === 'model')!.bounds.width;
+    };
+    // Label et type mesurés chacun 200 (puis 300) : la ligne du champ fait la largeur.
+    expect(widthWith(() => 200)).toBe(onGrid(6 + 12 + 4 + 200 + 6 + 200 + 6));
+    expect(widthWith(() => 300)).toBe(onGrid(6 + 12 + 4 + 300 + 6 + 300 + 6));
   });
 });

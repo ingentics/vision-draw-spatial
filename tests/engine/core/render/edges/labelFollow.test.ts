@@ -6,6 +6,7 @@ import { approximateMeasure, layoutRichText } from '../../../../../src/engine/co
 import { alongAnchor, layoutOnPath } from '../../../../../src/engine/core/render/textPath';
 import type { TextAlong } from '../../../../../src/engine/core/render/textPath';
 import type { RenderContext, TextSpec } from '../../../../../src/engine/core/render/types';
+import { MEASURE } from '../../../../helpers';
 
 // Étapes 133 et 138 : texte du milieu qui suit la flèche (spatial.labelFollow), lettre par lettre le long du tracé.
 
@@ -76,6 +77,7 @@ describe('lettres le long du tracé', () => {
 describe('texte du milieu dans le rendu', () => {
   const specs: TextSpec[] = [];
   const ctx: RenderContext = {
+    ...MEASURE,
     text: {
       create: (spec) => {
         specs.push(spec);

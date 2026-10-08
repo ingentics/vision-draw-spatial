@@ -2,7 +2,6 @@ import { documentFromTree } from '../../format/parse';
 import { writeDrawio } from '../../format/write';
 import type { PageModel, Rect, ShapeModel } from '../../model/types';
 import { freezeModel } from '../../model/freeze';
-import { hasExactTextMeasure } from '../../render/textMeasure';
 import { applyModeEdit } from '../../modes/modeEditWriter';
 import { callMode } from '../../modes/modeCalls';
 import type { ModeEdit } from '../../modes/modeEdit';
@@ -119,7 +118,7 @@ export class ModeFollowUps {
     const xmlTree = this.core.file.xmlTree;
     // Mesure approchée (polices pas encore chargées) : on attend la mesure exacte, sinon chaque ouverture décalerait les
     // tailles d'un fichier déjà ajusté.
-    if (!document || !xmlTree || !hasExactTextMeasure()) return;
+    if (!document || !xmlTree || !this.core.textMeasure.isExact) return;
     const before = writeDrawio(xmlTree);
     const context = this.core.pageModes.editContext();
     const changed = document.pages
