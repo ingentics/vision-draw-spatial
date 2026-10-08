@@ -4,16 +4,16 @@ import { tableKindOf } from './tableKinds';
 import { keys } from '../keys';
 
 /**
- * Corps d'un document RDD (sujet 269) : texte YAML libre, à la place des champs. Rangé dans `spatial.rdd.body` en
- * chaîne JSON (retours à la ligne en `\n`) dont les `;`, séparateurs du style draw.io, sont échappés en `;` : le
- * texte revient tel quel. Seul l'import compte, pas l'affichage dans draw.io.
+ * Corps d'un document RDD (sujet 269) : texte libre, pas forcément du YAML (sujet 352), à la place des champs. Rangé
+ * dans `spatial.rdd.body` en chaîne JSON (retours à la ligne en `\n`) dont les `;`, séparateurs du style draw.io, sont
+ * échappés en `;` : le texte revient tel quel. Seul l'import compte, pas l'affichage dans draw.io.
  */
 export const BODY = 'body';
 
 /** Partie du corps (`ModeParts.textAt`) : son texte s'édite sur place ; le texte dessiné porte cette marque. */
 export const BODY_PART = 'body';
 
-/** Indentation d'une tabulation (interdite en YAML). */
+/** Indentation d'une tabulation (alignement en police à chasse fixe). */
 const TAB = '  ';
 
 /** Le corps a-t-il sa place dans cette forme (document) ? */
@@ -45,7 +45,7 @@ export function setBody(edit: ModeEdit, shape: ShapeModel, text: string): void {
 }
 
 /**
- * Document d'avant le corps YAML (sujet 181 : clés en italique dans `spatial.rdd.fields`) : ses clés deviennent un
+ * Document d'avant le corps en texte (sujet 181 : clés en italique dans `spatial.rdd.fields`) : ses clés deviennent un
  * corps, une ligne `clé:` par clé (ajoutées à un corps déjà là), et les champs sont retirés.
  */
 export function convertDocumentKeys(edit: ModeEdit, shape: ShapeModel): void {

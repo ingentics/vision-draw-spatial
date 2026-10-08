@@ -105,7 +105,7 @@ describe('mode RDD (sujet 179) : page et palette', () => {
       ['Matérialisé', true],
       ['Privée', true],
       ['Clé primaire', true],
-      ['YAML', true],
+      ['Texte', true],
       ['Ajouter un séparateur', false],
     ]);
     expect(properties.map((p) => p.hidden!(page(), entity))).toEqual([false, true, true, false, true, false]);

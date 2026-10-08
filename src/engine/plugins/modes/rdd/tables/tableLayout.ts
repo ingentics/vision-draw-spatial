@@ -49,7 +49,7 @@ export const TABLE = {
   wave: 2,
   /** Largeur minimale (sujet 247) : la table s'élargit au-delà pour son nom ou son plus long champ. */
   minWidth: 120,
-  /** Corps d'un document (sujet 269) : taille du texte YAML, taille par défaut à la pose (sur la grille de 10). */
+  /** Corps d'un document (sujet 269) : taille du texte, taille par défaut à la pose (sur la grille de 10). */
   body: { size: 7, width: 200, height: 120 },
 } as const;
 

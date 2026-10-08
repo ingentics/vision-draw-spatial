@@ -10,11 +10,11 @@ import { writeDrawio } from '../../../../../../src/engine/core/format/write';
 import { readDrawio } from '../../../../../../src/engine/core/format/parse';
 import { setup } from '../helpers';
 
-/** Corps YAML d'un document RDD (sujet 269). Fixture : `settings` (document à clés `theme`, `locale`), `unnamed`. */
+/** Corps en texte libre d'un document RDD (sujet 269). Fixture : `settings` (document à clés `theme`, `locale`), `unnamed`. */
 
 const YAML = 'theme: dark # couleurs; contraste\nlocale: fr\nlist:\n  - "a;b"';
 
-describe('mode RDD : corps YAML d’un document (sujet 269)', () => {
+describe('mode RDD : corps en texte libre d’un document (sujets 269, 352)', () => {
   it('écrit puis relu tel quel, `;` et retours à la ligne compris, aussi après un enregistrement', () => {
     const { run, shape, tree } = setup();
     run((edit) => setBody(edit, shape('unnamed'), YAML));
@@ -76,7 +76,7 @@ describe('mode RDD : corps YAML d’un document (sujet 269)', () => {
     expect(documentBody(fieldParts.textPreview!(settings, BODY_PART, 'x: 1', 10))).toBe('x: 1');
   });
 
-  it('panneau : « Document body », tout le YAML, éditable ; masqué hors d’un document', () => {
+  it('panneau : « Document body », tout le texte, éditable ; masqué hors d’un document', () => {
     const { run, page, shape } = setup();
     const body = rdd.gestures!.properties!.find((p) => p.key === 'rdd.body')!;
     expect(body.type === 'text' && [body.section, body.multiline, body.monospace]).toEqual([
@@ -89,17 +89,12 @@ describe('mode RDD : corps YAML d’un document (sujet 269)', () => {
     expect(body.value!(page(), shape('settings'))).toBe(YAML);
   });
 
-  it('YAML invalide : signalé dans Diagnostics, le texte reste', () => {
+  it('texte libre : aucun contrôle dans Diagnostics (sujet 352)', () => {
     const { run, page, shape } = setup();
-    run((edit) => setBody(edit, shape('settings'), 'a: 1\na: 2'));
-    expect(rdd.lifecycle!.check!(page()).filter((issue) => issue.cellId === 'settings')).toEqual([
-      {
-        cellId: 'settings',
-        message: 'Document « Settings » : YAML invalide, ligne 2, colonne 1 : Map keys must be unique',
-      },
-    ]);
-    run((edit) => setBody(edit, shape('settings'), YAML));
-    expect(rdd.lifecycle!.check!(page()).filter((issue) => issue.cellId === 'settings')).toEqual([]);
+    for (const text of ['a: 1\na: 2', 'a:\n\tb: [1, 2', 'du texte { quelconque']) {
+      run((edit) => setBody(edit, shape('settings'), text));
+      expect(rdd.lifecycle!.check!(page()).filter((issue) => issue.cellId === 'settings')).toEqual([]);
+    }
   });
 
   it('taille libre : redimensionnable, taille par défaut à la pose, gardée au renommage ; secondaire : × 0,8', () => {

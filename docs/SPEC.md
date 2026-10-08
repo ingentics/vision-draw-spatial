@@ -876,7 +876,7 @@ Réalisation retenue (`engine/core/spatial.ts`) :
 | `spatial.seq.participant` | style ou objet | Mode Séquences : type d'une forme (`bus`, `queue`) |
 | `spatial.rdd.fields` | style ou objet | Mode RDD : champs d'une table, liste JSON `[{"kind","label","type","nullable"}, …]` (§14.5) ; absent = aucun |
 | `spatial.rdd.secondary` | style ou objet | Mode RDD : `1` = table secondaire, rendue 20 % plus petite |
-| `spatial.rdd.body` | style ou objet | Mode RDD : corps YAML d'un document, chaîne JSON (`;` échappés en `\u003b`) ; absent = vide |
+| `spatial.rdd.body` | style ou objet | Mode RDD : corps en texte libre d'un document, chaîne JSON (`;` échappés en `\u003b`) ; absent = vide |
 | `spatial.rdd.reverseName` | style ou objet | Mode RDD : nom inverse d'une relation, sur sa flèche |
 | `spatial.rdd.cardinalities` | `<diagram>` | Mode RDD : `0` = textes des cardinalités masqués |
 
@@ -941,14 +941,13 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     table a 4 px de plus en bas) ; icône prise électrique (câble en S, deux broches).
   - « Document » (`rdd-document`) : document JSONB, coin plié en haut à droite (coin coupé, rabat plus sombre que
     l'entête, 10 px) ; nom obligatoire : vide, il affiche « Document » et Diagnostics le signale. Pas de champs (sujet
-    269 : ni « + », ni lignes, ni bouton de séparateur) : son corps est un texte YAML libre (`spatial.rdd.body`, chaîne
+    269 : ni « + », ni lignes, ni bouton de séparateur) : son corps est un texte libre (sujet 352 : pas forcément du YAML) (`spatial.rdd.body`, chaîne
     JSON aux `;` échappés en `\u003b`), dessiné en 7 px, police à chasse fixe, sans retour à la ligne, tronqué à la zone
     du corps par « … » (ligne trop longue, dernière ligne visible). Taille libre, réglée à la main (poignées de
     redimensionnement ; 200 × 120 à la pose ; « Table secondaire » la passe × 0,8). Double-clic dans le corps : édition
     multiligne dans le canvas (Entrée passe à la ligne, ⌘ + Entrée ou clic dehors valide, Échap annule), sans
     sélectionner de partie ; panneau : section « Document body », zone en police à chasse fixe avec ascenseurs. Les
-    tabulations deviennent deux espaces. Un YAML invalide est signalé dans Diagnostics (première erreur, ligne et
-    colonne). À l'ouverture, un document à clés (sujet 181) prend un corps d'une ligne `clé:` par clé.
+    tabulations deviennent deux espaces. Aucun contrôle du contenu (sujet 352). À l'ouverture, un document à clés (sujet 181) prend un corps d'une ligne `clé:` par clé.
   - Relation document → champ non structuré (sujet 269) : d'un document vers la ligne d'un champ « Non structuré » d'une
     entité, d'un embedded ou d'une énumération (seule arrivée permise pendant le tirer) ; aucun champ créé : le champ
     retient la flèche (`incoming`, ids des flèches, dans `spatial.rdd.fields`), plusieurs documents par champ. Flèche en

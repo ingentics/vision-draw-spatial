@@ -40,7 +40,7 @@ export const fieldParts: ModeParts = {
     const index = Math.floor((point.y - first.y) / first.height);
     return fieldIndex(shape, String(index)) !== undefined ? String(index) : undefined;
   },
-  // Double-clic dans le corps d'un document : son YAML sur place, en plusieurs lignes (sujet 269).
+  // Double-clic dans le corps d'un document : son texte sur place, en plusieurs lignes (sujet 269).
   textAt(_page, shape, point) {
     return hasBody(shape) && rectContains(bodyZone(shape), point) ? BODY_PART : undefined;
   },

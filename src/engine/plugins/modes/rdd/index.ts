@@ -1,6 +1,6 @@
 import type { PageModeDefinition } from '../../../core/plugins';
-import { isToggled, toggleValue, numberValue, elementName, yamlProblem } from '../../../core/plugins';
-import { convertDocumentKeys, documentBody, hasBody } from './tables/documentBody';
+import { isToggled, toggleValue, numberValue, elementName } from '../../../core/plugins';
+import { convertDocumentKeys } from './tables/documentBody';
 import { PRIMARY_KEY, fieldProblems, misplacedPrimaryKey } from './tables/fieldModel';
 import { fitTable } from './tables/operations';
 import { fieldHandleClicked, fieldHandles } from './editing/fieldHandles';
@@ -20,7 +20,7 @@ import {
   syncRelations,
 } from './relations';
 import { ADD_DIVIDER_PROPERTY, TABLE_PROPERTIES, addDividerAfter } from './editing/tableProperties';
-import { TABLE_KINDS, missingRequiredName, tableName } from './tables/tableKinds';
+import { TABLE_KINDS, missingRequiredName } from './tables/tableKinds';
 import { rowOf } from './editing/tableTargets';
 import { RDD_KEYS } from './keys';
 
@@ -77,7 +77,7 @@ export const definition: PageModeDefinition = {
   },
   lifecycle: {
     // À l'ouverture, chaque table prend la taille de son contenu (sujet 255), ses champs de relation suivent les flèches
-    // (sujet 265) ; les clés d'un document d'avant le corps YAML deviennent son corps (sujet 269).
+    // (sujet 265) ; les clés d'un document d'avant le corps en texte deviennent son corps (sujet 269).
     opened: (edit) => {
       for (const shape of edit.page.shapes) {
         convertDocumentKeys(edit, shape);
@@ -102,13 +102,6 @@ export const definition: PageModeDefinition = {
       ),
       // Flèche entre deux formes qui ne peuvent pas être liées (sujet 265).
       ...forbiddenLinks(page).map(({ edgeId, message }) => ({ cellId: edgeId, message })),
-      // Corps d'un document en YAML invalide (sujet 269) : signalé, la saisie reste libre.
-      ...page.shapes.flatMap((shape) => {
-        const problem = hasBody(shape) ? yamlProblem(documentBody(shape)) : undefined;
-        return problem === undefined
-          ? []
-          : [{ cellId: shape.id, message: `Document « ${tableName(shape)} » : YAML invalide, ${problem}` }];
-      }),
       // Document JSONB sans nom : affiché « Document » (sujet 181).
       ...page.shapes.flatMap((shape) => {
         const name = missingRequiredName(shape);

@@ -37,7 +37,7 @@ export interface TableRules {
    * réglée à la main (document, sujet 269).
    */
   fields: boolean;
-  /** Corps en texte YAML libre, à la place des champs (document, sujet 269). */
+  /** Corps en texte libre, à la place des champs (document, sujet 269). */
   body?: boolean;
   /** Champs calculés (vue) : ni « Optionnel » ni « Gouvernance » au panneau d'un champ (sujet 272). */
   derived?: boolean;
@@ -71,7 +71,7 @@ export const TABLE_KINDS: Record<TableKindId, TableKind> = {
     look: { doubleHeader: true, mark: 'list' },
     rules: { ...PLAIN, primaryKey: 'word', uniqueFields: true },
   },
-  // Sujet 181 : objet incorporé (bas ondulé, sujet 219), document (corps YAML, sujet 269), vue (coins arrondis).
+  // Sujet 181 : objet incorporé (bas ondulé, sujet 219), document (corps en texte libre, sujet 269), vue (coins arrondis).
   'rdd-embedded': { look: { wavy: true, mark: 'plug' }, rules: { ...PLAIN, uniqueFields: true } },
   'rdd-document': {
     look: { folded: true },

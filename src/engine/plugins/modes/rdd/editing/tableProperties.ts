@@ -127,12 +127,12 @@ export const TABLE_PROPERTIES: ModeProperty[] = [
     },
   },
   {
-    // Corps d'un document (sujet 269) : tout le YAML, avec ascenseurs au besoin.
+    // Corps d'un document (sujet 269) : tout le texte, avec ascenseurs au besoin.
     type: 'text',
     key: 'rdd.body',
     section: 'Document body',
-    label: 'YAML',
-    title: 'Corps du document en YAML libre (spatial.rdd.body) ; ⌘ + Entrée pour valider, tabulations en deux espaces',
+    label: 'Texte',
+    title: 'Corps du document en texte libre (spatial.rdd.body) ; ⌘ + Entrée pour valider, tabulations en deux espaces',
     multiline: true,
     monospace: true,
     value: (_page, target) => {

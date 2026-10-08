@@ -187,7 +187,7 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
   if (label) group.add(label);
 
   if (kind.rules.body) {
-    // Corps d'un document (sujet 269) : YAML en police à chasse fixe, tronqué à sa zone.
+    // Corps d'un document (sujet 269) : texte en police à chasse fixe, tronqué à sa zone.
     const body = createLabel(
       {
         ...shape,

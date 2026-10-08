@@ -139,7 +139,7 @@ describe('mode RDD : relation document → champ dynamique (sujet 269)', () => {
 });
 
 describe('mode RDD : fixture des documents (sujet 269)', () => {
-  it('à l’ouverture : la flèche reste sur `settings`, le document à clés prend un corps ; YAML invalide signalé', () => {
+  it('à l’ouverture : la flèche reste sur `settings`, le document à clés prend un corps ; corps non YAML (`broken`) non signalé', () => {
     const { tree } = readDrawio(fixture('rdd-document.drawio'));
     const page = () => documentFromTree(tree).pages[0]!;
     applyModeEdit(page(), tree.pages[0]!, RDD_KEYS, (edit) => rdd.lifecycle!.opened!(edit));
@@ -148,6 +148,6 @@ describe('mode RDD : fixture des documents (sujet 269)', () => {
     expect(forbiddenLinks(page())).toEqual([]);
     const legacy = page().shapes.find((s) => s.id === 'legacy')!;
     expect(legacy.style['spatial.rdd.body']).toBe('"color:\\nsize:"');
-    expect(rdd.lifecycle!.check!(page()).map((issue) => issue.cellId)).toEqual(['broken']);
+    expect(rdd.lifecycle!.check!(page()).map((issue) => issue.cellId)).toEqual([]);
   });
 });
