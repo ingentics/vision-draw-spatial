@@ -1,5 +1,6 @@
 import type { PageModeDefinition } from '../../../core/plugins';
-import { isToggled, toggleValue, numberValue, elementName } from '../../../core/plugins';
+import { isToggled, toggleValue, numberValue, elementName, yamlProblem } from '../../../core/plugins';
+import { convertDocumentKeys, documentBody, hasBody } from './tables/documentBody';
 import { PRIMARY_KEY, fieldProblems, misplacedPrimaryKey } from './tables/fieldModel';
 import { fitTable } from './tables/operations';
 import { fieldHandleClicked, fieldHandles } from './editing/fieldHandles';
@@ -18,9 +19,12 @@ import {
   syncRelations,
 } from './relations';
 import { ADD_DIVIDER_PROPERTY, TABLE_PROPERTIES, addDividerAfter } from './editing/tableProperties';
-import { TABLE_KINDS, missingRequiredName } from './tables/tableKinds';
+import { TABLE_KINDS, missingRequiredName, tableName } from './tables/tableKinds';
 import { rowOf } from './editing/tableTargets';
 import { RDD_KEYS } from './keys';
+
+/** Flèche tirée ou rebranchée vers une partie de sa forme d'arrivée (sujet 333). */
+const arrivalOf = (edgeId: string, part: string | undefined) => (part === undefined ? undefined : { edgeId, part });
 
 /**
  * Mode « RDD — Relational Database Designer » (sujet 179) : une page de tables (modèles, entités…), lue à plat. Ses
@@ -70,9 +74,12 @@ export const definition: PageModeDefinition = {
   },
   lifecycle: {
     // À l'ouverture, chaque table prend la taille de son contenu (sujet 255), ses champs de relation suivent les flèches
-    // (sujet 265).
+    // (sujet 265) ; les clés d'un document d'avant le corps YAML deviennent son corps (sujet 269).
     opened: (edit) => {
-      for (const shape of edit.page.shapes) fitTable(edit, shape);
+      for (const shape of edit.page.shapes) {
+        convertDocumentKeys(edit, shape);
+        fitTable(edit, shape);
+      }
       syncRelations(edit);
     },
     // Éléments supprimés : les champs de relation suivent leurs flèches (sujet 265).
@@ -92,6 +99,13 @@ export const definition: PageModeDefinition = {
       ),
       // Flèche entre deux formes qui ne peuvent pas être liées (sujet 265).
       ...forbiddenLinks(page).map(({ edgeId, message }) => ({ cellId: edgeId, message })),
+      // Corps d'un document en YAML invalide (sujet 269) : signalé, la saisie reste libre.
+      ...page.shapes.flatMap((shape) => {
+        const problem = hasBody(shape) ? yamlProblem(documentBody(shape)) : undefined;
+        return problem === undefined
+          ? []
+          : [{ cellId: shape.id, message: `Document « ${tableName(shape)} » : YAML invalide, ${problem}` }];
+      }),
       // Document JSONB sans nom : affiché « Document » (sujet 181).
       ...page.shapes.flatMap((shape) => {
         const name = missingRequiredName(shape);
@@ -100,16 +114,17 @@ export const definition: PageModeDefinition = {
     ],
   },
   // Relations (sujet 265) : flèches permises, et le champ de relation de la table d'arrivée qui suit sa flèche
-  // (créée, rebranchée, supprimée, collée).
+  // (créée, rebranchée, supprimée, collée) ; une flèche d'un document arrive sur la ligne d'un champ dynamique, qui la
+  // retient (sujet 269).
   edges: {
     // Formulaire d'une flèche de relation : celui de sa sorte (sujets 265, 268).
     properties: RELATION_PROPERTIES,
-    connects: (_page, source, target) => canLink(source, target),
+    connects: (_page, source, target, part) => canLink(source, target, part),
     // Flèche de relation : bouts imposés par sa sorte (cardinalités d'après « Optionnel » du champ entre tables, aucune
     // pointe depuis un embedded, sujet 268) ; le reste en lecture seule.
     manages: isRelationEdge,
-    created: (edit) => syncRelations(edit),
-    reconnected: (edit) => syncRelations(edit),
+    created: (edit, edgeId, _current, part) => syncRelations(edit, undefined, undefined, arrivalOf(edgeId, part)),
+    reconnected: (edit, edgeId, part) => syncRelations(edit, undefined, undefined, arrivalOf(edgeId, part)),
   },
   gestures: {
     // Région, table, puis ligne sélectionnée : champ (sections du mode, PostgreSQL, Gouvernance), séparateur (sujets

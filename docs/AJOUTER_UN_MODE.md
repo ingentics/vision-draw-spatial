@@ -147,8 +147,8 @@ montré que lorsqu'une partie est sélectionnée (et les autres réglages de for
 Une **opération** reçoit un `ModeEdit` : la page avant l'opération (`page`), les couleurs proposées par l'appli
 (`palette` : fonds des styles de forme des paramètres), `setPageAttribute`, `setElementAttribute` (attributs du mode,
 par leur nom court), `setElementStyle` (autre clé du style draw.io, ex. `fillColor` ; ni `spatial.*`, ni clé de verrou
-`locked`, `movable`, `resizable`, `editable`, `deletable`) et `setShapeBounds` (bornes d'une forme, ex. une table qui
-grandit avec ses champs). Un élément verrouillé ne change ni d'attribut du mode, ni de style, ni de bornes, ni de place dans l'ordre, ni de
+`locked`, `movable`, `resizable`, `editable`, `deletable`), `setShapeBounds` (bornes d'une forme, ex. une table qui
+grandit avec ses champs) et `removeEdge` (supprime une flèche et ses textes, sujet 269). Un élément verrouillé ne change ni d'attribut du mode, ni de style, ni de bornes, ni de place dans l'ordre, ni de
 textes de bout. Toutes ses écritures forment une étape d'annulation, et rien n'est enregistré si elle ne
 change rien. Depuis l'appli : `onEdit(label, (edit) => monOperation(edit, …))` (prop des sections React), ou
 `engine.editPageMode(label, …)`.
@@ -218,6 +218,8 @@ fait face à la caméra en iso / 3D (`userData.billboard = 'screen'`). Son appar
   direct ; les objets du texte dessiné de la partie (marqués `userData.part`) sont masqués pendant l'édition, et
   `ModePartText` peut demander un éditeur sans fond (`transparent`), centré (`center`), d'une couleur (`color`). Les
   touches du mode (`keys`) reçoivent aussi la partie sélectionnée et peuvent renvoyer la partie à sélectionner.
+  `textAt` (sujet 269) : partie au texte modifiable par double-clic sans être sélectionnable (ni survol, ni sélection,
+  ni glisser ; ex. corps d'un document RDD) ; son texte passe par `text` / `setText` / `textPreview` comme une partie.
   `dropAt` / `move` (sujet 252) : un appui sur la partie sélectionnée la glisse (et non la forme) ; `dropAt` donne
   la place visée sous le pointeur, `preview` la forme telle qu'elle serait (redessinée en direct, la partie mise en
   valeur à sa nouvelle place), `move` déplace la partie au lâcher (une étape d'annulation) et renvoie la partie à
@@ -302,7 +304,7 @@ Règles communes (sujet 288) :
 | `gestures.handles.list` | forme sélectionnée seule et modifiable : dessin des poignées et pointeur | page du modèle | aucune | pas de poignée |
 | `gestures.handles.clicked` | clic sur une poignée du mode ; renvoie la partie à sélectionner | opération | une étape au titre de la poignée | rien d'écrit |
 | **Parties** | | | | |
-| `parts` | `at` : pointeur et clic ; `bounds` : mise en valeur, validité de la partie sélectionnée ; `text`, `textPreview` : édition sur place ; `comment` : encart et touche C ; `dropAt`, `preview` : glisser d'une partie ; `setText`, `setComment`, `remove`, `move` : opérations | page du modèle (opérations : page avant) | `setText` « Texte », `setComment` « Commentaire », `remove` « Suppression », `move` « Ordre » | lecture : partie absente (la forme elle-même, pas de texte, pas de place) ; opération : rien d'écrit |
+| `parts` | `at` : pointeur et clic ; `textAt` : double-clic hors d'une partie ; `bounds` : mise en valeur, validité de la partie sélectionnée ; `text`, `textPreview` : édition sur place ; `comment` : encart et touche C ; `dropAt`, `preview` : glisser d'une partie ; `setText`, `setComment`, `remove`, `move` : opérations | page du modèle (opérations : page avant) | `setText` « Texte », `setComment` « Commentaire », `remove` « Suppression », `move` « Ordre » | lecture : partie absente (la forme elle-même, pas de texte, pas de place) ; opération : rien d'écrit |
 | **Courant** | | | | |
 | `current` | `initial` / `valid` : à chaque lecture du courant ; `pick` : clic ou sélection d'un seul élément ; `color`, `label`, `values` : barre du courant ; `focus` : avant chaque image ; `look` : barre et estompage ; `rename` : opération depuis la barre | page du modèle (`rename` : opération) | `rename` : une étape « Renommage » ; le courant lui-même n'est jamais écrit | pas de courant, pas de barre, rien d'estompé, apparence par défaut |
 | **Réglages déclarés** | | | | |

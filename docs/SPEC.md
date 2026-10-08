@@ -873,6 +873,7 @@ Réalisation retenue (`engine/core/spatial.ts`) :
 | `spatial.seq.participant` | style ou objet | Mode Séquences : type d'une forme (`bus`, `queue`) |
 | `spatial.rdd.fields` | style ou objet | Mode RDD : champs d'une table, liste JSON `[{"kind","label","type","nullable"}, …]` (§14.5) ; absent = aucun |
 | `spatial.rdd.secondary` | style ou objet | Mode RDD : `1` = table secondaire, rendue 20 % plus petite |
+| `spatial.rdd.body` | style ou objet | Mode RDD : corps YAML d'un document, chaîne JSON (`;` échappés en `\u003b`) ; absent = vide |
 | `spatial.rdd.reverseName` | style ou objet | Mode RDD : nom inverse d'une relation, sur sa flèche |
 | `spatial.rdd.cardinalities` | `<diagram>` | Mode RDD : `0` = textes des cardinalités masqués |
 
@@ -936,8 +937,22 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   - « Embedded » (`rdd-embedded`) : objet incorporé, bas ondulé (une période sur la largeur, amplitude 2 px ; la
     table a 4 px de plus en bas) ; icône prise électrique (câble en S, deux broches).
   - « Document » (`rdd-document`) : document JSONB, coin plié en haut à droite (coin coupé, rabat plus sombre que
-    l'entête, 10 px), clés connues en italique ; nom obligatoire : vide, il affiche « Document » et Diagnostics le
-    signale.
+    l'entête, 10 px) ; nom obligatoire : vide, il affiche « Document » et Diagnostics le signale. Pas de champs (sujet
+    269 : ni « + », ni lignes, ni bouton de séparateur) : son corps est un texte YAML libre (`spatial.rdd.body`, chaîne
+    JSON aux `;` échappés en `\u003b`), dessiné en 7 px, police à chasse fixe, sans retour à la ligne, tronqué à la zone
+    du corps par « … » (ligne trop longue, dernière ligne visible). Taille libre, réglée à la main (poignées de
+    redimensionnement ; 200 × 120 à la pose ; « Table secondaire » la passe × 0,8). Double-clic dans le corps : édition
+    multiligne dans le canvas (Entrée passe à la ligne, ⌘ + Entrée ou clic dehors valide, Échap annule), sans
+    sélectionner de partie ; panneau : section « Document body », zone en police à chasse fixe avec ascenseurs. Les
+    tabulations deviennent deux espaces. Un YAML invalide est signalé dans Diagnostics (première erreur, ligne et
+    colonne). À l'ouverture, un document à clés (sujet 181) prend un corps d'une ligne `clé:` par clé.
+  - Relation document → champ dynamique (sujet 269) : d'un document vers la ligne d'un champ « Dynamique » d'une
+    entité, d'un embedded ou d'une énumération (seule arrivée permise pendant le tirer) ; aucun champ créé : le champ
+    retient la flèche (`incoming`, ids des flèches, dans `spatial.rdd.fields`), plusieurs documents par champ. Flèche en
+    tirets, sans pointe ni texte, sans section « Relation » ; elle arrive au milieu de la ligne, du côté le plus proche
+    du document (`entryX`, `entryY`, `entryPerimeter=0`) et suit le champ (déplacé, table déplacée). Le champ change
+    de type ou est supprimé : ses flèches sont supprimées. Une flèche d'un document qui n'arrive pas sur un champ
+    dynamique n'est pas une relation : signalée dans Diagnostics.
   - « Vue » (`rdd-view`) : coins arrondis (`rounded=1;absoluteArcSize=1;arcSize=16`), entête coupé dans le contour ;
     icône jumelles.
   - Modèle abstrait (`rdd-model`) : nom en italique ; base technique des autres tables, jamais dans la palette,
@@ -992,7 +1007,7 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     ainsi.
     Double-clic sur une ligne : label modifié sur place (tout le texte sélectionné, Entrée valide, Échap annule) ; un
     label vide est refusé. Chaque changement est une étape d'annulation, la largeur suit.
-  - Taille calculée (sujet 247), sans poignées de redimensionnement : hauteur = entête + une ligne par champ (au moins
+  - Taille calculée (sujet 247), sans poignées de redimensionnement (sauf le document, à taille libre) : hauteur = entête + une ligne par champ (au moins
     une) ; largeur = la plus grande du nom (gras, plus la place de l'icône d'entête de chaque côté), des lignes de champ
     (icône, label et type, marge de 6 px de chaque côté) et du minimum de 120 px ; × 0,8 pour une table secondaire. Recalculée depuis le coin
     haut-gauche à chaque changement de nom, de champs, d'échelle ou d'icône (même étape d'annulation) ; à l'ouverture

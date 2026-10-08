@@ -1,6 +1,7 @@
 import type { ModeEdit, ModeProperty, ModeTarget, ShapeModel } from '../../../../core/plugins';
 import { isToggled, toggleValue } from '../../../../core/plugins';
 import { tableFields } from '../tables/fieldModel';
+import { documentBody, hasBody, setBody } from '../tables/documentBody';
 import { addDivider, setSecondary } from '../tables/operations';
 import type { TableKind, TableOptionKey } from '../tables/tableKinds';
 import { tableKindOf } from '../tables/tableKinds';
@@ -10,7 +11,17 @@ import { keys } from '../keys';
 
 /** Réglages d'une table RDD sélectionnée (sujets 179, 253, 260) : table secondaire, clé primaire, ajout d'un séparateur. */
 
-const notTable = (_page: unknown, target: ModeTarget) => !tableOf(target);
+/** Cible qui n'est pas une table à champs (autre forme, document). */
+const notFieldTable = (_page: unknown, target: ModeTarget) => {
+  const shape = tableOf(target);
+  return !shape || !tableKindOf(shape)?.rules.fields;
+};
+
+/** Document sélectionné (sujet 269). */
+const documentOf = (target: ModeTarget) => {
+  const shape = tableOf(target);
+  return shape && hasBody(shape) ? shape : undefined;
+};
 
 /**
  * Séparateur ajouté après la ligne sélectionnée, sinon en fin de liste (sujet 253) ; renvoie son rang, la partie à
@@ -94,6 +105,25 @@ export const TABLE_PROPERTIES: ModeProperty[] = [
       return !shape || !tableKindOf(shape)?.rules.primaryKey;
     },
   },
+  {
+    // Corps d'un document (sujet 269) : tout le YAML, avec ascenseurs au besoin.
+    type: 'text',
+    key: 'rdd.body',
+    section: 'Document body',
+    label: 'YAML',
+    title: 'Corps du document en YAML libre (spatial.rdd.body) ; ⌘ + Entrée pour valider, tabulations en deux espaces',
+    multiline: true,
+    monospace: true,
+    value: (_page, target) => {
+      const shape = documentOf(target);
+      return shape && documentBody(shape);
+    },
+    write: (edit, target, value) => {
+      const shape = documentOf(target);
+      if (shape) setBody(edit, shape, value ?? '');
+    },
+    hidden: (_page, target) => !documentOf(target),
+  },
 ];
 
 /**
@@ -107,5 +137,5 @@ export const ADD_DIVIDER_PROPERTY: ModeProperty = {
   label: 'Ajouter un séparateur',
   title: 'Ajoute un séparateur après la ligne sélectionnée, sinon en fin de liste (touche « - » sur une ligne)',
   write: (edit, target, _value, part) => addDividerAfter(edit, target, part),
-  hidden: notTable,
+  hidden: notFieldTable,
 };

@@ -4,7 +4,6 @@ import type { Point, RenderContext } from '../../../../../core/plugins';
 import type { Divider, Field } from '../../tables/fieldModel';
 import { fieldNote } from '../../tables/fieldModel';
 import { DIVIDER_STROKE, FIELD_ICON_STROKE, FIELD_KIND_COLORS, TYPE_COLOR } from '../../tables/tableColors';
-import type { TableKind } from '../../tables/tableKinds';
 import { TABLE, dividerLabelWidth, fieldLayout } from '../../tables/tableLayout';
 
 /**
@@ -58,21 +57,14 @@ function fieldIcon(field: Field, center: Point, scale: number): Group {
 export function addFieldRow(
   group: Group,
   ctx: RenderContext,
-  kind: TableKind,
   field: Field,
   row: { left: number; y: number; scale: number; part: string },
 ): void {
   const { left, y, scale, part } = row;
-  const layout = fieldLayout(kind, field);
+  const layout = fieldLayout(field);
   group.add(fieldIcon(field, { x: left + (TABLE.padding + TABLE.fieldIcon.size / 2) * scale, y }, scale));
   const size = TABLE.fieldSize * scale;
-  addRowText(
-    group,
-    ctx,
-    field.label,
-    { x: left + layout.label * scale, y },
-    { size, color: '#000000', italic: kind.look.italicFields, part },
-  );
+  addRowText(group, ctx, field.label, { x: left + layout.label * scale, y }, { size, color: '#000000', part });
   if (layout.type !== undefined) {
     addRowText(group, ctx, fieldNote(field), { x: left + layout.type * scale, y }, { size, color: TYPE_COLOR });
   }

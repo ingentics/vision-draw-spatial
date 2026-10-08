@@ -135,3 +135,30 @@ describe('écriture qui échoue en route (sujet 302)', () => {
     expect(document.pages[0]!.shapes.find((s) => s.id === 'a')!.bounds.x).toBe(0);
   });
 });
+
+describe('suppression d’une flèche par un mode (sujet 269)', () => {
+  const EDGES = `<mxfile><diagram id="p" name="P"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="a" value="A" style="" vertex="1" parent="1"><mxGeometry x="0" y="0" width="100" height="60" as="geometry"/></mxCell>
+<mxCell id="b" value="B" style="" vertex="1" parent="1"><mxGeometry x="200" y="0" width="100" height="60" as="geometry"/></mxCell>
+<mxCell id="e" value="" style="" edge="1" parent="1" source="a" target="b"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="t" value="1" style="edgeLabel;" vertex="1" connectable="0" parent="e"><mxGeometry x="-1" relative="1" as="geometry"/></mxCell>
+<mxCell id="l" value="" style="locked=1;" edge="1" parent="1" source="a" target="b"><mxGeometry relative="1" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>`;
+
+  it('la flèche part avec ses textes ; une flèche verrouillée reste ; les formes ne bougent pas', () => {
+    const { document, tree } = readDrawio(EDGES);
+    const page = document.pages[0]!;
+    expect(
+      applyModeEdit(page, tree.pages[0]!, { namespace: 'test' }, (edit) => {
+        edit.removeEdge('e');
+        edit.removeEdge('e');
+        edit.removeEdge('l');
+        edit.removeEdge('a');
+      }),
+    ).toBe(true);
+    const fresh = documentFromTree(tree).pages[0]!;
+    expect(fresh.edges.map((edge) => edge.id)).toEqual(['l']);
+    expect(fresh.shapes.map((shape) => shape.id)).toEqual(['a', 'b']);
+    expect(writeDrawio(tree)).not.toContain('id="t"');
+  });
+});

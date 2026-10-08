@@ -1,17 +1,35 @@
-import type { ModeParts } from '../../../../core/plugins';
+import type { ModeParts, ShapeModel } from '../../../../core/plugins';
 import { clamp, rectContains } from '../../../../core/plugins';
+import { BODY, BODY_PART, bodyValue, documentBody, hasBody, normalizedBody, setBody } from '../tables/documentBody';
 import { FIELDS, fieldsValue, isDivider, isPrimaryKey, tableFields } from '../tables/fieldModel';
 import { moveField, movedFields, removeField, setField } from '../tables/operations';
 import { TYPE_COLOR } from '../tables/tableColors';
 import { tableKindOf } from '../tables/tableKinds';
-import { TABLE, fieldLayout, fieldRow, tableContent, tableScale, tableSize, tableWidth } from '../tables/tableLayout';
+import {
+  TABLE,
+  bodyZone,
+  fieldLayout,
+  fieldRow,
+  tableContent,
+  tableScale,
+  tableSize,
+  tableWidth,
+} from '../tables/tableLayout';
 import { fieldIndex } from './tableTargets';
 import { keys } from '../keys';
 
 /**
  * Champs d'une table RDD comme parties de la forme (sujet 249) : une partie est le rang du champ (`"0"` pour le
  * premier, la clé primaire d'une entité). Un clic sur une ligne la sélectionne ; double-clic : son label sur place.
+ * Le corps d'un document (sujet 269) est la partie `body`, au texte modifiable sans être sélectionnable.
  */
+
+/** Forme avec ce corps (aperçu de la saisie), rien d'écrit. */
+function withBody(shape: ShapeModel, text: string): ShapeModel {
+  const { [keys.key(BODY)]: _previous, ...style } = shape.style;
+  const value = bodyValue(normalizedBody(text));
+  return { ...shape, style: value === undefined ? style : { ...style, [keys.key(BODY)]: value } };
+}
 
 export const fieldParts: ModeParts = {
   at(_page, shape, point) {
@@ -22,11 +40,25 @@ export const fieldParts: ModeParts = {
     const index = Math.floor((point.y - first.y) / first.height);
     return fieldIndex(shape, String(index)) !== undefined ? String(index) : undefined;
   },
+  // Double-clic dans le corps d'un document : son YAML sur place, en plusieurs lignes (sujet 269).
+  textAt(_page, shape, point) {
+    return hasBody(shape) && rectContains(bodyZone(shape), point) ? BODY_PART : undefined;
+  },
   bounds(_page, shape, part) {
     const index = tableKindOf(shape) ? fieldIndex(shape, part) : undefined;
     return index === undefined ? undefined : fieldRow(shape, index);
   },
   text(_page, shape, part) {
+    if (part === BODY_PART)
+      return hasBody(shape)
+        ? {
+            text: documentBody(shape),
+            zone: bodyZone(shape),
+            fontSize: TABLE.body.size * tableScale(shape),
+            multiline: true,
+            monospace: true,
+          }
+        : undefined;
     const kind = tableKindOf(shape);
     const index = kind ? fieldIndex(shape, part) : undefined;
     if (!kind || index === undefined) return undefined;
@@ -48,13 +80,12 @@ export const fieldParts: ModeParts = {
         color: TYPE_COLOR,
       };
     }
-    const left = row.x + fieldLayout(kind, field).label * scale;
+    const left = row.x + fieldLayout(field).label * scale;
     return {
       text: field.label,
       // Du label au bord droit de la table (le type est couvert pendant la saisie).
       zone: { x: left, y: row.y, width: row.x + row.width - left - TABLE.padding * scale, height: row.height },
       fontSize: TABLE.fieldSize * scale,
-      italic: kind.look.italicFields,
     };
   },
   // Commentaire du champ (sujet 262) : au survol sous son nom, et édité par la touche C ; pas pour un séparateur.
@@ -71,6 +102,7 @@ export const fieldParts: ModeParts = {
   },
   // Saisie en direct (sujet 253) : la table avec ce texte sur la ligne, élargie s'il le faut.
   textPreview(shape, part, text, gridSize) {
+    if (part === BODY_PART) return hasBody(shape) ? withBody(shape, text) : shape;
     const kind = tableKindOf(shape);
     const index = kind ? fieldIndex(shape, part) : undefined;
     if (!kind || index === undefined) return shape;
@@ -83,6 +115,7 @@ export const fieldParts: ModeParts = {
     };
   },
   setText(edit, shape, part, text) {
+    if (part === BODY_PART) return setBody(edit, shape, text);
     const index = fieldIndex(shape, part);
     if (index !== undefined) setField(edit, shape, index, { label: text });
   },

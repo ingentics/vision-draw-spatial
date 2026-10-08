@@ -182,6 +182,12 @@ export interface ModeParts {
   at(page: PageModel, shape: ShapeModel, point: Point): string | undefined;
   /** Emprise de la partie (pixels de page), mise en valeur à la sélection ; undefined = partie disparue. */
   bounds(page: PageModel, shape: ShapeModel, part: string): Rect | undefined;
+  /**
+   * Partie dont le texte s'édite au double-clic sous `point` (pixels de page) sans être sélectionnable : ni survol, ni
+   * sélection, ni glisser (sujet 269, ex. corps d'un document RDD) ; undefined = aucune. Son texte passe par `text` et
+   * `setText` comme celui d'une partie.
+   */
+  textAt?(page: PageModel, shape: ShapeModel, point: Point): string | undefined;
   /** Texte modifiable sur place (double-clic, sur une ligne : Entrée valide) ; undefined = pas de texte. */
   text?(page: PageModel, shape: ShapeModel, part: string): ModePartText | undefined;
   /** Écrit le texte validé (le mode décide d'un texte vide : refusé, ou permis). */
@@ -357,6 +363,11 @@ export interface ModeEdit {
   setElementStyle(elementId: string, key: string, value: string | undefined): void;
   /** Nouvelles bornes d'une forme, en coordonnées page (sujet 179) ; ses enfants suivent son coin haut-gauche. */
   setShapeBounds(shapeId: string, bounds: Rect): void;
+  /**
+   * Supprime une flèche et ses textes (sujet 269, ex. flèche vers un champ qui n'existe plus) ; rien pour une flèche
+   * verrouillée.
+   */
+  removeEdge(edgeId: string): void;
   /** Envoie ces formes au fond de l'ordre de dessin, dans cet ordre (la première tout au fond) (sujet 230). */
   sendToBack(shapeIds: readonly string[]): void;
   /**

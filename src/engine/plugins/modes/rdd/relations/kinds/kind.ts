@@ -12,7 +12,11 @@ export interface RelationKind {
   /** Formes de table d'où la flèche peut partir, et où elle peut arriver. */
   from: readonly TableKindId[];
   to: readonly TableKindId[];
-  /** L'arrivée est un champ précis de la forme d'arrivée (pas encore lu : servira au document, sujet 269). */
+  /**
+   * L'arrivée est un champ de la forme d'arrivée, permis par cette règle (document → champ dynamique, sujet 269) : la
+   * flèche se tire vers la ligne du champ, qui la retient (`Field.incoming`) ; hors d'un tel champ, ce n'est pas une
+   * relation.
+   */
   toField?(field: Field): boolean;
   /** Champ créé dans la forme d'arrivée, qui suit la flèche ; absent : aucun champ, rien n'est créé ni suivi. */
   field?: RelationField;

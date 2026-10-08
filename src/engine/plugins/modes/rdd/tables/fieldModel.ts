@@ -60,6 +60,11 @@ export interface Field {
   edge?: string;
   /** Préfixe d'un champ de relation embedded (sujet 268), réglé depuis la flèche, en gris à la place du type. */
   prefix?: string;
+  /**
+   * Flèches qui arrivent sur ce champ (ids), d'une sorte de relation qui vise un champ (document → champ dynamique,
+   * sujet 269) : elles le suivent, et partent quand il n'en permet plus.
+   */
+  incoming?: string[];
 }
 
 /** Options d'un champ à cocher, et en texte libre. */
@@ -225,6 +230,10 @@ function readField(item: unknown): TableRow | undefined {
     const value = record[key];
     if (isFlagKey(key) ? value === true : typeof value === 'string' && value) Object.assign(field, { [key]: value });
   }
+  const incoming = Array.isArray(record.incoming)
+    ? record.incoming.filter((id): id is string => typeof id === 'string' && id !== '')
+    : [];
+  if (incoming.length > 0) field.incoming = incoming;
   return field;
 }
 
@@ -245,6 +254,7 @@ export const fieldsValue = (rows: readonly TableRow[]): string | undefined =>
             type: row.type,
             nullable: !isPrimaryKey(row) && row.nullable,
             ...Object.fromEntries(STORED_KEYS.filter((key) => row[key]).map((key) => [key, row[key]])),
+            ...(row.incoming?.length && { incoming: row.incoming }),
           },
     ),
   );
@@ -275,6 +285,8 @@ function allowedOptions(table: TableKind, field: Field): Field {
  */
 export function tableFields(shape: ShapeModel): TableRow[] {
   const table = tableKindOf(shape);
+  // Table sans champs (document, sujet 269) : ses anciennes clés sont converties à l'ouverture (`convertDocumentKeys`).
+  if (table && !table.rules.fields) return [];
   const rows = fieldsOf(shape).map((row) => (table && !isDivider(row) ? allowedOptions(table, row) : row));
   const type = table?.rules.primaryKey;
   if (!type) return rows;
@@ -292,7 +304,7 @@ export const misplacedPrimaryKey = (shape: ShapeModel) =>
  * clé primaire nullable.
  */
 export function fieldProblems(shape: ShapeModel): string[] {
-  if (!tableKindOf(shape)) return [];
+  if (!tableKindOf(shape)?.rules.fields) return [];
   const raw = rawFields(shape);
   if (!raw) return ['champs illisibles, ignorés'];
   const problems: string[] = [];

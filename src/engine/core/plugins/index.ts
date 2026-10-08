@@ -65,6 +65,7 @@ export {
   unionOf,
 } from '../model/geometry';
 export { sideConstraintAt } from '../edit/edgeEnds';
+export { yamlProblem } from '../diagnostics/yamlCheck';
 export { fontStyleValue, isHexColor, styleFlag, styleNumber, styleOpacity } from '../model/styleValues';
 
 // Briques de dessin (Three.js) : rendu à plat et en volume, contours, traits, textes, couleurs.

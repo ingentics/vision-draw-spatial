@@ -11,8 +11,6 @@ export interface TableLook {
   italic?: boolean;
   /** Cadre double autour de l'entête (sujet 215). */
   doubleHeader?: boolean;
-  /** Champs en italique : indicatifs, sans contrainte (document JSONB, sujet 181). */
-  italicFields?: boolean;
   /** Coin plié en haut à droite (document, sujet 218). */
   folded?: boolean;
   /** Bas ondulé (embedded, sujet 219). */
@@ -34,8 +32,13 @@ export interface TableRules {
   uniqueFields?: boolean;
   /** Nom obligatoire : affiché à la place d'un nom vide, qui est signalé (document JSONB, sujet 181). */
   requiredName?: string;
-  /** La table a des champs (lignes, « + » d'ajout) ; vrai pour toutes les formes pour l'instant. */
+  /**
+   * La table a des champs (lignes, « + » d'ajout) et sa taille en découle (sujet 247) ; faux : ni champs, taille libre,
+   * réglée à la main (document, sujet 269).
+   */
   fields: boolean;
+  /** Corps en texte YAML libre, à la place des champs (document, sujet 269). */
+  body?: boolean;
   /** Options de table permises (`TABLE_OPTIONS`). */
   options: readonly TableOptionKey[];
 }
@@ -66,9 +69,12 @@ export const TABLE_KINDS: Record<TableKindId, TableKind> = {
     look: { doubleHeader: true, mark: 'list' },
     rules: { ...PLAIN, primaryKey: 'word', uniqueFields: true },
   },
-  // Sujet 181 : objet incorporé (bas ondulé, sujet 219), document JSONB (clés indicatives), vue (coins arrondis).
+  // Sujet 181 : objet incorporé (bas ondulé, sujet 219), document (corps YAML, sujet 269), vue (coins arrondis).
   'rdd-embedded': { look: { wavy: true, mark: 'plug' }, rules: { ...PLAIN, uniqueFields: true } },
-  'rdd-document': { look: { italicFields: true, folded: true }, rules: { ...PLAIN, requiredName: 'Document' } },
+  'rdd-document': {
+    look: { folded: true },
+    rules: { fields: false, body: true, options: ['secondary'], requiredName: 'Document' },
+  },
   'rdd-view': { look: { style: 'rounded=1;absoluteArcSize=1;arcSize=16;', mark: 'binoculars' }, rules: PLAIN },
 };
 

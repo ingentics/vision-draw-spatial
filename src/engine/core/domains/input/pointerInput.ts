@@ -112,11 +112,19 @@ export class PointerInput {
         picked.type === 'shape' && page
           ? this.core.shapeParts.partAt(page, picked.element as ShapeModel, screen)
           : undefined;
+      // Texte d'une forme qui n'est pas une partie sélectionnable (ex. corps d'un document RDD, sujet 269).
+      const textPart =
+        part === undefined && picked.type === 'shape' && page
+          ? this.core.shapeParts.textPartAt(page, picked.element as ShapeModel, screen)
+          : undefined;
       // Une partie sans texte modifiable (ex. clé primaire `id`, sujet 260) : sélectionnée, rien d'autre.
       if (part !== undefined) {
         this.core.selection.selectItems([picked], part);
         if (this.core.shapeParts.text(picked.element.id, part))
           this.core.labelEditor.editPartLabel(picked.element.id, part);
+      } else if (textPart !== undefined && this.core.shapeParts.text(picked.element.id, textPart)) {
+        this.core.selection.selectItems([picked]);
+        this.core.labelEditor.editPartLabel(picked.element.id, textPart);
       } else this.core.labelEditor.editLabel(picked.element.id);
     }
   }

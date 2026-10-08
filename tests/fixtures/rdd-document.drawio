@@ -1,0 +1,31 @@
+<mxfile host="drawio-spatial">
+  <diagram id="rdd-document" name="RDD documents" spatial.mode="rdd">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="prefs" value="Preferences" style="swimlane;fontStyle=1;startSize=26;fillColor=#ffe6cc;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;spatial.kind=rdd-document;spatial.rdd.body=&quot;theme: dark  # couleurs\u003b contraste\nlocale: fr\nlimits:\n  max_items: 10\n  tags: [a, b]\nnotifications:\n  - email\n  - push\na_very_long_key_that_will_not_fit_in_the_document_width: value\nend: true&quot;;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="200" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="profile" value="Profile" style="swimlane;fontStyle=1;startSize=26;fillColor=#dae8fc;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;spatial.kind=rdd-entity;spatial.rdd.fields=[{&quot;kind&quot;:&quot;pk&quot;,&quot;label&quot;:&quot;id&quot;,&quot;type&quot;:&quot;primary-key&quot;,&quot;nullable&quot;:false},{&quot;kind&quot;:&quot;property&quot;,&quot;label&quot;:&quot;settings&quot;,&quot;type&quot;:&quot;dynamic&quot;,&quot;nullable&quot;:true,&quot;incoming&quot;:[&quot;prefs-profile&quot;]},{&quot;kind&quot;:&quot;property&quot;,&quot;label&quot;:&quot;name&quot;,&quot;type&quot;:&quot;string&quot;,&quot;nullable&quot;:false}];" vertex="1" parent="1">
+          <mxGeometry x="360" y="40" width="160" height="86" as="geometry" />
+        </mxCell>
+        <mxCell id="kind" value="Kind" style="swimlane;fontStyle=1;startSize=26;fillColor=#fff2cc;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;spatial.kind=rdd-enum;spatial.rdd.fields=[{&quot;kind&quot;:&quot;pk&quot;,&quot;label&quot;:&quot;id&quot;,&quot;type&quot;:&quot;word&quot;,&quot;nullable&quot;:false},{&quot;kind&quot;:&quot;property&quot;,&quot;label&quot;:&quot;payload&quot;,&quot;type&quot;:&quot;dynamic&quot;,&quot;nullable&quot;:true}];" vertex="1" parent="1">
+          <mxGeometry x="360" y="200" width="160" height="66" as="geometry" />
+        </mxCell>
+        <mxCell id="meta" value="Meta" style="swimlane;fontStyle=1;startSize=26;fillColor=#e1d5e7;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;spatial.kind=rdd-embedded;spatial.rdd.fields=[{&quot;kind&quot;:&quot;property&quot;,&quot;label&quot;:&quot;extra&quot;,&quot;type&quot;:&quot;dynamic&quot;,&quot;nullable&quot;:true},{&quot;kind&quot;:&quot;property&quot;,&quot;label&quot;:&quot;source&quot;,&quot;type&quot;:&quot;string&quot;,&quot;nullable&quot;:false}];" vertex="1" parent="1">
+          <mxGeometry x="360" y="320" width="160" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="legacy" value="Legacy" style="swimlane;fontStyle=1;startSize=26;fillColor=#ffe6cc;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;spatial.kind=rdd-document;spatial.rdd.fields=[{&quot;kind&quot;:&quot;property&quot;,&quot;label&quot;:&quot;color&quot;,&quot;type&quot;:&quot;dynamic&quot;,&quot;nullable&quot;:false},{&quot;kind&quot;:&quot;property&quot;,&quot;label&quot;:&quot;size&quot;,&quot;type&quot;:&quot;dynamic&quot;,&quot;nullable&quot;:false}];" vertex="1" parent="1">
+          <mxGeometry x="40" y="240" width="160" height="66" as="geometry" />
+        </mxCell>
+        <mxCell id="broken" value="Broken" style="swimlane;fontStyle=1;startSize=26;fillColor=#ffe6cc;swimlaneFillColor=#ffffff;strokeColor=#666666;fontSize=12;html=1;whiteSpace=wrap;spatial.kind=rdd-document;spatial.rdd.body=&quot;name: x\nname: y&quot;;" vertex="1" parent="1">
+          <mxGeometry x="40" y="360" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="prefs-profile" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=none;endArrow=none;dashed=1;entryX=0;entryY=0.651;entryPerimeter=0;" edge="1" parent="1" source="prefs" target="profile">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

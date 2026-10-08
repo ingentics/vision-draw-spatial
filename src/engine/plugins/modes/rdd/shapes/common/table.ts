@@ -23,12 +23,14 @@ import type {
 } from '../../../../../core/plugins';
 import { FIELDS, fieldsValue, isDivider, primaryKeyField, tableFields } from '../../tables/fieldModel';
 import { isLinkable } from '../../relations';
+import { BODY_PART, documentBody } from '../../tables/documentBody';
 import { DEFAULT_HEADER_COLOR, DEFAULT_HEADER_TEXT, FIELDS_FILL, TABLE_BORDER } from '../../tables/tableColors';
 import type { TableKind, TableKindId } from '../../tables/tableKinds';
 import { TABLE_KINDS, shownMark, tableName } from '../../tables/tableKinds';
 import {
   MARK_INSET,
   TABLE,
+  bodyZone,
   headerHeight,
   isSecondary,
   tableHeight,
@@ -180,13 +182,40 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
   );
   if (label) group.add(label);
 
+  if (kind.rules.body) {
+    // Corps d'un document (sujet 269) : YAML en police à chasse fixe, tronqué à sa zone.
+    const body = createLabel(
+      {
+        ...shape,
+        style: {
+          ...style,
+          fontSize: String(TABLE.body.size * scale),
+          fontColor: '#000000',
+          fontStyle: '0',
+          align: 'left',
+          verticalAlign: 'top',
+          whiteSpace: 'nowrap',
+        },
+      },
+      ctx,
+      documentBody(shape),
+      bodyZone(shape),
+      { monospace: true, truncate: true },
+    );
+    if (body) {
+      // Masqué pendant son édition sur place.
+      body.userData.part = BODY_PART;
+      group.add(body);
+    }
+  }
+
   const row = TABLE.row * scale;
   tableFields(shape).forEach((field, index) => {
     const y = bounds.y + header + row * (index + 0.5);
     if (y > bounds.y + bounds.height) return;
     const part = String(index);
     if (isDivider(field)) addDividerRow(group, ctx, field, { left: bounds.x, width: bounds.width, y, scale, part });
-    else addFieldRow(group, ctx, kind, field, { left: bounds.x, y, scale, part });
+    else addFieldRow(group, ctx, field, { left: bounds.x, y, scale, part });
   });
   return group;
 }
@@ -222,8 +251,9 @@ export function table(
     outline: (shape) => outline(shape, kind),
     flat: { create: (shape, ctx) => createTable(shape, ctx, kind) },
     textZone: (shape) => nameZone(shape),
-    // Taille calculée de son contenu (sujet 247) : pas de poignées de redimensionnement.
-    resizable: false,
+    // Taille calculée de ses champs (sujet 247) : pas de poignées de redimensionnement ; taille libre d'un document
+    // (sujet 269).
+    resizable: !kind.rules.fields,
     // Texte brut : nom, champs et séparateurs s'écrivent sans mise en forme (sujet 258).
     plainText: true,
     // Flèches tirées des côtés seulement : le « + » d'ajout de champ prend le bas (sujet 250) ; aucune pour une table
@@ -237,12 +267,17 @@ export function table(
         category: 'rdd',
         style: tableStyle(id, kind),
         // Mesure approchée au chargement (polices pas encore là) : la première modification l'ajuste. Largeur sur la
-        // grille par défaut de draw.io (10, sujet 263), hauteur au plus juste (sujet 264).
-        width: tableSize(
-          tableWidth(kind, { name: palette.value, fields, secondary: false, mark: kind.look.mark !== undefined }),
-          10,
-        ),
-        height: tableHeight(kind, false, fields.length),
+        // grille par défaut de draw.io (10, sujet 263), hauteur au plus juste (sujet 264). Document : taille par
+        // défaut, réglée ensuite à la main (sujet 269).
+        ...(kind.rules.fields
+          ? {
+              width: tableSize(
+                tableWidth(kind, { name: palette.value, fields, secondary: false, mark: kind.look.mark !== undefined }),
+                10,
+              ),
+              height: tableHeight(kind, false, fields.length),
+            }
+          : { width: TABLE.body.width, height: TABLE.body.height }),
         icon:
           palette.icon ??
           '<path d="M6 3h28v22H6zM6 10h28M10 15h12M10 20h9"/>' +

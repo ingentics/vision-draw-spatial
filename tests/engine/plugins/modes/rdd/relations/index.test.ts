@@ -11,7 +11,6 @@ import { RELATION_KINDS } from '../../../../../../src/engine/plugins/modes/rdd/r
 import type { RelationKind } from '../../../../../../src/engine/plugins/modes/rdd/relations/kinds/kind';
 import { fieldLayout } from '../../../../../../src/engine/plugins/modes/rdd/tables/tableLayout';
 import { fieldNote, tableFields } from '../../../../../../src/engine/plugins/modes/rdd/tables/fieldModel';
-import { tableKindOf } from '../../../../../../src/engine/plugins/modes/rdd/tables/tableKinds';
 import type { Field } from '../../../../../../src/engine/plugins/modes/rdd/tables/fieldModel';
 import type { ModeEdit } from '../../../../../../src/engine/core/modes/types';
 import { fixture } from '../../../../../helpers';
@@ -54,8 +53,8 @@ describe('mode RDD : liaisons permises (sujet 265)', () => {
     expect(allowed('address', 'address')).toBe(false);
   });
 
-  it('vue, document, région et modèle abstrait : ni poignée de connexion ni cible', () => {
-    for (const id of ['active', 'settings', 'accounts', 'model']) {
+  it('vue, région et modèle abstrait : ni poignée de connexion ni cible', () => {
+    for (const id of ['active', 'accounts', 'model']) {
       expect(shapes.isConnectable(shape(id))).toBe(false);
       expect(shapes.connectSides(shape(id))).toEqual([]);
       expect(canLink(shape('user'), shape(id))).toBe(false);
@@ -314,7 +313,7 @@ describe('mode RDD : relation embedded (sujet 268)', () => {
     expect(relations('user')[0]).toMatchObject({ label: 'Address', prefix: 'PLOP_', type: '' });
     expect(prefix.value!(page(), edgeModel())).toBe('PLOP_');
     expect(fieldNote(relations('user')[0]!)).toBe('PLOP_');
-    expect(fieldLayout(tableKindOf(shape('user'))!, relations('user')[0]!).type).toBeDefined();
+    expect(fieldLayout(relations('user')[0]!).type).toBeDefined();
     expect(shape('user').bounds.width).toBeGreaterThanOrEqual(width);
     run((edit) => prefix.write!(edit, edgeModel(), ''));
     expect(relations('user')[0]!.prefix).toBeUndefined();

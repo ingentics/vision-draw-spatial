@@ -131,6 +131,16 @@ export class ShapeParts {
     );
   }
 
+  /**
+   * Partie au texte modifiable sans être sélectionnable (`ModeParts.textAt`, sujet 269) sous le point écran ; undefined
+   * s'il n'y en a pas.
+   */
+  textPartAt(page: PageModel, shape: ShapeModel, screen: Point): string | undefined {
+    if (!this.has(page, 'textAt')) return undefined;
+    const point = this.core.picking.groundPointAtHeight(screen, this.core.sceneView.elementTop(shape.id));
+    return this.call(page, 'textAt', undefined, (textAt) => textAt(readonlyModel(page), readonlyModel(shape), point));
+  }
+
   /** Partie de `shape` sous un point de la page (pixels) ; undefined = la forme elle-même, ou un mode sans parties. */
   at(page: PageModel, shape: ShapeModel, point: Point): string | undefined {
     return this.call(page, 'at', undefined, (at) => at(readonlyModel(page), readonlyModel(shape), point));

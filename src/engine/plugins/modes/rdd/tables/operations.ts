@@ -1,5 +1,6 @@
 import type { ModeEdit, ShapeModel } from '../../../../core/plugins';
 import { clamp } from '../../../../core/plugins';
+import { placeArrivals, releaseArrivals } from '../relations/arrivals';
 import { writeRelationEdge } from '../relations/edgeLook';
 import type { Field, TableRow } from './fieldModel';
 import {
@@ -35,18 +36,21 @@ import {
 
 /**
  * Taille de la table recalculée de son contenu (sujet 247), depuis son coin haut-gauche, la largeur étendue à droite
- * jusqu'au pas de grille (sujet 263), la hauteur au plus juste (sujet 264) ; `changes` : ce que l'opération en cours
- * vient d'écrire (la page de `edit` ne le montre pas encore).
+ * jusqu'au pas de grille (sujet 263), la hauteur au plus juste (sujet 264) ; les flèches qui arrivent sur ses champs
+ * suivent leurs lignes (sujet 269). `changes` : ce que l'opération en cours vient d'écrire (la page de `edit` ne le
+ * montre pas encore). Une table sans champs (document) garde la taille réglée à la main.
  */
 export function fitTable(edit: ModeEdit, shape: ShapeModel, changes: Partial<TableContent> = {}): void {
   const kind = tableKindOf(shape);
-  if (!kind) return;
+  if (!kind?.rules.fields) return;
   const content = { ...tableContent(shape), ...changes };
-  edit.setShapeBounds(shape.id, {
+  const bounds = {
     ...shape.bounds,
     width: tableSize(tableWidth(kind, content), edit.gridSize),
     height: roundSize(tableHeight(kind, content.secondary, content.fields.length)),
-  });
+  };
+  edit.setShapeBounds(shape.id, bounds);
+  placeArrivals(edit, bounds, content.secondary, content.fields);
 }
 
 /** Lignes écrites dans la table, et sa taille qui suit. */
@@ -78,13 +82,14 @@ export function setField(edit: ModeEdit, shape: ShapeModel, index: number, patch
     const relation = isRelation(row);
     const kind = patch.kind;
     const options = FIELD_OPTIONS.filter((option) => option.key in patch && option.on(table, row));
-    next = {
+    // Les documents qui arrivent sur le champ partent s'il ne les permet plus (type changé, sujet 269).
+    next = releaseArrivals(edit, shape, row, {
       ...row,
       ...(label !== undefined && { label }),
       ...(kind !== undefined && !key && !relation && !isPrimaryKey({ ...row, kind }) && { kind }),
       ...(patch.type !== undefined && !key && !relation && { type: patch.type }),
       ...Object.fromEntries(options.map((option) => [option.key, optionValue(option, patch[option.key])])),
-    };
+    })!;
   }
   writeRows(
     edit,
@@ -124,7 +129,10 @@ export function addDivider(edit: ModeEdit, shape: ShapeModel, after?: number): n
  */
 export function removeField(edit: ModeEdit, shape: ShapeModel, index: number): void {
   const rows = tableFields(shape);
-  if (!tableKindOf(shape) || !rows[index] || isPrimaryKey(rows[index]) || isRelation(rows[index])) return;
+  const row = rows[index];
+  if (!tableKindOf(shape) || !row || isPrimaryKey(row) || isRelation(row)) return;
+  // Les flèches qui arrivent sur le champ partent avec lui (sujet 269).
+  if (!isDivider(row)) releaseArrivals(edit, shape, row, undefined);
   writeRows(
     edit,
     shape,
@@ -154,6 +162,7 @@ export function moveField(edit: ModeEdit, shape: ShapeModel, from: number, slot:
   const moved = tableKindOf(shape) ? movedFields(tableFields(shape), from, slot) : undefined;
   if (!moved) return undefined;
   edit.setElementAttribute(shape.id, FIELDS, fieldsValue(moved.fields));
+  placeArrivals(edit, shape.bounds, isSecondary(shape), moved.fields);
   return moved.index;
 }
 
@@ -165,7 +174,17 @@ export function setSecondary(edit: ModeEdit, shape: ShapeModel, secondary: boole
   const kind = tableKindOf(shape);
   if (!kind || isSecondary(shape) === secondary) return;
   edit.setElementAttribute(shape.id, SECONDARY, secondary ? '1' : undefined);
-  fitTable(edit, shape, { secondary });
+  if (kind.rules.fields) fitTable(edit, shape, { secondary });
+  else {
+    // Taille libre (document, sujet 269) : la taille réglée passe à la nouvelle échelle.
+    const ratio = secondaryScale(secondary) / secondaryScale(!secondary);
+    const { width, height } = shape.bounds;
+    edit.setShapeBounds(shape.id, {
+      ...shape.bounds,
+      width: roundSize(width * ratio),
+      height: roundSize(height * ratio),
+    });
+  }
   edit.setElementStyle(shape.id, 'startSize', String(roundSize(headerHeight(secondary))));
   edit.setElementStyle(shape.id, 'fontSize', String(roundSize(TABLE.nameSize * secondaryScale(secondary))));
 }

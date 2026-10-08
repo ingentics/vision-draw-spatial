@@ -23,12 +23,12 @@ describe('mode RDD : opérations sur une table', () => {
 });
 
 describe('mode RDD : taille calculée (sujet 247)', () => {
-  it('pas de poignées de redimensionnement sur les tables ; la région garde les siennes', () => {
+  it('pas de poignées de redimensionnement sur les tables ; la région et le document (sujet 269) gardent les leurs', () => {
     const { shape } = setup();
     const registry = createDefaultRegistry();
     expect(
       ['model', 'user', 'role', 'address', 'settings', 'active'].map((id) => registry.isResizable(shape(id))),
-    ).toEqual([false, false, false, false, false, false]);
+    ).toEqual([false, false, false, false, true, false]);
     expect(registry.isResizable(shape('accounts'))).toBe(true);
   });
 
@@ -72,10 +72,10 @@ describe('mode RDD : embedded, document et vue (sujets 181, 218)', () => {
     return { texts, object, page };
   }
 
-  it('sans mention (sujet 218) ; clés du document en italique ; document sans nom : « Document »', () => {
+  it('sans mention (sujet 218) ; document sans champs (sujet 269) ; document sans nom : « Document »', () => {
     const { texts } = render();
     expect(texts.filter((t) => t.text.includes('«'))).toEqual([]);
-    expect(['theme', 'locale'].map((key) => texts.find((t) => t.text === key)!.italic)).toEqual([true, true]);
+    expect(texts.filter((t) => t.text === 'theme' || t.text === 'locale')).toEqual([]);
     expect(texts.find((t) => t.text === 'street')!.italic).toBeFalsy();
     expect(texts.filter((t) => t.text === 'Document')).toHaveLength(1);
   });

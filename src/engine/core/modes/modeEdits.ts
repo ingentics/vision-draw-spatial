@@ -8,7 +8,7 @@ import {
   setLabelPlacement,
   setPageAttribute,
 } from '../format/cellEdits';
-import { addEdgeLabelCell, removeCells } from '../format/create';
+import { addEdgeLabelCell, removeCells, removeCellsDeep } from '../format/create';
 import { sendToBackInOrder } from '../format/order';
 import { snapshotPage } from '../format/xmlTree';
 import type { PageTree } from '../format/xmlTree';
@@ -184,6 +184,17 @@ export function applyModeEdit(
         setCellLabel(pageTree, target.id, text);
         setLabelPlacement(pageTree, target.id, placement);
         for (const [key, value] of Object.entries(style)) setCellStyleValue(pageTree, target.id, key, value);
+        return true;
+      });
+    },
+    removeEdge: (edgeId) => {
+      const edge = page.edges.find((e) => e.id === edgeId);
+      const slot = `${edgeId}\nremoved`;
+      if (!edge || isLocked(edge) || written.has(slot)) return;
+      written.set(slot, undefined);
+      // Ses textes (cellules enfants) partent avec elle.
+      writes.push(() => {
+        removeCellsDeep(pageTree, [edgeId]);
         return true;
       });
     },

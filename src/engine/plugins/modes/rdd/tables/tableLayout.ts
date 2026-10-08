@@ -44,6 +44,8 @@ export const TABLE = {
   wave: 2,
   /** Largeur minimale (sujet 247) : la table s'élargit au-delà pour son nom ou son plus long champ. */
   minWidth: 120,
+  /** Corps d'un document (sujet 269) : taille du texte YAML, taille par défaut à la pose (sur la grille de 10). */
+  body: { size: 7, width: 200, height: 120 },
 } as const;
 
 export const isSecondary = (shape: ShapeModel) => keys.flag(shape, SECONDARY);
@@ -82,10 +84,9 @@ export const MARK_INSET = TABLE.mark.margin + TABLE.mark.width * TABLE.mark.zoom
  * de kind, label, puis texte gris (`fieldNote` : type ou préfixe ; absent sans texte) ; `width` : largeur de la ligne,
  * marge de droite comprise.
  */
-export function fieldLayout(kind: TableKind, field: Field): { label: number; type?: number; width: number } {
+export function fieldLayout(field: Field): { label: number; type?: number; width: number } {
   const label = TABLE.padding + TABLE.fieldIcon.size + TABLE.fieldIcon.gap;
-  const end =
-    label + measureText(field.label, { size: TABLE.fieldSize, bold: false, italic: kind.look.italicFields ?? false });
+  const end = label + measureText(field.label, { size: TABLE.fieldSize, bold: false, italic: false });
   const typeText = fieldNote(field);
   if (!typeText) return { label, width: end + TABLE.padding };
   const type = end + TABLE.typeGap;
@@ -108,8 +109,7 @@ export function dividerWidth(divider: Divider): number {
 }
 
 /** Largeur d'une ligne de la zone des champs, à l'échelle 1. */
-export const rowWidth = (kind: TableKind, row: TableRow): number =>
-  isDivider(row) ? dividerWidth(row) : fieldLayout(kind, row).width;
+export const rowWidth = (row: TableRow): number => (isDivider(row) ? dividerWidth(row) : fieldLayout(row).width);
 
 /** Ce dont dépend la taille d'une table : nom affiché, lignes, échelle, icône d'entête. */
 export interface TableContent {
@@ -139,7 +139,7 @@ export function tableWidth(kind: TableKind, content: TableContent): number {
       .split('\n')
       .map((line) => measureText(line.trim(), { size: TABLE.nameSize, bold: true, italic: kind.look.italic ?? false })),
   );
-  const fields = content.fields.map((row) => rowWidth(kind, row));
+  const fields = content.fields.map(rowWidth);
   const header = name + 2 * (TABLE.padding + (content.mark ? MARK_INSET : 0));
   const width = Math.ceil(Math.max(TABLE.minWidth, header, ...fields));
   return width * secondaryScale(content.secondary);
@@ -151,10 +151,29 @@ export function tableWidth(kind: TableKind, content: TableContent): number {
  */
 export const tableSize = (value: number, gridSize: number): number => ceilToGrid(roundSize(value), gridSize);
 
-/** Ligne du champ `index` (pixels de page), sous l'entête, sur toute la largeur de la table (sujet 249). */
-export function fieldRow(shape: ShapeModel, index: number): Rect {
-  const secondary = isSecondary(shape);
+/**
+ * Ligne du champ `index` (pixels de page), sous l'entête, sur toute la largeur de la table (sujet 249) ; `bounds` et
+ * `secondary` : ceux de la table, ou ceux qu'une opération vient d'écrire.
+ */
+export function fieldRowIn(bounds: Rect, secondary: boolean, index: number): Rect {
   const row = TABLE.row * secondaryScale(secondary);
-  const { x, y, width } = shape.bounds;
+  const { x, y, width } = bounds;
   return { x, y: y + headerHeight(secondary) + row * index, width, height: row };
+}
+
+/** Ligne du champ `index` de la table `shape` (pixels de page). */
+export const fieldRow = (shape: ShapeModel, index: number): Rect => fieldRowIn(shape.bounds, isSecondary(shape), index);
+
+/** Zone du corps d'un document (sujet 269) : sous l'entête, dans les marges des champs. */
+export function bodyZone(shape: ShapeModel): Rect {
+  const scale = tableScale(shape);
+  const padding = TABLE.padding * scale;
+  const { x, y, width, height } = shape.bounds;
+  const top = y + Math.min(height, headerHeight(isSecondary(shape))) + padding / 2;
+  return {
+    x: x + padding,
+    y: top,
+    width: Math.max(0, width - 2 * padding),
+    height: Math.max(0, y + height - top - padding / 2),
+  };
 }

@@ -39,10 +39,9 @@ describe('mode RDD : champ sélectionné dans sa table (sujet 249)', () => {
       fontSize: 11,
       italic: undefined,
     });
-    run((edit) => setSecondary(edit, shape('settings'), true));
-    const settings = shape('settings');
-    const text = fieldParts.text!(page(), settings, '0')!;
-    expect([text.text, text.fontSize, text.italic]).toEqual(['theme', 11 * 0.8, true]);
+    run((edit) => setSecondary(edit, shape('address'), true));
+    const text = fieldParts.text!(page(), shape('address'), '0')!;
+    expect([text.text, text.fontSize]).toEqual(['street', 11 * 0.8]);
     expect(text.zone.height).toBeCloseTo(16, 5);
   });
 
