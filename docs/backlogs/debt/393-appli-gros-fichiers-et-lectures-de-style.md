@@ -1,0 +1,1 @@
+Appli : `SettingsPanel.tsx` (1847 lignes), `ContextPanel.tsx` (1111), `Viewer.tsx` (973) dépassent ~400 lignes ; lectures de style à la main (`parseFloat`, `=== '1'`) dans `ContextPanel.tsx:661,686,748,752,837`, `TextFormat.tsx:108` ; `title` natifs (28, dont `PageTabs.tsx:83`, `Fields.tsx:65,117,157`) au lieu de `useTooltip` (audit du 2026-10-08).
