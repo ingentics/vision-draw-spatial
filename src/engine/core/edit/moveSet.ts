@@ -113,6 +113,20 @@ export function unionMoveSets(sets: MoveSet[]): MoveSet {
   return { rootId: sets[0]?.rootId ?? '', shapeIds, edgeIds, connectedEdgeIds };
 }
 
+/**
+ * Ce qui bouge avec `from` et plus avec `to` (formes et arêtes), quand un geste passe de l'un à l'autre (ex. région
+ * détachée de son contenu, sujet 351) : à remettre à sa place. Arêtes reliées : celles des deux ensembles, hors celles
+ * qui bougent dans l'un ou l'autre.
+ */
+export function moveSetMinus(from: MoveSet, to: MoveSet): MoveSet {
+  const shapeIds = new Set([...from.shapeIds].filter((id) => !to.shapeIds.has(id)));
+  const edgeIds = new Set([...from.edgeIds].filter((id) => !to.edgeIds.has(id)));
+  const connectedEdgeIds = new Set(
+    [...from.connectedEdgeIds, ...to.connectedEdgeIds].filter((id) => !from.edgeIds.has(id) && !to.edgeIds.has(id)),
+  );
+  return { rootId: from.rootId, shapeIds, edgeIds, connectedEdgeIds };
+}
+
 /** Applique un déplacement au modèle (en place) et recalcule l'emprise de la page. */
 export function translateMoveSet(page: PageModel, set: MoveSet, delta: Point): void {
   if (delta.x === 0 && delta.y === 0) return;

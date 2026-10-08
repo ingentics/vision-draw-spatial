@@ -9,7 +9,7 @@ import { affectedShapes } from '../../../edit/anchoring/auto/distribute';
 import { screenToPage } from '../../../interaction/cameraMath';
 import { independentRoots } from '../../../interaction/selectionRules';
 import type { PageModel, Point, Rect } from '../../../model/types';
-import type { Drag, MoveDrag, ResizeDrag } from './types';
+import type { Drag, MoveDrag, MovePlan, ResizeDrag } from './types';
 import type { EngineCore } from '../../EngineCore';
 
 /**
@@ -139,7 +139,8 @@ export class DragGesture {
 
   /**
    * Déplacement de formes (`shapeIds`, déjà déplaçables) et de flèches ensemble : une forme prise avec son
-   * conteneur bouge avec lui ; une flèche dont une forme reste en place en est détachée.
+   * conteneur bouge avec lui ; une flèche dont une forme reste en place en est détachée. Ce que le mode emporte peut
+   * être laissé en place, Ctrl maintenu (`other`, sujet 351).
    */
   private moveDrag(
     page: PageModel,
@@ -150,12 +151,37 @@ export class DragGesture {
     origin: Rect,
     grid: number,
   ): MoveDrag {
+    const carried = this.core.pageModes.carried(page, shapeIds, pageTree);
+    const plan = this.movePlan(page, pageTree, shapeIds, edgeIds, carried);
+    const other =
+      carried.length > 0 && edgeIds.length === 0 ? this.movePlan(page, pageTree, shapeIds, [], []) : undefined;
+    return {
+      kind: 'move',
+      pageId: page.id,
+      ...plan,
+      other,
+      detached: false,
+      start,
+      origin: { ...origin },
+      applied: { x: 0, y: 0 },
+      grid,
+      started: false,
+    };
+  }
+
+  /** Plan d'un déplacement : formes saisies, `carried` (emportées par le mode), flèches qui suivent, bornes. */
+  private movePlan(
+    page: PageModel,
+    pageTree: PageTree,
+    shapeIds: string[],
+    edgeIds: string[],
+    carried: string[],
+  ): MovePlan {
     const sets = new Map<string, MoveSet>();
     const setOf = (id: string) => {
       if (!sets.has(id)) sets.set(id, collectMoveSet(page, id));
       return sets.get(id)!;
     };
-    const carried = this.core.pageModes.carried(page, shapeIds, pageTree);
     const rootIds = independentRoots([...shapeIds, ...carried], (id) => setOf(id).shapeIds);
     const set = unionMoveSets(rootIds.map(setOf));
     // Formes emportées : les flèches qui les relient entre elles (ou à la forme saisie) bougent avec elles.
@@ -182,8 +208,6 @@ export class DragGesture {
       set.connectedEdgeIds.delete(edge.id);
     }
     return {
-      kind: 'move',
-      pageId: page.id,
       rootIds,
       set,
       edges,
@@ -193,11 +217,6 @@ export class DragGesture {
         rootIds.filter((id) => !carried.includes(id)),
         set.shapeIds,
       ),
-      start,
-      origin: { ...origin },
-      applied: { x: 0, y: 0 },
-      grid,
-      started: false,
     };
   }
 

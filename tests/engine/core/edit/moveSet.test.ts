@@ -3,6 +3,7 @@ import {
   carriedShapes,
   collectMoveSet,
   isLocked,
+  moveSetMinus,
   moveTarget,
   snapDelta,
   translateMoveSet,
@@ -89,6 +90,19 @@ describe('isLocked', () => {
     expect(isLocked(a)).toBe(false);
     expect(isLocked({ ...a, style: { ...a.style, movable: '0' } })).toBe(true);
     expect(isLocked({ ...a, style: { ...a.style, locked: '1' } })).toBe(true);
+  });
+});
+
+describe('moveSetMinus (sujet 351)', () => {
+  it('garde ce qui ne bouge plus ; les arêtes reliées des deux ensembles, hors celles qui bougent', () => {
+    const page = parseDrawio(fixture('groups.drawio')).pages[0]!;
+    const lane = collectMoveSet(page, 'lane');
+    const alone = collectMoveSet(page, 'lane-a');
+    const left = moveSetMinus(lane, alone);
+    expect([...left.shapeIds].sort()).toEqual(['lane', 'lane-b']);
+    expect([...left.edgeIds]).toEqual(['lane-edge']);
+    expect(left.connectedEdgeIds.size).toBe(0);
+    expect(moveSetMinus(alone, lane).shapeIds.size).toBe(0);
   });
 });
 

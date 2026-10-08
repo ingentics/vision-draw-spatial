@@ -4,10 +4,8 @@ import type { MoveSet } from '../../../edit/moveSet';
 import type { ConnectSide, ResizeHandle } from '../../../edit/handleKinds';
 import type { EdgeLabelPlacement, Point, Rect } from '../../../model/types';
 
-/** Glisser d'édition en cours (SPEC §14.1). */
-export interface MoveDrag {
-  kind: 'move';
-  pageId: string;
+/** Ce que bouge un déplacement : formes saisies, ce qui les suit, et les bornes du mode. */
+export interface MovePlan {
   /** Formes dont la géométrie XML est réécrite (plusieurs en sélection multiple). */
   rootIds: string[];
   set: MoveSet;
@@ -23,6 +21,19 @@ export interface MoveDrag {
    * obstacles à ne pas approcher ; absent = déplacement libre.
    */
   bounded?: { moving: Rect[]; obstacles: Rect[]; gap: number };
+}
+
+/** Glisser d'édition en cours (SPEC §14.1). */
+export interface MoveDrag extends MovePlan {
+  kind: 'move';
+  pageId: string;
+  /**
+   * Même déplacement sans les formes emportées par le mode (Ctrl maintenu, sujet 351), échangé avec le plan courant
+   * quand Ctrl change ; absent si rien n'est emporté ou si des flèches sont sélectionnées.
+   */
+  other?: MovePlan;
+  /** Le plan courant est-il celui sans les formes emportées ? */
+  detached: boolean;
   start: Point;
   origin: Rect;
   applied: Point;
