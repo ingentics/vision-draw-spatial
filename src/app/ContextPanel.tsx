@@ -910,7 +910,7 @@ function EdgeEndsSection({
         <button
           type="button"
           className="button"
-          title="Inverser la flèche : elle part de sa cible et va vers sa source, les bouts restent en place"
+          title="Inverser le sens de la flèche : le début devient la fin et la fin le début, le tracé reste le même"
           onClick={onReverse}
         >
           Inverser
