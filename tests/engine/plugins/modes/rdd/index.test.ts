@@ -2,29 +2,30 @@ import { describe, expect, it } from 'vitest';
 import { definition as rdd } from '../../../../../src/engine/plugins/modes/rdd';
 import { rowWidth, widthOf, KEY_ROW, labels, fieldsOf, tableFields, setup } from './helpers';
 import { createDefaultModeRegistry, createDefaultRegistry } from '../../../../../src/engine/plugins';
+import { TABLE_KINDS } from '../../../../../src/engine/plugins/modes/rdd/tables/tableKinds';
+import type { ShapeModel } from '../../../../../src/engine/core/plugins';
 import { modeHost } from '../../../modeHost';
 
 describe('mode RDD (sujet 179) : page et palette', () => {
   const modes = createDefaultModeRegistry();
   const { page } = setup();
 
-  it('sélection imposée en contour (sujet 254)', () => {
-    expect(rdd.page!.selectionStyle).toBe('outline');
-    expect(
-      createDefaultModeRegistry()
-        .list()
-        .filter((mode) => mode.page!.selectionStyle)
-        .map((mode) => mode.id),
-    ).toEqual(['rdd']);
+  it('sélection : la page ne l’impose plus, les tables imposent le contour (sujet 350)', () => {
+    expect(rdd.page!.selectionStyle).toBeUndefined();
+    const registry = createDefaultRegistry();
+    for (const id of Object.keys(TABLE_KINDS)) {
+      expect(registry.selectionStyle({ kind: id } as ShapeModel)).toBe('outline');
+    }
+    expect(registry.selectionStyle({ kind: 'text' } as ShapeModel)).toBeUndefined();
   });
 
-  it('2D seulement, palette réduite au modèle abstrait dans la catégorie RDD', () => {
+  it('2D seulement, palette réduite aux tables, à la région, au texte et au titre', () => {
     expect(modes.modeOf(page())?.id).toBe('rdd');
     expect(modes.allowsViewMode(page(), 'top')).toBe(true);
     expect(modes.allowsViewMode(page(), 'iso')).toBe(false);
     expect(modes.allowsViewMode(page(), '3d')).toBe(false);
     const palette = modes.paletteFor(page(), createDefaultRegistry().templates(), createDefaultRegistry().categories());
-    expect(palette.categories.map((c) => c.id)).toEqual(['rdd']);
+    expect(palette.categories.map((c) => c.id)).toEqual(['rdd', 'general']);
     expect(palette.templates.map((t) => [t.id, t.name])).toEqual([
       ['rdd-entity', 'Entité'],
       ['rdd-enum', 'Entité énumérative'],
@@ -32,6 +33,8 @@ describe('mode RDD (sujet 179) : page et palette', () => {
       ['rdd-document', 'Document'],
       ['rdd-view', 'Vue'],
       ['rdd-region', 'Région'],
+      ['text', 'Texte'],
+      ['title', 'Titre'],
     ]);
   });
 

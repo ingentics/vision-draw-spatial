@@ -966,8 +966,8 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   - Réglages du mode sur une table : « Table secondaire » (`spatial.rdd.secondary` : tailles × 0,8). La couleur de
     l'entête vient du style de la forme (panneau « Style », sujet 260). Pas de section « Volume » (mode sans iso ni
     3D).
-  - Sélection toujours en contour sur une page RDD (sujet 254, `PageModeDefinition.selectionStyle`), quel que soit le
-    paramètre « Style » de la mise en valeur ; les paramètres le mentionnent sous ce choix.
+  - Sélection : la page RDD suit le paramètre « Style » de la mise en valeur ; les tables imposent le contour
+    (`ShapeDefinition.selectionStyle`, sujets 254, 350), la région aucune seule et le contour à plusieurs (sujet 346).
   - Ajouter un champ (sujet 250) : table sélectionnée, poignée verte « + » sous la table, au milieu (les tables n'ont
     de poignées de connexion qu'à gauche et à droite) ; un clic ajoute aussitôt (sans menu, sujet 256) une propriété
     **optionnelle** (sujet 261) **sans type** `Field1`, `Field2`… (premier numéro libre) après le champ sélectionné, sinon en fin de liste,

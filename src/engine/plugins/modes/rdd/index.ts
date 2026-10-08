@@ -35,8 +35,8 @@ const arrivalOf = (edgeId: string, part: string | undefined) => (part === undefi
 export const definition: PageModeDefinition = {
   id: 'rdd',
   ...RDD_KEYS,
-  name: 'RDD — Relational Database Designer',
-  shortName: 'RDD',
+  name: 'RDB Designer — Relational Database Designer',
+  shortName: 'RDB Designer',
   description: 'Modèles de données relationnels : tables, champs et couleurs d’entête, en 2D',
   // Une table : entête pleine, lignes des champs en accent.
   icon: {
@@ -51,12 +51,10 @@ export const definition: PageModeDefinition = {
   }),
   page: {
     viewModes: ['top'],
-    // Sélection toujours en contour, quel que soit le paramètre (sujet 254).
-    selectionStyle: 'outline',
     palette: {
-      // Toutes les tables, puis la région (sujet 182) ; le modèle abstrait, sans élément de palette, n'y apparaît pas.
-      shapes: [...Object.keys(TABLE_KINDS), REGION_KIND],
-      categories: [{ id: 'rdd', name: 'RDD', order: 5 }],
+      // Toutes les tables, la région (sujet 182), puis Texte et Titre ; le modèle abstrait, sans élément de palette, n'y apparaît pas.
+      shapes: [...Object.keys(TABLE_KINDS), REGION_KIND, 'text', 'title'],
+      categories: [{ id: 'rdd', name: 'RDB Designer', order: 5 }],
     },
     properties: [
       {
@@ -64,7 +62,7 @@ export const definition: PageModeDefinition = {
         // restent).
         type: 'toggle',
         key: CARDINALITIES,
-        section: 'RDD',
+        section: 'RDB Designer',
         label: 'Afficher les cardinalités',
         title:
           'Textes des cardinalités aux bouts des flèches de relation ; les pointes restent (spatial.rdd.cardinalities)',

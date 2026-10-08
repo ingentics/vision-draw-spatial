@@ -227,7 +227,7 @@ describe('mode RDD : champ de relation (sujet 265)', () => {
       const e = page().edges.find((x) => x.id === edge)!;
       return [e.style.startArrow, e.style.endArrow, e.labels.map((label) => label.label).sort()];
     };
-    expect(toggle.section).toBe('RDD');
+    expect(toggle.section).toBe('RDB Designer');
     expect(toggle.value!(page(), page())).toBe('1');
     run((edit) => toggle.write!(edit, page(), undefined));
     expect(page().attributes['spatial.rdd.cardinalities']).toBe('0');

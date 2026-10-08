@@ -52,7 +52,7 @@ interface PageModeDefinition {
     properties?: ModeProperty[];               // réglages déclarés de la page (section 3)
     viewModes?: ViewMode[];                    // modes d'affichage permis (section 6)
     allowsEffect?(effectId): boolean;          // effets permis (absent : tous)
-    selectionStyle?: 'veil' | 'outline';       // mise en valeur de la sélection imposée (ex. RDD : contour)
+    selectionStyle?: 'veil' | 'outline';       // mise en valeur de la sélection imposée (aucun mode ne l'impose aujourd'hui)
     palette?: { shapes?: string[]; categories?: PaletteCategory[] };  // palette du mode (section 6)
   };
   lifecycle?: {                                // moments de la vie du document

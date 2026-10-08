@@ -260,6 +260,8 @@ export function table(
     resizable: !kind.rules.fields,
     // Texte brut : nom, champs et séparateurs s'écrivent sans mise en forme (sujet 258).
     plainText: true,
+    // Contour imposé sur les tables, quel que soit le paramètre de la page (sujets 254, 350).
+    selectionStyle: 'outline',
     // Flèches tirées des côtés seulement : le « + » d'ajout de champ prend le bas (sujet 250) ; aucune pour une table
     // sans relation (vue, document, modèle abstrait, sujet 265).
     connectSides: ['e', 'w'],
