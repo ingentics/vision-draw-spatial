@@ -1,4 +1,5 @@
 import { Minimap } from '../../interaction/minimapLayout';
+import { dressedShape } from '../../render/pageScene';
 import type { Point } from '../../model/types';
 import type { EngineCore } from '../EngineCore';
 import type { Settings } from '../../settings';
@@ -49,7 +50,12 @@ export class MinimapView {
           placeholder: this.core.settings.shapes.placeholderFill,
         }),
         getEdgeRoute: (id) => this.core.sceneView.sceneObject(id)?.userData.route as Point[] | undefined,
-        paintShape: (context, shape, map) => this.core.registry.minimapPainter(shape)?.(context, shape, map),
+        // Forme habillée par le mode de la page (ex. fond éclairci d'une région, sujet 345), comme dans la scène.
+        paintShape: (context, shape, map) => {
+          const page = this.core.pages.getCurrentPage();
+          const drawn = dressedShape(shape, page && this.core.pageModes.dressing(page));
+          this.core.registry.minimapPainter(drawn)?.(context, drawn, map);
+        },
         centerOn: (point) => {
           if (this.core.canInteract()) this.core.camera.setCameraState({ ...this.core.camera.state, center: point });
         },

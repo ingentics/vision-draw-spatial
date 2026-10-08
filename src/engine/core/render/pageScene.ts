@@ -74,10 +74,14 @@ export function buildPageScene(
 
     let object;
     if ('shape' in item) {
-      object = createShapeObject(item.shape, registry, ctx, level, {
-        base: elevation.base(item.shape),
-        height: elevation.height(item.shape),
-      });
+      object = createShapeObject(
+        item.shape,
+        registry,
+        ctx,
+        level,
+        { base: elevation.base(item.shape), height: elevation.height(item.shape) },
+        dressing,
+      );
     } else {
       const terminals = edgeEnds(shapes, item.edge);
       object = createEdgeObject(item.edge, terminals, { ...ctx, raisedJumps: level === 'iso' }, dressing, below);
@@ -194,13 +198,24 @@ export function createShapeObject(
   ctx: RenderContext,
   level: SceneLevel,
   elevation: { base: number; height: number },
+  dressing?: PageDressing,
 ): Object3D {
-  const object = registry.sceneRenderer(shape, level).create(shape, ctx);
+  const drawn = dressedShape(shape, dressing);
+  const object = registry.sceneRenderer(drawn, level).create(drawn, ctx);
   if (level === 'iso') groundOutsideLabels(object);
   object.position.z = elevation.base;
   object.userData.base = elevation.base;
   object.userData.top = elevation.base + elevation.height;
   return object;
+}
+
+/**
+ * Forme telle que dessinée (scène, mini-carte) : clés de style de l'habillage du mode à la place des siennes, sans
+ * toucher au modèle.
+ */
+export function dressedShape<T extends ReadonlyShapeModel>(shape: T, dressing?: PageDressing): T {
+  const patch = dressing?.shapeStyle?.(shape);
+  return patch ? { ...shape, style: { ...shape.style, ...patch } } : shape;
 }
 
 /**

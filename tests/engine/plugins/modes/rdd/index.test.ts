@@ -96,9 +96,8 @@ describe('mode RDD (sujet 179) : page et palette', () => {
     const properties = rdd.gestures!.properties!.filter((p) => !p.part);
     const model = page().shapes.find((s) => s.id === 'model')!;
     const entity = page().shapes.find((s) => s.id === 'user')!;
-    // Plus de « Couleur » (le style de la forme, sujet 260 : celle-ci est celle de la région) ni d'« Icône ».
+    // Plus de « Couleur » (le style de la forme, sujets 260, 345) ni d'« Icône ».
     expect(properties.map((p) => [p.label, p.hidden!(page(), model)])).toEqual([
-      ['Couleur', true],
       ['Table secondaire', false],
       ['Matérialisé', true],
       ['Privée', true],
@@ -106,7 +105,7 @@ describe('mode RDD (sujet 179) : page et palette', () => {
       ['YAML', true],
       ['Ajouter un séparateur', false],
     ]);
-    expect(properties.map((p) => p.hidden!(page(), entity))).toEqual([true, false, true, true, false, true, false]);
+    expect(properties.map((p) => p.hidden!(page(), entity))).toEqual([false, true, true, false, true, false]);
     const key = properties.find((p) => p.label === 'Clé primaire')!;
     expect([key.readOnly, key.value!(page(), entity)]).toEqual([true, 'id']);
     expect(properties.every((p) => p.hidden!(page(), page()))).toBe(true);

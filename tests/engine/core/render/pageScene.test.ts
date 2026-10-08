@@ -114,6 +114,17 @@ describe('buildPageScene — formes', () => {
     expect((fill.material as MeshBasicMaterial).color.getHexString()).toBe('eeeeee');
   });
 
+  it('habillage du mode : clés de style dessinées à la place de celles de la forme, modèle intact (sujet 345)', () => {
+    const { ctx } = stubContext();
+    const page = parseDrawio(fixture('simple.drawio')).pages[0]!;
+    const scene = buildPageScene(page, createDefaultRegistry(), ctx, 'flat', {
+      shapeStyle: (shape) => (shape.id === 'r1' ? { fillColor: '#123456' } : undefined),
+    });
+    const fill = element(scene.root, 'r1').getObjectByName('fill') as Mesh;
+    expect((fill.material as MeshBasicMaterial).color.getHexString()).toBe('123456');
+    expect(page.shapes.find((s) => s.id === 'r1')!.style.fillColor).not.toBe('#123456');
+  });
+
   it('formes inconnues en iso : le rendu 2D sur un bloc gris en pointillés', () => {
     const { ctx, texts } = stubContext();
     const scene = buildPageScene(withUnknownShape(), createDefaultRegistry(), ctx, 'iso');

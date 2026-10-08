@@ -196,6 +196,17 @@ export function darken(color: string, amount: number): string {
 }
 
 /**
+ * Couleur éclaircie : chaque composante RVB sRGB rapprochée du blanc de `amount` (0 : inchangée, 1 : blanc). Fond d'une
+ * région du mode RDD, plus clair que la couleur de son style (sujet 345).
+ */
+export function lighten(color: string | Color, amount: number): string {
+  const rgb = { r: 0, g: 0, b: 0 };
+  new Color(color).getRGB(rgb, SRGBColorSpace);
+  const mix = (value: number) => value + (1 - value) * amount;
+  return `#${new Color().setRGB(mix(rgb.r), mix(rgb.g), mix(rgb.b), SRGBColorSpace).getHexString()}`;
+}
+
+/**
  * Couleur × `factor` en RVB (#rrggbb), `color` en #rrggbb ou en `Color` : retrait des gravures et des socles, comme
  * draw.io. Diffère de `darken` (HSL), d'où deux noms.
  */

@@ -1,37 +1,16 @@
-import type { ModeKey, ModeProperty, ModeTarget, ShapeModel } from '../../../../core/plugins';
+import type { ModeKey, ModeTarget, ShapeModel } from '../../../../core/plugins';
 import { shapeTarget } from '../../../../core/plugins';
-import { REGION_COLORS, fitRegion, isRegion, setRegionColor } from './regionLayout';
+import { fitRegion, isRegion } from './regionLayout';
 
-/** Réglages et touche d'une région du mode RDD (sujets 182, 184, 233). */
+/**
+ * Touche d'une région du mode RDD (sujets 182, 184) ; sa couleur se choisit dans la section Style du panneau (sujet 345).
+ */
 
 /** Région du mode sélectionnée (sujet 182). */
 const regionTarget = (target: ModeTarget): ShapeModel | undefined => {
   const shape = shapeTarget(target);
   return shape && isRegion(shape) ? shape : undefined;
 };
-
-/** Réglages d'une région (sujets 182, 233) : sa propre palette, bordure grise. */
-export const REGION_PROPERTIES: ModeProperty[] = [
-  {
-    type: 'select',
-    key: 'rdd.regionColor',
-    label: 'Couleur',
-    title: 'Couleur du fond de la région (fillColor)',
-    options: () =>
-      REGION_COLORS.map((color) => ({
-        value: color,
-        label: color,
-        color,
-        title: `Fond de la région (fillColor=${color})`,
-      })),
-    value: (_page, target) => regionTarget(target)?.style.fillColor,
-    write: (edit, target, value) => {
-      const shape = regionTarget(target);
-      if (shape) setRegionColor(edit, shape, value);
-    },
-    hidden: (_page, target) => !regionTarget(target),
-  },
-];
 
 /** « f » : région ajustée à son contenu (sujet 184) ; sur un autre élément, la touche garde son effet. */
 export const FIT_REGION_KEY: ModeKey = {

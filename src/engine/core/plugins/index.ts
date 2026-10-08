@@ -91,8 +91,9 @@ export {
 export { dashPattern } from '../render/geometry/stroke';
 export { edgeLines } from '../render/lines';
 export { fillMesh, solidMaterial, strokeMesh } from '../render/meshes';
-export { drawioStyle } from '../edit/stylePresets';
-export { darken, shade } from '../render/decorations';
+export { DRAWIO_STYLES, drawioStyle } from '../edit/stylePresets';
+export type { StylePreset } from '../edit/stylePresets';
+export { darken, lighten, shade } from '../render/decorations';
 export { readableOn, styleColor, styleStroke } from '../render/styleColors';
 export type { StyleStroke } from '../render/styleColors';
 export { measureText } from '../render/textMeasure';

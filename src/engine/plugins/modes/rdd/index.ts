@@ -6,9 +6,9 @@ import { fitTable } from './tables/operations';
 import { fieldHandleClicked, fieldHandles } from './editing/fieldHandles';
 import { fieldParts } from './editing/fieldParts';
 import { FIELD_PROPERTIES } from './editing/fieldProperties';
-import { REGION_KIND, placeInRegions, regionContent, regionObstacles } from './regions/regionLayout';
-import { FIT_REGION_KEY, REGION_PROPERTIES } from './regions/regionProperties';
-import { OBSTACLE_GAP, RDD_SETTINGS } from './settings';
+import { REGION_KIND, placeInRegions, regionContent, regionDrawnStyle, regionObstacles } from './regions/regionLayout';
+import { FIT_REGION_KEY } from './regions/regionProperties';
+import { OBSTACLE_GAP, RDD_SETTINGS, REGION_LIGHTENING } from './settings';
 import {
   CARDINALITIES,
   RELATION_PROPERTIES,
@@ -45,6 +45,10 @@ export const definition: PageModeDefinition = {
     accent: 'M4 9h6M4 12h4.5',
   },
   settings: RDD_SETTINGS,
+  // Fond des régions dessiné plus clair que la couleur de leur style (sujet 345), le fichier garde celle du style.
+  dressing: (_page, values) => ({
+    shapeStyle: (shape) => regionDrawnStyle(shape, numberValue(values, REGION_LIGHTENING)),
+  }),
   page: {
     viewModes: ['top'],
     // Sélection toujours en contour, quel que soit le paramètre (sujet 254).
@@ -130,10 +134,10 @@ export const definition: PageModeDefinition = {
     reconnected: (edit, edgeId, part) => syncRelations(edit, undefined, undefined, arrivalOf(edgeId, part)),
   },
   gestures: {
-    // Région, table, puis ligne sélectionnée : champ (sections du mode, PostgreSQL, Gouvernance), séparateur (sujets
-    // 249, 253, 260), ou champ d'une relation embedded (formulaire de sa flèche, sujet 268) ; le bouton du séparateur en
-    // bas.
-    properties: [...REGION_PROPERTIES, ...TABLE_PROPERTIES, ...FIELD_PROPERTIES, ADD_DIVIDER_PROPERTY],
+    // Table, puis ligne sélectionnée : champ (sections du mode, PostgreSQL, Gouvernance), séparateur (sujets 249, 253,
+    // 260), ou champ d'une relation embedded (formulaire de sa flèche, sujet 268) ; le bouton du séparateur en bas. Une
+    // région n'a pas de réglage du mode, sa couleur est dans la section Style (sujet 345).
+    properties: [...TABLE_PROPERTIES, ...FIELD_PROPERTIES, ADD_DIVIDER_PROPERTY],
     // Une région emporte son contenu (sujet 182).
     carries: (page, shape) => regionContent(page, shape),
     // Une région ne passe pas sur ses sœurs (sujet 241).

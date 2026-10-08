@@ -3,6 +3,9 @@ import type { PluginSetting } from '../../../core/plugins';
 /** Clé du réglage de l'écart entre régions sœurs. */
 export const OBSTACLE_GAP = 'obstacleGap';
 
+/** Clé du réglage de l'éclaircissement du fond des régions (sujet 345). */
+export const REGION_LIGHTENING = 'regionLightening';
+
 /** Réglages globaux du mode RDD (Paramètres › Modes › RDD, ticket 283). */
 export const RDD_SETTINGS: PluginSetting[] = [
   {
@@ -15,5 +18,16 @@ export const RDD_SETTINGS: PluginSetting[] = [
     step: 1,
     default: 20,
     unit: 'px',
+  },
+  {
+    key: REGION_LIGHTENING,
+    type: 'number',
+    label: 'Éclaircissement du fond des régions',
+    hint: 'Fond d’une région dessiné plus clair que la couleur de son style, rapproché du blanc de cette fraction ; le fichier garde la couleur du style (draw.io la montre telle quelle).',
+    min: 0,
+    max: 1,
+    step: 0.05,
+    default: 0.55,
+    unit: '%',
   },
 ];

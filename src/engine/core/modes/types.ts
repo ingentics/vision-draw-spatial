@@ -460,6 +460,11 @@ export type ModeProperty = {
 /** Habillage d'une page par son mode. */
 export interface PageDressing {
   /**
+   * Clés de style dessinées à la place de celles de la forme (ex. fond d'une région éclairci, sujet 345) ; le style
+   * draw.io reste intact. undefined = son style.
+   */
+  shapeStyle?(shape: ShapeModel): Record<string, string> | undefined;
+  /**
    * Couleur du mode pour une flèche (#rrggbb, ex. celle de son flux) : trait et pointes la prennent, assombrie de
    * `edgeDarken` ; undefined = son style.
    */

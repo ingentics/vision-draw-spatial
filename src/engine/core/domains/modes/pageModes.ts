@@ -98,9 +98,13 @@ export class PageModes {
     const values = this.core.modes.values(mode.id, this.core.settings.modes[mode.id]);
     const dressing = this.guard(mode, 'dressing', undefined, () => mode.dressing!(readonlyModel(page), values));
     if (!dressing) return undefined;
-    const { edgeColor, edgeBadge } = dressing;
+    const { shapeStyle, edgeColor, edgeBadge } = dressing;
     return {
       ...dressing,
+      ...(shapeStyle && {
+        shapeStyle: (shape) =>
+          this.guard(mode, 'dressing.shapeStyle', undefined, () => shapeStyle(readonlyModel(shape))),
+      }),
       ...(edgeColor && {
         edgeColor: (edge) => this.guard(mode, 'dressing.edgeColor', undefined, () => edgeColor(readonlyModel(edge))),
       }),

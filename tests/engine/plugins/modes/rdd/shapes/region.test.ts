@@ -21,12 +21,13 @@ describe('mode RDD : région (sujet 182)', () => {
   it('palette : rectangle léger, label gras en haut à gauche, posé au fond de la pile', () => {
     const region = templates.find((t) => t.id === 'rdd-region')!;
     expect(region.style).toContain('rounded=0;');
-    expect(region.style).toContain('fillColor=#fdebef;strokeColor=#969696;');
+    // Style Bleu de l'appli (sujet 345).
+    expect(region.style).toContain('fillColor=#dae8fc;strokeColor=#6c8ebf;');
     // Fond opaque (sujet 232).
     expect(region.style).not.toContain('fillOpacity');
     // Label en 9 px, sans marge ajoutée (sujet 226) ; dans draw.io, posé au-dessus de la région à gauche dans un cadre
     // de la couleur de la bordure, comme l'onglet (sujet 227).
-    expect(region.style).toContain('labelBorderColor=#969696;fontColor=#000000;');
+    expect(region.style).toContain('labelBorderColor=#6c8ebf;fontColor=#000000;');
     expect(region.style).not.toContain('labelBackgroundColor');
     expect(region.style).toContain('align=left;verticalAlign=bottom;verticalLabelPosition=top;fontStyle=1;fontSize=9;');
     expect(region.style).not.toContain('spacing');
@@ -41,6 +42,7 @@ describe('mode RDD : région (sujet 182)', () => {
     const region = setup().shape('accounts');
     expect(definition.selectionStyle).toBe('none');
     expect(registry.selectionStyle(region)).toBe('none');
+    expect(registry.selectionStyle(region, 2)).toBe('outline');
     expect(registry.isResizable(region)).toBe(true);
   });
 

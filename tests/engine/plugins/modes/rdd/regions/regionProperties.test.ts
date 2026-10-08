@@ -1,45 +1,51 @@
 import { describe, expect, it } from 'vitest';
 import { definition as rdd } from '../../../../../../src/engine/plugins/modes/rdd';
 import { readableOn } from '../../../../../../src/engine/core/render/styleColors';
-import { REGION_COLORS } from '../../../../../../src/engine/plugins/modes/rdd/regions/regionLayout';
+import { DRAWIO_STYLES } from '../../../../../../src/engine/core/edit/stylePresets';
+import {
+  DEFAULT_REGION_STYLE,
+  REGION_STYLES,
+  setRegionStyle,
+} from '../../../../../../src/engine/plugins/modes/rdd/regions/regionLayout';
 import { setup } from '../helpers';
 
 describe('mode RDD : région (sujet 182)', () => {
-  it('couleur de la région : sa palette (sujet 233), bordure grise ; réglages de table masqués', () => {
-    const { run, page, shape } = setup();
-    const color = rdd.gestures!.properties!.find((p) => p.key === 'rdd.regionColor')!;
-    expect(rdd.gestures!.properties!.filter((p) => !p.part).map((p) => p.hidden!(page(), shape('accounts')))).toEqual([
-      false,
+  it('aucun réglage du mode sur une région : sa couleur est dans la section Style (sujet 345)', () => {
+    const { page, shape } = setup();
+    expect(rdd.gestures!.properties!.filter((p) => !p.part).every((p) => p.hidden!(page(), shape('accounts')))).toBe(
       true,
-      true,
-      true,
-      true,
-      true,
-      true,
+    );
+  });
+
+  it('styles des régions : ceux de l’appli à partir de Bleu, en boucle (sujet 345)', () => {
+    expect(REGION_STYLES.map((s) => s.name)).toEqual([
+      'Bleu',
+      'Vert',
+      'Orange',
+      'Jaune',
+      'Rouge',
+      'Violet',
+      'Par défaut',
+      'Gris',
     ]);
-    expect(color.type === 'select' && color.options(page(), ['#123456']).map((o) => o.value)).toEqual([
-      '#fdebef',
-      '#eae4f1',
-      '#e7f5fd',
-      '#e7f3e7',
-      '#fefce8',
-      '#feefe3',
-    ]);
-    expect(REGION_COLORS[0]).toBe('#fdebef');
-    run((edit) => color.write!(edit, shape('accounts'), '#e7f3e7'));
-    expect(color.value!(page(), shape('accounts'))).toBe('#e7f3e7');
+    expect(DEFAULT_REGION_STYLE).toBe(DRAWIO_STYLES[2]);
+  });
+
+  it('style écrit : fond, bordure et cadre du nom du style ; fond opaque', () => {
+    const { run, shape } = setup();
+    const green = REGION_STYLES[1]!;
+    run((edit) => setRegionStyle(edit, shape('accounts'), green));
     expect(shape('accounts').style).toMatchObject({
-      fillColor: '#e7f3e7',
-      strokeColor: '#969696',
-      labelBorderColor: '#969696',
+      fillColor: '#d5e8d4',
+      strokeColor: '#82b366',
+      labelBorderColor: '#82b366',
+      fontColor: '#000000',
     });
     expect(shape('accounts').style.labelBackgroundColor).toBeUndefined();
-    // Fond opaque (sujet 232) : texte noir sur une couleur claire, blanc sur une sombre ; un ancien fillOpacity est
-    // retiré.
-    expect(shape('accounts').style.fontColor).toBe('#000000');
+    // Couleur du texte du style s'il en a une (Gris) ; un ancien fillOpacity est retiré (sujet 232).
     run((edit) => edit.setElementStyle('accounts', 'fillOpacity', '10'));
-    run((edit) => color.write!(edit, shape('accounts'), '#1f3a5f'));
-    expect(shape('accounts').style.fontColor).toBe('#ffffff');
+    run((edit) => setRegionStyle(edit, shape('accounts'), REGION_STYLES[7]!));
+    expect(shape('accounts').style.fontColor).toBe('#333333');
     expect(shape('accounts').style.fillOpacity).toBeUndefined();
     // Sur un fond léger (fichier d'avant), le texte se lit sur le fond posé sur du blanc.
     expect(readableOn('#1f3a5f', 0.1)).toBe('#000000');

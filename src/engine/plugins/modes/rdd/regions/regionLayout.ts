@@ -1,5 +1,15 @@
-import { readableOn, rectContains, rectContainsRect, rectsOverlap, unionOf, inflate } from '../../../../core/plugins';
-import type { ModeEdit, ModeObstacles, PageModel, Rect, ShapeModel } from '../../../../core/plugins';
+import {
+  DRAWIO_STYLES,
+  lighten,
+  readableOn,
+  rectContains,
+  rectContainsRect,
+  rectsOverlap,
+  styleColor,
+  unionOf,
+  inflate,
+} from '../../../../core/plugins';
+import type { ModeEdit, ModeObstacles, PageModel, Rect, ShapeModel, StylePreset } from '../../../../core/plugins';
 import { tableKindOf } from '../tables/tableKinds';
 
 /**
@@ -10,14 +20,12 @@ import { tableKindOf } from '../tables/tableKinds';
 export const REGION_KIND = 'rdd-region';
 
 /**
- * Fond d'une région : opaque (sujet 232) ; bordure grise (sujet 233) ; label : taille du texte,
- * sur un onglet au fond et à la bordure de la région (sujets 226, 227).
+ * Fond d'une région : opaque (sujet 232) ; label : taille du texte, sur un onglet au fond et à la bordure de la région
+ * (sujets 226, 227).
  */
 export const REGION = {
   /** Marge de sécurité autour d'une forme qui dépasse de sa région, qui s'agrandit (sujets 183, 329). */
   margin: 40,
-  /** Bordure des régions, quelle que soit leur couleur (sujet 233). */
-  stroke: '#969696',
   fontSize: 9,
   /**
    * Onglet du nom (sujets 227, 228) : hauteur, marge du texte (à gauche jusqu'au bord, à droite jusqu'au milieu du S),
@@ -79,34 +87,52 @@ export function regionContent(page: PageModel, region: ShapeModel): string[] {
   return content;
 }
 
-/** Couleurs proposées pour une région, dans l'ordre (sujet 233) : rose, lavande, bleu, vert, jaune, pêche. */
-export const REGION_COLORS = ['#fdebef', '#eae4f1', '#e7f5fd', '#e7f3e7', '#fefce8', '#feefe3'] as const;
+/**
+ * Styles d'une région neuve, dans l'ordre (sujet 345) : les styles de base de l'appli à partir du 3ᵉ (Bleu), puis les
+ * suivants, en boucle.
+ */
+export const REGION_STYLES: readonly StylePreset[] = [...DRAWIO_STYLES.slice(2), ...DRAWIO_STYLES.slice(0, 2)];
 
-/** Couleur d'une région neuve. */
-export const DEFAULT_REGION_COLOR = REGION_COLORS[0];
+/** Style d'une région neuve depuis la palette. */
+export const DEFAULT_REGION_STYLE = REGION_STYLES[0]!;
+
+/** Couleur du nom d'une région de ce style : celle du style, sinon lisible sur son fond. */
+const fontColorOf = (preset: StylePreset) => preset.fontColor ?? readableOn(preset.fillColor);
 
 /**
- * Label d'une région de fond `color` pour draw.io : cadre de la couleur de la bordure autour du nom (l'onglet n'y est
- * pas dessiné), texte lisible sur le fond.
+ * Style d'une région pour draw.io : fond et bordure du style, cadre de la couleur de la bordure autour du nom (l'onglet
+ * n'y est pas dessiné), texte lisible sur le fond.
  */
-export function regionLabelStyle(color: string): string {
-  return `labelBorderColor=${REGION.stroke};fontColor=${readableOn(color)};`;
+export function regionStyle(preset: StylePreset): string {
+  return (
+    `fillColor=${preset.fillColor};strokeColor=${preset.strokeColor};` +
+    `labelBorderColor=${preset.strokeColor};fontColor=${fontColorOf(preset)};`
+  );
 }
 
 /**
- * Couleur d'une région : fond opaque (`fillColor`), bordure grise (`strokeColor`) et cadre du nom (`labelBorderColor`,
- * `fontColor`), pour draw.io aussi.
+ * Style d'une région (sujet 345) : fond opaque (`fillColor`), bordure (`strokeColor`) et cadre du nom
+ * (`labelBorderColor`, `fontColor`), pour draw.io aussi.
  */
-export function setRegionColor(edit: ModeEdit, shape: ShapeModel, color: string | undefined): void {
-  if (!isRegion(shape) || !color) return;
-  const stroke = REGION.stroke;
-  edit.setElementStyle(shape.id, 'fillColor', color);
+export function setRegionStyle(edit: ModeEdit, shape: ShapeModel, preset: StylePreset): void {
+  if (!isRegion(shape)) return;
+  edit.setElementStyle(shape.id, 'fillColor', preset.fillColor);
   // Fond opaque (sujet 232) : l'opacité des régions posées avant est retirée.
   edit.setElementStyle(shape.id, 'fillOpacity', undefined);
-  edit.setElementStyle(shape.id, 'strokeColor', stroke);
+  edit.setElementStyle(shape.id, 'strokeColor', preset.strokeColor);
   edit.setElementStyle(shape.id, 'labelBackgroundColor', undefined);
-  edit.setElementStyle(shape.id, 'labelBorderColor', stroke);
-  edit.setElementStyle(shape.id, 'fontColor', readableOn(color));
+  edit.setElementStyle(shape.id, 'labelBorderColor', preset.strokeColor);
+  edit.setElementStyle(shape.id, 'fontColor', fontColorOf(preset));
+}
+
+/**
+ * Fond dessiné d'une région (sujet 345) : la couleur de son style rapprochée du blanc de `amount` (réglage du mode),
+ * au dessin seulement ; undefined hors d'une région ou sans fond.
+ */
+export function regionDrawnStyle(shape: ShapeModel, amount: number): Record<string, string> | undefined {
+  const fill =
+    isRegion(shape) && amount > 0 ? styleColor(shape.style, 'fillColor', DEFAULT_REGION_STYLE.fillColor) : null;
+  return fill ? { fillColor: lighten(fill, amount) } : undefined;
 }
 
 /**
@@ -197,32 +223,32 @@ export function orderRegions(edit: ModeEdit): void {
 }
 
 /**
- * Couleur d'une région ajoutée (sujet 236) : celle de la palette des régions au rang du nombre de ses sœurs (régions de
- * la même région parente, ou du premier niveau de la page), modulo la taille de la palette. `ignored` : régions
- * ajoutées dans la même opération et pas encore colorées (collage de plusieurs régions, sujet 239).
+ * Style d'une région ajoutée (sujets 236, 345) : celui des styles des régions au rang du nombre de ses sœurs (régions
+ * de la même région parente, ou du premier niveau de la page), en boucle. `ignored` : régions ajoutées dans la même
+ * opération et pas encore stylées (collage de plusieurs régions, sujet 239).
  */
-export function colorNewRegion(edit: ModeEdit, region: ShapeModel, ignored: ReadonlySet<string> = new Set()): void {
+export function styleNewRegion(edit: ModeEdit, region: ShapeModel, ignored: ReadonlySet<string> = new Set()): void {
   const { page } = edit;
   const parent = regionOf(page, region)?.id;
   const siblings = page.shapes.filter(
     (shape) =>
       isRegion(shape) && shape.id !== region.id && !ignored.has(shape.id) && regionOf(page, shape)?.id === parent,
   ).length;
-  setRegionColor(edit, region, REGION_COLORS[siblings % REGION_COLORS.length]);
+  setRegionStyle(edit, region, REGION_STYLES[siblings % REGION_STYLES.length]!);
 }
 
 /**
- * Formes posées (sujets 183, 230, 236) : une région ajoutée (pas de `before`) prend la couleur de son rang parmi ses
+ * Formes posées (sujets 183, 230, 236) : une région ajoutée (pas de `before`) prend le style de son rang parmi ses
  * sœurs ; régions agrandies pour contenir les formes, puis remises en ordre de dessin.
  */
 export function placeInRegions(edit: ModeEdit, shapeIds: string[], before?: PageModel): void {
   if (!before) {
-    // Une à une, dans l'ordre : chaque région ajoutée compte celles colorées avant elle (collage, sujet 239).
+    // Une à une, dans l'ordre : chaque région ajoutée compte celles stylées avant elle (collage, sujet 239).
     const pending = new Set(shapeIds);
     for (const id of shapeIds) {
       pending.delete(id);
       const shape = edit.page.shapes.find((s) => s.id === id);
-      if (shape && isRegion(shape)) colorNewRegion(edit, shape, pending);
+      if (shape && isRegion(shape)) styleNewRegion(edit, shape, pending);
     }
   }
   growRegions(edit, shapeIds, before);

@@ -14,7 +14,7 @@ import {
   readableOn,
 } from '../../../../../core/plugins';
 import type { Point, Rect, RenderContext, ShapeDefinition, ShapeModel } from '../../../../../core/plugins';
-import { DEFAULT_REGION_COLOR, REGION, REGION_KIND, regionLabelStyle } from '../../regions/regionLayout';
+import { DEFAULT_REGION_STYLE, REGION, REGION_KIND, regionStyle } from '../../regions/regionLayout';
 
 /**
  * Région (sujets 182, 227, 232) : rectangle à fond opaque et bordure fine, posé au fond de la pile ; son nom est sur un
@@ -90,10 +90,10 @@ function createRegion(shape: ShapeModel, ctx: RenderContext): Group {
   group.name = `shape:${shape.id}`;
   const { style } = shape;
   const path = regionOutline(shape);
-  const fill = styleColor(style, 'fillColor', DEFAULT_REGION_COLOR);
+  const fill = styleColor(style, 'fillColor', DEFAULT_REGION_STYLE.fillColor);
   const fillOpacity = styleOpacity(style, 'fillOpacity');
   if (fill) group.add(fillMesh(path, fill, fillOpacity));
-  const stroke = styleStroke(style, REGION.stroke);
+  const stroke = styleStroke(style, DEFAULT_REGION_STYLE.strokeColor);
   const border =
     stroke && strokeMesh(path, stroke.color, stroke.opacity, { width: stroke.width, closed: true, dash: stroke.dash });
   if (border) group.add(border);
@@ -112,7 +112,7 @@ function createRegion(shape: ShapeModel, ctx: RenderContext): Group {
       fontSize: fontSizeOf(shape),
       // Noir ou blanc, lisible sur le fond de l'onglet (celui de la région, sujet 227 ; opaque depuis le sujet 232, plus
       // léger dans un fichier qui porte un `fillOpacity`).
-      color: new Color(readableOn(fill ?? DEFAULT_REGION_COLOR, fill ? fillOpacity : 0)),
+      color: new Color(readableOn(fill ?? DEFAULT_REGION_STYLE.fillColor, fill ? fillOpacity : 0)),
       opacity: 1,
       bold: true,
     },
@@ -137,6 +137,8 @@ export const definition: ShapeDefinition = {
   },
   // Sélectionnée, ni contour ni voile : ses poignées suffisent (sujet 330).
   selectionStyle: 'none',
+  // Dans une sélection multiple, le contour la distingue des autres éléments (sujet 346).
+  multiSelectionStyle: 'outline',
   // Une région n'a pas de flèche (sujet 265).
   connectable: false,
   // Éditeur en place exactement sur le nom dessiné (sans nom : à sa place, sur l'onglet à venir).
@@ -167,8 +169,7 @@ export const definition: ShapeDefinition = {
     order: 6,
     keywords: ['région', 'region', 'zone', 'domaine', 'groupe', 'cadre'],
     style:
-      `rounded=0;whiteSpace=wrap;html=1;fillColor=${DEFAULT_REGION_COLOR};` +
-      `strokeColor=${REGION.stroke};${regionLabelStyle(DEFAULT_REGION_COLOR)}` +
+      `rounded=0;whiteSpace=wrap;html=1;${regionStyle(DEFAULT_REGION_STYLE)}` +
       `align=left;verticalAlign=bottom;verticalLabelPosition=top;fontStyle=1;fontSize=${REGION.fontSize};` +
       `spatial.kind=${REGION_KIND};`,
     value: 'Région',

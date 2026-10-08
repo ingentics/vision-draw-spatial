@@ -4,12 +4,14 @@ import { applyModeEdit } from '../../../../../../src/engine/core/modes/modeEdits
 import { definition as rdd } from '../../../../../../src/engine/plugins/modes/rdd';
 import {
   REGION,
-  REGION_COLORS,
+  REGION_STYLES,
   regionContent,
+  regionDrawnStyle,
   regionOf,
 } from '../../../../../../src/engine/plugins/modes/rdd/regions/regionLayout';
 import { addShapeCell } from '../../../../../../src/engine/core/format/create';
 import type { ModeEdit } from '../../../../../../src/engine/core/modes/types';
+import { pluginValues } from '../../../../../../src/engine/core/settings/pluginSettings';
 import { setup } from '../helpers';
 import { RDD_KEYS } from '../../../../../../src/engine/plugins/modes/rdd/keys';
 
@@ -217,8 +219,8 @@ describe('mode RDD : l’onglet d’une région enfant compte dans sa parente (s
   });
 });
 
-describe('mode RDD : couleur d’une région neuve selon ses sœurs (sujet 236)', () => {
-  it('rose, lavande, bleu… modulo la palette ; dans une région, comptée parmi ses propres sœurs', () => {
+describe('mode RDD : style d’une région neuve selon ses sœurs (sujets 236, 345)', () => {
+  it('bleu, vert, orange… en boucle ; dans une région, comptée parmi ses propres sœurs', () => {
     const { tree } = readDrawio(`<mxfile><diagram id="p" name="P" spatial.mode="rdd"><mxGraphModel><root>
       <mxCell id="0" /><mxCell id="1" parent="0" /></root></mxGraphModel></diagram></mxfile>`);
     const pageTree = tree.pages[0]!;
@@ -229,15 +231,45 @@ describe('mode RDD : couleur d’une région neuve selon ses sœurs (sujet 236)'
       return id;
     };
     const colorOf = (id: string) => documentFromTree(tree).pages[0]!.shapes.find((s) => s.id === id)!.style.fillColor;
-    const top = [0, 1, 2, 3, 4, 5, 6].map((i) => add(i * 1000, 0, 800, 600));
-    expect(top.map(colorOf)).toEqual([...REGION_COLORS, REGION_COLORS[0]]);
-    // Dans la première région : premier de son niveau, rose ; la suivante, lavande.
+    const top = [0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => add(i * 1000, 0, 800, 600));
+    expect(top.map(colorOf)).toEqual([
+      '#dae8fc',
+      '#d5e8d4',
+      '#ffe6cc',
+      '#fff2cc',
+      '#f8cecc',
+      '#e1d5e7',
+      '#ffffff',
+      '#f5f5f5',
+      '#dae8fc',
+    ]);
+    const strokeOf = (id: string) =>
+      documentFromTree(tree).pages[0]!.shapes.find((s) => s.id === id)!.style.strokeColor;
+    expect(strokeOf(top[0]!)).toBe('#6c8ebf');
+    // Dans la première région : premier de son niveau, bleu ; la suivante, vert.
     const inner = [add(20, 20), add(20, 200)];
-    expect(inner.map(colorOf)).toEqual([REGION_COLORS[0], REGION_COLORS[1]]);
+    expect(inner.map(colorOf)).toEqual([REGION_STYLES[0]!.fillColor, REGION_STYLES[1]!.fillColor]);
     // Un déplacement ne change pas la couleur.
     const page = documentFromTree(tree).pages[0]!;
     applyModeEdit(page, pageTree, RDD_KEYS, (edit) => rdd.gestures!.placed!(edit, [inner[1]!], page));
-    expect(colorOf(inner[1]!)).toBe(REGION_COLORS[1]);
+    expect(colorOf(inner[1]!)).toBe(REGION_STYLES[1]!.fillColor);
+  });
+});
+
+describe('mode RDD : fond des régions éclairci au dessin (sujet 345)', () => {
+  it('couleur du style rapprochée du blanc du réglage (55 % par défaut) ; ni table ni réglage nul', () => {
+    const { page, shape } = setup();
+    const region = { ...shape('accounts'), style: { ...shape('accounts').style, fillColor: '#000000' } };
+    const dressing = (amount?: number) =>
+      rdd.dressing!(page(), pluginValues(rdd.settings, amount === undefined ? {} : { regionLightening: amount }));
+    expect(dressing().shapeStyle!(region)).toEqual({ fillColor: '#8c8c8c' });
+    expect(regionDrawnStyle(region, 0.5)).toEqual({ fillColor: '#808080' });
+    expect(dressing(0).shapeStyle!(region)).toBeUndefined();
+    expect(dressing().shapeStyle!(shape('user'))).toBeUndefined();
+    // Sans fond : rien ; sans fillColor : le Bleu des régions, éclairci.
+    expect(regionDrawnStyle({ ...region, style: { fillColor: 'none' } }, 0.3)).toBeUndefined();
+    expect(regionDrawnStyle({ ...region, style: {} }, 0)).toBeUndefined();
+    expect(regionDrawnStyle({ ...region, style: {} }, 1)).toEqual({ fillColor: '#ffffff' });
   });
 });
 
@@ -308,7 +340,7 @@ describe('mode RDD : règles des régions au redimensionnement, à l’ajustemen
     applyModeEdit(documentFromTree(tree).pages[0]!, pageTree, RDD_KEYS, (edit) => rdd.gestures!.placed!(edit, [a, b]));
     const colorOf = (id: string) => documentFromTree(tree).pages[0]!.shapes.find((s) => s.id === id)!.style.fillColor;
     // Big est la seule région de premier niveau déjà là.
-    expect([colorOf(a), colorOf(b)]).toEqual([REGION_COLORS[1], REGION_COLORS[2]]);
+    expect([colorOf(a), colorOf(b)]).toEqual([REGION_STYLES[1]!.fillColor, REGION_STYLES[2]!.fillColor]);
   });
 });
 

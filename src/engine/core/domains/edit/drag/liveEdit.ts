@@ -42,15 +42,14 @@ export class LiveEdit {
     if (!root || !old) return;
     const base = old.position.z;
     const height = ((old.userData.top as number | undefined) ?? base) - base;
+    const page = this.core.pages.pageById(this.core.scenes.current!.pageId);
     const object = createShapeObject(
       shape,
       this.core.registry,
       this.core.sceneView.renderContext(),
       this.core.scenes.current!.level,
-      {
-        base,
-        height,
-      },
+      { base, height },
+      page && this.core.pageModes.dressing(page),
     );
     object.userData.elementId = shape.id;
     this.replaceObject(old, object, root);
