@@ -21,8 +21,8 @@ export interface TableLook {
   style?: string;
 }
 
-/** Option d'une table (`TABLE_OPTIONS`) : table secondaire (sujet 179), vue matérialisée (sujet 272). */
-export type TableOptionKey = 'secondary' | 'materialized' | 'private';
+/** Option d'une table (`TABLE_OPTIONS`) : vue matérialisée (sujet 272), vue privée (sujet 342). */
+export type TableOptionKey = 'materialized' | 'private';
 
 /** Règles d'une forme de table : ce que ses champs et ses réglages peuvent être. */
 export interface TableRules {
@@ -64,7 +64,7 @@ export interface TableKind {
 export type TableKindId = 'rdd-model' | 'rdd-entity' | 'rdd-enum' | 'rdd-embedded' | 'rdd-document' | 'rdd-view';
 
 /** Règles d'une table sans contrainte particulière. */
-const PLAIN: TableRules = { fields: true, options: ['secondary'] };
+const PLAIN: TableRules = { fields: true, options: [] };
 
 /**
  * Tables du mode, par id de forme : le rendu et les opérations du mode (hauteur, échelle) en dépendent. Le modèle
@@ -85,7 +85,7 @@ export const TABLE_KINDS: Record<TableKindId, TableKind> = {
   'rdd-embedded': { look: { wavy: true, mark: 'plug' }, rules: { ...PLAIN, uniqueFields: true, physicalLayer: true } },
   'rdd-document': {
     look: { folded: true },
-    rules: { fields: false, body: true, options: ['secondary'], requiredName: 'Document' },
+    rules: { fields: false, body: true, options: [], requiredName: 'Document' },
   },
   'rdd-view': {
     look: { style: 'rounded=1;absoluteArcSize=1;arcSize=16;', mark: 'binoculars' },
@@ -94,7 +94,7 @@ export const TABLE_KINDS: Record<TableKindId, TableKind> = {
       derived: true,
       physicalName: true,
       physicalLayer: true,
-      options: ['secondary', 'materialized', 'private'],
+      options: ['materialized', 'private'],
     },
   },
 };

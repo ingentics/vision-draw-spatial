@@ -7,7 +7,7 @@ import {
   fieldProblems,
   fieldsOf as rowsOf,
 } from '../../../../../../src/engine/plugins/modes/rdd/tables/fieldModel';
-import { setSecondary } from '../../../../../../src/engine/plugins/modes/rdd/tables/operations';
+import { setTableLevel } from '../../../../../../src/engine/plugins/modes/rdd/tables/operations';
 import { fieldParts } from '../../../../../../src/engine/plugins/modes/rdd/editing/fieldParts';
 import { approximateMeasure } from '../../../../../../src/engine/core/render/richLayout';
 import { buildPageScene } from '../../../../../../src/engine/core/render/pageScene';
@@ -42,7 +42,7 @@ describe('mode RDD : champ sélectionné dans sa table (sujet 249)', () => {
       italic: undefined,
       transparent: true,
     });
-    run((edit) => setSecondary(edit, shape('address'), true));
+    run((edit) => setTableLevel(edit, shape('address'), 'M'));
     const text = fieldParts.text!(page(), shape('address'), '0')!;
     expect([text.text, text.fontSize]).toEqual(['street', 11 * 0.8]);
     expect(text.zone.height).toBeCloseTo(16, 5);
@@ -143,7 +143,7 @@ describe('mode RDD : séparateurs entre les champs (sujet 253)', () => {
 
   it('« - » sur une ligne sélectionnée : séparateur vide après elle, désigné ensuite ; écrit et relu', () => {
     const { run, page, shape } = setup();
-    expect(minus.applies(page(), shape('user'))).toBe(false);
+    // Sans ligne sélectionnée, « - » réduit la table (sujet 430, `tableProperties.test.ts`).
     expect(minus.applies(page(), shape('user'), '1')).toBe(true);
     let part: string | void = undefined;
     run((edit) => (part = minus.run(edit, shape('user'), undefined, '1')));

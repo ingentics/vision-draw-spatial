@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { FIELDS } from '../../../../../../src/engine/plugins/modes/rdd/tables/fieldModel';
-import { SECONDARY } from '../../../../../../src/engine/plugins/modes/rdd/tables/tableLayout';
-import { setField, setSecondary } from '../../../../../../src/engine/plugins/modes/rdd/tables/operations';
+import { SIZE } from '../../../../../../src/engine/plugins/modes/rdd/tables/tableLayout';
+import { setField, setTableLevel } from '../../../../../../src/engine/plugins/modes/rdd/tables/operations';
 import { spatialValue } from '../../../../../../src/engine/core/spatial';
 import { rowWidth, onGrid, contentWidth, widthOf, setFields, labels, fieldsOf, setup } from '../helpers';
 import { RDD_KEYS, keys } from '../../../../../../src/engine/plugins/modes/rdd/keys';
@@ -25,24 +25,29 @@ describe('mode RDD : opérations sur une table', () => {
     expect(shape('model').bounds.height).toBe(46);
   });
 
-  it('table secondaire : taille du contenu × 0,8 depuis le coin haut-gauche, puis ÷ 0,8 ; entête et texte suivent', () => {
+  it('tailles M et S : taille du contenu × 0,8 puis × 0,64 depuis le coin haut-gauche, puis L ; entête et texte suivent', () => {
     const { run, shape } = setup();
     const content = contentWidth(rowWidth('created_at', 'Phrase'), rowWidth('updated_at', 'Phrase'));
-    const width = onGrid(content);
-    run((edit) => setSecondary(edit, shape('timestamped'), true));
+    run((edit) => setTableLevel(edit, shape('timestamped'), 'M'));
     const small = shape('timestamped');
-    expect(spatialValue(small, keys.key(SECONDARY))).toBe('1');
+    expect(spatialValue(small, keys.key(SIZE))).toBe('M');
     expect(small.bounds).toEqual({ x: 240, y: 40, width: onGrid(content * 0.8), height: 52.8 });
     expect([small.style.startSize, small.style.fontSize]).toEqual(['20.8', '9.6']);
-    // Un champ de plus : lignes à l'échelle de la table secondaire.
+    // Un champ de plus : lignes à l'échelle de la taille M.
     run((edit) => setFields(edit, shape('timestamped'), 'created_at\nupdated_at\ndeleted_at'));
     expect(shape('timestamped').bounds.height).toBe(68.8);
-    run((edit) => setSecondary(edit, shape('timestamped'), false));
+    // S : encore 20 % plus petite (× 0,64).
+    run((edit) => setTableLevel(edit, shape('timestamped'), 'S'));
+    const smaller = shape('timestamped');
+    expect(spatialValue(smaller, keys.key(SIZE))).toBe('S');
+    expect(smaller.bounds.height).toBe(55.04);
+    expect([smaller.style.startSize, smaller.style.fontSize]).toEqual(['16.64', '7.68']);
+    run((edit) => setTableLevel(edit, shape('timestamped'), 'L'));
     const back = shape('timestamped');
-    expect(spatialValue(back, keys.key(SECONDARY))).toBeUndefined();
-    expect(back.bounds).toEqual({ x: 240, y: 40, width, height: 86 });
+    expect(spatialValue(back, keys.key(SIZE))).toBeUndefined();
+    expect(back.bounds).toEqual({ x: 240, y: 40, width: onGrid(content), height: 86 });
     expect([back.style.startSize, back.style.fontSize]).toEqual(['26', '12']);
-    expect(run((edit) => setSecondary(edit, shape('timestamped'), false))).toBe(false);
+    expect(run((edit) => setTableLevel(edit, shape('timestamped'), 'L'))).toBe(false);
   });
 });
 
@@ -65,9 +70,9 @@ describe('mode RDD : entités (sujet 180)', () => {
     expect(fieldsOf(shape('orphan'))[0]!.kind).toBe('pk');
   });
 
-  it('table secondaire, comme sur le modèle', () => {
+  it('taille M, comme sur le modèle', () => {
     const { run, shape } = setup();
-    run((edit) => setSecondary(edit, shape('role'), true));
+    run((edit) => setTableLevel(edit, shape('role'), 'M'));
     expect(shape('role').bounds.height).toBe(68.8);
   });
 });

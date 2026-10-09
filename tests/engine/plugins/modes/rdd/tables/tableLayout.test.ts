@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { definition as rdd } from '../../../../../../src/engine/plugins/modes/rdd';
-import { fitTable, setSecondary } from '../../../../../../src/engine/plugins/modes/rdd/tables/operations';
+import { fitTable, setTableLevel } from '../../../../../../src/engine/plugins/modes/rdd/tables/operations';
 import { setCellLabel } from '../../../../../../src/engine/core/format/cellEdits';
 import { approximateMeasure } from '../../../../../../src/engine/core/render/richLayout';
 import { physicalRowWidth, onGrid, contentWidth, widthOf, KEY_ROW, setFields, setup } from '../helpers';
@@ -20,11 +20,11 @@ describe('mode RDD : taille calculée (sujet 247)', () => {
     // Le minimum, sans champ plus large.
     run((edit) => setFields(edit, shape('model'), ''));
     expect(shape('model').bounds.width).toBe(120);
-    // Table secondaire : le minimum et le reste × 0,8.
-    run((edit) => setSecondary(edit, shape('model'), true));
+    // Taille M : le minimum et le reste × 0,8.
+    run((edit) => setTableLevel(edit, shape('model'), 'M'));
     expect(shape('model').bounds.width).toBe(100);
     run((edit) => setFields(edit, shape('user'), long));
-    run((edit) => setSecondary(edit, shape('user'), true));
+    run((edit) => setTableLevel(edit, shape('user'), 'M'));
     expect(shape('user').bounds.width).toBe(onGrid(Math.ceil(physicalRowWidth(long, 'Phrase')) * 0.8));
   });
 

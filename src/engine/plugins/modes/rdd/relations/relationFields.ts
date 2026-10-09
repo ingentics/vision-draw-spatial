@@ -4,7 +4,7 @@ import type { Field, TableRow } from '../tables/fieldModel';
 import { isDivider, isRelation, tableFields } from '../tables/fieldModel';
 import { writeRows } from '../tables/operations';
 import { tableKindOf } from '../tables/tableKinds';
-import { isSecondary } from '../tables/tableLayout';
+import { tableLevel } from '../tables/tableLayout';
 import { fieldIndex } from '../editing/tableTargets';
 import { placeArrivals } from './arrivals';
 import { writeRelationEdge } from './edgeLook';
@@ -171,7 +171,7 @@ export function syncRelations(
     for (const row of kept) if (isRelation(row)) writeRelationEdge(edit, row.edge, row, settings, index);
     const unchanged = kept.length === rows.length && kept.every((row, i) => row === rows[i]);
     if (missing.length === 0 && unchanged) {
-      placeArrivals(edit, shape.bounds, isSecondary(shape), rows, index);
+      placeArrivals(edit, shape.bounds, tableLevel(shape), rows, index);
       continue;
     }
     const next: TableRow[] = [...kept];

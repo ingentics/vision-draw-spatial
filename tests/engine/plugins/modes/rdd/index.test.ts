@@ -103,7 +103,7 @@ describe('mode RDD (sujet 179) : page et palette', () => {
     // Plus de « Couleur » (le style de la forme, sujets 260, 345) ni d'« Icône ».
     expect(properties.map((p) => [p.label, p.hidden!(page(), model)])).toEqual([
       ['Nom de la table', true],
-      ['Table secondaire', false],
+      ['Taille', false],
       ['Matérialisé', true],
       ['Privée', true],
       ['Clé primaire', true],

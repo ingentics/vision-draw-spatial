@@ -19,18 +19,21 @@ import {
   isRelationEdge,
   syncRelations,
 } from './relations';
-import { ADD_DIVIDER_PROPERTY, TABLE_PROPERTIES, addDividerAfter } from './editing/tableProperties';
+import { ADD_DIVIDER_PROPERTY, TABLE_PROPERTIES, addDividerAfter, tableLevelKey } from './editing/tableProperties';
 import { TABLE_KINDS, missingRequiredName } from './tables/tableKinds';
 import { rowOf } from './editing/tableTargets';
 import { RDD_KEYS } from './keys';
 import { LAYER_CURRENT, layerStyle } from './tables/physicalLayer';
+
+/** Touche « - » hors d'une ligne : la table d'un cran plus petite (sujet 430). */
+const SHRINK_TABLE = tableLevelKey(1);
 
 /** Flèche tirée ou rebranchée vers une partie de sa forme d'arrivée (sujet 333). */
 const arrivalOf = (edgeId: string, part: string | undefined) => (part === undefined ? undefined : { edgeId, part });
 
 /**
  * Mode « RDB Designer » (sujets 179, 353) : une page de tables (modèles, entités…), lue à plat. Ses
- * formes sont les seules de la palette ; leurs réglages (champs, table secondaire) sont ceux du mode, la couleur de
+ * formes sont les seules de la palette ; leurs réglages (champs, taille) sont ceux du mode, la couleur de
  * l'entête vient du style de la forme (sujet 260). Dans draw.io, une table est un swimlane de la couleur de son entête.
  */
 export const definition: PageModeDefinition = {
@@ -162,11 +165,16 @@ export const definition: PageModeDefinition = {
   // Champs des tables, sélectionnables dans la table (sujet 249).
   parts: fieldParts,
   keys: {
-    // « - » sur une ligne sélectionnée : un séparateur après elle, son texte en édition (sujet 253).
+    // « + » / « - » sur la table : taille d'un cran plus grande / plus petite (sujet 430).
+    '+': tableLevelKey(-1),
+    // « - » sur une ligne sélectionnée : un séparateur après elle, son texte en édition (sujet 253) ; sinon la taille.
     '-': {
-      label: 'Ajouter un séparateur',
-      applies: (_page, target, part) => rowOf(target, part) !== undefined,
-      run: (edit, target, _current, part) => addDividerAfter(edit, target, part),
+      label: 'Ajouter un séparateur ou réduire la table',
+      applies: (page, target, part) => rowOf(target, part) !== undefined || SHRINK_TABLE.applies(page, target, part),
+      run: (edit, target, current, part) =>
+        rowOf(target, part) !== undefined
+          ? addDividerAfter(edit, target, part)
+          : SHRINK_TABLE.run(edit, target, current, part),
     },
     f: FIT_REGION_KEY,
   },

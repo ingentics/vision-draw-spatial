@@ -814,7 +814,7 @@ Réalisation retenue (`engine/core/spatial.ts`) :
 | `spatial.seq.flow`, `spatial.seq.step` | style ou objet | Mode Séquences : flux d'une flèche (`id`) et son rang dans le flux (1…n) |
 | `spatial.seq.participant` | style ou objet | Mode Séquences : type d'une forme (`bus`, `queue`) |
 | `spatial.rdd.fields` | style ou objet | Mode RDD : champs d'une table, liste JSON `[{"kind","label","type","nullable"}, …]` (§14.5) ; absent = aucun |
-| `spatial.rdd.secondary` | style ou objet | Mode RDD : `1` = table secondaire, rendue 20 % plus petite |
+| `spatial.rdd.size` | style ou objet | Mode RDD : taille de la table, `M` (× 0,8) ou `S` (× 0,64) ; absente : `L` |
 | `spatial.rdd.body` | style ou objet | Mode RDD : corps en texte libre d'un document, chaîne JSON (`;` échappés en `\u003b`) ; absent = vide |
 | `spatial.rdd.reverseName` | style ou objet | Mode RDD : nom inverse d'une relation, sur sa flèche |
 | `spatial.rdd.cardinalities` | `<diagram>` | Mode RDD : `0` = textes des cardinalités masqués |
@@ -904,7 +904,8 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   - Panneau d'une table (toutes les formes de table, sujet 413) : section principale « Couche logique » en tête — texte,
     commentaire, puis les réglages du mode sans section — à la place des sections « Texte » et « RDB Designer »
     (`gestures.mainSection` du mode : titre et formes concernées) ; celle d'un champ sélectionné porte le même titre.
-  - Réglages du mode sur une table : « Table secondaire » (`spatial.rdd.secondary` : tailles × 0,8). Entité,
+  - Réglages du mode sur une table : « Taille » en boutons L, M, S (`spatial.rdd.size` : tailles × 0,8 en M, × 0,64
+    en S, sujet 430). Entité,
     énumération et vue : section « Couche physique » avec « Nom de la table » (`spatial.rdd.dbName`, nom en base de la
     table ou de la vue, sujet 413), suivi de « Matérialisé » pour une vue. La couleur de l'entête vient du style de la
     forme (panneau « Style », sujet 260). Pas de section « Volume » (mode sans iso ni 3D).

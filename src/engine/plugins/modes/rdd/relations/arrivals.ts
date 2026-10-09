@@ -2,6 +2,7 @@ import { center, sideConstraintAt } from '../../../../core/plugins';
 import type { ModeEdit, Rect, ShapeModel } from '../../../../core/plugins';
 import type { Field, TableRow } from '../tables/fieldModel';
 import { isDivider } from '../tables/fieldModel';
+import type { TableLevel } from '../tables/tableLayout';
 import { fieldRowIn } from '../tables/tableLayout';
 import type { RelationIndex } from './relationKinds';
 import { relationIndex, relationKindBetween } from './relationKinds';
@@ -14,13 +15,13 @@ import { relationIndex, relationKindBetween } from './relationKinds';
 /**
  * Point d'arrivée des flèches retenues par les champs de `rows` (lignes d'une table de bornes `bounds`) : au milieu de
  * la ligne du champ, sur le côté gauche ou droit le plus proche de la forme de départ (`entryX`, `entryY`,
- * `entryPerimeter=0`, relatifs à la table : la flèche suit la table). `bounds`, `secondary`, `rows` : ceux que
+ * `entryPerimeter=0`, relatifs à la table : la flèche suit la table). `bounds`, `level`, `rows` : ceux que
  * l'opération en cours vient d'écrire.
  */
 export function placeArrivals(
   edit: ModeEdit,
   bounds: Rect,
-  secondary: boolean,
+  level: TableLevel,
   rows: readonly TableRow[],
   index?: RelationIndex,
 ): void {
@@ -28,7 +29,7 @@ export function placeArrivals(
   const { shapes, edges } = index ?? relationIndex(edit.page);
   rows.forEach((row, i) => {
     if (isDivider(row)) return;
-    const line = fieldRowIn(bounds, secondary, i);
+    const line = fieldRowIn(bounds, level, i);
     for (const id of row.incoming ?? []) {
       const source = shapes.get(edges.get(id)?.sourceId ?? '');
       if (!source) continue;

@@ -78,7 +78,7 @@ describe('mode RDD : champ sélectionné dans sa table (sujet 249)', () => {
     ).toEqual([true, false]);
     expect(shown().map(([label]) => label)).toEqual([
       'Nom de la table',
-      'Table secondaire',
+      'Taille',
       'Clé primaire',
       'Ajouter un séparateur',
     ]);

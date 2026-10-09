@@ -33,10 +33,10 @@ import {
   TABLE,
   bodyZone,
   headerHeight,
-  isSecondary,
   leftMark,
   nameZone,
   tableHeight,
+  tableLevel,
   tableScale,
   tableSize,
   tableWidth,
@@ -48,7 +48,7 @@ import { keys } from '../../keys';
 /** Rendu et fabrique des tables du mode RDD (sujet 179), communs à ses formes (`shapes/<forme>/`). */
 
 /** Côté du coin plié d'un document, à l'échelle de la table (au plus la moitié de l'entête). */
-const foldOf = (shape: ShapeModel) => Math.min(TABLE.fold * tableScale(shape), headerHeight(isSecondary(shape)) / 2);
+const foldOf = (shape: ShapeModel) => Math.min(TABLE.fold * tableScale(shape), headerHeight(tableLevel(shape)) / 2);
 
 /**
  * Contour d'une table : rectangle, arrondi avec `rounded=1` (vue), coin haut-droit coupé en biais pour un document
@@ -100,7 +100,7 @@ function flapOf(shape: ShapeModel): Point[] {
 function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Group {
   const group = new Group();
   const { bounds, style } = shape;
-  const header = Math.min(bounds.height, headerHeight(isSecondary(shape)));
+  const header = Math.min(bounds.height, headerHeight(tableLevel(shape)));
   const headerColor = styleColor(style, 'fillColor', DEFAULT_HEADER_COLOR) ?? new Color(DEFAULT_HEADER_COLOR);
   const path = outline(shape, kind);
   addFills(group, shape, kind, path, header, headerColor);
@@ -241,7 +241,7 @@ function tableStyle(id: TableKindId, kind: TableKind): string {
     ? `${keys.key(FIELDS)}=${fieldsValue([primaryKeyField(kind.rules.primaryKey)])};`
     : '';
   return (
-    `swimlane;fontStyle=${fontStyleValue({ bold: true, italic: kind.look.italic })};startSize=${headerHeight(false)};` +
+    `swimlane;fontStyle=${fontStyleValue({ bold: true, italic: kind.look.italic })};startSize=${headerHeight('L')};` +
     `fillColor=${DEFAULT_HEADER_COLOR};fontColor=${DEFAULT_HEADER_TEXT};swimlaneFillColor=${FIELDS_FILL};strokeColor=${TABLE_BORDER};` +
     `fontSize=${TABLE.nameSize};html=1;whiteSpace=wrap;${kind.look.style ?? ''}spatial.kind=${id};${fields}`
   );
@@ -288,12 +288,12 @@ export function table(
               width: tableSize(
                 tableWidth(
                   kind,
-                  { name: palette.value, fields, secondary: false, mark: kind.look.mark !== undefined },
+                  { name: palette.value, fields, level: 'L', mark: kind.look.mark !== undefined },
                   approximateMeasure,
                 ),
                 10,
               ),
-              height: tableHeight(kind, false, fields.length),
+              height: tableHeight(kind, 'L', fields.length),
             }
           : { width: TABLE.body.width, height: TABLE.body.height }),
         icon:

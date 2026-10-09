@@ -1,18 +1,27 @@
-import type { ModeEdit, ModeProperty, ModeTarget, ShapeModel } from '../../../../core/plugins';
+import type { ModeEdit, ModeKey, ModeProperty, ModeTarget, ShapeModel } from '../../../../core/plugins';
 import { isToggled, toggleValue } from '../../../../core/plugins';
 import { PHYSICAL_LAYER, tableFields } from '../tables/fieldModel';
 import { documentBody, hasBody, setBody } from '../tables/documentBody';
-import { addDivider, setPhysicalName, setSecondary } from '../tables/operations';
+import { addDivider, setPhysicalName, setTableLevel } from '../tables/operations';
 import { DB_NAME } from '../tables/physicalLayer';
 import type { TableKind, TableOptionKey } from '../tables/tableKinds';
 import { tableKindOf } from '../tables/tableKinds';
-import { MATERIALIZED, PRIVATE, SECONDARY } from '../tables/tableLayout';
+import type { TableLevel } from '../tables/tableLayout';
+import {
+  LEVEL_SCALES,
+  MATERIALIZED,
+  PRIVATE,
+  SIZE,
+  isTableLevel,
+  steppedLevel,
+  tableLevel,
+} from '../tables/tableLayout';
 import { rowOf, tableOf } from './tableTargets';
 import { keys } from '../keys';
 
 /**
- * Réglages d'une table RDD sélectionnée (sujets 179, 253, 260, 413) : nom en base, table secondaire, clé primaire, ajout
- * d'un séparateur.
+ * Réglages d'une table RDD sélectionnée (sujets 179, 253, 260, 413, 430) : nom en base, taille, clé primaire, ajout d'un
+ * séparateur.
  */
 
 /** Cible qui n'est pas une table à champs (autre forme, document). */
@@ -54,16 +63,6 @@ export interface TableOption {
 
 /** Options d'une table, dans l'ordre du panneau. */
 export const TABLE_OPTIONS: readonly TableOption[] = [
-  {
-    key: 'secondary',
-    type: 'flag',
-    attribute: SECONDARY,
-    label: 'Table secondaire',
-    title: 'Table secondaire (spatial.rdd.secondary) : 20 % plus petite',
-    on: (table) => table.rules.options.includes('secondary'),
-    // Taille × 0,8, entête et taille du nom dans le style (sujet 179).
-    write: setSecondary,
-  },
   {
     // Vue matérialisée (sujet 272) : CREATE MATERIALIZED VIEW.
     key: 'materialized',
@@ -112,6 +111,57 @@ const tableOptionProperty = (option: TableOption): ModeProperty => ({
   hidden: (_page, target) => !optionTable(option, target),
 });
 
+/** Bouton de chaque taille de table (sujet 430) : sa lettre tracée (un choix n'est en boutons qu'avec des icônes). */
+const LEVEL_BUTTONS = {
+  L: { icon: { accent: 'M5.5 3.5v9H11' }, title: 'L : taille normale (spatial.rdd.size retiré)' },
+  M: { icon: { accent: 'M3.5 12.5v-9L8 9l4.5-5.5v9' }, title: 'M : 20 % plus petite (spatial.rdd.size=M)' },
+  S: {
+    icon: {
+      accent:
+        'M11 4.5C10.3 3.8 9.3 3.5 8 3.5 6.3 3.5 5 4.3 5 5.8 5 7.3 6.3 7.7 8 8.1s3 .9 3 2.4c0 1.3-1.2 2-3 2-1.4 0-2.5-.4-3.2-1.1',
+    },
+    title: 'S : encore 20 % plus petite que M (spatial.rdd.size=S)',
+  },
+};
+
+/** Taille de la table (sujet 430) : boutons L, M, S ; entête et taille du nom suivent dans le style. */
+const TABLE_SIZE_PROPERTY: ModeProperty = {
+  type: 'choice',
+  key: SIZE,
+  label: 'Taille',
+  title: 'Taille de la table (spatial.rdd.size) : L, M (× 0,8) ou S (× 0,64) ; touches « + » / « - » sur la table',
+  options: () =>
+    (Object.keys(LEVEL_SCALES) as TableLevel[]).map((level) => ({
+      value: level,
+      label: level,
+      ...LEVEL_BUTTONS[level],
+    })),
+  value: (_page, target) => {
+    const shape = tableOf(target);
+    return shape && tableLevel(shape);
+  },
+  write: (edit, target, value) => {
+    const shape = tableOf(target);
+    if (shape && isTableLevel(value)) setTableLevel(edit, shape, value);
+  },
+  hidden: (_page, target) => !tableOf(target),
+};
+
+/**
+ * Touches « + » / « - » sur une table sélectionnée sans ligne (sujet 430) : taille d'un cran plus grande (`-1`, vers L)
+ * ou plus petite (`1`, vers S). Sur une ligne, « - » ajoute un séparateur (`addDividerAfter`).
+ */
+export function tableLevelKey(step: 1 | -1): ModeKey {
+  return {
+    label: 'Taille',
+    applies: (_page, target, part) => !!tableOf(target) && !rowOf(target, part),
+    run: (edit, target) => {
+      const shape = tableOf(target);
+      if (shape) setTableLevel(edit, shape, steppedLevel(tableLevel(shape), step));
+    },
+  };
+}
+
 /** Table sélectionnée qui a un nom en base (sujet 413). */
 const physicalTable = (target: ModeTarget) => {
   const shape = tableOf(target);
@@ -134,6 +184,7 @@ export const TABLE_PROPERTIES: ModeProperty[] = [
     },
     hidden: (_page, target) => !physicalTable(target),
   },
+  TABLE_SIZE_PROPERTY,
   ...TABLE_OPTIONS.map(tableOptionProperty),
   {
     type: 'text',

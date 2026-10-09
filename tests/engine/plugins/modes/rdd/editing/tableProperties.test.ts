@@ -5,13 +5,18 @@ import {
   TABLE_PROPERTIES,
 } from '../../../../../../src/engine/plugins/modes/rdd/editing/tableProperties';
 import { TABLE_KINDS } from '../../../../../../src/engine/plugins/modes/rdd/tables/tableKinds';
+import { choiceDisplay } from '../../../../../../src/engine/core/fields/fieldSchema';
+import { fieldsOf as rowsOf, setup } from '../helpers';
+import { tableLevel } from '../../../../../../src/engine/plugins/modes/rdd/tables/tableLayout';
 import { REGION_KIND } from '../../../../../../src/engine/plugins/modes/rdd/regions/regionLayout';
 
 describe('mode RDD : options d’une table déclarées (sujet 277)', () => {
-  it('« Table secondaire » : permise sur toutes les formes de table', () => {
-    const secondary = TABLE_OPTIONS.find((option) => option.key === 'secondary')!;
-    expect(Object.values(TABLE_KINDS).every((table) => secondary.on(table))).toBe(true);
-    expect(secondary.on({ look: {}, rules: { fields: true, options: [] } })).toBe(false);
+  it('« Taille » (sujet 430) : boutons L, M, S (icônes), sur toute table', () => {
+    const size = TABLE_PROPERTIES.find((property) => property.key === 'size')!;
+    expect(size.type).toBe('choice');
+    const options = size.type === 'choice' ? size.options(setup().page(), []) : [];
+    expect(options.map((option) => option.value)).toEqual(['L', 'M', 'S']);
+    expect(choiceDisplay(options)).toBe('buttons');
   });
 
   it('« Matérialisé » (sujet 272) : vue seulement, sous Couche physique', () => {
@@ -44,5 +49,24 @@ describe('mode RDD : options d’une table déclarées (sujet 277)', () => {
   it('« Couche logique » (sujet 413) : section principale de toutes les tables, pas de la région', () => {
     expect(rdd.gestures!.mainSection).toEqual({ title: 'Couche logique', kinds: Object.keys(TABLE_KINDS) });
     expect(rdd.gestures!.mainSection!.kinds).not.toContain(REGION_KIND);
+  });
+});
+
+describe('mode RDD : touches « + » / « - » de la taille (sujet 430)', () => {
+  const plus = rdd.keys!['+']!;
+  const minus = rdd.keys!['-']!;
+
+  it('sur la table : un cran plus petite jusqu’à S, plus grande jusqu’à L ; « - » sur une ligne : un séparateur', () => {
+    const { run, page, shape } = setup();
+    expect([plus.applies(page(), shape('user')), minus.applies(page(), shape('user'))]).toEqual([true, true]);
+    expect(plus.applies(page(), shape('user'), '1')).toBe(false);
+    const step = (key: typeof plus) => {
+      run((edit) => key.run(edit, shape('user'), undefined));
+      return tableLevel(shape('user'));
+    };
+    expect([step(minus), step(minus), step(minus)]).toEqual(['M', 'S', 'S']);
+    expect([step(plus), step(plus), step(plus)]).toEqual(['M', 'L', 'L']);
+    run((edit) => minus.run(edit, shape('user'), undefined, '1'));
+    expect([tableLevel(shape('user')), rowsOf(shape('user'))[2]]).toEqual(['L', { divider: true, label: '' }]);
   });
 });

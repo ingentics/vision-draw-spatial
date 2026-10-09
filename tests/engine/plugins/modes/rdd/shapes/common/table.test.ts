@@ -1,7 +1,7 @@
 import { Box3, Mesh, Object3D } from 'three';
 import type { Color, MeshBasicMaterial } from 'three';
 import { describe, expect, it } from 'vitest';
-import { setSecondary } from '../../../../../../../src/engine/plugins/modes/rdd/tables/operations';
+import { setTableLevel } from '../../../../../../../src/engine/plugins/modes/rdd/tables/operations';
 import { approximateMeasure } from '../../../../../../../src/engine/core/render/richLayout';
 import { buildPageScene } from '../../../../../../../src/engine/core/render/pageScene';
 import type { RenderContext, TextSpec } from '../../../../../../../src/engine/core/render/types';
@@ -127,7 +127,7 @@ describe('mode RDD : embedded, document et vue (sujets 181, 218)', () => {
     const { run, shape } = setup();
     run((edit) => setFields(edit, shape('address'), 'street\ncity\nzip'));
     expect(shape('address').bounds.height).toBe(26 + 3 * 20 + 4);
-    run((edit) => setSecondary(edit, shape('address'), true));
+    run((edit) => setTableLevel(edit, shape('address'), 'M'));
     run((edit) => setFields(edit, shape('address'), 'street'));
     expect(shape('address').bounds.height).toBeCloseTo((26 + 20 + 4) * 0.8, 5);
   });
@@ -335,7 +335,7 @@ describe('mode RDD : rendu d’une table', () => {
     // Trait de 1 px centré sur le rectangle intérieur : bornes ± 0,5.
     expect([box.min.x, box.min.y, box.max.x, box.max.y]).toEqual([242.5, 162.5, 397.5, 183.5]);
     // Table secondaire : écart à l'échelle (2,4 px).
-    run((edit) => setSecondary(edit, shape('role'), true));
+    run((edit) => setTableLevel(edit, shape('role'), 'M'));
     const small = strokes('role')[2]!;
     small.geometry.computeBoundingBox();
     expect(small.geometry.boundingBox!.min.x).toBeCloseTo(241.9, 3);

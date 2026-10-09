@@ -16,22 +16,22 @@ import {
 } from './fieldModel';
 import { tableKindOf } from './tableKinds';
 import { DB_NAME } from './physicalLayer';
-import type { TableContent } from './tableLayout';
+import type { TableContent, TableLevel } from './tableLayout';
 import {
-  SECONDARY,
+  SIZE,
   TABLE,
   headerHeight,
-  isSecondary,
+  levelScale,
   roundSize,
-  secondaryScale,
   tableContent,
   tableHeight,
+  tableLevel,
   tableSize,
   tableWidth,
 } from './tableLayout';
 
 /**
- * Opérations du mode RDD sur une table (sujets 179, 180) : champs, couleur d'entête, table secondaire. Chacune est une
+ * Opérations du mode RDD sur une table (sujets 179, 180) : champs, couleur d'entête, taille (L, M, S). Chacune est une
  * opération de mode (une étape d'annulation) ; la forme garde la taille de son contenu (sujet 247).
  */
 
@@ -48,10 +48,10 @@ export function fitTable(edit: ModeEdit, shape: ShapeModel, changes: Partial<Tab
   const bounds = {
     ...shape.bounds,
     width: tableSize(tableWidth(kind, content, edit.measureText), edit.gridSize),
-    height: roundSize(tableHeight(kind, content.secondary, content.fields.length)),
+    height: roundSize(tableHeight(kind, content.level, content.fields.length)),
   };
   edit.setShapeBounds(shape.id, bounds);
-  placeArrivals(edit, bounds, content.secondary, content.fields);
+  placeArrivals(edit, bounds, content.level, content.fields);
 }
 
 /** Nom en base d'une table (sujets 413, 414) : vide le retire ; la table a sa place (`fitTable`). */
@@ -170,22 +170,23 @@ export function moveField(edit: ModeEdit, shape: ShapeModel, from: number, slot:
   const moved = tableKindOf(shape) ? movedFields(tableFields(shape), from, slot) : undefined;
   if (!moved) return undefined;
   edit.setElementAttribute(shape.id, FIELDS, fieldsValue(moved.fields));
-  placeArrivals(edit, shape.bounds, isSecondary(shape), moved.fields);
+  placeArrivals(edit, shape.bounds, tableLevel(shape), moved.fields);
   return moved.index;
 }
 
 /**
- * Table secondaire : la forme prend la taille de son contenu à la nouvelle échelle (× 0,8), depuis son coin
- * haut-gauche ; entête et taille du nom suivent dans le style, pour draw.io.
+ * Taille de la table (sujet 430, `L` : attribut retiré) : la forme prend la taille de son contenu à la nouvelle échelle,
+ * depuis son coin haut-gauche ; entête et taille du nom suivent dans le style, pour draw.io.
  */
-export function setSecondary(edit: ModeEdit, shape: ShapeModel, secondary: boolean): void {
+export function setTableLevel(edit: ModeEdit, shape: ShapeModel, level: TableLevel): void {
   const kind = tableKindOf(shape);
-  if (!kind || isSecondary(shape) === secondary) return;
-  edit.setElementAttribute(shape.id, SECONDARY, secondary ? '1' : undefined);
-  if (kind.rules.fields) fitTable(edit, shape, { secondary });
+  const previous = tableLevel(shape);
+  if (!kind || previous === level) return;
+  edit.setElementAttribute(shape.id, SIZE, level === 'L' ? undefined : level);
+  if (kind.rules.fields) fitTable(edit, shape, { level });
   else {
     // Taille libre (document, sujet 269) : la taille réglée passe à la nouvelle échelle.
-    const ratio = secondaryScale(secondary) / secondaryScale(!secondary);
+    const ratio = levelScale(level) / levelScale(previous);
     const { width, height } = shape.bounds;
     edit.setShapeBounds(shape.id, {
       ...shape.bounds,
@@ -193,6 +194,6 @@ export function setSecondary(edit: ModeEdit, shape: ShapeModel, secondary: boole
       height: roundSize(height * ratio),
     });
   }
-  edit.setElementStyle(shape.id, 'startSize', String(roundSize(headerHeight(secondary))));
-  edit.setElementStyle(shape.id, 'fontSize', String(roundSize(TABLE.nameSize * secondaryScale(secondary))));
+  edit.setElementStyle(shape.id, 'startSize', String(roundSize(headerHeight(level))));
+  edit.setElementStyle(shape.id, 'fontSize', String(roundSize(TABLE.nameSize * levelScale(level))));
 }

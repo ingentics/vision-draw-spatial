@@ -8,21 +8,23 @@ import { layerFieldTexts, physicalMissing, physicalName } from './physicalLayer'
 import { keys } from '../keys';
 
 /**
- * Mise en page des tables du mode RDD (sujets 247, 248, 253, 263, 264) : tailles, échelle d'une table secondaire,
+ * Mise en page des tables du mode RDD (sujets 247, 248, 253, 263, 264) : tailles, échelle d'une table (L, M, S),
  * largeur calculée du contenu, lignes des champs.
  */
 
-/** Table secondaire (`1`) : rendu 20 % plus petit. */
-export const SECONDARY = 'secondary';
-/** Échelle d'une table secondaire. */
-const SECONDARY_SCALE = 0.8;
+/** Attribut de la taille d'une table (sujet 430) : `M` ou `S` ; absent (ou autre valeur) : `L`. */
+export const SIZE = 'size';
+/** Taille d'une table : `L` (normale), `M` (20 % plus petite), `S` (encore 20 % plus petite). */
+export type TableLevel = 'L' | 'M' | 'S';
+/** Échelle de chaque taille de table, dans l'ordre du panneau. */
+export const LEVEL_SCALES: Readonly<Record<TableLevel, number>> = { L: 1, M: 0.8, S: 0.64 };
 
 /** Attribut d'une vue matérialisée (sujet 272). */
 export const MATERIALIZED = 'materialized';
 /** Attribut d'une vue privée (sujet 342) : clé à gauche du nom. */
 export const PRIVATE = 'private';
 
-/** Tailles d'une table principale, en pixels de page (× `SECONDARY_SCALE` pour une table secondaire). */
+/** Tailles d'une table en `L`, en pixels de page (× `LEVEL_SCALES` pour les autres tailles). */
 export const TABLE = {
   /** Entête : le nom. */
   header: 26,
@@ -56,33 +58,47 @@ export const TABLE = {
   body: { size: 7, width: 200, height: 120 },
 } as const;
 
-export const isSecondary = (shape: ShapeModel) => keys.flag(shape, SECONDARY);
+/** Taille voisine, d'un cran vers `S` (`1`) ou vers `L` (`-1`) ; la même au bout. */
+export function steppedLevel(level: TableLevel, step: 1 | -1): TableLevel {
+  const levels = Object.keys(LEVEL_SCALES) as TableLevel[];
+  return levels[levels.indexOf(level) + step] ?? level;
+}
+
+/** Valeur d'une taille de table ? */
+export const isTableLevel = (value: string | undefined): value is TableLevel =>
+  value !== undefined && Object.prototype.hasOwnProperty.call(LEVEL_SCALES, value);
+
+/** Taille de la table `shape` ; un ancien `spatial.rdd.secondary` est ignoré (sans migration, sujet 430). */
+export function tableLevel(shape: ShapeModel): TableLevel {
+  const value = keys.value(shape, SIZE);
+  return isTableLevel(value) ? value : 'L';
+}
 
 /** Icône d'entête à gauche du nom (sujet 342) : la clé d'une vue privée ; aucune sinon. */
 export const leftMark = (shape: ShapeModel): HeaderMark | undefined =>
   shape.kind === 'rdd-view' && keys.flag(shape, PRIVATE) ? 'key' : undefined;
 
-/** Échelle d'une table, secondaire ou non. */
-export const secondaryScale = (secondary: boolean): number => (secondary ? SECONDARY_SCALE : 1);
+/** Échelle d'une taille de table. */
+export const levelScale = (level: TableLevel): number => LEVEL_SCALES[level];
 
 /** Échelle de la table `shape`. */
-export const tableScale = (shape: ShapeModel): number => secondaryScale(isSecondary(shape));
+export const tableScale = (shape: ShapeModel): number => levelScale(tableLevel(shape));
 
-/** Arrondi des tailles écrites, au centième (échelle 0,8 : pas de traîne de flottants). */
+/** Arrondi des tailles écrites, au centième (échelles 0,8 et 0,64 : pas de traîne de flottants). */
 export const roundSize = (value: number): number => Math.round(value * 100) / 100;
 
 /** Hauteur de l'entête, à l'échelle de la table. */
-export function headerHeight(secondary: boolean): number {
-  return TABLE.header * secondaryScale(secondary);
+export function headerHeight(level: TableLevel): number {
+  return TABLE.header * levelScale(level);
 }
 
 /**
  * Hauteur de la table pour `count` champs : entête et une ligne par champ (au moins une ligne vide), plus la place de
  * la vague d'un bas ondulé.
  */
-export function tableHeight(kind: TableKind, secondary: boolean, count: number): number {
+export function tableHeight(kind: TableKind, level: TableLevel, count: number): number {
   const rows = Math.max(1, count) * TABLE.row + (kind.look.wavy ? 2 * TABLE.wave : 0);
-  return headerHeight(secondary) + rows * secondaryScale(secondary);
+  return headerHeight(level) + rows * levelScale(level);
 }
 
 /**
@@ -98,7 +114,7 @@ export const MARK_INSET = TABLE.mark.margin + TABLE.mark.width * TABLE.mark.zoom
 export function nameZone(shape: ShapeModel): Rect {
   const { x, y, width } = shape.bounds;
   const inset = shownMark(shape) ? Math.min(MARK_INSET * tableScale(shape), width / 2) : 0;
-  return { x: x + inset, y, width: width - 2 * inset, height: headerHeight(isSecondary(shape)) };
+  return { x: x + inset, y, width: width - 2 * inset, height: headerHeight(tableLevel(shape)) };
 }
 
 /** Abscisse du label d'un champ depuis le bord gauche de la table, à l'échelle 1 : après l'icône de kind. */
@@ -149,7 +165,7 @@ export interface TableContent {
   /** Nom en base d'une table qui a une couche physique (sujet 414) ; absent : le nom, en italique. */
   physicalName?: string;
   fields: readonly TableRow[];
-  secondary: boolean;
+  level: TableLevel;
   mark: boolean;
 }
 
@@ -158,7 +174,7 @@ export const tableContent = (shape: ShapeModel): TableContent => ({
   name: tableName(shape),
   physicalName: physicalName(shape),
   fields: tableFields(shape),
-  secondary: isSecondary(shape),
+  level: tableLevel(shape),
   mark: shownMark(shape) !== undefined,
 });
 
@@ -168,8 +184,8 @@ const nameWidth = (name: string, italic: boolean, measure: MeasureText): number 
 
 /**
  * Largeur d'une table (sujet 247) : celle de son nom (gras, plus la place de l'icône d'entête de chaque côté) ou de
- * son plus long champ (icône, label et type), marges comprises, au moins `TABLE.minWidth` ; à l'échelle d'une table
- * secondaire. Mesurée à l'échelle 1 puis réduite, comme le reste de la table. Une table qui a une couche physique a la
+ * son plus long champ (icône, label et type), marges comprises, au moins `TABLE.minWidth` ; à l'échelle de la taille
+ * de la table. Mesurée à l'échelle 1 puis réduite, comme le reste de la table. Une table qui a une couche physique a la
  * place des textes des deux couches (sujet 414) : basculer ne la change pas.
  */
 export function tableWidth(kind: TableKind, content: TableContent, measure: MeasureText): number {
@@ -186,7 +202,7 @@ export function tableWidth(kind: TableKind, content: TableContent, measure: Meas
   ]);
   const header = name + 2 * (TABLE.padding + (content.mark ? MARK_INSET : 0));
   const width = Math.ceil(Math.max(TABLE.minWidth, header, ...fields));
-  return width * secondaryScale(content.secondary);
+  return width * levelScale(content.level);
 }
 
 /**
@@ -197,23 +213,23 @@ export const tableSize = (value: number, gridSize: number): number => ceilToGrid
 
 /**
  * Ligne du champ `index` (pixels de page), sous l'entête, sur toute la largeur de la table (sujet 249) ; `bounds` et
- * `secondary` : ceux de la table, ou ceux qu'une opération vient d'écrire.
+ * `level` : ceux de la table, ou ceux qu'une opération vient d'écrire.
  */
-export function fieldRowIn(bounds: Rect, secondary: boolean, index: number): Rect {
-  const row = TABLE.row * secondaryScale(secondary);
+export function fieldRowIn(bounds: Rect, level: TableLevel, index: number): Rect {
+  const row = TABLE.row * levelScale(level);
   const { x, y, width } = bounds;
-  return { x, y: y + headerHeight(secondary) + row * index, width, height: row };
+  return { x, y: y + headerHeight(level) + row * index, width, height: row };
 }
 
 /** Ligne du champ `index` de la table `shape` (pixels de page). */
-export const fieldRow = (shape: ShapeModel, index: number): Rect => fieldRowIn(shape.bounds, isSecondary(shape), index);
+export const fieldRow = (shape: ShapeModel, index: number): Rect => fieldRowIn(shape.bounds, tableLevel(shape), index);
 
 /** Zone du corps d'un document (sujet 269) : sous l'entête, dans les marges des champs. */
 export function bodyZone(shape: ShapeModel): Rect {
   const scale = tableScale(shape);
   const padding = TABLE.padding * scale;
   const { x, y, width, height } = shape.bounds;
-  const top = y + Math.min(height, headerHeight(isSecondary(shape))) + padding / 2;
+  const top = y + Math.min(height, headerHeight(tableLevel(shape))) + padding / 2;
   return {
     x: x + padding,
     y: top,

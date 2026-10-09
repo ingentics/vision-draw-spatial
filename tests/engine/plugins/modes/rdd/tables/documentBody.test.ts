@@ -3,7 +3,7 @@ import { definition as rdd } from '../../../../../../src/engine/plugins/modes/rd
 import { fieldParts } from '../../../../../../src/engine/plugins/modes/rdd/editing/fieldParts';
 import { fieldHandles } from '../../../../../../src/engine/plugins/modes/rdd/editing/fieldHandles';
 import { BODY_PART, documentBody, setBody } from '../../../../../../src/engine/plugins/modes/rdd/tables/documentBody';
-import { setSecondary } from '../../../../../../src/engine/plugins/modes/rdd/tables/operations';
+import { setTableLevel } from '../../../../../../src/engine/plugins/modes/rdd/tables/operations';
 import { tableFields } from '../../../../../../src/engine/plugins/modes/rdd/tables/fieldModel';
 import { createDefaultRegistry } from '../../../../../../src/engine/plugins';
 import { writeDrawio } from '../../../../../../src/engine/core/format/write';
@@ -100,7 +100,7 @@ describe('mode RDD : corps en texte libre d’un document (sujets 269, 352)', ()
     }
   });
 
-  it('taille libre : redimensionnable, taille par défaut à la pose, gardée au renommage ; secondaire : × 0,8', () => {
+  it('taille libre : redimensionnable, taille par défaut à la pose, gardée au renommage ; taille M : × 0,8', () => {
     const { run, shape } = setup();
     const registry = createDefaultRegistry();
     expect(registry.isResizable(shape('settings'))).toBe(true);
@@ -109,9 +109,9 @@ describe('mode RDD : corps en texte libre d’un document (sujets 269, 352)', ()
     const bounds = shape('settings').bounds;
     run((edit) => rdd.gestures!.relabeled!(edit, 'settings'));
     expect(shape('settings').bounds).toEqual(bounds);
-    run((edit) => setSecondary(edit, shape('settings'), true));
+    run((edit) => setTableLevel(edit, shape('settings'), 'M'));
     expect(shape('settings').bounds).toEqual({ ...bounds, width: 128, height: 52.8 });
-    run((edit) => setSecondary(edit, shape('settings'), false));
+    run((edit) => setTableLevel(edit, shape('settings'), 'L'));
     expect(shape('settings').bounds).toEqual(bounds);
   });
 });
