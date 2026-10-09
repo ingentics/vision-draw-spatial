@@ -76,6 +76,8 @@ export function useEngineEvents({
         setDocument(doc);
         setError(undefined);
         setReport(instance.getUnsupportedReport());
+        // Fichier chargé (rechargement de la page, ouverture) : les touches vont à la zone de dessin (sujet 419).
+        instance.focusCanvas();
       });
       const refreshBack = () => setParentPages(instance.getParentPages());
       // La barre du courant du mode part au début d'une transition et n'arrive qu'à sa fin.
