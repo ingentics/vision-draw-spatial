@@ -51,8 +51,9 @@ export const definition: PageModeDefinition = {
   page: {
     viewModes: ['top'],
     palette: {
-      // Toutes les tables, la région (sujet 182), puis Texte et Titre ; le modèle abstrait, sans élément de palette, n'y apparaît pas.
-      shapes: [...Object.keys(TABLE_KINDS), REGION_KIND, 'text', 'title'],
+      // Toutes les tables, la région (sujet 182), puis Texte, Titre et Post-it (sujet 412) ; le modèle abstrait, sans
+      // élément de palette, n'y apparaît pas.
+      shapes: [...Object.keys(TABLE_KINDS), REGION_KIND, 'text', 'title', 'post-it'],
       categories: [{ id: 'rdd', name: 'RDB Designer', order: 5 }],
     },
     properties: [

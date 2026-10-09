@@ -19,7 +19,7 @@ describe('mode RDD (sujet 179) : page et palette', () => {
     expect(registry.selectionStyle({ kind: 'text' } as ShapeModel)).toBeUndefined();
   });
 
-  it('2D seulement, palette réduite aux tables, à la région, au texte et au titre', () => {
+  it('2D seulement, palette réduite aux tables, à la région, au texte, au titre et au post-it (sujet 412)', () => {
     expect(modes.modeOf(page())?.id).toBe('rdd');
     expect(modes.allowsViewMode(page(), 'top')).toBe(true);
     expect(modes.allowsViewMode(page(), 'iso')).toBe(false);
@@ -35,6 +35,7 @@ describe('mode RDD (sujet 179) : page et palette', () => {
       ['rdd-region', 'Région'],
       ['text', 'Texte'],
       ['title', 'Titre'],
+      ['post-it', 'Post-it'],
     ]);
   });
 
