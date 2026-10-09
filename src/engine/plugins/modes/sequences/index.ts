@@ -1,4 +1,4 @@
-import type { EdgeModel, ModeKey, PageModeDefinition } from '../../../core/plugins';
+import type { EdgeModel, ModeEdit, ModeKey, PageModel, PageModeDefinition } from '../../../core/plugins';
 import { byId, edgeOf, numberValue, styleFlag } from '../../../core/plugins';
 import { FLOW, PARTICIPANT, STEP, flowLabel } from './flows';
 import { SEQUENCES_KEYS } from './keys';
@@ -99,8 +99,8 @@ export const definition: PageModeDefinition = {
             icon: DIRECTION_ICONS.return,
           },
         ],
-        value: (page, target) => (styleFlag(edgeOf(page, target.id)?.style ?? {}, 'dashed') ? 'return' : 'call'),
-        write: (edit, target, value) => edit.setElementStyle(target.id, 'dashed', value === 'return' ? '1' : undefined),
+        value: (page, target) => (isReturn(page, target.id) ? 'return' : 'call'),
+        write: (edit, target, value) => setReturn(edit, target.id, value === 'return'),
         hidden: (page, target) => !sequenceState(page).placement.has(target.id),
       },
     ],
@@ -188,6 +188,12 @@ export const definition: PageModeDefinition = {
   keys: {
     '+': stepKey(+1),
     '-': stepKey(-1),
+    // « x » : bascule aller / retour de la flèche sélectionnée (sujet 429).
+    x: {
+      label: 'Sens',
+      applies: (page, target) => sequenceState(page).placement.has(target.id),
+      run: (edit, target) => setReturn(edit, target.id, !isReturn(edit.page, target.id)),
+    },
   },
   lifecycle: {
     check: (page) => sequenceState(page).issues,
@@ -195,6 +201,15 @@ export const definition: PageModeDefinition = {
   },
   pasteKeys: [FLOW, STEP],
 };
+
+/** La flèche est-elle un retour (pointillés, `dashed=1`) ? Le style draw.io est la source de vérité du sens. */
+function isReturn(page: PageModel, edgeId: string): boolean {
+  return styleFlag(edgeOf(page, edgeId)?.style ?? {}, 'dashed');
+}
+
+function setReturn(edit: ModeEdit, edgeId: string, back: boolean): void {
+  edit.setElementStyle(edgeId, 'dashed', back ? '1' : undefined);
+}
 
 /** « + » / « - » : rang suivant / précédent de la flèche sélectionnée (échange avec la voisine). */
 function stepKey(delta: 1 | -1): ModeKey {

@@ -1021,7 +1021,8 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   barre du flux », réglage `barSlideDuration` du mode, 200 ms, 0 = sans). Tout ce qui ne touche pas ses flèches (flèches hors du flux,
   formes qu'aucune ne relie) est estompé à 30 % (paramètre « Opacité hors du flux courant ») ; flux sans flèche :
   rien d'estompé. Une flèche tirée depuis une forme va à la fin du flux courant (même étape d'annulation). « + » / « - » sur
-  une flèche d'un flux sélectionnée seule : rang suivant / précédent. Cadre générique : `current`, `edges.created` et
+  une flèche d'un flux sélectionnée seule : rang suivant / précédent ; « x » : bascule aller / retour (`dashed`, sujet
+  429). Cadre générique : `current`, `edges.created` et
   `keys` de `PageModeDefinition` (et `pageKeys`, touches de page quand rien n'est sélectionné, le focus sur la zone
   de dessin : changent le courant sans rien écrire, sujet 415), courant gardé par le moteur (`getModeCurrent`, `getModeIndicator`, `setModeCurrent`, événement
   `modeCurrentChange`).

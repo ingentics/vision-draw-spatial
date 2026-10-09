@@ -197,6 +197,17 @@ describe('mode Séquences : réglages déclarés et habillage', () => {
     expect(edge(current(), 'lecture').style.dashed).toBeUndefined();
   });
 
+  it('« x » : bascule aller / retour de la flèche d’un flux ; flèche hors flux non concernée (sujet 429)', () => {
+    const { run, page: current } = setup();
+    const toggle = sequences.keys!.x!;
+    expect(toggle.applies(current(), edge(current(), 'libre'))).toBe(false);
+    expect(toggle.applies(current(), edge(current(), 'lecture'))).toBe(true);
+    run((edit) => toggle.run(edit, edge(current(), 'lecture'), 'f1'));
+    expect(edge(current(), 'lecture').style.dashed).toBe('1');
+    run((edit) => toggle.run(edit, edge(current(), 'lecture'), 'f1'));
+    expect(edge(current(), 'lecture').style.dashed).toBeUndefined();
+  });
+
   it('flèche d’un flux sélectionnée seule : ni voile ni contour ; avec d’autres ou hors flux : style de la page (sujet 427)', () => {
     const style = sequences.edges!.selectionStyle!;
     expect(style(page(), edge(page(), 'lecture'), 1)).toBe('none');
