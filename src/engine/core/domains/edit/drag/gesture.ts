@@ -7,6 +7,7 @@ import { movePlan, resizeBounds } from '../../../edit/movePlan';
 import type { ObstaclesOf } from '../../../edit/movePlan';
 import { connectSideOf, isConnectHandle } from '../../../edit/handleKinds';
 import { screenToPage } from '../../../interaction/cameraProjection';
+import { isBlockArrow } from '../../../render/edges/blockArrow';
 import type { PageModel, Point, Rect, ShapeModel } from '../../../model/types';
 import type { PickedElement } from '../../../interaction/pick';
 import type { Drag, MoveDrag } from './types';
@@ -102,7 +103,8 @@ export class DragGesture {
       this.handleDrag(page, screen, start, grid) ??
       // Partie sélectionnée saisie (ex. champ d'une table RDD, sujet 252) : elle se glisse, pas la forme.
       this.core.partDrags.grab(page, screen) ??
-      this.shapeDrag(page, pageTree, screen, start, grid);
+      this.shapeDrag(page, pageTree, screen, start, grid) ??
+      this.blockArrowDrag(page, pageTree, screen, start, grid);
     if (!drag) return false;
     this.active = drag;
     return true;
@@ -177,6 +179,34 @@ export class DragGesture {
       : [shape.id];
     const edgeIds = grabbedSelected ? selectedEdgeIds(items) : [];
     return this.moveDrag(page, pageTree, candidates, edgeIds, start, shape.bounds, grid);
+  }
+
+  /**
+   * Flèche pleine saisie par son corps (sujet 424) : elle se déplace en entier comme une forme, aimantée par sa queue,
+   * avec le reste de la sélection multiple si elle en fait partie. Les autres flèches ne se glissent que par leurs bouts.
+   */
+  private blockArrowDrag(
+    page: PageModel,
+    pageTree: PageTree,
+    screen: Point,
+    start: Point,
+    grid: number,
+  ): MoveDrag | undefined {
+    const picked = this.core.picking.pickAt(screen);
+    if (picked?.type !== 'edge' || !isBlockArrow(picked.element.style)) return undefined;
+    const ends = this.core.edgeHandles.edgeEndPoints(picked.element.id);
+    if (!ends) return undefined;
+    const selection = this.core.selection.current;
+    const items = selection?.pageId === page.id ? selection.items : [];
+    const grabbedSelected =
+      this.core.selection.isMultiSelection() &&
+      items.some((item) => item.type === 'edge' && item.element.id === picked.element.id);
+    const shapeIds = grabbedSelected ? this.movableShapes(page, pageTree, items).map((shape) => shape.id) : [];
+    const edgeIds = grabbedSelected ? selectedEdgeIds(items) : [picked.element.id];
+    const origin = { ...ends.source, width: 0, height: 0 };
+    const drag = this.moveDrag(page, pageTree, shapeIds, edgeIds, start, origin, grid);
+    // Flèche verrouillée : rien à déplacer.
+    return drag.edges.some((edge) => edge.id === picked.element.id) ? drag : undefined;
   }
 
   /**
