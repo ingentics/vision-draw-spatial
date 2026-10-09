@@ -33,6 +33,6 @@ export type ModeProperty = {
   hidden?(page: PageModel, target: ModeTarget, part?: string): boolean;
   /** Affiché sans être modifiable (ex. clé primaire d'une entité) ; selon la cible (ex. label de la clé, sujet 260). */
   readOnly?: boolean | ((page: PageModel, target: ModeTarget, part?: string) => boolean);
-  /** Section du panneau (titre) ; défaut : celle au nom du mode (sujet 260, ex. « PostgreSQL »). */
+  /** Section du panneau (titre) ; défaut : celle au nom du mode (sujet 260, ex. « Couche physique »). */
   section?: string;
 } & FieldOfType<'toggle' | 'number' | 'text' | 'choice' | 'button', ModeOptions>;

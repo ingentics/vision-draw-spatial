@@ -125,10 +125,12 @@ export const definition: PageModeDefinition = {
     reconnected: (edit, edgeId, part) => syncRelations(edit, undefined, undefined, arrivalOf(edgeId, part)),
   },
   gestures: {
-    // Table, puis ligne sélectionnée : champ (sections du mode, PostgreSQL, Gouvernance), séparateur (sujets 249, 253,
-    // 260), ou champ d'une relation embedded (formulaire de sa flèche, sujet 268) ; le bouton du séparateur en bas. Une
-    // région n'a pas de réglage du mode, sa couleur est dans la section Style (sujet 345).
+    // Table, puis ligne sélectionnée : champ (sections Couche logique, Couche physique, Gouvernance), séparateur (sujets
+    // 249, 253, 260, 413), ou champ d'une relation embedded (formulaire de sa flèche, sujet 268) ; le bouton du
+    // séparateur en bas. Une région n'a pas de réglage du mode, sa couleur est dans la section Style (sujet 345).
     properties: [...TABLE_PROPERTIES, ...FIELD_PROPERTIES, ADD_DIVIDER_PROPERTY],
+    // Toutes les tables : nom, commentaire et réglages du modèle en une section, face à la couche physique (sujet 413).
+    mainSection: { title: 'Couche logique', kinds: Object.keys(TABLE_KINDS) },
     // Une région emporte son contenu (sujet 182).
     carries: (page, shape) => regionContent(page, shape),
     // Une région ne passe pas sur ses sœurs (sujet 241).

@@ -8,7 +8,7 @@ import { Section } from '../PanelSection';
 import { ShapePropertyFields } from '../ShapeProperties';
 import { CommentField } from '../comment';
 import { useEnginePlugins } from '../pluginsContext';
-import { ElementModeSection } from './ModeSections';
+import { ElementModeSection, modeMainSection } from './ModeSections';
 import { DeleteButton, LabelRow, LinkField, StyleGrid } from './contextFields';
 import type { ContextPanelProps } from './types';
 
@@ -17,14 +17,23 @@ import type { ContextPanelProps } from './types';
 export function ShapeSections({ shape, ...props }: ContextPanelProps & { shape: ShapeModel }) {
   const plugins = useEnginePlugins();
   const known = [...props.styles.base, ...props.styles.extended];
+  const text = (
+    <>
+      <LabelRow label={shape.label} onEdit={props.onEditLabel} />
+      <CommentField comment={commentOf(shape)} onEdit={props.onEditComment} />
+    </>
+  );
+  // Section principale du mode (sujet 413) : le texte y passe, en tête, à la place de la section « Texte ».
+  const main = modeMainSection(plugins.modes.modeOf(props.page), shape);
   return (
     <>
-      <Section title="Texte">
-        <LabelRow label={shape.label} onEdit={props.onEditLabel} />
-        <CommentField comment={commentOf(shape)} onEdit={props.onEditComment} />
-      </Section>
+      {main ? (
+        <ElementModeSection {...props} element={shape} scope="shape" lead={text} />
+      ) : (
+        <Section title="Texte">{text}</Section>
+      )}
       <ShapeOwnSection shape={shape} onShapeStyle={props.onShapeStyle} onSpatial={props.onSpatial} />
-      <ElementModeSection {...props} element={shape} scope="shape" />
+      {!main && <ElementModeSection {...props} element={shape} scope="shape" />}
       <OrientSection shapes={[shape]} onOrient={props.onOrient} />
       <Section title="Style">
         <StyleGrid presets={props.styles.base} shape={shape} onApply={props.onApplyStyle} />

@@ -144,6 +144,12 @@ export interface ModeGestures {
   /** Réglages déclarés d'une forme ou de sa partie : affichés par des champs génériques du panneau. */
   properties?: ModeProperty[];
   /**
+   * Section principale du panneau des formes `kinds` (sujet 413, ex. « Couche logique » d'une table RDD) : texte et
+   * commentaire de la forme, puis ses réglages sans section ; titre aussi de ceux d'une partie. Absente : section
+   * « Texte », puis une section au nom du mode.
+   */
+  mainSection?: { title: string; kinds: readonly string[] };
+  /**
    * Formes emportées quand on déplace `shape` (ex. contenu d'une région RDD, sujet 182) : calculées, sans parent
    * draw.io. Elles bougent dans la même étape d'annulation, avec les flèches qui les relient entre elles.
    */

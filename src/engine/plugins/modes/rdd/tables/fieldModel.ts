@@ -52,7 +52,7 @@ export interface Field {
   unique?: boolean;
   /** Commentaire du champ (sujet 260). */
   comment?: string;
-  /** PostgreSQL (sujet 260) : nom de la colonne et son type (texte libre, ex. `varchar(255)`). */
+  /** Couche physique (sujets 260, 413) : nom de la colonne et son type (texte libre, ex. `varchar(255)`). */
   pgName?: string;
   pgType?: string;
   /** Gouvernance (sujet 260) : soumis au GDPR, donnée personnelle. */
@@ -89,7 +89,8 @@ export type FieldOption = (
   on(table: TableKind, field: Field): boolean;
 };
 
-const POSTGRESQL = 'PostgreSQL';
+/** Section du panneau des réglages de base de données d'une table et d'un champ (sujet 413). */
+export const PHYSICAL_LAYER = 'Couche physique';
 const GOVERNANCE = 'Gouvernance';
 
 /** Options d'un champ, dans l'ordre du panneau. */
@@ -122,16 +123,16 @@ export const FIELD_OPTIONS: readonly FieldOption[] = [
     key: 'pgName',
     type: 'text',
     label: 'Nom du champ',
-    title: 'Nom de la colonne PostgreSQL',
-    section: POSTGRESQL,
+    title: 'Nom de la colonne en base (spatial.rdd.pgName)',
+    section: PHYSICAL_LAYER,
     on: () => true,
   },
   {
     key: 'pgType',
     type: 'text',
     label: 'Type',
-    title: 'Type PostgreSQL de la colonne (texte libre, ex. varchar(255), uuid)',
-    section: POSTGRESQL,
+    title: 'Type de la colonne en base (spatial.rdd.pgType, texte libre, ex. varchar(255), uuid)',
+    section: PHYSICAL_LAYER,
     on: () => true,
   },
   {
@@ -213,7 +214,7 @@ export const PRIMARY_KEY = 'id';
 
 /**
  * Clé primaire d'une table qui en a une : premier champ, `id`, du type imposé par la table (sujet 260), jamais nullable
- * ni unique (elle l'est par nature), ni retirée ni déplacée ; ses autres propriétés (commentaire, PostgreSQL,
+ * ni unique (elle l'est par nature), ni retirée ni déplacée ; ses autres propriétés (commentaire, couche physique,
  * gouvernance) sont gardées.
  */
 export const primaryKeyField = (type: KeyType, from?: Field): Field => ({

@@ -38,7 +38,7 @@ export interface RelationField {
   texts?: readonly RelationFieldText[];
   /**
    * Le champ n'est que la trace de la relation (embedded) : sélectionné, il montre les textes de sa flèche à la place
-   * des réglages d'un champ (type, Optionnel, PostgreSQL, Gouvernance), et reste optionnel.
+   * des réglages d'un champ (type, Optionnel, Couche physique, Gouvernance), et reste optionnel.
    */
   ownedByEdge?: boolean;
 }

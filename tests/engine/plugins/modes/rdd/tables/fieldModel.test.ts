@@ -81,7 +81,7 @@ describe('mode RDD : options d’un champ déclarées (sujet 277)', () => {
     ).toEqual([true, true, true, false]);
   });
 
-  it('commentaire et PostgreSQL : tout champ, clé primaire comprise, sur toute table', () => {
+  it('commentaire et couche physique : tout champ, clé primaire comprise, sur toute table', () => {
     for (const name of ['comment', 'pgName', 'pgType'])
       expect([option(name).on(view, property), option(name).on(entity, key)], name).toEqual([true, true]);
   });

@@ -37,7 +37,7 @@ describe('mode RDD : champ sélectionné dans sa table (sujet 249)', () => {
         .properties(page(), 'shape', part)
         .filter((property) => !property.hidden?.(page(), shape('user'), part))
         .map((property) => [property.label, property.value?.(page(), shape('user'), part)]);
-    // Sujet 260 : plus de « Rôle », « Optionnel » (ancien « Nullable »), « Unique », commentaire ; PostgreSQL et
+    // Sujet 260 : plus de « Rôle », « Optionnel » (ancien « Nullable »), « Unique », commentaire ; Couche physique et
     // Gouvernance en sections à part.
     expect(shown('1')).toEqual([
       ['Champ', 'email'],
@@ -55,7 +55,7 @@ describe('mode RDD : champ sélectionné dans sa table (sujet 249)', () => {
       .properties(page(), 'shape', '1')
       .filter((property) => !property.hidden?.(page(), shape('user'), '1'))
       .map((property) => property.section);
-    expect([...new Set(sections)]).toEqual([undefined, 'PostgreSQL', 'Gouvernance']);
+    expect([...new Set(sections)]).toEqual([undefined, 'Couche physique', 'Gouvernance']);
     // Clé primaire : `id` en lecture seule, son type imposé, ni optionnel ni unique.
     expect(shown('0')).toEqual([
       ['Champ', 'id'],
@@ -76,7 +76,12 @@ describe('mode RDD : champ sélectionné dans sa table (sujet 249)', () => {
         label.readOnly(page(), shape('user'), '1'),
       ],
     ).toEqual([true, false]);
-    expect(shown().map(([label]) => label)).toEqual(['Table secondaire', 'Clé primaire', 'Ajouter un séparateur']);
+    expect(shown().map(([label]) => label)).toEqual([
+      'Nom de la table',
+      'Table secondaire',
+      'Clé primaire',
+      'Ajouter un séparateur',
+    ]);
   });
 
   it('réglages du champ écrits par le panneau', () => {

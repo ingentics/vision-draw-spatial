@@ -41,6 +41,8 @@ export interface TableRules {
   body?: boolean;
   /** Champs calculés (vue) : ni « Optionnel » ni « Gouvernance » au panneau d'un champ (sujet 272). */
   derived?: boolean;
+  /** Nom de la table en base, réglable au panneau (sujet 413 : entité, énumération, vue). */
+  physicalName?: boolean;
   /** Options de table permises (`TABLE_OPTIONS`). */
   options: readonly TableOptionKey[];
 }
@@ -66,10 +68,10 @@ const PLAIN: TableRules = { fields: true, options: ['secondary'] };
  */
 export const TABLE_KINDS: Record<TableKindId, TableKind> = {
   'rdd-model': { look: { italic: true }, rules: PLAIN },
-  'rdd-entity': { look: {}, rules: { ...PLAIN, primaryKey: 'primary-key', uniqueFields: true } },
+  'rdd-entity': { look: {}, rules: { ...PLAIN, primaryKey: 'primary-key', uniqueFields: true, physicalName: true } },
   'rdd-enum': {
     look: { doubleHeader: true, mark: 'list' },
-    rules: { ...PLAIN, primaryKey: 'word', uniqueFields: true },
+    rules: { ...PLAIN, primaryKey: 'word', uniqueFields: true, physicalName: true },
   },
   // Sujet 181 : objet incorporé (bas ondulé, sujet 219), document (corps en texte libre, sujet 269), vue (coins arrondis).
   'rdd-embedded': { look: { wavy: true, mark: 'plug' }, rules: { ...PLAIN, uniqueFields: true } },
@@ -79,7 +81,7 @@ export const TABLE_KINDS: Record<TableKindId, TableKind> = {
   },
   'rdd-view': {
     look: { style: 'rounded=1;absoluteArcSize=1;arcSize=16;', mark: 'binoculars' },
-    rules: { ...PLAIN, derived: true, options: ['secondary', 'materialized', 'private'] },
+    rules: { ...PLAIN, derived: true, physicalName: true, options: ['secondary', 'materialized', 'private'] },
   },
 };
 

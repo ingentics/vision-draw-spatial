@@ -129,12 +129,19 @@ describe('modes de page en plugins (sujet 69)', () => {
       namespace: 'v',
       name: 'V',
       page: { selectionStyle: 'outline', viewModes: ['top'] },
+      gestures: { mainSection: { title: 'Logique', kinds: ['v-table'] }, carries: () => [] },
       dressing: () => ({}),
       lifecycle: { check: () => [] },
     });
     const view = registry.view();
     const info = view.modeOf(page({ [SPATIAL.mode]: 'v' }))!;
-    expect(info).toEqual({ id: 'v', name: 'V', selectionStyle: 'outline' });
+    // Section principale du panneau (sujet 413) : une donnée, lue telle quelle par l'appli.
+    expect(info).toEqual({
+      id: 'v',
+      name: 'V',
+      selectionStyle: 'outline',
+      mainSection: { title: 'Logique', kinds: ['v-table'] },
+    });
     expect(Object.isFrozen(info)).toBe(true);
     expect(view).not.toHaveProperty('register');
     expect(view.allowsViewMode(page({ [SPATIAL.mode]: 'v' }), 'iso')).toBe(false);

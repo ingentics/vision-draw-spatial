@@ -901,9 +901,13 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     dessiné s'il est dans un fichier.
   - Table neuve au style « Gris » : entête `#f5f5f5`, bordure `#666666`, texte de l'entête `#333333` (`fontColor`, suivi
     par le rendu ; sans lui, noir ou blanc selon le contraste).
-  - Réglages du mode sur une table : « Table secondaire » (`spatial.rdd.secondary` : tailles × 0,8). La couleur de
-    l'entête vient du style de la forme (panneau « Style », sujet 260). Pas de section « Volume » (mode sans iso ni
-    3D).
+  - Panneau d'une table (toutes les formes de table, sujet 413) : section principale « Couche logique » en tête — texte,
+    commentaire, puis les réglages du mode sans section — à la place des sections « Texte » et « RDB Designer »
+    (`gestures.mainSection` du mode : titre et formes concernées) ; celle d'un champ sélectionné porte le même titre.
+  - Réglages du mode sur une table : « Table secondaire » (`spatial.rdd.secondary` : tailles × 0,8). Entité,
+    énumération et vue : section « Couche physique » avec « Nom de la table » (`spatial.rdd.dbName`, nom en base de la
+    table ou de la vue, sujet 413), suivi de « Matérialisé » pour une vue. La couleur de l'entête vient du style de la
+    forme (panneau « Style », sujet 260). Pas de section « Volume » (mode sans iso ni 3D).
   - Sélection : la page RDD suit le paramètre « Style » de la mise en valeur ; les tables imposent le contour
     (`ShapeDefinition.selectionStyle`, sujets 254, 350), la région aucune seule et le contour à plusieurs (sujet 346).
   - Ajouter un champ (sujet 250) : table sélectionnée, poignée verte « + » sous la table, au milieu (les tables n'ont
@@ -941,9 +945,9 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     la même pré-sélection (rien s'il est lui-même sélectionné).
   - Champ sélectionné (sujet 249) : un clic sur une ligne de champ la sélectionne, la table sélectionnée ou non (fond
     léger et trait de la couleur d'accent sur la ligne) ; un clic sur l'entête revient à la table, Échap aussi. Le
-    panneau ne montre alors que le champ, en trois sections (sujet 260) : celle du mode — « Champ » (label), « Type »
+    panneau ne montre alors que le champ, en trois sections (sujet 260) : « Couche logique » (sujet 413) — « Champ » (label), « Type »
     (« Aucun » ou un des sept types, sujet 256), « Optionnel » (`nullable`), « Unique » (`unique` ; entité,
-    énumération, embedded), « Commentaire » (`comment`, zone de texte sous son libellé, sur toute la largeur) — ; « PostgreSQL » — « Nom du champ » (`pgName`), « Type »
+    énumération, embedded), « Commentaire » (`comment`, zone de texte sous son libellé, sur toute la largeur) — ; « Couche physique » (sujet 413) — « Nom du champ » (`pgName`), « Type »
     (`pgType`, texte libre) — ; « Gouvernance » — « GDPR » (`gdpr`), « Donnée personnelle » (`personal`). Ces clés ne
     sont écrites que si elles sont renseignées. Le kind reste dans les données sans être réglable ici. Clé primaire :
     toujours `id`, type imposé « Primary key » (entité) ou « Mot » (énumération), hors de la liste des types ; ni

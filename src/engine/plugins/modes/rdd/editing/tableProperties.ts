@@ -1,6 +1,6 @@
 import type { ModeEdit, ModeProperty, ModeTarget, ShapeModel } from '../../../../core/plugins';
 import { isToggled, toggleValue } from '../../../../core/plugins';
-import { tableFields } from '../tables/fieldModel';
+import { PHYSICAL_LAYER, tableFields } from '../tables/fieldModel';
 import { documentBody, hasBody, setBody } from '../tables/documentBody';
 import { addDivider, setSecondary } from '../tables/operations';
 import type { TableKind, TableOptionKey } from '../tables/tableKinds';
@@ -9,7 +9,10 @@ import { MATERIALIZED, PRIVATE, SECONDARY } from '../tables/tableLayout';
 import { rowOf, tableOf } from './tableTargets';
 import { keys } from '../keys';
 
-/** Réglages d'une table RDD sélectionnée (sujets 179, 253, 260) : table secondaire, clé primaire, ajout d'un séparateur. */
+/**
+ * Réglages d'une table RDD sélectionnée (sujets 179, 253, 260, 413) : nom en base, table secondaire, clé primaire, ajout
+ * d'un séparateur.
+ */
 
 /** Cible qui n'est pas une table à champs (autre forme, document). */
 const notFieldTable = (_page: unknown, target: ModeTarget) => {
@@ -67,7 +70,7 @@ export const TABLE_OPTIONS: readonly TableOption[] = [
     attribute: MATERIALIZED,
     label: 'Matérialisé',
     title: 'Vue matérialisée (spatial.rdd.materialized) : CREATE MATERIALIZED VIEW',
-    section: 'PostgreSQL',
+    section: PHYSICAL_LAYER,
     on: (table) => table.rules.options.includes('materialized'),
   },
   {
@@ -108,8 +111,23 @@ const tableOptionProperty = (option: TableOption): ModeProperty => ({
   hidden: (_page, target) => !optionTable(option, target),
 });
 
+/** Table sélectionnée qui a un nom en base (sujet 413). */
+const physicalTable = (target: ModeTarget) => {
+  const shape = tableOf(target);
+  return shape && tableKindOf(shape)?.rules.physicalName ? shape : undefined;
+};
+
 /** Réglages de la table, avant ceux de la ligne sélectionnée. */
 export const TABLE_PROPERTIES: ModeProperty[] = [
+  {
+    // Avant les options : premier de la section « Couche physique », devant « Matérialisé » d'une vue.
+    type: 'text',
+    key: 'dbName',
+    section: PHYSICAL_LAYER,
+    label: 'Nom de la table',
+    title: 'Nom de la table ou de la vue en base (spatial.rdd.dbName)',
+    hidden: (_page, target) => !physicalTable(target),
+  },
   ...TABLE_OPTIONS.map(tableOptionProperty),
   {
     type: 'text',

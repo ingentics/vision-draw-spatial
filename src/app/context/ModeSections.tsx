@@ -1,5 +1,6 @@
 import { modePalette } from '../../engine';
-import type { ModeScope, ModeTarget, PageModel, StyleSettings } from '../../engine';
+import type { ReactNode } from 'react';
+import type { ModeInfo, ModeScope, ModeTarget, PageModel, StyleSettings } from '../../engine';
 import { ChoiceGroup } from '../ChoiceGroup';
 import { ModeIcon } from '../ModeIcon';
 import { Section } from '../PanelSection';
@@ -126,24 +127,37 @@ function ModeFields({
 }
 
 /**
- * Sections des réglages du mode de la page sur un élément (flèche ou forme), s'il en déclare : celle au nom du mode,
- * puis une par `section` déclarée (sujet 260), dans l'ordre des réglages.
+ * Section principale déclarée par le mode pour cet élément (sujet 413, ex. « Couche logique ») : elle reprend le texte
+ * et le commentaire de la forme ; undefined = section « Texte », puis celle au nom du mode.
+ */
+export function modeMainSection(mode: ModeInfo | undefined, element: ModeTarget): string | undefined {
+  const main = mode?.mainSection;
+  return 'kind' in element && main?.kinds.includes(element.kind) ? main.title : undefined;
+}
+
+/**
+ * Sections des réglages du mode de la page sur un élément (flèche ou forme), s'il en déclare : celle au nom du mode
+ * (ou la section principale du mode, sujet 413), puis une par `section` déclarée (sujet 260), dans l'ordre des
+ * réglages. `lead` : en tête de la première section, qui est alors montrée même sans réglage (texte de la forme).
  */
 export function ElementModeSection({
   element,
   scope,
+  lead,
   ...props
-}: ContextPanelProps & { element: ModeTarget; scope: ModeScope }) {
+}: ContextPanelProps & { element: ModeTarget; scope: ModeScope; lead?: ReactNode }) {
   const plugins = useEnginePlugins();
   const mode = plugins.modes.modeOf(props.page);
   const part = scope === 'shape' ? props.part : undefined;
   const shown = plugins.modePropertyViews(props.page, scope, element, part);
-  if (!mode || shown.length === 0) return null;
-  const sections = [...new Set(shown.map((view) => view.property.section))];
+  if (!mode || (shown.length === 0 && !lead)) return null;
+  const declared = new Set(shown.map((view) => view.property.section));
+  const sections = lead ? [undefined, ...[...declared].filter((section) => section !== undefined)] : [...declared];
   return (
     <>
       {sections.map((section) => (
-        <Section key={section ?? ''} title={section ?? mode.name}>
+        <Section key={section ?? ''} title={section ?? modeMainSection(mode, element) ?? mode.name}>
+          {section === undefined && lead}
           <ModeFields
             page={props.page}
             scope={scope}

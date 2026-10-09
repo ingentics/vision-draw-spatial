@@ -23,6 +23,8 @@ export type ModeInfo = Readonly<
   Pick<PageModeDefinition, 'id' | 'name' | 'shortName' | 'description' | 'icon' | 'settings'> & {
     /** Mise en valeur de la sélection imposée sur une page du mode (`page.selectionStyle`). */
     selectionStyle?: Exclude<SelectionStyle, 'none'>;
+    /** Section principale du panneau de ses formes (`gestures.mainSection`, sujet 413). */
+    mainSection?: NonNullable<PageModeDefinition['gestures']>['mainSection'];
   }
 >;
 
@@ -92,6 +94,7 @@ export class PageModeRegistry {
         icon: mode.icon,
         settings: mode.settings,
         selectionStyle: mode.page?.selectionStyle,
+        mainSection: mode.gestures?.mainSection,
       });
     return {
       list: () => this.list().map(info),

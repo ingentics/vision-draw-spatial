@@ -72,6 +72,7 @@ interface PageModeDefinition {
   };
   gestures?: {                                 // les formes et les gestes sur elles (section 5)
     properties?: ModeProperty[];               // réglages déclarés d'une forme ou de sa partie (section 3)
+    mainSection?: { title, kinds };            // section principale de ces formes : texte, commentaire, réglages
     carries?(page, shape): string[];           // formes emportées quand on déplace `shape` (ex. région RDD)
     obstacles?(page, shape, values): ModeObstacles; // bornes d'un déplacement / redimensionnement (ex. régions sœurs)
     placed?(edit, shapeIds, before?): void;    // formes déplacées ou ajoutées (ex. région RDD agrandie)
@@ -314,5 +315,6 @@ Règles communes (sujet 288) :
 | **Réglages déclarés** | | | | |
 | `page.properties` | panneau de la page : `hidden`, `value`, `readOnly`, `options` évalués par le moteur (sujet 294) ; `write` : opération | page du modèle (`write` : opération) | une étape au titre du réglage ; réglage en direct (`live`) : une étape par saisie | réglage montré, valeur de l'attribut, modifiable, sans choix ; `write` : rien d'écrit |
 | `edges.properties` | panneau d'une flèche, comme `page.properties` | idem | idem | idem |
+| `gestures.mainSection` | panneau d'une forme `kinds` ou de sa partie : titre de la section principale, qui reprend texte et commentaire | — | — | — |
 | `gestures.properties` | panneau d'une forme ou de sa partie sélectionnée (`part`), comme `page.properties` | idem | idem | idem |
 

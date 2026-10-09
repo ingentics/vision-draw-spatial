@@ -10,7 +10,7 @@ import { fieldOf, rowOf } from './tableTargets';
 
 /**
  * Réglages d'une ligne sélectionnée d'une table RDD (sujets 249, 253, 260) : section du mode (fonctionnel), puis
- * « PostgreSQL » et « Gouvernance » pour un champ ; le texte seul pour un séparateur.
+ * « Couche physique » et « Gouvernance » pour un champ ; le texte seul pour un séparateur.
  */
 
 const isKey = (target: ModeTarget, part?: string) => isPrimaryKey(fieldOf(target, part)?.field);
