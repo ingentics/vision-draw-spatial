@@ -112,14 +112,24 @@ function flapOf(shape: ShapeModel): Point[] {
 function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Group {
   const group = new Group();
   const { bounds, style } = shape;
-  const scale = tableScale(shape);
   const header = Math.min(bounds.height, headerHeight(isSecondary(shape)));
   const headerColor = styleColor(style, 'fillColor', DEFAULT_HEADER_COLOR) ?? new Color(DEFAULT_HEADER_COLOR);
-  // Texte de l'entête : `fontColor` s'il est écrit (gris d'une table neuve, sujet 235), sinon lisible sur l'entête.
-  const readable = readableOn(headerColor);
-  const textColor = styleColorValue(style, 'fontColor', readable) ?? readable;
-
   const path = outline(shape, kind);
+  addFills(group, shape, kind, path, header, headerColor);
+  addStrokes(group, shape, kind, path, header);
+  const mark = shownMark(shape);
+  const border = styleColor(style, 'strokeColor', TABLE_BORDER);
+  if (mark) group.add(headerMark(shape, mark, header, border));
+  const left = leftMark(shape);
+  if (left) group.add(headerMark(shape, left, header, border, 'left'));
+  addTexts(group, shape, ctx, kind, headerColor);
+  addRows(group, shape, ctx, header);
+  return group;
+}
+
+/** Fonds : zone des champs, entête (haut du contour coupé sous l'entête), rabat du coin plié d'un document. */
+function addFills(group: Group, shape: ShapeModel, kind: TableKind, path: Point[], header: number, headerColor: Color) {
+  const { bounds, style } = shape;
   group.add(fillMesh(path, new Color(FIELDS_FILL), styleOpacity(style, 'fillOpacity')));
   // Haut du contour (convexe), coupé sous l'entête : coins arrondis du haut compris.
   const headerPath = path.map((p) => ({ x: p.x, y: Math.min(p.y, bounds.y + header) }));
@@ -134,35 +144,41 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
     flap.renderOrder = PART_ORDER.fill + 0.75;
     group.add(flap);
   }
+}
 
+/** Traits : contour, séparation sous l'entête, cadre intérieur d'un entête double, rabat du coin plié. */
+function addStrokes(group: Group, shape: ShapeModel, kind: TableKind, path: Point[], header: number) {
+  const { bounds, style } = shape;
   const stroke = styleStroke(style, TABLE_BORDER);
-  if (stroke) {
-    const line = (path: Point[], closed: boolean) => {
-      const mesh = strokeMesh(path, stroke.color, stroke.opacity, { width: stroke.width, closed, dash: stroke.dash });
-      if (!mesh) return;
-      mesh.name = 'stroke-table';
-      group.add(mesh);
-    };
-    line(path, true);
-    line(
-      [
-        { x: bounds.x, y: bounds.y + header },
-        { x: bounds.x + bounds.width, y: bounds.y + header },
-      ],
-      false,
-    );
-    if (kind.look.doubleHeader) {
-      const gap = TABLE.doubleGap * scale;
-      line(rectPath(inset({ ...bounds, height: header }, gap)), true);
-    }
-    if (kind.look.folded) line(flapOf(shape), true);
+  if (!stroke) return;
+  const line = (path: Point[], closed: boolean) => {
+    const mesh = strokeMesh(path, stroke.color, stroke.opacity, { width: stroke.width, closed, dash: stroke.dash });
+    if (!mesh) return;
+    mesh.name = 'stroke-table';
+    group.add(mesh);
+  };
+  line(path, true);
+  line(
+    [
+      { x: bounds.x, y: bounds.y + header },
+      { x: bounds.x + bounds.width, y: bounds.y + header },
+    ],
+    false,
+  );
+  if (kind.look.doubleHeader) {
+    const gap = TABLE.doubleGap * tableScale(shape);
+    line(rectPath(inset({ ...bounds, height: header }, gap)), true);
   }
-  const mark = shownMark(shape);
-  const border = styleColor(style, 'strokeColor', TABLE_BORDER);
-  if (mark) group.add(headerMark(shape, mark, header, border));
-  const left = leftMark(shape);
-  if (left) group.add(headerMark(shape, left, header, border, 'left'));
+  if (kind.look.folded) line(flapOf(shape), true);
+}
 
+/** Textes : nom dans l'entête, corps d'un document. */
+function addTexts(group: Group, shape: ShapeModel, ctx: RenderContext, kind: TableKind, headerColor: Color) {
+  const { style } = shape;
+  const scale = tableScale(shape);
+  // Texte de l'entête : `fontColor` s'il est écrit (gris d'une table neuve, sujet 235), sinon lisible sur l'entête.
+  const readable = readableOn(headerColor);
+  const textColor = styleColorValue(style, 'fontColor', readable) ?? readable;
   const label = createLabel(
     {
       ...shape,
@@ -181,33 +197,37 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
   );
   if (label) group.add(label);
 
-  if (kind.rules.body) {
-    // Corps d'un document (sujet 269) : texte en police à chasse fixe, tronqué à sa zone.
-    const body = createLabel(
-      {
-        ...shape,
-        style: {
-          ...style,
-          fontSize: String(TABLE.body.size * scale),
-          fontColor: '#000000',
-          fontStyle: '0',
-          align: 'left',
-          verticalAlign: 'top',
-          whiteSpace: 'nowrap',
-        },
+  if (!kind.rules.body) return;
+  // Corps d'un document (sujet 269) : texte en police à chasse fixe, tronqué à sa zone.
+  const body = createLabel(
+    {
+      ...shape,
+      style: {
+        ...style,
+        fontSize: String(TABLE.body.size * scale),
+        fontColor: '#000000',
+        fontStyle: '0',
+        align: 'left',
+        verticalAlign: 'top',
+        whiteSpace: 'nowrap',
       },
-      ctx,
-      documentBody(shape),
-      bodyZone(shape),
-      { monospace: true, truncate: true },
-    );
-    if (body) {
-      // Masqué pendant son édition sur place.
-      markPart(body, BODY_PART);
-      group.add(body);
-    }
+    },
+    ctx,
+    documentBody(shape),
+    bodyZone(shape),
+    { monospace: true, truncate: true },
+  );
+  if (body) {
+    // Masqué pendant son édition sur place.
+    markPart(body, BODY_PART);
+    group.add(body);
   }
+}
 
+/** Lignes des champs et séparateurs, sous l'entête ; celles qui sortent de la forme ne sont pas dessinées. */
+function addRows(group: Group, shape: ShapeModel, ctx: RenderContext, header: number) {
+  const { bounds } = shape;
+  const scale = tableScale(shape);
   const row = TABLE.row * scale;
   tableFields(shape).forEach((field, index) => {
     const y = bounds.y + header + row * (index + 0.5);
@@ -216,7 +236,6 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
     if (isDivider(field)) addDividerRow(group, ctx, field, { left: bounds.x, width: bounds.width, y, scale, part });
     else addFieldRow(group, ctx, field, { left: bounds.x, y, scale, part });
   });
-  return group;
 }
 
 /**

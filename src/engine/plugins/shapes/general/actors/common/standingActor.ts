@@ -1,4 +1,5 @@
 import { Group, Vector3 } from 'three';
+import type { Object3D } from 'three';
 import {
   PART_ORDER,
   blockHeight,
@@ -82,6 +83,7 @@ export function standingActor(figureOf: FigureOf): SceneRenderer {
         ];
       }
       const parts = figure.parts.map((part) => part.map(upright));
+      const lines = figure.strokes.map((line) => line.map(upright));
       // Silhouette debout (sujet 306) : cadre de la tête, pièces et traits dans son plan (x, z) ; elle se clique sur
       // toute sa hauteur, la sélection entoure la tête, et l'éditeur en place reprend le format du texte de la pancarte.
       setStandingFigure(group, silhouette, {
@@ -92,42 +94,14 @@ export function standingActor(figureOf: FigureOf): SceneRenderer {
           height: figure.head.height,
         },
         parts,
-        strokes: figure.strokes.map((line) => line.map(upright)),
+        strokes: lines,
         ...(sign && { sign, signLabelStyle }),
       });
 
-      const fill = styleColor(style, 'fillColor', VERTEX_DEFAULTS.fill);
-      if (fill) {
-        // Plan (x, y) couché sur (x, z) : rotation d'un quart de tour autour de x.
-        const plane = new Group();
-        plane.rotation.x = Math.PI / 2;
-        parts.forEach((part, i) => {
-          const piece = fillMesh(part, fill, 1);
-          piece.material = solidMaterial(fill);
-          piece.name = i === 0 ? 'head' : 'part';
-          plane.add(piece);
-        });
-        silhouette.add(plane);
-      }
-
-      const stroke = styleStroke(style, VERTEX_DEFAULTS.stroke);
-      if (stroke) {
-        const segments: number[] = [];
-        const polyline = (points: Point[], closed: boolean) => {
-          const last = closed ? points.length : points.length - 1;
-          for (let i = 0; i < last; i++) {
-            const a = points[i]!;
-            const b = points[(i + 1) % points.length]!;
-            segments.push(a.x, -FRONT, a.y, b.x, -FRONT, b.y);
-          }
-        };
-        for (const part of parts) polyline(part, true);
-        for (const line of figure.strokes) polyline(line.map(upright), false);
-        const lines = edgeLines(segments, stroke);
-        lines.name = 'stroke';
-        lines.renderOrder = PART_ORDER.stroke;
-        silhouette.add(lines);
-      }
+      const fill = silhouetteFill(style, parts);
+      if (fill) silhouette.add(fill);
+      const strokes = silhouetteStrokes(style, parts, lines);
+      if (strokes) silhouette.add(strokes);
 
       if (sign) silhouette.add(createSign(shape, ctx, sign));
       else {
@@ -137,6 +111,43 @@ export function standingActor(figureOf: FigureOf): SceneRenderer {
       return group;
     },
   };
+}
+
+/** Fond des pièces de la silhouette (tête d'abord), dans son plan vertical ; rien sans fond. */
+function silhouetteFill(style: Record<string, string>, parts: Point[][]): Group | undefined {
+  const fill = styleColor(style, 'fillColor', VERTEX_DEFAULTS.fill);
+  if (!fill) return undefined;
+  // Plan (x, y) couché sur (x, z) : rotation d'un quart de tour autour de x.
+  const plane = new Group();
+  plane.rotation.x = Math.PI / 2;
+  parts.forEach((part, i) => {
+    const piece = fillMesh(part, fill, 1);
+    piece.material = solidMaterial(fill);
+    piece.name = i === 0 ? 'head' : 'part';
+    plane.add(piece);
+  });
+  return plane;
+}
+
+/** Traits de la silhouette : contour des pièces (fermé) et traits du bonhomme, juste devant elle ; rien sans bordure. */
+function silhouetteStrokes(style: Record<string, string>, parts: Point[][], lines: Point[][]): Object3D | undefined {
+  const stroke = styleStroke(style, VERTEX_DEFAULTS.stroke);
+  if (!stroke) return undefined;
+  const segments: number[] = [];
+  const polyline = (points: Point[], closed: boolean) => {
+    const last = closed ? points.length : points.length - 1;
+    for (let i = 0; i < last; i++) {
+      const a = points[i]!;
+      const b = points[(i + 1) % points.length]!;
+      segments.push(a.x, -FRONT, a.y, b.x, -FRONT, b.y);
+    }
+  };
+  for (const part of parts) polyline(part, true);
+  for (const line of lines) polyline(line, false);
+  const mesh = edgeLines(segments, stroke);
+  mesh.name = 'stroke';
+  mesh.renderOrder = PART_ORDER.stroke;
+  return mesh;
 }
 
 /** Style du texte sur la pancarte : centré et ajusté au panneau (`fitText`), quelle que soit sa position en 2D. */
