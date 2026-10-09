@@ -27,8 +27,8 @@ describe('mode RDD (sujet 179) : page et palette', () => {
     const palette = modes.paletteFor(page(), createDefaultRegistry().templates(), createDefaultRegistry().categories());
     expect(palette.categories.map((c) => c.id)).toEqual(['rdd', 'general']);
     expect(palette.templates.map((t) => [t.id, t.name])).toEqual([
-      ['rdd-entity', 'Entité'],
-      ['rdd-enum', 'Entité énumérative'],
+      ['rdd-entity', 'Table'],
+      ['rdd-enum', 'Table énumérative'],
       ['rdd-embedded', 'Fragment'],
       ['rdd-document', 'Document'],
       ['rdd-view', 'Vue'],

@@ -872,7 +872,7 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   - Icône d'entête (base commune des tables, déclarée par chaque forme) : en haut à droite de l'entête, 21 × 13,5 px
     à 7 px du bord, trait fin de la couleur de la bordure ; la zone du titre est réduite des deux côtés de sa place
     (32 px). Toujours affichée (sujet 260 : plus de réglage « Icône », `spatial.icon=0` d'un fichier est ignoré).
-  - « Entité » (`rdd-entity`) et « Entité énumérative » (`rdd-enum`, entête à cadre double : second trait 3 px à
+  - « Table » (`rdd-entity`, « Entité » avant le sujet 416) et « Table énumérative » (`rdd-enum`, entête à cadre double : second trait 3 px à
     l'intérieur ; icône liste) : clé primaire `id` (`pk`, `integer`) toujours en tête (icône de clé primaire), montrée en
     lecture seule dans le panneau (« Clé primaire ») ; absente ou déplacée dans le fichier,
     elle est remise en tête à l'affichage et signalée dans Diagnostics.

@@ -1,8 +1,11 @@
 import { table } from '../common/table';
 
-/** Entité (sujet 180) : le modèle sans italique, clé primaire `id` toujours en tête de ses champs. */
+/**
+ * Table (sujet 180, « Entité » avant le sujet 416) : le modèle sans italique, clé primaire `id` toujours en tête de ses
+ * champs.
+ */
 export const definition = table('rdd-entity', {
-  name: 'Entité',
+  name: 'Table',
   order: 1,
   keywords: ['entity', 'entité', 'table', 'model'],
   value: 'Entity',
