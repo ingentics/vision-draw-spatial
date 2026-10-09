@@ -1,4 +1,4 @@
-import type { CameraState } from '../interaction/cameraMath';
+import type { CameraState } from '../interaction/cameraState';
 import type { HistoryEntry, LinkUsage } from '../interaction/navigationHistory';
 
 /**

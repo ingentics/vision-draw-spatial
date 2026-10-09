@@ -108,6 +108,10 @@ export function layoutGraph(document: DocumentModel, options = DEFAULT_GRAPH_LAY
   return { graph, cards };
 }
 
+/** Champs communs aux éléments de la page graphe (calque unique, pas d'attribut ni de style d'origine). */
+type GraphElementBase = Pick<ShapeModel, 'layerId' | 'visible' | 'attributes' | 'raw'>;
+const GRAPH_LAYER_ID = 'graph';
+
 /**
  * Construit la page graphe d'un document. Ses formes (`ellipse`, `text`) sont dessinées par les plugins de formes
  * par défaut, que le tronc ne connaît pas : dépendance vérifiée par `tests/engine/core/graph/graph.test.ts`.
@@ -118,94 +122,115 @@ export function buildGraphPage(
   colors = GRAPH_COLORS,
 ): { page: PageModel; layout: GraphLayout } {
   const layout = layoutGraph(document, options);
-  const { graph, cards } = layout;
-  const byPage = new Map(cards.map((c) => [c.pageId, c]));
-  const shapes: ShapeModel[] = [];
-  const edges: EdgeModel[] = [];
-  // Noms posés après les flèches : une flèche qui descend d'un nœud passe sous son nom.
-  const names: ShapeModel[] = [];
+  const base: GraphElementBase = { layerId: GRAPH_LAYER_ID, visible: true, attributes: {}, raw: { styleString: '' } };
+  const nodes = layout.cards.map((card) => nodeShapes(card, layout.graph.startPageId, colors, base));
+  // Ordre d'empilement : nœuds et statuts, puis flèches, puis noms (une flèche qui descend d'un nœud passe sous son
+  // nom).
   let z = 0;
-  const layerId = 'graph';
-  const base = { layerId, visible: true, attributes: {}, raw: { styleString: '' } };
+  const shapes: ShapeModel[] = nodes
+    .flatMap(({ circle, status }) => (status ? [circle, status] : [circle]))
+    .map((shape) => ({ ...shape, z: z++ }));
+  const edges: EdgeModel[] = linkEdges(layout, options, colors, base).map((edge) => ({ ...edge, z: z++ }));
+  for (const { name } of nodes) shapes.push({ ...name, z: z++ });
 
-  for (const card of cards) {
-    const { node } = card;
-    const status = !node.reachable
-      ? node.orphan
-        ? { text: 'orpheline', color: colors.orphan, dashed: true }
-        : { text: 'inaccessible', color: colors.unreachable, dashed: true }
-      : node.pageId === graph.startPageId
-        ? { text: 'départ', color: colors.start, dashed: false }
-        : undefined;
-    const link = { type: 'page' as const, pageId: node.pageId };
+  const page: PageModel = {
+    id: GRAPH_PAGE_ID,
+    name: GRAPH_PAGE_NAME,
+    layers: [{ id: GRAPH_LAYER_ID, name: '', visible: true }],
+    shapes,
+    edges,
+    attributes: {},
+    bounds: unionOf(shapes.map((s) => s.bounds)) ?? { x: 0, y: 0, width: 0, height: 0 },
+  };
+  return { page, layout };
+}
 
-    shapes.push({
-      ...base,
-      id: cardId(node.pageId),
-      kind: 'ellipse',
-      bounds: card.bounds,
-      label: '',
-      style: {
-        perimeter: 'ellipsePerimeter',
-        fillColor: '#ffffff',
-        strokeColor: status?.color ?? colors.card,
-        strokeWidth: '2',
-        ...(status?.dashed ? { dashed: '1' } : {}),
-      },
-      link,
-      z: z++,
-    });
-    names.push({
-      ...base,
-      id: nameId(node.pageId),
-      kind: 'text',
-      bounds: {
-        x: card.bounds.x + (card.bounds.width - LABEL_WIDTH) / 2,
-        y: card.bounds.y + card.bounds.height + LABEL_GAP,
-        width: LABEL_WIDTH,
-        height: LABEL_HEIGHT,
-      },
-      label: node.name,
-      style: {
-        align: 'center',
-        verticalAlign: 'top',
-        fontSize: '15',
-        fontStyle: '1',
-        fontColor: colors.title,
-        whiteSpace: 'wrap',
-        spacing: '0',
-        labelBackgroundColor: 'default',
-      },
-      link,
-      z: 0,
-    });
-    if (!status) continue;
-    shapes.push({
+/** Statut affiché au-dessus d'un nœud : départ, orpheline, inaccessible ; rien pour une page ordinaire. */
+function statusOf(node: GraphNode, startPageId: string | undefined, colors: GraphColors) {
+  if (!node.reachable)
+    return node.orphan
+      ? { text: 'orpheline', color: colors.orphan, dashed: true }
+      : { text: 'inaccessible', color: colors.unreachable, dashed: true };
+  return node.pageId === startPageId ? { text: 'départ', color: colors.start, dashed: false } : undefined;
+}
+
+/** Formes d'un nœud : cercle, nom dessous, statut éventuel dessus ; toutes mènent à la page. */
+function nodeShapes(
+  card: GraphCard,
+  startPageId: string | undefined,
+  colors: GraphColors,
+  base: GraphElementBase,
+): { circle: Omit<ShapeModel, 'z'>; name: Omit<ShapeModel, 'z'>; status?: Omit<ShapeModel, 'z'> } {
+  const { node } = card;
+  const status = statusOf(node, startPageId, colors);
+  const link = { type: 'page' as const, pageId: node.pageId };
+  const labelX = card.bounds.x + (card.bounds.width - LABEL_WIDTH) / 2;
+  const circle = {
+    ...base,
+    id: cardId(node.pageId),
+    kind: 'ellipse',
+    bounds: card.bounds,
+    label: '',
+    style: {
+      perimeter: 'ellipsePerimeter',
+      fillColor: '#ffffff',
+      strokeColor: status?.color ?? colors.card,
+      strokeWidth: '2',
+      ...(status?.dashed ? { dashed: '1' } : {}),
+    },
+    link,
+  };
+  const name = {
+    ...base,
+    id: nameId(node.pageId),
+    kind: 'text',
+    bounds: { x: labelX, y: card.bounds.y + card.bounds.height + LABEL_GAP, width: LABEL_WIDTH, height: LABEL_HEIGHT },
+    label: node.name,
+    style: {
+      align: 'center',
+      verticalAlign: 'top',
+      fontSize: '15',
+      fontStyle: '1',
+      fontColor: colors.title,
+      whiteSpace: 'wrap',
+      spacing: '0',
+      labelBackgroundColor: 'default',
+    },
+    link,
+  };
+  if (!status) return { circle, name };
+  return {
+    circle,
+    name,
+    status: {
       ...base,
       id: statusId(node.pageId),
       kind: 'text',
-      bounds: {
-        x: card.bounds.x + (card.bounds.width - LABEL_WIDTH) / 2,
-        y: card.bounds.y - STATUS_HEIGHT,
-        width: LABEL_WIDTH,
-        height: STATUS_HEIGHT - 4,
-      },
+      bounds: { x: labelX, y: card.bounds.y - STATUS_HEIGHT, width: LABEL_WIDTH, height: STATUS_HEIGHT - 4 },
       label: status.text,
       style: { align: 'center', verticalAlign: 'bottom', fontSize: '12', fontColor: status.color, spacing: '0' },
       link,
-      z: z++,
-    });
-  }
+    },
+  };
+}
 
+/** Flèches entre nœuds, une par couple de pages liées (`×n` si plusieurs liens). */
+function linkEdges(
+  { graph, cards }: GraphLayout,
+  options: GraphLayoutOptions,
+  colors: GraphColors,
+  base: GraphElementBase,
+): Omit<EdgeModel, 'z'>[] {
+  const byPage = new Map(cards.map((c) => [c.pageId, c]));
   const pairs = new Set(graph.links.map((l) => `${l.from}>${l.to}`));
-  for (const link of graph.links) {
+  return graph.links.map((link) => {
     const from = byPage.get(link.from)!;
     const to = byPage.get(link.to)!;
     // Aller-retour : chaque flèche passe par un point décalé de son côté, pour rester distinctes.
     const points = pairs.has(`${link.to}>${link.from}`)
       ? [offsetMidpoint(from.bounds, to.bounds, options.pairOffset)]
       : [];
-    edges.push({
+    return {
       ...base,
       id: `graph-link:${link.from}>${link.to}`,
       label: link.count > 1 ? `×${link.count}` : '',
@@ -221,22 +246,8 @@ export function buildGraphPage(
       points,
       labelPlacement: { position: 0, distance: 0, offset: { x: 0, y: 0 } },
       labels: [],
-      z: z++,
-    });
-  }
-
-  for (const name of names) shapes.push({ ...name, z: z++ });
-
-  const page: PageModel = {
-    id: GRAPH_PAGE_ID,
-    name: GRAPH_PAGE_NAME,
-    layers: [{ id: layerId, name: '', visible: true }],
-    shapes,
-    edges,
-    attributes: {},
-    bounds: unionOf(shapes.map((s) => s.bounds)) ?? { x: 0, y: 0, width: 0, height: 0 },
-  };
-  return { page, layout };
+    };
+  });
 }
 
 /** Milieu des centres de deux nœuds, décalé perpendiculairement (à droite du sens de parcours). */

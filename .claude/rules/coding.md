@@ -46,7 +46,7 @@ Folder map with each folder's role: `docs/SUMMARY.md` §3 (single source). Where
   common module of the parent folder; a variant never imports the other. E.g. automatic anchoring (`auto/`) and
   Typon (`pcb/`) share `edit/anchoring/routing.ts`.
 - **No file name already taken.** Before creating `camera.ts`, `history.ts`, `selection.ts`, `handles.ts`…, check
-  no file with that name exists elsewhere in the engine; otherwise use a name saying the role (`cameraMath.ts`,
+  no file with that name exists elsewhere in the engine; otherwise use a name saying the role (`cameraState.ts`,
   `selectionRules.ts`). Exception: the conventional files of a plugin folder (`index.ts`, `facade.ts`, `keys.ts`,
   `settings.ts`, `api.ts`), the same in every plugin by design.
 - **No folder and file with the same name**: `route.ts` next to `route/` becomes `route/index.ts`.

@@ -1,8 +1,8 @@
 import type { PageModel, Point, Rect, ShapeModel } from '../model/types';
 import type { MinimapMapping } from '../shapes/types';
-import { screenToPage } from './cameraMath';
+import { screenToPage } from './cameraProjection';
 import { canvasBrush } from './minimapBrush';
-import type { CameraState, Viewport } from './cameraMath';
+import type { CameraState, Viewport } from './cameraState';
 import { center, fitScale } from '../model/geometry';
 import { clamp } from '../model/numbers';
 import { DEFAULT_ACCENT } from '../render/styleColors';

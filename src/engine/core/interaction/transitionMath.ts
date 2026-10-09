@@ -1,5 +1,5 @@
 import type { Rect } from '../model/types';
-import type { CameraState } from './cameraMath';
+import type { CameraState } from './cameraState';
 import { center, fitScale } from '../model/geometry';
 
 /**

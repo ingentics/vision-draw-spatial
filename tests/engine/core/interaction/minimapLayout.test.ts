@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { CameraState } from '../../../../src/engine/core/interaction/cameraMath';
+import type { CameraState } from '../../../../src/engine/core/interaction/cameraState';
 import {
   minimapLayout,
   minimapToPage,

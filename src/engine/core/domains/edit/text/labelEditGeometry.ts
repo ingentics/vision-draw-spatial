@@ -1,8 +1,9 @@
 import { edgeTextLayout, flipTarget } from '../../../edit/edgeLabels';
 import type { EdgeEnd, EndTextGap } from '../../../edit/edgeLabels';
 import { labelPoint } from '../../../render/edges/polyline';
-import { dragGround, revealShift, screenToPage } from '../../../interaction/cameraMath';
-import type { CameraState, Viewport } from '../../../interaction/cameraMath';
+import { dragGround, revealShift } from '../../../interaction/cameraMoves';
+import { screenToPage } from '../../../interaction/cameraProjection';
+import type { CameraState, Viewport } from '../../../interaction/cameraState';
 import type { PageModel, Point, Rect, ShapeModel } from '../../../model/types';
 import { insetRect, labelMargins } from '../../../render/labelPosition';
 import type { SceneLevel } from '../../../shapes/types';

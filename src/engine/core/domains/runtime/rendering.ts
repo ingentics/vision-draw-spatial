@@ -1,6 +1,6 @@
 import { Color, OrthographicCamera, PerspectiveCamera, Scene, WebGLRenderer } from 'three';
 import { gridSizeOf } from '../../format/cellEdits';
-import { applyCameraState, applyPerspectiveState } from '../../interaction/cameraMath';
+import { applyCameraState, applyPerspectiveState } from '../../interaction/cameraProjection';
 import type { Grid, GridOptions } from '../../render/grid';
 import { orientBillboards } from '../../render/billboard';
 import type { PageScene } from '../../render/pageScene';

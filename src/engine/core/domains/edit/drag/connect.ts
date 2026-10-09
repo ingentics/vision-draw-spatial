@@ -2,11 +2,13 @@ import { setEdgePoints } from '../../../format/cellEdits';
 import { addEdgeCell } from '../../../format/create';
 import type { PageTree } from '../../../format/xmlTree';
 import { anchorPosition, constraintStyle, sideMiddle } from '../../../edit/edgeEnds';
-import type { PageModel, Point } from '../../../model/types';
+import type { PageModel, Point, ShapeModel } from '../../../model/types';
 import { connectorPreview } from '../../../render/handleMeshes';
 import type { ConnectDrag } from './types';
 import { withStyleDefault } from '../../../format/style';
 import type { EngineCore } from '../../EngineCore';
+import type { EndAccepts } from '../../modes/pageModes';
+import type { TakenAnchor } from '../edges/anchors';
 import { edgeOf, shapeOf } from '../../../model/pageIndex';
 import { center, samePoint } from '../../../model/geometry';
 
@@ -21,6 +23,14 @@ export const EDGE_LINE_KEYS = {
   curved: 'edgeStyle=orthogonalEdgeStyle;rounded=0;curved=1;',
 } as const;
 
+/** Visée d'un connecteur en cours : forme de départ, hauteur de son dessus, milieu du côté tiré, formes permises. */
+interface Aiming {
+  source: ShapeModel;
+  top: number;
+  sideExit: Point;
+  accepts: EndAccepts | undefined;
+}
+
 /** Connecteur tiré d'une poignée de forme : départ, cible visée, boucle sur la forme, création de la flèche. */
 export class ConnectDrags {
   constructor(private readonly core: EngineCore) {}
@@ -29,40 +39,45 @@ export class ConnectDrags {
     const source = shapeOf(page, connect.sourceId);
     if (!source) return;
     connect.started = true;
-    const top = this.core.sceneView.elementTop(source.id);
-    const sideExit = sideMiddle(connect.side);
-    // Formes permises par le mode de la page (sujet 265).
-    const accepts = this.core.pageModes.endAccepts(page, 'target', source.id);
-    if (this.core.arrangement.distributes(page)) {
-      // Ancrage automatique : départ et arrivée au milieu des côtés choisis, répartis à l'écriture.
-      const attachment = this.core.anchors.endAttachmentAt(page, screen, {
-        accepts,
-        height: top,
-        snap: false,
-        grid: 0,
-      });
-      connect.target = attachment.kind === 'free' ? undefined : attachment;
-      connect.part = this.core.shapeParts.targetedPart(page, connect.target, screen);
-      connect.exit = sideExit;
-      const target = connect.target && shapeOf(page, connect.target!.shapeId);
-      const from = anchorPosition(source, sideExit);
-      const end =
-        connect.target?.kind === 'fixed' && target
-          ? anchorPosition(target, connect.target.constraint)
-          : this.core.projection.groundPointAtHeight(screen, top);
-      connect.loop =
-        target?.id === source.id && connect.target?.kind === 'fixed'
-          ? this.core.anchors.loopBetween(source, sideExit, connect.target.constraint)
-          : undefined;
-      const line = connectorPreview(
-        [from, ...(connect.loop ?? []), end],
-        this.core.camera.state.zoom,
-        this.core.settings.selection.accentColor,
-      );
-      line.position.z = top + 0.2;
-      this.core.preview.showConnectionHints(page, connect.target, line, undefined, [], connect.part);
-      return;
-    }
+    const aiming: Aiming = {
+      source,
+      top: this.core.sceneView.elementTop(source.id),
+      sideExit: sideMiddle(connect.side),
+      // Formes permises par le mode de la page (sujet 265).
+      accepts: this.core.pageModes.endAccepts(page, 'target', source.id),
+    };
+    if (this.core.arrangement.distributes(page)) this.followDistributed(page, connect, screen, aiming);
+    else this.followFree(page, connect, screen, aiming);
+  }
+
+  /** Ancrage automatique : départ et arrivée au milieu des côtés choisis, répartis à l'écriture. */
+  private followDistributed(page: PageModel, connect: ConnectDrag, screen: Point, aiming: Aiming): void {
+    const { source, top, sideExit, accepts } = aiming;
+    const attachment = this.core.anchors.endAttachmentAt(page, screen, {
+      accepts,
+      height: top,
+      snap: false,
+      grid: 0,
+    });
+    connect.target = attachment.kind === 'free' ? undefined : attachment;
+    connect.part = this.core.shapeParts.targetedPart(page, connect.target, screen);
+    connect.exit = sideExit;
+    const target = connect.target && shapeOf(page, connect.target!.shapeId);
+    const from = anchorPosition(source, sideExit);
+    const end =
+      connect.target?.kind === 'fixed' && target
+        ? anchorPosition(target, connect.target.constraint)
+        : this.core.projection.groundPointAtHeight(screen, top);
+    connect.loop =
+      target?.id === source.id && connect.target?.kind === 'fixed'
+        ? this.core.anchors.loopBetween(source, sideExit, connect.target.constraint)
+        : undefined;
+    this.showPreview(page, connect, [from, ...(connect.loop ?? []), end], top, []);
+  }
+
+  /** Ancrage libre : départ et arrivée aux points libres les plus proches l'un de l'autre, boucle permise. */
+  private followFree(page: PageModel, connect: ConnectDrag, screen: Point, aiming: Aiming): void {
+    const { source, top, sideExit, accepts } = aiming;
     // Boucle sur la forme elle-même : départ stable (point libre du côté le plus proche de son milieu), compté
     // comme pris pour que l'arrivée soit ailleurs.
     const loopExit = this.core.anchors.nearestFreeAnchor(
@@ -113,7 +128,11 @@ export class ConnectDrags {
       loop && connect.target?.kind === 'fixed'
         ? this.core.anchors.loopBetween(source, exit.constraint, connect.target.constraint)
         : undefined;
-    const path = [exit.point, ...(connect.loop ?? []), end];
+    this.showPreview(page, connect, [exit.point, ...(connect.loop ?? []), end], top, taken);
+  }
+
+  /** Aperçu du connecteur, posé au-dessus de la forme de départ, et repères des formes visées. */
+  private showPreview(page: PageModel, connect: ConnectDrag, path: Point[], top: number, taken: TakenAnchor[]): void {
     const line = connectorPreview(path, this.core.camera.state.zoom, this.core.settings.selection.accentColor);
     line.position.z = top + 0.2;
     this.core.preview.showConnectionHints(page, connect.target, line, undefined, taken, connect.part);

@@ -2,6 +2,7 @@ import { Color, Group } from 'three';
 import type { Object3D } from 'three';
 import type { EdgeLabelPlacement, EdgeModel, Point, RichLine, ShapeModel } from '../../model/types';
 import { buildMarker } from './markers';
+import type { MarkerShape } from './markers';
 import { jumpHalfLength, jumpStyleOf, withJumps } from './jumps';
 import type { JumpPoint } from './jumps';
 import { curveThrough, labelPoint, roundCorners, shorten } from './polyline';
@@ -63,78 +64,14 @@ export function createEdge(
   group.userData.route = route;
   group.userData.points = points;
   if (route.length < 2) return group;
-  group.userData.path = styleFlag(style, 'curved')
-    ? curveThrough(route)
-    : styleFlag(style, 'rounded')
-      ? roundCorners(route, styleNumber(style, 'arcSize', DEFAULT_EDGE_ARC_SIZE) / 2)
-      : route;
+  group.userData.path = drawnLine(route, style);
 
   const stroke = styleColor(style, 'strokeColor', '#000000');
   const strokeWidth = styleNumber(style, 'strokeWidth', 1);
   const opacity = styleOpacity(style, 'strokeOpacity');
-
-  // Pointes de flèches : calculées sur le tracé brut, puis la ligne est raccourcie d'autant.
-  const startType = style.startArrow ?? 'none';
-  const endType = style.endArrow ?? DEFAULT_END_ARROW;
-  const start = buildMarker(
-    startType,
-    route[0]!,
-    direction(route[1]!, route[0]!),
-    styleNumber(style, 'startSize', DEFAULT_MARKER_SIZE),
-    strokeWidth,
-    style.startFill !== '0',
-  );
-  const end = buildMarker(
-    endType,
-    route[route.length - 1]!,
-    direction(route[route.length - 2]!, route[route.length - 1]!),
-    styleNumber(style, 'endSize', DEFAULT_MARKER_SIZE),
-    strokeWidth,
-    style.endFill !== '0',
-  );
-
-  if (stroke && strokeWidth > 0) {
-    let line = shorten(route, start?.inset ?? 0, end?.inset ?? 0);
-    if (styleFlag(style, 'curved')) line = curveThrough(line);
-    else if (styleFlag(style, 'rounded'))
-      line = roundCorners(line, styleNumber(style, 'arcSize', DEFAULT_EDGE_ARC_SIZE) / 2);
-    const split = isSplit(style);
-    const jump = !split && jumpStyleOf(style, ctx.edgeJumps);
-    const pieces = split
-      ? []
-      : jump
-        ? withJumps(line, below, jump, jumpHalfLength(style, strokeWidth, ctx.edgeJumps), ctx.raisedJumps)
-        : [line];
-    const dash = dashPattern(style, strokeWidth);
-    const { flat, raised } = splitRaised(pieces);
-    for (const piece of flat) {
-      const mesh = strokeMesh(piece, stroke, opacity, { width: strokeWidth, closed: false, dash });
-      if (mesh) group.add(mesh);
-    }
-    // Sauts en relief (iso, 3D) : rubans face à la caméra, visibles sous tous les angles.
-    if (raised.length > 0) {
-      const lines = edgeLines(raised, { color: stroke, opacity, width: strokeWidth, ...(dash && { dash }) });
-      lines.name = 'stroke';
-      group.add(lines);
-    }
-
-    if (split) addSplitPieces(group, line, style, ctx, { stroke, opacity, strokeWidth, dash });
-
-    for (const marker of [start, end]) {
-      if (marker?.fill) group.add(fillMesh(marker.fill, stroke, opacity));
-      if (marker?.outline) {
-        const outline = strokeMesh(marker.outline.points, stroke, opacity, {
-          width: strokeWidth,
-          closed: marker.outline.closed,
-        });
-        if (outline) group.add(outline);
-      }
-      for (const piece of marker?.strokes ?? []) {
-        const mesh = strokeMesh(piece.points, stroke, opacity, { width: strokeWidth, closed: piece.closed });
-        if (mesh) group.add(mesh);
-      }
-    }
-  }
+  const markers = edgeMarkers(route, style, strokeWidth);
+  if (stroke && strokeWidth > 0)
+    addEdgeStroke(group, route, markers, style, ctx, below, { stroke, opacity, strokeWidth });
 
   // Texte du milieu qui suit la flèche : posé lettre par lettre le long du trait dessiné.
   const along = middleTextAlong(edge, group.userData.path as Point[]);
@@ -146,6 +83,90 @@ export function createEdge(
   }
 
   return group;
+}
+
+/** Trait dessiné d'un tracé : courbe (`curved`), coudes arrondis (`rounded`, rayon `arcSize / 2`) ou tel quel. */
+function drawnLine(line: Point[], style: Record<string, string>): Point[] {
+  if (styleFlag(style, 'curved')) return curveThrough(line);
+  if (styleFlag(style, 'rounded')) return roundCorners(line, styleNumber(style, 'arcSize', DEFAULT_EDGE_ARC_SIZE) / 2);
+  return line;
+}
+
+type EdgeMarker = MarkerShape | undefined;
+
+/** Pointes de flèches : calculées sur le tracé brut (la ligne est ensuite raccourcie d'autant). */
+function edgeMarkers(
+  route: Point[],
+  style: Record<string, string>,
+  strokeWidth: number,
+): { start: EdgeMarker; end: EdgeMarker } {
+  const start = buildMarker(
+    style.startArrow ?? 'none',
+    route[0]!,
+    direction(route[1]!, route[0]!),
+    styleNumber(style, 'startSize', DEFAULT_MARKER_SIZE),
+    strokeWidth,
+    style.startFill !== '0',
+  );
+  const end = buildMarker(
+    style.endArrow ?? DEFAULT_END_ARROW,
+    route[route.length - 1]!,
+    direction(route[route.length - 2]!, route[route.length - 1]!),
+    styleNumber(style, 'endSize', DEFAULT_MARKER_SIZE),
+    strokeWidth,
+    style.endFill !== '0',
+  );
+  return { start, end };
+}
+
+/** Trait de la flèche (sauts aux croisements, tronçons d'une flèche coupée) et ses pointes. */
+function addEdgeStroke(
+  group: Group,
+  route: Point[],
+  { start, end }: { start: EdgeMarker; end: EdgeMarker },
+  style: Record<string, string>,
+  ctx: RenderContext,
+  below: readonly Point[][],
+  trait: { stroke: Color; opacity: number; strokeWidth: number },
+): void {
+  const { stroke, opacity, strokeWidth } = trait;
+  const line = drawnLine(shorten(route, start?.inset ?? 0, end?.inset ?? 0), style);
+  const split = isSplit(style);
+  const jump = !split && jumpStyleOf(style, ctx.edgeJumps);
+  const pieces = split
+    ? []
+    : jump
+      ? withJumps(line, below, jump, jumpHalfLength(style, strokeWidth, ctx.edgeJumps), ctx.raisedJumps)
+      : [line];
+  const dash = dashPattern(style, strokeWidth);
+  const { flat, raised } = splitRaised(pieces);
+  for (const piece of flat) {
+    const mesh = strokeMesh(piece, stroke, opacity, { width: strokeWidth, closed: false, dash });
+    if (mesh) group.add(mesh);
+  }
+  // Sauts en relief (iso, 3D) : rubans face à la caméra, visibles sous tous les angles.
+  if (raised.length > 0) {
+    const lines = edgeLines(raised, { color: stroke, opacity, width: strokeWidth, ...(dash && { dash }) });
+    lines.name = 'stroke';
+    group.add(lines);
+  }
+
+  if (split) addSplitPieces(group, line, style, ctx, { ...trait, dash });
+
+  for (const marker of [start, end]) {
+    if (marker?.fill) group.add(fillMesh(marker.fill, stroke, opacity));
+    if (marker?.outline) {
+      const outline = strokeMesh(marker.outline.points, stroke, opacity, {
+        width: strokeWidth,
+        closed: marker.outline.closed,
+      });
+      if (outline) group.add(outline);
+    }
+    for (const piece of marker?.strokes ?? []) {
+      const mesh = strokeMesh(piece.points, stroke, opacity, { width: strokeWidth, closed: piece.closed });
+      if (mesh) group.add(mesh);
+    }
+  }
 }
 
 /**

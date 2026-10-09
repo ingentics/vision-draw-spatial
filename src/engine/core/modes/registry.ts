@@ -1,6 +1,6 @@
 import type { PageModePalette } from '../edit/palette';
 import type { PageEffectDefinition } from '../effects/types';
-import type { ViewMode } from '../interaction/cameraMath';
+import type { ViewMode } from '../interaction/cameraState';
 import type { DocumentModel, PageModel, ParseWarning } from '../model/types';
 import { pluginValues } from '../settings/pluginSettings';
 import type { SelectionStyle } from '../settings/types';

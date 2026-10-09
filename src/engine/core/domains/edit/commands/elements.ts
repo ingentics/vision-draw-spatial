@@ -3,7 +3,7 @@ import { addEdgeCell, addShapeCell, removeCellsDeep } from '../../../format/crea
 import { reorderCells } from '../../../format/order';
 import { dropBounds } from '../../../edit/palette';
 import type { ShapeTemplate } from '../../../edit/palette';
-import { screenToPage } from '../../../interaction/cameraMath';
+import { screenToPage } from '../../../interaction/cameraProjection';
 import type { PageTree } from '../../../format/xmlTree';
 import type { Point, Rect } from '../../../model/types';
 import { withStyleDefault } from '../../../format/style';

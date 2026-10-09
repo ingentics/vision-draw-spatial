@@ -2,6 +2,7 @@ import { isModifierKeyEvent } from '../selectionRules';
 import type { ControlContext } from './context';
 import type { Drift } from './drift';
 import type { HeldKeys } from './host';
+import type { Shortcuts } from './shortcuts';
 import { ARROW_KEYS, isMoveKey, ROTATE_CODES } from './motion';
 import { orderShortcut, resolveShortcut } from './shortcuts';
 
@@ -55,8 +56,19 @@ export class KeyboardControls {
   }
 
   private readonly onKeyDown = (event: KeyboardEvent): void => {
-    const { ctx, drift } = this;
-    const { element, host, settings } = ctx;
+    if (this.trackHeldKeys(event)) return;
+    if (!this.ctx.enabled || isEditable(event.target)) return;
+    const action = this.runSelectionKey(event);
+    if (action === true) return;
+    if (this.runEditKey(event)) return;
+    if (this.runViewKey(event, action)) return;
+    this.startMotion(event);
+  };
+
+  /** Touches de modification maintenues (suivre un lien, sélection multiple) ; vrai si la touche s'arrête là. */
+  private trackHeldKeys(event: KeyboardEvent): boolean {
+    const { ctx } = this;
+    const { settings } = ctx;
     const followLink = isModifierKeyEvent(event, settings.followLinkKey);
     const multiSelect = isModifierKeyEvent(event, settings.multiSelectKey);
     if ((followLink || multiSelect) && !isEditable(event.target)) {
@@ -67,13 +79,20 @@ export class KeyboardControls {
         });
       }
       // Espace garde aussi son rôle de déplacement de la vue (plus bas).
-      if (event.code !== 'Space') return;
-    } else {
-      // Une autre touche avec ⌘ ou Ctrl (⌘+Tab, Ctrl+Z…) : un raccourci, pas un mode. Espace, elle,
-      // reste maintenue (ex. déplacement au clavier pendant qu'elle l'est).
-      this.setHeld({ followLink: settings.followLinkKey === 'space' && ctx.spaceDown, multiSelect: false });
+      return event.code !== 'Space';
     }
-    if (!ctx.enabled || isEditable(event.target)) return;
+    // Une autre touche avec ⌘ ou Ctrl (⌘+Tab, Ctrl+Z…) : un raccourci, pas un mode. Espace, elle,
+    // reste maintenue (ex. déplacement au clavier pendant qu'elle l'est).
+    this.setHeld({ followLink: settings.followLinkKey === 'space' && ctx.spaceDown, multiSelect: false });
+    return false;
+  }
+
+  /**
+   * Raccourcis sur la sélection et retour, y compris avec ⌘, Ctrl ou Alt : `true` si la touche est traitée (ou
+   * réservée à un raccourci système), sinon l'action de raccourci de la touche, pour la suite.
+   */
+  private runSelectionKey(event: KeyboardEvent): true | keyof Shortcuts | undefined {
+    const { element, host, settings } = this.ctx;
     // Tout sélectionner : seulement si le focus est sur la zone de dessin (ailleurs, comportement natif).
     if (
       (event.ctrlKey || event.metaKey) &&
@@ -84,14 +103,14 @@ export class KeyboardControls {
     ) {
       event.preventDefault();
       if (!event.repeat) host.selectAll?.();
-      return;
+      return true;
     }
     // Ordre de dessin : touches physiques (Alt change le caractère produit sur macOS).
     const order = orderShortcut(event);
     if (order && event.target === element) {
       event.preventDefault();
       if (!event.repeat) host.orderSelection?.(order);
-      return;
+      return true;
     }
     // Une touche de déplacement reste une touche de déplacement, même si elle porte une lettre de raccourci.
     const action = isMoveKey(event.code, settings.moveKeys)
@@ -102,49 +121,62 @@ export class KeyboardControls {
     if (action === 'deleteSelection' && !event.ctrlKey && !event.metaKey && !event.altKey) {
       event.preventDefault();
       if (!event.repeat) host.deleteSelection?.();
-      return;
+      return true;
     }
     // Retour (SPEC §9.2) : Alt+↑, remonter (sujet 357) ; ni Backspace (trop utilisé) ni Alt+← (souvent déjà pris).
     if (event.code === 'ArrowUp' && event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey) {
       event.preventDefault();
       if (!event.repeat) host.back?.();
-      return;
+      return true;
     }
-    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    if (event.ctrlKey || event.metaKey || event.altKey) return true;
+    return action;
+  }
+
+  /** Édition au clavier (flèches, F2, Suppr, Échap, touche du mode) ; vrai si la touche est traitée. */
+  private runEditKey(event: KeyboardEvent): boolean {
+    const { host } = this.ctx;
     const nudge = ARROW_KEYS[event.code];
     if (nudge && host.nudgeSelection?.(nudge, event.shiftKey)) {
       event.preventDefault();
-      return;
+      return true;
     }
     // Édition (touches fixes) : F2 = texte, Suppr = supprimer, Échap = désélectionner.
     if (event.key === 'F2' || event.key === 'Delete' || event.key === 'Escape') {
-      if (event.repeat) return;
+      if (event.repeat) return true;
       event.preventDefault();
       if (event.key === 'F2') host.editSelection?.();
       else if (event.key === 'Delete') host.deleteSelection?.();
       else host.escape?.();
-      return;
+      return true;
     }
     // Touche propre au mode de la page, sur la sélection (ex. « + » / « - » : rang d'une flèche dans son flux).
     if (host.modeKey?.(event.key)) {
       event.preventDefault();
-      return;
+      return true;
     }
+    return false;
+  }
+
+  /** Raccourcis de la vue (commentaire, variante, vue d'ensemble, bascules) ; vrai si la touche est traitée. */
+  private runViewKey(event: KeyboardEvent, action: keyof Shortcuts | undefined): boolean {
+    const { ctx } = this;
+    const { host } = ctx;
     if (action === 'editComment') {
       if (!event.repeat && host.editComment?.()) event.preventDefault();
-      return;
+      return true;
     }
     if (action === 'placementVariant') {
       if (!event.repeat && host.placementVariant?.()) event.preventDefault();
-      return;
+      return true;
     }
     if (action === 'overview') {
       // Sur un bouton, Entrée (ou Espace) l'active : on ne détourne pas la touche.
-      if (event.repeat || (event.target instanceof HTMLElement && event.target.tagName === 'BUTTON')) return;
+      if (event.repeat || (event.target instanceof HTMLElement && event.target.tagName === 'BUTTON')) return true;
       event.preventDefault();
-      drift.stop();
+      this.drift.stop();
       host.toggleOverview(ctx.hover);
-      return;
+      return true;
     }
     if (
       action === 'toggleViewMode' ||
@@ -155,34 +187,40 @@ export class KeyboardControls {
       action === 'toggleFlatten'
     ) {
       event.preventDefault();
-      if (event.repeat) return;
+      if (event.repeat) return true;
       if (action === 'toggleViewMode') host.toggleViewMode?.();
       else if (action === 'toggle3d') host.toggle3d?.();
       else if (action === 'toggleGraph') host.toggleGraph?.();
       else if (action === 'toggleFlatten') host.toggleFlatten?.();
       else if (action === 'toggleMinigraph') host.toggleMinigraph?.();
       else host.toggleMinimap?.();
-      return;
+      return true;
     }
+    return false;
+  }
+
+  /** Mouvement de la vue au clavier : rotation (iso, 3D), Espace maintenue (glisser), déplacement. */
+  private startMotion(event: KeyboardEvent): void {
+    const { ctx, drift } = this;
     // Rotation (A / E) : en iso et en 3D seulement ; en 2D, la vue n'est jamais tournée.
     if (ROTATE_CODES.includes(event.code) && !event.ctrlKey && !event.metaKey && !event.altKey) {
       event.preventDefault();
-      if (host.getCameraState().mode === 'top') return;
+      if (ctx.host.getCameraState().mode === 'top') return;
       drift.pressed.add(event.code);
       drift.start();
       return;
     }
     if (event.code === 'Space') {
       ctx.spaceDown = true;
-      if (!ctx.drag) element.style.cursor = 'grab';
+      if (!ctx.drag) ctx.element.style.cursor = 'grab';
       event.preventDefault();
       return;
     }
-    if (!isMoveKey(event.code, settings.moveKeys)) return;
+    if (!isMoveKey(event.code, ctx.settings.moveKeys)) return;
     event.preventDefault();
     drift.pressed.add(event.code);
     drift.start();
-  };
+  }
 
   private readonly onKeyUp = (event: KeyboardEvent): void => {
     const { ctx } = this;

@@ -1,4 +1,4 @@
-import { pageToScreen, screenToPage } from '../../interaction/cameraMath';
+import { pageToScreen, screenToPage } from '../../interaction/cameraProjection';
 import type { PickedElement } from '../../interaction/pick';
 import type { Footprint } from '../../interaction/marquee';
 import type { Point, Rect } from '../../model/types';

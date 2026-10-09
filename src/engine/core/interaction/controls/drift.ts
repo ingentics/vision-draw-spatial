@@ -1,5 +1,5 @@
 import type { Point } from '../../model/types';
-import { orbit, panByScreen } from '../cameraMath';
+import { orbit, panByScreen } from '../cameraMoves';
 import type { ControlContext } from './context';
 import { decelerate, decelerateSpin, keyDirection, keyRotation } from './motion';
 

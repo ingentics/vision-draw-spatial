@@ -98,33 +98,7 @@ export function routeAround(
   const blocks = obstacles.map((r) => inflate(r, options.clearance));
   if (blocks.some((b) => inside(b, start) || inside(b, goal))) return undefined;
 
-  const box = {
-    x0: Math.min(start.x, goal.x) - WINDOW,
-    y0: Math.min(start.y, goal.y) - WINDOW,
-    x1: Math.max(start.x, goal.x) + WINDOW,
-    y1: Math.max(start.y, goal.y) + WINDOW,
-  };
-  const near = blocks.filter((b) => b.x < box.x1 && b.x + b.width > box.x0 && b.y < box.y1 && b.y + b.height > box.y0);
-  const near2 = occupied.filter(
-    (s) =>
-      Math.max(s.a.x, s.b.x) >= box.x0 &&
-      Math.min(s.a.x, s.b.x) <= box.x1 &&
-      Math.max(s.a.y, s.b.y) >= box.y0 &&
-      Math.min(s.a.y, s.b.y) <= box.y1,
-  );
-  const xs = new Set([start.x, goal.x, box.x0, box.x1]);
-  const ys = new Set([start.y, goal.y, box.y0, box.y1]);
-  for (const b of near) {
-    xs.add(b.x).add(b.x + b.width);
-    ys.add(b.y).add(b.y + b.height);
-  }
-  // Voies parallèles aux flèches déjà tracées, pour pouvoir passer à côté.
-  for (const s of near2) {
-    if (s.a.x === s.b.x) xs.add(s.a.x - options.spacing).add(s.a.x + options.spacing);
-    else ys.add(s.a.y - options.spacing).add(s.a.y + options.spacing);
-  }
-  const X = [...xs].filter((x) => x >= box.x0 && x <= box.x1).sort((a, b) => a - b);
-  const Y = [...ys].filter((y) => y >= box.y0 && y <= box.y1).sort((a, b) => a - b);
+  const { X, Y, near, lines } = sparseGrid(start, goal, blocks, occupied, options.spacing);
   const W = X.length;
   const H = Y.length;
   const node = (i: number, j: number) => j * W + i;
@@ -167,18 +141,7 @@ export function routeAround(
       const a = { x: X[i]!, y: Y[j]! };
       const b = { x: X[ni]!, y: Y[nj]! };
       if (blocked({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }) || blocked(b)) continue;
-      const segment = { a, b };
-      const length = Math.abs(b.x - a.x) + Math.abs(b.y - a.y);
-      let step = length + (nd === d ? 0 : BEND_COST);
-      // À coût égal, tourner près du bout `attract` (là où le faisceau converge) : les faisceaux s'emboîtent.
-      // Graine : léger biais par couloir, qui fait choisir un autre détour parmi ceux de coût voisin.
-      if (seed !== 0) step += SEED_JITTER * length * seededUnit(seed, a.x === b.x ? `x${a.x}` : `y${a.y}`);
-      if (attract)
-        step += ATTRACT_COST * length * (Math.abs((a.x + b.x) / 2 - attract.x) + Math.abs((a.y + b.y) / 2 - attract.y));
-      for (const s of near2) {
-        step += overlap(segment, s) * OVERLAP_COST;
-        if (stepCrosses(segment, s)) step += options.crossingDetour;
-      }
+      const step = stepCost({ a, b }, nd !== d, lines, attract, options, seed);
       const next = node(ni, nj) * 4 + nd;
       if (c + step < cost[next]!) {
         cost[next] = c + step;
@@ -194,6 +157,71 @@ export function routeAround(
     path.unshift({ x: X[n % W]!, y: Y[Math.floor(n / W)]! });
   }
   return simplifyPath([from.point, ...path, to.point]).slice(1, -1);
+}
+
+/**
+ * Grille creuse de la recherche : lignes des bouts, des bords des formes proches et des voies parallèles aux flèches
+ * déjà tracées, dans une fenêtre de `WINDOW` autour des deux bouts.
+ */
+function sparseGrid(
+  start: Point,
+  goal: Point,
+  blocks: Rect[],
+  occupied: readonly Segment[],
+  spacing: number,
+): { X: number[]; Y: number[]; near: Rect[]; lines: Segment[] } {
+  const box = {
+    x0: Math.min(start.x, goal.x) - WINDOW,
+    y0: Math.min(start.y, goal.y) - WINDOW,
+    x1: Math.max(start.x, goal.x) + WINDOW,
+    y1: Math.max(start.y, goal.y) + WINDOW,
+  };
+  const near = blocks.filter((b) => b.x < box.x1 && b.x + b.width > box.x0 && b.y < box.y1 && b.y + b.height > box.y0);
+  const lines = occupied.filter(
+    (s) =>
+      Math.max(s.a.x, s.b.x) >= box.x0 &&
+      Math.min(s.a.x, s.b.x) <= box.x1 &&
+      Math.max(s.a.y, s.b.y) >= box.y0 &&
+      Math.min(s.a.y, s.b.y) <= box.y1,
+  );
+  const xs = new Set([start.x, goal.x, box.x0, box.x1]);
+  const ys = new Set([start.y, goal.y, box.y0, box.y1]);
+  for (const b of near) {
+    xs.add(b.x).add(b.x + b.width);
+    ys.add(b.y).add(b.y + b.height);
+  }
+  // Voies parallèles aux flèches déjà tracées, pour pouvoir passer à côté.
+  for (const s of lines) {
+    if (s.a.x === s.b.x) xs.add(s.a.x - spacing).add(s.a.x + spacing);
+    else ys.add(s.a.y - spacing).add(s.a.y + spacing);
+  }
+  const X = [...xs].filter((x) => x >= box.x0 && x <= box.x1).sort((a, b) => a - b);
+  const Y = [...ys].filter((y) => y >= box.y0 && y <= box.y1).sort((a, b) => a - b);
+  return { X, Y, near, lines };
+}
+
+/** Coût d'un pas de grille : longueur, coude, graine, attirance, flèches longées ou croisées. */
+function stepCost(
+  segment: Segment,
+  turning: boolean,
+  lines: readonly Segment[],
+  attract: Point | undefined,
+  options: AvoidOptions,
+  seed: number,
+): number {
+  const { a, b } = segment;
+  const length = Math.abs(b.x - a.x) + Math.abs(b.y - a.y);
+  let step = length + (turning ? BEND_COST : 0);
+  // À coût égal, tourner près du bout `attract` (là où le faisceau converge) : les faisceaux s'emboîtent.
+  // Graine : léger biais par couloir, qui fait choisir un autre détour parmi ceux de coût voisin.
+  if (seed !== 0) step += SEED_JITTER * length * seededUnit(seed, a.x === b.x ? `x${a.x}` : `y${a.y}`);
+  if (attract)
+    step += ATTRACT_COST * length * (Math.abs((a.x + b.x) / 2 - attract.x) + Math.abs((a.y + b.y) / 2 - attract.y));
+  for (const s of lines) {
+    step += overlap(segment, s) * OVERLAP_COST;
+    if (stepCrosses(segment, s)) step += options.crossingDetour;
+  }
+  return step;
 }
 
 export const ORTHOGONAL_ROUTER: Router = {

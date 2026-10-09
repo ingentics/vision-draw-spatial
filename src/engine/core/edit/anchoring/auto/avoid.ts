@@ -1,4 +1,4 @@
-import type { EdgeModel, PageModel, Point, Rect } from '../../../model/types';
+import type { EdgeModel, PageModel, Point, Rect, ShapeModel } from '../../../model/types';
 import { rectContainsRect } from '../../../model/geometry';
 import { toTerminal } from '../../../render/edges/terminal';
 import { fixedAnchor, routeEdge } from '../../../render/edges/route';
@@ -52,43 +52,7 @@ export function avoidRoutes(
       style: edge.style,
     });
   const fixed: Segment[] = page.edges.filter((e) => !edgeIds.has(e.id)).flatMap((e) => router.segments(routeOf(e)));
-  // Nombre de bouts par côté de forme : le bout le plus chargé attire les coudes de sa flèche.
-  const load = new Map<string, number>();
-  const sideKey = (edge: EdgeModel, end: 'source' | 'target') => {
-    const attachment = endAttachmentOf(edge, end);
-    return attachment?.kind === 'fixed' ? `${attachment.shapeId}\u0000${sideOfConstraint(attachment.constraint)}` : '';
-  };
-  for (const edge of page.edges)
-    for (const end of ['source', 'target'] as const)
-      load.set(sideKey(edge, end), (load.get(sideKey(edge, end)) ?? 0) + 1);
-
-  interface Job {
-    edge: EdgeModel;
-    from: Port;
-    to: Port;
-    obstacles: Rect[];
-    attract: Point;
-    span: number;
-  }
-  const jobs: Job[] = [];
-  for (const edge of page.edges) {
-    if (!edgeIds.has(edge.id)) continue;
-    const from = portOf(page, edge, 'source');
-    const to = portOf(page, edge, 'target');
-    const ends = [shapes.get(edge.sourceId ?? ''), shapes.get(edge.targetId ?? '')];
-    if (!from || !to || !ends[0] || !ends[1]) continue;
-    const obstacles = page.shapes
-      .filter((s) => s.visible && s.bounds.width > 0 && s.bounds.height > 0)
-      .filter((s) => !ends.some((end) => end !== s && rectContainsRect(s.bounds, end!.bounds)))
-      .map((s) => s.bounds);
-    const hub = (load.get(sideKey(edge, 'source')) ?? 0) > (load.get(sideKey(edge, 'target')) ?? 0) ? from : to;
-    const span = Math.abs(from.point.x - to.point.x) + Math.abs(from.point.y - to.point.y);
-    jobs.push({ edge, from, to, obstacles, attract: out(hub, options.stub), span });
-  }
-  // Les plus longues d'abord : elles prennent les couloirs proches du bout chargé, les plus courtes s'emboîtent.
-  // Graine : l'ordre de tracé est un peu perturbé (les longueurs restent le critère principal).
-  const weight = (job: Job) => job.span * (seed === 0 ? 1 : 1 + 0.5 * seededUnit(seed, job.edge.id));
-  jobs.sort((a, b) => weight(b) - weight(a) || a.edge.id.localeCompare(b.edge.id));
+  const jobs = routingJobs(page, edgeIds, shapes, options, seed);
 
   const pathIn = (routes: Map<string, Point[]>, job: Job) => {
     const points = routes.get(job.edge.id);
@@ -139,6 +103,56 @@ export function avoidRoutes(
     result = best;
   }
   return result;
+}
+
+/** Flèche à tracer : bouts, formes à contourner, bout chargé qui attire les coudes, longueur. */
+interface Job {
+  edge: EdgeModel;
+  from: Port;
+  to: Port;
+  obstacles: Rect[];
+  attract: Point;
+  span: number;
+}
+
+/** Flèches `edgeIds` à tracer (bouts fixes sur une forme), dans l'ordre de tracé. */
+function routingJobs(
+  page: PageModel,
+  edgeIds: ReadonlySet<string>,
+  shapes: ReadonlyMap<string, ShapeModel>,
+  options: AvoidOptions,
+  seed: number,
+): Job[] {
+  // Nombre de bouts par côté de forme : le bout le plus chargé attire les coudes de sa flèche.
+  const load = new Map<string, number>();
+  const sideKey = (edge: EdgeModel, end: 'source' | 'target') => {
+    const attachment = endAttachmentOf(edge, end);
+    return attachment?.kind === 'fixed' ? `${attachment.shapeId}\u0000${sideOfConstraint(attachment.constraint)}` : '';
+  };
+  for (const edge of page.edges)
+    for (const end of ['source', 'target'] as const)
+      load.set(sideKey(edge, end), (load.get(sideKey(edge, end)) ?? 0) + 1);
+
+  const jobs: Job[] = [];
+  for (const edge of page.edges) {
+    if (!edgeIds.has(edge.id)) continue;
+    const from = portOf(page, edge, 'source');
+    const to = portOf(page, edge, 'target');
+    const ends = [shapes.get(edge.sourceId ?? ''), shapes.get(edge.targetId ?? '')];
+    if (!from || !to || !ends[0] || !ends[1]) continue;
+    const obstacles = page.shapes
+      .filter((s) => s.visible && s.bounds.width > 0 && s.bounds.height > 0)
+      .filter((s) => !ends.some((end) => end !== s && rectContainsRect(s.bounds, end!.bounds)))
+      .map((s) => s.bounds);
+    const hub = (load.get(sideKey(edge, 'source')) ?? 0) > (load.get(sideKey(edge, 'target')) ?? 0) ? from : to;
+    const span = Math.abs(from.point.x - to.point.x) + Math.abs(from.point.y - to.point.y);
+    jobs.push({ edge, from, to, obstacles, attract: out(hub, options.stub), span });
+  }
+  // Les plus longues d'abord : elles prennent les couloirs proches du bout chargé, les plus courtes s'emboîtent.
+  // Graine : l'ordre de tracé est un peu perturbé (les longueurs restent le critère principal).
+  const weight = (job: Job) => job.span * (seed === 0 ? 1 : 1 + 0.5 * seededUnit(seed, job.edge.id));
+  jobs.sort((a, b) => weight(b) - weight(a) || a.edge.id.localeCompare(b.edge.id));
+  return jobs;
 }
 
 /** Vrai si un segment passe par l'intérieur d'un rectangle (approché par l'emprise du segment s'il est oblique). */

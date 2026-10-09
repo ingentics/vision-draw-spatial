@@ -76,11 +76,57 @@ export function createTroikaTextFactory(
   fonts: FontSet,
   onReady: () => void,
 ): TextFactory & { dispose(): void; measured(): Promise<MeasureText> } {
-  const baseMaterial = new MeshBasicMaterial({ transparent: true, depthWrite: false, side: DoubleSide });
-  let measuring: Promise<MeasureText> | undefined;
-  const measure = () => (measuring ??= createMeasure(fonts));
+  return new TroikaTextFactory(fonts, onReady);
+}
 
-  const sdfText = (content: string, font: FontSpec, color: Color, opacity: number, halo?: TextSpec['halo']) => {
+class TroikaTextFactory implements TextFactory {
+  private readonly baseMaterial = new MeshBasicMaterial({ transparent: true, depthWrite: false, side: DoubleSide });
+  private measuring: Promise<MeasureText> | undefined;
+
+  constructor(
+    private readonly fonts: FontSet,
+    private readonly onReady: () => void,
+  ) {}
+
+  create(spec: TextSpec): Object3D {
+    if (spec.along) return this.createOnPath(spec);
+    if (spec.rich || spec.underline || spec.strike || spec.fit) return this.createRich(spec);
+    const text = this.sdfText(
+      spec.text,
+      { size: spec.fontSize, bold: spec.bold, italic: spec.italic ?? false, family: spec.fontFamily },
+      spec.color,
+      spec.opacity,
+      spec.halo,
+    );
+    text.anchorX = spec.anchorX;
+    text.anchorY = spec.anchorY;
+    text.textAlign = spec.align;
+    if (spec.maxWidth !== undefined) {
+      text.maxWidth = spec.maxWidth;
+      // Comme draw.io : retour à la ligne entre les mots seulement, un mot trop long déborde.
+      text.overflowWrap = 'normal';
+    } else {
+      text.whiteSpace = 'nowrap';
+    }
+    text.position.set(spec.x, spec.y, 0);
+    const background = spec.background;
+    text.sync(() => {
+      if (background) updateBackground(text, background, spec.opacity);
+      this.onReady();
+    });
+    return text;
+  }
+
+  dispose(): void {
+    this.baseMaterial.dispose();
+  }
+
+  /** Mesure des textes avec les polices du texte SDF, une fois chargées. */
+  measured(): Promise<MeasureText> {
+    return (this.measuring ??= createMeasure(this.fonts));
+  }
+
+  private sdfText(content: string, font: FontSpec, color: Color, opacity: number, halo?: TextSpec['halo']): Text {
     const text = new Text();
     if (halo) {
       // Contour derrière le glyphe (troika le dessine sous le remplissage).
@@ -90,9 +136,9 @@ export function createTroikaTextFactory(
       // Bord du halo adouci (flou au-delà de l'épaisseur).
       if (halo.blur) text.outlineBlur = halo.blur;
     }
-    text.material = baseMaterial;
+    text.material = this.baseMaterial;
     text.text = content;
-    text.font = pickFont(fonts, font.bold, font.italic, font.family);
+    text.font = pickFont(this.fonts, font.bold, font.italic, font.family);
     text.fontSize = font.size;
     text.sdfGlyphSize = SDF_GLYPH_SIZE;
     text.color = color;
@@ -101,75 +147,54 @@ export function createTroikaTextFactory(
     // L'espace page a y vers le bas ; le texte troika a y vers le haut.
     text.scale.set(1, -1, 1);
     return text;
-  };
+  }
 
   /**
    * Morceau d'un texte dessiné en plusieurs textes SDF (lettre, mot) : avec un halo, deux couches, le halo seul
    * (remplissage transparent) sous toutes les lettres, puis la lettre seule, pour que le halo d'un morceau ne
    * passe jamais sur ses voisins. `place` pose chaque texte ; `offset` : rang dans l'ordre de dessin du groupe.
    */
-  const layeredText = (
+  private layeredText(
     content: string,
     font: FontSpec,
     color: Color,
     opacity: number,
     halo: TextSpec['halo'],
     place: (text: Text) => void,
-  ): Array<{ text: Text; offset: number }> => {
-    const fill = sdfText(content, font, color, opacity);
+  ): Array<{ text: Text; offset: number }> {
+    const fill = this.sdfText(content, font, color, opacity);
     place(fill);
     if (!halo) return [{ text: fill, offset: 0 }];
-    const outline = sdfText(content, font, color, opacity, halo);
+    const outline = this.sdfText(content, font, color, opacity, halo);
     outline.fillOpacity = 0;
     place(outline);
     return [
       { text: outline, offset: HALO_ORDER_OFFSET },
       { text: fill, offset: 0 },
     ];
-  };
+  }
 
-  return {
-    create(spec) {
-      if (spec.along) return createOnPath(spec);
-      if (spec.rich || spec.underline || spec.strike || spec.fit) return createRich(spec);
-      const text = sdfText(
-        spec.text,
-        { size: spec.fontSize, bold: spec.bold, italic: spec.italic ?? false, family: spec.fontFamily },
-        spec.color,
-        spec.opacity,
-        spec.halo,
-      );
-      text.anchorX = spec.anchorX;
-      text.anchorY = spec.anchorY;
-      text.textAlign = spec.align;
-      if (spec.maxWidth !== undefined) {
-        text.maxWidth = spec.maxWidth;
-        // Comme draw.io : retour à la ligne entre les mots seulement, un mot trop long déborde.
-        text.overflowWrap = 'normal';
-      } else {
-        text.whiteSpace = 'nowrap';
-      }
-      text.position.set(spec.x, spec.y, 0);
-      const background = spec.background;
+  /**
+   * Ajoute au groupe les couches d'un morceau de texte (`layeredText`) ; `onReady` est appelé quand tous les morceaux
+   * comptés par `pending` sont prêts.
+   */
+  private addPieces(group: Group, layers: Array<{ text: Text; offset: number }>, pending: { count: number }): void {
+    for (const { text, offset } of layers) {
+      followRenderOrder(text, group, offset);
+      group.add(text);
+      pending.count++;
       text.sync(() => {
-        if (background) updateBackground(text, background, spec.opacity);
-        onReady();
+        if (--pending.count === 0) this.onReady();
       });
-      return text;
-    },
-    dispose() {
-      baseMaterial.dispose();
-    },
-    /** Mesure des textes avec les polices du texte SDF, une fois chargées. */
-    measured: () => measure(),
-  };
+    }
+  }
 
   /** Texte le long d'un tracé : groupe vide tout de suite, une lettre par texte SDF une fois les polices prêtes. */
-  function createOnPath(spec: TextSpec): Object3D {
+  private createOnPath(spec: TextSpec): Object3D {
     const group = new Group();
     const along = spec.along!;
     const lines: DeepReadonly<RichLine[]> = spec.rich ?? spec.text.split('\n').map((text) => [{ text }]);
-    void measure().then((measureText) => {
+    void this.measured().then((measureText) => {
       const base = {
         size: spec.fontSize,
         bold: spec.bold,
@@ -181,52 +206,28 @@ export function createTroikaTextFactory(
       const layout = layoutRichText(lines, base, measureText, { align: spec.align });
       const anchorY = spec.anchorY === 'top' ? 'top' : spec.anchorY === 'middle' ? 'middle' : 'bottom';
       const glyphs = layoutOnPath(layout, along, { x: spec.anchorX, y: anchorY }, measureText);
-      let pending = 0;
+      const pending = { count: 0 };
       for (const glyph of glyphs) {
         const color = glyph.color ? new Color(glyph.color) : spec.color;
-        const layers = layeredText(glyph.text, glyph, color, spec.opacity, spec.halo, (text) => {
+        const layers = this.layeredText(glyph.text, glyph, color, spec.opacity, spec.halo, (text) => {
           text.anchorX = 'center';
           text.anchorY = 'top-baseline';
           text.whiteSpace = 'nowrap';
           text.position.set(glyph.x, glyph.y, 0);
           text.rotation.z = glyph.angle;
         });
-        for (const { text, offset } of layers) {
-          followRenderOrder(text, group, offset);
-          group.add(text);
-          pending++;
-          text.sync(() => {
-            if (--pending === 0) onReady();
-          });
-        }
+        this.addPieces(group, layers, pending);
       }
-      if (pending === 0) onReady();
+      if (pending.count === 0) this.onReady();
     });
     return group;
   }
 
   /** Texte riche : groupe vide tout de suite, rempli une fois les polices prêtes (mesure des mots). */
-  function createRich(spec: TextSpec): Object3D {
+  private createRich(spec: TextSpec): Object3D {
     const group = new Group();
-    const given: DeepReadonly<RichLine[]> = spec.rich ?? spec.text.split('\n').map((text) => [{ text }]);
-    void measure().then((measureText) => {
-      const base = {
-        size: spec.fontSize,
-        bold: spec.bold,
-        italic: spec.italic ?? false,
-        family: spec.fontFamily,
-        underline: spec.underline ?? false,
-        strike: spec.strike ?? false,
-      };
-      // « Ajuster » : taille réduite pour tenir dans la zone, tailles partielles à proportion.
-      const size = spec.fit
-        ? fitFontSize(given, base, measureText, { ...spec.fit, wrap: spec.maxWidth !== undefined, align: spec.align })
-        : spec.fontSize;
-      const lines = size === spec.fontSize ? given : scaleRichLines(given, size / spec.fontSize);
-      const layout = layoutRichText(lines, { ...base, size }, measureText, {
-        maxWidth: spec.maxWidth,
-        align: spec.align,
-      });
+    void this.measured().then((measureText) => {
+      const layout = richLayoutOf(spec, measureText);
       const left =
         spec.anchorX === 'left' ? spec.x : spec.anchorX === 'right' ? spec.x - layout.width : spec.x - layout.width / 2;
       const top =
@@ -250,7 +251,7 @@ export function createTroikaTextFactory(
         mesh.position.set(left + layout.width / 2, top + layout.height / 2, 0);
         add(mesh, -0.5);
       }
-      let pending = 0;
+      const pending = { count: 0 };
       for (const run of layout.runs) {
         const color = run.color ? new Color(run.color) : spec.color;
         for (const { y, thickness } of decorationLines(run)) {
@@ -259,25 +260,37 @@ export function createTroikaTextFactory(
           add(line);
         }
         if (run.text.trim() === '') continue;
-        const layers = layeredText(run.text, run, color, spec.opacity, spec.halo, (text) => {
+        const layers = this.layeredText(run.text, run, color, spec.opacity, spec.halo, (text) => {
           text.anchorX = 'left';
           // Ligne de base au point donné : tous les segments d'une ligne s'alignent.
           text.anchorY = 'top-baseline';
           text.whiteSpace = 'nowrap';
           text.position.set(left + run.x, top + run.baseline, 0);
         });
-        for (const { text, offset } of layers) {
-          add(text, offset);
-          pending++;
-          text.sync(() => {
-            if (--pending === 0) onReady();
-          });
-        }
+        this.addPieces(group, layers, pending);
       }
-      if (pending === 0) onReady();
+      if (pending.count === 0) this.onReady();
     });
     return group;
   }
+}
+
+/** Mise en page d'un texte riche ; « Ajuster » : taille réduite pour tenir dans la zone, tailles partielles à proportion. */
+function richLayoutOf(spec: TextSpec, measureText: MeasureText) {
+  const given: DeepReadonly<RichLine[]> = spec.rich ?? spec.text.split('\n').map((text) => [{ text }]);
+  const base = {
+    size: spec.fontSize,
+    bold: spec.bold,
+    italic: spec.italic ?? false,
+    family: spec.fontFamily,
+    underline: spec.underline ?? false,
+    strike: spec.strike ?? false,
+  };
+  const size = spec.fit
+    ? fitFontSize(given, base, measureText, { ...spec.fit, wrap: spec.maxWidth !== undefined, align: spec.align })
+    : spec.fontSize;
+  const lines = size === spec.fontSize ? given : scaleRichLines(given, size / spec.fontSize);
+  return layoutRichText(lines, { ...base, size }, measureText, { maxWidth: spec.maxWidth, align: spec.align });
 }
 
 function plane(width: number, height: number, color: Color, opacity: number): Mesh {

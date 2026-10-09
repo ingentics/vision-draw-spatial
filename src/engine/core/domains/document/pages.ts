@@ -1,8 +1,8 @@
 import { addPage, removePage, renamePage } from '../../format/create';
 import { readPageViews } from '../../format/viewState';
 import type { IsoViewParams, PageViewState } from '../../format/viewState';
-import { normalizeCameraState } from '../../interaction/cameraMath';
-import type { CameraState } from '../../interaction/cameraMath';
+import { normalizeCameraState } from '../../interaction/cameraState';
+import type { CameraState } from '../../interaction/cameraState';
 import type { PageModel, Rect } from '../../model/types';
 import type { EngineCore } from '../EngineCore';
 import type { InitialView } from '../types';

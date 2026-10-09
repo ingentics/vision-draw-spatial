@@ -1,5 +1,5 @@
 import type { Point, Rect } from '../../model/types';
-import { dragGround, orbit, zoomAt } from '../cameraMath';
+import { dragGround, orbit, zoomAt } from '../cameraMoves';
 import { rectBetween } from '../marquee';
 import { followLinkGesture, hasFollowLinkKey, hasMultiSelectKey } from '../selectionRules';
 import type { FollowLinkGesture } from '../selectionRules';

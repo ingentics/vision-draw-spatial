@@ -1,4 +1,4 @@
-import type { ViewMode } from '../interaction/cameraMath';
+import type { ViewMode } from '../interaction/cameraState';
 import type { Point, Rect } from '../model/types';
 // Modèle en lecture seule (sujet 303) : un mode lit la page, il n'écrit que par `ModeEdit`.
 import type {

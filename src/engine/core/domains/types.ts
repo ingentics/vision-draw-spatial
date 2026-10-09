@@ -2,7 +2,7 @@
 import type { ElementComment } from '../edit/comment';
 import type { PageEffectRegistry } from '../effects/registry';
 import type { EdgeEnd } from '../edit/edgeLabels';
-import type { CameraState } from '../interaction/cameraMath';
+import type { CameraState } from '../interaction/cameraState';
 import type { HistoryEntry, LinkUsage, ParentLink } from '../interaction/navigationHistory';
 import type { PickedElement } from '../interaction/pick';
 import type { DocumentModel, PageModel, Point, Rect } from '../model/types';

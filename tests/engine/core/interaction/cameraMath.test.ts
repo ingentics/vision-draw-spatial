@@ -2,34 +2,41 @@ import { OrthographicCamera, PerspectiveCamera, Vector3 } from 'three';
 import { describe, expect, it } from 'vitest';
 import {
   defaultView,
+  fitBounds,
+  nextOverviewStep,
+  sameView,
+} from '../../../../src/engine/core/interaction/cameraFraming';
+import {
+  dragGround,
+  interpolateCamera,
+  orbit,
+  panByScreen,
+  revealShift,
+  rotateAround,
+  tiltAround,
+  zoomAt,
+} from '../../../../src/engine/core/interaction/cameraMoves';
+import {
   applyCameraState,
   applyPerspectiveState,
+  pageToScreen,
+  screenToPage,
+} from '../../../../src/engine/core/interaction/cameraProjection';
+import {
+  cameraLimitsOf,
   DEFAULT_CAMERA_LIMITS,
-  dragGround,
   FLAT_FOV,
-  fitBounds,
-  interpolateCamera,
-  nextOverviewStep,
   MAX_TILT_3D,
   MAX_ZOOM_3D,
   MIN_ZOOM_3D,
   normalizeAngle,
   normalizeCameraState,
-  orbit,
-  pageToScreen,
-  panByScreen,
   PERSPECTIVE_FOV,
-  revealShift,
-  rotateAround,
-  sameView,
-  screenToPage,
   settleProjection,
-  tiltAround,
   tiltFromElevation,
   withViewMode,
-  zoomAt,
-} from '../../../../src/engine/core/interaction/cameraMath';
-import type { CameraLimits, CameraState } from '../../../../src/engine/core/interaction/cameraMath';
+} from '../../../../src/engine/core/interaction/cameraState';
+import type { CameraLimits, CameraState } from '../../../../src/engine/core/interaction/cameraState';
 
 const viewport = { width: 800, height: 600 };
 const state = (patch: Partial<CameraState> = {}): CameraState => ({
@@ -519,5 +526,29 @@ describe('bornes de caméra propres à chaque moteur (sujet 204)', () => {
     expect(settleProjection(state({ mode: '3d' }), custom).fov).toBe(custom.fov);
     expect(normalizeCameraState(state({ zoom: 50 }), custom).zoom).toBe(3);
     expect(normalizeCameraState(state({ zoom: 50 })).zoom).toBe(DEFAULT_CAMERA_LIMITS.maxZoom);
+  });
+});
+
+describe('cameraLimitsOf', () => {
+  it('reprend les zooms et convertit les angles des réglages en radians', () => {
+    const limits = cameraLimitsOf({
+      minZoom: 0.1,
+      maxZoom: 8,
+      minZoom3d: 0.2,
+      maxZoom3d: 3,
+      maxTilt3dDeg: 60,
+      fovDeg: 90,
+      animationMs: 250,
+      focusMaxZoom: 2,
+      focusPadding: 80,
+    });
+    expect(limits).toEqual({
+      minZoom: 0.1,
+      maxZoom: 8,
+      minZoom3d: 0.2,
+      maxZoom3d: 3,
+      maxTilt3d: Math.PI / 3,
+      fov: Math.PI / 2,
+    });
   });
 });

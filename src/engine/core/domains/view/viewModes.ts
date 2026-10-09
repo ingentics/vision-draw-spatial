@@ -1,6 +1,7 @@
 import type { IsoViewParams } from '../../format/viewState';
-import { normalizeAngle, sameView, withViewMode } from '../../interaction/cameraMath';
-import type { CameraState, ViewMode } from '../../interaction/cameraMath';
+import { sameView } from '../../interaction/cameraFraming';
+import { normalizeAngle, withViewMode } from '../../interaction/cameraState';
+import type { CameraState, ViewMode } from '../../interaction/cameraState';
 import type { Settings } from '../../settings';
 import type { EngineCore } from '../EngineCore';
 

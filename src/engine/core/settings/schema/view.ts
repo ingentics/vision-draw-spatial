@@ -1,4 +1,4 @@
-import { ISOMETRIC_ELEVATION_DEG } from '../../interaction/cameraMath';
+import { ISOMETRIC_ELEVATION_DEG } from '../../interaction/cameraState';
 import { DEFAULT_DEPTH } from '../../spatial';
 import { DEFAULT_ACCENT } from '../../render/styleColors';
 import { color, flag, number, oneOf } from '../fields';

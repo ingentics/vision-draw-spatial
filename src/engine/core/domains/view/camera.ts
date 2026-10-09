@@ -1,18 +1,15 @@
+import { defaultView, fitBounds, nextOverviewStep, sameView } from '../../interaction/cameraFraming';
+import { interpolateCamera, rotateAround, zoomAt } from '../../interaction/cameraMoves';
 import {
-  defaultView,
-  fitBounds,
-  interpolateCamera,
+  cameraLimitsOf,
   normalizeAngle,
-  nextOverviewStep,
   normalizeCameraState,
-  rotateAround,
-  sameView,
   settleProjection,
   tiltFromElevation,
   withViewMode,
-  zoomAt,
-} from '../../interaction/cameraMath';
-import type { CameraLimits, CameraState, OverviewStep, ViewMode } from '../../interaction/cameraMath';
+} from '../../interaction/cameraState';
+import type { OverviewStep } from '../../interaction/cameraFraming';
+import type { CameraLimits, CameraState, ViewMode } from '../../interaction/cameraState';
 import { unionOf } from '../../model/geometry';
 import type { Point, Rect } from '../../model/types';
 import type { Settings } from '../../settings';
@@ -41,17 +38,7 @@ export class ViewCamera {
   get limits(): CameraLimits {
     const camera = this.core.settings.camera;
     if (this.limitsCache?.camera !== camera) {
-      this.limitsCache = {
-        camera,
-        limits: {
-          minZoom: camera.minZoom,
-          maxZoom: camera.maxZoom,
-          minZoom3d: camera.minZoom3d,
-          maxZoom3d: camera.maxZoom3d,
-          maxTilt3d: (camera.maxTilt3dDeg * Math.PI) / 180,
-          fov: (camera.fovDeg * Math.PI) / 180,
-        },
-      };
+      this.limitsCache = { camera, limits: cameraLimitsOf(camera) };
     }
     return this.limitsCache.limits;
   }

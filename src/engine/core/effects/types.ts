@@ -1,5 +1,5 @@
 import type { Object3D } from 'three';
-import type { ViewMode } from '../interaction/cameraMath';
+import type { ViewMode } from '../interaction/cameraState';
 import type { Point, Rect } from '../model/types';
 // Modèle en lecture seule (sujet 303).
 import type { ReadonlyPageModel as PageModel } from '../model/readonly';

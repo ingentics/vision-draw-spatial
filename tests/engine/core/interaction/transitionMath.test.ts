@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { pageToScreen } from '../../../../src/engine/core/interaction/cameraMath';
-import type { CameraState } from '../../../../src/engine/core/interaction/cameraMath';
+import { pageToScreen } from '../../../../src/engine/core/interaction/cameraProjection';
+import type { CameraState } from '../../../../src/engine/core/interaction/cameraState';
 import {
   easing,
   embedIn,

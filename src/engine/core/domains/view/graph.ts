@@ -1,9 +1,9 @@
-import { fitBounds } from '../../interaction/cameraMath';
+import { fitBounds } from '../../interaction/cameraFraming';
 import { buildGraphPage, cardId, GRAPH_PAGE_ID } from '../../graph/graphPage';
 import type { GraphLayout } from '../../graph/graphPage';
 import { miniGraph } from '../../graph/miniGraph';
 import type { MiniGraph } from '../../graph/miniGraph';
-import type { CameraState } from '../../interaction/cameraMath';
+import type { CameraState } from '../../interaction/cameraState';
 import type { PageModel } from '../../model/types';
 import type { EngineCore } from '../EngineCore';
 import { settingsSectionChanged } from '../../settings';

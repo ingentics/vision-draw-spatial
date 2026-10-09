@@ -1,6 +1,6 @@
 import { Matrix4 } from 'three';
 import { connectableShapes } from '../../edit/edgeEnds';
-import { screenToPage } from '../../interaction/cameraMath';
+import { screenToPage } from '../../interaction/cameraProjection';
 import { pickElement, distanceToPolyline } from '../../interaction/pick';
 import type { PickedElement } from '../../interaction/pick';
 import type { EdgeModel, Point, Rect, ShapeModel } from '../../model/types';

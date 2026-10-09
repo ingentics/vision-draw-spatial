@@ -11,8 +11,8 @@ import type { LabelEditView } from '../../../../../../src/engine/core/domains/ed
 import type { LabelEditRequest } from '../../../../../../src/engine/core/domains/types';
 import type { StandingPlane } from '../../../../../../src/engine/core/domains/view/projection';
 import { END_TEXT_GAP, edgeTextLayout, flipTarget } from '../../../../../../src/engine/core/edit/edgeLabels';
-import { pageToScreen } from '../../../../../../src/engine/core/interaction/cameraMath';
-import type { CameraState } from '../../../../../../src/engine/core/interaction/cameraMath';
+import { pageToScreen } from '../../../../../../src/engine/core/interaction/cameraProjection';
+import type { CameraState } from '../../../../../../src/engine/core/interaction/cameraState';
 import { readDrawio } from '../../../../../../src/engine/core/format/parse';
 import type { Point, Rect } from '../../../../../../src/engine/core/model/types';
 import type { TextAlong } from '../../../../../../src/engine/core/render/textPath';

@@ -1,0 +1,1 @@
+Longues fonctions hors tronc (vu au sujet 387, qui ne couvrait que le tronc) : `plugins/modes/rdd/shapes/common/table.ts` `createTable` (109 lignes) et `plugins/shapes/general/actors/common/standingActor.ts` `standingActor` (82 lignes) dépassent les ~80 lignes ; à découper par sujet (cadre, champs, labels).

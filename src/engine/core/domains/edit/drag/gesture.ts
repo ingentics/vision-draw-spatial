@@ -6,7 +6,7 @@ import { canMoveShape, collectMoveSet, moveTarget } from '../../../edit/moveSet'
 import { movePlan, resizeBounds } from '../../../edit/movePlan';
 import type { ObstaclesOf } from '../../../edit/movePlan';
 import { connectSideOf, isConnectHandle } from '../../../edit/handleKinds';
-import { screenToPage } from '../../../interaction/cameraMath';
+import { screenToPage } from '../../../interaction/cameraProjection';
 import type { PageModel, Point, Rect, ShapeModel } from '../../../model/types';
 import type { PickedElement } from '../../../interaction/pick';
 import type { Drag, MoveDrag } from './types';
@@ -93,11 +93,22 @@ export class DragGesture {
     const { page, pageTree } = editable;
     const start = screenToPage(this.core.camera.state, this.core.display.viewport, screen);
     const grid = gridSizeOf(pageTree);
+    const drag =
+      this.handleDrag(page, screen, start, grid) ??
+      // Partie sélectionnée saisie (ex. champ d'une table RDD, sujet 252) : elle se glisse, pas la forme.
+      this.core.partDrags.grab(page, screen) ??
+      this.shapeDrag(page, pageTree, screen, start, grid);
+    if (!drag) return false;
+    this.drag = drag;
+    return true;
+  }
 
+  /** Glisser d'une poignée de la sélection : bout ou point d'une flèche, redimensionnement, connecteur. */
+  private handleDrag(page: PageModel, screen: Point, start: Point, grid: number): Drag | undefined {
     const end = this.core.edgeHandles.edgeEndAt(screen);
     const selectedEdge = end ? this.core.targets.editableEdgeSelection()?.edge : undefined;
     if (end && selectedEdge) {
-      this.drag = {
+      return {
         kind: 'edgeEnd',
         pageId: page.id,
         edgeId: selectedEdge.id,
@@ -107,14 +118,13 @@ export class DragGesture {
         originalPoints: selectedEdge.points.map((p) => ({ ...p })),
         started: false,
       };
-      return true;
     }
 
     const pointHandle = this.core.edgeHandles.pointHandleAt(screen);
     const bentEdge = pointHandle ? this.core.targets.editableEdgeSelection()?.edge : undefined;
     const context = bentEdge && this.core.edgeHandles.pointsContext(page, bentEdge);
     if (pointHandle && bentEdge && context) {
-      this.drag = {
+      return {
         kind: 'edgePoints',
         pageId: page.id,
         edgeId: bentEdge.id,
@@ -123,40 +133,33 @@ export class DragGesture {
         original: bentEdge.points.map((p) => ({ ...p })),
         started: false,
       };
-      return true;
     }
 
     const handle = this.core.shapeHandles.handleAt(screen);
     const selected = handle ? this.core.targets.editableSelection()?.shape : undefined;
-    if (handle && selected) {
-      this.drag = isConnectHandle(handle)
-        ? { kind: 'connect', pageId: page.id, sourceId: selected.id, side: connectSideOf(handle), started: false }
-        : {
-            kind: 'resize',
-            pageId: page.id,
-            shapeId: selected.id,
-            handle,
-            start,
-            origin: { ...selected.bounds },
-            grid,
-            children: collectMoveSet(page, selected.id),
-            bounded: resizeBounds(page, selected.id, this.obstaclesOf(page)),
-            started: false,
-          };
-      return true;
-    }
+    if (!handle || !selected) return undefined;
+    return isConnectHandle(handle)
+      ? { kind: 'connect', pageId: page.id, sourceId: selected.id, side: connectSideOf(handle), started: false }
+      : {
+          kind: 'resize',
+          pageId: page.id,
+          shapeId: selected.id,
+          handle,
+          start,
+          origin: { ...selected.bounds },
+          grid,
+          children: collectMoveSet(page, selected.id),
+          bounded: resizeBounds(page, selected.id, this.obstaclesOf(page)),
+          started: false,
+        };
+  }
 
-    // Partie sélectionnée saisie (ex. champ d'une table RDD, sujet 252) : elle se glisse, pas la forme.
-    const part = this.core.partDrags.grab(page, screen);
-    if (part) {
-      this.drag = part;
-      return true;
-    }
-
+  /** Forme déplaçable saisie, avec le reste de la sélection multiple si elle en fait partie. */
+  private shapeDrag(page: PageModel, pageTree: PageTree, screen: Point, start: Point, grid: number): Drag | undefined {
     const picked = this.core.picking.pickAt(screen);
-    if (picked?.type !== 'shape') return false;
+    if (picked?.type !== 'shape') return undefined;
     const shape = moveTarget(page, picked.element, this.core.registry);
-    if (!canMoveShape(pageTree, shape)) return false;
+    if (!canMoveShape(pageTree, shape)) return undefined;
     // Forme saisie dans une sélection multiple : toutes les formes sélectionnées bougent ensemble
     // (celles qu'on ne peut pas déplacer restent en place).
     const selection = this.core.selection.current;
@@ -168,8 +171,7 @@ export class DragGesture {
       ? [shape.id, ...this.movableShapes(page, pageTree, items).map((target) => target.id)]
       : [shape.id];
     const edgeIds = grabbedSelected ? selectedEdgeIds(items) : [];
-    this.drag = this.moveDrag(page, pageTree, candidates, edgeIds, start, shape.bounds, grid);
-    return true;
+    return this.moveDrag(page, pageTree, candidates, edgeIds, start, shape.bounds, grid);
   }
 
   /**

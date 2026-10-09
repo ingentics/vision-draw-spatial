@@ -1,5 +1,5 @@
-import { interpolateCamera } from '../../interaction/cameraMath';
-import type { CameraState } from '../../interaction/cameraMath';
+import { interpolateCamera } from '../../interaction/cameraMoves';
+import type { CameraState } from '../../interaction/cameraState';
 import { easing, embedIn, embeddedCamera, phase } from '../../interaction/transitionMath';
 import type { PageModel, Rect } from '../../model/types';
 import { setPageOpacity } from '../../render/pageEffects';
@@ -61,9 +61,24 @@ export class Transitions {
       return;
     }
 
+    this.play({ direction, outer, inner, to, frame, destination, duration, fromId: from.id });
+  }
+
+  /** Trajet animé de la transition : pages posées l'une dans l'autre, caméra interpolée, fondu croisé. */
+  private play(run: {
+    direction: 'in' | 'out';
+    outer: PageModel;
+    inner: PageModel;
+    to: PageModel;
+    frame: Rect;
+    destination: CameraState;
+    duration: number;
+    fromId: string;
+  }): void {
+    const { direction, outer, inner, to, destination, duration } = run;
     this.core.camera.cancelAnimation();
     this.core.selection.clearSelection();
-    const embedding = embedIn(inner.bounds, frame);
+    const embedding = embedIn(inner.bounds, run.frame);
     const outerScene = this.core.scenes.prebuild(outer);
     const innerScene = this.core.scenes.prebuild(inner);
 
@@ -79,28 +94,23 @@ export class Transitions {
     innerScene.root.visible = true;
     setPageTransform(innerScene.root, embedding);
     const innerAlpha = (fade: number) => (direction === 'in' ? fade : 1 - fade);
-    setPageOpacity(innerScene.root, innerAlpha(0));
-    setPageOpacity(outerScene.root, 1 - innerAlpha(0));
+    const setFade = (fade: number) => {
+      setPageOpacity(innerScene.root, innerAlpha(fade));
+      setPageOpacity(outerScene.root, 1 - innerAlpha(fade));
+    };
+    setFade(0);
     this.core.camera.applyCamera(startCamera);
 
     const ease = easing(this.core.settings.transition.easing);
     const { fadeStart, fadeEnd } = this.core.settings.transition;
 
     this.core.controller.setEnabled(false);
-    this.core.events.emit('transitionStart', from.id, to.id);
+    this.core.events.emit('transitionStart', run.fromId, to.id);
 
     const restore = () => {
       setPageOpacity(outerScene.root, 1);
       setPageOpacity(innerScene.root, 1);
       setPageTransform(innerScene.root, undefined);
-    };
-    const finish = () => {
-      this.active = undefined;
-      this.core.camera.cancelAnimation();
-      this.core.controller.setEnabled(true);
-      // Touche toujours maintenue : les zones liées de la page d'arrivée.
-      this.core.links.updateLinkZones();
-      this.core.events.emit('transitionEnd', this.core.pages.currentPageId ?? to.id);
     };
     this.active = {
       abort: () => {
@@ -108,7 +118,7 @@ export class Transitions {
         this.core.camera.cancelAnimation();
         restore();
         this.core.scenes.show(outer);
-        finish();
+        this.finish(to.id);
       },
     };
     // Pas de zones liées pendant le trajet.
@@ -119,23 +129,40 @@ export class Transitions {
       const t = Math.min((now - start) / duration, 1);
       if (t < 1) {
         this.core.camera.applyCamera(interpolateCamera(startCamera, endCamera, ease(t)));
-        const fade = phase(t, fadeStart, fadeEnd);
-        setPageOpacity(innerScene.root, innerAlpha(fade));
-        setPageOpacity(outerScene.root, 1 - innerAlpha(fade));
+        setFade(phase(t, fadeStart, fadeEnd));
         this.core.camera.requestFrame(step);
         return;
       }
-      // Arrivée : même image à l'écran, sur la page de destination sans transformation.
       restore();
-      if (outerCameraBefore) this.core.pages.rememberCamera(outer.id, outerCameraBefore);
-      this.core.viewModes.applyPageIso(to.id);
-      this.core.pages.arriveAt(to.id);
-      this.core.scenes.show(to);
-      this.core.minimap.invalidate();
-      this.core.camera.applyCamera(destination);
-      this.core.events.emit('pageChange', to);
-      finish();
+      this.arrive(outer, to, destination, outerCameraBefore);
     };
     this.core.camera.requestFrame(step);
+  }
+
+  /** Arrivée : même image à l'écran, sur la page de destination sans transformation. */
+  private arrive(
+    outer: PageModel,
+    to: PageModel,
+    destination: CameraState,
+    outerCameraBefore: CameraState | undefined,
+  ): void {
+    if (outerCameraBefore) this.core.pages.rememberCamera(outer.id, outerCameraBefore);
+    this.core.viewModes.applyPageIso(to.id);
+    this.core.pages.arriveAt(to.id);
+    this.core.scenes.show(to);
+    this.core.minimap.invalidate();
+    this.core.camera.applyCamera(destination);
+    this.core.events.emit('pageChange', to);
+    this.finish(to.id);
+  }
+
+  /** Fin de la transition, arrivée ou interrompue : contrôles rendus, zones liées de la page courante. */
+  private finish(toId: string): void {
+    this.active = undefined;
+    this.core.camera.cancelAnimation();
+    this.core.controller.setEnabled(true);
+    // Touche toujours maintenue : les zones liées de la page d'arrivée.
+    this.core.links.updateLinkZones();
+    this.core.events.emit('transitionEnd', this.core.pages.currentPageId ?? toId);
   }
 }

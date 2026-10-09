@@ -8,7 +8,7 @@ import type { EffectRegistryView } from './core/effects/registry';
 import type { StylePreset } from './core/edit/stylePresets';
 import type { OrderMove } from './core/format/order';
 import type { MiniGraph } from './core/graph/miniGraph';
-import type { CameraState, ViewMode } from './core/interaction/cameraMath';
+import type { CameraState, ViewMode } from './core/interaction/cameraState';
 import type { HistoryEntry, LinkUsage, ParentLink } from './core/interaction/navigationHistory';
 import type { PickedElement } from './core/interaction/pick';
 import type { DocumentModel, LinkModel, PageModel, Point } from './core/model/types';

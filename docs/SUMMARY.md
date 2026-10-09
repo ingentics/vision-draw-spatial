@@ -111,7 +111,7 @@ Règles :
 | Nouveau mode de page | `docs/AJOUTER_UN_MODE.md` ; exemples `plugins/modes/sequences/` (avec sa partie appli `src/app/plugins/modes/sequences/`) et `plugins/modes/rdd/` (avec ses formes) |
 | Nouvel effet de page | contrat `core/effects/types.ts` (JSDoc) ; exemple `plugins/effects/forest/`, test `tests/engine/plugins/effects/forest.test.ts` |
 | Comportement d'édition | SPEC §14, `src/engine/core/edit/`, `src/engine/core/format/cellEdits.ts` |
-| Rendu / caméra / vues | SPEC §8–9, `core/render/pageScene.ts`, `core/render/sceneManager.ts`, `core/interaction/cameraMath.ts` |
+| Rendu / caméra / vues | SPEC §8–9, `core/render/pageScene.ts`, `core/render/sceneManager.ts`, `core/interaction/cameraState.ts` (état, bornes), `cameraProjection.ts`, `cameraFraming.ts`, `cameraMoves.ts` |
 | UI de l'appli de démo | `src/app/` (`App.tsx`, `Palette.tsx`, `ContextPanel.tsx`, `SettingsPanel.tsx`, `DiagnosticsPanel.tsx`, `main.css`) |
 | API du composant | `docs/COMPOSANT.md`, `src/react/DrawioSpatial.tsx`, `src/index.ts` |
 | Paramètre nouveau | SPEC §13, `engine/core/settings/types.ts` et `schema/`, `tests/engine/core/settings.test.ts`, `src/app/SettingsPanel.tsx` ; réglage lu par des formes : déclaré par leur catégorie (`plugins/shapes/categories.ts`, `AJOUTER_UNE_FORME.md` §4.1) |

@@ -90,8 +90,8 @@ export { matchesPreset, matchesTextPreset } from './core/edit/stylePresets';
 export type { StylePreset, TextPreset } from './core/edit/stylePresets';
 
 // Caméra, navigation et sélection (SPEC §9–11)
-export { ISOMETRIC_ELEVATION_DEG } from './core/interaction/cameraMath';
-export type { CameraState, ViewMode } from './core/interaction/cameraMath';
+export { ISOMETRIC_ELEVATION_DEG } from './core/interaction/cameraState';
+export type { CameraState, ViewMode } from './core/interaction/cameraState';
 export { RESERVED_CODES } from './core/interaction/controls';
 export type { Shortcuts } from './core/interaction/controls';
 export type { ParentLink } from './core/interaction/navigationHistory';

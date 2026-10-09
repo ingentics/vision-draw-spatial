@@ -1,5 +1,5 @@
 import type { DocumentModel, Rect } from '../model/types';
-import type { CameraState } from './cameraMath';
+import type { CameraState } from './cameraState';
 
 /**
  * Historique de navigation par liens (SPEC §11.3).

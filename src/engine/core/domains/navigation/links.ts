@@ -1,7 +1,7 @@
 import { Group, Mesh } from 'three';
 import type { MeshBasicMaterial } from 'three';
 import { isNavigableLink } from '../../format/link';
-import { fitBounds } from '../../interaction/cameraMath';
+import { fitBounds } from '../../interaction/cameraFraming';
 import { usageKey } from '../../interaction/navigationHistory';
 import type { LinkUsage } from '../../interaction/navigationHistory';
 import { FOLLOW_LINK_KEY_LABELS, followLinkGesture } from '../../interaction/selectionRules';

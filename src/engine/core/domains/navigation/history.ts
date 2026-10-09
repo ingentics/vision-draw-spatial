@@ -1,5 +1,5 @@
-import { fitBounds } from '../../interaction/cameraMath';
-import type { CameraState } from '../../interaction/cameraMath';
+import { fitBounds } from '../../interaction/cameraFraming';
+import type { CameraState } from '../../interaction/cameraState';
 import { NavigationHistory, findParents } from '../../interaction/navigationHistory';
 import type { HistoryEntry, ParentLink } from '../../interaction/navigationHistory';
 import type { Rect } from '../../model/types';

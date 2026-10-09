@@ -112,7 +112,7 @@ Les couches de §4.1 se rangent ainsi ; la carte des dossiers, un par ligne avec
 ### 4.3 Façade du moteur
 
 Extrait ; la référence est `src/engine/Engine.ts` et ses types (`core/domains/types.ts`,
-`core/interaction/cameraMath.ts`).
+`core/interaction/cameraState.ts`).
 
 ```ts
 interface EngineOptions {
@@ -733,7 +733,7 @@ Réalisation retenue :
 
 - `mergeSettings` fusionne une modification **section par section** (raccourcis un par un), ignore les valeurs invalides et borne les nombres : un stockage abîmé ou ancien ne casse jamais l'application.
 - Moteur : `new Engine({ settings })`, puis `engine.updateSettings(patch)` — tout s'applique immédiatement (contrôles, transitions, préchargement, taille du cache ; en iso, élévation et orientation animées ; bornes de caméra, couleurs, vue graphe). `<DrawioSpatial settings={…} />` les transmet.
-- Les bornes de la caméra (zoom, inclinaison et champ de vision de la 3D) sont un réglage du module `interaction/cameraMath` (`setCameraLimits`), commun à toutes les vues de la page. Un zoom maximal inférieur au minimal est ramené au minimal.
+- Les bornes de la caméra (zoom, inclinaison et champ de vision de la 3D) sont propres à chaque moteur (`ViewCamera.limits`, tirées des réglages par `cameraLimitsOf`, `interaction/cameraState`), communes à toutes les vues de la page. Un zoom maximal inférieur au minimal est ramené au minimal.
 - Restent dans le code les valeurs purement techniques (ordres de dessin, tolérances numériques, stencil) et les valeurs de fidélité à draw.io (couleurs et tailles par défaut des styles).
 - **Réduire les animations** : « comme le système » (`prefers-reduced-motion`, suivi en direct), « toujours » ou « jamais ». Réduites = transitions de liens, bascule iso, vue globale ↔ 1:1 instantanées, **glissade et contour de sélection animé** coupés.
 - **Supprimer la sélection** (`deleteSelection`, Backspace par défaut, la touche « delete » du Mac ; Suppr fonctionne toujours) : prioritaire seulement s'il y a une sélection supprimable ; sans sélection, Backspace ne fait rien (il ne revient plus en arrière, sujet 357).
