@@ -51,7 +51,7 @@ export class Pages {
   }
 
   canEditPages(): boolean {
-    return this.core.targets.editable && this.core.file.xmlTree?.xml.documentElement?.tagName === 'mxfile';
+    return this.core.targets.isEditable() && this.core.file.xmlTree?.xml.documentElement?.tagName === 'mxfile';
   }
 
   addPage(name?: string): string | undefined {

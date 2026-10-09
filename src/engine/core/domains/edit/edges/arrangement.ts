@@ -33,7 +33,7 @@ export class EdgeArrangement {
    * sur leurs côtés, écrit dans l'arbre XML (même étape d'annulation). Vrai si quelque chose a été écrit.
    */
   distributeAfterEdit(after: DocumentModel, changedPageIds: string[]): boolean {
-    if (!this.core.targets.editable) return false;
+    if (!this.core.targets.isEditable()) return false;
     let wrote = false;
     for (const pageId of changedPageIds) {
       const page = byId(after.pages, pageId);

@@ -1,1 +1,0 @@
-D'autres domaines exposent encore en champ public modifiable un état lu ailleurs (`selection.current`, `config.settings`, `gesture.drag`, `viewModes.flattened`, `levels.heightScale` / `levelBlend`, `edits.undoStack`…) : à passer en privé + accesseur comme au sujet 385 (aucune écriture croisée vue, prévention ; vu au sujet 385).

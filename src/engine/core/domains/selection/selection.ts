@@ -8,12 +8,17 @@ import { edgeOf, shapeOf } from '../../model/pageIndex';
 
 /** Sélection de la page courante (SPEC §11) : un ou plusieurs éléments, par clic, ajout / retrait, zone ou « tout ». */
 export class Selections {
-  current: Selection | undefined;
+  private selected: Selection | undefined;
 
   constructor(private readonly core: EngineCore) {}
 
+  /** Sélection courante (lecture seule : `selectItems`, `rebind`). */
+  get current(): Selection | undefined {
+    return this.selected;
+  }
+
   getSelection(): Selection | undefined {
-    return this.current;
+    return this.selected;
   }
 
   select(picked: PickedElement | undefined): void {
@@ -21,7 +26,7 @@ export class Selections {
   }
 
   toggleSelect(picked: PickedElement): void {
-    const current = this.current?.pageId === this.core.pages.currentPageId ? (this.current?.items ?? []) : [];
+    const current = this.selected?.pageId === this.core.pages.currentPageId ? (this.selected?.items ?? []) : [];
     this.selectItems(toggleSelected(current, picked));
   }
 
@@ -31,12 +36,12 @@ export class Selections {
    * l'événement : en plein geste, contour et mode courant suivent déjà ces éléments.
    */
   rebind(page: PageModel): void {
-    const current = this.current;
+    const current = this.selected;
     if (!current || current.pageId !== page.id) return;
     const items = sameElementsIn(page, current.items);
     if (items.length !== current.items.length) return;
-    this.current = { ...current, items, picked: items[items.length - 1]! };
-    this.core.events.emit('selectionChange', this.current);
+    this.selected = { ...current, items, picked: items[items.length - 1]! };
+    this.core.events.emit('selectionChange', this.selected);
   }
 
   /**
@@ -58,10 +63,10 @@ export class Selections {
       part !== undefined && page && items.length === 1 && picked?.type === 'shape'
         ? this.core.shapeParts.validPart(page, picked.element as ShapeModel, part)
         : undefined;
-    this.current = picked && page ? { pageId: page.id, picked, items: [...items], part: kept } : undefined;
+    this.selected = picked && page ? { pageId: page.id, picked, items: [...items], part: kept } : undefined;
     this.core.highlight.update();
     this.core.highlight.syncAnimation();
-    this.core.events.emit('selectionChange', this.current);
+    this.core.events.emit('selectionChange', this.selected);
     this.core.pointer.syncHoverComment();
     this.core.keys.emitModeHint();
     if (page && items.length === 1) this.core.modeCurrents.pickModeCurrent(page, items[0]!.element);
@@ -75,7 +80,7 @@ export class Selections {
       return footprint !== undefined && marqueeTakes(footprint, rect, options.touch);
     });
     const roots = takenRoots(page, taken);
-    const current = options.add && this.current?.pageId === page.id ? this.current.items : [];
+    const current = options.add && this.selected?.pageId === page.id ? this.selected.items : [];
     const kept = current.filter((item) => !roots.some((r) => r.element.id === item.element.id));
     this.selectItems([...kept, ...roots]);
   }
@@ -99,17 +104,17 @@ export class Selections {
 
   /** La sélection compte-t-elle plusieurs éléments ? */
   isMultiSelection(): boolean {
-    return (this.current?.items.length ?? 0) > 1;
+    return (this.selected?.items.length ?? 0) > 1;
   }
 
   clearSelection(): void {
-    if (!this.current) return;
+    if (!this.selected) return;
     this.select(undefined);
   }
 
   /** Échap : d'une partie sélectionnée, revient à sa forme ; sinon, plus rien de sélectionné. */
   escape(): void {
-    if (this.current?.part !== undefined) this.selectItems(this.current.items);
+    if (this.selected?.part !== undefined) this.selectItems(this.selected.items);
     else this.clearSelection();
   }
 

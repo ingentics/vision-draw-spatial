@@ -29,7 +29,7 @@ const REVEAL_MS = 200;
  */
 export class LabelEditor {
   /** Texte en cours d'édition en place (son label dessiné est masqué). */
-  editing?: LabelEditRequest;
+  private editRequest: LabelEditRequest | undefined;
   /** Aperçu de la saisie (`previewLabel`), rétabli à la fermeture. */
   private readonly preview: LabelEditPreview;
   /** Dernière demande d'édition : une ouverture différée (vue qui glisse) ne vaut que si aucune autre n'a suivi. */
@@ -64,6 +64,11 @@ export class LabelEditor {
     };
   }
 
+  /** Texte en cours d'édition en place (lecture seule pour les autres domaines). */
+  get editing(): LabelEditRequest | undefined {
+    return this.editRequest;
+  }
+
   /** Demande d'édition complétée de la bascule possible (texte de début / fin en configuration par défaut). */
   withFlip(request: LabelEditRequest): LabelEditRequest {
     const rest = { ...request };
@@ -74,7 +79,7 @@ export class LabelEditor {
 
   /** Champ en cours d'édition modifié (format, côté du texte…) : l'UI le reçoit par `labelEdit`. */
   updateEditing(request: LabelEditRequest): void {
-    this.editing = request;
+    this.editRequest = request;
     this.core.events.emit('labelEdit', request);
   }
 
@@ -221,17 +226,17 @@ export class LabelEditor {
     }
     // La vue glisse d'abord ; l'éditeur s'ouvre à l'arrivée, à la nouvelle emprise du texte (`relocateLabelEdit`).
     this.core.camera.animateCameraTo(target, REVEAL_MS, false, () => {
-      if (token !== this.startToken || this.editing) return;
+      if (token !== this.startToken || this.editRequest) return;
       this.openLabelEdit(request);
       this.relocateLabelEdit();
     });
   }
 
   private openLabelEdit(request: LabelEditRequest): void {
-    this.editing = this.withAngle(this.withFlip(request));
+    this.editRequest = this.withAngle(this.withFlip(request));
     this.hideEditedLabel();
     this.core.highlight.update();
-    this.core.events.emit('labelEdit', this.editing);
+    this.core.events.emit('labelEdit', this.editRequest);
   }
 
   /** Emprise à l'écran du texte édité (`labelEditGeometry.labelEditScreen`). */
@@ -249,7 +254,7 @@ export class LabelEditor {
    * l'éditeur suit l'élément (nouvelle emprise et taille du texte).
    */
   relocateLabelEdit(): void {
-    const editing = this.editing;
+    const editing = this.editRequest;
     if (!editing || editing.pageId !== this.core.pages.currentPageId) return;
     const screen =
       editing.part !== undefined
@@ -273,8 +278,8 @@ export class LabelEditor {
       next.angle === editing.angle
     )
       return;
-    this.editing = next;
-    this.core.events.emit('labelEdit', this.editing);
+    this.editRequest = next;
+    this.core.events.emit('labelEdit', this.editRequest);
   }
 
   /**
@@ -282,7 +287,7 @@ export class LabelEditor {
    * est redessinée en direct avec lui (rien n'est écrit) et l'éditeur suit sa zone de texte.
    */
   previewLabel(text: string): void {
-    if (!this.preview.show(this.editing, text)) return;
+    if (!this.preview.show(this.editRequest, text)) return;
     // Forme redessinée : son texte dessiné (ou celui de la partie) reste masqué.
     this.hideEditedLabel();
     this.core.live.afterLiveEdit();
@@ -290,9 +295,9 @@ export class LabelEditor {
   }
 
   closeLabelEdit(): void {
-    const editing = this.editing;
+    const editing = this.editRequest;
     if (!editing) return;
-    this.editing = undefined;
+    this.editRequest = undefined;
     this.preview.restore(editing);
     if (editing.part !== undefined)
       this.core.shapeParts.textObjects(editing.elementId, editing.part).forEach((object) => (object.visible = true));
@@ -301,7 +306,7 @@ export class LabelEditor {
   }
 
   hideEditedLabel(): void {
-    const editing = this.editing;
+    const editing = this.editRequest;
     if (!editing || editing.pageId !== this.core.pages.currentPageId) return;
     this.core.sceneView.labelObjects(editing.styleCellId).forEach((object) => (object.visible = false));
     if (editing.part !== undefined)

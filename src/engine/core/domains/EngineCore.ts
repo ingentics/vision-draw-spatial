@@ -98,7 +98,7 @@ export class EngineCore {
   readonly textMeasure = new TextMeasure();
   readonly scenes: SceneManager;
   readonly controller: CameraController;
-  disposed = false;
+  private wasDisposed = false;
 
   // runtime : paramètres, rendu, taille du canvas, mesures, erreurs des plugins
   readonly config: Config;
@@ -204,9 +204,9 @@ export class EngineCore {
     // Polices chargées : les géométries qui suivent la largeur d'un texte (onglet d'une région RDD) la prennent exacte.
     void this.text.measured().then((measure) => {
       this.textMeasure.settle(measure);
-      if (!this.disposed && this.scenes.current) this.levels.rebuildScenes();
+      if (!this.wasDisposed && this.scenes.current) this.levels.rebuildScenes();
       // Tailles calculées sur la mesure approchée : reprises sur la mesure exacte (sujet 255).
-      if (!this.disposed) this.modeFollowUps.documentOpened();
+      if (!this.wasDisposed) this.modeFollowUps.documentOpened();
     });
     this.scenes = new SceneManager(
       this.rendering.scene,
@@ -218,6 +218,11 @@ export class EngineCore {
     this.display.observe();
 
     this.controller = createCameraController(this);
+  }
+
+  /** Moteur libéré (lecture seule : `dispose`). */
+  get disposed(): boolean {
+    return this.wasDisposed;
   }
 
   focusCanvas(): void {
@@ -286,8 +291,8 @@ export class EngineCore {
   }
 
   dispose(): void {
-    if (this.disposed) return;
-    this.disposed = true;
+    if (this.wasDisposed) return;
+    this.wasDisposed = true;
     this.camera.cancelAnimation();
     this.highlight.dispose();
     this.pointer.dispose();

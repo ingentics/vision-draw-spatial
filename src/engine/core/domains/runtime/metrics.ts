@@ -53,7 +53,7 @@ export function frameStats(samples: readonly FrameSample[], now: number, windowM
  */
 export class Metrics {
   /** Mesure des images rendues active. */
-  sampling = false;
+  private samplingOn = false;
   private frames: FrameSample[] = [];
   private readMs: number | undefined;
   /** Dernière durée de construction de la scène de chaque page. */
@@ -61,13 +61,18 @@ export class Metrics {
 
   constructor(private readonly core: EngineCore) {}
 
+  /** Mesure des images en cours (lecture seule : `setSampling`). */
+  get sampling(): boolean {
+    return this.samplingOn;
+  }
+
   /** Nouveau document : les durées de construction des scènes de l'ancien ne valent plus. */
   resetDocument(): void {
     this.sceneBuildMs.clear();
   }
 
   setSampling(on: boolean): void {
-    this.sampling = on;
+    this.samplingOn = on;
     this.frames = [];
   }
 
@@ -92,7 +97,7 @@ export class Metrics {
     core.scenes.current?.root.traverse(() => sceneObjects++);
     const pageId = core.pages.currentPageId;
     return {
-      frames: this.sampling ? frameStats(this.frames, performance.now(), FRAME_WINDOW_MS) : undefined,
+      frames: this.samplingOn ? frameStats(this.frames, performance.now(), FRAME_WINDOW_MS) : undefined,
       readMs: this.readMs,
       sceneBuildMs: pageId !== undefined ? this.sceneBuildMs.get(pageId) : undefined,
       cells: (core.file.document?.pages ?? []).reduce((sum, page) => sum + page.shapes.length + page.edges.length, 0),

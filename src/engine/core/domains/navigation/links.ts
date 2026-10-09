@@ -18,9 +18,9 @@ import { elementOf, shapeOf } from '../../model/pageIndex';
  */
 export class Links {
   /** Touche pour suivre un lien maintenue : zones liées de la page en évidence (`linkZonesObject`). */
-  linkZonesShown = false;
+  private zonesShown = false;
   private linkZonesObject: Group | undefined;
-  linkUsage: LinkUsage = {};
+  private usageCounts: LinkUsage = {};
 
   /** Ouverture des liens URL. */
   private readonly openUrl: (href: string) => void;
@@ -32,16 +32,26 @@ export class Links {
     this.openUrl = openUrl ?? defaultOpenUrl;
   }
 
+  /** Zones des liens affichées (lecture seule : `setLinkZonesShown`). */
+  get linkZonesShown(): boolean {
+    return this.zonesShown;
+  }
+
+  /** Liens suivis, par page (lecture seule pour les autres domaines). */
+  get linkUsage(): LinkUsage {
+    return this.usageCounts;
+  }
+
   /** Touche pour suivre un lien maintenue ou relâchée : zones liées de la page en évidence ou non. */
   setLinkZonesShown(shown: boolean): void {
-    if (this.linkZonesShown === shown) return;
-    this.linkZonesShown = shown;
+    if (this.zonesShown === shown) return;
+    this.zonesShown = shown;
     this.updateLinkZones();
   }
 
   /** Nouveau document : usage des liens repris de la session. */
   resetDocument(initialView: InitialView | undefined): void {
-    this.linkUsage = { ...initialView?.linkUsage };
+    this.usageCounts = { ...initialView?.linkUsage };
   }
 
   preloadLink(link: LinkModel | undefined): void {
@@ -73,7 +83,7 @@ export class Links {
     // L'usage ne compte que pour les vrais liens du document (pas les cartes de la vue graphe).
     if (!this.core.graph.isGraph(page.id)) {
       const at = Date.now();
-      this.linkUsage[usageKey(page.id, target.id)] = at;
+      this.usageCounts[usageKey(page.id, target.id)] = at;
       this.core.events.emit('linkUsed', page.id, target.id, at);
     }
 
@@ -92,7 +102,7 @@ export class Links {
   }
 
   getLinkUsage(): LinkUsage {
-    return { ...this.linkUsage };
+    return { ...this.usageCounts };
   }
 
   describeLink(link: LinkModel): string {
@@ -117,7 +127,7 @@ export class Links {
     }
     const root = this.core.scenes.current?.root;
     const page = this.core.pages.getCurrentPage();
-    if (this.linkZonesShown && root && page && this.core.canInteract()) {
+    if (this.zonesShown && root && page && this.core.canInteract()) {
       const zones = new Group();
       zones.name = 'link-zones';
       for (const element of [...page.shapes, ...page.edges]) {

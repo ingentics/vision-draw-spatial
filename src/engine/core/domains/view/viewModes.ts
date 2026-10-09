@@ -10,7 +10,7 @@ export class ViewModes {
   /** Dernier mode hors 3D, où revient la touche P. */
   private lastFlatMode: 'top' | 'iso' = 'top';
   /** Volumes aplatis à la demande (touche V, iso et 3D) : état passager, non enregistré. */
-  flattened = false;
+  private flat = false;
   /**
    * Mode choisi par l'utilisateur : celui de la dernière vue d'une page qui permet tous les modes. Une page dont le
    * mode en restreint (sujet 178) n'y touche pas : en la quittant, on retrouve ce mode.
@@ -18,6 +18,11 @@ export class ViewModes {
   private chosenMode: ViewMode | undefined;
 
   constructor(private readonly core: EngineCore) {}
+
+  /** Vue aplatie (lecture seule : `setFlattened`). */
+  get flattened(): boolean {
+    return this.flat;
+  }
 
   /**
    * Paramètres changés : réglages iso gardés pour la page affichée ; en iso, la vue suit la nouvelle élévation et la
@@ -125,15 +130,15 @@ export class ViewModes {
   }
 
   isFlattened(): boolean {
-    return this.flattened;
+    return this.flat;
   }
 
   setFlattened(flattened: boolean): void {
-    if (flattened === this.flattened || !this.core.canInteract()) return;
+    if (flattened === this.flat || !this.core.canInteract()) return;
     if (flattened && this.core.camera.state.mode === 'top') return;
     this.core.levels.endLevelBlend();
     const previousLevel = this.core.levels.requestedLevel();
-    this.flattened = flattened;
+    this.flat = flattened;
     const page = this.core.pages.getCurrentPage();
     if (page && this.core.levels.requestedLevel() !== previousLevel) {
       this.core.scenes.show(page);
@@ -148,7 +153,7 @@ export class ViewModes {
 
   toggleFlatten(): void {
     if (this.core.camera.state.mode === 'top') return;
-    this.setFlattened(!this.flattened);
+    this.setFlattened(!this.flat);
   }
 
   /** Réglages iso en vigueur (enregistrés par page). */

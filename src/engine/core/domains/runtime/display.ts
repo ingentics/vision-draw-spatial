@@ -6,7 +6,7 @@ import type { EngineCore } from '../EngineCore';
 
 /** Taille du canvas et de son tampon de rendu (pixels physiques exacts), suivie en direct. */
 export class Display {
-  viewport: Viewport = { width: 1, height: 1 };
+  private size: Viewport = { width: 1, height: 1 };
   /** Cadrage demandé avant que le canvas ait une taille réelle : appliqué à la première mesure. */
   private pendingFit: Rect | undefined;
   private readonly resizeObserver: ResizeObserver;
@@ -27,6 +27,11 @@ export class Display {
       this.devicePixelBox = box ? { width: box.inlineSize, height: box.blockSize } : undefined;
       this.resize();
     });
+  }
+
+  /** Taille de la zone de dessin (lecture seule, suivie du canevas). */
+  get viewport(): Viewport {
+    return this.size;
   }
 
   /** Commence à suivre la taille du canvas et la densité de l'écran, et prend la première mesure. */
@@ -59,10 +64,10 @@ export class Display {
     const previousScreen = this.screenKey;
     const screenChanged = previousScreen !== undefined && screenKey !== previousScreen;
     this.screenKey = screenKey;
-    if (width === this.viewport.width && height === this.viewport.height && sameBuffer) return;
-    const previous = this.viewport;
+    if (width === this.size.width && height === this.size.height && sameBuffer) return;
+    const previous = this.size;
     const wasMeasured = this.isMeasured();
-    this.viewport = { width, height };
+    this.size = { width, height };
     if (!sameBuffer) {
       this.bufferSize = { width: bufferWidth, height: bufferHeight };
       this.core.rendering.renderer.setDrawingBufferSize(bufferWidth, bufferHeight, 1);
@@ -70,7 +75,7 @@ export class Display {
     setLineResolution(width, height);
     if (this.pendingFit && this.isMeasured()) {
       this.core.camera.setCameraState(
-        fitBounds(this.pendingFit, this.viewport, {
+        fitBounds(this.pendingFit, this.size, {
           ...this.core.camera.orientation(),
           limits: this.core.camera.limits,
         }),
@@ -80,7 +85,7 @@ export class Display {
     // Autre écran (sujet 238) : même portion du schéma, la zone vue avant remplit le nouvel écran.
     if (screenChanged && wasMeasured && this.isMeasured()) {
       const state = this.core.camera.state;
-      const factor = keptFramingFactor(previous, this.viewport);
+      const factor = keptFramingFactor(previous, this.size);
       // Retour sur l'écran d'avant sans avoir touché à la vue : son zoom exact (les rapports ne s'annulent pas quand
       // les deux écrans n'ont pas les mêmes proportions).
       const back = this.lastSwitch;
@@ -121,7 +126,7 @@ export class Display {
 
   /** Un canvas masqué ou pas encore mis en page mesure 0 (ramené à 1). */
   isMeasured(): boolean {
-    return this.viewport.width > 1 && this.viewport.height > 1;
+    return this.size.width > 1 && this.size.height > 1;
   }
 
   /** Cadrage à appliquer dès que le canvas aura une taille réelle. */

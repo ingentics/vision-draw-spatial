@@ -33,7 +33,7 @@ interface DragKind<D extends Drag> {
  */
 export class DragGesture {
   /** Glisser d'édition en cours (déplacement, redimensionnement, connecteur). */
-  drag: Drag | undefined;
+  private active: Drag | undefined;
 
   /** Domaine qui suit et écrit chaque genre de glisser. */
   private readonly kinds: { [K in Drag['kind']]: DragKind<Extract<Drag, { kind: K }>> } = {
@@ -69,18 +69,23 @@ export class DragGesture {
 
   constructor(private readonly core: EngineCore) {}
 
+  /** Glisser en cours (lecture seule pour les autres domaines). */
+  get drag(): Drag | undefined {
+    return this.active;
+  }
+
   isDragging(): boolean {
-    return this.drag?.started === true;
+    return this.active?.started === true;
   }
 
   /** Glisser saisi hors du pointeur (ex. texte d'une flèche déplacé pendant son édition). */
   startDrag(drag: Drag): void {
-    this.drag = drag;
+    this.active = drag;
   }
 
   /** Nouveau document : le glisser en cours est abandonné, sans rien écrire. */
   resetDocument(): void {
-    this.drag = undefined;
+    this.active = undefined;
   }
 
   /**
@@ -99,7 +104,7 @@ export class DragGesture {
       this.core.partDrags.grab(page, screen) ??
       this.shapeDrag(page, pageTree, screen, start, grid);
     if (!drag) return false;
-    this.drag = drag;
+    this.active = drag;
     return true;
   }
 
@@ -226,7 +231,7 @@ export class DragGesture {
   nudgeSelection(direction: Point, coarse: boolean): boolean {
     const editable = this.core.targets.editablePage();
     const selection = this.core.selection.current;
-    if (!editable || this.drag || selection?.pageId !== editable.page.id) return false;
+    if (!editable || this.active || selection?.pageId !== editable.page.id) return false;
     const { page, pageTree } = editable;
     const shapes = this.movableShapes(page, pageTree, selection.items);
     const edgeIds = selectedEdgeIds(selection.items);
@@ -246,7 +251,7 @@ export class DragGesture {
     const { nudgeStep, nudgeCoarseStep } = this.core.settings.edit;
     const onGrid = coarse && nudgeCoarseStep === 0;
     const step = onGrid ? grid : coarse ? nudgeCoarseStep : nudgeStep;
-    this.drag = drag;
+    this.active = drag;
     const live = this.core.file.livePage(page.id, this);
     if (live) this.core.moveDrags.follow(live, drag, { x: direction.x * step, y: direction.y * step }, onGrid);
     this.endMove();
@@ -259,7 +264,7 @@ export class DragGesture {
    * en place.
    */
   moveTo(screen: Point, snap: boolean, free = false): void {
-    const drag = this.drag;
+    const drag = this.active;
     if (!drag || this.core.pages.getCurrentPage()?.id !== drag.pageId) return;
     const page = this.core.file.livePage(drag.pageId, this);
     if (!page) return;
@@ -280,8 +285,8 @@ export class DragGesture {
   }
 
   private commitMove(): void {
-    const drag = this.drag;
-    this.drag = undefined;
+    const drag = this.active;
+    this.active = undefined;
     this.core.preview.clearConnectorPreview();
     this.core.preview.clearLimits();
     if (!drag?.started || !this.core.file.document || !this.core.file.xmlTree) return;

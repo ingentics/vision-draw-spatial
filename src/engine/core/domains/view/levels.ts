@@ -14,11 +14,21 @@ import { clamp } from '../../model/numbers';
  */
 export class Levels {
   /** Bascule 2D ↔ volume en cours : scènes en fondu enchaîné (renseignées à la première image). */
-  levelBlend: { volume?: PageScene; flat?: PageScene } | undefined;
+  private blending: { volume?: PageScene; flat?: PageScene } | undefined;
   /** Hauteur courante des volumes iso (0 à 1, suit l'inclinaison). */
-  heightScale = 1;
+  private heights = 1;
 
   constructor(private readonly core: EngineCore) {}
+
+  /** Scènes du fondu entre niveaux en cours (lecture seule : `startLevelBlend`, `endLevelBlend`). */
+  get levelBlend(): { volume?: PageScene; flat?: PageScene } | undefined {
+    return this.blending;
+  }
+
+  /** Échelle des hauteurs pendant une bascule (lecture seule : `applyHeightScale`). */
+  get heightScale(): number {
+    return this.heights;
+  }
 
   /** Paramètres changés : les scènes sont reconstruites si leur dessin en dépend. */
   settingsChanged(settings: Settings, previous: Settings): void {
@@ -71,7 +81,7 @@ export class Levels {
     if (!scene || scene.level !== 'iso' || !this.core.canInteract()) return;
     const tilted = this.core.camera.state.tilt / Math.max(this.core.camera.isoTilt(), 1e-6);
     const scale = clamp(Math.max(tilted, perspectiveAmount(this.core.camera.state, this.core.camera.limits)), 0, 1);
-    this.heightScale = scale;
+    this.heights = scale;
     setPageTransform(scene.root, undefined, scale);
     this.blendLevels(scene, scale);
   }
@@ -81,7 +91,7 @@ export class Levels {
    * apparaît avec la hauteur des blocs, la scène à plat de la même page disparaît d'autant.
    */
   private blendLevels(volume: PageScene, weight: number): void {
-    const blend = this.levelBlend;
+    const blend = this.blending;
     const page = this.core.pages.getCurrentPage();
     if (!blend || !page) return;
     const flat = blend.flat ?? this.core.scenes.overlay(page, 'flat');
@@ -94,14 +104,14 @@ export class Levels {
 
   /** Début d'une bascule 2D ↔ volume animée : fondu enchaîné des deux scènes de la page. */
   startLevelBlend(): void {
-    this.levelBlend = {};
+    this.blending = {};
   }
 
   /** Fin (ou interruption) du fondu enchaîné : chaque scène retrouve son opacité, seule la courante reste visible. */
   endLevelBlend(): void {
-    const blend = this.levelBlend;
+    const blend = this.blending;
     if (!blend) return;
-    this.levelBlend = undefined;
+    this.blending = undefined;
     for (const scene of [blend.volume, blend.flat]) if (scene) setPageOpacity(scene.root, 1);
     const page = this.core.pages.getCurrentPage();
     if (page && this.core.canInteract() && (blend.volume || blend.flat)) {

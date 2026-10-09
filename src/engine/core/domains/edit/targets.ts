@@ -6,7 +6,7 @@ import { edgeOf, shapeOf } from '../../model/pageIndex';
 
 /** Édition activée ou non, et ce qu'on peut modifier : la page courante, la forme ou la flèche sélectionnée seule. */
 export class EditTargets {
-  editable: boolean;
+  private editable: boolean;
 
   constructor(
     private readonly core: EngineCore,

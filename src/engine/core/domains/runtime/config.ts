@@ -10,7 +10,7 @@ import type { EngineOptions } from '../types';
  * les animations ».
  */
 export class Config {
-  settings: Settings;
+  private values: Settings;
   /** Préférence système « réduire les animations » (suivie en direct). */
   private readonly reducedMotionQuery: MediaQueryList | undefined;
 
@@ -21,9 +21,14 @@ export class Config {
     const initial = options.background
       ? mergeSettings(DEFAULT_SETTINGS, { background: { color: options.background } })
       : DEFAULT_SETTINGS;
-    this.settings = mergeSettings(initial, options.settings);
+    this.values = mergeSettings(initial, options.settings);
     this.reducedMotionQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)');
     this.reducedMotionQuery?.addEventListener?.('change', this.onReducedMotionChange);
+  }
+
+  /** Paramètres en vigueur (lecture seule : `updateSettings`, `adoptPageIso`). */
+  get settings(): Settings {
+    return this.values;
   }
 
   dispose(): void {
@@ -31,14 +36,14 @@ export class Config {
   }
 
   getSettings(): Settings {
-    return structuredClone(this.settings);
+    return structuredClone(this.values);
   }
 
   updateSettings(patch: SettingsPatch): void {
-    const previous = this.settings;
-    this.settings = mergeSettings(previous, patch);
+    const previous = this.values;
+    this.values = mergeSettings(previous, patch);
     this.core.controller.setSettings(this.effectiveControls());
-    this.core.settingsChanged(this.settings, previous);
+    this.core.settingsChanged(this.values, previous);
     this.core.events.emit('settingsChange', this.getSettings());
   }
 
@@ -48,19 +53,19 @@ export class Config {
    * l'utilisateur (`updateSettings` animerait la caméra et garderait ces réglages pour la page quittée).
    */
   adoptPageIso(iso: IsoViewParams): void {
-    const previous = this.settings;
-    this.settings = mergeSettings(previous, { view: iso });
-    this.core.pageSettingsAdopted(this.settings, previous);
+    const previous = this.values;
+    this.values = mergeSettings(previous, { view: iso });
+    this.core.pageSettingsAdopted(this.values, previous);
     this.core.events.emit('settingsChange', this.getSettings());
   }
 
   reducedMotion(): boolean {
-    return resolveReducedMotion(this.settings.accessibility.reducedMotion, this.reducedMotionQuery?.matches ?? false);
+    return resolveReducedMotion(this.values.accessibility.reducedMotion, this.reducedMotionQuery?.matches ?? false);
   }
 
   /** Contrôles effectifs : pas de glissade quand les animations sont réduites. */
   effectiveControls(): ControlSettings {
-    const controls = this.settings.controls;
+    const controls = this.values.controls;
     return this.reducedMotion() ? { ...controls, decelerationMs: 0 } : controls;
   }
 

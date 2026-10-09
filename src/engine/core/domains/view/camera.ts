@@ -19,7 +19,7 @@ import { shapeOf } from '../../model/pageIndex';
 
 /** Caméra de la page affichée (SPEC §9) : état, animations, cadrages, vue globale, orientation de référence. */
 export class ViewCamera {
-  state: CameraState = { mode: 'top', center: { x: 0, y: 0 }, zoom: 1, rotation: 0, tilt: 0 };
+  private current: CameraState = { mode: 'top', center: { x: 0, y: 0 }, zoom: 1, rotation: 0, tilt: 0 };
   /** Image demandée de l'animation de la vue en cours (caméra ou transition entre pages), 0 sinon. */
   private animation = 0;
   /** Dernière étape jouée par la touche Entrée avec une sélection, et la vue visée. */
@@ -28,10 +28,15 @@ export class ViewCamera {
 
   constructor(private readonly core: EngineCore) {}
 
+  /** État de la caméra (lecture seule : `applyCamera`). */
+  get state(): CameraState {
+    return this.current;
+  }
+
   /** Paramètres changés : nouvelles bornes de caméra appliquées à la vue (sauf pendant une animation). */
   settingsChanged(settings: Settings, previous: Settings): void {
     if (settingsSectionChanged(settings, previous, 'camera') && this.core.canInteract() && !this.isAnimating())
-      this.setCameraState(this.state);
+      this.setCameraState(this.current);
   }
 
   /** Bornes de la caméra de ce moteur (paramètres « Caméra »). */
@@ -61,7 +66,7 @@ export class ViewCamera {
   /** Vue de départ dans le mode par défaut des paramètres (`view.defaultMode`), avant tout document. */
   startInDefaultMode(): void {
     const mode = this.core.settings.view.defaultMode;
-    if (mode !== 'top') this.state = withViewMode(this.state, mode, this.isoTilt(), this.isoAzimuth(), this.limits);
+    if (mode !== 'top') this.current = withViewMode(this.current, mode, this.isoTilt(), this.isoAzimuth(), this.limits);
   }
 
   /** Animation de la vue en cours (caméra ou transition entre pages). */
@@ -81,7 +86,7 @@ export class ViewCamera {
   }
 
   getCameraState(): CameraState {
-    return structuredClone(this.state);
+    return structuredClone(this.current);
   }
 
   /** Cadre les bornes, dans l'orientation courante ou celle donnée (ex. arrivée sur une page). */
@@ -115,7 +120,7 @@ export class ViewCamera {
     cancelAnimationFrame(this.animation);
     if (blendLevels && this.core.settings.view.isoVolume && !this.core.viewModes.flattened)
       this.core.levels.startLevelBlend();
-    const from = this.state;
+    const from = this.current;
     const to = normalizeCameraState(target, this.limits);
     const start = performance.now();
     const step = (now: number) => {
@@ -167,7 +172,7 @@ export class ViewCamera {
     const viewport = this.core.display.viewport;
     const selection = this.getSelectionState();
     // Appuis rapprochés : pendant l'animation, la vue est déjà celle de l'étape jouée.
-    const current = this.animation && this.overviewStep ? this.overviewStep.view : this.state;
+    const current = this.animation && this.overviewStep ? this.overviewStep.view : this.current;
     const anchor = screen ?? { x: viewport.width / 2, y: viewport.height / 2 };
     const actual = zoomAt(current, viewport, anchor, 1 / current.zoom, this.limits);
     if (!selection) {
@@ -182,10 +187,10 @@ export class ViewCamera {
 
   applyCamera(state: CameraState): void {
     this.core.display.cancelPendingFit();
-    const previousZoom = this.state.zoom;
+    const previousZoom = this.current.zoom;
     const previousLevel = this.core.levels.requestedLevel();
     // Pendant une transition, la page courante est l'extérieure : la destination est déjà ramenée à ses modes permis.
-    this.state = normalizeCameraState(
+    this.current = normalizeCameraState(
       this.core.canInteract() ? this.core.viewModes.constrain(state) : state,
       this.limits,
     );
@@ -201,14 +206,15 @@ export class ViewCamera {
       }
     }
     if (this.core.pages.currentPageId) {
-      this.core.pages.rememberCamera(this.core.pages.currentPageId, this.state);
+      this.core.pages.rememberCamera(this.core.pages.currentPageId, this.current);
       if (this.core.canInteract()) this.core.pages.rememberIso();
     }
     this.core.minimap.requestDraw();
     // Contour de sélection d'épaisseur constante à l'écran ; la sélection est transférée à la scène
     // du nouveau niveau quand on change de vue (2D ↔ iso / 3D).
-    if (this.core.selection.current && (sceneChanged || this.state.zoom !== previousZoom)) this.core.highlight.update();
-    if (this.core.links.linkZonesShown && (sceneChanged || this.state.zoom !== previousZoom))
+    if (this.core.selection.current && (sceneChanged || this.current.zoom !== previousZoom))
+      this.core.highlight.update();
+    if (this.core.links.linkZonesShown && (sceneChanged || this.current.zoom !== previousZoom))
       this.core.links.updateLinkZones();
     this.core.rendering.applyProjection();
     this.core.levels.applyHeightScale();
@@ -226,18 +232,18 @@ export class ViewCamera {
   }
 
   getReferenceRotation(): number {
-    return this.state.mode === 'top' ? 0 : normalizeAngle(this.isoAzimuth());
+    return this.current.mode === 'top' ? 0 : normalizeAngle(this.isoAzimuth());
   }
 
   /** Orientation courante (mode, rotation, inclinaison), conservée par les cadrages. */
   orientation(): { rotation: number; tilt: number; mode: ViewMode } {
-    return { rotation: this.state.rotation, tilt: this.state.tilt, mode: this.state.mode };
+    return { rotation: this.current.rotation, tilt: this.current.tilt, mode: this.current.mode };
   }
 
   resetView(): void {
     const page = this.core.pages.getCurrentPage();
     if (!page || !this.core.canInteract()) return;
-    const { mode } = this.state;
+    const { mode } = this.current;
     this.animateCameraTo(
       defaultView(page.bounds, this.core.display.viewport, mode, this.isoTilt(), this.isoAzimuth(), this.limits),
     );
@@ -245,7 +251,7 @@ export class ViewCamera {
 
   resetRotation(): void {
     const center = { x: this.core.display.viewport.width / 2, y: this.core.display.viewport.height / 2 };
-    const delta = normalizeAngle(this.getReferenceRotation() - this.state.rotation);
-    this.animateCameraTo(rotateAround(this.state, this.core.display.viewport, center, delta));
+    const delta = normalizeAngle(this.getReferenceRotation() - this.current.rotation);
+    this.animateCameraTo(rotateAround(this.current, this.core.display.viewport, center, delta));
   }
 }
