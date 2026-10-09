@@ -2,9 +2,10 @@ import { Group } from 'three';
 import type { Material, Object3D } from 'three';
 import type { EdgeModel, PageModel, Point, ShapeModel } from '../model/types';
 import { DEFAULT_EDGE_BADGE, edgeBadge } from './decorations';
-import { darken } from './styleColors';
+import { darken, styleColorValue } from './styleColors';
 import { SPATIAL, spatialNumber } from '../spatial';
 import { TOP_OFFSET } from './iso/block';
+import { VERTEX_DEFAULTS } from './flat/box';
 import { disposeObject } from './meshes';
 import { createEdge } from './edges/edge';
 import type { EdgeTerminals } from './edges/edge';
@@ -249,8 +250,15 @@ function volumeLayout(
   shapesById: Map<string, ShapeModel>,
 ) {
   const flat = level !== 'iso';
+  // Sans fond, le rendu iso dessine la forme à plat : pas de hauteur. Même lecture du fond que lui (`none` entouré
+  // d'espaces compris) ; le défaut propre à chaque forme n'est pas connu ici, celui des formes est pris.
   const height = (shape: ShapeModel): number => {
-    if (flat || !registry.hasLevel(shape, 'iso') || shape.style.fillColor === 'none') return 0;
+    if (
+      flat ||
+      !registry.hasLevel(shape, 'iso') ||
+      styleColorValue(shape.style, 'fillColor', VERTEX_DEFAULTS.fill) === null
+    )
+      return 0;
     return registry.volumeHeight(shape, ctx);
   };
   const bases = new Map<string, number>();

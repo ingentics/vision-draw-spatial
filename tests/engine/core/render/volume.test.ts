@@ -160,6 +160,20 @@ describe('volumes iso', () => {
     expect(element(scene.root, 't1').getObjectByName('sides')).toBeUndefined();
   });
 
+  it('conteneur sans fond (`none` entouré d’espaces compris, sujet 402) : la forme contenue reste au sol', () => {
+    const xml = (fill: string) =>
+      `<mxfile><diagram id="p" name="P"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="box" value="" style="fillColor=${fill};" vertex="1" parent="1"><mxGeometry x="0" y="0" width="200" height="100" as="geometry"/></mxCell>
+<mxCell id="in" value="" vertex="1" parent="box"><mxGeometry x="20" y="20" width="40" height="40" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>`;
+    for (const fill of ['none', ' none ']) {
+      const scene = isoScene(parseDrawio(xml(fill)).pages[0]!);
+      expect(element(scene.root, 'box').getObjectByName('sides')).toBeUndefined();
+      expect(element(scene.root, 'in').position.z).toBe(0);
+    }
+    expect(element(isoScene(parseDrawio(xml('#ffcc00')).pages[0]!).root, 'in').position.z).toBe(20);
+  });
+
   it('à plat (niveau flat), rien n’est surélevé', () => {
     const scene = buildPageScene(page, createDefaultRegistry(), ctx, 'flat');
     expect(element(scene.root, A).getObjectByName('sides')).toBeUndefined();
