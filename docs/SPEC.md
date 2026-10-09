@@ -908,6 +908,17 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     énumération et vue : section « Couche physique » avec « Nom de la table » (`spatial.rdd.dbName`, nom en base de la
     table ou de la vue, sujet 413), suivi de « Matérialisé » pour une vue. La couleur de l'entête vient du style de la
     forme (panneau « Style », sujet 260). Pas de section « Volume » (mode sans iso ni 3D).
+  - Couches (sujet 414) : une page RDD affiche la « Couche logique » (défaut) ou la « Couche physique », courant du
+    mode (état de session, jamais écrit : une page rouverte repart en logique), dans la barre du courant (`#dae8fc` /
+    `#d5e8d4`, précédent / suivant) ; Tab sur la zone de dessin, rien de sélectionné, passe à l'autre. En couche
+    physique, seul le dessin change (habillage) : titre d'une table, énumération ou vue = `dbName` de la table, nom et
+    type d'un champ = son `dbName` et son `dbType` ; une valeur absente est remplacée par la logique, en italique (en
+    rouge `#e53935` pour un champ). Un fragment y montre ses champs physiques sous son nom ; les tables sans couche
+    physique (modèle abstrait, document) sont estompées. Une table a la place des textes des deux couches : basculer
+    ne la change pas de taille. Les valeurs physiques se règlent au panneau, ou sur place en couche physique : le
+    titre (double-clic, Entrée ; édition sans fond, en gras, de la couleur de l'entête) écrit le `dbName` de la table,
+    un champ (clé primaire comprise) son `dbName` ; vide le retire, les noms logiques ne bougent pas. L'export reste
+    le fichier.
   - Sélection : la page RDD suit le paramètre « Style » de la mise en valeur ; les tables imposent le contour
     (`ShapeDefinition.selectionStyle`, sujets 254, 350), la région aucune seule et le contour à plusieurs (sujet 346).
   - Ajouter un champ (sujet 250) : table sélectionnée, poignée verte « + » sous la table, au milieu (les tables n'ont
@@ -947,8 +958,8 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     léger et trait de la couleur d'accent sur la ligne) ; un clic sur l'entête revient à la table, Échap aussi. Le
     panneau ne montre alors que le champ, en trois sections (sujet 260) : « Couche logique » (sujet 413) — « Champ » (label), « Type »
     (« Aucun » ou un des sept types, sujet 256), « Optionnel » (`nullable`), « Unique » (`unique` ; entité,
-    énumération, embedded), « Commentaire » (`comment`, zone de texte sous son libellé, sur toute la largeur) — ; « Couche physique » (sujet 413) — « Nom du champ » (`pgName`), « Type »
-    (`pgType`, texte libre) — ; « Gouvernance » — « GDPR » (`gdpr`), « Donnée personnelle » (`personal`). Ces clés ne
+    énumération, embedded), « Commentaire » (`comment`, zone de texte sous son libellé, sur toute la largeur) — ; « Couche physique » (sujet 413) — « Nom du champ » (`dbName`, sujet 414), « Type »
+    (`dbType`, texte libre) — ; « Gouvernance » — « GDPR » (`gdpr`), « Donnée personnelle » (`personal`). Ces clés ne
     sont écrites que si elles sont renseignées. Le kind reste dans les données sans être réglable ici. Clé primaire :
     toujours `id`, type imposé « Primary key » (entité) ou « Mot » (énumération), hors de la liste des types ; ni
     renommée (ni panneau ni sur place), ni retypée, ni optionnelle, ni unique ; un fichier qui dit autre chose est lu

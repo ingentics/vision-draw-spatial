@@ -61,7 +61,7 @@ interface PageModeDefinition {
     opened?(edit): void;                       // remise en ordre à l'ouverture (ex. tables RDD ajustées)
     removed?(edit): void;                      // remise en ordre après une suppression d'éléments
   };
-  dressing?(page, values): PageDressing;       // habillage du rendu (section 4)
+  dressing?(page, values, current): PageDressing; // habillage du rendu (section 4)
   edges?: {                                    // les flèches
     properties?: ModeProperty[];               // réglages déclarés d'une flèche (section 3)
     connects?(page, source, target, part?): boolean; // flèches permises (ex. liaisons des tables RDD)
@@ -172,12 +172,15 @@ pur admis par `AJOUTER_UN_PLUGIN.md` section 5).
 
 ## 4. Habillage
 
-`dressing(page, values)` renvoie la couleur du mode pour une flèche (`edgeColor`, trait et pointes, assombrie de
+`dressing(page, values, current)` (`current` : le courant du mode, sujet 414) renvoie la couleur du mode pour une flèche (`edgeColor`, trait et pointes, assombrie de
 `edgeDarken`, défaut 0,25) et une pastille
 (`edgeBadge` : texte et couleur de fond). Le style draw.io n'est jamais modifié : l'habillage est appliqué au dessin
 (`core/render/pageScene.ts`, `createEdgeObject`), à la construction de la page comme pendant un déplacement. La pastille
 fait face à la caméra en iso / 3D (`faceCamera(…, 'screen')`, `render/billboard.ts`). Son apparence (tailles, bordure, chiffre) est
-`edgeBadgeStyle`, tirée des réglages du mode (défaut : `DEFAULT_EDGE_BADGE`).
+`edgeBadgeStyle`, tirée des réglages du mode (défaut : `DEFAULT_EDGE_BADGE`). L'habillage peut aussi
+rendre, par forme, des clés de style dessinées à la place des siennes (ex. fond éclairci d'une région RDD, clé de
+couche physique d'une table RDD, lue par son rendu). Un habillage qui dépend du courant le déclare
+(`current.redraws`) : la page est redessinée quand le courant change (sinon seuls la barre et l'estompage suivent).
 
 ## 5. Courant, flèche créée, touches
 
@@ -189,7 +192,8 @@ fait face à la caméra en iso / 3D (`faceCamera(…, 'screen')`, `render/billbo
   (opacité de `look(values).dimOpacity`, défaut 0,3, multipliée par `setElementsDim`, compatible avec les fondus ;
   `look(values).barSlideDuration` : glissement de la barre, défaut 200 ms). L'appli le lit par `engine.getModeCurrent()` et le
   reçoit dans ses
-  sections (`current` des props) ; l'événement `modeCurrentChange` signale un changement.
+  sections (`current` des props) ; l'événement `modeCurrentChange` signale un changement. `redraws` (sujet 414) :
+  l'habillage suit le courant, la page est redessinée à chaque changement.
 - `edges.created(edit, edgeId, current)` : une flèche tirée depuis une forme, dans la même étape d'annulation.
 - `keys` : touches (`KeyboardEvent.key`) sur l'élément sélectionné seul ; `applies` dit si l'élément est concerné
   (sinon la touche garde son effet habituel), `run` est une opération (une étape d'annulation, libellée `label`).
@@ -229,6 +233,9 @@ fait face à la caméra en iso / 3D (`faceCamera(…, 'screen')`, `render/billbo
   touches du mode (`keys`) reçoivent aussi la partie sélectionnée et peuvent renvoyer la partie à sélectionner.
   `textAt` (sujet 269) : partie au texte modifiable par double-clic sans être sélectionnable (ni survol, ni sélection,
   ni glisser ; ex. corps d'un document RDD) ; son texte passe par `text` / `setText` / `textPreview` comme une partie.
+  `labelPart(page, shape, current)` (sujet 414) : partie dont le texte s'édite à la place de celui de la forme
+  (double-clic, Entrée ; ex. nom en base d'une table RDD en couche physique). `text`, `setText` et `textPreview`
+  reçoivent aussi le courant du mode en dernier argument.
   `edgePart(page, edge)` (sujet 373) : partie liée à une flèche (ex. champ de relation RDD), montrée comme survolée
   quand la flèche est survolée ou sélectionnée.
   `dropAt` / `move` (sujet 252) : un appui sur la partie sélectionnée la glisse (et non la forme) ; `dropAt` donne
@@ -301,7 +308,7 @@ Règles communes (sujet 288) :
 | `lifecycle.opened` | ouverture du document, et à nouveau quand la mesure exacte du texte arrive ; pas en lecture seule | page du modèle | une étape « Ajustement du mode » pour tout le document | rien d'écrit pour la page |
 | `lifecycle.removed` | après une suppression (Suppr, Couper) | relue après la suppression | remise en ordre, étape de la suppression | rien d'écrit |
 | **Rendu** | | | | |
-| `dressing` | construction de chaque scène de page, et pendant un déplacement (flèches retracées) | page du modèle | aucune | pas d'habillage ; `edgeColor` / `edgeBadge` en panne : couleur ou pastille absente pour la flèche |
+| `dressing` | construction de chaque scène de page (et à chaque changement du courant avec `current.redraws`), et pendant un déplacement (flèches retracées) ; reçoit le courant | page du modèle | aucune | pas d'habillage ; `edgeColor` / `edgeBadge` en panne : couleur ou pastille absente pour la flèche |
 | **Flèches** | | | | |
 | `edges.created` | flèche tirée depuis une forme, au lâcher ; reçoit le courant | relue avec la flèche | remise en ordre, étape de la création | rien d'écrit |
 | `edges.reconnected` | bout d'une flèche rebranché (poignée d'extrémité), au lâcher | relue après le rebranchement | remise en ordre, étape du rebranchement | rien d'écrit |
@@ -318,7 +325,7 @@ Règles communes (sujet 288) :
 | `gestures.handles.list` | forme sélectionnée seule et modifiable : dessin des poignées et pointeur | page du modèle | aucune | pas de poignée |
 | `gestures.handles.clicked` | clic sur une poignée du mode ; renvoie la partie à sélectionner | opération | une étape au titre de la poignée | rien d'écrit |
 | **Parties** | | | | |
-| `parts` | `at` : pointeur et clic ; `textAt` : double-clic hors d'une partie ; `bounds` : mise en valeur, validité de la partie sélectionnée ; `edgePart` : partie liée à la flèche survolée ou sélectionnée ; `text`, `textPreview` : édition sur place ; `comment` : encart et touche C ; `dropAt`, `preview` : glisser d'une partie ; `setText`, `setComment`, `remove`, `move` : opérations | page du modèle (opérations : page avant) | `setText` « Texte », `setComment` « Commentaire », `remove` « Suppression », `move` « Ordre » | lecture : partie absente (la forme elle-même, pas de texte, pas de place) ; opération : rien d'écrit |
+| `parts` | `at` : pointeur et clic ; `textAt` : double-clic hors d'une partie ; `labelPart` : édition du texte de la forme ; `bounds` : mise en valeur, validité de la partie sélectionnée ; `edgePart` : partie liée à la flèche survolée ou sélectionnée ; `text`, `textPreview` : édition sur place ; `comment` : encart et touche C ; `dropAt`, `preview` : glisser d'une partie ; `setText`, `setComment`, `remove`, `move` : opérations | page du modèle (opérations : page avant) | `setText` « Texte », `setComment` « Commentaire », `remove` « Suppression », `move` « Ordre » | lecture : partie absente (la forme elle-même, pas de texte, pas de place) ; opération : rien d'écrit |
 | **Courant** | | | | |
 | `current` | `initial` / `valid` : à chaque lecture du courant ; `pick` : clic ou sélection d'un seul élément ; `color`, `label`, `values` : barre du courant ; `focus` : avant chaque image ; `look` : barre et estompage ; `rename` : opération depuis la barre | page du modèle (`rename` : opération) | `rename` : une étape « Renommage » ; le courant lui-même n'est jamais écrit | pas de courant, pas de barre, rien d'estompé, apparence par défaut |
 | **Réglages déclarés** | | | | |

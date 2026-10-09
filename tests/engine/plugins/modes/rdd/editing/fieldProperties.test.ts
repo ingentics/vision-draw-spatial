@@ -91,8 +91,8 @@ describe('mode RDD : champ sélectionné dans sa table (sujet 249)', () => {
     run((edit) => property('rdd.field.label').write!(edit, shape('user'), 'mail', '1'));
     run((edit) => property('rdd.field.unique').write!(edit, shape('user'), '1', '1'));
     run((edit) => property('rdd.field.comment').write!(edit, shape('user'), ' Adresse de contact ', '1'));
-    run((edit) => property('rdd.field.pgName').write!(edit, shape('user'), 'email_address', '1'));
-    run((edit) => property('rdd.field.pgType').write!(edit, shape('user'), 'varchar(255)', '1'));
+    run((edit) => property('rdd.field.dbName').write!(edit, shape('user'), 'email_address', '1'));
+    run((edit) => property('rdd.field.dbType').write!(edit, shape('user'), 'varchar(255)', '1'));
     run((edit) => property('rdd.field.gdpr').write!(edit, shape('user'), '1', '1'));
     run((edit) => property('rdd.field.personal').write!(edit, shape('user'), '1', '1'));
     expect(fieldsOf(shape('user'))[1]).toEqual({
@@ -102,13 +102,13 @@ describe('mode RDD : champ sélectionné dans sa table (sujet 249)', () => {
       nullable: true,
       unique: true,
       comment: 'Adresse de contact',
-      pgName: 'email_address',
-      pgType: 'varchar(255)',
+      dbName: 'email_address',
+      dbType: 'varchar(255)',
       gdpr: true,
       personal: true,
     });
     // Écrits dans le fichier, relus ; vidés ou décochés, retirés.
-    expect(spatialValue(shape('user'), keys.key(FIELDS))).toContain('"pgType":"varchar(255)"');
+    expect(spatialValue(shape('user'), keys.key(FIELDS))).toContain('"dbType":"varchar(255)"');
     run((edit) => property('rdd.field.comment').write!(edit, shape('user'), undefined, '1'));
     run((edit) => property('rdd.field.gdpr').write!(edit, shape('user'), undefined, '1'));
     expect(fieldsOf(shape('user'))[1]!.comment).toBeUndefined();

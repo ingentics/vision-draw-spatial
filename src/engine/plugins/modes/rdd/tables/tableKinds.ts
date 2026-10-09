@@ -43,6 +43,11 @@ export interface TableRules {
   derived?: boolean;
   /** Nom de la table en base, réglable au panneau (sujet 413 : entité, énumération, vue). */
   physicalName?: boolean;
+  /**
+   * Dessinée dans la couche physique (sujet 414 : entité, énumération, vue, fragment) : ses champs en noms et types en
+   * base ; les autres tables y sont estompées.
+   */
+  physicalLayer?: boolean;
   /** Options de table permises (`TABLE_OPTIONS`). */
   options: readonly TableOptionKey[];
 }
@@ -68,20 +73,29 @@ const PLAIN: TableRules = { fields: true, options: ['secondary'] };
  */
 export const TABLE_KINDS: Record<TableKindId, TableKind> = {
   'rdd-model': { look: { italic: true }, rules: PLAIN },
-  'rdd-entity': { look: {}, rules: { ...PLAIN, primaryKey: 'primary-key', uniqueFields: true, physicalName: true } },
+  'rdd-entity': {
+    look: {},
+    rules: { ...PLAIN, primaryKey: 'primary-key', uniqueFields: true, physicalName: true, physicalLayer: true },
+  },
   'rdd-enum': {
     look: { doubleHeader: true, mark: 'list' },
-    rules: { ...PLAIN, primaryKey: 'word', uniqueFields: true, physicalName: true },
+    rules: { ...PLAIN, primaryKey: 'word', uniqueFields: true, physicalName: true, physicalLayer: true },
   },
   // Sujet 181 : objet incorporé (bas ondulé, sujet 219), document (corps en texte libre, sujet 269), vue (coins arrondis).
-  'rdd-embedded': { look: { wavy: true, mark: 'plug' }, rules: { ...PLAIN, uniqueFields: true } },
+  'rdd-embedded': { look: { wavy: true, mark: 'plug' }, rules: { ...PLAIN, uniqueFields: true, physicalLayer: true } },
   'rdd-document': {
     look: { folded: true },
     rules: { fields: false, body: true, options: ['secondary'], requiredName: 'Document' },
   },
   'rdd-view': {
     look: { style: 'rounded=1;absoluteArcSize=1;arcSize=16;', mark: 'binoculars' },
-    rules: { ...PLAIN, derived: true, physicalName: true, options: ['secondary', 'materialized', 'private'] },
+    rules: {
+      ...PLAIN,
+      derived: true,
+      physicalName: true,
+      physicalLayer: true,
+      options: ['secondary', 'materialized', 'private'],
+    },
   },
 };
 

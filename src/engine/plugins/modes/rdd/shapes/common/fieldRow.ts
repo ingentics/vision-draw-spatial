@@ -2,8 +2,8 @@ import { Color, Group } from 'three';
 import { PART_ORDER, fillMesh, markPart, strokeMesh } from '../../../../../core/plugins';
 import type { Point, RenderContext } from '../../../../../core/plugins';
 import type { Divider, Field } from '../../tables/fieldModel';
-import { fieldNote } from '../../tables/fieldModel';
-import { DIVIDER_STROKE, FIELD_ICON_STROKE, TYPE_COLOR, fieldIconColor } from '../../tables/tableColors';
+import { layerFieldTexts } from '../../tables/physicalLayer';
+import { DIVIDER_STROKE, FIELD_ICON_STROKE, MISSING_COLOR, TYPE_COLOR, fieldIconColor } from '../../tables/tableColors';
 import { TABLE, dividerLabelWidth, fieldLayout } from '../../tables/tableLayout';
 
 /**
@@ -52,21 +52,44 @@ function fieldIcon(field: Field, center: Point, scale: number): Group {
 }
 
 /**
- * Dessine une ligne de champ : `left` bord gauche de la table, `y` milieu de la ligne, `scale` échelle de la table.
+ * Dessine une ligne de champ : `left` bord gauche de la table, `y` milieu de la ligne, `scale` échelle de la table ;
+ * `physical` : textes de la couche physique (sujet 414), une valeur manquante remplacée par la logique en rouge italique.
  */
 export function addFieldRow(
   group: Group,
   ctx: RenderContext,
   field: Field,
-  row: { left: number; y: number; scale: number; part: string },
+  row: { left: number; y: number; scale: number; part: string; physical: boolean },
 ): void {
-  const { left, y, scale, part } = row;
-  const layout = fieldLayout(field, ctx.measureText);
+  const { left, y, scale, part, physical } = row;
+  const layout = fieldLayout(field, ctx.measureText, physical);
+  const { label, note } = layerFieldTexts(field, physical);
   group.add(fieldIcon(field, { x: left + (TABLE.padding + TABLE.fieldIcon.size / 2) * scale, y }, scale));
   const size = TABLE.fieldSize * scale;
-  addRowText(group, ctx, field.label, { x: left + layout.label * scale, y }, { size, color: '#000000', part });
+  addRowText(
+    group,
+    ctx,
+    label.text,
+    { x: left + layout.label * scale, y },
+    {
+      size,
+      color: label.missing ? MISSING_COLOR : '#000000',
+      italic: label.missing,
+      part,
+    },
+  );
   if (layout.type !== undefined) {
-    addRowText(group, ctx, fieldNote(field), { x: left + layout.type * scale, y }, { size, color: TYPE_COLOR });
+    addRowText(
+      group,
+      ctx,
+      note.text,
+      { x: left + layout.type * scale, y },
+      {
+        size,
+        color: note.missing ? MISSING_COLOR : TYPE_COLOR,
+        italic: note.missing,
+      },
+    );
   }
 }
 

@@ -175,6 +175,19 @@ export class ShapeParts {
     return this.call(page, 'textAt', page, shape, point);
   }
 
+  /**
+   * Partie dont le texte s'édite à la place de celui de la forme (`ModeParts.labelPart`, sujet 414) ; undefined : le
+   * texte de la forme.
+   */
+  labelPart(page: PageModel, shape: ShapeModel): string | undefined {
+    return this.call(page, 'labelPart', page, shape, this.currentOf(page));
+  }
+
+  /** Courant du mode de la page, remis aux textes des parties (sujet 414). */
+  private currentOf(page: PageModel): string | undefined {
+    return this.core.modeCurrents.getModeCurrent(page.id);
+  }
+
   /** Partie de `shape` sous un point de la page (pixels) ; undefined = la forme elle-même, ou un mode sans parties. */
   at(page: PageModel, shape: ShapeModel, point: Point): string | undefined {
     return this.call(page, 'at', page, shape, point);
@@ -209,7 +222,7 @@ export class ShapeParts {
   text(shapeId: string, part: string, shape?: ShapeModel): ModePartText | undefined {
     const page = this.core.pages.getCurrentPage();
     const target = shape ?? shapeOf(page, shapeId);
-    return page && target ? this.call(page, 'text', page, target, part) : undefined;
+    return page && target ? this.call(page, 'text', page, target, part, this.currentOf(page)) : undefined;
   }
 
   /** Forme telle qu'elle serait avec ce texte sur la partie (aperçu de la saisie, sujet 253) ; undefined sans aperçu. */
@@ -221,7 +234,7 @@ export class ShapeParts {
       gridSize: tree && tree.encoding !== 'unreadable' ? gridSizeOf(tree) : 0,
       measureText: this.core.textMeasure.measure,
     });
-    return shape ? this.call(page, 'textPreview', shape, part, text, sizing) : undefined;
+    return page && shape ? this.call(page, 'textPreview', shape, part, text, sizing, this.currentOf(page)) : undefined;
   }
 
   /** Objets du texte dessiné d'une partie (marqués par `markPart` dans le rendu du mode). */
@@ -292,6 +305,7 @@ export class ShapeParts {
     const shape = shapeOf(page, shapeId);
     const setText = page && this.core.modes.modeOf(page)?.parts?.setText;
     if (!shape || !setText) return;
-    this.core.pageModes.editPageMode('Texte', (edit) => callMode(setText, edit, shape, part, text));
+    const current = this.currentOf(page);
+    this.core.pageModes.editPageMode('Texte', (edit) => callMode(setText, edit, shape, part, text, current));
   }
 }

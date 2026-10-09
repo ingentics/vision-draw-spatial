@@ -15,6 +15,7 @@ import {
   tableFields,
 } from './fieldModel';
 import { tableKindOf } from './tableKinds';
+import { DB_NAME } from './physicalLayer';
 import type { TableContent } from './tableLayout';
 import {
   SECONDARY,
@@ -51,6 +52,13 @@ export function fitTable(edit: ModeEdit, shape: ShapeModel, changes: Partial<Tab
   };
   edit.setShapeBounds(shape.id, bounds);
   placeArrivals(edit, bounds, content.secondary, content.fields);
+}
+
+/** Nom en base d'une table (sujets 413, 414) : vide le retire ; la table a sa place (`fitTable`). */
+export function setPhysicalName(edit: ModeEdit, shape: ShapeModel, name: string | undefined): void {
+  const value = name?.trim() || undefined;
+  edit.setElementAttribute(shape.id, DB_NAME, value);
+  fitTable(edit, shape, { physicalName: value });
 }
 
 /** Lignes écrites dans la table, et sa taille qui suit. */

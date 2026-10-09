@@ -2,7 +2,8 @@ import type { ModeEdit, ModeProperty, ModeTarget, ShapeModel } from '../../../..
 import { isToggled, toggleValue } from '../../../../core/plugins';
 import { PHYSICAL_LAYER, tableFields } from '../tables/fieldModel';
 import { documentBody, hasBody, setBody } from '../tables/documentBody';
-import { addDivider, setSecondary } from '../tables/operations';
+import { addDivider, setPhysicalName, setSecondary } from '../tables/operations';
+import { DB_NAME } from '../tables/physicalLayer';
 import type { TableKind, TableOptionKey } from '../tables/tableKinds';
 import { tableKindOf } from '../tables/tableKinds';
 import { MATERIALIZED, PRIVATE, SECONDARY } from '../tables/tableLayout';
@@ -122,10 +123,15 @@ export const TABLE_PROPERTIES: ModeProperty[] = [
   {
     // Avant les options : premier de la section « Couche physique », devant « Matérialisé » d'une vue.
     type: 'text',
-    key: 'dbName',
+    key: DB_NAME,
     section: PHYSICAL_LAYER,
     label: 'Nom de la table',
     title: 'Nom de la table ou de la vue en base (spatial.rdd.dbName)',
+    // La table a la place du nom en base, affiché en couche physique (sujet 414).
+    write: (edit, target, value) => {
+      const shape = physicalTable(target);
+      if (shape) setPhysicalName(edit, shape, value);
+    },
     hidden: (_page, target) => !physicalTable(target),
   },
   ...TABLE_OPTIONS.map(tableOptionProperty),

@@ -6,38 +6,36 @@ import {
   fillMesh,
   inset,
   markPart,
-  readableOn,
   rectPath,
   strokeMesh,
   styleColor,
-  styleColorValue,
   styleOpacity,
   styleStroke,
   boxOutline,
   fontStyleValue,
   shade,
 } from '../../../../../core/plugins';
-import type {
-  PaletteEntry,
-  Point,
-  Rect,
-  RenderContext,
-  ShapeDefinition,
-  ShapeModel,
-} from '../../../../../core/plugins';
+import type { PaletteEntry, Point, RenderContext, ShapeDefinition, ShapeModel } from '../../../../../core/plugins';
 import { FIELDS, fieldsValue, isDivider, primaryKeyField, tableFields } from '../../tables/fieldModel';
 import { isLinkable } from '../../relations';
 import { BODY_PART, documentBody } from '../../tables/documentBody';
-import { DEFAULT_HEADER_COLOR, DEFAULT_HEADER_TEXT, FIELDS_FILL, TABLE_BORDER } from '../../tables/tableColors';
-import type { TableKind, TableKindId } from '../../tables/tableKinds';
-import { TABLE_KINDS, shownMark, tableName } from '../../tables/tableKinds';
 import {
-  MARK_INSET,
+  DEFAULT_HEADER_COLOR,
+  DEFAULT_HEADER_TEXT,
+  FIELDS_FILL,
+  TABLE_BORDER,
+  headerTextColor,
+} from '../../tables/tableColors';
+import type { TableKind, TableKindId } from '../../tables/tableKinds';
+import { TABLE_KINDS, shownMark } from '../../tables/tableKinds';
+import { NAME_PART, hasPhysicalName, layerTitle, physicalShown } from '../../tables/physicalLayer';
+import {
   TABLE,
   bodyZone,
   headerHeight,
   isSecondary,
   leftMark,
+  nameZone,
   tableHeight,
   tableScale,
   tableSize,
@@ -48,16 +46,6 @@ import { headerMark } from './headerMarks';
 import { keys } from '../../keys';
 
 /** Rendu et fabrique des tables du mode RDD (sujet 179), communs à ses formes (`shapes/<forme>/`). */
-
-/**
- * Zone du nom : l'entête (label dessiné et éditeur en place), réduite des deux côtés de la place de l'icône d'entête
- * pour que le nom, centré, ne la recouvre pas (sujet 221).
- */
-function nameZone(shape: ShapeModel): Rect {
-  const { x, y, width } = shape.bounds;
-  const inset = shownMark(shape) ? Math.min(MARK_INSET * tableScale(shape), width / 2) : 0;
-  return { x: x + inset, y, width: width - 2 * inset, height: headerHeight(isSecondary(shape)) };
-}
 
 /** Côté du coin plié d'un document, à l'échelle de la table (au plus la moitié de l'entête). */
 const foldOf = (shape: ShapeModel) => Math.min(TABLE.fold * tableScale(shape), headerHeight(isSecondary(shape)) / 2);
@@ -122,8 +110,10 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
   if (mark) group.add(headerMark(shape, mark, header, border));
   const left = leftMark(shape);
   if (left) group.add(headerMark(shape, left, header, border, 'left'));
-  addTexts(group, shape, ctx, kind, headerColor);
-  addRows(group, shape, ctx, header);
+  // Couche physique (sujet 414) : habillage posé par le mode sur les tables qui en ont une.
+  const physical = physicalShown(shape);
+  addTexts(group, shape, ctx, kind, physical);
+  addRows(group, shape, ctx, header, physical);
   return group;
 }
 
@@ -172,13 +162,15 @@ function addStrokes(group: Group, shape: ShapeModel, kind: TableKind, path: Poin
   if (kind.look.folded) line(flapOf(shape), true);
 }
 
-/** Textes : nom dans l'entête, corps d'un document. */
-function addTexts(group: Group, shape: ShapeModel, ctx: RenderContext, kind: TableKind, headerColor: Color) {
+/**
+ * Textes : nom dans l'entête (en couche physique, le nom en base ; absent, le nom logique en italique), corps d'un
+ * document.
+ */
+function addTexts(group: Group, shape: ShapeModel, ctx: RenderContext, kind: TableKind, physical: boolean) {
   const { style } = shape;
+  const title = layerTitle(shape, physical);
   const scale = tableScale(shape);
-  // Texte de l'entête : `fontColor` s'il est écrit (gris d'une table neuve, sujet 235), sinon lisible sur l'entête.
-  const readable = readableOn(headerColor);
-  const textColor = styleColorValue(style, 'fontColor', readable) ?? readable;
+  const textColor = headerTextColor(style);
   const label = createLabel(
     {
       ...shape,
@@ -186,15 +178,17 @@ function addTexts(group: Group, shape: ShapeModel, ctx: RenderContext, kind: Tab
         ...style,
         fontSize: String(TABLE.nameSize * scale),
         fontColor: textColor,
-        fontStyle: String(fontStyleValue({ bold: true, italic: kind.look.italic })),
+        fontStyle: String(fontStyleValue({ bold: true, italic: kind.look.italic || title.missing })),
         align: 'center',
         verticalAlign: 'middle',
       },
     },
     ctx,
-    tableName(shape),
+    title.text,
     nameZone(shape),
   );
+  // Couche physique : le nom en base est une partie, masquée pendant son édition sur place (sujet 414).
+  if (label && physical && hasPhysicalName(shape)) markPart(label, NAME_PART);
   if (label) group.add(label);
 
   if (!kind.rules.body) return;
@@ -225,7 +219,7 @@ function addTexts(group: Group, shape: ShapeModel, ctx: RenderContext, kind: Tab
 }
 
 /** Lignes des champs et séparateurs, sous l'entête ; celles qui sortent de la forme ne sont pas dessinées. */
-function addRows(group: Group, shape: ShapeModel, ctx: RenderContext, header: number) {
+function addRows(group: Group, shape: ShapeModel, ctx: RenderContext, header: number, physical: boolean) {
   const { bounds } = shape;
   const scale = tableScale(shape);
   const row = TABLE.row * scale;
@@ -234,7 +228,7 @@ function addRows(group: Group, shape: ShapeModel, ctx: RenderContext, header: nu
     if (y > bounds.y + bounds.height) return;
     const part = String(index);
     if (isDivider(field)) addDividerRow(group, ctx, field, { left: bounds.x, width: bounds.width, y, scale, part });
-    else addFieldRow(group, ctx, field, { left: bounds.x, y, scale, part });
+    else addFieldRow(group, ctx, field, { left: bounds.x, y, scale, part, physical });
   });
 }
 

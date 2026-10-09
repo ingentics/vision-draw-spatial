@@ -99,10 +99,13 @@ export class LabelEditor {
     const id = elementId ?? this.core.selection.current?.picked.element.id;
     const element = editable && id ? elementOf(editable.page, id) : undefined;
     if (!editable || !element || !editable.pageTree.cells.get(element.id)?.cell) return;
+    // Texte de la forme tenu par une partie du mode (sujet 414, ex. nom en base d'une table RDD en couche physique).
+    const shape = shapeTarget(element);
+    const part = shape && this.core.shapeParts.labelPart(editable.page, shape);
+    if (part !== undefined) return this.editPartLabel(element.id, part);
     const rect = this.labelEditScreen(element.id);
     if (!rect) return;
     const displayStyle = this.displayStyle(element.id, element.style);
-    const shape = shapeTarget(element);
     const plain = !!shape && this.core.registry.isPlainText(shape);
     this.startLabelEdit({
       pageId: editable.page.id,
@@ -147,7 +150,7 @@ export class LabelEditor {
       style: {
         fontSize: String(text.fontSize),
         fontColor: text.color ?? '#000000',
-        fontStyle: text.italic ? '2' : '0',
+        fontStyle: String((text.bold ? 1 : 0) | (text.italic ? 2 : 0)),
         align: text.center ? 'center' : 'left',
         verticalAlign: text.multiline ? 'top' : 'middle',
         whiteSpace: 'nowrap',

@@ -1,9 +1,10 @@
 import { ceilToGrid } from '../../../../core/plugins';
 import type { MeasureText, Rect, ShapeModel } from '../../../../core/plugins';
 import type { Divider, Field, TableRow } from './fieldModel';
-import { fieldNote, isDivider, tableFields } from './fieldModel';
+import { isDivider, tableFields } from './fieldModel';
 import type { HeaderMark, TableKind } from './tableKinds';
 import { shownMark, tableName } from './tableKinds';
+import { layerFieldTexts, physicalName } from './physicalLayer';
 import { keys } from '../keys';
 
 /**
@@ -88,22 +89,37 @@ export function tableHeight(kind: TableKind, secondary: boolean, count: number):
  */
 export const MARK_INSET = TABLE.mark.margin + TABLE.mark.width * TABLE.mark.zoom + TABLE.mark.gap;
 
+/**
+ * Zone du nom : l'entête (label dessiné et éditeur en place), réduite des deux côtés de la place de l'icône d'entête
+ * pour que le nom, centré, ne la recouvre pas (sujet 221).
+ */
+export function nameZone(shape: ShapeModel): Rect {
+  const { x, y, width } = shape.bounds;
+  const inset = shownMark(shape) ? Math.min(MARK_INSET * tableScale(shape), width / 2) : 0;
+  return { x: x + inset, y, width: width - 2 * inset, height: headerHeight(isSecondary(shape)) };
+}
+
 /** Abscisse du label d'un champ depuis le bord gauche de la table, à l'échelle 1 : après l'icône de kind. */
 export const FIELD_LABEL_X = TABLE.padding + TABLE.fieldIcon.size + TABLE.fieldIcon.gap;
 
 /**
  * Mise en page d'une ligne de champ (sujet 248), en abscisses depuis le bord gauche de la table, à l'échelle 1 : icône
  * de kind, label, puis texte gris (`fieldNote` : type ou préfixe ; absent sans texte) ; `width` : largeur de la ligne,
- * marge de droite comprise. `measure` : la mesure du texte du moteur (sujet 377).
+ * marge de droite comprise. `measure` : la mesure du texte du moteur (sujet 377). `physical` : textes de la couche
+ * physique (sujet 414), une valeur manquante en italique.
  */
-export function fieldLayout(field: Field, measure: MeasureText): { label: number; type?: number; width: number } {
+export function fieldLayout(
+  field: Field,
+  measure: MeasureText,
+  physical = false,
+): { label: number; type?: number; width: number } {
+  const texts = layerFieldTexts(field, physical);
   const label = FIELD_LABEL_X;
-  const end = label + measure(field.label, { size: TABLE.fieldSize, bold: false, italic: false });
-  const typeText = fieldNote(field);
-  if (!typeText) return { label, width: end + TABLE.padding };
+  const end = label + measure(texts.label.text, { size: TABLE.fieldSize, bold: false, italic: texts.label.missing });
+  if (!texts.note.text) return { label, width: end + TABLE.padding };
   const type = end + TABLE.typeGap;
-  const width = type + measure(typeText, { size: TABLE.fieldSize, bold: false, italic: false }) + TABLE.padding;
-  return { label, type, width };
+  const note = measure(texts.note.text, { size: TABLE.fieldSize, bold: false, italic: texts.note.missing });
+  return { label, type, width: type + note + TABLE.padding };
 }
 
 /** Coupure du trait d'un séparateur pour son label (sujet 253), air compris, à l'échelle 1 ; 0 sans label. */
@@ -120,13 +136,15 @@ function dividerWidth(divider: Divider, measure: MeasureText): number {
   return 2 * TABLE.padding + 2 * TABLE.divider.stroke + dividerLabelWidth(divider, measure);
 }
 
-/** Largeur d'une ligne de la zone des champs, à l'échelle 1. */
-export const rowWidth = (row: TableRow, measure: MeasureText): number =>
-  isDivider(row) ? dividerWidth(row, measure) : fieldLayout(row, measure).width;
+/** Largeur d'une ligne de la zone des champs, à l'échelle 1 ; `physical` : dans la couche physique (sujet 414). */
+export const rowWidth = (row: TableRow, measure: MeasureText, physical = false): number =>
+  isDivider(row) ? dividerWidth(row, measure) : fieldLayout(row, measure, physical).width;
 
-/** Ce dont dépend la taille d'une table : nom affiché, lignes, échelle, icône d'entête. */
+/** Ce dont dépend la taille d'une table : noms affichés, lignes, échelle, icône d'entête. */
 export interface TableContent {
   name: string;
+  /** Nom en base d'une table qui a une couche physique (sujet 414) ; absent : le nom, en italique. */
+  physicalName?: string;
   fields: readonly TableRow[];
   secondary: boolean;
   mark: boolean;
@@ -135,24 +153,34 @@ export interface TableContent {
 /** Contenu actuel d'une table (nom de remplacement d'un document sans nom compris). */
 export const tableContent = (shape: ShapeModel): TableContent => ({
   name: tableName(shape),
+  physicalName: physicalName(shape),
   fields: tableFields(shape),
   secondary: isSecondary(shape),
   mark: shownMark(shape) !== undefined,
 });
 
+/** Largeur du plus long nom (gras), ligne à ligne. */
+const nameWidth = (name: string, italic: boolean, measure: MeasureText): number =>
+  Math.max(0, ...name.split('\n').map((line) => measure(line.trim(), { size: TABLE.nameSize, bold: true, italic })));
+
 /**
  * Largeur d'une table (sujet 247) : celle de son nom (gras, plus la place de l'icône d'entête de chaque côté) ou de
  * son plus long champ (icône, label et type), marges comprises, au moins `TABLE.minWidth` ; à l'échelle d'une table
- * secondaire. Mesurée à l'échelle 1 puis réduite, comme le reste de la table.
+ * secondaire. Mesurée à l'échelle 1 puis réduite, comme le reste de la table. Une table qui a une couche physique a la
+ * place des textes des deux couches (sujet 414) : basculer ne la change pas.
  */
 export function tableWidth(kind: TableKind, content: TableContent, measure: MeasureText): number {
+  const physical = !!kind.rules.physicalLayer;
   const name = Math.max(
-    0,
-    ...content.name
-      .split('\n')
-      .map((line) => measure(line.trim(), { size: TABLE.nameSize, bold: true, italic: kind.look.italic ?? false })),
+    nameWidth(content.name, kind.look.italic ?? false, measure),
+    kind.rules.physicalName
+      ? nameWidth(content.physicalName ?? content.name, content.physicalName === undefined, measure)
+      : 0,
   );
-  const fields = content.fields.map((row) => rowWidth(row, measure));
+  const fields = content.fields.flatMap((row) => [
+    rowWidth(row, measure),
+    ...(physical ? [rowWidth(row, measure, true)] : []),
+  ]);
   const header = name + 2 * (TABLE.padding + (content.mark ? MARK_INSET : 0));
   const width = Math.ceil(Math.max(TABLE.minWidth, header, ...fields));
   return width * secondaryScale(content.secondary);

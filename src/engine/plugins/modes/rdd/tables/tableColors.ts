@@ -1,4 +1,4 @@
-import { drawioStyle } from '../../../../core/plugins';
+import { drawioStyle, readableOn, styleColorValue } from '../../../../core/plugins';
 import type { Field, FieldKind } from './fieldModel';
 
 /**
@@ -10,6 +10,15 @@ import type { Field, FieldKind } from './fieldModel';
 const GRAY = drawioStyle('Gris');
 export const DEFAULT_HEADER_COLOR = GRAY.fillColor;
 export const DEFAULT_HEADER_TEXT = GRAY.fontColor!;
+
+/**
+ * Texte de l'entête : `fontColor` s'il est écrit (gris d'une table neuve, sujet 235), sinon lisible sur l'entête ; celui
+ * du nom dessiné et de son édition sur place (sujet 414).
+ */
+export function headerTextColor(style: Record<string, string>): string {
+  const readable = readableOn(styleColorValue(style, 'fillColor', DEFAULT_HEADER_COLOR) ?? DEFAULT_HEADER_COLOR);
+  return styleColorValue(style, 'fontColor', readable) ?? readable;
+}
 /** Bordure d'une table neuve. */
 export const TABLE_BORDER = GRAY.strokeColor;
 /** Fond de la zone des champs. */
@@ -32,3 +41,6 @@ export const FIELD_ICON_STROKE = '#888888';
 export const TYPE_COLOR = '#999999';
 /** Gris du trait d'un séparateur. */
 export const DIVIDER_STROKE = '#cccccc';
+
+/** Nom ou type physique absent d'un champ, en couche physique (sujet 414) : la valeur logique en rouge. */
+export const MISSING_COLOR = '#e53935';

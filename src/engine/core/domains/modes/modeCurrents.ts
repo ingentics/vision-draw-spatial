@@ -127,7 +127,20 @@ export class ModeCurrents {
 
   private chooseCurrent(pageId: string, value: string): void {
     this.modeCurrents.set(pageId, value);
+    const page = this.core.pages.pageById(pageId);
+    if (page && this.core.modes.modeOf(page)?.current?.redraws) this.redraw(page);
     this.core.events.emit('modeCurrentChange', pageId, value);
     this.core.rendering.requestRender();
+  }
+
+  /** Habillage qui suit le courant (`ModeCurrent.redraws`, sujet 414) : les scènes de la page sont reconstruites. */
+  private redraw(page: PageModel): void {
+    this.core.scenes.invalidate(page.id, true);
+    this.core.graph.invalidateWithScenes(true);
+    if (this.core.pages.getCurrentPage()?.id !== page.id) return;
+    this.core.scenes.show(page);
+    this.core.levels.applyHeightScale();
+    this.core.highlight.update();
+    this.core.minimap.invalidate();
   }
 }

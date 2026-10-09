@@ -2,14 +2,16 @@ import type { ModeParts, ShapeModel } from '../../../../core/plugins';
 import { clamp, rectContains, shapeOf } from '../../../../core/plugins';
 import { BODY, BODY_PART, bodyValue, documentBody, hasBody, normalizedBody, setBody } from '../tables/documentBody';
 import { FIELDS, fieldsValue, isDivider, isPrimaryKey, isRelation, tableFields } from '../tables/fieldModel';
-import { moveField, movedFields, removeField, setField } from '../tables/operations';
-import { TYPE_COLOR } from '../tables/tableColors';
+import { moveField, movedFields, removeField, setField, setPhysicalName } from '../tables/operations';
+import { DB_NAME, NAME_PART, PHYSICAL, hasPhysicalLayer, hasPhysicalName, physicalName } from '../tables/physicalLayer';
+import { TYPE_COLOR, headerTextColor } from '../tables/tableColors';
 import { tableKindOf } from '../tables/tableKinds';
 import {
   TABLE,
   bodyZone,
   FIELD_LABEL_X,
   fieldRow,
+  nameZone,
   tableContent,
   tableScale,
   tableSize,
@@ -23,6 +25,14 @@ import { keys } from '../keys';
  * premier, la clé primaire d'une entité). Un clic sur une ligne la sélectionne ; double-clic : son label sur place.
  * Le corps d'un document (sujet 269) est la partie `body`, au texte modifiable sans être sélectionnable.
  */
+
+/** Les champs de la table sont-ils édités dans la couche physique (sujet 414) ? */
+const physicalEdit = (shape: ShapeModel, current: string | undefined) =>
+  current === PHYSICAL && hasPhysicalLayer(shape);
+
+/** Le titre est-il le nom en base (couche physique, pas pour un fragment) ? */
+const physicalTitle = (shape: ShapeModel, current: string | undefined) =>
+  current === PHYSICAL && hasPhysicalName(shape);
 
 /** Forme avec ce corps (aperçu de la saisie), rien d'écrit. */
 function withBody(shape: ShapeModel, text: string): ShapeModel {
@@ -55,7 +65,23 @@ export const fieldParts: ModeParts = {
     const index = tableFields(target).findIndex((row) => isRelation(row) && row.edge === edge.id);
     return index < 0 ? undefined : { shapeId: target.id, part: String(index) };
   },
-  text(_page, shape, part) {
+  // Couche physique (sujet 414) : le titre est le nom en base de la table, une partie éditée à la place de son texte.
+  labelPart: (_page, shape, current) => (physicalTitle(shape, current) ? NAME_PART : undefined),
+  text(_page, shape, part, current) {
+    const physical = physicalEdit(shape, current);
+    if (part === NAME_PART)
+      return physicalTitle(shape, current)
+        ? {
+            text: physicalName(shape) ?? '',
+            zone: nameZone(shape),
+            fontSize: TABLE.nameSize * tableScale(shape),
+            center: true,
+            bold: true,
+            // Sur place, comme le nom dessiné : sans fond, de la couleur du texte de l'entête.
+            transparent: true,
+            color: headerTextColor(shape.style),
+          }
+        : undefined;
     if (part === BODY_PART)
       return hasBody(shape)
         ? {
@@ -70,8 +96,8 @@ export const fieldParts: ModeParts = {
     const index = kind ? fieldIndex(shape, part) : undefined;
     if (!kind || index === undefined) return undefined;
     const field = tableFields(shape)[index]!;
-    // La clé primaire reste `id` : pas de texte modifiable (sujet 260).
-    if (isPrimaryKey(field)) return undefined;
+    // La clé primaire reste `id` : pas de texte modifiable (sujet 260), sauf son nom en base (sujet 414).
+    if (isPrimaryKey(field) && !physical) return undefined;
     const scale = tableScale(shape);
     const row = fieldRow(shape, index);
     // Séparateur (sujet 253) : son label au milieu de la ligne, petit.
@@ -89,7 +115,8 @@ export const fieldParts: ModeParts = {
     }
     const left = row.x + FIELD_LABEL_X * scale;
     return {
-      text: field.label,
+      // Couche physique : le nom en base du champ, vide s'il n'en a pas.
+      text: physical ? (field.dbName ?? '') : field.label,
       // Du label au bord droit de la table.
       zone: { x: left, y: row.y, width: row.x + row.width - left - TABLE.padding * scale, height: row.height },
       fontSize: TABLE.fieldSize * scale,
@@ -110,12 +137,27 @@ export const fieldParts: ModeParts = {
       setField(edit, shape, index, { comment: text.trim() || undefined });
   },
   // Saisie en direct (sujet 253) : la table avec ce texte sur la ligne, élargie s'il le faut.
-  textPreview(shape, part, text, sizing) {
+  textPreview(shape, part, text, sizing, current) {
     if (part === BODY_PART) return hasBody(shape) ? withBody(shape, text) : shape;
     const kind = tableKindOf(shape);
+    const physical = physicalEdit(shape, current);
+    if (kind && physicalTitle(shape, current) && part === NAME_PART) {
+      const name = text.trim() || undefined;
+      const { [keys.key(DB_NAME)]: _previous, ...style } = shape.style;
+      const width = tableWidth(kind, { ...tableContent(shape), physicalName: name }, sizing.measureText);
+      return {
+        ...shape,
+        style: name === undefined ? style : { ...style, [keys.key(DB_NAME)]: name },
+        bounds: { ...shape.bounds, width: tableSize(width, sizing.gridSize) },
+      };
+    }
     const index = kind ? fieldIndex(shape, part) : undefined;
     if (!kind || index === undefined) return shape;
-    const rows = tableFields(shape).map((row, i) => (i === index ? { ...row, label: text.trim() } : row));
+    const rows = tableFields(shape).map((row, i) => {
+      if (i !== index) return row;
+      if (physical && !isDivider(row)) return { ...row, dbName: text.trim() || undefined };
+      return { ...row, label: text.trim() };
+    });
     const width = tableWidth(kind, { ...tableContent(shape), fields: rows }, sizing.measureText);
     return {
       ...shape,
@@ -123,10 +165,15 @@ export const fieldParts: ModeParts = {
       bounds: { ...shape.bounds, width: tableSize(width, sizing.gridSize) },
     };
   },
-  setText(edit, shape, part, text) {
+  setText(edit, shape, part, text, current) {
     if (part === BODY_PART) return setBody(edit, shape, text);
+    const physical = physicalEdit(shape, current);
+    if (part === NAME_PART) return physicalTitle(shape, current) ? setPhysicalName(edit, shape, text) : undefined;
     const index = fieldIndex(shape, part);
-    if (index !== undefined) setField(edit, shape, index, { label: text });
+    if (index === undefined) return;
+    // Couche physique : le nom en base du champ (vide le retire) ; un séparateur garde son label.
+    if (physical && !isDivider(tableFields(shape)[index]!)) setField(edit, shape, index, { dbName: text.trim() });
+    else setField(edit, shape, index, { label: text });
   },
   // Glisser (sujet 252) : place = rang du champ devant lequel il irait (le nombre de champs : la fin) ; hors de la
   // table, devant la clé primaire ou à sa place actuelle : aucune. La clé primaire ne se glisse pas.

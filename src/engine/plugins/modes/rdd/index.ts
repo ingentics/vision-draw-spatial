@@ -23,6 +23,7 @@ import { ADD_DIVIDER_PROPERTY, TABLE_PROPERTIES, addDividerAfter } from './editi
 import { TABLE_KINDS, missingRequiredName } from './tables/tableKinds';
 import { rowOf } from './editing/tableTargets';
 import { RDD_KEYS } from './keys';
+import { LAYER_CURRENT, layerStyle } from './tables/physicalLayer';
 
 /** Flèche tirée ou rebranchée vers une partie de sa forme d'arrivée (sujet 333). */
 const arrivalOf = (edgeId: string, part: string | undefined) => (part === undefined ? undefined : { edgeId, part });
@@ -44,10 +45,17 @@ export const definition: PageModeDefinition = {
     accent: 'M4 9h6M4 12h4.5',
   },
   settings: RDD_SETTINGS,
-  // Fond des régions dessiné plus clair que la couleur de leur style (sujet 345), le fichier garde celle du style.
-  dressing: (_page, values) => ({
-    shapeStyle: (shape) => regionDrawnStyle(shape, numberValue(values, REGION_LIGHTENING)),
+  // Fond des régions dessiné plus clair que la couleur de leur style (sujet 345), le fichier garde celle du style ;
+  // tables en couche physique (sujet 414).
+  dressing: (_page, values, current) => ({
+    shapeStyle: (shape) => {
+      const region = regionDrawnStyle(shape, numberValue(values, REGION_LIGHTENING));
+      const layer = layerStyle(shape, current);
+      return region || layer ? { ...region, ...layer } : undefined;
+    },
   }),
+  // Couche affichée, logique ou physique (sujet 414) : barre du courant ; Tab sans sélection passe à l'autre (sujet 418).
+  current: LAYER_CURRENT,
   page: {
     viewModes: ['top'],
     palette: {

@@ -52,9 +52,9 @@ export interface Field {
   unique?: boolean;
   /** Commentaire du champ (sujet 260). */
   comment?: string;
-  /** Couche physique (sujets 260, 413) : nom de la colonne et son type (texte libre, ex. `varchar(255)`). */
-  pgName?: string;
-  pgType?: string;
+  /** Couche physique (sujets 260, 413, 414) : nom de la colonne et son type (texte libre, ex. `varchar(255)`). */
+  dbName?: string;
+  dbType?: string;
   /** Gouvernance (sujet 260) : soumis au GDPR, donnée personnelle. */
   gdpr?: boolean;
   personal?: boolean;
@@ -71,7 +71,7 @@ export interface Field {
 
 /** Options d'un champ à cocher, et en texte libre. */
 export type FieldFlag = 'nullable' | 'unique' | 'gdpr' | 'personal';
-export type FieldText = 'comment' | 'pgName' | 'pgType' | 'prefix';
+export type FieldText = 'comment' | 'dbName' | 'dbType' | 'prefix';
 
 /**
  * Option d'un champ (sujets 260, 261, 268) : case à cocher ou texte (vide : retiré), son réglage au panneau d'un champ
@@ -120,18 +120,18 @@ export const FIELD_OPTIONS: readonly FieldOption[] = [
     on: () => true,
   },
   {
-    key: 'pgName',
+    key: 'dbName',
     type: 'text',
     label: 'Nom du champ',
-    title: 'Nom de la colonne en base (spatial.rdd.pgName)',
+    title: 'Nom de la colonne en base (dbName), affiché en couche physique',
     section: PHYSICAL_LAYER,
     on: () => true,
   },
   {
-    key: 'pgType',
+    key: 'dbType',
     type: 'text',
     label: 'Type',
-    title: 'Type de la colonne en base (spatial.rdd.pgType, texte libre, ex. varchar(255), uuid)',
+    title: 'Type de la colonne en base (dbType, texte libre, ex. varchar(255), uuid), affiché en couche physique',
     section: PHYSICAL_LAYER,
     on: () => true,
   },
@@ -170,7 +170,7 @@ const optionOf = (key: string) => FIELD_OPTIONS.find((option) => option.key === 
  * fichiers déjà écrits) : les options, sauf « Optionnel » toujours écrit avec le champ, et `edge`, le lien d'un champ
  * de relation à sa flèche (sujet 265).
  */
-const STORED_KEYS = ['unique', 'gdpr', 'personal', 'comment', 'pgName', 'pgType', 'edge', 'prefix'] as const;
+const STORED_KEYS = ['unique', 'gdpr', 'personal', 'comment', 'dbName', 'dbType', 'edge', 'prefix'] as const;
 const isFlagKey = (key: (typeof STORED_KEYS)[number]) => optionOf(key)?.type === 'flag';
 
 /** Valeur d'une option écrite par `setField` : vide ou faux la retire ; « Optionnel » reste un booléen. */

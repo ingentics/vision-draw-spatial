@@ -10,14 +10,21 @@ import { createDefaultModeRegistry } from '../../src/engine/plugins';
 
 /**
  * Hôte des modes sur un cœur réduit (sujet 304 : habillage, avertissements et effets permis ne sont plus demandés au
- * registre, mais à l'hôte, qui protège chaque appel). `modes` : réglages des modes (`settings.modes`).
+ * registre, mais à l'hôte, qui protège chaque appel). `modes` : réglages des modes (`settings.modes`) ; `current` : le
+ * courant du mode de toute page (sujet 414).
  */
-export function modeHost(registry: PageModeRegistry = createDefaultModeRegistry(), modes: PluginSettings = {}) {
+export function modeHost(
+  registry: PageModeRegistry = createDefaultModeRegistry(),
+  modes: PluginSettings = {},
+  current?: string,
+) {
   const core = {
     modes: registry,
     effects: new PageEffectRegistry(),
     settings: { ...DEFAULT_SETTINGS, modes },
     file: { publishWarnings: () => {} },
+    // Courant du mode remis à l'habillage (sujet 414).
+    modeCurrents: { getModeCurrent: () => current },
   } as unknown as EngineCore;
   Object.assign(core, { pluginGuard: new PluginGuard(core) });
   const host = new PageModes(core);

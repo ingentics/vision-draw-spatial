@@ -94,12 +94,16 @@ export class PageModes {
     return this.core.modes.paletteFor(page, this.core.registry.templates(), this.core.registry.categories());
   }
 
-  /** Habillage du rendu de la page par son mode, protégé jusque dans ses fonctions (appelées au dessin). */
+  /**
+   * Habillage du rendu de la page par son mode, d'après son courant (sujet 414), protégé jusque dans ses fonctions
+   * (appelées au dessin).
+   */
   dressing(page: PageModel): PageDressing | undefined {
     const mode = this.core.modes.modeOf(page);
     if (!mode?.dressing) return undefined;
     const values = this.core.modes.values(mode.id, this.core.settings.modes[mode.id]);
-    const dressing = this.call(mode, 'dressing', undefined, mode.dressing, page, values);
+    const current = this.core.modeCurrents.getModeCurrent(page.id);
+    const dressing = this.call(mode, 'dressing', undefined, mode.dressing, page, values, current);
     if (!dressing) return undefined;
     const { shapeStyle, edgeColor, edgeBadge } = dressing;
     return {

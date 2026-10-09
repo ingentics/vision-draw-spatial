@@ -45,8 +45,11 @@ export interface PageModeDefinition {
   page?: ModePage;
   /** Moments de la vie du document : lecture, ouverture, suppression d'éléments. */
   lifecycle?: ModeLifecycle;
-  /** Habillage du rendu de la page, appliqué au dessin sans modifier le style draw.io ; `values` : ses réglages. */
-  dressing?(page: PageModel, values: PluginValues): PageDressing;
+  /**
+   * Habillage du rendu de la page, appliqué au dessin sans modifier le style draw.io ; `values` : ses réglages,
+   * `current` : le courant du mode (sujet 414 ; la page n'est redessinée quand il change qu'avec `current.redraws`).
+   */
+  dressing?(page: PageModel, values: PluginValues, current?: string): PageDressing;
   /** Les flèches de la page : réglages, accroches permises, flèches gérées, création et rebranchement. */
   edges?: ModeEdges;
   /** Les formes et les gestes sur elles : réglages, formes emportées, bornes, pose, texte, poignées. */
@@ -210,10 +213,18 @@ export interface ModeParts {
    * `setText` comme celui d'une partie.
    */
   textAt?(page: PageModel, shape: ShapeModel, point: Point): string | undefined;
-  /** Texte modifiable sur place (double-clic, sur une ligne : Entrée valide) ; undefined = pas de texte. */
-  text?(page: PageModel, shape: ShapeModel, part: string): ModePartText | undefined;
+  /**
+   * Partie dont le texte s'édite à la place de celui de la forme (sujet 414 : double-clic, Entrée ; ex. nom en base
+   * d'une table RDD en couche physique) ; undefined = le texte de la forme. `current` : le courant du mode.
+   */
+  labelPart?(page: PageModel, shape: ShapeModel, current?: string): string | undefined;
+  /**
+   * Texte modifiable sur place (double-clic, sur une ligne : Entrée valide) ; undefined = pas de texte. `current` : le
+   * courant du mode (sujet 414), comme pour `setText` et `textPreview`.
+   */
+  text?(page: PageModel, shape: ShapeModel, part: string, current?: string): ModePartText | undefined;
   /** Écrit le texte validé (le mode décide d'un texte vide : refusé, ou permis). */
-  setText?(edit: ModeEdit, shape: ShapeModel, part: string, text: string): void;
+  setText?(edit: ModeEdit, shape: ShapeModel, part: string, text: string, current?: string): void;
   /**
    * Commentaire d'une partie (sujet 262) : titre (ex. nom du champ) et texte brut, vide s'il n'y en a pas encore ;
    * undefined si la partie ne peut pas en avoir (ex. séparateur).
@@ -227,7 +238,7 @@ export interface ModeParts {
    * `sizing` : grille et mesure du texte, celles de `ModeEdit`, pour que l'aperçu ait la taille écrite ensuite (sujets
    * 263, 377).
    */
-  textPreview?(shape: ShapeModel, part: string, text: string, sizing: ModeSizing): ShapeModel;
+  textPreview?(shape: ShapeModel, part: string, text: string, sizing: ModeSizing, current?: string): ShapeModel;
   /**
    * Suppr sur la partie sélectionnée (sujet 251) : la retire ; le mode peut refuser (ex. clé primaire), rien n'est
    * alors écrit. Dans tous les cas, la forme elle-même n'est pas supprimée.
@@ -264,6 +275,8 @@ export interface ModePartText {
   text: string;
   zone: Rect;
   fontSize: number;
+  /** Texte en gras (sujet 414, ex. nom d'une table RDD). */
+  bold?: boolean;
   /** Texte en italique. */
   italic?: boolean;
   /** Texte centré dans son cadre (sinon à gauche). */
@@ -327,6 +340,11 @@ export interface ModeCurrent {
   rename?(edit: ModeEdit, value: string, label: string): void;
   /** Apparence du courant d'après les réglages du mode (ticket 283) ; absent = défauts du moteur. */
   look?(values: PluginValues): ModeCurrentLook;
+  /**
+   * L'habillage (`dressing`) dépend du courant (sujet 414, ex. couche physique RDD) : la page est redessinée quand il
+   * change.
+   */
+  redraws?: boolean;
 }
 
 /** Apparence du courant d'un mode ; une valeur absente prend le défaut du moteur. */
