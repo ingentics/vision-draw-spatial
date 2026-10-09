@@ -13,9 +13,10 @@
 - **Pourquoi** : poser des idées spatialement (archi, doc technique) **sans quitter le format draw.io**. Principe
   fondateur : « la 3D est un mode, pas une rupture » — en vue de dessus on retrouve draw.io ; en inclinant la caméra,
   le même schéma devient des volumes posés au sol.
-- **Contrat absolu** : **100 % compatible draw.io**. Un fichier ouvert puis sauvegardé ici s'ouvre dans draw.io
-  identique, sauf ce que l'utilisateur a modifié. Les comportements d'édition **imitent draw.io** (valeurs, styles,
-  géométries, algorithmes portés de mxGraph quand c'est possible).
+- **Contrat (sujet 408)** : la compatibilité draw.io se limite à l'**export** : le fichier exporté doit s'ouvrir dans
+  draw.io. Le reste (comportements d'édition, valeurs, styles, rendu, détails du fichier) n'a plus à imiter draw.io ni
+  à y être identique. Le code existant reprend encore beaucoup de draw.io (valeurs, algorithmes portés de mxGraph) :
+  c'est un héritage, pas une règle pour les nouveaux sujets.
 - **Milestones** (SPEC §2) : M1 Viewer (fait), M2 Editor (en cours, surtout formes et UI d'édition), M3 Packaging
   (composant + Electron faits).
 
@@ -25,7 +26,7 @@
   uniquement), Vite, Vitest, pako (pages compressées), @xmldom/xmldom (même DOM navigateur / Node).
 - **Tout passe par Docker** (Node 24.21.0 figé par l'image), via `make` :
   `make dev` (serveur hot reload, port 5173), `make test`, `make lint`, `make check` (lint + types + format + tests),
-  `make drawio-check` (fait réenregistrer/exporter les fixtures par le draw.io installé sur la machine et compare),
+  `make drawio-check` (facultatif depuis le sujet 408 : fait réenregistrer/exporter les fixtures par le draw.io installé et compare),
   `make lib` (→ `dist-lib/`), `make desktop*` (Electron, → `dist-desktop/`).
 - Un sujet est terminé quand `make check` passe ; commit en français, pushes faits à la main.
 

@@ -131,9 +131,9 @@ Folder map with each folder's role: `docs/SUMMARY.md` §3 (single source). Where
 ## 6. Writing code
 
 - English identifiers; comments in French.
-- A comment says **why** (gap with draw.io, edge case, chosen value), not what the code already says. At the top of
-  a non-obvious file: one line on its role. A value taken from draw.io says so
-  (`/** Pas de la grille en pixels de page (draw.io : 10). */`).
+- A comment says **why** (edge case, chosen value), not what the code already says. At the top of
+  a non-obvious file: one line on its role. A value taken from draw.io may say so, but
+  matching draw.io is not a goal (topic 408: draw.io compatibility is limited to export).
 - Strict TypeScript, no `any`; type imports as `import type` (lint).
 - Short single-topic files: beyond ~400 lines, ask what can move out (shared blocks, algorithm, orchestration).
 - No dead code nor accessor duplicating an existing method; a moved comment follows its code.

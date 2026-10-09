@@ -1,5 +1,8 @@
 # Drawio Spatial
 
+**draw.io compatibility is limited to export** (topic 408): we only need to export to draw.io. Everything else
+(behaviours, values, styles, rendering, file details) is free to diverge from draw.io.
+
 @docs/ROADMAP.md
 
 Functional and technical reference: `docs/SPEC.md` (read on demand, not preloaded: 135 KB). Architecture and
@@ -20,8 +23,9 @@ agent instruction files (this one, `docs/ROADMAP.md`, `.claude/rules/`) are in E
 - **Everything runs in Docker** (Node pinned by the image): use `make`, never host `npx`.
 - **Validate:**
   - By eye in the app, on the shared server, with a fixture showing the case. Say what was only checked by tests.
-  - Against draw.io as soon as the `.drawio` file is touched: fixture + `make drawio-check` (re-save and SVG export
-    of the fixtures).
+  - draw.io is only an **export target** (topic 408): the exported file must open in draw.io, nothing more. Tickets
+    need not match draw.io (values, styles, behaviours, rendering) nor be checked in draw.io; `make drawio-check` is
+    optional, run it only when a change may break opening the export in draw.io.
   - `make check` (lint, types, format, tests) with `COMPOSE_PROJECT_NAME=drawio-claude` (so the user's container is
     not replaced), must exit 0 before any commit: get its exit code and only run `git commit` if it is 0 — never
     `make check ; git commit`.

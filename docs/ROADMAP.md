@@ -13,7 +13,7 @@ Each topic (feature, shape, fix, idea) is **one Markdown file** in `docs/backlog
 - **One topic = one file.** A topic too big is split into several files; a partly done topic is split: the done part
   goes to `done/`, the rest becomes a new `todo/` file.
 - **When a topic is done, its file moves from `todo/` to `done/`** (`git mv`) in the same commit as the code, with
-  what was done (files, choices, validation in draw.io) added under a "Fait :" line. Behaviour changes, even minor
+  what was done (files, choices, validation) added under a "Fait :" line. Behaviour changes, even minor
   (including from a refactor), are written there.
 - A `done/` file is never modified afterwards: an evolution or rework is a new `todo/` topic.
 
@@ -30,8 +30,8 @@ stable reference ("étape 24" in code and tests), not an order. Numbers 0 to 26 
 
 > Milestone ou thème de rattachement (ex. « Milestone 5 — Formes géométriques »), dépendances éventuelles
 
-- Ce qu'on veut, avec les valeurs exactes de draw.io quand il y en a (styles, tailles, attributs).
-- **Fini quand :** critère vérifiable, à l'œil dans l'appli et, si le fichier est touché, dans draw.io.
+- Ce qu'on veut, avec les valeurs exactes (styles, tailles, attributs). Inutile de reprendre celles de draw.io.
+- **Fini quand :** critère vérifiable, à l'œil dans l'appli.
 - Fait : (ajouté une fois le sujet terminé) ce qui a été réalisé et comment c'est validé.
 ```
 
@@ -53,5 +53,5 @@ An **iteration** is a small topic: a tweak, a setting, a fix on a precise part o
 
 ## Principle
 
-At every topic the app runs and the result can be checked by eye; anything touching the draw.io file is validated
-against draw.io itself.
+At every topic the app runs and the result can be checked by eye. draw.io is only an export target (topic 408): the
+exported file must open in draw.io; nothing else has to match draw.io.

@@ -7,11 +7,11 @@
 
 ## 1. Vision
 
-L'objectif est de pouvoir **poser des idées de manière spatiale** (schémas techniques, architecture, modélisation d'objets, documentation) en partant du format draw.io, sans le remplacer.
+L'objectif est de pouvoir **poser des idées de manière spatiale** (schémas techniques, architecture, modélisation d'objets, documentation) en partant du format draw.io.
 
 Principe fondateur : **la 3D est un mode, pas une rupture.** En vue de dessus, caméra orthographique, sans perspective, l'utilisateur retrouve l'expérience draw.io classique. En inclinant la caméra, le même schéma devient une projection isométrique posée « au sol », dans laquelle on peut se déplacer.
 
-Autrement dit : on ajoute un mode 3D à draw.io, tout en restant 100 % compatible avec le format et l'application d'origine.
+Au départ, le projet visait une compatibilité totale avec draw.io. **Depuis le sujet 408, elle se limite à l'export** : le fichier exporté doit s'ouvrir dans draw.io ; comportements, valeurs, styles et rendu peuvent s'en écarter. Les sections qui suivent décrivent l'existant, qui reprend encore largement draw.io.
 
 ---
 
@@ -20,7 +20,7 @@ Autrement dit : on ajoute un mode 3D à draw.io, tout en restant 100 % compatibl
 | Milestone | Contenu | Statut |
 |---|---|---|
 | M1 — Viewer | Ouvrir, afficher, naviguer, suivre les liens entre pages | Prioritaire |
-| M2 — Editor | Créer, déplacer, modifier des formes, sauvegarder en `.drawio` compatible | Second temps |
+| M2 — Editor | Créer, déplacer, modifier des formes, sauvegarder ; export ouvrable dans draw.io | Second temps |
 | M3 — Packaging | Composant React publiable, wrapper Electron/Tauri | Plus tard |
 
 Hors périmètre initial : collaboration temps réel, export image/PDF, rendu volumique des formes (extrusion), optimisation mémoire avancée.
@@ -1006,7 +1006,7 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
 - **Unitaires (Vitest)** : décompression, parsing des styles, calcul des coordonnées absolues (groupes imbriqués), extraction des liens, graphe de navigation, pile d'historique.
 - **Fixtures** : un dossier de fichiers `.drawio` variés (compressés / non compressés, multi-pages, groupes, liens, formes exotiques).
 - **Aller-retour (M2)** : `parse → write sans modification` doit produire un XML **sémantiquement identique** à l'original ; `parse → déplacement → write` ne doit modifier que les attributs attendus (diff XML).
-- **Compatibilité draw.io (M2)** : procédure de test manuelle documentée (ouvrir dans draw.io, sauvegarder, rouvrir dans l'application, vérifier les attributs spatiaux). Procédure du critère §14.4 :
+- **Export vers draw.io** : depuis le sujet 408, seule l'ouverture du fichier exporté dans draw.io est exigée ; les procédures et `make drawio-check` ci-dessous sont facultatives. **Compatibilité draw.io (M2, historique)** : procédure de test manuelle documentée (ouvrir dans draw.io, sauvegarder, rouvrir dans l'application, vérifier les attributs spatiaux). Procédure du critère §14.4 :
   1. Ouvrir l'exemple `fixtures/three-rectangles.drawio`, déplacer A, B et C (en 2D et en iso), passer en iso, Sauvegarder.
   2. Ouvrir le fichier téléchargé dans draw.io : rectangles aux nouvelles positions, flèche A → B retracée, rien d'autre de changé. Le déplacer un peu dans draw.io, enregistrer.
   3. Rouvrir ce fichier dans l'application (glisser-déposer) : positions de draw.io, et même vue iso qu'à l'étape 1 (attribut `spatial.view` conservé).
