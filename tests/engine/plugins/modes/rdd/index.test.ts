@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { definition as rdd } from '../../../../../src/engine/plugins/modes/rdd';
-import { rowWidth, widthOf, KEY_ROW, labels, fieldsOf, tableFields, setup } from './helpers';
+import { rowWidth, physicalRowWidth, widthOf, KEY_ROW, labels, fieldsOf, tableFields, setup } from './helpers';
 import { createDefaultModeRegistry, createDefaultRegistry } from '../../../../../src/engine/plugins';
 import { TABLE_KINDS } from '../../../../../src/engine/plugins/modes/rdd/tables/tableKinds';
 import type { ShapeModel } from '../../../../../src/engine/core/plugins';
@@ -132,7 +132,7 @@ describe('mode RDD : tables ajustées à l’ouverture (sujet 255)', () => {
     expect(shape('user').bounds).toEqual({
       x: 40,
       y: 160,
-      width: widthOf(KEY_ROW, rowWidth('role', 'Nombre entier')),
+      width: widthOf(KEY_ROW, physicalRowWidth('role', 'Nombre entier')),
       height: 26 + 3 * 20,
     });
     expect(shape('timestamped').bounds.width).toBe(widthOf(rowWidth('created_at', 'Phrase')));

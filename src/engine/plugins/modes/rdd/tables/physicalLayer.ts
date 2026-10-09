@@ -66,6 +66,9 @@ export function layerFieldTexts(field: Field, physical: boolean): { label: Layer
   };
 }
 
+/** Le champ manque-t-il de son nom ou de son type en base (couche physique : icône d'alerte, sujet 425) ? */
+export const physicalMissing = (field: Field): boolean => field.dbName === undefined || field.dbType === undefined;
+
 /**
  * Courant du mode : la couche affichée, logique par défaut, dans la barre du courant. Les tables sans couche physique
  * sont estompées en couche physique ; la page est redessinée à chaque bascule.

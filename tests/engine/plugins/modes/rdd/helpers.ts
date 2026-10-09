@@ -31,8 +31,13 @@ export const onGrid = (value: number) => ceilToGrid(Math.round(value * 100) / 10
 export const contentWidth = (...rows: number[]) => Math.ceil(Math.max(120, ...rows));
 /** Largeur écrite d'une table d'après ses lignes, sur la grille. */
 export const widthOf = (...rows: number[]) => onGrid(contentWidth(...rows));
+/**
+ * Ligne d'une table qui a une couche physique (entité, énumération, vue, fragment), sans nom ni type en base : la place
+ * de l'icône d'alerte en plus (air et côté, sujet 425).
+ */
+export const physicalRowWidth = (label: string, type?: string) => rowWidth(label, type) + 6 + 12;
 /** Ligne de la clé primaire `id` d'une entité (« Primary key », sujet 260). */
-export const KEY_ROW = rowWidth('id', 'Primary key');
+export const KEY_ROW = physicalRowWidth('id', 'Primary key');
 
 /**
  * Pose les champs d'une table par leurs labels (un par ligne ; la clé primaire d'une entité reste en tête) : un label

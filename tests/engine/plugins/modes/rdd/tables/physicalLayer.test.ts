@@ -8,6 +8,7 @@ import {
   layerFieldTexts,
   layerStyle,
   layerTitle,
+  physicalMissing,
   physicalShown,
 } from '../../../../../../src/engine/plugins/modes/rdd/tables/physicalLayer';
 import type { Field } from '../../../../../../src/engine/plugins/modes/rdd/tables/fieldModel';
@@ -16,6 +17,7 @@ import { keys } from '../../../../../../src/engine/plugins/modes/rdd/keys';
 import { modeHost } from '../../../../modeHost';
 import { fieldParts } from '../../../../../../src/engine/plugins/modes/rdd/editing/fieldParts';
 import { approximateMeasure } from '../../../../../../src/engine/core/render/richLayout';
+import { TABLE, fieldLayout } from '../../../../../../src/engine/plugins/modes/rdd/tables/tableLayout';
 import { setup } from '../helpers';
 
 const field = (patch: Partial<Field> = {}): Field => ({
@@ -82,6 +84,19 @@ describe('mode RDD : couches logique et physique (sujet 414)', () => {
       note: { text: 'Phrase', missing: true },
     });
     expect(layerFieldTexts(field({ dbName: 'x' }), false).label).toEqual({ text: 'email', missing: false });
+  });
+
+  it('nom ou type physique manquant (sujet 425) : alerte, et sa place au bout de la ligne', () => {
+    const measure = approximateMeasure;
+    const warning = TABLE.warning.gap + TABLE.warning.size;
+    expect([field(), field({ dbName: 'a' }), field({ dbType: 'b' })].map(physicalMissing)).toEqual([true, true, true]);
+    expect(physicalMissing(field({ dbName: 'a', dbType: 'b' }))).toBe(false);
+    const complete = field({ dbName: 'email', dbType: 'Phrase' });
+    expect(fieldLayout(field({ dbName: 'email' }), measure, true).width).toBe(
+      fieldLayout(complete, measure, true).width + warning,
+    );
+    // Couche logique : pas d'alerte.
+    expect(fieldLayout(complete, measure, false).width).toBe(fieldLayout(field(), measure, false).width);
   });
 
   it('taille : la place des deux couches ; nom en base changé au panneau, la table suit', () => {

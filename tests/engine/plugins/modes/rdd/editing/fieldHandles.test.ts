@@ -3,7 +3,7 @@ import { definition as rdd } from '../../../../../../src/engine/plugins/modes/rd
 import { fieldProblems, newFieldLabel } from '../../../../../../src/engine/plugins/modes/rdd/tables/fieldModel';
 import { addField } from '../../../../../../src/engine/plugins/modes/rdd/tables/operations';
 import type { PageModel, ShapeModel } from '../../../../../../src/engine/core/model/types';
-import { rowWidth, widthOf, KEY_ROW, labels, fieldsOf, setup } from '../helpers';
+import { physicalRowWidth, widthOf, KEY_ROW, labels, fieldsOf, setup } from '../helpers';
 import { createDefaultRegistry } from '../../../../../../src/engine/plugins';
 
 describe('mode RDD : ajouter un champ (sujet 250)', () => {
@@ -62,10 +62,10 @@ describe('mode RDD : ajouter un champ (sujet 250)', () => {
     run((edit) => type.write!(edit, shape('user'), 'money', '3'));
     expect(fieldsOf(shape('user'))[3]!.type).toBe('money');
     run((edit) => type.write!(edit, shape('user'), 'a_very_long_type_name_here_and_there', '3'));
-    expect(shape('user').bounds.width).toBeGreaterThan(widthOf(KEY_ROW, rowWidth('role', 'Nombre entier')));
+    expect(shape('user').bounds.width).toBeGreaterThan(widthOf(KEY_ROW, physicalRowWidth('role', 'Nombre entier')));
     run((edit) => type.write!(edit, shape('user'), undefined, '3'));
     expect(fieldsOf(shape('user'))[3]!.type).toBe('');
-    expect(shape('user').bounds.width).toBe(widthOf(KEY_ROW, rowWidth('role', 'Nombre entier')));
+    expect(shape('user').bounds.width).toBe(widthOf(KEY_ROW, physicalRowWidth('role', 'Nombre entier')));
   });
 
   it('après le champ sélectionné, jamais avant la clé primaire ; premier numéro libre', () => {

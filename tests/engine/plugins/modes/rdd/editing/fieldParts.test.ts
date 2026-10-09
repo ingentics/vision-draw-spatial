@@ -13,7 +13,7 @@ import { approximateMeasure } from '../../../../../../src/engine/core/render/ric
 import { buildPageScene } from '../../../../../../src/engine/core/render/pageScene';
 import type { RenderContext, TextSpec } from '../../../../../../src/engine/core/render/types';
 import { spatialValue } from '../../../../../../src/engine/core/spatial';
-import { rowWidth, widthOf, KEY_ROW, setFields, labels, fieldsOf, setup } from '../helpers';
+import { physicalRowWidth, widthOf, KEY_ROW, setFields, labels, fieldsOf, setup } from '../helpers';
 import { createDefaultRegistry } from '../../../../../../src/engine/plugins';
 import { keys } from '../../../../../../src/engine/plugins/modes/rdd/keys';
 import { addEdgeCell } from '../../../../../../src/engine/core/format/create';
@@ -53,7 +53,7 @@ describe('mode RDD : champ sélectionné dans sa table (sujet 249)', () => {
     const long = 'a_role_identifier_that_is_long';
     run((edit) => fieldParts.setText!(edit, shape('user'), '2', `  ${long} `));
     expect(labels(fieldsOf(shape('user')))).toEqual(['id', 'email', long]);
-    expect(shape('user').bounds.width).toBe(widthOf(rowWidth(long, 'Nombre entier')));
+    expect(shape('user').bounds.width).toBe(widthOf(physicalRowWidth(long, 'Nombre entier')));
     expect(run((edit) => fieldParts.setText!(edit, shape('user'), '2', '  '))).toBe(false);
     expect(fieldParts.text!(page(), shape('user'), '2')!.text).toBe(long);
   });
@@ -64,13 +64,13 @@ describe('mode RDD : supprimer un champ (sujet 251)', () => {
     const { run, shape } = setup();
     const long = 'a_very_long_field_name_for_a_table';
     run((edit) => setFields(edit, shape('user'), `email\nrole\n${long}`));
-    expect(shape('user').bounds.width).toBe(widthOf(rowWidth(long, 'Phrase')));
+    expect(shape('user').bounds.width).toBe(widthOf(physicalRowWidth(long, 'Phrase')));
     run((edit) => fieldParts.remove!(edit, shape('user'), '3'));
     expect(labels(fieldsOf(shape('user')))).toEqual(['id', 'email', 'role']);
     expect(shape('user').bounds).toEqual({
       x: 40,
       y: 160,
-      width: widthOf(KEY_ROW, rowWidth('role', 'Nombre entier')),
+      width: widthOf(KEY_ROW, physicalRowWidth('role', 'Nombre entier')),
       height: 26 + 3 * 20,
     });
     run((edit) => fieldParts.remove!(edit, shape('user'), '1'));
@@ -168,7 +168,7 @@ describe('mode RDD : séparateurs entre les champs (sujet 253)', () => {
     run((edit) => fieldParts.setText!(edit, shape('user'), '2', long));
     const measure = approximateMeasure(long, { size: 7, bold: false, italic: false });
     expect(shape('user').bounds.width).toBe(
-      widthOf(2 * 6 + 2 * 16 + measure + 2 * 4, KEY_ROW, rowWidth('role', 'Nombre entier')),
+      widthOf(2 * 6 + 2 * 16 + measure + 2 * 4, KEY_ROW, physicalRowWidth('role', 'Nombre entier')),
     );
     // Vidé : le séparateur reste, sans texte (un simple trait).
     run((edit) => fieldParts.setText!(edit, shape('user'), '2', '   '));

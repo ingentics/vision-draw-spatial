@@ -228,7 +228,7 @@ function addRows(group: Group, shape: ShapeModel, ctx: RenderContext, header: nu
     if (y > bounds.y + bounds.height) return;
     const part = String(index);
     if (isDivider(field)) addDividerRow(group, ctx, field, { left: bounds.x, width: bounds.width, y, scale, part });
-    else addFieldRow(group, ctx, field, { left: bounds.x, y, scale, part, physical });
+    else addFieldRow(group, ctx, field, { left: bounds.x, right: bounds.x + bounds.width, y, scale, part, physical });
   });
 }
 

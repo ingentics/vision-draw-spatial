@@ -4,7 +4,7 @@ import type { Divider, Field, TableRow } from './fieldModel';
 import { isDivider, tableFields } from './fieldModel';
 import type { HeaderMark, TableKind } from './tableKinds';
 import { shownMark, tableName } from './tableKinds';
-import { layerFieldTexts, physicalName } from './physicalLayer';
+import { layerFieldTexts, physicalMissing, physicalName } from './physicalLayer';
 import { keys } from '../keys';
 
 /**
@@ -35,6 +35,8 @@ export const TABLE = {
   fieldIcon: { size: 12, gap: 4 },
   /** Air entre le label d'un champ et son type. */
   typeGap: 6,
+  /** Icône d'alerte d'un nom ou type physique manquant (sujet 425), calée à droite : côté du cadre, air avant. */
+  warning: { size: 12, gap: 6 },
   /** Séparateur (sujet 253) : taille de son label, air autour du label, longueur minimale du trait de chaque côté. */
   divider: { size: 7, gap: 4, stroke: 16 },
   /** Écart du second trait d'un entête à cadre double. */
@@ -106,7 +108,7 @@ export const FIELD_LABEL_X = TABLE.padding + TABLE.fieldIcon.size + TABLE.fieldI
  * Mise en page d'une ligne de champ (sujet 248), en abscisses depuis le bord gauche de la table, à l'échelle 1 : icône
  * de kind, label, puis texte gris (`fieldNote` : type ou préfixe ; absent sans texte) ; `width` : largeur de la ligne,
  * marge de droite comprise. `measure` : la mesure du texte du moteur (sujet 377). `physical` : textes de la couche
- * physique (sujet 414), une valeur manquante en italique.
+ * physique (sujet 414), une valeur manquante en italique et la place de l'icône d'alerte au bout (sujet 425).
  */
 export function fieldLayout(
   field: Field,
@@ -116,10 +118,11 @@ export function fieldLayout(
   const texts = layerFieldTexts(field, physical);
   const label = FIELD_LABEL_X;
   const end = label + measure(texts.label.text, { size: TABLE.fieldSize, bold: false, italic: texts.label.missing });
-  if (!texts.note.text) return { label, width: end + TABLE.padding };
+  const warning = physical && physicalMissing(field) ? TABLE.warning.gap + TABLE.warning.size : 0;
+  if (!texts.note.text) return { label, width: end + warning + TABLE.padding };
   const type = end + TABLE.typeGap;
   const note = measure(texts.note.text, { size: TABLE.fieldSize, bold: false, italic: texts.note.missing });
-  return { label, type, width: type + note + TABLE.padding };
+  return { label, type, width: type + note + warning + TABLE.padding };
 }
 
 /** Coupure du trait d'un séparateur pour son label (sujet 253), air compris, à l'échelle 1 ; 0 sans label. */

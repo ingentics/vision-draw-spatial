@@ -1,8 +1,8 @@
 import { Color, Group } from 'three';
-import { PART_ORDER, fillMesh, markPart, strokeMesh } from '../../../../../core/plugins';
+import { PART_ORDER, fillMesh, markPart, rectPath, strokeMesh } from '../../../../../core/plugins';
 import type { Point, RenderContext } from '../../../../../core/plugins';
 import type { Divider, Field } from '../../tables/fieldModel';
-import { layerFieldTexts } from '../../tables/physicalLayer';
+import { layerFieldTexts, physicalMissing } from '../../tables/physicalLayer';
 import { DIVIDER_STROKE, FIELD_ICON_STROKE, MISSING_COLOR, TYPE_COLOR, fieldIconColor } from '../../tables/tableColors';
 import { TABLE, dividerLabelWidth, fieldLayout } from '../../tables/tableLayout';
 
@@ -22,6 +22,37 @@ const diamond = (center: Point, half: number): Point[] => [
   { x: center.x, y: center.y + half },
   { x: center.x - half, y: center.y },
 ];
+
+/**
+ * Icône d'alerte d'un nom ou type physique manquant (sujet 425), dans le cadre de 12 : triangle rouge, pointe en haut, avec un
+ * point d'exclamation blanc (barre et point).
+ */
+const WARNING = {
+  triangle: [
+    { x: 6, y: 0.6 },
+    { x: 11.6, y: 11 },
+    { x: 0.4, y: 11 },
+  ],
+  bar: { x: 5.3, y: 3.8, width: 1.4, height: 3.8 },
+  dot: { x: 5.3, y: 8.6, width: 1.4, height: 1.4 },
+};
+
+/** Icône d'alerte, bord gauche en `left`, centrée verticalement en `y`. */
+function warningIcon(left: number, y: number, scale: number): Group {
+  const group = new Group();
+  group.name = 'field-warning';
+  const unit = (TABLE.warning.size / 12) * scale;
+  const at = (p: Point): Point => ({ x: left + p.x * unit, y: y + (p.y - 6) * unit });
+  const triangle = fillMesh(WARNING.triangle.map(at), new Color(MISSING_COLOR), 1);
+  triangle.renderOrder = PART_ORDER.fill + 0.6;
+  group.add(triangle);
+  for (const box of [WARNING.bar, WARNING.dot]) {
+    const mark = fillMesh(rectPath(box).map(at), new Color('#ffffff'), 1);
+    mark.renderOrder = PART_ORDER.stroke + 1;
+    group.add(mark);
+  }
+  return group;
+}
 
 /** Icône de kind d'un champ, centrée en `center` ; `scale` : échelle de la table. */
 function fieldIcon(field: Field, center: Point, scale: number): Group {
@@ -52,16 +83,17 @@ function fieldIcon(field: Field, center: Point, scale: number): Group {
 }
 
 /**
- * Dessine une ligne de champ : `left` bord gauche de la table, `y` milieu de la ligne, `scale` échelle de la table ;
- * `physical` : textes de la couche physique (sujet 414), une valeur manquante remplacée par la logique en rouge italique.
+ * Dessine une ligne de champ : `left` / `right` bords de la table, `y` milieu de la ligne, `scale` échelle de la table ;
+ * `physical` : textes de la couche physique (sujet 414), une valeur manquante remplacée par la logique en rouge
+ * italique, et l'icône d'alerte calée à droite (sujet 425).
  */
 export function addFieldRow(
   group: Group,
   ctx: RenderContext,
   field: Field,
-  row: { left: number; y: number; scale: number; part: string; physical: boolean },
+  row: { left: number; right: number; y: number; scale: number; part: string; physical: boolean },
 ): void {
-  const { left, y, scale, part, physical } = row;
+  const { left, right, y, scale, part, physical } = row;
   const layout = fieldLayout(field, ctx.measureText, physical);
   const { label, note } = layerFieldTexts(field, physical);
   group.add(fieldIcon(field, { x: left + (TABLE.padding + TABLE.fieldIcon.size / 2) * scale, y }, scale));
@@ -91,6 +123,8 @@ export function addFieldRow(
       },
     );
   }
+  if (physical && physicalMissing(field))
+    group.add(warningIcon(right - (TABLE.padding + TABLE.warning.size) * scale, y, scale));
 }
 
 /**
