@@ -2,7 +2,7 @@ import { Group, Mesh } from 'three';
 import type { MeshBasicMaterial, Object3D } from 'three';
 import { pointHandles } from '../../edit/edgePointEdits';
 import { collectMoveSet } from '../../edit/moveSet';
-import type { Point } from '../../model/types';
+import type { EdgeModel, Point } from '../../model/types';
 import { headSelectionRing, partSelection, selectionOutline } from '../../render/decorations';
 import { edgeEndHandles, edgePointHandles, modeHandleMeshes, selectionHandles } from '../../render/handleMeshes';
 import { createVeil, createVeilHole, createVeilHoleArea, liftAboveVeil } from '../../render/veil';
@@ -40,10 +40,32 @@ export class SelectionHighlight {
     return (page && this.core.modes.modeOf(page)?.page?.selectionStyle) ?? this.core.settings.selection.style;
   }
 
-  /** Style de la mise en valeur d'un élément sélectionné : celui qu'impose sa forme (sujet 330), sinon `style()`. */
+  /**
+   * Style de la mise en valeur d'un élément sélectionné : celui qu'impose sa forme (sujet 330) ou, pour une flèche, le
+   * mode de la page (sujet 427), sinon `style()`.
+   */
   private itemStyle(item: PickedElement): SelectionStyle {
     const size = this.core.selection.current?.items.length ?? 1;
-    return (item.type === 'shape' ? this.core.registry.selectionStyle(item.element, size) : undefined) ?? this.style();
+    const imposed =
+      item.type === 'shape'
+        ? this.core.registry.selectionStyle(item.element, size)
+        : this.edgeStyle(item.element, size);
+    return imposed ?? this.style();
+  }
+
+  private edgeStyle(edge: EdgeModel, size: number): SelectionStyle | undefined {
+    const page = this.core.pages.getCurrentPage();
+    const mode = page && this.core.modes.modeOf(page);
+    if (!page || !mode) return undefined;
+    return this.core.pageModes.call(
+      mode,
+      'edges.selectionStyle',
+      undefined,
+      mode.edges?.selectionStyle,
+      page,
+      edge,
+      size,
+    );
   }
 
   /** Paramètres changés : style, couleur et animation de la mise en valeur. */

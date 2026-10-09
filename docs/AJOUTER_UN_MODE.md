@@ -69,6 +69,7 @@ interface PageModeDefinition {
     placedEntries?(page): string[];            // flèches dont le mode place l'arrivée (pas réparties en auto / Typon)
     created?(edit, edgeId, current, part?): void; // flèche tirée depuis une forme (même étape d'annulation)
     reconnected?(edit, edgeId, part?): void;   // bout d'une flèche rebranché (même étape)
+    selectionStyle?(page, edge, size): SelectionStyle | undefined; // mise en valeur imposée à la flèche sélectionnée
   };
   gestures?: {                                 // les formes et les gestes sur elles (section 5)
     properties?: ModeProperty[];               // réglages déclarés d'une forme ou de sa partie (section 3)
@@ -315,6 +316,7 @@ Règles communes (sujet 288) :
 | **Flèches** | | | | |
 | `edges.created` | flèche tirée depuis une forme, au lâcher ; reçoit le courant | relue avec la flèche | remise en ordre, étape de la création | rien d'écrit |
 | `edges.reconnected` | bout d'une flèche rebranché (poignée d'extrémité), au lâcher | relue après le rebranchement | remise en ordre, étape du rebranchement | rien d'écrit |
+| `edges.selectionStyle` | mise en valeur de la sélection (sélection, changement de page, paramètres), pour chaque flèche sélectionnée | page courante | aucune | style de la page |
 | `edges.connects` | pendant le tirage ou le rebranchement d'un bout, pour chaque forme candidate | page du modèle | aucune | accroche permise |
 | `edges.manages` | panneau d'une flèche, textes de début / fin (édition, déplacement) | page courante | aucune | flèche non gérée |
 | `edges.placedEntries` | chaque répartition en ancrage automatique ou Typon (édition, déplacement en cours, Autre agencement, changement d'ancrage) | page du modèle | aucune | toutes les arrivées réparties |

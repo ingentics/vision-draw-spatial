@@ -145,6 +145,11 @@ export interface ModeEdges {
    * bout d'arrivée qui a été rebranché ; sinon le mode garde la partie qu'il a retenue.
    */
   reconnected?(edit: ModeEdit, edgeId: string, part?: string): void;
+  /**
+   * Mise en valeur imposée à une flèche sélectionnée (sujet 427, ex. flèche d'un flux : `none`), comme une forme
+   * (`selectionStyle`, sujet 330) ; `selectionSize` : nombre d'éléments sélectionnés. Undefined = celle de la page.
+   */
+  selectionStyle?(page: PageModel, edge: EdgeModel, selectionSize: number): SelectionStyle | undefined;
 }
 
 /** Les formes d'une page du mode et les gestes sur elles (sujet 295). */

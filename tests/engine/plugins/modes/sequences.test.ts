@@ -197,6 +197,13 @@ describe('mode Séquences : réglages déclarés et habillage', () => {
     expect(edge(current(), 'lecture').style.dashed).toBeUndefined();
   });
 
+  it('flèche d’un flux sélectionnée seule : ni voile ni contour ; avec d’autres ou hors flux : style de la page (sujet 427)', () => {
+    const style = sequences.edges!.selectionStyle!;
+    expect(style(page(), edge(page(), 'lecture'), 1)).toBe('none');
+    expect(style(page(), edge(page(), 'lecture'), 2)).toBeUndefined();
+    expect(style(page(), edge(page(), 'libre'), 1)).toBeUndefined();
+  });
+
   it('flèche d’un flux : trait dans la couleur du flux assombrie, pastille du rang ; hors flux : rien', () => {
     const dressing = sequences.dressing!(page(), createDefaultModeRegistry().values('sequences', undefined));
     expect(dressing.edgeColor!(edge(page(), 'login'))).toBe('#4e79a7');

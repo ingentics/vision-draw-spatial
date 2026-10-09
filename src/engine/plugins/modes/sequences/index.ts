@@ -104,6 +104,9 @@ export const definition: PageModeDefinition = {
         hidden: (page, target) => !sequenceState(page).placement.has(target.id),
       },
     ],
+    // Flèche d'un flux sélectionnée seule : ni voile ni contour, sa couleur et sa pastille la montrent (sujet 427).
+    selectionStyle: (page, edge, size) =>
+      size === 1 && sequenceState(page).placement.has(edge.id) ? 'none' : undefined,
     // Une flèche tirée depuis une forme va dans le flux courant.
     created: (edit, edgeId, current) => {
       if (current !== undefined) setEdgeFlow(edit, edgeId, current);
