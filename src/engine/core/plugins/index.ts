@@ -59,6 +59,7 @@ export {
   center,
   distance,
   inflate,
+  inset,
   insidePolygon,
   rectContains,
   rectContainsRect,
@@ -112,6 +113,9 @@ export type { StyleStroke } from '../render/styleColors';
 export { approximateMeasure } from '../render/richLayout';
 export type { FontSpec, MeasureText } from '../render/richLayout';
 export { setStandingFigure } from '../render/standing';
+export { faceCamera } from '../render/billboard';
+export type { CameraFacing } from '../render/billboard';
+export { markPart } from '../render/partMarks';
 export type { StandingFigure } from '../render/standing';
 export { stencilShape } from '../format/stencil';
 

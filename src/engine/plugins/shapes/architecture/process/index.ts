@@ -27,8 +27,11 @@ function outline(shape: ShapeModel): Point[] {
   return boxOutline(shape.bounds, shape.style);
 }
 
-/** Les deux barres, sur toute la hauteur du cadre local, orientées comme la forme (`direction`). */
-function bars(shape: ShapeModel) {
+/**
+ * Les deux barres, sur toute la hauteur du cadre local, orientées comme la forme (`direction`) ; exportées pour les
+ * comparer à draw.io (`shapesFixture`).
+ */
+export function processBars(shape: ShapeModel) {
   const at = (side: 0 | 1) =>
     orientedPath(shape.bounds, shape.style, (w, h) => {
       const x = side === 0 ? barInset(shape.style, w, h) : w - barInset(shape.style, w, h);
@@ -61,7 +64,7 @@ function label(shape: ShapeModel): Rect {
  */
 export const definition: ShapeDefinition = {
   id: 'process',
-  ...box(outline, { details: bars, label }),
+  ...box(outline, { details: processBars, label }),
   contains: () => true,
   properties: [{ type: 'toggle', key: 'rounded', label: 'Coins arrondis', section: 'border' }],
   swatch: () => '<path d="M6 5h28v18H6zM10 5v18M30 5v18"/>',

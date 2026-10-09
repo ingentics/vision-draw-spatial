@@ -1,16 +1,6 @@
-import { SPATIAL, cubicTo, clamp } from '../../../../core/plugins';
+import { cubicTo, clamp } from '../../../../core/plugins';
 import type { SceneRenderer } from '../../../../core/plugins';
-import {
-  building,
-  engrave,
-  facadeTag,
-  facesOf,
-  plinthOf,
-  rectBlock,
-  strokeOf,
-  tagOf,
-  tagSize,
-} from '../../generic/building';
+import { engrave, engravedBuilding, facesOf } from '../../generic/building';
 
 /** Étiquette de façade par défaut d'une BDD (`spatial.tag` la remplace ; vide = aucune). */
 export const DATABASE_TAG = 'DB';
@@ -21,17 +11,8 @@ export const DATABASE_TAG = 'DB';
  * Le dessus est le toit, avec le label.
  */
 export function isoDatabase(flat: SceneRenderer): SceneRenderer {
-  return building(flat, (shape, ctx, height, group) => {
-    const block = rectBlock.create({ ...shape, style: { ...shape.style, [SPATIAL.height]: String(height) } }, ctx);
-    block.name = 'roof';
-    group.add(block);
-    const tag = tagOf(shape, ctx, DATABASE_TAG);
-    if (tag) facadeTag(group, shape, ctx, tag, tagSize(height));
-    const stroke = strokeOf(shape);
-    if (!stroke) return;
+  return engravedBuilding(flat, DATABASE_TAG, ({ shape, group, height, stroke, plinth, band }) => {
     // Arcs au-dessus de la plinthe de l'étiquette.
-    const plinth = plinthOf(tag, height);
-    const band = height - plinth;
     const count = band >= 24 ? 3 : 2;
     const grooveWidth = clamp(height * 0.08, 2, 4);
     for (const face of facesOf(shape.bounds)) {

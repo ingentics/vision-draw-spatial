@@ -1,5 +1,13 @@
 import { Color } from 'three';
-import { DEFAULT_ACCENT, PART_ORDER, fillMesh, rectPath, spatialNumber, clamp } from '../../../../core/plugins';
+import {
+  DEFAULT_ACCENT,
+  PART_ORDER,
+  fillMesh,
+  inflate,
+  rectPath,
+  spatialNumber,
+  clamp,
+} from '../../../../core/plugins';
 import type { SceneRenderer } from '../../../../core/plugins';
 import { building, CAP_HEIGHT, darker, facadeTag, facesOf, slab, tagOf } from '../../generic/building';
 
@@ -24,12 +32,7 @@ export function isoCache(flat: SceneRenderer): SceneRenderer {
     const groove = nodes > 1 ? Math.min(3, height / (nodes * 4)) : 0;
     const slabHeight = (height - groove * (nodes - 1)) / nodes;
     const inset = Math.min(3, bounds.width / 6, bounds.height / 6);
-    const core = rectPath({
-      x: bounds.x + inset,
-      y: bounds.y + inset,
-      width: bounds.width - 2 * inset,
-      height: bounds.height - 2 * inset,
-    });
+    const core = rectPath(inflate(bounds, -inset));
     const accent = new Color(ctx.accent ?? DEFAULT_ACCENT);
     // Étiquette sur la tranche du bas, à sa hauteur.
     const tag = tagOf(shape, ctx, CACHE_TAG);

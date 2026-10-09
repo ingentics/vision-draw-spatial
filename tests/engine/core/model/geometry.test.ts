@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   boundsOfPoints,
   inflate,
+  inset,
   rectDistance,
   ceilToGrid,
   center,
@@ -129,6 +130,11 @@ describe('rectangle agrandi, distance à un rectangle (sujet 307)', () => {
   it('agrandi de chaque côté, rétréci avec une marge négative', () => {
     expect(inflate(r, 5)).toEqual({ x: -5, y: -5, width: 20, height: 30 });
     expect(inflate(r, -2)).toEqual({ x: 2, y: 2, width: 6, height: 16 });
+  });
+
+  it('rentré de chaque côté, largeur et hauteur bornées à zéro', () => {
+    expect(inset(r, 2)).toEqual({ x: 2, y: 2, width: 6, height: 16 });
+    expect(inset(r, 6)).toEqual({ x: 6, y: 6, width: 0, height: 8 });
   });
 
   it('distance : 0 dedans et sur le bord, au plus proche bord ou coin dehors', () => {

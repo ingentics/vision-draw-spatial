@@ -12,6 +12,7 @@ import type { PageDressing } from '../modes/dressing';
 import type { ShapeRegistry } from '../shapes/registry';
 import type { SceneLevel } from '../shapes/types';
 import { applyPageSpace } from './space';
+import { faceCamera } from './billboard';
 import { PARTS_PER_ELEMENT } from './types';
 import type { RenderContext } from './types';
 import { styleFlag } from '../model/styleValues';
@@ -142,7 +143,7 @@ export function edgeRoute(object: Object3D): Point[] {
 
 /**
  * Redresse les textes d'une flèche face à la caméra (comme sa pastille) : chacun passe dans un groupe
- * `billboard = 'screen'` posé sur son point d'ancrage, qui sert de pivot.
+ * face à l'écran (`faceCamera`) posé sur son point d'ancrage, qui sert de pivot.
  */
 function standLabels(object: Object3D): void {
   const labels: Object3D[] = [];
@@ -153,7 +154,7 @@ function standLabels(object: Object3D): void {
     const anchor = label.userData.labelAnchor as Point;
     const pivot = new Group();
     pivot.name = 'label-pivot';
-    pivot.userData.billboard = 'screen';
+    faceCamera(pivot, 'screen');
     pivot.position.set(anchor.x, anchor.y, 0);
     label.parent!.add(pivot);
     label.position.x -= anchor.x;

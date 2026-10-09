@@ -1,4 +1,4 @@
-import { BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Mesh, MeshBasicMaterial } from 'three';
+import { BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Mesh, MeshBasicMaterial, Vector3 } from 'three';
 import type { EffectLight, Point } from '../../../core/plugins';
 
 export interface Tree {
@@ -94,22 +94,15 @@ type Vec = [number, number, number];
 
 /** Triangle ombré selon sa pente et son orientation face à la lumière (`out.light`). */
 function triangle(out: Faces, a: Vec, b: Vec, c: Vec, color: Color): void {
-  const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
-  const v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
-  const normal = normalize([
-    u[1]! * v[2]! - u[2]! * v[1]!,
-    u[2]! * v[0]! - u[0]! * v[2]!,
-    u[0]! * v[1]! - u[1]! * v[0]!,
-  ]);
+  const origin = new Vector3(...a);
   // Normale sortante (sommets dans le sens direct vus de l'extérieur).
-  const shade = out.light.shade({ x: normal[0]!, y: normal[1]!, z: normal[2]! });
+  const normal = new Vector3(...b)
+    .sub(origin)
+    .cross(new Vector3(...c).sub(origin))
+    .normalize();
+  const shade = out.light.shade(normal);
   for (const p of [a, b, c]) {
     out.positions.push(...p);
     out.colors.push(color.r * shade, color.g * shade, color.b * shade);
   }
-}
-
-function normalize(v: number[]): number[] {
-  const length = Math.hypot(...v) || 1;
-  return v.map((x) => x / length);
 }

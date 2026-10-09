@@ -1,5 +1,6 @@
 import type { EdgeLabelPlacement, Point } from '../../model/types';
 import { direction, distance, segmentProjection } from '../../model/geometry';
+import { quadTo } from '../geometry/curves';
 
 export function length(points: Point[]): number {
   let total = 0;
@@ -28,7 +29,12 @@ export function shorten(points: Point[], atStart: number, atEnd: number): Point[
   return result;
 }
 
-/** Arrondit les angles intérieurs (`rounded=1`), rayon borné à la moitié des segments adjacents. */
+/**
+ * Arrondit les angles intérieurs (`rounded=1`), rayon borné à la moitié des segments adjacents. Distinct de
+ * `roundedPolygon` des formes (`geometry/paths.ts`, porté de `mxShape.addPoints`) : ici chaque coin borne son rayon par
+ * ses deux côtés d'origine, sans tenir compte de l'arrondi du coin précédent, et ne saute pas les sommets confondus ;
+ * le tracé des flèches arrondies en dépend.
+ */
 export function roundCorners(points: Point[], radius: number, steps = 8): Point[] {
   if (points.length < 3 || radius <= 0) return points;
   const result: Point[] = [points[0]!];
@@ -42,13 +48,7 @@ export function roundCorners(points: Point[], radius: number, steps = 8): Point[
     const a = { x: corner.x + u0.x * r, y: corner.y + u0.y * r };
     const b = { x: corner.x + u1.x * r, y: corner.y + u1.y * r };
     // Courbe de Bézier quadratique de a à b, contrôlée par le coin.
-    for (let s = 0; s <= steps; s++) {
-      const t = s / steps;
-      const k0 = (1 - t) * (1 - t);
-      const k1 = 2 * (1 - t) * t;
-      const k2 = t * t;
-      result.push({ x: k0 * a.x + k1 * corner.x + k2 * b.x, y: k0 * a.y + k1 * corner.y + k2 * b.y });
-    }
+    result.push(a, ...quadTo(a, corner, b, steps));
   }
   result.push(points[points.length - 1]!);
   return result;
@@ -61,24 +61,15 @@ export function roundCorners(points: Point[], radius: number, steps = 8): Point[
 export function curveThrough(points: Point[], steps = 12): Point[] {
   if (points.length < 3) return points;
   const result: Point[] = [points[0]!];
-  const quad = (from: Point, control: Point, to: Point) => {
-    for (let s = 1; s <= steps; s++) {
-      const t = s / steps;
-      const k0 = (1 - t) * (1 - t);
-      const k1 = 2 * (1 - t) * t;
-      const k2 = t * t;
-      result.push({ x: k0 * from.x + k1 * control.x + k2 * to.x, y: k0 * from.y + k1 * control.y + k2 * to.y });
-    }
-  };
   let from = points[0]!;
   for (let i = 1; i < points.length - 2; i++) {
     const control = points[i]!;
     const next = points[i + 1]!;
     const middle = { x: (control.x + next.x) / 2, y: (control.y + next.y) / 2 };
-    quad(from, control, middle);
+    result.push(...quadTo(from, control, middle, steps));
     from = middle;
   }
-  quad(from, points[points.length - 2]!, points[points.length - 1]!);
+  result.push(...quadTo(from, points[points.length - 2]!, points[points.length - 1]!, steps));
   return result;
 }
 

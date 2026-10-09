@@ -70,17 +70,50 @@ export function building(
       const height = buildingHeight(shape, ctx);
       if (!styleColor(shape.style, 'fillColor', VERTEX_DEFAULTS.fill) || height <= 0) return flat.create(shape, ctx);
       const group = new Group();
-      group.userData.height = height;
       facade(shape, ctx, height, group);
       return group;
     },
   };
 }
 
+/** Ce que reçoit la gravure d'une façade (`engravedBuilding`). */
+export interface EngravedFacade {
+  shape: ShapeModel;
+  group: Group;
+  /** Hauteur du bâtiment. */
+  height: number;
+  /** Trait de la forme, au bord haut des gravures. */
+  stroke: Stroke;
+  /** Hauteur réservée en bas à l'étiquette (`plinthOf`), puis hauteur restante, où se placent les motifs. */
+  plinth: number;
+  band: number;
+}
+
+/**
+ * Bâtiment à toit plein et façades gravées (BDD, queue) : toit (bloc de toute la hauteur, avec le label), étiquette de
+ * façade (`spatial.tag`, sinon `tag`), puis `engraveFacade` dessine les motifs au-dessus de la plinthe ; sans
+ * bordure, aucune gravure.
+ */
+export function engravedBuilding(
+  flat: SceneRenderer,
+  tag: string,
+  engraveFacade: (facade: EngravedFacade) => void,
+): SceneRenderer {
+  return building(flat, (shape, ctx, height, group) => {
+    const roof = slab(shape, ctx, rectPath(shape.bounds), 0, height, { label: true });
+    roof.name = 'roof';
+    group.add(roof);
+    const text = tagOf(shape, ctx, tag);
+    if (text) facadeTag(group, shape, ctx, text, tagSize(height));
+    const stroke = strokeOf(shape);
+    if (!stroke) return;
+    const plinth = plinthOf(text, height);
+    engraveFacade({ shape, group, height, stroke, plinth, band: height - plinth });
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Briques communes
-
-export const rectBlock = isoBlock((shape) => rectPath(shape.bounds));
 
 /**
  * Tranche en volume de la forme : prisme de contour `outline`, de `z` à `z + height` (côtés ombrés,
@@ -110,7 +143,7 @@ export function darker(shape: ShapeModel, factor: number): string {
 /** Trait de la forme (couleur, opacité, épaisseur ; pointillés ignorés par les gravures), ou rien sans bordure. */
 export type Stroke = StyleStroke;
 
-export function strokeOf(shape: ShapeModel): Stroke | undefined {
+function strokeOf(shape: ShapeModel): Stroke | undefined {
   return styleStroke(shape.style, VERTEX_DEFAULTS.stroke);
 }
 
@@ -198,7 +231,7 @@ export function tagOf(shape: ShapeModel, ctx: RenderContext, fallback: string): 
  * Plinthe : hauteur réservée en bas des façades à l'étiquette, au-dessus de laquelle se placent les
  * motifs (arcs, chevrons) ; 0 sans étiquette.
  */
-export function plinthOf(tag: string | undefined, height: number): number {
+function plinthOf(tag: string | undefined, height: number): number {
   return tag ? tagSize(height) * 1.6 : 0;
 }
 

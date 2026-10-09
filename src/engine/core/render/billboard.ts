@@ -1,14 +1,25 @@
 import { Matrix4, Vector3 } from 'three';
 import type { Camera, Object3D, PerspectiveCamera } from 'three';
 
+/** Comment un objet fait face à la caméra (`faceCamera`) : `axis` autour de la verticale, `screen` entièrement. */
+export type CameraFacing = 'axis' | 'screen';
+
 /**
- * Objets debout face à la caméra (`userData.billboard`, ex. la silhouette de l'Actor en iso / 3D) : avant chaque
+ * Tourne `object` face à la caméra à chaque image (`orientBillboards`) : `axis` autour de la verticale de son parent
+ * (silhouette de l'Actor), `screen` entièrement, droit sous tous les angles (pastille d'une flèche).
+ */
+export function faceCamera(object: Object3D, facing: CameraFacing): void {
+  object.userData.billboard = facing === 'screen' ? 'screen' : true;
+}
+
+/**
+ * Objets debout face à la caméra (`faceCamera`, `userData.billboard`, ex. la silhouette de l'Actor en iso / 3D) : avant chaque
  * image, chacun tourne autour de la verticale de son parent (axe z de l'espace page) pour que son axe local −y
  * pointe vers la caméra. En perspective, la direction va de l'objet à la position de la caméra : chaque silhouette
  * fait exactement face à l'œil, même au bord de l'écran. En projection orthographique, toutes suivent la direction
  * de visée (et, vue d'aplomb, le bas de l'écran).
  *
- * `userData.billboard = 'screen'` (ex. pastille d'une flèche) : l'objet fait entièrement face à l'écran, comme vu
+ * `faceCamera(objet, 'screen')` (ex. pastille d'une flèche) : l'objet fait entièrement face à l'écran, comme vu
  * de dessus (x vers la droite de l'écran, y vers le bas) : il reste lisible et droit sous tous les angles.
  */
 export function orientBillboards(root: Object3D, camera: Camera): void {

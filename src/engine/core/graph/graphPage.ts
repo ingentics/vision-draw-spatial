@@ -108,7 +108,10 @@ export function layoutGraph(document: DocumentModel, options = DEFAULT_GRAPH_LAY
   return { graph, cards };
 }
 
-/** Construit la page graphe d'un document. */
+/**
+ * Construit la page graphe d'un document. Ses formes (`ellipse`, `text`) sont dessinées par les plugins de formes
+ * par défaut, que le tronc ne connaît pas : dépendance vérifiée par `tests/engine/core/graph/graph.test.ts`.
+ */
 export function buildGraphPage(
   document: DocumentModel,
   options = DEFAULT_GRAPH_LAYOUT,

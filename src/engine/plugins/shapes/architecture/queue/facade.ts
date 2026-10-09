@@ -1,17 +1,6 @@
-import type { Group } from 'three';
-import { SPATIAL, arcPath, clamp } from '../../../../core/plugins';
+import { arcPath, clamp } from '../../../../core/plugins';
 import type { Point, SceneRenderer, ShapeModel } from '../../../../core/plugins';
-import {
-  building,
-  engrave,
-  facadeTag,
-  facesOf,
-  plinthOf,
-  rectBlock,
-  strokeOf,
-  tagOf,
-  tagSize,
-} from '../../generic/building';
+import { engrave, engravedBuilding, facesOf } from '../../generic/building';
 
 /** Étiquette de façade par défaut d'une queue (`spatial.tag` la remplace ; vide = aucune). */
 export const QUEUE_TAG = 'QUEUE';
@@ -23,22 +12,10 @@ export const QUEUE_TAG = 'QUEUE';
  * bloc, avec le label.
  */
 export function isoQueue(flat: SceneRenderer, toLeft: (shape: ShapeModel) => boolean): SceneRenderer {
-  return building(flat, (shape, ctx, height, group) => {
+  return engravedBuilding(flat, QUEUE_TAG, ({ shape, group, stroke, plinth, band }) => {
     const { bounds } = shape;
-    const block = rectBlock.create(
-      { ...shape, style: { ...shape.style, [SPATIAL.height]: String(height) } },
-      ctx,
-    ) as Group;
-    block.name = 'roof';
-    group.add(block);
-    const tag = tagOf(shape, ctx, QUEUE_TAG);
-    if (tag) facadeTag(group, shape, ctx, tag, tagSize(height));
-    const stroke = strokeOf(shape);
-    if (!stroke) return;
     const [north, south, west, east] = facesOf(bounds);
     // Chevrons au-dessus de la plinthe de l'étiquette.
-    const plinth = plinthOf(tag, height);
-    const band = height - plinth;
     const step = Math.max(12, band * 0.9);
     const count = Math.max(1, Math.floor(bounds.width / step));
     const half = Math.min(step * 0.18, band * 0.22);

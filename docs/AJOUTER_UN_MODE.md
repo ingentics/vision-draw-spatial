@@ -187,7 +187,7 @@ cache pur sur un objet immuable, admis par `.claude/rules/coding.md` §3, pas un
 `edgeDarken`, défaut 0,25) et une pastille
 (`edgeBadge` : texte et couleur de fond). Le style draw.io n'est jamais modifié : l'habillage est appliqué au dessin
 (`core/render/pageScene.ts`, `createEdgeObject`), à la construction de la page comme pendant un déplacement. La pastille
-fait face à la caméra en iso / 3D (`userData.billboard = 'screen'`). Son apparence (tailles, bordure, chiffre) est
+fait face à la caméra en iso / 3D (`faceCamera(…, 'screen')`, `render/billboard.ts`). Son apparence (tailles, bordure, chiffre) est
 `edgeBadgeStyle`, tirée des réglages du mode (défaut : `DEFAULT_EDGE_BADGE`).
 
 ## 5. Courant, flèche créée, touches
@@ -228,7 +228,7 @@ fait face à la caméra en iso / 3D (`userData.billboard = 'screen'`). Son appar
   quel. `comment` / `setComment` (sujet 262) : commentaire d'une partie (titre et texte, vide s'il n'y en a pas,
   undefined si elle ne peut pas en avoir), montré dans l'encart au survol après celui de la forme, et édité en texte
   brut par la touche C quand la partie est sélectionnée ou survolée. `textPreview` (sujet 253) : la forme telle qu'elle serait avec le texte en cours de saisie, redessinée en
-  direct (elle reçoit `sizing`, la grille et la mesure du texte de `ModeEdit`, pour avoir la taille écrite ensuite) ; les objets du texte dessiné de la partie (marqués `userData.part`) sont masqués pendant l'édition, et
+  direct (elle reçoit `sizing`, la grille et la mesure du texte de `ModeEdit`, pour avoir la taille écrite ensuite) ; les objets du texte dessiné de la partie (marqués par `markPart(objet, partie)` de l'API des plugins) sont masqués pendant l'édition, et
   `ModePartText` peut demander un éditeur sans fond (`transparent`), centré (`center`), d'une couleur (`color`). Les
   touches du mode (`keys`) reçoivent aussi la partie sélectionnée et peuvent renvoyer la partie à sélectionner.
   `textAt` (sujet 269) : partie au texte modifiable par double-clic sans être sélectionnable (ni survol, ni sélection,

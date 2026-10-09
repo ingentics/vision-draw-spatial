@@ -9,6 +9,7 @@ import { fillMesh, strokeMesh } from './meshes';
 import { PART_ORDER } from './types';
 import { inflate, rectPath } from '../model/geometry';
 import { DEFAULT_ACCENT } from './styleColors';
+import { faceCamera } from './billboard';
 
 /** Pastille d'une flèche par défaut, quand le mode n'en donne pas l'apparence (`PageDressing.edgeBadgeStyle`). */
 export const DEFAULT_EDGE_BADGE: EdgeBadgeStyle = {
@@ -32,7 +33,7 @@ const DIGIT_HEIGHT = 0.71;
 
 /**
  * Pastille ronde d'une flèche (mode de page, ex. rang dans un flux) : au-dessus du texte du milieu, ou plus petite
- * au milieu de la flèche sans texte. Elle fait face à la caméra (`userData.billboard = 'screen'`) : « au-dessus »
+ * au milieu de la flèche sans texte. Elle fait face à la caméra (`faceCamera(…, 'screen')`) : « au-dessus »
  * est le haut de l'écran, quel que soit l'angle de vue.
  */
 export function edgeBadge(
@@ -58,7 +59,7 @@ export function edgeBadge(
 
   const group = new Group();
   group.name = 'edge-badge';
-  if (look.faceCamera) group.userData.billboard = 'screen';
+  if (look.faceCamera) faceCamera(group, 'screen');
   group.position.set(anchor.x, anchor.y, 0.2);
   const circle = ellipsePath({ x: -radius, y: -lift - radius, width: 2 * radius, height: 2 * radius }, 48);
   const disc = fillMesh(circle, new Color(badge.color), 1);
@@ -132,7 +133,7 @@ export function partSelection(bounds: Rect, zoom: number, accent = DEFAULT_ACCEN
 /**
  * Sélection d'une silhouette debout (Actor en iso / 3D) : cercle autour de sa tête `head` (cadre dans le plan de la
  * silhouette : x horizontal, y vers le haut), posé en `at` et tourné face à la caméra comme elle
- * (`userData.billboard`). Pointillé si `dashed` (tirets décalés de `phase` pixels écran), plein sinon.
+ * (`faceCamera`). Pointillé si `dashed` (tirets décalés de `phase` pixels écran), plein sinon.
  */
 export function headSelectionRing(
   head: Rect,
@@ -142,7 +143,7 @@ export function headSelectionRing(
 ): Group {
   const group = new Group();
   group.name = 'selection-head';
-  group.userData.billboard = true;
+  faceCamera(group, 'axis');
   group.position.set(at.x, at.y, at.z);
   // Plan (x, y) couché sur (x, z), juste devant la silhouette (vers la caméra, −y).
   const plane = new Group();

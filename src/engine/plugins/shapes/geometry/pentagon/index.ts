@@ -1,6 +1,6 @@
-import { orientedPath } from '../../../../core/plugins';
-import type { Point, ShapeDefinition, ShapeModel } from '../../../../core/plugins';
+import type { Point, ShapeDefinition } from '../../../../core/plugins';
 import { box } from '../../generic/box';
+import { stencilOutline } from '../../generic/stencil';
 
 /** Cadre du stencil `Pentagon` de draw.io (`stencils/basic.xml`, `w` et `h` de `<shape>`). */
 const STENCIL_W = 97;
@@ -15,18 +15,11 @@ const PENTAGON_PATH: Point[] = [
   { x: 78.5, y: 90 },
 ];
 
-/** Contour étiré dans les bornes (`aspect="variable"`), orienté comme draw.io. */
-function outline(shape: ShapeModel) {
-  return orientedPath(shape.bounds, shape.style, (w, h) =>
-    PENTAGON_PATH.map((p) => ({ x: (p.x * w) / STENCIL_W, y: (p.y * h) / STENCIL_H })),
-  );
-}
-
 /** Pentagone (stencil `mxgraph.basic.pentagon`) : boîte du contour ; flèches sur les bornes, comme draw.io. */
 export const definition: ShapeDefinition = {
   id: 'pentagon',
   kinds: ['mxgraph.basic.pentagon'],
-  ...box(outline),
+  ...box(stencilOutline({ width: STENCIL_W, height: STENCIL_H, outline: PENTAGON_PATH })),
   swatch: () => '<path d="M20 4l13 9l-5 11H12L7 13z"/>',
   palette: {
     name: 'Pentagone',

@@ -212,7 +212,7 @@ export interface ModeParts {
   setComment?(edit: ModeEdit, shape: ShapeModel, part: string, text: string): void;
   /**
    * Aperçu pendant la saisie (sujet 253) : la forme telle qu'elle serait avec ce texte (sans rien écrire), redessinée
-   * en direct ; le texte dessiné de la partie (objets marqués `userData.part`) est masqué pendant l'édition.
+   * en direct ; le texte dessiné de la partie (objets marqués par `markPart`) est masqué pendant l'édition.
    * `sizing` : grille et mesure du texte, celles de `ModeEdit`, pour que l'aperçu ait la taille écrite ensuite (sujets
    * 263, 377).
    */

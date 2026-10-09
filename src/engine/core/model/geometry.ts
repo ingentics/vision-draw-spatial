@@ -122,6 +122,19 @@ export function inflate(r: Rect, by: number): Rect {
   return { x: r.x - by, y: r.y - by, width: r.width + 2 * by, height: r.height + 2 * by };
 }
 
+/**
+ * Rectangle rentré de `by` de chaque côté, largeur et hauteur bornées à zéro (un cadre intérieur ne se retourne pas
+ * quand la marge dépasse la moitié du côté) ; `inflate(r, -by)` quand la marge est déjà bornée.
+ */
+export function inset(r: Rect, by: number): Rect {
+  return {
+    x: r.x + by,
+    y: r.y + by,
+    width: Math.max(0, r.width - 2 * by),
+    height: Math.max(0, r.height - 2 * by),
+  };
+}
+
 /** Distance d'un point au rectangle (bords compris) ; 0 dedans. */
 export function rectDistance(r: Rect, p: Point): number {
   return Math.hypot(Math.max(r.x - p.x, 0, p.x - r.x - r.width), Math.max(r.y - p.y, 0, p.y - r.y - r.height));

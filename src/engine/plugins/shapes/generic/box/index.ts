@@ -33,7 +33,10 @@ export interface BoxOptions {
   defaults?: BoxDefaults;
   volume?: boolean;
   roundable?: boolean;
-  /** Dessin intérieur, tracé par-dessus le fond (2D) ou sur le dessus du bloc (iso). */
+  /**
+   * Dessin intérieur, en coordonnées page (barres du process…), tracé par-dessus le fond (2D) ou sur le dessus du
+   * bloc (iso).
+   */
   details?: (shape: ShapeModel) => ShapeDetail[];
   /** Zone du texte en 2D (en iso, le dessus entier) ; absent = les bornes. */
   label?: (shape: ShapeModel) => Rect;
@@ -49,7 +52,7 @@ export interface BoxOptions {
 export function box(
   outline: (shape: ShapeModel) => Point[],
   options: BoxOptions = {},
-): Pick<ShapeDefinition, 'outline' | 'details' | 'flat' | 'iso' | 'properties' | 'textZone'> {
+): Pick<ShapeDefinition, 'outline' | 'flat' | 'iso' | 'properties' | 'textZone'> {
   const path = options.roundable
     ? (shape: ShapeModel) => {
         const points = outline(shape);
@@ -60,7 +63,6 @@ export function box(
   const { details, label } = options;
   return {
     outline: path,
-    ...(details ? { details } : {}),
     flat: details || label ? detailedFlat(path, defaults, details, label) : flatBox(path, options.defaults),
     ...(options.volume === false
       ? {}

@@ -8,6 +8,7 @@ import { callMode } from '../../modes/modeCalls';
 import type { ModeSizing } from '../../modes/modeEdit';
 import type { ModeParts, ModePartText } from '../../modes/types';
 import type { EngineCore } from '../EngineCore';
+import { partOf } from '../../render/partMarks';
 import { edgeOf, shapeOf } from '../../model/pageIndex';
 
 /** Point d'entrée `K` des parties d'un mode. */
@@ -223,11 +224,11 @@ export class ShapeParts {
     return shape ? this.call(page, 'textPreview', shape, part, text, sizing) : undefined;
   }
 
-  /** Objets du texte dessiné d'une partie (marqués `userData.part` par le rendu du mode). */
+  /** Objets du texte dessiné d'une partie (marqués par `markPart` dans le rendu du mode). */
   textObjects(shapeId: string, part: string): Object3D[] {
     const found: Object3D[] = [];
     this.core.sceneView.sceneObject(shapeId)?.traverse((object) => {
-      if (object.userData.part === part) found.push(object);
+      if (partOf(object) === part) found.push(object);
     });
     return found;
   }

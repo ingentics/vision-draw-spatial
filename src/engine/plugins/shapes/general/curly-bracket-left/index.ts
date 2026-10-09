@@ -2,9 +2,9 @@ import { Group } from 'three';
 import {
   clamp,
   createLabel,
-  distance,
   orientedPath,
   polygonArc,
+  roundedPolygon,
   strokeMesh,
   styleFlag,
   styleNumber,
@@ -15,39 +15,6 @@ import type { Point, RenderContext, ShapeDefinition, ShapeModel } from '../../..
 
 /** Fraction de la largeur par défaut de draw.io pour `size` (retrait de la tige par rapport au bord droit). */
 const DEFAULT_SIZE = 0.5;
-const CURVE_SEGMENTS = 8;
-
-/**
- * Polyligne ouverte aux coins arrondis, comme `mxShape.addPoints` de draw.io (sans fermeture) : part du premier
- * point, s'arrête à `arc` px de chaque coin (au plus la moitié du côté) et le contourne par une quadratique.
- */
-function roundedOpen(points: Point[], arc: number): Point[] {
-  const out: Point[] = [points[0]!];
-  for (let i = 1; i < points.length - 1; i++) {
-    const [prev, corner, next] = [out[out.length - 1]!, points[i]!, points[i + 1]!];
-    const toward = (from: Point) => {
-      const length = distance(from, corner);
-      if (length === 0) return corner;
-      const k = Math.min(arc, length / 2) / length;
-      return { x: corner.x + (from.x - corner.x) * k, y: corner.y + (from.y - corner.y) * k };
-    };
-    const start = toward(prev);
-    const end = toward(next);
-    out.push(start);
-    for (let t = 1; t <= CURVE_SEGMENTS; t++) {
-      const u = t / CURVE_SEGMENTS;
-      const a = (1 - u) * (1 - u);
-      const b = 2 * (1 - u) * u;
-      const c = u * u;
-      out.push({
-        x: a * start.x + b * corner.x + c * end.x,
-        y: a * start.y + b * corner.y + c * end.y,
-      });
-    }
-  }
-  out.push(points[points.length - 1]!);
-  return out;
-}
 
 /**
  * Accolade de draw.io (`mxCurlyBracket`) : polyligne ouverte à tige verticale à `size` × largeur du bord droit, pointe
@@ -66,7 +33,7 @@ function bracketPath(shape: ShapeModel): Point[] {
       { x: stem, y: h },
       { x: w, y: h },
     ];
-    return styleFlag(style, 'rounded') ? roundedOpen(points, polygonArc(style)) : points;
+    return styleFlag(style, 'rounded') ? roundedPolygon(points, polygonArc(style), { closed: false }) : points;
   });
 }
 

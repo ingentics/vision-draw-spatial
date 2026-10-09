@@ -2,6 +2,7 @@ import type { Point, Rect } from '../../model/types';
 import { styleFlag, styleNumber } from '../../model/styleValues';
 import { clamp } from '../../model/numbers';
 import { rectPath } from '../../model/geometry';
+import { quadTo } from './curves';
 
 /** Contours fermés en coordonnées page (le dernier point n'est pas répété). */
 
@@ -86,20 +87,25 @@ export function polygonArc(style: Record<string, string>): number {
 }
 
 /**
- * Polygone fermé aux coins arrondis, **porté de draw.io** (`mxShape.addPoints`, mxGraph, Apache 2.0) : le tracé
- * part du milieu du dernier côté ; à chaque sommet, il s'arrête à `arc` px du coin (au plus la moitié du côté) et le
- * contourne par une courbe quadratique dont le coin est le point de contrôle, découpée en `segments` segments. Les
- * sommets confondus avec le précédent sont sautés, comme dans draw.io.
+ * Polygone aux coins arrondis, **porté de draw.io** (`mxShape.addPoints`, mxGraph, Apache 2.0) : fermé, le tracé part
+ * du milieu du dernier côté ; ouvert (`closed: false`, ex. accolade), il part du premier point et finit au dernier sans
+ * arrondir ses bouts. À chaque sommet, il s'arrête à `arc` px du coin (au plus la moitié du côté) et le contourne par
+ * une courbe quadratique dont le coin est le point de contrôle, découpée en `segments` segments. Les sommets confondus
+ * avec le précédent sont sautés, comme dans draw.io. Différent de `roundCorners` des flèches (`edges/polyline.ts`).
  */
-export function roundedPolygon(points: Point[], arc: number, segments = 8): Point[] {
+export function roundedPolygon(
+  points: Point[],
+  arc: number,
+  { closed = true, segments = 8 }: { closed?: boolean; segments?: number } = {},
+): Point[] {
   if (points.length < 3 || arc <= 0) return points;
   const last = points[points.length - 1]!;
   const first = points[0]!;
-  const pts = [{ x: last.x + (first.x - last.x) / 2, y: last.y + (first.y - last.y) / 2 }, ...points];
+  const pts = closed ? [{ x: last.x + (first.x - last.x) / 2, y: last.y + (first.y - last.y) / 2 }, ...points] : points;
   const n = pts.length;
   const out: Point[] = [pts[0]!];
   let current = pts[0]!;
-  for (let l = 1; l < n; l++) {
+  for (let l = 1; l < (closed ? n : n - 1); l++) {
     const corner = pts[l % n]!;
     let dx = current.x - corner.x;
     let dy = current.y - corner.y;
@@ -125,16 +131,9 @@ export function roundedPolygon(points: Point[], arc: number, segments = 8): Poin
       x: corner.x + (dx * Math.min(arc, length / 2)) / length,
       y: corner.y + (dy * Math.min(arc, length / 2)) / length,
     };
-    out.push(start);
-    for (let i = 1; i <= segments; i++) {
-      const t = i / segments;
-      const u = 1 - t;
-      out.push({
-        x: u * u * start.x + 2 * u * t * corner.x + t * t * end.x,
-        y: u * u * start.y + 2 * u * t * corner.y + t * t * end.y,
-      });
-    }
+    out.push(start, ...quadTo(start, corner, end, segments));
     current = end;
   }
+  if (!closed) out.push(last);
   return out;
 }

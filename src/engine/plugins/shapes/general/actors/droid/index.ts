@@ -1,18 +1,8 @@
 import { stencilShape } from '../../../../../core/plugins';
-import type { Point, ShapeDefinition } from '../../../../../core/plugins';
+import type { ShapeDefinition } from '../../../../../core/plugins';
+import { stencilPathXml } from '../../../generic/stencil';
 import { actorDefinition } from '../common/definition';
 import { DROID_FRAME, DROID_H, DROID_W, droidFigure } from './figure';
-
-/** Tracé de stencil d'une ligne brisée, fermée ou non. */
-function stencilPath(points: Point[], closed: boolean): string {
-  const at = (p: Point) => `x="${+p.x.toFixed(3)}" y="${+p.y.toFixed(3)}"`;
-  return (
-    '<path>' +
-    points.map((p, i) => `<${i === 0 ? 'move' : 'line'} ${at(p)}/>`).join('') +
-    (closed ? '<close/>' : '') +
-    '</path>'
-  );
-}
 
 /**
  * XML du stencil draw.io, tiré des mêmes points que le rendu : la tête en fond, puis l'embout de l'antenne, le corps et la tige ; les
@@ -22,10 +12,10 @@ function droidStencilXml(): string {
   const [head, ...parts] = DROID_FRAME.parts;
   return (
     `<shape name="actor-droid" w="${DROID_W}" h="${DROID_H}" aspect="variable" strokewidth="inherit">` +
-    `<background>${stencilPath(head!, true)}</background>` +
+    `<background>${stencilPathXml(head!, true)}</background>` +
     '<foreground><fillstroke/>' +
-    parts.map((part) => `${stencilPath(part, true)}<fillstroke/>`).join('') +
-    DROID_FRAME.strokes.map((line) => `${stencilPath(line, false)}<stroke/>`).join('') +
+    parts.map((part) => `${stencilPathXml(part, true)}<fillstroke/>`).join('') +
+    DROID_FRAME.strokes.map((line) => `${stencilPathXml(line, false)}<stroke/>`).join('') +
     '</foreground></shape>'
   );
 }

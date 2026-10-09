@@ -24,6 +24,23 @@ export function cubicTo(from: Point, c1: Point, c2: Point, to: Point, segments =
 }
 
 /**
+ * Points d'une Bézier quadratique, du départ (exclu) à l'arrivée (incluse) : à enchaîner après le point courant
+ * (coins arrondis, tracés courbes des flèches).
+ */
+export function quadTo(from: Point, control: Point, to: Point, segments: number): Point[] {
+  const points: Point[] = [];
+  for (let i = 1; i <= segments; i++) {
+    const t = i / segments;
+    const u = 1 - t;
+    points.push({
+      x: u * u * from.x + 2 * u * t * control.x + t * t * to.x,
+      y: u * u * from.y + 2 * u * t * control.y + t * t * to.y,
+    });
+  }
+  return points;
+}
+
+/**
  * Demi-ellipse d'axes alignés, de `from` à `to` (extrémités d'un même diamètre vertical), bombée
  * vers `side` (-1 = à gauche, 1 = à droite) avec la demi-largeur `rx`. Départ exclu, arrivée incluse.
  */

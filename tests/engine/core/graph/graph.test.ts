@@ -149,6 +149,11 @@ describe('buildGraphPage', () => {
     expect(points[0]).toEqual(points[1]);
   });
 
+  it('ses formes sont toutes dessinées par les formes par défaut (pas de placeholder)', () => {
+    const registry = createDefaultRegistry();
+    expect(page.shapes.filter((s) => !registry.resolve(s).supported).map((s) => s.kind)).toEqual([]);
+  });
+
   it('sa scène ne dessine aucun élément des pages du document (pas de miniature, sujet 362)', () => {
     const ctx = { ...MEASURE, text: { create: () => new Object3D() } };
     const scene = buildPageScene(page, createDefaultRegistry(), ctx, 'flat');

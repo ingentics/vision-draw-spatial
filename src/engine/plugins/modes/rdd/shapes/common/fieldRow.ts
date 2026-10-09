@@ -1,5 +1,5 @@
 import { Color, Group } from 'three';
-import { PART_ORDER, fillMesh, strokeMesh } from '../../../../../core/plugins';
+import { PART_ORDER, fillMesh, markPart, strokeMesh } from '../../../../../core/plugins';
 import type { Point, RenderContext } from '../../../../../core/plugins';
 import type { Divider, Field } from '../../tables/fieldModel';
 import { fieldNote } from '../../tables/fieldModel';
@@ -148,7 +148,7 @@ function addRowText(
   });
   object.name = 'table-text';
   // Texte d'une partie (label de la ligne) : masqué pendant son édition sur place (sujet 253).
-  if (part !== undefined) object.userData.part = part;
+  if (part !== undefined) markPart(object, part);
   object.renderOrder = PART_ORDER.label;
   group.add(object);
 }

@@ -48,8 +48,11 @@ function outline(shape: ShapeModel): Point[] {
 /** Mot de la tranche : `spatial.tag`, sinon celui de la forme ; vide = aucun. */
 const wordOf = (shape: ShapeModel, tag: string) => (spatialValue(shape, TAG) ?? tag).trim();
 
-/** Les deux lignes de draw.io, puis le mot de la tranche (entre le bord et la verticale), écrit de bas en haut. */
-function details(shape: ShapeModel, tag: string): ShapeDetail[] {
+/**
+ * Les deux lignes de draw.io, puis le mot de la tranche (entre le bord et la verticale), écrit de bas en haut ;
+ * exporté pour comparer les lignes à draw.io (`shapesFixture`).
+ */
+export function taggedDetails(shape: ShapeModel, tag: string): ShapeDetail[] {
   const { bounds, style } = shape;
   const oriented = orientation(bounds, style);
   const { width: w, height: h } = oriented;
@@ -95,7 +98,7 @@ function details(shape: ShapeModel, tag: string): ShapeDetail[] {
  * façade). Sans volume (pas de fond), le rendu à plat.
  */
 function isoTagged(tag: string): SceneRenderer {
-  const block = box(outline, { details: (shape) => details(shape, tag) }).iso!;
+  const block = box(outline, { details: (shape) => taggedDetails(shape, tag) }).iso!;
   return {
     create(shape, ctx) {
       const group = block.create(shape, ctx) as Group;
@@ -128,7 +131,7 @@ export function taggedProcess(
 ): ShapeDefinition {
   return {
     id,
-    ...box(outline, { details: (shape) => details(shape, tag) }),
+    ...box(outline, { details: (shape) => taggedDetails(shape, tag) }),
     iso: isoTagged(tag),
     contains: () => true,
     properties: [

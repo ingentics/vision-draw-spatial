@@ -4,6 +4,8 @@ import {
   approximateMeasure,
   createLabel,
   fillMesh,
+  inset,
+  markPart,
   readableOn,
   rectPath,
   strokeMesh,
@@ -151,15 +153,7 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
     );
     if (kind.look.doubleHeader) {
       const gap = TABLE.doubleGap * scale;
-      line(
-        rectPath({
-          x: bounds.x + gap,
-          y: bounds.y + gap,
-          width: Math.max(0, bounds.width - 2 * gap),
-          height: Math.max(0, header - 2 * gap),
-        }),
-        true,
-      );
+      line(rectPath(inset({ ...bounds, height: header }, gap)), true);
     }
     if (kind.look.folded) line(flapOf(shape), true);
   }
@@ -209,7 +203,7 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
     );
     if (body) {
       // Masqué pendant son édition sur place.
-      body.userData.part = BODY_PART;
+      markPart(body, BODY_PART);
       group.add(body);
     }
   }

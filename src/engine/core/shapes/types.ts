@@ -24,7 +24,7 @@ export interface SceneRenderer {
 }
 
 /**
- * Dessin intérieur d'une forme : un tracé (`ShapeDetailPath`) ou un texte (`ShapeDetailText`). En volume, sur le
+ * Dessin intérieur d'une forme (option `details` de la base `generic/box`) : un tracé (`ShapeDetailPath`) ou un texte (`ShapeDetailText`). En volume, sur le
  * dessus du bloc, ou au sol devant lui (`ground`, dessin hors du contour).
  */
 export type ShapeDetail = ShapeDetailPath | ShapeDetailText;
@@ -196,12 +196,6 @@ export interface ShapeDefinition {
    */
   outline?(shape: ShapeModel, ctx: MeasureContext): Point[];
   /**
-   * Dessin intérieur, en coordonnées page (barres du process, avant-plan d'un stencil…), tracé par le rendu par-dessus
-   * le fond ; sert aussi à le comparer à draw.io. Absent = aucun.
-   */
-  details?(shape: ShapeModel): ShapeDetail[];
-  /** Rendu à plat, obligatoire : repli de tous les autres niveaux. */
-  /**
    * Le point (coordonnées page, déjà dans les bornes) est-il dans la forme ? Sert à la sélection au clic.
    * Absent = dans le contour s'il y en a un, sinon dans les bornes.
    */
@@ -218,6 +212,7 @@ export interface ShapeDefinition {
   selectionStyle?: SelectionStyle;
   /** Idem `selectionStyle` quand la sélection compte plusieurs éléments (sujet 346). Absent = `selectionStyle`. */
   multiSelectionStyle?: SelectionStyle;
+  /** Rendu à plat, obligatoire : repli de tous les autres niveaux. */
   flat: SceneRenderer;
   iso?: SceneRenderer;
   volume?: SceneRenderer;

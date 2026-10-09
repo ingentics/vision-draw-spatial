@@ -3,9 +3,12 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { readDrawio } from '../../../../src/engine/core/format/parse';
 import type { PageModel, Point, ShapeModel } from '../../../../src/engine/core/model/types';
+import type { ShapeDetail } from '../../../../src/engine/core/shapes/types';
 import { toTerminal } from '../../../../src/engine/core/render/edges/terminal';
 import { routeEdge, simplify } from '../../../../src/engine/core/render/edges/route';
 import { PLUG_SHAPE } from '../../../../src/engine/plugins/shapes/architecture/plug';
+import { processBars } from '../../../../src/engine/plugins/shapes/architecture/process';
+import { taggedDetails } from '../../../../src/engine/plugins/shapes/generic/tagged-process';
 import { drawioSvgOutlines, drawioSvgPaths, drawioSvgRoutes, dropCollinear, fixture, MEASURE } from '../../../helpers';
 import { createDefaultRegistry } from '../../../../src/engine/plugins';
 
@@ -183,8 +186,8 @@ interface Vertex {
   h: number;
   /** Contour comparé à celui de l'export de draw.io (pas écrit dans le fichier). */
   outline?: boolean;
-  /** Dessin intérieur (`details`) comparé aux tracés de l'export de draw.io. */
-  details?: boolean;
+  /** Dessin intérieur (option `details` de la base `box`) comparé aux tracés de l'export de draw.io. */
+  details?: (shape: ShapeModel) => ShapeDetail[];
 }
 interface Edge {
   id: string;
@@ -239,14 +242,21 @@ function layout(): { vertices: Vertex[]; edges: Edge[] } {
     }),
   );
   PROCESS_VARIANTS.forEach((variant, v) => {
-    vertices.push({ id: `pr${v}`, style: `${PROCESS}${variant}`, ...place(), w: 120, h: 60, details: true });
+    vertices.push({ id: `pr${v}`, style: `${PROCESS}${variant}`, ...place(), w: 120, h: 60, details: processBars });
   });
   [
     { w: 120, h: 60 },
     { w: 240, h: 40 },
   ].forEach(({ w, h }, s) =>
     TAGGED_VARIANTS.forEach((variant, v) => {
-      vertices.push({ id: `tg${s}_${v}`, style: `${TAGGED}${variant}`, ...place(), w, h, details: true });
+      vertices.push({
+        id: `tg${s}_${v}`,
+        style: `${TAGGED}${variant}`,
+        ...place(),
+        w,
+        h,
+        details: (shape) => taggedDetails(shape, 'CRON'),
+      });
     }),
   );
   // Flèches : un losange par style de tracé, les sources tout autour, sous les formes.
@@ -373,7 +383,7 @@ describe.runIf(existsSync(SVG))('shapes.drawio : mêmes contours et mêmes flèc
       const { shapes, svg } = load();
       const shape = shapes.get(vertex.id)!;
       const definition = registry.resolve(shape).definition;
-      const details = definition.details!(shape).flatMap((detail) => ('path' in detail ? detail.path : []));
+      const details = vertex.details!(shape).flatMap((detail) => ('path' in detail ? detail.path : []));
       const ours = [...definition.outline!(shape, MEASURE), ...details];
       const theirs = drawioSvgPaths(svg, { id: 'ref', x: 0, y: 0 }, vertex.id).flat();
       const message = JSON.stringify({ details, theirs });

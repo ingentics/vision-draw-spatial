@@ -65,7 +65,10 @@ Un stencil embarqué (`shape=stencil(<XML compressé>)`) prend le nom `stencil:<
 la façon d'ajouter une forme que draw.io n'a pas, tout en restant dessinée par draw.io (exemple :
 [shapes/architecture/plug/](../src/engine/plugins/shapes/architecture/plug/index.ts), XML tiré du même contour que le
 moteur). La base [generic/stencil/](../src/engine/plugins/shapes/generic/stencil/index.ts) (`stencilBox`) fait les deux d'un
-coup : à partir du contour, elle donne la valeur de `shape=` et le rendu, tirés des mêmes points. Un stencil s'étire
+coup : à partir du contour, elle donne la valeur de `shape=` et le rendu, tirés des mêmes points. Elle offre aussi ses
+briques : `stencilOutline({ width, height, outline })`, le contour d'un stencil étiré et orienté comme draw.io (aussi
+pour un stencil de draw.io, ex. pentagone), et `stencilPathXml(points, fermé)`, un `<path>` de stencil pour écrire un
+XML à plusieurs pièces (droid). Un stencil s'étire
 tout entier avec la forme : pour un détail de taille fixe, partir d'une forme native de draw.io et la désigner par
 `spatial.kind` (exemple : [generic/tagged-process/](../src/engine/plugins/shapes/generic/tagged-process/index.ts), dont
 héritent `event-consumer`, `background-task` et `recurring-task`).
@@ -98,7 +101,6 @@ draw.io est l'`id` (`text`, `ellipse`) et il n'y a pas de `kinds` à écrire.
 | `kinds` | formes draw.io gérées (`ShapeModel.kind`) | `[id]` | BDD : `cylinder3` |
 | `matches(shape)` | condition en plus du nom draw.io (variante) | aucune condition | rectangle arrondi : `rounded=1` |
 | `outline(shape, ctx)` | contour au sol, polygone fermé en coordonnées page | rectangle des bornes | losange, hexagone |
-| `details(shape)` | dessin intérieur (tracés, textes) par-dessus le fond | aucun | barres du process (`generic/box`) |
 | `contains(shape, point, ctx)` | clic et survol | dans le contour s'il y en a un, sinon les bornes | ellipse exacte, acteur (toute la hauteur) |
 | `hitBounds(shape, ctx)` | emprise prise au clic quand la forme dessine hors de ses bornes | les bornes | onglet d'une région RDD |
 | `selectionStyle` | mise en valeur imposée de la forme sélectionnée | celle de la page | région RDD : `none` |
@@ -137,7 +139,7 @@ src/engine/plugins/shapes/      les formes, une par élément de la palette (suj
 │   ├── stencil/                stencil embarqué : XML et rendu (box) tirés des mêmes points
 │   ├── tagged-process/         process à tranche étiquetée (internalStorage + mot gris de bas en haut)
 │   ├── cylinder/               tracés draw.io des cylindres, rendu 2D à lèvres
-│   └── building/               bâtiment iso : toit, faces, gravures, étiquette
+│   └── building/               bâtiment iso : toit, faces, gravures (`engravedBuilding`), étiquette
 ├── <catégorie>/                une catégorie de la palette par dossier (`geometry/`, `general/`, `architecture/`) :
 │   │                           la liste des formes est le contenu du dossier (et SPEC §8.3)
 │   └── <id>/                   ex. `architecture/database/`
@@ -284,7 +286,7 @@ Pour un rendu iso sur mesure :
   `createShapeObject` pose ensuite le groupe à sa base (`object.position.z = base`). Ne mettez donc pas l'élévation
   vous-même.
 - **Hauteur.** Lisez-la avec `blockHeight(shape, ctx)`, pour respecter `spatial.height` et le réglage d'épaisseur.
-  Écrivez la hauteur réelle dans `group.userData.height`. Si la forme a une hauteur par défaut qui lui est propre
+  Si la forme a une hauteur par défaut qui lui est propre
   (ex. une forme qui serait aussi haute que large), déclarez-la dans `volumeHeight` **et** utilisez-la dans le
   rendu : l'empilement, la pastille de lien et la sélection passent par `registry.volumeHeight`, pas par le rendu.
   `blockHeight(shape, ctx, défaut)` garde `spatial.height` prioritaire.
@@ -292,9 +294,10 @@ Pour un rendu iso sur mesure :
 - **Matériaux.** Les faces opaques avec test de profondeur doivent utiliser `solidMaterial`, pour que les blocs se
   cachent entre eux. Les traits et les fonds plats passent par `fillMesh` / `strokeMesh` (matériau sans écriture de
   profondeur).
-- **Billboard.** Un élément qui doit toujours faire face à la caméra (silhouette de l'Actor) porte
-  `userData.billboard = true` : avant chaque image, le moteur le tourne autour de la verticale pour que son axe −y
-  vise la caméra (sa position en perspective, `render/billboard.ts`).
+- **Billboard.** Un élément qui doit toujours faire face à la caméra le déclare par `faceCamera(objet, 'axis')` de
+  l'API des plugins (silhouette de l'Actor) : avant chaque image, le moteur le tourne autour de la verticale pour que
+  son axe −y vise la caméra (sa position en perspective, `render/billboard.ts`) ; `faceCamera(objet, 'screen')` le
+  tourne entièrement face à l'écran (pastille d'une flèche). N'écrivez pas `userData.billboard` vous-même.
 - **Silhouette debout.** Une forme dessinée debout face à la caméra (Actor) le déclare par `setStandingFigure(groupe,
   silhouette, figure)` de l'API des plugins (`render/standing.ts`, sujet 306) : cadre de la tête, pièces pleines et
   traits dans le plan de la silhouette, pancarte éventuelle et style de son texte. Le moteur s'en sert pour le clic

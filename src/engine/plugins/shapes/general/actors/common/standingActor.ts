@@ -4,6 +4,7 @@ import {
   blockHeight,
   createLabel,
   edgeLines,
+  faceCamera,
   fillMesh,
   rectPath,
   solidMaterial,
@@ -48,7 +49,7 @@ export function actorHeight(shape: ShapeModel, ctx: RenderContext): number {
 /**
  * Acteur en iso / 3D (silhouette de la variante) : pas d'extrusion, le bonhomme 2D se tient **debout**, comme une unité de jeu. Sa silhouette
  * est dans un plan vertical, pieds au centre de l'emprise, de la hauteur de la forme (`spatial.height` prioritaire)
- * et aux proportions de la 2D ; le moteur la tourne face à la caméra à chaque image (`userData.billboard`,
+ * et aux proportions de la 2D ; le moteur la tourne face à la caméra à chaque image (`faceCamera`,
  * `render/billboard.ts`). Il tient son texte sur une pancarte, entre ses mains (`createSign`) ; sans pancarte
  * (`spatial.sign=0`), le label hors de la forme est posé au sol devant lui (`createShapeObject`).
  *
@@ -62,9 +63,8 @@ export function standingActor(figureOf: FigureOf): SceneRenderer {
       const height = actorHeight(shape, ctx);
       const width = bounds.height > 0 ? (bounds.width * height) / bounds.height : bounds.width;
       const group = new Group();
-      group.userData.height = height;
       const silhouette = new Group();
-      silhouette.userData.billboard = true;
+      faceCamera(silhouette, 'axis');
       silhouette.position.set(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2, 0);
       group.add(silhouette);
 
