@@ -126,4 +126,4 @@ commit par sujet, dès que `make check` est vert.
 - [x] Constats
 - [x] Sujets rédigés (376 à 390, idée 391, dette 392-393)
 - [x] Sujets validés par l'utilisateur (2026-10-08)
-- [ ] Réalisation : faits 376, 389, 378, 380, 379, 377, 381, 382 ; restent 383, 384, 385, 386, 388, 387, 391, 390
+- [x] Réalisation (2026-10-09) : 376 à 391 faits, un commit par sujet ; dette 393 à 405 dans `docs/backlogs/debt/`

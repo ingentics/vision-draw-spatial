@@ -14,8 +14,9 @@ paths:
 - **Search before creating.** Before writing a small function (distance, center, inclusion, style reading, side
   normal…), check whether it exists (`grep -rn "function name" src/engine`). A local copy always ends up diverging
   (tolerance, argument order).
-- **Read the guide for the kind of topic**: `docs/AJOUTER_UNE_FORME.md`, `docs/AJOUTER_UN_MODE.md`,
-  `docs/COMPOSANT.md`, and the "Où regarder" table in `docs/SUMMARY.md` §5.
+- **Read the guide for the kind of topic**: for a plugin, the common pattern `docs/AJOUTER_UN_PLUGIN.md` then
+  `docs/AJOUTER_UNE_FORME.md`, `docs/AJOUTER_UN_MODE.md` or `docs/AJOUTER_UN_EFFET.md`; `docs/COMPOSANT.md`, and the
+  "Où regarder" table in `docs/SUMMARY.md` §5.
 - **Imitate the neighbour.** A new file looks like the others in its folder: split, naming, comments.
 
 ## 2. Where code goes
@@ -34,7 +35,7 @@ Folder map with each folder's role: `docs/SUMMARY.md` §3 (single source). Where
 | Trunk building block offered to plugins | re-exported by `engine/core/plugins/index.ts` | the code stays in its trunk folder |
 | A shape | `engine/plugins/shapes/<category>/<id>/` (shared bases: `shapes/generic/`) | `AJOUTER_UNE_FORME.md` |
 | Anything specific to a mode | `engine/plugins/modes/<id>/` | nothing leaks out of the folder (`AJOUTER_UN_MODE.md`) |
-| A page effect | `engine/plugins/effects/<id>/` | contract in `core/effects/types.ts` |
+| A page effect | `engine/plugins/effects/<id>/` | `AJOUTER_UN_EFFET.md` |
 | React part of a mode (panel sections) | `src/app/plugins/modes/<id>/` | no rule: calls the mode's operations (`api.ts`) |
 | UI | `src/app/`, `src/react/` | no business rule |
 

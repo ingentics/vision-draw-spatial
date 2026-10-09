@@ -32,7 +32,7 @@ export type {
 } from '../modes/types';
 export type { ModeEdit, ModeSizing } from '../modes/modeEdit';
 export type { ModeProperty } from '../modes/modeProperty';
-export type { EffectLight, PageEffectDefinition } from '../effects/types';
+export type { EffectLight, EffectRoom, PageEffectDefinition } from '../effects/types';
 export { modeKeys } from '../modes/modeKeys';
 export { edgeTarget, onlyWhen, shapeTarget } from '../modes/modeTargets';
 export { isToggled, toggleValue } from '../modes/modeProperties';

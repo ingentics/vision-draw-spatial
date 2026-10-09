@@ -3,6 +3,9 @@
 Un **mode** spécialise une page : il ajoute des données de page, des réglages sur les flèches et les formes, et un
 habillage du rendu. Tout est stocké en attributs `spatial.<espace de noms du mode>.*` (SPEC §14.3, §14.5) : dans
 draw.io, la page reste une page normale. Le moteur ne connaît aucun mode en particulier : déposer les dossiers suffit.
+Patron commun aux formes, modes et effets (dossier, collecte, API des plugins, lecture seule, appel protégé, schéma
+commun des champs, réglages globaux, tests de contrat) : [AJOUTER_UN_PLUGIN.md](AJOUTER_UN_PLUGIN.md) ; ce guide ne
+donne que ce qui est propre aux modes.
 
 Exemple complet : le mode « Séquences » ([engine](../src/engine/plugins/modes/sequences/index.ts),
 [appli](../src/app/plugins/modes/sequences/index.tsx)). Mode avec ses propres formes : « RDD »
@@ -26,15 +29,12 @@ src/app/plugins/modes/<id>/     l'appli (facultatif) : sections React du panneau
 └── index.tsx                   export const panel: ModePanel = { PageSection }
 ```
 
-- L'`id` du mode est le nom de ses dossiers et la valeur de `spatial.mode` sur `<diagram>` (`^[a-z][a-z0-9-]*$`,
-  vérifié à l'enregistrement). La racine de composition
-  (`src/engine/plugins/index.ts`) collecte le dossier ; le contrat est dans `src/engine/core/modes/` : `types.ts` (la définition), `modeEdit.ts` (opération),
-  `modeProperty.ts` (réglages déclarés), `dressing.ts` (habillage).
-- Un mode importe du tronc **seulement l'API des plugins** ([core/plugins/index.ts](../src/engine/core/plugins/index.ts),
-  sujet 287) ; ses formes peuvent étendre une forme générale (`plugins/shapes/`). Règle complète des frontières
-  (imports, globales du navigateur, vérification) : `.claude/rules/coding.md` §5. Avant d'écrire une brique,
-  cherchez-la dans les rubriques de l'API des plugins (contrats et aides des réglages, modèle et calculs purs,
-  briques de dessin, règles d'édition partagées ; sujet 316) : une brique qui manque s'y ajoute.
+- L'`id` du mode est le nom de ses dossiers et la valeur de `spatial.mode` sur `<diagram>` (règles de l'id :
+  `AJOUTER_UN_PLUGIN.md` section 2). Le contrat est dans `src/engine/core/modes/` : `types.ts` (la définition),
+  `modeEdit.ts` (opération), `modeProperty.ts` (réglages déclarés), `dressing.ts` (habillage). La partie appli est
+  collectée par `src/app/plugins/modes/registry.ts`.
+- Ses formes peuvent étendre une forme générale (`plugins/shapes/`) ; pour le reste, un mode n'importe que l'API des
+  plugins (`AJOUTER_UN_PLUGIN.md` section 4).
 - **Toutes les règles vont dans la lib** ; la partie appli affiche les données du mode et appelle ses opérations,
   sans règle métier. Un mode aux réglages simples n'a pas besoin de partie appli : il les déclare (section 3).
 
@@ -88,22 +88,18 @@ interface PageModeDefinition {
 }
 ```
 
-La page, ses formes et ses flèches reçues par le mode sont **en lecture seule** (sujet 303 : types `PageModel`,
-`ShapeModel`, `EdgeModel` de l'API des plugins) : le mode n'écrit que par `ModeEdit`. En dev et en test, les pages du
-document sont gelées (sujet 312) : une écriture lève une exception, traitée comme une panne du point d'entrée. Sa définition est gelée à
-l'enregistrement.
+La page, ses formes et ses flèches reçues par le mode sont **en lecture seule** (`AJOUTER_UN_PLUGIN.md` section 5) :
+le mode n'écrit que par `ModeEdit` (section 3).
 
 Les points d'entrée sont rangés par groupe (sujet 295) : `page`, `lifecycle`, `edges`, `gestures`, `parts`,
 `current`. Dans la suite, un point d'entrée est désigné par son chemin (ex. `gestures.placed`).
 
 Le moteur appelle ces points d'entrée depuis un seul endroit (`core/domains/modes/`, sujet 288) : l'adaptateur
-`PageModes.call` (sujet 379) remet chaque argument en lecture seule (`core/modes/modeCalls.ts`) et protège l'appel
-par l'appel protégé commun aux formes, modes et effets (`core/diagnostics/pluginCalls.ts`, sujet 378). Le point
-d'entrée est appelé détaché de son objet : un mode n'utilise pas `this`. Un
-point d'entrée qui lève une exception est traité comme absent (pas d'habillage, pas de borne, accroche permise…), et
-l'erreur est signalée une fois dans les Diagnostics (« Mode <id> : erreur dans <point d'entrée> »). Une opération
-(`ModeEdit`) qui lève une exception n'écrit rien : ses écritures ne sont appliquées qu'une fois l'opération terminée.
-La section 8 donne, point d'entrée par point d'entrée, quand le moteur l'appelle et ce qu'il garantit.
+`PageModes.call` (sujet 379) remet chaque argument en lecture seule (`core/modes/modeCalls.ts`) et passe par l'appel
+protégé commun (`AJOUTER_UN_PLUGIN.md` section 6) : un point d'entrée qui lève une exception est traité comme absent
+(pas d'habillage, pas de borne, accroche permise…), signalé « Mode <id> : erreur dans <point d'entrée> ». Une
+opération (`ModeEdit`) qui lève une exception n'écrit rien : ses écritures ne sont appliquées qu'une fois l'opération
+terminée. La section 8 donne, point d'entrée par point d'entrée, quand le moteur l'appelle et ce qu'il garantit.
 
 ## 3. Réglages et opérations
 
@@ -129,26 +125,8 @@ export const definition: PageModeDefinition = { id: 'sequences', ...SEQUENCES_KE
 
 `keys.key(nom)` donne la clé complète, pour l'écrire soi-même dans un style (modèle de palette, aperçu d'une forme).
 
-**Schéma commun des champs** (sujet 391) : les réglages d'un mode (`ModeProperty`), ceux d'une forme
-(`ShapeProperty`, `AJOUTER_UNE_FORME.md`) et les réglages globaux d'un plugin (`PluginSetting`, plus bas) sont tous
-des champs `Field` ([core/fields/fieldSchema.ts](../src/engine/core/fields/fieldSchema.ts)), rendus par un seul
-composant de l'appli (`src/app/DeclaredField.tsx`). Un champ a une clé `key`, un nom `label`, une aide au survol
-`title`, et selon son `type` :
-
-| `type` | Ce qu'il déclare en plus | Rendu |
-|---|---|---|
-| `toggle` | — | case à cocher |
-| `number` | `placeholder` ; bornes `min`, `max`, `step` ; `unit` (`px`, `ms`, `%`), `zero` (libellé de 0) | curseur si bornes et pas, sinon champ numérique (vide = défaut) |
-| `text` | `placeholder`, `multiline` (zone de texte), `monospace` (chasse fixe, sujet 331), `live` (écrit à chaque frappe, une étape d'annulation par passage, sujet 271) | champ texte |
-| `choice` | `options` : `value`, `label`, `title`, `color`, `icon` (mêmes tracés que l'icône du mode) | boutons (pastilles, icônes) si toutes les options ont une icône ou une couleur, sinon liste (sujet 319) |
-| `color` | — | couleur #rrggbb |
-| `url` | — | adresse http(s), sans barre finale (sujet 306) |
-| `button` | — | bouton pleine largeur (sujet 253) |
-
-Chaque famille n'ajoute que sa cible et ce qui lui est propre. Les valeurs enregistrées sont lues par
-`readFieldValue` (nombre ramené dans ses bornes, valeur parmi les choix, adresse normalisée…).
-
-Un réglage de mode (`toggle`, `number`, `text`, `choice` ou `button`) a des choix `options(page, palette)` qui
+**Réglages déclarés.** Un réglage de mode (`ModeProperty`) est un champ du schéma commun (`Field`, types et rendu :
+`AJOUTER_UN_PLUGIN.md` section 7). Un réglage de mode (`toggle`, `number`, `text`, `choice` ou `button`) a des choix `options(page, palette)` qui
 reçoivent les couleurs de l'appli, et `readOnly` pour l'afficher sans le rendre modifiable. Il est rendu dans la
 section « Mode » de la page, la section au nom du mode dans le panneau d'une flèche ou d'une forme. Par défaut, il lit
 et écrit l'attribut du mode de nom court `key` sur sa cible ; `value`, `write` et `hidden` le font passer par les
@@ -179,21 +157,16 @@ textes de bout. Toutes ses écritures forment une étape d'annulation, et rien n
 change rien. Depuis l'appli : `onEdit(label, (edit) => monOperation(edit, …))` (prop des sections React), ou
 `engine.editPageMode(label, …)`.
 
-Les **réglages globaux** du mode (ticket 283), pour toute l'appli et non pour une page, sont déclarés dans sa
-définition (`settings`, rangés dans `plugins/modes/<id>/settings.ts`), du même type que ceux d'un effet
-(`PluginSetting`, sujet 287) : champs du schéma commun ci-dessus, nombre (bornes `min`, `max`, `step` obligatoires),
-case, couleur, choix (`choice`) ou adresse (`url`, `when` : modifiable seulement quand un autre réglage a une valeur ;
-sujet 306), avec leur défaut (`default`), un groupe (`group`, `groupHint`) et une aide sous le réglage
-(`hint`). L'appli les affiche dans une sous-page du mode (Paramètres › Modes, titre `shortName` sinon `name`) et les
-enregistre dans `settings.modes[id][key]` ; le registre les borne (`values`, aussi dans la vue que l'appli reçoit,
-`engine.getModeRegistry()` : déclaration des modes seulement, jamais leurs points d'entrée, sujet 304). Le moteur ne les lit
-jamais : il passe les valeurs (`values`) aux mécanismes du mode (`gestures.obstacles`, `dressing`, `current.look`), qui lui
-rendent ce qu'il applique (écart, apparence des pastilles, opacité…) ; la partie appli du mode les reçoit aussi
-(`ModePanelProps.values`, ex. moteur de rendu de l'export PlantUML de Séquences).
+Les **réglages globaux** du mode, pour toute l'appli et non pour une page, sont déclarés dans sa définition
+(`settings`, rangés dans `plugins/modes/<id>/settings.ts`) : des `PluginSetting` (`AJOUTER_UN_PLUGIN.md` section 7),
+dans la sous-page Paramètres › Modes (titre `shortName` sinon `name`). Le moteur passe leurs valeurs (`values`) aux
+mécanismes du mode (`gestures.obstacles`, `dressing`, `current.look`), qui lui rendent ce qu'il applique (écart,
+apparence des pastilles, opacité…) ; la partie appli du mode les reçoit aussi (`ModePanelProps.values`, ex. moteur de
+rendu de l'export PlantUML de Séquences).
 
 Les données dérivées d'une page (ex. flèches rangées par flux) se calculent une fois par `PageModel` (le modèle est
-relu après chaque modification) : un `WeakMap` de module indexé par la page suffit (ex. `sequences/steps.ts`). C'est un
-cache pur sur un objet immuable, admis par `.claude/rules/coding.md` §3, pas un état de module.
+relu après chaque modification) : un `WeakMap` de module indexé par la page suffit (ex. `sequences/steps.ts`, cache
+pur admis par `AJOUTER_UN_PLUGIN.md` section 5).
 
 ## 4. Habillage
 
@@ -279,7 +252,8 @@ fait face à la caméra en iso / 3D (`faceCamera(…, 'screen')`, `render/billbo
 ## 7. Vérifier
 
 - Tests : `tests/engine/core/modes/registry.test.ts` (contrat des dossiers, mode de test enregistré avec sa forme dans
-  `fixtures/test/shapes/`) ; ceux du mode dans `tests/engine/plugins/modes/` (opérations sur une fixture).
+  `fixtures/test/shapes/`) ; ceux du mode dans `tests/engine/plugins/modes/` (opérations sur une fixture) ; tests de
+  contrat communs : `AJOUTER_UN_PLUGIN.md` section 8.
 - Conservation par draw.io : une fixture avec le mode, puis `make drawio-check` (attributs de page et d'éléments
   comparés après réenregistrement).
 

@@ -25,8 +25,10 @@ commun dans `<famille>/common/` (sans `index.ts`), l'id commençant par le nom d
 > - une nouvelle catégorie de palette, ou un réglage global lu par les formes d'une catégorie (déclaré par elle,
 >   section 4.1) : [plugins/shapes/categories.ts](../src/engine/plugins/shapes/categories.ts), hors du tronc.
 
-Références : SPEC §8.2 (registre), §8.3 (formes supportées), §8.4 (placeholder), §9.1 (volumes), §13 (paramètres).
-Frontières d'un plugin (ce qu'il peut importer) : `.claude/rules/coding.md` §5.
+Patron commun aux formes, modes et effets (dossier, collecte, API des plugins, lecture seule, appel protégé,
+réglages déclarés, tests de contrat) : [AJOUTER_UN_PLUGIN.md](AJOUTER_UN_PLUGIN.md) ; ce guide ne donne que ce qui est
+propre aux formes. Références : SPEC §8.2 (registre), §8.3 (formes supportées), §8.4 (placeholder), §9.1 (volumes),
+§13 (paramètres).
 
 ---
 
@@ -163,9 +165,7 @@ vérifie que l'`id` est le nom du dossier et que la catégorie de palette est ce
 - **Une forme contient tout ce qui la concerne**, en plusieurs fichiers si besoin (ex. `database/facade.ts`), y
   compris ses subtilités iso / 3D. Ce qu'elle partage avec d'autres vient d'une base de `generic/` ou d'une autre forme
   qu'elle étend ; les briques de rendu génériques restent dans le tronc (`core/render/flat`, `core/render/iso/block`,
-  `core/render/geometry`). Une forme importe du tronc **seulement l'API des plugins**
-  ([core/plugins/index.ts](../src/engine/core/plugins/index.ts), sujet 287) : règle complète des frontières dans
-  `.claude/rules/coding.md` §5.
+  `core/render/geometry`), offertes par l'API des plugins (`AJOUTER_UN_PLUGIN.md` section 4).
 - **Étendre** : on reprend une définition et on change ce dont on a besoin.
   `rounded-rectangle` = `{ ...rectangle, id: 'rounded-rectangle', kinds: ['rectangle'], matches: rounded=1, palette }` ;
   une base générique se compose : `{ id: 'diamond', kinds: ['rhombus'], ...box(outline), palette }`.
@@ -176,12 +176,10 @@ vérifie que l'`id` est le nom du dossier et que la catégorie de palette est ce
   Gardez `matches` rapide : elle est appelée pour chaque forme, à chaque construction de scène.
 - Une forme enregistrée sort **automatiquement** du rapport « non supportées »
   ([diagnostics/unsupportedStyles.ts](../src/engine/core/diagnostics/unsupportedStyles.ts) appelle `registry.resolve`).
-- `EngineOptions.registry` permet de passer un autre registre au moteur ; sinon, chaque moteur construit le sien
-  (`createDefaultRegistry`, racine de composition `plugins/index.ts`). L'appli (palette, panneau) n'en voit qu'une
-  vue en lecture seule (`engine.getShapeRegistry()`, sujet 304). Un id déjà pris est refusé à l'enregistrement : une
-  forme ne remplace pas une autre. Une forme d'un mode a un id préfixé par celui du mode et ne déclare ni `kinds` ni
-  `matches`. `ShapeRegistry` n'est **pas exporté** par l'API publique ([src/index.ts](../src/index.ts)) :
-  une forme s'ajoute dans le moteur lui-même, pas depuis une application cliente.
+- Registre par moteur, vue en lecture seule pour l'appli, id déjà pris refusé : `AJOUTER_UN_PLUGIN.md` sections 2
+  et 3. Une forme d'un mode a un id préfixé par celui du mode et ne déclare ni `kinds` ni `matches`. `ShapeRegistry`
+  n'est **pas exporté** par l'API publique ([src/index.ts](../src/index.ts)) : une forme s'ajoute dans le moteur
+  lui-même, pas depuis une application cliente.
 
 ### Le contour (`outline`)
 
@@ -196,20 +194,16 @@ depuis le panneau (section « Orientation », sujet 335), dessinez-la par `orien
 `flippable: { horizontal: true, vertical: true }` et / ou `rotatable: true` dans sa définition : sans cela, aucun
 bouton (le texte, lui, ne se retourne ni ne pivote jamais).
 
-Avant d'écrire un calcul, cherchez-le dans l'API des plugins
-([core/plugins/index.ts](../src/engine/core/plugins/index.ts)), rangée par rubriques commentées : contrats ; modèle
-neutre, attributs spatiaux et calculs purs ; briques de dessin (contours, traits, textes, couleurs) ; règles
-d'édition partagées. Une brique qui manque s'y ajoute plutôt que d'être recopiée (sujets 307, 325).
+Avant d'écrire un calcul, cherchez-le dans l'API des plugins (`AJOUTER_UN_PLUGIN.md` section 4).
 
 Le contour est **retracé à chaque construction** de la forme. S'il est coûteux à calculer, mémorisez-le dans la
 fonction, mais jamais entre deux formes : chaque forme a ses propres bornes.
 
 ### Ce que reçoit une forme
 
-La forme reçue (`ShapeModel` de l'API des plugins) et le contexte de rendu (`RenderContext`, gelé pour la scène) sont
-en lecture seule (sujet 303 ; gelés en dev et en test, sujet 312 : une écriture lève une exception, la forme est
-alors dessinée en placeholder) : une forme dessine sans rien modifier ; pour un aperçu, elle crée une copie
-(`{ ...shape, style: { ...shape.style, … } }`). Sa définition est gelée à l'enregistrement.
+La forme reçue (`ShapeModel`) et le contexte de rendu (`RenderContext`, gelé pour la scène) sont en lecture seule
+(`AJOUTER_UN_PLUGIN.md` section 5) : une écriture lève une exception en dev et en test, et la forme est alors dessinée
+en placeholder.
 
 **Mesure du texte** (sujet 377) : une géométrie qui suit la largeur d'un texte (ex. onglet d'une région RDD) mesure
 par `ctx.measureText(text, font)`, celle du moteur qui dessine : approchée tant que les polices ne sont pas chargées,
@@ -220,11 +214,10 @@ chacun la leur. Ce qui se calcule sans moteur (taille d'un modèle de la palette
 
 ### Une forme en panne
 
-Le moteur appelle une forme par son registre, qui protège chaque appel (sujet 300 ; appel protégé commun aux formes,
-modes et effets, `core/diagnostics/pluginCalls.ts`, sujet 378) : une fonction de la définition qui
-lève une exception n'empêche ni d'ouvrir le fichier, ni de dessiner la page, ni de sélectionner ou d'éditer la forme.
-Le point d'entrée est traité comme absent et l'erreur est signalée une fois par session dans les Diagnostics
-(« Forme <id> : erreur dans <point d'entrée> ») :
+Le moteur appelle une forme par son registre, qui protège chaque appel (`AJOUTER_UN_PLUGIN.md` section 6) : une
+fonction de la définition qui lève une exception n'empêche ni d'ouvrir le fichier, ni de dessiner la page, ni de
+sélectionner ou d'éditer la forme. Le point d'entrée prend son repli (« Forme <id> : erreur dans <point d'entrée> »
+dans les Diagnostics) :
 
 | En panne | Repli |
 |---|---|
@@ -363,28 +356,20 @@ Règles à respecter :
 
 ### 4.1 Rendre une valeur réglable : déclarer `settings`
 
-Un réglage global lu par des formes (une préférence, pas une valeur draw.io) est **déclaré par leur catégorie**, comme
-les modes et les effets déclarent les leurs (sujet 380) : aucun fichier du tronc ni de l'appli à toucher.
+Un réglage global lu par des formes (une préférence, pas une valeur draw.io) est **déclaré par leur catégorie** de
+palette (`PluginSetting`, schéma commun, enregistrement, `legacy` : `AJOUTER_UN_PLUGIN.md` section 7) :
 
-1. Déclarez le réglage (`PluginSetting`, par l'API des plugins) près de la forme ou de la base qui le lit, et
-   ajoutez-le aux `settings` de la catégorie dans
-   [plugins/shapes/categories.ts](../src/engine/plugins/shapes/categories.ts). Champs du schéma commun, comme
-   pour un mode (`AJOUTER_UN_MODE.md` section 3) : nombre borné, case, couleur, choix, adresse ; `label`, `hint`,
-   `group`.
-   Exemple : `FACADE_TAGS_SETTING` dans [generic/building](../src/engine/plugins/shapes/generic/building/index.ts),
-   déclaré par la catégorie Architecture.
+1. Déclarez le réglage près de la forme ou de la base qui le lit, et ajoutez-le aux `settings` de la catégorie dans
+   [plugins/shapes/categories.ts](../src/engine/plugins/shapes/categories.ts). Exemple : `FACADE_TAGS_SETTING` dans
+   [generic/building](../src/engine/plugins/shapes/generic/building/index.ts), déclaré par la catégorie Architecture.
 2. Lisez la valeur dans `ctx.values` (contexte de rendu) : le registre y remet, à chaque forme dont la
    `palette.category` est cette catégorie, les valeurs bornées et complétées par le défaut. `ctx.values` est absent
    pour une forme d'une autre catégorie et dans les tests sans contexte complet : gardez un repli sur le défaut
    (`ctx.values?.[clé] === false`), ou utilisez `booleanValue` / `numberValue` / `stringValue` si la valeur est
    forcément là.
 
-Le reste découle de la déclaration : la sous-page **Paramètres › Formes › <catégorie>** (générique, comme celle des
-modes), l'enregistrement dans `settings.shapeCategories[catégorie][clé]` (seulement les écarts au défaut) et la
-reconstruction des scènes quand la valeur change. Un réglage qui change de place garde la préférence enregistrée :
-déclarez son ancienne clé par `legacy` (chemin depuis la racine des paramètres, ex. `view.facadeTags`), reprise au
-chargement tant que la nouvelle n'a pas de valeur. Ne renommez jamais la clé d'un réglage déclaré : la préférence
-serait perdue.
+La sous-page **Paramètres › Formes › <catégorie>** et la reconstruction des scènes quand la valeur change découlent
+de la déclaration.
 
 Une valeur commune à toutes les formes (épaisseur `view.isoDepth`, ombrage des côtés) reste un paramètre du tronc,
 passé par un champ du `RenderContext` rempli par `SceneView.renderContext()`
@@ -432,7 +417,7 @@ sont dans le tableau de la section 2, avec leur défaut et un exemple.
 Un élément de palette (`PaletteEntry`, exposé comme `ShapeTemplate` avec l'`id` de la forme) porte le style **et** la taille par défaut de draw.io, une catégorie, un rang
 `order` (ordre d'affichage, toutes formes confondues), des mots-clés de recherche et une icône (contenu SVG d'un cadre
 `0 0 40 28`, sans couleurs). Un réglage (`ShapeProperty`) est un champ du schéma commun (`Field`, décrit dans
-`AJOUTER_UN_MODE.md` section 3, sujet 391) : une case (`toggle`, écrit `1` / `0` ; `checkedByDefault` : cochée quand
+`AJOUTER_UN_PLUGIN.md` section 7) : une case (`toggle`, écrit `1` / `0` ; `checkedByDefault` : cochée quand
 la clé est absente), un nombre, un texte ou un choix (`choice`, `options` fixes) ; une clé `spatial.…` est écrite
 comme attribut spatial, et sa constante vit dans la forme (le tronc n'en connaît aucune, sujet 306). Un texte `live: true` est réglé en direct : chaque frappe est écrite en une seule étape
 d'annulation et seule la forme est redessinée (ex. étiquette des façades). Sa `section` le range dans le panneau :
