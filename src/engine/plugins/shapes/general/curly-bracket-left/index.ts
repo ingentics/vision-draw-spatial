@@ -2,6 +2,7 @@ import { Group } from 'three';
 import {
   clamp,
   createLabel,
+  cubicTo,
   orientedPath,
   polygonArc,
   roundedPolygon,
@@ -16,24 +17,44 @@ import type { Point, RenderContext, ShapeDefinition, ShapeModel } from '../../..
 /** Fraction de la largeur par défaut de draw.io pour `size` (retrait de la tige par rapport au bord droit). */
 const DEFAULT_SIZE = 0.5;
 
+/** Coefficient des points de contrôle d'une Bézier cubique approchant un quart de cercle (ou d'ellipse). */
+const QUARTER_ARC = 0.5523;
+
 /**
  * Accolade de draw.io (`mxCurlyBracket`) : polyligne ouverte à tige verticale à `size` × largeur du bord droit, pointe
- * au milieu du bord gauche ; les coins sont arrondis avec `rounded=1`. `flipH` la retourne (`orientedPath`).
+ * au milieu du bord gauche. Avec `rounded=1`, les coins sont arrondis et la pointe est faite de deux quarts d'ellipse
+ * qui quittent la tige verticalement et se rejoignent horizontalement en pointe fine (étape 423) ; sans, la pointe est
+ * un aller-retour anguleux. `flipH` la retourne (`orientedPath`).
  */
 function bracketPath(shape: ShapeModel): Point[] {
   const { style } = shape;
   return orientedPath(shape.bounds, style, (w, h) => {
     const stem = w * (1 - clamp(styleNumber(style, 'size', DEFAULT_SIZE), 0, 1));
-    const points = [
-      { x: w, y: 0 },
-      { x: stem, y: 0 },
-      { x: stem, y: h / 2 },
-      { x: 0, y: h / 2 },
-      { x: stem, y: h / 2 },
-      { x: stem, y: h },
-      { x: w, y: h },
+    const mid = h / 2;
+    if (!styleFlag(style, 'rounded')) {
+      return [
+        { x: w, y: 0 },
+        { x: stem, y: 0 },
+        { x: stem, y: mid },
+        { x: 0, y: mid },
+        { x: stem, y: mid },
+        { x: stem, y: h },
+        { x: w, y: h },
+      ];
+    }
+    const arc = polygonArc(style);
+    const curve = Math.min(Math.max(arc, stem), h / 4);
+    const tip = { x: 0, y: mid };
+    const above = { x: stem, y: mid - curve };
+    const below = { x: stem, y: mid + curve };
+    const top = roundedPolygon([{ x: w, y: 0 }, { x: stem, y: 0 }, above], arc, { closed: false });
+    const bottom = roundedPolygon([below, { x: stem, y: h }, { x: w, y: h }], arc, { closed: false });
+    return [
+      ...top,
+      ...cubicTo(above, { x: stem, y: mid - curve * (1 - QUARTER_ARC) }, { x: stem * QUARTER_ARC, y: mid }, tip),
+      ...cubicTo(tip, { x: stem * QUARTER_ARC, y: mid }, { x: stem, y: mid + curve * (1 - QUARTER_ARC) }, below),
+      ...bottom.slice(1),
     ];
-    return styleFlag(style, 'rounded') ? roundedPolygon(points, polygonArc(style), { closed: false }) : points;
   });
 }
 
