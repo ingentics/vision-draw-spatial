@@ -1,1 +1,0 @@
-Longueur commune de deux intervalles écrite deux fois à la main (`Math.max(0, Math.min(…) - Math.max(…))`) : `edit/anchoring/auto/routeAround.ts:41` et `edit/anchoring/pcb/octilinear.ts:80` ; une brique `overlapLength(a0, a1, b0, b1)` dans `model/geometry.ts` les remplacerait (vu au sujet 382).

@@ -1,5 +1,5 @@
 import type { Point, Rect } from '../../../model/types';
-import { simplifyPath, inflate } from '../../../model/geometry';
+import { simplifyPath, inflate, overlapLength } from '../../../model/geometry';
 import { SIDE_NORMALS } from '../../edgeEnds';
 import {
   ATTRACT_COST,
@@ -38,7 +38,7 @@ export function overlap(s: Segment, t: Segment): number {
   if (vertical ? Math.abs(s.a.x - t.a.x) > 0.5 : Math.abs(s.a.y - t.a.y) > 0.5) return 0;
   const [s0, s1] = vertical ? [s.a.y, s.b.y] : [s.a.x, s.b.x];
   const [t0, t1] = vertical ? [t.a.y, t.b.y] : [t.a.x, t.b.x];
-  return Math.max(0, Math.min(Math.max(s0, s1), Math.max(t0, t1)) - Math.max(Math.min(s0, s1), Math.min(t0, t1)));
+  return overlapLength(s0, s1, t0, t1);
 }
 
 /** Vrai si deux segments perpendiculaires se croisent. */

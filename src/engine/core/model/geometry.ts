@@ -107,6 +107,11 @@ export function rectsOverlap(a: Rect, b: Rect): boolean {
   return a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 }
 
+/** Longueur commune des intervalles [a0, a1] et [b0, b1], bornes dans n'importe quel ordre ; 0 s'ils sont disjoints. */
+export function overlapLength(a0: number, a1: number, b0: number, b1: number): number {
+  return Math.max(0, Math.min(Math.max(a0, a1), Math.max(b0, b1)) - Math.max(Math.min(a0, a1), Math.min(b0, b1)));
+}
+
 /** Plus petit rectangle contenant tous les points ; undefined sans point. */
 export function boundsOfPoints(points: readonly Point[]): Rect | undefined {
   if (points.length === 0) return undefined;

@@ -12,6 +12,7 @@ import {
   insidePolygon,
   rectContains,
   rectsOverlap,
+  overlapLength,
   samePoint,
   samePoints,
   sameRect,
@@ -46,6 +47,14 @@ describe('géométrie partagée (sujet 205)', () => {
     expect(rectsOverlap(r, { x: 2, y: 2, width: 2, height: 2 })).toBe(true);
     expect(rectsOverlap(r, { x: 10, y: 0, width: 5, height: 5 })).toBe(false);
     expect(rectsOverlap(r, { x: 0, y: 11, width: 5, height: 5 })).toBe(false);
+  });
+
+  it('longueur commune de deux intervalles, bornes dans n’importe quel ordre (sujet 397)', () => {
+    expect(overlapLength(0, 10, 5, 20)).toBe(5);
+    expect(overlapLength(10, 0, 20, 5)).toBe(5);
+    expect(overlapLength(0, 10, 2, 4)).toBe(2);
+    expect(overlapLength(0, 10, 10, 20)).toBe(0);
+    expect(overlapLength(0, 10, 15, 20)).toBe(0);
   });
 
   it('longueur arrondie au pas de grille supérieur (sujet 263)', () => {

@@ -3,7 +3,14 @@ import { SIDE_NORMALS } from '../../edgeEnds';
 import { ATTRACT_COST, BEND_COST, Heap, OVERLAP_COST, SEED_JITTER, inside, out } from '../routing';
 import type { AvoidOptions, Port, Router, Segment } from '../routing';
 import { seededUnit } from '../seed';
-import { cross, distance, inflate, segmentsCross as crossing, simplifyPath } from '../../../model/geometry';
+import {
+  cross,
+  distance,
+  inflate,
+  overlapLength,
+  segmentsCross as crossing,
+  simplifyPath,
+} from '../../../model/geometry';
 
 /**
  * Tracé octilinéaire de l'ancrage « Typon » (SPEC §14.1), inspiré des pistes de circuit imprimé : segments à 0°, 45°
@@ -76,8 +83,7 @@ export function segmentsOverlap(s: Segment, t: Segment): number {
   const ux = (s.b.x - s.a.x) / length;
   const uy = (s.b.y - s.a.y) / length;
   const along = (p: Point) => (p.x - s.a.x) * ux + (p.y - s.a.y) * uy;
-  const [t0, t1] = [along(t.a), along(t.b)];
-  return Math.max(0, Math.min(length, Math.max(t0, t1)) - Math.max(0, Math.min(t0, t1)));
+  return overlapLength(0, length, along(t.a), along(t.b));
 }
 
 /**

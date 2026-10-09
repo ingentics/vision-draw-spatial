@@ -85,8 +85,9 @@ Folder map with each folder's role: `docs/SUMMARY.md` §3 (single source). Where
 
 - **Geometry**: `model/geometry.ts` (`distance`, `center`, `unit`, `direction`, `samePoint`, `samePoints`,
   `sameRect`, `rectPath` (corners / outline of a rectangle), `fitScale`, `snapToGrid`, `snapPoint`, `ceilToGrid`,
-  `rectContains`, `rectContainsRect`, `boundsOfPoints`, `unionOf`, `segmentProjection`, `segmentsCross`,
-  `segmentIntersection`, `segmentDistance`, `insidePolygon`, `simplifyPath`, `prunePath`) and `clamp`
+  `rectContains`, `rectContainsRect`, `overlapLength` (common length of two intervals), `boundsOfPoints`, `unionOf`,
+  `segmentProjection`, `segmentsCross`, `segmentIntersection`, `segmentDistance`, `insidePolygon`, `simplifyPath`,
+  `prunePath`) and `clamp`
   (`model/numbers.ts`). No hand-written `Math.hypot(a.x - b.x, a.y - b.y)`, `Math.round(v / step) * step`, center,
   corners nor `Math.min(max, Math.max(min, v))`. A missing function is added there, with its test in
   `tests/engine/core/model/geometry.test.ts`.
