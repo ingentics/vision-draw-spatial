@@ -158,10 +158,10 @@ export class ViewModes {
 
   /**
    * Reprend les réglages iso enregistrés pour une page (fichier ou dernière visite), sans animer :
-   * la caméra de la page est appliquée juste après. L'UI les reçoit par `settingsChange`.
+   * la caméra de la page est appliquée juste après. `Config` prévient les domaines et l'UI (`settingsChange`).
    */
   applyPageIso(pageId: string): void {
-    const iso = this.core.pages.pageIso.get(pageId);
+    const iso = this.core.pages.isoOf(pageId);
     const view = this.core.settings.view;
     if (
       !iso ||
@@ -173,9 +173,5 @@ export class ViewModes {
       return;
     }
     this.core.config.adoptPageIso(iso);
-    if (view.isoVolume !== this.core.settings.view.isoVolume || view.isoDepth !== this.core.settings.view.isoDepth) {
-      this.core.scenes.clear();
-    }
-    this.core.events.emit('settingsChange', this.core.config.getSettings());
   }
 }

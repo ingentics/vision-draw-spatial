@@ -27,22 +27,27 @@ export class Selections {
 
   /**
    * Sélection reprise sur les éléments de `page` de même id (sujet 312 : copie de travail d'un geste) ; inchangée si
-   * elle est sur une autre page ou si un élément y manque.
+   * elle est sur une autre page ou si un élément y manque. Contrairement à `reselectIn`, rien n'est remis à jour que
+   * l'événement : en plein geste, contour et mode courant suivent déjà ces éléments.
    */
   rebind(page: PageModel): void {
     const current = this.current;
     if (!current || current.pageId !== page.id) return;
-    const items = current.items.flatMap((item): PickedElement[] => {
-      if (item.type === 'shape') {
-        const shape = shapeOf(page, item.element.id);
-        return shape ? [{ type: 'shape', element: shape }] : [];
-      }
-      const edge = edgeOf(page, item.element.id);
-      return edge ? [{ type: 'edge', element: edge }] : [];
-    });
+    const items = sameElementsIn(page, current.items);
     if (items.length !== current.items.length) return;
     this.current = { ...current, items, picked: items[items.length - 1]! };
     this.core.events.emit('selectionChange', this.current);
+  }
+
+  /**
+   * Après relecture du document : `previous` (sélection d'avant, sur la page affichée `page`) reprise sur les éléments
+   * de même id qui restent, avec sa partie ; plus rien si aucun ne reste (une sélection complète, contour et mode
+   * courant compris).
+   */
+  reselectIn(page: PageModel, previous: Selection | undefined): void {
+    if (!previous || previous.pageId !== page.id) return;
+    const items = sameElementsIn(page, previous.items);
+    if (items.length > 0) this.selectItems(items, previous.part);
   }
 
   /** `part` : partie de la forme sélectionnée seule (sujet 249), gardée si le mode la connaît encore. */
@@ -112,6 +117,16 @@ export class Selections {
   resetDocument(): void {
     this.clearSelection();
   }
+}
+
+/** Éléments de `page` de même id que `items`, dans le même ordre ; ceux qui manquent sont omis. */
+function sameElementsIn(page: PageModel, items: readonly PickedElement[]): PickedElement[] {
+  return items.flatMap(({ element }): PickedElement[] => {
+    const shape = shapeOf(page, element.id);
+    if (shape) return [{ type: 'shape', element: shape }];
+    const edge = edgeOf(page, element.id);
+    return edge ? [{ type: 'edge', element: edge }] : [];
+  });
 }
 
 /** Éléments pris sans leur conteneur (un élément pris avec lui n'est pas sélectionné à part), par ordre de z. */

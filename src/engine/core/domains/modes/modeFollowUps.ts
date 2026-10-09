@@ -115,7 +115,7 @@ export class ModeFollowUps {
    * peut pas modifier ou tant que la mesure du texte n'est qu'approchée.
    */
   documentOpened(): void {
-    const document = this.core.file.getDocument();
+    const document = this.core.file.document;
     const xmlTree = this.core.file.xmlTree;
     // Mesure approchée (polices pas encore chargées) : on attend la mesure exacte, sinon chaque ouverture décalerait les
     // tailles d'un fichier déjà ajusté.

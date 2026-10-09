@@ -77,6 +77,11 @@ interface SettingsListener {
   settingsChanged(settings: Settings, previous: Settings): void;
 }
 
+/** Domaine qui dépend des réglages propres à une page (réglages iso), adoptés à son arrivée sans animer. */
+interface PageSettingsListener {
+  pageSettingsAdopted(settings: Settings, previous: Settings): void;
+}
+
 /**
  * Cœur du moteur, derrière la façade `Engine` (SPEC §4.3) : l'infrastructure partagée (canvas, registres,
  * événements, scènes) et un objet par domaine (un dossier de `core/` chacun). Chaque domaine garde son état et
@@ -189,7 +194,8 @@ export class EngineCore {
     this.modes = options.modes;
     this.effects = options.effects;
     this.config = new Config(this, options);
-    this.edits.undoStack.setLimit(this.settings.edit.undoLimit);
+    // Paramètres de départ : seul l'historique, créé avant `config`, ne les a pas reçus à sa construction.
+    this.edits.settingsChanged(this.settings);
     this.camera.startInDefaultMode();
     this.links = new Links(this, options.openUrl);
     this.targets = new EditTargets(this, options.editable ?? false);
@@ -259,6 +265,15 @@ export class EngineCore {
       this.viewModes,
     ];
     for (const listener of listeners) listener.settingsChanged(settings, previous);
+  }
+
+  /**
+   * Réglages propres à une page adoptés à son arrivée (`Config.adoptPageIso`), sans animer : seuls les domaines dont le
+   * dessin en dépend avant l'affichage de la page s'inscrivent ici (les autres suivent à l'affichage).
+   */
+  pageSettingsAdopted(settings: Settings, previous: Settings): void {
+    const listeners: PageSettingsListener[] = [this.levels];
+    for (const listener of listeners) listener.pageSettingsAdopted(settings, previous);
   }
 
   /** Garde commun : la vue accepte les commandes (pas de transition entre pages en cours, SPEC §11.2). */

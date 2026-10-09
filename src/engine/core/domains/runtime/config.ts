@@ -42,9 +42,16 @@ export class Config {
     this.core.events.emit('settingsChange', this.getSettings());
   }
 
-  /** Réglages iso propres à la page affichée, pris sans animer (la caméra de la page est appliquée ensuite). */
+  /**
+   * Réglages iso propres à la page affichée, pris sans animer (la caméra de la page est appliquée ensuite) : seuls les
+   * domaines inscrits à `EngineCore.pageSettingsAdopted` en tirent les conséquences, pas tous ceux d'un changement de
+   * l'utilisateur (`updateSettings` animerait la caméra et garderait ces réglages pour la page quittée).
+   */
   adoptPageIso(iso: IsoViewParams): void {
-    this.settings = mergeSettings(this.settings, { view: iso });
+    const previous = this.settings;
+    this.settings = mergeSettings(previous, { view: iso });
+    this.core.pageSettingsAdopted(this.settings, previous);
+    this.core.events.emit('settingsChange', this.getSettings());
   }
 
   reducedMotion(): boolean {

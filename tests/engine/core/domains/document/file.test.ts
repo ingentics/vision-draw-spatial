@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { DocumentFile } from '../../../../../src/engine/core/domains/document/file';
+import { EditHistory } from '../../../../../src/engine/core/domains/document/undo';
+import { LiveEdit } from '../../../../../src/engine/core/domains/edit/drag/liveEdit';
+import { Selections } from '../../../../../src/engine/core/domains/selection/selection';
 import type { EngineCore } from '../../../../../src/engine/core/domains/EngineCore';
 import { PageEffects } from '../../../../../src/engine/core/domains/effects/pageEffects';
 import { PageModes } from '../../../../../src/engine/core/domains/modes/pageModes';
@@ -10,6 +13,8 @@ import { PageModeRegistry } from '../../../../../src/engine/core/modes/registry'
 import { DEFAULT_SETTINGS } from '../../../../../src/engine/core/settings';
 import type { PageModel } from '../../../../../src/engine/core/model/types';
 import { createDefaultRegistry } from '../../../../../src/engine/plugins';
+import { shapeOf } from '../../../../../src/engine/core/model/pageIndex';
+import { traced } from '../traced';
 
 const XML = `<mxfile><diagram id="p" name="P"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
 <mxCell id="a" value="A" vertex="1" parent="1"><mxGeometry x="0" y="0" width="100" height="60" as="geometry"/></mxCell>
@@ -120,6 +125,147 @@ describe('avertissements des plugins (sujet 378)', () => {
       [undefined, 'Effet brume : erreur dans volume (décor)'],
       // Erreur signalée pendant la lecture même : dans les avertissements du document lu.
       [undefined, 'Mode boom : erreur dans lifecycle.check (panne)'],
+    ]);
+  });
+});
+
+/**
+ * Cœur traçant (sujet 385) : document, annulation, sélection et suite d'une modification en direct réels ; les autres
+ * domaines notent leurs appels, les événements émis aussi, dans l'ordre (`log`).
+ */
+function tracedSetup() {
+  const log: string[] = [];
+  const documents: unknown[] = [];
+  const core = {
+    registry: createDefaultRegistry(),
+    pageModes: { withModeWarnings: (document: unknown) => document },
+    pageEffects: { warnings: () => [] },
+    pluginGuard: { warnings: () => [] },
+    targets: { editable: true },
+    canInteract: () => true,
+    resetDocumentState: () => log.push('resetDocumentState'),
+    events: {
+      emit: (name: string, payload: unknown) => {
+        log.push(`emit:${name}`);
+        if (name === 'documentChange') documents.push(payload);
+      },
+    },
+  } as unknown as Record<string, unknown>;
+  const file = new DocumentFile(core as unknown as EngineCore);
+  const edits = new EditHistory(core as unknown as EngineCore);
+  const selection = new Selections(core as unknown as EngineCore);
+  Object.assign(core, {
+    file,
+    edits,
+    selection,
+    live: new LiveEdit(core as unknown as EngineCore),
+    pages: traced(log, 'pages', {
+      currentPageId: 'p',
+      getCurrentPage: () => file.document!.pages[0],
+      pageById: (id: string) => file.document!.pages.find((p) => p.id === id),
+    }),
+    graph: traced(log, 'graph', { isGraph: () => false }),
+    scenes: traced(log, 'scenes', { current: undefined }),
+    arrangement: traced(log, 'arrangement', { distributeAfterEdit: () => false }),
+    ...Object.fromEntries(
+      ['gesture', 'highlight', 'minimap', 'rendering', 'levels', 'labelEditor', 'viewModes', 'pointer', 'keys']
+        .concat(['modeCurrents', 'modeFollowUps', 'metrics'])
+        .map((name) => [name, traced(log, name)]),
+    ),
+  });
+  const { document, tree } = readDrawio(XML);
+  file.replaceDocument(document, tree);
+  return { file, edits, selection, live: core.live as LiveEdit, log, documents };
+}
+
+/** Traces d'une sélection changée (vidée ou reprise) : contour, événement, survol, indication du mode. */
+const SELECTION_SET = [
+  'pages.getCurrentPage',
+  'highlight.update',
+  'highlight.syncAnimation',
+  'emit:selectionChange',
+  'pointer.syncHoverComment',
+  'keys.emitModeHint',
+];
+
+describe('événements reçus par l’appli : le document seul émet ses changements (sujet 385)', () => {
+  it('annuler / rétablir : document relu, scènes vidées, état « modifié » puis document, retour à la page', () => {
+    const { file, edits, selection, log, documents } = tracedSetup();
+    edits.recordEdit('Étape');
+    selection.selectItems([{ type: 'shape', element: shapeOf(file.document!.pages[0]!, 'a')! }]);
+    log.length = 0;
+    edits.undo();
+    const restored = [
+      'graph.invalidate',
+      'scenes.clear',
+      'graph.isGraph',
+      'pages.setCurrent',
+      'emit:undoChange',
+      'emit:documentChange',
+      'pages.goToPage',
+    ];
+    expect(log).toEqual(['gesture.endMove', ...SELECTION_SET, ...restored]);
+    expect(documents).toEqual([file.document]);
+    log.length = 0;
+    edits.redo();
+    // Plus de sélection à vider ; le document redevient modifié.
+    expect(log).toEqual(['gesture.endMove', ...restored.slice(0, 4), 'emit:modifiedChange', ...restored.slice(4)]);
+    expect(documents[1]).toBe(file.document);
+  });
+
+  it('modification en direct écrite : scène gardée, état « modifié » puis document', () => {
+    const { file, live, log, documents } = tracedSetup();
+    live.afterLiveWrite('p');
+    expect(log).toEqual([
+      'scenes.invalidate',
+      'graph.invalidateWithScenes',
+      'highlight.clearVeil',
+      'highlight.update',
+      'minimap.invalidate',
+      'rendering.requestRender',
+      'emit:undoChange',
+      'emit:documentChange',
+    ]);
+    expect(documents).toEqual([file.document]);
+  });
+
+  it('arbre changé : document relu, sélection reprise par id, puis document émis', () => {
+    const { file, selection, log, documents } = tracedSetup();
+    selection.selectItems([{ type: 'shape', element: shapeOf(file.document!.pages[0]!, 'a')! }]);
+    log.length = 0;
+    file.documentChanged(['p']);
+    expect(log).toEqual([
+      ...SELECTION_SET,
+      'arrangement.distributeAfterEdit',
+      'scenes.invalidate',
+      'graph.invalidateWithScenes',
+      'pages.getCurrentPage',
+      'scenes.show',
+      'levels.applyHeightScale',
+      'labelEditor.hideEditedLabel',
+      ...SELECTION_SET,
+      'modeCurrents.pickModeCurrent',
+      'rendering.syncBackground',
+      'minimap.invalidate',
+      'emit:undoChange',
+      'emit:documentChange',
+      'viewModes.enforce',
+      'rendering.requestRender',
+    ]);
+    expect(documents).toEqual([file.document]);
+    expect(selection.current?.items[0]?.element).toBe(shapeOf(file.document!.pages[0]!, 'a'));
+  });
+
+  it('fichier chargé : états remis à zéro, chargement émis, première page affichée', async () => {
+    const { file, log } = tracedSetup();
+    log.length = 0;
+    await file.load(XML, 'f');
+    expect(log).toEqual([
+      'metrics.fileRead',
+      'resetDocumentState',
+      'emit:load',
+      'pages.goToPage',
+      'modeFollowUps.documentOpened',
     ]);
   });
 });

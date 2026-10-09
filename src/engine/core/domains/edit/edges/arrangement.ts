@@ -38,7 +38,7 @@ export class EdgeArrangement {
     for (const pageId of changedPageIds) {
       const page = byId(after.pages, pageId);
       if (!page || !this.distributes(page)) continue;
-      const shapeIds = affectedShapes(this.core.file.geometry.get(pageId), page);
+      const shapeIds = affectedShapes(this.core.file.savedGeometry(pageId), page);
       if (shapeIds.size > 0) wrote = this.writeDistribution(page, shapeIds) || wrote;
     }
     return wrote;
@@ -46,7 +46,8 @@ export class EdgeArrangement {
 
   /**
    * Écrit la répartition des flèches des formes `shapeIds` (et les coudes des boucles concernées). Une forme passée
-   * de l'autre côté de sa voisine depuis la dernière écriture (`file.geometry`) y replace ses bouts (`resitedEnds`).
+   * de l'autre côté de sa voisine depuis la dernière écriture (`file.savedGeometry`) y replace ses bouts
+   * (`resitedEnds`).
    */
   writeDistribution(page: PageModel, shapeIds: ReadonlySet<string>): boolean {
     const pageTree = this.core.file.pageTreeOf(page.id);
@@ -60,7 +61,7 @@ export class EdgeArrangement {
    */
   previewDistribution(page: PageModel): Set<string> {
     if (!this.distributes(page)) return new Set();
-    const shapeIds = affectedShapes(this.core.file.geometry.get(page.id), page);
+    const shapeIds = affectedShapes(this.core.file.savedGeometry(page.id), page);
     if (shapeIds.size === 0) return new Set();
     const arrangement = this.arrangementOf(page, shapeIds);
     this.applyArrangement(page, arrangement);
@@ -68,7 +69,7 @@ export class EdgeArrangement {
   }
 
   private arrangementOf(page: PageModel, shapeIds: ReadonlySet<string>): Arrangement {
-    const resite = resitedEnds(this.core.file.geometry.get(page.id), page);
+    const resite = resitedEnds(this.core.file.savedGeometry(page.id), page);
     return arrangeAnchors(page, shapeIds, { seed: anchorSeedOf(page), resite, ...this.tracing(page) });
   }
 

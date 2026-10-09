@@ -6,25 +6,23 @@ import { writeDrawio } from '../../format/write';
 import type { DrawioTree } from '../../format/xmlTree';
 import { pageGeometry } from '../../model/pageGeometry';
 import type { PageGeometry } from '../../model/pageGeometry';
-import type { PickedElement } from '../../interaction/pick';
 import type { DocumentModel, PageModel } from '../../model/types';
 import type { InitialView } from '../types';
 import type { EngineCore } from '../EngineCore';
 import { freezeModel } from '../../model/freeze';
-import { byId, edgeOf, shapeOf } from '../../model/pageIndex';
+import { byId } from '../../model/pageIndex';
 
 /**
  * Document chargé : arbre XML d'origine (écrit en place, SPEC §14.2), modèle relu de l'arbre, chargement et
  * sérialisation.
  */
 export class DocumentFile {
-  document: DocumentModel | undefined;
+  private model: DocumentModel | undefined;
   /** Géométrie des pages au dernier état enregistré (avant les modifications en direct d'un glisser). */
-  geometry = new Map<string, PageGeometry>();
-  /** Arbre XML d'origine du document chargé, base de l'écriture in situ (SPEC §14.2). */
-  xmlTree: DrawioTree | undefined;
-  unsupportedReport: UnsupportedReport | undefined;
-  fileId: string | undefined;
+  private geometry = new Map<string, PageGeometry>();
+  private tree: DrawioTree | undefined;
+  private unsupportedReport: UnsupportedReport | undefined;
+  private loadedFileId: string | undefined;
   /**
    * Page en cours de modification en direct (sujet 312) : pendant un geste, la page du document est remplacée par une
    * copie modifiable, que les aperçus changent en place et que tout le moteur lit ; le modèle lu de l'arbre n'est
@@ -37,12 +35,27 @@ export class DocumentFile {
 
   constructor(private readonly core: EngineCore) {}
 
+  /** Modèle du document chargé, relu de l'arbre (lecture seule : seul ce domaine le remplace). */
+  get document(): DocumentModel | undefined {
+    return this.model;
+  }
+
+  /** Arbre XML d'origine du document chargé, base de l'écriture in situ (SPEC §14.2). */
+  get xmlTree(): DrawioTree | undefined {
+    return this.tree;
+  }
+
+  /** Identifiant du fichier chargé (donné par l'appli). */
+  get fileId(): string | undefined {
+    return this.loadedFileId;
+  }
+
   async load(xml: string, fileId: string, initialView?: InitialView): Promise<void> {
     const start = performance.now();
     const { document, tree } = readDrawio(xml);
     this.core.metrics.fileRead(performance.now() - start);
     this.replaceDocument(document, tree);
-    this.fileId = fileId;
+    this.loadedFileId = fileId;
     this.core.resetDocumentState(initialView);
     this.core.events.emit('load', document, fileId);
     const page = (initialView?.pageId && this.core.pages.pageById(initialView.pageId)) || document.pages[0];
@@ -56,19 +69,11 @@ export class DocumentFile {
     this.core.modeFollowUps.documentOpened();
   }
 
-  getDocument(): DocumentModel | undefined {
-    return this.document;
-  }
-
-  getXmlTree(): DrawioTree | undefined {
-    return this.xmlTree;
-  }
-
   serialize(): string | undefined {
-    if (!this.xmlTree) return undefined;
+    if (!this.tree) return undefined;
     this.core.gesture.endMove();
-    writePageViews(this.xmlTree, this.core.pages.savedViews());
-    const xml = writeDrawio(this.xmlTree);
+    writePageViews(this.tree, this.core.pages.savedViews());
+    const xml = writeDrawio(this.tree);
     this.core.edits.markSaved();
     return xml;
   }
@@ -78,11 +83,25 @@ export class DocumentFile {
    * relire.
    */
   publishWarnings(): void {
-    if (!this.document) return;
+    if (!this.model) return;
     const guard = this.core.pluginGuard;
-    const warnings = [...this.document.warnings.filter((w) => !guard.owns(w)), ...guard.warnings()];
-    this.document = { ...this.document, warnings };
-    this.core.events.emit('documentChange', this.document);
+    const warnings = [...this.model.warnings.filter((w) => !guard.owns(w)), ...guard.warnings()];
+    this.model = { ...this.model, warnings };
+    this.notifyChanged();
+  }
+
+  /**
+   * Modification en direct écrite dans l'arbre, le modèle suivant sans être relu (`LiveEdit.afterLiveWrite`) : état
+   * « modifié » et abonnés au document à jour.
+   */
+  liveWritten(): void {
+    this.core.edits.syncModified();
+    this.notifyChanged();
+  }
+
+  /** Abonnés prévenus du document en vigueur : ce domaine seul émet `documentChange` (sujet 385). */
+  private notifyChanged(): void {
+    if (this.model) this.core.events.emit('documentChange', this.model);
   }
 
   /**
@@ -91,7 +110,7 @@ export class DocumentFile {
    * page inconnue. Une copie d'une autre page est d'abord close.
    */
   livePage(pageId: string, owner: object): PageModel | undefined {
-    const document = this.document;
+    const document = this.model;
     const index = document?.pages.findIndex((p) => p.id === pageId) ?? -1;
     if (!document || index < 0) return undefined;
     if (this.livePageId === pageId) {
@@ -101,7 +120,7 @@ export class DocumentFile {
     this.closeLivePage();
     this.liveOwners.add(owner);
     const copy = structuredClone(document.pages[index]!) as PageModel;
-    this.document = { ...document, pages: document.pages.map((page, i) => (i === index ? copy : page)) };
+    this.model = { ...document, pages: document.pages.map((page, i) => (i === index ? copy : page)) };
     this.livePageId = pageId;
     this.core.selection.rebind(copy);
     return copy;
@@ -120,7 +139,7 @@ export class DocumentFile {
     const pageId = this.livePageId;
     this.livePageId = undefined;
     this.liveOwners.clear();
-    const page = byId(this.document?.pages, pageId);
+    const page = byId(this.model?.pages, pageId);
     if (page) freezeModel(page);
   }
 
@@ -129,10 +148,31 @@ export class DocumentFile {
     this.livePageId = undefined;
     this.liveOwners.clear();
     for (const page of document.pages) freezeModel(page);
-    this.document = this.withPluginWarnings(document);
+    this.model = this.withPluginWarnings(document);
     this.geometry = new Map(document.pages.map((p) => [p.id, pageGeometry(p)]));
-    this.xmlTree = tree;
+    this.tree = tree;
     this.unsupportedReport = collectUnsupported(document, this.core.registry);
+  }
+
+  /**
+   * Retour à un instantané (annuler / rétablir) : document relu, scènes reconstruites, même page si elle existe
+   * encore.
+   */
+  restore(xml: string): void {
+    const { document, tree } = readDrawio(xml);
+    this.replaceDocument(document, tree);
+    this.core.selection.clearSelection();
+    this.core.graph.invalidate();
+    this.core.scenes.clear();
+    const current = this.core.pages.currentPageId;
+    const pageId =
+      current && (this.core.graph.isGraph(current) || document.pages.some((p) => p.id === current))
+        ? current
+        : document.pages[0]?.id;
+    this.core.pages.setCurrent(undefined);
+    this.core.edits.syncModified();
+    this.notifyChanged();
+    if (pageId) this.core.pages.goToPage(pageId);
   }
 
   /**
@@ -146,6 +186,11 @@ export class DocumentFile {
     return document;
   }
 
+  /** Géométrie enregistrée d'une page (dernière écriture), base des flèches à replacer après un glisser. */
+  savedGeometry(pageId: string): PageGeometry | undefined {
+    return this.geometry.get(pageId);
+  }
+
   /** Page écrite après un glisser : sa géométrie enregistrée suit. */
   updateGeometry(page: PageModel): void {
     this.geometry.set(page.id, pageGeometry(page));
@@ -153,8 +198,8 @@ export class DocumentFile {
 
   /** Arbre XML d'une page du document (même rang que dans le modèle). */
   pageTreeOf(pageId: string) {
-    const index = this.document?.pages.findIndex((p) => p.id === pageId) ?? -1;
-    return index >= 0 ? this.xmlTree?.pages[index] : undefined;
+    const index = this.model?.pages.findIndex((p) => p.id === pageId) ?? -1;
+    return index >= 0 ? this.tree?.pages[index] : undefined;
   }
 
   /**
@@ -162,18 +207,18 @@ export class DocumentFile {
    * de la vue graphe sont reconstruites, la sélection est reprise par id.
    */
   documentChanged(changedPageIds: string[], options: { distribute?: boolean } = {}): void {
-    if (!this.xmlTree) return;
+    if (!this.tree) return;
     const selected = this.core.selection.current;
     this.core.selection.clearSelection();
-    let document = documentFromTree(this.xmlTree);
+    let document = documentFromTree(this.tree);
     if (options.distribute !== false && this.core.arrangement.distributeAfterEdit(document, changedPageIds))
-      document = documentFromTree(this.xmlTree);
+      document = documentFromTree(this.tree);
     this.livePageId = undefined;
     this.liveOwners.clear();
     for (const page of document.pages) freezeModel(page);
-    this.document = this.withPluginWarnings(document);
+    this.model = this.withPluginWarnings(document);
     this.geometry = new Map(document.pages.map((p) => [p.id, pageGeometry(p)]));
-    this.unsupportedReport = collectUnsupported(this.document, this.core.registry);
+    this.unsupportedReport = collectUnsupported(this.model, this.core.registry);
     for (const id of changedPageIds) this.core.scenes.invalidate(id, true);
     this.core.graph.invalidateWithScenes(true);
     const current = this.core.pages.getCurrentPage();
@@ -182,20 +227,11 @@ export class DocumentFile {
       this.core.levels.applyHeightScale();
       this.core.labelEditor.hideEditedLabel();
     }
-    if (selected && selected.pageId === current?.id) {
-      const items: PickedElement[] = [];
-      for (const { element } of selected.items) {
-        const shape = shapeOf(current, element.id);
-        const edge = edgeOf(current, element.id);
-        if (shape) items.push({ type: 'shape', element: shape });
-        else if (edge) items.push({ type: 'edge', element: edge });
-      }
-      if (items.length > 0) this.core.selection.selectItems(items, selected.part);
-    }
+    if (current) this.core.selection.reselectIn(current, selected);
     this.core.rendering.syncBackground();
     this.core.minimap.invalidate();
     this.core.edits.syncModified();
-    this.core.events.emit('documentChange', this.document);
+    this.notifyChanged();
     // Page passée dans un mode qui restreint les modes d'affichage (sujet 178).
     this.core.viewModes.enforce();
     this.core.rendering.requestRender();
@@ -203,9 +239,5 @@ export class DocumentFile {
 
   getUnsupportedReport(): UnsupportedReport | undefined {
     return this.unsupportedReport;
-  }
-
-  getFileId(): string | undefined {
-    return this.fileId;
   }
 }

@@ -87,7 +87,7 @@ export class BackHistory {
     // La pile ne mène plus à la page courante : on repart d'une pile vide.
     this.stack.clear();
     this.core.events.emit('historyChange', []);
-    this.returnTo(parent.pageId, parent.frame, this.core.pages.pageCameras.get(parent.pageId));
+    this.returnTo(parent.pageId, parent.frame, this.core.pages.cameraOf(parent.pageId));
   }
 
   private returnTo(pageId: string, frame: Rect | undefined, camera: CameraState | undefined): void {

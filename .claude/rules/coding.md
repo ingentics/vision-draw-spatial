@@ -73,6 +73,10 @@ Folder map with each folder's role: `docs/SUMMARY.md` §3 (single source). Where
   `resetDocument()` registered in `EngineCore.resetDocumentState`; a domain depending on a setting has a
   `settingsChanged(settings, previous)` registered in `EngineCore.settingsChanged`. Neither `DocumentFile.load` nor
   `Config.updateSettings` decides for it.
+- **One emitter per state.** Only `DocumentFile` emits `documentChange` (a live write ends with `file.liveWritten()`,
+  undo / redo reloads through `file.restore`); only `Config` emits `settingsChange` (a page's own iso settings,
+  adopted on arrival without animation, notify the domains registered in `EngineCore.pageSettingsAdopted`). State read
+  by other domains is exposed read-only (getter or method), not as a public mutable field.
 - **The `Engine.ts` facade delegates, it does not compute.** One more public method only if the app or the
   component needs it.
 

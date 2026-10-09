@@ -44,8 +44,7 @@ export class LiveEdit {
     this.core.scenes.invalidate(pageId);
     this.core.graph.invalidateWithScenes();
     this.afterLiveEdit();
-    this.core.edits.syncModified();
-    if (this.core.file.document) this.core.events.emit('documentChange', this.core.file.document);
+    this.core.file.liveWritten();
   }
 
   /** Remplace l'objet d'une forme (taille changée), à la même hauteur et dans le même ordre de dessin. */

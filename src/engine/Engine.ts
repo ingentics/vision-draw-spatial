@@ -96,12 +96,12 @@ export class Engine {
   }
 
   getDocument(): DocumentModel | undefined {
-    return this.core.file.getDocument();
+    return this.core.file.document;
   }
 
   /** Arbre XML d'origine du document chargé : ses `cells` ont les mêmes ids que le modèle. */
   getXmlTree(): DrawioTree | undefined {
-    return this.core.file.getXmlTree();
+    return this.core.file.xmlTree;
   }
 
   /**
@@ -119,7 +119,7 @@ export class Engine {
   }
 
   getFileId(): string | undefined {
-    return this.core.file.getFileId();
+    return this.core.file.fileId;
   }
 
   // -------------------------------------------------------------------------

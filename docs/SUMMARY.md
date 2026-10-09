@@ -67,6 +67,8 @@ Règles :
   une copie de travail de la page (`file.livePage`), qui devient la page du document à la fin du geste ; un réglage
   tapé en direct (champ `live` d'une forme, texte d'une flèche) passe par une copie rendue à chaque frappe (sujet 376).
   Une modification en direct écrite sans relire le document finit par `live.afterLiveWrite(pageId)`.
+- **Un seul émetteur par état** (sujet 385) : `DocumentFile` seul émet `documentChange` (et recharge après annuler /
+  rétablir, `file.restore`), `Config` seul émet `settingsChange` ; chaque domaine expose son état en lecture seule.
 - **Pas d'état de module** (`.claude/rules/coding.md` §3) : tout état appartient à un moteur. Ex. la mesure du texte
   (`core/render/textMeasure.ts`, sujet 377) : une par moteur, remise aux formes (`ctx.measureText`, et en dernier
   paramètre de leurs points d'entrée géométriques) et aux modes (`edit.measureText`).

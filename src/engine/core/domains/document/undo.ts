@@ -1,4 +1,3 @@
-import { readDrawio } from '../../format/parse';
 import { writeDrawio } from '../../format/write';
 import { UndoStack } from '../../edit/undoStack';
 import type { EngineCore } from '../EngineCore';
@@ -97,24 +96,11 @@ export class EditHistory {
     this.syncModified();
   }
 
-  /** Revient à un instantané : document relu, scènes reconstruites, même page si elle existe encore. */
+  /** Revient à un instantané : le document le relit et reconstruit l'affichage. */
   private restore(xml: string): void {
     // Annuler / rétablir : un réglage en direct qui reprend ensuite ouvre une nouvelle étape.
     this.editCount++;
-    const { document, tree } = readDrawio(xml);
-    this.core.file.replaceDocument(document, tree);
-    this.core.selection.clearSelection();
-    this.core.graph.invalidate();
-    this.core.scenes.clear();
-    const current = this.core.pages.currentPageId;
-    const pageId =
-      current && (this.core.graph.isGraph(current) || document.pages.some((p) => p.id === current))
-        ? current
-        : document.pages[0]?.id;
-    this.core.pages.setCurrent(undefined);
-    this.syncModified();
-    this.core.events.emit('documentChange', document);
-    if (pageId) this.core.pages.goToPage(pageId);
+    this.core.file.restore(xml);
   }
 
   /** État « modifié » et libellés annuler / rétablir, d'après la pile d'annulation. */

@@ -42,6 +42,15 @@ export class Levels {
   }
 
   /**
+   * Réglages iso d'une page adoptés à son arrivée (`Config.adoptPageIso`) : volumes ou profondeur changés, les scènes
+   * sont vidées sans être reconstruites, la page arrivant les reconstruit à son affichage.
+   */
+  pageSettingsAdopted(settings: Settings, previous: Settings): void {
+    if (settings.view.isoVolume !== previous.view.isoVolume || settings.view.isoDepth !== previous.view.isoDepth)
+      this.core.scenes.clear();
+  }
+
+  /**
    * Niveau de rendu demandé par le mode de vue (repli à plat si les formes n'en ont pas). En
    * revenant à la 2D, les volumes restent tant que la caméra est inclinée ou en perspective :
    * ils s'aplatissent pendant l'animation (`applyHeightScale`), la page passe à plat à l'arrivée.

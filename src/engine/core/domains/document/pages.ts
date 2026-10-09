@@ -21,15 +21,34 @@ function isEmptyPage(page: PageModel): boolean {
 
 /** Pages du document : page affichée, caméra et réglages iso de chaque page, ajout, renommage, suppression. */
 export class Pages {
-  currentPageId: string | undefined;
+  private currentId: string | undefined;
   /** Dernière caméra de chaque page visitée (SPEC §9.4). */
-  pageCameras = new Map<string, CameraState>();
-  /** Dernière page du document affichée (pour revenir du graphe). */
-  lastDocumentPageId: string | undefined;
+  private pageCameras = new Map<string, CameraState>();
+  private lastDocumentId: string | undefined;
   /** Réglages iso de chaque page (lus du fichier, puis ceux en vigueur à la dernière visite). */
-  pageIso = new Map<string, IsoViewParams>();
+  private pageIso = new Map<string, IsoViewParams>();
 
   constructor(private readonly core: EngineCore) {}
+
+  /** Page courante (lecture seule : `setCurrent`, `arriveAt`). */
+  get currentPageId(): string | undefined {
+    return this.currentId;
+  }
+
+  /** Dernière page du document affichée (pour revenir du graphe). */
+  get lastDocumentPageId(): string | undefined {
+    return this.lastDocumentId;
+  }
+
+  /** Dernière caméra d'une page visitée (ou lue du fichier). */
+  cameraOf(pageId: string): CameraState | undefined {
+    return this.pageCameras.get(pageId);
+  }
+
+  /** Réglages iso enregistrés pour une page (fichier ou dernière visite). */
+  isoOf(pageId: string): IsoViewParams | undefined {
+    return this.pageIso.get(pageId);
+  }
 
   canEditPages(): boolean {
     return this.core.targets.editable && this.core.file.xmlTree?.xml.documentElement?.tagName === 'mxfile';
@@ -77,9 +96,9 @@ export class Pages {
     this.core.scenes.invalidate(pageId, true);
     this.pageCameras.delete(pageId);
     this.pageIso.delete(pageId);
-    if (this.lastDocumentPageId === pageId) this.lastDocumentPageId = undefined;
+    if (this.lastDocumentId === pageId) this.lastDocumentId = undefined;
     this.core.history.forgetPage(pageId);
-    if (this.currentPageId === pageId) this.currentPageId = undefined;
+    if (this.currentId === pageId) this.currentId = undefined;
     this.core.file.documentChanged([]);
     if (wasCurrent && !this.core.graph.isGraphView()) {
       const next = this.core.file.document!.pages[Math.min(index, this.core.file.document!.pages.length - 1)];
@@ -89,14 +108,14 @@ export class Pages {
 
   /** Page courante, sans rien afficher (pendant une transition, la page extérieure ; `undefined` : aucune). */
   setCurrent(pageId: string | undefined): void {
-    this.currentPageId = pageId;
+    this.currentId = pageId;
     this.core.keys.refresh();
   }
 
   /** Page affichée : courante, et dernière page du document vue si ce n'est pas la vue graphe. */
   arriveAt(pageId: string): void {
-    this.currentPageId = pageId;
-    if (!this.core.graph.isGraph(pageId)) this.lastDocumentPageId = pageId;
+    this.currentId = pageId;
+    if (!this.core.graph.isGraph(pageId)) this.lastDocumentId = pageId;
     this.core.keys.refresh();
   }
 
@@ -127,8 +146,8 @@ export class Pages {
    * mémorisées localement (plus récentes).
    */
   resetDocument(initialView: InitialView | undefined): void {
-    this.currentPageId = undefined;
-    this.lastDocumentPageId = undefined;
+    this.currentId = undefined;
+    this.lastDocumentId = undefined;
     const fileViews = this.core.file.xmlTree ? readPageViews(this.core.file.xmlTree) : new Map<string, PageViewState>();
     const { limits } = this.core.camera;
     this.pageIso = new Map([...fileViews].flatMap(([id, view]) => (view.iso ? [[id, view.iso] as const] : [])));
