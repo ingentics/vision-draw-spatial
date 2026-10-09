@@ -1,5 +1,5 @@
 import { Color } from 'three';
-import { PART_ORDER, fillMesh, rectPath, spatialNumber, clamp } from '../../../../core/plugins';
+import { DEFAULT_ACCENT, PART_ORDER, fillMesh, rectPath, spatialNumber, clamp } from '../../../../core/plugins';
 import type { SceneRenderer } from '../../../../core/plugins';
 import { building, CAP_HEIGHT, darker, facadeTag, facesOf, slab, tagOf } from '../../generic/building';
 
@@ -30,7 +30,7 @@ export function isoCache(flat: SceneRenderer): SceneRenderer {
       width: bounds.width - 2 * inset,
       height: bounds.height - 2 * inset,
     });
-    const accent = new Color(ctx.accent ?? '#1a73e8');
+    const accent = new Color(ctx.accent ?? DEFAULT_ACCENT);
     // Étiquette sur la tranche du bas, à sa hauteur.
     const tag = tagOf(shape, ctx, CACHE_TAG);
     // Voyants : petits carrés à gauche de chaque face, centrés dans leur tranche.

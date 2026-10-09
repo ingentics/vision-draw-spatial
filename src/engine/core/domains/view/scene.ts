@@ -4,6 +4,7 @@ import type { PageModel, Rect } from '../../model/types';
 import { buildPageScene, effectiveLevel } from '../../render/pageScene';
 import type { PageScene } from '../../render/pageScene';
 import { outsideLabelBox } from '../../render/labelPosition';
+import { labelBackdropSettings } from '../../render/styleColors';
 import type { EngineCore } from '../EngineCore';
 import type { SceneLevel } from '../../shapes/types';
 import type { Settings } from '../../settings';
@@ -94,11 +95,7 @@ export class SceneView {
       },
       accent: this.core.settings.selection.accentColor,
       edgeFontColor: this.core.settings.shapes.edgeFontColor,
-      edgeLabelBackdrop: {
-        kind: this.core.settings.shapes.edgeLabelBackdrop,
-        haloWidth: this.core.settings.shapes.edgeLabelHaloWidth,
-        haloBlur: this.core.settings.shapes.edgeLabelHaloBlur,
-      },
+      edgeLabelBackdrop: labelBackdropSettings(this.core.settings.shapes),
       edgeSplit: {
         length: this.core.settings.shapes.edgeSplitLength,
         fade: this.core.settings.shapes.edgeSplitFade,

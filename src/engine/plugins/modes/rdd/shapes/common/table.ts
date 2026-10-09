@@ -8,6 +8,7 @@ import {
   rectPath,
   strokeMesh,
   styleColor,
+  styleColorValue,
   styleOpacity,
   styleStroke,
   boxOutline,
@@ -115,7 +116,7 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
   const headerColor = styleColor(style, 'fillColor', DEFAULT_HEADER_COLOR) ?? new Color(DEFAULT_HEADER_COLOR);
   // Texte de l'entête : `fontColor` s'il est écrit (gris d'une table neuve, sujet 235), sinon lisible sur l'entête.
   const readable = readableOn(headerColor);
-  const textColor = style.fontColor && style.fontColor !== 'default' ? style.fontColor : readable;
+  const textColor = styleColorValue(style, 'fontColor', readable) ?? readable;
 
   const path = outline(shape, kind);
   group.add(fillMesh(path, new Color(FIELDS_FILL), styleOpacity(style, 'fillOpacity')));

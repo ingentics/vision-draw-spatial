@@ -17,7 +17,7 @@ import {
   setEdgeStep,
 } from '../../../../src/engine/plugins/modes/sequences/steps';
 import type { ModeEdit } from '../../../../src/engine/core/modes/modeEdit';
-import { darken } from '../../../../src/engine/core/render/decorations';
+import { darken } from '../../../../src/engine/core/render/styleColors';
 import { buildPageScene } from '../../../../src/engine/core/render/pageScene';
 import type { RenderContext, TextSpec } from '../../../../src/engine/core/render/types';
 import { spatialValue } from '../../../../src/engine/core/spatial';

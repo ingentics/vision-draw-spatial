@@ -5,6 +5,7 @@ import { canvasBrush } from './minimapBrush';
 import type { CameraState, Viewport } from './cameraMath';
 import { center, fitScale } from '../model/geometry';
 import { clamp } from '../model/numbers';
+import { DEFAULT_ACCENT } from '../render/styleColors';
 
 /**
  * Mini-carte (SPEC §10) : en bas à droite, toujours en vue de dessus et nord en haut, quel que
@@ -82,7 +83,7 @@ export interface MinimapSource {
 }
 
 /** Couleur du cadre de la vue par défaut ; son remplissage en est une version transparente. */
-const FOOTPRINT_STROKE = '#1a73e8';
+const FOOTPRINT_STROKE = DEFAULT_ACCENT;
 const BACKGROUND = '#ffffff';
 /** Trait des flèches par défaut (paramètre `minimap.edgeColor`). */
 const EDGE_STROKE = '#80868b';

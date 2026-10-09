@@ -204,15 +204,14 @@ function parseAttributes(source: string): Record<string, string> {
 /** Couleur CSS → #rrggbb (hexadécimal court ou long, `rgb()`), sinon undefined. */
 export function parseColor(value: string): string | undefined {
   const v = value.trim().toLowerCase();
-  if (/^#[0-9a-f]{3}$/.test(v)) return `#${[...v.slice(1)].map((c) => c + c).join('')}`;
   const rgb = v.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
   if (rgb)
     return `#${rgb
       .slice(1, 4)
       .map((c) => Math.min(255, Number(c)).toString(16).padStart(2, '0'))
       .join('')}`;
-  // Forme longue en dernier : le garde de type ne laisse rien de `v` après lui.
-  return isHexColor(v) ? v : undefined;
+  if (!isHexColor(v, true)) return undefined;
+  return v.length === 4 ? `#${[...v.slice(1)].map((c) => c + c).join('')}` : v;
 }
 
 function firstFamily(value: string): string {

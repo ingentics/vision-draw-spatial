@@ -1,6 +1,7 @@
 import { setCellStyleValue } from '../format/cellEdits';
 import { MONOSPACE_FAMILY } from '../format/richText';
 import type { PageTree } from '../format/xmlTree';
+import { hexToHsl, hslToHex } from '../render/styleColors';
 
 /**
  * Styles de forme (panneau « Forme », section Style) : fond, contour et éventuellement couleur du
@@ -114,44 +115,6 @@ export function matchesPreset(style: Record<string, string>, preset: StylePreset
 function normalize(value: string | undefined): string | undefined {
   const v = value?.trim().toLowerCase();
   return !v || v === 'default' ? undefined : v;
-}
-
-function hexToHsl(hex: string): [number, number, number] {
-  const n = parseInt(hex.slice(1), 16);
-  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((c) => c / 255) as [number, number, number];
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  const l = (max + min) / 2;
-  const d = max - min;
-  if (d === 0) return [0, 0, l];
-  const s = d / (1 - Math.abs(2 * l - 1));
-  const h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
-  return [(h * 60 + 360) % 360, s, l];
-}
-
-function hslToHex(h: number, s: number, l: number): string {
-  const c = (1 - Math.abs(2 * l - 1)) * s;
-  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
-  const m = l - c / 2;
-  const [r, g, b] =
-    h < 60
-      ? [c, x, 0]
-      : h < 120
-        ? [x, c, 0]
-        : h < 180
-          ? [0, c, x]
-          : h < 240
-            ? [0, x, c]
-            : h < 300
-              ? [x, 0, c]
-              : [c, 0, x];
-  return `#${[r, g, b]
-    .map((v) =>
-      Math.round((v + m) * 255)
-        .toString(16)
-        .padStart(2, '0'),
-    )
-    .join('')}`;
 }
 
 /**

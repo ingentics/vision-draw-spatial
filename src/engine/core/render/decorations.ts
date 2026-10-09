@@ -1,4 +1,4 @@
-import { Color, Group, SRGBColorSpace } from 'three';
+import { Color, Group } from 'three';
 import type { EdgeModel, Point, Rect } from '../model/types';
 import type { EdgeBadge } from '../modes/dressing';
 import { labelPoint } from './edges/polyline';
@@ -8,9 +8,8 @@ import { ellipsePath } from './geometry/paths';
 import { fillMesh, strokeMesh } from './meshes';
 import { PART_ORDER } from './types';
 import { inflate, rectPath } from '../model/geometry';
+import { DEFAULT_ACCENT } from './styleColors';
 
-/** Couleur d'accent par défaut (paramètre `selection.accentColor`). */
-export const DEFAULT_ACCENT = '#1a73e8';
 /** Pastille d'une flèche par défaut, quand le mode n'en donne pas l'apparence (`PageDressing.edgeBadgeStyle`). */
 export const DEFAULT_EDGE_BADGE: EdgeBadgeStyle = {
   radius: 12,
@@ -183,33 +182,4 @@ export function linkZone(bounds: Rect, zoom: number, accent = DEFAULT_ACCENT): G
     o.renderOrder = Number.MAX_SAFE_INTEGER;
   });
   return group;
-}
-
-/**
- * Couleur assombrie (luminosité × (1 − `amount`), en HSL sRGB) : trait d'une flèche colorée par un mode. Garde la
- * teinte perçue ; pour un retrait de gravure comme draw.io, voir `shade` (RVB).
- */
-export function darken(color: string, amount: number): string {
-  const hsl = { h: 0, s: 0, l: 0 };
-  new Color(color).getHSL(hsl, SRGBColorSpace);
-  return `#${new Color().setHSL(hsl.h, hsl.s, hsl.l * (1 - amount), SRGBColorSpace).getHexString()}`;
-}
-
-/**
- * Couleur éclaircie : chaque composante RVB sRGB rapprochée du blanc de `amount` (0 : inchangée, 1 : blanc). Fond d'une
- * région du mode RDD, plus clair que la couleur de son style (sujet 345).
- */
-export function lighten(color: string | Color, amount: number): string {
-  const rgb = { r: 0, g: 0, b: 0 };
-  new Color(color).getRGB(rgb, SRGBColorSpace);
-  const mix = (value: number) => value + (1 - value) * amount;
-  return `#${new Color().setRGB(mix(rgb.r), mix(rgb.g), mix(rgb.b), SRGBColorSpace).getHexString()}`;
-}
-
-/**
- * Couleur × `factor` en RVB (#rrggbb), `color` en #rrggbb ou en `Color` : retrait des gravures et des socles, comme
- * draw.io. Diffère de `darken` (HSL), d'où deux noms.
- */
-export function shade(color: string | Color, factor: number): string {
-  return `#${new Color(color).multiplyScalar(factor).getHexString()}`;
 }

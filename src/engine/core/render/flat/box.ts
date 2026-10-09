@@ -83,8 +83,7 @@ export function createLabel(
   const outside = outsideLabelBox(shape.bounds, style);
   const bounds = outside ?? zone;
 
-  const align = (['left', 'right'].includes(style.align ?? '') ? style.align : 'center') as TextSpec['align'];
-  const vertical = style.verticalAlign === 'top' ? 'top' : style.verticalAlign === 'bottom' ? 'bottom' : 'middle';
+  const { anchorX: align, anchorY: vertical } = textAnchors(style);
 
   const insets = labelInsets(style);
   const left = bounds.x + insets.left;
@@ -129,6 +128,20 @@ export function createLabel(
   // Hors de la forme : posé au sol à côté du volume en iso (`createShapeObject`).
   if (outside) object.userData.outsideLabel = true;
   return object;
+}
+
+/**
+ * Ancrages d'un texte selon `align` / `verticalAlign` (centré par défaut, SPEC §8.3) : commun au label d'une forme
+ * (posé dans sa zone) et au texte d'une flèche (posé autour de son point).
+ */
+export function textAnchors(style: Record<string, string>): {
+  anchorX: TextSpec['align'];
+  anchorY: 'top' | 'middle' | 'bottom';
+} {
+  return {
+    anchorX: style.align === 'left' || style.align === 'right' ? style.align : 'center',
+    anchorY: style.verticalAlign === 'top' ? 'top' : style.verticalAlign === 'bottom' ? 'bottom' : 'middle',
+  };
 }
 
 /**

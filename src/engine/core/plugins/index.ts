@@ -94,8 +94,16 @@ export { edgeLines } from '../render/lines';
 export { fillMesh, solidMaterial, strokeMesh } from '../render/meshes';
 export { DRAWIO_STYLES, drawioStyle } from '../edit/stylePresets';
 export type { StylePreset } from '../edit/stylePresets';
-export { darken, lighten, shade } from '../render/decorations';
-export { readableOn, styleColor, styleStroke } from '../render/styleColors';
+export {
+  DEFAULT_ACCENT,
+  darken,
+  lighten,
+  readableOn,
+  shade,
+  styleColor,
+  styleColorValue,
+  styleStroke,
+} from '../render/styleColors';
 export type { StyleStroke } from '../render/styleColors';
 // Mesure du texte : celle du moteur arrive par `ctx.measureText` (formes) ou `edit.measureText` (modes, sujet 377) ;
 // l'approximation seule sert à ce qui est calculé sans moteur (ex. taille d'un modèle de la palette).

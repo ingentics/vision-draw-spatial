@@ -346,9 +346,9 @@ Règles à respecter :
 
 - **Lisez le style avec les aides** de [model/styleValues.ts](../src/engine/core/model/styleValues.ts) (`styleNumber`,
   `styleFlag`, `styleOpacity`, `fontStyleValue`) et de [render/styleColors.ts](../src/engine/core/render/styleColors.ts)
-  (`styleColor(style, clé, défaut)`, qui gère `none`, `default` et les couleurs invalides ; `styleStroke`), par l'API
-  des plugins. Ne
-  parsez pas les chaînes vous-même.
+  (`styleColor(style, clé, défaut)`, qui gère `none`, `default` et les couleurs invalides ; `styleColorValue`, la même
+  règle en chaîne ; `styleStroke` ; `darken`, `lighten`, `shade`, `readableOn`, `DEFAULT_ACCENT`), par l'API des
+  plugins. Ne parsez pas les chaînes vous-même.
 - **Attributs spatiaux** : passez par `spatialNumber(shape, SPATIAL.xxx)` / `spatialValue`
   ([spatial.ts](../src/engine/core/spatial.ts)), qui lisent le style **puis** les attributs de l'objet. Un nouvel
   attribut se déclare dans `SPATIAL`, avec le préfixe `spatial.`, que draw.io conserve (SPEC §14.3).

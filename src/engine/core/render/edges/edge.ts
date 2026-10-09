@@ -15,7 +15,8 @@ import { LINE_HEIGHT, approximateMeasure } from '../richLayout';
 import { DEFAULT_EDGE_SPLIT, isSplit, splitLabelFrame, splitPieces } from './split';
 import type { EdgeSplitSettings, SplitHover, SplitPiece } from './split';
 import { styleNumber, styleOpacity, textFormat, styleFlag } from '../../model/styleValues';
-import { DEFAULT_LABEL_BACKDROP, PAGE_BACKGROUND, labelBackground, styleColor } from '../styleColors';
+import { PAGE_BACKGROUND, labelBackdropOf, styleColor } from '../styleColors';
+import { labelObject, textAnchors } from '../flat/box';
 import { PART_ORDER } from '../types';
 import type { RenderContext } from '../types';
 import type { TextAlong } from '../textPath';
@@ -288,44 +289,36 @@ function createEdgeLabel(
 ): Object3D | null {
   if (!text.trim() || styleFlag(style, 'noLabel')) return null;
   const point = labelPoint(route, placement);
-  // Comme draw.io : aligné à gauche, le texte part du point vers la droite (le côté gauche est fixe) ;
-  // à droite, l'inverse ; centré, de part et d'autre.
-  const align = style.align === 'left' || style.align === 'right' ? style.align : 'center';
-  const object = ctx.text.create({
-    text,
-    x: point.x,
-    y: point.y,
-    anchorX: align,
-    // Même logique en hauteur : aligné en haut, le texte part du point vers le bas ; en bas, vers le haut.
-    anchorY: style.verticalAlign === 'top' ? 'top' : style.verticalAlign === 'bottom' ? 'bottom' : 'middle',
-    align,
-    fontSize: styleNumber(style, 'fontSize', 11),
-    // Sans `fontColor` : couleur par défaut du paramètre `shapes.edgeFontColor` (noir).
-    color: styleColor(style, 'fontColor', ctx.edgeFontColor ?? DEFAULT_EDGE_FONT_COLOR)!,
-    opacity: styleOpacity(style, 'textOpacity'),
-    ...textFormat(style, rich),
-    // Fond explicite (`labelBackgroundColor=#…`), sinon le paramètre : halo de la couleur de la page
-    // autour de chaque lettre (lisible sur le trait, sans fond), fond uni, ou rien.
-    ...edgeLabelBackdrop(style, ctx),
-    ...(along && { along }),
-  });
-  object.name = 'label';
+  // Comme draw.io : aligné à gauche, le texte part du point vers la droite (le côté gauche est fixe) ; à droite,
+  // l'inverse ; centré, de part et d'autre. Même logique en hauteur : aligné en haut, il part du point vers le bas.
+  const { anchorX, anchorY } = textAnchors(style);
+  // Fond explicite (`labelBackgroundColor=#…`), sinon le paramètre : halo de la couleur de la page
+  // autour de chaque lettre (lisible sur le trait, sans fond), fond uni, ou rien.
+  const backdrop = labelBackdropOf(style, true, ctx.edgeLabelBackdrop, ctx.background);
   // Cellule qui porte le texte (l'arête, ou le label enfant) : masqué pendant l'édition en place.
-  object.userData.labelCellId = cellId;
+  const object = labelObject(
+    ctx,
+    {
+      text,
+      x: point.x,
+      y: point.y,
+      anchorX,
+      anchorY,
+      align: anchorX,
+      fontSize: styleNumber(style, 'fontSize', 11),
+      // Sans `fontColor` : couleur par défaut du paramètre `shapes.edgeFontColor` (noir).
+      color: styleColor(style, 'fontColor', ctx.edgeFontColor ?? DEFAULT_EDGE_FONT_COLOR)!,
+      opacity: styleOpacity(style, 'textOpacity'),
+      ...textFormat(style, rich),
+      ...(backdrop.background && { background: new Color(backdrop.background) }),
+      ...(backdrop.halo && { halo: { ...backdrop.halo, color: new Color(backdrop.halo.color) } }),
+      ...(along && { along }),
+    },
+    cellId,
+  );
   // Point d'ancrage (espace page) : pivot du texte quand un mode le redresse face à la caméra.
   object.userData.labelAnchor = point;
   // Posé lettre par lettre le long du trait : attrapé lettre par lettre (pas dans sa boîte englobante).
   if (along) object.userData.alongPath = true;
-  object.renderOrder = PART_ORDER.label;
   return object;
-}
-
-/** Fond explicite d'un texte de flèche, sinon celui du paramètre (halo par défaut). */
-function edgeLabelBackdrop(style: Record<string, string>, ctx: RenderContext) {
-  const explicit = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(style.labelBackgroundColor?.trim() ?? '');
-  if (explicit) return { background: labelBackground(style, null, ctx.background) };
-  const page = new Color(ctx.background ?? PAGE_BACKGROUND);
-  const { kind, haloWidth, haloBlur } = ctx.edgeLabelBackdrop ?? DEFAULT_LABEL_BACKDROP;
-  if (kind === 'solid') return { background: page };
-  return kind === 'halo' ? { halo: { color: page, width: haloWidth, blur: haloBlur } } : {};
 }

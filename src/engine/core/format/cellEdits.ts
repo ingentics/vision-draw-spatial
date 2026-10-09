@@ -1,6 +1,6 @@
 import type { Point } from '../model/types';
 import type { Element } from '@xmldom/xmldom';
-import { parseStyle } from './style';
+import { parseStyle, setStyleKey } from './style';
 import { childElements, markPageDirty } from './xmlTree';
 import type { PageTree } from './xmlTree';
 
@@ -99,20 +99,8 @@ export function setCellStyleValue(page: PageTree, cellId: string, key: string, v
   const cell = page.cells.get(cellId)?.cell;
   if (!cell) throw new Error(`Cellule ${cellId} introuvable`);
   const style = cell.getAttribute('style') ?? '';
-  const tokens = style.split(';').filter((token) => token.trim() !== '');
-  const index = tokens.findIndex((token) => token.split('=')[0]!.trim() === key && token.includes('='));
-  if (value === undefined) {
-    if (index < 0) return;
-    tokens.splice(index, 1);
-  } else if (index >= 0) {
-    if (tokens[index] === `${key}=${value}`) return;
-    tokens[index] = `${key}=${value}`;
-  } else {
-    tokens.push(`${key}=${value}`);
-  }
-  // draw.io termine ses styles par « ; » : on garde la forme d'origine.
-  const ended = style.trimEnd().endsWith(';') || style.trim() === '';
-  const next = tokens.join(';') + (ended && tokens.length ? ';' : '');
+  const next = setStyleKey(style, key, value);
+  if (next === style) return;
   if (next) cell.setAttribute('style', next);
   else cell.removeAttribute('style');
   markPageDirty(page);

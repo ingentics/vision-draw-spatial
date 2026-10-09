@@ -57,7 +57,13 @@ export function textFormat(style: Record<string, string>, rich: DeepReadonly<Ric
   };
 }
 
-/** Couleur `#rrggbb` (casse libre), la forme qu'écrivent draw.io et l'appli (sujet 291). */
-export function isHexColor(value: string | undefined): value is string {
-  return value !== undefined && /^#[0-9a-f]{6}$/i.test(value);
+/** `#rgb` ou `#rrggbb`, casse libre : la seule regex hexadécimale du moteur (`isHexColor`). */
+const HEX_COLOR = /^#([0-9a-f]{3}){1,2}$/i;
+
+/**
+ * Couleur `#rrggbb` (casse libre), la forme qu'écrivent draw.io et l'appli (sujet 291) ; avec `short`, la forme courte
+ * `#rgb` aussi (fond d'un label, couleur d'un texte riche HTML).
+ */
+export function isHexColor(value: string | undefined, short = false): value is string {
+  return value !== undefined && HEX_COLOR.test(value) && (short || value.length === 7);
 }

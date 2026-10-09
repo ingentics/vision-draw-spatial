@@ -2,6 +2,7 @@ import { buildNavigationGraph } from '../model/navigationGraph';
 import type { GraphNode, NavigationGraph } from '../model/navigationGraph';
 import type { DocumentModel, EdgeModel, PageModel, Point, Rect, ShapeModel } from '../model/types';
 import { center, direction, unionOf } from '../model/geometry';
+import { DEFAULT_ACCENT } from '../render/styleColors';
 
 /**
  * Vue graphe de la documentation (SPEC §12), sous forme d'une **page générée** : chaque page du
@@ -48,7 +49,7 @@ export interface GraphColors {
 
 export const GRAPH_COLORS: GraphColors = {
   card: '#9aa0a6',
-  start: '#1a73e8',
+  start: DEFAULT_ACCENT,
   orphan: '#d93025',
   unreachable: '#e37400',
   arc: '#5f6368',

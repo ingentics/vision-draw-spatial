@@ -5,7 +5,7 @@ import { anchorPosition, constraintStyle, sideMiddle } from '../../../edit/edgeE
 import type { PageModel, Point } from '../../../model/types';
 import { connectorPreview } from '../../../render/handleMeshes';
 import type { ConnectDrag } from './types';
-import { withStyleValue } from '../helpers';
+import { withStyleDefault } from '../../../format/style';
 import type { EngineCore } from '../../EngineCore';
 import { edgeOf, shapeOf } from '../../../model/pageIndex';
 import { center, samePoint } from '../../../model/geometry';
@@ -127,13 +127,13 @@ export class ConnectDrags {
     }
     this.core.edits.recordEdit('Connecteur');
     const line = CONNECTOR_STYLE + EDGE_LINE_KEYS[this.core.settings.shapes.edgeLineStyle];
-    let style = withStyleValue(line, 'fontSize', String(this.core.settings.shapes.textSize));
+    let style = withStyleDefault(line, 'fontSize', String(this.core.settings.shapes.textSize));
     const exit = drag.exit ?? sideMiddle(drag.side);
     for (const [key, value] of Object.entries(constraintStyle('source', exit)))
-      if (value !== undefined) style = withStyleValue(style, key, value);
+      if (value !== undefined) style = withStyleDefault(style, key, value);
     if (drag.target.kind === 'fixed')
       for (const [key, value] of Object.entries(constraintStyle('target', drag.target.constraint)))
-        if (value !== undefined) style = withStyleValue(style, key, value);
+        if (value !== undefined) style = withStyleDefault(style, key, value);
     const id = addEdgeCell(pageTree, { source: drag.sourceId, target: drag.target.shapeId, style });
     // Flèche créée dans un calque : ses points sont en coordonnées de page.
     if (drag.loop) setEdgePoints(pageTree, id, drag.loop);

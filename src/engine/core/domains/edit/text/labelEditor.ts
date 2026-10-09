@@ -12,6 +12,7 @@ import type { LabelEditPlane, LabelEditRequest } from '../../types';
 import type { EngineCore } from '../../EngineCore';
 import { boundsOfPoints, center, distance, rectPath, sameRect, unionOf } from '../../../model/geometry';
 import { styleFlag } from '../../../model/styleValues';
+import { labelBackdropOf, labelBackdropSettings } from '../../../render/styleColors';
 import type { ReadonlyShapeModel } from '../../../model/readonly';
 import { shapeTarget } from '../../../modes/modeTargets';
 import { byId, edgeOf, elementOf, shapeOf } from '../../../model/pageIndex';
@@ -190,30 +191,20 @@ export class LabelEditor {
     });
   }
 
-  /**
-   * Fond et halo du texte édité, comme le label dessiné : une forme a le fond de `labelBackgroundColor`
-   * (`default` = la page) ; une flèche n'a de fond que s'il est explicite, sinon un halo autour des lettres.
-   */
+  /** Fond et halo du texte édité, comme le label dessiné (`labelBackdropOf`). */
   labelEditBackdrop(
     style: Record<string, string>,
     onEdge: boolean,
   ): Pick<LabelEditRequest, 'background' | 'halo' | 'haloWidth' | 'haloBlur'> {
-    const value = style.labelBackgroundColor?.trim().toLowerCase();
-    if (value && /^#([0-9a-f]{3}|[0-9a-f]{6})$/.test(value)) return { background: value };
-    const page = this.core.settings.background.color;
-    if (onEdge) {
-      const backdrop = this.core.settings.shapes.edgeLabelBackdrop;
-      return backdrop === 'halo'
-        ? {
-            halo: page,
-            haloWidth: this.core.settings.shapes.edgeLabelHaloWidth,
-            haloBlur: this.core.settings.shapes.edgeLabelHaloBlur,
-          }
-        : backdrop === 'solid'
-          ? { background: page }
-          : {};
-    }
-    return value === 'default' ? { background: page } : {};
+    const { settings } = this.core;
+    const { background, halo } = labelBackdropOf(
+      style,
+      onEdge,
+      labelBackdropSettings(settings.shapes),
+      settings.background.color,
+    );
+    if (halo) return { halo: halo.color, haloWidth: halo.width, haloBlur: halo.blur };
+    return background ? { background } : {};
   }
 
   /**

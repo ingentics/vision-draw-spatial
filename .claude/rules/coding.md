@@ -87,8 +87,11 @@ Folder map with each folder's role: `docs/SUMMARY.md` §3 (single source). Where
   `tests/engine/core/model/geometry.test.ts`.
 - **Access by id**: `shapeOf(page, id)`, `edgeOf`, `elementOf`, `byId(list, id)`, and the indexes `shapesById`,
   `edgesById` (`model/pageIndex.ts`, also in the plugin API). No `page.shapes.find((s) => s.id === id)`.
-- **Style values**: `styleNumber`, `styleFlag`, `styleOpacity` (`model/styleValues.ts`), `styleColor`
-  (`render/styleColors.ts`). No `parseFloat(style.x ?? '')` nor `style.x === '1'`.
+- **Style values**: `styleNumber`, `styleFlag`, `styleOpacity`, `isHexColor` (`model/styleValues.ts`), `styleColor`,
+  `styleColorValue` (`none` / `default` / fallback rule, as a string) (`render/styleColors.ts`). No
+  `parseFloat(style.x ?? '')`, `style.x === '1'` nor hex regex. **Colours** (`render/styleColors.ts`): `darken`,
+  `lighten`, `shade`, `hexToHsl` / `hslToHex`, `readableOn`, `DEFAULT_ACCENT`, label backdrop `labelBackdropOf`.
+  **Writing a style key** into a style string: `setStyleKey`, `withStyleDefault` (`format/style.ts`).
 - **Sides of a shape**: type `Side`, `SIDES`, `SIDE_NORMALS`, `pointOnSide`, `sideMiddle`, `sideSegment`, and anchor
   points `anchorPosition`, `nearestFreeAnchor` (`edit/edgeEnds.ts`). **Nearest handle on screen**: `nearestOnScreen`
   (`domains/selection/picking.ts`). **Anchorings**: `ANCHORINGS` (`edit/anchoring/mode.ts`).

@@ -1,0 +1,1 @@
+Le test de `labelObject` (`render/flat/box.ts`) est dans `tests/engine/core/render/labelObject.test.ts`, pas au chemin miroir `tests/engine/core/render/flat/box.test.ts` (créé au sujet 383 pour `textAnchors`) : à y ranger (vu au sujet 383).

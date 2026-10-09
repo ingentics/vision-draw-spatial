@@ -3,6 +3,7 @@ import type { Point } from '../model/types';
 import { appendIndented, ensureLayer, ensureRoot, newCellId } from './create';
 import { decodeDiagram } from './decode';
 import { formatNumber } from './cellEdits';
+import { setStyleKey } from './style';
 import { childElements, markPageDirty, parseXml, reindexPage } from './xmlTree';
 import type { PageTree } from './xmlTree';
 
@@ -176,15 +177,11 @@ export function pasteCells(page: PageTree, model: Element, options: PasteOptions
  */
 export function stripCellKeys(model: Element, keys: readonly string[]): void {
   if (keys.length === 0) return;
-  const removed = new Set(keys);
   for (const { element, cell } of contentCells(model)) {
     if (element !== cell) for (const key of keys) element.removeAttribute(key);
     const style = cell.getAttribute('style');
     if (!style) continue;
-    const next = style
-      .split(';')
-      .filter((token) => !(token.includes('=') && removed.has(token.split('=')[0]!.trim())))
-      .join(';');
+    const next = keys.reduce((current, key) => setStyleKey(current, key, undefined), style);
     if (next !== style) cell.setAttribute('style', next);
   }
 }

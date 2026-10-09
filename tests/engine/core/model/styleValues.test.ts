@@ -10,6 +10,14 @@ describe('isHexColor (sujet 291)', () => {
     expect(isHexColor('#dae8fc ')).toBe(false);
     expect(isHexColor(undefined)).toBe(false);
   });
+
+  it('forme courte #rgb acceptée sur demande (sujet 383), et rien d’autre', () => {
+    expect(isHexColor('#AbC', true)).toBe(true);
+    expect(isHexColor('#dae8fc', true)).toBe(true);
+    expect(isHexColor('#abcd', true)).toBe(false);
+    expect(isHexColor('abc', true)).toBe(false);
+    expect(isHexColor(undefined, true)).toBe(false);
+  });
 });
 
 describe('fontStyleValue (sujet 307)', () => {

@@ -6,7 +6,7 @@ import type { ShapeTemplate } from '../../../edit/palette';
 import { screenToPage } from '../../../interaction/cameraMath';
 import type { PageTree } from '../../../format/xmlTree';
 import type { Point, Rect } from '../../../model/types';
-import { withStyleValue } from '../helpers';
+import { withStyleDefault } from '../../../format/style';
 import { CONNECTOR_STYLE, EDGE_LINE_KEYS } from '../drag/connect';
 import type { EngineCore } from '../../EngineCore';
 import { edgeOf, shapeOf } from '../../../model/pageIndex';
@@ -28,7 +28,7 @@ export class ElementCommands {
     const bounds = dropBounds(template, at, gridSizeOf(pageTree));
     if (template.edge) return this.addFreeEdge(template, page.id, pageTree, bounds);
     this.core.edits.recordEdit('Nouvelle forme');
-    const style = withStyleValue(template.style, 'fontSize', String(this.core.settings.shapes.textSize));
+    const style = withStyleDefault(template.style, 'fontSize', String(this.core.settings.shapes.textSize));
     const id = addShapeCell(pageTree, { style, value: template.value, ...bounds });
     if (template.atBack) reorderCells(pageTree, [id], 'back');
     this.core.modeFollowUps.shapesPlaced(page.id, [id]);
@@ -42,7 +42,7 @@ export class ElementCommands {
   private addFreeEdge(template: ShapeTemplate, pageId: string, pageTree: PageTree, bounds: Rect): string {
     this.core.edits.recordEdit('Nouvelle flèche');
     const line = CONNECTOR_STYLE + EDGE_LINE_KEYS[this.core.settings.shapes.edgeLineStyle];
-    const style = withStyleValue(template.style + line, 'fontSize', String(this.core.settings.shapes.textSize));
+    const style = withStyleDefault(template.style + line, 'fontSize', String(this.core.settings.shapes.textSize));
     const id = addEdgeCell(pageTree, { style });
     const y = bounds.y + bounds.height / 2;
     setEdgeTerminal(pageTree, id, 'source', { point: { x: bounds.x, y } });

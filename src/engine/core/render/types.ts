@@ -6,6 +6,7 @@ import type { JumpDefaults } from './edges/jumps';
 import type { MeasureText } from './richLayout';
 import type { EdgeSplitSettings } from './edges/split';
 import type { TextAlong } from './textPath';
+import type { LabelBackdropSettings } from './styleColors';
 
 /** Ordre de dessin des sous-parties d'un élément (ajouté à l'ordre de l'élément dans la page). */
 export const PART_ORDER = { fill: 0, stroke: 1, label: 2 } as const;
@@ -90,7 +91,7 @@ export interface RenderContext extends MeasureContext {
   /** Scène en volume (iso, 3D) : les sauts Arc et Marche se lèvent hors du plan de la page (ticket 146). */
   raisedJumps?: boolean;
   /** Fond du texte des flèches sans fond explicite : halo (épaisseur et flou en pixels de page), uni, ou aucun. */
-  edgeLabelBackdrop?: { kind: 'halo' | 'solid' | 'none'; haloWidth: number; haloBlur: number };
+  edgeLabelBackdrop?: LabelBackdropSettings;
   /** Couleur du fond de la vue : fond des labels `labelBackgroundColor=default` (blanc par défaut). */
   background?: string;
   /** Flèches coupées (`split=1`, ticket 219) : longueur des tronçons, fondu, marge du cadre de renvoi. */

@@ -6,7 +6,7 @@ import type { HandleLayout, MovedHandles } from '../edit/handleKinds';
 import type { Point, Rect } from '../model/types';
 import { ellipsePath } from './geometry/paths';
 import { rectPath } from '../model/geometry';
-import { DEFAULT_ACCENT } from './decorations';
+import { DEFAULT_ACCENT } from './styleColors';
 import { perimeterPolygon } from './edges/route';
 import { orientedPath } from './geometry/orient';
 import type { PerimeterKind } from './edges/route';

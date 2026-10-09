@@ -1,7 +1,8 @@
 import { Group } from 'three';
 import type { Material, Object3D } from 'three';
 import type { EdgeModel, PageModel, Point, ShapeModel } from '../model/types';
-import { DEFAULT_EDGE_BADGE, darken, edgeBadge } from './decorations';
+import { DEFAULT_EDGE_BADGE, edgeBadge } from './decorations';
+import { darken } from './styleColors';
 import { SPATIAL, spatialNumber } from '../spatial';
 import { TOP_OFFSET } from './iso/block';
 import { disposeObject } from './meshes';

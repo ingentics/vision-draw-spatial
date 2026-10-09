@@ -1,5 +1,6 @@
 import { ISOMETRIC_ELEVATION_DEG } from '../../interaction/cameraMath';
 import { DEFAULT_DEPTH } from '../../spatial';
+import { DEFAULT_ACCENT } from '../../render/styleColors';
 import { color, flag, number, oneOf } from '../fields';
 import type { Spec } from '../fields';
 import type {
@@ -97,7 +98,7 @@ export const SELECTION = {
   speed: number(4, { min: 2, max: 80, step: 1 }),
   veilColor: color('#202124'),
   veilPadding: number(10, { min: 0, max: 60, step: 1 }),
-  accentColor: color('#1a73e8'),
+  accentColor: color(DEFAULT_ACCENT),
 } satisfies Spec<SelectionSettings>;
 
 export const GRAPH = {
