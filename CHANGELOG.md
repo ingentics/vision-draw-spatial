@@ -1,5 +1,52 @@
 # Changelog
 
+## [0.9.0](https://github.com/ingentics/vision-draw-spatial/compare/drawio-spatial-v0.8.0...drawio-spatial-v0.9.0) (2026-10-09)
+
+
+### ⚠ BREAKING CHANGES
+
+* **rdd:** clés de champ pgName / pgType renommées dbName / dbType, sans migration : les anciennes clés d'un fichier ne sont plus lues.
+* **engine:** méthodes retirées de Engine : fitToBounds, getBackTarget, getCachedPageIds, getGraphPage, getOverviewState, getPageScene, getReferenceRotation, getXmlTree, isTransitioning, modeKey, pickAt, placementVariant, preloadLink, reducedMotion.
+
+### Fonctionnalités
+
+* **app:** animation d'un lien entre pages à 0,5 s par défaut ([d9e7c50](https://github.com/ingentics/vision-draw-spatial/commit/d9e7c5001741a6a245f803af795c4cc9bdd8f736))
+* **app:** bouton plein écran dans la barre d'outils ([23e5884](https://github.com/ingentics/vision-draw-spatial/commit/23e58848813b38213af85b5c4d550256cd30c6a3))
+* **app:** focus sur la zone de dessin au chargement d'un fichier ([965d57e](https://github.com/ingentics/vision-draw-spatial/commit/965d57e19c1dfb3d267ff182a2b6a44f69addd0f))
+* **engine:** flèche d'un flux sélectionnée sans voile ni contour ([8bdd404](https://github.com/ingentics/vision-draw-spatial/commit/8bdd404a8f0443714a814ba5b6ad4808009ff6e7))
+* **engine:** glisser la flèche pleine par son corps ([913e975](https://github.com/ingentics/vision-draw-spatial/commit/913e97562267b6f2ecb81185c7c1b664f5d6e151))
+* **engine:** ModePartText exporté par l'API des plugins ([26abd98](https://github.com/ingentics/vision-draw-spatial/commit/26abd98a94465d1a7888452d8ac3e393c7809875))
+* **engine:** réglages déclarés par les catégories de formes ([07f6386](https://github.com/ingentics/vision-draw-spatial/commit/07f638679a64a4293ba1327a0c8a51ff30abd75c))
+* **engine:** sens aller / retour d'une flèche de flux, retours en pointillés ([14326d5](https://github.com/ingentics/vision-draw-spatial/commit/14326d58fa612ccdec388532f3562010c2d03c9f))
+* **engine:** Tab passe au courant suivant de la barre du mode ([ecc6d8a](https://github.com/ingentics/vision-draw-spatial/commit/ecc6d8ac389b988afddde02018959885871c6e62))
+* **engine:** touches de page d'un mode, rien de sélectionné ([320cafc](https://github.com/ingentics/vision-draw-spatial/commit/320cafc227a513850fa3f607682013899bf0a75b))
+* **palette:** flèche pleine, droite et effilée (« block arrow ») ([7abe82f](https://github.com/ingentics/vision-draw-spatial/commit/7abe82f0dc1e41f96d59385ad23121a979e8f7b3))
+* **palette:** pointe courbe et fine des accolades arrondies ([384e382](https://github.com/ingentics/vision-draw-spatial/commit/384e382ec87f4eab77fae7b261f0b64430d7625a))
+* **palette:** post-it, texte qui remplit la forme ([a2785ac](https://github.com/ingentics/vision-draw-spatial/commit/a2785ac2aa92a6fea63012930304fc31115f738c))
+* **rdd:** « Entité » devient « Table », « Entité énumérative » devient « Table énumérative » ([79f0893](https://github.com/ingentics/vision-draw-spatial/commit/79f08930579aff370f5f261a5209f4ee8558a9ef))
+* **rdd:** bascule entre couche logique et couche physique ([c9f05db](https://github.com/ingentics/vision-draw-spatial/commit/c9f05dbc3b20771627726870795b9da5195bec05))
+* **rdd:** couches logique et physique au panneau d'une table ([be6ffdb](https://github.com/ingentics/vision-draw-spatial/commit/be6ffdba11e1ef37ccd7e7492d1dc4bf92af66d2))
+* **rdd:** flèche de relation sélectionnée sans voile ni contour ([142a5e2](https://github.com/ingentics/vision-draw-spatial/commit/142a5e236b09a378e0c77d18f6bf22168a02e036))
+* **rdd:** icône d'alerte pour un nom ou un type physique manquant ([31d2f60](https://github.com/ingentics/vision-draw-spatial/commit/31d2f60812ccd46c0eace9c23880f338def3c30f))
+* **rdd:** post-it dans la palette d'une page RDD ([93fec20](https://github.com/ingentics/vision-draw-spatial/commit/93fec208662e6458f57a1fb39ec7cdcdce5c4123))
+* **sequences:** touche « x » pour basculer le sens d'une flèche de flux ([1caff79](https://github.com/ingentics/vision-draw-spatial/commit/1caff79e378bc2b51f7343d194a2b58051f1e6fe))
+
+
+### Corrections
+
+* **app:** aide au survol des réglages de plugin, infobulles visibles dans les Paramètres ([5f149c7](https://github.com/ingentics/vision-draw-spatial/commit/5f149c70818fc89494f949c428b9a9a7c4b1c4d1))
+* **engine:** courant figé pendant l'édition du texte d'une partie ([25532b9](https://github.com/ingentics/vision-draw-spatial/commit/25532b91b986965524301153892e28b2d4a3e830))
+* **engine:** espaces d'un label HTML gardés à la relecture et à la saisie ([a1f6b12](https://github.com/ingentics/vision-draw-spatial/commit/a1f6b124f03ab76dc950eb691f54da21c2d5f2b0))
+* **engine:** fond sans volume lu comme le rendu iso pour l'empilement ([4b0d19a](https://github.com/ingentics/vision-draw-spatial/commit/4b0d19a992128bd622f9a26424e8b1fac749b602))
+* **engine:** id d'une forme vérifié à l'enregistrement ([0c93e16](https://github.com/ingentics/vision-draw-spatial/commit/0c93e16ba026460b786342175a907392e93ef79c))
+* **engine:** lignes vides d'un texte gardées à la lecture, à l'écriture et au rendu ([dadcb95](https://github.com/ingentics/vision-draw-spatial/commit/dadcb95bfd5747e9da3c16355588c9dba67f6de7))
+* **engine:** réglages en direct écrits dans la copie de travail, pas dans le modèle gelé ([d32198d](https://github.com/ingentics/vision-draw-spatial/commit/d32198d79bd143c782b21d107698b5e05c7c4f8b))
+
+
+### Refactorisations
+
+* **engine:** façade et API réduites à ce qui sert, code mort retiré ([9085f2c](https://github.com/ingentics/vision-draw-spatial/commit/9085f2cb22030f94de5eba0915e45377e3ff3f23))
+
 ## [0.8.0](https://github.com/ingentics/vision-draw-spatial/compare/drawio-spatial-v0.7.0...drawio-spatial-v0.8.0) (2026-10-08)
 
 
