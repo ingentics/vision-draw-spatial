@@ -18,10 +18,9 @@ import type { EdgeSplitSettings, SplitHover, SplitPiece } from './split';
 import { styleNumber, styleOpacity, textFormat, styleFlag } from '../../model/styleValues';
 import { PAGE_BACKGROUND, labelBackdropOf, styleColor } from '../styleColors';
 import { labelObject, textAnchors } from '../flat/box';
-import { PART_ORDER } from '../types';
 import type { RenderContext } from '../types';
 import type { TextAlong } from '../textPath';
-import { direction } from '../../model/geometry';
+import { direction, rectPath } from '../../model/geometry';
 
 /** Défauts draw.io pour les arêtes. */
 const DEFAULT_END_ARROW = 'classic';
@@ -233,12 +232,7 @@ function splitLabel(
   const points = piece.points;
   const end = points[points.length - 1]!;
   const center = splitLabelFrame(end, direction(points[points.length - 2] ?? points[0]!, end), width, height);
-  const corners: Point[] = [
-    { x: center.x - width / 2, y: center.y - height / 2 },
-    { x: center.x + width / 2, y: center.y - height / 2 },
-    { x: center.x + width / 2, y: center.y + height / 2 },
-    { x: center.x - width / 2, y: center.y + height / 2 },
-  ];
+  const corners = rectPath({ x: center.x - width / 2, y: center.y - height / 2, width, height });
   const frame = new Group();
   frame.name = 'split-label';
   frame.userData.corners = corners;
@@ -246,20 +240,20 @@ function splitLabel(
   frame.add(fillMesh(corners, new Color(ctx.background ?? PAGE_BACKGROUND), trait.opacity));
   const border = strokeMesh(corners, trait.stroke, trait.opacity, { width: trait.strokeWidth, closed: true });
   if (border) frame.add(border);
-  const label = ctx.text.create({
-    text,
-    x: center.x,
-    y: center.y,
-    anchorX: 'center',
-    anchorY: 'middle',
-    align: 'center',
-    fontSize,
-    color: styleColor(style, 'fontColor', ctx.edgeFontColor ?? DEFAULT_EDGE_FONT_COLOR)!,
-    opacity: styleOpacity(style, 'textOpacity'),
-    bold: false,
-  });
-  label.renderOrder = PART_ORDER.label;
-  frame.add(label);
+  frame.add(
+    labelObject(ctx, {
+      text,
+      x: center.x,
+      y: center.y,
+      anchorX: 'center',
+      anchorY: 'middle',
+      align: 'center',
+      fontSize,
+      color: styleColor(style, 'fontColor', ctx.edgeFontColor ?? DEFAULT_EDGE_FONT_COLOR)!,
+      opacity: styleOpacity(style, 'textOpacity'),
+      bold: false,
+    }),
+  );
   return frame;
 }
 

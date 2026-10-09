@@ -145,12 +145,14 @@ export function textAnchors(style: Record<string, string>): {
 
 /**
  * Objet texte d'une cellule : `cellId` est la cellule qui porte le texte, dont l'éditeur en place masque ce label
- * pendant la saisie. Commun au label d'une forme et à celui qu'une forme place elle-même (ex. nom d'une région).
+ * pendant la saisie. Commun au label d'une forme et à celui qu'une forme place elle-même (ex. nom d'une région). Sans
+ * `cellId`, texte qu'aucune cellule ne porte (ex. cadre de renvoi d'une flèche coupée) : ni édité en place, ni cliqué
+ * comme un label.
  */
-export function labelObject(ctx: RenderContext, spec: TextSpec, cellId: string): Object3D {
+export function labelObject(ctx: RenderContext, spec: TextSpec, cellId?: string): Object3D {
   const object = ctx.text.create(spec);
   object.name = 'label';
-  object.userData.labelCellId = cellId;
+  if (cellId !== undefined) object.userData.labelCellId = cellId;
   object.renderOrder = PART_ORDER.label;
   return object;
 }

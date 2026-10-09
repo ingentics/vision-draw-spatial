@@ -1,1 +1,0 @@
-Coins du cadre du texte d'une flèche coupée écrits à la main dans `render/edges/edge.ts` (`splitLabel…`, quatre points autour de `center`) au lieu de `rectPath` (`model/geometry.ts`) ; son texte est créé par `ctx.text.create` + `renderOrder` à la main (vu au sujet 383).
