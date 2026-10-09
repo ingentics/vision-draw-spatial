@@ -68,7 +68,7 @@ export class ModeCurrents {
     const page = pageId ? this.core.pages.pageById(pageId) : undefined;
     const mode = page && this.core.modes.modeOf(page);
     const current = mode?.current;
-    if (!page || !mode || !current || value === this.getModeCurrent(page.id)) return;
+    if (!page || !mode || !current || value === this.getModeCurrent(page.id) || this.frozen(page.id)) return;
     if (!this.core.pageModes.call(mode, 'current.valid', false, current.valid, page, value)) return;
     this.chooseCurrent(page.id, value);
   }
@@ -119,10 +119,20 @@ export class ModeCurrents {
   pickModeCurrent(page: PageModel, element: ModeTarget): boolean {
     const mode = this.core.modes.modeOf(page);
     const pick = mode?.current?.pick;
+    if (this.frozen(page.id)) return false;
     const value = mode && this.core.pageModes.call(mode, 'current.pick', undefined, pick, page, element);
     if (value === undefined || value === this.getModeCurrent(page.id)) return false;
     this.chooseCurrent(page.id, value);
     return true;
+  }
+
+  /**
+   * Texte d'une partie en édition sur la page (sujet 422) : le courant ne change pas, pour que le texte, l'aperçu et
+   * l'écriture (`ShapeParts.setText`, après la fermeture de l'éditeur) voient tous celui de l'ouverture.
+   */
+  private frozen(pageId: string): boolean {
+    const editing = this.core.labelEditor.editing;
+    return editing?.part !== undefined && editing.pageId === pageId;
   }
 
   private chooseCurrent(pageId: string, value: string): void {

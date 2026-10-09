@@ -193,7 +193,8 @@ couche physique d'une table RDD, lue par son rendu). Un habillage qui dépend du
   `look(values).barSlideDuration` : glissement de la barre, défaut 200 ms). L'appli le lit par `engine.getModeCurrent()` et le
   reçoit dans ses
   sections (`current` des props) ; l'événement `modeCurrentChange` signale un changement. `redraws` (sujet 414) :
-  l'habillage suit le courant, la page est redessinée à chaque changement.
+  l'habillage suit le courant, la page est redessinée à chaque changement. Pendant l'édition du texte d'une partie, le
+  courant de la page ne change pas (sujet 422) : `text`, `textPreview` et `setText` reçoivent celui de l'ouverture.
 - `edges.created(edit, edgeId, current)` : une flèche tirée depuis une forme, dans la même étape d'annulation.
 - `keys` : touches (`KeyboardEvent.key`) sur l'élément sélectionné seul ; `applies` dit si l'élément est concerné
   (sinon la touche garde son effet habituel), `run` est une opération (une étape d'annulation, libellée `label`).
