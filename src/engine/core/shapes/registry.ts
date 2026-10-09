@@ -26,6 +26,7 @@ import type {
 import { outlinePainter } from './minimapOutline';
 import { insidePolygon } from '../model/geometry';
 import { styleFlag } from '../model/styleValues';
+import { PLUGIN_ID_PATTERN } from '../spatial';
 import { freezePlain, readonlyModel } from '../model/freeze';
 import { callPlugin } from '../diagnostics/pluginCalls';
 import type { PluginReport } from '../diagnostics/pluginCalls';
@@ -150,8 +151,13 @@ export class ShapeRegistry {
     return callPlugin('Forme', definition.id, hook, fallback, run, this.report);
   }
 
-  /** Un id déjà pris lève une exception (sujet 304) : une forme ne remplace pas une autre en silence. */
+  /**
+   * Lèvent une exception : un id déjà pris (sujet 304, une forme ne remplace pas une autre en silence) ou hors de
+   * `PLUGIN_ID_PATTERN` (sujet 405 : il est écrit dans le fichier, `spatial.kind`), comme pour les modes et les effets.
+   */
   register(definition: ShapeDefinition): this {
+    if (typeof definition.id !== 'string' || !PLUGIN_ID_PATTERN.test(definition.id))
+      throw new Error(`Forme ${definition.id} : id invalide (minuscules, chiffres et tirets)`);
     if (this.definitions.some((other) => other.id === definition.id))
       throw new Error(`Forme ${definition.id} : id déjà pris`);
     // Gelée (sujet 303) : un plugin ne modifie pas la définition d'un autre.

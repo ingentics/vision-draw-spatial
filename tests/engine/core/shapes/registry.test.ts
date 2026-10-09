@@ -86,6 +86,13 @@ describe('formes en plugins (étapes 65, 67) : contrat des définitions', () => 
     }
   });
 
+  it('id hors de ^[a-z][a-z0-9-]*$ refusé à l’enregistrement (sujet 405) : il est écrit dans spatial.kind', () => {
+    const flat = { create: () => new Group() };
+    for (const id of ['Box', '1box', 'a b', 'a,b', ''])
+      expect(() => new ShapeRegistry().register({ id, flat })).toThrow('id invalide');
+    expect(() => new ShapeRegistry().register({ id: 'box-2', flat })).not.toThrow();
+  });
+
   it('chaque élément de palette crée une forme résolue vers sa définition', () => {
     const registry = createDefaultRegistry();
     for (const definition of SHAPE_DEFINITIONS) {

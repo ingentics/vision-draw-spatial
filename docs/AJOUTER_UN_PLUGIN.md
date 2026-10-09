@@ -37,9 +37,10 @@ src/engine/plugins/
 ## 2. L'identifiant
 
 - L'`id` est le **nom du dossier**, en anglais, en minuscules et tirets (`database`, `rounded-rectangle`, `sequences`,
-  `forest`). Pour un mode et un effet, il est écrit dans le fichier (`spatial.mode`, liste `spatial.effects`) et
+  `forest`). Il est écrit dans le fichier (`spatial.kind` d'une forme, `spatial.mode`, liste `spatial.effects`) et
   vérifié à l'enregistrement contre `^[a-z][a-z0-9-]*$` (`PLUGIN_ID_PATTERN`,
-  [core/spatial.ts](../src/engine/core/spatial.ts)) ; pour une forme, un test vérifie qu'il est le nom du dossier.
+  [core/spatial.ts](../src/engine/core/spatial.ts)) ; pour une forme, un test vérifie aussi qu'il est le nom du
+  dossier.
 - **Un id déjà pris est refusé** à l'enregistrement (exception) : un plugin n'en remplace jamais un autre. Une forme
   d'un mode a donc un id préfixé par celui du mode (`rdd-entity`) ; l'espace de noms d'un mode est aussi unique.
 - Ne renommez pas un id publié : les fichiers qui l'écrivent ne le reconnaîtraient plus (forme en placeholder, mode ou
