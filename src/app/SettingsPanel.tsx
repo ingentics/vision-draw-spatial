@@ -19,6 +19,7 @@ import { Choice, ColorField, Slider, Toggle } from './SettingsFields';
 import { IsoIcon, IsoSettings } from './IsoSettings';
 import { Section, Subsection, Subsubsection } from './PanelSection';
 import { usePlugins } from './pluginsContext';
+import { useTooltip } from './Tooltip';
 import {
   BackgroundPreview,
   EdgeEndTextsPreview,
@@ -1695,7 +1696,7 @@ function useSystemReducedMotion(): boolean {
 
 /**
  * Réglages déclarés par un plugin, mode (ticket 283) ou effet (sujet 287), dans l'ordre : titre de groupe avant le
- * premier réglage d'un groupe, aide sous un réglage.
+ * premier réglage d'un groupe, aide sous un réglage, aide au survol (`title`) en infobulle (sujet 404).
  */
 function PluginSettingFields({
   settings,
@@ -1706,20 +1707,31 @@ function PluginSettingFields({
   values: PluginValues;
   onChange: (key: string, value: PluginValues[string]) => void;
 }) {
-  return settings.map((setting) => (
-    <Fragment key={setting.key}>
-      {setting.group && <h5 className="settings-group">{setting.group}</h5>}
-      {setting.groupHint && <p className="hint muted">{setting.groupHint}</p>}
-      <DeclaredField
-        field={setting}
-        layout="settings"
-        value={values[setting.key]}
-        disabled={
-          setting.type === 'url' && setting.when !== undefined && values[setting.when.key] !== setting.when.value
-        }
-        onChange={(value) => value !== undefined && onChange(setting.key, value)}
-      />
-      {setting.hint && <p className="hint muted">{setting.hint}</p>}
-    </Fragment>
-  ));
+  const { hover, tooltip } = useTooltip();
+  return (
+    <>
+      {settings.map((setting) => {
+        const field = (
+          <DeclaredField
+            field={setting}
+            layout="settings"
+            value={values[setting.key]}
+            disabled={
+              setting.type === 'url' && setting.when !== undefined && values[setting.when.key] !== setting.when.value
+            }
+            onChange={(value) => value !== undefined && onChange(setting.key, value)}
+          />
+        );
+        return (
+          <Fragment key={setting.key}>
+            {setting.group && <h5 className="settings-group">{setting.group}</h5>}
+            {setting.groupHint && <p className="hint muted">{setting.groupHint}</p>}
+            {setting.title ? <div {...hover(setting.title)}>{field}</div> : field}
+            {setting.hint && <p className="hint muted">{setting.hint}</p>}
+          </Fragment>
+        );
+      })}
+      {tooltip}
+    </>
+  );
 }

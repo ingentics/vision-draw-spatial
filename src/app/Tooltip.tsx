@@ -9,6 +9,8 @@ interface Tip {
   text: string;
   anchor: DOMRect;
   visible: boolean;
+  /** Où la rendre : le dialogue modal ouvert qui contient l'élément, sinon la racine du document. */
+  host: HTMLElement;
 }
 
 /** Écart entre l'infobulle et l'élément, et marge minimale aux bords de la fenêtre. */
@@ -35,7 +37,9 @@ function tooltipPosition(
 
 /**
  * Infobulle d'un composant : `hover(text)` donne les gestionnaires de survol d'un élément, `tooltip` est à rendre
- * dans le composant (portail à la racine du document : au premier plan, ni coupé par un défilement ni recouvert).
+ * dans le composant (portail à la racine du document : au premier plan, ni coupé par un défilement ni recouvert ; dans
+ * le dialogue modal qui contient l'élément, sans quoi le dialogue, au-dessus de tout le document, la cacherait, ex.
+ * Paramètres).
  * `area` : zone visible où la garder, si elle est plus petite que la fenêtre.
  */
 export function useTooltip(area?: () => { top: number; bottom: number } | undefined) {
@@ -56,7 +60,12 @@ export function useTooltip(area?: () => { top: number; bottom: number } | undefi
   // Le texte reste en place pendant le fondu de sortie.
   const hide = () => setTip((current) => current && { ...current, visible: false });
   const show = (text: string, target: HTMLElement) =>
-    setTip({ text, anchor: target.getBoundingClientRect(), visible: true });
+    setTip({
+      text,
+      anchor: target.getBoundingClientRect(),
+      visible: true,
+      host: target.closest<HTMLElement>('dialog[open]') ?? document.body,
+    });
   const hover = (text: string | undefined) =>
     text
       ? {
@@ -70,7 +79,7 @@ export function useTooltip(area?: () => { top: number; bottom: number } | undefi
       <div key={tip.text} ref={element} className={`tooltip${tip.visible ? ' visible' : ''}`} role="tooltip">
         {tip.text}
       </div>,
-      document.body,
+      tip.host,
     );
   return { hover, hide, tooltip };
 }
