@@ -219,17 +219,13 @@ export class DocumentFile {
     this.model = this.withPluginWarnings(document);
     this.geometry = new Map(document.pages.map((p) => [p.id, pageGeometry(p)]));
     this.unsupportedReport = collectUnsupported(this.model, this.core.registry);
-    for (const id of changedPageIds) this.core.scenes.invalidate(id, true);
-    this.core.graph.invalidateWithScenes(true);
+    this.core.levels.rebuildScenes(changedPageIds);
     const current = this.core.pages.getCurrentPage();
     if (current) {
-      this.core.scenes.show(current);
-      this.core.levels.applyHeightScale();
       this.core.labelEditor.hideEditedLabel();
+      this.core.selection.reselectIn(current, selected);
     }
-    if (current) this.core.selection.reselectIn(current, selected);
     this.core.rendering.syncBackground();
-    this.core.minimap.invalidate();
     this.core.edits.syncModified();
     this.notifyChanged();
     // Page passée dans un mode qui restreint les modes d'affichage (sujet 178).

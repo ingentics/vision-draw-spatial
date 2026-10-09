@@ -5,7 +5,7 @@ import type { Point, Rect } from '../../../model/types';
 import type { LabelEditRequest } from '../../types';
 import type { EngineCore } from '../../EngineCore';
 import { sameRect } from '../../../model/geometry';
-import { styleFlag } from '../../../model/styleValues';
+import { fontStyleValue, styleFlag } from '../../../model/styleValues';
 import { labelBackdropOf, labelBackdropSettings } from '../../../render/styleColors';
 import { shapeTarget } from '../../../modes/modeTargets';
 import { edgeOf, elementOf, shapeOf } from '../../../model/pageIndex';
@@ -150,7 +150,7 @@ export class LabelEditor {
       style: {
         fontSize: String(text.fontSize),
         fontColor: text.color ?? '#000000',
-        fontStyle: String((text.bold ? 1 : 0) | (text.italic ? 2 : 0)),
+        fontStyle: String(fontStyleValue(text)),
         align: text.center ? 'center' : 'left',
         verticalAlign: text.multiline ? 'top' : 'middle',
         whiteSpace: 'nowrap',

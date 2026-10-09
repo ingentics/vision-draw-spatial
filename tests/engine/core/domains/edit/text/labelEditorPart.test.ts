@@ -39,4 +39,27 @@ describe('édition du texte d’une partie (sujet 331)', () => {
     expect(request.style.whiteSpace).toBe('nowrap');
     expect(request.style.fontFamily).toBe('Courier New');
   });
+
+  it('gras, italique (sujet 414) : `fontStyle` de l’éditeur', () => {
+    expect(open({ ...BASE, bold: true }).style.fontStyle).toBe('1');
+    expect(open({ ...BASE, bold: true, italic: true }).style.fontStyle).toBe('3');
+    expect(open(BASE).style.fontStyle).toBe('0');
+  });
+});
+
+describe('texte d’une forme tenu par une partie (sujet 414)', () => {
+  it('`labelPart` : le double-clic sur la forme édite la partie', () => {
+    const shape = { id: 's', kind: 'box' };
+    const page = { id: 'p', shapes: [shape], edges: [] };
+    const labelPart = vi.fn(() => 'name');
+    const core = {
+      targets: { editablePage: () => ({ page, pageTree: { cells: new Map([['s', { cell: {} }]]) } }) },
+      shapeParts: { labelPart },
+    } as unknown as EngineCore;
+    const editor = new LabelEditor(core);
+    const editPart = vi.spyOn(editor, 'editPartLabel').mockImplementation(() => undefined);
+    editor.editLabel('s');
+    expect(labelPart).toHaveBeenCalledWith(page, shape);
+    expect(editPart).toHaveBeenCalledWith('s', 'name');
+  });
 });

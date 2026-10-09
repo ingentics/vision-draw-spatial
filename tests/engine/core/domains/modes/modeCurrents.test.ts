@@ -19,11 +19,7 @@ function currents(redraws: boolean) {
   const note = (name: string) => () => void calls.push(name);
   Object.assign(set.core, {
     pages: { ...set.core.pages, currentPageId: 'p', getCurrentPage: () => set.page },
-    scenes: { invalidate: note('invalidate'), show: note('show') },
-    graph: { invalidateWithScenes: note('graph') },
-    levels: { applyHeightScale: note('height') },
-    highlight: { update: note('highlight') },
-    minimap: { invalidate: note('minimap') },
+    levels: { rebuildScenes: (pageIds: string[]) => void calls.push(`rebuild:${pageIds.join()}`) },
     events: { emit: note('event') },
     rendering: { requestRender: note('render') },
   });
@@ -43,7 +39,7 @@ describe('courant d’un mode et habillage (sujet 414)', () => {
   it('`redraws` : la page est redessinée quand le courant change', () => {
     const { modeCurrents, calls } = currents(true);
     modeCurrents.setModeCurrent('b', 'p');
-    expect(calls).toEqual(['invalidate', 'graph', 'show', 'height', 'highlight', 'minimap', 'event', 'render']);
+    expect(calls).toEqual(['rebuild:p', 'event', 'render']);
   });
 
   it('sans `redraws` : rien n’est reconstruit', () => {

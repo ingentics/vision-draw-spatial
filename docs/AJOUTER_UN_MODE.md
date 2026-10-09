@@ -229,7 +229,9 @@ couche physique d'une table RDD, lue par son rendu). Un habillage qui dépend du
   undefined si elle ne peut pas en avoir), montré dans l'encart au survol après celui de la forme, et édité en texte
   brut par la touche C quand la partie est sélectionnée ou survolée. `textPreview` (sujet 253) : la forme telle qu'elle serait avec le texte en cours de saisie, redessinée en
   direct (elle reçoit `sizing`, la grille et la mesure du texte de `ModeEdit`, pour avoir la taille écrite ensuite) ; les objets du texte dessiné de la partie (marqués par `markPart(objet, partie)` de l'API des plugins) sont masqués pendant l'édition, et
-  `ModePartText` peut demander un éditeur sans fond (`transparent`), centré (`center`), d'une couleur (`color`). Les
+  `ModePartText` peut demander un éditeur sans fond (`transparent`), centré (`center`), d'une couleur (`color`), en
+  gras (`bold`, sujet 414), en italique (`italic`), sur plusieurs lignes (`multiline`, sujet 331 : Entrée passe à la
+  ligne, ⌘ + Entrée ou clic dehors valide) ou en police de code (`monospace`). Les
   touches du mode (`keys`) reçoivent aussi la partie sélectionnée et peuvent renvoyer la partie à sélectionner.
   `textAt` (sujet 269) : partie au texte modifiable par double-clic sans être sélectionnable (ni survol, ni sélection,
   ni glisser ; ex. corps d'un document RDD) ; son texte passe par `text` / `setText` / `textPreview` comme une partie.

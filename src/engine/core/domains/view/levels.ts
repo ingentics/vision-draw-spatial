@@ -123,9 +123,16 @@ export class Levels {
     }
   }
 
-  /** Les volumes ont changé (activés, épaisseur) : on reconstruit les scènes. */
-  rebuildScenes(): void {
-    this.core.scenes.clear();
+  /**
+   * Scènes reconstruites, puis la page courante réaffichée avec la hauteur de ses volumes : toutes (volumes activés,
+   * épaisseur, réglages), ou celles des pages `pageIds` et de la vue graphe (document modifié, habillage qui suit le
+   * courant d'un mode, sujet 421).
+   */
+  rebuildScenes(pageIds?: readonly string[]): void {
+    if (pageIds) {
+      for (const id of pageIds) this.core.scenes.invalidate(id, true);
+      this.core.graph.invalidateWithScenes(true);
+    } else this.core.scenes.clear();
     const page = this.core.pages.getCurrentPage();
     if (page) this.core.scenes.show(page);
     this.applyHeightScale();
