@@ -185,6 +185,18 @@ describe('mode Séquences : réglages déclarés et habillage', () => {
     ]);
   });
 
+  it('sens d’une flèche (sujet 426) : lu et écrit dans le style draw.io (dashed), masqué hors flux', () => {
+    const { run, page: current } = setup();
+    const direction = sequences.edges!.properties!.find((property) => property.label === 'Sens')!;
+    expect(direction.value!(current(), edge(current(), 'lecture'))).toBe('call');
+    expect(direction.hidden!(current(), edge(current(), 'libre'))).toBe(true);
+    run((edit) => direction.write!(edit, edge(current(), 'lecture'), 'return'));
+    expect(edge(current(), 'lecture').style.dashed).toBe('1');
+    expect(direction.value!(current(), edge(current(), 'lecture'))).toBe('return');
+    run((edit) => direction.write!(edit, edge(current(), 'lecture'), 'call'));
+    expect(edge(current(), 'lecture').style.dashed).toBeUndefined();
+  });
+
   it('flèche d’un flux : trait dans la couleur du flux assombrie, pastille du rang ; hors flux : rien', () => {
     const dressing = sequences.dressing!(page(), createDefaultModeRegistry().values('sequences', undefined));
     expect(dressing.edgeColor!(edge(page(), 'login'))).toBe('#4e79a7');

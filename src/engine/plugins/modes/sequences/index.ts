@@ -1,5 +1,5 @@
 import type { EdgeModel, ModeKey, PageModeDefinition } from '../../../core/plugins';
-import { byId, numberValue } from '../../../core/plugins';
+import { byId, edgeOf, numberValue, styleFlag } from '../../../core/plugins';
 import { FLOW, PARTICIPANT, STEP, flowLabel } from './flows';
 import { SEQUENCES_KEYS } from './keys';
 import { badgeStyle, currentLook, SEQUENCES_SETTINGS } from './settings';
@@ -17,6 +17,15 @@ const PARTICIPANT_ICONS = {
     line: 'M1 4.5h12.5M1 11.5h12.5',
     accent: 'M13.5 8h2M14.5 7l1 1-1 1',
   },
+};
+
+/**
+ * Icônes du sens d'une flèche (sujet 426) : aller en trait plein vers la droite (tout en `accent`, plein), retour en
+ * pointillés vers la gauche (trait en `line`, que l'icône dessine en pointillés).
+ */
+const DIRECTION_ICONS = {
+  call: { accent: 'M1.5 8H13.5M10.5 5 13.5 8l-3 3' },
+  return: { line: 'M4 8H14.5', accent: 'M5.5 5 2.5 8l3 3' },
 };
 
 /**
@@ -67,6 +76,31 @@ export const definition: PageModeDefinition = {
         write: (edit, target, value) => {
           if (value !== undefined) setEdgeStep(edit, target.id, Number(value));
         },
+        hidden: (page, target) => !sequenceState(page).placement.has(target.id),
+      },
+      {
+        // Le style draw.io (`dashed`) est la source de vérité : le choix ne fait que le lire et l'écrire.
+        type: 'choice',
+        key: 'dashed',
+        label: 'Sens',
+        title:
+          'Sens de la flèche dans son flux : un retour est en pointillés (dashed=1) ; dès qu’un flux en a un, ses flèches pleines sont toujours des allers',
+        options: () => [
+          {
+            value: 'call',
+            label: 'Aller',
+            title: 'Aller : appel, flèche pleine (dashed retiré)',
+            icon: DIRECTION_ICONS.call,
+          },
+          {
+            value: 'return',
+            label: 'Retour',
+            title: 'Retour : réponse à un aller ouvert, flèche en pointillés (dashed=1)',
+            icon: DIRECTION_ICONS.return,
+          },
+        ],
+        value: (page, target) => (styleFlag(edgeOf(page, target.id)?.style ?? {}, 'dashed') ? 'return' : 'call'),
+        write: (edit, target, value) => edit.setElementStyle(target.id, 'dashed', value === 'return' ? '1' : undefined),
         hidden: (page, target) => !sequenceState(page).placement.has(target.id),
       },
     ],

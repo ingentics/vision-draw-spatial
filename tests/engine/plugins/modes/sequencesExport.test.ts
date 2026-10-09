@@ -225,6 +225,35 @@ describe('export PlantUML des flux (sujets 90 à 97)', () => {
     ]);
   });
 
+  it('fait d’une flèche pleine un aller (rappel) dans un flux qui a des pointillés (sujet 426)', () => {
+    const arrows = (dashed: string) =>
+      flow(
+        ['client', 'api'],
+        ['api', 'db'],
+        ['db', 'api'],
+        [`${dashed}api`, 'db'],
+        [`${dashed}db`, 'api'],
+        [`${dashed}api`, 'client'],
+      );
+    expect(messages(sequencePlantUml(arrows('--'), 'f1'))).toEqual([
+      'P1 -> P2 ++',
+      'P2 -> P3 ++',
+      'P3 -> P2 ++',
+      'P2 --> P3 --',
+      'P3 --> P2 --',
+      'P2 --> P1 --',
+    ]);
+    // Tout en pleines : lecture du sujet 266, la troisième flèche est le retour de la deuxième.
+    expect(messages(sequencePlantUml(arrows(''), 'f1'))).toEqual([
+      'P1 -> P2 ++',
+      'P2 -> P3 ++',
+      'P3 --> P2 --',
+      'P2 -> P3 ++',
+      'P3 --> P2 --',
+      'P2 --> P1 --',
+    ]);
+  });
+
   it('fait d’une flèche pleine sans aller à fermer un nouvel aller, et d’une flèche en pointillés sans aller un message', () => {
     expect(
       messages(sequencePlantUml(flow(['client', 'api'], ['api', 'db'], ['db', 'client', 'rappel']), 'f1')),

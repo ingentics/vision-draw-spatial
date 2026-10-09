@@ -13,7 +13,9 @@ import type { SequenceExporter } from './index';
  * Messages en pile d'appels, dans l'ordre des rangs : une flèche pleine est un aller qui active sa cible (`++`), sauf
  * vers soi-même ou vers l'extérieur (message simple, sans nouveau niveau) ; une
  * flèche, pleine ou en pointillés, qui ferme un aller encore ouvert est son retour (`--`, sujet 266), les allers ouverts
- * au-dessus étant refermés d'abord ; une flèche pleine sans aller à fermer est un nouvel aller. Un aller qui part de la cible d'un aller ouvert remonte jusqu'à elle en refermant les allers
+ * au-dessus étant refermés d'abord ; une flèche pleine sans aller à fermer est un nouvel aller. Dans un flux qui a au moins
+ * une flèche en pointillés, seules celles-ci ferment un aller : une flèche pleine y est toujours un aller (rappel,
+ * sujet 426). Un aller qui part de la cible d'un aller ouvert remonte jusqu'à elle en refermant les allers
  * au-dessus ; parti d'un participant absent de la pile, il s'empile par-dessus. Une séquence se termine là où elle a
  * commencé : tant qu'elle est ouverte, un aller qui part de son initiateur (source du premier aller) part du
  * participant actif, et l'aller de l'initiateur n'est refermé qu'à la fin, avec tous ceux encore ouverts. Ces retours
@@ -93,6 +95,8 @@ export function sequencePlantUml(page: PageModel, flowId?: string): string {
 function messages(order: EdgeModel[], alias: (id: string | undefined) => string | undefined): string[] {
   const lines: string[] = [];
   const stack: Call[] = [];
+  // Un rappel B → A pendant l'aller A → B ne se distingue d'un retour que si le flux dessine ses retours en pointillés.
+  const dashedReturns = order.some((edge) => styleFlag(edge.style, 'dashed'));
   const close = () => {
     const { caller, callee } = stack.pop()!;
     lines.push(`${message(callee, '-->', caller, true)} --`);
@@ -102,10 +106,10 @@ function messages(order: EdgeModel[], alias: (id: string | undefined) => string 
     const to = alias(edge.targetId);
     const text = messageText(edge);
     const label = text ? ` : ${text}` : '';
-    // Pleine ou en pointillés, une flèche qui ferme un aller ouvert est son retour : seuls les retours absents sont
+    // Pleine (si le flux n'a pas de pointillés) ou en pointillés, une flèche qui ferme un aller ouvert est son retour : seuls les retours absents sont
     // générés. Une flèche pleine vers l'extérieur reste une sortie du diagramme (`->]`).
     const dashed = styleFlag(edge.style, 'dashed');
-    const closes = from !== undefined && (dashed || to !== undefined);
+    const closes = from !== undefined && (dashed || (!dashedReturns && to !== undefined));
     const opened = closes ? lastIndex(stack, (call) => call.callee === from && call.caller === to) : -1;
     if (opened >= 0) {
       while (stack.length > opened + 1) close();
