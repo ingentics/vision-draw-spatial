@@ -33,7 +33,6 @@ const NOT_API: Record<string, string> = {
   WeakMap: 'JavaScript',
   // Membres et types de contrat reçus par inférence.
   options: 'membre `choice` du schéma des champs (une ligne, hors de la lecture des membres)',
-  ModePartText: 'type renvoyé par `parts.text`, reçu par inférence',
   Field: 'schéma commun, que les champs des plugins étendent (`ShapeProperty`, `ModeProperty`, `PluginSetting`)',
   // Tronc, cité pour situer ce qui héberge les plugins.
   PLUGIN_ID_PATTERN: 'vérification de l’id à l’enregistrement',

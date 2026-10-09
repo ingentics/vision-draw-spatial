@@ -27,6 +27,7 @@ export type {
   ModeKey,
   ModeObstacles,
   ModeParts,
+  ModePartText,
   ModeTarget,
   PageModeDefinition,
 } from '../modes/types';
