@@ -91,4 +91,9 @@ export interface CameraHost {
   escape?(): void;
   /** Touche d'un mode de page sur la sélection (ex. « + » / « - ») ; vrai si elle a été prise. */
   modeKey?(key: string): boolean;
+  /**
+   * Touche de page d'un mode, le focus sur la zone de dessin et rien de sélectionné (sujet 415) ; vrai si elle est
+   * prise. `run` faux (touche maintenue) : seulement savoir si elle l'est.
+   */
+  modePageKey?(key: string, run: boolean): boolean;
 }

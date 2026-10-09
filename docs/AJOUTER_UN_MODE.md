@@ -85,6 +85,7 @@ interface PageModeDefinition {
   parts?: ModeParts;                           // parties sélectionnables d'une forme (ex. champs d'une table RDD)
   current?: ModeCurrent;                       // « courant » de session (section 5)
   keys?: Record<string, ModeKey>;              // touches sur l'élément sélectionné seul (ex. « + »)
+  pageKeys?: Record<string, ModePageKey>;      // touches de page, rien de sélectionné (ex. Tab)
   pasteKeys?: string[];                        // attributs du mode (noms courts) retirés des éléments collés
 }
 ```
@@ -192,6 +193,11 @@ fait face à la caméra en iso / 3D (`faceCamera(…, 'screen')`, `render/billbo
 - `edges.created(edit, edgeId, current)` : une flèche tirée depuis une forme, dans la même étape d'annulation.
 - `keys` : touches (`KeyboardEvent.key`) sur l'élément sélectionné seul ; `applies` dit si l'élément est concerné
   (sinon la touche garde son effet habituel), `run` est une opération (une étape d'annulation, libellée `label`).
+- `pageKeys` (sujet 415) : touches de page, prises quand la zone de dessin a le focus et que rien n'est sélectionné
+  sur la page (ni texte en édition, ni Ctrl, ⌘ ou Alt) ; un raccourci de l'appli ou une touche de mouvement de la vue
+  sur la même touche passe avant. `applies(page, current)` (facultatif) dit si la touche est prise (sinon le
+  navigateur garde son comportement), `run(page, current)` renvoie le nouveau courant ou rien : rien n'est écrit ni
+  annulable, et la touche marche aussi en lecture seule. Maintenue, elle est prise sans être refaite.
 - `gestures.carries(page, shape)` : formes emportées quand on déplace `shape` (glisser ou flèches du clavier), calculées sans
   parent draw.io (ex. contenu d'une région RDD) ; de proche en proche, dans la même étape d'annulation, avec les
   flèches qui les relient entre elles. La sélection les met en valeur avec la forme.
@@ -306,6 +312,7 @@ Règles communes (sujet 288) :
 | `gestures.placed` | fin d'un déplacement (glisser, clavier), d'un redimensionnement, ajout depuis la palette, collage, Aligner / Répartir ; `before` : page d'avant un déplacement, absente pour un ajout | relue après la pose | remise en ordre, étape du geste | rien d'écrit |
 | `gestures.relabeled` | texte d'un élément validé (édition sur place ou panneau) | relue avec le nouveau texte | remise en ordre, étape du texte | rien d'écrit |
 | `keys` | touche sur l'élément sélectionné seul d'une page modifiable : `applies` puis `run` | page du modèle ; `run` : opération | une étape au titre `label` | `applies` : touche non prise ; `run` : rien d'écrit |
+| `pageKeys` | touche de page, focus sur la zone de dessin, rien de sélectionné (même en lecture seule) : `applies` puis `run` | page du modèle ; `run` renvoie le nouveau courant | aucune (courant de session) | `applies` : touche non prise ; `run` : touche prise, courant inchangé |
 | `gestures.handles.list` | forme sélectionnée seule et modifiable : dessin des poignées et pointeur | page du modèle | aucune | pas de poignée |
 | `gestures.handles.clicked` | clic sur une poignée du mode ; renvoie la partie à sélectionner | opération | une étape au titre de la poignée | rien d'écrit |
 | **Parties** | | | | |

@@ -105,4 +105,23 @@ export class ModePanel {
     this.core.pageModes.selectPart(id, next);
     return true;
   }
+
+  /**
+   * Touche de page du mode de la page courante (sujet 415), rien n'y étant sélectionné : vrai si elle est prise ;
+   * `run` faux (touche maintenue) : seulement savoir si elle l'est. Le courant renvoyé est choisi.
+   */
+  modePageKey(key: string, run: boolean): boolean {
+    const page = this.core.pages.getCurrentPage();
+    const mode = page && this.core.modes.modeOf(page);
+    const action = mode?.pageKeys?.[key];
+    const selection = this.core.selection.current;
+    if (!page || !mode || !action || (selection?.pageId === page.id && selection.items.length > 0)) return false;
+    const label = `touche de page « ${key} »`;
+    const current = this.core.modeCurrents.getModeCurrent(page.id);
+    if (action.applies && !this.core.pageModes.call(mode, label, false, action.applies, page, current)) return false;
+    if (!run) return true;
+    const next = this.core.pageModes.call(mode, label, undefined, action.run, page, current);
+    if (typeof next === 'string') this.core.modeCurrents.setModeCurrent(next, page.id);
+    return true;
+  }
 }

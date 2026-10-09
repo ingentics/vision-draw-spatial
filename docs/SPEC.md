@@ -1010,7 +1010,8 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   formes qu'aucune ne relie) est estompé à 30 % (paramètre « Opacité hors du flux courant ») ; flux sans flèche :
   rien d'estompé. Une flèche tirée depuis une forme va à la fin du flux courant (même étape d'annulation). « + » / « - » sur
   une flèche d'un flux sélectionnée seule : rang suivant / précédent. Cadre générique : `current`, `edges.created` et
-  `keys` de `PageModeDefinition`, courant gardé par le moteur (`getModeCurrent`, `getModeIndicator`, `setModeCurrent`, événement
+  `keys` de `PageModeDefinition` (et `pageKeys`, touches de page quand rien n'est sélectionné, le focus sur la zone
+  de dessin : changent le courant sans rien écrire, sujet 415), courant gardé par le moteur (`getModeCurrent`, `getModeIndicator`, `setModeCurrent`, événement
   `modeCurrentChange`).
 
 ---

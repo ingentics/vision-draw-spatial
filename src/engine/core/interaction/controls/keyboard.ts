@@ -2,6 +2,7 @@ import { isModifierKeyEvent } from '../selectionRules';
 import type { ControlContext } from './context';
 import type { Drift } from './drift';
 import type { HeldKeys } from './host';
+import type { ControlSettings } from './settings';
 import type { Shortcuts } from './shortcuts';
 import { ARROW_KEYS, isMoveKey, ROTATE_CODES } from './motion';
 import { orderShortcut, resolveShortcut } from './shortcuts';
@@ -62,6 +63,7 @@ export class KeyboardControls {
     if (action === true) return;
     if (this.runEditKey(event)) return;
     if (this.runViewKey(event, action)) return;
+    if (this.runPageKey(event, action)) return;
     this.startMotion(event);
   };
 
@@ -199,6 +201,18 @@ export class KeyboardControls {
     return false;
   }
 
+  /**
+   * Touche de page du mode (sujet 415, ex. Tab) : le focus sur la zone de dessin, ni raccourci ni touche de mouvement
+   * de la vue sur cette touche ; maintenue, elle est prise sans rien refaire. Vrai si elle est prise.
+   */
+  private runPageKey(event: KeyboardEvent, action: keyof Shortcuts | undefined): boolean {
+    const { ctx } = this;
+    if (!isPageKeyCandidate(event, ctx.element, action, ctx.settings.moveKeys)) return false;
+    if (!ctx.host.modePageKey?.(event.key, !event.repeat)) return false;
+    event.preventDefault();
+    return true;
+  }
+
   /** Mouvement de la vue au clavier : rotation (iso, 3D), Espace maintenue (glisser), déplacement. */
   private startMotion(event: KeyboardEvent): void {
     const { ctx, drift } = this;
@@ -234,6 +248,21 @@ export class KeyboardControls {
     }
     this.drift.pressed.delete(event.code);
   };
+}
+
+/**
+ * Une touche peut-elle être une touche de page d'un mode (sujet 415) ? Le focus sur la zone de dessin, sans Ctrl, ⌘
+ * ni Alt, et la touche n'est ni un raccourci de l'appli ni une touche de mouvement de la vue (déplacement, rotation,
+ * Espace) : celles-ci passent avant.
+ */
+export function isPageKeyCandidate(
+  event: Pick<KeyboardEvent, 'target' | 'code' | 'ctrlKey' | 'metaKey' | 'altKey'>,
+  element: EventTarget,
+  action: keyof Shortcuts | undefined,
+  moveKeys: ControlSettings['moveKeys'],
+): boolean {
+  if (event.target !== element || event.ctrlKey || event.metaKey || event.altKey || action !== undefined) return false;
+  return event.code !== 'Space' && !ROTATE_CODES.includes(event.code) && !isMoveKey(event.code, moveKeys);
 }
 
 /** Saisie en cours dans un champ : les touches lui appartiennent. */

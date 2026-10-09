@@ -41,6 +41,7 @@ export function createCameraController(core: EngineCore): CameraController {
       },
       escape: () => core.selection.escape(),
       modeKey: (key) => core.modePanel.modeKey(key),
+      modePageKey: (key, run) => core.modePanel.modePageKey(key, run),
     },
     core.config.effectiveControls(),
   );

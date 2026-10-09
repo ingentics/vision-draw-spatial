@@ -26,6 +26,7 @@ export type {
   ModeIssue,
   ModeKey,
   ModeObstacles,
+  ModePageKey,
   ModeParts,
   ModePartText,
   ModeTarget,

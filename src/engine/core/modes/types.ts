@@ -58,6 +58,11 @@ export interface PageModeDefinition {
   /** Touches sur l'élément sélectionné seul, par `KeyboardEvent.key` (ex. `+`). */
   keys?: Record<string, ModeKey>;
   /**
+   * Touches de page, par `KeyboardEvent.key` (ex. `Tab`) : prises quand la zone de dessin a le focus et que rien n'est
+   * sélectionné sur la page (sujet 415).
+   */
+  pageKeys?: Record<string, ModePageKey>;
+  /**
    * Attributs du mode, par leur nom court, retirés des éléments collés ou dupliqués (sur toutes les pages : ils dorment
    * hors du mode ; ex. flux et rang d'une flèche).
    */
@@ -330,6 +335,18 @@ export interface ModeCurrentLook {
   dimOpacity?: number;
   /** Glissement de la barre quand elle part ou arrive avec une transition, en ms (0 = sans ; défaut : 200). */
   barSlideDuration?: number;
+}
+
+/**
+ * Touche de page d'un mode (sujet 415) : change le courant du mode (`ModeCurrent`), état de session ; rien n'est écrit
+ * dans le fichier ni annulable, et elle marche aussi sur une page en lecture seule.
+ */
+export interface ModePageKey {
+  label: string;
+  /** La touche est-elle prise (sinon le navigateur garde son comportement) ? Absent : toujours. */
+  applies?(page: PageModel, current: string | undefined): boolean;
+  /** Nouveau courant du mode ; undefined = inchangé. */
+  run(page: PageModel, current: string | undefined): string | void;
 }
 
 /** Touche d'un mode sur l'élément sélectionné : opération (une étape d'annulation, libellée `label`). */

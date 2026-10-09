@@ -5,6 +5,7 @@
 
 export { CameraController } from './CameraController';
 export type { CameraHost, HeldKeys } from './host';
+export { isPageKeyCandidate } from './keyboard';
 export { decelerate, decelerateSpin, keyDirection, keyRotation, releaseVelocity, wheelZoomFactor } from './motion';
 export { DEFAULT_CONTROLS } from './settings';
 export type { ControlSettings } from './settings';

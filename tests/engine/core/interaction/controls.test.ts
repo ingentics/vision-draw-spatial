@@ -5,6 +5,7 @@ import {
   keyDirection,
   keyRotation,
   decelerateSpin,
+  isPageKeyCandidate,
   RESERVED_CODES,
   releaseVelocity,
   resolveShortcut,
@@ -131,5 +132,32 @@ describe('rotation au clavier (A / E, iso et 3D)', () => {
 
   it('touches réservées : pas attribuables à un raccourci', () => {
     expect(RESERVED_CODES).toEqual(expect.arrayContaining(['KeyQ', 'KeyE']));
+  });
+});
+
+describe('touches de page d’un mode (sujet 415)', () => {
+  const element = {} as EventTarget;
+  const key = (code: string, more: Partial<KeyboardEvent> = {}) => ({
+    target: element,
+    code,
+    ctrlKey: false,
+    metaKey: false,
+    altKey: false,
+    ...more,
+  });
+
+  it('focus sur la zone de dessin, sans Ctrl, ⌘ ni Alt', () => {
+    expect(isPageKeyCandidate(key('Tab'), element, undefined, 'all')).toBe(true);
+    expect(isPageKeyCandidate(key('Tab', { target: {} as EventTarget }), element, undefined, 'all')).toBe(false);
+    for (const modifier of ['ctrlKey', 'metaKey', 'altKey'] as const)
+      expect(isPageKeyCandidate(key('Tab', { [modifier]: true }), element, undefined, 'all'), modifier).toBe(false);
+  });
+
+  it('raccourcis de l’appli et touches de mouvement de la vue passent avant', () => {
+    expect(isPageKeyCandidate(key('KeyC'), element, 'editComment', 'all')).toBe(false);
+    expect(isPageKeyCandidate(key('Space'), element, undefined, 'all')).toBe(false);
+    expect(isPageKeyCandidate(key('KeyE'), element, undefined, 'all')).toBe(false);
+    expect(isPageKeyCandidate(key('KeyW'), element, undefined, 'letters')).toBe(false);
+    expect(isPageKeyCandidate(key('KeyW'), element, undefined, 'arrows')).toBe(true);
   });
 });
