@@ -1,1 +1,0 @@
-Espaces d'un label HTML non relus (vu au sujet 407) : `richToHtml` (`format/richText.ts`, `escapeText`) écrit les espaces en tête, en fin ou doublés en `&nbsp;`, mais `parseRichHtml` les change en espaces ordinaires puis les fusionne et coupe les lignes (`trimLine`) : ils sont perdus à la relecture, alors que l'éditeur en place (`white-space: pre`) les montre pendant la saisie.

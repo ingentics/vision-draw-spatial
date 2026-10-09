@@ -38,6 +38,13 @@ describe('setCellLabel', () => {
     expect(reread(tree).shapes.find((s) => s.id === 'a')!.label).toBe('\na\n\nb\n');
   });
 
+  it('espaces en tête, en fin et doublés écrits en &nbsp; et relus (sujet 409)', () => {
+    expect(textToHtml(' a  b ')).toBe('&nbsp;a &nbsp;b&nbsp;');
+    const tree = load('three-rectangles.drawio');
+    setCellLabel(tree.pages[0]!, 'a', ' a  b \n  c');
+    expect(reread(tree).shapes.find((s) => s.id === 'a')!.label).toBe(' a  b \n  c');
+  });
+
   it('sans html : texte brut ; enveloppe : attribut label', () => {
     const tree = load('roundtrip.drawio');
     const page = tree.pages[0]!;

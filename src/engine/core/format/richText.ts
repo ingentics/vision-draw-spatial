@@ -34,14 +34,18 @@ const EMPTY_LAST_LINE = '<div><br></div>';
 /** Police à chasse fixe écrite pour du code (draw.io la connaît). */
 export const MONOSPACE_FAMILY = 'Courier New';
 
+const NBSP = '\u00a0';
+
 const MARK_KEYS = ['bold', 'italic', 'underline', 'strike', 'fontSize', 'color', 'fontFamily'] as const;
 
 /**
- * Lignes de segments d'un label HTML. Les espaces sont fusionnés comme en HTML ; `<br>` et blocs = lignes. Les
- * lignes vides (en tête, au milieu, en fin) sont gardées comme draw.io les affiche : un `<br>` final ne fait pas de
- * ligne (HTML), une ligne vide finale s'écrit `<div><br></div>`.
+ * Lignes de segments d'un label HTML. Les espaces sont fusionnés comme en HTML, sauf les insécables (`&nbsp;`, écrits
+ * par `richToHtml` pour les espaces en tête, en fin ou doublés, sujet 409), lus comme des espaces ordinaires ;
+ * `preserveSpaces` : tous les espaces comptent (contenu de l'éditeur en place, en `white-space: pre`). `<br>` et
+ * blocs = lignes. Les lignes vides (en tête, au milieu, en fin) sont gardées comme draw.io les affiche : un `<br>`
+ * final ne fait pas de ligne (HTML), une ligne vide finale s'écrit `<div><br></div>`.
  */
-export function parseRichHtml(html: string): RichLine[] {
+export function parseRichHtml(html: string, { preserveSpaces = false } = {}): RichLine[] {
   const lines: RichLine[] = [[]];
   const stack: Array<{ tag: string; marks: TextMarks }> = [];
   const current = (): TextMarks => Object.assign({}, ...stack.map((entry) => entry.marks)) as TextMarks;
@@ -53,9 +57,10 @@ export function parseRichHtml(html: string): RichLine[] {
   for (const match of literalBreaks(html).matchAll(tokens)) {
     const [, closing, rawTag, attributes = '', text] = match;
     if (text !== undefined) {
-      const value = decodeEntities(text.replace(/[ \t\r\n]+/g, ' ')).replace(/\u00a0/g, ' ');
+      // Espaces gardés en insécables jusqu'à la fin de la lecture : ni fusionnés, ni coupés en bout de ligne.
+      const value = decodeEntities(preserveSpaces ? text.replace(/ /g, NBSP) : text.replace(/[ \t\r\n]+/g, ' '));
       // Blancs entre deux blocs (HTML indenté) : ignorés par le navigateur, pas une ligne vide.
-      if (value === '' || (pendingBreak && value.trim() === '')) continue;
+      if (value === '' || (pendingBreak && value === ' ')) continue;
       if (pendingBreak) {
         newLine();
         pendingBreak = false;
@@ -173,15 +178,16 @@ function formatSize(size: number): string {
   return String(Math.round(size * 100) / 100);
 }
 
+/** Ligne sans les espaces ordinaires de ses bouts ; ses insécables deviennent des espaces ordinaires. */
 function trimLine(line: RichLine): RichLine {
   const runs = line.map((run) => ({ ...run }));
-  while (runs.length && runs[0]!.text.trimStart() === '') runs.shift();
-  while (runs.length && runs[runs.length - 1]!.text.trimEnd() === '') runs.pop();
+  while (runs.length && /^ *$/.test(runs[0]!.text)) runs.shift();
+  while (runs.length && /^ *$/.test(runs[runs.length - 1]!.text)) runs.pop();
   if (runs.length) {
-    runs[0]!.text = runs[0]!.text.trimStart();
-    runs[runs.length - 1]!.text = runs[runs.length - 1]!.text.trimEnd();
+    runs[0]!.text = runs[0]!.text.replace(/^ +/, '');
+    runs[runs.length - 1]!.text = runs[runs.length - 1]!.text.replace(/ +$/, '');
   }
-  return runs;
+  return runs.map((run) => ({ ...run, text: run.text.replace(/\u00a0/g, ' ') }));
 }
 
 /** Mise en forme apportée par une balise (et son attribut `style`). */

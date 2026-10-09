@@ -138,3 +138,25 @@ describe('texte riche des labels HTML', () => {
     expect(shape('c').rich).toBeUndefined();
   });
 });
+
+describe('espaces d’un label HTML (sujet 409)', () => {
+  it('insécables ni fusionnés ni coupés en bout de ligne, lus comme des espaces ordinaires', () => {
+    expect(htmlToText('&nbsp;a&nbsp; &nbsp;b&nbsp;')).toBe(' a   b ');
+    expect(htmlToText('a\u00a0\u00a0b')).toBe('a  b');
+    expect(htmlToText('<div>a</div><div>&nbsp;</div><div>b</div>')).toBe('a\n \nb');
+    // Espaces ordinaires : toujours fusionnés et coupés en bout de ligne, comme en HTML.
+    expect(htmlToText('  a   b  ')).toBe('a b');
+  });
+
+  it('écrits par richToHtml, relus à l’identique', () => {
+    for (const text of [' a', 'a ', 'a  b', '   a   b   ', ' ']) {
+      const lines = [[{ text }], [{ text: 'x', bold: true }, { text: '  y ' }]];
+      expect(parseRichHtml(richToHtml(lines))).toEqual(lines);
+    }
+  });
+
+  it('preserveSpaces (éditeur en place, white-space: pre) : tous les espaces comptent', () => {
+    expect(richToText(parseRichHtml(' a  <b>b </b> ', { preserveSpaces: true }))).toBe(' a  b  ');
+    expect(richToText(parseRichHtml('a<br>  ', { preserveSpaces: true }))).toBe('a\n  ');
+  });
+});

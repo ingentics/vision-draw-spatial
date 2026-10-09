@@ -268,7 +268,8 @@ function textToEditorHtml(text: string): string {
 
 /** Contenu saisi : texte brut, plus le HTML draw.io s'il y a une mise en forme partielle. */
 export function readContent(editor: HTMLElement): LabelContent {
-  const lines = parseRichHtml(editor.innerHTML);
+  // L'éditeur est en `white-space: pre` : tous ses espaces comptent (sujet 409).
+  const lines = parseRichHtml(editor.innerHTML, { preserveSpaces: true });
   const text = richToText(lines);
   return isRich(lines) ? { text, html: richToHtml(lines) } : { text };
 }

@@ -1,0 +1,25 @@
+<mxfile host="Electron" agent="draw.io/24.7.5" version="24.7.5">
+  <diagram name="Espaces HTML" id="html-spaces">
+    <mxGraphModel grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="nbsp-left" value="&amp;nbsp;a&amp;nbsp; &amp;nbsp;b&amp;nbsp;|" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=0;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="plain-left" value="a b|" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=0;" vertex="1" parent="1">
+          <mxGeometry x="0" y="80" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="collapsed" value="a&amp;nbsp; &amp;nbsp; &amp;nbsp;b&lt;br&gt;a     b" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="0" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="rich" value="&lt;b&gt;gras&lt;/b&gt;&amp;nbsp; &amp;nbsp;&lt;i&gt;italique&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="80" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="nbsp-line" value="&lt;div&gt;a&lt;/div&gt;&lt;div&gt;&amp;nbsp;&lt;/div&gt;&lt;div&gt;b&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="0" width="120" height="140" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,6 +1,6 @@
 import type { Point } from '../model/types';
 import type { Element } from '@xmldom/xmldom';
-import { joinHtmlLines } from './richText';
+import { richToHtml } from './richText';
 import { parseStyle, setStyleKey } from './style';
 import { childElements, markPageDirty } from './xmlTree';
 import type { PageTree } from './xmlTree';
@@ -336,9 +336,12 @@ export function reverseEdgeCell(page: PageTree, edgeId: string): void {
   markPageDirty(page);
 }
 
-/** Texte brut → label HTML draw.io (lignes vides comprises, celles de la fin en `<div><br></div>`). */
+/**
+ * Texte brut → label HTML draw.io (lignes vides comprises, celles de la fin en `<div><br></div>` ; espaces en tête, en
+ * fin ou doublés en `&nbsp;`, sans quoi la relecture les fusionnerait, sujet 409).
+ */
 export function textToHtml(text: string): string {
-  return joinHtmlLines(text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').split(/\r?\n/));
+  return richToHtml(text.split(/\r?\n/).map((line) => [{ text: line }]));
 }
 
 /** Nombre au format draw.io : entier tel quel, sinon au plus deux décimales. */
