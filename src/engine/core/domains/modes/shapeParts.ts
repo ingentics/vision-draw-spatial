@@ -160,7 +160,7 @@ export class ShapeParts {
     return this.at(
       page,
       shape,
-      this.core.picking.groundPointAtHeight(screen, this.core.sceneView.elementTop(shape.id)),
+      this.core.projection.groundPointAtHeight(screen, this.core.sceneView.elementTop(shape.id)),
     );
   }
 
@@ -170,7 +170,7 @@ export class ShapeParts {
    */
   textPartAt(page: PageModel, shape: ShapeModel, screen: Point): string | undefined {
     if (!this.has(page, 'textAt')) return undefined;
-    const point = this.core.picking.groundPointAtHeight(screen, this.core.sceneView.elementTop(shape.id));
+    const point = this.core.projection.groundPointAtHeight(screen, this.core.sceneView.elementTop(shape.id));
     return this.call(page, 'textAt', page, shape, point);
   }
 

@@ -1,6 +1,6 @@
-import { canMoveCell, moveCell } from '../../../format/cellEdits';
+import { moveCell } from '../../../format/cellEdits';
 import { writeDrawio } from '../../../format/write';
-import { collectMoveSet, isLocked, moveTarget } from '../../../edit/moveSet';
+import { canMoveShape, collectMoveSet, moveTarget } from '../../../edit/moveSet';
 import { alignDeltas, arrangedMoves, distributeDeltas } from '../../../edit/align';
 import type { AlignItem, AlignMove, AlignReference, DistributeMove } from '../../../edit/align';
 import type { Point, Rect } from '../../../model/types';
@@ -67,7 +67,7 @@ export class ArrangeCommands {
         carried,
         movable: (id) => {
           const shape = shapeOf(page, id);
-          return shape !== undefined && !isLocked(shape) && canMoveCell(pageTree, id);
+          return shape !== undefined && canMoveShape(pageTree, shape);
         },
         bounds: (id) => {
           const shape = shapeOf(page, id);

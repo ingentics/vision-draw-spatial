@@ -23,6 +23,7 @@ import { Levels } from './view/levels';
 import { SceneView } from './view/scene';
 import { GraphView } from './view/graph';
 import { MinimapView } from './view/minimap';
+import { ScreenProjection } from './view/projection';
 import { Selections } from './selection/selection';
 import { Picking } from './selection/picking';
 import { SelectionHighlight } from './selection/highlight';
@@ -106,13 +107,14 @@ export class EngineCore {
   readonly edits = new EditHistory(this);
   readonly pages = new Pages(this);
 
-  // view : caméra, modes de vue, niveaux de rendu, scènes, vue graphe, mini-carte
+  // view : caméra, modes de vue, niveaux de rendu, scènes, vue graphe, mini-carte, projection page ↔ écran
   readonly camera = new ViewCamera(this);
   readonly viewModes = new ViewModes(this);
   readonly levels = new Levels(this);
   readonly sceneView = new SceneView(this);
   readonly graph = new GraphView(this);
   readonly minimap = new MinimapView(this);
+  readonly projection = new ScreenProjection(this);
 
   // selection : sélection, ce qui est sous le pointeur, mise en valeur
   readonly selection = new Selections(this);
@@ -228,6 +230,7 @@ export class EngineCore {
       this.pages,
       this.graph,
       this.gesture,
+      this.partDrags,
       this.edits,
       this.modeCurrents,
       this.shapeParts,

@@ -1,5 +1,4 @@
 import {
-  canMoveCell,
   gridSizeOf,
   resizeCell,
   setCellLabel,
@@ -17,7 +16,7 @@ import type { ReadonlyPageModel } from '../model/readonly';
 import type { EdgeEnd, EndTextGap } from '../edit/edgeLabels';
 import { SPATIAL_PREFIX, spatialValue } from '../spatial';
 import { END_TEXT_GAP, edgeTextLayout, endLabelOf } from '../edit/edgeLabels';
-import { isLocked } from '../edit/moveSet';
+import { canMoveShape, isLocked } from '../edit/moveSet';
 import { readonlyModel } from '../model/freeze';
 import { approximateMeasure } from '../render/richLayout';
 import type { MeasureText } from '../render/richLayout';
@@ -149,7 +148,7 @@ export class ModeEditWriter implements ModeEdit {
 
   setShapeBounds(shapeId: string, bounds: Rect): void {
     const shape = shapeOf(this.#model, shapeId);
-    if (!shape || isLocked(shape) || !canMoveCell(this.#pageTree, shapeId)) return;
+    if (!shape || !canMoveShape(this.#pageTree, shape)) return;
     const current = this.#resized.get(shapeId) ?? shape.bounds;
     const delta = {
       x: bounds.x - current.x,

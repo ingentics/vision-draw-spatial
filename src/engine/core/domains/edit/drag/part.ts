@@ -31,7 +31,7 @@ export class PartDrags {
     this.core.canvas.style.cursor = 'grabbing';
     const shape = shapeOf(page, drag.shapeId);
     if (!shape) return;
-    const point = this.core.picking.groundPointAtHeight(screen, this.core.sceneView.elementTop(shape.id));
+    const point = this.core.projection.groundPointAtHeight(screen, this.core.sceneView.elementTop(shape.id));
     drag.target = this.core.shapeParts.dropAt(page, shape, drag.part, point);
     if (drag.target === this.shown?.target) return;
     const preview =
@@ -67,8 +67,8 @@ export class PartDrags {
     if (fresh && next !== undefined) this.core.selection.selectItems([{ type: 'shape', element: fresh }], next);
   }
 
-  /** Glisser abandonné sans lâcher (nouveau document) : plus d'aperçu. */
-  clear(): void {
+  /** Nouveau document : le glisser en cours est abandonné sans lâcher, plus d'aperçu. */
+  resetDocument(): void {
     this.shown = undefined;
   }
 }

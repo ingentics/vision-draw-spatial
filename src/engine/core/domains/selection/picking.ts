@@ -1,16 +1,12 @@
-import { Matrix4, Box3, Vector3 } from 'three';
+import { Matrix4 } from 'three';
 import { connectableShapes } from '../../edit/edgeEnds';
-import { pageToScreen, screenToPage } from '../../interaction/cameraMath';
+import { screenToPage } from '../../interaction/cameraMath';
 import { pickElement, distanceToPolyline } from '../../interaction/pick';
 import type { PickedElement } from '../../interaction/pick';
-import type { Footprint } from '../../interaction/marquee';
 import type { EdgeModel, Point, Rect, ShapeModel } from '../../model/types';
 import type { EngineCore } from '../EngineCore';
-import type { Object3D } from 'three';
-import { boundsOfPoints, distance, insidePolygon, rectPath, segmentProjection } from '../../model/geometry';
-import { standingFigure } from '../../render/standing';
-import type { StandingFigure } from '../../render/standing';
-import { shapeOf } from '../../model/pageIndex';
+import { distance, insidePolygon, rectPath, segmentProjection } from '../../model/geometry';
+import { drawnGlyphQuads, drawnTextBox } from '../../render/drawnText';
 
 /**
  * Élément le plus proche d'un point écran, à `tolerance` pixels au plus (poignées, points d'ancrage) ; à distance égale,
@@ -32,9 +28,7 @@ export function nearestOnScreen<T>(
   return best?.item;
 }
 
-/**
- * Ce qui est sous un point de l'écran (formes, flèches, textes de flèche) et passage écran ↔ page à une hauteur donnée.
- */
+/** Ce qui est sous un point de l'écran : formes, flèches, textes de flèche (projection : `ScreenProjection`). */
 export class Picking {
   /** Contours des formes pour le clic (`shapeOutline`). */
   private readonly outlines = new WeakMap<
@@ -64,7 +58,7 @@ export class Picking {
           : (this.core.sceneView.sceneObject(id)?.userData.splitPaths as Point[][] | undefined),
       heightOf: (id) => this.core.sceneView.elementTop(id),
       baseOf: (id) => this.core.sceneView.volumeBase(id),
-      pointAtHeight: (height) => this.groundPointAtHeight(screen, height),
+      pointAtHeight: (height) => this.core.projection.groundPointAtHeight(screen, height),
       contains: (shape, p) => this.core.registry.contains(shape, p, () => this.shapeOutline(shape)),
       pickable: (shape) => this.core.registry.isPickable(shape),
       hitBounds: (shape) => this.core.registry.hitBounds(shape),
@@ -73,40 +67,12 @@ export class Picking {
   }
 
   /**
-   * Plan d'une silhouette debout (Actor en iso / 3D), tel qu'il fait face à la caméra : `toScreen` projette un point
-   * de ce plan (x horizontal, y vers le haut) à l'écran, avec sa hauteur. `undefined` à plat ou pour une autre forme.
-   */
-  standingPlane(
-    elementId: string,
-  ): { silhouette: Object3D; figure: StandingFigure; toScreen: (p: Point) => Point & { height: number } } | undefined {
-    const object = this.core.sceneView.sceneObject(elementId);
-    const standing = this.core.scenes.current?.level === 'iso' ? standingFigure(object) : undefined;
-    if (!object || !standing) return undefined;
-    const { silhouette, figure } = standing;
-    // Tourné face à la caméra autour de la verticale (`render/billboard.ts`).
-    const scale = this.core.levels.heightScale;
-    const angle = silhouette.rotation.z;
-    const toScreen = (p: Point) => {
-      const height = (object.position.z + p.y) * scale;
-      const at = this.screenOfPoint(
-        {
-          x: object.position.x + silhouette.position.x + p.x * Math.cos(angle),
-          y: object.position.y + silhouette.position.y + p.x * Math.sin(angle),
-        },
-        height,
-      );
-      return { ...at, height };
-    };
-    return { silhouette, figure, toScreen };
-  }
-
-  /**
    * Silhouette debout (acteur en iso / 3D) sous un point écran : une pièce pleine (la tête…), ou un trait du corps à la
    * tolérance de clic des flèches, tels qu'ils font face à la caméra. Renvoie la hauteur touchée ; `undefined` si la
    * forme n'est pas une silhouette debout.
    */
   private standingHit(shape: ShapeModel, screen: Point): { at: number | undefined } | undefined {
-    const standing = this.standingPlane(shape.id);
+    const standing = this.core.projection.standingPlane(shape.id);
     if (!standing) return undefined;
     const { figure, toScreen } = standing;
     const { parts, strokes, sign } = figure;
@@ -145,25 +111,6 @@ export class Picking {
     return outline;
   }
 
-  /** Emprise à l'écran d'un élément : base et dessus d'une forme, tracé d'une flèche. */
-  screenFootprint(item: PickedElement): Footprint | undefined {
-    const top = this.core.sceneView.elementTop(item.element.id);
-    if (item.type === 'shape') {
-      const { x, y, width, height } = item.element.bounds;
-      const corners = [
-        { x, y },
-        { x: x + width, y },
-        { x: x + width, y: y + height },
-        { x, y: y + height },
-      ];
-      const heights = top === 0 ? [0] : [0, top];
-      return { points: heights.flatMap((h) => corners.map((p) => this.screenOfPoint(p, h))), closed: true };
-    }
-    const route = this.core.sceneView.sceneObject(item.element.id)?.userData.route as Point[] | undefined;
-    if (!route?.length) return undefined;
-    return { points: route.map((p) => this.screenOfPoint(p, top)), closed: false };
-  }
-
   /**
    * Forme sous un point écran à laquelle on peut attacher une flèche (les flèches sont ignorées) ; `accepts` : règle du
    * mode de la page (ex. liaisons permises du mode RDD).
@@ -180,16 +127,11 @@ export class Picking {
         edgeRoute: () => undefined,
         heightOf: (id) => this.core.sceneView.elementTop(id),
         baseOf: (id) => this.core.sceneView.volumeBase(id),
-        pointAtHeight: (height) => this.groundPointAtHeight(screen, height),
+        pointAtHeight: (height) => this.core.projection.groundPointAtHeight(screen, height),
         contains: (shape, p) => this.core.registry.contains(shape, p, () => this.shapeOutline(shape)),
       },
     );
     return picked?.type === 'shape' ? picked.element : undefined;
-  }
-
-  /** Point écran d'un point de la page posé à `height` au-dessus du sol (inverse de `groundPointAtHeight`). */
-  screenOfPoint(point: Point, height: number): Point {
-    return pageToScreen(this.core.camera.state, this.core.display.viewport, point, height);
   }
 
   /**
@@ -206,7 +148,7 @@ export class Picking {
     for (const edge of [...page.edges].reverse()) {
       const object = this.core.sceneView.sceneObject(edge.id);
       if (!object?.visible) continue;
-      const point = this.groundPointAtHeight(screen, this.core.sceneView.elementTop(edge.id));
+      const point = this.core.projection.groundPointAtHeight(screen, this.core.sceneView.elementTop(edge.id));
       let hit: string | undefined;
       object.traverse((child) => {
         const cellId = child.userData.labelCellId as string | undefined;
@@ -230,78 +172,6 @@ export class Picking {
     }
     return undefined;
   }
-
-  /**
-   * Emprise à l'écran d'un élément de la page courante (formes : dessus du volume) ; `area` : une
-   * partie de la forme en coordonnées page (sa zone de texte), à la place de ses bornes ; `elevation` :
-   * hauteur de cette partie, à la place du dessus du volume.
-   */
-  screenRectOf(elementId: string, area?: Rect, elevation?: number): Rect | undefined {
-    const page = this.core.pages.getCurrentPage();
-    const shape = shapeOf(page, elementId);
-    if (shape) {
-      const top = elevation ?? this.core.sceneView.elementTop(shape.id);
-      return boundsOfPoints(rectPath(area ?? shape.bounds).map((p) => this.screenOfPoint(p, top)));
-    }
-    const route = this.core.sceneView.sceneObject(elementId)?.userData.route as Point[] | undefined;
-    if (!route?.length) return undefined;
-    const middle = route[Math.floor(route.length / 2)]!;
-    const center = this.screenOfPoint(middle, this.core.sceneView.elementTop(elementId));
-    return { x: center.x - 60, y: center.y - 16, width: 120, height: 32 };
-  }
-
-  /** Point de la page visé par un point écran, sur le plan horizontal à `height` au-dessus du sol. */
-  groundPointAtHeight(screen: Point, height: number): Point {
-    return screenToPage(this.core.camera.state, this.core.display.viewport, screen, height);
-  }
-}
-
-/**
- * Boîte d'un texte dessiné (texte SDF mis en page, ou segments d'un texte riche), en coordonnées de
- * page ; undefined tant que la mise en page n'est pas prête.
- */
-function drawnTextBox(object: Object3D, toPage: Matrix4): Box3 | undefined {
-  const box = new Box3();
-  object.traverse((child) => {
-    const info = (child as Object3D & { textRenderInfo?: { blockBounds: [number, number, number, number] } })
-      .textRenderInfo;
-    if (!info) return;
-    const [minX, minY, maxX, maxY] = info.blockBounds;
-    for (const [x, y] of [
-      [minX, minY],
-      [maxX, minY],
-      [minX, maxY],
-      [maxX, maxY],
-    ] as const) {
-      box.expandByPoint(new Vector3(x, y, 0).applyMatrix4(child.matrixWorld).applyMatrix4(toPage));
-    }
-  });
-  return box.isEmpty() ? undefined : box;
-}
-
-/** Coins (espace page) de chaque texte SDF dessiné sous `object` : une lettre tournée par quadrilatère. */
-function drawnGlyphQuads(object: Object3D, toPage: Matrix4): Point[][] {
-  const quads: Point[][] = [];
-  object.traverse((child) => {
-    const info = (child as Object3D & { textRenderInfo?: { blockBounds: [number, number, number, number] } })
-      .textRenderInfo;
-    if (!info) return;
-    const [minX, minY, maxX, maxY] = info.blockBounds;
-    quads.push(
-      (
-        [
-          [minX, minY],
-          [maxX, minY],
-          [maxX, maxY],
-          [minX, maxY],
-        ] as const
-      ).map(([x, y]) => {
-        const v = new Vector3(x, y, 0).applyMatrix4(child.matrixWorld).applyMatrix4(toPage);
-        return { x: v.x, y: v.y };
-      }),
-    );
-  });
-  return quads;
 }
 
 /** Point dans un polygone ou à moins de `margin` de son bord. */

@@ -29,7 +29,7 @@ export class EdgeHandles {
     const top = this.core.sceneView.elementTop(edge.id);
     return nearestOnScreen(
       ['target', 'source'] as const,
-      (end) => this.core.picking.screenOfPoint(ends[end], top),
+      (end) => this.core.projection.screenOfPoint(ends[end], top),
       screen,
       this.core.settings.edit.handlePickTolerance,
     );
@@ -78,7 +78,7 @@ export class EdgeHandles {
     const top = this.core.sceneView.elementTop(editable.edge.id);
     return nearestOnScreen(
       pointHandles(context),
-      (handle) => this.core.picking.screenOfPoint(handle.point, top),
+      (handle) => this.core.projection.screenOfPoint(handle.point, top),
       screen,
       this.core.settings.edit.handlePickTolerance,
       // À distance égale, une vraie poignée passe avant une poignée en transparence.

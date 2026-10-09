@@ -49,7 +49,7 @@ export class ConnectDrags {
       const end =
         connect.target?.kind === 'fixed' && target
           ? anchorPosition(target, connect.target.constraint)
-          : this.core.picking.groundPointAtHeight(screen, top);
+          : this.core.projection.groundPointAtHeight(screen, top);
       connect.loop =
         target?.id === source.id && connect.target?.kind === 'fixed'
           ? this.core.anchors.loopBetween(source, sideExit, connect.target.constraint)
@@ -93,7 +93,7 @@ export class ConnectDrags {
         ? anchorPosition(target, connect.target.constraint)
         : target
           ? center(target.bounds)
-          : this.core.picking.groundPointAtHeight(screen, top);
+          : this.core.projection.groundPointAtHeight(screen, top);
     // Départ : point libre du côté de la poignée le plus proche de la cible visée.
     const exit = loop
       ? loopExit

@@ -36,7 +36,7 @@ export class ModeHandles {
     // Deux poignées qui se chevauchent : la plus proche du pointeur (sujet 381).
     const handle = nearestOnScreen(
       current.handles,
-      (h) => this.core.picking.screenOfPoint(h.center, top),
+      (h) => this.core.projection.screenOfPoint(h.center, top),
       screen,
       this.core.settings.edit.handlePickTolerance,
     );

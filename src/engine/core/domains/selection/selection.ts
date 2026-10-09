@@ -66,7 +66,7 @@ export class Selections {
     const page = this.core.pages.getCurrentPage();
     if (!page) return;
     const taken = this.selectableItems(page).filter((item) => {
-      const footprint = this.core.picking.screenFootprint(item);
+      const footprint = this.core.projection.screenFootprint(item);
       return footprint !== undefined && marqueeTakes(footprint, rect, options.touch);
     });
     const roots = takenRoots(page, taken);

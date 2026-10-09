@@ -11,7 +11,7 @@ function open(text: ModePartText): LabelEditRequest {
     targets: { editablePage: () => ({ page: { id: 'p' } }) },
     shapeParts: { text: () => text },
     pages: { getCurrentPage: () => ({ shapes: [shape] }) },
-    picking: { screenRectOf: () => ({ x: 0, y: 0, width: 100, height: 50 }) },
+    projection: { screenRectOf: () => ({ x: 0, y: 0, width: 100, height: 50 }) },
     sceneView: { labelTop: () => 0 },
     camera: { state: { mode: '2d', zoom: 1 } },
   } as unknown as EngineCore;

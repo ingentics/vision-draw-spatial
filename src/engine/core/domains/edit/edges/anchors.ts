@@ -57,13 +57,13 @@ export class Anchors {
     const { accepts } = options;
     const accepted = accepts
       ? (shape: ShapeModel) =>
-          accepts(shape, this.core.picking.groundPointAtHeight(screen, this.core.sceneView.elementTop(shape.id)))
+          accepts(shape, this.core.projection.groundPointAtHeight(screen, this.core.sceneView.elementTop(shape.id)))
       : undefined;
     if (this.core.arrangement.distributes(page)) {
       // Ancrage automatique : on ne vise que le côté de la forme (le plus proche du pointeur) ; la répartition suit.
       const shape = this.core.picking.shapeAt(screen, accepted);
       if (shape) {
-        const pointer = this.core.picking.groundPointAtHeight(screen, this.core.sceneView.elementTop(shape.id));
+        const pointer = this.core.projection.groundPointAtHeight(screen, this.core.sceneView.elementTop(shape.id));
         const side = sideOfConstraint(frameConstraint(shape.bounds, pointer)) ?? 'n';
         return { kind: 'fixed', shapeId: shape.id, constraint: sideMiddle(side) };
       }
@@ -81,14 +81,14 @@ export class Anchors {
     });
     const best = nearestOnScreen(
       candidates,
-      (c) => this.core.picking.screenOfPoint(anchorPosition(c.shape, c.constraint), c.top),
+      (c) => this.core.projection.screenOfPoint(anchorPosition(c.shape, c.constraint), c.top),
       screen,
       this.core.settings.edit.handlePickTolerance * 1.5,
     );
     if (best) return { kind: 'fixed', shapeId: best.shape.id, constraint: { ...best.constraint } };
     const shape = this.core.picking.shapeAt(screen, accepted);
     if (shape) return { kind: 'floating', shapeId: shape.id };
-    const point = this.core.picking.groundPointAtHeight(screen, options.height);
+    const point = this.core.projection.groundPointAtHeight(screen, options.height);
     return { kind: 'free', point: snapPoint(point, options.snap ? options.grid : 0) };
   }
 

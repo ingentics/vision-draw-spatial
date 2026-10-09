@@ -29,7 +29,7 @@ export class ShapeHandles {
     );
     return nearestOnScreen(
       handles,
-      (h) => this.core.picking.screenOfPoint(h.point, top),
+      (h) => this.core.projection.screenOfPoint(h.point, top),
       screen,
       this.core.settings.edit.handlePickTolerance,
     )?.kind;

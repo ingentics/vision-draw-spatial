@@ -18,7 +18,7 @@ export class LabelDrags {
     const route = this.core.sceneView.sceneObject(drag.edgeId)?.userData.route as Point[] | undefined;
     if (!edge || !route?.length) return;
     drag.started = true;
-    const point = this.core.picking.groundPointAtHeight(screen, this.core.sceneView.elementTop(drag.edgeId));
+    const point = this.core.projection.groundPointAtHeight(screen, this.core.sceneView.elementTop(drag.edgeId));
     let placement = placementAt(route, point, drag.offset);
     // Texte du milieu qui suit la flèche, glissé le long du trait : le point visé est celui du texte glissé.
     const shift = drag.cellId === edge.id ? this.core.edgeTexts.followedText(edge.id)?.shift : undefined;

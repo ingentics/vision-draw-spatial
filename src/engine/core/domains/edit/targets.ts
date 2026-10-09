@@ -1,6 +1,5 @@
-import { canMoveCell } from '../../format/cellEdits';
 import type { DrawioTree, PageTree } from '../../format/xmlTree';
-import { isLocked } from '../../edit/moveSet';
+import { canMoveShape, isLocked } from '../../edit/moveSet';
 import type { EdgeModel, PageModel, ShapeModel } from '../../model/types';
 import type { EngineCore } from '../EngineCore';
 import { edgeOf, shapeOf } from '../../model/pageIndex';
@@ -65,7 +64,7 @@ export class EditTargets {
     // Poignées, redimensionnement et connecteur : une seule forme sélectionnée.
     if (this.core.selection.isMultiSelection()) return undefined;
     const shape = shapeOf(editable.page, picked.element.id);
-    if (!shape || isLocked(shape) || !canMoveCell(editable.pageTree, shape.id)) return undefined;
+    if (!shape || !canMoveShape(editable.pageTree, shape)) return undefined;
     return { ...editable, shape };
   }
 

@@ -1,27 +1,9 @@
 import type { EdgeEndsSnapshot, EndAttachment, Side, TerminalEnd } from '../../../edit/edgeEnds';
 import type { PointHandle, PointsContext } from '../../../edit/edgePointEdits';
 import type { MoveSet } from '../../../edit/moveSet';
+import type { MovePlan, ResizeBounds } from '../../../edit/movePlan';
 import type { ResizeHandle } from '../../../edit/handleKinds';
 import type { EdgeLabelPlacement, Point, Rect } from '../../../model/types';
-
-/** Ce que bouge un déplacement : formes saisies, ce qui les suit, et les bornes du mode. */
-export interface MovePlan {
-  /** Formes dont la géométrie XML est réécrite (plusieurs en sélection multiple). */
-  rootIds: string[];
-  set: MoveSet;
-  /**
-   * Flèches sélectionnées avec les formes (hors groupe déplacé) : elles bougent aussi, et un bout dont la
-   * forme ne bouge pas est détaché, comme draw.io (`disconnectOnMove`) ; point libre au début du glisser.
-   */
-  edges: Array<{ id: string; detach: Array<{ end: TerminalEnd; point?: Point }> }>;
-  /** Formes et flèches emportées par le mode de la page (ex. contenu d'une région RDD, sujet 182), hors sélection. */
-  carried: Set<string>;
-  /**
-   * Bornes du mode de la page (sujet 241) : emprises des formes saisies qui en ont, à leur place d'origine, et
-   * obstacles à ne pas approcher ; absent = déplacement libre.
-   */
-  bounded?: { moving: Rect[]; obstacles: Rect[]; gap: number };
-}
 
 /** Glisser d'édition en cours (SPEC §14.1). */
 export interface MoveDrag extends MovePlan {
@@ -54,7 +36,7 @@ export interface ResizeDrag {
   /** La forme, son contenu (déplacé si le coin haut-gauche bouge) et ses arêtes reliées. */
   children: MoveSet;
   /** Bornes du mode de la page (sujet 241) : obstacles, et ce que la forme dessine au-dessus de ses bornes. */
-  bounded?: { obstacles: Rect[]; above: number; gap: number };
+  bounded?: ResizeBounds;
   started: boolean;
 }
 

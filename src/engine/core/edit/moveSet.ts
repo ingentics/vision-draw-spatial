@@ -1,3 +1,5 @@
+import { canMoveCell } from '../format/cellEdits';
+import type { PageTree } from '../format/xmlTree';
 import { computeBounds } from '../model/bounds';
 import type { PageModel, Point, Rect, ShapeModel } from '../model/types';
 import type { ShapeRegistry } from '../shapes/registry';
@@ -45,6 +47,14 @@ export function moveTarget(
 /** Style draw.io interdisant le déplacement (`movable=0`, `locked=1`). */
 export function isLocked(shape: Pick<ShapeModel, 'style'>): boolean {
   return shape.style.movable === '0' || styleFlag(shape.style, 'locked');
+}
+
+/**
+ * Forme qu'une édition peut déplacer ou redimensionner : ni verrouillée (`movable=0`, `locked`), ni à géométrie
+ * relative ou absente dans l'arbre XML. Garde commune au glisser, aux commandes d'arrangement et aux modes.
+ */
+export function canMoveShape(pageTree: PageTree, shape: Pick<ShapeModel, 'id' | 'style'>): boolean {
+  return !isLocked(shape) && canMoveCell(pageTree, shape.id);
 }
 
 export function collectMoveSet(page: PageModel, rootId: string): MoveSet {

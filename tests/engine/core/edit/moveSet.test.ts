@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  canMoveShape,
   carriedShapes,
   collectMoveSet,
   isLocked,
@@ -9,7 +10,7 @@ import {
   translateMoveSet,
   unionMoveSets,
 } from '../../../../src/engine/core/edit/moveSet';
-import { parseDrawio } from '../../../../src/engine/core/format/parse';
+import { parseDrawio, readDrawio } from '../../../../src/engine/core/format/parse';
 import type { PageModel } from '../../../../src/engine/core/model/types';
 import { fixture } from '../../../helpers';
 import { createDefaultRegistry } from '../../../../src/engine/plugins';
@@ -90,6 +91,18 @@ describe('isLocked', () => {
     expect(isLocked(a)).toBe(false);
     expect(isLocked({ ...a, style: { ...a.style, movable: '0' } })).toBe(true);
     expect(isLocked({ ...a, style: { ...a.style, locked: '1' } })).toBe(true);
+  });
+});
+
+describe('canMoveShape (sujet 384)', () => {
+  it('ni verrouillée, ni à géométrie relative ou absente dans l’arbre', () => {
+    const { document, tree } = readDrawio(fixture('three-rectangles.drawio'));
+    const page = document.pages[0]!;
+    const pageTree = tree.pages[0]!;
+    const a = shape(page, 'a');
+    expect(canMoveShape(pageTree, a)).toBe(true);
+    expect(canMoveShape(pageTree, { ...a, style: { ...a.style, locked: '1' } })).toBe(false);
+    expect(canMoveShape(pageTree, { ...a, id: 'absent' })).toBe(false);
   });
 });
 

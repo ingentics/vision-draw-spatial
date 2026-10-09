@@ -3,7 +3,8 @@ import type { PageTree } from '../../../format/xmlTree';
 import { moveSetMinus, snapDelta, translateMoveSet } from '../../../edit/moveSet';
 import { clampMove } from '../../../edit/obstacles';
 import type { PageModel, Point } from '../../../model/types';
-import type { MoveDrag, MovePlan } from './types';
+import type { MoveDrag } from './types';
+import type { MovePlan } from '../../../edit/movePlan';
 import type { EngineCore } from '../../EngineCore';
 import { edgeOf, shapeOf } from '../../../model/pageIndex';
 

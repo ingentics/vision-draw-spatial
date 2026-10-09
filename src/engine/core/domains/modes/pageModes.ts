@@ -1,9 +1,9 @@
-import { canMoveCell, setPageAttribute } from '../../format/cellEdits';
+import { setPageAttribute } from '../../format/cellEdits';
 import { writeDrawio } from '../../format/write';
 import type { PageTree } from '../../format/xmlTree';
 import type { TerminalEnd } from '../../edit/edgeEnds';
 import { endKey } from '../../edit/anchoring/auto/distribute';
-import { carriedShapes, isLocked } from '../../edit/moveSet';
+import { canMoveShape, carriedShapes } from '../../edit/moveSet';
 import type { DocumentModel, PageModel, Point, ShapeModel } from '../../model/types';
 import { applyModeEdit } from '../../modes/modeEditWriter';
 import { callMode } from '../../modes/modeCalls';
@@ -143,7 +143,7 @@ export class PageModes {
     const carriesOf = mode?.gestures?.carries;
     if (!mode || !carriesOf) return [];
     const carries = (shape: ShapeModel) => this.call(mode, 'gestures.carries', [], carriesOf, page, shape);
-    const accept = movableIn ? (shape: ShapeModel) => !isLocked(shape) && canMoveCell(movableIn, shape.id) : undefined;
+    const accept = movableIn ? (shape: ShapeModel) => canMoveShape(movableIn, shape) : undefined;
     return carriedShapes(page, shapeIds, carries, accept);
   }
 

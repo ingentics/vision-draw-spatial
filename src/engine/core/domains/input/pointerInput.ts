@@ -102,7 +102,7 @@ export class PointerInput {
     else if (picked?.type === 'edge') {
       // Près d'un bout : texte de début ou de fin ; vers le milieu : label de la flèche.
       const route = this.core.sceneView.sceneObject(picked.element.id)?.userData.route as Point[] | undefined;
-      const point = this.core.picking.groundPointAtHeight(screen, this.core.sceneView.elementTop(picked.element.id));
+      const point = this.core.projection.groundPointAtHeight(screen, this.core.sceneView.elementTop(picked.element.id));
       const end = route ? endAt(positionAlong(route, point)) : undefined;
       if (end) this.core.labelEditor.editEdgeEndLabel(picked.element.id, end);
       else this.core.labelEditor.editLabel(picked.element.id);

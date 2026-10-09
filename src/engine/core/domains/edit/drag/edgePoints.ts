@@ -17,7 +17,7 @@ export class EdgePointsDrags {
     const pageTree = this.core.file.pageTreeOf(page.id);
     if (!edge || !pageTree) return;
     drag.started = true;
-    const raw = this.core.picking.groundPointAtHeight(screen, this.core.sceneView.elementTop(edge.id));
+    const raw = this.core.projection.groundPointAtHeight(screen, this.core.sceneView.elementTop(edge.id));
     const grid = gridSizeOf(pageTree);
     const pointer = snapPoint(raw, snap ? grid : 0);
     const points = dragPoints(drag.context, drag.handle, pointer);

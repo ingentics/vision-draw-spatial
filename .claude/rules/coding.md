@@ -120,7 +120,8 @@ Folder map with each folder's role: `docs/SUMMARY.md` §3 (single source). Where
   context): a restricted brush (`MinimapBrush`).
 - **A special case is not copied around.** A repeated test goes through a shared guard: transition in progress
   (`core.canInteract()`), graph view (`graph.isGraph(id)`), editable page (`targets.editablePage()`,
-  `editablePageById(id)`); if none fits, create one.
+  `editablePageById(id)`), movable shape (`canMoveShape(pageTree, shape)`, `edit/moveSet.ts`); if none fits, create
+  one.
 
 ## 6. Writing code
 

@@ -1,17 +1,31 @@
-import { canMoveCell, gridSizeOf } from '../../../format/cellEdits';
+import { gridSizeOf } from '../../../format/cellEdits';
 import { documentFromTree } from '../../../format/parse';
 import type { PageTree } from '../../../format/xmlTree';
 import { snapshotEnds } from '../../../edit/edgeEnds';
-import { collectMoveSet, isLocked, moveTarget, unionMoveSets } from '../../../edit/moveSet';
-import type { MoveSet } from '../../../edit/moveSet';
+import { canMoveShape, collectMoveSet, moveTarget } from '../../../edit/moveSet';
+import { movePlan, resizeBounds } from '../../../edit/movePlan';
+import type { ObstaclesOf } from '../../../edit/movePlan';
 import { connectSideOf, isConnectHandle } from '../../../edit/handleKinds';
-import { affectedShapes } from '../../../edit/anchoring/auto/distribute';
 import { screenToPage } from '../../../interaction/cameraMath';
-import { independentRoots } from '../../../interaction/selectionRules';
-import type { PageModel, Point, Rect } from '../../../model/types';
-import type { Drag, MoveDrag, MovePlan, ResizeDrag } from './types';
+import type { PageModel, Point, Rect, ShapeModel } from '../../../model/types';
+import type { PickedElement } from '../../../interaction/pick';
+import type { Drag, MoveDrag } from './types';
 import type { EngineCore } from '../../EngineCore';
-import { byId, edgeOf, shapeOf } from '../../../model/pageIndex';
+import { byId } from '../../../model/pageIndex';
+
+/** Pointeur suivi : point écran, point de la page visé au sol, aimantation, déplacement libre. */
+interface DragPointer {
+  screen: Point;
+  point: Point;
+  snap: boolean;
+  free: boolean;
+}
+
+/** Suivi et écriture d'un genre de glisser ; `commit` vrai : la géométrie d'une forme a été écrite. */
+interface DragKind<D extends Drag> {
+  follow(page: PageModel, drag: D, pointer: DragPointer): void;
+  commit(drag: D, pageTree: PageTree): boolean | void;
+}
 
 /**
  * Glisser d'édition à la souris (SPEC §14.1) : ce que l'appui saisit, le suivi du pointeur et l'écriture au lâcher ;
@@ -20,6 +34,38 @@ import { byId, edgeOf, shapeOf } from '../../../model/pageIndex';
 export class DragGesture {
   /** Glisser d'édition en cours (déplacement, redimensionnement, connecteur). */
   drag: Drag | undefined;
+
+  /** Domaine qui suit et écrit chaque genre de glisser. */
+  private readonly kinds: { [K in Drag['kind']]: DragKind<Extract<Drag, { kind: K }>> } = {
+    move: {
+      follow: (page, drag, p) => this.core.moveDrags.follow(page, drag, p.point, p.snap, p.free),
+      commit: (drag, pageTree) => this.core.moveDrags.commit(drag, pageTree),
+    },
+    resize: {
+      follow: (page, drag, p) => this.core.resizeDrags.follow(page, drag, p.point, p.snap, p.free),
+      commit: (drag, pageTree) => this.core.resizeDrags.commit(drag, pageTree),
+    },
+    label: {
+      follow: (page, drag, p) => this.core.labelDrags.follow(page, drag, p.screen),
+      commit: (drag, pageTree) => this.core.labelDrags.commit(drag, pageTree),
+    },
+    edgeEnd: {
+      follow: (page, drag, p) => this.core.edgeEndDrags.follow(page, drag, p.screen, p.snap),
+      commit: (drag, pageTree) => this.core.edgeEndDrags.commit(drag, pageTree),
+    },
+    edgePoints: {
+      follow: (page, drag, p) => this.core.edgePointsDrags.follow(page, drag, p.screen, p.snap),
+      commit: (drag, pageTree) => this.core.edgePointsDrags.commit(drag, pageTree),
+    },
+    part: {
+      follow: (page, drag, p) => this.core.partDrags.follow(page, drag, p.screen),
+      commit: (drag) => this.core.partDrags.commit(drag),
+    },
+    connect: {
+      follow: (page, drag, p) => this.core.connectDrags.follow(page, drag, p.screen),
+      commit: (drag, pageTree) => this.core.connectDrags.commit(drag, pageTree),
+    },
+  };
 
   constructor(private readonly core: EngineCore) {}
 
@@ -35,7 +81,6 @@ export class DragGesture {
   /** Nouveau document : le glisser en cours est abandonné, sans rien écrire. */
   resetDocument(): void {
     this.drag = undefined;
-    this.core.partDrags.clear();
   }
 
   /**
@@ -95,7 +140,7 @@ export class DragGesture {
             origin: { ...selected.bounds },
             grid,
             children: collectMoveSet(page, selected.id),
-            bounded: this.resizeBounds(page, selected.id),
+            bounded: resizeBounds(page, selected.id, this.obstaclesOf(page)),
             started: false,
           };
       return true;
@@ -111,29 +156,18 @@ export class DragGesture {
     const picked = this.core.picking.pickAt(screen);
     if (picked?.type !== 'shape') return false;
     const shape = moveTarget(page, picked.element, this.core.registry);
-    if (isLocked(shape) || !canMoveCell(pageTree, shape.id)) return false;
+    if (!canMoveShape(pageTree, shape)) return false;
     // Forme saisie dans une sélection multiple : toutes les formes sélectionnées bougent ensemble
     // (celles qu'on ne peut pas déplacer restent en place).
     const selection = this.core.selection.current;
+    const items = selection?.pageId === page.id ? selection.items : [];
     const grabbedSelected =
       this.core.selection.isMultiSelection() &&
-      selection?.pageId === page.id &&
-      selection.items.some(
-        (item) => item.type === 'shape' && moveTarget(page, item.element, this.core.registry).id === shape.id,
-      );
+      items.some((item) => item.type === 'shape' && moveTarget(page, item.element, this.core.registry).id === shape.id);
     const candidates = grabbedSelected
-      ? [
-          shape.id,
-          ...selection!.items
-            .filter((item) => item.type === 'shape')
-            .map((item) => moveTarget(page, item.element, this.core.registry))
-            .filter((target) => !isLocked(target) && canMoveCell(pageTree, target.id))
-            .map((target) => target.id),
-        ]
+      ? [shape.id, ...this.movableShapes(page, pageTree, items).map((target) => target.id)]
       : [shape.id];
-    const edgeIds = grabbedSelected
-      ? selection!.items.filter((item) => item.type === 'edge').map((item) => item.element.id)
-      : [];
+    const edgeIds = grabbedSelected ? selectedEdgeIds(items) : [];
     this.drag = this.moveDrag(page, pageTree, candidates, edgeIds, start, shape.bounds, grid);
     return true;
   }
@@ -153,9 +187,10 @@ export class DragGesture {
     grid: number,
   ): MoveDrag {
     const carried = this.core.pageModes.carried(page, shapeIds, pageTree);
-    const plan = this.movePlan(page, pageTree, shapeIds, edgeIds, carried);
+    const obstaclesOf = this.obstaclesOf(page);
+    const plan = movePlan(page, pageTree, shapeIds, edgeIds, carried, obstaclesOf);
     const other =
-      carried.length > 0 && edgeIds.length === 0 ? this.movePlan(page, pageTree, shapeIds, [], []) : undefined;
+      carried.length > 0 && edgeIds.length === 0 ? movePlan(page, pageTree, shapeIds, [], [], obstaclesOf) : undefined;
     return {
       kind: 'move',
       pageId: page.id,
@@ -170,83 +205,20 @@ export class DragGesture {
     };
   }
 
-  /** Plan d'un déplacement : formes saisies, `carried` (emportées par le mode), flèches qui suivent, bornes. */
-  private movePlan(
-    page: PageModel,
-    pageTree: PageTree,
-    shapeIds: string[],
-    edgeIds: string[],
-    carried: string[],
-  ): MovePlan {
-    const sets = new Map<string, MoveSet>();
-    const setOf = (id: string) => {
-      if (!sets.has(id)) sets.set(id, collectMoveSet(page, id));
-      return sets.get(id)!;
-    };
-    const rootIds = independentRoots([...shapeIds, ...carried], (id) => setOf(id).shapeIds);
-    const set = unionMoveSets(rootIds.map(setOf));
-    // Formes emportées : les flèches qui les relient entre elles (ou à la forme saisie) bougent avec elles.
-    const carriedEdges =
-      carried.length > 0
-        ? page.edges
-            .filter((edge) => set.shapeIds.has(edge.sourceId ?? '') && set.shapeIds.has(edge.targetId ?? ''))
-            .map((edge) => edge.id)
-            .filter((id) => !edgeIds.includes(id))
-        : [];
-    // Flèches de la sélection qui bougent d'elles-mêmes (une flèche d'un groupe déplacé suit déjà).
-    const edges: MoveDrag['edges'] = [];
-    for (const id of [...edgeIds, ...carriedEdges]) {
-      const edge = edgeOf(page, id);
-      if (!edge || isLocked(edge) || !pageTree.cells.get(edge.id)?.cell || set.edgeIds.has(edge.id)) continue;
-      const detach = (['source', 'target'] as const)
-        .filter((end) => {
-          const terminal = end === 'source' ? edge.sourceId : edge.targetId;
-          return terminal !== undefined && !set.shapeIds.has(terminal);
-        })
-        .map((end) => ({ end }));
-      edges.push({ id: edge.id, detach });
-      set.edgeIds.add(edge.id);
-      set.connectedEdgeIds.delete(edge.id);
-    }
-    return {
-      rootIds,
-      set,
-      edges,
-      carried: new Set([...carried, ...carriedEdges]),
-      bounded: this.moveBounds(
-        page,
-        rootIds.filter((id) => !carried.includes(id)),
-        set.shapeIds,
-      ),
-    };
+  /** Obstacles du mode de la page pour une forme (sujet 241), lus par les plans de déplacement et redimensionnement. */
+  private obstaclesOf(page: PageModel): ObstaclesOf {
+    return (shape) => this.core.pageModes.obstacles(page, shape);
   }
 
   /**
-   * Bornes du mode de la page pour un déplacement (sujet 241) : emprises des formes saisies qui ont des obstacles, et
-   * ces obstacles, sauf ceux qui bougent aussi (`moving`). Undefined : aucune borne.
+   * Formes déplaçables d'une sélection : la forme que chaque élément saisi déplace (`moveTarget`), sauf celles qu'on ne
+   * peut pas déplacer (elles restent en place).
    */
-  private moveBounds(page: PageModel, rootIds: string[], moving: ReadonlySet<string>): MoveDrag['bounded'] {
-    const extents: Rect[] = [];
-    const obstacles: Rect[] = [];
-    let gap = 0;
-    for (const id of rootIds) {
-      const shape = shapeOf(page, id);
-      const found = shape && this.core.pageModes.obstacles(page, shape);
-      if (!shape || !found) continue;
-      gap = Math.max(gap, found.gap);
-      const above = found.above ?? 0;
-      extents.push({ ...shape.bounds, y: shape.bounds.y - above, height: shape.bounds.height + above });
-      obstacles.push(...found.rects.filter((r) => !moving.has(r.id)).map((r) => r.rect));
-    }
-    return extents.length > 0 && obstacles.length > 0 ? { moving: extents, obstacles, gap } : undefined;
-  }
-
-  /** Bornes du mode de la page pour le redimensionnement d'une forme (sujet 241) ; undefined : aucune. */
-  private resizeBounds(page: PageModel, shapeId: string): ResizeDrag['bounded'] {
-    const shape = shapeOf(page, shapeId);
-    const found = shape && this.core.pageModes.obstacles(page, shape);
-    if (!found || found.rects.length === 0) return undefined;
-    return { obstacles: found.rects.map((r) => r.rect), above: found.above ?? 0, gap: found.gap };
+  private movableShapes(page: PageModel, pageTree: PageTree, items: readonly PickedElement[]): ShapeModel[] {
+    return items
+      .filter((item) => item.type === 'shape')
+      .map((item) => moveTarget(page, item.element, this.core.registry))
+      .filter((shape) => canMoveShape(pageTree, shape));
   }
 
   nudgeSelection(direction: Point, coarse: boolean): boolean {
@@ -254,11 +226,8 @@ export class DragGesture {
     const selection = this.core.selection.current;
     if (!editable || this.drag || selection?.pageId !== editable.page.id) return false;
     const { page, pageTree } = editable;
-    const shapes = selection.items
-      .filter((item) => item.type === 'shape')
-      .map((item) => moveTarget(page, item.element, this.core.registry))
-      .filter((shape) => !isLocked(shape) && canMoveCell(pageTree, shape.id));
-    const edgeIds = selection.items.filter((item) => item.type === 'edge').map((item) => item.element.id);
+    const shapes = this.movableShapes(page, pageTree, selection.items);
+    const edgeIds = selectedEdgeIds(selection.items);
     const grid = gridSizeOf(pageTree);
     const origin = shapes[0]?.bounds ?? { x: 0, y: 0, width: 0, height: 0 };
     const start = { x: 0, y: 0 };
@@ -293,13 +262,7 @@ export class DragGesture {
     const page = this.core.file.livePage(drag.pageId, this);
     if (!page) return;
     const point = screenToPage(this.core.camera.state, this.core.display.viewport, screen);
-    if (drag.kind === 'move') this.core.moveDrags.follow(page, drag, point, snap, free);
-    else if (drag.kind === 'resize') this.core.resizeDrags.follow(page, drag, point, snap, free);
-    else if (drag.kind === 'label') this.core.labelDrags.follow(page, drag, screen);
-    else if (drag.kind === 'edgeEnd') this.core.edgeEndDrags.follow(page, drag, screen, snap);
-    else if (drag.kind === 'edgePoints') this.core.edgePointsDrags.follow(page, drag, screen, snap);
-    else if (drag.kind === 'part') this.core.partDrags.follow(page, drag, screen);
-    else this.core.connectDrags.follow(page, drag, screen);
+    this.kindOf(drag).follow(page, drag, { screen, point, snap, free });
   }
 
   /**
@@ -322,15 +285,12 @@ export class DragGesture {
     if (!drag?.started || !this.core.file.document || !this.core.file.xmlTree) return;
     const pageTree = this.core.file.pageTreeOf(drag.pageId);
     if (!pageTree) return;
-    if (drag.kind === 'part') this.core.partDrags.commit(drag);
-    else if (drag.kind === 'label') this.core.labelDrags.commit(drag, pageTree);
-    else if (drag.kind === 'edgePoints') this.core.edgePointsDrags.commit(drag, pageTree);
-    else if (drag.kind === 'edgeEnd') this.core.edgeEndDrags.commit(drag, pageTree);
-    else if (drag.kind === 'connect') this.core.connectDrags.commit(drag, pageTree);
-    else if (
-      drag.kind === 'move' ? this.core.moveDrags.commit(drag, pageTree) : this.core.resizeDrags.commit(drag, pageTree)
-    )
-      this.afterGeometryEdit(drag.pageId);
+    if (this.kindOf(drag).commit(drag, pageTree) === true) this.afterGeometryEdit(drag.pageId);
+  }
+
+  /** Entrée du genre du glisser : TypeScript ne relie pas la clé `kind` au type de l'entrée, d'où la conversion. */
+  private kindOf<D extends Drag>(drag: D): DragKind<D> {
+    return this.kinds[drag.kind] as unknown as DragKind<D>;
   }
 
   /**
@@ -338,23 +298,25 @@ export class DragGesture {
    * voisines sont réparties à nouveau (même étape d'annulation) ; sinon les autres rendus de la page sont à refaire.
    */
   private afterGeometryEdit(pageId: string): void {
-    // Ancrage automatique : la forme a bougé, ses flèches et celles de ses voisines sont réparties à nouveau
-    // (même étape d'annulation) ; le modèle est alors relu de l'arbre.
+    // Relecture de l'arbre seulement en ancrage automatique : la forme a bougé, ses flèches et celles de ses voisines
+    // sont réparties à nouveau (même étape d'annulation).
     const moved = this.core.pages.pageById(pageId);
     const fresh =
       moved &&
       this.core.arrangement.distributes(moved) &&
       this.core.file.xmlTree &&
       documentFromTree(this.core.file.xmlTree);
-    const freshPage = fresh && byId(fresh.pages, pageId);
-    if (
-      freshPage &&
-      this.core.arrangement.writeDistribution(freshPage, affectedShapes(this.core.file.geometry.get(pageId), freshPage))
-    ) {
+    if (fresh && this.core.arrangement.distributeAfterEdit(fresh, [pageId])) {
       this.core.file.documentChanged([pageId]);
       return;
     }
+    const freshPage = fresh && byId(fresh.pages, pageId);
     if (freshPage) this.core.file.updateGeometry(freshPage);
     this.core.live.afterLiveWrite(pageId);
   }
+}
+
+/** Flèches d'une sélection (elles bougent avec les formes saisies). */
+function selectedEdgeIds(items: readonly PickedElement[]): string[] {
+  return items.filter((item) => item.type === 'edge').map((item) => item.element.id);
 }
