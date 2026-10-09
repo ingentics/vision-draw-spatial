@@ -96,7 +96,6 @@ export function regionOutline(shape: ShapeModel, ctx: MeasureContext): Point[] {
 /** Rendu à plat : région et onglet d'un seul contour (fond léger, bordure fine), nom en gras sur l'onglet. */
 function createRegion(shape: ShapeModel, ctx: RenderContext): Group {
   const group = new Group();
-  group.name = `shape:${shape.id}`;
   const { style } = shape;
   const path = regionOutline(shape, ctx);
   const fill = styleColor(style, 'fillColor', DEFAULT_REGION_STYLE.fillColor);

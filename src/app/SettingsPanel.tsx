@@ -1773,7 +1773,7 @@ const KEY_NAMES: Record<string, string> = {
   PageDown: 'Page suiv.',
 };
 
-export function keyLabel(key: string): string {
+function keyLabel(key: string): string {
   if (key === '') return 'Aucune';
   return KEY_NAMES[key] ?? (key.length === 1 ? key.toUpperCase() : key);
 }

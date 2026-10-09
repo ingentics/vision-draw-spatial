@@ -19,11 +19,11 @@ export const FIELDS = 'fields';
  * Rôle d'un champ (sujet 246) : clé primaire, propriété, clé étrangère, clé étrangère d'un autre domaine, embedded
  * incorporé (champ d'une relation embedded, sujet 268).
  */
-export const FIELD_KINDS = ['pk', 'property', 'fk', 'external-fk', 'embed'] as const;
+const FIELD_KINDS = ['pk', 'property', 'fk', 'external-fk', 'embed'] as const;
 export type FieldKind = (typeof FIELD_KINDS)[number];
 
 /** Types imposés de la clé primaire (sujet 260), hors de la liste des autres champs. */
-export const KEY_TYPES = { 'primary-key': 'Primary key', word: 'Mot' } as const satisfies Record<string, string>;
+const KEY_TYPES = { 'primary-key': 'Primary key', word: 'Mot' } as const satisfies Record<string, string>;
 export type KeyType = keyof typeof KEY_TYPES;
 
 /** Types de donnée d'un champ : identifiant écrit dans le fichier, libellé affiché. */

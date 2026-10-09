@@ -37,10 +37,10 @@ export interface Viewport {
   height: number;
 }
 
-export const MIN_ZOOM = 0.05;
-export const MAX_ZOOM = 16;
+const MIN_ZOOM = 0.05;
+const MAX_ZOOM = 16;
 /** Inclinaison maximale : au-delà, le sol devient trop rasant pour être lisible. */
-export const MAX_TILT = (80 * Math.PI) / 180;
+const MAX_TILT = (80 * Math.PI) / 180;
 /** Élévation de la caméra en isométrie vraie (arctan(1/√2) ≈ 35,26°). */
 export const ISOMETRIC_ELEVATION_DEG = 35.26;
 
@@ -87,11 +87,11 @@ export function tiltFromElevation(elevationDeg: number): number {
  * Zoom borné ; plus resserré en vue 3D. Bornes dans l'ordre : les réglages passent par `orderedZooms` (maximum jamais
  * sous le minimum), sans quoi `clamp` ferait gagner le minimum là où l'ancienne écriture faisait gagner le maximum.
  */
-export function clampZoom(zoom: number, mode?: ViewMode, limits: CameraLimits = DEFAULT_CAMERA_LIMITS): number {
+function clampZoom(zoom: number, mode?: ViewMode, limits: CameraLimits = DEFAULT_CAMERA_LIMITS): number {
   return mode === '3d' ? clamp(zoom, limits.minZoom3d, limits.maxZoom3d) : clamp(zoom, limits.minZoom, limits.maxZoom);
 }
 
-export function clampTilt(tilt: number, mode?: ViewMode, limits: CameraLimits = DEFAULT_CAMERA_LIMITS): number {
+function clampTilt(tilt: number, mode?: ViewMode, limits: CameraLimits = DEFAULT_CAMERA_LIMITS): number {
   return clamp(tilt, 0, mode === '3d' ? limits.maxTilt3d : MAX_TILT);
 }
 
@@ -146,7 +146,7 @@ export function normalizeAngle(angle: number): number {
  * Axes de l'écran exprimés en coordonnées page (au sol) : `right` = vers la droite de l'écran,
  * `down` = vers le bas de l'écran. Sans rotation : (1, 0) et (0, 1), comme draw.io.
  */
-export function screenAxes(rotation: number): { right: Point; down: Point } {
+function screenAxes(rotation: number): { right: Point; down: Point } {
   const cos = Math.cos(rotation);
   const sin = Math.sin(rotation);
   return { right: { x: cos, y: sin }, down: { x: -sin, y: cos } };
@@ -156,7 +156,7 @@ export function screenAxes(rotation: number): { right: Point; down: Point } {
  * Écrasement vertical du sol à l'écran : une longueur au sol dans l'axe « bas de l'écran »
  * apparaît multipliée par cos(tilt). 1 en vue de dessus.
  */
-export function verticalScale(state: Pick<CameraState, 'tilt'>): number {
+function verticalScale(state: Pick<CameraState, 'tilt'>): number {
   return Math.cos(state.tilt);
 }
 
@@ -286,7 +286,7 @@ export function sameView(a: CameraState, b: CameraState, viewport: Viewport): bo
 }
 
 /** Vues que parcourt la touche Entrée quand il y a une sélection, dans l'ordre (ticket 242). */
-export const OVERVIEW_CYCLE = ['selection', 'actual', 'global'] as const;
+const OVERVIEW_CYCLE = ['selection', 'actual', 'global'] as const;
 export type OverviewStep = (typeof OVERVIEW_CYCLE)[number];
 
 /**

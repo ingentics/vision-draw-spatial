@@ -3,52 +3,31 @@ import type { UnsupportedReport } from './core/diagnostics/unsupportedStyles';
 import type { AlignMove, AlignReference, DistributeMove } from './core/edit/align';
 import type { Anchoring } from './core/edit/anchoring/mode';
 import type { EdgeEnd } from './core/edit/edgeLabels';
-import { usedTemplatesIn } from './core/edit/palette';
 import type { PageModePalette, ShapeTemplate } from './core/edit/palette';
 import type { EffectRegistryView } from './core/effects/registry';
 import type { StylePreset } from './core/edit/stylePresets';
 import type { OrderMove } from './core/format/order';
 import type { MiniGraph } from './core/graph/miniGraph';
-import type { DrawioTree } from './core/format/xmlTree';
 import type { CameraState, ViewMode } from './core/interaction/cameraMath';
 import type { HistoryEntry, LinkUsage, ParentLink } from './core/interaction/navigationHistory';
 import type { PickedElement } from './core/interaction/pick';
-import type { DocumentModel, LinkModel, PageModel, Point, Rect } from './core/model/types';
+import type { DocumentModel, LinkModel, PageModel, Point } from './core/model/types';
 import type { ModeRegistryView, ModeScope } from './core/modes/registry';
 import type { ShapeRegistryView } from './core/shapes/registry';
 import type { OrientAction } from './core/edit/orientShapes';
 import type { ModeEdit } from './core/modes/modeEdit';
 import type { ModeTarget } from './core/modes/types';
 import type { JumpDefaults } from './core/render/edges/jumps';
-import type { PageScene } from './core/render/pageScene';
 import type { EngineMetrics } from './core/domains/runtime/metrics';
 import type { Settings, SettingsPatch } from './core/settings';
 import { EngineCore } from './core/domains/EngineCore';
 import { createDefaultEffectRegistry, createDefaultModeRegistry, createDefaultRegistry } from './plugins';
 import type {
-  BackTarget,
   EdgeTextAnchor,
   EngineEvent,
   EngineEvents,
   EngineOptions,
   InitialView,
-  ModeIndicator,
-  ModePropertyView,
-  Selection,
-} from './core/domains/types';
-
-export type { PreloadSettings, Settings, SettingsPatch, TransitionSettings, ViewSettings } from './core/settings';
-export type {
-  BackTarget,
-  EdgeTextAnchor,
-  EngineEvent,
-  EngineEvents,
-  EngineOptions,
-  InitialView,
-  LabelEditPlane,
-  CommentEditRequest,
-  LabelEditRequest,
-  ModeHint,
   ModeIndicator,
   ModePropertyView,
   Selection,
@@ -97,11 +76,6 @@ export class Engine {
 
   getDocument(): DocumentModel | undefined {
     return this.core.file.document;
-  }
-
-  /** Arbre XML d'origine du document chargé : ses `cells` ont les mêmes ids que le modèle. */
-  getXmlTree(): DrawioTree | undefined {
-    return this.core.file.xmlTree;
   }
 
   /**
@@ -209,23 +183,8 @@ export class Engine {
     this.core.metrics.setSampling(on);
   }
 
-  /** Scène de la page courante (lecture seule : diagnostics, tests). */
-  getPageScene(): PageScene | undefined {
-    return this.core.sceneView.getPageScene();
-  }
-
-  /** Pages dont la scène est construite, de la moins à la plus récemment affichée. */
-  getCachedPageIds(): string[] {
-    return this.core.sceneView.getCachedPageIds();
-  }
-
   getCameraState(): CameraState {
     return this.core.camera.getCameraState();
-  }
-
-  /** Cadre une emprise de la page courante (sans dépasser 100 %), dans l'orientation courante. */
-  fitToBounds(bounds: Rect): void {
-    this.core.camera.fitToBounds(bounds);
   }
 
   setCameraState(state: CameraState): void {
@@ -238,15 +197,6 @@ export class Engine {
    */
   animateCameraTo(target: CameraState, durationMs?: number, blendLevels?: boolean): void {
     this.core.camera.animateCameraTo(target, durationMs, blendLevels);
-  }
-
-  /**
-   * Vue globale de la page courante, dans l'orientation actuelle. Contrairement au cadrage
-   * d'ouverture, elle n'est pas plafonnée à 100 % : un petit schéma remplit l'écran,
-   * sinon la bascule globale ↔ 1:1 n'aurait aucun effet.
-   */
-  getOverviewState(): CameraState | undefined {
-    return this.core.camera.getOverviewState();
   }
 
   /**
@@ -288,11 +238,6 @@ export class Engine {
     this.core.viewModes.toggleFlatten();
   }
 
-  /** Orientation de référence du mode courant : 0 en vue de dessus, l'azimut iso en isométrie et en 3D. */
-  getReferenceRotation(): number {
-    return this.core.camera.getReferenceRotation();
-  }
-
   /** Vue par défaut du mode courant (orientation de référence, page entière), en animation. */
   resetView(): void {
     this.core.camera.resetView();
@@ -305,11 +250,6 @@ export class Engine {
 
   // -------------------------------------------------------------------------
   // Vue graphe et mini-carte (SPEC §10, §12)
-
-  /** Page générée de la vue graphe (cartes des pages, flèches des liens). */
-  getGraphPage(): PageModel | undefined {
-    return this.core.graph.getGraphPage();
-  }
 
   isGraphView(): boolean {
     return this.core.graph.isGraphView();
@@ -360,21 +300,11 @@ export class Engine {
     this.core.config.updateSettings(patch);
   }
 
-  /** Animations réduites : réglage d'accessibilité, ou préférence système si « système ». */
-  reducedMotion(): boolean {
-    return this.core.config.reducedMotion();
-  }
-
   // -------------------------------------------------------------------------
   // Sélection (SPEC §11)
 
   getSelection(): Selection | undefined {
     return this.core.selection.getSelection();
-  }
-
-  /** Élément de la page courante sous un point écran. */
-  pickAt(screen: Point): PickedElement | undefined {
-    return this.core.picking.pickAt(screen);
   }
 
   select(picked: PickedElement | undefined): void {
@@ -393,15 +323,6 @@ export class Engine {
   // -------------------------------------------------------------------------
   // Liens et navigation (SPEC §11)
 
-  isTransitioning(): boolean {
-    return this.core.transitions.isTransitioning();
-  }
-
-  /** Construit en arrière-plan la page cible d'un lien, sans l'afficher (SPEC §11.1). */
-  preloadLink(link: LinkModel | undefined): void {
-    this.core.links.preloadLink(link);
-  }
-
   /**
    * Suit le lien d'un élément de la page courante : transition vers la page cible, ou ouverture
    * de l'URL dans un nouvel onglet. Sans effet si l'élément n'a pas de lien exploitable.
@@ -418,14 +339,6 @@ export class Engine {
   /** Pile de navigation (de la plus ancienne à la plus récente entrée). */
   getHistory(): HistoryEntry[] {
     return this.core.history.getHistory();
-  }
-
-  /**
-   * Destination de « Retour » (SPEC §11.3) : le haut de la pile si elle mène à la page courante ;
-   * sinon les pages parentes (liens vers la page courante), la plus récemment utilisée d'abord.
-   */
-  getBackTarget(): BackTarget {
-    return this.core.history.getBackTarget();
   }
 
   /**
@@ -470,12 +383,12 @@ export class Engine {
 
   /** Palette d'une page : catégories et modèles proposés, d'après son mode et les formes du moteur. */
   paletteFor(page: PageModel | undefined): PageModePalette {
-    return this.core.modes.paletteFor(page, this.core.registry.templates(), this.core.registry.categories());
+    return this.core.pageModes.palette(page);
   }
 
   /** Modèles des formes présentes sur la page (catégorie « Utilisées » de la palette). */
   usedTemplates(page: Pick<PageModel, 'shapes'> | undefined): ShapeTemplate[] {
-    return usedTemplatesIn(page, this.core.registry);
+    return this.core.registry.usedTemplates(page);
   }
 
   /** Effets actifs possibles sur la page : permis par son mode et ses modes d'affichage (appel du mode protégé). */
@@ -510,12 +423,6 @@ export class Engine {
   }
 
   /**
-   * Réglage déclaré par le mode de la page courante (`scope` : la page, ou la flèche / forme `targetId`), écrit par
-   * sa règle s'il en a une, sinon dans son attribut. undefined = vide. `part` : partie sélectionnée de la forme, pour
-   * un réglage de partie (sujet 249). `merge` : réglage en direct (`ModeProperty.live`), une seule étape d'annulation
-   * tant que la clé est la même (sujet 271).
-   */
-  /**
    * Réglages déclarés par le mode de la page pour une cible, évalués (valeur, lecture seule, choix) : le panneau les
    * affiche sans appeler le mode (sujet 294). `palette` : couleurs proposées aux choix.
    */
@@ -529,6 +436,12 @@ export class Engine {
     return this.core.modePanel.propertyViews(page, scope, target, part, palette);
   }
 
+  /**
+   * Réglage déclaré par le mode de la page courante (`scope` : la page, ou la flèche / forme `targetId`), écrit par
+   * sa règle s'il en a une, sinon dans son attribut. undefined = vide. `part` : partie sélectionnée de la forme, pour
+   * un réglage de partie (sujet 249). `merge` : réglage en direct (`ModeProperty.live`), une seule étape d'annulation
+   * tant que la clé est la même (sujet 271).
+   */
   setModeProperty(
     scope: ModeScope,
     targetId: string | undefined,
@@ -569,14 +482,6 @@ export class Engine {
     this.core.modeCurrents.setModeCurrent(value, pageId);
   }
 
-  /**
-   * Touche du mode de la page courante sur l'élément sélectionné seul (ex. « + » : rang suivant) : une étape
-   * d'annulation. Faux si la touche n'est pas prise (pas de mode, pas de touche, élément non concerné).
-   */
-  modeKey(key: string): boolean {
-    return this.core.modePanel.modeKey(key);
-  }
-
   // -------------------------------------------------------------------------
   // Édition (SPEC §14) : cibles, flèches, glisser
 
@@ -592,16 +497,6 @@ export class Engine {
   /** Active ou désactive l'édition (poignées, glisser, commandes d'édition). */
   setEditable(editable: boolean): void {
     this.core.targets.setEditable(editable);
-  }
-
-  /**
-   * Variante de placement de la flèche sélectionnée seule, sur une page en ancrage manuel (touche F) : la variante
-   * qui suit le placement actuel (`edit/anchoring/manual/variants.ts`) est appliquée tout de suite, points
-   * intermédiaires retirés (sauf les coudes d'une boucle), en une étape d'annulation. En ancrage automatique ou
-   * Typon : un autre agencement (`otherArrangement`). Faux si elle ne s'applique pas.
-   */
-  placementVariant(): boolean {
-    return this.core.arrangement.placementVariant();
   }
 
   /**

@@ -19,7 +19,7 @@ export function outsideLabelBox(bounds: Rect, style: Record<string, string>): Re
  * Marges propres à draw.io (`mxText.baseSpacingTop` / `baseSpacingBottom` de `Graph`), ajoutées à `spacing` :
  * 5 px au-dessus d'un texte aligné en haut, 1 px sous un texte aligné en bas (export SVG de draw.io).
  */
-export const BASE_SPACING = { top: 5, bottom: 1 } as const;
+const BASE_SPACING = { top: 5, bottom: 1 } as const;
 
 /** Marges d'un label, côté par côté, en pixels de page. */
 export interface LabelInsets {

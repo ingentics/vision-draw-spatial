@@ -13,7 +13,7 @@ export type JumpStyle = 'arc' | 'gap' | 'sharp' | 'line';
 export const JUMP_STYLES: readonly JumpStyle[] = ['arc', 'gap', 'sharp', 'line'];
 
 /** `Graph.defaultJumpSize` de draw.io. */
-export const DEFAULT_JUMP_SIZE = 6;
+const DEFAULT_JUMP_SIZE = 6;
 
 /** Distance minimale (px) d'un croisement aux bouts du segment, et tolérance d'alignement (draw.io : 0,5 et 1). */
 const END_TOLERANCE = 0.5;

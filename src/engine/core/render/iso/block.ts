@@ -80,7 +80,6 @@ export function isoBlock(
       if (!fill || height <= 0) return createBox(shape, path, ctx, defaults);
 
       const group = new Group();
-      group.name = `shape:${shape.id}`;
       group.userData.height = height;
 
       // Côtés (opaques, avec profondeur).

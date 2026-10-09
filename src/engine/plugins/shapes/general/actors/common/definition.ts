@@ -18,7 +18,6 @@ function flatActor(figureOf: FigureOf) {
   return (shape: ShapeModel, ctx: RenderContext): Group => {
     const { bounds, style } = shape;
     const group = new Group();
-    group.name = `shape:${shape.id}`;
     const figure = figureOf(1, 1);
     const oriented = (pick: (w: number, h: number) => Point[]) => orientedPath(bounds, style, pick);
     const parts = figure.parts.map((_, i) => oriented((w, h) => figureOf(w, h).parts[i]!));

@@ -71,11 +71,6 @@ export function spatialNumber(element: SpatialSource, key: string): number | und
   return Number.isFinite(value) && value >= 0 ? value : undefined;
 }
 
-/** Drapeau spatial : vrai pour `1` (convention draw.io des booléens). */
-export function spatialFlag(element: SpatialSource, key: string): boolean {
-  return spatialValue(element, key) === '1';
-}
-
 /**
  * Liste JSON écrite dans un attribut spatial (ex. `spatial.fields`, `spatial.flows`), lue au mieux (sujet 291) : la liste,
  * ou undefined si le texte n'est pas une liste JSON (absent : liste vide). Chaque plugin vérifie ensuite ses entrées.

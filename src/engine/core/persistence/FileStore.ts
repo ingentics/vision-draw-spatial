@@ -45,7 +45,7 @@ export interface FileStore {
   remove(id: string): Promise<void>;
 }
 
-export function toMeta(file: StoredFile): StoredFileMeta {
+function toMeta(file: StoredFile): StoredFileMeta {
   const { id, name, lastOpenedAt, size, lastPageId } = file;
   return lastPageId === undefined ? { id, name, lastOpenedAt, size } : { id, name, lastOpenedAt, size, lastPageId };
 }

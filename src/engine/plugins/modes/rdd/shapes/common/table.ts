@@ -109,7 +109,6 @@ function flapOf(shape: ShapeModel): Point[] {
  */
 function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Group {
   const group = new Group();
-  group.name = `shape:${shape.id}`;
   const { bounds, style } = shape;
   const scale = tableScale(shape);
   const header = Math.min(bounds.height, headerHeight(isSecondary(shape)));
@@ -230,7 +229,7 @@ function createTable(shape: ShapeModel, ctx: RenderContext, kind: TableKind): Gr
  * Style draw.io d'une table neuve : un swimlane (entête de la couleur, corps blanc), désigné par `spatial.kind` ; la
  * clé primaire dans ses champs s'il en a une.
  */
-export function tableStyle(id: TableKindId, kind: TableKind): string {
+function tableStyle(id: TableKindId, kind: TableKind): string {
   const fields = kind.rules.primaryKey
     ? `${keys.key(FIELDS)}=${fieldsValue([primaryKeyField(kind.rules.primaryKey)])};`
     : '';

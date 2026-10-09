@@ -13,7 +13,7 @@ export interface Stencil {
 }
 
 /** XML du stencil draw.io, tiré des mêmes points que le rendu : draw.io le dessine à l'identique. */
-export function stencilXml({ name, width, height, outline }: Stencil): string {
+function stencilXml({ name, width, height, outline }: Stencil): string {
   return (
     `<shape name="${name}" w="${width}" h="${height}" aspect="variable" strokewidth="inherit">` +
     '<background><path>' +

@@ -140,7 +140,7 @@ export function regionDrawnStyle(shape: ShapeModel, amount: number): Record<stri
  * Emprise d'une forme dans sa région parente (sujet 237) : ses bornes, onglet compris pour une région qui a un nom
  * (il dépasse au-dessus d'elle).
  */
-export function extentOf(shape: ShapeModel, bounds: Rect = shape.bounds): Rect {
+function extentOf(shape: ShapeModel, bounds: Rect = shape.bounds): Rect {
   if (!isRegion(shape) || !shape.label.trim()) return bounds;
   const { height } = REGION.tab;
   return { ...bounds, y: bounds.y - height, height: bounds.height + height };
@@ -165,7 +165,7 @@ function encloses(page: PageModel, ancestor: ShapeModel, region: ShapeModel): bo
  * forme sortie de sa région par la gauche ou le haut y reste tant qu'elle la chevauche, sauf si son coin est entré dans
  * une autre région qui n'englobe pas la sienne.
  */
-export function growRegions(edit: ModeEdit, shapeIds: string[], before?: PageModel): void {
+function growRegions(edit: ModeEdit, shapeIds: string[], before?: PageModel): void {
   const { page } = edit;
   /** Bornes des régions déjà agrandies par cette opération. */
   const grown = new Map<string, Rect>();
@@ -213,7 +213,7 @@ function depthOf(page: PageModel, shape: ShapeModel): number {
  * Ordre de dessin des régions (sujet 230) : toutes au fond de la pile, les plus englobantes derrière, chaque région
  * devant celle qui la contient ; leur contenu est ainsi toujours devant elles. À égalité, l'ordre en place est gardé.
  */
-export function orderRegions(edit: ModeEdit): void {
+function orderRegions(edit: ModeEdit): void {
   const { page } = edit;
   const regions = page.shapes
     .filter(isRegion)
@@ -228,7 +228,7 @@ export function orderRegions(edit: ModeEdit): void {
  * de la même région parente, ou du premier niveau de la page), en boucle. `ignored` : régions ajoutées dans la même
  * opération et pas encore stylées (collage de plusieurs régions, sujet 239).
  */
-export function styleNewRegion(edit: ModeEdit, region: ShapeModel, ignored: ReadonlySet<string> = new Set()): void {
+function styleNewRegion(edit: ModeEdit, region: ShapeModel, ignored: ReadonlySet<string> = new Set()): void {
   const { page } = edit;
   const parent = regionOf(page, region)?.id;
   const siblings = page.shapes.filter(

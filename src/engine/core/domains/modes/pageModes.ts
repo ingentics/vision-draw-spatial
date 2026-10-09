@@ -5,6 +5,7 @@ import type { TerminalEnd } from '../../edit/edgeEnds';
 import { endKey } from '../../edit/anchoring/auto/distribute';
 import { canMoveShape, carriedShapes } from '../../edit/moveSet';
 import type { DocumentModel, PageModel, Point, ShapeModel } from '../../model/types';
+import type { PageModePalette } from '../../edit/palette';
 import { applyModeEdit } from '../../modes/modeEditWriter';
 import { callMode } from '../../modes/modeCalls';
 import type { PageEffectDefinition } from '../../effects/types';
@@ -86,6 +87,11 @@ export class PageModes {
     if (!mode) return new Set();
     const ids = this.call(mode, 'edges.placedEntries', [], mode.edges?.placedEntries, page);
     return new Set(ids.map((id) => endKey(id, 'target')));
+  }
+
+  /** Palette d'une page : catégories et modèles proposés, d'après son mode et les formes du moteur. */
+  palette(page: PageModel | undefined): PageModePalette {
+    return this.core.modes.paletteFor(page, this.core.registry.templates(), this.core.registry.categories());
   }
 
   /** Habillage du rendu de la page par son mode, protégé jusque dans ses fonctions (appelées au dessin). */

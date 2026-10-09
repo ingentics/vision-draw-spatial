@@ -6,15 +6,15 @@ import type { PageModeDefinition } from '../../../../src/engine/core/modes/types
 import { buildPageScene } from '../../../../src/engine/core/render/pageScene';
 import { Object3D } from 'three';
 import { ShapeRegistry } from '../../../../src/engine/core/shapes/registry';
-import { shapesByMode } from '../../../../src/engine/core/modes/modeShapes';
 import type { ShapeDefinition } from '../../../../src/engine/core/shapes/types';
 import { SPATIAL } from '../../../../src/engine/core/spatial';
 import {
   MODE_SHAPE_DEFINITIONS,
   PAGE_MODE_DEFINITIONS,
-  PALETTE_CATEGORIES,
   createDefaultRegistry,
+  shapesByMode,
 } from '../../../../src/engine/plugins';
+import { PALETTE_CATEGORIES } from '../../../../src/engine/plugins/shapes/categories';
 import { modeHost } from '../../modeHost';
 import { PageEffectRegistry } from '../../../../src/engine/core/effects/registry';
 import { MEASURE } from '../../../helpers';

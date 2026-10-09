@@ -20,7 +20,7 @@ const DEFAULT_DY = 20;
  */
 const DEFAULT_ARC_SIZE = 15;
 /** Largeur de la tranche dans la palette (`dx`), en px : fixe, quelle que soit la taille de la forme. */
-export const TAG_BAND = 16;
+const TAG_BAND = 16;
 /** Taille du mot de la tranche, réduite si la tranche ou la forme sont trop petites. */
 const TAG_SIZE = 9;
 /** Marge du mot dans la tranche, de chaque côté, en px. */

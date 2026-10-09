@@ -38,7 +38,7 @@ export interface UnsupportedReport {
   unsupportedElementCount: number;
 }
 
-export const MAX_OCCURRENCES = 50;
+const MAX_OCCURRENCES = 50;
 
 export function collectUnsupported(document: DocumentModel, registry: ShapeRegistry): UnsupportedReport {
   const entries = new Map<string, UnsupportedEntry>();

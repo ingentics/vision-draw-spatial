@@ -60,7 +60,7 @@ export interface Arrival {
  * Champs d'arrivée retenus par les tables de la page (`Field.incoming`), par id de flèche ; un id n'est retenu que si
  * la flèche arrive bien sur cette table (un champ collé garde des ids d'ailleurs), au premier champ qui le cite.
  */
-export function storedArrivals(page: PageModel): Map<string, Arrival> {
+function storedArrivals(page: PageModel): Map<string, Arrival> {
   const targets = new Map(page.edges.map((edge) => [edge.id, edge.targetId]));
   const arrivals = new Map<string, Arrival>();
   for (const table of page.shapes) {

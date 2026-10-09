@@ -2,13 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { dropBounds, searchTemplates } from '../../../../src/engine/core/edit/palette';
 import { resolveShapeKind, parseStyle } from '../../../../src/engine/core/format/style';
 import type { ShapeModel } from '../../../../src/engine/core/model/types';
-import {
-  createDefaultModeRegistry,
-  createDefaultRegistry,
-  PALETTE_CATEGORIES,
-  SHAPE_TEMPLATES,
-  usedTemplates,
-} from '../../../../src/engine/plugins';
+import { createDefaultModeRegistry, createDefaultRegistry, SHAPE_TEMPLATES } from '../../../../src/engine/plugins';
+import { PALETTE_CATEGORIES } from '../../../../src/engine/plugins/shapes/categories';
 
 /** Registres par défaut, construits pour ces tests (sujet 304 : plus de registres partagés). */
 const defaultShapeRegistry = createDefaultRegistry();
@@ -201,8 +196,11 @@ describe('formes utilisées (étape 56)', () => {
 
   it('liste chaque type une fois, dans l’ordre de la palette', () => {
     const shapes = ['shape=cylinder3;', 'rounded=0;', 'shape=cylinder3;size=8;', 'shape=unknown;'].map(shape);
-    expect(usedTemplates({ shapes: shapes as never }).map((t) => t.id)).toEqual(['rectangle', 'database']);
-    expect(usedTemplates({ shapes: [] })).toEqual([]);
-    expect(usedTemplates(undefined)).toEqual([]);
+    expect(defaultShapeRegistry.usedTemplates({ shapes: shapes as never }).map((t) => t.id)).toEqual([
+      'rectangle',
+      'database',
+    ]);
+    expect(defaultShapeRegistry.usedTemplates({ shapes: [] })).toEqual([]);
+    expect(defaultShapeRegistry.usedTemplates(undefined)).toEqual([]);
   });
 });

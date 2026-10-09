@@ -30,7 +30,7 @@ function plugCable(): Point[] {
 }
 
 /** Tracés d'une icône d'entête dans son cadre de 14 × 9 : [points, fermé]. */
-export const MARK_PATHS: Record<HeaderMark, Array<[Point[], boolean]>> = {
+const MARK_PATHS: Record<HeaderMark, Array<[Point[], boolean]>> = {
   // Deux oculaires ronds, leurs corps resserrés vers le haut, le pont.
   binoculars: [
     [circle(3.5, 6.2, 2.6), true],

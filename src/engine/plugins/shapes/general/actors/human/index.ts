@@ -8,7 +8,7 @@ import type { ActorFigure } from '../common/figure';
 const HEAD_SEGMENTS = 48;
 
 /** Bonhomme de draw.io (`UmlActorShape.paintBackground`) : tête ronde sur le quart du haut. */
-export function humanFigure(w: number, h: number): ActorFigure {
+function humanFigure(w: number, h: number): ActorFigure {
   const head = { x: w / 4, y: 0, width: w / 2, height: h / 4 };
   return { head, parts: [ellipsePath(head, HEAD_SEGMENTS)], strokes: actorBody(w, h) };
 }

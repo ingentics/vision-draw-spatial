@@ -49,7 +49,7 @@ export type {
   ReadonlyPageModel as PageModel,
   ReadonlyShapeModel as ShapeModel,
 } from '../model/readonly';
-export { jsonListValue, readJsonList, SPATIAL, spatialFlag, spatialNumber, spatialValue } from '../spatial';
+export { jsonListValue, readJsonList, SPATIAL, spatialNumber, spatialValue } from '../spatial';
 export { elementName, firstFreeName } from '../model/names';
 export { clamp } from '../model/numbers';
 export { byId, edgeEnds, edgeOf, edgesById, elementOf, shapeOf, shapesById } from '../model/pageIndex';
@@ -79,6 +79,8 @@ export { blockHeight, isoBlock, TOP_OFFSET } from '../render/iso/block';
 export { cubicTo, halfEllipseTo } from '../render/geometry/curves';
 export { orientation, orientedPath } from '../render/geometry/orient';
 export type { Orientation } from '../render/geometry/orient';
+// `roundedRectPath` et `darken` (plus bas) : briques offertes aux formes, sans plugin qui les appelle aujourd'hui
+// (sujet 386) ; gardées comme le reste de la boîte à outils, documentée dans `AJOUTER_UNE_FORME.md`.
 export {
   arcPath,
   boxOutline,

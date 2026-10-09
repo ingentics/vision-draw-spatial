@@ -52,7 +52,7 @@ export interface FontSet {
 type FontKey = keyof FontSet;
 
 /** Variante de police d'un texte : celle demandée, sinon la plus proche disponible. */
-export function pickFontKey(fonts: FontSet, bold: boolean, italic: boolean, family?: string): FontKey | undefined {
+function pickFontKey(fonts: FontSet, bold: boolean, italic: boolean, family?: string): FontKey | undefined {
   const candidates: FontKey[] = [];
   if (isMonospace(family)) candidates.push(...(bold ? (['monoBold', 'mono'] as const) : (['mono'] as const)));
   if (italic) candidates.push(...(bold ? (['boldItalic', 'bold', 'italic'] as const) : (['italic'] as const)));

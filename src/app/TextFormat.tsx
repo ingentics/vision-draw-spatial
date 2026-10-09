@@ -50,7 +50,7 @@ export interface TextEdit {
 }
 
 const DEFAULT_SIZE = 11;
-export const SIZE_LIMITS = { min: 4, max: 128 };
+const SIZE_LIMITS = { min: 4, max: 128 };
 /** Couleurs de texte rapides : noir, gris, blanc, puis les contours des styles draw.io. */
 const TEXT_COLORS = [
   '#000000',

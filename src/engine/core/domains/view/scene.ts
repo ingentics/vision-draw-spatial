@@ -66,14 +66,6 @@ export class SceneView {
     return { x: box.min.x, y: box.min.z, width: box.max.x - box.min.x, height: box.max.z - box.min.z };
   }
 
-  getPageScene(): PageScene | undefined {
-    return this.core.scenes.current;
-  }
-
-  getCachedPageIds(): string[] {
-    return this.core.scenes.cachedIds();
-  }
-
   /**
    * Contexte de rendu d'une page, gelé (sujet 303) : une forme ne change pas le rendu des suivantes. La fabrique de
    * textes, partagée par tout le moteur, n'est pas gelée ; la mesure du texte est celle du moteur (sujet 377).

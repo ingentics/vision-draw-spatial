@@ -13,7 +13,7 @@ import { DEFAULT_ACCENT } from '../render/styleColors';
  */
 
 export const GRAPH_PAGE_ID = '__graph__';
-export const GRAPH_PAGE_NAME = 'Vue graphe';
+const GRAPH_PAGE_NAME = 'Vue graphe';
 
 /** Disposition des nœuds (paramètres « Vue graphe »). */
 export interface GraphLayoutOptions {

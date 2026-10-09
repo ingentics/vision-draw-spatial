@@ -32,7 +32,7 @@ export interface HandleLayout {
   middleMinSpan: number;
 }
 
-export const DEFAULT_HANDLE_LAYOUT: HandleLayout = { connectOffset: 18, middleMinSpan: 32 };
+const DEFAULT_HANDLE_LAYOUT: HandleLayout = { connectOffset: 18, middleMinSpan: 32 };
 
 /** Poignées de redimensionnement placées ailleurs que sur les bornes (ex. région RDD : coin de l'onglet, sujet 344). */
 export type MovedHandles = Partial<Record<ResizeHandle, Point>>;

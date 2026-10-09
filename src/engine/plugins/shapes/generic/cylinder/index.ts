@@ -64,7 +64,7 @@ export function cylinderLip({ x, y, width: w }: Rect, dy: number, offset = 0): P
  * Hauteur de l'ellipse des cylindres (BDD, queue, cache) : celle de draw.io pour un cache de 60 px de
  * haut, fixe au redimensionnement (plus l'épaisseur du trait, comme draw.io pour le cache).
  */
-export const CYLINDER_RING = 8;
+const CYLINDER_RING = 8;
 
 export const ringHeight = (style: Record<string, string>) => CYLINDER_RING + styleNumber(style, 'strokeWidth', 1) - 1;
 

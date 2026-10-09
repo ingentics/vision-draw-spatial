@@ -11,7 +11,7 @@ import { byId } from '../model/pageIndex';
 export type EdgeEnd = 'start' | 'end';
 
 /** Position des textes créés : 10 % de la longueur depuis le bout, hors de la pointe et de la forme. */
-export const END_LABEL_POSITION = 0.8;
+const END_LABEL_POSITION = 0.8;
 const END_THRESHOLD = 0.5;
 
 export function endLabelOf(edge: EdgeModel, end: EdgeEnd): EdgeLabelModel | undefined {
@@ -137,11 +137,7 @@ export function edgeTextLayout(
 }
 
 /** Le texte (placement et alignement) est-il exactement dans cette configuration ? */
-export function matchesLayout(
-  placement: EdgeLabelPlacement,
-  style: Record<string, string>,
-  layout: EdgeTextLayout,
-): boolean {
+function matchesLayout(placement: EdgeLabelPlacement, style: Record<string, string>, layout: EdgeTextLayout): boolean {
   const close = (a: number, b: number) => Math.abs(a - b) < 0.01;
   const p = layout.placement;
   return (

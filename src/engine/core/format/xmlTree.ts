@@ -210,6 +210,6 @@ function xmlErrorDetail(error: unknown): string {
   return detail.replace(/\s+/g, ' ').trim();
 }
 
-export function errorMessage(error: unknown): string {
+function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }

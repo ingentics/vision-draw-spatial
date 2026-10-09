@@ -118,7 +118,7 @@ export interface SplitHover {
 }
 
 /** Épaississement des tronçons et des cadres au survol, en pixels de page. */
-export const SPLIT_HOVER_THICKEN = 1;
+const SPLIT_HOVER_THICKEN = 1;
 /** Ligne directe du survol : 1 px à l'écran, noire à 30 %. */
 const DIRECT_LINE = { width: 1, color: '#000000', opacity: 0.3 };
 

@@ -62,7 +62,6 @@ export function standingActor(figureOf: FigureOf): SceneRenderer {
       const height = actorHeight(shape, ctx);
       const width = bounds.height > 0 ? (bounds.width * height) / bounds.height : bounds.width;
       const group = new Group();
-      group.name = `shape:${shape.id}`;
       group.userData.height = height;
       const silhouette = new Group();
       silhouette.userData.billboard = true;

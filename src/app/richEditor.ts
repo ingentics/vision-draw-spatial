@@ -259,7 +259,7 @@ export function select(range: Range): void {
 }
 
 /** Texte brut → contenu de l'éditeur (échappé, lignes en `<br>`). */
-export function textToEditorHtml(text: string): string {
+function textToEditorHtml(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
 }
 
@@ -312,7 +312,7 @@ const FONT_ATTRIBUTES: Partial<Record<keyof TextMarks, string>> = {
 };
 
 /** Retire des mises en forme partielles d'un contenu (balises déballées, propriétés CSS retirées). */
-export function stripMarks(root: ParentNode, keys: Array<keyof TextMarks>): void {
+function stripMarks(root: ParentNode, keys: Array<keyof TextMarks>): void {
   for (const element of [...root.querySelectorAll('*')].reverse()) {
     for (const key of keys) {
       if (element instanceof HTMLElement) element.style.removeProperty(MARK_CSS[key]);

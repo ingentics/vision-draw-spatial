@@ -19,7 +19,7 @@ export type {
   ModeIndicator,
   ModePropertyView,
   Selection,
-} from './Engine';
+} from './core/domains/types';
 
 // Paramètres (SPEC §13)
 export { DEFAULT_SETTINGS, mergeSettings, modePalette, SETTINGS_LIMITS } from './core/settings';
@@ -121,5 +121,5 @@ export type { ModeEdit } from './core/modes/modeEdit';
 export type { ModeOption, ModeProperty } from './core/modes/modeProperty';
 export type { ModeTarget, PageModeDefinition } from './core/modes/types';
 export type { PluginSetting, PluginSettings, PluginValues } from './core/settings/pluginSettings';
-export { legacyShapeCategorySettings, PALETTE_CATEGORIES, SHAPE_TEMPLATES, usedTemplates } from './plugins';
+export { legacyShapeCategorySettings, SHAPE_TEMPLATES } from './plugins';
 export type { PropertySection, ShapeProperty } from './core/shapes/types';

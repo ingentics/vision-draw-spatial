@@ -16,7 +16,7 @@ export const TABLE_BORDER = GRAY.strokeColor;
 export const FIELDS_FILL = '#ffffff';
 
 /** Couleur du losange par kind (sujet 248). */
-export const FIELD_KIND_COLORS: Record<FieldKind, string> = {
+const FIELD_KIND_COLORS: Record<FieldKind, string> = {
   pk: '#ffd700',
   property: '#4a90e2',
   fk: '#e74c3c',

@@ -72,7 +72,6 @@ function bracketPath(shape: ShapeModel): Point[] {
 
 function create(shape: ShapeModel, ctx: RenderContext): Group {
   const group = new Group();
-  group.name = `shape:${shape.id}`;
   const stroke = styleStroke(shape.style, VERTEX_DEFAULTS.stroke);
   if (stroke) {
     const mesh = strokeMesh(bracketPath(shape), stroke.color, stroke.opacity, {

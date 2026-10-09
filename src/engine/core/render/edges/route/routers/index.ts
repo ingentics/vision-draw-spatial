@@ -10,7 +10,7 @@ import type { Router } from './state';
 
 /** Routeurs de draw.io (`mxEdgeStyle`) : choix du routeur d'une arête. */
 
-export const ROUTERS: Record<Exclude<RoutingKind, 'straight'>, Router> = {
+const ROUTERS: Record<Exclude<RoutingKind, 'straight'>, Router> = {
   orthogonal: orthConnector,
   segment: segmentConnector,
   elbow: elbowConnector,

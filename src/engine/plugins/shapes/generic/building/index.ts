@@ -58,7 +58,7 @@ export const FACADE_TAGS_SETTING: PluginSetting = {
  */
 
 /** Hauteur des bâtiments : la même que toutes les formes (`spatial.height`, sinon l'épaisseur par défaut). */
-export const buildingHeight = blockHeight;
+const buildingHeight = blockHeight;
 
 /** Rendu iso d'un bâtiment : façade du type, repli à plat sans fond ou sans épaisseur. */
 export function building(
@@ -70,7 +70,6 @@ export function building(
       const height = buildingHeight(shape, ctx);
       if (!styleColor(shape.style, 'fillColor', VERTEX_DEFAULTS.fill) || height <= 0) return flat.create(shape, ctx);
       const group = new Group();
-      group.name = `shape:${shape.id}`;
       group.userData.height = height;
       facade(shape, ctx, height, group);
       return group;

@@ -9,7 +9,7 @@ import type { Side } from './edgeEnds';
  */
 
 /** Garde hors de la forme, en pixels de page (`jettySize` auto de draw.io pour une pointe classique). */
-export const SQUARE_END_STUB = 20;
+const SQUARE_END_STUB = 20;
 
 const round = (v: number) => Math.round(v);
 

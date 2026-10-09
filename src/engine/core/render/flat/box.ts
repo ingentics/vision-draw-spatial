@@ -34,7 +34,6 @@ export function flatBox(
 
 export function createBox(shape: ShapeModel, path: Point[], ctx: RenderContext, defaults: BoxDefaults): Group {
   const group = new Group();
-  group.name = `shape:${shape.id}`;
   const { style } = shape;
 
   const fill = styleColor(style, 'fillColor', defaults.fill);

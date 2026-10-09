@@ -54,7 +54,7 @@ export function isModifierKeyEvent(event: Pick<KeyboardEvent, 'key'>, key: Follo
 }
 
 /** Touches de modification, telles qu'affichées dans les infobulles. */
-export const MODIFIER_KEY_LABELS: Record<MultiSelectKey, string> = {
+const MODIFIER_KEY_LABELS: Record<MultiSelectKey, string> = {
   ctrl: 'Ctrl',
   meta: '⌘',
   shift: 'Maj',

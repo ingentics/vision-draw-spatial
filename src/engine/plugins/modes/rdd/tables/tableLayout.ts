@@ -14,7 +14,7 @@ import { keys } from '../keys';
 /** Table secondaire (`1`) : rendu 20 % plus petit. */
 export const SECONDARY = 'secondary';
 /** Échelle d'une table secondaire. */
-export const SECONDARY_SCALE = 0.8;
+const SECONDARY_SCALE = 0.8;
 
 /** Attribut d'une vue matérialisée (sujet 272). */
 export const MATERIALIZED = 'materialized';
@@ -116,7 +116,7 @@ export function dividerLabelWidth(divider: Divider, measure: MeasureText): numbe
  * Largeur d'un séparateur (sujet 253), à l'échelle 1 : son label (s'il en a un) entre deux traits d'au moins
  * `TABLE.divider.stroke`, marges comprises.
  */
-export function dividerWidth(divider: Divider, measure: MeasureText): number {
+function dividerWidth(divider: Divider, measure: MeasureText): number {
   return 2 * TABLE.padding + 2 * TABLE.divider.stroke + dividerLabelWidth(divider, measure);
 }
 

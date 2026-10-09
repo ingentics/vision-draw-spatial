@@ -4,14 +4,14 @@
  * par défaut (sujet 98 : la version bêta de plantuml.com mesure par moments le texte à zéro), plantuml.com, ou un
  * serveur PlantUML local (même API que plantuml.com). L'éditeur en ligne reste celui de plantuml.com.
  */
-export const PLANTUML_SERVER = 'https://www.plantuml.com/plantuml';
+const PLANTUML_SERVER = 'https://www.plantuml.com/plantuml';
 
 /** Moteur de rendu et serveur local (réglages du mode Séquences, `plantumlRenderer` et `plantumlUrl`, sujet 306). */
 export interface PlantUmlSettings {
   renderer: string;
   localUrl: string;
 }
-export const KROKI_SERVER = 'https://kroki.io';
+const KROKI_SERVER = 'https://kroki.io';
 
 const ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_';
 

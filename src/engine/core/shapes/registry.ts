@@ -1,7 +1,8 @@
 import { SIDES } from '../edit/edgeEnds';
 import type { Side } from '../edit/edgeEnds';
 import type { MovedHandles } from '../edit/handleKinds';
-import type { Point, Rect } from '../model/types';
+import type { PageModel, Point, Rect } from '../model/types';
+import { usedTemplatesIn } from '../edit/palette';
 import type { ReadonlyShapeModel as ShapeModel } from '../model/readonly';
 import { canvasBrush } from '../interaction/minimapBrush';
 import { blockHeight } from '../render/iso/block';
@@ -428,6 +429,11 @@ export class ShapeRegistry {
   templateOf(shape: ShapeModel): ShapeTemplate | undefined {
     const { definition, supported } = this.resolve(shape);
     return supported && definition.palette ? { id: definition.id, ...definition.palette } : undefined;
+  }
+
+  /** Modèles des formes présentes sur la page (catégorie « Utilisées » de la palette, `usedTemplatesIn`). */
+  usedTemplates(page: Pick<PageModel, 'shapes'> | undefined): ShapeTemplate[] {
+    return usedTemplatesIn(page, this);
   }
 
   /** Aperçu de la forme dans les styles du panneau (contenu SVG, cadre `0 0 40 28`) ; repli sur le rectangle. */

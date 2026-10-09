@@ -131,15 +131,26 @@ class Engine {
   constructor(options: EngineOptions);
   /** `initialView` : page, caméras par page et pile de navigation à restaurer (§5.3). */
   load(xml: string, fileId: string, initialView?: InitialView): Promise<void>;
+  getDocument(): DocumentModel | undefined;
   goToPage(pageId: string): void;
   back(): void;
+  followLink(elementId: string): void; // suit le lien d'un élément de la page courante (§11)
+  getViewMode(): 'top' | 'iso' | '3d';
   setViewMode(mode: 'top' | 'iso' | '3d'): void;
+  toggleViewMode(): void; // 2D ↔ iso (touche I)
+  toggle3d(): void; // vers la 3D, ou retour au dernier mode 2D / iso (touche P)
+  toggleFlatten(): void; // aplatit ou rétablit les volumes (touche V), sans effet en 2D
+  toggleGraph(): void; // vue graphe ↔ dernière page (§12)
   getCameraState(): CameraState;
   setCameraState(state: CameraState): void;
   animateCameraTo(target: CameraState, durationMs?: number, blendLevels?: boolean): void;
   toggleOverview(screen?: Point): void; // vue globale ↔ 1:1 (§9.3)
   resetRotation(): void; // remet le nord en haut (§9.1)
   resetView(): void; // vue par défaut du mode : orientation de référence, page entière (§9.1)
+  selectAll(): void; // tous les éléments de la page courante (§11)
+  isEditable(): boolean; // édition active (§14)
+  canUndo(): boolean;
+  canRedo(): boolean;
   getSettings(): Settings;
   updateSettings(patch: SettingsPatch): void; // section par section (§13)
   on<K extends EngineEvent>(event: K, handler: (...args: EngineEvents[K]) => void): () => void;

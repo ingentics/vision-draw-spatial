@@ -8,10 +8,8 @@ import type { ShapeDefinition } from './types';
 export const groupShape: ShapeDefinition = {
   id: 'group',
   flat: {
-    create(shape) {
-      const group = new Group();
-      group.name = `shape:${shape.id}`;
-      return group;
+    create() {
+      return new Group();
     },
   },
   minimap: null,

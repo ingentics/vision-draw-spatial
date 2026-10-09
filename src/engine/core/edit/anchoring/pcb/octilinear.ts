@@ -37,7 +37,7 @@ export interface BendCosts {
   right: number;
 }
 
-export const DEFAULT_BEND_COSTS: BendCosts = { diagonal: BEND_COST / 2, right: BEND_COST };
+const DEFAULT_BEND_COSTS: BendCosts = { diagonal: BEND_COST / 2, right: BEND_COST };
 /** Axe d'une direction : 0 horizontal, 1 diagonal descendant, 2 vertical, 3 diagonal montant. */
 const axisOf = (d: number): number => d % 4;
 

@@ -198,7 +198,7 @@ export function connectableShapes(page: PageModel, shapes: Pick<ShapeRegistry, '
 }
 
 /** Préfixe des clés de style du point d'attache : `exit…` pour la source, `entry…` pour la cible. */
-export function constraintPrefix(end: TerminalEnd): 'exit' | 'entry' {
+function constraintPrefix(end: TerminalEnd): 'exit' | 'entry' {
   return end === 'source' ? 'exit' : 'entry';
 }
 

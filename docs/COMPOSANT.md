@@ -89,10 +89,11 @@ viewer.current?.redo();
 viewer.current?.engine?.goToPage(pageId); // tout le moteur : navigation, vue, sélection, édition
 ```
 
-Quelques méthodes utiles du moteur : `goToPage`, `setViewMode('top' | 'iso' | '3d')`, `toggleViewMode`, `toggle3d`,
-`showGraph`, `back`, `focusElement(pageId, elementId)`, `getDocument`, `getCurrentPage`,
-`getCameraState`, `select`, `followLink`, `addShape(SHAPE_TEMPLATES[0])`, `addPage`, `setLabel`,
-`setLink`, `setSpatial`, `deleteSelection`, `serialize`, `isModified`.
+Quelques méthodes utiles du moteur : `goToPage`, `getViewMode`, `setViewMode('top' | 'iso' | '3d')`,
+`toggleViewMode`, `toggle3d`, `toggleFlatten`, `showGraph`, `toggleGraph`, `back`, `focusElement(pageId, elementId)`,
+`getDocument`, `getCurrentPage`, `getCameraState`, `select`, `selectAll`, `followLink`, `isEditable`,
+`addShape(SHAPE_TEMPLATES[0])`, `addPage`, `setLabel`, `setLink`, `setSpatial`, `deleteSelection`, `canUndo`,
+`canRedo`, `serialize`, `isModified`. La liste de référence est SPEC §4.3 et `src/engine/Engine.ts`.
 
 ## Clavier et souris
 

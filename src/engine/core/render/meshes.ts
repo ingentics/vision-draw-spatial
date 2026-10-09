@@ -19,7 +19,7 @@ import { PART_ORDER } from './types';
  * `renderOrder` (tous les éléments sont coplanaires). Tout est « transparent » pour que
  * Three.js trie un seul ensemble d'objets par `renderOrder`.
  */
-export function flatMaterial(color: Color, opacity: number): MeshBasicMaterial {
+function flatMaterial(color: Color, opacity: number): MeshBasicMaterial {
   return new MeshBasicMaterial({ color, opacity, transparent: true, depthWrite: false, side: DoubleSide });
 }
 
