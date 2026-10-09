@@ -1,1 +1,0 @@
-Tests de `ModePanel` et `ModeFollowUps` (réglages en panne, remises en ordre, parties visées) restés dans `tests/engine/core/domains/modes/pageModes.test.ts` au lieu de `modePanel.test.ts` / `modeFollowUps.test.ts` (`coding.md` §7, chemin miroir) ; vu au sujet 379.
