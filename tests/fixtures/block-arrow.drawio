@@ -1,0 +1,35 @@
+<mxfile host="Electron" agent="draw.io/24.7.5" version="24.7.5">
+  <diagram name="Flèche pleine" id="block-arrow">
+    <mxGraphModel grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="free" value="" style="shape=flexArrow;strokeColor=#333333;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="80" y="70" as="sourcePoint"/>
+            <mxPoint x="180" y="70" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="long" value="" style="shape=flexArrow;strokeColor=#333333;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="80" y="300" as="sourcePoint"/>
+            <mxPoint x="280" y="160" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="a" value="A" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="360" y="40" width="120" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="b" value="B" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="240" width="120" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="attached" value="" style="shape=flexArrow;strokeColor=#1a73e8;edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" parent="1" source="a" target="b">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="420" y="270" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

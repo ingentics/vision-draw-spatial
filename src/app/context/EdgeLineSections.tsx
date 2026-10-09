@@ -1,11 +1,13 @@
 import { useRef } from 'react';
-import { jumpValue, routingKind, styleFlag } from '../../engine';
+import { isHexColor, jumpValue, routingKind, styleFlag, styleNumber } from '../../engine';
+import { ColorInput, STROKE_COLORS } from '../BorderSection';
 import type { EdgeModel, JumpStyle } from '../../engine';
 import { ChoiceGroup } from '../ChoiceGroup';
 import { NumberField, TextField } from '../Fields';
 import { Section } from '../PanelSection';
 import { EDGE_LINE_OPTIONS, JUMP_LABELS, JUMP_OPTIONS, MARKERS, markerOptions } from '../edgeIcons';
 import type { EdgeLine } from '../edgeIcons';
+import { useTooltip } from '../Tooltip';
 
 /** Sections du tracé d'une flèche : ligne, ancrage, sauts, coupure, bouts. */
 
@@ -228,6 +230,56 @@ export function EdgeEndsSection({
           Inverser
         </button>
       </div>
+    </Section>
+  );
+}
+
+/**
+ * Flèche pleine (sujet 410) : sa couleur (celle du trait, qui la remplit) et son opacité. Toujours droite et sans
+ * bouts ni trait, elle n'a ni tracé, ni bouts, ni épaisseur à régler.
+ */
+export function BlockArrowSection({ edge, onChange }: { edge: EdgeModel; onChange: (patch: EdgeStylePatch) => void }) {
+  const { hover, tooltip } = useTooltip();
+  const color = isHexColor(edge.style.strokeColor) ? edge.style.strokeColor.toLowerCase() : '#000000';
+  const opacity = styleNumber(edge.style, 'opacity', 100);
+  return (
+    <Section title="Flèche pleine">
+      <div className="field-row color-row">
+        Couleur
+        <ColorInput
+          key={color}
+          value={color}
+          label="Couleur de la flèche"
+          onChange={(next) => onChange(() => ({ strokeColor: next }))}
+        />
+      </div>
+      <div className="text-colors">
+        {STROKE_COLORS.map((swatch) => (
+          <button
+            key={swatch}
+            type="button"
+            className="text-color"
+            style={{ background: swatch }}
+            aria-label={`Flèche ${swatch}`}
+            {...hover(`Flèche ${swatch} (strokeColor)`)}
+            aria-pressed={swatch === color}
+            onClick={() => onChange(() => ({ strokeColor: swatch }))}
+          />
+        ))}
+      </div>
+      <NumberField
+        key={`${edge.id}:${opacity}`}
+        label="Opacité (%)"
+        title="Opacité de la flèche, de 0 (invisible) à 100 (opaque) (opacity) ; vide = 100"
+        value={opacity === 100 ? undefined : opacity}
+        placeholder="100"
+        onCommit={(value) =>
+          onChange(() => ({
+            opacity: value === undefined || value >= 100 ? undefined : String(Math.round(Math.min(100, value))),
+          }))
+        }
+      />
+      {tooltip}
     </Section>
   );
 }

@@ -10,6 +10,8 @@ import {
   NotEqualStencilFunc,
   PlaneGeometry,
   ReplaceStencilOp,
+  ShapeUtils,
+  Vector2,
 } from 'three';
 import type { ColorRepresentation, Material, Object3D } from 'three';
 import type { Point, Rect } from '../model/types';
@@ -122,6 +124,28 @@ export function createVeilHole(route: Point[], z: number, width: number): Group 
       );
     }
   }
+  group.add(holeMask(positions, z));
+  return group;
+}
+
+/**
+ * Trou du voile en forme de surface (flèche pleine, sujet 410) : le polygone donné, rempli, au lieu d'une bande le long
+ * d'un tracé (qui, épaissie au dézoom, déformerait la silhouette).
+ */
+export function createVeilHoleArea(polygon: Point[], z: number): Group {
+  const group = new Group();
+  group.name = 'selection-veil-hole';
+  group.renderOrder = VEIL_ORDER - 1;
+  const contour = polygon.map((p) => new Vector2(p.x, p.y));
+  const positions: number[] = [];
+  for (const triangle of ShapeUtils.triangulateShape(contour, []))
+    for (const index of triangle) positions.push(contour[index]!.x, contour[index]!.y, 0);
+  group.add(holeMask(positions, z));
+  return group;
+}
+
+/** Masque d'un trou du voile : écrit le gabarit (stencil) que le voile évite, sans couleur. */
+function holeMask(positions: number[], z: number): Mesh {
   const geometry = new BufferGeometry();
   geometry.setAttribute('position', new Float32BufferAttribute(positions, 3));
   const material = new MeshBasicMaterial({
@@ -137,6 +161,5 @@ export function createVeilHole(route: Point[], z: number, width: number): Group 
   const mask = new Mesh(geometry, material);
   mask.position.z = z;
   mask.renderOrder = VEIL_ORDER - 1;
-  group.add(mask);
-  return group;
+  return mask;
 }

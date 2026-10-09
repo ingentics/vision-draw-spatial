@@ -1,5 +1,14 @@
 import { useRef } from 'react';
-import { anchorOf, commentOf, edgeTexts, endLabelOf, SPATIAL, styleFlag, styleNumber } from '../../engine';
+import {
+  anchorOf,
+  commentOf,
+  edgeTexts,
+  endLabelOf,
+  isBlockArrow,
+  SPATIAL,
+  styleFlag,
+  styleNumber,
+} from '../../engine';
 import type { EdgeModel, EdgeTextAnchor } from '../../engine';
 import { NumberField, TextField } from '../Fields';
 import { OrderSection } from '../OrderSection';
@@ -8,7 +17,7 @@ import { useTooltip } from '../Tooltip';
 import { CommentField } from '../comment';
 import { useEnginePlugins } from '../pluginsContext';
 import type { EdgeStylePatch } from './EdgeLineSections';
-import { EdgeEndsSection, EdgeLineSection, EdgeSplitFields } from './EdgeLineSections';
+import { BlockArrowSection, EdgeEndsSection, EdgeLineSection, EdgeSplitFields } from './EdgeLineSections';
 import { ElementModeSection } from './ModeSections';
 import { DeleteButton, LabelRow } from './contextFields';
 import type { ContextPanelProps } from './types';
@@ -64,14 +73,20 @@ export function EdgeSections({ edge, ...props }: ContextPanelProps & { edge: Edg
       </Section>
       <ElementModeSection {...props} element={edge} scope="edge" />
       <TextAnchors edge={edge} onAnchor={props.onTextAnchor} onChange={props.onEdgeStyle} />
-      <EdgeLineSection
-        edge={edge}
-        pageJumps={props.pageJumps}
-        defaultJumpSize={props.defaultJumpSize}
-        onChange={props.onEdgeStyle}
-        onResetRoute={props.onResetRoute}
-      />
-      <EdgeEndsSection edge={edge} onChange={props.onEdgeStyle} onReverse={props.onReverse} />
+      {isBlockArrow(edge.style) ? (
+        <BlockArrowSection edge={edge} onChange={props.onEdgeStyle} />
+      ) : (
+        <>
+          <EdgeLineSection
+            edge={edge}
+            pageJumps={props.pageJumps}
+            defaultJumpSize={props.defaultJumpSize}
+            onChange={props.onEdgeStyle}
+            onResetRoute={props.onResetRoute}
+          />
+          <EdgeEndsSection edge={edge} onChange={props.onEdgeStyle} onReverse={props.onReverse} />
+        </>
+      )}
       <Section title="Liaison">
         <div className="field-row">
           De

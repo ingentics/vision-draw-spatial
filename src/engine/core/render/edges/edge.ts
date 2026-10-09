@@ -21,6 +21,7 @@ import { labelObject, textAnchors } from '../flat/box';
 import type { RenderContext } from '../types';
 import type { TextAlong } from '../textPath';
 import { direction, rectPath } from '../../model/geometry';
+import { blockArrowOutline, isBlockArrow } from './blockArrow';
 
 /** Défauts draw.io pour les arêtes. */
 const DEFAULT_END_ARROW = 'classic';
@@ -68,9 +69,13 @@ export function createEdge(
   const stroke = styleColor(style, 'strokeColor', '#000000');
   const strokeWidth = styleNumber(style, 'strokeWidth', 1);
   const opacity = styleOpacity(style, 'strokeOpacity');
-  const markers = edgeMarkers(route, style, strokeWidth);
-  if (stroke && strokeWidth > 0)
-    addEdgeStroke(group, route, markers, style, ctx, below, { stroke, opacity, strokeWidth });
+  if (isBlockArrow(style)) addBlockArrow(group, route, stroke, opacity);
+  else if (stroke && strokeWidth > 0)
+    addEdgeStroke(group, route, edgeMarkers(route, style, strokeWidth), style, ctx, below, {
+      stroke,
+      opacity,
+      strokeWidth,
+    });
 
   // Texte du milieu qui suit la flèche : posé lettre par lettre le long du trait dessiné.
   const along = middleTextAlong(edge, group.userData.path as Point[]);
@@ -82,6 +87,17 @@ export function createEdge(
   }
 
   return group;
+}
+
+/**
+ * Flèche pleine (sujet 410) : un polygone rempli de la couleur du trait, de la queue à la pointe. Son contour fermé
+ * remplace le trait dessiné : clic le long du bord (pas seulement sur l'axe) et voile percé autour de la silhouette.
+ */
+function addBlockArrow(group: Group, route: Point[], color: Color | null, opacity: number): void {
+  const outline = blockArrowOutline(route[0]!, route[route.length - 1]!);
+  if (outline.length === 0) return;
+  group.userData.path = [...outline, outline[0]!];
+  if (color) group.add(fillMesh(outline, color, opacity));
 }
 
 /** Trait dessiné d'un tracé : courbe (`curved`), coudes arrondis (`rounded`, rayon `arcSize / 2`) ou tel quel. */

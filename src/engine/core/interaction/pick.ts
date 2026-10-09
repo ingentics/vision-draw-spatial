@@ -1,5 +1,5 @@
 import type { EdgeModel, PageModel, Point, Rect, ShapeModel } from '../model/types';
-import { distance, segmentDistance } from '../model/geometry';
+import { distance, insidePolygon, samePoint, segmentDistance } from '../model/geometry';
 import { clamp } from '../model/numbers';
 
 /**
@@ -79,7 +79,9 @@ function hitHeight(candidate: PickedElement, height: number, target: Point, opti
     const pieces = options.edgePieces?.(candidate.element.id);
     const route = options.edgeRoute(candidate.element.id);
     const lines = pieces ?? (route ? [route] : []);
-    return lines.some((line) => distanceToPolyline(target, line) <= options.edgeTolerance) ? height : undefined;
+    return lines.some((line) => distanceToPolyline(target, line) <= options.edgeTolerance || insideClosed(target, line))
+      ? height
+      : undefined;
   }
   const shape = candidate.element;
   if (options.pickable && !options.pickable(shape)) return undefined;
@@ -89,6 +91,11 @@ function hitHeight(candidate: PickedElement, height: number, target: Point, opti
   const base = options.baseOf?.(shape.id);
   if (base === undefined || base >= height || !options.pointAtHeight) return undefined;
   return volumeHit(shape, height, base, options.pointAtHeight, options.contains);
+}
+
+/** Tracé fermé (flèche pleine, sujet 410) : une surface, qui se prend aussi à l'intérieur. */
+function insideClosed(point: Point, line: Point[]): boolean {
+  return line.length > 3 && samePoint(line[0]!, line[line.length - 1]!) && insidePolygon(line, point);
 }
 
 /**

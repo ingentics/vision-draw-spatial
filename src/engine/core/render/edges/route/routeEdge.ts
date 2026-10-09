@@ -3,6 +3,7 @@ import { perimeterPoint } from './perimeters';
 import { edgeRouter } from './routers';
 import { stateOf, View } from './routers/state';
 import { routingKind } from './routingKind';
+import { isBlockArrow } from '../blockArrow';
 import { simplify } from './simplify';
 import { constraintFromStyle, fixedTerminalPoint, perimeterOn } from './terminals';
 import type { RouteInput } from './types';
@@ -43,8 +44,10 @@ export function routeEdgePoints(input: RouteInput): Point[] {
   const targetState = target && stateOf(target);
   const router = edgeRouter(input);
   const result: Array<Point | null> = [p0 ?? null];
-  if (router) router(view, { p0, pe }, sourceState, targetState, input.waypoints, result);
-  else for (const p of input.waypoints) result.push({ ...p });
+  // Flèche pleine (sujet 410) : droite d'un bout à l'autre, ses points intermédiaires éventuels sont ignorés.
+  const waypoints = isBlockArrow(style) ? [] : input.waypoints;
+  if (router) router(view, { p0, pe }, sourceState, targetState, waypoints, result);
+  else for (const p of waypoints) result.push({ ...p });
   result.push(pe ?? null);
 
   // 3. Bouts flottants (mxGraphView.updateFloatingTerminalPoints) : la cible d'abord.

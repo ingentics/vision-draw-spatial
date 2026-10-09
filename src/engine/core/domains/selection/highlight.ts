@@ -5,7 +5,8 @@ import { collectMoveSet } from '../../edit/moveSet';
 import type { Point } from '../../model/types';
 import { headSelectionRing, partSelection, selectionOutline } from '../../render/decorations';
 import { edgeEndHandles, edgePointHandles, modeHandleMeshes, selectionHandles } from '../../render/handleMeshes';
-import { createVeil, createVeilHole, liftAboveVeil } from '../../render/veil';
+import { createVeil, createVeilHole, createVeilHoleArea, liftAboveVeil } from '../../render/veil';
+import { blockArrowOutline, isBlockArrow } from '../../render/edges/blockArrow';
 import { disposeObject } from '../../render/meshes';
 import type { EngineCore } from '../EngineCore';
 import type { PickedElement } from '../../interaction/pick';
@@ -196,9 +197,13 @@ export class SelectionHighlight {
       const object = this.core.sceneView.sceneObject(element.id);
       const route = (object?.userData.path ?? object?.userData.route) as Point[] | undefined;
       if (!object || !route || route.length < 2) continue;
-      const strokeWidth = styleNumber(element.style, 'strokeWidth', 1) || 1;
-      const width = strokeWidth + (2 * veilPadding) / zoom;
-      const hole = createVeilHole(route, object.position.z, width);
+      const hole = isBlockArrow(element.style)
+        ? blockArrowHole(object.userData.route as Point[], object.position.z, veilPadding / zoom)
+        : createVeilHole(
+            route,
+            object.position.z,
+            (styleNumber(element.style, 'strokeWidth', 1) || 1) + (2 * veilPadding) / zoom,
+          );
       // Flèche déplacée en bloc (au clavier, avec sa forme) : son objet est décalé, pas son tracé.
       hole.position.x = object.position.x;
       hole.position.y = object.position.y;
@@ -327,4 +332,9 @@ function alwaysOnTop(object: Object3D): void {
   object.traverse((o) => {
     if (o instanceof Mesh) (o.material as MeshBasicMaterial).depthTest = false;
   });
+}
+
+/** Trou du voile d'une flèche pleine (sujet 410) : sa silhouette agrandie de la marge, quel que soit le zoom. */
+function blockArrowHole(route: Point[], z: number, margin: number): Group {
+  return createVeilHoleArea(blockArrowOutline(route[0]!, route[route.length - 1]!, margin), z);
 }

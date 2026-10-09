@@ -6,7 +6,8 @@ import type { ShapeTemplate } from '../../../edit/palette';
 import { screenToPage } from '../../../interaction/cameraProjection';
 import type { PageTree } from '../../../format/xmlTree';
 import type { Point, Rect } from '../../../model/types';
-import { withStyleDefault } from '../../../format/style';
+import { parseStyle, withStyleDefault } from '../../../format/style';
+import { isBlockArrow } from '../../../render/edges/blockArrow';
 import { CONNECTOR_STYLE, EDGE_LINE_KEYS } from '../drag/connect';
 import type { EngineCore } from '../../EngineCore';
 import { edgeOf, shapeOf } from '../../../model/pageIndex';
@@ -38,10 +39,14 @@ export class ElementCommands {
     return id;
   }
 
-  /** Flèche libre de la palette : horizontale, ses deux bouts posés aux extrémités de `bounds`, au style des flèches créées. */
+  /**
+   * Flèche libre de la palette : horizontale, ses deux bouts posés aux extrémités de `bounds`, au style des flèches
+   * créées ; une flèche pleine, toujours droite (sujet 410), ne reçoit pas le tracé du réglage.
+   */
   private addFreeEdge(template: ShapeTemplate, pageId: string, pageTree: PageTree, bounds: Rect): string {
     this.core.edits.recordEdit('Nouvelle flèche');
-    const line = CONNECTOR_STYLE + EDGE_LINE_KEYS[this.core.settings.shapes.edgeLineStyle];
+    const straight = isBlockArrow(parseStyle(template.style).values);
+    const line = CONNECTOR_STYLE + (straight ? '' : EDGE_LINE_KEYS[this.core.settings.shapes.edgeLineStyle]);
     const style = withStyleDefault(template.style + line, 'fontSize', String(this.core.settings.shapes.textSize));
     const id = addEdgeCell(pageTree, { style });
     const y = bounds.y + bounds.height / 2;

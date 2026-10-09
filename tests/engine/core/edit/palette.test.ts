@@ -25,6 +25,8 @@ describe('palette', () => {
       'datastore',
       'ellipse',
       'event-consumer',
+      // Flèche pleine (sujet 410) : une arête, dessinée par le moteur.
+      'flexArrow',
       'hexagon',
       'labeled-process',
       'mxgraph.basic.4_point_star_2',
@@ -102,6 +104,7 @@ describe('palette', () => {
       'actor',
       'arrow',
       'actor-droid',
+      'block-arrow',
       'curly-bracket-left',
       'curly-bracket-right',
     ]);

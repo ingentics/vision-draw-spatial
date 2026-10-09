@@ -27,7 +27,7 @@ const LINE_STYLES: Record<LineStyle, { label: string; tip: string; patch: Record
 };
 
 /** Couleurs de bordure rapides : noir, gris, puis les contours des styles draw.io. */
-const STROKE_COLORS = [
+export const STROKE_COLORS = [
   '#000000',
   '#666666',
   '#b3b3b3',
@@ -173,7 +173,15 @@ function LineIcon({ kind }: { kind: LineStyle }) {
 }
 
 /** Sélecteur de couleur : appliqué à la fermeture du sélecteur (événement natif `change`). */
-function ColorInput({ value, onChange }: { value: string; onChange: (color: string) => void }) {
+export function ColorInput({
+  value,
+  onChange,
+  label = 'Couleur de la bordure',
+}: {
+  value: string;
+  onChange: (color: string) => void;
+  label?: string;
+}) {
   const ref = useRef<HTMLInputElement>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
@@ -184,5 +192,5 @@ function ColorInput({ value, onChange }: { value: string; onChange: (color: stri
     input.addEventListener('change', listener);
     return () => input.removeEventListener('change', listener);
   }, []);
-  return <input ref={ref} type="color" aria-label="Couleur de la bordure" defaultValue={value} />;
+  return <input ref={ref} type="color" aria-label={label} defaultValue={value} />;
 }

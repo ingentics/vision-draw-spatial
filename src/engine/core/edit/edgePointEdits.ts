@@ -1,5 +1,6 @@
 import type { Point, Rect } from '../model/types';
 import { routingKind } from '../render/edges/route';
+import { isBlockArrow } from '../render/edges/blockArrow';
 import { center, rectContains, segmentDistanceSquared } from '../model/geometry';
 
 /**
@@ -14,12 +15,15 @@ import { center, rectContains, segmentDistanceSquared } from '../model/geometry'
  * - **points** (droit) : une poignée par point intermédiaire, et une « virtuelle » au milieu de chaque
  *   morceau qui en ajoute un ; un point remis dans l'alignement de ses voisins, ou posé sur une autre
  *   poignée, disparaît.
+ *
+ * Une flèche pleine (sujet 410), toujours droite, n'a aucune poignée entre ses bouts (`none`).
  */
 
-export type PointsEditor = 'segments' | 'elbow' | 'points';
+export type PointsEditor = 'segments' | 'elbow' | 'points' | 'none';
 
 /** Éditeur de la flèche (mxGraph.createEdgeHandler). */
 export function pointsEditor(style: Record<string, string>): PointsEditor {
+  if (isBlockArrow(style)) return 'none';
   const { kind } = routingKind(style);
   if (kind === 'orthogonal' || kind === 'segment') return 'segments';
   if (kind === 'elbow' || kind === 'sideToSide' || kind === 'topToBottom' || kind === 'loop') return 'elbow';
@@ -91,7 +95,7 @@ function currentPoints(route: Point[]): Point[] {
 /** Poignées entre les bouts de la flèche. */
 export function pointHandles(ctx: Pick<PointsContext, 'editor' | 'route' | 'waypoints'>): PointHandle[] {
   const { route } = ctx;
-  if (route.length < 2) return [];
+  if (route.length < 2 || ctx.editor === 'none') return [];
   if (ctx.editor === 'elbow') {
     // Au milieu du tracé, entre le premier et le dernier coude (mxElbowEdgeHandler.redrawInnerBends).
     const p0 = route.length > 1 ? route[1]! : route[0]!;

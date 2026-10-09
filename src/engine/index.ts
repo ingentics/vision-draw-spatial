@@ -103,6 +103,7 @@ export type { FollowLinkGesture, FollowLinkKey, MultiSelectKey } from './core/in
 export { JUMP_STYLES, jumpHalfLength, jumpValue, withJumps } from './core/render/edges/jumps';
 export type { JumpStyle } from './core/render/edges/jumps';
 export { routingKind } from './core/render/edges/route';
+export { isBlockArrow } from './core/render/edges/blockArrow';
 export { splitLabelFrame, splitPieces } from './core/render/edges/split';
 export { homographyCss, rectToQuad } from './core/render/geometry/homography';
 export { labelPadding } from './core/render/labelPosition';
