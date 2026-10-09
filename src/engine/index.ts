@@ -63,7 +63,14 @@ export type {
 } from './core/model/types';
 export { DEFAULT_DEPTH, SPATIAL, SPATIAL_PREFIX, spatialNumber, spatialValue } from './core/spatial';
 export { boundsOfPoints, distance, inflate } from './core/model/geometry';
-export { fontStyleBits, fontStyleValue, isHexColor, styleFlag, styleNumber } from './core/model/styleValues';
+export {
+  fitTextMode,
+  fontStyleBits,
+  fontStyleValue,
+  isHexColor,
+  styleFlag,
+  styleNumber,
+} from './core/model/styleValues';
 
 // Bibliothèque de fichiers et sauvegarde (SPEC §5, §14.1)
 export { Autosaver } from './core/persistence/Autosaver';
@@ -107,7 +114,7 @@ export { isBlockArrow } from './core/render/edges/blockArrow';
 export { splitLabelFrame, splitPieces } from './core/render/edges/split';
 export { homographyCss, rectToQuad } from './core/render/geometry/homography';
 export { labelPadding } from './core/render/labelPosition';
-export { largestFitting, MIN_FIT_SIZE } from './core/render/richLayout';
+export { largestFitting, maxFillSize, MIN_FILL_SIZE, MIN_FIT_SIZE } from './core/render/richLayout';
 export { readableOn } from './core/render/styleColors';
 export type { FontSet } from './core/render/troikaText';
 

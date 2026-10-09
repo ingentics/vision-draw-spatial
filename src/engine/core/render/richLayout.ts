@@ -36,8 +36,18 @@ export interface PlacedRun extends FontSpec {
   strike: boolean;
 }
 
+/** Ligne placée : ses morceaux `runs[start..end[`, son haut, sa hauteur et sa largeur. */
+export interface PlacedLine {
+  start: number;
+  end: number;
+  top: number;
+  height: number;
+  width: number;
+}
+
 export interface RichTextLayout {
   runs: PlacedRun[];
+  lines: PlacedLine[];
   width: number;
   height: number;
 }
@@ -100,8 +110,10 @@ export function layoutRichText(
 
   const blockWidth = laidOut.reduce((max, line) => Math.max(max, line.width), 0);
   const runs: PlacedRun[] = [];
+  const placed: PlacedLine[] = [];
   let top = 0;
   for (const line of laidOut) {
+    const start = runs.length;
     const baseline = top + BASELINE * line.size;
     let x =
       options.align === 'left'
@@ -113,9 +125,10 @@ export function layoutRichText(
       runs.push({ ...piece, x, baseline });
       x += piece.width;
     }
+    placed.push({ start, end: runs.length, top, height: LINE_HEIGHT * line.size, width: line.width });
     top += LINE_HEIGHT * line.size;
   }
-  return { runs, width: blockWidth, height: top };
+  return { runs, lines: placed, width: blockWidth, height: top };
 }
 
 /** Taille d'une ligne vide : celle de son premier segment, sinon la taille de base. */
@@ -145,17 +158,29 @@ export function scaleRichLines(lines: DeepReadonly<RichLine[]>, factor: number):
 
 /** Plus petite taille du mode « Ajuster » (`fitText=1`) : en dessous, le texte garde 1 et déborde. */
 export const MIN_FIT_SIZE = 1;
+/** Plus petite taille du mode « Remplir » (`fitText=fill`, post-it, sujet 411) : en dessous, le texte finit par « … ». */
+export const MIN_FILL_SIZE = 6;
 
 /**
- * Taille du texte « Ajuster » (`fitText=1`) : `base.size` si le texte tient, sinon la plus grande taille entière à
- * laquelle le texte mis en page (retour à la ligne à `width` si `wrap`) tient dans `width` × `height`.
- * Les tailles partielles suivent la taille de base, à proportion. Jamais sous `MIN_FIT_SIZE`.
+ * Plus grande taille essayée par « Remplir » : une ligne de toute la hauteur de la zone, sans descendre sous le
+ * minimum.
+ */
+export function maxFillSize(height: number): number {
+  return Math.max(Math.floor(height / LINE_HEIGHT), MIN_FILL_SIZE);
+}
+
+/**
+ * Taille du texte ajusté à sa zone. « Ajuster » (`fitText=1`) : `base.size` si le texte tient, sinon la plus grande
+ * taille entière à laquelle le texte mis en page (retour à la ligne à `width` si `wrap`) tient dans `width` ×
+ * `height`, jamais sous `MIN_FIT_SIZE`. « Remplir » (`fill`) : la plus grande taille entière qui tient, plus grande
+ * ou plus petite que `base.size`, jamais sous `MIN_FILL_SIZE`. Les tailles partielles suivent la taille de base, à
+ * proportion.
  */
 export function fitFontSize(
   lines: DeepReadonly<RichLine[]>,
   base: BaseTextFormat,
   measure: MeasureText,
-  zone: { width: number; height: number; wrap: boolean; align: 'left' | 'center' | 'right' },
+  zone: { width: number; height: number; wrap: boolean; align: 'left' | 'center' | 'right'; fill?: boolean },
 ): number {
   const fits = (size: number) => {
     const factor = size / base.size;
@@ -165,18 +190,19 @@ export function fitFontSize(
     });
     return layout.width <= zone.width + 1e-6 && layout.height <= zone.height + 1e-6;
   };
+  if (zone.fill) return largestFitting(maxFillSize(zone.height), fits, MIN_FILL_SIZE);
   if (fits(base.size)) return base.size;
   return largestFitting(Math.max(Math.ceil(base.size) - 1, MIN_FIT_SIZE), fits);
 }
 
 /**
- * Plus grande taille entière de `MIN_FIT_SIZE` à `max` pour laquelle `fits` est vrai (recherche
- * dichotomique : un texte plus petit tient toujours mieux) ; `MIN_FIT_SIZE` si aucune ne convient.
- * Partagée par le rendu et l'éditeur en place (qui mesure, lui, dans le DOM).
+ * Plus grande taille entière de `min` à `max` pour laquelle `fits` est vrai (recherche dichotomique : un texte plus
+ * petit tient toujours mieux) ; `min` si aucune ne convient. Partagée par le rendu et l'éditeur en place (qui mesure,
+ * lui, dans le DOM).
  */
-export function largestFitting(max: number, fits: (size: number) => boolean): number {
+export function largestFitting(max: number, fits: (size: number) => boolean, min = MIN_FIT_SIZE): number {
   if (fits(max)) return max;
-  let low = MIN_FIT_SIZE;
+  let low = min;
   let high = max;
   while (high - low > 1) {
     const middle = Math.floor((low + high) / 2);
@@ -184,4 +210,61 @@ export function largestFitting(max: number, fits: (size: number) => boolean): nu
     else high = middle;
   }
   return low;
+}
+
+const ELLIPSIS = '…';
+
+/**
+ * Texte mis en page coupé à sa zone (« Remplir » au minimum, sujet 411) : les lignes qui dépassent la hauteur sont
+ * retirées (au moins une reste) et la dernière gardée finit par « … » ; une ligne trop large (mot plus long que la
+ * zone) aussi. Les lignes raccourcies restent alignées selon `align`.
+ */
+export function clipLayout(
+  layout: RichTextLayout,
+  zone: { width: number; height: number },
+  measure: MeasureText,
+  align: 'left' | 'center' | 'right',
+): RichTextLayout {
+  const fitting = layout.lines.filter((line) => line.top + line.height <= zone.height + 1e-6);
+  const kept = fitting.length > 0 ? fitting : layout.lines.slice(0, 1);
+  const cut = kept.length < layout.lines.length;
+  if (!cut && kept.every((line) => line.width <= zone.width + 1e-6)) return layout;
+  const runs: PlacedRun[] = [];
+  const lines: PlacedLine[] = [];
+  kept.forEach((line, index) => {
+    const own = layout.runs.slice(line.start, line.end).map((run) => ({ ...run }));
+    const ellipsis = (cut && index === kept.length - 1) || line.width > zone.width + 1e-6;
+    const shortened = ellipsis ? withEllipsis(own, zone.width, measure) : own;
+    const width = shortened.reduce((sum, run) => sum + run.width, 0);
+    const shift = (line.width - width) * (align === 'left' ? 0 : align === 'right' ? 1 : 0.5);
+    const start = runs.length;
+    for (const run of shortened) runs.push({ ...run, x: run.x + shift });
+    lines.push({ ...line, start, end: runs.length, width });
+  });
+  const last = lines[lines.length - 1];
+  return {
+    runs,
+    lines,
+    width: Math.min(layout.width, zone.width),
+    height: last ? last.top + last.height : 0,
+  };
+}
+
+/** Morceaux d'une ligne raccourcis (lettre par lettre, puis espaces de fin) pour que, suivis de « … », ils tiennent. */
+function withEllipsis(runs: PlacedRun[], width: number, measure: MeasureText): PlacedRun[] {
+  const font = runs[runs.length - 1];
+  if (!font) return runs;
+  const total = () => runs.reduce((sum, run) => sum + run.width, 0);
+  const room = width - measure(ELLIPSIS, font);
+  while (runs.length > 0 && total() > room) {
+    const last = runs[runs.length - 1]!;
+    const text = last.text.slice(0, -1);
+    if (text) runs[runs.length - 1] = { ...last, text, width: measure(text, last) };
+    else runs.pop();
+  }
+  const last = runs[runs.length - 1];
+  if (!last) return [{ ...font, text: ELLIPSIS, x: 0, width: measure(ELLIPSIS, font) }];
+  const text = last.text.trimEnd() + ELLIPSIS;
+  runs[runs.length - 1] = { ...last, text, width: measure(text, last) };
+  return runs;
 }

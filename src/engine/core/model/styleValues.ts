@@ -15,6 +15,15 @@ export function styleFlag(style: Record<string, string>, key: string): boolean {
   return style[key] === '1';
 }
 
+/**
+ * Ajustement du texte à sa forme (`fitText`) : `shrink` (« Ajuster », `1`, sujet 57) réduit le texte qui dépasse ;
+ * `fill` (« Remplir », post-it, sujet 411) l'agrandit aussi pour remplir la forme ; `off` sinon.
+ */
+export function fitTextMode(style: Record<string, string>): 'off' | 'shrink' | 'fill' {
+  if (style.fitText === 'fill') return 'fill';
+  return styleFlag(style, 'fitText') ? 'shrink' : 'off';
+}
+
 /** Opacité 0–1 à partir des clés draw.io en pourcentage (`opacity`, puis la clé spécifique). */
 export function styleOpacity(style: Record<string, string>, key: string): number {
   return (styleNumber(style, 'opacity', 100) / 100) * (styleNumber(style, key, 100) / 100);

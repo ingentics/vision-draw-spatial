@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  clipLayout,
   decorationLines,
   fitFontSize,
   layoutRichText,
+  MIN_FILL_SIZE,
   scaleRichLines,
 } from '../../../../src/engine/core/render/richLayout';
 import type { MeasureText } from '../../../../src/engine/core/render/richLayout';
@@ -92,5 +94,55 @@ describe('taille « Ajuster » (étape 57)', () => {
     // Largeur = 0,2 × s + 0,4 × s = 0,6 × s.
     expect(fitFontSize(lines, base, measure, zone(3, 100))).toBe(5);
     expect(scaleRichLines(lines, 0.5)).toEqual([[{ text: 'ab' }, { text: 'cd', fontSize: 10 }]]);
+  });
+});
+
+describe('taille « Remplir » (post-it, sujet 411)', () => {
+  const zone = (width: number, height: number, wrap = true) => ({
+    width,
+    height,
+    wrap,
+    align: 'center' as const,
+    fill: true,
+  });
+
+  it('un texte court est agrandi jusqu’à remplir la zone', () => {
+    // « ab » : 0,2 × taille de large ; tient en largeur jusqu'à 100, en hauteur jusqu'à 30 / 1,2 = 25.
+    expect(fitFontSize([[{ text: 'ab' }]], base, measure, zone(20, 30))).toBe(25);
+  });
+
+  it('un texte long est réduit, comme « Ajuster »', () => {
+    expect(fitFontSize([[{ text: 'aaaaaaaaaa' }]], base, measure, zone(6.5, 100, false))).toBe(6);
+  });
+
+  it('jamais sous 6', () => {
+    expect(fitFontSize([[{ text: 'aaaaaaaaaa' }]], base, measure, zone(1, 1))).toBe(MIN_FILL_SIZE);
+  });
+});
+
+describe('texte coupé par « … » (sujet 411)', () => {
+  const size6 = { ...base, size: 6 };
+
+  it('lignes en trop retirées, la dernière gardée finit par « … »', () => {
+    // Lignes de 7,2 ; zone de 16 : deux lignes tiennent.
+    const layout = layoutRichText([[{ text: 'un' }], [{ text: 'deux' }], [{ text: 'trois' }]], size6, measure, {
+      align: 'left',
+    });
+    const clipped = clipLayout(layout, { width: 100, height: 16 }, measure, 'left');
+    expect(clipped.runs.map((run) => run.text)).toEqual(['un', 'deux…']);
+    expect(clipped.height).toBeCloseTo(14.4);
+  });
+
+  it('ligne trop large : coupée pour que « … » tienne', () => {
+    // 0,6 par caractère : 3 de large = 4 caractères, dont « … ».
+    const layout = layoutRichText([[{ text: 'abcdefgh' }]], size6, measure, { align: 'left' });
+    const clipped = clipLayout(layout, { width: 3, height: 100 }, measure, 'left');
+    expect(clipped.runs.map((run) => run.text)).toEqual(['abcd…']);
+    expect(clipped.lines[0]!.width).toBeLessThanOrEqual(3 + 1e-9);
+  });
+
+  it('un texte qui tient est rendu tel quel', () => {
+    const layout = layoutRichText([[{ text: 'ok' }]], size6, measure, { align: 'center' });
+    expect(clipLayout(layout, { width: 100, height: 100 }, measure, 'center')).toBe(layout);
   });
 });

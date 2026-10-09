@@ -34,6 +34,7 @@ describe('palette', () => {
       'mxgraph.basic.octagon2',
       'mxgraph.basic.pentagon',
       'parallelogram',
+      'post-it',
       'process',
       'rdd-document',
       'rdd-embedded',
@@ -101,6 +102,7 @@ describe('palette', () => {
     expect(byCategory('general')).toEqual([
       'text',
       'title',
+      'post-it',
       'actor',
       'arrow',
       'actor-droid',

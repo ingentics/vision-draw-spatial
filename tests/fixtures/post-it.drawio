@@ -1,0 +1,22 @@
+<mxfile host="Electron" agent="draw.io/24.7.5" version="24.7.5">
+  <diagram name="Post-it" id="post-it">
+    <mxGraphModel grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="short" value="Idée" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=post-it;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="160" height="160" as="geometry"/>
+        </mxCell>
+        <mxCell id="long" value="Revoir le découpage des tickets avant la démo de jeudi, avec l'équipe produit et le support" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=post-it;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="240" y="40" width="160" height="160" as="geometry"/>
+        </mxCell>
+        <mxCell id="overflow" value="Ce texte est bien trop long pour tenir dans un petit post-it, même à la plus petite taille permise : il doit se terminer par des points de suspension au lieu de déborder du papier jaune, quelle que soit la place disponible en dessous." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=post-it;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="440" y="40" width="80" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="wide" value="Large" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=post-it;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="240" width="320" height="100" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

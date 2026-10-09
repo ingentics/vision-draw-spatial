@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fontStyleBits, fontStyleValue, isHexColor } from '../../../../src/engine/core/model/styleValues';
+import { fitTextMode, fontStyleBits, fontStyleValue, isHexColor } from '../../../../src/engine/core/model/styleValues';
 
 describe('isHexColor (sujet 291)', () => {
   it('#rrggbb, casse libre ; ni forme courte, ni nom, ni absent', () => {
@@ -29,5 +29,14 @@ describe('fontStyleValue (sujet 307)', () => {
       { bold: false, italic: true, underline: false, strike: true },
     ])
       expect(fontStyleBits({ fontStyle: String(fontStyleValue(marks)) })).toEqual(marks);
+  });
+});
+
+describe('fitTextMode (sujets 57, 411)', () => {
+  it('fitText=1 : réduire ; fitText=fill : remplir ; sinon rien', () => {
+    expect(fitTextMode({ fitText: '1' })).toBe('shrink');
+    expect(fitTextMode({ fitText: 'fill' })).toBe('fill');
+    expect(fitTextMode({ fitText: '0' })).toBe('off');
+    expect(fitTextMode({})).toBe('off');
   });
 });

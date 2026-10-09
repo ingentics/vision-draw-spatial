@@ -3,7 +3,14 @@ import type { Object3D } from 'three';
 import { Text } from 'troika-three-text';
 import type { RichLine } from '../model/types';
 import { isMonospace } from '../format/richText';
-import { approximateMeasure, decorationLines, fitFontSize, layoutRichText, scaleRichLines } from './richLayout';
+import {
+  approximateMeasure,
+  clipLayout,
+  decorationLines,
+  fitFontSize,
+  layoutRichText,
+  scaleRichLines,
+} from './richLayout';
 import type { FontSpec, MeasureText } from './richLayout';
 import { followRenderOrder } from './renderOrder';
 import { layoutOnPath } from './textPath';
@@ -278,7 +285,10 @@ class TroikaTextFactory implements TextFactory {
   }
 }
 
-/** Mise en page d'un texte riche ; « Ajuster » : taille réduite pour tenir dans la zone, tailles partielles à proportion. */
+/**
+ * Mise en page d'un texte riche ; « Ajuster » : taille réduite pour tenir dans la zone, tailles partielles à
+ * proportion ; « Remplir » : taille qui remplit la zone, et texte coupé par « … » s'il dépasse encore au minimum.
+ */
 function richLayoutOf(spec: TextSpec, measureText: MeasureText) {
   const given: DeepReadonly<RichLine[]> = spec.rich ?? spec.text.split('\n').map((text) => [{ text }]);
   const base = {
@@ -293,7 +303,8 @@ function richLayoutOf(spec: TextSpec, measureText: MeasureText) {
     ? fitFontSize(given, base, measureText, { ...spec.fit, wrap: spec.maxWidth !== undefined, align: spec.align })
     : spec.fontSize;
   const lines = size === spec.fontSize ? given : scaleRichLines(given, size / spec.fontSize);
-  return layoutRichText(lines, { ...base, size }, measureText, { maxWidth: spec.maxWidth, align: spec.align });
+  const layout = layoutRichText(lines, { ...base, size }, measureText, { maxWidth: spec.maxWidth, align: spec.align });
+  return spec.fit?.fill ? clipLayout(layout, spec.fit, measureText, spec.align) : layout;
 }
 
 function plane(width: number, height: number, color: Color, opacity: number): Mesh {

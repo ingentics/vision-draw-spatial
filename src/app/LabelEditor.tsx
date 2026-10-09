@@ -2,13 +2,15 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties, MutableRefObject, RefObject } from 'react';
 import {
   fontStyleBits,
+  fitTextMode,
   homographyCss,
   isMonospace,
   labelPadding,
   largestFitting,
+  maxFillSize,
+  MIN_FILL_SIZE,
   MIN_FIT_SIZE,
   rectToQuad,
-  styleFlag,
   styleNumber,
 } from '../engine';
 import type { LabelEditPlane, LabelEditRequest } from '../engine';
@@ -84,9 +86,12 @@ export function LabelEditor({
   });
   // « Ajuster » (`fitText=1`, texte d'une forme) : le texte est réduit (CSS `zoom`, tailles partielles à
   // proportion, retour à la ligne à la largeur de la forme) jusqu'à tenir dans la boîte, comme le label
-  // dessiné (`fitFontSize`) : même recherche des tailles entières, mesurée ici dans le DOM.
+  // dessiné (`fitFontSize`) : même recherche des tailles entières, mesurée ici dans le DOM. « Remplir »
+  // (`fitText=fill`, post-it) : agrandi aussi, jamais sous 6 ; le texte entier reste visible pendant la saisie (pas
+  // d'ellipse ici).
   const shownStyle = request.displayStyle ?? request.style;
-  const fitOn = !request.onEdge && styleFlag(shownStyle, 'fitText');
+  const fitMode = request.onEdge ? 'off' : fitTextMode(shownStyle);
+  const fitOn = fitMode !== 'off';
   const baseSize = Number(shownStyle.fontSize) || 11;
   const onFitSizeRef = useRef(onFitSize);
   onFitSizeRef.current = onFitSize;
@@ -117,13 +122,18 @@ export function LabelEditor({
       const rect = editor.getBoundingClientRect();
       return rect.width <= room.width && rect.height <= room.height;
     };
-    const size = fits(baseSize) ? baseSize : largestFitting(Math.max(Math.ceil(baseSize) - 1, MIN_FIT_SIZE), fits);
+    const size =
+      fitMode === 'fill'
+        ? largestFitting(maxFillSize(room.height), fits, MIN_FILL_SIZE)
+        : fits(baseSize)
+          ? baseSize
+          : largestFitting(Math.max(Math.ceil(baseSize) - 1, MIN_FIT_SIZE), fits);
     editor.style.zoom = String(size / baseSize);
     frame.style.transform = transform;
     onFitSizeRef.current?.(size);
   };
   const { width: screenWidth, height: screenHeight } = request.screen;
-  useLayoutEffect(() => fitRef.current(), [fitOn, baseSize, screenWidth, screenHeight, request.scale, shownStyle]);
+  useLayoutEffect(() => fitRef.current(), [fitMode, baseSize, screenWidth, screenHeight, request.scale, shownStyle]);
   // Recalcul à chaque changement du contenu (saisie, mise en forme partielle).
   useEffect(() => {
     const editor = ref.current;

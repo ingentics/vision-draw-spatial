@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import {
   fontStyleBits,
+  fitTextMode,
   fontStyleValue,
   isHexColor,
   isMonospace,
@@ -10,7 +11,6 @@ import {
   labelPlaceOf,
   labelPlacePatch,
   matchesTextPreset,
-  styleFlag,
   styleNumber,
 } from '../engine';
 import type { LabelPlace, TextPreset } from '../engine';
@@ -105,9 +105,11 @@ const ALIGNS: Record<'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom', 
 export function TextFormatSections({ edit }: { edit: TextEdit }) {
   const { style, selection, canFormat, onEdge, fittedSize, presets, onAction, onOwner, comment } = edit;
   const { hover, tooltip } = useTooltip();
-  // « Ajuster » : texte d'une forme seulement ; la taille réglée devient la taille maximale.
-  const canFit = canFormat && !onEdge && !comment;
-  const fit = canFit && styleFlag(style, 'fitText');
+  // « Ajuster » : texte d'une forme seulement ; la taille réglée devient la taille maximale. « Remplir » (post-it,
+  // sujet 411) : imposé par la forme, ni réglage de taille ni bouton.
+  const fitMode = fitTextMode(style);
+  const canFit = canFormat && !onEdge && !comment && fitMode !== 'fill';
+  const fit = canFormat && !onEdge && !comment && fitMode !== 'off';
   const whole = {
     ...fontStyleBits(style),
     fontSize: styleNumber(style, 'fontSize', DEFAULT_SIZE) || DEFAULT_SIZE,
@@ -196,7 +198,14 @@ export function TextFormatSections({ edit }: { edit: TextEdit }) {
             Taille
             <span className="button-group">
               {fit ? (
-                <span className="size-fitted" data-tip="Taille ajustée à la forme (au plus la taille réglée)">
+                <span
+                  className="size-fitted"
+                  data-tip={
+                    fitMode === 'fill'
+                      ? 'Taille qui remplit la forme (6 au minimum, puis « … ») : imposée par la forme'
+                      : 'Taille ajustée à la forme (au plus la taille réglée)'
+                  }
+                >
                   {formatSize(fittedSize ?? whole.fontSize)}
                 </span>
               ) : (

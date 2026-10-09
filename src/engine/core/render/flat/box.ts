@@ -4,7 +4,7 @@ import type { Point, Rect } from '../../model/types';
 import type { ReadonlyShapeModel as ShapeModel } from '../../model/readonly';
 import { labelInsets, outsideLabelBox } from '../labelPosition';
 import { fillMesh, strokeMesh } from '../meshes';
-import { textFormat, styleNumber, styleOpacity, styleFlag } from '../../model/styleValues';
+import { fitTextMode, textFormat, styleNumber, styleOpacity, styleFlag } from '../../model/styleValues';
 import { labelBackground, styleColor, styleStroke } from '../styleColors';
 import { truncateLines } from '../textTruncate';
 import { PART_ORDER } from '../types';
@@ -103,6 +103,7 @@ export function createLabel(
       )
     : text;
 
+  const fit = fitTextMode(style);
   const spec: TextSpec = {
     text: shown,
     x: align === 'left' ? left : align === 'right' ? right : (left + right) / 2,
@@ -118,9 +119,14 @@ export function createLabel(
     // Tronqué : pas de retour automatique ni de rich (le texte coupé remplace le texte riche).
     ...(options.truncate && { rich: undefined }),
     maxWidth: style.whiteSpace === 'wrap' && !options.truncate ? Math.max(right - left, 1) : undefined,
-    fit: styleFlag(style, 'fitText')
-      ? { width: Math.max(right - left, 0), height: Math.max(bottom - top, 0) }
-      : undefined,
+    fit:
+      fit === 'off'
+        ? undefined
+        : {
+            width: Math.max(right - left, 0),
+            height: Math.max(bottom - top, 0),
+            ...(fit === 'fill' && { fill: true }),
+          },
     background: labelBackground(style, null, ctx.background),
   };
   const object = labelObject(ctx, spec, shape.id);
