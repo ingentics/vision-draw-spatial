@@ -721,7 +721,7 @@ interface Settings {
     shadow: number;                                               // ombre des barres sur la zone de dessin : 0.06 (0–0.3, 0 = aucune)
     minCanvas: number;                                            // largeur gardée à la zone de dessin : 320 (200–800)
   };
-  effects: Record<string, Record<string, number>>;                // réglages déclarés par chaque effet (plugins/effects/<id>/)
+  effects: Record<string, Record<string, number | boolean | string>>; // réglages déclarés par chaque effet (plugins/effects/<id>/index.ts, sujet 287) : forest.size, forest.spacing…
   modes: Record<string, Record<string, number | boolean | string>>; // réglages déclarés par chaque mode (plugins/modes/<id>/settings.ts, ticket 283)
   shapeCategories: Record<string, Record<string, number | boolean | string>>; // réglages déclarés par chaque catégorie de formes (plugins/shapes/categories.ts, sujet 380) : architecture.facadeTags (étiquettes DB / QUEUE / CACHE sur les façades : true, ancienne clé view.facadeTags reprise) ; Paramètres › Formes › Architecture
 }

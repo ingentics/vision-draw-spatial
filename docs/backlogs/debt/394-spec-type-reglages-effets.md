@@ -1,1 +1,0 @@
-SPEC §13 : `effects: Record<string, Record<string, number>>` (`docs/SPEC.md`, bloc des paramètres) alors que les réglages des effets sont aussi booléens, couleurs ou chaînes (`PluginSettings`) ; vu au sujet 380.
