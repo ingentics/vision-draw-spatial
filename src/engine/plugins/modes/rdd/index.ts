@@ -127,6 +127,8 @@ export const definition: PageModeDefinition = {
     // Flèche de relation : bouts imposés par sa sorte (cardinalités d'après « Optionnel » du champ entre tables, aucune
     // pointe depuis un embedded, sujet 268) ; le reste en lecture seule.
     manages: isRelationEdge,
+    // Flèche de relation sélectionnée seule : ni voile ni contour, ses poignées restent (sujet 428).
+    selectionStyle: (page, edge, size) => (size === 1 && isRelationEdge(page, edge) ? 'none' : undefined),
     // Flèche vers un champ : arrivée sur sa ligne, même en ancrage automatique ou Typon (sujet 338).
     placedEntries: arrivalEdges,
     created: (edit, edgeId, _current, part) => syncRelations(edit, undefined, undefined, arrivalOf(edgeId, part)),
