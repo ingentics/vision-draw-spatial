@@ -118,7 +118,9 @@ export type { ModeInfo, ModeRegistryView, ModeScope, PageModeRegistry } from './
 export type { ShapeOrientable, ShapeRegistry, ShapeRegistryView } from './core/shapes/registry';
 export type { OrientAction } from './core/edit/orientShapes';
 export type { ModeEdit } from './core/modes/modeEdit';
-export type { ModeOption, ModeProperty } from './core/modes/modeProperty';
+export type { ModeProperty } from './core/modes/modeProperty';
+export type { Field, FieldOption, FieldValue } from './core/fields/fieldSchema';
+export { choiceDisplay } from './core/fields/fieldSchema';
 export type { ModeTarget, PageModeDefinition } from './core/modes/types';
 export type { PluginSetting, PluginSettings, PluginValues } from './core/settings/pluginSettings';
 export { legacyShapeCategorySettings, SHAPE_TEMPLATES } from './plugins';

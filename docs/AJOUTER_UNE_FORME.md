@@ -368,8 +368,9 @@ les modes et les effets déclarent les leurs (sujet 380) : aucun fichier du tron
 
 1. Déclarez le réglage (`PluginSetting`, par l'API des plugins) près de la forme ou de la base qui le lit, et
    ajoutez-le aux `settings` de la catégorie dans
-   [plugins/shapes/categories.ts](../src/engine/plugins/shapes/categories.ts). Mêmes types que pour un mode
-   (`AJOUTER_UN_MODE.md` section 3) : nombre borné, case, couleur, choix, adresse ; `label`, `hint`, `group`.
+   [plugins/shapes/categories.ts](../src/engine/plugins/shapes/categories.ts). Champs du schéma commun, comme
+   pour un mode (`AJOUTER_UN_MODE.md` section 3) : nombre borné, case, couleur, choix, adresse ; `label`, `hint`,
+   `group`.
    Exemple : `FACADE_TAGS_SETTING` dans [generic/building](../src/engine/plugins/shapes/generic/building/index.ts),
    déclaré par la catégorie Architecture.
 2. Lisez la valeur dans `ctx.values` (contexte de rendu) : le registre y remet, à chaque forme dont la
@@ -430,9 +431,10 @@ sont dans le tableau de la section 2, avec leur défaut et un exemple.
 
 Un élément de palette (`PaletteEntry`, exposé comme `ShapeTemplate` avec l'`id` de la forme) porte le style **et** la taille par défaut de draw.io, une catégorie, un rang
 `order` (ordre d'affichage, toutes formes confondues), des mots-clés de recherche et une icône (contenu SVG d'un cadre
-`0 0 40 28`, sans couleurs). Un réglage (`ShapeProperty`) est une case (`toggle`, écrit `1` / `0`), un nombre ou un
-texte ; une clé `spatial.…` est écrite comme attribut spatial, et sa constante vit dans la forme (le tronc n'en connaît
-aucune, sujet 306). Un texte `live: true` est réglé en direct : chaque frappe est écrite en une seule étape
+`0 0 40 28`, sans couleurs). Un réglage (`ShapeProperty`) est un champ du schéma commun (`Field`, décrit dans
+`AJOUTER_UN_MODE.md` section 3, sujet 391) : une case (`toggle`, écrit `1` / `0` ; `checkedByDefault` : cochée quand
+la clé est absente), un nombre, un texte ou un choix (`choice`, `options` fixes) ; une clé `spatial.…` est écrite
+comme attribut spatial, et sa constante vit dans la forme (le tronc n'en connaît aucune, sujet 306). Un texte `live: true` est réglé en direct : chaque frappe est écrite en une seule étape
 d'annulation et seule la forme est redessinée (ex. étiquette des façades). Sa `section` le range dans le panneau :
 
 - `shape` : **paramètre de l'instance**, dans la section de la forme elle-même, titrée de son nom de palette et placée

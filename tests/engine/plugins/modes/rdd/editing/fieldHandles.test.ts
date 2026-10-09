@@ -46,7 +46,7 @@ describe('mode RDD : ajouter un champ (sujet 250)', () => {
   it('type choisi au panneau (256) : un des neuf, ou « Aucun » ; la largeur suit', () => {
     const { run, page, shape } = setup();
     const type = rdd.gestures!.properties!.find((p) => p.key === 'rdd.field.type')!;
-    expect(type.type === 'select' && type.options(page(), []).map((o) => o.label)).toEqual([
+    expect(type.type === 'choice' && type.options(page(), []).map((o) => o.label)).toEqual([
       'Aucun',
       'Nombre entier',
       'Nombre réel',

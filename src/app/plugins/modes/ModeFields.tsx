@@ -1,10 +1,6 @@
-import { useState } from 'react';
 import { isToggled, toggleValue } from '../../../engine';
-import type { ModeOption, ModePropertyView, ModeScope, ModeTarget, PageModel } from '../../../engine';
-import { ChoiceGroup } from '../../ChoiceGroup';
-import type { ChoiceOption } from '../../ChoiceGroup';
-import { NumberField, SelectField, TextField } from '../../Fields';
-import { ModeIcon } from '../../ModeIcon';
+import type { Field, ModePropertyView, ModeScope, ModeTarget, PageModel } from '../../../engine';
+import { DeclaredField } from '../../DeclaredField';
 import { useEnginePlugins } from '../../pluginsContext';
 
 /**
@@ -58,123 +54,30 @@ function ModePropertyField({
   onChange?: (key: string, value: string | undefined, merge?: string) => void;
 }) {
   const { property, value, readOnly, options } = view;
-  // Saisie en direct (sujet 271) : une étape d'annulation par passage dans le champ, et le champ recréé ensuite, pour
-  // montrer la valeur retenue (un libellé vidé est refusé).
-  const [session, setSession] = useState(0);
-  const { key, label } = property;
-  const title = property.title ?? label;
   const editable = onChange !== undefined && !readOnly;
-  const write = (next: string | undefined, merge?: string) => {
-    if (editable) onChange(key, next, merge);
-  };
-  switch (property.type) {
-    case 'toggle':
-      return (
-        <label className="field toggle" title={title}>
-          <input
-            type="checkbox"
-            checked={isToggled(value)}
-            disabled={!editable}
-            onChange={(event) => write(toggleValue(event.target.checked))}
-          />
-          {label}
-        </label>
-      );
-    case 'number': {
-      const number = value === undefined || value === '' ? undefined : Number(value);
-      return (
-        <NumberField
-          key={`${target.id}:${part ?? ''}:${key}:${value ?? ''}`}
-          label={label}
-          title={title}
-          value={Number.isFinite(number) ? number : undefined}
-          placeholder={property.placeholder ?? ''}
-          onCommit={(next) => write(next === undefined ? undefined : String(next))}
-        />
-      );
-    }
-    case 'text': {
-      const merge = `${target.id}:${part ?? ''}:${key}:${session}`;
-      return property.live ? (
-        // Pas de valeur dans la clé : le champ garde le curseur pendant la saisie.
-        <TextField
-          key={merge}
-          label={label}
-          title={title}
-          value={value ?? ''}
-          placeholder={property.placeholder}
-          multiline={property.multiline}
-          monospace={property.monospace}
-          readOnly={!editable}
-          onLive={(text) => write(text.trim() || undefined, merge)}
-          onCommit={(text) => {
-            write(text.trim() || undefined, merge);
-            setSession((current) => current + 1);
-          }}
-        />
-      ) : (
-        <TextField
-          key={`${target.id}:${part ?? ''}:${key}:${value ?? ''}`}
-          label={label}
-          title={title}
-          value={value ?? ''}
-          placeholder={property.placeholder}
-          multiline={property.multiline}
-          monospace={property.monospace}
-          readOnly={!editable}
-          onCommit={(text) => write(text.trim() || undefined)}
-        />
-      );
-    }
-    case 'button':
-      return (
-        <button
-          type="button"
-          className="button wide-button"
-          title={title}
-          disabled={!editable}
-          onClick={() => write(undefined)}
-        >
-          {label}
-        </button>
-      );
-    case 'select':
-      // Choix tous dessinés (icône ou couleur) : boutons ; sinon (choix nommés, nombreux) : liste (sujet 319).
-      return options.length > 0 && options.every((option) => option.icon || option.color) ? (
-        <div className="field-row">
-          <span title={title}>{label}</span>
-          <ChoiceGroup
-            label={label}
-            value={value ?? ''}
-            options={options.map(choiceOf)}
-            disabled={!editable}
-            onChange={(next) => write(next || undefined)}
-          />
-        </div>
-      ) : (
-        <SelectField
-          label={label}
-          title={title}
-          value={value ?? ''}
-          options={options}
-          disabled={!editable}
-          onChange={(next) => write(next || undefined)}
-        />
-      );
-  }
-}
-
-/** Option d'un réglage `select` en bouton : son icône, ou une pastille de sa couleur. */
-function choiceOf(option: ModeOption): ChoiceOption<string> {
-  const { value, label, icon, color, title } = option;
-  return {
-    value,
-    label,
-    title: title ?? label,
-    icon: icon ? (
-      <ModeIcon mode={{ icon }} />
-    ) : (
-      <span className="choice-swatch" style={{ background: color }} aria-hidden="true" />
-    ),
-  };
+  // Choix évalués par le moteur (sujet 294) : le champ reçoit la liste, jamais la fonction du mode.
+  const field: Field = property.type === 'choice' ? { ...property, options } : property;
+  const number = value === undefined || value === '' ? undefined : Number(value);
+  const typed =
+    property.type === 'toggle'
+      ? isToggled(value)
+      : property.type === 'number'
+        ? Number.isFinite(number)
+          ? number
+          : undefined
+        : value;
+  return (
+    <DeclaredField
+      field={field}
+      layout="panel"
+      identity={`${target.id}:${part ?? ''}`}
+      value={typed}
+      disabled={!editable}
+      onChange={(next, merge) => {
+        if (!editable) return;
+        const written = typeof next === 'boolean' ? toggleValue(next) : next === undefined ? undefined : String(next);
+        onChange(property.key, written, merge);
+      }}
+    />
+  );
 }

@@ -2,6 +2,7 @@
 import type { ElementComment } from '../edit/comment';
 import type { PageEffectRegistry } from '../effects/registry';
 import type { EdgeEnd } from '../edit/edgeLabels';
+import type { FieldOption } from '../fields/fieldSchema';
 import type { CameraState } from '../interaction/cameraState';
 import type { HistoryEntry, LinkUsage, ParentLink } from '../interaction/navigationHistory';
 import type { PickedElement } from '../interaction/pick';
@@ -10,7 +11,7 @@ import type { PageModeRegistry } from '../modes/registry';
 import type { FontSet } from '../render/troikaText';
 import type { Settings, SettingsPatch } from '../settings';
 import type { ShapeRegistry } from '../shapes/registry';
-import type { ModeOption, ModeProperty } from '../modes/modeProperty';
+import type { ModeProperty } from '../modes/modeProperty';
 
 export interface Selection {
   pageId: string;
@@ -123,8 +124,8 @@ export interface ModePropertyView {
   /** Valeur affichée : celle du mode (`value`), sinon l'attribut `key` de la cible. */
   value: string | undefined;
   readOnly: boolean;
-  /** Choix offerts (réglage `select`) ; vide pour les autres. */
-  options: ModeOption[];
+  /** Choix offerts (réglage `choice`) ; vide pour les autres. */
+  options: FieldOption[];
 }
 
 /** Barre du courant du mode d'une page (ex. flux courant du mode Séquences). */

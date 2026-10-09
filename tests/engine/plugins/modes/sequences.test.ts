@@ -177,7 +177,7 @@ describe('mode Séquences : réglages déclarés et habillage', () => {
     expect(flow!.value!(page(), edge(page(), 'paiement'))).toBe('f2');
     expect(step!.value!(page(), edge(page(), 'lecture'))).toBe('2');
     expect(step!.hidden!(page(), edge(page(), 'libre'))).toBe(true);
-    expect(flow!.type === 'select' && flow!.options(page(), []).map((option) => option.label)).toEqual([
+    expect(flow!.type === 'choice' && flow!.options(page(), []).map((option) => option.label)).toEqual([
       'Aucun',
       'Connexion',
       'Paiement « carte »',

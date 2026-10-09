@@ -46,6 +46,7 @@ dossiers du projet (SPEC §4.2 et `.claude/rules/coding.md` §2 y renvoient) ; l
 | `core/render/` | scènes Three.js par page et par niveau ; briques `flat/`, `iso/`, `geometry/` ; flèches `edges/` (tracés portés de mxGraph dans `edges/route/`) | pur (objets Three.js) |
 | `core/graph/` | vue graphe (page générée, disposition) et mini-graphe | pur |
 | `core/shapes/`, `core/modes/`, `core/effects/` | contrats et registres des plugins (plus le placeholder et le groupe ; les écritures d'un mode (`ModeEditWriter`), ses arguments en lecture seule (`modeCalls.ts`) ; la place prise par le schéma) | pur |
+| `core/fields/` | schéma commun des champs déclarés (réglages des formes, des modes, paramètres des plugins ; sujet 391) | pur |
 | `core/plugins/` | API des plugins : seul fichier du tronc qu'une forme, un mode ou un effet importe (`.claude/rules/coding.md` §5) | réexports |
 | `core/settings/` | paramètres : types, schéma (défauts, bornes, lecture), fusion qui en découle | pur |
 | `core/model/` | modèle neutre (aucune notion draw.io), géométrie, lecture du style, index de page, gel | pur, sans Three.js |

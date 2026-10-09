@@ -1,5 +1,6 @@
 import type { Object3D } from 'three';
 import type { Side } from '../edit/edgeEnds';
+import type { FieldOfType } from '../fields/fieldSchema';
 import type { MovedHandles } from '../edit/handleKinds';
 import type { Point, Rect } from '../model/types';
 // Modèle en lecture seule (sujet 303) : une forme dessine la forme reçue, sans la modifier.
@@ -137,41 +138,20 @@ export interface ShapeTemplate extends PaletteEntry {
 export type PropertySection = 'shape' | 'border' | 'volume';
 
 /**
- * Réglage propre à une forme (ex. coins arrondis, nombre de nœuds), affiché par un champ générique du panneau et
- * écrit dans une clé du style draw.io (attribut spatial si la clé commence par `spatial.`).
+ * Réglage propre à une forme (ex. coins arrondis, nombre de nœuds) : champ du schéma commun (`Field`, sujet 391)
+ * affiché par le champ générique du panneau et écrit dans une clé du style draw.io (attribut spatial si la clé commence
+ * par `spatial.`) ; un texte `live` y est écrit à chaque frappe (sujet 306 : seule la forme est redessinée, la clé ne
+ * touche que son dessin).
  */
-export type ShapeProperty =
-  | {
-      type: 'toggle';
-      key: string;
-      label: string;
-      section: PropertySection;
+export type ShapeProperty = {
+  section: PropertySection;
+} & (
+  | (FieldOfType<'toggle'> & {
       /** Cochée quand la clé est absente (décocher écrit `0`, recocher retire la clé). Défaut : décochée. */
       checkedByDefault?: boolean;
-    }
-  | {
-      type: 'number';
-      key: string;
-      label: string;
-      section: PropertySection;
-      /** Aide au survol. */
-      title?: string;
-      /** Valeur affichée quand la clé est absente (la valeur par défaut). */
-      placeholder?: string;
-    }
-  | {
-      type: 'text';
-      key: string;
-      label: string;
-      section: PropertySection;
-      title?: string;
-      placeholder?: string;
-      /**
-       * Réglé en direct (sujet 306, ex. étiquette d'un bâtiment) : chaque frappe est écrite, en une seule étape
-       * d'annulation, et seule la forme est redessinée ; la clé ne touche que le dessin de sa forme.
-       */
-      live?: boolean;
-    };
+    })
+  | FieldOfType<'number' | 'text' | 'choice'>
+);
 
 /**
  * Définition d'une forme (SPEC §8.2) : tout ce que le moteur et l'appli savent d'une forme passe par elle. Chaque

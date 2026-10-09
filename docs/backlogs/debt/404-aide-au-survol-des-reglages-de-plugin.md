@@ -1,0 +1,1 @@
+Aide au survol des réglages de plugin jamais montrée (vu au sujet 391) : `PluginSetting.title` est déclaré (effet Forêt, `plugins/effects/forest/index.ts`, cinq réglages) mais la sous-page des paramètres ne l'affiche pas (`DeclaredField`, présentation `settings`) ; le montrer (infobulle `useTooltip` ou aide sous le réglage) ou retirer ces déclarations.

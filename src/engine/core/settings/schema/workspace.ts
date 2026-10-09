@@ -54,7 +54,7 @@ export const PANELS = {
 /**
  * Réglages des plugins (effets, sujet 145 ; modes, ticket 283 ; catégories de formes, sujet 380) fusionnés plugin par
  * plugin : un nombre fini, un booléen ou une chaîne remplace, undefined retire (retour au défaut). Le type attendu par
- * chaque réglage est vérifié par le registre du plugin (`readPluginSetting`).
+ * chaque réglage est vérifié par le registre du plugin (`readFieldValue`).
  */
 function mergePluginSettings(patch: unknown, base: PluginSettings): PluginSettings {
   const changesById = (patch ?? {}) as Record<string, unknown>;

@@ -43,7 +43,7 @@ export const definition: PageModeDefinition = {
   edges: {
     properties: [
       {
-        type: 'select',
+        type: 'choice',
         key: FLOW,
         label: 'Flux',
         title: 'Flux de la flèche (spatial.seq.flow) : elle se met à la fin du flux choisi',
@@ -78,7 +78,7 @@ export const definition: PageModeDefinition = {
   gestures: {
     properties: [
       {
-        type: 'select',
+        type: 'choice',
         key: PARTICIPANT,
         label: 'Type',
         title:

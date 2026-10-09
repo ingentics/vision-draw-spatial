@@ -149,8 +149,8 @@ describe('export PlantUML des flux (sujets 90 à 97)', () => {
 
   it('déclare le type d’une forme (bus, queue) dans le panneau des formes', () => {
     const property = sequences.gestures!.properties?.find((p) => p.key === PARTICIPANT);
-    expect(property?.type).toBe('select');
-    if (property?.type === 'select') {
+    expect(property?.type).toBe('choice');
+    if (property?.type === 'choice') {
       expect(property.options(flowsPage(), []).map((option) => option.value)).toEqual(['', 'bus', 'queue']);
     }
   });

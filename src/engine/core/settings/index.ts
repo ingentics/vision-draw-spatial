@@ -5,7 +5,7 @@
 
 export { DEFAULT_MODE_PALETTE, modePalette, resolveReducedMotion, settingsSectionChanged } from './derived';
 export { DEFAULT_SETTINGS, mergeSettings, SETTINGS_LIMITS } from './fromSchema';
-export { pluginValues, readPluginSetting } from './pluginSettings';
+export { pluginValues } from './pluginSettings';
 export type { PluginSetting, PluginSettings, PluginSettingValue, PluginValues } from './pluginSettings';
 export type {
   AccessibilitySettings,

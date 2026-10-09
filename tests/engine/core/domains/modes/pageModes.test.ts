@@ -46,7 +46,7 @@ const BOOM: PageModeDefinition = {
     connects: fail,
     properties: [
       { type: 'text', key: 'ok', label: 'Correct', value: () => 'calculé', readOnly: () => true },
-      { type: 'select', key: 'broken', label: 'En panne', value: fail, readOnly: fail, options: fail },
+      { type: 'choice', key: 'broken', label: 'En panne', value: fail, readOnly: fail, options: fail },
       { type: 'toggle', key: 'hidden', label: 'Masqué', hidden: () => true },
       { type: 'toggle', key: 'hiddenBroken', label: 'Masquage en panne', hidden: fail },
     ],

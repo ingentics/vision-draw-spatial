@@ -1,29 +1,20 @@
+import type { FieldOfType, FieldOption } from '../fields/fieldSchema';
 import type { ReadonlyPageModel as PageModel } from '../model/readonly';
 import type { ModeEdit } from './modeEdit';
-import type { ModeIcon, ModeTarget } from './types';
-
-export interface ModeOption {
-  value: string;
-  label: string;
-  /** Pastille de couleur devant l'option (#rrggbb). */
-  color?: string;
-  /** Icône de l'option, mêmes tracés que l'icône d'un mode (sujet 319). */
-  icon?: ModeIcon;
-  /** Aide au survol d'une option en bouton (sujet 319) : ce que fait le choix ; défaut : `label`. */
-  title?: string;
-}
+import type { ModeTarget } from './types';
 
 /**
- * Réglage déclaré par un mode, rendu par un champ générique. Par défaut, il lit et écrit l'attribut du mode de nom
- * court `key` sur sa cible (`spatial.<namespace>.<key>`) ; `value` et `write` le remplacent quand le réglage passe par
- * les règles du mode (ex. un rang qui s'échange).
+ * Choix d'un réglage `choice` de mode, selon la page ; `palette` : couleurs proposées par l'appli (`ModeEdit.palette`).
+ */
+export type ModeOptions = (page: PageModel, palette: readonly string[]) => FieldOption[];
+
+/**
+ * Réglage déclaré par un mode : champ du schéma commun (`Field`, sujet 391) rendu par le champ générique. Par défaut,
+ * il lit et écrit l'attribut du mode de nom court `key` sur sa cible (`spatial.<namespace>.<key>`) ; `value` et
+ * `write` le remplacent quand le réglage passe par les règles du mode (ex. un rang qui s'échange). Un `button` appelle
+ * `write` (valeur undefined).
  */
 export type ModeProperty = {
-  key: string;
-  label: string;
-  /** Aide au survol. */
-  title?: string;
-  placeholder?: string;
   /**
    * Réglage d'une partie de la forme (sujet 249) : montré seulement quand une partie est sélectionnée, et les autres
    * réglages de forme seulement quand aucune ne l'est ; `part` est alors passé à `value`, `write` et `hidden`.
@@ -44,27 +35,4 @@ export type ModeProperty = {
   readOnly?: boolean | ((page: PageModel, target: ModeTarget, part?: string) => boolean);
   /** Section du panneau (titre) ; défaut : celle au nom du mode (sujet 260, ex. « PostgreSQL »). */
   section?: string;
-} & (
-  | { type: 'toggle' }
-  | { type: 'number' }
-  /** Bouton pleine largeur (sujet 253) : son clic appelle `write` (valeur undefined). */
-  | { type: 'button' }
-  | {
-      type: 'text';
-      /** Plusieurs lignes (zone de texte, ⌘ + Entrée ou sortie du champ pour valider). */
-      multiline?: boolean;
-      /** Zone de texte en police à chasse fixe, sans retour automatique (sujet 331). */
-      monospace?: boolean;
-      /** Écrit à chaque frappe, une seule étape d'annulation par saisie (sujet 271) ; sinon à la validation. */
-      live?: boolean;
-    }
-  | {
-      type: 'select';
-      /**
-       * Choix offerts (valeur vide = aucun) ; `palette` : couleurs proposées par l'appli (`ModeEdit.palette`). Si toutes
-       * les options ont une icône ou une couleur, le panneau les montre en boutons (pastilles), sinon en liste (sujet
-       * 319).
-       */
-      options(page: PageModel, palette: readonly string[]): ModeOption[];
-    }
-);
+} & FieldOfType<'toggle' | 'number' | 'text' | 'choice' | 'button', ModeOptions>;

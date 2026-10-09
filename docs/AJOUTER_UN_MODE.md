@@ -129,24 +129,38 @@ export const definition: PageModeDefinition = { id: 'sequences', ...SEQUENCES_KE
 
 `keys.key(nom)` donne la clé complète, pour l'écrire soi-même dans un style (modèle de palette, aperçu d'une forme).
 
-Un réglage déclaré (`toggle`, `number`, `text` — `multiline` pour une zone de texte —, `select`, dont les choix
-reçoivent les couleurs de l'appli ; `readOnly` pour l'afficher sans le rendre modifiable) est rendu par un champ
-générique : section « Mode » de la
-page, section au nom du mode dans le panneau d'une flèche ou d'une forme. Par défaut, il lit et écrit l'attribut du
-mode de nom court `key` sur sa cible ; `value`, `write` et `hidden` le font passer par les règles du mode (ex. le rang d'une flèche, qui
-s'échange avec une autre).
+**Schéma commun des champs** (sujet 391) : les réglages d'un mode (`ModeProperty`), ceux d'une forme
+(`ShapeProperty`, `AJOUTER_UNE_FORME.md`) et les réglages globaux d'un plugin (`PluginSetting`, plus bas) sont tous
+des champs `Field` ([core/fields/fieldSchema.ts](../src/engine/core/fields/fieldSchema.ts)), rendus par un seul
+composant de l'appli (`src/app/DeclaredField.tsx`). Un champ a une clé `key`, un nom `label`, une aide au survol
+`title`, et selon son `type` :
 
-Un réglage `select` dont toutes les options ont une icône (`icon`, mêmes tracés que l'icône du mode) ou une couleur
-(`color`) s'affiche en groupe de boutons, pastilles ou icônes, avec l'aide `title` de chaque option au survol (ex. couleur
-d'une région RDD, type de participant) ; sinon il reste une liste, faite pour des choix nommés, nombreux ou qui varient
-avec la page (ex. flux d'une flèche, type d'un champ RDD), sujet 319.
+| `type` | Ce qu'il déclare en plus | Rendu |
+|---|---|---|
+| `toggle` | — | case à cocher |
+| `number` | `placeholder` ; bornes `min`, `max`, `step` ; `unit` (`px`, `ms`, `%`), `zero` (libellé de 0) | curseur si bornes et pas, sinon champ numérique (vide = défaut) |
+| `text` | `placeholder`, `multiline` (zone de texte), `monospace` (chasse fixe, sujet 331), `live` (écrit à chaque frappe, une étape d'annulation par passage, sujet 271) | champ texte |
+| `choice` | `options` : `value`, `label`, `title`, `color`, `icon` (mêmes tracés que l'icône du mode) | boutons (pastilles, icônes) si toutes les options ont une icône ou une couleur, sinon liste (sujet 319) |
+| `color` | — | couleur #rrggbb |
+| `url` | — | adresse http(s), sans barre finale (sujet 306) |
+| `button` | — | bouton pleine largeur (sujet 253) |
+
+Chaque famille n'ajoute que sa cible et ce qui lui est propre. Les valeurs enregistrées sont lues par
+`readFieldValue` (nombre ramené dans ses bornes, valeur parmi les choix, adresse normalisée…).
+
+Un réglage de mode (`toggle`, `number`, `text`, `choice` ou `button`) a des choix `options(page, palette)` qui
+reçoivent les couleurs de l'appli, et `readOnly` pour l'afficher sans le rendre modifiable. Il est rendu dans la
+section « Mode » de la page, la section au nom du mode dans le panneau d'une flèche ou d'une forme. Par défaut, il lit
+et écrit l'attribut du mode de nom court `key` sur sa cible ; `value`, `write` et `hidden` le font passer par les
+règles du mode (ex. le rang d'une flèche, qui s'échange avec une autre). Un `choice` en boutons montre l'aide `title`
+de chaque option au survol (ex. couleur d'une région RDD, type de participant) ; une liste convient aux choix nommés,
+nombreux ou qui varient avec la page (ex. flux d'une flèche, type d'un champ RDD).
 
 Un réglage peut aller dans sa propre section du panneau (`section`, son titre ; défaut : la section au nom du mode,
 sujet 260), et être en lecture seule selon sa cible (`readOnly` fonction, ex. label de la clé primaire).
 
-Un réglage `button` (sujet 253) est un bouton sur toute la largeur de la section, dont le clic appelle `write`.
-`write` peut renvoyer une partie de la forme : elle est alors sélectionnée et son texte passe en édition (ex.
-séparateur ajouté) ; `anyPart` montre le réglage que la forme seule ou une de ses parties soit sélectionnée.
+Le clic d'un réglage `button` appelle `write`. `write` peut renvoyer une partie de la forme : elle est alors
+sélectionnée et son texte passe en édition (ex. séparateur ajouté) ; `anyPart` montre le réglage que la forme seule ou une de ses parties soit sélectionnée.
 
 Un réglage `part: true` porte sur une **partie** de la forme (ex. un champ d'une table RDD, sujet 249) : il n'est
 montré que lorsqu'une partie est sélectionnée (et les autres réglages de forme seulement lorsqu'aucune ne l'est) ;
@@ -167,9 +181,9 @@ change rien. Depuis l'appli : `onEdit(label, (edit) => monOperation(edit, …))`
 
 Les **réglages globaux** du mode (ticket 283), pour toute l'appli et non pour une page, sont déclarés dans sa
 définition (`settings`, rangés dans `plugins/modes/<id>/settings.ts`), du même type que ceux d'un effet
-(`PluginSetting`, sujet 287) : nombre borné (`unit` `px`, `ms`
-ou `%`, `zero` : libellé de 0), case à cocher, couleur, choix dans une liste (`choice`, `options`) ou adresse http(s)
-(`url`, `when` : modifiable seulement quand un autre réglage a une valeur ; sujet 306), avec leur défaut, un groupe (`group`, `groupHint`) et une aide
+(`PluginSetting`, sujet 287) : champs du schéma commun ci-dessus, nombre (bornes `min`, `max`, `step` obligatoires),
+case, couleur, choix (`choice`) ou adresse (`url`, `when` : modifiable seulement quand un autre réglage a une valeur ;
+sujet 306), avec leur défaut (`default`), un groupe (`group`, `groupHint`) et une aide sous le réglage
 (`hint`). L'appli les affiche dans une sous-page du mode (Paramètres › Modes, titre `shortName` sinon `name`) et les
 enregistre dans `settings.modes[id][key]` ; le registre les borne (`values`, aussi dans la vue que l'appli reçoit,
 `engine.getModeRegistry()` : déclaration des modes seulement, jamais leurs points d'entrée, sujet 304). Le moteur ne les lit

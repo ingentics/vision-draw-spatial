@@ -88,7 +88,7 @@ const CLASSIC_FIELD_PROPERTIES: ModeProperty[] = [
   },
   {
     // Type de donnée, modifiable à tout moment (sujet 256) ; « Aucun » pour un champ ajouté par le « + ».
-    type: 'select',
+    type: 'choice',
     part: true,
     key: 'rdd.field.type',
     label: 'Type',

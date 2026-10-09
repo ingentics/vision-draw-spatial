@@ -49,7 +49,7 @@ export class ModePanel {
               ? host.call(mode, hook('readOnly'), false, readOnly, page, target, part)
               : !!readOnly,
           options:
-            property.type === 'select' ? host.call(mode, hook('options'), [], property.options, page, palette) : [],
+            property.type === 'choice' ? host.call(mode, hook('options'), [], property.options, page, palette) : [],
         },
       ];
     });
