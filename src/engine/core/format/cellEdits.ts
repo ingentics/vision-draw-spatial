@@ -1,5 +1,6 @@
 import type { Point } from '../model/types';
 import type { Element } from '@xmldom/xmldom';
+import { joinHtmlLines } from './richText';
 import { parseStyle, setStyleKey } from './style';
 import { childElements, markPageDirty } from './xmlTree';
 import type { PageTree } from './xmlTree';
@@ -59,7 +60,7 @@ function shiftGeometry(page: PageTree, cellId: string, delta: Partial<Record<Geo
 
 /**
  * Remplace le label d'une cellule (attribut `label` de l'enveloppe, sinon `value`). Avec
- * `html=1`, le texte est échappé et les retours à la ligne deviennent des `<br>`, comme draw.io.
+ * `html=1`, le texte est échappé et les retours à la ligne deviennent des `<br>`, comme draw.io (`textToHtml`).
  */
 export function setCellLabel(page: PageTree, cellId: string, text: string): void {
   const nodes = page.cells.get(cellId);
@@ -335,9 +336,9 @@ export function reverseEdgeCell(page: PageTree, edgeId: string): void {
   markPageDirty(page);
 }
 
-/** Texte brut → label HTML draw.io. */
+/** Texte brut → label HTML draw.io (lignes vides comprises, celles de la fin en `<div><br></div>`). */
 export function textToHtml(text: string): string {
-  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\r?\n/g, '<br>');
+  return joinHtmlLines(text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').split(/\r?\n/));
 }
 
 /** Nombre au format draw.io : entier tel quel, sinon au plus deux décimales. */

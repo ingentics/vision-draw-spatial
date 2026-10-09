@@ -31,6 +31,13 @@ describe('setCellLabel', () => {
     expect(reread(tree).shapes.find((s) => s.id === 'a')!.label).toBe('Service\n<A> & co');
   });
 
+  it('lignes vides en tête, au milieu et en fin écrites comme draw.io et relues (sujet 407)', () => {
+    expect(textToHtml('\na\n\nb\n')).toBe('<br>a<br><br>b<div><br></div>');
+    const tree = load('three-rectangles.drawio');
+    setCellLabel(tree.pages[0]!, 'a', '\na\n\nb\n');
+    expect(reread(tree).shapes.find((s) => s.id === 'a')!.label).toBe('\na\n\nb\n');
+  });
+
   it('sans html : texte brut ; enveloppe : attribut label', () => {
     const tree = load('roundtrip.drawio');
     const page = tree.pages[0]!;
@@ -43,6 +50,9 @@ describe('setCellLabel', () => {
     ).tree;
     setCellLabel(plain.pages[0]!, 'v', 'a < b');
     expect(plain.pages[0]!.cells.get('v')!.cell!.getAttribute('value')).toBe('a < b');
+    // Lignes vides gardées à l'écriture du fichier (retours à la ligne en `&#10;`) et à la relecture.
+    setCellLabel(plain.pages[0]!, 'v', '\na\n\nb\n');
+    expect(reread(plain).shapes.find((s) => s.id === 'v')!.label).toBe('\na\n\nb\n');
   });
 });
 

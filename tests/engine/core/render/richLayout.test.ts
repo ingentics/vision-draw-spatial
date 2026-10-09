@@ -24,6 +24,16 @@ describe('mise en page du texte riche', () => {
     expect(layout.height).toBeCloseTo(24);
   });
 
+  it('lignes vides en tête, au milieu et en fin : une hauteur de ligne chacune (sujet 407)', () => {
+    const lines = [[], [{ text: 'a' }], [{ text: '' }], [{ text: 'b' }], []];
+    const layout = layoutRichText(lines, base, measure, { align: 'center' });
+    expect(layout.height).toBeCloseTo(5 * 12);
+    expect(layout.runs.map(({ text, baseline }) => ({ text, baseline }))).toEqual([
+      { text: 'a', baseline: 12 + 10 * 0.942 },
+      { text: 'b', baseline: 36 + 10 * 0.942 },
+    ]);
+  });
+
   it('lignes centrées ou à droite dans la largeur du bloc', () => {
     const lines = [[{ text: 'aaaa' }], [{ text: 'bb' }]];
     expect(layoutRichText(lines, base, measure, { align: 'center' }).runs[1]!.x).toBe(1);

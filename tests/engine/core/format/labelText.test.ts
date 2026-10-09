@@ -1,19 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { decodeEntities, htmlToText, resolvePlaceholders } from '../../../../src/engine/core/format/labelText';
+import { decodeEntities, emptyIfBlank, resolvePlaceholders } from '../../../../src/engine/core/format/labelText';
 
-describe('htmlToText', () => {
-  it('retire les balises et convertit <br> en saut de ligne', () => {
-    expect(htmlToText('Service<br><b>B</b>')).toBe('Service\nB');
-    expect(htmlToText('a<br/>b<BR />c')).toBe('a\nb\nc');
-  });
-
-  it('traite les blocs comme des lignes', () => {
-    expect(htmlToText('Titre<div>Ligne 2</div><div>Ligne 3</div>')).toBe('Titre\nLigne 2\nLigne 3');
-    expect(htmlToText('<p>un</p><p>deux</p>')).toBe('un\ndeux');
-  });
-
-  it('décode les entités et les espaces insécables', () => {
-    expect(htmlToText('a&nbsp;&amp;&nbsp;b &lt;x&gt; &#233;&#x20AC;')).toBe('a & b <x> é€');
+describe('emptyIfBlank', () => {
+  it('texte de blancs et de lignes vides : vide ; sinon gardé tel quel, lignes vides comprises', () => {
+    expect(emptyIfBlank(' \n\n ')).toBe('');
+    expect(emptyIfBlank('\na\n\nb\n')).toBe('\na\n\nb\n');
   });
 });
 

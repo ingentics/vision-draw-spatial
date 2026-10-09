@@ -1,11 +1,7 @@
 /**
- * Conversion des labels HTML draw.io (`html=1`) en texte brut (SPEC §7.1, suffisant en M1).
+ * Texte des labels draw.io : entités HTML, champs `%nom%` (texte brut d'un label HTML : `htmlToText`, `richText.ts`).
  * Volontairement sans DOM : le moteur doit tourner hors navigateur.
  */
-
-const BLOCK_TAGS = 'div|p|li|ul|ol|tr|table|h[1-6]|blockquote|pre';
-const BLOCK_RE = new RegExp(`</?(?:${BLOCK_TAGS})\\b[^>]*>`, 'gi');
-const BREAK = '\u0000';
 
 const NAMED_ENTITIES: Record<string, string> = {
   amp: '&',
@@ -16,18 +12,12 @@ const NAMED_ENTITIES: Record<string, string> = {
   nbsp: '\u00a0',
 };
 
-export function htmlToText(html: string): string {
-  const text = html
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(BLOCK_RE, BREAK)
-    .replace(/<[^>]*>/g, '')
-    // Plusieurs frontières de blocs consécutives ne valent qu'un saut de ligne.
-    .replace(new RegExp(`(?:[ \\t]*${BREAK}[ \\t]*)+`, 'g'), BREAK)
-    .replace(new RegExp(`^${BREAK}|${BREAK}$`, 'g'), '')
-    .replaceAll(BREAK, '\n');
-  return decodeEntities(text)
-    .replace(/\u00a0/g, ' ')
-    .trim();
+/**
+ * Texte saisi réduit à des blancs (espaces, lignes vides) : vide. Ses lignes vides ne s'affichent pas ; le label
+ * est retiré (texte d'une flèche) ou vidé.
+ */
+export function emptyIfBlank(text: string): string {
+  return text.trim() === '' ? '' : text;
 }
 
 export function decodeEntities(text: string): string {

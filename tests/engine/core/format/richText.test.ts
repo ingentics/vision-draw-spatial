@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { isRich, parseColor, parseRichHtml, richToHtml, richToText } from '../../../../src/engine/core/format/richText';
-import { htmlToText } from '../../../../src/engine/core/format/labelText';
+import {
+  htmlToText,
+  isRich,
+  joinHtmlLines,
+  parseColor,
+  parseRichHtml,
+  richToHtml,
+  richToText,
+} from '../../../../src/engine/core/format/richText';
 import { parseDrawio } from '../../../../src/engine/core/format/parse';
 
 describe('texte riche des labels HTML', () => {
@@ -26,15 +33,48 @@ describe('texte riche des labels HTML', () => {
     expect(isRich(lines)).toBe(true);
   });
 
-  it('même texte que la conversion en texte brut (blocs, <br>, entités, espaces)', () => {
-    for (const html of ['Service<br>B &amp; co', '<div>Ligne 1</div><div>Ligne 2</div>', '<p>x&nbsp;y</p>']) {
-      expect(richToText(parseRichHtml(html)), html).toBe(htmlToText(html));
-    }
+  it('texte brut : blocs, <br>, entités, espaces', () => {
     expect(isRich(parseRichHtml('Service<br>B &amp; co'))).toBe(false);
     // Espaces fusionnés, comme l'affichage HTML de draw.io.
     expect(richToText(parseRichHtml('  espaces   <b>fusionnés</b>  '))).toBe('espaces fusionnés');
     // Ligne vide d'un éditeur (Chrome : <div><br></div>) : une seule ligne vide, comme à l'écran.
     expect(richToText(parseRichHtml('a<div><br></div>b'))).toBe('a\n\nb');
+  });
+
+  it('htmlToText : balises retirées, <br> et blocs en lignes, entités décodées', () => {
+    expect(htmlToText('Service<br><b>B</b>')).toBe('Service\nB');
+    expect(htmlToText('a<br/>b<BR />c')).toBe('a\nb\nc');
+    expect(htmlToText('Titre<div>Ligne 2</div><div>Ligne 3</div>')).toBe('Titre\nLigne 2\nLigne 3');
+    expect(htmlToText('<p>un</p><p>deux</p>')).toBe('un\ndeux');
+    expect(htmlToText('a&nbsp;&amp;&nbsp;b &lt;x&gt; &#233;&#x20AC;')).toBe('a & b <x> é€');
+  });
+
+  it('lignes vides en tête, au milieu et en fin gardées, comme draw.io les affiche (sujet 407)', () => {
+    expect(htmlToText('<br>a')).toBe('\na');
+    expect(htmlToText('a<br><br>b')).toBe('a\n\nb');
+    // Un <br> final ne fait pas de ligne en HTML ; deux, ou <div><br></div>, une ligne vide.
+    expect(htmlToText('a<br>')).toBe('a');
+    expect(htmlToText('a<br><br>')).toBe('a\n');
+    expect(htmlToText('a<div><br></div>')).toBe('a\n');
+    expect(htmlToText('a<div><br></div><div><br></div>')).toBe('a\n\n');
+    // Éditeur de draw.io (Chrome) : une ligne par bloc.
+    expect(htmlToText('<div><br></div><div>a</div><div><br></div><div>b</div><div><br></div>')).toBe('\na\n\nb\n');
+    // Retours à la ligne littéraux : des <br> pour draw.io, ceux de la fin des lignes vides.
+    expect(htmlToText('\na\r\n\nb\n')).toBe('\na\n\nb\n');
+    expect(htmlToText('<div>a</div>\n<div>b</div>')).toBe('a\n\nb');
+    // Blancs entre deux blocs : ignorés, comme par le navigateur.
+    expect(htmlToText('<div>a</div> <div>b</div>')).toBe('a\nb');
+    // Que des lignes vides : texte de blancs (vidé à la saisie).
+    expect(htmlToText('<div><br></div>').trim()).toBe('');
+  });
+
+  it('écriture des lignes vides : <br>, celles de la fin en <div><br></div>, relues à l’identique', () => {
+    expect(joinHtmlLines(['', 'a', '', 'b', '', ''])).toBe('<br>a<br><br>b<div><br></div><div><br></div>');
+    expect(joinHtmlLines(['a'])).toBe('a');
+    const lines = [[], [{ text: 'a', bold: true }], [], [{ text: 'b' }], []];
+    const html = richToHtml(lines);
+    expect(html).toBe('<br><b>a</b><br><br>b<div><br></div>');
+    expect(parseRichHtml(html)).toEqual(lines);
   });
 
   it('style CSS : poids, style, décoration, taille en pt, annulations explicites', () => {

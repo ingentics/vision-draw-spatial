@@ -1,6 +1,7 @@
 import { cellLabelValue, setCellLabel, setCellRichLabel, setCellStyleValue } from '../../../format/cellEdits';
 import type { EngineCore } from '../../EngineCore';
 import { byId, elementOf } from '../../../model/pageIndex';
+import { emptyIfBlank } from '../../../format/labelText';
 
 /** Texte et format du texte d'un élément de la page courante. */
 export class TextEdits {
@@ -28,7 +29,9 @@ export class TextEdits {
     }
   }
 
-  setLabel(elementId: string, text: string, html?: string): void {
+  setLabel(elementId: string, given: string, givenHtml?: string): void {
+    const text = emptyIfBlank(given);
+    const html = text ? givenHtml : undefined;
     const editable = this.core.targets.editablePage();
     const element = editable && elementOf(editable.page, elementId);
     if (!editable || !element) return;

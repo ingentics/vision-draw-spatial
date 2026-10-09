@@ -258,9 +258,12 @@ export function select(range: Range): void {
   selection?.addRange(range);
 }
 
-/** Texte brut → contenu de l'éditeur (échappé, lignes en `<br>`). */
+/**
+ * Texte brut → contenu de l'éditeur : échappé, lignes en `<br>`, une ligne vide finale en `<div><br></div>` (un `<br>`
+ * final ne s'afficherait pas, et la ligne serait perdue à la validation).
+ */
 function textToEditorHtml(text: string): string {
-  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+  return richToHtml(text.split('\n').map((line) => [{ text: line }]));
 }
 
 /** Contenu saisi : texte brut, plus le HTML draw.io s'il y a une mise en forme partielle. */

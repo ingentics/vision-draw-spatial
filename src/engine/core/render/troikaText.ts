@@ -90,7 +90,10 @@ class TroikaTextFactory implements TextFactory {
 
   create(spec: TextSpec): Object3D {
     if (spec.along) return this.createOnPath(spec);
-    if (spec.rich || spec.underline || spec.strike || spec.fit) return this.createRich(spec);
+    // Ligne vide en fin : troika ne lui donne pas de hauteur (ligne sans glyphe), elle ne compterait ni dans la
+    // hauteur ni dans le centrage ; la mise en page riche la compte, comme draw.io.
+    if (spec.rich || spec.underline || spec.strike || spec.fit || spec.text.endsWith('\n'))
+      return this.createRich(spec);
     const text = this.sdfText(
       spec.text,
       { size: spec.fontSize, bold: spec.bold, italic: spec.italic ?? false, family: spec.fontFamily },

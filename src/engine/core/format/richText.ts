@@ -29,12 +29,18 @@ const BLOCK_TAGS = new Set([
 const VOID_TAGS = new Set(['br', 'img', 'hr', 'input', 'meta', 'link', 'wbr']);
 /** Tailles de `<font size>` (1 à 7), en pixels, comme les navigateurs. */
 const FONT_SIZES = [10, 13, 16, 18, 24, 32, 48];
+/** Ligne vide finale d'un label HTML, comme draw.io l'écrit (un `<br>` final ne s'afficherait pas). */
+const EMPTY_LAST_LINE = '<div><br></div>';
 /** Police à chasse fixe écrite pour du code (draw.io la connaît). */
 export const MONOSPACE_FAMILY = 'Courier New';
 
 const MARK_KEYS = ['bold', 'italic', 'underline', 'strike', 'fontSize', 'color', 'fontFamily'] as const;
 
-/** Lignes de segments d'un label HTML. Les espaces sont fusionnés comme en HTML ; `<br>` et blocs = lignes. */
+/**
+ * Lignes de segments d'un label HTML. Les espaces sont fusionnés comme en HTML ; `<br>` et blocs = lignes. Les
+ * lignes vides (en tête, au milieu, en fin) sont gardées comme draw.io les affiche : un `<br>` final ne fait pas de
+ * ligne (HTML), une ligne vide finale s'écrit `<div><br></div>`.
+ */
 export function parseRichHtml(html: string): RichLine[] {
   const lines: RichLine[] = [[]];
   const stack: Array<{ tag: string; marks: TextMarks }> = [];
@@ -44,11 +50,12 @@ export function parseRichHtml(html: string): RichLine[] {
     if (lines[lines.length - 1]!.length > 0) lines.push([]);
   };
   const tokens = /<(\/?)([a-zA-Z][a-zA-Z0-9]*)([^>]*)>|<!--[\s\S]*?-->|([^<]+)/g;
-  for (const match of html.matchAll(tokens)) {
+  for (const match of literalBreaks(html).matchAll(tokens)) {
     const [, closing, rawTag, attributes = '', text] = match;
     if (text !== undefined) {
       const value = decodeEntities(text.replace(/[ \t\r\n]+/g, ' ')).replace(/\u00a0/g, ' ');
-      if (value === '') continue;
+      // Blancs entre deux blocs (HTML indenté) : ignorés par le navigateur, pas une ligne vide.
+      if (value === '' || (pendingBreak && value.trim() === '')) continue;
       if (pendingBreak) {
         newLine();
         pendingBreak = false;
@@ -78,9 +85,41 @@ export function parseRichHtml(html: string): RichLine[] {
     .filter((line, index, all) => line.length > 0 || index < all.length - 1 || all.length === 1);
 }
 
+/**
+ * Retours à la ligne écrits tels quels dans un label HTML : draw.io (`mxText`, `replaceLinefeeds`) les affiche comme
+ * des `<br>`, et ceux de la fin comme des lignes vides (`mxUtils.replaceTrailingNewlines`, `<div><br></div>`).
+ * Seulement hors des balises.
+ */
+function literalBreaks(html: string): string {
+  const normalized = html.replace(/\r\n?/g, '\n');
+  const body = normalized.replace(/\n+$/, '');
+  return (
+    body.replace(/<[^>]*>|\n/g, (match) => (match === '\n' ? '<br>' : match)) +
+    EMPTY_LAST_LINE.repeat(normalized.length - body.length)
+  );
+}
+
+/**
+ * Lignes HTML jointes comme draw.io les écrit : `<br>` entre les lignes, chaque ligne vide finale en
+ * `<div><br></div>` (`mxUtils.replaceTrailingNewlines`) pour qu'elle compte à l'affichage.
+ */
+export function joinHtmlLines(lines: string[]): string {
+  let end = lines.length;
+  while (end > 1 && lines[end - 1] === '') end--;
+  return lines.slice(0, end).join('<br>') + EMPTY_LAST_LINE.repeat(lines.length - end);
+}
+
 /** Texte brut des lignes. */
 export function richToText(lines: RichLine[]): string {
   return lines.map((line) => line.map((run) => run.text).join('')).join('\n');
+}
+
+/**
+ * Texte brut d'un label HTML draw.io (`html=1`, SPEC §7.1) : mêmes lignes que le texte riche, lignes vides comprises
+ * (en tête, au milieu, en fin), espaces fusionnés comme à l'affichage.
+ */
+export function htmlToText(html: string): string {
+  return richToText(parseRichHtml(html));
 }
 
 /** Le texte a-t-il une mise en forme partielle (sinon : texte brut, format porté par le style) ? */
@@ -90,7 +129,7 @@ export function isRich(lines: RichLine[]): boolean {
 
 /** HTML draw.io des lignes : balises simples pour gras / italique / souligné / barré, `<span style>` sinon. */
 export function richToHtml(lines: RichLine[]): string {
-  return lines.map((line) => mergeRuns(line).map(runToHtml).join('')).join('<br>');
+  return joinHtmlLines(lines.map((line) => mergeRuns(line).map(runToHtml).join('')));
 }
 
 function runToHtml(run: TextRun): string {

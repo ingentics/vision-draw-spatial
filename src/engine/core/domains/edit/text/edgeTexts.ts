@@ -6,6 +6,7 @@ import {
   setCellStyleValue,
 } from '../../../format/cellEdits';
 import { addEdgeLabelCell, removeCells } from '../../../format/create';
+import { emptyIfBlank } from '../../../format/labelText';
 import { anchorOf, edgeTextLayout, edgeTexts, endLabelOf, flipTarget } from '../../../edit/edgeLabels';
 import type { EdgeTextLayout, EndTextGap, EdgeEnd } from '../../../edit/edgeLabels';
 import type { Point } from '../../../model/types';
@@ -58,7 +59,7 @@ export class EdgeTexts {
     const editable = this.core.targets.editablePage();
     const label = byId(edgeOf(editable?.page, edgeId)?.labels, cellId);
     if (!editable || !label) return;
-    const value = text.trim() === '' ? '' : text;
+    const value = emptyIfBlank(text);
     const rich = value ? html : undefined;
     const unchanged =
       rich === undefined ? label.label === value && !label.rich : cellLabelValue(editable.pageTree, cellId) === rich;
@@ -181,7 +182,7 @@ export class EdgeTexts {
     const edge = edgeOf(editable?.page, edgeId);
     if (!editable || !edge || this.core.pageModes.managesEdge(edgeId)) return;
     const current = endLabelOf(edge, end);
-    const value = text.trim() === '' ? '' : text;
+    const value = emptyIfBlank(text);
     const rich = value ? html : undefined;
     const unchanged =
       rich === undefined

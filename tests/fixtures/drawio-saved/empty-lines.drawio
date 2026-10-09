@@ -1,0 +1,66 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/24.7.5 Chrome/126.0.6478.183 Electron/31.3.0 Safari/537.36" version="24.7.5">
+  <diagram name="Lignes vides" id="empty-lines">
+    <mxGraphModel dx="-560" dy="-174" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="0" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="h-lead" value="&lt;br&gt;a" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="h-middle" value="a&lt;br&gt;&lt;br&gt;b" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="160" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="h-end" value="a&lt;div&gt;&lt;br&gt;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="320" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="h-all" value="&lt;br&gt;a&lt;br&gt;&lt;br&gt;b&lt;div&gt;&lt;br&gt;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="480" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="h-editor" value="&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;a&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;b&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="640" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="h-rich" value="&lt;br&gt;&lt;b&gt;a&lt;/b&gt;&lt;br&gt;&lt;br&gt;b&lt;div&gt;&lt;br&gt;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="800" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="h-literal" value="&#xa;a&#xa;&#xa;b&#xa;" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="960" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="p-lead" value="&#xa;a" style="rounded=0;whiteSpace=wrap;" parent="1" vertex="1">
+          <mxGeometry y="200" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="p-middle" value="a&#xa;&#xa;b" style="rounded=0;whiteSpace=wrap;" parent="1" vertex="1">
+          <mxGeometry x="160" y="200" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="p-end" value="a&#xa;" style="rounded=0;whiteSpace=wrap;" parent="1" vertex="1">
+          <mxGeometry x="320" y="200" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="p-all" value="&#xa;a&#xa;&#xa;b&#xa;" style="rounded=0;whiteSpace=wrap;" parent="1" vertex="1">
+          <mxGeometry x="480" y="200" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="e-html" value="&lt;br&gt;a&lt;br&gt;&lt;br&gt;b&lt;div&gt;&lt;br&gt;&lt;/div&gt;" style="endArrow=classic;html=1;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint y="400" as="sourcePoint" />
+            <mxPoint x="400" y="400" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-plain" value="&#xa;a&#xa;&#xa;b&#xa;" style="endArrow=classic;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint y="520" as="sourcePoint" />
+            <mxPoint x="400" y="520" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-start" value="" style="endArrow=classic;html=1;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint y="640" as="sourcePoint" />
+            <mxPoint x="400" y="640" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-start-text" value="&lt;br&gt;a&lt;div&gt;&lt;br&gt;&lt;/div&gt;" style="edgeLabel;html=1;align=left;verticalAlign=bottom;resizable=0;points=[];" parent="e-start" vertex="1" connectable="0">
+          <mxGeometry x="-1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
