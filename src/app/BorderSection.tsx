@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import type { ShapeModel } from '../engine';
 import { Section } from './PanelSection';
-import { isHexColor } from '../engine';
+import { isHexColor, styleNumber } from '../engine';
 import { useTooltip } from './Tooltip';
 
 /** Style du trait : plein, tirets ou pointillés (clés draw.io `dashed`, `dashPattern`). */
@@ -58,7 +58,7 @@ export function BorderSection({
   const { style } = shape;
   const none = style.strokeColor === 'none';
   const color = isHexColor(style.strokeColor) ? style.strokeColor.toLowerCase() : '#000000';
-  const width = Number(style.strokeWidth) || 1;
+  const width = styleNumber(style, 'strokeWidth', 1) || 1;
   const { hover, tooltip } = useTooltip();
   const line: LineStyle =
     style.dashed !== '1' ? 'solid' : /^1(\s|$)/.test(style.dashPattern ?? '') ? 'dotted' : 'dashed';

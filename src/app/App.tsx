@@ -17,6 +17,7 @@ import {
 } from './fileLibrary';
 import { loadSettings, saveSettings } from './settingsStore';
 import { getCurrentFileId, setCurrentFileId } from './tabSession';
+import { TooltipLayer } from './Tooltip';
 import { Viewer } from './Viewer';
 
 const EXAMPLES = demoFiles.map(({ id, name }) => ({ id, name }));
@@ -174,6 +175,7 @@ export function App() {
           }}
         />
       )}
+      <TooltipLayer />
       {dragging && (
         <div className="drop-overlay" aria-hidden="true">
           <div>Déposez le fichier .drawio pour l’ouvrir</div>

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -81,5 +81,28 @@ export function useTooltip(area?: () => { top: number; bottom: number } | undefi
       </div>,
       tip.host,
     );
-  return { hover, hide, tooltip };
+  return { hover, show, hide, tooltip };
+}
+
+/**
+ * Infobulles déclarées par l'attribut `data-tip` (sujet 393), à la place du `title` natif : une seule couche pour
+ * toute l'appli, posée à sa racine, qui montre celle de l'élément survolé le plus proche (même rendu et même
+ * placement que `useTooltip`). L'infobulle d'un ancêtre ne s'ajoute donc jamais à celle d'un élément.
+ */
+export function TooltipLayer() {
+  const { show, hide, tooltip } = useTooltip();
+  useEffect(() => {
+    let current: HTMLElement | null = null;
+    const over = (event: MouseEvent) => {
+      const target = event.target instanceof Element ? event.target.closest<HTMLElement>('[data-tip]') : null;
+      if (target === current) return;
+      current = target;
+      const text = target?.dataset.tip;
+      if (target && text) show(text, target);
+      else hide();
+    };
+    document.addEventListener('mouseover', over);
+    return () => document.removeEventListener('mouseover', over);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- `show` et `hide` ne changent que d'identité
+  return tooltip;
 }

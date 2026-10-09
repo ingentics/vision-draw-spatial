@@ -9,10 +9,10 @@ export function CommentField({ comment, onEdit }: { comment: ElementComment | un
   return (
     <div className="field-row">
       Commentaire
-      <span className="field-value label-value" title={text}>
+      <span className="field-value label-value" data-tip={text}>
         {text.replace(/\n/g, ' ') || 'aucun'}
       </span>
-      <button type="button" className="button" title="Modifier le commentaire, montré au survol" onClick={onEdit}>
+      <button type="button" className="button" data-tip="Modifier le commentaire, montré au survol" onClick={onEdit}>
         Modifier
       </button>
     </div>

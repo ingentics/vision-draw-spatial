@@ -66,7 +66,7 @@ export function ModeBar({
   return (
     <div className="mode-bar" style={{ background: indicator.color, color: readableOn(indicator.color) }}>
       {navigable && (
-        <button type="button" className="mode-bar-button" title="Précédent" onClick={() => step(-1)}>
+        <button type="button" className="mode-bar-button" data-tip="Précédent" onClick={() => step(-1)}>
           ‹
         </button>
       )}
@@ -79,7 +79,7 @@ export function ModeBar({
         onCommit={indicator.renamable ? onRename : undefined}
       />
       {navigable && (
-        <button type="button" className="mode-bar-button" title="Suivant" onClick={() => step(1)}>
+        <button type="button" className="mode-bar-button" data-tip="Suivant" onClick={() => step(1)}>
           ›
         </button>
       )}

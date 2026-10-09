@@ -28,7 +28,7 @@ export function ArrangeSection({
   return (
     <Section title="Aligner">
       <div className="field-row">
-        <span title="Forme de référence de l’alignement, qui ne bouge pas">Par rapport à</span>
+        <span data-tip="Forme de référence de l’alignement, qui ne bouge pas">Par rapport à</span>
         <ChoiceGroup
           label="Référence de l’alignement"
           value={reference}

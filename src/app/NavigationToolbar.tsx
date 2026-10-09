@@ -51,7 +51,7 @@ export function NavigationToolbar({
               className="group-button"
               aria-pressed={viewMode === mode.value}
               disabled={!allowed}
-              title={allowed ? mode.title : `${mode.label} : non disponible dans ce mode`}
+              data-tip={allowed ? mode.title : `${mode.label} : non disponible dans ce mode`}
               onClick={() => onViewModeChange(mode.value)}
             >
               <svg viewBox="0 0 16 16" aria-hidden="true">
@@ -65,7 +65,7 @@ export function NavigationToolbar({
       <button
         type="button"
         className="button icon-button"
-        title="Réinitialiser la vue : orientation par défaut du mode, page entière"
+        data-tip="Réinitialiser la vue : orientation par défaut du mode, page entière"
         aria-label="Réinitialiser la vue"
         onClick={onResetView}
       >

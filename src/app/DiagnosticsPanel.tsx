@@ -49,7 +49,12 @@ export function DiagnosticsPanel({
       <header className="diagnostics-header">
         <CollapseButton />
         <h2>Diagnostics</h2>
-        <button type="button" className="button" onClick={onExport} title="Télécharger le rapport du fichier courant">
+        <button
+          type="button"
+          className="button"
+          onClick={onExport}
+          data-tip="Télécharger le rapport du fichier courant"
+        >
           Exporter JSON
         </button>
         <button type="button" className="icon-button" onClick={onClose} aria-label="Fermer">
@@ -184,7 +189,7 @@ function MetricsSection({
       <table className="metrics">
         <tbody>
           {rows.map(([label, value, hint]) => (
-            <tr key={label} title={hint}>
+            <tr key={label} data-tip={hint}>
               <th>{label}</th>
               <td>{value}</td>
             </tr>

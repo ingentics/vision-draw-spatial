@@ -62,7 +62,7 @@ export function TextField({
     },
   };
   return (
-    <label className={multiline ? 'field-row multiline' : 'field-row'} title={title}>
+    <label className={multiline ? 'field-row multiline' : 'field-row'} data-tip={title}>
       {label}
       {multiline ? (
         <textarea
@@ -114,7 +114,7 @@ export function NumberField({
     if (parsed) onCommit(parsed.value);
   };
   return (
-    <label className="field-row" title={title}>
+    <label className="field-row" data-tip={title}>
       {label}
       <input
         type="number"
@@ -154,7 +154,7 @@ export function SelectField({
 }) {
   const color = options.find((option) => option.value === value)?.color;
   return (
-    <label className="field-row" title={title}>
+    <label className="field-row" data-tip={title}>
       {label}
       <span className="select-with-swatch">
         {color && <span className="color-dot" style={{ background: color }} aria-hidden="true" />}

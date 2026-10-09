@@ -68,7 +68,7 @@ export function InlineEdit({
     <button
       type="button"
       className={className}
-      title={title}
+      data-tip={title}
       onClick={trigger === 'click' && onCommit ? start : onClick}
       onDoubleClick={trigger === 'doubleClick' && onCommit ? start : undefined}
     >

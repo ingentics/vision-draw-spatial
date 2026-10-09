@@ -104,7 +104,7 @@ function FlowRow({
     <li
       className={current ? 'flow-item current' : 'flow-item'}
       aria-current={current ? 'true' : undefined}
-      title={current ? 'Flux courant : les nouvelles flèches y vont' : undefined}
+      data-tip={current ? 'Flux courant : les nouvelles flèches y vont' : undefined}
     >
       <span className="color-dot" style={{ background: flow.color }} aria-hidden="true" />
       <input
@@ -112,7 +112,7 @@ function FlowRow({
         defaultValue={flow.title}
         readOnly={!onRename}
         aria-label={`Titre du flux « ${flow.title} »`}
-        title="Titre du flux (Entrée pour valider)"
+        data-tip="Titre du flux (Entrée pour valider)"
         onBlur={(event) => {
           const next = event.target.value.trim();
           if (next && next !== flow.title) onRename?.(next);
@@ -126,14 +126,14 @@ function FlowRow({
           }
         }}
       />
-      <span className="field-value" title={`${count} flèche${count > 1 ? 's' : ''}`}>
+      <span className="field-value" data-tip={`${count} flèche${count > 1 ? 's' : ''}`}>
         {count}
       </span>
       {onRemove && (
         <button
           type="button"
           className="icon-button"
-          title="Supprimer le flux (ses flèches en sortent)"
+          data-tip="Supprimer le flux (ses flèches en sortent)"
           onClick={onRemove}
         >
           ×

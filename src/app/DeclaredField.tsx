@@ -49,7 +49,7 @@ export function DeclaredField({
       return layout === 'settings' ? (
         <Toggle label={label} checked={value === true} disabled={disabled || undefined} onChange={onChange} />
       ) : (
-        <label className="field toggle" title={title}>
+        <label className="field toggle" data-tip={title}>
           <input
             type="checkbox"
             checked={value === true}
@@ -127,7 +127,7 @@ export function DeclaredField({
         <button
           type="button"
           className="button wide-button"
-          title={title}
+          data-tip={title}
           disabled={disabled}
           onClick={() => onChange(undefined)}
         >
@@ -151,7 +151,7 @@ export function DeclaredField({
       // Choix tous dessinés (icône ou couleur) : boutons ; sinon (choix nommés, nombreux) : liste (sujet 319).
       return drawn ? (
         <div className="field-row">
-          <span title={title}>{label}</span>
+          <span data-tip={title}>{label}</span>
           <ChoiceGroup
             label={label}
             value={text}

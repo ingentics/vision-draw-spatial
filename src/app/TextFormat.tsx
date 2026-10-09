@@ -10,6 +10,8 @@ import {
   labelPlaceOf,
   labelPlacePatch,
   matchesTextPreset,
+  styleFlag,
+  styleNumber,
 } from '../engine';
 import type { LabelPlace, TextPreset } from '../engine';
 import type { SelectionFormat, ToggleMark } from './LabelEditor';
@@ -105,10 +107,10 @@ export function TextFormatSections({ edit }: { edit: TextEdit }) {
   const { hover, tooltip } = useTooltip();
   // « Ajuster » : texte d'une forme seulement ; la taille réglée devient la taille maximale.
   const canFit = canFormat && !onEdge && !comment;
-  const fit = canFit && style.fitText === '1';
+  const fit = canFit && styleFlag(style, 'fitText');
   const whole = {
     ...fontStyleBits(style),
-    fontSize: Number(style.fontSize) || DEFAULT_SIZE,
+    fontSize: styleNumber(style, 'fontSize', DEFAULT_SIZE) || DEFAULT_SIZE,
     color: isHexColor(style.fontColor) ? style.fontColor.toLowerCase() : '#000000',
     fontFamily: style.fontFamily,
   };
@@ -129,7 +131,7 @@ export function TextFormatSections({ edit }: { edit: TextEdit }) {
         <button
           type="button"
           className="link-button format-owner"
-          title={`Valider le ${comment ? 'commentaire' : 'texte'} et revenir au panneau de la ${onEdge ? 'flèche' : 'forme'}`}
+          data-tip={`Valider le ${comment ? 'commentaire' : 'texte'} et revenir au panneau de la ${onEdge ? 'flèche' : 'forme'}`}
           onMouseDown={(event) => event.preventDefault()}
           onClick={onOwner}
         >
@@ -149,7 +151,7 @@ export function TextFormatSections({ edit }: { edit: TextEdit }) {
                 key={preset.name}
                 type="button"
                 className="style-swatch text-preset"
-                title={`${preset.name} : ${preset.fontSize} px${preset.fontFamily ? `, ${preset.fontFamily}` : ''}`}
+                data-tip={`${preset.name} : ${preset.fontSize} px${preset.fontFamily ? `, ${preset.fontFamily}` : ''}`}
                 aria-label={`Style de texte ${preset.name}`}
                 aria-pressed={matchesTextPreset(
                   { fontSize: current.fontSize, fontColor: current.color, fontFamily: family },
@@ -194,7 +196,7 @@ export function TextFormatSections({ edit }: { edit: TextEdit }) {
             Taille
             <span className="button-group">
               {fit ? (
-                <span className="size-fitted" title="Taille ajustée à la forme (au plus la taille réglée)">
+                <span className="size-fitted" data-tip="Taille ajustée à la forme (au plus la taille réglée)">
                   {formatSize(fittedSize ?? whole.fontSize)}
                 </span>
               ) : (

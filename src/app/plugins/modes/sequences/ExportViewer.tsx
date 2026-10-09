@@ -100,7 +100,7 @@ export function ExportViewer({
             </option>
           ))}
         </select>
-        <button type="button" className="icon-button" onClick={onClose} aria-label="Fermer" title="Fermer (Échap)">
+        <button type="button" className="icon-button" onClick={onClose} aria-label="Fermer" data-tip="Fermer (Échap)">
           ×
         </button>
       </header>

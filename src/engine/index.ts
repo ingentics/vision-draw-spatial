@@ -63,7 +63,7 @@ export type {
 } from './core/model/types';
 export { DEFAULT_DEPTH, SPATIAL, SPATIAL_PREFIX, spatialNumber, spatialValue } from './core/spatial';
 export { boundsOfPoints, distance, inflate } from './core/model/geometry';
-export { fontStyleBits, fontStyleValue, isHexColor } from './core/model/styleValues';
+export { fontStyleBits, fontStyleValue, isHexColor, styleFlag, styleNumber } from './core/model/styleValues';
 
 // Bibliothèque de fichiers et sauvegarde (SPEC §5, §14.1)
 export { Autosaver } from './core/persistence/Autosaver';

@@ -113,7 +113,7 @@ export function Palette({ onAdd, used = [], content = DEFAULT_CONTENT, disabled 
             <button
               type="button"
               className="palette-search-clear"
-              title="Vider la recherche"
+              data-tip="Vider la recherche"
               onClick={() => setQuery('')}
             >
               ×

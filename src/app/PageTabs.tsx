@@ -38,7 +38,7 @@ export function PageTabs({
       {pages.length > 1 && (
         <button
           className={graphActive ? 'tab graph-tab active' : 'tab graph-tab'}
-          title="Vue d’ensemble des pages et de leurs liens"
+          data-tip="Vue d’ensemble des pages et de leurs liens"
           onClick={onShowGraph}
         >
           <GraphIcon />
@@ -68,7 +68,7 @@ export function PageTabs({
                 type="button"
                 className="tab-remove"
                 aria-label={`Supprimer la page « ${page.name} »`}
-                title="Supprimer la page"
+                data-tip="Supprimer la page"
                 onClick={() => {
                   if (window.confirm(`Supprimer la page « ${page.name} » ?`)) onRemove(page.id);
                 }}
@@ -80,7 +80,13 @@ export function PageTabs({
         );
       })}
       {onAdd && (
-        <button type="button" className="tab tab-add" title="Nouvelle page" aria-label="Nouvelle page" onClick={onAdd}>
+        <button
+          type="button"
+          className="tab tab-add"
+          data-tip="Nouvelle page"
+          aria-label="Nouvelle page"
+          onClick={onAdd}
+        >
           +
         </button>
       )}

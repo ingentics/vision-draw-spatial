@@ -33,7 +33,7 @@ export function CollapseButton() {
       type="button"
       className="icon-button sidebar-collapse"
       onClick={context.collapse}
-      title="Replier le panneau"
+      data-tip="Replier le panneau"
       aria-label="Replier le panneau"
       aria-expanded="true"
     >
@@ -93,7 +93,7 @@ export function Sidebar({ side, label, layout, stripText, minCanvas, onChange, s
         type="button"
         className={`sidebar-strip sidebar-strip-${side} sidebar-strip-${stripText}`}
         onClick={() => onChange({ collapsed: false })}
-        title={`Afficher le panneau ${label}`}
+        data-tip={`Afficher le panneau ${label}`}
         aria-label={`Afficher le panneau ${label}`}
         aria-expanded="false"
       >
@@ -129,7 +129,7 @@ export function Sidebar({ side, label, layout, stripText, minCanvas, onChange, s
         aria-valuemin={min}
         aria-valuemax={max}
         tabIndex={0}
-        title="Glisser pour changer la largeur (double-clic : largeur par défaut)"
+        data-tip="Glisser pour changer la largeur (double-clic : largeur par défaut)"
         onPointerDown={(event) => {
           if (event.button !== 0) return;
           event.preventDefault();

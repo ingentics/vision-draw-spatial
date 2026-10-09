@@ -8,6 +8,8 @@ import {
   largestFitting,
   MIN_FIT_SIZE,
   rectToQuad,
+  styleFlag,
+  styleNumber,
 } from '../engine';
 import type { LabelEditPlane, LabelEditRequest } from '../engine';
 import { isColor, readContent, TEXT_FORMAT_ATTRIBUTE, useRichEditor } from './richEditor';
@@ -84,7 +86,7 @@ export function LabelEditor({
   // proportion, retour à la ligne à la largeur de la forme) jusqu'à tenir dans la boîte, comme le label
   // dessiné (`fitFontSize`) : même recherche des tailles entières, mesurée ici dans le DOM.
   const shownStyle = request.displayStyle ?? request.style;
-  const fitOn = !request.onEdge && shownStyle.fitText === '1';
+  const fitOn = !request.onEdge && styleFlag(shownStyle, 'fitText');
   const baseSize = Number(shownStyle.fontSize) || 11;
   const onFitSizeRef = useRef(onFitSize);
   onFitSizeRef.current = onFitSize;
@@ -214,7 +216,7 @@ export function LabelEditor({
   };
   const decorations = [marks.underline && 'underline', marks.strike && 'line-through'].filter(Boolean).join(' ');
   const textStyle: CSSProperties = {
-    fontSize: Number(style.fontSize) || 11,
+    fontSize: styleNumber(style, 'fontSize', 11) || 11,
     color: isColor(style.fontColor) ? style.fontColor : '#000000',
     fontWeight: marks.bold ? 700 : 400,
     fontStyle: marks.italic ? 'italic' : 'normal',
@@ -328,7 +330,7 @@ function TextTools({
       {onMove && (
         <div
           className="text-move-handle"
-          title="Déplacer le texte"
+          data-tip="Déplacer le texte"
           onPointerDown={(event) => {
             event.preventDefault();
             event.currentTarget.setPointerCapture(event.pointerId);
@@ -352,7 +354,7 @@ function TextTools({
         <button
           type="button"
           className="text-flip"
-          title={`Passer le texte ${FLIP_LABELS[flip]} du trait`}
+          data-tip={`Passer le texte ${FLIP_LABELS[flip]} du trait`}
           aria-label={`Passer le texte ${FLIP_LABELS[flip]} du trait`}
           onPointerDown={(event) => event.preventDefault()}
           onClick={onFlip}
