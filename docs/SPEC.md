@@ -657,7 +657,7 @@ Tout ce qui touche à l'expérience utilisateur est paramétrable, avec des vale
 ```ts
 interface Settings {
   transition: {
-    enabled: boolean; durationMs: number; easing: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out'; // true, 1000, ease-in-out
+    enabled: boolean; durationMs: number; easing: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out'; // true, 500 (sujet 417), ease-in-out
     fadeStart: number; fadeEnd: number;                                                               // fondu croisé (§11.2) : 0.25, 0.75
   };
   preload: { onClick: boolean; onHover: boolean; hoverDelayMs: number; maxCachedPages: number };            // true, false, 300, 8

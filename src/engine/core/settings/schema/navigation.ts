@@ -13,7 +13,7 @@ const REDUCED_MOTION = ['system', 'always', 'never'] as const;
 
 export const TRANSITION = {
   enabled: flag(true),
-  durationMs: number(1000, { min: 0, max: 5000, step: 50 }),
+  durationMs: number(500, { min: 0, max: 5000, step: 50 }),
   easing: oneOf(EASINGS, 'ease-in-out'),
   fadeStart: number(0.25, { min: 0, max: 1, step: 0.05 }),
   fadeEnd: number(0.75, { min: 0, max: 1, step: 0.05 }),
