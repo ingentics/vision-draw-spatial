@@ -59,3 +59,47 @@ describe('touches de page d’un mode (sujet 415)', () => {
     expect(guard.warnings().map((w) => w.message)).toEqual(['Mode boom : erreur dans touche de page « P » (panne)']);
   });
 });
+
+/** Mode sans touche de page ; sa barre du courant a les valeurs `values` (aucune barre si undefined). */
+function bar(values: string[] | undefined, selected: string[] = []) {
+  const set = setup({ id: 'boom', namespace: 'boom', name: 'Boom' });
+  const flow = { current: values?.[0], chosen: [] as string[] };
+  Object.assign(set.core, {
+    pages: { ...set.core.pages, getCurrentPage: () => set.page },
+    selection: { current: selected.length ? { pageId: set.page.id, items: selected } : undefined },
+    modeCurrents: {
+      getModeIndicator: () => values && { value: flow.current, values },
+      setModeCurrent: (value: string) => (flow.chosen.push(value), (flow.current = value)),
+    },
+  });
+  return { ...set, flow };
+}
+
+describe('Tab par défaut : courant suivant de la barre (sujet 418)', () => {
+  it('barre d’au moins deux valeurs : Tab passe à la suivante, en boucle ; maintenue, prise sans rien refaire', () => {
+    const { panel, flow } = bar(['a', 'b', 'c']);
+    expect([panel.modePageKey('Tab', true), panel.modePageKey('Tab', true), panel.modePageKey('Tab', true)]).toEqual([
+      true,
+      true,
+      true,
+    ]);
+    expect(flow.chosen).toEqual(['b', 'c', 'a']);
+    expect(panel.modePageKey('Tab', false)).toBe(true);
+    expect(flow.chosen).toHaveLength(3);
+  });
+
+  it('pas de barre, une seule valeur, une sélection ou une autre touche : pas prise', () => {
+    expect(bar(undefined).panel.modePageKey('Tab', true)).toBe(false);
+    expect(bar(['a']).panel.modePageKey('Tab', true)).toBe(false);
+    expect(bar(['a', 'b'], ['a']).panel.modePageKey('Tab', true)).toBe(false);
+    expect(bar(['a', 'b']).panel.modePageKey('Enter', true)).toBe(false);
+  });
+
+  it('une touche Tab du mode passe avant', () => {
+    // Le mode de test LAYERS déclare Tab : son `run` choisit, pas la barre.
+    const { panel, layer } = layers();
+    Object.assign(layer, { current: 'b' });
+    expect(panel.modePageKey('Tab', true)).toBe(true);
+    expect(layer.chosen).toEqual(['a']);
+  });
+});

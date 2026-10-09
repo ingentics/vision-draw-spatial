@@ -12,6 +12,9 @@ import { edgeOf, elementOf, shapeOf } from '../../model/pageIndex';
  * écrits, touches du mode sur l'élément sélectionné. Appels au mode par l'hôte (`PageModes.call`), opérations par
  * `PageModes.editPageMode`.
  */
+/** Touche de page par défaut d'un mode qui a une barre du courant : le courant suivant (sujet 418). */
+const NEXT_CURRENT_KEY = 'Tab';
+
 export class ModePanel {
   constructor(private readonly core: EngineCore) {}
 
@@ -108,20 +111,35 @@ export class ModePanel {
 
   /**
    * Touche de page du mode de la page courante (sujet 415), rien n'y étant sélectionné : vrai si elle est prise ;
-   * `run` faux (touche maintenue) : seulement savoir si elle l'est. Le courant renvoyé est choisi.
+   * `run` faux (touche maintenue) : seulement savoir si elle l'est. Le courant renvoyé est choisi. Sans touche `Tab`
+   * du mode, Tab passe au courant suivant de la barre (sujet 418).
    */
   modePageKey(key: string, run: boolean): boolean {
     const page = this.core.pages.getCurrentPage();
     const mode = page && this.core.modes.modeOf(page);
     const action = mode?.pageKeys?.[key];
     const selection = this.core.selection.current;
-    if (!page || !mode || !action || (selection?.pageId === page.id && selection.items.length > 0)) return false;
+    if (!page || !mode || (selection?.pageId === page.id && selection.items.length > 0)) return false;
+    if (!action) return key === NEXT_CURRENT_KEY && this.nextCurrent(page, run);
     const label = `touche de page « ${key} »`;
     const current = this.core.modeCurrents.getModeCurrent(page.id);
     if (action.applies && !this.core.pageModes.call(mode, label, false, action.applies, page, current)) return false;
     if (!run) return true;
     const next = this.core.pageModes.call(mode, label, undefined, action.run, page, current);
     if (typeof next === 'string') this.core.modeCurrents.setModeCurrent(next, page.id);
+    return true;
+  }
+
+  /**
+   * Courant suivant de la barre du mode, en boucle (sujet 418 : Tab par défaut, comme son bouton « Suivant ») ; faux
+   * sans barre ou avec moins de deux valeurs.
+   */
+  private nextCurrent(page: PageModel, run: boolean): boolean {
+    const indicator = this.core.modeCurrents.getModeIndicator(page.id);
+    const values = indicator?.values ?? [];
+    const index = indicator ? values.indexOf(indicator.value) : -1;
+    if (values.length < 2 || index < 0) return false;
+    if (run) this.core.modeCurrents.setModeCurrent(values[(index + 1) % values.length]!, page.id);
     return true;
   }
 }

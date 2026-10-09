@@ -1003,7 +1003,8 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
 - **Flux courant** (mode Séquences) : par défaut le premier flux, puis celui de la dernière flèche cliquée ou choisi
   dans la barre (un clic sur une flèche d'un autre flux ne fait que changer de flux ; un second clic la sélectionne) (état de session par page, non écrit). Barre en haut de la zone de dessin, de la couleur du flux, avec
   son titre centré (texte noir ou blanc selon le contraste) et, s'il y a au moins deux flux, des boutons précédent /
-  suivant en boucle ; un clic sur le titre le renomme sur place (composant commun `InlineEdit`, nom vide
+  suivant en boucle (Tab sur la zone de dessin, rien de sélectionné, fait « suivant » : touche par défaut de toute
+  barre du courant d'au moins deux valeurs, sujet 418) ; un clic sur le titre le renomme sur place (composant commun `InlineEdit`, nom vide
   refusé) ; pastille de couleur cerclée dans le panneau. La barre part au début d'une transition entre pages (elle
   remonte hors de la vue) et n'arrive qu'à sa fin (elle descend à sa place), glissement réglable (« Glissement de la
   barre du flux », réglage `barSlideDuration` du mode, 200 ms, 0 = sans). Tout ce qui ne touche pas ses flèches (flèches hors du flux,

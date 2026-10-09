@@ -197,7 +197,9 @@ fait face à la caméra en iso / 3D (`faceCamera(…, 'screen')`, `render/billbo
   sur la page (ni texte en édition, ni Ctrl, ⌘ ou Alt) ; un raccourci de l'appli ou une touche de mouvement de la vue
   sur la même touche passe avant. `applies(page, current)` (facultatif) dit si la touche est prise (sinon le
   navigateur garde son comportement), `run(page, current)` renvoie le nouveau courant ou rien : rien n'est écrit ni
-  annulable, et la touche marche aussi en lecture seule. Maintenue, elle est prise sans être refaite.
+  annulable, et la touche marche aussi en lecture seule. Maintenue, elle est prise sans être refaite. Sans
+  `pageKeys.Tab`, Tab choisit le courant suivant de la barre (en boucle, sujet 418) quand le mode en a une d'au moins
+  deux valeurs.
 - `gestures.carries(page, shape)` : formes emportées quand on déplace `shape` (glisser ou flèches du clavier), calculées sans
   parent draw.io (ex. contenu d'une région RDD) ; de proche en proche, dans la même étape d'annulation, avec les
   flèches qui les relient entre elles. La sélection les met en valeur avec la forme.
