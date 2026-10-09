@@ -18,7 +18,7 @@ export interface PageEmbedding {
   offset: { x: number; y: number };
 }
 
-export type EasingName = 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out';
+type EasingName = 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out';
 
 export function easing(name: string): (t: number) => number {
   switch (name as EasingName) {

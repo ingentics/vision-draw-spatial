@@ -138,6 +138,8 @@ Folder map with each folder's role: `docs/SUMMARY.md` §3 (single source). Where
 - Strict TypeScript, no `any`; type imports as `import type` (lint).
 - Short single-topic files: beyond ~400 lines, ask what can move out (shared blocks, algorithm, orchestration).
 - No dead code nor accessor duplicating an existing method; a moved comment follows its code.
+- **Export only what is read elsewhere**, except a type used by the signature or a field of an exported symbol (a
+  parameter, return or option type): it stays exported so that callers can name it, even if no other file does yet.
 - **Every icon has a tooltip**, shown by `useTooltip` (`src/app/Tooltip.tsx`, same as the palette shape names), not
   a native `title` (and no `title` on an ancestor: it would show too), plus `aria-label` when the icon is the only
   content. It says not just the name but what the choice does, in French, with the draw.io key it writes when there
