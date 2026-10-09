@@ -345,3 +345,27 @@ async function createMeasure(fonts: FontSet): Promise<MeasureText> {
     return (context.measureText(text).width * font.size) / SIZE;
   };
 }
+
+/**
+ * Promesse tenue quand tous les textes SDF sous `root` sont mis en page : la mise en page se fait dans un worker, une
+ * scène tout juste construite n'a pas encore ses lettres (export d'image, sujet 431). Revérifie à la fin : un texte
+ * peut relancer une mise en page (fond ajusté, morceaux).
+ */
+export async function textsSynced(root: Object3D): Promise<void> {
+  const pending: Promise<void>[] = [];
+  root.traverse((object) => {
+    if (!(object instanceof Text) || !object._isSyncing) return;
+    pending.push(
+      new Promise((resolve) => {
+        const done = () => {
+          object.removeEventListener('synccomplete', done);
+          resolve();
+        };
+        object.addEventListener('synccomplete', done);
+      }),
+    );
+  });
+  if (pending.length === 0) return;
+  await Promise.all(pending);
+  await textsSynced(root);
+}

@@ -5,6 +5,7 @@ import type { PageModel, Rect, ShapeModel } from '../../model/types';
 import type { Selection } from '../types';
 import type { EngineCore } from '../EngineCore';
 import { edgeOf, shapeOf } from '../../model/pageIndex';
+import { collectMoveSet } from '../../edit/moveSet';
 
 /** Sélection de la page courante (SPEC §11) : un ou plusieurs éléments, par clic, ajout / retrait, zone ou « tout ». */
 export class Selections {
@@ -15,6 +16,29 @@ export class Selections {
   /** Sélection courante (lecture seule : `selectItems`, `rebind`). */
   get current(): Selection | undefined {
     return this.selected;
+  }
+
+  /**
+   * Éléments `items` avec leur contenu : enfants d'un groupe, d'un conteneur, formes emportées par le mode de la page
+   * (contenu d'une région RDD) et, si le mode en emporte, les flèches entre elles. Commun à la mise en valeur de la
+   * sélection et à l'export d'image (sujet 431).
+   */
+  withContent(page: PageModel, items: readonly PickedElement[]): Set<string> {
+    const ids = new Set(items.map((item) => item.element.id));
+    for (const item of items) {
+      if (item.type !== 'shape') continue;
+      const roots = [item.element.id, ...this.core.pageModes.carried(page, [item.element.id])];
+      for (const root of roots) {
+        const content = collectMoveSet(page, root);
+        for (const id of [...content.shapeIds, ...content.edgeIds]) ids.add(id);
+      }
+    }
+    if (this.core.pageModes.hasCarries(page)) {
+      for (const edge of page.edges) {
+        if (ids.has(edge.sourceId ?? '') && ids.has(edge.targetId ?? '')) ids.add(edge.id);
+      }
+    }
+    return ids;
   }
 
   getSelection(): Selection | undefined {

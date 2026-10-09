@@ -4,6 +4,7 @@ import { isFilePath } from '../../engine';
 import type { Engine, Settings, StoredFile } from '../../engine';
 import { desktop } from '../desktop';
 import { canWrite, requestWrite, writeDiskFile } from '../diskFile';
+import { downloadBlob } from '../download';
 import { saveAs, store } from '../fileLibrary';
 
 /**
@@ -147,10 +148,5 @@ export function useFileSaving({
 
 /** Propose le fichier au téléchargement (sous son nom d'origine). */
 function download(name: string, content: string): void {
-  const url = URL.createObjectURL(new Blob([content], { type: 'application/xml' }));
-  const link = window.document.createElement('a');
-  link.href = url;
-  link.download = name;
-  link.click();
-  setTimeout(() => URL.revokeObjectURL(url), 0);
+  downloadBlob(new Blob([content], { type: 'application/xml' }), name);
 }

@@ -20,6 +20,7 @@ export type {
   ModePropertyView,
   Selection,
 } from './core/domains/types';
+export type { ImageExportOptions } from './core/domains/view/imageExport';
 
 // Paramètres (SPEC §13)
 export { DEFAULT_SETTINGS, mergeSettings, modePalette, SETTINGS_LIMITS } from './core/settings';

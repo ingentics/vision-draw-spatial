@@ -1,7 +1,6 @@
 import { Group, Mesh } from 'three';
 import type { MeshBasicMaterial, Object3D } from 'three';
 import { pointHandles } from '../../edit/edgePointEdits';
-import { collectMoveSet } from '../../edit/moveSet';
 import type { EdgeModel, Point } from '../../model/types';
 import { headSelectionRing, partSelection, selectionOutline } from '../../render/decorations';
 import { edgeEndHandles, edgePointHandles, modeHandleMeshes, selectionHandles } from '../../render/handleMeshes';
@@ -177,23 +176,8 @@ export class SelectionHighlight {
     if (!veilKey || !root || !page) return veilKey;
     const object = createVeil(page.bounds, veilOpacity, veilColor);
     root.add(object);
-    // Une forme sélectionnée est mise en valeur avec son contenu (enfants d'un groupe, d'un conteneur, formes emportées
-    // par le mode de la page, comme le contenu d'une région RDD).
-    const highlighted = new Set(ids);
-    const carries = this.core.pageModes.hasCarries(page);
-    for (const item of items) {
-      if (item.type !== 'shape') continue;
-      const roots = [item.element.id, ...this.core.pageModes.carried(page, [item.element.id])];
-      for (const root of roots) {
-        const content = collectMoveSet(page, root);
-        for (const id of [...content.shapeIds, ...content.edgeIds]) highlighted.add(id);
-      }
-    }
-    if (carries) {
-      for (const edge of page.edges) {
-        if (highlighted.has(edge.sourceId ?? '') && highlighted.has(edge.targetId ?? '')) highlighted.add(edge.id);
-      }
-    }
+    // Une forme sélectionnée est mise en valeur avec son contenu.
+    const highlighted = this.core.selection.withContent(page, items);
     const lifted = root.children.filter((c) => {
       const elementId = c.userData.elementId as string | undefined;
       return elementId !== undefined && highlighted.has(elementId);

@@ -9,6 +9,8 @@ export interface ChoiceOption<T extends string> {
   icon?: ReactNode;
   /** Infobulle au survol : ce que fait le choix ; défaut : `label` pour une icône, rien pour un nom écrit. */
   title?: string;
+  /** Option affichée mais pas encore choisissable (son infobulle dit pourquoi). */
+  disabled?: boolean;
 }
 
 /**
@@ -47,7 +49,14 @@ export function ChoiceGroup<T extends string>({
 }) {
   const unknown = value !== undefined && !options.some((option) => option.value === value);
   const { hover, tooltip } = useTooltip();
-  const button = (key: string, checked: boolean, content: ReactNode, tip: string | undefined, pick: () => void) => (
+  const button = (
+    key: string,
+    checked: boolean,
+    content: ReactNode,
+    tip: string | undefined,
+    pick: () => void,
+    off = false,
+  ) => (
     <button
       key={key}
       type="button"
@@ -57,8 +66,10 @@ export function ChoiceGroup<T extends string>({
       aria-pressed={checked}
       aria-label={tip}
       disabled={disabled}
+      // Option indisponible : `aria-disabled` plutôt que `disabled`, pour garder l'infobulle qui dit pourquoi.
+      aria-disabled={off || undefined}
       {...hover(tip && (unknown ? `${tip}\nValeur écrite : ${unknownLabel(value)}` : tip))}
-      onClick={pick}
+      onClick={off ? undefined : pick}
     >
       {content}
     </button>
@@ -87,6 +98,7 @@ export function ChoiceGroup<T extends string>({
           option.icon ?? option.label,
           option.title ?? (option.icon ? option.label : undefined),
           () => onChange(option.value),
+          option.disabled,
         ),
       )}
       {tooltip}

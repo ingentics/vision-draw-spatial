@@ -22,6 +22,7 @@ import { ViewModes } from './view/viewModes';
 import { Levels } from './view/levels';
 import { SceneView } from './view/scene';
 import { GraphView } from './view/graph';
+import { ImageExport } from './view/imageExport';
 import { MinimapView } from './view/minimap';
 import { ScreenProjection } from './view/projection';
 import { Selections } from './selection/selection';
@@ -119,6 +120,7 @@ export class EngineCore {
   readonly sceneView = new SceneView(this);
   readonly graph = new GraphView(this);
   readonly minimap = new MinimapView(this);
+  readonly imageExport = new ImageExport(this);
   readonly projection = new ScreenProjection(this);
 
   // selection : sélection, ce qui est sous le pointeur, mise en valeur

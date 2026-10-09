@@ -10,6 +10,7 @@ import { GRAPH_PAGE_ID } from '../engine';
 import type {
   EdgeModel,
   Engine,
+  ImageExportOptions,
   InitialView,
   ModeHint,
   Settings,
@@ -20,6 +21,8 @@ import type {
 import { DrawioSpatial } from '../react/DrawioSpatial';
 import { exportJson } from './diagnosticsExport';
 import { DiagnosticsPanel } from './DiagnosticsPanel';
+import { downloadBlob } from './download';
+import { ExportPanel } from './ExportPanel';
 import { SlidingModeBar } from './ModeBar';
 import { PageTabs } from './PageTabs';
 import { ParentPagesBar } from './ParentPagesBar';
@@ -83,10 +86,13 @@ export function Viewer({
     () => onSettingsChange({ minigraph: { visible: !settingsRef.current.minigraph.visible } }),
     [onSettingsChange],
   );
-  /** Diagnostics dans la barre de droite ; sinon le panneau contextuel (page, forme, flèche) est affiché. */
-  const [panel, setPanel] = useState<'diagnostics'>();
+  /**
+   * Diagnostics ou export d'image dans la barre de droite ; sinon le panneau contextuel (page, forme, flèche) est
+   * affiché.
+   */
+  const [panel, setPanel] = useState<'diagnostics' | 'export'>();
   const diagnosticsOpen = panel === 'diagnostics' && settings.debug.showUnsupportedPanel;
-  const togglePanel = (name: 'diagnostics') => {
+  const togglePanel = (name: 'diagnostics' | 'export') => {
     // Barre de droite repliée : on a demandé ce panneau, elle se rouvre dessus.
     if (settings.panels.right.collapsed) {
       onSettingsChange({ panels: { right: { collapsed: false } } });
@@ -122,10 +128,10 @@ export function Viewer({
       edges: items.filter((item) => item.type === 'edge').map((item) => item.element as EdgeModel),
     };
   }, [selection, pageId]);
-  // Choisir un élément ramène le panneau contextuel (diagnostics fermés).
+  // Choisir un élément ramène le panneau contextuel (diagnostics fermés) ; l'export reste ouvert, il porte sur elle.
   const selectedKey = [...selected.shapes, ...selected.edges].map((element) => element.id).join('\n');
   useEffect(() => {
-    if (selectedKey) setPanel(undefined);
+    if (selectedKey) setPanel((open) => (open === 'export' ? open : undefined));
   }, [selectedKey]);
 
   // Vue mémorisée du fichier (SPEC §5.3), lue une seule fois au chargement.
@@ -186,12 +192,36 @@ export function Viewer({
   // Stables : la section Métriques du panneau ne relance pas sa mesure à chaque rendu.
   const getMetrics = useCallback(() => engine?.getMetrics(), [engine]);
   const setFrameSampling = useCallback((on: boolean) => engine?.setFrameSampling(on), [engine]);
+  /** Export d'image (sujet 431) : téléchargé sous `<fichier>-<page>.png`. */
+  const exportImage = useCallback(
+    async (options: ImageExportOptions) => {
+      try {
+        const blob = await engine?.exportImage(options);
+        if (!blob) {
+          setError('Export : rien à dessiner');
+          return;
+        }
+        const base = file.name
+          .split('/')
+          .pop()!
+          .replace(/\.[^.]+$/, '');
+        const name = `${base}-${currentPage?.name ?? 'page'}`.replace(/[\\/:*?"<>|]/g, '-');
+        downloadBlob(blob, `${name}.png`);
+      } catch (cause) {
+        setError(`Export impossible : ${cause instanceof Error ? cause.message : String(cause)}`);
+      }
+    },
+    [engine, file.name, currentPage?.name, setError],
+  );
   const issueCount = (events.report?.unsupportedElementCount ?? 0) + warnings.length;
   // Titre de la barre de droite (et de sa bande quand elle est repliée) ; pas de panneau, pas de barre.
+  const exportOpen = panel === 'export' && currentPage !== undefined;
   const rightTitle = diagnosticsOpen
     ? 'Diagnostics'
-    : currentPage &&
-      contextTitle(selected.shapes, selected.edges, labelEdit ? 'text' : commentEdit ? 'comment' : undefined);
+    : exportOpen
+      ? 'Exporter'
+      : currentPage &&
+        contextTitle(selected.shapes, selected.edges, labelEdit ? 'text' : commentEdit ? 'comment' : undefined);
 
   return (
     <PluginsContext.Provider value={plugins}>
@@ -214,6 +244,7 @@ export function Viewer({
               ? { open: diagnosticsOpen, issueCount, onToggle: () => togglePanel('diagnostics') }
               : undefined
           }
+          exportOpen={exportOpen}
           settingsOpen={settingsOpen}
           error={error}
           onShowFiles={() => {
@@ -222,6 +253,7 @@ export function Viewer({
             onShowFiles();
           }}
           onSave={saveFile}
+          onToggleExport={() => togglePanel('export')}
           onUndo={() => engine?.undo()}
           onRedo={() => engine?.redo()}
           onViewModeChange={(mode) => engine?.setViewMode(mode)}
@@ -346,6 +378,12 @@ export function Viewer({
                   pageNames={Object.fromEntries((document?.pages ?? []).map((p) => [p.id, p.name]))}
                   onFocus={(page, element) => engine?.focusElement(page, element)}
                   onExport={() => exportJson(file.name, events.report, warnings, error)}
+                  onClose={() => setPanel(undefined)}
+                />
+              ) : exportOpen ? (
+                <ExportPanel
+                  hasSelection={selected.shapes.length + selected.edges.length > 0}
+                  onExport={exportImage}
                   onClose={() => setPanel(undefined)}
                 />
               ) : (

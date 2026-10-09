@@ -141,5 +141,5 @@ Attendus implicites d'une bonne spec ici :
 
 ## 7. Hors périmètre (sauf décision contraire)
 
-Collaboration temps réel, export image/PDF, rotation des formes (les quarts de tour `rotatable` existent, mais le
+Collaboration temps réel, export PDF et SVG (l'export PNG existe : sujet 431), rotation des formes (les quarts de tour `rotatable` existent, mais le
 routage des flèches les ignore) et ports (`sourcePort`) dans le routage, `.dmg` / notarisation macOS.

@@ -19,6 +19,7 @@ import type { ModeEdit } from './core/modes/modeEdit';
 import type { ModeTarget } from './core/modes/types';
 import type { JumpDefaults } from './core/render/edges/jumps';
 import type { EngineMetrics } from './core/domains/runtime/metrics';
+import type { ImageExportOptions } from './core/domains/view/imageExport';
 import type { Settings, SettingsPatch } from './core/settings';
 import { EngineCore } from './core/domains/EngineCore';
 import { createDefaultEffectRegistry, createDefaultModeRegistry, createDefaultRegistry } from './plugins';
@@ -282,6 +283,14 @@ export class Engine {
    */
   attachMinimap(canvas: HTMLCanvasElement, size?: number): () => void {
     return this.core.minimap.attachMinimap(canvas, size);
+  }
+
+  /**
+   * Image PNG de la page courante (ou de sa sélection) en vue de dessus, quelle que soit la vue affichée (sujet 431) ;
+   * `undefined` s'il n'y a rien à exporter.
+   */
+  exportImage(options: ImageExportOptions): Promise<Blob | undefined> {
+    return this.core.imageExport.exportPng(options);
   }
 
   // -------------------------------------------------------------------------

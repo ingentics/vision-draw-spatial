@@ -5,7 +5,7 @@ import { NavigationToolbar } from '../NavigationToolbar';
 import { useTooltip } from '../Tooltip';
 
 /**
- * Barre d'outils de la visionneuse : fichier, enregistrement, annuler / rétablir, modes de vue, état de la
+ * Barre d'outils de la visionneuse : fichier, enregistrement, export d'image, annuler / rétablir, modes de vue, état de la
  * sauvegarde automatique ; à droite plein écran, diagnostics et paramètres.
  */
 export function ViewerToolbar({
@@ -15,10 +15,12 @@ export function ViewerToolbar({
   viewMode,
   allowedViewModes,
   diagnostics,
+  exportOpen,
   settingsOpen,
   error,
   onShowFiles,
   onSave,
+  onToggleExport,
   onUndo,
   onRedo,
   onViewModeChange,
@@ -40,10 +42,13 @@ export function ViewerToolbar({
   allowedViewModes: ViewMode[];
   /** Bouton des diagnostics (absent si le réglage le masque) : ouvert, nombre de problèmes, bascule. */
   diagnostics: { open: boolean; issueCount: number; onToggle: () => void } | undefined;
+  /** Panneau « Exporter » ouvert dans la barre de droite (sujet 431). */
+  exportOpen: boolean;
   settingsOpen: boolean;
   error: string | undefined;
   onShowFiles: () => void;
   onSave: () => void;
+  onToggleExport: () => void;
   onUndo: () => void;
   onRedo: () => void;
   onViewModeChange: (mode: ViewMode) => void;
@@ -101,6 +106,18 @@ export function ViewerToolbar({
           <path d="M8 2.5v7M5 6.5l3 3 3-3M3 11v2.5h10V11" />
         </svg>
         {onDisk ? 'Enregistrer' : 'Enregistrer sous'}
+      </button>
+      <button
+        type="button"
+        className="button icon-button"
+        aria-pressed={exportOpen}
+        aria-label="Exporter"
+        data-tip="Exporter en image : PNG de la page ou de la sélection, en vue de dessus"
+        onClick={onToggleExport}
+      >
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M8 10V2.5M5 5.5l3-3 3 3M3 11v2.5h10V11" />
+        </svg>
       </button>
       {diskBlocked && (
         <button

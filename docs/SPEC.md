@@ -23,7 +23,7 @@ Au départ, le projet visait une compatibilité totale avec draw.io. **Depuis le
 | M2 — Editor | Créer, déplacer, modifier des formes, sauvegarder ; export ouvrable dans draw.io | Second temps |
 | M3 — Packaging | Composant React publiable, wrapper Electron/Tauri | Plus tard |
 
-Hors périmètre initial : collaboration temps réel, export image/PDF, rendu volumique des formes (extrusion), optimisation mémoire avancée.
+Hors périmètre initial : collaboration temps réel, export PDF (export PNG : sujet 431), rendu volumique des formes (extrusion), optimisation mémoire avancée.
 
 ---
 
