@@ -34,9 +34,10 @@ const APP = Object.keys(import.meta.glob('../../../../src/app/plugins/modes/*/in
 );
 
 /** Formes du mode de test, dans son dossier `shapes/` comme un vrai mode. */
-const TEST_SHAPES = shapesByMode(
-  import.meta.glob<ShapeDefinition>('./fixtures/*/shapes/*/index.ts', { eager: true, import: 'definition' }),
-);
+const TEST_SHAPES = shapesByMode({
+  ...import.meta.glob<ShapeDefinition>('./fixtures/*/shapes/*/index.ts', { eager: true, import: 'definition' }),
+  ...import.meta.glob<ShapeDefinition[]>('./fixtures/*/shapes/index.ts', { eager: true, import: 'definitions' }),
+});
 
 const page = (attributes: Record<string, string>) =>
   ({ id: 'p', name: 'P', layers: [], shapes: [], edges: [], attributes }) as unknown as PageModel;
@@ -159,7 +160,8 @@ describe('modes de page en plugins (sujet 69)', () => {
   });
 
   it('formes des modes : une par dossier modes/<id>/shapes/<forme>/, id préfixé par celui du mode (sujet 178)', () => {
-    expect(TEST_SHAPES.get('test')?.map((shape) => shape.id)).toEqual(['test-box']);
+    // Un dossier par forme, et les formes générées de `shapes/index.ts` (sujet 511).
+    expect(TEST_SHAPES.get('test')?.map((shape) => shape.id)).toEqual(['test-box', 'test-wide']);
     for (const [modeId, shapes] of MODE_SHAPE_DEFINITIONS) {
       expect(ENGINE.map((m) => m.folder)).toContain(modeId);
       for (const shape of shapes) expect(shape.id.startsWith(`${modeId}-`), shape.id).toBe(true);

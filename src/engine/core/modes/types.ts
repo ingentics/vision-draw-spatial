@@ -19,7 +19,7 @@ import type { ModeProperty } from './modeProperty';
  * n'en montre rien. Chaque mode vit dans son dossier (`plugins/modes/<id>/index.ts`, qui exporte `definition`) ; le
  * moteur ne connaît aucun mode en particulier. Les sections React propres à un mode sont dans
  * `src/app/plugins/modes/<id>/`. Ses formes propres sont dans `plugins/modes/<id>/shapes/<forme>/index.ts` (sujet
- * 178), id préfixé par celui du mode.
+ * 178), ou générées par `plugins/modes/<id>/shapes/index.ts` (sujet 511), id préfixé par celui du mode.
  */
 export interface PageModeDefinition {
   /** Identifiant, valeur de `spatial.mode` : nom du dossier (`^[a-z][a-z0-9-]*$`, vérifié à l'enregistrement). */

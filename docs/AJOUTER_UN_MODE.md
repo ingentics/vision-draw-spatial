@@ -23,6 +23,7 @@ src/engine/plugins/modes/<id>/  la lib (sans React) : tout le mode
 ├── settings.ts                 ses réglages globaux, `PluginSetting[]` (facultatif, section 3)
 ├── api.ts                      ce que sa partie appli importe (facultatif)
 ├── shapes/<forme>/index.ts     formes propres au mode (facultatif, section 6)
+├── shapes/index.ts             ou formes générées, `definitions` (facultatif, section 6)
 ├── shapes/common/              code commun à ses formes (rendu, fabrique ; sans index.ts, ce n'est pas une forme)
 └── …                           données, règles, opérations
 src/app/plugins/modes/<id>/     l'appli (facultatif) : sections React du panneau, couche sur la zone de dessin
@@ -336,7 +337,9 @@ couche physique d'une table RDD, lue par son rendu). Un habillage qui dépend du
   (`ShapeDefinition`, même contrat que `plugins/shapes/<catégorie>/<forme>/`, voir `AJOUTER_UNE_FORME.md`). Déposer le
   dossier suffit : le registre des formes l'enregistre (la forme se dessine sur toute page, collée ailleurs elle
   reste lisible), le registre des modes la réserve à la palette des pages du mode. Son `id` est préfixé par celui du
-  mode (`rdd-entity`) pour ne jamais masquer une forme générale.
+  mode (`rdd-entity`) pour ne jamais masquer une forme générale. Des formes qui ne diffèrent que par des données (ex.
+  les post-it Event storming, un par type) peuvent être générées : `plugins/modes/<id>/shapes/index.ts` exporte
+  `definitions` (`ShapeDefinition[]`), collectées comme les dossiers (sujet 511).
 - **`page.palette.categories`** : catégories propres au mode (`{ id, name, order }`), rangées avec celles de la palette
   (Géométrie 10, Général 20, Architecture 30) ; la `category` de la palette d'une forme du mode en nomme une. Une
   catégorie vide pour la page n'est pas affichée.
