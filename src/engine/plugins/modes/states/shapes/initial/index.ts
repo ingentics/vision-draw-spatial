@@ -1,11 +1,12 @@
 import { Color, Group } from 'three';
-import { ellipsePath, fillMesh, styleColor } from '../../../../../core/plugins';
+import { ellipsePath, fillMesh } from '../../../../../core/plugins';
 import type { RenderContext, ShapeDefinition, ShapeModel } from '../../../../../core/plugins';
+import { EXIT_COLOR } from '../../exits/exitKind';
 import { INITIAL_KIND } from '../../kinds';
 
 /**
  * Point d'entrée (sujet 433) : disque noir plein Ø 20, taille fixe, sans texte ; départ des transitions seulement
- * (sujet 434). Dans draw.io, une ellipse noire.
+ * (sujet 434). Toujours noir : pas de style à choisir (sujet 440). Dans draw.io, une ellipse noire.
  */
 
 const SIZE = 20;
@@ -14,8 +15,7 @@ const outline = (shape: ShapeModel) => ellipsePath(shape.bounds);
 
 function createInitial(shape: ShapeModel, _ctx: RenderContext): Group {
   const group = new Group();
-  const color = styleColor(shape.style, 'fillColor', '#000000') ?? new Color('#000000');
-  group.add(fillMesh(outline(shape), color, 1));
+  group.add(fillMesh(outline(shape), new Color(EXIT_COLOR), 1));
   return group;
 }
 
@@ -24,6 +24,7 @@ export const definition: ShapeDefinition = {
   outline,
   flat: { create: createInitial },
   resizable: false,
+  styleable: false,
   plainText: true,
   swatch: () => '<circle cx="20" cy="14" r="7" fill="currentColor"/>',
   palette: {

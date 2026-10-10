@@ -39,6 +39,7 @@ export type ShapeErrorHandler = (shapeId: string, hook: string, error: unknown) 
 export interface ShapeRegistryView {
   properties(shape: ShapeModel): ShapeProperty[];
   orientable(shape: ShapeModel): ShapeOrientable;
+  styleable(shape: ShapeModel): boolean;
   swatch(shape: ShapeModel): string;
   templates(): ShapeTemplate[];
   templateOf(shape: ShapeModel): ShapeTemplate | undefined;
@@ -170,6 +171,7 @@ export class ShapeRegistry {
     return {
       properties: (shape) => this.properties(shape),
       orientable: (shape) => this.orientable(shape),
+      styleable: (shape) => this.isStyleable(shape),
       swatch: (shape) => this.swatch(shape),
       templates: () => this.templates(),
       templateOf: (shape) => this.templateOf(shape),
@@ -402,6 +404,11 @@ export class ShapeRegistry {
   /** Prise au clic et au rectangle de sélection (une forme `withLink` seulement si elle porte un lien) ? */
   isPickable(shape: ShapeModel): boolean {
     return this.resolve(shape).definition.pickable !== 'withLink' || shape.link !== undefined;
+  }
+
+  /** L'utilisateur choisit-il son style (sujet 440) ? */
+  isStyleable(shape: ShapeModel): boolean {
+    return this.resolve(shape).definition.styleable !== false;
   }
 
   /** Saisir une forme qu'elle contient la déplace elle, d'un bloc ? */

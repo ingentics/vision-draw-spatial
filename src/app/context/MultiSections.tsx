@@ -14,8 +14,9 @@ import type { ContextPanelProps } from './types';
 export function MultiSections(props: ContextPanelProps) {
   const plugins = useEnginePlugins();
   const { shapes, edges } = props;
-  // La dernière forme choisie sert d'aperçu et de style courant.
-  const current = shapes[shapes.length - 1];
+  // La dernière forme dont on choisit le style sert d'aperçu et de style courant ; sans elle (que des formes aux
+  // couleurs imposées, sujet 440), ni Style ni Bordure.
+  const current = shapes.filter((shape) => plugins.shapes.styleable(shape)).at(-1);
   return (
     <>
       <Section title="Sélection">

@@ -115,6 +115,7 @@ draw.io est l'`id` (`text`, `ellipse`) et il n'y a pas de `kinds` à écrire.
 | `editStyle(style)` | style de l'éditeur en place quand le label dessiné ne suit pas le style draw.io | le style de la forme | nom d'une région RDD sur son onglet |
 | `minimap` | peintre de la mini-carte (§ 3.3) ; `null` = rien | contour rempli | texte : `null` ; acteur |
 | `resizable` | poignées de redimensionnement | oui | groupe : non |
+| `styleable` | style choisi par l'utilisateur : sections Style et Bordure du panneau, style de la palette appliqué à une sélection (sujet 440) | oui | points d'entrée et de sortie d'une machine à états : non |
 | `movedHandles(shape, ctx)` | poignées placées ailleurs que sur les bornes | sur les bornes | coin de l'onglet d'une région RDD |
 | `connectable` | flèches accrochables | oui | groupe : non |
 | `connectSides` | côtés qui ont une poignée de connexion | les quatre | table RDD : gauche et droite |

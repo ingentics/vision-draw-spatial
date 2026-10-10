@@ -35,16 +35,26 @@ export function ShapeSections({ shape, ...props }: ContextPanelProps & { shape: 
       <ShapeOwnSection shape={shape} onShapeStyle={props.onShapeStyle} onSpatial={props.onSpatial} />
       {!main && <ElementModeSection {...props} element={shape} scope="shape" />}
       <OrientSection shapes={[shape]} onOrient={props.onOrient} />
-      <Section title="Style">
-        <StyleGrid presets={props.styles.base} shape={shape} onApply={props.onApplyStyle} />
-        <StyleGrid presets={props.styles.extended} shape={shape} onApply={props.onApplyStyle} />
-        {known.every((preset) => !matchesPreset(shape.style, preset)) && (
-          <p className="panel-hint">Style actuel : couleurs personnalisées.</p>
-        )}
-      </Section>
-      <BorderSection shape={shape} onChange={props.onShapeStyle}>
-        <ShapePropertyFields shape={shape} section="border" onStyle={props.onShapeStyle} onSpatial={props.onSpatial} />
-      </BorderSection>
+      {/* Couleurs imposées par la forme (sujet 440) : ni Style ni Bordure. */}
+      {plugins.shapes.styleable(shape) && (
+        <>
+          <Section title="Style">
+            <StyleGrid presets={props.styles.base} shape={shape} onApply={props.onApplyStyle} />
+            <StyleGrid presets={props.styles.extended} shape={shape} onApply={props.onApplyStyle} />
+            {known.every((preset) => !matchesPreset(shape.style, preset)) && (
+              <p className="panel-hint">Style actuel : couleurs personnalisées.</p>
+            )}
+          </Section>
+          <BorderSection shape={shape} onChange={props.onShapeStyle}>
+            <ShapePropertyFields
+              shape={shape}
+              section="border"
+              onStyle={props.onShapeStyle}
+              onSpatial={props.onSpatial}
+            />
+          </BorderSection>
+        </>
+      )}
       {/* Volume : seulement si le mode de la page permet l'iso ou la 3D (sujet 260). */}
       {(plugins.modes.allowsViewMode(props.page, 'iso') || plugins.modes.allowsViewMode(props.page, '3d')) && (
         <Section title="Volume">

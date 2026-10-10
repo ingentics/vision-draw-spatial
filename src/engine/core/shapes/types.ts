@@ -219,6 +219,12 @@ export interface ShapeDefinition {
   /** Poignées de redimensionnement (défaut : oui). */
   resizable?: boolean;
   /**
+   * Style choisi par l'utilisateur (sujet 440 ; défaut : oui). Faux : couleurs imposées par la forme ou son mode (ex.
+   * points d'entrée et de sortie d'une machine à états) ; le panneau ne montre ni Style ni Bordure, et un style de la
+   * palette appliqué à une sélection la laisse telle quelle.
+   */
+  styleable?: boolean;
+  /**
    * Poignées de redimensionnement placées ailleurs que sur les bornes, en coordonnées page (ex. région RDD : poignée
    * haut-gauche au coin de l'onglet, sujet 344). Elles redimensionnent comme les autres. Absent = sur les bornes.
    */

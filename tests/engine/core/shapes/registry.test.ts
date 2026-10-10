@@ -191,6 +191,16 @@ describe('formes en plugins (étapes 65, 67) : contrat des définitions', () => 
   });
 });
 
+describe('forme sans style à choisir (sujet 440)', () => {
+  it('styleable : oui par défaut, non quand la forme le déclare (points d’une machine à états)', () => {
+    const view = createDefaultRegistry().view();
+    expect(view.styleable(model('rectangle'))).toBe(true);
+    expect(view.styleable(model('states-state'))).toBe(true);
+    expect(view.styleable(model('states-initial'))).toBe(false);
+    expect(view.styleable(model('states-final'))).toBe(false);
+  });
+});
+
 describe('formes en plugins (étape 65) : une forme déposée se branche toute seule', () => {
   // Cas nominal : `id` = nom draw.io, pas de `kinds` à écrire.
   const note: ShapeDefinition = {

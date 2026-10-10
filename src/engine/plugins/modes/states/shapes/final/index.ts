@@ -8,7 +8,7 @@ import { FINAL_KIND } from '../../kinds';
  * Point de sortie (sujet 433) : disque noir Ø 14 dans un cercle Ø 24 (cible UML), taille fixe, sans texte ; arrivée
  * des transitions seulement (sujet 434). On peut en poser plusieurs : à l'export, ceux d'un même niveau ne font qu'un
  * `[*]` (sujet 436). Noire pour une sortie attendue, rouge pour une sortie en erreur (`exitKind.ts`) : la couleur suit
- * ce choix, pas le style. Dans draw.io, une double ellipse.
+ * ce choix : pas de style à choisir (sujet 440). Dans draw.io, une double ellipse.
  */
 
 const SIZE = 24;
@@ -34,6 +34,7 @@ export const definition: ShapeDefinition = {
   outline,
   flat: { create: createFinal },
   resizable: false,
+  styleable: false,
   plainText: true,
   swatch: () => '<circle cx="20" cy="14" r="9"/><circle cx="20" cy="14" r="5" fill="currentColor"/>',
   palette: {

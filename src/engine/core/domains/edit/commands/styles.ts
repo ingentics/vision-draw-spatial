@@ -26,7 +26,8 @@ export class StyleCommands {
   applyStylePreset(elementIds: string[], preset: StylePreset, known: StylePreset[] = []): void {
     const editable = this.core.targets.editablePage();
     if (!editable || !this.core.file.xmlTree) return;
-    const shapes = editable.page.shapes.filter((s) => elementIds.includes(s.id));
+    // Une forme sans style à choisir (sujet 440) n'en reçoit pas.
+    const shapes = editable.page.shapes.filter((s) => elementIds.includes(s.id) && this.core.registry.isStyleable(s));
     const before = writeDrawio(this.core.file.xmlTree);
     let changed = false;
     for (const shape of shapes) {
