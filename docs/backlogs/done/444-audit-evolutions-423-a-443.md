@@ -113,14 +113,14 @@ métriques (453) ; migration des anciennes clés PlantUML qui lit `modes.sequenc
 
 | #   | Sujet                                                                                  | Gain                                      | Taille | Décision |
 | --- | -------------------------------------------------------------------------------------- | ----------------------------------------- | ------ | -------- |
-| 445 | Export PNG : attendre tous les textes (riches, sur tracé) ; tests de l'export          | erreur (textes manquants possibles)       | M      | validé   |
-| 446 | Export PlantUML des états : point d'entrée imbriqué vers un état extérieur             | erreur à confirmer                        | S      | validé   |
-| 447 | Tracé et ancrage d'une page en un seul endroit (clés de tracé, `setPageMode`, appli)  | une seule table, domaine propriétaire     | M      | validé   |
-| 448 | Texte libre d'une forme (corps RDD, contenu d'état) en brique commune                  | copie supprimée                           | S      | validé   |
-| 449 | Saisie commune au glisser d'une forme et d'une flèche pleine, tests du glisser         | un seul pick, couverture                  | S      | validé   |
-| 450 | Rangement, code mort et commentaires (appli, Séquences, RDD, États)                    | lisibilité                                | M      | validé   |
-| 451 | Tests moteur manquants (mise en valeur imposée, `withContent`, formes d'états, touche x)| couverture                                | M      | validé   |
-| 452 | Docs : SPEC (Machine à états, export PNG, tracé par page), guide d'un mode (export)    | doc juste pour un agent                   | M      | validé   |
+| 445 | Export PNG : attendre tous les textes (riches, sur tracé) ; tests de l'export          | erreur (textes manquants possibles)       | M      | fait     |
+| 446 | Export PlantUML des états : point d'entrée imbriqué vers un état extérieur             | erreur à confirmer                        | S      | fait     |
+| 447 | Tracé et ancrage d'une page en un seul endroit (clés de tracé, `setPageMode`, appli)  | une seule table, domaine propriétaire     | M      | fait     |
+| 448 | Texte libre d'une forme (corps RDD, contenu d'état) en brique commune                  | copie supprimée                           | S      | fait     |
+| 449 | Saisie commune au glisser d'une forme et d'une flèche pleine, tests du glisser         | un seul pick, couverture                  | S      | fait     |
+| 450 | Rangement, code mort et commentaires (appli, Séquences, RDD, États)                    | lisibilité                                | M      | fait     |
+| 451 | Tests moteur manquants (mise en valeur imposée, `withContent`, formes d'états, touche x)| couverture                                | M      | fait     |
+| 452 | Docs : SPEC (Machine à états, export PNG, tracé par page), guide d'un mode (export)    | doc juste pour un agent                   | M      | fait     |
 
 Ordre suivi (validé) : 445, 446, 447, 448, 449, 451, 450, 452 (docs en dernier, car elles décrivent le code final). Un
 commit par sujet, dès que `make check` est vert et le sujet validé. Aucun écart de comportement attendu sauf 445 et
@@ -134,4 +134,28 @@ commit par sujet, dès que `make check` est vert et le sujet validé. Aucun éca
 - [x] Constats
 - [x] Sujets rédigés
 - [x] Sujets validés par l'utilisateur
-- [ ] Réalisation
+- [x] Réalisation
+
+- Fait : sujets réalisés dans l'ordre validé, un commit chacun.
+  - 445 : la fabrique de textes compte ses mises en page, l'export attend `settled()`.
+  - 446 : défaut confirmé par un serveur PlantUML local, puis corrigé.
+  - 447 : une table des tracés, et l'agencement seul écrit ses attributs de page.
+  - 448 : brique `modeText`.
+  - 449 : un seul pick par appui, tests du glisser.
+  - 451 : tests seuls. La touche « x » était déjà testée : le constat était faux.
+  - 450 : rangement. `tableLevelKey` est resté en place, au patron du dossier.
+  - 452 : docs.
+
+  Écarts de comportement, tous notés dans leur ticket :
+  - 445 : l'export contient tous les textes ;
+  - 446 : texte exporté dans le cas d'un point d'entrée imbriqué ;
+  - 447 : une flèche droite n'a plus `rounded=0` ;
+  - 448 : un corps RDD blanc est retiré.
+
+  Dette notée : 453 à 455. Restent hors de cet audit : l'idée 437 (région RDD et ensemble d'états) et la dette
+  453 à 455.
+
+  Vérifié seulement par les tests :
+  - l'export d'une page qui n'a que des textes riches (445) ;
+  - le cas PlantUML de 446 dans l'appli (la fixture ne l'a pas) ;
+  - les tests ajoutés par 451.
