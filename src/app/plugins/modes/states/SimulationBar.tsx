@@ -85,7 +85,10 @@ export function SimulationBar({ page, controls }: ModeCanvasProps) {
           Pas {sim.stepNumber} · {stepName(sim.current)}
         </span>
         {end && (
-          <span className="simulation-end" style={{ background: END_LABELS[end].color }}>
+          <span
+            className="simulation-end"
+            style={{ background: END_LABELS[end].color, color: END_LABELS[end].textColor }}
+          >
             {END_LABELS[end].text}
           </span>
         )}

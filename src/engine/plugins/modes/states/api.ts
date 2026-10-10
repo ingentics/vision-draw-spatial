@@ -8,3 +8,4 @@ export type { SimulationEnd } from './simulation/stateSimulation';
 export { StatesSimulator } from './simulation/statesSimulator';
 export { END_LABELS, entryName, simulationTrace, stepName } from './simulation/simulationView';
 export type { TraceLine } from './simulation/simulationView';
+export { SIMULATION_COLOR } from './simulation/simulationMarks';

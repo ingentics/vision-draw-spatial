@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { END_LABELS, simulationTrace } from '../../../../engine/plugins/modes/states/api';
+import type { CSSProperties } from 'react';
+import { END_LABELS, SIMULATION_COLOR, simulationTrace } from '../../../../engine/plugins/modes/states/api';
 import type { StateSimulation } from '../../../../engine/plugins/modes/states/api';
 
 /**
@@ -16,7 +17,12 @@ export function SimulationTrace({ sim, onGoTo }: { sim: StateSimulation; onGoTo:
     shown.current?.scrollIntoView({ block: 'nearest' });
   }, [lines.length, end]);
   return (
-    <ol className="simulation-trace" aria-label="Trace de la simulation">
+    <ol
+      className="simulation-trace"
+      aria-label="Trace de la simulation"
+      // Couleur de la simulation, celle du moteur : fond du pas courant (sujet 472).
+      style={{ '--simulation-color': SIMULATION_COLOR } as CSSProperties}
+    >
       {lines.map((line, i) => {
         const isCurrent = line.kind === 'step' && line.current;
         const { target } = line;

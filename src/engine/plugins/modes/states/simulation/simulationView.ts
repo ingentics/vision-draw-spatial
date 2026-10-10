@@ -53,11 +53,11 @@ function transitionName(edge: EdgeModel | undefined): string {
 
 const oneLine = (text: string) => text.replace(/\s+/g, ' ').trim();
 
-/** Bandeau de fin : texte et couleur. */
-export const END_LABELS: Record<SimulationEnd, { text: string; color: string }> = {
-  expected: { text: 'Terminé : sortie attendue', color: '#2e7d32' },
-  error: { text: 'Terminé en erreur', color: ERROR_COLOR },
-  blocked: { text: 'Bloqué : aucune transition sortante', color: '#ef6c00' },
+/** Bandeau de fin : texte, couleur (fond du bandeau, texte de la trace) et couleur du texte sur ce fond. */
+export const END_LABELS: Record<SimulationEnd, { text: string; color: string; textColor: string }> = {
+  expected: { text: 'Terminé : sortie attendue', color: '#2e7d32', textColor: '#ffffff' },
+  error: { text: 'Terminé en erreur', color: ERROR_COLOR, textColor: '#ffffff' },
+  blocked: { text: 'Bloqué : aucune transition sortante', color: '#ef6c00', textColor: '#ffffff' },
 };
 
 /** Point d'entrée à choisir au départ, nommé par l'état où mène sa première transition. */
