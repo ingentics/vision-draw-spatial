@@ -9,6 +9,14 @@ import { PIVOT_PROPERTIES } from './pivot/pivot';
 import { dragPlaces } from './places/placesAround';
 import { snapTargets } from './places/snapTargets';
 import { STICKY } from './shapes/common/stickyLayout';
+import {
+  BADGE_PART,
+  badgeAt,
+  badgeBounds,
+  badgeMessage,
+  badgeStyle,
+  VALIDATION_PROPERTY,
+} from './warnings/stickyWarnings';
 
 /**
  * Mode « Event storming » (sujet 475) : des post-it typés (événement, commande, acteur…) collés les uns contre les
@@ -29,7 +37,8 @@ export const definition: PageModeDefinition = {
   },
   page: {
     viewModes: ['top'],
-    properties: [LABELS_PROPERTY],
+    // « Activer la validation » : pastilles d'avertissement (sujet 519).
+    properties: [LABELS_PROPERTY, VALIDATION_PROPERTY],
     palette: {
       // Pas de forme Titre : les groupes de post-it ont leur titre (sujet 514).
       shapes: [...STICKY_TYPES.map((type) => type.kind), 'text'],
@@ -42,10 +51,27 @@ export const definition: PageModeDefinition = {
   },
   // Nom du type en tête de la valeur dans le fichier, lisible dans draw.io (sujet 478).
   file: { exportedLabel, importedLabel },
-  // Titre de chaque groupe de post-it collés, dessiné par son premier post-it (sujet 514).
-  dressing: (page) => ({ shapeStyle: groupTitleStyle(page) }),
-  // Le titre d'un groupe s'édite au double-clic, comme une partie de son premier post-it (sujet 514).
-  parts: GROUP_PARTS,
+  // Titre de chaque groupe de post-it collés, dessiné par son premier post-it (sujet 514) ; pastille d'avertissement ou
+  // de pivot à décider (sujet 519).
+  dressing: (page) => {
+    const title = groupTitleStyle(page);
+    const badge = badgeStyle(page);
+    return {
+      shapeStyle: (shape) => {
+        const styles = [title(shape), badge(shape)].filter((style) => style !== undefined);
+        return styles.length ? Object.assign({}, ...styles) : undefined;
+      },
+    };
+  },
+  parts: {
+    // Le titre d'un groupe s'édite au double-clic, comme une partie de son premier post-it (sujet 514).
+    ...GROUP_PARTS,
+    // La pastille (sujet 519) : son survol, ou son clic, montre son message.
+    at: (page, shape, point) => (badgeAt(page, shape, point) ? BADGE_PART : undefined),
+    bounds: (page, shape, part) =>
+      part === BADGE_PART ? badgeBounds(page, shape) : GROUP_PARTS.bounds(page, shape, part),
+    comment: (shape, part, page) => (part === BADGE_PART ? badgeMessage(page, shape) : undefined),
+  },
   gestures: {
     // « Groupe » d'un post-it collé (sujet 514), « Pivot » d'un Domain Event (sujet 515).
     properties: [GROUP_PROPERTY, ...PIVOT_PROPERTIES],

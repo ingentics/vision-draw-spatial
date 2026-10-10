@@ -24,15 +24,12 @@ const ABSENT = 'pivotAbsent';
 const WHO_VALUES: readonly Who[] = ['other', 'same', 'none', 'unknown'];
 const REPLY_VALUES: readonly Reply[] = ['yes', 'no', 'unknown'];
 
-/** Icône d'une réponse (sujets 516, 517) : `spread` pour Oui, `question` pour Je ne sais pas. */
-export type PivotMarkKind = 'spread' | 'question';
+/** Domain Event au pivot Oui : il porte l'icône du cube (sujet 516). */
+export const isPivot = (shape: ShapeModel): boolean => shape.kind === EVENT.kind && keys.value(shape, PIVOT) === YES;
 
-/** Icône que porte le post-it : celle de son pivot s'il est un Domain Event, sinon aucune. */
-export function pivotMarkOf(shape: ShapeModel): PivotMarkKind | undefined {
-  if (shape.kind !== EVENT.kind) return undefined;
-  const pivot = keys.value(shape, PIVOT);
-  return pivot === YES ? 'spread' : pivot === UNKNOWN ? 'question' : undefined;
-}
+/** Domain Event au pivot « Je ne sais pas » : il porte la pastille « ? » (sujet 519). */
+export const isPivotUnknown = (shape: ShapeModel): boolean =>
+  shape.kind === EVENT.kind && keys.value(shape, PIVOT) === UNKNOWN;
 
 /** Valeur lue si elle est une des réponses ; absente ou inconnue (fichier modifié à la main) : pas de réponse. */
 function answerOf<T extends string>(shape: ShapeModel, key: string, values: readonly T[]): T | undefined {
@@ -47,6 +44,10 @@ function answersOf(shape: ShapeModel): Answers {
     absent: answerOf(shape, ABSENT, REPLY_VALUES),
   };
 }
+
+/** Question encore ouverte du pivot (celle du hotspot du verdict, sujet 517) ; undefined s'il n'y en a pas. */
+export const pivotQuestion = (shape: ShapeModel): string | undefined =>
+  verdictOf(answersOf(shape), shape.label, keys.value(shape, PIVOT)).note.aside?.text;
 
 const eventOf = (target: ModeTarget): ShapeModel | undefined => {
   const shape = shapeTarget(target);

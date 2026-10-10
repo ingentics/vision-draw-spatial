@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { ModeProperty } from '../../../../../../src/engine/core/plugins';
-import { PIVOT_PROPERTIES, pivotMarkOf } from '../../../../../../src/engine/plugins/modes/eventstorming/pivot/pivot';
+import {
+  isPivot,
+  isPivotUnknown,
+  PIVOT_PROPERTIES,
+} from '../../../../../../src/engine/plugins/modes/eventstorming/pivot/pivot';
 import { setup, sticky, stormingXml } from '../helpers';
 
 const property = (key: string): ModeProperty => PIVOT_PROPERTIES.find((p) => p.key === key)!;
@@ -56,7 +60,7 @@ describe('mode Event storming : questionnaire « Pivot » d’un Domain Event (s
     expect(PIVOT_PROPERTIES.every((p) => p.hidden!(page(), shape('b')))).toBe(true);
   });
 
-  it('icône : cube pour Oui, point d’interrogation pour Je ne sais pas, sur un Domain Event seulement', () => {
+  it('cube pour Oui, pastille « ? » pour Je ne sais pas (sujet 519), sur un Domain Event seulement', () => {
     const { shape } = setup(
       stormingXml(
         sticky('yes', 'event', 0, 0, '', 160, 160, 'spatial.es.pivot=1;') +
@@ -66,12 +70,8 @@ describe('mode Event storming : questionnaire « Pivot » d’un Domain Event (s
           sticky('command', 'command', 800, 0, '', 160, 160, 'spatial.es.pivot=1;'),
       ),
     );
-    expect(['yes', 'unknown', 'no', 'unset', 'command'].map((id) => pivotMarkOf(shape(id)))).toEqual([
-      'spread',
-      'question',
-      undefined,
-      undefined,
-      undefined,
-    ]);
+    const ids = ['yes', 'unknown', 'no', 'unset', 'command'];
+    expect(ids.map((id) => isPivot(shape(id)))).toEqual([true, false, false, false, false]);
+    expect(ids.map((id) => isPivotUnknown(shape(id)))).toEqual([false, true, false, false, false]);
   });
 });

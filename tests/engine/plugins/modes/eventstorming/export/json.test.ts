@@ -28,7 +28,7 @@ const links = (cells: string) => exported(cells).links.map((l) => `${l.from} ${l
 const warnings = (cells: string) => exported(cells).warnings.map((w) => `${w.code} ${w.elements.join(' ')}`);
 
 describe('mode Event storming : export JSON du mur (sujet 518)', () => {
-  it('mur d’exemple : 38 éléments, 3 groupes, 37 liens, 5 avertissements', () => {
+  it('mur d’exemple : 38 éléments, 3 groupes, 37 liens, aucun avertissement', () => {
     const wall = wallExport(opened(fixture('eventstorming-commande.drawio')));
     expect(wall.groups).toEqual([
       { id: 'G1', label: 'Paiement accepté' },
@@ -37,14 +37,8 @@ describe('mode Event storming : export JSON du mur (sujet 518)', () => {
     ]);
     expect(wall.elements).toHaveLength(38);
     expect(wall.links).toHaveLength(37);
-    const label = (id: string) => wall.elements.find((element) => element.id === id)!.label;
-    expect(wall.warnings.map((w) => `${w.code} ${w.elements.map(label).join(' / ')}`)).toEqual([
-      'W1 Quand une commande est passée, demander le paiement / Prestataire de paiement',
-      'W1 Prestataire de paiement / Quand le paiement est effectué, préparer le colis',
-      'W1 Prestataire de paiement / Quand le paiement échoue, prévenir le client',
-      'W1 Pas plus que le stock disponible / Commande passée',
-      'W2 Quand le stock est réservé, demander le paiement',
-    ]);
+    // Contacts fortuits entre post-it liés ignorés ; la Policy sans Command est visée par un Hotspot (sujet 519).
+    expect(wall.warnings).toEqual([]);
     // R3 : « Commande passée » mène à « Payer » par la policy, sans lien direct.
     expect(wall.links).toContainEqual({ from: 'G1.P1', to: 'G1.C2', type: 'issues', rule: 'R3' });
     expect(wall.links.filter((link) => link.type === 'causes')).toEqual([]);
@@ -130,6 +124,20 @@ describe('mode Event storming : export JSON du mur (sujet 518)', () => {
     expect(warnings(sticky('c', 'command', 0, 0) + sticky('p', 'policy', 160, 0))).toContain('W1 G1.C1 G1.P1');
   });
 
+  it('W1 : un contact sans règle entre deux post-it liés par ailleurs est ignoré (sujet 519)', () => {
+    // System sous sa Command, Policy sous son Event : System et Policy se touchent sans règle.
+    const cells =
+      sticky('c', 'command', 0, 0) +
+      sticky('e', 'event', 160, 0) +
+      sticky('s', 'system', 0, 160) +
+      sticky('p', 'policy', 160, 160);
+    expect(warnings(cells).filter((w) => w.startsWith('W1'))).toEqual([]);
+    // L'un des deux sans autre lien : W1.
+    expect(
+      warnings(sticky('a', 'actor', 0, 0) + sticky('c', 'command', 160, 0) + sticky('s', 'system', 0, 160)),
+    ).toContain('W1 G1.A1 G1.S1');
+  });
+
   it('R2 : attache de n’importe quel côté, sens donné par les types', () => {
     expect(links(sticky('c', 'command', 0, 0) + sticky('a', 'actor', 0, 160))).toEqual(['G1.A1 performs G1.C1 R2']);
     expect(links(sticky('s', 'system', 0, 0) + sticky('c', 'command', 160, 0))).toEqual(['G1.C1 calls G1.S1 R2']);
@@ -190,6 +198,10 @@ describe('mode Event storming : export JSON du mur (sujet 518)', () => {
       'W2 G1.P1',
       'W3 G1.P1',
     ]);
+    // Policy visée par un Hotspot : pas de W2, sa suite est en suspens (sujet 519).
+    expect(
+      warnings(sticky('e', 'event', 0, 0) + sticky('p', 'policy', 160, 0) + sticky('h', 'hotspot', 160, 160)),
+    ).toEqual(['W5 G1.E1']);
     expect(warnings(sticky('h', 'hotspot', 0, 0))).toEqual(['W4 H1']);
     expect(warnings(sticky('e', 'event', 0, 0) + sticky('r', 'query', 160, 0))).toEqual(['W5 G1.E1']);
     expect(warnings(sticky('c', 'command', 0, 0) + sticky('s', 'system', 0, 160))).toEqual(['W6 G1.C1']);

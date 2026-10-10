@@ -1155,8 +1155,18 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     `links` (chacun avec sa règle : R1 séquence gauche → droite, R2 attache de tout côté, R3 Policy qui émet la Command
     à droite de son Event et retire le `causes` direct, R4 Hotspot vers un seul voisin — dessus, dessous, gauche,
     droite —, R5 Events empilés issues de la même Command ; un contact crée un lien s'il couvre au moins 20 % du côté
-    du plus petit post-it) et `warnings` (W1 contact sans règle, W2 Policy sans Command, W3 Policy sans Event, W4
+    du plus petit post-it) et `warnings` (W1 contact sans règle, seulement si l'un des deux post-it n'a aucun autre
+    lien (sujet 519), W2 Policy sans Command, sauf visée par un Hotspot, W3 Policy sans Event, W4
     Hotspot isolé, W5 Event sans Command, W6 Command sans déclencheur, W7 post-it isolé, W8 chevauchement).
+  - **Pastilles** (sujet 519, `warnings/`) : un post-it qui a un avertissement de la lecture du mur (W1 à W8, W1 et W8
+    sur les deux post-it) porte en haut à gauche (20 × 20 à 7 des bords) un triangle jaune « ! » ; un Domain Event au
+    pivot « Je ne sais pas » porte à la place un disque bleu « ? » (plus d'icône à droite ; le cube de Oui reste). Le
+    label du type tient entre la pastille et l'icône. Survol ou clic (partie `badge` du post-it) : message dans l'encart
+    des commentaires, titre puis ce qui est attendu avec un exemple (`warningHints.ts`), ou la question du pivot encore
+    ouverte. Recalculées à chaque modification : une pastille résolue disparaît. Dessin seulement (habillage
+    `spatial.es.badge`, jamais écrit). Réglage de la page « Activer la validation » (coché par défaut ; décoché :
+    `spatial.es.validation=0`) : décoché, plus de pastille « ! », le « ? » du pivot reste. Mur des règles, un cas bien placé et des cas fautifs par règle :
+    `tests/fixtures/eventstorming-regles.drawio`.
 
 ### 14.6 Export d'image
 

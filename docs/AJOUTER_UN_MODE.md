@@ -266,7 +266,8 @@ couche physique d'une table RDD, lue par son rendu). Un habillage qui dépend du
   sélectionnée la retire (sujet 251) ; la forme n'est jamais supprimée à sa place, et un refus du mode laisse tout tel
   quel. `comment` / `setComment` (sujet 262) : commentaire d'une partie (titre et texte, vide s'il n'y en a pas,
   undefined si elle ne peut pas en avoir), montré dans l'encart au survol après celui de la forme, et édité en texte
-  brut par la touche C quand la partie est sélectionnée ou survolée. `textPreview` (sujet 253) : la forme telle qu'elle serait avec le texte en cours de saisie, redessinée en
+  brut par la touche C quand la partie est sélectionnée ou survolée ; il reçoit aussi la page (sujet 519 : message
+  qui dépend des voisins, sans `setComment` : en lecture seule). `textPreview` (sujet 253) : la forme telle qu'elle serait avec le texte en cours de saisie, redessinée en
   direct (elle reçoit `sizing`, la grille et la mesure du texte de `ModeEdit`, pour avoir la taille écrite ensuite) ; les objets du texte dessiné de la partie (marqués par `markPart(objet, partie)` de l'API des plugins) sont masqués pendant l'édition, et
   `ModePartText` peut demander un éditeur sans fond (`transparent`), centré (`center`), d'une couleur (`color`), en
   gras (`bold`, sujet 414), en italique (`italic`), sur plusieurs lignes (`multiline`, sujet 331 : Entrée passe à la

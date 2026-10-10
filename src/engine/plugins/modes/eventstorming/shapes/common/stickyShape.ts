@@ -5,8 +5,10 @@ import { STICKY_TYPES } from '../../kinds';
 import type { StickyType } from '../../kinds';
 import { GROUP_PART, TITLE_LEFT, TITLE_TEXT } from '../../groups/groupLabels';
 import { GROUP_TITLE } from '../../groups/stickyGroups';
-import { pivotMarkOf } from '../../pivot/pivot';
+import { isPivot } from '../../pivot/pivot';
 import { PIVOT_MARK, pivotMark, pivotMarkRect } from '../../pivot/pivotMark';
+import { STICKY_BADGE, stickyBadge, stickyBadgeRect } from '../../warnings/stickyBadge';
+import { drawnBadge } from '../../warnings/stickyWarnings';
 import { STICKY, labelFontSize, labelZone, showsLabel, stickyTextZone } from './stickyLayout';
 import { PAPER_RADIUS, paperOutline, stickyPaper } from './stickyPaper';
 
@@ -71,10 +73,16 @@ function groupTitle(shape: ShapeModel, ctx: RenderContext): Object3D | null {
 function createSticky(type: StickyType, shape: ShapeModel, ctx: RenderContext): Object3D {
   const group = stickyPaper(shape, type.fill);
   group.name = `shape:${type.kind}`;
-  const mark = pivotMarkOf(shape);
+  const mark = isPivot(shape);
+  // Pastille d'avertissement ou de pivot à décider (sujet 519), donnée par l'habillage du mode.
+  const badge = drawnBadge(shape);
   if (showsLabel(shape)) {
-    // Icône de la réponse « Pivot » (sujet 516) : le label s'arrête avant elle.
-    const zone = labelZone(shape.bounds, mark && pivotMarkRect(shape.bounds).x - PIVOT_MARK.gap);
+    // Icône du pivot (sujet 516) et pastille (sujet 519) : le label tient entre elles.
+    const zone = labelZone(
+      shape.bounds,
+      mark ? pivotMarkRect(shape.bounds).x - PIVOT_MARK.gap : undefined,
+      badge && stickyBadgeRect(shape.bounds).x + STICKY_BADGE.size + STICKY_BADGE.gap,
+    );
     const size = labelFontSize(type.label, zone.width, ctx.measureText);
     // Tronqué : « … » s'il ne tient pas à 10, et jamais la mise en forme de la valeur (même texte que le label).
     // Imposé : il reste affiché pendant l'édition du texte du ticket (sujet 485).
@@ -86,7 +94,8 @@ function createSticky(type: StickyType, shape: ShapeModel, ctx: RenderContext): 
   }
   const text = createLabel(shape, ctx, shape.label, stickyTextZone(shape));
   if (text) group.add(text);
-  if (mark) group.add(pivotMark(mark, shape.bounds));
+  if (mark) group.add(pivotMark(shape.bounds));
+  if (badge) group.add(stickyBadge(badge, shape.bounds));
   const title = groupTitle(shape, ctx);
   if (title) group.add(title);
   return group;

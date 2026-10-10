@@ -6,7 +6,8 @@ import type { StickyType } from '../kinds';
 
 /**
  * Règles de lecture du mur (sujet 518) : liens déduits des contacts entre post-it (R1 à R5) et avertissements
- * (W1 à W8), sans flèche dessinée. Une position qu'aucune règle n'explique donne un avertissement, jamais un lien.
+ * (W1 à W8), sans flèche dessinée. Une position qu'aucune règle n'explique donne un avertissement, jamais un lien ;
+ * un contact sans règle entre deux post-it liés par ailleurs est ignoré (sujet 519).
  */
 
 /** Part minimale du plus petit côté prise par un contact pour qu'il crée un lien (décalage d'une demi-hauteur permis). */
@@ -130,6 +131,8 @@ export function readWall(page: PageModel): WallReading {
   const typeOf = (shape: ShapeModel) => stickyType(shape)!;
   const links: WallLink[] = [];
   const warnings: WallWarning[] = [];
+  /** Contacts sans règle (W1), gardés si l'un des deux post-it n'a aucun lien (sujet 519). */
+  const unruled: [string, string][] = [];
 
   for (const touch of touches) {
     const { first, second } = touch;
@@ -139,7 +142,7 @@ export function readWall(page: PageModel): WallReading {
     if (!touch.horizontal && typeOf(first) === EVENT && typeOf(second) === EVENT) continue;
     const link = touch.strong ? linkOf(touch) : undefined;
     if (link) links.push(link);
-    else warnings.push({ code: 'W1', shapeIds: [first.id, second.id] });
+    else unruled.push([first.id, second.id]);
   }
 
   // R5 : une Command qui produit plusieurs Events (empilés à sa droite) : le premier en R1, les suivants en R5.
@@ -189,12 +192,20 @@ export function readWall(page: PageModel): WallReading {
         index,
   );
 
+  // W1 (sujet 519) : sur un mur dense, un post-it bien collé touche souvent aussi un voisin sans règle (System sous
+  // sa Command, à côté d'une Policy) ; ce contact fortuit n'avertit que si l'un des deux n'a aucun lien.
+  const linked = new Set(kept.flatMap((link) => [link.from, link.to]));
+  for (const [a, b] of unruled) if (!linked.has(a) || !linked.has(b)) warnings.push({ code: 'W1', shapeIds: [a, b] });
+
   const has = (test: (link: WallLink) => boolean) => kept.some(test);
   for (const shape of stickies) {
     const type = typeOf(shape);
     const id = shape.id;
     if (type === POLICY) {
-      if (!has((link) => link.from === id && link.type === 'issues')) warnings.push({ code: 'W2', shapeIds: [id] });
+      // Visée par un Hotspot : sa suite est en suspens, la question est posée (sujet 519).
+      const pending = has((link) => link.to === id && link.type === 'concerns');
+      if (!pending && !has((link) => link.from === id && link.type === 'issues'))
+        warnings.push({ code: 'W2', shapeIds: [id] });
       if (!has((link) => link.to === id && link.type === 'triggers')) warnings.push({ code: 'W3', shapeIds: [id] });
     }
     if (type === EVENT && !has((link) => link.to === id && link.type === 'produces'))

@@ -6,7 +6,7 @@ import {
 } from '../../../../../../src/engine/plugins/modes/eventstorming/pivot/pivotMark';
 import { labelZone } from '../../../../../../src/engine/plugins/modes/eventstorming/shapes/common/stickyLayout';
 
-describe('mode Event storming : icône de la réponse « Pivot » (sujet 516)', () => {
+describe('mode Event storming : icône du pivot Oui (sujet 516)', () => {
   const bounds = { x: 100, y: 50, width: 160, height: 160 };
 
   it('20 × 20 à 7 des bords haut et droit', () => {
@@ -19,11 +19,9 @@ describe('mode Event storming : icône de la réponse « Pivot » (sujet 516)', 
     expect(labelZone(bounds).width).toBe(144);
   });
 
-  it('dessinée dans son carré, une icône par réponse', () => {
-    for (const kind of ['spread', 'question'] as const) {
-      const mark = pivotMark(kind, bounds);
-      expect(mark.name).toBe(`pivot-mark:${kind}`);
-      expect(mark.children.length).toBeGreaterThan(0);
-    }
+  it('cube dessiné pour Oui', () => {
+    const mark = pivotMark(bounds);
+    expect(mark.name).toBe('pivot-mark');
+    expect(mark.children.length).toBeGreaterThan(0);
   });
 });

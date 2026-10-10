@@ -12,3 +12,6 @@ export const PIVOT = 'pivot';
 
 /** Clé du libellé du groupe de post-it collés (sujet 514), sur chaque post-it du groupe : `spatial.es.group`. */
 export const GROUP = 'group';
+
+/** Clé du réglage « Activer la validation » de la page (sujet 519) : `spatial.es.validation=0` décoché, absent coché. */
+export const VALIDATION = 'validation';

@@ -51,10 +51,16 @@ export class LiveEdit {
   /**
    * Déplacement ou redimensionnement écrit (fin d'un glisser) : en ancrage automatique, les flèches de la forme et de
    * ses voisines sont réparties à nouveau, dans la même étape d'annulation (modèle relu de l'arbre) ; sinon la
-   * géométrie relue est reprise par le document et les autres rendus de la page sont à refaire.
+   * géométrie relue est reprise par le document et les autres rendus de la page sont à refaire. Page habillée par son
+   * mode : l'habillage d'une forme dépend de ses voisines (ex. titre d'un groupe de post-it, pastilles, sujet 519), la
+   * scène gardée du glisser serait périmée ; le modèle est relu et la scène reconstruite.
    */
   afterGeometryWrite(pageId: string): void {
     const moved = this.core.pages.pageById(pageId);
+    if (moved && this.core.modes.modeOf(moved)?.dressing) {
+      this.core.file.documentChanged([pageId]);
+      return;
+    }
     const fresh =
       moved &&
       this.core.arrangement.distributes(moved) &&

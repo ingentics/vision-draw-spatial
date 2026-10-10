@@ -303,9 +303,10 @@ export interface ModeParts {
   setText?(edit: ModeEdit, shape: ShapeModel, part: string, text: string, current?: string): void;
   /**
    * Commentaire d'une partie (sujet 262) : titre (ex. nom du champ) et texte brut, vide s'il n'y en a pas encore ;
-   * undefined si la partie ne peut pas en avoir (ex. séparateur).
+   * undefined si la partie ne peut pas en avoir (ex. séparateur). `page` : celle de la forme (sujet 519, ex. message
+   * qui dépend des voisins).
    */
-  comment?(shape: ShapeModel, part: string): { title: string; text: string } | undefined;
+  comment?(shape: ShapeModel, part: string, page: PageModel): { title: string; text: string } | undefined;
   /** Commentaire d'une partie édité en place (touche C, sujet 262) : texte brut ; vide le retire. */
   setComment?(edit: ModeEdit, shape: ShapeModel, part: string, text: string): void;
   /**
