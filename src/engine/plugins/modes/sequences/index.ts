@@ -1,5 +1,6 @@
-import type { EdgeModel, ModeEdit, ModeKey, PageModel, PageModeDefinition } from '../../../core/plugins';
-import { byId, edgeOf, numberValue, styleFlag } from '../../../core/plugins';
+import type { EdgeModel, ModeKey, PageModeDefinition } from '../../../core/plugins';
+import { byId, numberValue } from '../../../core/plugins';
+import { DIRECTION_KEY, DIRECTION_PROPERTY } from './direction';
 import { FLOW, PARTICIPANT, STEP, flowLabel } from './flows';
 import { SEQUENCES_KEYS } from './keys';
 import { badgeStyle, currentLook, SEQUENCES_SETTINGS } from './settings';
@@ -17,15 +18,6 @@ const PARTICIPANT_ICONS = {
     line: 'M1 4.5h12.5M1 11.5h12.5',
     accent: 'M13.5 8h2M14.5 7l1 1-1 1',
   },
-};
-
-/**
- * Icônes du sens d'une flèche (sujet 426) : aller en trait plein vers la droite (tout en `accent`, plein), retour en
- * pointillés vers la gauche (trait en `line`, que l'icône dessine en pointillés).
- */
-const DIRECTION_ICONS = {
-  call: { accent: 'M1.5 8H13.5M10.5 5 13.5 8l-3 3' },
-  return: { line: 'M4 8H14.5', accent: 'M5.5 5 2.5 8l3 3' },
 };
 
 /**
@@ -78,31 +70,7 @@ export const definition: PageModeDefinition = {
         },
         hidden: (page, target) => !sequenceState(page).placement.has(target.id),
       },
-      {
-        // Le style draw.io (`dashed`) est la source de vérité : le choix ne fait que le lire et l'écrire.
-        type: 'choice',
-        key: 'dashed',
-        label: 'Sens',
-        title:
-          'Sens de la flèche dans son flux : un retour est en pointillés (dashed=1) ; dès qu’un flux en a un, ses flèches pleines sont toujours des allers',
-        options: () => [
-          {
-            value: 'call',
-            label: 'Aller',
-            title: 'Aller : appel, flèche pleine (dashed retiré)',
-            icon: DIRECTION_ICONS.call,
-          },
-          {
-            value: 'return',
-            label: 'Retour',
-            title: 'Retour : réponse à un aller ouvert, flèche en pointillés (dashed=1)',
-            icon: DIRECTION_ICONS.return,
-          },
-        ],
-        value: (page, target) => (isReturn(page, target.id) ? 'return' : 'call'),
-        write: (edit, target, value) => setReturn(edit, target.id, value === 'return'),
-        hidden: (page, target) => !sequenceState(page).placement.has(target.id),
-      },
+      DIRECTION_PROPERTY,
     ],
     // Flèche d'un flux sélectionnée seule : ni voile ni contour, sa couleur et sa pastille la montrent (sujet 427).
     selectionStyle: (page, edge, size) =>
@@ -189,11 +157,7 @@ export const definition: PageModeDefinition = {
     '+': stepKey(+1),
     '-': stepKey(-1),
     // « x » : bascule aller / retour de la flèche sélectionnée (sujet 429).
-    x: {
-      label: 'Sens',
-      applies: (page, target) => sequenceState(page).placement.has(target.id),
-      run: (edit, target) => setReturn(edit, target.id, !isReturn(edit.page, target.id)),
-    },
+    x: DIRECTION_KEY,
   },
   lifecycle: {
     check: (page) => sequenceState(page).issues,
@@ -201,15 +165,6 @@ export const definition: PageModeDefinition = {
   },
   pasteKeys: [FLOW, STEP],
 };
-
-/** La flèche est-elle un retour (pointillés, `dashed=1`) ? Le style draw.io est la source de vérité du sens. */
-function isReturn(page: PageModel, edgeId: string): boolean {
-  return styleFlag(edgeOf(page, edgeId)?.style ?? {}, 'dashed');
-}
-
-function setReturn(edit: ModeEdit, edgeId: string, back: boolean): void {
-  edit.setElementStyle(edgeId, 'dashed', back ? '1' : undefined);
-}
 
 /** « + » / « - » : rang suivant / précédent de la flèche sélectionnée (échange avec la voisine). */
 function stepKey(delta: 1 | -1): ModeKey {

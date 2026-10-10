@@ -1,7 +1,7 @@
 import { Color, Group } from 'three';
 import { ellipsePath, fillMesh } from '../../../../../core/plugins';
 import type { RenderContext, ShapeDefinition, ShapeModel } from '../../../../../core/plugins';
-import { EXIT_COLOR } from '../../exits/exitKind';
+import { POINT_COLOR } from '../../exits/exitKind';
 import { INITIAL_KIND } from '../../kinds';
 
 /**
@@ -15,7 +15,7 @@ const outline = (shape: ShapeModel) => ellipsePath(shape.bounds);
 
 function createInitial(shape: ShapeModel, _ctx: RenderContext): Group {
   const group = new Group();
-  group.add(fillMesh(outline(shape), new Color(EXIT_COLOR), 1));
+  group.add(fillMesh(outline(shape), new Color(POINT_COLOR), 1));
   return group;
 }
 
@@ -26,7 +26,6 @@ export const definition: ShapeDefinition = {
   resizable: false,
   styleable: false,
   plainText: true,
-  swatch: () => '<circle cx="20" cy="14" r="7" fill="currentColor"/>',
   palette: {
     name: 'Point d’entrée',
     category: 'states',

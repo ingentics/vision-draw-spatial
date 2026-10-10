@@ -16,8 +16,11 @@ import { keys } from '../keys';
 export const SIZE = 'size';
 /** Taille d'une table : `L` (normale), `M` (20 % plus petite), `S` (encore 20 % plus petite). */
 export type TableLevel = 'L' | 'M' | 'S';
-/** Échelle de chaque taille de table, dans l'ordre du panneau. */
+/** Échelle de chaque taille de table. */
 export const LEVEL_SCALES: Readonly<Record<TableLevel, number>> = { L: 1, M: 0.8, S: 0.64 };
+
+/** Tailles d'une table, de la plus grande à la plus petite (boutons, touches « + » / « - »). */
+export const TABLE_LEVELS: readonly TableLevel[] = ['L', 'M', 'S'];
 
 /** Attribut d'une vue matérialisée (sujet 272). */
 export const MATERIALIZED = 'materialized';
@@ -60,13 +63,12 @@ export const TABLE = {
 
 /** Taille voisine, d'un cran vers `S` (`1`) ou vers `L` (`-1`) ; la même au bout. */
 export function steppedLevel(level: TableLevel, step: 1 | -1): TableLevel {
-  const levels = Object.keys(LEVEL_SCALES) as TableLevel[];
-  return levels[levels.indexOf(level) + step] ?? level;
+  return TABLE_LEVELS[TABLE_LEVELS.indexOf(level) + step] ?? level;
 }
 
 /** Valeur d'une taille de table ? */
 export const isTableLevel = (value: string | undefined): value is TableLevel =>
-  value !== undefined && Object.prototype.hasOwnProperty.call(LEVEL_SCALES, value);
+  (TABLE_LEVELS as readonly (string | undefined)[]).includes(value);
 
 /** Taille de la table `shape` ; un ancien `spatial.rdd.secondary` est ignoré (sans migration, sujet 430). */
 export function tableLevel(shape: ShapeModel): TableLevel {

@@ -1,5 +1,5 @@
 import type { ParseWarning, UnsupportedReport } from '../engine';
-import { downloadBlob } from './download';
+import { baseName, downloadBlob } from './download';
 
 /** Télécharge le rapport des Diagnostics du fichier courant en JSON (SPEC §8.4). */
 export function exportJson(
@@ -13,9 +13,5 @@ export function exportJson(
     currentFile: fileId ? { fileId, ...report, warnings, appError } : undefined,
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const base = (fileId ?? 'drawio-spatial')
-    .split('/')
-    .pop()!
-    .replace(/\.[^.]+$/, '');
-  downloadBlob(blob, `${base}-diagnostics.json`);
+  downloadBlob(blob, `${baseName(fileId ?? 'drawio-spatial')}-diagnostics.json`);
 }

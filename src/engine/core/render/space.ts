@@ -1,5 +1,6 @@
 import { Matrix4 } from 'three';
-import type { Object3D } from 'three';
+import type { Box3, Object3D } from 'three';
+import type { Rect } from '../model/types';
 
 /**
  * Repère (SPEC §8.1) : le schéma est posé au sol, x draw.io → X, y draw.io → Z, Y vers le haut.
@@ -36,4 +37,9 @@ export function setPageTransform(
   object.matrix.decompose(object.position, object.quaternion, object.scale);
   object.matrixAutoUpdate = false;
   object.matrixWorldNeedsUpdate = true;
+}
+
+/** Emprise au sol d'une boîte du monde, en coordonnées de page (X = x, Z = y). */
+export function pageRectOfBox(box: Box3): Rect {
+  return { x: box.min.x, y: box.min.z, width: box.max.x - box.min.x, height: box.max.z - box.min.z };
 }

@@ -21,6 +21,7 @@ export type {
   Selection,
 } from './core/domains/types';
 export type { ImageExportOptions } from './core/domains/view/imageExport';
+export { PLANTUML_FORMAT } from './core/export/plantumlText';
 
 // Paramètres (SPEC §13)
 export { DEFAULT_SETTINGS, mergeSettings, modePalette, SETTINGS_LIMITS } from './core/settings';

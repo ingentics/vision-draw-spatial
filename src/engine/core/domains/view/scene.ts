@@ -11,6 +11,7 @@ import type { Settings } from '../../settings';
 import type { ReadonlyShapeModel } from '../../model/readonly';
 import { freezePlain } from '../../model/freeze';
 import { standingFigure } from '../../render/standing';
+import { pageRectOfBox } from '../../render/space';
 
 /**
  * Scènes des pages : construction (contexte de rendu, niveau, décors des effets) et lecture de la scène affichée
@@ -62,8 +63,7 @@ export class SceneView {
     if (!object) return undefined;
     const box = new Box3().setFromObject(object);
     if (box.isEmpty()) return undefined;
-    // Monde → page : X = x, Z = y.
-    return { x: box.min.x, y: box.min.z, width: box.max.x - box.min.x, height: box.max.z - box.min.z };
+    return pageRectOfBox(box);
   }
 
   /**

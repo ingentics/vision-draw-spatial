@@ -13,8 +13,8 @@ const ERROR = 'error';
 /** Rouge d'une sortie en erreur. */
 export const ERROR_COLOR = '#d32f2f';
 
-/** Noir d'une sortie attendue (et des points du mode). */
-export const EXIT_COLOR = '#000000';
+/** Noir des points d'entrée et des sorties attendues. */
+export const POINT_COLOR = '#000000';
 
 export const isErrorExit = (shape: ShapeModel | undefined): boolean =>
   !!shape && isFinal(shape) && keys.flag(shape, ERROR);
@@ -25,7 +25,7 @@ export const leadsToError = (page: PageModel, edge: EdgeModel): boolean => isErr
 /** Sortie en erreur ou attendue ; la couleur est aussi écrite dans le style, pour draw.io. */
 function setErrorExit(edit: ModeEdit, shape: ShapeModel, error: boolean): void {
   if (!isFinal(shape)) return;
-  const color = error ? ERROR_COLOR : EXIT_COLOR;
+  const color = error ? ERROR_COLOR : POINT_COLOR;
   edit.setElementAttribute(shape.id, ERROR, error ? '1' : undefined);
   edit.setElementStyle(shape.id, 'fillColor', color);
   edit.setElementStyle(shape.id, 'strokeColor', color);

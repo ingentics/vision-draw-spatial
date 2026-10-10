@@ -1,5 +1,5 @@
 import type { PageModeDefinition } from '../../../core/plugins';
-import { numberValue, shapeOf, shapeTarget } from '../../../core/plugins';
+import { numberValue, shapeOf } from '../../../core/plugins';
 import { FIT_COMPOSITE_KEY } from './composites/compositeKey';
 import { ERROR_COLOR, EXIT_PROPERTY, leadsToError } from './exits/exitKind';
 import {
@@ -8,11 +8,10 @@ import {
   compositeObstacles,
   placeInComposites,
 } from './composites/compositeLayout';
-import { COMPOSITE_KIND, FINAL_KIND, INITIAL_KIND, STATE_KIND, isState } from './kinds';
+import { COMPOSITE_KIND, FINAL_KIND, INITIAL_KIND, STATE_KIND } from './kinds';
 import { STATES_KEYS } from './keys';
 import { COMPOSITE_LIGHTENING, OBSTACLE_GAP, STATES_SETTINGS } from './settings';
-import { BODY_TEXT, stateBody } from './state/bodyText';
-import { fitState, setBody } from './state/stateBody';
+import { BODY_PROPERTY, fitState } from './state/stateBody';
 import { stateParts } from './state/stateParts';
 import { TRANSITION_PROPERTIES, canConnect, styleTransition, transitionIssues } from './transitions/transitionRules';
 
@@ -67,26 +66,8 @@ export const definition: PageModeDefinition = {
   },
   gestures: {
     properties: [
-      {
-        type: 'text',
-        key: BODY_TEXT.name,
-        label: 'Contenu',
-        title:
-          'Contenu de l’état sous son titre, en texte libre (spatial.sm.body) ; ⌘ + Entrée pour valider, double-clic dans la zone pour l’éditer sur place',
-        multiline: true,
-        value: (_page, target) => {
-          const shape = shapeTarget(target);
-          return shape && stateBody(shape);
-        },
-        write: (edit, target, value) => {
-          const shape = shapeTarget(target);
-          if (shape) setBody(edit, shape, value ?? '');
-        },
-        hidden: (_page, target) => {
-          const shape = shapeTarget(target);
-          return !shape || !isState(shape);
-        },
-      },
+      // Contenu d'un état.
+      BODY_PROPERTY,
       // Point de sortie : attendue ou en erreur.
       EXIT_PROPERTY,
     ],

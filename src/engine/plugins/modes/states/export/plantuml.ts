@@ -1,4 +1,4 @@
-import { byId, plantUmlLine, plantUmlQuoted } from '../../../../core/plugins';
+import { PLANTUML_FORMAT, byId, plantUmlLine, plantUmlQuoted } from '../../../../core/plugins';
 import type { EdgeModel, PageModel, ShapeModel } from '../../../../core/plugins';
 import { compositeOf } from '../composites/compositeLayout';
 import { ERROR_COLOR, isErrorExit } from '../exits/exitKind';
@@ -133,3 +133,6 @@ function transitionName(edge: EdgeModel): string {
   const name = plantUmlLine(edge.label);
   return name ? ` : ${name}` : '';
 }
+
+/** Export PlantUML de la page, pour la fenêtre d'export commune de l'appli (format et texte). */
+export const statesExporter = { ...PLANTUML_FORMAT, export: statesPlantUml };

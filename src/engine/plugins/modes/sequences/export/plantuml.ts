@@ -1,13 +1,14 @@
 import {
+  PLANTUML_FORMAT,
   byId,
   edgesById,
   elementName,
   plantUmlLine,
   plantUmlQuoted,
   shapesById,
-  styleFlag,
 } from '../../../../core/plugins';
 import type { EdgeModel, PageModel, ShapeModel } from '../../../../core/plugins';
+import { isReturnEdge } from '../direction';
 import { EVENT_SOURCES, PARTICIPANT, flowLabel } from '../flows';
 import { keys } from '../keys';
 import { sequenceState } from '../steps';
@@ -32,11 +33,7 @@ import type { SequenceExporter } from './index';
  * Une forme de type `bus` ou `queue` (`spatial.seq.participant`, sujet 97) est une `queue` ; si la première flèche d'un
  * flux va vers elle, elle est lue dans l'autre sens : le flux part du bus.
  */
-export const plantUml: SequenceExporter = {
-  id: 'plantuml',
-  name: 'PlantUML',
-  export: sequencePlantUml,
-};
+export const plantUml: SequenceExporter = { ...PLANTUML_FORMAT, export: sequencePlantUml };
 
 /** Aller encore ouvert : alias de sa source (undefined = extérieur) et de sa cible activée. */
 interface Call {
@@ -104,7 +101,7 @@ function messages(order: EdgeModel[], alias: (id: string | undefined) => string 
   const lines: string[] = [];
   const stack: Call[] = [];
   // Un rappel B → A pendant l'aller A → B ne se distingue d'un retour que si le flux dessine ses retours en pointillés.
-  const dashedReturns = order.some((edge) => styleFlag(edge.style, 'dashed'));
+  const dashedReturns = order.some(isReturnEdge);
   const close = () => {
     const { caller, callee } = stack.pop()!;
     lines.push(`${message(callee, '-->', caller, true)} --`);
@@ -114,9 +111,9 @@ function messages(order: EdgeModel[], alias: (id: string | undefined) => string 
     const to = alias(edge.targetId);
     const text = messageText(edge);
     const label = text ? ` : ${text}` : '';
-    // Pleine (si le flux n'a pas de pointillés) ou en pointillés, une flèche qui ferme un aller ouvert est son retour : seuls les retours absents sont
-    // générés. Une flèche pleine vers l'extérieur reste une sortie du diagramme (`->]`).
-    const dashed = styleFlag(edge.style, 'dashed');
+    // Pleine (si le flux n'a pas de pointillés) ou en pointillés, une flèche qui ferme un aller ouvert est son retour :
+    // seuls les retours absents sont générés. Une flèche pleine vers l'extérieur reste une sortie du diagramme (`->]`).
+    const dashed = isReturnEdge(edge);
     const closes = from !== undefined && (dashed || (!dashedReturns && to !== undefined));
     const opened = closes ? lastIndex(stack, (call) => call.callee === from && call.caller === to) : -1;
     if (opened >= 0) {

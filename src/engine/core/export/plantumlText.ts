@@ -3,6 +3,9 @@
  * les textes repris des formes et des flèches.
  */
 
+/** Format PlantUML d'un export de mode : l'appli en montre le rendu (fenêtre d'export commune). */
+export const PLANTUML_FORMAT = { id: 'plantuml', name: 'PlantUML' } as const;
+
 /** Retours à la ligne en `\n` de PlantUML (le texte tient sur une ligne du diagramme). */
 export function plantUmlLine(text: string): string {
   return text.trim().replace(/\r?\n/g, '\\n');

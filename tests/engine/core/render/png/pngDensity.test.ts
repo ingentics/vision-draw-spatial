@@ -1,6 +1,13 @@
 import { inflateSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
-import { pngDensity, withPngDensity } from '../../../../../src/engine/core/render/png/pngDensity';
+import { withPngDensity } from '../../../../../src/engine/core/render/png/pngDensity';
+
+/** Résolution (dpi) lue dans le bloc `pHYs` du PNG (unité : le mètre), `undefined` sans bloc. */
+function pngDensity(png: Uint8Array): number | undefined {
+  const type = Buffer.from(png).indexOf('pHYs');
+  if (type < 0 || png[type + 12] !== 1) return undefined;
+  return Math.round(new DataView(png.buffer, png.byteOffset + type + 4, 4).getUint32(0) * 0.0254);
+}
 
 /** PNG 1 × 1 px transparent, sans bloc pHYs. */
 const PNG = Uint8Array.from(

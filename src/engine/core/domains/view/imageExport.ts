@@ -3,6 +3,7 @@ import type { BufferGeometry, Object3D } from 'three';
 import { inflate } from '../../model/geometry';
 import type { PageModel, Rect } from '../../model/types';
 import { orientBillboards } from '../../render/billboard';
+import { pageRectOfBox } from '../../render/space';
 import { imageSize, imageTiles } from '../../render/png/imageTiles';
 import { BASE_DPI, withPngDensity } from '../../render/png/pngDensity';
 import type { EngineCore } from '../EngineCore';
@@ -121,6 +122,5 @@ function visibleBounds(root: Object3D): Rect | undefined {
     box.union(part.copy(geometry.boundingBox).applyMatrix4(object.matrixWorld));
   });
   if (box.isEmpty()) return undefined;
-  // Monde → page : X = x, Z = y.
-  return { x: box.min.x, y: box.min.z, width: box.max.x - box.min.x, height: box.max.z - box.min.z };
+  return pageRectOfBox(box);
 }

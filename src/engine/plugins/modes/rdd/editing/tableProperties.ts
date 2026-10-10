@@ -6,12 +6,11 @@ import { addDivider, setPhysicalName, setTableLevel } from '../tables/operations
 import { DB_NAME } from '../tables/physicalLayer';
 import type { TableKind, TableOptionKey } from '../tables/tableKinds';
 import { tableKindOf } from '../tables/tableKinds';
-import type { TableLevel } from '../tables/tableLayout';
 import {
-  LEVEL_SCALES,
   MATERIALIZED,
   PRIVATE,
   SIZE,
+  TABLE_LEVELS,
   isTableLevel,
   steppedLevel,
   tableLevel,
@@ -131,7 +130,7 @@ const TABLE_SIZE_PROPERTY: ModeProperty = {
   label: 'Taille',
   title: 'Taille de la table (spatial.rdd.size) : L, M (× 0,8) ou S (× 0,64) ; touches « + » / « - » sur la table',
   options: () =>
-    (Object.keys(LEVEL_SCALES) as TableLevel[]).map((level) => ({
+    TABLE_LEVELS.map((level) => ({
       value: level,
       label: level,
       ...LEVEL_BUTTONS[level],

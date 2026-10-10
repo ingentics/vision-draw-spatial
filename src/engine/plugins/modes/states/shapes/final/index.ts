@@ -1,7 +1,7 @@
 import { Color, Group } from 'three';
 import { ellipsePath, fillMesh, inset, strokeMesh } from '../../../../../core/plugins';
 import type { RenderContext, ShapeDefinition, ShapeModel } from '../../../../../core/plugins';
-import { ERROR_COLOR, EXIT_COLOR, isErrorExit } from '../../exits/exitKind';
+import { ERROR_COLOR, POINT_COLOR, isErrorExit } from '../../exits/exitKind';
 import { FINAL_KIND } from '../../kinds';
 
 /**
@@ -18,7 +18,7 @@ const outline = (shape: ShapeModel) => ellipsePath(shape.bounds);
 
 function createFinal(shape: ShapeModel, _ctx: RenderContext): Group {
   const group = new Group();
-  const color = new Color(isErrorExit(shape) ? ERROR_COLOR : EXIT_COLOR);
+  const color = new Color(isErrorExit(shape) ? ERROR_COLOR : POINT_COLOR);
   const ring = outline(shape);
   group.add(fillMesh(ring, new Color('#ffffff'), 1));
   const border = strokeMesh(ring, color, 1, { width: 1.5, closed: true });
@@ -36,7 +36,6 @@ export const definition: ShapeDefinition = {
   resizable: false,
   styleable: false,
   plainText: true,
-  swatch: () => '<circle cx="20" cy="14" r="9"/><circle cx="20" cy="14" r="5" fill="currentColor"/>',
   palette: {
     name: 'Point de sortie',
     category: 'states',

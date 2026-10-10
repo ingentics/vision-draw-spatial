@@ -66,7 +66,7 @@ function FlowsSection({ page, onEdit, current, exporters }: ModePanelProps) {
         </p>
       )}
       {flows.length > 0 && (
-        <div className="flow-exports">
+        <div className="mode-exports">
           {SEQUENCE_EXPORTERS.map((exporter) => (
             <button key={exporter.id} type="button" className="button" onClick={() => setExporting(exporter)}>
               Exporter en {exporter.name}

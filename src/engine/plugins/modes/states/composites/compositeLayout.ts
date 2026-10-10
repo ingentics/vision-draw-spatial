@@ -110,7 +110,7 @@ export function compositeStyle(preset: StylePreset): string {
  * Style d'un ensemble (sujet 345) : fond opaque (`fillColor`), bordure (`strokeColor`) et cadre du nom
  * (`labelBorderColor`, `fontColor`), pour draw.io aussi.
  */
-export function setCompositeStyle(edit: ModeEdit, shape: ShapeModel, preset: StylePreset): void {
+function setCompositeStyle(edit: ModeEdit, shape: ShapeModel, preset: StylePreset): void {
   if (!isComposite(shape)) return;
   edit.setElementStyle(shape.id, 'fillColor', preset.fillColor);
   // Fond opaque (sujet 232) : l'opacité des ensembles posés avant est retirée.

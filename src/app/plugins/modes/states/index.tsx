@@ -1,11 +1,8 @@
 import { useMemo, useState } from 'react';
-import { statesPlantUml } from '../../../../engine/plugins/modes/states/api';
+import { statesExporter } from '../../../../engine/plugins/modes/states/api';
 import { ExportDialog } from '../../../export/ExportDialog';
 import { Section } from '../../../PanelSection';
 import type { ModePanel, ModePanelProps } from '../registry';
-
-/** Format de l'export, pour la fenêtre commune (rendu PlantUML des paramètres). */
-const PLANTUML = { id: 'plantuml', name: 'PlantUML' };
 
 /**
  * Mode « Machine à états » (sujet 436), partie appli : la section du panneau de la page avec l'export PlantUML, dans la
@@ -17,7 +14,7 @@ function StatesSection({ page, exporters }: ModePanelProps) {
   const [exporting, setExporting] = useState(false);
   return (
     <Section title="Machine à états">
-      <div className="flow-exports">
+      <div className="mode-exports">
         <button
           type="button"
           className="button"
@@ -37,6 +34,6 @@ function StatesExport({
   exporters,
   onClose,
 }: Pick<ModePanelProps, 'page' | 'exporters'> & { onClose: () => void }) {
-  const source = useMemo(() => statesPlantUml(page), [page]);
-  return <ExportDialog format={PLANTUML} source={source} exporters={exporters} onClose={onClose} />;
+  const source = useMemo(() => statesExporter.export(page), [page]);
+  return <ExportDialog format={statesExporter} source={source} exporters={exporters} onClose={onClose} />;
 }

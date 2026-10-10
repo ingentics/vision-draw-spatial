@@ -1,7 +1,7 @@
 import { Object3D } from 'three';
 import type { Mesh, MeshBasicMaterial } from 'three';
 import { describe, expect, it } from 'vitest';
-import { ERROR_COLOR, EXIT_COLOR } from '../../../../../../src/engine/plugins/modes/states/exits/exitKind';
+import { ERROR_COLOR, POINT_COLOR } from '../../../../../../src/engine/plugins/modes/states/exits/exitKind';
 import { definition } from '../../../../../../src/engine/plugins/modes/states/shapes/final';
 import { MEASURE } from '../../../../../helpers';
 import { setup } from '../helpers';
@@ -15,7 +15,7 @@ function dotColor(id: string): string {
 
 describe('mode Machine à états : point de sortie (sujets 433, 440)', () => {
   it('noir pour une sortie attendue, rouge pour une sortie en erreur', () => {
-    expect(dotColor('final1')).toBe(EXIT_COLOR);
+    expect(dotColor('final1')).toBe(POINT_COLOR);
     expect(dotColor('final5')).toBe(ERROR_COLOR);
   });
 

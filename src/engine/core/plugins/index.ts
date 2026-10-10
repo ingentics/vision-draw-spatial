@@ -74,7 +74,7 @@ export {
 } from '../model/geometry';
 export { sideConstraintAt } from '../edit/edgeEnds';
 export { fontStyleValue, isHexColor, styleFlag, styleNumber, styleOpacity } from '../model/styleValues';
-export { plantUmlLine, plantUmlQuoted } from '../export/plantumlText';
+export { PLANTUML_FORMAT, plantUmlLine, plantUmlQuoted } from '../export/plantumlText';
 
 // Briques de dessin (Three.js) : rendu à plat et en volume, contours, traits, textes, couleurs.
 export { PART_ORDER } from '../render/types';

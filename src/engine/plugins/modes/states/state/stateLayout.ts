@@ -21,7 +21,7 @@ export const STATE = {
   lineHeight: 1.2,
 } as const;
 
-/** Police du titre et du contenu, pour la mesure. */
+/** Police du titre, pour sa mesure (le contenu n'est pas mesuré : ses lignes ne sont pas coupées). */
 export const TITLE_FONT = { size: STATE.titleSize, bold: true, italic: false };
 
 /** Lignes du contenu : une par ligne saisie, lignes vides de la fin retirées ; aucune sans contenu. */

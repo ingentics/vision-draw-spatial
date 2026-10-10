@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import { PLANTUML_FORMAT } from '../../engine';
 import type { ExporterSettings } from '../../engine';
 import { plantUmlUrls } from './plantumlServer';
 
@@ -11,7 +12,7 @@ type Preview = (
 
 /** Rendus connus, par format ; un format sans rendu n'affiche que son texte. */
 const PREVIEWS: Record<string, Preview> = {
-  plantuml: async (source, exporters) => {
+  [PLANTUML_FORMAT.id]: async (source, exporters) => {
     const { svg, editor } = await plantUmlUrls(source, exporters.plantuml);
     return { image: svg, link: editor, linkLabel: 'Ouvrir sur plantuml.com' };
   },

@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import type { ImageExportOptions } from '../engine';
-import { ChoiceGroup } from './ChoiceGroup';
-import type { ChoiceOption } from './ChoiceGroup';
-import { NumberField } from './Fields';
-import { Section } from './PanelSection';
-import { CollapseButton } from './Sidebar';
+import type { ImageExportOptions } from '../../engine';
+import { ChoiceGroup } from '../ChoiceGroup';
+import type { ChoiceOption } from '../ChoiceGroup';
+import { NumberField } from '../Fields';
+import { Section } from '../PanelSection';
+import { CollapseButton } from '../Sidebar';
 
 type Density = '1' | '1.5' | '2';
 type Content = 'selection' | 'page';

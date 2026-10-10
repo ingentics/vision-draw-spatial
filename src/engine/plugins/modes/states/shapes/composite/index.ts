@@ -48,7 +48,7 @@ function tabText(shape: ShapeModel, ctx: MeasureContext): Rect | undefined {
  * Partie droite de l'onglet, avant le S ; undefined sans nom. Le nom a la même marge des deux côtés : du bord gauche,
  * et jusqu'au milieu du S (sujet 228).
  */
-export function tabRect(shape: ShapeModel, ctx: MeasureContext): Rect | undefined {
+function tabRect(shape: ShapeModel, ctx: MeasureContext): Rect | undefined {
   const text = tabText(shape, ctx);
   if (!text) return undefined;
   const { padding, curve } = COMPOSITE.tab;
@@ -60,7 +60,7 @@ export function tabRect(shape: ShapeModel, ctx: MeasureContext): Rect | undefine
  * Contour de l'onglet : bord gauche dans le prolongement de l'ensemble, coin haut-gauche carré, haut jusqu'après le
  * texte, puis un S (courbe de Bézier à tangentes horizontales) qui redescend jusqu'au bord haut de l'ensemble.
  */
-export function tabPath(shape: ShapeModel, ctx: MeasureContext): Point[] | undefined {
+function tabPath(shape: ShapeModel, ctx: MeasureContext): Point[] | undefined {
   const rect = tabRect(shape, ctx);
   if (!rect) return undefined;
   const { x, y: top, width, height } = rect;
@@ -86,7 +86,7 @@ function hitBounds(shape: ShapeModel, ctx: MeasureContext): Rect {
  * Contour de l'ensemble et de son onglet, d'un seul tenant : haut de l'onglet, S, bord haut de l'ensemble à droite de
  * l'onglet, puis le reste du rectangle ; le bord gauche file de bas en haut de l'onglet. Sans nom : le rectangle.
  */
-export function compositeOutline(shape: ShapeModel, ctx: MeasureContext): Point[] {
+function compositeOutline(shape: ShapeModel, ctx: MeasureContext): Point[] {
   const tab = tabPath(shape, ctx);
   if (!tab) return rectPath(shape.bounds);
   const { x, y, width, height } = shape.bounds;

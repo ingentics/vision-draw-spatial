@@ -1982,12 +1982,12 @@ body {
   padding: 2px 4px;
 }
 
-.flow-exports {
+.mode-exports {
   display: grid;
   gap: 6px;
 }
 
-.flow-exports .button {
+.mode-exports .button {
   justify-content: center;
 }
 

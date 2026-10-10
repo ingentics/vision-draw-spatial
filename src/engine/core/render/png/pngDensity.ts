@@ -34,14 +34,6 @@ export function withPngDensity(png: Uint8Array, dpi: number): Uint8Array {
   return out;
 }
 
-/** Résolution (dpi) d'un PNG lue dans son bloc `pHYs`, `undefined` sans bloc ou sans unité. */
-export function pngDensity(png: Uint8Array): number | undefined {
-  const physical = pngChunks(png).find((chunk) => chunk.type === 'pHYs');
-  if (!physical || png[physical.start + 16] !== 1) return undefined;
-  const perMeter = new DataView(png.buffer, png.byteOffset + physical.start + 8, 4).getUint32(0);
-  return Math.round(perMeter * INCH);
-}
-
 /** Blocs d'un PNG : type et étendue (longueur, type, données, CRC). */
 function pngChunks(png: Uint8Array): Array<{ type: string; start: number; end: number }> {
   const view = new DataView(png.buffer, png.byteOffset, png.byteLength);

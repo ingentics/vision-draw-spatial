@@ -21,8 +21,8 @@ import type {
 import { DrawioSpatial } from '../react/DrawioSpatial';
 import { exportJson } from './diagnosticsExport';
 import { DiagnosticsPanel } from './DiagnosticsPanel';
-import { downloadBlob } from './download';
-import { ExportPanel } from './ExportPanel';
+import { baseName, downloadBlob } from './download';
+import { ExportPanel } from './export/ExportPanel';
 import { SlidingModeBar } from './ModeBar';
 import { PageTabs } from './PageTabs';
 import { ParentPagesBar } from './ParentPagesBar';
@@ -201,11 +201,7 @@ export function Viewer({
           setError('Export : rien à dessiner');
           return;
         }
-        const base = file.name
-          .split('/')
-          .pop()!
-          .replace(/\.[^.]+$/, '');
-        const name = `${base}-${currentPage?.name ?? 'page'}`.replace(/[\\/:*?"<>|]/g, '-');
+        const name = `${baseName(file.name)}-${currentPage?.name ?? 'page'}`.replace(/[\\/:*?"<>|]/g, '-');
         downloadBlob(blob, `${name}.png`);
       } catch (cause) {
         setError(`Export impossible : ${cause instanceof Error ? cause.message : String(cause)}`);
