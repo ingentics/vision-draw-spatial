@@ -15,3 +15,11 @@
 - Écart de comportement : aucun.
 - **Fini quand :** chaque chemin et nom cité existe, et un agent trouve depuis SUMMARY l'exemple de chaque point
   d'entrée ajouté par 477, 478 et 481 ; `make check` vert.
+- Fait : `SUMMARY.md` : Event storming résumé avec l'aimantation, les cases et l'échange, l'ordre de dessin et le nom
+  du type enregistré ; « Où regarder », ligne « Nouveau mode » : `plugins/modes/eventstorming/`, avec le fichier
+  d'exemple de chaque point d'entrée de 477, 478 et 481 et la police nommée (la carte de `core/format/` cite
+  `fileLabels` depuis 503). `AJOUTER_UN_MODE.md` : ligne `gestures.dragPlaces` du tableau des garanties avec le survol
+  et le dépôt depuis la palette (page du modèle, forme que le modèle créerait) ; paragraphe de `dragPlaces` replié.
+  `AJOUTER_UNE_FORME.md` : `description` d'un élément de palette (479) et police nommée (`fontFamily`, mesure avec
+  `family`, repli en Roboto si l'hôte ne la fournit pas). SPEC §14.5 : ordre de dessin d'une colonne (502). Chemins
+  cités vérifiés (tous présents) ; `guides.test.ts` vert. Écart : aucun (docs seules).

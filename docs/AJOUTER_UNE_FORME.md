@@ -213,6 +213,12 @@ géométriques (`outline`, `contains`, `hitBounds`, `textZone`, `movedHandles`) 
 (`MeasureContext`) : dessin, clic et poignées mesurent pareil. Pas de mesure globale : deux moteurs d'une page ont
 chacun la leur. Ce qui se calcule sans moteur (taille d'un modèle de la palette) prend `approximateMeasure`.
 
+**Police nommée** (sujet 476) : un texte dessiné dans une autre police que Roboto la demande par `fontFamily` (style
+draw.io, ou style passé au label) ; sa mesure la nomme aussi (`family` de la police mesurée), sinon la largeur serait
+celle de Roboto. Le moteur ne dessine que les polices que l'hôte lui fournit (`fonts.families`, `docs/COMPOSANT.md`) :
+une police absente retombe sans bruit en Roboto. Ex. label en feutre des post-it Event storming
+(`shapes/common/stickyLayout.ts`).
+
 ### Une forme en panne
 
 Le moteur appelle une forme par son registre, qui protège chaque appel (`AJOUTER_UN_PLUGIN.md` section 6) : une
@@ -419,8 +425,9 @@ Les champs concernés (clic, poignées, accroche des flèches, texte brut, prise
 sont dans le tableau de la section 2, avec leur défaut et un exemple.
 
 Un élément de palette (`PaletteEntry`, exposé comme `ShapeTemplate` avec l'`id` de la forme) porte le style **et** la taille par défaut de draw.io, une catégorie, un rang
-`order` (ordre d'affichage, toutes formes confondues), des mots-clés de recherche et une icône (contenu SVG d'un cadre
-`0 0 40 28`, sans couleurs). Un réglage (`ShapeProperty`) est un champ du schéma commun (`Field`, décrit dans
+`order` (ordre d'affichage, toutes formes confondues), des mots-clés de recherche, une aide facultative (`description`,
+montrée sous le nom dans l'infobulle de la palette et cherchée aussi ; ex. exemples d'un post-it Event storming) et une
+icône (contenu SVG d'un cadre `0 0 40 28`, sans couleurs). Un réglage (`ShapeProperty`) est un champ du schéma commun (`Field`, décrit dans
 `AJOUTER_UN_PLUGIN.md` section 7) : une case (`toggle`, écrit `1` / `0` ; `checkedByDefault` : cochée quand
 la clé est absente), un nombre, un texte ou un choix (`choice`, `options` fixes) ; une clé `spatial.…` est écrite
 comme attribut spatial, et sa constante vit dans la forme (le tronc n'en connaît aucune, sujet 306). Un texte `live: true` est réglé en direct : chaque frappe est écrite en une seule étape

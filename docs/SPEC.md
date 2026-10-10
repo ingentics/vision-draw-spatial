@@ -1137,9 +1137,9 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     au-dessous d'une autre Constraint (sujet 486). Centre du post-it dans
     une case : il s'y met et s'y pose. Lâché sur un autre post-it hors des cases : les deux échangent leur place.
     Mêmes cases dès qu'un post-it de la palette survole la page (posé dans la case visée, sans échange). Pas avec Alt.
-  - **Ordre de dessin** (sujet 484) : un post-it posé dont le bas touche le haut d'un autre passe juste derrière lui (et
-    un post-it collé au-dessus d'un post-it posé passe derrière celui-ci) : l'ombre du post-it du dessus passe sous
-    celui du dessous.
+  - **Ordre de dessin** (sujets 484, 502) : un post-it dont le bas touche le haut d'un autre passe derrière lui, pour
+    toute la colonne d'un post-it posé (post-it reliés de proche en proche par un contact haut / bas) : l'ombre de
+    chaque post-it passe sous celui du dessous. Les autres post-it gardent leur ordre.
   - **Réglage « Labels »** de la page (`spatial.es.labels=0` décoché, recopié sur chaque post-it ; une étape
     d'annulation) : décoché, aucun label et le texte prend toute la forme.
   - **Contacts** (`contacts(page)`, `contacts/contacts.ts`) : deux post-it se touchent quand deux bords parallèles

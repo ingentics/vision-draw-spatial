@@ -93,8 +93,9 @@ Règles :
   placeholder ; retournement et pivot par quarts de tour pour celles qui le déclarent.
 - **Modes et effets de page** (`plugins/modes/`, `plugins/effects/`) : modes RDD (tables, relations, régions),
   Séquences (flux de flèches, export PlantUML) et Machine à états (états, points d'entrée et de sortie, ensembles,
-  transitions, export PlantUML, simulation pas à pas) et Event storming (post-it typés, contacts bord à bord) ;
-  effet forêt.
+  transitions, export PlantUML, simulation pas à pas) et Event storming (post-it typés, contacts bord à bord,
+  aimantation bord à bord, cases où poser un post-it et échange, ordre de dessin des colonnes, nom du type en tête de
+  la valeur enregistrée) ; effet forêt.
 - **Export d'image** : PNG de la page ou de la sélection, à plat, hors écran (`core/domains/view/imageExport.ts`,
   `core/render/png/`, panneau `src/app/export/ExportPanel.tsx` ; SPEC §14.6).
 - **Flèches** (`core/render/edges/`) : routeurs draw.io portés tels quels (orthogonal, segment, elbow, side-to-side,
@@ -116,7 +117,7 @@ Règles :
 |---|---|
 | Nouveau plugin (forme, mode, effet) | `docs/AJOUTER_UN_PLUGIN.md` : le patron commun (dossier, collecte, API des plugins, lecture seule, appel protégé, réglages déclarés, tests de contrat), puis le guide de la famille |
 | Nouvelle forme draw.io | `docs/AJOUTER_UNE_FORME.md` (parcours complet : style → kind → registre → rendus 2D/iso/3D/mini-carte, clic, flèches, diagnostics, palette, fixture) ; exemple : `plugins/shapes/geometry/diamond/`, `core/render/geometry/orient.ts` |
-| Nouveau mode de page | `docs/AJOUTER_UN_MODE.md` ; exemples `plugins/modes/sequences/` (avec sa partie appli `src/app/plugins/modes/sequences/`), `plugins/modes/rdd/` (avec ses formes) et `plugins/modes/states/` (formes, bouts imposés, réglages de page posés, export PlantUML, simulation pas à pas qui prend la main sur la page : `simulation/statesSimulator.ts`, couche `CanvasOverlay` de `src/app/plugins/modes/states/`) |
+| Nouveau mode de page | `docs/AJOUTER_UN_MODE.md` ; exemples `plugins/modes/sequences/` (avec sa partie appli `src/app/plugins/modes/sequences/`), `plugins/modes/rdd/` (avec ses formes) et `plugins/modes/states/` (formes, bouts imposés, réglages de page posés, export PlantUML, simulation pas à pas qui prend la main sur la page : `simulation/statesSimulator.ts`, couche `CanvasOverlay` de `src/app/plugins/modes/states/`) et `plugins/modes/eventstorming/` (aimantation `places/snapTargets.ts`, cases au glisser et échange `places/placesAround.ts`, ordre de dessin `order/stacking.ts`, labels du fichier `file/fileLabel.ts`, police nommée du label) |
 | Nouvel effet de page | `docs/AJOUTER_UN_EFFET.md` (contrat, pannes, réglages, `spatial.effects`, test) ; exemple `plugins/effects/forest/`, test `tests/engine/plugins/effects/forest.test.ts` |
 | Comportement d'édition | SPEC §14, `src/engine/core/edit/`, `src/engine/core/format/cellEdits.ts` |
 | Rendu / caméra / vues | SPEC §8–9, `core/render/pageScene.ts`, `core/render/sceneManager.ts`, `core/interaction/cameraState.ts` (état, bornes), `cameraProjection.ts`, `cameraFraming.ts`, `cameraMoves.ts` |
