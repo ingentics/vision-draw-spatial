@@ -38,6 +38,11 @@ export class SceneView {
     return scene;
   }
 
+  /** Scène construite hors de la vue (export d'image) : non comptée dans les métriques de la page (sujet 453). */
+  buildDetachedScene(page: PageModel, level: SceneLevel): PageScene {
+    return this.createScene(page, level);
+  }
+
   private createScene(page: PageModel, level: SceneLevel): PageScene {
     const core = this.core;
     const scene = buildPageScene(page, core.registry, this.renderContext(page), level, core.pageModes.dressing(page));

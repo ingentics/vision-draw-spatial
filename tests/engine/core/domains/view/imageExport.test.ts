@@ -18,7 +18,7 @@ function setup(options: { page?: boolean; selection?: string[] } = {}) {
         new Set(items.map((item) => item.element.id)),
     },
     sceneView: {
-      buildScene: () => {
+      buildDetachedScene: () => {
         log.push('build');
         return { root: new Group(), dispose: () => log.push('dispose') };
       },

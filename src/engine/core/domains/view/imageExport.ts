@@ -38,7 +38,7 @@ export class ImageExport {
     if (!page) return undefined;
     const kept = options.selectionOnly ? this.selectedIds(page) : undefined;
     if (kept?.size === 0) return undefined;
-    const built = this.core.sceneView.buildScene(page, 'flat');
+    const built = this.core.sceneView.buildDetachedScene(page, 'flat');
     try {
       for (const child of built.root.children) child.visible = !kept || kept.has(child.userData.elementId as string);
       const scene = new Scene();
