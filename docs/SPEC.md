@@ -1050,7 +1050,7 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   `modeCurrentChange`).
 - **Mode Machine à états** (`states`, nom court « États », sujets 433 à 436) : en 2D seulement ; la palette (catégorie
   « États ») propose État, Point d'entrée, Point de sortie et Ensemble, plus Texte, Titre et Post-it. À son arrivée,
-  la page passe en ancrage manuel et en tracé droit (`page.defaults`). Code : `src/engine/plugins/modes/states/`,
+  la page passe en ancrage automatique et en tracé droit (`page.defaults`, sujet 457) : transitions réparties sur les côtés des états, segments directs. Code : `src/engine/plugins/modes/states/`,
   partie appli `src/app/plugins/modes/states/`.
   - **État** (`states-state`, 140 × 60) : rectangle arrondi à fond blanc et bordure fine ; titre en gras centré en
     haut (le label, coupé entre les mots), puis, s'il a un contenu, un trait et le contenu aligné à gauche

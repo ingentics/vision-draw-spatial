@@ -87,7 +87,7 @@ export interface ModePage {
    */
   selectionStyle?: Exclude<SelectionStyle, 'none'>;
   /**
-   * Réglages posés sur une page quand elle passe dans le mode (sujet 442, ex. machine à états : ancrage manuel,
+   * Réglages posés sur une page quand elle passe dans le mode (sujet 442, ex. machine à états : ancrage automatique,
    * tracé droit) : écrits dans l'étape du passage, modifiables ensuite comme sur toute page.
    */
   defaults?: { anchoring?: Anchoring; edgeLine?: EdgeLine };

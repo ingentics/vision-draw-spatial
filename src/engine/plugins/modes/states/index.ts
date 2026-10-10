@@ -41,8 +41,8 @@ export const definition: PageModeDefinition = {
   }),
   page: {
     viewModes: ['top'],
-    // Transitions en ancrage manuel, tracées droites (sujet 442).
-    defaults: { anchoring: 'manual', edgeLine: 'straight' },
+    // Transitions en ancrage automatique, tracées droites : réparties sur les côtés, segments directs (sujet 457).
+    defaults: { anchoring: 'auto', edgeLine: 'straight' },
     palette: {
       shapes: [STATE_KIND, INITIAL_KIND, FINAL_KIND, COMPOSITE_KIND, 'text', 'title', 'post-it'],
       categories: [{ id: 'states', name: 'États', order: 5 }],
