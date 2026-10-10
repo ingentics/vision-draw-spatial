@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { statesExporter } from '../../../../engine/plugins/modes/states/api';
 import { ExportDialog } from '../../../export/ExportDialog';
 import { Section } from '../../../PanelSection';
@@ -6,8 +6,7 @@ import type { ModePanel, ModePanelProps } from '../registry';
 import { SimulationBar } from './SimulationBar';
 import { SimulationStart } from './SimulationStart';
 import { SimulationTrace } from './SimulationTrace';
-import { launch, launchFrom, useOpenedSimulation } from './simulationRun';
-import type { LaunchIssue } from './simulationRun';
+import { launch, launchFrom, useLauncher, useOpenedSimulation } from './simulationRun';
 
 /**
  * Mode « Machine à états » (sujet 436), partie appli : la section du panneau de la page avec la simulation pas à pas
@@ -18,11 +17,8 @@ export const panel: ModePanel = { PageSection: StatesSection, CanvasOverlay: Sim
 
 function StatesSection({ page, exporters, controls }: ModePanelProps) {
   const [exporting, setExporting] = useState(false);
-  const [issue, setIssue] = useState<LaunchIssue>();
   const simulator = useOpenedSimulation(controls);
-  useEffect(() => {
-    setIssue(undefined);
-  }, [page.id, simulator]);
+  const launcher = useLauncher(controls, page);
   return (
     <Section title="Machine à états">
       <div className="mode-exports">
@@ -41,13 +37,13 @@ function StatesSection({ page, exporters, controls }: ModePanelProps) {
               type="button"
               className="button"
               data-tip="Simuler la machine à états pas à pas depuis son point d’entrée ; l’édition est bloquée pendant la simulation"
-              onClick={() => setIssue(launch(controls, page))}
+              onClick={() => launch(controls, page)}
             >
               Lancer la simulation
             </button>
           ))}
-        {controls && !simulator && issue && (
-          <SimulationStart page={page} issue={issue} onChoose={(id) => launchFrom(controls, page, id)} />
+        {controls && !simulator && launcher.open && (
+          <SimulationStart page={page} onChoose={(id) => launchFrom(controls, page, id)} onClose={launcher.close} />
         )}
         {simulator && <SimulationTrace sim={simulator.sim} onGoTo={(n) => simulator.goTo(n)} />}
         <button

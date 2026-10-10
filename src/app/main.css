@@ -2418,6 +2418,18 @@ button.mode-bar-label.renamable:hover {
   margin: 0;
 }
 
+/* Lanceur : la croix en haut à droite, au-dessus de la liste ou du message. */
+.simulation-start {
+  position: relative;
+  padding-right: 24px;
+}
+
+.simulation-start-close {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
 .simulation-trace {
   max-height: 220px;
   margin: 0;

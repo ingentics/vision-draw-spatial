@@ -113,7 +113,11 @@ export function useEngineEvents({
       instance.on('commentHover', setHoverComment);
       instance.on('commentEdit', setCommentEdit);
       instance.on('labelEdit', setLabelEdit);
-      instance.on('editLockChange', (owner) => setEditLock(owner && { owner }));
+      instance.on('editLockChange', (owner) => {
+        setEditLock(owner && { owner });
+        // Verrou pris par un mode (sujet 466) : un commentaire en cours d'édition est fermé, comme un texte.
+        if (owner) setCommentEdit(undefined);
+      });
       instance.on('documentChange', (doc) => {
         setDocument(doc);
         setReport(instance.getUnsupportedReport());

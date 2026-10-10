@@ -3,7 +3,7 @@
  * d'entrée du moteur n'expose rien de propre à un mode.
  */
 export { statesExporter } from './export/plantuml';
-export { StateSimulation, startSimulation } from './simulation/stateSimulation';
+export { NO_ENTRY, StateSimulation, startSimulation, topEntries } from './simulation/stateSimulation';
 export type { SimulationEnd } from './simulation/stateSimulation';
 export { StatesSimulator } from './simulation/statesSimulator';
 export { END_LABELS, entryName, simulationTrace, stepName } from './simulation/simulationView';

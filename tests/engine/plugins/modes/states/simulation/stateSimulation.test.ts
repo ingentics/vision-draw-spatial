@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  NO_ENTRY,
   StateSimulation,
   startSimulation,
+  topEntries,
 } from '../../../../../../src/engine/plugins/modes/states/simulation/stateSimulation';
 import type { SimulationStart } from '../../../../../../src/engine/plugins/modes/states/simulation/stateSimulation';
 import { simulationKey } from '../../../../../../src/engine/plugins/modes/states/simulation/simulationKeys';
@@ -235,5 +237,14 @@ describe('mode Machine à états : simulation pas à pas (sujet 460)', () => {
     expect(simulationKey(sim, 'Backspace')).toEqual({ back: true });
     expect(simulationKey(sim, 'ArrowLeft')).toEqual({ back: true });
     for (const key of [' ', 'ArrowRight', 'n', '0']) expect(simulationKey(sim, key)).toBeUndefined();
+  });
+
+  it('départs possibles du lanceur : points d’entrée de premier niveau, relus sur la page (sujet 466)', () => {
+    expect(topEntries(page()).map((s) => s.id)).toEqual(['init1']);
+    const two = vertex('a', 'initial', 0, 0, 20, 20) + vertex('b', 'initial', 0, 50, 20, 20);
+    expect(topEntries(setup(statesXml(two)).page()).map((s) => s.id)).toEqual(['a', 'b']);
+    // Un point d'entrée supprimé n'est plus proposé.
+    expect(topEntries(setup(statesXml(vertex('a', 'initial', 0, 0, 20, 20))).page()).map((s) => s.id)).toEqual(['a']);
+    expect(startSimulation(setup(statesXml('')).page(), [])).toEqual({ error: NO_ENTRY });
   });
 });

@@ -1,11 +1,17 @@
 import { useSyncExternalStore } from 'react';
-import { StateSimulation, StatesSimulator, startSimulation } from '../../../../engine/plugins/modes/states/api';
-import type { PageModel } from '../../../../engine';
+import {
+  StateSimulation,
+  StatesSimulator,
+  startSimulation,
+  topEntries,
+} from '../../../../engine/plugins/modes/states/api';
+import type { PageModel, PageTakeover } from '../../../../engine';
 import type { ModePageControls } from '../registry';
 
 /**
- * Simulation de la machine à états lancée depuis l'appli (sujet 462) : départ selon la sélection. Le reste (verrou,
- * pas, touches, couche) est dans le moteur (`StatesSimulator`) ; l'appli suit ses pas.
+ * Simulation de la machine à états lancée depuis l'appli (sujets 462, 466) : départ selon la sélection, ou choix du
+ * point d'entrée dans le lanceur. Le reste (verrou, pas, touches, couche) est dans le moteur (`StatesSimulator`) ;
+ * l'appli suit ses pas.
  */
 
 /**
@@ -21,18 +27,58 @@ export function useOpenedSimulation(controls: ModePageControls | undefined): Sta
   return simulator;
 }
 
-/** Départ qui n'a pas abouti : points d'entrée à choisir, ou message. */
-export type LaunchIssue = Exclude<ReturnType<typeof startSimulation>, { simulation: StateSimulation }>;
+/**
+ * Lanceur ouvert (liste des points d'entrée, ou message sans point d'entrée) : un par moteur, partagé par la barre et
+ * le panneau de la page. Il ne garde que la page où il est ouvert ; son contenu est relu sur la page à chaque rendu.
+ */
+class Launcher {
+  pageId: string | undefined;
+  private readonly listeners = new Set<() => void>();
 
-/** Lance la simulation selon la sélection ; rend ce qu'il reste à choisir ou le message, sinon undefined. */
-export function launch(controls: ModePageControls, page: PageModel): LaunchIssue | undefined {
-  const start = startSimulation(page, controls.selection);
-  if (!('simulation' in start)) return start;
-  StatesSimulator.open(controls.takeover, start.simulation);
-  return undefined;
+  set(pageId: string | undefined): void {
+    if (this.pageId === pageId) return;
+    this.pageId = pageId;
+    for (const listener of [...this.listeners]) listener();
+  }
+
+  readonly subscribe = (listener: () => void): (() => void) => {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  };
 }
 
-/** Lance la simulation depuis le point d'entrée choisi. */
+/** Lanceur de chaque moteur (cache par objet : un moteur recréé a le sien). */
+const launchers = new WeakMap<PageTakeover, Launcher>();
+
+function launcherOf(controls: ModePageControls): Launcher {
+  let launcher = launchers.get(controls.takeover);
+  if (!launcher) launchers.set(controls.takeover, (launcher = new Launcher()));
+  return launcher;
+}
+
+/** Lanceur de la page : ouvert ou non, et de quoi le refermer ; sans `controls`, jamais ouvert. */
+export function useLauncher(controls: ModePageControls | undefined, page: PageModel) {
+  const launcher = controls && launcherOf(controls);
+  const pageId = useSyncExternalStore(
+    (listener) => launcher?.subscribe(listener) ?? (() => {}),
+    () => launcher?.pageId,
+  );
+  return { open: pageId === page.id, close: () => launcher?.set(undefined) };
+}
+
+/** Lance la simulation selon la sélection ; sans départ évident, ouvre le lanceur. */
+export function launch(controls: ModePageControls, page: PageModel): void {
+  const start = startSimulation(page, controls.selection);
+  if ('simulation' in start) open(controls, start.simulation);
+  else launcherOf(controls).set(page.id);
+}
+
+/** Lance la simulation depuis le point d'entrée choisi, s'il est encore un départ possible de la page. */
 export function launchFrom(controls: ModePageControls, page: PageModel, entryId: string): void {
-  StatesSimulator.open(controls.takeover, new StateSimulation(page, entryId));
+  if (!topEntries(page).some((entry) => entry.id === entryId)) return;
+  open(controls, new StateSimulation(page, entryId));
+}
+
+function open(controls: ModePageControls, sim: StateSimulation): void {
+  if (StatesSimulator.open(controls.takeover, sim)) launcherOf(controls).set(undefined);
 }

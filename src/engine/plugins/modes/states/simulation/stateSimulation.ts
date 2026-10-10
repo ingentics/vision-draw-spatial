@@ -221,10 +221,18 @@ export function startSimulation(page: PageModel, selection: readonly string[]): 
   const edge = only !== undefined ? edgeOf(page, only) : undefined;
   const source = edge && transitionEnds(page, edge)?.source;
   if (source) return { simulation: new StateSimulation(page, source.id) };
-  const entries = page.shapes.filter((s) => isInitial(s) && !compositeOf(page, s)).sort((a, b) => a.z - b.z);
-  if (entries.length === 0) return { error: 'Aucun point d’entrée sur la page' };
+  const entries = topEntries(page);
+  if (entries.length === 0) return { error: NO_ENTRY };
   if (entries.length > 1) return { entries };
   return { simulation: new StateSimulation(page, entries[0]!.id) };
+}
+
+/** Message quand la page n'a pas de point d'entrée de premier niveau. */
+export const NO_ENTRY = 'Aucun point d’entrée sur la page';
+
+/** Points d'entrée de premier niveau de la page (hors ensembles), dans l'ordre de dessin : départs possibles. */
+export function topEntries(page: PageModel): ShapeModel[] {
+  return page.shapes.filter((s) => isInitial(s) && !compositeOf(page, s)).sort((a, b) => a.z - b.z);
 }
 
 /** Transitions sortantes de `source`, dans l'ordre de dessin. */

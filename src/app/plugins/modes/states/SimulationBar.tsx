@@ -1,9 +1,7 @@
-import { useEffect, useState } from 'react';
 import type { MouseEvent } from 'react';
 import { END_LABELS, stepName } from '../../../../engine/plugins/modes/states/api';
 import type { ModeCanvasProps } from '../registry';
-import { launch, launchFrom, useOpenedSimulation } from './simulationRun';
-import type { LaunchIssue } from './simulationRun';
+import { launch, launchFrom, useLauncher, useOpenedSimulation } from './simulationRun';
 import { SimulationStart } from './SimulationStart';
 
 /**
@@ -13,18 +11,15 @@ import { SimulationStart } from './SimulationStart';
  */
 export function SimulationBar({ page, controls }: ModeCanvasProps) {
   const simulator = useOpenedSimulation(controls);
-  const [issue, setIssue] = useState<LaunchIssue>();
-  useEffect(() => {
-    setIssue(undefined);
-  }, [page.id, simulator]);
+  const launcher = useLauncher(controls, page);
   // Les boutons ne prennent pas le focus : les touches de la simulation restent à la zone de dessin.
   const keepFocus = (event: MouseEvent) => event.preventDefault();
   if (!simulator) {
     return (
       <div className="simulation-dock" onMouseDown={keepFocus}>
-        {issue && (
+        {launcher.open && (
           <div className="simulation-popup">
-            <SimulationStart page={page} issue={issue} onChoose={(id) => launchFrom(controls, page, id)} />
+            <SimulationStart page={page} onChoose={(id) => launchFrom(controls, page, id)} onClose={launcher.close} />
           </div>
         )}
         <div className="simulation-bar">
@@ -32,7 +27,7 @@ export function SimulationBar({ page, controls }: ModeCanvasProps) {
             type="button"
             className="button"
             data-tip="Simuler la machine à états pas à pas, depuis l’état sélectionné ou le point d’entrée"
-            onClick={() => setIssue(launch(controls, page))}
+            onClick={() => launch(controls, page)}
           >
             ▶ Lancer la simulation
           </button>
