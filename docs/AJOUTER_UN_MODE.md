@@ -80,7 +80,7 @@ interface PageModeDefinition {
     mainSection?: { title, kinds };            // section principale de ces formes : texte, commentaire, réglages
     carries?(page, shape): string[];           // formes emportées quand on déplace `shape` (ex. région RDD)
     obstacles?(page, shape, values): ModeObstacles; // bornes d'un déplacement / redimensionnement (ex. régions sœurs)
-    snapTargets?(page, shape): { id, rect }[];   // aimantation bord à bord (ex. autres post-it)
+    snapTargets?(page, shape): ModeSnapTarget[]; // aimantation bord à bord (ex. autres post-it)
     dragPlaces?(page, shape, bounds): ModeDragPlaces; // cases où poser la forme glissée, échange
     placed?(edit, shapeIds, before?): void;    // formes déplacées ou ajoutées (ex. région RDD agrandie)
     relabeled?(edit, elementId): void;         // texte d'un élément changé (ex. table RDD élargie)
@@ -283,10 +283,11 @@ couche physique d'une table RDD, lue par son rendu). Un habillage qui dépend du
   flèches du clavier) ou un redimensionnement, à l'écart `gap` (réglage du mode, ex. `obstacleGap` de RDD) ; `above` : ce que la forme dessine
   au-dessus de ses bornes. Le moteur borne le geste (un axe puis l'autre, on glisse le long d'un obstacle) et montre la
   limite atteinte en pointillé rouge (`core/edit/obstacles.ts`).
-- `gestures.snapTargets(page, shape)` (sujet 477) : emprises (`{ id, rect }`) contre lesquelles `shape` se colle bord à
-  bord pendant un glisser ou un redimensionnement : un bord à moins de 8 px écran d'un bord opposé d'une cible, qu'il
-  recouvre sur l'autre axe, s'y colle (écart 0), après la grille ; pas avec Alt, ni pour un pas au clavier. Les formes
-  déplacées ne sont pas des cibles (`core/edit/edgeSnap.ts`).
+- `gestures.snapTargets(page, shape)` (sujet 477) : emprises (`ModeSnapTarget` : `id`, `rect`) contre lesquelles `shape`
+  se colle bord à bord pendant un glisser ou un redimensionnement : un bord à moins de `EDGE_SNAP_PIXELS` (8 px écran)
+  d'un bord opposé d'une cible, qu'il recouvre sur l'autre axe, s'y colle (écart 0), après la grille ; pas avec Alt, ni
+  pour un pas au clavier (le mode n'est alors pas appelé). Les formes déplacées ne sont pas des cibles ; Ctrl, qui
+  laisse en place les formes emportées, en refait des cibles (`core/edit/edgeSnap.ts`).
 - `gestures.dragPlaces(page, shape, bounds)` (sujet 481) : places où poser la forme glissée seule (`bounds` : sa place
   courante), et `swapWith`, la forme dont elle prendra la place si on la lâche hors des places. Le moteur montre les
   places (pointillé et fond d'accent, la visée plus marquée) ; le centre de la forme dans une place l'y met, lâchée

@@ -1,5 +1,6 @@
 import { overlapLength, rectSpan } from '../model/geometry';
-import type { Point, Rect } from '../model/types';
+import { shapeOf } from '../model/pageIndex';
+import type { PageModel, Point, Rect, ShapeModel } from '../model/types';
 import type { Side } from './edgeEnds';
 
 /**
@@ -16,6 +17,28 @@ export const EDGE_SNAP_PIXELS = 8;
 export interface EdgeSnapping {
   moving: Rect[];
   targets: Rect[];
+}
+
+/**
+ * Aimantation des formes `shapeIds` : leurs emprises, et les cibles que le mode donne pour chacune (`targetsOf`), hors
+ * formes déplacées (`moving`) ; undefined sans cible.
+ */
+export function edgeSnapping(
+  page: PageModel,
+  shapeIds: readonly string[],
+  moving: ReadonlySet<string>,
+  targetsOf: (shape: ShapeModel) => ReadonlyArray<{ id: string; rect: Rect }>,
+): EdgeSnapping | undefined {
+  const rects: Rect[] = [];
+  const targets = new Map<string, Rect>();
+  for (const id of shapeIds) {
+    const shape = shapeOf(page, id);
+    const list = shape ? targetsOf(shape) : [];
+    if (!shape || list.length === 0) continue;
+    rects.push({ ...shape.bounds });
+    for (const target of list) if (!moving.has(target.id)) targets.set(target.id, { ...target.rect });
+  }
+  return rects.length > 0 && targets.size > 0 ? { moving: rects, targets: [...targets.values()] } : undefined;
 }
 
 /**

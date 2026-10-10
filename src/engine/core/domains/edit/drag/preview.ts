@@ -20,13 +20,13 @@ import { shapeOf } from '../../../model/pageIndex';
 export class ConnectorPreview {
   private connectorPreview: Object3D | undefined;
   /** Limites montrées pendant un geste borné (sujet 241). */
-  private readonly limits: OverlayLayer;
+  private readonly limits: PreviewLayer;
   /** Places montrées pendant le glisser d'une forme (sujet 481). */
-  private readonly places: OverlayLayer;
+  private readonly places: PreviewLayer;
 
   constructor(private readonly core: EngineCore) {
-    this.limits = new OverlayLayer(core);
-    this.places = new OverlayLayer(core);
+    this.limits = new PreviewLayer(core);
+    this.places = new PreviewLayer(core);
   }
 
   /** Repères d'accroche (contour, points de connexion) sur la forme visée par un bout de flèche. */
@@ -152,7 +152,7 @@ export class ConnectorPreview {
  * Calque d'aperçu d'un geste, au-dessus du schéma (sans test de profondeur) : reconstruit seulement quand sa clé change,
  * retiré et libéré à la fin du geste.
  */
-class OverlayLayer {
+class PreviewLayer {
   private object: Object3D | undefined;
   private key: string | undefined;
 

@@ -6,7 +6,6 @@ import { EDGE_SNAP_PIXELS, snapMove } from '../../../edit/edgeSnap';
 import { clampMove } from '../../../edit/obstacles';
 import type { PageModel, Point, ShapeModel } from '../../../model/types';
 import type { MoveDrag } from './types';
-import type { MovePlan } from '../../../edit/movePlan';
 import type { EngineCore } from '../../EngineCore';
 import { edgeOf, shapeOf } from '../../../model/pageIndex';
 
@@ -128,12 +127,13 @@ export class MoveDrags {
    * ce qui suit de nouveau rejoint le déplacement déjà fait ; leurs flèches sont retracées.
    */
   private switchPlan(page: PageModel, move: MoveDrag): void {
-    const current: MovePlan = {
+    const current: NonNullable<MoveDrag['other']> = {
       rootIds: move.rootIds,
       set: move.set,
       edges: move.edges,
       carried: move.carried,
       bounded: move.bounded,
+      snapping: move.snapping,
     };
     const next = move.other!;
     Object.assign(move, next, { other: current, detached: !move.detached });
@@ -156,7 +156,7 @@ export class MoveDrags {
     this.core.live.afterLiveEdit();
   }
 
-  /** Déplacement lâché : géométrie écrite. Vrai s'il reste à répartir les flèches (`afterGeometryEdit`). */
+  /** Déplacement lâché : géométrie écrite. Vrai s'il reste à répartir les flèches (`LiveEdit.afterGeometryWrite`). */
   commit(drag: MoveDrag, pageTree: PageTree): boolean {
     if (drag.swapWith) return this.commitSwap(drag, pageTree, drag.swapWith);
     if (drag.applied.x === 0 && drag.applied.y === 0) {

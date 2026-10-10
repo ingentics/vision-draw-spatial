@@ -25,7 +25,8 @@ export const FONTS: FontSet = {
 
 /** Police CSS de l'éditeur en place pour le `fontFamily` d'un style : celle du rendu. */
 export function editorFontFamily(family: string | undefined): string {
-  if (isMonospace(family)) return "'Roboto Mono', monospace";
+  // Même ordre que le moteur (`pickFontKey`) : une police fournie passe avant la chasse fixe.
   if (family && FONTS.families?.[family]) return `'${family}', 'Roboto', sans-serif`;
+  if (isMonospace(family)) return "'Roboto Mono', monospace";
   return "'Roboto', sans-serif";
 }

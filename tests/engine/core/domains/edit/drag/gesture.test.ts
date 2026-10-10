@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DragGesture } from '../../../../../../src/engine/core/domains/edit/drag/gesture';
+import type { MoveDrag } from '../../../../../../src/engine/core/domains/edit/drag/types';
 import type { EngineCore } from '../../../../../../src/engine/core/domains/EngineCore';
 import { readDrawio } from '../../../../../../src/engine/core/format/parse';
 import type { PickedElement } from '../../../../../../src/engine/core/interaction/pick';
@@ -90,5 +91,37 @@ describe('glisser d’une flèche pleine par son corps (sujet 424)', () => {
     expect(started).toBe(true);
     expect(shapes).toEqual(['a']);
     expect(edges).toEqual(['arrow']);
+  });
+});
+
+describe('pas au clavier (sujets 477, 481, 506)', () => {
+  it('ni aimantation ni places : le mode n’est pas consulté', () => {
+    const { document, tree } = readDrawio(cells(ARROW));
+    const page = document.pages[0]!;
+    const shape = page.shapes.find((s) => s.id === 'a')!;
+    let asked = 0;
+    let followed: MoveDrag | undefined;
+    const core = {
+      targets: { editablePage: () => ({ page, pageTree: tree.pages[0]! }) },
+      selection: { current: { pageId: page.id, items: [{ type: 'shape', element: shape }] } },
+      registry: { movesAsBlock: () => false },
+      pageModes: {
+        carried: () => [],
+        obstacles: () => undefined,
+        snapTargets: () => {
+          asked++;
+          return [{ id: 'x', rect: { x: 0, y: 0, width: 10, height: 10 } }];
+        },
+        hasDragPlaces: () => true,
+      },
+      settings: { edit: { nudgeStep: 1, nudgeCoarseStep: 10 } },
+      file: { livePage: () => page, settleLivePage: () => undefined },
+      moveDrags: { follow: (_page: unknown, drag: MoveDrag) => (followed = drag) },
+      preview: { clearConnectorPreview: () => undefined, clearLimits: () => undefined, clearPlaces: () => undefined },
+    } as unknown as EngineCore;
+    expect(new DragGesture(core).nudgeSelection({ x: 1, y: 0 }, false)).toBe(true);
+    expect(asked).toBe(0);
+    expect(followed?.snapping).toBeUndefined();
+    expect(followed?.places).toBe(false);
   });
 });

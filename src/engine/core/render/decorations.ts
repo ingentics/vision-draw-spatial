@@ -221,8 +221,9 @@ export function dragPlacesMarks(
   group.name = 'drag-places';
   const color = new Color(accent);
   const dashed = (rect: Rect, fill: number) => {
-    group.add(fillMesh(rectPath(rect), color, fill));
-    const outline = strokeMesh(rectPath(rect), color, 0.9, {
+    const path = rectPath(rect);
+    group.add(fillMesh(path, color, fill));
+    const outline = strokeMesh(path, color, 0.9, {
       width: 1.5 / zoom,
       closed: true,
       dash: [6 / zoom, 4 / zoom],

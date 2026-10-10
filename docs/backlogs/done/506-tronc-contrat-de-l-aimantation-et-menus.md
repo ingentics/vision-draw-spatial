@@ -28,3 +28,18 @@
 - Docs : `AJOUTER_UN_MODE.md` (type nommé).
 - **Fini quand :** les constats ci-dessus ont disparu, l'aimantation marche comme avant sur `eventstorming.drawio` ;
   `make check` vert.
+- Fait : type nommé `ModeSnapTarget` (`core/modes/types.ts`, réexporté), doc du contrat renvoyant à `EDGE_SNAP_PIXELS`.
+  Cibles relevées par une fonction pure, `edgeSnapping` (`core/edit/edgeSnap.ts`) ; `moveDrag` prend `guided` : faux
+  pour un pas au clavier, sans aimantation ni places, et sans appel au mode. Aimantation calculée pour chaque plan
+  (`MoveDrag.other` porte la sienne, échangée par `switchPlan`) : avec Ctrl, les formes emportées laissées en place
+  redeviennent des cibles. `afterGeometryEdit` sorti de `gesture.ts` dans `LiveEdit.afterGeometryWrite` (`gesture.ts` :
+  416 → 383 lignes). Menus : `shapeOf` dans `ModeEditWriter.placeBehind`, `shapeKindOf` commun dans `format/parse.ts`,
+  `rectPath` une fois par place (`decorations.ts`), commentaire périmé retiré de `core/plugins/index.ts`,
+  `editorFontFamily` (`src/app/fonts.ts`) dans l'ordre du moteur (police fournie avant la chasse fixe). En passant : le
+  calque privé de 504 renommé `PreviewLayer`, `OverlayLayer` étant déjà un type du tronc (`pageTakeover.ts`). Écarts :
+  le mode n'est plus appelé pour un pas au clavier ; avec Ctrl, une forme laissée en place redevient une cible
+  d'aimantation (aucun mode n'emporte et n'aimante aujourd'hui). Test `gesture.test.ts` (pas au clavier : mode non
+  consulté, ni aimantation ni places), `EDGE_SNAP_PIXELS` dans la liste blanche de `guides.test.ts` ; doc
+  `AJOUTER_UN_MODE.md`. Vérifié dans l'appli sur `eventstorming-commande.drawio` : flèche → sur un post-it collé à un
+  autre, il s'en éloigne de 1 sans être recollé, ← le ramène ; aimantation au glisser : vérifiée par les tests seulement
+  (la grille de 10 de la fixture couvre l'écart de l'aimantation au zoom courant). Ctrl : par lecture seulement.

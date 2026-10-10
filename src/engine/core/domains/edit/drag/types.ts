@@ -14,7 +14,7 @@ export interface MoveDrag extends MovePlan {
    * Même déplacement sans les formes emportées par le mode (Ctrl maintenu, sujet 351), échangé avec le plan courant
    * quand Ctrl change ; absent si rien n'est emporté ou si des flèches sont sélectionnées.
    */
-  other?: MovePlan;
+  other?: MovePlan & { snapping?: EdgeSnapping };
   /** Le plan courant est-il celui sans les formes emportées ? */
   detached: boolean;
   start: Point;

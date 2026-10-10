@@ -199,10 +199,11 @@ export interface ModeGestures {
   obstacles?(page: PageModel, shape: ShapeModel, values: PluginValues): ModeObstacles | undefined;
   /**
    * Emprises contre lesquelles `shape` se colle bord à bord quand on la déplace ou la redimensionne (sujet 477, ex.
-   * autres post-it Event storming) : un bord à moins de 8 px écran d'un bord opposé d'une cible, qu'il recouvre sur
-   * l'autre axe, s'y colle (écart 0). Alt maintenu : pas d'aimantation. Les formes déplacées ne sont pas des cibles.
+   * autres post-it Event storming) : un bord à moins de `EDGE_SNAP_PIXELS` (écran) d'un bord opposé d'une cible, qu'il
+   * recouvre sur l'autre axe, s'y colle (écart 0). Alt maintenu, ou pas au clavier : pas d'aimantation. Les formes
+   * déplacées ne sont pas des cibles.
    */
-  snapTargets?(page: PageModel, shape: ShapeModel): Array<{ id: string; rect: Rect }>;
+  snapTargets?(page: PageModel, shape: ShapeModel): ModeSnapTarget[];
   /**
    * Places proposées pendant le glisser d'une seule forme (sujet 481, ex. cases où poser un post-it Event storming) ;
    * `bounds` : sa place courante. Le moteur les montre ; le centre de la forme dans une place l'y met, lâchée elle s'y
@@ -223,6 +224,12 @@ export interface ModeGestures {
   relabeled?(edit: ModeEdit, elementId: string): void;
   /** Poignées propres au mode sur la forme sélectionnée seule, modifiable (sujet 250, ex. « + » d'une table RDD). */
   handles?: ModeHandleSet;
+}
+
+/** Cible de l'aimantation bord à bord (sujet 477) : une forme et son emprise. */
+export interface ModeSnapTarget {
+  id: string;
+  rect: Rect;
 }
 
 /** Places d'un glisser (sujet 481) : où la forme glissée peut se poser, et la forme avec laquelle l'échanger. */

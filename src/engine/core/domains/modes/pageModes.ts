@@ -13,7 +13,7 @@ import { callMode } from '../../modes/modeCalls';
 import type { PageEffectDefinition } from '../../effects/types';
 import type { PageDressing } from '../../modes/dressing';
 import type { ModeEdit, ModeEditContext } from '../../modes/modeEdit';
-import type { ModeDragPlaces, ModeObstacles, PageModeDefinition } from '../../modes/types';
+import type { ModeDragPlaces, ModeObstacles, ModeSnapTarget, PageModeDefinition } from '../../modes/types';
 import { modePalette } from '../../settings';
 import { SPATIAL } from '../../spatial';
 import type { EngineCore } from '../EngineCore';
@@ -173,7 +173,7 @@ export class PageModes {
   }
 
   /** Cibles de l'aimantation bord à bord de `shape` (`gestures.snapTargets`, sujet 477) ; vide : aucune. */
-  snapTargets(page: PageModel, shape: ShapeModel): Array<{ id: string; rect: Rect }> {
+  snapTargets(page: PageModel, shape: ShapeModel): ModeSnapTarget[] {
     const mode = this.core.modes.modeOf(page);
     if (!mode) return [];
     return this.call(mode, 'gestures.snapTargets', [], mode.gestures?.snapTargets, page, shape);

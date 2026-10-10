@@ -16,6 +16,7 @@ import { resolvePlaceholders } from './labelText';
 import { htmlToText, isRich, parseRichHtml } from './richText';
 import { parseLink } from './link';
 import { parseStyle, resolveShapeKind } from './style';
+import type { ParsedStyle } from './style';
 import { type DrawioTree, type PageTree, readDrawioTree } from './xmlTree';
 import { CellIndex } from './cellIndex';
 import type { RawCell, RawGeometry } from './cellIndex';
@@ -107,9 +108,7 @@ function parseGraphModel(page: PageTree, warnings: ParseWarning[]): PageModel {
       edges.push(stripUndefined(edge));
       edgeById.set(edge.id, edge);
     } else if (cell.vertex) {
-      // `spatial.kind` impose la forme dessinée ici (le style draw.io reste intact) ; sinon, devinée du style.
-      const kind = spatialValue(base, SPATIAL.kind)?.trim() || resolveShapeKind(parsed);
-      shapes.push(stripUndefined({ ...base, kind, bounds: index.absoluteBounds(cell) }));
+      shapes.push(stripUndefined({ ...base, kind: shapeKindOf(base, parsed), bounds: index.absoluteBounds(cell) }));
     }
     // Ni vertex ni edge, hors calque : cellule technique sans rendu, ignorée.
   }
@@ -135,8 +134,12 @@ function parseGraphModel(page: PageTree, warnings: ParseWarning[]): PageModel {
 export function shapeFromStyle(id: string, styleString: string, bounds: Rect): ShapeModel {
   const parsed = parseStyle(styleString);
   const base = { id, label: '', style: parsed.values, layerId: '', visible: true, z: 0, attributes: {} };
-  const kind = spatialValue(base, SPATIAL.kind)?.trim() || resolveShapeKind(parsed);
-  return { ...base, raw: { styleString }, kind, bounds };
+  return { ...base, raw: { styleString }, kind: shapeKindOf(base, parsed), bounds };
+}
+
+/** Forme dessinée : celle qu'impose `spatial.kind` (le style draw.io reste intact), sinon devinée du style. */
+function shapeKindOf(base: Pick<ShapeModel, 'attributes' | 'style'>, parsed: ParsedStyle): string {
+  return spatialValue(base, SPATIAL.kind)?.trim() || resolveShapeKind(parsed);
 }
 
 /** Champs communs à une forme et à une arête. */

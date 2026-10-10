@@ -1,11 +1,10 @@
 import { gridSizeOf } from '../../../format/cellEdits';
-import { documentFromTree } from '../../../format/parse';
 import type { PageTree } from '../../../format/xmlTree';
 import { snapshotEnds } from '../../../edit/edgeEnds';
-import type { EdgeSnapping } from '../../../edit/edgeSnap';
+import { edgeSnapping } from '../../../edit/edgeSnap';
 import { canMoveShape, collectMoveSet, moveTarget } from '../../../edit/moveSet';
 import { movePlan, resizeBounds } from '../../../edit/movePlan';
-import type { ObstaclesOf } from '../../../edit/movePlan';
+import type { MovePlan, ObstaclesOf } from '../../../edit/movePlan';
 import { connectSideOf, isConnectHandle } from '../../../edit/handleKinds';
 import { screenToPage } from '../../../interaction/cameraProjection';
 import { isBlockArrow } from '../../../render/edges/blockArrow';
@@ -13,7 +12,6 @@ import type { EdgeModel, PageModel, Point, Rect, ShapeModel } from '../../../mod
 import type { PickedElement } from '../../../interaction/pick';
 import type { Drag, MoveDrag } from './types';
 import type { EngineCore } from '../../EngineCore';
-import { byId, shapeOf } from '../../../model/pageIndex';
 
 /** Pointeur suivi : point écran, point de la page visé au sol, aimantation, déplacement libre. */
 interface DragPointer {
@@ -237,7 +235,8 @@ export class DragGesture {
   /**
    * Déplacement de formes (`shapeIds`, déjà déplaçables) et de flèches ensemble : une forme prise avec son
    * conteneur bouge avec lui ; une flèche dont une forme reste en place en est détachée. Ce que le mode emporte peut
-   * être laissé en place, Ctrl maintenu (`other`, sujet 351).
+   * être laissé en place, Ctrl maintenu (`other`, sujet 351). `guided` faux (pas au clavier) : ni aimantation ni
+   * places, le mode n'est pas consulté (un pas ne pourrait pas éloigner la forme d'une autre).
    */
   private moveDrag(
     page: PageModel,
@@ -247,12 +246,20 @@ export class DragGesture {
     start: Point,
     origin: Rect,
     grid: number,
+    guided = true,
   ): MoveDrag {
     const carried = this.core.pageModes.carried(page, shapeIds, pageTree);
     const obstaclesOf = this.obstaclesOf(page);
-    const plan = movePlan(page, pageTree, shapeIds, edgeIds, carried, obstaclesOf);
+    // Aimantation de chaque plan : les formes laissées en place avec Ctrl redeviennent des cibles.
+    const withSnapping = (plan: MovePlan) => ({
+      ...plan,
+      snapping: guided ? this.snappingOf(page, plan.rootIds, plan.set.shapeIds) : undefined,
+    });
+    const plan = withSnapping(movePlan(page, pageTree, shapeIds, edgeIds, carried, obstaclesOf));
     const other =
-      carried.length > 0 && edgeIds.length === 0 ? movePlan(page, pageTree, shapeIds, [], [], obstaclesOf) : undefined;
+      carried.length > 0 && edgeIds.length === 0
+        ? withSnapping(movePlan(page, pageTree, shapeIds, [], [], obstaclesOf))
+        : undefined;
     return {
       kind: 'move',
       pageId: page.id,
@@ -263,9 +270,9 @@ export class DragGesture {
       origin: { ...origin },
       applied: { x: 0, y: 0 },
       grid,
-      snapping: this.snappingOf(page, plan.rootIds, plan.set.shapeIds),
       // Places du mode (sujet 481) : pour une forme glissée seule, sans rien d'emporté.
       places:
+        guided &&
         plan.rootIds.length === 1 &&
         plan.edges.length === 0 &&
         carried.length === 0 &&
@@ -274,25 +281,9 @@ export class DragGesture {
     };
   }
 
-  /**
-   * Aimantation bord à bord du mode de la page (sujet 477) pour les formes `shapeIds` : leurs emprises et leurs cibles,
-   * hors formes déplacées (`moving`) ; undefined sans cible.
-   */
-  private snappingOf(
-    page: PageModel,
-    shapeIds: readonly string[],
-    moving: ReadonlySet<string>,
-  ): EdgeSnapping | undefined {
-    const rects: Rect[] = [];
-    const targets = new Map<string, Rect>();
-    for (const id of shapeIds) {
-      const shape = shapeOf(page, id);
-      const list = shape ? this.core.pageModes.snapTargets(page, shape) : [];
-      if (!shape || list.length === 0) continue;
-      rects.push({ ...shape.bounds });
-      for (const target of list) if (!moving.has(target.id)) targets.set(target.id, { ...target.rect });
-    }
-    return rects.length > 0 && targets.size > 0 ? { moving: rects, targets: [...targets.values()] } : undefined;
+  /** Aimantation bord à bord du mode de la page (sujet 477) pour les formes `shapeIds`, hors formes déplacées. */
+  private snappingOf(page: PageModel, shapeIds: readonly string[], moving: ReadonlySet<string>) {
+    return edgeSnapping(page, shapeIds, moving, (shape) => this.core.pageModes.snapTargets(page, shape));
   }
 
   /** Obstacles du mode de la page pour une forme (sujet 241), lus par les plans de déplacement et redimensionnement. */
@@ -329,11 +320,9 @@ export class DragGesture {
       start,
       origin,
       grid,
+      false,
     );
     if (drag.rootIds.length === 0 && drag.edges.length === 0) return false;
-    // Un pas au clavier ne s'aimante pas (il ne pourrait pas éloigner la forme d'une autre) ni ne vise de place.
-    drag.snapping = undefined;
-    drag.places = false;
     const { nudgeStep, nudgeCoarseStep } = this.core.settings.edit;
     const onGrid = coarse && nudgeCoarseStep === 0;
     const step = onGrid ? grid : coarse ? nudgeCoarseStep : nudgeStep;
@@ -379,34 +368,12 @@ export class DragGesture {
     if (!drag?.started || !this.core.file.document || !this.core.file.xmlTree) return;
     const pageTree = this.core.file.pageTreeOf(drag.pageId);
     if (!pageTree) return;
-    if (this.kindOf(drag).commit(drag, pageTree) === true) this.afterGeometryEdit(drag.pageId);
+    if (this.kindOf(drag).commit(drag, pageTree) === true) this.core.live.afterGeometryWrite(drag.pageId);
   }
 
   /** Entrée du genre du glisser : TypeScript ne relie pas la clé `kind` au type de l'entrée, d'où la conversion. */
   private kindOf<D extends Drag>(drag: D): DragKind<D> {
     return this.kinds[drag.kind] as unknown as DragKind<D>;
-  }
-
-  /**
-   * Après un déplacement ou un redimensionnement écrit : en ancrage automatique, les flèches de la forme et de ses
-   * voisines sont réparties à nouveau (même étape d'annulation) ; sinon les autres rendus de la page sont à refaire.
-   */
-  private afterGeometryEdit(pageId: string): void {
-    // Relecture de l'arbre seulement en ancrage automatique : la forme a bougé, ses flèches et celles de ses voisines
-    // sont réparties à nouveau (même étape d'annulation).
-    const moved = this.core.pages.pageById(pageId);
-    const fresh =
-      moved &&
-      this.core.arrangement.distributes(moved) &&
-      this.core.file.xmlTree &&
-      documentFromTree(this.core.file.xmlTree);
-    if (fresh && this.core.arrangement.distributeAfterEdit(fresh, [pageId])) {
-      this.core.file.documentChanged([pageId]);
-      return;
-    }
-    const freshPage = fresh && byId(fresh.pages, pageId);
-    if (freshPage) this.core.file.updateGeometry(freshPage);
-    this.core.live.afterLiveWrite(pageId);
   }
 }
 

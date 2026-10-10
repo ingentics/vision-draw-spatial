@@ -67,7 +67,7 @@ export class ResizeDrags {
     this.core.live.afterLiveEdit();
   }
 
-  /** Redimensionnement lâché : géométrie écrite. Vrai s'il reste à répartir les flèches (`afterGeometryEdit`). */
+  /** Redimensionnement lâché : géométrie écrite. Vrai s'il reste à répartir les flèches (`LiveEdit.afterGeometryWrite`). */
   commit(drag: ResizeDrag, pageTree: PageTree): boolean {
     const shape = shapeOf(this.core.pages.pageById(drag.pageId), drag.shapeId);
     if (!shape) return false;

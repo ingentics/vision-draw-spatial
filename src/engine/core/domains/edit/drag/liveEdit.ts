@@ -7,7 +7,8 @@ import { jumpStyleOf } from '../../../render/edges/jumps';
 import type { EngineCore } from '../../EngineCore';
 import { styleFlag } from '../../../model/styleValues';
 import type { ReadonlyShapeModel } from '../../../model/readonly';
-import { shapesById } from '../../../model/pageIndex';
+import { byId, shapesById } from '../../../model/pageIndex';
+import { documentFromTree } from '../../../format/parse';
 
 /**
  * Modifications en direct de la scène pendant un glisser (objets décalés, forme ou flèches redessinées), sans
@@ -45,6 +46,27 @@ export class LiveEdit {
     this.core.graph.invalidateWithScenes();
     this.afterLiveEdit();
     this.core.file.liveWritten();
+  }
+
+  /**
+   * Déplacement ou redimensionnement écrit (fin d'un glisser) : en ancrage automatique, les flèches de la forme et de
+   * ses voisines sont réparties à nouveau, dans la même étape d'annulation (modèle relu de l'arbre) ; sinon la
+   * géométrie relue est reprise par le document et les autres rendus de la page sont à refaire.
+   */
+  afterGeometryWrite(pageId: string): void {
+    const moved = this.core.pages.pageById(pageId);
+    const fresh =
+      moved &&
+      this.core.arrangement.distributes(moved) &&
+      this.core.file.xmlTree &&
+      documentFromTree(this.core.file.xmlTree);
+    if (fresh && this.core.arrangement.distributeAfterEdit(fresh, [pageId])) {
+      this.core.file.documentChanged([pageId]);
+      return;
+    }
+    const freshPage = fresh && byId(fresh.pages, pageId);
+    if (freshPage) this.core.file.updateGeometry(freshPage);
+    this.afterLiveWrite(pageId);
   }
 
   /** Remplace l'objet d'une forme (taille changée), à la même hauteur et dans le même ordre de dessin. */

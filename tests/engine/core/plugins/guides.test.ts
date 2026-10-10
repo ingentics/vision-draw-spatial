@@ -48,6 +48,7 @@ const NOT_API: Record<string, string> = {
   decorate: 'pose des décors par le registre des effets, cité par les tests',
   paletteFor: 'question au registre des modes',
   allowsViewMode: 'question au registre des modes',
+  EDGE_SNAP_PIXELS: 'distance de l’aimantation bord à bord, fixée par le moteur',
   // Racine de composition et plugins.
   SHAPE_DEFINITIONS: 'collecte des formes (racine de composition)',
   createDefaultRegistry: 'registre par défaut (racine de composition)',

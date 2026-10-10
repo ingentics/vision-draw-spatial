@@ -250,9 +250,10 @@ export class ModeEditWriter implements ModeEdit {
   }
 
   placeBehind(shapeId: string, referenceId: string): void {
-    const locked = this.#model.shapes.some(
-      (shape) => (shape.id === shapeId || shape.id === referenceId) && isLocked(shape),
-    );
+    const locked = [shapeId, referenceId].some((id) => {
+      const shape = shapeOf(this.#model, id);
+      return shape !== undefined && isLocked(shape);
+    });
     if (!locked) this.#writes.push(() => placeBehind(this.#pageTree, shapeId, referenceId));
   }
 

@@ -30,6 +30,7 @@ export type {
   ModePageKey,
   ModeParts,
   ModePartText,
+  ModeSnapTarget,
   ModeTarget,
   PageModeDefinition,
 } from '../modes/types';
@@ -99,8 +100,6 @@ export { blockHeight, isoBlock, TOP_OFFSET } from '../render/iso/block';
 export { cubicTo, halfEllipseTo } from '../render/geometry/curves';
 export { orientation, orientedPath } from '../render/geometry/orient';
 export type { Orientation } from '../render/geometry/orient';
-// `roundedRectPath` et `darken` (plus bas) : briques offertes aux formes, sans plugin qui les appelle aujourd'hui
-// (sujet 386) ; gardées comme le reste de la boîte à outils, documentée dans `AJOUTER_UNE_FORME.md`.
 export {
   arcPath,
   boxOutline,
