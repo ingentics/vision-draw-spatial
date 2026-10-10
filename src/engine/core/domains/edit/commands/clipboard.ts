@@ -1,5 +1,7 @@
 import { gridSizeOf } from '../../../format/cellEdits';
 import { copyCells, pasteCells, readClipboardModel, stripCellKeys } from '../../../format/clipboardCells';
+import { rewritePageLabels } from '../../../format/fileLabels';
+import { pageFromTree } from '../../../format/parse';
 import type { PageTree } from '../../../format/xmlTree';
 import type { PickedElement } from '../../../interaction/pick';
 import type { Point } from '../../../model/types';
@@ -108,6 +110,9 @@ export class Clipboard {
         return parent && pageTree.cells.has(parent.id) ? { id: parent.id, origin: parent.bounds } : undefined;
       },
     });
+    // Labels collés tels que l'appli les garde, comme à l'ouverture (ex. nom du type d'un post-it exporté, sujet 503).
+    const labelOf = this.core.pageModes.fileLabels([page], 'import');
+    if (labelOf) rewritePageLabels(pageFromTree(pageTree), pageTree, labelOf, new Set(ids));
     // Le mode de la page reçoit les formes collées comme des ajouts (ex. couleur d'une région, sujet 239).
     this.core.modeFollowUps.shapesPlaced(page.id, ids);
     this.core.file.documentChanged([page.id]);

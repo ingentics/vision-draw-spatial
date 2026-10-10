@@ -8,6 +8,8 @@ import { PageEffects } from '../../../../../src/engine/core/domains/effects/page
 import { PageModes } from '../../../../../src/engine/core/domains/modes/pageModes';
 import { PluginGuard } from '../../../../../src/engine/core/domains/runtime/pluginGuard';
 import { PageEffectRegistry } from '../../../../../src/engine/core/effects/registry';
+import { cellLabelValue } from '../../../../../src/engine/core/format/cellEdits';
+import type { LabelRewrite } from '../../../../../src/engine/core/format/fileLabels';
 import { readDrawio } from '../../../../../src/engine/core/format/parse';
 import { PageModeRegistry } from '../../../../../src/engine/core/modes/registry';
 import { DEFAULT_SETTINGS } from '../../../../../src/engine/core/settings';
@@ -26,7 +28,7 @@ function setup() {
   const rebound: PageModel[] = [];
   const core = {
     registry: createDefaultRegistry(),
-    pageModes: { withModeWarnings: (document: unknown) => document, importLabels: () => false },
+    pageModes: { withModeWarnings: (document: unknown) => document, fileLabels: () => undefined },
     pageEffects: { warnings: () => [] },
     pluginGuard: { warnings: () => [] },
     selection: { rebind: (page: PageModel) => rebound.push(page) },
@@ -133,12 +135,12 @@ describe('avertissements des plugins (sujet 378)', () => {
  * Cœur traçant (sujet 385) : document, annulation, sélection et suite d'une modification en direct réels ; les autres
  * domaines notent leurs appels, les événements émis aussi, dans l'ordre (`log`).
  */
-function tracedSetup() {
+function tracedSetup(fileLabels: (pages: unknown, direction: string) => LabelRewrite | undefined = () => undefined) {
   const log: string[] = [];
   const documents: unknown[] = [];
   const core = {
     registry: createDefaultRegistry(),
-    pageModes: { withModeWarnings: (document: unknown) => document, importLabels: () => false },
+    pageModes: { withModeWarnings: (document: unknown) => document, fileLabels },
     pageEffects: { warnings: () => [] },
     pluginGuard: { warnings: () => [] },
     targets: { isEditable: () => true, canEditNow: () => true },
@@ -163,6 +165,7 @@ function tracedSetup() {
       currentPageId: 'p',
       getCurrentPage: () => file.document!.pages[0],
       pageById: (id: string) => file.document!.pages.find((p) => p.id === id),
+      savedViews: () => new Map(),
     }),
     graph: traced(log, 'graph', { isGraph: () => false }),
     scenes: traced(log, 'scenes', { current: undefined }),
@@ -263,5 +266,23 @@ describe('événements reçus par l’appli : le document seul émet ses changem
       'pages.goToPage',
       'modeFollowUps.documentOpened',
     ]);
+  });
+});
+
+describe('labels du fichier écrits par un mode (sujets 478, 503)', () => {
+  const HEAD = '<b>T</b><br>';
+  const fileLabels = (_pages: unknown, direction: string): LabelRewrite =>
+    direction === 'export'
+      ? (_page, _shape, value) => HEAD + value
+      : (_page, _shape, value) => (value.startsWith(HEAD) ? value.slice(HEAD.length) : undefined);
+
+  it('enregistré : labels du mode dans le fichier, arbre du document intact ; rouvert : texte d’avant', async () => {
+    const { file } = tracedSetup(fileLabels);
+    const xml = file.serialize()!;
+    expect(cellLabelValue(readDrawio(xml).tree.pages[0]!, 'a')).toBe(`${HEAD}A`);
+    expect(cellLabelValue(file.xmlTree!.pages[0]!, 'a')).toBe('A');
+    await file.load(xml, 'f');
+    expect(cellLabelValue(file.xmlTree!.pages[0]!, 'a')).toBe('A');
+    expect(shapeOf(file.document!.pages[0], 'a')!.label).toBe('A');
   });
 });

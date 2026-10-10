@@ -1,7 +1,6 @@
 import { setPageAttribute } from '../../format/cellEdits';
-import { readDrawio } from '../../format/parse';
 import { writeDrawio } from '../../format/write';
-import type { DrawioTree, PageTree } from '../../format/xmlTree';
+import type { PageTree } from '../../format/xmlTree';
 import type { TerminalEnd } from '../../edit/edgeEnds';
 import { endKey } from '../../edit/anchoring/auto/distribute';
 import { isAnchoring, isEdgeLine } from '../../edit/anchoring/mode';
@@ -9,7 +8,7 @@ import { canMoveShape, carriedShapes } from '../../edit/moveSet';
 import type { DocumentModel, PageModel, Point, Rect, ShapeModel } from '../../model/types';
 import type { PageModePalette } from '../../edit/palette';
 import { applyModeEdit } from '../../modes/modeEditWriter';
-import { rewriteLabels } from '../../modes/fileLabels';
+import type { LabelRewrite } from '../../format/fileLabels';
 import { callMode } from '../../modes/modeCalls';
 import type { PageEffectDefinition } from '../../effects/types';
 import type { PageDressing } from '../../modes/dressing';
@@ -110,32 +109,17 @@ export class PageModes {
   }
 
   /**
-   * Fichier lu (sujet 478) : labels des formes ramenés à ce que l'appli garde (`lifecycle.importedLabel`), dans
-   * l'arbre ; renvoie vrai si l'arbre a changé (le modèle est alors à relire).
+   * Labels des formes entre le fichier et l'appli (sujets 478, 503) : `export`, tels que les modes les écrivent dans
+   * le fichier enregistré (`lifecycle.exportedLabel`) ; `import`, tels que l'appli les garde, à l'ouverture et au
+   * collage (`lifecycle.importedLabel`). Undefined si aucun mode de `pages` n'en a : rien à réécrire.
    */
-  importLabels(document: DocumentModel, tree: DrawioTree): boolean {
-    return (
-      rewriteLabels(document, tree, (page, shape, value) => {
-        const mode = this.core.modes.modeOf(page);
-        const entry = mode?.lifecycle?.importedLabel;
-        return mode && this.call(mode, 'lifecycle.importedLabel', undefined, entry, page, shape, value);
-      }).length > 0
-    );
-  }
-
-  /**
-   * Fichier à enregistrer (sujet 478) : labels des formes tels que les modes les écrivent (`lifecycle.exportedLabel`),
-   * sur une copie de `xml` ; l'arbre du document n'est pas touché. `xml` tel quel si aucun mode n'en écrit.
-   */
-  exportLabels(xml: string, document: DocumentModel): string {
-    if (!document.pages.some((page) => this.core.modes.modeOf(page)?.lifecycle?.exportedLabel)) return xml;
-    const copy = readDrawio(xml);
-    const changed = rewriteLabels(copy.document, copy.tree, (page, shape, value) => {
+  fileLabels(pages: readonly PageModel[], direction: 'export' | 'import'): LabelRewrite | undefined {
+    const name = direction === 'export' ? 'exportedLabel' : 'importedLabel';
+    if (!pages.some((page) => this.core.modes.modeOf(page)?.lifecycle?.[name])) return undefined;
+    return (page, shape, value) => {
       const mode = this.core.modes.modeOf(page);
-      const entry = mode?.lifecycle?.exportedLabel;
-      return mode && this.call(mode, 'lifecycle.exportedLabel', undefined, entry, page, shape, value);
-    });
-    return changed.length > 0 ? writeDrawio(copy.tree) : xml;
+      return mode && this.call(mode, `lifecycle.${name}`, undefined, mode.lifecycle?.[name], page, shape, value);
+    };
   }
 
   /** Palette d'une page : catégories et modèles proposés, d'après son mode et les formes du moteur. */

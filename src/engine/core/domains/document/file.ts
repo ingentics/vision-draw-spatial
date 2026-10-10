@@ -1,5 +1,6 @@
 import { collectUnsupported } from '../../diagnostics/unsupportedStyles';
 import type { UnsupportedReport } from '../../diagnostics/unsupportedStyles';
+import { rewriteLabels } from '../../format/fileLabels';
 import { documentFromTree, readDrawio } from '../../format/parse';
 import { writePageViews } from '../../format/viewState';
 import { writeDrawio } from '../../format/write';
@@ -55,7 +56,9 @@ export class DocumentFile {
     const read = readDrawio(xml);
     const { tree } = read;
     // Ce qu'un mode écrit en plus dans le fichier (sujet 478) n'est pas gardé par l'appli.
-    const document = this.core.pageModes.importLabels(read.document, tree) ? documentFromTree(tree) : read.document;
+    const labelOf = this.core.pageModes.fileLabels(read.document.pages, 'import');
+    const relabeled = labelOf && rewriteLabels(read.document, tree, labelOf).length > 0;
+    const document = relabeled ? documentFromTree(tree) : read.document;
     this.core.metrics.fileRead(performance.now() - start);
     this.replaceDocument(document, tree);
     this.loadedFileId = fileId;
@@ -78,7 +81,18 @@ export class DocumentFile {
     writePageViews(this.tree, this.core.pages.savedViews());
     const xml = writeDrawio(this.tree);
     this.core.edits.markSaved();
-    return this.model ? this.core.pageModes.exportLabels(xml, this.model) : xml;
+    return this.withExportedLabels(xml);
+  }
+
+  /**
+   * Fichier enregistré avec les labels tels que les modes les écrivent (sujet 478), sur une copie relue de `xml` :
+   * l'arbre du document n'est pas touché. `xml` tel quel si aucun mode n'en écrit.
+   */
+  private withExportedLabels(xml: string): string {
+    const labelOf = this.model && this.core.pageModes.fileLabels(this.model.pages, 'export');
+    if (!labelOf) return xml;
+    const copy = readDrawio(xml);
+    return rewriteLabels(copy.document, copy.tree, labelOf).length > 0 ? writeDrawio(copy.tree) : xml;
   }
 
   /**

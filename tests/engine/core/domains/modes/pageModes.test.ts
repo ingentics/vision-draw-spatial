@@ -62,6 +62,17 @@ describe('hôte des appels aux modes (sujet 288)', () => {
   });
 });
 
+describe('labels du fichier d’un mode (sujets 478, 503)', () => {
+  it('sans mode qui en écrit : rien à réécrire ; en panne : label laissé tel quel, signalé', () => {
+    const { modes, guard, document, page } = setup({ ...BOOM, lifecycle: { exportedLabel: fail } });
+    expect(setup().modes.fileLabels(document.pages, 'export')).toBeUndefined();
+    expect(modes.fileLabels(document.pages, 'import')).toBeUndefined();
+    const labelOf = modes.fileLabels(document.pages, 'export')!;
+    expect(labelOf(page, page.shapes[0]!, 'A')).toBeUndefined();
+    expect(guard.warnings().map((w) => w.message)).toEqual(['Mode boom : erreur dans lifecycle.exportedLabel (panne)']);
+  });
+});
+
 describe('écritures d’une opération de mode qui échouent en route (sujet 302)', () => {
   it('une écriture vers une cellule disparue : arbre inchangé, pas d’étape d’annulation, erreur signalée', () => {
     const { tree, modes, guard, state } = setup();

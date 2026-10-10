@@ -51,6 +51,11 @@ export function documentFromTree(tree: DrawioTree): DocumentModel {
   return { pages, warnings };
 }
 
+/** Modèle d'une seule page de l'arbre, sans ses avertissements (ex. formes qu'on vient d'y coller). */
+export function pageFromTree(page: PageTree): PageModel {
+  return parsePage(page, []);
+}
+
 // ---------------------------------------------------------------------------
 // Pages
 

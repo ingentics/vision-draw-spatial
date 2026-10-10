@@ -30,3 +30,20 @@
 - **Fini quand :** sur `eventstorming-commande.drawio`, Labels décoché, un texte qui commence par le nom du type
   survit à l'enregistrement et la réouverture ; un post-it collé depuis un fichier exporté n'a pas l'en-tête dans son
   texte ; `make check` vert.
+- Fait : réécriture déplacée dans `core/format/fileLabels.ts` (`rewriteLabels`, `rewritePageLabels` avec `only`, type
+  `LabelRewrite`). Choix du format : le mode reçoit et rend toujours du HTML ; un label en texte brut (`html=0`) lui
+  arrive converti (`textToHtml` : `<` en `&lt;`, retours à la ligne en `<br>`), et le label réécrit reste brut s'il n'a
+  pas de mise en forme, sinon il passe en `html=1` (même texte affiché). `PageModes.fileLabels(pages, 'export' |
+  'import')` ne fournit que le rappel protégé du mode (undefined si aucun mode n'en a) ; `DocumentFile` fait la copie
+  relue à l'enregistrement (`withExportedLabels`) et la réécriture à l'ouverture ; `importLabels` / `exportLabels`
+  retirés. Coller (`Clipboard.pasteXml`) applique `importedLabel` aux formes collées, avant `gestures.placed`, sur la
+  page relue (`pageFromTree`, ajouté à `format/parse.ts`). Mode : `importedLabel` ne retire rien quand le post-it
+  masque les labels. Écarts : un texte qui commence par le nom du type survit à l'aller-retour quand « Labels » est
+  décoché ; un label brut venu de draw.io garde son texte (il passe en `html=1` avec l'en-tête) ; un post-it collé
+  depuis un fichier exporté n'a pas l'en-tête dans son texte. Tests `tests/engine/core/format/fileLabels.test.ts`,
+  `tests/engine/core/domains/edit/commands/clipboard.test.ts` (nouveau), aller-retour `serialize` puis `load` dans
+  `file.test.ts`, mode en panne dans `pageModes.test.ts`, labels masqués et `html=0` dans `fileLabel.test.ts` (aides
+  du test adaptées à la nouvelle API) ; doc `AJOUTER_UN_MODE.md`, SPEC §14.5, SUMMARY (`core/format/`). Vérifié dans
+  l'appli sur `eventstorming-commande.drawio` (par l'API du moteur) : « Labels » décoché, « Payer » remplacé par
+  « **Command** / x », enregistré puis rouvert : le texte reste « Command / x » ; « Labels » recoché, post-it collé avec
+  l'en-tête : texte « Relancer », un seul en-tête à l'enregistrement. Fixture rechargée ensuite.

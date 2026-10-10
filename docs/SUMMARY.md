@@ -51,7 +51,7 @@ dossiers du projet (SPEC §4.2 et `.claude/rules/coding.md` §2 y renvoient) ; l
 | `core/plugins/` | API des plugins : seul fichier du tronc qu'une forme, un mode ou un effet importe (`.claude/rules/coding.md` §5) | réexports |
 | `core/settings/` | paramètres : types, schéma (défauts, bornes, lecture), fusion qui en découle | pur |
 | `core/model/` | modèle neutre (aucune notion draw.io), géométrie, lecture du style, index de page, gel | pur, sans Three.js |
-| `core/format/` | decode, parse (XML → modèle), style, xmlTree, cellEdits / write (écriture in situ), presse-papier | pur, sans Three.js |
+| `core/format/` | decode, parse (XML → modèle), style, xmlTree, cellEdits / write (écriture in situ), presse-papier, labels réécrits par un mode entre le fichier et l'appli (`fileLabels`) | pur, sans Three.js |
 | `core/persistence/` | FileStore : MemoryStore, IndexedDbStore, FsStore (Electron) ; Autosaver | avec état |
 | `core/export/` | textes des exports des modes communs à tous (échappement PlantUML, sujet 439), offerts par l'API des plugins | pur |
 | `core/diagnostics/`, `core/spatial.ts` | formes non supportées (SPEC §8.4), appel protégé commun aux plugins (`pluginCalls.ts`) ; attributs `spatial.*` (SPEC §14.3) | pur |

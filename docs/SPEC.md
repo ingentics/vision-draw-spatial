@@ -1124,7 +1124,9 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     Bordure dans le panneau (sujet 483, `styleable: false`).
   - **Dans le fichier** (sujet 478) : la valeur d'un post-it porte le nom du type en gras en tête
     (`<b>Command</b><br>Payer`, seul sans texte), lisible dans draw.io ; rien en tête quand « Labels » est décoché.
-    L'en-tête est ajouté à l'enregistrement et retiré à l'ouverture : l'appli ne garde que le texte du ticket.
+    L'en-tête est ajouté à l'enregistrement et retiré à l'ouverture, ou au collage d'un post-it copié d'un fichier
+    exporté : l'appli ne garde que le texte du ticket. « Labels » décoché, rien n'est retiré. Un texte brut
+    (`html=0`, venu de draw.io) garde son texte ; il passe en `html=1` avec l'en-tête (sujet 503).
   - **Aimantation bord à bord** (sujet 477) : en glissant ou redimensionnant un post-it, un bord à moins de 8 px écran
     d'un bord opposé d'un autre post-it, qu'il recouvre sur l'autre axe, s'y colle (écart 0) ; pas avec Alt.
   - **Cases au glisser** (sujet 481) : en glissant un post-it seul, les cases où il peut se poser sont montrées autour

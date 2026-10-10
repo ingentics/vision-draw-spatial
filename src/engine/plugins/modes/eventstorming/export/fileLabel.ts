@@ -17,10 +17,13 @@ export function exportedLabel(_page: PageModel, shape: ShapeModel, value: string
   return value ? `${header(type.label)}<br>${value}` : header(type.label);
 }
 
-/** Label lu du fichier, sans l'en-tête du type (suivi d'un retour à la ligne, ou seul) ; undefined s'il n'y en a pas. */
+/**
+ * Label lu du fichier (ou collé), sans l'en-tête du type (suivi d'un retour à la ligne, ou seul) ; undefined s'il n'y
+ * en a pas. Labels masqués : rien n'a été mis en tête à l'enregistrement, donc rien n'est retiré (sujet 503).
+ */
 export function importedLabel(_page: PageModel, shape: ShapeModel, value: string): string | undefined {
   const type = stickyType(shape);
-  if (!type) return undefined;
+  if (!type || !showsLabel(shape)) return undefined;
   const head = header(type.label);
   if (!value.startsWith(head)) return undefined;
   const rest = value.slice(head.length);

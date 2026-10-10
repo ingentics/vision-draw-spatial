@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { cellLabelValue } from '../../../../../src/engine/core/format/cellEdits';
+import { rewriteLabels } from '../../../../../src/engine/core/format/fileLabels';
 import { readDrawio } from '../../../../../src/engine/core/format/parse';
+import { writeDrawio } from '../../../../../src/engine/core/format/write';
 import { modeHost } from '../../../modeHost';
 import { sticky, stormingXml } from './helpers';
 
@@ -8,12 +10,17 @@ import { sticky, stormingXml } from './helpers';
 const valueIn = (xml: string, id: string) => cellLabelValue(readDrawio(xml).tree.pages[0]!, id);
 
 /** Le fichier `xml` enregistré (en-têtes ajoutés). */
-const saved = (xml: string) => modeHost().host.exportLabels(xml, readDrawio(xml).document);
+function saved(xml: string): string {
+  const { document, tree } = readDrawio(xml);
+  const labelOf = modeHost().host.fileLabels(document.pages, 'export');
+  return labelOf && rewriteLabels(document, tree, labelOf).length > 0 ? writeDrawio(tree) : xml;
+}
 
 /** Le fichier `xml` ouvert : arbre changé ou non, et valeur gardée de la cellule `id`. */
 function opened(xml: string, id: string) {
   const { document, tree } = readDrawio(xml);
-  const changed = modeHost().host.importLabels(document, tree);
+  const labelOf = modeHost().host.fileLabels(document.pages, 'import')!;
+  const changed = rewriteLabels(document, tree, labelOf).length > 0;
   return { changed, value: cellLabelValue(tree.pages[0]!, id) };
 }
 
@@ -49,5 +56,30 @@ describe('mode Event storming : nom du type en tête de la valeur dans le fichie
     expect(saved(hidden)).toBe(hidden);
     const other = stormingXml(sticky('a', 'command', 0, 0, '&lt;b&gt;Actor&lt;/b&gt;&lt;br&gt;Payer'));
     expect(opened(other, 'a').value).toBe('<b>Actor</b><br>Payer');
+  });
+
+  it('« Labels » décoché : un texte qui commence par le nom du type est gardé à l’ouverture (sujet 503)', () => {
+    const hidden = stormingXml(
+      sticky('a', 'command', 0, 0, '&lt;b&gt;Command&lt;/b&gt;&lt;br&gt;x', 160, 160, 'spatial.es.labels=0;'),
+    );
+    expect(saved(hidden)).toBe(hidden);
+    expect(opened(hidden, 'a')).toEqual({ changed: false, value: '<b>Command</b><br>x' });
+  });
+
+  it('texte brut (html=0) : même texte après l’aller-retour ; un en-tête écrit en texte n’est pas retiré (sujet 503)', () => {
+    const plain = (id: string, value: string) =>
+      `<mxCell id="${id}" value="${value}" style="spatial.kind=eventstorming-command;" vertex="1" parent="1"><mxGeometry width="160" height="160" as="geometry" /></mxCell>`;
+    const xml = stormingXml(
+      plain('a', 'A&lt;B &amp;amp; C&#10;D') + plain('b', '&lt;b&gt;Command&lt;/b&gt;&lt;br&gt;x'),
+    );
+    const file = saved(xml);
+    expect(valueIn(file, 'a')).toBe('<b>Command</b><br>A&lt;B &amp;amp; C<br>D');
+    const label = (source: string, id: string) =>
+      readDrawio(source).document.pages[0]!.shapes.find((s) => s.id === id)!.label;
+    expect(label(file, 'a')).toBe('Command\nA<B &amp; C\nD');
+    const { document, tree } = readDrawio(file);
+    rewriteLabels(document, tree, modeHost().host.fileLabels(document.pages, 'import')!);
+    expect(label(writeDrawio(tree), 'a')).toBe(label(xml, 'a'));
+    expect(label(writeDrawio(tree), 'b')).toBe(label(xml, 'b'));
   });
 });
