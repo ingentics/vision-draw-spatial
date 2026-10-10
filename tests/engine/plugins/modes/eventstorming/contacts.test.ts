@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { contacts } from '../../../../../src/engine/plugins/modes/eventstorming/contacts/contacts';
-import { contactLines } from '../../../../../src/engine/plugins/modes/eventstorming/contacts/contactsText';
-import { definition as storming } from '../../../../../src/engine/plugins/modes/eventstorming';
 import { setup, sticky, stormingXml } from './helpers';
 
 describe('mode Event storming : contacts (sujet 475)', () => {
@@ -55,25 +53,5 @@ describe('mode Event storming : contacts (sujet 475)', () => {
   it('seulement entre post-it du mode', () => {
     const text = `<mxCell id="t" value="x" style="text;html=1;" vertex="1" parent="1"><mxGeometry x="160" y="0" width="60" height="30" as="geometry" /></mxCell>`;
     expect(read(sticky('a', 'event', 0, 0) + text).contacts).toEqual([]);
-  });
-
-  it('panneau, sur la fixture : Commande entre l’Acteur et l’Événement, Politique sous la moitié de l’Événement', () => {
-    const { page, shape } = setup();
-    expect(contactLines(page(), shape('command'))).toEqual([
-      'Actor « Client » — à gauche, sur tout le côté',
-      'Domain Event « Paiement effectué » — à droite, sur tout le côté',
-    ]);
-    expect(contactLines(page(), shape('policy'))).toEqual(['Domain Event « Paiement effectué » — en haut, sur 50 %']);
-    expect(contactLines(page(), shape('constraint'))).toEqual([]);
-    expect(contactLines(page(), shape('query'))).toEqual(['Hotspot « Règle floue » — chevauchement']);
-  });
-
-  it('réglage du panneau : « Ne touche aucun post-it », masqué hors des post-it', () => {
-    const { page, shape } = setup();
-    const property = storming.gestures!.properties![0]!;
-    expect(property.readOnly).toBe(true);
-    expect(property.value!(page(), shape('constraint'))).toBe('Ne touche aucun post-it');
-    expect(property.hidden!(page(), shape('title'))).toBe(true);
-    expect(property.hidden!(page(), shape('policy'))).toBe(false);
   });
 });

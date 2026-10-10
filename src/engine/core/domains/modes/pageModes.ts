@@ -14,7 +14,7 @@ import { callMode } from '../../modes/modeCalls';
 import type { PageEffectDefinition } from '../../effects/types';
 import type { PageDressing } from '../../modes/dressing';
 import type { ModeEdit, ModeEditContext } from '../../modes/modeEdit';
-import type { ModeObstacles, PageModeDefinition } from '../../modes/types';
+import type { ModeDragPlaces, ModeObstacles, PageModeDefinition } from '../../modes/types';
 import { modePalette } from '../../settings';
 import { SPATIAL } from '../../spatial';
 import type { EngineCore } from '../EngineCore';
@@ -193,6 +193,18 @@ export class PageModes {
     const mode = this.core.modes.modeOf(page);
     if (!mode) return [];
     return this.call(mode, 'gestures.snapTargets', [], mode.gestures?.snapTargets, page, shape);
+  }
+
+  /** Le mode de la page propose-t-il des places au glisser d'une forme (`gestures.dragPlaces`, sujet 481) ? */
+  hasDragPlaces(page: PageModel): boolean {
+    return !!this.core.modes.modeOf(page)?.gestures?.dragPlaces;
+  }
+
+  /** Places proposées au glisser de `shape`, à sa place courante `bounds` (`gestures.dragPlaces`, sujet 481). */
+  dragPlaces(page: PageModel, shape: ShapeModel, bounds: Rect): ModeDragPlaces | undefined {
+    const mode = this.core.modes.modeOf(page);
+    if (!mode) return undefined;
+    return this.call(mode, 'gestures.dragPlaces', undefined, mode.gestures?.dragPlaces, page, shape, bounds);
   }
 
   /** Le mode de la page emporte-t-il des formes (`gestures.carries`) ? Leurs flèches sont alors mises en valeur avec elles. */

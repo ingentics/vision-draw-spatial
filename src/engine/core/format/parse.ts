@@ -7,6 +7,7 @@ import type {
   PageModel,
   ParseWarning,
   Point,
+  Rect,
   ShapeModel,
 } from '../model/types';
 import { computeBounds } from '../model/bounds';
@@ -120,6 +121,17 @@ function parseGraphModel(page: PageTree, warnings: ParseWarning[]): PageModel {
     attributes,
     bounds: computeBounds(shapes, edges),
   };
+}
+
+/**
+ * Forme qu'un style créerait à `bounds`, sans rien écrire (sujet 481 : forme de la palette qu'on glisse au-dessus de la
+ * page, pour les places proposées par le mode) : sans texte, hors calque, d'id `id`.
+ */
+export function shapeFromStyle(id: string, styleString: string, bounds: Rect): ShapeModel {
+  const parsed = parseStyle(styleString);
+  const base = { id, label: '', style: parsed.values, layerId: '', visible: true, z: 0, attributes: {} };
+  const kind = spatialValue(base, SPATIAL.kind)?.trim() || resolveShapeKind(parsed);
+  return { ...base, raw: { styleString }, kind, bounds };
 }
 
 /** Champs communs à une forme et à une arête. */

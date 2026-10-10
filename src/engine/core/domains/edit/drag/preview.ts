@@ -6,7 +6,7 @@ import { distance } from '../../../model/geometry';
 import type { PageModel, Point, Rect } from '../../../model/types';
 import { perimeterKind } from '../../../render/edges/route';
 import { parseStyle } from '../../../format/style';
-import { partSelection } from '../../../render/decorations';
+import { dragPlacesMarks, partSelection } from '../../../render/decorations';
 import { connectionHints } from '../../../render/handleMeshes';
 import { disposeObject, fadedStrokeMesh } from '../../../render/meshes';
 import { dashPolyline } from '../../../render/geometry/stroke';
@@ -22,6 +22,9 @@ export class ConnectorPreview {
   /** Limites montrées pendant un geste borné (sujet 241), et leur clé (pas de reconstruction si rien ne change). */
   private limits: Object3D | undefined;
   private limitsKey: string | undefined;
+  /** Places montrées pendant le glisser d'une forme (sujet 481), et leur clé. */
+  private places: Object3D | undefined;
+  private placesKey: string | undefined;
 
   constructor(private readonly core: EngineCore) {}
 
@@ -126,6 +129,37 @@ export class ConnectorPreview {
     group.position.z = 0.5;
     this.limits = group;
     root.add(group);
+    this.core.rendering.requestRender();
+  }
+
+  /**
+   * Places proposées par le mode au glisser d'une forme (sujet 481), au-dessus du schéma ; `hit` : la place visée ;
+   * `swap` : l'échange en vue. Aucune place ni échange : rien n'est montré.
+   */
+  showPlaces(places: Rect[], hit: Rect | undefined, swap?: { target: Rect; to: Rect }): void {
+    const zoom = this.core.camera.state.zoom;
+    const key = JSON.stringify([places, hit, swap, zoom]);
+    if (key === this.placesKey) return;
+    this.clearPlaces();
+    this.placesKey = key;
+    const root = this.core.scenes.current?.root;
+    if (!root || (places.length === 0 && !swap)) return;
+    const group = dragPlacesMarks(places, hit, swap, zoom, this.core.settings.selection.accentColor);
+    group.traverse((o) => {
+      if (o instanceof Mesh) (o.material as MeshBasicMaterial).depthTest = false;
+    });
+    group.position.z = 0.5;
+    this.places = group;
+    root.add(group);
+    this.core.rendering.requestRender();
+  }
+
+  clearPlaces(): void {
+    this.placesKey = undefined;
+    if (!this.places) return;
+    this.places.removeFromParent();
+    disposeObject(this.places);
+    this.places = undefined;
     this.core.rendering.requestRender();
   }
 

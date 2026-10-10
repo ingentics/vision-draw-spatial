@@ -50,6 +50,11 @@ interface PaletteProps {
   /** Catégories et formes proposées sur la page (mode de la page, sujet 178) ; défaut : la palette normale. */
   content?: PageModePalette;
   disabled?: boolean;
+  /**
+   * Forme glissée vers le plan (début), ou glisser fini (undefined) : le plan ne lit pas les données d'un glisser avant
+   * le lâcher, il lui faut le modèle pour montrer les places du mode (sujet 481).
+   */
+  onDragTemplate?: (template: ShapeTemplate | undefined) => void;
 }
 
 /**
@@ -60,7 +65,7 @@ interface PaletteProps {
 /** Rien à proposer tant que le moteur n'a pas donné la palette de la page (sujet 290). */
 const DEFAULT_CONTENT: PageModePalette = { categories: [], templates: [] };
 
-export function Palette({ onAdd, used = [], content = DEFAULT_CONTENT, disabled }: PaletteProps) {
+export function Palette({ onAdd, used = [], content = DEFAULT_CONTENT, disabled, onDragTemplate }: PaletteProps) {
   const [query, setQuery] = useState('');
   const [collapsed, setCollapsed] = useState(loadCollapsed);
   const sectionsRef = useRef<HTMLDivElement>(null);
@@ -157,7 +162,9 @@ export function Palette({ onAdd, used = [], content = DEFAULT_CONTENT, disabled 
                         hideTooltip();
                         event.dataTransfer.setData(PALETTE_MIME, template.id);
                         event.dataTransfer.effectAllowed = 'copy';
+                        onDragTemplate?.(template);
                       }}
+                      onDragEnd={() => onDragTemplate?.(undefined)}
                       onClick={() => onAdd(template)}
                     >
                       <ShapePreview template={template} />

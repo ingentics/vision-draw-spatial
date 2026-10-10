@@ -22,6 +22,7 @@ export type {
 } from '../shapes/types';
 export type {
   ModeCurrentLook,
+  ModeDragPlaces,
   ModeHandle,
   ModeIssue,
   ModeKey,

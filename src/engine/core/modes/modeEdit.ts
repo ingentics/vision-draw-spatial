@@ -61,6 +61,12 @@ export interface ModeEdit extends ModeSizing {
   /** Envoie ces formes au fond de l'ordre de dessin, dans cet ordre (la première tout au fond) (sujet 230). */
   sendToBack(shapeIds: readonly string[]): void;
   /**
+   * Place la forme `shapeId` juste derrière `referenceId` dans l'ordre de dessin (sujet 484, ex. post-it collé au-dessus
+   * d'un autre) ; rien si elle y est déjà, si elles n'ont pas le même parent ou si l'une est verrouillée. Jugé au moment
+   * de l'écriture, après les écritures précédentes de l'opération.
+   */
+  placeBehind(shapeId: string, referenceId: string): void;
+  /**
    * Texte de début ou de fin d'une flèche (sujet 265, ex. cardinalité) : ajouté ou réécrit dans la configuration
    * par défaut de l'appli (contre le bout, la flèche partant dans le sens `direction`, alignement qui l'éloigne de la
    * forme ; taille et couleur des paramètres), ou retiré (undefined). `margin` s'ajoute aux écarts des paramètres

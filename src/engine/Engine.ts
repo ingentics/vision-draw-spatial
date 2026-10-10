@@ -664,10 +664,21 @@ export class Engine {
   /**
    * Ajoute une forme de la palette sur la page courante, centrée sur un point écran (dépôt) ou au
    * centre de la vue : point projeté au sol (vue de dessus comme iso), aimanté à la grille.
-   * Renvoie l'id de la nouvelle cellule, sélectionnée.
+   * Renvoie l'id de la nouvelle cellule, sélectionnée. Déposée dans une place proposée par le mode de la page (sujet
+   * 481), elle s'y pose ; `snap` faux (Alt) : pas de place.
    */
-  addShape(template: ShapeTemplate, screen?: Point): string | undefined {
-    return this.core.elements.addShape(template, screen);
+  addShape(template: ShapeTemplate, screen?: Point, snap = true): string | undefined {
+    return this.core.elements.addShape(template, screen, snap);
+  }
+
+  /** Forme de la palette glissée au-dessus du canvas, à `screen` : places du mode montrées (sujet 481). */
+  paletteDragOver(template: ShapeTemplate, screen: Point, snap: boolean): void {
+    this.core.elements.paletteDragOver(template, screen, snap);
+  }
+
+  /** Fin du glisser depuis la palette (lâché ou sorti du canvas) : places retirées. */
+  paletteDragEnd(): void {
+    this.core.elements.paletteDragEnd();
   }
 
   /** Lien d'un élément de la page courante (vers une page ou une URL) ; undefined = retiré. */

@@ -264,6 +264,12 @@ export class DragGesture {
       applied: { x: 0, y: 0 },
       grid,
       snapping: this.snappingOf(page, plan.rootIds, plan.set.shapeIds),
+      // Places du mode (sujet 481) : pour une forme glissée seule, sans rien d'emporté.
+      places:
+        plan.rootIds.length === 1 &&
+        plan.edges.length === 0 &&
+        carried.length === 0 &&
+        this.core.pageModes.hasDragPlaces(page),
       started: false,
     };
   }
@@ -325,8 +331,9 @@ export class DragGesture {
       grid,
     );
     if (drag.rootIds.length === 0 && drag.edges.length === 0) return false;
-    // Un pas au clavier ne s'aimante pas : il ne pourrait pas éloigner la forme d'une autre.
+    // Un pas au clavier ne s'aimante pas (il ne pourrait pas éloigner la forme d'une autre) ni ne vise de place.
     drag.snapping = undefined;
+    drag.places = false;
     const { nudgeStep, nudgeCoarseStep } = this.core.settings.edit;
     const onGrid = coarse && nudgeCoarseStep === 0;
     const step = onGrid ? grid : coarse ? nudgeCoarseStep : nudgeStep;
@@ -368,6 +375,7 @@ export class DragGesture {
     this.active = undefined;
     this.core.preview.clearConnectorPreview();
     this.core.preview.clearLimits();
+    this.core.preview.clearPlaces();
     if (!drag?.started || !this.core.file.document || !this.core.file.xmlTree) return;
     const pageTree = this.core.file.pageTreeOf(drag.pageId);
     if (!pageTree) return;

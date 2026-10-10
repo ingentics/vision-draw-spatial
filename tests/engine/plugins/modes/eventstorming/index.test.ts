@@ -131,3 +131,11 @@ describe('mode Event storming : cibles de l’aimantation bord à bord (sujet 47
     expect(targets(page(), shape('t'))).toEqual([]);
   });
 });
+
+describe('mode Event storming : panneau d’un post-it (sujet 483)', () => {
+  it('ni Style ni Bordure : couleur du type, sans contour', () => {
+    const registry = createDefaultRegistry();
+    const { shape } = setup(stormingXml(sticky('a', 'event', 0, 0)));
+    expect(registry.view().styleable(shape('a'))).toBe(false);
+  });
+});

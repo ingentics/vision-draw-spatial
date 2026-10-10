@@ -50,6 +50,25 @@ export function sendToBackInOrder(page: PageTree, cellIds: readonly string[]): b
   return true;
 }
 
+/**
+ * Place la cellule `cellId` juste derrière `referenceId` dans l'ordre de dessin (sujet 484), si elles sont sœurs et
+ * qu'elle est devant ; faux sinon (déjà derrière, parents différents, cellule inconnue).
+ */
+export function placeBehind(page: PageTree, cellId: string, referenceId: string): boolean {
+  if (!page.cells.has(cellId) || !page.cells.has(referenceId)) return false;
+  const parentOf = new Map(page.cellList.map((nodes) => [nodes.id, nodes.cell?.getAttribute('parent') ?? undefined]));
+  const parent = parentOf.get(cellId);
+  if (parentOf.get(referenceId) !== parent) return false;
+  const siblings = page.cellList.filter((nodes) => parentOf.get(nodes.id) === parent).map((nodes) => nodes.id);
+  if (siblings.indexOf(cellId) < siblings.indexOf(referenceId)) return false;
+  const order = siblings.filter((id) => id !== cellId);
+  order.splice(order.indexOf(referenceId), 0, cellId);
+  moveBlocks(page, order, parentOf);
+  reindexPage(page);
+  markPageDirty(page);
+  return true;
+}
+
 /** Nouvel ordre des cellules sœurs ; les cellules choisies gardent leur ordre entre elles. */
 function reordered(siblings: string[], selected: ReadonlySet<string>, move: OrderMove): string[] {
   const order = [...siblings];

@@ -204,6 +204,13 @@ export interface ModeGestures {
    */
   snapTargets?(page: PageModel, shape: ShapeModel): Array<{ id: string; rect: Rect }>;
   /**
+   * Places proposées pendant le glisser d'une seule forme (sujet 481, ex. cases où poser un post-it Event storming) ;
+   * `bounds` : sa place courante. Le moteur les montre ; le centre de la forme dans une place l'y met, lâchée elle s'y
+   * pose. `swapWith` : forme dont la forme glissée prend la place si on la lâche hors des places (échange). Pas avec
+   * Alt, ni pour une sélection multiple ou un pas au clavier ; undefined : rien.
+   */
+  dragPlaces?(page: PageModel, shape: ShapeModel, bounds: Rect): ModeDragPlaces | undefined;
+  /**
    * Formes posées : déplacées (fin d'un glisser, flèches du clavier) ou ajoutées depuis la palette ; remise en ordre
    * dans la même étape d'annulation (ex. région RDD agrandie pour les contenir, sujet 183). `edit.page` est la page
    * après la pose ; `before`, la page avant un déplacement (absente pour un ajout, sujet 234).
@@ -216,6 +223,12 @@ export interface ModeGestures {
   relabeled?(edit: ModeEdit, elementId: string): void;
   /** Poignées propres au mode sur la forme sélectionnée seule, modifiable (sujet 250, ex. « + » d'une table RDD). */
   handles?: ModeHandleSet;
+}
+
+/** Places d'un glisser (sujet 481) : où la forme glissée peut se poser, et la forme avec laquelle l'échanger. */
+export interface ModeDragPlaces {
+  places: Rect[];
+  swapWith?: string;
 }
 
 /** Poignées d'un mode (sujets 250, 256). */

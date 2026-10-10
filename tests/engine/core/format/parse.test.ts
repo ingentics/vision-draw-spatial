@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DrawioParseError, parseDrawio } from '../../../../src/engine/core/format/parse';
+import { DrawioParseError, parseDrawio, shapeFromStyle } from '../../../../src/engine/core/format/parse';
 import type { PageModel } from '../../../../src/engine/core/model/types';
 import { fixture } from '../../../helpers';
 
@@ -296,5 +296,15 @@ describe('parseDrawio — drawio-desktop.drawio (fichier réel, draw.io 24.7.5)'
 
   it('emprise de la page', () => {
     expect(page.bounds).toEqual({ x: 120, y: 200, width: 440, height: 280 });
+  });
+});
+
+describe('shapeFromStyle (sujet 481)', () => {
+  it('forme d’un style sans l’écrire : kind imposé par spatial.kind, sinon déduit du style', () => {
+    const bounds = { x: 10, y: 20, width: 160, height: 160 };
+    const sticky = shapeFromStyle('p', 'rounded=1;fillColor=#64b5f6;spatial.kind=eventstorming-command;', bounds);
+    expect(sticky).toMatchObject({ id: 'p', kind: 'eventstorming-command', bounds, label: '' });
+    expect(sticky.style.fillColor).toBe('#64b5f6');
+    expect(shapeFromStyle('e', 'ellipse;whiteSpace=wrap;', bounds).kind).toBe('ellipse');
   });
 });

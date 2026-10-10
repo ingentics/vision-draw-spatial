@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { reorderCells } from '../../../../src/engine/core/format/order';
+import { placeBehind, reorderCells } from '../../../../src/engine/core/format/order';
 import type { OrderMove } from '../../../../src/engine/core/format/order';
 import { readDrawio } from '../../../../src/engine/core/format/parse';
 import { writeDrawio } from '../../../../src/engine/core/format/write';
@@ -77,5 +77,25 @@ describe('reorderCells', () => {
     const { order, written } = run(cells, ['e'], 'back');
     expect(order).toEqual(['e', 'a']);
     expect(written.indexOf('id="l"')).toBeLessThan(written.indexOf('id="a"'));
+  });
+});
+
+describe('placeBehind (sujet 484)', () => {
+  const order = (cells: string[], id: string, reference: string) => {
+    const { tree } = readDrawio(file(cells));
+    const changed = placeBehind(tree.pages[0]!, id, reference);
+    const page = readDrawio(writeDrawio(tree)).document.pages[0]!;
+    return { changed, order: [...page.shapes].sort((a, b) => a.z - b.z).map((e) => e.id) };
+  };
+
+  it('juste derrière la référence ; déjà derrière : rien', () => {
+    expect(order(abcd, 'd', 'b')).toEqual({ changed: true, order: ['a', 'd', 'b', 'c'] });
+    expect(order(abcd, 'a', 'c')).toEqual({ changed: false, order: ['a', 'b', 'c', 'd'] });
+  });
+
+  it('parents différents ou cellule inconnue : rien', () => {
+    const nested = [cell('g'), cell('x', 'g'), cell('y')];
+    expect(order(nested, 'y', 'x').changed).toBe(false);
+    expect(order(abcd, 'z', 'a').changed).toBe(false);
   });
 });

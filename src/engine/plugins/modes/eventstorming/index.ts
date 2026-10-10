@@ -1,9 +1,10 @@
 import type { PageModeDefinition } from '../../../core/plugins';
-import { CONTACTS_PROPERTY } from './contacts/contactsText';
 import { exportedLabel, importedLabel } from './export/fileLabel';
 import { EVENT_STORMING_KEYS } from './keys';
 import { isSticky, STICKY_TYPES } from './kinds';
 import { LABELS_PROPERTY, syncLabels } from './labels/pageLabels';
+import { dragPlaces } from './places/dragPlaces';
+import { stackPlaced } from './places/stacking';
 
 /**
  * Mode « Event storming » (sujet 475) : des post-it typés (événement, commande, acteur…) collés les uns contre les
@@ -36,9 +37,13 @@ export const definition: PageModeDefinition = {
     importedLabel,
   },
   gestures: {
-    properties: [CONTACTS_PROPERTY],
-    // Post-it ajouté ou collé : il prend le réglage « Labels » de la page.
-    placed: (edit, shapeIds) => syncLabels(edit, shapeIds),
+    // Post-it posé : il prend le réglage « Labels » de la page, et passe derrière le post-it collé sous lui (sujet 484).
+    placed: (edit, shapeIds) => {
+      syncLabels(edit, shapeIds);
+      stackPlaced(edit, shapeIds);
+    },
+    // Cases où poser le post-it glissé, selon la grammaire, et échange avec un autre (sujet 481).
+    dragPlaces,
     // Un post-it se colle bord à bord aux autres post-it (sujet 477).
     snapTargets: (page, shape) =>
       isSticky(shape)

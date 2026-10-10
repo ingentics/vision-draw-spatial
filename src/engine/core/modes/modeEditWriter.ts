@@ -8,7 +8,7 @@ import {
   setPageAttribute,
 } from '../format/cellEdits';
 import { addEdgeLabelCell, removeCells, removeCellsDeep } from '../format/create';
-import { sendToBackInOrder } from '../format/order';
+import { placeBehind, sendToBackInOrder } from '../format/order';
 import { snapshotPage } from '../format/xmlTree';
 import type { PageTree } from '../format/xmlTree';
 import type { EdgeModel, PageModel, Point, Rect, ShapeModel } from '../model/types';
@@ -247,6 +247,13 @@ export class ModeEditWriter implements ModeEdit {
     const locked = new Set(this.#model.shapes.filter(isLocked).map((shape) => shape.id));
     const ids = shapeIds.filter((id) => !locked.has(id));
     this.#writes.push(() => sendToBackInOrder(this.#pageTree, ids));
+  }
+
+  placeBehind(shapeId: string, referenceId: string): void {
+    const locked = this.#model.shapes.some(
+      (shape) => (shape.id === shapeId || shape.id === referenceId) && isLocked(shape),
+    );
+    if (!locked) this.#writes.push(() => placeBehind(this.#pageTree, shapeId, referenceId));
   }
 
   /**

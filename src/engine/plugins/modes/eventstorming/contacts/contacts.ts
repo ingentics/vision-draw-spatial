@@ -68,7 +68,7 @@ function contactOf(a: ShapeModel, b: ShapeModel, horizontal: boolean): Contact |
 }
 
 /** Les deux rectangles se recouvrent-ils au-delà de la tolérance, sur les deux axes ? */
-function overlapping(a: Rect, b: Rect): boolean {
+export function overlapping(a: Rect, b: Rect): boolean {
   return (
     overlapLength(a.x, a.x + a.width, b.x, b.x + b.width) > CONTACT_TOLERANCE &&
     overlapLength(a.y, a.y + a.height, b.y, b.y + b.height) > CONTACT_TOLERANCE

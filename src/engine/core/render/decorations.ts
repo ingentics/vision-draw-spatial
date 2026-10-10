@@ -204,3 +204,39 @@ export function linkZone(bounds: Rect, zoom: number, accent = DEFAULT_ACCENT): G
   });
   return group;
 }
+
+/**
+ * Places proposées au glisser d'une forme (sujet 481) : contour pointillé et fond léger de la couleur d'accent, fond
+ * plus marqué pour la place visée `hit`. `swap` : échange en vue, la forme visée cernée d'un trait plein et sa
+ * future place (`to`, la place d'origine de la forme glissée) en pointillé.
+ */
+export function dragPlacesMarks(
+  places: readonly Rect[],
+  hit: Rect | undefined,
+  swap: { target: Rect; to: Rect } | undefined,
+  zoom: number,
+  accent = DEFAULT_ACCENT,
+): Group {
+  const group = new Group();
+  group.name = 'drag-places';
+  const color = new Color(accent);
+  const dashed = (rect: Rect, fill: number) => {
+    group.add(fillMesh(rectPath(rect), color, fill));
+    const outline = strokeMesh(rectPath(rect), color, 0.9, {
+      width: 1.5 / zoom,
+      closed: true,
+      dash: [6 / zoom, 4 / zoom],
+    });
+    if (outline) group.add(outline);
+  };
+  for (const place of places) dashed(place, place === hit ? 0.3 : 0.08);
+  if (swap) {
+    dashed(swap.to, 0.15);
+    const outline = strokeMesh(rectPath(swap.target), color, 1, { width: 3 / zoom, closed: true });
+    if (outline) group.add(outline);
+  }
+  group.traverse((o) => {
+    o.renderOrder = Number.MAX_SAFE_INTEGER;
+  });
+  return group;
+}

@@ -80,6 +80,8 @@ interface PageModeDefinition {
     mainSection?: { title, kinds };            // section principale de ces formes : texte, commentaire, réglages
     carries?(page, shape): string[];           // formes emportées quand on déplace `shape` (ex. région RDD)
     obstacles?(page, shape, values): ModeObstacles; // bornes d'un déplacement / redimensionnement (ex. régions sœurs)
+    snapTargets?(page, shape): { id, rect }[];   // aimantation bord à bord (ex. autres post-it)
+    dragPlaces?(page, shape, bounds): ModeDragPlaces; // cases où poser la forme glissée, échange
     placed?(edit, shapeIds, before?): void;    // formes déplacées ou ajoutées (ex. région RDD agrandie)
     relabeled?(edit, elementId): void;         // texte d'un élément changé (ex. table RDD élargie)
     handles?: {                                // poignées propres au mode sur la forme sélectionnée (ex. « + »)
@@ -163,7 +165,7 @@ ex. largeur d'une table RDD), `setPageAttribute`, `setElementAttribute` (attribu
 par leur nom court), `setElementStyle` (autre clé du style draw.io, ex. `fillColor` ; ni `spatial.*`, ni clé de verrou
 `locked`, `movable`, `resizable`, `editable`, `deletable`), `setShapeBounds` (bornes d'une forme, ex. une table qui
 grandit avec ses champs), `removeEdge` (supprime une flèche et ses textes, sujet 269), `sendToBack` (formes au fond
-de l'ordre de dessin, sujet 230) et `setEdgeEndText` (texte de début ou de fin d'une flèche, ex. cardinalité, sujet
+de l'ordre de dessin, sujet 230), `placeBehind` (une forme juste derrière une autre, sujet 484) et `setEdgeEndText` (texte de début ou de fin d'une flèche, ex. cardinalité, sujet
 265) ; ses méthodes s'appellent sur l'objet (`edit.setPageAttribute(…)`), pas détachées. Un élément verrouillé ne change ni d'attribut du mode, ni de style, ni de bornes, ni de place dans l'ordre, ni de
 textes de bout. Toutes ses écritures forment une étape d'annulation, et rien n'est enregistré si elle ne
 change rien. Depuis l'appli : `onEdit(label, (edit) => monOperation(edit, …))` (prop des sections React), ou
@@ -282,6 +284,13 @@ couche physique d'une table RDD, lue par son rendu). Un habillage qui dépend du
   bord pendant un glisser ou un redimensionnement : un bord à moins de 8 px écran d'un bord opposé d'une cible, qu'il
   recouvre sur l'autre axe, s'y colle (écart 0), après la grille ; pas avec Alt, ni pour un pas au clavier. Les formes
   déplacées ne sont pas des cibles (`core/edit/edgeSnap.ts`).
+- `gestures.dragPlaces(page, shape, bounds)` (sujet 481) : places où poser la forme glissée seule (`bounds` : sa place
+  courante), et `swapWith`, la forme dont elle prendra la place si on la lâche hors des places. Le moteur montre les
+  places (pointillé et fond d'accent, la visée plus marquée) ; le centre de la forme dans une place l'y met, lâchée
+  elle s'y pose ; lâchée sur `swapWith`, les deux échangent leur coin haut-gauche (une étape « Échange de place »).
+  Pas avec Alt, ni pour une sélection multiple, des formes emportées ou un pas au clavier (`core/edit/dragPlaces.ts`).
+  Aussi pour une forme de la palette qui survole la page (`shape` : la forme que le modèle créerait, id
+  `palette:dragged`, sans texte) : places montrées, dépôt dans la place visée, pas d'échange.
 - **Prendre la main sur la page** (sujet 467) : pour un état de session qui lui est propre (ex. simulation pas à pas
   de la Machine à états), un mode reçoit dans sa partie appli les briques du moteur (`PageTakeover`,
   `core/modes/pageTakeover.ts`, prop `controls` des sections du panneau et de la couche posée sur la zone de dessin,
@@ -392,6 +401,7 @@ Règles communes (sujet 288) :
 | `gestures.carries` | début d'un déplacement (glisser, clavier), Aligner / Répartir, mise en valeur de la sélection ; de proche en proche | page du modèle | aucune | n'emporte rien (ce qui a été trouvé avant la panne est gardé) |
 | `gestures.obstacles` | début d'un déplacement ou d'un redimensionnement, Aligner / Répartir ; reçoit les réglages du mode | page du modèle | aucune | aucune borne |
 | `gestures.snapTargets` | début d'un glisser ou d'un redimensionnement (pas d'un pas au clavier) | page du modèle | aucune | aucune aimantation |
+| `gestures.dragPlaces` | à chaque pas du glisser d'une forme seule, sans Alt | copie de travail de la page | aucune (le moteur pose la forme, ou l'échange au lâcher) | aucune place, pas d'échange |
 | `gestures.placed` | fin d'un déplacement (glisser, clavier), d'un redimensionnement, ajout depuis la palette, collage, Aligner / Répartir ; `before` : page d'avant un déplacement, absente pour un ajout | relue après la pose | remise en ordre, étape du geste | rien d'écrit |
 | `gestures.relabeled` | texte d'un élément validé (édition sur place ou panneau) | relue avec le nouveau texte | remise en ordre, étape du texte | rien d'écrit |
 | `keys` | touche sur l'élément sélectionné seul d'une page modifiable : `applies` puis `run` | page du modèle ; `run` : opération | une étape au titre `label` | `applies` : touche non prise ; `run` : rien d'écrit |

@@ -26,6 +26,10 @@ export interface MoveDrag extends MovePlan {
   arranged?: boolean;
   /** Aimantation bord à bord du mode (sujet 477) ; absente : aucune (ni pour un pas au clavier). */
   snapping?: EdgeSnapping;
+  /** Places du mode proposées pendant le glisser (sujet 481) : forme seule, sans rien d'emporté. */
+  places: boolean;
+  /** Forme dont la forme glissée prendra la place, lâchée maintenant (échange, sujet 481). */
+  swapWith?: string;
 }
 
 export interface ResizeDrag {

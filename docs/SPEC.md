@@ -1119,19 +1119,28 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     `-hotspot`, 160 × 160) : papier du Post-it (ombre, sans contour), fond de la couleur du type ; label du type en
     anglais en haut (feutre Permanent Marker, gras, 16, noir à 80 %, à 8 du haut ; réduit jusqu'à 10 puis « … »),
     non modifiable, qui suit le type et non la couleur ; texte du ticket (la valeur) qui remplit la zone sous le label
-    (`fitText=fill`), édité en place dans cette zone. Infobulle de la palette : nom et exemples du type.
+    (`fitText=fill`), édité en place dans cette zone. Infobulle de la palette : nom et exemples du type. Ni Style ni
+    Bordure dans le panneau (sujet 483, `styleable: false`).
   - **Dans le fichier** (sujet 478) : la valeur d'un post-it porte le nom du type en gras en tête
     (`<b>Command</b><br>Payer`, seul sans texte), lisible dans draw.io ; rien en tête quand « Labels » est décoché.
     L'en-tête est ajouté à l'enregistrement et retiré à l'ouverture : l'appli ne garde que le texte du ticket.
   - **Aimantation bord à bord** (sujet 477) : en glissant ou redimensionnant un post-it, un bord à moins de 8 px écran
     d'un bord opposé d'un autre post-it, qu'il recouvre sur l'autre axe, s'y colle (écart 0) ; pas avec Alt.
+  - **Cases au glisser** (sujet 481) : en glissant un post-it seul, les cases où il peut se poser sont montrées autour
+    des post-it voisins (à moins de 160), collées et alignées, libres, selon la grammaire : Actor | Command | Domain
+    Event | Domain Event | Query Model | Actor, Command | Constraint ou System | Domain Event, Policy sous un Domain
+    Event et à gauche d'une Command, Hotspot sur tous les côtés (et tous autour d'un Hotspot). Centre du post-it dans
+    une case : il s'y met et s'y pose. Lâché sur un autre post-it hors des cases : les deux échangent leur place.
+    Mêmes cases dès qu'un post-it de la palette survole la page (posé dans la case visée, sans échange). Pas avec Alt.
+  - **Ordre de dessin** (sujet 484) : un post-it posé dont le bas touche le haut d'un autre passe juste derrière lui (et
+    un post-it collé au-dessus d'un post-it posé passe derrière celui-ci) : l'ombre du post-it du dessus passe sous
+    celui du dessous.
   - **Réglage « Labels »** de la page (`spatial.es.labels=0` décoché, recopié sur chaque post-it ; une étape
     d'annulation) : décoché, aucun label et le texte prend toute la forme.
   - **Contacts** (`contacts(page)`, `contacts/contacts.ts`) : deux post-it se touchent quand deux bords parallèles
     sont à moins de 0,5 et qu'ils se recouvrent au-delà sur l'autre axe (un coin seul ne compte pas) ; pour chaque
     paire : côté de chaque forme, segment de contact, part du côté de chacune. Les chevauchements sont listés à part.
-    Section « Event storming » du panneau d'un post-it : ses contacts (« Command « Payer » — à gauche, sur tout le
-    côté », « … — en haut, sur 50 % », « … — chevauchement »), ou « Ne touche aucun post-it ».
+    Pas montrés dans le panneau (sujet 483) : base des sujets qui les interpréteront.
 
 ### 14.6 Export d'image
 

@@ -72,6 +72,7 @@ describe('écritures d’une opération de mode (sujet 301)', () => {
         edit.setShapeBounds('fixed', bounds);
         edit.setElementStyle('locked', 'fillColor', '#ff0000');
         edit.sendToBack(['locked', 'fixed']);
+        edit.placeBehind('fixed', 'a');
       }),
     ).toBe(false);
     expect(shape('locked').bounds).toEqual({ x: 200, y: 0, width: 100, height: 60 });

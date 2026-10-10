@@ -10,6 +10,7 @@ import type {
   Settings,
   SettingsPatch,
   ShapeModel,
+  ShapeTemplate,
   StoredFile,
 } from '../engine';
 import { DrawioSpatial } from '../react/DrawioSpatial';
@@ -92,6 +93,8 @@ export function Viewer({
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const engineRef = useRef<Engine | undefined>(undefined);
+  /** Modèle glissé depuis la palette (sujet 481) : le canvas ne lit les données du glisser qu'au lâcher. */
+  const paletteDrag = useRef<ShapeTemplate | undefined>(undefined);
   const saving = useFileSaving({ file, engineRef, settingsRef, onFileReplaced, setError });
   const { flush, persist, saveFile } = saving;
   const events = useEngineEvents({
@@ -272,6 +275,10 @@ export function Viewer({
                 used={usedShapes}
                 content={paletteContent}
                 onAdd={(template) => engine?.addShape(template)}
+                onDragTemplate={(template) => {
+                  paletteDrag.current = template;
+                  if (!template) engine?.paletteDragEnd();
+                }}
               />
             </Sidebar>
           )}
@@ -281,6 +288,15 @@ export function Viewer({
               if (!canAddShapes || editLocked || !event.dataTransfer.types.includes(PALETTE_MIME)) return;
               event.preventDefault();
               event.dataTransfer.dropEffect = 'copy';
+              // Places du mode pour la forme qu'on poserait ici (sujet 481) ; pas avec Alt.
+              const rect = event.currentTarget.getBoundingClientRect();
+              const template = paletteDrag.current;
+              const screen = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+              if (template) engine?.paletteDragOver(template, screen, !event.altKey);
+            }}
+            onDragLeave={(event) => {
+              // Sortie du canvas, pas passage sur un de ses enfants.
+              if (!event.currentTarget.contains(event.relatedTarget as Node | null)) engine?.paletteDragEnd();
             }}
             onDrop={(event) => {
               const id = event.dataTransfer.getData(PALETTE_MIME);
@@ -288,7 +304,7 @@ export function Viewer({
               if (!template || !engine) return;
               event.preventDefault();
               const rect = event.currentTarget.getBoundingClientRect();
-              engine.addShape(template, { x: event.clientX - rect.left, y: event.clientY - rect.top });
+              engine.addShape(template, { x: event.clientX - rect.left, y: event.clientY - rect.top }, !event.altKey);
               engine.focusCanvas();
             }}
           >

@@ -1,6 +1,7 @@
 import { moveCell, moveEdgeCell, setEdgeTerminal } from '../../../format/cellEdits';
 import type { PageTree } from '../../../format/xmlTree';
 import { moveSetMinus, snapDelta, translateMoveSet } from '../../../edit/moveSet';
+import { placeUnder } from '../../../edit/dragPlaces';
 import { EDGE_SNAP_PIXELS, snapMove } from '../../../edit/edgeSnap';
 import { clampMove } from '../../../edit/obstacles';
 import type { PageModel, Point } from '../../../model/types';
@@ -54,6 +55,8 @@ export class MoveDrags {
       const offset = snapMove(here, targets, EDGE_SNAP_PIXELS / this.core.camera.state.zoom);
       snapped = { x: snapped.x + offset.x, y: snapped.y + offset.y };
     }
+    // Places du mode (sujet 481) : la forme se met dans la place visée ; pas avec Alt.
+    snapped = this.followPlaces(page, move, snap ? snapped : undefined) ?? snapped;
     // Bornes du mode (sujet 241) : arrêt à distance des obstacles, limites montrées en pointillé rouge. Pas à pas depuis
     // la dernière position permise, pour suivre le chemin du geste (on contourne un obstacle par n'importe quel côté).
     let target = snapped;
@@ -86,6 +89,27 @@ export class MoveDrags {
       move.set.edgeIds,
     );
     this.core.live.afterLiveEdit();
+  }
+
+  /**
+   * Places proposées par le mode pour la forme glissée seule, à son déplacement `delta` depuis l'origine (undefined :
+   * Alt maintenu, aucune place) : montrées, et l'échange en vue retenu. Renvoie le déplacement qui met la forme dans la
+   * place visée, undefined sans place visée.
+   */
+  private followPlaces(page: PageModel, move: MoveDrag, delta: Point | undefined): Point | undefined {
+    move.swapWith = undefined;
+    const shape = move.places && delta ? shapeOf(page, move.rootIds[0]) : undefined;
+    const bounds = delta && { ...move.origin, x: move.origin.x + delta.x, y: move.origin.y + delta.y };
+    const offered = shape && bounds && this.core.pageModes.dragPlaces(page, shape, bounds);
+    if (!offered || !bounds) {
+      this.core.preview.clearPlaces();
+      return undefined;
+    }
+    const hit = placeUnder(offered.places, bounds);
+    const target = hit ? undefined : shapeOf(page, offered.swapWith);
+    move.swapWith = target?.id;
+    this.core.preview.showPlaces(offered.places, hit, target && { target: target.bounds, to: move.origin });
+    return hit && { x: hit.x - move.origin.x, y: hit.y - move.origin.y };
   }
 
   /**
@@ -123,6 +147,7 @@ export class MoveDrags {
 
   /** Déplacement lâché : géométrie écrite. Vrai s'il reste à répartir les flèches (`afterGeometryEdit`). */
   commit(drag: MoveDrag, pageTree: PageTree): boolean {
+    if (drag.swapWith) return this.commitSwap(drag, pageTree, drag.swapWith);
     if (drag.applied.x === 0 && drag.applied.y === 0) {
       // Revenue à sa place : l'aperçu des flèches est oublié, le modèle relu de l'arbre.
       if (drag.arranged) this.core.file.documentChanged([drag.pageId], { distribute: false });
@@ -157,5 +182,23 @@ export class MoveDrags {
       return false;
     }
     return true;
+  }
+
+  /**
+   * Échange lâché (sujet 481) : la forme glissée prend la place de `otherId` (son coin haut-gauche), qui prend la place
+   * d'origine de la forme glissée ; une étape d'annulation.
+   */
+  private commitSwap(drag: MoveDrag, pageTree: PageTree, otherId: string): boolean {
+    const rootId = drag.rootIds[0];
+    const other = shapeOf(this.core.pages.pageById(drag.pageId), otherId);
+    if (!rootId || !other) return false;
+    const { origin } = drag;
+    this.core.edits.recordEdit('Échange de place');
+    moveCell(pageTree, rootId, { x: other.bounds.x - origin.x, y: other.bounds.y - origin.y });
+    moveCell(pageTree, otherId, { x: origin.x - other.bounds.x, y: origin.y - other.bounds.y });
+    // Le mode remet en ordre autour des deux formes posées (ex. ordre de dessin des post-it), même étape.
+    this.core.modeFollowUps.shapesPlaced(drag.pageId, [rootId, otherId]);
+    this.core.file.documentChanged([drag.pageId]);
+    return false;
   }
 }

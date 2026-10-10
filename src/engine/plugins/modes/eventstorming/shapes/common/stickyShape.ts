@@ -58,6 +58,8 @@ export function stickyDefinition(type: StickyType): ShapeDefinition {
     id: type.kind,
     outline: paperOutline,
     contains: () => true,
+    // Couleur du type, sans contour (sujet 483) : ni Style ni Bordure dans le panneau.
+    styleable: false,
     // À plat seulement : le mode n'a que la vue de dessus, et un papier n'a pas de volume.
     flat: { create: (shape, ctx) => createSticky(type, shape, ctx) },
     // Le texte du ticket s'édite dans sa zone, sous le label.
