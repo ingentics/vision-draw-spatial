@@ -63,8 +63,10 @@ interface PageModeDefinition {
     check?(page): ModeIssue[];                 // incohérences, remises en ordre au mieux et signalées
     opened?(edit): void;                       // remise en ordre à l'ouverture (ex. tables RDD ajustées)
     removed?(edit): void;                      // remise en ordre après une suppression d'éléments
+  };
+  file?: {                                     // passage entre le fichier et l'appli (sujet 512)
     exportedLabel?(page, shape, value): string; // label écrit dans le fichier enregistré (ex. type en tête)
-    importedLabel?(page, shape, value): string; // label lu du fichier, ce qu'exportedLabel a ajouté retiré
+    importedLabel?(page, shape, value): string; // label lu du fichier ou collé, ce qu'exportedLabel a ajouté retiré
   };
   dressing?(page, values, current): PageDressing; // habillage du rendu (section 4)
   edges?: {                                    // les flèches
@@ -245,14 +247,13 @@ couche physique d'une table RDD, lue par son rendu). Un habillage qui dépend du
 - `lifecycle.opened(edit)` (sujet 255) : remise en ordre d'une page du mode à l'ouverture du document, faite sur la mesure
   exacte du texte (à l'ouverture si les polices sont chargées, sinon à leur arrivée) ; une étape d'annulation
   « Ajustement du mode » pour tout le document, rien si rien ne change ou si le document n'est pas modifiable.
-- `lifecycle.exportedLabel(page, shape, value)` / `importedLabel(page, shape, value)` (sujet 478) : le fichier
+- `file.exportedLabel(page, shape, value)` / `importedLabel(page, shape, value)` (sujets 478, 512) : le fichier
   enregistré porte plus que ce que l'appli garde (ex. nom du type en gras en tête d'un post-it Event storming, pour
   qu'il se lise dans draw.io). `value` : le label en HTML (un label en texte brut, `html=0`, arrive converti : `<` en
-  `&lt;`, retours à la ligne en `<br>`) ; le mode rend du HTML. `exportedLabel` donne le label écrit à
-  l'enregistrement, sur une copie (l'arbre du document n'est pas touché) ; `importedLabel` le défait à l'ouverture,
-  sans étape d'annulation, et au collage de formes venues d'ailleurs. Un label brut réécrit avec une mise en forme
-  passe en `html=1`, sinon il reste brut (sujet 503). Undefined : label inchangé. Réécriture :
-  `core/format/fileLabels.ts`.
+  `&lt;`, retours à la ligne en `<br>`) ; le mode rend du HTML. `exportedLabel` donne le label écrit à l'enregistrement,
+  sur une copie (l'arbre du document n'est pas touché) ; `importedLabel` le défait à l'ouverture, sans étape
+  d'annulation, et au collage de formes venues d'ailleurs. Un label brut réécrit avec une mise en forme passe en
+  `html=1`, sinon il reste brut (sujet 503). Undefined : label inchangé. Réécriture : `core/format/fileLabels.ts`.
 - `gestures.handles` : `list` / `clicked` (sujets 250, 256) : poignées propres au mode sur la forme sélectionnée seule et
   modifiable (disque de leur couleur marqué d'un « + », accroché à un point de page et décalé de pixels écran) ; un
   clic est une opération du mode (une étape d'annulation) qui renvoie la partie à sélectionner, dont le texte passe en
@@ -399,8 +400,8 @@ Règles communes (sujet 288) :
 | `lifecycle.check` | chaque lecture du document (ouverture, chaque modification, annuler / rétablir) | page du modèle | aucune (avertissements) | aucun avertissement du mode pour la page |
 | `lifecycle.opened` | ouverture du document, et à nouveau quand la mesure exacte du texte arrive ; pas en lecture seule | page du modèle | une étape « Ajustement du mode » pour tout le document | rien d'écrit pour la page |
 | `lifecycle.removed` | après une suppression (Suppr, Couper) | relue après la suppression | remise en ordre, étape de la suppression | rien d'écrit |
-| `lifecycle.exportedLabel` | enregistrement du fichier (`serialize`), pour chaque forme d'une page du mode | copie relue du fichier | label écrit dans le fichier enregistré seulement | label inchangé |
-| `lifecycle.importedLabel` | ouverture du fichier, pour chaque forme d'une page du mode ; collage, pour chaque forme collée | page lue du fichier (ou relue après le collage) | label réécrit dans l'arbre, sans étape d'annulation (au collage : dans l'étape « Coller ») | label inchangé |
+| `file.exportedLabel` | enregistrement du fichier (`serialize`), pour chaque forme d'une page du mode | copie relue du fichier | label écrit dans le fichier enregistré seulement | label inchangé |
+| `file.importedLabel` | ouverture du fichier, pour chaque forme d'une page du mode ; collage, pour chaque forme collée | page lue du fichier (ou relue après le collage) | label réécrit dans l'arbre, sans étape d'annulation (au collage : dans l'étape « Coller ») | label inchangé |
 | **Rendu** | | | | |
 | `dressing` | construction de chaque scène de page (et à chaque changement du courant avec `current.redraws`), et pendant un déplacement (flèches retracées) ; reçoit le courant | page du modèle | aucune | pas d'habillage ; `edgeColor` / `edgeBadge` en panne : couleur ou pastille absente pour la flèche |
 | **Flèches** | | | | |

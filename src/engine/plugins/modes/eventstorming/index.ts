@@ -36,10 +36,9 @@ export const definition: PageModeDefinition = {
   lifecycle: {
     // Fichier modifié ailleurs : chaque post-it reprend le réglage « Labels » de sa page.
     opened: (edit) => syncLabels(edit),
-    // Nom du type en tête de la valeur dans le fichier, lisible dans draw.io (sujet 478).
-    exportedLabel,
-    importedLabel,
   },
+  // Nom du type en tête de la valeur dans le fichier, lisible dans draw.io (sujet 478).
+  file: { exportedLabel, importedLabel },
   gestures: {
     // Post-it posé : il prend le réglage « Labels » de la page, et passe derrière le post-it collé sous lui (sujet 484).
     placed: (edit, shapeIds) => {

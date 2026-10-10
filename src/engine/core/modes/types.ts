@@ -51,6 +51,8 @@ export interface PageModeDefinition {
   page?: ModePage;
   /** Moments de la vie du document : lecture, ouverture, suppression d'éléments. */
   lifecycle?: ModeLifecycle;
+  /** Labels écrits dans le fichier en plus de ce que l'appli garde (sujet 512). */
+  file?: ModeFile;
   /**
    * Habillage du rendu de la page, appliqué au dessin sans modifier le style draw.io ; `values` : ses réglages,
    * `current` : le courant du mode (sujet 414 ; la page n'est redessinée quand il change qu'avec `current.redraws`).
@@ -120,15 +122,22 @@ export interface ModeLifecycle {
   opened?(edit: ModeEdit): void;
   /** Éléments supprimés : remise en ordre écrite dans le fichier, dans la même étape d'annulation. */
   removed?(edit: ModeEdit): void;
+}
+
+/**
+ * Passage entre le fichier et l'appli (sujets 478, 512) : ce que le mode écrit dans le fichier en plus de ce que l'appli
+ * garde. Des transformations pures du label, sans `ModeEdit` ni étape d'annulation.
+ */
+export interface ModeFile {
   /**
-   * Label d'une forme tel qu'écrit dans le fichier enregistré (sujet 478 ; ex. nom du type en gras en tête d'un
-   * post-it, pour qu'il se lise dans draw.io). `value` : le label gardé par l'appli, tel qu'écrit dans l'arbre (HTML si
-   * `html=1`) ; undefined = inchangé. `importedLabel` doit le défaire.
+   * Label d'une forme tel qu'écrit dans le fichier enregistré (ex. nom du type en gras en tête d'un post-it, pour qu'il
+   * se lise dans draw.io). `value` : le label gardé par l'appli, en HTML (un texte brut arrive échappé, sujet 503) ;
+   * undefined = inchangé. `importedLabel` doit le défaire.
    */
   exportedLabel?(page: PageModel, shape: ShapeModel, value: string): string | undefined;
   /**
-   * Label d'une forme lue d'un fichier (`value`, tel qu'écrit), tel que l'appli le garde (sujet 478 : ce
-   * qu'`exportedLabel` a ajouté retiré) ; undefined = inchangé. Appliqué à l'ouverture, sans étape d'annulation.
+   * Label d'une forme lue d'un fichier ou collée (`value`, en HTML), tel que l'appli le garde (ce qu'`exportedLabel` a
+   * ajouté retiré) ; undefined = inchangé.
    */
   importedLabel?(page: PageModel, shape: ShapeModel, value: string): string | undefined;
 }

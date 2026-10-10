@@ -12,7 +12,7 @@ const contract = readFileSync(resolve(ROOT, 'src/engine/core/modes/types.ts'), '
 const guide = readFileSync(resolve(ROOT, 'docs/AJOUTER_UN_MODE.md'), 'utf8');
 
 /** Groupes du contrat (sujet 295), dépliés dans la table ; `current`, `parts`, `icon` y ont une ligne chacun. */
-const GROUPS = ['ModePage', 'ModeLifecycle', 'ModeEdges', 'ModeGestures', 'ModeHandleSet'];
+const GROUPS = ['ModePage', 'ModeLifecycle', 'ModeFile', 'ModeEdges', 'ModeGestures', 'ModeHandleSet'];
 
 /** Corps (lignes) d'une interface du contrat. */
 function bodyOf(name: string): string[] {

@@ -110,15 +110,15 @@ export class PageModes {
 
   /**
    * Labels des formes entre le fichier et l'appli (sujets 478, 503) : `export`, tels que les modes les écrivent dans
-   * le fichier enregistré (`lifecycle.exportedLabel`) ; `import`, tels que l'appli les garde, à l'ouverture et au
-   * collage (`lifecycle.importedLabel`). Undefined si aucun mode de `pages` n'en a : rien à réécrire.
+   * le fichier enregistré (`file.exportedLabel`) ; `import`, tels que l'appli les garde, à l'ouverture et au
+   * collage (`file.importedLabel`). Undefined si aucun mode de `pages` n'en a : rien à réécrire.
    */
   fileLabels(pages: readonly PageModel[], direction: 'export' | 'import'): LabelRewrite | undefined {
     const name = direction === 'export' ? 'exportedLabel' : 'importedLabel';
-    if (!pages.some((page) => this.core.modes.modeOf(page)?.lifecycle?.[name])) return undefined;
+    if (!pages.some((page) => this.core.modes.modeOf(page)?.file?.[name])) return undefined;
     return (page, shape, value) => {
       const mode = this.core.modes.modeOf(page);
-      return mode && this.call(mode, `lifecycle.${name}`, undefined, mode.lifecycle?.[name], page, shape, value);
+      return mode && this.call(mode, `file.${name}`, undefined, mode.file?.[name], page, shape, value);
     };
   }
 

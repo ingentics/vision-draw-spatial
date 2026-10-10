@@ -88,12 +88,12 @@ describe('polices demandées par un mode (sujet 510)', () => {
 
 describe('labels du fichier d’un mode (sujets 478, 503)', () => {
   it('sans mode qui en écrit : rien à réécrire ; en panne : label laissé tel quel, signalé', () => {
-    const { modes, guard, document, page } = setup({ ...BOOM, lifecycle: { exportedLabel: fail } });
+    const { modes, guard, document, page } = setup({ ...BOOM, file: { exportedLabel: fail } });
     expect(setup().modes.fileLabels(document.pages, 'export')).toBeUndefined();
     expect(modes.fileLabels(document.pages, 'import')).toBeUndefined();
     const labelOf = modes.fileLabels(document.pages, 'export')!;
     expect(labelOf(page, page.shapes[0]!, 'A')).toBeUndefined();
-    expect(guard.warnings().map((w) => w.message)).toEqual(['Mode boom : erreur dans lifecycle.exportedLabel (panne)']);
+    expect(guard.warnings().map((w) => w.message)).toEqual(['Mode boom : erreur dans file.exportedLabel (panne)']);
   });
 });
 
