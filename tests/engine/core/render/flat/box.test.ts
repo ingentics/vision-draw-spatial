@@ -1,8 +1,9 @@
 import { Object3D } from 'three';
 import { describe, expect, it } from 'vitest';
-import { labelObject, textAnchors } from '../../../../../src/engine/core/render/flat/box';
+import { createLabel, labelObject, textAnchors } from '../../../../../src/engine/core/render/flat/box';
 import { PART_ORDER } from '../../../../../src/engine/core/render/types';
 import type { RenderContext, TextSpec } from '../../../../../src/engine/core/render/types';
+import type { ShapeModel } from '../../../../../src/engine/core/model/types';
 
 describe('ancrages d’un texte (sujet 383)', () => {
   it('centré par défaut ; `left` / `right`, `top` / `bottom` repris, toute autre valeur centrée', () => {
@@ -35,5 +36,13 @@ describe('étiquette d’une cellule (sujet 325)', () => {
     const object = labelObject(ctx, { text: 'Renvoi', x: 0, y: 0 } as TextSpec);
     expect('labelCellId' in object.userData).toBe(false);
     expect(object.renderOrder).toBe(PART_ORDER.label);
+  });
+
+  it('label imposé par la forme (sujet 485) : sans cellule porteuse, non masqué par l’éditeur en place', () => {
+    const shape = { id: 's1', label: 'Ticket', style: {}, bounds: { x: 0, y: 0, width: 100, height: 50 } };
+    const cell = createLabel(shape as unknown as ShapeModel, ctx, 'Command')!;
+    const fixed = createLabel(shape as unknown as ShapeModel, ctx, 'Command', undefined, { fixed: true })!;
+    expect(cell.userData.labelCellId).toBe('s1');
+    expect('labelCellId' in fixed.userData).toBe(false);
   });
 });

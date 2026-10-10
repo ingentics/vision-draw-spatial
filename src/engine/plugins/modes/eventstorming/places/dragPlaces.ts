@@ -1,6 +1,6 @@
-import { center, inflate, rectContains, rectsOverlap } from '../../../../core/plugins';
+import { center, inflate, overlapLength, rectContains, rectsOverlap } from '../../../../core/plugins';
 import type { ModeDragPlaces, PageModel, Rect, ShapeModel, Side } from '../../../../core/plugins';
-import { overlapping } from '../contacts/contacts';
+import { CONTACT_TOLERANCE, overlapping } from '../contacts/contacts';
 import { ACTOR, COMMAND, CONSTRAINT, EVENT, HOTSPOT, POLICY, QUERY, stickyType, SYSTEM } from '../kinds';
 import type { StickyType } from '../kinds';
 import { STICKY } from '../shapes/common/stickyLayout';
@@ -24,8 +24,11 @@ const BESIDE: ReadonlyArray<readonly [StickyType, StickyType]> = [
   [QUERY, ACTOR],
 ];
 
-/** [A, B] = B collé sous A. */
-const BELOW: ReadonlyArray<readonly [StickyType, StickyType]> = [[EVENT, POLICY]];
+/** [A, B] = B collé sous A. Les Constraint s'empilent (sujet 486). */
+const BELOW: ReadonlyArray<readonly [StickyType, StickyType]> = [
+  [EVENT, POLICY],
+  [CONSTRAINT, CONSTRAINT],
+];
 
 const has = (rules: typeof BESIDE, a: StickyType, b: StickyType) => rules.some(([x, y]) => x === a && y === b);
 
@@ -48,9 +51,28 @@ function placeBeside(rect: Rect, side: Side, width: number, height: number): Rec
   return { x: rect.x + rect.width, y: rect.y, width, height };
 }
 
+/** Post-it collé à droite de `rect` (bords à moins de la tolérance, recouvrement vertical), parmi `others`. */
+function rightNeighbor(rect: Rect, others: readonly ShapeModel[]): ShapeModel | undefined {
+  const edge = rect.x + rect.width;
+  return others.find(
+    ({ bounds }) =>
+      Math.abs(bounds.x - edge) <= CONTACT_TOLERANCE &&
+      overlapLength(rect.y, rect.y + rect.height, bounds.y, bounds.y + bounds.height) > CONTACT_TOLERANCE,
+  );
+}
+
+/**
+ * Case d'une Constraint à cheval sur une Command et le post-it collé à sa droite (sujet 486) : collée au-dessus des
+ * deux, centrée sur leur jointure.
+ */
+function astride(command: Rect, next: Rect, width: number, height: number): Rect {
+  return { x: command.x + command.width - width / 2, y: Math.min(command.y, next.y) - height, width, height };
+}
+
 /**
  * Cases du post-it `shape` glissé, à sa place courante `bounds` : autour des post-it voisins (à moins d'une taille de
- * post-it), libres (sans chevaucher un autre post-it), chacune une fois ; et le post-it sous son centre, pour l'échange.
+ * post-it), libres (sans chevaucher un autre post-it), chacune une fois, dont celle d'une Constraint à cheval sur une
+ * Command et son voisin ; et le post-it sous son centre, pour l'échange.
  */
 export function dragPlaces(page: PageModel, shape: ShapeModel, bounds: Rect): ModeDragPlaces | undefined {
   const type = stickyType(shape);
@@ -58,13 +80,16 @@ export function dragPlaces(page: PageModel, shape: ShapeModel, bounds: Rect): Mo
   const others = page.shapes.filter((other) => other.id !== shape.id && stickyType(other));
   const places = new Map<string, Rect>();
   const near = inflate(bounds, STICKY.size);
+  const add = (place: Rect) => {
+    if (!others.some((other) => overlapping(place, other.bounds))) places.set(`${place.x},${place.y}`, place);
+  };
   for (const neighbor of others) {
     if (!rectsOverlap(near, neighbor.bounds)) continue;
-    for (const side of sidesFor(type, stickyType(neighbor)!)) {
-      const place = placeBeside(neighbor.bounds, side, bounds.width, bounds.height);
-      if (others.some((other) => overlapping(place, other.bounds))) continue;
-      places.set(`${place.x},${place.y}`, place);
-    }
+    const neighborType = stickyType(neighbor)!;
+    for (const side of sidesFor(type, neighborType))
+      add(placeBeside(neighbor.bounds, side, bounds.width, bounds.height));
+    const next = type === CONSTRAINT && neighborType === COMMAND && rightNeighbor(neighbor.bounds, others);
+    if (next) add(astride(neighbor.bounds, next.bounds, bounds.width, bounds.height));
   }
   const middle = center(bounds);
   const swapWith = others.find((other) => rectContains(other.bounds, middle))?.id;

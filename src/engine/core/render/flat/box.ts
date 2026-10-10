@@ -63,6 +63,11 @@ export interface LabelOptions {
    * (`truncateLines`).
    */
   truncate?: boolean;
+  /**
+   * Texte imposé par la forme, qui n'est pas celui de la cellule (ex. nom du type d'un post-it, sujet 485) : l'éditeur
+   * en place ne le masque pas, et il n'est pas cliqué comme un label.
+   */
+  fixed?: boolean;
 }
 
 /**
@@ -129,7 +134,7 @@ export function createLabel(
           },
     background: labelBackground(style, null, ctx.background),
   };
-  const object = labelObject(ctx, spec, shape.id);
+  const object = labelObject(ctx, spec, options.fixed ? undefined : shape.id);
   // Hors de la forme : posé au sol à côté du volume en iso (`createShapeObject`).
   if (outside) object.userData.outsideLabel = true;
   return object;

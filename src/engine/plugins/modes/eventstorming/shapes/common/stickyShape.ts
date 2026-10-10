@@ -44,7 +44,11 @@ function createSticky(type: StickyType, shape: ShapeModel, ctx: RenderContext): 
     const zone = labelZone(shape.bounds);
     const size = labelFontSize(type.label, zone.width, ctx.measureText);
     // Tronqué : « … » s'il ne tient pas à 10, et jamais la mise en forme de la valeur (même texte que le label).
-    const label = createLabel({ ...shape, style: labelStyle(shape, size) }, ctx, type.label, zone, { truncate: true });
+    // Imposé : il reste affiché pendant l'édition du texte du ticket (sujet 485).
+    const label = createLabel({ ...shape, style: labelStyle(shape, size) }, ctx, type.label, zone, {
+      truncate: true,
+      fixed: true,
+    });
     if (label) group.add(label);
   }
   const text = createLabel(shape, ctx, shape.label, stickyTextZone(shape));

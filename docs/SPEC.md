@@ -1118,7 +1118,8 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   - **Post-it typés** (`eventstorming-event`, `-command`, `-constraint`, `-system`, `-policy`, `-query`, `-actor`,
     `-hotspot`, 160 × 160) : papier du Post-it (ombre, sans contour), fond de la couleur du type ; label du type en
     anglais en haut (feutre Permanent Marker, gras, 16, noir à 80 %, à 8 du haut ; réduit jusqu'à 10 puis « … »),
-    non modifiable, qui suit le type et non la couleur ; texte du ticket (la valeur) qui remplit la zone sous le label
+    non modifiable, qui suit le type et non la couleur, et reste affiché pendant l'édition du texte (sujet 485) ;
+    texte du ticket (la valeur) qui remplit la zone sous le label
     (`fitText=fill`), édité en place dans cette zone. Infobulle de la palette : nom et exemples du type. Ni Style ni
     Bordure dans le panneau (sujet 483, `styleable: false`).
   - **Dans le fichier** (sujet 478) : la valeur d'un post-it porte le nom du type en gras en tête
@@ -1129,7 +1130,9 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   - **Cases au glisser** (sujet 481) : en glissant un post-it seul, les cases où il peut se poser sont montrées autour
     des post-it voisins (à moins de 160), collées et alignées, libres, selon la grammaire : Actor | Command | Domain
     Event | Domain Event | Query Model | Actor, Command | Constraint ou System | Domain Event, Policy sous un Domain
-    Event et à gauche d'une Command, Hotspot sur tous les côtés (et tous autour d'un Hotspot). Centre du post-it dans
+    Event et à gauche d'une Command, Hotspot sur tous les côtés (et tous autour d'un Hotspot) ; une Constraint aussi à
+    cheval au-dessus d'une Command et du post-it collé à sa droite (centrée sur leur jointure), et empilée au-dessus ou
+    au-dessous d'une autre Constraint (sujet 486). Centre du post-it dans
     une case : il s'y met et s'y pose. Lâché sur un autre post-it hors des cases : les deux échangent leur place.
     Mêmes cases dès qu'un post-it de la palette survole la page (posé dans la case visée, sans échange). Pas avec Alt.
   - **Ordre de dessin** (sujet 484) : un post-it posé dont le bas touche le haut d'un autre passe juste derrière lui (et
