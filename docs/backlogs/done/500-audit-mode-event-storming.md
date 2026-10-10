@@ -154,13 +154,13 @@ Trois explorations en parallèle (tronc, mode, appli et docs), puis chaque const
 
 | #   | Sujet                                                                                       | Gain                                   | Taille | Décision |
 | --- | ------------------------------------------------------------------------------------------- | -------------------------------------- | ------ | -------- |
-| 501 | Échange de place : forme verrouillée épargnée, bornes d'avant passées au mode               | erreur (verrou), contrat               | S      | validé   |
-| 502 | Ordre de dessin d'une colonne de post-it, `placeBehind` sur elle-même                       | erreur (ombre visible)                 | S      | validé   |
-| 503 | Labels du fichier : aller-retour sans perte, coller, réécriture rangée dans `format/`       | erreurs (texte perdu), responsabilités | M      | validé   |
-| 504 | Briques communes : ombre du papier, intervalles par axe, calques d'aperçu, cellules sœurs   | mutualisation                          | M      | validé   |
-| 505 | Rangement du mode Event storming (noms, clés, code mort, tests en miroir)                   | lisibilité                             | S      | validé   |
-| 506 | Tronc : contrat de l'aimantation, pas au clavier, menus (`shapeOf`, `gesture.ts`, polices)  | extensibilité, lisibilité              | S      | validé   |
-| 507 | Docs : SUMMARY, garanties de `dragPlaces`, guide d'une forme (description, police nommée)   | doc juste pour un agent                | S      | validé   |
+| 501 | Échange de place : forme verrouillée épargnée, bornes d'avant passées au mode               | erreur (verrou), contrat               | S      | fait     |
+| 502 | Ordre de dessin d'une colonne de post-it, `placeBehind` sur elle-même                       | erreur (ombre visible)                 | S      | fait     |
+| 503 | Labels du fichier : aller-retour sans perte, coller, réécriture rangée dans `format/`       | erreurs (texte perdu), responsabilités | M      | fait     |
+| 504 | Briques communes : ombre du papier, intervalles par axe, calques d'aperçu, cellules sœurs   | mutualisation                          | M      | fait     |
+| 505 | Rangement du mode Event storming (noms, clés, code mort, tests en miroir)                   | lisibilité                             | S      | fait     |
+| 506 | Tronc : contrat de l'aimantation, pas au clavier, menus (`shapeOf`, `gesture.ts`, polices)  | extensibilité, lisibilité              | S      | fait     |
+| 507 | Docs : SUMMARY, garanties de `dragPlaces`, guide d'une forme (description, police nommée)   | doc juste pour un agent                | S      | fait     |
 
 Ordre validé (2026-10-10) : 501, 502, 503 (erreurs), puis 504, 505, 506, et 507 en dernier (les docs décrivent le
 code final). Un commit par sujet dès que `make check` est vert (l'utilisateur a validé les sujets d'avance : commit au
@@ -178,4 +178,21 @@ Les itérations 485 et 486 (mode Event storming, faites en parallèle, commit `f
 - [x] Constats
 - [x] Sujets rédigés
 - [x] Sujets validés par l'utilisateur
-- [ ] Réalisation
+- [x] Réalisation
+
+- Fait : sujets réalisés dans l'ordre validé, un commit chacun.
+  - 501 : le moteur n'échange jamais une forme verrouillée, immobile ou du déplacement ; le mode reçoit les bornes
+    d'avant des deux formes échangées. Premier test d'un glisser complet.
+  - 502 : toute la colonne d'un post-it posé est remise en ordre ; `placeBehind` ne déplace plus une cellule derrière
+    elle-même.
+  - 503 : réécriture des labels dans `core/format/fileLabels.ts` ; texte brut gardé ; coller applique `importedLabel` ;
+    rien de retiré quand les labels sont masqués.
+  - 504 : `softShadow`, `rectSpan`, `rectsOverlapBy`, `OPPOSITE_SIDES`, calque d'aperçu commun, `reorderSiblings`.
+  - 505 : fichiers du mode nommés par leur rôle, `LABELS` dans `keys.ts`, `otherStickies`, tests en miroir.
+  - 506 : `ModeSnapTarget`, `edgeSnapping` pur, pas au clavier sans appel au mode, aimantation par plan (Ctrl),
+    `LiveEdit.afterGeometryWrite` (`gesture.ts` sous 400 lignes), menus.
+  - 507 : SUMMARY, garanties de `dragPlaces`, `description` et police nommée dans le guide d'une forme, SPEC.
+  - Vérifié seulement par les tests : aimantation au glisser (la grille de la fixture la couvre), limites d'un geste
+    borné, Ctrl avec aimantation (par lecture).
+  - Reste : dette 508 à 513 (post-it verrouillé et « Labels », rotation, police d'un mode, formes générées depuis
+    `kinds.ts`, groupe des labels du fichier, relecture du fichier à chaque sauvegarde).
