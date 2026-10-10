@@ -39,7 +39,7 @@ export const definition: ShapeDefinition = {
   palette: {
     name: 'Point de sortie',
     category: 'states',
-    order: 3,
+    order: 4,
     keywords: ['final', 'sortie', 'end', 'fin'],
     style: `ellipse;shape=doubleEllipse;fillColor=#000000;strokeColor=#000000;html=1;aspect=fixed;spatial.kind=${FINAL_KIND};`,
     value: '',

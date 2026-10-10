@@ -44,7 +44,7 @@ export const definition: PageModeDefinition = {
     // Transitions en ancrage automatique, tracées droites : réparties sur les côtés, segments directs (sujet 457).
     defaults: { anchoring: 'auto', edgeLine: 'straight' },
     palette: {
-      shapes: [STATE_KIND, INITIAL_KIND, FINAL_KIND, COMPOSITE_KIND, 'text', 'title', 'post-it'],
+      shapes: [STATE_KIND, COMPOSITE_KIND, INITIAL_KIND, FINAL_KIND, 'text', 'title', 'post-it'],
       categories: [{ id: 'states', name: 'États', order: 5 }],
     },
   },

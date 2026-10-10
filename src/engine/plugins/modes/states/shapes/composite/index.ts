@@ -174,7 +174,7 @@ export const definition: ShapeDefinition = {
   palette: {
     name: 'Ensemble',
     category: 'states',
-    order: 4,
+    order: 2,
     keywords: ['composite', 'ensemble', 'group', 'groupe', 'état composite'],
     style:
       `rounded=0;whiteSpace=wrap;html=1;${compositeStyle(DEFAULT_COMPOSITE_STYLE)}` +

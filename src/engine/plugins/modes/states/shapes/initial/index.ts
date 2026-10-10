@@ -29,7 +29,7 @@ export const definition: ShapeDefinition = {
   palette: {
     name: 'Point d’entrée',
     category: 'states',
-    order: 2,
+    order: 3,
     keywords: ['initial', 'entrée', 'entree', 'start', 'début'],
     style: `ellipse;fillColor=#000000;strokeColor=#000000;html=1;aspect=fixed;spatial.kind=${INITIAL_KIND};`,
     value: '',

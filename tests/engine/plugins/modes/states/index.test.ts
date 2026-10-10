@@ -20,9 +20,9 @@ describe('mode Machine à états (sujet 433)', () => {
     expect(states.page!.viewModes).toEqual(['top']);
     expect(states.page!.palette!.shapes).toEqual([
       'states-state',
+      'states-composite',
       'states-initial',
       'states-final',
-      'states-composite',
       'text',
       'title',
       'post-it',
