@@ -46,15 +46,19 @@ export class EdgeEndDrags {
     this.core.live.afterLiveEdit();
   }
 
-  /** Bout de flèche lâché : nouvelle attache écrite (et coudes d'une boucle), sauf s'il revient où il était. */
+  /**
+   * Bout de flèche lâché : nouvelle attache écrite (et coudes d'une boucle), sauf s'il revient où il était ou s'il
+   * reste libre sur une page dont le mode l'interdit (sujet 438).
+   */
   commit(drag: EdgeEndDrag, pageTree: PageTree): void {
     const page = this.core.pages.pageById(drag.pageId);
     const edge = edgeOf(page, drag.edgeId);
     if (!page || !edge) return;
     const before = endAttachmentOf({ ...edge, ...drag.original }, drag.end);
     const after = drag.attachment;
+    const refused = after?.kind === 'free' && this.core.pageModes.attachedEnds(page);
     // Même forme mais une partie visée (sujet 333) : le mode doit la recevoir, même si l'attache ne change pas.
-    if (!after || (sameAttachment(after, before) && drag.part === undefined)) {
+    if (!after || refused || (sameAttachment(after, before) && drag.part === undefined)) {
       restoreEnds(edge, drag.original);
       edge.points = drag.originalPoints;
       if (this.core.pages.getCurrentPage()?.id === drag.pageId) this.core.live.retraceEdges(page, new Set([edge.id]));

@@ -123,6 +123,14 @@ export interface ModeEdges {
    */
   connects?(page: PageModel, source: ShapeModel, target: ShapeModel, part?: string): boolean;
   /**
+   * Aucun bout libre sur la page (sujet 438, ex. transitions d'une machine à états) : un bout rebranché lâché dans le
+   * vide ou sur une forme refusée par `connects` revient à sa place, sans entrée d'historique. Une flèche tirée d'une
+   * poignée de forme n'est de toute façon créée que lâchée sur une forme permise. Absent ou faux : bout libre permis.
+   * Hors des gestes (collage d'une flèche sans ses formes, fichier modifié ailleurs), le moteur n'impose rien : le mode
+   * signale au besoin ces flèches par `lifecycle.check`.
+   */
+  attachedEnds?(page: PageModel): boolean;
+  /**
    * Flèche gérée par le mode (sujet 265, ex. relation RDD et ses cardinalités) : dans le panneau, les réglages du mode
    * en tête, texte du milieu et commentaire modifiables, le reste en lecture seule ; positions des textes et lien
    * masqués.

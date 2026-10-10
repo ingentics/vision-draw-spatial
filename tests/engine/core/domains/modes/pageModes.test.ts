@@ -184,3 +184,23 @@ describe('adaptateur unique des appels aux modes (sujet 379)', () => {
     expect(modes.call(BOOM, 'absent', 'repli', undefined, page)).toBe('repli');
   });
 });
+
+describe('bouts attachés imposés par le mode (sujet 438)', () => {
+  it('attachedEnds : la réponse du mode ; faux sans la règle ou si le mode est en panne, panne signalée', () => {
+    const mode = (attachedEnds?: () => boolean) => ({
+      id: 'boom',
+      namespace: 'boom',
+      name: 'Boom',
+      edges: { attachedEnds },
+    });
+    const strict = setup(mode(() => true));
+    expect(strict.modes.attachedEnds(strict.page)).toBe(true);
+    const loose = setup(mode());
+    expect(loose.modes.attachedEnds(loose.page)).toBe(false);
+    const broken = setup(mode(fail));
+    expect(broken.modes.attachedEnds(broken.page)).toBe(false);
+    expect(broken.guard.warnings().map((w) => w.message)).toEqual([
+      'Mode boom : erreur dans edges.attachedEnds (panne)',
+    ]);
+  });
+});

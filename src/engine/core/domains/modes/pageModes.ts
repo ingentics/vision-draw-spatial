@@ -225,6 +225,16 @@ export class PageModes {
   }
 
   /**
+   * Les flèches de `page` gardent leurs deux bouts sur une forme (`edges.attachedEnds`, sujet 438) : un bout rebranché
+   * dans le vide revient à sa place. Faux sans mode, sans règle ou si le mode lève une exception.
+   */
+  attachedEnds(page: PageModel): boolean {
+    const mode = this.core.modes.modeOf(page);
+    if (!mode) return false;
+    return this.call(mode, 'edges.attachedEnds', false, mode.edges?.attachedEnds, page);
+  }
+
+  /**
    * Avertissements des modes de page ajoutés à ceux de la lecture, page par page : mode inconnu (registre), données
    * remises en ordre (`lifecycle.check`). `DocumentFile` y ajoute ceux des effets et les erreurs des plugins (sujet 378).
    */

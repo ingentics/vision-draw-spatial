@@ -65,6 +65,7 @@ interface PageModeDefinition {
   edges?: {                                    // les flèches
     properties?: ModeProperty[];               // réglages déclarés d'une flèche (section 3)
     connects?(page, source, target, part?): boolean; // flèches permises (ex. liaisons des tables RDD)
+    attachedEnds?(page): boolean;              // aucun bout libre : un bout rebranché dans le vide revient à sa place
     manages?(page, edge): boolean;             // flèche gérée par le mode (réglages imposés)
     placedEntries?(page): string[];            // flèches dont le mode place l'arrivée (pas réparties en auto / Typon)
     created?(edit, edgeId, current, part?): void; // flèche tirée depuis une forme (même étape d'annulation)
@@ -197,6 +198,10 @@ couche physique d'une table RDD, lue par son rendu). Un habillage qui dépend du
   l'habillage suit le courant, la page est redessinée à chaque changement. Pendant l'édition du texte d'une partie, le
   courant de la page ne change pas (sujet 422) : `text`, `textPreview` et `setText` reçoivent celui de l'ouverture.
 - `edges.created(edit, edgeId, current)` : une flèche tirée depuis une forme, dans la même étape d'annulation.
+- `edges.attachedEnds(page)` (sujet 438) : vrai = aucune flèche de la page n'a de bout libre. Un bout rebranché lâché
+  dans le vide ou sur une forme refusée par `connects` revient à sa place, sans étape d'annulation (une flèche tirée
+  d'une forme n'est de toute façon créée que lâchée sur une forme permise). Hors des gestes (collage, fichier modifié
+  ailleurs), le moteur n'impose rien : le mode signale ces flèches par `lifecycle.check`.
 - `keys` : touches (`KeyboardEvent.key`) sur l'élément sélectionné seul ; `applies` dit si l'élément est concerné
   (sinon la touche garde son effet habituel), `run` est une opération (une étape d'annulation, libellée `label`).
 - `pageKeys` (sujet 415) : touches de page, prises quand la zone de dessin a le focus et que rien n'est sélectionné
@@ -318,6 +323,7 @@ Règles communes (sujet 288) :
 | `edges.reconnected` | bout d'une flèche rebranché (poignée d'extrémité), au lâcher | relue après le rebranchement | remise en ordre, étape du rebranchement | rien d'écrit |
 | `edges.selectionStyle` | mise en valeur de la sélection (sélection, changement de page, paramètres), pour chaque flèche sélectionnée | page courante | aucune | style de la page |
 | `edges.connects` | pendant le tirage ou le rebranchement d'un bout, pour chaque forme candidate | page du modèle | aucune | accroche permise |
+| `edges.attachedEnds` | lâcher d'un bout rebranché dans le vide ou sur une forme refusée | page du modèle | aucune | bout libre permis |
 | `edges.manages` | panneau d'une flèche, textes de début / fin (édition, déplacement) | page courante | aucune | flèche non gérée |
 | `edges.placedEntries` | chaque répartition en ancrage automatique ou Typon (édition, déplacement en cours, Autre agencement, changement d'ancrage) | page du modèle | aucune | toutes les arrivées réparties |
 | **Formes et gestes** | | | | |
