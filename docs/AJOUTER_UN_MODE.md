@@ -288,7 +288,9 @@ couche physique d'une table RDD, lue par son rendu). Un habillage qui dépend du
   se colle bord à bord pendant un glisser ou un redimensionnement : un bord à moins de `EDGE_SNAP_PIXELS` (8 px écran)
   d'un bord opposé d'une cible, qu'il recouvre sur l'autre axe, s'y colle (écart 0), après la grille ; pas avec Alt, ni
   pour un pas au clavier (le mode n'est alors pas appelé). Les formes déplacées ne sont pas des cibles ; Ctrl, qui
-  laisse en place les formes emportées, en refait des cibles (`core/edit/edgeSnap.ts`).
+  laisse en place les formes emportées, en refait des cibles (`core/edit/edgeSnap.ts`). Aimantation et places
+  travaillent sur les bornes des formes : un pivot d'un quart de tour échange déjà largeur et hauteur, et la rotation
+  libre (`rotation=<degrés>`) n'est pas reprise (SPEC §14, sujet 509).
 - `gestures.dragPlaces(page, shape, bounds)` (sujet 481) : places où poser la forme glissée seule (`bounds` : sa place
   courante), et `swapWith`, la forme dont elle prendra la place si on la lâche hors des places. Le moteur montre les
   places (pointillé et fond d'accent, la visée plus marquée) ; le centre de la forme dans une place l'y met, lâchée elle
