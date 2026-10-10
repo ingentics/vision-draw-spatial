@@ -7,9 +7,9 @@ import {
   HOTSPOT,
   POLICY,
   QUERY,
-} from '../../../../../src/engine/plugins/modes/eventstorming/kinds';
-import { dragPlaces, sidesFor } from '../../../../../src/engine/plugins/modes/eventstorming/places/dragPlaces';
-import { setup, sticky, stormingXml } from './helpers';
+} from '../../../../../../src/engine/plugins/modes/eventstorming/kinds';
+import { dragPlaces, sidesFor } from '../../../../../../src/engine/plugins/modes/eventstorming/places/placesAround';
+import { setup, sticky, stormingXml } from '../helpers';
 
 const size = (x: number, y: number) => ({ x, y, width: 160, height: 160 });
 

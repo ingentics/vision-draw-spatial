@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { definition as storming } from '../../../../../src/engine/plugins/modes/eventstorming';
-import { setup, sticky, stormingXml } from './helpers';
+import { definition as storming } from '../../../../../../src/engine/plugins/modes/eventstorming';
+import { setup, sticky, stormingXml } from '../helpers';
 
 describe('mode Event storming : post-it collé au-dessus d’un autre, derrière lui (sujet 484)', () => {
   const order = (page: { shapes: ReadonlyArray<{ id: string; z: number }> }) =>

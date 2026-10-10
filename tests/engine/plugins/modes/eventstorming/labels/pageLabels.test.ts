@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { definition as storming } from '../../../../../src/engine/plugins/modes/eventstorming';
-import { setup, sticky, stormingXml } from './helpers';
+import { definition as storming } from '../../../../../../src/engine/plugins/modes/eventstorming';
+import { setup, sticky, stormingXml, textCell } from '../helpers';
 
 describe('mode Event storming : réglage « Labels » de la page (sujet 475)', () => {
   const property = storming.page!.properties![0]!;
-  const text = `<mxCell id="t" value="x" style="text;html=1;" vertex="1" parent="1"><mxGeometry x="0" y="300" width="60" height="30" as="geometry" /></mxCell>`;
+  const text = textCell(0, 300);
 
   it('coché par défaut ; décoché : page et post-it marqués, en une opération ; recoché : retiré', () => {
     const { run, page, shape } = setup(stormingXml(sticky('a', 'event', 0, 0) + sticky('b', 'actor', 200, 0) + text));

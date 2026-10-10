@@ -2,6 +2,7 @@ import { documentFromTree, readDrawio } from '../../../../../src/engine/core/for
 import { applyModeEdit } from '../../../../../src/engine/core/modes/modeEditWriter';
 import type { ModeEdit } from '../../../../../src/engine/core/modes/modeEdit';
 import { EVENT_STORMING_KEYS } from '../../../../../src/engine/plugins/modes/eventstorming/keys';
+import { shapeOf } from '../../../../../src/engine/core/model/pageIndex';
 import { fixture } from '../../../../helpers';
 
 /** Aides communes des tests du mode Event storming. */
@@ -17,6 +18,11 @@ export function sticky(id: string, type: string, x: number, y: number, value = '
   return `<mxCell id="${id}" value="${value}" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=none;spacing=8;fitText=fill;spatial.kind=eventstorming-${type};${extra}" vertex="1" parent="1"><mxGeometry x="${x}" y="${y}" width="${w}" height="${h}" as="geometry" /></mxCell>`;
 }
 
+/** Cellule d'un texte libre `t` (forme qui n'est pas un post-it), à (`x`, `y`). */
+export function textCell(x: number, y: number): string {
+  return `<mxCell id="t" value="x" style="text;html=1;" vertex="1" parent="1"><mxGeometry x="${x}" y="${y}" width="60" height="30" as="geometry" /></mxCell>`;
+}
+
 /** Page (la fixture par défaut), et une fonction qui applique une opération du mode puis relit la page. */
 export function setup(xml = fixture('eventstorming.drawio')) {
   const { document, tree } = readDrawio(xml);
@@ -27,6 +33,6 @@ export function setup(xml = fixture('eventstorming.drawio')) {
     page = documentFromTree(tree).pages[0]!;
     return changed;
   };
-  const shape = (id: string) => page.shapes.find((s) => s.id === id)!;
+  const shape = (id: string) => shapeOf(page, id)!;
   return { run, page: () => page, shape, tree };
 }

@@ -1,8 +1,7 @@
 import type { ModeEdit, ModeProperty, PageModel } from '../../../../core/plugins';
 import { isToggled, shapeOf, toggleValue } from '../../../../core/plugins';
-import { keys } from '../keys';
+import { keys, LABELS } from '../keys';
 import { isSticky } from '../kinds';
-import { LABELS } from '../shapes/common/stickyLayout';
 
 /**
  * Réglage « Labels » de la page (sujet 475) : `spatial.es.labels=0` sur `<diagram>` masque le label de tous les
@@ -10,7 +9,7 @@ import { LABELS } from '../shapes/common/stickyLayout';
  * car son dessin et sa zone d'édition ne voient que la forme ; le mode la tient à jour quand des post-it arrivent.
  */
 
-export const labelsShown = (page: PageModel): boolean => keys.pageFlag(page, LABELS, true);
+const labelsShown = (page: PageModel): boolean => keys.pageFlag(page, LABELS, true);
 
 /** Recopie le réglage de la page sur ces post-it (tous ceux de la page par défaut). */
 export function syncLabels(edit: ModeEdit, shapeIds?: readonly string[], shown = labelsShown(edit.page)): void {

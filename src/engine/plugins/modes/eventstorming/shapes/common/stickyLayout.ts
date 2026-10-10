@@ -1,5 +1,5 @@
 import type { MeasureText, Rect, ShapeModel } from '../../../../../core/plugins';
-import { keys } from '../../keys';
+import { keys, LABELS } from '../../keys';
 
 /**
  * Mise en page d'un post-it typé (sujet 475) : le label du type en haut, à 8 du bord, puis le texte du ticket dans
@@ -20,9 +20,6 @@ export const STICKY = {
   /** Interligne du rendu (`LINE_HEIGHT` du texte) : hauteur de la ligne du label. */
   lineHeight: 1.2,
 } as const;
-
-/** Nom court de la clé posée sur chaque post-it quand la page masque les labels (`spatial.es.labels=0`). */
-export const LABELS = 'labels';
 
 /** Le post-it montre-t-il son label ? Faux quand sa page masque les labels (clé recopiée sur la forme). */
 export const showsLabel = (shape: ShapeModel): boolean => keys.value(shape, LABELS) !== '0';

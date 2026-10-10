@@ -1,9 +1,8 @@
-import { center, inflate, overlapLength, rectContains, rectsOverlap } from '../../../../core/plugins';
+import { center, inflate, overlapLength, rectContains, rectSpan, rectsOverlap } from '../../../../core/plugins';
 import type { ModeDragPlaces, PageModel, Rect, ShapeModel, Side } from '../../../../core/plugins';
 import { CONTACT_TOLERANCE, overlapping } from '../contacts/contacts';
-import { ACTOR, COMMAND, CONSTRAINT, EVENT, HOTSPOT, POLICY, QUERY, stickyType, SYSTEM } from '../kinds';
+import { ACTOR, COMMAND, CONSTRAINT, EVENT, HOTSPOT, otherStickies, POLICY, QUERY, stickyType, SYSTEM } from '../kinds';
 import type { StickyType } from '../kinds';
-import { STICKY } from '../shapes/common/stickyLayout';
 
 /**
  * Cases où poser le post-it glissé (sujet 481) : collées à un côté d'un post-it voisin, selon la grammaire de l'event
@@ -29,6 +28,9 @@ const BELOW: ReadonlyArray<readonly [StickyType, StickyType]> = [
   [EVENT, POLICY],
   [CONSTRAINT, CONSTRAINT],
 ];
+
+/** Portée du voisinage : les post-it à moins d'une taille de post-it (160, celle de la palette) proposent des cases. */
+const NEIGHBOR_REACH = 160;
 
 const has = (rules: typeof BESIDE, a: StickyType, b: StickyType) => rules.some(([x, y]) => x === a && y === b);
 
@@ -57,7 +59,7 @@ function rightNeighbor(rect: Rect, others: readonly ShapeModel[]): ShapeModel | 
   return others.find(
     ({ bounds }) =>
       Math.abs(bounds.x - edge) <= CONTACT_TOLERANCE &&
-      overlapLength(rect.y, rect.y + rect.height, bounds.y, bounds.y + bounds.height) > CONTACT_TOLERANCE,
+      overlapLength(...rectSpan(rect, 'y'), ...rectSpan(bounds, 'y')) > CONTACT_TOLERANCE,
   );
 }
 
@@ -77,9 +79,9 @@ function astride(command: Rect, next: Rect, width: number, height: number): Rect
 export function dragPlaces(page: PageModel, shape: ShapeModel, bounds: Rect): ModeDragPlaces | undefined {
   const type = stickyType(shape);
   if (!type) return undefined;
-  const others = page.shapes.filter((other) => other.id !== shape.id && stickyType(other));
+  const others = otherStickies(page, shape);
   const places = new Map<string, Rect>();
-  const near = inflate(bounds, STICKY.size);
+  const near = inflate(bounds, NEIGHBOR_REACH);
   const add = (place: Rect) => {
     if (!others.some((other) => overlapping(place, other.bounds))) places.set(`${place.x},${place.y}`, place);
   };

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { contacts } from '../../../../../src/engine/plugins/modes/eventstorming/contacts/contacts';
-import { setup, sticky, stormingXml } from './helpers';
+import { contacts } from '../../../../../../src/engine/plugins/modes/eventstorming/contacts/contacts';
+import { setup, sticky, stormingXml, textCell } from '../helpers';
 
 describe('mode Event storming : contacts (sujet 475)', () => {
   const read = (cells: string) => contacts(setup(stormingXml(cells)).page());
@@ -51,7 +51,7 @@ describe('mode Event storming : contacts (sujet 475)', () => {
   });
 
   it('seulement entre post-it du mode', () => {
-    const text = `<mxCell id="t" value="x" style="text;html=1;" vertex="1" parent="1"><mxGeometry x="160" y="0" width="60" height="30" as="geometry" /></mxCell>`;
+    const text = textCell(160, 0);
     expect(read(sticky('a', 'event', 0, 0) + text).contacts).toEqual([]);
   });
 });

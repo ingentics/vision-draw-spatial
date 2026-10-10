@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { cellLabelValue } from '../../../../../src/engine/core/format/cellEdits';
-import { rewriteLabels } from '../../../../../src/engine/core/format/fileLabels';
-import { readDrawio } from '../../../../../src/engine/core/format/parse';
-import { writeDrawio } from '../../../../../src/engine/core/format/write';
-import { modeHost } from '../../../modeHost';
-import { sticky, stormingXml } from './helpers';
+import { cellLabelValue } from '../../../../../../src/engine/core/format/cellEdits';
+import { rewriteLabels } from '../../../../../../src/engine/core/format/fileLabels';
+import { readDrawio } from '../../../../../../src/engine/core/format/parse';
+import { shapeOf } from '../../../../../../src/engine/core/model/pageIndex';
+import { writeDrawio } from '../../../../../../src/engine/core/format/write';
+import { modeHost } from '../../../../modeHost';
+import { sticky, stormingXml, textCell } from '../helpers';
 
 /** Valeur de la cellule `id` telle qu'écrite dans le fichier `xml`. */
 const valueIn = (xml: string, id: string) => cellLabelValue(readDrawio(xml).tree.pages[0]!, id);
@@ -28,7 +29,7 @@ describe('mode Event storming : nom du type en tête de la valeur dans le fichie
   const xml = stormingXml(
     sticky('a', 'command', 0, 0, 'Payer') + sticky('b', 'event', 200, 0) + sticky('c', 'actor', 400, 0, 'A&lt;br&gt;B'),
   );
-  const text = `<mxCell id="t" value="x" style="text;html=1;" vertex="1" parent="1"><mxGeometry x="0" y="300" width="60" height="30" as="geometry" /></mxCell>`;
+  const text = textCell(0, 300);
 
   it('enregistré : label en gras en tête, puis le texte ; seul sans texte ; autres formes intactes', () => {
     const file = saved(xml.replace('</root>', `${text}</root>`));
@@ -37,7 +38,7 @@ describe('mode Event storming : nom du type en tête de la valeur dans le fichie
     expect(valueIn(file, 'c')).toBe('<b>Actor</b><br>A<br>B');
     expect(valueIn(file, 't')).toBe('x');
     // Le modèle lu par draw.io comme par l'appli : le nom du type en première ligne.
-    expect(readDrawio(file).document.pages[0]!.shapes.find((s) => s.id === 'a')!.label).toBe('Command\nPayer');
+    expect(shapeOf(readDrawio(file).document.pages[0], 'a')!.label).toBe('Command\nPayer');
   });
 
   it('rouvert : l’appli ne garde que le texte du ticket (aller-retour sans changement)', () => {
@@ -74,8 +75,7 @@ describe('mode Event storming : nom du type en tête de la valeur dans le fichie
     );
     const file = saved(xml);
     expect(valueIn(file, 'a')).toBe('<b>Command</b><br>A&lt;B &amp;amp; C<br>D');
-    const label = (source: string, id: string) =>
-      readDrawio(source).document.pages[0]!.shapes.find((s) => s.id === id)!.label;
+    const label = (source: string, id: string) => shapeOf(readDrawio(source).document.pages[0], id)!.label;
     expect(label(file, 'a')).toBe('Command\nA<B &amp; C\nD');
     const { document, tree } = readDrawio(file);
     rewriteLabels(document, tree, modeHost().host.fileLabels(document.pages, 'import')!);

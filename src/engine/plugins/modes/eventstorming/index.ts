@@ -1,10 +1,11 @@
 import type { PageModeDefinition } from '../../../core/plugins';
-import { exportedLabel, importedLabel } from './export/fileLabel';
+import { exportedLabel, importedLabel } from './file/fileLabel';
 import { EVENT_STORMING_KEYS } from './keys';
-import { isSticky, STICKY_TYPES } from './kinds';
+import { STICKY_TYPES } from './kinds';
 import { LABELS_PROPERTY, syncLabels } from './labels/pageLabels';
-import { dragPlaces } from './places/dragPlaces';
-import { stackPlaced } from './places/stacking';
+import { stackPlaced } from './order/stacking';
+import { dragPlaces } from './places/placesAround';
+import { snapTargets } from './places/snapTargets';
 
 /**
  * Mode « Event storming » (sujet 475) : des post-it typés (événement, commande, acteur…) collés les uns contre les
@@ -45,11 +46,6 @@ export const definition: PageModeDefinition = {
     // Cases où poser le post-it glissé, selon la grammaire, et échange avec un autre (sujet 481).
     dragPlaces,
     // Un post-it se colle bord à bord aux autres post-it (sujet 477).
-    snapTargets: (page, shape) =>
-      isSticky(shape)
-        ? page.shapes
-            .filter((other) => other.id !== shape.id && isSticky(other))
-            .map((other) => ({ id: other.id, rect: other.bounds }))
-        : [],
+    snapTargets,
   },
 };

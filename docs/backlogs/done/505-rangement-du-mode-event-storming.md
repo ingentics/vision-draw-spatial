@@ -26,3 +26,11 @@
 - Docs : SPEC §14.5 et SUMMARY si un chemin cité change.
 - **Fini quand :** aucun nom de fichier du mode n'est déjà pris dans le moteur, les constats ci-dessus ont disparu,
   `make check` vert.
+- Fait : fichiers du mode renommés selon leur rôle : `places/dragPlaces.ts` → `places/placesAround.ts`,
+  `places/stacking.ts` → `order/stacking.ts`, `export/fileLabel.ts` → `file/fileLabel.ts` ; aimantation dans
+  `places/snapTargets.ts`. `LABELS` dans `keys.ts` ; `otherStickies(page, shape)` dans `kinds.ts`, repris par
+  l'aimantation et les cases ; portée du voisinage `NEIGHBOR_REACH` (160) au lieu de `STICKY.size` ; `rightNeighbor`
+  (486) sur `rectSpan`. `labelsShown` n'est plus exporté. `CONTACT_TOLERANCE` reste exporté : les cases de 486 le
+  lisent. Tests rangés en miroir (`contacts/`, `places/`, `order/`, `labels/`, `file/`), `textCell` dans `helpers.ts`,
+  `shapeOf`. Écart : aucun. Vérifié dans l'appli sur `eventstorming-commande.drawio` : au glisser d'un post-it,
+  aimantation (37 cibles) et cases montrées ; relâché à l'origine, rien ne change.

@@ -1,4 +1,4 @@
-import type { ShapeModel } from '../../../core/plugins';
+import type { PageModel, ShapeModel } from '../../../core/plugins';
 
 /**
  * Les 8 post-it typés du mode Event storming (sujet 475). Leurs ids sont préfixés par celui du mode
@@ -77,3 +77,7 @@ const BY_KIND = new Map(STICKY_TYPES.map((type) => [type.kind, type]));
 export const stickyType = (shape: ShapeModel): StickyType | undefined => BY_KIND.get(shape.kind);
 
 export const isSticky = (shape: ShapeModel): boolean => BY_KIND.has(shape.kind);
+
+/** Les autres post-it de la page que `shape` (aimantation, cases au glisser). */
+export const otherStickies = (page: PageModel, shape: ShapeModel): ShapeModel[] =>
+  page.shapes.filter((other) => other.id !== shape.id && isSticky(other));

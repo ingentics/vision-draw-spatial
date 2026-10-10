@@ -8,7 +8,7 @@ import { createDefaultRegistry, MODE_SHAPE_DEFINITIONS, SHAPE_TEMPLATES } from '
 import { definition as storming } from '../../../../../src/engine/plugins/modes/eventstorming';
 import { STICKY_TYPES, stickyType } from '../../../../../src/engine/plugins/modes/eventstorming/kinds';
 import { MEASURE } from '../../../../helpers';
-import { setup, sticky, stormingXml } from './helpers';
+import { setup, sticky, stormingXml, textCell } from './helpers';
 
 const KINDS = [
   'eventstorming-event',
@@ -124,7 +124,7 @@ describe('mode Event storming : dessin d’un post-it (sujet 475)', () => {
 
 describe('mode Event storming : cibles de l’aimantation bord à bord (sujet 477)', () => {
   it('un post-it se colle aux autres post-it, pas à une autre forme ; une autre forme à rien', () => {
-    const text = `<mxCell id="t" value="x" style="text;html=1;" vertex="1" parent="1"><mxGeometry x="0" y="300" width="60" height="30" as="geometry" /></mxCell>`;
+    const text = textCell(0, 300);
     const { page, shape } = setup(stormingXml(sticky('a', 'event', 0, 0) + sticky('b', 'actor', 200, 0) + text));
     const targets = storming.gestures!.snapTargets!;
     expect(targets(page(), shape('a'))).toEqual([{ id: 'b', rect: { x: 200, y: 0, width: 160, height: 160 } }]);
