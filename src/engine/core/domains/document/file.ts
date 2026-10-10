@@ -1,6 +1,6 @@
 import { collectUnsupported } from '../../diagnostics/unsupportedStyles';
 import type { UnsupportedReport } from '../../diagnostics/unsupportedStyles';
-import { rewriteLabels } from '../../format/fileLabels';
+import { rewriteLabels, rewriteLabelsForWriting } from '../../format/fileLabels';
 import { documentFromTree, readDrawio } from '../../format/parse';
 import { writePageViews } from '../../format/viewState';
 import { writeDrawio } from '../../format/write';
@@ -79,20 +79,32 @@ export class DocumentFile {
     if (!this.tree) return undefined;
     this.core.gesture.endMove();
     writePageViews(this.tree, this.core.pages.savedViews());
-    const xml = writeDrawio(this.tree);
+    const restore = this.writeExportedLabels(this.tree);
+    let xml: string;
+    try {
+      xml = writeDrawio(this.tree);
+    } finally {
+      restore();
+    }
     this.core.edits.markSaved();
-    return this.withExportedLabels(xml);
+    return xml;
   }
 
   /**
-   * Fichier enregistré avec les labels tels que les modes les écrivent (sujet 478), sur une copie relue de `xml` :
-   * l'arbre du document n'est pas touché. `xml` tel quel si aucun mode n'en écrit.
+   * Labels des formes tels que les modes les écrivent dans le fichier (sujets 478, 513), posés dans l'arbre le temps de
+   * l'écrire : seules les pages d'un mode qui en écrit sont touchées. Renvoie de quoi les remettre comme avant.
    */
-  private withExportedLabels(xml: string): string {
-    const labelOf = this.model && this.core.pageModes.fileLabels(this.model.pages, 'export');
-    if (!labelOf) return xml;
-    const copy = readDrawio(xml);
-    return rewriteLabels(copy.document, copy.tree, labelOf).length > 0 ? writeDrawio(copy.tree) : xml;
+  private writeExportedLabels(tree: DrawioTree): () => void {
+    const restores: Array<() => void> = [];
+    for (const [index, page] of (this.model?.pages ?? []).entries()) {
+      const labelOf = this.core.pageModes.fileLabels([page], 'export');
+      const pageTree = tree.pages[index];
+      const restore = labelOf && pageTree && rewriteLabelsForWriting(page, pageTree, labelOf);
+      if (restore) restores.push(restore);
+    }
+    return () => {
+      for (const restore of restores) restore();
+    };
   }
 
   /**

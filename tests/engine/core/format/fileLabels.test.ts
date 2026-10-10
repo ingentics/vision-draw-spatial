@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { cellLabelValue } from '../../../../src/engine/core/format/cellEdits';
-import { rewriteLabels, rewritePageLabels } from '../../../../src/engine/core/format/fileLabels';
+import {
+  rewriteLabels,
+  rewriteLabelsForWriting,
+  rewritePageLabels,
+} from '../../../../src/engine/core/format/fileLabels';
+import { writeDrawio } from '../../../../src/engine/core/format/write';
 import { readDrawio } from '../../../../src/engine/core/format/parse';
 
 const cell = (id: string, value: string, style: string) =>
@@ -56,5 +61,31 @@ describe('labels réécrits entre le fichier et l’appli (sujets 478, 503)', ()
       ['A', 'html=1;'],
       ['B!', 'html=1;'],
     ]);
+  });
+});
+
+describe('labels écrits le temps d’enregistrer (sujet 513)', () => {
+  it('réécrits en place, puis remis sur les mêmes nœuds : label, style et page marquée modifiée', () => {
+    const cells = cell('a', 'A', '') + cell('b', 'B', 'html=1;') + cell('c', 'C', 'html=1;');
+    const { document, tree } = readDrawio(file(cells));
+    const page = document.pages[0]!;
+    const pageTree = tree.pages[0]!;
+    const before = writeDrawio(tree);
+    const nodes = pageTree.cells.get('a');
+    const restore = rewriteLabelsForWriting(page, pageTree, (_p, shape, value) =>
+      shape.id === 'c' ? undefined : `<b>T</b><br>${value}`,
+    )!;
+    expect(cellLabelValue(pageTree, 'a')).toBe('<b>T</b><br>A');
+    expect(pageTree.cells.get('a')!.cell!.getAttribute('style')).toBe('html=1;');
+    restore();
+    // Page marquée modifiée : compressée, elle serait réencodée sans les labels écrits.
+    expect(pageTree.dirty).toBe(true);
+    expect(writeDrawio(tree)).toBe(before);
+    expect(pageTree.cells.get('a')).toBe(nodes);
+  });
+
+  it('rien à réécrire : undefined', () => {
+    const { document, tree } = readDrawio(file(cell('a', 'A', 'html=1;')));
+    expect(rewriteLabelsForWriting(document.pages[0]!, tree.pages[0]!, () => undefined)).toBeUndefined();
   });
 });
