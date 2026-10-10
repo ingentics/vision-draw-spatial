@@ -11,3 +11,16 @@
 - Tests : glisser une flèche pleine seule, dans une sélection multiple, et verrouillée (rien ne bouge).
 - **Fini quand :** sur `block-arrow.drawio`, une flèche pleine se glisse par son corps, seule ou avec la sélection,
   comme avant ; les formes aussi.
+- Fait : dans `DragGesture.beginMove` (`edit/drag/gesture.ts`), un seul `pickAt` par appui, fait seulement si aucune
+  poignée ni partie n'est saisie. Il est remis à `elementDrag`, qui choisit la forme (`shapeDrag`) ou la flèche
+  pleine (`blockArrowDrag`). Les deux passent par `grabbedSelection` : la sélection multiple de la page qui contient
+  l'élément saisi. Écart de comportement : aucun.
+
+  Tests : `tests/engine/core/domains/edit/drag/gesture.test.ts` (nouveau) couvre quatre cas :
+  - flèche pleine seule, avec un seul pick ;
+  - flèche pleine dans une sélection multiple ;
+  - flèche verrouillée ou ordinaire, qui ne se glisse pas ;
+  - forme saisie, qui emporte la flèche pleine sélectionnée.
+
+  `make check` vert. Vérifié dans l'appli (`block-arrow.drawio`) : la flèche libre se glisse par son corps, la forme
+  A se glisse, puis annulé.

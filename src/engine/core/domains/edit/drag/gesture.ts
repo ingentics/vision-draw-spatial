@@ -8,7 +8,7 @@ import type { ObstaclesOf } from '../../../edit/movePlan';
 import { connectSideOf, isConnectHandle } from '../../../edit/handleKinds';
 import { screenToPage } from '../../../interaction/cameraProjection';
 import { isBlockArrow } from '../../../render/edges/blockArrow';
-import type { PageModel, Point, Rect, ShapeModel } from '../../../model/types';
+import type { EdgeModel, PageModel, Point, Rect, ShapeModel } from '../../../model/types';
 import type { PickedElement } from '../../../interaction/pick';
 import type { Drag, MoveDrag } from './types';
 import type { EngineCore } from '../../EngineCore';
@@ -103,8 +103,7 @@ export class DragGesture {
       this.handleDrag(page, screen, start, grid) ??
       // Partie sélectionnée saisie (ex. champ d'une table RDD, sujet 252) : elle se glisse, pas la forme.
       this.core.partDrags.grab(page, screen) ??
-      this.shapeDrag(page, pageTree, screen, start, grid) ??
-      this.blockArrowDrag(page, pageTree, screen, start, grid);
+      this.elementDrag(page, pageTree, this.core.picking.pickAt(screen), start, grid);
     if (!drag) return false;
     this.active = drag;
     return true;
@@ -161,23 +160,53 @@ export class DragGesture {
         };
   }
 
+  /** Élément saisi qui se déplace : une forme déplaçable, ou une flèche pleine par son corps. */
+  private elementDrag(
+    page: PageModel,
+    pageTree: PageTree,
+    picked: PickedElement | undefined,
+    start: Point,
+    grid: number,
+  ): Drag | undefined {
+    if (picked?.type === 'shape') return this.shapeDrag(page, pageTree, picked.element, start, grid);
+    if (picked?.type === 'edge' && isBlockArrow(picked.element.style))
+      return this.blockArrowDrag(page, pageTree, picked.element, start, grid);
+    return undefined;
+  }
+
+  /**
+   * Sélection multiple de la page dont fait partie l'élément saisi (`grabbed`) : elle bouge avec lui ; undefined, il
+   * bouge seul.
+   */
+  private grabbedSelection(
+    page: PageModel,
+    grabbed: (item: PickedElement) => boolean,
+  ): readonly PickedElement[] | undefined {
+    const selection = this.core.selection.current;
+    const items = selection?.pageId === page.id ? selection.items : [];
+    return this.core.selection.isMultiSelection() && items.some(grabbed) ? items : undefined;
+  }
+
   /** Forme déplaçable saisie, avec le reste de la sélection multiple si elle en fait partie. */
-  private shapeDrag(page: PageModel, pageTree: PageTree, screen: Point, start: Point, grid: number): Drag | undefined {
-    const picked = this.core.picking.pickAt(screen);
-    if (picked?.type !== 'shape') return undefined;
-    const shape = moveTarget(page, picked.element, this.core.registry);
+  private shapeDrag(
+    page: PageModel,
+    pageTree: PageTree,
+    picked: ShapeModel,
+    start: Point,
+    grid: number,
+  ): Drag | undefined {
+    const shape = moveTarget(page, picked, this.core.registry);
     if (!canMoveShape(pageTree, shape)) return undefined;
     // Forme saisie dans une sélection multiple : toutes les formes sélectionnées bougent ensemble
     // (celles qu'on ne peut pas déplacer restent en place).
-    const selection = this.core.selection.current;
-    const items = selection?.pageId === page.id ? selection.items : [];
-    const grabbedSelected =
-      this.core.selection.isMultiSelection() &&
-      items.some((item) => item.type === 'shape' && moveTarget(page, item.element, this.core.registry).id === shape.id);
-    const candidates = grabbedSelected
+    const items = this.grabbedSelection(
+      page,
+      (item) => item.type === 'shape' && moveTarget(page, item.element, this.core.registry).id === shape.id,
+    );
+    const candidates = items
       ? [shape.id, ...this.movableShapes(page, pageTree, items).map((target) => target.id)]
       : [shape.id];
-    const edgeIds = grabbedSelected ? selectedEdgeIds(items) : [];
+    const edgeIds = items ? selectedEdgeIds(items) : [];
     return this.moveDrag(page, pageTree, candidates, edgeIds, start, shape.bounds, grid);
   }
 
@@ -188,25 +217,19 @@ export class DragGesture {
   private blockArrowDrag(
     page: PageModel,
     pageTree: PageTree,
-    screen: Point,
+    arrow: EdgeModel,
     start: Point,
     grid: number,
   ): MoveDrag | undefined {
-    const picked = this.core.picking.pickAt(screen);
-    if (picked?.type !== 'edge' || !isBlockArrow(picked.element.style)) return undefined;
-    const ends = this.core.edgeHandles.edgeEndPoints(picked.element.id);
+    const ends = this.core.edgeHandles.edgeEndPoints(arrow.id);
     if (!ends) return undefined;
-    const selection = this.core.selection.current;
-    const items = selection?.pageId === page.id ? selection.items : [];
-    const grabbedSelected =
-      this.core.selection.isMultiSelection() &&
-      items.some((item) => item.type === 'edge' && item.element.id === picked.element.id);
-    const shapeIds = grabbedSelected ? this.movableShapes(page, pageTree, items).map((shape) => shape.id) : [];
-    const edgeIds = grabbedSelected ? selectedEdgeIds(items) : [picked.element.id];
+    const items = this.grabbedSelection(page, (item) => item.type === 'edge' && item.element.id === arrow.id);
+    const shapeIds = items ? this.movableShapes(page, pageTree, items).map((shape) => shape.id) : [];
+    const edgeIds = items ? selectedEdgeIds(items) : [arrow.id];
     const origin = { ...ends.source, width: 0, height: 0 };
     const drag = this.moveDrag(page, pageTree, shapeIds, edgeIds, start, origin, grid);
     // Flèche verrouillée : rien à déplacer.
-    return drag.edges.some((edge) => edge.id === picked.element.id) ? drag : undefined;
+    return drag.edges.some((edge) => edge.id === arrow.id) ? drag : undefined;
   }
 
   /**
