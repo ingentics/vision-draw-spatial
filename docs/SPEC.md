@@ -23,7 +23,7 @@ Au départ, le projet visait une compatibilité totale avec draw.io. **Depuis le
 | M2 — Editor | Créer, déplacer, modifier des formes, sauvegarder ; export ouvrable dans draw.io | Second temps |
 | M3 — Packaging | Composant React publiable, wrapper Electron/Tauri | Plus tard |
 
-Hors périmètre initial : collaboration temps réel, export PDF (export PNG : sujet 431), rendu volumique des formes (extrusion), optimisation mémoire avancée.
+Hors périmètre initial : collaboration temps réel, export PDF et SVG (l'export PNG existe : §14.6), rendu volumique des formes (extrusion), optimisation mémoire avancée.
 
 ---
 
@@ -497,7 +497,7 @@ Formes et arêtes sont dessinées dans l'**ordre du document** (une arête décl
 | Redimensionner / connecter | Poignées de la forme sélectionnée : carrés = redimensionner (grille, Alt = libre), disques bleus sur les quatre côtés (nord, est, sud, ouest) = tirer vers une autre forme pour la relier, la flèche partant de ce côté (sortie fixe `exitX/exitY`) (§14.1) |
 | Éditer un texte | Double-clic (sans la touche pour suivre un lien), **F2** ou « Modifier » dans le panneau contextuel : **édition en place**, dans la police, la taille, la couleur et l'alignement du label (le label dessiné est masqué pendant la saisie) ; en iso, en 3D, ou vue tournée, l'éditeur d'une forme est plaqué sur le plan de sa zone de texte (toit, en perspective : homographie CSS `matrix3d` des coins projetés, `LabelEditRequest.plane`), avec le même sens et le même retour à la ligne que le label dessiné ; texte d'une flèche : ancré sur son point, à la taille du texte, avec le même fond que le label dessiné ; le curseur (bleu, clignotant) est posé en fin de texte, rien n'est sélectionné. Pendant l'édition, le panneau contextuel montre le **format du texte**, avec en haut un lien « ← Forme » ou « ← Flèche » qui valide la saisie et revient au panneau de l'élément (resté sélectionné) : styles de texte (paramètre `styles.text` : **Classique** 12 px, **Feutré** gris 9 px, **Code** en police à chasse fixe `fontFamily=Courier New`, dessinée en Roboto Mono), gras, italique, souligné, barré (**Ctrl+B**, **Ctrl+I**, **Ctrl+U**), taille, couleur, alignement horizontal et vertical (pas de vertical pour une flèche). **Avec une partie du texte sélectionnée**, gras, italique, souligné, barré, taille, couleur et styles de texte s'appliquent à la sélection : **texte riche** écrit en HTML draw.io (`<b>`, `<i>`, `<u>`, `<strike>`, `<span style="font-size; color; font-family">`, le style passe en `html=1`), relu tel quel par draw.io et dessiné par le moteur (mise en page des segments `render/richLayout`, un texte SDF par mot, traits de souligné et de barré). **Sans sélection**, tout le texte : clés `fontStyle` (bits 1 gras, 2 italique, 4 souligné, 8 barré), `fontSize`, `fontColor`, `fontFamily`, `align`, `verticalAlign` du style, une étape d'annulation par changement, et les mises en forme partielles de même nature sont retirées. L'alignement vaut toujours pour tout le texte. **Ajuster** (texte d'une forme, bouton à côté de la taille) : la taille réglée devient une taille maximale, le texte est réduit (tailles entières, tailles partielles à proportion, jamais sous 1) pour tenir dans la zone de texte de la forme, en direct pendant la saisie, au redimensionnement et à l'ouverture ; le réglage de taille est alors remplacé par la taille obtenue. Écrit `fitText=1` (clé propre à l'appli, conservée par draw.io) ; `fontSize` garde la taille réglée, que draw.io dessine telle quelle. **Remplir** (`fitText=fill`, imposé par le post-it, sans bouton) : la taille est la plus grande qui tient, agrandie comme réduite, jamais sous 6 ; à 6, le texte qui dépasse encore est coupé à la dernière ligne qui tient et finit par « … » (pas pendant la saisie, où tout le texte reste visible) ; le panneau montre la taille obtenue, sans réglage. Ctrl+Entrée ou clic ailleurs valide, Échap annule le texte (§14.1) |
 | Lien, suppression | Panneau contextuel (à droite) : section « Lien » (page ou URL), « Supprimer » / **Suppr** ; **Échap** désélectionne (§14.1) |
-| Tracé d'une flèche | Panneau contextuel, section « Tracé » : droite (« Straight » de draw.io : `edgeStyle` retiré, ligne droite par les points posés ; revenir aux coudes remet `edgeStyle=orthogonalEdgeStyle`), angles droits (`rounded=0`), coudes arrondis (`rounded=1`, tracé par défaut des flèches créées, paramètre `shapes.edgeLineStyle`) ou courbe (`curved=1` : courbes quadratiques par les coudes, passant par le milieu des segments, comme draw.io) ; la sélection au clic et le voile suivent le trait dessiné |
+| Tracé d'une flèche | Panneau contextuel, section « Tracé » : droite (« Straight » de draw.io : `edgeStyle` retiré, ligne droite par les points posés ; revenir aux coudes remet `edgeStyle=orthogonalEdgeStyle`), angles droits (`rounded=0`), coudes arrondis (`rounded=1`, tracé par défaut des flèches créées, paramètre `shapes.edgeLineStyle`) ou courbe (`curved=1` : courbes quadratiques par les coudes, passant par le milieu des segments, comme draw.io) ; la sélection au clic et le voile suivent le trait dessiné. Tracé des flèches créées (tirées d'une forme ou posées depuis la palette) : celui de la page (panneau Page, « Tracé des flèches », `spatial.edgeLine` sur `<diagram>`, sujet 441), sinon le paramètre `shapes.edgeLineStyle`, s'il est permis par l'ancrage de la page : tous en manuel, l'arrondi seul en automatique (sujet 443), la droite seule en Typon ; les autres choix sont grisés dans le panneau. Clés de chaque tracé : une seule table, `EDGE_LINE_STYLES` (`edit/anchoring/mode.ts`, sujet 447) |
 | Croisements d'une flèche | Panneau contextuel, section « Tracé » : saut là où la flèche passe au-dessus d'une autre, comme draw.io (`jumpStyle` : aucun, arc, coupure, marche, ligne ; `jumpSize` en pt, défaut 6, demi-longueur `(jumpSize − 2) / 2 + strokeWidth`) ; seule la flèche du dessus saute, pas de saut pour une flèche courbe ; une flèche sans `jumpStyle` suit sa page (panneau de la page, `spatial.jumps` sur `<diagram>`), sinon le paramètre `shapes.edgeJumpStyle` (taille sans `jumpSize` : `shapes.edgeJumpSize`) ; draw.io ne connaît que le `jumpStyle` de la flèche |
 | Flèche coupée | Panneau contextuel, section « Tracé », case « Couper la flèche » (`split=1`, ticket 219) : seuls un tronçon au départ et un à l'arrivée sont dessinés (`render/edges/split.ts`), chacun avec sa pointe, sur `shapes.edgeSplitLength` (40 px, au plus la moitié de la flèche) ; sans texte de renvoi, il s'efface en fondu sur ses `shapes.edgeSplitFade` derniers pixels (opacité par sommet, `fadedStrokeMesh`) ; un texte de renvoi (`splitLabelLeft` côté source, `splitLabelRight` côté cible, champs « Renvoi départ / arrivée ») pose au bout un cadre (fond de la page, bord du trait, marge `shapes.edgeSplitLabelPadding`, texte à `shapes.edgeSplitLabelSize`, 7 pt) sur lequel le tronçon s'arrête net ; pas de saut aux croisements ; non sélectionnée, seuls les tronçons se cliquent (`userData.splitPaths`), sélectionnée, tout le tracé ; au survol (ticket 224), tronçons et bords de cadre 1 px plus épais et ligne droite entre les deux bouts coupés, depuis le bord d'un cadre de renvoi tourné vers l'autre bout (1 px à l'écran, noire à 30 %, ticket 225) au-dessus du schéma (`splitHoverOverlay`, `core/domains/selection/splitHover.ts`) ; draw.io garde les clés et dessine la flèche entière |
 | Bordure d'une forme | Panneau contextuel, section « Bordure » (formes sélectionnées, une étape d'annulation) : couleur (ou aucune), épaisseur, trait plein / tirets / pointillés, coins arrondis (rectangles) — clés `strokeColor`, `strokeWidth`, `dashed`, `dashPattern`, `rounded` ; c'est aussi le trait des arêtes du volume en iso / 3D |
@@ -813,7 +813,9 @@ Réalisation retenue (`engine/core/spatial.ts`) :
 | `spatial.labelFollowShift` | style de la flèche | Texte du milieu qui suit la flèche : glissement le long du trait, en px (positif = vers la fin, négatif = vers le début) ; sans effet sans `spatial.labelFollow` |
 | `spatial.view` | `<diagram>` | État de vue de la page (§14.2) |
 | `spatial.mode` | `<diagram>` | Mode de la page (§14.5) : id d'un mode (`sequences`) ; absent = page normale |
-| `spatial.<espace>.<nom>` | `<diagram>`, style ou objet | Données d'un mode de page (§14.5), dans l'espace de noms du mode (sujet 301) : `seq` (Séquences), `rdd` (RDD). Un mode n'écrit que dans le sien |
+| `spatial.anchoring` | `<diagram>` | Ancrage des flèches de la page (§14.1) : `manual`, `auto` ou `pcb` ; absent = paramètre `shapes.edgeAnchoring` |
+| `spatial.edgeLine` | `<diagram>` | Tracé des flèches créées sur la page : `straight`, `sharp`, `rounded` ou `curved` ; absent = paramètre `shapes.edgeLineStyle` ; borné par l'ancrage (§14.1, « Tracé d'une flèche ») |
+| `spatial.<espace>.<nom>` | `<diagram>`, style ou objet | Données d'un mode de page (§14.5), dans l'espace de noms du mode (sujet 301) : `seq` (Séquences), `rdd` (RDD), `sm` (Machine à états). Un mode n'écrit que dans le sien |
 | `spatial.seq.flows` | `<diagram>` | Mode Séquences : flux de la page, liste ordonnée en JSON `[{"id","title","color"}, …]` |
 | `spatial.seq.flow`, `spatial.seq.step` | style ou objet | Mode Séquences : flux d'une flèche (`id`) et son rang dans le flux (1…n) |
 | `spatial.seq.participant` | style ou objet | Mode Séquences : type d'une forme (`bus`, `queue`) |
@@ -822,6 +824,8 @@ Réalisation retenue (`engine/core/spatial.ts`) :
 | `spatial.rdd.body` | style ou objet | Mode RDD : corps en texte libre d'un document, chaîne JSON (`;` échappés en `\u003b`) ; absent = vide |
 | `spatial.rdd.reverseName` | style ou objet | Mode RDD : nom inverse d'une relation, sur sa flèche |
 | `spatial.rdd.cardinalities` | `<diagram>` | Mode RDD : `0` = textes des cardinalités masqués |
+| `spatial.sm.body` | style ou objet | Mode Machine à états : contenu d'un état, chaîne JSON (`;` échappés en `\u003b`) ; absent = vide |
+| `spatial.sm.error` | style ou objet | Mode Machine à états : `1` = point de sortie en erreur ; absent = sortie attendue |
 
 - Lecture : style de la cellule, sinon attribut de son `<object>` / `<UserObject>` (« Modifier les données » dans draw.io) ; le style l'emporte. Valeurs négatives ou invalides ignorées.
 - Écriture (panneau contextuel, section « Volume » : « Épaisseur », « Élévation » ; vide = valeur par défaut) : là où l'attribut est déjà (objet), sinon dans le style, clé modifiée en place ou ajoutée à la fin.
@@ -860,6 +864,12 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
 - **Écritures** : une opération de mode est une étape d'annulation (`Engine.editPageMode`) ; attribut de page sur
   `<diagram>`, attribut d'élément là où il est déjà (objet), sinon dans le style ; clé du style draw.io d'un élément
   (`setElementStyle`) et bornes d'une forme (`setShapeBounds`, sujet 179).
+- **Règles de page d'un mode** : `page.defaults` (sujet 442) pose l'ancrage et le tracé des flèches de la page
+  (`spatial.anchoring`, `spatial.edgeLine`) à son arrivée dans le mode, dans la même étape d'annulation, et l'ancrage
+  posé répartit les flèches déjà là ; on peut les changer ensuite dans le panneau Page. `edges.attachedEnds`
+  (sujet 438) interdit les bouts libres : une flèche lâchée dans le vide ou sur une forme refusée n'est pas créée, un
+  bout rebranché dans le vide revient à sa place. Une forme `styleable: false` (sujet 440) n'a pas de section Style
+  dans le panneau, ni seule ni en sélection multiple, et les styles d'une sélection la sautent.
 - **Mode RDD** (`rdd`, sujets 179 à 181, 215 à 223) : en 2D seulement ; la palette (catégorie « RDD ») ne
   propose que ses tables. Une table est un rectangle en deux zones : entête de 26 px de la couleur `fillColor` (nom
   centré, gras ; texte noir ou blanc selon le contraste), trait, puis zone blanche des champs (`spatial.rdd.fields`, un
@@ -1016,9 +1026,11 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   texte du milieu (plus petite au milieu de la flèche sans texte). Taille, bordure, chiffre et assombrissement : paramètres
   « Modes › Séquences » (§13). Couleur d'un nouveau flux : fonds des styles de forme des paramètres, à partir du
   troisième (`modePalette`, passée aux opérations par `ModeEdit.palette`).
-- **Export PlantUML** (mode Séquences, sujets 90, 439) : bouton « Exporter en PlantUML » de la section « Flux » ; fenêtre
-  d'export commune aux modes (`src/app/export/ExportDialog.tsx` : texte copiable, rendu par le moteur des paramètres
-  « Exporteurs › PlantUML », lien vers l'éditeur de plantuml.com) avec le choix du flux (ou toute la page). Les modes
+- **Export PlantUML** (modes Séquences et Machine à états, sujets 90, 436, 439) : bouton « Exporter en PlantUML » de la
+  section du mode (« Flux », « Machine à états ») ; fenêtre d'export commune aux modes
+  (`src/app/export/ExportDialog.tsx` : texte copiable, rendu par le moteur des paramètres « Exporteurs › PlantUML »,
+  lien vers l'éditeur de plantuml.com ; format `PLANTUML_FORMAT`), avec, en Séquences, le choix du flux (ou toute la
+  page). Les modes
   échappent leurs textes par les briques `plantUmlLine` / `plantUmlQuoted` (`core/export/plantumlText.ts`, API des
   plugins).
 - **Flux courant** (mode Séquences) : par défaut le premier flux, puis celui de la dernière flèche cliquée ou choisi
@@ -1036,6 +1048,53 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   `keys` de `PageModeDefinition` (et `pageKeys`, touches de page quand rien n'est sélectionné, le focus sur la zone
   de dessin : changent le courant sans rien écrire, sujet 415), courant gardé par le moteur (`getModeCurrent`, `getModeIndicator`, `setModeCurrent`, événement
   `modeCurrentChange`).
+- **Mode Machine à états** (`states`, nom court « États », sujets 433 à 436) : en 2D seulement ; la palette (catégorie
+  « États ») propose État, Point d'entrée, Point de sortie et Ensemble, plus Texte, Titre et Post-it. À son arrivée,
+  la page passe en ancrage manuel et en tracé droit (`page.defaults`). Code : `src/engine/plugins/modes/states/`,
+  partie appli `src/app/plugins/modes/states/`.
+  - **État** (`states-state`, 140 × 60) : rectangle arrondi à fond blanc et bordure fine ; titre en gras centré en
+    haut (le label, coupé entre les mots), puis, s'il a un contenu, un trait et le contenu aligné à gauche
+    (`spatial.sm.body`, une ligne par ligne saisie, sans retour automatique, tronqué par « … »). La hauteur suit le
+    titre et le contenu ; la largeur est libre. Contenu édité par double-clic dans sa zone ou par le champ
+    « Contenu » du panneau (section « État », avec le titre et le commentaire).
+  - **Point d'entrée** (`states-initial`) : disque noir Ø 20 ; **point de sortie** (`states-final`) : disque Ø 14 dans
+    un cercle Ø 24. Taille fixe, sans texte, sans section Style (`styleable: false`). Un point de sortie est
+    « Attendue » ou « En erreur » (`spatial.sm.error`) : en erreur, il est rouge (`#d32f2f`), comme les transitions
+    qui y mènent (habillage du mode). Plusieurs points d'entrée et de sortie sont permis.
+  - **Transition** : toute flèche de la page, à pointe classique et trait plein. Bouts imposés (`edges.connects`) :
+    états et ensembles dans les deux sens, un point d'entrée en départ seulement, un point de sortie en arrivée
+    seulement ; pas de bout libre (`edges.attachedEnds`), et une transition à bout libre venue d'ailleurs est signalée
+    dans Diagnostics. Son nom est le texte du milieu ; la section « Transition » du panneau montre ses deux bouts.
+  - **Ensemble** (`states-composite`, 320 × 180) : même aspect et mêmes comportements que la région RDD (onglet du
+    nom, contenu = formes du mode dont le coin haut-gauche est dedans, emporté au déplacement, agrandi pour
+    contenir une forme posée, « f » ajuste au contenu, ensembles frères qui ne se chevauchent pas, imbrication à toute
+    profondeur, styles en boucle selon le rang). C'est un état : il accepte des transitions, et les points d'entrée
+    et de sortie posés dedans sont les siens. Réglages « Modes › États » : écart entre ensembles frères,
+    éclaircissement du fond des ensembles.
+  - **Export PlantUML** (sujet 436) : diagramme d'états de toute la page (`statesExporter`). Alias `S1`, `S2`… dans
+    l'ordre de dessin ; un titre qui est un identifiant simple et unique sert de nom, sinon `state "Titre" as Sn`.
+    Contenu en lignes `nom : ligne`. Un ensemble est un bloc `state … { … }` avec ses états, ses ensembles et ses
+    transitions. Points d'entrée et de sortie en `[*]` au niveau de leur ensemble (plusieurs sorties d'un même niveau
+    n'en font qu'un). Une transition s'écrit au niveau du plus petit ensemble qui contient ses deux bouts, en rouge vers
+    une sortie en erreur (`-[#d32f2f]->`). La cible d'un point d'entrée d'un autre niveau est déclarée avant, à son
+    niveau (sujet 446). Une transition à bout libre n'est pas écrite.
+
+### 14.6 Export d'image
+
+Export PNG de la page courante (sujet 431) : bouton « Exporter » de la barre d'outils (à droite d'« Enregistrer
+sous »), qui ouvre le panneau « Exporter » à la place du panneau contextuel (`src/app/export/ExportPanel.tsx`).
+
+- **Densité** : « HD » ×1, « 2K » ×1,5, « 4K » ×2 pixels par unité du schéma ; le PNG porte sa résolution (bloc
+  `pHYs`) : 96 dpi × densité.
+- **Contenu** : « Sélection » (les éléments sélectionnés avec leur contenu, comme leur mise en valeur ;
+  `Selections.withContent`), grisé sans sélection, ou « Tout le schéma ».
+- **Marge** autour du contenu, en unités du schéma (0 à 200, défaut 10) ; **fond transparent**, sinon la couleur de
+  fond de la vue. « SVG » est affiché mais désactivé.
+- **Rendu** : toujours à plat en vue de dessus, hors écran (la vue affichée ne bouge pas), cadré sur l'emprise
+  dessinée plus la marge, par morceaux d'au plus 4096 px (`core/domains/view/imageExport.ts`, `Engine.exportImage`).
+  L'export attend que tous les textes soient mis en page, textes riches et sur un tracé compris (sujet 445).
+- **Fichier** téléchargé sous `<nom du fichier>-<nom de la page>.png` ; rien n'est écrit dans le `.drawio`, les
+  réglages du panneau ne sont pas mémorisés.
 
 ---
 

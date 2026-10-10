@@ -175,6 +175,15 @@ apparence des pastilles, opacité…) ; la partie appli du mode les reçoit auss
 à plusieurs modes n'est pas un réglage de mode : le moteur de rendu des exports est un paramètre de l'appli
 (Exporteurs, `ModePanelProps.exporters`), et la fenêtre d'export d'un texte est commune (`src/app/export/`, sujet 439).
 
+**Offrir un export.** Le moteur du mode écrit le texte (ex. `states/export/plantuml.ts`, exposé par son `api.ts`) et
+l'échappe par `plantUmlLine` / `plantUmlQuoted` ; son format est `PLANTUML_FORMAT` (`{ id, name }`, API des plugins),
+ex. `{ ...PLANTUML_FORMAT, export: (page) => texte }`. Sa partie appli ouvre la fenêtre commune
+`<ExportDialog format={…} source={texte} exporters={exporters} onClose={…}>` (`src/app/export/ExportDialog.tsx`) :
+texte copiable, et rendu en ligne si le format en a un (choisi par `format.id`, `PREVIEWS` ; PlantUML par le moteur
+des paramètres Exporteurs). Les choix propres au mode (ex. le flux exporté en Séquences) passent en `children`, dans
+l'entête. Exemples : `src/app/plugins/modes/states/index.tsx` (sans choix), `sequences/ExportViewer.tsx` (choix du
+flux).
+
 Les données dérivées d'une page (ex. flèches rangées par flux) se calculent une fois par `PageModel` (le modèle est
 relu après chaque modification) : un `WeakMap` de module indexé par la page suffit (ex. `sequences/steps.ts`, cache
 pur admis par `AJOUTER_UN_PLUGIN.md` section 5).

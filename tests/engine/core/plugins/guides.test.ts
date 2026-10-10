@@ -61,6 +61,7 @@ const NOT_API: Record<string, string> = {
   onEdit: 'prop des sections React d’un mode',
   getModeRegistry: 'façade du moteur, pour l’appli',
   getEffectRegistry: 'façade du moteur, pour l’appli',
+  PREVIEWS: 'rendus de la fenêtre d’export commune, par format (`src/app/export/ExportDialog.tsx`)',
 };
 
 /** Noms exportés par l'API des plugins (alias compris : `ReadonlyPageModel as PageModel` → `PageModel`). */

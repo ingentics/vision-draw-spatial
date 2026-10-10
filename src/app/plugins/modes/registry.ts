@@ -15,7 +15,7 @@ export interface ModePanelProps {
 }
 
 /**
- * Partie appli d'un mode de page (sujet 69), en miroir de `src/engine/modes/<id>/` : seulement des sections du
+ * Partie appli d'un mode de page (sujet 69), en miroir de `src/engine/plugins/modes/<id>/` : seulement des sections du
  * panneau, qui affichent les données du mode et appellent ses opérations, sans règle métier. Facultative : un mode
  * aux réglages simples les déclare dans sa définition, affichés par des champs génériques (`ModeFields`).
  */

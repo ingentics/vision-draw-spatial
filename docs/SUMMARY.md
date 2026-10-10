@@ -91,8 +91,11 @@ Règles :
   historique, vue graphe de la documentation, mini-carte et mini-graphe, fond et grille.
 - **Formes supportées** : une par dossier de `plugins/shapes/<catégorie>/` (liste dans SPEC §8.3), plus le groupe et le
   placeholder ; retournement et pivot par quarts de tour pour celles qui le déclarent.
-- **Modes et effets de page** (`plugins/modes/`, `plugins/effects/`) : modes RDD (tables, relations, régions) et
-  Séquences (flux de flèches, export PlantUML) ; effet forêt.
+- **Modes et effets de page** (`plugins/modes/`, `plugins/effects/`) : modes RDD (tables, relations, régions),
+  Séquences (flux de flèches, export PlantUML) et Machine à états (états, points d'entrée et de sortie, ensembles,
+  transitions, export PlantUML) ; effet forêt.
+- **Export d'image** : PNG de la page ou de la sélection, à plat, hors écran (`core/domains/view/imageExport.ts`,
+  `core/render/png/`, panneau `src/app/export/ExportPanel.tsx` ; SPEC §14.6).
 - **Flèches** (`core/render/edges/`) : routeurs draw.io portés tels quels (orthogonal, segment, elbow, side-to-side,
   top-to-bottom, entity-relation, loop), pointes draw.io, labels principal + début/fin, bouts fixes/auto/libres,
   découpage en morceaux (éditeurs mxGraph portés), cohérence au déplacement. Vérifiés **au pixel** contre les exports SVG
@@ -112,7 +115,7 @@ Règles :
 |---|---|
 | Nouveau plugin (forme, mode, effet) | `docs/AJOUTER_UN_PLUGIN.md` : le patron commun (dossier, collecte, API des plugins, lecture seule, appel protégé, réglages déclarés, tests de contrat), puis le guide de la famille |
 | Nouvelle forme draw.io | `docs/AJOUTER_UNE_FORME.md` (parcours complet : style → kind → registre → rendus 2D/iso/3D/mini-carte, clic, flèches, diagnostics, palette, fixture) ; exemple : `plugins/shapes/geometry/diamond/`, `core/render/geometry/orient.ts` |
-| Nouveau mode de page | `docs/AJOUTER_UN_MODE.md` ; exemples `plugins/modes/sequences/` (avec sa partie appli `src/app/plugins/modes/sequences/`) et `plugins/modes/rdd/` (avec ses formes) |
+| Nouveau mode de page | `docs/AJOUTER_UN_MODE.md` ; exemples `plugins/modes/sequences/` (avec sa partie appli `src/app/plugins/modes/sequences/`), `plugins/modes/rdd/` (avec ses formes) et `plugins/modes/states/` (formes, bouts imposés, réglages de page posés, export PlantUML) |
 | Nouvel effet de page | `docs/AJOUTER_UN_EFFET.md` (contrat, pannes, réglages, `spatial.effects`, test) ; exemple `plugins/effects/forest/`, test `tests/engine/plugins/effects/forest.test.ts` |
 | Comportement d'édition | SPEC §14, `src/engine/core/edit/`, `src/engine/core/format/cellEdits.ts` |
 | Rendu / caméra / vues | SPEC §8–9, `core/render/pageScene.ts`, `core/render/sceneManager.ts`, `core/interaction/cameraState.ts` (état, bornes), `cameraProjection.ts`, `cameraFraming.ts`, `cameraMoves.ts` |
