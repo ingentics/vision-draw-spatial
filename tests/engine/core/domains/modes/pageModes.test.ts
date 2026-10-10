@@ -7,6 +7,9 @@ import { applyModeEdit } from '../../../../../src/engine/core/modes/modeEditWrit
 import type { PageModeDefinition } from '../../../../../src/engine/core/modes/types';
 import { endKey } from '../../../../../src/engine/core/edit/anchoring/auto/distribute';
 import { BOOM, fail, setup, spy } from './modesCore';
+import { PageModeRegistry } from '../../../../../src/engine/core/modes/registry';
+import { readDrawio } from '../../../../../src/engine/core/format/parse';
+import { modeHost } from '../../../modeHost';
 
 describe('hôte des appels aux modes (sujet 288)', () => {
   it('une opération qui lève une exception n’écrit rien', () => {
@@ -59,6 +62,27 @@ describe('hôte des appels aux modes (sujet 288)', () => {
     expect(modes.allowsEffect(page, { id: 'refused' })).toBe(false);
     expect(modes.allowsEffect(page, { id: 'forest' })).toBe(true);
     expect(guard.warnings().map((w) => w.message)).toEqual(['Mode boom : erreur dans page.allowsEffect (panne)']);
+  });
+});
+
+describe('polices demandées par un mode (sujet 510)', () => {
+  it('police non fournie par l’hôte : signalée une fois pour le document ; fournie : rien', () => {
+    const modes = new PageModeRegistry().register({
+      id: 'feutre',
+      namespace: 'feutre',
+      name: 'Feutre',
+      fonts: ['Permanent Marker', 'Absente'],
+    });
+    const page = (id: string) => ({
+      ...readDrawio(
+        `<mxfile><diagram id="${id}" name="P" spatial.mode="feutre"><mxGraphModel><root><mxCell id="0"/></root></mxGraphModel></diagram></mxfile>`,
+      ).document.pages[0]!,
+    });
+    expect(
+      modeHost(modes)
+        .warnings({ pages: [page('p'), page('q')] })
+        .map((w) => [w.pageId, w.message]),
+    ).toEqual([[undefined, 'Police « Absente » du mode Feutre non fournie : textes en Roboto']]);
   });
 });
 

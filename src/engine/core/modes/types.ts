@@ -38,6 +38,11 @@ export interface PageModeDefinition {
   /** Icône de l'onglet d'une page du mode (sujets 197, 198). */
   icon?: ModeIcon;
   /**
+   * Polices nommées que le mode demande par `fontFamily` (sujet 510, ex. feutre des labels des post-it). L'hôte les
+   * fournit (`fonts.families`) ; une police absente est dessinée en Roboto et signalée dans les Diagnostics.
+   */
+  fonts?: readonly string[];
+  /**
    * Réglages globaux du mode (Paramètres › Modes, ticket 283), bornés ; leurs valeurs sont passées aux mécanismes qu'il
    * fournit (`gestures.obstacles`, `dressing`, `current.look`), qui les rendent au moteur.
    */

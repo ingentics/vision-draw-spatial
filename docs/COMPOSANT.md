@@ -55,7 +55,7 @@ y est enregistré. L'interface `FileStore` (SPEC §5.1) permet de brancher un au
 | `autosave` | `boolean` | `false` | Sauvegarde automatique après chaque modification (appelle `onSave` avec `auto: true`, et le `store`) |
 | `autosaveDelayMs` | `number` | `1000` | Délai après la dernière modification ; jamais pendant un geste en cours, et au démontage s'il reste quelque chose |
 | `background` | `string` | `'#ffffff'` | Couleur de fond initiale de la vue (#rrggbb, lue à la création) ; `settings.background` (couleur, grille) la remplace |
-| `fonts` | `{ regular?, bold?, …, families? }` | | URLs de polices (.ttf, .otf, .woff ; Roboto conseillée). `families` : polices nommées choisies par `fontFamily` (ex. `{ 'Permanent Marker': url }`, labels des post-it Event storming). Sans police, troika en charge une depuis un CDN |
+| `fonts` | `{ regular?, bold?, …, families? }` | | URLs de polices (.ttf, .otf, .woff ; Roboto conseillée). `families` : polices nommées choisies par `fontFamily` (ex. `{ 'Permanent Marker': url }`, labels des post-it Event storming) ; une police demandée par un mode (`fonts` de sa définition) et absente est signalée dans les Diagnostics. Sans police, troika en charge une depuis un CDN |
 | `settings` | `SettingsPatch` | | Paramètres (SPEC §13), fusionnés avec les valeurs par défaut, appliqués à chaud |
 | `minimap` | `{ visible, size? }` | | Mini-carte contrôlée par l'hôte ; absente, le composant gère son affichage (×, touche M) |
 | `onMinimapToggle` | `() => void` | | Bouton × ou touche M, en mode contrôlé |

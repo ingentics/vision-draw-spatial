@@ -291,15 +291,22 @@ export class PageModes {
    * remises en ordre (`lifecycle.check`). `DocumentFile` y ajoute ceux des effets et les erreurs des plugins (sujet 378).
    */
   withModeWarnings(document: DocumentModel): DocumentModel {
+    const used = new Set<PageModeDefinition>();
     for (const page of document.pages) {
       const mode = this.core.modes.modeOf(page);
       if (!mode) {
         document.warnings.push(...this.core.modes.warnings({ pages: [page] }));
         continue;
       }
+      used.add(mode);
       const issues = this.call(mode, 'lifecycle.check', [], mode.lifecycle?.check, page);
       document.warnings.push(...issues.map((issue) => ({ pageId: page.id, ...issue })));
     }
+    // Polices demandées par les modes du document et non fournies par l'hôte (sujet 510) : une fois par police.
+    for (const mode of used)
+      for (const font of mode.fonts ?? [])
+        if (!this.core.providedFonts.has(font))
+          document.warnings.push({ message: `Police « ${font} » du mode ${mode.name} non fournie : textes en Roboto` });
     return document;
   }
 }

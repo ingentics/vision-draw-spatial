@@ -48,6 +48,7 @@ interface PageModeDefinition {
   shortName?: string;                          // nom court (sous-page des paramètres ; défaut : name)
   description?: string;                        // aide au survol
   icon?: ModeIcon;                             // onglet : tracés 16 × 16 fill / line / accent
+  fonts?: string[];                            // polices nommées demandées, fournies par l'hôte (sujet 510)
   settings?: PluginSetting[];                  // réglages globaux, Paramètres › Modes (section 3)
   page?: {                                     // la page du mode
     properties?: ModeProperty[];               // réglages déclarés de la page (section 3)
@@ -382,6 +383,7 @@ Règles communes (sujet 288) :
 | `shortName` | sous-page Paramètres › Modes | — | — | — |
 | `description` | aide du choix du mode | — | — | — |
 | `icon` | onglet d'une page du mode | — | — | — |
+| `fonts` | lecture d'un document : une police absente de `fonts.families` de l'hôte est signalée une fois dans les Diagnostics | — | — | textes en Roboto |
 | `page.defaults` | passage d'une page dans le mode (`setPageMode`) | — | ancrage (`spatial.anchoring`) et tracé des flèches créées (`spatial.edgeLine`) écrits dans l'étape « Mode … » ; l'ancrage répartit les flèches déjà là | — |
 | `page.palette.shapes` | palette d'une page du mode (`paletteFor`) | — | — | — |
 | `page.palette.categories` | palette d'une page du mode | — | — | — |

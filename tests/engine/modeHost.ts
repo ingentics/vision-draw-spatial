@@ -25,6 +25,8 @@ export function modeHost(
     file: { publishWarnings: () => {} },
     // Courant du mode remis à l'habillage (sujet 414).
     modeCurrents: { getModeCurrent: () => current },
+    // Polices fournies par l'hôte (sujet 510) : celles de l'appli.
+    providedFonts: new Set(['Permanent Marker']),
   } as unknown as EngineCore;
   Object.assign(core, { pluginGuard: new PluginGuard(core) });
   const host = new PageModes(core);

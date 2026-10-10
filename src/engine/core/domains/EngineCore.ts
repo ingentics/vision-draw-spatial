@@ -98,6 +98,8 @@ export class EngineCore {
   readonly effects: PageEffectRegistry;
   readonly events = new Emitter<EngineEvents>();
   readonly text: ReturnType<typeof createTroikaTextFactory>;
+  /** Polices nommées fournies par l'hôte (`fonts.families`) : celles qu'un mode demande sans les trouver sont signalées. */
+  readonly providedFonts: ReadonlySet<string>;
   /** Mesure du texte de ce moteur (sujet 377), remise aux formes et aux modes : approchée, puis exacte. */
   readonly textMeasure = new TextMeasure();
   readonly scenes: SceneManager;
@@ -210,6 +212,7 @@ export class EngineCore {
     this.targets = new EditTargets(this, options.editable ?? false);
     this.rendering = new Rendering(this);
     this.text = createTroikaTextFactory(options.fonts ?? {}, this.rendering.requestRender);
+    this.providedFonts = new Set(Object.keys(options.fonts?.families ?? {}));
     // Polices chargées : les géométries qui suivent la largeur d'un texte (onglet d'une région RDD) la prennent exacte.
     void this.text.measured().then((measure) => {
       this.textMeasure.settle(measure);
