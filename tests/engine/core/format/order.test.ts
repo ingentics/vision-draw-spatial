@@ -98,4 +98,8 @@ describe('placeBehind (sujet 484)', () => {
     expect(order(nested, 'y', 'x').changed).toBe(false);
     expect(order(abcd, 'z', 'a').changed).toBe(false);
   });
+
+  it('derrière elle-même : rien (sujet 502)', () => {
+    expect(order(abcd, 'c', 'c')).toEqual({ changed: false, order: ['a', 'b', 'c', 'd'] });
+  });
 });

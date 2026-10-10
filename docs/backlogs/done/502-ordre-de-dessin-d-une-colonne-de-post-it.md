@@ -19,3 +19,12 @@
   `order.test.ts`, `placeBehind` sur elle-même.
 - **Fini quand :** sur une colonne de quatre post-it collés, poser celui du bas ou du milieu laisse chaque ombre sous le
   post-it qui suit (vu à l'œil) ; `make check` vert.
+- Fait : `stackPlaced` (`plugins/modes/eventstorming/places/stacking.ts`) range toute colonne touchée par un post-it
+  posé (`columnOf` : post-it reliés de proche en proche par un contact haut / bas), paire par paire du bas vers le haut
+  (`heights` : rang depuis le bas de la colonne) ; `placeBehind` ne faisant que reculer un post-it, ce qui est rangé le
+  reste, y compris un post-it à cheval sur deux post-it du dessous. `placeBehind` (`core/format/order.ts`) renvoie
+  faux pour une cellule derrière elle-même. Tests `stacking.test.ts` (colonne de quatre posée en chacun de ses
+  post-it, colonne de trois à côté d'une autre colonne, post-it à cheval ; les quatre cas de la colonne échouent avec
+  l'ancien code), `order.test.ts` (elle-même). Vérifié à l'œil sur `eventstorming-commande.drawio` : colonne de quatre
+  post-it collée dans l'ordre L, V, W, U, rangée V, W, U, L au collage, jointures sans ombre sur le post-it du dessous ;
+  ⌘Z retire le collage.

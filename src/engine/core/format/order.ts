@@ -52,10 +52,10 @@ export function sendToBackInOrder(page: PageTree, cellIds: readonly string[]): b
 
 /**
  * Place la cellule `cellId` juste derrière `referenceId` dans l'ordre de dessin (sujet 484), si elles sont sœurs et
- * qu'elle est devant ; faux sinon (déjà derrière, parents différents, cellule inconnue).
+ * qu'elle est devant ; faux sinon (déjà derrière, parents différents, cellule inconnue, elle-même).
  */
 export function placeBehind(page: PageTree, cellId: string, referenceId: string): boolean {
-  if (!page.cells.has(cellId) || !page.cells.has(referenceId)) return false;
+  if (cellId === referenceId || !page.cells.has(cellId) || !page.cells.has(referenceId)) return false;
   const parentOf = new Map(page.cellList.map((nodes) => [nodes.id, nodes.cell?.getAttribute('parent') ?? undefined]));
   const parent = parentOf.get(cellId);
   if (parentOf.get(referenceId) !== parent) return false;

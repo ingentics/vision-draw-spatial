@@ -34,4 +34,43 @@ describe('mode Event storming : post-it collé au-dessus d’un autre, derrière
     run((edit) => storming.gestures!.placed!(edit, ['a']));
     expect(order(page())).toEqual(['up', 'low', 'b', 'a']);
   });
+
+  // Colonne de haut en bas V, W, U, L (sujet 502) ; ordre de départ : L, V, W, U.
+  const column = () =>
+    setup(
+      stormingXml(
+        sticky('L', 'event', 0, 480) +
+          sticky('V', 'policy', 0, 0) +
+          sticky('W', 'command', 0, 160) +
+          sticky('U', 'actor', 0, 320),
+      ),
+    );
+
+  it.each(['U', 'L', 'V', 'W'])('colonne de quatre, %s posé : chaque post-it derrière celui du dessous', (placed) => {
+    const { run, page } = column();
+    run((edit) => storming.gestures!.placed!(edit, [placed]));
+    expect(order(page())).toEqual(['V', 'W', 'U', 'L']);
+  });
+
+  it('colonne de trois posée au milieu, deux colonnes voisines : seule la colonne touchée change', () => {
+    const { run, page } = setup(
+      stormingXml(
+        sticky('c', 'event', 0, 320) +
+          sticky('b', 'command', 0, 160) +
+          sticky('a', 'policy', 0, 0) +
+          sticky('y', 'event', 400, 160) +
+          sticky('x', 'policy', 400, 0),
+      ),
+    );
+    run((edit) => storming.gestures!.placed!(edit, ['b']));
+    expect(order(page())).toEqual(['a', 'b', 'c', 'y', 'x']);
+  });
+
+  it('post-it à cheval sur deux post-it du dessous : derrière les deux', () => {
+    const { run, page } = setup(
+      stormingXml(sticky('r', 'event', 160, 160) + sticky('l', 'command', 0, 160) + sticky('top', 'constraint', 80, 0)),
+    );
+    run((edit) => storming.gestures!.placed!(edit, ['top']));
+    expect(order(page())).toEqual(['top', 'r', 'l']);
+  });
 });
