@@ -41,12 +41,12 @@ dossiers du projet (SPEC §4.2 et `.claude/rules/coding.md` §2 y renvoient) ; l
 | Dossier (sous `src/engine/` sauf mention) | Rôle | Nature |
 |---|---|---|
 | `index.ts`, `Engine.ts`, `events.ts` | point d'entrée du moteur, façade publique (délègue aux domaines), événements | avec état |
-| `core/domains/` | un dossier par domaine (`runtime/`, `document/`, `view/`, `selection/`, `input/`, `navigation/`, `modes/`, `effects/`, `edit/`) ; `EngineCore.ts` les câble. Hôtes des plugins : `modes/` (`PageModes`, adaptateur unique `call` ; réglages `ModePanel`, remises en ordre `ModeFollowUps`), `effects/` (`PageEffects`) ; erreurs des plugins : `runtime/pluginGuard.ts` | avec état |
+| `core/domains/` | un dossier par domaine (`runtime/`, `document/`, `view/`, `selection/`, `input/`, `navigation/`, `modes/`, `effects/`, `edit/`) ; `EngineCore.ts` les câble. Hôtes des plugins : `modes/` (`PageModes`, adaptateur unique `call` ; réglages `ModePanel`, remises en ordre `ModeFollowUps`), `effects/` (`PageEffects`) ; erreurs des plugins : `runtime/pluginGuard.ts`. Prise en main de la page par un mode (sujet 467) : verrou `edit/editLocks.ts`, capture des entrées `input/inputCaptures.ts`, couche `runtime/pageOverlays.ts` | avec état |
 | `core/interaction/` | caméra, transitions, historique de navigation, sélection, pick, mini-carte (calculs) ; `controls/` : contrôles du canvas (DOM) | pur, sauf `controls/` |
 | `core/edit/` | règles d'édition : déplacement, poignées, bouts et points de flèche, styles, palette, ancrage (`anchoring/`) | pur |
 | `core/render/` | scènes Three.js par page et par niveau ; briques `flat/`, `iso/`, `geometry/` ; flèches `edges/` (tracés portés de mxGraph dans `edges/route/`) | pur (objets Three.js) |
 | `core/graph/` | vue graphe (page générée, disposition) et mini-graphe | pur |
-| `core/shapes/`, `core/modes/`, `core/effects/` | contrats et registres des plugins (plus le placeholder et le groupe ; les écritures d'un mode (`ModeEditWriter`), ses arguments en lecture seule (`modeCalls.ts`) ; la place prise par le schéma) | pur |
+| `core/shapes/`, `core/modes/`, `core/effects/` | contrats et registres des plugins (plus le placeholder et le groupe ; les écritures d'un mode (`ModeEditWriter`), ses arguments en lecture seule (`modeCalls.ts`) ; la prise en main de la page, `modes/pageTakeover.ts` ; la place prise par le schéma) | pur |
 | `core/fields/` | schéma commun des champs déclarés (réglages des formes, des modes, paramètres des plugins ; sujet 391) | pur |
 | `core/plugins/` | API des plugins : seul fichier du tronc qu'une forme, un mode ou un effet importe (`.claude/rules/coding.md` §5) | réexports |
 | `core/settings/` | paramètres : types, schéma (défauts, bornes, lecture), fusion qui en découle | pur |
@@ -93,7 +93,7 @@ Règles :
   placeholder ; retournement et pivot par quarts de tour pour celles qui le déclarent.
 - **Modes et effets de page** (`plugins/modes/`, `plugins/effects/`) : modes RDD (tables, relations, régions),
   Séquences (flux de flèches, export PlantUML) et Machine à états (états, points d'entrée et de sortie, ensembles,
-  transitions, export PlantUML) ; effet forêt.
+  transitions, export PlantUML, simulation pas à pas) ; effet forêt.
 - **Export d'image** : PNG de la page ou de la sélection, à plat, hors écran (`core/domains/view/imageExport.ts`,
   `core/render/png/`, panneau `src/app/export/ExportPanel.tsx` ; SPEC §14.6).
 - **Flèches** (`core/render/edges/`) : routeurs draw.io portés tels quels (orthogonal, segment, elbow, side-to-side,
@@ -115,7 +115,7 @@ Règles :
 |---|---|
 | Nouveau plugin (forme, mode, effet) | `docs/AJOUTER_UN_PLUGIN.md` : le patron commun (dossier, collecte, API des plugins, lecture seule, appel protégé, réglages déclarés, tests de contrat), puis le guide de la famille |
 | Nouvelle forme draw.io | `docs/AJOUTER_UNE_FORME.md` (parcours complet : style → kind → registre → rendus 2D/iso/3D/mini-carte, clic, flèches, diagnostics, palette, fixture) ; exemple : `plugins/shapes/geometry/diamond/`, `core/render/geometry/orient.ts` |
-| Nouveau mode de page | `docs/AJOUTER_UN_MODE.md` ; exemples `plugins/modes/sequences/` (avec sa partie appli `src/app/plugins/modes/sequences/`), `plugins/modes/rdd/` (avec ses formes) et `plugins/modes/states/` (formes, bouts imposés, réglages de page posés, export PlantUML) |
+| Nouveau mode de page | `docs/AJOUTER_UN_MODE.md` ; exemples `plugins/modes/sequences/` (avec sa partie appli `src/app/plugins/modes/sequences/`), `plugins/modes/rdd/` (avec ses formes) et `plugins/modes/states/` (formes, bouts imposés, réglages de page posés, export PlantUML, simulation pas à pas qui prend la main sur la page : `simulation/statesSimulator.ts`, couche `CanvasOverlay` de `src/app/plugins/modes/states/`) |
 | Nouvel effet de page | `docs/AJOUTER_UN_EFFET.md` (contrat, pannes, réglages, `spatial.effects`, test) ; exemple `plugins/effects/forest/`, test `tests/engine/plugins/effects/forest.test.ts` |
 | Comportement d'édition | SPEC §14, `src/engine/core/edit/`, `src/engine/core/format/cellEdits.ts` |
 | Rendu / caméra / vues | SPEC §8–9, `core/render/pageScene.ts`, `core/render/sceneManager.ts`, `core/interaction/cameraState.ts` (état, bornes), `cameraProjection.ts`, `cameraFraming.ts`, `cameraMoves.ts` |

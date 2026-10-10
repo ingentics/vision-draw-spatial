@@ -508,6 +508,7 @@ Formes et arêtes sont dessinées dans l'**ordre du document** (une arête décl
 | Entrer dans un lien | **⌘ + clic** (touche et geste réglables : `controls.followLinkKey`, `controls.followLinkGesture`) ; maintenir ⌘ fait ressortir les zones liées |
 | Retour | Boutons des pages parentes (mode navigation) + Alt+↑ |
 | Basculer 2D ↔ iso | Boutons « 2D \| Iso » de la barre d'outils, touche **I** |
+| Pendant une prise en main de la page par un mode (ex. simulation de la Machine à états, §14.5) | Les touches sans ⌘, Ctrl ni Alt vont d'abord au mode, au premier appui (tenues, elles ne se répètent pas) ; celles qu'il ne prend pas gardent leur rôle de vue (déplacement, Espace, raccourcis de la vue). Ni sélection ni édition ; ⌘A ne fait rien ; Espace et Entrée activent un bouton de l'appli qui a le focus |
 
 Le déplacement s'appuie sur les touches physiques (`KeyboardEvent.code`) pour gérer correctement les dispositions AZERTY / QWERTY ; les raccourcis (I, G, M, Entrée, Retour arrière pour supprimer) suivent la touche affichée (`KeyboardEvent.key`) et sont configurables (§13). Les touches sont ignorées pendant une saisie (champ, liste) ; Entrée est laissée aux boutons qui ont le focus.
 
@@ -1078,6 +1079,38 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     n'en font qu'un). Une transition s'écrit au niveau du plus petit ensemble qui contient ses deux bouts, en rouge vers
     une sortie en erreur (`-[#d32f2f]->`). La cible d'un point d'entrée d'un autre niveau est déclarée avant, à son
     niveau (sujet 446). Une transition à bout libre n'est pas écrite.
+  - **Simulation pas à pas** (sujets 460 à 468) : bouton « Lancer la simulation » de la section « Machine à états »
+    (page sans sélection) ou « ▶ Lancer la simulation » de la barre en bas de la zone de dessin (départ d'un état
+    sélectionné). Rien n'est écrit dans le fichier.
+    - **Départ** : un état ou un point d'entrée sélectionné part de lui, un ensemble de son point d'entrée intérieur,
+      une transition de son état de départ ; sinon, du point d'entrée de premier niveau. S'il y en a plusieurs (ou
+      aucun), un lanceur commun à la barre et au panneau les liste (ou dit « Aucun point d'entrée sur la page ») ; il
+      suit la page, et se ferme par sa croix ou Échap.
+    - **Pas** : les transitions proposées sont celles de l'élément courant, puis celles de chaque ensemble qui le
+      contient, du plus proche au plus lointain (on quitte un ensemble depuis n'importe lequel de ses états), dans
+      l'ordre de dessin, numérotées 1, 2… Sur un point d'entrée, seulement les siennes. Entrer dans un ensemble mène à
+      son point d'entrée intérieur, puis à la cible de sa transition s'il n'en a qu'une ; sans entrée intérieure,
+      l'ensemble est l'état courant. Un point de sortie dans un ensemble le quitte (ses transitions sont proposées).
+    - **Fin** : bandeau dans la barre — « Terminé : sortie attendue » (`#2e7d32`), « Terminé en erreur » (`#d32f2f`),
+      « Bloqué : aucune transition sortante » (`#ef6c00`) ; Retour et Recommencer restent actifs.
+    - **Rendu** : page voilée, état courant en bleu (`#1e88e5`) avec halo qui pulse, ensembles parents encadrés, états
+      visités teintés avec compteur « ×N » dès le 2e passage, transitions proposées en pointillés qui défilent avec
+      leur pastille numérotée, transitions empruntées en bleu plein ; un point parcourt la transition franchie en
+      250 ms (lancé vite, il ralentit). Avec les animations réduites, tout est immobile. La caméra glisse vers l'état
+      courant s'il sort de la vue (marge de 48 px).
+    - **Commandes** : clic sur une transition proposée ou sa pastille (main au survol ; pendant le franchissement, un
+      clic ne fait rien ; un double-clic ne compte qu'une fois), touches **1 à 9**, **←** ou **Retour arrière** =
+      Retour, **Échap** = Arrêter. Barre : « ⏮ Recommencer », « ◀ Retour » (grisés au départ), « ▶ Suivant » (actif
+      seulement avec une seule transition proposée), « ⏹ Arrêter », puis « Pas N · <élément courant> » (N compte les
+      pas où l'on a choisi).
+    - **Trace** dans la section « Machine à états » : une ligne par pas (« ● Entrée », « → <état> », « ×N ») et par
+      transition franchie (« —[<nom>]→ », « —→ » sans nom), pas courant en bleu léger, fin colorée. Un clic sur une
+      ligne revient au pas où l'on choisit à partir d'elle ; les pas traversés sans choix (ensemble pris par son
+      entrée) et le pas courant ne sont pas cliquables.
+    - **Édition bloquée** pendant la simulation, page en lecture seule comprise : ni sélection, ni geste, ni palette, ni
+      texte, ni commentaire (un commentaire en cours d'édition est fermé), ni pages, ni annuler / rétablir (grisés) ;
+      la caméra reste libre (molette, glisser, flèches →, ↑, ↓, Espace + glisser). Changer de page ou de fichier
+      arrête la simulation.
 
 ### 14.6 Export d'image
 

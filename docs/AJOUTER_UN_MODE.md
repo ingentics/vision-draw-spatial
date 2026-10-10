@@ -25,8 +25,8 @@ src/engine/plugins/modes/<id>/  la lib (sans React) : tout le mode
 ├── shapes/<forme>/index.ts     formes propres au mode (facultatif, section 6)
 ├── shapes/common/              code commun à ses formes (rendu, fabrique ; sans index.ts, ce n'est pas une forme)
 └── …                           données, règles, opérations
-src/app/plugins/modes/<id>/     l'appli (facultatif) : sections React du panneau
-└── index.tsx                   export const panel: ModePanel = { PageSection }
+src/app/plugins/modes/<id>/     l'appli (facultatif) : sections React du panneau, couche sur la zone de dessin
+└── index.tsx                   export const panel: ModePanel = { PageSection, CanvasOverlay }
 ```
 
 - L'`id` du mode est le nom de ses dossiers et la valeur de `spatial.mode` sur `<diagram>` (règles de l'id :
@@ -289,7 +289,16 @@ couche physique d'une table RDD, lue par son rendu). Un habillage qui dépend du
   - `keepInView(shapeId)` : la caméra glisse vers une forme sortie de la vue.
 
   Exemple : `StatesSimulator` (`plugins/modes/states/simulation/statesSimulator.ts`) assemble ces briques ; la partie
-  appli (`src/app/plugins/modes/states/`) le suit par `subscribe`.
+  appli (`src/app/plugins/modes/states/`) le suit par `subscribe`. Pour en faire autant :
+  - l'objet de session du mode (dans sa lib, avec ses règles) prend le verrou, capture les entrées, pose sa couche, et
+    défait sa couche dans `released` ; la partie appli le retrouve par `controls.lockOwner instanceof …` et se
+    redessine à ses changements (`useSyncExternalStore`) ;
+  - les règles (quelle touche fait quoi, quel bouton est actif) vont dans la lib (`api.ts` du mode) ; `key` rend faux
+    pour une touche sans effet, pour que la vue la garde ;
+  - la couche posée sur la zone de dessin (`CanvasOverlay`, props `ModeCanvasProps`) empêche le focus de quitter la
+    zone de dessin (`preventDefault` au `mousedown` de ses boutons), sinon les touches n'arrivent plus au mode ;
+  - une couche dont `animate` rend toujours vrai fait redessiner la page à chaque image : n'y refaire aucune géométrie
+    (montrer ou cacher, déplacer, changer une opacité).
 
 ## 6. Formes, palette et modes d'affichage
 

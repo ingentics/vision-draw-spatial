@@ -60,6 +60,8 @@ const NOT_API: Record<string, string> = {
   // Appli.
   ShapeTemplate: 'modèle de palette vu par l’appli',
   onEdit: 'prop des sections React d’un mode',
+  CanvasOverlay: 'couche d’un mode posée sur la zone de dessin (`ModePanel` de l’appli)',
+  ModeCanvasProps: 'props de la couche d’un mode sur la zone de dessin',
   getModeRegistry: 'façade du moteur, pour l’appli',
   getEffectRegistry: 'façade du moteur, pour l’appli',
   PREVIEWS: 'rendus de la fenêtre d’export commune, par format (`src/app/export/ExportDialog.tsx`)',
