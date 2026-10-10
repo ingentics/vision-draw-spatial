@@ -44,7 +44,10 @@ describe('mode Event storming (sujet 475)', () => {
       expect(template.style).toContain('fitText=fill');
       expect(template.style).toContain(`spatial.kind=${kind};`);
     });
-    expect(SHAPE_TEMPLATES.find((t) => t.id === 'eventstorming-query')!.keywords).toContain('Stock');
+    // Exemples dans l'infobulle de la palette (sujet 479).
+    expect(SHAPE_TEMPLATES.find((t) => t.id === 'eventstorming-query')!.description).toBe(
+      'Ex. : Historique des commandes, Stock',
+    );
   });
 
   it('type reconnu par spatial.kind, quelle que soit la couleur', () => {
@@ -116,5 +119,15 @@ describe('mode Event storming : dessin d’un post-it (sujet 475)', () => {
     draw(sticky('a', 'event', 0, 0, 'Commande passée', 160, 160, 'spatial.es.labels=0;'));
     expect(texts).toHaveLength(1);
     expect(texts[0]!.fit).toEqual({ width: 144, height: 144, fill: true });
+  });
+});
+
+describe('mode Event storming : cibles de l’aimantation bord à bord (sujet 477)', () => {
+  it('un post-it se colle aux autres post-it, pas à une autre forme ; une autre forme à rien', () => {
+    const text = `<mxCell id="t" value="x" style="text;html=1;" vertex="1" parent="1"><mxGeometry x="0" y="300" width="60" height="30" as="geometry" /></mxCell>`;
+    const { page, shape } = setup(stormingXml(sticky('a', 'event', 0, 0) + sticky('b', 'actor', 200, 0) + text));
+    const targets = storming.gestures!.snapTargets!;
+    expect(targets(page(), shape('a'))).toEqual([{ id: 'b', rect: { x: 200, y: 0, width: 160, height: 160 } }]);
+    expect(targets(page(), shape('t'))).toEqual([]);
   });
 });

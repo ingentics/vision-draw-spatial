@@ -12,8 +12,8 @@ describe('mode Event storming : contacts (sujet 475)', () => {
     expect(overlaps).toEqual([]);
     expect(list).toEqual([
       {
-        a: { shapeId: 'a', side: 'right', share: 0.75 },
-        b: { shapeId: 'b', side: 'left', share: 0.75 },
+        a: { shapeId: 'a', side: 'e', share: 0.75 },
+        b: { shapeId: 'b', side: 'w', share: 0.75 },
         start: { x: 160, y: 40 },
         end: { x: 160, y: 160 },
         length: 120,
@@ -24,8 +24,8 @@ describe('mode Event storming : contacts (sujet 475)', () => {
   it('l’un sous l’autre : côtés bas / haut, part du côté de chaque forme', () => {
     const { contacts: list } = read(sticky('a', 'event', 0, 0) + sticky('b', 'policy', 80, 160, '', 320, 100));
     expect(list[0]).toMatchObject({
-      a: { shapeId: 'a', side: 'bottom', share: 0.5 },
-      b: { shapeId: 'b', side: 'top', share: 0.25 },
+      a: { shapeId: 'a', side: 's', share: 0.5 },
+      b: { shapeId: 'b', side: 'n', share: 0.25 },
       start: { x: 80, y: 160 },
       end: { x: 160, y: 160 },
       length: 80,

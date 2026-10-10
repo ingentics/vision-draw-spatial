@@ -1,6 +1,7 @@
 import { moveCell, moveEdgeCell, setEdgeTerminal } from '../../../format/cellEdits';
 import type { PageTree } from '../../../format/xmlTree';
 import { moveSetMinus, snapDelta, translateMoveSet } from '../../../edit/moveSet';
+import { EDGE_SNAP_PIXELS, snapMove } from '../../../edit/edgeSnap';
 import { clampMove } from '../../../edit/obstacles';
 import type { PageModel, Point } from '../../../model/types';
 import type { MoveDrag } from './types';
@@ -45,7 +46,14 @@ export class MoveDrags {
       this.core.live.retraceEdges(page, detached);
     }
     const raw = { x: point.x - move.start.x, y: point.y - move.start.y };
-    const snapped = snapDelta(move.origin, raw, snap ? move.grid : 0);
+    let snapped = snapDelta(move.origin, raw, snap ? move.grid : 0);
+    // Aimantation bord à bord du mode (sujet 477), après la grille ; Alt (`snap` faux) la coupe aussi.
+    if (snap && move.snapping) {
+      const { moving, targets } = move.snapping;
+      const here = moving.map((r) => ({ ...r, x: r.x + snapped.x, y: r.y + snapped.y }));
+      const offset = snapMove(here, targets, EDGE_SNAP_PIXELS / this.core.camera.state.zoom);
+      snapped = { x: snapped.x + offset.x, y: snapped.y + offset.y };
+    }
     // Bornes du mode (sujet 241) : arrêt à distance des obstacles, limites montrées en pointillé rouge. Pas à pas depuis
     // la dernière position permise, pour suivre le chemin du geste (on contourne un obstacle par n'importe quel côté).
     let target = snapped;

@@ -115,6 +115,17 @@ export interface ModeLifecycle {
   opened?(edit: ModeEdit): void;
   /** Éléments supprimés : remise en ordre écrite dans le fichier, dans la même étape d'annulation. */
   removed?(edit: ModeEdit): void;
+  /**
+   * Label d'une forme tel qu'écrit dans le fichier enregistré (sujet 478 ; ex. nom du type en gras en tête d'un
+   * post-it, pour qu'il se lise dans draw.io). `value` : le label gardé par l'appli, tel qu'écrit dans l'arbre (HTML si
+   * `html=1`) ; undefined = inchangé. `importedLabel` doit le défaire.
+   */
+  exportedLabel?(page: PageModel, shape: ShapeModel, value: string): string | undefined;
+  /**
+   * Label d'une forme lue d'un fichier (`value`, tel qu'écrit), tel que l'appli le garde (sujet 478 : ce
+   * qu'`exportedLabel` a ajouté retiré) ; undefined = inchangé. Appliqué à l'ouverture, sans étape d'annulation.
+   */
+  importedLabel?(page: PageModel, shape: ShapeModel, value: string): string | undefined;
 }
 
 /** Les flèches d'une page du mode (sujet 295). */
@@ -186,6 +197,12 @@ export interface ModeGestures {
    * pas approcher à moins de leur écart (`gap`, réglage du mode) ; undefined = aucune borne.
    */
   obstacles?(page: PageModel, shape: ShapeModel, values: PluginValues): ModeObstacles | undefined;
+  /**
+   * Emprises contre lesquelles `shape` se colle bord à bord quand on la déplace ou la redimensionne (sujet 477, ex.
+   * autres post-it Event storming) : un bord à moins de 8 px écran d'un bord opposé d'une cible, qu'il recouvre sur
+   * l'autre axe, s'y colle (écart 0). Alt maintenu : pas d'aimantation. Les formes déplacées ne sont pas des cibles.
+   */
+  snapTargets?(page: PageModel, shape: ShapeModel): Array<{ id: string; rect: Rect }>;
   /**
    * Formes posées : déplacées (fin d'un glisser, flèches du clavier) ou ajoutées depuis la palette ; remise en ordre
    * dans la même étape d'annulation (ex. région RDD agrandie pour les contenir, sujet 183). `edit.page` est la page

@@ -1,17 +1,11 @@
-import type { ModeProperty, PageModel, ShapeModel } from '../../../../core/plugins';
+import type { ModeProperty, PageModel, ShapeModel, Side } from '../../../../core/plugins';
 import { shapeOf, shapeTarget } from '../../../../core/plugins';
 import { isSticky, stickyType } from '../kinds';
 import { contacts } from './contacts';
-import type { ContactSide } from './contacts';
 
 /** Contacts d'un post-it en clair (sujet 475), pour son panneau : une ligne par post-it touché ou chevauché. */
 
-const WHERE: Readonly<Record<ContactSide, string>> = {
-  top: 'en haut',
-  bottom: 'en bas',
-  left: 'à gauche',
-  right: 'à droite',
-};
+const WHERE: Readonly<Record<Side, string>> = { n: 'en haut', s: 'en bas', w: 'à gauche', e: 'à droite' };
 
 /** Part d'un côté au-delà de laquelle le contact le couvre entier (arrondi des bornes). */
 const WHOLE_SIDE = 0.995;

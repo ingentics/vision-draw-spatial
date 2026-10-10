@@ -1117,9 +1117,14 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   storming ») propose 8 post-it typés, plus Texte et Titre. Code : `src/engine/plugins/modes/eventstorming/`.
   - **Post-it typés** (`eventstorming-event`, `-command`, `-constraint`, `-system`, `-policy`, `-query`, `-actor`,
     `-hotspot`, 160 × 160) : papier du Post-it (ombre, sans contour), fond de la couleur du type ; label du type en
-    anglais en haut (gras, 16, noir à 80 %, à 8 du haut ; réduit jusqu'à 10 puis « … »), non modifiable, qui suit le
-    type et non la couleur ; texte du ticket (la valeur) qui remplit la zone sous le label (`fitText=fill`), édité en
-    place dans cette zone.
+    anglais en haut (feutre Permanent Marker, gras, 16, noir à 80 %, à 8 du haut ; réduit jusqu'à 10 puis « … »),
+    non modifiable, qui suit le type et non la couleur ; texte du ticket (la valeur) qui remplit la zone sous le label
+    (`fitText=fill`), édité en place dans cette zone. Infobulle de la palette : nom et exemples du type.
+  - **Dans le fichier** (sujet 478) : la valeur d'un post-it porte le nom du type en gras en tête
+    (`<b>Command</b><br>Payer`, seul sans texte), lisible dans draw.io ; rien en tête quand « Labels » est décoché.
+    L'en-tête est ajouté à l'enregistrement et retiré à l'ouverture : l'appli ne garde que le texte du ticket.
+  - **Aimantation bord à bord** (sujet 477) : en glissant ou redimensionnant un post-it, un bord à moins de 8 px écran
+    d'un bord opposé d'un autre post-it, qu'il recouvre sur l'autre axe, s'y colle (écart 0) ; pas avec Alt.
   - **Réglage « Labels »** de la page (`spatial.es.labels=0` décoché, recopié sur chaque post-it ; une étape
     d'annulation) : décoché, aucun label et le texte prend toute la forme.
   - **Contacts** (`contacts(page)`, `contacts/contacts.ts`) : deux post-it se touchent quand deux bords parallèles

@@ -180,6 +180,10 @@ describe('palette', () => {
       expect(ids('subscriber')).toEqual(['event-consumer']);
     });
 
+    it('sur l’aide de l’infobulle (sujet 479)', () => {
+      expect(ids('paiement effectue')).toEqual(['eventstorming-event']);
+    });
+
     it('plusieurs mots : chacun doit apparaître', () => {
       expect(ids('rect arrondi')).toEqual(['rounded-rectangle']);
     });

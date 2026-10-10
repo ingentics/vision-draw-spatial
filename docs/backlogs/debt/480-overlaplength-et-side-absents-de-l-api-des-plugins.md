@@ -1,1 +1,0 @@
-# `overlapLength` et `Side` absents de l'API des plugins : le mode Event storming (`contacts/contacts.ts`) a son propre recouvrement d'intervalles et ses côtés (`ContactSide`) ; les réexporter depuis `core/plugins/index.ts` et les reprendre.

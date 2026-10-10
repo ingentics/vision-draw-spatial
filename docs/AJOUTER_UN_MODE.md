@@ -61,6 +61,8 @@ interface PageModeDefinition {
     check?(page): ModeIssue[];                 // incohérences, remises en ordre au mieux et signalées
     opened?(edit): void;                       // remise en ordre à l'ouverture (ex. tables RDD ajustées)
     removed?(edit): void;                      // remise en ordre après une suppression d'éléments
+    exportedLabel?(page, shape, value): string; // label écrit dans le fichier enregistré (ex. type en tête)
+    importedLabel?(page, shape, value): string; // label lu du fichier, ce qu'exportedLabel a ajouté retiré
   };
   dressing?(page, values, current): PageDressing; // habillage du rendu (section 4)
   edges?: {                                    // les flèches
@@ -238,6 +240,11 @@ couche physique d'une table RDD, lue par son rendu). Un habillage qui dépend du
 - `lifecycle.opened(edit)` (sujet 255) : remise en ordre d'une page du mode à l'ouverture du document, faite sur la mesure
   exacte du texte (à l'ouverture si les polices sont chargées, sinon à leur arrivée) ; une étape d'annulation
   « Ajustement du mode » pour tout le document, rien si rien ne change ou si le document n'est pas modifiable.
+- `lifecycle.exportedLabel(page, shape, value)` / `importedLabel(page, shape, value)` (sujet 478) : le fichier
+  enregistré porte plus que ce que l'appli garde (ex. nom du type en gras en tête d'un post-it Event storming, pour
+  qu'il se lise dans draw.io). `value` : le label tel qu'écrit dans l'arbre (HTML si `html=1`). `exportedLabel` donne
+  le label écrit à l'enregistrement, sur une copie (l'arbre du document n'est pas touché) ; `importedLabel` le défait
+  à l'ouverture, sans étape d'annulation. Undefined : label inchangé.
 - `gestures.handles` : `list` / `clicked` (sujets 250, 256) : poignées propres au mode sur la forme sélectionnée seule et
   modifiable (disque de leur couleur marqué d'un « + », accroché à un point de page et décalé de pixels écran) ; un
   clic est une opération du mode (une étape d'annulation) qui renvoie la partie à sélectionner, dont le texte passe en
@@ -271,6 +278,10 @@ couche physique d'une table RDD, lue par son rendu). Un habillage qui dépend du
   flèches du clavier) ou un redimensionnement, à l'écart `gap` (réglage du mode, ex. `obstacleGap` de RDD) ; `above` : ce que la forme dessine
   au-dessus de ses bornes. Le moteur borne le geste (un axe puis l'autre, on glisse le long d'un obstacle) et montre la
   limite atteinte en pointillé rouge (`core/edit/obstacles.ts`).
+- `gestures.snapTargets(page, shape)` (sujet 477) : emprises (`{ id, rect }`) contre lesquelles `shape` se colle bord à
+  bord pendant un glisser ou un redimensionnement : un bord à moins de 8 px écran d'un bord opposé d'une cible, qu'il
+  recouvre sur l'autre axe, s'y colle (écart 0), après la grille ; pas avec Alt, ni pour un pas au clavier. Les formes
+  déplacées ne sont pas des cibles (`core/edit/edgeSnap.ts`).
 - **Prendre la main sur la page** (sujet 467) : pour un état de session qui lui est propre (ex. simulation pas à pas
   de la Machine à états), un mode reçoit dans sa partie appli les briques du moteur (`PageTakeover`,
   `core/modes/pageTakeover.ts`, prop `controls` des sections du panneau et de la couche posée sur la zone de dessin,
@@ -365,6 +376,8 @@ Règles communes (sujet 288) :
 | `lifecycle.check` | chaque lecture du document (ouverture, chaque modification, annuler / rétablir) | page du modèle | aucune (avertissements) | aucun avertissement du mode pour la page |
 | `lifecycle.opened` | ouverture du document, et à nouveau quand la mesure exacte du texte arrive ; pas en lecture seule | page du modèle | une étape « Ajustement du mode » pour tout le document | rien d'écrit pour la page |
 | `lifecycle.removed` | après une suppression (Suppr, Couper) | relue après la suppression | remise en ordre, étape de la suppression | rien d'écrit |
+| `lifecycle.exportedLabel` | enregistrement du fichier (`serialize`), pour chaque forme d'une page du mode | copie relue du fichier | label écrit dans le fichier enregistré seulement | label inchangé |
+| `lifecycle.importedLabel` | ouverture du fichier, pour chaque forme d'une page du mode | page lue du fichier | label réécrit dans l'arbre, sans étape d'annulation | label inchangé |
 | **Rendu** | | | | |
 | `dressing` | construction de chaque scène de page (et à chaque changement du courant avec `current.redraws`), et pendant un déplacement (flèches retracées) ; reçoit le courant | page du modèle | aucune | pas d'habillage ; `edgeColor` / `edgeBadge` en panne : couleur ou pastille absente pour la flèche |
 | **Flèches** | | | | |
@@ -378,6 +391,7 @@ Règles communes (sujet 288) :
 | **Formes et gestes** | | | | |
 | `gestures.carries` | début d'un déplacement (glisser, clavier), Aligner / Répartir, mise en valeur de la sélection ; de proche en proche | page du modèle | aucune | n'emporte rien (ce qui a été trouvé avant la panne est gardé) |
 | `gestures.obstacles` | début d'un déplacement ou d'un redimensionnement, Aligner / Répartir ; reçoit les réglages du mode | page du modèle | aucune | aucune borne |
+| `gestures.snapTargets` | début d'un glisser ou d'un redimensionnement (pas d'un pas au clavier) | page du modèle | aucune | aucune aimantation |
 | `gestures.placed` | fin d'un déplacement (glisser, clavier), d'un redimensionnement, ajout depuis la palette, collage, Aligner / Répartir ; `before` : page d'avant un déplacement, absente pour un ajout | relue après la pose | remise en ordre, étape du geste | rien d'écrit |
 | `gestures.relabeled` | texte d'un élément validé (édition sur place ou panneau) | relue avec le nouveau texte | remise en ordre, étape du texte | rien d'écrit |
 | `keys` | touche sur l'élément sélectionné seul d'une page modifiable : `applies` puis `run` | page du modèle ; `run` : opération | une étape au titre `label` | `applies` : touche non prise ; `run` : rien d'écrit |

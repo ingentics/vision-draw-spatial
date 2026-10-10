@@ -10,6 +10,8 @@ export const STICKY = {
   /** Label : 16, réduit jusqu'à 10 s'il ne tient pas en largeur, puis « … ». */
   labelSize: 16,
   labelMinSize: 10,
+  /** Police feutre du label (sujet 476), dessinée par le moteur si l'appli la fournit (`FontSet.families`). */
+  labelFont: 'Permanent Marker',
   labelTop: 8,
   /** Écart entre le label et la zone du texte. */
   labelGap: 4,
@@ -46,6 +48,6 @@ export function stickyTextZone(shape: ShapeModel): Rect {
 /** Taille du label : la plus grande de 16 à 10 qui tient dans `width` ; 10 sinon (le texte finit alors par « … »). */
 export function labelFontSize(label: string, width: number, measure: MeasureText): number {
   for (let size = STICKY.labelSize; size > STICKY.labelMinSize; size--)
-    if (measure(label, { size, bold: true, italic: false }) <= width) return size;
+    if (measure(label, { size, bold: true, italic: false, family: STICKY.labelFont }) <= width) return size;
   return STICKY.labelMinSize;
 }

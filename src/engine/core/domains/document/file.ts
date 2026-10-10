@@ -52,7 +52,10 @@ export class DocumentFile {
 
   async load(xml: string, fileId: string, initialView?: InitialView): Promise<void> {
     const start = performance.now();
-    const { document, tree } = readDrawio(xml);
+    const read = readDrawio(xml);
+    const { tree } = read;
+    // Ce qu'un mode écrit en plus dans le fichier (sujet 478) n'est pas gardé par l'appli.
+    const document = this.core.pageModes.importLabels(read.document, tree) ? documentFromTree(tree) : read.document;
     this.core.metrics.fileRead(performance.now() - start);
     this.replaceDocument(document, tree);
     this.loadedFileId = fileId;
@@ -75,7 +78,7 @@ export class DocumentFile {
     writePageViews(this.tree, this.core.pages.savedViews());
     const xml = writeDrawio(this.tree);
     this.core.edits.markSaved();
-    return xml;
+    return this.model ? this.core.pageModes.exportLabels(xml, this.model) : xml;
   }
 
   /**

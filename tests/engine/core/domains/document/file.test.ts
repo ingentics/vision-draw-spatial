@@ -26,7 +26,7 @@ function setup() {
   const rebound: PageModel[] = [];
   const core = {
     registry: createDefaultRegistry(),
-    pageModes: { withModeWarnings: (document: unknown) => document },
+    pageModes: { withModeWarnings: (document: unknown) => document, importLabels: () => false },
     pageEffects: { warnings: () => [] },
     pluginGuard: { warnings: () => [] },
     selection: { rebind: (page: PageModel) => rebound.push(page) },
@@ -138,7 +138,7 @@ function tracedSetup() {
   const documents: unknown[] = [];
   const core = {
     registry: createDefaultRegistry(),
-    pageModes: { withModeWarnings: (document: unknown) => document },
+    pageModes: { withModeWarnings: (document: unknown) => document, importLabels: () => false },
     pageEffects: { warnings: () => [] },
     pluginGuard: { warnings: () => [] },
     targets: { isEditable: () => true, canEditNow: () => true },

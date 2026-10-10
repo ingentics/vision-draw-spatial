@@ -14,7 +14,7 @@ import { PAPER_RADIUS, paperOutline, stickyPaper } from './stickyPaper';
  */
 
 /**
- * Label du type : gras, noir à 80 %, centré dans sa ligne (aligné en haut, il prendrait un retrait de plus), sans
+ * Label du type : feutre gras (sujet 476), noir à 80 %, centré dans sa ligne (aligné en haut, il prendrait un retrait de plus), sans
  * marge, sur une ligne.
  */
 function labelStyle(shape: ShapeModel, size: number): Record<string, string> {
@@ -22,6 +22,7 @@ function labelStyle(shape: ShapeModel, size: number): Record<string, string> {
     ...shape.style,
     fontSize: String(size),
     fontStyle: '1',
+    fontFamily: STICKY.labelFont,
     fontColor: '#000000',
     textOpacity: '80',
     align: 'center',
@@ -65,7 +66,8 @@ export function stickyDefinition(type: StickyType): ShapeDefinition {
       name: type.label,
       category: 'eventstorming',
       order: STICKY_TYPES.indexOf(type) + 1,
-      keywords: ['event storming', 'post-it', type.label.toLowerCase(), ...type.keywords, ...type.examples],
+      keywords: ['event storming', 'post-it', type.label.toLowerCase(), ...type.keywords],
+      description: `Ex. : ${type.examples.join(', ')}`,
       style:
         `rounded=1;absoluteArcSize=1;arcSize=${2 * PAPER_RADIUS};whiteSpace=wrap;html=1;fillColor=${type.fill};strokeColor=none;shadow=1;fontColor=#000000;` +
         `spacing=${STICKY.margin};fitText=fill;spatial.kind=${type.kind};`,

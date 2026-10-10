@@ -110,6 +110,8 @@ export interface PaletteEntry {
   order: number;
   /** Mots-clés de la recherche, en plus du nom et de la catégorie. */
   keywords: string[];
+  /** Aide montrée sous le nom dans l'infobulle de la palette (ex. exemples d'un post-it typé), cherchée aussi. */
+  description?: string;
   style: string;
   value: string;
   width: number;

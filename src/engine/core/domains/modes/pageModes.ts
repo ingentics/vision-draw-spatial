@@ -1,13 +1,15 @@
 import { setPageAttribute } from '../../format/cellEdits';
+import { readDrawio } from '../../format/parse';
 import { writeDrawio } from '../../format/write';
-import type { PageTree } from '../../format/xmlTree';
+import type { DrawioTree, PageTree } from '../../format/xmlTree';
 import type { TerminalEnd } from '../../edit/edgeEnds';
 import { endKey } from '../../edit/anchoring/auto/distribute';
 import { isAnchoring, isEdgeLine } from '../../edit/anchoring/mode';
 import { canMoveShape, carriedShapes } from '../../edit/moveSet';
-import type { DocumentModel, PageModel, Point, ShapeModel } from '../../model/types';
+import type { DocumentModel, PageModel, Point, Rect, ShapeModel } from '../../model/types';
 import type { PageModePalette } from '../../edit/palette';
 import { applyModeEdit } from '../../modes/modeEditWriter';
+import { rewriteLabels } from '../../modes/fileLabels';
 import { callMode } from '../../modes/modeCalls';
 import type { PageEffectDefinition } from '../../effects/types';
 import type { PageDressing } from '../../modes/dressing';
@@ -107,6 +109,35 @@ export class PageModes {
     return new Set(ids.map((id) => endKey(id, 'target')));
   }
 
+  /**
+   * Fichier lu (sujet 478) : labels des formes ramenés à ce que l'appli garde (`lifecycle.importedLabel`), dans
+   * l'arbre ; renvoie vrai si l'arbre a changé (le modèle est alors à relire).
+   */
+  importLabels(document: DocumentModel, tree: DrawioTree): boolean {
+    return (
+      rewriteLabels(document, tree, (page, shape, value) => {
+        const mode = this.core.modes.modeOf(page);
+        const entry = mode?.lifecycle?.importedLabel;
+        return mode && this.call(mode, 'lifecycle.importedLabel', undefined, entry, page, shape, value);
+      }).length > 0
+    );
+  }
+
+  /**
+   * Fichier à enregistrer (sujet 478) : labels des formes tels que les modes les écrivent (`lifecycle.exportedLabel`),
+   * sur une copie de `xml` ; l'arbre du document n'est pas touché. `xml` tel quel si aucun mode n'en écrit.
+   */
+  exportLabels(xml: string, document: DocumentModel): string {
+    if (!document.pages.some((page) => this.core.modes.modeOf(page)?.lifecycle?.exportedLabel)) return xml;
+    const copy = readDrawio(xml);
+    const changed = rewriteLabels(copy.document, copy.tree, (page, shape, value) => {
+      const mode = this.core.modes.modeOf(page);
+      const entry = mode?.lifecycle?.exportedLabel;
+      return mode && this.call(mode, 'lifecycle.exportedLabel', undefined, entry, page, shape, value);
+    });
+    return changed.length > 0 ? writeDrawio(copy.tree) : xml;
+  }
+
   /** Palette d'une page : catégories et modèles proposés, d'après son mode et les formes du moteur. */
   palette(page: PageModel | undefined): PageModePalette {
     return this.core.modes.paletteFor(page, this.core.registry.templates(), this.core.registry.categories());
@@ -155,6 +186,13 @@ export class PageModes {
     if (!mode || !obstacles) return undefined;
     const values = this.core.modes.values(mode.id, this.core.settings.modes[mode.id]);
     return this.call(mode, 'gestures.obstacles', undefined, obstacles, page, shape, values);
+  }
+
+  /** Cibles de l'aimantation bord à bord de `shape` (`gestures.snapTargets`, sujet 477) ; vide : aucune. */
+  snapTargets(page: PageModel, shape: ShapeModel): Array<{ id: string; rect: Rect }> {
+    const mode = this.core.modes.modeOf(page);
+    if (!mode) return [];
+    return this.call(mode, 'gestures.snapTargets', [], mode.gestures?.snapTargets, page, shape);
   }
 
   /** Le mode de la page emporte-t-il des formes (`gestures.carries`) ? Leurs flèches sont alors mises en valeur avec elles. */

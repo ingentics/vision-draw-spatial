@@ -51,7 +51,7 @@ function press(grabbed: string, selected: string[] = [], arrowStyle = ARROW) {
       isMultiSelection: () => selected.length > 1,
     },
     registry: { movesAsBlock: () => false },
-    pageModes: { carried: () => [], obstacles: () => ({ rects: [] }) },
+    pageModes: { carried: () => [], obstacles: () => ({ rects: [] }), snapTargets: () => [] },
   } as unknown as EngineCore;
   const gesture = new DragGesture(core);
   const started = gesture.beginMove({ x: 100, y: 70 });

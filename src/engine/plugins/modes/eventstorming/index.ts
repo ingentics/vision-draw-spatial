@@ -1,7 +1,8 @@
 import type { PageModeDefinition } from '../../../core/plugins';
 import { CONTACTS_PROPERTY } from './contacts/contactsText';
+import { exportedLabel, importedLabel } from './export/fileLabel';
 import { EVENT_STORMING_KEYS } from './keys';
-import { STICKY_TYPES } from './kinds';
+import { isSticky, STICKY_TYPES } from './kinds';
 import { LABELS_PROPERTY, syncLabels } from './labels/pageLabels';
 
 /**
@@ -30,10 +31,20 @@ export const definition: PageModeDefinition = {
   lifecycle: {
     // Fichier modifié ailleurs : chaque post-it reprend le réglage « Labels » de sa page.
     opened: (edit) => syncLabels(edit),
+    // Nom du type en tête de la valeur dans le fichier, lisible dans draw.io (sujet 478).
+    exportedLabel,
+    importedLabel,
   },
   gestures: {
     properties: [CONTACTS_PROPERTY],
     // Post-it ajouté ou collé : il prend le réglage « Labels » de la page.
     placed: (edit, shapeIds) => syncLabels(edit, shapeIds),
+    // Un post-it se colle bord à bord aux autres post-it (sujet 477).
+    snapTargets: (page, shape) =>
+      isSticky(shape)
+        ? page.shapes
+            .filter((other) => other.id !== shape.id && isSticky(other))
+            .map((other) => ({ id: other.id, rect: other.bounds }))
+        : [],
   },
 };

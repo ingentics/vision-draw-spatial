@@ -4,7 +4,6 @@ import {
   fontStyleBits,
   fitTextMode,
   homographyCss,
-  isMonospace,
   labelPadding,
   largestFitting,
   maxFillSize,
@@ -14,6 +13,7 @@ import {
   styleNumber,
 } from '../engine';
 import type { LabelEditPlane, LabelEditRequest } from '../engine';
+import { editorFontFamily } from './fonts';
 import { isColor, readContent, TEXT_FORMAT_ATTRIBUTE, useRichEditor } from './richEditor';
 import type { LabelContent, RichEditorHandle, SelectionFormat, ToggleMark } from './richEditor';
 
@@ -231,7 +231,7 @@ export function LabelEditor({
     fontWeight: marks.bold ? 700 : 400,
     fontStyle: marks.italic ? 'italic' : 'normal',
     textDecoration: decorations || 'none',
-    fontFamily: isMonospace(style.fontFamily) ? "'Roboto Mono', monospace" : "'Roboto', sans-serif",
+    fontFamily: editorFontFamily(style.fontFamily),
     textAlign: align,
     // Pas plus large que la forme (retour à la ligne), mais jamais plus étroit que le mot le plus long :
     // un débordement se répartit selon l'alignement (centré : des deux côtés).

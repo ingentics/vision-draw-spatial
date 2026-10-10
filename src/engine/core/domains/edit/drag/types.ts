@@ -1,6 +1,7 @@
 import type { EdgeEndsSnapshot, EndAttachment, Side, TerminalEnd } from '../../../edit/edgeEnds';
 import type { PointHandle, PointsContext } from '../../../edit/edgePointEdits';
 import type { MoveSet } from '../../../edit/moveSet';
+import type { EdgeSnapping } from '../../../edit/edgeSnap';
 import type { MovePlan, ResizeBounds } from '../../../edit/movePlan';
 import type { ResizeHandle } from '../../../edit/handleKinds';
 import type { EdgeLabelPlacement, Point, Rect } from '../../../model/types';
@@ -23,6 +24,8 @@ export interface MoveDrag extends MovePlan {
   started: boolean;
   /** Flèches réparties en aperçu pendant le glisser (ancrage automatique ou Typon) : modèle à relire si rien n'est écrit. */
   arranged?: boolean;
+  /** Aimantation bord à bord du mode (sujet 477) ; absente : aucune (ni pour un pas au clavier). */
+  snapping?: EdgeSnapping;
 }
 
 export interface ResizeDrag {
@@ -37,6 +40,8 @@ export interface ResizeDrag {
   children: MoveSet;
   /** Bornes du mode de la page (sujet 241) : obstacles, et ce que la forme dessine au-dessus de ses bornes. */
   bounded?: ResizeBounds;
+  /** Aimantation bord à bord du mode (sujet 477). */
+  snapping?: EdgeSnapping;
   started: boolean;
 }
 

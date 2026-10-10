@@ -3,6 +3,8 @@ import type { PageTree } from '../../../format/xmlTree';
 import { translateMoveSet } from '../../../edit/moveSet';
 import type { MoveSet } from '../../../edit/moveSet';
 import { resizeBounds } from '../../../edit/handleKinds';
+import { EDGE_SNAP_PIXELS, snapResize } from '../../../edit/edgeSnap';
+import type { Side } from '../../../edit/edgeEnds';
 import { clampResize } from '../../../edit/obstacles';
 import { computeBounds } from '../../../model/bounds';
 import type { PageModel, Point, Rect } from '../../../model/types';
@@ -27,6 +29,12 @@ export class ResizeDrags {
       snap ? resize.grid : 0,
       this.core.settings.edit.minShapeSize,
     );
+    // Aimantation bord à bord du mode (sujet 477) des côtés que tire la poignée, après la grille ; pas avec Alt.
+    if (snap && resize.snapping) {
+      const sides = [...resize.handle] as Side[];
+      const threshold = EDGE_SNAP_PIXELS / this.core.camera.state.zoom;
+      bounds = snapResize(bounds, sides, resize.snapping.targets, threshold, this.core.settings.edit.minShapeSize);
+    }
     // Bornes du mode (sujet 241), sur les emprises (ce qui dépasse au-dessus compris) ; limites en pointillé rouge.
     if (free) this.core.preview.clearLimits();
     else if (resize.bounded) {

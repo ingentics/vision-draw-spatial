@@ -152,7 +152,7 @@ export function Palette({ onAdd, used = [], content = DEFAULT_CONTENT, disabled 
                       draggable={!disabled}
                       disabled={disabled}
                       aria-label={template.name}
-                      {...hover(template.name)}
+                      {...hover(template.description ? `${template.name}\n${template.description}` : template.name)}
                       onDragStart={(event) => {
                         hideTooltip();
                         event.dataTransfer.setData(PALETTE_MIME, template.id);

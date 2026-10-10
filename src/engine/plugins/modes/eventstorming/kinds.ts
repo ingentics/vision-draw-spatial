@@ -3,7 +3,8 @@ import type { ShapeModel } from '../../../core/plugins';
 /**
  * Les 8 post-it typés du mode Event storming (sujet 475). Leurs ids sont préfixés par celui du mode
  * (`eventstorming-`), comme le registre l'exige de toute forme de mode. Le label est le nom du type en anglais
- * (vocabulaire universel de l'event storming) ; les exemples servent à la recherche de la palette.
+ * (vocabulaire universel de l'event storming) ; les exemples sont montrés dans l'infobulle de la palette
+ * (et cherchés).
  */
 export interface StickyType {
   kind: string;

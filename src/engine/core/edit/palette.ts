@@ -50,7 +50,7 @@ export function searchTemplates(
   if (words.length === 0) return templates;
   return templates.filter((template) => {
     const category = byId(categories, template.category)?.name ?? '';
-    const haystack = normalize([template.name, category, ...template.keywords].join(' '));
+    const haystack = normalize([template.name, category, template.description ?? '', ...template.keywords].join(' '));
     return words.every((word) => haystack.includes(word));
   });
 }

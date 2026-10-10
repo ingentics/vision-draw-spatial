@@ -1,9 +1,3 @@
-import robotoBoldItalic from '@fontsource/roboto/files/roboto-latin-700-italic.woff?url';
-import robotoBold from '@fontsource/roboto/files/roboto-latin-700-normal.woff?url';
-import robotoItalic from '@fontsource/roboto/files/roboto-latin-400-italic.woff?url';
-import robotoRegular from '@fontsource/roboto/files/roboto-latin-400-normal.woff?url';
-import robotoMonoBold from '@fontsource/roboto-mono/files/roboto-mono-latin-700-normal.woff?url';
-import robotoMono from '@fontsource/roboto-mono/files/roboto-mono-latin-400-normal.woff?url';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { GRAPH_PAGE_ID } from '../engine';
@@ -20,6 +14,7 @@ import type {
 } from '../engine';
 import { DrawioSpatial } from '../react/DrawioSpatial';
 import { exportJson } from './diagnosticsExport';
+import { FONTS } from './fonts';
 import { DiagnosticsPanel } from './DiagnosticsPanel';
 import { baseName, downloadBlob } from './download';
 import { ExportPanel } from './export/ExportPanel';
@@ -41,14 +36,6 @@ import { useFileSaving } from './viewer/useFileSaving';
 import { ViewerContextPanel } from './viewer/ViewerContextPanel';
 import { ViewerToolbar } from './viewer/ViewerToolbar';
 
-const FONTS = {
-  regular: robotoRegular,
-  bold: robotoBold,
-  italic: robotoItalic,
-  boldItalic: robotoBoldItalic,
-  mono: robotoMono,
-  monoBold: robotoMonoBold,
-};
 /** Aide de la barre du bas : mode en cours tant qu'une touche est maintenue. */
 const MODE_HINT_LABELS: Record<ModeHint, string> = {
   navigation: 'Mode navigation',

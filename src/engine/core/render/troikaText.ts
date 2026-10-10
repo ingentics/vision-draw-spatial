@@ -54,23 +54,36 @@ export interface FontSet {
   /** Police à chasse fixe (code : `fontFamily=Courier New`, `<pre>`…). */
   mono?: string;
   monoBold?: string;
+  /**
+   * Polices nommées (sujet 476), choisies par le `fontFamily` d'un texte (ex. `Permanent Marker` des labels des
+   * post-it Event storming), une seule graisse chacune : gras ou italique dessinés avec elle.
+   */
+  families?: Readonly<Record<string, string>>;
 }
 
-type FontKey = keyof FontSet;
+/** Variante de police : une des variantes de Roboto, ou une police nommée (`family:<nom>`). */
+type FontKey = Exclude<keyof FontSet, 'families'> | `family:${string}`;
 
-/** Variante de police d'un texte : celle demandée, sinon la plus proche disponible. */
+function fontUrl(fonts: FontSet, key: FontKey): string | undefined {
+  return key.startsWith('family:')
+    ? fonts.families?.[key.slice('family:'.length)]
+    : fonts[key as Exclude<FontKey, `family:${string}`>];
+}
+
+/** Variante de police d'un texte : la police nommée demandée, sinon la variante la plus proche disponible. */
 function pickFontKey(fonts: FontSet, bold: boolean, italic: boolean, family?: string): FontKey | undefined {
+  if (family && fonts.families?.[family]) return `family:${family}`;
   const candidates: FontKey[] = [];
   if (isMonospace(family)) candidates.push(...(bold ? (['monoBold', 'mono'] as const) : (['mono'] as const)));
   if (italic) candidates.push(...(bold ? (['boldItalic', 'bold', 'italic'] as const) : (['italic'] as const)));
   else if (bold) candidates.push('bold');
   candidates.push('regular');
-  return candidates.find((key) => fonts[key]);
+  return candidates.find((key) => fontUrl(fonts, key));
 }
 
 export function pickFont(fonts: FontSet, bold: boolean, italic: boolean, family?: string): string | null {
   const key = pickFontKey(fonts, bold, italic, family);
-  return key ? fonts[key]! : null;
+  return (key && fontUrl(fonts, key)) ?? null;
 }
 
 /**
@@ -356,15 +369,21 @@ async function createMeasure(fonts: FontSet): Promise<MeasureText> {
   if (typeof document === 'undefined' || typeof FontFace === 'undefined') return approximateMeasure;
   const context = document.createElement('canvas').getContext('2d');
   if (!context) return approximateMeasure;
-  const loaded = new Set<FontKey>();
+  const loaded = new Map<FontKey, string>();
+  const keys: FontKey[] = [
+    ...(Object.keys(fonts) as Array<keyof FontSet>).filter((key) => key !== 'families'),
+    ...Object.keys(fonts.families ?? {}).map((name) => `family:${name}` as const),
+  ];
   await Promise.all(
-    (Object.keys(fonts) as FontKey[]).map(async (key) => {
-      const url = fonts[key];
+    keys.map(async (key, index) => {
+      const url = fontUrl(fonts, key);
       if (!url) return;
       try {
-        const face = new FontFace(`drawio-spatial-${key}`, `url(${JSON.stringify(url)})`);
+        // Nom de police propre au moteur (rang : un nom de police nommée peut contenir des espaces).
+        const name = `drawio-spatial-${index}`;
+        const face = new FontFace(name, `url(${JSON.stringify(url)})`);
         document.fonts.add(await face.load());
-        loaded.add(key);
+        loaded.set(key, name);
       } catch {
         // Police illisible : mesure approchée pour cette variante.
       }
@@ -374,8 +393,9 @@ async function createMeasure(fonts: FontSet): Promise<MeasureText> {
   const SIZE = 100;
   return (text, font) => {
     const key = pickFontKey(fonts, font.bold, font.italic, font.family);
-    if (!key || !loaded.has(key)) return approximateMeasure(text, font);
-    context.font = `${SIZE}px "drawio-spatial-${key}"`;
+    const name = key && loaded.get(key);
+    if (!name) return approximateMeasure(text, font);
+    context.font = `${SIZE}px "${name}"`;
     return (context.measureText(text).width * font.size) / SIZE;
   };
 }

@@ -73,6 +73,7 @@ export {
   inflate,
   inset,
   insidePolygon,
+  overlapLength,
   rectContains,
   rectContainsRect,
   rectDistance,
@@ -136,5 +137,5 @@ export { stencilShape } from '../format/stencil';
 
 // Règles d'édition partagées.
 export { SIDE_NORMALS, endAttachmentOf, sideOfConstraint } from '../edit/edgeEnds';
-export type { EndAttachment } from '../edit/edgeEnds';
+export type { EndAttachment, Side } from '../edit/edgeEnds';
 export { facingSide } from '../edit/anchoring/auto/distribute';

@@ -1,4 +1,5 @@
-import type { PageModel, Point, Rect, ShapeModel } from '../../../../core/plugins';
+import { overlapLength } from '../../../../core/plugins';
+import type { PageModel, Point, Rect, ShapeModel, Side } from '../../../../core/plugins';
 import { isSticky } from '../kinds';
 
 /**
@@ -11,20 +12,12 @@ import { isSticky } from '../kinds';
 /** Écart toléré entre deux bords en contact, en pixels de page. */
 export const CONTACT_TOLERANCE = 0.5;
 
-/** Côté d'un post-it. */
-export type ContactSide = 'top' | 'bottom' | 'left' | 'right';
-
-const OPPOSITE: Readonly<Record<ContactSide, ContactSide>> = {
-  top: 'bottom',
-  bottom: 'top',
-  left: 'right',
-  right: 'left',
-};
+const OPPOSITE: Readonly<Record<Side, Side>> = { n: 's', s: 'n', w: 'e', e: 'w' };
 
 /** Une des deux formes d'un contact : son côté qui touche, et la part de ce côté prise par le contact (0 à 1). */
 export interface ContactEnd {
   shapeId: string;
-  side: ContactSide;
+  side: Side;
   share: number;
 }
 
@@ -43,9 +36,6 @@ export interface StickyContacts {
   overlaps: [string, string][];
 }
 
-/** Recouvrement des intervalles [a0, a1] et [b0, b1] : négatif s'ils sont disjoints (moins l'écart). */
-const overlapOf = (a0: number, a1: number, b0: number, b1: number) => Math.min(a1, b1) - Math.max(a0, b0);
-
 /** Contact de `a` vers `b` le long d'un axe, ou undefined. `horizontal` : côte à côte (gauche / droite). */
 function contactOf(a: ShapeModel, b: ShapeModel, horizontal: boolean): Contact | undefined {
   const ra = a.bounds;
@@ -57,7 +47,7 @@ function contactOf(a: ShapeModel, b: ShapeModel, horizontal: boolean): Contact |
   const [c0, c1, d0, d1] = horizontal
     ? [ra.y, ra.y + ra.height, rb.y, rb.y + rb.height]
     : [ra.x, ra.x + ra.width, rb.x, rb.x + rb.width];
-  const along = overlapOf(c0, c1, d0, d1);
+  const along = overlapLength(c0, c1, d0, d1);
   if (along <= CONTACT_TOLERANCE) return undefined;
   // `a` avant `b` sur l'axe (bord de fin de `a` contre le bord de début de `b`), ou l'inverse.
   const before = Math.abs(a1 - b0) <= CONTACT_TOLERANCE;
@@ -66,7 +56,7 @@ function contactOf(a: ShapeModel, b: ShapeModel, horizontal: boolean): Contact |
   const line = before ? (a1 + b0) / 2 : (b1 + a0) / 2;
   const from = Math.max(c0, d0);
   const to = Math.min(c1, d1);
-  const sideA: ContactSide = horizontal ? (before ? 'right' : 'left') : before ? 'bottom' : 'top';
+  const sideA: Side = horizontal ? (before ? 'e' : 'w') : before ? 's' : 'n';
   const point = (t: number): Point => (horizontal ? { x: line, y: t } : { x: t, y: line });
   return {
     a: { shapeId: a.id, side: sideA, share: along / (c1 - c0) },
@@ -80,8 +70,8 @@ function contactOf(a: ShapeModel, b: ShapeModel, horizontal: boolean): Contact |
 /** Les deux rectangles se recouvrent-ils au-delà de la tolérance, sur les deux axes ? */
 function overlapping(a: Rect, b: Rect): boolean {
   return (
-    overlapOf(a.x, a.x + a.width, b.x, b.x + b.width) > CONTACT_TOLERANCE &&
-    overlapOf(a.y, a.y + a.height, b.y, b.y + b.height) > CONTACT_TOLERANCE
+    overlapLength(a.x, a.x + a.width, b.x, b.x + b.width) > CONTACT_TOLERANCE &&
+    overlapLength(a.y, a.y + a.height, b.y, b.y + b.height) > CONTACT_TOLERANCE
   );
 }
 
