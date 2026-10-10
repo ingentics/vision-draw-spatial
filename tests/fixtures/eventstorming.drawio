@@ -7,16 +7,16 @@
         <mxCell id="title" value="Commande en ligne" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=64;fontColor=#DEDEDE;" vertex="1" parent="1">
           <mxGeometry x="40" y="-120" width="640" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="actor" value="Client" style="rounded=1;absoluteArcSize=1;arcSize=16;whiteSpace=wrap;html=1;fillColor=#fff59d;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=eventstorming-actor;" vertex="1" parent="1">
+        <mxCell id="actor" value="Client" style="rounded=1;absoluteArcSize=1;arcSize=16;whiteSpace=wrap;html=1;fillColor=#fff59d;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=eventstorming-actor;spatial.es.group=Commande;" vertex="1" parent="1">
           <mxGeometry x="40" y="40" width="160" height="160" as="geometry" />
         </mxCell>
-        <mxCell id="command" value="Payer" style="rounded=1;absoluteArcSize=1;arcSize=16;whiteSpace=wrap;html=1;fillColor=#64b5f6;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=eventstorming-command;" vertex="1" parent="1">
+        <mxCell id="command" value="Payer" style="rounded=1;absoluteArcSize=1;arcSize=16;whiteSpace=wrap;html=1;fillColor=#64b5f6;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=eventstorming-command;spatial.es.group=Commande;" vertex="1" parent="1">
           <mxGeometry x="200" y="40" width="160" height="160" as="geometry" />
         </mxCell>
-        <mxCell id="event" value="Paiement effectué" style="rounded=1;absoluteArcSize=1;arcSize=16;whiteSpace=wrap;html=1;fillColor=#ffb74d;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=eventstorming-event;" vertex="1" parent="1">
+        <mxCell id="event" value="Paiement effectué" style="rounded=1;absoluteArcSize=1;arcSize=16;whiteSpace=wrap;html=1;fillColor=#ffb74d;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=eventstorming-event;spatial.es.group=Commande;" vertex="1" parent="1">
           <mxGeometry x="360" y="40" width="160" height="160" as="geometry" />
         </mxCell>
-        <mxCell id="policy" value="Quand le paiement échoue, prévenir" style="rounded=1;absoluteArcSize=1;arcSize=16;whiteSpace=wrap;html=1;fillColor=#ce93d8;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=eventstorming-policy;" vertex="1" parent="1">
+        <mxCell id="policy" value="Quand le paiement échoue, prévenir" style="rounded=1;absoluteArcSize=1;arcSize=16;whiteSpace=wrap;html=1;fillColor=#ce93d8;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=eventstorming-policy;spatial.es.group=Commande;" vertex="1" parent="1">
           <mxGeometry x="440" y="200" width="160" height="160" as="geometry" />
         </mxCell>
         <mxCell id="constraint" value="Pas plus que le stock disponible" style="rounded=1;absoluteArcSize=1;arcSize=16;whiteSpace=wrap;html=1;fillColor=#cfd8dc;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=eventstorming-constraint;" vertex="1" parent="1">
@@ -31,8 +31,14 @@
         <mxCell id="hotspot" value="Règle floue" style="rounded=1;absoluteArcSize=1;arcSize=16;whiteSpace=wrap;html=1;fillColor=#e57373;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=eventstorming-hotspot;" vertex="1" parent="1">
           <mxGeometry x="540" y="480" width="160" height="160" as="geometry" />
         </mxCell>
-        <mxCell id="text" value="Coin seul : pas de contact. À droite : chevauchement signalé." style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+        <mxCell id="text" value="Coin seul : pas de contact. À droite : chevauchement signalé. Dessous : groupe « Relance »." style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
           <mxGeometry x="40" y="760" width="420" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="remind" value="Relancer le client" style="rounded=1;absoluteArcSize=1;arcSize=16;whiteSpace=wrap;html=1;fillColor=#64b5f6;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=eventstorming-command;spatial.es.group=Relance;" vertex="1" parent="1">
+          <mxGeometry x="40" y="860" width="160" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="reminded" value="Client relancé" style="rounded=1;absoluteArcSize=1;arcSize=16;whiteSpace=wrap;html=1;fillColor=#ffb74d;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=eventstorming-event;spatial.es.group=Relance;" vertex="1" parent="1">
+          <mxGeometry x="200" y="860" width="160" height="160" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>

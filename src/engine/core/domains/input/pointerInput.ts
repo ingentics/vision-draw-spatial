@@ -130,6 +130,12 @@ export class PointerInput {
         this.core.selection.selectItems([picked]);
         this.core.labelEditor.editPartLabel(picked.element.id, textPart);
       } else this.core.labelEditor.editLabel(picked.element.id);
+    } else {
+      // Texte d'un mode dessiné hors de toute forme (sujet 514, ex. titre d'un groupe de post-it).
+      const page = this.core.pages.getCurrentPage();
+      const outside = page && this.core.shapeParts.outsideTextAt(page, screen);
+      if (outside && this.core.shapeParts.text(outside.shapeId, outside.part))
+        this.core.labelEditor.editPartLabel(outside.shapeId, outside.part);
     }
   }
 

@@ -1,8 +1,10 @@
 import type { Object3D } from 'three';
-import { createLabel } from '../../../../../core/plugins';
+import { createLabel, markPart, styleNumber } from '../../../../../core/plugins';
 import type { RenderContext, ShapeDefinition, ShapeModel } from '../../../../../core/plugins';
 import { STICKY_TYPES } from '../../kinds';
 import type { StickyType } from '../../kinds';
+import { GROUP_PART, TITLE_LEFT, TITLE_TEXT } from '../../groups/groupLabels';
+import { GROUP_TITLE } from '../../groups/stickyGroups';
 import { pivotMarkOf } from '../../pivot/pivot';
 import { PIVOT_MARK, pivotMark, pivotMarkRect } from '../../pivot/pivotMark';
 import { STICKY, labelFontSize, labelZone, showsLabel, stickyTextZone } from './stickyLayout';
@@ -39,6 +41,33 @@ function labelStyle(shape: ShapeModel, size: number): Record<string, string> {
   };
 }
 
+/**
+ * Titre du groupe tenu par ce post-it (sujet 514), d'après l'habillage du mode : gras, à gauche, sur une ligne, au-dessus
+ * du groupe ; masqué pendant son édition (partie `group`), pas pendant celle du texte du post-it.
+ */
+function groupTitle(shape: ShapeModel, ctx: RenderContext): Object3D | null {
+  const text = shape.style[TITLE_TEXT];
+  if (!text) return null;
+  const { fontSize, lineHeight, gap, color } = GROUP_TITLE;
+  const height = fontSize * lineHeight;
+  const left = styleNumber(shape.style, TITLE_LEFT, shape.bounds.x);
+  const zone = { x: left, y: shape.bounds.y - gap - height, width: shape.bounds.x + shape.bounds.width - left, height };
+  const style = {
+    fontSize: String(fontSize),
+    fontStyle: '1',
+    fontColor: color,
+    align: 'left',
+    verticalAlign: 'middle',
+    whiteSpace: 'nowrap',
+    fitText: '0',
+    spacing: '0',
+    html: '0',
+  };
+  const label = createLabel({ ...shape, style }, ctx, text, zone, { fixed: true });
+  if (label) markPart(label, GROUP_PART);
+  return label;
+}
+
 function createSticky(type: StickyType, shape: ShapeModel, ctx: RenderContext): Object3D {
   const group = stickyPaper(shape, type.fill);
   group.name = `shape:${type.kind}`;
@@ -58,6 +87,8 @@ function createSticky(type: StickyType, shape: ShapeModel, ctx: RenderContext): 
   const text = createLabel(shape, ctx, shape.label, stickyTextZone(shape));
   if (text) group.add(text);
   if (mark) group.add(pivotMark(mark, shape.bounds));
+  const title = groupTitle(shape, ctx);
+  if (title) group.add(title);
   return group;
 }
 

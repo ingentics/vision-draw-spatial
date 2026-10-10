@@ -45,3 +45,38 @@ describe('double-clic sur le texte d’une forme qui n’est pas une partie (suj
     expect(editPartLabel).toHaveBeenCalledWith('s', '1');
   });
 });
+
+describe('double-clic hors de toute forme sur un texte du mode (sujet 514)', () => {
+  /** Double-clic dans le vide ; `outside` : partie que le mode y désigne. */
+  function emptyDoubleClick(outside: { shapeId: string; part: string } | undefined, text = true) {
+    const selectItems = vi.fn();
+    const editPartLabel = vi.fn();
+    const editLabel = vi.fn();
+    const core = {
+      inputCaptures: { active: false },
+      edgePoints: { doubleClickPointHandle: () => false },
+      picking: { pickAt: () => undefined },
+      graph: { isGraphView: () => false },
+      pages: { getCurrentPage: () => ({ id: 'p', shapes: [] }) },
+      shapeParts: {
+        outsideTextAt: () => outside,
+        text: () => (text ? { text: '', zone: { x: 0, y: 0, width: 1, height: 1 }, fontSize: 7 } : undefined),
+      },
+      selection: { selectItems },
+      labelEditor: { editPartLabel, editLabel },
+    } as unknown as EngineCore;
+    new PointerInput(core).handleDoubleClick({ x: 0, y: 0 }, false);
+    return { selectItems, editPartLabel, editLabel };
+  }
+
+  it('texte désigné par le mode : édité sur place, sans rien sélectionner', () => {
+    const { selectItems, editPartLabel } = emptyDoubleClick({ shapeId: 's', part: 'group' });
+    expect(editPartLabel).toHaveBeenCalledWith('s', 'group');
+    expect(selectItems).not.toHaveBeenCalled();
+  });
+
+  it('rien sous le pointeur, ou partie sans texte : rien', () => {
+    expect(emptyDoubleClick(undefined).editPartLabel).not.toHaveBeenCalled();
+    expect(emptyDoubleClick({ shapeId: 's', part: 'group' }, false).editPartLabel).not.toHaveBeenCalled();
+  });
+});

@@ -1,5 +1,6 @@
 import type { PageModeDefinition } from '../../../core/plugins';
 import { exportedLabel, importedLabel } from './file/fileLabel';
+import { adoptGroupLabels, GROUP_PARTS, GROUP_PROPERTY, groupTitleStyle } from './groups/groupLabels';
 import { EVENT_STORMING_KEYS } from './keys';
 import { STICKY_TYPES } from './kinds';
 import { LABELS_PROPERTY, syncLabels } from './labels/pageLabels';
@@ -30,7 +31,8 @@ export const definition: PageModeDefinition = {
     viewModes: ['top'],
     properties: [LABELS_PROPERTY],
     palette: {
-      shapes: [...STICKY_TYPES.map((type) => type.kind), 'text', 'title'],
+      // Pas de forme Titre : les groupes de post-it ont leur titre (sujet 514).
+      shapes: [...STICKY_TYPES.map((type) => type.kind), 'text'],
       categories: [{ id: 'eventstorming', name: 'Event storming', order: 5 }],
     },
   },
@@ -40,13 +42,19 @@ export const definition: PageModeDefinition = {
   },
   // Nom du type en tête de la valeur dans le fichier, lisible dans draw.io (sujet 478).
   file: { exportedLabel, importedLabel },
+  // Titre de chaque groupe de post-it collés, dessiné par son premier post-it (sujet 514).
+  dressing: (page) => ({ shapeStyle: groupTitleStyle(page) }),
+  // Le titre d'un groupe s'édite au double-clic, comme une partie de son premier post-it (sujet 514).
+  parts: GROUP_PARTS,
   gestures: {
-    // « Pivot » d'un Domain Event (sujet 515).
-    properties: [PIVOT_PROPERTY],
-    // Post-it posé : il prend le réglage « Labels » de la page, et passe derrière le post-it collé sous lui (sujet 484).
+    // « Groupe » d'un post-it collé (sujet 514), « Pivot » d'un Domain Event (sujet 515).
+    properties: [GROUP_PROPERTY, PIVOT_PROPERTY],
+    // Post-it posé : il prend le réglage « Labels » de la page, passe derrière le post-it collé sous lui (sujet 484) et
+    // prend le libellé du groupe qu'il rejoint (sujet 514).
     placed: (edit, shapeIds) => {
       syncLabels(edit, shapeIds);
       stackPlaced(edit, shapeIds);
+      adoptGroupLabels(edit, shapeIds);
     },
     // Cases où poser le post-it glissé, selon la grammaire, et échange avec un autre (sujet 481).
     dragPlaces,

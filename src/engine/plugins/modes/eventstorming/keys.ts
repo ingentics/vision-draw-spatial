@@ -9,3 +9,6 @@ export const LABELS = 'labels';
 
 /** Clé du réglage « Pivot » d'un Domain Event (sujet 515) : `spatial.es.pivot=0` pour Non, absent pour Oui. */
 export const PIVOT = 'pivot';
+
+/** Clé du libellé du groupe de post-it collés (sujet 514), sur chaque post-it du groupe : `spatial.es.group`. */
+export const GROUP = 'group';

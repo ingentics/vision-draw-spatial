@@ -176,6 +176,15 @@ export class ShapeParts {
   }
 
   /**
+   * Partie au texte dessiné hors de toute forme (`ModeParts.outsideTextAt`, sujet 514) sous le point écran, au sol ;
+   * undefined s'il n'y en a pas.
+   */
+  outsideTextAt(page: PageModel, screen: Point): { shapeId: string; part: string } | undefined {
+    if (!this.has(page, 'outsideTextAt')) return undefined;
+    return this.call(page, 'outsideTextAt', page, this.core.projection.groundPointAtHeight(screen, 0));
+  }
+
+  /**
    * Partie dont le texte s'édite à la place de celui de la forme (`ModeParts.labelPart`, sujet 414) ; undefined : le
    * texte de la forme.
    */

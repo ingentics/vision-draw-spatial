@@ -284,6 +284,12 @@ export interface ModeParts {
    */
   textAt?(page: PageModel, shape: ShapeModel, point: Point): string | undefined;
   /**
+   * Partie dont le texte, dessiné hors de toute forme, s'édite au double-clic sous `point` (pixels de page) quand aucun
+   * élément n'y est (sujet 514, ex. titre d'un groupe de post-it, tenu par un de ses post-it) ; undefined = aucune. Ni
+   * survol, ni sélection, ni glisser ; son texte passe par `text` et `setText` comme celui d'une partie.
+   */
+  outsideTextAt?(page: PageModel, point: Point): { shapeId: string; part: string } | undefined;
+  /**
    * Partie dont le texte s'édite à la place de celui de la forme (sujet 414 : double-clic, Entrée ; ex. nom en base
    * d'une table RDD en couche physique) ; undefined = le texte de la forme. `current` : le courant du mode.
    */

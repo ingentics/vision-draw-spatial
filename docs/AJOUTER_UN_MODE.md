@@ -274,6 +274,9 @@ couche physique d'une table RDD, lue par son rendu). Un habillage qui dépend du
   touches du mode (`keys`) reçoivent aussi la partie sélectionnée et peuvent renvoyer la partie à sélectionner.
   `textAt` (sujet 269) : partie au texte modifiable par double-clic sans être sélectionnable (ni survol, ni sélection,
   ni glisser ; ex. corps d'un document RDD) ; son texte passe par `text` / `setText` / `textPreview` comme une partie.
+  `outsideTextAt(page, point)` (sujet 514) : de même pour un texte dessiné hors de toute forme (ex. titre d'un groupe
+  de post-it Event storming), tenu par une partie d'une forme ; consulté au double-clic quand aucun élément n'est sous
+  le pointeur.
   `labelPart(page, shape, current)` (sujet 414) : partie dont le texte s'édite à la place de celui de la forme
   (double-clic, Entrée ; ex. nom en base d'une table RDD en couche physique). `text`, `setText` et `textPreview`
   reçoivent aussi le courant du mode en dernier argument.
@@ -424,7 +427,7 @@ Règles communes (sujet 288) :
 | `gestures.handles.list` | forme sélectionnée seule et modifiable : dessin des poignées et pointeur | page du modèle | aucune | pas de poignée |
 | `gestures.handles.clicked` | clic sur une poignée du mode ; renvoie la partie à sélectionner | opération | une étape au titre de la poignée | rien d'écrit |
 | **Parties** | | | | |
-| `parts` | `at` : pointeur et clic ; `textAt` : double-clic hors d'une partie ; `labelPart` : édition du texte de la forme ; `bounds` : mise en valeur, validité de la partie sélectionnée ; `edgePart` : partie liée à la flèche survolée ou sélectionnée ; `text`, `textPreview` : édition sur place ; `comment` : encart et touche C ; `dropAt`, `preview` : glisser d'une partie ; `setText`, `setComment`, `remove`, `move` : opérations | page du modèle (opérations : page avant) | `setText` « Texte », `setComment` « Commentaire », `remove` « Suppression », `move` « Ordre » | lecture : partie absente (la forme elle-même, pas de texte, pas de place) ; opération : rien d'écrit |
+| `parts` | `at` : pointeur et clic ; `textAt` : double-clic hors d'une partie ; `outsideTextAt` : double-clic hors de toute forme ; `labelPart` : édition du texte de la forme ; `bounds` : mise en valeur, validité de la partie sélectionnée ; `edgePart` : partie liée à la flèche survolée ou sélectionnée ; `text`, `textPreview` : édition sur place ; `comment` : encart et touche C ; `dropAt`, `preview` : glisser d'une partie ; `setText`, `setComment`, `remove`, `move` : opérations | page du modèle (opérations : page avant) | `setText` « Texte », `setComment` « Commentaire », `remove` « Suppression », `move` « Ordre » | lecture : partie absente (la forme elle-même, pas de texte, pas de place) ; opération : rien d'écrit |
 | **Courant** | | | | |
 | `current` | `initial` / `valid` : à chaque lecture du courant ; `pick` : clic ou sélection d'un seul élément ; `color`, `label`, `values` : barre du courant ; `focus` : avant chaque image ; `look` : barre et estompage ; `rename` : opération depuis la barre | page du modèle (`rename` : opération) | `rename` : une étape « Renommage » ; le courant lui-même n'est jamais écrit | pas de courant, pas de barre, rien d'estompé, apparence par défaut |
 | **Réglages déclarés** | | | | |

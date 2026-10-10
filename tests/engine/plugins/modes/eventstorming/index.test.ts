@@ -29,9 +29,9 @@ describe('mode Event storming (sujet 475)', () => {
     expect(storming).toMatchObject({ id: 'eventstorming', namespace: 'es', name: 'Event storming' });
   });
 
-  it('page en 2D seulement ; palette : les 8 post-it, Texte et Titre', () => {
+  it('page en 2D seulement ; palette : les 8 post-it et Texte, sans Titre (sujet 514)', () => {
     expect(storming.page!.viewModes).toEqual(['top']);
-    expect(storming.page!.palette!.shapes).toEqual([...KINDS, 'text', 'title']);
+    expect(storming.page!.palette!.shapes).toEqual([...KINDS, 'text']);
     expect(storming.page!.palette!.categories).toEqual([{ id: 'eventstorming', name: 'Event storming', order: 5 }]);
   });
 
