@@ -1,9 +1,9 @@
 import { Object3D } from 'three';
 import { describe, expect, it } from 'vitest';
-import type { SimulationScene } from '../../../../../../src/engine/core/modes/simulation';
+import type { OverlayScene } from '../../../../../../src/engine/core/modes/pageTakeover';
 import type { RenderContext } from '../../../../../../src/engine/core/render/types';
 import { edgeBadgeDisc } from '../../../../../../src/engine/core/render/decorations';
-import { simulationFrame } from '../../../../../../src/engine/plugins/modes/states/simulation/simulationLayer';
+import { simulationOverlay } from '../../../../../../src/engine/plugins/modes/states/simulation/simulationLayer';
 import { PROPOSED_BADGE } from '../../../../../../src/engine/plugins/modes/states/simulation/simulationMarks';
 import { StateSimulation } from '../../../../../../src/engine/plugins/modes/states/simulation/stateSimulation';
 import { stepLook } from '../../../../../../src/engine/plugins/modes/states/simulation/simulationView';
@@ -11,7 +11,7 @@ import { MEASURE } from '../../../../../helpers';
 import { setup } from '../helpers';
 
 /** Page dessinée réduite : tracés droits entre les centres, contours des emprises. */
-function scene(sim: StateSimulation, reducedMotion = false): SimulationScene {
+function scene(sim: StateSimulation, reducedMotion = false): OverlayScene {
   const { page } = sim;
   const centerOf = (id: string | undefined) => {
     const b = page.shapes.find((s) => s.id === id)!.bounds;
@@ -40,18 +40,16 @@ function scene(sim: StateSimulation, reducedMotion = false): SimulationScene {
 }
 
 describe('mode Machine à états : couche de la simulation (sujet 462)', () => {
-  it('garde net l’état courant, les transitions proposées et empruntées ; la caméra suit l’état courant', () => {
+  it('garde net l’état courant, les transitions proposées et empruntées', () => {
     const sim = new StateSimulation(setup().page(), 'init1');
     sim.choose(1);
-    const frame = simulationFrame(sim);
-    expect(frame.kept).toEqual(['state1', 't2', 't4', 't1']);
-    expect(frame.follow).toBe('state1');
+    expect(simulationOverlay(sim).veil?.kept).toEqual(['state1', 't2', 't4', 't1']);
   });
 
   it('un clic sur la pastille d’une transition proposée la vise', () => {
     const sim = new StateSimulation(setup().page(), 'state1');
     const s = scene(sim);
-    const layer = simulationFrame(sim).layer!(s)!;
+    const layer = simulationOverlay(sim).layer!(s)!;
     const t4 = sim.page.edges.find((e) => e.id === 't4')!;
     const disc = edgeBadgeDisc(t4, s.route('t4')!, PROPOSED_BADGE);
     expect(layer.hit!(disc.center)).toBe('t4');
@@ -62,7 +60,7 @@ describe('mode Machine à états : couche de la simulation (sujet 462)', () => {
     const sim = new StateSimulation(setup().page(), 'state1');
     const before = stepLook(sim);
     sim.cross('t2');
-    const layer = simulationFrame(sim, { before, edgeId: 't2' }).layer!(scene(sim))!;
+    const layer = simulationOverlay(sim, { before, edgeId: 't2' }).layer!(scene(sim))!;
     const [after, previous] = layer.object.children;
     expect(previous!.visible).toBe(true);
     expect(after!.visible).toBe(false);
@@ -71,7 +69,7 @@ describe('mode Machine à états : couche de la simulation (sujet 462)', () => {
     expect(previous!.visible).toBe(false);
     expect(after!.visible).toBe(true);
     expect(layer.object.children).toHaveLength(2);
-    const still = simulationFrame(sim, { before, edgeId: 't2' }).layer!(scene(sim, true))!;
+    const still = simulationOverlay(sim, { before, edgeId: 't2' }).layer!(scene(sim, true))!;
     expect(still.animate).toBeUndefined();
     expect(still.object.children).toHaveLength(1);
   });

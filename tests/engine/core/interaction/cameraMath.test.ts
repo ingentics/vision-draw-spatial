@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   defaultView,
   fitBounds,
+  needsRecentring,
   nextOverviewStep,
   sameView,
 } from '../../../../src/engine/core/interaction/cameraFraming';
@@ -550,5 +551,20 @@ describe('cameraLimitsOf', () => {
       maxTilt3d: Math.PI / 3,
       fov: Math.PI / 2,
     });
+  });
+});
+
+describe('forme gardée dans la vue (sujet 467)', () => {
+  const viewport = { width: 800, height: 600 };
+
+  it('une forme qui tient dans la vue y reste entière, loin des bords', () => {
+    expect(needsRecentring({ x: 100, y: 100, width: 100, height: 60 }, viewport, 48)).toBe(false);
+    expect(needsRecentring({ x: 100, y: 540, width: 100, height: 60 }, viewport, 48)).toBe(true);
+    expect(needsRecentring({ x: -20, y: 100, width: 100, height: 60 }, viewport, 48)).toBe(true);
+  });
+
+  it('une forme plus grande que la vue : recentrée seulement si elle n’y est plus du tout', () => {
+    expect(needsRecentring({ x: -100, y: -100, width: 1000, height: 800 }, viewport, 48)).toBe(false);
+    expect(needsRecentring({ x: 900, y: 0, width: 1000, height: 800 }, viewport, 48)).toBe(true);
   });
 });

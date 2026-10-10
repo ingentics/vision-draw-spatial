@@ -55,7 +55,7 @@ export class Pages {
   }
 
   addPage(name?: string): string | undefined {
-    if (!this.core.file.xmlTree || !this.core.file.document || !this.canEditPages() || !this.core.canInteract())
+    if (!this.core.file.xmlTree || !this.core.file.document || !this.canEditPages() || !this.core.targets.canEditNow())
       return undefined;
     const names = new Set(this.core.file.document.pages.map((p) => p.name));
     const asked = name?.trim();
@@ -71,7 +71,15 @@ export class Pages {
   renamePage(pageId: string, name: string): void {
     const trimmed = name.trim();
     const page = this.pageById(pageId);
-    if (!this.core.file.xmlTree || !page || !trimmed || trimmed === page.name || !this.canEditPages()) return;
+    if (
+      !this.core.file.xmlTree ||
+      !page ||
+      !trimmed ||
+      trimmed === page.name ||
+      !this.canEditPages() ||
+      !this.core.targets.canEditNow()
+    )
+      return;
     this.core.edits.recordEdit('Page renommée');
     renamePage(this.core.file.xmlTree, pageId, trimmed);
     this.core.file.documentChanged([]);
@@ -84,7 +92,7 @@ export class Pages {
       !document ||
       !this.canEditPages() ||
       document.pages.length <= 1 ||
-      !this.core.canInteract()
+      !this.core.targets.canEditNow()
     )
       return;
     const index = document.pages.findIndex((p) => p.id === pageId);

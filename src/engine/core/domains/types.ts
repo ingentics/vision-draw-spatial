@@ -12,7 +12,6 @@ import type { FontSet } from '../render/troikaText';
 import type { Settings, SettingsPatch } from '../settings';
 import type { ShapeRegistry } from '../shapes/registry';
 import type { ModeProperty } from '../modes/modeProperty';
-import type { SimulationSession } from '../modes/simulation';
 
 export interface Selection {
   pageId: string;
@@ -82,8 +81,8 @@ export type EngineEvents = {
   selectionChange: [selection: Selection | undefined];
   /** « Courant » du mode d'une page changé (ex. flux courant du mode Séquences). */
   modeCurrentChange: [pageId: string, current: string | undefined];
-  /** Simulation d'un mode ouverte, passée à un autre pas, ou fermée (undefined) (sujet 461). */
-  simulationChange: [session: SimulationSession | undefined];
+  /** Verrou d'édition pris par un mode (son détenteur) ou rendu (undefined) (sujet 467). */
+  editLockChange: [owner: object | undefined];
   /** Transition vers une page par un lien : début et fin (entrées ignorées entre les deux). */
   transitionStart: [fromPageId: string, toPageId: string];
   transitionEnd: [pageId: string];

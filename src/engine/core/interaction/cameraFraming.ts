@@ -162,3 +162,17 @@ export function nextOverviewStep(
   const step = OVERVIEW_CYCLE[index]!;
   return { step, view: views[step] };
 }
+
+/**
+ * Une forme (emprise à l'écran `rect`) est-elle à recentrer pour rester dans la vue (sujet 467, `keepInView`) ? Une
+ * forme qui tient dans la vue doit y être entière, à `margin` px des bords (barres posées sur la zone de dessin) ; une
+ * forme plus grande seulement en partie visible.
+ */
+export function needsRecentring(rect: Rect, viewport: Viewport, margin: number): boolean {
+  const { width, height } = viewport;
+  const right = rect.x + rect.width;
+  const bottom = rect.y + rect.height;
+  if (rect.width <= width - 2 * margin && rect.height <= height - 2 * margin)
+    return rect.x < margin || rect.y < margin || right > width - margin || bottom > height - margin;
+  return right <= 0 || bottom <= 0 || rect.x >= width || rect.y >= height;
+}

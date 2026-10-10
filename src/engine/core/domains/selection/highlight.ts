@@ -4,7 +4,8 @@ import { pointHandles } from '../../edit/edgePointEdits';
 import type { EdgeModel, Point } from '../../model/types';
 import { headSelectionRing, partSelection, selectionOutline } from '../../render/decorations';
 import { edgeEndHandles, edgePointHandles, modeHandleMeshes, selectionHandles } from '../../render/handleMeshes';
-import { createVeil, createVeilHole, createVeilHoleArea, liftAboveVeil } from '../../render/veil';
+import { createVeilHole, createVeilHoleArea, veilPage } from '../../render/veil';
+import type { PageVeil } from '../../render/veil';
 import { blockArrowOutline, isBlockArrow } from '../../render/edges/blockArrow';
 import { disposeObject } from '../../render/meshes';
 import type { EngineCore } from '../EngineCore';
@@ -18,7 +19,7 @@ import type { SelectionStyle } from '../../settings/types';
  */
 export class SelectionHighlight {
   /** Voile de mise en valeur de la sélection, et de quoi l'annuler. */
-  private veil: { key: string; object: Object3D; restore: () => void } | undefined;
+  private veil: { key: string; veil: PageVeil } | undefined;
   /** Trou du voile autour d'une flèche sélectionnée (dépend du zoom : largeur fixe à l'écran). */
   private veilHole: { key: string; object: Object3D } | undefined;
   /** Contours de la sélection (style « contour »), un par élément sélectionné. */
@@ -174,15 +175,9 @@ export class SelectionHighlight {
     this.clearVeil();
     const page = this.core.pages.getCurrentPage();
     if (!veilKey || !root || !page) return veilKey;
-    const object = createVeil(page.bounds, veilOpacity, veilColor);
-    root.add(object);
     // Une forme sélectionnée est mise en valeur avec son contenu.
     const highlighted = this.core.selection.withContent(page, items);
-    const lifted = root.children.filter((c) => {
-      const elementId = c.userData.elementId as string | undefined;
-      return elementId !== undefined && highlighted.has(elementId);
-    });
-    this.veil = { key: veilKey, object, restore: liftAboveVeil(lifted) };
+    this.veil = { key: veilKey, veil: veilPage(root, page.bounds, highlighted, veilOpacity, veilColor) };
     return veilKey;
   }
 
@@ -326,9 +321,7 @@ export class SelectionHighlight {
     if (this.veilHole) disposeObject(this.veilHole.object);
     this.veilHole = undefined;
     if (!this.veil) return;
-    this.veil.restore();
-    this.veil.object.removeFromParent();
-    disposeObject(this.veil.object);
+    this.veil.veil.remove();
     this.veil = undefined;
   }
 }

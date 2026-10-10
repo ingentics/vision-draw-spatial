@@ -79,7 +79,7 @@ export function edgeBadge(
 
 /**
  * Disque de la pastille d'une flèche, en pixels de page (vue de dessus) : pour savoir si un clic la touche (pastilles
- * d'une simulation, sujet 461).
+ * d'une couche de mode, sujets 461, 467).
  */
 export function edgeBadgeDisc(
   edge: ReadonlyEdgeModel,

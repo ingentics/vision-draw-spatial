@@ -103,6 +103,18 @@ export class EditHistory {
     this.core.file.restore(xml);
   }
 
+  /**
+   * Verrou d'édition pris ou rendu par un mode (sujet 467) : sans libellé pendant le verrou, l'appli grise annuler et
+   * rétablir (la pile ne change pas tant qu'il est tenu).
+   */
+  editLockChanged(locked: boolean): void {
+    this.core.events.emit(
+      'undoChange',
+      locked ? undefined : this.undoStack.undoLabel(),
+      locked ? undefined : this.undoStack.redoLabel(),
+    );
+  }
+
   /** État « modifié » et libellés annuler / rétablir, d'après la pile d'annulation. */
   syncModified(): void {
     this.setModified(this.undoStack.isModified());

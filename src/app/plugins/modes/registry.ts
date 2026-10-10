@@ -1,25 +1,16 @@
 import type { ComponentType } from 'react';
-import type {
-  ExporterSettings,
-  ModeEdit,
-  PageModel,
-  PluginValues,
-  SimulationFrame,
-  SimulationHandlers,
-} from '../../../engine';
+import type { ExporterSettings, ModeEdit, PageModel, PageTakeover, PluginValues } from '../../../engine';
 
 /**
- * Simulation du moteur sur la page affichée (sujet 461), remise aux parties appli des modes : la sélection au moment
- * du départ, l'objet de la simulation ouverte et de quoi la piloter.
+ * Prise en main de la page affichée par un mode (sujet 467), remise aux parties appli des modes : les briques du
+ * moteur (verrou d'édition, capture des entrées, couche, caméra), la sélection, et le détenteur du verrou.
  */
-export interface ModeSimulationControls {
-  /** Éléments sélectionnés sur la page (départ d'une simulation). */
+export interface ModePageControls {
+  takeover: PageTakeover;
+  /** Éléments sélectionnés sur la page (ex. départ d'un parcours pas à pas). */
   selection: readonly string[];
-  /** Objet de la simulation ouverte (celui passé à `open`) ; undefined sans simulation. */
-  owner: object | undefined;
-  open(owner: object, handlers: SimulationHandlers): boolean;
-  show(frame: SimulationFrame): void;
-  close(): void;
+  /** Détenteur du verrou d'édition (celui passé à `lockEditing`) ; undefined sans verrou. */
+  lockOwner: object | undefined;
 }
 
 /** Sections React d'un mode, reçues par le panneau contextuel. */
@@ -33,25 +24,26 @@ export interface ModePanelProps {
   values: PluginValues;
   /** Moteurs de rendu des exports (paramètres de l'appli, Exporteurs ; ex. PlantUML, sujet 439). */
   exporters: ExporterSettings;
-  /** Simulation sur la page (absente hors de la page affichée). */
-  simulation?: ModeSimulationControls;
+  /** Prise en main de la page (absente hors de la page affichée). */
+  controls?: ModePageControls;
 }
 
 /** Ce que reçoit la couche d'un mode posée sur la zone de dessin. */
 export interface ModeCanvasProps {
   page: PageModel;
-  simulation: ModeSimulationControls;
+  controls: ModePageControls;
 }
 
 /**
  * Partie appli d'un mode de page (sujet 69), en miroir de `src/engine/plugins/modes/<id>/` : des sections du panneau
- * (et une couche sur la zone de dessin), qui affichent les données du mode et appellent ses opérations, sans règle métier. Facultative : un mode
- * aux réglages simples les déclare dans sa définition, affichés par des champs génériques (`ModeFields`).
+ * (et une couche sur la zone de dessin), qui affichent les données du mode et appellent ses opérations, sans règle
+ * métier. Facultative : un mode aux réglages simples les déclare dans sa définition, affichés par des champs génériques
+ * (`ModeFields`).
  */
 export interface ModePanel {
   /** Section du panneau de la page (rien de sélectionné). */
   PageSection?: ComponentType<ModePanelProps>;
-  /** Couche posée sur la zone de dessin d'une page du mode (ex. barre de la simulation, sujet 462). */
+  /** Couche posée sur la zone de dessin d'une page du mode (ex. barre du parcours pas à pas des états, sujet 462). */
   CanvasOverlay?: ComponentType<ModeCanvasProps>;
 }
 

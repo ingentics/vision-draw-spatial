@@ -21,6 +21,7 @@ const CONTRACTS = [
   'src/engine/core/modes/modeEdit.ts',
   'src/engine/core/modes/modeProperty.ts',
   'src/engine/core/modes/modeText.ts',
+  'src/engine/core/modes/pageTakeover.ts',
   'src/engine/core/effects/types.ts',
   'src/engine/core/fields/fieldSchema.ts',
   'src/engine/core/settings/pluginSettings.ts',
@@ -55,6 +56,7 @@ const NOT_API: Record<string, string> = {
   FACADE_TAGS_SETTING: 'réglage déclaré par une base de formes (`shapes/generic/building/`)',
   stencilOutline: 'brique de la base `shapes/generic/stencil/`',
   stencilPathXml: 'brique de la base `shapes/generic/stencil/`',
+  StatesSimulator: 'simulation de la Machine à états, citée en exemple de prise en main de la page',
   // Appli.
   ShapeTemplate: 'modèle de palette vu par l’appli',
   onEdit: 'prop des sections React d’un mode',

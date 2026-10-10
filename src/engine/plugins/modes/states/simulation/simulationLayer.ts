@@ -1,6 +1,6 @@
 import { Group } from 'three';
 import type { Mesh, Object3D } from 'three';
-import type { EdgeModel, Point, SimulationFrame, SimulationLayer, SimulationScene } from '../../../../core/plugins';
+import type { EdgeModel, OverlayLayer, OverlayScene, PageOverlay, Point } from '../../../../core/plugins';
 import { disposeObject, distance, edgeBadgeDisc, edgeOf, labelPoint, shapeOf } from '../../../../core/plugins';
 import {
   PROPOSED_BADGE,
@@ -20,9 +20,9 @@ import { stepLook } from './simulationView';
 import type { StepLook } from './simulationView';
 
 /**
- * Pas d'une simulation de machine à états pour le moteur (sujets 461, 462) : état courant gardé net et suivi par la
- * caméra, transitions proposées et empruntées gardées au-dessus du voile, et la couche qui les met en avant. Après un
- * franchissement, un point parcourt la transition (lancé vite, il ralentit), puis la couche du pas suivant s'affiche.
+ * Couche d'un pas de la simulation d'une machine à états (sujets 462, 467) : état courant, transitions proposées et
+ * empruntées gardés au-dessus du voile, et les marques qui les mettent en avant. Après un franchissement, un point
+ * parcourt la transition (lancé vite, il ralentit), puis les marques du pas suivant s'affichent.
  */
 
 /** Parcours de la transition franchie, en ms. */
@@ -36,11 +36,11 @@ export interface Crossing {
   edgeId: string;
 }
 
-export function simulationFrame(sim: StateSimulation, crossing?: Crossing): SimulationFrame {
+/** Couche du pas courant, posée par le moteur (`PageTakeover.setOverlay`). */
+export function simulationOverlay(sim: StateSimulation, crossing?: Crossing): PageOverlay {
   const look = stepLook(sim);
   return {
-    kept: [look.current, ...look.proposed.map(({ id }) => id), ...look.taken],
-    follow: look.current,
+    veil: { kept: [look.current, ...look.proposed.map(({ id }) => id), ...look.taken] },
     layer: (scene) => simulationLayer(scene, look, crossing),
   };
 }
@@ -61,7 +61,7 @@ interface DrawnStep {
   badges: Array<{ edge: EdgeModel; route: Point[] }>;
 }
 
-function simulationLayer(scene: SimulationScene, look: StepLook, crossing?: Crossing): SimulationLayer {
+function simulationLayer(scene: OverlayScene, look: StepLook, crossing?: Crossing): OverlayLayer {
   const object = new Group();
   object.name = 'states-simulation';
   const after = drawStep(scene, look);
@@ -124,7 +124,7 @@ function animateStep(step: DrawnStep, elapsed: number): void {
  * Marques d'un pas, du dessous au dessus : teintes des états visités, cadres des ensembles, transitions empruntées puis
  * proposées, état courant, et enfin toutes les pastilles (compteurs, numéros), que rien ne recouvre.
  */
-function drawStep(scene: SimulationScene, look: StepLook): DrawnStep {
+function drawStep(scene: OverlayScene, look: StepLook): DrawnStep {
   const { page, ctx } = scene;
   const step: DrawnStep = { group: new Group(), dashes: [], badges: [] };
   let rank = 0;

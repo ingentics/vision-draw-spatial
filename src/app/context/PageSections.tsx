@@ -91,7 +91,7 @@ export function PageSections({ page, onRenamePage: onRename, ...props }: Context
         modeSettings={props.modeSettings}
         exporters={props.exporters}
         styles={props.styles}
-        simulation={props.simulation}
+        modeControls={props.modeControls}
       />
       <PageEffectsSection page={page} onPageEffect={props.onPageEffect} />
     </>

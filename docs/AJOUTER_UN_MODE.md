@@ -271,17 +271,25 @@ couche physique d'une table RDD, lue par son rendu). Un habillage qui dépend du
   flèches du clavier) ou un redimensionnement, à l'écart `gap` (réglage du mode, ex. `obstacleGap` de RDD) ; `above` : ce que la forme dessine
   au-dessus de ses bornes. Le moteur borne le geste (un axe puis l'autre, on glisse le long d'un obstacle) et montre la
   limite atteinte en pointillé rouge (`core/edit/obstacles.ts`).
-- **Simulation** (sujet 461) : un mode peut simuler sa page pas à pas, depuis sa partie appli (prop `simulation` des
-  sections du panneau et de la couche posée sur la zone de dessin, `src/app/plugins/modes/registry.ts`). Le moteur
-  n'en garde que le commun : l'ouverture vide la sélection et bloque l'édition (gestes, palette, texte, touches
-  d'édition, ⌘Z / ⇧⌘Z), la caméra reste libre, rien n'est écrit ni annulable, et cela marche aussi en lecture seule.
-  Chaque pas est un `SimulationFrame` (`core/modes/simulation.ts`) : opacité du voile, éléments gardés au-dessus,
-  forme suivie par la caméra, et la couche du mode (`SimulationLayer`), que le mode dessine lui-même avec les briques
-  de l'API des plugins à partir de la page dessinée (`SimulationScene` : tracés des flèches, contours des formes,
-  textes). Le moteur la dessine par-dessus tout, l'anime à chaque image (`animate`, qui reçoit le temps écoulé : un
-  plugin n'a pas d'horloge) et lui demande l'élément visé par un clic (`hit`). Les clics et les touches vont au mode ;
-  Échap, un changement de page ou de fichier ferment la simulation. Exemple : la Machine à états (sujets 460 à 463,
-  `plugins/modes/states/simulation/`, `src/app/plugins/modes/states/`).
+- **Prendre la main sur la page** (sujet 467) : pour un état de session qui lui est propre (ex. simulation pas à pas
+  de la Machine à états), un mode reçoit dans sa partie appli les briques du moteur (`PageTakeover`,
+  `core/modes/pageTakeover.ts`, prop `controls` des sections du panneau et de la couche posée sur la zone de dessin,
+  `src/app/plugins/modes/registry.ts`). Le moteur ne sait rien de ce que le mode en fait :
+  - `lockEditing(owner, released)` verrouille l'édition (`EditLock`) : sélection vidée, rien ne se modifie (formes,
+    pages, ⌘Z / ⇧⌘Z), la caméra reste libre, cela marche aussi en lecture seule. Le moteur rend le verrou au
+    changement de page ou de fichier et prévient `released` ; l'appli reconnaît le détenteur par `controls.lockOwner`.
+  - `EditLock.captureInput` (`InputCapture`) : clics (l'élément visé), survol (`clickable` : main) et touches vont au
+    détenteur ; une touche dont `key` rend faux revient à la vue, Échap comprise.
+  - `setOverlay(owner, overlay)` (`PageOverlay`) : voile et éléments gardés au-dessus, et la couche du mode
+    (`OverlayLayer`), dessinée par le mode avec les briques de l'API des plugins à partir de la page dessinée
+    (`OverlayScene` : tracés des flèches, contours des formes, textes). Le moteur la dessine par-dessus tout, la refait
+    quand la scène est reconstruite, l'anime avant chaque image tant que `animate` rend vrai (il reçoit le temps écoulé :
+    un plugin n'a pas d'horloge ; une couche toujours animée redessine la page à chaque image) et lui demande l'élément
+    visé par un clic (`hit`). `clearOverlay(owner)` la retire.
+  - `keepInView(shapeId)` : la caméra glisse vers une forme sortie de la vue.
+
+  Exemple : `StatesSimulator` (`plugins/modes/states/simulation/statesSimulator.ts`) assemble ces briques ; la partie
+  appli (`src/app/plugins/modes/states/`) le suit par `subscribe`.
 
 ## 6. Formes, palette et modes d'affichage
 

@@ -73,3 +73,78 @@
   - La simulation se comporte dans l'appli comme avant (sauf les écarts ci-dessus) sur `states.drawio`.
   - Annuler est grisé pendant la simulation.
   - `make check` est vert.
+- Fait :
+  - Contrat : `core/modes/pageTakeover.ts`.
+    - `PageTakeover` : `lockEditing`, `setOverlay`, `clearOverlay`, `keepInView`.
+    - Types `EditLock`, `InputCapture`, `PageOverlay`, `OverlayScene`, `OverlayLayer`.
+    - Exportés par l'API des plugins et par le point d'entrée du moteur. Le moteur lui-même remplit ce contrat ; il est
+      passé tel quel aux modes de l'appli.
+  - Domaines (un par brique) :
+    - `domains/edit/editLocks.ts` (`EditLocks`) : verrou d'édition et événement `editLockChange`. Il est rendu au
+      changement de page ou de document et au `dispose`, et son détenteur est prévenu (appel protégé).
+    - `domains/input/inputCaptures.ts` (`InputCaptures`) : clic (second clic d'un double-clic ignoré), survol, touches.
+      Les appels sont protégés.
+    - `domains/runtime/pageOverlays.ts` (`PageOverlays`) : voile, éléments gardés, objets du mode. Elle est refaite à
+      la reconstruction de la scène, et son horloge est appelée dans l'image du rendu (`sync(now)`, plus de boucle à
+      part). Les appels sont protégés : une couche en erreur ne pose que le voile, une fois.
+    - `PageModes.guardPage` signale ces erreurs au nom du mode de la page.
+  - Voile commun : `render/veil.ts`.
+    - `veilPage` est utilisé par la sélection (`highlight.ts`) et par la couche.
+    - `liftAboveVeil` compte les relevés d'un objet : deux voiles le relèvent une fois, et il redescend au dernier
+      retrait.
+  - Caméra :
+    - `ViewCamera.keepInView`, avec la règle pure `needsRecentring` (`interaction/cameraFraming.ts`) : marge de 48 px,
+      et une forme plus grande que la vue n'est recentrée que si elle n'y est plus du tout ;
+    - la zone de dessin exclut déjà les panneaux latéraux ; la barre posée dessus est couverte par la marge.
+  - Gardes :
+    - `canEditNow` lit le verrou ;
+    - `Pages.addPage`, `renamePage` et `removePage` passent par `canEditNow` ;
+    - `EditHistory.editLockChanged` réémet `undoChange` sans libellés pendant le verrou.
+  - Clavier (`keyboard.ts`, `runCapturedKey`) :
+    - une touche prise et tenue ne se répète pas ;
+    - une touche non prise revient à la vue ;
+    - ⌘A et l'ordre de dessin sont empêchés sur la zone de dessin ;
+    - un bouton focalisé garde Espace et Entrée.
+
+    L'hôte a `capturing` / `capturedKey`, et `click` reçoit `repeated`.
+  - `Rendering.overlay` est privé, avec `setOverlay(object)`. Retirés : `core/modes/simulation.ts`,
+    `domains/modes/simulations.ts`, `Engine.openSimulation` / `showSimulation` / `closeSimulation` /
+    `getSimulation`, `simulationChange`.
+  - Mode Machine à états :
+    - `simulation/statesSimulator.ts` (`StatesSimulator`) assemble les briques : verrou, capture, couche du pas,
+      `keepInView`, Échap qui arrête, `subscribe` et `version` ;
+    - `simulationLayer.ts` donne `simulationOverlay` (au lieu de `simulationFrame`) ;
+    - `api.ts` réduit à ce que l'appli lit.
+  - Appli :
+    - le registre des modes donne `ModePageControls` (`takeover`, `selection`, `lockOwner`), prop `controls` /
+      `modeControls` ;
+    - `Viewer` lit `editLocked` (événement `editLockChange`, remis à zéro quand le moteur disparaît) ;
+    - la partie états suit le simulateur par `useOpenedSimulation` (`useSyncExternalStore`).
+  - Guide : `AJOUTER_UN_MODE.md`, section « Prendre la main sur la page » (refondue en entier par 470).
+  - Écarts de comportement :
+    - Annuler / Rétablir grisés pendant la simulation ;
+    - opérations de page refusées par le moteur ;
+    - touche tenue sans répétition ;
+    - ⌘A sans effet ;
+    - double-clic qui ne franchit qu'une transition ;
+    - suivi de la caméra avec marge de 48 px, et une forme plus grande que la vue n'est plus recentrée tant qu'elle
+      y est en partie ;
+    - le survol pendant la capture tient à jour le commentaire survolé ;
+    - le curseur main est retiré à la fin.
+  - Tests :
+    - nouveaux : `editLocks.test.ts`, `inputCaptures.test.ts`, `pageOverlays.test.ts` (cœur réduit commun
+      `tests/engine/core/domains/takeoverCore.ts`), `interaction/capturedKeys.test.ts`, `statesSimulator.test.ts` ;
+    - complétés : `veil.test.ts` (deux voiles sur le même objet), `cameraMath.test.ts` (`needsRecentring`) ;
+    - remplacé : `simulations.test.ts` ;
+    - adaptés : `simulationLayer.test.ts` (noms), `pointerInput.test.ts` (cœur réduit), `guides.test.ts`
+      (`pageTakeover.ts` parmi les contrats, `StatesSimulator` cité en exemple).
+  - `grep -ri simulation` ne trouve rien dans `src/engine/core`, `Engine.ts` ni le registre des modes de l'appli.
+  - `make check` vert.
+  - Vérifié dans l'appli sur `states.drawio` :
+    - lancement depuis le panneau : voile, halo, pastilles ;
+    - touche 1, puis clic sur la pastille 2 : entrée dans State3, « Pas 3 », trace à jour ;
+    - un double-clic sur la pastille de la boucle « New Data » ne franchit qu'une fois (« Pas 4 ») ;
+    - Échap rend l'édition et la barre propose de nouveau « Lancer la simulation ».
+
+    Vérifiés seulement par les tests : touche tenue, ⌘A, bouton focalisé, opérations de page refusées, couche en
+    erreur.

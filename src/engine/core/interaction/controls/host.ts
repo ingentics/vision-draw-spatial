@@ -20,7 +20,7 @@ export interface CameraHost {
    * Clic gauche simple (sans glisser) : sélection. `toggle` : la touche de sélection multiple est
    * enfoncée (ajouter l'élément à la sélection, ou l'en retirer).
    */
-  click?(screen: Point, options: { toggle: boolean; followLink: boolean }): void;
+  click?(screen: Point, options: { toggle: boolean; followLink: boolean; repeated?: boolean }): void;
   /**
    * Double-clic gauche. `followLink` : le geste pour suivre un lien est le double-clic et sa touche
    * est enfoncée (entrer dans le lien) ; sinon, édition du texte.
@@ -97,10 +97,10 @@ export interface CameraHost {
    */
   modePageKey?(key: string, run: boolean): boolean;
   /**
-   * Simulation d'un mode ouverte (sujet 461) : les touches vont d'abord à `simulationKey`, puis seuls les raccourcis de
+   * Entrées capturées par un mode (sujet 467) : les touches vont d'abord à `capturedKey`, puis seuls les raccourcis de
    * la vue et ses mouvements restent ; ni édition, ni sélection, ni touche de mode.
    */
-  simulating?(): boolean;
-  /** Touche pendant une simulation (sans ⌘, Ctrl ni Alt) ; vrai si elle est prise. */
-  simulationKey?(key: string): boolean;
+  capturing?(): boolean;
+  /** Touche capturée (sans ⌘, Ctrl ni Alt, au premier appui) ; vrai si elle est prise. */
+  capturedKey?(key: string): boolean;
 }

@@ -11,7 +11,8 @@ export function createCameraController(core: EngineCore): CameraController {
       getViewport: () => core.display.viewport,
       getCameraLimits: () => core.camera.limits,
       toggleOverview: (screen) => core.camera.toggleOverview(screen),
-      click: (screen, options) => core.pointer.handleClick(screen, options.toggle, options.followLink),
+      click: (screen, options) =>
+        core.pointer.handleClick(screen, options.toggle, options.followLink, options.repeated),
       doubleClick: (screen, options) => core.pointer.handleDoubleClick(screen, options.followLink),
       heldKeys: (held) => core.keys.setHeldKeys(held),
       hover: (screen) => core.pointer.handleHover(screen),
@@ -42,8 +43,8 @@ export function createCameraController(core: EngineCore): CameraController {
       escape: () => core.selection.escape(),
       modeKey: (key) => core.modePanel.modeKey(key),
       modePageKey: (key, run) => core.modePanel.modePageKey(key, run),
-      simulating: () => !!core.simulations.current,
-      simulationKey: (key) => core.simulations.key(key),
+      capturing: () => core.inputCaptures.active,
+      capturedKey: (key) => core.inputCaptures.key(key),
     },
     core.config.effectiveControls(),
   );

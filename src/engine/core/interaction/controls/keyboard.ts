@@ -15,6 +15,8 @@ import { orderShortcut, resolveShortcut } from './shortcuts';
 export class KeyboardControls {
   /** Touches de modification maintenues. */
   private held: HeldKeys = { followLink: false, multiSelect: false };
+  /** Touches prises par un mode qui capture les entrées, encore enfoncées : leur répétition est ignorée. */
+  private readonly captured = new Set<string>();
 
   constructor(
     private readonly ctx: ControlContext,
@@ -36,6 +38,7 @@ export class KeyboardControls {
   /** Oublie les touches maintenues (perte du focus : leur relâchement ne sera pas reçu). */
   readonly release = (): void => {
     this.setHeld({ followLink: false, multiSelect: false });
+    this.captured.clear();
     this.stopMotion();
     this.ctx.spaceDown = false;
     this.ctx.element.style.cursor = '';
@@ -59,8 +62,8 @@ export class KeyboardControls {
   private readonly onKeyDown = (event: KeyboardEvent): void => {
     if (this.trackHeldKeys(event)) return;
     if (!this.ctx.enabled || isEditable(event.target)) return;
-    if (this.ctx.host.simulating?.()) {
-      this.runSimulationKey(event);
+    if (this.ctx.host.capturing?.()) {
+      this.runCapturedKey(event);
       return;
     }
     const action = this.runSelectionKey(event);
@@ -72,17 +75,28 @@ export class KeyboardControls {
   };
 
   /**
-   * Pendant une simulation (sujet 461) : la touche va à la simulation ; sinon, seuls les raccourcis de la vue et ses
-   * mouvements (Espace et flèches comprises, si la simulation ne les prend pas).
+   * Entrées capturées par un mode (sujet 467) : la touche va au mode, au premier appui (tenue, elle ne se répète pas) ;
+   * sinon, seuls les raccourcis de la vue et ses mouvements (flèches, Espace). Sur un bouton de l'appli, Espace et
+   * Entrée l'activent. Tout sélectionner et l'ordre de dessin, sur la zone de dessin, ne font rien (ni le navigateur).
    */
-  private runSimulationKey(event: KeyboardEvent): void {
-    const { host, settings } = this.ctx;
-    const modified = event.ctrlKey || event.metaKey || event.altKey;
-    if (!modified && host.simulationKey?.(event.key)) {
+  private runCapturedKey(event: KeyboardEvent): void {
+    const { element, host, settings } = this.ctx;
+    if (this.captured.has(event.code)) {
       event.preventDefault();
       return;
     }
-    if (modified) return;
+    if ((event.key === ' ' || event.key === 'Enter') && isButton(event.target)) return;
+    const modified = event.ctrlKey || event.metaKey || event.altKey;
+    if (modified) {
+      const selectAll = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a';
+      if ((selectAll || orderShortcut(event)) && event.target === element) event.preventDefault();
+      return;
+    }
+    if (!event.repeat && host.capturedKey?.(event.key)) {
+      event.preventDefault();
+      this.captured.add(event.code);
+      return;
+    }
     const action = isMoveKey(event.code, settings.moveKeys)
       ? undefined
       : resolveShortcut(event.key, settings.shortcuts, { canDelete: false });
@@ -197,7 +211,7 @@ export class KeyboardControls {
     }
     if (action === 'overview') {
       // Sur un bouton, Entrée (ou Espace) l'active : on ne détourne pas la touche.
-      if (event.repeat || (event.target instanceof HTMLElement && event.target.tagName === 'BUTTON')) return true;
+      if (event.repeat || isButton(event.target)) return true;
       event.preventDefault();
       this.drift.stop();
       host.toggleOverview(ctx.hover);
@@ -270,6 +284,7 @@ export class KeyboardControls {
       if (!ctx.drag) ctx.element.style.cursor = '';
     }
     this.drift.pressed.delete(event.code);
+    this.captured.delete(event.code);
   };
 }
 
@@ -289,6 +304,10 @@ export function isPageKeyCandidate(
 }
 
 /** Saisie en cours dans un champ : les touches lui appartiennent. */
+function isButton(target: EventTarget | null): boolean {
+  return target instanceof HTMLElement && target.tagName === 'BUTTON';
+}
+
 function isEditable(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   return target.isContentEditable || ['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName);

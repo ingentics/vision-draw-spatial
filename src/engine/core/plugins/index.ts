@@ -33,7 +33,14 @@ export type {
   PageModeDefinition,
 } from '../modes/types';
 export type { ModeEdit, ModeSizing } from '../modes/modeEdit';
-export type { SimulationFrame, SimulationLayer, SimulationScene } from '../modes/simulation';
+export type {
+  EditLock,
+  InputCapture,
+  OverlayLayer,
+  OverlayScene,
+  PageOverlay,
+  PageTakeover,
+} from '../modes/pageTakeover';
 export type { ModeProperty } from '../modes/modeProperty';
 export type { EffectLight, EffectRoom, PageEffectDefinition } from '../effects/types';
 export { modeKeys } from '../modes/modeKeys';

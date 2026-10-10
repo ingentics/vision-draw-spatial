@@ -53,11 +53,11 @@ export class PointerInput {
   /**
    * Clic : sélectionne l'élément ; avec la touche de sélection multiple, l'ajoute ou le retire (le vide
    * ne désélectionne pas). `followLink` (touche + clic, `controls.followLinkGesture`) : suit le lien de
-   * l'élément, s'il en a un.
+   * l'élément, s'il en a un. `repeated` : clic suivant d'un double-clic.
    */
-  handleClick(screen: Point, toggle = false, followLink = false): void {
-    // Simulation ouverte (sujet 461) : un clic ne sélectionne rien, il choisit au plus une flèche proposée.
-    if (this.core.simulations.click(screen)) return;
+  handleClick(screen: Point, toggle = false, followLink = false, repeated = false): void {
+    // Entrées capturées par un mode (sujet 467) : un clic ne sélectionne rien, il est rendu au mode.
+    if (this.core.inputCaptures.click(screen, repeated)) return;
     // Poignée propre au mode (sujet 250) : son menu, rien d'autre.
     if (!toggle && !followLink && this.core.modeHandles.click(screen)) return;
     const picked = this.core.picking.pickAt(screen);
@@ -95,7 +95,7 @@ export class PointerInput {
    * Sur une flèche, près d'un bout, édite son texte de début ou de fin.
    */
   handleDoubleClick(screen: Point, followLink: boolean): void {
-    if (this.core.simulations.current) return;
+    if (this.core.inputCaptures.active) return;
     if (this.core.edgePoints.doubleClickPointHandle(screen)) return;
     const picked = this.core.picking.pickAt(screen);
     const text = picked?.type === 'edge' ? this.core.picking.edgeTextAt(screen) : undefined;
@@ -135,8 +135,17 @@ export class PointerInput {
 
   /** Survol : curseur main et infobulle sur les éléments liés, commentaire de l'élément ; préchargement optionnel. */
   handleHover(screen: Point | undefined): void {
-    if (this.core.simulations.hover(screen)) return;
     const picked = screen ? this.core.picking.pickAt(screen) : undefined;
+    if (this.core.inputCaptures.active) {
+      // Entrées capturées par un mode (sujet 467) : main sur ce qui réagit au clic, commentaire au survol ; ni lien,
+      // ni poignée, ni partie.
+      const over = this.core.inputCaptures.hover(screen);
+      if (!this.core.canvas.style.cursor.startsWith('grab')) this.core.canvas.style.cursor = over ? 'pointer' : '';
+      this.core.canvas.title = '';
+      this.hovered = picked;
+      this.syncHoverComment();
+      return;
+    }
     const link = isNavigableLink(picked?.element.link) ? picked?.element.link : undefined;
     const handle = screen ? this.core.shapeHandles.handleAt(screen) : undefined;
     const modeHandle = screen && !handle ? this.core.modeHandles.handleAt(screen)?.handle : undefined;

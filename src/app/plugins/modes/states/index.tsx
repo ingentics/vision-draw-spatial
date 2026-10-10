@@ -6,7 +6,7 @@ import type { ModePanel, ModePanelProps } from '../registry';
 import { SimulationBar } from './SimulationBar';
 import { SimulationStart } from './SimulationStart';
 import { SimulationTrace } from './SimulationTrace';
-import { launch, launchFrom, openedSimulation, simulationActions } from './simulationRun';
+import { launch, launchFrom, useOpenedSimulation } from './simulationRun';
 import type { LaunchIssue } from './simulationRun';
 
 /**
@@ -16,23 +16,23 @@ import type { LaunchIssue } from './simulationRun';
  */
 export const panel: ModePanel = { PageSection: StatesSection, CanvasOverlay: SimulationBar };
 
-function StatesSection({ page, exporters, simulation }: ModePanelProps) {
+function StatesSection({ page, exporters, controls }: ModePanelProps) {
   const [exporting, setExporting] = useState(false);
   const [issue, setIssue] = useState<LaunchIssue>();
-  const sim = openedSimulation(simulation);
+  const simulator = useOpenedSimulation(controls);
   useEffect(() => {
     setIssue(undefined);
-  }, [page.id, sim]);
+  }, [page.id, simulator]);
   return (
     <Section title="Machine à états">
       <div className="mode-exports">
-        {simulation &&
-          (sim ? (
+        {controls &&
+          (simulator ? (
             <button
               type="button"
               className="button"
               data-tip="Arrêter la simulation et revenir à l’édition (Échap)"
-              onClick={() => simulation.close()}
+              onClick={() => simulator.stop()}
             >
               Arrêter la simulation
             </button>
@@ -41,15 +41,15 @@ function StatesSection({ page, exporters, simulation }: ModePanelProps) {
               type="button"
               className="button"
               data-tip="Simuler la machine à états pas à pas depuis son point d’entrée ; l’édition est bloquée pendant la simulation"
-              onClick={() => setIssue(launch(simulation, page))}
+              onClick={() => setIssue(launch(controls, page))}
             >
               Lancer la simulation
             </button>
           ))}
-        {simulation && !sim && issue && (
-          <SimulationStart page={page} issue={issue} onChoose={(id) => launchFrom(simulation, page, id)} />
+        {controls && !simulator && issue && (
+          <SimulationStart page={page} issue={issue} onChoose={(id) => launchFrom(controls, page, id)} />
         )}
-        {simulation && sim && <SimulationTrace sim={sim} onGoTo={simulationActions(simulation, sim).goTo} />}
+        {simulator && <SimulationTrace sim={simulator.sim} onGoTo={(n) => simulator.goTo(n)} />}
         <button
           type="button"
           className="button"

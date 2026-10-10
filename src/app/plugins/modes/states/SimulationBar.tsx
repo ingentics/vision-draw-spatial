@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { MouseEvent } from 'react';
 import { END_LABELS, stepName } from '../../../../engine/plugins/modes/states/api';
 import type { ModeCanvasProps } from '../registry';
-import { launch, launchFrom, openedSimulation, simulationActions } from './simulationRun';
+import { launch, launchFrom, useOpenedSimulation } from './simulationRun';
 import type { LaunchIssue } from './simulationRun';
 import { SimulationStart } from './SimulationStart';
 
@@ -11,20 +11,20 @@ import { SimulationStart } from './SimulationStart';
  * le pas courant, et le bandeau de fin. Hors simulation, un bouton la lance depuis la sélection (un état sélectionné
  * est le départ ; le bouton du panneau de la page n'est montré que sans sélection).
  */
-export function SimulationBar({ page, simulation }: ModeCanvasProps) {
-  const sim = openedSimulation(simulation);
+export function SimulationBar({ page, controls }: ModeCanvasProps) {
+  const simulator = useOpenedSimulation(controls);
   const [issue, setIssue] = useState<LaunchIssue>();
   useEffect(() => {
     setIssue(undefined);
-  }, [page.id, sim]);
+  }, [page.id, simulator]);
   // Les boutons ne prennent pas le focus : les touches de la simulation restent à la zone de dessin.
   const keepFocus = (event: MouseEvent) => event.preventDefault();
-  if (!sim) {
+  if (!simulator) {
     return (
       <div className="simulation-dock" onMouseDown={keepFocus}>
         {issue && (
           <div className="simulation-popup">
-            <SimulationStart page={page} issue={issue} onChoose={(id) => launchFrom(simulation, page, id)} />
+            <SimulationStart page={page} issue={issue} onChoose={(id) => launchFrom(controls, page, id)} />
           </div>
         )}
         <div className="simulation-bar">
@@ -32,7 +32,7 @@ export function SimulationBar({ page, simulation }: ModeCanvasProps) {
             type="button"
             className="button"
             data-tip="Simuler la machine à états pas à pas, depuis l’état sélectionné ou le point d’entrée"
-            onClick={() => setIssue(launch(simulation, page))}
+            onClick={() => setIssue(launch(controls, page))}
           >
             ▶ Lancer la simulation
           </button>
@@ -40,7 +40,7 @@ export function SimulationBar({ page, simulation }: ModeCanvasProps) {
       </div>
     );
   }
-  const actions = simulationActions(simulation, sim);
+  const { sim } = simulator;
   const end = sim.end();
   const single = sim.canNext();
   const canBack = sim.canBack();
@@ -52,7 +52,7 @@ export function SimulationBar({ page, simulation }: ModeCanvasProps) {
           className="button"
           disabled={!canBack}
           data-tip="Recommencer : revenir au départ de la simulation"
-          onClick={actions.restart}
+          onClick={() => simulator.restart()}
         >
           ⏮ Recommencer
         </button>
@@ -61,7 +61,7 @@ export function SimulationBar({ page, simulation }: ModeCanvasProps) {
           className="button"
           disabled={!canBack}
           data-tip="Retour : revenir d’un pas (← ou Retour arrière)"
-          onClick={actions.back}
+          onClick={() => simulator.back()}
         >
           ◀ Retour
         </button>
@@ -74,7 +74,7 @@ export function SimulationBar({ page, simulation }: ModeCanvasProps) {
               ? 'Suivant : franchir la seule transition proposée (ou taper 1)'
               : 'Suivant : seulement quand une seule transition est proposée ; sinon cliquer une pastille ou taper son numéro'
           }
-          onClick={actions.next}
+          onClick={() => simulator.next()}
         >
           ▶ Suivant
         </button>
@@ -82,7 +82,7 @@ export function SimulationBar({ page, simulation }: ModeCanvasProps) {
           type="button"
           className="button"
           data-tip="Arrêter la simulation et revenir à l’édition (Échap)"
-          onClick={actions.stop}
+          onClick={() => simulator.stop()}
         >
           ⏹ Arrêter
         </button>

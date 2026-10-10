@@ -17,7 +17,7 @@ import type { ShapeRegistryView } from './core/shapes/registry';
 import type { OrientAction } from './core/edit/orientShapes';
 import type { ModeEdit } from './core/modes/modeEdit';
 import type { ModeTarget } from './core/modes/types';
-import type { SimulationFrame, SimulationHandlers, SimulationSession } from './core/modes/simulation';
+import type { EditLock, PageOverlay } from './core/modes/pageTakeover';
 import type { JumpDefaults } from './core/render/edges/jumps';
 import type { EngineMetrics } from './core/domains/runtime/metrics';
 import type { ImageExportOptions } from './core/domains/view/imageExport';
@@ -492,27 +492,31 @@ export class Engine {
     this.core.modeCurrents.setModeCurrent(value, pageId);
   }
 
+  // Prise en main de la page par un mode (sujet 467, `PageTakeover`) : le moteur est passé tel quel aux modes de
+  // l'appli, qui n'en voient que ces briques.
+
   /**
-   * Ouvre une simulation sur la page courante (sujet 461), même en lecture seule : sélection vidée, édition bloquée
-   * jusqu'à sa fermeture. `owner` : l'objet de celui qui l'ouvre (ex. la simulation du mode), rendu par
-   * `getSimulation`. Faux sans page affichée (ou sur la vue graphe, ou pendant une transition).
+   * Verrouille l'édition de la page affichée pour `owner` (même en lecture seule) : sélection vidée, rien ne se modifie
+   * (pages, annuler et rétablir compris), la caméra reste libre ; les entrées peuvent être capturées
+   * (`EditLock.captureInput`). Rendu par `release`, au changement de page ou de document, ou à l'arrêt du moteur
+   * (`released` est alors appelé) ; signalé par `editLockChange`.
    */
-  openSimulation(owner: object, handlers: SimulationHandlers): boolean {
-    return this.core.simulations.open(owner, handlers);
+  lockEditing(owner: object, released?: () => void): EditLock | undefined {
+    return this.core.editLocks.lock(owner, released);
   }
 
-  /** Affiche un pas de la simulation : voile, éléments gardés, couche du mode, forme suivie par la caméra. */
-  showSimulation(frame: SimulationFrame): void {
-    this.core.simulations.show(frame);
+  /** Pose la couche de `owner` sur la page affichée : voile, éléments gardés, objets dessinés par le mode. */
+  setOverlay(owner: object, overlay: PageOverlay): void {
+    this.core.overlays.set(owner, overlay);
   }
 
-  closeSimulation(): void {
-    this.core.simulations.close();
+  clearOverlay(owner: object): void {
+    this.core.overlays.clear(owner);
   }
 
-  /** Simulation ouverte ; undefined sans simulation. */
-  getSimulation(): SimulationSession | undefined {
-    return this.core.simulations.current;
+  /** La forme sort de la vue : la caméra glisse pour la centrer. */
+  keepInView(shapeId: string): void {
+    this.core.camera.keepInView(shapeId);
   }
 
   // -------------------------------------------------------------------------

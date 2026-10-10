@@ -136,7 +136,14 @@ export type { ModeInfo, ModeRegistryView, ModeScope, PageModeRegistry } from './
 export type { ShapeOrientable, ShapeRegistry, ShapeRegistryView } from './core/shapes/registry';
 export type { OrientAction } from './core/edit/orientShapes';
 export type { ModeEdit } from './core/modes/modeEdit';
-export type { SimulationFrame, SimulationHandlers, SimulationSession } from './core/modes/simulation';
+export type {
+  EditLock,
+  InputCapture,
+  OverlayLayer,
+  OverlayScene,
+  PageOverlay,
+  PageTakeover,
+} from './core/modes/pageTakeover';
 export type { ModeProperty } from './core/modes/modeProperty';
 export type { Field, FieldOption, FieldValue } from './core/fields/fieldSchema';
 export { choiceDisplay } from './core/fields/fieldSchema';

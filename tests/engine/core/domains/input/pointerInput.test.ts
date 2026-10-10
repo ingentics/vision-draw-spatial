@@ -9,7 +9,7 @@ function doubleClick(parts: { part?: string; textPart?: string; text?: boolean }
   const editPartLabel = vi.fn();
   const editLabel = vi.fn();
   const core = {
-    simulations: { current: undefined },
+    inputCaptures: { active: false },
     edgePoints: { doubleClickPointHandle: () => false },
     picking: { pickAt: () => ({ type: 'shape', element: shape }) },
     graph: { isGraphView: () => false },

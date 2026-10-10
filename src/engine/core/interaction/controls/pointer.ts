@@ -190,6 +190,7 @@ export class PointerControls {
     this.ctx.host.click?.(this.ctx.localPoint(event), {
       toggle: hasMultiSelectKey(event, this.ctx.settings.multiSelectKey),
       followLink,
+      repeated: event.detail > 1,
     });
   };
 

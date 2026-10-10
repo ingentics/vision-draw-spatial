@@ -16,6 +16,7 @@ import {
 import type { ColorRepresentation, Material, Object3D } from 'three';
 import type { Point, Rect } from '../model/types';
 import { strokeTriangles } from './geometry/stroke';
+import { disposeObject } from './meshes';
 
 /**
  * Mise en valeur de la sélection par un voile (SPEC §11.1) : le reste de la page passe sous un
@@ -63,32 +64,86 @@ export function createVeil(around: Rect, opacity: number, color: ColorRepresenta
   return group;
 }
 
+/** Relevé d'un objet au-dessus du voile : ordre de dessin d'origine, matériaux rendus transparents, relevés en cours. */
+interface Lift {
+  order: number;
+  materials: Material[];
+  count: number;
+}
+
 /**
  * Passe des objets au-dessus du voile. Les matériaux opaques (volumes iso) passent dans la liste
  * transparente le temps de la mise en valeur, pour être dessinés après le voile. `restore` annule tout.
+ * Deux voiles qui relèvent le même objet (sélection et couche d'un mode, sujet 467) le relèvent une seule fois : il
+ * redescend quand le dernier le rend.
  */
 export function liftAboveVeil(objects: Object3D[]): () => void {
-  const changes: Array<() => void> = [];
+  const lifted: Object3D[] = [];
   for (const root of objects) {
     root.traverse((object) => {
-      const order = object.renderOrder;
-      object.renderOrder = order + LIFT;
-      changes.push(() => {
-        object.renderOrder = order;
-      });
-      if (!(object instanceof Mesh)) return;
-      const materials: Material[] = Array.isArray(object.material) ? object.material : [object.material];
-      for (const material of materials) {
-        if (material.transparent) continue;
-        material.transparent = true;
-        changes.push(() => {
-          material.transparent = false;
-        });
+      lifted.push(object);
+      const current = object.userData.veilLift as Lift | undefined;
+      if (current) {
+        current.count++;
+        return;
       }
+      const lift: Lift = { order: object.renderOrder, materials: [], count: 1 };
+      object.renderOrder = lift.order + LIFT;
+      if (object instanceof Mesh) {
+        const materials: Material[] = Array.isArray(object.material) ? object.material : [object.material];
+        for (const material of materials) {
+          if (material.transparent) continue;
+          material.transparent = true;
+          lift.materials.push(material);
+        }
+      }
+      object.userData.veilLift = lift;
     });
   }
   return () => {
-    for (const undo of changes.reverse()) undo();
+    for (const object of lifted.reverse()) {
+      const lift = object.userData.veilLift as Lift | undefined;
+      if (!lift || --lift.count > 0) continue;
+      object.renderOrder = lift.order;
+      for (const material of lift.materials) material.transparent = false;
+      delete object.userData.veilLift;
+    }
+  };
+}
+
+/** Voile posé dans la scène d'une page, éléments gardés au-dessus. */
+export interface PageVeil {
+  object: Group;
+  /** Retire le voile, le libère et redescend les éléments gardés. */
+  remove(): void;
+}
+
+/**
+ * Voile posé sur la scène d'une page (`root`), centré sur `around`, avec au-dessus les objets des éléments `kept`
+ * (ids, contenu compris) : mise en valeur de la sélection et couche d'un mode (sujet 467) en partagent la pose.
+ */
+export function veilPage(
+  root: Object3D,
+  around: Rect,
+  kept: ReadonlySet<string>,
+  opacity: number,
+  color?: ColorRepresentation,
+): PageVeil {
+  const object = createVeil(around, opacity, color);
+  root.add(object);
+  const restore = liftAboveVeil(
+    root.children.filter((c) => {
+      const elementId = c.userData.elementId as string | undefined;
+      return elementId !== undefined && kept.has(elementId);
+    }),
+  );
+  return {
+    object,
+    remove: () => {
+      restore();
+      object.removeFromParent();
+      disposeObject(object);
+    },
   };
 }
 

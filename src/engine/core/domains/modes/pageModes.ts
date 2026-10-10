@@ -41,6 +41,16 @@ export class PageModes {
   }
 
   /**
+   * Appel protégé de code passé par le mode d'une page sans être un point d'entrée de sa définition (prise en main de
+   * la page, sujet 467 : couche, entrées capturées) ; signalé au nom du mode de la page.
+   */
+  guardPage<T>(pageId: string, hook: string, fallback: T, run: () => T): T {
+    const page = this.core.pages.pageById(pageId);
+    const mode = page && this.core.modes.modeOf(page);
+    return this.core.pluginGuard.call('Mode', mode?.id ?? 'page', hook, fallback, run);
+  }
+
+  /**
    * Point d'entrée `entry` du mode `mode` appelé avec `args` (sujet 379) : arguments en lecture seule (`callMode`) et
    * appel protégé (`guard`) posés ici une fois pour tous les hôtes. `fallback` si le point d'entrée est absent ou lève
    * une exception.

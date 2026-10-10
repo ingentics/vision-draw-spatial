@@ -56,11 +56,11 @@ export class EditTargets {
   }
 
   /**
-   * Rien n'empêche d'écrire en ce moment : pas de transition entre pages, ni de simulation ouverte (sujet 461 : l'édition
-   * y est bloquée, annuler et rétablir compris).
+   * Rien n'empêche d'écrire en ce moment : pas de transition entre pages, ni de verrou d'édition tenu par un mode
+   * (sujet 467 : tout est bloqué, pages, annuler et rétablir compris).
    */
   canEditNow(): boolean {
-    return this.core.canInteract() && !this.core.simulations.current;
+    return this.core.canInteract() && this.core.editLocks.owner === undefined;
   }
 
   /** Forme sélectionnée sur la page courante, si on peut la modifier (poignées affichées). */

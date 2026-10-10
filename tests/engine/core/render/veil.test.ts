@@ -2,7 +2,13 @@ import { AlwaysStencilFunc, Box3, NotEqualStencilFunc, Object3D, ReplaceStencilO
 import type { Mesh, MeshBasicMaterial } from 'three';
 import { describe, expect, it } from 'vitest';
 import { parseDrawio } from '../../../../src/engine/core/format/parse';
-import { VEIL_ORDER, createVeil, createVeilHole, liftAboveVeil } from '../../../../src/engine/core/render/veil';
+import {
+  VEIL_ORDER,
+  createVeil,
+  createVeilHole,
+  liftAboveVeil,
+  veilPage,
+} from '../../../../src/engine/core/render/veil';
 import { buildPageScene } from '../../../../src/engine/core/render/pageScene';
 import { fixture, MEASURE } from '../../../helpers';
 import { createDefaultRegistry } from '../../../../src/engine/plugins';
@@ -54,6 +60,23 @@ describe('voile de sélection', () => {
     const restore = liftAboveVeil(scene.root.children.filter((c) => c.userData.elementId === B));
     restore();
     expect(orders(scene.root)).toEqual(initial);
+  });
+});
+
+describe('deux voiles sur la même scène (sélection et couche d’un mode, sujet 467)', () => {
+  it('un objet relevé par les deux ne l’est qu’une fois, et ne redescend qu’au retrait du dernier', () => {
+    const scene = buildPageScene(page, createDefaultRegistry(), ctx, 'iso');
+    const initial = orders(scene.root);
+    const b = scene.root.children.find((c) => c.userData.elementId === B)!;
+    const first = veilPage(scene.root, page.bounds, new Set([B]), 0.35);
+    const lifted = orders(b);
+    const second = veilPage(scene.root, page.bounds, new Set([B]), 0.35);
+    expect(orders(b)).toEqual(lifted);
+    first.remove();
+    expect(Math.min(...orders(b))).toBeGreaterThan(VEIL_ORDER);
+    second.remove();
+    expect(orders(scene.root)).toEqual(initial);
+    expect(scene.root.children.some((c) => c.name === 'selection-veil')).toBe(false);
   });
 });
 

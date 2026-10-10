@@ -1,4 +1,4 @@
-import { defaultView, fitBounds, nextOverviewStep, sameView } from '../../interaction/cameraFraming';
+import { defaultView, fitBounds, needsRecentring, nextOverviewStep, sameView } from '../../interaction/cameraFraming';
 import { interpolateCamera, rotateAround, zoomAt } from '../../interaction/cameraMoves';
 import {
   cameraLimitsOf,
@@ -10,12 +10,17 @@ import {
 } from '../../interaction/cameraState';
 import type { OverviewStep } from '../../interaction/cameraFraming';
 import type { CameraLimits, CameraState, ViewMode } from '../../interaction/cameraState';
-import { unionOf } from '../../model/geometry';
+import { center, unionOf } from '../../model/geometry';
 import type { Point, Rect } from '../../model/types';
 import type { Settings } from '../../settings';
 import type { EngineCore } from '../EngineCore';
 import { settingsSectionChanged } from '../../settings';
 import { shapeOf } from '../../model/pageIndex';
+
+/** Marge gardée autour d'une forme gardée dans la vue (`keepInView`), en px : barres posées sur la zone de dessin. */
+const KEEP_IN_VIEW_MARGIN = 48;
+/** Glissement de la caméra vers une forme sortie de la vue, en ms. */
+const KEEP_IN_VIEW_DURATION = 300;
 
 /** Caméra de la page affichée (SPEC §9) : état, animations, cadrages, vue globale, orientation de référence. */
 export class ViewCamera {
@@ -61,6 +66,17 @@ export class ViewCamera {
         limits: this.limits,
       }),
     );
+  }
+
+  /**
+   * La forme sort de la vue (prise en main de la page, sujet 467) : la caméra glisse pour la centrer, sans changer de
+   * zoom ni d'orientation.
+   */
+  keepInView(shapeId: string): void {
+    const shape = shapeOf(this.core.pages.getCurrentPage(), shapeId);
+    const rect = shape && this.core.projection.screenRectOf(shape.id);
+    if (!shape || !rect || !needsRecentring(rect, this.core.display.viewport, KEEP_IN_VIEW_MARGIN)) return;
+    this.animateCameraTo({ ...this.state, center: center(shape.bounds) }, KEEP_IN_VIEW_DURATION);
   }
 
   /** Vue de départ dans le mode par défaut des paramètres (`view.defaultMode`), avant tout document. */

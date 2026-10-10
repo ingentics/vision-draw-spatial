@@ -32,7 +32,7 @@ import type { AppPlugins } from './pluginsContext';
 import { SettingsPanel } from './SettingsPanel';
 import { contextTitle } from './ContextPanel';
 import { modePanel } from './plugins/modes/registry';
-import type { ModeSimulationControls } from './plugins/modes/registry';
+import type { ModePageControls } from './plugins/modes/registry';
 import { Sidebar } from './Sidebar';
 import { ViewerComment, ViewerLabelEditor, useInPlaceText } from './viewer/inPlaceText';
 import { useEditShortcuts } from './viewer/useEditShortcuts';
@@ -158,9 +158,9 @@ export function Viewer({
   const warnings = document?.warnings ?? [];
   /** Barre du courant du mode de la page (ex. flux courant), en haut de la zone de dessin. */
   const modeIndicator = pageId !== undefined ? engine?.getModeIndicator(pageId) : undefined;
-  /** Simulation d'un mode ouverte (sujet 461) : rien ne se modifie, la palette et les réglages de page sont grisés. */
-  const simulating = events.simulation !== undefined;
-  const editablePages = document !== undefined && engine?.canEditPages() === true && !simulating;
+  /** Édition verrouillée par un mode (sujet 467) : rien ne se modifie, la palette et les réglages de page sont grisés. */
+  const editLocked = events.editLock !== undefined;
+  const editablePages = document !== undefined && engine?.canEditPages() === true && !editLocked;
   const canAddShapes = pageId !== undefined && pageId !== GRAPH_PAGE_ID;
   const shownPage = document?.pages.find((page) => page.id === pageId);
   // Page affichée (pas la vue graphe) : le panneau contextuel est toujours ouvert dessus, la palette la suit. Pendant
@@ -187,18 +187,11 @@ export function Viewer({
       },
     [engine],
   );
-  // Simulation sur la page affichée, pour les parties appli des modes ; nouvelle à chaque pas.
+  // Prise en main de la page affichée, pour les parties appli des modes (sujet 467).
   const selectedIds = useMemo(() => [...selected.shapes, ...selected.edges].map((e) => e.id), [selected]);
-  const simulation = useMemo<ModeSimulationControls | undefined>(
-    () =>
-      engine && {
-        selection: selectedIds,
-        owner: events.simulation?.session.owner,
-        open: (owner, handlers) => engine.openSimulation(owner, handlers),
-        show: (frame) => engine.showSimulation(frame),
-        close: () => engine.closeSimulation(),
-      },
-    [engine, selectedIds, events.simulation],
+  const modeControls = useMemo<ModePageControls | undefined>(
+    () => engine && { takeover: engine, selection: selectedIds, lockOwner: events.editLock?.owner },
+    [engine, selectedIds, events.editLock],
   );
   // Palette et modes d'affichage permis par le mode de la page (sujet 178).
   const modes = plugins?.modes;
@@ -288,7 +281,7 @@ export function Viewer({
               slide={graphSlide?.slide}
             >
               <Palette
-                disabled={!currentPage || simulating}
+                disabled={!currentPage || editLocked}
                 used={usedShapes}
                 content={paletteContent}
                 onAdd={(template) => engine?.addShape(template)}
@@ -298,7 +291,7 @@ export function Viewer({
           <div
             className="canvas-area"
             onDragOver={(event) => {
-              if (!canAddShapes || simulating || !event.dataTransfer.types.includes(PALETTE_MIME)) return;
+              if (!canAddShapes || editLocked || !event.dataTransfer.types.includes(PALETTE_MIME)) return;
               event.preventDefault();
               event.dataTransfer.dropEffect = 'copy';
             }}
@@ -364,8 +357,8 @@ export function Viewer({
               onEngine={events.handleEngine}
               onError={(e) => setError(e instanceof Error ? e.message : String(e))}
             />
-            {CanvasOverlay && shownPage && simulation && !transitioning && (
-              <CanvasOverlay page={shownPage} simulation={simulation} />
+            {CanvasOverlay && shownPage && modeControls && !transitioning && (
+              <CanvasOverlay page={shownPage} controls={modeControls} />
             )}
             <ViewerComment
               engine={engine}
@@ -416,7 +409,7 @@ export function Viewer({
                     selected={selected}
                     editablePages={editablePages}
                     textEdit={text.textEdit}
-                    simulation={currentPage.id === pageId ? simulation : undefined}
+                    modeControls={currentPage.id === pageId ? modeControls : undefined}
                   />
                 )
               )}
