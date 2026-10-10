@@ -287,8 +287,9 @@ couche physique d'une table RDD, lue par son rendu). Un habillage qui dépend du
 - `gestures.dragPlaces(page, shape, bounds)` (sujet 481) : places où poser la forme glissée seule (`bounds` : sa place
   courante), et `swapWith`, la forme dont elle prendra la place si on la lâche hors des places. Le moteur montre les
   places (pointillé et fond d'accent, la visée plus marquée) ; le centre de la forme dans une place l'y met, lâchée
-  elle s'y pose ; lâchée sur `swapWith`, les deux échangent leur coin haut-gauche (une étape « Échange de place »).
-  Pas avec Alt, ni pour une sélection multiple, des formes emportées ou un pas au clavier (`core/edit/dragPlaces.ts`).
+  elle s'y pose ; lâchée sur `swapWith`, les deux échangent leur coin haut-gauche (une étape « Échange de place »,
+  puis `gestures.placed` sur les deux, avec leurs bornes d'avant). Le moteur ignore un `swapWith` verrouillé ou
+  immobile (sujet 501) : le mode n'a pas à filtrer les verrous. Pas avec Alt, ni pour une sélection multiple, des formes emportées ou un pas au clavier (`core/edit/dragPlaces.ts`).
   Aussi pour une forme de la palette qui survole la page (`shape` : la forme que le modèle créerait, id
   `palette:dragged`, sans texte) : places montrées, dépôt dans la place visée, pas d'échange.
 - **Prendre la main sur la page** (sujet 467) : pour un état de session qui lui est propre (ex. simulation pas à pas
@@ -401,7 +402,7 @@ Règles communes (sujet 288) :
 | `gestures.carries` | début d'un déplacement (glisser, clavier), Aligner / Répartir, mise en valeur de la sélection ; de proche en proche | page du modèle | aucune | n'emporte rien (ce qui a été trouvé avant la panne est gardé) |
 | `gestures.obstacles` | début d'un déplacement ou d'un redimensionnement, Aligner / Répartir ; reçoit les réglages du mode | page du modèle | aucune | aucune borne |
 | `gestures.snapTargets` | début d'un glisser ou d'un redimensionnement (pas d'un pas au clavier) | page du modèle | aucune | aucune aimantation |
-| `gestures.dragPlaces` | à chaque pas du glisser d'une forme seule, sans Alt | copie de travail de la page | aucune (le moteur pose la forme, ou l'échange au lâcher) | aucune place, pas d'échange |
+| `gestures.dragPlaces` | à chaque pas du glisser d'une forme seule, sans Alt | copie de travail de la page | aucune (le moteur pose la forme, ou l'échange au lâcher ; jamais avec une forme verrouillée) | aucune place, pas d'échange |
 | `gestures.placed` | fin d'un déplacement (glisser, clavier), d'un redimensionnement, ajout depuis la palette, collage, Aligner / Répartir ; `before` : page d'avant un déplacement, absente pour un ajout | relue après la pose | remise en ordre, étape du geste | rien d'écrit |
 | `gestures.relabeled` | texte d'un élément validé (édition sur place ou panneau) | relue avec le nouveau texte | remise en ordre, étape du texte | rien d'écrit |
 | `keys` | touche sur l'élément sélectionné seul d'une page modifiable : `applies` puis `run` | page du modèle ; `run` : opération | une étape au titre `label` | `applies` : touche non prise ; `run` : rien d'écrit |

@@ -1,10 +1,10 @@
 import { moveCell, moveEdgeCell, setEdgeTerminal } from '../../../format/cellEdits';
 import type { PageTree } from '../../../format/xmlTree';
-import { moveSetMinus, snapDelta, translateMoveSet } from '../../../edit/moveSet';
+import { canMoveShape, moveSetMinus, snapDelta, translateMoveSet } from '../../../edit/moveSet';
 import { placeUnder } from '../../../edit/dragPlaces';
 import { EDGE_SNAP_PIXELS, snapMove } from '../../../edit/edgeSnap';
 import { clampMove } from '../../../edit/obstacles';
-import type { PageModel, Point } from '../../../model/types';
+import type { PageModel, Point, ShapeModel } from '../../../model/types';
 import type { MoveDrag } from './types';
 import type { MovePlan } from '../../../edit/movePlan';
 import type { EngineCore } from '../../EngineCore';
@@ -106,10 +106,21 @@ export class MoveDrags {
       return undefined;
     }
     const hit = placeUnder(offered.places, bounds);
-    const target = hit ? undefined : shapeOf(page, offered.swapWith);
+    const target = hit ? undefined : this.swapTarget(page, move, offered.swapWith);
     move.swapWith = target?.id;
     this.core.preview.showPlaces(offered.places, hit, target && { target: target.bounds, to: move.origin });
     return hit && { x: hit.x - move.origin.x, y: hit.y - move.origin.y };
+  }
+
+  /**
+   * Forme proposée par le mode pour l'échange, si le moteur peut la déplacer : ni verrouillée ni immobile
+   * (`canMoveShape`), ni du déplacement en cours. La garde est ici : le mode ne voit pas les verrous.
+   */
+  private swapTarget(page: PageModel, move: MoveDrag, id: string | undefined): ShapeModel | undefined {
+    const shape = shapeOf(page, id);
+    const pageTree = this.core.file.pageTreeOf(move.pageId);
+    if (!shape || !pageTree || move.set.shapeIds.has(shape.id)) return undefined;
+    return canMoveShape(pageTree, shape) ? shape : undefined;
   }
 
   /**
@@ -196,8 +207,13 @@ export class MoveDrags {
     this.core.edits.recordEdit('Échange de place');
     moveCell(pageTree, rootId, { x: other.bounds.x - origin.x, y: other.bounds.y - origin.y });
     moveCell(pageTree, otherId, { x: origin.x - other.bounds.x, y: origin.y - other.bounds.y });
-    // Le mode remet en ordre autour des deux formes posées (ex. ordre de dessin des post-it), même étape.
-    this.core.modeFollowUps.shapesPlaced(drag.pageId, [rootId, otherId]);
+    // Le mode remet en ordre autour des deux formes posées (ex. ordre de dessin des post-it), même étape ; il reçoit
+    // leurs bornes d'avant, comme pour un déplacement.
+    const before = new Map([
+      [rootId, { ...origin }],
+      [otherId, { ...other.bounds }],
+    ]);
+    this.core.modeFollowUps.shapesPlaced(drag.pageId, [rootId, otherId], (shape) => before.get(shape.id));
     this.core.file.documentChanged([drag.pageId]);
     return false;
   }

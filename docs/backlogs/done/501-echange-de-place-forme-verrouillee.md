@@ -20,3 +20,11 @@
   jamais échangée »).
 - **Fini quand :** sur `eventstorming-commande.drawio`, un post-it verrouillé ne bouge pas quand on lâche un autre
   post-it dessus, et l'échange entre deux post-it libres marche comme avant ; `make check` vert.
+- Fait : `MoveDrags.swapTarget` (`core/domains/edit/drag/move.ts`) : le `swapWith` du mode n'est retenu que pour une
+  forme que le moteur peut déplacer (`canMoveShape`) et hors du déplacement ; sinon ni échange montré ni échange au
+  lâcher (la forme se pose où on la lâche). `commitSwap` passe à `shapesPlaced` les bornes d'avant des deux formes.
+  Test `tests/engine/core/domains/edit/drag/move.test.ts` (premier test d'un glisser complet : échange en une étape,
+  bornes d'avant reçues par le mode, `locked=1` et `movable=0` jamais échangés) ; doc `AJOUTER_UN_MODE.md` (texte et
+  tableau des garanties de `gestures.dragPlaces`). Vérifié à l'œil sur `eventstorming-commande.drawio` (glisser simulé
+  par événements) : « Client prévenu » glissé sur le Hotspot verrouillé, pas d'échange montré, Hotspot immobile ; Hotspot
+  déverrouillé, échange montré et fait, ⌘Z le défait.
