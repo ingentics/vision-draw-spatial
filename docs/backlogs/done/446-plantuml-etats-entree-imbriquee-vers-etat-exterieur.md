@@ -11,3 +11,15 @@
 - Tests : `plantuml.test.ts`, point d'entrée dans un ensemble vers un état extérieur.
 - **Fini quand :** sur une page `states.drawio` qui contient ce cas, l'aperçu PlantUML ne dédouble pas l'état cible
   (ou bien on constate que le rendu était déjà juste, et seul le test est ajouté).
+- Fait : défaut confirmé sur un serveur PlantUML local, avec `make plantuml`. `[*] --> X` écrit dans le bloc
+  `Box`, alors que X n'est pas encore déclaré, crée `Box.X`. Déclaré avant, X reste à son niveau.
+
+  Correction dans `states/export/plantuml.ts` : la cible d'un point d'entrée d'un autre niveau est toujours déclarée
+  (`state X`, même au nom simple et sans contenu). À chaque niveau, elle et les ensembles qui la contiennent passent
+  avant les autres déclarations. La transition reste dans le bloc du point d'entrée.
+
+  Écart de comportement : seul le texte exporté dans ce cas change (ordre des déclarations, `state X` ajouté).
+
+  Test : `plantuml.test.ts`, point d'entrée d'un ensemble vers un état d'un autre ensemble déclaré après lui. Le
+  rendu PlantUML de ce texte garde `Other.X`. Pas de vérification dans l'appli : la fixture `states.drawio` n'a pas ce
+  cas.

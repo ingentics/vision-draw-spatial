@@ -1,4 +1,4 @@
-import { plantUmlLine, plantUmlQuoted } from '../../../../core/plugins';
+import { byId, plantUmlLine, plantUmlQuoted } from '../../../../core/plugins';
 import type { EdgeModel, PageModel, ShapeModel } from '../../../../core/plugins';
 import { compositeOf } from '../composites/compositeLayout';
 import { ERROR_COLOR, isErrorExit } from '../exits/exitKind';
@@ -81,6 +81,17 @@ export function statesPlantUml(page: PageModel): string {
     });
   /** États nommés par une transition : un état de la page au nom simple et sans contenu n'a pas à être déclaré. */
   const named = new Set(transitions.flatMap((transition) => transition.nodes));
+  /**
+   * Cibles d'un point d'entrée d'un autre niveau (sujet 446) : PlantUML crée un état à sa première mention, dans le bloc
+   * où il la lit ; déclarées avant (elles et les ensembles qui les contiennent), elles restent à leur niveau.
+   */
+  const early = new Set(
+    transitions
+      .filter((transition) => transition.initial)
+      .flatMap((transition) => transition.nodes.filter((id) => levelOf(byId(nodes, id)!) !== transition.level)),
+  );
+  const comesEarly = (node: ShapeModel) =>
+    [...early].some((id) => id === node.id || ancestorsOf(page, byId(nodes, id)!).includes(node.id));
 
   const declaration = (node: ShapeModel): string[] => {
     const name = ref(node);
@@ -94,15 +105,21 @@ export function statesPlantUml(page: PageModel): string {
       .map((line) => `${name} : ${plantUmlLine(line)}`);
     // Au nom simple, une ligne de contenu le déclare ; sans contenu, une transition de la page suffit. Dans un
     // ensemble, il est toujours déclaré : sinon PlantUML le créerait au niveau de sa première transition.
-    if (simple(node) && (content.length > 0 || (levelOf(node) === undefined && named.has(node.id)))) return content;
+    // Visé depuis un point d'entrée d'un autre niveau, il est déclaré ici, avant d'y être nommé.
+    const namedHere = levelOf(node) === undefined && named.has(node.id) && !early.has(node.id);
+    if (simple(node) && (content.length > 0 || namedHere)) return content;
     return [`state ${header}`, ...content];
   };
 
-  /** Lignes d'un niveau : déclarations, transitions depuis les points d'entrée, puis les autres. */
+  /**
+   * Lignes d'un niveau : déclarations (cibles d'un point d'entrée d'un autre niveau d'abord), transitions depuis les
+   * points d'entrée, puis les autres.
+   */
   function levelLines(level: Level): string[] {
     const here = transitions.filter((transition) => transition.level === level);
+    const declared = nodes.filter((node) => levelOf(node) === level);
     return [
-      ...nodes.filter((node) => levelOf(node) === level).flatMap(declaration),
+      ...[...declared.filter(comesEarly), ...declared.filter((node) => !comesEarly(node))].flatMap(declaration),
       ...here.filter((transition) => transition.initial).map((transition) => transition.line),
       ...here.filter((transition) => !transition.initial).map((transition) => transition.line),
     ];

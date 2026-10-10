@@ -93,6 +93,29 @@ describe('mode Machine à états : export PlantUML (sujet 436)', () => {
     ]);
   });
 
+  it('point d’entrée d’un ensemble vers un état extérieur : l’état est déclaré avant, à son niveau (sujet 446)', () => {
+    const text = exported(
+      vertex('c', 'composite', 0, 0, 400, 300, 'Box') +
+        vertex('a', 'state', 40, 40, 140, 60, 'A') +
+        vertex('i', 'initial', 300, 200, 20, 20) +
+        vertex('d', 'composite', 500, 0, 400, 300, 'Other') +
+        vertex('x', 'state', 540, 40, 140, 60, 'X') +
+        vertex('y', 'state', 1000, 0, 140, 60, 'Y') +
+        edge('t1', 'i', 'x') +
+        edge('t2', 'x', 'y'),
+    );
+    expect(body(text)).toEqual([
+      'state Other {',
+      '  state X',
+      '}',
+      'state Box {',
+      '  state A',
+      '  [*] --> X',
+      '}',
+      'X --> Y',
+    ]);
+  });
+
   it('un point sans transition n’est pas écrit ; une transition à bout libre ou refusée non plus', () => {
     const text = exported(
       vertex('a', 'state', 0, 0, 140, 60, 'A') +
