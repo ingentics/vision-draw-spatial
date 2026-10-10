@@ -145,7 +145,7 @@ export type {
   PageTakeover,
 } from './core/modes/pageTakeover';
 export type { ModeProperty } from './core/modes/modeProperty';
-export type { Field, FieldOption, FieldValue } from './core/fields/fieldSchema';
+export type { Field, FieldNote, FieldOption, FieldValue } from './core/fields/fieldSchema';
 export { choiceDisplay } from './core/fields/fieldSchema';
 export type { ModeTarget, PageModeDefinition } from './core/modes/types';
 export type { PluginSetting, PluginSettings, PluginValues } from './core/settings/pluginSettings';

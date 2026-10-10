@@ -2,7 +2,7 @@
 import type { ElementComment } from '../edit/comment';
 import type { PageEffectRegistry } from '../effects/registry';
 import type { EdgeEnd } from '../edit/edgeLabels';
-import type { FieldOption } from '../fields/fieldSchema';
+import type { FieldNote, FieldOption } from '../fields/fieldSchema';
 import type { CameraState } from '../interaction/cameraState';
 import type { HistoryEntry, LinkUsage, ParentLink } from '../interaction/navigationHistory';
 import type { PickedElement } from '../interaction/pick';
@@ -128,6 +128,8 @@ export interface ModePropertyView {
   readOnly: boolean;
   /** Choix offerts (réglage `choice`) ; vide pour les autres. */
   options: FieldOption[];
+  /** Encadré (réglage `note`, sujet 517) ; undefined pour les autres, ou rien à afficher. */
+  note?: FieldNote;
 }
 
 /** Barre du courant du mode d'une page (ex. flux courant du mode Séquences). */

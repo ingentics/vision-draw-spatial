@@ -19,6 +19,16 @@ export interface FieldOption {
   icon?: ModeIcon;
 }
 
+/** Encadré d'un champ `note` (sujet 517) : texte en lecture seule, teinté selon son ton. */
+export interface FieldNote {
+  /** `info` bleu, `neutral` gris, `alert` rouge, `warning` orange. */
+  tone: 'info' | 'neutral' | 'alert' | 'warning';
+  title: string;
+  text: string;
+  /** Aparté sous un filet, avec son petit titre (ex. hotspot à noter). */
+  aside?: { title: string; text: string };
+}
+
 /** Ce que tout champ déclare. */
 interface FieldBase {
   key: string;
@@ -31,9 +41,9 @@ interface FieldBase {
 
 /**
  * Champ déclaré, selon son `type` ; `Options` : forme des choix d'un `choice` (liste fixe, ou fonction de la page
- * pour un mode).
+ * pour un mode) ; `Note` : forme de l'encadré d'une `note` (fixe, ou fonction de la cible pour un mode).
  */
-export type FieldOf<Options> = FieldBase &
+export type FieldOf<Options, Note = FieldNote | undefined> = FieldBase &
   (
     | { type: 'toggle' }
     | {
@@ -75,6 +85,8 @@ export type FieldOf<Options> = FieldBase &
     | { type: 'url' }
     /** Bouton pleine largeur (sujet 253) : son clic écrit une valeur vide (une opération pour un mode). */
     | { type: 'button' }
+    /** Encadré en lecture seule (sujet 517, ex. verdict d'un questionnaire) ; rien d'affiché sans encadré. */
+    | { type: 'note'; note: Note }
   );
 
 /** Champ déclaré à choix fixes. */
@@ -84,7 +96,10 @@ export type Field = FieldOf<readonly FieldOption[]>;
 export type FieldType = Field['type'];
 
 /** Champ de la sorte `T` (ou d'une des sortes de `T`). */
-export type FieldOfType<T extends FieldType, Options = readonly FieldOption[]> = Extract<FieldOf<Options>, { type: T }>;
+export type FieldOfType<T extends FieldType, Options = readonly FieldOption[], Note = FieldNote | undefined> = Extract<
+  FieldOf<Options, Note>,
+  { type: T }
+>;
 
 /** Valeur typée d'un champ (paramètres : nombre, booléen, ou texte). */
 export type FieldValue = number | boolean | string;
@@ -117,6 +132,7 @@ export function readFieldValue(field: Field, value: unknown): FieldValue | undef
     case 'url':
       return httpUrl(value);
     case 'button':
+    case 'note':
       return undefined;
   }
 }

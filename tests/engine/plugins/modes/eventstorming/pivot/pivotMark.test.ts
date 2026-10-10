@@ -20,7 +20,7 @@ describe('mode Event storming : icône de la réponse « Pivot » (sujet 516)', 
   });
 
   it('dessinée dans son carré, une icône par réponse', () => {
-    for (const kind of ['spread', 'warning'] as const) {
+    for (const kind of ['spread', 'question'] as const) {
       const mark = pivotMark(kind, bounds);
       expect(mark.name).toBe(`pivot-mark:${kind}`);
       expect(mark.children.length).toBeGreaterThan(0);

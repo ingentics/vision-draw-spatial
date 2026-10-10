@@ -33,7 +33,9 @@ type DeclaredFieldProps = {
 };
 
 export function DeclaredField(props: DeclaredFieldProps) {
-  const { help } = props.field;
+  const { field } = props;
+  // Question en boutons (sujet 517) : son aide est entre la question et les boutons.
+  const help = field.type === 'choice' && field.buttons ? undefined : field.help;
   return help ? (
     <>
       <FieldControl {...props} />
@@ -144,12 +146,15 @@ function FieldControl({ field, layout, value, identity = '', disabled = false, o
       );
     case 'choice': {
       const drawn = choiceDisplay(field.options) === 'buttons';
-      // Choix nommés en boutons écrits (sujets 515, 516) : libellé au-dessus, il peut être long (une question) ; boutons
-      // à parts égales sur toute la largeur.
+      // Choix nommés en boutons écrits (sujets 515, 516, 517) : libellé au-dessus, il peut être long (une question),
+      // puis l'aide ; boutons à parts égales sur toute la largeur.
       if (field.buttons)
         return (
-          <div className="field">
-            <span data-tip={title}>{label}</span>
+          <div className="field field-question">
+            <span className="field-question-label" data-tip={title}>
+              {label}
+            </span>
+            {field.help && <p className="panel-hint">{field.help}</p>}
             <ChoiceGroup
               label={label}
               value={text}
@@ -199,6 +204,22 @@ function FieldControl({ field, layout, value, identity = '', disabled = false, o
       return <ColorField label={label} value={text} disabled={disabled || undefined} onChange={onChange} />;
     case 'url':
       return <UrlField label={label} value={text} disabled={disabled} onChange={onChange} />;
+    case 'note': {
+      // Encadré en lecture seule (sujet 517) : titre coloré selon le ton, texte, aparté sous un filet.
+      const { note } = field;
+      return note ? (
+        <div className={`field-note field-note-${note.tone}`} role="note" aria-label={label}>
+          <strong className="field-note-title">{note.title}</strong>
+          <p>{note.text}</p>
+          {note.aside && (
+            <div className="field-note-aside">
+              <strong>{note.aside.title}</strong>
+              <p>{note.aside.text}</p>
+            </div>
+          )}
+        </div>
+      ) : null;
+    }
   }
 }
 

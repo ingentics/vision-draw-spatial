@@ -145,6 +145,65 @@ body {
   text-align: center;
 }
 
+/* Question en boutons (sujet 517) : question en gras, aide juste dessous, avant les boutons. */
+.field-question .field-question-label {
+  font-weight: 600;
+}
+
+.field-question .panel-hint {
+  margin: 0;
+}
+
+/* Encadré en lecture seule (champ `note`, sujet 517) : fond teinté, titre coloré selon le ton. */
+.field-note {
+  margin: 4px 0 6px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--note-bg);
+  color: var(--fg);
+}
+
+.field-note p {
+  margin: 4px 0 0;
+}
+
+.field-note-title {
+  color: var(--note-fg);
+  font-size: 14px;
+}
+
+.field-note-aside {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid currentColor;
+}
+
+.field-note-aside strong {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.field-note-info {
+  --note-bg: #e3ecfb;
+  --note-fg: #2f6fd6;
+}
+
+.field-note-neutral {
+  --note-bg: #eceee8;
+  --note-fg: #6f7468;
+}
+
+.field-note-alert {
+  --note-bg: #fbe3e1;
+  --note-fg: #c8372f;
+}
+
+.field-note-warning {
+  --note-bg: var(--warn-bg);
+  --note-fg: var(--warn-fg);
+}
+
 /* Groupe de choix (`ChoiceGroup`, sujet 317) : icônes, nom en infobulle. */
 .choice-icon {
   justify-content: center;

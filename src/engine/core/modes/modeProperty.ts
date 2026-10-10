@@ -1,4 +1,4 @@
-import type { FieldOfType, FieldOption } from '../fields/fieldSchema';
+import type { FieldNote, FieldOfType, FieldOption } from '../fields/fieldSchema';
 import type { ReadonlyPageModel as PageModel } from '../model/readonly';
 import type { ModeEdit } from './modeEdit';
 import type { ModeTarget } from './types';
@@ -7,6 +7,9 @@ import type { ModeTarget } from './types';
  * Choix d'un réglage `choice` de mode, selon la page ; `palette` : couleurs proposées par l'appli (`ModeEdit.palette`).
  */
 export type ModeOptions = (page: PageModel, palette: readonly string[]) => FieldOption[];
+
+/** Encadré d'un réglage `note` de mode, selon la cible (sujet 517) ; undefined : rien d'affiché. */
+export type ModeNote = (page: PageModel, target: ModeTarget) => FieldNote | undefined;
 
 /**
  * Réglage déclaré par un mode : champ du schéma commun (`Field`, sujet 391) rendu par le champ générique. Par défaut,
@@ -35,4 +38,4 @@ export type ModeProperty = {
   readOnly?: boolean | ((page: PageModel, target: ModeTarget, part?: string) => boolean);
   /** Section du panneau (titre) ; défaut : celle au nom du mode (sujet 260, ex. « Couche physique »). */
   section?: string;
-} & FieldOfType<'toggle' | 'number' | 'text' | 'choice' | 'button', ModeOptions>;
+} & FieldOfType<'toggle' | 'number' | 'text' | 'choice' | 'button' | 'note', ModeOptions, ModeNote>;

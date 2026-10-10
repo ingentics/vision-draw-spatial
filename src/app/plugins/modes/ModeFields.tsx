@@ -53,10 +53,12 @@ function ModePropertyField({
   view: ModePropertyView;
   onChange?: (key: string, value: string | undefined, merge?: string) => void;
 }) {
-  const { property, value, readOnly, options } = view;
+  const { property, value, readOnly, options, note } = view;
   const editable = onChange !== undefined && !readOnly;
   // Choix évalués par le moteur (sujet 294) : le champ reçoit la liste, jamais la fonction du mode.
-  const field: Field = property.type === 'choice' ? { ...property, options } : property;
+  // Encadré évalué de même pour la cible (sujet 517).
+  const field: Field =
+    property.type === 'choice' ? { ...property, options } : property.type === 'note' ? { ...property, note } : property;
   const number = value === undefined || value === '' ? undefined : Number(value);
   const typed =
     property.type === 'toggle'

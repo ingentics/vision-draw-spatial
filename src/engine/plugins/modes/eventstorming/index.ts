@@ -5,7 +5,7 @@ import { EVENT_STORMING_KEYS } from './keys';
 import { STICKY_TYPES } from './kinds';
 import { LABELS_PROPERTY, syncLabels } from './labels/pageLabels';
 import { stackPlaced } from './order/stacking';
-import { PIVOT_PROPERTY } from './pivot/pivot';
+import { PIVOT_PROPERTIES } from './pivot/pivot';
 import { dragPlaces } from './places/placesAround';
 import { snapTargets } from './places/snapTargets';
 import { STICKY } from './shapes/common/stickyLayout';
@@ -48,7 +48,7 @@ export const definition: PageModeDefinition = {
   parts: GROUP_PARTS,
   gestures: {
     // « Groupe » d'un post-it collé (sujet 514), « Pivot » d'un Domain Event (sujet 515).
-    properties: [GROUP_PROPERTY, PIVOT_PROPERTY],
+    properties: [GROUP_PROPERTY, ...PIVOT_PROPERTIES],
     // Post-it posé : il prend le réglage « Labels » de la page, passe derrière le post-it collé sous lui (sujet 484) et
     // prend le libellé du groupe qu'il rejoint (sujet 514).
     placed: (edit, shapeIds) => {

@@ -44,6 +44,7 @@ export type {
   PageTakeover,
 } from '../modes/pageTakeover';
 export type { ModeProperty } from '../modes/modeProperty';
+export type { FieldNote } from '../fields/fieldSchema';
 export type { EffectLight, EffectRoom, PageEffectDefinition } from '../effects/types';
 export { modeKeys } from '../modes/modeKeys';
 export { modeText } from '../modes/modeText';

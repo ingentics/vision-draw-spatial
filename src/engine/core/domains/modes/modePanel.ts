@@ -53,6 +53,10 @@ export class ModePanel {
               : !!readOnly,
           options:
             property.type === 'choice' ? host.call(mode, hook('options'), [], property.options, page, palette) : [],
+          note:
+            property.type === 'note'
+              ? host.call(mode, hook('note'), undefined, property.note, page, target)
+              : undefined,
         },
       ];
     });
