@@ -37,6 +37,7 @@ export function ViewerContextPanel({
       part={selection?.pageId === currentPage.id ? selection.part : undefined}
       styles={settings.styles}
       modeSettings={settings.modes}
+      exporters={settings.exporters}
       defaultDepth={settings.view.isoDepth}
       multiSelectKey={MULTI_SELECT_LABELS[settings.controls.multiSelectKey]}
       onLink={(link) => selection && engine?.setLink(selection.picked.element.id, link)}

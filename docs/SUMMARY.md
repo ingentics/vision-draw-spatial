@@ -53,10 +53,11 @@ dossiers du projet (SPEC §4.2 et `.claude/rules/coding.md` §2 y renvoient) ; l
 | `core/model/` | modèle neutre (aucune notion draw.io), géométrie, lecture du style, index de page, gel | pur, sans Three.js |
 | `core/format/` | decode, parse (XML → modèle), style, xmlTree, cellEdits / write (écriture in situ), presse-papier | pur, sans Three.js |
 | `core/persistence/` | FileStore : MemoryStore, IndexedDbStore, FsStore (Electron) ; Autosaver | avec état |
+| `core/export/` | textes des exports des modes communs à tous (échappement PlantUML, sujet 439), offerts par l'API des plugins | pur |
 | `core/diagnostics/`, `core/spatial.ts` | formes non supportées (SPEC §8.4), appel protégé commun aux plugins (`pluginCalls.ts`) ; attributs `spatial.*` (SPEC §14.3) | pur |
 | `plugins/` | `index.ts` (racine de composition) ; `shapes/<catégorie>/<id>/` (bases à étendre dans `shapes/generic/`), `modes/<id>/`, `effects/<id>/` | pur |
 | `src/react/` | composant `<DrawioSpatial />`, lanceur, mini-graphe | UI |
-| `src/app/` | appli de démo : panneaux, palette, paramètres ; `plugins/modes/<id>/` : partie appli d'un mode | UI |
+| `src/app/` | appli de démo : panneaux, palette, paramètres ; `plugins/modes/<id>/` : partie appli d'un mode ; `export/` : fenêtre d'export d'un texte et rendu PlantUML, communs aux modes | UI |
 
 Règles :
 - **Moteur sans React** (`src/engine/Engine.ts` = façade publique, événements dans `events.ts`). React ne fait que monter

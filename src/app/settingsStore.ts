@@ -30,13 +30,35 @@ export function saveSettings(settings: Settings): void {
  * ex. `view.facadeTags`) : une valeur déjà enregistrée à la nouvelle place l'emporte. L'ancienne clé, hors du schéma,
  * disparaît au premier enregistrement.
  */
-export function withLegacy(stored: SettingsPatch): SettingsPatch {
+export function withLegacy(saved: SettingsPatch): SettingsPatch {
+  const stored = withLegacyExporters(saved);
   const legacy = legacyShapeCategorySettings(stored);
   if (Object.keys(legacy).length === 0) return stored;
   const current = stored.shapeCategories ?? {};
   const shapeCategories = { ...current };
   for (const [id, values] of Object.entries(legacy)) shapeCategories[id] = { ...values, ...current[id] };
   return { ...stored, shapeCategories };
+}
+
+/**
+ * Moteur de rendu PlantUML enregistré comme réglage du mode Séquences (sujet 306, `modes.sequences.plantumlRenderer` et
+ * `plantumlUrl`) : repris dans les paramètres Exporteurs › PlantUML, communs aux modes (sujet 439), une valeur déjà
+ * enregistrée à la nouvelle place l'emportant ; les anciennes clés sont retirées du mode. Valeurs vérifiées par la
+ * fusion des paramètres.
+ */
+function withLegacyExporters(stored: SettingsPatch): SettingsPatch {
+  const { plantumlRenderer, plantumlUrl, ...sequences } = stored.modes?.sequences ?? {};
+  if (plantumlRenderer === undefined && plantumlUrl === undefined) return stored;
+  const legacy = {
+    ...(typeof plantumlRenderer === 'string' ? { renderer: plantumlRenderer } : {}),
+    ...(typeof plantumlUrl === 'string' ? { localUrl: plantumlUrl } : {}),
+  } as NonNullable<NonNullable<SettingsPatch['exporters']>['plantuml']>;
+  const { sequences: _, ...modes } = stored.modes ?? {};
+  return {
+    ...stored,
+    modes: Object.keys(sequences).length > 0 ? { ...modes, sequences } : modes,
+    exporters: { ...stored.exporters, plantuml: { ...legacy, ...stored.exporters?.plantuml } },
+  };
 }
 
 /** Ce qui diffère de `defaults` dans `settings`, section par section : une valeur égale au défaut est omise. */

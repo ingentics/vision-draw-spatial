@@ -1,16 +1,13 @@
+import type { ExporterSettings } from '../../engine';
+
 /**
- * PlantUML en ligne (sujet 90) : le texte est compressé (deflate brut) puis encodé dans l'alphabet base64 de PlantUML
- * (`0-9A-Za-z-_`), et passe dans l'URL. Le rendu passe par le moteur choisi dans les paramètres (sujet 100) : kroki.io
- * par défaut (sujet 98 : la version bêta de plantuml.com mesure par moments le texte à zéro), plantuml.com, ou un
- * serveur PlantUML local (même API que plantuml.com). L'éditeur en ligne reste celui de plantuml.com.
+ * PlantUML en ligne (sujet 90), commun aux modes qui exportent en PlantUML (sujet 439) : le texte est compressé
+ * (deflate brut) puis encodé dans l'alphabet base64 de PlantUML (`0-9A-Za-z-_`), et passe dans l'URL. Le rendu passe
+ * par le moteur choisi dans les paramètres (Exporteurs › PlantUML, sujet 100) : kroki.io par défaut (sujet 98 : la
+ * version bêta de plantuml.com mesure par moments le texte à zéro), plantuml.com, ou un serveur PlantUML local (même
+ * API que plantuml.com). L'éditeur en ligne reste celui de plantuml.com.
  */
 const PLANTUML_SERVER = 'https://www.plantuml.com/plantuml';
-
-/** Moteur de rendu et serveur local (réglages du mode Séquences, `plantumlRenderer` et `plantumlUrl`, sujet 306). */
-export interface PlantUmlSettings {
-  renderer: string;
-  localUrl: string;
-}
 const KROKI_SERVER = 'https://kroki.io';
 
 const ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_';
@@ -33,7 +30,7 @@ export async function encodePlantUml(source: string): Promise<string> {
 /** Rendu SVG du texte par le moteur choisi (défaut : kroki.io), et page de l'éditeur en ligne (plantuml.com). */
 export async function plantUmlUrls(
   source: string,
-  settings: PlantUmlSettings = { renderer: 'kroki', localUrl: '' },
+  settings: ExporterSettings['plantuml'] = { renderer: 'kroki', localUrl: '' },
 ): Promise<{ svg: string; editor: string }> {
   const code = await encodePlantUml(source);
   const svg =

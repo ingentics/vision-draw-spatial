@@ -82,6 +82,13 @@ export type FieldOfType<T extends FieldType, Options = readonly FieldOption[]> =
 /** Valeur typée d'un champ (paramètres : nombre, booléen, ou texte). */
 export type FieldValue = number | boolean | string;
 
+/** Adresse http(s), espaces et barres finales retirés ; undefined pour tout le reste. */
+export function httpUrl(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const url = value.trim().replace(/\/+$/, '');
+  return /^https?:\/\/\S+$/i.test(url) ? url : undefined;
+}
+
 /** Valeur `value` si elle convient au champ (nombre ramené dans ses bornes, adresse normalisée) ; sinon undefined. */
 export function readFieldValue(field: Field, value: unknown): FieldValue | undefined {
   switch (field.type) {
@@ -100,11 +107,8 @@ export function readFieldValue(field: Field, value: unknown): FieldValue | undef
       return typeof value === 'string' && isHexColor(value) ? value : undefined;
     case 'choice':
       return typeof value === 'string' && field.options.some((option) => option.value === value) ? value : undefined;
-    case 'url': {
-      if (typeof value !== 'string') return undefined;
-      const url = value.trim().replace(/\/+$/, '');
-      return /^https?:\/\/\S+$/i.test(url) ? url : undefined;
-    }
+    case 'url':
+      return httpUrl(value);
     case 'button':
       return undefined;
   }

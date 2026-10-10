@@ -3,6 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { CommentSettingsSection } from './comment';
 import { AccessibilitySettings } from './settings/AccessibilitySettings';
 import { EditSettings } from './settings/EditSettings';
+import { ExportSettings } from './settings/ExportSettings';
 import { LinkSettings } from './settings/LinkSettings';
 import { NavigationSettings } from './settings/NavigationSettings';
 import { MinimapSettings, SidebarSettings } from './settings/PanelSettings';
@@ -249,6 +250,7 @@ export function SettingsPanel({ settings, onChange, onReset, onResetOrientation,
             <CommentSettingsSection settings={settings} onChange={onChange} />
             <SidebarSettings settings={settings} onChange={onChange} />
             <ShapeEdgeSettings settings={settings} onChange={onChange} />
+            <ExportSettings settings={settings} onChange={onChange} />
             <PluginSections settings={settings} onChange={onChange} />
             <EditSettings settings={settings} onChange={onChange} />
             <ShortcutSettings settings={settings} onChange={onChange} />

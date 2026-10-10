@@ -66,6 +66,7 @@ export function PageSections({ page, onRenamePage: onRename, ...props }: Context
         onModeProperty={props.onModeProperty}
         modeCurrent={props.modeCurrent}
         modeSettings={props.modeSettings}
+        exporters={props.exporters}
         styles={props.styles}
       />
       <PageEffectsSection page={page} onPageEffect={props.onPageEffect} />

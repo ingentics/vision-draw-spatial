@@ -25,10 +25,11 @@ export function PageModeSections({
   onModeProperty,
   modeCurrent,
   modeSettings,
+  exporters,
   styles,
 }: Pick<
   ContextPanelProps,
-  'page' | 'onPageMode' | 'onModeEdit' | 'onModeProperty' | 'modeCurrent' | 'modeSettings' | 'styles'
+  'page' | 'onPageMode' | 'onModeEdit' | 'onModeProperty' | 'modeCurrent' | 'modeSettings' | 'exporters' | 'styles'
 >) {
   const plugins = useEnginePlugins();
   const modeId = plugins.modes.modeId(page);
@@ -85,6 +86,7 @@ export function PageModeSections({
           onEdit={onModeEdit}
           current={modeCurrent}
           values={plugins.modes.values(mode.id, modeSettings[mode.id])}
+          exporters={exporters}
         />
       )}
     </>

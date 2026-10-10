@@ -731,6 +731,10 @@ interface Settings {
     shadow: number;                                               // ombre des barres sur la zone de dessin : 0.06 (0–0.3, 0 = aucune)
     minCanvas: number;                                            // largeur gardée à la zone de dessin : 320 (200–800)
   };
+  exporters: {                                                    // rendu des exports des modes, commun à tous (sujet 439)
+    plantuml: { renderer: 'kroki' | 'plantuml' | 'local';         // moteur de rendu de la fenêtre d'export : 'kroki'
+      localUrl: string };                                         // serveur local, http(s) sans barre finale : 'http://localhost:8080'
+  };
   effects: Record<string, Record<string, number | boolean | string>>; // réglages déclarés par chaque effet (plugins/effects/<id>/index.ts, sujet 287) : forest.size, forest.spacing…
   modes: Record<string, Record<string, number | boolean | string>>; // réglages déclarés par chaque mode (plugins/modes/<id>/settings.ts, ticket 283)
   shapeCategories: Record<string, Record<string, number | boolean | string>>; // réglages déclarés par chaque catégorie de formes (plugins/shapes/categories.ts, sujet 380) : architecture.facadeTags (étiquettes DB / QUEUE / CACHE sur les façades : true, ancienne clé view.facadeTags reprise) ; Paramètres › Formes › Architecture
@@ -1012,6 +1016,11 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   texte du milieu (plus petite au milieu de la flèche sans texte). Taille, bordure, chiffre et assombrissement : paramètres
   « Modes › Séquences » (§13). Couleur d'un nouveau flux : fonds des styles de forme des paramètres, à partir du
   troisième (`modePalette`, passée aux opérations par `ModeEdit.palette`).
+- **Export PlantUML** (mode Séquences, sujets 90, 439) : bouton « Exporter en PlantUML » de la section « Flux » ; fenêtre
+  d'export commune aux modes (`src/app/export/ExportDialog.tsx` : texte copiable, rendu par le moteur des paramètres
+  « Exporteurs › PlantUML », lien vers l'éditeur de plantuml.com) avec le choix du flux (ou toute la page). Les modes
+  échappent leurs textes par les briques `plantUmlLine` / `plantUmlQuoted` (`core/export/plantumlText.ts`, API des
+  plugins).
 - **Flux courant** (mode Séquences) : par défaut le premier flux, puis celui de la dernière flèche cliquée ou choisi
   dans la barre (un clic sur une flèche d'un autre flux ne fait que changer de flux ; un second clic la sélectionne) (état de session par page, non écrit). Barre en haut de la zone de dessin, de la couleur du flux, avec
   son titre centré (texte noir ou blanc selon le contraste) et, s'il y a au moins deux flux, des boutons précédent /

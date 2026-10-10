@@ -52,3 +52,27 @@ describe('paramètres enregistrés : anciennes clés reprises (sujet 380)', () =
     expect(withLegacy(stored as SettingsPatch)).toBe(stored);
   });
 });
+
+describe('paramètres enregistrés : moteur de rendu PlantUML repris du mode Séquences (sujet 439)', () => {
+  const load = (stored: unknown) => mergeSettings(DEFAULT_SETTINGS, withLegacy(stored as SettingsPatch));
+
+  it('réglages du mode Séquences : repris dans Exporteurs › PlantUML et retirés du mode', () => {
+    const settings = load({
+      modes: { sequences: { plantumlRenderer: 'local', plantumlUrl: 'http://localhost:9000', dimOpacity: 0.5 } },
+    });
+    expect(settings.exporters.plantuml).toEqual({ renderer: 'local', localUrl: 'http://localhost:9000' });
+    expect(settings.modes).toEqual({ sequences: { dimOpacity: 0.5 } });
+  });
+
+  it('valeur déjà enregistrée à la nouvelle place : elle l’emporte ; valeur invalide : défaut', () => {
+    const kept = load({
+      modes: { sequences: { plantumlRenderer: 'local' } },
+      exporters: { plantuml: { renderer: 'plantuml' } },
+    });
+    expect(kept.exporters.plantuml.renderer).toBe('plantuml');
+    expect(kept.modes).toEqual({});
+    expect(load({ modes: { sequences: { plantumlUrl: 'ftp://x' } } }).exporters.plantuml).toEqual(
+      DEFAULT_SETTINGS.exporters.plantuml,
+    );
+  });
+});

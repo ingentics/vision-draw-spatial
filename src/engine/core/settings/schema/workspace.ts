@@ -1,15 +1,16 @@
 import { ALIGN_REFERENCES } from '../../edit/align';
-import { custom, flag, number, oneOf } from '../fields';
+import { custom, flag, number, oneOf, serverUrl } from '../fields';
 import type { Spec } from '../fields';
 import type { PluginSettings } from '../pluginSettings';
-import type { DebugSettings, EditSettings, PanelsSettings, SaveSettings } from '../types';
+import type { DebugSettings, EditSettings, ExporterSettings, PanelsSettings, SaveSettings } from '../types';
 
 /**
- * Schéma des réglages de l'espace de travail : édition, enregistrement, panneaux, effets, modes, catégories de formes,
- * débogage.
+ * Schéma des réglages de l'espace de travail : édition, enregistrement, panneaux, exports, effets, modes, catégories
+ * de formes, débogage.
  */
 
 const STRIP_TEXT = ['up', 'down'] as const;
+const PLANTUML_RENDERERS = ['kroki', 'plantuml', 'local'] as const;
 
 export const EDIT = {
   edgePickTolerance: number(6, { min: 1, max: 30, step: 1 }),
@@ -50,6 +51,14 @@ export const PANELS = {
   shadow: number(0.06, { min: 0, max: 0.3, step: 0.01 }),
   minCanvas: number(320, { min: 200, max: 800, step: 10 }, { integer: true }),
 } satisfies Spec<PanelsSettings>;
+
+/** Rendu des exports PlantUML, commun aux modes qui en écrivent (sujet 439). */
+export const EXPORTERS = {
+  plantuml: {
+    renderer: oneOf(PLANTUML_RENDERERS, 'kroki'),
+    localUrl: custom('http://localhost:8080', serverUrl),
+  },
+} satisfies Spec<ExporterSettings>;
 
 /**
  * Réglages des plugins (effets, sujet 145 ; modes, ticket 283 ; catégories de formes, sujet 380) fusionnés plugin par

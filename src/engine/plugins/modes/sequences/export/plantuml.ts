@@ -1,4 +1,12 @@
-import { byId, edgesById, elementName, shapesById, styleFlag } from '../../../../core/plugins';
+import {
+  byId,
+  edgesById,
+  elementName,
+  plantUmlLine,
+  plantUmlQuoted,
+  shapesById,
+  styleFlag,
+} from '../../../../core/plugins';
 import type { EdgeModel, PageModel, ShapeModel } from '../../../../core/plugins';
 import { EVENT_SOURCES, PARTICIPANT, flowLabel } from '../flows';
 import { keys } from '../keys';
@@ -52,7 +60,7 @@ export function sequencePlantUml(page: PageModel, flowId?: string): string {
       const rank = aliases.size + 1;
       name = `P${rank}`;
       aliases.set(shape.id, name);
-      participants.push(`${participantKind(shape)} ${quote(elementName(shape))} as ${name} order ${rank}`);
+      participants.push(`${participantKind(shape)} ${plantUmlQuoted(elementName(shape))} as ${name} order ${rank}`);
     }
     return name;
   };
@@ -72,7 +80,7 @@ export function sequencePlantUml(page: PageModel, flowId?: string): string {
     // Un flux par section, séparées d'une ligne vide.
     body = state.flows.flatMap((flow, i) => [
       ...(i > 0 ? [''] : []),
-      `== ${oneLine(flowLabel(flow))} ==`,
+      `== ${plantUmlLine(flowLabel(flow))} ==`,
       ...flowMessages(flow.id),
     ]);
   } else {
@@ -82,7 +90,7 @@ export function sequencePlantUml(page: PageModel, flowId?: string): string {
 
   return [
     '@startuml',
-    ...(title ? [`title ${oneLine(title)}`] : []),
+    ...(title ? [`title ${plantUmlLine(title)}`] : []),
     ...participants,
     ...(participants.length > 0 && body.length > 0 ? [''] : []),
     ...body,
@@ -161,16 +169,6 @@ function participantKind(shape: ShapeModel): string {
   return 'participant';
 }
 
-/** Nom entre guillemets (un guillemet du label devient une apostrophe : PlantUML ne les échappe pas). */
-function quote(text: string): string {
-  return `"${oneLine(text).replaceAll('"', "'")}"`;
-}
-
-/** Retours à la ligne en `\n` de PlantUML. */
-function oneLine(text: string): string {
-  return text.trim().replace(/\r?\n/g, '\\n');
-}
-
 function messageText(edge: EdgeModel): string {
-  return oneLine(edge.label || edge.labels.map((label) => label.label).find((label) => label.trim()) || '');
+  return plantUmlLine(edge.label || edge.labels.map((label) => label.label).find((label) => label.trim()) || '');
 }

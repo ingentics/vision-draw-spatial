@@ -27,6 +27,7 @@ export { DEFAULT_SETTINGS, mergeSettings, modePalette, SETTINGS_LIMITS } from '.
 export type {
   BackgroundSettings,
   CommentSettings,
+  ExporterSettings,
   GraphSettings,
   MinimapSettings,
   MinigraphSettings,

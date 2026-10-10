@@ -17,7 +17,7 @@ import type { ModePanel, ModePanelProps } from '../registry';
  */
 export const panel: ModePanel = { PageSection: FlowsSection };
 
-function FlowsSection({ page, onEdit, current, values }: ModePanelProps) {
+function FlowsSection({ page, onEdit, current, exporters }: ModePanelProps) {
   const { flows, members } = sequenceState(page);
   const [title, setTitle] = useState('');
   const [exporting, setExporting] = useState<SequenceExporter>();
@@ -75,12 +75,7 @@ function FlowsSection({ page, onEdit, current, values }: ModePanelProps) {
         </div>
       )}
       {exporting && flows.length > 0 && (
-        <ExportViewer
-          page={page}
-          exporter={exporting}
-          settings={{ renderer: String(values.plantumlRenderer), localUrl: String(values.plantumlUrl) }}
-          onClose={() => setExporting(undefined)}
-        />
+        <ExportViewer page={page} exporter={exporting} exporters={exporters} onClose={() => setExporting(undefined)} />
       )}
     </Section>
   );

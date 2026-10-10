@@ -1,6 +1,7 @@
 import type { StylePreset, TextPreset } from '../edit/stylePresets';
 import { isHexColor } from '../model/styleValues';
 import { clamp } from '../model/numbers';
+import { httpUrl } from '../fields/fieldSchema';
 
 /**
  * Briques du schéma des réglages : chaque réglage déclare sa valeur par défaut et sa lecture. Une valeur invalide
@@ -120,4 +121,9 @@ export function textPresets(value: unknown, previous: TextPreset[]): TextPreset[
     };
   });
   return list.every((entry) => entry !== undefined) ? (list as TextPreset[]) : previous;
+}
+
+/** URL de serveur (sujet 439) : http(s) seulement, espaces et barres finales retirés ; sinon la valeur précédente. */
+export function serverUrl(value: unknown, previous: string): string {
+  return httpUrl(value) ?? previous;
 }

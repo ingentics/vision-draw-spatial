@@ -6,6 +6,7 @@ import type {
   EdgeEnd,
   EdgeModel,
   EdgeTextAnchor,
+  ExporterSettings,
   JumpStyle,
   LinkModel,
   ModeEdit,
@@ -33,6 +34,8 @@ export interface ContextPanelProps {
   styles: StyleSettings;
   /** Réglages enregistrés des modes (`settings.modes`), passés bornés à la section du mode. */
   modeSettings: PluginSettings;
+  /** Moteurs de rendu des exports (`settings.exporters`), pour la fenêtre d'export d'un mode. */
+  exporters: ExporterSettings;
   /** Épaisseur par défaut des volumes (réglage), affichée quand la forme n'a pas la sienne. */
   defaultDepth: number;
   /** Libellé de la touche de sélection multiple (ex. « Ctrl »), pour l'aide. */

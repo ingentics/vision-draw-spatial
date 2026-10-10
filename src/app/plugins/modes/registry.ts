@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import type { ModeEdit, PageModel, PluginValues } from '../../../engine';
+import type { ExporterSettings, ModeEdit, PageModel, PluginValues } from '../../../engine';
 
 /** Sections React d'un mode, reçues par le panneau contextuel. */
 export interface ModePanelProps {
@@ -8,8 +8,10 @@ export interface ModePanelProps {
   onEdit?: (label: string, edit: (edit: ModeEdit) => void) => void;
   /** « Courant » du mode sur la page (ex. flux courant), gardé par le moteur. */
   current?: string;
-  /** Réglages globaux du mode (Paramètres › Modes), bornés (ex. moteur de rendu de l'export PlantUML). */
+  /** Réglages globaux du mode (Paramètres › Modes), bornés. */
   values: PluginValues;
+  /** Moteurs de rendu des exports (paramètres de l'appli, Exporteurs ; ex. PlantUML, sujet 439). */
+  exporters: ExporterSettings;
 }
 
 /**

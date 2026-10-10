@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { encodePlantUml, plantUmlUrls } from '../../src/app/plugins/modes/sequences/plantumlServer';
+import { encodePlantUml, plantUmlUrls } from '../../../src/app/export/plantumlServer';
 
 describe('encodage PlantUML des URL (sujet 90)', () => {
   it('donne le code de l’exemple de PlantUML', async () => {

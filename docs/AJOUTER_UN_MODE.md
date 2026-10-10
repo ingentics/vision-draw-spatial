@@ -165,8 +165,9 @@ Les **réglages globaux** du mode, pour toute l'appli et non pour une page, sont
 (`settings`, rangés dans `plugins/modes/<id>/settings.ts`) : des `PluginSetting` (`AJOUTER_UN_PLUGIN.md` section 7),
 dans la sous-page Paramètres › Modes (titre `shortName` sinon `name`). Le moteur passe leurs valeurs (`values`) aux
 mécanismes du mode (`gestures.obstacles`, `dressing`, `current.look`), qui lui rendent ce qu'il applique (écart,
-apparence des pastilles, opacité…) ; la partie appli du mode les reçoit aussi (`ModePanelProps.values`, ex. moteur de
-rendu de l'export PlantUML de Séquences).
+apparence des pastilles, opacité…) ; la partie appli du mode les reçoit aussi (`ModePanelProps.values`). Un réglage commun
+à plusieurs modes n'est pas un réglage de mode : le moteur de rendu des exports est un paramètre de l'appli
+(Exporteurs, `ModePanelProps.exporters`), et la fenêtre d'export d'un texte est commune (`src/app/export/`, sujet 439).
 
 Les données dérivées d'une page (ex. flèches rangées par flux) se calculent une fois par `PageModel` (le modèle est
 relu après chaque modification) : un `WeakMap` de module indexé par la page suffit (ex. `sequences/steps.ts`, cache
