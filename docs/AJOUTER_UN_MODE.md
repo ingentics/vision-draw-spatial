@@ -130,6 +130,11 @@ export const definition: PageModeDefinition = { id: 'sequences', ...SEQUENCES_KE
 
 `keys.key(nom)` donne la clé complète, pour l'écrire soi-même dans un style (modèle de palette, aperçu d'une forme).
 
+Un texte libre multiligne d'une forme (corps d'un document RDD, contenu d'un état) se range dans une clé du mode par
+`modeText(keys, nom)` (sujet 448) : `read(shape)`, `value(text)` (valeur à écrire, `undefined` pour un texte vide ou
+blanc), `normalize(text)` (fins de ligne, tabulations), `preview(shape, text)` (aperçu de la saisie). Le texte est
+rangé en chaîne JSON aux `;` échappés, et revient tel quel.
+
 **Réglages déclarés.** Un réglage de mode (`ModeProperty`) est un champ du schéma commun (`Field`, types et rendu :
 `AJOUTER_UN_PLUGIN.md` section 7). Un réglage de mode (`toggle`, `number`, `text`, `choice` ou `button`) a des choix `options(page, palette)` qui
 reçoivent les couleurs de l'appli, et `readOnly` pour l'afficher sans le rendre modifiable. Il est rendu dans la

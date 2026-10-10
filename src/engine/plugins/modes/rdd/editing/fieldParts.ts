@@ -1,6 +1,6 @@
 import type { ModeParts, ShapeModel } from '../../../../core/plugins';
 import { clamp, rectContains, shapeOf } from '../../../../core/plugins';
-import { BODY, BODY_PART, bodyValue, documentBody, hasBody, normalizedBody, setBody } from '../tables/documentBody';
+import { BODY_PART, BODY_TEXT, documentBody, hasBody, setBody } from '../tables/documentBody';
 import { FIELDS, fieldsValue, isDivider, isPrimaryKey, isRelation, tableFields } from '../tables/fieldModel';
 import { moveField, movedFields, removeField, setField, setPhysicalName } from '../tables/operations';
 import { DB_NAME, NAME_PART, PHYSICAL, hasPhysicalLayer, hasPhysicalName, physicalName } from '../tables/physicalLayer';
@@ -33,13 +33,6 @@ const physicalEdit = (shape: ShapeModel, current: string | undefined) =>
 /** Le titre est-il le nom en base (couche physique, pas pour un fragment) ? */
 const physicalTitle = (shape: ShapeModel, current: string | undefined) =>
   current === PHYSICAL && hasPhysicalName(shape);
-
-/** Forme avec ce corps (aperçu de la saisie), rien d'écrit. */
-function withBody(shape: ShapeModel, text: string): ShapeModel {
-  const { [keys.key(BODY)]: _previous, ...style } = shape.style;
-  const value = bodyValue(normalizedBody(text));
-  return { ...shape, style: value === undefined ? style : { ...style, [keys.key(BODY)]: value } };
-}
 
 export const fieldParts: ModeParts = {
   at(_page, shape, point) {
@@ -138,7 +131,7 @@ export const fieldParts: ModeParts = {
   },
   // Saisie en direct (sujet 253) : la table avec ce texte sur la ligne, élargie s'il le faut.
   textPreview(shape, part, text, sizing, current) {
-    if (part === BODY_PART) return hasBody(shape) ? withBody(shape, text) : shape;
+    if (part === BODY_PART) return hasBody(shape) ? BODY_TEXT.preview(shape, text) : shape;
     const kind = tableKindOf(shape);
     const physical = physicalEdit(shape, current);
     if (kind && physicalTitle(shape, current) && part === NAME_PART) {

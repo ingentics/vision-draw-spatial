@@ -1,7 +1,6 @@
 import type { ModeEdit, ModeSizing, ShapeModel } from '../../../../core/plugins';
 import { isState } from '../kinds';
-import { keys } from '../keys';
-import { BODY, bodyValue, normalized, stateBody } from './bodyText';
+import { BODY_TEXT, stateBody } from './bodyText';
 import { fittedHeight } from './stateLayout';
 
 /** Opérations sur le contenu d'un état (sujet 433) : écriture et hauteur ajustée. */
@@ -11,15 +10,8 @@ import { fittedHeight } from './stateLayout';
  * de l'opération qui l'écrira ensuite.
  */
 export function withBody(shape: ShapeModel, text: string, sizing: ModeSizing): ShapeModel {
-  const body = normalized(text);
-  const { [keys.key(BODY)]: _previous, ...style } = shape.style;
-  const value = bodyValue(body);
-  const height = fittedHeight(shape, body, sizing.measureText);
-  return {
-    ...shape,
-    style: value === undefined ? style : { ...style, [keys.key(BODY)]: value },
-    bounds: { ...shape.bounds, height },
-  };
+  const height = fittedHeight(shape, BODY_TEXT.normalize(text), sizing.measureText);
+  return { ...BODY_TEXT.preview(shape, text), bounds: { ...shape.bounds, height } };
 }
 
 /** Hauteur de l'état ajustée à son titre et à son contenu (`body` : le contenu qui va être écrit). */
@@ -31,7 +23,6 @@ export function fitState(edit: ModeEdit, shape: ShapeModel, body = stateBody(sha
 /** Contenu de l'état écrit (saisie sur place ou panneau), puis sa hauteur ajustée. */
 export function setBody(edit: ModeEdit, shape: ShapeModel, text: string): void {
   if (!isState(shape)) return;
-  const body = normalized(text);
-  edit.setElementAttribute(shape.id, BODY, bodyValue(body));
-  fitState(edit, shape, body);
+  edit.setElementAttribute(shape.id, BODY_TEXT.name, BODY_TEXT.value(text));
+  fitState(edit, shape, BODY_TEXT.normalize(text));
 }

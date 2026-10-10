@@ -11,7 +11,7 @@ import {
 import { COMPOSITE_KIND, FINAL_KIND, INITIAL_KIND, STATE_KIND, isState } from './kinds';
 import { STATES_KEYS } from './keys';
 import { COMPOSITE_LIGHTENING, OBSTACLE_GAP, STATES_SETTINGS } from './settings';
-import { BODY, stateBody } from './state/bodyText';
+import { BODY_TEXT, stateBody } from './state/bodyText';
 import { fitState, setBody } from './state/stateBody';
 import { stateParts } from './state/stateParts';
 import { TRANSITION_PROPERTIES, canConnect, styleTransition, transitionIssues } from './transitions/transitionRules';
@@ -69,7 +69,7 @@ export const definition: PageModeDefinition = {
     properties: [
       {
         type: 'text',
-        key: BODY,
+        key: BODY_TEXT.name,
         label: 'Contenu',
         title:
           'Contenu de l’état sous son titre, en texte libre (spatial.sm.body) ; ⌘ + Entrée pour valider, double-clic dans la zone pour l’éditer sur place',

@@ -14,3 +14,17 @@
 - Doc : `AJOUTER_UN_MODE.md`, briques des parties.
 - **Fini quand :** l'édition sur place du corps d'un document RDD (`rdd-document.drawio`) et du contenu d'un état
   (`states.drawio`) se comporte comme avant, `;` et retours à la ligne compris.
+- Fait :
+  - Nouvelle brique `modeText(keys, nom)` (`core/modes/modeText.ts`), exportée par l'API des plugins avec le type
+    `ModeText`. Elle offre `read`, `normalize`, `value` (valeur à écrire, `undefined` pour un texte vide ou blanc) et
+    `preview` (forme d'aperçu portant le texte).
+  - RDD (`rdd/tables/documentBody.ts`, `editing/fieldParts.ts`) et États (`states/state/bodyText.ts`, `stateBody.ts`,
+    `index.ts`) passent par leur `BODY_TEXT`. Les copies de `bodyValue`, de la lecture JSON, de la normalisation et
+    des deux `withBody` d'aperçu sont retirées.
+  - Doc : `AJOUTER_UN_MODE.md` (clés). `guides.test.ts` lit les membres de `modeText.ts` comme un contrat.
+  - Écart : un corps RDD fait seulement d'espaces est retiré, comme le contenu d'un état (avant : gardé). C'est
+    invisible.
+  - Tests : `tests/engine/core/modes/modeText.test.ts` (nouveau). Ceux de RDD et des états sont inchangés.
+  - `make check` vert.
+  - Vérifié dans l'appli (`states.drawio`) : le contenu de State2, saisi sur place avec un `;`, est écrit et relu tel
+    quel, sur ses lignes, puis annulé.
