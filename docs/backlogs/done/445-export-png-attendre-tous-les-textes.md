@@ -17,3 +17,21 @@
   l'attente d'un texte riche, avec une fabrique simulée si WebGL n'est pas disponible dans les tests.
 - **Fini quand :** le PNG d'une page n'ayant que des labels HTML et du texte le long d'une flèche contient tous ses
   textes, même au premier export après le chargement ; tests verts.
+- Fait : la fabrique de textes (`core/render/troikaText.ts`) compte les mises en page en cours :
+  - chaque texte SDF, de l'événement public `syncstart` à `synccomplete` ;
+  - chaque texte riche ou sur un tracé, de sa création jusqu'à ce que ses morceaux soient lancés, une fois les
+    polices prêtes (`whenMeasured`).
+
+  `settled()` est tenue quand plus rien n'est en cours. L'export l'attend (`view/imageExport.ts`) au lieu de
+  parcourir la scène. `textsSynced` et le champ interne `_isSyncing` (`src/types/troika-three-text.d.ts`) sont
+  retirés : plus aucune dépendance aux champs privés de troika. Écart : l'export attend aussi les textes de la vue
+  affichée qui seraient en cours de mise en page (l'attente est un peu plus longue dans ce cas).
+
+  Tests :
+  - `render/troikaText.test.ts` (nouveau, faux texte troika) : rien en cours, texte simple, texte riche attendu avant
+    même que ses morceaux existent ;
+  - `domains/view/imageExport.test.ts` (nouveau) : sans page, sélection vide, rien de dessiné (textes attendus avant
+    la mesure, scène libérée).
+
+  `make check` vert. Vérifié dans l'appli : l'export PNG de `labels.drawio` contient tous ses labels. Le cas d'une
+  page à textes riches seuls n'est vérifié que par le test.

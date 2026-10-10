@@ -3,8 +3,9 @@ declare module 'troika-three-text' {
   // eslint-disable-next-line @typescript-eslint/consistent-type-imports -- classe étendue ci-dessous
   import { BufferGeometry, Color, Material, Mesh, Object3DEventMap } from 'three';
 
-  /** Fin d'une mise en page (`sync`), émise par le texte. */
+  /** Début et fin d'une mise en page (`sync`), émis par le texte. */
   export interface TextEventMap extends Object3DEventMap {
+    syncstart: object;
     synccomplete: object;
   }
 
@@ -28,8 +29,6 @@ declare module 'troika-three-text' {
     outlineBlur: number | string;
     /** Taille d'un glyphe dans l'atlas SDF, en pixels (puissance de 2, 64 par défaut). */
     sdfGlyphSize: number | null;
-    /** Champ interne : vrai entre le lancement d'une mise en page et son résultat. */
-    readonly _isSyncing?: boolean;
     sync(callback?: () => void): void;
     dispose(): void;
   }

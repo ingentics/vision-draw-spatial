@@ -5,7 +5,6 @@ import type { PageModel, Rect } from '../../model/types';
 import { orientBillboards } from '../../render/billboard';
 import { imageSize, imageTiles } from '../../render/png/imageTiles';
 import { BASE_DPI, withPngDensity } from '../../render/png/pngDensity';
-import { textsSynced } from '../../render/troikaText';
 import type { EngineCore } from '../EngineCore';
 
 /** Réglages d'un export d'image (sujet 431). */
@@ -43,7 +42,7 @@ export class ImageExport {
       for (const child of built.root.children) child.visible = !kept || kept.has(child.userData.elementId as string);
       const scene = new Scene();
       scene.add(built.root);
-      await textsSynced(built.root);
+      await this.core.text.settled();
       scene.updateMatrixWorld(true);
       const bounds = visibleBounds(built.root);
       if (!bounds) return undefined;

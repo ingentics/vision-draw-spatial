@@ -82,13 +82,16 @@ export function pickFont(fonts: FontSet, bold: boolean, italic: boolean, family?
 export function createTroikaTextFactory(
   fonts: FontSet,
   onReady: () => void,
-): TextFactory & { dispose(): void; measured(): Promise<MeasureText> } {
+): TextFactory & { dispose(): void; measured(): Promise<MeasureText>; settled(): Promise<void> } {
   return new TroikaTextFactory(fonts, onReady);
 }
 
 class TroikaTextFactory implements TextFactory {
   private readonly baseMaterial = new MeshBasicMaterial({ transparent: true, depthWrite: false, side: DoubleSide });
   private measuring: Promise<MeasureText> | undefined;
+  /** Mises en page en cours : textes SDF dans le worker, textes riches et sur tracé en attente des polices. */
+  private pending = 0;
+  private waiting: Array<() => void> = [];
 
   constructor(
     private readonly fonts: FontSet,
@@ -136,8 +139,39 @@ class TroikaTextFactory implements TextFactory {
     return (this.measuring ??= createMeasure(this.fonts));
   }
 
+  /**
+   * Promesse tenue quand tous les textes créés jusqu'ici sont mis en page : une scène tout juste construite n'a pas
+   * encore ses lettres (export d'image, sujet 431). Un texte riche ou sur un tracé n'a ses textes SDF qu'une fois les
+   * polices prêtes : il compte dès sa création (sujet 445).
+   */
+  settled(): Promise<void> {
+    return this.pending === 0 ? Promise.resolve() : new Promise((resolve) => this.waiting.push(resolve));
+  }
+
+  private begin(): void {
+    this.pending++;
+  }
+
+  private end(): void {
+    if (--this.pending > 0) return;
+    const waiting = this.waiting;
+    this.waiting = [];
+    for (const resolve of waiting) resolve();
+  }
+
+  /** Texte rempli une fois les polices prêtes (riche, sur un tracé) : compté en cours jusque-là. */
+  private whenMeasured(fill: (measureText: MeasureText) => void): void {
+    this.begin();
+    void this.measured()
+      .then(fill)
+      .finally(() => this.end());
+  }
+
   private sdfText(content: string, font: FontSpec, color: Color, opacity: number, halo?: TextSpec['halo']): Text {
     const text = new Text();
+    // Mise en page dans le worker, lancée par `sync` ou par troika au rendu : comptée jusqu'à son résultat.
+    text.addEventListener('syncstart', () => this.begin());
+    text.addEventListener('synccomplete', () => this.end());
     if (halo) {
       // Contour derrière le glyphe (troika le dessine sous le remplissage).
       text.outlineWidth = halo.width;
@@ -204,7 +238,7 @@ class TroikaTextFactory implements TextFactory {
     const group = new Group();
     const along = spec.along!;
     const lines: DeepReadonly<RichLine[]> = spec.rich ?? spec.text.split('\n').map((text) => [{ text }]);
-    void this.measured().then((measureText) => {
+    this.whenMeasured((measureText) => {
       const base = {
         size: spec.fontSize,
         bold: spec.bold,
@@ -236,7 +270,7 @@ class TroikaTextFactory implements TextFactory {
   /** Texte riche : groupe vide tout de suite, rempli une fois les polices prêtes (mesure des mots). */
   private createRich(spec: TextSpec): Object3D {
     const group = new Group();
-    void this.measured().then((measureText) => {
+    this.whenMeasured((measureText) => {
       const layout = richLayoutOf(spec, measureText);
       const left =
         spec.anchorX === 'left' ? spec.x : spec.anchorX === 'right' ? spec.x - layout.width : spec.x - layout.width / 2;
@@ -344,28 +378,4 @@ async function createMeasure(fonts: FontSet): Promise<MeasureText> {
     context.font = `${SIZE}px "drawio-spatial-${key}"`;
     return (context.measureText(text).width * font.size) / SIZE;
   };
-}
-
-/**
- * Promesse tenue quand tous les textes SDF sous `root` sont mis en page : la mise en page se fait dans un worker, une
- * scène tout juste construite n'a pas encore ses lettres (export d'image, sujet 431). Revérifie à la fin : un texte
- * peut relancer une mise en page (fond ajusté, morceaux).
- */
-export async function textsSynced(root: Object3D): Promise<void> {
-  const pending: Promise<void>[] = [];
-  root.traverse((object) => {
-    if (!(object instanceof Text) || !object._isSyncing) return;
-    pending.push(
-      new Promise((resolve) => {
-        const done = () => {
-          object.removeEventListener('synccomplete', done);
-          resolve();
-        };
-        object.addEventListener('synccomplete', done);
-      }),
-    );
-  });
-  if (pending.length === 0) return;
-  await Promise.all(pending);
-  await textsSynced(root);
 }
