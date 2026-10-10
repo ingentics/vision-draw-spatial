@@ -96,8 +96,11 @@ export class Heap {
  * entre deux segments (croisement ou superposition), tracé d'une flèche.
  */
 export interface Router {
-  /** Vrai si le tracé s'écrit en ligne droite par ses points intermédiaires (`edgeStyle` retiré). */
-  straight: boolean;
+  /**
+   * Clés de style écrites sur les flèches réparties (undefined : clé retirée), le seul tracé que permet l'ancrage
+   * (sujets 441, 443) : orthogonal arrondi en automatique ; en Typon, ligne droite par les points intermédiaires.
+   */
+  edgeStyle: Readonly<Record<string, string | undefined>>;
   segments(path: Point[]): Segment[];
   conflict(s: Segment, t: Segment): boolean;
   route(

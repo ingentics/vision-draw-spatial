@@ -384,7 +384,7 @@ class OctilinearSearch {
  */
 export function octilinearRouter(avoid: boolean, bends: BendCosts = DEFAULT_BEND_COSTS): Router {
   return {
-    straight: true,
+    edgeStyle: { edgeStyle: undefined, rounded: undefined, curved: undefined },
     segments: pathSegments,
     conflict: (s, t) => segmentsCross(s, t) || segmentsOverlap(s, t) > 0.5,
     route: (from, to, obstacles, occupied, attract, options, seed) =>

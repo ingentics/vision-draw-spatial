@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   arrangeAnchors,
   arrangementConflicts,
-  straightStyle,
+  routerStyleChanges,
+  withStyleChanges,
 } from '../../../../../../src/engine/core/edit/anchoring/auto/anchorArrangement';
 import { DEFAULT_AVOID_OPTIONS } from '../../../../../../src/engine/core/edit/anchoring/routing';
 import {
@@ -13,7 +14,7 @@ import {
   segmentsOverlap,
 } from '../../../../../../src/engine/core/edit/anchoring/pcb/octilinear';
 import { readDrawio } from '../../../../../../src/engine/core/format/parse';
-import type { Point, Rect } from '../../../../../../src/engine/core/model/types';
+import type { EdgeModel, Point, Rect } from '../../../../../../src/engine/core/model/types';
 
 /** Vrai si chaque segment est à 0°, 45° ou 90°. */
 const octilinear = (path: Point[]) =>
@@ -103,7 +104,7 @@ describe('agencement Typon', () => {
     const all = new Set(page.shapes.map((s) => s.id));
     const arrangement = arrangeAnchors(page, all, { route: DEFAULT_AVOID_OPTIONS, router: octilinearRouter(true) });
     const points = arrangement.routes.get('e')!;
-    expect(arrangement.router.straight).toBe(true);
+    expect(arrangement.router.edgeStyle).toEqual({ edgeStyle: undefined, rounded: undefined, curved: undefined });
     const path = [{ x: 100, y: 30 }, ...points, { x: 400, y: 230 }];
     expect(octilinear(path)).toBe(true);
     expect(diagonals(path)).toBeGreaterThan(0);
@@ -113,6 +114,7 @@ describe('agencement Typon', () => {
 
   it('une flèche tracée en Typon perd son routeur, ses coins arrondis et sa courbe (sujet 441)', () => {
     const style = { edgeStyle: 'orthogonalEdgeStyle', rounded: '1', curved: '1', strokeColor: '#ff0000' };
-    expect(straightStyle(style)).toEqual({ strokeColor: '#ff0000' });
+    const changes = routerStyleChanges({ style } as unknown as EdgeModel, octilinearRouter(true));
+    expect(withStyleChanges(style, changes)).toEqual({ strokeColor: '#ff0000' });
   });
 });

@@ -6,8 +6,8 @@ import {
   arrangeAnchors,
   arrangementChanges,
   arrangementConflicts,
-  STRAIGHT_REMOVED_KEYS,
-  straightStyle,
+  routerStyleChanges,
+  withStyleChanges,
 } from '../../../edit/anchoring/auto/anchorArrangement';
 import type { Arrangement } from '../../../edit/anchoring/auto/anchorArrangement';
 import type { AvoidOptions, Router } from '../../../edit/anchoring/routing';
@@ -112,10 +112,11 @@ export class EdgeArrangement {
       const points =
         routes.get(edge.id) ??
         (loops.has(edge) || (loop && retraced) ? this.core.anchors.loopPoints(page, edge) : retraced ? [] : undefined);
-      const removed = STRAIGHT_REMOVED_KEYS.filter((key) => edge.style[key] !== undefined);
-      if (arrangement.router.straight && routes.has(edge.id) && removed.length > 0) {
-        if (pageTree) for (const key of removed) setCellStyleValue(pageTree, edge.id, key, undefined);
-        edge.style = straightStyle(edge.style);
+      const changes = edgeIds.has(edge.id) ? routerStyleChanges(edge, arrangement.router) : {};
+      if (Object.keys(changes).length > 0) {
+        if (pageTree)
+          for (const [key, value] of Object.entries(changes)) setCellStyleValue(pageTree, edge.id, key, value);
+        edge.style = withStyleChanges(edge.style, changes);
         wrote = true;
       }
       if (!points || samePoints(points, edge.points)) continue;

@@ -8,6 +8,7 @@ import { distributeAnchors } from './distribute';
 import type { AnchorChange } from './distribute';
 import { constraintStyle } from '../../edgeEnds';
 import { edgeOf, shapesById } from '../../../model/pageIndex';
+import { isBlockArrow } from '../../../render/edges/blockArrow';
 
 /**
  * Agencement en ancrage automatique (SPEC §14.1) : répartition des flèches sur les côtés des formes `shapeIds`, puis
@@ -27,16 +28,25 @@ export interface Arrangement {
 }
 
 /**
- * Clés retirées d'une flèche tracée en ligne droite par ses points intermédiaires (Typon) : le routeur draw.io, et les
- * coins arrondis ou la courbe, que le Typon ne permet pas (sujet 441).
+ * Clés à changer sur une flèche répartie pour qu'elle ait le tracé de l'ancrage (`Router.edgeStyle`) ; vide pour une
+ * flèche pleine (sans tracé) ou déjà au bon style.
  */
-export const STRAIGHT_REMOVED_KEYS = ['edgeStyle', 'rounded', 'curved'] as const;
+export function routerStyleChanges(edge: EdgeModel, router: Router): Record<string, string | undefined> {
+  if (isBlockArrow(edge.style)) return {};
+  return Object.fromEntries(Object.entries(router.edgeStyle).filter(([key, value]) => edge.style[key] !== value));
+}
 
-/** Style d'une flèche tracée en ligne droite par ses points intermédiaires (Typon). */
-export function straightStyle(style: Record<string, string>): Record<string, string> {
-  const rest = { ...style };
-  for (const key of STRAIGHT_REMOVED_KEYS) delete rest[key];
-  return rest;
+/** Style de la flèche une fois les clés de `routerStyleChanges` écrites. */
+export function withStyleChanges(
+  style: Record<string, string>,
+  changes: Record<string, string | undefined>,
+): Record<string, string> {
+  const result = { ...style };
+  for (const [key, value] of Object.entries(changes)) {
+    if (value === undefined) delete result[key];
+    else result[key] = value;
+  }
+  return result;
 }
 
 /** Copie de la page où les flèches ont leurs nouveaux points d'attache. */
@@ -104,7 +114,9 @@ export function arrangementConflicts(page: PageModel, arrangement: Arrangement):
         sourcePoint: edge.sourcePoint,
         targetPoint: edge.targetPoint,
         waypoints: routes.get(edge.id) ?? edge.points,
-        style: router.straight && routes.has(edge.id) ? straightStyle(edge.style) : edge.style,
+        style: arrangement.edgeIds.has(edge.id)
+          ? withStyleChanges(edge.style, routerStyleChanges(edge, router))
+          : edge.style,
       }),
     ),
   );

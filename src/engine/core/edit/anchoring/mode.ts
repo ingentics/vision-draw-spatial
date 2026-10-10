@@ -25,10 +25,17 @@ export function isEdgeLine(value: string | undefined): value is EdgeLine {
   return (EDGE_LINES as readonly (string | undefined)[]).includes(value);
 }
 
+const EDGE_LINES_BY_ANCHORING: Record<Anchoring, readonly EdgeLine[]> = {
+  manual: EDGE_LINES,
+  auto: ['rounded'],
+  pcb: ['straight'],
+};
+
 /**
- * Tracés permis par un ancrage, le premier par défaut : tous en manuel et en automatique ; en Typon, la droite seule
- * (il trace lui-même ses pistes à 45°, sans coins arrondis ni courbe).
+ * Tracés permis par un ancrage, le premier par défaut : tous en manuel ; en automatique, l'arrondi seul (sujet 443) ;
+ * en Typon, la droite seule (il trace lui-même ses pistes à 45°, sans coins arrondis ni courbe). Les flèches réparties
+ * en prennent le style (`Router.edgeStyle`).
  */
 export function edgeLinesOf(anchoring: Anchoring): readonly EdgeLine[] {
-  return anchoring === 'pcb' ? ['straight'] : EDGE_LINES;
+  return EDGE_LINES_BY_ANCHORING[anchoring];
 }

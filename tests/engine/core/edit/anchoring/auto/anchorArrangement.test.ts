@@ -3,7 +3,9 @@ import {
   arrangeAnchors,
   arrangementChanges,
   arrangementConflicts,
+  routerStyleChanges,
 } from '../../../../../../src/engine/core/edit/anchoring/auto/anchorArrangement';
+import { ORTHOGONAL_ROUTER } from '../../../../../../src/engine/core/edit/anchoring/auto/routeAround';
 import { avoidRoutes } from '../../../../../../src/engine/core/edit/anchoring/auto/avoid';
 import { DEFAULT_AVOID_OPTIONS } from '../../../../../../src/engine/core/edit/anchoring/routing';
 import {
@@ -12,6 +14,7 @@ import {
   withNeighbours,
 } from '../../../../../../src/engine/core/edit/anchoring/auto/distribute';
 import { readDrawio } from '../../../../../../src/engine/core/format/parse';
+import type { EdgeModel } from '../../../../../../src/engine/core/model/types';
 
 const shape = (id: string, x: number, y: number, w = 100, h = 60) =>
   `<mxCell id="${id}" vertex="1" parent="1"><mxGeometry x="${x}" y="${y}" width="${w}" height="${h}" as="geometry"/></mxCell>`;
@@ -104,5 +107,29 @@ describe('graine et voisinage', () => {
     ]);
     expect([...withNeighbours(p, ['a'])].sort()).toEqual(['a', 'b']);
     expect([...withNeighbours(p, ['b'])].sort()).toEqual(['a', 'b', 'c']);
+  });
+});
+
+describe('style imposé par l’ancrage automatique (sujet 443)', () => {
+  const edgeOfStyle = (style: Record<string, string>) => ({ style }) as unknown as EdgeModel;
+
+  it('une flèche droite ou courbe devient orthogonale arrondie', () => {
+    expect(routerStyleChanges(edgeOfStyle({ curved: '1', rounded: '0' }), ORTHOGONAL_ROUTER)).toEqual({
+      edgeStyle: 'orthogonalEdgeStyle',
+      rounded: '1',
+      curved: undefined,
+    });
+    expect(routerStyleChanges(edgeOfStyle({ noEdgeStyle: '1' }), ORTHOGONAL_ROUTER)).toEqual({
+      edgeStyle: 'orthogonalEdgeStyle',
+      noEdgeStyle: undefined,
+      rounded: '1',
+    });
+  });
+
+  it('rien à changer sur une flèche déjà arrondie, ni sur une flèche pleine', () => {
+    expect(
+      routerStyleChanges(edgeOfStyle({ edgeStyle: 'orthogonalEdgeStyle', rounded: '1' }), ORTHOGONAL_ROUTER),
+    ).toEqual({});
+    expect(routerStyleChanges(edgeOfStyle({ shape: 'flexArrow', curved: '1' }), ORTHOGONAL_ROUTER)).toEqual({});
   });
 });

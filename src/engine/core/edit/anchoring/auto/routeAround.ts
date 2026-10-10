@@ -225,7 +225,7 @@ function stepCost(
 }
 
 export const ORTHOGONAL_ROUTER: Router = {
-  straight: false,
+  edgeStyle: { edgeStyle: 'orthogonalEdgeStyle', noEdgeStyle: undefined, rounded: '1', curved: undefined },
   segments: segmentsOf,
   conflict: (s, t) => crosses(s, t) || overlap(s, t) > 0.5,
   route: routeAround,

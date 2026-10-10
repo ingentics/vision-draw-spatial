@@ -15,9 +15,9 @@ const arrangement = new EdgeArrangement({ settings: { shapes } } as unknown as E
 const page = (attributes: Record<string, string>) => ({ attributes }) as unknown as PageModel;
 
 describe('tracé des flèches par page (sujet 441)', () => {
-  it('tracés permis par ancrage : tous en manuel et en automatique, la droite seule en Typon', () => {
+  it('tracés permis par ancrage : tous en manuel, l’arrondi seul en automatique, la droite seule en Typon', () => {
     expect(edgeLinesOf('manual')).toEqual(['straight', 'sharp', 'rounded', 'curved']);
-    expect(edgeLinesOf('auto')).toEqual(['straight', 'sharp', 'rounded', 'curved']);
+    expect(edgeLinesOf('auto')).toEqual(['rounded']);
     expect(edgeLinesOf('pcb')).toEqual(['straight']);
   });
 
@@ -25,6 +25,11 @@ describe('tracé des flèches par page (sujet 441)', () => {
     expect(arrangement.edgeLineOf(page({}))).toBe('rounded');
     expect(arrangement.edgeLineOf(page({ 'spatial.edgeLine': 'curved' }))).toBe('curved');
     expect(arrangement.edgeLineOf(page({ 'spatial.edgeLine': 'zigzag' }))).toBe('rounded');
+  });
+
+  it('en automatique, tout tracé voulu cède la place à l’arrondi (sujet 443)', () => {
+    expect(arrangement.edgeLineOf(page({ 'spatial.anchoring': 'auto', 'spatial.edgeLine': 'curved' }))).toBe('rounded');
+    expect(arrangement.edgeLineOf(page({ 'spatial.anchoring': 'auto' }))).toBe('rounded');
   });
 
   it('en Typon, le tracé voulu non permis cède la place à la droite', () => {
