@@ -75,4 +75,10 @@ describe('paramètres enregistrés : moteur de rendu PlantUML repris du mode Sé
       DEFAULT_SETTINGS.exporters.plantuml,
     );
   });
+
+  it('anciennes clés sous un autre mode : reprises de même, sans nom de mode en dur (sujet 454)', () => {
+    const settings = load({ modes: { autre: { plantumlRenderer: 'local' }, sequences: { dimOpacity: 0.5 } } });
+    expect(settings.exporters.plantuml.renderer).toBe('local');
+    expect(settings.modes).toEqual({ sequences: { dimOpacity: 0.5 } });
+  });
 });

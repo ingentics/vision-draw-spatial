@@ -41,22 +41,35 @@ export function withLegacy(saved: SettingsPatch): SettingsPatch {
 }
 
 /**
- * Moteur de rendu PlantUML enregistré comme réglage du mode Séquences (sujet 306, `modes.sequences.plantumlRenderer` et
+ * Moteur de rendu PlantUML enregistré comme réglage d'un mode (sujet 306 : Séquences, `plantumlRenderer` et
  * `plantumlUrl`) : repris dans les paramètres Exporteurs › PlantUML, communs aux modes (sujet 439), une valeur déjà
- * enregistrée à la nouvelle place l'emportant ; les anciennes clés sont retirées du mode. Valeurs vérifiées par la
- * fusion des paramètres.
+ * enregistrée à la nouvelle place l'emportant. Les anciennes clés sont cherchées dans chaque mode sans le nommer
+ * (sujet 454) et retirées, comme le mode s'il ne lui reste rien. Valeurs vérifiées par la fusion des paramètres.
  */
 function withLegacyExporters(stored: SettingsPatch): SettingsPatch {
-  const { plantumlRenderer, plantumlUrl, ...sequences } = stored.modes?.sequences ?? {};
-  if (plantumlRenderer === undefined && plantumlUrl === undefined) return stored;
+  let renderer: unknown;
+  let url: unknown;
+  let found = false;
+  const modes: Record<string, Record<string, unknown>> = {};
+  for (const [id, values] of Object.entries(stored.modes ?? {})) {
+    const { plantumlRenderer, plantumlUrl, ...rest } = values as Record<string, unknown>;
+    if (plantumlRenderer === undefined && plantumlUrl === undefined) {
+      modes[id] = values as Record<string, unknown>;
+      continue;
+    }
+    found = true;
+    renderer ??= plantumlRenderer;
+    url ??= plantumlUrl;
+    if (Object.keys(rest).length > 0) modes[id] = rest;
+  }
+  if (!found) return stored;
   const legacy = {
-    ...(typeof plantumlRenderer === 'string' ? { renderer: plantumlRenderer } : {}),
-    ...(typeof plantumlUrl === 'string' ? { localUrl: plantumlUrl } : {}),
+    ...(typeof renderer === 'string' ? { renderer } : {}),
+    ...(typeof url === 'string' ? { localUrl: url } : {}),
   } as NonNullable<NonNullable<SettingsPatch['exporters']>['plantuml']>;
-  const { sequences: _, ...modes } = stored.modes ?? {};
   return {
     ...stored,
-    modes: Object.keys(sequences).length > 0 ? { ...modes, sequences } : modes,
+    modes: modes as SettingsPatch['modes'],
     exporters: { ...stored.exporters, plantuml: { ...legacy, ...stored.exporters?.plantuml } },
   };
 }
