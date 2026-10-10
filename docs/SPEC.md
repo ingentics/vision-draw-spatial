@@ -1146,6 +1146,17 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     sont à moins de 0,5 et qu'ils se recouvrent au-delà sur l'autre axe (un coin seul ne compte pas) ; pour chaque
     paire : côté de chaque forme, segment de contact, part du côté de chacune. Les chevauchements sont listés à part.
     Pas montrés dans le panneau (sujet 483) : base des sujets qui les interpréteront.
+  - **Export JSON** (sujet 518, `export/json.ts`, règles `export/wallRules.ts`) : bouton « Exporter en JSON » de la
+    section « Event storming » du panneau de la page, texte copiable dans la fenêtre d'export commune. Le mur se lit
+    sans flèche : `groups` (groupes de post-it collés, `G1`… de haut en bas, libellé `spatial.es.group` ou `null`),
+    `elements` (id `G2.C3` : groupe, préfixe du type A C E P S R H K, rang lu de haut en bas puis de gauche à droite ;
+    post-it isolé sans groupe ; `type` lu sur le kind, Query Model en `read_model` ; `concept` = type et texte en
+    minuscules sans accents ni ponctuation ; `pivot` sur les Domain Events : `true`, `false`, `unknown` ou `null`),
+    `links` (chacun avec sa règle : R1 séquence gauche → droite, R2 attache de tout côté, R3 Policy qui émet la Command
+    à droite de son Event et retire le `causes` direct, R4 Hotspot vers un seul voisin — dessus, dessous, gauche,
+    droite —, R5 Events empilés issues de la même Command ; un contact crée un lien s'il couvre au moins 20 % du côté
+    du plus petit post-it) et `warnings` (W1 contact sans règle, W2 Policy sans Command, W3 Policy sans Event, W4
+    Hotspot isolé, W5 Event sans Command, W6 Command sans déclencheur, W7 post-it isolé, W8 chevauchement).
 
 ### 14.6 Export d'image
 
