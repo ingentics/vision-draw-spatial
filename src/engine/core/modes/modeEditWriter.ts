@@ -107,14 +107,19 @@ export class ModeEditWriter implements ModeEdit {
     this.#writes.push(() => setPageAttribute(this.#pageTree, key, value));
   }
 
-  setElementAttribute(elementId: string, name: string, value: string | undefined): void {
+  setElementAttribute(
+    elementId: string,
+    name: string,
+    value: string | undefined,
+    options?: { derived?: boolean },
+  ): void {
     const key = modeKey(this.#owner.namespace, name);
     const element = this.#elements.get(elementId);
     // `;` sépare les clés du style draw.io.
     const text = value?.replaceAll(';', '');
     const slot = `${elementId}\n${key}`;
     const current = this.#written.has(slot) ? this.#written.get(slot) : element && spatialValue(element, key);
-    if (!element || isLocked(element) || current === text) return;
+    if (!element || (isLocked(element) && !options?.derived) || current === text) return;
     this.#written.set(slot, text);
     const pageTree = this.#pageTree;
     this.#writes.push(() => {

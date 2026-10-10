@@ -43,9 +43,15 @@ export interface ModeEdit extends ModeSizing {
   setPageAttribute(name: string, value: string | undefined): void;
   /**
    * Attribut du mode sur une forme ou une flèche, par son nom court (là où il est déjà, sinon dans le style) ;
-   * undefined le retire.
+   * undefined le retire. Ignoré sur un élément verrouillé, sauf `derived` (sujet 508) : valeur recopiée d'un réglage
+   * (ex. réglage de la page recopié sur chaque forme), que le verrou ne doit pas laisser périmée.
    */
-  setElementAttribute(elementId: string, name: string, value: string | undefined): void;
+  setElementAttribute(
+    elementId: string,
+    name: string,
+    value: string | undefined,
+    options?: { derived?: boolean },
+  ): void;
   /**
    * Clé du style draw.io d'un élément (ex. `fillColor`, sujet 179) ; undefined la retire. Ni `spatial.*` ni clé de
    * verrou (`locked`, `movable`, `resizable`, `editable`, `deletable`).

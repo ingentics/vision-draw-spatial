@@ -20,6 +20,15 @@ describe('mode Event storming : réglage « Labels » de la page (sujet 475)', (
     expect(shape('a').style['spatial.es.labels']).toBeUndefined();
   });
 
+  it('post-it verrouillé : il suit aussi le réglage, le reste du post-it ne change pas (sujet 508)', () => {
+    const { run, shape } = setup(stormingXml(sticky('a', 'event', 0, 0, 'x', 160, 160, 'locked=1;')));
+    run((edit) => property.write!(edit, edit.page, undefined));
+    expect(shape('a').style['spatial.es.labels']).toBe('0');
+    expect(shape('a').style.locked).toBe('1');
+    run((edit) => property.write!(edit, edit.page, '1'));
+    expect(shape('a').style['spatial.es.labels']).toBeUndefined();
+  });
+
   it('post-it posé ou collé : il prend le réglage de la page', () => {
     const { run, shape } = setup(
       stormingXml(

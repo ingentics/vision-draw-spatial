@@ -14,7 +14,9 @@ const labelsShown = (page: PageModel): boolean => keys.pageFlag(page, LABELS, tr
 /** Recopie le réglage de la page sur ces post-it (tous ceux de la page par défaut). */
 export function syncLabels(edit: ModeEdit, shapeIds?: readonly string[], shown = labelsShown(edit.page)): void {
   const shapes = shapeIds ? shapeIds.map((id) => shapeOf(edit.page, id)).filter((shape) => !!shape) : edit.page.shapes;
-  for (const shape of shapes) if (isSticky(shape)) edit.setElementAttribute(shape.id, LABELS, shown ? undefined : '0');
+  // Copie du réglage de la page : tenue à jour même sur un post-it verrouillé (sujet 508).
+  for (const shape of shapes)
+    if (isSticky(shape)) edit.setElementAttribute(shape.id, LABELS, shown ? undefined : '0', { derived: true });
 }
 
 export const LABELS_PROPERTY: ModeProperty = {

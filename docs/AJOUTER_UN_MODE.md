@@ -167,7 +167,8 @@ par leur nom court), `setElementStyle` (autre clé du style draw.io, ex. `fillCo
 grandit avec ses champs), `removeEdge` (supprime une flèche et ses textes, sujet 269), `sendToBack` (formes au fond
 de l'ordre de dessin, sujet 230), `placeBehind` (une forme juste derrière une autre, sujet 484) et `setEdgeEndText` (texte de début ou de fin d'une flèche, ex. cardinalité, sujet
 265) ; ses méthodes s'appellent sur l'objet (`edit.setPageAttribute(…)`), pas détachées. Un élément verrouillé ne change ni d'attribut du mode, ni de style, ni de bornes, ni de place dans l'ordre, ni de
-textes de bout. Toutes ses écritures forment une étape d'annulation, et rien n'est enregistré si elle ne
+textes de bout ; seule exception, un attribut du mode écrit avec `{ derived: true }`, copie d'un réglage (ex. « Labels »
+de la page recopié sur chaque post-it, sujet 508), que le verrou ne doit pas laisser périmée. Toutes ses écritures forment une étape d'annulation, et rien n'est enregistré si elle ne
 change rien. Depuis l'appli : `onEdit(label, (edit) => monOperation(edit, …))` (prop des sections React), ou
 `engine.editPageMode(label, …)`.
 

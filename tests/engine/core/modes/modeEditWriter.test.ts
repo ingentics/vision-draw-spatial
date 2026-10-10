@@ -99,6 +99,9 @@ describe('attribut d’un élément verrouillé (sujet 324)', () => {
     ).toBe(true);
     expect(shape('a').style['spatial.test.x']).toBeDefined();
     expect(shape('locked').style['spatial.test.x']).toBeUndefined();
+    // Valeur recopiée d'un réglage (sujet 508) : écrite aussi sur l'élément verrouillé.
+    expect(run((edit) => edit.setElementAttribute('locked', 'x', '1', { derived: true }))).toBe(true);
+    expect(shape('locked').style['spatial.test.x']).toBe('1');
   });
 });
 
