@@ -33,6 +33,7 @@ export type {
   PageModeDefinition,
 } from '../modes/types';
 export type { ModeEdit, ModeSizing } from '../modes/modeEdit';
+export type { SimulationFrame, SimulationLayer, SimulationScene } from '../modes/simulation';
 export type { ModeProperty } from '../modes/modeProperty';
 export type { EffectLight, EffectRoom, PageEffectDefinition } from '../effects/types';
 export { modeKeys } from '../modes/modeKeys';
@@ -78,6 +79,8 @@ export { PLANTUML_FORMAT, plantUmlLine, plantUmlQuoted } from '../export/plantum
 
 // Briques de dessin (Three.js) : rendu à plat et en volume, contours, traits, textes, couleurs.
 export { PART_ORDER } from '../render/types';
+export { DEFAULT_EDGE_BADGE, edgeBadge, edgeBadgeDisc } from '../render/decorations';
+export { labelPoint } from '../render/edges/polyline';
 export type { EdgeBadgeStyle, MeasureContext, RenderContext } from '../render/types';
 export { createBox, createLabel, flatBox, labelObject, VERTEX_DEFAULTS } from '../render/flat/box';
 export type { BoxDefaults, LabelOptions } from '../render/flat/box';
@@ -97,9 +100,9 @@ export {
   roundedRectPath,
   sizeOffset,
 } from '../render/geometry/paths';
-export { dashPattern } from '../render/geometry/stroke';
+export { dashPattern, offsetOutline } from '../render/geometry/stroke';
 export { edgeLines } from '../render/lines';
-export { fillMesh, solidMaterial, strokeMesh } from '../render/meshes';
+export { disposeObject, fillMesh, solidMaterial, strokeMesh } from '../render/meshes';
 export { DRAWIO_STYLES, drawioStyle } from '../edit/stylePresets';
 export type { StylePreset } from '../edit/stylePresets';
 export {

@@ -2355,3 +2355,117 @@ button.mode-bar-label.renamable:hover {
   fill: none;
   stroke: var(--accent);
 }
+
+/* Simulation d'une machine à états (sujets 462, 463) : barre flottante en bas de la zone de dessin, trace du panneau. */
+.simulation-dock {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  left: 12px;
+  /* Devant la mini-carte. */
+  z-index: 7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  /* Seules la barre et la liste prennent le pointeur : la zone de dessin reste utilisable autour. */
+  pointer-events: none;
+}
+
+.simulation-dock > * {
+  pointer-events: auto;
+}
+
+.simulation-bar,
+.simulation-popup {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+}
+
+.simulation-popup .simulation-entries {
+  display: grid;
+  gap: 4px;
+}
+
+.simulation-step {
+  padding: 0 6px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.simulation-end {
+  padding: 3px 8px;
+  border-radius: 4px;
+  color: #ffffff;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.simulation-entries {
+  display: grid;
+  gap: 4px;
+}
+
+.simulation-message {
+  margin: 0;
+}
+
+.simulation-trace {
+  max-height: 220px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  list-style: none;
+}
+
+.simulation-trace button {
+  display: block;
+  width: 100%;
+  padding: 2px 8px;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.simulation-trace button:hover:not(:disabled) {
+  background: var(--panel);
+}
+
+.simulation-trace button:disabled {
+  cursor: default;
+}
+
+.simulation-trace .transition button {
+  padding-left: 20px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.simulation-trace .current {
+  background: rgba(30, 136, 229, 0.12);
+  font-weight: 500;
+}
+
+.simulation-trace .end {
+  padding: 2px 8px;
+  font-weight: 500;
+}
+
+.simulation-count {
+  margin-left: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}

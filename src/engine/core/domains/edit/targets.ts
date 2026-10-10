@@ -37,7 +37,7 @@ export class EditTargets {
    */
   writablePage(): { page: PageModel; pageTree: PageTree } | undefined {
     const page = this.core.pages.getCurrentPage();
-    if (!page || this.core.graph.isGraph(page.id) || !this.core.canInteract()) return undefined;
+    if (!page || this.core.graph.isGraph(page.id) || !this.canEditNow()) return undefined;
     const pageTree = this.core.file.pageTreeOf(page.id);
     if (!pageTree || pageTree.encoding === 'unreadable') return undefined;
     return { page, pageTree };
@@ -51,8 +51,16 @@ export class EditTargets {
     const xmlTree = this.core.file.xmlTree;
     const page = this.core.pages.pageById(pageId);
     const pageTree = this.core.file.pageTreeOf(pageId);
-    if (!xmlTree || !page || !pageTree?.diagram || !this.editable || !this.core.canInteract()) return undefined;
+    if (!xmlTree || !page || !pageTree?.diagram || !this.editable || !this.canEditNow()) return undefined;
     return { page, pageTree, xmlTree };
+  }
+
+  /**
+   * Rien n'empêche d'écrire en ce moment : pas de transition entre pages, ni de simulation ouverte (sujet 461 : l'édition
+   * y est bloquée, annuler et rétablir compris).
+   */
+  canEditNow(): boolean {
+    return this.core.canInteract() && !this.core.simulations.current;
   }
 
   /** Forme sélectionnée sur la page courante, si on peut la modifier (poignées affichées). */

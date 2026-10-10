@@ -17,6 +17,7 @@ import type { ShapeRegistryView } from './core/shapes/registry';
 import type { OrientAction } from './core/edit/orientShapes';
 import type { ModeEdit } from './core/modes/modeEdit';
 import type { ModeTarget } from './core/modes/types';
+import type { SimulationFrame, SimulationHandlers, SimulationSession } from './core/modes/simulation';
 import type { JumpDefaults } from './core/render/edges/jumps';
 import type { EngineMetrics } from './core/domains/runtime/metrics';
 import type { ImageExportOptions } from './core/domains/view/imageExport';
@@ -489,6 +490,29 @@ export class Engine {
   /** Choisit le courant du mode d'une page (ex. bouton « suivant » de la barre) ; ignoré s'il n'est pas valable. */
   setModeCurrent(value: string, pageId?: string): void {
     this.core.modeCurrents.setModeCurrent(value, pageId);
+  }
+
+  /**
+   * Ouvre une simulation sur la page courante (sujet 461), même en lecture seule : sélection vidée, édition bloquée
+   * jusqu'à sa fermeture. `owner` : l'objet de celui qui l'ouvre (ex. la simulation du mode), rendu par
+   * `getSimulation`. Faux sans page affichée (ou sur la vue graphe, ou pendant une transition).
+   */
+  openSimulation(owner: object, handlers: SimulationHandlers): boolean {
+    return this.core.simulations.open(owner, handlers);
+  }
+
+  /** Affiche un pas de la simulation : voile, éléments gardés, couche du mode, forme suivie par la caméra. */
+  showSimulation(frame: SimulationFrame): void {
+    this.core.simulations.show(frame);
+  }
+
+  closeSimulation(): void {
+    this.core.simulations.close();
+  }
+
+  /** Simulation ouverte ; undefined sans simulation. */
+  getSimulation(): SimulationSession | undefined {
+    return this.core.simulations.current;
   }
 
   // -------------------------------------------------------------------------

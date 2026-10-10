@@ -1,6 +1,6 @@
 import { PLANTUML_FORMAT, byId, plantUmlLine, plantUmlQuoted } from '../../../../core/plugins';
 import type { EdgeModel, PageModel, ShapeModel } from '../../../../core/plugins';
-import { compositeOf } from '../composites/compositeLayout';
+import { compositeAncestors, compositeOf } from '../composites/compositeLayout';
 import { ERROR_COLOR, isErrorExit } from '../exits/exitKind';
 import { isComposite, isFinal, isInitial, isStateLike } from '../kinds';
 import { bodyLines } from '../state/stateLayout';
@@ -37,13 +37,9 @@ interface Transition {
   line: string;
 }
 
-/** Ensembles qui contiennent `shape`, du plus proche au plus lointain. */
-function ancestorsOf(page: PageModel, shape: ShapeModel): string[] {
-  const chain: string[] = [];
-  for (let parent = compositeOf(page, shape); parent && !chain.includes(parent.id); parent = compositeOf(page, parent))
-    chain.push(parent.id);
-  return chain;
-}
+/** Ids des ensembles qui contiennent `shape`, du plus proche au plus lointain. */
+const ancestorsOf = (page: PageModel, shape: ShapeModel): string[] =>
+  compositeAncestors(page, shape).map((parent) => parent.id);
 
 /** Plus petit ensemble qui contient les deux bouts (un bout n'est pas son propre contenant : boucle sur un ensemble). */
 function commonLevel(page: PageModel, a: ShapeModel, b: ShapeModel): Level {

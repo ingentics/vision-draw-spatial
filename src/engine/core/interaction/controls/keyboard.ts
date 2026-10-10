@@ -59,6 +59,10 @@ export class KeyboardControls {
   private readonly onKeyDown = (event: KeyboardEvent): void => {
     if (this.trackHeldKeys(event)) return;
     if (!this.ctx.enabled || isEditable(event.target)) return;
+    if (this.ctx.host.simulating?.()) {
+      this.runSimulationKey(event);
+      return;
+    }
     const action = this.runSelectionKey(event);
     if (action === true) return;
     if (this.runEditKey(event)) return;
@@ -66,6 +70,25 @@ export class KeyboardControls {
     if (this.runPageKey(event, action)) return;
     this.startMotion(event);
   };
+
+  /**
+   * Pendant une simulation (sujet 461) : la touche va à la simulation ; sinon, seuls les raccourcis de la vue et ses
+   * mouvements (Espace et flèches comprises, si la simulation ne les prend pas).
+   */
+  private runSimulationKey(event: KeyboardEvent): void {
+    const { host, settings } = this.ctx;
+    const modified = event.ctrlKey || event.metaKey || event.altKey;
+    if (!modified && host.simulationKey?.(event.key)) {
+      event.preventDefault();
+      return;
+    }
+    if (modified) return;
+    const action = isMoveKey(event.code, settings.moveKeys)
+      ? undefined
+      : resolveShortcut(event.key, settings.shortcuts, { canDelete: false });
+    if (this.runViewKey(event, action)) return;
+    this.startMotion(event);
+  }
 
   /** Touches de modification maintenues (suivre un lien, sélection multiple) ; vrai si la touche s'arrête là. */
   private trackHeldKeys(event: KeyboardEvent): boolean {

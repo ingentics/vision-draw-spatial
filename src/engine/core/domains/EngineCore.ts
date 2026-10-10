@@ -35,6 +35,7 @@ import { Links } from './navigation/links';
 import { BackHistory } from './navigation/history';
 import { Transitions } from './navigation/transition';
 import { ModeCurrents } from './modes/modeCurrents';
+import { Simulations } from './modes/simulations';
 import { PageModes } from './modes/pageModes';
 import { ModePanel } from './modes/modePanel';
 import { ModeFollowUps } from './modes/modeFollowUps';
@@ -143,6 +144,7 @@ export class EngineCore {
   readonly modePanel = new ModePanel(this);
   readonly modeFollowUps = new ModeFollowUps(this);
   readonly modeCurrents = new ModeCurrents(this);
+  readonly simulations = new Simulations(this);
   readonly shapeParts = new ShapeParts(this);
   readonly modeHandles = new ModeHandles(this);
 
@@ -220,6 +222,8 @@ export class EngineCore {
     this.display.observe();
 
     this.controller = createCameraController(this);
+    // Changer de page ferme la simulation ouverte (sujet 461).
+    this.events.on('pageChange', (page) => this.simulations.pageShown(page.id));
   }
 
   /** Moteur libéré (lecture seule : `dispose`). */
@@ -237,6 +241,7 @@ export class EngineCore {
    */
   resetDocumentState(initialView: InitialView | undefined): void {
     const states: DocumentState[] = [
+      this.simulations,
       this.transitions,
       this.selection,
       this.sceneView,
@@ -297,6 +302,7 @@ export class EngineCore {
     this.wasDisposed = true;
     this.camera.cancelAnimation();
     this.highlight.dispose();
+    this.simulations.dispose();
     this.pointer.dispose();
     this.transitions.abort();
     this.display.dispose();

@@ -12,6 +12,7 @@ import type {
   Selection,
   Settings,
   SettingsPatch,
+  SimulationSession,
   UnsupportedReport,
   ViewMode,
 } from '../../engine';
@@ -64,6 +65,10 @@ export function useEngineEvents({
    */
   const [graphSlide, setGraphSlide] = useState<{ slide: SidebarSlide; pageId?: string }>();
   const [labelEdit, setLabelEdit] = useState<LabelEditRequest>();
+  /**
+   * Simulation d'un mode ouverte (sujet 461) ; `step` change à chaque pas, pour redessiner ce qui la montre.
+   */
+  const [simulation, setSimulation] = useState<{ session: SimulationSession; step: number }>();
 
   const handleEngine = useCallback(
     (instance: Engine | undefined) => {
@@ -105,6 +110,9 @@ export function useEngineEvents({
       instance.on('commentHover', setHoverComment);
       instance.on('commentEdit', setCommentEdit);
       instance.on('labelEdit', setLabelEdit);
+      instance.on('simulationChange', (session) =>
+        setSimulation((previous) => session && { session, step: (previous?.step ?? 0) + 1 }),
+      );
       instance.on('documentChange', (doc) => {
         setDocument(doc);
         setReport(instance.getUnsupportedReport());
@@ -154,5 +162,6 @@ export function useEngineEvents({
     graphSlide,
     labelEdit,
     setLabelEdit,
+    simulation,
   };
 }

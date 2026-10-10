@@ -11,6 +11,11 @@ import { createGrid } from '../../render/grid';
 export class Rendering {
   readonly renderer: WebGLRenderer;
   readonly scene = new Scene();
+  /**
+   * Couche dessinée par-dessus tout, profondeur remise à zéro (couche d'une simulation, sujet 461) : rien de la page ne
+   * la recouvre, quel que soit l'ordre de dessin de ses objets.
+   */
+  readonly overlay = new Scene();
   private readonly camera = new OrthographicCamera();
   /** Caméra de la vue 3D (et des bascules vers / depuis la 3D). */
   private readonly perspectiveCamera = new PerspectiveCamera();
@@ -94,6 +99,14 @@ export class Rendering {
     flat.root.visible = true;
   }
 
+  /** Couche par-dessus l'image déjà rendue : couleurs gardées, profondeur effacée. */
+  private renderOverlay(): void {
+    this.renderer.autoClear = false;
+    this.renderer.clearDepth();
+    this.renderer.render(this.overlay, this.activeCamera());
+    this.renderer.autoClear = true;
+  }
+
   /** Caméra du rendu : en perspective quand l'état a un champ de vision (3D, bascules). */
   private activeCamera(): OrthographicCamera | PerspectiveCamera {
     return this.core.camera.state.fov === undefined ? this.camera : this.perspectiveCamera;
@@ -125,9 +138,12 @@ export class Rendering {
       orientBillboards(this.scene, this.activeCamera());
       // Estompage de ce qui est hors du courant du mode de la page (ex. hors du flux courant).
       this.core.modeCurrents.applyModeFocus();
+      // Rendu de la simulation reposé sur une scène reconstruite.
+      this.core.simulations.sync();
       const blend = this.core.levels.levelBlend;
       if (blend?.flat && blend.volume) this.renderBlend(blend.flat, blend.volume);
       else this.renderer.render(this.scene, this.activeCamera());
+      if (this.overlay.children.length > 0) this.renderOverlay();
       if (metrics.sampling) metrics.frameRendered(start, performance.now());
     });
   };

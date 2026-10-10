@@ -40,6 +40,9 @@
         <mxCell id="final5" value="" style="ellipse;shape=doubleEllipse;fillColor=#d32f2f;strokeColor=#d32f2f;html=1;aspect=fixed;spatial.kind=states-final;spatial.sm.error=1;" vertex="1" parent="1">
           <mxGeometry x="740" y="420" width="24" height="24" as="geometry" />
         </mxCell>
+        <mxCell id="waiting" value="Attente" style="rounded=1;whiteSpace=wrap;html=1;arcSize=33;fillColor=#ffffff;strokeColor=#000000;fontStyle=1;fontSize=12;spatial.kind=states-state;" vertex="1" parent="1">
+          <mxGeometry x="520" y="125" width="140" height="60" as="geometry" />
+        </mxCell>
         <mxCell id="note" value="Exemple de machine à états : sujets 433 à 436" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=post-it;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="700" y="40" width="160" height="80" as="geometry" />
         </mxCell>
@@ -74,6 +77,9 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="t11" value="Aborted" style="endArrow=classic;html=1;" edge="1" parent="1" source="state3" target="final5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t12" value="Pause" style="endArrow=classic;html=1;" edge="1" parent="1" source="state2" target="waiting">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>

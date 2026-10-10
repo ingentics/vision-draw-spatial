@@ -41,7 +41,6 @@ const NOT_API: Record<string, string> = {
   PARTS_PER_ELEMENT: 'ordre de dessin, géré par le moteur',
   ShapeRegistry: 'registre des formes, hors de l’API publique',
   ModeEditWriter: 'écritures d’un mode, côté moteur',
-  DEFAULT_EDGE_BADGE: 'défaut de l’habillage, côté moteur',
   Settings: 'paramètres du tronc',
   sceneRenderer: 'repli des niveaux de rendu, cité par les tests',
   buildPageScene: 'scène d’une page, cité par les tests',

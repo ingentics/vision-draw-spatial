@@ -3,6 +3,7 @@ import { edgeLinesOf, edgeLinesOfEdge, jumpValue, pageAnchoring, SPATIAL } from 
 import { ContextPanel } from '../ContextPanel';
 import { MULTI_SELECT_LABELS } from '../settings/ShortcutSettings';
 import type { TextEdit } from '../TextFormat';
+import type { ModeSimulationControls } from '../plugins/modes/registry';
 
 /** Panneau contextuel de la page affichée, branché sur le moteur : chaque réglage y écrit la sélection ou la page. */
 export function ViewerContextPanel({
@@ -15,6 +16,7 @@ export function ViewerContextPanel({
   selected,
   editablePages,
   textEdit,
+  simulation,
 }: {
   engine: Engine | undefined;
   settings: Settings;
@@ -27,6 +29,7 @@ export function ViewerContextPanel({
   /** Pages modifiables (renommer, mode, effets, ancrage…). */
   editablePages: boolean;
   textEdit: TextEdit | undefined;
+  simulation: ModeSimulationControls | undefined;
 }) {
   const currentAnchoring = pageAnchoring(currentPage, settings.shapes.edgeAnchoring);
   return (
@@ -103,6 +106,7 @@ export function ViewerContextPanel({
       defaultJumpSize={settings.shapes.edgeJumpSize}
       onModeEdit={editablePages ? (label, edit) => engine?.editPageMode(label, edit) : undefined}
       modeCurrent={engine?.getModeCurrent(currentPage.id)}
+      simulation={simulation}
       onModeProperty={
         editablePages
           ? (scope, targetId, key, value, part, merge) =>

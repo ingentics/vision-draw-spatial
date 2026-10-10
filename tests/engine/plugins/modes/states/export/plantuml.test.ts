@@ -33,6 +33,7 @@ describe('mode Machine à états : export PlantUML (sujet 436)', () => {
         'State3 --> State3 : Failed',
         'State3 --> [*] : Succeeded',
         'State3 -[#d32f2f]-> [*] : Aborted',
+        'State2 --> Attente : Pause',
         '@enduml',
         '',
       ].join('\n'),

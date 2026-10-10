@@ -20,6 +20,7 @@ import type {
   StylePreset,
   StyleSettings,
 } from '../../engine';
+import type { ModeSimulationControls } from '../plugins/modes/registry';
 import type { TextEdit } from '../TextFormat';
 import type { EdgeStylePatch } from './EdgeLineSections';
 
@@ -95,6 +96,8 @@ export interface ContextPanelProps {
   part?: string;
   /** « Courant » du mode de la page (ex. flux courant), montré par ses sections. */
   modeCurrent?: string;
+  /** Simulation sur la page affichée (sujet 461), pilotée par les sections du mode. */
+  simulation?: ModeSimulationControls;
   /** Lien de l'élément sélectionné (vers une page ou une URL) ; undefined = retiré. */
   onLink: (link: LinkModel | undefined) => void;
   /** Attribut spatial de la forme sélectionnée (épaisseur, élévation…) ; undefined = valeur par défaut. */

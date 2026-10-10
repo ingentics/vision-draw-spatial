@@ -96,4 +96,11 @@ export interface CameraHost {
    * prise. `run` faux (touche maintenue) : seulement savoir si elle l'est.
    */
   modePageKey?(key: string, run: boolean): boolean;
+  /**
+   * Simulation d'un mode ouverte (sujet 461) : les touches vont d'abord à `simulationKey`, puis seuls les raccourcis de
+   * la vue et ses mouvements restent ; ni édition, ni sélection, ni touche de mode.
+   */
+  simulating?(): boolean;
+  /** Touche pendant une simulation (sans ⌘, Ctrl ni Alt) ; vrai si elle est prise. */
+  simulationKey?(key: string): boolean;
 }

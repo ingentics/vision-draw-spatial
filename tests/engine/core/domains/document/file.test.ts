@@ -141,7 +141,7 @@ function tracedSetup() {
     pageModes: { withModeWarnings: (document: unknown) => document },
     pageEffects: { warnings: () => [] },
     pluginGuard: { warnings: () => [] },
-    targets: { isEditable: () => true },
+    targets: { isEditable: () => true, canEditNow: () => true },
     canInteract: () => true,
     resetDocumentState: () => log.push('resetDocumentState'),
     events: {

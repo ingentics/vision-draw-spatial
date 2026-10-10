@@ -1,0 +1,169 @@
+import { Group } from 'three';
+import type { Mesh, Object3D } from 'three';
+import type { EdgeModel, Point, SimulationFrame, SimulationLayer, SimulationScene } from '../../../../core/plugins';
+import { disposeObject, distance, edgeBadgeDisc, edgeOf, labelPoint, shapeOf } from '../../../../core/plugins';
+import {
+  PROPOSED_BADGE,
+  countBadge,
+  crossingDot,
+  currentMark,
+  frameMark,
+  proposedBadge,
+  proposedRoute,
+  pulseHalo,
+  ranked,
+  takenRoute,
+  visitTint,
+} from './simulationMarks';
+import type { StateSimulation } from './stateSimulation';
+import { stepLook } from './simulationView';
+import type { StepLook } from './simulationView';
+
+/**
+ * Pas d'une simulation de machine à états pour le moteur (sujets 461, 462) : état courant gardé net et suivi par la
+ * caméra, transitions proposées et empruntées gardées au-dessus du voile, et la couche qui les met en avant. Après un
+ * franchissement, un point parcourt la transition (lancé vite, il ralentit), puis la couche du pas suivant s'affiche.
+ */
+
+/** Parcours de la transition franchie, en ms. */
+const CROSSING_DURATION = 250;
+/** Rang du point du franchissement : devant tout le reste. */
+const DOT_RANK = 1000;
+
+/** Pas précédent et transition franchie pour venir au pas courant. */
+export interface Crossing {
+  before: StepLook;
+  edgeId: string;
+}
+
+export function simulationFrame(sim: StateSimulation, crossing?: Crossing): SimulationFrame {
+  const look = stepLook(sim);
+  return {
+    kept: [look.current, ...look.proposed.map(({ id }) => id), ...look.taken],
+    follow: look.current,
+    layer: (scene) => simulationLayer(scene, look, crossing),
+  };
+}
+
+/** Pointillés d'une transition proposée, refaits à chaque image. */
+interface Dashes {
+  route: Point[];
+  rank: number;
+  object?: Object3D;
+}
+
+/** Marques d'un pas, posées dans `group`. */
+interface DrawnStep {
+  group: Group;
+  halo?: Mesh;
+  dashes: Dashes[];
+  /** Pastilles des transitions proposées, pour les clics. */
+  badges: Array<{ edge: EdgeModel; route: Point[] }>;
+}
+
+function simulationLayer(scene: SimulationScene, look: StepLook, crossing?: Crossing): SimulationLayer {
+  const object = new Group();
+  object.name = 'states-simulation';
+  const after = drawStep(scene, look);
+  object.add(after.group);
+  const route = crossing && !scene.reducedMotion ? scene.route(crossing.edgeId) : undefined;
+  const before = crossing && route ? drawStep(scene, crossing.before) : undefined;
+  if (before) object.add(before.group);
+  let dot: Object3D | undefined;
+
+  const animate = (elapsed: number): boolean => {
+    const crossingNow = before !== undefined && route !== undefined && elapsed < CROSSING_DURATION;
+    if (before) before.group.visible = crossingNow;
+    after.group.visible = !crossingNow;
+    if (dot) {
+      dot.removeFromParent();
+      disposeObject(dot);
+      dot = undefined;
+    }
+    if (crossingNow) {
+      // Décélération cubique : le point part vite et ralentit en arrivant.
+      const t = 1 - Math.pow(1 - elapsed / CROSSING_DURATION, 3);
+      dot = ranked(
+        crossingDot(labelPoint(route, { position: 2 * t - 1, distance: 0, offset: { x: 0, y: 0 } })),
+        DOT_RANK,
+      );
+      object.add(dot);
+    }
+    animateStep(crossingNow ? before : after, elapsed);
+    return true;
+  };
+
+  if (scene.reducedMotion) pulseHalo(after.halo, undefined);
+  else animate(0);
+  return {
+    object,
+    ...(!scene.reducedMotion && { animate }),
+    hit: (point) =>
+      after.badges.find(({ edge, route: edgeRoute }) => {
+        const disc = edgeBadgeDisc(edge, edgeRoute, PROPOSED_BADGE);
+        return distance(point, disc.center) <= disc.radius;
+      })?.edge.id,
+  };
+}
+
+/** Halo qui pulse et pointillés qui défilent, `elapsed` ms après l'affichage. */
+function animateStep(step: DrawnStep, elapsed: number): void {
+  pulseHalo(step.halo, elapsed);
+  for (const dashes of step.dashes) {
+    if (dashes.object) {
+      dashes.object.removeFromParent();
+      disposeObject(dashes.object);
+    }
+    const route = proposedRoute(dashes.route, elapsed);
+    dashes.object = route && ranked(route, dashes.rank);
+    if (dashes.object) step.group.add(dashes.object);
+  }
+}
+
+/**
+ * Marques d'un pas, du dessous au dessus : teintes des états visités, cadres des ensembles, transitions empruntées puis
+ * proposées, état courant, et enfin toutes les pastilles (compteurs, numéros), que rien ne recouvre.
+ */
+function drawStep(scene: SimulationScene, look: StepLook): DrawnStep {
+  const { page, ctx } = scene;
+  const step: DrawnStep = { group: new Group(), dashes: [], badges: [] };
+  let rank = 0;
+  const put = (mark: Object3D | undefined) => {
+    if (mark) step.group.add(ranked(mark, rank));
+    rank++;
+  };
+  const badges: Array<() => void> = [];
+  for (const { id, count } of look.visits) {
+    const outline = scene.outline(id);
+    const shape = shapeOf(page, id);
+    if (!outline || !shape) continue;
+    put(visitTint(outline));
+    if (count >= 2) badges.push(() => put(countBadge(shape.bounds, count, ctx)));
+  }
+  for (const id of look.frames) {
+    const outline = scene.outline(id);
+    if (outline) put(frameMark(outline));
+  }
+  for (const id of look.taken) {
+    const route = scene.route(id);
+    if (route) put(takenRoute(route));
+  }
+  for (const { id, badge } of look.proposed) {
+    const route = scene.route(id);
+    const edge = edgeOf(page, id);
+    if (!route || !edge) continue;
+    step.dashes.push({ route, rank: rank++ });
+    badges.push(() => put(proposedBadge(edge, route, badge, ctx)));
+    step.badges.push({ edge, route });
+  }
+  const outline = scene.outline(look.current);
+  if (outline) {
+    const mark = currentMark(outline);
+    put(mark.object);
+    step.halo = mark.halo;
+  }
+  for (const badge of badges) badge();
+  // Pointillés immobiles tant que la couche n'est pas animée (animations réduites).
+  animateStep({ ...step, halo: undefined }, 0);
+  return step;
+}

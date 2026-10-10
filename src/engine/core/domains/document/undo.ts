@@ -31,22 +31,22 @@ export class EditHistory {
   }
 
   canUndo(): boolean {
-    return this.core.targets.isEditable() && this.undoStack.undoLabel() !== undefined;
+    return this.core.targets.isEditable() && this.core.targets.canEditNow() && this.undoStack.undoLabel() !== undefined;
   }
 
   canRedo(): boolean {
-    return this.core.targets.isEditable() && this.undoStack.redoLabel() !== undefined;
+    return this.core.targets.isEditable() && this.core.targets.canEditNow() && this.undoStack.redoLabel() !== undefined;
   }
 
   undo(): void {
-    if (!this.core.targets.isEditable() || !this.core.file.xmlTree || !this.core.canInteract()) return;
+    if (!this.core.targets.isEditable() || !this.core.file.xmlTree || !this.core.targets.canEditNow()) return;
     this.core.gesture.endMove();
     const previous = this.undoStack.undo(writeDrawio(this.core.file.xmlTree));
     if (previous !== undefined) this.restore(previous);
   }
 
   redo(): void {
-    if (!this.core.targets.isEditable() || !this.core.file.xmlTree || !this.core.canInteract()) return;
+    if (!this.core.targets.isEditable() || !this.core.file.xmlTree || !this.core.targets.canEditNow()) return;
     this.core.gesture.endMove();
     const next = this.undoStack.redo(writeDrawio(this.core.file.xmlTree));
     if (next !== undefined) this.restore(next);

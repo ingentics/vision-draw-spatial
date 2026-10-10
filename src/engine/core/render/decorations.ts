@@ -1,5 +1,6 @@
 import { Color, Group } from 'three';
-import type { EdgeModel, Point, Rect } from '../model/types';
+import type { Point, Rect } from '../model/types';
+import type { ReadonlyEdgeModel } from '../model/readonly';
 import type { EdgeBadge } from '../modes/dressing';
 import { labelPoint } from './edges/polyline';
 import { styleNumber, styleFlag } from '../model/styleValues';
@@ -37,25 +38,14 @@ const DIGIT_HEIGHT = 0.71;
  * est le haut de l'écran, quel que soit l'angle de vue.
  */
 export function edgeBadge(
-  edge: EdgeModel,
+  edge: ReadonlyEdgeModel,
   route: Point[],
   badge: EdgeBadge,
   look: EdgeBadgeStyle,
   ctx: RenderContext,
 ): Group {
-  const labelled = edge.label.trim() !== '' && !styleFlag(edge.style, 'noLabel');
-  const radius = labelled ? look.radius : look.smallRadius;
+  const { anchor, lift, radius, labelled } = badgePlace(edge, route, look);
   const fontSize = labelled ? look.textSize : look.smallTextSize;
-  const anchor = labelPoint(
-    route,
-    labelled ? edge.labelPlacement : { position: 0, distance: 0, offset: { x: 0, y: 0 } },
-  );
-  // Hauteur estimée du texte (sa mise en page est asynchrone) : lignes × interligne.
-  const lines = edge.rich?.length ?? edge.label.split('\n').length;
-  const textHeight = lines * styleNumber(edge.style, 'fontSize', 11) * 1.2;
-  const above =
-    edge.style.verticalAlign === 'top' ? 0 : edge.style.verticalAlign === 'bottom' ? textHeight : textHeight / 2;
-  const lift = labelled ? above + look.gap + radius : 0;
 
   const group = new Group();
   group.name = 'edge-badge';
@@ -85,6 +75,36 @@ export function edgeBadge(
   group.add(disc, text);
   if (outline) group.add(outline);
   return group;
+}
+
+/**
+ * Disque de la pastille d'une flèche, en pixels de page (vue de dessus) : pour savoir si un clic la touche (pastilles
+ * d'une simulation, sujet 461).
+ */
+export function edgeBadgeDisc(
+  edge: ReadonlyEdgeModel,
+  route: Point[],
+  look: EdgeBadgeStyle,
+): { center: Point; radius: number } {
+  const { anchor, lift, radius } = badgePlace(edge, route, look);
+  return { center: { x: anchor.x, y: anchor.y - lift }, radius };
+}
+
+/** Place de la pastille : point d'ancrage (texte du milieu, ou milieu de la flèche), hauteur au-dessus, rayon. */
+function badgePlace(edge: ReadonlyEdgeModel, route: Point[], look: EdgeBadgeStyle) {
+  const labelled = edge.label.trim() !== '' && !styleFlag(edge.style, 'noLabel');
+  const radius = labelled ? look.radius : look.smallRadius;
+  const anchor = labelPoint(
+    route,
+    labelled ? edge.labelPlacement : { position: 0, distance: 0, offset: { x: 0, y: 0 } },
+  );
+  // Hauteur estimée du texte (sa mise en page est asynchrone) : lignes × interligne.
+  const lines = edge.rich?.length ?? edge.label.split('\n').length;
+  const textHeight = lines * styleNumber(edge.style, 'fontSize', 11) * 1.2;
+  const above =
+    edge.style.verticalAlign === 'top' ? 0 : edge.style.verticalAlign === 'bottom' ? textHeight : textHeight / 2;
+  const lift = labelled ? above + look.gap + radius : 0;
+  return { anchor, lift, radius, labelled };
 }
 
 /**

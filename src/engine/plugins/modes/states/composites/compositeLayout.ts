@@ -56,6 +56,14 @@ export function compositeOf(page: PageModel, shape: ShapeModel): ShapeModel | un
   return ownerAmong(page.shapes, shape);
 }
 
+/** Ensembles qui contiennent `shape`, du plus proche au plus lointain. */
+export function compositeAncestors(page: PageModel, shape: ShapeModel): ShapeModel[] {
+  const chain: ShapeModel[] = [];
+  for (let parent = compositeOf(page, shape); parent && !chain.includes(parent); parent = compositeOf(page, parent))
+    chain.push(parent);
+  return chain;
+}
+
 /** `compositeOf` parmi `candidates` (les formes de la page, ou ses seuls ensembles). */
 function ownerAmong(candidates: readonly ShapeModel[], shape: ShapeModel): ShapeModel | undefined {
   if (!isNode(shape)) return undefined;
