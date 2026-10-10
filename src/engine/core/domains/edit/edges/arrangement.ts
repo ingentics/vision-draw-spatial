@@ -80,7 +80,7 @@ export class EdgeArrangement {
    */
   private tracing(page: PageModel): { route?: AvoidOptions; router?: Router; kept: ReadonlySet<string> } {
     return {
-      ...tracingOf(this.core.settings.shapes, this.anchoringOf(page)),
+      ...tracingOf(this.core.settings.shapes, this.anchoringOf(page), this.edgeLineOf(page)),
       kept: this.core.pageModes.placedEntries(page),
     };
   }
@@ -208,7 +208,10 @@ export class EdgeArrangement {
     this.core.file.documentChanged([pageId]);
   }
 
-  /** Tracé propre à une page (undefined : celui de l'appli), pour les flèches qui y seront créées. */
+  /**
+   * Tracé propre à une page (undefined : celui de l'appli), pour les flèches qui y seront créées ; si l'ancrage les
+   * répartit, toutes ses flèches sont redessinées avec lui (sujet 456).
+   */
   setPageEdgeLine(pageId: string, line: EdgeLine | undefined): void {
     const page = this.core.targets.editablePageById(pageId)?.page;
     if (!page || (page.attributes[SPATIAL.edgeLine] ?? '') === (line ?? '')) return;
@@ -219,8 +222,8 @@ export class EdgeArrangement {
 
   /**
    * Ancrage et tracé propres de la page (une clé absente : inchangé), écrits dans l'étape en cours, sans l'ouvrir ni
-   * notifier : un ancrage changé répartit les flèches déjà là s'il répartit. Panneau de la page, réglages posés par un
-   * mode à son arrivée (sujet 442).
+   * notifier : un ancrage ou un tracé changé répartit les flèches déjà là si l'ancrage répartit (sujet 456). Panneau de
+   * la page, réglages posés par un mode à son arrivée (sujet 442).
    */
   writePageArrangement(
     pageId: string,
@@ -229,9 +232,12 @@ export class EdgeArrangement {
     const target = this.core.targets.editablePageById(pageId);
     if (!target) return;
     const { page, pageTree, xmlTree } = target;
-    if ('edgeLine' in changes) setPageAttribute(pageTree, SPATIAL.edgeLine, changes.edgeLine);
-    if (!('anchoring' in changes) || (page.attributes[SPATIAL.anchoring] ?? '') === (changes.anchoring ?? '')) return;
-    setPageAttribute(pageTree, SPATIAL.anchoring, changes.anchoring);
+    const changed = (key: 'anchoring' | 'edgeLine') =>
+      key in changes && (page.attributes[SPATIAL[key]] ?? '') !== (changes[key] ?? '');
+    const [anchoringChanged, lineChanged] = [changed('anchoring'), changed('edgeLine')];
+    if (lineChanged) setPageAttribute(pageTree, SPATIAL.edgeLine, changes.edgeLine);
+    if (anchoringChanged) setPageAttribute(pageTree, SPATIAL.anchoring, changes.anchoring);
+    if (!anchoringChanged && !lineChanged) return;
     const fresh = byId(documentFromTree(xmlTree).pages, pageId);
     if (fresh && this.distributes(fresh)) this.writeDistribution(fresh, new Set(fresh.shapes.map((s) => s.id)));
   }

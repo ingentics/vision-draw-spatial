@@ -1,5 +1,6 @@
 import type { ShapeSettings } from '../../settings/types';
-import type { Anchoring } from './mode';
+import type { Anchoring, EdgeLine } from './mode';
+import { orthogonalRouter } from './auto/routeAround';
 import { octilinearRouter } from './pcb/octilinear';
 import type { AvoidOptions, Router } from './routing';
 
@@ -11,11 +12,15 @@ import type { AvoidOptions, Router } from './routing';
 const PREFIX = { auto: 'edge', pcb: 'edgePcb' } as const;
 
 /**
- * Tracé d'un ancrage : en automatique (et en manuel), orthogonal, sans tracé si le contournement est coupé
- * (`shapes.edgeAutoRoute`) ; en Typon, avec ses propres réglages, toujours octilinéaire, direct si le contournement
- * est coupé.
+ * Tracé d'un ancrage : en automatique (et en manuel), orthogonal avec les coudes du tracé `line` de la page, sans
+ * tracé si le contournement est coupé (`shapes.edgeAutoRoute`) ou si le tracé est droit (sujet 456) ; en Typon, avec
+ * ses propres réglages, toujours octilinéaire, direct si le contournement est coupé.
  */
-export function tracingOf(shapes: ShapeSettings, anchoring: Anchoring): { route?: AvoidOptions; router?: Router } {
+export function tracingOf(
+  shapes: ShapeSettings,
+  anchoring: Anchoring,
+  line: EdgeLine,
+): { route?: AvoidOptions; router?: Router } {
   const prefix = PREFIX[anchoring === 'pcb' ? 'pcb' : 'auto'];
   const route: AvoidOptions = {
     clearance: shapes[`${prefix}ShapeClearance`],
@@ -28,5 +33,6 @@ export function tracingOf(shapes: ShapeSettings, anchoring: Anchoring): { route?
     const bends = { diagonal: shapes.edgePcbBend45, right: shapes.edgePcbBend90 };
     return { route, router: octilinearRouter(avoid, bends) };
   }
-  return avoid ? { route } : {};
+  const router = orthogonalRouter(line);
+  return avoid && line !== 'straight' ? { route, router } : { router };
 }

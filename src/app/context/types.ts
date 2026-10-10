@@ -67,6 +67,8 @@ export interface ContextPanelProps {
   defaultEdgeLine: EdgeLine;
   /** Tracés permis par l'ancrage de la page : un seul, le choix du tracé n'est pas proposé. */
   pageEdgeLines: readonly EdgeLine[];
+  /** Tracés qu'on peut choisir pour une flèche seule : aucun quand l'ancrage répartit les flèches (sujet 456). */
+  edgeLines: readonly EdgeLine[];
   /** Saut des flèches aux croisements propre à la page (undefined = réglage de l'appli) ; absent si non modifiable. */
   onPageJumps?: (jumps: JumpStyle | 'none' | undefined) => void;
   /** Saut du réglage de l'appli (choix « par défaut » de la page). */

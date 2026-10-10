@@ -14,6 +14,8 @@ import {
 import type { AvoidOptions, Port, Router, Segment } from '../routing';
 import { seededUnit } from '../seed';
 import { EDGE_LINE_STYLES } from '../mode';
+import type { EdgeLine } from '../mode';
+import { pathSegments, segmentsCross, segmentsOverlap } from '../pcb/octilinear';
 
 /**
  * Tracé orthogonal de l'ancrage automatique (SPEC §14.1) : plus court chemin sur une grille tirée des formes et des
@@ -231,3 +233,19 @@ export const ORTHOGONAL_ROUTER: Router = {
   conflict: (s, t) => crosses(s, t) || overlap(s, t) > 0.5,
   route: routeAround,
 };
+
+/**
+ * Routeur de l'ancrage automatique pour le tracé de la page (sujet 456) : le contournement orthogonal, dessiné avec les
+ * coudes du tracé (arrondis, vifs ou en courbe) ; en droite, un segment direct d'un bout à l'autre, sans contournement,
+ * dont les conflits sont comptés sur des segments quelconques.
+ */
+export function orthogonalRouter(line: EdgeLine): Router {
+  if (line === 'straight')
+    return {
+      edgeStyle: EDGE_LINE_STYLES.straight,
+      segments: pathSegments,
+      conflict: (s, t) => segmentsCross(s, t) || segmentsOverlap(s, t) > 0.5,
+      route: () => undefined,
+    };
+  return { ...ORTHOGONAL_ROUTER, edgeStyle: EDGE_LINE_STYLES[line] };
+}

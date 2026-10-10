@@ -30,6 +30,6 @@ describe('tracé d’une flèche en un seul endroit (sujet 447)', () => {
     expect(pageAnchoring(page({ 'spatial.anchoring': 'x' }), 'auto')).toBe('auto');
     expect(pageEdgeLine(page({ 'spatial.edgeLine': 'curved' }), 'manual', 'rounded')).toBe('curved');
     expect(pageEdgeLine(page({}), 'manual', 'sharp')).toBe('sharp');
-    expect(pageEdgeLine(page({ 'spatial.edgeLine': 'curved' }), 'auto', 'sharp')).toBe('rounded');
+    expect(pageEdgeLine(page({ 'spatial.edgeLine': 'curved' }), 'pcb', 'sharp')).toBe('straight');
   });
 });

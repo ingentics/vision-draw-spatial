@@ -208,10 +208,14 @@ describe('bouts attachés imposés par le mode (sujet 438)', () => {
 
 describe('réglages de page posés par le mode à son arrivée (sujet 442)', () => {
   /** Page sans mode passée dans un mode qui déclare `defaults` ; l'agencement note les pages réparties. */
-  function arrive(defaults: PageModeDefinition['page']) {
+  function arrive(defaults: PageModeDefinition['page'], anchoring?: string) {
     const mode: PageModeDefinition = { id: 'auto', namespace: 'auto', name: 'Auto', page: defaults };
-    const { core, modes, tree } = setup(mode);
+    const { core, modes, tree, page } = setup(mode);
     tree.pages[0]!.diagram!.removeAttribute('spatial.mode');
+    if (anchoring) {
+      tree.pages[0]!.diagram!.setAttribute('spatial.anchoring', anchoring);
+      page.attributes['spatial.anchoring'] = anchoring;
+    }
     const distributed: string[][] = [];
     const steps: string[] = [];
     // Agencement réel (il écrit l'ancrage et le tracé, sujet 447), répartition notée.
@@ -232,6 +236,13 @@ describe('réglages de page posés par le mode à son arrivée (sujet 442)', () 
     expect(diagram.getAttribute('spatial.anchoring')).toBe('auto');
     expect(diagram.getAttribute('spatial.edgeLine')).toBe('straight');
     expect(distributed).toEqual([['a', 'b']]);
+  });
+
+  it('page déjà en automatique : un tracé seul changé redessine les flèches (sujet 456)', () => {
+    const { diagram, distributed } = arrive({ defaults: { edgeLine: 'straight' } }, 'auto');
+    expect(diagram.getAttribute('spatial.edgeLine')).toBe('straight');
+    expect(distributed).toEqual([['a', 'b']]);
+    expect(arrive({ defaults: { edgeLine: 'straight' } }, 'manual').distributed).toEqual([]);
   });
 
   it('sans réglages déclarés, rien d’autre que le mode ; une valeur inconnue est ignorée', () => {

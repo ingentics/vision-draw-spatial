@@ -1,5 +1,5 @@
 import type { EdgeModel, Engine, PageModel, Selection, Settings, SettingsPatch, ShapeModel } from '../../engine';
-import { edgeLinesOf, jumpValue, pageAnchoring, SPATIAL } from '../../engine';
+import { edgeLinesOf, edgeLinesOfEdge, jumpValue, pageAnchoring, SPATIAL } from '../../engine';
 import { ContextPanel } from '../ContextPanel';
 import { MULTI_SELECT_LABELS } from '../settings/ShortcutSettings';
 import type { TextEdit } from '../TextFormat';
@@ -96,6 +96,7 @@ export function ViewerContextPanel({
       onPageEdgeLine={editablePages ? (line) => engine?.setPageEdgeLine(currentPage.id, line) : undefined}
       defaultEdgeLine={settings.shapes.edgeLineStyle}
       pageEdgeLines={edgeLinesOf(currentAnchoring)}
+      edgeLines={edgeLinesOfEdge(currentAnchoring)}
       onPageJumps={editablePages ? (jumps) => engine?.setPageJumps(currentPage.id, jumps) : undefined}
       defaultJumps={settings.shapes.edgeJumpStyle}
       pageJumps={jumpValue(currentPage.attributes[SPATIAL.jumps]) ?? settings.shapes.edgeJumpStyle}

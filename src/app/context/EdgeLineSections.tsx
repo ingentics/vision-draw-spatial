@@ -29,7 +29,7 @@ export function EdgeLineSection({
   onResetRoute,
 }: {
   edge: EdgeModel;
-  /** Tracés permis par l'ancrage de la page : un seul, la ligne « Coudes » est masquée. */
+  /** Tracés qu'on peut choisir pour la flèche : moins de deux, la ligne « Coudes » est masquée. */
   edgeLines: readonly EdgeLine[];
   pageJumps: JumpStyle | 'none';
   defaultJumpSize: number;

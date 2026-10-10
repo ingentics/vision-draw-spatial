@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { EdgeArrangement } from '../../../../../../src/engine/core/domains/edit/edges/arrangement';
 import type { EngineCore } from '../../../../../../src/engine/core/domains/EngineCore';
-import { edgeLinesOf } from '../../../../../../src/engine/core/edit/anchoring/mode';
+import { edgeLinesOf, edgeLinesOfEdge } from '../../../../../../src/engine/core/edit/anchoring/mode';
 import { readDrawio } from '../../../../../../src/engine/core/format/parse';
 import { writeDrawio } from '../../../../../../src/engine/core/format/write';
 import type { PageModel } from '../../../../../../src/engine/core/model/types';
@@ -15,10 +15,16 @@ const arrangement = new EdgeArrangement({ settings: { shapes } } as unknown as E
 const page = (attributes: Record<string, string>) => ({ attributes }) as unknown as PageModel;
 
 describe('tracé des flèches par page (sujet 441)', () => {
-  it('tracés permis par ancrage : tous en manuel, l’arrondi seul en automatique, la droite seule en Typon', () => {
+  it('tracés permis par ancrage : tous en manuel et en automatique (sujet 456), la droite seule en Typon', () => {
     expect(edgeLinesOf('manual')).toEqual(['straight', 'sharp', 'rounded', 'curved']);
-    expect(edgeLinesOf('auto')).toEqual(['rounded']);
+    expect(edgeLinesOf('auto')).toEqual(['rounded', 'sharp', 'curved', 'straight']);
     expect(edgeLinesOf('pcb')).toEqual(['straight']);
+  });
+
+  it('le tracé d’une flèche seule ne se choisit qu’en manuel (sujet 456)', () => {
+    expect(edgeLinesOfEdge('manual')).toEqual(edgeLinesOf('manual'));
+    expect(edgeLinesOfEdge('auto')).toEqual([]);
+    expect(edgeLinesOfEdge('pcb')).toEqual([]);
   });
 
   it('tracé de la page, sinon celui de l’appli ; une valeur inconnue suit l’appli', () => {
@@ -27,8 +33,11 @@ describe('tracé des flèches par page (sujet 441)', () => {
     expect(arrangement.edgeLineOf(page({ 'spatial.edgeLine': 'zigzag' }))).toBe('rounded');
   });
 
-  it('en automatique, tout tracé voulu cède la place à l’arrondi (sujet 443)', () => {
-    expect(arrangement.edgeLineOf(page({ 'spatial.anchoring': 'auto', 'spatial.edgeLine': 'curved' }))).toBe('rounded');
+  it('en automatique, le tracé de la page, sinon celui de l’appli (sujet 456)', () => {
+    expect(arrangement.edgeLineOf(page({ 'spatial.anchoring': 'auto', 'spatial.edgeLine': 'curved' }))).toBe('curved');
+    expect(arrangement.edgeLineOf(page({ 'spatial.anchoring': 'auto', 'spatial.edgeLine': 'straight' }))).toBe(
+      'straight',
+    );
     expect(arrangement.edgeLineOf(page({ 'spatial.anchoring': 'auto' }))).toBe('rounded');
   });
 
@@ -49,7 +58,11 @@ describe('tracé des flèches par page (sujet 441)', () => {
     Object.assign(core, {
       settings: { shapes },
       targets: {
-        editablePageById: () => ({ page: core.file.document!.pages[0]!, pageTree: core.file.xmlTree!.pages[0]! }),
+        editablePageById: () => ({
+          page: core.file.document!.pages[0]!,
+          pageTree: core.file.xmlTree!.pages[0]!,
+          xmlTree: core.file.xmlTree!,
+        }),
       },
     });
     const edges = new EdgeArrangement(core);

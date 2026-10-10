@@ -79,7 +79,7 @@ export function EdgeSections({ edge, ...props }: ContextPanelProps & { edge: Edg
         <>
           <EdgeLineSection
             edge={edge}
-            edgeLines={props.pageEdgeLines}
+            edgeLines={props.edgeLines}
             pageJumps={props.pageJumps}
             defaultJumpSize={props.defaultJumpSize}
             onChange={props.onEdgeStyle}

@@ -63,17 +63,25 @@ export function edgeLinePatch(line: EdgeLine, straight: boolean): Record<string,
 
 const EDGE_LINES_BY_ANCHORING: Record<Anchoring, readonly EdgeLine[]> = {
   manual: EDGE_LINES,
-  auto: ['rounded'],
+  auto: ['rounded', 'sharp', 'curved', 'straight'],
   pcb: ['straight'],
 };
 
 /**
- * Tracés permis par un ancrage, le premier par défaut : tous en manuel ; en automatique, l'arrondi seul (sujet 443) ;
- * en Typon, la droite seule (il trace lui-même ses pistes à 45°, sans coins arrondis ni courbe). Les flèches réparties
- * en prennent le style (`Router.edgeStyle`).
+ * Tracés permis par un ancrage pour une page, le premier par défaut : tous en manuel ; tous en automatique, l'arrondi
+ * d'abord (sujet 456 ; la droite n'y contourne rien) ; en Typon, la droite seule (il trace lui-même ses pistes à 45°,
+ * sans coins arrondis ni courbe). Les flèches réparties en prennent le style (`Router.edgeStyle`).
  */
 export function edgeLinesOf(anchoring: Anchoring): readonly EdgeLine[] {
   return EDGE_LINES_BY_ANCHORING[anchoring];
+}
+
+/**
+ * Tracés qu'on peut choisir pour une flèche seule : ceux de la page en manuel ; aucun quand l'ancrage répartit les
+ * flèches, la répartition leur donnant le tracé de la page (sujet 456).
+ */
+export function edgeLinesOfEdge(anchoring: Anchoring): readonly EdgeLine[] {
+  return distributes(anchoring) ? [] : edgeLinesOf(anchoring);
 }
 
 /**

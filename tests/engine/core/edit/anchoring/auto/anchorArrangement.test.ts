@@ -13,6 +13,9 @@ import {
   distributeAnchors,
   withNeighbours,
 } from '../../../../../../src/engine/core/edit/anchoring/auto/distribute';
+import { tracingOf } from '../../../../../../src/engine/core/edit/anchoring/tracing';
+import { EDGE_LINE_STYLES } from '../../../../../../src/engine/core/edit/anchoring/mode';
+import type { ShapeSettings } from '../../../../../../src/engine/core/settings/types';
 import { readDrawio } from '../../../../../../src/engine/core/format/parse';
 import type { EdgeModel } from '../../../../../../src/engine/core/model/types';
 
@@ -131,5 +134,50 @@ describe('style imposé par l’ancrage automatique (sujet 443)', () => {
       routerStyleChanges(edgeOfStyle({ edgeStyle: 'orthogonalEdgeStyle', rounded: '1' }), ORTHOGONAL_ROUTER),
     ).toEqual({});
     expect(routerStyleChanges(edgeOfStyle({ shape: 'flexArrow', curved: '1' }), ORTHOGONAL_ROUTER)).toEqual({});
+  });
+});
+
+describe('tracé de la page en ancrage automatique (sujet 456)', () => {
+  const shapes = {
+    edgeShapeClearance: 10,
+    edgeSpacing: 10,
+    edgePortStub: 20,
+    edgeCrossingDetour: 500,
+    edgeAutoRoute: true,
+  } as unknown as ShapeSettings;
+
+  it('angles droits et courbe : même contournement, coudes du tracé', () => {
+    const p = WALLED();
+    const all = new Set(p.shapes.map((s) => s.id));
+    const rounded = arrangeAnchors(p, all, tracingOf(shapes, 'auto', 'rounded'));
+    for (const line of ['sharp', 'curved'] as const) {
+      const arrangement = arrangeAnchors(p, all, tracingOf(shapes, 'auto', line));
+      expect(arrangement.routes).toEqual(rounded.routes);
+      expect(arrangement.router.edgeStyle).toEqual(EDGE_LINE_STYLES[line]);
+    }
+    expect(rounded.routes.get('e')!.length).toBeGreaterThan(0);
+  });
+
+  it('droite : bouts répartis, sans contournement, style droit', () => {
+    const p = WALLED();
+    const all = new Set(p.shapes.map((s) => s.id));
+    const arrangement = arrangeAnchors(p, all, tracingOf(shapes, 'auto', 'straight'));
+    expect(arrangement.routed).toBe(false);
+    expect(arrangement.routes.size).toBe(0);
+    expect(arrangement.constraints).toEqual(distributeAnchors(p, all));
+    expect(routerStyleChanges(p.edges[0]!, arrangement.router)).toEqual({ edgeStyle: undefined });
+  });
+
+  it('droite : les conflits comptent les segments obliques', () => {
+    const p = page([
+      shape('a', 0, 0),
+      shape('b', 400, 300),
+      shape('c', 0, 300),
+      shape('d', 400, 0),
+      edge('e', 'a', 'b', ''),
+      edge('f', 'c', 'd', ''),
+    ]);
+    const all = new Set(p.shapes.map((s) => s.id));
+    expect(arrangementConflicts(p, arrangeAnchors(p, all, tracingOf(shapes, 'auto', 'straight')))).toBe(1);
   });
 });
