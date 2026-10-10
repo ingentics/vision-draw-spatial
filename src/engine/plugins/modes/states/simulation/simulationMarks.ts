@@ -119,17 +119,32 @@ export function countBadge(bounds: Rect, count: number, ctx: RenderContext): Gro
   return group;
 }
 
-/** Pointillés d'une transition proposée, `elapsed` ms après l'affichage : ils défilent vers la cible. */
-export function proposedRoute(route: Point[], elapsed: number | undefined): Object3D | undefined {
-  return (
+/** Décalages pré-construits des pointillés : un par pixel de page du motif (défilement sans refaire de géométrie). */
+const DASH_FRAMES = DASH.pattern[0]! + DASH.pattern[1]!;
+
+/**
+ * Pointillés d'une transition proposée, un par décalage du motif (`DASH_FRAMES`) : `dashFrame(elapsed)` dit lequel
+ * montrer pour que les tirets avancent vers la cible.
+ */
+export function proposedRouteFrames(route: Point[]): Object3D[] {
+  const period = DASH.pattern[0]! + DASH.pattern[1]!;
+  return Array.from({ length: DASH_FRAMES }, (_, i) =>
     strokeMesh(route, new Color(SIMULATION_COLOR), 1, {
       width: ROUTE_WIDTH,
       closed: false,
       dash: DASH.pattern,
       // Décalage décroissant : les tirets avancent dans le sens de la flèche.
-      dashOffset: elapsed === undefined ? 0 : (-elapsed / 1000) * DASH.speed,
-    }) ?? undefined
-  );
+      dashOffset: (-i * period) / DASH_FRAMES,
+    }),
+  ).flatMap((mesh) => (mesh ? [mesh] : []));
+}
+
+/** Pointillés à montrer `elapsed` ms après l'affichage (indice dans `proposedRouteFrames`) ; 0 immobile. */
+export function dashFrame(elapsed: number | undefined): number {
+  if (elapsed === undefined) return 0;
+  const period = DASH.pattern[0]! + DASH.pattern[1]!;
+  const travelled = ((elapsed / 1000) * DASH.speed) % period;
+  return Math.floor((travelled / period) * DASH_FRAMES) % DASH_FRAMES;
 }
 
 /** Pastille d'une transition proposée (numéro du choix), devant son nom. */
@@ -144,10 +159,10 @@ export function takenRoute(route: Point[]): Object3D | undefined {
   );
 }
 
-/** Point qui parcourt la transition franchie, centré en `at`. */
-export function crossingDot(at: Point): Object3D {
+/** Point qui parcourt la transition franchie, centré sur l'origine (sa position le place). */
+export function crossingDot(): Object3D {
   return fillMesh(
-    ellipsePath({ x: at.x - DOT_SIZE / 2, y: at.y - DOT_SIZE / 2, width: DOT_SIZE, height: DOT_SIZE }, 24),
+    ellipsePath({ x: -DOT_SIZE / 2, y: -DOT_SIZE / 2, width: DOT_SIZE, height: DOT_SIZE }, 24),
     new Color(darken(SIMULATION_COLOR, 0.25)),
     1,
   );

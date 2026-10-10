@@ -1,15 +1,16 @@
 import { Group } from 'three';
 import type { Mesh, Object3D } from 'three';
 import type { EdgeModel, OverlayLayer, OverlayScene, PageOverlay, Point } from '../../../../core/plugins';
-import { disposeObject, distance, edgeBadgeDisc, edgeOf, labelPoint, shapeOf } from '../../../../core/plugins';
+import { distance, edgeBadgeDisc, edgeOf, labelPoint, shapeOf } from '../../../../core/plugins';
 import {
   PROPOSED_BADGE,
   countBadge,
   crossingDot,
   currentMark,
+  dashFrame,
   frameMark,
   proposedBadge,
-  proposedRoute,
+  proposedRouteFrames,
   pulseHalo,
   ranked,
   takenRoute,
@@ -45,12 +46,8 @@ export function simulationOverlay(sim: StateSimulation, crossing?: Crossing): Pa
   };
 }
 
-/** Pointillés d'une transition proposée, refaits à chaque image. */
-interface Dashes {
-  route: Point[];
-  rank: number;
-  object?: Object3D;
-}
+/** Pointillés d'une transition proposée : un objet par décalage du motif, un seul visible. */
+type Dashes = Object3D[];
 
 /** Marques d'un pas, posées dans `group`. */
 interface DrawnStep {
@@ -69,27 +66,24 @@ function simulationLayer(scene: OverlayScene, look: StepLook, crossing?: Crossin
   const route = crossing && !scene.reducedMotion ? scene.route(crossing.edgeId) : undefined;
   const before = crossing && route ? drawStep(scene, crossing.before) : undefined;
   if (before) object.add(before.group);
-  let dot: Object3D | undefined;
+  // Point du franchissement : construit une fois, placé à chaque image.
+  const dot = before ? ranked(crossingDot(), DOT_RANK) : undefined;
+  if (dot) object.add(dot);
+  /** Franchissement en cours : les marques du pas précédent sont montrées, un clic ne franchit rien. */
+  let crossingNow = before !== undefined;
 
   const animate = (elapsed: number): boolean => {
-    const crossingNow = before !== undefined && route !== undefined && elapsed < CROSSING_DURATION;
+    crossingNow = before !== undefined && route !== undefined && elapsed < CROSSING_DURATION;
     if (before) before.group.visible = crossingNow;
     after.group.visible = !crossingNow;
-    if (dot) {
-      dot.removeFromParent();
-      disposeObject(dot);
-      dot = undefined;
-    }
-    if (crossingNow) {
+    if (dot) dot.visible = crossingNow;
+    if (dot && route && crossingNow) {
       // Décélération cubique : le point part vite et ralentit en arrivant.
       const t = 1 - Math.pow(1 - elapsed / CROSSING_DURATION, 3);
-      dot = ranked(
-        crossingDot(labelPoint(route, { position: 2 * t - 1, distance: 0, offset: { x: 0, y: 0 } })),
-        DOT_RANK,
-      );
-      object.add(dot);
+      const at = labelPoint(route, { position: 2 * t - 1, distance: 0, offset: { x: 0, y: 0 } });
+      dot.position.set(at.x, at.y, 0);
     }
-    animateStep(crossingNow ? before : after, elapsed);
+    animateStep(crossingNow ? before! : after, elapsed);
     return true;
   };
 
@@ -99,25 +93,20 @@ function simulationLayer(scene: OverlayScene, look: StepLook, crossing?: Crossin
     object,
     ...(!scene.reducedMotion && { animate }),
     hit: (point) =>
-      after.badges.find(({ edge, route: edgeRoute }) => {
-        const disc = edgeBadgeDisc(edge, edgeRoute, PROPOSED_BADGE);
-        return distance(point, disc.center) <= disc.radius;
-      })?.edge.id,
+      crossingNow
+        ? undefined
+        : after.badges.find(({ edge, route: edgeRoute }) => {
+            const disc = edgeBadgeDisc(edge, edgeRoute, PROPOSED_BADGE);
+            return distance(point, disc.center) <= disc.radius;
+          })?.edge.id,
   };
 }
 
-/** Halo qui pulse et pointillés qui défilent, `elapsed` ms après l'affichage. */
-function animateStep(step: DrawnStep, elapsed: number): void {
+/** Halo qui pulse et pointillés qui défilent, `elapsed` ms après l'affichage (undefined : immobiles). */
+function animateStep(step: DrawnStep, elapsed: number | undefined): void {
   pulseHalo(step.halo, elapsed);
-  for (const dashes of step.dashes) {
-    if (dashes.object) {
-      dashes.object.removeFromParent();
-      disposeObject(dashes.object);
-    }
-    const route = proposedRoute(dashes.route, elapsed);
-    dashes.object = route && ranked(route, dashes.rank);
-    if (dashes.object) step.group.add(dashes.object);
-  }
+  const shown = dashFrame(elapsed);
+  for (const frames of step.dashes) frames.forEach((frame, i) => (frame.visible = i === shown));
 }
 
 /**
@@ -152,7 +141,10 @@ function drawStep(scene: OverlayScene, look: StepLook): DrawnStep {
     const route = scene.route(id);
     const edge = edgeOf(page, id);
     if (!route || !edge) continue;
-    step.dashes.push({ route, rank: rank++ });
+    const frames = proposedRouteFrames(route);
+    for (const frame of frames) step.group.add(ranked(frame, rank));
+    rank++;
+    step.dashes.push(frames.map((frame) => frame.parent!));
     badges.push(() => put(proposedBadge(edge, route, badge, ctx)));
     step.badges.push({ edge, route });
   }
@@ -164,6 +156,6 @@ function drawStep(scene: OverlayScene, look: StepLook): DrawnStep {
   }
   for (const badge of badges) badge();
   // Pointillés immobiles tant que la couche n'est pas animée (animations réduites).
-  animateStep({ ...step, halo: undefined }, 0);
+  animateStep({ ...step, halo: undefined }, undefined);
   return step;
 }

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { OverlayScene } from '../../../../../../src/engine/core/modes/pageTakeover';
 import type { RenderContext } from '../../../../../../src/engine/core/render/types';
 import { edgeBadgeDisc } from '../../../../../../src/engine/core/render/decorations';
+import { edgeOf } from '../../../../../../src/engine/core/model/pageIndex';
 import { simulationOverlay } from '../../../../../../src/engine/plugins/modes/states/simulation/simulationLayer';
 import { PROPOSED_BADGE } from '../../../../../../src/engine/plugins/modes/states/simulation/simulationMarks';
 import { StateSimulation } from '../../../../../../src/engine/plugins/modes/states/simulation/stateSimulation';
@@ -61,16 +62,51 @@ describe('mode Machine à états : couche de la simulation (sujet 462)', () => {
     const before = stepLook(sim);
     sim.cross('t2');
     const layer = simulationOverlay(sim, { before, edgeId: 't2' }).layer!(scene(sim))!;
-    const [after, previous] = layer.object.children;
+    const [after, previous, dot] = layer.object.children;
     expect(previous!.visible).toBe(true);
     expect(after!.visible).toBe(false);
+    expect(dot!.visible).toBe(true);
     expect(layer.object.children).toHaveLength(3);
     expect(layer.animate!(300)).toBe(true);
     expect(previous!.visible).toBe(false);
     expect(after!.visible).toBe(true);
-    expect(layer.object.children).toHaveLength(2);
+    // Point du franchissement caché une fois arrivé (sujet 468 : construit une fois, plus refait).
+    expect(dot!.visible).toBe(false);
     const still = simulationOverlay(sim, { before, edgeId: 't2' }).layer!(scene(sim, true))!;
     expect(still.animate).toBeUndefined();
     expect(still.object.children).toHaveLength(1);
+  });
+
+  it('pendant le franchissement, un clic ne vise aucune pastille ; ensuite, celles du pas courant (sujet 468)', () => {
+    const sim = new StateSimulation(setup().page(), 'init1');
+    const before = stepLook(sim);
+    sim.cross('t1');
+    const s = scene(sim);
+    const layer = simulationOverlay(sim, { before, edgeId: 't1' }).layer!(s)!;
+    const t4 = edgeOf(sim.page, 't4')!;
+    const disc = edgeBadgeDisc(t4, s.route('t4')!, PROPOSED_BADGE);
+    expect(layer.hit!(disc.center)).toBeUndefined();
+    layer.animate!(300);
+    expect(layer.hit!(disc.center)).toBe('t4');
+  });
+
+  it('animée sans créer d’objet à chaque image : pointillés et point seulement montrés ou déplacés (sujet 468)', () => {
+    const sim = new StateSimulation(setup().page(), 'init1');
+    const before = stepLook(sim);
+    sim.cross('t1');
+    const layer = simulationOverlay(sim, { before, edgeId: 't1' }).layer!(scene(sim))!;
+    const objects = () => {
+      const ids: string[] = [];
+      layer.object.traverse((o) => ids.push(o.uuid));
+      return ids;
+    };
+    const initial = objects();
+    for (const elapsed of [16, 100, 260, 500, 1000]) layer.animate!(elapsed);
+    expect(objects()).toEqual(initial);
+    // Un seul décalage des pointillés visible par transition proposée.
+    const visibleDashes = (layer.object.children[0] as Object3D).children.filter(
+      (c) => c.visible && c.children[0]?.type === 'Mesh',
+    );
+    expect(visibleDashes.length).toBeGreaterThan(0);
   });
 });
