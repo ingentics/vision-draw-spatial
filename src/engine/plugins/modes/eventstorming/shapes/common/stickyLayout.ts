@@ -24,10 +24,10 @@ export const STICKY = {
 /** Le post-it montre-t-il son label ? Faux quand sa page masque les labels (clé recopiée sur la forme). */
 export const showsLabel = (shape: ShapeModel): boolean => keys.value(shape, LABELS) !== '0';
 
-/** Ligne du label, sans les marges latérales. */
-export function labelZone({ x, y, width }: Rect): Rect {
+/** Ligne du label, sans les marges latérales ; `right` : bord droit imposé (ex. avant une icône, sujet 516). */
+export function labelZone({ x, y, width }: Rect, right = x + width - STICKY.margin): Rect {
   const { margin, labelTop, labelSize, lineHeight } = STICKY;
-  return { x: x + margin, y: y + labelTop, width: Math.max(width - 2 * margin, 0), height: labelSize * lineHeight };
+  return { x: x + margin, y: y + labelTop, width: Math.max(right - x - margin, 0), height: labelSize * lineHeight };
 }
 
 /**

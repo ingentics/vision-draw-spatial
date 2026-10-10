@@ -3,6 +3,8 @@ import { createLabel } from '../../../../../core/plugins';
 import type { RenderContext, ShapeDefinition, ShapeModel } from '../../../../../core/plugins';
 import { STICKY_TYPES } from '../../kinds';
 import type { StickyType } from '../../kinds';
+import { pivotMarkOf } from '../../pivot/pivot';
+import { PIVOT_MARK, pivotMark, pivotMarkRect } from '../../pivot/pivotMark';
 import { STICKY, labelFontSize, labelZone, showsLabel, stickyTextZone } from './stickyLayout';
 import { PAPER_RADIUS, paperOutline, stickyPaper } from './stickyPaper';
 
@@ -40,8 +42,10 @@ function labelStyle(shape: ShapeModel, size: number): Record<string, string> {
 function createSticky(type: StickyType, shape: ShapeModel, ctx: RenderContext): Object3D {
   const group = stickyPaper(shape, type.fill);
   group.name = `shape:${type.kind}`;
+  const mark = pivotMarkOf(shape);
   if (showsLabel(shape)) {
-    const zone = labelZone(shape.bounds);
+    // Icône de la réponse « Pivot » (sujet 516) : le label s'arrête avant elle.
+    const zone = labelZone(shape.bounds, mark && pivotMarkRect(shape.bounds).x - PIVOT_MARK.gap);
     const size = labelFontSize(type.label, zone.width, ctx.measureText);
     // Tronqué : « … » s'il ne tient pas à 10, et jamais la mise en forme de la valeur (même texte que le label).
     // Imposé : il reste affiché pendant l'édition du texte du ticket (sujet 485).
@@ -53,6 +57,7 @@ function createSticky(type: StickyType, shape: ShapeModel, ctx: RenderContext): 
   }
   const text = createLabel(shape, ctx, shape.label, stickyTextZone(shape));
   if (text) group.add(text);
+  if (mark) group.add(pivotMark(mark, shape.bounds));
   return group;
 }
 

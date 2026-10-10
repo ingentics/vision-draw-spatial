@@ -132,6 +132,19 @@ body {
   color: #ffffff;
 }
 
+/* Choix nommés en boutons écrits (`buttons`, sujet 516) : toute la largeur, à parts égales, nom sur deux lignes au besoin. */
+.button-group.wide-choice {
+  display: flex;
+}
+
+.context-panel .wide-choice .group-button {
+  flex: 1 1 0;
+  justify-content: center;
+  min-width: 0;
+  padding: 3px 4px;
+  text-align: center;
+}
+
 /* Groupe de choix (`ChoiceGroup`, sujet 317) : icônes, nom en infobulle. */
 .choice-icon {
   justify-content: center;

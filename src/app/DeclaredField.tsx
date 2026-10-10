@@ -144,7 +144,8 @@ function FieldControl({ field, layout, value, identity = '', disabled = false, o
       );
     case 'choice': {
       const drawn = choiceDisplay(field.options) === 'buttons';
-      // Choix nommés en boutons écrits (sujet 515) : libellé au-dessus, il peut être long (une question).
+      // Choix nommés en boutons écrits (sujets 515, 516) : libellé au-dessus, il peut être long (une question) ; boutons
+      // à parts égales sur toute la largeur.
       if (field.buttons)
         return (
           <div className="field">
@@ -153,6 +154,7 @@ function FieldControl({ field, layout, value, identity = '', disabled = false, o
               label={label}
               value={text}
               options={field.options.map(({ value, label, title }) => ({ value, label, title }))}
+              className="wide-choice"
               disabled={disabled}
               onChange={(next) => onChange(next || undefined)}
             />
