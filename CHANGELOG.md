@@ -1,5 +1,56 @@
 # Changelog
 
+## [0.11.0](https://github.com/ingentics/vision-draw-spatial/compare/drawio-spatial-v0.10.0...drawio-spatial-v0.11.0) (2026-10-10)
+
+
+### ⚠ BREAKING CHANGES
+
+* **engine:** un mode déclare exportedLabel / importedLabel dans file au lieu de lifecycle.
+* **engine:** Engine.openSimulation, showSimulation, closeSimulation, getSimulation et l'événement simulationChange sont remplacés par lockEditing, setOverlay, clearOverlay, keepInView et editLockChange.
+
+### Fonctionnalités
+
+* **engine:** polices déclarées par un mode, absence signalée ([2f420ac](https://github.com/ingentics/vision-draw-spatial/commit/2f420acfccd52361882251683eb2f8e8ca78c5a8))
+* **engine:** tracé des flèches au choix en ancrage automatique ([c67e906](https://github.com/ingentics/vision-draw-spatial/commit/c67e906e0e73faf4770f99663bfa3827eb81cb4f))
+* **eventstorming:** cases où poser un post-it, échange, ordre de dessin et panneau allégé ([acb49bd](https://github.com/ingentics/vision-draw-spatial/commit/acb49bdabe3e8e36fe7e0058c801667c011deb49))
+* **eventstorming:** export JSON du mur ([c90d6c5](https://github.com/ingentics/vision-draw-spatial/commit/c90d6c526c6936b301d3885855627ff6b31b979b))
+* **eventstorming:** libellé des groupes de post-it collés ([fe9005c](https://github.com/ingentics/vision-draw-spatial/commit/fe9005cba729f3c580796498222f455dd4739a11))
+* **eventstorming:** mode Event storming, post-it typés et contacts bord à bord ([29b39bd](https://github.com/ingentics/vision-draw-spatial/commit/29b39bd5a09aa21dd015a2d4526c22a0d05051c4))
+* **eventstorming:** papier arrondi des post-it, ombre qui ne s'additionne pas ([65a51c6](https://github.com/ingentics/vision-draw-spatial/commit/65a51c6d0e1f30944e0adb18d9837f73793100ce))
+* **eventstorming:** pastilles d'avertissement sur les post-it ([7393d36](https://github.com/ingentics/vision-draw-spatial/commit/7393d36b4715521b64fc5b7b77f253bff48f5e40))
+* **eventstorming:** police feutre, aimantation bord à bord, type exporté et exemples de la palette ([576d551](https://github.com/ingentics/vision-draw-spatial/commit/576d5514774c74b24b6f2014d27587db6bcc1105))
+* **eventstorming:** quatre réponses au pivot et icônes sur le Domain Event ([72a8fd4](https://github.com/ingentics/vision-draw-spatial/commit/72a8fd4b6d1f9c679087e7bb8d51642bc2014590))
+* **eventstorming:** questionnaire du pivot d'un Domain Event ([952c92d](https://github.com/ingentics/vision-draw-spatial/commit/952c92d4879dcacaf2e85d0e977d03be31ad2675))
+* **eventstorming:** réglage « Pivot » du Domain Event ([b5cee34](https://github.com/ingentics/vision-draw-spatial/commit/b5cee3412bc41638016b4d23fda5a0749192bc7f))
+* **eventstorming:** règles des post-it dans un fichier de configuration ([5605d70](https://github.com/ingentics/vision-draw-spatial/commit/5605d70d942447545ee8ec4247f640ec0194823f))
+* **states:** ancrage automatique et tracé droit par défaut ([cfa798f](https://github.com/ingentics/vision-draw-spatial/commit/cfa798fe0d39c9c57fd70b84d64010ef44bc44eb))
+* **states:** ordre de la palette état, ensemble, entrée, sortie ([198d168](https://github.com/ingentics/vision-draw-spatial/commit/198d168bbd7af750ad4d6b3702babd487e54cc9d))
+* **states:** simulation pas à pas d'une machine à états ([2722e56](https://github.com/ingentics/vision-draw-spatial/commit/2722e56622a1ea3cda611efb49d35cd913495408))
+
+
+### Corrections
+
+* **engine:** échange de place jamais avec une forme verrouillée ([635c50b](https://github.com/ingentics/vision-draw-spatial/commit/635c50b30a3a0eb1a9023e08763104da5c1cffdb))
+* **engine:** labels du fichier sans perte à l'aller-retour, au collage aussi ([a1d976b](https://github.com/ingentics/vision-draw-spatial/commit/a1d976bcbae9b9d90c79addc4699905a8e802f17))
+* **eventstorming:** label du type visible en édition, Constraint à cheval et empilable ([fa4ca94](https://github.com/ingentics/vision-draw-spatial/commit/fa4ca94dd2f53ae00c3a1dec584ea608539c5599))
+* **eventstorming:** ordre de dessin de toute une colonne de post-it ([c44281a](https://github.com/ingentics/vision-draw-spatial/commit/c44281ab7d58e4e24f4c234f34f9bbfedf814f5a))
+* **eventstorming:** post-it verrouillé qui suit le réglage « Labels » ([e82515d](https://github.com/ingentics/vision-draw-spatial/commit/e82515d9a09c8bc6a40104e52060698e11e388d7))
+* **states:** lanceur de la simulation relu sur la page et refermable ([c228117](https://github.com/ingentics/vision-draw-spatial/commit/c22811736799f7a2506cc24962c013cf468d7ffa))
+* **states:** point d'entrée ou de sortie rangé dans un ensemble par son centre ([0fb3332](https://github.com/ingentics/vision-draw-spatial/commit/0fb3332a128b59d6813d0d2b6a9ee59cdcbaff12))
+* **states:** simulation sans pas inatteignable, règles et touches dans le moteur ([4a6c145](https://github.com/ingentics/vision-draw-spatial/commit/4a6c145697c3a4181c9ea180a6bb8bc7b13ca7ff))
+
+
+### Performances
+
+* **engine:** labels du fichier écrits en place à l'enregistrement ([36a6d1f](https://github.com/ingentics/vision-draw-spatial/commit/36a6d1fe34ac921af3f904e35970dfb0b46a1cd6))
+* **states:** couche de la simulation animée sans géométrie refaite ([5cf5988](https://github.com/ingentics/vision-draw-spatial/commit/5cf5988cf5d57434da038c7a057b9d876e252efe))
+
+
+### Refactorisations
+
+* **engine:** briques de prise en main de la page à la place de la simulation ([c476562](https://github.com/ingentics/vision-draw-spatial/commit/c476562d04686018de8ed7769f0e9ba2bd12715f))
+* **engine:** labels du fichier dans le groupe file du contrat des modes ([dd257b4](https://github.com/ingentics/vision-draw-spatial/commit/dd257b48180626a42fa23c18d6d21d365c75cd94))
+
 ## [0.10.0](https://github.com/ingentics/vision-draw-spatial/compare/drawio-spatial-v0.9.0...drawio-spatial-v0.10.0) (2026-10-10)
 
 
