@@ -1070,7 +1070,8 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     nom, contenu = formes du mode dont le coin haut-gauche est dedans, emporté au déplacement, agrandi pour
     contenir une forme posée, « f » ajuste au contenu, ensembles frères qui ne se chevauchent pas, imbrication à toute
     profondeur, styles en boucle selon le rang). C'est un état : il accepte des transitions, et les points d'entrée
-    et de sortie posés dedans sont les siens. Réglages « Modes › États » : écart entre ensembles frères,
+    et de sortie posés dedans sont les siens : un point compte par son centre, et posé à cheval sur le bord (comme en
+    UML) il est à l'ensemble sans l'agrandir (sujet 471). Réglages « Modes › États » : écart entre ensembles frères,
     éclaircissement du fond des ensembles.
   - **Export PlantUML** (sujet 436) : diagramme d'états de toute la page (`statesExporter`). Alias `S1`, `S2`… dans
     l'ordre de dessin ; un titre qui est un identifiant simple et unique sert de nom, sinon `state "Titre" as Sn`.

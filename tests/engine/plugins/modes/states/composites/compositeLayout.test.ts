@@ -6,7 +6,8 @@ import {
   compositeContent,
   compositeOf,
 } from '../../../../../../src/engine/plugins/modes/states/composites/compositeLayout';
-import { setup, statesXml, vertex } from '../helpers';
+import { StateSimulation } from '../../../../../../src/engine/plugins/modes/states/simulation/stateSimulation';
+import { edge, setup, statesXml, vertex } from '../helpers';
 
 describe('mode Machine à états : ensemble d’états (sujet 435)', () => {
   it('contenu : formes du mode dont le coin haut-gauche est dedans, points d’entrée et de sortie compris, à toute profondeur', () => {
@@ -106,5 +107,27 @@ describe('mode Machine à états : ensemble d’états (sujet 435)', () => {
     run((edit) => states.gestures!.placed!(edit, ['a']));
     expect(shape('outer').z).toBeLessThan(shape('inner').z);
     expect(shape('inner').z).toBeLessThan(shape('a').z);
+  });
+
+  it('point d’entrée ou de sortie posé sur le bord d’un ensemble : à lui par son centre, sans l’agrandir (sujet 471)', () => {
+    const cells =
+      vertex('c', 'composite', 0, 0, 300, 200, 'C') +
+      vertex('s', 'state', 40, 40, 140, 60, 'S') +
+      // Sortie à cheval sur le bord droit (centre à x = 300), entrée à cheval sur le bord gauche (coin hors de C).
+      vertex('out', 'final', 288, 80, 24, 24) +
+      vertex('in', 'initial', -10, 120, 20, 20) +
+      // Sortie juste dehors : son centre n'est pas dans C.
+      vertex('away', 'final', 302, 150, 24, 24) +
+      edge('a', 's', 'out');
+    const { run, page, shape } = setup(statesXml(cells));
+    expect(compositeOf(page(), shape('out'))?.id).toBe('c');
+    expect(compositeOf(page(), shape('in'))?.id).toBe('c');
+    expect(compositeOf(page(), shape('away'))).toBeUndefined();
+    run((edit) => states.gestures!.placed!(edit, ['out', 'in']));
+    expect(shape('c').bounds).toEqual({ x: 0, y: 0, width: 300, height: 200 });
+    // La simulation quitte l'ensemble par cette sortie au lieu de finir.
+    const sim = new StateSimulation(page(), 's');
+    sim.cross('a');
+    expect(sim.end()).toBe('blocked');
   });
 });

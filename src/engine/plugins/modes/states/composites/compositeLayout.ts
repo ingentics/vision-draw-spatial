@@ -1,5 +1,6 @@
 import {
   DRAWIO_STYLES,
+  center,
   inflate,
   lighten,
   readableOn,
@@ -10,13 +11,21 @@ import {
   styleColor,
   unionOf,
 } from '../../../../core/plugins';
-import type { ModeEdit, ModeObstacles, PageModel, Rect, ShapeModel, StylePreset } from '../../../../core/plugins';
-import { isComposite, isNode } from '../kinds';
+import type {
+  ModeEdit,
+  ModeObstacles,
+  PageModel,
+  Point,
+  Rect,
+  ShapeModel,
+  StylePreset,
+} from '../../../../core/plugins';
+import { isComposite, isFinal, isInitial, isNode } from '../kinds';
 
 /**
  * Ensembles d'états du mode Machine à états (sujet 435), repris de la région RDD (sujets 182 à 241 ; mise en commun :
  * idée 437) : rectangles posés derrière leur contenu, qui l'emportent quand on les déplace. Le contenu (formes du mode
- * dont le coin haut-gauche est dedans) est calculé, rien n'en est écrit dans le fichier. Différence avec la région : un
+ * dont le point d'ancrage est dedans, `anchorOf`) est calculé, rien n'en est écrit dans le fichier. Différence avec la région : un
  * ensemble est un état, il porte des transitions (sujet 434).
  */
 
@@ -38,6 +47,17 @@ export const COMPOSITE = {
 
 const area = (shape: ShapeModel) => shape.bounds.width * shape.bounds.height;
 
+/** Point d'entrée ou de sortie : petit disque qu'on pose volontiers sur le bord d'un ensemble, comme en UML. */
+const isPoint = (shape: ShapeModel) => isInitial(shape) || isFinal(shape);
+
+/**
+ * Point qui range une forme dans un ensemble : son coin haut-gauche, ou le centre d'un point d'entrée ou de sortie
+ * (sujet 471 : posé sur le bord d'un ensemble, il est à lui).
+ */
+function anchorOf(shape: ShapeModel): Point {
+  return isPoint(shape) ? center(shape.bounds) : shape.bounds;
+}
+
 /**
  * Un ensemble peut-il contenir `composite`, dont le coin haut-gauche est dedans (sujet 231) ? Oui, quelle que soit sa
  * taille, comme un état ; seul cas ambigu, deux coins au même point : la plus grande contient l'autre, à taille
@@ -49,8 +69,8 @@ function canContainComposite(parent: ShapeModel, composite: ShapeModel): boolean
 }
 
 /**
- * Ensemble qui contient une forme du mode : la plus petite dont le coin haut-gauche de la forme est dedans, à taille
- * égale celle de devant (la plus imbriquée).
+ * Ensemble qui contient une forme du mode : le plus petit où est son point d'ancrage (`anchorOf`), à taille égale
+ * celui de devant (le plus imbriqué).
  */
 export function compositeOf(page: PageModel, shape: ShapeModel): ShapeModel | undefined {
   return ownerAmong(page.shapes, shape);
@@ -69,7 +89,8 @@ function ownerAmong(candidates: readonly ShapeModel[], shape: ShapeModel): Shape
   if (!isNode(shape)) return undefined;
   let owner: ShapeModel | undefined;
   for (const composite of candidates) {
-    if (!isComposite(composite) || composite.id === shape.id || !rectContains(composite.bounds, shape.bounds)) continue;
+    if (!isComposite(composite) || composite.id === shape.id || !rectContains(composite.bounds, anchorOf(shape)))
+      continue;
     if (isComposite(shape) && !canContainComposite(composite, shape)) continue;
     if (!owner || area(composite) < area(owner) || (area(composite) === area(owner) && composite.z > owner.z))
       owner = composite;
@@ -158,9 +179,11 @@ export function compositeDrawnStyle(shape: ShapeModel, amount: number): Record<s
 
 /**
  * Emprise d'une forme dans son ensemble parent (sujet 237) : ses bornes, onglet compris pour un ensemble qui a un nom
- * (il dépasse au-dessus de lui).
+ * (il dépasse au-dessus de lui) ; un point d'entrée ou de sortie n'a que son centre (sujet 471 : posé sur le bord, il
+ * n'agrandit pas l'ensemble).
  */
 function extentOf(shape: ShapeModel, bounds: Rect = shape.bounds): Rect {
+  if (isPoint(shape)) return { ...center(bounds), width: 0, height: 0 };
   if (!isComposite(shape) || !shape.label.trim()) return bounds;
   const { height } = COMPOSITE.tab;
   return { ...bounds, y: bounds.y - height, height: bounds.height + height };
@@ -181,7 +204,7 @@ function encloses(page: PageModel, ancestor: ShapeModel, composite: ShapeModel):
  * l'agrandit, dans les quatre directions, pour la contenir avec la marge de sécurité ; l'ensemble agrandi fait de même
  * avec le sien, de proche en proche. Un ensemble ne rétrécit jamais ici.
  *
- * L'ensemble d'une forme est celui de son coin haut-gauche ; après un déplacement (`before` : la page d'avant), une
+ * L'ensemble d'une forme est celui de son point d'ancrage (`anchorOf`) ; après un déplacement (`before` : la page d'avant), une
  * forme sortie de son ensemble par la gauche ou le haut y reste tant qu'elle le chevauche, sauf si son coin est entré dans
  * un autre ensemble qui n'englobe pas le sien.
  */

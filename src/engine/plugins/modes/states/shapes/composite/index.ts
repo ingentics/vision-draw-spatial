@@ -26,7 +26,7 @@ import { COMPOSITE, DEFAULT_COMPOSITE_STYLE, compositeStyle } from '../../compos
 /**
  * Ensemble d'états (sujet 435) : même dessin que la région RDD (onglet du nom au-dessus du coin haut-gauche, d'un seul
  * contour avec lui ; mise en commun : idée 437), posé au fond de la pile. Déplacé, il emporte les formes du mode dont le
- * coin haut-gauche est dedans (`compositeLayout.ts`). C'est un état : il porte des transitions. Dans draw.io, un
+ * coin haut-gauche (le centre d'un point d'entrée ou de sortie) est dedans (`compositeLayout.ts`). C'est un état : il porte des transitions. Dans draw.io, un
  * rectangle de la même couleur, le nom posé au-dessus à gauche dans un cadre de la couleur de la bordure.
  */
 
