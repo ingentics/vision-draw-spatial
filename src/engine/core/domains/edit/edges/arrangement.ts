@@ -14,7 +14,7 @@ import type { AvoidOptions, Router } from '../../../edit/anchoring/routing';
 import { tracingOf } from '../../../edit/anchoring/tracing';
 import { nextPlacementVariant } from '../../../edit/anchoring/manual/variants';
 import { affectedShapes, anchorSeedOf, resitedEnds, withNeighbours } from '../../../edit/anchoring/auto/distribute';
-import { distributes, edgeLinesOf, isAnchoring, isEdgeLine } from '../../../edit/anchoring/mode';
+import { distributes, pageAnchoring, pageEdgeLine } from '../../../edit/anchoring/mode';
 import type { Anchoring, EdgeLine } from '../../../edit/anchoring/mode';
 import type { DocumentModel, EdgeModel, PageModel } from '../../../model/types';
 import { SPATIAL } from '../../../spatial';
@@ -187,16 +187,12 @@ export class EdgeArrangement {
   }
 
   anchoringOf(page: PageModel): Anchoring {
-    const own = page.attributes[SPATIAL.anchoring];
-    return isAnchoring(own) ? own : this.core.settings.shapes.edgeAnchoring;
+    return pageAnchoring(page, this.core.settings.shapes.edgeAnchoring);
   }
 
   /** Tracé des flèches créées sur la page : le sien, sinon celui de l'appli, s'il est permis par son ancrage. */
   edgeLineOf(page: PageModel): EdgeLine {
-    const allowed = edgeLinesOf(this.anchoringOf(page));
-    const own = page.attributes[SPATIAL.edgeLine];
-    const wanted = isEdgeLine(own) ? own : this.core.settings.shapes.edgeLineStyle;
-    return allowed.includes(wanted) ? wanted : allowed[0]!;
+    return pageEdgeLine(page, this.anchoringOf(page), this.core.settings.shapes.edgeLineStyle);
   }
 
   /** Vrai si les flèches de la page sont réparties sur les côtés (ancrage automatique ou Typon). */
@@ -205,25 +201,38 @@ export class EdgeArrangement {
   }
 
   setPageAnchoring(pageId: string, anchoring: Anchoring | undefined): void {
-    const target = this.core.targets.editablePageById(pageId);
-    if (!target) return;
-    const { page, pageTree, xmlTree } = target;
-    if ((page.attributes[SPATIAL.anchoring] ?? '') === (anchoring ?? '')) return;
+    const page = this.core.targets.editablePageById(pageId)?.page;
+    if (!page || (page.attributes[SPATIAL.anchoring] ?? '') === (anchoring ?? '')) return;
     this.core.edits.recordEdit('Ancrage des flèches');
-    setPageAttribute(pageTree, SPATIAL.anchoring, anchoring);
-    const fresh = byId(documentFromTree(xmlTree).pages, pageId);
-    if (fresh && this.distributes(fresh)) this.writeDistribution(fresh, new Set(fresh.shapes.map((s) => s.id)));
+    this.writePageArrangement(pageId, { anchoring });
     this.core.file.documentChanged([pageId]);
   }
 
   /** Tracé propre à une page (undefined : celui de l'appli), pour les flèches qui y seront créées. */
   setPageEdgeLine(pageId: string, line: EdgeLine | undefined): void {
+    const page = this.core.targets.editablePageById(pageId)?.page;
+    if (!page || (page.attributes[SPATIAL.edgeLine] ?? '') === (line ?? '')) return;
+    this.core.edits.recordEdit('Tracé des flèches');
+    this.writePageArrangement(pageId, { edgeLine: line });
+    this.core.file.documentChanged([pageId], { distribute: false });
+  }
+
+  /**
+   * Ancrage et tracé propres de la page (une clé absente : inchangé), écrits dans l'étape en cours, sans l'ouvrir ni
+   * notifier : un ancrage changé répartit les flèches déjà là s'il répartit. Panneau de la page, réglages posés par un
+   * mode à son arrivée (sujet 442).
+   */
+  writePageArrangement(
+    pageId: string,
+    changes: { anchoring?: Anchoring | undefined; edgeLine?: EdgeLine | undefined },
+  ): void {
     const target = this.core.targets.editablePageById(pageId);
     if (!target) return;
-    const { page, pageTree } = target;
-    if ((page.attributes[SPATIAL.edgeLine] ?? '') === (line ?? '')) return;
-    this.core.edits.recordEdit('Tracé des flèches');
-    setPageAttribute(pageTree, SPATIAL.edgeLine, line);
-    this.core.file.documentChanged([pageId], { distribute: false });
+    const { page, pageTree, xmlTree } = target;
+    if ('edgeLine' in changes) setPageAttribute(pageTree, SPATIAL.edgeLine, changes.edgeLine);
+    if (!('anchoring' in changes) || (page.attributes[SPATIAL.anchoring] ?? '') === (changes.anchoring ?? '')) return;
+    setPageAttribute(pageTree, SPATIAL.anchoring, changes.anchoring);
+    const fresh = byId(documentFromTree(xmlTree).pages, pageId);
+    if (fresh && this.distributes(fresh)) this.writeDistribution(fresh, new Set(fresh.shapes.map((s) => s.id)));
   }
 }

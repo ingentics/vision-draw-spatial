@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { isHexColor, jumpValue, routingKind, styleFlag, styleNumber } from '../../engine';
+import { edgeLinePatch, isHexColor, jumpValue, routingKind, styleFlag, styleNumber } from '../../engine';
 import { ColorInput, STROKE_COLORS } from '../BorderSection';
 import type { EdgeLine, EdgeModel, JumpStyle } from '../../engine';
 import { ChoiceGroup } from '../ChoiceGroup';
@@ -16,20 +16,6 @@ import { useTooltip } from '../Tooltip';
 export type EdgeStylePatch = (style: Record<string, string>) => Record<string, string | undefined>;
 
 const isStraight = (style: Record<string, string>) => routingKind(style).kind === 'straight';
-
-/** Tracé avec coudes : une flèche droite reprend le routeur orthogonal, les autres gardent le leur. */
-const withRouter =
-  (keys: Record<string, string | undefined>): EdgeStylePatch =>
-  (style) =>
-    isStraight(style) ? { ...keys, edgeStyle: 'orthogonalEdgeStyle', noEdgeStyle: undefined } : keys;
-
-/** Clés de style écrites par chaque tracé. */
-const EDGE_LINE_PATCHES: Record<EdgeLine, EdgeStylePatch> = {
-  straight: () => ({ edgeStyle: undefined, noEdgeStyle: undefined, rounded: '0', curved: undefined }),
-  sharp: withRouter({ rounded: '0', curved: undefined }),
-  rounded: withRouter({ rounded: '1', curved: undefined }),
-  curved: withRouter({ rounded: '0', curved: '1' }),
-};
 
 /** Clés de style des points d'attache imposés (`exitX`…, `entryX`…). */
 const CONSTRAINT_KEYS = ['exit', 'entry'].flatMap((prefix) => ['X', 'Y'].map((axis) => `${prefix}${axis}`));
@@ -70,7 +56,7 @@ export function EdgeLineSection({
             label="Tracé de la flèche"
             value={current}
             options={EDGE_LINE_OPTIONS.filter((option) => edgeLines.includes(option.value))}
-            onChange={(value) => value && onChange(EDGE_LINE_PATCHES[value])}
+            onChange={(value) => value && onChange((style) => edgeLinePatch(value, isStraight(style)))}
           />
         </div>
       )}

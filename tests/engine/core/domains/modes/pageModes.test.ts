@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ShapeParts } from '../../../../../src/engine/core/domains/modes/shapeParts';
+import { EdgeArrangement } from '../../../../../src/engine/core/domains/edit/edges/arrangement';
 import { writeDrawio } from '../../../../../src/engine/core/format/write';
 import { removeCells } from '../../../../../src/engine/core/format/create';
 import { applyModeEdit } from '../../../../../src/engine/core/modes/modeEditWriter';
@@ -213,14 +214,12 @@ describe('réglages de page posés par le mode à son arrivée (sujet 442)', () 
     tree.pages[0]!.diagram!.removeAttribute('spatial.mode');
     const distributed: string[][] = [];
     const steps: string[] = [];
-    Object.assign(core, {
-      edits: { recordEdit: (label: string) => steps.push(label) },
-      arrangement: {
-        distributes: (page: { attributes: Record<string, string> }) =>
-          page.attributes['spatial.anchoring'] !== 'manual',
-        writeDistribution: (_page: unknown, ids: ReadonlySet<string>) => distributed.push([...ids].sort()),
-      },
+    // Agencement réel (il écrit l'ancrage et le tracé, sujet 447), répartition notée.
+    const arrangement = Object.assign(new EdgeArrangement(core), {
+      distributes: (page: { attributes: Record<string, string> }) => page.attributes['spatial.anchoring'] !== 'manual',
+      writeDistribution: (_page: unknown, ids: ReadonlySet<string>) => distributed.push([...ids].sort()),
     });
+    Object.assign(core, { edits: { recordEdit: (label: string) => steps.push(label) }, arrangement });
     modes.setPageMode('p', 'auto');
     const diagram = tree.pages[0]!.diagram!;
     return { diagram, distributed, steps };

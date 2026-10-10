@@ -2,13 +2,14 @@ import { gridSizeOf, setEdgeTerminal } from '../../../format/cellEdits';
 import { addEdgeCell, addShapeCell, removeCellsDeep } from '../../../format/create';
 import { reorderCells } from '../../../format/order';
 import { dropBounds } from '../../../edit/palette';
+import { withEdgeLine } from '../../../edit/anchoring/mode';
 import type { ShapeTemplate } from '../../../edit/palette';
 import { screenToPage } from '../../../interaction/cameraProjection';
 import type { PageTree } from '../../../format/xmlTree';
 import type { PageModel, Point, Rect } from '../../../model/types';
 import { parseStyle, withStyleDefault } from '../../../format/style';
 import { isBlockArrow } from '../../../render/edges/blockArrow';
-import { CONNECTOR_STYLE, EDGE_LINE_KEYS } from '../drag/connect';
+import { CONNECTOR_STYLE } from '../drag/connect';
 import type { EngineCore } from '../../EngineCore';
 import { edgeOf, shapeOf } from '../../../model/pageIndex';
 
@@ -46,8 +47,9 @@ export class ElementCommands {
   private addFreeEdge(template: ShapeTemplate, page: PageModel, pageTree: PageTree, bounds: Rect): string {
     this.core.edits.recordEdit('Nouvelle flèche');
     const straight = isBlockArrow(parseStyle(template.style).values);
-    const line = CONNECTOR_STYLE + (straight ? '' : EDGE_LINE_KEYS[this.core.arrangement.edgeLineOf(page)]);
-    const style = withStyleDefault(template.style + line, 'fontSize', String(this.core.settings.shapes.textSize));
+    const line = template.style + CONNECTOR_STYLE;
+    const lined = straight ? line : withEdgeLine(line, this.core.arrangement.edgeLineOf(page));
+    const style = withStyleDefault(lined, 'fontSize', String(this.core.settings.shapes.textSize));
     const id = addEdgeCell(pageTree, { style });
     const y = bounds.y + bounds.height / 2;
     setEdgeTerminal(pageTree, id, 'source', { point: { x: bounds.x, y } });

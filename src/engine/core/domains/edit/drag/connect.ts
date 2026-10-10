@@ -2,6 +2,7 @@ import { setEdgePoints } from '../../../format/cellEdits';
 import { addEdgeCell } from '../../../format/create';
 import type { PageTree } from '../../../format/xmlTree';
 import { anchorPosition, constraintStyle, sideMiddle } from '../../../edit/edgeEnds';
+import { withEdgeLine } from '../../../edit/anchoring/mode';
 import type { PageModel, Point, ShapeModel } from '../../../model/types';
 import { connectorPreview } from '../../../render/handleMeshes';
 import type { ConnectDrag } from './types';
@@ -13,16 +14,8 @@ import { edgeOf, shapeOf } from '../../../model/pageIndex';
 import { center, samePoint } from '../../../model/geometry';
 
 /** Style des connecteurs créés (celui de draw.io par défaut) ; le tracé vient de la page, sinon du paramètre
- * `shapes.edgeLineStyle` (`EdgeArrangement.edgeLineOf`). */
+ * `shapes.edgeLineStyle` (`EdgeArrangement.edgeLineOf`, `withEdgeLine`). */
 export const CONNECTOR_STYLE = 'orthogonalLoop=1;jettySize=auto;html=1;';
-
-/** Clés du tracé d'une flèche : droite (sans routeur), angles droits, coudes arrondis, courbe (orthogonaux). */
-export const EDGE_LINE_KEYS = {
-  straight: 'rounded=0;',
-  sharp: 'edgeStyle=orthogonalEdgeStyle;rounded=0;',
-  rounded: 'edgeStyle=orthogonalEdgeStyle;rounded=1;',
-  curved: 'edgeStyle=orthogonalEdgeStyle;rounded=0;curved=1;',
-} as const;
 
 /** Visée d'un connecteur en cours : forme de départ, hauteur de son dessus, milieu du côté tiré, formes permises. */
 interface Aiming {
@@ -141,14 +134,13 @@ export class ConnectDrags {
 
   /** Connecteur lâché sur une forme : la flèche est créée (style des paramètres) et sélectionnée. */
   commit(drag: ConnectDrag, pageTree: PageTree): void {
-    if (!drag.target) {
+    const page = this.core.pages.pageById(drag.pageId);
+    if (!drag.target || !page) {
       this.core.rendering.requestRender();
       return;
     }
     this.core.edits.recordEdit('Connecteur');
-    const page = this.core.pages.pageById(drag.pageId);
-    const edgeLine = page ? this.core.arrangement.edgeLineOf(page) : this.core.settings.shapes.edgeLineStyle;
-    const line = CONNECTOR_STYLE + EDGE_LINE_KEYS[edgeLine];
+    const line = withEdgeLine(CONNECTOR_STYLE, this.core.arrangement.edgeLineOf(page));
     let style = withStyleDefault(line, 'fontSize', String(this.core.settings.shapes.textSize));
     const exit = drag.exit ?? sideMiddle(drag.side);
     for (const [key, value] of Object.entries(constraintStyle('source', exit)))

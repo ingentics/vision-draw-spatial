@@ -28,3 +28,34 @@
   - Une flèche créée en manuel, en automatique et en Typon a le même style qu'avant.
   - Passer une page en Machine à états pose l'ancrage et le tracé dans une seule étape d'annulation.
   - Le panneau de page affiche l'ancrage comme avant.
+- Fait :
+  - `edit/anchoring/mode.ts` porte la seule table `EDGE_LINE_STYLES` (tracé → clés de style), avec :
+    - `withEdgeLine`, pour une flèche créée ;
+    - `edgeLinePatch(line, straight)`, pour une flèche existante : une flèche à coudes garde son routeur ;
+    - `pageAnchoring` et `pageEdgeLine`, des lectures pures de la page, avec le repli sur les paramètres.
+
+    Ils remplacent :
+    - `EDGE_LINE_KEYS` (`drag/connect.ts`, repris par `commands/elements.ts`) ;
+    - les objets `Router.edgeStyle` des routeurs, qui prennent `EDGE_LINE_STYLES.rounded` (automatique) et
+      `.straight` (Typon) ;
+    - la table du panneau d'une flèche (`app/context/EdgeLineSections.tsx`) ;
+    - le calcul d'ancrage de l'appli (`viewer/ViewerContextPanel.tsx`).
+  - `EdgeArrangement.writePageArrangement(pageId, { anchoring?, edgeLine? })` écrit l'ancrage et le tracé dans
+    l'étape en cours. Un ancrage changé répartit les flèches déjà là. Cette méthode est appelée par
+    `setPageAnchoring`, `setPageEdgeLine` et `PageModes.setPageMode`, qui n'écrit plus d'attribut d'agencement.
+  - `ConnectDrag.commit` lit le tracé par `edgeLineOf`, sans son propre repli.
+  - Écarts de comportement, invisibles :
+    - une flèche droite (création, panneau ou Typon) n'a plus `rounded` au lieu de `rounded=0`, ce qui donne le même
+      rendu ;
+    - Typon retire aussi `noEdgeStyle` ;
+    - l'arrivée d'un mode ne relance la répartition que si l'ancrage de la page change (avant : dès que le mode en
+      déclarait un).
+  - Tests :
+    - `tests/engine/core/edit/anchoring/mode.test.ts`, nouveau ;
+    - `pageModes.test.ts` (sujet 442), adapté : il fait tourner l'agencement réel, qui écrit désormais les attributs,
+      avec la répartition notée.
+  - `make check` vert.
+  - Vérifié dans l'appli :
+    - passer une page en Machine à états pose l'ancrage manuel et le tracé droit, et un seul Annuler revient à la
+      page normale ;
+    - sur `simple.drawio`, la flèche « appelle » passe en droite puis en courbe depuis le panneau.

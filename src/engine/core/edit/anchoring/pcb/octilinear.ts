@@ -3,6 +3,7 @@ import { SIDE_NORMALS } from '../../edgeEnds';
 import { ATTRACT_COST, BEND_COST, Heap, OVERLAP_COST, SEED_JITTER, inside, out } from '../routing';
 import type { AvoidOptions, Port, Router, Segment } from '../routing';
 import { seededUnit } from '../seed';
+import { EDGE_LINE_STYLES } from '../mode';
 import {
   cross,
   distance,
@@ -384,7 +385,7 @@ class OctilinearSearch {
  */
 export function octilinearRouter(avoid: boolean, bends: BendCosts = DEFAULT_BEND_COSTS): Router {
   return {
-    edgeStyle: { edgeStyle: undefined, rounded: undefined, curved: undefined },
+    edgeStyle: EDGE_LINE_STYLES.straight,
     segments: pathSegments,
     conflict: (s, t) => segmentsCross(s, t) || segmentsOverlap(s, t) > 0.5,
     route: (from, to, obstacles, occupied, attract, options, seed) =>

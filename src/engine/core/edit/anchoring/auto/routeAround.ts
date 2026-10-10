@@ -13,6 +13,7 @@ import {
 } from '../routing';
 import type { AvoidOptions, Port, Router, Segment } from '../routing';
 import { seededUnit } from '../seed';
+import { EDGE_LINE_STYLES } from '../mode';
 
 /**
  * Tracé orthogonal de l'ancrage automatique (SPEC §14.1) : plus court chemin sur une grille tirée des formes et des
@@ -225,7 +226,7 @@ function stepCost(
 }
 
 export const ORTHOGONAL_ROUTER: Router = {
-  edgeStyle: { edgeStyle: 'orthogonalEdgeStyle', noEdgeStyle: undefined, rounded: '1', curved: undefined },
+  edgeStyle: EDGE_LINE_STYLES.rounded,
   segments: segmentsOf,
   conflict: (s, t) => crosses(s, t) || overlap(s, t) > 0.5,
   route: routeAround,
