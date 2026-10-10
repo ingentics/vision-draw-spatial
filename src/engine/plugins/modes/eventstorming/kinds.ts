@@ -7,6 +7,8 @@ import type { PageModel, ShapeModel } from '../../../core/plugins';
  * (et cherchés).
  */
 export interface StickyType {
+  /** Le kind sans le préfixe du mode : clé du type dans les règles (`stickyRules.ts`). */
+  key: StickyKey;
   kind: string;
   label: string;
   fill: string;
@@ -15,7 +17,10 @@ export interface StickyType {
   keywords: readonly string[];
 }
 
-const sticky = (type: string, label: string, fill: string, keywords: string[], examples: string[]): StickyType => ({
+export type StickyKey = 'event' | 'command' | 'constraint' | 'system' | 'policy' | 'query' | 'actor' | 'hotspot';
+
+const sticky = (type: StickyKey, label: string, fill: string, keywords: string[], examples: string[]): StickyType => ({
+  key: type,
   kind: `eventstorming-${type}`,
   label,
   fill,
@@ -72,6 +77,10 @@ export const HOTSPOT = sticky(
 export const STICKY_TYPES: readonly StickyType[] = [EVENT, COMMAND, CONSTRAINT, SYSTEM, POLICY, QUERY, ACTOR, HOTSPOT];
 
 const BY_KIND = new Map(STICKY_TYPES.map((type) => [type.kind, type]));
+const BY_KEY = new Map(STICKY_TYPES.map((type) => [type.key, type]));
+
+/** Type de clé `key` (`event`, `command`…). */
+export const stickyOfKey = (key: StickyKey): StickyType => BY_KEY.get(key)!;
 
 /** Type du post-it, reconnu par son `spatial.kind` ; undefined pour une autre forme. */
 export const stickyType = (shape: ShapeModel): StickyType | undefined => BY_KIND.get(shape.kind);

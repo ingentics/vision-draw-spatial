@@ -196,18 +196,6 @@
         <mxCell id="r5-ok-4" value="&lt;b&gt;Domain Event&lt;/b&gt;&lt;br&gt;Paiement refusé" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffb74d;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=eventstorming-event;spatial.es.group=✓ R5 — deux issues d’une même Command;" vertex="1" parent="1">
           <mxGeometry x="320" y="3840" width="160" height="160" as="geometry"/>
         </mxCell>
-        <mxCell id="r5-ko-1" value="&lt;b&gt;Actor&lt;/b&gt;&lt;br&gt;Client" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff59d;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=eventstorming-actor;spatial.es.group=✗ R5 / W5 — issue empilée que la Command ne touche pas;" vertex="1" parent="1">
-          <mxGeometry x="1440" y="3680" width="160" height="160" as="geometry"/>
-        </mxCell>
-        <mxCell id="r5-ko-2" value="&lt;b&gt;Command&lt;/b&gt;&lt;br&gt;Payer" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#64b5f6;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=eventstorming-command;spatial.es.group=✗ R5 / W5 — issue empilée que la Command ne touche pas;" vertex="1" parent="1">
-          <mxGeometry x="1600" y="3680" width="160" height="160" as="geometry"/>
-        </mxCell>
-        <mxCell id="r5-ko-3" value="&lt;b&gt;Domain Event&lt;/b&gt;&lt;br&gt;Paiement effectué" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffb74d;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=eventstorming-event;spatial.es.group=✗ R5 / W5 — issue empilée que la Command ne touche pas;" vertex="1" parent="1">
-          <mxGeometry x="1760" y="3680" width="160" height="160" as="geometry"/>
-        </mxCell>
-        <mxCell id="r5-ko-4" value="&lt;b&gt;Domain Event&lt;/b&gt;&lt;br&gt;Paiement refusé" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffb74d;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=eventstorming-event;spatial.es.group=✗ R5 / W5 — issue empilée que la Command ne touche pas;" vertex="1" parent="1">
-          <mxGeometry x="1760" y="3840" width="160" height="160" as="geometry"/>
-        </mxCell>
         <mxCell id="share-ok-1" value="&lt;b&gt;Actor&lt;/b&gt;&lt;br&gt;Client" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff59d;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=eventstorming-actor;spatial.es.group=✓ Contact sur une demi-hauteur;" vertex="1" parent="1">
           <mxGeometry x="0" y="4320" width="160" height="160" as="geometry"/>
         </mxCell>
@@ -285,6 +273,45 @@
         </mxCell>
         <mxCell id="pivot-ko-3" value="&lt;b&gt;Domain Event&lt;/b&gt;&lt;br&gt;Paiement effectué" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffb74d;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=eventstorming-event;spatial.es.group=✗ Pivot « Je ne sais pas »;spatial.es.pivotWho=unknown;spatial.es.pivot=unknown;" vertex="1" parent="1">
           <mxGeometry x="1760" y="5900" width="160" height="160" as="geometry"/>
+        </mxCell>
+        <mxCell id="pile-ok-1" value="&lt;b&gt;Actor&lt;/b&gt;&lt;br&gt;Client" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff59d;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=eventstorming-actor;spatial.es.group=✓ R5 — pile d’issues à droite de la Command;" vertex="1" parent="1">
+          <mxGeometry x="0" y="6380" width="160" height="160" as="geometry"/>
+        </mxCell>
+        <mxCell id="pile-ok-2" value="&lt;b&gt;Command&lt;/b&gt;&lt;br&gt;Payer" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#64b5f6;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=eventstorming-command;spatial.es.group=✓ R5 — pile d’issues à droite de la Command;" vertex="1" parent="1">
+          <mxGeometry x="160" y="6380" width="160" height="160" as="geometry"/>
+        </mxCell>
+        <mxCell id="pile-ok-3" value="&lt;b&gt;Domain Event&lt;/b&gt;&lt;br&gt;Paiement effectué" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffb74d;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=eventstorming-event;spatial.es.group=✓ R5 — pile d’issues à droite de la Command;" vertex="1" parent="1">
+          <mxGeometry x="320" y="6380" width="160" height="160" as="geometry"/>
+        </mxCell>
+        <mxCell id="pile-ok-4" value="&lt;b&gt;Domain Event&lt;/b&gt;&lt;br&gt;Paiement refusé" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffb74d;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=eventstorming-event;spatial.es.group=✓ R5 — pile d’issues à droite de la Command;" vertex="1" parent="1">
+          <mxGeometry x="320" y="6540" width="160" height="160" as="geometry"/>
+        </mxCell>
+        <mxCell id="pile-ok-5" value="&lt;b&gt;Domain Event&lt;/b&gt;&lt;br&gt;Paiement en attente" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffb74d;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=eventstorming-event;spatial.es.group=✓ R5 — pile d’issues à droite de la Command;" vertex="1" parent="1">
+          <mxGeometry x="320" y="6700" width="160" height="160" as="geometry"/>
+        </mxCell>
+        <mxCell id="between-ok-1" value="&lt;b&gt;Actor&lt;/b&gt;&lt;br&gt;Client" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff59d;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=eventstorming-actor;spatial.es.group=✓ Policies empilées entre la Command et ses Domain Events;" vertex="1" parent="1">
+          <mxGeometry x="0" y="7180" width="160" height="160" as="geometry"/>
+        </mxCell>
+        <mxCell id="between-ok-2" value="&lt;b&gt;Command&lt;/b&gt;&lt;br&gt;Payer" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#64b5f6;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=eventstorming-command;spatial.es.group=✓ Policies empilées entre la Command et ses Domain Events;" vertex="1" parent="1">
+          <mxGeometry x="160" y="7180" width="160" height="160" as="geometry"/>
+        </mxCell>
+        <mxCell id="between-ok-3" value="&lt;b&gt;Policy&lt;/b&gt;&lt;br&gt;Quand le paiement est effectué, préparer le colis" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ce93d8;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=eventstorming-policy;spatial.es.group=✓ Policies empilées entre la Command et ses Domain Events;" vertex="1" parent="1">
+          <mxGeometry x="320" y="7180" width="160" height="160" as="geometry"/>
+        </mxCell>
+        <mxCell id="between-ok-4" value="&lt;b&gt;Policy&lt;/b&gt;&lt;br&gt;Quand le paiement est refusé, prévenir" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ce93d8;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=eventstorming-policy;spatial.es.group=✓ Policies empilées entre la Command et ses Domain Events;" vertex="1" parent="1">
+          <mxGeometry x="320" y="7340" width="160" height="160" as="geometry"/>
+        </mxCell>
+        <mxCell id="between-ok-5" value="&lt;b&gt;Domain Event&lt;/b&gt;&lt;br&gt;Paiement effectué" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffb74d;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=eventstorming-event;spatial.es.group=✓ Policies empilées entre la Command et ses Domain Events;" vertex="1" parent="1">
+          <mxGeometry x="480" y="7180" width="160" height="160" as="geometry"/>
+        </mxCell>
+        <mxCell id="between-ok-6" value="&lt;b&gt;Domain Event&lt;/b&gt;&lt;br&gt;Paiement refusé" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffb74d;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=eventstorming-event;spatial.es.group=✓ Policies empilées entre la Command et ses Domain Events;" vertex="1" parent="1">
+          <mxGeometry x="480" y="7340" width="160" height="160" as="geometry"/>
+        </mxCell>
+        <mxCell id="between-ok-7" value="&lt;b&gt;Command&lt;/b&gt;&lt;br&gt;Préparer le colis" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#64b5f6;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=eventstorming-command;spatial.es.group=✓ Policies empilées entre la Command et ses Domain Events;" vertex="1" parent="1">
+          <mxGeometry x="640" y="7180" width="160" height="160" as="geometry"/>
+        </mxCell>
+        <mxCell id="between-ok-8" value="&lt;b&gt;Command&lt;/b&gt;&lt;br&gt;Prévenir le client" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#64b5f6;strokeColor=none;shadow=1;fontColor=#000000;spacing=8;fitText=fill;spatial.kind=eventstorming-command;spatial.es.group=✓ Policies empilées entre la Command et ses Domain Events;" vertex="1" parent="1">
+          <mxGeometry x="640" y="7340" width="160" height="160" as="geometry"/>
         </mxCell>
       </root>
     </mxGraphModel>

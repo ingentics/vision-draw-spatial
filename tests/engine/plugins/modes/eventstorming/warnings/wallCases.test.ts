@@ -26,7 +26,10 @@ const EXPECTED: Record<string, string[]> = {
   'r4-ok': [],
   'r4-ko': ['W4'],
   'r5-ok': [],
-  'r5-ko': ['W5'],
+  // Sujet 520 : une pile d'Events à droite d'une Command est toute produite par elle (l'ancien cas fautif « issue
+  // empilée que la Command ne touche pas ») ; des Policies empilées s'intercalent entre la Command et ses Events.
+  'pile-ok': [],
+  'between-ok': [],
   'share-ok': [],
   'share-ko': ['W1', 'W6'],
   'trigger-ok': [],

@@ -120,8 +120,9 @@ describe('mode Event storming : export JSON du mur (sujet 518)', () => {
     expect(links(sticky('e', 'event', 0, 0) + sticky('r', 'query', 160, 0))).toEqual(['G1.E1 feeds G1.R1 R1']);
     // Une Command à gauche d'un Event : produit ; un Event à gauche d'une Command : la cause.
     expect(links(sticky('e', 'event', 0, 0) + sticky('c', 'command', 160, 0))).toEqual(['G1.E1 causes G1.C1 R1']);
-    // Policy à droite d'une Command : aucune règle.
-    expect(warnings(sticky('c', 'command', 0, 0) + sticky('p', 'policy', 160, 0))).toContain('W1 G1.C1 G1.P1');
+    // Actor à droite d'un Domain Event : aucune règle (une Policy à droite d'une Command s'intercale, sujet 520).
+    const unruled = warnings(sticky('e', 'event', 0, 0) + sticky('a', 'actor', 160, 0));
+    expect(unruled.filter((warning) => warning.startsWith('W1'))).toHaveLength(1);
   });
 
   it('W1 : un contact sans règle entre deux post-it liés par ailleurs est ignoré (sujet 519)', () => {
@@ -190,6 +191,53 @@ describe('mode Event storming : export JSON du mur (sujet 518)', () => {
     expect(
       warnings(sticky('c', 'command', 0, 0) + sticky('e1', 'event', 160, 0) + sticky('e2', 'event', 320, 0)),
     ).toContain('W1 G1.E1 G1.E2');
+  });
+
+  it('R5 : une pile d’Events à droite d’une Command, tous produits par elle (sujet 520)', () => {
+    const cells =
+      sticky('c', 'command', 0, 0) +
+      sticky('e1', 'event', 160, 0) +
+      sticky('e2', 'event', 160, 160) +
+      sticky('e3', 'event', 160, 320);
+    expect(links(cells)).toEqual(['G1.C1 produces G1.E1 R1', 'G1.C1 produces G1.E2 R5', 'G1.C1 produces G1.E3 R5']);
+    expect(warnings(cells)).toEqual(['W6 G1.C1']);
+  });
+
+  it('Policy intercalée entre une Command et son Event, Policies empilées (sujet 520)', () => {
+    const one = sticky('c', 'command', 0, 0) + sticky('p', 'policy', 160, 0) + sticky('e', 'event', 320, 0);
+    expect(links(one).sort()).toEqual(['G1.C1 produces G1.E1 R1', 'G1.E1 triggers G1.P1 R2']);
+    // Ni W1 entre la Command et la Policy, ni W5 sur l'Event ; la Policy n'émet encore rien (W2).
+    expect(warnings(one)).toEqual(['W2 G1.P1', 'W6 G1.C1']);
+    const piled =
+      sticky('c', 'command', 0, 0) +
+      sticky('p1', 'policy', 160, 0) +
+      sticky('p2', 'policy', 160, 160) +
+      sticky('e1', 'event', 320, 0) +
+      sticky('e2', 'event', 320, 160);
+    expect(links(piled).sort()).toEqual([
+      'G1.C1 produces G1.E1 R1',
+      'G1.C1 produces G1.E2 R5',
+      'G1.E1 triggers G1.P1 R2',
+      'G1.E2 triggers G1.P2 R2',
+    ]);
+    expect(warnings(piled)).toEqual(['W2 G1.P1', 'W2 G1.P2', 'W6 G1.C1']);
+  });
+
+  it('Policies empilées sur l’Event qui les déclenche : toutes déclenchées, sans avertissement (sujet 520)', () => {
+    const cells =
+      sticky('p1', 'policy', 160, 0) +
+      sticky('p2', 'policy', 160, 160) +
+      sticky('p3', 'policy', 160, 320) +
+      sticky('c', 'command', 0, 480) +
+      sticky('e', 'event', 160, 480) +
+      sticky('next', 'command', 320, 480);
+    expect(
+      links(cells)
+        .filter((link) => link.includes('triggers'))
+        .sort(),
+    ).toEqual(['G1.E1 triggers G1.P1 R2', 'G1.E1 triggers G1.P2 R2', 'G1.E1 triggers G1.P3 R2']);
+    // Chacune émet la Command à droite de l'Event (R3) : ni W2 ni W3.
+    expect(warnings(cells)).toEqual(['W6 G1.C1']);
   });
 
   it('W2 à W6 et W8', () => {

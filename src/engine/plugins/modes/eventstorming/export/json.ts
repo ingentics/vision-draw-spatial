@@ -3,8 +3,10 @@ import { groupLabel, stickyGroups, writtenLabel } from '../groups/stickyGroups';
 import { keys, PIVOT } from '../keys';
 import { ACTOR, COMMAND, CONSTRAINT, EVENT, HOTSPOT, POLICY, QUERY, stickyType, SYSTEM } from '../kinds';
 import type { StickyType } from '../kinds';
-import { byReading, readWall, WARNINGS } from './wallRules';
-import type { WallRule, WarningCode } from './wallRules';
+import { WARNINGS } from '../stickyRules';
+import type { WarningCode } from '../stickyRules';
+import { byReading, readWall } from './wallRules';
+import type { WallRule } from './wallRules';
 
 /**
  * Export JSON du mur (sujet 518) : groupes, éléments, liens déduits des contacts et avertissements. Les règles sont dans

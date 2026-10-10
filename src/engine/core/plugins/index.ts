@@ -141,6 +141,6 @@ export type { StandingFigure } from '../render/standing';
 export { stencilShape } from '../format/stencil';
 
 // Règles d'édition partagées.
-export { OPPOSITE_SIDES, SIDE_NORMALS, endAttachmentOf, sideOfConstraint } from '../edit/edgeEnds';
+export { OPPOSITE_SIDES, SIDES, SIDE_NORMALS, endAttachmentOf, sideOfConstraint } from '../edit/edgeEnds';
 export type { EndAttachment, Side } from '../edit/edgeEnds';
 export { facingSide } from '../edit/anchoring/auto/distribute';

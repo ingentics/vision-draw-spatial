@@ -1130,11 +1130,11 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   - **Aimantation bord à bord** (sujet 477) : en glissant ou redimensionnant un post-it, un bord à moins de 8 px écran
     d'un bord opposé d'un autre post-it, qu'il recouvre sur l'autre axe, s'y colle (écart 0) ; pas avec Alt.
   - **Cases au glisser** (sujet 481) : en glissant un post-it seul, les cases où il peut se poser sont montrées autour
-    des post-it voisins (à moins de 160), collées et alignées, libres, selon la grammaire : Actor | Command | Domain
-    Event | Domain Event | Query Model | Actor, Command | Constraint ou System | Domain Event, Policy sous un Domain
-    Event et à gauche d'une Command, Hotspot sur tous les côtés (et tous autour d'un Hotspot) ; une Constraint aussi à
-    cheval au-dessus d'une Command et du post-it collé à sa droite (centrée sur leur jointure), et empilée au-dessus ou
-    au-dessous d'une autre Constraint (sujet 486). Centre du post-it dans
+    des post-it voisins (à moins de 160), collées et alignées, libres, selon la grammaire de la lecture du mur
+    (sujet 520, fichier de configuration `stickyRules.ts`, une entrée par type) : à droite de A pour un lien R1 de A
+    vers B, sur les quatre côtés pour un lien R2, dessus et dessous pour deux Domain Events, Policies ou Constraints
+    (empilement), Policy à droite d'une Command (intercalée), Hotspot sur tous les côtés (et tous autour d'un Hotspot) ; une Constraint aussi à cheval au-dessus
+    d'une Command et du post-it collé à sa droite (centrée sur leur jointure, sujet 486). Centre du post-it dans
     une case : il s'y met et s'y pose. Lâché sur un autre post-it hors des cases : les deux échangent leur place.
     Mêmes cases dès qu'un post-it de la palette survole la page (posé dans la case visée, sans échange). Pas avec Alt.
   - **Ordre de dessin** (sujets 484, 502) : un post-it dont le bas touche le haut d'un autre passe derrière lui, pour
@@ -1154,7 +1154,10 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     minuscules sans accents ni ponctuation ; `pivot` sur les Domain Events : `true`, `false`, `unknown` ou `null`),
     `links` (chacun avec sa règle : R1 séquence gauche → droite, R2 attache de tout côté, R3 Policy qui émet la Command
     à droite de son Event et retire le `causes` direct, R4 Hotspot vers un seul voisin — dessus, dessous, gauche,
-    droite —, R5 Events empilés issues de la même Command ; un contact crée un lien s'il couvre au moins 20 % du côté
+    droite —, R5 Events empilés issues de la même Command : un lien R1 ou R2 vers un post-it d'une pile vaut pour ceux de la pile qui n'en ont pas
+    déjà un du même type (Policies empilées sur leur Event : toutes déclenchées),
+    sans lien ni W1 entre post-it empilés (Events, Policies, Constraints) ; Policies intercalées entre une Command et
+    ses Events : la Command produit les Events collés à droite de la pile (sujet 520) ; un contact crée un lien s'il couvre au moins 20 % du côté
     du plus petit post-it) et `warnings` (W1 contact sans règle, seulement si l'un des deux post-it n'a aucun autre
     lien (sujet 519), W2 Policy sans Command, sauf visée par un Hotspot, W3 Policy sans Event, W4
     Hotspot isolé, W5 Event sans Command, W6 Command sans déclencheur, W7 post-it isolé, W8 chevauchement).
@@ -1162,7 +1165,7 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     sur les deux post-it) porte en haut à gauche (20 × 20 à 7 des bords) un triangle jaune « ! » ; un Domain Event au
     pivot « Je ne sais pas » porte à la place un disque bleu « ? » (plus d'icône à droite ; le cube de Oui reste). Le
     label du type tient entre la pastille et l'icône. Survol ou clic (partie `badge` du post-it) : message dans l'encart
-    des commentaires, titre puis ce qui est attendu avec un exemple (`warningHints.ts`), ou la question du pivot encore
+    des commentaires, titre puis ce qui est attendu avec un exemple (textes dans `stickyRules.ts`), ou la question du pivot encore
     ouverte. Recalculées à chaque modification : une pastille résolue disparaît. Dessin seulement (habillage
     `spatial.es.badge`, jamais écrit). Réglage de la page « Activer la validation » (coché par défaut ; décoché :
     `spatial.es.validation=0`) : décoché, plus de pastille « ! », le « ? » du pivot reste. Mur des règles, un cas bien placé et des cas fautifs par règle :
