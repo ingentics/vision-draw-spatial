@@ -145,8 +145,3 @@ Ordre suivi : <…>. Un commit par sujet, dès que la vérification est verte.
 - [ ] Sujets validés par l'utilisateur
 - [ ] Réalisation
 ```
-
-## Utiliser comme skill
-
-Copier ce fichier en `~/.claude/skills/audit/SKILL.md` (tous les projets) ou en `.claude/skills/audit/SKILL.md` (un
-projet) ; l'en-tête `name` / `description` suffit à le déclarer. Le lancer avec `/audit <zone ou objectif>`.
