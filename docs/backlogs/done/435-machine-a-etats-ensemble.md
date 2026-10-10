@@ -23,3 +23,7 @@
   marche comme une région dans une région ; un point
   d'entrée posé dans l'ensemble le suit quand on le déplace ;
   `make check` vert.
+- Fait : région RDD dupliquée dans `composites/compositeLayout.ts`, `composites/compositeKey.ts` (« f ») et
+  `shapes/composite/` (forme `states-composite`, accepte les transitions, 320 × 180 par défaut) ; réglages du mode
+  écart entre ensembles frères et éclaircissement du fond. Vérifié dans l'appli : ensembles imbriqués et onglets ;
+  emport du contenu, agrandissement, « f » et obstacles par les tests.

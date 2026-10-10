@@ -24,6 +24,10 @@
   Ø 14 px dans un cercle Ø 24 px (cible UML), taille fixe, sans texte. Arrivée des transitions. On peut en poser
   autant qu'on veut pour faciliter la lecture (une sortie près de chaque état qui y mène) ; tous deviennent le seul
   `[*]` de leur niveau à l'export (sujet 436). De même, plusieurs points d'entrée sont permis.
+  - **Sortie attendue ou en erreur** : choix « Attendue » / « En erreur » dans le panneau du point de sortie
+    (booléen `spatial.sm.error=1`, absent = attendue) ; en erreur, le point est dessiné en rouge (`#d32f2f`, aussi
+    écrit en `fillColor` / `strokeColor` pour draw.io). Le panneau d'un point de sortie ne doit pas proposer de style :
+    le masquer demande le tronc (sujet 440).
 - **Commentaires** : comme sur toute page (touche « C », bouton du panneau, encart au survol), sur les états, les
   points d'entrée et de sortie, ainsi que sur Texte, Titre et Post-it ; le panneau d'un état garde le
   « Commentaire ». Pas repris dans l'export PlantUML.
@@ -37,3 +41,16 @@
   au panneau ou par double-clic apparaît sous le trait et la forme grandit ; les points d'entrée et de sortie se
   posent à leur taille fixe et ne se redimensionnent pas ; un commentaire se pose sur un état et sur un point
   (« C ») et s'affiche au survol ; ⌘Z défait chaque étape ; `make check` vert.
+- Fait : mode `states` dans `src/engine/plugins/modes/states/` (`index.ts`, `kinds.ts`, `keys.ts` espace de noms
+  `sm`, `settings.ts`) ; état dans `state/` (`stateLayout.ts` zones calculées depuis le bas, titre coupé entre les
+  mots, hauteur ajustée ; `bodyText.ts`, `stateBody.ts`, `stateParts.ts` contenu éditable par double-clic) ; formes
+  dans `shapes/state`, `shapes/initial`, `shapes/final` ; sortie attendue / en erreur dans `exits/exitKind.ts`.
+  Écarts : ids des formes `states-state`, `states-initial`, `states-final` (le registre exige le préfixe de l'id du
+  mode) ; contenu dans `spatial.sm.body` (un mode n'écrit que dans son espace de noms) ; contenu sans retour
+  automatique (tronqué par « … », comme le corps d'un document RDD), le titre revient à la ligne ; la couleur du point
+  de sortie suit le choix Attendue / En erreur, pas le style. Masquer la section Style des points demande le tronc :
+  sujet 440. Ancrage auto et tracé droit à l'arrivée dans le mode : sujet 442. SPEC, SUMMARY et `AJOUTER_UN_MODE.md`
+  pas mis à jour (périmètre limité au dossier du mode à la demande). Fixture `tests/fixtures/states.drawio` ; tests
+  dans `tests/engine/plugins/modes/states/` ; liste de la palette dans `tests/engine/core/edit/palette.test.ts`.
+  Vérifié dans l'appli : 2D seule, palette, contenu au panneau et sur place (l'état grandit), points sans poignées de
+  taille, commentaire « C » au survol, sortie en erreur en rouge, ⌘Z.

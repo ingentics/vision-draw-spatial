@@ -20,7 +20,16 @@
   affiché. Panneau de la flèche : section « Transition » en tête avec le nom ; les réglages sans effet dans le mode
   (bouts, position des textes, lien) masqués ;
   le commentaire reste (touche « C », bouton du panneau, encart au survol).
+- **Vers une sortie en erreur** (sujet 433) : la transition est dessinée en rouge (`#d32f2f`, habillage du mode,
+  le fichier n'est pas modifié) ; elle redevient noire si la sortie redevient attendue.
 - **Fini quand :** sur la fixture, une flèche tirée d'un état à un autre est créée avec une pointe classique, son nom
   s'affiche au milieu une fois saisi ; point d'entrée → état et état → point de sortie
   marchent, l'inverse est refusé ; tirée vers un post-it ou dans le vide, elle n'est pas créée ; une boucle sur
   un état est possible ; `make check` vert.
+- Fait : `transitions/transitionRules.ts` (`canConnect`, Diagnostics des bouts libres et liaisons refusées, section
+  « Transition » du panneau), `edges.attachedEnds`, `edges.manages` sur toutes les flèches (texte du milieu,
+  commentaire, coupure ; le reste masqué), pointe classique et trait plein à la création ; flèches vers une sortie en
+  erreur en rouge par l'habillage. Écart : la section « Transition » montre les deux bouts en lecture seule, le nom se
+  saisit dans Texte › Milieu juste dessous (un mode ne peut pas écrire le texte d'une flèche). Vérifié dans l'appli :
+  flèche vers un post-it ou dans le vide non créée, flèche d'un état vers un état d'un ensemble créée ; boucle et
+  règles des points par les tests.

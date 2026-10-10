@@ -43,7 +43,13 @@
   fenêtre générique `src/app/export/ExportDialog.tsx` (sujet 439) sans choix propre au mode : source copiable
   et rendu SVG par le moteur réglé dans Paramètres › Exporteurs › PlantUML.
 - Une transition à bout libre (signalée, sujet 434) n'est pas écrite.
+- Une transition vers une sortie en erreur (sujet 433) est écrite en rouge : `alias -[#d32f2f]-> [*]`.
 - **Fini quand :** sur la fixture (états avec contenu, titres longs, points d'entrée, plusieurs points de sortie,
   ensemble imbriqué, transitions nommées, boucle, transition vers un ensemble), le bouton ouvre la fenêtre et le
   rendu PlantUML montre le diagramme attendu ; tests de l'exporteur (alias, échappement, imbrication, `[*]` unique
   par niveau, niveau d'écriture des transitions) ; `make check` vert.
+- Fait : `export/plantuml.ts` (`statesPlantUml`), exposé par `api.ts` ; section « Machine à états » du panneau de la
+  page dans `src/app/plugins/modes/states/index.tsx`, fenêtre commune `ExportDialog`. Les déclarations (blocs
+  d'ensemble compris) précèdent les transitions de leur niveau ; un état au nom simple est déclaré dans un ensemble,
+  ou à la page s'il n'a ni contenu ni transition. Vérifié dans l'appli : rendu PlantUML de la fixture, flèche rouge
+  vers la sortie en erreur.
