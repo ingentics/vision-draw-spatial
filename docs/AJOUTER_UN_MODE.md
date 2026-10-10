@@ -54,6 +54,7 @@ interface PageModeDefinition {
     viewModes?: ViewMode[];                    // modes d'affichage permis (section 6)
     allowsEffect?(effectId): boolean;          // effets permis (absent : tous)
     selectionStyle?: 'veil' | 'outline';       // mise en valeur de la sélection imposée (aucun mode ne l'impose aujourd'hui)
+    defaults?: { anchoring?, edgeLine? };     // réglages posés sur la page à son passage dans le mode (section 6)
     palette?: { shapes?: string[]; categories?: PaletteCategory[] };  // palette du mode (section 6)
   };
   lifecycle?: {                                // moments de la vie du document
@@ -273,6 +274,10 @@ couche physique d'une table RDD, lue par son rendu). Un habillage qui dépend du
 - **`page.viewModes`** (`'top' | 'iso' | '3d'`) : modes d'affichage permis ; absent = tous. La page s'affiche dans le premier
   permis (ouverture, changement de page, passage dans le mode, rechargement), `I` / `P` sont sans effet et les
   boutons des autres modes désactivés ; en quittant la page, on retrouve la vue choisie par l'utilisateur.
+- **`page.defaults`** (sujet 442) : ancrage des flèches et tracé des flèches créées posés sur la page quand elle passe
+  dans le mode (ex. machine à états : manuel, droit), dans l'étape d'annulation du passage ; l'ancrage posé répartit
+  les flèches déjà là. Ce ne sont que des valeurs de départ : on les change ensuite dans le panneau de la page, et
+  rouvrir le document ne les réécrit pas. Une valeur inconnue est ignorée.
 - Registre : `paletteFor(page)` (catégories et formes de la palette d'une page), `allowsViewMode(page, mode)`.
 
 ## 7. Vérifier
@@ -306,6 +311,7 @@ Règles communes (sujet 288) :
 | `shortName` | sous-page Paramètres › Modes | — | — | — |
 | `description` | aide du choix du mode | — | — | — |
 | `icon` | onglet d'une page du mode | — | — | — |
+| `page.defaults` | passage d'une page dans le mode (`setPageMode`) | — | ancrage (`spatial.anchoring`) et tracé des flèches créées (`spatial.edgeLine`) écrits dans l'étape « Mode … » ; l'ancrage répartit les flèches déjà là | — |
 | `page.palette.shapes` | palette d'une page du mode (`paletteFor`) | — | — | — |
 | `page.palette.categories` | palette d'une page du mode | — | — | — |
 | `page.viewModes` | ouverture, changement de page, passage dans le mode, boutons de vue | — | — | — |

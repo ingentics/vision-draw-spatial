@@ -1,3 +1,4 @@
+import type { Anchoring, EdgeLine } from '../edit/anchoring/mode';
 import type { ViewMode } from '../interaction/cameraState';
 import type { Point, Rect } from '../model/types';
 // Modèle en lecture seule (sujet 303) : un mode lit la page, il n'écrit que par `ModeEdit`.
@@ -85,6 +86,11 @@ export interface ModePage {
    * `selection.style` vaut sur les autres pages.
    */
   selectionStyle?: Exclude<SelectionStyle, 'none'>;
+  /**
+   * Réglages posés sur une page quand elle passe dans le mode (sujet 442, ex. machine à états : ancrage manuel,
+   * tracé droit) : écrits dans l'étape du passage, modifiables ensuite comme sur toute page.
+   */
+  defaults?: { anchoring?: Anchoring; edgeLine?: EdgeLine };
   /** Palette d'une page du mode. */
   palette?: {
     /**

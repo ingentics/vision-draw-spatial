@@ -1,8 +1,10 @@
 import { setPageAttribute } from '../../format/cellEdits';
+import { documentFromTree } from '../../format/parse';
 import { writeDrawio } from '../../format/write';
 import type { PageTree } from '../../format/xmlTree';
 import type { TerminalEnd } from '../../edit/edgeEnds';
 import { endKey } from '../../edit/anchoring/auto/distribute';
+import { isAnchoring, isEdgeLine } from '../../edit/anchoring/mode';
 import { canMoveShape, carriedShapes } from '../../edit/moveSet';
 import type { DocumentModel, PageModel, Point, ShapeModel } from '../../model/types';
 import type { PageModePalette } from '../../edit/palette';
@@ -15,7 +17,7 @@ import type { ModeObstacles, PageModeDefinition } from '../../modes/types';
 import { modePalette } from '../../settings';
 import { SPATIAL } from '../../spatial';
 import type { EngineCore } from '../EngineCore';
-import { edgeOf, shapeOf } from '../../model/pageIndex';
+import { byId, edgeOf, shapeOf } from '../../model/pageIndex';
 
 /** Règle d'accroche d'un bout de flèche : la forme est-elle permise au point visé (pixels de page, sujet 333) ? */
 export type EndAccepts = (shape: ShapeModel, point: Point) => boolean;
@@ -63,6 +65,16 @@ export class PageModes {
     const name = modeId && this.core.modes.get(modeId)?.name;
     this.core.edits.recordEdit(name ? `Mode ${name}` : 'Page normale');
     setPageAttribute(pageTree, SPATIAL.mode, modeId);
+    // Réglages de page posés par le mode (sujet 442), dans la même étape ; l'ancrage posé répartit les flèches déjà là,
+    // comme son choix dans le panneau.
+    const defaults = modeId === undefined ? undefined : this.core.modes.get(modeId)?.page?.defaults;
+    if (isAnchoring(defaults?.anchoring)) setPageAttribute(pageTree, SPATIAL.anchoring, defaults.anchoring);
+    if (isEdgeLine(defaults?.edgeLine)) setPageAttribute(pageTree, SPATIAL.edgeLine, defaults.edgeLine);
+    if (defaults?.anchoring) {
+      const fresh = byId(documentFromTree(target.xmlTree).pages, pageId);
+      if (fresh && this.core.arrangement.distributes(fresh))
+        this.core.arrangement.writeDistribution(fresh, new Set(fresh.shapes.map((shape) => shape.id)));
+    }
     this.core.file.documentChanged([pageId]);
   }
 

@@ -204,3 +204,42 @@ describe('bouts attachés imposés par le mode (sujet 438)', () => {
     ]);
   });
 });
+
+describe('réglages de page posés par le mode à son arrivée (sujet 442)', () => {
+  /** Page sans mode passée dans un mode qui déclare `defaults` ; l'agencement note les pages réparties. */
+  function arrive(defaults: PageModeDefinition['page']) {
+    const mode: PageModeDefinition = { id: 'auto', namespace: 'auto', name: 'Auto', page: defaults };
+    const { core, modes, tree } = setup(mode);
+    tree.pages[0]!.diagram!.removeAttribute('spatial.mode');
+    const distributed: string[][] = [];
+    const steps: string[] = [];
+    Object.assign(core, {
+      edits: { recordEdit: (label: string) => steps.push(label) },
+      arrangement: {
+        distributes: (page: { attributes: Record<string, string> }) =>
+          page.attributes['spatial.anchoring'] !== 'manual',
+        writeDistribution: (_page: unknown, ids: ReadonlySet<string>) => distributed.push([...ids].sort()),
+      },
+    });
+    modes.setPageMode('p', 'auto');
+    const diagram = tree.pages[0]!.diagram!;
+    return { diagram, distributed, steps };
+  }
+
+  it('ancrage et tracé écrits dans l’étape du passage ; les flèches déjà là sont réparties', () => {
+    const { diagram, distributed, steps } = arrive({ defaults: { anchoring: 'auto', edgeLine: 'straight' } });
+    expect(steps).toEqual(['Mode Auto']);
+    expect(diagram.getAttribute('spatial.mode')).toBe('auto');
+    expect(diagram.getAttribute('spatial.anchoring')).toBe('auto');
+    expect(diagram.getAttribute('spatial.edgeLine')).toBe('straight');
+    expect(distributed).toEqual([['a', 'b']]);
+  });
+
+  it('sans réglages déclarés, rien d’autre que le mode ; une valeur inconnue est ignorée', () => {
+    const none = arrive(undefined);
+    expect(none.diagram.hasAttribute('spatial.anchoring')).toBe(false);
+    expect(none.distributed).toEqual([]);
+    const unknown = arrive({ defaults: { edgeLine: 'zigzag' as 'straight' } });
+    expect(unknown.diagram.hasAttribute('spatial.edgeLine')).toBe(false);
+  });
+});
