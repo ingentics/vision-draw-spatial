@@ -1,5 +1,42 @@
 # Changelog
 
+## [0.10.0](https://github.com/ingentics/vision-draw-spatial/compare/drawio-spatial-v0.9.0...drawio-spatial-v0.10.0) (2026-10-10)
+
+
+### ⚠ BREAKING CHANGES
+
+* **app:** les réglages plantumlRenderer et plantumlUrl du mode Séquences deviennent la section exporters.plantuml des paramètres ; ModePanelProps et ContextPanelProps reçoivent exporters.
+* **rdd:** spatial.rdd.secondary n'est plus lu (pas de migration) : une ancienne table secondaire repasse en taille L.
+
+### Fonctionnalités
+
+* **app:** export de la page ou de la sélection en image PNG ([a060a72](https://github.com/ingentics/vision-draw-spatial/commit/a060a729f49cafb3b8e9fc15d56469966fc52669))
+* **app:** tracé des flèches par page ([cfa32c1](https://github.com/ingentics/vision-draw-spatial/commit/cfa32c139e8ac3c35ca3d020ae93c52b323f586c))
+* **engine:** réglages de page posés par un mode à son arrivée ([74ffebf](https://github.com/ingentics/vision-draw-spatial/commit/74ffebfb8f7079c1b684579a4bac07088313c01f))
+* **engine:** tracé arrondi imposé en ancrage automatique ([4dd2483](https://github.com/ingentics/vision-draw-spatial/commit/4dd2483baf8dbfd62ec442b06ea243c5d0617ac0))
+* **engine:** un mode peut interdire les bouts de flèche libres ([b688662](https://github.com/ingentics/vision-draw-spatial/commit/b6886629bda0710eab492eda01ef8aba10f4debb))
+* **engine:** une forme peut se passer de la section Style ([1d44dfd](https://github.com/ingentics/vision-draw-spatial/commit/1d44dfde81523e0bc002db40c556f35a7de80907))
+* **rdd:** flèches de relation en contour en sélection multiple ([d11bd9e](https://github.com/ingentics/vision-draw-spatial/commit/d11bd9e501a0e98a1dda8a45e3d7403560fcc1fa))
+* **rdd:** trois tailles de table (L, M, S) et touches « + » / « - » ([580887c](https://github.com/ingentics/vision-draw-spatial/commit/580887c3f6dd837cabf0af43c215b5fc4b87a923))
+* **states:** mode Machine à états ([f21ba8a](https://github.com/ingentics/vision-draw-spatial/commit/f21ba8a015e10e85e859b507af770d8ba3a641ad))
+
+
+### Corrections
+
+* **engine:** export d'image hors des métriques des scènes ([36d0996](https://github.com/ingentics/vision-draw-spatial/commit/36d09960242627a5312a0c236e2f1e1097519e19))
+* **engine:** export PNG qui attend aussi les textes riches et sur tracé ([237278b](https://github.com/ingentics/vision-draw-spatial/commit/237278b26f6f2f85f397652936bcdccd8d647952))
+* **states:** cible d'un point d'entrée d'un autre niveau déclarée avant ([148a21e](https://github.com/ingentics/vision-draw-spatial/commit/148a21e83a2a6d9d7bb58ace59c035d9d32f00d3))
+
+
+### Performances
+
+* **states:** contenu d'un ensemble en un seul passage sur les ensembles ([e930ce7](https://github.com/ingentics/vision-draw-spatial/commit/e930ce72f8f612618d51c116a88379c7ed13fffa))
+
+
+### Refactorisations
+
+* **app:** PlantUML partagé par les modes ([1382b2f](https://github.com/ingentics/vision-draw-spatial/commit/1382b2ff7e0ee9cdde1108fe84f4d6827239eebb))
+
 ## [0.9.0](https://github.com/ingentics/vision-draw-spatial/compare/drawio-spatial-v0.8.0...drawio-spatial-v0.9.0) (2026-10-09)
 
 
