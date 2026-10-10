@@ -59,9 +59,14 @@ function canContainRegion(parent: ShapeModel, region: ShapeModel): boolean {
  * égale celle de devant (la plus imbriquée).
  */
 export function regionOf(page: PageModel, shape: ShapeModel): ShapeModel | undefined {
+  return ownerAmong(page.shapes, shape);
+}
+
+/** `regionOf` parmi `candidates` (les formes de la page, ou ses seuls régions). */
+function ownerAmong(candidates: readonly ShapeModel[], shape: ShapeModel): ShapeModel | undefined {
   if (!isModeShape(shape)) return undefined;
   let owner: ShapeModel | undefined;
-  for (const region of page.shapes) {
+  for (const region of candidates) {
     if (!isRegion(region) || region.id === shape.id || !rectContains(region.bounds, shape.bounds)) continue;
     if (isRegion(shape) && !canContainRegion(region, shape)) continue;
     if (!owner || area(region) < area(owner) || (area(region) === area(owner) && region.z > owner.z)) owner = region;
@@ -70,22 +75,34 @@ export function regionOf(page: PageModel, shape: ShapeModel): ShapeModel | undef
 }
 
 /** Contenu d'une région : les formes qu'elle contient, et celles des régions qu'elle contient. */
-export function regionContent(page: PageModel, region: ShapeModel): string[] {
+export function regionContent(page: PageModel, region: ShapeModel, owned = ownedBy(page)): string[] {
   if (!isRegion(region)) return [];
-  const owned = new Map<string, string[]>();
-  for (const shape of page.shapes) {
-    const owner = regionOf(page, shape);
-    if (owner) owned.set(owner.id, [...(owned.get(owner.id) ?? []), shape.id]);
-  }
-  const content: string[] = [];
+  const content = new Set<string>();
   const stack = [...(owned.get(region.id) ?? [])];
   while (stack.length) {
     const id = stack.pop()!;
-    if (id === region.id || content.includes(id)) continue;
-    content.push(id);
+    if (id === region.id || content.has(id)) continue;
+    content.add(id);
     stack.push(...(owned.get(id) ?? []));
   }
-  return content;
+  return [...content];
+}
+
+/**
+ * Formes que chaque région contient directement (sujet 455) : un passage sur les seuls régions pour chaque forme,
+ * calculé une fois par appel de `regionContent`, ou une fois pour toute une chaîne d'ajustement.
+ */
+function ownedBy(page: PageModel): Map<string, string[]> {
+  const candidates = page.shapes.filter(isRegion);
+  const owned = new Map<string, string[]>();
+  for (const shape of page.shapes) {
+    const owner = ownerAmong(candidates, shape);
+    if (!owner) continue;
+    const ids = owned.get(owner.id);
+    if (ids) ids.push(shape.id);
+    else owned.set(owner.id, [shape.id]);
+  }
+  return owned;
 }
 
 /**
@@ -265,6 +282,7 @@ export function placeInRegions(edit: ModeEdit, shapeIds: string[], before?: Page
 export function fitRegion(edit: ModeEdit, region: ShapeModel): void {
   const { page } = edit;
   if (!isRegion(region)) return;
+  const owned = ownedBy(page);
   /** Bornes écrites par cet ajustement (régions déjà ajustées, plus bas dans la chaîne). */
   const fitted = new Map<string, Rect>();
   const seen = new Set<string>();
@@ -274,7 +292,7 @@ export function fitRegion(edit: ModeEdit, region: ShapeModel): void {
     current = regionOf(page, current)
   ) {
     seen.add(current.id);
-    const content = regionContent(page, current)
+    const content = regionContent(page, current, owned)
       .map((id) => shapeOf(page, id))
       .filter((shape): shape is ShapeModel => shape !== undefined);
     const union = unionOf(content.map((s) => extentOf(s, fitted.get(s.id) ?? s.bounds)));

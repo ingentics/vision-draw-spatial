@@ -53,9 +53,14 @@ function canContainComposite(parent: ShapeModel, composite: ShapeModel): boolean
  * égale celle de devant (la plus imbriquée).
  */
 export function compositeOf(page: PageModel, shape: ShapeModel): ShapeModel | undefined {
+  return ownerAmong(page.shapes, shape);
+}
+
+/** `compositeOf` parmi `candidates` (les formes de la page, ou ses seuls ensembles). */
+function ownerAmong(candidates: readonly ShapeModel[], shape: ShapeModel): ShapeModel | undefined {
   if (!isNode(shape)) return undefined;
   let owner: ShapeModel | undefined;
-  for (const composite of page.shapes) {
+  for (const composite of candidates) {
     if (!isComposite(composite) || composite.id === shape.id || !rectContains(composite.bounds, shape.bounds)) continue;
     if (isComposite(shape) && !canContainComposite(composite, shape)) continue;
     if (!owner || area(composite) < area(owner) || (area(composite) === area(owner) && composite.z > owner.z))
@@ -65,22 +70,34 @@ export function compositeOf(page: PageModel, shape: ShapeModel): ShapeModel | un
 }
 
 /** Contenu d'un ensemble : les formes qu'il contient, et celles des ensembles qu'il contient. */
-export function compositeContent(page: PageModel, composite: ShapeModel): string[] {
+export function compositeContent(page: PageModel, composite: ShapeModel, owned = ownedBy(page)): string[] {
   if (!isComposite(composite)) return [];
-  const owned = new Map<string, string[]>();
-  for (const shape of page.shapes) {
-    const owner = compositeOf(page, shape);
-    if (owner) owned.set(owner.id, [...(owned.get(owner.id) ?? []), shape.id]);
-  }
-  const content: string[] = [];
+  const content = new Set<string>();
   const stack = [...(owned.get(composite.id) ?? [])];
   while (stack.length) {
     const id = stack.pop()!;
-    if (id === composite.id || content.includes(id)) continue;
-    content.push(id);
+    if (id === composite.id || content.has(id)) continue;
+    content.add(id);
     stack.push(...(owned.get(id) ?? []));
   }
-  return content;
+  return [...content];
+}
+
+/**
+ * Formes que chaque ensemble contient directement (sujet 455) : un passage sur les seuls ensembles pour chaque forme,
+ * calculé une fois par appel de `compositeContent`, ou une fois pour toute une chaîne d'ajustement.
+ */
+function ownedBy(page: PageModel): Map<string, string[]> {
+  const candidates = page.shapes.filter(isComposite);
+  const owned = new Map<string, string[]>();
+  for (const shape of page.shapes) {
+    const owner = ownerAmong(candidates, shape);
+    if (!owner) continue;
+    const ids = owned.get(owner.id);
+    if (ids) ids.push(shape.id);
+    else owned.set(owner.id, [shape.id]);
+  }
+  return owned;
 }
 
 /**
@@ -267,6 +284,7 @@ export function placeInComposites(edit: ModeEdit, shapeIds: string[], before?: P
 export function fitComposite(edit: ModeEdit, composite: ShapeModel): void {
   const { page } = edit;
   if (!isComposite(composite)) return;
+  const owned = ownedBy(page);
   /** Bornes écrites par cet ajustement (ensembles déjà ajustés, plus bas dans la chaîne). */
   const fitted = new Map<string, Rect>();
   const seen = new Set<string>();
@@ -276,7 +294,7 @@ export function fitComposite(edit: ModeEdit, composite: ShapeModel): void {
     current = compositeOf(page, current)
   ) {
     seen.add(current.id);
-    const content = compositeContent(page, current)
+    const content = compositeContent(page, current, owned)
       .map((id) => shapeOf(page, id))
       .filter((shape): shape is ShapeModel => shape !== undefined);
     const union = unionOf(content.map((s) => extentOf(s, fitted.get(s.id) ?? s.bounds)));
