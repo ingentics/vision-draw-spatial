@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest';
 import type { OverlayScene } from '../../../../../../src/engine/core/modes/pageTakeover';
 import type { RenderContext } from '../../../../../../src/engine/core/render/types';
 import { edgeBadgeDisc } from '../../../../../../src/engine/core/render/decorations';
-import { edgeOf } from '../../../../../../src/engine/core/model/pageIndex';
+import { center, rectPath } from '../../../../../../src/engine/core/model/geometry';
+import { edgeOf, shapeOf } from '../../../../../../src/engine/core/model/pageIndex';
 import { simulationOverlay } from '../../../../../../src/engine/plugins/modes/states/simulation/simulationLayer';
 import { PROPOSED_BADGE } from '../../../../../../src/engine/plugins/modes/states/simulation/simulationMarks';
 import { StateSimulation } from '../../../../../../src/engine/plugins/modes/states/simulation/stateSimulation';
@@ -14,26 +15,16 @@ import { setup } from '../helpers';
 /** Page dessinée réduite : tracés droits entre les centres, contours des emprises. */
 function scene(sim: StateSimulation, reducedMotion = false): OverlayScene {
   const { page } = sim;
-  const centerOf = (id: string | undefined) => {
-    const b = page.shapes.find((s) => s.id === id)!.bounds;
-    return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
-  };
+  const centerOf = (id: string) => center(shapeOf(page, id)!.bounds);
   return {
     page,
     route: (id) => {
-      const edge = page.edges.find((e) => e.id === id);
-      return edge && [centerOf(edge.sourceId), centerOf(edge.targetId)];
+      const edge = edgeOf(page, id);
+      return edge && [centerOf(edge.sourceId!), centerOf(edge.targetId!)];
     },
     outline: (id) => {
-      const b = page.shapes.find((s) => s.id === id)?.bounds;
-      return (
-        b && [
-          { x: b.x, y: b.y },
-          { x: b.x + b.width, y: b.y },
-          { x: b.x + b.width, y: b.y + b.height },
-          { x: b.x, y: b.y + b.height },
-        ]
-      );
+      const shape = shapeOf(page, id);
+      return shape && rectPath(shape.bounds);
     },
     ctx: { ...MEASURE, text: { create: () => new Object3D() } } as unknown as RenderContext,
     reducedMotion,
