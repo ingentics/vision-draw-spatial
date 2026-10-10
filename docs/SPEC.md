@@ -816,7 +816,7 @@ Réalisation retenue (`engine/core/spatial.ts`) :
 | `spatial.mode` | `<diagram>` | Mode de la page (§14.5) : id d'un mode (`sequences`) ; absent = page normale |
 | `spatial.anchoring` | `<diagram>` | Ancrage des flèches de la page (§14.1) : `manual`, `auto` ou `pcb` ; absent = paramètre `shapes.edgeAnchoring` |
 | `spatial.edgeLine` | `<diagram>` | Tracé des flèches créées sur la page : `straight`, `sharp`, `rounded` ou `curved` ; absent = paramètre `shapes.edgeLineStyle` ; borné par l'ancrage (§14.1, « Tracé d'une flèche ») |
-| `spatial.<espace>.<nom>` | `<diagram>`, style ou objet | Données d'un mode de page (§14.5), dans l'espace de noms du mode (sujet 301) : `seq` (Séquences), `rdd` (RDD), `sm` (Machine à états). Un mode n'écrit que dans le sien |
+| `spatial.<espace>.<nom>` | `<diagram>`, style ou objet | Données d'un mode de page (§14.5), dans l'espace de noms du mode (sujet 301) : `seq` (Séquences), `rdd` (RDD), `sm` (Machine à états), `es` (Event storming). Un mode n'écrit que dans le sien |
 | `spatial.seq.flows` | `<diagram>` | Mode Séquences : flux de la page, liste ordonnée en JSON `[{"id","title","color"}, …]` |
 | `spatial.seq.flow`, `spatial.seq.step` | style ou objet | Mode Séquences : flux d'une flèche (`id`) et son rang dans le flux (1…n) |
 | `spatial.seq.participant` | style ou objet | Mode Séquences : type d'une forme (`bus`, `queue`) |
@@ -827,6 +827,7 @@ Réalisation retenue (`engine/core/spatial.ts`) :
 | `spatial.rdd.cardinalities` | `<diagram>` | Mode RDD : `0` = textes des cardinalités masqués |
 | `spatial.sm.body` | style ou objet | Mode Machine à états : contenu d'un état, chaîne JSON (`;` échappés en `\u003b`) ; absent = vide |
 | `spatial.sm.error` | style ou objet | Mode Machine à états : `1` = point de sortie en erreur ; absent = sortie attendue |
+| `spatial.es.labels` | `<diagram>`, style | Mode Event storming : `0` = labels des post-it masqués (réglage « Labels » de la page), recopié sur chaque post-it ; absent = affichés |
 
 - Lecture : style de la cellule, sinon attribut de son `<object>` / `<UserObject>` (« Modifier les données » dans draw.io) ; le style l'emporte. Valeurs négatives ou invalides ignorées.
 - Écriture (panneau contextuel, section « Volume » : « Épaisseur », « Élévation » ; vide = valeur par défaut) : là où l'attribut est déjà (objet), sinon dans le style, clé modifiée en place ou ajoutée à la fin.
@@ -1112,6 +1113,20 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
       texte, ni commentaire (un commentaire en cours d'édition est fermé), ni pages, ni annuler / rétablir (grisés) ;
       la caméra reste libre (molette, glisser, flèches →, ↑, ↓, Espace + glisser). Changer de page ou de fichier
       arrête la simulation.
+- **Mode Event storming** (`eventstorming`, espace `es`, sujet 475) : en 2D seulement ; la palette (catégorie « Event
+  storming ») propose 8 post-it typés, plus Texte et Titre. Code : `src/engine/plugins/modes/eventstorming/`.
+  - **Post-it typés** (`eventstorming-event`, `-command`, `-constraint`, `-system`, `-policy`, `-query`, `-actor`,
+    `-hotspot`, 160 × 160) : papier du Post-it (ombre, sans contour), fond de la couleur du type ; label du type en
+    anglais en haut (gras, 16, noir à 80 %, à 8 du haut ; réduit jusqu'à 10 puis « … »), non modifiable, qui suit le
+    type et non la couleur ; texte du ticket (la valeur) qui remplit la zone sous le label (`fitText=fill`), édité en
+    place dans cette zone.
+  - **Réglage « Labels »** de la page (`spatial.es.labels=0` décoché, recopié sur chaque post-it ; une étape
+    d'annulation) : décoché, aucun label et le texte prend toute la forme.
+  - **Contacts** (`contacts(page)`, `contacts/contacts.ts`) : deux post-it se touchent quand deux bords parallèles
+    sont à moins de 0,5 et qu'ils se recouvrent au-delà sur l'autre axe (un coin seul ne compte pas) ; pour chaque
+    paire : côté de chaque forme, segment de contact, part du côté de chacune. Les chevauchements sont listés à part.
+    Section « Event storming » du panneau d'un post-it : ses contacts (« Command « Payer » — à gauche, sur tout le
+    côté », « … — en haut, sur 50 % », « … — chevauchement »), ou « Ne touche aucun post-it ».
 
 ### 14.6 Export d'image
 

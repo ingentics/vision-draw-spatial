@@ -25,6 +25,15 @@ describe('palette', () => {
       'datastore',
       'ellipse',
       'event-consumer',
+      // Post-it typés du mode Event storming (sujet 475).
+      'eventstorming-actor',
+      'eventstorming-command',
+      'eventstorming-constraint',
+      'eventstorming-event',
+      'eventstorming-hotspot',
+      'eventstorming-policy',
+      'eventstorming-query',
+      'eventstorming-system',
       // Flèche pleine (sujet 410) : une arête, dessinée par le moteur.
       'flexArrow',
       'hexagon',

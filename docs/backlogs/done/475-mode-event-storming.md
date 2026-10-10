@@ -64,3 +64,19 @@ lisibles ; leur interprétation (flux, règles, export) viendra plus tard, dans 
   paramètres de la page retire les labels et le texte remonte, ⌘Z les remet ; l'export s'ouvre dans
   draw.io ; tests de `contacts` (côtés, segments, coin, chevauchement, tolérance), de l'aimantation et de la
   reconnaissance des types ; `make check` vert.
+- Fait : mode `src/engine/plugins/modes/eventstorming/` (aucun changement dans `core/`) : `index.ts` (2D seulement,
+  palette catégorie « Event storming », 8 post-it puis Texte et Titre), `kinds.ts` (les 8 types : label, couleur,
+  exemples), formes `shapes/<type>/` sur `shapes/common/stickyShape.ts` (papier et ombre du Post-it, label gras 16 noir
+  à 80 % réduit jusqu'à 10 puis « … », texte `fitText=fill` dans la zone sous le label, `stickyLayout.ts`), contacts
+  `contacts/contacts.ts` (`contacts(page)` : côtés, segment, parts, chevauchements à part, tolérance 0,5) et
+  `contacts/contactsText.ts` (section « Event storming » du panneau), réglage « Labels » `labels/pageLabels.ts`.
+  Écarts : types `eventstorming-<type>` et non `es-<type>` (le registre impose le préfixe de l'id du mode) ;
+  `spatial.es.labels=0` recopié sur chaque post-it (dessin et zone d'édition ne voient que la forme), tenu à jour à la
+  pose, au collage et à l'ouverture ; icône du mode en deux couleurs (gris et accent) ; exemples seulement dans les
+  mots-clés de la recherche. Reportés dans des sujets du tronc : police feutre (476), aimantation bord à bord (477),
+  label en tête de la valeur exportée (478), exemples dans l'infobulle de la palette (479) ; dette 480. Fixtures
+  `tests/fixtures/eventstorming.drawio` et `eventstorming-commande.drawio` (trois variantes d'une commande en ligne sur
+  une page). Tests `tests/engine/plugins/modes/eventstorming/` (enregistrement, palette, types, dessin, contacts,
+  Labels), `palette.test.ts` ; SPEC §14.3 et §14.5, SUMMARY. Vérifié à l'œil sur le serveur partagé : palette, labels
+  et textes, iso et 3D grisés, contacts de la Commande et de la Politique, coin et chevauchement, Labels décoché puis
+  ⌘Z. Non fait : `make drawio-check`.
