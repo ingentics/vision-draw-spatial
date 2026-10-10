@@ -4,6 +4,7 @@ import { EVENT_STORMING_KEYS } from './keys';
 import { STICKY_TYPES } from './kinds';
 import { LABELS_PROPERTY, syncLabels } from './labels/pageLabels';
 import { stackPlaced } from './order/stacking';
+import { PIVOT_PROPERTY } from './pivot/pivot';
 import { dragPlaces } from './places/placesAround';
 import { snapTargets } from './places/snapTargets';
 import { STICKY } from './shapes/common/stickyLayout';
@@ -40,6 +41,8 @@ export const definition: PageModeDefinition = {
   // Nom du type en tête de la valeur dans le fichier, lisible dans draw.io (sujet 478).
   file: { exportedLabel, importedLabel },
   gestures: {
+    // « Pivot » d'un Domain Event (sujet 515).
+    properties: [PIVOT_PROPERTY],
     // Post-it posé : il prend le réglage « Labels » de la page, et passe derrière le post-it collé sous lui (sujet 484).
     placed: (edit, shapeIds) => {
       syncLabels(edit, shapeIds);

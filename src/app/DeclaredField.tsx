@@ -15,14 +15,7 @@ import { Choice, ColorField, Slider, Toggle, UrlField } from './SettingsFields';
 /** Numéro du prochain passage dans un champ en direct (clé de fusion des frappes, unique pour toute la session). */
 let nextPass = 0;
 
-export function DeclaredField({
-  field,
-  layout,
-  value,
-  identity = '',
-  disabled = false,
-  onChange,
-}: {
+type DeclaredFieldProps = {
   field: Field;
   /**
    * Présentation : `panel` (panneau contextuel : case avec infobulle, choix nommés en liste) ou `settings` (sous-page
@@ -37,7 +30,22 @@ export function DeclaredField({
   disabled?: boolean;
   /** Valeur écrite (undefined = vide) ; `merge` : réglage en direct, une étape d'annulation par passage dans le champ. */
   onChange: (value: FieldValue | undefined, merge?: string) => void;
-}) {
+};
+
+export function DeclaredField(props: DeclaredFieldProps) {
+  const { help } = props.field;
+  return help ? (
+    <>
+      <FieldControl {...props} />
+      <p className="panel-hint">{help}</p>
+    </>
+  ) : (
+    <FieldControl {...props} />
+  );
+}
+
+/** Le champ lui-même, selon son type. */
+function FieldControl({ field, layout, value, identity = '', disabled = false, onChange }: DeclaredFieldProps) {
   // Saisie en direct (sujets 271, 306) : une étape d'annulation par passage dans le champ, et le champ recréé ensuite
   // pour montrer la valeur retenue (un libellé vidé peut être refusé).
   const [pass, setPass] = useState(() => nextPass++);
@@ -136,6 +144,20 @@ export function DeclaredField({
       );
     case 'choice': {
       const drawn = choiceDisplay(field.options) === 'buttons';
+      // Choix nommés en boutons écrits (sujet 515) : libellé au-dessus, il peut être long (une question).
+      if (field.buttons)
+        return (
+          <div className="field">
+            <span data-tip={title}>{label}</span>
+            <ChoiceGroup
+              label={label}
+              value={text}
+              options={field.options.map(({ value, label, title }) => ({ value, label, title }))}
+              disabled={disabled}
+              onChange={(next) => onChange(next || undefined)}
+            />
+          </div>
+        );
       if (layout === 'settings')
         return (
           <Choice

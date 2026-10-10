@@ -25,6 +25,8 @@ interface FieldBase {
   label: string;
   /** Aide au survol. */
   title?: string;
+  /** Aide affichée sous le champ (sujet 515, ex. exemple pour répondre à une question). */
+  help?: string;
 }
 
 /**
@@ -61,7 +63,12 @@ export type FieldOf<Options> = FieldBase &
         live?: boolean;
       }
     /** Choix (valeur vide = aucun) : en boutons si toutes les options sont dessinées, sinon en liste (sujet 319). */
-    | { type: 'choice'; options: Options }
+    | {
+        type: 'choice';
+        options: Options;
+        /** Choix nommés en boutons écrits, libellé au-dessus (sujet 515, ex. Oui / Non d'une question) ; sinon en liste. */
+        buttons?: boolean;
+      }
     /** Couleur #rrggbb. */
     | { type: 'color' }
     /** Adresse http(s), sans barre finale (sujet 306, ex. serveur local). */
