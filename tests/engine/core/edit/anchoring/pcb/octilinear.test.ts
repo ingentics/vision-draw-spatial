@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   arrangeAnchors,
   arrangementConflicts,
+  straightStyle,
 } from '../../../../../../src/engine/core/edit/anchoring/auto/anchorArrangement';
 import { DEFAULT_AVOID_OPTIONS } from '../../../../../../src/engine/core/edit/anchoring/routing';
 import {
@@ -108,5 +109,10 @@ describe('agencement Typon', () => {
     expect(diagonals(path)).toBeGreaterThan(0);
     expect(enters(path, { x: 220, y: 60, width: 100, height: 60 })).toBe(false);
     expect(arrangementConflicts(page, arrangement)).toBe(0);
+  });
+
+  it('une flèche tracée en Typon perd son routeur, ses coins arrondis et sa courbe (sujet 441)', () => {
+    const style = { edgeStyle: 'orthogonalEdgeStyle', rounded: '1', curved: '1', strokeColor: '#ff0000' };
+    expect(straightStyle(style)).toEqual({ strokeColor: '#ff0000' });
   });
 });

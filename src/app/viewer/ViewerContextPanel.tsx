@@ -1,5 +1,5 @@
 import type { EdgeModel, Engine, PageModel, Selection, Settings, SettingsPatch, ShapeModel } from '../../engine';
-import { jumpValue, SPATIAL } from '../../engine';
+import { edgeLinesOf, isAnchoring, jumpValue, SPATIAL } from '../../engine';
 import { ContextPanel } from '../ContextPanel';
 import { MULTI_SELECT_LABELS } from '../settings/ShortcutSettings';
 import type { TextEdit } from '../TextFormat';
@@ -28,6 +28,8 @@ export function ViewerContextPanel({
   editablePages: boolean;
   textEdit: TextEdit | undefined;
 }) {
+  const ownAnchoring = currentPage.attributes[SPATIAL.anchoring];
+  const pageAnchoring = isAnchoring(ownAnchoring) ? ownAnchoring : settings.shapes.edgeAnchoring;
   return (
     <ContextPanel
       page={currentPage}
@@ -92,6 +94,9 @@ export function ViewerContextPanel({
       }
       onPageAnchoring={editablePages ? (anchoring) => engine?.setPageAnchoring(currentPage.id, anchoring) : undefined}
       defaultAnchoring={settings.shapes.edgeAnchoring}
+      onPageEdgeLine={editablePages ? (line) => engine?.setPageEdgeLine(currentPage.id, line) : undefined}
+      defaultEdgeLine={settings.shapes.edgeLineStyle}
+      pageEdgeLines={edgeLinesOf(pageAnchoring)}
       onPageJumps={editablePages ? (jumps) => engine?.setPageJumps(currentPage.id, jumps) : undefined}
       defaultJumps={settings.shapes.edgeJumpStyle}
       pageJumps={jumpValue(currentPage.attributes[SPATIAL.jumps]) ?? settings.shapes.edgeJumpStyle}

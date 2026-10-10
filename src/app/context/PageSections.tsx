@@ -2,7 +2,14 @@ import { SPATIAL, pageEffectIds } from '../../engine';
 import { ChoiceGroup } from '../ChoiceGroup';
 import { TextField } from '../Fields';
 import { Section } from '../PanelSection';
-import { ANCHORING_LABELS, ANCHORING_OPTIONS, JUMP_LABELS, JUMP_OPTIONS } from '../edgeIcons';
+import {
+  ANCHORING_LABELS,
+  ANCHORING_OPTIONS,
+  EDGE_LINE_LABELS,
+  EDGE_LINE_OPTIONS,
+  JUMP_LABELS,
+  JUMP_OPTIONS,
+} from '../edgeIcons';
 import { useEnginePlugins } from '../pluginsContext';
 import { PageModeSections } from './ModeSections';
 import { plural } from './contextFields';
@@ -44,6 +51,22 @@ export function PageSections({ page, onRenamePage: onRename, ...props }: Context
             onChange={(value) => props.onPageAnchoring?.(value)}
           />
         </div>
+        {props.pageEdgeLines.length > 1 && (
+          <div className="field-row">
+            <span data-tip="Tracé des flèches créées sur la page : droite, angles droits, arrondi ou courbe (spatial.edgeLine)">
+              Tracé des flèches
+            </span>
+            <ChoiceGroup
+              label="Tracé des flèches"
+              value={page.attributes[SPATIAL.edgeLine]}
+              options={EDGE_LINE_OPTIONS.filter((option) => props.pageEdgeLines.includes(option.value))}
+              inherited={EDGE_LINE_LABELS[props.defaultEdgeLine]}
+              inheritedFrom="les paramètres"
+              disabled={!props.onPageEdgeLine}
+              onChange={(value) => props.onPageEdgeLine?.(value)}
+            />
+          </div>
+        )}
         <div className="field-row">
           <span data-tip="Rendu des flèches sans le leur là où elles passent au-dessus d'une autre (spatial.jumps)">
             Croisements des flèches

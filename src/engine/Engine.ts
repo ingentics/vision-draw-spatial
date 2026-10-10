@@ -1,7 +1,7 @@
 import type { ElementComment } from './core/edit/comment';
 import type { UnsupportedReport } from './core/diagnostics/unsupportedStyles';
 import type { AlignMove, AlignReference, DistributeMove } from './core/edit/align';
-import type { Anchoring } from './core/edit/anchoring/mode';
+import type { Anchoring, EdgeLine } from './core/edit/anchoring/mode';
 import type { EdgeEnd } from './core/edit/edgeLabels';
 import type { PageModePalette, ShapeTemplate } from './core/edit/palette';
 import type { EffectRegistryView } from './core/effects/registry';
@@ -514,6 +514,11 @@ export class Engine {
    */
   setPageAnchoring(pageId: string, anchoring: Anchoring | undefined): void {
     this.core.arrangement.setPageAnchoring(pageId, anchoring);
+  }
+
+  /** Tracé propre à une page (undefined : celui de l'appli), pour les flèches qui y seront créées. */
+  setPageEdgeLine(pageId: string, line: EdgeLine | undefined): void {
+    this.core.arrangement.setPageEdgeLine(pageId, line);
   }
 
   /** Saut propre à une page (undefined : celui de l'appli), suivi par ses flèches sans `jumpStyle`. */

@@ -15,3 +15,20 @@ export function isAnchoring(value: string | undefined): value is Anchoring {
 export function distributes(anchoring: Anchoring): boolean {
   return anchoring !== 'manual';
 }
+
+/** Tracé d'une flèche : droite, angles droits, coudes arrondis, ou courbe. */
+export type EdgeLine = 'straight' | 'sharp' | 'rounded' | 'curved';
+
+export const EDGE_LINES: readonly EdgeLine[] = ['straight', 'sharp', 'rounded', 'curved'];
+
+export function isEdgeLine(value: string | undefined): value is EdgeLine {
+  return (EDGE_LINES as readonly (string | undefined)[]).includes(value);
+}
+
+/**
+ * Tracés permis par un ancrage, le premier par défaut : tous en manuel et en automatique ; en Typon, la droite seule
+ * (il trace lui-même ses pistes à 45°, sans coins arrondis ni courbe).
+ */
+export function edgeLinesOf(anchoring: Anchoring): readonly EdgeLine[] {
+  return anchoring === 'pcb' ? ['straight'] : EDGE_LINES;
+}

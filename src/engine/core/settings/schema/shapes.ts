@@ -1,4 +1,4 @@
-import { ANCHORINGS } from '../../edit/anchoring/mode';
+import { ANCHORINGS, EDGE_LINES } from '../../edit/anchoring/mode';
 import { DRAWIO_STYLES, PASTEL_STYLES, TEXT_STYLES } from '../../edit/stylePresets';
 import { color, custom, flag, number, oneOf, presets, textPresets } from '../fields';
 import type { Spec } from '../fields';
@@ -7,7 +7,6 @@ import type { ShapeSettings, StyleSettings } from '../types';
 /** Schéma des réglages des formes, des flèches et des styles proposés. */
 
 const LABEL_BACKDROPS = ['halo', 'solid', 'none'] as const;
-const EDGE_LINES = ['straight', 'sharp', 'rounded', 'curved'] as const;
 const EDGE_JUMPS = ['none', 'arc', 'gap', 'sharp', 'line'] as const;
 
 export const SHAPES = {

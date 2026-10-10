@@ -1,12 +1,11 @@
 import { useRef } from 'react';
 import { isHexColor, jumpValue, routingKind, styleFlag, styleNumber } from '../../engine';
 import { ColorInput, STROKE_COLORS } from '../BorderSection';
-import type { EdgeModel, JumpStyle } from '../../engine';
+import type { EdgeLine, EdgeModel, JumpStyle } from '../../engine';
 import { ChoiceGroup } from '../ChoiceGroup';
 import { NumberField, TextField } from '../Fields';
 import { Section } from '../PanelSection';
 import { EDGE_LINE_OPTIONS, JUMP_LABELS, JUMP_OPTIONS, MARKERS, markerOptions } from '../edgeIcons';
-import type { EdgeLine } from '../edgeIcons';
 import { useTooltip } from '../Tooltip';
 
 /** Sections du tracé d'une flèche : ligne, ancrage, sauts, coupure, bouts. */
@@ -37,12 +36,15 @@ const CONSTRAINT_KEYS = ['exit', 'entry'].flatMap((prefix) => ['X', 'Y'].map((ax
 
 export function EdgeLineSection({
   edge,
+  edgeLines,
   pageJumps,
   defaultJumpSize,
   onChange,
   onResetRoute,
 }: {
   edge: EdgeModel;
+  /** Tracés permis par l'ancrage de la page : un seul, la ligne « Coudes » est masquée. */
+  edgeLines: readonly EdgeLine[];
   pageJumps: JumpStyle | 'none';
   defaultJumpSize: number;
   onChange: (patch: EdgeStylePatch, merge?: string) => void;
@@ -61,15 +63,17 @@ export function EdgeLineSection({
   const curved = current === 'curved';
   return (
     <Section title="Tracé">
-      <div className="field-row">
-        Coudes
-        <ChoiceGroup
-          label="Tracé de la flèche"
-          value={current}
-          options={EDGE_LINE_OPTIONS}
-          onChange={(value) => value && onChange(EDGE_LINE_PATCHES[value])}
-        />
-      </div>
+      {edgeLines.length > 1 && (
+        <div className="field-row">
+          Coudes
+          <ChoiceGroup
+            label="Tracé de la flèche"
+            value={current}
+            options={EDGE_LINE_OPTIONS.filter((option) => edgeLines.includes(option.value))}
+            onChange={(value) => value && onChange(EDGE_LINE_PATCHES[value])}
+          />
+        </div>
+      )}
       <div className="field-row">
         <span
           data-tip={

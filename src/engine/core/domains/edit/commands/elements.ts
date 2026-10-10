@@ -5,7 +5,7 @@ import { dropBounds } from '../../../edit/palette';
 import type { ShapeTemplate } from '../../../edit/palette';
 import { screenToPage } from '../../../interaction/cameraProjection';
 import type { PageTree } from '../../../format/xmlTree';
-import type { Point, Rect } from '../../../model/types';
+import type { PageModel, Point, Rect } from '../../../model/types';
 import { parseStyle, withStyleDefault } from '../../../format/style';
 import { isBlockArrow } from '../../../render/edges/blockArrow';
 import { CONNECTOR_STYLE, EDGE_LINE_KEYS } from '../drag/connect';
@@ -27,7 +27,7 @@ export class ElementCommands {
       screen ?? { x: this.core.display.viewport.width / 2, y: this.core.display.viewport.height / 2 },
     );
     const bounds = dropBounds(template, at, gridSizeOf(pageTree));
-    if (template.edge) return this.addFreeEdge(template, page.id, pageTree, bounds);
+    if (template.edge) return this.addFreeEdge(template, page, pageTree, bounds);
     this.core.edits.recordEdit('Nouvelle forme');
     const style = withStyleDefault(template.style, 'fontSize', String(this.core.settings.shapes.textSize));
     const id = addShapeCell(pageTree, { style, value: template.value, ...bounds });
@@ -41,19 +41,19 @@ export class ElementCommands {
 
   /**
    * Flèche libre de la palette : horizontale, ses deux bouts posés aux extrémités de `bounds`, au style des flèches
-   * créées ; une flèche pleine, toujours droite (sujet 410), ne reçoit pas le tracé du réglage.
+   * créées (tracé de la page) ; une flèche pleine, toujours droite (sujet 410), ne reçoit pas le tracé du réglage.
    */
-  private addFreeEdge(template: ShapeTemplate, pageId: string, pageTree: PageTree, bounds: Rect): string {
+  private addFreeEdge(template: ShapeTemplate, page: PageModel, pageTree: PageTree, bounds: Rect): string {
     this.core.edits.recordEdit('Nouvelle flèche');
     const straight = isBlockArrow(parseStyle(template.style).values);
-    const line = CONNECTOR_STYLE + (straight ? '' : EDGE_LINE_KEYS[this.core.settings.shapes.edgeLineStyle]);
+    const line = CONNECTOR_STYLE + (straight ? '' : EDGE_LINE_KEYS[this.core.arrangement.edgeLineOf(page)]);
     const style = withStyleDefault(template.style + line, 'fontSize', String(this.core.settings.shapes.textSize));
     const id = addEdgeCell(pageTree, { style });
     const y = bounds.y + bounds.height / 2;
     setEdgeTerminal(pageTree, id, 'source', { point: { x: bounds.x, y } });
     setEdgeTerminal(pageTree, id, 'target', { point: { x: bounds.x + bounds.width, y } });
-    this.core.modeFollowUps.edgeCreated(pageId, id);
-    this.core.file.documentChanged([pageId]);
+    this.core.modeFollowUps.edgeCreated(page.id, id);
+    this.core.file.documentChanged([page.id]);
     const edge = edgeOf(this.core.pages.getCurrentPage(), id);
     if (edge) this.core.selection.select({ type: 'edge', element: edge });
     return id;

@@ -4,6 +4,7 @@ import type {
   Anchoring,
   DistributeMove,
   EdgeEnd,
+  EdgeLine,
   EdgeModel,
   EdgeTextAnchor,
   ExporterSettings,
@@ -60,6 +61,12 @@ export interface ContextPanelProps {
   onPageAnchoring?: (anchoring: Anchoring | undefined) => void;
   /** Ancrage des flèches du réglage de l'appli (choix « par défaut » de la page). */
   defaultAnchoring?: Anchoring;
+  /** Tracé des flèches créées propre à la page (undefined = réglage de l'appli) ; absent si non modifiable. */
+  onPageEdgeLine?: (line: EdgeLine | undefined) => void;
+  /** Tracé du réglage de l'appli (choix « par défaut » de la page). */
+  defaultEdgeLine: EdgeLine;
+  /** Tracés permis par l'ancrage de la page : un seul, le choix du tracé n'est pas proposé. */
+  pageEdgeLines: readonly EdgeLine[];
   /** Saut des flèches aux croisements propre à la page (undefined = réglage de l'appli) ; absent si non modifiable. */
   onPageJumps?: (jumps: JumpStyle | 'none' | undefined) => void;
   /** Saut du réglage de l'appli (choix « par défaut » de la page). */

@@ -49,6 +49,11 @@ export const SPATIAL = {
    * absent = réglage de l'appli. Une flèche sans `jumpStyle` le suit.
    */
   jumps: 'spatial.jumps',
+  /**
+   * Tracé des flèches créées sur la page (attribut de `<diagram>`) : `straight`, `sharp`, `rounded` ou `curved` ;
+   * absent = réglage de l'appli. Seuls comptent les tracés permis par l'ancrage de la page.
+   */
+  edgeLine: 'spatial.edgeLine',
   /** Graine d'agencement de la page en ancrage automatique (attribut de `<diagram>`, touche F) ; absente = 0. */
   anchorSeed: 'spatial.anchorSeed',
   /** État de vue d'une page (attribut de `<diagram>`, voir `format/viewState`). */

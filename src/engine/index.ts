@@ -84,8 +84,8 @@ export { MemoryStore } from './core/persistence/MemoryStore';
 
 // Édition (SPEC §14)
 export type { AlignMove, AlignReference, DistributeMove } from './core/edit/align';
-export { ANCHORINGS, isAnchoring } from './core/edit/anchoring/mode';
-export type { Anchoring } from './core/edit/anchoring/mode';
+export { ANCHORINGS, edgeLinesOf, isAnchoring } from './core/edit/anchoring/mode';
+export type { Anchoring, EdgeLine } from './core/edit/anchoring/mode';
 export { commentOf } from './core/edit/comment';
 export type { ElementComment } from './core/edit/comment';
 export { anchorOf, edgeTextLayout, edgeTexts, endLabelOf } from './core/edit/edgeLabels';

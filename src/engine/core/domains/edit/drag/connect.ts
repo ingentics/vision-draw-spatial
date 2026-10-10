@@ -12,7 +12,8 @@ import type { TakenAnchor } from '../edges/anchors';
 import { edgeOf, shapeOf } from '../../../model/pageIndex';
 import { center, samePoint } from '../../../model/geometry';
 
-/** Style des connecteurs créés (celui de draw.io par défaut) ; le tracé vient du paramètre `shapes.edgeLineStyle`. */
+/** Style des connecteurs créés (celui de draw.io par défaut) ; le tracé vient de la page, sinon du paramètre
+ * `shapes.edgeLineStyle` (`EdgeArrangement.edgeLineOf`). */
 export const CONNECTOR_STYLE = 'orthogonalLoop=1;jettySize=auto;html=1;';
 
 /** Clés du tracé d'une flèche : droite (sans routeur), angles droits, coudes arrondis, courbe (orthogonaux). */
@@ -145,7 +146,9 @@ export class ConnectDrags {
       return;
     }
     this.core.edits.recordEdit('Connecteur');
-    const line = CONNECTOR_STYLE + EDGE_LINE_KEYS[this.core.settings.shapes.edgeLineStyle];
+    const page = this.core.pages.pageById(drag.pageId);
+    const edgeLine = page ? this.core.arrangement.edgeLineOf(page) : this.core.settings.shapes.edgeLineStyle;
+    const line = CONNECTOR_STYLE + EDGE_LINE_KEYS[edgeLine];
     let style = withStyleDefault(line, 'fontSize', String(this.core.settings.shapes.textSize));
     const exit = drag.exit ?? sideMiddle(drag.side);
     for (const [key, value] of Object.entries(constraintStyle('source', exit)))

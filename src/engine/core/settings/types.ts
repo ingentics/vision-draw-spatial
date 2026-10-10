@@ -1,5 +1,5 @@
 import type { AlignReference } from '../edit/align';
-import type { Anchoring } from '../edit/anchoring/mode';
+import type { Anchoring, EdgeLine } from '../edit/anchoring/mode';
 import type { StylePreset, TextPreset } from '../edit/stylePresets';
 import type { ControlSettings, Shortcuts } from '../interaction/controls';
 import type { PluginSettings, PluginSettingValue } from './pluginSettings';
@@ -163,7 +163,7 @@ export interface ShapeSettings {
   edgeEndTextGapAlong: number;
   edgeEndTextGapAcross: number;
   /** Tracé des flèches créées : droite, angles droits, coudes arrondis, ou courbe. */
-  edgeLineStyle: 'straight' | 'sharp' | 'rounded' | 'curved';
+  edgeLineStyle: EdgeLine;
   /** Saut des flèches créées là où elles passent au-dessus d'une autre (`jumpStyle`, ticket 132). */
   edgeJumpStyle: 'none' | 'arc' | 'gap' | 'sharp' | 'line';
   /** Taille de ce saut (`jumpSize`, pt ; 6 comme draw.io). */

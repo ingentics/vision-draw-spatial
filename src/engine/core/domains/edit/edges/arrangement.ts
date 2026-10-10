@@ -6,6 +6,7 @@ import {
   arrangeAnchors,
   arrangementChanges,
   arrangementConflicts,
+  STRAIGHT_REMOVED_KEYS,
   straightStyle,
 } from '../../../edit/anchoring/auto/anchorArrangement';
 import type { Arrangement } from '../../../edit/anchoring/auto/anchorArrangement';
@@ -13,8 +14,8 @@ import type { AvoidOptions, Router } from '../../../edit/anchoring/routing';
 import { tracingOf } from '../../../edit/anchoring/tracing';
 import { nextPlacementVariant } from '../../../edit/anchoring/manual/variants';
 import { affectedShapes, anchorSeedOf, resitedEnds, withNeighbours } from '../../../edit/anchoring/auto/distribute';
-import { distributes, isAnchoring } from '../../../edit/anchoring/mode';
-import type { Anchoring } from '../../../edit/anchoring/mode';
+import { distributes, edgeLinesOf, isAnchoring, isEdgeLine } from '../../../edit/anchoring/mode';
+import type { Anchoring, EdgeLine } from '../../../edit/anchoring/mode';
 import type { DocumentModel, EdgeModel, PageModel } from '../../../model/types';
 import { SPATIAL } from '../../../spatial';
 import type { EngineCore } from '../../EngineCore';
@@ -111,8 +112,9 @@ export class EdgeArrangement {
       const points =
         routes.get(edge.id) ??
         (loops.has(edge) || (loop && retraced) ? this.core.anchors.loopPoints(page, edge) : retraced ? [] : undefined);
-      if (arrangement.router.straight && routes.has(edge.id) && edge.style.edgeStyle !== undefined) {
-        if (pageTree) setCellStyleValue(pageTree, edge.id, 'edgeStyle', undefined);
+      const removed = STRAIGHT_REMOVED_KEYS.filter((key) => edge.style[key] !== undefined);
+      if (arrangement.router.straight && routes.has(edge.id) && removed.length > 0) {
+        if (pageTree) for (const key of removed) setCellStyleValue(pageTree, edge.id, key, undefined);
         edge.style = straightStyle(edge.style);
         wrote = true;
       }
@@ -188,6 +190,14 @@ export class EdgeArrangement {
     return isAnchoring(own) ? own : this.core.settings.shapes.edgeAnchoring;
   }
 
+  /** Tracé des flèches créées sur la page : le sien, sinon celui de l'appli, s'il est permis par son ancrage. */
+  edgeLineOf(page: PageModel): EdgeLine {
+    const allowed = edgeLinesOf(this.anchoringOf(page));
+    const own = page.attributes[SPATIAL.edgeLine];
+    const wanted = isEdgeLine(own) ? own : this.core.settings.shapes.edgeLineStyle;
+    return allowed.includes(wanted) ? wanted : allowed[0]!;
+  }
+
   /** Vrai si les flèches de la page sont réparties sur les côtés (ancrage automatique ou Typon). */
   distributes(page: PageModel): boolean {
     return distributes(this.anchoringOf(page));
@@ -203,5 +213,16 @@ export class EdgeArrangement {
     const fresh = byId(documentFromTree(xmlTree).pages, pageId);
     if (fresh && this.distributes(fresh)) this.writeDistribution(fresh, new Set(fresh.shapes.map((s) => s.id)));
     this.core.file.documentChanged([pageId]);
+  }
+
+  /** Tracé propre à une page (undefined : celui de l'appli), pour les flèches qui y seront créées. */
+  setPageEdgeLine(pageId: string, line: EdgeLine | undefined): void {
+    const target = this.core.targets.editablePageById(pageId);
+    if (!target) return;
+    const { page, pageTree } = target;
+    if ((page.attributes[SPATIAL.edgeLine] ?? '') === (line ?? '')) return;
+    this.core.edits.recordEdit('Tracé des flèches');
+    setPageAttribute(pageTree, SPATIAL.edgeLine, line);
+    this.core.file.documentChanged([pageId], { distribute: false });
   }
 }

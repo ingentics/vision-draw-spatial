@@ -1,5 +1,5 @@
 import { ANCHORINGS, JUMP_STYLES } from '../engine';
-import type { Anchoring, JumpStyle } from '../engine';
+import type { Anchoring, EdgeLine, JumpStyle } from '../engine';
 import type { ChoiceOption } from './ChoiceGroup';
 
 /** Icônes et noms des réglages des flèches (sujet 318), partagés par le panneau de contexte et les paramètres. */
@@ -16,8 +16,6 @@ function Icon({ line, under, fill, mirror }: { line: string; under?: string; fil
     </svg>
   );
 }
-
-export type EdgeLine = 'straight' | 'sharp' | 'rounded' | 'curved';
 
 /** Tracés d'une flèche (coudes), dans l'ordre des boutons. */
 export const EDGE_LINE_OPTIONS: Array<ChoiceOption<EdgeLine>> = [
@@ -46,6 +44,12 @@ export const EDGE_LINE_OPTIONS: Array<ChoiceOption<EdgeLine>> = [
     icon: <Icon line="M2 13C2 7 7 5 14 5" />,
   },
 ];
+
+/** Noms des tracés, pour le choix « par défaut » de la page. */
+export const EDGE_LINE_LABELS = Object.fromEntries(EDGE_LINE_OPTIONS.map((o) => [o.value, o.label])) as Record<
+  EdgeLine,
+  string
+>;
 
 /** Sauts aux croisements (`jumpStyle`). */
 export const JUMP_LABELS: Record<JumpStyle | 'none', string> = {

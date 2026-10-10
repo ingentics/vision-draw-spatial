@@ -26,9 +26,16 @@ export interface Arrangement {
   router: Router;
 }
 
-/** Style d'une flèche tracée en ligne droite par ses points intermédiaires (Typon) : sans routeur draw.io. */
+/**
+ * Clés retirées d'une flèche tracée en ligne droite par ses points intermédiaires (Typon) : le routeur draw.io, et les
+ * coins arrondis ou la courbe, que le Typon ne permet pas (sujet 441).
+ */
+export const STRAIGHT_REMOVED_KEYS = ['edgeStyle', 'rounded', 'curved'] as const;
+
+/** Style d'une flèche tracée en ligne droite par ses points intermédiaires (Typon). */
 export function straightStyle(style: Record<string, string>): Record<string, string> {
-  const { edgeStyle: _, ...rest } = style;
+  const rest = { ...style };
+  for (const key of STRAIGHT_REMOVED_KEYS) delete rest[key];
   return rest;
 }
 
