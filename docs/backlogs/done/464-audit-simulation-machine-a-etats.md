@@ -184,12 +184,12 @@ Les autres points vus en passant ont été repris par 467 :
 
 | #   | Sujet                                                                                         | Gain                                   | Taille | Décision |
 | --- | --------------------------------------------------------------------------------------------- | -------------------------------------- | ------ | -------- |
-| 465 | Logique : seulement des pas atteignables, entrée intérieure, règles et touches dans le moteur | erreurs (pas impossibles), découplage  | M      | validé   |
-| 467 | Tronc : briques ouvertes à un mode à la place de la simulation                                | erreurs (voiles empilés, édition), découplage | L | validé   |
-| 466 | Lanceur : liste des points d'entrée à jour et refermable, une seule copie                     | erreur (exception)                     | S      | validé   |
-| 468 | Couche des états : clic pendant le franchissement, pointillés sans géométrie refaite          | erreur mineure, performance            | S      | validé   |
-| 469 | Tests de la simulation des états (trace, vue)                                                 | couverture                             | S      | validé   |
-| 470 | Docs : SPEC (simulation), SUMMARY, guide d'un mode (prendre la main sur la page)              | doc juste pour un agent                | S      | validé   |
+| 465 | Logique : seulement des pas atteignables, entrée intérieure, règles et touches dans le moteur | erreurs (pas impossibles), découplage  | M      | fait     |
+| 467 | Tronc : briques ouvertes à un mode à la place de la simulation                                | erreurs (voiles empilés, édition), découplage | L | fait     |
+| 466 | Lanceur : liste des points d'entrée à jour et refermable, une seule copie                     | erreur (exception)                     | S      | fait     |
+| 468 | Couche des états : clic pendant le franchissement, pointillés sans géométrie refaite          | erreur mineure, performance            | S      | fait     |
+| 469 | Tests de la simulation des états (trace, vue)                                                 | couverture                             | S      | fait     |
+| 470 | Docs : SPEC (simulation), SUMMARY, guide d'un mode (prendre la main sur la page)              | doc juste pour un agent                | S      | fait     |
 
 Ordre validé : 465, 467, 466, 468, 469, 470. Docs en dernier, car elles décrivent le code final. Un commit par sujet,
 dès que `make check` est vert et le sujet validé. Écarts de comportement : seulement ceux que décrit chaque ticket.
@@ -203,4 +203,17 @@ dès que `make check` est vert et le sujet validé. Écarts de comportement : se
 - [x] Constats
 - [x] Sujets rédigés
 - [x] Sujets validés par l'utilisateur
-- [ ] Réalisation
+- [x] Réalisation
+
+- Fait : sujets réalisés dans l'ordre validé, un commit chacun.
+  - 465 : `goTo` ne s'arrête jamais sur un pas traversé ; propositions d'une entrée intérieure ; transitions valides
+    communes (`transitionsOf`) ; Suivant, Retour et touches dans le moteur ; Espace et → rendus à la caméra.
+  - 467 : le cœur n'a plus de « simulation ». Il ouvre cinq briques : verrou d'édition, capture des entrées, couche,
+    voile commun, `keepInView`. Les appels au mode sont protégés ; pages, annuler et rétablir sont bloqués et grisés ;
+    une touche tenue n'est pas répétée. `StatesSimulator` assemble les briques.
+  - 466 : lanceur commun à la barre et au panneau, relu sur la page, refermable ; plus d'exception sur une entrée
+    supprimée.
+  - 468 : pointillés et point animés sans géométrie refaite ; un clic pendant le franchissement ne franchit rien.
+  - 469 : tests de la trace, de la vue et des noms d'entrée.
+  - 470 : SPEC, guide d'un mode et SUMMARY.
+  - Reste : dette 471 (point sur le bord d'un ensemble) et 472 (couleurs recopiées dans le CSS).
