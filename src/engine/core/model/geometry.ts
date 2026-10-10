@@ -107,6 +107,22 @@ export function rectsOverlap(a: Rect, b: Rect): boolean {
   return a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 }
 
+/**
+ * Les deux rectangles se recouvrent-ils de plus de `tolerance` sur chaque axe ? Variante de `rectsOverlap` pour des
+ * formes collées bord à bord, qu'un écart d'arrondi ferait sinon compter comme superposées (sujet 475).
+ */
+export function rectsOverlapBy(a: Rect, b: Rect, tolerance: number): boolean {
+  return (
+    overlapLength(...rectSpan(a, 'x'), ...rectSpan(b, 'x')) > tolerance &&
+    overlapLength(...rectSpan(a, 'y'), ...rectSpan(b, 'y')) > tolerance
+  );
+}
+
+/** Intervalle [début, fin] d'un rectangle sur un axe (`x` : de gauche à droite, `y` : de haut en bas). */
+export function rectSpan(r: Rect, axis: 'x' | 'y'): [number, number] {
+  return axis === 'x' ? [r.x, r.x + r.width] : [r.y, r.y + r.height];
+}
+
 /** Longueur commune des intervalles [a0, a1] et [b0, b1], bornes dans n'importe quel ordre ; 0 s'ils sont disjoints. */
 export function overlapLength(a0: number, a1: number, b0: number, b1: number): number {
   return Math.max(0, Math.min(Math.max(a0, a1), Math.max(b0, b1)) - Math.max(Math.min(a0, a1), Math.min(b0, b1)));

@@ -1,4 +1,4 @@
-import { overlapLength } from '../../../../core/plugins';
+import { OPPOSITE_SIDES, overlapLength, rectSpan, rectsOverlapBy } from '../../../../core/plugins';
 import type { PageModel, Point, Rect, ShapeModel, Side } from '../../../../core/plugins';
 import { isSticky } from '../kinds';
 
@@ -11,8 +11,6 @@ import { isSticky } from '../kinds';
 
 /** Écart toléré entre deux bords en contact, en pixels de page. */
 export const CONTACT_TOLERANCE = 0.5;
-
-const OPPOSITE: Readonly<Record<Side, Side>> = { n: 's', s: 'n', w: 'e', e: 'w' };
 
 /** Une des deux formes d'un contact : son côté qui touche, et la part de ce côté prise par le contact (0 à 1). */
 export interface ContactEnd {
@@ -38,15 +36,13 @@ export interface StickyContacts {
 
 /** Contact de `a` vers `b` le long d'un axe, ou undefined. `horizontal` : côte à côte (gauche / droite). */
 function contactOf(a: ShapeModel, b: ShapeModel, horizontal: boolean): Contact | undefined {
-  const ra = a.bounds;
-  const rb = b.bounds;
   // Axe des bords en contact (x pour gauche / droite) et axe du segment.
-  const [a0, a1, b0, b1] = horizontal
-    ? [ra.x, ra.x + ra.width, rb.x, rb.x + rb.width]
-    : [ra.y, ra.y + ra.height, rb.y, rb.y + rb.height];
-  const [c0, c1, d0, d1] = horizontal
-    ? [ra.y, ra.y + ra.height, rb.y, rb.y + rb.height]
-    : [ra.x, ra.x + ra.width, rb.x, rb.x + rb.width];
+  const axis = horizontal ? 'x' : 'y';
+  const across = horizontal ? 'y' : 'x';
+  const [a0, a1] = rectSpan(a.bounds, axis);
+  const [b0, b1] = rectSpan(b.bounds, axis);
+  const [c0, c1] = rectSpan(a.bounds, across);
+  const [d0, d1] = rectSpan(b.bounds, across);
   const along = overlapLength(c0, c1, d0, d1);
   if (along <= CONTACT_TOLERANCE) return undefined;
   // `a` avant `b` sur l'axe (bord de fin de `a` contre le bord de début de `b`), ou l'inverse.
@@ -60,7 +56,7 @@ function contactOf(a: ShapeModel, b: ShapeModel, horizontal: boolean): Contact |
   const point = (t: number): Point => (horizontal ? { x: line, y: t } : { x: t, y: line });
   return {
     a: { shapeId: a.id, side: sideA, share: along / (c1 - c0) },
-    b: { shapeId: b.id, side: OPPOSITE[sideA], share: along / (d1 - d0) },
+    b: { shapeId: b.id, side: OPPOSITE_SIDES[sideA], share: along / (d1 - d0) },
     start: point(from),
     end: point(to),
     length: to - from,
@@ -68,12 +64,7 @@ function contactOf(a: ShapeModel, b: ShapeModel, horizontal: boolean): Contact |
 }
 
 /** Les deux rectangles se recouvrent-ils au-delà de la tolérance, sur les deux axes ? */
-export function overlapping(a: Rect, b: Rect): boolean {
-  return (
-    overlapLength(a.x, a.x + a.width, b.x, b.x + b.width) > CONTACT_TOLERANCE &&
-    overlapLength(a.y, a.y + a.height, b.y, b.y + b.height) > CONTACT_TOLERANCE
-  );
-}
+export const overlapping = (a: Rect, b: Rect): boolean => rectsOverlapBy(a, b, CONTACT_TOLERANCE);
 
 /** Contacts et chevauchements des post-it de la page, calculés une fois par page (modèle relu à chaque modification). */
 const CACHE = new WeakMap<PageModel, StickyContacts>();

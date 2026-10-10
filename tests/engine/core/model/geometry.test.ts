@@ -12,6 +12,8 @@ import {
   insidePolygon,
   rectContains,
   rectsOverlap,
+  rectsOverlapBy,
+  rectSpan,
   overlapLength,
   samePoint,
   samePoints,
@@ -207,5 +209,22 @@ describe('briques géométriques du tronc (sujet 382)', () => {
     const r = { x: 0, y: 0, width: 10, height: 5 };
     expect(sameRect(r, { ...r })).toBe(true);
     expect(sameRect(r, { ...r, height: 6 })).toBe(false);
+  });
+});
+
+describe('intervalles d’un rectangle par axe (sujet 504)', () => {
+  const r = { x: 10, y: 20, width: 30, height: 40 };
+
+  it('rectSpan : début et fin sur chaque axe', () => {
+    expect(rectSpan(r, 'x')).toEqual([10, 40]);
+    expect(rectSpan(r, 'y')).toEqual([20, 60]);
+  });
+
+  it('rectsOverlapBy : recouvrement au-delà de la tolérance sur les deux axes', () => {
+    // Bord à bord, ou à 0,4 près : pas superposés ; 1 de recouvrement : superposés.
+    expect(rectsOverlapBy(r, { ...r, x: 40 }, 0.5)).toBe(false);
+    expect(rectsOverlapBy(r, { ...r, x: 39.6 }, 0.5)).toBe(false);
+    expect(rectsOverlapBy(r, { ...r, x: 39 }, 0.5)).toBe(true);
+    expect(rectsOverlapBy(r, { ...r, x: 39, y: 59.6 }, 0.5)).toBe(false);
   });
 });

@@ -12,20 +12,7 @@ export type OrderMove = 'front' | 'back' | 'forward' | 'backward';
 /** Déplace les cellules `cellIds` dans l'ordre de dessin ; faux si rien ne change. */
 export function reorderCells(page: PageTree, cellIds: Iterable<string>, move: OrderMove): boolean {
   const selected = new Set(cellIds);
-  const parentOf = new Map(page.cellList.map((nodes) => [nodes.id, nodes.cell?.getAttribute('parent') ?? undefined]));
-  const parents = new Set([...selected].filter((id) => page.cells.has(id)).map((id) => parentOf.get(id)));
-  let changed = false;
-  for (const parent of parents) {
-    const siblings = page.cellList.filter((nodes) => parentOf.get(nodes.id) === parent).map((nodes) => nodes.id);
-    const order = reordered(siblings, selected, move);
-    if (order.every((id, i) => id === siblings[i])) continue;
-    moveBlocks(page, order, parentOf);
-    changed = true;
-  }
-  if (!changed) return false;
-  reindexPage(page);
-  markPageDirty(page);
-  return true;
+  return reorderSiblings(page, [...selected], (siblings) => reordered(siblings, selected, move));
 }
 
 /**
@@ -33,21 +20,10 @@ export function reorderCells(page: PageTree, cellIds: Iterable<string>, move: Or
  * derrière leur contenu, sujet 230) ; faux si elles y sont déjà.
  */
 export function sendToBackInOrder(page: PageTree, cellIds: readonly string[]): boolean {
-  const parentOf = new Map(page.cellList.map((nodes) => [nodes.id, nodes.cell?.getAttribute('parent') ?? undefined]));
-  const ids = cellIds.filter((id) => page.cells.has(id));
-  let changed = false;
-  for (const parent of new Set(ids.map((id) => parentOf.get(id)))) {
-    const siblings = page.cellList.filter((nodes) => parentOf.get(nodes.id) === parent).map((nodes) => nodes.id);
-    const picked = ids.filter((id) => parentOf.get(id) === parent);
-    const order = [...picked, ...siblings.filter((id) => !picked.includes(id))];
-    if (order.every((id, i) => id === siblings[i])) continue;
-    moveBlocks(page, order, parentOf);
-    changed = true;
-  }
-  if (!changed) return false;
-  reindexPage(page);
-  markPageDirty(page);
-  return true;
+  return reorderSiblings(page, cellIds, (siblings, picked) => [
+    ...picked,
+    ...siblings.filter((id) => !picked.includes(id)),
+  ]);
 }
 
 /**
@@ -55,15 +31,40 @@ export function sendToBackInOrder(page: PageTree, cellIds: readonly string[]): b
  * qu'elle est devant ; faux sinon (déjà derrière, parents différents, cellule inconnue, elle-même).
  */
 export function placeBehind(page: PageTree, cellId: string, referenceId: string): boolean {
-  if (cellId === referenceId || !page.cells.has(cellId) || !page.cells.has(referenceId)) return false;
+  if (cellId === referenceId || !page.cells.has(referenceId)) return false;
+  const parentOf = (id: string) => page.cells.get(id)?.cell?.getAttribute('parent') ?? undefined;
+  if (parentOf(referenceId) !== parentOf(cellId)) return false;
+  return reorderSiblings(page, [cellId], (siblings) => {
+    if (siblings.indexOf(cellId) < siblings.indexOf(referenceId)) return siblings;
+    const order = siblings.filter((id) => id !== cellId);
+    order.splice(order.indexOf(referenceId), 0, cellId);
+    return order;
+  });
+}
+
+/**
+ * Réordonne les cellules connues de `cellIds` parmi leurs sœurs, parent par parent : `orderOf` donne le nouvel ordre
+ * des sœurs (`picked` : celles de `cellIds` qui en sont, dans l'ordre de `cellIds`). Faux si rien ne change.
+ */
+function reorderSiblings(
+  page: PageTree,
+  cellIds: readonly string[],
+  orderOf: (siblings: string[], picked: string[]) => string[],
+): boolean {
   const parentOf = new Map(page.cellList.map((nodes) => [nodes.id, nodes.cell?.getAttribute('parent') ?? undefined]));
-  const parent = parentOf.get(cellId);
-  if (parentOf.get(referenceId) !== parent) return false;
-  const siblings = page.cellList.filter((nodes) => parentOf.get(nodes.id) === parent).map((nodes) => nodes.id);
-  if (siblings.indexOf(cellId) < siblings.indexOf(referenceId)) return false;
-  const order = siblings.filter((id) => id !== cellId);
-  order.splice(order.indexOf(referenceId), 0, cellId);
-  moveBlocks(page, order, parentOf);
+  const ids = cellIds.filter((id) => page.cells.has(id));
+  let changed = false;
+  for (const parent of new Set(ids.map((id) => parentOf.get(id)))) {
+    const siblings = page.cellList.filter((nodes) => parentOf.get(nodes.id) === parent).map((nodes) => nodes.id);
+    const order = orderOf(
+      siblings,
+      ids.filter((id) => parentOf.get(id) === parent),
+    );
+    if (order.every((id, i) => id === siblings[i])) continue;
+    moveBlocks(page, order, parentOf);
+    changed = true;
+  }
+  if (!changed) return false;
   reindexPage(page);
   markPageDirty(page);
   return true;

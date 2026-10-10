@@ -288,6 +288,9 @@ Pour un rendu iso sur mesure :
 - **Matériaux.** Les faces opaques avec test de profondeur doivent utiliser `solidMaterial`, pour que les blocs se
   cachent entre eux. Les traits et les fonds plats passent par `fillMesh` / `strokeMesh` (matériau sans écriture de
   profondeur).
+- **Ombre douce.** Un papier posé à plat prend `softShadow` : une fonction qui donne le contour de chaque couche, étendu
+  d'un écart de 0 au flou, et un `SoftShadow` (`blur`, `opacity`, `layers`) ; l'ombre est dessinée juste sous le fond
+  de la forme (Post-it général, post-it Event storming).
 - **Billboard.** Un élément qui doit toujours faire face à la caméra le déclare par `faceCamera(objet, 'axis')` de
   l'API des plugins (silhouette de l'Actor) : avant chaque image, le moteur le tourne autour de la verticale pour que
   son axe −y vise la caméra (sa position en perspective, `render/billboard.ts`) ; `faceCamera(objet, 'screen')` le

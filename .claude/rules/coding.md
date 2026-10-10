@@ -83,11 +83,11 @@ Folder map with each folder's role: `docs/SUMMARY.md` §3 (single source). Where
 
 ## 4. Reuse what exists
 
-- **Geometry**: `model/geometry.ts` (`distance`, `center`, `unit`, `direction`, `samePoint`, `samePoints`,
-  `sameRect`, `rectPath` (corners / outline of a rectangle), `fitScale`, `snapToGrid`, `snapPoint`, `ceilToGrid`,
-  `rectContains`, `rectContainsRect`, `overlapLength` (common length of two intervals), `boundsOfPoints`, `unionOf`,
-  `segmentProjection`, `segmentsCross`, `segmentIntersection`, `segmentDistance`, `insidePolygon`, `simplifyPath`,
-  `prunePath`) and `clamp`
+- **Geometry**: `model/geometry.ts` (`distance`, `center`, `unit`, `direction`, `samePoint`, `samePoints`, `sameRect`,
+  `rectPath` (corners / outline of a rectangle), `fitScale`, `snapToGrid`, `snapPoint`, `ceilToGrid`, `rectContains`,
+  `rectContainsRect`, `rectsOverlapBy` (overlap beyond a tolerance), `rectSpan` (interval of a rectangle on an axis),
+  `overlapLength` (common length of two intervals), `boundsOfPoints`, `unionOf`, `segmentProjection`, `segmentsCross`,
+  `segmentIntersection`, `segmentDistance`, `insidePolygon`, `simplifyPath`, `prunePath`) and `clamp`
   (`model/numbers.ts`). No hand-written `Math.hypot(a.x - b.x, a.y - b.y)`, `Math.round(v / step) * step`, center,
   corners nor `Math.min(max, Math.max(min, v))`. A missing function is added there, with its test in
   `tests/engine/core/model/geometry.test.ts`.
@@ -98,9 +98,9 @@ Folder map with each folder's role: `docs/SUMMARY.md` §3 (single source). Where
   `parseFloat(style.x ?? '')`, `style.x === '1'` nor hex regex. **Colours** (`render/styleColors.ts`): `darken`,
   `lighten`, `shade`, `hexToHsl` / `hslToHex`, `readableOn`, `DEFAULT_ACCENT`, label backdrop `labelBackdropOf`.
   **Writing a style key** into a style string: `setStyleKey`, `withStyleDefault` (`format/style.ts`).
-- **Sides of a shape**: type `Side`, `SIDES`, `SIDE_NORMALS`, `pointOnSide`, `sideMiddle`, `sideSegment`, and anchor
-  points `anchorPosition`, `nearestFreeAnchor` (`edit/edgeEnds.ts`). **Nearest handle on screen**: `nearestOnScreen`
-  (`domains/selection/picking.ts`). **Anchorings**: `ANCHORINGS` (`edit/anchoring/mode.ts`).
+- **Sides of a shape**: type `Side`, `SIDES`, `SIDE_NORMALS`, `OPPOSITE_SIDES`, `pointOnSide`, `sideMiddle`,
+  `sideSegment`, and anchor points `anchorPosition`, `nearestFreeAnchor` (`edit/edgeEnds.ts`). **Nearest handle on
+  screen**: `nearestOnScreen` (`domains/selection/picking.ts`). **Anchorings**: `ANCHORINGS` (`edit/anchoring/mode.ts`).
   An existing list or table is not redeclared elsewhere.
 - **Two close variants**: one shared parameterised function, and two names saying the difference, with a comment
   explaining why they differ. E.g. `prunePath(path, epsilon, keepBacktracks)` under `simplify` (rendering, keeps

@@ -79,7 +79,9 @@ export {
   rectContainsRect,
   rectDistance,
   rectPath,
+  rectSpan,
   rectsOverlap,
+  rectsOverlapBy,
   unionOf,
 } from '../model/geometry';
 export { sideConstraintAt } from '../edit/edgeEnds';
@@ -112,6 +114,8 @@ export {
 export { dashPattern, offsetOutline } from '../render/geometry/stroke';
 export { edgeLines } from '../render/lines';
 export { disposeObject, fillMesh, solidMaterial, strokeMesh } from '../render/meshes';
+export { softShadow } from '../render/softShadow';
+export type { SoftShadow } from '../render/softShadow';
 export { DRAWIO_STYLES, drawioStyle } from '../edit/stylePresets';
 export type { StylePreset } from '../edit/stylePresets';
 export {
@@ -137,6 +141,6 @@ export type { StandingFigure } from '../render/standing';
 export { stencilShape } from '../format/stencil';
 
 // Règles d'édition partagées.
-export { SIDE_NORMALS, endAttachmentOf, sideOfConstraint } from '../edit/edgeEnds';
+export { OPPOSITE_SIDES, SIDE_NORMALS, endAttachmentOf, sideOfConstraint } from '../edit/edgeEnds';
 export type { EndAttachment, Side } from '../edit/edgeEnds';
 export { facingSide } from '../edit/anchoring/auto/distribute';

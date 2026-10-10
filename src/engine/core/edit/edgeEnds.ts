@@ -38,6 +38,9 @@ export const SIDE_NORMALS: Readonly<Record<Side, Point>> = {
   w: { x: -1, y: 0 },
 };
 
+/** Côté opposé de chaque côté (ex. le haut d'une forme fait face au bas de celle du dessus). */
+export const OPPOSITE_SIDES: Readonly<Record<Side, Side>> = { n: 's', s: 'n', e: 'w', w: 'e' };
+
 /** Point relatif au cadre à la position `t` d'un côté (de gauche à droite, de haut en bas). */
 export function pointOnSide(side: Side, t: number): Point {
   if (side === 'n') return { x: t, y: 0 };

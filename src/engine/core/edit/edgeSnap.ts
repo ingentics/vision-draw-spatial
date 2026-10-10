@@ -1,4 +1,4 @@
-import { overlapLength } from '../model/geometry';
+import { overlapLength, rectSpan } from '../model/geometry';
 import type { Point, Rect } from '../model/types';
 import type { Side } from './edgeEnds';
 
@@ -18,10 +18,6 @@ export interface EdgeSnapping {
   targets: Rect[];
 }
 
-/** Intervalle d'un rectangle sur un axe (`x` : de gauche à droite, `y` : de haut en bas). */
-const span = (r: Rect, axis: 'x' | 'y'): [number, number] =>
-  axis === 'x' ? [r.x, r.x + r.width] : [r.y, r.y + r.height];
-
 /**
  * Plus petit décalage sur `axis` qui colle le bord `edge` (début ou fin de `rect` sur l'axe) au bord opposé d'une
  * cible, à moins de `threshold` ; undefined s'il n'y en a pas.
@@ -34,11 +30,11 @@ function edgeSnap(
   threshold: number,
 ): number | undefined {
   const cross = axis === 'x' ? 'y' : 'x';
-  const [lo, hi] = span(rect, axis);
+  const [lo, hi] = rectSpan(rect, axis);
   let best: number | undefined;
   for (const target of targets) {
-    if (overlapLength(...span(rect, cross), ...span(target, cross)) <= 0) continue;
-    const [tlo, thi] = span(target, axis);
+    if (overlapLength(...rectSpan(rect, cross), ...rectSpan(target, cross)) <= 0) continue;
+    const [tlo, thi] = rectSpan(target, axis);
     // Début de la forme contre la fin de la cible (à sa droite, dessous), ou fin de la forme contre son début.
     const offset = edge === 'start' ? thi - lo : tlo - hi;
     if (Math.abs(offset) <= threshold && (best === undefined || Math.abs(offset) < Math.abs(best))) best = offset;

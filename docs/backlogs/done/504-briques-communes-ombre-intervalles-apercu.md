@@ -28,3 +28,18 @@
 - Docs : `.claude/rules/coding.md` §4 (liste des fonctions de géométrie), `AJOUTER_UNE_FORME.md` (brique d'ombre).
 - **Fini quand :** les copies ci-dessus ont disparu, le Post-it général et les post-it du mode sont identiques à
   l'œil sur `postit.drawio` (ou la fixture du Post-it) et `eventstorming-commande.drawio` ; `make check` vert.
+- Fait : ombre douce commune `softShadow(layerPath, { blur, opacity, layers })` (`core/render/softShadow.ts`,
+  réexportée avec le type `SoftShadow`), reprise par le Post-it général (trapèze) et le papier des post-it Event
+  storming (rectangle arrondi rentré) : mêmes couches, opacités, noms et ordre de rendu. `rectSpan` et `rectsOverlapBy`
+  (`model/geometry.ts`, réexportées) : `edgeSnap.ts` perd son `span`, `contacts.ts` ses intervalles écrits à la main et
+  `overlapping` devient `rectsOverlapBy(a, b, CONTACT_TOLERANCE)`. `OPPOSITE_SIDES` (`edit/edgeEnds.ts`, réexporté)
+  remplace l'`OPPOSITE` du mode. `ConnectorPreview` : calque commun `OverlayLayer` (clé, sans test de profondeur,
+  retrait et libération) pour les limites et les places. `order.ts` : `reorderSiblings` commun à `reorderCells`,
+  `sendToBackInOrder` et `placeBehind`. Non repris : `obstacles.ts`, dont les intervalles tiennent compte du décalage
+  déjà appliqué sur l'autre axe (`crosses` avec `shift`). Écart : aucun (les limites reçoivent aussi
+  `depthTest = false` par le calque, ce qu'elles avaient déjà). Tests `geometry.test.ts` (`rectSpan`,
+  `rectsOverlapBy`), `tests/engine/core/render/softShadow.test.ts` ; tests existants intacts. Docs
+  `.claude/rules/coding.md` §4, `AJOUTER_UNE_FORME.md` (ombre douce). Vérifié dans l'appli : `post-it.drawio`, ombre en
+  trapèze, 16 couches à 0,01782 ; `eventstorming-commande.drawio`, ombre des post-it en 12 couches à 0,01842, cases
+  montrées au glisser puis retirées au lâcher. Limites d'un geste borné (régions RDD) : vérifiées par les tests
+  seulement.

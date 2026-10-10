@@ -1,6 +1,5 @@
-import { Color, Group } from 'three';
-import { createBox, fillMesh, PART_ORDER, rectPath } from '../../../../core/plugins';
-import type { Point, Rect, ShapeDefinition, ShapeModel } from '../../../../core/plugins';
+import { createBox, rectPath, softShadow } from '../../../../core/plugins';
+import type { Point, Rect, ShapeDefinition, ShapeModel, SoftShadow } from '../../../../core/plugins';
 
 /**
  * Post-it (sujet 411) : carré jaune sans contour, posé à plat avec une ombre douce dessous, texte noir qui remplit
@@ -8,12 +7,9 @@ import type { Point, Rect, ShapeDefinition, ShapeModel } from '../../../../core/
  * draw.io, un rectangle jaune à ombre.
  */
 
-/** Ombre : décalée vers le bas, floue, noire à 25 % au plus foncé. */
+/** Ombre : décalée vers le bas, floue, noire à 25 % au plus foncé, en 16 couches. */
 const SHADOW_OFFSET = 4;
-const SHADOW_BLUR = 8;
-const SHADOW_OPACITY = 0.25;
-/** Couches du flou : rectangles de plus en plus étendus, dont les opacités s'additionnent vers le centre. */
-const SHADOW_LAYERS = 16;
+const SHADOW: SoftShadow = { blur: 8, opacity: 0.25, layers: 16 };
 /** Bas de l'ombre élargi, haut rentré : le papier semble un peu décollé en bas. */
 const SHADOW_FLARE = 2;
 
@@ -29,22 +25,6 @@ function shadowPath({ x, y, width, height }: Rect, spread: number): Point[] {
   ];
 }
 
-/** Ombre floue : couches superposées, chacune assez transparente pour qu'au centre elles donnent `SHADOW_OPACITY`. */
-function shadow(bounds: Rect): Group {
-  const group = new Group();
-  group.name = 'shadow';
-  const layer = 1 - Math.pow(1 - SHADOW_OPACITY, 1 / SHADOW_LAYERS);
-  for (let i = 0; i < SHADOW_LAYERS; i++) {
-    const mesh = fillMesh(shadowPath(bounds, (SHADOW_BLUR * (i + 0.5)) / SHADOW_LAYERS), new Color('#000000'), layer);
-    mesh.name = 'shadow';
-    // Sous le papier, sous tous les angles : dessinée juste avant son fond, dans la place libre (la 4e) de l'élément
-    // précédent, au lieu d'être départagée par la profondeur (en iso, l'ombre passerait devant le papier).
-    mesh.renderOrder = PART_ORDER.fill - 1;
-    group.add(mesh);
-  }
-  return group;
-}
-
 const outline = (shape: ShapeModel) => rectPath(shape.bounds);
 
 export const definition: ShapeDefinition = {
@@ -58,7 +38,7 @@ export const definition: ShapeDefinition = {
       const paper = { ...shape, style: { ...shape.style, strokeColor: 'none' } };
       const group = createBox(paper, outline(shape), ctx, { fill: '#fff2cc', stroke: '#000000' });
       group.name = 'shape:post-it';
-      group.add(shadow(shape.bounds));
+      group.add(softShadow((spread) => shadowPath(shape.bounds, spread), SHADOW));
       return group;
     },
   },

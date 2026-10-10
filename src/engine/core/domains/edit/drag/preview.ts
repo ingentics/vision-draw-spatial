@@ -19,14 +19,15 @@ import { shapeOf } from '../../../model/pageIndex';
 /** Aperçu d'un connecteur ou d'un bout de flèche en cours : tracé, repères d'accroche sur la forme visée. */
 export class ConnectorPreview {
   private connectorPreview: Object3D | undefined;
-  /** Limites montrées pendant un geste borné (sujet 241), et leur clé (pas de reconstruction si rien ne change). */
-  private limits: Object3D | undefined;
-  private limitsKey: string | undefined;
-  /** Places montrées pendant le glisser d'une forme (sujet 481), et leur clé. */
-  private places: Object3D | undefined;
-  private placesKey: string | undefined;
+  /** Limites montrées pendant un geste borné (sujet 241). */
+  private readonly limits: OverlayLayer;
+  /** Places montrées pendant le glisser d'une forme (sujet 481). */
+  private readonly places: OverlayLayer;
 
-  constructor(private readonly core: EngineCore) {}
+  constructor(private readonly core: EngineCore) {
+    this.limits = new OverlayLayer(core);
+    this.places = new OverlayLayer(core);
+  }
 
   /** Repères d'accroche (contour, points de connexion) sur la forme visée par un bout de flèche. */
   showConnectionHints(
@@ -107,29 +108,22 @@ export class ConnectorPreview {
    */
   showLimits(segments: Segment[], stopped: Rect[]): void {
     const zoom = this.core.camera.state.zoom;
-    const key = JSON.stringify([segments, stopped, zoom]);
-    if (key === this.limitsKey) return;
-    this.clearLimits();
-    this.limitsKey = key;
-    const root = this.core.scenes.current?.root;
-    if (!root || segments.length === 0) return;
-    const group = new Group();
-    group.name = 'drag-limits';
-    for (const segment of segments) {
-      const shown = shownLimit(segment, stopped, LIMIT_OFFSET / zoom, LIMIT_EXTENSION);
-      // Opacité pleine au milieu, nulle aux bouts, sur les `LIMIT_FADE` derniers pixels.
-      const alphaAt = (p: Point) => Math.min(1, Math.min(distance(p, shown[0]), distance(p, shown[1])) / LIMIT_FADE);
-      const dashes = dashPolyline(shown, [6 / zoom, 4 / zoom], false);
-      const mesh = fadedStrokeMesh(dashes, alphaAt, new Color(LIMIT_COLOR), 1, 1.5 / zoom);
-      if (!mesh) continue;
-      (mesh.material as MeshBasicMaterial).depthTest = false;
-      mesh.renderOrder = Number.MAX_SAFE_INTEGER;
-      group.add(mesh);
-    }
-    group.position.z = 0.5;
-    this.limits = group;
-    root.add(group);
-    this.core.rendering.requestRender();
+    this.limits.show(JSON.stringify([segments, stopped, zoom]), () => {
+      if (segments.length === 0) return undefined;
+      const group = new Group();
+      group.name = 'drag-limits';
+      for (const segment of segments) {
+        const shown = shownLimit(segment, stopped, LIMIT_OFFSET / zoom, LIMIT_EXTENSION);
+        // Opacité pleine au milieu, nulle aux bouts, sur les `LIMIT_FADE` derniers pixels.
+        const alphaAt = (p: Point) => Math.min(1, Math.min(distance(p, shown[0]), distance(p, shown[1])) / LIMIT_FADE);
+        const dashes = dashPolyline(shown, [6 / zoom, 4 / zoom], false);
+        const mesh = fadedStrokeMesh(dashes, alphaAt, new Color(LIMIT_COLOR), 1, 1.5 / zoom);
+        if (!mesh) continue;
+        mesh.renderOrder = Number.MAX_SAFE_INTEGER;
+        group.add(mesh);
+      }
+      return group;
+    });
   }
 
   /**
@@ -138,37 +132,55 @@ export class ConnectorPreview {
    */
   showPlaces(places: Rect[], hit: Rect | undefined, swap?: { target: Rect; to: Rect }): void {
     const zoom = this.core.camera.state.zoom;
-    const key = JSON.stringify([places, hit, swap, zoom]);
-    if (key === this.placesKey) return;
-    this.clearPlaces();
-    this.placesKey = key;
-    const root = this.core.scenes.current?.root;
-    if (!root || (places.length === 0 && !swap)) return;
-    const group = dragPlacesMarks(places, hit, swap, zoom, this.core.settings.selection.accentColor);
-    group.traverse((o) => {
-      if (o instanceof Mesh) (o.material as MeshBasicMaterial).depthTest = false;
-    });
-    group.position.z = 0.5;
-    this.places = group;
-    root.add(group);
-    this.core.rendering.requestRender();
+    this.places.show(JSON.stringify([places, hit, swap, zoom]), () =>
+      places.length === 0 && !swap
+        ? undefined
+        : dragPlacesMarks(places, hit, swap, zoom, this.core.settings.selection.accentColor),
+    );
   }
 
   clearPlaces(): void {
-    this.placesKey = undefined;
-    if (!this.places) return;
-    this.places.removeFromParent();
-    disposeObject(this.places);
-    this.places = undefined;
-    this.core.rendering.requestRender();
+    this.places.clear();
   }
 
   clearLimits(): void {
-    this.limitsKey = undefined;
-    if (!this.limits) return;
-    this.limits.removeFromParent();
-    disposeObject(this.limits);
-    this.limits = undefined;
+    this.limits.clear();
+  }
+}
+
+/**
+ * Calque d'aperçu d'un geste, au-dessus du schéma (sans test de profondeur) : reconstruit seulement quand sa clé change,
+ * retiré et libéré à la fin du geste.
+ */
+class OverlayLayer {
+  private object: Object3D | undefined;
+  private key: string | undefined;
+
+  constructor(private readonly core: EngineCore) {}
+
+  /** Montre ce que `build` construit pour `key` (undefined : rien), à la place du calque précédent. */
+  show(key: string, build: () => Object3D | undefined): void {
+    if (key === this.key) return;
+    this.clear();
+    this.key = key;
+    const root = this.core.scenes.current?.root;
+    const object = root && build();
+    if (!root || !object) return;
+    object.traverse((o) => {
+      if (o instanceof Mesh) (o.material as MeshBasicMaterial).depthTest = false;
+    });
+    object.position.z = 0.5;
+    this.object = object;
+    root.add(object);
+    this.core.rendering.requestRender();
+  }
+
+  clear(): void {
+    this.key = undefined;
+    if (!this.object) return;
+    this.object.removeFromParent();
+    disposeObject(this.object);
+    this.object = undefined;
     this.core.rendering.requestRender();
   }
 }
