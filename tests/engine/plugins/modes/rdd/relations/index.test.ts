@@ -179,13 +179,13 @@ describe('mode RDD : champ de relation (sujet 265)', () => {
     expect(rdd.edges!.manages!(page(), edgeModel)).toBe(true);
   });
 
-  it('flèche de relation sélectionnée seule : ni voile ni contour ; avec d’autres ou hors relation : style de la page (sujet 428)', () => {
+  it('flèche de relation sélectionnée seule : ni voile ni contour ; avec d’autres : contour ; hors relation : style de la page (sujets 428, 432)', () => {
     const { connect, page } = setup();
     const id = connect('user', 'role');
     const edge = page().edges.find((e) => e.id === id)!;
     const style = rdd.edges!.selectionStyle!;
     expect(style(page(), edge, 1)).toBe('none');
-    expect(style(page(), edge, 2)).toBeUndefined();
+    expect(style(page(), edge, 2)).toBe('outline');
     expect(style(page(), { ...edge, sourceId: 'absente' }, 1)).toBeUndefined();
   });
 
