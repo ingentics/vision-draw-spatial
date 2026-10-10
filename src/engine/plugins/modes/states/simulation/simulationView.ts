@@ -1,7 +1,8 @@
 import type { EdgeModel, PageModel, ShapeModel } from '../../../../core/plugins';
 import { edgeOf, elementName, shapeOf } from '../../../../core/plugins';
 import { ERROR_COLOR, isErrorExit } from '../exits/exitKind';
-import { isFinal, isInitial, isState } from '../kinds';
+import { isFinal, isInitial, isStateLike } from '../kinds';
+import { outgoingTransitions } from '../transitions/transitionRules';
 import type { SimulationEnd, StateSimulation } from './stateSimulation';
 
 /**
@@ -14,7 +15,7 @@ export interface StepLook {
   current: string;
   /** Ensembles qui contiennent l'élément courant : encadrés. */
   frames: string[];
-  /** États visités et leurs passages : teintés, compteur dès 2. */
+  /** États (et ensembles où l'on s'est arrêté) visités et leurs passages : teintés, compteur dès 2. */
   visits: Array<{ id: string; count: number }>;
   /** Transitions proposées et leur pastille (numéro du choix). */
   proposed: Array<{ id: string; badge: string }>;
@@ -26,7 +27,7 @@ export function stepLook(sim: StateSimulation): StepLook {
   const visits = [...sim.visits()]
     .filter(([id]) => {
       const shape = shapeOf(sim.page, id);
-      return shape !== undefined && isState(shape);
+      return shape !== undefined && isStateLike(shape);
     })
     .map(([id, count]) => ({ id, count }));
   return {
@@ -61,15 +62,18 @@ export const END_LABELS: Record<SimulationEnd, { text: string; color: string }> 
 
 /** Point d'entrée à choisir au départ, nommé par l'état où mène sa première transition. */
 export function entryName(page: PageModel, entry: ShapeModel): string {
-  const edge = [...page.edges].sort((a, b) => a.z - b.z).find((e) => e.sourceId === entry.id);
-  const target = edge && shapeOf(page, edge.targetId);
+  const target = outgoingTransitions(page, entry)[0]?.target;
   return target ? `Entrée vers « ${stepName(target)} »` : `Entrée ${entry.id}`;
 }
 
-/** Ligne de la trace : un pas (`step`, à partir de 1) ou la transition franchie pour y venir. */
+/**
+ * Ligne de la trace : un pas ou la transition franchie pour y venir. `target` : pas où mène un clic (`goTo`, à partir de
+ * 1), le premier où l'on choisit à partir de cette ligne ; absent si la ligne ne mène nulle part (pas courant, pas
+ * traversé sans choix).
+ */
 export type TraceLine =
-  | { kind: 'step'; step: number; text: string; count: number; current: boolean }
-  | { kind: 'transition'; step: number; text: string };
+  | { kind: 'step'; text: string; count: number; current: boolean; target?: number }
+  | { kind: 'transition'; text: string; target?: number };
 
 /**
  * Trace de la simulation, une ligne par pas : « ● Entrée », « → <état> » (avec son passage, compté dès le 2e), et entre
@@ -84,12 +88,14 @@ export function simulationTrace(sim: StateSimulation): TraceLine[] {
     seen.set(shape.id, count);
     const name = stepName(shape);
     const lines: TraceLine[] = [];
+    const target = sim.goToTarget(i + 1);
     if (step.via !== undefined) {
       const label = transitionName(edgeOf(sim.page, step.via));
-      lines.push({ kind: 'transition', step: i + 1, text: label ? `—[${label}]→` : '—→' });
+      lines.push({ kind: 'transition', text: label ? `—[${label}]→` : '—→', ...(target !== undefined && { target }) });
     }
     const text = isInitial(shape) ? `● ${name}` : `→ ${name}`;
-    lines.push({ kind: 'step', step: i + 1, text, count, current: i + 1 === last });
+    const current = i + 1 === last;
+    lines.push({ kind: 'step', text, count, current, ...(target !== undefined && !step.passed && { target }) });
     return lines;
   });
 }

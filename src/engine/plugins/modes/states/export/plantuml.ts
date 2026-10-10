@@ -5,7 +5,7 @@ import { ERROR_COLOR, isErrorExit } from '../exits/exitKind';
 import { isComposite, isFinal, isInitial, isStateLike } from '../kinds';
 import { bodyLines } from '../state/stateLayout';
 import { stateBody } from '../state/bodyText';
-import { transitionEnds } from '../transitions/transitionRules';
+import { transitionsOf } from '../transitions/transitionRules';
 
 /**
  * Page du mode Machine à états en diagramme d'états PlantUML (sujet 436).
@@ -60,21 +60,16 @@ export function statesPlantUml(page: PageModel): string {
   const ref = (node: ShapeModel) => (simple(node) ? node.label.trim() : aliases.get(node.id)!);
   const levelOf = (shape: ShapeModel): Level => compositeOf(page, shape)?.id;
 
-  const transitions: Transition[] = [...page.edges]
-    .sort((a, b) => a.z - b.z)
-    .flatMap((edge) => {
-      const ends = transitionEnds(page, edge);
-      if (!ends) return [];
-      const { source, target } = ends;
-      const initial = isInitial(source);
-      const level = initial ? levelOf(source) : isFinal(target) ? levelOf(target) : commonLevel(page, source, target);
-      const from = initial ? '[*]' : ref(source);
-      const to = isFinal(target) ? '[*]' : ref(target);
-      const nodes = [source, target].filter(isStateLike).map((node) => node.id);
-      // Vers une sortie en erreur : flèche rouge.
-      const arrow = isErrorExit(target) ? `-[${ERROR_COLOR}]->` : '-->';
-      return [{ level, initial, nodes, line: `${from} ${arrow} ${to}${transitionName(edge)}` }];
-    });
+  const transitions: Transition[] = transitionsOf(page).map(({ edge, source, target }) => {
+    const initial = isInitial(source);
+    const level = initial ? levelOf(source) : isFinal(target) ? levelOf(target) : commonLevel(page, source, target);
+    const from = initial ? '[*]' : ref(source);
+    const to = isFinal(target) ? '[*]' : ref(target);
+    const nodes = [source, target].filter(isStateLike).map((node) => node.id);
+    // Vers une sortie en erreur : flèche rouge.
+    const arrow = isErrorExit(target) ? `-[${ERROR_COLOR}]->` : '-->';
+    return { level, initial, nodes, line: `${from} ${arrow} ${to}${transitionName(edge)}` };
+  });
   /** États nommés par une transition : un état de la page au nom simple et sans contenu n'a pas à être déclaré. */
   const named = new Set(transitions.flatMap((transition) => transition.nodes));
   /**

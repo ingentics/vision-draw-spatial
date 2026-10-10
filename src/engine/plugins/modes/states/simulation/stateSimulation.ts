@@ -3,7 +3,7 @@ import { edgeOf, shapeOf } from '../../../../core/plugins';
 import { compositeAncestors, compositeOf } from '../composites/compositeLayout';
 import { isErrorExit } from '../exits/exitKind';
 import { isComposite, isFinal, isInitial, isStateLike } from '../kinds';
-import { transitionEnds } from '../transitions/transitionRules';
+import { outgoingTransitions, transitionEnds } from '../transitions/transitionRules';
 
 /**
  * Simulation pas à pas d'une machine à états (sujet 460) : logique pure, rien n'est écrit dans le fichier. Les
@@ -52,6 +52,11 @@ export class StateSimulation {
     return this.history;
   }
 
+  /** Numéro du pas courant pour l'utilisateur : les pas où l'on choisit, sans ceux traversés sans choix. */
+  get stepNumber(): number {
+    return this.history.filter((step) => !step.passed).length;
+  }
+
   /** Élément du pas courant. */
   get current(): ShapeModel {
     return shapeOf(this.page, this.history[this.history.length - 1]!.elementId)!;
@@ -65,13 +70,19 @@ export class StateSimulation {
   /**
    * Transitions proposées, numérotées 1…n dans cet ordre : les sortantes de l'élément courant, puis celles de chaque
    * ensemble qui le contient, du plus proche au plus lointain (règle UML : on quitte un ensemble depuis n'importe
-   * lequel de ses états) ; chaque groupe dans l'ordre de dessin. Aucune une fois sorti par un point de sortie de
-   * premier niveau ou en erreur.
+   * lequel de ses états) ; chaque groupe dans l'ordre de dessin. Sur un point d'entrée, seulement les siennes (on n'est
+   * encore dans aucun état de l'ensemble). Aucune une fois sorti par un point de sortie de premier niveau ou en erreur.
    */
   proposals(): Proposal[] {
     const current = this.current;
     if (isFinal(current) && (isErrorExit(current) || !compositeOf(this.page, current))) return [];
+    if (isInitial(current)) return outgoing(this.page, current);
     return [current, ...this.enclosing()].flatMap((source) => outgoing(this.page, source));
+  }
+
+  /** La transition `edgeId` est-elle proposée ? */
+  proposes(edgeId: string): boolean {
+    return this.proposals().some(({ edge }) => edge.id === edgeId);
   }
 
   /** Fin atteinte au pas courant ; undefined tant qu'il reste une transition à franchir. */
@@ -82,10 +93,20 @@ export class StateSimulation {
     return this.proposals().length === 0 ? 'blocked' : undefined;
   }
 
-  /** Franchit la transition proposée numéro `n` (à partir de 1) ; faux si elle n'existe pas. */
-  choose(n: number): boolean {
+  /** Franchit la transition proposée numéro `n` (à partir de 1) ; rend son id, undefined si elle n'existe pas. */
+  choose(n: number): string | undefined {
     const proposal = this.proposals()[n - 1];
-    return proposal !== undefined && this.cross(proposal.edge.id);
+    return proposal && this.cross(proposal.edge.id) ? proposal.edge.id : undefined;
+  }
+
+  /** Suivant possible : une seule transition proposée. */
+  canNext(): boolean {
+    return this.proposals().length === 1;
+  }
+
+  /** Franchit la seule transition proposée ; rend son id, undefined s'il y en a zéro ou plusieurs. */
+  next(): string | undefined {
+    return this.canNext() ? this.choose(1) : undefined;
   }
 
   /** Franchit la transition `edgeId`, si elle est proposée. */
@@ -96,14 +117,17 @@ export class StateSimulation {
     return true;
   }
 
+  /** Retour possible : un pas où l'on a choisi précède le pas courant. */
+  canBack(): boolean {
+    return this.previousChoice() >= 0;
+  }
+
   /** Revient au dernier pas où l'on a choisi (les pas traversés sans choix sont sautés) ; faux au départ. */
   back(): boolean {
-    for (let i = this.history.length - 2; i >= 0; i--) {
-      if (this.history[i]!.passed) continue;
-      this.history = this.history.slice(0, i + 1);
-      return true;
-    }
-    return false;
+    const previous = this.previousChoice();
+    if (previous < 0) return false;
+    this.history = this.history.slice(0, previous + 1);
+    return true;
   }
 
   /** Revient au départ : au premier pas où l'on choisit (un ensemble de départ est traversé jusqu'à son entrée). */
@@ -112,23 +136,50 @@ export class StateSimulation {
     return this.goTo(first + 1);
   }
 
-  /** Revient au pas `n` (à partir de 1) : les pas suivants sont oubliés. */
+  /**
+   * Revient au pas `n` (à partir de 1) : les pas suivants sont oubliés. Un pas traversé sans choix mène au premier pas
+   * où l'on choisit après lui (on ne s'arrête jamais là où `cross` ne s'arrête pas) ; faux si c'est le pas courant.
+   */
   goTo(n: number): boolean {
-    if (n < 1 || n >= this.history.length || !Number.isInteger(n)) return false;
-    this.history = this.history.slice(0, n);
+    const index = Number.isInteger(n) && n >= 1 ? this.choiceFrom(n - 1) : -1;
+    if (index < 0 || index >= this.history.length - 1) return false;
+    this.history = this.history.slice(0, index + 1);
     return true;
   }
 
-  /** Passages par élément, d'après l'historique. */
+  /** Pas où mène `goTo(n)` (à partir de 1) ; undefined s'il n'y en a pas ou si c'est le pas courant. */
+  goToTarget(n: number): number | undefined {
+    const index = Number.isInteger(n) && n >= 1 ? this.choiceFrom(n - 1) : -1;
+    return index >= 0 && index < this.history.length - 1 ? index + 1 : undefined;
+  }
+
+  /**
+   * Passages par élément, d'après l'historique ; un pas traversé sans choix (ensemble pris par son entrée) ne compte
+   * pas.
+   */
   visits(): Map<string, number> {
     const counts = new Map<string, number>();
-    for (const { elementId } of this.history) counts.set(elementId, (counts.get(elementId) ?? 0) + 1);
+    for (const { elementId, passed } of this.history) {
+      if (!passed) counts.set(elementId, (counts.get(elementId) ?? 0) + 1);
+    }
     return counts;
   }
 
   /** Transitions empruntées, d'après l'historique. */
   taken(): Set<string> {
     return new Set(this.history.flatMap((step) => (step.via ? [step.via] : [])));
+  }
+
+  /** Indice du dernier pas où l'on a choisi avant le pas courant ; -1 au départ. */
+  private previousChoice(): number {
+    for (let i = this.history.length - 2; i >= 0; i--) if (!this.history[i]!.passed) return i;
+    return -1;
+  }
+
+  /** Indice du premier pas où l'on choisit à partir de l'indice `index` ; -1 hors de l'historique. */
+  private choiceFrom(index: number): number {
+    for (let i = index; i < this.history.length; i++) if (!this.history[i]!.passed) return i;
+    return -1;
   }
 
   /**
@@ -178,12 +229,7 @@ export function startSimulation(page: PageModel, selection: readonly string[]): 
 
 /** Transitions sortantes de `source`, dans l'ordre de dessin. */
 function outgoing(page: PageModel, source: ShapeModel): Proposal[] {
-  return [...page.edges]
-    .sort((a, b) => a.z - b.z)
-    .flatMap((edge) => {
-      const ends = transitionEnds(page, edge);
-      return ends?.source.id === source.id ? [{ edge, target: ends.target }] : [];
-    });
+  return outgoingTransitions(page, source).map(({ edge, target }) => ({ edge, target }));
 }
 
 /** Premier point d'entrée dessiné directement dans l'ensemble. */

@@ -1,6 +1,7 @@
 import {
   StateSimulation,
   simulationFrame,
+  simulationKey,
   startSimulation,
   stepLook,
 } from '../../../../engine/plugins/modes/states/api';
@@ -36,50 +37,42 @@ export function launchFrom(controls: ModeSimulationControls, page: PageModel, en
 
 function run(controls: ModeSimulationControls, sim: StateSimulation): void {
   const actions = simulationActions(controls, sim);
-  const proposed = (id: string) => sim.proposals().some(({ edge }) => edge.id === id);
   const opened = controls.open(sim, {
     // Clic sur une transition proposée ou sa pastille : elle est franchie.
-    click: (id) => {
-      if (proposed(id)) actions.cross(id);
+    click: (id) => actions.cross(id),
+    clickable: (id) => sim.proposes(id),
+    key: (key) => {
+      const move = simulationKey(sim, key);
+      if (!move) return false;
+      if ('choose' in move) actions.choose(move.choose);
+      else actions.back();
+      return true;
     },
-    clickable: proposed,
-    key: (key) => simulationKey(actions, key),
   });
   if (opened) controls.show(simulationFrame(sim));
 }
 
-/** Opérations de la barre, de la trace et du clavier sur la simulation ouverte. */
+/** Opérations de la barre, de la trace et du clavier sur la simulation ouverte : chacune montre le nouveau pas. */
 export function simulationActions(controls: ModeSimulationControls, sim: StateSimulation) {
-  /** Change de pas, puis montre le nouveau ; `crossed` : transition franchie, parcourue par le point. */
-  const step = (change: () => boolean, crossed?: string) => {
+  /**
+   * Change de pas, puis montre le nouveau ; `change` rend la transition franchie (parcourue par le point), vrai pour un
+   * retour, faux ou undefined si rien n'a changé.
+   */
+  const step = (change: () => string | boolean | undefined) => {
     const before = stepLook(sim);
-    if (change()) controls.show(simulationFrame(sim, crossed === undefined ? undefined : { before, edgeId: crossed }));
+    const changed = change();
+    if (changed === undefined || changed === false) return;
+    controls.show(simulationFrame(sim, typeof changed === 'string' ? { before, edgeId: changed } : undefined));
   };
-  const cross = (edgeId: string) => step(() => sim.cross(edgeId), edgeId);
   return {
-    cross,
+    cross: (edgeId: string) => step(() => sim.cross(edgeId) && edgeId),
     /** Transition proposée numéro `n` (à partir de 1). */
-    choose: (n: number) => {
-      const proposal = sim.proposals()[n - 1];
-      if (proposal) cross(proposal.edge.id);
-    },
+    choose: (n: number) => step(() => sim.choose(n)),
     /** Suivant : seulement s'il n'y a qu'une transition proposée. */
-    next: () => {
-      const proposals = sim.proposals();
-      if (proposals.length === 1) cross(proposals[0]!.edge.id);
-    },
+    next: () => step(() => sim.next()),
     back: () => step(() => sim.back()),
     restart: () => step(() => sim.restart()),
     goTo: (n: number) => step(() => sim.goTo(n)),
     stop: () => controls.close(),
   };
-}
-
-/** Clavier : 1 à 9 franchit la transition de ce numéro, → ou Espace = Suivant, ← ou Retour arrière = Retour. */
-function simulationKey(actions: ReturnType<typeof simulationActions>, key: string): boolean {
-  if (/^[1-9]$/.test(key)) actions.choose(Number(key));
-  else if (key === 'ArrowRight' || key === ' ') actions.next();
-  else if (key === 'ArrowLeft' || key === 'Backspace') actions.back();
-  else return false;
-  return true;
 }

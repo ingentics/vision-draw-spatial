@@ -24,6 +24,28 @@ export function transitionEnds(
   return source && target && canConnect(source, target) ? { source, target } : undefined;
 }
 
+/** Transition valide et ses bouts. */
+export interface ValidTransition {
+  edge: EdgeModel;
+  source: ShapeModel;
+  target: ShapeModel;
+}
+
+/** Transitions valides de la page, dans l'ordre de dessin. */
+export function transitionsOf(page: PageModel): ValidTransition[] {
+  return [...page.edges]
+    .sort((a, b) => a.z - b.z)
+    .flatMap((edge) => {
+      const ends = transitionEnds(page, edge);
+      return ends ? [{ edge, ...ends }] : [];
+    });
+}
+
+/** Transitions valides qui partent de `source`, dans l'ordre de dessin. */
+export function outgoingTransitions(page: PageModel, source: ShapeModel): ValidTransition[] {
+  return transitionsOf(page).filter((transition) => transition.source.id === source.id);
+}
+
 /** Transition tirée d'une forme : pointe classique, trait plein. */
 export function styleTransition(edit: ModeEdit, edgeId: string): void {
   edit.setElementStyle(edgeId, 'endArrow', 'classic');

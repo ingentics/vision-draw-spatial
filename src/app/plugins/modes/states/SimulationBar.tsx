@@ -42,13 +42,15 @@ export function SimulationBar({ page, simulation }: ModeCanvasProps) {
   }
   const actions = simulationActions(simulation, sim);
   const end = sim.end();
-  const single = sim.proposals().length === 1;
+  const single = sim.canNext();
+  const canBack = sim.canBack();
   return (
     <div className="simulation-dock" onMouseDown={keepFocus}>
       <div className="simulation-bar running" role="toolbar" aria-label="Simulation">
         <button
           type="button"
           className="button"
+          disabled={!canBack}
           data-tip="Recommencer : revenir au départ de la simulation"
           onClick={actions.restart}
         >
@@ -57,6 +59,7 @@ export function SimulationBar({ page, simulation }: ModeCanvasProps) {
         <button
           type="button"
           className="button"
+          disabled={!canBack}
           data-tip="Retour : revenir d’un pas (← ou Retour arrière)"
           onClick={actions.back}
         >
@@ -68,7 +71,7 @@ export function SimulationBar({ page, simulation }: ModeCanvasProps) {
           disabled={!single}
           data-tip={
             single
-              ? 'Suivant : franchir la seule transition proposée (→ ou Espace)'
+              ? 'Suivant : franchir la seule transition proposée (ou taper 1)'
               : 'Suivant : seulement quand une seule transition est proposée ; sinon cliquer une pastille ou taper son numéro'
           }
           onClick={actions.next}
@@ -84,7 +87,7 @@ export function SimulationBar({ page, simulation }: ModeCanvasProps) {
           ⏹ Arrêter
         </button>
         <span className="simulation-step">
-          Pas {sim.steps.length} · {stepName(sim.current)}
+          Pas {sim.stepNumber} · {stepName(sim.current)}
         </span>
         {end && (
           <span className="simulation-end" style={{ background: END_LABELS[end].color }}>

@@ -19,6 +19,7 @@ export function SimulationTrace({ sim, onGoTo }: { sim: StateSimulation; onGoTo:
     <ol className="simulation-trace" aria-label="Trace de la simulation">
       {lines.map((line, i) => {
         const isCurrent = line.kind === 'step' && line.current;
+        const { target } = line;
         return (
           <li
             key={i}
@@ -27,9 +28,15 @@ export function SimulationTrace({ sim, onGoTo }: { sim: StateSimulation; onGoTo:
           >
             <button
               type="button"
-              disabled={isCurrent}
-              data-tip={isCurrent ? 'Pas courant' : `Revenir au pas ${line.step} (les pas suivants sont oubliés)`}
-              onClick={() => onGoTo(line.step)}
+              disabled={target === undefined}
+              data-tip={
+                target !== undefined
+                  ? 'Revenir à ce pas (les pas suivants sont oubliés)'
+                  : isCurrent || line.kind === 'transition'
+                    ? 'Pas courant'
+                    : 'Pas traversé sans choix'
+              }
+              onClick={() => target !== undefined && onGoTo(target)}
             >
               {line.text}
               {line.kind === 'step' && line.count > 1 && <span className="simulation-count">×{line.count}</span>}

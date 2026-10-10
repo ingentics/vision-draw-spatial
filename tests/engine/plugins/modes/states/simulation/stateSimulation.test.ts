@@ -4,6 +4,7 @@ import {
   startSimulation,
 } from '../../../../../../src/engine/plugins/modes/states/simulation/stateSimulation';
 import type { SimulationStart } from '../../../../../../src/engine/plugins/modes/states/simulation/stateSimulation';
+import { simulationKey } from '../../../../../../src/engine/plugins/modes/states/simulation/simulationKeys';
 import { edge, setup, statesXml, vertex } from '../helpers';
 
 /** Simulation d'un départ qui doit en donner une. */
@@ -56,10 +57,10 @@ describe('mode Machine à états : simulation pas à pas (sujet 460)', () => {
 
   it('propose les transitions dans l’ordre de dessin et franchit celle choisie', () => {
     const sim = simulation(startSimulation(page(), []));
-    expect(sim.choose(1)).toBe(true);
+    expect(sim.choose(1)).toBe('t1');
     expect(proposed(sim)).toEqual(['t2', 't4']);
-    expect(sim.choose(3)).toBe(false);
-    expect(sim.choose(2)).toBe(true);
+    expect(sim.choose(3)).toBeUndefined();
+    expect(sim.choose(2)).toBe('t4');
     expect(path(sim)).toEqual(['init1', 'state1', 'state3', 'init2', 's4']);
     expect(sim.steps[2]).toEqual({ elementId: 'state3', via: 't4', passed: true });
     expect(sim.cross('t3')).toBe(false);
@@ -147,7 +148,8 @@ describe('mode Machine à états : simulation pas à pas (sujet 460)', () => {
     sim.cross('t6');
     sim.cross('t6');
     expect(sim.visits().get('s4')).toBe(3);
-    expect(sim.visits().get('state3')).toBe(1);
+    // Ensemble pris par son entrée, sans s'y arrêter : pas de passage compté.
+    expect(sim.visits().get('state3')).toBeUndefined();
     expect([...sim.taken()]).toEqual(['t1', 't4', 't5', 't6']);
     expect(sim.back()).toBe(true);
     expect(sim.visits().get('s4')).toBe(2);
@@ -170,5 +172,68 @@ describe('mode Machine à états : simulation pas à pas (sujet 460)', () => {
     expect(sim.restart()).toBe(true);
     expect(path(sim)).toEqual(['state3', 'init2', 's4']);
     expect(sim.restart()).toBe(false);
+  });
+
+  it('ne revient jamais à un pas traversé sans choix : il mène au pas où l’on choisit ensuite (sujet 465)', () => {
+    const sim = simulation(startSimulation(page(), []));
+    sim.choose(1);
+    sim.choose(2);
+    sim.cross('t6');
+    expect(path(sim)).toEqual(['init1', 'state1', 'state3', 'init2', 's4', 's4']);
+    expect(sim.stepNumber).toBe(4);
+    expect(sim.goToTarget(3)).toBe(5);
+    expect(sim.goTo(3)).toBe(true);
+    expect(sim.current.id).toBe('s4');
+    expect(sim.stepNumber).toBe(3);
+    // Les pas traversés mènent tous au pas courant : rien à faire.
+    expect(sim.goToTarget(3)).toBeUndefined();
+    expect(sim.goTo(4)).toBe(false);
+  });
+
+  it('sur un point d’entrée intérieur, seules ses transitions sont proposées ; sans transition : bloqué (sujet 465)', () => {
+    expect(proposed(simulation(startSimulation(page(), ['init2'])))).toEqual(['t5']);
+    const cells =
+      vertex('box', 'composite', 0, 0, 400, 200, 'Box') +
+      vertex('i', 'initial', 20, 30, 20, 20) +
+      vertex('s', 'state', 80, 40, 100, 60, 'S') +
+      vertex('t', 'state', 220, 40, 100, 60, 'T') +
+      vertex('end', 'final', 500, 50, 24, 24) +
+      edge('a', 'i', 's') +
+      edge('b', 'i', 't') +
+      edge('out', 'box', 'end');
+    const sim = simulation(startSimulation(setup(statesXml(cells)).page(), ['box']));
+    expect(proposed(sim)).toEqual(['a', 'b']);
+    const lone =
+      vertex('box', 'composite', 0, 0, 400, 200, 'Box') +
+      vertex('i', 'initial', 20, 30, 20, 20) +
+      vertex('end', 'final', 500, 50, 24, 24) +
+      edge('out', 'box', 'end');
+    const blocked = simulation(startSimulation(setup(statesXml(lone)).page(), ['box']));
+    expect(path(blocked)).toEqual(['box', 'i']);
+    expect(blocked.end()).toBe('blocked');
+  });
+
+  it('Suivant seulement avec une transition proposée ; Retour seulement après un choix (sujet 465)', () => {
+    const sim = simulation(startSimulation(page(), []));
+    expect(sim.canBack()).toBe(false);
+    expect(sim.canNext()).toBe(true);
+    expect(sim.next()).toBe('t1');
+    expect(sim.canNext()).toBe(false);
+    expect(sim.next()).toBeUndefined();
+    expect(sim.canBack()).toBe(true);
+    expect(sim.proposes('t2')).toBe(true);
+    expect(sim.proposes('t1')).toBe(false);
+  });
+
+  it('touches : 1 à 9 pour une transition proposée, ← ou Retour arrière pour Retour, rien sinon (sujet 465)', () => {
+    const sim = simulation(startSimulation(page(), []));
+    expect(simulationKey(sim, '1')).toEqual({ choose: 1 });
+    expect(simulationKey(sim, '2')).toBeUndefined();
+    expect(simulationKey(sim, 'ArrowLeft')).toBeUndefined();
+    sim.choose(1);
+    expect(simulationKey(sim, '2')).toEqual({ choose: 2 });
+    expect(simulationKey(sim, 'Backspace')).toEqual({ back: true });
+    expect(simulationKey(sim, 'ArrowLeft')).toEqual({ back: true });
+    for (const key of [' ', 'ArrowRight', 'n', '0']) expect(simulationKey(sim, key)).toBeUndefined();
   });
 });

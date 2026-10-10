@@ -56,3 +56,36 @@
   - La barre affiche « Pas 3 ».
   - En simulation, → et Espace font bouger la caméra.
   - `make check` est vert.
+- Fait :
+  - `transitions/transitionRules.ts` : `transitionsOf(page)` et `outgoingTransitions(page, source)`, transitions
+    valides dans l'ordre de dessin. Elles servent à la simulation (`outgoing`), à `entryName` et à l'export PlantUML
+    (sortie inchangée, test inchangé).
+  - `StateSimulation` (`simulation/stateSimulation.ts`) :
+    - `goTo(n)` et `goToTarget(n)` mènent au premier pas où l'on choisit à partir de `n` ; jamais à un pas traversé ;
+    - sur un point d'entrée, seules ses transitions sont proposées (entrée intérieure sans transition : « bloqué ») ;
+    - `stepNumber` : pas où l'on a choisi ;
+    - `canNext`, `next`, `canBack`, `proposes` ; `choose(n)` rend l'id de la transition franchie ;
+    - `visits` ne compte plus les pas traversés.
+  - `simulation/simulationKeys.ts` : `simulationKey(sim, key)` (1 à 9, ← / Retour arrière ; undefined si sans effet),
+    exporté par `api.ts`.
+  - `simulationView.ts` : un ensemble courant est teinté et compté. Chaque ligne de trace porte `target` (pas où mène un
+    clic), absent pour un pas traversé ou qui mène au pas courant.
+  - Appli : `simulationRun.ts` ne fait plus que relier ces opérations au rendu. Dans `SimulationBar.tsx`, Suivant suit
+    `canNext`, Retour et Recommencer sont grisés au départ, « Pas N » vient de `stepNumber`. Dans
+    `SimulationTrace.tsx`, les lignes sans `target` sont grisées.
+  - Écarts de comportement :
+    - les corrections décrites ;
+    - Espace et → ne font plus Suivant et restent à la caméra ;
+    - Retour et Recommencer sont grisés au départ ;
+    - entrer dans un ensemble par son entrée ne compte plus de passage pour l'ensemble.
+  - Tests : `stateSimulation.test.ts`.
+    - Quatre tests ajoutés : `goTo` sur un pas traversé, propositions sur une entrée intérieure, `next` / `canBack`,
+      `simulationKey`.
+    - Adaptés : `choose` rend l'id, et l'ensemble traversé n'a plus de passage.
+  - `make check` vert.
+  - Vérifié dans l'appli sur `states.drawio` :
+    - après 1 puis 2, « Pas 3 », et les lignes « → State3 », « ● Entrée » (intérieure) et « —[Démarrer]→ » sont
+      grisées ;
+    - après 1 de plus, « —[Démarrer]→ » ramène au pas 3 ;
+    - l'entrée intérieure sélectionnée ne propose que sa transition, et Retour et Recommencer sont grisés ;
+    - → et Espace ne font pas de pas.
