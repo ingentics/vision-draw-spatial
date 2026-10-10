@@ -1,16 +1,16 @@
 import type { Object3D } from 'three';
-import { createLabel, rectPath } from '../../../../../core/plugins';
+import { createLabel } from '../../../../../core/plugins';
 import type { RenderContext, ShapeDefinition, ShapeModel } from '../../../../../core/plugins';
-import { definition as postIt } from '../../../../shapes/general/post-it';
 import { STICKY_TYPES } from '../../kinds';
 import type { StickyType } from '../../kinds';
 import { STICKY, labelFontSize, labelZone, showsLabel, stickyTextZone } from './stickyLayout';
+import { PAPER_RADIUS, paperOutline, stickyPaper } from './stickyPaper';
 
 /**
- * Post-it typé du mode Event storming (sujet 475) : le papier du Post-it (411 : carré sans contour, ombre douce), le
+ * Post-it typé du mode Event storming (sujet 475) : un papier aux coins arrondis à ombre douce (`stickyPaper.ts`), le
  * label du type en gras en haut, non modifiable, et le texte du ticket (la valeur) qui remplit la zone dessous
  * (`fitText=fill`). Le label suit le type (`spatial.kind`), pas la couleur : changer le fond ne change pas le type.
- * Dans draw.io, un rectangle de la couleur du type, à ombre, sans contour.
+ * Dans draw.io, un rectangle arrondi de la couleur du type, à ombre, sans contour.
  */
 
 /**
@@ -37,8 +37,7 @@ function labelStyle(shape: ShapeModel, size: number): Record<string, string> {
 }
 
 function createSticky(type: StickyType, shape: ShapeModel, ctx: RenderContext): Object3D {
-  // Papier et ombre du Post-it, sans son texte : le texte du ticket est placé ici, sous le label.
-  const group = postIt.flat.create({ ...shape, label: '' }, ctx);
+  const group = stickyPaper(shape, type.fill);
   group.name = `shape:${type.kind}`;
   if (showsLabel(shape)) {
     const zone = labelZone(shape.bounds);
@@ -52,13 +51,11 @@ function createSticky(type: StickyType, shape: ShapeModel, ctx: RenderContext): 
   return group;
 }
 
-const outline = (shape: ShapeModel) => rectPath(shape.bounds);
-
 /** Définition d'un post-it typé, rangé dans la palette dans l'ordre de `STICKY_TYPES`. */
 export function stickyDefinition(type: StickyType): ShapeDefinition {
   return {
     id: type.kind,
-    outline,
+    outline: paperOutline,
     contains: () => true,
     // À plat seulement : le mode n'a que la vue de dessus, et un papier n'a pas de volume.
     flat: { create: (shape, ctx) => createSticky(type, shape, ctx) },
@@ -70,7 +67,7 @@ export function stickyDefinition(type: StickyType): ShapeDefinition {
       order: STICKY_TYPES.indexOf(type) + 1,
       keywords: ['event storming', 'post-it', type.label.toLowerCase(), ...type.keywords, ...type.examples],
       style:
-        `rounded=0;whiteSpace=wrap;html=1;fillColor=${type.fill};strokeColor=none;shadow=1;fontColor=#000000;` +
+        `rounded=1;absoluteArcSize=1;arcSize=${2 * PAPER_RADIUS};whiteSpace=wrap;html=1;fillColor=${type.fill};strokeColor=none;shadow=1;fontColor=#000000;` +
         `spacing=${STICKY.margin};fitText=fill;spatial.kind=${type.kind};`,
       value: '',
       width: STICKY.size,

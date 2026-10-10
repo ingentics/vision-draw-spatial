@@ -1,4 +1,5 @@
 import { Object3D } from 'three';
+import type { Mesh } from 'three';
 import { describe, expect, it } from 'vitest';
 import { buildPageScene } from '../../../../../src/engine/core/render/pageScene';
 import type { RenderContext, TextSpec } from '../../../../../src/engine/core/render/types';
@@ -81,6 +82,25 @@ describe('mode Event storming : dessin d’un post-it (sujet 475)', () => {
     expect(text!.text).toBe('Commande passée');
     expect(text!.fit).toMatchObject({ width: 144, fill: true });
     expect(text!.fit!.height).toBeCloseTo(160 - 31.2 - 8);
+  });
+
+  it('papier arrondi ; ombre dans la largeur du papier, qui ne dépasse que dessous (sujet 482)', () => {
+    const scene = draw(sticky('a', 'event', 0, 0, 'x'));
+    const object = scene.root.children.find((c) => c.userData.elementId === 'a')!;
+    const fill = object.getObjectByName('fill') as Mesh;
+    fill.geometry.computeBoundingBox();
+    expect(fill.geometry.boundingBox!.min).toMatchObject({ x: 0, y: 0 });
+    // Coin arrondi : le coin exact du carré n'est pas dans le papier.
+    const corners = (fill.geometry.getAttribute('position').array as Float32Array).length;
+    expect(corners).toBeGreaterThan(4 * 3);
+    for (const layer of object.getObjectByName('shadow')!.children as Mesh[]) {
+      layer.geometry.computeBoundingBox();
+      const box = layer.geometry.boundingBox!;
+      expect(box.min.x).toBeGreaterThanOrEqual(0);
+      expect(box.max.x).toBeLessThanOrEqual(160);
+      expect(box.min.y).toBeGreaterThanOrEqual(0);
+    }
+    expect(SHAPE_TEMPLATES.find((t) => t.id === 'eventstorming-event')!.style).toContain('rounded=1;');
   });
 
   it('label trop large : réduit jusqu’à 10, puis « … »', () => {
