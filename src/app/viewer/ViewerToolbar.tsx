@@ -116,7 +116,7 @@ export function ViewerToolbar({
         onClick={onToggleExport}
       >
         <svg viewBox="0 0 16 16" aria-hidden="true">
-          <path d="M8 10V2.5M5 5.5l3-3 3 3M3 11v2.5h10V11" />
+          <path d="M6 8h7.5M10.5 5l3 3-3 3M5 3H2.5v10H5" />
         </svg>
       </button>
       {diskBlocked && (
