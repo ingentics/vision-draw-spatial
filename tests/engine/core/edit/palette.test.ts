@@ -40,6 +40,7 @@ describe('palette', () => {
       'labeled-process',
       'mxgraph.basic.4_point_star_2',
       'mxgraph.basic.6_point_star',
+      'mxgraph.basic.layered_rect',
       'mxgraph.basic.octagon2',
       'mxgraph.basic.pentagon',
       'parallelogram',
@@ -99,6 +100,7 @@ describe('palette', () => {
     expect(byCategory('geometry')).toEqual([
       'rectangle',
       'rounded-rectangle',
+      'stacked-rectangles',
       'ellipse',
       'circle',
       'diamond',

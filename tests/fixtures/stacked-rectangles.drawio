@@ -1,0 +1,28 @@
+<mxfile host="Electron" agent="draw.io/24.7.5" version="24.7.5">
+  <diagram name="Rectangles empilés" id="stacked-rectangles">
+    <mxGraphModel grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="normal" value="Normale" style="shape=mxgraph.basic.layered_rect;dx=5;outlineConnect=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="120" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="wide" value="Très étirée : les couches gardent 5 px" style="shape=mxgraph.basic.layered_rect;dx=5;outlineConnect=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="220" y="40" width="400" height="200" as="geometry"/>
+        </mxCell>
+        <mxCell id="small" value="" style="shape=mxgraph.basic.layered_rect;dx=5;outlineConnect=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="180" width="40" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="color" value="Couleurs" style="shape=mxgraph.basic.layered_rect;dx=6;outlineConnect=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="40" y="280" width="160" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="target" value="Cible" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="360" y="300" width="120" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" parent="1" source="color" target="target">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

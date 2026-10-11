@@ -356,7 +356,8 @@ Ajouter une forme = **déposer son dossier** (au minimum `id` et `flat`, idéale
   `size` ; périmètre `stepPerimeter`), étoile à 4 branches (`shape=mxgraph.basic.4_point_star_2`, creux à `dx / 2`
   des bornes ; palette « Basic » de draw.io, label sous la forme ; flèches sur les bornes), étoile à 6 branches
   (`shape=mxgraph.basic.6_point_star`, stencil de draw.io étiré dans les bornes ; palette « Basic » ; flèches sur
-  les bornes). **Coins arrondis** (`rounded=1`, case du panneau) sur le losange, l'hexagone,
+  les bornes), rectangles empilés (`shape=mxgraph.basic.layered_rect`, trois rectangles en escalier décalés de `dx`
+  px, 5 par défaut, qui ne s'étirent pas ; texte dans celui de devant ; flèches sur les bornes). **Coins arrondis** (`rounded=1`, case du panneau) sur le losange, l'hexagone,
   les triangles, le parallélogramme et l'étape, comme draw.io (`mxShape.addPoints` : rayon `arcSize / 2`, 10 px par
   défaut), en 2D, en volume et sur la mini-carte,
 - Texte seul,
