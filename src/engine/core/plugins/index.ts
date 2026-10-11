@@ -98,7 +98,7 @@ export type { EdgeBadgeStyle, MeasureContext, RenderContext } from '../render/ty
 export { createBox, createLabel, flatBox, labelObject, VERTEX_DEFAULTS } from '../render/flat/box';
 export type { BoxDefaults, LabelOptions } from '../render/flat/box';
 export { blockHeight, isoBlock, TOP_OFFSET } from '../render/iso/block';
-export { cubicTo, halfEllipseTo } from '../render/geometry/curves';
+export { cubicTo, halfEllipseTo, quadTo } from '../render/geometry/curves';
 export { orientation, orientedPath } from '../render/geometry/orient';
 export type { Orientation } from '../render/geometry/orient';
 export {

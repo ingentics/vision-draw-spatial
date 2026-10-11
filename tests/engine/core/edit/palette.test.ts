@@ -61,6 +61,7 @@ describe('palette', () => {
       'states-state',
       'stencil:actor-droid',
       'stencil:plug',
+      'stencil:shield',
       'step',
       'text',
       'triangle',
@@ -113,6 +114,7 @@ describe('palette', () => {
       'step',
       'four-point-star',
       'six-point-star',
+      'shield',
     ]);
     expect(byCategory('general')).toEqual([
       'text',
