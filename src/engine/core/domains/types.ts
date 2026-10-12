@@ -81,6 +81,8 @@ export type EngineEvents = {
   selectionChange: [selection: Selection | undefined];
   /** « Courant » du mode d'une page changé (ex. flux courant du mode Séquences). */
   modeCurrentChange: [pageId: string, current: string | undefined];
+  /** Calque courant d'une page choisi (sujet 523) ; les calques eux-mêmes changent avec le document. */
+  layerChange: [pageId: string, current: string];
   /** Verrou d'édition pris par un mode (son détenteur) ou rendu (undefined) (sujet 467). */
   editLockChange: [owner: object | undefined];
   /** Transition vers une page par un lien : début et fin (entrées ignorées entre les deux). */

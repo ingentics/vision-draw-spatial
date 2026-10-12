@@ -19,6 +19,7 @@ import type { RenderContext } from './types';
 import { styleFlag } from '../model/styleValues';
 import type { ReadonlyShapeModel } from '../model/readonly';
 import { edgeEnds, shapesById } from '../model/pageIndex';
+import { layerRules } from '../model/layerRules';
 
 /** Scène Three.js d'une page (SPEC §7.4 : construite seulement pour les pages affichées). */
 export interface PageScene {
@@ -57,7 +58,7 @@ export function buildPageScene(
   root.name = `page:${page.id}`;
   applyPageSpace(root);
 
-  const hiddenLayers = new Set(page.layers.filter((l) => !l.visible).map((l) => l.id));
+  const layers = layerRules(page);
   const shapes = shapesById(page);
 
   // Ordre de dessin : rang dans la page, formes et arêtes confondues (pas la valeur brute de z).
@@ -73,7 +74,7 @@ export function buildPageScene(
 
   ordered.forEach((item, rank) => {
     const element = 'shape' in item ? item.shape : item.edge;
-    if (!element.visible || hiddenLayers.has(element.layerId)) return;
+    if (!layers.shown(element)) return;
 
     let object;
     if ('shape' in item) {

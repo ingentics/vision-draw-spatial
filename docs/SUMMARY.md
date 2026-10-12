@@ -41,7 +41,7 @@ dossiers du projet (SPEC §4.2 et `.claude/rules/coding.md` §2 y renvoient) ; l
 | Dossier (sous `src/engine/` sauf mention) | Rôle | Nature |
 |---|---|---|
 | `index.ts`, `Engine.ts`, `events.ts` | point d'entrée du moteur, façade publique (délègue aux domaines), événements | avec état |
-| `core/domains/` | un dossier par domaine (`runtime/`, `document/`, `view/`, `selection/`, `input/`, `navigation/`, `modes/`, `effects/`, `edit/`) ; `EngineCore.ts` les câble. Hôtes des plugins : `modes/` (`PageModes`, adaptateur unique `call` ; réglages `ModePanel`, remises en ordre `ModeFollowUps`), `effects/` (`PageEffects`) ; erreurs des plugins : `runtime/pluginGuard.ts`. Prise en main de la page par un mode (sujet 467) : verrou `edit/editLocks.ts`, capture des entrées `input/inputCaptures.ts`, couche `runtime/pageOverlays.ts` | avec état |
+| `core/domains/` | un dossier par domaine (`runtime/`, `document/`, `view/`, `selection/`, `input/`, `navigation/`, `modes/`, `effects/`, `edit/`) ; `EngineCore.ts` les câble. Hôtes des plugins : `modes/` (`PageModes`, adaptateur unique `call` ; réglages `ModePanel`, remises en ordre `ModeFollowUps`), `effects/` (`PageEffects`) ; erreurs des plugins : `runtime/pluginGuard.ts`. Prise en main de la page par un mode (sujet 467) : verrou `edit/editLocks.ts`, capture des entrées `input/inputCaptures.ts`, couche `runtime/pageOverlays.ts`. Calques et calque courant (sujet 523) : `document/pageLayers.ts` | avec état |
 | `core/interaction/` | caméra, transitions, historique de navigation, sélection, pick, mini-carte (calculs) ; `controls/` : contrôles du canvas (DOM) | pur, sauf `controls/` |
 | `core/edit/` | règles d'édition : déplacement, poignées, bouts et points de flèche, styles, palette, ancrage (`anchoring/`) | pur |
 | `core/render/` | scènes Three.js par page et par niveau ; briques `flat/`, `iso/`, `geometry/` ; flèches `edges/` (tracés portés de mxGraph dans `edges/route/`) | pur (objets Three.js) |
@@ -104,7 +104,7 @@ Règles :
   de draw.io (fixtures `edge-routing`, `edge-points`, `edge-ends`).
 - **Édition** : palette par catégories avec recherche (`core/edit/palette.ts` ; `SHAPE_TEMPLATES` dans la racine de composition `plugins/`, `PALETTE_CATEGORIES` dans `plugins/shapes/categories.ts`),
   glisser-déposer, déplacement, redimensionnement, texte riche édité en place, panneau contextuel (Page / Forme /
-  Flèche / N formes / Texte : styles draw.io, bordure, volume), pages ajoutées/renommées/supprimées, liens, sauvegarde
+  Flèche / N formes / Texte : styles draw.io, bordure, volume), pages ajoutées/renommées/supprimées, calques (sujet 523), liens, sauvegarde
   et autosave.
 - **Paramètres** (SPEC §13, `engine/core/settings/index.ts`) : tout le ressenti UX est réglable, persisté, appliqué à chaud.
 - **Attributs spatiaux** (SPEC §14.3, `engine/core/spatial.ts`) : préfixe `spatial.` dans le style ou sur

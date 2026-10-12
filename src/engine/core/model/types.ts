@@ -33,10 +33,13 @@ export interface ParseWarning {
   level?: 'error';
 }
 
+/** Calque de la page (cellule enfant de la cellule racine) ; l'ordre de `PageModel.layers` est l'ordre de rendu. */
 export interface LayerModel {
   id: string;
   name: string;
   visible: boolean;
+  /** Contenu dessiné mais intouchable : ni cliquable, ni sélectionnable, ni accrochable (`locked=1`, sujet 523). */
+  locked: boolean;
 }
 
 export interface PageModel {
@@ -90,7 +93,10 @@ interface ElementBase {
   layerId: string;
   /** Visibilité propre de l'élément (ne tient pas compte de la visibilité du calque). */
   visible: boolean;
-  /** Ordre de dessin dans la page, commun aux formes et aux arêtes (croissant = au-dessus). */
+  /**
+   * Ordre de dessin dans la page, commun aux formes et aux arêtes (croissant = au-dessus) : rang du calque d'abord
+   * (sujet 523), puis ordre dans le fichier.
+   */
   z: number;
   /** Attributs personnalisés (portés par `<object>` / `<UserObject>`). */
   attributes: Record<string, string>;

@@ -2358,6 +2358,32 @@ button.mode-bar-label.renamable:hover {
   background: rgba(0, 0, 0, 0.1);
 }
 
+/* Calques (sujet 523) : le nom prend la place libre ; le calque courant en gras. */
+.layer-item .layer-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  font: inherit;
+  padding: 3px 6px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: none;
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.layer-item.current .layer-name {
+  font-weight: 600;
+  border-color: var(--border);
+}
+
+.layer-item .icon-button svg {
+  display: block;
+}
+
 /* Flux courant : cercle autour de sa pastille de couleur. */
 .flow-item.current .color-dot {
   box-shadow:

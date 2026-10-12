@@ -8,6 +8,7 @@ import { useEnginePlugins } from '../pluginsContext';
 import { EdgeEndsSection } from './EdgeLineSections';
 import { DeleteButton, StyleGrid, plural } from './contextFields';
 import type { ContextPanelProps } from './types';
+import { SelectionLayerField } from './LayersSection';
 
 /** Sections du panneau contextuel pour une sélection de plusieurs éléments. */
 
@@ -58,7 +59,13 @@ export function MultiSections(props: ContextPanelProps) {
       {edges.length > 0 && !edges.some((edge) => plugins.managesEdge(edge.id)) && (
         <EdgeEndsSection edge={edges[edges.length - 1]!} onChange={props.onEdgeStyle} onReverse={props.onReverse} />
       )}
-      <OrderSection onOrder={props.onOrder} />
+      <OrderSection onOrder={props.onOrder}>
+        <SelectionLayerField
+          layers={props.layers}
+          elements={[...props.shapes, ...props.edges]}
+          onMove={props.onMoveToLayer}
+        />
+      </OrderSection>
       <DeleteButton onDelete={props.onDelete} />
     </>
   );

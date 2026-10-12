@@ -1,6 +1,7 @@
 import type { EdgeModel, PageModel, Point, Rect, ShapeModel } from '../model/types';
 import { distance, insidePolygon, samePoint, segmentDistance } from '../model/geometry';
 import { clamp } from '../model/numbers';
+import { layerRules } from '../model/layerRules';
 
 /**
  * Élément sous un point de la page (clic, survol). En volume (iso), le plus proche de la caméra gagne : celui que
@@ -53,7 +54,7 @@ const VOLUME_STEP = 1;
 const VOLUME_MAX_STEPS = 256;
 
 export function pickElement(page: PageModel, point: Point, options: PickOptions): PickedElement | undefined {
-  const hiddenLayers = new Set(page.layers.filter((l) => !l.visible).map((l) => l.id));
+  const layers = layerRules(page);
   const candidates: PickedElement[] = [
     ...page.shapes.map((element) => ({ type: 'shape' as const, element })),
     ...page.edges.map((element) => ({ type: 'edge' as const, element })),
@@ -62,7 +63,8 @@ export function pickElement(page: PageModel, point: Point, options: PickOptions)
   let best: { candidate: PickedElement; at: number } | undefined;
   for (const candidate of candidates) {
     const { element } = candidate;
-    if (!element.visible || hiddenLayers.has(element.layerId)) continue;
+    // Calque masqué ou verrouillé (sujet 523) : le clic passe au travers.
+    if (!layers.touchable(element)) continue;
     const height = options.heightOf?.(element.id) ?? 0;
     // Rien de ce qui reste ne peut être touché plus haut que le meilleur (les éléments ne dépassent pas leur dessus).
     if (best && height <= best.at) continue;

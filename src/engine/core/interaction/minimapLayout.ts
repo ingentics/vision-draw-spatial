@@ -6,6 +6,7 @@ import type { CameraState, Viewport } from './cameraState';
 import { center, fitScale } from '../model/geometry';
 import { clamp } from '../model/numbers';
 import { DEFAULT_ACCENT } from '../render/styleColors';
+import { layerRules } from '../model/layerRules';
 
 /**
  * Mini-carte (SPEC §10) : en bas à droite, toujours en vue de dessus et nord en haut, quel que
@@ -185,7 +186,7 @@ export class Minimap {
     context.fillStyle = this.source.getBackground?.() ?? BACKGROUND;
     context.fillRect(0, 0, layout.width, layout.height);
 
-    const hidden = new Set(page.layers.filter((l) => !l.visible).map((l) => l.id));
+    const layers = layerRules(page);
     const colors = this.source.getColors?.();
     const map: MinimapMapping = { toMinimap: (p) => pageToMinimap(layout, p), scale: layout.scale, colors };
     const edgeColor = colors?.edge ?? EDGE_STROKE;
@@ -194,7 +195,7 @@ export class Minimap {
       ...page.edges.map((edge) => ({ element: edge, draw: () => this.drawEdge(context, layout, edge.id, edgeColor) })),
     ];
     elements
-      .filter(({ element }) => element.visible && !hidden.has(element.layerId))
+      .filter(({ element }) => layers.shown(element))
       .sort((a, b) => a.element.z - b.element.z)
       .forEach(({ draw }) => draw());
     return base;

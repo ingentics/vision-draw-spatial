@@ -148,7 +148,11 @@ export class ConnectDrags {
     if (drag.target.kind === 'fixed')
       for (const [key, value] of Object.entries(constraintStyle('target', drag.target.constraint)))
         if (value !== undefined) style = withStyleDefault(style, key, value);
-    const id = addEdgeCell(pageTree, { source: drag.sourceId, target: drag.target.shapeId, style });
+    const id = addEdgeCell(
+      pageTree,
+      { source: drag.sourceId, target: drag.target.shapeId, style },
+      this.core.layers.creationLayer(page),
+    );
     // Flèche créée dans un calque : ses points sont en coordonnées de page.
     if (drag.loop) setEdgePoints(pageTree, id, drag.loop);
     // Le mode de la page reçoit la flèche (ex. ajoutée au flux courant), dans la même étape d'annulation.

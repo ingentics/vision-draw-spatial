@@ -11,6 +11,7 @@ import {
   JUMP_OPTIONS,
 } from '../edgeIcons';
 import { useEnginePlugins } from '../pluginsContext';
+import { LayersSection } from './LayersSection';
 import { PageModeSections } from './ModeSections';
 import { plural } from './contextFields';
 import type { ContextPanelProps } from './types';
@@ -82,6 +83,7 @@ export function PageSections({ page, onRenamePage: onRename, ...props }: Context
           />
         </div>
       </Section>
+      {props.layers && <LayersSection page={page} layers={props.layers} actions={props.layerActions} />}
       <PageModeSections
         page={page}
         onPageMode={props.onPageMode}

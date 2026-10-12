@@ -1,6 +1,6 @@
 import { XMLSerializer, type Element } from '@xmldom/xmldom';
 import type { Point } from '../model/types';
-import { appendIndented, ensureLayer, ensureRoot, newCellId } from './create';
+import { ensureLayer, ensureRoot, layerWriter, newCellId } from './create';
 import { decodeDiagram } from './decode';
 import { formatNumber } from './cellEdits';
 import { setStyleKey } from './style';
@@ -118,11 +118,13 @@ export interface PasteOptions {
    * absolue ; undefined = sur le calque.
    */
   parentOf?: (clipboardId: string) => { id: string; origin: Point } | undefined;
+  /** Calque des cellules du haut (sujet 523) ; absent ou inconnu = le premier calque. */
+  layerId?: string;
 }
 
 /**
  * Colle un `<mxGraphModel>` du presse-papier sur la page : nouvelles cellules (nouveaux id), flèches
- * rebranchées sur les copies, cellules du haut sur le premier calque (ou le parent donné) et
+ * rebranchées sur les copies, cellules du haut sur le calque `layerId` (à défaut le premier ; ou le parent donné) et
  * décalées. Renvoie les id des nouvelles cellules du haut (à sélectionner).
  */
 export function pasteCells(page: PageTree, model: Element, options: PasteOptions): string[] {
@@ -132,7 +134,8 @@ export function pasteCells(page: PageTree, model: Element, options: PasteOptions
 
   const rootEl = ensureRoot(page);
   const document = rootEl.ownerDocument!;
-  const layerId = ensureLayer(page, rootEl);
+  const layerId = ensureLayer(page, rootEl, options.layerId);
+  const write = layerWriter(page, rootEl, layerId);
   const newIds = new Map(entries.map(({ id }) => [id, newCellId(page)]));
   const roots: string[] = [];
   for (const { id, element } of entries) {
@@ -164,7 +167,7 @@ export function pasteCells(page: PageTree, model: Element, options: PasteOptions
       if (mapped) cell.setAttribute(end, mapped);
       else cell.removeAttribute(end);
     }
-    appendIndented(rootEl, clone);
+    write(clone);
   }
   reindexPage(page);
   markPageDirty(page);

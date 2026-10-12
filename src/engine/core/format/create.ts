@@ -4,6 +4,7 @@ import { createEmptyDrawio, randomId } from './skeleton';
 import { childElements, markPageDirty, parseXml, readDiagram, reindexPage } from './xmlTree';
 import type { DrawioTree, PageTree } from './xmlTree';
 import { byId } from '../model/pageIndex';
+import { lastOfLayer, layerIdsOf, rootIdsOf } from './layerTree';
 
 /**
  * Création dans l'arbre XML (SPEC §14.1, §14.2) : nouvelles cellules et nouvelles pages, ajoutées
@@ -22,14 +23,14 @@ export interface NewShape {
 }
 
 /**
- * Ajoute un vertex sur le premier calque de la page (créé s'il manque) et renvoie son id.
- * Une page vide reçoit d'abord un `<mxGraphModel>` en clair.
+ * Ajoute un vertex à la fin du calque `layer` (à défaut, du premier calque de la page, créé s'il manque) et renvoie
+ * son id. Une page vide reçoit d'abord un `<mxGraphModel>` en clair.
  */
-export function addShapeCell(page: PageTree, shape: NewShape): string {
+export function addShapeCell(page: PageTree, shape: NewShape, layer?: string): string {
   if (page.encoding === 'unreadable') throw new Error(`Page ${page.id} illisible : ajout impossible`);
   const rootEl = ensureRoot(page);
   const document = ownerOf(rootEl);
-  const layerId = ensureLayer(page, rootEl);
+  const layerId = ensureLayer(page, rootEl, layer);
 
   const id = newCellId(page);
   const cell = document.createElement('mxCell');
@@ -49,7 +50,7 @@ export function addShapeCell(page: PageTree, shape: NewShape): string {
   }
   geometry.setAttribute('as', 'geometry');
   cell.appendChild(geometry);
-  appendIndented(rootEl, cell);
+  layerWriter(page, rootEl, layerId)(cell);
 
   reindexPage(page);
   markPageDirty(page);
@@ -57,16 +58,20 @@ export function addShapeCell(page: PageTree, shape: NewShape): string {
 }
 
 /**
- * Ajoute une arête sur le premier calque (style des connecteurs draw.io), entre deux cellules ; un bout sans cellule
- * est libre (à poser ensuite avec `setEdgeTerminal`).
+ * Ajoute une arête à la fin du calque `layer` (à défaut, du premier calque), entre deux cellules ; un bout sans
+ * cellule est libre (à poser ensuite avec `setEdgeTerminal`).
  */
-export function addEdgeCell(page: PageTree, edge: { source?: string; target?: string; style: string }): string {
+export function addEdgeCell(
+  page: PageTree,
+  edge: { source?: string; target?: string; style: string },
+  layer?: string,
+): string {
   if (page.encoding === 'unreadable') throw new Error(`Page ${page.id} illisible : ajout impossible`);
   for (const end of [edge.source, edge.target])
     if (end !== undefined && !page.cells.has(end)) throw new Error(`Cellule ${end} introuvable`);
   const rootEl = ensureRoot(page);
   const document = ownerOf(rootEl);
-  const layerId = ensureLayer(page, rootEl);
+  const layerId = ensureLayer(page, rootEl, layer);
   const id = newCellId(page);
   const cell = document.createElement('mxCell');
   cell.setAttribute('id', id);
@@ -79,7 +84,7 @@ export function addEdgeCell(page: PageTree, edge: { source?: string; target?: st
   geometry.setAttribute('relative', '1');
   geometry.setAttribute('as', 'geometry');
   cell.appendChild(geometry);
-  appendIndented(rootEl, cell);
+  layerWriter(page, rootEl, layerId)(cell);
   reindexPage(page);
   markPageDirty(page);
   return id;
@@ -269,19 +274,17 @@ export function ensureRoot(page: PageTree): Element {
   return rootEl;
 }
 
-/** Premier calque (cellule enfant de la cellule racine) ; créé avec la racine s'il n'y en a pas. */
-export function ensureLayer(page: PageTree, rootEl: Element): string {
-  const parentOf = (id: string) => page.cells.get(id)?.cell?.getAttribute('parent') || undefined;
-  const isStructural = (id: string) => {
-    const cell = page.cells.get(id)?.cell;
-    return cell !== undefined && cell.getAttribute('vertex') !== '1' && cell.getAttribute('edge') !== '1';
-  };
-  const roots = page.cellList.filter((c) => isStructural(c.id) && !parentOf(c.id)).map((c) => c.id);
-  const layer = page.cellList.find((c) => isStructural(c.id) && roots.includes(parentOf(c.id) ?? ''));
-  if (layer) return layer.id;
+/**
+ * Calque où écrire : `preferred` s'il en est un, sinon le premier calque (cellule enfant de la cellule racine) ; créé
+ * avec la racine s'il n'y en a pas.
+ */
+export function ensureLayer(page: PageTree, rootEl: Element, preferred?: string): string {
+  const layers = layerIdsOf(page);
+  if (preferred !== undefined && layers.includes(preferred)) return preferred;
+  if (layers[0] !== undefined) return layers[0];
 
   const document = ownerOf(rootEl);
-  let rootId = roots[0];
+  let rootId = rootIdsOf(page)[0];
   if (!rootId) {
     rootId = page.cells.has('0') ? newCellId(page) : '0';
     const root = document.createElement('mxCell');
@@ -296,6 +299,23 @@ export function ensureLayer(page: PageTree, rootEl: Element): string {
   appendIndented(rootEl, cell);
   reindexPage(page);
   return layerId;
+}
+
+/**
+ * Écrit des cellules à la fin du bloc d'un calque (sujet 523), dans l'ordre des appels, avec l'indentation de leurs
+ * voisines : le fichier garde chaque calque d'un seul tenant, comme draw.io l'écrit. À appeler avant de réindexer.
+ */
+export function layerWriter(page: PageTree, rootEl: Element, layerId: string): (element: Element) => void {
+  let after: Node | undefined = lastOfLayer(page, layerId);
+  if (!after) return (element) => appendIndented(rootEl, element);
+  const previous = after.previousSibling;
+  const indent = previous && isWhitespace(previous) ? previous.nodeValue! : undefined;
+  return (element) => {
+    const next = after!.nextSibling;
+    if (indent) rootEl.insertBefore(ownerOf(rootEl).createTextNode(indent), next);
+    rootEl.insertBefore(element, next);
+    after = element;
+  };
 }
 
 /** Ajoute un enfant en reprenant l'indentation de ses frères (s'il y en a). */

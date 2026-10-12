@@ -21,6 +21,7 @@ import { BlockArrowSection, EdgeEndsSection, EdgeLineSection, EdgeSplitFields } 
 import { ElementModeSection } from './ModeSections';
 import { DeleteButton, LabelRow } from './contextFields';
 import type { ContextPanelProps } from './types';
+import { SelectionLayerField } from './LayersSection';
 
 /** Sections du panneau contextuel pour une flèche sélectionnée seule : texte, ancres des textes. */
 
@@ -98,7 +99,13 @@ export function EdgeSections({ edge, ...props }: ContextPanelProps & { edge: Edg
           <span className="field-value">{end(edge.targetId)}</span>
         </div>
       </Section>
-      <OrderSection onOrder={props.onOrder} />
+      <OrderSection onOrder={props.onOrder}>
+        <SelectionLayerField
+          layers={props.layers}
+          elements={[...props.shapes, ...props.edges]}
+          onMove={props.onMoveToLayer}
+        />
+      </OrderSection>
       <DeleteButton onDelete={props.onDelete} />
     </>
   );

@@ -21,6 +21,7 @@ import type { EditLock, PageOverlay } from './core/modes/pageTakeover';
 import type { JumpDefaults } from './core/render/edges/jumps';
 import type { EngineMetrics } from './core/domains/runtime/metrics';
 import type { ImageExportOptions } from './core/domains/view/imageExport';
+import type { PageLayersView } from './core/domains/document/pageLayers';
 import type { Settings, SettingsPatch } from './core/settings';
 import { EngineCore } from './core/domains/EngineCore';
 import { createDefaultEffectRegistry, createDefaultModeRegistry, createDefaultRegistry } from './plugins';
@@ -422,6 +423,51 @@ export class Engine {
   /** Active ou retire un effet d'une page (`spatial.effects`), en une étape d'annulation. */
   setPageEffect(pageId: string, effectId: string, enabled: boolean): void {
     this.core.pageEffects.setPageEffect(pageId, effectId, enabled);
+  }
+
+  /**
+   * Calques d'une page (sujet 523) et son calque courant ; undefined si elle n'en a pas (page en mode sans calques,
+   * vue graphe).
+   */
+  getPageLayers(pageId: string): PageLayersView | undefined {
+    return this.core.layers.view(pageId);
+  }
+
+  /** Calque courant d'une page : là où vont les formes déposées, les flèches tirées et les collages. */
+  setCurrentLayer(pageId: string, layerId: string): void {
+    this.core.layers.setCurrent(pageId, layerId);
+  }
+
+  /** Ajoute un calque au-dessus de tous, qui devient courant. */
+  addLayer(pageId: string): void {
+    this.core.layers.addLayer(pageId);
+  }
+
+  renameLayer(pageId: string, layerId: string, name: string): void {
+    this.core.layers.renameLayer(pageId, layerId, name);
+  }
+
+  /** Monte (vers le dessus) ou descend un calque d'un rang. */
+  moveLayer(pageId: string, layerId: string, direction: 'up' | 'down'): void {
+    this.core.layers.moveLayer(pageId, layerId, direction);
+  }
+
+  /** Supprime un calque et son contenu ; jamais le dernier de la page. */
+  removeLayer(pageId: string, layerId: string): void {
+    this.core.layers.removeLayer(pageId, layerId);
+  }
+
+  setLayerVisible(pageId: string, layerId: string, visible: boolean): void {
+    this.core.layers.setLayerVisible(pageId, layerId, visible);
+  }
+
+  setLayerLocked(pageId: string, layerId: string, locked: boolean): void {
+    this.core.layers.setLayerLocked(pageId, layerId, locked);
+  }
+
+  /** Passe la sélection sur un calque (éléments posés sur un calque, avec leur contenu). */
+  moveSelectionToLayer(layerId: string): void {
+    this.core.layers.moveSelectionToLayer(layerId);
   }
 
   /**

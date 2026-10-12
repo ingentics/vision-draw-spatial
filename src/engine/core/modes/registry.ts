@@ -132,6 +132,14 @@ export class PageModeRegistry {
     return id === undefined ? undefined : this.definitions.get(id);
   }
 
+  /**
+   * La page a-t-elle des calques (sujet 523) ? Une page sans mode, oui ; une page en mode, si le mode les active
+   * (`page.layers`) ; un mode inconnu, non.
+   */
+  hasLayers(page: PageModel): boolean {
+    return this.modeId(page) === undefined || this.modeOf(page)?.page?.layers === true;
+  }
+
   /** Modes inconnus (écrits par une version plus récente), pour le panneau Diagnostics. */
   warnings(document: Pick<DocumentModel, 'pages'>): ParseWarning[] {
     return document.pages.flatMap((page) => {

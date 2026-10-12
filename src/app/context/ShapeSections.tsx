@@ -11,6 +11,7 @@ import { useEnginePlugins } from '../pluginsContext';
 import { ElementModeSection, modeMainSection } from './ModeSections';
 import { DeleteButton, LabelRow, LinkField, StyleGrid } from './contextFields';
 import type { ContextPanelProps } from './types';
+import { SelectionLayerField } from './LayersSection';
 
 /** Sections du panneau contextuel pour une forme sélectionnée seule. */
 
@@ -85,7 +86,13 @@ export function ShapeSections({ shape, ...props }: ContextPanelProps & { shape: 
       <Section title="Lien">
         <LinkField link={shape.link} pageId={props.page.id} pages={props.pages} onLink={props.onLink} />
       </Section>
-      <OrderSection onOrder={props.onOrder} />
+      <OrderSection onOrder={props.onOrder}>
+        <SelectionLayerField
+          layers={props.layers}
+          elements={[...props.shapes, ...props.edges]}
+          onMove={props.onMoveToLayer}
+        />
+      </OrderSection>
       <DeleteButton onDelete={props.onDelete} />
     </>
   );

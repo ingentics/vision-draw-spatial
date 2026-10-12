@@ -4,6 +4,7 @@ import { ContextPanel } from '../ContextPanel';
 import { MULTI_SELECT_LABELS } from '../settings/ShortcutSettings';
 import type { TextEdit } from '../TextFormat';
 import type { ModePageControls } from '../plugins/modes/registry';
+import type { LayerActions } from '../context/LayersSection';
 
 /** Panneau contextuel de la page affichée, branché sur le moteur : chaque réglage y écrit la sélection ou la page. */
 export function ViewerContextPanel({
@@ -91,6 +92,9 @@ export function ViewerContextPanel({
       }
       onRenamePage={editablePages ? (name) => engine?.renamePage(currentPage.id, name) : undefined}
       onPageMode={editablePages ? (modeId) => engine?.setPageMode(currentPage.id, modeId) : undefined}
+      layers={engine?.getPageLayers(currentPage.id)}
+      layerActions={editablePages && engine ? layerActions(engine, currentPage.id) : undefined}
+      onMoveToLayer={editablePages ? (layerId) => engine?.moveSelectionToLayer(layerId) : undefined}
       onPageEffect={
         editablePages ? (effectId, enabled) => engine?.setPageEffect(currentPage.id, effectId, enabled) : undefined
       }
@@ -115,4 +119,17 @@ export function ViewerContextPanel({
       }
     />
   );
+}
+
+/** Opérations du panneau sur les calques de la page `pageId` (sujet 523). */
+function layerActions(engine: Engine, pageId: string): LayerActions {
+  return {
+    choose: (layerId) => engine.setCurrentLayer(pageId, layerId),
+    add: () => engine.addLayer(pageId),
+    rename: (layerId, name) => engine.renameLayer(pageId, layerId, name),
+    move: (layerId, direction) => engine.moveLayer(pageId, layerId, direction),
+    remove: (layerId) => engine.removeLayer(pageId, layerId),
+    setVisible: (layerId, visible) => engine.setLayerVisible(pageId, layerId, visible),
+    setLocked: (layerId, locked) => engine.setLayerLocked(pageId, layerId, locked),
+  };
 }

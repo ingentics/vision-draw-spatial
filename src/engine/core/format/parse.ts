@@ -153,7 +153,7 @@ function elementBase(cell: RawCell, style: Record<string, string>, parentId: str
     parentId,
     layerId: index.layerOf(cell),
     visible: cell.visible,
-    z: cell.order,
+    z: index.drawOrder(cell),
     attributes: cell.attributes,
     raw: { styleString: cell.styleString },
   };

@@ -2,6 +2,7 @@ import { Matrix4 } from 'three';
 import { connectableShapes } from '../../edit/edgeEnds';
 import { screenToPage } from '../../interaction/cameraProjection';
 import { pickElement, distanceToPolyline } from '../../interaction/pick';
+import { layerRules } from '../../model/layerRules';
 import type { PickedElement } from '../../interaction/pick';
 import type { EdgeModel, Point, Rect, ShapeModel } from '../../model/types';
 import type { EngineCore } from '../EngineCore';
@@ -145,9 +146,10 @@ export class Picking {
     root.updateMatrixWorld();
     const toPage = new Matrix4().copy(root.matrixWorld).invert();
     const padding = 2 / this.core.camera.state.zoom;
+    const layers = layerRules(page);
     for (const edge of [...page.edges].reverse()) {
       const object = this.core.sceneView.sceneObject(edge.id);
-      if (!object?.visible) continue;
+      if (!object?.visible || !layers.touchable(edge)) continue;
       const point = this.core.projection.groundPointAtHeight(screen, this.core.sceneView.elementTop(edge.id));
       let hit: string | undefined;
       object.traverse((child) => {

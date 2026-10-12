@@ -1,13 +1,13 @@
-import type { ReactElement } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import type { OrderMove } from '../engine';
 import { Section } from './PanelSection';
 import { useTooltip } from './Tooltip';
 
 /**
  * Ordre de dessin, comme « Disposition » de draw.io : parmi les éléments de même parent (calque, conteneur).
- * Boutons-icônes (ticket 355), du plus haut au plus bas.
+ * Boutons-icônes (ticket 355), du plus haut au plus bas ; `children` : calque de la sélection (sujet 523).
  */
-export function OrderSection({ onOrder }: { onOrder: (move: OrderMove) => void }) {
+export function OrderSection({ onOrder, children }: { onOrder: (move: OrderMove) => void; children?: ReactNode }) {
   const { hover, tooltip } = useTooltip();
   return (
     <Section title="Disposition">
@@ -25,6 +25,7 @@ export function OrderSection({ onOrder }: { onOrder: (move: OrderMove) => void }
           </button>
         ))}
       </div>
+      {children}
       {tooltip}
     </Section>
   );

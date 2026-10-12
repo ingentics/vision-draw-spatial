@@ -32,7 +32,11 @@ export class ElementCommands {
     if (template.edge) return this.addFreeEdge(template, page, pageTree, bounds);
     this.core.edits.recordEdit('Nouvelle forme');
     const style = withStyleDefault(template.style, 'fontSize', String(this.core.settings.shapes.textSize));
-    const id = addShapeCell(pageTree, { style, value: template.value, ...bounds });
+    const id = addShapeCell(
+      pageTree,
+      { style, value: template.value, ...bounds },
+      this.core.layers.creationLayer(page),
+    );
     if (template.atBack) reorderCells(pageTree, [id], 'back');
     this.core.modeFollowUps.shapesPlaced(page.id, [id]);
     this.core.file.documentChanged([page.id]);
@@ -92,7 +96,7 @@ export class ElementCommands {
     const line = template.style + CONNECTOR_STYLE;
     const lined = straight ? line : withEdgeLine(line, this.core.arrangement.edgeLineOf(page));
     const style = withStyleDefault(lined, 'fontSize', String(this.core.settings.shapes.textSize));
-    const id = addEdgeCell(pageTree, { style });
+    const id = addEdgeCell(pageTree, { style }, this.core.layers.creationLayer(page));
     const y = bounds.y + bounds.height / 2;
     setEdgeTerminal(pageTree, id, 'source', { point: { x: bounds.x, y } });
     setEdgeTerminal(pageTree, id, 'target', { point: { x: bounds.x + bounds.width, y } });

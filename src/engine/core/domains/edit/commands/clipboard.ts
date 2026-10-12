@@ -109,6 +109,7 @@ export class Clipboard {
         const parent = parentId ? shapeOf(page, parentId) : undefined;
         return parent && pageTree.cells.has(parent.id) ? { id: parent.id, origin: parent.bounds } : undefined;
       },
+      layerId: this.core.layers.creationLayer(page),
     });
     // Labels collés tels que l'appli les garde, comme à l'ouverture (ex. nom du type d'un post-it exporté, sujet 503).
     const labelOf = this.core.pageModes.fileLabels([page], 'import');

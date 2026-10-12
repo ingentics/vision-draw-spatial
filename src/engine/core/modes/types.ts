@@ -86,6 +86,11 @@ export interface ModePage {
   properties?: ModeProperty[];
   /** Modes d'affichage permis sur une page du mode ; absent = tous. La page s'affiche dans le premier. */
   viewModes?: ViewMode[];
+  /**
+   * Calques sur une page du mode (sujet 523) : section Calques, calque courant où vont les créations. Absent = pas de
+   * calques (tout va sur le premier) ; une page sans mode en a toujours.
+   */
+  layers?: boolean;
   /** Effet de page permis sur une page de ce mode (le mode reste maître) ; absent = tous. */
   allowsEffect?(effectId: string): boolean;
   /**

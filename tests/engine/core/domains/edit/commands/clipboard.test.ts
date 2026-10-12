@@ -27,6 +27,7 @@ describe('coller du XML venu d’ailleurs (sujet 503)', () => {
       gesture: { endMove: () => undefined },
       edits: { recordEdit: () => undefined },
       modes: { pasteKeys: () => [] },
+      layers: { creationLayer: () => undefined },
       pageModes: {
         fileLabels: (_pages: unknown, direction: string) => (direction === 'import' ? stripHead : undefined),
       },

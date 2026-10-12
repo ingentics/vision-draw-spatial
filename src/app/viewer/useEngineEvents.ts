@@ -50,8 +50,11 @@ export function useEngineEvents({
   const [modified, setModified] = useState(false);
   const [undoLabels, setUndoLabels] = useState<{ undo?: string; redo?: string }>({});
   const [selection, setSelection] = useState<Selection>();
-  /** « Courant » du mode de la page changé (ex. flux courant) : redessine l'indicateur et le panneau. */
-  const [, setModeCurrentTick] = useState(0);
+  /**
+   * État de session lu à l'affichage changé : « courant » du mode de la page (ex. flux courant), calque courant
+   * (sujet 523). Redessine l'indicateur et le panneau.
+   */
+  const [, setSessionTick] = useState(0);
   const [modeHint, setModeHint] = useState<ModeHint>();
   /** Commentaire de l'élément survolé (encart en bas à gauche du rendu). */
   const [hoverComment, setHoverComment] = useState<ElementComment>();
@@ -108,7 +111,8 @@ export function useEngineEvents({
       instance.on('modifiedChange', setModified);
       instance.on('undoChange', (undo, redo) => setUndoLabels({ undo, redo }));
       instance.on('selectionChange', setSelection);
-      instance.on('modeCurrentChange', () => setModeCurrentTick((tick) => tick + 1));
+      instance.on('modeCurrentChange', () => setSessionTick((tick) => tick + 1));
+      instance.on('layerChange', () => setSessionTick((tick) => tick + 1));
       instance.on('modeHint', setModeHint);
       instance.on('commentHover', setHoverComment);
       instance.on('commentEdit', setCommentEdit);

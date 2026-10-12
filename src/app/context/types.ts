@@ -14,6 +14,7 @@ import type {
   ModeScope,
   OrderMove,
   OrientAction,
+  PageLayersView,
   PageModel,
   PluginSettings,
   ShapeModel,
@@ -23,6 +24,7 @@ import type {
 import type { ModePageControls } from '../plugins/modes/registry';
 import type { TextEdit } from '../TextFormat';
 import type { EdgeStylePatch } from './EdgeLineSections';
+import type { LayerActions } from './LayersSection';
 
 /** Ce que reçoit le panneau contextuel (et chacune de ses sections) : la sélection, la page et les actions. */
 
@@ -54,6 +56,12 @@ export interface ContextPanelProps {
   onResetRoute: () => void;
   /** Renommer la page ; absent si les pages ne sont pas modifiables. */
   onRenamePage?: (name: string) => void;
+  /** Calques de la page et calque courant (sujet 523) ; absent si la page n'en a pas (mode sans calques). */
+  layers?: PageLayersView;
+  /** Opérations sur les calques ; absentes si la page n'est pas modifiable. */
+  layerActions?: LayerActions;
+  /** Passe la sélection sur un calque ; absent si la page n'est pas modifiable. */
+  onMoveToLayer?: (layerId: string) => void;
   /** Mode de la page (undefined = page normale) ; absent si la page n'est pas modifiable. */
   onPageMode?: (modeId: string | undefined) => void;
   /** Active ou retire un effet de la page ; absent si la page n'est pas modifiable. */

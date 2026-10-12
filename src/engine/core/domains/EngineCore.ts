@@ -16,6 +16,7 @@ import { PluginGuard } from './runtime/pluginGuard';
 import { DocumentFile } from './document/file';
 import { EditHistory } from './document/undo';
 import { Pages } from './document/pages';
+import { PageLayers } from './document/pageLayers';
 import { createCameraController } from './input/cameraControls';
 import { ViewCamera } from './view/camera';
 import { ViewModes } from './view/viewModes';
@@ -113,10 +114,11 @@ export class EngineCore {
   readonly metrics = new Metrics(this);
   readonly pluginGuard = new PluginGuard(this);
 
-  // document : fichier chargé, annuler / rétablir, pages
+  // document : fichier chargé, annuler / rétablir, pages, calques
   readonly file = new DocumentFile(this);
   readonly edits = new EditHistory(this);
   readonly pages = new Pages(this);
+  readonly layers = new PageLayers(this);
 
   // view : caméra, modes de vue, niveaux de rendu, scènes, vue graphe, mini-carte, projection page ↔ écran
   readonly camera = new ViewCamera(this);
@@ -263,6 +265,7 @@ export class EngineCore {
       this.partDrags,
       this.edits,
       this.modeCurrents,
+      this.layers,
       this.shapeParts,
       this.history,
       this.links,

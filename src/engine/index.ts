@@ -21,6 +21,7 @@ export type {
   Selection,
 } from './core/domains/types';
 export type { ImageExportOptions } from './core/domains/view/imageExport';
+export type { PageLayersView } from './core/domains/document/pageLayers';
 export { PLANTUML_FORMAT } from './core/export/plantumlText';
 
 // Paramètres (SPEC §13)

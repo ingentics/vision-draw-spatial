@@ -1,5 +1,7 @@
 import type { Element } from '@xmldom/xmldom';
 import type { LayerModel, ParseWarning, Point, Rect } from '../model/types';
+import { styleFlag } from '../model/styleValues';
+import { parseStyle } from './style';
 import { childElements, type PageTree } from './xmlTree';
 
 /**
@@ -45,6 +47,7 @@ export class CellIndex {
   readonly layers: LayerModel[];
   private readonly rootIds: Set<string>;
   private readonly fallbackLayerId: string;
+  private readonly layerRanks: Map<string, number>;
   private readonly layerCache = new Map<string, string>();
   private readonly boundsCache = new Map<string, Rect>();
   private readonly visiting = new Set<string>();
@@ -61,8 +64,14 @@ export class CellIndex {
     this.rootIds = new Set(this.cells.filter((c) => !c.parent && !c.vertex && !c.edge).map((c) => c.id));
     this.layers = this.cells
       .filter((c) => this.isLayer(c))
-      .map((c) => ({ id: c.id, name: c.label, visible: c.visible }));
+      .map((c) => ({
+        id: c.id,
+        name: c.label,
+        visible: c.visible,
+        locked: styleFlag(parseStyle(c.styleString).values, 'locked'),
+      }));
     this.fallbackLayerId = this.layers[0]?.id ?? '';
+    this.layerRanks = new Map(this.layers.map((layer, rank) => [layer.id, rank]));
   }
 
   warn(cellId: string, message: string): void {
@@ -94,6 +103,14 @@ export class CellIndex {
     }
     this.layerCache.set(cell.id, result);
     return result;
+  }
+
+  /**
+   * Ordre de dessin d'une cellule (sujet 523) : le rang de son calque d'abord, puis son ordre dans le fichier. Le
+   * moteur écrit chaque calque d'un bloc, mais un fichier écrit ailleurs peut entremêler les cellules des calques.
+   */
+  drawOrder(cell: RawCell): number {
+    return (this.layerRanks.get(this.layerOf(cell)) ?? 0) * this.cells.length + cell.order;
   }
 
   /** Emprise absolue d'un vertex : les coordonnées draw.io sont relatives au parent. */

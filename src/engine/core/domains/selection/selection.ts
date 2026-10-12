@@ -6,6 +6,7 @@ import type { Selection } from '../types';
 import type { EngineCore } from '../EngineCore';
 import { edgeOf, shapeOf } from '../../model/pageIndex';
 import { collectMoveSet } from '../../edit/moveSet';
+import { layerRules } from '../../model/layerRules';
 
 /** Sélection de la page courante (SPEC §11) : un ou plusieurs éléments, par clic, ajout / retrait, zone ou « tout ». */
 export class Selections {
@@ -70,12 +71,13 @@ export class Selections {
 
   /**
    * Après relecture du document : `previous` (sélection d'avant, sur la page affichée `page`) reprise sur les éléments
-   * de même id qui restent, avec sa partie ; plus rien si aucun ne reste (une sélection complète, contour et mode
-   * courant compris).
+   * de même id qui restent, et qu'on touche encore (calque masqué ou verrouillé, sujet 523), avec sa partie ; plus rien
+   * si aucun ne reste (une sélection complète, contour et mode courant compris).
    */
   reselectIn(page: PageModel, previous: Selection | undefined): void {
     if (!previous || previous.pageId !== page.id) return;
-    const items = sameElementsIn(page, previous.items);
+    const layers = layerRules(page);
+    const items = sameElementsIn(page, previous.items).filter((item) => layers.touchable(item.element));
     if (items.length > 0) this.selectItems(items, previous.part);
   }
 
@@ -114,16 +116,16 @@ export class Selections {
     if (page) this.selectItems(takenRoots(page, this.selectableItems(page)));
   }
 
-  /** Éléments sélectionnables de la page : visibles, sur un calque visible. */
+  /** Éléments sélectionnables de la page : visibles, sur un calque visible et déverrouillé. */
   private selectableItems(page: PageModel): PickedElement[] {
-    const hiddenLayers = new Set(page.layers.filter((l) => !l.visible).map((l) => l.id));
+    const layers = layerRules(page);
     return [
       ...page.shapes
         // Comme au clic : un groupe invisible n'est pris que s'il porte un lien (sinon on prend ses formes).
         .filter((s) => this.core.registry.isPickable(s))
         .map((element) => ({ type: 'shape' as const, element })),
       ...page.edges.map((element) => ({ type: 'edge' as const, element })),
-    ].filter(({ element }) => element.visible && !hiddenLayers.has(element.layerId));
+    ].filter(({ element }) => layers.touchable(element));
   }
 
   /** La sélection compte-t-elle plusieurs éléments ? */
