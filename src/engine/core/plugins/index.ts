@@ -44,6 +44,7 @@ export type {
   PageOverlay,
   PageTakeover,
 } from '../modes/pageTakeover';
+export { ModeSimulator } from '../modes/modeSimulator';
 export type { LibraryShape } from '../shapes/library/libraryFormat';
 export type { LibraryShapeState, ShapeLibraryKit } from '../shapes/library/libraryStore';
 export type { ModeProperty } from '../modes/modeProperty';

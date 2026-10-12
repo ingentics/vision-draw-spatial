@@ -58,6 +58,8 @@ const NOT_API: Record<string, string> = {
   stencilOutline: 'brique de la base `shapes/generic/stencil/`',
   stencilPathXml: 'brique de la base `shapes/generic/stencil/`',
   StatesSimulator: 'simulation de la Machine à états, citée en exemple de prise en main de la page',
+  StorySimulator: 'simulation des histoires, citée en exemple de prise en main de la page',
+  start: 'méthode protégée de `ModeSimulator` (classe de l’API, sans interface de contrat)',
   // Appli.
   ShapeTemplate: 'modèle de palette vu par l’appli',
   onEdit: 'prop des sections React d’un mode',
@@ -66,6 +68,8 @@ const NOT_API: Record<string, string> = {
   getModeRegistry: 'façade du moteur, pour l’appli',
   getEffectRegistry: 'façade du moteur, pour l’appli',
   PREVIEWS: 'rendus de la fenêtre d’export commune, par format (`src/app/export/ExportDialog.tsx`)',
+  useOpenedSimulator:
+    'hook de l’appli qui suit la simulation ouverte d’un mode (`src/app/plugins/modes/simulationHook.ts`)',
 };
 
 /** Noms exportés par l'API des plugins (alias compris : `ReadonlyPageModel as PageModel` → `PageModel`). */

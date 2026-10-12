@@ -1,4 +1,5 @@
-import type { EditLock, PageTakeover } from '../../../../core/plugins';
+import { ModeSimulator } from '../../../../core/plugins';
+import type { PageTakeover } from '../../../../core/plugins';
 import { simulationKey } from './simulationKeys';
 import { simulationOverlay } from './simulationLayer';
 import type { Crossing } from './simulationLayer';
@@ -9,49 +10,28 @@ import type { StateSimulation } from './stateSimulation';
  * Simulation d'une machine à états ouverte sur la page (sujets 462, 467) : assemble les briques que le moteur ouvre à
  * un mode (`PageTakeover`). Elle tient le verrou d'édition, capture clics et touches, pose la couche de chaque pas et
  * garde l'élément courant et sa suite dans la vue. Elle se ferme par Arrêter, Échap, ou quand le moteur rend le verrou (autre page,
- * autre document). L'appli la suit par `subscribe` et la reconnaît comme détenteur du verrou (`editLockChange`).
+ * autre document) : verrou, abonnés et fermeture sont ceux de `ModeSimulator`.
  */
-export class StatesSimulator {
-  private lock: EditLock | undefined;
-  private readonly listeners = new Set<() => void>();
-  /** Change à chaque pas et à la fermeture (instantané pour l'appli). */
-  private changes = 0;
-
+export class StatesSimulator extends ModeSimulator {
   private constructor(
-    private readonly takeover: PageTakeover,
+    takeover: PageTakeover,
     readonly sim: StateSimulation,
-  ) {}
+  ) {
+    super(takeover);
+  }
 
   /** Ouvre la simulation `sim` sur la page affichée ; undefined si l'édition ne peut pas être verrouillée. */
   static open(takeover: PageTakeover, sim: StateSimulation): StatesSimulator | undefined {
     const simulator = new StatesSimulator(takeover, sim);
-    const lock = takeover.lockEditing(simulator, () => simulator.released());
-    if (!lock) return undefined;
-    simulator.lock = lock;
-    lock.captureInput({
+    const started = simulator.start({
       // Clic sur une transition proposée ou sa pastille : elle est franchie.
       click: (id) => simulator.cross(id),
       clickable: (id) => sim.proposes(id),
       key: (key) => simulator.key(key),
     });
+    if (!started) return undefined;
     simulator.show(undefined, true);
     return simulator;
-  }
-
-  /** La simulation est-elle encore ouverte ? */
-  get opened(): boolean {
-    return this.lock !== undefined;
-  }
-
-  /** Compteur des changements, pour `useSyncExternalStore`. */
-  get version(): number {
-    return this.changes;
-  }
-
-  /** Suit les pas et la fermeture ; rend de quoi ne plus suivre. */
-  subscribe(listener: () => void): () => void {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
   }
 
   /** Franchit la transition `edgeId`, si elle est proposée. */
@@ -81,11 +61,6 @@ export class StatesSimulator {
     this.step(() => this.sim.goTo(n));
   }
 
-  /** Arrête la simulation : verrou rendu, couche retirée. */
-  stop(): void {
-    this.lock?.release();
-  }
-
   /** Touche capturée : Échap arrête, les touches de la simulation (`simulationKey`) font un pas ; vrai si prise. */
   private key(key: string): boolean {
     if (key === 'Escape') {
@@ -104,7 +79,7 @@ export class StatesSimulator {
    * retour, faux ou undefined si rien n'a changé.
    */
   private step(change: () => string | boolean | undefined): void {
-    if (!this.lock) return;
+    if (!this.opened) return;
     const before = stepLook(this.sim);
     const changed = change();
     if (changed === undefined || changed === false) return;
@@ -119,17 +94,5 @@ export class StatesSimulator {
     this.takeover.setOverlay(this, simulationOverlay(this.sim, crossing));
     this.takeover.keepInView(this.sim.current.id, { around: upcoming(this.sim), whole });
     this.notify();
-  }
-
-  /** Verrou rendu (Arrêter, Échap, autre page, autre document) : couche retirée. */
-  private released(): void {
-    this.lock = undefined;
-    this.takeover.clearOverlay(this);
-    this.notify();
-  }
-
-  private notify(): void {
-    this.changes++;
-    for (const listener of [...this.listeners]) listener();
   }
 }

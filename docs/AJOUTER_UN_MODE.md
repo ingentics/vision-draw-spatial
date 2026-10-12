@@ -336,11 +336,13 @@ couche physique d'une table RDD, lue par son rendu). Un habillage qui dépend du
   - `keepInView(shapeId, { around, whole })` : quand la forme sort de la vue (avec `whole`, quand une forme de
     `around` n'y est pas entière), la caméra glisse pour la cadrer avec `around`, zoom réduit seulement s'il le faut.
 
-  Exemple : `StatesSimulator` (`plugins/modes/states/simulation/statesSimulator.ts`) assemble ces briques ; la partie
-  appli (`src/app/plugins/modes/states/`) le suit par `subscribe`. Pour en faire autant :
-  - l'objet de session du mode (dans sa lib, avec ses règles) prend le verrou, capture les entrées, pose sa couche, et
-    défait sa couche dans `released` ; la partie appli le retrouve par `controls.lockOwner instanceof …` et se
-    redessine à ses changements (`useSyncExternalStore`) ;
+  Exemple : `StatesSimulator` (`plugins/modes/states/simulation/statesSimulator.ts`) et `StorySimulator` assemblent ces
+  briques ; la partie appli (`src/app/plugins/modes/states/`) les suit par `subscribe`. Pour en faire autant :
+  - l'objet de session du mode (dans sa lib, avec ses règles) étend `ModeSimulator` (API des plugins, sujet 535) : il
+    ouvre par `start(capture)` (verrou et capture des entrées), pose sa couche puis appelle `notify` à chaque pas ;
+    `stop`, `opened`, `version`, `subscribe` et la couche retirée quand le verrou est rendu viennent de la base. La
+    partie appli le retrouve par `useOpenedSimulator(controls, (owner) => owner instanceof …)`
+    (`src/app/plugins/modes/simulationHook.ts`), redessinée à ses changements ;
   - les règles (quelle touche fait quoi, quel bouton est actif) vont dans la lib (`api.ts` du mode) ; `key` rend faux
     pour une touche sans effet, pour que la vue la garde ;
   - la couche posée sur la zone de dessin (`CanvasOverlay`, props `ModeCanvasProps`) empêche le focus de quitter la
