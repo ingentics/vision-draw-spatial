@@ -3,5 +3,7 @@
  * point d'entrée du moteur n'expose rien de propre à un mode.
  */
 export { storiesExporter } from './export/json';
+export { StoryPlayback } from './simulation/storyPlayback';
+export { StorySimulator } from './simulation/storySimulator';
 export { setStoryNumber, stopStory, storyState } from './stories';
 export type { Story } from './stories';

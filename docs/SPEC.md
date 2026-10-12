@@ -1228,6 +1228,14 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     de dessin), signalés, écrits à la prochaine modification. Copier-coller : la copie perd numéro et couleur.
   - **Export JSON** (`export/json.ts`) : `{ "stories": [{ "number", "title", "steps": [{ "label", "from", "to" }] }] }`,
     étapes dans l'ordre de la suite, `from` / `to` = texte des formes reliées (`null` pour un bout libre).
+  - **Simulation** (sujet 534, `simulation/`) : « Lancer la simulation » (section « Histoires », barre en bas de la
+    zone de dessin) joue les histoires à la suite, comme une présentation. Tout est caché (voile opaque de la couleur
+    du fond, sujet 533) sauf ce qui a déjà été montré, histoires précédentes comprises. Premier pas d'une histoire : la
+    forme de départ de sa flèche numérotée ; chaque pas suivant : une flèche et sa forme d'arrivée ; un pas sans
+    nouveauté est sauté. L'histoire du pas devient l'histoire courante (le reste montré est estompé), la forme montrée
+    reste dans la vue. Commandes : Tout début (Début), Histoire précédente (↑ : début de l'histoire, ou de la
+    précédente), Précédent (← ou Page précédente), Suivant (→ ou Page suivante), Histoire suivante (↓), Arrêter
+    (Échap). Édition bloquée, caméra libre ; rien n'est écrit.
 
 ### 14.6 Export d'image
 

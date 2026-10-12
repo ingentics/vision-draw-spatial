@@ -96,7 +96,7 @@ Règles :
   transitions, export PlantUML, simulation pas à pas) et Event storming (post-it typés, contacts bord à bord,
   aimantation bord à bord, cases où poser un post-it et échange, ordre de dessin des colonnes, nom du type en tête de
   la valeur enregistrée, export JSON du mur) et Story telling (histoires tracées par des flèches : flèche
-  numérotée puis suite calculée, export JSON) ; effet forêt.
+  numérotée puis suite calculée, simulation pas à pas qui ne montre que ce qui a été joué, export JSON) ; effet forêt.
 - **Export d'image** : PNG de la page ou de la sélection, à plat, hors écran (`core/domains/view/imageExport.ts`,
   `core/render/png/`, panneau `src/app/export/ExportPanel.tsx` ; SPEC §14.6).
 - **Flèches** (`core/render/edges/`) : routeurs draw.io portés tels quels (orthogonal, segment, elbow, side-to-side,

@@ -9,17 +9,20 @@ import type { Story } from '../../../../engine/plugins/modes/storytelling/api';
 import { ExportDialog } from '../../../export/ExportDialog';
 import { Section } from '../../../PanelSection';
 import type { ModePanel, ModePanelProps } from '../registry';
+import { StoryBar } from './StoryBar';
+import { launchStories, useStorySimulation } from './storyRun';
 
 /**
  * Mode « Story telling » (sujet 474), partie appli : la section « Histoires » du panneau de la page (liste ordonnée,
- * ordre, retrait du numéro, export JSON). Les règles (numéros, suite, couleurs) sont dans le moteur
- * (`engine/plugins/modes/storytelling/`).
+ * ordre, retrait du numéro, simulation, export JSON) ; la barre de la simulation sur la zone de dessin (sujet 534).
+ * Les règles (numéros, suite, couleurs, pas) sont dans le moteur (`engine/plugins/modes/storytelling/`).
  */
-export const panel: ModePanel = { PageSection: StoriesSection };
+export const panel: ModePanel = { PageSection: StoriesSection, CanvasOverlay: StoryBar };
 
-function StoriesSection({ page, onEdit, current, exporters }: ModePanelProps) {
+function StoriesSection({ page, onEdit, current, exporters, controls }: ModePanelProps) {
   const { stories } = storyState(page);
   const [exporting, setExporting] = useState(false);
+  const simulator = useStorySimulation(controls);
   return (
     <Section title="Histoires">
       {stories.length === 0 ? (
@@ -42,6 +45,26 @@ function StoriesSection({ page, onEdit, current, exporters }: ModePanelProps) {
       )}
       {stories.length > 0 && (
         <div className="mode-exports">
+          {controls &&
+            (simulator ? (
+              <button
+                type="button"
+                className="button"
+                data-tip="Arrêter la simulation et revenir à l’édition (Échap)"
+                onClick={() => simulator.stop()}
+              >
+                Arrêter la simulation
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="button"
+                data-tip="Jouer les histoires pas à pas depuis le tout début : tout est caché sauf ce qui a été montré ; l’édition est bloquée"
+                onClick={() => launchStories(controls, page)}
+              >
+                Lancer la simulation
+              </button>
+            ))}
           <button
             type="button"
             className="button"
