@@ -36,7 +36,7 @@ function setup() {
     pages: { pageById: page },
     graph: { isGraph: (id: string) => state.graphs.includes(id) },
     scenes: { current: undefined },
-    layerSpreads: { isFlattened: () => false },
+    layerSpreads: { layersFlattened: () => false },
     layerDecor: { redecorate: () => {} },
     gesture: { endMove: () => {} },
     selection: { current: undefined as unknown },

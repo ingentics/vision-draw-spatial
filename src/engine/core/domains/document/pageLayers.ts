@@ -51,7 +51,7 @@ export class PageLayers {
       ? {
           layers: page.layers,
           current,
-          flattened: this.core.layerSpreads.isFlattened(pageId),
+          flattened: this.core.layerSpreads.layersFlattened(pageId),
           counts: layerCounts(page),
         }
       : undefined;

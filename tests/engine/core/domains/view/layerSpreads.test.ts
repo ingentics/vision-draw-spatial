@@ -21,8 +21,8 @@ describe('calques aplatis (sujet 526)', () => {
   it('étendus par défaut ; aplatir change la part appliquée, prévient l’appli et reconstruit la page', () => {
     const { spreads, state } = setup();
     expect(spreads.spreadOf('p')).toBe(1);
-    spreads.setFlattened('p', true);
-    expect(spreads.isFlattened('p')).toBe(true);
+    spreads.setLayersFlattened('p', true);
+    expect(spreads.layersFlattened('p')).toBe(true);
     expect(spreads.spreadOf('p')).toBe(0);
     expect(spreads.spreadOf('q')).toBe(1);
     expect(state.events).toEqual([['layerChange', 'p']]);
@@ -32,18 +32,18 @@ describe('calques aplatis (sujet 526)', () => {
 
   it('rien si l’état ne change pas ; nouveau document : tout étendu', () => {
     const { spreads, state } = setup();
-    spreads.setFlattened('p', false);
+    spreads.setLayersFlattened('p', false);
     expect(state.events).toEqual([]);
-    spreads.setFlattened('p', true);
+    spreads.setLayersFlattened('p', true);
     spreads.resetDocument();
-    expect(spreads.isFlattened('p')).toBe(false);
+    expect(spreads.layersFlattened('p')).toBe(false);
   });
 
   it('rien pendant une transition de vue, comme la vue à plat (sujet 544)', () => {
     const { spreads, state } = setup();
     state.interactive = false;
-    spreads.setFlattened('p', true);
-    expect(spreads.isFlattened('p')).toBe(false);
+    spreads.setLayersFlattened('p', true);
+    expect(spreads.layersFlattened('p')).toBe(false);
     expect(state.events).toEqual([]);
   });
 });

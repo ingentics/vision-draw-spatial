@@ -563,7 +563,7 @@ export class Engine {
 
   /** Aplatit (élévations ramenées à 0, en animation) ou étend les calques d'une page, sans rien écrire. */
   setLayersFlattened(pageId: string, flattened: boolean): void {
-    this.core.layerSpreads.setFlattened(pageId, flattened);
+    this.core.layerSpreads.setLayersFlattened(pageId, flattened);
   }
 
   /** Passe la sélection sur un calque (éléments posés sur un calque, avec leur contenu). */
