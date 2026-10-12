@@ -3,6 +3,7 @@ import type { PageModel, Rect, ShapeModel } from '../../../../core/plugins';
 import { contacts } from '../contacts/contacts';
 import { GROUP, keys } from '../keys';
 import { isSticky } from '../kinds';
+import { byReading } from '../readingOrder';
 
 /**
  * Groupes de post-it (sujet 514) : post-it reliés de proche en proche par des contacts bord à bord (un chevauchement
@@ -23,8 +24,6 @@ export interface StickyGroup {
   /** Zone du titre : sur la largeur du groupe, au-dessus de lui. */
   title: Rect;
 }
-
-const byPlace = (a: ShapeModel, b: ShapeModel) => a.bounds.y - b.bounds.y || a.bounds.x - b.bounds.x;
 
 /** Composantes reliées des post-it de la page, par union des contacts. */
 function components(page: PageModel): ShapeModel[][] {
@@ -51,7 +50,7 @@ export function stickyGroups(page: PageModel): StickyGroup[] {
   const groups = components(page)
     .filter((shapes) => shapes.length > 1)
     .map((shapes) => {
-      const sorted = [...shapes].sort(byPlace);
+      const sorted = [...shapes].sort(byReading);
       const bounds = unionOf(sorted.map((shape) => shape.bounds))!;
       const title = { x: bounds.x, y: bounds.y - GROUP_TITLE.gap - height, width: bounds.width, height };
       return { shapes: sorted, bounds, title };

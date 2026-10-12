@@ -15,63 +15,72 @@ export interface StickyType {
   examples: readonly string[];
   /** Mots-clés français de la recherche. */
   keywords: readonly string[];
+  /** Type écrit par l'export JSON du mur (sujet 518) et préfixe des ids qu'il donne aux post-it (`E1`, `C2`…). */
+  exported: { type: string; prefix: string };
 }
 
 export type StickyKey = 'event' | 'command' | 'constraint' | 'system' | 'policy' | 'query' | 'actor' | 'hotspot';
 
-const sticky = (type: StickyKey, label: string, fill: string, keywords: string[], examples: string[]): StickyType => ({
-  key: type,
-  kind: `eventstorming-${type}`,
-  label,
-  fill,
-  examples,
-  keywords,
-});
+type StickyFields = Omit<StickyType, 'key' | 'kind'>;
 
-export const EVENT = sticky(
-  'event',
-  'Domain Event',
-  '#ffb74d',
-  ['événement'],
-  ['Commande passée', 'Paiement effectué'],
-);
-export const COMMAND = sticky('command', 'Command', '#64b5f6', ['commande', 'action'], ['Passer commande', 'Payer']);
-export const CONSTRAINT = sticky(
-  'constraint',
-  'Constraint',
-  '#cfd8dc',
-  ['contrainte', 'règle', 'invariant'],
-  ['Pas plus que le stock disponible'],
-);
-export const SYSTEM = sticky('system', 'System', '#f48fb1', ['système', 'externe'], ['Prestataire de paiement', 'ERP']);
-export const POLICY = sticky(
-  'policy',
-  'Policy',
-  '#ce93d8',
-  ['politique', 'réaction'],
-  ['Quand le paiement échoue, prévenir'],
-);
-export const QUERY = sticky(
-  'query',
-  'Query Model',
-  '#a5d6a7',
-  ['lecture', 'vue', 'read model'],
-  ['Historique des commandes', 'Stock'],
-);
-export const ACTOR = sticky(
-  'actor',
-  'Actor',
-  '#fff59d',
-  ['acteur', 'utilisateur', 'rôle'],
-  ['Client', 'Administrateur'],
-);
-export const HOTSPOT = sticky(
-  'hotspot',
-  'Hotspot',
-  '#e57373',
-  ['point chaud', 'question', 'problème'],
-  ['Règle floue', 'Goulot'],
-);
+const sticky = (key: StickyKey, fields: StickyFields): StickyType => ({ key, kind: `eventstorming-${key}`, ...fields });
+
+export const EVENT = sticky('event', {
+  label: 'Domain Event',
+  fill: '#ffb74d',
+  keywords: ['événement'],
+  examples: ['Commande passée', 'Paiement effectué'],
+  exported: { type: 'event', prefix: 'E' },
+});
+export const COMMAND = sticky('command', {
+  label: 'Command',
+  fill: '#64b5f6',
+  keywords: ['commande', 'action'],
+  examples: ['Passer commande', 'Payer'],
+  exported: { type: 'command', prefix: 'C' },
+});
+export const CONSTRAINT = sticky('constraint', {
+  label: 'Constraint',
+  fill: '#cfd8dc',
+  keywords: ['contrainte', 'règle', 'invariant'],
+  examples: ['Pas plus que le stock disponible'],
+  exported: { type: 'constraint', prefix: 'K' },
+});
+export const SYSTEM = sticky('system', {
+  label: 'System',
+  fill: '#f48fb1',
+  keywords: ['système', 'externe'],
+  examples: ['Prestataire de paiement', 'ERP'],
+  exported: { type: 'system', prefix: 'S' },
+});
+export const POLICY = sticky('policy', {
+  label: 'Policy',
+  fill: '#ce93d8',
+  keywords: ['politique', 'réaction'],
+  examples: ['Quand le paiement échoue, prévenir'],
+  exported: { type: 'policy', prefix: 'P' },
+});
+export const QUERY = sticky('query', {
+  label: 'Query Model',
+  fill: '#a5d6a7',
+  keywords: ['lecture', 'vue', 'read model'],
+  examples: ['Historique des commandes', 'Stock'],
+  exported: { type: 'read_model', prefix: 'R' },
+});
+export const ACTOR = sticky('actor', {
+  label: 'Actor',
+  fill: '#fff59d',
+  keywords: ['acteur', 'utilisateur', 'rôle'],
+  examples: ['Client', 'Administrateur'],
+  exported: { type: 'actor', prefix: 'A' },
+});
+export const HOTSPOT = sticky('hotspot', {
+  label: 'Hotspot',
+  fill: '#e57373',
+  keywords: ['point chaud', 'question', 'problème'],
+  examples: ['Règle floue', 'Goulot'],
+  exported: { type: 'hotspot', prefix: 'H' },
+});
 
 /** Dans l'ordre de la palette. */
 export const STICKY_TYPES: readonly StickyType[] = [EVENT, COMMAND, CONSTRAINT, SYSTEM, POLICY, QUERY, ACTOR, HOTSPOT];

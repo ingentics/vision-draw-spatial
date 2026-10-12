@@ -55,8 +55,11 @@ export interface StickyRules {
   example: string;
 }
 
-/** Post-it nommé : type et texte entre guillemets (espaces insécables : ils ne vont pas seuls à la ligne). */
-export const named = (key: StickyKey, text: string) => `${stickyOfKey(key).label} «\u00a0${text}\u00a0»`;
+/** Texte entre guillemets (espaces insécables : ils ne vont pas seuls à la ligne). */
+export const quoted = (text: string) => `«\u00a0${text}\u00a0»`;
+
+/** Post-it nommé : type et texte entre guillemets. */
+export const named = (key: StickyKey, text: string) => `${stickyOfKey(key).label} ${quoted(text)}`;
 
 /** Exemple : post-it typés lus de gauche à droite. */
 const sequence = (...stickies: [StickyKey, string][]) => stickies.map(([key, text]) => named(key, text)).join(' → ');

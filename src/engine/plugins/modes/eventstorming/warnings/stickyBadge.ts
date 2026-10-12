@@ -1,6 +1,7 @@
 import { Color, Group } from 'three';
 import { fillMesh, PART_ORDER, strokeMesh } from '../../../../core/plugins';
 import type { Point, Rect } from '../../../../core/plugins';
+import { at, CORNER_MARK, cornerMarkRect } from '../shapes/common/cornerMark';
 
 /**
  * Pastille en haut à gauche d'un post-it (sujet 519) : triangle jaune marqué « ! » quand le mur donne un avertissement
@@ -8,18 +9,12 @@ import type { Point, Rect } from '../../../../core/plugins';
  * (`PART_ORDER.fill` + 0,6, comme les marques des champs RDD), les traits au-dessus des fonds.
  */
 export const STICKY_BADGE = {
-  /** Carré de la pastille, et retrait depuis les bords haut et gauche du post-it. */
-  size: 20,
-  inset: 7,
-  /** Écart laissé entre la pastille et le label du type. */
-  gap: 3,
+  ...CORNER_MARK,
   warningFill: '#ffd54f',
   questionFill: '#42a5f5',
 } as const;
 
 export type StickyBadgeKind = 'warning' | 'question';
-
-const at = (x: number, y: number): Point => ({ x, y });
 
 /** Point du cercle de centre `c` et de rayon `r`, à l'angle `angle` (y vers le bas : π/2 en bas). */
 const onCircle = (c: Point, r: number, angle: number): Point =>
@@ -67,8 +62,7 @@ function questionStroke(): Point[] {
 
 /** Carré de la pastille en haut à gauche de `bounds`. */
 export function stickyBadgeRect(bounds: Rect): Rect {
-  const { size, inset } = STICKY_BADGE;
-  return { x: bounds.x + inset, y: bounds.y + inset, width: size, height: size };
+  return cornerMarkRect(bounds, 'left');
 }
 
 /** Pastille `kind` en haut à gauche de `bounds`. */

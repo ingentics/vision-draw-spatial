@@ -28,9 +28,9 @@ export const definition: PageModeDefinition = {
   ...EVENT_STORMING_KEYS,
   name: 'Event storming',
   description: 'Event storming : post-it typés (événements, commandes, acteurs…) collés bord à bord, en 2D',
-  // Trois petits post-it qui se touchent, celui du milieu en couleur d'accent.
   // Feutre des labels des post-it (sujet 476), fourni par l'hôte.
   fonts: [STICKY.labelFont],
+  // Trois petits post-it qui se touchent, celui du milieu en couleur d'accent.
   icon: {
     fill: 'M1 5h4.5v6H1zM10.5 5H15v6h-4.5z',
     accent: 'M6 5.5h4v5H6z',

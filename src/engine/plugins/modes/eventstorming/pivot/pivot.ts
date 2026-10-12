@@ -2,8 +2,8 @@ import type { ModeEdit, ModeProperty, ModeTarget, ShapeModel } from '../../../..
 import { shapeTarget } from '../../../../core/plugins';
 import { keys, PIVOT } from '../keys';
 import { EVENT } from '../kinds';
-import { verdictOf } from './pivotVerdict';
-import type { Answers, Reply, Who } from './pivotVerdict';
+import { pivotOfValue, verdictOf } from './pivotVerdict';
+import type { Answers, Pivot, Reply, Who } from './pivotVerdict';
 
 /**
  * Pivot d'un Domain Event (sujets 515, 516, 517) : deux questions dans le panneau, dont les réponses sont
@@ -11,7 +11,7 @@ import type { Answers, Reply, Who } from './pivotVerdict';
  * (`spatial.es.pivot=1`), Non (`0`), Je ne sais pas (`unknown`) ; absent : non défini, le défaut.
  */
 
-const YES = '1';
+/** Réponse « On ne sait pas » d'une question. */
 const UNKNOWN = 'unknown';
 
 /** Réponse à « Qui réagit ? » (`spatial.es.pivotWho`). */
@@ -24,12 +24,15 @@ const ABSENT = 'pivotAbsent';
 const WHO_VALUES: readonly Who[] = ['other', 'same', 'none', 'unknown'];
 const REPLY_VALUES: readonly Reply[] = ['yes', 'no', 'unknown'];
 
+/** Pivot enregistré d'un Domain Event ; undefined pour un autre post-it ou un pivot non défini. */
+export const pivotOf = (shape: ShapeModel): Pivot | undefined =>
+  shape.kind === EVENT.kind ? pivotOfValue(keys.value(shape, PIVOT)) : undefined;
+
 /** Domain Event au pivot Oui : il porte l'icône du cube (sujet 516). */
-export const isPivot = (shape: ShapeModel): boolean => shape.kind === EVENT.kind && keys.value(shape, PIVOT) === YES;
+export const isPivot = (shape: ShapeModel): boolean => pivotOf(shape) === 'yes';
 
 /** Domain Event au pivot « Je ne sais pas » : il porte la pastille « ? » (sujet 519). */
-export const isPivotUnknown = (shape: ShapeModel): boolean =>
-  shape.kind === EVENT.kind && keys.value(shape, PIVOT) === UNKNOWN;
+export const isPivotUnknown = (shape: ShapeModel): boolean => pivotOf(shape) === 'unknown';
 
 /** Valeur lue si elle est une des réponses ; absente ou inconnue (fichier modifié à la main) : pas de réponse. */
 function answerOf<T extends string>(shape: ShapeModel, key: string, values: readonly T[]): T | undefined {

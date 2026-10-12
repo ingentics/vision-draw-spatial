@@ -1,30 +1,19 @@
 import type { PageModel, ShapeModel } from '../../../../core/plugins';
 import { jsonExporter, oneLine } from '../../../../core/plugins';
 import { groupLabel, stickyGroups, writtenLabel } from '../groups/stickyGroups';
-import { keys, PIVOT } from '../keys';
-import { ACTOR, COMMAND, CONSTRAINT, EVENT, HOTSPOT, POLICY, QUERY, stickyType, SYSTEM } from '../kinds';
+import { EVENT, stickyType } from '../kinds';
+import { pivotOf } from '../pivot/pivot';
 import type { StickyType } from '../kinds';
 import { WARNINGS } from '../stickyRules';
 import type { WarningCode } from '../stickyRules';
-import { byReading, readWall } from './wallRules';
-import type { WallRule } from './wallRules';
+import { byReading } from '../readingOrder';
+import { readWall } from './wallRules';
+import type { WallLinkType, WallRule } from './wallRules';
 
 /**
  * Export JSON du mur (sujet 518) : groupes, éléments, liens déduits des contacts et avertissements. Les règles sont dans
  * `wallRules.ts` ; ce fichier nomme les éléments (`G2.C3`, concept) et range le tout.
  */
-
-/** Type exporté et préfixe d'id de chaque post-it. */
-const EXPORTED = new Map<StickyType, { type: string; prefix: string }>([
-  [ACTOR, { type: 'actor', prefix: 'A' }],
-  [COMMAND, { type: 'command', prefix: 'C' }],
-  [EVENT, { type: 'event', prefix: 'E' }],
-  [POLICY, { type: 'policy', prefix: 'P' }],
-  [SYSTEM, { type: 'system', prefix: 'S' }],
-  [QUERY, { type: 'read_model', prefix: 'R' }],
-  [HOTSPOT, { type: 'hotspot', prefix: 'H' }],
-  [CONSTRAINT, { type: 'constraint', prefix: 'K' }],
-]);
 
 export interface WallElement {
   id: string;
@@ -39,7 +28,7 @@ export interface WallElement {
 export interface WallExport {
   groups: { id: string; label: string | null }[];
   elements: WallElement[];
-  links: { from: string; to: string; type: string; rule: WallRule }[];
+  links: { from: string; to: string; type: WallLinkType; rule: WallRule }[];
   warnings: { code: WarningCode; level: 'info' | 'attention'; elements: string[]; message: string }[];
 }
 
@@ -53,14 +42,14 @@ export function normalizedText(text: string): string {
     .trim();
 }
 
-function pivotOf(shape: ShapeModel): WallElement['pivot'] {
-  const value = keys.value(shape, PIVOT);
-  return value === '1' ? true : value === '0' ? false : value === 'unknown' ? 'unknown' : null;
+function exportedPivot(shape: ShapeModel): WallElement['pivot'] {
+  const pivot = pivotOf(shape);
+  return pivot === 'yes' ? true : pivot === 'no' ? false : (pivot ?? null);
 }
 
 /** Modèle exporté de la page. */
 export function wallExport(page: PageModel): WallExport {
-  const groups = [...stickyGroups(page)].sort((a, b) => a.bounds.y - b.bounds.y || a.bounds.x - b.bounds.x);
+  const groups = [...stickyGroups(page)].sort(byReading);
   const grouped = new Set(groups.flatMap((group) => group.shapes.map((shape) => shape.id)));
   const isolated = page.shapes.filter((shape) => stickyType(shape) && !grouped.has(shape.id)).sort(byReading);
 
@@ -70,7 +59,7 @@ export function wallExport(page: PageModel): WallExport {
     const ranks = new Map<StickyType, number>();
     for (const shape of shapes) {
       const sticky = stickyType(shape)!;
-      const { type, prefix } = EXPORTED.get(sticky)!;
+      const { type, prefix } = sticky.exported;
       const rank = (ranks.get(sticky) ?? 0) + 1;
       ranks.set(sticky, rank);
       const id = `${group ? `${group}.` : ''}${prefix}${rank}`;
@@ -82,7 +71,7 @@ export function wallExport(page: PageModel): WallExport {
         label,
         group,
         concept: `${type}:${normalizedText(label)}`,
-        ...(sticky === EVENT ? { pivot: pivotOf(shape) } : {}),
+        ...(sticky === EVENT ? { pivot: exportedPivot(shape) } : {}),
       });
     }
   };

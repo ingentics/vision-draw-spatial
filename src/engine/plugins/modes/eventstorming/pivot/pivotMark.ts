@@ -1,28 +1,20 @@
 import { Color, Group } from 'three';
 import { strokeMesh } from '../../../../core/plugins';
 import type { Point, Rect } from '../../../../core/plugins';
+import { at, CORNER_MARK, cornerMarkRect } from '../shapes/common/cornerMark';
 
 /**
  * Icône de la réponse « Pivot » Oui d'un Domain Event (sujet 516), en haut à droite du post-it : cube entouré de huit
  * flèches ; trait noir de 1, à 70 % pour rester discret. Je ne sais pas : pastille en haut à gauche (sujet 519,
  * `warnings/stickyBadge.ts`).
  */
-export const PIVOT_MARK = {
-  /** Carré de l'icône, et retrait depuis les bords haut et droit du post-it. */
-  size: 20,
-  inset: 7,
-  opacity: 0.7,
-  /** Écart laissé entre le label du type et l'icône. */
-  gap: 3,
-} as const;
+export const PIVOT_MARK = { ...CORNER_MARK, opacity: 0.7 } as const;
 
 /** Un tracé ouvert ou fermé, en coordonnées du carré de 20 de l'icône. */
 interface MarkPath {
   points: Point[];
   closed?: boolean;
 }
-
-const at = (x: number, y: number): Point => ({ x, y });
 
 /** Flèche du centre vers l'extérieur, dans la direction `angle` : tige de `from` à `to`, pointe de 1,6. */
 function arrow(angle: number, from: number, to: number): MarkPath[] {
@@ -53,8 +45,7 @@ function spreadPaths(): MarkPath[] {
 
 /** Carré de l'icône en haut à droite de `bounds`. */
 export function pivotMarkRect(bounds: Rect): Rect {
-  const { size, inset } = PIVOT_MARK;
-  return { x: bounds.x + bounds.width - inset - size, y: bounds.y + inset, width: size, height: size };
+  return cornerMarkRect(bounds, 'right');
 }
 
 /** Icône du pivot Oui en haut à droite de `bounds`. */

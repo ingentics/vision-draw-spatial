@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { verdictOf } from '../../../../../../src/engine/plugins/modes/eventstorming/pivot/pivotVerdict';
+import { pivotOfValue, verdictOf } from '../../../../../../src/engine/plugins/modes/eventstorming/pivot/pivotVerdict';
 import type { Answers } from '../../../../../../src/engine/plugins/modes/eventstorming/pivot/pivotVerdict';
 
 /** Titre, pivot écrit et présence d'un hotspot. */
@@ -37,5 +37,15 @@ describe('mode Event storming : verdict du questionnaire pivot (sujet 517)', () 
     expect(verdictOf({ who: 'none', absent: 'unknown' }, ' ', undefined).note.aside?.text).toBe(
       'Un autre métier a-t-il besoin de savoir que cet événement ?',
     );
+  });
+});
+
+describe('valeur écrite du pivot (sujet 547)', () => {
+  it('Oui, Non, Je ne sais pas ; absente ou inconnue : non défini', () => {
+    expect(pivotOfValue('1')).toBe('yes');
+    expect(pivotOfValue('0')).toBe('no');
+    expect(pivotOfValue('unknown')).toBe('unknown');
+    expect(pivotOfValue('peut-être')).toBeUndefined();
+    expect(pivotOfValue(undefined)).toBeUndefined();
   });
 });

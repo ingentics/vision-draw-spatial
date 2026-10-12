@@ -20,3 +20,22 @@
 - Tests : tests existants intacts (imports seuls).
 - **Fini quand :** export JSON du mur identique sur les fixtures Event storming ; pastilles et pivot inchangés à
   l'œil ; `make check` vert.
+- Fait :
+  - `kinds.ts` : chaque post-it porte son type exporté et son préfixe (`exported`) ; `EXPORTED` de `export/json.ts`
+    retiré ; définitions des post-it en objets nommés.
+  - `readingOrder.ts` (`byReading`, sur des bornes) : tri des groupes, des post-it isolés, des groupes de
+    `stickyGroups.ts` et des règles du mur.
+  - `shapes/common/cornerMark.ts` : carré, retrait et écart des marques en coin, `at`, `cornerMarkRect` ;
+    `PIVOT_MARK` et `STICKY_BADGE` en reprennent les mesures.
+  - `stickyRules.ts` : `quoted` (guillemets insécables), repris par `named` et le verdict du pivot.
+  - `pivot/pivotVerdict.ts` : `PIVOT_VALUES` et `pivotOfValue` ; `pivot.ts` : `pivotOf` (lu par `isPivot`,
+    `isPivotUnknown` et l'export JSON).
+  - `export/wallRules.ts` : `readWall` découpé en étapes nommées (`directLinks`, `linksThroughPiles`,
+    `spreadOverPiles`, `policyIssues`, `hotspotLinks`, `wallWarnings`) ; type des liens `WallLinkType`
+    (`LinkType | 'concerns'`), vérifié par TypeScript ; `MIN_CONTACT_SHARE` n'est plus exporté.
+  - Commentaire de l'icône remis sur `icon` (`index.ts`). `GROUP_PARTS.at` gardé : `ModeParts.at` est obligatoire.
+  - Écart de comportement : aucun.
+  - Tests : `readingOrder.test.ts`, `shapes/common/cornerMark.test.ts`, `pivotOfValue` dans `pivotVerdict.test.ts` ;
+    tests existants intacts.
+  - Vérifié dans l'appli (`eventstorming.drawio`, `eventstorming-regles.drawio`) : pastilles d'avertissement à leur
+    place, post-it inchangés. Export JSON vérifié par les tests.

@@ -1,10 +1,21 @@
 import type { FieldNote } from '../../../../core/plugins';
 import { oneLine } from '../../../../core/plugins';
+import { quoted } from '../stickyRules';
 
 /**
  * Verdict du questionnaire pivot (sujet 517) : encadré du panneau et pivot à enregistrer, d'après les deux réponses.
  * Pur : ni lecture ni écriture du post-it.
  */
+
+/** Pivot enregistré (`spatial.es.pivot`) : valeur écrite pour Oui, Non et Je ne sais pas. */
+export const PIVOT_VALUES = { yes: '1', no: '0', unknown: 'unknown' } as const;
+
+export type Pivot = keyof typeof PIVOT_VALUES;
+
+/** Pivot d'une valeur écrite ; undefined si absente ou inconnue (fichier modifié à la main) : non défini. */
+export function pivotOfValue(value: string | undefined): Pivot | undefined {
+  return (Object.keys(PIVOT_VALUES) as Pivot[]).find((pivot) => PIVOT_VALUES[pivot] === value);
+}
 
 /** Qui réagit à l'événement sur le mur. */
 export type Who = 'other' | 'same' | 'none' | 'unknown';
@@ -48,12 +59,12 @@ const verdict = (
  */
 export function verdictOf(answers: Answers, label: string, stored: string | undefined): Verdict {
   const text = oneLine(label);
-  // L'événement cité : son texte entre guillemets (espaces insécables : ils ne vont pas seuls à la ligne), ou « cet
-  // événement » s'il n'en a pas.
-  const event = text ? `«\u00a0${text}\u00a0»` : 'cet événement';
+  // L'événement cité : son texte entre guillemets, ou « cet événement » s'il n'en a pas.
+  const event = text ? quoted(text) : 'cet événement';
   switch (answers.who) {
     case undefined: {
-      const look = stored === '1' ? PIVOT : stored === '0' ? NOT_PIVOT : stored === 'unknown' ? UNCERTAIN : undefined;
+      const pivot = pivotOfValue(stored);
+      const look = pivot && { yes: PIVOT, no: NOT_PIVOT, unknown: UNCERTAIN }[pivot];
       return look
         ? verdict(look, 'Répondu sans les questions : reprends-les pour le confirmer.', 'keep')
         : verdict(
@@ -66,7 +77,7 @@ export function verdictOf(answers: Answers, label: string, stored: string | unde
       return verdict(
         UNCERTAIN,
         'On ne sait pas encore qui réagit à cet événement.',
-        'unknown',
+        PIVOT_VALUES.unknown,
         `Qui réagit à ${event} ? Regarder les policies et commandes qui suivent.`,
       );
     case 'other':
@@ -82,19 +93,23 @@ export function verdictOf(answers: Answers, label: string, stored: string | unde
 function otherVerdict(needs: Reply, event: string): Verdict {
   switch (needs) {
     case 'no':
-      return verdict(PIVOT, 'Un autre métier prend le relais avec l’événement seul. La frontière est propre.', '1');
+      return verdict(
+        PIVOT,
+        'Un autre métier prend le relais avec l’événement seul. La frontière est propre.',
+        PIVOT_VALUES.yes,
+      );
     case 'yes':
       return verdict(
         TO_CONFIRM,
         'Un autre métier réagit mais dépend encore du métier qui l’a produit.',
-        'unknown',
+        PIVOT_VALUES.unknown,
         `De quoi le métier qui réagit à ${event} a-t-il besoin en plus ? L’ajouter à l’événement ou revoir la frontière.`,
       );
     case 'unknown':
       return verdict(
         UNCERTAIN,
         'On ne sait pas si l’événement suffit à celui qui réagit.',
-        'unknown',
+        PIVOT_VALUES.unknown,
         `Le métier qui réagit à ${event} a-t-il besoin d’autre chose que l’événement ?`,
       );
   }
@@ -109,13 +124,13 @@ function absentVerdict(who: 'same' | 'none', absent: Reply, event: string): Verd
         who === 'same'
           ? 'Le même métier poursuit, personne d’autre n’en a besoin.'
           : 'Événement terminal : personne ne prend le relais.',
-        '0',
+        PIVOT_VALUES.no,
       );
     case 'yes':
       return verdict(
         TO_CONFIRM,
         'Un consommateur existe mais il n’est pas sur le mur.',
-        '1',
+        PIVOT_VALUES.yes,
         `Quel métier absent de l’atelier réagit à ${event} ? À inviter ou à interroger.`,
       );
     case 'unknown':
