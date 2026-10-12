@@ -9,6 +9,9 @@ import type { MetamorphServer } from './metamorphServer';
  */
 const sharedServer = createMockMetamorphServer();
 
+/** Id de la forme Metamorph (`GenerationRequest.kind`). */
+const METAMORPH_KIND = 'metamorph';
+
 export { METAMORPH_LIBRARY };
 
 /** Charge les formes acceptées dans le moteur et répond à ses demandes de propositions. */
@@ -36,21 +39,23 @@ export function installMetamorph(engine: Engine, server: MetamorphServer = share
     const kinds = missing.filter((shape) => shape.library === METAMORPH_LIBRARY).map((shape) => shape.kind);
     if (kinds.length > 0) void registerAccepted(kinds);
   });
-  engine.on('metamorphRequest', async (request) => {
+  engine.on('generationRequest', async (request) => {
+    // Seules les Metamorph sont générées par ce serveur.
+    if (request.kind !== METAMORPH_KIND) return;
     try {
       const json = await server.generate(request);
-      const result = engine.metamorphResults(request.shapeId, json);
+      const result = engine.generationResults(request.shapeId, json);
       // Refus attendu si la forme n'attend plus (annuler, « Réessayer » entre-temps) : rien à montrer.
       if (!result.ok) console.info('Propositions Metamorph ignorées', result.errors);
     } catch (error) {
       console.error('Génération Metamorph échouée', error);
-      engine.metamorphFailed(request.shapeId, 'La génération a échoué : réessayez ou modifiez la description.');
+      engine.generationFailed(request.shapeId, 'La génération a échoué : réessayez ou modifiez la description.');
     }
   });
 }
 
-/** Proposition choisie : gardée par le serveur, sa bibliothèque rechargée, puis la Metamorph remplacée par elle. */
-export async function acceptMetamorph(
+/** Proposition choisie : gardée par le serveur, sa bibliothèque rechargée, puis la forme générée remplacée par elle. */
+export async function acceptGenerated(
   engine: Engine,
   shapeId: string,
   candidateId: string,
@@ -63,7 +68,7 @@ export async function acceptMetamorph(
       console.error('Forme Metamorph refusée', result?.errors);
       return;
     }
-    engine.acceptMetamorph(shapeId, `${METAMORPH_LIBRARY}:${candidateId}`);
+    engine.acceptGeneration(shapeId, `${METAMORPH_LIBRARY}:${candidateId}`);
   } catch (error) {
     console.error('Forme Metamorph non gardée par le serveur', error);
   }

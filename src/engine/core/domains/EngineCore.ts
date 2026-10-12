@@ -18,7 +18,7 @@ import { EditHistory } from './document/undo';
 import { Pages } from './document/pages';
 import { PageLayers } from './document/pageLayers';
 import { ShapeLibraries } from './document/shapeLibraries';
-import { Metamorphs } from './edit/metamorphs';
+import { GeneratedShapes } from './edit/generatedShapes';
 import { createCameraController } from './input/cameraControls';
 import { ViewCamera } from './view/camera';
 import { ViewModes } from './view/viewModes';
@@ -170,8 +170,8 @@ export class EngineCore {
   // edit : cibles et poignées
   readonly targets: EditTargets;
   readonly shapeHandles = new ShapeHandles(this);
-  /** Formes Metamorph à générer par l'hôte (sujet 538). */
-  readonly metamorphs = new Metamorphs(this);
+  /** Formes générées par l'hôte (sujets 538, 545, ex. Metamorph). */
+  readonly generatedShapes = new GeneratedShapes(this);
   // edit/edges : flèches
   readonly edgeHandles = new EdgeHandles(this);
   readonly anchors = new Anchors(this);
@@ -249,9 +249,9 @@ export class EngineCore {
     // Formes de bibliothèque non chargées du document signalées à l'hôte (sujet 531).
     this.events.on('load', (document) => this.shapeLibraries.documentShown(document));
     this.events.on('documentChange', (document) => this.shapeLibraries.documentShown(document));
-    // Metamorph en attente sans demande en cours (fichier rouvert, rétablir…) : redemandée à l'hôte (sujet 538).
-    this.events.on('load', (document) => this.metamorphs.documentShown(document));
-    this.events.on('documentChange', (document) => this.metamorphs.documentShown(document));
+    // Forme générée en attente sans demande en cours (fichier rouvert, rétablir…) : redemandée à l'hôte (sujet 538).
+    this.events.on('load', (document) => this.generatedShapes.documentShown(document));
+    this.events.on('documentChange', (document) => this.generatedShapes.documentShown(document));
   }
 
   /** Moteur libéré (lecture seule : `dispose`). */
@@ -283,7 +283,7 @@ export class EngineCore {
       this.layers,
       this.layerSpreads,
       this.shapeLibraries,
-      this.metamorphs,
+      this.generatedShapes,
       this.shapeParts,
       this.history,
       this.links,

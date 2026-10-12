@@ -1,16 +1,27 @@
 import { BufferGeometry, DoubleSide, Float32BufferAttribute, Mesh, MeshBasicMaterial } from 'three';
 import type { Group } from 'three';
-import { center, createBox, isoBlock, metamorphStateOf, PART_ORDER, spinHues } from '../../../../core/plugins';
+import { center, createBox, generationStateOf, isoBlock, PART_ORDER, spinHues } from '../../../../core/plugins';
 import { blobOutline, outerRing } from './blob';
-import type { RenderContext, ShapeDefinition, ShapeModel } from '../../../../core/plugins';
+import type { RenderContext, ShapeDefinition, ShapeGeneration, ShapeModel } from '../../../../core/plugins';
 
 /**
  * Metamorph (sujets 538, 539) : forme à générer depuis une description, quand aucune forme ne convient. Blob (contour
  * relevé sur une image de référence, `blob.ts`) noir et blanc, son texte (métier) tel quel. Son état se lit à son
  * halo : aucun au brouillon ; pendant la génération, un halo gris qui tourne et pulse (« vou vou, pause pause ») ;
  * quand les propositions attendent un choix, le même en arc-en-ciel. Reconnue par `spatial.kind=metamorph`, son état
- * est `spatial.metamorph` (le cycle est mené par le moteur, `domains/edit/metamorphs.ts`).
+ * est `spatial.metamorph` (`GENERATION` : le cycle est mené par le moteur, `domains/edit/generatedShapes.ts`).
  */
+
+/**
+ * Forme générée par l'hôte (sujet 545) : état `spatial.metamorph` (`draft`, `morphing` pendant la génération,
+ * `ready`), instructions `spatial.metamorphInstructions` (attribut de l'objet).
+ */
+const GENERATION: ShapeGeneration = {
+  title: 'Metamorph',
+  stateKey: 'spatial.metamorph',
+  states: { draft: 'draft', pending: 'morphing', ready: 'ready' },
+  instructionsKey: 'spatial.metamorphInstructions',
+};
 
 /** Halo de 6 px tout autour : opacité au bord de la forme, nulle au bord extérieur. */
 const HALO_WIDTH = 6;
@@ -29,8 +40,8 @@ const outline = (shape: ShapeModel) => blobOutline(shape.bounds);
  * Aucun halo au brouillon.
  */
 function stateHalo(shape: ShapeModel, ctx: RenderContext): Mesh | undefined {
-  const state = metamorphStateOf(shape);
-  if (state !== 'morphing' && state !== 'ready') return undefined;
+  const state = generationStateOf(shape, GENERATION);
+  if (state !== 'pending' && state !== 'ready') return undefined;
   const middle = center(shape.bounds);
   const ring = outerRing(outline(shape), HALO_WIDTH);
   const positions: number[] = [];
@@ -64,7 +75,7 @@ function stateHalo(shape: ShapeModel, ctx: RenderContext): Mesh | undefined {
     turnsPerSecond: HALO_SPEED,
     background: ctx.background ?? '#ffffff',
     pulse: PULSE,
-    gray: state === 'morphing',
+    gray: state === 'pending',
   });
   return halo;
 }
@@ -83,6 +94,7 @@ export const definition: ShapeDefinition = {
   outline,
   // Son aspect dit ce qu'elle est : ni Style ni Bordure.
   styleable: false,
+  generation: GENERATION,
   flat: {
     create(shape, ctx) {
       const group = createBox(blackAndWhite(shape), outline(shape), ctx, DEFAULTS);

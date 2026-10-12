@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Engine, MetamorphRequest } from '../../../src/engine';
-import { acceptMetamorph, installMetamorph } from '../../../src/app/metamorph/metamorphHost';
+import type { Engine, GenerationRequest } from '../../../src/engine';
+import { acceptGenerated, installMetamorph } from '../../../src/app/metamorph/metamorphHost';
 import type { MetamorphServer } from '../../../src/app/metamorph/metamorphServer';
 
 type Listener = (value: never) => unknown;
@@ -15,12 +15,12 @@ function fakeEngine(loaded: string[] = []) {
     shapeLibrary: (id: string) =>
       id === 'metamorph' && loaded.length > 0 ? { shapes: loaded.map((shape) => ({ id: shape })) } : undefined,
     markShapesUnavailable: (refs: unknown) => calls.push(['unavailable', refs]),
-    metamorphResults: (shapeId: string) => {
+    generationResults: (shapeId: string) => {
       calls.push(['results', shapeId]);
       return { ok: true };
     },
-    metamorphFailed: (shapeId: string, error: string) => calls.push(['failed', shapeId, error]),
-    acceptMetamorph: (shapeId: string, templateId: string) => calls.push(['accept', shapeId, templateId]),
+    generationFailed: (shapeId: string, error: string) => calls.push(['failed', shapeId, error]),
+    acceptGeneration: (shapeId: string, templateId: string) => calls.push(['accept', shapeId, templateId]),
   } as unknown as Engine;
   const emit = async (event: string, value: unknown) => {
     await (listeners.get(event) as (value: unknown) => unknown)(value);
@@ -37,7 +37,7 @@ const server = (overrides: Partial<MetamorphServer>): MetamorphServer => ({
   ...overrides,
 });
 
-const request = { shapeId: 'm' } as MetamorphRequest;
+const request = { shapeId: 'm', kind: 'metamorph' } as GenerationRequest;
 
 describe('branchement des Metamorph (sujet 543)', () => {
   beforeEach(() => {
@@ -48,15 +48,17 @@ describe('branchement des Metamorph (sujet 543)', () => {
   it('génération rejetée par le serveur : le moteur est prévenu de l’échec', async () => {
     const { engine, calls, emit } = fakeEngine();
     installMetamorph(engine, server({ generate: () => Promise.reject(new Error('réseau')) }));
-    await emit('metamorphRequest', request);
+    await emit('generationRequest', request);
     expect(calls).toEqual([['failed', 'm', expect.stringContaining('échoué')]]);
   });
 
-  it('propositions reçues : transmises au moteur', async () => {
+  it('propositions reçues : transmises au moteur ; une autre forme générée ne le regarde pas', async () => {
     const { engine, calls, emit } = fakeEngine();
     installMetamorph(engine, server({}));
-    await emit('metamorphRequest', request);
+    await emit('generationRequest', request);
     expect(calls).toEqual([['results', 'm']]);
+    await emit('generationRequest', { ...request, kind: 'autre' });
+    expect(calls).toHaveLength(1);
   });
 
   it('formes Metamorph inconnues du serveur : déclarées introuvables, les connues non', async () => {
@@ -79,9 +81,9 @@ describe('branchement des Metamorph (sujet 543)', () => {
 
   it('proposition choisie : erreur du serveur attrapée, forme non remplacée', async () => {
     const { engine, calls } = fakeEngine();
-    await acceptMetamorph(engine, 'm', 'x', server({ accept: () => Promise.reject(new Error('réseau')) }));
+    await acceptGenerated(engine, 'm', 'x', server({ accept: () => Promise.reject(new Error('réseau')) }));
     expect(calls).toEqual([]);
-    await acceptMetamorph(engine, 'm', 'x', server({ accept: () => Promise.resolve({}) }));
+    await acceptGenerated(engine, 'm', 'x', server({ accept: () => Promise.resolve({}) }));
     expect(calls).toEqual([['accept', 'm', 'metamorph:x']]);
   });
 });

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { Metamorphs } from '../../../../../src/engine/core/domains/edit/metamorphs';
+import { GeneratedShapes } from '../../../../../src/engine/core/domains/edit/generatedShapes';
 import type { EngineCore } from '../../../../../src/engine/core/domains/EngineCore';
-import type { MetamorphRequest } from '../../../../../src/engine/core/edit/metamorph';
+import type { GenerationRequest } from '../../../../../src/engine/core/edit/generation';
 import { setCellStyleValue } from '../../../../../src/engine/core/format/cellEdits';
 import { documentFromTree, readDrawio } from '../../../../../src/engine/core/format/parse';
 import type { DocumentModel } from '../../../../../src/engine/core/model/types';
@@ -24,7 +24,7 @@ ${cell('plain', 'P', 'rounded=0;', 400)}
 function setup() {
   const { tree } = readDrawio(XML);
   const state = { document: documentFromTree(tree) as DocumentModel };
-  const requests: MetamorphRequest[] = [];
+  const requests: GenerationRequest[] = [];
   const changes: string[] = [];
   const steps: string[] = [];
   const registry = createDefaultRegistry();
@@ -48,12 +48,12 @@ function setup() {
     settings: { shapes: { textSize: 12 } },
     events: {
       emit: (event: string, value: unknown) => {
-        if (event === 'metamorphRequest') requests.push(value as MetamorphRequest);
+        if (event === 'generationRequest') requests.push(value as GenerationRequest);
         else changes.push(`${event}:${String(value)}`);
       },
     },
   } as unknown as EngineCore;
-  const metamorphs = new Metamorphs(core);
+  const metamorphs = new GeneratedShapes(core);
   const shape = (id: string) => page().shapes.find((s) => s.id === id);
   /** Annuler une modification faite entre-temps : l'état d'une Metamorph revient à `value` dans le fichier relu. */
   const rewind = (id: string, value: string) => {
@@ -67,11 +67,11 @@ function setup() {
 const candidates = () =>
   libraryJson({ id: 'a', name: 'Baie' }, { library: { id: 'metamorph-candidates', name: 'Propositions' } });
 
-describe('Metamorph (sujet 538)', () => {
+describe('formes générées par l’hôte : la Metamorph (sujets 538, 545)', () => {
   it('brouillon : instructions écrites, « Valider » écrit l’attente et envoie la demande', () => {
     const { metamorphs, shape, requests, steps } = setup();
     expect(metamorphs.view('plain')).toBeUndefined();
-    expect(metamorphs.view('m')).toEqual({ state: 'draft', instructions: '', candidates: [] });
+    expect(metamorphs.view('m')).toEqual({ title: 'Metamorph', state: 'draft', instructions: '', candidates: [] });
     metamorphs.setInstructions('m', 'Une baie\nbleue');
     expect(metamorphs.view('m')?.instructions).toBe('Une baie\nbleue');
     expect(metamorphs.submit('m')).toBe(true);
@@ -80,6 +80,7 @@ describe('Metamorph (sujet 538)', () => {
       {
         pageId: 'p',
         shapeId: 'm',
+        kind: 'metamorph',
         text: 'Serveur',
         comment: 'Paiements par carte',
         instructions: 'Une baie\nbleue',
@@ -102,7 +103,7 @@ describe('Metamorph (sujet 538)', () => {
     expect(result.ok).toBe(true);
     expect(shape('m')?.style['spatial.metamorph']).toBe('ready');
     expect(steps).toEqual(['Metamorph validée']);
-    expect(changes).toContain('metamorphChange:m');
+    expect(changes).toContain('generationChange:m');
     expect(metamorphs.view('m')).toMatchObject({
       state: 'ready',
       candidates: [{ id: 'a', name: 'Baie', icon: '<path d="M4 4L36 4L20 24Z"/>' }],
@@ -135,7 +136,7 @@ describe('Metamorph (sujet 538)', () => {
     metamorphs.results('m', candidates());
     metamorphs.retry('m');
     expect(shape('m')?.style['spatial.metamorph']).toBe('morphing');
-    expect(metamorphs.view('m')).toMatchObject({ state: 'morphing', candidates: [] });
+    expect(metamorphs.view('m')).toMatchObject({ state: 'pending', candidates: [] });
     expect(requests.filter((r) => r.shapeId === 'm').map((r) => r.attempt)).toEqual([1, 2]);
     expect(steps.at(-1)).toBe('Metamorph relancée');
     expect(metamorphs.results('m', candidates()).ok).toBe(true);
@@ -181,7 +182,7 @@ describe('Metamorph (sujet 538)', () => {
     const { metamorphs, requests, document } = setup();
     metamorphs.documentShown(document());
     expect(requests.map((r) => [r.shapeId, r.attempt])).toEqual([['waiting', 1]]);
-    expect(metamorphs.view('waiting')?.state).toBe('morphing');
+    expect(metamorphs.view('waiting')?.state).toBe('pending');
     metamorphs.documentShown(document());
     expect(requests).toHaveLength(1);
     expect(metamorphs.results('waiting', candidates()).ok).toBe(true);
@@ -199,17 +200,18 @@ describe('Metamorph (sujet 538)', () => {
     expect(shape('m')?.style['spatial.metamorph']).toBe('ready');
     expect(steps).toEqual(['Metamorph validée']);
     expect(metamorphs.view('m')).toEqual({
+      title: 'Metamorph',
       state: 'ready',
       instructions: '',
       candidates: [],
       error: 'Serveur injoignable',
     });
     metamorphs.retry('m');
-    expect(metamorphs.view('m')).toEqual({ state: 'morphing', instructions: '', candidates: [] });
+    expect(metamorphs.view('m')).toEqual({ title: 'Metamorph', state: 'pending', instructions: '', candidates: [] });
     expect(requests.filter((r) => r.shapeId === 'm').map((r) => r.attempt)).toEqual([1, 2]);
     metamorphs.failed('m', 'Encore');
     metamorphs.reprompt('m');
-    expect(metamorphs.view('m')).toEqual({ state: 'draft', instructions: '', candidates: [] });
+    expect(metamorphs.view('m')).toEqual({ title: 'Metamorph', state: 'draft', instructions: '', candidates: [] });
   });
 
   it('annuler une modification faite pendant la génération : la forme reste prête, ses propositions gardées', () => {
@@ -230,7 +232,7 @@ describe('Metamorph (sujet 538)', () => {
     metamorphs.results('m', candidates());
     metamorphs.retry('m');
     rewind('m', 'ready');
-    expect(metamorphs.view('m')?.state).toBe('morphing');
+    expect(metamorphs.view('m')?.state).toBe('pending');
     expect(metamorphs.results('m', candidates()).ok).toBe(true);
     expect(metamorphs.view('m')?.state).toBe('ready');
   });

@@ -34,7 +34,7 @@ export type {
   ShapeLibraryResult,
 } from './core/shapes/library/libraryFormat';
 export type { LibraryShapeRef, LibraryShapeState, LibraryShapeStatus } from './core/shapes/library/libraryStore';
-export type { MetamorphCandidate, MetamorphRequest, MetamorphState, MetamorphView } from './core/edit/metamorph';
+export type { GenerationCandidate, GenerationRequest, GenerationState, GenerationView } from './core/edit/generation';
 export { PLANTUML_FORMAT } from './core/export/plantumlText';
 
 // Paramètres (SPEC §13)

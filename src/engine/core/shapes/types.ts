@@ -1,6 +1,7 @@
 import type { Object3D } from 'three';
 import type { Side } from '../edit/edgeEnds';
 import type { FieldOfType } from '../fields/fieldSchema';
+import type { ShapeGeneration } from '../edit/generation';
 import type { MovedHandles } from '../edit/handleKinds';
 import type { Point, Rect } from '../model/types';
 // Modèle en lecture seule (sujet 303) : une forme dessine la forme reçue, sans la modifier.
@@ -269,6 +270,11 @@ export interface ShapeDefinition {
   movesAsBlock?: boolean;
   /** Élément de la palette qui crée cette forme ; absent = forme absente de la palette. */
   palette?: PaletteEntry;
+  /**
+   * Forme dont le dessin est généré par l'hôte (sujet 545, ex. Metamorph) : clés de son état et de ses instructions.
+   * Le moteur mène le cycle (demande, propositions, choix) et l'appli montre sa section.
+   */
+  generation?: ShapeGeneration;
   /** Réglages propres à la forme, affichés dans le panneau. */
   properties?: ShapeProperty[];
   /**

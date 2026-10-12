@@ -125,6 +125,7 @@ draw.io est l'`id` (`text`, `ellipse`) et il n'y a pas de `kinds` à écrire.
 | `pickable` | prise au clic et au rectangle de sélection | `always` | groupe : `withLink` (on prend ses formes) |
 | `movesAsBlock` | saisir un enfant déplace la forme avec ses enfants | non | groupe : oui |
 | `palette` | élément de la palette (§ 6) | absente de la palette | rectangle / rectangle arrondi, BDD / queue |
+| `generation` | forme dont le dessin est généré par l'hôte (sujet 545) : `title` du panneau, `stateKey` et valeurs `states` (`draft`, `pending`, `ready`), `instructionsKey` ; le moteur mène le cycle (`generationRequest`, propositions, choix), lu par `generationStateOf` | forme ordinaire | Metamorph |
 | `properties` | réglages propres à la forme, dans le panneau (§ 6) | aucun | « Coins arrondis », étiquette de façade |
 | `swatch(style)` | aperçu dans les styles du panneau | rectangle (arrondi si `rounded=1`) | ellipse, cylindre |
 

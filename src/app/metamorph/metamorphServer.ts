@@ -1,5 +1,5 @@
 import { SHAPE_LIBRARY_FORMAT, SHAPE_LIBRARY_FORMAT_VERSION } from '../../engine';
-import type { MetamorphRequest } from '../../engine';
+import type { GenerationRequest } from '../../engine';
 
 /**
  * Serveur des formes Metamorph (sujet 538) : il génère les propositions d'une Metamorph et garde, au fur et à mesure,
@@ -10,7 +10,7 @@ export interface MetamorphServer {
   /** Bibliothèque des formes acceptées jusqu'ici ; undefined tant qu'il n'y en a aucune. */
   library(): Promise<unknown>;
   /** Propositions pour une demande : un JSON de bibliothèque, une proposition par forme. */
-  generate(request: MetamorphRequest): Promise<unknown>;
+  generate(request: GenerationRequest): Promise<unknown>;
   /** Proposition acceptée, gardée par le serveur : la bibliothèque des formes acceptées, à jour. */
   accept(candidateId: string): Promise<unknown>;
 }
@@ -123,7 +123,7 @@ function libraryJson(id: string, name: string, shapes: Json[]): Json {
 }
 
 /** Mots de la description, mots-clés de recherche des propositions. */
-function keywordsOf(request: MetamorphRequest): string[] {
+function keywordsOf(request: GenerationRequest): string[] {
   const words =
     `${request.text} ${request.comment} ${request.instructions}`.toLowerCase().match(/[\p{L}\p{N}-]{3,}/gu) ?? [];
   return [...new Set(words)].slice(0, 12);

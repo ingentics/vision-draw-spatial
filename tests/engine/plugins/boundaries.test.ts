@@ -56,3 +56,20 @@ describe('frontières des plugins (sujet 287)', () => {
     expect(outside).toEqual([]);
   });
 });
+
+/**
+ * Le tronc ne connaît aucune forme générée par son nom (sujet 545) : `metamorph` n'apparaît dans `core/` qu'en
+ * commentaire (exemple).
+ */
+describe('tronc sans la Metamorph (sujet 545)', () => {
+  it('aucune ligne de code de core/ ne nomme la Metamorph', () => {
+    const named = filesOf(join(ENGINE, 'core')).flatMap((file) =>
+      readFileSync(file, 'utf8')
+        .split('\n')
+        .map((line) => line.replace(/\/\/.*$/, ''))
+        .filter((line) => !/^\s*(\/\*\*|\*)/.test(line) && /metamorph/i.test(line))
+        .map((line) => `${relative(ENGINE, file)} : ${line.trim()}`),
+    );
+    expect(named).toEqual([]);
+  });
+});

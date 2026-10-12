@@ -95,7 +95,7 @@ export function useEngineEvents({
       installDemoShapeLibrary(instance);
       // Formes Metamorph (sujet 538) : acceptées chargées, demandes transmises au serveur (mocké).
       installMetamorph(instance);
-      instance.on('metamorphChange', () => setSessionTick((tick) => tick + 1));
+      instance.on('generationChange', () => setSessionTick((tick) => tick + 1));
       instance.on('load', (doc) => {
         setDocument(doc);
         setError(undefined);

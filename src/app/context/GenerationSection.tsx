@@ -1,11 +1,14 @@
 import { useState } from 'react';
-import type { MetamorphCandidate, MetamorphState, MetamorphView, ShapeModel } from '../../engine';
+import type { GenerationCandidate, GenerationState, GenerationView, ShapeModel } from '../../engine';
 import { TextField } from '../Fields';
 import { Section } from '../PanelSection';
 
-/** Ce que le panneau fait d'une Metamorph (sujet 538), branché sur le moteur et le serveur des Metamorph. */
-export interface MetamorphControls {
-  view: (shapeId: string) => MetamorphView | undefined;
+/**
+ * Ce que le panneau fait d'une forme générée par l'hôte (sujets 538, 545, ex. Metamorph), branché sur le moteur et
+ * l'hôte qui génère.
+ */
+export interface GenerationControls {
+  view: (shapeId: string) => GenerationView | undefined;
   setInstructions: (shapeId: string, instructions: string) => void;
   submit: (shapeId: string) => void;
   retry: (shapeId: string) => void;
@@ -13,14 +16,17 @@ export interface MetamorphControls {
   accept: (shapeId: string, candidateId: string) => void;
 }
 
-const HINTS: Record<MetamorphState, string> = {
+const HINTS: Record<GenerationState, string> = {
   draft: 'Décrivez la forme voulue par son texte et des instructions visuelles, puis validez.',
-  morphing: 'Morphing… : génération des propositions en cours.',
+  pending: 'Génération des propositions en cours…',
   ready: 'Prêt : choisissez une proposition, réessayez, ou modifiez la description (Reprompt).',
 };
 
-/** Section d'une Metamorph : instructions visuelles, « Valider », puis les propositions, « Reprompt » et « Réessayer ». */
-export function MetamorphSection({ shape, controls }: { shape: ShapeModel; controls: MetamorphControls }) {
+/**
+ * Section d'une forme générée, au titre de la forme : instructions visuelles, « Valider », puis les propositions,
+ * « Reprompt » et « Réessayer ».
+ */
+export function GenerationSection({ shape, controls }: { shape: ShapeModel; controls: GenerationControls }) {
   const view = controls.view(shape.id);
   // Instructions en cours de frappe, pas encore écrites (elles le sont en quittant le champ) : « Valider » les suit.
   const [typing, setTyping] = useState<{ shapeId: string; text: string }>();
@@ -30,11 +36,11 @@ export function MetamorphSection({ shape, controls }: { shape: ShapeModel; contr
   const instructions = typing?.shapeId === shape.id ? typing.text : view.instructions;
   const described = shape.label.trim() !== '' || instructions.trim() !== '';
   return (
-    <Section title="Metamorph">
+    <Section title={view.title}>
       <p className="panel-hint">{view.error ?? HINTS[view.state]}</p>
       <TextField
         label="Instructions visuelles"
-        title="Instructions visuelles : à quoi la forme doit ressembler (spatial.metamorphInstructions)"
+        title="Instructions visuelles : à quoi la forme doit ressembler"
         value={view.instructions}
         placeholder="Ex. un serveur en baie, trois tiroirs, bleu"
         multiline
@@ -46,7 +52,7 @@ export function MetamorphSection({ shape, controls }: { shape: ShapeModel; contr
         }}
       />
       {view.state === 'ready' && view.candidates.length > 0 && (
-        <div className="metamorph-candidates">
+        <div className="generation-candidates">
           {view.candidates.map((candidate) => (
             <CandidateButton
               key={candidate.id}
@@ -56,7 +62,7 @@ export function MetamorphSection({ shape, controls }: { shape: ShapeModel; contr
           ))}
         </div>
       )}
-      <div className="metamorph-actions">
+      <div className="generation-actions">
         {draft ? (
           <button
             type="button"
@@ -95,12 +101,18 @@ export function MetamorphSection({ shape, controls }: { shape: ShapeModel; contr
 }
 
 /** Proposition : aperçu (icône aux couleurs du style proposé) et nom ; un clic la choisit. */
-function CandidateButton({ candidate, onChoose }: { candidate: MetamorphCandidate; onChoose: () => void }) {
-  const tip = `Choisir « ${candidate.name} » : la Metamorph est remplacée par cette forme${
+function CandidateButton({ candidate, onChoose }: { candidate: GenerationCandidate; onChoose: () => void }) {
+  const tip = `Choisir « ${candidate.name} » : la forme est remplacée par celle-ci${
     candidate.description ? `\n${candidate.description}` : ''
   }`;
   return (
-    <button type="button" className="metamorph-candidate" data-tip={tip} aria-label={candidate.name} onClick={onChoose}>
+    <button
+      type="button"
+      className="generation-candidate"
+      data-tip={tip}
+      aria-label={candidate.name}
+      onClick={onChoose}
+    >
       <svg
         viewBox="0 0 40 28"
         aria-hidden="true"

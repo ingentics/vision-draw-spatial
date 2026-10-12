@@ -26,13 +26,6 @@ export const SPATIAL = {
    * forme étant alors `spatial.kind` de cette bibliothèque. draw.io dessine le style seul.
    */
   library: 'spatial.library',
-  /**
-   * Forme Metamorph (sujet 538) : état de la forme à générer, `draft` (brouillon), `morphing` (propositions demandées
-   * au serveur) ou `ready` (propositions reçues). Sa présence fait d'une forme une Metamorph.
-   */
-  metamorph: 'spatial.metamorph',
-  /** Instructions visuelles d'une Metamorph (attribut de l'objet : texte libre, sur plusieurs lignes). */
-  metamorphInstructions: 'spatial.metamorphInstructions',
   /** Épaisseur du volume en iso, en pixels de page (défaut : réglage « Épaisseur »). */
   height: 'spatial.height',
   /** Hauteur du dessous du volume au-dessus de sa base (sol ou dessus du conteneur), en pixels de page. */

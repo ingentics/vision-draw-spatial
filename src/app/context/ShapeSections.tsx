@@ -12,7 +12,7 @@ import { ElementModeSection, modeMainSection } from './ModeSections';
 import { DeleteButton, LabelRow, LinkField, StyleGrid } from './contextFields';
 import type { ContextPanelProps } from './types';
 import { SelectionLayerField } from './LayersSection';
-import { MetamorphSection } from './MetamorphSection';
+import { GenerationSection } from './GenerationSection';
 
 /** Sections du panneau contextuel pour une forme sélectionnée seule. */
 
@@ -36,7 +36,7 @@ export function ShapeSections({ shape, ...props }: ContextPanelProps & { shape: 
       ) : (
         <Section title="Texte">{text}</Section>
       )}
-      {props.metamorph && <MetamorphSection shape={shape} controls={props.metamorph} />}
+      {props.generation && <GenerationSection shape={shape} controls={props.generation} />}
       <ShapeOwnSection shape={shape} onShapeStyle={props.onShapeStyle} onSpatial={props.onSpatial} />
       {!main && <ElementModeSection {...props} element={shape} scope="shape" />}
       <OrientSection shapes={[shape]} onOrient={props.onOrient} />

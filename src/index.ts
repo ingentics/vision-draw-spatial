@@ -69,5 +69,5 @@ export type {
   ShapeLibraryResult,
 } from './engine';
 
-// Formes Metamorph générées par l'hôte (sujet 538)
-export type { MetamorphCandidate, MetamorphRequest, MetamorphState, MetamorphView } from './engine';
+// Formes générées par l'hôte (sujets 538, 545, ex. Metamorph)
+export type { GenerationCandidate, GenerationRequest, GenerationState, GenerationView } from './engine';

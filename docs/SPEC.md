@@ -352,8 +352,10 @@ fichier, les formes non chargées du document ; `shapeLibrariesChange` prévient
   la forme par défaut). Son état se lit à son halo de 6 px qui suit le contour : aucun au brouillon ; en
   « Morphing… », un halo gris qui tourne et pulse (deux pulsations, deux temps de pause, en boucle) ; le même en
   arc-en-ciel quand les propositions attendent un choix. État `spatial.metamorph` (`draft`, `morphing`, `ready`),
-  instructions `spatial.metamorphInstructions` (attribut de l'objet). Cycle mené par le moteur (`core/domains/edit/metamorphs.ts`) : « Valider » → événement `metamorphRequest` →
-  `metamorphResults` (JSON de bibliothèque de formes, une proposition par forme) ou `metamorphFailed` (génération
+  instructions `spatial.metamorphInstructions` (attribut de l'objet), déclarés par la forme (`generation`, sujet 545).
+  Cycle des formes générées mené par le moteur (`core/domains/edit/generatedShapes.ts`) : « Valider » → événement
+  `generationRequest` → `generationResults` (JSON de bibliothèque de formes, une proposition par forme) ou
+  `generationFailed` (génération
   échouée : prête sans propositions, message de l'hôte dans le panneau ; sujet 543) → « Réessayer » (nouvelle demande),
   « Reprompt » (retour au brouillon) ou proposition choisie : la cellule prend le style de la forme de bibliothèque
   choisie (bornes, texte, flèches gardés). Les formes acceptées sont gardées par l'hôte et rechargées comme une

@@ -137,29 +137,31 @@ engine.unregisterShapes('infra');
   l'a déclarée introuvable (`markShapesUnavailable([{ library, kind? }])`, sans `kind` : toute la bibliothèque) ; elle
   reste éditable comme un rectangle. draw.io dessine le style seul.
 
-### Formes Metamorph (sujet 538)
+### Formes générées par l'hôte (sujets 538, 545)
 
-Une forme Metamorph décrit une forme à générer (son texte et des instructions visuelles) ; c'est l'hôte qui génère.
+Une forme générée (ex. la Metamorph, `kind` `metamorph`) décrit une forme à générer (son texte et des instructions
+visuelles) ; c'est l'hôte qui génère. Une forme le devient en déclarant `generation` (`AJOUTER_UNE_FORME.md`).
 
 ```ts
-engine.on('metamorphRequest', async ({ shapeId, text, comment, instructions, width, height, attempt }) => {
+engine.on('generationRequest', async ({ shapeId, kind, text, comment, instructions, width, height, attempt }) => {
+  if (kind !== 'metamorph') return; // l'hôte choisit qui génère, selon la forme
   try {
     const candidates = await monServeur.generer({ text, comment, instructions, width, height }); // JSON de bibliothèque
-    engine.metamorphResults(shapeId, candidates); // refusé si la forme n'attend plus rien
+    engine.generationResults(shapeId, candidates); // refusé si la forme n'attend plus rien
   } catch {
-    engine.metamorphFailed(shapeId, 'La génération a échoué'); // message montré, « Réessayer » rend la main
+    engine.generationFailed(shapeId, 'La génération a échoué'); // message montré, « Réessayer » rend la main
   }
 });
-// Proposition choisie : l'hôte la garde, recharge sa bibliothèque, puis la pose à la place de la Metamorph.
+// Proposition choisie : l'hôte la garde, recharge sa bibliothèque, puis la pose à la place de la forme générée.
 engine.registerShapes(bibliothequeAJour);
-engine.acceptMetamorph(shapeId, 'metamorph:<id de la proposition>');
+engine.acceptGeneration(shapeId, 'metamorph:<id de la proposition>');
 ```
 
-- `metamorphRequest` part à « Valider », à « Réessayer » (`retryMetamorph`) et à la réouverture d'une Metamorph en
-  attente ; `metamorphChange` signale des propositions reçues ou oubliées. Le panneau lit `metamorphOf(shapeId)`
-  (état, instructions, propositions, message d'échec `error`) et écrit par `setMetamorphInstructions`,
-  `submitMetamorph`, `repromptMetamorph` (retour au brouillon).
-- Sans réponse de l'hôte (`metamorphResults` ou `metamorphFailed`), la forme reste « Morphing… » : toute demande doit
+- `generationRequest` part à « Valider », à « Réessayer » (`retryGeneration`) et à la réouverture d'une forme en
+  attente ; `generationChange` signale des propositions reçues ou oubliées. Le panneau lit `generationOf(shapeId)`
+  (titre, état `draft` / `pending` / `ready`, instructions, propositions, message d'échec `error`) et écrit par
+  `setGenerationInstructions`, `submitGeneration`, `repromptGeneration` (retour au brouillon).
+- Sans réponse de l'hôte (`generationResults` ou `generationFailed`), la forme reste en attente : toute demande doit
   finir par l'un des deux. Une forme `metamorph:*` que l'hôte ne sait plus fournir est à déclarer introuvable
   (`markShapesUnavailable`), comme toute forme de bibliothèque.
 - Une forme de bibliothèque sans `category` (et `categories` est facultatif) va dans la catégorie « Autres » de la

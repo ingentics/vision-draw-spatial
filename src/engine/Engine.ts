@@ -24,7 +24,7 @@ import type { ImageExportOptions } from './core/domains/view/imageExport';
 import type { PageLayersView } from './core/domains/document/pageLayers';
 import type { ShapeLibrary, ShapeLibraryResult } from './core/shapes/library/libraryFormat';
 import type { LibraryShapeRef } from './core/shapes/library/libraryStore';
-import type { MetamorphView } from './core/edit/metamorph';
+import type { GenerationView } from './core/edit/generation';
 import type { Settings, SettingsPatch } from './core/settings';
 import { EngineCore } from './core/domains/EngineCore';
 import { createDefaultEffectRegistry, createDefaultModeRegistry, createDefaultRegistry } from './plugins';
@@ -431,58 +431,61 @@ export class Engine {
     return this.core.shapeLibraries.libraries();
   }
 
-  /** Metamorph de la page courante (sujet 538) : état, instructions et propositions reçues ; undefined pour une autre forme. */
-  metamorphOf(shapeId: string): MetamorphView | undefined {
-    return this.core.metamorphs.view(shapeId);
+  /**
+   * Forme générée de la page courante (sujets 538, 545, ex. Metamorph) : titre, état, instructions et propositions
+   * reçues ; undefined pour une autre forme.
+   */
+  generationOf(shapeId: string): GenerationView | undefined {
+    return this.core.generatedShapes.view(shapeId);
   }
 
-  /** Instructions visuelles d'une Metamorph au brouillon (une étape d'annulation). */
-  setMetamorphInstructions(shapeId: string, instructions: string): void {
-    this.core.metamorphs.setInstructions(shapeId, instructions);
+  /** Instructions visuelles d'une forme générée au brouillon (une étape d'annulation). */
+  setGenerationInstructions(shapeId: string, instructions: string): void {
+    this.core.generatedShapes.setInstructions(shapeId, instructions);
   }
 
-  /** « Valider » une Metamorph au brouillon : sa demande part à l'hôte (`metamorphRequest`). Faux si rien à décrire. */
-  submitMetamorph(shapeId: string): boolean {
-    return this.core.metamorphs.submit(shapeId);
+  /** « Valider » une forme générée au brouillon : sa demande part à l'hôte (`generationRequest`). Faux si rien à décrire. */
+  submitGeneration(shapeId: string): boolean {
+    return this.core.generatedShapes.submit(shapeId);
   }
 
   /**
-   * Propositions de l'hôte pour une Metamorph en attente (réponse à `metamorphRequest`) : un JSON de bibliothèque de
-   * formes (format `drawio-spatial/shapes`, une proposition par forme). Rend ses erreurs s'il est invalide ou si la
+   * Propositions de l'hôte pour une forme générée en attente (réponse à `generationRequest`) : un JSON de bibliothèque
+   * de formes (format `drawio-spatial/shapes`, une proposition par forme). Rend ses erreurs s'il est invalide ou si la
    * forme n'attend plus rien.
    */
-  metamorphResults(shapeId: string, json: unknown): ShapeLibraryResult {
-    return this.core.metamorphs.results(shapeId, json);
+  generationResults(shapeId: string, json: unknown): ShapeLibraryResult {
+    return this.core.generatedShapes.results(shapeId, json);
   }
 
   /**
-   * Génération échouée chez l'hôte (réponse à `metamorphRequest`) : la Metamorph est prête sans propositions, montre
+   * Génération échouée chez l'hôte (réponse à `generationRequest`) : la forme est prête sans propositions, montre
    * `error`, et « Réessayer » ou « Reprompt » rendent la main. Faux si la forme n'attend plus rien.
    */
-  metamorphFailed(shapeId: string, error: string): boolean {
-    return this.core.metamorphs.failed(shapeId, error);
+  generationFailed(shapeId: string, error: string): boolean {
+    return this.core.generatedShapes.failed(shapeId, error);
   }
 
   /**
-   * « Réessayer » une Metamorph prête : ses propositions sont oubliées et une nouvelle demande part à l'hôte, même
+   * « Réessayer » une forme générée prête : ses propositions sont oubliées et une nouvelle demande part à l'hôte, même
    * description. Sans effet pendant la génération.
    */
-  retryMetamorph(shapeId: string): void {
-    this.core.metamorphs.retry(shapeId);
+  retryGeneration(shapeId: string): void {
+    this.core.generatedShapes.retry(shapeId);
   }
 
-  /** « Reprompt » une Metamorph prête : retour au brouillon pour modifier sa description. Sans effet pendant la génération. */
-  repromptMetamorph(shapeId: string): void {
-    this.core.metamorphs.reprompt(shapeId);
+  /** « Reprompt » une forme générée prête : retour au brouillon pour modifier sa description. Sans effet pendant la génération. */
+  repromptGeneration(shapeId: string): void {
+    this.core.generatedShapes.reprompt(shapeId);
   }
 
   /**
-   * Proposition choisie : la Metamorph devient la forme du modèle de palette `templateId` (forme d'une bibliothèque
+   * Proposition choisie : la forme générée devient la forme du modèle de palette `templateId` (forme d'une bibliothèque
    * que l'hôte vient d'enregistrer, ex. `metamorph:<id>`), à la même place, avec son texte et ses flèches. Faux si le
    * modèle n'est pas chargé.
    */
-  acceptMetamorph(shapeId: string, templateId: string): boolean {
-    return this.core.metamorphs.accept(shapeId, templateId);
+  acceptGeneration(shapeId: string, templateId: string): boolean {
+    return this.core.generatedShapes.accept(shapeId, templateId);
   }
 
   /** Modèles des formes présentes sur la page (catégorie « Utilisées » de la palette). */
