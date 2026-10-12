@@ -57,6 +57,7 @@ interface PageModeDefinition {
     allowsEffect?(effectId): boolean;          // effets permis (absent : tous)
     selectionStyle?: 'veil' | 'outline';       // mise en valeur de la sélection imposée (aucun mode ne l'impose aujourd'hui)
     layers?: boolean;                          // calques sur la page du mode (absent : aucun, tout sur le premier)
+    grid?: boolean;                            // false : grille du fond cachée sur la page du mode (sujet 537)
     defaults?: { anchoring?, edgeLine? };     // réglages posés sur la page à son passage dans le mode (section 6)
     palette?: { shapes?: string[]; categories?: PaletteCategory[] };  // palette du mode (section 6)
   };
@@ -405,6 +406,7 @@ Règles communes (sujet 288) :
 | `page.viewModes` | ouverture, changement de page, passage dans le mode, boutons de vue | — | — | — |
 | `page.allowsEffect` | effets actifs d'une page (scène en volume, page en volume ou non), panneau des effets | — | — | effet permis (les modes d'affichage de l'effet restent vérifiés) |
 | `page.selectionStyle` | mise en valeur de la sélection sur une page du mode | — | — | — |
+| `page.grid` | choix de la grille du fond (changement de page, de document, de paramètres) : lu par le registre (`showsGrid`) | — | — | — |
 | `page.layers` | lu par le registre (`hasLayers`) : section Calques, calque courant où vont les créations (sujet 523) | — | — | — |
 | `settings` | Paramètres › Modes ; valeurs bornées passées à `dressing`, `gestures.obstacles`, `current.look` | — | — | — |
 | `pasteKeys` | collage et duplication, sur toutes les pages | — | clés du mode retirées des éléments collés | — |

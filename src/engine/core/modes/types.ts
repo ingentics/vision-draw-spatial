@@ -91,6 +91,8 @@ export interface ModePage {
    * calques (tout va sur le premier) ; une page sans mode en a toujours.
    */
   layers?: boolean;
+  /** Grille du fond sur une page du mode (sujet 537) : `false` la cache ; absent = paramètre « Grille ». */
+  grid?: boolean;
   /** Effet de page permis sur une page de ce mode (le mode reste maître) ; absent = tous. */
   allowsEffect?(effectId: string): boolean;
   /**

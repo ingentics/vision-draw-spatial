@@ -54,8 +54,10 @@ export class Rendering {
         ? this.core.file.pageTreeOf(this.core.pages.currentPageId)
         : undefined;
     const pageCell = tree && tree.encoding !== 'unreadable' ? gridSizeOf(tree) : 0;
+    // Grille cachée par le mode de la page (sujet 537).
+    const page = this.core.pages.getCurrentPage();
     return {
-      visible: background.grid,
+      visible: background.grid && (!page || this.core.modes.showsGrid(page)),
       background: background.color,
       color: background.gridColor,
       cell: pageCell > 0 ? pageCell : background.gridSize,
