@@ -152,15 +152,15 @@ chaque constat retenu relu dans le code.
 
 | #   | Sujet                                                                                         | Gain                          | Taille | Décision |
 | --- | --------------------------------------------------------------------------------------------- | ----------------------------- | ------ | -------- |
-| 543 | Metamorph : génération en échec, bibliothèque vide, annuler pendant la génération             | erreurs (forme bloquée)       | S      | validé   |
-| 544 | Calques : id inconnu, vue graphe, aplatir sans interaction ; `meta` non clonable               | erreurs (exception publique)  | S      | validé   |
-| 545 | Metamorph hors du tronc : contrat « forme générée par l'hôte »                                | extensibilité                 | L      | validé   |
-| 546 | Briques communes : `oneLine`, `JSON_FORMAT`, `spatialValue`, règles de calque, couleurs        | mutualisation                 | M      | validé   |
-| 547 | Rangement du mode Event storming (export depuis `kinds.ts`, pivot, `readWall`, types de lien) | extensibilité, lisibilité     | M      | validé   |
-| 548 | Tronc : décor des calques dans `view/`, règles de `LayersSection` au moteur, registre, contrat | responsabilités               | M      | validé   |
-| 549 | Appli : simulation, export et ligne de liste communs aux modes                                | mutualisation                 | S      | validé   |
-| 550 | Tests : formes géométriques, cadrage de la simulation, sauvegarde à plusieurs pages, miroir   | tests                         | S      | validé   |
-| 551 | Docs : type `note`, guide d'une forme (bibliothèques, animation), SUMMARY, renvois            | doc juste pour un agent       | S      | validé   |
+| 543 | Metamorph : génération en échec, bibliothèque vide, annuler pendant la génération             | erreurs (forme bloquée)       | S      | fait     |
+| 544 | Calques : id inconnu, vue graphe, aplatir sans interaction ; `meta` non clonable               | erreurs (exception publique)  | S      | fait     |
+| 545 | Metamorph hors du tronc : contrat « forme générée par l'hôte »                                | extensibilité                 | L      | fait     |
+| 546 | Briques communes : `oneLine`, `JSON_FORMAT`, `spatialValue`, règles de calque, couleurs        | mutualisation                 | M      | fait     |
+| 547 | Rangement du mode Event storming (export depuis `kinds.ts`, pivot, `readWall`, types de lien) | extensibilité, lisibilité     | M      | fait     |
+| 548 | Tronc : décor des calques dans `view/`, règles de `LayersSection` au moteur, registre, contrat | responsabilités               | M      | fait     |
+| 549 | Appli : simulation, export et ligne de liste communs aux modes                                | mutualisation                 | S      | fait     |
+| 550 | Tests : formes géométriques, cadrage de la simulation, sauvegarde à plusieurs pages, miroir   | tests                         | S      | fait     |
+| 551 | Docs : type `note`, guide d'une forme (bibliothèques, animation), SUMMARY, renvois            | doc juste pour un agent       | S      | fait     |
 
 Ordre validé (2026-10-12, avec les dettes 532, 535 et 552 à 556) : 543, 544 (erreurs), puis 546, 547, 548, 549, 550,
 545 (le plus gros, change l'API publique `Engine` et les événements), les dettes, et 551 en dernier (les docs décrivent
@@ -175,4 +175,27 @@ le code final). Un commit par sujet dès que `make check` est vert (l'utilisateu
 - [x] Constats
 - [x] Sujets rédigés
 - [x] Sujets validés par l'utilisateur
-- [ ] Réalisation
+- [x] Réalisation
+
+- Fait : sujets 543 à 551 et dettes 532, 535, 552, 553, 554, 556 réalisés, un commit chacun, dans l'ordre validé
+  (543, 544, 546, 547, 548, 549, 550, 545, dettes, 551).
+  - 543 : génération en échec rendue (`generationFailed`), formes inconnues du serveur introuvables, annuler pendant
+    la génération sans forme bloquée.
+  - 544 : opérations de calque sans exception (id inconnu, vue graphe), aplatir gardé pendant une transition, `meta`
+    non clonable rendu en erreur.
+  - 545 (`feat(engine)!`) : formes générées par l'hôte (`ShapeDefinition.generation`), la Metamorph hors du tronc ;
+    API `generation*`.
+  - 546 : `oneLine`, `jsonExporter`, `spatialValue`, règles des calques, couleurs des formes non chargées.
+  - 547 : export du mur depuis `kinds.ts`, pivot, marques en coin, `readWall` par étapes, types de lien vérifiés.
+  - 548 : décor des calques dans `view/`, règles de `LayersSection` au moteur, `registry.libraryStore`,
+    `parts.comment(page, shape, part)`.
+  - 549 : simulation, export et nombre de flèches communs aux modes dans l'appli ; histoire choisie au clavier.
+  - 550 : tests (formes géométriques, `keepInView`, enregistrement à plusieurs pages, titre et pastille) et tests
+    rangés comme `src/`.
+  - 551 : docs alignées sur le code final.
+  - Dettes : 532 (réglages des pastilles), 535 (`ModeSimulator`), 552 (`pageMemo`), 553 (halo sans image pendant ses
+    pauses), 554 (serveur mocké, réponse tardive refusée), 556 (noms des calques aplatis).
+  - Reste : dette 555 (`Engine.ts` trop long : passer sous 400 lignes demande de regrouper l'API publique par domaine,
+    changement de toute l'API du moteur, à décider avec l'utilisateur).
+  - Vérifié seulement par les tests : échec réel du serveur Metamorph (le mock ne rejette pas), groupes et pastilles
+    pendant un redimensionnement (le glisser simulé ne déplace pas les formes), exports JSON.
