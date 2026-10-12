@@ -28,6 +28,9 @@ export interface MetamorphRequest {
   shapeId: string;
   /** Texte de la forme, en texte brut. */
   text: string;
+  /** Commentaire de la forme (attribut `tooltip`), en texte brut ; vide sans commentaire. */
+  comment: string;
+  /** Instructions visuelles (la description de la forme voulue). */
   instructions: string;
   width: number;
   height: number;

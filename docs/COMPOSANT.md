@@ -142,8 +142,8 @@ engine.unregisterShapes('infra');
 Une forme Metamorph décrit une forme à générer (son texte et des instructions visuelles) ; c'est l'hôte qui génère.
 
 ```ts
-engine.on('metamorphRequest', async ({ shapeId, text, instructions, width, height, attempt }) => {
-  const candidates = await monServeur.generer({ text, instructions, width, height }); // JSON de bibliothèque
+engine.on('metamorphRequest', async ({ shapeId, text, comment, instructions, width, height, attempt }) => {
+  const candidates = await monServeur.generer({ text, comment, instructions, width, height }); // JSON de bibliothèque
   engine.metamorphResults(shapeId, candidates); // refusé si la forme n'attend plus rien
 });
 // Proposition choisie : l'hôte la garde, recharge sa bibliothèque, puis la pose à la place de la Metamorph.

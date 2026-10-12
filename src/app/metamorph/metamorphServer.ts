@@ -124,7 +124,8 @@ function libraryJson(id: string, name: string, shapes: Json[]): Json {
 
 /** Mots de la description, mots-clés de recherche des propositions. */
 function keywordsOf(request: MetamorphRequest): string[] {
-  const words = `${request.text} ${request.instructions}`.toLowerCase().match(/[\p{L}\p{N}-]{3,}/gu) ?? [];
+  const words =
+    `${request.text} ${request.comment} ${request.instructions}`.toLowerCase().match(/[\p{L}\p{N}-]{3,}/gu) ?? [];
   return [...new Set(words)].slice(0, 12);
 }
 

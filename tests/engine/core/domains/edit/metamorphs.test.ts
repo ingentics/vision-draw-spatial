@@ -13,7 +13,7 @@ const cell = (id: string, value: string, style: string, x: number) =>
 const METAMORPH = 'rounded=0;whiteSpace=wrap;html=1;spatial.kind=metamorph;';
 
 const XML = `<mxfile><diagram id="p" name="P"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
-${cell('m', 'Serveur', `${METAMORPH}spatial.metamorph=draft;fontSize=14;`, 0)}
+<UserObject label="Serveur" tooltip="Paiements par carte" id="m">${cell('', '', `${METAMORPH}spatial.metamorph=draft;fontSize=14;`, 0).replace(' id="" value=""', '')}</UserObject>
 ${cell('waiting', 'Base', `${METAMORPH}spatial.metamorph=ready;`, 200)}
 ${cell('plain', 'P', 'rounded=0;', 400)}
 <mxCell id="e" style="endArrow=classic;" edge="1" parent="1" source="m" target="plain"><mxGeometry relative="1" as="geometry"/></mxCell>
@@ -75,6 +75,7 @@ describe('Metamorph (sujet 538)', () => {
         pageId: 'p',
         shapeId: 'm',
         text: 'Serveur',
+        comment: 'Paiements par carte',
         instructions: 'Une baie\nbleue',
         width: 160,
         height: 120,

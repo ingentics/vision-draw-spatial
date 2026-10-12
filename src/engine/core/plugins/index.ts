@@ -88,6 +88,7 @@ export {
   rectsOverlap,
   rectsOverlapBy,
   unionOf,
+  unit,
 } from '../model/geometry';
 export { sideConstraintAt } from '../edit/edgeEnds';
 export { fontStyleValue, isHexColor, styleFlag, styleNumber, styleOpacity } from '../model/styleValues';
@@ -138,7 +139,7 @@ export { approximateMeasure } from '../render/richLayout';
 export type { FontSpec, MeasureText } from '../render/richLayout';
 export { setStandingFigure } from '../render/standing';
 export { faceCamera } from '../render/billboard';
-export { spinHues, spinObject } from '../render/animation';
+export { spinHues } from '../render/animation';
 export type { HueSpin, Rhythm } from '../render/animation';
 export { metamorphStateOf } from '../edit/metamorph';
 export type { MetamorphState } from '../edit/metamorph';

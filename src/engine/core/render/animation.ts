@@ -2,8 +2,8 @@ import { Color } from 'three';
 import type { BufferAttribute, Mesh, Object3D } from 'three';
 
 /**
- * Objets animés d'eux-mêmes (sujet 538, Metamorph) : un loader qui tourne autour de son axe z, des teintes qui tournent
- * (halo arc-en-ciel), qui peuvent aller et venir en rythme. L'état suit l'horloge de l'image : une forme reconstruite reprend la même phase. Tant qu'un tel
+ * Objets animés d'eux-mêmes (sujets 538, 539, halo d'une Metamorph) : des teintes qui tournent (arc-en-ciel, ou bande
+ * claire en gris), qui peuvent aller et venir en rythme. L'état suit l'horloge de l'image : une forme reconstruite reprend la même phase. Tant qu'un tel
  * objet est visible, le moteur redemande une image à chaque image.
  */
 
@@ -19,17 +19,13 @@ export interface Rhythm {
 /**
  * Teintes qui tournent : chaque sommet garde sa teinte de départ (attribut `hue`, 0 à 1) décalée de `turnsPerSecond`
  * tours par seconde, couleurs vives. `pulse` : les couleurs vont et viennent depuis `background` à ce rythme ; absent,
- * elles restent vives.
+ * elles restent vives. `gray` : en gris, la teinte de départ donne une bande claire qui tourne.
  */
 export interface HueSpin {
   turnsPerSecond: number;
   background: string;
   pulse?: Rhythm;
-}
-
-/** Fait tourner `object` de `turnsPerSecond` tours par seconde (sens horaire à l'écran, y vers le bas). */
-export function spinObject(object: Object3D, turnsPerSecond: number): void {
-  object.userData.spin = turnsPerSecond;
+  gray?: boolean;
 }
 
 /**
@@ -48,7 +44,7 @@ export function pulseIntensity(pulse: Rhythm, seconds: number): number {
 }
 
 /**
- * Anime les objets visibles déclarés par `spinObject` ou `spinHues` à l'instant `now` (ms) ; vrai s'il y en a. Seules
+ * Anime les objets visibles déclarés par `spinHues` à l'instant `now` (ms) ; vrai s'il y en a. Seules
  * la rotation et les couleurs changent : opacités et fondus restent au moteur.
  */
 export function animateObjects(root: Object3D, now: number): boolean {
@@ -56,11 +52,6 @@ export function animateObjects(root: Object3D, now: number): boolean {
   const seconds = now / 1000;
   const visit = (object: Object3D) => {
     if (!object.visible) return;
-    const speed = object.userData.spin as number | undefined;
-    if (speed !== undefined) {
-      object.rotation.z = (seconds * speed * 2 * Math.PI) % (2 * Math.PI);
-      found = true;
-    }
     const spin = object.userData.hueSpin as HueSpin | undefined;
     if (spin) {
       applyHueSpin(object as Mesh, spin, seconds);
@@ -82,7 +73,9 @@ function applyHueSpin(mesh: Mesh, spin: HueSpin, seconds: number): void {
   const color = new Color();
   for (let i = 0; i < hues.count; i++) {
     const hue = (((hues.getX(i) + shift) % 1) + 1) % 1;
-    color.setHSL(hue, 1, 0.55).lerp(background, 1 - intensity);
+    if (spin.gray) color.setHSL(0, 0, 0.3 + 0.2 * (1 + Math.cos(2 * Math.PI * hue)));
+    else color.setHSL(hue, 1, 0.55);
+    color.lerp(background, 1 - intensity);
     colors.setXYZ(i, color.r, color.g, color.b);
   }
   colors.needsUpdate = true;

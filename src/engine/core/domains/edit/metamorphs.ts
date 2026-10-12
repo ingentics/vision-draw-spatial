@@ -1,5 +1,6 @@
 import { setCellObjectAttribute, setCellStyle, setCellStyleValue } from '../../format/cellEdits';
 import { setCellWrapperAttribute } from '../../format/create';
+import { commentOf } from '../../edit/comment';
 import { parseStyle, withStyleDefault } from '../../format/style';
 import { metamorphInstructionsOf, metamorphStateOf } from '../../edit/metamorph';
 import type { MetamorphCandidate, MetamorphState, MetamorphView } from '../../edit/metamorph';
@@ -174,6 +175,7 @@ export class Metamorphs {
       pageId,
       shapeId: shape.id,
       text: shape.label,
+      comment: commentOf(shape)?.text ?? '',
       instructions: metamorphInstructionsOf(shape),
       width: shape.bounds.width,
       height: shape.bounds.height,
