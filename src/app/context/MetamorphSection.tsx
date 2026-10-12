@@ -31,7 +31,7 @@ export function MetamorphSection({ shape, controls }: { shape: ShapeModel; contr
   const described = shape.label.trim() !== '' || instructions.trim() !== '';
   return (
     <Section title="Metamorph">
-      <p className="panel-hint">{HINTS[view.state]}</p>
+      <p className="panel-hint">{view.error ?? HINTS[view.state]}</p>
       <TextField
         label="Instructions visuelles"
         title="Instructions visuelles : à quoi la forme doit ressembler (spatial.metamorphInstructions)"

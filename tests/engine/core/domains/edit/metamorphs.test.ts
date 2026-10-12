@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Metamorphs } from '../../../../../src/engine/core/domains/edit/metamorphs';
 import type { EngineCore } from '../../../../../src/engine/core/domains/EngineCore';
 import type { MetamorphRequest } from '../../../../../src/engine/core/edit/metamorph';
+import { setCellStyleValue } from '../../../../../src/engine/core/format/cellEdits';
 import { documentFromTree, readDrawio } from '../../../../../src/engine/core/format/parse';
 import type { DocumentModel } from '../../../../../src/engine/core/model/types';
 import { createDefaultRegistry } from '../../../../../src/engine/plugins';
@@ -54,7 +55,12 @@ function setup() {
   } as unknown as EngineCore;
   const metamorphs = new Metamorphs(core);
   const shape = (id: string) => page().shapes.find((s) => s.id === id);
-  return { metamorphs, shape, requests, changes, steps, registry, document: () => state.document };
+  /** Annuler une modification faite entre-temps : l'état d'une Metamorph revient à `value` dans le fichier relu. */
+  const rewind = (id: string, value: string) => {
+    setCellStyleValue(tree.pages[0]!, id, 'spatial.metamorph', value);
+    core.file.documentChanged([]);
+  };
+  return { metamorphs, shape, requests, changes, steps, registry, rewind, document: () => state.document };
 }
 
 /** Propositions de l'hôte : deux formes, l'une sans catégorie. */
@@ -183,5 +189,49 @@ describe('Metamorph (sujet 538)', () => {
     metamorphs.resetDocument();
     metamorphs.documentShown(document());
     expect(requests).toHaveLength(2);
+  });
+
+  it('génération échouée : prête sans propositions, message montré, « Réessayer » et « Reprompt » rendent la main', () => {
+    const { metamorphs, shape, requests, steps } = setup();
+    expect(metamorphs.failed('m', 'Erreur')).toBe(false);
+    metamorphs.submit('m');
+    expect(metamorphs.failed('m', 'Serveur injoignable')).toBe(true);
+    expect(shape('m')?.style['spatial.metamorph']).toBe('ready');
+    expect(steps).toEqual(['Metamorph validée']);
+    expect(metamorphs.view('m')).toEqual({
+      state: 'ready',
+      instructions: '',
+      candidates: [],
+      error: 'Serveur injoignable',
+    });
+    metamorphs.retry('m');
+    expect(metamorphs.view('m')).toEqual({ state: 'morphing', instructions: '', candidates: [] });
+    expect(requests.filter((r) => r.shapeId === 'm').map((r) => r.attempt)).toEqual([1, 2]);
+    metamorphs.failed('m', 'Encore');
+    metamorphs.reprompt('m');
+    expect(metamorphs.view('m')).toEqual({ state: 'draft', instructions: '', candidates: [] });
+  });
+
+  it('annuler une modification faite pendant la génération : la forme reste prête, ses propositions gardées', () => {
+    const { metamorphs, rewind, requests } = setup();
+    metamorphs.submit('m');
+    metamorphs.results('m', candidates());
+    // La photo d'annulation prise pendant la génération porte encore `morphing`.
+    rewind('m', 'morphing');
+    expect(metamorphs.view('m')).toMatchObject({ state: 'ready', candidates: [{ id: 'a' }] });
+    expect(requests.filter((r) => r.shapeId === 'm')).toHaveLength(1);
+    metamorphs.retry('m');
+    expect(requests.filter((r) => r.shapeId === 'm')).toHaveLength(2);
+  });
+
+  it('annuler « Réessayer » pendant la génération : la forme attend toujours la réponse, puis est prête', () => {
+    const { metamorphs, rewind } = setup();
+    metamorphs.submit('m');
+    metamorphs.results('m', candidates());
+    metamorphs.retry('m');
+    rewind('m', 'ready');
+    expect(metamorphs.view('m')?.state).toBe('morphing');
+    expect(metamorphs.results('m', candidates()).ok).toBe(true);
+    expect(metamorphs.view('m')?.state).toBe('ready');
   });
 });

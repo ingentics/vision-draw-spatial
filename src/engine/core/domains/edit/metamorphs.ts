@@ -27,6 +27,8 @@ interface Pending {
 export class Metamorphs {
   private readonly pending = new Map<string, Pending>();
   private readonly candidates = new Map<string, MetamorphCandidate[]>();
+  /** Message de l'hôte quand la génération a échoué (propositions vides : « Réessayer » ou « Reprompt » possibles). */
+  private readonly failures = new Map<string, string>();
   /** Demandes faites par forme depuis l'ouverture du document (`MetamorphRequest.attempt`). */
   private readonly attempts = new Map<string, number>();
 
@@ -35,30 +37,29 @@ export class Metamorphs {
   resetDocument(): void {
     this.pending.clear();
     this.candidates.clear();
+    this.failures.clear();
     this.attempts.clear();
   }
 
-  /**
-   * Ce que le panneau montre d'une Metamorph de la page courante ; undefined pour une autre forme. Un état `ready` sans
-   * propositions en mémoire (fichier rouvert) se montre en attente : elles ont été redemandées.
-   */
+  /** Ce que le panneau montre d'une Metamorph de la page courante ; undefined pour une autre forme. */
   view(shapeId: string): MetamorphView | undefined {
     const shape = shapeOf(this.core.pages.getCurrentPage(), shapeId);
-    const state = shape && metamorphStateOf(shape);
+    const state = shape && this.stateOf(shape);
     if (!shape || !state) return undefined;
-    const candidates = this.candidates.get(shapeId) ?? [];
+    const error = this.failures.get(shapeId);
     return {
-      state: state === 'ready' && candidates.length === 0 ? 'morphing' : state,
+      state,
       instructions: metamorphInstructionsOf(shape),
-      candidates,
+      candidates: this.candidates.get(shapeId) ?? [],
+      ...(error === undefined ? {} : { error }),
     };
   }
 
-  /** Instructions visuelles d'un brouillon ; `merge` : saisie en direct, une étape d'annulation par saisie. */
-  setInstructions(shapeId: string, instructions: string, merge?: string): void {
+  /** Instructions visuelles d'un brouillon (écrites en quittant le champ : une étape d'annulation). */
+  setInstructions(shapeId: string, instructions: string): void {
     const target = this.draft(shapeId);
     if (!target || metamorphInstructionsOf(target.shape) === instructions) return;
-    this.core.edits.recordMergeableEdit('Instructions Metamorph', merge);
+    this.core.edits.recordEdit('Instructions Metamorph');
     setCellWrapperAttribute(target.pageTree, shapeId, SPATIAL.metamorphInstructions, instructions || undefined);
     this.core.file.documentChanged([target.page.id]);
   }
@@ -85,21 +86,21 @@ export class Metamorphs {
    * demande en cours (brouillon revenu par annuler…) ou si le JSON est invalide.
    */
   results(shapeId: string, json: unknown): ShapeLibraryResult {
-    const pending = this.pending.get(shapeId);
-    if (!pending) return { ok: false, errors: [`aucune demande en cours pour la forme ${shapeId}`] };
+    if (!this.pending.has(shapeId)) return { ok: false, errors: [`aucune demande en cours pour la forme ${shapeId}`] };
     const result = readShapeLibrary(json);
     if (!result.ok) return result;
-    this.pending.delete(shapeId);
-    this.candidates.set(shapeId, result.library.shapes.map(candidateOf));
-    const page = this.core.pages.pageById(pending.pageId);
-    const pageTree = this.core.file.pageTreeOf(pending.pageId);
-    const shape = shapeOf(page, shapeId);
-    if (shape && pageTree && pageTree.encoding !== 'unreadable' && metamorphStateOf(shape) === 'morphing') {
-      setCellStyleValue(pageTree, shapeId, SPATIAL.metamorph, 'ready');
-      this.core.file.documentChanged([pending.pageId]);
-    }
-    this.core.events.emit('metamorphChange', shapeId);
+    this.received(shapeId, result.library.shapes.map(candidateOf));
     return result;
+  }
+
+  /**
+   * Génération échouée chez l'hôte (réponse à `metamorphRequest`) : la forme est prête sans propositions, avec le
+   * message `error`, et « Réessayer » ou « Reprompt » rendent la main. Faux sans demande en cours.
+   */
+  failed(shapeId: string, error: string): boolean {
+    if (!this.pending.has(shapeId)) return false;
+    this.received(shapeId, [], error);
+    return true;
   }
 
   /**
@@ -135,7 +136,7 @@ export class Metamorphs {
    * attachées restent. Faux si le modèle n'est pas chargé.
    */
   accept(shapeId: string, templateId: string): boolean {
-    const target = this.target(shapeId, ['ready']);
+    const target = this.ready(shapeId);
     const template = this.core.registry.templates().find((t) => t.id === templateId && t.library !== undefined);
     if (!target || !template) return false;
     this.core.edits.recordEdit('Metamorph remplacée');
@@ -183,25 +184,52 @@ export class Metamorphs {
     });
   }
 
+  /** Réponse de l'hôte à une demande en cours : propositions (ou échec) gardées, état `ready` écrit sans étape d'annulation. */
+  private received(shapeId: string, candidates: MetamorphCandidate[], error?: string): void {
+    const pageId = this.pending.get(shapeId)!.pageId;
+    this.pending.delete(shapeId);
+    this.candidates.set(shapeId, candidates);
+    if (error !== undefined) this.failures.set(shapeId, error);
+    const pageTree = this.core.file.pageTreeOf(pageId);
+    const shape = shapeOf(this.core.pages.pageById(pageId), shapeId);
+    if (shape && pageTree && pageTree.encoding !== 'unreadable' && metamorphStateOf(shape) === 'morphing') {
+      setCellStyleValue(pageTree, shapeId, SPATIAL.metamorph, 'ready');
+      this.core.file.documentChanged([pageId]);
+    }
+    this.core.events.emit('metamorphChange', shapeId);
+  }
+
   private forget(shapeId: string): void {
     this.pending.delete(shapeId);
     this.candidates.delete(shapeId);
+    this.failures.delete(shapeId);
+  }
+
+  /**
+   * État montré d'une Metamorph : prête dès que ses propositions sont en mémoire, même si le fichier dit encore
+   * `morphing` (annuler une modification faite pendant la génération remet cet état) ; en attente tant qu'elles ne le
+   * sont pas, même si le fichier dit `ready` (fichier rouvert : elles ont été redemandées).
+   */
+  private stateOf(shape: ShapeModel): MetamorphState | undefined {
+    const state = metamorphStateOf(shape);
+    if (state === undefined || state === 'draft') return state;
+    return this.candidates.has(shape.id) ? 'ready' : 'morphing';
   }
 
   private draft(shapeId: string) {
     return this.target(shapeId, ['draft']);
   }
 
-  /** Metamorph prête dont les propositions sont arrivées (un état `ready` rouvert les attend encore). */
+  /** Metamorph prête : ses propositions (ou son échec) sont arrivées (un état `ready` rouvert les attend encore). */
   private ready(shapeId: string) {
-    return this.candidates.has(shapeId) ? this.target(shapeId, ['ready']) : undefined;
+    return this.target(shapeId, ['ready']);
   }
 
-  /** Metamorph de la page courante modifiable, dans l'un des états `states`. */
+  /** Metamorph de la page courante modifiable, dans l'un des états montrés `states`. */
   private target(shapeId: string, states: readonly MetamorphState[]) {
     const editable = this.core.targets.editablePage();
     const shape = shapeOf(editable?.page, shapeId);
-    const state = shape && metamorphStateOf(shape);
+    const state = shape && this.stateOf(shape);
     if (!editable || !shape || !state || !states.includes(state)) return undefined;
     return { ...editable, shape };
   }

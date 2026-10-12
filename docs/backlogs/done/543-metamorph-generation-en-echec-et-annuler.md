@@ -29,3 +29,22 @@
 - Docs : COMPOSANT (événement `metamorphRequest` : que faire en cas d'échec), SPEC §8.3.
 - **Fini quand :** dans l'appli, une génération qui échoue (serveur mocké forcé en erreur) laisse « Réessayer »
   disponible ; annuler une autre modification pendant la génération ne grise pas la forme ; `make check` vert.
+- Fait :
+  - Moteur (`core/domains/edit/metamorphs.ts`) : `failed(shapeId, error)` (façade `Engine.metamorphFailed`) rend la
+    forme prête sans propositions, avec le message `MetamorphView.error` montré par le panneau ; « Réessayer » et
+    « Reprompt » rendent la main. L'état montré vient des propositions en mémoire (`stateOf`) : prête dès qu'elles y
+    sont, même si le fichier dit `morphing` (annuler une modification faite pendant la génération), en attente tant
+    qu'elles n'y sont pas. Réponse et échec partagent `received`. Paramètre `merge` de `setInstructions` retiré
+    (jamais passé : une étape par écriture, comme avant).
+  - Appli (`src/app/metamorph/metamorphHost.ts`) : erreurs du serveur attrapées (génération → `metamorphFailed`,
+    bibliothèque, acceptation) ; formes `metamorph:*` absentes de la bibliothèque du serveur (ou serveur sans forme,
+    ou en erreur) déclarées introuvables. Serveur injectable pour les tests.
+  - Écart de comportement : une génération en échec n'est plus bloquante ; une forme Metamorph inconnue du serveur est
+    « introuvable » ; annuler pendant une génération ne grise plus la forme (son halo suit encore le fichier :
+    `morphing` jusqu'au prochain geste sur elle).
+  - Tests : `metamorphs.test.ts` (échec, annuler pendant la génération, annuler « Réessayer »),
+    `tests/app/metamorph/metamorphHost.test.ts` (serveur qui rejette, sans forme, forme inconnue, acceptation).
+  - Docs : COMPOSANT (exemple avec `metamorphFailed`, réponse obligatoire, formes introuvables), SPEC §8.3.
+  - Vérifié dans l'appli (`metamorph.drawio`) : Valider, style changé sur une autre forme pendant la génération,
+    annuler → la Metamorph reste « Prêt » avec sa proposition, Réessayer actif. L'échec du serveur n'est vérifié que
+    par les tests (le mock ne rejette jamais).

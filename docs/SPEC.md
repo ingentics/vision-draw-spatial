@@ -353,10 +353,12 @@ fichier, les formes non chargées du document ; `shapeLibrariesChange` prévient
   « Morphing… », un halo gris qui tourne et pulse (deux pulsations, deux temps de pause, en boucle) ; le même en
   arc-en-ciel quand les propositions attendent un choix. État `spatial.metamorph` (`draft`, `morphing`, `ready`),
   instructions `spatial.metamorphInstructions` (attribut de l'objet). Cycle mené par le moteur (`core/domains/edit/metamorphs.ts`) : « Valider » → événement `metamorphRequest` →
-  `metamorphResults` (JSON de bibliothèque de formes, une proposition par forme) → « Réessayer » (nouvelle demande),
+  `metamorphResults` (JSON de bibliothèque de formes, une proposition par forme) ou `metamorphFailed` (génération
+  échouée : prête sans propositions, message de l'hôte dans le panneau ; sujet 543) → « Réessayer » (nouvelle demande),
   « Reprompt » (retour au brouillon) ou proposition choisie : la cellule prend le style de la forme de bibliothèque
   choisie (bornes, texte, flèches gardés). Les formes acceptées sont gardées par l'hôte et rechargées comme une
-  bibliothèque (§8.2).
+  bibliothèque (§8.2) ; celles qu'il ne connaît pas sont introuvables. Des propositions en mémoire font une forme
+  prête même si le fichier dit `morphing` (annuler une modification faite pendant la génération).
 - **Flèche pleine** (`general/block-arrow`, palette « Général », après la Flèche ; sujet 410) : une **arête**
   `shape=flexArrow`, toujours droite de la queue à la pointe (routeur, points intermédiaires et boucle ignorés, aucune
   poignée entre les bouts), dessinée en un polygone plein effilé de la couleur du trait (`render/edges/blockArrow.ts`) :

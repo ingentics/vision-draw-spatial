@@ -57,4 +57,6 @@ export interface MetamorphView {
   instructions: string;
   /** Propositions reçues ; vide tant qu'elles ne sont pas arrivées (y compris à la réouverture d'un état `ready`). */
   candidates: MetamorphCandidate[];
+  /** Message de l'hôte quand la génération a échoué (état `ready`, sans propositions). */
+  error?: string;
 }

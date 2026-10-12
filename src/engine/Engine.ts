@@ -436,9 +436,9 @@ export class Engine {
     return this.core.metamorphs.view(shapeId);
   }
 
-  /** Instructions visuelles d'une Metamorph au brouillon ; `merge` : saisie en direct, une étape d'annulation. */
-  setMetamorphInstructions(shapeId: string, instructions: string, merge?: string): void {
-    this.core.metamorphs.setInstructions(shapeId, instructions, merge);
+  /** Instructions visuelles d'une Metamorph au brouillon (une étape d'annulation). */
+  setMetamorphInstructions(shapeId: string, instructions: string): void {
+    this.core.metamorphs.setInstructions(shapeId, instructions);
   }
 
   /** « Valider » une Metamorph au brouillon : sa demande part à l'hôte (`metamorphRequest`). Faux si rien à décrire. */
@@ -453,6 +453,14 @@ export class Engine {
    */
   metamorphResults(shapeId: string, json: unknown): ShapeLibraryResult {
     return this.core.metamorphs.results(shapeId, json);
+  }
+
+  /**
+   * Génération échouée chez l'hôte (réponse à `metamorphRequest`) : la Metamorph est prête sans propositions, montre
+   * `error`, et « Réessayer » ou « Reprompt » rendent la main. Faux si la forme n'attend plus rien.
+   */
+  metamorphFailed(shapeId: string, error: string): boolean {
+    return this.core.metamorphs.failed(shapeId, error);
   }
 
   /**
