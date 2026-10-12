@@ -377,3 +377,57 @@ describe('polygones arrondis (32)', () => {
     expect(diamond.getObjectByName('stroke-vertical')).toBeUndefined();
   });
 });
+
+describe('rectangles empilés (521)', () => {
+  const STYLE = 'shape=mxgraph.basic.layered_rect;dx=5;outlineConnect=0;whiteSpace=wrap;html=1;';
+  const shape = (style = STYLE) => page([style], 120, 80).page.shapes[0]!;
+  const outline = (style?: string) => {
+    const s = shape(style);
+    return round(registry.resolve(s).definition.outline!(s, MEASURE));
+  };
+
+  it('escalier de trois couches décalées de dx, au plus le quart du petit côté', () => {
+    expect(registry.resolve(shape()).definition.id).toBe('stacked-rectangles');
+    expect(outline().slice(0, 6)).toEqual([
+      [100, 110],
+      [105, 110],
+      [105, 105],
+      [110, 105],
+      [110, 100],
+      [220, 100],
+    ]);
+    // dx=50 sur 120 × 80 : plafonné à 80 / 4 = 20.
+    expect(outline(STYLE.replace('dx=5', 'dx=50'))[0]).toEqual([100, 140]);
+  });
+
+  it('texte dans le rectangle de devant', () => {
+    expect(registry.textZone(shape(), 'flat')).toEqual({ x: 100, y: 110, width: 110, height: 70 });
+  });
+});
+
+describe('bouclier (522)', () => {
+  const STYLE = SHAPE_DEFINITIONS.find((definition) => definition.id === 'shield')!.palette!.style;
+  const shape = (height: number) => page([STYLE], 80, height).page.shapes[0]!;
+  const outline = (height: number) => {
+    const s = shape(height);
+    return round(registry.resolve(s).definition.outline!(s, MEASURE));
+  };
+
+  it('haut bombé de 10 et pointe de 50, fixes ; réduits ensemble sur une forme moins haute', () => {
+    expect(registry.resolve(shape(100)).definition.id).toBe('shield');
+    const tall = outline(100);
+    expect(tall[0]).toEqual([100, 110]);
+    expect(tall).toContainEqual([140, 100]);
+    expect(tall).toContainEqual([180, 150]);
+    expect(tall).toContainEqual([140, 200]);
+    // 30 de haut, moitié de 10 + 50 : haut de 5, pointe de 25.
+    const short = outline(30);
+    expect(short[0]).toEqual([100, 105]);
+    expect(short).toContainEqual([180, 105]);
+    expect(short).toContainEqual([140, 130]);
+  });
+
+  it('texte dans la partie haute, au-dessus des trois quarts de la pointe', () => {
+    expect(registry.textZone(shape(100), 'flat')).toEqual({ x: 100, y: 110, width: 80, height: 52.5 });
+  });
+});

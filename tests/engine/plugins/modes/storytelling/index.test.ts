@@ -1,16 +1,16 @@
 import { Object3D } from 'three';
 import { describe, expect, it } from 'vitest';
-import { documentFromTree, readDrawio } from '../../../../src/engine/core/format/parse';
-import type { PageModel } from '../../../../src/engine/core/model/types';
-import type { ModeEdit } from '../../../../src/engine/core/modes/modeEdit';
-import { DEFAULT_MODE_EDIT_CONTEXT, applyModeEdit } from '../../../../src/engine/core/modes/modeEditWriter';
-import { buildPageScene } from '../../../../src/engine/core/render/pageScene';
-import type { RenderContext } from '../../../../src/engine/core/render/types';
-import { spatialValue } from '../../../../src/engine/core/spatial';
-import { createDefaultModeRegistry, createDefaultRegistry } from '../../../../src/engine/plugins';
-import { definition as storytelling } from '../../../../src/engine/plugins/modes/storytelling';
-import { storiesExport } from '../../../../src/engine/plugins/modes/storytelling/export/json';
-import { STORY_KEYS, keys } from '../../../../src/engine/plugins/modes/storytelling/keys';
+import { documentFromTree, readDrawio } from '../../../../../src/engine/core/format/parse';
+import type { PageModel } from '../../../../../src/engine/core/model/types';
+import type { ModeEdit } from '../../../../../src/engine/core/modes/modeEdit';
+import { DEFAULT_MODE_EDIT_CONTEXT, applyModeEdit } from '../../../../../src/engine/core/modes/modeEditWriter';
+import { buildPageScene } from '../../../../../src/engine/core/render/pageScene';
+import type { RenderContext } from '../../../../../src/engine/core/render/types';
+import { spatialValue } from '../../../../../src/engine/core/spatial';
+import { createDefaultModeRegistry, createDefaultRegistry } from '../../../../../src/engine/plugins';
+import { definition as storytelling } from '../../../../../src/engine/plugins/modes/storytelling';
+import { storiesExport } from '../../../../../src/engine/plugins/modes/storytelling/export/json';
+import { STORY_KEYS, keys } from '../../../../../src/engine/plugins/modes/storytelling/keys';
 import {
   COLOR,
   NUMBER,
@@ -21,9 +21,9 @@ import {
   startStory,
   stopStory,
   storyState,
-} from '../../../../src/engine/plugins/modes/storytelling/stories';
-import { fixture, MEASURE } from '../../../helpers';
-import { modeHost } from '../../modeHost';
+} from '../../../../../src/engine/plugins/modes/storytelling/stories';
+import { fixture, MEASURE } from '../../../../helpers';
+import { modeHost } from '../../../modeHost';
 
 /** Page `index` de la fixture, et une fonction qui applique une opération puis relit la page. */
 function setup(index = 0, palette?: readonly string[]) {

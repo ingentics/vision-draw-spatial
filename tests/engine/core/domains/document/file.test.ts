@@ -17,6 +17,7 @@ import type { PageModel } from '../../../../../src/engine/core/model/types';
 import { createDefaultRegistry } from '../../../../../src/engine/plugins';
 import { shapeOf } from '../../../../../src/engine/core/model/pageIndex';
 import { traced } from '../traced';
+import { fixture } from '../../../../helpers';
 
 const XML = `<mxfile><diagram id="p" name="P"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
 <mxCell id="a" value="A" vertex="1" parent="1"><mxGeometry x="0" y="0" width="100" height="60" as="geometry"/></mxCell>
@@ -284,5 +285,26 @@ describe('labels du fichier écrits par un mode (sujets 478, 503)', () => {
     await file.load(xml, 'f');
     expect(cellLabelValue(file.xmlTree!.pages[0]!, 'a')).toBe('A');
     expect(shapeOf(file.document!.pages[0], 'a')!.label).toBe('A');
+  });
+
+  it('plusieurs pages, l’une compressée en mode, l’autre sans mode : seule la première réécrite, arbre remis (sujet 550)', async () => {
+    const diagram = /<diagram[\s\S]*?<\/diagram>/.exec(fixture('compressed.drawio'))![0];
+    const plain =
+      '<diagram id="plain" name="Sans mode"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>' +
+      '<mxCell id="b" value="B" vertex="1" parent="1"><mxGeometry width="10" height="10" as="geometry"/></mxCell>' +
+      '</root></mxGraphModel></diagram>';
+    const { file } = tracedSetup((pages, direction) =>
+      (pages as PageModel[])[0]!.id === 'simple-page' ? fileLabels(pages, direction) : undefined,
+    );
+    await file.load(`<mxfile>${diagram}${plain}</mxfile>`, 'f');
+    const shape = file.document!.pages[0]!.shapes.find((candidate) => candidate.label)!;
+    const before = cellLabelValue(file.xmlTree!.pages[0]!, shape.id);
+    const xml = file.serialize()!;
+    const written = readDrawio(xml).tree;
+    expect(cellLabelValue(written.pages[0]!, shape.id)).toBe(`${HEAD}${before}`);
+    expect(cellLabelValue(written.pages[1]!, 'b')).toBe('B');
+    expect(cellLabelValue(file.xmlTree!.pages[0]!, shape.id)).toBe(before);
+    // Arbre remis : un second enregistrement écrit le même fichier (page réencodée de la même façon).
+    expect(file.serialize()).toBe(xml);
   });
 });

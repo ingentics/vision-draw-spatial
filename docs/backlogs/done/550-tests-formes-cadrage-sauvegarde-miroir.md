@@ -13,3 +13,16 @@
   `simulation/storySimulator.ts`), `shapes/metamorph.test.ts` (pour `metamorph/blob.ts`) : à déplacer.
 - Écart de comportement : aucun (tests seuls).
 - **Fini quand :** ces tests existent et passent ; `make check` vert.
+- Fait :
+  - `geometry.test.ts` : rectangles empilés (escalier, `dx` plafonné au quart du petit côté, texte dans le rectangle
+    de devant) et bouclier (haut de 10 et pointe de 50 fixes, réduits ensemble, zone du texte).
+  - `core/domains/view/camera.test.ts` : `keepInView` (forme dans la vue, `whole` avec une voisine hors de la vue,
+    forme sortie, forme inconnue).
+  - `file.test.ts` : enregistrement de deux pages, l'une compressée en mode, l'autre sans mode : labels du mode sur la
+    première seule, arbre remis, second enregistrement identique.
+  - `eventstorming/index.test.ts` : post-it avec titre de groupe et pastille (habillage des deux, `parts.bounds` de
+    chaque partie).
+  - Tests rangés comme `src/` : `modes/storytelling.test.ts` → `modes/storytelling/index.test.ts` ;
+    `shapes/metamorph.test.ts` → `shapes/general/metamorph/blob.test.ts` ; la partie `StorySimulator` de
+    `storyPlayback.test.ts` → `storySimulator.test.ts`.
+  - Écart de comportement : aucun (tests seuls). Vérifié par `make check`.

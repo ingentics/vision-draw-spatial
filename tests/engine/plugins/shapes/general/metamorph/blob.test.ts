@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { boundsOfPoints, insidePolygon } from '../../../../src/engine/core/model/geometry';
-import { blobOutline, outerRing } from '../../../../src/engine/plugins/shapes/general/metamorph/blob';
+import { boundsOfPoints, insidePolygon } from '../../../../../../src/engine/core/model/geometry';
+import { blobOutline, outerRing } from '../../../../../../src/engine/plugins/shapes/general/metamorph/blob';
 
 describe('contour en blob de la Metamorph (sujet 539)', () => {
   const bounds = { x: 100, y: 50, width: 80, height: 100 };

@@ -8,6 +8,9 @@ import { createDefaultRegistry, MODE_SHAPE_DEFINITIONS, SHAPE_TEMPLATES } from '
 import { definition as storming } from '../../../../../src/engine/plugins/modes/eventstorming';
 import { STICKY_TYPES, stickyType } from '../../../../../src/engine/plugins/modes/eventstorming/kinds';
 import { MEASURE } from '../../../../helpers';
+import { GROUP_PART, TITLE_TEXT } from '../../../../../src/engine/plugins/modes/eventstorming/groups/groupLabels';
+import { groupOf } from '../../../../../src/engine/plugins/modes/eventstorming/groups/stickyGroups';
+import { BADGE, BADGE_PART } from '../../../../../src/engine/plugins/modes/eventstorming/warnings/stickyWarnings';
 import { setup, sticky, stormingXml, textCell } from './helpers';
 
 const KINDS = [
@@ -137,5 +140,21 @@ describe('mode Event storming : panneau d’un post-it (sujet 483)', () => {
     const registry = createDefaultRegistry();
     const { shape } = setup(stormingXml(sticky('a', 'event', 0, 0)));
     expect(registry.view().styleable(shape('a'))).toBe(false);
+  });
+});
+
+describe('post-it portant le titre de son groupe et une pastille (sujet 550)', () => {
+  it('habillage des deux, et chaque partie à sa place', () => {
+    // Deux Commands collées : un groupe, et des avertissements (aucune règle entre elles).
+    const { page, shape } = setup(stormingXml(sticky('a', 'command', 0, 0, 'A') + sticky('b', 'command', 160, 0, 'B')));
+    const first = shape('a');
+    const style = storming.dressing!(page(), {}).shapeStyle!(first)!;
+    expect(style[BADGE]).toBe('warning');
+    expect(style[TITLE_TEXT]).toBeDefined();
+    const parts = storming.parts!;
+    expect(parts.bounds(page(), first, BADGE_PART)).toEqual({ x: 7, y: 7, width: 20, height: 20 });
+    expect(parts.bounds(page(), first, GROUP_PART)).toEqual(groupOf(page(), 'a')!.title);
+    // Le titre n'est porté que par le premier post-it du groupe.
+    expect(parts.bounds(page(), shape('b'), GROUP_PART)).toBeUndefined();
   });
 });
