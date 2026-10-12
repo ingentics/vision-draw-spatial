@@ -5,6 +5,7 @@ import { ERROR_COLOR, isErrorExit } from '../exits/exitKind';
 import { isComposite, isFinal, isInitial, isStateLike } from '../kinds';
 import { bodyLines } from '../state/stateLayout';
 import { stateBody } from '../state/bodyText';
+import { businessRules } from '../transitions/businessRules';
 import { transitionsOf } from '../transitions/transitionRules';
 
 /**
@@ -15,7 +16,7 @@ import { transitionsOf } from '../transitions/transitionRules';
  * contient ses états, ses ensembles et les transitions écrites à son niveau. Points d'entrée et de sortie s'écrivent
  * `[*]` au niveau de l'ensemble qui les contient (PlantUML lie `[*]` au bloc où il est écrit) : plusieurs points de
  * sortie d'un même niveau ne font qu'un. Une transition entre deux états est écrite au niveau du plus petit ensemble qui
- * contient ses deux bouts, en rouge vers une sortie en erreur. Une transition refusée ou à bout libre (Diagnostics, sujet 434) n'est pas écrite.
+ * contient ses deux bouts, en rouge vers une sortie en erreur, suivie de ses règles de gestion en `note on link` (528). Une transition refusée ou à bout libre (Diagnostics, sujet 434) n'est pas écrite.
  */
 
 /** Indentation d'un niveau d'ensemble. */
@@ -34,7 +35,8 @@ interface Transition {
   initial: boolean;
   /** États et ensembles qu'elle nomme. */
   nodes: string[];
-  line: string;
+  /** La transition, puis la note de ses règles de gestion s'il y en a (sujet 528). */
+  lines: string[];
 }
 
 /** Ids des ensembles qui contiennent `shape`, du plus proche au plus lointain. */
@@ -68,7 +70,8 @@ export function statesPlantUml(page: PageModel): string {
     const nodes = [source, target].filter(isStateLike).map((node) => node.id);
     // Vers une sortie en erreur : flèche rouge.
     const arrow = isErrorExit(target) ? `-[${ERROR_COLOR}]->` : '-->';
-    return { level, initial, nodes, line: `${from} ${arrow} ${to}${transitionName(edge)}` };
+    const line = `${from} ${arrow} ${to}${transitionName(edge)}`;
+    return { level, initial, nodes, lines: [line, ...rulesNote(edge)] };
   });
   /** États nommés par une transition : un état de la page au nom simple et sans contenu n'a pas à être déclaré. */
   const named = new Set(transitions.flatMap((transition) => transition.nodes));
@@ -111,8 +114,8 @@ export function statesPlantUml(page: PageModel): string {
     const declared = nodes.filter((node) => levelOf(node) === level);
     return [
       ...[...declared.filter(comesEarly), ...declared.filter((node) => !comesEarly(node))].flatMap(declaration),
-      ...here.filter((transition) => transition.initial).map((transition) => transition.line),
-      ...here.filter((transition) => !transition.initial).map((transition) => transition.line),
+      ...here.filter((transition) => transition.initial).flatMap((transition) => transition.lines),
+      ...here.filter((transition) => !transition.initial).flatMap((transition) => transition.lines),
     ];
   }
 
@@ -123,6 +126,12 @@ export function statesPlantUml(page: PageModel): string {
 function transitionName(edge: EdgeModel): string {
   const name = plantUmlLine(edge.label);
   return name ? ` : ${name}` : '';
+}
+
+/** Règles de gestion d'une transition (sujet 528) en note sur le lien, rien sans règle. */
+function rulesNote(edge: EdgeModel): string[] {
+  const rules = businessRules(edge).map((rule) => INDENT + plantUmlLine(rule));
+  return rules.length === 0 ? [] : ['note on link', ...rules, 'end note'];
 }
 
 /** Export PlantUML de la page, pour la fenêtre d'export commune de l'appli (format et texte). */

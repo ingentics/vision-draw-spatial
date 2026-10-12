@@ -202,7 +202,10 @@ export class PointerInput {
     const shape = shown && picked.type === 'shape' ? (picked.element as ShapeModel) : undefined;
     const part = shape && this.core.shapeParts.hoveredPart(shape.id);
     const partComment = shape && part !== undefined && this.core.shapeParts.comment(shape, part);
-    const comment = partComment ? withPartComment(own, partComment) : own;
+    // Flèche : encart de son mode après son commentaire (ex. règles de gestion d'une transition, sujet 528).
+    const edgeNote = shown && picked.type === 'edge' ? this.core.pageModes.edgeNote(picked.element.id) : undefined;
+    const extra = partComment || edgeNote;
+    const comment = extra ? withPartComment(own, extra) : own;
     if (!sameComment(comment, this.hoverComment)) {
       this.hoverComment = comment;
       this.core.events.emit('commentHover', comment);

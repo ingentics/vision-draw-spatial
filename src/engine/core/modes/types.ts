@@ -173,6 +173,11 @@ export interface ModeEdges {
    */
   manages?(page: PageModel, edge: EdgeModel): boolean;
   /**
+   * Encart du mode joint au commentaire d'une flèche, au survol (sujet 528, ex. règles de gestion d'une transition) :
+   * titre et texte brut, montrés après son commentaire (s'il en a un) sous un trait ; undefined : rien.
+   */
+  note?(page: PageModel, edge: EdgeModel): { title: string; text: string } | undefined;
+  /**
    * Flèches dont le mode place le point d'arrivée (sujet 338, ex. flèches vers un champ RDD, sujet 333) : en ancrage
    * automatique et Typon, ce bout n'est pas réparti sur son côté ; le tracé arrive là où le mode l'a mis.
    */

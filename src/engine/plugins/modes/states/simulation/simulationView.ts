@@ -2,12 +2,13 @@ import type { EdgeModel, PageModel, ShapeModel } from '../../../../core/plugins'
 import { edgeOf, elementName, shapeOf } from '../../../../core/plugins';
 import { ERROR_COLOR, isErrorExit } from '../exits/exitKind';
 import { isFinal, isInitial, isStateLike } from '../kinds';
+import { businessRules } from '../transitions/businessRules';
 import { outgoingTransitions } from '../transitions/transitionRules';
 import type { SimulationEnd, StateSimulation } from './stateSimulation';
 
 /**
- * Ce que l'appli montre d'une simulation de machine à états (sujets 462, 463, 527) : contenu du pas courant pour la
- * couche, suite à cadrer, noms des pas, fin, trace.
+ * Ce que l'appli montre d'une simulation de machine à états (sujets 462, 463, 527, 528) : contenu du pas courant pour
+ * la couche, suite à cadrer, noms des pas, fin, trace, règles de gestion des transitions proposées.
  */
 
 /** Ce que la couche montre d'un pas : ids de la page simulée. */
@@ -37,6 +38,21 @@ export function stepLook(sim: StateSimulation): StepLook {
     proposed: sim.proposals().map(({ edge }, i) => ({ id: edge.id, badge: String(i + 1) })),
     taken: [...sim.taken()],
   };
+}
+
+/** Règles de gestion d'une transition proposée (sujet 528) : numéro de sa pastille, nom (vide sans nom), règles. */
+export interface ProposedRules {
+  badge: string;
+  name: string;
+  rules: string[];
+}
+
+/** Règles de gestion des transitions proposées, dans l'ordre des pastilles ; sans celles qui n'en ont pas. */
+export function proposedRules(sim: StateSimulation): ProposedRules[] {
+  return sim.proposals().flatMap(({ edge }, i) => {
+    const rules = businessRules(edge);
+    return rules.length === 0 ? [] : [{ badge: String(i + 1), name: transitionName(edge), rules }];
+  });
 }
 
 /** Profondeur de la suite cadrée avec l'élément courant (sujet 527) : en nombre de transitions. */

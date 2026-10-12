@@ -2,11 +2,12 @@ import type { MouseEvent } from 'react';
 import { END_LABELS, stepName } from '../../../../engine/plugins/modes/states/api';
 import type { ModeCanvasProps } from '../registry';
 import { launch, launchFrom, useLauncher, useOpenedSimulation } from './simulationRun';
+import { SimulationRules } from './SimulationRules';
 import { SimulationStart } from './SimulationStart';
 
 /**
  * Barre flottante de la simulation (sujet 462), en bas de la zone de dessin : Recommencer, Retour, Suivant, Arrêter,
- * le pas courant, et le bandeau de fin. Hors simulation, un bouton la lance depuis la sélection (un état sélectionné
+ * le pas courant, et le bandeau de fin ; au-dessus, les règles de gestion des transitions proposées (sujet 528). Hors simulation, un bouton la lance depuis la sélection (un état sélectionné
  * est le départ ; le bouton du panneau de la page n'est montré que sans sélection).
  */
 export function SimulationBar({ page, controls }: ModeCanvasProps) {
@@ -41,6 +42,7 @@ export function SimulationBar({ page, controls }: ModeCanvasProps) {
   const canBack = sim.canBack();
   return (
     <div className="simulation-dock" onMouseDown={keepFocus}>
+      <SimulationRules sim={sim} />
       <div className="simulation-bar running" role="toolbar" aria-label="Simulation">
         <button
           type="button"

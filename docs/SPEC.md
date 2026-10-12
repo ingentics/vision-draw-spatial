@@ -1073,7 +1073,10 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
   - **Transition** : toute flèche de la page, à pointe classique et trait plein. Bouts imposés (`edges.connects`) :
     états et ensembles dans les deux sens, un point d'entrée en départ seulement, un point de sortie en arrivée
     seulement ; pas de bout libre (`edges.attachedEnds`), et une transition à bout libre venue d'ailleurs est signalée
-    dans Diagnostics. Son nom est le texte du milieu ; la section « Transition » du panneau montre ses deux bouts.
+    dans Diagnostics. Son nom est le texte du milieu ; la section « Transition » du panneau montre ses deux bouts et
+    ses « Règles de gestion » (sujet 528), une par ligne (`spatial.sm.rules`), non dessinées sur la flèche ; au survol,
+    l'encart du commentaire les montre en puces sous le titre « Règles de gestion », après le commentaire s'il y en a
+    un (sous un trait), seules sinon.
   - **Ensemble** (`states-composite`, 320 × 180) : même aspect et mêmes comportements que la région RDD (onglet du
     nom, contenu = formes du mode dont le coin haut-gauche est dedans, emporté au déplacement, agrandi pour
     contenir une forme posée, « f » ajuste au contenu, ensembles frères qui ne se chevauchent pas, imbrication à toute
@@ -1087,7 +1090,8 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     transitions. Points d'entrée et de sortie en `[*]` au niveau de leur ensemble (plusieurs sorties d'un même niveau
     n'en font qu'un). Une transition s'écrit au niveau du plus petit ensemble qui contient ses deux bouts, en rouge vers
     une sortie en erreur (`-[#d32f2f]->`). La cible d'un point d'entrée d'un autre niveau est déclarée avant, à son
-    niveau (sujet 446). Une transition à bout libre n'est pas écrite.
+    niveau (sujet 446). Une transition à bout libre n'est pas écrite. Les règles de gestion d'une transition la
+    suivent en `note on link` … `end note`, une règle par ligne (sujet 528).
   - **Simulation pas à pas** (sujets 460 à 468) : bouton « Lancer la simulation » de la section « Machine à états »
     (page sans sélection) ou « ▶ Lancer la simulation » de la barre en bas de la zone de dessin (départ d'un état
     sélectionné). Rien n'est écrit dans le fichier.
@@ -1105,7 +1109,8 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     - **Rendu** : page voilée, état courant en bleu (`#1e88e5`) avec halo qui pulse, ensembles parents encadrés, états
       visités teintés avec compteur « ×N » dès le 2e passage, transitions proposées en pointillés qui défilent avec
       leur pastille numérotée, transitions empruntées en bleu plein ; un point parcourt la transition franchie en
-      250 ms (lancé vite, il ralentit). Avec les animations réduites, tout est immobile.
+      250 ms (lancé vite, il ralentit). Avec les animations réduites, tout est immobile. Au-dessus de la barre, les
+      règles de gestion des transitions proposées qui en ont, avec leur pastille et leur nom (sujet 528).
     - **Caméra** (sujet 527) : elle cadre l'élément courant et sa suite (éléments atteignables en 1 ou 2 transitions),
       centrée sur leur emprise, le zoom ne baissant que s'ils ne tiennent pas (marge de 48 px) ; au lancement dès
       qu'une de ces formes n'est pas entière dans la vue, ensuite quand l'élément courant sort de la vue.

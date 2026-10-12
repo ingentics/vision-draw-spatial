@@ -75,6 +75,7 @@ interface PageModeDefinition {
     connects?(page, source, target, part?): boolean; // flèches permises (ex. liaisons des tables RDD)
     attachedEnds?(page): boolean;              // aucun bout libre : un bout rebranché dans le vide revient à sa place
     manages?(page, edge): boolean;             // flèche gérée par le mode (réglages imposés)
+    note?(page, edge): { title, text };        // encart sous le commentaire, au survol (sujet 528)
     placedEntries?(page): string[];            // flèches dont le mode place l'arrivée (pas réparties en auto / Typon)
     created?(edit, edgeId, current, part?): void; // flèche tirée depuis une forme (même étape d'annulation)
     reconnected?(edit, edgeId, part?): void;   // bout d'une flèche rebranché (même étape)
@@ -418,6 +419,7 @@ Règles communes (sujet 288) :
 | `edges.connects` | pendant le tirage ou le rebranchement d'un bout, pour chaque forme candidate | page du modèle | aucune | accroche permise |
 | `edges.attachedEnds` | lâcher d'un bout rebranché dans le vide ou sur une forme refusée | page du modèle | aucune | bout libre permis |
 | `edges.manages` | panneau d'une flèche, textes de début / fin (édition, déplacement) | page courante | aucune | flèche non gérée |
+| `edges.note` | encart du commentaire au survol d'une flèche | page courante | aucune | rien sous le commentaire |
 | `edges.placedEntries` | chaque répartition en ancrage automatique ou Typon (édition, déplacement en cours, Autre agencement, changement d'ancrage) | page du modèle | aucune | toutes les arrivées réparties |
 | **Formes et gestes** | | | | |
 | `gestures.carries` | début d'un déplacement (glisser, clavier), Aligner / Répartir, mise en valeur de la sélection ; de proche en proche | page du modèle | aucune | n'emporte rien (ce qui a été trouvé avant la panne est gardé) |

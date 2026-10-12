@@ -97,6 +97,16 @@ export class PageModes {
     return this.call(mode, 'edges.manages', false, mode.edges?.manages, page, edge);
   }
 
+  /** Encart du mode joint au commentaire d'une flèche de la page courante (`edges.note`, sujet 528) ; undefined : rien. */
+  edgeNote(edgeId: string): { title: string; text: string } | undefined {
+    const page = this.core.pages.getCurrentPage();
+    const edge = edgeOf(page, edgeId);
+    const mode = page && this.core.modes.modeOf(page);
+    if (!page || !edge || !mode) return undefined;
+    const note = this.call(mode, 'edges.note', undefined, mode.edges?.note, page, edge);
+    return note?.text.trim() ? note : undefined;
+  }
+
   /**
    * Bouts d'arrivée que le mode de `page` place lui-même (`edges.placedEntries`, sujet 338), en clés `endKey` : la
    * répartition de l'ancrage automatique et Typon les laisse en place.

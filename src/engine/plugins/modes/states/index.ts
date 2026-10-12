@@ -13,6 +13,7 @@ import { STATES_KEYS } from './keys';
 import { COMPOSITE_LIGHTENING, OBSTACLE_GAP, STATES_SETTINGS } from './settings';
 import { BODY_PROPERTY, fitState } from './state/stateBody';
 import { stateParts } from './state/stateParts';
+import { RULES_PROPERTY, rulesNote } from './transitions/businessRules';
 import { TRANSITION_PROPERTIES, canConnect, styleTransition, transitionIssues } from './transitions/transitionRules';
 
 /**
@@ -57,11 +58,14 @@ export const definition: PageModeDefinition = {
     check: transitionIssues,
   },
   edges: {
-    // Toute flèche est une transition : bouts imposés, nom au milieu, commentaire ; ses bouts en tête du panneau.
-    properties: TRANSITION_PROPERTIES,
+    // Toute flèche est une transition : bouts imposés, nom au milieu, commentaire ; ses bouts et ses règles de gestion
+    // en tête du panneau.
+    properties: [...TRANSITION_PROPERTIES, RULES_PROPERTY],
     connects: (_page, source, target) => canConnect(source, target),
     attachedEnds: () => true,
     manages: () => true,
+    // Règles de gestion dans l'encart du commentaire au survol, sous le commentaire.
+    note: rulesNote,
     created: (edit, edgeId) => styleTransition(edit, edgeId),
   },
   gestures: {

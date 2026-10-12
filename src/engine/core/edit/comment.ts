@@ -14,8 +14,9 @@ export interface ElementComment {
   text: string;
   html?: string;
   /**
-   * Au survol seulement (sujet 262) : commentaire de la partie survolée de la forme (ex. champ d'une table RDD), montré
-   * après celui de l'élément (vide s'il n'en a pas), séparé d'un trait, sous son titre en gras.
+   * Au survol seulement (sujet 262) : commentaire de la partie survolée de la forme (ex. champ d'une table RDD), ou
+   * encart du mode d'une flèche (sujet 528, ex. règles de gestion), montré après celui de l'élément (vide s'il n'en a
+   * pas), séparé d'un trait, sous son titre en gras.
    */
   part?: { title: string; text: string };
 }
