@@ -1,5 +1,5 @@
-import type { EdgeBadgeStyle, ModeCurrentLook, PluginSetting, PluginValues } from '../../../core/plugins';
-import { booleanValue, numberValue, stringValue } from '../../../core/plugins';
+import type { ModeCurrentLook, PluginSetting, PluginValues } from '../../../core/plugins';
+import { edgeBadgeSettings, numberValue } from '../../../core/plugins';
 
 /** Réglages globaux du mode Story telling (Paramètres › Modes › Histoires), repris de Séquences (sujet 474). */
 export const STORY_SETTINGS: PluginSetting[] = [
@@ -15,96 +15,10 @@ export const STORY_SETTINGS: PluginSetting[] = [
     default: 0.3,
     unit: '%',
   },
-  {
-    key: 'badgeFaceCamera',
-    type: 'toggle',
-    group: 'Pastilles',
+  ...edgeBadgeSettings({
     groupHint: 'Numéro de l’histoire, sur la flèche qui l’ouvre.',
-    label: 'Pastille face à la caméra',
-    default: true,
-  },
-  {
-    key: 'badgeLabelFaceCamera',
-    type: 'toggle',
-    label: 'Texte des flèches numérotées face à la caméra',
-    default: true,
-  },
-  {
-    key: 'badgeBorderColor',
-    type: 'color',
-    label: 'Couleur de la bordure',
-    default: '#000000',
-  },
-  {
-    key: 'badgeBorderWidth',
-    type: 'number',
-    label: 'Épaisseur de la bordure',
-    min: 0,
-    max: 6,
-    step: 0.5,
-    default: 1,
-    unit: 'px',
-    zero: 'aucune',
-  },
-  {
-    key: 'badgeTextColor',
-    type: 'color',
-    label: 'Couleur du chiffre',
-    default: '#000000',
-  },
-  { key: 'badgeBold', type: 'toggle', label: 'Chiffre en gras', default: false },
-  {
-    key: 'badgeRadius',
-    type: 'number',
-    group: 'Pastille d’une flèche avec texte',
-    label: 'Rayon',
-    min: 3,
-    max: 40,
-    step: 0.5,
-    default: 12,
-    unit: 'px',
-  },
-  {
-    key: 'badgeTextSize',
-    type: 'number',
-    label: 'Taille du chiffre',
-    min: 4,
-    max: 60,
-    step: 1,
-    default: 15,
-    unit: 'px',
-  },
-  {
-    key: 'badgeGap',
-    type: 'number',
-    label: 'Écart avec le texte',
-    min: 0,
-    max: 30,
-    step: 1,
-    default: 2,
-    unit: 'px',
-  },
-  {
-    key: 'badgeSmallRadius',
-    type: 'number',
-    group: 'Pastille d’une flèche sans texte',
-    label: 'Rayon',
-    min: 2,
-    max: 20,
-    step: 0.5,
-    default: 5.5,
-    unit: 'px',
-  },
-  {
-    key: 'badgeSmallTextSize',
-    type: 'number',
-    label: 'Taille du chiffre',
-    min: 3,
-    max: 30,
-    step: 1,
-    default: 7,
-    unit: 'px',
-  },
+    labelFaceCamera: 'Texte des flèches numérotées face à la caméra',
+  }),
   {
     key: 'edgeWidth',
     type: 'number',
@@ -141,23 +55,6 @@ export const STORY_SETTINGS: PluginSetting[] = [
     unit: '%',
   },
 ];
-
-/** Apparence des pastilles d'après les réglages du mode. */
-export function badgeStyle(values: PluginValues): EdgeBadgeStyle {
-  return {
-    radius: numberValue(values, 'badgeRadius'),
-    textSize: numberValue(values, 'badgeTextSize'),
-    smallRadius: numberValue(values, 'badgeSmallRadius'),
-    smallTextSize: numberValue(values, 'badgeSmallTextSize'),
-    borderColor: stringValue(values, 'badgeBorderColor'),
-    borderWidth: numberValue(values, 'badgeBorderWidth'),
-    textColor: stringValue(values, 'badgeTextColor'),
-    bold: booleanValue(values, 'badgeBold'),
-    gap: numberValue(values, 'badgeGap'),
-    faceCamera: booleanValue(values, 'badgeFaceCamera'),
-    labelFaceCamera: booleanValue(values, 'badgeLabelFaceCamera'),
-  };
-}
 
 /** Apparence de l’histoire courante d'après les réglages du mode. */
 export function currentLook(values: PluginValues): ModeCurrentLook {

@@ -1,9 +1,9 @@
 import type { EdgeModel, ModeKey, PageModeDefinition } from '../../../core/plugins';
-import { byId, numberValue } from '../../../core/plugins';
+import { byId, edgeBadgeStyle, numberValue } from '../../../core/plugins';
 import { DIRECTION_KEY, DIRECTION_PROPERTY } from './direction';
 import { FLOW, PARTICIPANT, STEP, flowLabel } from './flows';
 import { SEQUENCES_KEYS } from './keys';
-import { badgeStyle, currentLook, SEQUENCES_SETTINGS } from './settings';
+import { currentLook, SEQUENCES_SETTINGS } from './settings';
 import { renameFlow, repairSequences, sequenceState, setEdgeFlow, setEdgeStep } from './steps';
 
 /** Icônes des types de participant (sujet 319), au style de celle du mode. */
@@ -120,7 +120,7 @@ export const definition: PageModeDefinition = {
     };
     return {
       edgeDarken: numberValue(values, 'edgeDarken'),
-      edgeBadgeStyle: badgeStyle(values),
+      edgeBadgeStyle: edgeBadgeStyle(values),
       edgeColor: (edge) => {
         const found = flowOf(edge);
         return found?.flow.color;

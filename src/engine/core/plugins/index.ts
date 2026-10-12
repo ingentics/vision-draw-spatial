@@ -57,6 +57,7 @@ export type { ModeKeys } from '../modes/modeKeys';
 export type { ModeText } from '../modes/modeText';
 export type { PluginSetting, PluginValues } from '../settings/pluginSettings';
 export { booleanValue, numberValue, stringValue } from '../settings/pluginSettings';
+export { edgeBadgeSettings, edgeBadgeStyle } from '../settings/edgeBadgeSettings';
 export { DEFAULT_MODE_PALETTE } from '../settings/derived';
 export { UNLOADED_COLORS } from '../settings/schema/shapes';
 

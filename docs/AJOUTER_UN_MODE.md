@@ -209,7 +209,7 @@ pur admis par `AJOUTER_UN_PLUGIN.md` section 5).
 (`edgeBadge` : texte et couleur de fond). Le style draw.io n'est jamais modifié : l'habillage est appliqué au dessin
 (`core/render/pageScene.ts`, `createEdgeObject`), à la construction de la page comme pendant un déplacement. La pastille
 fait face à la caméra en iso / 3D (`faceCamera(…, 'screen')`, `render/billboard.ts`). Son apparence (tailles, bordure, chiffre) est
-`edgeBadgeStyle`, tirée des réglages du mode (défaut : `DEFAULT_EDGE_BADGE`). `edgeStyle` rend, par flèche, des clés de
+`edgeBadgeStyle`, tirée des réglages du mode (défaut : `DEFAULT_EDGE_BADGE`) ; les réglages des pastilles sont une brique de l'API des plugins : `edgeBadgeSettings({ groupHint, labelFaceCamera })` dans la liste des réglages, `edgeBadgeStyle(values)` pour l'apparence (Séquences, Story telling). `edgeStyle` rend, par flèche, des clés de
 style dessinées à la place de celles de la flèche (ex. `strokeWidth`), et `edgeInset` un écart en px entre chaque bout
 accroché et sa forme, le trait raccourci d'autant (sujet 536). L'habillage peut aussi
 rendre, par forme, des clés de style dessinées à la place des siennes (ex. fond éclairci d'une région RDD, clé de

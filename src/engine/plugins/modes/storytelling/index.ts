@@ -1,7 +1,7 @@
 import type { ModeKey, PageModeDefinition } from '../../../core/plugins';
-import { edgeOf, isToggled, numberValue, styleNumber, toggleValue } from '../../../core/plugins';
+import { edgeBadgeStyle, edgeOf, isToggled, numberValue, styleNumber, toggleValue } from '../../../core/plugins';
 import { STORY_KEYS } from './keys';
-import { badgeStyle, currentLook, STORY_SETTINGS } from './settings';
+import { currentLook, STORY_SETTINGS } from './settings';
 import {
   COLOR,
   NUMBER,
@@ -98,7 +98,7 @@ export const definition: PageModeDefinition = {
         styleNumber(edge.style, 'strokeWidth', 1) < width ? { strokeWidth: String(width) } : undefined,
       edgeInset: numberValue(values, 'edgeGap'),
       edgeDarken: numberValue(values, 'edgeDarken'),
-      edgeBadgeStyle: badgeStyle(values),
+      edgeBadgeStyle: edgeBadgeStyle(values),
       edgeColor: (edge) => byEdge.get(edge.id)?.color,
       edgeBadge: (edge) => {
         const story = storyOf(page, edge.id);
