@@ -30,7 +30,7 @@ export class LayerSpreads {
   }
 
   setFlattened(pageId: string, flattened: boolean): void {
-    if (flattened === this.flat.has(pageId)) return;
+    if (flattened === this.flat.has(pageId) || !this.core.canInteract()) return;
     // Repart d'où en est une animation interrompue sur la même page.
     const from = this.animation?.pageId === pageId ? this.current(performance.now()) : this.spreadOf(pageId);
     this.stop();

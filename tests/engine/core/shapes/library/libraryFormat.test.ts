@@ -59,6 +59,13 @@ describe('format des bibliothèques de formes (sujet 529)', () => {
     expect('futur' in result.library.shapes[0]!).toBe(false);
   });
 
+  it('`meta` non clonable (fonction) : erreur rendue, pas d’exception (sujet 544)', () => {
+    const result = readShapeLibrary(libraryJson({ meta: { f: () => 1 } }));
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.errors.some((error) => error.includes('meta'))).toBe(true);
+  });
+
   it('accepte une forme sans catégorie, et une bibliothèque sans catégories (sujet 538)', () => {
     const result = readShapeLibrary(libraryJson({ category: undefined }, { categories: undefined }));
     expect(result.ok).toBe(true);

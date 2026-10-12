@@ -20,7 +20,13 @@ const XML = `<mxfile>
 
 function setup() {
   const { document: loaded, tree } = readDrawio(XML);
-  const state = { document: loaded as DocumentModel, edits: [] as string[], events: [] as unknown[][], removed: 0 };
+  const state = {
+    document: loaded as DocumentModel,
+    edits: [] as string[],
+    events: [] as unknown[][],
+    removed: 0,
+    graphs: [] as string[],
+  };
   const page = (id: string) => state.document.pages.find((p) => p.id === id)!;
   const modes = new PageModeRegistry()
     .register({ id: 'sobre', namespace: 'sobre', name: 'Sobre' })
@@ -28,7 +34,7 @@ function setup() {
   const core = {
     modes,
     pages: { pageById: page },
-    graph: { isGraph: () => false },
+    graph: { isGraph: (id: string) => state.graphs.includes(id) },
     scenes: { current: undefined },
     layerSpreads: { isFlattened: () => false },
     gesture: { endMove: () => {} },
@@ -133,5 +139,30 @@ describe('calques des pages (sujet 523)', () => {
     layers.moveSelectionToLayer('L2');
     expect(state.edits).toEqual(['Changement de calque']);
     expect(page('p').shapes.find((s) => s.id === 'a')!.layerId).toBe('L2');
+  });
+
+  it('id de calque inconnu (venu de l’hôte) : rien, sans exception (sujet 544)', () => {
+    const { layers, state, core } = setup();
+    (core.selection as { current: unknown }).current = { pageId: 'p', items: [] };
+    expect(() => {
+      layers.renameLayer('p', 'inconnu', 'X');
+      layers.moveLayer('p', 'inconnu', 'up');
+      layers.removeLayer('p', 'inconnu');
+      layers.setLayerVisible('p', 'inconnu', false);
+      layers.setLayerLocked('p', 'inconnu', true);
+      layers.setLayerElevation('p', 'inconnu', 10);
+      layers.moveSelectionToLayer('inconnu');
+    }).not.toThrow();
+    expect(state.edits).toEqual([]);
+  });
+
+  it('vue graphe : ni calques montrés, ni opération écrite (sujet 544)', () => {
+    const { layers, state, page } = setup();
+    state.graphs.push('p');
+    expect(layers.view('p')).toBeUndefined();
+    layers.addLayer('p');
+    layers.renameLayer('p', 'L2', 'Autre');
+    expect(state.edits).toEqual([]);
+    expect(page('p').layers.map((l) => l.name)).not.toContain('Autre');
   });
 });

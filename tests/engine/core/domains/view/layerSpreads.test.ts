@@ -5,8 +5,9 @@ import { LayerSpreads } from '../../../../../src/engine/core/domains/view/layerS
 // Sujet 526 : calques aplatis ou étendus, état de session par page.
 
 function setup() {
-  const state = { events: [] as unknown[][], rebuilt: [] as unknown[] };
+  const state = { events: [] as unknown[][], rebuilt: [] as unknown[], interactive: true };
   const core = {
+    canInteract: () => state.interactive,
     events: { emit: (...args: unknown[]) => state.events.push(args) },
     scenes: { current: undefined },
     settings: { view: { switchDurationMs: 450 } },
@@ -36,5 +37,13 @@ describe('calques aplatis (sujet 526)', () => {
     spreads.setFlattened('p', true);
     spreads.resetDocument();
     expect(spreads.isFlattened('p')).toBe(false);
+  });
+
+  it('rien pendant une transition de vue, comme la vue à plat (sujet 544)', () => {
+    const { spreads, state } = setup();
+    state.interactive = false;
+    spreads.setFlattened('p', true);
+    expect(spreads.isFlattened('p')).toBe(false);
+    expect(state.events).toEqual([]);
   });
 });

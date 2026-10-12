@@ -102,7 +102,7 @@ export class PageLayers {
 
   renameLayer(pageId: string, layerId: string, name: string): void {
     const trimmed = name.trim();
-    this.edit(pageId, 'Calque renommé', (pageTree, page) => {
+    this.editLayer(pageId, layerId, 'Calque renommé', (pageTree, page) => {
       if (!trimmed || byId(page.layers, layerId)?.name === trimmed) return false;
       renameLayer(pageTree, layerId, trimmed);
       return true;
@@ -111,18 +111,18 @@ export class PageLayers {
 
   /** Monte (vers le dessus) ou descend un calque d'un rang, avec son contenu. */
   moveLayer(pageId: string, layerId: string, direction: 'up' | 'down'): void {
-    this.edit(pageId, direction === 'up' ? 'Calque monté' : 'Calque descendu', (pageTree) =>
+    this.editLayer(pageId, layerId, direction === 'up' ? 'Calque monté' : 'Calque descendu', (pageTree) =>
       moveLayer(pageTree, layerId, direction),
     );
   }
 
   /** Supprime un calque et son contenu ; jamais le dernier de la page. */
   removeLayer(pageId: string, layerId: string): void {
-    this.edit(pageId, 'Calque supprimé', (pageTree) => removeLayer(pageTree, layerId), true);
+    this.editLayer(pageId, layerId, 'Calque supprimé', (pageTree) => removeLayer(pageTree, layerId), true);
   }
 
   setLayerVisible(pageId: string, layerId: string, visible: boolean): void {
-    this.edit(pageId, visible ? 'Calque affiché' : 'Calque masqué', (pageTree, page) => {
+    this.editLayer(pageId, layerId, visible ? 'Calque affiché' : 'Calque masqué', (pageTree, page) => {
       if (byId(page.layers, layerId)?.visible === visible) return false;
       setLayerVisible(pageTree, layerId, visible);
       return true;
@@ -130,7 +130,7 @@ export class PageLayers {
   }
 
   setLayerLocked(pageId: string, layerId: string, locked: boolean): void {
-    this.edit(pageId, locked ? 'Calque verrouillé' : 'Calque déverrouillé', (pageTree, page) => {
+    this.editLayer(pageId, layerId, locked ? 'Calque verrouillé' : 'Calque déverrouillé', (pageTree, page) => {
       if (byId(page.layers, layerId)?.locked === locked) return false;
       setLayerLocked(pageTree, layerId, locked);
       return true;
@@ -140,7 +140,7 @@ export class PageLayers {
   /** Élévation du calque en iso et en 3D (sujet 524) ; 0 la retire. */
   setLayerElevation(pageId: string, layerId: string, elevation: number): void {
     const value = Math.max(0, elevation);
-    this.edit(pageId, 'Élévation du calque', (pageTree, page) => {
+    this.editLayer(pageId, layerId, 'Élévation du calque', (pageTree, page) => {
       if (byId(page.layers, layerId)?.elevation === value) return false;
       setLayerElevation(pageTree, layerId, value);
       return true;
@@ -152,15 +152,33 @@ export class PageLayers {
     const selection = this.core.selection.current;
     if (!selection) return;
     const ids = selection.items.map((item) => item.element.id);
-    this.edit(
+    this.editLayer(
       selection.pageId,
+      layerId,
       'Changement de calque',
       (pageTree) => moveCellsToLayer(pageTree, ids, layerId).length > 0,
     );
   }
 
+  /** Opération sur le calque `layerId` : sans effet s'il n'est pas sur la page (id venu de l'hôte). */
+  private editLayer(
+    pageId: string,
+    layerId: string,
+    label: string,
+    write: (pageTree: PageTree, page: PageModel) => boolean,
+    removes = false,
+  ): void {
+    this.edit(
+      pageId,
+      label,
+      (pageTree, page) => byId(page.layers, layerId) !== undefined && write(pageTree, page),
+      removes,
+    );
+  }
+
   /**
-   * Opération sur les calques de la page `pageId`, si elle en a et qu'on peut l'écrire : `write` renvoie faux s'il n'y
+   * Opération sur les calques de la page `pageId`, si elle en a (ni mode sans calques, ni vue graphe) et qu'on peut
+   * l'écrire : `write` renvoie faux s'il n'y
    * a rien à faire (aucune étape d'annulation). `removes` : le mode de la page remet ses données en ordre après les
    * éléments partis, dans la même étape.
    */
@@ -171,7 +189,7 @@ export class PageLayers {
     removes = false,
   ): void {
     const target = this.core.targets.editablePageById(pageId);
-    if (!target || !this.core.modes.hasLayers(target.page)) return;
+    if (!target || !this.layeredPage(pageId)) return;
     this.core.gesture.endMove();
     const before = writeDrawio(target.xmlTree);
     if (!write(target.pageTree, target.page)) return;

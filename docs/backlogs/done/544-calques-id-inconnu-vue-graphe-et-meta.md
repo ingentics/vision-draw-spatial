@@ -18,3 +18,14 @@
   `libraryFormat.test.ts` (`meta` avec une fonction).
 - **Fini quand :** les cas ci-dessus sont testés ; calques inchangés à l'œil sur la fixture des calques ; `make check`
   vert.
+- Fait :
+  - `pageLayers.ts` : `editLayer` vérifie que le calque est sur la page avant toute opération sur lui (renommer,
+    monter, supprimer, afficher, verrouiller, élévation, changer la sélection de calque) ; `edit` passe par
+    `layeredPage` (mode sans calques et vue graphe exclus, comme `view`).
+  - `layerSpreads.ts` : `setFlattened` gardé par `core.canInteract()`, comme `viewModes.setFlattened`.
+  - `libraryFormat.ts` : un `meta` non clonable rend l'erreur `…meta : objet JSON attendu`.
+  - Écart de comportement : aucun dans l'appli (l'UI ne passe que des ids existants) ; l'API ne lève plus sur un id
+    inconnu ; aplatir pendant une transition de vue est ignoré.
+  - Tests : `pageLayers.test.ts` (id inconnu, vue graphe), `layerSpreads.test.ts` (transition),
+    `libraryFormat.test.ts` (`meta` avec une fonction).
+  - Vérifié dans l'appli (`layers.drawio`, iso) : masquer un calque puis annuler, panneau des calques inchangé.

@@ -126,8 +126,12 @@ class Reader {
     const value = object.meta;
     if (value === undefined) return {};
     if (!isObject(value)) return this.fail(`${path}meta`, 'objet attendu') ?? {};
-    // Copie : le JSON de l'hôte reste à lui, la bibliothèque est gelée.
-    return structuredClone(value);
+    // Copie : le JSON de l'hôte reste à lui, la bibliothèque est gelée. Un objet non clonable (fonction…) est une erreur.
+    try {
+      return structuredClone(value);
+    } catch {
+      return this.fail(`${path}meta`, 'objet JSON attendu') ?? {};
+    }
   }
 
   list(object: Json, key: string, path: string): unknown[] | undefined {
