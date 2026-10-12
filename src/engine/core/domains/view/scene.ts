@@ -100,6 +100,10 @@ export class SceneView {
         fill: this.core.settings.shapes.placeholderFill,
         stroke: this.core.settings.shapes.placeholderStroke,
       },
+      unloaded: {
+        fill: this.core.settings.shapes.unloadedFill,
+        stroke: this.core.settings.shapes.unloadedStroke,
+      },
       accent: this.core.settings.selection.accentColor,
       edgeFontColor: this.core.settings.shapes.edgeFontColor,
       edgeLabelBackdrop: labelBackdropSettings(this.core.settings.shapes),

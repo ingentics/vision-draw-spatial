@@ -1,5 +1,5 @@
 import { SPATIAL, commentOf, matchesPreset, spatialNumber } from '../../engine';
-import type { ShapeModel } from '../../engine';
+import type { LibraryShapeState, LibraryShapeStatus, ShapeModel } from '../../engine';
 import { BorderSection } from '../BorderSection';
 import { NumberField } from '../Fields';
 import { OrderSection } from '../OrderSection';
@@ -26,8 +26,10 @@ export function ShapeSections({ shape, ...props }: ContextPanelProps & { shape: 
   );
   // Section principale du mode (sujet 413) : le texte y passe, en tête, à la place de la section « Texte ».
   const main = modeMainSection(plugins.modes.modeOf(props.page), shape);
+  const library = plugins.shapes.libraryStatus(shape);
   return (
     <>
+      {library && <LibraryNotice {...library} />}
       {main ? (
         <ElementModeSection {...props} element={shape} scope="shape" lead={text} />
       ) : (
@@ -117,5 +119,21 @@ function ShapeOwnSection({
     <Section title={plugins.shapes.templateOf(shape)?.name ?? 'Forme'}>
       <ShapePropertyFields shape={shape} section="shape" onStyle={onShapeStyle} onSpatial={onSpatial} />
     </Section>
+  );
+}
+
+/** Libellés de l'état d'une forme de bibliothèque (sujet 530). */
+const LIBRARY_STATES: Record<LibraryShapeState, string> = {
+  loaded: 'chargée',
+  unloaded: 'non chargée',
+  unavailable: 'introuvable',
+};
+
+/** En tête du panneau d'une forme posée depuis une bibliothèque : d'où elle vient, et si elle est chargée. */
+function LibraryNotice({ library, kind, state }: LibraryShapeStatus) {
+  return (
+    <p className="panel-hint">
+      Forme <code>{kind}</code> de la bibliothèque <code>{library}</code> : {LIBRARY_STATES[state]}.
+    </p>
   );
 }

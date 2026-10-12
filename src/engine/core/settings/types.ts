@@ -218,6 +218,9 @@ export interface ShapeSettings {
   /** Formes non supportées (SPEC §8.4). */
   placeholderFill: string;
   placeholderStroke: string;
+  /** Formes de bibliothèque non chargées (sujet 530). */
+  unloadedFill: string;
+  unloadedStroke: string;
 }
 
 /** Palettes de styles du panneau « Forme » (fond, contour, texte). */

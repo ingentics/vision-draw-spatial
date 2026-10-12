@@ -4,6 +4,7 @@ import { CollapseButton } from './Sidebar';
 
 const CATEGORY_LABELS: Record<UnsupportedCategory, string> = {
   shape: 'Forme',
+  library: 'Bibliothèque introuvable',
   edgeStyle: 'Tracé d’arête',
   startArrow: 'Pointe de départ',
   endArrow: 'Pointe d’arrivée',

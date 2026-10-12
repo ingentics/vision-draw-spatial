@@ -308,6 +308,22 @@ export function ShapeEdgeSettings({ settings, onChange }: SettingsSectionProps) 
         />
         <PlaceholderPreview shapes={shapes} background={background} />
       </Subsection>
+      <Subsection title="Formes de bibliothèque non chargées">
+        <ColorField
+          label="Fond"
+          value={shapes.unloadedFill}
+          onChange={(unloadedFill) => onChange({ shapes: { unloadedFill } })}
+        />
+        <ColorField
+          label="Bordure et hachures"
+          value={shapes.unloadedStroke}
+          onChange={(unloadedStroke) => onChange({ shapes: { unloadedStroke } })}
+        />
+        <p className="hint muted">
+          Forme posée depuis une bibliothèque de formes que l’hôte n’a pas chargée : hachurée, avec un badge « puzzle ».
+          Une bibliothèque introuvable garde ces hachures avec une bordure et un badge orange.
+        </p>
+      </Subsection>
     </Section>
   );
 }

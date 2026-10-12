@@ -73,8 +73,11 @@ export interface MinimapSource {
   getBackground?(): string;
   /** Couleur d'accent (cadre de la vue), #rrggbb. */
   getAccent?(): string;
-  /** Couleurs du fond de carte (#rrggbb) : flèches, contour des formes, formes non supportées. */
-  getColors?(): { edge: string; outline: string; placeholder: string };
+  /**
+   * Couleurs du fond de carte (#rrggbb) : flèches, contour des formes, formes non supportées, formes de bibliothèque
+   * non chargées.
+   */
+  getColors?(): { edge: string; outline: string; placeholder: string; unloaded?: string };
   /** Tracé dessiné d'une arête (coordonnées page). */
   getEdgeRoute(edgeId: string): Point[] | undefined;
   /** Dessin d'une forme : niveau `minimap` de sa définition, repli sur son contour. */

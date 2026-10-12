@@ -42,6 +42,8 @@ export const SHAPES = {
   edgeSplitLabelSize: number(7, { min: 4, max: 24, step: 1 }),
   placeholderFill: color('#eeeeee'),
   placeholderStroke: color('#9e9e9e'),
+  unloadedFill: color('#eef2f7'),
+  unloadedStroke: color('#5b7db1'),
 } satisfies Spec<ShapeSettings>;
 
 export const STYLES = {

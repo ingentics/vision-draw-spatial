@@ -8,7 +8,8 @@ import type { ShapeRegistry } from '../shapes/registry';
  * affichées), trié par fréquence : c'est le backlog des formes à implémenter.
  */
 
-export type UnsupportedCategory = 'shape' | 'edgeStyle' | 'startArrow' | 'endArrow';
+/** `library` : forme d'une bibliothèque déclarée introuvable par l'hôte (sujet 530), nommée `<bibliothèque>/<forme>`. */
+export type UnsupportedCategory = 'shape' | 'library' | 'edgeStyle' | 'startArrow' | 'endArrow';
 
 export interface UnsupportedOccurrence {
   pageId: string;
@@ -72,7 +73,11 @@ export function collectUnsupported(document: DocumentModel, registry: ShapeRegis
 
     for (const shape of page.shapes) {
       elementCount++;
-      if (!registry.resolve(shape).supported) {
+      const library = registry.libraryStatus(shape);
+      if (library?.state === 'unavailable') {
+        unsupportedElementCount++;
+        record('library', `${library.library}/${library.kind}`, at(shape.id, shape.label), shape.raw.styleString);
+      } else if (!registry.resolve(shape).supported) {
         unsupportedElementCount++;
         record('shape', shape.kind, at(shape.id, shape.label), shape.raw.styleString);
       }
