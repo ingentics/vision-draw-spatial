@@ -152,11 +152,14 @@ export class PageModes {
     const current = this.core.modeCurrents.getModeCurrent(page.id);
     const dressing = this.call(mode, 'dressing', undefined, mode.dressing, page, values, current);
     if (!dressing) return undefined;
-    const { shapeStyle, edgeColor, edgeBadge } = dressing;
+    const { shapeStyle, edgeStyle, edgeColor, edgeBadge } = dressing;
     return {
       ...dressing,
       ...(shapeStyle && {
         shapeStyle: (shape) => this.call(mode, 'dressing.shapeStyle', undefined, shapeStyle, shape),
+      }),
+      ...(edgeStyle && {
+        edgeStyle: (edge) => this.call(mode, 'dressing.edgeStyle', undefined, edgeStyle, edge),
       }),
       ...(edgeColor && {
         edgeColor: (edge) => this.call(mode, 'dressing.edgeColor', undefined, edgeColor, edge),

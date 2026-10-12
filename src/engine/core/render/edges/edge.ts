@@ -20,7 +20,7 @@ import { PAGE_BACKGROUND, labelBackdropOf, styleColor } from '../styleColors';
 import { labelObject, textAnchors } from '../flat/box';
 import type { RenderContext } from '../types';
 import type { TextAlong } from '../textPath';
-import { direction, rectPath } from '../../model/geometry';
+import { direction, distance, rectPath } from '../../model/geometry';
 import { blockArrowOutline, isBlockArrow } from './blockArrow';
 
 /** Défauts draw.io pour les arêtes. */
@@ -38,13 +38,15 @@ export interface EdgeTerminals {
 /**
  * Connecteur : tracé, pointes de flèches et labels (SPEC §8.3). Les styles inconnus sont approchés ;
  * ils sont recensés par `diagnostics/unsupportedStyles`. `below` : tracés des flèches dessinées avant celle-ci,
- * pour ses sauts aux croisements (`jumpStyle`, ticket 129).
+ * pour ses sauts aux croisements (`jumpStyle`, ticket 129). `inset` : écart aux formes accrochées imposé par le mode de
+ * la page (sujet 536).
  */
 export function createEdge(
   edge: EdgeModel,
   terminals: EdgeTerminals,
   ctx: RenderContext,
   below: readonly Point[][] = [],
+  inset = 0,
 ): Object3D {
   const group = new Group();
   group.name = `edge:${edge.id}`;
@@ -58,7 +60,7 @@ export function createEdge(
     waypoints: edge.points,
     style,
   });
-  const route = simplify(points);
+  const route = insetEnds(simplify(points), inset, terminals);
   // Tracé conservé pour placer les textes ; tracé brut pour les poignées des segments (edit/edgePointEdits) ;
   // trait dessiné (coudes arrondis, courbe) pour la sélection au clic (interaction/pick) et le voile.
   group.userData.route = route;
@@ -87,6 +89,21 @@ export function createEdge(
   }
 
   return group;
+}
+
+/**
+ * Bouts accrochés à une forme reculés de `inset` (sujet 536), au plus d'un tiers du segment pour ne jamais le
+ * retourner ; un bout libre reste en place.
+ */
+function insetEnds(route: Point[], inset: number, terminals: EdgeTerminals): Point[] {
+  if (inset <= 0 || route.length < 2) return route;
+  const first = distance(route[0]!, route[1]!);
+  const last = distance(route[route.length - 2]!, route[route.length - 1]!);
+  return shorten(
+    route,
+    terminals.source ? Math.min(inset, first / 3) : 0,
+    terminals.target ? Math.min(inset, last / 3) : 0,
+  );
 }
 
 /**

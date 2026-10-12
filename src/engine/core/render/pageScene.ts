@@ -123,14 +123,17 @@ export function createEdgeObject(
   dressing?: PageDressing,
   below: readonly Point[][] = [],
 ): Object3D {
-  // Couleur du mode, assombrie pour le trait (réglage « Assombrissement du trait » du mode).
+  // Couleur du mode, assombrie pour le trait (réglage « Assombrissement du trait » du mode) ; clés de style et écart
+  // aux formes imposés par le mode (sujet 536).
   const base = dressing?.edgeColor?.(edge);
   const color = base && darken(base, dressing?.edgeDarken ?? DEFAULT_DRESSING_DARKEN);
+  const patch = { ...dressing?.edgeStyle?.(edge), ...(color && { strokeColor: color }) };
   const object = createEdge(
-    color ? { ...edge, style: { ...edge.style, strokeColor: color } } : edge,
+    Object.keys(patch).length > 0 ? { ...edge, style: { ...edge.style, ...patch } } : edge,
     terminals,
     ctx,
     below,
+    dressing?.edgeInset,
   );
   const badge = dressing?.edgeBadge?.(edge);
   const route = object.userData.route as Point[] | undefined;

@@ -13,6 +13,16 @@ export interface PageDressing {
    * `edgeDarken` ; undefined = son style.
    */
   edgeColor?(edge: EdgeModel): string | undefined;
+  /**
+   * Clés de style dessinées à la place de celles de la flèche (sujet 536, ex. `strokeWidth`) ; le style draw.io reste
+   * intact. undefined = son style.
+   */
+  edgeStyle?(edge: EdgeModel): Record<string, string> | undefined;
+  /**
+   * Écart (px) entre chaque bout d'une flèche accroché à une forme et cette forme (sujet 536) : le trait dessiné est
+   * raccourci d'autant ; défaut : 0.
+   */
+  edgeInset?: number;
   /** Assombrissement du trait coloré par le mode (fraction de la luminosité, 0,25 = −25 % ; défaut : 0,25). */
   edgeDarken?: number;
   /** Pastille posée sur une flèche, face à la caméra. */
