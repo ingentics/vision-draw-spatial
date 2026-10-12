@@ -77,6 +77,7 @@ y est enregistré. L'interface `FileStore` (SPEC §5.1) permet de brancher un au
 | `onSave(xml, { auto })` | Sauvegarde demandée (Ctrl+S dans le composant, ou `ref.save()` : `auto: false`) ou automatique (`auto: true`) |
 | `onError(error)` | Fichier illisible (`DrawioParseError`) ou introuvable dans le `store` |
 | `onEngine(engine)` | Le moteur est créé (puis `undefined` au démontage) |
+| `onShapesMissing(missing)` | Le document contient des formes de bibliothèque non chargées (`{ library, kind }[]`, chacune une fois par fichier ouvert) : répondre par `engine.registerShapes(json)` ou `engine.markShapesUnavailable(refs)` |
 
 ### `ref`
 
@@ -94,6 +95,45 @@ Quelques méthodes utiles du moteur : `goToPage`, `getViewMode`, `setViewMode('t
 `getDocument`, `getCurrentPage`, `getCameraState`, `select`, `selectAll`, `followLink`, `isEditable`,
 `addShape(SHAPE_TEMPLATES[0])`, `addPage`, `setLabel`, `setLink`, `setSpatial`, `deleteSelection`, `canUndo`,
 `canRedo`, `serialize`, `isModified`. La liste de référence est SPEC §4.3 et `src/engine/Engine.ts`.
+
+## Bibliothèques de formes
+
+Formes purement visuelles (rendus 2D, iso, 3D, sans comportement) décrites par un JSON et chargées à chaud dans le
+moteur (sujets 529 à 531). Chaque catégorie d'une bibliothèque devient une section de la palette.
+
+```ts
+const result = engine.registerShapes({
+  format: 'drawio-spatial/shapes',
+  formatVersion: 1,
+  library: { id: 'infra', name: 'Infrastructure', meta: { source: 'interne' } },
+  categories: [{ id: 'compute', name: 'Calcul', order: 100 }],
+  shapes: [
+    {
+      id: 'serveur',
+      category: 'compute',
+      name: 'Serveur',
+      size: { width: 80, height: 60 },
+      style: 'fillColor=#ff9900;strokeColor=#232f3e;whiteSpace=wrap;html=1;',
+      modes: ['none', 'states'], // page sans mode et pages Machine à états ; absent : page sans mode
+      render: { outline: [[0, 0], [1, 0], [1, 1], [0, 1]], details: [{ path: [[0.2, 0.3], [0.8, 0.3]] }], depth: 40 },
+    },
+  ],
+});
+if (!result.ok) console.error(result.errors); // rien n'est changé
+engine.unregisterShapes('infra');
+```
+
+- **Format** : `format` et `formatVersion` (1) obligatoires ; une version inconnue est refusée, une clé inconnue
+  ignorée. `library` : `id`, `name`, et facultatifs `description`, `author`, `license`, `homepage`, `tags`, `meta`
+  (objet libre, gardé tel quel : `engine.shapeLibrary(id)`). Une forme : `id`, `category`, `name`, `size`, `render`
+  (`outline` : au moins 3 points `[x, y]` en fraction des bornes ; `details` : tracés `{ path, closed?, filled? }` ;
+  `depth` : hauteur du volume en px), et facultatifs `description`, `keywords`, `style`, `value`, `icon` (données
+  `d` de tracés SVG du cadre `0 0 40 28` ; absent : tirée du contour), `modes`, `meta`.
+- **Remplacer** : réenregistrer le même `library.id` remplace la bibliothèque (pas de version).
+- **Fichier** : une forme posée garde son style, plus `spatial.library` et `spatial.kind`. Ouverte sans sa
+  bibliothèque, elle s'affiche hachurée avec un badge « puzzle » (non chargée), ou un badge d'avertissement si l'hôte
+  l'a déclarée introuvable (`markShapesUnavailable([{ library, kind? }])`, sans `kind` : toute la bibliothèque) ; elle
+  reste éditable comme un rectangle. draw.io dessine le style seul.
 
 ## Clavier et souris
 

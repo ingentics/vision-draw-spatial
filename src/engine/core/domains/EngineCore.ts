@@ -241,6 +241,9 @@ export class EngineCore {
       this.editLocks.pageShown(page.id);
       this.overlays.pageShown(page.id);
     });
+    // Formes de bibliothèque non chargées du document signalées à l'hôte (sujet 531).
+    this.events.on('load', (document) => this.shapeLibraries.documentShown(document));
+    this.events.on('documentChange', (document) => this.shapeLibraries.documentShown(document));
   }
 
   /** Moteur libéré (lecture seule : `dispose`). */

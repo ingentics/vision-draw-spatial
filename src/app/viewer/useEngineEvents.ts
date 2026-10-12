@@ -15,6 +15,7 @@ import type {
   UnsupportedReport,
   ViewMode,
 } from '../../engine';
+import { installDemoShapeLibrary } from '../demoShapeLibrary';
 import type { SidebarSlide } from '../Sidebar';
 
 /** Réglages iso qu'une page peut imposer (état de vue enregistré dans le fichier). */
@@ -89,6 +90,8 @@ export function useEngineEvents({
         setLibrariesVersion((version) => version + 1);
         setReport(instance.getUnsupportedReport());
       });
+      // Bibliothèque d'exemple (sujet 531) : chargée avant tout fichier, rechargée s'il la réclame.
+      installDemoShapeLibrary(instance);
       instance.on('load', (doc) => {
         setDocument(doc);
         setError(undefined);

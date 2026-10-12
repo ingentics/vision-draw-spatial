@@ -7,6 +7,7 @@ import type {
   FileStore,
   FontSet,
   InitialView,
+  MissingLibraryShape,
   PageModel,
   Selection,
   SettingsPatch,
@@ -72,6 +73,11 @@ export interface DrawioSpatialProps {
   onCameraChange?: (camera: CameraState) => void;
   /** Modifications non sauvegardées (édition), ou plus après une sauvegarde / un retour en arrière. */
   onModifiedChange?: (modified: boolean) => void;
+  /**
+   * Formes de bibliothèque du document non chargées (sujet 531), chacune une fois par fichier ouvert : l'hôte répond
+   * par `engine.registerShapes(json)` ou `engine.markShapesUnavailable(…)` (moteur de `onEngine` ou de la `ref`).
+   */
+  onShapesMissing?: (missing: MissingLibraryShape[]) => void;
   /**
    * Sauvegarde, avec le XML à jour : demandée (Ctrl+S, `ref.save()`, `auto: false`) ou automatique
    * (`autosave`, `auto: true`). Avec un `store`, le contenu y est aussi enregistré.
@@ -159,6 +165,7 @@ export function DrawioSpatial(props: DrawioSpatialProps) {
       }),
       instance.on('flattenChange', setFlattened),
       instance.on('modifiedChange', (modified) => propsRef.current.onModifiedChange?.(modified)),
+      instance.on('shapesMissing', (missing) => propsRef.current.onShapesMissing?.(missing)),
       instance.on('minimapToggle', toggleMinimap),
       instance.on('minigraphToggle', toggleMinigraph),
     ];

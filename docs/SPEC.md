@@ -319,6 +319,22 @@ dans [AJOUTER_UNE_FORME.md](AJOUTER_UNE_FORME.md) §2. Un rendu (`SceneRenderer`
 
 Ajouter une forme = **déposer son dossier** (au minimum `id` et `flat`, idéalement `outline`). Aucune autre modification, sauf les cas listés en tête du guide (alias, périmètre d'accroche, réglage, catégorie) : palette, panneau, clic, poignées et flèches la prennent en compte d'après sa définition ; les niveaux plus riches s'ajoutent ensuite, forme par forme. Le code partagé entre formes va dans une base de `plugins/shapes/generic/`.
 
+#### Bibliothèques de formes (sujets 529 à 531)
+
+Des formes **purement visuelles** (rendus 2D, iso, 3D, sans comportement) peuvent aussi être décrites par un JSON et
+chargées à chaud par l'hôte : `engine.registerShapes(json)` (format `drawio-spatial/shapes`, `formatVersion` 1 ; lu et
+validé par [core/shapes/library/libraryFormat.ts](../src/engine/core/shapes/library/libraryFormat.ts)), `unregisterShapes(id)`,
+`markShapesUnavailable(refs)`. Réenregistrer le même id remplace la bibliothèque. Le tronc les range
+(`core/shapes/library/libraryStore.ts`, partagé par les copies du registre) ; le dessin vient de la racine de composition
+(`plugins/shapes/generic/library/` : boîte du contour et tracés intérieurs, forme non chargée). Chaque catégorie d'une
+bibliothèque est une section de la palette ; une forme y est proposée selon ses `modes` (`none` : page sans mode ;
+absent : page sans mode seulement), quelle que soit la liste blanche du mode. Une forme posée écrit son style plus
+`spatial.library` et `spatial.kind` ; le registre la résout avant toute autre règle : la forme de la bibliothèque si elle
+est chargée, sinon une forme **non chargée** (bornes hachurées, tirets longs, badge « puzzle », couleurs
+`shapes.unloadedFill` / `unloadedStroke`) ou **introuvable** (bordure et badge d'avertissement orange, entrée
+`library` des Diagnostics). L'événement `shapesMissing` signale à l'hôte, une fois chacune depuis l'ouverture du
+fichier, les formes non chargées du document ; `shapeLibrariesChange` prévient l'appli (palette, Diagnostics).
+
 ### 8.3 Formes supportées en M1
 
 - Rectangle (y compris arrondi),

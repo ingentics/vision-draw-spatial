@@ -23,6 +23,7 @@ import type { EngineMetrics } from './core/domains/runtime/metrics';
 import type { ImageExportOptions } from './core/domains/view/imageExport';
 import type { PageLayersView } from './core/domains/document/pageLayers';
 import type { ShapeLibrary, ShapeLibraryResult } from './core/shapes/library/libraryFormat';
+import type { LibraryShapeRef } from './core/shapes/library/libraryStore';
 import type { Settings, SettingsPatch } from './core/settings';
 import { EngineCore } from './core/domains/EngineCore';
 import { createDefaultEffectRegistry, createDefaultModeRegistry, createDefaultRegistry } from './plugins';
@@ -410,6 +411,14 @@ export class Engine {
   /** Retire une bibliothèque de formes ; ses formes posées s'affichent non chargées. Faux si elle n'était pas chargée. */
   unregisterShapes(libraryId: string): boolean {
     return this.core.shapeLibraries.unregister(libraryId);
+  }
+
+  /**
+   * Bibliothèques (sans `kind`) ou formes que l'hôte ne peut pas fournir (sujet 531, réponse à `shapesMissing`) :
+   * dessinées introuvables et signalées dans les Diagnostics, jusqu'à ce que leur bibliothèque soit enregistrée.
+   */
+  markShapesUnavailable(refs: readonly LibraryShapeRef[]): void {
+    this.core.shapeLibraries.markUnavailable(refs);
   }
 
   /** Bibliothèque de formes chargée (métadonnées et `meta` compris), en lecture seule. */
