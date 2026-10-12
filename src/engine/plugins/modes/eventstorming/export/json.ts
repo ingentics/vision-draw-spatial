@@ -1,4 +1,5 @@
 import type { PageModel, ShapeModel } from '../../../../core/plugins';
+import { jsonExporter, oneLine } from '../../../../core/plugins';
 import { groupLabel, stickyGroups, writtenLabel } from '../groups/stickyGroups';
 import { keys, PIVOT } from '../keys';
 import { ACTOR, COMMAND, CONSTRAINT, EVENT, HOTSPOT, POLICY, QUERY, stickyType, SYSTEM } from '../kinds';
@@ -41,9 +42,6 @@ export interface WallExport {
   links: { from: string; to: string; type: string; rule: WallRule }[];
   warnings: { code: WarningCode; level: 'info' | 'attention'; elements: string[]; message: string }[];
 }
-
-/** Texte sur une ligne : retours à la ligne remplacés par un espace. */
-const oneLine = (text: string) => text.replace(/\s*\n\s*/g, ' ').trim();
 
 /** Texte normalisé d'un concept : minuscules, sans accents, ponctuation remplacée par des espaces. */
 export function normalizedText(text: string): string {
@@ -116,8 +114,4 @@ export function wallExport(page: PageModel): WallExport {
 }
 
 /** Export JSON de la page, pour la fenêtre d'export commune de l'appli (format et texte). */
-export const eventStormingExporter = {
-  id: 'json',
-  name: 'JSON',
-  export: (page: PageModel) => `${JSON.stringify(wallExport(page), null, 2)}\n`,
-};
+export const eventStormingExporter = jsonExporter(wallExport);

@@ -48,7 +48,7 @@ export class MinimapView {
           edge: this.core.settings.minimap.edgeColor,
           outline: this.core.settings.minimap.outlineColor,
           placeholder: this.core.settings.shapes.placeholderFill,
-          unloaded: this.core.settings.shapes.unloadedFill,
+          unloaded: { fill: this.core.settings.shapes.unloadedFill, stroke: this.core.settings.shapes.unloadedStroke },
         }),
         getEdgeRoute: (id) => this.core.sceneView.sceneObject(id)?.userData.route as Point[] | undefined,
         // Forme habillée par le mode de la page (ex. fond éclairci d'une région, sujet 345), comme dans la scène.

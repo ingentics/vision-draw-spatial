@@ -5,7 +5,7 @@ import { parseStyle, withStyleDefault } from '../../format/style';
 import { metamorphInstructionsOf, metamorphStateOf } from '../../edit/metamorph';
 import type { MetamorphCandidate, MetamorphState, MetamorphView } from '../../edit/metamorph';
 import type { DocumentModel, ShapeModel } from '../../model/types';
-import { shapeOf } from '../../model/pageIndex';
+import { byId, shapeOf } from '../../model/pageIndex';
 import { styleColorValue } from '../../render/styleColors';
 import { readShapeLibrary } from '../../shapes/library/libraryFormat';
 import type { LibraryShape, ShapeLibraryResult } from '../../shapes/library/libraryFormat';
@@ -137,8 +137,8 @@ export class Metamorphs {
    */
   accept(shapeId: string, templateId: string): boolean {
     const target = this.ready(shapeId);
-    const template = this.core.registry.templates().find((t) => t.id === templateId && t.library !== undefined);
-    if (!target || !template) return false;
+    const template = byId(this.core.registry.templates(), templateId);
+    if (!target || template?.library === undefined) return false;
     this.core.edits.recordEdit('Metamorph remplacée');
     const fontSize = target.shape.style.fontSize ?? String(this.core.settings.shapes.textSize);
     setCellStyle(target.pageTree, shapeId, withStyleDefault(template.style, 'fontSize', fontSize));

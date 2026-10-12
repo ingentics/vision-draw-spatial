@@ -58,6 +58,7 @@ export type { ModeText } from '../modes/modeText';
 export type { PluginSetting, PluginValues } from '../settings/pluginSettings';
 export { booleanValue, numberValue, stringValue } from '../settings/pluginSettings';
 export { DEFAULT_MODE_PALETTE } from '../settings/derived';
+export { UNLOADED_COLORS } from '../settings/schema/shapes';
 
 // Modèle neutre, attributs spatiaux, calculs purs.
 export type { Point, Rect } from '../model/types';
@@ -68,7 +69,7 @@ export type {
   ReadonlyShapeModel as ShapeModel,
 } from '../model/readonly';
 export { jsonListValue, readJsonList, SPATIAL, SPATIAL_PREFIX, spatialNumber, spatialValue } from '../spatial';
-export { elementName, firstFreeName } from '../model/names';
+export { elementName, firstFreeName, oneLine } from '../model/names';
 export { clamp } from '../model/numbers';
 export { byId, edgeEnds, edgeOf, edgesById, elementOf, shapeOf, shapesById } from '../model/pageIndex';
 export {
@@ -93,6 +94,7 @@ export {
 export { sideConstraintAt } from '../edit/edgeEnds';
 export { fontStyleValue, isHexColor, styleFlag, styleNumber, styleOpacity } from '../model/styleValues';
 export { PLANTUML_FORMAT, plantUmlLine, plantUmlQuoted } from '../export/plantumlText';
+export { JSON_FORMAT, jsonExporter } from '../export/jsonText';
 
 // Briques de dessin (Three.js) : rendu à plat et en volume, contours, traits, textes, couleurs.
 export { PART_ORDER } from '../render/types';

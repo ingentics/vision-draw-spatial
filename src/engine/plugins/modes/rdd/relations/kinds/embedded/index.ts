@@ -1,3 +1,4 @@
+import { oneLine } from '../../../../../../core/plugins';
 import { newFieldLabel } from '../../../tables/fieldModel';
 import type { RelationKind } from '../kind';
 
@@ -16,7 +17,7 @@ export const embeddedRelation: RelationKind = {
     kind: 'embed',
     label: (rows, source) => {
       // Son nom sur une ligne, sinon celui de sa forme.
-      const name = source.label.replace(/\s+/g, ' ').trim() || 'Fragment';
+      const name = oneLine(source.label) || 'Fragment';
       return rows.some((row) => row.label === name) ? newFieldLabel(rows, name) : name;
     },
     // Libellé et préfixe : dans le champ ; la table d'arrivée affiche le préfixe en gris à la place du type.

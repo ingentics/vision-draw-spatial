@@ -3,6 +3,7 @@ import type { LayerModel, ParseWarning, Point, Rect } from '../model/types';
 import { styleFlag } from '../model/styleValues';
 import { parseStyle } from './style';
 import { SPATIAL, spatialNumber } from '../spatial';
+import { firstAncestor, isStructuralCell } from './layerTree';
 import { childElements, type PageTree } from './xmlTree';
 
 /**
@@ -62,7 +63,7 @@ export class CellIndex {
       if (this.byId.has(cell.id)) this.warn(cell.id, 'Identifiant de cellule dupliqué');
       else this.byId.set(cell.id, cell);
     }
-    this.rootIds = new Set(this.cells.filter((c) => !c.parent && !c.vertex && !c.edge).map((c) => c.id));
+    this.rootIds = new Set(this.cells.filter((c) => !c.parent && isStructuralCell(c)).map((c) => c.id));
     this.layers = this.cells
       .filter((c) => this.isLayer(c))
       .map((c) => {
@@ -88,24 +89,23 @@ export class CellIndex {
   }
 
   isLayer(cell: RawCell): boolean {
-    return !cell.vertex && !cell.edge && cell.parent !== undefined && this.rootIds.has(cell.parent);
+    return isStructuralCell(cell) && cell.parent !== undefined && this.rootIds.has(cell.parent);
   }
 
   /** Calque d'une cellule : on remonte les parents jusqu'à une cellule-calque. */
   layerOf(cell: RawCell): string {
     const cached = this.layerCache.get(cell.id);
     if (cached !== undefined) return cached;
-    let current: RawCell | undefined = cell;
-    const seen = new Set<string>();
-    let result = this.fallbackLayerId;
-    while (current && !seen.has(current.id)) {
-      seen.add(current.id);
-      if (this.isLayer(current)) {
-        result = current.id;
-        break;
-      }
-      current = current.parent ? this.byId.get(current.parent) : undefined;
-    }
+    const raw = (id: string) => (id === cell.id ? cell : this.byId.get(id));
+    const result =
+      firstAncestor(
+        cell.id,
+        (id) => raw(id)?.parent,
+        (id) => {
+          const at = raw(id);
+          return at !== undefined && this.isLayer(at);
+        },
+      ) ?? this.fallbackLayerId;
     this.layerCache.set(cell.id, result);
     return result;
   }

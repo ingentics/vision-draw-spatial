@@ -1,3 +1,4 @@
+import { SHAPE_LIBRARY_FORMAT, SHAPE_LIBRARY_FORMAT_VERSION } from '../engine';
 import type { Engine } from '../engine';
 import { METAMORPH_LIBRARY } from './metamorph/metamorphHost';
 
@@ -7,8 +8,8 @@ import { METAMORPH_LIBRARY } from './metamorph/metamorphHost';
  * chargerait d'un serveur ; elle est ici dans le code.
  */
 const DEMO_LIBRARY = {
-  format: 'drawio-spatial/shapes',
-  formatVersion: 1,
+  format: SHAPE_LIBRARY_FORMAT,
+  formatVersion: SHAPE_LIBRARY_FORMAT_VERSION,
   library: {
     id: 'demo',
     name: 'Exemple de l’appli',

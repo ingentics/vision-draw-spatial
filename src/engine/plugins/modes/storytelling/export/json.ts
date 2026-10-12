@@ -1,6 +1,6 @@
 import type { PageModel } from '../../../../core/plugins';
-import { edgeOf, shapeOf } from '../../../../core/plugins';
-import { oneLine, storyState } from '../stories';
+import { edgeOf, jsonExporter, oneLine, shapeOf } from '../../../../core/plugins';
+import { storyState } from '../stories';
 
 /**
  * Export JSON des histoires (sujet 474) : dans l'ordre des numéros, chacune avec ses étapes dans l'ordre de la suite ;
@@ -36,8 +36,4 @@ export function storiesExport(page: PageModel): StoriesExport {
 }
 
 /** Export JSON de la page, pour la fenêtre d'export commune de l'appli (format et texte). */
-export const storiesExporter = {
-  id: 'json',
-  name: 'JSON',
-  export: (page: PageModel) => `${JSON.stringify(storiesExport(page), null, 2)}\n`,
-};
+export const storiesExporter = jsonExporter(storiesExport);

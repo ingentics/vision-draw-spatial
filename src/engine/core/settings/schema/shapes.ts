@@ -9,6 +9,9 @@ import type { ShapeSettings, StyleSettings } from '../types';
 const LABEL_BACKDROPS = ['halo', 'solid', 'none'] as const;
 const EDGE_JUMPS = ['none', 'arc', 'gap', 'sharp', 'line'] as const;
 
+/** Couleurs par défaut des formes de bibliothèque non chargées (sujet 530), reprises par leur dessin à défaut de réglage. */
+export const UNLOADED_COLORS = { fill: '#eef2f7', stroke: '#5b7db1' } as const;
+
 export const SHAPES = {
   edgeFontColor: color('#000000'),
   textSize: number(12, { min: 4, max: 72, step: 1 }, { integer: true }),
@@ -42,8 +45,8 @@ export const SHAPES = {
   edgeSplitLabelSize: number(7, { min: 4, max: 24, step: 1 }),
   placeholderFill: color('#eeeeee'),
   placeholderStroke: color('#9e9e9e'),
-  unloadedFill: color('#eef2f7'),
-  unloadedStroke: color('#5b7db1'),
+  unloadedFill: color(UNLOADED_COLORS.fill),
+  unloadedStroke: color(UNLOADED_COLORS.stroke),
 } satisfies Spec<ShapeSettings>;
 
 export const STYLES = {

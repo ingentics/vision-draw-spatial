@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { elementName, firstFreeName } from '../../../../src/engine/core/model/names';
+import { elementName, firstFreeName, oneLine } from '../../../../src/engine/core/model/names';
 
 describe('premier nom numéroté libre (sujet 307)', () => {
   it('plus petit numéro libre à partir de `start`', () => {
@@ -14,5 +14,12 @@ describe('nom d’un élément (sujet 325)', () => {
   it('le label, sinon l’id', () => {
     expect(elementName({ id: 'a', label: 'Client' })).toBe('Client');
     expect(elementName({ id: 'a', label: '' })).toBe('a');
+  });
+});
+
+describe('texte sur une ligne (sujet 546)', () => {
+  it('blancs et retours à la ligne réduits à une espace, bouts retirés', () => {
+    expect(oneLine('  Payer\n  la  commande \r\n')).toBe('Payer la commande');
+    expect(oneLine('\n')).toBe('');
   });
 });

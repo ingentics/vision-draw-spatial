@@ -1,4 +1,5 @@
 import type { FieldNote } from '../../../../core/plugins';
+import { oneLine } from '../../../../core/plugins';
 
 /**
  * Verdict du questionnaire pivot (sujet 517) : encadré du panneau et pivot à enregistrer, d'après les deux réponses.
@@ -46,7 +47,7 @@ const verdict = (
  * quel quand la question 1 n'a pas de réponse (fichier d'avant le questionnaire).
  */
 export function verdictOf(answers: Answers, label: string, stored: string | undefined): Verdict {
-  const text = label.replace(/\s+/g, ' ').trim();
+  const text = oneLine(label);
   // L'événement cité : son texte entre guillemets (espaces insécables : ils ne vont pas seuls à la ligne), ou « cet
   // événement » s'il n'en a pas.
   const event = text ? `«\u00a0${text}\u00a0»` : 'cet événement';

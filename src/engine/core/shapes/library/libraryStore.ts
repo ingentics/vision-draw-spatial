@@ -1,7 +1,7 @@
 import { setStyleKey } from '../../format/style';
 import { freezePlain } from '../../model/freeze';
 import type { ReadonlyShapeModel as ShapeModel } from '../../model/readonly';
-import { SPATIAL } from '../../spatial';
+import { SPATIAL, spatialValue } from '../../spatial';
 import type { PaletteCategory, ShapeDefinition, ShapeTemplate } from '../types';
 import { readShapeLibrary } from './libraryFormat';
 import type { LibraryShape, ShapeLibrary, ShapeLibraryResult } from './libraryFormat';
@@ -51,22 +51,16 @@ interface LoadedLibrary {
  * Catégorie « Autres » de la palette (sujet 538) : celle des formes de bibliothèque sans catégorie, toutes
  * bibliothèques confondues. Comme toute catégorie, la palette la cache tant qu'aucune de ses formes n'y est proposée.
  */
-export const OTHER_CATEGORY: PaletteCategory = freezePlain({ id: 'other', name: 'Autres', order: 1000 });
+const OTHER_CATEGORY: PaletteCategory = freezePlain({ id: 'other', name: 'Autres', order: 1000 });
 
 /** Id d'une catégorie ou d'un modèle de bibliothèque : propre à elle, jamais en conflit avec une forme intégrée. */
 const libraryKey = (library: string, id: string) => `${library}:${id}`;
 
-/**
- * Valeur d'un attribut spatial, du style ou de l'objet. Appelé pour toute forme résolue : une forme construite à la
- * main (aperçu, test) peut n'avoir ni style ni attributs.
- */
-function spatialOf(shape: ShapeModel, key: string): string | undefined {
-  const { style, attributes } = shape as Partial<Pick<ShapeModel, 'style' | 'attributes'>>;
-  return (style?.[key] ?? attributes?.[key])?.trim() || undefined;
-}
+/** Valeur d'un attribut spatial, sans blancs ; undefined si vide. */
+const spatialOf = (shape: ShapeModel, key: string) => spatialValue(shape, key)?.trim() || undefined;
 
 /** Bibliothèque et forme d'une forme posée depuis une bibliothèque ; undefined pour une autre forme. */
-export function libraryRefOf(shape: ShapeModel): { library: string; kind: string } | undefined {
+function libraryRefOf(shape: ShapeModel): { library: string; kind: string } | undefined {
   const library = spatialOf(shape, SPATIAL.library);
   return library === undefined ? undefined : { library, kind: spatialOf(shape, SPATIAL.kind) ?? '' };
 }

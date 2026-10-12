@@ -2,7 +2,7 @@ import type { Element } from '@xmldom/xmldom';
 import { formatNumber, setCellLabel, setCellStyleValue } from './cellEdits';
 import { SPATIAL } from '../spatial';
 import { ensureLayer, ensureRoot, layerWriter, newCellId, removeCellsDeep } from './create';
-import { layerIdsOf, parentOf } from './layerTree';
+import { firstAncestor, layerIdsOf, parentOf } from './layerTree';
 import { reorderCells } from './order';
 import { markPageDirty, reindexPage } from './xmlTree';
 import type { PageTree } from './xmlTree';
@@ -84,14 +84,12 @@ export function moveCellsToLayer(page: PageTree, cellIds: Iterable<string>, laye
   });
   if (moved.length === 0) return [];
   const movedSet = new Set(moved);
-  const inMoved = (id: string) => {
-    const seen = new Set<string>();
-    for (let at: string | undefined = id; at && !seen.has(at); at = parentOf(page, at)) {
-      if (movedSet.has(at)) return true;
-      seen.add(at);
-    }
-    return false;
-  };
+  const inMoved = (id: string) =>
+    firstAncestor(
+      id,
+      (at) => parentOf(page, at),
+      (at) => movedSet.has(at),
+    ) !== undefined;
   const rootEl = page.cells.get(layerId)!.element.parentNode as Element;
   // Point d'écriture pris avant de sortir les cellules : la fin du bloc du calque, sans elles.
   const write = layerWriter(page, rootEl, layerId);

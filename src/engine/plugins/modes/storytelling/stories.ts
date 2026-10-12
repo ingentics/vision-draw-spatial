@@ -1,5 +1,5 @@
 import type { EdgeModel, ModeEdit, ModeIssue, PageModel } from '../../../core/plugins';
-import { DEFAULT_MODE_PALETTE, byId, clamp, edgeOf, isHexColor, shapeOf } from '../../../core/plugins';
+import { DEFAULT_MODE_PALETTE, byId, clamp, edgeOf, isHexColor, oneLine, shapeOf } from '../../../core/plugins';
 import { keys } from './keys';
 
 /**
@@ -36,9 +36,6 @@ export interface StoryState {
   byEdge: Map<string, Story>;
   issues: ModeIssue[];
 }
-
-/** Texte sur une ligne : retours à la ligne remplacés par un espace. */
-export const oneLine = (text: string): string => text.replace(/\s*\n\s*/g, ' ').trim();
 
 const states = new WeakMap<PageModel, StoryState>();
 
@@ -146,8 +143,7 @@ function nextColor(used: readonly string[], palette: readonly string[] = DEFAULT
 }
 
 /** Histoire ouverte par la flèche (elle porte un numéro). */
-export const storyOf = (page: PageModel, edgeId: string): Story | undefined =>
-  storyState(page).stories.find((story) => story.id === edgeId);
+export const storyOf = (page: PageModel, edgeId: string): Story | undefined => byId(storyState(page).stories, edgeId);
 
 // ---------------------------------------------------------------------------
 // Opérations (une étape d'annulation chacune, via `ModeEdit`)

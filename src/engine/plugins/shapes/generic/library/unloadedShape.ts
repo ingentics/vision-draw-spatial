@@ -9,6 +9,7 @@ import {
   SPATIAL_PREFIX,
   strokeMesh,
   TOP_OFFSET,
+  UNLOADED_COLORS,
 } from '../../../../core/plugins';
 import type {
   LibraryShapeState,
@@ -25,9 +26,6 @@ import type {
  * bibliothèque introuvable). Distinct du placeholder des formes non supportées.
  */
 
-/** Couleurs par défaut (paramètres `shapes.unloadedFill` / `unloadedStroke`). */
-const UNLOADED_FILL = '#eef2f7';
-const UNLOADED_STROKE = '#5b7db1';
 /** Bordure et badge d'une forme introuvable. */
 const UNAVAILABLE_COLOR = '#d97706';
 /** Écart des hachures (à 45°), en px de page. */
@@ -45,7 +43,7 @@ function asUnloaded(shape: ShapeModel, ctx: RenderContext, state: Exclude<Librar
   const spatial = Object.entries(shape.style).filter(([key]) => key.startsWith(SPATIAL_PREFIX));
   const style = {
     ...Object.fromEntries(spatial),
-    fillColor: ctx.unloaded?.fill ?? UNLOADED_FILL,
+    fillColor: (ctx.unloaded ?? UNLOADED_COLORS).fill,
     strokeColor: strokeOf(ctx, state),
     dashed: '1',
     dashPattern: '8 4',
@@ -57,11 +55,11 @@ function asUnloaded(shape: ShapeModel, ctx: RenderContext, state: Exclude<Librar
 }
 
 function strokeOf(ctx: RenderContext, state: Exclude<LibraryShapeState, 'loaded'>): string {
-  return state === 'unavailable' ? UNAVAILABLE_COLOR : (ctx.unloaded?.stroke ?? UNLOADED_STROKE);
+  return state === 'unavailable' ? UNAVAILABLE_COLOR : (ctx.unloaded ?? UNLOADED_COLORS).stroke;
 }
 
 /** Hachures à 45° (du bas-gauche vers le haut-droit) coupées aux bornes. */
-export function hatchLines(bounds: Rect, spacing: number): [Point, Point][] {
+function hatchLines(bounds: Rect, spacing: number): [Point, Point][] {
   const { x, y, width: w, height: h } = bounds;
   const lines: [Point, Point][] = [];
   for (let t = spacing; t < w + h; t += spacing) {
@@ -175,7 +173,11 @@ export function unloadedShape(state: Exclude<LibraryShapeState, 'loaded'>): Shap
     },
     minimap: (brush, shape, map) => {
       const corners = rectPath(shape.bounds).map(map.toMinimap);
-      brush.polygon(corners, { fill: map.colors?.unloaded ?? UNLOADED_FILL, stroke: UNLOADED_STROKE });
+      const colors = map.colors?.unloaded ?? UNLOADED_COLORS;
+      brush.polygon(corners, {
+        fill: colors.fill,
+        stroke: state === 'unavailable' ? UNAVAILABLE_COLOR : colors.stroke,
+      });
     },
   };
 }

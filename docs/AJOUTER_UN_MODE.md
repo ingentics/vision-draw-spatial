@@ -189,7 +189,9 @@ apparence des pastilles, opacité…) ; la partie appli du mode les reçoit auss
 
 **Offrir un export.** Le moteur du mode écrit le texte (ex. `states/export/plantuml.ts`, exposé par son `api.ts`) et
 l'échappe par `plantUmlLine` / `plantUmlQuoted` ; son format est `PLANTUML_FORMAT` (`{ id, name }`, API des plugins),
-ex. `{ ...PLANTUML_FORMAT, export: (page) => texte }`. Sa partie appli ouvre la fenêtre commune
+ex. `{ ...PLANTUML_FORMAT, export: (page) => texte }`. Un export JSON prend `jsonExporter(modèle)` (format
+`JSON_FORMAT`, modèle de la page indenté). Un texte repris d'une forme ou d'une flèche se met sur une ligne par
+`oneLine`. Sa partie appli ouvre la fenêtre commune
 `<ExportDialog format={…} source={texte} exporters={exporters} onClose={…}>` (`src/app/export/ExportDialog.tsx`) :
 texte copiable, et rendu en ligne si le format en a un (choisi par `format.id`, `PREVIEWS` ; PlantUML par le moteur
 des paramètres Exporteurs). Les choix propres au mode (ex. le flux exporté en Séquences) passent en `children`, dans

@@ -6,6 +6,28 @@ import type { PageTree } from './xmlTree';
  * vertex ni arête, enfants d'une racine), calque de chaque cellule. Lecture seule, sur l'arbre tel qu'il est indexé.
  */
 
+/** Ce qui fait d'une cellule une racine ou un calque : ni vertex ni arête (règle partagée avec `cellIndex.ts`). */
+export function isStructuralCell(cell: { vertex: boolean; edge: boolean }): boolean {
+  return !cell.vertex && !cell.edge;
+}
+
+/**
+ * Première cellule qui répond à `match` en partant de `cellId` (elle-même comprise) et en remontant ses parents ;
+ * undefined au bout de la chaîne ou sur un cycle.
+ */
+export function firstAncestor(
+  cellId: string,
+  parentOf: (id: string) => string | undefined,
+  match: (id: string) => boolean,
+): string | undefined {
+  const seen = new Set<string>();
+  for (let id: string | undefined = cellId; id && !seen.has(id); id = parentOf(id)) {
+    if (match(id)) return id;
+    seen.add(id);
+  }
+  return undefined;
+}
+
 /** Racines de la page, dans l'ordre du fichier. */
 export function rootIdsOf(page: PageTree): string[] {
   return page.cellList.filter((nodes) => isStructural(nodes.cell) && !parentOf(page, nodes.id)).map((n) => n.id);
@@ -20,13 +42,12 @@ export function layerIdsOf(page: PageTree): string[] {
 }
 
 /** Calque d'une cellule (elle-même si c'en est un), en remontant ses parents ; undefined hors de tout calque. */
-export function layerOfCell(page: PageTree, cellId: string, layers = new Set(layerIdsOf(page))): string | undefined {
-  const seen = new Set<string>();
-  for (let id: string | undefined = cellId; id && !seen.has(id); id = parentOf(page, id)) {
-    if (layers.has(id)) return id;
-    seen.add(id);
-  }
-  return undefined;
+function layerOfCell(page: PageTree, cellId: string, layers: ReadonlySet<string>): string | undefined {
+  return firstAncestor(
+    cellId,
+    (id) => parentOf(page, id),
+    (id) => layers.has(id),
+  );
 }
 
 /** Dernier nœud du bloc d'un calque dans le fichier : le calque ou la dernière cellule qui y est. */
@@ -38,15 +59,13 @@ export function lastOfLayer(page: PageTree, layerId: string): Element | undefine
   return last;
 }
 
-/** Cellules posées directement sur un calque (pas dans un conteneur ni sur une flèche), dans l'ordre du fichier. */
-export function layerChildIds(page: PageTree, layerId: string): string[] {
-  return page.cellList.filter((nodes) => parentOf(page, nodes.id) === layerId).map((nodes) => nodes.id);
-}
-
 export function parentOf(page: PageTree, cellId: string): string | undefined {
   return page.cells.get(cellId)?.cell?.getAttribute('parent') || undefined;
 }
 
 function isStructural(cell: Element | undefined): boolean {
-  return cell !== undefined && cell.getAttribute('vertex') !== '1' && cell.getAttribute('edge') !== '1';
+  return (
+    cell !== undefined &&
+    isStructuralCell({ vertex: cell.getAttribute('vertex') === '1', edge: cell.getAttribute('edge') === '1' })
+  );
 }

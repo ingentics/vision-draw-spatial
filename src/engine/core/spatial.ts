@@ -72,14 +72,15 @@ export const SPATIAL = {
   view: 'spatial.view',
 } as const;
 
+/** Style et attributs d'un élément ; une forme construite à la main (aperçu, test) peut n'avoir ni l'un ni l'autre. */
 interface SpatialSource {
-  style: Record<string, string>;
-  attributes: Record<string, string>;
+  style?: Readonly<Record<string, string>>;
+  attributes?: Readonly<Record<string, string>>;
 }
 
 /** Valeur d'un attribut spatial : style de la cellule, sinon attribut de son objet. */
 export function spatialValue(element: SpatialSource, key: string): string | undefined {
-  return element.style[key] ?? element.attributes[key];
+  return element.style?.[key] ?? element.attributes?.[key];
 }
 
 /** Valeur numérique positive ou nulle ; undefined si absente ou invalide. */
@@ -110,7 +111,7 @@ export function jsonListValue(items: readonly unknown[]): string | undefined {
 export function spatialAttributes(element: SpatialSource): Record<string, string> {
   const result: Record<string, string> = {};
   for (const source of [element.attributes, element.style]) {
-    for (const [key, value] of Object.entries(source)) if (key.startsWith(SPATIAL_PREFIX)) result[key] = value;
+    for (const [key, value] of Object.entries(source ?? {})) if (key.startsWith(SPATIAL_PREFIX)) result[key] = value;
   }
   return result;
 }

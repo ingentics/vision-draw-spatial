@@ -1,5 +1,5 @@
 import type { PageModel, ShapeModel } from '../../../../core/plugins';
-import { shapeOf } from '../../../../core/plugins';
+import { oneLine, shapeOf } from '../../../../core/plugins';
 import type { WallWarning } from '../export/wallRules';
 import { stickyType } from '../kinds';
 import { named, STICKY_RULES, WARNINGS } from '../stickyRules';
@@ -12,7 +12,7 @@ import { named, STICKY_RULES, WARNINGS } from '../stickyRules';
 /** Post-it du mur cité : nommé, ou son type seul s'il n'a pas de texte. */
 function quoted(shape: ShapeModel | undefined): string {
   const type = shape && stickyType(shape);
-  const text = shape?.label.replace(/\s+/g, ' ').trim();
+  const text = shape && oneLine(shape.label);
   return type ? (text ? named(type.key, text) : type.label) : 'un post-it';
 }
 

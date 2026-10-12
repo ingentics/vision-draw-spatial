@@ -24,3 +24,24 @@
 - Tests : tests existants intacts (imports seuls) ; test de `oneLine` dans le tronc.
 - **Fini quand :** les copies ont disparu ; exports JSON et PlantUML identiques sur les fixtures des trois modes ;
   `make check` vert.
+- Fait :
+  - `oneLine` (`core/model/names.ts`, API des plugins) : remplace les trois copies (Story telling, Event storming,
+    simulation des états) et les écritures en ligne (`pivotVerdict.ts`, `warningHints.ts`, relation embedded du mode
+    rdd, `xmlTree.ts`). Règle retenue : tout blanc réduit à une espace.
+  - `JSON_FORMAT` et `jsonExporter(modèle)` (`core/export/jsonText.ts`, API des plugins) : exports JSON du mur et des
+    histoires.
+  - `spatialValue` accepte un style ou des attributs absents ; `libraryStore.ts` s'en sert (`spatialOf` réduit à la
+    lecture sans blancs). `OTHER_CATEGORY`, `libraryRefOf` et `hatchLines` ne sont plus exportés.
+  - Calques : `isStructuralCell` et `firstAncestor` (`format/layerTree.ts`) partagés par `cellIndex.ts` (racines,
+    calques, calque d'une cellule) et `layerEdits.ts` (`inMoved`) ; `layerChildIds` (sans appelant) retiré.
+  - Forme non chargée : couleurs par défaut `UNLOADED_COLORS` (`settings/schema/shapes.ts`, API des plugins) ;
+    `MinimapMapping.colors.unloaded` devient `{ fill, stroke }`.
+  - `demoShapeLibrary.ts` prend `SHAPE_LIBRARY_FORMAT` / `_VERSION` ; `byId` dans `stories.ts` et `metamorphs.ts`.
+  - Écarts de comportement : plusieurs espaces de suite d'un texte sont réduits à une dans les exports JSON (mur,
+    histoires) et les messages du mode Story telling ; sur la mini-carte, une forme non chargée suit le réglage
+    « bordure » et une forme introuvable a sa bordure orange.
+  - Tests : `names.test.ts` (`oneLine`), `export/jsonText.test.ts`, `format/layerTree.test.ts` ; tests existants
+    intacts.
+  - Docs : `AJOUTER_UN_MODE.md` (export JSON, `oneLine`).
+  - Vérifié dans l'appli (`shape-library.drawio`) : formes non chargées et introuvables inchangées sur la page, bordure
+    orange des introuvables sur la mini-carte. Exports JSON vérifiés seulement par les tests.

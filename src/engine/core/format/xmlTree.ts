@@ -1,5 +1,6 @@
 import { DOMParser, type Document, type Element } from '@xmldom/xmldom';
 import { decodeDiagram } from './decode';
+import { oneLine } from '../model/names';
 
 /**
  * Arbre XML d'origine d'un fichier draw.io (SPEC §14.2), conservé à côté du modèle neutre.
@@ -207,7 +208,7 @@ export function childElements(parent: Element, tagName?: string): Element[] {
 function xmlErrorDetail(error: unknown): string {
   const message = errorMessage(error);
   const detail = /caused (?:\w*Error: )?(.+)$/s.exec(message)?.[1] ?? message;
-  return detail.replace(/\s+/g, ' ').trim();
+  return oneLine(detail);
 }
 
 function errorMessage(error: unknown): string {

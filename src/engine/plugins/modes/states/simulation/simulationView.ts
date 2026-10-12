@@ -1,5 +1,5 @@
 import type { EdgeModel, PageModel, ShapeModel } from '../../../../core/plugins';
-import { edgeOf, elementName, shapeOf } from '../../../../core/plugins';
+import { edgeOf, elementName, oneLine, shapeOf } from '../../../../core/plugins';
 import { ERROR_COLOR, isErrorExit } from '../exits/exitKind';
 import { isFinal, isInitial, isStateLike } from '../kinds';
 import { businessRules } from '../transitions/businessRules';
@@ -89,8 +89,6 @@ export function stepName(shape: ShapeModel): string {
 function transitionName(edge: EdgeModel | undefined): string {
   return edge ? oneLine(edge.label) : '';
 }
-
-const oneLine = (text: string) => text.replace(/\s+/g, ' ').trim();
 
 /** Bandeau de fin : texte, couleur (fond du bandeau, texte de la trace) et couleur du texte sur ce fond. */
 export const END_LABELS: Record<SimulationEnd, { text: string; color: string; textColor: string }> = {

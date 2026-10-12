@@ -59,8 +59,11 @@ export interface MinimapMapping {
   toMinimap(point: Point): Point;
   /** Pixels mini-carte par pixel de page. */
   scale: number;
-  /** Couleurs réglables (#rrggbb) : contour des formes, formes non supportées ; à défaut, celles du moteur. */
-  colors?: { outline?: string; placeholder?: string; unloaded?: string };
+  /**
+   * Couleurs réglables (#rrggbb) : contour des formes, formes non supportées, formes de bibliothèque non chargées ; à
+   * défaut, celles du moteur.
+   */
+  colors?: { outline?: string; placeholder?: string; unloaded?: { fill: string; stroke: string } };
 }
 
 /**
