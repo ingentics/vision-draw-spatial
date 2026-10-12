@@ -2026,6 +2026,8 @@ body {
 
 .flow-list {
   display: grid;
+  /* Une ligne ne dépasse pas le panneau : un titre long (histoire, sujet 541) est coupé. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 4px;
   margin: 6px 0;
   padding: 0;

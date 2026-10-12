@@ -82,7 +82,7 @@ export class StoryPlayback {
 
   /**
    * Éléments montrés qui appartiennent à l'histoire du pas courant (cadrage), y compris ceux montrés par une histoire
-   * précédente (croisement).
+   * précédente (forme où passent les deux).
    */
   shownInStory(): string[] {
     const own = this.storyElements.get(this.beat.story.id)!;

@@ -110,7 +110,13 @@ function StoryRow({
       <span className="color-dot story-number" style={{ background: story.color }}>
         {story.number}
       </span>
-      <span className="story-title">{story.title}</span>
+      {/* Titre long (textes de toutes les étapes, sujet 541) : coupé, entier dans la bulle. */}
+      <span
+        className="story-title"
+        data-tip={current || !onChoose ? story.title : `${story.title} — clic : en faire l’histoire courante`}
+      >
+        {story.title}
+      </span>
       <span className="field-value" data-tip={`${count} flèche${count > 1 ? 's' : ''}`}>
         {count}
       </span>

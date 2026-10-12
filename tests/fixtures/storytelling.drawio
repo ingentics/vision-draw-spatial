@@ -31,10 +31,10 @@
         <mxCell id="commander" value="Passer commande" style="endArrow=classic;html=1;spatial.story.number=1;spatial.story.color=#dae8fc;" edge="1" parent="1" source="client" target="panier">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="payer" value="Payer" style="endArrow=classic;html=1;" edge="1" parent="1" source="panier" target="paiement">
+        <mxCell id="payer" value="Payer" style="endArrow=classic;html=1;spatial.story.of=commander;" edge="1" parent="1" source="panier" target="paiement">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="expedier" value="Expédier" style="endArrow=classic;html=1;" edge="1" parent="1" source="paiement" target="livraison">
+        <mxCell id="expedier" value="Expédier" style="endArrow=classic;html=1;spatial.story.of=commander;" edge="1" parent="1" source="paiement" target="livraison">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="reserver" value="Réserver" style="endArrow=classic;html=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="paiement" target="stock">
@@ -43,16 +43,16 @@
         <mxCell id="controler" value="Contrôler le stock" style="endArrow=classic;html=1;spatial.story.number=2;spatial.story.color=#d5e8d4;" edge="1" parent="1" source="admin" target="stock">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="valider" value="Valider" style="endArrow=classic;html=1;exitX=0.75;exitY=0;exitDx=0;exitDy=0;entryX=0.75;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="stock" target="paiement">
+        <mxCell id="valider" value="Valider" style="endArrow=classic;html=1;exitX=0.75;exitY=0;exitDx=0;exitDy=0;entryX=0.75;entryY=1;entryDx=0;entryDy=0;spatial.story.of=controler;" edge="1" parent="1" source="stock" target="paiement">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="relire" value="" style="endArrow=classic;html=1;spatial.story.number=3;spatial.story.color=#ffe6cc;" edge="1" parent="1" source="admin" target="rapport">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="verifier" value="Vérifier" style="endArrow=classic;html=1;" edge="1" parent="1" source="rapport" target="verif">
+        <mxCell id="verifier" value="Vérifier" style="endArrow=classic;html=1;spatial.story.of=relire;" edge="1" parent="1" source="rapport" target="verif">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="corriger" value="Corriger" style="endArrow=classic;html=1;" edge="1" parent="1" source="verif" target="rapport">
+        <mxCell id="corriger" value="Corriger" style="endArrow=classic;html=1;spatial.story.of=relire;" edge="1" parent="1" source="verif" target="rapport">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="hors" value="hors histoire" style="endArrow=classic;html=1;" edge="1" parent="1" source="admin" target="client">

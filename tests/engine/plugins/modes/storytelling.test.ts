@@ -15,7 +15,9 @@ import {
   COLOR,
   NUMBER,
   repairStories,
+  OF,
   setStoryNumber,
+  setStoryOf,
   startStory,
   stopStory,
   storyState,
@@ -36,39 +38,80 @@ function setup(index = 0, palette?: readonly string[]) {
   return { run, page: () => page };
 }
 
-/** Histoires écrites `numéro titre : flèches`. */
+/** Histoires écrites `numéro : flèches`. */
 const stories = (page: PageModel) =>
-  storyState(page).stories.map((story) => `${story.number} ${story.title} : ${story.edges.join(' ')}`);
+  storyState(page).stories.map((story) => `${story.number} : ${story.edges.join(' ')}`);
+/** Titres des histoires de la fixture : textes des étapes à la suite (sujet 541). */
+const TITLES = [
+  'Client Passer commande Panier Payer Paiement Expédier Livraison',
+  'Admin Contrôler le stock Stock Valider Paiement',
+  // « relire » sans texte : omis.
+  'Admin Rapport Vérifier Vérification Corriger Rapport',
+];
 const edge = (page: PageModel, id: string) => page.edges.find((e) => e.id === id)!;
 const written = (page: PageModel, id: string, key: string) => spatialValue(edge(page, id), keys.key(key));
 
 describe('mode Story telling (sujet 474) : parcours', () => {
-  it('suite depuis la forme d’arrivée, croisement, branche (première suivie), boucle', () => {
+  it('suite écrite sur les flèches (sujet 541) : une flèche dans une seule histoire, boucle arrêtée', () => {
     const { page } = setup();
     expect(stories(page())).toEqual([
-      '1 Passer commande : commander payer expedier',
-      // Croisement : depuis Paiement, « Expédier » appartient aux deux histoires.
-      '2 Contrôler le stock : controler valider expedier',
-      // Sans texte : « Histoire N » ; boucle Rapport → Vérification → Rapport arrêtée.
-      '3 Histoire 3 : relire verifier corriger',
+      '1 : commander payer expedier',
+      // « Expédier » n'est que dans l'histoire 1 : l'histoire 2 s'arrête à Paiement.
+      '2 : controler valider',
+      // Boucle Rapport → Vérification → Rapport arrêtée.
+      '3 : relire verifier corriger',
     ]);
     const { byEdge, issues } = storyState(page());
-    expect(byEdge.get('expedier')!.map((story) => story.number)).toEqual([1, 2]);
+    expect(byEdge.get('expedier')!.number).toBe(1);
     expect(byEdge.has('reserver')).toBe(false);
     expect(byEdge.has('hors')).toBe(false);
-    // Branche : deux flèches partent de Paiement, signalée pour chaque histoire qui y passe.
-    expect(issues).toEqual([
+    expect(issues).toEqual([]);
+  });
+
+  it('branche (première suivie), flèche hors du fil (à la fin), histoire disparue : signalées', () => {
+    const { run, page } = setup();
+    run((edit) => {
+      setStoryOf(edit, 'reserver', 'commander');
+      setStoryOf(edit, 'hors', 'controler');
+    });
+    // Admin → Client ne part pas de Paiement : hors du fil, à la fin.
+    expect(stories(page()).slice(0, 2)).toEqual([
+      '1 : commander payer expedier reserver',
+      '2 : controler valider hors',
+    ]);
+    run((edit) => edit.setElementAttribute('valider', OF, 'disparue'));
+    expect(storyState(page()).byEdge.has('valider')).toBe(false);
+    expect(storyState(page()).issues).toEqual([
       {
-        cellId: 'paiement',
-        message:
-          'Histoire « Passer commande » : plusieurs flèches partent de « Paiement », seule la première est suivie',
+        cellId: 'valider',
+        message: 'Flèche « Valider » : son histoire n’existe plus',
       },
       {
         cellId: 'paiement',
-        message:
-          'Histoire « Contrôler le stock » : plusieurs flèches partent de « Paiement », seule la première est suivie',
+        message: 'Histoire 1 : plusieurs de ses flèches partent de « Paiement », seule la première est suivie',
+      },
+      {
+        cellId: 'hors',
+        message: 'Histoire 2 : la flèche « hors histoire » ne suit pas les précédentes',
       },
     ]);
+  });
+
+  it('histoire d’une flèche : une histoire qui existe, jamais sur une flèche numérotée', () => {
+    const { run, page } = setup();
+    expect(run((edit) => setStoryOf(edit, 'reserver', 'payer'))).toBe(false);
+    expect(run((edit) => setStoryOf(edit, 'commander', 'controler'))).toBe(false);
+    run((edit) => setStoryOf(edit, 'expedier', undefined));
+    expect(written(page(), 'expedier', OF)).toBeUndefined();
+    expect(stories(page())[0]).toBe('1 : commander payer');
+  });
+
+  it('titre : textes des étapes à la suite, vides omis ; sans aucun texte : « Histoire N »', () => {
+    const { page } = setup();
+    expect(storyState(page()).stories.map((story) => story.title)).toEqual(TITLES);
+    const blank = <T extends { label: string }>(element: T): T => ({ ...element, label: ' \n ' });
+    const silent = { ...page(), shapes: page().shapes.map(blank), edges: page().edges.map(blank) };
+    expect(storyState(silent).stories.map((story) => story.title)).toEqual(['Histoire 1', 'Histoire 2', 'Histoire 3']);
   });
 
   it('numéros en désordre remis en ordre : numéro, puis ordre de dessin, illisibles à la fin ; signalé', () => {
@@ -100,7 +143,7 @@ describe('mode Story telling : numéros', () => {
     expect(written(page(), 'hors', NUMBER)).toBe('4');
     expect(written(page(), 'hors', COLOR)).toBe('#123456');
     // Depuis Client (arrivée de « hors »), « Passer commande » est numérotée : rien ne suit.
-    expect(stories(page()).at(-1)).toBe('4 hors histoire : hors');
+    expect(stories(page()).at(-1)).toBe('4 : hors');
   });
 
   it('changer un numéro l’échange avec l’histoire qui l’avait (borné), couleurs inchangées', () => {
@@ -115,23 +158,23 @@ describe('mode Story telling : numéros', () => {
     expect(storyState(page()).stories.map((story) => story.id)).toEqual(['commander', 'controler', 'relire']);
   });
 
-  it('retirer un numéro resserre les suivants ; la flèche rejoint la suite d’une autre', () => {
+  it('retirer un numéro resserre les suivants ; ses flèches n’ont plus d’histoire', () => {
     const { run, page } = setup();
     run((edit) => stopStory(edit, 'commander'));
     expect([written(page(), 'commander', NUMBER), written(page(), 'commander', COLOR)]).toEqual([undefined, undefined]);
-    expect(stories(page())).toEqual([
-      '1 Contrôler le stock : controler valider expedier',
-      '2 Histoire 2 : relire verifier corriger',
-    ]);
+    expect([written(page(), 'payer', OF), written(page(), 'expedier', OF)]).toEqual([undefined, undefined]);
+    expect(stories(page())).toEqual(['1 : controler valider', '2 : relire verifier corriger']);
   });
 
-  it('flèche numérotée supprimée : les suivants se resserrent (remise en ordre)', () => {
+  it('flèche numérotée supprimée : les suivants se resserrent, ses flèches n’ont plus d’histoire (remise en ordre)', () => {
     const { document, tree } = readDrawio(fixture('storytelling.drawio'));
     const page = document.pages[0]!;
     const without = { ...page, edges: page.edges.filter((e) => e.id !== 'controler') };
     applyModeEdit(without, tree.pages[0]!, STORY_KEYS, storytelling.lifecycle!.removed!);
     const after = documentFromTree(tree).pages[0]!;
     expect(written(after, 'relire', NUMBER)).toBe('2');
+    expect(written(after, 'valider', OF)).toBeUndefined();
+    expect(written(after, 'payer', OF)).toBe('commander');
   });
 
   it('une opération qui ne change rien n’écrit rien', () => {
@@ -155,27 +198,34 @@ describe('mode Story telling : numéros', () => {
     expect(written(page(), 'hors', NUMBER)).toBe('4');
   });
 
-  it('réglages de la flèche : début d’histoire, numéro masqué sans numéro, histoires en lecture seule', () => {
+  it('réglages de la flèche : début d’histoire, numéro masqué sans numéro, histoire de la flèche', () => {
     const { run, page } = setup();
-    const [start, number, list] = storytelling.edges!.properties!;
+    const [start, number, story] = storytelling.edges!.properties!;
     expect(start!.value!(page(), edge(page(), 'commander'))).toBe('1');
     expect(start!.value!(page(), edge(page(), 'payer'))).toBeUndefined();
     expect(number!.value!(page(), edge(page(), 'relire'))).toBe('3');
     expect(number!.hidden!(page(), edge(page(), 'payer'))).toBe(true);
-    expect(list!.type === 'note' && list!.note(page(), edge(page(), 'expedier'))).toEqual({
-      tone: 'neutral',
-      title: 'Dans les histoires',
-      text: '1. Passer commande\n2. Contrôler le stock',
-    });
-    expect(list!.hidden!(page(), edge(page(), 'hors'))).toBe(true);
+    expect(story!.type === 'choice' && story!.options(page(), [])).toEqual([
+      { value: '', label: 'Aucune' },
+      { value: 'commander', label: `1. ${TITLES[0]}`, color: '#dae8fc' },
+      { value: 'controler', label: `2. ${TITLES[1]}`, color: '#d5e8d4' },
+      { value: 'relire', label: `3. ${TITLES[2]}`, color: '#ffe6cc' },
+    ]);
+    expect(story!.value!(page(), edge(page(), 'expedier'))).toBe('commander');
+    expect(story!.value!(page(), edge(page(), 'hors'))).toBe('');
+    expect(story!.hidden!(page(), edge(page(), 'commander'))).toBe(true);
+    expect(story!.hidden!(page(), edge(page(), 'hors'))).toBe(false);
+    run((edit) => story!.write!(edit, edge(page(), 'hors'), 'relire'));
+    expect(written(page(), 'hors', OF)).toBe('relire');
+    // Une flèche de la suite qui ouvre une histoire perd la sienne.
     run((edit) => start!.write!(edit, edge(page(), 'payer'), '1'));
-    expect(written(page(), 'payer', NUMBER)).toBe('4');
+    expect([written(page(), 'payer', NUMBER), written(page(), 'payer', OF)]).toEqual(['4', undefined]);
     run((edit) => start!.write!(edit, edge(page(), 'payer'), undefined));
     expect(written(page(), 'payer', NUMBER)).toBeUndefined();
   });
 
-  it('copier-coller : la copie perd numéro et couleur', () => {
-    expect(storytelling.pasteKeys).toEqual([NUMBER, COLOR]);
+  it('copier-coller : la copie perd numéro, couleur et histoire', () => {
+    expect(storytelling.pasteKeys).toEqual([NUMBER, COLOR, OF]);
   });
 });
 
@@ -183,14 +233,11 @@ describe('mode Story telling : habillage et histoire courante', () => {
   const { page } = setup();
   const values = createDefaultModeRegistry().values('storytelling', undefined);
 
-  it('couleur de l’histoire ; flèche partagée : l’histoire courante si elle en fait partie, sinon la plus petite', () => {
-    const dressing = (current?: string) => storytelling.dressing!(page(), values, current);
-    expect(dressing().edgeColor!(edge(page(), 'verifier'))).toBe('#ffe6cc');
-    expect(dressing().edgeColor!(edge(page(), 'expedier'))).toBe('#dae8fc');
-    expect(dressing('controler').edgeColor!(edge(page(), 'expedier'))).toBe('#d5e8d4');
-    expect(dressing('relire').edgeColor!(edge(page(), 'expedier'))).toBe('#dae8fc');
-    expect(dressing().edgeColor!(edge(page(), 'hors'))).toBeUndefined();
-    expect(storytelling.current!.redraws).toBe(true);
+  it('couleur de la seule histoire de la flèche, quelle que soit la courante', () => {
+    const dressing = storytelling.dressing!(page(), values, 'controler');
+    expect(dressing.edgeColor!(edge(page(), 'verifier'))).toBe('#ffe6cc');
+    expect(dressing.edgeColor!(edge(page(), 'expedier'))).toBe('#dae8fc');
+    expect(dressing.edgeColor!(edge(page(), 'hors'))).toBeUndefined();
   });
 
   it('flèches plus épaisses (au moins l’épaisseur du mode) et arrêtées avant les formes (réglages du mode)', () => {
@@ -226,7 +273,7 @@ describe('mode Story telling : habillage et histoire courante', () => {
     expect(current.initial(page())).toBe('commander');
     expect(current.pick!(page(), edge(page(), 'verifier'))).toBe('relire');
     expect(current.pick!(page(), edge(page(), 'hors'))).toBeUndefined();
-    expect(current.label!(page(), 'relire')).toBe('Histoire 3');
+    expect(current.label!(page(), 'relire')).toBe(TITLES[2]);
     expect(current.values!(page())).toEqual(['commander', 'controler', 'relire']);
     expect(current.focus!(page(), 'relire')!.sort()).toEqual([
       'admin',
@@ -259,9 +306,9 @@ describe('mode Story telling : export JSON', () => {
     const { page } = setup();
     const exported = storiesExport(page());
     expect(exported.stories.map((story) => [story.number, story.title])).toEqual([
-      [1, 'Passer commande'],
-      [2, 'Contrôler le stock'],
-      [3, 'Histoire 3'],
+      [1, TITLES[0]],
+      [2, TITLES[1]],
+      [3, TITLES[2]],
     ]);
     expect(exported.stories[0]!.steps).toEqual([
       { label: 'Passer commande', from: 'Client', to: 'Panier' },
@@ -272,16 +319,21 @@ describe('mode Story telling : export JSON', () => {
 
   it('bout libre : null', () => {
     const { page } = setup(1);
-    expect(storiesExport(page()).stories.find((story) => story.title === 'bout libre')!.steps).toEqual([
+    expect(storiesExport(page()).stories.find((story) => story.title === 'A bout libre')!.steps).toEqual([
       { label: 'bout libre', from: 'A', to: null },
     ]);
   });
 });
 
-describe('mode Story telling : flèche tirée (sujet 540)', () => {
-  it('sans histoire courante, elle ouvre une histoire ; avec une, rien n’est écrit', () => {
+describe('mode Story telling : flèche tirée (sujets 540, 541)', () => {
+  it('avec une histoire courante, elle la continue', () => {
     const { run, page } = setup();
-    expect(run((edit) => storytelling.edges!.created!(edit, 'reserver', 'commander'))).toBe(false);
+    run((edit) => storytelling.edges!.created!(edit, 'reserver', 'controler'));
+    expect(written(page(), 'reserver', OF)).toBe('controler');
+  });
+
+  it('sans histoire courante, elle ouvre une histoire', () => {
+    const { run, page } = setup();
     run((edit) => storytelling.edges!.created!(edit, 'reserver', undefined));
     expect(storyState(page()).stories.map((story) => story.id)).toEqual([
       'commander',

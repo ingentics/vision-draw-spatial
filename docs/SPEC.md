@@ -863,6 +863,7 @@ Réalisation retenue (`engine/core/spatial.ts`) :
 | `spatial.sm.error` | style ou objet | Mode Machine à états : `1` = point de sortie en erreur ; absent = sortie attendue |
 | `spatial.es.labels` | `<diagram>`, style | Mode Event storming : `0` = labels des post-it masqués (réglage « Labels » de la page), recopié sur chaque post-it ; absent = affichés |
 | `spatial.story.number`, `spatial.story.color` | style ou objet | Mode Story telling : numéro de l'histoire ouverte par la flèche (1…n) et sa couleur (#rrggbb, choisie à la création) ; absent = flèche sans numéro |
+| `spatial.story.of` | style ou objet | Mode Story telling (sujet 541) : histoire d'une flèche sans numéro, id de la flèche numérotée qui l'ouvre ; absent = dans aucune histoire |
 
 - Lecture : style de la cellule, sinon attribut de son `<object>` / `<UserObject>` (« Modifier les données » dans draw.io) ; le style l'emporte. Valeurs négatives ou invalides ignorées.
 - Écriture (panneau contextuel, section « Volume » : « Épaisseur », « Élévation » ; vide = valeur par défaut) : là où l'attribut est déjà (objet), sinon dans le style, clé modifiée en place ou ajoutée à la fin.
@@ -1213,34 +1214,37 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     `spatial.es.validation=0`) : décoché, plus de pastille « ! », le « ? » du pivot reste. Mur des règles, un cas bien placé et des cas fautifs par règle :
     `tests/fixtures/eventstorming-regles.drawio`.
 - **Mode Story telling** (`storytelling`, espace `story`, nom court « Histoires », sujet 474) : tous les modes
-  d'affichage ; la palette ne propose qu'Acteur, Droid et Rectangle ; au passage dans le mode, ancrage automatique et tracé
+  d'affichage ; la palette ne propose qu'Acteur, Droid, Rectangle et Metamorph ; au passage dans le mode, ancrage automatique et tracé
   droit (`page.defaults`) ; pas de grille (`page.grid`, sujet 537). Code : `src/engine/plugins/modes/storytelling/`.
-  - **Début d'histoire** : une flèche numérotée (`spatial.story.number`) ouvre une histoire ; son texte est le titre
-    (sans texte : « Histoire N »). Numéros consécutifs 1…n : changer un numéro l'échange avec l'histoire qui l'avait,
+  - **Début d'histoire** : une flèche numérotée (`spatial.story.number`) ouvre une histoire. Titre (sujet 541) : textes
+    de ses étapes à la suite (forme de départ, puis chaque flèche et sa forme d'arrivée), chacun sur une ligne, séparés
+    par une espace, les vides omis ; sans aucun texte : « Histoire N ». Numéros consécutifs 1…n : changer un numéro l'échange avec l'histoire qui l'avait,
     retirer un numéro ou supprimer la flèche resserre les suivants (une étape d'annulation chacun). Couleur prise à la
     création (première couleur de l'appli encore libre) et enregistrée sur la flèche (`spatial.story.color`) :
     réordonner ne change pas les couleurs.
-  - **Suite** (calculée, rien n'est écrit) : depuis la forme d'arrivée, la flèche sans numéro qui en part, et ainsi de
-    suite ; arrêt sur une forme sans flèche sortante sans numéro, un bout libre ou une flèche déjà dans l'histoire
-    (boucle). Une flèche qui part d'une forme atteinte par plusieurs histoires appartient à toutes (croisement).
-    Plusieurs flèches sortantes : la première dans l'ordre de dessin est suivie, signalé dans les Diagnostics.
+  - **Suite** (sujet 541) : chaque flèche sans numéro porte son histoire (`spatial.story.of`), une seule : pour
+    continuer une histoire depuis une forme où passe une autre, on trace une nouvelle flèche. Une flèche tirée depuis
+    une forme continue l'histoire courante ; sans histoire courante, elle en ouvre une (sujet 540). Ordre : depuis la
+    forme d'arrivée, la flèche de l'histoire qui en part, et ainsi de suite (boucle : arrêt) ; plusieurs flèches de
+    l'histoire partent d'une forme : la première dans l'ordre de dessin est suivie ; flèches hors du fil mises à la
+    fin ; `of` qui ne désigne aucune histoire ignoré : signalés dans les Diagnostics. Retirer le numéro (ou supprimer
+    la flèche numérotée) retire leur histoire à ses flèches.
   - **Touches** (flèche seule) : « + » ouvre une histoire à la fin sur une flèche sans numéro, sinon numéro suivant ;
     « - » numéro précédent. **Panneau d'une flèche** (section « Story telling ») : « Début d'histoire », « Numéro »,
-    et les histoires de la flèche en lecture seule. **Panneau de la page** (section « Histoires ») : liste ordonnée
+    et, sur une flèche sans numéro, le choix « Histoire » (Aucune, ou une histoire). **Panneau de la page** (section « Histoires ») : liste ordonnée
     (pastille et numéro, titre, nombre de flèches), ↑ ↓, × (retire le numéro), « Exporter en JSON ».
-  - **Habillage** : flèches d'une histoire dans sa couleur assombrie (flèche partagée : l'histoire courante si elle
-    en fait partie, sinon la plus petite), pastille du numéro sur la flèche qui ouvre l'histoire ; histoire courante
-    (la première, ou celle d'une flèche cliquée ; Tab : la suivante, en boucle) nette, le reste estompé ; pas de barre
+  - **Habillage** : flèches d'une histoire dans sa couleur assombrie, pastille du numéro sur la flèche qui ouvre l'histoire ; histoire courante
+    (la première, celle d'une flèche cliquée ou d'une ligne de la liste ; Tab : la suivante, en boucle ; aucune après
+    Échap ou un clic sur le fond, sujet 540) nette, le reste estompé ; pas de barre
     du courant en haut de la zone de dessin. Toutes les flèches de la page sont dessinées plus épaisses (« Épaisseur
     des flèches », au moins 3 px) et s'arrêtent avant les formes qu'elles relient (« Écart des flèches aux formes »,
     10 px), à l'écran seulement (habillage, sujet 536). Réglages Paramètres › Modes › Histoires
     (ceux de Séquences, sans le glissement de la barre).
   - **Incohérences** (fichier modifié à la main) : numéros à trous, doublons ou illisibles triés (numéro, puis ordre
-    de dessin), signalés, écrits à la prochaine modification. Copier-coller : la copie perd numéro et couleur.
+    de dessin), signalés, écrits à la prochaine modification. Copier-coller : la copie perd numéro, couleur et histoire.
   - **Export JSON** (`export/json.ts`) : `{ "stories": [{ "number", "title", "steps": [{ "label", "from", "to" }] }] }`,
     étapes dans l'ordre de la suite, `from` / `to` = texte des formes reliées (`null` pour un bout libre).
-  - **Simulation** (sujet 534, `simulation/`) : « Lancer la simulation » (section « Histoires », barre en bas de la
-    zone de dessin) joue les histoires à la suite, comme une présentation. Tout est caché (voile opaque de la couleur
+  - **Simulation** (sujet 534, `simulation/`) : « Lancer la simulation » (section « Histoires ») joue les histoires à la suite, comme une présentation. Tout est caché (voile opaque de la couleur
     du fond, sujet 533) sauf ce qui a déjà été montré, histoires précédentes comprises. Premier pas d'une histoire : la
     forme de départ de sa flèche numérotée ; chaque pas suivant : une flèche et sa forme d'arrivée ; un pas sans
     nouveauté est sauté. L'histoire du pas devient l'histoire courante (le reste montré est estompé), la forme montrée

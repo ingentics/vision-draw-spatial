@@ -1,13 +1,23 @@
 import type { ModeKey, PageModeDefinition } from '../../../core/plugins';
-import { byId, edgeOf, isToggled, numberValue, styleNumber, toggleValue } from '../../../core/plugins';
+import { edgeOf, isToggled, numberValue, styleNumber, toggleValue } from '../../../core/plugins';
 import { STORY_KEYS } from './keys';
 import { badgeStyle, currentLook, STORY_SETTINGS } from './settings';
-import { COLOR, NUMBER, repairStories, setStoryNumber, startStory, stopStory, storyOf, storyState } from './stories';
+import {
+  COLOR,
+  NUMBER,
+  OF,
+  repairStories,
+  setStoryNumber,
+  setStoryOf,
+  startStory,
+  stopStory,
+  storyOf,
+  storyState,
+} from './stories';
 
 /**
  * Mode « Story telling » (sujet 474) : une flèche numérotée (`spatial.story.number`) ouvre une histoire, les flèches
- * sans numéro qui partent des formes atteintes la continuent (calculé, rien n'est écrit). Dans draw.io, rien ne
- * change.
+ * qui portent son id (`spatial.story.of`, sujet 541) la continuent. Dans draw.io, rien ne change.
  */
 export const definition: PageModeDefinition = {
   id: 'storytelling',
@@ -53,30 +63,33 @@ export const definition: PageModeDefinition = {
         hidden: (page, target) => storyOf(page, target.id) === undefined,
       },
       {
-        type: 'note',
-        key: 'stories',
-        label: 'Histoires de la flèche',
-        note: (page, target) => {
-          const stories = storyState(page).byEdge.get(target.id);
-          return (
-            stories && {
-              tone: 'neutral',
-              title: stories.length > 1 ? 'Dans les histoires' : 'Dans l’histoire',
-              text: stories.map((story) => `${story.number}. ${story.title}`).join('\n'),
-            }
-          );
-        },
-        hidden: (page, target) => !storyState(page).byEdge.has(target.id),
+        type: 'choice',
+        key: OF,
+        label: 'Histoire',
+        title: 'Histoire de la flèche (spatial.story.of) : elle la continue depuis la forme d’où elle part',
+        options: (page) => [
+          { value: '', label: 'Aucune' },
+          ...storyState(page).stories.map((story) => ({
+            value: story.id,
+            label: `${story.number}. ${story.title}`,
+            color: story.color,
+          })),
+        ],
+        value: (page, target) => storyState(page).byEdge.get(target.id)?.id ?? '',
+        write: (edit, target, value) => setStoryOf(edit, target.id, value || undefined),
+        hidden: (page, target) => storyOf(page, target.id) !== undefined,
       },
     ],
-    // Sans histoire courante (Échap, clic sur le fond), une flèche tirée depuis une forme ouvre une histoire (sujet 540).
+    // Une flèche tirée depuis une forme continue l'histoire courante (sujet 541) ; sans histoire courante (Échap, clic
+    // sur le fond), elle en ouvre une (sujet 540).
     created: (edit, edgeId, current) => {
       if (current === undefined) startStory(edit, edgeId);
+      else setStoryOf(edit, edgeId, current);
     },
     // Flèche d'une histoire sélectionnée seule : ni voile ni contour, sa couleur la montre (comme Séquences).
     selectionStyle: (page, edge, size) => (size === 1 && storyState(page).byEdge.has(edge.id) ? 'none' : undefined),
   },
-  dressing(page, values, current) {
+  dressing(page, values) {
     const { byEdge } = storyState(page);
     const width = numberValue(values, 'edgeWidth');
     return {
@@ -86,11 +99,7 @@ export const definition: PageModeDefinition = {
       edgeInset: numberValue(values, 'edgeGap'),
       edgeDarken: numberValue(values, 'edgeDarken'),
       edgeBadgeStyle: badgeStyle(values),
-      // Flèche partagée : la couleur de l'histoire courante si elle en fait partie, sinon celle de la plus petite.
-      edgeColor: (edge) => {
-        const stories = byEdge.get(edge.id);
-        return stories && (byId(stories, current ?? '') ?? stories[0]!).color;
-      },
+      edgeColor: (edge) => byEdge.get(edge.id)?.color,
       edgeBadge: (edge) => {
         const story = storyOf(page, edge.id);
         return story && { text: String(story.number), color: story.color };
@@ -103,12 +112,10 @@ export const definition: PageModeDefinition = {
   current: {
     initial: (page) => storyState(page).stories[0]?.id,
     valid: (page, value) => storyOf(page, value) !== undefined,
-    pick: (page, target) => storyState(page).byEdge.get(target.id)?.[0]?.id,
+    pick: (page, target) => storyState(page).byEdge.get(target.id)?.id,
     label: (page, value) => storyOf(page, value)?.title ?? value,
     values: (page) => storyState(page).stories.map((story) => story.id),
     look: currentLook,
-    // Couleur d'une flèche partagée selon l'histoire courante.
-    redraws: true,
     clearable: true,
     // Flèches de l'histoire et formes qu'elles relient.
     focus: (page, value) => {
@@ -149,7 +156,7 @@ export const definition: PageModeDefinition = {
     check: (page) => storyState(page).issues,
     removed: repairStories,
   },
-  pasteKeys: [NUMBER, COLOR],
+  pasteKeys: [NUMBER, COLOR, OF],
 };
 
 /** Numéro précédent / suivant de l'histoire ouverte par la flèche sélectionnée (échange avec la voisine). */
