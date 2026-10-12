@@ -7,6 +7,7 @@ import {
   moveLayer,
   removeLayer,
   renameLayer,
+  setLayerElevation,
   setLayerLocked,
   setLayerVisible,
 } from '../../../../src/engine/core/format/layerEdits';
@@ -51,8 +52,8 @@ describe('calques dans le fichier (sujet 523)', () => {
     const { document } = readDrawio(XML.replace('id="L2" value="Haut"', 'id="L2" value="Haut" style="locked=1"'));
     const page = document.pages[0]!;
     expect(page.layers).toEqual([
-      { id: '1', name: '', visible: true, locked: false },
-      { id: 'L2', name: 'Haut', visible: true, locked: true },
+      { id: '1', name: '', visible: true, locked: false, elevation: 0 },
+      { id: 'L2', name: 'Haut', visible: true, locked: true, elevation: 0 },
     ]);
   });
 
@@ -92,7 +93,7 @@ describe('calques dans le fichier (sujet 523)', () => {
     const { pageTree, reread } = setup();
     const id = addLayer(pageTree, 'Calque 3');
     expect(layerIdsOf(pageTree)).toEqual(['1', 'L2', id]);
-    expect(reread().layers.at(-1)).toEqual({ id, name: 'Calque 3', visible: true, locked: false });
+    expect(reread().layers.at(-1)).toEqual({ id, name: 'Calque 3', visible: true, locked: false, elevation: 0 });
   });
 
   it('ajouter sur une page vide : le calque principal est créé d’abord', () => {
@@ -109,14 +110,24 @@ describe('calques dans le fichier (sujet 523)', () => {
     setLayerVisible(pageTree, 'L2', false);
     setLayerLocked(pageTree, '1', true);
     expect(reread().layers).toEqual([
-      { id: '1', name: 'Fond', visible: true, locked: true },
-      { id: 'L2', name: 'Haut', visible: false, locked: false },
+      { id: '1', name: 'Fond', visible: true, locked: true, elevation: 0 },
+      { id: 'L2', name: 'Haut', visible: false, locked: false, elevation: 0 },
     ]);
     expect(writeDrawio(tree)).toContain('<mxCell id="L2" value="Haut" parent="0" visible="0"/>');
     setLayerVisible(pageTree, 'L2', true);
     setLayerLocked(pageTree, '1', false);
     expect(writeDrawio(tree)).toContain('<mxCell id="L2" value="Haut" parent="0"/>');
     expect(writeDrawio(tree)).toContain('<mxCell id="1" parent="0" value="Fond"/>');
+  });
+
+  it('élévation (sujet 524) : spatial.elevation dans le style du calque, retirée à 0', () => {
+    const { tree, pageTree, reread } = setup();
+    setLayerElevation(pageTree, 'L2', 40);
+    expect(reread().layers[1]!.elevation).toBe(40);
+    expect(writeDrawio(tree)).toContain('<mxCell id="L2" value="Haut" parent="0" style="spatial.elevation=40;"/>');
+    setLayerElevation(pageTree, 'L2', 0);
+    expect(reread().layers[1]!.elevation).toBe(0);
+    expect(writeDrawio(tree)).toContain('<mxCell id="L2" value="Haut" parent="0"/>');
   });
 
   it('monter, descendre : le bloc du calque bouge avec son contenu ; au bout, rien', () => {

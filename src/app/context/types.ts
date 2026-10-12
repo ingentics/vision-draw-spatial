@@ -58,6 +58,10 @@ export interface ContextPanelProps {
   onRenamePage?: (name: string) => void;
   /** Calques de la page et calque courant (sujet 523) ; absent si la page n'en a pas (mode sans calques). */
   layers?: PageLayersView;
+  /** Élévation de chaque calque montrée (vues iso et 3D, sujet 524). */
+  layerElevations?: boolean;
+  /** Aplatit ou étend les calques de la page (sujet 526). */
+  onFlattenLayers?: (flattened: boolean) => void;
   /** Opérations sur les calques ; absentes si la page n'est pas modifiable. */
   layerActions?: LayerActions;
   /** Passe la sélection sur un calque ; absent si la page n'est pas modifiable. */

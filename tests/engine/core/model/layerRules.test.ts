@@ -6,9 +6,9 @@ import { layerRules } from '../../../../src/engine/core/model/layerRules';
 describe('règles des calques (sujet 523)', () => {
   const rules = layerRules({
     layers: [
-      { id: 'open', name: '', visible: true, locked: false },
-      { id: 'hidden', name: '', visible: false, locked: false },
-      { id: 'locked', name: '', visible: true, locked: true },
+      { id: 'open', name: '', visible: true, locked: false, elevation: 0 },
+      { id: 'hidden', name: '', visible: false, locked: false, elevation: 0 },
+      { id: 'locked', name: '', visible: true, locked: true, elevation: 0 },
     ],
   });
 

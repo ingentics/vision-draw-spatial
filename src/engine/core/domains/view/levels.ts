@@ -35,6 +35,8 @@ export class Levels {
     const { view } = settings;
     if (
       view.isoVolume !== previous.view.isoVolume ||
+      view.layerPlanes !== previous.view.layerPlanes ||
+      view.layerGroundPlane !== previous.view.layerGroundPlane ||
       view.isoDepth !== previous.view.isoDepth ||
       view.shadeLight !== previous.view.shadeLight ||
       view.shadeDark !== previous.view.shadeDark ||

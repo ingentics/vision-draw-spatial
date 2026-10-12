@@ -9,6 +9,7 @@ const layer = (id: string, extra: Partial<LayerModel> = {}): LayerModel => ({
   name: '',
   visible: true,
   locked: false,
+  elevation: 0,
   ...extra,
 });
 

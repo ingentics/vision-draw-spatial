@@ -110,6 +110,19 @@ export function ViewSettings({
           disabled={!view.isoVolume}
           onChange={(shadeDark) => onChange({ view: { shadeDark } })}
         />
+        <Toggle
+          label="Plans des calques"
+          checked={view.layerPlanes}
+          disabled={!view.isoVolume}
+          onChange={(layerPlanes) => onChange({ view: { layerPlanes } })}
+        />
+        <Toggle
+          label="Plan des calques au sol (niveau 0)"
+          checked={view.layerGroundPlane}
+          disabled={!view.isoVolume || !view.layerPlanes}
+          onChange={(layerGroundPlane) => onChange({ view: { layerGroundPlane } })}
+        />
+        <p className="hint muted">Un plan translucide par niveau des calques, le calque courant à l’accent</p>
         <VolumePreview view={view} background={background} />
       </Subsection>
     </Section>

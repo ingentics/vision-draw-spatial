@@ -24,8 +24,8 @@ describe('CellIndex', () => {
       '<mxCell id="a" vertex="1" parent="1"><mxGeometry width="10" height="10" as="geometry"/></mxCell>',
     );
     expect(index.layers).toEqual([
-      { id: '1', name: '', visible: true, locked: false },
-      { id: 'L2', name: 'Calque 2', visible: false, locked: false },
+      { id: '1', name: '', visible: true, locked: false, elevation: 0 },
+      { id: 'L2', name: 'Calque 2', visible: false, locked: false, elevation: 0 },
     ]);
     expect(index.isRoot(cell(index, '0'))).toBe(true);
     expect(index.isLayer(cell(index, 'L2'))).toBe(true);

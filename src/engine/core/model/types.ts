@@ -40,6 +40,8 @@ export interface LayerModel {
   visible: boolean;
   /** Contenu dessiné mais intouchable : ni cliquable, ni sélectionnable, ni accrochable (`locked=1`, sujet 523). */
   locked: boolean;
+  /** Hauteur dont monte tout le contenu du calque en iso et en 3D, en pixels (`spatial.elevation`, sujet 524). */
+  elevation: number;
 }
 
 export interface PageModel {

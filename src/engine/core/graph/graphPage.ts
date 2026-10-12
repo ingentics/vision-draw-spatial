@@ -136,7 +136,7 @@ export function buildGraphPage(
   const page: PageModel = {
     id: GRAPH_PAGE_ID,
     name: GRAPH_PAGE_NAME,
-    layers: [{ id: GRAPH_LAYER_ID, name: '', visible: true, locked: false }],
+    layers: [{ id: GRAPH_LAYER_ID, name: '', visible: true, locked: false, elevation: 0 }],
     shapes,
     edges,
     attributes: {},

@@ -25,6 +25,8 @@ export const VIEW = {
   isoAzimuthDeg: number(-45, { min: -180, max: 180, step: 1 }),
   switchDurationMs: number(450, { min: 0, max: 3000, step: 50 }),
   isoVolume: flag(true),
+  layerPlanes: flag(true),
+  layerGroundPlane: flag(false),
   isoDepth: number(DEFAULT_DEPTH, { min: 2, max: 120, step: 1 }),
   shadeLight: number(0.9, { min: 0.3, max: 1.2, step: 0.02 }),
   shadeDark: number(0.62, { min: 0.2, max: 1.2, step: 0.02 }),

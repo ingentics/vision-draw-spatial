@@ -73,6 +73,38 @@ describe('rendu iso', () => {
     expect(object('flotte').position.z).toBe(50);
     expect(object('flotte').userData.top).toBe(60);
   });
+
+  it('élévation du calque (sujet 524) : son contenu monte, les flèches aussi ; rien à plat', () => {
+    const xml = `<mxfile><diagram id="p" name="P"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+      <mxCell id="sol" style="rounded=0;" vertex="1" parent="1"><mxGeometry width="40" height="40" as="geometry"/></mxCell>
+      <mxCell id="L2" value="Haut" style="spatial.elevation=30;" parent="0"/>
+      <mxCell id="haut" style="rounded=0;spatial.elevation=5;" vertex="1" parent="L2"><mxGeometry x="100" width="40" height="40" as="geometry"/></mxCell>
+      <mxCell id="dedans" style="rounded=0;" vertex="1" parent="haut"><mxGeometry width="10" height="10" as="geometry"/></mxCell>
+      <mxCell id="libre" edge="1" parent="L2"><mxGeometry relative="1" as="geometry"><mxPoint x="0" y="100" as="sourcePoint"/><mxPoint x="50" y="100" as="targetPoint"/></mxGeometry></mxCell>
+    </root></mxGraphModel></diagram></mxfile>`;
+    const layered = readDrawio(xml).document.pages[0]!;
+    const scene = (level: 'iso' | 'flat') => buildPageScene(layered, createDefaultRegistry(), ctx, level).root;
+    const at = (level: 'iso' | 'flat', id: string) =>
+      scene(level).children.find((c) => c.userData.elementId === id)!.position.z;
+    expect(at('iso', 'sol')).toBe(0);
+    expect(at('iso', 'haut')).toBe(35);
+    expect(at('iso', 'dedans')).toBe(55);
+    expect(at('iso', 'libre')).toBe(30);
+    expect(at('flat', 'haut')).toBe(0);
+  });
+
+  it('calques aplatis (sujet 526) : élévation du calque retirée, celle de la forme gardée', () => {
+    const xml = `<mxfile><diagram id="p" name="P"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+      <mxCell id="L2" value="Haut" style="spatial.elevation=30;" parent="0"/>
+      <mxCell id="haut" style="rounded=0;spatial.elevation=5;" vertex="1" parent="L2"><mxGeometry width="40" height="40" as="geometry"/></mxCell>
+    </root></mxGraphModel></diagram></mxfile>`;
+    const layered = readDrawio(xml).document.pages[0]!;
+    const root = buildPageScene(layered, createDefaultRegistry(), ctx, 'iso', undefined, 0).root;
+    const haut = root.children.find((c) => c.userData.elementId === 'haut')!;
+    expect(haut.position.z).toBe(5);
+    expect(haut.userData.layerLift).toBe(30);
+    expect(root.userData.layerSpread).toBe(0);
+  });
 });
 
 describe('écriture en place', () => {

@@ -413,6 +413,7 @@ export function Viewer({
                     editablePages={editablePages}
                     textEdit={text.textEdit}
                     modeControls={currentPage.id === pageId ? modeControls : undefined}
+                    viewMode={events.viewMode}
                   />
                 )
               )}

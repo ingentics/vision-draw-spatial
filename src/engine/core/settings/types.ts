@@ -38,6 +38,10 @@ export interface ViewSettings {
   switchDurationMs: number;
   /** Formes en volume en vue iso (blocs) ; sinon tout reste à plat. */
   isoVolume: boolean;
+  /** Plans translucides des niveaux des calques élevés, en volume (sujet 525). */
+  layerPlanes: boolean;
+  /** Plan aussi au niveau 0 des calques (le sol), avec `layerPlanes`. */
+  layerGroundPlane: boolean;
   /** Épaisseur par défaut des volumes, en pixels de page (`spatial.height` par forme). */
   isoDepth: number;
   /** Luminosité des côtés des volumes (fraction de la couleur de fond) : face éclairée, face à l'ombre. */

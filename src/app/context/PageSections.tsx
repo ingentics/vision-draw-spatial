@@ -83,7 +83,15 @@ export function PageSections({ page, onRenamePage: onRename, ...props }: Context
           />
         </div>
       </Section>
-      {props.layers && <LayersSection page={page} layers={props.layers} actions={props.layerActions} />}
+      {props.layers && (
+        <LayersSection
+          page={page}
+          layers={props.layers}
+          actions={props.layerActions}
+          elevations={props.layerElevations ?? false}
+          onFlatten={props.onFlattenLayers}
+        />
+      )}
       <PageModeSections
         page={page}
         onPageMode={props.onPageMode}

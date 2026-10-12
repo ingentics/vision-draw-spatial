@@ -1,4 +1,13 @@
-import type { EdgeModel, Engine, PageModel, Selection, Settings, SettingsPatch, ShapeModel } from '../../engine';
+import type {
+  EdgeModel,
+  Engine,
+  PageModel,
+  Selection,
+  Settings,
+  SettingsPatch,
+  ShapeModel,
+  ViewMode,
+} from '../../engine';
 import { edgeLinesOf, edgeLinesOfEdge, jumpValue, pageAnchoring, SPATIAL } from '../../engine';
 import { ContextPanel } from '../ContextPanel';
 import { MULTI_SELECT_LABELS } from '../settings/ShortcutSettings';
@@ -18,6 +27,7 @@ export function ViewerContextPanel({
   editablePages,
   textEdit,
   modeControls,
+  viewMode,
 }: {
   engine: Engine | undefined;
   settings: Settings;
@@ -31,6 +41,8 @@ export function ViewerContextPanel({
   editablePages: boolean;
   textEdit: TextEdit | undefined;
   modeControls: ModePageControls | undefined;
+  /** Mode de vue affiché : l'élévation des calques ne se règle qu'en iso et en 3D. */
+  viewMode: ViewMode;
 }) {
   const currentAnchoring = pageAnchoring(currentPage, settings.shapes.edgeAnchoring);
   return (
@@ -93,6 +105,8 @@ export function ViewerContextPanel({
       onRenamePage={editablePages ? (name) => engine?.renamePage(currentPage.id, name) : undefined}
       onPageMode={editablePages ? (modeId) => engine?.setPageMode(currentPage.id, modeId) : undefined}
       layers={engine?.getPageLayers(currentPage.id)}
+      layerElevations={viewMode !== 'top'}
+      onFlattenLayers={(flattened) => engine?.setLayersFlattened(currentPage.id, flattened)}
       layerActions={editablePages && engine ? layerActions(engine, currentPage.id) : undefined}
       onMoveToLayer={editablePages ? (layerId) => engine?.moveSelectionToLayer(layerId) : undefined}
       onPageEffect={
@@ -131,5 +145,6 @@ function layerActions(engine: Engine, pageId: string): LayerActions {
     remove: (layerId) => engine.removeLayer(pageId, layerId),
     setVisible: (layerId, visible) => engine.setLayerVisible(pageId, layerId, visible),
     setLocked: (layerId, locked) => engine.setLayerLocked(pageId, layerId, locked),
+    setElevation: (layerId, elevation) => engine.setLayerElevation(pageId, layerId, elevation),
   };
 }

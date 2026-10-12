@@ -11,6 +11,8 @@ export interface LayerActions {
   remove: (layerId: string) => void;
   setVisible: (layerId: string, visible: boolean) => void;
   setLocked: (layerId: string, locked: boolean) => void;
+  /** Élévation en iso et en 3D (sujet 524) ; 0 : au sol. */
+  setElevation: (layerId: string, elevation: number) => void;
 }
 
 /** Nom affiché d'un calque : le calque créé d'office n'a pas de nom. */
@@ -20,16 +22,22 @@ export function layerName(layer: LayerModel): string {
 
 /**
  * Calques de la page (sujet 523), du plus haut (dessiné au-dessus) au plus bas : œil, cadenas, nom (clic : calque
- * courant, double-clic : renommer), nombre d'éléments, monter, descendre, supprimer.
+ * courant, double-clic : renommer), élévation (iso et 3D, sujet 524), nombre d'éléments, monter, descendre, supprimer.
  */
 export function LayersSection({
   page,
   layers,
   actions,
+  elevations,
+  onFlatten,
 }: {
   page: PageModel;
   layers: PageLayersView;
   actions: LayerActions | undefined;
+  /** Champ d'élévation de chaque calque et bouton Aplatir / Étendre (vues iso et 3D). */
+  elevations: boolean;
+  /** Aplatit ou étend les calques (sujet 526) : rien n'est écrit, donc aussi en lecture seule. */
+  onFlatten: ((flattened: boolean) => void) | undefined;
 }) {
   const counts = new Map<string, number>();
   for (const element of [...page.shapes, ...page.edges])
@@ -47,20 +55,39 @@ export function LayersSection({
             top={index === 0}
             bottom={index === ordered.length - 1}
             last={ordered.length === 1}
+            elevation={elevations}
             actions={actions}
           />
         ))}
       </ul>
-      {actions && (
-        <button
-          type="button"
-          className="button"
-          data-tip="Nouveau calque au-dessus de tous, qui devient le calque courant"
-          onClick={actions.add}
-        >
-          Ajouter un calque
-        </button>
-      )}
+      <div className="layer-actions">
+        {elevations && onFlatten && (
+          <button
+            type="button"
+            className="button"
+            aria-pressed={layers.flattened}
+            disabled={!layers.layers.some((layer) => layer.elevation > 0)}
+            data-tip={
+              layers.flattened
+                ? 'Étendre : chaque calque remonte à son élévation'
+                : 'Aplatir : tous les calques redescendent au sol, le temps de travailler à plat (rien n’est écrit)'
+            }
+            onClick={() => onFlatten(!layers.flattened)}
+          >
+            {layers.flattened ? 'Étendre' : 'Aplatir'}
+          </button>
+        )}
+        {actions && (
+          <button
+            type="button"
+            className="button"
+            data-tip="Nouveau calque au-dessus de tous, qui devient le calque courant"
+            onClick={actions.add}
+          >
+            Ajouter un calque
+          </button>
+        )}
+      </div>
       <p className="panel-hint">
         Calque courant (en gras) : ce qu’on dépose, tire ou colle y va. Double-clic sur un nom pour le renommer.
       </p>
@@ -75,6 +102,7 @@ function LayerRow({
   top,
   bottom,
   last,
+  elevation,
   actions,
 }: {
   layer: LayerModel;
@@ -84,6 +112,7 @@ function LayerRow({
   bottom: boolean;
   /** Seul calque de la page : il ne se supprime pas. */
   last: boolean;
+  elevation: boolean;
   actions: LayerActions | undefined;
 }) {
   const name = layerName(layer);
@@ -132,6 +161,33 @@ function LayerRow({
         onClick={() => actions?.choose(layer.id)}
         onCommit={actions && ((next) => actions.rename(layer.id, next))}
       />
+      {elevation && (
+        <input
+          key={layer.elevation}
+          type="number"
+          className="layer-elevation"
+          min={0}
+          step={1}
+          defaultValue={layer.elevation || ''}
+          placeholder="0"
+          readOnly={!actions}
+          aria-label={`Élévation de « ${name} »`}
+          data-tip="Élévation du calque en iso et en 3D : tout son contenu monte de cette hauteur, en pixels (spatial.elevation)"
+          onBlur={(event) => {
+            const text = event.target.value.trim();
+            const next = text === '' ? 0 : Number(text.replace(',', '.'));
+            if (Number.isFinite(next) && next >= 0 && next !== layer.elevation) actions?.setElevation(layer.id, next);
+            else event.target.value = layer.elevation ? String(layer.elevation) : '';
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') event.currentTarget.blur();
+            else if (event.key === 'Escape') {
+              event.currentTarget.value = layer.elevation ? String(layer.elevation) : '';
+              event.currentTarget.blur();
+            }
+          }}
+        />
+      )}
       <span
         className="field-value"
         data-tip={`${count} élément${count > 1 ? 's' : ''} posé${count > 1 ? 's' : ''} sur le calque`}

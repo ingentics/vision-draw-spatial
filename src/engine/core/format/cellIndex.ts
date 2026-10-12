@@ -2,6 +2,7 @@ import type { Element } from '@xmldom/xmldom';
 import type { LayerModel, ParseWarning, Point, Rect } from '../model/types';
 import { styleFlag } from '../model/styleValues';
 import { parseStyle } from './style';
+import { SPATIAL, spatialNumber } from '../spatial';
 import { childElements, type PageTree } from './xmlTree';
 
 /**
@@ -64,12 +65,16 @@ export class CellIndex {
     this.rootIds = new Set(this.cells.filter((c) => !c.parent && !c.vertex && !c.edge).map((c) => c.id));
     this.layers = this.cells
       .filter((c) => this.isLayer(c))
-      .map((c) => ({
-        id: c.id,
-        name: c.label,
-        visible: c.visible,
-        locked: styleFlag(parseStyle(c.styleString).values, 'locked'),
-      }));
+      .map((c) => {
+        const style = parseStyle(c.styleString).values;
+        return {
+          id: c.id,
+          name: c.label,
+          visible: c.visible,
+          locked: styleFlag(style, 'locked'),
+          elevation: spatialNumber({ style, attributes: c.attributes }, SPATIAL.elevation) ?? 0,
+        };
+      });
     this.fallbackLayerId = this.layers[0]?.id ?? '';
     this.layerRanks = new Map(this.layers.map((layer, rank) => [layer.id, rank]));
   }

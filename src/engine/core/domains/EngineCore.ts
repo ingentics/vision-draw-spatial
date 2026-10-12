@@ -26,6 +26,7 @@ import { GraphView } from './view/graph';
 import { ImageExport } from './view/imageExport';
 import { MinimapView } from './view/minimap';
 import { ScreenProjection } from './view/projection';
+import { LayerSpreads } from './view/layerSpreads';
 import { Selections } from './selection/selection';
 import { Picking } from './selection/picking';
 import { SelectionHighlight } from './selection/highlight';
@@ -129,6 +130,7 @@ export class EngineCore {
   readonly minimap = new MinimapView(this);
   readonly imageExport = new ImageExport(this);
   readonly projection = new ScreenProjection(this);
+  readonly layerSpreads = new LayerSpreads(this);
 
   // selection : sélection, ce qui est sous le pointeur, mise en valeur
   readonly selection = new Selections(this);
@@ -266,6 +268,7 @@ export class EngineCore {
       this.edits,
       this.modeCurrents,
       this.layers,
+      this.layerSpreads,
       this.shapeParts,
       this.history,
       this.links,

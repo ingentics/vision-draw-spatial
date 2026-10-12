@@ -45,9 +45,19 @@ export class SceneView {
 
   private createScene(page: PageModel, level: SceneLevel): PageScene {
     const core = this.core;
-    const scene = buildPageScene(page, core.registry, this.renderContext(page), level, core.pageModes.dressing(page));
-    // Décors des effets de la page : en volume seulement (iso / 3D).
-    if (level === 'iso') core.pageEffects.decorate(page, scene.root);
+    const scene = buildPageScene(
+      page,
+      core.registry,
+      this.renderContext(page),
+      level,
+      core.pageModes.dressing(page),
+      core.layerSpreads.spreadOf(page.id),
+    );
+    // Décors des effets de la page et plans des calques : en volume seulement (iso / 3D).
+    if (level === 'iso') {
+      core.pageEffects.decorate(page, scene.root);
+      core.layers.decorate(page, scene.root);
+    }
     return scene;
   }
 

@@ -1,5 +1,6 @@
 import type { Element } from '@xmldom/xmldom';
-import { setCellLabel, setCellStyleValue } from './cellEdits';
+import { formatNumber, setCellLabel, setCellStyleValue } from './cellEdits';
+import { SPATIAL } from '../spatial';
 import { ensureLayer, ensureRoot, layerWriter, newCellId, removeCellsDeep } from './create';
 import { layerIdsOf, parentOf } from './layerTree';
 import { reorderCells } from './order';
@@ -8,7 +9,8 @@ import type { PageTree } from './xmlTree';
 
 /**
  * Modifications des calques d'une page dans l'arbre XML (sujet 523), en place : un calque est une `<mxCell>` enfant
- * de la cellule racine, son nom dans `value`, masqué par `visible="0"`, verrouillé par `locked=1` dans son style.
+ * de la cellule racine, son nom dans `value`, masqué par `visible="0"`, verrouillé par `locked=1` dans son style,
+ * élevé en iso par `spatial.elevation` dans son style (sujet 524).
  */
 
 /** Ajoute un calque au-dessus de tous (à la fin du fichier) et renvoie son id. */
@@ -43,6 +45,12 @@ export function setLayerVisible(page: PageTree, layerId: string, visible: boolea
 export function setLayerLocked(page: PageTree, layerId: string, locked: boolean): void {
   assertLayer(page, layerId);
   setCellStyleValue(page, layerId, 'locked', locked ? '1' : undefined);
+}
+
+/** Élévation du calque en iso et en 3D (`spatial.elevation` dans son style) ; 0 la retire. */
+export function setLayerElevation(page: PageTree, layerId: string, elevation: number): void {
+  assertLayer(page, layerId);
+  setCellStyleValue(page, layerId, SPATIAL.elevation, elevation > 0 ? formatNumber(elevation) : undefined);
 }
 
 /** Monte (`up` : vers le dessus) ou descend un calque d'un rang, avec son contenu ; faux s'il est déjà au bout. */

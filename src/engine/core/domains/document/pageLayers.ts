@@ -5,6 +5,7 @@ import {
   moveLayer,
   removeLayer,
   renameLayer,
+  setLayerElevation,
   setLayerLocked,
   setLayerVisible,
 } from '../../format/layerEdits';
@@ -12,6 +13,9 @@ import { writeDrawio } from '../../format/write';
 import type { PageTree } from '../../format/xmlTree';
 import { byId } from '../../model/pageIndex';
 import type { LayerModel, PageModel } from '../../model/types';
+import type { Object3D } from 'three';
+import { layerPlanes, LAYER_PLANES } from '../../render/layerPlanes';
+import { disposeObject } from '../../render/meshes';
 import type { EngineCore } from '../EngineCore';
 
 /** Calques d'une page tels que l'appli les montre (sujet 523). */
@@ -20,6 +24,8 @@ export interface PageLayersView {
   layers: readonly LayerModel[];
   /** Calque courant : là où vont les créations. */
   current: string;
+  /** Calques aplatis (sujet 526) : élévations ramenées à 0 à l'affichage, sans rien écrire. */
+  flattened: boolean;
 }
 
 /**
@@ -42,7 +48,9 @@ export class PageLayers {
   view(pageId: string): PageLayersView | undefined {
     const page = this.layeredPage(pageId);
     const current = page && currentLayerId(page.layers, this.currents.get(pageId));
-    return page && current !== undefined ? { layers: page.layers, current } : undefined;
+    return page && current !== undefined
+      ? { layers: page.layers, current, flattened: this.core.layerSpreads.isFlattened(pageId) }
+      : undefined;
   }
 
   /** Calque où écrire une création sur la page ; undefined : le premier (page sans calques). */
@@ -55,7 +63,32 @@ export class PageLayers {
     const view = this.view(pageId);
     if (!view || view.current === layerId || !view.layers.some((layer) => layer.id === layerId)) return;
     this.currents.set(pageId, layerId);
-    this.core.events.emit('layerChange', pageId, layerId);
+    this.redecorate(pageId);
+    this.core.events.emit('layerChange', pageId);
+  }
+
+  /** Plans des calques élevés (sujet 525) ajoutés à la scène en volume d'une page, si le réglage les montre. */
+  decorate(page: PageModel, root: Object3D): void {
+    const current = this.view(page.id)?.current;
+    if (current === undefined || !this.core.settings.view.layerPlanes) return;
+    const { view, selection } = this.core.settings;
+    const spread = this.core.layerSpreads.spreadOf(page.id);
+    const planes = layerPlanes(page, current, selection.accentColor, view.layerGroundPlane, spread);
+    if (planes) root.add(planes);
+  }
+
+  /** Calque courant changé : plans de la scène affichée refaits (le reste de la scène ne dépend pas de lui). */
+  private redecorate(pageId: string): void {
+    const scene = this.core.scenes.current;
+    const page = this.core.pages.pageById(pageId);
+    if (!scene || scene.pageId !== pageId || scene.level !== 'iso' || !page) return;
+    const old = scene.root.getObjectByName(LAYER_PLANES);
+    if (old) {
+      old.removeFromParent();
+      disposeObject(old);
+    }
+    this.decorate(page, scene.root);
+    this.core.rendering.requestRender();
   }
 
   /** Ajoute un calque au-dessus de tous, qui devient courant. */
@@ -100,6 +133,16 @@ export class PageLayers {
     this.edit(pageId, locked ? 'Calque verrouillé' : 'Calque déverrouillé', (pageTree, page) => {
       if (byId(page.layers, layerId)?.locked === locked) return false;
       setLayerLocked(pageTree, layerId, locked);
+      return true;
+    });
+  }
+
+  /** Élévation du calque en iso et en 3D (sujet 524) ; 0 la retire. */
+  setLayerElevation(pageId: string, layerId: string, elevation: number): void {
+    const value = Math.max(0, elevation);
+    this.edit(pageId, 'Élévation du calque', (pageTree, page) => {
+      if (byId(page.layers, layerId)?.elevation === value) return false;
+      setLayerElevation(pageTree, layerId, value);
       return true;
     });
   }

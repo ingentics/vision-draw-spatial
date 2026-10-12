@@ -465,6 +465,16 @@ export class Engine {
     this.core.layers.setLayerLocked(pageId, layerId, locked);
   }
 
+  /** Élévation d'un calque en iso et en 3D, en pixels (0 : au sol). */
+  setLayerElevation(pageId: string, layerId: string, elevation: number): void {
+    this.core.layers.setLayerElevation(pageId, layerId, elevation);
+  }
+
+  /** Aplatit (élévations ramenées à 0, en animation) ou étend les calques d'une page, sans rien écrire. */
+  setLayersFlattened(pageId: string, flattened: boolean): void {
+    this.core.layerSpreads.setFlattened(pageId, flattened);
+  }
+
   /** Passe la sélection sur un calque (éléments posés sur un calque, avec leur contenu). */
   moveSelectionToLayer(layerId: string): void {
     this.core.layers.moveSelectionToLayer(layerId);

@@ -1,3 +1,4 @@
+import { easeInOutCubic } from '../../model/numbers';
 import { defaultView, fitBounds, needsRecentring, nextOverviewStep, sameView } from '../../interaction/cameraFraming';
 import { interpolateCamera, rotateAround, zoomAt } from '../../interaction/cameraMoves';
 import {
@@ -141,9 +142,7 @@ export class ViewCamera {
     const start = performance.now();
     const step = (now: number) => {
       const t = Math.min((now - start) / durationMs, 1);
-      // Ease-in-out cubique.
-      const eased = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-      this.applyCamera(interpolateCamera(from, to, eased));
+      this.applyCamera(interpolateCamera(from, to, easeInOutCubic(t)));
       this.animation = t < 1 ? requestAnimationFrame(step) : 0;
       if (t < 1) return;
       this.core.levels.endLevelBlend();

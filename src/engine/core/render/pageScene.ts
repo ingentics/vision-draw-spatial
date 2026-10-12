@@ -1,6 +1,6 @@
 import { Group } from 'three';
 import type { Material, Object3D } from 'three';
-import type { EdgeModel, PageModel, Point, ShapeModel } from '../model/types';
+import type { EdgeModel, LayerModel, PageModel, Point, ShapeModel } from '../model/types';
 import { DEFAULT_EDGE_BADGE, edgeBadge } from './decorations';
 import { darken, styleColorValue } from './styleColors';
 import { SPATIAL, spatialNumber } from '../spatial';
@@ -53,9 +53,12 @@ export function buildPageScene(
   ctx: RenderContext,
   level: SceneLevel = 'flat',
   dressing?: PageDressing,
+  /** Part de l'élévation des calques appliquée (sujet 526) : 1 étendus, 0 aplatis. */
+  layerSpread = 1,
 ): PageScene {
   const root = new Group();
   root.name = `page:${page.id}`;
+  root.userData.layerSpread = layerSpread;
   applyPageSpace(root);
 
   const layers = layerRules(page);
@@ -68,7 +71,7 @@ export function buildPageScene(
   ].sort((a, b) => zOf(a) - zOf(b));
 
   // Volumes (niveau iso) : une forme est posée sur le dessus de son conteneur s'il est en volume.
-  const elevation = volumeLayout(registry, ctx, level, shapes);
+  const elevation = volumeLayout(registry, ctx, level, shapes, page.layers, layerSpread);
   // Tracés des flèches déjà dessinées : celles du dessus sautent par-dessus (ticket 129).
   const below: Point[][] = [];
 
@@ -95,6 +98,8 @@ export function buildPageScene(
     }
 
     object.userData.elementId = element.id;
+    // Élévation entière du calque, pour l'animer sans reconstruire la scène (sujet 526, `spreadLayers`).
+    object.userData.layerLift = elevation.layerLift(element);
     placeInDrawOrder(object, rank * PARTS_PER_ELEMENT);
     root.add(object);
   });
@@ -241,16 +246,24 @@ function zOf(item: { shape: ShapeModel } | { edge: EdgeModel }): number {
 
 /**
  * Hauteurs des volumes d'une page (niveau iso) : base (altitude du dessous) et épaisseur de chaque
- * forme. Une forme contenue est posée sur le dessus de son conteneur ; une arête est à la hauteur
- * de la plus haute de ses extrémités (ou du dessus de son conteneur). Tout vaut 0 à plat.
+ * forme. Une forme est posée sur le sol de son calque (son élévation) ou sur le dessus de son conteneur ; une arête
+ * est à la hauteur de la plus haute de ses extrémités, du dessus de son conteneur ou du sol de son calque. Tout vaut 0
+ * à plat.
  */
 function volumeLayout(
   registry: ShapeRegistry,
   ctx: RenderContext,
   level: SceneLevel,
   shapesById: Map<string, ShapeModel>,
+  layers: readonly LayerModel[],
+  layerSpread: number,
 ) {
   const flat = level !== 'iso';
+  // Élévation du calque (sujet 524) : le sol des éléments posés directement dessus, réduite quand les calques sont
+  // aplatis (sujet 526).
+  const layerElevations = new Map(layers.map((layer) => [layer.id, layer.elevation]));
+  const layerLift = (element: ShapeModel | EdgeModel) => (flat ? 0 : (layerElevations.get(element.layerId) ?? 0));
+  const ground = (element: ShapeModel | EdgeModel) => layerLift(element) * layerSpread;
   // Sans fond, le rendu iso dessine la forme à plat : pas de hauteur. Même lecture du fond que lui (`none` entouré
   // d'espaces compris) ; le défaut propre à chaque forme n'est pas connu ici, celui des formes est pris.
   const height = (shape: ShapeModel): number => {
@@ -268,8 +281,8 @@ function volumeLayout(
     const cached = bases.get(shape.id);
     if (cached !== undefined) return cached;
     const parent = shape.parentId ? shapesById.get(shape.parentId) : undefined;
-    const below = parent && !seen.has(parent.id) ? base(parent, seen.add(shape.id)) + height(parent) : 0;
-    // `spatial.elevation` : la forme flotte au-dessus de sa base (sol ou dessus de son conteneur).
+    const below = parent && !seen.has(parent.id) ? base(parent, seen.add(shape.id)) + height(parent) : ground(shape);
+    // `spatial.elevation` : la forme flotte au-dessus de sa base (sol du calque ou dessus de son conteneur).
     const value = below + (spatialNumber(shape, SPATIAL.elevation) ?? 0);
     bases.set(shape.id, value);
     return value;
@@ -279,10 +292,10 @@ function volumeLayout(
     const ends = [edge.sourceId, edge.targetId].map((id) => (id ? shapesById.get(id) : undefined));
     const parent = edge.parentId ? shapesById.get(edge.parentId) : undefined;
     return Math.max(
-      0,
+      ground(edge),
       ...ends.filter((s): s is ShapeModel => s !== undefined).map((s) => base(s)),
       parent ? base(parent) + height(parent) : 0,
     );
   };
-  return { height, base, edgeBase };
+  return { height, base, edgeBase, layerLift };
 }

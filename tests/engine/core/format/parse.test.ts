@@ -22,7 +22,7 @@ describe('parseDrawio — simple.drawio', () => {
     expect(doc.warnings).toEqual([]);
     expect(doc.pages).toHaveLength(1);
     expect(page).toMatchObject({ id: 'simple-page', name: 'Architecture' });
-    expect(page.layers).toEqual([{ id: '1', name: '', visible: true, locked: false }]);
+    expect(page.layers).toEqual([{ id: '1', name: '', visible: true, locked: false, elevation: 0 }]);
     expect(page.shapes.map((s) => s.id)).toEqual(['r1', 'r2', 'e1', 't1', 'c1', 'plain']);
     expect(page.edges.map((e) => e.id)).toEqual(['a1', 'a2', 'a3']);
   });
@@ -210,8 +210,8 @@ describe('parseDrawio — layers.drawio', () => {
 
   it('liste les calques avec leur visibilité', () => {
     expect(page.layers).toEqual([
-      { id: '1', name: '', visible: true, locked: false },
-      { id: 'annotations', name: 'Annotations', visible: false, locked: false },
+      { id: '1', name: '', visible: true, locked: false, elevation: 0 },
+      { id: 'annotations', name: 'Annotations', visible: false, locked: false, elevation: 0 },
     ]);
   });
 

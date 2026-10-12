@@ -29,6 +29,8 @@ function setup() {
     modes,
     pages: { pageById: page },
     graph: { isGraph: () => false },
+    scenes: { current: undefined },
+    layerSpreads: { isFlattened: () => false },
     gesture: { endMove: () => {} },
     selection: { current: undefined as unknown },
     targets: {
@@ -61,7 +63,7 @@ describe('calques des pages (sujet 523)', () => {
     layers.setCurrent('p', 'L2');
     expect(layers.view('p')?.current).toBe('L2');
     expect(layers.creationLayer(page('p'))).toBe('L2');
-    expect(state.events).toEqual([['layerChange', 'p', 'L2']]);
+    expect(state.events).toEqual([['layerChange', 'p']]);
     layers.setCurrent('p', 'inconnu');
     expect(state.events).toHaveLength(1);
   });
@@ -104,6 +106,15 @@ describe('calques des pages (sujet 523)', () => {
     expect(state.removed).toBe(1);
     expect(page('p').shapes.map((s) => s.id)).toEqual(['a']);
     expect(layers.view('p')?.current).toBe('1');
+  });
+
+  it('élévation (sujet 524) : une étape, rien si elle ne change pas', () => {
+    const { layers, state, page } = setup();
+    layers.setLayerElevation('p', 'L2', 0);
+    expect(state.edits).toEqual([]);
+    layers.setLayerElevation('p', 'L2', 24);
+    expect(state.edits).toEqual(['Élévation du calque']);
+    expect(page('p').layers[1]!.elevation).toBe(24);
   });
 
   it('rien sur une page sans calques', () => {
