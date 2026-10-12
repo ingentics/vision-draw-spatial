@@ -38,6 +38,8 @@ describe('palette', () => {
       'flexArrow',
       'hexagon',
       'labeled-process',
+      // Forme à générer (sujet 538).
+      'metamorph',
       'mxgraph.basic.4_point_star_2',
       'mxgraph.basic.6_point_star',
       'mxgraph.basic.layered_rect',
@@ -126,6 +128,7 @@ describe('palette', () => {
       'block-arrow',
       'curly-bracket-left',
       'curly-bracket-right',
+      'metamorph',
     ]);
     const known = new Set(
       [
@@ -192,8 +195,12 @@ describe('palette', () => {
       expect(ids('rect arrondi')).toEqual(['rounded-rectangle']);
     });
 
-    it('aucun résultat', () => {
-      expect(ids('zzz')).toEqual([]);
+    it('aucun résultat : la Metamorph, avec la requête pour texte (sujet 538)', () => {
+      const found = searchTemplates(SHAPE_TEMPLATES, ' zzz <b> ', PALETTE_CATEGORIES);
+      expect(found.map((t) => t.id)).toEqual(['metamorph']);
+      expect(found[0]!.value).toBe('zzz &lt;b&gt;');
+      expect(SHAPE_TEMPLATES.find((t) => t.id === 'metamorph')!.value).toBe('');
+      expect(searchTemplates([], 'zzz', PALETTE_CATEGORIES)).toEqual([]);
     });
   });
 });

@@ -25,6 +25,7 @@ import type { ModePageControls } from '../plugins/modes/registry';
 import type { TextEdit } from '../TextFormat';
 import type { EdgeStylePatch } from './EdgeLineSections';
 import type { LayerActions } from './LayersSection';
+import type { MetamorphControls } from './MetamorphSection';
 
 /** Ce que reçoit le panneau contextuel (et chacune de ses sections) : la sélection, la page et les actions. */
 
@@ -136,4 +137,6 @@ export interface ContextPanelProps {
   onTextAnchor: (cellId: string, anchor: EdgeTextAnchor) => void;
   /** Texte en cours d'édition en place : le panneau montre son format. */
   textEdit?: TextEdit;
+  /** Forme Metamorph sélectionnée (sujet 538) : description, propositions ; absent si la page n'est pas modifiable. */
+  metamorph?: MetamorphControls;
 }

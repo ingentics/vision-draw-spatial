@@ -4,6 +4,7 @@ import { gridSizeOf } from '../../format/cellEdits';
 import { applyCameraState, applyPerspectiveState } from '../../interaction/cameraProjection';
 import type { Grid, GridOptions } from '../../render/grid';
 import { orientBillboards } from '../../render/billboard';
+import { animateObjects } from '../../render/animation';
 import type { PageScene } from '../../render/pageScene';
 import type { EngineCore } from '../EngineCore';
 import { createGrid } from '../../render/grid';
@@ -146,6 +147,8 @@ export class Rendering {
       this.renderer.info.reset();
       // Silhouettes debout (Actor) face à la caméra de cette image.
       orientBillboards(this.scene, this.activeCamera());
+      // Objets animés (loader et fond d'une Metamorph, sujet 538) : une image de plus tant qu'il y en a.
+      const animated = animateObjects(this.scene, now);
       // Estompage de ce qui est hors du courant du mode de la page (ex. hors du flux courant).
       this.core.modeCurrents.applyModeFocus();
       // Couche d'un mode reposée sur une scène reconstruite, et son image animée.
@@ -155,6 +158,7 @@ export class Rendering {
       else this.renderer.render(this.scene, this.activeCamera());
       if (this.overlay.children.length > 0) this.renderOverlay();
       if (metrics.sampling) metrics.frameRendered(start, performance.now());
+      if (animated) this.requestRender();
     });
   };
 }

@@ -1,0 +1,26 @@
+<mxfile host="Drawio Spatial">
+  <diagram name="Metamorph" id="metamorph">
+    <mxGraphModel grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <UserObject label="Serveur de paiement" spatial.metamorphInstructions="Une baie de serveur, trois tiroirs, bleue" id="draft">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;spatial.kind=metamorph;spatial.metamorph=draft;fontSize=12;" vertex="1" parent="1">
+            <mxGeometry x="40" y="40" width="160" height="120" as="geometry"/>
+          </mxCell>
+        </UserObject>
+        <UserObject label="File de messages" spatial.metamorphInstructions="Un tube horizontal" id="waiting">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;spatial.kind=metamorph;spatial.metamorph=ready;fontSize=12;" vertex="1" parent="1">
+            <mxGeometry x="320" y="40" width="160" height="120" as="geometry"/>
+          </mxCell>
+        </UserObject>
+        <mxCell id="client" value="Client" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="240" width="160" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=classic;" edge="1" parent="1" source="client" target="draft">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

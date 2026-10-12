@@ -14,6 +14,8 @@ import { MULTI_SELECT_LABELS } from '../settings/ShortcutSettings';
 import type { TextEdit } from '../TextFormat';
 import type { ModePageControls } from '../plugins/modes/registry';
 import type { LayerActions } from '../context/LayersSection';
+import type { MetamorphControls } from '../context/MetamorphSection';
+import { acceptMetamorph } from '../metamorph/metamorphHost';
 
 /** Panneau contextuel de la page affichée, branché sur le moteur : chaque réglage y écrit la sélection ou la page. */
 export function ViewerContextPanel({
@@ -95,6 +97,7 @@ export function ViewerContextPanel({
         selection && engine?.setEdgeTextAnchor(selection.picked.element.id, cellId, anchor)
       }
       textEdit={textEdit}
+      metamorph={editablePages && engine ? metamorphControls(engine) : undefined}
       onApplyStyle={(preset) =>
         engine?.applyStylePreset(
           selected.shapes.map((shape) => shape.id),
@@ -136,6 +139,18 @@ export function ViewerContextPanel({
 }
 
 /** Opérations du panneau sur les calques de la page `pageId` (sujet 523). */
+/** Metamorph (sujet 538) : description et cycle par le moteur, proposition choisie gardée par le serveur. */
+function metamorphControls(engine: Engine): MetamorphControls {
+  return {
+    view: (shapeId) => engine.metamorphOf(shapeId),
+    setInstructions: (shapeId, instructions) => engine.setMetamorphInstructions(shapeId, instructions),
+    submit: (shapeId) => engine.submitMetamorph(shapeId),
+    retry: (shapeId) => engine.retryMetamorph(shapeId),
+    reprompt: (shapeId) => engine.repromptMetamorph(shapeId),
+    accept: (shapeId, candidateId) => void acceptMetamorph(engine, shapeId, candidateId),
+  };
+}
+
 function layerActions(engine: Engine, pageId: string): LayerActions {
   return {
     choose: (layerId) => engine.setCurrentLayer(pageId, layerId),

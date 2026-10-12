@@ -307,7 +307,11 @@ export function Viewer({
             }}
             onDrop={(event) => {
               const id = event.dataTransfer.getData(PALETTE_MIME);
-              const template = plugins?.shapes.templates().find((t) => t.id === id);
+              // Le modèle glissé d'abord : celui proposé faute de résultat porte la recherche pour texte (sujet 538).
+              const template =
+                paletteDrag.current?.id === id
+                  ? paletteDrag.current
+                  : plugins?.shapes.templates().find((t) => t.id === id);
               if (!template || !engine) return;
               event.preventDefault();
               const rect = event.currentTarget.getBoundingClientRect();

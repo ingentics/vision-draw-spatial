@@ -3,6 +3,7 @@ import type { ShapeRegistry } from '../shapes/registry';
 import type { PaletteCategory, PaletteCategoryId, ShapeTemplate } from '../shapes/types';
 import { byId } from '../model/pageIndex';
 import { snapToGrid } from '../model/geometry';
+import { textToHtml } from '../format/cellEdits';
 
 export type { PaletteCategory, PaletteCategoryId, ShapeTemplate };
 
@@ -39,7 +40,8 @@ function normalize(text: string): string {
 /**
  * Formes trouvées par la recherche de la palette : chaque mot de la requête (casse et accents ignorés) doit
  * apparaître dans le nom, un mot-clé ou le nom de la catégorie (`categories` : celles de la page). Requête vide =
- * toutes les formes.
+ * toutes les formes. Rien de trouvé : les formes proposées en dernier recours (`fallback`, ex. Metamorph, sujet 538),
+ * avec la requête pour texte.
  */
 export function searchTemplates(
   templates: ShapeTemplate[],
@@ -48,11 +50,14 @@ export function searchTemplates(
 ): ShapeTemplate[] {
   const words = normalize(query).split(/\s+/).filter(Boolean);
   if (words.length === 0) return templates;
-  return templates.filter((template) => {
+  const found = templates.filter((template) => {
     const category = byId(categories, template.category)?.name ?? '';
     const haystack = normalize([template.name, category, template.description ?? '', ...template.keywords].join(' '));
     return words.every((word) => haystack.includes(word));
   });
+  if (found.length > 0) return found;
+  const value = textToHtml(query.trim());
+  return templates.filter((template) => template.fallback).map((template) => ({ ...template, value }));
 }
 
 /**

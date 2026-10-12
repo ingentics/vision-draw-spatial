@@ -125,6 +125,11 @@ export interface PaletteEntry {
   edge?: boolean;
   /** Posée au fond de la pile, derrière les autres formes (ex. région du mode RDD, sujet 182). */
   atBack?: boolean;
+  /**
+   * Proposée aussi quand la recherche de la palette ne trouve rien, avec la requête pour texte (ex. Metamorph, sujet
+   * 538).
+   */
+  fallback?: boolean;
 }
 
 /** Modèle de la palette : l'élément déclaré par une forme, identifié par l'`id` de la forme. */

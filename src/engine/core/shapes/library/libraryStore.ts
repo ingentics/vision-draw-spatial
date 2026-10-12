@@ -47,6 +47,12 @@ interface LoadedLibrary {
   categories: PaletteCategory[];
 }
 
+/**
+ * Catégorie « Autres » de la palette (sujet 538) : celle des formes de bibliothèque sans catégorie, toutes
+ * bibliothèques confondues. Comme toute catégorie, la palette la cache tant qu'aucune de ses formes n'y est proposée.
+ */
+export const OTHER_CATEGORY: PaletteCategory = freezePlain({ id: 'other', name: 'Autres', order: 1000 });
+
 /** Id d'une catégorie ou d'un modèle de bibliothèque : propre à elle, jamais en conflit avec une forme intégrée. */
 const libraryKey = (library: string, id: string) => `${library}:${id}`;
 
@@ -130,8 +136,10 @@ export class ShapeLibraryStore {
     return [...this.loaded.values()].flatMap((entry) => entry.templates);
   }
 
+  /** Catégories des bibliothèques, et « Autres » (sujet 538) dès qu'une bibliothèque est chargée. */
   categories(): PaletteCategory[] {
-    return [...this.loaded.values()].flatMap((entry) => entry.categories);
+    const categories = [...this.loaded.values()].flatMap((entry) => entry.categories);
+    return this.loaded.size > 0 ? [...categories, OTHER_CATEGORY] : categories;
   }
 
   /** État d'une forme posée depuis une bibliothèque ; undefined pour une autre forme ou sans dessin des bibliothèques. */
@@ -174,7 +182,7 @@ function templateOf(libraryId: string, id: string, shape: LibraryShape, order: n
   return {
     id,
     name: shape.name,
-    category: libraryKey(libraryId, shape.category),
+    category: shape.category === undefined ? OTHER_CATEGORY.id : libraryKey(libraryId, shape.category),
     order,
     keywords: shape.keywords,
     ...(shape.description === undefined ? {} : { description: shape.description }),
@@ -191,8 +199,11 @@ function templateOf(libraryId: string, id: string, shape: LibraryShape, order: n
 /** Marge de l'icône tirée du contour dans le cadre `0 0 40 28` de la palette. */
 const ICON_MARGIN = 4;
 
-/** Icône de la palette : les tracés du JSON, sinon le contour et les tracés intérieurs ramenés dans le cadre. */
-function iconOf(shape: LibraryShape): string {
+/**
+ * Icône de la palette : les tracés du JSON, sinon le contour et les tracés intérieurs ramenés dans le cadre. Aussi
+ * l'aperçu d'une proposition Metamorph (sujet 538).
+ */
+export function iconOf(shape: LibraryShape): string {
   if (shape.icon) return shape.icon.map((d) => `<path d="${d}"/>`).join('');
   const at = (p: { x: number; y: number }) =>
     `${+(ICON_MARGIN + p.x * (40 - 2 * ICON_MARGIN)).toFixed(2)} ${+(ICON_MARGIN + p.y * (28 - 2 * ICON_MARGIN)).toFixed(2)}`;

@@ -346,6 +346,17 @@ fichier, les formes non chargées du document ; `shapeLibrariesChange` prévient
   carré `#fff2cc` sans contour (même après un style du panneau), ombre douce dessous (4 px vers le bas, flou 8 px,
   noire à 25 %, bas élargi), à plat au sol en iso / 3D ; texte noir, marges de 8 px, **ajusté pour remplir** la forme
   (`fitText=fill`, §14.1). Dans draw.io : rectangle jaune à ombre (`shadow=1`).
+- **Metamorph** (`general/metamorph`, `spatial.kind=metamorph`, palette « Général », 80 × 100 ; sujet 538) : forme à
+  générer depuis une description, aussi proposée par une recherche sans résultat (avec la recherche pour texte).
+  Rectangle noir et blanc à angles droits, bordure de 1 px, son texte tel quel, halo arc-en-ciel de 6 px tout autour qui
+  tourne et pulse (deux pulsations, deux temps de pause, en boucle), icône en haut à droite : loader qui tourne en
+  « Morphing… », sinon l'étoile de l'IA (violette au brouillon, verte quand les propositions sont prêtes). État
+  `spatial.metamorph` (`draft`, `morphing`, `ready`), instructions `spatial.metamorphInstructions` (attribut de
+  l'objet). Cycle mené par le moteur (`core/domains/edit/metamorphs.ts`) : « Valider » → événement `metamorphRequest` →
+  `metamorphResults` (JSON de bibliothèque de formes, une proposition par forme) → « Réessayer » (nouvelle demande),
+  « Reprompt » (retour au brouillon) ou proposition choisie : la cellule prend le style de la forme de bibliothèque
+  choisie (bornes, texte, flèches gardés). Les formes acceptées sont gardées par l'hôte et rechargées comme une
+  bibliothèque (§8.2).
 - **Flèche pleine** (`general/block-arrow`, palette « Général », après la Flèche ; sujet 410) : une **arête**
   `shape=flexArrow`, toujours droite de la queue à la pointe (routeur, points intermédiaires et boucle ignorés, aucune
   poignée entre les bouts), dessinée en un polygone plein effilé de la couleur du trait (`render/edges/blockArrow.ts`) :

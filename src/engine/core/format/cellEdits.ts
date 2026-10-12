@@ -107,6 +107,15 @@ export function setCellStyleValue(page: PageTree, cellId: string, key: string, v
   markPageDirty(page);
 }
 
+/** Style entier d'une cellule, remplacé (ex. Metamorph remplacée par la forme choisie, sujet 538). */
+export function setCellStyle(page: PageTree, cellId: string, style: string): void {
+  const cell = page.cells.get(cellId)?.cell;
+  if (!cell) throw new Error(`Cellule ${cellId} introuvable`);
+  if (cell.getAttribute('style') === style) return;
+  cell.setAttribute('style', style);
+  markPageDirty(page);
+}
+
 /** Attribut de l'objet (`<object>` / `<UserObject>`) d'une cellule ; false si elle n'a pas d'objet. */
 export function setCellObjectAttribute(
   page: PageTree,

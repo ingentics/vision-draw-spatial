@@ -1,4 +1,5 @@
 import type { Engine } from '../engine';
+import { METAMORPH_LIBRARY } from './metamorph/metamorphHost';
 
 /**
  * Bibliothèque de formes d'exemple de l'appli de démo (sujet 531) : deux formes dynamiques, l'une pour les pages sans
@@ -91,16 +92,19 @@ const DEMO_LIBRARY = {
   ],
 };
 
+/** Bibliothèques que l'appli sait fournir : l'exemple, et les formes Metamorph acceptées (sujet 538). */
+const KNOWN_LIBRARIES = new Set([DEMO_LIBRARY.library.id, METAMORPH_LIBRARY]);
+
 /**
  * Charge la bibliothèque d'exemple dans le moteur et répond à ses demandes (`shapesMissing`) : l'exemple est
- * rechargé, toute autre bibliothèque est déclarée introuvable.
+ * rechargé, toute bibliothèque que l'appli ne connaît pas est déclarée introuvable.
  */
 export function installDemoShapeLibrary(engine: Engine): void {
   const result = engine.registerShapes(DEMO_LIBRARY);
   if (!result.ok) console.error('Bibliothèque d’exemple refusée', result.errors);
   engine.on('shapesMissing', (missing) => {
     if (missing.some((shape) => shape.library === DEMO_LIBRARY.library.id)) engine.registerShapes(DEMO_LIBRARY);
-    const others = new Set(missing.map((shape) => shape.library).filter((id) => id !== DEMO_LIBRARY.library.id));
+    const others = new Set(missing.map((shape) => shape.library).filter((id) => !KNOWN_LIBRARIES.has(id)));
     if (others.size > 0) engine.markShapesUnavailable([...others].map((library) => ({ library })));
   });
 }

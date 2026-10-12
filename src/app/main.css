@@ -2648,3 +2648,52 @@ button.mode-bar-label.renamable:hover {
   color: var(--muted);
   font-size: 12px;
 }
+
+/* Metamorph (sujet 538) : propositions reçues, choisies d'un clic, et bouton du cycle. */
+.metamorph-candidates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.metamorph-candidate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 6px 4px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.metamorph-candidate:hover {
+  border-color: var(--accent);
+}
+
+.metamorph-candidate svg {
+  width: 60px;
+  height: 42px;
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
+
+.metamorph-candidate span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metamorph-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 8px;
+}

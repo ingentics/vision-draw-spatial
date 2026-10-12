@@ -13,6 +13,7 @@ import type { Settings, SettingsPatch } from '../settings';
 import type { ShapeRegistry } from '../shapes/registry';
 import type { ModeProperty } from '../modes/modeProperty';
 import type { MissingLibraryShape } from './document/shapeLibraries';
+import type { MetamorphRequest } from '../edit/metamorph';
 
 export interface Selection {
   pageId: string;
@@ -127,6 +128,13 @@ export type EngineEvents = {
   shapesMissing: [missing: MissingLibraryShape[]];
   /** Bibliothèque de formes enregistrée, remplacée, retirée ou déclarée introuvable : palette et Diagnostics à relire. */
   shapeLibrariesChange: [];
+  /**
+   * Metamorph validée (sujet 538), ou en attente à la réouverture du fichier : à l'hôte de générer les propositions et
+   * de répondre par `metamorphResults`.
+   */
+  metamorphRequest: [request: MetamorphRequest];
+  /** Propositions d'une Metamorph reçues ou oubliées (« Réessayer », « Reprompt », forme choisie) : panneau à relire. */
+  metamorphChange: [shapeId: string];
 };
 export type EngineEvent = keyof EngineEvents;
 

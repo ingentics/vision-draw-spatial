@@ -59,6 +59,17 @@ describe('format des bibliothèques de formes (sujet 529)', () => {
     expect('futur' in result.library.shapes[0]!).toBe(false);
   });
 
+  it('accepte une forme sans catégorie, et une bibliothèque sans catégories (sujet 538)', () => {
+    const result = readShapeLibrary(libraryJson({ category: undefined }, { categories: undefined }));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.library.categories).toEqual([]);
+    expect('category' in result.library.shapes[0]!).toBe(false);
+    expect(errorsOf(libraryJson({}, { categories: 'calcul' }))).toEqual(
+      expect.arrayContaining(['categories : liste attendue']),
+    );
+  });
+
   it('refuse un autre format ou une version inconnue', () => {
     expect(errorsOf(libraryJson({}, { format: 'autre' }))).toEqual(['format : « drawio-spatial/shapes » attendu']);
     expect(errorsOf(libraryJson({}, { formatVersion: 2 }))).toEqual(['formatVersion : version de format 2 non gérée']);

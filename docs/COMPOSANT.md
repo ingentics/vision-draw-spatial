@@ -125,15 +125,38 @@ engine.unregisterShapes('infra');
 
 - **Format** : `format` et `formatVersion` (1) obligatoires ; une version inconnue est refusée, une clé inconnue
   ignorée. `library` : `id`, `name`, et facultatifs `description`, `author`, `license`, `homepage`, `tags`, `meta`
-  (objet libre, gardé tel quel : `engine.shapeLibrary(id)`). Une forme : `id`, `category`, `name`, `size`, `render`
+  (objet libre, gardé tel quel : `engine.shapeLibrary(id)`) ; `categories` facultatif. Une forme : `id`, `name`,
+  `size`, `render`
   (`outline` : au moins 3 points `[x, y]` en fraction des bornes ; `details` : tracés `{ path, closed?, filled? }` ;
   `depth` : hauteur du volume en px), et facultatifs `description`, `keywords`, `style`, `value`, `icon` (données
-  `d` de tracés SVG du cadre `0 0 40 28` ; absent : tirée du contour), `modes`, `meta`.
+  `d` de tracés SVG du cadre `0 0 40 28` ; absent : tirée du contour), `category` (absente : « Autres »), `modes`,
+  `meta`.
 - **Remplacer** : réenregistrer le même `library.id` remplace la bibliothèque (pas de version).
 - **Fichier** : une forme posée garde son style, plus `spatial.library` et `spatial.kind`. Ouverte sans sa
   bibliothèque, elle s'affiche hachurée avec un badge « puzzle » (non chargée), ou un badge d'avertissement si l'hôte
   l'a déclarée introuvable (`markShapesUnavailable([{ library, kind? }])`, sans `kind` : toute la bibliothèque) ; elle
   reste éditable comme un rectangle. draw.io dessine le style seul.
+
+### Formes Metamorph (sujet 538)
+
+Une forme Metamorph décrit une forme à générer (son texte et des instructions visuelles) ; c'est l'hôte qui génère.
+
+```ts
+engine.on('metamorphRequest', async ({ shapeId, text, instructions, width, height, attempt }) => {
+  const candidates = await monServeur.generer({ text, instructions, width, height }); // JSON de bibliothèque
+  engine.metamorphResults(shapeId, candidates); // refusé si la forme n'attend plus rien
+});
+// Proposition choisie : l'hôte la garde, recharge sa bibliothèque, puis la pose à la place de la Metamorph.
+engine.registerShapes(bibliothequeAJour);
+engine.acceptMetamorph(shapeId, 'metamorph:<id de la proposition>');
+```
+
+- `metamorphRequest` part à « Valider », à « Réessayer » (`retryMetamorph`) et à la réouverture d'une Metamorph en
+  attente ; `metamorphChange` signale des propositions reçues ou oubliées. Le panneau lit `metamorphOf(shapeId)`
+  (état, instructions, propositions) et écrit par `setMetamorphInstructions`, `submitMetamorph`,
+  `repromptMetamorph` (retour au brouillon).
+- Une forme de bibliothèque sans `category` (et `categories` est facultatif) va dans la catégorie « Autres » de la
+  palette, cachée tant qu'elle est vide.
 
 ## Clavier et souris
 

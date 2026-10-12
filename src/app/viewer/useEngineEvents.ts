@@ -16,6 +16,7 @@ import type {
   ViewMode,
 } from '../../engine';
 import { installDemoShapeLibrary } from '../demoShapeLibrary';
+import { installMetamorph } from '../metamorph/metamorphHost';
 import type { SidebarSlide } from '../Sidebar';
 
 /** Réglages iso qu'une page peut imposer (état de vue enregistré dans le fichier). */
@@ -92,6 +93,9 @@ export function useEngineEvents({
       });
       // Bibliothèque d'exemple (sujet 531) : chargée avant tout fichier, rechargée s'il la réclame.
       installDemoShapeLibrary(instance);
+      // Formes Metamorph (sujet 538) : acceptées chargées, demandes transmises au serveur (mocké).
+      installMetamorph(instance);
+      instance.on('metamorphChange', () => setSessionTick((tick) => tick + 1));
       instance.on('load', (doc) => {
         setDocument(doc);
         setError(undefined);

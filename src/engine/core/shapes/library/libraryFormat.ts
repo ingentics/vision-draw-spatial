@@ -43,8 +43,8 @@ export interface LibraryRender {
 
 export interface LibraryShape {
   id: string;
-  /** Id d'une catégorie de la bibliothèque. */
-  category: string;
+  /** Id d'une catégorie de la bibliothèque ; absent : catégorie « Autres » de la palette (sujet 538). */
+  category?: string;
   name: string;
   description?: string;
   keywords: string[];
@@ -193,9 +193,11 @@ export function readShapeLibrary(json: unknown): ShapeLibraryResult {
   return { ok: true, library: freezePlain(library) };
 }
 
+/** Catégories de la bibliothèque : facultatives (sujet 538), une forme sans catégorie va dans « Autres ». */
 function readCategories(reader: Reader, json: Json): LibraryCategory[] {
   const categories: LibraryCategory[] = [];
-  for (const [i, raw] of (reader.list(json, 'categories', '') ?? []).entries()) {
+  if (json.categories !== undefined && !Array.isArray(json.categories)) reader.fail('categories', 'liste attendue');
+  for (const [i, raw] of ((Array.isArray(json.categories) ? json.categories : []) as unknown[]).entries()) {
     const path = `categories[${i}].`;
     if (!isObject(raw)) {
       reader.fail(`categories[${i}]`, 'objet attendu');
@@ -235,7 +237,7 @@ function readShape(
 ): LibraryShape | undefined {
   const before = reader.errors.length;
   const id = reader.id(raw, 'id', path);
-  const category = reader.string(raw, 'category', path, true);
+  const category = reader.string(raw, 'category', path, false);
   if (category !== undefined && !categoryIds.has(category))
     reader.fail(`${path}category`, `« ${category} » n’est pas une catégorie de la bibliothèque`);
   const name = reader.string(raw, 'name', path, true);
@@ -262,7 +264,7 @@ function readShape(
   if (reader.errors.length > before) return undefined;
   return {
     id: id!,
-    category: category!,
+    ...(category === undefined ? {} : { category }),
     name: name!,
     ...(description === undefined ? {} : { description }),
     keywords,

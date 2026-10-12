@@ -121,7 +121,10 @@ describe('bibliothèques de formes dans le registre (sujets 529, 530)', () => {
     expect(template).toMatchObject({ id: 'infra:server', category: 'infra:compute', library: 'infra' });
     expect(template.style).toBe('fillColor=#fff;spatial.library=infra;spatial.kind=server;');
     expect(template.icon).toBe('<path d="M4 4L36 4L20 24Z"/>');
-    expect(registry.libraryCategories()).toEqual([{ id: 'infra:compute', name: 'Calcul', order: 100 }]);
+    expect(registry.libraryCategories()).toEqual([
+      { id: 'infra:compute', name: 'Calcul', order: 100 },
+      { id: 'other', name: 'Autres', order: 1000 },
+    ]);
     // Hors Paramètres › Formes (catégories sans réglages).
     expect(registry.categories().some((c) => c.id === 'infra:compute')).toBe(false);
     const placed = readDrawio(
@@ -130,6 +133,19 @@ describe('bibliothèques de formes dans le registre (sujets 529, 530)', () => {
       </root></mxGraphModel></diagram></mxfile>`,
     ).document.pages[0]!.shapes[0]!;
     expect(registry.templateOf(placed)?.id).toBe('infra:server');
+  });
+
+  it('forme sans catégorie : rangée dans « Autres », cachée tant qu’elle est vide (sujet 538)', () => {
+    const registry = createDefaultRegistry();
+    expect(registry.libraryCategories()).toEqual([]);
+    const modes = createDefaultModeRegistry();
+    const palette = () =>
+      modes.paletteFor(undefined, registry.templates(), [...registry.categories(), ...registry.libraryCategories()]);
+    registry.registerLibrary(libraryJson());
+    expect(palette().categories.some((c) => c.id === 'other')).toBe(false);
+    registry.registerLibrary(libraryJson({ category: undefined }, { categories: undefined }));
+    expect(registry.templates().find((t) => t.library === 'infra')?.category).toBe('other');
+    expect(palette().categories.at(-1)).toEqual({ id: 'other', name: 'Autres', order: 1000 });
   });
 
   it('palette d’une page : les `modes` de la forme, quel que soit le mode', () => {
