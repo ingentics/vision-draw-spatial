@@ -1,5 +1,50 @@
 # Changelog
 
+## [0.12.0](https://github.com/ingentics/vision-draw-spatial/compare/drawio-spatial-v0.11.0...drawio-spatial-v0.12.0) (2026-10-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* **engine:** les méthodes de Engine sont rangées dans un objet par domaine (engine.history, pages, view, graph, navigation, selection, edit, text, layers, shapes, generation, modes, effects, takeover). Restent à la racine : on, dispose, focusCanvas, load, getDocument, serialize, getFileId, getUnsupportedReport, getMetrics, setFrameSampling, getSettings, updateSettings. Renommages : isModified → history.isModified, canUndo → history.canUndo, canRedo → history.canRedo, undo → history.undo, redo → history.redo, canEditPages → pages.canEdit, addPage → pages.add, renamePage → pages.rename, removePage → pages.remove, getCurrentPage → pages.current, getPageCameras → pages.cameras, goToPage → pages.goTo, setPageAnchoring → pages.setAnchoring, setPageEdgeLine → pages.setEdgeLine, setPageJumps → pages.setJumps, getCameraState → view.state, setCameraState → view.setState, animateCameraTo → view.animateTo, focusElement → view.focus, resetView → view.reset, resetRotation → view.resetRotation, toggleOverview → view.toggleOverview, getViewMode → view.mode, setViewMode → view.setMode, toggleViewMode → view.toggleMode, toggle3d → view.toggle3d, setFlattened → view.setFlattened, toggleFlatten → view.toggleFlatten, attachMinimap → view.attachMinimap, exportImage → view.exportImage, isGraphView → graph.isShown, showGraph → graph.show, toggleGraph → graph.toggle, getMiniGraph → graph.miniGraph, followLink → navigation.followLink, getLinkUsage → navigation.linkUsage, getHistory → navigation.history, back → navigation.back, getParentPages → navigation.parentPages, backTo → navigation.backTo, getSelection → selection.current, select → selection.select, selectAll → selection.selectAll, clearSelection → selection.clear, orderSelection → selection.order, alignSelection → selection.align, distributeSelection → selection.distribute, deleteSelection → selection.delete, copySelection → selection.copy, cutSelection → selection.cut, paste → selection.paste, duplicateSelection → selection.duplicate, isDragging → edit.isDragging, isEditable → edit.isEditable, setEditable → edit.setEditable, addShape → edit.addShape, paletteDragOver → edit.paletteDragOver, paletteDragEnd → edit.paletteDragEnd, setLink → edit.setLink, setSpatial → edit.setSpatial, applyStylePreset → edit.applyStylePreset, setElementsStyle → edit.setElementsStyle, orientShapes → edit.orientShapes, reverseEdges → edit.reverseEdges, resetEdgeRoute → edit.resetEdgeRoute, editLabel → text.editLabel, previewEditedLabel → text.previewLabel, closeLabelEdit → text.closeLabelEdit, setLabel → text.setLabel, setTextFormat → text.setFormat, setEdgeText → text.setEdgeText, setEdgeTextAnchor → text.setEdgeTextAnchor, setEdgeEndLabel → text.setEdgeEndLabel, moveEditedText → text.moveEdited, endEditedTextMove → text.endEditedMove, flipEditedText → text.flipEdited, setPartText → text.setPartText, setPartComment → text.setPartComment, setComment → text.setComment, editComment → text.editComment, getPageLayers → layers.of, setCurrentLayer → layers.setCurrent, addLayer → layers.add, renameLayer → layers.rename, moveLayer → layers.move, removeLayer → layers.remove, setLayerVisible → layers.setVisible, setLayerLocked → layers.setLocked, setLayerElevation → layers.setElevation, setLayersFlattened → layers.setFlattened, moveSelectionToLayer → layers.moveSelection, getShapeRegistry → shapes.registry, paletteFor → shapes.paletteFor, usedTemplates → shapes.usedTemplates, registerShapes → shapes.register, unregisterShapes → shapes.unregister, markShapesUnavailable → shapes.markUnavailable, shapeLibrary → shapes.library, shapeLibraries → shapes.libraries, generationOf → generation.of, setGenerationInstructions → generation.setInstructions, submitGeneration → generation.submit, generationResults → generation.results, generationFailed → generation.failed, retryGeneration → generation.retry, repromptGeneration → generation.reprompt, acceptGeneration → generation.accept, getModeRegistry → modes.registry, setPageMode → modes.setPageMode, editPageMode → modes.edit, modePropertyViews → modes.propertyViews, setModeProperty → modes.setProperty, getModeCurrent → modes.current, getModeIndicator → modes.indicator, renameModeCurrent → modes.renameCurrent, setModeCurrent → modes.setCurrent (et takeover.setModeCurrent), managesEdge → modes.managesEdge, getEffectRegistry → effects.registry, allowedEffects → effects.allowed, setPageEffect → effects.setPageEffect, lockEditing → takeover.lockEditing, setOverlay → takeover.setOverlay, clearOverlay → takeover.clearOverlay, keepInView → takeover.keepInView.
+* **engine:** événements metamorphRequest / metamorphChange, méthodes Engine *Metamorph* et types Metamorph* remplacés par generationRequest / generationChange, generationOf, submitGeneration, generationResults, generationFailed, retryGeneration, repromptGeneration, acceptGeneration, setGenerationInstructions et Generation*.
+* **storytelling:** les flèches de suite sans spatial.story.of ne sont plus dans aucune histoire ; les rattacher par le choix « Histoire » ou les retracer.
+
+### Fonctionnalités
+
+* **engine:** API du moteur regroupée par domaine ([6b70b21](https://github.com/ingentics/vision-draw-spatial/commit/6b70b218a1044544e96f5d4017aeb0983cc0536c))
+* **engine:** bibliothèques de formes chargées depuis un JSON ([6a9a07b](https://github.com/ingentics/vision-draw-spatial/commit/6a9a07bb0970107b24646ac89c9bd3baae5f7468))
+* **engine:** cadrage de la suite au lancement de la simulation d'états ([63e3edc](https://github.com/ingentics/vision-draw-spatial/commit/63e3edc656af3e30f3590c72aa6b561300f024ea))
+* **engine:** calques de page ([2773536](https://github.com/ingentics/vision-draw-spatial/commit/2773536e868662617fa80317f6239de730dfb881))
+* **engine:** chargement à la demande des bibliothèques de formes ([210fa5e](https://github.com/ingentics/vision-draw-spatial/commit/210fa5eecd26ea79abf5e19037f4f2e2a8f7df97))
+* **engine:** élévation, plans et aplatissement des calques ([bfd2861](https://github.com/ingentics/vision-draw-spatial/commit/bfd286180a38075173b09074bd1081ba3076fe8d))
+* **engine:** épaisseur et écart aux formes des flèches imposés par l'habillage d'un mode ([83c9333](https://github.com/ingentics/vision-draw-spatial/commit/83c9333003644b5826e5a72dc46400851ff602ab))
+* **engine:** forme Metamorph générée depuis une description ([4f5c837](https://github.com/ingentics/vision-draw-spatial/commit/4f5c83717d24d500261c17fc203b20a66d771d74))
+* **engine:** formes de bibliothèque posées et non chargées ([491418d](https://github.com/ingentics/vision-draw-spatial/commit/491418d2ed4bb26337baff4f3e927c666dbb6fc7))
+* **engine:** formes générées par l'hôte, Metamorph hors du tronc ([cae0267](https://github.com/ingentics/vision-draw-spatial/commit/cae026715733816bb7f9e082275d46c2cc9ee9bf))
+* **engine:** grille du fond cachée par le mode de la page ([c3c950d](https://github.com/ingentics/vision-draw-spatial/commit/c3c950d45d10a7a030fcd63784c1e2a3d605aded))
+* **engine:** Metamorph en blob, halo selon son état ([00519d4](https://github.com/ingentics/vision-draw-spatial/commit/00519d41effdfadc67d0ce57f1ceeaa44c899d1a))
+* **engine:** règles de gestion d'une transition d'états ([4bb566f](https://github.com/ingentics/vision-draw-spatial/commit/4bb566f9ae49f976eebc98ee23c60cea49b39a7e))
+* **engine:** voile qui masque la page et courant du mode pendant une prise en main ([2e6cccf](https://github.com/ingentics/vision-draw-spatial/commit/2e6cccffc09c25cc22581411140ae6f3147a259c))
+* **palette:** bouclier dans Géométrie ([56e8ecc](https://github.com/ingentics/vision-draw-spatial/commit/56e8eccdf2c52f89966e983f79d27604218e0dc1))
+* **palette:** rectangles empilés dans Géométrie ([d002bc6](https://github.com/ingentics/vision-draw-spatial/commit/d002bc6ebadaf1bbac62e7e4056057f846fc89a0))
+* **storytelling:** aucune histoire courante, choix par la liste, Metamorph ([68f5135](https://github.com/ingentics/vision-draw-spatial/commit/68f5135cd81b948df9c39fb2db366a55ca8806cb))
+* **storytelling:** histoire écrite sur ses flèches, titre fait des étapes ([cf8e37a](https://github.com/ingentics/vision-draw-spatial/commit/cf8e37a5c524df2ffcb2fd436fd67f9b3507efcb))
+* **storytelling:** mode Story telling, histoires tracées par des flèches ([f90ac47](https://github.com/ingentics/vision-draw-spatial/commit/f90ac4757f0e3cbed8b5eb6d0f1cd02be7187c8c))
+* **storytelling:** simulation pas à pas des histoires ([4204e60](https://github.com/ingentics/vision-draw-spatial/commit/4204e609413cb4fc0184e96ccc067d04773bcd1d))
+
+
+### Corrections
+
+* **app:** serveur Metamorph mocké sans propositions gardées, réponse tardive refusée ([d9224db](https://github.com/ingentics/vision-draw-spatial/commit/d9224db394dae6b30779bcc81b726fe69f968090))
+* **engine:** calculs des modes gardés par page, suivis sur la copie de travail d'un geste ([8f4f5ea](https://github.com/ingentics/vision-draw-spatial/commit/8f4f5ea7468a0801ee5615179087c1a5e0cbc7dc))
+* **engine:** Metamorph jamais bloquée, échec de génération et annuler ([aa34bdc](https://github.com/ingentics/vision-draw-spatial/commit/aa34bdc43e9d0a461622ce116a93af5377c5c550))
+* **engine:** opérations de calque sans exception ni écriture en vue graphe ([bebbbc3](https://github.com/ingentics/vision-draw-spatial/commit/bebbbc3d078717e6dd3c8b1c794a5eaac1348555))
+
+
+### Performances
+
+* **engine:** halo animé sans image pendant ses pauses, couleurs créées une fois ([ca2db74](https://github.com/ingentics/vision-draw-spatial/commit/ca2db74ce0796d3b3c91596348172e7c539d1069))
+
 ## [0.11.0](https://github.com/ingentics/vision-draw-spatial/compare/drawio-spatial-v0.10.0...drawio-spatial-v0.11.0) (2026-10-10)
 
 
