@@ -30,6 +30,7 @@ function setup() {
   const registry = createDefaultRegistry();
   const page = () => state.document.pages[0]!;
   const core = {
+    disposed: false,
     pages: { getCurrentPage: page, pageById: page },
     targets: { editablePage: () => ({ page: page(), pageTree: tree.pages[0]! }) },
     file: {
@@ -60,7 +61,8 @@ function setup() {
     setCellStyleValue(tree.pages[0]!, id, 'spatial.metamorph', value);
     core.file.documentChanged([]);
   };
-  return { metamorphs, shape, requests, changes, steps, registry, rewind, document: () => state.document };
+  const dispose = () => ((core as { disposed: boolean }).disposed = true);
+  return { metamorphs, shape, requests, changes, steps, registry, rewind, dispose, document: () => state.document };
 }
 
 /** Propositions de l'hôte : deux formes, l'une sans catégorie. */
@@ -235,5 +237,14 @@ describe('formes générées par l’hôte : la Metamorph (sujets 538, 545)', ()
     expect(metamorphs.view('m')?.state).toBe('pending');
     expect(metamorphs.results('m', candidates()).ok).toBe(true);
     expect(metamorphs.view('m')?.state).toBe('ready');
+  });
+
+  it('réponse tardive après la fin du moteur : refusée, rien d’écrit (sujet 554)', () => {
+    const { metamorphs, shape, dispose } = setup();
+    metamorphs.submit('m');
+    dispose();
+    expect(metamorphs.results('m', candidates()).ok).toBe(false);
+    expect(metamorphs.failed('m', 'Erreur')).toBe(false);
+    expect(shape('m')?.style['spatial.metamorph']).toBe('morphing');
   });
 });

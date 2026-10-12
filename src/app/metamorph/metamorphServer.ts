@@ -131,8 +131,11 @@ function keywordsOf(request: GenerationRequest): string[] {
 
 /** Mock : propositions tirées au sort parmi des contours et couleurs fixes, formes acceptées dans le stockage local. */
 export function createMockMetamorphServer(): MetamorphServer {
-  /** Propositions envoyées, par id, en attendant qu'une soit acceptée. */
-  const sent = new Map<string, Json>();
+  /**
+   * Propositions envoyées en attendant qu'une soit acceptée, par forme demandée puis par id : une nouvelle demande
+   * pour la forme (« Réessayer », réouverture) ou une acceptation oublie les précédentes.
+   */
+  const sent = new Map<string, Map<string, Json>>();
   let next = 0;
 
   const load = (): Json[] => {
@@ -176,14 +179,16 @@ export function createMockMetamorphServer(): MetamorphServer {
               style: `fillColor=${color.fill};strokeColor=${color.stroke};whiteSpace=wrap;html=1;`,
               render: { outline: outline.outline },
             };
-            sent.set(id, shape);
             return shape;
           });
+          sent.set(request.shapeId, new Map(shapes.map((shape) => [shape.id as string, shape])));
           resolve(libraryJson('metamorph-candidates', 'Propositions Metamorph', shapes));
         }, GENERATION_DELAY);
       }),
     accept: (candidateId) => {
-      const shape = sent.get(candidateId);
+      const [shapeId, proposals] = [...sent].find(([, byId]) => byId.has(candidateId)) ?? [];
+      const shape = proposals?.get(candidateId);
+      if (shapeId !== undefined) sent.delete(shapeId);
       if (shape && !accepted.some((other) => other.id === candidateId)) {
         accepted = [...accepted, shape];
         save(accepted);

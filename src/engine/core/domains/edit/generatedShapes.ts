@@ -91,7 +91,7 @@ export class GeneratedShapes {
    * demande en cours (brouillon revenu par annuler…) ou si le JSON est invalide.
    */
   results(shapeId: string, json: unknown): ShapeLibraryResult {
-    if (!this.pending.has(shapeId)) return { ok: false, errors: [`aucune demande en cours pour la forme ${shapeId}`] };
+    if (!this.waits(shapeId)) return { ok: false, errors: [`aucune demande en cours pour la forme ${shapeId}`] };
     const result = readShapeLibrary(json);
     if (!result.ok) return result;
     this.received(shapeId, result.library.shapes.map(candidateOf));
@@ -103,7 +103,7 @@ export class GeneratedShapes {
    * message `error`, et « Réessayer » ou « Reprompt » rendent la main. Faux sans demande en cours.
    */
   failed(shapeId: string, error: string): boolean {
-    if (!this.pending.has(shapeId)) return false;
+    if (!this.waits(shapeId)) return false;
     this.received(shapeId, [], error);
     return true;
   }
@@ -208,6 +208,11 @@ export class GeneratedShapes {
       }
     }
     this.core.events.emit('generationChange', shapeId);
+  }
+
+  /** Une réponse de l'hôte est-elle attendue pour la forme ? Jamais après la fin du moteur (réponse tardive). */
+  private waits(shapeId: string): boolean {
+    return !this.core.disposed && this.pending.has(shapeId);
   }
 
   private forget(shapeId: string): void {
