@@ -199,8 +199,8 @@ l'entête. Exemples : `src/app/plugins/modes/states/index.tsx` (sans choix), `se
 flux).
 
 Les données dérivées d'une page (ex. flèches rangées par flux) se calculent une fois par `PageModel` (le modèle est
-relu après chaque modification) : un `WeakMap` de module indexé par la page suffit (ex. `sequences/steps.ts`, cache
-pur admis par `AJOUTER_UN_PLUGIN.md` section 5).
+relu après chaque modification) : `pageMemo(compute)` les garde par page (ex. `sequences/steps.ts`,
+`AJOUTER_UN_PLUGIN.md` section 5), et les refait à chaque image d'un geste.
 
 ## 4. Habillage
 

@@ -58,8 +58,9 @@ Folder map with each folder's role: `docs/SUMMARY.md` §3 (single source). Where
 
 - **No mutable module-level state** (`let` or object modified outside a class). All `Engine`s of a page would share
   it, and tests would influence each other. State lives in a `core/domains/` domain and is passed as a parameter to
-  pure functions. Exception: a pure cache keyed by an immutable object (`WeakMap` keyed by a frozen `PageModel`, e.g.
-  `plugins/modes/sequences/steps.ts`) is not state. E.g. camera bounds are `ViewCamera.limits`, passed as last parameter to `zoomAt`, `orbit`,
+  pure functions. Exception: a pure cache keyed by an immutable object is not state; a computation kept per page goes
+  through `pageMemo(compute)` (plugin API, `core/model/pageMemo.ts`, e.g. `plugins/modes/sequences/steps.ts`), which
+  never caches the working copy of a gesture (changed in place at each frame). E.g. camera bounds are `ViewCamera.limits`, passed as last parameter to `zoomAt`, `orbit`,
   `fitBounds`…
 - **The document model is never modified in place.** Its pages are frozen in dev and test. A gesture preview edits
   the page's working copy (`core.file.livePage(pageId, owner)`, released by `settleLivePage(owner)` at the end of the

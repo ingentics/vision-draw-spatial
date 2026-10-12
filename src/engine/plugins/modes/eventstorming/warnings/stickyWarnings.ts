@@ -1,5 +1,5 @@
 import type { ModeProperty, PageModel, Point, Rect, ShapeModel } from '../../../../core/plugins';
-import { isToggled, rectContains, toggleValue } from '../../../../core/plugins';
+import { isToggled, pageMemo, rectContains, toggleValue } from '../../../../core/plugins';
 import { readWall } from '../export/wallRules';
 import type { WallWarning } from '../export/wallRules';
 import { keys, VALIDATION } from '../keys';
@@ -21,18 +21,13 @@ export const BADGE_PART = 'badge';
 /** Clé de l'habillage (jamais écrite) : pastille du post-it, lue par son dessin. */
 export const BADGE = keys.key('badge');
 
-/** Avertissements de chaque post-it, calculés une fois par page (modèle relu à chaque modification). */
-const CACHE = new WeakMap<PageModel, Map<string, WallWarning[]>>();
-
-function warningsByShape(page: PageModel): Map<string, WallWarning[]> {
-  const cached = CACHE.get(page);
-  if (cached) return cached;
+/** Avertissements de chaque post-it, calculés une fois par page (refaits pendant un geste, sujet 552). */
+const warningsByShape = pageMemo((page: PageModel): Map<string, WallWarning[]> => {
   const byShape = new Map<string, WallWarning[]>();
   for (const warning of readWall(page).warnings)
     for (const id of warning.shapeIds) byShape.set(id, [...(byShape.get(id) ?? []), warning]);
-  CACHE.set(page, byShape);
   return byShape;
-}
+});
 
 /** La page montre-t-elle les avertissements ? Coché par défaut. */
 const validationOn = (page: PageModel): boolean => keys.pageFlag(page, VALIDATION, true);

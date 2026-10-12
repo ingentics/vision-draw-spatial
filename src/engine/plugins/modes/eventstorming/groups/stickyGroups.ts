@@ -1,4 +1,4 @@
-import { unionOf } from '../../../../core/plugins';
+import { pageMemo, unionOf } from '../../../../core/plugins';
 import type { PageModel, Rect, ShapeModel } from '../../../../core/plugins';
 import { contacts } from '../contacts/contacts';
 import { GROUP, keys } from '../keys';
@@ -39,13 +39,8 @@ function components(page: PageModel): ShapeModel[][] {
   return [...byRoot.values()];
 }
 
-/** Groupes calculés une fois par page (modèle relu à chaque modification). */
-const CACHE = new WeakMap<PageModel, StickyGroup[]>();
-
-/** Groupes de la page (deux post-it au moins). */
-export function stickyGroups(page: PageModel): StickyGroup[] {
-  const cached = CACHE.get(page);
-  if (cached) return cached;
+/** Groupes de la page (deux post-it au moins), calculés une fois par page (refaits pendant un geste, sujet 552). */
+export const stickyGroups = pageMemo((page: PageModel): StickyGroup[] => {
   const height = GROUP_TITLE.fontSize * GROUP_TITLE.lineHeight;
   const groups = components(page)
     .filter((shapes) => shapes.length > 1)
@@ -55,9 +50,8 @@ export function stickyGroups(page: PageModel): StickyGroup[] {
       const title = { x: bounds.x, y: bounds.y - GROUP_TITLE.gap - height, width: bounds.width, height };
       return { shapes: sorted, bounds, title };
     });
-  CACHE.set(page, groups);
   return groups;
-}
+});
 
 /** Groupe du post-it `shapeId`, s'il en a un. */
 export const groupOf = (page: PageModel, shapeId: string): StickyGroup | undefined =>

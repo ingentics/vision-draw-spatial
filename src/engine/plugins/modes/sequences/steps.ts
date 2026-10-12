@@ -1,5 +1,5 @@
 import type { EdgeModel, ModeEdit, ModeIssue, PageModel } from '../../../core/plugins';
-import { clamp } from '../../../core/plugins';
+import { clamp, pageMemo } from '../../../core/plugins';
 import { FLOW, FLOWS, STEP, flowLabel, nextFlowColor, nextFlowId, readFlows, writeFlows } from './flows';
 import { keys } from './keys';
 import type { Flow } from './flows';
@@ -19,16 +19,8 @@ export interface SequenceState {
   issues: ModeIssue[];
 }
 
-const states = new WeakMap<PageModel, SequenceState>();
-
-export function sequenceState(page: PageModel): SequenceState {
-  let state = states.get(page);
-  if (!state) {
-    state = computeState(page);
-    states.set(page, state);
-  }
-  return state;
-}
+/** État des flux, calculé une fois par page (refait à chaque image d'un geste, sujet 552). */
+export const sequenceState = pageMemo(computeState);
 
 function computeState(page: PageModel): SequenceState {
   const flows = readFlows(page);

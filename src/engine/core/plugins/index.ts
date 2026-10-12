@@ -72,6 +72,7 @@ export type {
 } from '../model/readonly';
 export { jsonListValue, readJsonList, SPATIAL, SPATIAL_PREFIX, spatialNumber, spatialValue } from '../spatial';
 export { elementName, firstFreeName, oneLine } from '../model/names';
+export { pageMemo } from '../model/pageMemo';
 export { clamp } from '../model/numbers';
 export { byId, edgeEnds, edgeOf, edgesById, elementOf, shapeOf, shapesById } from '../model/pageIndex';
 export {

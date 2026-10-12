@@ -1,5 +1,14 @@
 import type { EdgeModel, ModeEdit, ModeIssue, PageModel } from '../../../core/plugins';
-import { DEFAULT_MODE_PALETTE, byId, clamp, edgeOf, isHexColor, oneLine, shapeOf } from '../../../core/plugins';
+import {
+  byId,
+  clamp,
+  DEFAULT_MODE_PALETTE,
+  edgeOf,
+  isHexColor,
+  oneLine,
+  pageMemo,
+  shapeOf,
+} from '../../../core/plugins';
 import { keys } from './keys';
 
 /**
@@ -37,16 +46,8 @@ export interface StoryState {
   issues: ModeIssue[];
 }
 
-const states = new WeakMap<PageModel, StoryState>();
-
-export function storyState(page: PageModel): StoryState {
-  let state = states.get(page);
-  if (!state) {
-    state = computeState(page);
-    states.set(page, state);
-  }
-  return state;
-}
+/** État des histoires, calculé une fois par page (refait à chaque image d'un geste, sujet 552). */
+export const storyState = pageMemo(computeState);
 
 /** La flèche porte-t-elle un numéro (même illisible) ? */
 const isNumbered = (edge: EdgeModel) => Boolean(keys.value(edge, NUMBER)?.trim());

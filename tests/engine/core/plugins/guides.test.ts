@@ -32,7 +32,6 @@ const CONTRACTS = [
 const NOT_API: Record<string, string> = {
   // JavaScript et Three.js.
   Object3D: 'Three.js, importé de three',
-  WeakMap: 'JavaScript',
   // Membres et types de contrat reçus par inférence.
   options: 'membre `choice` du schéma des champs (une ligne, hors de la lecture des membres)',
   Field: 'schéma commun, que les champs des plugins étendent (`ShapeProperty`, `ModeProperty`, `PluginSetting`)',

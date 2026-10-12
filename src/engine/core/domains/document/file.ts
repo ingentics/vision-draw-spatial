@@ -12,6 +12,7 @@ import type { InitialView } from '../types';
 import type { EngineCore } from '../EngineCore';
 import { freezeModel } from '../../model/freeze';
 import { byId } from '../../model/pageIndex';
+import { livePageOpened, livePageSettled } from '../../model/pageMemo';
 
 /**
  * Document chargé : arbre XML d'origine (écrit en place, SPEC §14.2), modèle relu de l'arbre, chargement et
@@ -149,6 +150,7 @@ export class DocumentFile {
     this.closeLivePage();
     this.liveOwners.add(owner);
     const copy = structuredClone(document.pages[index]!) as PageModel;
+    livePageOpened(copy);
     this.model = { ...document, pages: document.pages.map((page, i) => (i === index ? copy : page)) };
     this.livePageId = pageId;
     this.core.selection.rebind(copy);
@@ -169,7 +171,10 @@ export class DocumentFile {
     this.livePageId = undefined;
     this.liveOwners.clear();
     const page = byId(this.model?.pages, pageId);
-    if (page) freezeModel(page);
+    if (page) {
+      livePageSettled(page);
+      freezeModel(page);
+    }
   }
 
   /** Document lu (chargement, annuler / rétablir) : modèle, géométrie des pages, arbre XML, styles non pris en charge. */

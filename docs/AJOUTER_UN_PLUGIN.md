@@ -80,8 +80,9 @@ plugins sans leur être destiné (registres, hôtes, écritures d'un mode) n'y e
 - **La définition est gelée à l'enregistrement** : un plugin ne modifie ni la sienne ni celle d'un autre.
 - **Les points d'entrée sont appelés détachés** de la définition : pas de `this`.
 - **Pas d'état de module** (`.claude/rules/coding.md` §3) : deux moteurs d'une page partagent les modules. Un résultat
-  ne dépend que de ce que le point d'entrée reçoit ; un cache pur indexé par un objet gelé (`WeakMap` par `PageModel`,
-  ex. `plugins/modes/sequences/steps.ts`) est admis. Ce qui dépend du moteur arrive en paramètre (ex. la mesure du
+  ne dépend que de ce que le point d'entrée reçoit ; un calcul gardé par page passe par `pageMemo(compute)` (API des
+  plugins, ex. `plugins/modes/sequences/steps.ts`), qui ne garde jamais la copie de travail d'un geste (modifiée en
+  place à chaque image, sujet 552). Ce qui dépend du moteur arrive en paramètre (ex. la mesure du
   texte : `ctx.measureText` pour une forme, `edit.measureText` pour un mode).
 
 ## 6. Appel protégé et Diagnostics

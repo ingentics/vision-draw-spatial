@@ -1,4 +1,4 @@
-import { OPPOSITE_SIDES, overlapLength, rectSpan, rectsOverlapBy } from '../../../../core/plugins';
+import { OPPOSITE_SIDES, overlapLength, pageMemo, rectsOverlapBy, rectSpan } from '../../../../core/plugins';
 import type { PageModel, Point, Rect, ShapeModel, Side } from '../../../../core/plugins';
 import { isSticky } from '../kinds';
 
@@ -66,12 +66,8 @@ function contactOf(a: ShapeModel, b: ShapeModel, horizontal: boolean): Contact |
 /** Les deux rectangles se recouvrent-ils au-delà de la tolérance, sur les deux axes ? */
 export const overlapping = (a: Rect, b: Rect): boolean => rectsOverlapBy(a, b, CONTACT_TOLERANCE);
 
-/** Contacts et chevauchements des post-it de la page, calculés une fois par page (modèle relu à chaque modification). */
-const CACHE = new WeakMap<PageModel, StickyContacts>();
-
-export function contacts(page: PageModel): StickyContacts {
-  const cached = CACHE.get(page);
-  if (cached) return cached;
+/** Contacts et chevauchements des post-it de la page, calculés une fois par page (refaits pendant un geste, sujet 552). */
+export const contacts = pageMemo((page: PageModel): StickyContacts => {
   const stickies = page.shapes.filter(isSticky);
   const result: StickyContacts = { contacts: [], overlaps: [] };
   stickies.forEach((a, index) => {
@@ -84,6 +80,5 @@ export function contacts(page: PageModel): StickyContacts {
       if (contact) result.contacts.push(contact);
     }
   });
-  CACHE.set(page, result);
   return result;
-}
+});
