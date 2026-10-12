@@ -161,7 +161,9 @@ export function Viewer({
   // Formes de la page courante, pour la catégorie « Utilisées » de la palette.
   const usedShapes = useMemo(
     () => (currentPage && engine ? engine.usedTemplates(currentPage) : []),
-    [currentPage, engine],
+    // Version des bibliothèques : une forme posée devient chargée (ou ne l'est plus) sans que la page change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [currentPage, engine, events.librariesVersion],
   );
   // Plugins du moteur (sujet 290) : registres de formes, modes, effets, pour toute l'interface.
   const plugins = useMemo<AppPlugins | undefined>(
@@ -187,7 +189,12 @@ export function Viewer({
   const modes = plugins?.modes;
   // Couche du mode de la page sur la zone de dessin (ex. barre de la simulation, sujet 462).
   const CanvasOverlay = shownPage && modePanel(modes?.modeOf(shownPage)?.id)?.CanvasOverlay;
-  const paletteContent = useMemo(() => engine?.paletteFor(currentPage), [engine, currentPage]);
+  const paletteContent = useMemo(
+    () => engine?.paletteFor(currentPage),
+    // Bibliothèques de formes chargées ou retirées (sujet 529) : la palette change sans que la page change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [engine, currentPage, events.librariesVersion],
+  );
   const allowedViewModes = (['top', 'iso', '3d'] as const).filter(
     (mode) => !shownPage || !modes || modes.allowsViewMode(shownPage, mode),
   );

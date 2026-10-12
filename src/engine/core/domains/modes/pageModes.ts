@@ -134,7 +134,11 @@ export class PageModes {
 
   /** Palette d'une page : catégories et modèles proposés, d'après son mode et les formes du moteur. */
   palette(page: PageModel | undefined): PageModePalette {
-    return this.core.modes.paletteFor(page, this.core.registry.templates(), this.core.registry.categories());
+    const { registry } = this.core;
+    return this.core.modes.paletteFor(page, registry.templates(), [
+      ...registry.categories(),
+      ...registry.libraryCategories(),
+    ]);
   }
 
   /**

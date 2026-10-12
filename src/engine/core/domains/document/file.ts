@@ -265,4 +265,12 @@ export class DocumentFile {
   getUnsupportedReport(): UnsupportedReport | undefined {
     return this.unsupportedReport;
   }
+
+  /**
+   * Formes du moteur changées sans que le document change (bibliothèque de formes chargée, retirée ou introuvable,
+   * sujet 530) : recensement des formes non prises en charge refait.
+   */
+  shapesChanged(): void {
+    if (this.model) this.unsupportedReport = collectUnsupported(this.model, this.core.registry);
+  }
 }

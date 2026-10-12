@@ -7,6 +7,7 @@ import type { PageModeDefinition } from '../core/modes/types';
 import { groupShape } from '../core/shapes/group';
 import { ShapeRegistry } from '../core/shapes/registry';
 import { PALETTE_CATEGORIES } from './shapes/categories';
+import { libraryKit } from './shapes/generic/library';
 import type { ShapeDefinition } from '../core/shapes/types';
 
 /**
@@ -64,9 +65,12 @@ export const PAGE_EFFECT_DEFINITIONS: PageEffectDefinition[] = Object.values(
   import.meta.glob<PageEffectDefinition>('./effects/*/index.ts', { eager: true, import: 'definition' }),
 );
 
-/** Registre des formes : les catégories de la palette, le groupe (forme du tronc), les formes de `shapes/` et des modes. */
+/**
+ * Registre des formes : les catégories de la palette, le groupe (forme du tronc), les formes de `shapes/` et des modes,
+ * et le dessin des bibliothèques de formes (sujet 529).
+ */
 export function createDefaultRegistry(): ShapeRegistry {
-  const registry = new ShapeRegistry().register(groupShape);
+  const registry = new ShapeRegistry().register(groupShape).useLibraryKit(libraryKit);
   for (const category of PALETTE_CATEGORIES) registry.registerCategory(category);
   for (const definition of SHAPE_DEFINITIONS) registry.register(definition);
   for (const definitions of MODE_SHAPE_DEFINITIONS.values())

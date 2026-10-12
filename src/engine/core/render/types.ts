@@ -84,6 +84,8 @@ export interface RenderContext extends MeasureContext {
   volume?: { depth: number; shadeLight?: number; shadeDark?: number };
   /** Couleurs du placeholder des formes non supportées (#rrggbb). */
   placeholder?: { fill: string; stroke: string };
+  /** Couleurs des formes de bibliothèque non chargées (#rrggbb, sujet 530). */
+  unloaded?: { fill: string; stroke: string };
   /** Couleur d'accent, #rrggbb. */
   accent?: string;
   /** Couleur du texte des flèches sans `fontColor` (#rrggbb, noir par défaut). */

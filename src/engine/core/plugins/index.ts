@@ -44,6 +44,8 @@ export type {
   PageOverlay,
   PageTakeover,
 } from '../modes/pageTakeover';
+export type { LibraryShape } from '../shapes/library/libraryFormat';
+export type { LibraryShapeState, ShapeLibraryKit } from '../shapes/library/libraryStore';
 export type { ModeProperty } from '../modes/modeProperty';
 export type { FieldNote } from '../fields/fieldSchema';
 export type { EffectLight, EffectRoom, PageEffectDefinition } from '../effects/types';
@@ -65,7 +67,7 @@ export type {
   ReadonlyPageModel as PageModel,
   ReadonlyShapeModel as ShapeModel,
 } from '../model/readonly';
-export { jsonListValue, readJsonList, SPATIAL, spatialNumber, spatialValue } from '../spatial';
+export { jsonListValue, readJsonList, SPATIAL, SPATIAL_PREFIX, spatialNumber, spatialValue } from '../spatial';
 export { elementName, firstFreeName } from '../model/names';
 export { clamp } from '../model/numbers';
 export { byId, edgeEnds, edgeOf, edgesById, elementOf, shapeOf, shapesById } from '../model/pageIndex';

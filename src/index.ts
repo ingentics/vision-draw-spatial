@@ -52,3 +52,16 @@ export { MemoryStore } from './engine';
 export { SHAPE_TEMPLATES } from './engine';
 export type { ShapeTemplate } from './engine';
 export { SPATIAL, spatialNumber, spatialValue } from './engine';
+
+// Bibliothèques de formes (sujets 529 à 531)
+export { SHAPE_LIBRARY_FORMAT, SHAPE_LIBRARY_FORMAT_VERSION } from './engine';
+export type {
+  LibraryCategory,
+  LibraryDetail,
+  LibraryRender,
+  LibraryShape,
+  LibraryShapeRef,
+  MissingLibraryShape,
+  ShapeLibrary,
+  ShapeLibraryResult,
+} from './engine';

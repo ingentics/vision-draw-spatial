@@ -17,6 +17,7 @@ import { DocumentFile } from './document/file';
 import { EditHistory } from './document/undo';
 import { Pages } from './document/pages';
 import { PageLayers } from './document/pageLayers';
+import { ShapeLibraries } from './document/shapeLibraries';
 import { createCameraController } from './input/cameraControls';
 import { ViewCamera } from './view/camera';
 import { ViewModes } from './view/viewModes';
@@ -115,11 +116,12 @@ export class EngineCore {
   readonly metrics = new Metrics(this);
   readonly pluginGuard = new PluginGuard(this);
 
-  // document : fichier chargé, annuler / rétablir, pages, calques
+  // document : fichier chargé, annuler / rétablir, pages, calques, bibliothèques de formes
   readonly file = new DocumentFile(this);
   readonly edits = new EditHistory(this);
   readonly pages = new Pages(this);
   readonly layers = new PageLayers(this);
+  readonly shapeLibraries = new ShapeLibraries(this);
 
   // view : caméra, modes de vue, niveaux de rendu, scènes, vue graphe, mini-carte, projection page ↔ écran
   readonly camera = new ViewCamera(this);
@@ -269,6 +271,7 @@ export class EngineCore {
       this.modeCurrents,
       this.layers,
       this.layerSpreads,
+      this.shapeLibraries,
       this.shapeParts,
       this.history,
       this.links,

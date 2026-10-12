@@ -55,6 +55,8 @@ export function useEngineEvents({
    * (sujet 523). Redessine l'indicateur et le panneau.
    */
   const [, setSessionTick] = useState(0);
+  /** Bibliothèques de formes du moteur changées (sujet 529) : palette et panneau à relire. */
+  const [librariesVersion, setLibrariesVersion] = useState(0);
   const [modeHint, setModeHint] = useState<ModeHint>();
   /** Commentaire de l'élément survolé (encart en bas à gauche du rendu). */
   const [hoverComment, setHoverComment] = useState<ElementComment>();
@@ -83,6 +85,10 @@ export function useEngineEvents({
         setEditLock(undefined);
         return;
       }
+      instance.on('shapeLibrariesChange', () => {
+        setLibrariesVersion((version) => version + 1);
+        setReport(instance.getUnsupportedReport());
+      });
       instance.on('load', (doc) => {
         setDocument(doc);
         setError(undefined);
@@ -157,6 +163,7 @@ export function useEngineEvents({
     pageId,
     viewMode,
     report,
+    librariesVersion,
     parentPages,
     backChoosing,
     setBackChoosing,

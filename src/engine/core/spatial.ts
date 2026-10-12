@@ -21,6 +21,11 @@ export const DEFAULT_DEPTH = 32;
 export const SPATIAL = {
   /** Forme dessinée par Drawio Spatial (`ShapeModel.kind`), à la place de celle devinée du style draw.io. */
   kind: 'spatial.kind',
+  /**
+   * Bibliothèque de formes d'où vient la forme (sujet 530) : id d'une bibliothèque chargée par `registerShapes`, la
+   * forme étant alors `spatial.kind` de cette bibliothèque. draw.io dessine le style seul.
+   */
+  library: 'spatial.library',
   /** Épaisseur du volume en iso, en pixels de page (défaut : réglage « Épaisseur »). */
   height: 'spatial.height',
   /** Hauteur du dessous du volume au-dessus de sa base (sol ou dessus du conteneur), en pixels de page. */

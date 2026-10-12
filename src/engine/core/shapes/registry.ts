@@ -16,6 +16,7 @@ import type { SelectionStyle } from '../settings/types';
 import { placeholderShape } from './placeholder';
 import type {
   MinimapMapping,
+  PaletteCategory,
   SceneLevel,
   SceneRenderer,
   ShapeCategory,
@@ -31,6 +32,9 @@ import { freezePlain, readonlyModel } from '../model/freeze';
 import { callPlugin } from '../diagnostics/pluginCalls';
 import type { PluginReport } from '../diagnostics/pluginCalls';
 import { byId } from '../model/pageIndex';
+import { ShapeLibraryStore } from './library/libraryStore';
+import type { LibraryShapeRef, LibraryShapeStatus, ShapeLibraryKit } from './library/libraryStore';
+import type { ShapeLibrary, ShapeLibraryResult } from './library/libraryFormat';
 
 /** Erreur levée par une forme (`hook` : point d'entrée, ex. `flat.create`), pour les Diagnostics. */
 export type ShapeErrorHandler = (shapeId: string, hook: string, error: unknown) => void;
@@ -44,6 +48,8 @@ export interface ShapeRegistryView {
   templates(): ShapeTemplate[];
   templateOf(shape: ShapeModel): ShapeTemplate | undefined;
   categories(): ShapeCategory[];
+  /** État d'une forme posée depuis une bibliothèque (sujet 530) ; undefined pour une autre forme. */
+  libraryStatus(shape: ShapeModel): LibraryShapeStatus | undefined;
   values(categoryId: string, stored: Record<string, unknown> | undefined): PluginValues;
 }
 
@@ -81,6 +87,7 @@ export class ShapeRegistry {
     private readonly onError?: ShapeErrorHandler,
     private readonly categoryList: ShapeCategory[] = [],
     measureText: MeasureText = approximateMeasure,
+    private readonly libraryStore = new ShapeLibraryStore(),
   ) {
     this.report = onError && ((_family, id, hook, error) => onError(id, hook, error));
     this.measuring = Object.freeze({ measureText });
@@ -88,7 +95,14 @@ export class ShapeRegistry {
 
   /** Le même registre (mêmes formes, y compris celles enregistrées ensuite), dont les erreurs des formes vont à `onError`. */
   reportingTo(onError: ShapeErrorHandler): ShapeRegistry {
-    return new ShapeRegistry(this.fallback, this.definitions, onError, this.categoryList, this.measuring.measureText);
+    return new ShapeRegistry(
+      this.fallback,
+      this.definitions,
+      onError,
+      this.categoryList,
+      this.measuring.measureText,
+      this.libraryStore,
+    );
   }
 
   /**
@@ -96,7 +110,55 @@ export class ShapeRegistry {
    * l'approximation par défaut (registre sans moteur, tests).
    */
   measuringWith(measureText: MeasureText): ShapeRegistry {
-    return new ShapeRegistry(this.fallback, this.definitions, this.onError, this.categoryList, measureText);
+    return new ShapeRegistry(
+      this.fallback,
+      this.definitions,
+      this.onError,
+      this.categoryList,
+      measureText,
+      this.libraryStore,
+    );
+  }
+
+  /**
+   * Bibliothèques de formes (sujet 529) : le dessin de leurs formes, fourni par la racine de composition. Sans lui, le
+   * registre n'en accepte aucune et une forme posée depuis une bibliothèque se résout par son `spatial.kind`.
+   */
+  useLibraryKit(kit: ShapeLibraryKit): this {
+    this.libraryStore.useKit(kit);
+    return this;
+  }
+
+  /** Enregistre (ou remplace, même id) une bibliothèque lue d'un JSON ; les erreurs de lecture sinon. */
+  registerLibrary(json: unknown): ShapeLibraryResult {
+    return this.libraryStore.register(json);
+  }
+
+  /** Retire une bibliothèque ; faux si elle n'était pas chargée. */
+  unregisterLibrary(libraryId: string): boolean {
+    return this.libraryStore.unregister(libraryId);
+  }
+
+  /** Bibliothèques ou formes déclarées introuvables par l'hôte (sujet 531) ; vrai si l'une est nouvelle. */
+  markLibraryShapesUnavailable(refs: readonly LibraryShapeRef[]): boolean {
+    return this.libraryStore.markUnavailable(refs);
+  }
+
+  library(libraryId: string): ShapeLibrary | undefined {
+    return this.libraryStore.library(libraryId);
+  }
+
+  libraries(): ShapeLibrary[] {
+    return this.libraryStore.libraries();
+  }
+
+  /** Catégories de la palette des bibliothèques chargées (sans réglages, hors Paramètres › Formes). */
+  libraryCategories(): PaletteCategory[] {
+    return this.libraryStore.categories();
+  }
+
+  libraryStatus(shape: ShapeModel): LibraryShapeStatus | undefined {
+    return this.libraryStore.status(shape);
   }
 
   /**
@@ -176,6 +238,7 @@ export class ShapeRegistry {
       templates: () => this.templates(),
       templateOf: (shape) => this.templateOf(shape),
       categories: () => this.categories(),
+      libraryStatus: (shape) => this.libraryStatus(shape),
       values: (categoryId, stored) => this.values(categoryId, stored),
     };
   }
@@ -185,9 +248,12 @@ export class ShapeRegistry {
    * 1. une définition qui gère ce nom draw.io et dont la condition (`matches`) est vérifiée (rectangle arrondi) ;
    * 2. celle dont l'`id` est le nom de la forme (`spatial.kind=database`), sans condition ;
    * 3. une définition qui gère ce nom draw.io sans condition.
-   * Une définition dont la condition lève une exception est ignorée pour cette forme.
+   * Une définition dont la condition lève une exception est ignorée pour cette forme. Avant tout, une forme posée
+   * depuis une bibliothèque (`spatial.library`) : la sienne, ou celle d'une forme non chargée (sujet 530).
    */
   resolve(shape: ShapeModel): ResolvedShape {
+    const fromLibrary = this.libraryStore.resolve(shape);
+    if (fromLibrary) return { definition: fromLibrary, supported: true };
     let named: ShapeDefinition | undefined;
     let unconditional: ShapeDefinition | undefined;
     for (let i = this.definitions.length - 1; i >= 0; i--) {
@@ -431,15 +497,20 @@ export class ShapeRegistry {
     };
   }
 
-  /** Modèles de la palette de toutes les formes, par rang (`order`). */
+  /**
+   * Modèles de la palette de toutes les formes, par rang (`order`), puis ceux des bibliothèques chargées (rangés dans
+   * leurs propres catégories).
+   */
   templates(): ShapeTemplate[] {
     return this.definitions
       .flatMap((definition) => (definition.palette ? [{ id: definition.id, ...definition.palette }] : []))
-      .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
+      .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id))
+      .concat(this.libraryStore.templates());
   }
 
   /** Modèle de la palette d'une forme : celui de sa définition ; `undefined` : aucun. */
   templateOf(shape: ShapeModel): ShapeTemplate | undefined {
+    if (this.libraryStore.status(shape)) return this.libraryStore.templateOf(shape);
     const { definition, supported } = this.resolve(shape);
     return supported && definition.palette ? { id: definition.id, ...definition.palette } : undefined;
   }

@@ -12,6 +12,9 @@ import type { ModeProperty } from './modeProperty';
 import type { PageModeDefinition } from './types';
 import { freezePlain } from '../model/freeze';
 
+/** Mode d'une page sans mode, dans les `modes` d'une forme de bibliothèque (sujet 529). */
+const NO_MODE = 'none';
+
 /** Modes d'affichage, dans l'ordre des boutons. */
 const VIEW_MODES: ViewMode[] = ['top', 'iso', '3d'];
 
@@ -184,7 +187,9 @@ export class PageModeRegistry {
   /**
    * Palette d'une page (sujet 178) : sur une page normale, les formes générales ; sur une page d'un mode, sa liste
    * blanche (`page.palette.shapes`) ou, à défaut, les formes générales et celles du mode. Les formes d'un autre mode n'y sont
-   * jamais. Catégories : celles des formes (`categories`, du registre des formes) et du mode, par rang, sans les vides.
+   * jamais. Une forme de bibliothèque (sujet 529) suit ses `modes` (`none` : page sans mode ; absents : page sans mode
+   * seulement), quelle que soit la liste blanche. Catégories : celles des formes (`categories`, du registre des formes,
+   * bibliothèques comprises) et du mode, par rang, sans les vides.
    */
   paletteFor(
     page: PageModel | undefined,
@@ -196,7 +201,14 @@ export class PageModeRegistry {
     const others = new Set([...this.shapeIds.values()].flat().filter((id) => !own.has(id)));
     const whitelist = mode?.page?.palette?.shapes;
     const offered = whitelist ? new Set(whitelist) : undefined;
-    const shown = templates.filter((template) => (offered ? offered.has(template.id) : !others.has(template.id)));
+    const pageMode = mode?.id ?? NO_MODE;
+    const shown = templates.filter((template) =>
+      template.library !== undefined
+        ? (template.modes ?? [NO_MODE]).includes(pageMode)
+        : offered
+          ? offered.has(template.id)
+          : !others.has(template.id),
+    );
     const used = new Set(shown.map((template) => template.category));
     return {
       categories: [...categories, ...(mode?.page?.palette?.categories ?? [])]

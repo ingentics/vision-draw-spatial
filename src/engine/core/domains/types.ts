@@ -12,6 +12,7 @@ import type { FontSet } from '../render/troikaText';
 import type { Settings, SettingsPatch } from '../settings';
 import type { ShapeRegistry } from '../shapes/registry';
 import type { ModeProperty } from '../modes/modeProperty';
+import type { MissingLibraryShape } from './document/shapeLibraries';
 
 export interface Selection {
   pageId: string;
@@ -119,6 +120,13 @@ export type EngineEvents = {
   undoChange: [undoLabel: string | undefined, redoLabel: string | undefined];
   /** Le document a été modifié (déplacement) ou vient d'être sérialisé pour la sauvegarde. */
   modifiedChange: [modified: boolean];
+  /**
+   * Formes de bibliothèque posées dans le document et non chargées (sujet 531), chaque paire une seule fois depuis
+   * l'ouverture du fichier : à l'hôte de répondre par `registerShapes` (ou `markShapesUnavailable`).
+   */
+  shapesMissing: [missing: MissingLibraryShape[]];
+  /** Bibliothèque de formes enregistrée, remplacée, retirée ou déclarée introuvable : palette et Diagnostics à relire. */
+  shapeLibrariesChange: [];
 };
 export type EngineEvent = keyof EngineEvents;
 

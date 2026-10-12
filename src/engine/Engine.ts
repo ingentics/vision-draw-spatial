@@ -22,6 +22,7 @@ import type { JumpDefaults } from './core/render/edges/jumps';
 import type { EngineMetrics } from './core/domains/runtime/metrics';
 import type { ImageExportOptions } from './core/domains/view/imageExport';
 import type { PageLayersView } from './core/domains/document/pageLayers';
+import type { ShapeLibrary, ShapeLibraryResult } from './core/shapes/library/libraryFormat';
 import type { Settings, SettingsPatch } from './core/settings';
 import { EngineCore } from './core/domains/EngineCore';
 import { createDefaultEffectRegistry, createDefaultModeRegistry, createDefaultRegistry } from './plugins';
@@ -395,6 +396,29 @@ export class Engine {
   /** Palette d'une page : catégories et modèles proposés, d'après son mode et les formes du moteur. */
   paletteFor(page: PageModel | undefined): PageModePalette {
     return this.core.pageModes.palette(page);
+  }
+
+  /**
+   * Charge une bibliothèque de formes depuis son JSON (sujet 529, format `drawio-spatial/shapes`) : ses catégories
+   * arrivent dans la palette, ses formes posées se dessinent. Un id déjà chargé est remplacé. Un JSON invalide ne
+   * change rien et rend ses erreurs.
+   */
+  registerShapes(json: unknown): ShapeLibraryResult {
+    return this.core.shapeLibraries.register(json);
+  }
+
+  /** Retire une bibliothèque de formes ; ses formes posées s'affichent non chargées. Faux si elle n'était pas chargée. */
+  unregisterShapes(libraryId: string): boolean {
+    return this.core.shapeLibraries.unregister(libraryId);
+  }
+
+  /** Bibliothèque de formes chargée (métadonnées et `meta` compris), en lecture seule. */
+  shapeLibrary(libraryId: string): ShapeLibrary | undefined {
+    return this.core.shapeLibraries.library(libraryId);
+  }
+
+  shapeLibraries(): ShapeLibrary[] {
+    return this.core.shapeLibraries.libraries();
   }
 
   /** Modèles des formes présentes sur la page (catégorie « Utilisées » de la palette). */

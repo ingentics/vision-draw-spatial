@@ -60,7 +60,7 @@ export interface MinimapMapping {
   /** Pixels mini-carte par pixel de page. */
   scale: number;
   /** Couleurs réglables (#rrggbb) : contour des formes, formes non supportées ; à défaut, celles du moteur. */
-  colors?: { outline?: string; placeholder?: string };
+  colors?: { outline?: string; placeholder?: string; unloaded?: string };
 }
 
 /**
@@ -130,6 +130,13 @@ export interface PaletteEntry {
 /** Modèle de la palette : l'élément déclaré par une forme, identifié par l'`id` de la forme. */
 export interface ShapeTemplate extends PaletteEntry {
   id: string;
+  /** Bibliothèque de formes d'où vient le modèle (sujet 529) ; absent : forme intégrée. */
+  library?: string;
+  /**
+   * Modes de page où le modèle d'une bibliothèque est proposé (`none` : page sans mode) ; absent : page sans mode.
+   * Ignoré pour une forme intégrée (sa palette suit le mode de la page).
+   */
+  modes?: readonly string[];
 }
 
 /**
