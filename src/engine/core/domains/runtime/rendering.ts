@@ -4,7 +4,7 @@ import { gridSizeOf } from '../../format/cellEdits';
 import { applyCameraState, applyPerspectiveState } from '../../interaction/cameraProjection';
 import type { Grid, GridOptions } from '../../render/grid';
 import { orientBillboards } from '../../render/billboard';
-import { animateObjects } from '../../render/animation';
+import { animateScene } from '../../render/animation';
 import type { PageScene } from '../../render/pageScene';
 import type { EngineCore } from '../EngineCore';
 import { createGrid } from '../../render/grid';
@@ -24,6 +24,8 @@ export class Rendering {
   /** Fond de la vue et grille (SPEC §9.5). */
   private readonly grid: Grid;
   private frame = 0;
+  /** Image demandée à la fin du repos des objets animés (sujet 553). */
+  private wake: ReturnType<typeof setTimeout> | undefined;
 
   constructor(private readonly core: EngineCore) {
     // Stencil : trous du voile de sélection autour des flèches (render/veil).
@@ -39,6 +41,7 @@ export class Rendering {
   /** Fin du moteur : plus d'image demandée, ressources WebGL libérées. */
   dispose(): void {
     cancelAnimationFrame(this.frame);
+    clearTimeout(this.wake);
     this.grid.dispose();
     // Pas de forceContextLoss : le même canvas peut être repris par un nouveau moteur
     // (double montage de React en dev). Le contexte est libéré avec le canvas.
@@ -147,8 +150,9 @@ export class Rendering {
       this.renderer.info.reset();
       // Silhouettes debout (Actor) face à la caméra de cette image.
       orientBillboards(this.scene, this.activeCamera());
-      // Objets animés (loader et fond d'une Metamorph, sujet 538) : une image de plus tant qu'il y en a.
-      const animated = animateObjects(this.scene, now);
+      // Objets animés (halo d'une forme générée, sujet 538) : une image de plus tant qu'ils bougent, la suivante à la
+      // fin de leur repos s'ils reposent tous (sujet 553).
+      const wait = animateScene(this.scene, now);
       // Estompage de ce qui est hors du courant du mode de la page (ex. hors du flux courant).
       this.core.modeCurrents.applyModeFocus();
       // Couche d'un mode reposée sur une scène reconstruite, et son image animée.
@@ -158,7 +162,10 @@ export class Rendering {
       else this.renderer.render(this.scene, this.activeCamera());
       if (this.overlay.children.length > 0) this.renderOverlay();
       if (metrics.sampling) metrics.frameRendered(start, performance.now());
-      if (animated) this.requestRender();
+      clearTimeout(this.wake);
+      this.wake = undefined;
+      if (wait === 0) this.requestRender();
+      else if (wait !== undefined) this.wake = setTimeout(this.requestRender, wait);
     });
   };
 }
