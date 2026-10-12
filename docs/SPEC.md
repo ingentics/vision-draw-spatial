@@ -1105,8 +1105,10 @@ habillage du rendu, tout en attributs `spatial.*` : dans draw.io, la page reste 
     - **Rendu** : page voilée, état courant en bleu (`#1e88e5`) avec halo qui pulse, ensembles parents encadrés, états
       visités teintés avec compteur « ×N » dès le 2e passage, transitions proposées en pointillés qui défilent avec
       leur pastille numérotée, transitions empruntées en bleu plein ; un point parcourt la transition franchie en
-      250 ms (lancé vite, il ralentit). Avec les animations réduites, tout est immobile. La caméra glisse vers l'état
-      courant s'il sort de la vue (marge de 48 px).
+      250 ms (lancé vite, il ralentit). Avec les animations réduites, tout est immobile.
+    - **Caméra** (sujet 527) : elle cadre l'élément courant et sa suite (éléments atteignables en 1 ou 2 transitions),
+      centrée sur leur emprise, le zoom ne baissant que s'ils ne tiennent pas (marge de 48 px) ; au lancement dès
+      qu'une de ces formes n'est pas entière dans la vue, ensuite quand l'élément courant sort de la vue.
     - **Commandes** : clic sur une transition proposée ou sa pastille (main au survol ; pendant le franchissement, un
       clic ne fait rien ; un double-clic ne compte qu'une fois), touches **1 à 9**, **←** ou **Retour arrière** =
       Retour, **Échap** = Arrêter. Barre : « ⏮ Recommencer », « ◀ Retour » (grisés au départ), « ▶ Suivant » (actif

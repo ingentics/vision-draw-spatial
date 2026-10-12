@@ -2,13 +2,13 @@ import type { EditLock, PageTakeover } from '../../../../core/plugins';
 import { simulationKey } from './simulationKeys';
 import { simulationOverlay } from './simulationLayer';
 import type { Crossing } from './simulationLayer';
-import { stepLook } from './simulationView';
+import { stepLook, upcoming } from './simulationView';
 import type { StateSimulation } from './stateSimulation';
 
 /**
  * Simulation d'une machine à états ouverte sur la page (sujets 462, 467) : assemble les briques que le moteur ouvre à
  * un mode (`PageTakeover`). Elle tient le verrou d'édition, capture clics et touches, pose la couche de chaque pas et
- * garde l'élément courant dans la vue. Elle se ferme par Arrêter, Échap, ou quand le moteur rend le verrou (autre page,
+ * garde l'élément courant et sa suite dans la vue. Elle se ferme par Arrêter, Échap, ou quand le moteur rend le verrou (autre page,
  * autre document). L'appli la suit par `subscribe` et la reconnaît comme détenteur du verrou (`editLockChange`).
  */
 export class StatesSimulator {
@@ -34,7 +34,7 @@ export class StatesSimulator {
       clickable: (id) => sim.proposes(id),
       key: (key) => simulator.key(key),
     });
-    simulator.show();
+    simulator.show(undefined, true);
     return simulator;
   }
 
@@ -111,10 +111,13 @@ export class StatesSimulator {
     this.show(typeof changed === 'string' ? { before, edgeId: changed } : undefined);
   }
 
-  /** Pose la couche du pas courant, garde l'élément courant dans la vue. */
-  private show(crossing?: Crossing): void {
+  /**
+   * Pose la couche du pas courant, garde l'élément courant dans la vue avec sa suite (sujet 527) ; `whole` (au départ) :
+   * recadre aussi quand c'est la suite qui n'est pas entière dans la vue.
+   */
+  private show(crossing?: Crossing, whole = false): void {
     this.takeover.setOverlay(this, simulationOverlay(this.sim, crossing));
-    this.takeover.keepInView(this.sim.current.id);
+    this.takeover.keepInView(this.sim.current.id, { around: upcoming(this.sim), whole });
     this.notify();
   }
 

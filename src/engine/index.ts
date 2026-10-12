@@ -140,6 +140,7 @@ export type { ModeEdit } from './core/modes/modeEdit';
 export type {
   EditLock,
   InputCapture,
+  KeepInView,
   OverlayLayer,
   OverlayScene,
   PageOverlay,

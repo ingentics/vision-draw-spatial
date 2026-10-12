@@ -11,7 +11,8 @@ import {
 } from '../../interaction/cameraState';
 import type { OverviewStep } from '../../interaction/cameraFraming';
 import type { CameraLimits, CameraState, ViewMode } from '../../interaction/cameraState';
-import { center, unionOf } from '../../model/geometry';
+import type { KeepInView } from '../../modes/pageTakeover';
+import { unionOf } from '../../model/geometry';
 import type { Point, Rect } from '../../model/types';
 import type { Settings } from '../../settings';
 import type { EngineCore } from '../EngineCore';
@@ -70,14 +71,27 @@ export class ViewCamera {
   }
 
   /**
-   * La forme sort de la vue (prise en main de la page, sujet 467) : la caméra glisse pour la centrer, sans changer de
-   * zoom ni d'orientation.
+   * Garde dans la vue (prise en main de la page, sujets 467, 527) : quand `shapeId` sort de la vue (avec `whole`, quand
+   * une forme de `around` n'y est pas entière), la caméra glisse pour cadrer `shapeId` et `around`, sans changer
+   * d'orientation ; le zoom ne baisse que s'ils ne tiennent pas, jamais de zoom avant.
    */
-  keepInView(shapeId: string): void {
-    const shape = shapeOf(this.core.pages.getCurrentPage(), shapeId);
-    const rect = shape && this.core.projection.screenRectOf(shape.id);
-    if (!shape || !rect || !needsRecentring(rect, this.core.display.viewport, KEEP_IN_VIEW_MARGIN)) return;
-    this.animateCameraTo({ ...this.state, center: center(shape.bounds) }, KEEP_IN_VIEW_DURATION);
+  keepInView(shapeId: string, { around = [], whole = false }: KeepInView = {}): void {
+    const page = this.core.pages.getCurrentPage();
+    if (!shapeOf(page, shapeId)) return;
+    const shapes = [shapeId, ...around].flatMap((id) => shapeOf(page, id) ?? []);
+    const { viewport } = this.core.display;
+    const outside = (id: string) => {
+      const rect = this.core.projection.screenRectOf(id);
+      return rect !== undefined && needsRecentring(rect, viewport, KEEP_IN_VIEW_MARGIN);
+    };
+    if (!(whole ? shapes.some((shape) => outside(shape.id)) : outside(shapeId))) return;
+    const framed = fitBounds(unionOf(shapes.map((shape) => shape.bounds))!, viewport, {
+      ...this.orientation(),
+      padding: KEEP_IN_VIEW_MARGIN,
+      maxZoom: this.current.zoom,
+      limits: this.limits,
+    });
+    this.animateCameraTo({ ...this.state, center: framed.center, zoom: framed.zoom }, KEEP_IN_VIEW_DURATION);
   }
 
   /** Vue de départ dans le mode par défaut des paramètres (`view.defaultMode`), avant tout document. */

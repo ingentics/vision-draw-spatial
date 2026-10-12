@@ -17,7 +17,7 @@ import type { ShapeRegistryView } from './core/shapes/registry';
 import type { OrientAction } from './core/edit/orientShapes';
 import type { ModeEdit } from './core/modes/modeEdit';
 import type { ModeTarget } from './core/modes/types';
-import type { EditLock, PageOverlay } from './core/modes/pageTakeover';
+import type { EditLock, KeepInView, PageOverlay } from './core/modes/pageTakeover';
 import type { JumpDefaults } from './core/render/edges/jumps';
 import type { EngineMetrics } from './core/domains/runtime/metrics';
 import type { ImageExportOptions } from './core/domains/view/imageExport';
@@ -570,9 +570,9 @@ export class Engine {
     this.core.overlays.clear(owner);
   }
 
-  /** La forme sort de la vue : la caméra glisse pour la centrer. */
-  keepInView(shapeId: string): void {
-    this.core.camera.keepInView(shapeId);
+  /** La forme sort de la vue : la caméra glisse pour la cadrer, avec les formes `around`. */
+  keepInView(shapeId: string, options?: KeepInView): void {
+    this.core.camera.keepInView(shapeId, options);
   }
 
   // -------------------------------------------------------------------------

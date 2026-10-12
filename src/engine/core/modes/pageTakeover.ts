@@ -26,8 +26,19 @@ export interface PageTakeover {
   setOverlay(owner: object, overlay: PageOverlay): void;
   /** Retire la couche de `owner`, s'il en a une. */
   clearOverlay(owner: object): void;
-  /** La forme sort (même en partie) de la zone de dessin : la caméra glisse pour la centrer. */
-  keepInView(shapeId: string): void;
+  /**
+   * La forme sort (même en partie) de la zone de dessin : la caméra glisse pour la cadrer, avec les formes `around`
+   * (zoom réduit seulement s'il le faut).
+   */
+  keepInView(shapeId: string, options?: KeepInView): void;
+}
+
+/** Formes cadrées avec celle gardée dans la vue (sujet 527). */
+export interface KeepInView {
+  /** Formes montrées avec elle (ex. la suite d'une simulation). */
+  around?: readonly string[];
+  /** Recadrer aussi quand une forme de `around` n'est pas entière dans la vue (pas seulement la forme gardée). */
+  whole?: boolean;
 }
 
 /** Verrou d'édition tenu par un mode. */

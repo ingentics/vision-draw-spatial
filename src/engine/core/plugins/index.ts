@@ -38,6 +38,7 @@ export type { ModeEdit, ModeSizing } from '../modes/modeEdit';
 export type {
   EditLock,
   InputCapture,
+  KeepInView,
   OverlayLayer,
   OverlayScene,
   PageOverlay,

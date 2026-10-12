@@ -323,7 +323,8 @@ couche physique d'une table RDD, lue par son rendu). Un habillage qui dépend du
     quand la scène est reconstruite, l'anime avant chaque image tant que `animate` rend vrai (il reçoit le temps écoulé :
     un plugin n'a pas d'horloge ; une couche toujours animée redessine la page à chaque image) et lui demande l'élément
     visé par un clic (`hit`). `clearOverlay(owner)` la retire.
-  - `keepInView(shapeId)` : la caméra glisse vers une forme sortie de la vue.
+  - `keepInView(shapeId, { around, whole })` : quand la forme sort de la vue (avec `whole`, quand une forme de
+    `around` n'y est pas entière), la caméra glisse pour la cadrer avec `around`, zoom réduit seulement s'il le faut.
 
   Exemple : `StatesSimulator` (`plugins/modes/states/simulation/statesSimulator.ts`) assemble ces briques ; la partie
   appli (`src/app/plugins/modes/states/`) le suit par `subscribe`. Pour en faire autant :

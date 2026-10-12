@@ -6,8 +6,8 @@ import { outgoingTransitions } from '../transitions/transitionRules';
 import type { SimulationEnd, StateSimulation } from './stateSimulation';
 
 /**
- * Ce que l'appli montre d'une simulation de machine à états (sujets 462, 463) : contenu du pas courant pour la couche,
- * noms des pas, fin, trace.
+ * Ce que l'appli montre d'une simulation de machine à états (sujets 462, 463, 527) : contenu du pas courant pour la
+ * couche, suite à cadrer, noms des pas, fin, trace.
  */
 
 /** Ce que la couche montre d'un pas : ids de la page simulée. */
@@ -37,6 +37,29 @@ export function stepLook(sim: StateSimulation): StepLook {
     proposed: sim.proposals().map(({ edge }, i) => ({ id: edge.id, badge: String(i + 1) })),
     taken: [...sim.taken()],
   };
+}
+
+/** Profondeur de la suite cadrée avec l'élément courant (sujet 527) : en nombre de transitions. */
+const UPCOMING_DEPTH = 2;
+
+/**
+ * Suite du pas courant, cadrée avec lui (sujet 527) : éléments où mènent les transitions proposées, puis les transitions
+ * qui en partent, jusqu'à `UPCOMING_DEPTH` transitions ; sans l'élément courant ni doublon.
+ */
+export function upcoming(sim: StateSimulation): string[] {
+  const found = new Set<string>([sim.current.id]);
+  let level = sim.proposals().map(({ target }) => target);
+  for (let depth = 1; depth <= UPCOMING_DEPTH && level.length > 0; depth++) {
+    const next: ShapeModel[] = [];
+    for (const shape of level) {
+      if (found.has(shape.id)) continue;
+      found.add(shape.id);
+      if (depth < UPCOMING_DEPTH) next.push(...outgoingTransitions(sim.page, shape).map(({ target }) => target));
+    }
+    level = next;
+  }
+  found.delete(sim.current.id);
+  return [...found];
 }
 
 /** Nom d'un élément dans la barre et la trace : « Entrée », « Sortie », ou le titre de l'état sur une ligne. */

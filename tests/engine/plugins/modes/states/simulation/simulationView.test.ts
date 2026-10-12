@@ -4,6 +4,7 @@ import {
   entryName,
   simulationTrace,
   stepLook,
+  upcoming,
 } from '../../../../../../src/engine/plugins/modes/states/simulation/simulationView';
 import { StateSimulation } from '../../../../../../src/engine/plugins/modes/states/simulation/stateSimulation';
 import { edge, setup, statesXml, vertex } from '../helpers';
@@ -83,5 +84,24 @@ describe('mode Machine à états : ce que l’appli montre d’une simulation (s
     const other = setup(statesXml(cells)).page();
     expect(entryName(other, shapeOf(other, 'i')!)).toBe('Entrée vers « S »');
     expect(entryName(other, shapeOf(other, 'j')!)).toBe('Entrée j');
+  });
+
+  it('suite cadrée avec le pas courant : jusqu’à deux transitions, sans l’élément courant ni doublon (sujet 527)', () => {
+    const cells =
+      vertex('i', 'initial', 0, 0, 20, 20) +
+      vertex('a', 'state', 100, 0, 100, 60, 'A') +
+      vertex('b', 'state', 300, 0, 100, 60, 'B') +
+      vertex('c', 'state', 300, 200, 100, 60, 'C') +
+      vertex('d', 'state', 500, 0, 100, 60, 'D') +
+      edge('ia', 'i', 'a') +
+      edge('ab', 'a', 'b') +
+      edge('ac', 'a', 'c') +
+      edge('bd', 'b', 'd') +
+      edge('ba', 'b', 'a') +
+      edge('cb', 'c', 'b');
+    const sim = new StateSimulation(setup(statesXml(cells)).page(), 'i');
+    expect(upcoming(sim)).toEqual(['a', 'b', 'c']);
+    sim.choose(1);
+    expect(upcoming(sim)).toEqual(['b', 'c', 'd']);
   });
 });

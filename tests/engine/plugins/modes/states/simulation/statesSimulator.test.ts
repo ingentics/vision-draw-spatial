@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { EditLock, InputCapture, PageOverlay, PageTakeover } from '../../../../../../src/engine/core/plugins';
+import type {
+  EditLock,
+  InputCapture,
+  KeepInView,
+  PageOverlay,
+  PageTakeover,
+} from '../../../../../../src/engine/core/plugins';
 import { StateSimulation } from '../../../../../../src/engine/plugins/modes/states/simulation/stateSimulation';
 import { StatesSimulator } from '../../../../../../src/engine/plugins/modes/states/simulation/statesSimulator';
 import { setup } from '../helpers';
@@ -11,8 +17,9 @@ function takeover(refuse = false) {
     released?: () => void;
     overlay?: PageOverlay;
     kept: string[];
+    framed: Array<KeepInView | undefined>;
     lockReleased: number;
-  } = { kept: [], lockReleased: 0 };
+  } = { kept: [], framed: [], lockReleased: 0 };
   const stage: PageTakeover = {
     lockEditing: (owner, released) => {
       if (refuse) return undefined;
@@ -36,7 +43,10 @@ function takeover(refuse = false) {
     clearOverlay: () => {
       state.overlay = undefined;
     },
-    keepInView: (id) => state.kept.push(id),
+    keepInView: (id, options) => {
+      state.kept.push(id);
+      state.framed.push(options);
+    },
   };
   return { stage, state };
 }
@@ -49,6 +59,9 @@ describe('mode Machine à états : simulation ouverte sur la page (sujet 467)', 
     expect(state.capture).toBeDefined();
     expect(state.overlay?.veil?.kept).toEqual(['init1', 't1']);
     expect(state.kept).toEqual(['init1']);
+    // Au départ, la suite (deux transitions) est cadrée avec l'entrée, même si l'entrée est déjà dans la vue.
+    expect(state.framed[0]?.whole).toBe(true);
+    expect(state.framed[0]?.around?.[0]).toBe('state1');
   });
 
   it('refusée si l’édition ne peut pas être verrouillée', () => {
@@ -68,6 +81,7 @@ describe('mode Machine à états : simulation ouverte sur la page (sujet 467)', 
     expect(simulator.sim.current.id).toBe('s4');
     expect(listener).toHaveBeenCalledTimes(2);
     expect(state.kept.at(-1)).toBe('s4');
+    expect(state.framed.at(-1)?.whole).toBe(false);
   });
 
   it('Échap arrête : verrou rendu, couche retirée ; plus aucun pas ensuite', () => {
