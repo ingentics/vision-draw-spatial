@@ -26,7 +26,7 @@ export function useEditShortcuts(engineRef: MutableRefObject<Engine | undefined>
       if (typing) return;
       if (key === 'd' && !event.shiftKey) {
         event.preventDefault();
-        engineRef.current?.duplicateSelection();
+        engineRef.current?.selection.duplicate();
         return;
       }
       if ((key === 'c' || key === 'x' || key === 'v') && !event.shiftKey && !window.getSelection()?.toString()) {
@@ -38,18 +38,18 @@ export function useEditShortcuts(engineRef: MutableRefObject<Engine | undefined>
           pending = undefined;
           const engine = engineRef.current;
           if (key === 'v') {
-            engine?.paste();
+            engine?.selection.paste();
             return;
           }
-          const xml = key === 'x' ? engine?.cutSelection() : engine?.copySelection();
+          const xml = key === 'x' ? engine?.selection.cut() : engine?.selection.copy();
           if (xml !== undefined) navigator.clipboard?.writeText(xml).catch(() => undefined);
         }, 50);
         return;
       }
       if (key !== 'z' && key !== 'y') return;
       event.preventDefault();
-      if (key === 'y' || event.shiftKey) engineRef.current?.redo();
-      else engineRef.current?.undo();
+      if (key === 'y' || event.shiftKey) engineRef.current?.history.redo();
+      else engineRef.current?.history.undo();
     };
     // Copier / couper / coller (ticket 59) : presse-papier système au format draw.io, sauf dans un
     // champ ou sur un texte sélectionné dans l'interface (copie native du navigateur).
@@ -64,7 +64,7 @@ export function useEditShortcuts(engineRef: MutableRefObject<Engine | undefined>
       pending = undefined;
       if (nativeClipboard(event)) return;
       const engine = engineRef.current;
-      const xml = event.type === 'cut' ? engine?.cutSelection() : engine?.copySelection();
+      const xml = event.type === 'cut' ? engine?.selection.cut() : engine?.selection.copy();
       if (xml === undefined) return;
       event.clipboardData?.setData('text/plain', xml);
       event.preventDefault();
@@ -73,7 +73,7 @@ export function useEditShortcuts(engineRef: MutableRefObject<Engine | undefined>
       pending = undefined;
       if (nativeClipboard(event)) return;
       const text = event.clipboardData?.getData('text/plain');
-      if (engineRef.current?.paste(text || undefined)) event.preventDefault();
+      if (engineRef.current?.selection.paste(text || undefined)) event.preventDefault();
     };
     window.addEventListener('keydown', onKey);
     window.addEventListener('copy', onCopy);

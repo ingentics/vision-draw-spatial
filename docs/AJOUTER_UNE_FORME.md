@@ -446,7 +446,7 @@ d'annulation et seule la forme est redessinée (ex. étiquette des façades). Sa
 
 **Forme sans dossier : la bibliothèque de formes JSON** (sujets 529 à 531, SPEC §8.2, `COMPOSANT.md`). Une forme
 purement visuelle (contour en fractions des bornes, détails, style, palette) n'a pas besoin d'un dossier : l'hôte la
-charge par `engine.registerShapes(json)` au format `drawio-spatial/shapes`, et le tronc la dessine par les briques de
+charge par `engine.shapes.register(json)` au format `drawio-spatial/shapes`, et le tronc la dessine par les briques de
 `plugins/shapes/generic/library/` (forme chargée, forme non chargée ou introuvable). Un dossier n'est utile que pour un
 rendu, un clic, des poignées ou des réglages propres.
 

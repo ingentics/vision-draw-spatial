@@ -59,21 +59,23 @@ export function ViewerContextPanel({
       exporters={settings.exporters}
       defaultDepth={settings.view.isoDepth}
       multiSelectKey={MULTI_SELECT_LABELS[settings.controls.multiSelectKey]}
-      onLink={(link) => selection && engine?.setLink(selection.picked.element.id, link)}
-      onEditComment={() => selection && engine?.editComment(selection.picked.element.id)}
-      onSpatial={(key, value, merge) => selection && engine?.setSpatial(selection.picked.element.id, key, value, merge)}
-      onEditLabel={() => selection && engine?.editLabel(selection.picked.element.id)}
-      onEndLabel={(end, text) => selection && engine?.setEdgeEndLabel(selection.picked.element.id, end, text)}
-      onDelete={() => engine?.deleteSelection()}
-      onOrder={(move) => engine?.orderSelection(move)}
+      onLink={(link) => selection && engine?.edit.setLink(selection.picked.element.id, link)}
+      onEditComment={() => selection && engine?.text.editComment(selection.picked.element.id)}
+      onSpatial={(key, value, merge) =>
+        selection && engine?.edit.setSpatial(selection.picked.element.id, key, value, merge)
+      }
+      onEditLabel={() => selection && engine?.text.editLabel(selection.picked.element.id)}
+      onEndLabel={(end, text) => selection && engine?.text.setEdgeEndLabel(selection.picked.element.id, end, text)}
+      onDelete={() => engine?.selection.delete()}
+      onOrder={(move) => engine?.selection.order(move)}
       alignReference={settings.edit.alignReference}
       onAlignReference={(alignReference) => onSettingsChange({ edit: { alignReference } })}
-      onAlign={(move) => engine?.alignSelection(move, settings.edit.alignReference)}
-      onDistribute={(move) => engine?.distributeSelection(move)}
-      onReverse={() => engine?.reverseEdges(selected.edges.map((edge) => edge.id))}
-      onResetRoute={() => selection && engine?.resetEdgeRoute(selection.picked.element.id)}
+      onAlign={(move) => engine?.selection.align(move, settings.edit.alignReference)}
+      onDistribute={(move) => engine?.selection.distribute(move)}
+      onReverse={() => engine?.edit.reverseEdges(selected.edges.map((edge) => edge.id))}
+      onResetRoute={() => selection && engine?.edit.resetEdgeRoute(selection.picked.element.id)}
       onEdgeStyle={(patch, merge) =>
-        engine?.setElementsStyle(
+        engine?.edit.setElementsStyle(
           selected.edges.map((edge) => edge.id),
           patch,
           'Tracé',
@@ -81,57 +83,59 @@ export function ViewerContextPanel({
         )
       }
       onOrient={(action) =>
-        engine?.orientShapes(
+        engine?.edit.orientShapes(
           selected.shapes.map((shape) => shape.id),
           action,
         )
       }
       onShapeStyle={(patch) =>
-        engine?.setElementsStyle(
+        engine?.edit.setElementsStyle(
           selected.shapes.map((shape) => shape.id),
           patch,
           'Bordure',
         )
       }
       onTextAnchor={(cellId, anchor) =>
-        selection && engine?.setEdgeTextAnchor(selection.picked.element.id, cellId, anchor)
+        selection && engine?.text.setEdgeTextAnchor(selection.picked.element.id, cellId, anchor)
       }
       textEdit={textEdit}
       generation={editablePages && engine ? generationControls(engine) : undefined}
       onApplyStyle={(preset) =>
-        engine?.applyStylePreset(
+        engine?.edit.applyStylePreset(
           selected.shapes.map((shape) => shape.id),
           preset,
           [...settings.styles.base, ...settings.styles.extended],
         )
       }
-      onRenamePage={editablePages ? (name) => engine?.renamePage(currentPage.id, name) : undefined}
-      onPageMode={editablePages ? (modeId) => engine?.setPageMode(currentPage.id, modeId) : undefined}
-      layers={engine?.getPageLayers(currentPage.id)}
+      onRenamePage={editablePages ? (name) => engine?.pages.rename(currentPage.id, name) : undefined}
+      onPageMode={editablePages ? (modeId) => engine?.modes.setPageMode(currentPage.id, modeId) : undefined}
+      layers={engine?.layers.of(currentPage.id)}
       layerElevations={viewMode !== 'top'}
-      onFlattenLayers={(flattened) => engine?.setLayersFlattened(currentPage.id, flattened)}
+      onFlattenLayers={(flattened) => engine?.layers.setFlattened(currentPage.id, flattened)}
       layerActions={editablePages && engine ? layerActions(engine, currentPage.id) : undefined}
-      onMoveToLayer={editablePages ? (layerId) => engine?.moveSelectionToLayer(layerId) : undefined}
+      onMoveToLayer={editablePages ? (layerId) => engine?.layers.moveSelection(layerId) : undefined}
       onPageEffect={
-        editablePages ? (effectId, enabled) => engine?.setPageEffect(currentPage.id, effectId, enabled) : undefined
+        editablePages
+          ? (effectId, enabled) => engine?.effects.setPageEffect(currentPage.id, effectId, enabled)
+          : undefined
       }
-      onPageAnchoring={editablePages ? (anchoring) => engine?.setPageAnchoring(currentPage.id, anchoring) : undefined}
+      onPageAnchoring={editablePages ? (anchoring) => engine?.pages.setAnchoring(currentPage.id, anchoring) : undefined}
       defaultAnchoring={settings.shapes.edgeAnchoring}
-      onPageEdgeLine={editablePages ? (line) => engine?.setPageEdgeLine(currentPage.id, line) : undefined}
+      onPageEdgeLine={editablePages ? (line) => engine?.pages.setEdgeLine(currentPage.id, line) : undefined}
       defaultEdgeLine={settings.shapes.edgeLineStyle}
       pageEdgeLines={edgeLinesOf(currentAnchoring)}
       edgeLines={edgeLinesOfEdge(currentAnchoring)}
-      onPageJumps={editablePages ? (jumps) => engine?.setPageJumps(currentPage.id, jumps) : undefined}
+      onPageJumps={editablePages ? (jumps) => engine?.pages.setJumps(currentPage.id, jumps) : undefined}
       defaultJumps={settings.shapes.edgeJumpStyle}
       pageJumps={jumpValue(currentPage.attributes[SPATIAL.jumps]) ?? settings.shapes.edgeJumpStyle}
       defaultJumpSize={settings.shapes.edgeJumpSize}
-      onModeEdit={editablePages ? (label, edit) => engine?.editPageMode(label, edit) : undefined}
-      modeCurrent={engine?.getModeCurrent(currentPage.id)}
+      onModeEdit={editablePages ? (label, edit) => engine?.modes.edit(label, edit) : undefined}
+      modeCurrent={engine?.modes.current(currentPage.id)}
       modeControls={modeControls}
       onModeProperty={
         editablePages
           ? (scope, targetId, key, value, part, merge) =>
-              engine?.setModeProperty(scope, targetId, key, value, part, merge)
+              engine?.modes.setProperty(scope, targetId, key, value, part, merge)
           : undefined
       }
     />
@@ -142,24 +146,24 @@ export function ViewerContextPanel({
 /** Forme générée (sujets 538, 545) : description et cycle par le moteur, proposition choisie gardée par l'hôte. */
 function generationControls(engine: Engine): GenerationControls {
   return {
-    view: (shapeId) => engine.generationOf(shapeId),
-    setInstructions: (shapeId, instructions) => engine.setGenerationInstructions(shapeId, instructions),
-    submit: (shapeId) => engine.submitGeneration(shapeId),
-    retry: (shapeId) => engine.retryGeneration(shapeId),
-    reprompt: (shapeId) => engine.repromptGeneration(shapeId),
+    view: (shapeId) => engine.generation.of(shapeId),
+    setInstructions: (shapeId, instructions) => engine.generation.setInstructions(shapeId, instructions),
+    submit: (shapeId) => engine.generation.submit(shapeId),
+    retry: (shapeId) => engine.generation.retry(shapeId),
+    reprompt: (shapeId) => engine.generation.reprompt(shapeId),
     accept: (shapeId, candidateId) => void acceptGenerated(engine, shapeId, candidateId),
   };
 }
 
 function layerActions(engine: Engine, pageId: string): LayerActions {
   return {
-    choose: (layerId) => engine.setCurrentLayer(pageId, layerId),
-    add: () => engine.addLayer(pageId),
-    rename: (layerId, name) => engine.renameLayer(pageId, layerId, name),
-    move: (layerId, direction) => engine.moveLayer(pageId, layerId, direction),
-    remove: (layerId) => engine.removeLayer(pageId, layerId),
-    setVisible: (layerId, visible) => engine.setLayerVisible(pageId, layerId, visible),
-    setLocked: (layerId, locked) => engine.setLayerLocked(pageId, layerId, locked),
-    setElevation: (layerId, elevation) => engine.setLayerElevation(pageId, layerId, elevation),
+    choose: (layerId) => engine.layers.setCurrent(pageId, layerId),
+    add: () => engine.layers.add(pageId),
+    rename: (layerId, name) => engine.layers.rename(pageId, layerId, name),
+    move: (layerId, direction) => engine.layers.move(pageId, layerId, direction),
+    remove: (layerId) => engine.layers.remove(pageId, layerId),
+    setVisible: (layerId, visible) => engine.layers.setVisible(pageId, layerId, visible),
+    setLocked: (layerId, locked) => engine.layers.setLocked(pageId, layerId, locked),
+    setElevation: (layerId, elevation) => engine.layers.setElevation(pageId, layerId, elevation),
   };
 }

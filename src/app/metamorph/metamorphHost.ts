@@ -24,15 +24,16 @@ export function installMetamorph(engine: Engine, server: MetamorphServer = share
     try {
       const json = await server.library();
       if (json !== undefined) {
-        const result = engine.registerShapes(json);
+        const result = engine.shapes.register(json);
         if (!result.ok) console.error('Formes Metamorph refusées', result.errors);
       }
     } catch (error) {
       console.error('Formes Metamorph indisponibles', error);
     }
-    const known = new Set(engine.shapeLibrary(METAMORPH_LIBRARY)?.shapes.map((shape) => shape.id));
+    const known = new Set(engine.shapes.library(METAMORPH_LIBRARY)?.shapes.map((shape) => shape.id));
     const unknown = missing.filter((kind) => !known.has(kind));
-    if (unknown.length > 0) engine.markShapesUnavailable(unknown.map((kind) => ({ library: METAMORPH_LIBRARY, kind })));
+    if (unknown.length > 0)
+      engine.shapes.markUnavailable(unknown.map((kind) => ({ library: METAMORPH_LIBRARY, kind })));
   };
   void registerAccepted();
   engine.on('shapesMissing', (missing) => {
@@ -44,12 +45,12 @@ export function installMetamorph(engine: Engine, server: MetamorphServer = share
     if (request.kind !== METAMORPH_KIND) return;
     try {
       const json = await server.generate(request);
-      const result = engine.generationResults(request.shapeId, json);
+      const result = engine.generation.results(request.shapeId, json);
       // Refus attendu si la forme n'attend plus (annuler, « Réessayer » entre-temps) : rien à montrer.
       if (!result.ok) console.info('Propositions Metamorph ignorées', result.errors);
     } catch (error) {
       console.error('Génération Metamorph échouée', error);
-      engine.generationFailed(request.shapeId, 'La génération a échoué : réessayez ou modifiez la description.');
+      engine.generation.failed(request.shapeId, 'La génération a échoué : réessayez ou modifiez la description.');
     }
   });
 }
@@ -63,12 +64,12 @@ export async function acceptGenerated(
 ): Promise<void> {
   try {
     const json = await server.accept(candidateId);
-    const result = json === undefined ? undefined : engine.registerShapes(json);
+    const result = json === undefined ? undefined : engine.shapes.register(json);
     if (!result?.ok) {
       console.error('Forme Metamorph refusée', result?.errors);
       return;
     }
-    engine.acceptGeneration(shapeId, `${METAMORPH_LIBRARY}:${candidateId}`);
+    engine.generation.accept(shapeId, `${METAMORPH_LIBRARY}:${candidateId}`);
   } catch (error) {
     console.error('Forme Metamorph non gardée par le serveur', error);
   }

@@ -40,7 +40,7 @@ dossiers du projet (SPEC §4.2 et `.claude/rules/coding.md` §2 y renvoient) ; l
 
 | Dossier (sous `src/engine/` sauf mention) | Rôle | Nature |
 |---|---|---|
-| `index.ts`, `Engine.ts`, `events.ts` | point d'entrée du moteur, façade publique (délègue aux domaines), événements | avec état |
+| `index.ts`, `Engine.ts`, `facade/`, `events.ts` | point d'entrée du moteur, façade publique (délègue aux domaines) : `Engine.ts` (cycle de vie, document, paramètres) et un objet par domaine dans `facade/` (`engine.pages`, `engine.layers`…, sujet 558), événements | avec état |
 | `core/domains/` | un dossier par domaine (`runtime/`, `document/`, `view/`, `selection/`, `input/`, `navigation/`, `modes/`, `effects/`, `edit/`) ; `EngineCore.ts` les câble. Hôtes des plugins : `modes/` (`PageModes`, adaptateur unique `call` ; réglages `ModePanel`, remises en ordre `ModeFollowUps`), `effects/` (`PageEffects`) ; erreurs des plugins : `runtime/pluginGuard.ts`. Prise en main de la page par un mode (sujet 467) : verrou `edit/editLocks.ts`, capture des entrées `input/inputCaptures.ts`, couche `runtime/pageOverlays.ts`. Calques (sujets 523 à 526) : calque courant et opérations `document/pageLayers.ts`, plans dans la scène `view/layerDecor.ts`, calques aplatis `view/layerSpreads.ts`. Bibliothèques de formes (sujets 529 à 531) : `document/shapeLibraries.ts`. Formes générées par l'hôte (sujets 538, 545) : `edit/generatedShapes.ts` | avec état |
 | `core/interaction/` | caméra, transitions, historique de navigation, sélection, pick, mini-carte (calculs) ; `controls/` : contrôles du canvas (DOM) | pur, sauf `controls/` |
 | `core/edit/` | règles d'édition : déplacement, poignées, bouts et points de flèche, styles, palette, ancrage (`anchoring/`), choix des calques (`layerChoice.ts`), formes générées (`generation.ts`) | pur |
@@ -99,7 +99,7 @@ Règles :
   numérotée puis flèches qui portent son histoire, simulation pas à pas qui ne montre que ce qui a été joué, export JSON) ; effet forêt.
 - **Metamorph** (sujet 538) : forme à générer depuis une description (`plugins/shapes/general/metamorph/`, qui
   déclare `generation`), cycle des formes générées mené par le moteur sans la nommer (`core/domains/edit/generatedShapes.ts`,
-  `core/edit/generation.ts`, événement `generationRequest`, `generationResults`, sujet 545), propositions
+  `core/edit/generation.ts`, événement `generationRequest`, `engine.generation`, sujet 545), propositions
   et formes acceptées au format des bibliothèques de formes ; serveur mocké côté appli (`src/app/metamorph/`).
 - **Export d'image** : PNG de la page ou de la sélection, à plat, hors écran (`core/domains/view/imageExport.ts`,
   `core/render/png/`, panneau `src/app/export/ExportPanel.tsx` ; SPEC §14.6).

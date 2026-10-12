@@ -75,7 +75,7 @@ export interface DrawioSpatialProps {
   onModifiedChange?: (modified: boolean) => void;
   /**
    * Formes de bibliothèque du document non chargées (sujet 531), chacune une fois par fichier ouvert : l'hôte répond
-   * par `engine.registerShapes(json)` ou `engine.markShapesUnavailable(…)` (moteur de `onEngine` ou de la `ref`).
+   * par `engine.shapes.register(json)` ou `engine.shapes.markUnavailable(…)` (moteur de `onEngine` ou de la `ref`).
    */
   onShapesMissing?: (missing: MissingLibraryShape[]) => void;
   /**
@@ -181,12 +181,12 @@ export function DrawioSpatial(props: DrawioSpatialProps) {
     if (engine && settings && settings !== settingsRef.current) engine.updateSettings(settings);
     settingsRef.current = settings;
   }, [engine, settings]);
-  useEffect(() => engine?.setEditable(editable), [engine, editable]);
+  useEffect(() => engine?.edit.setEditable(editable), [engine, editable]);
 
   useEffect(() => {
     const canvas = minimapRef.current;
     if (!engine || !canvas || !minimapVisible) return;
-    return engine.attachMinimap(canvas, minimap?.size);
+    return engine.view.attachMinimap(canvas, minimap?.size);
   }, [engine, minimapVisible, minimap?.size]);
 
   // Contenu direct.
@@ -205,10 +205,10 @@ export function DrawioSpatial(props: DrawioSpatialProps) {
       timer = undefined;
       if (engine.getFileId() !== fileId) return;
       void store.updateMeta(fileId, {
-        lastPageId: engine.getCurrentPage()?.id,
-        cameraByPage: engine.getPageCameras(),
-        history: engine.getHistory(),
-        linkUsage: engine.getLinkUsage(),
+        lastPageId: engine.pages.current()?.id,
+        cameraByPage: engine.pages.cameras(),
+        history: engine.navigation.history(),
+        linkUsage: engine.navigation.linkUsage(),
       });
     };
     const schedule = () => {
@@ -270,8 +270,8 @@ export function DrawioSpatial(props: DrawioSpatialProps) {
     if (!engine || !autosave) return;
     const saver = new Autosaver({
       delayMs: autosaveDelayMs,
-      pending: () => engine.isModified(),
-      busy: () => engine.isDragging(),
+      pending: () => engine.history.isModified(),
+      busy: () => engine.edit.isDragging(),
       save: () => save(true),
     });
     const unsubscribe = engine.on('undoChange', () => saver.changed());
@@ -291,8 +291,8 @@ export function DrawioSpatial(props: DrawioSpatialProps) {
         return engine;
       },
       save: () => save(),
-      undo: () => engine?.undo(),
-      redo: () => engine?.redo(),
+      undo: () => engine?.history.undo(),
+      redo: () => engine?.history.redo(),
     }),
     [engine, save],
   );
@@ -304,8 +304,8 @@ export function DrawioSpatial(props: DrawioSpatialProps) {
     const target = event.target as HTMLElement;
     if (target.isContentEditable || ['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName)) return;
     if (key === 's' && (propsRef.current.onSave || propsRef.current.store)) save();
-    else if (editable && key === 'z') event.shiftKey ? engine?.redo() : engine?.undo();
-    else if (editable && key === 'y') engine?.redo();
+    else if (editable && key === 'z') event.shiftKey ? engine?.history.redo() : engine?.history.undo();
+    else if (editable && key === 'y') engine?.history.redo();
     else return;
     // Traité ici : ni le navigateur ni l'application hôte ne le traitent une seconde fois.
     event.preventDefault();
@@ -328,7 +328,7 @@ export function DrawioSpatial(props: DrawioSpatialProps) {
           style={{ position: 'absolute', left: 12, bottom: 12 }}
           aria-label="Volumes aplatis : cliquer pour les rétablir (V)"
           title="Volumes aplatis : cliquer pour les rétablir (V)"
-          onClick={() => engine?.setFlattened(false)}
+          onClick={() => engine?.view.setFlattened(false)}
         >
           <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
             <path

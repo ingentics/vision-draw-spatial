@@ -147,10 +147,10 @@ export function Viewer({
 
   const warnings = document?.warnings ?? [];
   /** Barre du courant du mode de la page (ex. flux courant), en haut de la zone de dessin. */
-  const modeIndicator = pageId !== undefined ? engine?.getModeIndicator(pageId) : undefined;
+  const modeIndicator = pageId !== undefined ? engine?.modes.indicator(pageId) : undefined;
   /** Édition verrouillée par un mode (sujet 467) : rien ne se modifie, la palette et les réglages de page sont grisés. */
   const editLocked = events.editLock !== undefined;
-  const editablePages = document !== undefined && engine?.canEditPages() === true && !editLocked;
+  const editablePages = document !== undefined && engine?.pages.canEdit() === true && !editLocked;
   const canAddShapes = pageId !== undefined && pageId !== GRAPH_PAGE_ID;
   const shownPage = document?.pages.find((page) => page.id === pageId);
   // Page affichée (pas la vue graphe) : le panneau contextuel est toujours ouvert dessus, la palette la suit. Pendant
@@ -160,7 +160,7 @@ export function Viewer({
     panelsPageId !== GRAPH_PAGE_ID ? document?.pages.find((page) => page.id === panelsPageId) : undefined;
   // Formes de la page courante, pour la catégorie « Utilisées » de la palette.
   const usedShapes = useMemo(
-    () => (currentPage && engine ? engine.usedTemplates(currentPage) : []),
+    () => (currentPage && engine ? engine.shapes.usedTemplates(currentPage) : []),
     // Version des bibliothèques : une forme posée devient chargée (ou ne l'est plus) sans que la page change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [currentPage, engine, events.librariesVersion],
@@ -169,20 +169,20 @@ export function Viewer({
   const plugins = useMemo<AppPlugins | undefined>(
     () =>
       engine && {
-        shapes: engine.getShapeRegistry(),
-        modes: engine.getModeRegistry(),
-        effects: engine.getEffectRegistry(),
-        managesEdge: (edgeId) => engine.managesEdge(edgeId),
-        allowedEffects: (page) => engine.allowedEffects(page),
+        shapes: engine.shapes.registry(),
+        modes: engine.modes.registry(),
+        effects: engine.effects.registry(),
+        managesEdge: (edgeId) => engine.modes.managesEdge(edgeId),
+        allowedEffects: (page) => engine.effects.allowed(page),
         modePropertyViews: (page, scope, target, part, palette) =>
-          engine.modePropertyViews(page, scope, target, part, palette),
+          engine.modes.propertyViews(page, scope, target, part, palette),
       },
     [engine],
   );
   // Prise en main de la page affichée, pour les parties appli des modes (sujet 467).
   const selectedIds = useMemo(() => [...selected.shapes, ...selected.edges].map((e) => e.id), [selected]);
   const modeControls = useMemo<ModePageControls | undefined>(
-    () => engine && { takeover: engine, selection: selectedIds, lockOwner: events.editLock?.owner },
+    () => engine && { takeover: engine.takeover, selection: selectedIds, lockOwner: events.editLock?.owner },
     [engine, selectedIds, events.editLock],
   );
   // Palette et modes d'affichage permis par le mode de la page (sujet 178).
@@ -190,7 +190,7 @@ export function Viewer({
   // Couche du mode de la page sur la zone de dessin (ex. barre de la simulation, sujet 462).
   const CanvasOverlay = shownPage && modePanel(modes?.modeOf(shownPage)?.id)?.CanvasOverlay;
   const paletteContent = useMemo(
-    () => engine?.paletteFor(currentPage),
+    () => engine?.shapes.paletteFor(currentPage),
     // Bibliothèques de formes chargées ou retirées (sujet 529) : la palette change sans que la page change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [engine, currentPage, events.librariesVersion],
@@ -205,7 +205,7 @@ export function Viewer({
   const exportImage = useCallback(
     async (options: ImageExportOptions) => {
       try {
-        const blob = await engine?.exportImage(options);
+        const blob = await engine?.view.exportImage(options);
         if (!blob) {
           setError('Export : rien à dessiner');
           return;
@@ -259,10 +259,10 @@ export function Viewer({
           }}
           onSave={saveFile}
           onToggleExport={() => togglePanel('export')}
-          onUndo={() => engine?.undo()}
-          onRedo={() => engine?.redo()}
-          onViewModeChange={(mode) => engine?.setViewMode(mode)}
-          onResetView={() => engine?.resetView()}
+          onUndo={() => engine?.history.undo()}
+          onRedo={() => engine?.history.redo()}
+          onViewModeChange={(mode) => engine?.view.setMode(mode)}
+          onResetView={() => engine?.view.reset()}
           onOpenSettings={() => setSettingsOpen(true)}
         />
 
@@ -281,10 +281,10 @@ export function Viewer({
                 disabled={!currentPage || editLocked}
                 used={usedShapes}
                 content={paletteContent}
-                onAdd={(template) => engine?.addShape(template)}
+                onAdd={(template) => engine?.edit.addShape(template)}
                 onDragTemplate={(template) => {
                   paletteDrag.current = template;
-                  if (!template) engine?.paletteDragEnd();
+                  if (!template) engine?.edit.paletteDragEnd();
                 }}
               />
             </Sidebar>
@@ -299,11 +299,11 @@ export function Viewer({
               const rect = event.currentTarget.getBoundingClientRect();
               const template = paletteDrag.current;
               const screen = { x: event.clientX - rect.left, y: event.clientY - rect.top };
-              if (template) engine?.paletteDragOver(template, screen, !event.altKey);
+              if (template) engine?.edit.paletteDragOver(template, screen, !event.altKey);
             }}
             onDragLeave={(event) => {
               // Sortie du canvas, pas passage sur un de ses enfants.
-              if (!event.currentTarget.contains(event.relatedTarget as Node | null)) engine?.paletteDragEnd();
+              if (!event.currentTarget.contains(event.relatedTarget as Node | null)) engine?.edit.paletteDragEnd();
             }}
             onDrop={(event) => {
               const id = event.dataTransfer.getData(PALETTE_MIME);
@@ -315,14 +315,18 @@ export function Viewer({
               if (!template || !engine) return;
               event.preventDefault();
               const rect = event.currentTarget.getBoundingClientRect();
-              engine.addShape(template, { x: event.clientX - rect.left, y: event.clientY - rect.top }, !event.altKey);
+              engine.edit.addShape(
+                template,
+                { x: event.clientX - rect.left, y: event.clientY - rect.top },
+                !event.altKey,
+              );
               engine.focusCanvas();
             }}
           >
             <SlidingModeBar
               indicator={transitioning ? undefined : modeIndicator}
-              onChoose={(value) => engine?.setModeCurrent(value)}
-              onRename={(label) => engine?.renameModeCurrent(label)}
+              onChoose={(value) => engine?.modes.setCurrent(value)}
+              onRename={(label) => engine?.modes.renameCurrent(label)}
             />
             <ParentPagesBar
               parents={events.parentPages}
@@ -334,12 +338,12 @@ export function Viewer({
               }}
               onChoose={(id) => {
                 setBackChoosing(false);
-                engine?.backTo(id);
+                engine?.navigation.backTo(id);
               }}
               onShowGraph={
                 pageId !== GRAPH_PAGE_ID && (document?.pages.length ?? 0) > 1
                   ? () => {
-                      engine?.showGraph();
+                      engine?.graph.show();
                       engine?.focusCanvas();
                     }
                   : undefined
@@ -401,7 +405,7 @@ export function Viewer({
                   getMetrics={getMetrics}
                   setFrameSampling={setFrameSampling}
                   pageNames={Object.fromEntries((document?.pages ?? []).map((p) => [p.id, p.name]))}
-                  onFocus={(page, element) => engine?.focusElement(page, element)}
+                  onFocus={(page, element) => engine?.view.focus(page, element)}
                   onExport={() => exportJson(file.name, events.report, warnings, error)}
                   onClose={() => setPanel(undefined)}
                 />
@@ -439,17 +443,17 @@ export function Viewer({
               currentPageId={pageId}
               graphActive={pageId === GRAPH_PAGE_ID}
               onShowGraph={() => {
-                engine?.showGraph();
+                engine?.graph.show();
                 engine?.focusCanvas();
               }}
               onSelect={(id) => {
-                engine?.goToPage(id);
+                engine?.pages.goTo(id);
                 engine?.focusCanvas();
               }}
               modeOf={modes && ((page) => modes.modeOf(page))}
-              onAdd={editablePages ? () => engine?.addPage() : undefined}
-              onRename={editablePages ? (id, name) => engine?.renamePage(id, name) : undefined}
-              onRemove={editablePages ? (id) => engine?.removePage(id) : undefined}
+              onAdd={editablePages ? () => engine?.pages.add() : undefined}
+              onRename={editablePages ? (id, name) => engine?.pages.rename(id, name) : undefined}
+              onRemove={editablePages ? (id) => engine?.pages.remove(id) : undefined}
             />
             {/* Aide : mode en cours tant qu'une touche de modification est maintenue (rien sinon). */}
             <span className="mode-hint" role="status">
@@ -462,7 +466,7 @@ export function Viewer({
             settings={settings}
             onChange={onSettingsChange}
             onReset={onResetSettings}
-            onResetOrientation={() => engine?.resetRotation()}
+            onResetOrientation={() => engine?.view.resetRotation()}
             onClose={() => setSettingsOpen(false)}
           />
         )}

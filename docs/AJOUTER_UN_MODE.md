@@ -178,7 +178,7 @@ de l'ordre de dessin, sujet 230), `placeBehind` (une forme juste derrière une a
 textes de bout ; seule exception, un attribut du mode écrit avec `{ derived: true }`, copie d'un réglage (ex. « Labels »
 de la page recopié sur chaque post-it, sujet 508), que le verrou ne doit pas laisser périmée. Toutes ses écritures forment une étape d'annulation, et rien n'est enregistré si elle ne
 change rien. Depuis l'appli : `onEdit(label, (edit) => monOperation(edit, …))` (prop des sections React), ou
-`engine.editPageMode(label, …)`.
+`engine.modes.edit(label, …)`.
 
 Les **réglages globaux** du mode, pour toute l'appli et non pour une page, sont déclarés dans sa définition
 (`settings`, rangés dans `plugins/modes/<id>/settings.ts`) : des `PluginSetting` (`AJOUTER_UN_PLUGIN.md` section 7),
@@ -222,10 +222,10 @@ couche physique d'une table RDD, lue par son rendu). Un habillage qui dépend du
 - `current` : un « courant » de session par page (ex. flux courant), gardé par le moteur et jamais écrit :
   `initial` (défaut), `valid` (choix encore valable), `pick` (élément sélectionné seul → nouveau courant), `color`,
   `label` et `values` (barre en haut de la zone de dessin : couleur, libellé centré, boutons précédent / suivant
-  dans l'ordre de `values`, choix par `engine.setModeCurrent`). `rename` : renommer le courant depuis son libellé dans la barre (`engine.renameModeCurrent`, nom vide
+  dans l'ordre de `values`, choix par `engine.modes.setCurrent`). `rename` : renommer le courant depuis son libellé dans la barre (`engine.modes.renameCurrent`, nom vide
   refusé). `focus` : éléments gardés nets pour le courant, les autres estompés
   (opacité de `look(values).dimOpacity`, défaut 0,3, multipliée par `setElementsDim`, compatible avec les fondus ;
-  `look(values).barSlideDuration` : glissement de la barre, défaut 200 ms). L'appli le lit par `engine.getModeCurrent()` et le
+  `look(values).barSlideDuration` : glissement de la barre, défaut 200 ms). L'appli le lit par `engine.modes.current()` et le
   reçoit dans ses
   sections (`current` des props) ; l'événement `modeCurrentChange` signale un changement. `redraws` (sujet 414) :
   l'habillage suit le courant, la page est redessinée à chaque changement. `clearable` (sujet 540) : Échap (rien de

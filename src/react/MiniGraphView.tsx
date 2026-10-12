@@ -13,9 +13,9 @@ interface MiniGraphState {
 function readState(engine: Engine, size: number): MiniGraphState {
   const settings = engine.getSettings();
   return {
-    graph: engine.getMiniGraph(size),
-    pageId: engine.getCurrentPage()?.id,
-    graphView: engine.isGraphView(),
+    graph: engine.graph.miniGraph(size),
+    pageId: engine.pages.current()?.id,
+    graphView: engine.graph.isShown(),
     accent: settings.selection.accentColor,
     node: settings.minimap.outlineColor,
     link: settings.minimap.edgeColor,

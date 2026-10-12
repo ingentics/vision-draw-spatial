@@ -101,11 +101,11 @@ const KNOWN_LIBRARIES = new Set([DEMO_LIBRARY.library.id, METAMORPH_LIBRARY]);
  * rechargé, toute bibliothèque que l'appli ne connaît pas est déclarée introuvable.
  */
 export function installDemoShapeLibrary(engine: Engine): void {
-  const result = engine.registerShapes(DEMO_LIBRARY);
+  const result = engine.shapes.register(DEMO_LIBRARY);
   if (!result.ok) console.error('Bibliothèque d’exemple refusée', result.errors);
   engine.on('shapesMissing', (missing) => {
-    if (missing.some((shape) => shape.library === DEMO_LIBRARY.library.id)) engine.registerShapes(DEMO_LIBRARY);
+    if (missing.some((shape) => shape.library === DEMO_LIBRARY.library.id)) engine.shapes.register(DEMO_LIBRARY);
     const others = new Set(missing.map((shape) => shape.library).filter((id) => !KNOWN_LIBRARIES.has(id)));
-    if (others.size > 0) engine.markShapesUnavailable([...others].map((library) => ({ library })));
+    if (others.size > 0) engine.shapes.markUnavailable([...others].map((library) => ({ library })));
   });
 }

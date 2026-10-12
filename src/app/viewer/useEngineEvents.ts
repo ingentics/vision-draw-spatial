@@ -103,7 +103,7 @@ export function useEngineEvents({
         // Fichier chargé (rechargement de la page, ouverture) : les touches vont à la zone de dessin (sujet 419).
         instance.focusCanvas();
       });
-      const refreshBack = () => setParentPages(instance.getParentPages());
+      const refreshBack = () => setParentPages(instance.navigation.parentPages());
       // La barre du courant du mode part au début d'une transition et n'arrive qu'à sa fin.
       instance.on('transitionStart', (from, to) => {
         setTransitioning(true);

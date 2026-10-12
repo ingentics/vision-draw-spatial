@@ -54,8 +54,8 @@ par défaut, `createDefaultRegistry` (formes), `createDefaultModeRegistry`, `cre
 
 - Le tronc (`core/`) n'importe jamais un plugin ; il ne connaît que les contrats et ne teste jamais un id en dur.
 - Chaque moteur construit ses propres registres, sauf si on lui en passe (`EngineOptions.registry`, `modes`, `effects`).
-- L'appli n'en voit qu'une vue en lecture seule (`engine.getShapeRegistry()`, `getModeRegistry()`,
-  `getEffectRegistry()`) : la déclaration des plugins et les valeurs de leurs réglages, jamais leurs points d'entrée.
+- L'appli n'en voit qu'une vue en lecture seule (`engine.shapes.registry()`, `engine.modes.registry()`,
+  `engine.effects.registry()`) : la déclaration des plugins et les valeurs de leurs réglages, jamais leurs points d'entrée.
 - Retirer un plugin = supprimer son dossier.
 
 ## 4. Ce qu'un plugin importe : l'API des plugins

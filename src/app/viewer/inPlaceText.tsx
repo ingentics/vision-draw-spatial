@@ -37,15 +37,15 @@ export function useInPlaceText({
     const editor = editorHandle.current;
     const cellId = labelEdit?.styleCellId;
     if (action.type === 'align') {
-      if (cellId) engine?.setTextFormat(cellId, { [action.key]: action.value });
+      if (cellId) engine?.text.setFormat(cellId, { [action.key]: action.value });
       return;
     }
     if (action.type === 'place') {
-      if (cellId) engine?.setTextFormat(cellId, labelPlacePatch(action.place));
+      if (cellId) engine?.text.setFormat(cellId, labelPlacePatch(action.place));
       return;
     }
     if (action.type === 'fit') {
-      if (cellId) engine?.setTextFormat(cellId, { fitText: action.on ? '1' : undefined });
+      if (cellId) engine?.text.setFormat(cellId, { fitText: action.on ? '1' : undefined });
       return;
     }
     if (editor?.hasSelection()) {
@@ -63,7 +63,7 @@ export function useInPlaceText({
     if (!cellId || !labelEdit) return;
     const { patch, clear } = wholeTextChange(action, labelEdit.style);
     editor?.clear(clear);
-    engine?.setTextFormat(cellId, patch);
+    engine?.text.setFormat(cellId, patch);
   };
 
   const onOwner = () => editorHandle.current?.commit();
@@ -117,25 +117,26 @@ export function ViewerLabelEditor({
       key={`${request.pageId}:${request.elementId}:${request.end ?? ''}:${request.part ?? ''}`}
       request={request}
       handle={text.editorHandle}
-      onMoveText={request.onEdge && request.styleCellId ? (screen) => engine?.moveEditedText(screen) : undefined}
-      onMoveTextEnd={() => engine?.endEditedTextMove()}
-      onFlip={() => engine?.flipEditedText()}
+      onMoveText={request.onEdge && request.styleCellId ? (screen) => engine?.text.moveEdited(screen) : undefined}
+      onMoveTextEnd={() => engine?.text.endEditedMove()}
+      onFlip={() => engine?.text.flipEdited()}
       onToggle={(mark) => text.formatText({ type: 'toggle', mark })}
       onSelectionFormat={text.setSelectionFormat}
       onFitSize={text.setFittedSize}
-      onTextInput={request.onEdge ? undefined : (value) => engine?.previewEditedLabel(value)}
+      onTextInput={request.onEdge ? undefined : (value) => engine?.text.previewLabel(value)}
       onCommit={({ text: value, html }) => {
         onClose();
-        engine?.closeLabelEdit();
-        if (request.part !== undefined) engine?.setPartText(request.elementId, request.part, value);
-        else if (request.labelCellId) engine?.setEdgeText(request.elementId, request.labelCellId, value, html);
-        else if (request.end) engine?.setEdgeEndLabel(request.elementId, request.end, value, html, request.flipped);
-        else engine?.setLabel(request.elementId, value, request.plain ? undefined : html);
+        engine?.text.closeLabelEdit();
+        if (request.part !== undefined) engine?.text.setPartText(request.elementId, request.part, value);
+        else if (request.labelCellId) engine?.text.setEdgeText(request.elementId, request.labelCellId, value, html);
+        else if (request.end)
+          engine?.text.setEdgeEndLabel(request.elementId, request.end, value, html, request.flipped);
+        else engine?.text.setLabel(request.elementId, value, request.plain ? undefined : html);
         engine?.focusCanvas();
       }}
       onCancel={() => {
         onClose();
-        engine?.closeLabelEdit();
+        engine?.text.closeLabelEdit();
         engine?.focusCanvas();
       }}
     />
@@ -171,14 +172,14 @@ export function ViewerComment({
       onCommit={(content) => {
         onClose();
         // Commentaire d'une partie (ex. champ, sujet 262) : texte brut, écrit par le mode.
-        if (request.part !== undefined) engine?.setPartComment(request.elementId, request.part, content.text);
-        else engine?.setComment(request.elementId, content);
-        if (request.fromNavigation) engine?.clearSelection();
+        if (request.part !== undefined) engine?.text.setPartComment(request.elementId, request.part, content.text);
+        else engine?.text.setComment(request.elementId, content);
+        if (request.fromNavigation) engine?.selection.clear();
         engine?.focusCanvas();
       }}
       onCancel={() => {
         onClose();
-        if (request.fromNavigation) engine?.clearSelection();
+        if (request.fromNavigation) engine?.selection.clear();
         engine?.focusCanvas();
       }}
     />

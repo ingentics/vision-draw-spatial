@@ -1,50 +1,60 @@
-import type { ElementComment } from './core/edit/comment';
 import type { UnsupportedReport } from './core/diagnostics/unsupportedStyles';
-import type { AlignMove, AlignReference, DistributeMove } from './core/edit/align';
-import type { Anchoring, EdgeLine } from './core/edit/anchoring/mode';
-import type { EdgeEnd } from './core/edit/edgeLabels';
-import type { PageModePalette, ShapeTemplate } from './core/edit/palette';
-import type { EffectRegistryView } from './core/effects/registry';
-import type { StylePreset } from './core/edit/stylePresets';
-import type { OrderMove } from './core/format/order';
-import type { MiniGraph } from './core/graph/miniGraph';
-import type { CameraState, ViewMode } from './core/interaction/cameraState';
-import type { HistoryEntry, LinkUsage, ParentLink } from './core/interaction/navigationHistory';
-import type { PickedElement } from './core/interaction/pick';
-import type { DocumentModel, LinkModel, PageModel, Point } from './core/model/types';
-import type { ModeRegistryView, ModeScope } from './core/modes/registry';
-import type { ShapeRegistryView } from './core/shapes/registry';
-import type { OrientAction } from './core/edit/orientShapes';
-import type { ModeEdit } from './core/modes/modeEdit';
-import type { ModeTarget } from './core/modes/types';
-import type { EditLock, KeepInView, PageOverlay } from './core/modes/pageTakeover';
-import type { JumpDefaults } from './core/render/edges/jumps';
+import type { DocumentModel } from './core/model/types';
 import type { EngineMetrics } from './core/domains/runtime/metrics';
-import type { ImageExportOptions } from './core/domains/view/imageExport';
-import type { PageLayersView } from './core/domains/document/pageLayers';
-import type { ShapeLibrary, ShapeLibraryResult } from './core/shapes/library/libraryFormat';
-import type { LibraryShapeRef } from './core/shapes/library/libraryStore';
-import type { GenerationView } from './core/edit/generation';
 import type { Settings, SettingsPatch } from './core/settings';
 import { EngineCore } from './core/domains/EngineCore';
 import { createDefaultEffectRegistry, createDefaultModeRegistry, createDefaultRegistry } from './plugins';
-import type {
-  EdgeTextAnchor,
-  EngineEvent,
-  EngineEvents,
-  EngineOptions,
-  InitialView,
-  ModeIndicator,
-  ModePropertyView,
-  Selection,
-} from './core/domains/types';
+import type { EngineEvent, EngineEvents, EngineOptions, InitialView } from './core/domains/types';
+import { HistoryApi } from './facade/historyApi';
+import { PagesApi } from './facade/pagesApi';
+import { ViewApi } from './facade/viewApi';
+import { GraphApi } from './facade/graphApi';
+import { NavigationApi } from './facade/navigationApi';
+import { SelectionApi } from './facade/selectionApi';
+import { EditApi } from './facade/editApi';
+import { TextApi } from './facade/textApi';
+import { LayersApi } from './facade/layersApi';
+import { ShapesApi } from './facade/shapesApi';
+import { GenerationApi } from './facade/generationApi';
+import { ModesApi } from './facade/modesApi';
+import { EffectsApi } from './facade/effectsApi';
+import { TakeoverApi } from './facade/takeoverApi';
 
 /**
- * Façade publique du moteur (SPEC §4.3). Aucune dépendance à React. Le comportement est dans `core/`, découpé
- * par domaine ; la façade n'en expose que l'API.
+ * Façade publique du moteur (SPEC §4.3). Aucune dépendance à React. Le comportement est dans `core/`, découpé par
+ * domaine ; la façade n'en expose que l'API : ici le cycle de vie, le document, les métriques et les paramètres, et un
+ * objet par domaine (`facade/`, sujet 558 : `engine.pages.add()`, `engine.layers.rename()`…).
  */
 export class Engine {
   private readonly core: EngineCore;
+  /** Annuler / rétablir. */
+  readonly history: HistoryApi;
+  /** Pages du document. */
+  readonly pages: PagesApi;
+  /** Caméra et vues. */
+  readonly view: ViewApi;
+  /** Vue graphe et mini-graphe. */
+  readonly graph: GraphApi;
+  /** Liens et navigation. */
+  readonly navigation: NavigationApi;
+  /** Sélection et commandes sur elle. */
+  readonly selection: SelectionApi;
+  /** Édition des éléments. */
+  readonly edit: EditApi;
+  /** Textes et commentaires. */
+  readonly text: TextApi;
+  /** Calques des pages. */
+  readonly layers: LayersApi;
+  /** Formes, palette et bibliothèques de formes. */
+  readonly shapes: ShapesApi;
+  /** Formes générées par l'hôte. */
+  readonly generation: GenerationApi;
+  /** Modes de page. */
+  readonly modes: ModesApi;
+  /** Effets de page. */
+  readonly effects: EffectsApi;
+  /** Prise en main de la page par un mode (`PageTakeover`). */
+  readonly takeover: TakeoverApi;
 
   constructor(options: EngineOptions) {
     // Registres des plugins : ceux donnés, sinon ceux construits par la racine de composition (sujet 286), propres à
@@ -55,10 +65,21 @@ export class Engine {
       modes: options.modes ?? createDefaultModeRegistry(),
       effects: options.effects ?? createDefaultEffectRegistry(),
     });
+    this.history = new HistoryApi(this.core);
+    this.pages = new PagesApi(this.core);
+    this.view = new ViewApi(this.core);
+    this.graph = new GraphApi(this.core);
+    this.navigation = new NavigationApi(this.core);
+    this.selection = new SelectionApi(this.core);
+    this.edit = new EditApi(this.core);
+    this.text = new TextApi(this.core);
+    this.layers = new LayersApi(this.core);
+    this.shapes = new ShapesApi(this.core);
+    this.generation = new GenerationApi(this.core);
+    this.modes = new ModesApi(this.core);
+    this.effects = new EffectsApi(this.core);
+    this.takeover = new TakeoverApi(this.core);
   }
-
-  // -------------------------------------------------------------------------
-  // Cycle de vie
 
   /** Rend le focus clavier au canvas (ex. après un dépôt depuis la palette). */
   focusCanvas(): void {
@@ -72,9 +93,6 @@ export class Engine {
   dispose(): void {
     this.core.dispose();
   }
-
-  // -------------------------------------------------------------------------
-  // Document (SPEC §5, §14.2)
 
   load(xml: string, fileId: string, initialView?: InitialView): Promise<void> {
     return this.core.file.load(xml, fileId, initialView);
@@ -102,80 +120,6 @@ export class Engine {
     return this.core.file.fileId;
   }
 
-  // -------------------------------------------------------------------------
-  // Pages
-
-  /** Pages modifiables : fichier `<mxfile>` (l'ancien format n'a qu'une page sans nom). */
-  canEditPages(): boolean {
-    return this.core.pages.canEditPages();
-  }
-
-  /** Ajoute une page vide (« Page-n ») et l'affiche. */
-  addPage(name?: string): string | undefined {
-    return this.core.pages.addPage(name);
-  }
-
-  renamePage(pageId: string, name: string): void {
-    this.core.pages.renamePage(pageId, name);
-  }
-
-  /** Retire une page (pas la dernière) ; si c'était la page affichée, on passe à sa voisine. */
-  removePage(pageId: string): void {
-    this.core.pages.removePage(pageId);
-  }
-
-  getCurrentPage(): PageModel | undefined {
-    return this.core.pages.getCurrentPage();
-  }
-
-  /** Dernière caméra de chaque page visitée (à persister, SPEC §5.1 `cameraByPage`). */
-  getPageCameras(): Record<string, CameraState> {
-    return this.core.pages.getPageCameras();
-  }
-
-  /**
-   * Affiche une page (SPEC §9.4) : sa scène est reprise du cache si elle a déjà été construite,
-   * et sa caméra est celle de la dernière visite (sinon la page entière est cadrée).
-   */
-  goToPage(pageId: string): void {
-    this.core.pages.goToPage(pageId);
-  }
-
-  // -------------------------------------------------------------------------
-  // Annuler / rétablir
-
-  /** Modifications non sauvegardées depuis le chargement ou la dernière sérialisation. */
-  isModified(): boolean {
-    return this.core.edits.isModified();
-  }
-
-  canUndo(): boolean {
-    return this.core.edits.canUndo();
-  }
-
-  canRedo(): boolean {
-    return this.core.edits.canRedo();
-  }
-
-  undo(): void {
-    this.core.edits.undo();
-  }
-
-  redo(): void {
-    this.core.edits.redo();
-  }
-
-  // -------------------------------------------------------------------------
-  // Caméra et vues (SPEC §9)
-
-  /**
-   * Va à la page d'un élément et cadre dessus (diagnostics, liens). Les formes sont cadrées
-   * sur leurs bornes, les arêtes sur leur tracé dessiné.
-   */
-  focusElement(pageId: string, elementId: string): void {
-    this.core.camera.focusElement(pageId, elementId);
-  }
-
   /**
    * Métriques de l'instance (sujet 298) : images rendues (si la mesure est active), durées de lecture et de
    * construction de la scène courante, comptes de la scène et de la mémoire GPU.
@@ -189,118 +133,6 @@ export class Engine {
     this.core.metrics.setSampling(on);
   }
 
-  getCameraState(): CameraState {
-    return this.core.camera.getCameraState();
-  }
-
-  setCameraState(state: CameraState): void {
-    this.core.camera.setCameraState(state);
-  }
-
-  /**
-   * Anime la caméra vers un état (instantané si les animations sont réduites). Toute autre entrée
-   * l'interrompt. `blendLevels` : bascule 2D ↔ volume, en fondu enchaîné des deux rendus.
-   */
-  animateCameraTo(target: CameraState, durationMs?: number, blendLevels?: boolean): void {
-    this.core.camera.animateCameraTo(target, durationMs, blendLevels);
-  }
-
-  /**
-   * Bascule vue globale ↔ 1:1 (touche Entrée). Depuis la vue globale, passe à 100 % autour
-   * du point écran donné (ou du centre) ; depuis toute autre vue, revient à la vue globale.
-   */
-  toggleOverview(screen?: Point): void {
-    this.core.camera.toggleOverview(screen);
-  }
-
-  getViewMode(): ViewMode {
-    return this.core.viewModes.getViewMode();
-  }
-
-  /** Bascule animée vers la vue de dessus, isométrique ou 3D ; le centre de l'écran ne bouge pas. */
-  setViewMode(mode: ViewMode): void {
-    this.core.viewModes.setViewMode(mode);
-  }
-
-  toggleViewMode(): void {
-    this.core.viewModes.toggleViewMode();
-  }
-
-  /** Touche P : vers la 3D, ou retour au dernier mode 2D / iso. */
-  toggle3d(): void {
-    this.core.viewModes.toggle3d();
-  }
-
-  /**
-   * Aplatit ou rétablit les volumes : rendu à plat, comme une épaisseur nulle, sans toucher à la
-   * caméra ni aux réglages. Rien en 2D, où tout est déjà à plat (l'état y est seulement levé).
-   */
-  setFlattened(flattened: boolean): void {
-    this.core.viewModes.setFlattened(flattened);
-  }
-
-  /** Touche V : sans effet en 2D. */
-  toggleFlatten(): void {
-    this.core.viewModes.toggleFlatten();
-  }
-
-  /** Vue par défaut du mode courant (orientation de référence, page entière), en animation. */
-  resetView(): void {
-    this.core.camera.resetView();
-  }
-
-  /** Revient à l'orientation de référence du mode (nord en haut, ou l'orientation iso), autour du centre de l'écran. */
-  resetRotation(): void {
-    this.core.camera.resetRotation();
-  }
-
-  // -------------------------------------------------------------------------
-  // Vue graphe et mini-carte (SPEC §10, §12)
-
-  isGraphView(): boolean {
-    return this.core.graph.isGraphView();
-  }
-
-  /**
-   * Affiche la vue graphe. Depuis une page : la page rétrécit dans sa carte (transition inverse
-   * d'un lien), puis on recule jusqu'à la vue d'ensemble du graphe (ou sa dernière vue).
-   */
-  showGraph(): void {
-    this.core.graph.showGraph();
-  }
-
-  /** Graphe ↔ dernière page affichée (en plongeant dans sa carte). */
-  toggleGraph(): void {
-    this.core.graph.toggleGraph();
-  }
-
-  /**
-   * Mini-graphe (sujet 366) : nœuds et liens de la vue graphe ramenés à un encart de largeur `size` (pixels CSS, la
-   * hauteur suit les proportions du graphe). Undefined sans document.
-   */
-  getMiniGraph(size: number): MiniGraph | undefined {
-    return this.core.graph.getMiniGraph(size);
-  }
-
-  /**
-   * Affiche la mini-carte dans un canvas fourni par l'UI (SPEC §10). Renvoie de quoi la détacher.
-   * `size` : largeur en pixels CSS (la hauteur suit les proportions de la page).
-   */
-  attachMinimap(canvas: HTMLCanvasElement, size?: number): () => void {
-    return this.core.minimap.attachMinimap(canvas, size);
-  }
-
-  /**
-   * Image PNG de la page courante (ou de sa sélection) en vue de dessus, quelle que soit la vue affichée (sujet 431) ;
-   * `undefined` s'il n'y a rien à exporter.
-   */
-  exportImage(options: ImageExportOptions): Promise<Blob | undefined> {
-    return this.core.imageExport.exportPng(options);
-  }
-
-  // -------------------------------------------------------------------------
-  // Paramètres (SPEC §13)
-
   getSettings(): Settings {
     return this.core.config.getSettings();
   }
@@ -312,632 +144,5 @@ export class Engine {
    */
   updateSettings(patch: SettingsPatch): void {
     this.core.config.updateSettings(patch);
-  }
-
-  // -------------------------------------------------------------------------
-  // Sélection (SPEC §11)
-
-  getSelection(): Selection | undefined {
-    return this.core.selection.getSelection();
-  }
-
-  select(picked: PickedElement | undefined): void {
-    this.core.selection.select(picked);
-  }
-
-  /** Tout sélectionner (⌘ + A, ticket 122) : tous les éléments de la page courante, comme une zone qui les couvrirait. */
-  selectAll(): void {
-    this.core.selection.selectAll();
-  }
-
-  clearSelection(): void {
-    this.core.selection.clearSelection();
-  }
-
-  // -------------------------------------------------------------------------
-  // Liens et navigation (SPEC §11)
-
-  /**
-   * Suit le lien d'un élément de la page courante : transition vers la page cible, ou ouverture
-   * de l'URL dans un nouvel onglet. Sans effet si l'élément n'a pas de lien exploitable.
-   */
-  followLink(elementId: string): void {
-    this.core.links.followLink(elementId);
-  }
-
-  /** Dernière utilisation des liens entre pages du fichier (à persister). */
-  getLinkUsage(): LinkUsage {
-    return this.core.links.getLinkUsage();
-  }
-
-  /** Pile de navigation (de la plus ancienne à la plus récente entrée). */
-  getHistory(): HistoryEntry[] {
-    return this.core.history.getHistory();
-  }
-
-  /**
-   * Retour : dépile et revient exactement à la vue d'origine, par la transition inverse
-   * (la page courante rétrécit dans la forme d'où l'on venait). Sans historique : un seul parent
-   * → on y va ; plusieurs → événement `backChoice` (l'UI propose la liste, puis `backTo`).
-   */
-  back(): void {
-    this.core.history.back();
-  }
-
-  /** Pages parentes de la page courante (pages ayant un lien vers elle), la plus récemment utilisée d'abord. */
-  getParentPages(): ParentLink[] {
-    return this.core.history.parents();
-  }
-
-  /**
-   * Remonte vers une page parente choisie : comme `back` si la pile y ramène (vue d'origine exacte), sinon sortie par
-   * la forme qui porte le lien.
-   */
-  backTo(parentPageId: string): void {
-    this.core.history.backTo(parentPageId);
-  }
-
-  // -------------------------------------------------------------------------
-  // Modes et effets de page (sujets 69, 143)
-
-  /** Modes de page du moteur, en lecture seule (sujet 304) : choix du mode, réglages déclarés, modes d'affichage. */
-  getModeRegistry(): ModeRegistryView {
-    return this.core.modes.view();
-  }
-
-  /** Effets de page du moteur, en lecture seule (sujets 290, 304 : l'appli n'en suppose pas d'autre). */
-  getEffectRegistry(): EffectRegistryView {
-    return this.core.effects.view();
-  }
-
-  /** Formes du moteur, en lecture seule (panneau, aperçus ; sujets 290, 304). */
-  getShapeRegistry(): ShapeRegistryView {
-    return this.core.registry.view();
-  }
-
-  /** Palette d'une page : catégories et modèles proposés, d'après son mode et les formes du moteur. */
-  paletteFor(page: PageModel | undefined): PageModePalette {
-    return this.core.pageModes.palette(page);
-  }
-
-  /**
-   * Charge une bibliothèque de formes depuis son JSON (sujet 529, format `drawio-spatial/shapes`) : ses catégories
-   * arrivent dans la palette, ses formes posées se dessinent. Un id déjà chargé est remplacé. Un JSON invalide ne
-   * change rien et rend ses erreurs.
-   */
-  registerShapes(json: unknown): ShapeLibraryResult {
-    return this.core.shapeLibraries.register(json);
-  }
-
-  /** Retire une bibliothèque de formes ; ses formes posées s'affichent non chargées. Faux si elle n'était pas chargée. */
-  unregisterShapes(libraryId: string): boolean {
-    return this.core.shapeLibraries.unregister(libraryId);
-  }
-
-  /**
-   * Bibliothèques (sans `kind`) ou formes que l'hôte ne peut pas fournir (sujet 531, réponse à `shapesMissing`) :
-   * dessinées introuvables et signalées dans les Diagnostics, jusqu'à ce que leur bibliothèque soit enregistrée.
-   */
-  markShapesUnavailable(refs: readonly LibraryShapeRef[]): void {
-    this.core.shapeLibraries.markUnavailable(refs);
-  }
-
-  /** Bibliothèque de formes chargée (métadonnées et `meta` compris), en lecture seule. */
-  shapeLibrary(libraryId: string): ShapeLibrary | undefined {
-    return this.core.shapeLibraries.library(libraryId);
-  }
-
-  shapeLibraries(): ShapeLibrary[] {
-    return this.core.shapeLibraries.libraries();
-  }
-
-  /**
-   * Forme générée de la page courante (sujets 538, 545, ex. Metamorph) : titre, état, instructions et propositions
-   * reçues ; undefined pour une autre forme.
-   */
-  generationOf(shapeId: string): GenerationView | undefined {
-    return this.core.generatedShapes.view(shapeId);
-  }
-
-  /** Instructions visuelles d'une forme générée au brouillon (une étape d'annulation). */
-  setGenerationInstructions(shapeId: string, instructions: string): void {
-    this.core.generatedShapes.setInstructions(shapeId, instructions);
-  }
-
-  /** « Valider » une forme générée au brouillon : sa demande part à l'hôte (`generationRequest`). Faux si rien à décrire. */
-  submitGeneration(shapeId: string): boolean {
-    return this.core.generatedShapes.submit(shapeId);
-  }
-
-  /**
-   * Propositions de l'hôte pour une forme générée en attente (réponse à `generationRequest`) : un JSON de bibliothèque
-   * de formes (format `drawio-spatial/shapes`, une proposition par forme). Rend ses erreurs s'il est invalide ou si la
-   * forme n'attend plus rien.
-   */
-  generationResults(shapeId: string, json: unknown): ShapeLibraryResult {
-    return this.core.generatedShapes.results(shapeId, json);
-  }
-
-  /**
-   * Génération échouée chez l'hôte (réponse à `generationRequest`) : la forme est prête sans propositions, montre
-   * `error`, et « Réessayer » ou « Reprompt » rendent la main. Faux si la forme n'attend plus rien.
-   */
-  generationFailed(shapeId: string, error: string): boolean {
-    return this.core.generatedShapes.failed(shapeId, error);
-  }
-
-  /**
-   * « Réessayer » une forme générée prête : ses propositions sont oubliées et une nouvelle demande part à l'hôte, même
-   * description. Sans effet pendant la génération.
-   */
-  retryGeneration(shapeId: string): void {
-    this.core.generatedShapes.retry(shapeId);
-  }
-
-  /** « Reprompt » une forme générée prête : retour au brouillon pour modifier sa description. Sans effet pendant la génération. */
-  repromptGeneration(shapeId: string): void {
-    this.core.generatedShapes.reprompt(shapeId);
-  }
-
-  /**
-   * Proposition choisie : la forme générée devient la forme du modèle de palette `templateId` (forme d'une bibliothèque
-   * que l'hôte vient d'enregistrer, ex. `metamorph:<id>`), à la même place, avec son texte et ses flèches. Faux si le
-   * modèle n'est pas chargé.
-   */
-  acceptGeneration(shapeId: string, templateId: string): boolean {
-    return this.core.generatedShapes.accept(shapeId, templateId);
-  }
-
-  /** Modèles des formes présentes sur la page (catégorie « Utilisées » de la palette). */
-  usedTemplates(page: Pick<PageModel, 'shapes'> | undefined): ShapeTemplate[] {
-    return this.core.registry.usedTemplates(page);
-  }
-
-  /** Effets actifs possibles sur la page : permis par son mode et ses modes d'affichage (appel du mode protégé). */
-  allowedEffects(page: PageModel): string[] {
-    return this.core.pageEffects.allowed(page);
-  }
-
-  /** Flèche gérée par le mode de la page courante (`edges.manages`, ex. relation RDD) : réglages imposés. */
-  managesEdge(edgeId: string): boolean {
-    return this.core.pageModes.managesEdge(edgeId);
-  }
-
-  /**
-   * Mode d'une page (`spatial.mode`) ; undefined : page normale. Les données du mode restent en sommeil sur la page
-   * et ses éléments : revenir au mode les retrouve.
-   */
-  setPageMode(pageId: string, modeId: string | undefined): void {
-    this.core.pageModes.setPageMode(pageId, modeId);
-  }
-
-  /** Active ou retire un effet d'une page (`spatial.effects`), en une étape d'annulation. */
-  setPageEffect(pageId: string, effectId: string, enabled: boolean): void {
-    this.core.pageEffects.setPageEffect(pageId, effectId, enabled);
-  }
-
-  /**
-   * Calques d'une page (sujet 523) et son calque courant ; undefined si elle n'en a pas (page en mode sans calques,
-   * vue graphe).
-   */
-  getPageLayers(pageId: string): PageLayersView | undefined {
-    return this.core.layers.view(pageId);
-  }
-
-  /** Calque courant d'une page : là où vont les formes déposées, les flèches tirées et les collages. */
-  setCurrentLayer(pageId: string, layerId: string): void {
-    this.core.layers.setCurrent(pageId, layerId);
-  }
-
-  /** Ajoute un calque au-dessus de tous, qui devient courant. */
-  addLayer(pageId: string): void {
-    this.core.layers.addLayer(pageId);
-  }
-
-  renameLayer(pageId: string, layerId: string, name: string): void {
-    this.core.layers.renameLayer(pageId, layerId, name);
-  }
-
-  /** Monte (vers le dessus) ou descend un calque d'un rang. */
-  moveLayer(pageId: string, layerId: string, direction: 'up' | 'down'): void {
-    this.core.layers.moveLayer(pageId, layerId, direction);
-  }
-
-  /** Supprime un calque et son contenu ; jamais le dernier de la page. */
-  removeLayer(pageId: string, layerId: string): void {
-    this.core.layers.removeLayer(pageId, layerId);
-  }
-
-  setLayerVisible(pageId: string, layerId: string, visible: boolean): void {
-    this.core.layers.setLayerVisible(pageId, layerId, visible);
-  }
-
-  setLayerLocked(pageId: string, layerId: string, locked: boolean): void {
-    this.core.layers.setLayerLocked(pageId, layerId, locked);
-  }
-
-  /** Élévation d'un calque en iso et en 3D, en pixels (0 : au sol). */
-  setLayerElevation(pageId: string, layerId: string, elevation: number): void {
-    this.core.layers.setLayerElevation(pageId, layerId, elevation);
-  }
-
-  /** Aplatit (élévations ramenées à 0, en animation) ou étend les calques d'une page, sans rien écrire. */
-  setLayersFlattened(pageId: string, flattened: boolean): void {
-    this.core.layerSpreads.setLayersFlattened(pageId, flattened);
-  }
-
-  /** Passe la sélection sur un calque (éléments posés sur un calque, avec leur contenu). */
-  moveSelectionToLayer(layerId: string): void {
-    this.core.layers.moveSelectionToLayer(layerId);
-  }
-
-  /**
-   * Opération d'un mode sur la page courante (ex. ajouter un flux) : ses écritures forment une étape d'annulation ;
-   * rien n'est enregistré si elle ne change rien.
-   */
-  editPageMode(label: string, edit: (edit: ModeEdit) => void): void {
-    this.core.pageModes.editPageMode(label, edit);
-  }
-
-  /**
-   * Réglages déclarés par le mode de la page pour une cible, évalués (valeur, lecture seule, choix) : le panneau les
-   * affiche sans appeler le mode (sujet 294). `palette` : couleurs proposées aux choix.
-   */
-  modePropertyViews(
-    page: PageModel,
-    scope: ModeScope,
-    target: ModeTarget,
-    part?: string,
-    palette?: readonly string[],
-  ): ModePropertyView[] {
-    return this.core.modePanel.propertyViews(page, scope, target, part, palette);
-  }
-
-  /**
-   * Réglage déclaré par le mode de la page courante (`scope` : la page, ou la flèche / forme `targetId`), écrit par
-   * sa règle s'il en a une, sinon dans son attribut. undefined = vide. `part` : partie sélectionnée de la forme, pour
-   * un réglage de partie (sujet 249). `merge` : réglage en direct (`ModeProperty.live`), une seule étape d'annulation
-   * tant que la clé est la même (sujet 271).
-   */
-  setModeProperty(
-    scope: ModeScope,
-    targetId: string | undefined,
-    key: string,
-    value: string | undefined,
-    part?: string,
-    merge?: string,
-  ): void {
-    this.core.modePanel.setModeProperty(scope, targetId, key, value, part, merge);
-  }
-
-  /**
-   * « Courant » du mode d'une page (ex. flux courant) : le dernier choisi s'il est encore valable, sinon la valeur
-   * initiale du mode ; undefined pour une page sans mode ou sans courant.
-   */
-  getModeCurrent(pageId?: string): string | undefined {
-    return this.core.modeCurrents.getModeCurrent(pageId);
-  }
-
-  /**
-   * Barre du courant du mode de la page, en haut de la zone de dessin : couleur, libellé, valeurs possibles dans
-   * l'ordre (boutons précédent / suivant). Undefined : pas de barre (pas de mode, pas de courant, pas de couleur).
-   */
-  getModeIndicator(pageId?: string): ModeIndicator | undefined {
-    return this.core.modeCurrents.getModeIndicator(pageId);
-  }
-
-  /**
-   * Renomme le courant du mode de la page courante (ex. titre du flux courant, depuis la barre) : une étape
-   * d'annulation. Un nom vide (ou fait d'espaces) est ignoré.
-   */
-  renameModeCurrent(label: string): void {
-    this.core.modeCurrents.renameModeCurrent(label);
-  }
-
-  /** Choisit le courant du mode d'une page (ex. bouton « suivant » de la barre) ; ignoré s'il n'est pas valable. */
-  setModeCurrent(value: string, pageId?: string): void {
-    this.core.modeCurrents.setModeCurrent(value, pageId);
-  }
-
-  // Prise en main de la page par un mode (sujet 467, `PageTakeover`) : le moteur est passé tel quel aux modes de
-  // l'appli, qui n'en voient que ces briques.
-
-  /**
-   * Verrouille l'édition de la page affichée pour `owner` (même en lecture seule) : sélection vidée, rien ne se modifie
-   * (pages, annuler et rétablir compris), la caméra reste libre ; les entrées peuvent être capturées
-   * (`EditLock.captureInput`). Rendu par `release`, au changement de page ou de document, ou à l'arrêt du moteur
-   * (`released` est alors appelé) ; signalé par `editLockChange`.
-   */
-  lockEditing(owner: object, released?: () => void): EditLock | undefined {
-    return this.core.editLocks.lock(owner, released);
-  }
-
-  /** Pose la couche de `owner` sur la page affichée : voile, éléments gardés, objets dessinés par le mode. */
-  setOverlay(owner: object, overlay: PageOverlay): void {
-    this.core.overlays.set(owner, overlay);
-  }
-
-  clearOverlay(owner: object): void {
-    this.core.overlays.clear(owner);
-  }
-
-  /** La forme sort de la vue : la caméra glisse pour la cadrer, avec les formes `around`. */
-  keepInView(shapeId: string, options?: KeepInView): void {
-    this.core.camera.keepInView(shapeId, options);
-  }
-
-  // -------------------------------------------------------------------------
-  // Édition (SPEC §14) : cibles, flèches, glisser
-
-  /** Geste d'édition en cours (déplacement, redimensionnement, connecteur) : ne pas l'interrompre. */
-  isDragging(): boolean {
-    return this.core.gesture.isDragging();
-  }
-
-  isEditable(): boolean {
-    return this.core.targets.isEditable();
-  }
-
-  /** Active ou désactive l'édition (poignées, glisser, commandes d'édition). */
-  setEditable(editable: boolean): void {
-    this.core.targets.setEditable(editable);
-  }
-
-  /**
-   * Ancrage propre à une page (undefined : celui de l'appli). Passer une page en automatique y répartit toutes les
-   * flèches, dans la même étape d'annulation.
-   */
-  setPageAnchoring(pageId: string, anchoring: Anchoring | undefined): void {
-    this.core.arrangement.setPageAnchoring(pageId, anchoring);
-  }
-
-  /** Tracé propre à une page (undefined : celui de l'appli), pour les flèches qui y seront créées. */
-  setPageEdgeLine(pageId: string, line: EdgeLine | undefined): void {
-    this.core.arrangement.setPageEdgeLine(pageId, line);
-  }
-
-  /** Saut propre à une page (undefined : celui de l'appli), suivi par ses flèches sans `jumpStyle`. */
-  setPageJumps(pageId: string, jumps: JumpDefaults['style'] | undefined): void {
-    this.core.jumps.setPageJumps(pageId, jumps);
-  }
-
-  /**
-   * Retour en auto : points intermédiaires et points d'attache imposés retirés, la flèche reste reliée
-   * aux mêmes formes (le tracé redevient entièrement calculé).
-   */
-  resetEdgeRoute(edgeId: string): void {
-    this.core.edgePoints.resetEdgeRoute(edgeId);
-  }
-
-  // -------------------------------------------------------------------------
-  // Édition : textes
-
-  /**
-   * Texte d'une flèche : son label (`cellId` = l'arête) ou un label enfant, retiré si le texte est vide ;
-   * HTML draw.io s'il a une mise en forme partielle.
-   */
-  setEdgeText(edgeId: string, cellId: string, text: string, html?: string): void {
-    this.core.edgeTexts.setEdgeText(edgeId, cellId, text, html);
-  }
-
-  /**
-   * Déplace le texte de flèche en cours d'édition (poignée sous l'éditeur) : `screen` est le point visé
-   * pour le texte (son ancre). Suivi en direct ; `endEditedTextMove` l'écrit dans le fichier.
-   */
-  moveEditedText(screen: Point): void {
-    this.core.edgeTexts.moveEditedText(screen);
-  }
-
-  /** Fin du déplacement du texte en cours d'édition : une étape d'annulation, écrite comme draw.io. */
-  endEditedTextMove(): void {
-    this.core.edgeTexts.endEditedTextMove();
-  }
-
-  /**
-   * Ancre un texte de flèche au début, au milieu ou à la fin du tracé (à 10 % du bout pour le début et
-   * la fin, comme les textes créés), sur le tracé (distance et décalage remis à zéro).
-   */
-  setEdgeTextAnchor(edgeId: string, cellId: string, anchor: EdgeTextAnchor): void {
-    this.core.edgeTexts.setEdgeTextAnchor(edgeId, cellId, anchor);
-  }
-
-  /**
-   * Fait sauter le texte de début / fin en cours d'édition de l'autre côté du trait (règle inversée), s'il
-   * est dans une configuration par défaut ; un texte encore à créer sera créé de ce côté.
-   */
-  flipEditedText(): void {
-    this.core.edgeTexts.flipEditedText();
-  }
-
-  /**
-   * Demande d'édition du label d'un élément de la page courante (double-clic, F2) : l'UI reçoit
-   * le texte et l'emprise à l'écran (événement `labelEdit`), puis appelle `setLabel`.
-   */
-  editLabel(elementId?: string): void {
-    this.core.labelEditor.editLabel(elementId);
-  }
-
-  /**
-   * Texte en cours de saisie dans l'éditeur en place (à chaque frappe) : une forme qui place elle-même son label (ex.
-   * onglet d'une région RDD) est redessinée avec lui, sans rien écrire ; la fermeture rétablit le texte d'origine.
-   */
-  previewEditedLabel(text: string): void {
-    this.core.labelEditor.previewLabel(text);
-  }
-
-  /** Fin de l'édition en place (validée ou annulée) : le label dessiné réapparaît. */
-  closeLabelEdit(): void {
-    this.core.labelEditor.closeLabelEdit();
-  }
-
-  /**
-   * Format du texte d'une cellule de la page courante (forme, arête ou label enfant) : clés de style
-   * `fontStyle`, `fontSize`, `fontColor`, `align`, `verticalAlign`… (undefined = clé retirée). Une
-   * étape d'annulation ; pendant l'édition en place, l'éditeur reçoit le nouveau format.
-   */
-  setTextFormat(cellId: string, patch: Record<string, string | undefined>): void {
-    this.core.textEdits.setTextFormat(cellId, patch);
-  }
-
-  /**
-   * Remplace le label d'un élément : texte brut (converti en HTML si le style l'exige), ou HTML draw.io
-   * si le texte a une mise en forme partielle (`html`, le style passe en `html=1`).
-   */
-  setLabel(elementId: string, text: string, html?: string): void {
-    this.core.textEdits.setLabel(elementId, text, html);
-  }
-
-  /** Commentaire d'une partie d'une forme validé dans l'éditeur (touche C, sujet 262) ; vide le retire. */
-  setPartComment(shapeId: string, part: string, text: string): void {
-    this.core.shapeParts.setComment(shapeId, part, text);
-  }
-
-  /** Texte d'une partie d'une forme (ex. label d'un champ d'une table RDD, sujet 249), validé dans l'éditeur. */
-  setPartText(shapeId: string, part: string, text: string): void {
-    this.core.shapeParts.setText(shapeId, part, text);
-  }
-
-  /**
-   * Texte de début ou de fin d'une flèche de la page courante (label enfant près de la source ou de
-   * la cible, comme dans draw.io) : créé, modifié, ou retiré si le texte est vide.
-   */
-  setEdgeEndLabel(edgeId: string, end: EdgeEnd, text: string, html?: string, flipped?: boolean): void {
-    this.core.edgeTexts.setEdgeEndLabel(edgeId, end, text, html, flipped);
-  }
-
-  // -------------------------------------------------------------------------
-  // Édition : commandes
-
-  /**
-   * Ajoute une forme de la palette sur la page courante, centrée sur un point écran (dépôt) ou au
-   * centre de la vue : point projeté au sol (vue de dessus comme iso), aimanté à la grille.
-   * Renvoie l'id de la nouvelle cellule, sélectionnée. Déposée dans une place proposée par le mode de la page (sujet
-   * 481), elle s'y pose ; `snap` faux (Alt) : pas de place.
-   */
-  addShape(template: ShapeTemplate, screen?: Point, snap = true): string | undefined {
-    return this.core.elements.addShape(template, screen, snap);
-  }
-
-  /** Forme de la palette glissée au-dessus du canvas, à `screen` : places du mode montrées (sujet 481). */
-  paletteDragOver(template: ShapeTemplate, screen: Point, snap: boolean): void {
-    this.core.elements.paletteDragOver(template, screen, snap);
-  }
-
-  /** Fin du glisser depuis la palette (lâché ou sorti du canvas) : places retirées. */
-  paletteDragEnd(): void {
-    this.core.elements.paletteDragEnd();
-  }
-
-  /** Lien d'un élément de la page courante (vers une page ou une URL) ; undefined = retiré. */
-  setLink(elementId: string, link: LinkModel | undefined): void {
-    this.core.properties.setLink(elementId, link);
-  }
-
-  /**
-   * Commentaire d'un élément de la page courante (attribut `tooltip`, montré au survol) : texte brut, et HTML s'il a
-   * une mise en forme partielle ; texte vide = retiré.
-   */
-  setComment(elementId: string, comment: ElementComment): void {
-    this.core.properties.setComment(elementId, comment);
-  }
-
-  /** Édition en place du commentaire d'un élément de la page courante (événement `commentEdit` pour l'UI). */
-  editComment(elementId: string): void {
-    this.core.properties.editComment(elementId);
-  }
-
-  /**
-   * Attribut spatial d'une forme (SPEC §14.3), ex. `spatial.height`, `spatial.tag` : nombre (positif) ou texte
-   * (sans `;`, séparateur du style) ; undefined le retire (valeur par défaut). Écrit là où il est déjà (attribut
-   * de l'objet), sinon dans le style. `merge` : réglage en direct (champ tapé au fil des frappes), fusionné en une
-   * étape d'annulation avec les précédents de même clé ; pour un attribut qui ne touche que le dessin de la forme
-   * (`LIVE_SHAPE_KEYS`), seule la forme est redessinée.
-   */
-  setSpatial(elementId: string, key: string, value: number | string | undefined, merge?: string): void {
-    this.core.properties.setSpatial(elementId, key, value, merge);
-  }
-
-  /**
-   * Applique un style (fond, contour, texte) à des formes de la page courante, en une seule étape
-   * d'annulation. `known` : styles de la palette, pour retirer une couleur de texte posée par l'un d'eux.
-   */
-  applyStylePreset(elementIds: string[], preset: StylePreset, known?: StylePreset[]): void {
-    this.core.styles.applyStylePreset(elementIds, preset, known);
-  }
-
-  /**
-   * Clés de style draw.io sur des formes ou des flèches de la page courante (ex. bordure : `strokeColor`, `strokeWidth`,
-   * `dashed`…), en une étape d'annulation ; undefined retire la clé. Seules les clés qui changent.
-   */
-  setElementsStyle(
-    elementIds: string[],
-    patch: Record<string, string | undefined> | ((style: Record<string, string>) => Record<string, string | undefined>),
-    label?: string,
-    merge?: string,
-  ): void {
-    this.core.styles.setElementsStyle(elementIds, patch, label, merge);
-  }
-
-  /**
-   * Retourne ou pivote de 90° les formes données qui l'acceptent (sujet 335), chacune sur son centre, en une étape
-   * d'annulation. Le texte ne bouge pas.
-   */
-  orientShapes(shapeIds: string[], action: OrientAction): void {
-    this.core.orient.orientShapes(shapeIds, action);
-  }
-
-  /** Inverse des flèches de la page courante (ticket 131) : elles vont de leur ancienne cible à leur ancienne source. */
-  reverseEdges(edgeIds: string[]): void {
-    this.core.styles.reverseEdges(edgeIds);
-  }
-
-  /** Ordre de dessin de la sélection (ticket 130) : premier plan, arrière-plan, avancer, reculer. */
-  orderSelection(move: OrderMove): void {
-    this.core.arrange.orderSelection(move);
-  }
-
-  /**
-   * Aligne les formes de la sélection (ticket 136) sur la référence : cadre de la sélection, premier ou dernier
-   * élément sélectionné ; une étape d'annulation, flèches réparties à nouveau en ancrage automatique.
-   */
-  alignSelection(move: AlignMove, reference: AlignReference): void {
-    this.core.arrange.alignSelection(move, reference);
-  }
-
-  /** Répartit les formes de la sélection (ticket 136) à intervalles égaux, les deux extrêmes restant en place. */
-  distributeSelection(move: DistributeMove): void {
-    this.core.arrange.distributeSelection(move);
-  }
-
-  /** Supprime la sélection : avec son contenu, ses labels et les arêtes qui y sont reliées (comme draw.io). */
-  deleteSelection(label?: string): void {
-    this.core.elements.deleteSelection(label);
-  }
-
-  /**
-   * Copie la sélection (ticket 59) : renvoie le XML à mettre dans le presse-papier (format draw.io),
-   * aussi gardé comme presse-papier interne. Undefined : rien à copier.
-   */
-  copySelection(): string | undefined {
-    return this.core.clipboard.copySelection();
-  }
-
-  /** Coupe la sélection : copiée puis supprimée ; le premier collage la remet à sa place. */
-  cutSelection(): string | undefined {
-    return this.core.clipboard.cutSelection();
-  }
-
-  /**
-   * Colle sur la page courante : `text` lu dans le presse-papier système (sans lui : le presse-papier
-   * interne). Les éléments collés sont décalés d'un pas de grille de plus à chaque collage du même
-   * contenu, puis sélectionnés. Renvoie false si le texte n'est pas un contenu draw.io.
-   */
-  paste(text?: string): boolean {
-    return this.core.clipboard.paste(text);
-  }
-
-  /** Duplique la sélection (copier + coller sans toucher au presse-papier), décalée d'un pas de grille. */
-  duplicateSelection(): void {
-    this.core.clipboard.duplicateSelection();
   }
 }

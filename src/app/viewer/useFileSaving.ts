@@ -41,10 +41,10 @@ export function useFileSaving({
     const instance = engineRef.current;
     if (!instance || instance.getFileId() !== file.id) return;
     void store.updateMeta(file.id, {
-      lastPageId: instance.getCurrentPage()?.id,
-      cameraByPage: instance.getPageCameras(),
-      history: instance.getHistory(),
-      linkUsage: instance.getLinkUsage(),
+      lastPageId: instance.pages.current()?.id,
+      cameraByPage: instance.pages.cameras(),
+      history: instance.navigation.history(),
+      linkUsage: instance.navigation.linkUsage(),
     });
   }, [file.id, engineRef]);
   const scheduleSave = useCallback(() => {

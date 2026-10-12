@@ -11,16 +11,20 @@ function fakeEngine(loaded: string[] = []) {
   const calls: unknown[][] = [];
   const engine = {
     on: (event: string, listener: Listener) => listeners.set(event, listener),
-    registerShapes: () => ({ ok: true }),
-    shapeLibrary: (id: string) =>
-      id === 'metamorph' && loaded.length > 0 ? { shapes: loaded.map((shape) => ({ id: shape })) } : undefined,
-    markShapesUnavailable: (refs: unknown) => calls.push(['unavailable', refs]),
-    generationResults: (shapeId: string) => {
-      calls.push(['results', shapeId]);
-      return { ok: true };
+    shapes: {
+      register: () => ({ ok: true }),
+      library: (id: string) =>
+        id === 'metamorph' && loaded.length > 0 ? { shapes: loaded.map((shape) => ({ id: shape })) } : undefined,
+      markUnavailable: (refs: unknown) => calls.push(['unavailable', refs]),
     },
-    generationFailed: (shapeId: string, error: string) => calls.push(['failed', shapeId, error]),
-    acceptGeneration: (shapeId: string, templateId: string) => calls.push(['accept', shapeId, templateId]),
+    generation: {
+      results: (shapeId: string) => {
+        calls.push(['results', shapeId]);
+        return { ok: true };
+      },
+      failed: (shapeId: string, error: string) => calls.push(['failed', shapeId, error]),
+      accept: (shapeId: string, templateId: string) => calls.push(['accept', shapeId, templateId]),
+    },
   } as unknown as Engine;
   const emit = async (event: string, value: unknown) => {
     await (listeners.get(event) as (value: unknown) => unknown)(value);

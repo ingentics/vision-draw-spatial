@@ -4,3 +4,5 @@
 
 - `src/engine/Engine.ts` passe de 796 à 932 lignes (bibliothèques, calques, Metamorph), délégation seule : regrouper
   les opérations par domaine (comme `engine.layers.*`) pour revenir sous 400 lignes.
+
+- Fait : sujet 558 (API du moteur regroupée par domaine, `src/engine/facade/`).

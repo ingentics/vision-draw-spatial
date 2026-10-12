@@ -77,7 +77,7 @@ y est enregistré. L'interface `FileStore` (SPEC §5.1) permet de brancher un au
 | `onSave(xml, { auto })` | Sauvegarde demandée (Ctrl+S dans le composant, ou `ref.save()` : `auto: false`) ou automatique (`auto: true`) |
 | `onError(error)` | Fichier illisible (`DrawioParseError`) ou introuvable dans le `store` |
 | `onEngine(engine)` | Le moteur est créé (puis `undefined` au démontage) |
-| `onShapesMissing(missing)` | Le document contient des formes de bibliothèque non chargées (`{ library, kind }[]`, chacune une fois par fichier ouvert) : répondre par `engine.registerShapes(json)` ou `engine.markShapesUnavailable(refs)` |
+| `onShapesMissing(missing)` | Le document contient des formes de bibliothèque non chargées (`{ library, kind }[]`, chacune une fois par fichier ouvert) : répondre par `engine.shapes.register(json)` ou `engine.shapes.markUnavailable(refs)` |
 
 ### `ref`
 
@@ -87,14 +87,23 @@ const viewer = useRef<DrawioSpatialHandle>(null);
 viewer.current?.save(); // XML à jour (modifications + vue de chaque page), appelle onSave
 viewer.current?.undo();
 viewer.current?.redo();
-viewer.current?.engine?.goToPage(pageId); // tout le moteur : navigation, vue, sélection, édition
+viewer.current?.engine?.pages.goTo(pageId); // tout le moteur : navigation, vue, sélection, édition
 ```
 
-Quelques méthodes utiles du moteur : `goToPage`, `getViewMode`, `setViewMode('top' | 'iso' | '3d')`,
-`toggleViewMode`, `toggle3d`, `toggleFlatten`, `showGraph`, `toggleGraph`, `back`, `focusElement(pageId, elementId)`,
-`getDocument`, `getCurrentPage`, `getCameraState`, `select`, `selectAll`, `followLink`, `isEditable`,
-`addShape(SHAPE_TEMPLATES[0])`, `addPage`, `setLabel`, `setLink`, `setSpatial`, `deleteSelection`, `canUndo`,
-`canRedo`, `serialize`, `isModified`. La liste de référence est SPEC §4.3 et `src/engine/Engine.ts`.
+Le moteur range son API par domaine (sujet 558) : à la racine le cycle de vie et le document (`on`, `load`,
+`getDocument`, `serialize`, `getSettings`, `updateSettings`), puis un objet par domaine. Quelques méthodes utiles :
+
+- `engine.pages` : `goTo`, `current`, `add`, `rename`, `remove` ;
+- `engine.view` : `mode`, `setMode('top' | 'iso' | '3d')`, `toggleMode`, `toggle3d`, `toggleFlatten`, `state`,
+  `focus(pageId, elementId)`, `reset` ;
+- `engine.graph` : `show`, `toggle` ; `engine.navigation` : `back`, `followLink` ;
+- `engine.selection` : `current`, `select`, `selectAll`, `delete`, `copy`, `paste` ;
+- `engine.edit` : `isEditable`, `addShape(SHAPE_TEMPLATES[0])`, `setLink`, `setSpatial` ; `engine.text` : `setLabel` ;
+- `engine.history` : `canUndo`, `canRedo`, `undo`, `redo`, `isModified` ;
+- `engine.layers`, `engine.shapes` (bibliothèques), `engine.generation`, `engine.modes`, `engine.effects`,
+  `engine.takeover` (prise en main de la page par un mode).
+
+La liste de référence est SPEC §4.3, `src/engine/Engine.ts` et `src/engine/facade/`.
 
 ## Bibliothèques de formes
 
@@ -103,7 +112,7 @@ moteur (sujets 529 à 531). Chaque catégorie d'une bibliothèque devient une se
 (résolution, formes non chargées ou introuvables, Diagnostics) et Metamorph : SPEC §8.2 et §8.3.
 
 ```ts
-const result = engine.registerShapes({
+const result = engine.shapes.register({
   format: 'drawio-spatial/shapes',
   formatVersion: 1,
   library: { id: 'infra', name: 'Infrastructure', meta: { source: 'interne' } },
@@ -121,12 +130,12 @@ const result = engine.registerShapes({
   ],
 });
 if (!result.ok) console.error(result.errors); // rien n'est changé
-engine.unregisterShapes('infra');
+engine.shapes.unregister('infra');
 ```
 
 - **Format** : `format` et `formatVersion` (1) obligatoires ; une version inconnue est refusée, une clé inconnue
   ignorée. `library` : `id`, `name`, et facultatifs `description`, `author`, `license`, `homepage`, `tags`, `meta`
-  (objet libre, gardé tel quel : `engine.shapeLibrary(id)`) ; `categories` facultatif. Une forme : `id`, `name`,
+  (objet libre, gardé tel quel : `engine.shapes.library(id)`) ; `categories` facultatif. Une forme : `id`, `name`,
   `size`, `render`
   (`outline` : au moins 3 points `[x, y]` en fraction des bornes ; `details` : tracés `{ path, closed?, filled? }` ;
   `depth` : hauteur du volume en px), et facultatifs `description`, `keywords`, `style`, `value`, `icon` (données
@@ -135,7 +144,7 @@ engine.unregisterShapes('infra');
 - **Remplacer** : réenregistrer le même `library.id` remplace la bibliothèque (pas de version).
 - **Fichier** : une forme posée garde son style, plus `spatial.library` et `spatial.kind`. Ouverte sans sa
   bibliothèque, elle s'affiche hachurée avec un badge « puzzle » (non chargée), ou un badge d'avertissement si l'hôte
-  l'a déclarée introuvable (`markShapesUnavailable([{ library, kind? }])`, sans `kind` : toute la bibliothèque) ; elle
+  l'a déclarée introuvable (`engine.shapes.markUnavailable([{ library, kind? }])`, sans `kind` : toute la bibliothèque) ; elle
   reste éditable comme un rectangle. draw.io dessine le style seul.
 
 ### Formes générées par l'hôte (sujets 538, 545)
@@ -148,23 +157,23 @@ engine.on('generationRequest', async ({ shapeId, kind, text, comment, instructio
   if (kind !== 'metamorph') return; // l'hôte choisit qui génère, selon la forme
   try {
     const candidates = await monServeur.generer({ text, comment, instructions, width, height }); // JSON de bibliothèque
-    engine.generationResults(shapeId, candidates); // refusé si la forme n'attend plus rien
+    engine.generation.results(shapeId, candidates); // refusé si la forme n'attend plus rien
   } catch {
-    engine.generationFailed(shapeId, 'La génération a échoué'); // message montré, « Réessayer » rend la main
+    engine.generation.failed(shapeId, 'La génération a échoué'); // message montré, « Réessayer » rend la main
   }
 });
 // Proposition choisie : l'hôte la garde, recharge sa bibliothèque, puis la pose à la place de la forme générée.
-engine.registerShapes(bibliothequeAJour);
-engine.acceptGeneration(shapeId, 'metamorph:<id de la proposition>');
+engine.shapes.register(bibliothequeAJour);
+engine.generation.accept(shapeId, 'metamorph:<id de la proposition>');
 ```
 
-- `generationRequest` part à « Valider », à « Réessayer » (`retryGeneration`) et à la réouverture d'une forme en
-  attente ; `generationChange` signale des propositions reçues ou oubliées. Le panneau lit `generationOf(shapeId)`
+- `generationRequest` part à « Valider », à « Réessayer » (`engine.generation.retry`) et à la réouverture d'une forme en
+  attente ; `generationChange` signale des propositions reçues ou oubliées. Le panneau lit `engine.generation.of(shapeId)`
   (titre, état `draft` / `pending` / `ready`, instructions, propositions, message d'échec `error`) et écrit par
-  `setGenerationInstructions`, `submitGeneration`, `repromptGeneration` (retour au brouillon).
-- Sans réponse de l'hôte (`generationResults` ou `generationFailed`), la forme reste en attente : toute demande doit
+  `setInstructions`, `submit`, `reprompt` (retour au brouillon).
+- Sans réponse de l'hôte (`engine.generation.results` ou `failed`), la forme reste en attente : toute demande doit
   finir par l'un des deux. Une forme `metamorph:*` que l'hôte ne sait plus fournir est à déclarer introuvable
-  (`markShapesUnavailable`), comme toute forme de bibliothèque.
+  (`engine.shapes.markUnavailable`), comme toute forme de bibliothèque.
 - Une forme de bibliothèque sans `category` (et `categories` est facultatif) va dans la catégorie « Autres » de la
   palette, cachée tant qu'elle est vide.
 

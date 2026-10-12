@@ -54,7 +54,7 @@ function Example() {
         <select
           aria-label="Page"
           value={page?.id ?? ''}
-          onChange={(event) => viewer.current?.engine?.goToPage(event.target.value)}
+          onChange={(event) => viewer.current?.engine?.pages.goTo(event.target.value)}
         >
           {pages.map((p) => (
             <option key={p.id} value={p.id}>
@@ -62,7 +62,7 @@ function Example() {
             </option>
           ))}
         </select>
-        <button onClick={() => viewer.current?.engine?.toggleViewMode()}>2D ↔ Iso</button>
+        <button onClick={() => viewer.current?.engine?.view.toggleMode()}>2D ↔ Iso</button>
         <button disabled={!editable} onClick={() => viewer.current?.undo()}>
           Annuler
         </button>
