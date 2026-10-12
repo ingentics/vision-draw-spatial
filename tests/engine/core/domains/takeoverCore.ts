@@ -53,6 +53,7 @@ export function takeoverCore(options: { scene?: boolean; picked?: string; reduce
     },
     scenes: { current: options.scene ? { pageId: page.id, root } : undefined },
     config: { reducedMotion: () => options.reducedMotion ?? false },
+    settings: { background: { color: '#fafafa' } },
     modes: { modeOf: () => ({ id: 'essai' }) },
     picking: {
       pickAt: () => {

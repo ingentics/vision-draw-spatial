@@ -1,4 +1,5 @@
 import { Group, Object3D } from 'three';
+import type { Mesh, MeshBasicMaterial } from 'three';
 import { describe, expect, it, vi } from 'vitest';
 import { VEIL_ORDER } from '../../../../../src/engine/core/render/veil';
 import { takeoverCore } from '../takeoverCore';
@@ -23,6 +24,17 @@ describe('couche d’un mode sur la page (sujet 467)', () => {
     expect(veils(root)).toHaveLength(0);
     expect(lifted(root, 'a')).toBe(false);
     expect(overlay.object).toBeUndefined();
+  });
+
+  it('voile qui masque (sujet 533) : opaque, de la couleur du fond ; les éléments gardés restent au-dessus', () => {
+    const { core, root } = takeoverCore({ scene: true });
+    const material = () => (veils(root)[0]!.children[0] as Mesh).material as MeshBasicMaterial;
+    core.overlays.set({}, { veil: { kept: ['a'], hide: true, opacity: 0.2 } });
+    expect([material().opacity, `#${material().color.getHexString()}`]).toEqual([1, '#fafafa']);
+    expect(lifted(root, 'a')).toBe(true);
+    expect(lifted(root, 'e')).toBe(false);
+    core.overlays.set({}, { veil: { kept: ['a'] } });
+    expect(material().opacity).toBe(0.35);
   });
 
   it('une couche en erreur ne pose que le voile, une seule fois, et l’erreur est signalée', () => {

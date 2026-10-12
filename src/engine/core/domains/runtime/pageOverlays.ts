@@ -106,8 +106,7 @@ export class PageOverlays {
     const build = overlay.layer;
     const layer = build && this.guard('couche', undefined, () => build(this.sceneOf(page)));
     const kept = overlay.veil && this.core.selection.withContent(page, keptItems(page, overlay.veil.kept ?? []));
-    const veil =
-      overlay.veil && veilPage(scene.root, page.bounds, kept!, overlay.veil.opacity ?? OVERLAY_DEFAULTS.veilOpacity);
+    const veil = overlay.veil && this.veilOf(scene.root, page, kept!, overlay.veil);
     const holder = layer ? new Group().add(layer.object) : undefined;
     this.core.rendering.setOverlay(holder);
     this.drawn = { root: scene.root, veil, layer, holder };
@@ -126,6 +125,17 @@ export class PageOverlays {
       this.core.rendering.setOverlay(undefined);
       disposeObject(drawn.holder);
     }
+  }
+
+  /** Voile de la couche : sombre et translucide, ou opaque de la couleur du fond pour masquer (`hide`, sujet 533). */
+  private veilOf(
+    root: Object3D,
+    page: PageModel,
+    kept: ReadonlySet<string>,
+    veil: NonNullable<PageOverlay['veil']>,
+  ): PageVeil {
+    if (veil.hide) return veilPage(root, page.bounds, kept, 1, this.core.settings.background.color);
+    return veilPage(root, page.bounds, kept, veil.opacity ?? OVERLAY_DEFAULTS.veilOpacity);
   }
 
   /** Les objets du mode suivent la scène de la page : même passage des pixels de page au monde. */

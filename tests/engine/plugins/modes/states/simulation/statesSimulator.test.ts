@@ -47,6 +47,7 @@ function takeover(refuse = false) {
       state.kept.push(id);
       state.framed.push(options);
     },
+    setModeCurrent: () => {},
   };
   return { stage, state };
 }

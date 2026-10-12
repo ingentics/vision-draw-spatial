@@ -318,12 +318,14 @@ couche physique d'une table RDD, lue par son rendu). Un habillage qui dépend du
     changement de page ou de fichier et prévient `released` ; l'appli reconnaît le détenteur par `controls.lockOwner`.
   - `EditLock.captureInput` (`InputCapture`) : clics (l'élément visé), survol (`clickable` : main) et touches vont au
     détenteur ; une touche dont `key` rend faux revient à la vue, Échap comprise.
-  - `setOverlay(owner, overlay)` (`PageOverlay`) : voile et éléments gardés au-dessus, et la couche du mode
+  - `setOverlay(owner, overlay)` (`PageOverlay`) : voile (`hide` : opaque de la couleur du fond, qui masque tout le
+    reste, sujet 533) et éléments gardés au-dessus, et la couche du mode
     (`OverlayLayer`), dessinée par le mode avec les briques de l'API des plugins à partir de la page dessinée
     (`OverlayScene` : tracés des flèches, contours des formes, textes). Le moteur la dessine par-dessus tout, la refait
     quand la scène est reconstruite, l'anime avant chaque image tant que `animate` rend vrai (il reçoit le temps écoulé :
     un plugin n'a pas d'horloge ; une couche toujours animée redessine la page à chaque image) et lui demande l'élément
     visé par un clic (`hit`). `clearOverlay(owner)` la retire.
+  - `setModeCurrent(value)` (sujet 533) : choisit le courant du mode (ex. histoire jouée par la simulation).
   - `keepInView(shapeId, { around, whole })` : quand la forme sort de la vue (avec `whole`, quand une forme de
     `around` n'y est pas entière), la caméra glisse pour la cadrer avec `around`, zoom réduit seulement s'il le faut.
 

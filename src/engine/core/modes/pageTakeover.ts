@@ -10,7 +10,8 @@ import type { RenderContext } from '../render/types';
  * - verrou d'édition (`lockEditing`) : plus rien ne se modifie, la caméra reste libre ;
  * - capture des entrées (`EditLock.captureInput`) : clics, survol et touches rendus au détenteur du verrou ;
  * - couche par-dessus (`setOverlay`) : voile, éléments gardés au-dessus, objets dessinés par le mode et animés ;
- * - forme gardée dans la vue (`keepInView`).
+ * - forme gardée dans la vue (`keepInView`) ;
+ * - courant du mode (`setModeCurrent`).
  */
 
 /** Briques remises à un mode (côté appli : le moteur lui-même, vu par ce seul contrat). */
@@ -31,6 +32,11 @@ export interface PageTakeover {
    * (zoom réduit seulement s'il le faut).
    */
   keepInView(shapeId: string, options?: KeepInView): void;
+  /**
+   * Choisit le courant du mode de la page (sujet 533, ex. histoire jouée par une simulation) ; ignoré s'il n'est pas
+   * valable.
+   */
+  setModeCurrent(value: string, pageId?: string): void;
 }
 
 /** Formes cadrées avec celle gardée dans la vue (sujet 527). */
@@ -73,9 +79,10 @@ export interface InputCapture {
 export interface PageOverlay {
   /**
    * Voile sur la page (opacité de 0 à 1 ; défaut : `OVERLAY_DEFAULTS.veilOpacity`) et éléments gardés au-dessus (une
-   * forme avec son contenu) ; absent : pas de voile.
+   * forme avec son contenu) ; absent : pas de voile. `hide` (sujet 533) : voile opaque de la couleur du fond, qui
+   * masque tout sauf les éléments gardés (grille comprise) ; `opacity` est alors ignorée.
    */
-  veil?: { opacity?: number; kept?: readonly string[] };
+  veil?: { opacity?: number; kept?: readonly string[]; hide?: boolean };
   /**
    * Objets du mode, dessinés par-dessus la page et le voile, sans test de profondeur ; construits à la pose et de
    * nouveau quand la scène de la page est reconstruite.
