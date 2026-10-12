@@ -159,7 +159,7 @@ describe('Metamorph (sujet 538)', () => {
     metamorphs.submit('m');
     metamorphs.results('m', candidates());
     expect(metamorphs.accept('m', 'metamorph:a')).toBe(false);
-    registry.registerLibrary(
+    registry.libraryStore.register(
       libraryJson({ id: 'a', category: undefined }, { library: { id: 'metamorph', name: 'M' } }),
     );
     expect(metamorphs.accept('m', 'metamorph:a')).toBe(true);

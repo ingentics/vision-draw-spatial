@@ -137,7 +137,7 @@ export class PageModes {
     const { registry } = this.core;
     return this.core.modes.paletteFor(page, registry.templates(), [
       ...registry.categories(),
-      ...registry.libraryCategories(),
+      ...registry.libraryStore.categories(),
     ]);
   }
 

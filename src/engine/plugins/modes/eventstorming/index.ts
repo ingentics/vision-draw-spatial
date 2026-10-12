@@ -70,7 +70,7 @@ export const definition: PageModeDefinition = {
     at: (page, shape, point) => (badgeAt(page, shape, point) ? BADGE_PART : undefined),
     bounds: (page, shape, part) =>
       part === BADGE_PART ? badgeBounds(page, shape) : GROUP_PARTS.bounds(page, shape, part),
-    comment: (shape, part, page) => (part === BADGE_PART ? badgeMessage(page, shape) : undefined),
+    comment: (page, shape, part) => (part === BADGE_PART ? badgeMessage(page, shape) : undefined),
   },
   gestures: {
     // « Groupe » d'un post-it collé (sujet 514), « Pivot » d'un Domain Event (sujet 515).

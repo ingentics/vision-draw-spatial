@@ -24,29 +24,29 @@ export class ShapeLibraries {
 
   /** Enregistre (ou remplace, même id) la bibliothèque d'un JSON ; ses erreurs de lecture sinon, rien n'étant changé. */
   register(json: unknown): ShapeLibraryResult {
-    const result = this.core.registry.registerLibrary(json);
+    const result = this.core.registry.libraryStore.register(json);
     if (result.ok) this.changed();
     return result;
   }
 
   /** Retire une bibliothèque : ses formes posées redeviennent non chargées. Faux si elle n'était pas chargée. */
   unregister(libraryId: string): boolean {
-    const removed = this.core.registry.unregisterLibrary(libraryId);
+    const removed = this.core.registry.libraryStore.unregister(libraryId);
     if (removed) this.changed();
     return removed;
   }
 
   /** Bibliothèques (sans `kind`) ou formes que l'hôte ne peut pas fournir : dessinées introuvables. */
   markUnavailable(refs: readonly LibraryShapeRef[]): void {
-    if (this.core.registry.markLibraryShapesUnavailable(refs)) this.changed();
+    if (this.core.registry.libraryStore.markUnavailable(refs)) this.changed();
   }
 
   library(libraryId: string): ShapeLibrary | undefined {
-    return this.core.registry.library(libraryId);
+    return this.core.registry.libraryStore.library(libraryId);
   }
 
   libraries(): ShapeLibrary[] {
-    return this.core.registry.libraries();
+    return this.core.registry.libraryStore.libraries();
   }
 
   resetDocument(): void {
@@ -61,7 +61,7 @@ export class ShapeLibraries {
     const missing: MissingLibraryShape[] = [];
     for (const page of document.pages)
       for (const shape of page.shapes) {
-        const status = this.core.registry.libraryStatus(shape);
+        const status = this.core.registry.libraryStore.status(shape);
         if (!status) continue;
         const key = `${status.library}:${status.kind}`;
         if (this.seen.has(key)) continue;

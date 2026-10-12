@@ -135,15 +135,15 @@ export class PageModeRegistry {
     return id === undefined ? undefined : this.definitions.get(id);
   }
 
-  /**
-   * La page a-t-elle des calques (sujet 523) ? Une page sans mode, oui ; une page en mode, si le mode les active
-   * (`page.layers`) ; un mode inconnu, non.
-   */
   /** La grille du fond est-elle permise sur la page (`page.grid` de son mode, sujet 537) ? */
   showsGrid(page: PageModel): boolean {
     return this.modeOf(page)?.page?.grid !== false;
   }
 
+  /**
+   * La page a-t-elle des calques (sujet 523) ? Une page sans mode, oui ; une page en mode, si le mode les active
+   * (`page.layers`) ; un mode inconnu, non.
+   */
   hasLayers(page: PageModel): boolean {
     return this.modeId(page) === undefined || this.modeOf(page)?.page?.layers === true;
   }

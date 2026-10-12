@@ -318,7 +318,7 @@ export interface ModeParts {
    * undefined si la partie ne peut pas en avoir (ex. séparateur). `page` : celle de la forme (sujet 519, ex. message
    * qui dépend des voisins).
    */
-  comment?(shape: ShapeModel, part: string, page: PageModel): { title: string; text: string } | undefined;
+  comment?(page: PageModel, shape: ShapeModel, part: string): { title: string; text: string } | undefined;
   /** Commentaire d'une partie édité en place (touche C, sujet 262) : texte brut ; vide le retire. */
   setComment?(edit: ModeEdit, shape: ShapeModel, part: string, text: string): void;
   /**
@@ -436,8 +436,7 @@ export interface ModeCurrent {
   redraws?: boolean;
   /**
    * Échap (rien de sélectionné) ou un clic sur le fond efface le courant (sujet 540, ex. aucune histoire) : plus rien
-   * n'est estompé jusqu'au
-   * prochain choix (clic, touche de page, barre) ; `initial` ne le remet pas.
+   * n'est estompé jusqu'au prochain choix (clic, touche de page, barre) ; `initial` ne le remet pas.
    */
   clearable?: boolean;
 }

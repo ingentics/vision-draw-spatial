@@ -58,25 +58,29 @@ const meshNames = (object: Object3D) => {
 describe('bibliothèques de formes dans le registre (sujets 529, 530)', () => {
   it('une forme posée sans sa bibliothèque est non chargée, puis chargée une fois enregistrée', () => {
     const registry = createDefaultRegistry();
-    expect(registry.libraryStatus(shape('server'))).toEqual({ library: 'demo', kind: 'server', state: 'unloaded' });
+    expect(registry.libraryStore.status(shape('server'))).toEqual({
+      library: 'demo',
+      kind: 'server',
+      state: 'unloaded',
+    });
     expect(registry.resolve(shape('server')).definition.id).toBe('library-unloaded');
-    expect(registry.libraryStatus(shape('plain'))).toBeUndefined();
+    expect(registry.libraryStore.status(shape('plain'))).toBeUndefined();
 
-    expect(registry.registerLibrary(demo())).toMatchObject({ ok: true });
-    expect(registry.libraryStatus(shape('server'))?.state).toBe('loaded');
+    expect(registry.libraryStore.register(demo())).toMatchObject({ ok: true });
+    expect(registry.libraryStore.status(shape('server'))?.state).toBe('loaded');
     expect(registry.resolve(shape('server'))).toMatchObject({ definition: { id: 'demo:server' }, supported: true });
     // La bibliothèque chargée sans cette forme : toujours non chargée.
     expect(
-      registry.libraryStatus({ ...shape('server'), style: { ...shape('server').style, 'spatial.kind': 'x' } }),
+      registry.libraryStore.status({ ...shape('server'), style: { ...shape('server').style, 'spatial.kind': 'x' } }),
     ).toMatchObject({ state: 'unloaded' });
-    expect(registry.library('demo')?.meta).toEqual({ source: 'test' });
+    expect(registry.libraryStore.library('demo')?.meta).toEqual({ source: 'test' });
   });
 
   it('remplace une bibliothèque du même id, la retire', () => {
     const registry = createDefaultRegistry();
-    registry.registerLibrary(demo());
+    registry.libraryStore.register(demo());
     expect(registry.outline(shape('server'))).toHaveLength(4);
-    registry.registerLibrary(
+    registry.libraryStore.register(
       demo([
         [0, 0],
         [1, 0],
@@ -84,44 +88,44 @@ describe('bibliothèques de formes dans le registre (sujets 529, 530)', () => {
       ]),
     );
     expect(registry.outline(shape('server'))).toHaveLength(3);
-    expect(registry.libraries()).toHaveLength(1);
-    expect(registry.unregisterLibrary('demo')).toBe(true);
-    expect(registry.unregisterLibrary('demo')).toBe(false);
-    expect(registry.libraryStatus(shape('server'))?.state).toBe('unloaded');
+    expect(registry.libraryStore.libraries()).toHaveLength(1);
+    expect(registry.libraryStore.unregister('demo')).toBe(true);
+    expect(registry.libraryStore.unregister('demo')).toBe(false);
+    expect(registry.libraryStore.status(shape('server'))?.state).toBe('unloaded');
   });
 
   it('un JSON refusé ne change rien', () => {
     const registry = createDefaultRegistry();
-    registry.registerLibrary(demo());
-    const result = registry.registerLibrary({ ...demo(), shapes: [] });
+    registry.libraryStore.register(demo());
+    const result = registry.libraryStore.register({ ...demo(), shapes: [] });
     expect(result.ok).toBe(false);
-    expect(registry.libraryStatus(shape('server'))?.state).toBe('loaded');
+    expect(registry.libraryStore.status(shape('server'))?.state).toBe('loaded');
   });
 
   it('introuvable : toute la bibliothèque ou une forme, levé en l’enregistrant', () => {
     const registry = createDefaultRegistry();
-    expect(registry.markLibraryShapesUnavailable([{ library: 'infra-aws', kind: 'serveur' }])).toBe(true);
-    expect(registry.markLibraryShapesUnavailable([{ library: 'infra-aws', kind: 'serveur' }])).toBe(false);
-    expect(registry.libraryStatus(shape('aws'))?.state).toBe('unavailable');
-    expect(registry.libraryStatus(shape('aws-db'))?.state).toBe('unloaded');
-    registry.markLibraryShapesUnavailable([{ library: 'demo' }]);
-    expect(registry.libraryStatus(shape('token'))?.state).toBe('unavailable');
+    expect(registry.libraryStore.markUnavailable([{ library: 'infra-aws', kind: 'serveur' }])).toBe(true);
+    expect(registry.libraryStore.markUnavailable([{ library: 'infra-aws', kind: 'serveur' }])).toBe(false);
+    expect(registry.libraryStore.status(shape('aws'))?.state).toBe('unavailable');
+    expect(registry.libraryStore.status(shape('aws-db'))?.state).toBe('unloaded');
+    registry.libraryStore.markUnavailable([{ library: 'demo' }]);
+    expect(registry.libraryStore.status(shape('token'))?.state).toBe('unavailable');
     expect(registry.resolve(shape('token')).definition.id).toBe('library-unavailable');
-    registry.registerLibrary(demo());
-    registry.unregisterLibrary('demo');
-    expect(registry.libraryStatus(shape('token'))?.state).toBe('unloaded');
+    registry.libraryStore.register(demo());
+    registry.libraryStore.unregister('demo');
+    expect(registry.libraryStore.status(shape('token'))?.state).toBe('unloaded');
   });
 
   it('modèles de la palette : style avec la bibliothèque et la forme, icône tirée du contour', () => {
     const registry = createDefaultRegistry();
-    registry.registerLibrary(
+    registry.libraryStore.register(
       libraryJson({ style: 'fillColor=#fff;spatial.library=autre;spatial.kind=autre;', icon: undefined }),
     );
     const template = registry.templates().find((t) => t.library === 'infra')!;
     expect(template).toMatchObject({ id: 'infra:server', category: 'infra:compute', library: 'infra' });
     expect(template.style).toBe('fillColor=#fff;spatial.library=infra;spatial.kind=server;');
     expect(template.icon).toBe('<path d="M4 4L36 4L20 24Z"/>');
-    expect(registry.libraryCategories()).toEqual([
+    expect(registry.libraryStore.categories()).toEqual([
       { id: 'infra:compute', name: 'Calcul', order: 100 },
       { id: 'other', name: 'Autres', order: 1000 },
     ]);
@@ -137,26 +141,29 @@ describe('bibliothèques de formes dans le registre (sujets 529, 530)', () => {
 
   it('forme sans catégorie : rangée dans « Autres », cachée tant qu’elle est vide (sujet 538)', () => {
     const registry = createDefaultRegistry();
-    expect(registry.libraryCategories()).toEqual([]);
+    expect(registry.libraryStore.categories()).toEqual([]);
     const modes = createDefaultModeRegistry();
     const palette = () =>
-      modes.paletteFor(undefined, registry.templates(), [...registry.categories(), ...registry.libraryCategories()]);
-    registry.registerLibrary(libraryJson());
+      modes.paletteFor(undefined, registry.templates(), [
+        ...registry.categories(),
+        ...registry.libraryStore.categories(),
+      ]);
+    registry.libraryStore.register(libraryJson());
     expect(palette().categories.some((c) => c.id === 'other')).toBe(false);
-    registry.registerLibrary(libraryJson({ category: undefined }, { categories: undefined }));
+    registry.libraryStore.register(libraryJson({ category: undefined }, { categories: undefined }));
     expect(registry.templates().find((t) => t.library === 'infra')?.category).toBe('other');
     expect(palette().categories.at(-1)).toEqual({ id: 'other', name: 'Autres', order: 1000 });
   });
 
   it('palette d’une page : les `modes` de la forme, quel que soit le mode', () => {
     const registry = createDefaultRegistry();
-    registry.registerLibrary(demo());
+    registry.libraryStore.register(demo());
     const modes = createDefaultModeRegistry();
     const palette = (mode?: string) =>
       modes.paletteFor(
         { id: 'p', shapes: [], edges: [], attributes: mode ? { 'spatial.mode': mode } : {} } as unknown as PageModel,
         registry.templates(),
-        [...registry.categories(), ...registry.libraryCategories()],
+        [...registry.categories(), ...registry.libraryStore.categories()],
       );
     const ids = (mode?: string) =>
       palette(mode)
@@ -173,7 +180,7 @@ describe('bibliothèques de formes dans le registre (sujets 529, 530)', () => {
     const registry = createDefaultRegistry();
     const unloaded = registry.sceneRenderer(shape('server'), 'flat').create(shape('server'), ctx);
     expect(meshNames(unloaded)).toEqual(expect.arrayContaining(['unloaded-hatch', 'unloaded-badge']));
-    registry.registerLibrary(demo());
+    registry.libraryStore.register(demo());
     const token = shape('token');
     expect(registry.volumeHeight(token, ctx)).toBe(12);
     const iso = registry.sceneRenderer(token, 'iso').create(token, ctx) as Group;
@@ -183,7 +190,7 @@ describe('bibliothèques de formes dans le registre (sujets 529, 530)', () => {
 
   it('Diagnostics : les formes introuvables, pas les non chargées ni les chargées', () => {
     const registry = createDefaultRegistry();
-    registry.markLibraryShapesUnavailable([{ library: 'infra-aws' }]);
+    registry.libraryStore.markUnavailable([{ library: 'infra-aws' }]);
     const report = collectUnsupported(document(), registry);
     expect(report.entries.map((e) => [e.category, e.name, e.count])).toEqual([
       ['library', 'infra-aws/serveur', 2],
@@ -193,8 +200,8 @@ describe('bibliothèques de formes dans le registre (sujets 529, 530)', () => {
 
   it('sans dessin des bibliothèques, la forme se résout par son `spatial.kind`', () => {
     const registry = new ShapeRegistry();
-    expect(registry.libraryStatus(shape('server'))).toBeUndefined();
-    expect(registry.registerLibrary(demo())).toEqual({
+    expect(registry.libraryStore.status(shape('server'))).toBeUndefined();
+    expect(registry.libraryStore.register(demo())).toEqual({
       ok: false,
       errors: ['bibliothèques de formes non gérées par ce registre'],
     });

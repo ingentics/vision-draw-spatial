@@ -56,7 +56,7 @@ export class SceneView {
     // Décors des effets de la page et plans des calques : en volume seulement (iso / 3D).
     if (level === 'iso') {
       core.pageEffects.decorate(page, scene.root);
-      core.layers.decorate(page, scene.root);
+      core.layerDecor.decorate(page, scene.root);
     }
     return scene;
   }

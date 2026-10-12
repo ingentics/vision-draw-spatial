@@ -78,7 +78,7 @@ export class ShapeParts {
   /** Commentaire non vide d'une partie de la page courante (sujet 262) ; undefined sans commentaire. */
   comment(shape: ShapeModel, part: string): { title: string; text: string } | undefined {
     const page = this.core.pages.getCurrentPage();
-    const comment = page && this.call(page, 'comment', shape, part, page);
+    const comment = page && this.call(page, 'comment', page, shape, part);
     return comment?.text.trim() ? comment : undefined;
   }
 
@@ -89,7 +89,7 @@ export class ShapeParts {
   editComment(shapeId: string, part: string, fromNavigation = false): boolean {
     const editable = this.core.targets.writablePage();
     const shape = shapeOf(editable?.page, shapeId);
-    const comment = editable && shape && this.call(editable.page, 'comment', shape, part, editable.page);
+    const comment = editable && shape && this.call(editable.page, 'comment', editable.page, shape, part);
     // Partie qui ne peut pas avoir de commentaire (ex. séparateur) : pas d'éditeur.
     if (!editable || !shape || !this.has(editable.page, 'setComment') || !comment) return false;
     this.core.events.emit('commentEdit', {

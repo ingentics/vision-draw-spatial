@@ -249,14 +249,14 @@ describe('mode RDD : séparateurs entre les champs (sujet 253)', () => {
 describe('mode RDD : commentaire d’un champ (sujet 262)', () => {
   it('titre et texte d’un champ (vide sans commentaire) ; un séparateur n’en a pas ; écrit par la touche C', () => {
     const { run, shape, page } = setup();
-    expect(fieldParts.comment!(shape('user'), '1', page())).toEqual({ title: 'email', text: '' });
+    expect(fieldParts.comment!(page(), shape('user'), '1')).toEqual({ title: 'email', text: '' });
     run((edit) => fieldParts.setComment!(edit, shape('user'), '1', '  Adresse de contact  '));
-    expect(fieldParts.comment!(shape('user'), '1', page())).toEqual({ title: 'email', text: 'Adresse de contact' });
+    expect(fieldParts.comment!(page(), shape('user'), '1')).toEqual({ title: 'email', text: 'Adresse de contact' });
     expect(fieldsOf(shape('user'))[1]!.comment).toBe('Adresse de contact');
     run((edit) => fieldParts.setComment!(edit, shape('user'), '1', ''));
     expect(fieldsOf(shape('user'))[1]!.comment).toBeUndefined();
     run((edit) => rdd.keys!['-']!.run(edit, shape('user'), undefined, '1'));
-    expect(fieldParts.comment!(shape('user'), '2', page())).toBeUndefined();
+    expect(fieldParts.comment!(page(), shape('user'), '2')).toBeUndefined();
     expect(run((edit) => fieldParts.setComment!(edit, shape('user'), '2', 'x'))).toBe(false);
   });
 });

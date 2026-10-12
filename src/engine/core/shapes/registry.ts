@@ -16,7 +16,6 @@ import type { SelectionStyle } from '../settings/types';
 import { placeholderShape } from './placeholder';
 import type {
   MinimapMapping,
-  PaletteCategory,
   SceneLevel,
   SceneRenderer,
   ShapeCategory,
@@ -33,8 +32,7 @@ import { callPlugin } from '../diagnostics/pluginCalls';
 import type { PluginReport } from '../diagnostics/pluginCalls';
 import { byId } from '../model/pageIndex';
 import { ShapeLibraryStore } from './library/libraryStore';
-import type { LibraryShapeRef, LibraryShapeStatus, ShapeLibraryKit } from './library/libraryStore';
-import type { ShapeLibrary, ShapeLibraryResult } from './library/libraryFormat';
+import type { LibraryShapeStatus, ShapeLibraryKit } from './library/libraryStore';
 
 /** Erreur levée par une forme (`hook` : point d'entrée, ex. `flat.create`), pour les Diagnostics. */
 export type ShapeErrorHandler = (shapeId: string, hook: string, error: unknown) => void;
@@ -87,7 +85,11 @@ export class ShapeRegistry {
     private readonly onError?: ShapeErrorHandler,
     private readonly categoryList: ShapeCategory[] = [],
     measureText: MeasureText = approximateMeasure,
-    private readonly libraryStore = new ShapeLibraryStore(),
+    /**
+     * Bibliothèques de formes chargées (sujets 529 à 531) : chargement, retrait, formes introuvables, état d'une forme
+     * posée. Partagées par les copies du registre (`reportingTo`, `measuringWith`).
+     */
+    readonly libraryStore = new ShapeLibraryStore(),
   ) {
     this.report = onError && ((_family, id, hook, error) => onError(id, hook, error));
     this.measuring = Object.freeze({ measureText });
@@ -127,38 +129,6 @@ export class ShapeRegistry {
   useLibraryKit(kit: ShapeLibraryKit): this {
     this.libraryStore.useKit(kit);
     return this;
-  }
-
-  /** Enregistre (ou remplace, même id) une bibliothèque lue d'un JSON ; les erreurs de lecture sinon. */
-  registerLibrary(json: unknown): ShapeLibraryResult {
-    return this.libraryStore.register(json);
-  }
-
-  /** Retire une bibliothèque ; faux si elle n'était pas chargée. */
-  unregisterLibrary(libraryId: string): boolean {
-    return this.libraryStore.unregister(libraryId);
-  }
-
-  /** Bibliothèques ou formes déclarées introuvables par l'hôte (sujet 531) ; vrai si l'une est nouvelle. */
-  markLibraryShapesUnavailable(refs: readonly LibraryShapeRef[]): boolean {
-    return this.libraryStore.markUnavailable(refs);
-  }
-
-  library(libraryId: string): ShapeLibrary | undefined {
-    return this.libraryStore.library(libraryId);
-  }
-
-  libraries(): ShapeLibrary[] {
-    return this.libraryStore.libraries();
-  }
-
-  /** Catégories de la palette des bibliothèques chargées (sans réglages, hors Paramètres › Formes). */
-  libraryCategories(): PaletteCategory[] {
-    return this.libraryStore.categories();
-  }
-
-  libraryStatus(shape: ShapeModel): LibraryShapeStatus | undefined {
-    return this.libraryStore.status(shape);
   }
 
   /**
@@ -238,7 +208,7 @@ export class ShapeRegistry {
       templates: () => this.templates(),
       templateOf: (shape) => this.templateOf(shape),
       categories: () => this.categories(),
-      libraryStatus: (shape) => this.libraryStatus(shape),
+      libraryStatus: (shape) => this.libraryStore.status(shape),
       values: (categoryId, stored) => this.values(categoryId, stored),
     };
   }

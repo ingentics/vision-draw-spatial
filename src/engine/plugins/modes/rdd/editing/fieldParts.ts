@@ -118,7 +118,7 @@ export const fieldParts: ModeParts = {
     };
   },
   // Commentaire du champ (sujet 262) : au survol sous son nom, et édité par la touche C ; pas pour un séparateur.
-  comment(shape, part) {
+  comment(_page, shape, part) {
     const index = fieldIndex(shape, part);
     const field = index === undefined ? undefined : tableFields(shape)[index];
     return field && !isDivider(field) ? { title: field.label, text: field.comment ?? '' } : undefined;

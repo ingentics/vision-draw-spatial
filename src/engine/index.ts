@@ -22,6 +22,7 @@ export type {
 } from './core/domains/types';
 export type { ImageExportOptions } from './core/domains/view/imageExport';
 export type { PageLayersView } from './core/domains/document/pageLayers';
+export { readElevation } from './core/edit/layerChoice';
 export type { MissingLibraryShape } from './core/domains/document/shapeLibraries';
 export { SHAPE_LIBRARY_FORMAT, SHAPE_LIBRARY_FORMAT_VERSION } from './core/shapes/library/libraryFormat';
 export type {

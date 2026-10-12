@@ -85,7 +85,6 @@ export function PageSections({ page, onRenamePage: onRename, ...props }: Context
       </Section>
       {props.layers && (
         <LayersSection
-          page={page}
           layers={props.layers}
           actions={props.layerActions}
           elevations={props.layerElevations ?? false}

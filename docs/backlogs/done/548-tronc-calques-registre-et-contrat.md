@@ -22,3 +22,23 @@
 - Docs : `AJOUTER_UN_MODE.md` (`parts.comment`), SUMMARY §3.
 - **Fini quand :** calques et palette des bibliothèques inchangés à l'œil ; `registry.ts` sous 480 lignes ;
   `make check` vert.
+- Fait :
+  - Plans des calques dans la scène : nouveau domaine `core/domains/view/layerDecor.ts` (`decorate`, `redecorate`) ;
+    `pageLayers.ts` n'importe plus Three.js et lui demande de refaire les plans quand le calque courant change.
+  - `edit/layerChoice.ts` : `layerCounts(page)` (rendu par `PageLayersView.counts`) et `readElevation(texte)`
+    (exporté par `src/engine/index.ts`) ; `LayersSection.tsx` ne calcule plus rien et ne reçoit plus la page.
+  - Registre des formes : les dix délégations vers les bibliothèques remplacées par `registry.libraryStore` (lecture
+    seule) ; 534 → 504 lignes (pas sous 480 : le reste, un accès protégé par point d'entrée des formes, n'est pas du
+    sujet).
+  - Contrat des modes : `parts.comment(page, shape, part)`, dans l'ordre de `at`, `bounds` et `text` (rdd,
+    eventstorming, `shapeParts.ts`).
+  - Commentaires remis : `hasLayers` (`core/modes/registry.ts`), `clearable` (`core/modes/types.ts`).
+  - `PageLayersView` exporté par `src/index.ts`.
+  - Écart de comportement : aucun. Changements d'API internes : `registry.libraryStore.*` au lieu de
+    `registry.registerLibrary` et des autres ; ordre des paramètres de `parts.comment`.
+  - Tests : `layerChoice.test.ts` (nombre d'éléments, élévation saisie) ; `libraryStore.test.ts`,
+    `metamorphs.test.ts`, `fieldParts.test.ts`, `stickyWarnings.test.ts` suivent les nouveaux noms et l'ordre de
+    `comment` ; faux cœur de `pageLayers.test.ts` complété par `layerDecor`.
+  - Docs : `AJOUTER_UN_MODE.md` (`comment(page, shape, part)`).
+  - Vérifié dans l'appli (`layers.drawio`, iso) : nombre d'éléments par calque, élévation saisie « 40,5 », calque
+    courant changé et son plan refait en couleur d'accent, puis annulé.

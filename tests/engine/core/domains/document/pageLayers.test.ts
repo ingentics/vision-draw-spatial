@@ -37,6 +37,7 @@ function setup() {
     graph: { isGraph: (id: string) => state.graphs.includes(id) },
     scenes: { current: undefined },
     layerSpreads: { isFlattened: () => false },
+    layerDecor: { redecorate: () => {} },
     gesture: { endMove: () => {} },
     selection: { current: undefined as unknown },
     targets: {

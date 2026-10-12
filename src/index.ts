@@ -53,6 +53,9 @@ export { SHAPE_TEMPLATES } from './engine';
 export type { ShapeTemplate } from './engine';
 export { SPATIAL, spatialNumber, spatialValue } from './engine';
 
+// Calques des pages (sujets 523 à 526) : `Engine.getPageLayers`
+export type { PageLayersView } from './engine';
+
 // Bibliothèques de formes (sujets 529 à 531)
 export { SHAPE_LIBRARY_FORMAT, SHAPE_LIBRARY_FORMAT_VERSION } from './engine';
 export type {

@@ -1,4 +1,5 @@
-import type { LayerModel, PageLayersView, PageModel } from '../../engine';
+import { readElevation } from '../../engine';
+import type { LayerModel, PageLayersView } from '../../engine';
 import { InlineEdit } from '../InlineEdit';
 import { Section } from '../PanelSection';
 
@@ -25,13 +26,11 @@ export function layerName(layer: LayerModel): string {
  * courant, double-clic : renommer), élévation (iso et 3D, sujet 524), nombre d'éléments, monter, descendre, supprimer.
  */
 export function LayersSection({
-  page,
   layers,
   actions,
   elevations,
   onFlatten,
 }: {
-  page: PageModel;
   layers: PageLayersView;
   actions: LayerActions | undefined;
   /** Champ d'élévation de chaque calque et bouton Aplatir / Étendre (vues iso et 3D). */
@@ -39,9 +38,6 @@ export function LayersSection({
   /** Aplatit ou étend les calques (sujet 526) : rien n'est écrit, donc aussi en lecture seule. */
   onFlatten: ((flattened: boolean) => void) | undefined;
 }) {
-  const counts = new Map<string, number>();
-  for (const element of [...page.shapes, ...page.edges])
-    if (element.parentId === undefined) counts.set(element.layerId, (counts.get(element.layerId) ?? 0) + 1);
   const ordered = [...layers.layers].reverse();
   return (
     <Section title="Calques">
@@ -50,7 +46,7 @@ export function LayersSection({
           <LayerRow
             key={`${layer.id}:${layer.name}`}
             layer={layer}
-            count={counts.get(layer.id) ?? 0}
+            count={layers.counts[layer.id] ?? 0}
             current={layer.id === layers.current}
             top={index === 0}
             bottom={index === ordered.length - 1}
@@ -174,9 +170,8 @@ function LayerRow({
           aria-label={`Élévation de « ${name} »`}
           data-tip="Élévation du calque en iso et en 3D : tout son contenu monte de cette hauteur, en pixels (spatial.elevation)"
           onBlur={(event) => {
-            const text = event.target.value.trim();
-            const next = text === '' ? 0 : Number(text.replace(',', '.'));
-            if (Number.isFinite(next) && next >= 0 && next !== layer.elevation) actions?.setElevation(layer.id, next);
+            const next = readElevation(event.target.value);
+            if (next !== undefined && next !== layer.elevation) actions?.setElevation(layer.id, next);
             else event.target.value = layer.elevation ? String(layer.elevation) : '';
           }}
           onKeyDown={(event) => {

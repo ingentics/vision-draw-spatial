@@ -1,4 +1,4 @@
-import { creationLayerId, currentLayerId, newLayerName } from '../../edit/layerChoice';
+import { creationLayerId, currentLayerId, layerCounts, newLayerName } from '../../edit/layerChoice';
 import {
   addLayer,
   moveCellsToLayer,
@@ -13,9 +13,6 @@ import { writeDrawio } from '../../format/write';
 import type { PageTree } from '../../format/xmlTree';
 import { byId } from '../../model/pageIndex';
 import type { LayerModel, PageModel } from '../../model/types';
-import type { Object3D } from 'three';
-import { layerPlanes, LAYER_PLANES } from '../../render/layerPlanes';
-import { disposeObject } from '../../render/meshes';
 import type { EngineCore } from '../EngineCore';
 
 /** Calques d'une page tels que l'appli les montre (sujet 523). */
@@ -26,6 +23,8 @@ export interface PageLayersView {
   current: string;
   /** Calques aplatis (sujet 526) : élévations ramenées à 0 à l'affichage, sans rien écrire. */
   flattened: boolean;
+  /** Nombre d'éléments posés directement sur chaque calque, par id ; absent : aucun. */
+  counts: Readonly<Record<string, number>>;
 }
 
 /**
@@ -49,7 +48,12 @@ export class PageLayers {
     const page = this.layeredPage(pageId);
     const current = page && currentLayerId(page.layers, this.currents.get(pageId));
     return page && current !== undefined
-      ? { layers: page.layers, current, flattened: this.core.layerSpreads.isFlattened(pageId) }
+      ? {
+          layers: page.layers,
+          current,
+          flattened: this.core.layerSpreads.isFlattened(pageId),
+          counts: layerCounts(page),
+        }
       : undefined;
   }
 
@@ -63,32 +67,8 @@ export class PageLayers {
     const view = this.view(pageId);
     if (!view || view.current === layerId || !view.layers.some((layer) => layer.id === layerId)) return;
     this.currents.set(pageId, layerId);
-    this.redecorate(pageId);
+    this.core.layerDecor.redecorate(pageId);
     this.core.events.emit('layerChange', pageId);
-  }
-
-  /** Plans des calques élevés (sujet 525) ajoutés à la scène en volume d'une page, si le réglage les montre. */
-  decorate(page: PageModel, root: Object3D): void {
-    const current = this.view(page.id)?.current;
-    if (current === undefined || !this.core.settings.view.layerPlanes) return;
-    const { view, selection } = this.core.settings;
-    const spread = this.core.layerSpreads.spreadOf(page.id);
-    const planes = layerPlanes(page, current, selection.accentColor, view.layerGroundPlane, spread);
-    if (planes) root.add(planes);
-  }
-
-  /** Calque courant changé : plans de la scène affichée refaits (le reste de la scène ne dépend pas de lui). */
-  private redecorate(pageId: string): void {
-    const scene = this.core.scenes.current;
-    const page = this.core.pages.pageById(pageId);
-    if (!scene || scene.pageId !== pageId || scene.level !== 'iso' || !page) return;
-    const old = scene.root.getObjectByName(LAYER_PLANES);
-    if (old) {
-      old.removeFromParent();
-      disposeObject(old);
-    }
-    this.decorate(page, scene.root);
-    this.core.rendering.requestRender();
   }
 
   /** Ajoute un calque au-dessus de tous, qui devient courant. */

@@ -73,7 +73,7 @@ export function collectUnsupported(document: DocumentModel, registry: ShapeRegis
 
     for (const shape of page.shapes) {
       elementCount++;
-      const library = registry.libraryStatus(shape);
+      const library = registry.libraryStore.status(shape);
       if (library?.state === 'unavailable') {
         unsupportedElementCount++;
         record('library', `${library.library}/${library.kind}`, at(shape.id, shape.label), shape.raw.styleString);

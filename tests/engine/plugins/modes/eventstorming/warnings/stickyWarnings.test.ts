@@ -106,7 +106,7 @@ describe('mode Event storming : pastilles des post-it (sujet 519)', () => {
     expect(parts.at(page, c, { x: 117, y: 67 })).toBe(BADGE_PART);
     expect(parts.at(page, c, { x: 180, y: 130 })).toBeUndefined();
     expect(parts.bounds(page, c, BADGE_PART)).toEqual({ x: 107, y: 57, width: 20, height: 20 });
-    expect(parts.comment!(c, BADGE_PART, page)?.title).toBe('2 avertissements');
+    expect(parts.comment!(page, c, BADGE_PART)?.title).toBe('2 avertissements');
   });
 
   it('dessin : 20 × 20 à 7 des bords haut et gauche, le label commence après elle', () => {

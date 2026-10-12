@@ -28,6 +28,7 @@ import { GraphView } from './view/graph';
 import { ImageExport } from './view/imageExport';
 import { MinimapView } from './view/minimap';
 import { ScreenProjection } from './view/projection';
+import { LayerDecor } from './view/layerDecor';
 import { LayerSpreads } from './view/layerSpreads';
 import { Selections } from './selection/selection';
 import { Picking } from './selection/picking';
@@ -134,6 +135,7 @@ export class EngineCore {
   readonly imageExport = new ImageExport(this);
   readonly projection = new ScreenProjection(this);
   readonly layerSpreads = new LayerSpreads(this);
+  readonly layerDecor = new LayerDecor(this);
 
   // selection : sélection, ce qui est sous le pointeur, mise en valeur
   readonly selection = new Selections(this);
