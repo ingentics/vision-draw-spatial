@@ -4,11 +4,17 @@ import type { PageModeDefinition } from '../../../../../src/engine/core/modes/ty
 import { setup } from './modesCore';
 
 /** Mode de test à deux couches ; `redraws` : son habillage suit le courant ; un élément cliqué choisit « b ». */
-const layers = (redraws: boolean): PageModeDefinition => ({
+const layers = (redraws: boolean, clearable?: boolean): PageModeDefinition => ({
   id: 'boom',
   namespace: 'boom',
   name: 'Boom',
-  current: { initial: () => 'a', valid: (_page, value) => value === 'a' || value === 'b', pick: () => 'b', redraws },
+  current: {
+    initial: () => 'a',
+    valid: (_page, value) => value === 'a' || value === 'b',
+    pick: () => 'b',
+    redraws,
+    clearable,
+  },
   dressing: (_page, _values, current) => ({ edgeColor: () => (current === 'b' ? '#ff0000' : undefined) }),
 });
 
@@ -16,8 +22,8 @@ const layers = (redraws: boolean): PageModeDefinition => ({
  * Cœur réduit avec le courant des modes, et les reconstructions de scène notées ; `editing` : texte en édition (la
  * partie d'une forme, ou la forme elle-même).
  */
-function currents(redraws: boolean, editing?: { pageId: string; part?: string }) {
-  const set = setup(layers(redraws));
+function currents(redraws: boolean, editing?: { pageId: string; part?: string }, clearable?: boolean) {
+  const set = setup(layers(redraws, clearable));
   const calls: string[] = [];
   const note = (name: string) => () => void calls.push(name);
   Object.assign(set.core, {
@@ -67,5 +73,22 @@ describe('courant d’un mode et habillage (sujet 414)', () => {
     const other = currents(true, { pageId: 'q', part: 'name' });
     other.modeCurrents.setModeCurrent('b', 'p');
     expect(other.modeCurrents.getModeCurrent('p')).toBe('b');
+  });
+});
+
+describe('courant effaçable (sujet 540)', () => {
+  it('`clearable` : Échap efface le courant, `initial` ne le remet pas, un choix le rend', () => {
+    const { modeCurrents, page } = currents(false, undefined, true);
+    expect(modeCurrents.clearModeCurrent()).toBe(true);
+    expect(modeCurrents.getModeCurrent('p')).toBeUndefined();
+    expect(modeCurrents.clearModeCurrent()).toBe(false);
+    expect(modeCurrents.pickModeCurrent(page, page.shapes[0]!)).toBe(true);
+    expect(modeCurrents.getModeCurrent('p')).toBe('b');
+  });
+
+  it('sans `clearable` : le courant reste', () => {
+    const { modeCurrents } = currents(false);
+    expect(modeCurrents.clearModeCurrent()).toBe(false);
+    expect(modeCurrents.getModeCurrent('p')).toBe('a');
   });
 });

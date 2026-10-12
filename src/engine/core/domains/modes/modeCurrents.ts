@@ -14,8 +14,8 @@ const DEFAULT_BAR_SLIDE_DURATION = 200;
  * Sorti de `PageModes` (sujet 288) ; ses appels au mode passent par l'hôte comme les autres (`PageModes.call`, `PageModes.guard`).
  */
 export class ModeCurrents {
-  /** « Courant » choisi du mode de chaque page (état de session, jamais écrit). */
-  private readonly modeCurrents = new Map<string, string>();
+  /** « Courant » choisi du mode de chaque page (état de session, jamais écrit) ; null : effacé (`clearable`). */
+  private readonly modeCurrents = new Map<string, string | null>();
 
   constructor(private readonly core: EngineCore) {}
 
@@ -30,6 +30,7 @@ export class ModeCurrents {
     const current = mode?.current;
     if (!page || !mode || !current) return undefined;
     const chosen = this.modeCurrents.get(page.id);
+    if (chosen === null) return undefined;
     return this.core.pageModes.guard(mode, 'current', undefined, () =>
       chosen !== undefined && callMode(current.valid, page, chosen) ? chosen : callMode(current.initial, page),
     );
@@ -71,6 +72,15 @@ export class ModeCurrents {
     if (!page || !mode || !current || value === this.getModeCurrent(page.id) || this.frozen(page.id)) return;
     if (!this.core.pageModes.call(mode, 'current.valid', false, current.valid, page, value)) return;
     this.chooseCurrent(page.id, value);
+  }
+
+  /** Échap, rien de sélectionné, ou clic sur le fond (sujet 540) : plus de courant sur la page courante, si le mode le permet ; vrai si effacé. */
+  clearModeCurrent(): boolean {
+    const page = this.core.pages.getCurrentPage();
+    if (!page || !this.core.modes.modeOf(page)?.current?.clearable || this.frozen(page.id)) return false;
+    if (this.getModeCurrent(page.id) === undefined) return false;
+    this.chooseCurrent(page.id, null);
+    return true;
   }
 
   /**
@@ -135,12 +145,12 @@ export class ModeCurrents {
     return editing?.part !== undefined && editing.pageId === pageId;
   }
 
-  private chooseCurrent(pageId: string, value: string): void {
+  private chooseCurrent(pageId: string, value: string | null): void {
     this.modeCurrents.set(pageId, value);
     const page = this.core.pages.pageById(pageId);
     // Habillage qui suit le courant (`ModeCurrent.redraws`, sujet 414) : les scènes de la page sont reconstruites.
     if (page && this.core.modes.modeOf(page)?.current?.redraws) this.core.levels.rebuildScenes([page.id]);
-    this.core.events.emit('modeCurrentChange', pageId, value);
+    this.core.events.emit('modeCurrentChange', pageId, value ?? undefined);
     this.core.rendering.requestRender();
   }
 }

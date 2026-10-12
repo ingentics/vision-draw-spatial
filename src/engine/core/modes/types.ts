@@ -434,6 +434,12 @@ export interface ModeCurrent {
    * change.
    */
   redraws?: boolean;
+  /**
+   * Échap (rien de sélectionné) ou un clic sur le fond efface le courant (sujet 540, ex. aucune histoire) : plus rien
+   * n'est estompé jusqu'au
+   * prochain choix (clic, touche de page, barre) ; `initial` ne le remet pas.
+   */
+  clearable?: boolean;
 }
 
 /** Apparence du courant d'un mode ; une valeur absente prend le défaut du moteur. */

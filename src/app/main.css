@@ -2419,6 +2419,16 @@ button.mode-bar-label.renamable:hover {
   color: var(--fg);
 }
 
+/* Ligne d'histoire qu'un clic rend courante (sujet 540). */
+.flow-item.choosable {
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.flow-item.choosable:hover {
+  background: color-mix(in srgb, var(--fg) 6%, transparent);
+}
+
 /* Flux courant : cercle autour de sa pastille de couleur. */
 .flow-item.current .color-dot {
   box-shadow:

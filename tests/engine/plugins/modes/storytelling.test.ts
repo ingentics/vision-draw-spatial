@@ -243,8 +243,8 @@ describe('mode Story telling : habillage et histoire courante', () => {
     expect(tab.run(page(), 'relire')).toBe('commander');
   });
 
-  it('palette réduite à Acteur, Droid et Rectangle ; tous les modes d’affichage ; ancrage auto, tracé droit, sans grille', () => {
-    expect(storytelling.page!.palette!.shapes).toEqual(['actor', 'actor-droid', 'rectangle']);
+  it('palette réduite à Acteur, Droid, Rectangle et Metamorph ; tous les modes d’affichage ; ancrage auto, tracé droit, sans grille', () => {
+    expect(storytelling.page!.palette!.shapes).toEqual(['actor', 'actor-droid', 'rectangle', 'metamorph']);
     expect(storytelling.page!.viewModes).toBeUndefined();
     expect(storytelling.page!.defaults).toEqual({ anchoring: 'auto', edgeLine: 'straight' });
     // Grille cachée sur la page du mode (sujet 537), gardée sur une page normale.
@@ -274,6 +274,20 @@ describe('mode Story telling : export JSON', () => {
     const { page } = setup(1);
     expect(storiesExport(page()).stories.find((story) => story.title === 'bout libre')!.steps).toEqual([
       { label: 'bout libre', from: 'A', to: null },
+    ]);
+  });
+});
+
+describe('mode Story telling : flèche tirée (sujet 540)', () => {
+  it('sans histoire courante, elle ouvre une histoire ; avec une, rien n’est écrit', () => {
+    const { run, page } = setup();
+    expect(run((edit) => storytelling.edges!.created!(edit, 'reserver', 'commander'))).toBe(false);
+    run((edit) => storytelling.edges!.created!(edit, 'reserver', undefined));
+    expect(storyState(page()).stories.map((story) => story.id)).toEqual([
+      'commander',
+      'controler',
+      'relire',
+      'reserver',
     ]);
   });
 });

@@ -40,7 +40,8 @@ export function createCameraController(core: EngineCore): CameraController {
         const editable = core.targets.editablePage();
         return !!editable && core.selection.current?.pageId === editable.page.id;
       },
-      escape: () => core.selection.escape(),
+      // Rien de sélectionné : Échap efface le courant du mode (sujet 540, ex. aucune histoire).
+      escape: () => (core.selection.current ? core.selection.escape() : core.modeCurrents.clearModeCurrent()),
       modeKey: (key) => core.modePanel.modeKey(key),
       modePageKey: (key, run) => core.modePanel.modePageKey(key, run),
       capturing: () => core.inputCaptures.active,

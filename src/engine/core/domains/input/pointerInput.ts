@@ -85,7 +85,11 @@ export class PointerInput {
         ? this.core.shapeParts.partAt(page, picked.element as ShapeModel, screen)
         : undefined;
     if (picked) this.core.selection.selectItems([picked], part);
-    else this.core.selection.select(undefined);
+    else {
+      this.core.selection.select(undefined);
+      // Clic sur le fond : plus de courant non plus, si le mode le permet (sujet 540, ex. aucune histoire).
+      this.core.modeCurrents.clearModeCurrent();
+    }
     if (this.core.settings.preload.onClick) this.core.links.preloadLink(picked?.element.link);
   }
 

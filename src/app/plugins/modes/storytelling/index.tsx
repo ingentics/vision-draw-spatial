@@ -14,7 +14,8 @@ import { launchStories, useStorySimulation } from './storyRun';
 
 /**
  * Mode « Story telling » (sujet 474), partie appli : la section « Histoires » du panneau de la page (liste ordonnée,
- * ordre, retrait du numéro, simulation, export JSON) ; la barre de la simulation sur la zone de dessin (sujet 534).
+ * ordre, retrait du numéro, choix de l'histoire courante, simulation, export JSON) ; la barre de la simulation sur la
+ * zone de dessin (sujet 534).
  * Les règles (numéros, suite, couleurs, pas) sont dans le moteur (`engine/plugins/modes/storytelling/`).
  */
 export const panel: ModePanel = { PageSection: StoriesSection, CanvasOverlay: StoryBar };
@@ -35,6 +36,7 @@ function StoriesSection({ page, onEdit, current, exporters, controls }: ModePane
               story={story}
               last={story.number === stories.length}
               current={story.id === current}
+              onChoose={controls && !simulator ? () => controls.takeover.setModeCurrent(story.id, page.id) : undefined}
               onMove={
                 onEdit && ((delta) => onEdit('Numéro', (edit) => setStoryNumber(edit, story.id, story.number + delta)))
               }
@@ -84,6 +86,7 @@ function StoryRow({
   story,
   last,
   current,
+  onChoose,
   onMove,
   onRemove,
 }: {
@@ -91,15 +94,18 @@ function StoryRow({
   last: boolean;
   /** Histoire courante : les autres sont estompées. */
   current: boolean;
+  /** Clic sur la ligne : l'histoire devient la courante (sujet 540). */
+  onChoose?: () => void;
   onMove?: (delta: 1 | -1) => void;
   onRemove?: () => void;
 }) {
   const count = story.edges.length;
   return (
     <li
-      className={current ? 'flow-item current' : 'flow-item'}
+      className={`flow-item${current ? ' current' : ''}${onChoose ? ' choosable' : ''}`}
       aria-current={current ? 'true' : undefined}
-      data-tip={current ? 'Histoire courante' : undefined}
+      data-tip={current ? 'Histoire courante (Échap : aucune)' : onChoose && 'Clic : en faire l’histoire courante'}
+      onClick={onChoose}
     >
       <span className="color-dot story-number" style={{ background: story.color }}>
         {story.number}
@@ -116,7 +122,10 @@ function StoryRow({
             aria-label="Monter"
             data-tip="Numéro précédent (échange avec l’histoire qui l’avait)"
             disabled={story.number === 1}
-            onClick={() => onMove(-1)}
+            onClick={(event) => {
+              event.stopPropagation();
+              onMove(-1);
+            }}
           >
             ↑
           </button>
@@ -126,7 +135,10 @@ function StoryRow({
             aria-label="Descendre"
             data-tip="Numéro suivant (échange avec l’histoire qui l’avait)"
             disabled={last}
-            onClick={() => onMove(1)}
+            onClick={(event) => {
+              event.stopPropagation();
+              onMove(1);
+            }}
           >
             ↓
           </button>
@@ -138,7 +150,10 @@ function StoryRow({
           className="icon-button"
           aria-label="Retirer"
           data-tip="Retirer le numéro : la flèche n’ouvre plus d’histoire"
-          onClick={onRemove}
+          onClick={(event) => {
+            event.stopPropagation();
+            onRemove();
+          }}
         >
           ×
         </button>

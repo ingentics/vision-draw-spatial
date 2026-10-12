@@ -27,7 +27,7 @@ export const definition: PageModeDefinition = {
     defaults: { anchoring: 'auto', edgeLine: 'straight' },
     // Fond uni, sans grille (sujet 537).
     grid: false,
-    palette: { shapes: ['actor', 'actor-droid', 'rectangle'] },
+    palette: { shapes: ['actor', 'actor-droid', 'rectangle', 'metamorph'] },
   },
   settings: STORY_SETTINGS,
   edges: {
@@ -69,6 +69,10 @@ export const definition: PageModeDefinition = {
         hidden: (page, target) => !storyState(page).byEdge.has(target.id),
       },
     ],
+    // Sans histoire courante (Échap, clic sur le fond), une flèche tirée depuis une forme ouvre une histoire (sujet 540).
+    created: (edit, edgeId, current) => {
+      if (current === undefined) startStory(edit, edgeId);
+    },
     // Flèche d'une histoire sélectionnée seule : ni voile ni contour, sa couleur la montre (comme Séquences).
     selectionStyle: (page, edge, size) => (size === 1 && storyState(page).byEdge.has(edge.id) ? 'none' : undefined),
   },
@@ -93,8 +97,9 @@ export const definition: PageModeDefinition = {
       },
     };
   },
-  // Histoire courante (valeur : sa flèche numérotée) : la première par défaut, celle d'une flèche cliquée. Sans
-  // `color` : pas de barre en haut de la zone de dessin, Tab passe à l'histoire suivante (`pageKeys`).
+  // Histoire courante (valeur : sa flèche numérotée) : la première par défaut, celle d'une flèche cliquée, aucune
+  // après Échap (sujet 540). Sans `color` : pas de barre en haut de la zone de dessin, Tab passe à l'histoire suivante
+  // (`pageKeys`).
   current: {
     initial: (page) => storyState(page).stories[0]?.id,
     valid: (page, value) => storyOf(page, value) !== undefined,
@@ -104,6 +109,7 @@ export const definition: PageModeDefinition = {
     look: currentLook,
     // Couleur d'une flèche partagée selon l'histoire courante.
     redraws: true,
+    clearable: true,
     // Flèches de l'histoire et formes qu'elles relient.
     focus: (page, value) => {
       const story = storyOf(page, value);
