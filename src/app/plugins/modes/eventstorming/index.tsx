@@ -1,7 +1,6 @@
-import { useMemo, useState } from 'react';
 import { eventStormingExporter } from '../../../../engine/plugins/modes/eventstorming/api';
-import { ExportDialog } from '../../../export/ExportDialog';
 import { Section } from '../../../PanelSection';
+import { ModeExportButton } from '../ModeExport';
 import type { ModePanel, ModePanelProps } from '../registry';
 
 /**
@@ -12,29 +11,16 @@ import type { ModePanel, ModePanelProps } from '../registry';
 export const panel: ModePanel = { PageSection: EventStormingSection };
 
 function EventStormingSection({ page, exporters }: ModePanelProps) {
-  const [exporting, setExporting] = useState(false);
   return (
     <Section title="Event storming">
       <div className="mode-exports">
-        <button
-          type="button"
-          className="button"
-          data-tip="Éléments, liens et avertissements déduits du mur : texte à copier"
-          onClick={() => setExporting(true)}
-        >
-          Exporter en JSON
-        </button>
+        <ModeExportButton
+          page={page}
+          exporters={exporters}
+          exporter={eventStormingExporter}
+          tip="Éléments, liens et avertissements déduits du mur : texte à copier"
+        />
       </div>
-      {exporting && <WallExport page={page} exporters={exporters} onClose={() => setExporting(false)} />}
     </Section>
   );
-}
-
-function WallExport({
-  page,
-  exporters,
-  onClose,
-}: Pick<ModePanelProps, 'page' | 'exporters'> & { onClose: () => void }) {
-  const source = useMemo(() => eventStormingExporter.export(page), [page]);
-  return <ExportDialog format={eventStormingExporter} source={source} exporters={exporters} onClose={onClose} />;
 }

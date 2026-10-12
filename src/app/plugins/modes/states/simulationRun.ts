@@ -7,6 +7,7 @@ import {
 } from '../../../../engine/plugins/modes/states/api';
 import type { PageModel, PageTakeover } from '../../../../engine';
 import type { ModePageControls } from '../registry';
+import { useOpenedSimulator } from '../simulationHook';
 
 /**
  * Simulation de la machine à états lancée depuis l'appli (sujets 462, 466) : départ selon la sélection, ou choix du
@@ -18,13 +19,7 @@ import type { ModePageControls } from '../registry';
  * Simulation de machine à états ouverte sur la page, s'il y en a une ; le composant est redessiné à chacun de ses pas.
  */
 export function useOpenedSimulation(controls: ModePageControls | undefined): StatesSimulator | undefined {
-  const owner = controls?.lockOwner;
-  const simulator = owner instanceof StatesSimulator && owner.opened ? owner : undefined;
-  useSyncExternalStore(
-    (listener) => simulator?.subscribe(listener) ?? (() => {}),
-    () => simulator?.version ?? 0,
-  );
-  return simulator;
+  return useOpenedSimulator(controls, (owner) => owner instanceof StatesSimulator);
 }
 
 /**

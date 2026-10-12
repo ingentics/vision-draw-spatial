@@ -1,4 +1,3 @@
-import { useMemo, useState } from 'react';
 import {
   setStoryNumber,
   stopStory,
@@ -6,8 +5,9 @@ import {
   storyState,
 } from '../../../../engine/plugins/modes/storytelling/api';
 import type { Story } from '../../../../engine/plugins/modes/storytelling/api';
-import { ExportDialog } from '../../../export/ExportDialog';
 import { Section } from '../../../PanelSection';
+import { ArrowCount } from '../ArrowCount';
+import { ModeExportButton } from '../ModeExport';
 import type { ModePanel, ModePanelProps } from '../registry';
 import { StoryBar } from './StoryBar';
 import { launchStories, useStorySimulation } from './storyRun';
@@ -22,7 +22,6 @@ export const panel: ModePanel = { PageSection: StoriesSection, CanvasOverlay: St
 
 function StoriesSection({ page, onEdit, current, exporters, controls }: ModePanelProps) {
   const { stories } = storyState(page);
-  const [exporting, setExporting] = useState(false);
   const simulator = useStorySimulation(controls);
   return (
     <Section title="Histoires">
@@ -67,17 +66,14 @@ function StoriesSection({ page, onEdit, current, exporters, controls }: ModePane
                 Lancer la simulation
               </button>
             ))}
-          <button
-            type="button"
-            className="button"
-            data-tip="Histoires numérotées avec leurs étapes (flèche, forme de départ, forme d’arrivée) : texte à copier"
-            onClick={() => setExporting(true)}
-          >
-            Exporter en JSON
-          </button>
+          <ModeExportButton
+            page={page}
+            exporters={exporters}
+            exporter={storiesExporter}
+            tip="Histoires numérotées avec leurs étapes (flèche, forme de départ, forme d’arrivée) : texte à copier"
+          />
         </div>
       )}
-      {exporting && <StoriesExport page={page} exporters={exporters} onClose={() => setExporting(false)} />}
     </Section>
   );
 }
@@ -99,13 +95,20 @@ function StoryRow({
   onMove?: (delta: 1 | -1) => void;
   onRemove?: () => void;
 }) {
-  const count = story.edges.length;
   return (
     <li
       className={`flow-item${current ? ' current' : ''}${onChoose ? ' choosable' : ''}`}
       aria-current={current ? 'true' : undefined}
       data-tip={current ? 'Histoire courante (Échap : aucune)' : onChoose && 'Clic : en faire l’histoire courante'}
+      // Choisie aussi au clavier (Tab, puis Entrée ou Espace) ; les touches de ses boutons restent à eux.
+      role={onChoose ? 'button' : undefined}
+      tabIndex={onChoose ? 0 : undefined}
       onClick={onChoose}
+      onKeyDown={(event) => {
+        if (!onChoose || event.target !== event.currentTarget || (event.key !== 'Enter' && event.key !== ' ')) return;
+        event.preventDefault();
+        onChoose();
+      }}
     >
       <span className="color-dot story-number" style={{ background: story.color }}>
         {story.number}
@@ -117,9 +120,7 @@ function StoryRow({
       >
         {story.title}
       </span>
-      <span className="field-value" data-tip={`${count} flèche${count > 1 ? 's' : ''}`}>
-        {count}
-      </span>
+      <ArrowCount count={story.edges.length} />
       {onMove && (
         <>
           <button
@@ -166,13 +167,4 @@ function StoryRow({
       )}
     </li>
   );
-}
-
-function StoriesExport({
-  page,
-  exporters,
-  onClose,
-}: Pick<ModePanelProps, 'page' | 'exporters'> & { onClose: () => void }) {
-  const source = useMemo(() => storiesExporter.export(page), [page]);
-  return <ExportDialog format={storiesExporter} source={source} exporters={exporters} onClose={onClose} />;
 }

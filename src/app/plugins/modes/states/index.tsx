@@ -1,7 +1,6 @@
-import { useMemo, useState } from 'react';
 import { statesExporter } from '../../../../engine/plugins/modes/states/api';
-import { ExportDialog } from '../../../export/ExportDialog';
 import { Section } from '../../../PanelSection';
+import { ModeExportButton } from '../ModeExport';
 import type { ModePanel, ModePanelProps } from '../registry';
 import { SimulationBar } from './SimulationBar';
 import { SimulationStart } from './SimulationStart';
@@ -16,7 +15,6 @@ import { launch, launchFrom, useLauncher, useOpenedSimulation } from './simulati
 export const panel: ModePanel = { PageSection: StatesSection, CanvasOverlay: SimulationBar };
 
 function StatesSection({ page, exporters, controls }: ModePanelProps) {
-  const [exporting, setExporting] = useState(false);
   const simulator = useOpenedSimulation(controls);
   const launcher = useLauncher(controls, page);
   return (
@@ -46,25 +44,13 @@ function StatesSection({ page, exporters, controls }: ModePanelProps) {
           <SimulationStart page={page} onChoose={(id) => launchFrom(controls, page, id)} onClose={launcher.close} />
         )}
         {simulator && <SimulationTrace sim={simulator.sim} onGoTo={(n) => simulator.goTo(n)} />}
-        <button
-          type="button"
-          className="button"
-          data-tip="Diagramme d’états PlantUML de toute la page : texte à copier et rendu"
-          onClick={() => setExporting(true)}
-        >
-          Exporter en PlantUML
-        </button>
+        <ModeExportButton
+          page={page}
+          exporters={exporters}
+          exporter={statesExporter}
+          tip="Diagramme d’états PlantUML de toute la page : texte à copier et rendu"
+        />
       </div>
-      {exporting && <StatesExport page={page} exporters={exporters} onClose={() => setExporting(false)} />}
     </Section>
   );
-}
-
-function StatesExport({
-  page,
-  exporters,
-  onClose,
-}: Pick<ModePanelProps, 'page' | 'exporters'> & { onClose: () => void }) {
-  const source = useMemo(() => statesExporter.export(page), [page]);
-  return <ExportDialog format={statesExporter} source={source} exporters={exporters} onClose={onClose} />;
 }

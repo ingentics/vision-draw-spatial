@@ -10,6 +10,7 @@ import type { Flow, SequenceExporter } from '../../../../engine/plugins/modes/se
 import { Section } from '../../../PanelSection';
 import { ExportViewer } from './ExportViewer';
 import type { ModePanel, ModePanelProps } from '../registry';
+import { ArrowCount } from '../ArrowCount';
 
 /**
  * Mode « Séquences » (sujet 70), partie appli : la section « Flux » du panneau de la page. Elle affiche les flux et
@@ -121,9 +122,7 @@ function FlowRow({
           }
         }}
       />
-      <span className="field-value" data-tip={`${count} flèche${count > 1 ? 's' : ''}`}>
-        {count}
-      </span>
+      <ArrowCount count={count} />
       {onRemove && (
         <button
           type="button"
