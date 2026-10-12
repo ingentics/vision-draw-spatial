@@ -147,8 +147,9 @@ blanc), `normalize(text)` (fins de ligne, tabulations), `preview(shape, text)` (
 rangé en chaîne JSON aux `;` échappés, et revient tel quel.
 
 **Réglages déclarés.** Un réglage de mode (`ModeProperty`) est un champ du schéma commun (`Field`, types et rendu :
-`AJOUTER_UN_PLUGIN.md` section 7). Un réglage de mode (`toggle`, `number`, `text`, `choice` ou `button`) a des choix `options(page, palette)` qui
-reçoivent les couleurs de l'appli, et `readOnly` pour l'afficher sans le rendre modifiable. Il est rendu dans la
+`AJOUTER_UN_PLUGIN.md` section 7). Un réglage de mode (`toggle`, `number`, `text`, `choice`, `button` ou `note`) a
+des choix `options(page, palette)` qui reçoivent les couleurs de l'appli, un encadré `note(page, target)` (ex. verdict
+du pivot d'un Domain Event, sujet 517), et `readOnly` pour l'afficher sans le rendre modifiable. Il est rendu dans la
 section « Mode » de la page, la section au nom du mode dans le panneau d'une flèche ou d'une forme. Par défaut, il lit
 et écrit l'attribut du mode de nom court `key` sur sa cible ; `value`, `write` et `hidden` le font passer par les
 règles du mode (ex. le rang d'une flèche, qui s'échange avec une autre). Un `choice` en boutons montre l'aide `title`

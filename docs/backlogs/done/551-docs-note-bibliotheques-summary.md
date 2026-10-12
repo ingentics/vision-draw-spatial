@@ -17,3 +17,16 @@
   l'exception de `AUDIT.md` notée dans `CLAUDE.md` (ou le fichier traduit, au choix de l'utilisateur).
 - **Fini quand :** chaque notion ci-dessus est trouvée par un agent depuis SUMMARY §5 ; chemins cités existants ;
   `make check` vert.
+- Fait :
+  - Type de champ `note` : tableau de `AJOUTER_UN_PLUGIN.md` §7 et réglages d'un mode (`AJOUTER_UN_MODE.md`).
+  - `AJOUTER_UNE_FORME.md` : `fallback`, `library` / `modes` d'un modèle, `map.colors.unloaded` et `UNLOADED_COLORS`,
+    forme sans dossier (bibliothèque JSON), objets animés (`spinHues`, `Rhythm`), `quadTo` ; le champ `generation` est
+    venu avec le sujet 545.
+  - `SUMMARY.md` §3 : fichiers des calques, des bibliothèques, des formes générées, `pageMemo`, `modeSimulator`,
+    `edgeBadgeSettings`, `jsonText`, `animation.ts`, `layerPlanes.ts`, `shapes/generic/library/`, briques de l'appli
+    (`ModeExport.tsx`, `simulationHook.ts`, `ArrowCount.tsx`, `LayersSection.tsx`, `GenerationSection.tsx`,
+    `demoShapeLibrary.ts`, `metamorph/`) ; §5 : lignes « Calques », « Bibliothèque de formes (JSON) », « Forme générée
+    par l'hôte », et Story telling en exemple de mode.
+  - Renvois croisés : SPEC §8.2 → `COMPOSANT.md` (côté hôte), `COMPOSANT.md` → SPEC §8.2 et §8.3.
+  - `CLAUDE.md` : `docs/AUDIT.md` (procédure, aussi une skill) reste en français, exception notée.
+  - Vérifié par `make check` (tests des docs : chemins cités, symboles des guides, contrats documentés).

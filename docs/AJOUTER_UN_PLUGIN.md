@@ -118,6 +118,7 @@ au survol `title`, et selon son `type` :
 | `color` | — | couleur #rrggbb |
 | `url` | — | adresse http(s), sans barre finale |
 | `button` | — | bouton pleine largeur |
+| `note` | `note` : encadré en lecture seule (`FieldNote` : `tone` `info` / `neutral` / `alert` / `warning`, `title`, `text`, `aside` sous un filet ; sujet 517) | encadré teinté ; rien sans encadré |
 
 Une valeur enregistrée est relue par `readFieldValue` (nombre ramené dans ses bornes, valeur parmi les choix, adresse
 normalisée…). Chaque famille n'ajoute que sa cible :

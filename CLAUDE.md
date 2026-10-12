@@ -10,7 +10,8 @@ Functional and technical reference: `docs/SPEC.md` (read on demand, not preloade
 `src/` or `tests/`).
 
 **Language:** identifiers in English; code comments, project docs, tickets and commit messages in French. Only the
-agent instruction files (this one, `docs/ROADMAP.md`, `.claude/rules/`) are in English.
+agent instruction files (this one, `docs/ROADMAP.md`, `.claude/rules/`) are in English. Exception: the audit
+procedure `docs/AUDIT.md` (also a skill) stays in French, like the audit files copied from it into the backlog.
 
 ## Work rules
 

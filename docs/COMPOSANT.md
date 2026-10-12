@@ -99,7 +99,8 @@ Quelques méthodes utiles du moteur : `goToPage`, `getViewMode`, `setViewMode('t
 ## Bibliothèques de formes
 
 Formes purement visuelles (rendus 2D, iso, 3D, sans comportement) décrites par un JSON et chargées à chaud dans le
-moteur (sujets 529 à 531). Chaque catégorie d'une bibliothèque devient une section de la palette.
+moteur (sujets 529 à 531). Chaque catégorie d'une bibliothèque devient une section de la palette. Règles du moteur
+(résolution, formes non chargées ou introuvables, Diagnostics) et Metamorph : SPEC §8.2 et §8.3.
 
 ```ts
 const result = engine.registerShapes({

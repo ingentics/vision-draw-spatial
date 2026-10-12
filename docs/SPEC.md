@@ -333,7 +333,8 @@ absent : page sans mode seulement), quelle que soit la liste blanche du mode. Un
 est chargée, sinon une forme **non chargée** (bornes hachurées, tirets longs, badge « puzzle », couleurs
 `shapes.unloadedFill` / `unloadedStroke`) ou **introuvable** (bordure et badge d'avertissement orange, entrée
 `library` des Diagnostics). L'événement `shapesMissing` signale à l'hôte, une fois chacune depuis l'ouverture du
-fichier, les formes non chargées du document ; `shapeLibrariesChange` prévient l'appli (palette, Diagnostics).
+fichier, les formes non chargées du document ; `shapeLibrariesChange` prévient l'appli (palette, Diagnostics). Côté
+hôte (exemple de JSON, réponse à `shapesMissing`, formes générées) : `docs/COMPOSANT.md`, « Bibliothèques de formes ».
 
 ### 8.3 Formes supportées en M1
 

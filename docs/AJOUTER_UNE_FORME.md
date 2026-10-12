@@ -189,7 +189,8 @@ C'est la géométrie de référence de la forme : un polygone fermé, en coordon
 bas, pixels draw.io). Il sert au rendu 2D (`flatBox`), aux volumes (`isoBlock`) et au repli de la mini-carte.
 Utilisez les aides de l'API des plugins : `rectPath` ([model/geometry.ts](../src/engine/core/model/geometry.ts)), et
 de [render/geometry/paths.ts](../src/engine/core/render/geometry/paths.ts) `roundedRectPath`, `ellipsePath`, `arcPath`, `cornerRadius` (lit `rounded` et `arcSize`), `boxOutline` (rectangle,
-arrondi avec `rounded=1`), `sizeOffset` (décalage `size` / `fixedSize` des formes à pans) ; pour l'orientation,
+arrondi avec `rounded=1`), `sizeOffset` (décalage `size` / `fixedSize` des formes à pans), `quadTo` (Bézier
+quadratique échantillonnée, à enchaîner après le point courant, ex. bouclier) ; pour l'orientation,
 `orientation` et `orientedPath` ([render/geometry/orient.ts](../src/engine/core/render/geometry/orient.ts)) ; pour le
 trait, `styleStroke` (couleur, opacité, épaisseur, pointillés). Pour qu'une forme se **retourne** ou **pivote**
 depuis le panneau (section « Orientation », sujet 335), dessinez-la par `orientedPath` et déclarez
@@ -316,8 +317,9 @@ Pour un rendu iso sur mesure :
   mini-carte par pixel de page). Le `brush` (`MinimapBrush`) n'a que `polygon(points, { fill?, stroke?, lineWidth? })`
   et `polyline(points, { stroke, lineWidth? })` (trait de 0,75 px par défaut) : la forme ne reçoit jamais le contexte
   2D, par lequel elle atteindrait le DOM. L'acteur dessine ses pièces en `polygon(part, { stroke })` et ses traits en
-  `polyline(trait, { stroke })`. Le peintre ne reçoit **pas** le `RenderContext`, il n'a donc pas accès aux
-  paramètres. C'est pour cette raison que le placeholder garde son gris par défaut dans la mini-carte.
+  `polyline(trait, { stroke })`. Le peintre ne reçoit **pas** le `RenderContext` : les seules couleurs réglables qui
+  lui parviennent sont `map.colors` (contour, placeholder, et `unloaded` `{ fill, stroke }` des formes de
+  bibliothèque non chargées, défauts `UNLOADED_COLORS` de l'API des plugins).
 
 ### 3.4 Hauteurs, empilement, pastille de lien
 
@@ -427,8 +429,10 @@ sont dans le tableau de la section 2, avec leur défaut et un exemple.
 
 Un élément de palette (`PaletteEntry`, exposé comme `ShapeTemplate` avec l'`id` de la forme) porte le style **et** la taille par défaut de draw.io, une catégorie, un rang
 `order` (ordre d'affichage, toutes formes confondues), des mots-clés de recherche, une aide facultative (`description`,
-montrée sous le nom dans l'infobulle de la palette et cherchée aussi ; ex. exemples d'un post-it Event storming) et une
-icône (contenu SVG d'un cadre `0 0 40 28`, sans couleurs). Un réglage (`ShapeProperty`) est un champ du schéma commun (`Field`, décrit dans
+montrée sous le nom dans l'infobulle de la palette et cherchée aussi ; ex. exemples d'un post-it Event storming), une
+icône (contenu SVG d'un cadre `0 0 40 28`, sans couleurs), et `fallback` pour être proposée aussi quand une recherche
+ne trouve rien, avec la requête pour texte (ex. Metamorph, sujet 538). Un modèle venu d'une bibliothèque de formes
+porte en plus `library` (son id) et `modes` (pages où il est proposé). Un réglage (`ShapeProperty`) est un champ du schéma commun (`Field`, décrit dans
 `AJOUTER_UN_PLUGIN.md` section 7) : une case (`toggle`, écrit `1` / `0` ; `checkedByDefault` : cochée quand
 la clé est absente), un nombre, un texte ou un choix (`choice`, `options` fixes) ; une clé `spatial.…` est écrite
 comme attribut spatial, et sa constante vit dans la forme (le tronc n'en connaît aucune, sujet 306). Un texte `live: true` est réglé en direct : chaque frappe est écrite en une seule étape
@@ -439,6 +443,19 @@ d'annulation et seule la forme est redessinée (ex. étiquette des façades). Sa
   le mot de la tranche d'un process étiqueté (`spatial.tag`, vide = le mot par défaut de la forme) ;
 - `border` ou `volume` : réglage qui précise ces sections communes (« Coins arrondis », nœuds du cache, étiquette
   de façade).
+
+**Forme sans dossier : la bibliothèque de formes JSON** (sujets 529 à 531, SPEC §8.2, `COMPOSANT.md`). Une forme
+purement visuelle (contour en fractions des bornes, détails, style, palette) n'a pas besoin d'un dossier : l'hôte la
+charge par `engine.registerShapes(json)` au format `drawio-spatial/shapes`, et le tronc la dessine par les briques de
+`plugins/shapes/generic/library/` (forme chargée, forme non chargée ou introuvable). Un dossier n'est utile que pour un
+rendu, un clic, des poignées ou des réglages propres.
+
+**Objets animés** (sujets 538, 539, 553). Un maillage dont la géométrie porte `hue` (teinte de départ par sommet) et
+`color` peut faire tourner ses teintes par `spinHues(mesh, { turnsPerSecond, background, pulse?, gray? })` (API des
+plugins) : `pulse` (`Rhythm` : `beat` en secondes, `pattern` de 1 et de 0) le fait aller et venir depuis la couleur du
+fond. Le moteur redessine tant qu'un tel objet est visible, et attend pendant ses temps de pause ; l'animation suit
+l'horloge de l'image (une forme reconstruite garde sa phase). Exemple : le halo de la Metamorph
+(`plugins/shapes/general/metamorph/index.ts`).
 
 Restent hors de la définition, parce que ce sont des règles du format draw.io et non d'une forme :
 
