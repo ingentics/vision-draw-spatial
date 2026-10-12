@@ -2054,6 +2054,24 @@ body {
   padding: 2px 4px;
 }
 
+/* Mode Story telling (sujet 474) : numéro de l'histoire dans sa pastille de couleur, titre en lecture seule. */
+.color-dot.story-number {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  color: #000;
+}
+
+.story-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .mode-exports {
   display: grid;
   gap: 6px;

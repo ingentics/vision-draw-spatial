@@ -13,7 +13,9 @@ sujet.
   à part.
 - **Mode** de page « Story telling » (`spatial.mode=storytelling`, espace de noms `story`, nom court « Histoires ») ;
   icône dédiée (un acteur, puis une flèche avec une pastille). Tous les modes d'affichage permis (2D, iso, 3D).
-  **Palette** réduite à Acteur (`actor`) et Rectangle (`rectangle`) pour commencer.
+  **Palette** réduite à Acteur (`actor`), Droid (`actor-droid`, le robot) et Rectangle (`rectangle`) pour commencer. Au passage dans le mode, la page
+  prend l'ancrage automatique et le tracé droit (`page.defaults`), modifiables ensuite. Pas de grille sur la page
+  (sujet 537).
 - **Début d'histoire** : une flèche qui porte un numéro (`spatial.story.number`, à partir de 1) ouvre une histoire.
   - Son **texte est le titre** de l'histoire ; sans texte, « Histoire N ».
   - Les numéros restent **consécutifs** (1…n), chaque opération étant une étape d'annulation : changer un numéro
@@ -45,19 +47,37 @@ sujet.
   - pastille avec le numéro sur la flèche qui ouvre l'histoire (au-dessus du texte, plus petite sans texte, face à
     la caméra en iso / 3D) ; pas de pastille sur les flèches qui suivent ;
   - **histoire courante** : la première par défaut, celle d'une flèche cliquée ; le reste est estompé (flèches de
-    l'histoire et formes qu'elles relient restent nettes).
+    l'histoire et formes qu'elles relient restent nettes). Pas de barre en haut de la zone de dessin ; Tab passe à
+    l'histoire suivante (en boucle).
   - Réglages globaux (Paramètres › Modes › Histoires) : opacité hors de l'histoire courante, assombrissement du
     trait, apparence des pastilles (mêmes réglages que Séquences).
+  - Toutes les flèches de la page plus épaisses et arrêtées avant les formes, à l'écran seulement (habillage du sujet
+    536) : réglages « Épaisseur des flèches » (épaisseur minimale, 3 px par défaut, 1 à 8) et « Écart des flèches aux
+    formes » (10 px par défaut, 0 à 40).
 - **Copier-coller** : la copie perd `spatial.story.number` et `spatial.story.color`.
 - **Incohérences** (fichier modifié à la main) : numéros à trous, doublons ou illisibles remis en ordre à la lecture
   (tri par numéro, puis ordre de dessin), signalés dans Diagnostics, enregistrés à la prochaine modification.
 - **Export draw.io** : rien ne change, les attributs `spatial.story.*` restent sur les flèches ; le fichier s'ouvre
   dans draw.io.
+- **Export JSON** (bouton « Exporter en JSON » de la section « Histoires », fenêtre d'export commune comme Event
+  storming) : `{ "stories": [{ "number", "title", "steps": [{ "label", "from", "to" }] }] }`, histoires dans l'ordre
+  des numéros, étapes dans l'ordre de la suite ; `label` = texte de la flèche, `from` / `to` = texte des formes
+  reliées (`null` pour un bout libre), textes sur une ligne.
 - Fixture `tests/fixtures/storytelling.drawio` : deux acteurs et des rectangles, trois histoires dont deux qui se
   croisent sur une forme, une branche signalée, une boucle.
-- **Fini quand :** une page passée en mode Story telling propose Acteur et Rectangle dans la palette ; « + » sur une
-  flèche lui met la pastille 1 et la couleur de l'histoire, une flèche tirée depuis sa forme d'arrivée prend la même
-  couleur ; une deuxième histoire passe en 1 par « - » ou par ↑ dans le panneau, couleurs inchangées ; le titre de la
+- **Fini quand :** une page passée en mode Story telling propose Acteur, Droid et Rectangle dans la palette, en ancrage
+  auto et tracé droit ; « + » sur une flèche lui met la pastille 1 et la couleur de l'histoire, une flèche tirée
+  depuis sa forme d'arrivée prend la même couleur ; une deuxième histoire passe en 1 par « - » ou par ↑ dans le panneau, couleurs inchangées ; le titre de la
   liste suit le texte de la flèche ; une flèche partagée prend la couleur de l'histoire courante ; une branche est
-  signalée dans Diagnostics ; supprimer la flèche numérotée resserre les numéros ; ⌘Z défait chaque étape ; tests
-  du parcours (suite, croisement, branche, boucle), des numéros et de l'habillage ; `make check` vert.
+  signalée dans Diagnostics ; supprimer la flèche numérotée resserre les numéros ; ⌘Z défait chaque étape ;
+  l'export JSON liste les histoires avec leurs étapes ; tests du parcours (suite, croisement, branche, boucle), des
+  numéros et de l'habillage ; `make check` vert.
+- Fait : moteur `src/engine/plugins/modes/storytelling/` (`stories.ts` : numéros, suite calculée, croisement,
+  branche, boucle, opérations ; `export/json.ts` ; réglages repris de Séquences plus épaisseur et écart des flèches,
+  dette 532), appli `src/app/plugins/modes/storytelling/index.tsx` (section « Histoires »), fixture
+  `tests/fixtures/storytelling.drawio`, tests `tests/engine/plugins/modes/storytelling.test.ts`. Palette : Acteur, Droid
+  (robot) et Rectangle ; ancrage auto et tracé droit au passage dans le mode ; pas de grille (537) ; flèches plus
+  épaisses (3 px) et arrêtées à 10 px des formes (536) ; pas de barre du courant, Tab passe à l'histoire suivante.
+  Vu dans l'appli : palette, « + » / « - », couleurs inchangées, ⌘Z, branches dans Diagnostics, export JSON, 3D,
+  grille, flèches. Seulement par les tests : flèche tirée depuis une forme de l'histoire, boutons ↑ ↓ × du panneau,
+  suppression de la flèche numérotée, page « Numéros en désordre ».
